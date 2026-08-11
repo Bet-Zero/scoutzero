@@ -250,7 +250,7 @@ describe('mutationPipeline current-state ingress to normalized state', () => {
     expect(updatedPlayer).not.toHaveProperty('legacyPlayerIngressBlob');
   });
 
-  it('supports player-array contract compute after player normalization drops row baggage', () => {
+  it('rejects ungoverned player-array option compute before row baggage can mutate', () => {
     const optionPlayer = makePlayer('option_norm_1', 'Option Normalized', 9_500_000, 'LAL', {
       contract: makeContract(9_500_000, {
         salariesByYear: [
@@ -294,19 +294,10 @@ describe('mutationPipeline current-state ingress to normalized state', () => {
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
-
-    const updatedPlayer = result.playerUpdates?.[0]?.player;
-    const optionRow = updatedPlayer?.contract?.salariesByYear?.[1];
-    expect(optionRow).toMatchObject({
-      season: '2026-27',
-      salary: 10_500_000,
-      capHit: 10_500_000,
-      option: 'Player',
-      optionUsed: true,
-    });
-    expect(optionRow).not.toHaveProperty('legacyRowIngressBlob');
-    expect(updatedPlayer).not.toHaveProperty('legacyPlayerIngressBlob');
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Governed option decision requires');
+    expect(result.teamUpdates).toBeUndefined();
+    expect(result.playerUpdates).toBeUndefined();
   });
 
   it('keeps manual exception edits scoped while preserving exception history objects', () => {

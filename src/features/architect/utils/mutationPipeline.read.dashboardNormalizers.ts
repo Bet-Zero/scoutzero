@@ -341,6 +341,13 @@ export function buildGeneralMutationDashboardReloadTeamSnapshot(
     reloadSnapshot.capHolds = capHolds;
   }
 
+  if (team.rightsLedger !== undefined) {
+    reloadSnapshot.rightsLedger = team.rightsLedger;
+  }
+  if (team.contractEventLedgers !== undefined) {
+    reloadSnapshot.contractEventLedgers = team.contractEventLedgers;
+  }
+
   const deadCap = normalizeDashboardReloadDeadCap(team.deadCap);
   if (deadCap !== undefined) {
     reloadSnapshot.deadCap = deadCap;

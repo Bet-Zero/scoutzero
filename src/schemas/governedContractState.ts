@@ -119,6 +119,45 @@ export const ContractGuaranteeStepZ = z.strictObject({
   note: z.string().nullable(),
 });
 
+/**
+ * Immutable option/ETO rule inputs supplied by a governed contract source.
+ *
+ * The retained BZE-274 release intentionally has none of these records because
+ * it does not contain exact option deadlines. Keeping this object optional
+ * preserves that honest baseline while allowing a later governed release (and
+ * complete acceptance fixtures) to prove the executable BZE-275 route without
+ * inferring dates or amending an immutable baseline in the browser.
+ */
+export const GovernedOptionDecisionTermsZ = z.strictObject({
+  termsVersion: z.literal(1),
+  conditional: z.boolean(),
+  decisionWindowOpensAt: ContractTemporalValueZ,
+  contractEndsAt: ContractTemporalValueZ,
+  nonCompensationTermsMatchPriorSeason: z.boolean(),
+  compensationProtectionMatchesPriorSeason: z.boolean(),
+  rookieScaleOptionOrdinal: z.enum(['third', 'fourth']).nullable(),
+  rookieScaleFourthSeasonTermsMatchThird: z.boolean().nullable(),
+  playerOptionProtectionAlternative: z.enum(['A', 'B']).nullable(),
+  preExerciseProtectionApplies: z.boolean().nullable(),
+  teamLastGameAt: ContractTemporalValueZ,
+  rfaDeclarationDeadline: ContractTemporalValueZ,
+  etoOrigin: z.enum(['original-contract', 'rookie-scale-extension']).nullable(),
+  etoAddedDuringOriginalTerm: z.boolean().nullable(),
+  allowedNoticeMethods: z
+    .array(
+      z.enum([
+        'personal-delivery',
+        'email',
+        'certified-mail',
+        'registered-mail',
+        'facsimile',
+      ])
+    )
+    .min(1),
+  noticeRecipient: z.enum(['player', 'team']),
+  leagueForwardingRequired: z.boolean(),
+});
+
 export const ContractSalaryTermZ = z.strictObject({
   season: NullableStringZ,
   salary: NullableFiniteNumberZ,
@@ -130,6 +169,7 @@ export const ContractSalaryTermZ = z.strictObject({
   optionUsed: z.boolean().nullable(),
   optionDecisionDate: ContractTemporalValueZ,
   optionDecisionDeadline: ContractTemporalValueZ,
+  optionDecisionTerms: GovernedOptionDecisionTermsZ.nullable().optional(),
   tradeBonus: NullableFiniteNumberZ,
   incentives: z.strictObject({
     likely: NullableFiniteNumberZ,
@@ -219,5 +259,8 @@ export const GovernedContractStateZ = z.strictObject({
 export type ContractEvidenceStatus = z.infer<typeof ContractEvidenceStatusZ>;
 export type ContractTemporalValue = z.infer<typeof ContractTemporalValueZ>;
 export type ContractFieldEvidence = z.infer<typeof ContractFieldEvidenceZ>;
+export type GovernedOptionDecisionTerms = z.infer<
+  typeof GovernedOptionDecisionTermsZ
+>;
 export type GovernedContractTerms = z.infer<typeof GovernedContractTermsZ>;
 export type GovernedContractState = z.infer<typeof GovernedContractStateZ>;

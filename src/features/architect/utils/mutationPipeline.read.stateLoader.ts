@@ -26,6 +26,8 @@ import {
 import {
   toCurrentStateTeam,
 } from './mutationPipeline.read.normalizeTeam';
+import { loadWorldGovernedOptionAuthority } from '@/features/architect/utils/optionDecisions';
+import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
 
 // Wave 48 Step 1: lineage helpers extracted to submodule
 export * from './mutationPipeline.read.stateLoader.lineage';
@@ -465,8 +467,7 @@ export async function loadStateForMutation(
     }
 
     case 'waivePlayer': // fallthrough
-    case 'extendPlayer': // fallthrough
-    case 'optionDecision': {
+    case 'extendPlayer': {
       // Load single team and player
       const teamCode = payload.teamCode;
       const playerId = payload.playerId;
@@ -487,6 +488,39 @@ export async function loadStateForMutation(
         ),
         player: toCurrentStatePlayer(player),
         teamCode,
+      };
+    }
+
+    case 'optionDecision': {
+      const teamCode = payload.teamCode;
+      const playerId = payload.playerId;
+      const contractId = payload.contractId;
+      if (!teamCode || !playerId || !contractId) {
+        throw new Error(
+          'Governed option decision requires teamCode, playerId, and contractId.'
+        );
+      }
+      const [team, player] = (await Promise.all([
+        getTeam(worldId, teamCode),
+        getPlayer(worldId, teamCode, playerId),
+      ])) as [LoadedMutationTeam, LoadedMutationPlayer];
+      const optionAuthority = await loadWorldGovernedOptionAuthority({
+        worldId,
+        teamId: teamCode,
+        contractId: String(contractId),
+        overlays:
+          ((team as LoadedMutationTeam & {
+            contractEventLedgers?: ContractEventLedgerPayload[] | null;
+          })?.contractEventLedgers ?? []),
+      });
+      return {
+        team: toCurrentStateTeam(
+          team as MutationCurrentStateBaseTeamIngress | null,
+          'playerOps'
+        ),
+        player: toCurrentStatePlayer(player),
+        teamCode,
+        optionAuthority,
       };
     }
 

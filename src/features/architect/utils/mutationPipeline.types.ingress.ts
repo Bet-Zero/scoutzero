@@ -37,6 +37,7 @@ import type {
   TradeMutationPayload,
   WaiveMutationPayloadInput,
 } from './mutationPipeline.types.record';
+import type { GovernedOptionLedgerAuthority } from '@/features/architect/utils/optionDecisions/governedOptionDecision';
 import type {
   CurrentStateManualCapTeam,
   CurrentStateOfferSheetMirrorTeam,
@@ -94,6 +95,7 @@ export type MutationCurrentStateTeamCoreIngress = Omit<
     | 'roster'
     | 'capHolds'
     | 'rightsLedger'
+    | 'contractEventLedgers'
     | 'deadCap'
     | 'exceptions'
     | 'totals'
@@ -107,6 +109,7 @@ export type MutationCurrentStateTeamCoreIngress = Omit<
   | 'roster'
   | 'capHolds'
   | 'rightsLedger'
+  | 'contractEventLedgers'
   | 'deadCap'
   | 'exceptions'
   | 'totals'
@@ -115,6 +118,7 @@ export type MutationCurrentStateTeamCoreIngress = Omit<
   roster?: unknown[] | null;
   capHolds?: unknown[] | null;
   rightsLedger?: ArchitectMutationTeamRecord['rightsLedger'];
+  contractEventLedgers?: ArchitectMutationTeamRecord['contractEventLedgers'];
   deadCap?: unknown[] | null;
   exceptions?: ArchitectMutationTeamRecord['exceptions'] | null;
   totals?: ArchitectMutationTeamRecord['totals'] | null;
@@ -154,6 +158,7 @@ export type MutationCurrentStateClosedShape = {
   teamCode?: undefined;
   destinationTeamCode?: undefined;
   offerSheetId?: undefined;
+  optionAuthority?: undefined;
 };
 export type MutationCurrentStateTradeTeamEntryInput = {
   teamCode?: string | null;
@@ -174,11 +179,12 @@ export type MutationTeamOnlyCurrentStateIngress = Omit<
 };
 export type MutationTeamAndPlayerCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'teamCode'
+  'team' | 'player' | 'teamCode' | 'optionAuthority'
 > & {
   team?: MutationCurrentStateBaseTeamIngress | null;
   player?: MutationCurrentStatePlayerIngress | null;
   teamCode?: string | null;
+  optionAuthority?: GovernedOptionLedgerAuthority | null;
 };
 export type MutationSigningCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
@@ -232,6 +238,7 @@ export type MutationCurrentState = {
   destinationTeam?: TradeTeamLike | null;
   teamCode?: string | null;
   offerSheetId?: string | null;
+  optionAuthority?: GovernedOptionLedgerAuthority | null;
 };
 export type MutationTradeCurrentState = Omit<
   MutationCurrentStateClosedShape,
@@ -247,9 +254,9 @@ export type MutationTeamOnlyCurrentState = Omit<
   };
 export type MutationTeamAndPlayerCurrentState = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'teamCode'
+  'team' | 'player' | 'teamCode' | 'optionAuthority'
 > &
-  Pick<MutationCurrentState, 'team' | 'player' | 'teamCode'> & {
+  Pick<MutationCurrentState, 'team' | 'player' | 'teamCode' | 'optionAuthority'> & {
     team?: CurrentStatePlayerOpsTeam | null;
     player?: PlayerLike | null;
   };

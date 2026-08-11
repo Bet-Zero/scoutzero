@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { CapSheetFull } from '@/features/architect/capSheet/CapSheetFull';
 import type {
@@ -99,5 +99,108 @@ describe('CapSheetFull — rules profile indicators', () => {
     // actually ran because this file used a (broken) default import of the
     // named-only CapSheetFull export. Import fixed; QO-display gap recorded in
     // the Slice 2 progress ledger for the product owner to triage.
+  });
+});
+
+describe('CapSheetFull — governed option exposure', () => {
+  const optionTeam = {
+    teamCode: 'TST',
+    players: [
+      {
+        id: 'eto-player',
+        name: 'ETO Player',
+        contract: {
+          salariesByYear: [
+            { season: '2027-28', salary: 20_000_000, option: 'ETO' },
+          ],
+        },
+      },
+      {
+        id: 'blocked-player',
+        name: 'Blocked TO Player',
+        contract: {
+          salariesByYear: [
+            { season: '2026-27', salary: 12_000_000, option: 'TO' },
+          ],
+        },
+      },
+    ],
+  };
+
+  it('recognizes an ETO outside the old upcoming-year proxy as governed and launchable', () => {
+    const onLaunchContractAction = vi.fn();
+    render(
+      <CapSheetFull
+        teamCapSheet={optionTeam}
+        currentYear={2025}
+        onLaunchContractAction={onLaunchContractAction}
+        getOptionDecisionAvailability={(player, year) => ({
+          status: player.id === 'eto-player' ? 'ready' : 'needs-input',
+          playerId: String(player.id),
+          contractId: `contract-${player.id}`,
+          targetYear: year,
+          optionType: player.id === 'eto-player' ? 'ETO' : 'TO',
+          reasons:
+            player.id === 'eto-player'
+              ? []
+              : ['The exact contractual notice deadline must be an exact governed instant with a UTC offset.'],
+          noticeRequirements:
+            player.id === 'eto-player'
+              ? {
+                  deadline: '2027-06-29T17:00:00-04:00',
+                  windowOpensAt: '2027-06-01T09:00:00-04:00',
+                  allowedMethods: ['email'],
+                  recipientId: 'eto-player',
+                  recipientRole: 'player',
+                  leagueForwardingRequired: true,
+                }
+              : null,
+        })}
+      />
+    );
+
+    const etoCell = document.querySelector(
+      '[title="Record Early Termination Option decision"]'
+    );
+    expect(etoCell).toHaveAttribute(
+      'data-action-exposure-classification',
+      'V1 supported'
+    );
+    fireEvent.click(etoCell as Element);
+    expect(onLaunchContractAction).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'eto-player' }),
+      'eto',
+      2028
+    );
+  });
+
+  it('renders the exact missing-deadline record as Needs input', () => {
+    render(
+      <CapSheetFull
+        teamCapSheet={optionTeam}
+        currentYear={2025}
+        getOptionDecisionAvailability={(player, year) => ({
+          status: 'needs-input',
+          playerId: String(player.id),
+          contractId: `contract-${player.id}`,
+          targetYear: year,
+          optionType: player.id === 'eto-player' ? 'ETO' : 'TO',
+          reasons: [
+            'The exact contractual notice deadline must be an exact governed instant with a UTC offset.',
+          ],
+          noticeRequirements: null,
+        })}
+      />
+    );
+
+    expect(screen.getAllByText('Needs input').length).toBeGreaterThan(0);
+    const needsInputCells = document.querySelectorAll(
+      '[data-action-exposure-classification="Needs input"]'
+    );
+    expect(needsInputCells.length).toBeGreaterThanOrEqual(2);
+    expect(needsInputCells[0]).toHaveAttribute(
+      'data-needs-input-reason',
+      expect.stringContaining('exact contractual notice deadline')
+    );
   });
 });

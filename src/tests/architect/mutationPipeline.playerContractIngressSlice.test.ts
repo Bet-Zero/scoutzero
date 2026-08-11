@@ -180,7 +180,7 @@ function makeTeam(
 }
 
 describe('mutationPipeline player contract ingress slice', () => {
-  it('keeps current-contract mutation compute working while dropping unused current-contract ingress baggage', () => {
+  it('rejects ungoverned current-contract option ingress before any baggage can be persisted', () => {
     const player = makePlayer('option_ingress_1', 'Option Ingress One', 9_500_000, 'LAL', {
       contract: makeContract(9_500_000, {
         signedAt: '2024-07-06',
@@ -223,36 +223,10 @@ describe('mutationPipeline player contract ingress slice', () => {
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
-
-    const updatedPlayer = result.playerUpdates?.[0]?.player;
-    expect(updatedPlayer?.contract?.signingDate).toBe('2024-07-06');
-    expect(updatedPlayer?.contract?.birdRights).toEqual({ status: 'Full' });
-    expect(updatedPlayer?.contract?.freeAgency).toMatchObject({
-      type: 'UFA',
-      year: 2027,
-    });
-    expect(updatedPlayer?.contract?.salariesByYear?.[1]).toMatchObject({
-      season: '2026-27',
-      option: 'Player',
-      optionUsed: true,
-    });
-    expect(updatedPlayer?.contract?.salariesByYear?.[1]).not.toHaveProperty(
-      'legacyCurrentRowBlob'
-    );
-    expect(updatedPlayer?.contract).not.toHaveProperty('signedByCurrentTeam');
-    expect(updatedPlayer?.contract).not.toHaveProperty('isMaxContract');
-    expect(updatedPlayer?.contract).not.toHaveProperty('maxType');
-    expect(updatedPlayer?.contract).not.toHaveProperty(
-      'estimatedCapPercentage'
-    );
-    expect(updatedPlayer?.contract).not.toHaveProperty('supersededIn');
-    expect(updatedPlayer?.contract).not.toHaveProperty(
-      'supersededByContractRef'
-    );
-    expect(updatedPlayer?.contract).not.toHaveProperty(
-      'legacyCurrentContractBlob'
-    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Governed option decision requires');
+    expect(result.teamUpdates).toBeUndefined();
+    expect(result.playerUpdates).toBeUndefined();
   });
 
   it('keeps future-contract mutation compute working while using the smaller future-contract ingress slice', () => {

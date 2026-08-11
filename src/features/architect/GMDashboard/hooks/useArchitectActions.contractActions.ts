@@ -6,9 +6,12 @@
  * Wave 6 Step 5: Extracted from useArchitectActions.ts.
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import type { ArchitectMutationPayload } from '@/features/architect/utils/mutationPipeline';
+import type {
+  ArchitectMutationPayload,
+  ArchitectMutationTeamRecord,
+} from '@/features/architect/utils/mutationPipeline';
 import {
   computeExpectedCapHoldAmount,
   deriveFreeAgencyYearFromOptionSeason,
@@ -68,6 +71,14 @@ import {
   renounceGovernedRights,
 } from '@/features/architect/utils/rightsHistory';
 import type { ComputeNextTeam } from './useArchitectActions.persistenceHelpers';
+import {
+  applyGovernedOptionResult,
+  decideGovernedOption,
+  loadWorldGovernedOptionEntries,
+  type GovernedOptionDecisionAvailability,
+  type WorldGovernedOptionEntry,
+} from '@/features/architect/utils/optionDecisions';
+import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
 
 export type UseContractActionsParams = {
   currentYear: number;
@@ -127,6 +138,130 @@ export function useContractActions({
   openPlayerContractModalRoute,
   setTeamCapSheetSafe,
 }: UseContractActionsParams) {
+  const [governedOptionEntries, setGovernedOptionEntries] = useState<
+    readonly WorldGovernedOptionEntry[]
+  >([]);
+  const [governedOptionLoadState, setGovernedOptionLoadState] = useState<
+    'idle' | 'loading' | 'ready' | 'incompatible'
+  >('idle');
+  const [governedOptionLoadReason, setGovernedOptionLoadReason] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!worldId || !worldAsOfDate || !teamCode) {
+      setGovernedOptionEntries([]);
+      setGovernedOptionLoadState('idle');
+      setGovernedOptionLoadReason(null);
+      return () => {
+        active = false;
+      };
+    }
+    setGovernedOptionLoadState('loading');
+    setGovernedOptionLoadReason(null);
+    void loadWorldGovernedOptionEntries({
+      worldId,
+      teamId: teamCode,
+      overlays: teamCapSheet?.contractEventLedgers ?? [],
+      worldAsOfDate,
+    })
+      .then((entries) => {
+        if (!active) return;
+        setGovernedOptionEntries(entries);
+        setGovernedOptionLoadState('ready');
+      })
+      .catch((error) => {
+        if (!active) return;
+        setGovernedOptionEntries([]);
+        setGovernedOptionLoadState('incompatible');
+        setGovernedOptionLoadReason(
+          error instanceof Error
+            ? error.message
+            : 'Governed option history could not be loaded.'
+        );
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    teamCapSheet?.contractEventLedgers,
+    teamCode,
+    worldAsOfDate,
+    worldId,
+  ]);
+
+  const getOptionDecisionAvailability = useCallback(
+    (
+      player: ArchitectPlayer,
+      targetYear: number | null | undefined
+    ): GovernedOptionDecisionAvailability => {
+      const playerId = String(
+        player.id || player.player_id || player.name || ''
+      );
+      const normalizedTargetYear = Number(targetYear);
+      const fallback = (
+        status: 'needs-input' | 'incompatible',
+        reason: string
+      ): GovernedOptionDecisionAvailability =>
+        Object.freeze({
+          status,
+          playerId,
+          contractId: null,
+          targetYear: Number.isInteger(normalizedTargetYear)
+            ? normalizedTargetYear
+            : 0,
+          optionType: null,
+          reasons: Object.freeze([reason]),
+          noticeRequirements: null,
+        });
+      if (!worldId) {
+        return fallback(
+          'incompatible',
+          'Open a fresh governed Team Plan to record this option decision.'
+        );
+      }
+      if (!playerId || !Number.isInteger(normalizedTargetYear)) {
+        return fallback(
+          'needs-input',
+          'The player and exact option Season are required.'
+        );
+      }
+      if (governedOptionLoadState === 'loading') {
+        return fallback(
+          'needs-input',
+          'Checking the pinned contract deadline and notice terms…'
+        );
+      }
+      if (governedOptionLoadState === 'incompatible') {
+        return fallback(
+          'incompatible',
+          governedOptionLoadReason ||
+            'This Team Plan predates governed option history. Recreate it.'
+        );
+      }
+      const matches = governedOptionEntries.filter(
+        (entry) =>
+          entry.playerId === playerId &&
+          entry.targetYear === normalizedTargetYear
+      );
+      if (matches.length !== 1) {
+        return fallback(
+          matches.length > 1 ? 'incompatible' : 'needs-input',
+          matches.length > 1
+            ? 'More than one governed Contract claims this option Season.'
+            : 'No pinned governed Contract matches this player and option Season.'
+        );
+      }
+      return matches[0].availability;
+    },
+    [
+      governedOptionEntries,
+      governedOptionLoadReason,
+      governedOptionLoadState,
+      worldId,
+    ]
+  );
 
   const handleSetDeadCap = useCallback(
     (deadCap: DeadCapEntry[]): Promise<boolean> =>
@@ -432,6 +567,7 @@ export function useContractActions({
       const contextMap: Record<CapSheetModalActionType, ActionContext> = {
         po: 'option',
         to: 'option',
+        eto: 'option',
         ufa: 'freeAgent',
         rfa: 'freeAgent',
       };
@@ -767,198 +903,157 @@ export function useContractActions({
     ]
   );
 
-  // handleOptionDecision - directly updates teamCapSheet and manages cap holds
+  // Governed Full Cap Table TO/PO/ETO decision path.
   const handleOptionDecision = useCallback(
     async (
       player: ArchitectPlayer,
       accepted: boolean,
-      overrideMetadata?: OverrideMetadata | null,
-      targetYearOverride?: number | null
+      _overrideMetadata?: OverrideMetadata | null,
+      targetYearOverride?: number | null,
+      notice?: GovernedOptionNoticeInput | null
     ): Promise<MutationActionResult> => {
       const playerId = player.id || player.player_id || player.name;
-      const yearSeasonContext = buildYearSeasonContext(
-        targetYearOverride,
-        currentYear + 1
-      );
-      const targetYear = yearSeasonContext.actionYear;
-      const currentSeasonId = toSeasonCode(currentYear);
       if (!playerId) {
-        console.error('Option decision missing playerId', { player });
-        toast.error('Cannot save: Player ID missing');
         return { success: false, message: 'Cannot save: Player ID missing.' };
       }
-
+      if (!Number.isInteger(targetYearOverride)) {
+        return {
+          success: false,
+          message:
+            'Cannot save: the exact governed option Season is missing.',
+        };
+      }
+      const targetYear = targetYearOverride as number;
+      const availability = getOptionDecisionAvailability(player, targetYear);
+      if (availability.status !== 'ready' || !availability.contractId) {
+        const message =
+          availability.reasons[0] ||
+          'This option decision needs governed source input.';
+        reportMutationError(message, {
+          playerId,
+          targetYear,
+          availability,
+        });
+        return { success: false, message };
+      }
+      if (!notice) {
+        return {
+          success: false,
+          message:
+            'Enter the exact governed notice delivery and league-forwarding evidence before saving.',
+        };
+      }
+      if (!worldId || !worldAsOfDate || !userId || !teamCapSheet) {
+        return {
+          success: false,
+          message:
+            'A compatible saved Team Plan, governed date, and signed-in author are required.',
+        };
+      }
+      const entry = governedOptionEntries.find(
+        (candidate) =>
+          candidate.playerId === String(playerId) &&
+          candidate.targetYear === targetYear &&
+          candidate.contractId === availability.contractId
+      );
+      if (!entry) {
+        return {
+          success: false,
+          message: 'The governed option authority changed. Reload and try again.',
+        };
+      }
+      const preview = decideGovernedOption({
+        authority: entry.authority,
+        rightsLedger: teamCapSheet.rightsLedger,
+        worldId,
+        teamId: teamCode,
+        playerId: String(playerId),
+        contractId: entry.contractId,
+        baselineSalaryCapYear: entry.authority.baselineSalaryCapYear,
+        worldAsOfDate,
+        targetYear,
+        choice: accepted ? 'exercise' : 'decline',
+        notice,
+        operationId: `preview:${entry.contractId}:${targetYear}`,
+        authoringIdentity: userId,
+      });
+      if (!preview.success) {
+        const message =
+          preview.reasons[0] || 'This option decision needs governed input.';
+        reportMutationError(message, {
+          playerId,
+          targetYear,
+          reasons: preview.reasons,
+        });
+        return { success: false, message };
+      }
+      const optionType = preview.optionType;
+      const actionLabel =
+        optionType === 'ETO'
+          ? accepted
+            ? 'ETO exercised'
+            : 'ETO not exercised'
+          : accepted
+            ? `${optionType} exercised`
+            : `${optionType} declined`;
       const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'optionDecision',
         playerIds: [String(playerId)],
         invalidMessage: 'Option decision blocked by post-state cap validation.',
-        seasonIdOverride: currentSeasonId,
-        yearOverride: yearSeasonContext.actionYear,
-        computeNextTeam: (beforeTeam) => {
-          let newCapHold: CapHold | null = null;
-
-          const updatedPlayers = (beforeTeam.players || []).map((p) => {
-            if (
-              p.id === playerId ||
-              p.player_id === playerId ||
-              p.name === playerId
-            ) {
-              const salaries: SalaryByYear[] = p.contract?.salariesByYear || [];
-
-              // Find the option year entry
-              const optionIndex = salaries.findIndex((y) => {
-                const season = String(y.season);
-                const yearEnd = /^\d{4}-\d{2}$/.test(season)
-                  ? 2000 + parseInt(season.split('-')[1], 10)
-                  : parseInt(season, 10);
-                return yearEnd === targetYear && y.option;
-              });
-
-              if (optionIndex === -1) {
-                console.warn(`No option found for year ${targetYear}`);
-                return p;
-              }
-
-              // Mark option as used (canonical boolean format)
-              const updatedSalaries: SalaryByYear[] = [...salaries];
-              updatedSalaries[optionIndex] = {
-                ...updatedSalaries[optionIndex],
-                optionUsed: accepted, // CANONICAL: boolean, not string
-              };
-
-              if (!accepted) {
-                const optionSeason = salaries[optionIndex]?.season || null;
-                const faYearInfo = deriveFreeAgencyYearFromOptionSeason(
-                  optionSeason,
-                  targetYear
-                );
-                const freeAgencyYear =
-                  typeof faYearInfo.year === 'number'
-                    ? faYearInfo.year
-                    : targetYear - 1;
-
-                // Declining: remove this year and all future years
-                const filteredSalaries: SalaryByYear[] = salaries.filter(
-                  (_, idx) => idx < optionIndex
-                );
-
-                // Calculate cap hold for declined option
-                const priorRow = salaries[optionIndex - 1];
-                const lastSalary = priorRow?.salary ?? priorRow?.capHit ?? 0;
-                const rightsType = getRightsTypeFromPlayer(p);
-                const capHoldResult = computeExpectedCapHoldAmount({
-                  player: p,
-                  lastSalary,
-                  rules: null,
-                  rightsType,
-                });
-                if (lastSalary > 0 && capHoldResult.amount) {
-                  newCapHold = {
-                    playerId: p.id || p.player_id || p.name || '',
-                    playerName: p.displayName || p.name || '',
-                    amount: capHoldResult.amount,
-                    type: 'FA Cap Hold',
-                    season: toSeasonCode(targetYear),
-                    isSigned: false,
-                    reason: capHoldResult.usedFallback
-                      ? 'Declined Option (fallback multiplier)'
-                      : 'Declined Option',
-                    notes: capHoldResult.usedFallback
-                      ? 'Fallback multiplier used due to missing/unsupported Bird rights type.'
-                      : undefined,
-                    active: true,
-                  };
-                }
-
-                return {
-                  ...p,
-                  contract: {
-                    ...(p.contract || {}),
-                    salariesByYear: filteredSalaries,
-                    freeAgency: {
-                      year: freeAgencyYear,
-                      type: 'UFA' as const,
-                    },
-                  },
-                  freeAgentYear: freeAgencyYear,
-                };
-              }
-
-              // Accepted: just update the option status
-              return {
-                ...p,
-                contract: {
-                  ...(p.contract || {}),
-                  salariesByYear: updatedSalaries,
-                },
-              };
-            }
-            return p;
+        seasonIdOverride: toSeasonCode(entry.authority.baselineSalaryCapYear),
+        yearOverride: entry.authority.baselineSalaryCapYear,
+        computeNextTeam: (beforeTeam, context) => {
+          const committedPreview = decideGovernedOption({
+            authority: entry.authority,
+            rightsLedger: beforeTeam.rightsLedger,
+            worldId,
+            teamId: teamCode,
+            playerId: String(playerId),
+            contractId: entry.contractId,
+            baselineSalaryCapYear: entry.authority.baselineSalaryCapYear,
+            worldAsOfDate,
+            targetYear,
+            choice: accepted ? 'exercise' : 'decline',
+            notice,
+            operationId: context.operationId,
+            authoringIdentity: userId,
           });
-
-          // Update capHolds array
-          let updatedCapHolds = beforeTeam.capHolds || [];
-          const finalCapHold = newCapHold as CapHold | null;
-          if (finalCapHold) {
-            // Remove any existing hold for this player and add the new one
-            const holdPlayerId = finalCapHold.playerId;
-            updatedCapHolds = updatedCapHolds.filter(
-              (h) => h.playerId !== holdPlayerId
+          if (!committedPreview.success) {
+            throw new Error(
+              committedPreview.reasons[0] ||
+                'The governed option decision changed before local apply.'
             );
-            updatedCapHolds = [...updatedCapHolds, finalCapHold];
           }
-
-          const finalPlayers = accepted
-            ? updatedPlayers
-            : updatedPlayers.filter(
-                (p) =>
-                  p.id !== playerId &&
-                  p.player_id !== playerId &&
-                  p.name !== playerId
-              );
-          const updatedRoster = accepted
-            ? beforeTeam.roster
-            : (Array.isArray(beforeTeam.roster)
-                ? beforeTeam.roster
-                : []
-              ).filter((id) => String(id) !== String(playerId));
-
-          // Record override audit log if override was used
-          const overrideAuditLog = overrideMetadata?.overrideUsed
-            ? recordOverrideAudit(
-                beforeTeam,
-                accepted ? 'accept' : 'decline',
-                overrideMetadata.overrideReasons || [],
-                playerId,
-                normalizeOptionalMutationString(
-                  player.name || player.displayName
-                )
-              )
-            : beforeTeam.overrideAuditLog;
-
-          return {
-            ...beforeTeam,
-            roster: updatedRoster,
-            players: finalPlayers,
-            capHolds: updatedCapHolds,
-            ...(overrideAuditLog ? { overrideAuditLog } : {}),
-          };
+          return applyGovernedOptionResult({
+            team: beforeTeam as unknown as ArchitectMutationTeamRecord,
+            playerId: String(playerId),
+            result: committedPreview,
+          }).team as CapSheet;
         },
         persistPayload: {
           teamCode,
           playerId,
           accepted,
           targetYear,
+          contractId: entry.contractId,
+          optionNotice: notice,
         },
         receiptContext: {
-          actionType: accepted ? 'option-accept' : 'option-decline',
-          headlineOverride: accepted ? 'Option accepted' : 'Option declined',
+          actionType:
+            optionType === 'ETO'
+              ? accepted
+                ? 'eto-exercise'
+                : 'eto-decline'
+              : accepted
+                ? 'option-accept'
+                : 'option-decline',
+          headlineOverride: actionLabel,
           playerId,
           playerName:
             normalizeOptionalMutationString(
               player.displayName || player.name
             ) || null,
-          affectedSeasons: [yearSeasonContext.seasonId],
+          affectedSeasons: [toSeasonCode(targetYear)],
           effectAreas: ['roster', 'rights', 'cap', 'contract'],
         },
       });
@@ -969,10 +1064,16 @@ export function useContractActions({
       );
     },
     [
-      currentYear,
       applyCapAuditedTeamMutation,
       finalizeCapMutationResult,
+      getOptionDecisionAvailability,
+      governedOptionEntries,
+      reportMutationError,
+      teamCapSheet,
       teamCode,
+      userId,
+      worldAsOfDate,
+      worldId,
     ]
   );
 
@@ -997,6 +1098,7 @@ export function useContractActions({
     handleExtendContract,
     handleWaiveContract,
     handleOptionDecision,
+    getOptionDecisionAvailability,
     handleRenounceRights,
     capSheetDevTools,
     teamHistoryDevTools,

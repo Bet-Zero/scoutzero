@@ -247,6 +247,20 @@ const FUTURE_RFA_PLAYER = {
   },
 };
 
+const ETO_PLAYER = {
+  ...FUTURE_FA_PLAYER,
+  id: 'eto_player_1',
+  player_id: 'eto_player_1',
+  name: 'ETO Player',
+  displayName: 'ETO Player',
+  contract: {
+    ...FUTURE_FA_PLAYER.contract,
+    salariesByYear: FUTURE_FA_PLAYER.contract.salariesByYear.map((row) =>
+      row.season === '2027-28' ? { ...row, option: 'ETO' } : row
+    ),
+  },
+};
+
 const TEAM_CAP_SHEET = {
   teamCode: 'LAL',
   players: [FUTURE_FA_PLAYER, FUTURE_RFA_PLAYER],
@@ -535,5 +549,120 @@ describe('EditContractModal future-year action-year routing', () => {
     expect(onStoreOfferSheet.mock.calls[0][1]).toEqual(
       getOfferSheetPreflight.mock.calls[0][1]
     );
+  });
+
+  it('requires and dispatches exact governed notice evidence for an ETO', async () => {
+    const onOptionDecision = vi.fn().mockResolvedValue({ success: true });
+    const onClose = vi.fn();
+    render(
+      <EditContractModal
+        isOpen
+        onClose={onClose}
+        player={ETO_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2026}
+        targetYear={2028}
+        actionYear={2028}
+        actionContext="option"
+        initialAction="accept"
+        actionsOverride={['accept', 'decline']}
+        actionLabelsOverride={{
+          accept: 'Exercise ETO',
+          decline: 'Do Not Exercise ETO',
+        }}
+        optionDecisionAvailability={{
+          status: 'ready',
+          playerId: 'eto_player_1',
+          contractId: 'contract-eto-1',
+          targetYear: 2028,
+          optionType: 'ETO',
+          reasons: [],
+          noticeRequirements: {
+            deadline: '2027-06-29T17:00:00-04:00',
+            windowOpensAt: '2027-06-01T09:00:00-04:00',
+            allowedMethods: ['email'],
+            recipientId: 'eto_player_1',
+            recipientRole: 'player',
+            leagueForwardingRequired: true,
+          },
+        }}
+        onOptionDecision={onOptionDecision}
+      />
+    );
+
+    expect(screen.getAllByText('Exercise ETO').length).toBeGreaterThan(0);
+    expect(screen.getByText('Do Not Exercise ETO')).toBeInTheDocument();
+    expect(screen.getByTestId('governed-option-notice-form')).toHaveTextContent(
+      'No date is inferred'
+    );
+    const confirm = screen.getByTestId('edit-contract-confirm-action-button');
+    expect(confirm).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId('option-notice-delivered-at'), {
+      target: { value: '2027-06-29T16:30:00-04:00' },
+    });
+    fireEvent.change(screen.getByTestId('option-notice-league-received-at'), {
+      target: { value: '2027-06-29T16:31:00-04:00' },
+    });
+    fireEvent.change(screen.getByTestId('option-notice-pa-forwarded-at'), {
+      target: { value: '2027-06-30T09:00:00-04:00' },
+    });
+    expect(confirm).toBeEnabled();
+    fireEvent.click(confirm);
+
+    await waitFor(() => {
+      expect(onOptionDecision).toHaveBeenCalledWith(
+        ETO_PLAYER,
+        true,
+        null,
+        2028,
+        {
+          deliveredAt: '2027-06-29T16:30:00-04:00',
+          method: 'email',
+          recipient: 'eto_player_1',
+          leagueReceivedAt: '2027-06-29T16:31:00-04:00',
+          playersAssociationForwardedAt: '2027-06-30T09:00:00-04:00',
+        }
+      );
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a governed Needs input reason and cannot select a blocked decision', () => {
+    render(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={ETO_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2026}
+        targetYear={2028}
+        actionYear={2028}
+        actionContext="option"
+        actionsOverride={['accept', 'decline']}
+        optionDecisionAvailability={{
+          status: 'needs-input',
+          playerId: 'eto_player_1',
+          contractId: 'contract-eto-1',
+          targetYear: 2028,
+          optionType: 'ETO',
+          reasons: [
+            'The exact contractual notice deadline must be an exact governed instant with a UTC offset.',
+          ],
+          noticeRequirements: null,
+        }}
+        onOptionDecision={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText(/exact contractual notice deadline/i)
+    ).toBeInTheDocument();
+    const optionRadios = screen.getAllByRole('radio');
+    expect(optionRadios).toHaveLength(2);
+    optionRadios.forEach((radio) => expect(radio).toBeDisabled());
+    expect(
+      screen.queryByTestId('governed-option-notice-form')
+    ).not.toBeInTheDocument();
   });
 });

@@ -20,6 +20,8 @@ export interface CapHold {
   active: boolean;
   isSigned: boolean;
   reason?: string;
+  priorTeamOfferCeiling?: number;
+  governedContractEventId?: string;
 }
 
 /**

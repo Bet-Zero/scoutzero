@@ -215,6 +215,7 @@ export type OptionDecisionCallback = (
   accept: boolean,
   overrideMetadata?: OverrideMetadataLike | null,
   targetYear?: number | null,
+  notice?: GovernedOptionNoticeInput | null,
 ) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
 export type SignAndTradeCallback = (
@@ -278,6 +279,7 @@ export type EditContractModalProps = {
   onResign?: SigningActionCallback | null;
   onWaive?: WaiveCallback | null;
   onOptionDecision?: OptionDecisionCallback | null;
+  optionDecisionAvailability?: GovernedOptionDecisionAvailability | null;
   onExtend?: ExtendCallback | null;
   signAndTradeInitiation?: SignAndTradeInitiation | null;
   onSignAndTrade?: SignAndTradeCallback | null;
@@ -328,3 +330,5 @@ export type SigningExceptionOption = {
   value: string;
   label: string;
 };
+import type { GovernedOptionDecisionAvailability } from '@/features/architect/utils/optionDecisions';
+import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';

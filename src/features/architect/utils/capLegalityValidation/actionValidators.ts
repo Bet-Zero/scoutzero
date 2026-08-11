@@ -456,6 +456,67 @@ function getOptionRowForYear(
  * @param {number} params.currentYear - Current season end year
  * @returns {{valid: boolean, violations: Array, warnings: Array}}
  */
+type GovernedOptionValidationEvent = {
+  eventId: string;
+  eventKind:
+    | 'option-exercise'
+    | 'option-decline'
+    | 'eto-exercise'
+    | 'eto-decline';
+  freeAgentAmount: number | null;
+};
+
+function findGovernedOptionValidationEvent(
+  team: MutationTeam | null | undefined,
+  playerId: string
+): GovernedOptionValidationEvent | null {
+  const ledgers = Array.isArray(team?.contractEventLedgers)
+    ? team.contractEventLedgers
+    : [];
+  const candidates: Array<GovernedOptionValidationEvent & { version: number }> = [];
+  for (const ledgerValue of ledgers) {
+    const ledger = asRecordLike(ledgerValue);
+    const events = Array.isArray(ledger?.events) ? ledger.events : [];
+    for (const eventValue of events) {
+      const event = asRecordLike(eventValue);
+      const eventKind = event?.eventKind;
+      if (
+        event?.recordStatus !== 'current' ||
+        String(event?.playerId || '') !== playerId ||
+        ![
+          'option-exercise',
+          'option-decline',
+          'eto-exercise',
+          'eto-decline',
+        ].includes(String(eventKind))
+      ) {
+        continue;
+      }
+      const state = asRecordLike(event.resultingState);
+      const terms = asRecordLike(state?.terms);
+      const freeAgency = asRecordLike(terms?.freeAgency);
+      const capHold = freeAgency?.capHold;
+      candidates.push({
+        eventId: String(event.eventId || ''),
+        eventKind: eventKind as GovernedOptionValidationEvent['eventKind'],
+        freeAgentAmount:
+          typeof capHold === 'number' && Number.isFinite(capHold)
+            ? capHold
+            : null,
+        version: Number(event.resultingContractVersion || 0),
+      });
+    }
+  }
+  const latest = candidates.sort((left, right) => right.version - left.version)[0];
+  return latest
+    ? {
+        eventId: latest.eventId,
+        eventKind: latest.eventKind,
+        freeAgentAmount: latest.freeAgentAmount,
+      }
+    : null;
+}
+
 export function validateOptionDecision({
   originalTeam,
   updatedTeam,
@@ -481,6 +542,14 @@ export function validateOptionDecision({
     typeof targetYear === 'number' ? targetYear : Number(targetYear);
   const resolvedCurrentYear =
     typeof currentYear === 'number' ? currentYear : Number(currentYear);
+  const governedEvent = findGovernedOptionValidationEvent(
+    updatedTeam,
+    playerId || ''
+  );
+  const endsContract = governedEvent
+    ? governedEvent.eventKind === 'option-decline' ||
+      governedEvent.eventKind === 'eto-exercise'
+    : !accepted;
 
   // 1. Timing validation - can only decide options for upcoming season
   const hasValidTimingInput =
@@ -506,8 +575,8 @@ export function validateOptionDecision({
     }
   }
 
-  // 2. If accepting, check hard cap impact
-  if (accepted && isActionableOption && baselineTeam && baselinePlayer) {
+  // 2. If the decision retains the Contract, check hard cap impact.
+  if (!endsContract && isActionableOption && baselineTeam && baselinePlayer) {
     const rules = getCapRulesForYear(resolvedTargetYear);
 
     if (rules) {
@@ -613,11 +682,11 @@ export function validateOptionDecision({
                 'Accepted option but option year row is missing from contract.',
               severity: 'error',
             });
-          } else if (optionRow.optionUsed !== true) {
+          } else if (optionRow.optionUsed !== accepted) {
             violations.push({
               rule: 'option_accept_option_row_invalid',
               message:
-                'Accepted option but optionUsed is not true on the option year row.',
+                'The retained option row does not match the governed exercise direction.',
               severity: 'error',
             });
           }
@@ -626,8 +695,8 @@ export function validateOptionDecision({
     }
   }
 
-  // 3. If declining, validate cap hold transition and free agency state
-  if (!accepted && isActionableOption && baselineTeam && baselinePlayer) {
+  // 3. If the decision ends the Contract, validate cap hold and free agency.
+  if (endsContract && isActionableOption && baselineTeam && baselinePlayer) {
     // Check if cap hold should be expected
     const expectation = shouldExpectCapHoldOnDecline(
       baselinePlayer as Parameters<typeof shouldExpectCapHoldOnDecline>[0],
@@ -681,6 +750,14 @@ export function validateOptionDecision({
         const newHoldAmount = Number(
           (newHold as KnownCapHold | null | undefined)?.amount || 0
         );
+        const governedHold = asRecordLike(newHold);
+        const isGovernedHold = Boolean(
+          governedEvent &&
+            governedHold?.governedContractEventId === governedEvent.eventId
+        );
+        const authoritativeExpectedAmount = isGovernedHold
+          ? governedEvent?.freeAgentAmount ?? null
+          : capHoldExpectation?.amount ?? null;
 
         if (!amountCheck.valid) {
           violations.push({
@@ -688,8 +765,18 @@ export function validateOptionDecision({
             message: `Created cap hold is invalid: ${amountCheck.reason}`,
             severity: 'error',
           });
-        } else if (expectation.shouldCreate && capHoldExpectation) {
-          const expectedAmount = capHoldExpectation.amount;
+        } else if (isGovernedHold && authoritativeExpectedAmount === null) {
+          violations.push({
+            rule: 'cap_hold_transition_inputs_missing',
+            message:
+              'The governed Contract event does not establish the Free Agent Amount.',
+            severity: 'error',
+          });
+        } else if (
+          authoritativeExpectedAmount !== null &&
+          (expectation.shouldCreate || isGovernedHold)
+        ) {
+          const expectedAmount = authoritativeExpectedAmount;
           const amountDelta = Math.abs(newHoldAmount - expectedAmount);
           if (newHoldAmount <= 0) {
             violations.push({
@@ -725,7 +812,7 @@ export function validateOptionDecision({
         }
       }
 
-      if (capHoldExpectation?.usedFallback) {
+      if (capHoldExpectation?.usedFallback && !governedEvent) {
         const rightsLabel =
           capHoldExpectation.rightsType || 'missing rightsType';
         warnings.push({

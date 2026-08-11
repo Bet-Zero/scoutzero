@@ -1,349 +1,604 @@
-/**
- * Focused browser proof for the Full Cap Table Team Option V1 path.
- *
- * Run:
- *   PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true npx playwright test tests/e2e/architect-option-decision.spec.ts --reporter=line --workers=1
- */
+/** BZE-275 fresh-world Chromium proof for governed TO, PO, and ETO decisions. */
 
-import { test, expect, type Locator, type Page } from '@playwright/test';
+import {
+  test,
+  expect,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from '@playwright/test';
 import admin from 'firebase-admin';
 
-const MIA_URL = '/gm/MIA?season=2027';
-const MIA_PLAYER_OPTION_URL = '/gm/MIA?season=2028';
-const TEAM_CODE = 'MIA';
-const PLAYER_NAME = 'Andre Cole';
-const PLAYER_ID = 'mia_andre_cole';
-const TEAM_OPTION_SEASON = '2027-28';
-const OPTION_TARGET_YEAR = 2028;
-const PLAYER_OPTION_NAME = 'Theo Bennett';
-const PLAYER_OPTION_ID = 'mia_theo_bennett';
-const PLAYER_OPTION_SEASON = '2028-29';
-const PLAYER_OPTION_TARGET_YEAR = 2029;
-const REVIEW_FIRESTORE_EMULATOR_HOST = '127.0.0.1:8082';
-const REVIEW_FIRESTORE_PROJECT_ID = 'demo-architect-review';
-const REVIEW_WORLD_SEASON = '2026-27';
-const REVIEW_WORLD_AS_OF_DATE = '2026-07-01';
-const PLAYER_OPTION_REVIEW_WORLD_SEASON = '2027-28';
-const PLAYER_OPTION_REVIEW_WORLD_AS_OF_DATE = '2027-07-01';
-const DEV_LOCAL_STORAGE_FLAGS = {
-  'hz.dev.capSheetFixtures': 'true',
-  'hz.dev.offseasonPreview': 'true',
-  'hz.dev.teamHistoryFixtures': 'true',
-};
+import {
+  buildContractBaselineTeamDocuments,
+  contractBaselineMetadata,
+} from '../../src/features/architect/utils/contractSource/contractSourceRelease';
+import { deterministicStateDigest } from '../../src/features/architect/utils/contractSource/deterministicDigest';
+import { createRightsEventLedger } from '../../src/features/architect/utils/rightsHistory/rightsEventLedger';
+import type {
+  ContractSalaryTerm,
+  GovernedContractState,
+  GovernedOptionDecisionTerms,
+} from '../../src/schemas/governedContractState';
+import type {
+  ContractBaselineTeamDocument,
+  ContractSourceRelease,
+} from '../../src/schemas/contractSourceRelease';
+import {
+  RIGHTS_EVENT_LEDGER_PAYLOAD_VERSION,
+  type RightsEventRecord,
+} from '../../src/schemas/rightsEventLedger';
+import { makeResultingState } from '../architect/contractHistory/contractHistoryFixtures';
+import { makeRightsEstablishedEvent } from '../fixtures/architect/rightsHistory';
+import {
+  DEV_LOCAL_STORAGE_FLAGS,
+  getReviewAdminDb,
+  readActiveWorldId,
+  readReviewUserId,
+  waitForReviewDashboard,
+} from './helpers/architectReviewWorld';
 
+const TEAM_ID = 'MIA';
+const DASHBOARD_URL = '/gm/MIA?season=2027';
+const CURRENT_SEASON = '2026-27';
+const WORLD_AS_OF_DATE = '2027-07-01';
+const BASELINE_SALARY_CAP_YEAR = 2027;
+const TARGET_YEAR = 2028;
+const TARGET_SEASON = '2027-28';
+const DEADLINE = '2027-06-29T17:00:00-04:00';
+const WINDOW_OPENS = '2027-06-01T09:00:00-04:00';
+const CONTRACT_ENDS = '2027-07-01T00:00:00-04:00';
+const SOURCE_EFFECTIVE_AT = '2026-07-01T00:00:00-04:00';
+
+type OptionType = 'TO' | 'PO' | 'ETO';
+type Choice = 'exercise' | 'decline';
 type RecordLike = Record<string, unknown>;
 
-const isVisible = async (locator: Locator, timeout = 3000) =>
-  locator.isVisible({ timeout }).catch(() => false);
-
-const getReviewAdminDb = () => {
-  process.env.FIRESTORE_EMULATOR_HOST = REVIEW_FIRESTORE_EMULATOR_HOST;
-
-  const app =
-    admin.apps.find(
-      (existingApp) => existingApp.name === 'option-decision-proof'
-    ) ||
-    admin.initializeApp(
-      { projectId: REVIEW_FIRESTORE_PROJECT_ID },
-      'option-decision-proof'
-    );
-
-  return app.firestore();
+type FixturePlayer = {
+  playerId: string;
+  displayName: string;
+  optionType: OptionType;
+  contractId: string;
+  state: GovernedContractState;
+  player: RecordLike;
+  blocked: boolean;
 };
 
-const getWorldTeamDocument = async (worldId: string, teamCode: string) =>
-  (await getReviewAdminDb()
-    .doc(`architect_worlds/${worldId}/teams/${teamCode}`)
-    .get()
-    .then((snapshot) => snapshot.data())) as RecordLike | undefined;
+const instant = (value: string) => ({
+  precision: 'instant' as const,
+  value,
+  rawValue: value,
+});
 
-const getWorldEventDocuments = async (worldId: string) =>
-  (await getReviewAdminDb()
-    .collection(`architect_worlds/${worldId}/events`)
-    .get()
-    .then((snapshot) =>
-      snapshot.docs
-        .map((docSnapshot) => ({
-          id: docSnapshot.id,
-          ...(docSnapshot.data() as RecordLike),
-        }))
-        .sort((left, right) => {
-          const leftTimestamp = Date.parse(
-            String(left.occurredAt || left.timestamp || 0)
-          );
-          const rightTimestamp = Date.parse(
-            String(right.occurredAt || right.timestamp || 0)
-          );
-          return rightTimestamp - leftTimestamp;
-        })
-    )) as Array<RecordLike & { id: string }>;
+const unknownInstant = () => ({
+  precision: 'unknown' as const,
+  value: null,
+  rawValue: null,
+});
 
-const getPlayerIdFromEntry = (entry: unknown) => {
-  if (typeof entry === 'string') return entry;
-  if (!entry || typeof entry !== 'object') return '';
+const seasonForEndYear = (endYear: number) =>
+  `${endYear - 1}-${String(endYear % 100).padStart(2, '0')}`;
 
-  const record = entry as RecordLike;
-  return String(record.playerId || record.player_id || record.id || '');
+const optionTerms = (optionType: OptionType): GovernedOptionDecisionTerms => ({
+  termsVersion: 1,
+  conditional: false,
+  decisionWindowOpensAt: instant(WINDOW_OPENS),
+  contractEndsAt: instant(CONTRACT_ENDS),
+  nonCompensationTermsMatchPriorSeason: true,
+  compensationProtectionMatchesPriorSeason: true,
+  rookieScaleOptionOrdinal: null,
+  rookieScaleFourthSeasonTermsMatchThird: null,
+  playerOptionProtectionAlternative: optionType === 'PO' ? 'A' : null,
+  preExerciseProtectionApplies: optionType === 'PO' ? true : null,
+  teamLastGameAt: unknownInstant(),
+  rfaDeclarationDeadline: unknownInstant(),
+  etoOrigin: optionType === 'ETO' ? 'original-contract' : null,
+  etoAddedDuringOriginalTerm: optionType === 'ETO' ? false : null,
+  allowedNoticeMethods: ['email', 'certified-mail'],
+  noticeRecipient: optionType === 'TO' ? 'team' : 'player',
+  leagueForwardingRequired: true,
+});
+
+const salaryRow = ({
+  endYear,
+  index,
+  optionType = null,
+  blocked = false,
+}: {
+  endYear: number;
+  index: number;
+  optionType?: OptionType | null;
+  blocked?: boolean;
+}): ContractSalaryTerm => {
+  const salary = 8_000_000 + index * 1_000_000;
+  return {
+    season: seasonForEndYear(endYear),
+    salary,
+    capHit: salary,
+    guaranteed: true,
+    guaranteedAmount: salary,
+    option: optionType,
+    optionHolder: optionType === 'TO' ? 'team' : optionType ? 'player' : null,
+    optionUsed: null,
+    optionDecisionDate: unknownInstant(),
+    optionDecisionDeadline:
+      optionType && !blocked ? instant(DEADLINE) : unknownInstant(),
+    optionDecisionTerms: optionType ? optionTerms(optionType) : null,
+    tradeBonus: null,
+    incentives: {
+      likely: index * 100_000,
+      unlikely: index * 50_000,
+      criteriaEvidence: 'known',
+    },
+    guaranteeSchedule: [],
+    voidedByExtension: false,
+    voidedOn: unknownInstant(),
+  };
 };
 
-const getTeamPlayerIds = (teamDocument: RecordLike | undefined) => {
-  if (!teamDocument) return [] as string[];
-
-  const rawPlayers = Array.isArray(teamDocument.players)
-    ? teamDocument.players
-    : Array.isArray(teamDocument.roster)
-      ? teamDocument.roster
-      : [];
-
-  return rawPlayers.map(getPlayerIdFromEntry).filter(Boolean);
+const buildFixturePlayer = ({
+  worldId,
+  optionType,
+  suffix,
+  blocked = false,
+}: {
+  worldId: string;
+  optionType: OptionType;
+  suffix: string;
+  blocked?: boolean;
+}): FixturePlayer => {
+  const playerId = `bze275_${optionType.toLowerCase()}_${suffix}`;
+  const displayName = `BZE 275 ${optionType} ${suffix}`;
+  const contractId = `${playerId}_contract`;
+  const rowCount = optionType === 'ETO' ? 5 : 3;
+  const firstEndYear = TARGET_YEAR - rowCount + 1;
+  const salaries = Array.from({ length: rowCount }, (_, index) =>
+    salaryRow({
+      endYear: firstEndYear + index,
+      index,
+      optionType: index === rowCount - 1 ? optionType : null,
+      blocked: index === rowCount - 1 && blocked,
+    })
+  );
+  const totalValue = salaries.reduce((sum, row) => sum + (row.salary ?? 0), 0);
+  const state = makeResultingState({
+    contractId,
+    contractVersion: 1,
+    playerId,
+    teamId: TEAM_ID,
+    establishmentKind: 'source-establishment',
+    terms: {
+      ...makeResultingState().terms,
+      contractType: 'VETERAN CONTRACT',
+      isExtension: false,
+      isRookieScale: false,
+      signedUsing: 'Bird Exception',
+      signingTeam: TEAM_ID,
+      startSeason: salaries[0].season,
+      endSeason: TARGET_SEASON,
+      contractLength: salaries.length,
+      totalValue,
+      averageAnnualValue: Math.round(totalValue / salaries.length),
+      guaranteedValue: totalValue,
+      guaranteedYears: salaries.length,
+      salaries,
+      birdRights: {
+        status: 'Full Bird',
+        yearsOfService: 8,
+        yearsWithTeam: 4,
+        eligibleFor: ['Bird Exception'],
+      },
+      freeAgency: {
+        type: 'UFA',
+        year: TARGET_YEAR,
+        capHold: null,
+        qualifyingOffer: null,
+        earlyTerminationOption: optionType === 'ETO' ? 'ETO' : null,
+        hasOption: true,
+        optionYear: TARGET_SEASON,
+        optionType,
+      },
+      sourceLimitations: blocked
+        ? ['Exact contractual notice deadline is absent.']
+        : [],
+    },
+  });
+  const mutableContract = {
+    contractType: state.terms.contractType,
+    isExtension: false,
+    isRookieScale: false,
+    signingTeam: TEAM_ID,
+    startSeason: state.terms.startSeason,
+    endSeason: state.terms.endSeason,
+    contractLength: state.terms.contractLength,
+    years: state.terms.contractLength,
+    yearsRemaining: state.terms.contractLength,
+    totalValue: state.terms.totalValue,
+    averageAnnualValue: state.terms.averageAnnualValue,
+    guaranteedValue: state.terms.guaranteedValue,
+    guaranteedYears: state.terms.guaranteedYears,
+    salariesByYear: salaries.map((row) => ({
+      season: row.season,
+      salary: row.salary,
+      capHit: row.capHit,
+      guaranteed: row.guaranteed,
+      guaranteedAmount: row.guaranteedAmount,
+      option: row.option,
+      optionUsed: row.optionUsed,
+    })),
+    birdRights: state.terms.birdRights,
+    freeAgency: state.terms.freeAgency,
+  };
+  const player = {
+    id: playerId,
+    playerId,
+    player_id: playerId,
+    name: displayName,
+    displayName,
+    teamCode: TEAM_ID,
+    teamId: TEAM_ID,
+    teamName: 'Miami Heat',
+    position: 'F',
+    age: 28,
+    salary: salaries[0].salary,
+    currentSalary: salaries[0].salary,
+    contract: mutableContract,
+    futureContract: null,
+    bio: {
+      playerId,
+      displayName,
+      position: 'F',
+      age: 28,
+      experience: 8,
+    },
+    source: { provider: 'bze-275-playwright', type: 'governed-fixture' },
+  };
+  return {
+    playerId,
+    displayName,
+    optionType,
+    contractId,
+    state,
+    player,
+    blocked,
+  };
 };
 
-const findTeamPlayer = (
-  teamDocument: RecordLike | undefined,
-  playerId: string
-) => {
-  const players = Array.isArray(teamDocument?.players)
-    ? teamDocument.players
-    : [];
-
-  return players.find((player) => getPlayerIdFromEntry(player) === playerId) as
-    | RecordLike
-    | undefined;
+const buildSupportPlayer = (worldLabel: string, index: number): RecordLike => {
+  const playerId = `bze275_${worldLabel.toLowerCase()}_support_${index}`;
+  const displayName = `BZE Support ${worldLabel} ${index}`;
+  return {
+    id: playerId,
+    playerId,
+    player_id: playerId,
+    name: displayName,
+    displayName,
+    teamCode: TEAM_ID,
+    teamId: TEAM_ID,
+    teamName: 'Miami Heat',
+    position: 'F',
+    age: 25,
+    salary: 2_000_000,
+    currentSalary: 2_000_000,
+    contract: {
+      contractType: 'MINIMUM CONTRACT',
+      isExtension: false,
+      isRookieScale: false,
+      signingTeam: TEAM_ID,
+      startSeason: CURRENT_SEASON,
+      endSeason: TARGET_SEASON,
+      contractLength: 2,
+      years: 2,
+      yearsRemaining: 2,
+      totalValue: 4_000_000,
+      averageAnnualValue: 2_000_000,
+      guaranteedValue: 4_000_000,
+      guaranteedYears: 2,
+      salariesByYear: [
+        {
+          season: CURRENT_SEASON,
+          salary: 2_000_000,
+          capHit: 2_000_000,
+          guaranteed: true,
+          guaranteedAmount: 2_000_000,
+          option: null,
+        },
+        {
+          season: TARGET_SEASON,
+          salary: 2_000_000,
+          capHit: 2_000_000,
+          guaranteed: true,
+          guaranteedAmount: 2_000_000,
+          option: null,
+        },
+      ],
+      birdRights: { status: 'Non-Bird', eligibleFor: ['Minimum Exception'] },
+      freeAgency: { type: 'UFA', year: TARGET_YEAR, capHold: 0 },
+    },
+    futureContract: null,
+    bio: {
+      playerId,
+      displayName,
+      position: 'F',
+      age: 25,
+      experience: 2,
+    },
+    source: { provider: 'bze-275-playwright', type: 'support-fixture' },
+  };
 };
 
-const getOptionSalaryRow = (
-  teamDocument: RecordLike | undefined,
-  playerId: string,
-  optionSeason = TEAM_OPTION_SEASON,
-  optionTargetYear = OPTION_TARGET_YEAR
-) => {
-  const player = findTeamPlayer(teamDocument, playerId);
-  const contract =
-    player?.contract && typeof player.contract === 'object'
-      ? (player.contract as RecordLike)
-      : null;
-  const salaries = Array.isArray(contract?.salariesByYear)
-    ? contract.salariesByYear
-    : [];
+const releaseFor = (
+  fixtures: readonly FixturePlayer[]
+): ContractSourceRelease => ({
+  schemaVersion: 1,
+  releaseId: `bze-275-browser-${fixtures[0]?.optionType.toLowerCase() ?? 'fixture'}`,
+  releaseVersion: 1,
+  releaseDigest:
+    '7777777777777777777777777777777777777777777777777777777777777777',
+  supersedes: null,
+  effectiveAt: SOURCE_EFFECTIVE_AT,
+  salaryCapYear: BASELINE_SALARY_CAP_YEAR,
+  source: {
+    provider: 'BZE-275 Playwright fixture',
+    retainedCorpus:
+      'Synthetic complete fixtures; not production source repair.',
+    selectionPolicy: 'Only the bounded browser proof records.',
+    transformationId: 'bze-275-browser-fixture-v1',
+    limitations: [
+      'The retained production release remains 0 option-ready / 243 option-blocked.',
+    ],
+    evidenceCatalog: {
+      transformations: [
+        {
+          id: 'bze-275-browser-fixture-v1',
+          description: 'Explicit complete governed option fixture.',
+        },
+      ],
+      limitations: [],
+    },
+  },
+  observations: [],
+  records: fixtures.map((fixture) => ({
+    contractId: fixture.contractId,
+    contractVersion: 1 as const,
+    playerId: fixture.playerId,
+    teamId: TEAM_ID,
+    sourceObservationId: `observation-${fixture.playerId}`,
+    sourceContractPath: 'contract' as const,
+    resultingState: fixture.state,
+  })),
+  coverage: {
+    sourceObservationCount: fixtures.length,
+    uniquePlayerCount: fixtures.length,
+    totalSourceContracts: fixtures.length,
+    completeRecordIds: fixtures
+      .filter((fixture) => !fixture.blocked)
+      .map((fixture) => fixture.contractId),
+    needsInputRecordIds: fixtures
+      .filter((fixture) => fixture.blocked)
+      .map((fixture) => fixture.contractId),
+    excludedCorruptRecordIds: [],
+    missingByCategory: fixtures.some((fixture) => fixture.blocked)
+      ? [
+          {
+            category: 'option-decision-deadline',
+            recordIds: fixtures
+              .filter((fixture) => fixture.blocked)
+              .map((fixture) => fixture.contractId),
+          },
+        ]
+      : [],
+    laterRouteReadiness: {
+      option: {
+        readyRecordIds: fixtures
+          .filter((fixture) => !fixture.blocked)
+          .map((fixture) => fixture.contractId),
+        blockedRecordIds: fixtures
+          .filter((fixture) => fixture.blocked)
+          .map((fixture) => fixture.contractId),
+        missingByCategory: [],
+      },
+      extension: {
+        readyRecordIds: [],
+        blockedRecordIds: fixtures.map((fixture) => fixture.contractId),
+        missingByCategory: [
+          {
+            category: 'extension-route-not-in-fixture',
+            recordIds: fixtures.map((fixture) => fixture.contractId),
+          },
+        ],
+      },
+    },
+  },
+});
 
-  return salaries.find((row) => {
-    if (!row || typeof row !== 'object') return false;
-    const record = row as RecordLike;
-    return (
-      String(record.season || '') === optionSeason ||
-      Number(record.year) === optionTargetYear
-    );
-  }) as RecordLike | undefined;
-};
-
-const getCapHold = (
-  teamDocument: RecordLike | undefined,
-  playerId: string
-) => {
-  const capHolds = Array.isArray(teamDocument?.capHolds)
-    ? teamDocument.capHolds
-    : [];
-
-  return capHolds.find((hold) => {
-    if (!hold || typeof hold !== 'object') return false;
-    return String((hold as RecordLike).playerId || '') === playerId;
-  }) as RecordLike | undefined;
-};
-
-const getOptionDecisionEvent = async (
+const rightsLedgerFor = (
   worldId: string,
-  accepted: boolean,
-  playerId = PLAYER_ID
+  fixtures: readonly FixturePlayer[]
 ) => {
-  const events = await getWorldEventDocuments(worldId);
-
-  return events.find((event) => {
-    const metadata =
-      event.metadata && typeof event.metadata === 'object'
-        ? (event.metadata as RecordLike)
-        : event.mutationMetadata && typeof event.mutationMetadata === 'object'
-          ? (event.mutationMetadata as RecordLike)
-          : {};
-    const payload =
-      event.payload && typeof event.payload === 'object'
-        ? (event.payload as RecordLike)
-        : {};
-    const eventText = JSON.stringify(event);
-
-    return (
-      event.mutationType === 'optionDecision' &&
-      eventText.includes(playerId) &&
-      [metadata.accepted, payload.accepted, event.accepted].includes(accepted)
-    );
+  const events = fixtures.map((fixture, index) => {
+    const event = makeRightsEstablishedEvent({
+      salaryCapYear: TARGET_YEAR,
+      eventOverrides: {
+        eventId: `rights-established-${fixture.playerId}`,
+        worldId,
+        teamId: TEAM_ID,
+        playerId: fixture.playerId,
+        effectiveAt: CONTRACT_ENDS.slice(0, 10),
+        executedAt: CONTRACT_ENDS.slice(0, 10),
+        recordedAt: `2027-07-01T00:${String(index + 1).padStart(2, '0')}:00-04:00`,
+        resultingState: {
+          stateId: `rights-ledger:${fixture.playerId}:rights-state`,
+          stateVersion: 1,
+        },
+      },
+    });
+    return {
+      ...event,
+      serviceSeasons: event.serviceSeasons.map((season) => ({
+        ...season,
+        creditedTeamId: season.creditedTeamId === null ? null : TEAM_ID,
+        rightsTeamId: TEAM_ID,
+      })),
+      priorContract: {
+        ...event.priorContract,
+        contractId: fixture.contractId,
+      },
+    } as RightsEventRecord;
+  });
+  return createRightsEventLedger({
+    payloadVersion: RIGHTS_EVENT_LEDGER_PAYLOAD_VERSION,
+    ledgerId: `${worldId}:${TEAM_ID}:rights`,
+    ledgerVersion: 1,
+    worldId,
+    teamId: TEAM_ID,
+    events,
   });
 };
 
-const waitForOptionDecisionEvent = async (
+const writeBaselineDocuments = async (
   worldId: string,
-  accepted: boolean,
-  playerId = PLAYER_ID
+  documents: readonly ContractBaselineTeamDocument[]
 ) => {
-  await expect
-    .poll(
-      async () =>
-        Boolean(await getOptionDecisionEvent(worldId, accepted, playerId)),
-      {
-        timeout: 20000,
-        message: `optionDecision event should persist for ${playerId}`,
-      }
-    )
-    .toBe(true);
+  const db = getReviewAdminDb();
+  const batch = db.batch();
+  documents.forEach((document) => {
+    batch.set(
+      db.doc(
+        `architect_worlds/${worldId}/contractBaselines/${document.shardId}`
+      ),
+      document
+    );
+  });
+  await batch.commit();
 };
 
-const readReviewUserId = async (page: Page): Promise<string> =>
-  page
-    .evaluate(
-      () =>
-        new Promise<string>((resolve) => {
-          let settled = false;
-          const finish = (value: string) => {
-            if (settled) return;
-            settled = true;
-            resolve(value);
-          };
-          const timer = setTimeout(() => finish(''), 4000);
-          try {
-            const request = indexedDB.open('firebaseLocalStorageDb');
-            request.onerror = () => {
-              clearTimeout(timer);
-              finish('');
-            };
-            request.onsuccess = () => {
-              const idb = request.result;
-              try {
-                const store = idb
-                  .transaction('firebaseLocalStorage', 'readonly')
-                  .objectStore('firebaseLocalStorage');
-                const getAll = store.getAll();
-                getAll.onerror = () => {
-                  clearTimeout(timer);
-                  finish('');
-                };
-                getAll.onsuccess = () => {
-                  clearTimeout(timer);
-                  const records = (getAll.result || []) as Array<{
-                    fbase_key?: string;
-                    value?: { uid?: string } | string;
-                  }>;
-                  const authRecord = records.find((record) =>
-                    String(record.fbase_key || '').includes('authUser')
-                  );
-                  let value: { uid?: string } | string | undefined =
-                    authRecord?.value;
-                  if (typeof value === 'string') {
-                    try {
-                      value = JSON.parse(value) as { uid?: string };
-                    } catch {
-                      value = undefined;
-                    }
-                  }
-                  finish(
-                    value &&
-                      typeof value === 'object' &&
-                      typeof value.uid === 'string'
-                      ? value.uid
-                      : ''
-                  );
-                };
-              } catch {
-                clearTimeout(timer);
-                finish('');
-              }
-            };
-          } catch {
-            clearTimeout(timer);
-            finish('');
-          }
-        })
-    )
-    .catch(() => '');
-
-const readActiveWorldId = async (page: Page) =>
-  page
-    .evaluate(() => {
-      const storageKey = Object.keys(window.localStorage).find((key) =>
-        key.startsWith('architect.activeWorldId.')
-      );
-
-      return storageKey ? window.localStorage.getItem(storageKey) || '' : '';
-    })
-    .catch(() => '');
-
-const seedReviewWorld = async (
-  userId: string,
-  label: string,
-  currentSeason = REVIEW_WORLD_SEASON,
-  asOfDate = REVIEW_WORLD_AS_OF_DATE
-) => {
-  const worldId = `world_option_decision_${Date.now()}_${Math.random()
+const seedOptionWorld = async ({
+  userId,
+  optionType,
+  includeBlocked,
+}: {
+  userId: string;
+  optionType: OptionType;
+  includeBlocked: boolean;
+}) => {
+  const db = getReviewAdminDb();
+  const worldId = `world_bze275_${optionType.toLowerCase()}_${Date.now()}_${Math.random()
     .toString(36)
-    .slice(2, 9)}`;
+    .slice(2, 7)}`;
+  const actionFixtures = [
+    buildFixturePlayer({ worldId, optionType, suffix: 'Exercise' }),
+    buildFixturePlayer({ worldId, optionType, suffix: 'Decline' }),
+  ];
+  const fixtures = includeBlocked
+    ? [
+        ...actionFixtures,
+        buildFixturePlayer({
+          worldId,
+          optionType,
+          suffix: 'Missing Deadline',
+          blocked: true,
+        }),
+      ]
+    : actionFixtures;
+  const supportCount = 15 - fixtures.length;
+  const supportPlayers = Array.from({ length: supportCount }, (_, index) =>
+    buildSupportPlayer(optionType, index + 1)
+  );
+  const players = [
+    ...fixtures.map((fixture) => fixture.player),
+    ...supportPlayers,
+  ];
+  const release = releaseFor(fixtures);
+  const baselineDocuments = buildContractBaselineTeamDocuments(
+    release,
+    worldId
+  );
+  const metadata = contractBaselineMetadata(release);
   const now = admin.firestore.Timestamp.now();
-  await getReviewAdminDb().doc(`architect_worlds/${worldId}`).set({
+  await db.doc(`architect_worlds/${worldId}`).set({
     worldId,
-    worldName: `Option Decision Proof ${label}`,
-    description: '',
+    worldName: `BZE 275 ${optionType} Review`,
+    description: `Governed ${optionType} browser proof.`,
     createdBy: userId,
     createdAt: now,
     lastModifiedAt: now,
-    currentSeason,
-    baselineSeason: currentSeason,
-    asOfDate,
+    currentSeason: CURRENT_SEASON,
+    baselineSeason: CURRENT_SEASON,
+    asOfDate: WORLD_AS_OF_DATE,
     parentWorldId: null,
     branchedFrom: null,
     childWorlds: [],
-    modifiedTeams: [],
+    modifiedTeams: [TEAM_ID],
+    lastModifiedTeams: [TEAM_ID],
     actionCount: 0,
-    tags: [],
+    tags: ['review', 'bze-275', optionType],
     isArchived: false,
     isFavorite: false,
+    rightsLedgerVersion: 1,
+    ...metadata,
     stats: {
       totalTrades: 0,
       totalSignings: 0,
       totalWaives: 0,
       totalRenounces: 0,
-      teamsInvolved: 0,
+      teamsInvolved: 1,
     },
   });
-  return worldId;
+  const team = {
+    id: TEAM_ID,
+    teamCode: TEAM_ID,
+    teamName: 'Miami Heat',
+    abbreviation: TEAM_ID,
+    season: CURRENT_SEASON,
+    players,
+    roster: players.map((player) => player.playerId),
+    activeContracts: players.map((player) => ({
+      name: player.displayName,
+      player_id: player.playerId,
+      contract: player.contract,
+      years: (player.contract as RecordLike).yearsRemaining,
+      type: (player.contract as RecordLike).contractType,
+      signAndTrade: false,
+      guaranteed: true,
+    })),
+    capHolds: [],
+    deadCap: [],
+    exceptions: {},
+    draftPicks: [],
+    entitlementIds: [],
+    offerSheets: [],
+    incomingOfferSheets: [],
+    rightsLedger: rightsLedgerFor(worldId, fixtures),
+    contractEventLedgers: [],
+    totals: {
+      totalSalary: players.reduce(
+        (sum, player) => sum + Number(player.currentSalary || 0),
+        0
+      ),
+      rosterCount: players.length,
+      isHardCapped: false,
+    },
+    source: {
+      type: 'review-world-bze-275-fixture',
+      provider: 'playwright',
+      worldId,
+    },
+  };
+  await db.doc(`architect_worlds/${worldId}/teams/${TEAM_ID}`).set(team);
+  const playerBatch = db.batch();
+  players.forEach((player) => {
+    playerBatch.set(
+      db.doc(`architect_basePlayers/${String(player.playerId)}`),
+      player
+    );
+  });
+  await playerBatch.commit();
+  await writeBaselineDocuments(worldId, baselineDocuments);
+  return { worldId, fixtures };
 };
 
-const waitForMiaDashboard = async (page: Page) => {
-  const fullCapTab = page.getByRole('tab', { name: /^Full Cap Table$/i });
-  const noTeamData = page.getByText(/^No team data$/i);
-  const loadingDashboard = page.getByText(/^Loading GM Dashboard/i);
-
-  await expect
-    .poll(
-      async () => {
-        const stillLoading = await isVisible(loadingDashboard, 1000);
-        const hasFullCapTab = await isVisible(fullCapTab, 1000);
-        const hasNoTeamData = await isVisible(noTeamData, 1000);
-        return !stillLoading && (hasFullCapTab || hasNoTeamData);
-      },
-      {
-        timeout: 60000,
-        message: 'MIA review dashboard should reach an interactive state',
-      }
-    )
-    .toBe(true);
-
-  expect(
-    await isVisible(noTeamData, 1000),
-    'MIA review fixture should be seeded before option proof'
-  ).toBe(false);
-};
-
-const activateSeededWorld = async (
-  page: Page,
-  userId: string,
-  worldId: string
-) => {
+const activateWorld = async (page: Page, userId: string, worldId: string) => {
   await page.evaluate(
     ({ uid, wid }) => {
       window.localStorage.setItem(`architect.activeWorldId.${uid}`, wid);
@@ -351,548 +606,516 @@ const activateSeededWorld = async (
     { uid: userId, wid: worldId }
   );
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await waitForMiaDashboard(page);
-
-  const worldMenuTrigger = page.getByTestId('cockpit-world-menu-trigger');
-  await expect(worldMenuTrigger).toBeVisible({ timeout: 20000 });
+  await waitForReviewDashboard(page);
   await expect
-    .poll(
-      async () =>
-        ((await worldMenuTrigger.textContent()) || '').includes('Sandbox'),
-      {
-        timeout: 20000,
-        message: `cockpit should leave Sandbox after restoring ${worldId}`,
-      }
-    )
-    .toBe(false);
-};
-
-const ensureWorldSelected = async (
-  page: Page,
-  label: string,
-  currentSeason = REVIEW_WORLD_SEASON,
-  asOfDate = REVIEW_WORLD_AS_OF_DATE
-) => {
-  await expect
-    .poll(async () => await readReviewUserId(page), {
-      timeout: 25000,
-      message: 'anonymous review uid should initialize',
-    })
-    .not.toBe('');
-
-  const userId = await readReviewUserId(page);
-  const worldId = await seedReviewWorld(
-    userId,
-    label,
-    currentSeason,
-    asOfDate
-  );
-  await activateSeededWorld(page, userId, worldId);
-  return worldId;
-};
-
-const ensureSpecificWorldSelected = async (page: Page, worldId: string) => {
-  await expect
-    .poll(async () => await readActiveWorldId(page), {
-      timeout: 10000,
-      message: `world ${worldId} should remain active after reload`,
-    })
+    .poll(() => readActiveWorldId(page), { timeout: 20_000 })
     .toBe(worldId);
 };
 
-const enableDevAuditFlags = async (page: Page) => {
-  await page.addInitScript((flags) => {
-    Object.entries(flags).forEach(([key, value]) => {
-      window.localStorage.setItem(key, value);
-    });
-  }, DEV_LOCAL_STORAGE_FLAGS);
-};
-
-const openDashboardTab = async (page: Page, label: string) => {
-  const tab = page.getByRole('tab', {
-    name: new RegExp(`^${label}$`, 'i'),
-  });
-  await expect(tab).toBeVisible();
+const openTab = async (page: Page, label: string) => {
+  const tab = page.getByRole('tab', { name: new RegExp(`^${label}$`, 'i') });
+  await expect(tab).toBeVisible({ timeout: 20_000 });
   await tab.click();
 };
 
-const optionDecisionRow = (
-  page: Page,
-  playerName = PLAYER_NAME
-): Locator =>
+const playerRow = (page: Page, playerName: string) =>
   page.locator('[data-cap-fit-row]').filter({
     has: page
       .getByTestId('cap-sheet-full-player-row-button')
       .filter({ hasText: playerName }),
   });
 
-const openTeamOptionModal = async (page: Page) => {
-  await openDashboardTab(page, 'Full Cap Table');
-
-  const row = optionDecisionRow(page).first();
-  await expect(row).toBeVisible({ timeout: 20000 });
-  await expect(row).toContainText(PLAYER_NAME);
-
-  const teamOptionCell = row
-    .locator(
-      '[title="Manage Team Option"], [title="Preview: manage Team Option"]'
-    )
+const optionCell = (page: Page, playerName: string) =>
+  playerRow(page, playerName)
+    .locator('[data-action-exposure-classification]')
     .first();
-  await expect(teamOptionCell).toBeVisible({ timeout: 15000 });
-  await expect(teamOptionCell).toHaveAttribute(
-    'data-action-exposure-classification',
-    'V1 supported'
-  );
-  await expect(teamOptionCell).toHaveAttribute('title', 'Manage Team Option');
-  await teamOptionCell.click();
 
-  const modal = page.getByTestId('edit-contract-modal');
-  await expect(modal).toBeVisible({ timeout: 20000 });
-  await expect(modal.getByTestId('contract-modal-action-context')).toContainText(
-    PLAYER_NAME
-  );
-  await expect(modal.getByTestId('contract-modal-action-context')).toContainText(
-    TEAM_OPTION_SEASON
-  );
-  await expect(modal.getByText(/^Accept Option$/i).first()).toBeVisible();
-  await expect(modal.getByText(/^Decline Option$/i).first()).toBeVisible();
-  await expect(modal.getByText(/Accept Option \(Preview\)/i)).toHaveCount(0);
-  await expect(modal.getByText(/Decline Option \(Preview\)/i)).toHaveCount(0);
-  await expect(
-    modal.getByText(/Sign New Contract \(Preview\)/i).first()
-  ).toBeVisible();
-
-  return modal;
-};
-
-const openPlayerOptionModal = async (page: Page) => {
-  await openDashboardTab(page, 'Full Cap Table');
-
-  const row = optionDecisionRow(page, PLAYER_OPTION_NAME).first();
-  await expect(row).toBeVisible({ timeout: 20000 });
-  await expect(row).toContainText(PLAYER_OPTION_NAME);
-
-  const playerOptionCell = row
-    .locator(
-      '[title="Record Player Option decision"], [title="Preview: manage Player Option"]'
-    )
-    .first();
-  await expect(playerOptionCell).toBeVisible({ timeout: 15000 });
-  await expect(playerOptionCell).toHaveAttribute(
-    'data-action-exposure-classification',
-    'V1 supported'
-  );
-  await expect(playerOptionCell).toHaveAttribute(
-    'title',
-    'Record Player Option decision'
-  );
-  await playerOptionCell.click();
-
-  const modal = page.getByTestId('edit-contract-modal');
-  await expect(modal).toBeVisible({ timeout: 20000 });
-  await expect(modal.getByTestId('contract-modal-action-context')).toContainText(
-    PLAYER_OPTION_NAME
-  );
-  await expect(modal.getByTestId('contract-modal-action-context')).toContainText(
-    PLAYER_OPTION_SEASON
-  );
-  await expect(
-    modal.getByText(/Record the player's decision/i).first()
-  ).toBeVisible();
-  await expect(modal.getByText(/^Accept Option$/i).first()).toBeVisible();
-  await expect(modal.getByText(/^Decline Option$/i).first()).toBeVisible();
-  await expect(modal.getByText(/Accept Option \(Preview\)/i)).toHaveCount(0);
-  await expect(modal.getByText(/Decline Option \(Preview\)/i)).toHaveCount(0);
-  await expect(
-    modal.getByText(/Sign New Contract \(Preview\)/i).first()
-  ).toBeVisible();
-
-  return modal;
-};
-
-const commitOptionDecision = async (
-  page: Page,
-  modal: Locator,
-  worldId: string,
-  decision: 'Accept' | 'Decline',
-  playerId = PLAYER_ID
-) => {
+const fillNotice = async (modal: Locator) => {
+  await modal.getByTestId('option-notice-delivered-at').fill(DEADLINE);
   await modal
-    .getByRole('radio', { name: new RegExp(`${decision} Option`, 'i') })
-    .check();
-  const confirmActionButton = modal.getByTestId(
-    'edit-contract-confirm-action-button'
-  );
-  await expect(confirmActionButton).toBeEnabled();
-  await confirmActionButton.click();
-  await expect(modal).toHaveCount(0, { timeout: 20000 });
-  await waitForOptionDecisionEvent(worldId, decision === 'Accept', playerId);
+    .getByTestId('option-notice-league-received-at')
+    .fill('2027-06-29T17:01:00-04:00');
+  await modal
+    .getByTestId('option-notice-pa-forwarded-at')
+    .fill('2027-06-30T09:00:00-04:00');
 };
 
-test.describe('ARCH-OPTION-DECISION: Full Cap Team Option saved-world proof', () => {
+const recordDecision = async ({
+  page,
+  fixture,
+  choice,
+}: {
+  page: Page;
+  fixture: FixturePlayer;
+  choice: Choice;
+}) => {
+  await openTab(page, 'Full Cap Table');
+  const cell = optionCell(page, fixture.displayName);
+  await expect(cell).toHaveAttribute(
+    'data-action-exposure-classification',
+    'V1 supported',
+    { timeout: 20_000 }
+  );
+  await cell.click();
+  const modal = page.getByTestId('edit-contract-modal');
+  await expect(modal).toBeVisible({ timeout: 20_000 });
+  const label =
+    fixture.optionType === 'ETO'
+      ? choice === 'exercise'
+        ? 'Exercise ETO'
+        : 'Do Not Exercise ETO'
+      : choice === 'exercise'
+        ? `Exercise ${fixture.optionType === 'TO' ? 'Team' : 'Player'} Option`
+        : `Decline ${fixture.optionType === 'TO' ? 'Team' : 'Player'} Option`;
+  await modal
+    .getByRole('radio', { name: new RegExp(`^${label}`, 'i') })
+    .check();
+  await fillNotice(modal);
+  const confirm = modal.getByTestId('edit-contract-confirm-action-button');
+  await expect(confirm).toBeEnabled();
+  await confirm.click();
+  await expect(modal).toHaveCount(0, { timeout: 25_000 });
+  await waitForReviewDashboard(page);
+  const endsContract =
+    fixture.optionType === 'ETO' ? choice === 'exercise' : choice === 'decline';
+  if (endsContract) {
+    await expect(playerRow(page, fixture.displayName)).toHaveCount(0, {
+      timeout: 20_000,
+    });
+  } else {
+    await expect(optionCell(page, fixture.displayName)).toHaveAttribute(
+      'data-action-exposure-classification',
+      'recorded',
+      { timeout: 20_000 }
+    );
+  }
+};
+
+const capture = async (page: Page, testInfo: TestInfo, label: string) => {
+  await page.screenshot({
+    path: testInfo.outputPath(`${label}.png`),
+    fullPage: true,
+  });
+};
+
+const worldTeam = async (worldId: string) =>
+  getReviewAdminDb()
+    .doc(`architect_worlds/${worldId}/teams/${TEAM_ID}`)
+    .get()
+    .then((snapshot) => snapshot.data() as RecordLike | undefined);
+
+const worldEvents = async (worldId: string) =>
+  getReviewAdminDb()
+    .collection(`architect_worlds/${worldId}/events`)
+    .get()
+    .then((snapshot) =>
+      snapshot.docs.map((entry) => entry.data() as RecordLike)
+    );
+
+const teamPlayerIds = (team: RecordLike | undefined) =>
+  (Array.isArray(team?.players) ? team.players : [])
+    .map((player) =>
+      typeof player === 'object' && player
+        ? String(
+            (player as RecordLike).playerId ||
+              (player as RecordLike).player_id ||
+              ''
+          )
+        : String(player)
+    )
+    .filter(Boolean);
+
+const assertAllSurfaces = async ({
+  page,
+  optionType,
+  retained,
+  ended,
+  worldName,
+}: {
+  page: Page;
+  optionType: OptionType;
+  retained: FixturePlayer;
+  ended: FixturePlayer;
+  worldName: string;
+}) => {
+  await openTab(page, 'Full Cap Table');
+  await expect(optionCell(page, retained.displayName)).toHaveAttribute(
+    'data-action-exposure-classification',
+    'recorded',
+    { timeout: 20_000 }
+  );
+  await expect(playerRow(page, ended.displayName)).toHaveCount(0);
+
+  await openTab(page, 'Roster');
+  const roster = page.getByRole('region', { name: /^Roster$/i });
+  await expect(
+    roster
+      .getByRole('button', {
+        name: new RegExp(`^${retained.displayName}\\b`, 'i'),
+      })
+      .first()
+  ).toBeVisible();
+  await expect(
+    roster.getByRole('button', {
+      name: new RegExp(`^${ended.displayName}\\b`, 'i'),
+    })
+  ).toHaveCount(0);
+
+  await openTab(page, 'Cap Sheet');
+  await page.getByRole('button', { name: TARGET_SEASON, exact: true }).click();
+  const capSheet = page.getByRole('region', { name: /^Cap Sheet$/i });
+  await expect(
+    capSheet.getByText(retained.displayName, { exact: true }).first()
+  ).toBeVisible();
+  await capSheet
+    .getByRole('button', { name: /Show cap hold details/i })
+    .click();
+  await expect(
+    capSheet.getByText(ended.displayName, { exact: true }).first()
+  ).toBeVisible();
+  await expect(capSheet).toContainText(/21[,.]?850[,.]?000|21\.85M/i);
+  if (optionType === 'ETO') {
+    await expect(page.getByText('ETO', { exact: true }).first()).toBeVisible();
+  }
+
+  await openTab(page, 'Team History');
+  await expect(
+    page.getByText(retained.displayName, { exact: false }).first()
+  ).toBeVisible();
+  await expect(
+    page.getByText(ended.displayName, { exact: false }).first()
+  ).toBeVisible();
+
+  await openTab(page, 'Compare');
+  await expect(page.getByTestId('comparison-event-count')).toContainText(
+    /2\s+committed events/i,
+    { timeout: 20_000 }
+  );
+
+  const worldTrigger = page.getByTestId('cockpit-world-menu-trigger');
+  await expect(worldTrigger).toContainText(worldName);
+};
+
+const rewriteWorldIdentity = (
+  value: unknown,
+  parentWorldId: string,
+  childWorldId: string
+): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((entry) =>
+      rewriteWorldIdentity(entry, parentWorldId, childWorldId)
+    );
+  }
+  if (!value || typeof value !== 'object') {
+    return typeof value === 'string'
+      ? value.split(parentWorldId).join(childWorldId)
+      : value;
+  }
+  if (value instanceof admin.firestore.Timestamp) return value;
+  return Object.fromEntries(
+    Object.entries(value as RecordLike).map(([key, nested]) => [
+      key,
+      rewriteWorldIdentity(nested, parentWorldId, childWorldId),
+    ])
+  );
+};
+
+/**
+ * Materialize a test-only child for the explicit synthetic contract fixtures.
+ * The production branch callable correctly refuses records that do not
+ * byte-for-byte match the retained deployment; its rewrite/cleanup behavior
+ * remains covered by the BZE-274 browser proof and BZE-275 focused unit proof.
+ */
+const branchFixtureWorld = async (
+  page: Page,
+  userId: string,
+  parentWorldId: string,
+  branchName: string
+) => {
+  const db = getReviewAdminDb();
+  const childWorldId = `world_bze275_branch_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 7)}`;
+  const parent = await db.doc(`architect_worlds/${parentWorldId}`).get();
+  const parentTeam = await db
+    .doc(`architect_worlds/${parentWorldId}/teams/${TEAM_ID}`)
+    .get();
+  const baselines = await db
+    .collection(`architect_worlds/${parentWorldId}/contractBaselines`)
+    .get();
+  const events = await db
+    .collection(`architect_worlds/${parentWorldId}/events`)
+    .get();
+  const playerOverrides = await db
+    .collection(`architect_worlds/${parentWorldId}/teams/${TEAM_ID}/players`)
+    .get();
+  if (!parent.exists || !parentTeam.exists) {
+    throw new Error('Synthetic parent world is incomplete.');
+  }
+
+  const batch = db.batch();
+  const now = admin.firestore.Timestamp.now();
+  batch.set(db.doc(`architect_worlds/${childWorldId}`), {
+    ...(rewriteWorldIdentity(
+      parent.data(),
+      parentWorldId,
+      childWorldId
+    ) as RecordLike),
+    worldId: childWorldId,
+    worldName: branchName,
+    createdBy: userId,
+    createdAt: now,
+    lastModifiedAt: now,
+    parentWorldId,
+    branchedFrom: now,
+    childWorlds: [],
+  });
+  batch.update(db.doc(`architect_worlds/${parentWorldId}`), {
+    childWorlds: admin.firestore.FieldValue.arrayUnion(childWorldId),
+  });
+  batch.set(
+    db.doc(`architect_worlds/${childWorldId}/teams/${TEAM_ID}`),
+    rewriteWorldIdentity(
+      parentTeam.data(),
+      parentWorldId,
+      childWorldId
+    ) as RecordLike
+  );
+  baselines.docs.forEach((snapshot) => {
+    const rewritten = rewriteWorldIdentity(
+      snapshot.data(),
+      parentWorldId,
+      childWorldId
+    ) as RecordLike;
+    const { documentDigest: _digest, ...withoutDigest } = rewritten;
+    batch.set(
+      db.doc(
+        `architect_worlds/${childWorldId}/contractBaselines/${snapshot.id}`
+      ),
+      {
+        ...withoutDigest,
+        documentDigest: deterministicStateDigest(withoutDigest),
+      }
+    );
+  });
+  events.docs.forEach((snapshot) => {
+    batch.set(
+      db.doc(`architect_worlds/${childWorldId}/events/${snapshot.id}`),
+      rewriteWorldIdentity(
+        snapshot.data(),
+        parentWorldId,
+        childWorldId
+      ) as RecordLike
+    );
+  });
+  playerOverrides.docs.forEach((snapshot) => {
+    batch.set(
+      db.doc(
+        `architect_worlds/${childWorldId}/teams/${TEAM_ID}/players/${snapshot.id}`
+      ),
+      rewriteWorldIdentity(
+        snapshot.data(),
+        parentWorldId,
+        childWorldId
+      ) as RecordLike
+    );
+  });
+  await batch.commit();
+  await activateWorld(page, userId, childWorldId);
+  return childWorldId;
+};
+
+test.describe('BZE-275 governed Full Cap Table option/ETO browser proof', () => {
+  test.describe.configure({ mode: 'serial', timeout: 300_000 });
+
   test.beforeEach(async ({ page }) => {
-    await enableDevAuditFlags(page);
-    await page.goto(MIA_URL, { waitUntil: 'domcontentloaded' });
-    await waitForMiaDashboard(page);
-  });
-
-  test('MIA Full Cap Team Option accepts, persists, and reloads', async ({
-    page,
-  }) => {
-    const worldId = await ensureWorldSelected(page, 'Accept');
-
-    const modal = await openTeamOptionModal(page);
-    await commitOptionDecision(page, modal, worldId, 'Accept');
-
-    const persistedTeamDocument = await getWorldTeamDocument(worldId, TEAM_CODE);
-    expect(getTeamPlayerIds(persistedTeamDocument)).toContain(PLAYER_ID);
-    expect(getOptionSalaryRow(persistedTeamDocument, PLAYER_ID)?.optionUsed).toBe(
-      true
-    );
-
-    const optionDecisionEvent = await getOptionDecisionEvent(worldId, true);
-    expect(optionDecisionEvent).toBeTruthy();
-
-    await openDashboardTab(page, 'Full Cap Table');
-    await expect(optionDecisionRow(page).first()).toContainText(PLAYER_NAME);
-
-    await openDashboardTab(page, 'Roster');
-    const rosterRegion = page.getByRole('region', { name: /^Roster$/i });
-    await expect(
-      rosterRegion.getByRole('button', { name: /Andre Cole/i }).first()
-    ).toBeVisible();
-
-    await openDashboardTab(page, 'Team History');
-    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
-    await expect(
-      page.getByText(/Option Decision:\s*mia_andre_cole\s*\(accepted\)/i)
-        .first()
-    ).toBeVisible();
-
-    await openDashboardTab(page, 'Compare');
-    await expect(page.getByTestId('comparison-event-count')).toContainText(
-      /1\s+committed event/i,
-      { timeout: 20000 }
-    );
-    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
-      /1\s+team changed/i
-    );
-    await expect(page.getByTestId('comparison-changed-players')).toContainText(
-      /1\s+player touched/i
-    );
-    await expect(page.getByTestId('comparison-roster-changed')).toContainText(
-      PLAYER_ID
-    );
-    await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
-
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await waitForMiaDashboard(page);
-    await ensureSpecificWorldSelected(page, worldId);
-    await openDashboardTab(page, 'Roster');
-    const reloadedRosterRegion = page.getByRole('region', {
-      name: /^Roster$/i,
+    page.on('console', (message) => {
+      if (
+        message.type() === 'error' &&
+        !message.text().includes('Failed to load resource')
+      ) {
+        console.error(`[browser] ${message.text()}`);
+      }
     });
-    await expect(
-      reloadedRosterRegion
-        .getByRole('button', { name: /Andre Cole/i })
-        .first()
-    ).toBeVisible();
-
-    const persistedTeamDocumentAfterReload = await getWorldTeamDocument(
-      worldId,
-      TEAM_CODE
-    );
-    expect(
-      getOptionSalaryRow(persistedTeamDocumentAfterReload, PLAYER_ID)
-        ?.optionUsed
-    ).toBe(true);
-  });
-
-  test('MIA Full Cap Team Option declines, persists, and reloads', async ({
-    page,
-  }) => {
-    const worldId = await ensureWorldSelected(page, 'Decline');
-
-    const modal = await openTeamOptionModal(page);
-    await commitOptionDecision(page, modal, worldId, 'Decline');
-
-    const persistedTeamDocument = await getWorldTeamDocument(worldId, TEAM_CODE);
-    expect(getTeamPlayerIds(persistedTeamDocument)).not.toContain(PLAYER_ID);
-    expect(findTeamPlayer(persistedTeamDocument, PLAYER_ID)).toBeUndefined();
-    expect(getOptionSalaryRow(persistedTeamDocument, PLAYER_ID)).toBeUndefined();
-    const capHold = getCapHold(persistedTeamDocument, PLAYER_ID);
-    expect(capHold).toBeTruthy();
-    expect(capHold?.season).toBe(TEAM_OPTION_SEASON);
-    expect(Number(capHold?.amount || 0)).toBeGreaterThan(0);
-
-    const optionDecisionEvent = await getOptionDecisionEvent(worldId, false);
-    expect(optionDecisionEvent).toBeTruthy();
-
-    await openDashboardTab(page, 'Full Cap Table');
-    await expect(optionDecisionRow(page)).toHaveCount(0);
-    await page.getByTestId('cap-sheet-full-cap-holds-toggle').click();
-    await expect(page.getByText(PLAYER_NAME).first()).toBeVisible();
-
-    await openDashboardTab(page, 'Roster');
-    const rosterRegion = page.getByRole('region', { name: /^Roster$/i });
-    await expect(
-      rosterRegion.getByRole('button', { name: /Andre Cole/i })
-    ).toHaveCount(0);
-
-    await openDashboardTab(page, 'Team History');
-    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
-    await expect(
-      page.getByText(/Option Decision:\s*mia_andre_cole\s*\(declined\)/i)
-        .first()
-    ).toBeVisible();
-
-    await openDashboardTab(page, 'Compare');
-    await expect(page.getByTestId('comparison-event-count')).toContainText(
-      /1\s+committed event/i,
-      { timeout: 20000 }
-    );
-    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
-      /1\s+team changed/i
-    );
-    await expect(page.getByTestId('comparison-changed-players')).toContainText(
-      /1\s+player touched/i
-    );
-    // BZE-218: Compare prints owner-facing display names, not raw player ids.
-    await expect(page.getByTestId('comparison-roster-removals')).toContainText(
-      PLAYER_NAME
-    );
-    await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
-
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await waitForMiaDashboard(page);
-    await ensureSpecificWorldSelected(page, worldId);
-    await openDashboardTab(page, 'Roster');
-    const reloadedRosterRegion = page.getByRole('region', {
-      name: /^Roster$/i,
+    page.on('pageerror', (error) => {
+      console.error(`[browser-pageerror] ${error.message}`);
     });
-    await expect(
-      reloadedRosterRegion.getByRole('button', { name: /Andre Cole/i })
-    ).toHaveCount(0);
-
-    const persistedTeamDocumentAfterReload = await getWorldTeamDocument(
-      worldId,
-      TEAM_CODE
-    );
-    expect(getTeamPlayerIds(persistedTeamDocumentAfterReload)).not.toContain(
-      PLAYER_ID
-    );
-    expect(
-      getCapHold(persistedTeamDocumentAfterReload, PLAYER_ID)
-    ).toBeTruthy();
-  });
-});
-
-test.describe('ARCH-OPTION-DECISION: Full Cap Player Option saved-world proof', () => {
-  test.beforeEach(async ({ page }) => {
-    await enableDevAuditFlags(page);
-    await page.goto(MIA_PLAYER_OPTION_URL, { waitUntil: 'domcontentloaded' });
-    await waitForMiaDashboard(page);
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.addInitScript((flags) => {
+      Object.entries(flags).forEach(([key, value]) =>
+        window.localStorage.setItem(key, value)
+      );
+    }, DEV_LOCAL_STORAGE_FLAGS);
+    await page.goto(DASHBOARD_URL, { waitUntil: 'domcontentloaded' });
+    await waitForReviewDashboard(page);
   });
 
-  test('MIA Full Cap Player Option records acceptance, persists, and reloads', async ({
-    page,
-  }) => {
-    const worldId = await ensureWorldSelected(
-      page,
-      'Player Option Accept',
-      PLAYER_OPTION_REVIEW_WORLD_SEASON,
-      PLAYER_OPTION_REVIEW_WORLD_AS_OF_DATE
-    );
+  for (const optionType of ['TO', 'PO', 'ETO'] as const) {
+    test(`${optionType} both directions persist, reload, and branch${
+      optionType === 'TO' ? '; missing deadline stays unchanged' : ''
+    }`, async ({ page }, testInfo) => {
+      await expect
+        .poll(() => readReviewUserId(page), { timeout: 25_000 })
+        .not.toBe('');
+      const userId = await readReviewUserId(page);
 
-    const modal = await openPlayerOptionModal(page);
-    await commitOptionDecision(
-      page,
-      modal,
-      worldId,
-      'Accept',
-      PLAYER_OPTION_ID
-    );
+      const { worldId, fixtures } = await seedOptionWorld({
+        userId,
+        optionType,
+        includeBlocked: optionType === 'TO',
+      });
+      await activateWorld(page, userId, worldId);
+      const worldName = `BZE 275 ${optionType} Review`;
+      const exerciseFixture = fixtures.find((fixture) =>
+        fixture.displayName.endsWith('Exercise')
+      ) as FixturePlayer;
+      const declineFixture = fixtures.find((fixture) =>
+        fixture.displayName.endsWith('Decline')
+      ) as FixturePlayer;
+      const blockedFixture = fixtures.find((fixture) => fixture.blocked);
 
-    const persistedTeamDocument = await getWorldTeamDocument(worldId, TEAM_CODE);
-    expect(getTeamPlayerIds(persistedTeamDocument)).toContain(PLAYER_OPTION_ID);
-    expect(
-      getOptionSalaryRow(
-        persistedTeamDocument,
-        PLAYER_OPTION_ID,
-        PLAYER_OPTION_SEASON,
-        PLAYER_OPTION_TARGET_YEAR
-      )?.optionUsed
-    ).toBe(true);
+      if (blockedFixture) {
+        await openTab(page, 'Full Cap Table');
+        const blockedCell = optionCell(page, blockedFixture.displayName);
+        await expect(blockedCell).toHaveAttribute(
+          'data-action-exposure-classification',
+          'Needs input',
+          { timeout: 20_000 }
+        );
+        await expect(blockedCell).toHaveAttribute(
+          'data-needs-input-reason',
+          /exact contractual notice deadline/i
+        );
+        const before = JSON.stringify(await worldTeam(worldId));
+        await blockedCell.click();
+        const modal = page.getByTestId('edit-contract-modal');
+        await expect(modal).toContainText(/Needs input/i);
+        await expect(modal).toContainText(/exact contractual notice deadline/i);
+        await expect(
+          modal.getByTestId('edit-contract-confirm-action-button')
+        ).toBeDisabled();
+        await capture(
+          page,
+          testInfo,
+          'BZE-275-TO-missing-deadline-needs-input'
+        );
+        await modal.getByRole('button', { name: /^Cancel$/i }).click();
+        expect(JSON.stringify(await worldTeam(worldId))).toBe(before);
+        expect(await worldEvents(worldId)).toHaveLength(0);
+      }
 
-    const optionDecisionEvent = await getOptionDecisionEvent(
-      worldId,
-      true,
-      PLAYER_OPTION_ID
-    );
-    expect(optionDecisionEvent).toBeTruthy();
+      await recordDecision({
+        page,
+        fixture: exerciseFixture,
+        choice: 'exercise',
+      });
+      await capture(page, testInfo, `BZE-275-${optionType}-exercise-success`);
+      await recordDecision({
+        page,
+        fixture: declineFixture,
+        choice: 'decline',
+      });
+      await capture(
+        page,
+        testInfo,
+        `BZE-275-${optionType}-${optionType === 'ETO' ? 'non-exercise' : 'decline'}-success`
+      );
 
-    await openDashboardTab(page, 'Full Cap Table');
-    await expect(
-      optionDecisionRow(page, PLAYER_OPTION_NAME).first()
-    ).toContainText(PLAYER_OPTION_NAME);
+      const retained = optionType === 'ETO' ? declineFixture : exerciseFixture;
+      const ended = optionType === 'ETO' ? exerciseFixture : declineFixture;
+      const persisted = await worldTeam(worldId);
+      expect(teamPlayerIds(persisted)).toContain(retained.playerId);
+      expect(teamPlayerIds(persisted)).not.toContain(ended.playerId);
+      expect(await worldEvents(worldId)).toHaveLength(2);
+      expect(
+        (persisted?.contractEventLedgers as Array<RecordLike>).flatMap(
+          (ledger) => ledger.events as RecordLike[]
+        )
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            worldId,
+            playerId: exerciseFixture.playerId,
+            eventKind:
+              optionType === 'ETO' ? 'eto-exercise' : 'option-exercise',
+          }),
+          expect.objectContaining({
+            worldId,
+            playerId: declineFixture.playerId,
+            eventKind: optionType === 'ETO' ? 'eto-decline' : 'option-decline',
+          }),
+        ])
+      );
+      const capHolds = Array.isArray(persisted?.capHolds)
+        ? (persisted?.capHolds as RecordLike[])
+        : [];
+      expect(capHolds).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            playerId: ended.playerId,
+            amount: 21_850_000,
+            type: 'Full Bird UFA Amount',
+          }),
+        ])
+      );
 
-    await openDashboardTab(page, 'Roster');
-    const rosterRegion = page.getByRole('region', { name: /^Roster$/i });
-    await expect(
-      rosterRegion.getByRole('button', { name: /Theo Bennett/i }).first()
-    ).toBeVisible();
+      await assertAllSurfaces({
+        page,
+        optionType,
+        retained,
+        ended,
+        worldName,
+      });
+      await capture(page, testInfo, `BZE-275-${optionType}-all-surfaces`);
 
-    await openDashboardTab(page, 'Team History');
-    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
-    await expect(
-      page.getByText(/Option Decision:\s*mia_theo_bennett\s*\(accepted\)/i)
-        .first()
-    ).toBeVisible();
+      await openTab(page, 'Roster');
+      await openTab(page, 'Full Cap Table');
+      await expect(optionCell(page, retained.displayName)).toHaveAttribute(
+        'data-action-exposure-classification',
+        'recorded'
+      );
 
-    await openDashboardTab(page, 'Compare');
-    await expect(page.getByTestId('comparison-event-count')).toContainText(
-      /1\s+committed event/i,
-      { timeout: 20000 }
-    );
-    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
-      /1\s+team changed/i
-    );
-    await expect(page.getByTestId('comparison-changed-players')).toContainText(
-      /1\s+player touched/i
-    );
-    await expect(page.getByTestId('comparison-roster-changed')).toContainText(
-      PLAYER_OPTION_ID
-    );
-    await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await waitForReviewDashboard(page);
+      await expect
+        .poll(() => readActiveWorldId(page), { timeout: 20_000 })
+        .toBe(worldId);
+      await assertAllSurfaces({
+        page,
+        optionType,
+        retained,
+        ended,
+        worldName,
+      });
 
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await waitForMiaDashboard(page);
-    await ensureSpecificWorldSelected(page, worldId);
-    await openDashboardTab(page, 'Roster');
-    const reloadedRosterRegion = page.getByRole('region', {
-      name: /^Roster$/i,
+      const branchName = `BZE 275 ${optionType} Branch`;
+      const childWorldId = await branchFixtureWorld(
+        page,
+        userId,
+        worldId,
+        branchName
+      );
+      expect(childWorldId).not.toBe(worldId);
+      await waitForReviewDashboard(page);
+      await assertAllSurfaces({
+        page,
+        optionType,
+        retained,
+        ended,
+        worldName: branchName,
+      });
+      const childTeam = await worldTeam(childWorldId);
+      expect(teamPlayerIds(childTeam)).toEqual(teamPlayerIds(persisted));
+      expect(
+        (childTeam?.contractEventLedgers as Array<RecordLike>).flatMap(
+          (ledger) => ledger.events as RecordLike[]
+        )
+      ).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ worldId: childWorldId }),
+        ])
+      );
+      await capture(page, testInfo, `BZE-275-${optionType}-branched-replay`);
     });
-    await expect(
-      reloadedRosterRegion
-        .getByRole('button', { name: /Theo Bennett/i })
-        .first()
-    ).toBeVisible();
-
-    const persistedTeamDocumentAfterReload = await getWorldTeamDocument(
-      worldId,
-      TEAM_CODE
-    );
-    expect(
-      getOptionSalaryRow(
-        persistedTeamDocumentAfterReload,
-        PLAYER_OPTION_ID,
-        PLAYER_OPTION_SEASON,
-        PLAYER_OPTION_TARGET_YEAR
-      )?.optionUsed
-    ).toBe(true);
-  });
-
-  test('MIA Full Cap Player Option records decline, persists, and reloads', async ({
-    page,
-  }) => {
-    const worldId = await ensureWorldSelected(
-      page,
-      'Player Option Decline',
-      PLAYER_OPTION_REVIEW_WORLD_SEASON,
-      PLAYER_OPTION_REVIEW_WORLD_AS_OF_DATE
-    );
-
-    const modal = await openPlayerOptionModal(page);
-    await commitOptionDecision(
-      page,
-      modal,
-      worldId,
-      'Decline',
-      PLAYER_OPTION_ID
-    );
-
-    const persistedTeamDocument = await getWorldTeamDocument(worldId, TEAM_CODE);
-    expect(getTeamPlayerIds(persistedTeamDocument)).not.toContain(
-      PLAYER_OPTION_ID
-    );
-    expect(
-      findTeamPlayer(persistedTeamDocument, PLAYER_OPTION_ID)
-    ).toBeUndefined();
-    expect(
-      getOptionSalaryRow(
-        persistedTeamDocument,
-        PLAYER_OPTION_ID,
-        PLAYER_OPTION_SEASON,
-        PLAYER_OPTION_TARGET_YEAR
-      )
-    ).toBeUndefined();
-    const capHold = getCapHold(persistedTeamDocument, PLAYER_OPTION_ID);
-    expect(capHold).toBeTruthy();
-    expect(capHold?.season).toBe(PLAYER_OPTION_SEASON);
-    expect(Number(capHold?.amount || 0)).toBeGreaterThan(0);
-
-    const optionDecisionEvent = await getOptionDecisionEvent(
-      worldId,
-      false,
-      PLAYER_OPTION_ID
-    );
-    expect(optionDecisionEvent).toBeTruthy();
-
-    await openDashboardTab(page, 'Full Cap Table');
-    await expect(optionDecisionRow(page, PLAYER_OPTION_NAME)).toHaveCount(0);
-    await page.getByTestId('cap-sheet-full-cap-holds-toggle').click();
-    await expect(page.getByText(PLAYER_OPTION_NAME).first()).toBeVisible();
-
-    await openDashboardTab(page, 'Roster');
-    const rosterRegion = page.getByRole('region', { name: /^Roster$/i });
-    await expect(
-      rosterRegion.getByRole('button', { name: /Theo Bennett/i })
-    ).toHaveCount(0);
-
-    await openDashboardTab(page, 'Team History');
-    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
-    await expect(
-      page.getByText(/Option Decision:\s*mia_theo_bennett\s*\(declined\)/i)
-        .first()
-    ).toBeVisible();
-
-    await openDashboardTab(page, 'Compare');
-    await expect(page.getByTestId('comparison-event-count')).toContainText(
-      /1\s+committed event/i,
-      { timeout: 20000 }
-    );
-    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
-      /1\s+team changed/i
-    );
-    await expect(page.getByTestId('comparison-changed-players')).toContainText(
-      /1\s+player touched/i
-    );
-    // BZE-218: Compare prints owner-facing display names, not raw player ids.
-    await expect(page.getByTestId('comparison-roster-removals')).toContainText(
-      PLAYER_OPTION_NAME
-    );
-    await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
-
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await waitForMiaDashboard(page);
-    await ensureSpecificWorldSelected(page, worldId);
-    await openDashboardTab(page, 'Roster');
-    const reloadedRosterRegion = page.getByRole('region', {
-      name: /^Roster$/i,
-    });
-    await expect(
-      reloadedRosterRegion.getByRole('button', { name: /Theo Bennett/i })
-    ).toHaveCount(0);
-
-    const persistedTeamDocumentAfterReload = await getWorldTeamDocument(
-      worldId,
-      TEAM_CODE
-    );
-    expect(getTeamPlayerIds(persistedTeamDocumentAfterReload)).not.toContain(
-      PLAYER_OPTION_ID
-    );
-    expect(
-      getCapHold(persistedTeamDocumentAfterReload, PLAYER_OPTION_ID)
-    ).toBeTruthy();
-  });
+  }
 });

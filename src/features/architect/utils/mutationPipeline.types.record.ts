@@ -34,6 +34,8 @@ import type {
 import type { CanonicalNonTpeExceptionKey } from '@/features/architect/utils/exceptions/exceptionOwnership';
 import type { computeExpectedCapHoldAmount } from '@/features/architect/utils/capHoldTransitionHelpers';
 import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
+import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
+import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
 
 export type LooseRecord = Record<string, unknown>;
 export type MutationScalarId = string | number | null | undefined;
@@ -349,6 +351,8 @@ export type ArchitectMutationCapHold = {
   notes?: string;
   active?: boolean;
   reason?: string;
+  priorTeamOfferCeiling?: number;
+  governedContractEventId?: string;
 };
 
 export type ArchitectMutationPlayerRfaContextIngress = {
@@ -422,6 +426,8 @@ export type ArchitectMutationTeamRecord = {
   capHolds?: ArchitectMutationCapHold[];
   /** BZE-273: team-scoped immutable free-agent rights history. */
   rightsLedger?: RightsEventLedgerPayload | null;
+  /** BZE-275: append-only overlays rooted in immutable contract baselines. */
+  contractEventLedgers?: ContractEventLedgerPayload[] | null;
   deadCap?: ArchitectMutationDeadCapEntry[];
   exceptions?: ArchitectMutationExceptionIngress | null;
   tradeExceptions?: MutationTradeExceptionRecord[];
@@ -637,6 +643,8 @@ export type ArchitectMutationPayload = {
   buyoutAmount?: number | null;
   isGracePeriod?: boolean;
   targetYear?: number | string | null;
+  contractId?: string | null;
+  optionNotice?: GovernedOptionNoticeInput | null;
   offerSheetId?: string | null;
   dedupKey?: string | null;
   deadCap?: ArchitectMutationDeadCapEntry[] | null;
@@ -676,7 +684,12 @@ export type PublicExtensionMutationPayloadInput = PublicMutationPayloadSlice<
   'teamCode' | 'playerId' | 'extension'
 >;
 export type PublicOptionMutationPayloadInput = PublicMutationPayloadSlice<
-  'teamCode' | 'playerId' | 'accepted' | 'targetYear'
+  | 'teamCode'
+  | 'playerId'
+  | 'accepted'
+  | 'targetYear'
+  | 'contractId'
+  | 'optionNotice'
 >;
 export type PublicRenounceMutationPayloadInput = PublicMutationPayloadSlice<
   'teamCode' | 'playerId'
@@ -719,7 +732,7 @@ export type ExtensionMutationPayloadInput = NormalizedMutationPayloadSlice<
   'playerId' | 'extension'
 >;
 export type OptionMutationPayloadInput = NormalizedMutationPayloadSlice<
-  'playerId' | 'accepted' | 'targetYear'
+  'playerId' | 'accepted' | 'targetYear' | 'contractId' | 'optionNotice'
 >;
 export type RenounceMutationPayloadInput = NormalizedMutationPayloadSlice<'playerId'>;
 export type StoreOfferSheetMutationPayloadInput = NormalizedMutationPayloadSlice<

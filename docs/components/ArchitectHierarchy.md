@@ -448,6 +448,11 @@ utils/
     resolveOffseasonTransition.optionDecisions.ts
     resolveOffseasonTransition.ts
     resolveOffseasonTransition.validation.ts
+  optionDecisions/
+    applyGovernedOptionResult.ts
+    governedOptionDecision.ts
+    index.ts
+    worldOptionDecisionAuthority.ts
   ownFreeAgents.ts
   persistenceContracts/
     contracts.ts
@@ -599,5 +604,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-10T04:22:33.694Z*
+*Generated on: 2026-08-11T18:30:19.118Z*
 *Auto-updated by: npm run docs*

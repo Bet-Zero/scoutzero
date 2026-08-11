@@ -48,6 +48,8 @@ import { ContractCardHeader } from './EditContractModal.PlayerCardHeader';
 import { ContractActionSelector } from './EditContractModal.ActionSelector';
 import { ContractActionContext } from './EditContractModal.ActionContext';
 import { ContractDetailsForm } from './EditContractModal.DetailsForm';
+import { GovernedOptionNoticeForm } from './EditContractModal.OptionNoticeForm';
+import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
 import {
   calculateCapHold,
   type CapHoldPlayerInput,
@@ -94,6 +96,7 @@ export const EditContractModal = ({
   onResign,
   onWaive,
   onOptionDecision,
+  optionDecisionAvailability = null,
   onExtend,
   signAndTradeInitiation = null,
   onSignAndTrade,
@@ -126,6 +129,13 @@ export const EditContractModal = ({
   const [buyoutAmountInput, setBuyoutAmountInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [optionNotice, setOptionNotice] = useState<GovernedOptionNoticeInput>({
+    deliveredAt: '',
+    method: 'email',
+    recipient: '',
+    leagueReceivedAt: '',
+    playersAssociationForwardedAt: '',
+  });
 
   // Override state management
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -219,11 +229,32 @@ export const EditContractModal = ({
     freeAgentYear <= CURRENT_YEAR;
 
   // Only consider options on future years (not current season - that decision is already made)
-  const optionYearEntry = contractYears.find(
-    (y) => y.year > CURRENT_YEAR && y.option
-  );
-  const optionYear = optionYearEntry?.year || null;
-  const optionType = optionYearEntry?.option || null;
+  const optionYearEntry =
+    (normalizedTargetYear
+      ? contractYears.find(
+          (yearEntry) =>
+            yearEntry.year === normalizedTargetYear && yearEntry.option
+        )
+      : null) ??
+    contractYears.find((yearEntry) => yearEntry.year > CURRENT_YEAR && yearEntry.option);
+  const optionYear = normalizedTargetYear ?? optionYearEntry?.year ?? null;
+  const optionType =
+    optionDecisionAvailability?.optionType ?? optionYearEntry?.option ?? null;
+
+  useEffect(() => {
+    const requirements = optionDecisionAvailability?.noticeRequirements;
+    setOptionNotice({
+      deliveredAt: '',
+      method: requirements?.allowedMethods[0] ?? 'email',
+      recipient: requirements?.recipientId ?? '',
+      leagueReceivedAt: '',
+      playersAssociationForwardedAt: '',
+    });
+  }, [
+    optionDecisionAvailability?.contractId,
+    optionDecisionAvailability?.targetYear,
+    optionDecisionAvailability?.status,
+  ]);
   const extensionStartYear = useMemo(() => {
     const latestContractEndYear = contractYears.reduce(
       (latestYear, yearEntry) => Math.max(latestYear, yearEntry.year),
@@ -388,15 +419,19 @@ export const EditContractModal = ({
   // ONLY applies when this is an option scenario, not for free agents or under contract
   const isOptionActionable =
     actionSet !== 'option' ||
-    !normalizedTargetYear ||
-    normalizedTargetYear === CURRENT_YEAR + 1;
+    (optionDecisionAvailability
+      ? optionDecisionAvailability.status === 'ready'
+      : !normalizedTargetYear || normalizedTargetYear === CURRENT_YEAR + 1);
 
   // Get the timing error message for display - ONLY for option scenarios
   const optionTimingError =
-    actionSet === 'option' && !isOptionActionable && normalizedTargetYear
-      ? normalizedTargetYear < CURRENT_YEAR + 1
-        ? `This option has already been decided (past season)`
-        : `Cannot act on this option yet. It can be decided during the ${normalizedTargetYear - 2}-${String((normalizedTargetYear - 1) % 100).padStart(2, '0')} offseason.`
+    actionSet === 'option' && !isOptionActionable
+      ? optionDecisionAvailability?.reasons[0] ||
+        (normalizedTargetYear
+          ? normalizedTargetYear < CURRENT_YEAR + 1
+            ? 'This option has already been decided (past season)'
+            : `Cannot act on this option yet. It can be decided during the ${normalizedTargetYear - 2}-${String((normalizedTargetYear - 1) % 100).padStart(2, '0')} offseason.`
+          : 'The exact option Season is required.')
       : null;
 
   const resolvedSignAndTradeInitiation = useMemo<SignAndTradeInitiation | null>(() => {
@@ -437,7 +472,11 @@ export const EditContractModal = ({
       isOfferSheet,
     });
 
+  const isGovernedOptionDecisionAction =
+    Boolean(optionDecisionAvailability) &&
+    (selectedAction === 'accept' || selectedAction === 'decline');
   const validationAuthority: ValidationAuthority =
+    isGovernedOptionDecisionAction ||
     selectedAction === 'signAndTrade' ||
     (selectedAction === 'signNew' && isOfferSheet)
       ? 'authoritative-preflight'
@@ -450,7 +489,11 @@ export const EditContractModal = ({
     incomplete: advisoryIncomplete,
   } = useCapValidation({
     player,
-    action: validationAuthority === 'advisory-modal' ? selectedAction : null,
+    action:
+      validationAuthority === 'advisory-modal' &&
+      !isGovernedOptionDecisionAction
+        ? selectedAction
+        : null,
     contractData: contractDataForValidation,
     teamCapSheet,
     currentYear: isSigningAction ? ACTION_YEAR : CURRENT_YEAR,
@@ -460,6 +503,24 @@ export const EditContractModal = ({
   const validationState = useMemo(() => {
     if (!selectedAction) {
       return DEFAULT_VALIDATION_STATE;
+    }
+
+    if (isGovernedOptionDecisionAction && optionDecisionAvailability) {
+      const ready = optionDecisionAvailability.status === 'ready';
+      return {
+        ...DEFAULT_VALIDATION_STATE,
+        authority: 'authoritative-preflight' as const,
+        isLegal: ready,
+        incomplete: !ready,
+        reasons: [...optionDecisionAvailability.reasons],
+        severity: ready ? ('info' as const) : ('error' as const),
+        errors: ready
+          ? []
+          : optionDecisionAvailability.reasons.map((message) => ({
+              severity: 'error' as const,
+              message,
+            })),
+      };
     }
 
     if (validationAuthority === 'authoritative-preflight') {
@@ -486,7 +547,9 @@ export const EditContractModal = ({
     advisoryWarnings,
     isAdvisoryValid,
     isExtendEligible,
+    isGovernedOptionDecisionAction,
     offerSheetPreflight,
+    optionDecisionAvailability,
     selectedAction,
     signAndTradePreflight,
     validationAuthority,
@@ -516,6 +579,15 @@ export const EditContractModal = ({
     selectedAction !== 'buyout' ||
     (parsedBuyoutAmount != null &&
       parsedBuyoutAmount <= remainingGuaranteedForBuyout);
+  const isOptionDecisionAction =
+    selectedAction === 'accept' || selectedAction === 'decline';
+  const governedOptionNoticeIsComplete =
+    !optionDecisionAvailability ||
+    (optionDecisionAvailability.status === 'ready' &&
+      Boolean(optionNotice.deliveredAt.trim()) &&
+      Boolean(optionNotice.recipient.trim()) &&
+      Boolean(optionNotice.leagueReceivedAt.trim()) &&
+      Boolean(optionNotice.playersAssociationForwardedAt.trim()));
   const disableConfirm =
     !selectedAction ||
     (selectedAction === 'signAndTrade' && !resolvedDestinationTeamCode) ||
@@ -526,6 +598,7 @@ export const EditContractModal = ({
         !canOverride ||
         !isOverrideConfirmed)) ||
     !buyoutAmountIsValid ||
+    (isOptionDecisionAction && !governedOptionNoticeIsComplete) ||
     isSubmitting;
 
   // Plain-language "why is Confirm unavailable" line shown next to the button so
@@ -541,6 +614,9 @@ export const EditContractModal = ({
           ? 'Enter a valid buyout amount'
           : validationState.incomplete
             ? 'Finish the contract details to continue'
+            : isOptionDecisionAction && !governedOptionNoticeIsComplete
+              ? optionDecisionAvailability?.reasons[0] ||
+                'Enter all exact governed notice evidence to continue'
             : !validationState.isLegal && !isOverrideConfirmed
               ? 'Resolve the blocking issues above to continue'
               : null;
@@ -763,7 +839,8 @@ export const EditContractModal = ({
               player,
               true,
               overrideMetadata,
-              normalizedTargetYear
+              normalizedTargetYear,
+              optionDecisionAvailability ? optionNotice : null
             );
             break;
           case 'decline':
@@ -771,7 +848,8 @@ export const EditContractModal = ({
               player,
               false,
               overrideMetadata,
-              normalizedTargetYear
+              normalizedTargetYear,
+              optionDecisionAvailability ? optionNotice : null
             );
             break;
           case 'renounce':
@@ -901,6 +979,15 @@ export const EditContractModal = ({
             actionContextCopy={actionContextCopy}
             extensionEligibilityReason={playerRulesProfile?.extensionEligibility?.reason}
           />
+
+          {isOptionDecisionAction &&
+            optionDecisionAvailability?.status === 'ready' && (
+              <GovernedOptionNoticeForm
+                availability={optionDecisionAvailability}
+                value={optionNotice}
+                onChange={setOptionNotice}
+              />
+            )}
 
           <ContractDetailsForm
             selectedAction={selectedAction}

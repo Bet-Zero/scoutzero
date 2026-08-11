@@ -423,6 +423,7 @@ export const CapSheet = ({
     const option = slice?.option || null;
     const isPO = option === 'Player Option' || option === 'PO';
     const isTO = option === 'Team Option' || option === 'TO';
+    const isETO = option === 'Early Termination Option' || option === 'ETO';
     const isNG = slice && slice.guaranteed === false;
     const isTwoWay = isTwoWayContract(player);
 
@@ -445,6 +446,11 @@ export const CapSheet = ({
       notes.push({
         label: 'TO',
         className: 'bg-cockpit-watch/10 border-cockpit-watch/30 text-cockpit-watch',
+      });
+    if (isETO)
+      notes.push({
+        label: 'ETO',
+        className: 'bg-violet-500/10 border-violet-400/30 text-violet-300',
       });
     if (player.isMinimum && Number(player.yearsOfService) >= 3)
       notes.push({ label: 'Vet Min' });

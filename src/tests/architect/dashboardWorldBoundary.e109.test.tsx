@@ -2210,7 +2210,8 @@ describe('E109 dashboard/world boundary behavior', () => {
         selectedPlayer,
         false,
         overrideMetadata,
-        null
+        null,
+        undefined
       );
       expect(dashboardActions.handleRenounceRights).toHaveBeenCalledWith(
         selectedPlayer,

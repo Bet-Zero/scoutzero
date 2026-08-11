@@ -480,7 +480,7 @@ describe('mutationPipeline final current-state normalization', () => {
     expect(updatedTeam).not.toHaveProperty('legacyTeamIngressBlob');
   });
 
-  it('keeps player normalization truthful through optionDecision without carrying stray bio baggage', () => {
+  it('refuses ungoverned option ingress before player normalization can mutate it', () => {
     const player = makePlayer('option_1', 'Option One', 9_500_000, 'LAL', {
       contract: makeContract(9_500_000, 'LAL', {
         signingDate: '2024-07-06',
@@ -538,44 +538,13 @@ describe('mutationPipeline final current-state normalization', () => {
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
-
-    const updatedPlayer = result.playerUpdates?.[0]?.player;
-    expect(updatedPlayer?.bio).toMatchObject({
-      playerId: 'option_1',
-      displayName: 'Option One',
-      position: 'SF',
-      experience: '4',
-      yearsExperience: 4,
-      yearsPro: '5',
-      ['Years Pro']: '5',
-      draft: {
-        year: 2022,
-        round: 1,
-        pick: 20,
-        teamId: 'LAL',
-      },
-      display: {
-        freeAgentType: 'UFA',
-        freeAgentYear: 2027,
-        team: 'LAL',
-        teamId: 'LAL',
-        yearsPro: '5',
-      },
+    expect(result).toMatchObject({
+      success: false,
+      error:
+        'Governed option decision requires the pinned contract, explicit world date, exact notice evidence, and author provenance.',
     });
-    expect(updatedPlayer?.bio).not.toHaveProperty('legacyBioBlob');
-    expect(updatedPlayer?.bio?.draft).not.toHaveProperty('legacyDraftBlob');
-    expect(updatedPlayer?.bio?.display).not.toHaveProperty(
-      'legacyDisplayBlob'
-    );
-    expect(updatedPlayer?.contract?.salariesByYear?.[1]).toMatchObject({
-      season: '2026-27',
-      option: 'Player',
-      optionUsed: true,
-    });
-    expect(updatedPlayer?.contract?.salariesByYear?.[1]).not.toHaveProperty(
-      'legacyRowBlob'
-    );
+    expect(result.teamUpdates).toBeUndefined();
+    expect(result.playerUpdates).toBeUndefined();
   });
 
   it('persists trade-team outputs with round-trip fields materialized and teamTotalSalary stripped', async () => {

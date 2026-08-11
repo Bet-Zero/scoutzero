@@ -155,6 +155,7 @@ export function buildPostComputeTradeBoundaryInput(
     roster: materializedTeam.roster,
     capHolds: materializedTeam.capHolds,
     rightsLedger: materializedTeam.rightsLedger,
+    contractEventLedgers: materializedTeam.contractEventLedgers,
     deadCap: materializedTeam.deadCap,
     exceptions: materializedTeam.exceptions,
     tradeExceptions: materializedTeam.tradeExceptions,
@@ -387,7 +388,6 @@ export function normalizeTeamOnlyMutationCurrentState(
   if (teamCode !== undefined) {
     normalized.teamCode = teamCode;
   }
-
   return normalized;
 }
 
@@ -401,6 +401,7 @@ export function normalizeTeamAndPlayerMutationCurrentState(
   );
   const player = normalizeCurrentStatePlayerSnapshot(currentState?.player);
   const teamCode = toOptionalTrimmedString(currentState?.teamCode);
+  const optionAuthority = currentState?.optionAuthority;
 
   if (team) {
     normalized.team = team;
@@ -410,6 +411,9 @@ export function normalizeTeamAndPlayerMutationCurrentState(
   }
   if (teamCode !== undefined) {
     normalized.teamCode = teamCode;
+  }
+  if (optionAuthority) {
+    normalized.optionAuthority = optionAuthority;
   }
 
   return normalized;

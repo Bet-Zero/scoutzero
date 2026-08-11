@@ -14,6 +14,8 @@ import {
   DEV_CAP_SHEET_FIXTURE_RUNTIME_BOUNDARY,
 } from '@/features/architect/capSheet/devCapSheetFixtures';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
+import type { GovernedOptionDecisionAvailability } from '@/features/architect/utils/optionDecisions';
 
 import type {
   ArchitectGeneralMutationDashboardReloadTeamSnapshot,
@@ -836,8 +838,13 @@ export interface UseArchitectActionsReturn {
     player: ArchitectPlayer,
     accepted: boolean,
     overrideMetadata?: OverrideMetadata | null,
-    targetYearOverride?: number | null
+    targetYearOverride?: number | null,
+    notice?: GovernedOptionNoticeInput | null
   ) => Promise<MutationActionResult>;
+  getOptionDecisionAvailability: (
+    player: ArchitectPlayer,
+    targetYear: number | null | undefined
+  ) => GovernedOptionDecisionAvailability;
   handleRenounceRights: (
     player: ArchitectPlayer,
     overrideMetadata?: OverrideMetadata | null

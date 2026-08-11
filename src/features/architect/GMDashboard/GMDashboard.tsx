@@ -905,6 +905,18 @@ export const GMDashboard = () => {
 
   const modalPlayer = selectedPlayer as EditContractModalProps['player'];
   const modalTeamCapSheet = teamCapSheet as EditContractModalProps['teamCapSheet'];
+  const modalOptionDecisionAvailability =
+    worldId &&
+    selectedPlayer &&
+    typeof targetYear === 'number' &&
+    typeof actions.getOptionDecisionAvailability === 'function'
+      ? actions.getOptionDecisionAvailability(
+          selectedPlayer as Parameters<
+            typeof actions.getOptionDecisionAvailability
+          >[0],
+          targetYear
+        )
+      : null;
   const modalOnWaive: NonNullable<EditContractModalProps['onWaive']> = (
     player,
     payload
@@ -917,13 +929,14 @@ export const GMDashboard = () => {
     );
   const modalOnOptionDecision: NonNullable<
     EditContractModalProps['onOptionDecision']
-  > = (player, accepted, overrideMetadata, targetYearOverride) =>
+  > = (player, accepted, overrideMetadata, targetYearOverride, notice) =>
     toModalActionResult(
       actions.handleOptionDecision(
         player as Parameters<typeof actions.handleOptionDecision>[0],
         accepted,
         toOverrideMetadata(overrideMetadata),
-        typeof targetYearOverride === 'number' ? targetYearOverride : null
+        typeof targetYearOverride === 'number' ? targetYearOverride : null,
+        notice
       )
     );
   const modalOnRenounce: NonNullable<EditContractModalProps['onRenounce']> = (
@@ -956,8 +969,26 @@ export const GMDashboard = () => {
     ...(contractModalActionOverrides || {}),
     actionLabelsOverride: {
       ...V1_CONTRACT_ACTION_LABEL_OVERRIDES,
-      accept: worldId ? 'Accept Option' : 'Accept Option (Preview)',
-      decline: worldId ? 'Decline Option' : 'Decline Option (Preview)',
+      accept:
+        modalOptionDecisionAvailability?.optionType === 'ETO'
+          ? 'Exercise ETO'
+          : modalOptionDecisionAvailability?.optionType === 'PO'
+            ? 'Exercise Player Option'
+            : modalOptionDecisionAvailability?.optionType === 'TO'
+              ? 'Exercise Team Option'
+              : worldId
+                ? 'Exercise Option'
+                : 'Exercise Option (Preview)',
+      decline:
+        modalOptionDecisionAvailability?.optionType === 'ETO'
+          ? 'Do Not Exercise ETO'
+          : modalOptionDecisionAvailability?.optionType === 'PO'
+            ? 'Decline Player Option'
+            : modalOptionDecisionAvailability?.optionType === 'TO'
+              ? 'Decline Team Option'
+              : worldId
+                ? 'Decline Option'
+                : 'Decline Option (Preview)',
       extend:
         worldId &&
         initialAction === 'extend' &&
@@ -1394,6 +1425,12 @@ export const GMDashboard = () => {
           optionDecisionExposureClassification={
             optionDecisionExposureClassification
           }
+          getOptionDecisionAvailability={
+            worldId &&
+            typeof actions.getOptionDecisionAvailability === 'function'
+              ? (actions.getOptionDecisionAvailability as CapTableSectionProps['getOptionDecisionAvailability'])
+              : null
+          }
           freeAgentOptions={freeAgentOptionEntries}
           onOpenFreeAgentOption={(selectionKey) => {
             openFullCapFreeAgentModal(selectionKey);
@@ -1629,6 +1666,7 @@ export const GMDashboard = () => {
           capProjections={capProjections}
           teamCapSheet={modalTeamCapSheet}
           currentYear={currentYear}
+          optionDecisionAvailability={modalOptionDecisionAvailability}
           {...modalActionCallbacks}
           {...contractModalExposureOverrides}
           playersMap={playersMap}

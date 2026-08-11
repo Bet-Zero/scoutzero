@@ -282,6 +282,7 @@ export type CurrentStateTeamMutationCoreBoundary = Pick<
   | 'players'
   | 'capHolds'
   | 'rightsLedger'
+  | 'contractEventLedgers'
   | 'deadCap'
   | 'totals'
   | 'source'
