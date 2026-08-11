@@ -1025,7 +1025,7 @@ export function useContractActions({
             );
           }
           return applyGovernedOptionResult({
-            team: beforeTeam as unknown as ArchitectMutationTeamRecord,
+            team: beforeTeam as ArchitectMutationTeamRecord,
             playerId: String(playerId),
             result: committedPreview,
           }).team as CapSheet;
