@@ -42,12 +42,14 @@ import {
   isZonedDateTime,
   parseZonedDateTime,
 } from '@/features/architect/utils/governedSeason/governedTime';
+import { deterministicStateDigest } from '@/features/architect/utils/contractSource/deterministicDigest';
 
 /** Lifecycle family each event kind belongs to, as the Canon names them. */
 export const CONTRACT_EVENT_FAMILIES: Readonly<
   Record<ContractEventKind, string>
 > = Object.freeze({
   signing: 'signing',
+  'source-establishment': 'source-establishment',
   amendment: 'amendment',
   conversion: 'conversion',
   'option-exercise': 'option',
@@ -62,7 +64,15 @@ export const CONTRACT_EVENT_FAMILIES: Readonly<
  * Only a signing opens a contract's history. Every other kind transforms a
  * contract version that already exists, so it must name a predecessor.
  */
-export const CONTRACT_ROOT_EVENT_KIND: ContractEventKind = 'signing';
+export const CONTRACT_ROOT_EVENT_KINDS: readonly ContractEventKind[] =
+  Object.freeze(['signing', 'source-establishment']);
+
+/** Historical signing root for callers that explicitly name that route. */
+export const CONTRACT_SIGNING_ROOT_EVENT_KIND: ContractEventKind = 'signing';
+
+export function isContractRootEventKind(kind: ContractEventKind): boolean {
+  return CONTRACT_ROOT_EVENT_KINDS.includes(kind);
+}
 
 /**
  * A validated, frozen ledger. Distinct from the wire payload in
@@ -98,6 +108,8 @@ export type LifecycleLedgerProblemKind =
   | 'chain-fork'
   | 'ambiguous-ordering'
   | 'missing-provenance'
+  | 'invalid-resulting-state'
+  | 'state-digest-mismatch'
   /** A field the canonical event schema does not declare. */
   | 'unsupported-field'
   /**
@@ -132,7 +144,9 @@ export class ContractEventLedgerError extends Error {
   }
 }
 
-function freezeProblem(problem: LifecycleLedgerProblem): LifecycleLedgerProblem {
+function freezeProblem(
+  problem: LifecycleLedgerProblem
+): LifecycleLedgerProblem {
   return Object.freeze({
     ...problem,
     eventIds: Object.freeze([...problem.eventIds]),
@@ -185,6 +199,7 @@ const SCHEMA_FIELD_PROBLEM_KINDS: Readonly<
   predecessorEventId: 'broken-chain',
   sourceTransactionId: 'missing-provenance',
   authoringIdentity: 'missing-provenance',
+  resultingState: 'invalid-resulting-state',
 });
 
 /**
@@ -311,7 +326,7 @@ function validateEventShape(
     }
   });
 
-  const isRoot = event.eventKind === CONTRACT_ROOT_EVENT_KIND;
+  const isRoot = isContractRootEventKind(event.eventKind);
 
   if (isRoot) {
     if (event.predecessorContractVersion != null) {
@@ -319,7 +334,7 @@ function validateEventShape(
         problem(
           'broken-chain',
           `${at}.predecessorContractVersion`,
-          'A signing opens a contract history and must not name a predecessor contract version.'
+          'A signing or source establishment opens a contract history and must not name a predecessor contract version.'
         )
       );
     }
@@ -328,7 +343,7 @@ function validateEventShape(
         problem(
           'broken-chain',
           `${at}.predecessorEventId`,
-          'A signing opens a contract history and must not name a predecessor event.'
+          'A signing or source establishment opens a contract history and must not name a predecessor event.'
         )
       );
     }
@@ -338,7 +353,7 @@ function validateEventShape(
         problem(
           'broken-chain',
           `${at}.predecessorContractVersion`,
-          'Every non-signing event transforms an existing contract version and must name it.'
+          'Every non-root event transforms an existing contract version and must name it.'
         )
       );
     }
@@ -347,7 +362,7 @@ function validateEventShape(
         problem(
           'broken-chain',
           `${at}.predecessorEventId`,
-          'Every non-signing event must name the event it succeeds.'
+          'Every non-root event must name the event it succeeds.'
         )
       );
     }
@@ -366,11 +381,31 @@ function validateEventShape(
     );
   }
 
+  const digestableState = Object.fromEntries(
+    Object.entries(event.resultingState).filter(
+      ([field]) => field !== 'stateDigest'
+    )
+  );
+  const expectedStateDigest = deterministicStateDigest(digestableState);
+  if (event.resultingState.stateDigest !== expectedStateDigest) {
+    problems.push(
+      problem(
+        'state-digest-mismatch',
+        `${at}.resultingState.stateDigest`,
+        `${eventKey(event)} carries state digest ${event.resultingState.stateDigest}, but its immutable result recomputes to ${expectedStateDigest}.`,
+        [eventKey(event)]
+      )
+    );
+  }
+
   // Causality, checked only once both instants parsed. An act cannot take
   // effect before it was executed, and a record cannot be written before the
   // act it records. A correction keeps the original `executedAt` and gets a
   // later `recordedAt`, so append-only revision never trips these.
-  if (isZonedDateTime(event?.executedAt) && isZonedDateTime(event.effectiveAt)) {
+  if (
+    isZonedDateTime(event?.executedAt) &&
+    isZonedDateTime(event.effectiveAt)
+  ) {
     if (Date.parse(event.executedAt) > Date.parse(event.effectiveAt)) {
       problems.push(
         problem(
@@ -464,7 +499,9 @@ function validateSupersession(
       );
     }
 
-    const ordered = [...versions].sort((a, b) => a.eventVersion - b.eventVersion);
+    const ordered = [...versions].sort(
+      (a, b) => a.eventVersion - b.eventVersion
+    );
     ordered.forEach((event, position) => {
       const prior = ordered[position - 1];
       if (!prior) return;
@@ -597,15 +634,15 @@ function validateContractChain(
     );
   }
 
-  const roots = events.filter(
-    (event) => event.eventKind === CONTRACT_ROOT_EVENT_KIND
+  const roots = events.filter((event) =>
+    isContractRootEventKind(event.eventKind)
   );
   if (roots.length === 0) {
     problems.push(
       problem(
         'broken-chain',
         `${at}.eventKind`,
-        `Contract ${contractKey} has no signing event, so its history has no origin.`,
+        `Contract ${contractKey} has no signing or source-establishment event, so its history has no origin.`,
         events.map(eventKey)
       )
     );
@@ -615,7 +652,7 @@ function validateContractChain(
       problem(
         'chain-fork',
         `${at}.eventKind`,
-        `Contract ${contractKey} has ${roots.length} signing events; a contract history has exactly one origin.`,
+        `Contract ${contractKey} has ${roots.length} root events; a contract history has exactly one origin.`,
         roots.map(eventKey)
       )
     );
@@ -802,9 +839,11 @@ interface ChainWalk {
  * involved — silently returning nothing is how an unreachable event slips into
  * an accepted ledger.
  */
-function walkFromRoot(events: readonly ContractEventRecord[]): ChainWalk | null {
-  const roots = events.filter(
-    (event) => event.eventKind === CONTRACT_ROOT_EVENT_KIND
+function walkFromRoot(
+  events: readonly ContractEventRecord[]
+): ChainWalk | null {
+  const roots = events.filter((event) =>
+    isContractRootEventKind(event.eventKind)
   );
   if (roots.length !== 1) return null;
 
@@ -864,6 +903,21 @@ export function walkChain(
  * while the ledger version and event versions stayed put.
  */
 function freezeEvent(event: ContractEventRecord): ContractEventRecord {
+  const freezeDeep = <T>(value: T): T => {
+    if (Array.isArray(value)) {
+      value.forEach((entry) => freezeDeep(entry));
+      return Object.freeze(value) as T;
+    }
+    if (value && typeof value === 'object') {
+      Object.values(value as Record<string, unknown>).forEach((entry) =>
+        freezeDeep(entry)
+      );
+      return Object.freeze(value) as T;
+    }
+    return value;
+  };
+  const resultingState = structuredClone(event.resultingState);
+
   return Object.freeze({
     eventId: event.eventId,
     eventVersion: event.eventVersion,
@@ -883,6 +937,7 @@ function freezeEvent(event: ContractEventRecord): ContractEventRecord {
     recordStatus: event.recordStatus,
     supersedesEventVersion: event.supersedesEventVersion,
     canonLeafIds: Object.freeze([...event.canonLeafIds]),
+    resultingState: freezeDeep(resultingState),
   });
 }
 

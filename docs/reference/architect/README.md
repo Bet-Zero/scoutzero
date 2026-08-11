@@ -30,6 +30,7 @@ team dashboard and the shared feature code under `src/features/architect/`.
 
 ## Feature-Specific Docs
 
+- [GOVERNED_CONTRACT_BASELINE_LIFECYCLE.md](GOVERNED_CONTRACT_BASELINE_LIFECYCLE.md) — immutable release retention, season authority, branching, and partial-branch cleanup
 - [trade-machine/README.md](trade-machine/README.md) — Trade Machine runtime reference and test gates
 - [type-hardening/README.md](type-hardening/README.md) — Type cast ledger and cast gate protocol
 

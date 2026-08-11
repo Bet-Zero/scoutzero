@@ -641,6 +641,39 @@ export const readReviewUserId = async (page: Page): Promise<string> =>
     )
     .catch(() => '');
 
+export const readReviewIdToken = async (page: Page): Promise<string> =>
+  page
+    .evaluate(
+      () =>
+        new Promise<string>((resolve) => {
+          let settled = false;
+          const finish = (value: string) => {
+            if (settled) return;
+            settled = true;
+            resolve(value);
+          };
+          const timer = setTimeout(() => finish(''), 4000);
+          const loadToken = async () => {
+            const modulePath = '/src/firebaseConfig.ts';
+            const firebaseModule = (await import(
+              /* @vite-ignore */ modulePath
+            )) as {
+              auth?: {
+                currentUser?: { getIdToken: () => Promise<string> } | null;
+              };
+            };
+            const token = await firebaseModule.auth?.currentUser?.getIdToken();
+            clearTimeout(timer);
+            finish(token || '');
+          };
+          void loadToken().catch(() => {
+            clearTimeout(timer);
+            finish('');
+          });
+        })
+    )
+    .catch(() => '');
+
 export const readActiveWorldId = async (page: Page) =>
   page
     .evaluate(() => {

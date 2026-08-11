@@ -86,7 +86,10 @@ describe('BZE-271 deterministic as-of projection', () => {
   it('is unaffected by the order events were supplied in', () => {
     const events = fullLifecycleEvents();
     const forward = projectAt(build(events), '2026-12-15T00:00:00Z');
-    const reversed = projectAt(build([...events].reverse()), '2026-12-15T00:00:00Z');
+    const reversed = projectAt(
+      build([...events].reverse()),
+      '2026-12-15T00:00:00Z'
+    );
 
     expect(reversed.manifest).toEqual(forward.manifest);
   });
@@ -152,7 +155,8 @@ describe('BZE-271 effective-time boundaries', () => {
     expect(early.futureEvents).toHaveLength(7);
     expect(
       early.futureEvents.every(
-        (event) => Date.parse(event.effectiveAt) > Date.parse('2026-08-15T00:00:00Z')
+        (event) =>
+          Date.parse(event.effectiveAt) > Date.parse('2026-08-15T00:00:00Z')
       )
     ).toBe(true);
   });
@@ -341,9 +345,11 @@ describe('BZE-271 projection manifests', () => {
     const ledger = build(fullLifecycleEvents());
     const manifest = projectAt(ledger, '2026-11-20T00:00:00Z').manifest;
 
-    expect(manifest?.manifestVersion).toBe(1);
+    expect(manifest?.manifestVersion).toBe(2);
     expect(
-      manifest?.consumedEvents.map((event) => `${event.eventId}@v${event.eventVersion}`)
+      manifest?.consumedEvents.map(
+        (event) => `${event.eventId}@v${event.eventVersion}`
+      )
     ).toEqual([
       'evt-001@v1',
       'evt-002@v1',
@@ -433,7 +439,9 @@ describe('BZE-271 an earlier projection survives later history', () => {
       }),
     ]);
 
-    expect(verifyContractProjectionManifest(earlier.manifest, original)).toEqual({
+    expect(
+      verifyContractProjectionManifest(earlier.manifest, original)
+    ).toEqual({
       state: 'unchanged',
       drift: [],
     });
@@ -465,7 +473,9 @@ describe('BZE-271 an earlier projection survives later history', () => {
 
     const drifted = verifyContractProjectionManifest(earlier.manifest, grown);
     expect(drifted.state).toBe('drifted');
-    expect(drifted.drift.map((entry) => entry.kind)).toEqual(['history-extended']);
+    expect(drifted.drift.map((entry) => entry.kind)).toEqual([
+      'history-extended',
+    ]);
     expect(earlier.contractVersion).toBe(1);
   });
 
@@ -589,7 +599,10 @@ describe('BZE-271 an earlier projection survives later history', () => {
       ledgerVersion: 1,
       events: [
         signingEvent({ resultingContractVersion: 5 }),
-        makeEvent({ predecessorContractVersion: 5, resultingContractVersion: 6 }),
+        makeEvent({
+          predecessorContractVersion: 5,
+          resultingContractVersion: 6,
+        }),
       ],
     });
 
@@ -619,6 +632,7 @@ describe('BZE-271 an earlier projection survives later history', () => {
       'predecessorContractVersion',
       'recordedAt',
       'resultingContractVersion',
+      'resultingState',
       'sourceTransactionId',
     ]);
   });
@@ -637,6 +651,19 @@ describe('BZE-271 an earlier projection survives later history', () => {
     });
   });
 
+  it('rejects a pre-version-two manifest before reading version-two event state', () => {
+    const manifest = projectAt(build(twoEventChain()), AS_OF_LATE).manifest;
+    const legacyManifest = {
+      ...(manifest as LifecycleProjectionManifest),
+      manifestVersion: 1,
+      consumedEvents: [{ eventId: 'evt-001', eventVersion: 1 }],
+    } as unknown as LifecycleProjectionManifest;
+
+    expect(
+      verifyContractProjectionManifest(legacyManifest, build(twoEventChain()))
+    ).toEqual({ state: 'not-comparable', drift: [] });
+  });
+
   it('is not comparable when the manifest date is not a zoned instant', () => {
     // The manifest arrives from the caller, so its date is read with the
     // governed primitive. `Date.parse` would read an unzoned string as local
@@ -646,7 +673,10 @@ describe('BZE-271 an earlier projection survives later history', () => {
 
     (['2027-03-01T12:00:00', '2027-03-01', 'today', ''] as const).forEach(
       (asOfDate) => {
-        const tampered = { ...(manifest as LifecycleProjectionManifest), asOfDate };
+        const tampered = {
+          ...(manifest as LifecycleProjectionManifest),
+          asOfDate,
+        };
 
         expect(
           verifyContractProjectionManifest(tampered, ledger),
@@ -692,8 +722,10 @@ describe('BZE-271 projection needs no cap, floor, tax, or apron value', () => {
       'manifestVersion',
       'playerId',
       'resultingContractVersion',
+      'resultingStateDigest',
       'salaryCapYear',
       'seasonKey',
+      'sourceRelease',
       'teamId',
       'worldId',
     ]);
@@ -728,9 +760,10 @@ describe('BZE-271 projection needs no cap, floor, tax, or apron value', () => {
 
     surfaces.forEach((surface, index) => {
       MONEY_KEYS.forEach((key) => {
-        expect(Object.keys(surface), `${key} at surface ${index}`).not.toContain(
-          key
-        );
+        expect(
+          Object.keys(surface),
+          `${key} at surface ${index}`
+        ).not.toContain(key);
       });
     });
 

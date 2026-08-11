@@ -5,7 +5,7 @@
  *
  * ## Deployment
  * - Deploy all functions: `npm run deploy` (or `firebase deploy --only functions`)
- * - Deploy specific function: `firebase deploy --only functions:purgeArchitectWorld`
+ * - Deploy specific function: `firebase deploy --only functions:initializeArchitectWorld`
  * - Default region: us-central1 (Firebase default)
  *
  * ## Local Development
@@ -28,6 +28,7 @@
  *
  * ## Function Organization
  * - Architect functions: ./architect/ - World management operations
+ *   - initializeArchitectWorld: Trusted governed world/baseline initialization
  *   - purgeArchitectWorld: Permanently delete a world and all subcollections
  *
  * ## Versioning
@@ -39,3 +40,4 @@
 
 // Export architect functions
 export { purgeArchitectWorld } from './architect/purgeWorld';
+export { initializeArchitectWorld } from './architect/initializeWorld';

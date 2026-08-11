@@ -10,6 +10,11 @@ import {
   readArchitectStringArray,
   requireArchitectRecord,
 } from '@/features/architect/utils/architectFirestoreBoundary';
+import {
+  ContractSourceReleasePinZ,
+  WorldContractBaselineMetadataZ,
+  type ContractSourceReleasePin,
+} from '@/schemas/contractSourceRelease';
 
 export type UnknownRecord = Record<string, unknown>;
 
@@ -48,6 +53,15 @@ export interface WorldMetadata extends UnknownRecord {
   draftPositionsByYear?: Record<string, DraftPositionsEntry | null | undefined>;
   asOfDate?: string | null;
   rightsLedgerVersion?: number;
+  contractBaselineVersion?: number;
+  contractSourceRelease?: ContractSourceReleasePin;
+  contractBaselineEffectiveAt?: string;
+  contractBaselineSalaryCapYear?: number;
+  contractBaselineCoverage?: {
+    total: number;
+    complete: number;
+    needsInput: number;
+  };
 }
 
 export interface CreateWorldParams {
@@ -269,6 +283,33 @@ export function readWorldMetadataDoc(
   );
   if (rightsLedgerVersion !== undefined) {
     metadata.rightsLedgerVersion = rightsLedgerVersion;
+  }
+
+  const baselineMetadata = WorldContractBaselineMetadataZ.safeParse({
+    contractBaselineVersion: record.contractBaselineVersion,
+    contractSourceRelease: record.contractSourceRelease,
+    contractBaselineEffectiveAt: record.contractBaselineEffectiveAt,
+    contractBaselineSalaryCapYear: record.contractBaselineSalaryCapYear,
+    contractBaselineCoverage: record.contractBaselineCoverage,
+  });
+  if (record.contractBaselineVersion !== undefined) {
+    if (!baselineMetadata.success) {
+      throw new Error(
+        `${context}.contract baseline metadata is malformed or incomplete`
+      );
+    }
+    metadata.contractBaselineVersion =
+      baselineMetadata.data.contractBaselineVersion;
+    metadata.contractSourceRelease = ContractSourceReleasePinZ.parse(
+      baselineMetadata.data.contractSourceRelease
+    );
+    metadata.contractBaselineEffectiveAt =
+      baselineMetadata.data.contractBaselineEffectiveAt;
+    metadata.contractBaselineSalaryCapYear =
+      baselineMetadata.data.contractBaselineSalaryCapYear;
+    metadata.contractBaselineCoverage = {
+      ...baselineMetadata.data.contractBaselineCoverage,
+    };
   }
 
   const isArchived = readBooleanField(record, 'isArchived', context);

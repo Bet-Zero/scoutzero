@@ -65,6 +65,8 @@ export const ARCHITECT_WORLD_PLAYERS_SUBCOLLECTION = 'players';
 export const ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION = 'entitlements';
 export const ARCHITECT_WORLD_EVENTS_SUBCOLLECTION = 'events';
 export const ARCHITECT_WORLD_FREE_AGENT_POOLS_SUBCOLLECTION = 'freeAgentPools';
+export const ARCHITECT_WORLD_CONTRACT_BASELINES_SUBCOLLECTION =
+  'contractBaselines';
 
 /**
  * Free agents collection

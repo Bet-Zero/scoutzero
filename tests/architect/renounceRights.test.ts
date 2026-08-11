@@ -22,6 +22,7 @@ import {
   createMockPlayer,
   createMockTeam,
   createMockWorld,
+  getMockWorldMetadata,
   getMockTeamSnapshot,
   seedBaseData,
   seedTeamSnapshot,
@@ -47,6 +48,15 @@ const PLAYER_NAME = 'Governed Rights Player';
 const SEASON_ID = '2026-27';
 const AS_OF_DATE = '2026-07-15';
 const TIMESTAMP = Date.parse('2026-07-15T16:00:00Z');
+
+function advanceGovernedWorldFixture(worldId: string): void {
+  const metadata = getMockWorldMetadata(worldId);
+  if (!metadata) throw new Error(`Missing governed world fixture ${worldId}`);
+  seedWorldMetadata(worldId, {
+    ...metadata,
+    currentSeason: SEASON_ID,
+  });
+}
 
 function ledgerFor(worldId: string, options: { rfaActive?: boolean } = {}) {
   return makeRightsLedger(
@@ -227,8 +237,8 @@ describe('renounceRights world persistence and reload', () => {
     const created = await createWorld({
       name: 'BZE-273 governed world',
       userId: 'user-bze-273',
-      currentSeason: SEASON_ID,
     });
+    advanceGovernedWorldFixture(created.worldId);
     await updateWorldAsOfDate(created.worldId, AS_OF_DATE);
     const player = createMockPlayer({
       playerId: PLAYER_ID,
@@ -332,8 +342,8 @@ describe('renounceRights world persistence and reload', () => {
     const created = await createWorld({
       name: 'BZE-273 concurrent rights guard',
       userId: 'user-bze-273',
-      currentSeason: SEASON_ID,
     });
+    advanceGovernedWorldFixture(created.worldId);
     await updateWorldAsOfDate(created.worldId, AS_OF_DATE);
     const initialState = currentState(created.worldId);
     const initialLedger = initialState.team?.rightsLedger;
@@ -379,15 +389,20 @@ describe('renounceRights world persistence and reload', () => {
     ).toBe('operation-winning-append');
   });
 
-  it('rejects a newly marked world until its governed date is supplied', async () => {
-    const created = await createWorld({
-      name: 'BZE-273 missing date',
-      userId: 'user-bze-273',
-      currentSeason: SEASON_ID,
-    });
+  it('rejects a governed world record until its governed date is supplied', async () => {
+    const world = {
+      ...createMockWorld({
+        worldId: 'bze-273-missing-date',
+        userId: 'user-bze-273',
+        currentSeason: SEASON_ID,
+        asOfDate: null,
+      }),
+      rightsLedgerVersion: 1,
+    };
+    seedWorldMetadata(world.worldId, world);
     const result = await applyWorldMutation({
       userId: 'user-bze-273',
-      worldId: created.worldId,
+      worldId: world.worldId,
       seasonId: SEASON_ID,
       mutationType: 'renounceRights',
       payload: { teamCode: TEAM_ID, playerId: PLAYER_ID },
@@ -453,8 +468,8 @@ describe('renounceRights world persistence and reload', () => {
     const created = await createWorld({
       name: 'BZE-273 missing payload',
       userId: 'user-bze-273',
-      currentSeason: SEASON_ID,
     });
+    advanceGovernedWorldFixture(created.worldId);
     const result = await applyWorldMutation({
       userId: 'user-bze-273',
       worldId: created.worldId,

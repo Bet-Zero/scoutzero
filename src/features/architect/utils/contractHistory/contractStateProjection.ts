@@ -39,6 +39,7 @@ import type {
   ContractEventKind,
   ContractEventRecord,
 } from '@/schemas/contractEventLedger';
+import type { GovernedContractState } from '@/schemas/governedContractState';
 import {
   effectiveTime,
   eventKey,
@@ -66,6 +67,7 @@ export interface LifecycleProjectionEvent {
   readonly resultingContractVersion: number;
   readonly sourceTransactionId: string | null;
   readonly authoringIdentity: string | null;
+  readonly resultingState: GovernedContractState;
 }
 
 export interface LifecycleLedgerIdentity {
@@ -82,7 +84,7 @@ export interface LifecycleLedgerIdentity {
  * computed from the corrected history it never saw.
  */
 export interface LifecycleProjectionManifest {
-  readonly manifestVersion: 1;
+  readonly manifestVersion: 2;
   readonly ledger: LifecycleLedgerIdentity;
   readonly worldId: string;
   readonly contractId: string;
@@ -93,6 +95,8 @@ export interface LifecycleProjectionManifest {
   readonly seasonKey: string;
   readonly consumedEvents: readonly LifecycleProjectionEvent[];
   readonly resultingContractVersion: number | null;
+  readonly resultingStateDigest: string;
+  readonly sourceRelease: GovernedContractState['source'];
 }
 
 export interface LifecycleStateProjection {
@@ -106,6 +110,9 @@ export interface LifecycleStateProjection {
   readonly salaryCapYear: number | null;
   /** Contract version in force at `asOfDate`, or `null` when none was. */
   readonly contractVersion: number | null;
+  readonly contractState: GovernedContractState | null;
+  readonly evidenceStatus: 'complete' | 'needs-input' | null;
+  readonly needsInputReasons: readonly string[];
   /** The event that produced `contractVersion`, or `null` when none did. */
   readonly effectiveEvent: LifecycleProjectionEvent | null;
   /** Chain-ordered events effective at or before `asOfDate`. */
@@ -140,9 +147,7 @@ function ledgerIdentity(ledger: LifecycleEventLedger): LifecycleLedgerIdentity {
   });
 }
 
-function projectionEvent(
-  event: ContractEventRecord
-): LifecycleProjectionEvent {
+function projectionEvent(event: ContractEventRecord): LifecycleProjectionEvent {
   return Object.freeze({
     eventId: event.eventId,
     eventVersion: event.eventVersion,
@@ -154,6 +159,7 @@ function projectionEvent(
     resultingContractVersion: event.resultingContractVersion,
     sourceTransactionId: event.sourceTransactionId,
     authoringIdentity: event.authoringIdentity,
+    resultingState: event.resultingState,
   });
 }
 
@@ -177,6 +183,9 @@ function unavailable(
       ? (request.salaryCapYear as number)
       : null,
     contractVersion: null,
+    contractState: null,
+    evidenceStatus: null,
+    needsInputReasons: Object.freeze([]),
     effectiveEvent: null,
     consumedEvents: Object.freeze([]),
     futureEvents: Object.freeze([]),
@@ -248,7 +257,9 @@ export function projectContractStateAsOf(
       ['asOfDate', 'salaryCapYear'],
       [
         `The as-of instant ${asOfDate} does not fall inside Salary Cap Year ${salaryCapYear} (${
-          window ? `${window.from} to ${window.until}` : 'no representable window'
+          window
+            ? `${window.from} to ${window.until}`
+            : 'no representable window'
         }).`,
       ]
     );
@@ -319,6 +330,9 @@ export function projectContractStateAsOf(
       asOfDate,
       salaryCapYear,
       contractVersion: null,
+      contractState: null,
+      evidenceStatus: null,
+      needsInputReasons: Object.freeze([]),
       effectiveEvent: null,
       consumedEvents,
       futureEvents,
@@ -333,7 +347,7 @@ export function projectContractStateAsOf(
   const effective = consumed[consumed.length - 1];
 
   const manifest: LifecycleProjectionManifest = Object.freeze({
-    manifestVersion: 1 as const,
+    manifestVersion: 2 as const,
     ledger: identity,
     worldId,
     contractId,
@@ -344,6 +358,8 @@ export function projectContractStateAsOf(
     seasonKey,
     consumedEvents,
     resultingContractVersion: effective.resultingContractVersion,
+    resultingStateDigest: effective.resultingState.stateDigest,
+    sourceRelease: effective.resultingState.source,
   });
 
   return Object.freeze({
@@ -356,6 +372,11 @@ export function projectContractStateAsOf(
     asOfDate,
     salaryCapYear,
     contractVersion: effective.resultingContractVersion,
+    contractState: effective.resultingState,
+    evidenceStatus: effective.resultingState.completeness.status,
+    needsInputReasons: Object.freeze([
+      ...effective.resultingState.completeness.reasons,
+    ]),
     effectiveEvent: projectionEvent(effective),
     consumedEvents,
     futureEvents,
@@ -406,6 +427,7 @@ const PROJECTION_EVENT_FIELDS = [
   'resultingContractVersion',
   'sourceTransactionId',
   'authoringIdentity',
+  'resultingState',
 ] as const;
 
 export function verifyContractProjectionManifest(
@@ -413,6 +435,13 @@ export function verifyContractProjectionManifest(
   ledger: LifecycleEventLedger | null
 ): LifecycleManifestVerification {
   if (!manifest || !ledger) {
+    return Object.freeze({
+      state: 'not-comparable' as const,
+      drift: Object.freeze([]),
+    });
+  }
+
+  if (manifest.manifestVersion !== 2) {
     return Object.freeze({
       state: 'not-comparable' as const,
       drift: Object.freeze([]),
@@ -481,9 +510,15 @@ export function verifyContractProjectionManifest(
     // Same identity, changed content. Immutability makes this unreachable
     // through the constructor, so reaching it means the ledger was rebuilt from
     // altered input under an identity it already used.
-    const changed = PROJECTION_EVENT_FIELDS.filter(
-      (field) => exact[field] !== consumed[field]
-    );
+    const changed = PROJECTION_EVENT_FIELDS.filter((field) => {
+      if (field === 'resultingState') {
+        return (
+          exact.resultingState.stateDigest !==
+          consumed.resultingState.stateDigest
+        );
+      }
+      return exact[field] !== consumed[field];
+    });
     if (changed.length > 0) {
       drift.push({
         kind: 'event-content-changed',
@@ -499,7 +534,9 @@ export function verifyContractProjectionManifest(
   });
 
   const consumedKeys = new Set(
-    manifest.consumedEvents.map((event) => `${event.eventId}@v${event.eventVersion}`)
+    manifest.consumedEvents.map(
+      (event) => `${event.eventId}@v${event.eventVersion}`
+    )
   );
   ledger.events
     .filter(

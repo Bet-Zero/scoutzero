@@ -35,15 +35,35 @@ export type {
 export {
   appendContractEvents,
   CONTRACT_EVENT_FAMILIES,
-  CONTRACT_ROOT_EVENT_KIND,
+  CONTRACT_SIGNING_ROOT_EVENT_KIND,
+  CONTRACT_ROOT_EVENT_KINDS,
   ContractEventLedgerError,
   createContractEventLedger,
   effectiveTime,
   eventKey,
+  isContractRootEventKind,
   reviseContractEvent,
   validateContractEventLedger,
   walkChain,
 } from './contractEventRecords';
+export {
+  ContractEvidenceStatusZ,
+  ContractFieldEvidenceZ,
+  ContractSalaryTermZ,
+  ContractTemporalValueZ,
+  decodeContractFieldEvidence,
+  encodeContractFieldEvidence,
+  GovernedContractStateZ,
+  GovernedContractTermsZ,
+} from '@/schemas/governedContractState';
+export type {
+  ContractEvidenceStatus,
+  ContractFieldEvidence,
+  ContractTemporalValue,
+  DecodedContractFieldEvidence,
+  GovernedContractState,
+  GovernedContractTerms,
+} from '@/schemas/governedContractState';
 export type {
   LifecycleEventLedger,
   LifecycleEventLedgerInput,

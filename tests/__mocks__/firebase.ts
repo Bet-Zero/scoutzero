@@ -142,8 +142,56 @@ type MockTransaction = {
 
 type MockCallableImplementation = (data: unknown) => unknown | Promise<unknown>;
 
+type MockBatchCommitFailure = {
+  remainingSuccessfulCommits: number;
+  error: Error;
+  applyBeforeFailure: boolean;
+};
+
+type MockCallableErrorCode =
+  | 'functions/failed-precondition'
+  | 'functions/invalid-argument'
+  | 'functions/not-found';
+
+let mockBatchCommitFailure: MockBatchCommitFailure | null = null;
+const mockRetainedContractReleases = new Map<string, unknown>();
+
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function mockCallableError(
+  code: MockCallableErrorCode,
+  message: string
+): Error & { code: MockCallableErrorCode } {
+  const error = new Error(message) as Error & { code: MockCallableErrorCode };
+  error.code = code;
+  return error;
+}
+
+function mockContractReleaseKey(value: {
+  releaseId: string;
+  releaseVersion: number;
+  releaseDigest: string;
+}): string {
+  return `${value.releaseId}@v${value.releaseVersion}:${value.releaseDigest}`;
+}
+
+function isMockDateWithinSeason(date: string, season: string): boolean {
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+    !Number.isFinite(Date.parse(`${date}T00:00:00Z`)) ||
+    new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date
+  ) {
+    return false;
+  }
+  const startYear = Number(season.slice(0, 4));
+  const endYear = startYear + 1;
+  return (
+    season === `${startYear}-${String(endYear).slice(-2)}` &&
+    date >= `${startYear}-07-01` &&
+    date <= `${endYear}-06-30`
+  );
 }
 
 function cloneMockValue<T>(value: T): T {
@@ -696,6 +744,22 @@ export function writeBatch(_db: unknown): MockBatch {
       return batch;
     },
     async commit() {
+      let appliedFailure: Error | null = null;
+      if (mockBatchCommitFailure) {
+        if (mockBatchCommitFailure.remainingSuccessfulCommits === 0) {
+          const { error, applyBeforeFailure } = mockBatchCommitFailure;
+          mockBatchCommitFailure = null;
+          if (!applyBeforeFailure) {
+            batch.operations = [];
+            currentBatch = null;
+            throw error;
+          }
+          appliedFailure = error;
+        } else {
+          mockBatchCommitFailure.remainingSuccessfulCommits -= 1;
+        }
+      }
+
       for (const operation of batch.operations) {
         if (operation.type === 'set') {
           setDataInStore(operation.path, operation.data);
@@ -708,6 +772,9 @@ export function writeBatch(_db: unknown): MockBatch {
 
       batch.operations = [];
       currentBatch = null;
+      if (appliedFailure) {
+        throw appliedFailure;
+      }
     },
   };
 
@@ -849,8 +916,32 @@ function deepMerge(target: UnknownRecord, source: UnknownRecord): UnknownRecord 
 // Reset mock data store (for test cleanup)
 export function resetMockDataStore(): void {
   mockDataStore.clear();
+  mockRetainedContractReleases.clear();
   currentBatch = null;
   autoIdCounter = 0;
+  mockBatchCommitFailure = null;
+}
+
+export function failMockBatchCommitAfter(
+  successfulCommits: number,
+  error = new Error('Mock batch commit failed')
+): void {
+  mockBatchCommitFailure = {
+    remainingSuccessfulCommits: successfulCommits,
+    error,
+    applyBeforeFailure: false,
+  };
+}
+
+export function failMockBatchCommitAfterApplied(
+  successfulCommits: number,
+  error = new Error('Mock batch commit response failed after applying writes')
+): void {
+  mockBatchCommitFailure = {
+    remainingSuccessfulCommits: successfulCommits,
+    error,
+    applyBeforeFailure: true,
+  };
 }
 
 // Get all data (for debugging)
@@ -876,6 +967,234 @@ export function getMockData(path: string): unknown {
 // Store for mock callable function responses
 const mockCallableFunctions = new Map<string, MockCallableImplementation>();
 
+async function initializeArchitectWorldMock(data: unknown): Promise<unknown> {
+  if (!isRecord(data)) {
+    throw mockCallableError(
+      'functions/invalid-argument',
+      'initializeArchitectWorld mock requires an object request'
+    );
+  }
+  const { worldId, worldName, description, userId, currentSeason, parentWorldId } =
+    data;
+  if (
+    typeof worldId !== 'string' ||
+    typeof worldName !== 'string' ||
+    typeof userId !== 'string'
+  ) {
+    throw mockCallableError(
+      'functions/invalid-argument',
+      'initializeArchitectWorld mock request is malformed'
+    );
+  }
+
+  const contractSource = await import(
+    '@/features/architect/utils/contractSource/contractSourceRelease'
+  );
+  const now = new Date().toISOString();
+  let metadata: UnknownRecord;
+  let documents: readonly UnknownRecord[];
+
+  if (typeof parentWorldId === 'string') {
+    const parentRaw = getDataFromStore(`architect_worlds/${parentWorldId}`);
+    if (!isRecord(parentRaw)) {
+      throw mockCallableError(
+        'functions/not-found',
+        `Parent world ${parentWorldId} not found`
+      );
+    }
+    const compatibility = contractSource.resolveContractBaselineWorldCompatibility(
+      parentRaw
+    );
+    if (!compatibility.compatible) {
+      throw mockCallableError(
+        'functions/failed-precondition',
+        compatibility.message
+      );
+    }
+    const retainedRelease = mockRetainedContractReleases.get(
+      mockContractReleaseKey(compatibility.metadata.contractSourceRelease)
+    ) as
+      | Awaited<
+          ReturnType<typeof contractSource.loadBundledContractSourceRelease>
+        >
+      | undefined;
+    if (!retainedRelease) {
+      throw mockCallableError(
+        'functions/failed-precondition',
+        'The parent world governed contract release is not retained.'
+      );
+    }
+    const governedMetadata = contractSource.contractBaselineMetadata(
+      retainedRelease
+    );
+    const { canonicalStringify } = await import(
+      '@/features/architect/utils/contractSource/deterministicDigest'
+    );
+    if (
+      canonicalStringify(compatibility.metadata) !==
+      canonicalStringify(governedMetadata)
+    ) {
+      throw mockCallableError(
+        'functions/failed-precondition',
+        'The parent world does not contain its retained governed contract baseline.'
+      );
+    }
+    const parentDocuments: unknown[] = [];
+    const prefix = `architect_worlds/${parentWorldId}/contractBaselines/`;
+    for (const [path, value] of mockDataStore.entries()) {
+      if (path.startsWith(prefix) && !path.slice(prefix.length).includes('/')) {
+        parentDocuments.push(value);
+      }
+    }
+    const validated = contractSource.validateContractBaselineDocumentSet(
+      parentDocuments.map((value) =>
+        contractSource.parseContractBaselineTeamDocument(value, {
+          worldId: parentWorldId,
+          release: compatibility.metadata.contractSourceRelease,
+        })
+      ),
+      compatibility.metadata.contractBaselineCoverage.total
+    );
+    if (
+      validated.some(
+        (document) =>
+          canonicalStringify(document.evidenceCatalog) !==
+          canonicalStringify(retainedRelease.source.evidenceCatalog)
+      )
+    ) {
+      throw mockCallableError(
+        'functions/failed-precondition',
+        'The parent world contract evidence conflicts with its retained release.'
+      );
+    }
+    documents = validated.map((document) =>
+      contractSource.branchContractBaselineTeamDocument(document, worldId)
+    );
+    const governedBaselineSeason = `${compatibility.metadata.contractBaselineSalaryCapYear - 1}-${String(
+      compatibility.metadata.contractBaselineSalaryCapYear
+    ).slice(-2)}`;
+    if (parentRaw.baselineSeason !== governedBaselineSeason) {
+      throw mockCallableError(
+        'functions/failed-precondition',
+        'The parent world baseline season contradicts its governed Salary Cap Year.'
+      );
+    }
+    const season = parentRaw.currentSeason;
+    const asOfDate = parentRaw.asOfDate;
+    if (
+      typeof season !== 'string' ||
+      typeof asOfDate !== 'string' ||
+      !isMockDateWithinSeason(asOfDate, season) ||
+      Number(season.slice(0, 4)) <
+        compatibility.metadata.contractBaselineSalaryCapYear - 1 ||
+      asOfDate < retainedRelease.effectiveAt.slice(0, 10)
+    ) {
+      throw mockCallableError(
+        'functions/failed-precondition',
+        'The parent world date contradicts its governed contract baseline.'
+      );
+    }
+    metadata = {
+      worldId,
+      worldName,
+      description: typeof description === 'string' ? description : '',
+      createdBy: userId,
+      createdAt: now,
+      lastModifiedAt: now,
+      currentSeason: season,
+      baselineSeason: governedBaselineSeason,
+      parentWorldId,
+      branchedFrom: now,
+      childWorlds: [],
+      modifiedTeams: Array.isArray(parentRaw.modifiedTeams)
+        ? cloneMockValue(parentRaw.modifiedTeams)
+        : [],
+      actionCount:
+        typeof parentRaw.actionCount === 'number' ? parentRaw.actionCount : 0,
+      tags: Array.isArray(parentRaw.tags) ? cloneMockValue(parentRaw.tags) : [],
+      isArchived: true,
+      isFavorite: false,
+      stats: isRecord(parentRaw.stats)
+        ? cloneMockValue(parentRaw.stats)
+        : {
+            totalTrades: 0,
+            totalSignings: 0,
+            totalWaives: 0,
+            totalRenounces: 0,
+            teamsInvolved: 0,
+          },
+      rightsLedgerVersion: 1,
+      asOfDate,
+      ...compatibility.metadata,
+      ...(isRecord(parentRaw.draftPositionsByYear)
+        ? {
+            draftPositionsByYear: cloneMockValue(
+              parentRaw.draftPositionsByYear
+            ),
+          }
+        : {}),
+    };
+  } else {
+    const release = await contractSource.loadBundledContractSourceRelease();
+    mockRetainedContractReleases.set(
+      mockContractReleaseKey(release),
+      release
+    );
+    const season = `${release.salaryCapYear - 1}-${String(
+      release.salaryCapYear
+    ).slice(-2)}`;
+    if (currentSeason != null && currentSeason !== season) {
+      throw mockCallableError(
+        'functions/invalid-argument',
+        `currentSeason must match governed release season ${season}.`
+      );
+    }
+    metadata = {
+      worldId,
+      worldName,
+      description: typeof description === 'string' ? description : '',
+      createdBy: userId,
+      createdAt: now,
+      lastModifiedAt: now,
+      currentSeason: season,
+      baselineSeason: season,
+      parentWorldId: null,
+      branchedFrom: null,
+      childWorlds: [],
+      modifiedTeams: [],
+      actionCount: 0,
+      tags: [],
+      isArchived: false,
+      isFavorite: false,
+      stats: {
+        totalTrades: 0,
+        totalSignings: 0,
+        totalWaives: 0,
+        totalRenounces: 0,
+        teamsInvolved: 0,
+      },
+      rightsLedgerVersion: 1,
+      asOfDate: release.effectiveAt.slice(0, 10),
+      ...contractSource.contractBaselineMetadata(release),
+    };
+    documents = contractSource.buildContractBaselineTeamDocuments(
+      release,
+      worldId
+    );
+  }
+
+  setDataInStore(`architect_worlds/${worldId}`, metadata);
+  for (const document of documents) {
+    setDataInStore(
+      `architect_worlds/${worldId}/contractBaselines/${String(
+        document.shardId
+      )}`,
+      document
+    );
+  }
+  return { ok: true, worldId };
+}
+
 /**
  * Mock httpsCallable function
  * Returns a function that can be called with data and returns a result
@@ -886,6 +1205,10 @@ export function httpsCallable(_functions: unknown, functionName: string) {
     if (mockImpl) {
       const result = await mockImpl(data);
       return { data: result };
+    }
+
+    if (functionName === 'initializeArchitectWorld') {
+      return { data: await initializeArchitectWorldMock(data) };
     }
 
     return {

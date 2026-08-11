@@ -34,12 +34,26 @@ import {
   purgeWorld,
 } from '@/features/architect/utils/worldManager';
 import { DeleteWorldModal } from './DeleteWorldModal';
+import { resolveContractBaselineWorldCompatibility } from '@/features/architect/utils/contractSource/contractSourceRelease';
 
 type WorldSummaryLike = {
   worldId: string;
   worldName?: string | null;
   description?: string | null;
   isArchived?: boolean;
+  contractBaselineVersion?: number;
+  contractSourceRelease?: {
+    releaseId: string;
+    releaseVersion: number;
+    releaseDigest: string;
+  };
+  contractBaselineEffectiveAt?: string;
+  contractBaselineSalaryCapYear?: number;
+  contractBaselineCoverage?: {
+    total: number;
+    complete: number;
+    needsInput: number;
+  };
 };
 
 type WorldMetadataLike = {
@@ -223,12 +237,22 @@ export function WorldSelector({
   const handleWorldSelect = useCallback(
     (event: ChangeEvent<HTMLSelectElement>) => {
       const newWorldId = event.target.value || null;
+      const selected = worlds.find((world) => world.worldId === newWorldId);
+      if (selected) {
+        const compatibility = resolveContractBaselineWorldCompatibility(selected);
+        if (!compatibility.compatible) {
+          setError(compatibility.message);
+          event.currentTarget.value = worldId || '';
+          return;
+        }
+      }
+      setError('');
       const didCommit = commitActiveWorldSelection(newWorldId, 'switch-world');
       if (!didCommit) {
         event.currentTarget.value = worldId || '';
       }
     },
-    [commitActiveWorldSelection, worldId]
+    [commitActiveWorldSelection, worldId, worlds]
   );
 
   const handleCreateWorld = useCallback(async () => {
@@ -254,8 +278,9 @@ export function WorldSelector({
       setNewWorldDescription('');
       setShowCreateModal(false);
     } catch (err) {
+      const errorLike = err as ErrorLike;
       console.error('Failed to create world:', err);
-      setError('Failed to create world');
+      setError(errorLike.message || 'Failed to create world');
     } finally {
       setIsSubmitting(false);
     }
@@ -292,8 +317,9 @@ export function WorldSelector({
       setNewWorldDescription('');
       setShowBranchModal(false);
     } catch (err) {
+      const errorLike = err as ErrorLike;
       console.error('Failed to branch world:', err);
-      setError('Failed to branch world');
+      setError(errorLike.message || 'Failed to branch world');
     } finally {
       setIsSubmitting(false);
     }
@@ -460,6 +486,9 @@ export function WorldSelector({
   }
 
   const currentWorld = worlds.find((world) => world.worldId === worldId);
+  const currentContractCompatibility = currentWorld
+    ? resolveContractBaselineWorldCompatibility(currentWorld)
+    : null;
 
   return (
     <div className="flex items-center gap-2 relative">
@@ -488,6 +517,9 @@ export function WorldSelector({
             {worlds.map((world) => (
               <option key={world.worldId} value={world.worldId}>
                 {world.worldName || world.worldId}
+                {!resolveContractBaselineWorldCompatibility(world).compatible
+                  ? ' (recreate required)'
+                  : ''}
               </option>
             ))}
           </select>
@@ -497,6 +529,28 @@ export function WorldSelector({
             {SANDBOX_HELPER_COPY}
           </span>
         )}
+        {isWorldBacked && currentContractCompatibility?.compatible && (
+          <span
+            className="text-[10px] text-emerald-200/70 pl-0.5"
+            data-testid="contract-baseline-status"
+          >
+            {currentContractCompatibility.metadata.contractBaselineCoverage.total}{' '}
+            baseline contracts ·{' '}
+            {currentContractCompatibility.metadata.contractBaselineCoverage.needsInput}{' '}
+            need source details · release{' '}
+            {currentContractCompatibility.metadata.contractSourceRelease.releaseVersion}
+          </span>
+        )}
+        {isWorldBacked &&
+          currentContractCompatibility &&
+          !currentContractCompatibility.compatible && (
+            <span
+              className="text-[10px] text-red-300 pl-0.5"
+              data-testid="contract-baseline-recreate"
+            >
+              {currentContractCompatibility.message}
+            </span>
+          )}
       </div>
 
       <div className="flex items-center gap-1">

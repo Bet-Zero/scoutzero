@@ -253,7 +253,6 @@ vi.mock('@/shared/components/EditContractModal', () => {
   };
   return { __esModule: true, default: EditContractModal, EditContractModal };
 });
-
 vi.mock('@/features/architect/GMDashboard/sections/RosterSection', () => ({
   RosterSection: () => <div data-testid="mock-roster-section">RosterSection</div>,
 }));
@@ -398,6 +397,19 @@ type WorldLike = {
   worldId: string;
   worldName: string;
   description?: string;
+  contractBaselineVersion?: number;
+  contractSourceRelease?: {
+    releaseId: string;
+    releaseVersion: number;
+    releaseDigest: string;
+  };
+  contractBaselineEffectiveAt?: string;
+  contractBaselineSalaryCapYear?: number;
+  contractBaselineCoverage?: {
+    total: number;
+    complete: number;
+    needsInput: number;
+  };
 };
 
 type TeamCapSheetLike = {
@@ -409,7 +421,19 @@ type TeamCapSheetLike = {
 };
 
 function makeWorld(worldId: string, worldName: string): WorldLike {
-  return { worldId, worldName };
+  return {
+    worldId,
+    worldName,
+    contractBaselineVersion: 2,
+    contractSourceRelease: {
+      releaseId: 'test-contract-source-release',
+      releaseVersion: 1,
+      releaseDigest: `sha256:${'1'.repeat(64)}`,
+    },
+    contractBaselineEffectiveAt: '2026-06-05T12:00:00Z',
+    contractBaselineSalaryCapYear: 2026,
+    contractBaselineCoverage: { total: 774, complete: 772, needsInput: 2 },
+  };
 }
 
 function buildSeasonAdvanceOptionPlayer({
@@ -824,6 +848,9 @@ describe('E109 dashboard/world boundary behavior', () => {
       const select = await screen.findByLabelText('Saved World');
       expect(select).toHaveValue('world_beta');
       expect(screen.getByRole('button', { name: '+ New' })).toBeInTheDocument();
+      expect(screen.getByTestId('contract-baseline-status')).toHaveTextContent(
+        '774 baseline contracts · 2 need source details · release 1'
+      );
 
       fireEvent.change(select, { target: { value: 'world_alpha' } });
 
@@ -841,6 +868,32 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(removeItemSpy).not.toHaveBeenCalledWith(
         'architect.activeWorldId.user_1'
       );
+    });
+
+    it('labels incompatible worlds and requires recreation instead of selecting them', async () => {
+      const onWorldChange = vi.fn();
+      const onSetWorldId = vi.fn();
+      mockListUserWorlds.mockResolvedValue([
+        makeWorld('world_alpha', 'World Alpha'),
+        { worldId: 'old_world', worldName: 'Old World' },
+      ]);
+
+      render(
+        <WorldSelectorHarness
+          initialWorldId="world_alpha"
+          onWorldChange={onWorldChange}
+          onSetWorldId={onSetWorldId}
+        />
+      );
+
+      const select = await screen.findByLabelText('Saved World');
+      expect(screen.getByRole('option', { name: 'Old World (recreate required)' })).toBeInTheDocument();
+      fireEvent.change(select, { target: { value: 'old_world' } });
+
+      expect(select).toHaveValue('world_alpha');
+      expect(screen.getByText(/predates governed baseline contracts/i)).toBeInTheDocument();
+      expect(onWorldChange).not.toHaveBeenCalled();
+      expect(onSetWorldId).not.toHaveBeenCalled();
     });
 
     it('blocks unsafe world selection when the Team Plan guard is canceled', async () => {

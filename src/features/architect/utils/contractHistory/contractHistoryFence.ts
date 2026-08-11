@@ -127,3 +127,8 @@ export const FENCED_HISTORY_DIRECTORY =
 
 export const FENCED_HISTORY_SCHEMA_MODULE =
   'src/schemas/contractEventLedger.ts' as const;
+
+/** BZE-274's one governed initialization consumer; mutable consumers stay fenced. */
+export const GOVERNED_CONTRACT_HISTORY_CONSUMERS = Object.freeze([
+  'src/features/architect/utils/contractSource/contractSourceRelease.ts',
+] as const);

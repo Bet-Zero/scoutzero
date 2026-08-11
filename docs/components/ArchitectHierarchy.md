@@ -342,6 +342,12 @@ utils/
     index.ts
   contractNormalization.ts
   contractSalaryUtils.ts
+  contractSource/
+    contractSourceRelease.ts
+    contractSourceReleaseBuilder.ts
+    deterministicDigest.ts
+    index.ts
+    worldContractBaseline.ts
   contractUtils.ts
   draftPickUtils.ts
   entitlements/
@@ -593,5 +599,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-09T09:19:25.420Z*
+*Generated on: 2026-08-10T04:22:33.694Z*
 *Auto-updated by: npm run docs*

@@ -217,7 +217,7 @@ describe('BZE-271 payload reading fails closed', () => {
     const payload = JSON.parse(
       serializeContractEventLedger(build(fullLifecycleEvents()))
     );
-    payload.payloadVersion = 2;
+    payload.payloadVersion = 1;
 
     expect(() =>
       deserializeContractEventLedger(JSON.stringify(payload))
@@ -341,11 +341,11 @@ describe('BZE-271 payload reading fails closed', () => {
       null: 'payload is not an object',
       '"a string"': 'payload is not an object',
       [JSON.stringify({
-        payloadVersion: 2,
+        payloadVersion: 1,
         ledgerId: LEDGER_ID,
         ledgerVersion: 1,
         events: [],
-      })]: 'payload version 2 is not the supported version 1',
+      })]: 'payload version 1 is not the supported version 2',
       [JSON.stringify({
         payloadVersion: CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION,
         ledgerId: LEDGER_ID,
@@ -569,7 +569,7 @@ describe('BZE-271 canonical runtime schema is the one contract', () => {
         })
       );
 
-    [2, 0, '1', null, 1.5].forEach((version) => {
+    [1, 0, '2', null, 1.5].forEach((version) => {
       const read = withVersion(version);
       expect(read.state, String(version)).toBe('invalid');
       expect(read.ledger).toBeNull();

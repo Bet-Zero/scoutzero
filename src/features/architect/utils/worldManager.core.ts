@@ -37,7 +37,6 @@ import {
 } from './architectFirestorePaths';
 import {
   generateWorldId,
-  getCurrentSeason,
   readWorldMetadataDoc,
   type CallableErrorLike,
   type CreateWorldParams,
@@ -48,10 +47,10 @@ import {
   type WorldStats,
 } from './worldManager.readUtils';
 import {
-  RIGHTS_LEDGER_WORLD_VERSION,
   createRightsEventLedger,
   resolveRightsWorldCompatibility,
 } from '@/features/architect/utils/rightsHistory';
+import { resolveContractBaselineWorldCompatibility } from '@/features/architect/utils/contractSource/contractSourceRelease';
 
 const ISO_DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const BRANCH_COPY_BATCH_LIMIT = 450;
@@ -59,16 +58,61 @@ const BRANCH_COPY_BATCH_LIMIT = 450;
 type BranchCopyRecord = Record<string, unknown>;
 type BranchCopyOperation = (batch: WriteBatch) => void;
 
+export type PurgeWorldOptions = {
+  cleanupPartialBranch?: boolean;
+  expectedParentWorldId?: string;
+};
+
+export class BranchWorldCleanupError extends Error {
+  readonly childWorldId: string;
+
+  readonly parentWorldId: string;
+
+  readonly originalBranchFailure: unknown;
+
+  readonly cleanupResult: PurgeWorldResult | null;
+
+  readonly cleanupFailure: unknown;
+
+  readonly cleanupPending: boolean;
+
+  constructor(args: {
+    childWorldId: string;
+    parentWorldId: string;
+    originalBranchFailure: unknown;
+    cleanupResult?: PurgeWorldResult;
+    cleanupFailure?: unknown;
+  }) {
+    const branchReason =
+      args.originalBranchFailure instanceof Error
+        ? args.originalBranchFailure.message
+        : String(args.originalBranchFailure);
+    const cleanupReason = args.cleanupResult
+      ? `${args.cleanupResult.message || 'No cleanup message returned'} (ok=${String(
+          args.cleanupResult.ok
+        )}, queued=${String(args.cleanupResult.queued === true)})`
+      : args.cleanupFailure instanceof Error
+        ? args.cleanupFailure.message
+        : String(args.cleanupFailure ?? 'unknown cleanup failure');
+    const cleanupPending = args.cleanupResult?.queued === true;
+    super(
+      `Branch operation reported failure: ${branchReason}. ` +
+        `Cleanup ${cleanupPending ? 'is pending' : 'failed'}: ${cleanupReason}. ` +
+        'The child was not reported deleted; its child and parent identities are recorded for a safe governed cleanup retry.',
+      { cause: args.originalBranchFailure }
+    );
+    this.name = 'BranchWorldCleanupError';
+    this.childWorldId = args.childWorldId;
+    this.parentWorldId = args.parentWorldId;
+    this.originalBranchFailure = args.originalBranchFailure;
+    this.cleanupResult = args.cleanupResult ?? null;
+    this.cleanupFailure = args.cleanupFailure ?? null;
+    this.cleanupPending = cleanupPending;
+  }
+}
+
 const isPlainRecord = (value: unknown): value is BranchCopyRecord =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const clonePlainValue = <T>(value: T): T => {
-  if (value === undefined || value === null) {
-    return value;
-  }
-
-  return JSON.parse(JSON.stringify(value)) as T;
-};
 
 const readSnapshotRecord = (
   value: unknown,
@@ -226,7 +270,8 @@ const resolveWorldLineageIds = async (worldId: string): Promise<string[]> => {
 
     const metadata = await getWorldMetadata(currentWorldId);
     currentWorldId =
-      typeof metadata.parentWorldId === 'string' && metadata.parentWorldId.trim()
+      typeof metadata.parentWorldId === 'string' &&
+      metadata.parentWorldId.trim()
         ? metadata.parentWorldId.trim()
         : null;
   }
@@ -376,7 +421,9 @@ const collectEffectiveEntitlementsForBranch = async (
   }
 
   for (const lineageWorldId of lineageIds) {
-    const entitlementsSnap = await getDocs(worldEntitlementsCol(lineageWorldId));
+    const entitlementsSnap = await getDocs(
+      worldEntitlementsCol(lineageWorldId)
+    );
     entitlementsSnap.docs.forEach((entitlementDoc) => {
       entitlementIds.add(entitlementDoc.id);
     });
@@ -456,7 +503,6 @@ const appendWorldStateCopyOperations = async ({
     parentWorldId,
     childWorldId
   );
-
   for (const [teamCode, teamData] of teamSnapshots.entries()) {
     appendSetOperation(
       operations,
@@ -498,62 +544,39 @@ const appendWorldStateCopyOperations = async ({
   }
 };
 
-const buildBranchedWorldMetadata = ({
-  worldId,
-  name,
-  description,
-  parentWorldId,
-  userId,
-  parentMetadata,
-}: {
+const initializeArchitectWorld = async (input: {
   worldId: string;
-  name: string;
-  description: string | undefined;
-  parentWorldId: string;
+  worldName: string;
+  description: string;
   userId: string;
-  parentMetadata: WorldMetadata;
-}): Record<string, unknown> => {
-  const season = parentMetadata.currentSeason || getCurrentSeason();
-  const metadata: Record<string, unknown> = {
-    worldId,
-    worldName: name.trim(),
-    description: description?.trim() || '',
-    createdBy: userId,
-    createdAt: serverTimestamp(),
-    lastModifiedAt: serverTimestamp(),
-    currentSeason: season,
-    baselineSeason: parentMetadata.baselineSeason || season,
-    parentWorldId,
-    branchedFrom: serverTimestamp(),
-    childWorlds: [],
-    modifiedTeams: clonePlainValue(parentMetadata.modifiedTeams || []),
-    actionCount: parentMetadata.actionCount || 0,
-    tags: clonePlainValue(parentMetadata.tags || []),
-    isArchived: false,
-    isFavorite: false,
-    stats: clonePlainValue(
-      parentMetadata.stats || {
-        totalTrades: 0,
-        totalSignings: 0,
-        totalWaives: 0,
-        totalRenounces: 0,
-        teamsInvolved: 0,
-      }
-    ),
-  };
-
-  if (parentMetadata.asOfDate !== undefined) {
-    metadata.asOfDate = parentMetadata.asOfDate;
-  }
-  metadata.rightsLedgerVersion = RIGHTS_LEDGER_WORLD_VERSION;
-
-  if (parentMetadata.draftPositionsByYear !== undefined) {
-    metadata.draftPositionsByYear = clonePlainValue(
-      parentMetadata.draftPositionsByYear
+  currentSeason?: string | null;
+  parentWorldId?: string | null;
+}): Promise<void> => {
+  const initializeFunction = httpsCallable(
+    functions,
+    'initializeArchitectWorld'
+  );
+  try {
+    await initializeFunction(input);
+  } catch (error) {
+    const firebaseError = error as CallableErrorLike;
+    if (firebaseError.code === 'functions/unauthenticated') {
+      throw new Error('You must be logged in to create worlds');
+    }
+    if (firebaseError.code === 'functions/permission-denied') {
+      throw new Error('You do not have permission to initialize this world');
+    }
+    if (firebaseError.code === 'functions/not-found') {
+      throw new Error(firebaseError.message || 'Parent world not found');
+    }
+    if (firebaseError.code === 'functions/already-exists') {
+      throw new Error(firebaseError.message || 'World already exists');
+    }
+    throw new Error(
+      firebaseError.message ||
+        'Governed contract baseline initialization failed'
     );
   }
-
-  return metadata;
 };
 
 const normalizeWorldAsOfDate = (asOfDate: string): string => {
@@ -577,55 +600,20 @@ export async function createWorld({
     throw new Error('World name is required');
   }
 
-  const worldId = generateWorldId();
-  const season = currentSeason || getCurrentSeason();
+  if (parentWorldId) {
+    return branchWorld(parentWorldId, name, description, userId);
+  }
 
-  const metadata: Record<string, unknown> = {
+  const worldId = generateWorldId();
+  await initializeArchitectWorld({
     worldId,
     worldName: name.trim(),
     description: description.trim() || '',
-    createdBy: userId,
-    createdAt: serverTimestamp(),
-    lastModifiedAt: serverTimestamp(),
-    currentSeason: season,
-    baselineSeason: season,
-    parentWorldId: parentWorldId || null,
-    branchedFrom: parentWorldId ? serverTimestamp() : null,
-    childWorlds: [],
-    modifiedTeams: [],
-    actionCount: 0,
-    tags: [],
-    isArchived: false,
-    isFavorite: false,
-    stats: {
-      totalTrades: 0,
-      totalSignings: 0,
-      totalWaives: 0,
-      totalRenounces: 0,
-      teamsInvolved: 0,
-    },
-    rightsLedgerVersion: RIGHTS_LEDGER_WORLD_VERSION,
-  };
-
-  const batch = writeBatch(db);
-
-  const metadataRef = worldMetadataRef(worldId);
-  batch.set(metadataRef, metadata);
-
-  if (parentWorldId) {
-    const parentMetadata = await getWorldMetadata(parentWorldId);
-    const compatibility = resolveRightsWorldCompatibility(parentMetadata);
-    if (!compatibility.compatible) {
-      throw new Error(compatibility.message);
-    }
-    const parentRef = worldMetadataRef(parentWorldId);
-    batch.update(parentRef, {
-      childWorlds: arrayUnion(worldId),
-    });
-  }
-
-  await batch.commit();
-
+    userId,
+    currentSeason,
+    parentWorldId: null,
+  });
+  const metadata = await getWorldMetadata(worldId);
   return { worldId, metadata };
 }
 
@@ -808,16 +796,28 @@ export async function archiveWorld(
  * server-side Cloud Function `purgeArchitectWorld`.
  */
 export async function purgeWorld(
-  worldId: string | null | undefined
+  worldId: string | null | undefined,
+  options: PurgeWorldOptions = {}
 ): Promise<PurgeWorldResult> {
   if (!worldId) {
     throw new Error('worldId is required');
+  }
+  if (options.cleanupPartialBranch && !options.expectedParentWorldId) {
+    throw new Error(
+      'expectedParentWorldId is required for partial branch cleanup'
+    );
   }
 
   const purgeFunction = httpsCallable(functions, 'purgeArchitectWorld');
 
   try {
-    const result = await purgeFunction({ worldId });
+    const result = await purgeFunction({
+      worldId,
+      ...(options.cleanupPartialBranch ? { cleanupPartialBranch: true } : {}),
+      ...(options.cleanupPartialBranch
+        ? { expectedParentWorldId: options.expectedParentWorldId }
+        : {}),
+    });
     return result.data as PurgeWorldResult;
   } catch (error) {
     const firebaseError = error as CallableErrorLike;
@@ -838,6 +838,16 @@ export async function purgeWorld(
     }
     throw new Error(firebaseError.message || 'Failed to delete world');
   }
+}
+
+export async function retryBranchCleanup(
+  childWorldId: string,
+  expectedParentWorldId: string
+): Promise<PurgeWorldResult> {
+  return purgeWorld(childWorldId, {
+    cleanupPartialBranch: true,
+    expectedParentWorldId,
+  });
 }
 
 export async function branchWorld(
@@ -861,15 +871,12 @@ export async function branchWorld(
   if (!compatibility.compatible) {
     throw new Error(compatibility.message);
   }
+  const contractCompatibility =
+    resolveContractBaselineWorldCompatibility(parentMetadata);
+  if (!contractCompatibility.compatible) {
+    throw new Error(contractCompatibility.message);
+  }
   const worldId = generateWorldId();
-  const metadata = buildBranchedWorldMetadata({
-    worldId,
-    name,
-    description,
-    parentWorldId,
-    userId,
-    parentMetadata,
-  });
   const copyOperations: BranchCopyOperation[] = [];
 
   await appendWorldStateCopyOperations({
@@ -877,15 +884,50 @@ export async function branchWorld(
     parentWorldId,
     childWorldId: worldId,
   });
-  await commitBranchCopyOperations(copyOperations);
 
-  const batch = writeBatch(db);
-  batch.set(worldMetadataRef(worldId), metadata);
-  batch.update(worldMetadataRef(parentWorldId), {
-    childWorlds: arrayUnion(worldId),
-  });
-  await batch.commit();
+  try {
+    await initializeArchitectWorld({
+      worldId,
+      worldName: name.trim(),
+      description: description?.trim() || '',
+      userId,
+      parentWorldId,
+    });
+    await commitBranchCopyOperations(copyOperations);
 
+    const batch = writeBatch(db);
+    batch.update(worldMetadataRef(worldId), {
+      isArchived: false,
+      lastModifiedAt: serverTimestamp(),
+    });
+    batch.update(worldMetadataRef(parentWorldId), {
+      childWorlds: arrayUnion(worldId),
+    });
+    await batch.commit();
+  } catch (error) {
+    let cleanupResult: PurgeWorldResult;
+    try {
+      cleanupResult = await retryBranchCleanup(worldId, parentWorldId);
+    } catch (cleanupError) {
+      throw new BranchWorldCleanupError({
+        childWorldId: worldId,
+        parentWorldId,
+        originalBranchFailure: error,
+        cleanupFailure: cleanupError,
+      });
+    }
+    if (cleanupResult.ok !== true) {
+      throw new BranchWorldCleanupError({
+        childWorldId: worldId,
+        parentWorldId,
+        originalBranchFailure: error,
+        cleanupResult,
+      });
+    }
+    throw error;
+  }
+
+  const metadata = await getWorldMetadata(worldId);
   return { worldId, metadata };
 }
 
