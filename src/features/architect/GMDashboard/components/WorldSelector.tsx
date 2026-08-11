@@ -534,9 +534,8 @@ export function WorldSelector({
             className="text-[10px] text-emerald-200/70 pl-0.5"
             data-testid="contract-baseline-status"
           >
-            Contract baseline ·{' '}
-            {currentContractCompatibility.metadata.contractBaselineCoverage.complete}{' '}
-            verified ·{' '}
+            {currentContractCompatibility.metadata.contractBaselineCoverage.total}{' '}
+            baseline contracts ·{' '}
             {currentContractCompatibility.metadata.contractBaselineCoverage.needsInput}{' '}
             need source details · release{' '}
             {currentContractCompatibility.metadata.contractSourceRelease.releaseVersion}

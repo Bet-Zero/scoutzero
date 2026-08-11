@@ -58,6 +58,54 @@ const BRANCH_COPY_BATCH_LIMIT = 450;
 type BranchCopyRecord = Record<string, unknown>;
 type BranchCopyOperation = (batch: WriteBatch) => void;
 
+export type PurgeWorldOptions = {
+  cleanupPartialBranch?: boolean;
+};
+
+export class BranchWorldCleanupError extends Error {
+  readonly childWorldId: string;
+
+  readonly originalBranchFailure: unknown;
+
+  readonly cleanupResult: PurgeWorldResult | null;
+
+  readonly cleanupFailure: unknown;
+
+  readonly cleanupPending: boolean;
+
+  constructor(args: {
+    childWorldId: string;
+    originalBranchFailure: unknown;
+    cleanupResult?: PurgeWorldResult;
+    cleanupFailure?: unknown;
+  }) {
+    const branchReason =
+      args.originalBranchFailure instanceof Error
+        ? args.originalBranchFailure.message
+        : String(args.originalBranchFailure);
+    const cleanupReason = args.cleanupResult
+      ? `${args.cleanupResult.message || 'No cleanup message returned'} (ok=${String(
+          args.cleanupResult.ok
+        )}, queued=${String(args.cleanupResult.queued === true)})`
+      : args.cleanupFailure instanceof Error
+        ? args.cleanupFailure.message
+        : String(args.cleanupFailure ?? 'unknown cleanup failure');
+    const cleanupPending = args.cleanupResult?.queued === true;
+    super(
+      `Branch failed while creating a hidden child: ${branchReason}. ` +
+        `Cleanup ${cleanupPending ? 'is pending' : 'failed'}: ${cleanupReason}. ` +
+        'The partial child remains unusable; its recorded identity can be used to retry governed cleanup.',
+      { cause: args.originalBranchFailure }
+    );
+    this.name = 'BranchWorldCleanupError';
+    this.childWorldId = args.childWorldId;
+    this.originalBranchFailure = args.originalBranchFailure;
+    this.cleanupResult = args.cleanupResult ?? null;
+    this.cleanupFailure = args.cleanupFailure ?? null;
+    this.cleanupPending = cleanupPending;
+  }
+}
+
 const isPlainRecord = (value: unknown): value is BranchCopyRecord =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
@@ -743,7 +791,8 @@ export async function archiveWorld(
  * server-side Cloud Function `purgeArchitectWorld`.
  */
 export async function purgeWorld(
-  worldId: string | null | undefined
+  worldId: string | null | undefined,
+  options: PurgeWorldOptions = {}
 ): Promise<PurgeWorldResult> {
   if (!worldId) {
     throw new Error('worldId is required');
@@ -752,7 +801,10 @@ export async function purgeWorld(
   const purgeFunction = httpsCallable(functions, 'purgeArchitectWorld');
 
   try {
-    const result = await purgeFunction({ worldId });
+    const result = await purgeFunction({
+      worldId,
+      ...(options.cleanupPartialBranch ? { cleanupPartialBranch: true } : {}),
+    });
     return result.data as PurgeWorldResult;
   } catch (error) {
     const firebaseError = error as CallableErrorLike;
@@ -773,6 +825,12 @@ export async function purgeWorld(
     }
     throw new Error(firebaseError.message || 'Failed to delete world');
   }
+}
+
+export async function retryBranchCleanup(
+  childWorldId: string
+): Promise<PurgeWorldResult> {
+  return purgeWorld(childWorldId, { cleanupPartialBranch: true });
 }
 
 export async function branchWorld(
@@ -833,17 +891,22 @@ export async function branchWorld(
     await batch.commit();
   } catch (error) {
     if (initialized) {
+      let cleanupResult: PurgeWorldResult;
       try {
-        await purgeWorld(worldId);
+        cleanupResult = await retryBranchCleanup(worldId);
       } catch (cleanupError) {
-        const reason =
-          cleanupError instanceof Error
-            ? cleanupError.message
-            : 'unknown cleanup error';
-        throw new Error(
-          `Branch initialization failed and governed cleanup also failed for ${worldId}: ${reason}`,
-          { cause: error }
-        );
+        throw new BranchWorldCleanupError({
+          childWorldId: worldId,
+          originalBranchFailure: error,
+          cleanupFailure: cleanupError,
+        });
+      }
+      if (cleanupResult.ok !== true) {
+        throw new BranchWorldCleanupError({
+          childWorldId: worldId,
+          originalBranchFailure: error,
+          cleanupResult,
+        });
       }
     }
     throw error;

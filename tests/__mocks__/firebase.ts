@@ -1007,10 +1007,14 @@ async function initializeArchitectWorldMock(data: unknown): Promise<unknown> {
     };
   } else {
     const release = await contractSource.loadBundledContractSourceRelease();
-    const season =
-      typeof currentSeason === 'string'
-        ? currentSeason
-        : `${release.salaryCapYear - 1}-${String(release.salaryCapYear).slice(-2)}`;
+    const season = `${release.salaryCapYear - 1}-${String(
+      release.salaryCapYear
+    ).slice(-2)}`;
+    if (currentSeason != null && currentSeason !== season) {
+      throw new Error(
+        `currentSeason must match governed release season ${season}.`
+      );
+    }
     metadata = {
       worldId,
       worldName,

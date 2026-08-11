@@ -22,7 +22,9 @@ import {
   clearDraftPositions,
   fixWorldOwnership,
   archiveWorld,
+  BranchWorldCleanupError,
   purgeWorld,
+  retryBranchCleanup,
 } from '@/features/architect/utils/worldManager';
 import {
   seedWorldMetadata,
@@ -36,6 +38,7 @@ import {
 import {
   setMockCallable,
   clearMockCallables,
+  failMockBatchCommitAfter,
   resetMockDataStore,
 } from '../__mocks__/firebase.js';
 
@@ -208,16 +211,27 @@ describe('World Manager', () => {
       ).rejects.toThrow('World name is required');
     });
 
-    it('uses provided currentSeason', async () => {
+    it('accepts only the governed release season', async () => {
       const result = await createWorld({
         name: 'Test World',
         userId,
-        currentSeason: '2026-27',
+        currentSeason: '2025-26',
       });
 
-      expect(result.metadata.currentSeason).toBe('2026-27');
-      expect(result.metadata.baselineSeason).toBe('2026-27');
+      expect(result.metadata.currentSeason).toBe('2025-26');
+      expect(result.metadata.baselineSeason).toBe('2025-26');
     });
+
+    it.each(['2030-31', '1999-00'])(
+      'rejects caller season %s when the governed release season is 2025-26',
+      async (currentSeason) => {
+        await expect(
+          createWorld({ name: 'Wrong Season', userId, currentSeason })
+        ).rejects.toThrow(
+          'currentSeason must match governed release season 2025-26'
+        );
+      }
+    );
   });
 
   describe('getWorldMetadata', () => {
@@ -490,7 +504,6 @@ describe('World Manager', () => {
       const parentResult = await createWorld({
         name: 'Parent',
         userId,
-        currentSeason: '2026-27',
       });
 
       const branchResult = await branchWorld(
@@ -500,15 +513,14 @@ describe('World Manager', () => {
         userId
       );
 
-      expect(branchResult.metadata.currentSeason).toBe('2026-27');
-      expect(branchResult.metadata.baselineSeason).toBe('2026-27');
+      expect(branchResult.metadata.currentSeason).toBe('2025-26');
+      expect(branchResult.metadata.baselineSeason).toBe('2025-26');
     });
 
     it('copies source Team Plan state into independent branch docs', async () => {
       const parentResult = await createWorld({
         name: 'Parent',
         userId,
-        currentSeason: '2026-27',
       });
       const parentMetadata = getRequiredWorldMetadata(parentResult.worldId);
       seedWorldMetadata(parentResult.worldId, {
@@ -521,7 +533,8 @@ describe('World Manager', () => {
           totalSignings: 1,
           teamsInvolved: 1,
         },
-        asOfDate: '2026-02-01',
+        currentSeason: '2026-27',
+        asOfDate: '2026-07-01',
         draftPositionsByYear: {
           2026: {
             positionsMap: { LAL: 24 },
@@ -610,7 +623,7 @@ describe('World Manager', () => {
 
       expect(branchResult.metadata.parentWorldId).toBe(parentResult.worldId);
       expect(branchResult.metadata.currentSeason).toBe('2026-27');
-      expect(branchResult.metadata.baselineSeason).toBe('2026-27');
+      expect(branchResult.metadata.baselineSeason).toBe('2025-26');
       expect(branchResult.metadata.actionCount).toBe(2);
       expect(branchResult.metadata.modifiedTeams).toEqual(['LAL']);
       expect(branchResult.metadata.stats).toMatchObject({
@@ -618,7 +631,7 @@ describe('World Manager', () => {
         totalSignings: 1,
         teamsInvolved: 1,
       });
-      expect(branchResult.metadata.asOfDate).toBe('2026-02-01');
+      expect(branchResult.metadata.asOfDate).toBe('2026-07-01');
       expect(branchResult.metadata.draftPositionsByYear).toMatchObject({
         2026: {
           positionsMap: { LAL: 24 },
@@ -671,6 +684,88 @@ describe('World Manager', () => {
           capHit: 126_000_000,
         },
       });
+    });
+
+    it('surfaces a queued cleanup with the hidden child identity and supports idempotent retry', async () => {
+      const parentResult = await createWorld({ name: 'Parent', userId });
+      seedMockData(`architect_worlds/${parentResult.worldId}/teams/LAL`, {
+        teamCode: 'LAL',
+        worldId: parentResult.worldId,
+      });
+      const cleanupRequests: unknown[] = [];
+      setMockCallable('purgeArchitectWorld', (data) => {
+        cleanupRequests.push(data);
+        return {
+          ok: false,
+          queued: true,
+          message: 'Governed cleanup timed out; retry is required.',
+          details: { worldDeleted: false },
+        };
+      });
+      failMockBatchCommitAfter(0, new Error('Later branch copy failed'));
+
+      let failure: unknown;
+      try {
+        await branchWorld(parentResult.worldId, 'Partial Branch', '', userId);
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).toBeInstanceOf(BranchWorldCleanupError);
+      const cleanupError = failure as BranchWorldCleanupError;
+      expect(cleanupError.message).toContain('Later branch copy failed');
+      expect(cleanupError.message).toContain(
+        'Governed cleanup timed out; retry is required.'
+      );
+      expect(cleanupError.cleanupPending).toBe(true);
+      expect(cleanupError.cleanupResult).toMatchObject({
+        ok: false,
+        queued: true,
+      });
+      expect(cleanupRequests).toEqual([
+        {
+          worldId: cleanupError.childWorldId,
+          cleanupPartialBranch: true,
+        },
+      ]);
+      expect(
+        getMockData(`architect_worlds/${cleanupError.childWorldId}`)
+      ).toMatchObject({
+        worldId: cleanupError.childWorldId,
+        isArchived: true,
+        parentWorldId: parentResult.worldId,
+      });
+      expect(
+        (await listUserWorlds(userId)).some(
+          (world) => world.worldId === cleanupError.childWorldId
+        )
+      ).toBe(false);
+
+      setMockCallable('purgeArchitectWorld', (data) => {
+        cleanupRequests.push(data);
+        return {
+          ok: true,
+          queued: false,
+          message: 'Partial branch is already absent.',
+          details: { worldDeleted: false, alreadyAbsent: true },
+        };
+      });
+      await expect(
+        retryBranchCleanup(cleanupError.childWorldId)
+      ).resolves.toMatchObject({ ok: true, queued: false });
+      await expect(
+        retryBranchCleanup(cleanupError.childWorldId)
+      ).resolves.toMatchObject({ ok: true, queued: false });
+      expect(cleanupRequests.slice(1)).toEqual([
+        {
+          worldId: cleanupError.childWorldId,
+          cleanupPartialBranch: true,
+        },
+        {
+          worldId: cleanupError.childWorldId,
+          cleanupPartialBranch: true,
+        },
+      ]);
     });
 
     it('throws error when parentWorldId is missing', async () => {

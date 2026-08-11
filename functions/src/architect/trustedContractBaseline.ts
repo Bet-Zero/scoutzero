@@ -13,6 +13,32 @@ export const TRUSTED_CONTRACT_RELEASE_VERSION = 1;
 export const TRUSTED_CONTRACT_RELEASE_DIGEST =
   'sha256:46db3137308ff1c05e0066edf09ef08d45b92353bea7a2bcec93fd408adf5950';
 
+export type TrustedContractReleasePin = {
+  releaseId: string;
+  releaseVersion: number;
+  releaseDigest: string;
+};
+
+export type TrustedContractReleaseDescriptor = TrustedContractReleasePin & {
+  filename: string;
+  artifactSha256: string;
+};
+
+export const RETAINED_TRUSTED_CONTRACT_RELEASES = Object.freeze([
+  Object.freeze({
+    filename: TRUSTED_CONTRACT_RELEASE_FILENAME,
+    artifactSha256: TRUSTED_CONTRACT_RELEASE_ARTIFACT_SHA256,
+    releaseId: TRUSTED_CONTRACT_RELEASE_ID,
+    releaseVersion: TRUSTED_CONTRACT_RELEASE_VERSION,
+    releaseDigest: TRUSTED_CONTRACT_RELEASE_DIGEST,
+  }),
+] satisfies readonly TrustedContractReleaseDescriptor[]);
+
+export const DEFAULT_TRUSTED_CONTRACT_RELEASE =
+  RETAINED_TRUSTED_CONTRACT_RELEASES[
+    RETAINED_TRUSTED_CONTRACT_RELEASES.length - 1
+  ];
+
 const CONTRACT_BASELINE_SHARD_TARGET_BYTES = 700_000;
 const CONTRACT_BASELINE_WORLD_VERSION = 2;
 const CONTRACT_EVENT_LEDGER_PAYLOAD_VERSION = 2;
@@ -35,6 +61,7 @@ export type TrustedContractRelease = {
   releaseId: string;
   releaseVersion: number;
   releaseDigest: string;
+  supersedes: TrustedContractReleasePin | null;
   effectiveAt: string;
   salaryCapYear: number;
   source: {
@@ -103,6 +130,54 @@ function requireStringArray(value: unknown, context: string): string[] {
   );
 }
 
+function requireReleasePin(
+  value: unknown,
+  context: string
+): TrustedContractReleasePin {
+  const record = requireRecord(value, context);
+  return {
+    releaseId: requireString(record.releaseId, `${context}.releaseId`),
+    releaseVersion: requireInteger(
+      record.releaseVersion,
+      `${context}.releaseVersion`
+    ),
+    releaseDigest: requireString(
+      record.releaseDigest,
+      `${context}.releaseDigest`
+    ),
+  };
+}
+
+function releaseKey(
+  pin: Pick<TrustedContractReleasePin, 'releaseId' | 'releaseVersion'>
+): string {
+  return `${pin.releaseId}@v${pin.releaseVersion}`;
+}
+
+export function seasonForSalaryCapYear(salaryCapYear: number): string {
+  if (
+    !Number.isInteger(salaryCapYear) ||
+    salaryCapYear < 2000 ||
+    salaryCapYear > 3000
+  ) {
+    throw new Error('Trusted contract-source Salary Cap Year is invalid.');
+  }
+  return `${salaryCapYear - 1}-${String(salaryCapYear).slice(-2)}`;
+}
+
+export function resolveFreshWorldSeason(
+  release: Pick<TrustedContractRelease, 'salaryCapYear'>,
+  requestedSeason: string | null
+): string {
+  const governedSeason = seasonForSalaryCapYear(release.salaryCapYear);
+  if (requestedSeason !== null && requestedSeason !== governedSeason) {
+    throw new Error(
+      `currentSeason must match governed release season ${governedSeason}.`
+    );
+  }
+  return governedSeason;
+}
+
 function withoutDocumentDigest(value: JsonRecord): JsonRecord {
   const copy = { ...value };
   delete copy.documentDigest;
@@ -158,14 +233,15 @@ function trustedReleasePin(release: TrustedContractRelease): JsonRecord {
 }
 
 export function parseTrustedContractReleaseArtifact(
-  artifact: Buffer
+  artifact: Buffer,
+  expected: TrustedContractReleaseDescriptor = DEFAULT_TRUSTED_CONTRACT_RELEASE
 ): TrustedContractRelease {
   const artifactDigest = `sha256:${createHash('sha256')
     .update(artifact)
     .digest('hex')}`;
-  if (artifactDigest !== TRUSTED_CONTRACT_RELEASE_ARTIFACT_SHA256) {
+  if (artifactDigest !== expected.artifactSha256) {
     throw new Error(
-      `Trusted contract-source artifact digest mismatch: expected ${TRUSTED_CONTRACT_RELEASE_ARTIFACT_SHA256}, received ${artifactDigest}.`
+      `Trusted contract-source artifact digest mismatch: expected ${expected.artifactSha256}, received ${artifactDigest}.`
     );
   }
 
@@ -180,13 +256,31 @@ export function parseTrustedContractReleaseArtifact(
   );
   const releaseDigest = requireString(parsed.releaseDigest, 'releaseDigest');
   if (
-    releaseId !== TRUSTED_CONTRACT_RELEASE_ID ||
-    releaseVersion !== TRUSTED_CONTRACT_RELEASE_VERSION ||
-    releaseDigest !== TRUSTED_CONTRACT_RELEASE_DIGEST
+    releaseId !== expected.releaseId ||
+    releaseVersion !== expected.releaseVersion ||
+    releaseDigest !== expected.releaseDigest
   ) {
     throw new Error(
-      'Trusted contract-source release identity does not match the deployed pin.'
+      'Trusted contract-source release identity does not match its retained pin.'
     );
+  }
+
+  const supersedes =
+    parsed.supersedes === null
+      ? null
+      : requireReleasePin(parsed.supersedes, 'supersedes');
+  if (releaseVersion === 1 && supersedes !== null) {
+    throw new Error(
+      'Trusted contract-source release version one cannot supersede another release.'
+    );
+  }
+  if (
+    releaseVersion > 1 &&
+    (!supersedes ||
+      supersedes.releaseId !== releaseId ||
+      supersedes.releaseVersion >= releaseVersion)
+  ) {
+    throw new Error('Trusted contract-source release supersession is invalid.');
   }
 
   const effectiveAt = requireString(parsed.effectiveAt, 'effectiveAt');
@@ -199,6 +293,16 @@ export function parseTrustedContractReleaseArtifact(
     );
   }
   const salaryCapYear = requireInteger(parsed.salaryCapYear, 'salaryCapYear');
+  seasonForSalaryCapYear(salaryCapYear);
+  const effectiveDate = effectiveAt.slice(0, 10);
+  if (
+    effectiveDate < `${salaryCapYear - 1}-07-01` ||
+    effectiveDate > `${salaryCapYear}-06-30`
+  ) {
+    throw new Error(
+      'Trusted contract-source effectiveAt falls outside its Salary Cap Year.'
+    );
+  }
   const source = requireRecord(parsed.source, 'source');
   const evidenceCatalog = requireRecord(
     source.evidenceCatalog,
@@ -260,6 +364,7 @@ export function parseTrustedContractReleaseArtifact(
     releaseId,
     releaseVersion,
     releaseDigest,
+    supersedes,
     effectiveAt,
     salaryCapYear,
     source: { evidenceCatalog },
@@ -272,13 +377,103 @@ export function parseTrustedContractReleaseArtifact(
   };
 }
 
-let trustedRelease: TrustedContractRelease | null = null;
+type TrustedContractReleaseRegistryOptions = {
+  releases: readonly TrustedContractReleaseDescriptor[];
+  defaultRelease: TrustedContractReleasePin;
+  readArtifact: (descriptor: TrustedContractReleaseDescriptor) => Buffer;
+};
 
-export function loadTrustedContractRelease(): TrustedContractRelease {
-  trustedRelease ??= parseTrustedContractReleaseArtifact(
-    readFileSync(join(__dirname, 'assets', TRUSTED_CONTRACT_RELEASE_FILENAME))
-  );
-  return trustedRelease;
+export class TrustedContractReleaseRegistry {
+  private readonly descriptors = new Map<
+    string,
+    TrustedContractReleaseDescriptor
+  >();
+
+  private readonly cache = new Map<string, TrustedContractRelease>();
+
+  private readonly defaultRelease: TrustedContractReleasePin;
+
+  private readonly readArtifact: TrustedContractReleaseRegistryOptions['readArtifact'];
+
+  constructor(options: TrustedContractReleaseRegistryOptions) {
+    if (options.releases.length === 0) {
+      throw new Error(
+        'At least one trusted contract-source release is required.'
+      );
+    }
+    for (const descriptor of options.releases) {
+      const key = releaseKey(descriptor);
+      if (this.descriptors.has(key)) {
+        throw new Error(`Duplicate retained contract-source release ${key}.`);
+      }
+      this.descriptors.set(key, descriptor);
+    }
+    const defaultDescriptor = this.descriptors.get(
+      releaseKey(options.defaultRelease)
+    );
+    if (
+      !defaultDescriptor ||
+      defaultDescriptor.releaseDigest !== options.defaultRelease.releaseDigest
+    ) {
+      throw new Error(
+        'The default contract-source release is not retained with its exact digest.'
+      );
+    }
+    this.defaultRelease = { ...options.defaultRelease };
+    this.readArtifact = options.readArtifact;
+  }
+
+  loadDefault(): TrustedContractRelease {
+    return this.load(this.defaultRelease);
+  }
+
+  load(pin: TrustedContractReleasePin): TrustedContractRelease {
+    const key = releaseKey(pin);
+    const descriptor = this.descriptors.get(key);
+    if (!descriptor) {
+      throw new Error(
+        `Trusted contract-source release ${key} is not retained by this deployment.`
+      );
+    }
+    if (descriptor.releaseDigest !== pin.releaseDigest) {
+      throw new Error(
+        `Trusted contract-source release ${key} digest does not match the retained artifact.`
+      );
+    }
+
+    const cached = this.cache.get(key);
+    if (cached) return cached;
+
+    const release = parseTrustedContractReleaseArtifact(
+      this.readArtifact(descriptor),
+      descriptor
+    );
+    if (release.supersedes) {
+      const prior = this.descriptors.get(releaseKey(release.supersedes));
+      if (!prior || prior.releaseDigest !== release.supersedes.releaseDigest) {
+        throw new Error(
+          `Trusted contract-source release ${key} supersedes an unavailable retained release.`
+        );
+      }
+    }
+    this.cache.set(key, release);
+    return release;
+  }
+}
+
+const trustedReleaseRegistry = new TrustedContractReleaseRegistry({
+  releases: RETAINED_TRUSTED_CONTRACT_RELEASES,
+  defaultRelease: DEFAULT_TRUSTED_CONTRACT_RELEASE,
+  readArtifact: (descriptor) =>
+    readFileSync(join(__dirname, 'assets', descriptor.filename)),
+});
+
+export function loadTrustedContractRelease(
+  pin?: TrustedContractReleasePin
+): TrustedContractRelease {
+  return pin
+    ? trustedReleaseRegistry.load(pin)
+    : trustedReleaseRegistry.loadDefault();
 }
 
 function partitionLedgers(
@@ -407,7 +602,8 @@ export function buildTrustedContractBaselineDocuments(
 function validatedParentDocument(
   value: unknown,
   parentWorldId: string,
-  expectedRelease: JsonRecord
+  expectedRelease: JsonRecord,
+  expectedEvidenceCatalog: JsonRecord
 ): TrustedContractBaselineDocument {
   const document = requireRecord(value, 'Parent contract baseline');
   const storedDigest = requireString(
@@ -422,6 +618,8 @@ function validatedParentDocument(
     document.worldId !== parentWorldId ||
     canonicalStringify(document.release) !==
       canonicalStringify(expectedRelease) ||
+    canonicalStringify(document.evidenceCatalog) !==
+      canonicalStringify(expectedEvidenceCatalog) ||
     !Array.isArray(document.ledgers) ||
     document.ledgers.length === 0
   ) {
@@ -437,6 +635,7 @@ export function branchTrustedContractBaselineDocuments(
   parentWorldId: string,
   childWorldId: string,
   expectedRelease: JsonRecord,
+  expectedEvidenceCatalog: JsonRecord,
   expectedLedgerCount: number
 ): TrustedContractBaselineDocument[] {
   const contractIds = new Set<string>();
@@ -445,7 +644,8 @@ export function branchTrustedContractBaselineDocuments(
     const source = validatedParentDocument(
       value,
       parentWorldId,
-      expectedRelease
+      expectedRelease,
+      expectedEvidenceCatalog
     );
     const ledgers = source.ledgers.map((ledgerValue) => {
       const ledger = requireRecord(ledgerValue, 'Parent contract ledger');

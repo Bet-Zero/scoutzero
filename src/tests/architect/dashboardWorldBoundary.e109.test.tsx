@@ -253,7 +253,6 @@ vi.mock('@/shared/components/EditContractModal', () => {
   };
   return { __esModule: true, default: EditContractModal, EditContractModal };
 });
-
 vi.mock('@/features/architect/GMDashboard/sections/RosterSection', () => ({
   RosterSection: () => <div data-testid="mock-roster-section">RosterSection</div>,
 }));
@@ -433,7 +432,7 @@ function makeWorld(worldId: string, worldName: string): WorldLike {
     },
     contractBaselineEffectiveAt: '2026-06-05T12:00:00Z',
     contractBaselineSalaryCapYear: 2026,
-    contractBaselineCoverage: { total: 2, complete: 1, needsInput: 1 },
+    contractBaselineCoverage: { total: 774, complete: 772, needsInput: 2 },
   };
 }
 
@@ -850,7 +849,7 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(select).toHaveValue('world_beta');
       expect(screen.getByRole('button', { name: '+ New' })).toBeInTheDocument();
       expect(screen.getByTestId('contract-baseline-status')).toHaveTextContent(
-        'Contract baseline · 1 verified · 1 need source details · release 1'
+        '774 baseline contracts · 2 need source details · release 1'
       );
 
       fireEvent.change(select, { target: { value: 'world_alpha' } });

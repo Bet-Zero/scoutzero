@@ -1,6 +1,11 @@
 /** Chromium/emulator acceptance for BZE-274 governed contract baselines. */
 
-import { expect, test } from '@playwright/test';
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type Page,
+} from '@playwright/test';
 import {
   MIA_SEASON_ADVANCE_URL,
   enableArchitectReviewFlags,
@@ -12,6 +17,8 @@ import {
 const RELEASE_ID = 'salaryswish-retained-2026-06-05';
 const RELEASE_DIGEST =
   'sha256:46db3137308ff1c05e0066edf09ef08d45b92353bea7a2bcec93fd408adf5950';
+const REVIEW_FUNCTIONS_BASE_URL =
+  'http://127.0.0.1:5001/demo-architect-review/us-central1';
 
 type RecordLike = Record<string, unknown>;
 
@@ -37,7 +44,7 @@ const resultingState = (ledger: RecordLike) => {
   return events[0]?.resultingState as RecordLike | undefined;
 };
 
-const openWorldMenu = async (page: import('@playwright/test').Page) => {
+const openWorldMenu = async (page: Page) => {
   const trigger = page.getByTestId('cockpit-world-menu-trigger');
   if ((await trigger.getAttribute('aria-expanded')) !== 'true') {
     await trigger.click();
@@ -45,9 +52,69 @@ const openWorldMenu = async (page: import('@playwright/test').Page) => {
   await expect(page.getByTestId('cockpit-world-menu-popover')).toBeVisible();
 };
 
+const readReviewIdToken = async (page: Page): Promise<string> =>
+  page.evaluate(
+    () =>
+      new Promise<string>((resolve) => {
+        const request = indexedDB.open('firebaseLocalStorageDb');
+        request.onerror = () => resolve('');
+        request.onsuccess = () => {
+          try {
+            const store = request.result
+              .transaction('firebaseLocalStorage', 'readonly')
+              .objectStore('firebaseLocalStorage');
+            const getAll = store.getAll();
+            getAll.onerror = () => resolve('');
+            getAll.onsuccess = () => {
+              const records = (getAll.result || []) as Array<{
+                fbase_key?: string;
+                value?: string | { stsTokenManager?: { accessToken?: string } };
+              }>;
+              const authRecord = records.find((record) =>
+                String(record.fbase_key || '').includes('authUser')
+              );
+              let value = authRecord?.value;
+              if (typeof value === 'string') {
+                try {
+                  value = JSON.parse(value) as {
+                    stsTokenManager?: { accessToken?: string };
+                  };
+                } catch {
+                  value = undefined;
+                }
+              }
+              resolve(value?.stsTokenManager?.accessToken || '');
+            };
+          } catch {
+            resolve('');
+          }
+        };
+      })
+  );
+
+const callReviewFunction = async (
+  request: APIRequestContext,
+  functionName: string,
+  idToken: string,
+  data: RecordLike
+) => {
+  const response = await request.post(
+    `${REVIEW_FUNCTIONS_BASE_URL}/${functionName}`,
+    {
+      headers: { Authorization: `Bearer ${idToken}` },
+      data: { data },
+    }
+  );
+  return {
+    status: response.status(),
+    body: (await response.json()) as RecordLike,
+  };
+};
+
 test.describe('BZE-274 governed contract baseline browser acceptance', () => {
   test('creates, reloads, branches, and rejects old worlds without inventing history', async ({
     page,
+    request,
   }, testInfo) => {
     test.setTimeout(240_000);
     await enableArchitectReviewFlags(page);
@@ -58,6 +125,8 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
       .poll(() => readReviewUserId(page), { timeout: 25_000 })
       .not.toBe('');
     const userId = await readReviewUserId(page);
+    const idToken = await readReviewIdToken(page);
+    expect(idToken).not.toBe('');
     const db = getReviewAdminDb();
     page.on('dialog', (dialog) => void dialog.accept());
     const oldWorldId = `bze-274-old-${Date.now()}`;
@@ -82,6 +151,30 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
       .doc(`architect_worlds/${oldWorldId}`)
       .get()
       .then((snapshot) => snapshot.data());
+
+    for (const invalidSeason of ['2030-31', '1999-00']) {
+      const invalidWorldId = `bze-274-invalid-${invalidSeason}-${Date.now()}`;
+      const invalidResult = await callReviewFunction(
+        request,
+        'initializeArchitectWorld',
+        idToken,
+        {
+          worldId: invalidWorldId,
+          worldName: `Invalid ${invalidSeason}`,
+          description: '',
+          userId,
+          currentSeason: invalidSeason,
+          parentWorldId: null,
+        }
+      );
+      expect(invalidResult.status).toBe(400);
+      expect(JSON.stringify(invalidResult.body)).toContain(
+        'currentSeason must match governed release season 2025-26'
+      );
+      expect(
+        (await db.doc(`architect_worlds/${invalidWorldId}`).get()).exists
+      ).toBe(false);
+    }
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await waitForReviewDashboard(page);
@@ -113,7 +206,7 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
     );
     await openWorldMenu(page);
     await expect(page.getByTestId('contract-baseline-status')).toContainText(
-      '772 verified · 2 need source details · release 1',
+      '774 baseline contracts · 2 need source details · release 1',
       { timeout: 120_000 }
     );
     const parentWorldId = await worldSelect.inputValue();
@@ -189,7 +282,7 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
     await waitForReviewDashboard(page);
     await openWorldMenu(page);
     await expect(page.getByTestId('contract-baseline-status')).toContainText(
-      '772 verified · 2 need source details · release 1'
+      '774 baseline contracts · 2 need source details · release 1'
     );
     expect(await worldSelect.inputValue()).toBe(parentWorldId);
     expect(JSON.stringify(await baselineDocuments(parentWorldId))).toBe(
@@ -206,7 +299,7 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
     );
     await openWorldMenu(page);
     await expect(page.getByTestId('contract-baseline-status')).toContainText(
-      '772 verified · 2 need source details · release 1',
+      '774 baseline contracts · 2 need source details · release 1',
       { timeout: 120_000 }
     );
     const childWorldId = await worldSelect.inputValue();
@@ -233,6 +326,80 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
       parentLedgers.map(resultingState).map((state) => JSON.stringify(state))
     );
 
+    const simulatedV2WorldId = `bze-274-simulated-v2-${Date.now()}`;
+    const simulatedV2Metadata = {
+      worldId: simulatedV2WorldId,
+      worldName: 'Simulated later-release world',
+      createdBy: userId,
+      createdAt: new Date('2027-06-05T12:19:56.526Z'),
+      lastModifiedAt: new Date('2027-06-05T12:19:56.526Z'),
+      currentSeason: '2026-27',
+      baselineSeason: '2026-27',
+      parentWorldId: null,
+      childWorlds: [],
+      modifiedTeams: [],
+      actionCount: 0,
+      tags: [],
+      isArchived: false,
+      isFavorite: false,
+      rightsLedgerVersion: 1,
+      asOfDate: '2027-06-05',
+      contractBaselineVersion: 2,
+      contractSourceRelease: {
+        releaseId: RELEASE_ID,
+        releaseVersion: 2,
+        releaseDigest: `sha256:${'b'.repeat(64)}`,
+      },
+      contractBaselineEffectiveAt: '2027-06-05T12:19:56.526Z',
+      contractBaselineSalaryCapYear: 2027,
+      contractBaselineCoverage: { total: 774, complete: 772, needsInput: 2 },
+    };
+    await db
+      .doc(`architect_worlds/${simulatedV2WorldId}`)
+      .set(simulatedV2Metadata);
+    const versionOneBeforeIsolation = JSON.stringify(
+      await db
+        .doc(`architect_worlds/${parentWorldId}`)
+        .get()
+        .then((doc) => doc.data())
+    );
+    const versionTwoBeforeIsolation = JSON.stringify(
+      await db
+        .doc(`architect_worlds/${simulatedV2WorldId}`)
+        .get()
+        .then((doc) => doc.data())
+    );
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForReviewDashboard(page);
+    await openWorldMenu(page);
+    await worldSelect.selectOption(simulatedV2WorldId);
+    await openWorldMenu(page);
+    await expect(page.getByTestId('contract-baseline-status')).toContainText(
+      '774 baseline contracts · 2 need source details · release 2'
+    );
+    await worldSelect.selectOption(parentWorldId);
+    await openWorldMenu(page);
+    await expect(page.getByTestId('contract-baseline-status')).toContainText(
+      '774 baseline contracts · 2 need source details · release 1'
+    );
+    expect(
+      JSON.stringify(
+        await db
+          .doc(`architect_worlds/${parentWorldId}`)
+          .get()
+          .then((doc) => doc.data())
+      )
+    ).toBe(versionOneBeforeIsolation);
+    expect(
+      JSON.stringify(
+        await db
+          .doc(`architect_worlds/${simulatedV2WorldId}`)
+          .get()
+          .then((doc) => doc.data())
+      )
+    ).toBe(versionTwoBeforeIsolation);
+
     const oldWorld = await db.doc(`architect_worlds/${oldWorldId}`).get();
     expect(oldWorld.data()).toEqual(oldWorldBefore);
     expect(oldWorld.data()?.contractBaselineVersion).toBeUndefined();
@@ -240,7 +407,116 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
 
     testInfo.annotations.push({
       type: 'audit-note',
-      description: `BZE-274 browser proof: fresh world ${parentWorldId} pinned ${RELEASE_ID}@v1, persisted ${parentDocuments.length} safe shards / 774 roots / 772 complete / 2 needs-input, survived reload byte-for-byte, and branch ${childWorldId} preserved every state digest and evidence envelope. The pre-ledger world remained unchanged and visibly required recreation.`,
+      description: `BZE-274 browser proof: fresh world ${parentWorldId} pinned ${RELEASE_ID}@v1, persisted ${parentDocuments.length} safe shards / 774 roots / 772 complete / 2 needs-input, survived reload byte-for-byte, and branch ${childWorldId} preserved every state digest and evidence envelope. Future and past season mismatches failed before writes, simulated v2 selection did not mutate either release-pinned world, and the pre-ledger world remained unchanged and visibly required recreation.`,
+    });
+  });
+
+  test('keeps a partial branch hidden and supports idempotent cleanup retry', async ({
+    page,
+    request,
+  }, testInfo) => {
+    test.setTimeout(240_000);
+    await enableArchitectReviewFlags(page);
+    await page.goto(MIA_SEASON_ADVANCE_URL, { waitUntil: 'domcontentloaded' });
+    await waitForReviewDashboard(page);
+    await expect
+      .poll(() => readReviewUserId(page), { timeout: 25_000 })
+      .not.toBe('');
+    const userId = await readReviewUserId(page);
+    const idToken = await readReviewIdToken(page);
+    expect(idToken).not.toBe('');
+    const db = getReviewAdminDb();
+    page.on('dialog', (dialog) => void dialog.accept());
+
+    const worldName = `BZE-274 Cleanup Parent ${Date.now()}`;
+    await openWorldMenu(page);
+    await page.getByRole('button', { name: '+ New' }).click();
+    await page.getByLabel('World Name').fill(worldName);
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    await expect(page.getByTestId('cockpit-world-menu-trigger')).toContainText(
+      worldName,
+      { timeout: 120_000 }
+    );
+    await openWorldMenu(page);
+    const parentWorldId = await page.getByLabel('Saved World').inputValue();
+    expect(parentWorldId).toMatch(/^world_/);
+    const parentMetadata = await db
+      .doc(`architect_worlds/${parentWorldId}`)
+      .get()
+      .then((snapshot) => snapshot.data());
+    const parentBaseline = await db
+      .collection(`architect_worlds/${parentWorldId}/contractBaselines`)
+      .limit(1)
+      .get();
+    expect(parentMetadata).toBeDefined();
+    expect(parentBaseline.docs).toHaveLength(1);
+
+    const partialChildId = `bze-274-partial-${Date.now()}`;
+    await db.doc(`architect_worlds/${partialChildId}`).set({
+      ...parentMetadata,
+      worldId: partialChildId,
+      worldName: `${worldName} Partial`,
+      createdBy: userId,
+      parentWorldId,
+      isArchived: true,
+      childWorlds: [],
+    });
+    await db
+      .doc(
+        `architect_worlds/${partialChildId}/contractBaselines/${parentBaseline.docs[0].id}`
+      )
+      .set(parentBaseline.docs[0].data());
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForReviewDashboard(page);
+    await openWorldMenu(page);
+    expect(
+      await page
+        .getByLabel('Saved World')
+        .locator(`option[value="${partialChildId}"]`)
+        .count()
+    ).toBe(0);
+
+    const firstRetry = await callReviewFunction(
+      request,
+      'purgeArchitectWorld',
+      idToken,
+      { worldId: partialChildId, cleanupPartialBranch: true }
+    );
+    expect(firstRetry).toMatchObject({
+      status: 200,
+      body: { result: { ok: true, queued: false } },
+    });
+    const secondRetry = await callReviewFunction(
+      request,
+      'purgeArchitectWorld',
+      idToken,
+      { worldId: partialChildId, cleanupPartialBranch: true }
+    );
+    expect(secondRetry).toMatchObject({
+      status: 200,
+      body: {
+        result: {
+          ok: true,
+          queued: false,
+          details: { alreadyAbsent: true },
+        },
+      },
+    });
+    expect(
+      (await db.doc(`architect_worlds/${partialChildId}`).get()).exists
+    ).toBe(false);
+    expect(
+      (
+        await db
+          .collection(`architect_worlds/${partialChildId}/contractBaselines`)
+          .get()
+      ).empty
+    ).toBe(true);
+
+    testInfo.annotations.push({
+      type: 'audit-note',
+      description: `BZE-274 browser cleanup proof: recoverable partial child ${partialChildId} stayed archived and absent from the selector, its governed baseline shard was removed by cleanup retry, and a second retry completed idempotently. Focused world-manager failure injection separately proves that a queued purge preserves both the original branch failure and cleanup result.`,
     });
   });
 });

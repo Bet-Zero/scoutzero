@@ -13,7 +13,10 @@ import {
   buildTrustedContractBaselineDocuments,
   canonicalStringify,
   loadTrustedContractRelease,
+  resolveFreshWorldSeason,
+  seasonForSalaryCapYear,
   trustedContractBaselineMetadata,
+  type TrustedContractReleasePin,
 } from './trustedContractBaseline';
 
 if (!admin.apps.length) {
@@ -26,6 +29,7 @@ const CONTRACT_BASELINES_SUBCOLLECTION = 'contractBaselines';
 const RIGHTS_LEDGER_WORLD_VERSION = 1;
 const WORLD_ID_PATTERN = /^[A-Za-z0-9_-]{1,160}$/;
 const SEASON_PATTERN = /^\d{4}-\d{2}$/;
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -73,10 +77,6 @@ function requireText(
   return normalized;
 }
 
-function seasonForSalaryCapYear(salaryCapYear: number): string {
-  return `${salaryCapYear - 1}-${String(salaryCapYear).slice(-2)}`;
-}
-
 function defaultStats(): JsonRecord {
   return {
     totalTrades: 0,
@@ -85,6 +85,60 @@ function defaultStats(): JsonRecord {
     totalRenounces: 0,
     teamsInvolved: 0,
   };
+}
+
+function contractReleasePinFromParent(
+  parent: JsonRecord
+): TrustedContractReleasePin {
+  const value = parent.contractSourceRelease;
+  if (
+    !isRecord(value) ||
+    typeof value.releaseId !== 'string' ||
+    value.releaseId.trim() === '' ||
+    typeof value.releaseVersion !== 'number' ||
+    !Number.isInteger(value.releaseVersion) ||
+    value.releaseVersion < 1 ||
+    typeof value.releaseDigest !== 'string' ||
+    !/^sha256:[0-9a-f]{64}$/.test(value.releaseDigest)
+  ) {
+    throw new HttpsError(
+      'failed-precondition',
+      'The parent world has a malformed governed contract-source release pin.'
+    );
+  }
+  return {
+    releaseId: value.releaseId,
+    releaseVersion: value.releaseVersion,
+    releaseDigest: value.releaseDigest,
+  };
+}
+
+function requireFreshWorldSeason(
+  salaryCapYear: number,
+  requestedSeason: string | null
+): string {
+  try {
+    return resolveFreshWorldSeason({ salaryCapYear }, requestedSeason);
+  } catch (error) {
+    throw new HttpsError(
+      'invalid-argument',
+      error instanceof Error ? error.message : 'currentSeason is invalid.'
+    );
+  }
+}
+
+function isDateWithinSeason(date: string, season: string): boolean {
+  if (
+    !DATE_ONLY_PATTERN.test(date) ||
+    !Number.isFinite(Date.parse(`${date}T00:00:00Z`)) ||
+    new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date
+  ) {
+    return false;
+  }
+  const startYear = Number(season.slice(0, 4));
+  const endYear = startYear + 1;
+  if (season !== `${startYear}-${String(endYear).slice(-2)}`) return false;
+  return date >= `${startYear}-07-01` && date <= `${endYear}-06-30`;
 }
 
 function arrayOrEmpty(value: unknown): unknown[] {
@@ -102,6 +156,7 @@ function contractMetadataFromParent(
   const parentRelease = parent.contractSourceRelease;
   const trustedRelease = trustedMetadata.contractSourceRelease;
   const coverage = parent.contractBaselineCoverage;
+  const trustedCoverage = trustedMetadata.contractBaselineCoverage;
   if (
     parent.contractBaselineVersion !== 2 ||
     !isRecord(parentRelease) ||
@@ -112,6 +167,8 @@ function contractMetadataFromParent(
     parent.contractBaselineSalaryCapYear !==
       trustedMetadata.contractBaselineSalaryCapYear ||
     !isRecord(coverage) ||
+    !isRecord(trustedCoverage) ||
+    canonicalStringify(coverage) !== canonicalStringify(trustedCoverage) ||
     typeof coverage.total !== 'number' ||
     !Number.isInteger(coverage.total) ||
     coverage.total < 1
@@ -129,13 +186,10 @@ function freshWorldMetadata(args: {
   worldName: string;
   description: string;
   userId: string;
-  currentSeason: string | null;
+  season: string;
   releaseEffectiveAt: string;
-  releaseSalaryCapYear: number;
   contractMetadata: JsonRecord;
 }): JsonRecord {
-  const season =
-    args.currentSeason ?? seasonForSalaryCapYear(args.releaseSalaryCapYear);
   return {
     worldId: args.worldId,
     worldName: args.worldName,
@@ -143,8 +197,8 @@ function freshWorldMetadata(args: {
     createdBy: args.userId,
     createdAt: FieldValue.serverTimestamp(),
     lastModifiedAt: FieldValue.serverTimestamp(),
-    currentSeason: season,
-    baselineSeason: season,
+    currentSeason: args.season,
+    baselineSeason: args.season,
     parentWorldId: null,
     branchedFrom: null,
     childWorlds: [],
@@ -170,16 +224,45 @@ function branchWorldMetadata(args: {
   contractMetadata: JsonRecord;
 }): JsonRecord {
   const salaryCapYear = args.contractMetadata.contractBaselineSalaryCapYear;
-  const currentSeason =
-    typeof args.parent.currentSeason === 'string'
-      ? args.parent.currentSeason
-      : seasonForSalaryCapYear(
-          typeof salaryCapYear === 'number' ? salaryCapYear : 0
-        );
-  if (!SEASON_PATTERN.test(currentSeason)) {
+  if (typeof salaryCapYear !== 'number') {
     throw new HttpsError(
       'failed-precondition',
       'The parent world has no supported Salary Cap Year.'
+    );
+  }
+  const governedBaselineSeason = seasonForSalaryCapYear(salaryCapYear);
+  if (args.parent.baselineSeason !== governedBaselineSeason) {
+    throw new HttpsError(
+      'failed-precondition',
+      'The parent world baseline season contradicts its governed Salary Cap Year.'
+    );
+  }
+  const currentSeason =
+    typeof args.parent.currentSeason === 'string'
+      ? args.parent.currentSeason
+      : governedBaselineSeason;
+  if (
+    !SEASON_PATTERN.test(currentSeason) ||
+    Number(currentSeason.slice(0, 4)) < salaryCapYear - 1
+  ) {
+    throw new HttpsError(
+      'failed-precondition',
+      'The parent world current season predates its governed baseline season.'
+    );
+  }
+  const asOfDate = args.parent.asOfDate;
+  const releaseEffectiveAt =
+    args.contractMetadata.contractBaselineEffectiveAt;
+  if (
+    typeof asOfDate !== 'string' ||
+    !DATE_ONLY_PATTERN.test(asOfDate) ||
+    !isDateWithinSeason(asOfDate, currentSeason) ||
+    typeof releaseEffectiveAt !== 'string' ||
+    asOfDate < releaseEffectiveAt.slice(0, 10)
+  ) {
+    throw new HttpsError(
+      'failed-precondition',
+      'The parent world date contradicts its current season.'
     );
   }
   const metadata: JsonRecord = {
@@ -190,10 +273,7 @@ function branchWorldMetadata(args: {
     createdAt: FieldValue.serverTimestamp(),
     lastModifiedAt: FieldValue.serverTimestamp(),
     currentSeason,
-    baselineSeason:
-      typeof args.parent.baselineSeason === 'string'
-        ? args.parent.baselineSeason
-        : currentSeason,
+    baselineSeason: governedBaselineSeason,
     parentWorldId: args.parentWorldId,
     branchedFrom: FieldValue.serverTimestamp(),
     childWorlds: [],
@@ -205,11 +285,9 @@ function branchWorldMetadata(args: {
     isFavorite: false,
     stats: objectOrDefault(args.parent.stats, defaultStats()),
     rightsLedgerVersion: RIGHTS_LEDGER_WORLD_VERSION,
+    asOfDate,
     ...args.contractMetadata,
   };
-  if (typeof args.parent.asOfDate === 'string') {
-    metadata.asOfDate = args.parent.asOfDate;
-  }
   if (isRecord(args.parent.draftPositionsByYear)) {
     metadata.draftPositionsByYear = cloneJson(args.parent.draftPositionsByYear);
   }
@@ -260,10 +338,14 @@ export const initializeArchitectWorld = onCall(
       request.data?.parentWorldId == null
         ? null
         : requireIdentifier(request.data.parentWorldId, 'parentWorldId');
+    if (parentWorldId && requestedSeason !== null) {
+      throw new HttpsError(
+        'invalid-argument',
+        'currentSeason cannot be supplied when branching a world.'
+      );
+    }
 
     try {
-      const release = loadTrustedContractRelease();
-      const trustedMetadata = trustedContractBaselineMetadata(release);
       const worldRef = db.collection(ARCHITECT_WORLDS_COLLECTION).doc(worldId);
       if ((await worldRef.get()).exists) {
         throw new HttpsError(
@@ -274,6 +356,7 @@ export const initializeArchitectWorld = onCall(
 
       let metadata: JsonRecord;
       let documents;
+      let trustedMetadata: JsonRecord;
       if (parentWorldId) {
         const parentRef = db
           .collection(ARCHITECT_WORLDS_COLLECTION)
@@ -292,6 +375,10 @@ export const initializeArchitectWorld = onCall(
             'You do not have permission to branch this world.'
           );
         }
+        const release = loadTrustedContractRelease(
+          contractReleasePinFromParent(parent)
+        );
+        trustedMetadata = trustedContractBaselineMetadata(release);
         const parentContract = contractMetadataFromParent(
           parent,
           trustedMetadata
@@ -304,6 +391,7 @@ export const initializeArchitectWorld = onCall(
           parentWorldId,
           worldId,
           parentContract.release,
+          release.source.evidenceCatalog,
           parentContract.total
         );
         metadata = branchWorldMetadata({
@@ -316,15 +404,20 @@ export const initializeArchitectWorld = onCall(
           contractMetadata: trustedMetadata,
         });
       } else {
+        const release = loadTrustedContractRelease();
+        trustedMetadata = trustedContractBaselineMetadata(release);
+        const season = requireFreshWorldSeason(
+          release.salaryCapYear,
+          requestedSeason
+        );
         documents = buildTrustedContractBaselineDocuments(release, worldId);
         metadata = freshWorldMetadata({
           worldId,
           worldName,
           description,
           userId: request.auth.uid,
-          currentSeason: requestedSeason,
+          season,
           releaseEffectiveAt: release.effectiveAt,
-          releaseSalaryCapYear: release.salaryCapYear,
           contractMetadata: trustedMetadata,
         });
       }

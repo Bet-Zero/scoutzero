@@ -241,7 +241,12 @@ export const purgeArchitectWorld = onCall(
     timeoutSeconds: 60,
     memory: '256MiB',
   },
-  async (request: CallableRequest<{ worldId: string }>) => {
+  async (
+    request: CallableRequest<{
+      worldId: string;
+      cleanupPartialBranch?: boolean;
+    }>
+  ) => {
     const startTime = Date.now();
 
     // 1) Validate authentication
@@ -253,11 +258,17 @@ export const purgeArchitectWorld = onCall(
     }
 
     const userId = request.auth.uid;
-    const { worldId } = request.data;
+    const { worldId, cleanupPartialBranch = false } = request.data;
 
     // 2) Validate input
     if (!worldId || typeof worldId !== 'string') {
       throw new HttpsError('invalid-argument', 'worldId is required');
+    }
+    if (typeof cleanupPartialBranch !== 'boolean') {
+      throw new HttpsError(
+        'invalid-argument',
+        'cleanupPartialBranch must be a boolean'
+      );
     }
 
     // 3) Load world document and verify ownership
@@ -265,6 +276,23 @@ export const purgeArchitectWorld = onCall(
     const worldDoc = await worldRef.get();
 
     if (!worldDoc.exists) {
+      if (cleanupPartialBranch) {
+        return {
+          ok: true,
+          queued: false,
+          message: `Partial branch ${worldId} is already absent`,
+          details: {
+            teamsDeleted: 0,
+            playersDeleted: 0,
+            freeAgentPoolsDeleted: 0,
+            eventsDeleted: 0,
+            entitlementsDeleted: 0,
+            contractBaselinesDeleted: 0,
+            worldDeleted: false,
+            alreadyAbsent: true,
+          },
+        };
+      }
       throw new HttpsError('not-found', `World ${worldId} not found`);
     }
 

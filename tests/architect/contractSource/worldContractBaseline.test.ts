@@ -74,7 +74,7 @@ describe('BZE-274 fresh-world baseline persistence', () => {
     const created = await createWorld({
       name: 'Governed contracts',
       userId: 'owner',
-      currentSeason: '2026-27',
+      currentSeason: '2025-26',
     });
     const metadata = await getWorldMetadata(created.worldId);
     const documents = await listWorldContractBaselines(created.worldId);
@@ -89,6 +89,12 @@ describe('BZE-274 fresh-world baseline persistence', () => {
       complete: 1,
       needsInput: 0,
     });
+    expect(metadata.currentSeason).toBe('2025-26');
+    expect(metadata.baselineSeason).toBe('2025-26');
+    expect(metadata.contractBaselineSalaryCapYear).toBe(2026);
+    expect(metadata.contractBaselineEffectiveAt).toBe(
+      '2026-06-05T12:19:56.526Z'
+    );
     expect(metadata.asOfDate).toBe('2026-06-05');
     expect(documents).toHaveLength(1);
     expect(documents[0].ledgers[0]).toMatchObject({ payloadVersion: 2 });
