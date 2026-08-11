@@ -7,11 +7,13 @@
     "node": "18"
   },
   "scripts": {
-    "build": "tsc",
+    "clean": "node -e \"require('node:fs').rmSync('lib',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc && npm run copy:contract-release",
+    "copy:contract-release": "node -e \"const fs=require('node:fs');const dir='lib/architect/assets';fs.mkdirSync(dir,{recursive:true});fs.copyFileSync('../public/architect/contract-source-releases/salaryswish-retained-2026-06-05-v1.json',dir+'/salaryswish-retained-2026-06-05-v1.json')\"",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "deploy": "firebase deploy --only functions",
-    "test": "vitest --run"
+    "test": "vitest --run src"
   },
   "dependencies": {
     "firebase-admin": "^13.6.0",

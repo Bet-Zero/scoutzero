@@ -72,6 +72,12 @@ document digest. Missing evidence remains explicit in each ledger's resulting
 state; pre-baseline worlds require recreation and are never upgraded from
 mutable snapshots.
 
+Creation is server-only through `initializeArchitectWorld`, which verifies the
+deployed retained artifact before atomically writing world metadata and all
+baseline shards. Client rules allow owner reads only: direct baseline create,
+update, and delete are denied, and governed release metadata cannot be changed
+by later world updates.
+
 ### `/architect_worlds/{worldId}/teams/{teamCode}/freeAgentPools/{seasonKey}` - Managed Free-Agent Pools ✅ ACTIVE
 
 **Status**: ✅ Active

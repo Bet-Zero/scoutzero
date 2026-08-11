@@ -222,7 +222,7 @@ describe('BZE-274 fresh-world baseline persistence', () => {
       }
       return { success: true };
     });
-    failMockBatchCommitAfter(1, new Error('copy batch failed'));
+    failMockBatchCommitAfter(0, new Error('copy batch failed'));
 
     await expect(
       branchWorld(parent.worldId, 'Atomic child', '', 'owner')

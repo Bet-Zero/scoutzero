@@ -140,9 +140,9 @@ const describeWithFirestoreEmulator = HAS_FIRESTORE_EMULATOR_HOST
 describeWithFirestoreEmulator(
   'ARCHITECT_RULES_INTEGRATION_E1 - Firestore rules integration matrix',
   () => {
-    it('1) owner can create world doc when createdBy == uidA', async () => {
+    it('1) direct clients cannot create world metadata', async () => {
       const db = ownerDb();
-      await assertSucceeds(
+      await assertFails(
         setDoc(doc(db, 'architect_worlds', WORLD_ID), {
           worldId: WORLD_ID,
           createdBy: UID_A,
@@ -151,7 +151,7 @@ describeWithFirestoreEmulator(
       );
     });
 
-    it('1b) owner can atomically create world metadata and governed baseline shards', async () => {
+    it('1b) direct clients cannot establish governed baseline shards', async () => {
       const db = ownerDb();
       const batch = writeBatch(db);
       batch.set(doc(db, 'architect_worlds', WORLD_ID), {
@@ -163,7 +163,7 @@ describeWithFirestoreEmulator(
         doc(db, 'architect_worlds', WORLD_ID, 'contractBaselines', 'LAL-000'),
         { worldId: WORLD_ID, teamId: 'LAL', shardId: 'LAL-000' }
       );
-      await assertSucceeds(batch.commit());
+      await assertFails(batch.commit());
     });
 
     it('1c) non-owner cannot attach a baseline shard to another owner world', async () => {
@@ -179,7 +179,6 @@ describeWithFirestoreEmulator(
 
     it('1d) governed baseline shards cannot be added, updated, or deleted after initialization', async () => {
       const db = ownerDb();
-      const batch = writeBatch(db);
       const baselineRef = doc(
         db,
         'architect_worlds',
@@ -187,19 +186,46 @@ describeWithFirestoreEmulator(
         'contractBaselines',
         'LAL-000'
       );
-      batch.set(doc(db, 'architect_worlds', WORLD_ID), {
-        worldId: WORLD_ID,
-        createdBy: UID_A,
-        name: 'Immutable governed baseline world',
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const trustedDb = context.firestore();
+        await setDoc(doc(trustedDb, 'architect_worlds', WORLD_ID), {
+          worldId: WORLD_ID,
+          createdBy: UID_A,
+          name: 'Immutable governed baseline world',
+          contractBaselineVersion: 2,
+          contractSourceRelease: {
+            releaseId: 'release-v1',
+            releaseVersion: 1,
+            releaseDigest: `sha256:${'1'.repeat(64)}`,
+          },
+          contractBaselineEffectiveAt: '2026-06-05T12:00:00Z',
+          contractBaselineSalaryCapYear: 2026,
+          contractBaselineCoverage: { total: 1, complete: 1, needsInput: 0 },
+        });
+        await setDoc(
+          doc(
+            trustedDb,
+            'architect_worlds',
+            WORLD_ID,
+            'contractBaselines',
+            'LAL-000'
+          ),
+          { worldId: WORLD_ID, teamId: 'LAL', shardId: 'LAL-000' }
+        );
       });
-      batch.set(baselineRef, {
-        worldId: WORLD_ID,
-        teamId: 'LAL',
-        shardId: 'LAL-000',
-      });
-      await assertSucceeds(batch.commit());
 
       await assertSucceeds(getDoc(baselineRef));
+      await assertSucceeds(
+        updateDoc(doc(db, 'architect_worlds', WORLD_ID), {
+          name: 'Ordinary metadata still updates',
+        })
+      );
+      await assertFails(
+        updateDoc(doc(db, 'architect_worlds', WORLD_ID), {
+          contractBaselineSalaryCapYear: 2027,
+        })
+      );
+      await assertFails(deleteDoc(doc(db, 'architect_worlds', WORLD_ID)));
       await assertFails(updateDoc(baselineRef, { teamId: 'BOS' }));
       await assertFails(deleteDoc(baselineRef));
       await assertFails(

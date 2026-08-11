@@ -25,6 +25,10 @@ import type {
   ContractSourceObservation,
   ContractSourceRelease,
 } from '@/schemas/contractSourceRelease';
+import {
+  buildTrustedContractBaselineDocuments,
+  parseTrustedContractReleaseArtifact,
+} from '../../../functions/src/architect/trustedContractBaseline';
 
 const RELEASE_PATH = path.resolve(
   process.cwd(),
@@ -377,6 +381,13 @@ describe('BZE-274 checked-in source release', () => {
       release,
       'world-real-release'
     );
+    const trustedDocuments = buildTrustedContractBaselineDocuments(
+      parseTrustedContractReleaseArtifact(await readFile(RELEASE_PATH)),
+      'world-real-release'
+    );
+    expect(canonicalStringify(trustedDocuments)).toBe(
+      canonicalStringify(documents)
+    );
     expect(new Set(documents.map((document) => document.teamId)).size).toBe(31);
     expect(documents.length + 1).toBeLessThan(500);
     expect(
@@ -435,5 +446,5 @@ describe('BZE-274 checked-in source release', () => {
         'Missing a source-supported signing date.',
       ])
     );
-  });
+  }, 20_000);
 });

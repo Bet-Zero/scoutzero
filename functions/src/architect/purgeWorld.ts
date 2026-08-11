@@ -8,7 +8,11 @@
  */
 
 import * as admin from 'firebase-admin';
-import { onCall, HttpsError, CallableRequest } from 'firebase-functions/v2/https';
+import {
+  onCall,
+  HttpsError,
+  CallableRequest,
+} from 'firebase-functions/v2/https';
 
 // Initialize Firebase Admin SDK (uses default credentials in Cloud Functions)
 if (!admin.apps.length) {
@@ -107,11 +111,19 @@ async function deleteWorldRecursive(
   worldDeleted: boolean;
   teamsDeleted: number;
   playersDeleted: number;
+  freeAgentPoolsDeleted: number;
+  eventsDeleted: number;
+  entitlementsDeleted: number;
+  contractBaselinesDeleted: number;
   timedOut: boolean;
 }> {
   const worldRef = db.collection('architect_worlds').doc(worldId);
   let teamsDeleted = 0;
   let playersDeleted = 0;
+  let freeAgentPoolsDeleted = 0;
+  let eventsDeleted = 0;
+  let entitlementsDeleted = 0;
+  let contractBaselinesDeleted = 0;
   let timedOut = false;
 
   // Get all teams to delete their player subcollections first
@@ -126,10 +138,23 @@ async function deleteWorldRecursive(
 
     // Delete players subcollection for this team
     const playersCollectionRef = teamDoc.ref.collection('players');
-    const playersResult = await deleteCollection(playersCollectionRef, startTime);
+    const playersResult = await deleteCollection(
+      playersCollectionRef,
+      startTime
+    );
     playersDeleted += playersResult.deleted;
 
     if (playersResult.timedOut) {
+      timedOut = true;
+      break;
+    }
+
+    const freeAgentPoolsResult = await deleteCollection(
+      teamDoc.ref.collection('freeAgentPools'),
+      startTime
+    );
+    freeAgentPoolsDeleted += freeAgentPoolsResult.deleted;
+    if (freeAgentPoolsResult.timedOut) {
       timedOut = true;
       break;
     }
@@ -140,6 +165,33 @@ async function deleteWorldRecursive(
     const teamsResult = await deleteCollection(teamsCollectionRef, startTime);
     teamsDeleted = teamsResult.deleted;
     timedOut = teamsResult.timedOut;
+  }
+
+  if (!timedOut) {
+    const eventsResult = await deleteCollection(
+      worldRef.collection('events'),
+      startTime
+    );
+    eventsDeleted = eventsResult.deleted;
+    timedOut = eventsResult.timedOut;
+  }
+
+  if (!timedOut) {
+    const entitlementsResult = await deleteCollection(
+      worldRef.collection('entitlements'),
+      startTime
+    );
+    entitlementsDeleted = entitlementsResult.deleted;
+    timedOut = entitlementsResult.timedOut;
+  }
+
+  if (!timedOut) {
+    const baselinesResult = await deleteCollection(
+      worldRef.collection('contractBaselines'),
+      startTime
+    );
+    contractBaselinesDeleted = baselinesResult.deleted;
+    timedOut = baselinesResult.timedOut;
   }
 
   // Finally delete the world document itself
@@ -153,6 +205,10 @@ async function deleteWorldRecursive(
     worldDeleted,
     teamsDeleted,
     playersDeleted,
+    freeAgentPoolsDeleted,
+    eventsDeleted,
+    entitlementsDeleted,
+    contractBaselinesDeleted,
     timedOut,
   };
 }
@@ -190,7 +246,10 @@ export const purgeArchitectWorld = onCall(
 
     // 1) Validate authentication
     if (!request.auth) {
-      throw new HttpsError('unauthenticated', 'User must be authenticated to delete worlds');
+      throw new HttpsError(
+        'unauthenticated',
+        'User must be authenticated to delete worlds'
+      );
     }
 
     const userId = request.auth.uid;
@@ -263,6 +322,10 @@ export const purgeArchitectWorld = onCall(
         details: {
           teamsDeleted: result.teamsDeleted,
           playersDeleted: result.playersDeleted,
+          freeAgentPoolsDeleted: result.freeAgentPoolsDeleted,
+          eventsDeleted: result.eventsDeleted,
+          entitlementsDeleted: result.entitlementsDeleted,
+          contractBaselinesDeleted: result.contractBaselinesDeleted,
           worldDeleted: result.worldDeleted,
         },
       };
@@ -275,6 +338,10 @@ export const purgeArchitectWorld = onCall(
       details: {
         teamsDeleted: result.teamsDeleted,
         playersDeleted: result.playersDeleted,
+        freeAgentPoolsDeleted: result.freeAgentPoolsDeleted,
+        eventsDeleted: result.eventsDeleted,
+        entitlementsDeleted: result.entitlementsDeleted,
+        contractBaselinesDeleted: result.contractBaselinesDeleted,
         worldDeleted: result.worldDeleted,
       },
     };

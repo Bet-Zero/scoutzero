@@ -905,6 +905,158 @@ export function getMockData(path: string): unknown {
 // Store for mock callable function responses
 const mockCallableFunctions = new Map<string, MockCallableImplementation>();
 
+async function initializeArchitectWorldMock(data: unknown): Promise<unknown> {
+  if (!isRecord(data)) {
+    throw new Error('initializeArchitectWorld mock requires an object request');
+  }
+  const { worldId, worldName, description, userId, currentSeason, parentWorldId } =
+    data;
+  if (
+    typeof worldId !== 'string' ||
+    typeof worldName !== 'string' ||
+    typeof userId !== 'string'
+  ) {
+    throw new Error('initializeArchitectWorld mock request is malformed');
+  }
+
+  const contractSource = await import(
+    '@/features/architect/utils/contractSource/contractSourceRelease'
+  );
+  const now = new Date().toISOString();
+  let metadata: UnknownRecord;
+  let documents: readonly UnknownRecord[];
+
+  if (typeof parentWorldId === 'string') {
+    const parentRaw = getDataFromStore(`architect_worlds/${parentWorldId}`);
+    if (!isRecord(parentRaw)) {
+      throw new Error(`Parent world ${parentWorldId} not found`);
+    }
+    const compatibility = contractSource.resolveContractBaselineWorldCompatibility(
+      parentRaw
+    );
+    if (!compatibility.compatible) throw new Error(compatibility.message);
+    const parentDocuments: unknown[] = [];
+    const prefix = `architect_worlds/${parentWorldId}/contractBaselines/`;
+    for (const [path, value] of mockDataStore.entries()) {
+      if (path.startsWith(prefix) && !path.slice(prefix.length).includes('/')) {
+        parentDocuments.push(value);
+      }
+    }
+    const validated = contractSource.validateContractBaselineDocumentSet(
+      parentDocuments.map((value) =>
+        contractSource.parseContractBaselineTeamDocument(value, {
+          worldId: parentWorldId,
+          release: compatibility.metadata.contractSourceRelease,
+        })
+      ),
+      compatibility.metadata.contractBaselineCoverage.total
+    );
+    documents = validated.map((document) =>
+      contractSource.branchContractBaselineTeamDocument(document, worldId)
+    );
+    const season =
+      typeof parentRaw.currentSeason === 'string'
+        ? parentRaw.currentSeason
+        : `${compatibility.metadata.contractBaselineSalaryCapYear - 1}-${String(
+            compatibility.metadata.contractBaselineSalaryCapYear
+          ).slice(-2)}`;
+    metadata = {
+      worldId,
+      worldName,
+      description: typeof description === 'string' ? description : '',
+      createdBy: userId,
+      createdAt: now,
+      lastModifiedAt: now,
+      currentSeason: season,
+      baselineSeason:
+        typeof parentRaw.baselineSeason === 'string'
+          ? parentRaw.baselineSeason
+          : season,
+      parentWorldId,
+      branchedFrom: now,
+      childWorlds: [],
+      modifiedTeams: Array.isArray(parentRaw.modifiedTeams)
+        ? cloneMockValue(parentRaw.modifiedTeams)
+        : [],
+      actionCount:
+        typeof parentRaw.actionCount === 'number' ? parentRaw.actionCount : 0,
+      tags: Array.isArray(parentRaw.tags) ? cloneMockValue(parentRaw.tags) : [],
+      isArchived: true,
+      isFavorite: false,
+      stats: isRecord(parentRaw.stats)
+        ? cloneMockValue(parentRaw.stats)
+        : {
+            totalTrades: 0,
+            totalSignings: 0,
+            totalWaives: 0,
+            totalRenounces: 0,
+            teamsInvolved: 0,
+          },
+      rightsLedgerVersion: 1,
+      ...(typeof parentRaw.asOfDate === 'string'
+        ? { asOfDate: parentRaw.asOfDate }
+        : {}),
+      ...compatibility.metadata,
+      ...(isRecord(parentRaw.draftPositionsByYear)
+        ? {
+            draftPositionsByYear: cloneMockValue(
+              parentRaw.draftPositionsByYear
+            ),
+          }
+        : {}),
+    };
+  } else {
+    const release = await contractSource.loadBundledContractSourceRelease();
+    const season =
+      typeof currentSeason === 'string'
+        ? currentSeason
+        : `${release.salaryCapYear - 1}-${String(release.salaryCapYear).slice(-2)}`;
+    metadata = {
+      worldId,
+      worldName,
+      description: typeof description === 'string' ? description : '',
+      createdBy: userId,
+      createdAt: now,
+      lastModifiedAt: now,
+      currentSeason: season,
+      baselineSeason: season,
+      parentWorldId: null,
+      branchedFrom: null,
+      childWorlds: [],
+      modifiedTeams: [],
+      actionCount: 0,
+      tags: [],
+      isArchived: false,
+      isFavorite: false,
+      stats: {
+        totalTrades: 0,
+        totalSignings: 0,
+        totalWaives: 0,
+        totalRenounces: 0,
+        teamsInvolved: 0,
+      },
+      rightsLedgerVersion: 1,
+      asOfDate: release.effectiveAt.slice(0, 10),
+      ...contractSource.contractBaselineMetadata(release),
+    };
+    documents = contractSource.buildContractBaselineTeamDocuments(
+      release,
+      worldId
+    );
+  }
+
+  setDataInStore(`architect_worlds/${worldId}`, metadata);
+  for (const document of documents) {
+    setDataInStore(
+      `architect_worlds/${worldId}/contractBaselines/${String(
+        document.shardId
+      )}`,
+      document
+    );
+  }
+  return { ok: true, worldId };
+}
+
 /**
  * Mock httpsCallable function
  * Returns a function that can be called with data and returns a result
@@ -915,6 +1067,10 @@ export function httpsCallable(_functions: unknown, functionName: string) {
     if (mockImpl) {
       const result = await mockImpl(data);
       return { data: result };
+    }
+
+    if (functionName === 'initializeArchitectWorld') {
+      return { data: await initializeArchitectWorldMock(data) };
     }
 
     return {
