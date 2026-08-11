@@ -237,7 +237,8 @@ const resolveWorldLineageIds = async (worldId: string): Promise<string[]> => {
 
     const metadata = await getWorldMetadata(currentWorldId);
     currentWorldId =
-      typeof metadata.parentWorldId === 'string' && metadata.parentWorldId.trim()
+      typeof metadata.parentWorldId === 'string' &&
+      metadata.parentWorldId.trim()
         ? metadata.parentWorldId.trim()
         : null;
   }
@@ -387,7 +388,9 @@ const collectEffectiveEntitlementsForBranch = async (
   }
 
   for (const lineageWorldId of lineageIds) {
-    const entitlementsSnap = await getDocs(worldEntitlementsCol(lineageWorldId));
+    const entitlementsSnap = await getDocs(
+      worldEntitlementsCol(lineageWorldId)
+    );
     entitlementsSnap.docs.forEach((entitlementDoc) => {
       entitlementIds.add(entitlementDoc.id);
     });
@@ -445,7 +448,8 @@ const collectSourceContractBaselinesForBranch = async (
   childWorldId: string
 ) => {
   const parentMetadata = await getWorldMetadata(parentWorldId);
-  const compatibility = resolveContractBaselineWorldCompatibility(parentMetadata);
+  const compatibility =
+    resolveContractBaselineWorldCompatibility(parentMetadata);
   if (!compatibility.compatible) throw new Error(compatibility.message);
   const snapshot = await getDocs(worldContractBaselinesCol(parentWorldId));
   const documents = snapshot.docs.map((entry) =>
@@ -533,14 +537,7 @@ const appendWorldStateCopyOperations = async ({
       eventData
     );
   }
-
-  for (const document of contractBaselines) {
-    appendSetOperation(
-      operations,
-      worldContractBaselineRef(childWorldId, document.shardId),
-      document
-    );
-  }
+  return contractBaselines;
 };
 
 const buildBranchedWorldMetadata = ({
@@ -558,7 +555,8 @@ const buildBranchedWorldMetadata = ({
   userId: string;
   parentMetadata: WorldMetadata;
 }): Record<string, unknown> => {
-  const compatibility = resolveContractBaselineWorldCompatibility(parentMetadata);
+  const compatibility =
+    resolveContractBaselineWorldCompatibility(parentMetadata);
   if (!compatibility.compatible) throw new Error(compatibility.message);
   const season =
     parentMetadata.currentSeason ||
@@ -566,7 +564,9 @@ const buildBranchedWorldMetadata = ({
       compatibility.metadata.contractBaselineSalaryCapYear
     );
   if (!season) {
-    throw new Error('The governed contract baseline has no supported Salary Cap Year.');
+    throw new Error(
+      'The governed contract baseline has no supported Salary Cap Year.'
+    );
   }
   const metadata: Record<string, unknown> = {
     worldId,
@@ -640,11 +640,16 @@ export async function createWorld({
   const release = await loadBundledContractSourceRelease();
   const governedSeason = seasonKeyForSalaryCapYear(release.salaryCapYear);
   if (!governedSeason) {
-    throw new Error('The governed contract-source release has no supported Salary Cap Year.');
+    throw new Error(
+      'The governed contract-source release has no supported Salary Cap Year.'
+    );
   }
   const season = currentSeason || governedSeason;
   const baselineMetadata = contractBaselineMetadata(release);
-  const baselineDocuments = buildContractBaselineTeamDocuments(release, worldId);
+  const baselineDocuments = buildContractBaselineTeamDocuments(
+    release,
+    worldId
+  );
 
   const metadata: Record<string, unknown> = {
     worldId,
@@ -681,10 +686,7 @@ export async function createWorld({
   batch.set(metadataRef, metadata);
 
   baselineDocuments.forEach((document) => {
-    batch.set(
-      worldContractBaselineRef(worldId, document.shardId),
-      document
-    );
+    batch.set(worldContractBaselineRef(worldId, document.shardId), document);
   });
 
   await batch.commit();
@@ -940,7 +942,7 @@ export async function branchWorld(
   });
   const copyOperations: BranchCopyOperation[] = [];
 
-  await appendWorldStateCopyOperations({
+  const contractBaselines = await appendWorldStateCopyOperations({
     operations: copyOperations,
     parentWorldId,
     childWorldId: worldId,
@@ -954,15 +956,41 @@ export async function branchWorld(
     ...metadata,
     isArchived: true,
   });
-  await initializingBatch.commit();
-  await commitBranchCopyOperations(copyOperations);
-
-  const batch = writeBatch(db);
-  batch.set(worldMetadataRef(worldId), metadata);
-  batch.update(worldMetadataRef(parentWorldId), {
-    childWorlds: arrayUnion(worldId),
+  contractBaselines.forEach((document) => {
+    initializingBatch.set(
+      worldContractBaselineRef(worldId, document.shardId),
+      document
+    );
   });
-  await batch.commit();
+  let initialized = false;
+  try {
+    await initializingBatch.commit();
+    initialized = true;
+    await commitBranchCopyOperations(copyOperations);
+
+    const batch = writeBatch(db);
+    batch.set(worldMetadataRef(worldId), metadata);
+    batch.update(worldMetadataRef(parentWorldId), {
+      childWorlds: arrayUnion(worldId),
+    });
+    await batch.commit();
+  } catch (error) {
+    if (initialized) {
+      try {
+        await purgeWorld(worldId);
+      } catch (cleanupError) {
+        const reason =
+          cleanupError instanceof Error
+            ? cleanupError.message
+            : 'unknown cleanup error';
+        throw new Error(
+          `Branch initialization failed and governed cleanup also failed for ${worldId}: ${reason}`,
+          { cause: error }
+        );
+      }
+    }
+    throw error;
+  }
 
   return { worldId, metadata };
 }

@@ -78,6 +78,10 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
       isFavorite: false,
       rightsLedgerVersion: 1,
     });
+    const oldWorldBefore = await db
+      .doc(`architect_worlds/${oldWorldId}`)
+      .get()
+      .then((snapshot) => snapshot.data());
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await waitForReviewDashboard(page);
@@ -90,7 +94,9 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
       })
     ).toBeAttached();
     await worldSelect.selectOption(oldWorldId);
-    await expect(page.getByText(/predates governed baseline contracts/i)).toBeVisible();
+    await expect(
+      page.getByText(/predates governed baseline contracts/i)
+    ).toBeVisible();
     await expect(worldSelect).toHaveValue('');
 
     const worldName = `BZE-274 Governed Baseline ${Date.now()}`;
@@ -144,21 +150,25 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
 
     const completeStates = parentLedgers
       .map(resultingState)
-      .filter((state) => state?.completeness &&
-        (state.completeness as RecordLike).status === 'complete');
+      .filter(
+        (state) =>
+          state?.completeness &&
+          (state.completeness as RecordLike).status === 'complete'
+      );
     const needsInputStates = parentLedgers
       .map(resultingState)
-      .filter((state) => state?.completeness &&
-        (state.completeness as RecordLike).status === 'needs-input');
+      .filter(
+        (state) =>
+          state?.completeness &&
+          (state.completeness as RecordLike).status === 'needs-input'
+      );
     expect(completeStates).toHaveLength(772);
     expect(needsInputStates).toHaveLength(2);
     expect(needsInputStates.map((state) => state?.contractId).sort()).toEqual([
       'salaryswish:id-1630599:unknown:2025-26:2025-26:veteran-contract',
       'salaryswish:yang-hansen:unknown:2025-26:2025-26:veteran-contract',
     ]);
-    expect(
-      (needsInputStates[0]?.completeness as RecordLike).reasons
-    ).toEqual(
+    expect((needsInputStates[0]?.completeness as RecordLike).reasons).toEqual(
       expect.arrayContaining([
         'Missing a replayable salary schedule.',
         'Missing a source-supported signing date.',
@@ -224,13 +234,13 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
     );
 
     const oldWorld = await db.doc(`architect_worlds/${oldWorldId}`).get();
+    expect(oldWorld.data()).toEqual(oldWorldBefore);
     expect(oldWorld.data()?.contractBaselineVersion).toBeUndefined();
     expect(await baselineDocuments(oldWorldId)).toEqual([]);
 
     testInfo.annotations.push({
       type: 'audit-note',
-      description:
-        `BZE-274 browser proof: fresh world ${parentWorldId} pinned ${RELEASE_ID}@v1, persisted ${parentDocuments.length} safe shards / 774 roots / 772 complete / 2 needs-input, survived reload byte-for-byte, and branch ${childWorldId} preserved every state digest and evidence envelope. The pre-ledger world remained unchanged and visibly required recreation.`,
+      description: `BZE-274 browser proof: fresh world ${parentWorldId} pinned ${RELEASE_ID}@v1, persisted ${parentDocuments.length} safe shards / 774 roots / 772 complete / 2 needs-input, survived reload byte-for-byte, and branch ${childWorldId} preserved every state digest and evidence envelope. The pre-ledger world remained unchanged and visibly required recreation.`,
     });
   });
 });

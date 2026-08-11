@@ -397,7 +397,11 @@ describe('BZE-271 history / mutable-contract compatibility fence', () => {
         importSpecifiers(code).forEach((specifier) => {
           if (specifier.includes('contractHistory')) {
             const relativePath = path.slice(REPO_ROOT.length + 1);
-            if (!GOVERNED_CONTRACT_HISTORY_CONSUMERS.includes(relativePath as never)) {
+            if (
+              !GOVERNED_CONTRACT_HISTORY_CONSUMERS.includes(
+                relativePath as never
+              )
+            ) {
               offenders.push(`${path} imports ${specifier}`);
             }
           }
@@ -409,9 +413,14 @@ describe('BZE-271 history / mutable-contract compatibility fence', () => {
 
     expect(offenders).toEqual([]);
     GOVERNED_CONTRACT_HISTORY_CONSUMERS.forEach((consumer) => {
-      expect(readFileSync(join(REPO_ROOT, consumer), 'utf8')).toContain(
-        'contractHistory'
+      const code = stripComments(
+        readFileSync(join(REPO_ROOT, consumer), 'utf8')
       );
+      expect(
+        importSpecifiers(code).some((specifier) =>
+          specifier.includes('contractHistory')
+        )
+      ).toBe(true);
     });
   });
 });

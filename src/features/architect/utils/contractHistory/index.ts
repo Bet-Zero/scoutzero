@@ -35,7 +35,7 @@ export type {
 export {
   appendContractEvents,
   CONTRACT_EVENT_FAMILIES,
-  CONTRACT_ROOT_EVENT_KIND,
+  CONTRACT_SIGNING_ROOT_EVENT_KIND,
   CONTRACT_ROOT_EVENT_KINDS,
   ContractEventLedgerError,
   createContractEventLedger,

@@ -6,6 +6,7 @@ import type {
   ContractSourceObservation,
   ContractSourceRelease,
 } from '@/schemas/contractSourceRelease';
+import { ZonedDateTimeZ } from '@/schemas/contractSourceRelease';
 import type {
   ContractEvidenceStatus,
   ContractFieldEvidence,
@@ -16,6 +17,7 @@ import type {
 import { encodeContractFieldEvidence } from '@/schemas/governedContractState';
 import {
   canonicalStringify,
+  compareCodePoints,
   deterministicStateDigest,
 } from './deterministicDigest';
 
@@ -25,25 +27,90 @@ export const CONTRACT_SOURCE_TRANSFORMATION_ID =
 export const CONTRACT_EVIDENCE_CATALOG = Object.freeze({
   transformations: Object.freeze([
     { id: 'retain', description: 'Retain the exact source-record value.' },
-    { id: 'date-only', description: 'Preserve the raw date and normalize only to calendar-date precision.' },
-    { id: 'option-holder', description: 'Map PO/ETO to player and TO to team.' },
-    { id: 'no-deadline', description: 'Retain no deadline because the source record supplies none.' },
-    { id: 'incentive-envelope', description: 'Retain aggregate incentive amounts without inventing earning criteria.' },
-    { id: 'guarantee-schedule', description: 'Retain an exact dated guarantee schedule only when present.' },
-    { id: 'source-context', description: 'Retain source context without authorizing a governed action.' },
+    {
+      id: 'date-only',
+      description:
+        'Preserve the raw date and normalize only to calendar-date precision.',
+    },
+    {
+      id: 'option-holder',
+      description: 'Map PO/ETO to player and TO to team.',
+    },
+    {
+      id: 'no-deadline',
+      description:
+        'Retain no deadline because the source record supplies none.',
+    },
+    {
+      id: 'incentive-envelope',
+      description:
+        'Retain aggregate incentive amounts without inventing earning criteria.',
+    },
+    {
+      id: 'guarantee-schedule',
+      description:
+        'Retain an exact dated guarantee schedule only when present.',
+    },
+    {
+      id: 'source-context',
+      description:
+        'Retain source context without authorizing a governed action.',
+    },
   ]),
   limitations: Object.freeze([
-    { id: 'team-fallback', description: 'The upstream parser may substitute the observed roster team.' },
-    { id: 'derived-aggregate', description: 'The upstream parser derives this aggregate from retained salary rows.' },
-    { id: 'salary-cap-substitution', description: 'The upstream parser may substitute Salary and Cap Hit when only one column is present.' },
-    { id: 'guarantee-derivation', description: 'The upstream parser may derive protection from row text, option policy, or guarantee details.' },
-    { id: 'not-applicable-or-unsupported', description: 'No applicable value or supported source fact is retained.' },
-    { id: 'missing-option-deadline', description: 'The source record does not contain an option notice deadline.' },
-    { id: 'missing-bonus-criteria', description: 'The source record contains no per-bonus earning criteria.' },
-    { id: 'missing-protection-schedule', description: 'No dated protection schedule is retained for this salary row.' },
-    { id: 'missing-bonus-allocation', description: 'No bonus-payment timing or allocation schedule is retained.' },
-    { id: 'negative-search-default', description: 'Empty/false restriction values may be upstream negative-search defaults.' },
-    { id: 'context-only', description: 'Source context cannot authorize a rights or free-agency action.' },
+    {
+      id: 'team-fallback',
+      description:
+        'The upstream parser may substitute the observed roster team.',
+    },
+    {
+      id: 'derived-aggregate',
+      description:
+        'The upstream parser derives this aggregate from retained salary rows.',
+    },
+    {
+      id: 'salary-cap-substitution',
+      description:
+        'The upstream parser may substitute Salary and Cap Hit when only one column is present.',
+    },
+    {
+      id: 'guarantee-derivation',
+      description:
+        'The upstream parser may derive protection from row text, option policy, or guarantee details.',
+    },
+    {
+      id: 'not-applicable-or-unsupported',
+      description: 'No applicable value or supported source fact is retained.',
+    },
+    {
+      id: 'missing-option-deadline',
+      description:
+        'The source record does not contain an option notice deadline.',
+    },
+    {
+      id: 'missing-bonus-criteria',
+      description: 'The source record contains no per-bonus earning criteria.',
+    },
+    {
+      id: 'missing-protection-schedule',
+      description:
+        'No dated protection schedule is retained for this salary row.',
+    },
+    {
+      id: 'missing-bonus-allocation',
+      description:
+        'No bonus-payment timing or allocation schedule is retained.',
+    },
+    {
+      id: 'negative-search-default',
+      description:
+        'Empty/false restriction values may be upstream negative-search defaults.',
+    },
+    {
+      id: 'context-only',
+      description:
+        'Source context cannot authorize a rights or free-agency action.',
+    },
   ]),
 });
 
@@ -83,7 +150,7 @@ export function contractSourceReleaseDigestMaterial(
     salaryCapYear: input.salaryCapYear,
     source: CONTRACT_SOURCE_RELEASE_DESCRIPTOR,
     observations: [...input.observations].sort((a, b) =>
-      a.observationId.localeCompare(b.observationId)
+      compareCodePoints(a.observationId, b.observationId)
     ),
   };
 }
@@ -249,8 +316,7 @@ function normalizeTerms(contract: UnknownRecord): GovernedContractTerms {
       aggregation: booleanValue(tradeRules.aggregation),
     },
     birdRights: {
-      status:
-        typeof birdRights.status === 'string' ? birdRights.status : null,
+      status: typeof birdRights.status === 'string' ? birdRights.status : null,
       yearsOfService: integerValue(birdRights.yearsOfService),
       yearsWithTeam: integerValue(birdRights.yearsWithTeam),
       eligibleFor: stringArray(birdRights.eligibleFor),
@@ -326,8 +392,7 @@ function evidenceForTerms(
   topLevelFields.forEach((field) => {
     const value = terms[field];
     const missing =
-      value === null ||
-      (isRecord(value) && value.precision === 'unknown');
+      value === null || (isRecord(value) && value.precision === 'unknown');
     add(
       `terms.${field}`,
       missing
@@ -340,12 +405,12 @@ function evidenceForTerms(
           ? 'derived'
           : 'known',
       `${contractPath}.${field}`,
-      field === 'signingDate'
-        ? 'date-only'
-        : 'retain',
+      field === 'signingDate' ? 'date-only' : 'retain',
       field === 'signingTeam'
         ? ['team-fallback']
-        : field === 'contractLength' || field === 'totalValue' || field === 'averageAnnualValue'
+        : field === 'contractLength' ||
+            field === 'totalValue' ||
+            field === 'averageAnnualValue'
           ? ['derived-aggregate']
           : []
     );
@@ -370,8 +435,7 @@ function evidenceForTerms(
     ).forEach((field) => {
       const value = row[field];
       const missing =
-        value === null ||
-        (isRecord(value) && value.precision === 'unknown');
+        value === null || (isRecord(value) && value.precision === 'unknown');
       add(
         `terms.salaries[${index}].${field}`,
         missing
@@ -421,9 +485,7 @@ function evidenceForTerms(
       row.guaranteeSchedule.length > 0 ? 'known' : 'unsupported',
       `${sourceBase}.guaranteeSchedule`,
       'guarantee-schedule',
-      row.guaranteeSchedule.length > 0
-        ? []
-        : ['missing-protection-schedule']
+      row.guaranteeSchedule.length > 0 ? [] : ['missing-protection-schedule']
     );
   });
 
@@ -456,10 +518,13 @@ function evidenceForTerms(
     ['context-only']
   );
 
-  return evidence.sort((a, b) => a.localeCompare(b));
+  return evidence.sort(compareCodePoints);
 }
 
-function contractProblems(contract: UnknownRecord, terms: GovernedContractTerms) {
+function contractProblems(
+  contract: UnknownRecord,
+  terms: GovernedContractTerms
+) {
   const reasons: string[] = [];
   if (terms.signingDate.precision === 'unknown') {
     reasons.push('Missing a source-supported signing date.');
@@ -485,10 +550,12 @@ function contractProblems(contract: UnknownRecord, terms: GovernedContractTerms)
   ) {
     reasons.push('A salary row is malformed or lacks Salary/Cap Hit evidence.');
   }
-  return [...new Set(reasons)].sort();
+  return [...new Set(reasons)].sort(compareCodePoints);
 }
 
-function parseObservation(observation: ContractSourceObservation): UnknownRecord {
+function parseObservation(
+  observation: ContractSourceObservation
+): UnknownRecord {
   const parsed: unknown = JSON.parse(observation.artifactContent);
   if (!isRecord(parsed)) {
     throw new Error(`${observation.observationId} does not contain an object.`);
@@ -545,19 +612,25 @@ function selectedObservations(
 ): ContractSourceObservation[] {
   const byPlayer = new Map<string, ContractSourceObservation[]>();
   observations.forEach((observation) => {
+    ZonedDateTimeZ.parse(observation.observedAt);
     const values = byPlayer.get(observation.playerId) ?? [];
     values.push(observation);
     byPlayer.set(observation.playerId, values);
   });
   return [...byPlayer.values()]
-    .map((values) =>
-      [...values].sort((a, b) =>
-        a.observedAt === b.observedAt
-          ? a.artifactPath.localeCompare(b.artifactPath)
-          : a.observedAt.localeCompare(b.observedAt)
-      ).at(-1) as ContractSourceObservation
+    .map(
+      (values) =>
+        [...values]
+          .sort((a, b) =>
+            Date.parse(ZonedDateTimeZ.parse(a.observedAt)) ===
+            Date.parse(ZonedDateTimeZ.parse(b.observedAt))
+              ? compareCodePoints(a.artifactPath, b.artifactPath)
+              : Date.parse(ZonedDateTimeZ.parse(a.observedAt)) -
+                Date.parse(ZonedDateTimeZ.parse(b.observedAt))
+          )
+          .at(-1) as ContractSourceObservation
     )
-    .sort((a, b) => a.playerId.localeCompare(b.playerId));
+    .sort((a, b) => compareCodePoints(a.playerId, b.playerId));
 }
 
 function coverageFor(
@@ -565,13 +638,17 @@ function coverageFor(
   records: readonly ContractSourceBaselineRecord[]
 ): ContractSourceCoverage {
   const completeRecordIds = records
-    .filter((record) => record.resultingState.completeness.status === 'complete')
+    .filter(
+      (record) => record.resultingState.completeness.status === 'complete'
+    )
     .map((record) => record.contractId)
-    .sort();
+    .sort(compareCodePoints);
   const needsInputRecordIds = records
-    .filter((record) => record.resultingState.completeness.status === 'needs-input')
+    .filter(
+      (record) => record.resultingState.completeness.status === 'needs-input'
+    )
     .map((record) => record.contractId)
-    .sort();
+    .sort(compareCodePoints);
   const categories = new Map<string, string[]>();
   records.forEach((record) => {
     record.resultingState.completeness.reasons.forEach((reason) => {
@@ -592,27 +669,38 @@ function coverageFor(
       )
     )
     .map((record) => record.contractId)
-    .sort();
-  const allRecordIds = records.map((record) => record.contractId).sort();
+    .sort(compareCodePoints);
+  const allRecordIds = records
+    .map((record) => record.contractId)
+    .sort(compareCodePoints);
 
   return {
     sourceObservationCount: observations.length,
-    uniquePlayerCount: new Set(observations.map((entry) => entry.playerId)).size,
+    uniquePlayerCount: new Set(observations.map((entry) => entry.playerId))
+      .size,
     totalSourceContracts: records.length,
     completeRecordIds,
     needsInputRecordIds,
     excludedCorruptRecordIds: [],
     missingByCategory: [...categories.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([category, recordIds]) => ({ category, recordIds: recordIds.sort() })),
+      .sort(([a], [b]) => compareCodePoints(a, b))
+      .map(([category, recordIds]) => ({
+        category,
+        recordIds: recordIds.sort(compareCodePoints),
+      })),
     laterRouteReadiness: {
       option: {
         readyRecordIds: [],
-        blockedRecordIds: pendingOptions.map((record) => record.contractId).sort(),
+        blockedRecordIds: pendingOptions
+          .map((record) => record.contractId)
+          .sort(compareCodePoints),
         missingByCategory: [
           {
-            category: 'Source records do not retain the applicable option notice deadline.',
-            recordIds: pendingOptions.map((record) => record.contractId).sort(),
+            category:
+              'Source records do not retain the applicable option notice deadline.',
+            recordIds: pendingOptions
+              .map((record) => record.contractId)
+              .sort(compareCodePoints),
           },
         ],
       },
@@ -621,11 +709,13 @@ function coverageFor(
         blockedRecordIds: allRecordIds,
         missingByCategory: [
           {
-            category: 'Exact service, team/transaction history, and dated restriction evidence is outside this source release.',
+            category:
+              'Exact service, team/transaction history, and dated restriction evidence is outside this source release.',
             recordIds: allRecordIds,
           },
           {
-            category: 'Per-bonus criteria are missing where incentive amounts are retained.',
+            category:
+              'Per-bonus criteria are missing where incentive amounts are retained.',
             recordIds: incentiveCriteriaMissing,
           },
         ],
@@ -659,7 +749,7 @@ export function buildContractSourceRelease(
       });
     });
   });
-  records.sort((a, b) => a.contractId.localeCompare(b.contractId));
+  records.sort((a, b) => compareCodePoints(a.contractId, b.contractId));
   const duplicates = records.filter(
     (record, index) =>
       index > 0 && record.contractId === records[index - 1].contractId
@@ -684,18 +774,24 @@ export function buildContractSourceRelease(
       ...CONTRACT_SOURCE_RELEASE_DESCRIPTOR,
       limitations: [...CONTRACT_SOURCE_RELEASE_DESCRIPTOR.limitations],
       evidenceCatalog: {
-        transformations: CONTRACT_EVIDENCE_CATALOG.transformations.map((entry) => ({ ...entry })),
-        limitations: CONTRACT_EVIDENCE_CATALOG.limitations.map((entry) => ({ ...entry })),
+        transformations: CONTRACT_EVIDENCE_CATALOG.transformations.map(
+          (entry) => ({ ...entry })
+        ),
+        limitations: CONTRACT_EVIDENCE_CATALOG.limitations.map((entry) => ({
+          ...entry,
+        })),
       },
     },
     observations: [...input.observations].sort((a, b) =>
-      a.observationId.localeCompare(b.observationId)
+      compareCodePoints(a.observationId, b.observationId)
     ),
     records,
     coverage: coverageFor(input.observations, records),
   };
 }
 
-export function normalizedReleaseContent(release: ContractSourceRelease): string {
+export function normalizedReleaseContent(
+  release: ContractSourceRelease
+): string {
   return canonicalStringify(release);
 }

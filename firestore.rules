@@ -100,6 +100,10 @@ service cloud.firestore {
         match /players/{playerId} {
           allow read, write: if isWorldOwner(worldId);
         }
+
+        match /freeAgentPools/{seasonKey} {
+          allow read, write: if isWorldOwner(worldId);
+        }
       }
 
       match /events/{eventId} {
@@ -112,13 +116,17 @@ service cloud.firestore {
 
       // Fresh governed worlds create metadata and baseline shards in one batch.
       match /contractBaselines/{shardId} {
-        allow create: if isWorldOwnerAfter(worldId);
-        allow read, update, delete: if isWorldOwner(worldId);
+        allow create: if !exists(/databases/$(database)/documents/architect_worlds/$(worldId))
+          && isWorldOwnerAfter(worldId);
+        allow read: if isWorldOwner(worldId);
+        allow update, delete: if false;
       }
 
-      // Any additional world subcollections are owner-only by default.
+      // Unknown world subcollections fail closed; supported writable paths are
+      // declared above so immutable governed state cannot inherit a broad write.
       match /{document=**} {
-        allow read, write: if isWorldOwner(worldId);
+        allow read: if isWorldOwner(worldId);
+        allow write: if false;
       }
     }
 

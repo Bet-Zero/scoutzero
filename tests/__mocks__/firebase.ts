@@ -142,6 +142,13 @@ type MockTransaction = {
 
 type MockCallableImplementation = (data: unknown) => unknown | Promise<unknown>;
 
+type MockBatchCommitFailure = {
+  remainingSuccessfulCommits: number;
+  error: Error;
+};
+
+let mockBatchCommitFailure: MockBatchCommitFailure | null = null;
+
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -696,6 +703,17 @@ export function writeBatch(_db: unknown): MockBatch {
       return batch;
     },
     async commit() {
+      if (mockBatchCommitFailure) {
+        if (mockBatchCommitFailure.remainingSuccessfulCommits === 0) {
+          const { error } = mockBatchCommitFailure;
+          mockBatchCommitFailure = null;
+          batch.operations = [];
+          currentBatch = null;
+          throw error;
+        }
+        mockBatchCommitFailure.remainingSuccessfulCommits -= 1;
+      }
+
       for (const operation of batch.operations) {
         if (operation.type === 'set') {
           setDataInStore(operation.path, operation.data);
@@ -851,6 +869,17 @@ export function resetMockDataStore(): void {
   mockDataStore.clear();
   currentBatch = null;
   autoIdCounter = 0;
+  mockBatchCommitFailure = null;
+}
+
+export function failMockBatchCommitAfter(
+  successfulCommits: number,
+  error = new Error('Mock batch commit failed')
+): void {
+  mockBatchCommitFailure = {
+    remainingSuccessfulCommits: successfulCommits,
+    error,
+  };
 }
 
 // Get all data (for debugging)

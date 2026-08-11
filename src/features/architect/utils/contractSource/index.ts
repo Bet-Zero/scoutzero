@@ -8,7 +8,6 @@ export {
   loadBundledContractSourceRelease,
   parseContractBaselineTeamDocument,
   resolveContractBaselineWorldCompatibility,
-  setContractSourceReleaseLoaderForTests,
   validateContractBaselineDocumentSet,
   verifyContractSourceRelease,
 } from './contractSourceRelease';

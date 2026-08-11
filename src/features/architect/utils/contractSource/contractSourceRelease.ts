@@ -17,6 +17,7 @@ import {
 } from '@/features/architect/utils/contractHistory';
 import {
   canonicalStringify,
+  compareCodePoints,
   deterministicStateDigest,
   sha256Digest,
 } from './deterministicDigest';
@@ -38,6 +39,7 @@ export const BUNDLED_CONTRACT_SOURCE_RELEASE_PIN: ContractSourceReleasePin =
 
 let releaseLoaderOverride: (() => Promise<ContractSourceRelease>) | null = null;
 let bundledReleasePromise: Promise<ContractSourceRelease> | null = null;
+const BUNDLED_RELEASE_TIMEOUT_MS = 15_000;
 
 /** Test harness injection; production callers never set this boundary. */
 export function setContractSourceReleaseLoaderForTests(
@@ -68,7 +70,9 @@ export async function verifyContractSourceRelease(
 ): Promise<ContractSourceRelease> {
   const parsed = ContractSourceReleaseZ.safeParse(value);
   if (!parsed.success) {
-    throw new ContractSourceReleaseError(parsed.error.issues[0]?.message ?? 'manifest is malformed');
+    throw new ContractSourceReleaseError(
+      parsed.error.issues[0]?.message ?? 'manifest is malformed'
+    );
   }
   const release = parsed.data;
   if (
@@ -81,7 +85,9 @@ export async function verifyContractSourceRelease(
     );
   }
   if (release.releaseVersion === 1 && release.supersedes !== null) {
-    throw new ContractSourceReleaseError('version one cannot supersede another release');
+    throw new ContractSourceReleaseError(
+      'version one cannot supersede another release'
+    );
   }
   if (
     release.releaseVersion > 1 &&
@@ -89,7 +95,9 @@ export async function verifyContractSourceRelease(
       release.supersedes.releaseId !== release.releaseId ||
       release.supersedes.releaseVersion >= release.releaseVersion)
   ) {
-    throw new ContractSourceReleaseError('the release supersession chain is broken');
+    throw new ContractSourceReleaseError(
+      'the release supersession chain is broken'
+    );
   }
 
   const observationIds = new Set<string>();
@@ -151,17 +159,40 @@ export async function verifyContractSourceRelease(
 
 export async function loadBundledContractSourceRelease(): Promise<ContractSourceRelease> {
   if (releaseLoaderOverride) return releaseLoaderOverride();
-  bundledReleasePromise ??= (async () => {
-    const response = await fetch(BUNDLED_CONTRACT_SOURCE_RELEASE_URL, {
-      cache: 'force-cache',
-    });
-    if (!response.ok) {
-      throw new ContractSourceReleaseError(
-        `bundled release could not be loaded (${response.status})`
+  if (!bundledReleasePromise) {
+    const loadPromise = (async () => {
+      const controller = new AbortController();
+      const timeoutId = globalThis.setTimeout(
+        () => controller.abort(),
+        BUNDLED_RELEASE_TIMEOUT_MS
       );
-    }
-    return verifyContractSourceRelease(await response.json());
-  })();
+      try {
+        const response = await fetch(BUNDLED_CONTRACT_SOURCE_RELEASE_URL, {
+          cache: 'force-cache',
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new ContractSourceReleaseError(
+            `bundled release could not be loaded (${response.status})`
+          );
+        }
+        return await verifyContractSourceRelease(await response.json());
+      } catch (error) {
+        if (controller.signal.aborted) {
+          throw new ContractSourceReleaseError(
+            `bundled release load timed out after ${BUNDLED_RELEASE_TIMEOUT_MS}ms`
+          );
+        }
+        throw error;
+      } finally {
+        globalThis.clearTimeout(timeoutId);
+      }
+    })();
+    bundledReleasePromise = loadPromise.catch((error) => {
+      bundledReleasePromise = null;
+      throw error;
+    });
+  }
   return bundledReleasePromise;
 }
 
@@ -219,10 +250,10 @@ export function buildContractBaselineTeamDocuments(
   const pin = releasePin(release);
   return Object.freeze(
     [...recordsByTeam.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort(([a], [b]) => compareCodePoints(a, b))
       .flatMap(([teamId, records]) => {
         const ledgers = records
-          .sort((a, b) => a.contractId.localeCompare(b.contractId))
+          .sort((a, b) => compareCodePoints(a.contractId, b.contractId))
           .map((record) =>
             toContractEventLedgerPayload(
               createContractEventLedger({
@@ -310,7 +341,10 @@ export function parseContractBaselineTeamDocument(
   if (document.worldId !== expected.worldId) {
     throw new Error('Contract baseline belongs to a different world.');
   }
-  if (canonicalStringify(document.release) !== canonicalStringify(expected.release)) {
+  if (
+    canonicalStringify(document.release) !==
+    canonicalStringify(expected.release)
+  ) {
     throw new Error('Contract baseline release conflicts with the world pin.');
   }
   const expectedShardId = `${document.teamId}-${String(document.shardIndex).padStart(3, '0')}`;
@@ -338,7 +372,9 @@ export function validateContractBaselineDocumentSet(
   documents: readonly ContractBaselineTeamDocument[],
   expectedLedgerCount: number
 ): readonly ContractBaselineTeamDocument[] {
-  const sorted = [...documents].sort((a, b) => a.shardId.localeCompare(b.shardId));
+  const sorted = [...documents].sort((a, b) =>
+    compareCodePoints(a.shardId, b.shardId)
+  );
   const ledgerCount = sorted.reduce(
     (count, document) => count + document.ledgers.length,
     0
@@ -355,7 +391,9 @@ export function validateContractBaselineDocumentSet(
     contractIds.some((contractId) => !contractId) ||
     new Set(contractIds).size !== contractIds.length
   ) {
-    throw new Error('Governed contract baseline has a duplicate or missing contract identity.');
+    throw new Error(
+      'Governed contract baseline has a duplicate or missing contract identity.'
+    );
   }
   const shardsByTeam = new Map<string, ContractBaselineTeamDocument[]>();
   sorted.forEach((document) => {
@@ -365,13 +403,17 @@ export function validateContractBaselineDocumentSet(
   });
   shardsByTeam.forEach((shards, teamId) => {
     const expectedCount = shards[0]?.shardCount ?? 0;
-    const indexes = shards.map((shard) => shard.shardIndex).sort((a, b) => a - b);
+    const indexes = shards
+      .map((shard) => shard.shardIndex)
+      .sort((a, b) => a - b);
     if (
       shards.length !== expectedCount ||
       shards.some((shard) => shard.shardCount !== expectedCount) ||
       indexes.some((index, position) => index !== position)
     ) {
-      throw new Error(`Governed contract baseline ${teamId} has an incomplete shard set.`);
+      throw new Error(
+        `Governed contract baseline ${teamId} has an incomplete shard set.`
+      );
     }
   });
   return Object.freeze(sorted);
@@ -381,11 +423,22 @@ export function branchContractBaselineTeamDocument(
   source: ContractBaselineTeamDocument,
   childWorldId: string
 ): ContractBaselineTeamDocument {
-  const ledgers = source.ledgers.map((ledger) => ({
-    ...ledger,
-    ledgerId: `${childWorldId}:${ledger.events[0]?.contractId}:contract`,
-    events: ledger.events.map((event) => ({ ...event, worldId: childWorldId })),
-  }));
+  const ledgers = source.ledgers.map((ledger) => {
+    const contractId = ledger.events[0]?.contractId;
+    if (!contractId) {
+      throw new Error(
+        'Governed contract baseline cannot branch an empty ledger.'
+      );
+    }
+    return {
+      ...ledger,
+      ledgerId: `${childWorldId}:${contractId}:contract`,
+      events: ledger.events.map((event) => ({
+        ...event,
+        worldId: childWorldId,
+      })),
+    };
+  });
   const withoutDigest = {
     documentVersion: 1 as const,
     worldId: childWorldId,
@@ -404,7 +457,10 @@ export function branchContractBaselineTeamDocument(
 }
 
 export type ContractBaselineWorldCompatibility =
-  | { readonly compatible: true; readonly metadata: WorldContractBaselineMetadata }
+  | {
+      readonly compatible: true;
+      readonly metadata: WorldContractBaselineMetadata;
+    }
   | { readonly compatible: false; readonly message: string };
 
 export function resolveContractBaselineWorldCompatibility(
@@ -418,6 +474,21 @@ export function resolveContractBaselineWorldCompatibility(
     });
   }
   const record = metadata as Record<string, unknown>;
+  const baselineFields = [
+    'contractBaselineVersion',
+    'contractSourceRelease',
+    'contractBaselineEffectiveAt',
+    'contractBaselineSalaryCapYear',
+    'contractBaselineCoverage',
+  ] as const;
+  const hasBaselineMetadata = baselineFields.some((field) => field in record);
+  if (!hasBaselineMetadata) {
+    return Object.freeze({
+      compatible: false as const,
+      message:
+        'This Team Plan predates governed baseline contracts. Recreate it to use contract history.',
+    });
+  }
   const parsed = WorldContractBaselineMetadataZ.safeParse({
     contractBaselineVersion: record.contractBaselineVersion,
     contractSourceRelease: record.contractSourceRelease,
@@ -426,10 +497,11 @@ export function resolveContractBaselineWorldCompatibility(
     contractBaselineCoverage: record.contractBaselineCoverage,
   });
   if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const field = issue?.path.length ? issue.path.join('.') : 'metadata';
     return Object.freeze({
       compatible: false as const,
-      message:
-        'This Team Plan predates governed baseline contracts. Recreate it to use contract history.',
+      message: `This Team Plan has malformed governed contract baseline metadata (${field}: ${issue?.message ?? 'invalid value'}). Recreate it; the stored baseline cannot be trusted.`,
     });
   }
   return Object.freeze({ compatible: true as const, metadata: parsed.data });

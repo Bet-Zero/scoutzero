@@ -7,6 +7,7 @@ import {
 } from '@firebase/rules-unit-testing';
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -32,7 +33,9 @@ const ENTITLEMENT_ID = 'ent_1';
 const PLAYER_ID = 'player_1';
 const UID_A = 'uid-owner-a';
 const UID_B = 'uid-non-owner-b';
-const HAS_FIRESTORE_EMULATOR_HOST = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
+const HAS_FIRESTORE_EMULATOR_HOST = Boolean(
+  process.env.FIRESTORE_EMULATOR_HOST
+);
 
 let testEnv: RulesTestEnvironment;
 
@@ -137,258 +140,294 @@ const describeWithFirestoreEmulator = HAS_FIRESTORE_EMULATOR_HOST
 describeWithFirestoreEmulator(
   'ARCHITECT_RULES_INTEGRATION_E1 - Firestore rules integration matrix',
   () => {
-  it('1) owner can create world doc when createdBy == uidA', async () => {
-    const db = ownerDb();
-    await assertSucceeds(
-      setDoc(doc(db, 'architect_worlds', WORLD_ID), {
+    it('1) owner can create world doc when createdBy == uidA', async () => {
+      const db = ownerDb();
+      await assertSucceeds(
+        setDoc(doc(db, 'architect_worlds', WORLD_ID), {
+          worldId: WORLD_ID,
+          createdBy: UID_A,
+          name: 'Owner world',
+        })
+      );
+    });
+
+    it('1b) owner can atomically create world metadata and governed baseline shards', async () => {
+      const db = ownerDb();
+      const batch = writeBatch(db);
+      batch.set(doc(db, 'architect_worlds', WORLD_ID), {
         worldId: WORLD_ID,
         createdBy: UID_A,
-        name: 'Owner world',
-      })
-    );
-  });
-
-  it('1b) owner can atomically create world metadata and governed baseline shards', async () => {
-    const db = ownerDb();
-    const batch = writeBatch(db);
-    batch.set(doc(db, 'architect_worlds', WORLD_ID), {
-      worldId: WORLD_ID,
-      createdBy: UID_A,
-      name: 'Governed baseline world',
-    });
-    batch.set(
-      doc(db, 'architect_worlds', WORLD_ID, 'contractBaselines', 'LAL-000'),
-      { worldId: WORLD_ID, teamId: 'LAL', shardId: 'LAL-000' }
-    );
-    await assertSucceeds(batch.commit());
-  });
-
-  it('1c) non-owner cannot attach a baseline shard to another owner world', async () => {
-    await seedOwnedWorld();
-    const db = nonOwnerDb();
-    await assertFails(
-      setDoc(
+        name: 'Governed baseline world',
+      });
+      batch.set(
         doc(db, 'architect_worlds', WORLD_ID, 'contractBaselines', 'LAL-000'),
         { worldId: WORLD_ID, teamId: 'LAL', shardId: 'LAL-000' }
-      )
-    );
-  });
-
-  it('2) non-owner cannot read world doc', async () => {
-    await seedOwnedWorld();
-    const db = nonOwnerDb();
-    await assertFails(getDoc(doc(db, 'architect_worlds', WORLD_ID)));
-  });
-
-  it('2b) owner can list only their architect worlds by createdBy', async () => {
-    await seedOwnedWorld();
-    await testEnv.withSecurityRulesDisabled(async (context) => {
-      const db = context.firestore();
-      await setDoc(doc(db, 'architect_worlds', 'world_owner_uid_b'), {
-        worldId: 'world_owner_uid_b',
-        name: 'Other owner world',
-        createdBy: UID_B,
-        isArchived: false,
-        lastModifiedAt: 2,
-      });
+      );
+      await assertSucceeds(batch.commit());
     });
 
-    const owner = ownerDb();
-    await assertSucceeds(
-      getDocs(
-        query(
-          collection(owner, 'architect_worlds'),
-          where('createdBy', '==', UID_A)
+    it('1c) non-owner cannot attach a baseline shard to another owner world', async () => {
+      await seedOwnedWorld();
+      const db = nonOwnerDb();
+      await assertFails(
+        setDoc(
+          doc(db, 'architect_worlds', WORLD_ID, 'contractBaselines', 'LAL-000'),
+          { worldId: WORLD_ID, teamId: 'LAL', shardId: 'LAL-000' }
         )
-      )
-    );
+      );
+    });
 
-    const nonOwner = nonOwnerDb();
-    await assertFails(
-      getDocs(
-        query(
-          collection(nonOwner, 'architect_worlds'),
-          where('createdBy', '==', UID_A)
-        )
-      )
-    );
-  });
-
-  it('3) non-owner cannot write/update world doc', async () => {
-    await seedOwnedWorld();
-    const db = nonOwnerDb();
-    await assertFails(
-      updateDoc(doc(db, 'architect_worlds', WORLD_ID), { name: 'intrusion' })
-    );
-  });
-
-  it('4) owner can write world teams subcollection', async () => {
-    await seedOwnedWorld();
-    const db = ownerDb();
-    await assertSucceeds(
-      setDoc(doc(db, 'architect_worlds', WORLD_ID, 'teams', TEAM_CODE), {
-        teamCode: TEAM_CODE,
-      })
-    );
-  });
-
-  it('5) owner can write world events subcollection', async () => {
-    await seedOwnedWorld();
-    const db = ownerDb();
-    await assertSucceeds(
-      setDoc(doc(db, 'architect_worlds', WORLD_ID, 'events', EVENT_ID), {
-        type: 'transaction',
-      })
-    );
-  });
-
-  it('6) non-owner cannot read world events subcollection', async () => {
-    await testEnv.withSecurityRulesDisabled(async (context) => {
-      const db = context.firestore();
-      await setDoc(doc(db, 'architect_worlds', WORLD_ID), {
+    it('1d) governed baseline shards cannot be added, updated, or deleted after initialization', async () => {
+      const db = ownerDb();
+      const batch = writeBatch(db);
+      const baselineRef = doc(
+        db,
+        'architect_worlds',
+        WORLD_ID,
+        'contractBaselines',
+        'LAL-000'
+      );
+      batch.set(doc(db, 'architect_worlds', WORLD_ID), {
         worldId: WORLD_ID,
         createdBy: UID_A,
+        name: 'Immutable governed baseline world',
       });
-      await setDoc(doc(db, 'architect_worlds', WORLD_ID, 'events', EVENT_ID), {
-        type: 'transaction',
+      batch.set(baselineRef, {
+        worldId: WORLD_ID,
+        teamId: 'LAL',
+        shardId: 'LAL-000',
       });
+      await assertSucceeds(batch.commit());
+
+      await assertSucceeds(getDoc(baselineRef));
+      await assertFails(updateDoc(baselineRef, { teamId: 'BOS' }));
+      await assertFails(deleteDoc(baselineRef));
+      await assertFails(
+        setDoc(
+          doc(db, 'architect_worlds', WORLD_ID, 'contractBaselines', 'BOS-000'),
+          { worldId: WORLD_ID, teamId: 'BOS', shardId: 'BOS-000' }
+        )
+      );
     });
 
-    const db = nonOwnerDb();
-    await assertFails(
-      getDoc(doc(db, 'architect_worlds', WORLD_ID, 'events', EVENT_ID))
-    );
-  });
+    it('2) non-owner cannot read world doc', async () => {
+      await seedOwnedWorld();
+      const db = nonOwnerDb();
+      await assertFails(getDoc(doc(db, 'architect_worlds', WORLD_ID)));
+    });
 
-  it('7) owner can write world entitlements subcollection', async () => {
-    await seedOwnedWorld();
-    const db = ownerDb();
-    await assertSucceeds(
-      setDoc(
-        doc(db, 'architect_worlds', WORLD_ID, 'entitlements', ENTITLEMENT_ID),
-        {
-          kind: 'pick_ownership',
-        }
-      )
-    );
-  });
+    it('2b) owner can list only their architect worlds by createdBy', async () => {
+      await seedOwnedWorld();
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'architect_worlds', 'world_owner_uid_b'), {
+          worldId: 'world_owner_uid_b',
+          name: 'Other owner world',
+          createdBy: UID_B,
+          isArchived: false,
+          lastModifiedAt: 2,
+        });
+      });
 
-  it('8) non-owner cannot write teams/{teamCode}/players/{playerId}', async () => {
-    await seedOwnedWorld();
-    const db = nonOwnerDb();
-    await assertFails(
-      setDoc(
-        doc(
-          db,
-          'architect_worlds',
-          WORLD_ID,
-          'teams',
-          TEAM_CODE,
-          'players',
-          PLAYER_ID
-        ),
-        {
+      const owner = ownerDb();
+      await assertSucceeds(
+        getDocs(
+          query(
+            collection(owner, 'architect_worlds'),
+            where('createdBy', '==', UID_A)
+          )
+        )
+      );
+
+      const nonOwner = nonOwnerDb();
+      await assertFails(
+        getDocs(
+          query(
+            collection(nonOwner, 'architect_worlds'),
+            where('createdBy', '==', UID_A)
+          )
+        )
+      );
+    });
+
+    it('3) non-owner cannot write/update world doc', async () => {
+      await seedOwnedWorld();
+      const db = nonOwnerDb();
+      await assertFails(
+        updateDoc(doc(db, 'architect_worlds', WORLD_ID), { name: 'intrusion' })
+      );
+    });
+
+    it('4) owner can write world teams subcollection', async () => {
+      await seedOwnedWorld();
+      const db = ownerDb();
+      await assertSucceeds(
+        setDoc(doc(db, 'architect_worlds', WORLD_ID, 'teams', TEAM_CODE), {
+          teamCode: TEAM_CODE,
+        })
+      );
+    });
+
+    it('5) owner can write world events subcollection', async () => {
+      await seedOwnedWorld();
+      const db = ownerDb();
+      await assertSucceeds(
+        setDoc(doc(db, 'architect_worlds', WORLD_ID, 'events', EVENT_ID), {
+          type: 'transaction',
+        })
+      );
+    });
+
+    it('6) non-owner cannot read world events subcollection', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, 'architect_worlds', WORLD_ID), {
+          worldId: WORLD_ID,
+          createdBy: UID_A,
+        });
+        await setDoc(
+          doc(db, 'architect_worlds', WORLD_ID, 'events', EVENT_ID),
+          {
+            type: 'transaction',
+          }
+        );
+      });
+
+      const db = nonOwnerDb();
+      await assertFails(
+        getDoc(doc(db, 'architect_worlds', WORLD_ID, 'events', EVENT_ID))
+      );
+    });
+
+    it('7) owner can write world entitlements subcollection', async () => {
+      await seedOwnedWorld();
+      const db = ownerDb();
+      await assertSucceeds(
+        setDoc(
+          doc(db, 'architect_worlds', WORLD_ID, 'entitlements', ENTITLEMENT_ID),
+          {
+            kind: 'pick_ownership',
+          }
+        )
+      );
+    });
+
+    it('8) non-owner cannot write teams/{teamCode}/players/{playerId}', async () => {
+      await seedOwnedWorld();
+      const db = nonOwnerDb();
+      await assertFails(
+        setDoc(
+          doc(
+            db,
+            'architect_worlds',
+            WORLD_ID,
+            'teams',
+            TEAM_CODE,
+            'players',
+            PLAYER_ID
+          ),
+          {
+            playerId: PLAYER_ID,
+          }
+        )
+      );
+    });
+
+    it('9) any authed user cannot write architect_baseTeams/{teamCode}', async () => {
+      const db = ownerDb();
+      await assertFails(
+        setDoc(doc(db, 'architect_baseTeams', TEAM_CODE), {
+          teamCode: TEAM_CODE,
+        })
+      );
+    });
+
+    it('10) any authed user cannot write architect_basePlayers/{playerId}', async () => {
+      const db = ownerDb();
+      await assertFails(
+        setDoc(doc(db, 'architect_basePlayers', PLAYER_ID), {
           playerId: PLAYER_ID,
-        }
-      )
-    );
-  });
+        })
+      );
+    });
 
-  it('9) any authed user cannot write architect_baseTeams/{teamCode}', async () => {
-    const db = ownerDb();
-    await assertFails(
-      setDoc(doc(db, 'architect_baseTeams', TEAM_CODE), {
-        teamCode: TEAM_CODE,
-      })
-    );
-  });
+    it('11) any authed user cannot write architect_baseEntitlements/{id}', async () => {
+      const db = ownerDb();
+      await assertFails(
+        setDoc(doc(db, 'architect_baseEntitlements', ENTITLEMENT_ID), {
+          entitlementId: ENTITLEMENT_ID,
+        })
+      );
+    });
 
-  it('10) any authed user cannot write architect_basePlayers/{playerId}', async () => {
-    const db = ownerDb();
-    await assertFails(
-      setDoc(doc(db, 'architect_basePlayers', PLAYER_ID), {
-        playerId: PLAYER_ID,
-      })
-    );
-  });
+    it('12) any authed user cannot write root teams/{teamId}', async () => {
+      const db = ownerDb();
+      await assertFails(
+        setDoc(doc(db, 'teams', TEAM_CODE), {
+          teamCode: TEAM_CODE,
+        })
+      );
+    });
 
-  it('11) any authed user cannot write architect_baseEntitlements/{id}', async () => {
-    const db = ownerDb();
-    await assertFails(
-      setDoc(doc(db, 'architect_baseEntitlements', ENTITLEMENT_ID), {
-        entitlementId: ENTITLEMENT_ID,
-      })
-    );
-  });
+    it('13) owner can create lists/{id} when ownerUid == uidA', async () => {
+      const db = ownerDb();
+      await assertSucceeds(
+        setDoc(doc(db, 'lists', 'list_owner'), {
+          ownerUid: UID_A,
+          title: 'My list',
+        })
+      );
+    });
 
-  it('12) any authed user cannot write root teams/{teamId}', async () => {
-    const db = ownerDb();
-    await assertFails(
-      setDoc(doc(db, 'teams', TEAM_CODE), {
-        teamCode: TEAM_CODE,
-      })
-    );
-  });
+    it('14) non-owner cannot read owner list', async () => {
+      await seedOwnedList('list_owner_only');
+      const db = nonOwnerDb();
+      await assertFails(getDoc(doc(db, 'lists', 'list_owner_only')));
+    });
 
-  it('13) owner can create lists/{id} when ownerUid == uidA', async () => {
-    const db = ownerDb();
-    await assertSucceeds(
-      setDoc(doc(db, 'lists', 'list_owner'), {
-        ownerUid: UID_A,
-        title: 'My list',
-      })
-    );
-  });
+    it('15) list create fails when ownerUid missing or mismatched', async () => {
+      const db = ownerDb();
 
-  it('14) non-owner cannot read owner list', async () => {
-    await seedOwnedList('list_owner_only');
-    const db = nonOwnerDb();
-    await assertFails(getDoc(doc(db, 'lists', 'list_owner_only')));
-  });
+      await assertFails(
+        setDoc(doc(db, 'lists', 'list_missing_owner'), {
+          title: 'Missing owner',
+        })
+      );
 
-  it('15) list create fails when ownerUid missing or mismatched', async () => {
-    const db = ownerDb();
+      await assertFails(
+        setDoc(doc(db, 'lists', 'list_mismatched_owner'), {
+          ownerUid: UID_B,
+          title: 'Mismatched owner',
+        })
+      );
+    });
 
-    await assertFails(
-      setDoc(doc(db, 'lists', 'list_missing_owner'), {
-        title: 'Missing owner',
-      })
-    );
+    it('16) tierLists mirror strict owner checks (create/read/invalid create)', async () => {
+      const owner = ownerDb();
+      const nonOwner = nonOwnerDb();
 
-    await assertFails(
-      setDoc(doc(db, 'lists', 'list_mismatched_owner'), {
-        ownerUid: UID_B,
-        title: 'Mismatched owner',
-      })
-    );
-  });
+      await assertSucceeds(
+        setDoc(doc(owner, 'tierLists', 'tier_owner'), {
+          ownerUid: UID_A,
+          title: 'Owner tier list',
+        })
+      );
 
-  it('16) tierLists mirror strict owner checks (create/read/invalid create)', async () => {
-    const owner = ownerDb();
-    const nonOwner = nonOwnerDb();
+      await seedOwnedTierList('tier_owner_only');
+      await assertFails(getDoc(doc(nonOwner, 'tierLists', 'tier_owner_only')));
 
-    await assertSucceeds(
-      setDoc(doc(owner, 'tierLists', 'tier_owner'), {
-        ownerUid: UID_A,
-        title: 'Owner tier list',
-      })
-    );
+      await assertFails(
+        setDoc(doc(owner, 'tierLists', 'tier_missing_owner'), {
+          title: 'Missing owner',
+        })
+      );
 
-    await seedOwnedTierList('tier_owner_only');
-    await assertFails(getDoc(doc(nonOwner, 'tierLists', 'tier_owner_only')));
-
-    await assertFails(
-      setDoc(doc(owner, 'tierLists', 'tier_missing_owner'), {
-        title: 'Missing owner',
-      })
-    );
-
-    await assertFails(
-      setDoc(doc(owner, 'tierLists', 'tier_mismatched_owner'), {
-        ownerUid: UID_B,
-        title: 'Mismatched owner',
-      })
-    );
-  });
+      await assertFails(
+        setDoc(doc(owner, 'tierLists', 'tier_mismatched_owner'), {
+          ownerUid: UID_B,
+          title: 'Mismatched owner',
+        })
+      );
+    });
   }
 );

@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BUNDLED_CONTRACT_SOURCE_RELEASE_PIN,
+  branchContractBaselineTeamDocument,
   buildContractBaselineTeamDocuments,
   buildContractSourceRelease,
   canonicalStringify,
@@ -15,7 +16,9 @@ import {
   verifyContractSourceRelease,
 } from '@/features/architect/utils/contractSource';
 import {
+  ContractFieldEvidenceZ,
   createContractEventLedger,
+  decodeContractFieldEvidence,
   projectContractStateAsOf,
 } from '@/features/architect/utils/contractHistory';
 import type {
@@ -86,7 +89,10 @@ function findDirectNestedArray(value: unknown, path = '$'): string | null {
     const nestedIndex = value.findIndex(Array.isArray);
     if (nestedIndex >= 0) return `${path}[${nestedIndex}]`;
     for (let index = 0; index < value.length; index += 1) {
-      const nestedPath = findDirectNestedArray(value[index], `${path}[${index}]`);
+      const nestedPath = findDirectNestedArray(
+        value[index],
+        `${path}[${index}]`
+      );
       if (nestedPath) return nestedPath;
     }
   } else if (value && typeof value === 'object') {
@@ -132,7 +138,10 @@ async function observation(
 
 async function releaseFor(
   observations: ContractSourceObservation[],
-  options: { version?: number; supersedes?: ContractSourceRelease['supersedes'] } = {}
+  options: {
+    version?: number;
+    supersedes?: ContractSourceRelease['supersedes'];
+  } = {}
 ) {
   const releaseVersion = options.version ?? 1;
   const inputWithoutDigest = {
@@ -213,9 +222,9 @@ describe('BZE-274 deterministic retained-source release', () => {
   it('blocks malformed manifests, invalid digests, broken chains, and duplicate identities', async () => {
     const source = await observation('player_one', rawContract());
     const release = await releaseFor([source]);
-    await expect(verifyContractSourceRelease({ ...release, releaseId: '' })).rejects.toThrow(
-      'Invalid contract-source release'
-    );
+    await expect(
+      verifyContractSourceRelease({ ...release, releaseId: '' })
+    ).rejects.toThrow('Invalid contract-source release');
     await expect(
       verifyContractSourceRelease(
         { ...release, releaseDigest: `sha256:${'0'.repeat(64)}` },
@@ -247,6 +256,51 @@ describe('BZE-274 deterministic retained-source release', () => {
     ).rejects.toThrow('duplicate stable identities');
   });
 
+  it('requires zoned source instants and selects the latest parsed instant', async () => {
+    await expect(
+      releaseFor([
+        await observation(
+          'unzoned_player',
+          rawContract(),
+          '2026-06-05T12:00:00'
+        ),
+      ])
+    ).rejects.toThrow();
+
+    const earlier = await observation(
+      'offset_player',
+      rawContract({ totalValue: 10_000_000 }),
+      '2026-06-05T13:00:00Z'
+    );
+    const later = await observation(
+      'offset_player',
+      rawContract({ totalValue: 20_000_000 }),
+      '2026-06-05T12:00:00-04:00'
+    );
+    const release = await releaseFor([earlier, later]);
+    expect(release.records[0].sourceObservationId).toBe(later.observationId);
+  });
+
+  it('keeps canonical digests distinct and rejects non-plain values', () => {
+    expect(() => canonicalStringify({ value: undefined })).toThrow(
+      'cannot contain undefined'
+    );
+    expect(() => canonicalStringify(new Date('2026-06-05T12:00:00Z'))).toThrow(
+      'plain objects'
+    );
+    expect(canonicalStringify({ value: null })).toBe('{"value":null}');
+  });
+
+  it('rejects truncated evidence receipts before reading limitations', () => {
+    expect(() =>
+      decodeContractFieldEvidence('terms.salary|known|source|retain')
+    ).toThrow('too few components');
+    expect(
+      ContractFieldEvidenceZ.safeParse('terms.salary|known|source|retain')
+        .success
+    ).toBe(false);
+  });
+
   it('keeps record incompleteness local and exposes exact later-route blockers', async () => {
     const complete = await observation('complete_player', rawContract());
     const incomplete = await observation(
@@ -257,14 +311,20 @@ describe('BZE-274 deterministic retained-source release', () => {
 
     expect(release.coverage.completeRecordIds).toHaveLength(1);
     expect(release.coverage.needsInputRecordIds).toHaveLength(1);
-    expect(release.coverage.missingByCategory.map((entry) => entry.category)).toEqual(
+    expect(
+      release.coverage.missingByCategory.map((entry) => entry.category)
+    ).toEqual(
       expect.arrayContaining([
         'Missing a replayable salary schedule.',
         'Missing a source-supported signing date.',
       ])
     );
-    expect(release.coverage.laterRouteReadiness.option.readyRecordIds).toEqual([]);
-    expect(release.coverage.laterRouteReadiness.option.blockedRecordIds).toHaveLength(1);
+    expect(release.coverage.laterRouteReadiness.option.readyRecordIds).toEqual(
+      []
+    );
+    expect(
+      release.coverage.laterRouteReadiness.option.blockedRecordIds
+    ).toHaveLength(1);
     expect(release.records[0].resultingState.terms.signingDate.precision).toBe(
       'date'
     );
@@ -281,7 +341,9 @@ describe('BZE-274 deterministic retained-source release', () => {
       ),
     ]);
 
-    expect(release.records[0].resultingState.terms.salaries[0].season).toBeNull();
+    expect(
+      release.records[0].resultingState.terms.salaries[0].season
+    ).toBeNull();
     expect(release.records[0].resultingState.completeness).toMatchObject({
       status: 'needs-input',
       reasons: ['A salary row is malformed or lacks Salary/Cap Hit evidence.'],
@@ -304,25 +366,47 @@ describe('BZE-274 checked-in source release', () => {
     expect(release.coverage.completeRecordIds).toHaveLength(772);
     expect(release.coverage.needsInputRecordIds).toHaveLength(2);
     expect(release.coverage.excludedCorruptRecordIds).toEqual([]);
-    expect(release.coverage.laterRouteReadiness.option.blockedRecordIds).toHaveLength(243);
-    expect(release.coverage.laterRouteReadiness.extension.blockedRecordIds).toHaveLength(774);
+    expect(
+      release.coverage.laterRouteReadiness.option.blockedRecordIds
+    ).toHaveLength(243);
+    expect(
+      release.coverage.laterRouteReadiness.extension.blockedRecordIds
+    ).toHaveLength(774);
 
-    const documents = buildContractBaselineTeamDocuments(release, 'world-real-release');
+    const documents = buildContractBaselineTeamDocuments(
+      release,
+      'world-real-release'
+    );
     expect(new Set(documents.map((document) => document.teamId)).size).toBe(31);
     expect(documents.length + 1).toBeLessThan(500);
-    expect(documents.reduce((sum, document) => sum + document.ledgers.length, 0)).toBe(774);
     expect(
-      Math.max(...documents.map((document) => new TextEncoder().encode(JSON.stringify(document)).length))
+      documents.reduce((sum, document) => sum + document.ledgers.length, 0)
+    ).toBe(774);
+    expect(
+      Math.max(
+        ...documents.map(
+          (document) =>
+            new TextEncoder().encode(JSON.stringify(document)).length
+        )
+      )
     ).toBeLessThan(1_000_000);
     expect(findDirectNestedArray(documents)).toBeNull();
-    expect(
-      validateContractBaselineDocumentSet(documents, 774)
-    ).toEqual(documents);
+    expect(validateContractBaselineDocumentSet(documents, 774)).toEqual(
+      documents
+    );
     await expect(
       Promise.resolve().then(() =>
         validateContractBaselineDocumentSet(documents.slice(1), 774)
       )
     ).rejects.toThrow('baseline is incomplete');
+
+    const emptyLedgerDocument = {
+      ...documents[0],
+      ledgers: [{ ...documents[0].ledgers[0], events: [] }],
+    };
+    expect(() =>
+      branchContractBaselineTeamDocument(emptyLedgerDocument, 'child-world')
+    ).toThrow('cannot branch an empty ledger');
 
     const needsInputLedger = documents
       .flatMap((document) => document.ledgers)

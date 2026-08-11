@@ -68,10 +68,19 @@ export function encodeContractFieldEvidence(
 export function decodeContractFieldEvidence(
   receipt: string
 ): DecodedContractFieldEvidence {
-  const [fieldPath, rawStatus, sourcePath, transformationId, rawLimitations, ...rest] =
-    receipt.split(FIELD_EVIDENCE_SEPARATOR);
+  const [
+    fieldPath,
+    rawStatus,
+    sourcePath,
+    transformationId,
+    rawLimitations,
+    ...rest
+  ] = receipt.split(FIELD_EVIDENCE_SEPARATOR);
   if (rest.length > 0) {
     throw new Error('Contract field evidence has too many components.');
+  }
+  if (rawLimitations === undefined) {
+    throw new Error('Contract field evidence has too few components.');
   }
   return {
     fieldPath: NonEmptyStringZ.parse(fieldPath),
@@ -81,21 +90,27 @@ export function decodeContractFieldEvidence(
     limitationIds:
       rawLimitations === ''
         ? []
-        : rawLimitations.split(',').map((value) => NonEmptyStringZ.parse(value)),
+        : rawLimitations
+            .split(',')
+            .map((value) => NonEmptyStringZ.parse(value)),
   };
 }
 
-export const ContractFieldEvidenceZ = z.string().superRefine((receipt, context) => {
-  try {
-    decodeContractFieldEvidence(receipt);
-  } catch (error) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message:
-        error instanceof Error ? error.message : 'Invalid contract field evidence.',
-    });
-  }
-});
+export const ContractFieldEvidenceZ = z
+  .string()
+  .superRefine((receipt, context) => {
+    try {
+      decodeContractFieldEvidence(receipt);
+    } catch (error) {
+      context.addIssue({
+        code: 'custom',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Invalid contract field evidence.',
+      });
+    }
+  });
 
 export const ContractGuaranteeStepZ = z.strictObject({
   effectiveDate: ContractTemporalValueZ,

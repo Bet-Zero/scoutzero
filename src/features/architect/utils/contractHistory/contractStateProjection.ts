@@ -147,9 +147,7 @@ function ledgerIdentity(ledger: LifecycleEventLedger): LifecycleLedgerIdentity {
   });
 }
 
-function projectionEvent(
-  event: ContractEventRecord
-): LifecycleProjectionEvent {
+function projectionEvent(event: ContractEventRecord): LifecycleProjectionEvent {
   return Object.freeze({
     eventId: event.eventId,
     eventVersion: event.eventVersion,
@@ -259,7 +257,9 @@ export function projectContractStateAsOf(
       ['asOfDate', 'salaryCapYear'],
       [
         `The as-of instant ${asOfDate} does not fall inside Salary Cap Year ${salaryCapYear} (${
-          window ? `${window.from} to ${window.until}` : 'no representable window'
+          window
+            ? `${window.from} to ${window.until}`
+            : 'no representable window'
         }).`,
       ]
     );
@@ -441,6 +441,13 @@ export function verifyContractProjectionManifest(
     });
   }
 
+  if (manifest.manifestVersion !== 2) {
+    return Object.freeze({
+      state: 'not-comparable' as const,
+      drift: Object.freeze([]),
+    });
+  }
+
   // A manifest can only be verified against the ledger it was taken from.
   // Comparing it to a different ledger would report every event as absent and
   // read as drift, when the truth is that the two are not comparable at all.
@@ -527,7 +534,9 @@ export function verifyContractProjectionManifest(
   });
 
   const consumedKeys = new Set(
-    manifest.consumedEvents.map((event) => `${event.eventId}@v${event.eventVersion}`)
+    manifest.consumedEvents.map(
+      (event) => `${event.eventId}@v${event.eventVersion}`
+    )
   );
   ledger.events
     .filter(

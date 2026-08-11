@@ -8,9 +8,13 @@ import {
   buildContractSourceRelease,
   contractSourceReleaseDigestMaterial,
 } from '../../src/features/architect/utils/contractSource/contractSourceReleaseBuilder';
-import { canonicalStringify } from '../../src/features/architect/utils/contractSource/deterministicDigest';
+import {
+  canonicalStringify,
+  compareCodePoints,
+} from '../../src/features/architect/utils/contractSource/deterministicDigest';
 import {
   ContractSourceReleaseZ,
+  ZonedDateTimeZ,
   type ContractSourceObservation,
 } from '../../src/schemas/contractSourceRelease';
 import { decodeContractFieldEvidence } from '../../src/schemas/governedContractState';
@@ -35,14 +39,15 @@ const sha256 = (value: string): string =>
   `sha256:${createHash('sha256').update(value).digest('hex')}`;
 
 async function sourceFiles(): Promise<string[]> {
-  const directories = (await readdir(SOURCE_ROOT)).sort();
+  const directories = (await readdir(SOURCE_ROOT)).sort(compareCodePoints);
   const files: string[] = [];
   for (const directory of directories) {
     const absoluteDirectory = path.join(SOURCE_ROOT, directory);
     if (!(await stat(absoluteDirectory)).isDirectory()) continue;
-    const names = (await readdir(absoluteDirectory)).sort();
+    const names = (await readdir(absoluteDirectory)).sort(compareCodePoints);
     names.forEach((name) => {
-      if (name.endsWith('.json')) files.push(path.join(absoluteDirectory, name));
+      if (name.endsWith('.json'))
+        files.push(path.join(absoluteDirectory, name));
     });
   }
   return files;
@@ -63,7 +68,7 @@ async function observations(): Promise<ContractSourceObservation[]> {
       typeof playerId !== 'string' ||
       typeof teamId !== 'string' ||
       typeof observedAt !== 'string' ||
-      !Number.isFinite(Date.parse(observedAt)) ||
+      !ZonedDateTimeZ.safeParse(observedAt).success ||
       sourceProvider !== 'SalarySwish' ||
       typeof sourceRecordVersion !== 'string'
     ) {
@@ -74,7 +79,10 @@ async function observations(): Promise<ContractSourceObservation[]> {
     const artifactSha256 = sha256(artifactContent);
     values.push({
       observationId: `salaryswish:${playerId}:${artifactSha256.slice(-20)}`,
-      artifactPath: path.relative(process.cwd(), absolutePath).split(path.sep).join('/'),
+      artifactPath: path
+        .relative(process.cwd(), absolutePath)
+        .split(path.sep)
+        .join('/'),
       artifactSha256,
       sourceProvider,
       sourceRecordVersion,
@@ -84,7 +92,9 @@ async function observations(): Promise<ContractSourceObservation[]> {
       artifactContent,
     });
   }
-  return values.sort((a, b) => a.observationId.localeCompare(b.observationId));
+  return values.sort((a, b) =>
+    compareCodePoints(a.observationId, b.observationId)
+  );
 }
 
 function coverageReport(
@@ -93,7 +103,10 @@ function coverageReport(
   const coverage = release.coverage;
   const retainedContractObservations = release.observations.reduce(
     (count, observation) => {
-      const raw = JSON.parse(observation.artifactContent) as Record<string, unknown>;
+      const raw = JSON.parse(observation.artifactContent) as Record<
+        string,
+        unknown
+      >;
       return count + (raw.contract ? 1 : 0) + (raw.futureContract ? 1 : 0);
     },
     0
@@ -103,10 +116,7 @@ function coverageReport(
   release.records.forEach((record) => {
     record.resultingState.evidence.forEach((evidence) => {
       const { fieldPath, status } = decodeContractFieldEvidence(evidence);
-      evidenceCounts.set(
-        status,
-        (evidenceCounts.get(status) ?? 0) + 1
-      );
+      evidenceCounts.set(status, (evidenceCounts.get(status) ?? 0) + 1);
       if (status === 'unknown' || status === 'conflicting') {
         const category = fieldPath.replace(/\[\d+\]/g, '[]');
         const recordIds = missingFields.get(category) ?? new Set<string>();
@@ -124,7 +134,7 @@ function coverageReport(
     )
     .join('\n');
   const fieldAccounting = [...missingFields.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => compareCodePoints(a, b))
     .map(([field, recordIds]) => `- \`${field}\`: ${recordIds.size} records`)
     .join('\n');
   return `# Governed contract-source release v1
@@ -199,10 +209,19 @@ async function existing(pathname: string): Promise<string | null> {
 
 async function main() {
   const retainedObservations = await observations();
-  const effectiveAt = retainedObservations
-    .map((observation) => observation.observedAt)
-    .sort()
-    .at(-1);
+  const effectiveAt = retainedObservations.reduce<string | null>(
+    (latest, observation) => {
+      if (latest === null) return observation.observedAt;
+      const nextInstant = Date.parse(observation.observedAt);
+      const latestInstant = Date.parse(latest);
+      return nextInstant > latestInstant ||
+        (nextInstant === latestInstant &&
+          compareCodePoints(observation.observedAt, latest) > 0)
+        ? observation.observedAt
+        : latest;
+    },
+    null
+  );
   if (!effectiveAt) throw new Error('No retained contract observations found.');
   const digestMaterial = contractSourceReleaseDigestMaterial({
     releaseId: RELEASE_ID,
@@ -236,13 +255,19 @@ async function main() {
   }
   if (process.argv.includes('--check')) {
     if (priorRelease === null || priorReport !== report) {
-      throw new Error('Checked-in contract-source release or coverage report is missing/stale.');
+      throw new Error(
+        'Checked-in contract-source release or coverage report is missing/stale.'
+      );
     }
-  } else if (priorRelease === null) {
-    await mkdir(path.dirname(OUTPUT_PATH), { recursive: true });
-    await mkdir(path.dirname(REPORT_PATH), { recursive: true });
-    await writeFile(OUTPUT_PATH, serialized, 'utf8');
-    await writeFile(REPORT_PATH, report, 'utf8');
+  } else {
+    if (priorRelease === null) {
+      await mkdir(path.dirname(OUTPUT_PATH), { recursive: true });
+      await writeFile(OUTPUT_PATH, serialized, 'utf8');
+    }
+    if (priorReport !== report) {
+      await mkdir(path.dirname(REPORT_PATH), { recursive: true });
+      await writeFile(REPORT_PATH, report, 'utf8');
+    }
   }
 
   process.stdout.write(

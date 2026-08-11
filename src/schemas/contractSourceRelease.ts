@@ -8,6 +8,43 @@ const NonEmptyStringZ = z.string().refine((value) => value.trim().length > 0, {
   message: 'must contain at least one non-whitespace character',
 });
 const Sha256Z = z.string().regex(/^sha256:[0-9a-f]{64}$/);
+const ZONED_ISO_DATE_TIME =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
+const hasValidCalendarDate = (value: string): boolean => {
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const day = Number(value.slice(8, 10));
+  if (month < 1 || month > 12 || day < 1) return false;
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [
+    31,
+    leapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
+  return day <= daysInMonth[month - 1];
+};
+export const ZonedDateTimeZ = z
+  .string()
+  .regex(
+    ZONED_ISO_DATE_TIME,
+    'must be an ISO-8601 instant with an explicit offset'
+  )
+  .refine(
+    (value) =>
+      hasValidCalendarDate(value) && Number.isFinite(Date.parse(value)),
+    {
+      message: 'must be a valid zoned instant',
+    }
+  );
 
 export const ContractSourceReleasePinZ = z.strictObject({
   releaseId: NonEmptyStringZ,
@@ -21,7 +58,7 @@ export const ContractSourceObservationZ = z.strictObject({
   artifactSha256: Sha256Z,
   sourceProvider: NonEmptyStringZ,
   sourceRecordVersion: NonEmptyStringZ,
-  observedAt: NonEmptyStringZ,
+  observedAt: ZonedDateTimeZ,
   playerId: NonEmptyStringZ,
   teamId: NonEmptyStringZ,
   artifactContent: NonEmptyStringZ,
@@ -77,7 +114,7 @@ export const ContractSourceReleaseZ = z.strictObject({
   releaseVersion: z.number().int().min(1),
   releaseDigest: Sha256Z,
   supersedes: ContractSourceReleasePinZ.nullable(),
-  effectiveAt: NonEmptyStringZ,
+  effectiveAt: ZonedDateTimeZ,
   salaryCapYear: z.number().int().min(2000).max(3000),
   source: z.strictObject({
     provider: NonEmptyStringZ,
@@ -97,7 +134,7 @@ export const CONTRACT_BASELINE_WORLD_VERSION = 2;
 export const WorldContractBaselineMetadataZ = z.strictObject({
   contractBaselineVersion: z.literal(CONTRACT_BASELINE_WORLD_VERSION),
   contractSourceRelease: ContractSourceReleasePinZ,
-  contractBaselineEffectiveAt: NonEmptyStringZ,
+  contractBaselineEffectiveAt: ZonedDateTimeZ,
   contractBaselineSalaryCapYear: z.number().int().min(2000).max(3000),
   contractBaselineCoverage: z.strictObject({
     total: z.number().int().nonnegative(),
@@ -119,8 +156,12 @@ export const ContractBaselineTeamDocumentZ = z.strictObject({
   documentDigest: z.string().regex(/^fnv1a64:[0-9a-f]{16}$/),
 });
 
-export type ContractSourceReleasePin = z.infer<typeof ContractSourceReleasePinZ>;
-export type ContractSourceObservation = z.infer<typeof ContractSourceObservationZ>;
+export type ContractSourceReleasePin = z.infer<
+  typeof ContractSourceReleasePinZ
+>;
+export type ContractSourceObservation = z.infer<
+  typeof ContractSourceObservationZ
+>;
 export type ContractSourceBaselineRecord = z.infer<
   typeof ContractSourceBaselineRecordZ
 >;

@@ -67,8 +67,8 @@ export const CONTRACT_EVENT_FAMILIES: Readonly<
 export const CONTRACT_ROOT_EVENT_KINDS: readonly ContractEventKind[] =
   Object.freeze(['signing', 'source-establishment']);
 
-/** Kept as the historical signing root for callers that name that route. */
-export const CONTRACT_ROOT_EVENT_KIND: ContractEventKind = 'signing';
+/** Historical signing root for callers that explicitly name that route. */
+export const CONTRACT_SIGNING_ROOT_EVENT_KIND: ContractEventKind = 'signing';
 
 export function isContractRootEventKind(kind: ContractEventKind): boolean {
   return CONTRACT_ROOT_EVENT_KINDS.includes(kind);
@@ -144,7 +144,9 @@ export class ContractEventLedgerError extends Error {
   }
 }
 
-function freezeProblem(problem: LifecycleLedgerProblem): LifecycleLedgerProblem {
+function freezeProblem(
+  problem: LifecycleLedgerProblem
+): LifecycleLedgerProblem {
   return Object.freeze({
     ...problem,
     eventIds: Object.freeze([...problem.eventIds]),
@@ -400,7 +402,10 @@ function validateEventShape(
   // effect before it was executed, and a record cannot be written before the
   // act it records. A correction keeps the original `executedAt` and gets a
   // later `recordedAt`, so append-only revision never trips these.
-  if (isZonedDateTime(event?.executedAt) && isZonedDateTime(event.effectiveAt)) {
+  if (
+    isZonedDateTime(event?.executedAt) &&
+    isZonedDateTime(event.effectiveAt)
+  ) {
     if (Date.parse(event.executedAt) > Date.parse(event.effectiveAt)) {
       problems.push(
         problem(
@@ -494,7 +499,9 @@ function validateSupersession(
       );
     }
 
-    const ordered = [...versions].sort((a, b) => a.eventVersion - b.eventVersion);
+    const ordered = [...versions].sort(
+      (a, b) => a.eventVersion - b.eventVersion
+    );
     ordered.forEach((event, position) => {
       const prior = ordered[position - 1];
       if (!prior) return;
@@ -832,7 +839,9 @@ interface ChainWalk {
  * involved — silently returning nothing is how an unreachable event slips into
  * an accepted ledger.
  */
-function walkFromRoot(events: readonly ContractEventRecord[]): ChainWalk | null {
+function walkFromRoot(
+  events: readonly ContractEventRecord[]
+): ChainWalk | null {
   const roots = events.filter((event) =>
     isContractRootEventKind(event.eventKind)
   );
@@ -907,9 +916,7 @@ function freezeEvent(event: ContractEventRecord): ContractEventRecord {
     }
     return value;
   };
-  const resultingState = JSON.parse(
-    JSON.stringify(event.resultingState)
-  ) as ContractEventRecord['resultingState'];
+  const resultingState = structuredClone(event.resultingState);
 
   return Object.freeze({
     eventId: event.eventId,
