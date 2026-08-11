@@ -286,6 +286,11 @@ describeWithFirestoreEmulator(
       });
       await assertFails(finalization.commit());
       await assertFails(
+        updateDoc(doc(db, 'architect_worlds', WORLD_ID), {
+          childWorlds: [CLAIMED_CHILD_ID],
+        })
+      );
+      await assertFails(
         setDoc(
           doc(db, 'architect_worlds', CLAIMED_CHILD_ID, 'teams', TEAM_CODE),
           { teamCode: TEAM_CODE }

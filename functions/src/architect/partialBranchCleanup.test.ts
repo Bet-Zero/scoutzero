@@ -81,43 +81,60 @@ describe('partial branch cleanup eligibility', () => {
     ).toEqual({ eligible: true });
   });
 
-  it('fails closed for unavailable, malformed, or claim-mismatched state', () => {
-    const cases = [
-      {
-        child: partialChild(),
-        parent: null,
-        reason: 'parent-unavailable',
-      },
-      {
-        child: partialChild(),
-        parent: { ...parent(), childWorlds: 'not-an-array' },
-        reason: 'parent-lineage-malformed',
-      },
-      {
-        child: {
-          ...partialChild(),
-          partialBranchCleanupClaim: {
-            state: 'claimed',
-            childWorldId,
-            parentWorldId: 'world_other',
-            ownerId,
-          },
-        },
-        parent: parent(),
-        reason: 'cleanup-claim-mismatch',
-      },
-    ];
-
-    for (const entry of cases) {
-      expect(
-        evaluatePartialBranchCleanupEligibility({
+  it.each([
+    {
+      label: 'an unavailable parent',
+      child: partialChild(),
+      parent: null,
+      reason: 'parent-unavailable',
+    },
+    {
+      label: 'a foreign child document',
+      child: { ...partialChild(), createdBy: 'owner-b' },
+      parent: parent(),
+      reason: 'child-identity-mismatch',
+    },
+    {
+      label: 'a malformed child lineage',
+      child: { ...partialChild(), childWorlds: 'not-an-array' },
+      parent: parent(),
+      reason: 'child-lineage-malformed',
+    },
+    {
+      label: 'a foreign parent document',
+      child: partialChild(),
+      parent: { ...parent(), createdBy: 'owner-b' },
+      reason: 'parent-identity-mismatch',
+    },
+    {
+      label: 'a malformed parent lineage',
+      child: partialChild(),
+      parent: { ...parent(), childWorlds: 'not-an-array' },
+      reason: 'parent-lineage-malformed',
+    },
+    {
+      label: 'a claim bound to another parent',
+      child: {
+        ...partialChild(),
+        partialBranchCleanupClaim: {
+          state: 'claimed',
           childWorldId,
-          expectedParentWorldId,
+          parentWorldId: 'world_other',
           ownerId,
-          child: entry.child,
-          parent: entry.parent,
-        })
-      ).toEqual({ eligible: false, reason: entry.reason });
-    }
+        },
+      },
+      parent: parent(),
+      reason: 'cleanup-claim-mismatch',
+    },
+  ])('fails closed for $label', ({ child, parent: parentDoc, reason }) => {
+    expect(
+      evaluatePartialBranchCleanupEligibility({
+        childWorldId,
+        expectedParentWorldId,
+        ownerId,
+        child,
+        parent: parentDoc,
+      })
+    ).toEqual({ eligible: false, reason });
   });
 });

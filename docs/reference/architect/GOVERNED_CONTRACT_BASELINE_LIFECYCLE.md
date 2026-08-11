@@ -33,15 +33,16 @@ lineage write succeeds. If a later step fails, any purge result whose `ok` value
 is not `true` is retained as cleanup-pending or cleanup-failed alongside the
 original branch failure and exact child/parent identity.
 
-Partial cleanup requires that parent identity and atomically verifies the child
-is still archived, is an actual child of that parent, has no descendants, and
-is not present in the parent's finalized lineage before writing a trusted
-cleanup claim. While claimed, client metadata and subcollection writes are
-blocked. A visible or lineage-attached world, a non-child, and a mismatched or
-malformed relationship return a structured refusal without changing either
-world. This transaction/claim boundary makes a concurrent finalization choose
-one outcome: finalization wins and cleanup refuses, or cleanup wins and client
-finalization is denied. A real partial child remains hidden and unusable while
+Partial cleanup requires the caller to supply that exact parent identity. It
+then atomically verifies the child is still archived, is an actual child of that
+parent, has no descendants, and is not present in the parent's finalized
+lineage before writing a trusted cleanup claim. While claimed, client metadata
+and subcollection writes are blocked. A visible or lineage-attached world, a
+non-child, and a mismatched or malformed relationship return a structured
+refusal without changing either world. This transaction/claim boundary makes a
+concurrent finalization choose one outcome: finalization wins and cleanup
+refuses, or cleanup wins and client finalization is denied. A real partial child
+remains hidden and unusable while
 cleanup is pending; retry after successful deletion is idempotent.
 
 This boundary changes no audit accounting and authorizes no option, extension,

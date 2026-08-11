@@ -40,6 +40,30 @@ service cloud.firestore {
         ]);
     }
 
+    function addsFinalizedUnclaimedChild(worldId) {
+      let previousChildren = resource.data.childWorlds;
+      let nextChildren = request.resource.data.childWorlds;
+      let childWorldId = nextChildren[nextChildren.size() - 1];
+      let childPath = /databases/$(database)/documents/architect_worlds/$(childWorldId);
+      return previousChildren is list
+        && nextChildren is list
+        && nextChildren.size() == previousChildren.size() + 1
+        && nextChildren.toSet().difference(previousChildren.toSet()).size() == 1
+        && previousChildren.toSet().difference(nextChildren.toSet()).size() == 0
+        && existsAfter(childPath)
+        && getAfter(childPath).data.createdBy == request.auth.uid
+        && getAfter(childPath).data.parentWorldId == worldId
+        && getAfter(childPath).data.isArchived == false
+        && !('partialBranchCleanupClaim' in getAfter(childPath).data);
+    }
+
+    function preservesFinalizedChildLineage(worldId) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'childWorlds'
+        ])
+        || addsFinalizedUnclaimedChild(worldId);
+    }
+
     // Lists: strict owner-scoped access.
     match /lists/{listId} {
       allow read: if isAuthenticated()
@@ -110,7 +134,8 @@ service cloud.firestore {
       allow update: if isWorldMetadataOwner()
         && request.resource.data.createdBy == resource.data.createdBy
         && preservesGovernedContractMetadata()
-        && preservesPartialBranchCleanupClaim();
+        && preservesPartialBranchCleanupClaim()
+        && preservesFinalizedChildLineage(worldId);
       allow delete: if false;
 
       match /teams/{teamCode} {

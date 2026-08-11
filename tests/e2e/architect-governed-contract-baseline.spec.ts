@@ -288,14 +288,11 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
     );
     expect(childDocuments).toHaveLength(33);
 
-    const finalizedChildBeforeCleanup = JSON.stringify(childMetadata);
-    const finalizedShardsBeforeCleanup = JSON.stringify(childDocuments);
-    const parentLineageBeforeCleanup = JSON.stringify(
-      await db
-        .doc(`architect_worlds/${parentWorldId}`)
-        .get()
-        .then((snapshot) => snapshot.data())
-    );
+    const finalizedChildBeforeCleanup = childMetadata;
+    const finalizedShardsBeforeCleanup = childDocuments;
+    const parentLineageBeforeCleanup = (
+      await db.doc(`architect_worlds/${parentWorldId}`).get()
+    ).data();
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const refusedCleanup = await callReviewFunction(
         request,
@@ -324,24 +321,14 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
       });
     }
     expect(
-      JSON.stringify(
-        await db
-          .doc(`architect_worlds/${childWorldId}`)
-          .get()
-          .then((snapshot) => snapshot.data())
-      )
-    ).toBe(finalizedChildBeforeCleanup);
-    expect(JSON.stringify(await baselineDocuments(childWorldId))).toBe(
+      (await db.doc(`architect_worlds/${childWorldId}`).get()).data()
+    ).toEqual(finalizedChildBeforeCleanup);
+    expect(await baselineDocuments(childWorldId)).toEqual(
       finalizedShardsBeforeCleanup
     );
     expect(
-      JSON.stringify(
-        await db
-          .doc(`architect_worlds/${parentWorldId}`)
-          .get()
-          .then((snapshot) => snapshot.data())
-      )
-    ).toBe(parentLineageBeforeCleanup);
+      (await db.doc(`architect_worlds/${parentWorldId}`).get()).data()
+    ).toEqual(parentLineageBeforeCleanup);
 
     const simulatedV2WorldId = `bze-274-simulated-v2-${Date.now()}`;
     const simulatedV2Metadata = {
@@ -506,12 +493,9 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
         .count()
     ).toBe(0);
 
-    const parentBeforeRefusals = JSON.stringify(
-      await db
-        .doc(`architect_worlds/${parentWorldId}`)
-        .get()
-        .then((snapshot) => snapshot.data())
-    );
+    const parentBeforeRefusals = (
+      await db.doc(`architect_worlds/${parentWorldId}`).get()
+    ).data();
     for (const refusedRequest of [
       {
         worldId: partialChildId,
@@ -553,13 +537,8 @@ test.describe('BZE-274 governed contract baseline browser acceptance', () => {
       true
     );
     expect(
-      JSON.stringify(
-        await db
-          .doc(`architect_worlds/${parentWorldId}`)
-          .get()
-          .then((snapshot) => snapshot.data())
-      )
-    ).toBe(parentBeforeRefusals);
+      (await db.doc(`architect_worlds/${parentWorldId}`).get()).data()
+    ).toEqual(parentBeforeRefusals);
 
     const firstRetry = await callReviewFunction(
       request,
