@@ -89,6 +89,21 @@ export interface GovernedOptionDecisionRequest {
   authoringIdentity: string;
 }
 
+type GovernedOptionInspectionRequest = Omit<
+  GovernedOptionDecisionRequest,
+  | 'rightsLedger'
+  | 'choice'
+  | 'notice'
+  | 'operationId'
+  | 'authoringIdentity'
+  | 'recordedAt'
+>;
+
+interface GovernedOptionInspection {
+  readonly availability: GovernedOptionDecisionAvailability;
+  readonly rfaEvidence: GovernedOptionRfaRelevanceEvidence | null;
+}
+
 export type GovernedOptionDecisionResult =
   | {
       readonly success: true;
@@ -483,16 +498,6 @@ function validateOptionShape(
     }
   }
 
-  if (!state.terms.isRookieScale && optionType !== 'ETO') {
-    authenticatedRfaRelevanceEvidence(
-      state,
-      terms,
-      targetYear,
-      worldAsOfDate,
-      reasons
-    );
-  }
-
   if (optionType === 'PO') {
     if (!terms.playerOptionProtectionAlternative) {
       reasons.push('Player Option protection alternative A or B is missing.');
@@ -551,7 +556,7 @@ function validateOptionShape(
   return terms;
 }
 
-export function inspectGovernedOptionDecision({
+function inspectGovernedOptionDecisionInternal({
   authority,
   worldId,
   teamId,
@@ -560,15 +565,7 @@ export function inspectGovernedOptionDecision({
   targetYear,
   baselineSalaryCapYear,
   worldAsOfDate,
-}: Omit<
-  GovernedOptionDecisionRequest,
-  | 'rightsLedger'
-  | 'choice'
-  | 'notice'
-  | 'operationId'
-  | 'authoringIdentity'
-  | 'recordedAt'
->): GovernedOptionDecisionAvailability {
+}: GovernedOptionInspectionRequest): GovernedOptionInspection {
   const reasons: string[] = [];
   try {
     if (
@@ -576,15 +573,18 @@ export function inspectGovernedOptionDecision({
       !isDateOnly(worldAsOfDate)
     ) {
       return Object.freeze({
-        status: 'incompatible' as const,
-        playerId,
-        contractId,
-        targetYear,
-        optionType: null,
-        reasons: Object.freeze([
-          'The governed world date, baseline Salary Cap Year, and contract release do not align. Recreate the Team Plan if it predates this boundary.',
-        ]),
-        noticeRequirements: null,
+        availability: Object.freeze({
+          status: 'incompatible' as const,
+          playerId,
+          contractId,
+          targetYear,
+          optionType: null,
+          reasons: Object.freeze([
+            'The governed world date, baseline Salary Cap Year, and contract release do not align. Recreate the Team Plan if it predates this boundary.',
+          ]),
+          noticeRequirements: null,
+        }),
+        rfaEvidence: null,
       });
     }
     const ledger = createContractEventLedger(authority.currentLedger);
@@ -620,45 +620,68 @@ export function inspectGovernedOptionDecision({
             reasons
           )
         : null;
+    const rfaEvidence =
+      terms && !state.terms.isRookieScale && row?.option !== 'ETO'
+        ? authenticatedRfaRelevanceEvidence(
+            state,
+            terms,
+            targetYear,
+            worldAsOfDate,
+            reasons
+          )
+        : null;
     const decided = row ? row.optionUsed !== null : false;
     return Object.freeze({
-      status: decided
-        ? ('decided' as const)
-        : reasons.length > 0 || !terms
-          ? ('needs-input' as const)
-          : ('ready' as const),
-      playerId,
-      contractId,
-      targetYear,
-      optionType: (row?.option as GovernedOptionType | null) ?? null,
-      reasons: Object.freeze([...new Set(reasons)]),
-      noticeRequirements:
-        reasons.length === 0 && terms && row
-          ? Object.freeze({
-              deadline: row.optionDecisionDeadline.value || '',
-              windowOpensAt: terms.decisionWindowOpensAt.value || '',
-              allowedMethods: Object.freeze([...terms.allowedNoticeMethods]),
-              recipientId: terms.noticeRecipient === 'team' ? teamId : playerId,
-              recipientRole: terms.noticeRecipient,
-              leagueForwardingRequired: terms.leagueForwardingRequired,
-            })
-          : null,
+      availability: Object.freeze({
+        status: decided
+          ? ('decided' as const)
+          : reasons.length > 0 || !terms
+            ? ('needs-input' as const)
+            : ('ready' as const),
+        playerId,
+        contractId,
+        targetYear,
+        optionType: (row?.option as GovernedOptionType | null) ?? null,
+        reasons: Object.freeze([...new Set(reasons)]),
+        noticeRequirements:
+          reasons.length === 0 && terms && row
+            ? Object.freeze({
+                deadline: row.optionDecisionDeadline.value || '',
+                windowOpensAt: terms.decisionWindowOpensAt.value || '',
+                allowedMethods: Object.freeze([...terms.allowedNoticeMethods]),
+                recipientId:
+                  terms.noticeRecipient === 'team' ? teamId : playerId,
+                recipientRole: terms.noticeRecipient,
+                leagueForwardingRequired: terms.leagueForwardingRequired,
+              })
+            : null,
+      }),
+      rfaEvidence,
     });
   } catch (error) {
     return Object.freeze({
-      status: 'incompatible' as const,
-      playerId,
-      contractId,
-      targetYear,
-      optionType: null,
-      reasons: Object.freeze([
-        error instanceof Error
-          ? error.message
-          : 'Governed contract history is unreadable.',
-      ]),
-      noticeRequirements: null,
+      availability: Object.freeze({
+        status: 'incompatible' as const,
+        playerId,
+        contractId,
+        targetYear,
+        optionType: null,
+        reasons: Object.freeze([
+          error instanceof Error
+            ? error.message
+            : 'Governed contract history is unreadable.',
+        ]),
+        noticeRequirements: null,
+      }),
+      rfaEvidence: null,
     });
   }
+}
+
+export function inspectGovernedOptionDecision(
+  request: GovernedOptionInspectionRequest
+): GovernedOptionDecisionAvailability {
+  return inspectGovernedOptionDecisionInternal(request).availability;
 }
 
 function validateNotice({
@@ -816,7 +839,8 @@ function withStateDigest(
 export function decideGovernedOption(
   request: GovernedOptionDecisionRequest
 ): GovernedOptionDecisionResult {
-  const availability = inspectGovernedOptionDecision(request);
+  const inspection = inspectGovernedOptionDecisionInternal(request);
+  const { availability, rfaEvidence } = inspection;
   if (availability.status !== 'ready' || !availability.optionType) {
     return unavailable(
       availability.status === 'incompatible'
@@ -854,16 +878,6 @@ export function decideGovernedOption(
     : null;
   if (!terms || !deadline || !row?.option)
     return unavailable('needs-input', reasons);
-  const rfaEvidence =
-    !state.terms.isRookieScale && row.option !== 'ETO'
-      ? authenticatedRfaRelevanceEvidence(
-          state,
-          terms,
-          request.targetYear,
-          request.worldAsOfDate,
-          reasons
-        )
-      : null;
   validateNotice({
     notice: request.notice,
     choice: request.choice,

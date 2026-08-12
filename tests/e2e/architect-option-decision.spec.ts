@@ -919,7 +919,7 @@ const assertAllSurfaces = async ({
 
   await openTab(page, 'Compare');
   await expect(page.getByTestId('comparison-event-count')).toContainText(
-    new RegExp(`${expectedEventCount}\\s+committed events`, 'i'),
+    new RegExp(`\\b${expectedEventCount}\\s+committed events`, 'i'),
     { timeout: 20_000 }
   );
 
