@@ -23,6 +23,8 @@ export type CapHoldLike = {
   amount?: NumericLike;
   type?: string | null;
   isSigned?: boolean | null;
+  priorTeamOfferCeiling?: NumericLike;
+  governedContractEventId?: string | null;
 };
 
 export type ResolvedCapHoldEntry = {
@@ -57,6 +59,19 @@ const toEndYear = (value: unknown): number | null => {
     ? numericYear
     : null;
 };
+
+const hasFiniteNumericValue = (value: NumericLike): boolean => {
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value !== 'string' || !value.trim()) return false;
+  return Number.isFinite(Number(value.replace(/[$,]/g, '').trim()));
+};
+
+export const isGovernedPriorTeamOptionHold = (
+  hold: CapHoldLike
+): boolean =>
+  typeof hold.governedContractEventId === 'string' &&
+  hold.governedContractEventId.trim().length > 0 &&
+  hasFiniteNumericValue(hold.priorTeamOfferCeiling);
 
 const toStartYear = (value: unknown): number | null => {
   const endYear = toEndYear(value);

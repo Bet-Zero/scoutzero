@@ -66,6 +66,34 @@ const team = {
 afterEach(cleanup);
 
 describe('Full Cap Table governed rights consumer', () => {
+  it('keeps a linked declined Rookie Scale option hold in the Prior Team signing lane after roster exit', () => {
+    render(
+      <CapSheetFull
+        teamCapSheet={{
+          ...team,
+          players: [],
+          capHolds: [
+            {
+              ...team.capHolds[0],
+              priorTeamOfferCeiling: 12_000_000,
+              governedContractEventId: 'governed-option-decline-event',
+            },
+          ],
+        } as never}
+        currentYear={2027}
+        playersMap={{ [RIGHTS_FIXTURE_PLAYER_ID]: PLAYER }}
+        governedRightsContext={governedContext}
+      />
+    );
+
+    expect(
+      screen.getByTestId('cap-sheet-full-fa-decision-row')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('cap-sheet-full-fa-resign-cell')
+    ).toBeInTheDocument();
+  });
+
   it('renders the replayed Bird tier and Free Agent Amount instead of snapshot fallbacks', () => {
     const renounceCapHold = vi.fn();
     render(

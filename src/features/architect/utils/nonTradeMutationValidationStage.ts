@@ -18,6 +18,9 @@ import {
   validateDeadCap,
   validateExceptions,
 } from '@/features/architect/utils/capLegalityValidation';
+import {
+  validateGovernedPriorTeamOptionSigning,
+} from '@/features/architect/utils/capLegalityValidation/governedPriorTeamOptionSigning';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import type {
   ArchitectMutationOfferSheet,
@@ -177,6 +180,8 @@ function validateSigningSideMutation({
   currentState,
   currentYear,
   asOfDate,
+  worldId,
+  dateDefaulted,
   pipelineWarnings,
 }: {
   mutationType: string;
@@ -184,9 +189,23 @@ function validateSigningSideMutation({
   currentState: MutationCurrentState;
   currentYear: number;
   asOfDate?: string | null;
+  worldId?: string | null;
+  dateDefaulted?: boolean;
   pipelineWarnings: Array<Record<string, unknown>>;
 }): StageValidationResult {
   const { team, player } = requireTeamAndPlayerState(currentState, mutationType);
+  const governedOptionSigningResult =
+    mutationType === 'signFreeAgent'
+      ? validateGovernedPriorTeamOptionSigning({
+          team,
+          player,
+          contract: payload.contract,
+          worldId,
+          year: currentYear,
+          asOfDate,
+          dateDefaulted,
+        })
+      : { valid: true, violations: [], warnings: [] };
   const result = validateSigning({
     team,
     player,
@@ -199,11 +218,18 @@ function validateSigningSideMutation({
   });
 
   return formatValidatorResult({
-    valid: result.valid,
-    violations: result.violations,
+    valid: governedOptionSigningResult.valid && result.valid,
+    violations: [
+      ...governedOptionSigningResult.violations,
+      ...result.violations,
+    ],
     warnings:
       mutationType === 'signFreeAgent'
-        ? [...result.warnings, ...pipelineWarnings]
+        ? [
+            ...governedOptionSigningResult.warnings,
+            ...result.warnings,
+            ...pipelineWarnings,
+          ]
         : result.warnings,
   });
 }
@@ -493,6 +519,7 @@ export function validateNonTradeMutationStage({
   seasonId,
   asOfDate,
   dateDefaulted,
+  worldId,
 }: {
   mutationType: string;
   payload: MutationPayloadLike;
@@ -501,6 +528,7 @@ export function validateNonTradeMutationStage({
   seasonId: string;
   asOfDate?: string | null;
   dateDefaulted?: boolean;
+  worldId?: string | null;
 }): StageValidationResult {
   const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
   const pipelineWarnings = buildPipelineWarnings({
@@ -517,6 +545,8 @@ export function validateNonTradeMutationStage({
         currentState,
         currentYear,
         asOfDate,
+        worldId,
+        dateDefaulted,
         pipelineWarnings,
       });
 

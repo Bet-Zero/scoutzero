@@ -46,6 +46,7 @@ import type { GovernedOptionDecisionAvailability } from '@/features/architect/ut
 import {
   getHoldLookupKeys,
   getPlayerLookupKeys,
+  isGovernedPriorTeamOptionHold,
   resolvedHoldAmount,
   useGovernedCapHoldResolution,
   type CapHoldLike,
@@ -776,7 +777,14 @@ export const CapSheetFull = ({
       (entry) => !hasVisibleRow(entry)
     );
     const main = renderable
-      .filter((entry) => entry.rights.placement === 'main')
+      .filter(
+        (entry) =>
+          entry.rights.placement === 'main' ||
+          // BZE-275 ends the declined rookie contract and removes the player
+          // from the roster. Its linked ceiling hold is still the Prior Team's
+          // signing decision; the save boundary authenticates both markers.
+          isGovernedPriorTeamOptionHold(entry.hold)
+      )
       .sort(
         (a, b) =>
           resolvedHoldAmount(b) - resolvedHoldAmount(a)

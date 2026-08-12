@@ -310,6 +310,7 @@ utils/
     actionValidators.ts
     constants.ts
     extension.ts
+    governedPriorTeamOptionSigning.ts
     schema.ts
     signing.contractValidators.ts
     signing.helpers.ts
@@ -605,5 +606,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-11T22:24:04.406Z*
+*Generated on: 2026-08-12T04:57:54.607Z*
 *Auto-updated by: npm run docs*
