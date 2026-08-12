@@ -157,12 +157,15 @@ export type ArchitectGeneralMutationDashboardReloadPlayer = Omit<
   futureContract?: ArchitectGeneralMutationDashboardReloadPlayerFutureContract | null;
 };
 // changedTeams is the dashboard reload artifact, not the persistence snapshot.
-// It keeps only the fields the post-commit dashboard/state seam actually reads
-// and leaves round-trip-only baggage on the persistence contract.
+// It keeps only the fields the post-commit dashboard/state seam actually reads.
+// Governed rights and contract ledgers are live authority for consecutive
+// Full Cap Table decisions, so they must survive this committed reload seam.
 export type ArchitectGeneralMutationDashboardReloadTeamSnapshot = Pick<
   ArchitectGeneralMutationCommittedTeamSnapshot,
   | 'roster'
   | 'capHolds'
+  | 'rightsLedger'
+  | 'contractEventLedgers'
   | 'totals'
   | 'exceptionHistory'
   | 'draftPicks'

@@ -53,6 +53,8 @@ export const ContractActionSelector = ({
     optionType === 'Player Option' ||
     optionType === 'Player' ||
     optionType === 'PO';
+  const isEarlyTerminationOption =
+    optionType === 'Early Termination Option' || optionType === 'ETO';
 
   return (
     <>
@@ -72,9 +74,11 @@ export const ContractActionSelector = ({
             ? `${optionYear - 1}-${String(optionYear % 100).padStart(2, '0')}`
             : 'upcoming'}{' '}
           season.{' '}
-          {isPlayerControlledOption
-            ? "Record the player's decision as accepted to keep him under contract, record it as declined to make him a Free Agent, or negotiate a new contract."
-            : 'You may choose to accept it to retain him, decline it to make him a Free Agent, or negotiate a new contract.'}
+          {isEarlyTerminationOption
+            ? "Record whether the player exercises the ETO to end the Contract or does not exercise it and remains under Contract."
+            : isPlayerControlledOption
+              ? "Record whether the player exercises the option to remain under Contract or declines it and becomes a Free Agent."
+              : 'Record whether the Team exercises the option to retain the player or declines it and the player becomes a Free Agent.'}
         </p>
       )}
       {actionSet === 'freeAgent' && (
@@ -107,7 +111,12 @@ export const ContractActionSelector = ({
       {optionTimingError && (
         <div className="flex items-start gap-2 px-3 py-2 rounded border bg-red-500/10 border-red-500/30 mb-3">
           <span className="shrink-0 text-sm">❌</span>
-          <span className="text-xs text-red-300">{optionTimingError}</span>
+          <span className="text-xs text-red-300">
+            <span className="block font-semibold uppercase tracking-wide">
+              Needs input
+            </span>
+            {optionTimingError}
+          </span>
         </div>
       )}
 

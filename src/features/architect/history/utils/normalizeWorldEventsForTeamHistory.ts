@@ -373,9 +373,13 @@ export function toTeamHistoryEventDisplay(
     case 'optionDecision': {
       const optionDecisionLabel =
         typeof accepted === 'boolean'
-          ? accepted
-            ? 'accepted'
-            : 'declined'
+          ? optionType === 'ETO'
+            ? accepted
+              ? 'ETO exercised'
+              : 'ETO not exercised'
+            : accepted
+              ? `${optionType || 'option'} exercised`
+              : `${optionType || 'option'} declined`
           : null;
 
       summaryCandidate =
@@ -390,7 +394,15 @@ export function toTeamHistoryEventDisplay(
       pushSection(detailSections, 'Option', [
         optionType ? `Option type: ${optionType}` : null,
         typeof accepted === 'boolean'
-          ? `Decision: ${accepted ? 'Accepted' : 'Declined'}`
+          ? `Decision: ${
+              optionType === 'ETO'
+                ? accepted
+                  ? 'Exercised — Contract ends at the governed termination boundary'
+                  : 'Not exercised — Contract retained'
+                : accepted
+                  ? 'Exercised — option Season retained'
+                  : 'Declined — Contract ends at the governed preceding boundary'
+            }`
           : null,
         ...contractLines,
       ]);

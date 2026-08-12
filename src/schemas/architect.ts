@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { JsonValueZ, MoneyZ, PlayerIdZ, SeasonCodeZ, TeamCodeZ } from './common';
+import { ContractEventLedgerPayloadZ } from '@/schemas/contractEventLedger';
 
 const HardCapLevelZ = z.enum(['none', 'firstApron', 'secondApron']);
 const EntitlementKindZ = z.enum([
@@ -105,6 +106,8 @@ export const CapHoldItemZ = z
     notes: z.string().optional(),
     active: z.boolean().optional(),
     reason: z.string().optional(),
+    priorTeamOfferCeiling: MoneyZ.optional(),
+    governedContractEventId: z.string().optional(),
   });
 
 const MleExceptionZ = z.object({
@@ -332,6 +335,7 @@ export const BaseTeamDocZ = z.object({
   roster: z.array(PlayerIdZ),
   deadCap: z.array(DeadCapItemZ).optional().default([]),
   capHolds: z.array(CapHoldItemZ).optional().default([]),
+  contractEventLedgers: z.array(ContractEventLedgerPayloadZ).optional(),
   exceptions: ExceptionsZ,
   draftPicks: z.array(DraftPickZ).optional().default([]),
   /**

@@ -199,7 +199,7 @@ function makeTeam(
 }
 
 describe('mutationPipeline shared player normalizer boundary', () => {
-  it('keeps a real current-player mutation flow working while dropping dead shared player carry-through fields', () => {
+  it('refuses ungoverned current-player option mutation before carry-through fields can change', () => {
     const player = makePlayer('option_1', 'Option One', 9_500_000, 'LAL', {
       freeAgentYear: 2027,
       rightsRenounced: false,
@@ -238,27 +238,10 @@ describe('mutationPipeline shared player normalizer boundary', () => {
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
-
-    const updatedPlayer = result.playerUpdates?.[0]?.player;
-    expect(updatedPlayer?.contract?.signingDate).toBe('2024-07-06');
-    expect(updatedPlayer?.contract?.birdRights).toEqual({ status: 'Full' });
-    expect(updatedPlayer?.contract?.freeAgency).toMatchObject({
-      type: 'UFA',
-      year: 2027,
-    });
-    expect(updatedPlayer?.contract?.salariesByYear?.[1]).toMatchObject({
-      season: '2026-27',
-      option: 'Player',
-      optionUsed: true,
-    });
-    expect(updatedPlayer?.contract?.salariesByYear?.[1]).not.toHaveProperty(
-      'legacyRowBlob'
-    );
-    expect(updatedPlayer).not.toHaveProperty('salary');
-    expect(updatedPlayer).not.toHaveProperty('currentSalary');
-    expect(updatedPlayer).not.toHaveProperty('freeAgentYear');
-    expect(updatedPlayer).not.toHaveProperty('rightsRenounced');
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Governed option decision requires');
+    expect(result.teamUpdates).toBeUndefined();
+    expect(result.playerUpdates).toBeUndefined();
   });
 
   it('keeps future-contract normalization working for a real extension flow', () => {

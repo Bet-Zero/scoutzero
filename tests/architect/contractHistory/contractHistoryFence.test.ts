@@ -380,7 +380,7 @@ describe('BZE-271 history / mutable-contract compatibility fence', () => {
     expect(barrel).not.toContain('ALLOWED_GOVERNED_HISTORY_MODULE');
   });
 
-  it('is imported only by the explicit governed source-bootstrap consumer', () => {
+  it('is imported only by explicit governed initialization and migrated-workflow consumers', () => {
     const offenders: string[] = [];
 
     function walk(directory: string): void {

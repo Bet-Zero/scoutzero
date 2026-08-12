@@ -487,6 +487,7 @@ export function useArchitectActions({
     handleExtendContract,
     handleWaiveContract,
     handleOptionDecision,
+    getOptionDecisionAvailability,
     handleRenounceRights,
     capSheetDevTools,
     teamHistoryDevTools,
@@ -646,6 +647,7 @@ export function useArchitectActions({
     handleExtendContract,
     handleWaiveContract,
     handleOptionDecision,
+    getOptionDecisionAvailability,
     handleRenounceRights,
 
     // Phase 16: Offer Sheet Actions

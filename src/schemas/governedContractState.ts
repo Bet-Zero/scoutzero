@@ -119,6 +119,73 @@ export const ContractGuaranteeStepZ = z.strictObject({
   note: z.string().nullable(),
 });
 
+/**
+ * Pinned counterfactual free-agency evidence for an ordinary Option.
+ *
+ * This stays as an explicit source receipt rather than consulting the mutable
+ * current free-agency projection. The outer option-terms field is deliberately
+ * parsed as unknown so incomplete or malformed retained evidence can reach the
+ * decision authority and return a specific Needs input result instead of
+ * making the entire governed Contract history unreadable.
+ */
+export const GovernedOptionRfaRelevanceEvidenceZ = z.strictObject({
+  evidenceVersion: z.literal(1),
+  status: ContractEvidenceStatusZ,
+  declineFreeAgencyStatus: z.enum(['RFA', 'UFA']).nullable(),
+  salaryCapYear: z.number().int(),
+  observedAt: ContractTemporalValueZ,
+  sourceIdentity: z.strictObject({
+    releaseId: NonEmptyStringZ,
+    releaseVersion: z.number().int().min(1),
+    releaseDigest: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+    sourceProvider: NonEmptyStringZ,
+    sourceRecordVersion: NonEmptyStringZ,
+    sourceObservationId: NonEmptyStringZ,
+    sourceArtifactSha256: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+    sourceContractPath: z.enum(['contract', 'futureContract']),
+  }),
+});
+
+/**
+ * Immutable option/ETO rule inputs supplied by a governed contract source.
+ *
+ * The retained BZE-274 release intentionally has none of these records because
+ * it does not contain exact option deadlines. Keeping this object optional
+ * preserves that honest baseline while allowing a later governed release (and
+ * complete acceptance fixtures) to prove the executable BZE-275 route without
+ * inferring dates or amending an immutable baseline in the browser.
+ */
+export const GovernedOptionDecisionTermsZ = z.strictObject({
+  termsVersion: z.literal(1),
+  conditional: z.boolean(),
+  decisionWindowOpensAt: ContractTemporalValueZ,
+  contractEndsAt: ContractTemporalValueZ,
+  nonCompensationTermsMatchPriorSeason: z.boolean(),
+  compensationProtectionMatchesPriorSeason: z.boolean(),
+  rookieScaleOptionOrdinal: z.enum(['third', 'fourth']).nullable(),
+  rookieScaleFourthSeasonTermsMatchThird: z.boolean().nullable(),
+  playerOptionProtectionAlternative: z.enum(['A', 'B']).nullable(),
+  preExerciseProtectionApplies: z.boolean().nullable(),
+  teamLastGameAt: ContractTemporalValueZ,
+  rfaDeclarationDeadline: ContractTemporalValueZ,
+  rfaRelevanceEvidence: z.unknown().nullable().optional(),
+  etoOrigin: z.enum(['original-contract', 'rookie-scale-extension']).nullable(),
+  etoAddedDuringOriginalTerm: z.boolean().nullable(),
+  allowedNoticeMethods: z
+    .array(
+      z.enum([
+        'personal-delivery',
+        'email',
+        'certified-mail',
+        'registered-mail',
+        'facsimile',
+      ])
+    )
+    .min(1),
+  noticeRecipient: z.enum(['player', 'team']),
+  leagueForwardingRequired: z.boolean(),
+});
+
 export const ContractSalaryTermZ = z.strictObject({
   season: NullableStringZ,
   salary: NullableFiniteNumberZ,
@@ -130,6 +197,7 @@ export const ContractSalaryTermZ = z.strictObject({
   optionUsed: z.boolean().nullable(),
   optionDecisionDate: ContractTemporalValueZ,
   optionDecisionDeadline: ContractTemporalValueZ,
+  optionDecisionTerms: GovernedOptionDecisionTermsZ.nullable().optional(),
   tradeBonus: NullableFiniteNumberZ,
   incentives: z.strictObject({
     likely: NullableFiniteNumberZ,
@@ -219,5 +287,12 @@ export const GovernedContractStateZ = z.strictObject({
 export type ContractEvidenceStatus = z.infer<typeof ContractEvidenceStatusZ>;
 export type ContractTemporalValue = z.infer<typeof ContractTemporalValueZ>;
 export type ContractFieldEvidence = z.infer<typeof ContractFieldEvidenceZ>;
+export type GovernedOptionDecisionTerms = z.infer<
+  typeof GovernedOptionDecisionTermsZ
+>;
+export type GovernedOptionRfaRelevanceEvidence = z.infer<
+  typeof GovernedOptionRfaRelevanceEvidenceZ
+>;
+export type ContractSalaryTerm = z.infer<typeof ContractSalaryTermZ>;
 export type GovernedContractTerms = z.infer<typeof GovernedContractTermsZ>;
 export type GovernedContractState = z.infer<typeof GovernedContractStateZ>;

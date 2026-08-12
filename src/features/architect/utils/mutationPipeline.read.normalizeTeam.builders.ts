@@ -75,6 +75,7 @@ export function buildCurrentStateBaseTeamBoundaryInput(
       teamRecord.roster ?? teamRecord[CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY],
     capHolds: teamRecord.capHolds,
     rightsLedger: teamRecord.rightsLedger,
+    contractEventLedgers: teamRecord.contractEventLedgers,
     deadCap: teamRecord.deadCap,
     exceptions:
       teamRecord.exceptions ??
@@ -124,6 +125,7 @@ export function buildCurrentStateTradeTeamBoundaryInput(
       teamRecord.roster ?? teamRecord[CURRENT_STATE_BASE_TEAM_ROSTER_FIELD_KEY],
     capHolds: teamRecord.capHolds,
     rightsLedger: teamRecord.rightsLedger,
+    contractEventLedgers: teamRecord.contractEventLedgers,
     deadCap: teamRecord.deadCap,
     exceptions:
       teamRecord.exceptions ??
@@ -164,6 +166,7 @@ export function normalizeCurrentStateTeamMutationCore(
   const players = normalizeCurrentStatePlayerArray(teamRecord.players);
   const capHolds = normalizeCurrentStateCapHolds(teamRecord.capHolds);
   const rightsLedger = teamRecord.rightsLedger;
+  const contractEventLedgers = teamRecord.contractEventLedgers;
   const deadCap = normalizeCurrentStateDeadCap(teamRecord.deadCap);
   const totals = normalizeCurrentStateTeamTotals(teamRecord.totals);
   const source = normalizeCurrentStateTeamSource(teamRecord.source);
@@ -188,6 +191,9 @@ export function normalizeCurrentStateTeamMutationCore(
   }
   if (rightsLedger !== undefined) {
     normalized.rightsLedger = rightsLedger;
+  }
+  if (contractEventLedgers !== undefined) {
+    normalized.contractEventLedgers = contractEventLedgers;
   }
   if (deadCap !== undefined) {
     normalized.deadCap = deadCap;

@@ -51,6 +51,10 @@ import {
   resolveRightsWorldCompatibility,
 } from '@/features/architect/utils/rightsHistory';
 import { resolveContractBaselineWorldCompatibility } from '@/features/architect/utils/contractSource/contractSourceRelease';
+import {
+  createContractEventLedger,
+  toContractEventLedgerPayload,
+} from '@/features/architect/utils/contractHistory';
 
 const ISO_DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const BRANCH_COPY_BATCH_LIMIT = 450;
@@ -207,6 +211,33 @@ const rewriteWorldIdentity = (
             }
           : {}),
       })),
+    });
+  }
+
+  if (Array.isArray(next.contractEventLedgers)) {
+    next.contractEventLedgers = next.contractEventLedgers.map((value) => {
+      const prior = createContractEventLedger(
+        value as Parameters<typeof createContractEventLedger>[0]
+      );
+      const contractId = prior.events[0]?.contractId;
+      if (!contractId) {
+        throw new Error('A branched contract event ledger cannot be empty.');
+      }
+      if (prior.events.some((event) => event.contractId !== contractId)) {
+        throw new Error(
+          `A branched contract event ledger must contain exactly one Contract (${contractId}).`
+        );
+      }
+      return toContractEventLedgerPayload(
+        createContractEventLedger({
+          ledgerId: `${childWorldId}:${contractId}:contract`,
+          ledgerVersion: prior.ledgerVersion,
+          events: prior.events.map((event) => ({
+            ...event,
+            worldId: childWorldId,
+          })),
+        })
+      );
     });
   }
 

@@ -183,7 +183,7 @@ function makeTeam(
 }
 
 describe('mutationPipeline player contract round-trip boundary', () => {
-  it('keeps option-decision compute working while narrowing current-state player contract ingress', () => {
+  it('keeps current-state contract ingress closed to ungoverned option decisions', () => {
     const player = makePlayer('option_1', 'Option One', 9_500_000, 'LAL', {
       contract: makeContract(9_500_000, {
         signedAt: '2024-07-06',
@@ -232,33 +232,10 @@ describe('mutationPipeline player contract round-trip boundary', () => {
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
-
-    const updatedPlayer = result.playerUpdates?.[0]?.player;
-    expect(updatedPlayer?.contract?.signingDate).toBe('2024-07-06');
-    expect(updatedPlayer?.contract).not.toHaveProperty('signedAt');
-    expect(updatedPlayer?.contract?.birdRights).toEqual({ status: 'Full' });
-    expect(updatedPlayer?.contract?.freeAgency).toMatchObject({
-      type: 'UFA',
-      year: 2027,
-    });
-    expect(updatedPlayer?.contract?.tradeRestrictions).toEqual([
-      'home-team approval',
-    ]);
-    expect(updatedPlayer?.contract?.tradeEligibility).toMatchObject({
-      restrictedUntil: '2026-12-15',
-      reason: 'Recent signing',
-      rules: { aggregation: true },
-    });
-    expect(updatedPlayer?.contract).not.toHaveProperty('legacyContractBlob');
-    expect(updatedPlayer?.contract?.salariesByYear?.[1]).toMatchObject({
-      season: '2026-27',
-      option: 'Player',
-      optionUsed: true,
-    });
-    expect(updatedPlayer?.contract?.salariesByYear?.[1]).not.toHaveProperty(
-      'legacyRowBlob'
-    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Governed option decision requires');
+    expect(result.teamUpdates).toBeUndefined();
+    expect(result.playerUpdates).toBeUndefined();
   });
 
   it('keeps extension compute working while narrowing future-contract round-trip input', () => {

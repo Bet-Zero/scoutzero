@@ -100,6 +100,8 @@ const OPTION_MUTATION_PAYLOAD_KEYS = [
   'playerId',
   'accepted',
   'targetYear',
+  'contractId',
+  'optionNotice',
 ] as const satisfies readonly (keyof ArchitectMutationPayload)[];
 const RENOUNCE_MUTATION_PAYLOAD_KEYS = [
   'playerId',
@@ -641,6 +643,10 @@ export function computeNormalizedWorldMutation(
             currentState: args.currentState,
             seasonId,
             timestamp,
+            asOfDate,
+            worldId,
+            operationId,
+            authoringIdentity,
           })
         );
       }

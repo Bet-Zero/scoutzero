@@ -128,7 +128,16 @@ export const FENCED_HISTORY_DIRECTORY =
 export const FENCED_HISTORY_SCHEMA_MODULE =
   'src/schemas/contractEventLedger.ts' as const;
 
-/** BZE-274's one governed initialization consumer; mutable consumers stay fenced. */
+/**
+ * Explicit governed consumers. BZE-274 initializes the pinned baselines;
+ * BZE-275 is the first bounded workflow migration and owns option authority,
+ * atomic persistence, and branch identity rewriting.
+ */
 export const GOVERNED_CONTRACT_HISTORY_CONSUMERS = Object.freeze([
   'src/features/architect/utils/contractSource/contractSourceRelease.ts',
+  'src/features/architect/utils/optionDecisions/contractOverlaySetDigest.ts',
+  'src/features/architect/utils/optionDecisions/governedOptionDecision.ts',
+  'src/features/architect/utils/optionDecisions/worldOptionDecisionAuthority.ts',
+  'src/features/architect/utils/mutationPipeline.persist.ts',
+  'src/features/architect/utils/worldManager.core.ts',
 ] as const);

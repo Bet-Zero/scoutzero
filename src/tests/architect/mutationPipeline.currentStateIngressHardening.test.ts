@@ -361,7 +361,7 @@ describe('mutationPipeline current-state ingress hardening', () => {
     expect(updatedOfferingTeam).not.toHaveProperty('compatBag');
   });
 
-  it('preserves the consumed top-level bird-rights compatibility field on the option-decline player path', async () => {
+  it('refuses a legacy option-decline request before writes or fallback rights inference', async () => {
     const player = makePlayer('option_1', 'Option Player', 12_000_000, 'LAL', {
       contract: {
         contractType: 'Standard',
@@ -409,23 +409,12 @@ describe('mutationPipeline current-state ingress hardening', () => {
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
-
-    const updatedTeam = result.changedTeams?.[0]?.team;
-    const createdCapHold = updatedTeam?.capHolds?.find(
-      (hold) => hold.playerId === 'option_1'
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      'Governed option decision requires teamCode, playerId, and contractId.'
     );
-
-    expect(createdCapHold).toMatchObject({
-      playerId: 'option_1',
-      playerName: 'Option Player',
-      amount: 13_000_000,
-      type: 'FA Cap Hold',
-    });
-    expect(createdCapHold?.notes).toBeUndefined();
-    expect(
-      updatedTeam?.players?.some((teamPlayer) => teamPlayer.player_id === 'option_1')
-    ).toBe(false);
+    expect(result.changedTeams).toBeUndefined();
+    expect(testState.batchCommit).not.toHaveBeenCalled();
   });
 
   it('tolerates mixed raw current-state ingress but only carries normalized team objects into compute output', () => {

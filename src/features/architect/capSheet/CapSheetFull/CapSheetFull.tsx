@@ -42,6 +42,7 @@ import type { ManualCapSheetMutationAuthority } from '@/features/architect/capSh
 import type { FreeAgentSurfaceEntry } from '@/features/architect/freeAgency/FreeAgentPool/types';
 import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
 import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHistory';
+import type { GovernedOptionDecisionAvailability } from '@/features/architect/utils/optionDecisions';
 import {
   getHoldLookupKeys,
   getPlayerLookupKeys,
@@ -91,9 +92,21 @@ type VisiblePlayerEntry = {
   firstVisibleAmount: number;
   originalIndex: number;
 };
-type ActionExposureClassification = 'V1 supported' | 'preview-only';
+type ActionExposureClassification =
+  | 'V1 supported'
+  | 'preview-only';
+type OptionExposureClassification =
+  | ActionExposureClassification
+  | 'Needs input'
+  | 'recorded';
 
-export type CapSheetActionType = 'rfa' | 'ufa' | 'po' | 'to' | 'renounce';
+export type CapSheetActionType =
+  | 'rfa'
+  | 'ufa'
+  | 'po'
+  | 'to'
+  | 'eto'
+  | 'renounce';
 export type CapSheetModalActionType = Exclude<CapSheetActionType, 'renounce'>;
 export type CapSheetImmediateActionType = Extract<
   CapSheetActionType,
@@ -194,7 +207,13 @@ type CapSheetFullProps = {
   standardWaiveExposureClassification?: ActionExposureClassification;
   standardWaiveStretchExposureClassification?: ActionExposureClassification;
   standardBuyoutExposureClassification?: ActionExposureClassification;
-  optionDecisionExposureClassification?: ActionExposureClassification;
+  optionDecisionExposureClassification?: OptionExposureClassification;
+  getOptionDecisionAvailability?:
+    | ((
+        player: CapSheetFullPlayerLike,
+        year: number
+      ) => GovernedOptionDecisionAvailability)
+    | null;
   freeAgentOptions?: FreeAgentSurfaceEntry[];
   onOpenFreeAgentOption?: ((selectionKey: string) => void) | null;
   onRemoveFreeAgentOption?: ((selectionKey: string) => void) | null;
@@ -230,6 +249,7 @@ const getFaCellTint = (type: string | null): string =>
 const OPTION_CELL_STYLE = {
   PO: 'bg-gradient-to-b from-emerald-500/[0.16] to-emerald-500/[0.04] hover:from-emerald-500/30 hover:to-emerald-500/10 shadow-[inset_2px_0_0_rgba(16,185,129,0.6)]',
   TO: 'bg-gradient-to-b from-amber-500/[0.16] to-amber-500/[0.04] hover:from-amber-500/30 hover:to-amber-500/10 shadow-[inset_2px_0_0_rgba(245,158,11,0.6)]',
+  ETO: 'bg-gradient-to-b from-violet-500/[0.16] to-violet-500/[0.04] hover:from-violet-500/30 hover:to-violet-500/10 shadow-[inset_2px_0_0_rgba(139,92,246,0.6)]',
 } as const;
 
 const EXTENSION_CELL_STYLE =
@@ -498,6 +518,7 @@ export const CapSheetFull = ({
   standardWaiveStretchExposureClassification = 'preview-only',
   standardBuyoutExposureClassification = 'preview-only',
   optionDecisionExposureClassification = 'preview-only',
+  getOptionDecisionAvailability = null,
   freeAgentOptions = [],
   onOpenFreeAgentOption = null,
   onRemoveFreeAgentOption = null,
@@ -1646,45 +1667,107 @@ export const CapSheetFull = ({
                           const isTO =
                             entry.option === 'Team Option' ||
                             entry.option === 'TO';
+                          const isETO =
+                            entry.option === 'Early Termination Option' ||
+                            entry.option === 'ETO';
 
-                          if (isPO || isTO) {
+                          if (isPO || isTO || isETO) {
                             const optionStyle = isPO
                               ? OPTION_CELL_STYLE.PO
-                              : OPTION_CELL_STYLE.TO;
-                            const isSupportedOptionDecision =
-                              year === currentYear + 1 &&
-                              optionDecisionExposureClassification ===
-                                'V1 supported';
-                            const optionExposureClassification =
-                              isSupportedOptionDecision
-                                ? 'V1 supported'
-                                : 'preview-only';
-                            const optionLabel = `${isPO ? 'Player' : 'Team'} Option`;
-                            const supportedOptionTitle = isPO
-                              ? `Record ${optionLabel} decision`
-                              : `Manage ${optionLabel}`;
+                              : isETO
+                                ? OPTION_CELL_STYLE.ETO
+                                : OPTION_CELL_STYLE.TO;
+                            const governedAvailability =
+                              getOptionDecisionAvailability?.(player, year) ??
+                              null;
+                            const optionExposureClassification: OptionExposureClassification =
+                              governedAvailability
+                                ? governedAvailability.status === 'ready'
+                                  ? 'V1 supported'
+                                  : governedAvailability.status === 'decided'
+                                    ? 'recorded'
+                                    : 'Needs input'
+                                : year === currentYear + 1 &&
+                                    optionDecisionExposureClassification ===
+                                      'V1 supported'
+                                  ? 'V1 supported'
+                                  : 'preview-only';
+                            const optionLabel = isETO
+                              ? 'Early Termination Option'
+                              : `${isPO ? 'Player' : 'Team'} Option`;
+                            const optionTitle =
+                              optionExposureClassification === 'Needs input'
+                                ? `Needs input: ${governedAvailability?.reasons[0] || 'governed option evidence is incomplete.'}`
+                                : optionExposureClassification === 'recorded'
+                                  ? `${optionLabel} decision recorded`
+                                  : optionExposureClassification === 'V1 supported'
+                                    ? `Record ${optionLabel} decision`
+                                    : `Preview: manage ${optionLabel}`;
+                            const optionCellIsClickable =
+                              optionExposureClassification !== 'recorded';
+                            const launchOptionDecision = () => {
+                              if (!optionCellIsClickable) return;
+                              launchContractAction?.(
+                                player,
+                                isETO ? 'eto' : isPO ? 'po' : 'to',
+                                year
+                              );
+                            };
+                            const optionAccessibleLabel = `${optionTitle} for ${
+                              player.displayName ||
+                              player.bio?.displayName ||
+                              player.name ||
+                              'player'
+                            }, ${year - 1}-${String(year % 100).padStart(2, '0')}`;
 
                             return (
                               <div
                                 key={year}
-                                onClick={() =>
-                                  launchContractAction?.(
-                                    player,
-                                    isPO ? 'po' : 'to',
-                                    year
+                                role={
+                                  optionCellIsClickable ? 'button' : undefined
+                                }
+                                tabIndex={optionCellIsClickable ? 0 : undefined}
+                                aria-label={
+                                  optionCellIsClickable
+                                    ? optionAccessibleLabel
+                                    : undefined
+                                }
+                                onKeyDown={(event) => {
+                                  if (
+                                    event.key !== 'Enter' &&
+                                    event.key !== ' '
                                   )
-                                }
-                                className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[var(--cap-row-h,24px)] transition-all cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20 ${optionStyle}`}
-                                title={
-                                  isSupportedOptionDecision
-                                    ? supportedOptionTitle
-                                    : `Preview: manage ${optionLabel}`
-                                }
+                                    return;
+                                  event.preventDefault();
+                                  launchOptionDecision();
+                                }}
+                                onClick={launchOptionDecision}
+                                className={`relative flex items-center justify-center px-2 py-2 border-l border-white/[0.02] h-[var(--cap-row-h,24px)] transition-all ${
+                                  optionCellIsClickable
+                                    ? 'cursor-pointer hover:ring-2 hover:ring-inset hover:ring-white/20'
+                                    : 'cursor-default'
+                                } ${optionStyle}`}
+                                title={optionTitle}
                                 data-action-exposure-classification={
                                   optionExposureClassification
                                 }
+                                data-needs-input-reason={
+                                  optionExposureClassification === 'Needs input'
+                                    ? governedAvailability?.reasons[0]
+                                    : undefined
+                                }
                               >
                                 {twoWayMarker}
+                                {optionExposureClassification === 'Needs input' && (
+                                  <span className="absolute right-1 top-0 text-[7px] font-bold uppercase tracking-wide text-amber-200">
+                                    Needs input
+                                  </span>
+                                )}
+                                {optionExposureClassification === 'recorded' && (
+                                  <span className="absolute right-1 top-0 text-[7px] font-bold uppercase tracking-wide text-emerald-200">
+                                    Recorded
+                                  </span>
+                                )}
                                 <ContractAmountDisplay
                                   capHit={rowAmounts.capHit}
                                   baseSalary={rowAmounts.baseSalary}

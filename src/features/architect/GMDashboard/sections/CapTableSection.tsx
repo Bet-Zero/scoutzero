@@ -23,6 +23,7 @@ type ForwardedCapTableProps = Pick<
   | 'standardWaiveStretchExposureClassification'
   | 'standardBuyoutExposureClassification'
   | 'optionDecisionExposureClassification'
+  | 'getOptionDecisionAvailability'
   | 'freeAgentOptions'
   | 'onOpenFreeAgentOption'
   | 'onRemoveFreeAgentOption'
@@ -58,6 +59,7 @@ const CapTableSection = ({
   standardWaiveStretchExposureClassification = 'preview-only',
   standardBuyoutExposureClassification = 'preview-only',
   optionDecisionExposureClassification = 'preview-only',
+  getOptionDecisionAvailability = null,
   freeAgentOptions = [],
   onOpenFreeAgentOption = null,
   onRemoveFreeAgentOption = null,
@@ -91,6 +93,7 @@ const CapTableSection = ({
     }
     standardBuyoutExposureClassification={standardBuyoutExposureClassification}
     optionDecisionExposureClassification={optionDecisionExposureClassification}
+    getOptionDecisionAvailability={getOptionDecisionAvailability}
     freeAgentOptions={freeAgentOptions}
     onOpenFreeAgentOption={onOpenFreeAgentOption}
     onRemoveFreeAgentOption={onRemoveFreeAgentOption}

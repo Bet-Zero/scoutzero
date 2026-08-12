@@ -21,11 +21,6 @@ import {
   normalizeSalaryRow,
 } from '@/features/architect/utils/contractNormalization';
 import {
-  computeExpectedCapHoldAmount,
-  deriveFreeAgencyYearFromOptionSeason,
-  getRightsTypeFromPlayer,
-} from '@/features/architect/utils/capHoldTransitionHelpers';
-import {
   getMutationPlayerId,
   getMutationRosterEntryId,
   getSalaryRowEndYear,
@@ -34,7 +29,6 @@ import {
   synchronizeTeamTotalsSnapshotOrTeam,
   toOptionalNumber,
 } from './mutationPipeline.helpers';
-import { toCapHoldComputationPlayer } from './mutationPipeline.compute.signings.signing';
 import type {
   ArchitectMutationContract,
   ComputeMutationParamsWithCurrentState,
@@ -44,6 +38,11 @@ import type {
   MutationTeamAndPlayerCurrentState,
 } from './mutationPipeline';
 import { renounceGovernedRights } from '@/features/architect/utils/rightsHistory';
+import {
+  applyGovernedOptionResult,
+  contractOverlaySetDigest,
+  decideGovernedOption,
+} from '@/features/architect/utils/optionDecisions';
 
 export function computeWaiveResult({
   payload,
@@ -315,142 +314,85 @@ export function computeOptionResult({
   currentState,
   seasonId,
   timestamp,
+  asOfDate,
+  worldId,
+  operationId,
+  authoringIdentity,
 }: ComputeMutationParamsWithCurrentState<
   MutationTeamAndPlayerCurrentState,
   MutationPayloadInputByType['optionDecision']
->): ComputeResultLike {
+> & {
+  asOfDate?: string | number | null;
+  worldId?: string;
+  operationId?: string;
+  authoringIdentity?: string;
+}): ComputeResultLike {
   const { team, player } = requireBasicTeamAndPlayerState(
     currentState,
     'optionDecision'
   );
   const teamCode = currentState.teamCode || team.teamCode || null;
-  const { accepted, targetYear } = payload;
-
   const playerId = payload.playerId || player.player_id || player.id;
-  const updatedTeam = { ...team };
-  const teamPlayers = Array.isArray(updatedTeam.players)
-    ? [...updatedTeam.players]
-    : [];
-
-  const playerIndex = teamPlayers.findIndex(
-    (teamPlayer) => getMutationPlayerId(teamPlayer) === playerId
-  );
-
-  if (playerIndex === -1) {
+  const targetYear = Number(payload.targetYear);
+  if (
+    !teamCode ||
+    !playerId ||
+    !payload.contractId ||
+    typeof payload.accepted !== 'boolean' ||
+    !payload.optionNotice ||
+    !currentState.optionAuthority ||
+    !Number.isInteger(targetYear) ||
+    typeof asOfDate !== 'string' ||
+    !worldId ||
+    !operationId ||
+    !authoringIdentity
+  ) {
     return {
       success: false,
-      error: `Player ${playerId} not found on team ${teamCode}`,
+      error:
+        'Governed option decision requires the pinned contract, explicit world date, exact notice evidence, and author provenance.',
     };
   }
-
-  const playerData = teamPlayers[playerIndex];
-  const salaries = Array.isArray(playerData.contract?.salariesByYear)
-    ? playerData.contract.salariesByYear
-    : [];
-
-  const optionIndex = salaries.findIndex((row) => {
-    const yearEnd = toEndYear(row.season);
-    return yearEnd === targetYear && row.option;
+  const result = decideGovernedOption({
+    authority: currentState.optionAuthority,
+    rightsLedger: team.rightsLedger,
+    worldId,
+    teamId: String(teamCode),
+    playerId: String(playerId),
+    contractId: String(payload.contractId),
+    baselineSalaryCapYear: currentState.optionAuthority.baselineSalaryCapYear,
+    worldAsOfDate: asOfDate,
+    targetYear,
+    choice: payload.accepted ? 'exercise' : 'decline',
+    notice: payload.optionNotice,
+    operationId,
+    authoringIdentity,
   });
-
-  if (optionIndex === -1) {
-    return { success: false, error: `No option found for year ${targetYear}` };
+  if (!result.success) {
+    return {
+      success: false,
+      error: result.reasons[0] || 'Governed option decision needs input.',
+    };
   }
 
-  let updatedPlayer;
-  let newCapHold = null;
-
-  if (accepted) {
-    const updatedSalaries: MutationPipelineSalaryRow[] = salaries.map(
-      (row) => row as MutationPipelineSalaryRow
-    );
-    updatedSalaries[optionIndex] = {
-      ...(normalizeSalaryRow(
-        updatedSalaries[optionIndex]
-      ) as MutationPipelineSalaryRow),
-      optionUsed: true,
-    };
-
-    updatedPlayer = {
-      ...playerData,
-      contract: normalizeContractForWorld({
-        ...playerData.contract,
-        salariesByYear: updatedSalaries,
-      }) as ArchitectMutationContract | null,
-    };
-  } else {
-    const optionSeason = salaries[optionIndex]?.season || null;
-    const faYearInfo = deriveFreeAgencyYearFromOptionSeason(
-      optionSeason,
-      targetYear
-    );
-    const freeAgencyYear =
-      typeof faYearInfo.year === 'number'
-        ? faYearInfo.year
-        : Number(targetYear) - 1;
-
-    const filteredSalaries = salaries
-      .filter((_, idx) => idx < optionIndex)
-      .map(normalizeSalaryRow);
-
-    updatedPlayer = {
-      ...playerData,
-      contract: normalizeContractForWorld({
-        ...playerData.contract,
-        salariesByYear: filteredSalaries,
-        freeAgency: {
-          year: freeAgencyYear,
-          type: 'UFA',
-        },
-      }) as ArchitectMutationContract | null,
-    };
-
-    const priorRow = salaries[optionIndex - 1];
-    const lastSalary = Number(priorRow?.salary ?? priorRow?.capHit ?? 0);
-    const capHoldPlayer = toCapHoldComputationPlayer(playerData);
-    const rightsType = getRightsTypeFromPlayer(capHoldPlayer);
-    const capHoldExpectation = computeExpectedCapHoldAmount({
-      player: capHoldPlayer,
-      lastSalary,
-      rules: null,
-      rightsType,
+  let applied;
+  try {
+    applied = applyGovernedOptionResult({
+      team,
+      playerId: String(playerId),
+      result,
     });
-
-    if (lastSalary > 0 && capHoldExpectation.amount > 0) {
-      const fallbackNotes = capHoldExpectation.usedFallback
-        ? 'Fallback multiplier used due to missing/unsupported Bird rights type.'
-        : undefined;
-      newCapHold = {
-        playerId,
-        playerName: playerData.displayName || playerData.name || '',
-        amount: capHoldExpectation.amount,
-        type: 'FA Cap Hold',
-        season: toSeasonCode(targetYear),
-        isSigned: false,
-        reason: capHoldExpectation.usedFallback
-          ? 'Declined Option (fallback multiplier)'
-          : 'Declined Option',
-        active: true,
-        ...(fallbackNotes ? { notes: fallbackNotes } : {}),
-      };
-    }
-
-    updatedTeam.roster = (updatedTeam.roster || []).filter(
-      (entry) => getMutationRosterEntryId(entry) !== playerId
-    );
-    updatedTeam.players = teamPlayers.filter(
-      (teamPlayer) => getMutationPlayerId(teamPlayer) !== playerId
-    );
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'The governed option result could not be applied.',
+    };
   }
-
-  if (accepted) {
-    teamPlayers[playerIndex] = updatedPlayer;
-    updatedTeam.players = teamPlayers;
-  }
-
-  if (newCapHold) {
-    updatedTeam.capHolds = [...(updatedTeam.capHolds || []), newCapHold];
-  }
+  const updatedTeam = applied.team;
+  const updatedPlayer = applied.updatedPlayer;
 
   updatedTeam.source = {
     ...getTeamSourceRecord(updatedTeam.source),
@@ -466,15 +408,39 @@ export function computeOptionResult({
   return {
     success: true,
     teamUpdates: [{ teamCode, team: updatedTeam }],
-    playerUpdates: accepted ? [{ playerId, player: updatedPlayer }] : [],
+    playerUpdates: result.endsContract
+      ? []
+      : [{ playerId, player: updatedPlayer }],
+    playerDeletes: result.endsContract
+      ? [{ playerId, teamCode: String(teamCode) }]
+      : [],
     metadata: {
-      type: 'option',
+      type: result.optionType === 'ETO' ? 'eto' : 'option',
       teamCode,
       playerId,
       playerName: player.displayName || player.name,
-      optionType: salaries[optionIndex]?.option,
-      accepted,
+      optionType: result.optionType,
+      optionDecision: result.choice,
+      accepted: payload.accepted,
       targetYear,
+      contractId: payload.contractId,
+      contractEventId: result.event.eventId,
+      contractLedgerId: result.ledger.ledgerId,
+      contractLedgerVersion: result.ledger.ledgerVersion,
+      expectedContractLedgerId: result.expectedContractLedger.ledgerId,
+      expectedContractLedgerVersion:
+        result.expectedContractLedger.ledgerVersion,
+      expectedContractOverlayLedgerVersion:
+        result.expectedContractLedger.overlayLedgerVersion,
+      expectedContractOverlaySetDigest: contractOverlaySetDigest(
+        team.contractEventLedgers
+      ),
+      rightsLedgerId: result.expectedRightsLedger?.ledgerId,
+      rightsLedgerVersion: result.expectedRightsLedger?.ledgerVersion,
+      freeAgentStatus: result.freeAgentStatus,
+      freeAgentAmount: result.freeAgentAmount,
+      birdRightsType: result.birdType,
+      priorTeamOfferCeiling: result.priorTeamOfferCeiling,
       timestamp,
     },
   };

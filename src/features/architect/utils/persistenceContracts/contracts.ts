@@ -77,6 +77,7 @@ export const TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.fre
   'deadCap', // Array of DeadCapItemZ
   'capHolds', // Array of CapHoldItemZ
   'rightsLedger', // BZE-273 immutable dated rights history
+  'contractEventLedgers', // BZE-275 immutable option/ETO event overlays
   'exceptions', // ExceptionsZ object (contains mle, bae, tpe[], etc.)
   // Phase 64: 'tradeExceptions' REMOVED from allowlist. Legacy TPE data is now normalized
   // into exceptions.tpe[] via normalizeTeamTpeSchema() before persistence. See Phase 64 docs.
@@ -232,6 +233,8 @@ export const CAP_HOLD_ITEM_ALLOWLIST: PersistenceAllowlist = Object.freeze([
   // and consumed by getActiveUnsignedCapHolds (capHolds.ts:55)
   'active', // Boolean flag for cap hold filtering
   'reason', // Informational field for cap hold origin
+  'priorTeamOfferCeiling', // Rookie Scale declined-option offer ceiling
+  'governedContractEventId', // Immutable event that created the hold
 ]);
 
 // ==============================================================================
@@ -367,6 +370,17 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.f
   'accepted',
   'targetYear',
   'effectiveSeason',
+  'contractId',
+  'contractEventId',
+  'contractLedgerId',
+  'contractLedgerVersion',
+  'expectedContractLedgerId',
+  'expectedContractLedgerVersion',
+  'expectedContractOverlayLedgerVersion',
+  'expectedContractOverlaySetDigest',
+  'freeAgentStatus',
+  'freeAgentAmount',
+  'priorTeamOfferCeiling',
 
   // Extension events
   'extensionType',
