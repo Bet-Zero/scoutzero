@@ -1579,6 +1579,8 @@ test.describe('BZE-275 governed Full Cap Table option/ETO browser proof', () => 
 
     await firstYearSalary.fill('12000000');
     await firstYearSalary.blur();
+    await expect(blockedAlert).toHaveCount(0);
+    await expect(confirm).toBeEnabled();
     await confirm.click();
     await expect(modal).toHaveCount(0, { timeout: 25_000 });
     await waitForReviewDashboard(page);

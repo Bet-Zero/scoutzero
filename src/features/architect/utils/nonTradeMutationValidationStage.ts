@@ -530,7 +530,24 @@ export function validateNonTradeMutationStage({
   dateDefaulted?: boolean;
   worldId?: string | null;
 }): StageValidationResult {
-  const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
+  const salaryCapYear = toEndYear(seasonId);
+  if (mutationType === 'signFreeAgent' && salaryCapYear === null) {
+    const message =
+      'The signing Salary Cap Year could not be derived. No changes were saved.';
+    return {
+      valid: false,
+      error: message,
+      violations: [
+        JSON.stringify({
+          rule: 'governed_signing_salary_cap_year_missing',
+          message,
+          severity: 'error',
+        }),
+      ],
+      warnings: [],
+    };
+  }
+  const currentYear = salaryCapYear ?? new Date().getFullYear();
   const pipelineWarnings = buildPipelineWarnings({
     asOfDate,
     dateDefaulted,

@@ -51,6 +51,7 @@ type ContractDetailsFormProps = {
     raisePct: number | null | undefined
   ) => number[];
   toSalaryInputs: (series: number[], years: number) => string[];
+  onTermsChange: () => void;
 };
 
 export const ContractDetailsForm = ({
@@ -83,6 +84,7 @@ export const ContractDetailsForm = ({
   clampFirstYearToGuardrails,
   buildSalarySeries,
   toSalaryInputs,
+  onTermsChange,
 }: ContractDetailsFormProps) => (
   <>
     {['signNew', 'resign', 'extend', 'signAndTrade'].includes(selectedAction) && (
@@ -256,6 +258,7 @@ export const ContractDetailsForm = ({
                     disabled={!isActive}
                     value={salaryInputs[idx] || ''}
                     onChange={(e) => {
+                      onTermsChange();
                       const raw = e.target.value.replace(/[^0-9]/g, '');
                       const parsed = Number(raw);
                       const nextSalaries = (() => {

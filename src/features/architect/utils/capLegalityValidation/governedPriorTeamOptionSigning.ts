@@ -365,6 +365,10 @@ function formatMoney(amount: number): string {
   });
 }
 
+function toCents(amount: number): number {
+  return Math.round(amount * 100);
+}
+
 export function validateGovernedPriorTeamOptionSigning({
   team,
   player,
@@ -377,6 +381,9 @@ export function validateGovernedPriorTeamOptionSigning({
   const playerId = playerIdOf(player);
   const teamId = teamIdOf(team);
   const worldId = String(worldIdInput ?? '').trim();
+  if (!teamId || !playerId) {
+    return blocked('missing', 'Team or player identity is missing.');
+  }
   const playerHolds = (team.capHolds || []).filter(
     (hold) => holdPlayerId(hold) === playerId
   );
@@ -495,8 +502,8 @@ export function validateGovernedPriorTeamOptionSigning({
   }
 
   const decline = applicable[0];
-  if (!worldId || !teamId || !playerId) {
-    return blocked('missing', 'World, team, or player identity is missing.');
+  if (!worldId) {
+    return blocked('missing', 'World identity is missing.');
   }
   if (dateDefaulted || !/^\d{4}-\d{2}-\d{2}$/.test(asOfDate || '')) {
     return blocked(
@@ -579,7 +586,10 @@ export function validateGovernedPriorTeamOptionSigning({
   }
 
   const governedOfferAmount = firstYearSalary + firstYearUnlikely;
-  if (governedOfferAmount > decline.declinedSalary) {
+  const governedOfferCents =
+    toCents(firstYearSalary) + toCents(firstYearUnlikely);
+  const declinedSalaryCents = toCents(decline.declinedSalary);
+  if (governedOfferCents > declinedSalaryCents) {
     return {
       valid: false,
       violations: [

@@ -92,6 +92,42 @@ describe('Full Cap Table governed rights consumer', () => {
     expect(
       screen.getByTestId('cap-sheet-full-fa-resign-cell')
     ).toBeInTheDocument();
+
+    cleanup();
+    render(
+      <CapSheetFull
+        teamCapSheet={{ ...team, players: [] } as never}
+        currentYear={2027}
+        playersMap={{ [RIGHTS_FIXTURE_PLAYER_ID]: PLAYER }}
+        governedRightsContext={governedContext}
+      />
+    );
+    expect(
+      screen.queryByTestId('cap-sheet-full-fa-decision-row')
+    ).not.toBeInTheDocument();
+
+    cleanup();
+    render(
+      <CapSheetFull
+        teamCapSheet={{
+          ...team,
+          players: [],
+          capHolds: [
+            {
+              ...team.capHolds[0],
+              priorTeamOfferCeiling: '12000000',
+              governedContractEventId: 'governed-option-decline-event',
+            },
+          ],
+        } as never}
+        currentYear={2027}
+        playersMap={{ [RIGHTS_FIXTURE_PLAYER_ID]: PLAYER }}
+        governedRightsContext={governedContext}
+      />
+    );
+    expect(
+      screen.queryByTestId('cap-sheet-full-fa-decision-row')
+    ).not.toBeInTheDocument();
   });
 
   it('renders the replayed Bird tier and Free Agent Amount instead of snapshot fallbacks', () => {

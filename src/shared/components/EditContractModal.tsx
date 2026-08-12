@@ -1036,6 +1036,7 @@ export const EditContractModal = ({
             clampFirstYearToGuardrails={clampFirstYearToGuardrails}
             buildSalarySeries={buildSalarySeries}
             toSalaryInputs={toSalaryInputs}
+            onTermsChange={() => setSaveError('')}
           />
 
           {/* === Validation Warnings === */}

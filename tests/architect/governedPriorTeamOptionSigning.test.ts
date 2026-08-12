@@ -26,6 +26,8 @@ const PLAYER_ID = 'player-bze-276';
 const CONTRACT_ID = 'contract-bze-276';
 const SALARY_CAP_YEAR = 2028;
 const SEASON = '2027-28';
+const THIRD_SALARY_CAP_YEAR = 2027;
+const THIRD_SEASON = '2026-27';
 const DECLINED_SALARY = 12_000_000;
 const FREE_AGENT_AMOUNT = 21_850_000;
 const EFFECTIVE_AT = '2027-07-01T00:00:00-04:00';
@@ -54,6 +56,10 @@ function salaryRow({
   option?: 'TO' | null;
   optionUsed?: boolean | null;
 }): ContractSalaryTerm {
+  const seasonStartYear = season.match(/^(\d{4})-\d{2}$/)?.[1];
+  const contractEndsAt = seasonStartYear
+    ? `${seasonStartYear}-07-01T00:00:00-04:00`
+    : EFFECTIVE_AT;
   return {
     season,
     salary,
@@ -72,7 +78,7 @@ function salaryRow({
           termsVersion: 1,
           conditional: false,
           decisionWindowOpensAt: instant('2026-10-01T09:00:00-04:00'),
-          contractEndsAt: instant(EFFECTIVE_AT),
+          contractEndsAt: instant(contractEndsAt),
           nonCompensationTermsMatchPriorSeason: true,
           compensationProtectionMatchesPriorSeason: true,
           rookieScaleOptionOrdinal: season === SEASON ? 'fourth' : 'third',
@@ -122,10 +128,16 @@ function state({
   contractVersion,
   salaries,
   freeAgent,
+  salaryCapYear = SALARY_CAP_YEAR,
+  optionSeason = SEASON,
+  startSeason = predecessorSalaries[0].season,
 }: {
   contractVersion: number;
   salaries: ContractSalaryTerm[];
   freeAgent: boolean;
+  salaryCapYear?: number;
+  optionSeason?: string;
+  startSeason?: string;
 }): GovernedContractState {
   const totalValue = salaries.reduce((sum, row) => sum + (row.salary || 0), 0);
   return makeResultingState({
@@ -139,7 +151,7 @@ function state({
       contractType: 'ROOKIE SCALE CONTRACT',
       isRookieScale: true,
       signingTeam: TEAM_ID,
-      startSeason: predecessorSalaries[0].season,
+      startSeason,
       endSeason: salaries.at(-1)?.season ?? null,
       contractLength: salaries.length,
       totalValue,
@@ -150,7 +162,7 @@ function state({
       freeAgency: freeAgent
         ? {
             type: 'UFA',
-            year: SALARY_CAP_YEAR,
+            year: salaryCapYear,
             capHold: FREE_AGENT_AMOUNT,
             qualifyingOffer: null,
             earlyTerminationOption: null,
@@ -160,19 +172,41 @@ function state({
           }
         : {
             type: 'UFA',
-            year: SALARY_CAP_YEAR,
+            year: salaryCapYear,
             capHold: null,
             qualifyingOffer: null,
             earlyTerminationOption: null,
             hasOption: true,
-            optionYear: SEASON,
+            optionYear: optionSeason,
             optionType: 'TO',
           },
     },
   });
 }
 
-function events(): ContractEventRecord[] {
+function events({
+  salaries = predecessorSalaries,
+  salaryCapYear = SALARY_CAP_YEAR,
+  optionSeason = SEASON,
+  executedAt = '2026-11-02T17:00:00-05:00',
+  effectiveAt = EFFECTIVE_AT,
+  recordedAt = '2026-11-03T09:00:00-05:00',
+  rootExecutedAt = '2026-07-01T00:00:00-04:00',
+  rootEffectiveAt = '2026-07-01T00:00:00-04:00',
+  rootRecordedAt = '2026-07-01T00:01:00-04:00',
+}: {
+  salaries?: ContractSalaryTerm[];
+  salaryCapYear?: number;
+  optionSeason?: string;
+  executedAt?: string;
+  effectiveAt?: string;
+  recordedAt?: string;
+  rootExecutedAt?: string;
+  rootEffectiveAt?: string;
+  rootRecordedAt?: string;
+} = {}): ContractEventRecord[] {
+  const optionIndex = salaries.findIndex((row) => row.season === optionSeason);
+  const eventId = `${CONTRACT_ID}:to:${optionSeason}:decline:v2`;
   const root = makeEvent({
     eventId: `${CONTRACT_ID}:source-establishment`,
     eventKind: 'source-establishment',
@@ -180,36 +214,42 @@ function events(): ContractEventRecord[] {
     contractId: CONTRACT_ID,
     playerId: PLAYER_ID,
     teamId: TEAM_ID,
-    executedAt: '2026-07-01T00:00:00-04:00',
-    effectiveAt: '2026-07-01T00:00:00-04:00',
-    recordedAt: '2026-07-01T00:01:00-04:00',
+    executedAt: rootExecutedAt,
+    effectiveAt: rootEffectiveAt,
+    recordedAt: rootRecordedAt,
     predecessorContractVersion: null,
     predecessorEventId: null,
     resultingContractVersion: 1,
     resultingState: state({
       contractVersion: 1,
-      salaries: predecessorSalaries,
+      salaries,
       freeAgent: false,
+      salaryCapYear,
+      optionSeason,
+      startSeason: salaries[0].season,
     }),
   });
   const decline = makeEvent({
-    eventId: EVENT_ID,
+    eventId,
     eventKind: 'option-decline',
     worldId: WORLD_ID,
     contractId: CONTRACT_ID,
     playerId: PLAYER_ID,
     teamId: TEAM_ID,
-    executedAt: '2026-11-02T17:00:00-05:00',
-    effectiveAt: EFFECTIVE_AT,
-    recordedAt: '2026-11-03T09:00:00-05:00',
+    executedAt,
+    effectiveAt,
+    recordedAt,
     predecessorContractVersion: 1,
     predecessorEventId: root.eventId,
     resultingContractVersion: 2,
     authoringIdentity: 'user-bze-276',
     resultingState: state({
       contractVersion: 2,
-      salaries: predecessorSalaries.slice(0, 3),
+      salaries: salaries.slice(0, optionIndex),
       freeAgent: true,
+      salaryCapYear,
+      optionSeason,
+      startSeason: salaries[0].season,
     }),
     canonLeafIds: ['CBA2-C16.7', 'CBA2-L02.1'],
   });
@@ -257,16 +297,18 @@ function offer({
   unlikely = 1_000_000,
   likely = 0,
   capHit = salary,
+  season = SEASON,
 }: {
   salary?: number;
   unlikely?: number;
   likely?: number;
   capHit?: number;
+  season?: string;
 } = {}): MutationContract {
   return {
     salariesByYear: [
       {
-        season: SEASON,
+        season,
         salary,
         capHit,
         guaranteed: true,
@@ -323,6 +365,13 @@ describe('governed declined Rookie Scale option signing limit', () => {
     expect(result).toEqual({ valid: true, violations: [], warnings: [] });
   });
 
+  it('uses exact cents so a floating-point exact-ceiling split passes', () => {
+    const result = validate({
+      contract: offer({ salary: 11_999_999.99, unlikely: 0.01 }),
+    });
+    expect(result).toEqual({ valid: true, violations: [], warnings: [] });
+  });
+
   it('blocks the exact Canon negative by $0.01 without rounding it away', () => {
     const result = validate({
       contract: offer({ salary: 11_000_000, unlikely: 1_000_000.01 }),
@@ -357,17 +406,93 @@ describe('governed declined Rookie Scale option signing limit', () => {
   });
 
   it.each([
-    ['missing link', () => ({ governedContractEventId: undefined })],
-    ['wrong link', () => ({ governedContractEventId: 'missing-event' })],
-    ['wrong ceiling', () => ({ priorTeamOfferCeiling: 11_999_999 })],
-    ['wrong season', () => ({ season: '2028-29' })],
-    ['wrong free-agent amount', () => ({ amount: FREE_AGENT_AMOUNT + 1 })],
-    ['inactive hold', () => ({ active: false })],
-    ['signed hold', () => ({ isSigned: true })],
-  ])('fails closed for %s', (_label, tamper) => {
-    const changedTeam = team();
-    changedTeam.capHolds = [{ ...changedTeam.capHolds?.[0], ...tamper() }];
-    expect(validate({ team: changedTeam }).valid).toBe(false);
+    ['missing link', () => ({ governedContractEventId: undefined }), 'missing'],
+    [
+      'wrong link',
+      () => ({ governedContractEventId: 'missing-event' }),
+      'missing',
+    ],
+    ['wrong ceiling', () => ({ priorTeamOfferCeiling: 11_999_999 }), 'mismatch'],
+    ['wrong season', () => ({ season: '2028-29' }), 'mismatch'],
+    [
+      'wrong free-agent amount',
+      () => ({ amount: FREE_AGENT_AMOUNT + 1 }),
+      'mismatch',
+    ],
+    ['inactive hold', () => ({ active: false }), 'stale'],
+    ['signed hold', () => ({ isSigned: true }), 'stale'],
+  ])(
+    'fails closed for %s with the expected authority kind',
+    (_label, tamper, failureKind) => {
+      const changedTeam = team();
+      changedTeam.capHolds = [{ ...changedTeam.capHolds?.[0], ...tamper() }];
+      expect(validate({ team: changedTeam }).violations[0]).toMatchObject({
+        failureKind,
+      });
+    }
+  );
+
+  it('fails closed for missing player or team identity before applicability scanning', () => {
+    expect(
+      validate({ player: { name: 'Missing player identity' } })
+        .violations[0]
+    ).toMatchObject({ failureKind: 'missing' });
+
+    expect(
+      validate({ team: { ...team(), teamCode: undefined } }).violations[0]
+    ).toMatchObject({ failureKind: 'missing' });
+  });
+
+  it('accepts governed declines of both third- and fourth-Season Rookie Scale Team Options', () => {
+    expect(validate().valid).toBe(true);
+
+    const thirdOptionSalaries = predecessorSalaries.map((row) =>
+      row.season === THIRD_SEASON
+        ? salaryRow({
+            season: THIRD_SEASON,
+            salary: 10_000_000,
+            option: 'TO',
+          })
+        : row
+    );
+    const thirdEvents = events({
+      salaries: thirdOptionSalaries,
+      salaryCapYear: THIRD_SALARY_CAP_YEAR,
+      optionSeason: THIRD_SEASON,
+      executedAt: '2025-11-02T17:00:00-05:00',
+      effectiveAt: '2026-07-01T00:00:00-04:00',
+      recordedAt: '2025-11-03T09:00:00-05:00',
+      rootExecutedAt: '2024-07-01T00:00:00-04:00',
+      rootEffectiveAt: '2024-07-01T00:00:00-04:00',
+      rootRecordedAt: '2024-07-01T00:01:00-04:00',
+    });
+    const thirdEventId = thirdEvents[1].eventId;
+    const thirdTeam = team();
+    thirdTeam.capHolds = [
+      {
+        ...thirdTeam.capHolds?.[0],
+        season: THIRD_SEASON,
+        priorTeamOfferCeiling: 10_000_000,
+        governedContractEventId: thirdEventId,
+      },
+    ];
+    thirdTeam.contractEventLedgers = [ledger(thirdEvents)];
+
+    expect(
+      validateGovernedPriorTeamOptionSigning({
+        team: thirdTeam,
+        player,
+        contract: offer({
+          salary: 9_000_000,
+          unlikely: 1_000_000,
+          season: THIRD_SEASON,
+        }),
+        worldId: WORLD_ID,
+        year: THIRD_SALARY_CAP_YEAR,
+        asOfDate: '2026-07-02',
+        dateDefaulted: false,
+      })
+    ).toEqual({ valid: true, violations: [], warnings: [] });
   });
 
   it('fails closed for duplicate cap holds and duplicate linked events', () => {
@@ -494,6 +619,56 @@ describe('governed declined Rookie Scale option signing limit', () => {
     expect(result.valid).toBe(false);
     expect(result.violations?.[0]).toContain(
       'governed_rookie_option_offer_exceeds_ceiling'
+    );
+  });
+
+  it('passes an exact-ceiling offer through the shared mutation stage', () => {
+    const result = validateNonTradeMutationStage({
+      mutationType: 'signFreeAgent',
+      payload: {
+        teamCode: TEAM_ID,
+        playerId: PLAYER_ID,
+        contract: offer({ salary: 11_999_999.99, unlikely: 0.01 }),
+        signedUsing: 'CAP_SPACE',
+      },
+      currentState: {
+        team: team(),
+        player,
+        teamCode: TEAM_ID,
+      },
+      computeResult: { success: true },
+      seasonId: SEASON,
+      asOfDate: '2027-07-02',
+      dateDefaulted: false,
+      worldId: WORLD_ID,
+    });
+    expect(result.valid).toBe(true);
+    expect(result.violations).toEqual([]);
+  });
+
+  it('blocks ordinary signing when the Salary Cap Year cannot be derived', () => {
+    const result = validateNonTradeMutationStage({
+      mutationType: 'signFreeAgent',
+      payload: {
+        teamCode: TEAM_ID,
+        playerId: PLAYER_ID,
+        contract: offer(),
+        signedUsing: 'CAP_SPACE',
+      },
+      currentState: {
+        team: team(),
+        player,
+        teamCode: TEAM_ID,
+      },
+      computeResult: { success: true },
+      seasonId: 'not-a-season',
+      asOfDate: '2027-07-02',
+      dateDefaulted: false,
+      worldId: WORLD_ID,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.violations?.[0]).toContain(
+      'governed_signing_salary_cap_year_missing'
     );
   });
 });
