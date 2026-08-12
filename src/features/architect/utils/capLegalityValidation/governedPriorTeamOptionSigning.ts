@@ -33,6 +33,17 @@ import type {
 const AUTHORITY_RULE = 'governed_rookie_option_signing_record_invalid';
 const CEILING_RULE = 'governed_rookie_option_offer_exceeds_ceiling';
 
+function toExactCents(amount: number): number | null {
+  const scaled = amount * 100;
+  const cents = Math.round(scaled);
+  const floatingPointTolerance =
+    Number.EPSILON * Math.max(1, Math.abs(scaled)) * 4;
+  return Number.isSafeInteger(cents) &&
+    Math.abs(scaled - cents) <= floatingPointTolerance
+    ? cents
+    : null;
+}
+
 type AuthorityFailureKind =
   | 'missing'
   | 'duplicate'
@@ -322,7 +333,8 @@ function inspectRookieScaleDecline({
   if (
     typeof declinedSalary !== 'number' ||
     !Number.isFinite(declinedSalary) ||
-    declinedSalary < 0
+    declinedSalary < 0 ||
+    toExactCents(declinedSalary) === null
   ) {
     return {
       status: 'invalid',
@@ -363,10 +375,6 @@ function formatMoney(amount: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-}
-
-function toCents(amount: number): number {
-  return Math.round(amount * 100);
 }
 
 export function validateGovernedPriorTeamOptionSigning({
@@ -586,9 +594,20 @@ export function validateGovernedPriorTeamOptionSigning({
   }
 
   const governedOfferAmount = firstYearSalary + firstYearUnlikely;
-  const governedOfferCents =
-    toCents(firstYearSalary) + toCents(firstYearUnlikely);
-  const declinedSalaryCents = toCents(decline.declinedSalary);
+  const firstYearSalaryCents = toExactCents(firstYearSalary);
+  const firstYearUnlikelyCents = toExactCents(firstYearUnlikely);
+  const declinedSalaryCents = toExactCents(decline.declinedSalary);
+  if (
+    firstYearSalaryCents === null ||
+    firstYearUnlikelyCents === null ||
+    declinedSalaryCents === null
+  ) {
+    return blocked(
+      'malformed',
+      'Salary, Unlikely Bonuses, and the declined option ceiling must be exact cent-denominated amounts.'
+    );
+  }
+  const governedOfferCents = firstYearSalaryCents + firstYearUnlikelyCents;
   if (governedOfferCents > declinedSalaryCents) {
     return {
       valid: false,

@@ -385,6 +385,14 @@ describe('governed declined Rookie Scale option signing limit', () => {
     });
   });
 
+  it('rejects a sub-cent offer above the ceiling instead of rounding it into compliance', () => {
+    const result = validate({
+      contract: offer({ salary: DECLINED_SALARY + 0.001, unlikely: 0 }),
+    });
+    expect(result.valid).toBe(false);
+    expect(result.violations[0]).toMatchObject({ failureKind: 'malformed' });
+  });
+
   it('passes salary-only at the ceiling and blocks the smallest amount above it', () => {
     expect(
       validate({ contract: offer({ salary: DECLINED_SALARY, unlikely: 0 }) })
@@ -646,29 +654,32 @@ describe('governed declined Rookie Scale option signing limit', () => {
     expect(result.violations).toEqual([]);
   });
 
-  it('blocks ordinary signing when the Salary Cap Year cannot be derived', () => {
-    const result = validateNonTradeMutationStage({
-      mutationType: 'signFreeAgent',
-      payload: {
-        teamCode: TEAM_ID,
-        playerId: PLAYER_ID,
-        contract: offer(),
-        signedUsing: 'CAP_SPACE',
-      },
-      currentState: {
-        team: team(),
-        player,
-        teamCode: TEAM_ID,
-      },
-      computeResult: { success: true },
-      seasonId: 'not-a-season',
-      asOfDate: '2027-07-02',
-      dateDefaulted: false,
-      worldId: WORLD_ID,
-    });
-    expect(result.valid).toBe(false);
-    expect(result.violations?.[0]).toContain(
-      'governed_signing_salary_cap_year_missing'
-    );
-  });
+  it.each(['not-a-season', '2027invalid'])(
+    'blocks ordinary signing when Salary Cap Year cannot be derived from %s',
+    (seasonId) => {
+      const result = validateNonTradeMutationStage({
+        mutationType: 'signFreeAgent',
+        payload: {
+          teamCode: TEAM_ID,
+          playerId: PLAYER_ID,
+          contract: offer(),
+          signedUsing: 'CAP_SPACE',
+        },
+        currentState: {
+          team: team(),
+          player,
+          teamCode: TEAM_ID,
+        },
+        computeResult: { success: true },
+        seasonId,
+        asOfDate: '2027-07-02',
+        dateDefaulted: false,
+        worldId: WORLD_ID,
+      });
+      expect(result.valid).toBe(false);
+      expect(result.violations?.[0]).toContain(
+        'governed_signing_salary_cap_year_missing'
+      );
+    }
+  );
 });

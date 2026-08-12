@@ -121,6 +121,20 @@ function buildPipelineWarnings({
   return pipelineWarnings;
 }
 
+function toStrictSalaryCapYear(seasonId: string): number | null {
+  const normalized = seasonId.trim();
+  if (/^\d{4}$/.test(normalized)) {
+    const year = Number(normalized);
+    return year >= 1900 ? year : null;
+  }
+
+  const seasonMatch = normalized.match(/^(\d{4})-(\d{2})$/);
+  if (!seasonMatch) return null;
+  const startYear = Number(seasonMatch[1]);
+  const endYear = startYear + 1;
+  return String(endYear).slice(-2) === seasonMatch[2] ? endYear : null;
+}
+
 function requireTeamState(
   currentState: MutationCurrentState,
   mutationType: string
@@ -530,7 +544,10 @@ export function validateNonTradeMutationStage({
   dateDefaulted?: boolean;
   worldId?: string | null;
 }): StageValidationResult {
-  const salaryCapYear = toEndYear(seasonId);
+  const salaryCapYear =
+    mutationType === 'signFreeAgent'
+      ? toStrictSalaryCapYear(seasonId)
+      : toEndYear(seasonId);
   if (mutationType === 'signFreeAgent' && salaryCapYear === null) {
     const message =
       'The signing Salary Cap Year could not be derived. No changes were saved.';
