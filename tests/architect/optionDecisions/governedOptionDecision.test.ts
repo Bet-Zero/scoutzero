@@ -7,6 +7,7 @@ import {
 import type {
   ContractSalaryTerm,
   GovernedOptionDecisionTerms,
+  GovernedOptionRfaRelevanceEvidence,
 } from '@/schemas/governedContractState';
 import {
   applyGovernedOptionResult,
@@ -73,6 +74,34 @@ const unknownTemporal = () => ({
   rawValue: null,
 });
 
+const dateTemporal = (value: string) => ({
+  precision: 'date' as const,
+  value,
+  rawValue: value,
+});
+
+function rfaRelevanceEvidence(
+  declineFreeAgencyStatus: 'RFA' | 'UFA' = 'UFA'
+): GovernedOptionRfaRelevanceEvidence {
+  return {
+    evidenceVersion: 1,
+    status: 'known',
+    declineFreeAgencyStatus,
+    salaryCapYear: TARGET_YEAR,
+    observedAt: dateTemporal('2027-06-20'),
+    sourceIdentity: {
+      releaseId: 'fixture-release',
+      releaseVersion: 1,
+      releaseDigest: `sha256:${'1'.repeat(64)}`,
+      sourceProvider: 'fixture',
+      sourceRecordVersion: '1',
+      sourceObservationId: 'fixture-observation',
+      sourceArtifactSha256: `sha256:${'2'.repeat(64)}`,
+      sourceContractPath: 'contract',
+    },
+  };
+}
+
 function optionTerms(
   optionType: GovernedOptionType,
   overrides: Partial<GovernedOptionDecisionTerms> = {}
@@ -90,6 +119,8 @@ function optionTerms(
     preExerciseProtectionApplies: optionType === 'PO' ? true : null,
     teamLastGameAt: unknownTemporal(),
     rfaDeclarationDeadline: unknownTemporal(),
+    rfaRelevanceEvidence:
+      optionType === 'ETO' ? null : rfaRelevanceEvidence(),
     etoOrigin: optionType === 'ETO' ? 'original-contract' : null,
     etoAddedDuringOriginalTerm: optionType === 'ETO' ? false : null,
     allowedNoticeMethods: ['email', 'certified-mail'],
@@ -167,6 +198,7 @@ function baselineFor(
                 rookieScaleOptionOrdinal: rookieScaleTarget,
                 rookieScaleFourthSeasonTermsMatchThird:
                   rookieScaleTarget === 'fourth' ? true : null,
+                rfaRelevanceEvidence: null,
                 decisionWindowOpensAt: instant(
                   '2026-10-01T09:00:00-04:00'
                 ),
@@ -206,6 +238,7 @@ function baselineFor(
                 ? optionTerms('TO', {
                     rookieScaleOptionOrdinal: 'fourth',
                     rookieScaleFourthSeasonTermsMatchThird: true,
+                    rfaRelevanceEvidence: null,
                     decisionWindowOpensAt: instant('2027-10-01T09:00:00-04:00'),
                   })
                 : terms,
@@ -472,6 +505,146 @@ describe('governed deadline, notice, shape, and source boundaries', () => {
     if (!late.success) expect(late.reasons.join(' ')).toContain('after');
   });
 
+  it.each(['TO', 'PO'] as const)(
+    'enforces CBA2-C24.9 strictly before June 25 for an RFA-triggering %s',
+    (optionType) => {
+      const baseline = baselineFor(optionType, {
+        terms: { rfaRelevanceEvidence: rfaRelevanceEvidence('RFA') },
+      });
+      const before = JSON.stringify(baseline);
+      const noticeEvidence = {
+        baseline,
+        leagueReceivedAt: '2027-06-25T00:01:00-04:00',
+        forwardedAt: '2027-06-25T09:00:00-04:00',
+      };
+
+      expect(
+        decideGovernedOption(
+          request(optionType, 'exercise', {
+            ...noticeEvidence,
+            deliveredAt: '2027-06-24T23:59:59.999-04:00',
+          })
+        ).success
+      ).toBe(true);
+
+      for (const deliveredAt of [
+        '2027-06-25T00:00:00-04:00',
+        '2027-06-25T00:00:00.001-04:00',
+      ]) {
+        const blocked = decideGovernedOption(
+          request(optionType, 'exercise', {
+            ...noticeEvidence,
+            deliveredAt,
+          })
+        );
+        expect(blocked).toMatchObject({
+          success: false,
+          status: 'needs-input',
+        });
+        if (!blocked.success) {
+          expect(blocked.reasons.join(' ')).toContain(
+            'strictly before 2027-06-25T00:00:00-04:00'
+          );
+        }
+        expect(JSON.stringify(baseline)).toBe(before);
+      }
+    }
+  );
+
+  it('treats equivalent UTC and Eastern CBA2-C24.9 instants identically', () => {
+    const baseline = baselineFor('TO', {
+      terms: { rfaRelevanceEvidence: rfaRelevanceEvidence('RFA') },
+    });
+    const shared = {
+      baseline,
+      leagueReceivedAt: '2027-06-25T04:01:00Z',
+      forwardedAt: '2027-06-25T13:00:00Z',
+    };
+    expect(
+      decideGovernedOption(
+        request('TO', 'exercise', {
+          ...shared,
+          deliveredAt: '2027-06-25T03:59:59.999Z',
+        })
+      ).success
+    ).toBe(true);
+    const exact = decideGovernedOption(
+      request('TO', 'exercise', {
+        ...shared,
+        deliveredAt: '2027-06-25T04:00:00Z',
+      })
+    );
+    expect(exact).toMatchObject({ success: false, status: 'needs-input' });
+    if (!exact.success) {
+      expect(exact.reasons.join(' ')).toContain('strictly before');
+    }
+  });
+
+  it('keeps an authenticated non-RFA Option on the CBA2-C24.8 June 29 boundary', () => {
+    const baseline = baselineFor('TO', {
+      terms: { rfaRelevanceEvidence: rfaRelevanceEvidence('UFA') },
+    });
+    expect(
+      decideGovernedOption(request('TO', 'exercise', { baseline })).success
+    ).toBe(true);
+    const late = decideGovernedOption(
+      request('TO', 'exercise', {
+        baseline,
+        deliveredAt: '2027-06-29T17:00:00.001-04:00',
+      })
+    );
+    expect(late).toMatchObject({ success: false, status: 'needs-input' });
+    if (!late.success) expect(late.reasons.join(' ')).toContain('after');
+  });
+
+  it.each([
+    [
+      'missing',
+      null,
+      'RFA-relevance evidence is missing',
+    ],
+    [
+      'malformed',
+      { evidenceVersion: 1, status: 'known' },
+      'RFA-relevance evidence is malformed',
+    ],
+    [
+      'stale',
+      { ...rfaRelevanceEvidence(), salaryCapYear: TARGET_YEAR - 1 },
+      'stale for Salary Cap Year 2028',
+    ],
+    [
+      'contradictory',
+      { ...rfaRelevanceEvidence(), status: 'conflicting' },
+      'RFA-relevance evidence is contradictory',
+    ],
+    [
+      'unauthenticated',
+      {
+        ...rfaRelevanceEvidence(),
+        sourceIdentity: {
+          ...rfaRelevanceEvidence().sourceIdentity,
+          sourceObservationId: 'different-observation',
+        },
+      },
+      'RFA-relevance evidence is unauthenticated',
+    ],
+  ] as const)(
+    'returns Needs input with zero mutation for %s RFA-relevance evidence',
+    (_, rfaEvidence, reason) => {
+      const baseline = baselineFor('TO', {
+        terms: { rfaRelevanceEvidence: rfaEvidence },
+      });
+      const before = JSON.stringify(baseline);
+      const result = decideGovernedOption(
+        request('TO', 'exercise', { baseline })
+      );
+      expect(result).toMatchObject({ success: false, status: 'needs-input' });
+      if (!result.success) expect(result.reasons.join(' ')).toContain(reason);
+      expect(JSON.stringify(baseline)).toBe(before);
+    }
+  );
+
   it.each([
     [
       'missing deadline',
@@ -639,7 +812,7 @@ describe('Rookie Scale, rights, and replay refusal', () => {
     expect(result.contractState.terms.salaries[3].optionUsed).toBeNull();
   });
 
-  it('enforces the adjusted fourth-Season Rookie Scale TO deadline and offer ceiling', () => {
+  it('enforces the adjusted fourth-Season Rookie Scale TO deadline and salary-only offer ceiling', () => {
     const baseline = baselineFor('TO', { isRookieScale: true });
     const result = decideGovernedOption(
       request('TO', 'decline', {
@@ -651,7 +824,11 @@ describe('Rookie Scale, rights, and replay refusal', () => {
     );
     expect(result.success).toBe(true);
     if (!result.success) return;
-    expect(result.priorTeamOfferCeiling).toBe(12_200_000);
+    expect(
+      baseline.events[0].resultingState.terms.salaries.at(-1)?.incentives
+        .unlikely
+    ).toBe(200_000);
+    expect(result.priorTeamOfferCeiling).toBe(12_000_000);
     expect(result.event.eventKind).toBe('option-decline');
 
     const wrongDeadline = baselineFor('TO', {
@@ -673,6 +850,28 @@ describe('Rookie Scale, rights, and replay refusal', () => {
     });
     expect(unavailable.status).toBe('needs-input');
     expect(unavailable.reasons.join(' ')).toContain('2026-11-02');
+
+    const missingSalary = baselineFor('TO', {
+      isRookieScale: true,
+      row: { salary: null, capHit: 12_000_000 },
+    });
+    const salaryUnavailable = inspectGovernedOptionDecision({
+      authority: resolveGovernedOptionLedgerAuthority({
+        baselineLedger: missingSalary,
+        baselineSalaryCapYear: BASELINE_SALARY_CAP_YEAR,
+      }),
+      worldId: WORLD_ID,
+      teamId: TEAM_ID,
+      playerId: PLAYER_ID,
+      contractId: CONTRACT_ID,
+      targetYear: TARGET_YEAR,
+      baselineSalaryCapYear: BASELINE_SALARY_CAP_YEAR,
+      worldAsOfDate: WORLD_AS_OF_DATE,
+    });
+    expect(salaryUnavailable.status).toBe('needs-input');
+    expect(salaryUnavailable.reasons.join(' ')).toContain(
+      'Salary is missing; cap hit cannot establish'
+    );
   });
 
   it('blocks missing rights and RFA/QO/ROFR depth while retaining options need no rights', () => {

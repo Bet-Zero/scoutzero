@@ -19,6 +19,7 @@ import type {
   ContractSalaryTerm,
   GovernedContractState,
   GovernedOptionDecisionTerms,
+  GovernedOptionRfaRelevanceEvidence,
 } from '../../src/schemas/governedContractState';
 import type {
   ContractBaselineTeamDocument,
@@ -76,10 +77,39 @@ const unknownInstant = () => ({
   rawValue: null,
 });
 
+const dateValue = (value: string) => ({
+  precision: 'date' as const,
+  value,
+  rawValue: value,
+});
+
+const rfaRelevanceEvidence = (
+  declineFreeAgencyStatus: 'RFA' | 'UFA' = 'UFA'
+): GovernedOptionRfaRelevanceEvidence => ({
+  evidenceVersion: 1,
+  status: 'known',
+  declineFreeAgencyStatus,
+  salaryCapYear: TARGET_YEAR,
+  observedAt: dateValue('2027-06-20'),
+  sourceIdentity: {
+    releaseId: 'fixture-release',
+    releaseVersion: 1,
+    releaseDigest: `sha256:${'1'.repeat(64)}`,
+    sourceProvider: 'fixture',
+    sourceRecordVersion: '1',
+    sourceObservationId: 'fixture-observation',
+    sourceArtifactSha256: `sha256:${'2'.repeat(64)}`,
+    sourceContractPath: 'contract',
+  },
+});
+
 const seasonForEndYear = (endYear: number) =>
   `${endYear - 1}-${String(endYear % 100).padStart(2, '0')}`;
 
-const optionTerms = (optionType: OptionType): GovernedOptionDecisionTerms => ({
+const optionTerms = (
+  optionType: OptionType,
+  overrides: Partial<GovernedOptionDecisionTerms> = {}
+): GovernedOptionDecisionTerms => ({
   termsVersion: 1,
   conditional: false,
   decisionWindowOpensAt: instant(WINDOW_OPENS),
@@ -92,11 +122,14 @@ const optionTerms = (optionType: OptionType): GovernedOptionDecisionTerms => ({
   preExerciseProtectionApplies: optionType === 'PO' ? true : null,
   teamLastGameAt: unknownInstant(),
   rfaDeclarationDeadline: unknownInstant(),
+  rfaRelevanceEvidence:
+    optionType === 'ETO' ? null : rfaRelevanceEvidence(),
   etoOrigin: optionType === 'ETO' ? 'original-contract' : null,
   etoAddedDuringOriginalTerm: optionType === 'ETO' ? false : null,
   allowedNoticeMethods: ['email', 'certified-mail'],
   noticeRecipient: optionType === 'TO' ? 'team' : 'player',
   leagueForwardingRequired: true,
+  ...overrides,
 });
 
 const salaryRow = ({
@@ -104,13 +137,21 @@ const salaryRow = ({
   index,
   optionType = null,
   blocked = false,
+  deadline = DEADLINE,
+  terms = null,
+  salaryOverride = null,
+  unlikelyBonusOverride = null,
 }: {
   endYear: number;
   index: number;
   optionType?: OptionType | null;
   blocked?: boolean;
+  deadline?: string;
+  terms?: GovernedOptionDecisionTerms | null;
+  salaryOverride?: number | null;
+  unlikelyBonusOverride?: number | null;
 }): ContractSalaryTerm => {
-  const salary = 8_000_000 + index * 1_000_000;
+  const salary = salaryOverride ?? 8_000_000 + index * 1_000_000;
   return {
     season: seasonForEndYear(endYear),
     salary,
@@ -122,12 +163,12 @@ const salaryRow = ({
     optionUsed: null,
     optionDecisionDate: unknownInstant(),
     optionDecisionDeadline:
-      optionType && !blocked ? instant(DEADLINE) : unknownInstant(),
-    optionDecisionTerms: optionType ? optionTerms(optionType) : null,
+      optionType && !blocked ? instant(deadline) : unknownInstant(),
+    optionDecisionTerms: optionType ? terms ?? optionTerms(optionType) : null,
     tradeBonus: null,
     incentives: {
       likely: index * 100_000,
-      unlikely: index * 50_000,
+      unlikely: unlikelyBonusOverride ?? index * 50_000,
       criteriaEvidence: 'known',
     },
     guaranteeSchedule: [],
@@ -140,15 +181,23 @@ const buildFixturePlayer = ({
   optionType,
   suffix,
   blocked = false,
+  declineFreeAgencyStatus = 'UFA',
+  isRookieScale = false,
+  optionSalary = null,
+  optionUnlikelyBonus = null,
 }: {
   optionType: OptionType;
   suffix: string;
   blocked?: boolean;
+  declineFreeAgencyStatus?: 'RFA' | 'UFA';
+  isRookieScale?: boolean;
+  optionSalary?: number | null;
+  optionUnlikelyBonus?: number | null;
 }): FixturePlayer => {
   const playerId = `bze275_${optionType.toLowerCase()}_${suffix}`;
   const displayName = `BZE 275 ${optionType} ${suffix}`;
   const contractId = `${playerId}_contract`;
-  const rowCount = optionType === 'ETO' ? 5 : 3;
+  const rowCount = optionType === 'ETO' ? 5 : isRookieScale ? 4 : 3;
   const firstEndYear = TARGET_YEAR - rowCount + 1;
   const salaries = Array.from({ length: rowCount }, (_, index) =>
     salaryRow({
@@ -156,8 +205,43 @@ const buildFixturePlayer = ({
       index,
       optionType: index === rowCount - 1 ? optionType : null,
       blocked: index === rowCount - 1 && blocked,
+      deadline: isRookieScale ? '2026-11-02T17:00:00-05:00' : DEADLINE,
+      terms:
+        index === rowCount - 1
+          ? optionTerms(optionType, {
+              rfaRelevanceEvidence: isRookieScale
+                ? null
+                : optionType === 'ETO'
+                  ? null
+                  : rfaRelevanceEvidence(declineFreeAgencyStatus),
+              ...(isRookieScale
+                ? {
+                    decisionWindowOpensAt: instant(
+                      '2026-10-01T09:00:00-04:00'
+                    ),
+                    rookieScaleOptionOrdinal: 'fourth' as const,
+                    rookieScaleFourthSeasonTermsMatchThird: true,
+                  }
+                : {}),
+            })
+          : null,
+      salaryOverride:
+        index === rowCount - 1 ? optionSalary : null,
+      unlikelyBonusOverride:
+        index === rowCount - 1 ? optionUnlikelyBonus : null,
     })
   );
+  if (isRookieScale) {
+    salaries[2] = {
+      ...salaries[2],
+      option: 'TO',
+      optionHolder: 'team',
+      optionUsed: true,
+      optionDecisionDate: instant('2025-10-31T16:00:00-04:00'),
+      optionDecisionDeadline: instant('2025-10-31T17:00:00-04:00'),
+      optionDecisionTerms: null,
+    };
+  }
   const totalValue = salaries.reduce((sum, row) => sum + (row.salary ?? 0), 0);
   const state = makeResultingState({
     contractId,
@@ -167,9 +251,11 @@ const buildFixturePlayer = ({
     establishmentKind: 'source-establishment',
     terms: {
       ...makeResultingState().terms,
-      contractType: 'VETERAN CONTRACT',
+      contractType: isRookieScale
+        ? 'ROOKIE SCALE CONTRACT'
+        : 'VETERAN CONTRACT',
       isExtension: false,
-      isRookieScale: false,
+      isRookieScale,
       signedUsing: 'Bird Exception',
       signingTeam: TEAM_ID,
       startSeason: salaries[0].season,
@@ -204,7 +290,7 @@ const buildFixturePlayer = ({
   const mutableContract = {
     contractType: state.terms.contractType,
     isExtension: false,
-    isRookieScale: false,
+    isRookieScale,
     signingTeam: TEAM_ID,
     startSeason: state.terms.startSeason,
     endSeason: state.terms.endSeason,
@@ -478,30 +564,35 @@ const seedOptionWorld = async ({
   userId,
   optionType,
   includeBlocked,
+  fixtureOverrides = null,
 }: {
   userId: string;
   optionType: OptionType;
   includeBlocked: boolean;
+  fixtureOverrides?: readonly FixturePlayer[] | null;
 }) => {
   const db = getReviewAdminDb();
   const worldId = `world_bze275_${optionType.toLowerCase()}_${Date.now()}_${Math.random()
     .toString(36)
     .slice(2, 7)}`;
   seededWorldIds.add(worldId);
-  const actionFixtures = [
-    buildFixturePlayer({ optionType, suffix: 'Exercise' }),
-    buildFixturePlayer({ optionType, suffix: 'Decline' }),
-  ];
-  const fixtures = includeBlocked
-    ? [
-        ...actionFixtures,
-        buildFixturePlayer({
-          optionType,
-          suffix: 'Missing Deadline',
-          blocked: true,
-        }),
-      ]
-    : actionFixtures;
+  const actionFixtures = fixtureOverrides
+    ? [...fixtureOverrides]
+    : [
+        buildFixturePlayer({ optionType, suffix: 'Exercise' }),
+        buildFixturePlayer({ optionType, suffix: 'Decline' }),
+      ];
+  const fixtures =
+    includeBlocked && !fixtureOverrides
+      ? [
+          ...actionFixtures,
+          buildFixturePlayer({
+            optionType,
+            suffix: 'Missing Deadline',
+            blocked: true,
+          }),
+        ]
+      : actionFixtures;
   const supportCount = 15 - fixtures.length;
   const supportPlayers = Array.from({ length: supportCount }, (_, index) =>
     buildSupportPlayer(optionType, index + 1)
@@ -630,26 +721,41 @@ const playerRow = (page: Page, playerName: string) =>
 const optionCell = (page: Page, playerName: string) =>
   playerRow(page, playerName)
     .locator('[data-action-exposure-classification]')
-    .first();
+    .last();
 
-const fillNotice = async (modal: Locator) => {
-  await modal.getByTestId('option-notice-delivered-at').fill(DEADLINE);
+const fillNotice = async (
+  modal: Locator,
+  notice: {
+    deliveredAt?: string;
+    leagueReceivedAt?: string;
+    forwardedAt?: string;
+  } = {}
+) => {
+  await modal
+    .getByTestId('option-notice-delivered-at')
+    .fill(notice.deliveredAt ?? DEADLINE);
   await modal
     .getByTestId('option-notice-league-received-at')
-    .fill('2027-06-29T17:01:00-04:00');
+    .fill(notice.leagueReceivedAt ?? '2027-06-29T17:01:00-04:00');
   await modal
     .getByTestId('option-notice-pa-forwarded-at')
-    .fill('2027-06-30T09:00:00-04:00');
+    .fill(notice.forwardedAt ?? '2027-06-30T09:00:00-04:00');
 };
 
 const recordDecision = async ({
   page,
   fixture,
   choice,
+  notice,
 }: {
   page: Page;
   fixture: FixturePlayer;
   choice: Choice;
+  notice?: {
+    deliveredAt?: string;
+    leagueReceivedAt?: string;
+    forwardedAt?: string;
+  };
 }) => {
   await openTab(page, 'Full Cap Table');
   const cell = optionCell(page, fixture.displayName);
@@ -672,7 +778,7 @@ const recordDecision = async ({
   await modal
     .getByRole('radio', { name: new RegExp(`^${label}`, 'i') })
     .check();
-  await fillNotice(modal);
+  await fillNotice(modal, notice);
   const confirm = modal.getByTestId('edit-contract-confirm-action-button');
   await expect(confirm).toBeEnabled();
   await confirm.click();
@@ -754,12 +860,14 @@ const assertAllSurfaces = async ({
   retained,
   ended,
   worldName,
+  expectedEventCount = 2,
 }: {
   page: Page;
   optionType: OptionType;
   retained: FixturePlayer;
   ended: FixturePlayer;
   worldName: string;
+  expectedEventCount?: number;
 }) => {
   await openTab(page, 'Full Cap Table');
   await expect(optionCell(page, retained.displayName)).toHaveAttribute(
@@ -811,7 +919,7 @@ const assertAllSurfaces = async ({
 
   await openTab(page, 'Compare');
   await expect(page.getByTestId('comparison-event-count')).toContainText(
-    /2\s+committed events/i,
+    new RegExp(`${expectedEventCount}\\s+committed events`, 'i'),
     { timeout: 20_000 }
   );
 
@@ -1168,4 +1276,200 @@ test.describe('BZE-275 governed Full Cap Table option/ETO browser proof', () => 
       await capture(page, testInfo, `BZE-275-${optionType}-branched-replay`);
     });
   }
+
+  test('CBA2-C24.9 and CBA2-C16.7 repair boundaries persist, reload, and branch', async ({
+    page,
+  }, testInfo) => {
+    await expect
+      .poll(() => readReviewUserId(page), { timeout: 25_000 })
+      .not.toBe('');
+    const userId = await readReviewUserId(page);
+    const rfaBefore = buildFixturePlayer({
+      optionType: 'TO',
+      suffix: 'RFA-Before-Cutoff',
+      declineFreeAgencyStatus: 'RFA',
+    });
+    const rfaExact = buildFixturePlayer({
+      optionType: 'TO',
+      suffix: 'RFA-Exact-Cutoff',
+      declineFreeAgencyStatus: 'RFA',
+    });
+    const nonRfa = buildFixturePlayer({
+      optionType: 'TO',
+      suffix: 'Non-RFA-June-29',
+      declineFreeAgencyStatus: 'UFA',
+    });
+    const rookie = buildFixturePlayer({
+      optionType: 'TO',
+      suffix: 'Rookie-Salary-Only',
+      isRookieScale: true,
+      optionSalary: 12_000_000,
+      optionUnlikelyBonus: 200_000,
+    });
+    const { worldId } = await seedOptionWorld({
+      userId,
+      optionType: 'TO',
+      includeBlocked: false,
+      fixtureOverrides: [rfaBefore, rfaExact, nonRfa, rookie],
+    });
+    await activateWorld(page, userId, worldId);
+    const worldName = 'BZE 275 TO Review';
+
+    await recordDecision({
+      page,
+      fixture: rfaBefore,
+      choice: 'exercise',
+      notice: {
+        deliveredAt: '2027-06-24T23:59:59.999-04:00',
+        leagueReceivedAt: '2027-06-25T00:01:00-04:00',
+        forwardedAt: '2027-06-25T09:00:00-04:00',
+      },
+    });
+    await capture(page, testInfo, 'BZE-275-C24-9-before-cutoff-success');
+
+    await openTab(page, 'Full Cap Table');
+    const exactCell = optionCell(page, rfaExact.displayName);
+    await exactCell.click();
+    const exactModal = page.getByTestId('edit-contract-modal');
+    await exactModal
+      .getByRole('radio', { name: /^Exercise Team Option/i })
+      .check();
+    await fillNotice(exactModal, {
+      deliveredAt: '2027-06-25T00:00:00-04:00',
+      leagueReceivedAt: '2027-06-25T00:01:00-04:00',
+      forwardedAt: '2027-06-25T09:00:00-04:00',
+    });
+    const beforeBlockedTeam = JSON.stringify(await worldTeam(worldId));
+    const beforeBlockedEvents = JSON.stringify(await worldEvents(worldId));
+    await exactModal
+      .getByTestId('edit-contract-confirm-action-button')
+      .click();
+    const exactCutoffAlert = exactModal.getByRole('alert');
+    await expect(exactCutoffAlert).toBeVisible();
+    await expect(exactCutoffAlert).toContainText(
+      /strictly before 2027-06-25T00:00:00-04:00/i
+    );
+    expect(JSON.stringify(await worldTeam(worldId))).toBe(beforeBlockedTeam);
+    expect(JSON.stringify(await worldEvents(worldId))).toBe(
+      beforeBlockedEvents
+    );
+    await exactCutoffAlert.scrollIntoViewIfNeeded();
+    await capture(page, testInfo, 'BZE-275-C24-9-exact-cutoff-blocked');
+    await exactModal.getByRole('button', { name: /^Cancel$/i }).click();
+
+    await recordDecision({
+      page,
+      fixture: nonRfa,
+      choice: 'exercise',
+    });
+    await capture(page, testInfo, 'BZE-275-C24-8-non-rfa-success');
+
+    await recordDecision({
+      page,
+      fixture: rookie,
+      choice: 'decline',
+      notice: {
+        deliveredAt: '2026-11-02T17:00:00-05:00',
+        leagueReceivedAt: '2026-11-02T17:01:00-05:00',
+        forwardedAt: '2026-11-03T09:00:00-05:00',
+      },
+    });
+    await capture(page, testInfo, 'BZE-275-C16-7-salary-only-success');
+
+    const persisted = await worldTeam(worldId);
+    expect(teamPlayerIds(persisted)).toEqual(
+      expect.arrayContaining([
+        rfaBefore.playerId,
+        rfaExact.playerId,
+        nonRfa.playerId,
+      ])
+    );
+    expect(teamPlayerIds(persisted)).not.toContain(rookie.playerId);
+    expect(contractLedgerEvents(persisted)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          playerId: rfaBefore.playerId,
+          executedAt: '2027-06-24T23:59:59.999-04:00',
+        }),
+        expect.objectContaining({
+          playerId: nonRfa.playerId,
+          executedAt: DEADLINE,
+        }),
+        expect.objectContaining({
+          playerId: rookie.playerId,
+          eventKind: 'option-decline',
+        }),
+      ])
+    );
+    const rookieHold = (
+      Array.isArray(persisted?.capHolds) ? persisted.capHolds : []
+    ).find(
+      (hold) =>
+        Boolean(hold) &&
+        typeof hold === 'object' &&
+        !Array.isArray(hold) &&
+        (hold as RecordLike).playerId === rookie.playerId
+    ) as RecordLike | undefined;
+    expect(rookieHold).toMatchObject({
+      priorTeamOfferCeiling: 12_000_000,
+    });
+
+    await assertAllSurfaces({
+      page,
+      optionType: 'TO',
+      retained: nonRfa,
+      ended: rookie,
+      worldName,
+      expectedEventCount: 3,
+    });
+    await capture(page, testInfo, 'BZE-275-repair-all-surfaces');
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForReviewDashboard(page);
+    await assertAllSurfaces({
+      page,
+      optionType: 'TO',
+      retained: nonRfa,
+      ended: rookie,
+      worldName,
+      expectedEventCount: 3,
+    });
+    const reloaded = await worldTeam(worldId);
+    expect(
+      (Array.isArray(reloaded?.capHolds) ? reloaded.capHolds : []).find(
+        (hold) =>
+          Boolean(hold) &&
+          typeof hold === 'object' &&
+          !Array.isArray(hold) &&
+          (hold as RecordLike).playerId === rookie.playerId
+      )
+    ).toMatchObject({ priorTeamOfferCeiling: 12_000_000 });
+
+    const branchName = 'BZE 275 Repair Branch';
+    const childWorldId = await branchFixtureWorld(
+      page,
+      userId,
+      worldId,
+      branchName
+    );
+    await assertAllSurfaces({
+      page,
+      optionType: 'TO',
+      retained: nonRfa,
+      ended: rookie,
+      worldName: branchName,
+      expectedEventCount: 3,
+    });
+    const childTeam = await worldTeam(childWorldId);
+    expect(
+      (Array.isArray(childTeam?.capHolds) ? childTeam.capHolds : []).find(
+        (hold) =>
+          Boolean(hold) &&
+          typeof hold === 'object' &&
+          !Array.isArray(hold) &&
+          (hold as RecordLike).playerId === rookie.playerId
+      )
+    ).toMatchObject({ priorTeamOfferCeiling: 12_000_000 });
+    await capture(page, testInfo, 'BZE-275-repair-branched-replay');
+  });
 });

@@ -7,7 +7,9 @@ import type {
 import type {
   GovernedContractState,
   GovernedOptionDecisionTerms,
+  GovernedOptionRfaRelevanceEvidence,
 } from '@/schemas/governedContractState';
+import { GovernedOptionRfaRelevanceEvidenceZ } from '@/schemas/governedContractState';
 import {
   GovernedOptionNoticeInputZ,
   type GovernedOptionDecisionChoice,
@@ -186,6 +188,83 @@ function rookieScaleDeadlineDate(targetYear: number): string {
   return october31;
 }
 
+function ordinaryRfaExerciseDeadline(targetYear: number): string {
+  return `${targetYear - 1}-06-25T00:00:00-04:00`;
+}
+
+function authenticatedRfaRelevanceEvidence(
+  state: GovernedContractState,
+  terms: GovernedOptionDecisionTerms,
+  targetYear: number,
+  worldAsOfDate: string,
+  reasons: string[]
+): GovernedOptionRfaRelevanceEvidence | null {
+  if (
+    terms.rfaRelevanceEvidence === null ||
+    terms.rfaRelevanceEvidence === undefined
+  ) {
+    reasons.push(
+      'RFA-relevance evidence is missing for this ordinary Option.'
+    );
+    return null;
+  }
+  const parsed = GovernedOptionRfaRelevanceEvidenceZ.safeParse(
+    terms.rfaRelevanceEvidence
+  );
+  if (!parsed.success) {
+    reasons.push(
+      'RFA-relevance evidence is malformed and must be re-established from the pinned source.'
+    );
+    return null;
+  }
+  const evidence = parsed.data;
+  if (evidence.status === 'conflicting') {
+    reasons.push(
+      'RFA-relevance evidence is contradictory and cannot govern this Option.'
+    );
+  } else if (
+    evidence.status !== 'known' ||
+    evidence.declineFreeAgencyStatus === null
+  ) {
+    reasons.push(
+      'RFA-relevance evidence does not establish whether declining this Option would create RFA status.'
+    );
+  }
+  if (evidence.salaryCapYear !== targetYear) {
+    reasons.push(
+      `RFA-relevance evidence is stale for Salary Cap Year ${targetYear}.`
+    );
+  }
+  if (
+    evidence.observedAt.precision !== 'date' ||
+    !isDateOnly(evidence.observedAt.value) ||
+    evidence.observedAt.value > worldAsOfDate
+  ) {
+    reasons.push(
+      'RFA-relevance evidence must have a governed observation date on or before the Team Plan date.'
+    );
+  }
+  const source = state.source;
+  if (
+    evidence.sourceIdentity.releaseId !== source.releaseId ||
+    evidence.sourceIdentity.releaseVersion !== source.releaseVersion ||
+    evidence.sourceIdentity.releaseDigest !== source.releaseDigest ||
+    evidence.sourceIdentity.sourceProvider !== source.sourceProvider ||
+    evidence.sourceIdentity.sourceRecordVersion !==
+      source.sourceRecordVersion ||
+    evidence.sourceIdentity.sourceObservationId !==
+      source.sourceObservationId ||
+    evidence.sourceIdentity.sourceArtifactSha256 !==
+      source.sourceArtifactSha256 ||
+    evidence.sourceIdentity.sourceContractPath !== source.sourceContractPath
+  ) {
+    reasons.push(
+      'RFA-relevance evidence is unauthenticated because it does not match the pinned Contract source identity.'
+    );
+  }
+  return evidence;
+}
+
 function eventChain(
   ledger: LifecycleEventLedger
 ): readonly ContractEventRecord[] {
@@ -253,6 +332,7 @@ function validateOptionShape(
   state: GovernedContractState,
   optionIndex: number,
   targetYear: number,
+  worldAsOfDate: string,
   reasons: string[]
 ): GovernedOptionDecisionTerms | null {
   const salaries = state.terms.salaries;
@@ -384,6 +464,11 @@ function validateOptionShape(
         `Rookie Scale Team Option deadline must be ${rookieScaleDeadlineDate(targetYear)} after the business-day adjustment.`
       );
     }
+    if (row.salary === null) {
+      reasons.push(
+        'Rookie Scale Team Option Salary is missing; cap hit cannot establish the prior-team offer ceiling.'
+      );
+    }
   } else if (deadline) {
     const latestOrdinaryDeadline = Date.parse(
       `${targetYear - 1}-06-29T17:00:00-04:00`
@@ -396,6 +481,16 @@ function validateOptionShape(
         'Ordinary Option/ETO deadline may not be later than June 29 at 5:00 p.m. Eastern.'
       );
     }
+  }
+
+  if (!state.terms.isRookieScale && optionType !== 'ETO') {
+    authenticatedRfaRelevanceEvidence(
+      state,
+      terms,
+      targetYear,
+      worldAsOfDate,
+      reasons
+    );
   }
 
   if (optionType === 'PO') {
@@ -517,7 +612,13 @@ export function inspectGovernedOptionDecision({
     const row = state.terms.salaries[optionIndex];
     const terms =
       optionIndex >= 0
-        ? validateOptionShape(state, optionIndex, targetYear, reasons)
+        ? validateOptionShape(
+            state,
+            optionIndex,
+            targetYear,
+            worldAsOfDate,
+            reasons
+          )
         : null;
     const decided = row ? row.optionUsed !== null : false;
     return Object.freeze({
@@ -564,6 +665,8 @@ function validateNotice({
   notice,
   choice,
   optionType,
+  declineFreeAgencyStatus,
+  targetYear,
   terms,
   deadline,
   worldAsOfDate,
@@ -574,6 +677,8 @@ function validateNotice({
   notice: GovernedOptionNoticeInput;
   choice: GovernedOptionDecisionChoice;
   optionType: GovernedOptionType;
+  declineFreeAgencyStatus: 'RFA' | 'UFA' | null;
+  targetYear: number;
   terms: GovernedOptionDecisionTerms;
   deadline: string;
   worldAsOfDate: string;
@@ -615,6 +720,19 @@ function validateNotice({
   }
   if (delivered !== null && deadlineTime !== null && delivered > deadlineTime) {
     reasons.push('Notice was delivered after the exact contractual deadline.');
+  }
+  if (
+    optionType !== 'ETO' &&
+    choice === 'exercise' &&
+    declineFreeAgencyStatus === 'RFA' &&
+    delivered !== null &&
+    delivered >=
+      (parseZonedDateTime(ordinaryRfaExerciseDeadline(targetYear)) ??
+        Number.NEGATIVE_INFINITY)
+  ) {
+    reasons.push(
+      `An Option whose decline would create RFA status must be exercised strictly before ${ordinaryRfaExerciseDeadline(targetYear)}.`
+    );
   }
   if (
     delivered !== null &&
@@ -724,6 +842,7 @@ export function decideGovernedOption(
     state,
     optionIndex,
     request.targetYear,
+    request.worldAsOfDate,
     reasons
   );
   const deadline = row
@@ -735,10 +854,25 @@ export function decideGovernedOption(
     : null;
   if (!terms || !deadline || !row?.option)
     return unavailable('needs-input', reasons);
+  const rfaEvidence =
+    !state.terms.isRookieScale && row.option !== 'ETO'
+      ? authenticatedRfaRelevanceEvidence(
+          state,
+          terms,
+          request.targetYear,
+          request.worldAsOfDate,
+          reasons
+        )
+      : null;
   validateNotice({
     notice: request.notice,
     choice: request.choice,
     optionType: row.option,
+    declineFreeAgencyStatus:
+      rfaEvidence?.status === 'known'
+        ? rfaEvidence.declineFreeAgencyStatus
+        : null,
+    targetYear: request.targetYear,
     terms,
     deadline,
     worldAsOfDate: request.worldAsOfDate,
@@ -994,7 +1128,7 @@ export function decideGovernedOption(
     endsContract &&
     row.option === 'TO' &&
     projection.contractState.terms.isRookieScale
-      ? (row.salary ?? row.capHit ?? 0) + (row.incentives.unlikely ?? 0)
+      ? row.salary
       : null;
   return Object.freeze({
     success: true as const,
