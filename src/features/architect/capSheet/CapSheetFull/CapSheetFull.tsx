@@ -919,7 +919,8 @@ export const CapSheetFull = ({
             <span className="mr-auto truncate text-[13px] font-bold tracking-tight text-white">
               {hold.playerName || hold.playerId}
             </span>
-            {onSignAndTradeFreeAgent ? (
+            {onSignAndTradeFreeAgent &&
+            !isGovernedPriorTeamOptionHold(hold) ? (
               <button
                 data-testid="cap-sheet-full-fa-sign-and-trade-button"
                 data-action-exposure-classification="V1 supported"

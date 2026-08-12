@@ -66,7 +66,9 @@ const team = {
 afterEach(cleanup);
 
 describe('Full Cap Table governed rights consumer', () => {
-  it('keeps a linked declined Rookie Scale option hold in the Prior Team signing lane after roster exit', () => {
+  it('keeps a governed option hold actionable without exposing Sign & Trade', () => {
+    const signAndTrade = vi.fn();
+    const renounceCapHold = vi.fn();
     render(
       <CapSheetFull
         teamCapSheet={{
@@ -83,6 +85,8 @@ describe('Full Cap Table governed rights consumer', () => {
         currentYear={2027}
         playersMap={{ [RIGHTS_FIXTURE_PLAYER_ID]: PLAYER }}
         governedRightsContext={governedContext}
+        onSignAndTradeFreeAgent={signAndTrade}
+        onRenounceCapHold={renounceCapHold}
       />
     );
 
@@ -92,6 +96,20 @@ describe('Full Cap Table governed rights consumer', () => {
     expect(
       screen.getByTestId('cap-sheet-full-fa-resign-cell')
     ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('cap-sheet-full-fa-sign-and-trade-button')
+    ).not.toBeInTheDocument();
+    expect(signAndTrade).not.toHaveBeenCalled();
+
+    const absolve = screen.getByTestId('cap-sheet-full-fa-absolve-button');
+    expect(absolve).toBeEnabled();
+    fireEvent.click(absolve);
+    expect(renounceCapHold).toHaveBeenCalledWith(
+      expect.objectContaining({
+        governedContractEventId: 'governed-option-decline-event',
+        priorTeamOfferCeiling: 12_000_000,
+      })
+    );
 
     cleanup();
     render(
@@ -128,6 +146,32 @@ describe('Full Cap Table governed rights consumer', () => {
     expect(
       screen.queryByTestId('cap-sheet-full-fa-decision-row')
     ).not.toBeInTheDocument();
+  });
+
+  it('preserves Sign & Trade for an ordinary eligible hold', () => {
+    const signAndTrade = vi.fn();
+    render(
+      <CapSheetFull
+        teamCapSheet={team as never}
+        currentYear={2027}
+        playersMap={{ [RIGHTS_FIXTURE_PLAYER_ID]: PLAYER }}
+        governedRightsContext={governedContext}
+        onSignAndTradeFreeAgent={signAndTrade}
+      />
+    );
+
+    expect(
+      screen.getByTestId('cap-sheet-full-fa-decision-row')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('cap-sheet-full-fa-resign-cell')
+    ).toBeInTheDocument();
+    const signAndTradeButton = screen.getByTestId(
+      'cap-sheet-full-fa-sign-and-trade-button'
+    );
+    expect(signAndTradeButton).toBeInTheDocument();
+    fireEvent.click(signAndTradeButton);
+    expect(signAndTrade).toHaveBeenCalledWith(PLAYER);
   });
 
   it('renders the replayed Bird tier and Free Agent Amount instead of snapshot fallbacks', () => {
