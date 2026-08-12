@@ -529,6 +529,7 @@ export async function applyWorldMutation({
         seasonId,
         asOfDate,
         dateDefaulted,
+        worldId,
       });
 
       if (!validationResult.valid) {

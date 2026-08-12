@@ -23,6 +23,7 @@ export function validateMutation({
   seasonId,
   asOfDate,
   dateDefaulted,
+  worldId,
 }: {
   mutationType: string;
   payload: MutationPayloadLike;
@@ -31,6 +32,7 @@ export function validateMutation({
   seasonId: string;
   asOfDate?: string | null;
   dateDefaulted?: boolean;
+  worldId?: string | null;
 }): {
   valid: boolean;
   error?: string;
@@ -116,6 +118,7 @@ export function validateMutation({
           seasonId,
           asOfDate,
           dateDefaulted,
+          worldId,
         });
 
         return {

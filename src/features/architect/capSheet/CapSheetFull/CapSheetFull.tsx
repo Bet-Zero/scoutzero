@@ -46,6 +46,7 @@ import type { GovernedOptionDecisionAvailability } from '@/features/architect/ut
 import {
   getHoldLookupKeys,
   getPlayerLookupKeys,
+  isGovernedPriorTeamOptionHold,
   resolvedHoldAmount,
   useGovernedCapHoldResolution,
   type CapHoldLike,
@@ -776,7 +777,14 @@ export const CapSheetFull = ({
       (entry) => !hasVisibleRow(entry)
     );
     const main = renderable
-      .filter((entry) => entry.rights.placement === 'main')
+      .filter(
+        (entry) =>
+          entry.rights.placement === 'main' ||
+          // BZE-275 ends the declined rookie contract and removes the player
+          // from the roster. Its linked ceiling hold is still the Prior Team's
+          // signing decision; the save boundary authenticates both markers.
+          isGovernedPriorTeamOptionHold(entry.hold)
+      )
       .sort(
         (a, b) =>
           resolvedHoldAmount(b) - resolvedHoldAmount(a)
@@ -887,6 +895,11 @@ export const CapSheetFull = ({
       rights.projectionStatus === 'available' ||
       rights.projectionStatus === 'legacy';
     const holdEndYear = toEndYear(hold.season);
+    const hasGovernedPriorTeamOptionAssertion =
+      isGovernedPriorTeamOptionHold(hold) ||
+      hold.priorTeamOfferCeiling !== undefined ||
+      (typeof hold.governedContractEventId === 'string' &&
+        hold.governedContractEventId.trim().length > 0);
     return (
       <div
         key={`fa-${hold.playerId ?? hold.playerName}-${idx}`}
@@ -911,7 +924,8 @@ export const CapSheetFull = ({
             <span className="mr-auto truncate text-[13px] font-bold tracking-tight text-white">
               {hold.playerName || hold.playerId}
             </span>
-            {onSignAndTradeFreeAgent ? (
+            {onSignAndTradeFreeAgent &&
+            !hasGovernedPriorTeamOptionAssertion ? (
               <button
                 data-testid="cap-sheet-full-fa-sign-and-trade-button"
                 data-action-exposure-classification="V1 supported"

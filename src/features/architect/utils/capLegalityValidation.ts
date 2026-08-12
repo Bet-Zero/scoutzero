@@ -49,6 +49,7 @@ export * from './capLegalityValidation/schema';
 export * from './capLegalityValidation/signing';
 export * from './capLegalityValidation/extension';
 export * from './capLegalityValidation/actionValidators';
+export * from './capLegalityValidation/governedPriorTeamOptionSigning';
 import {
   validateWaive,
   validateOptionDecision,

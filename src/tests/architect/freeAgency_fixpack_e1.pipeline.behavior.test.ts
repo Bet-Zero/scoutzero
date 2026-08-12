@@ -172,6 +172,7 @@ describe('FREE_AGENCY_FIXPACK_E1 pipeline closure behaviors', () => {
       },
     };
     const player = {
+      player_id: playerId,
       displayName: 'Test Player',
       contract: {
         salariesByYear: [],

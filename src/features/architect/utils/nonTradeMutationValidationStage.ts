@@ -18,6 +18,9 @@ import {
   validateDeadCap,
   validateExceptions,
 } from '@/features/architect/utils/capLegalityValidation';
+import {
+  validateGovernedPriorTeamOptionSigning,
+} from '@/features/architect/utils/capLegalityValidation/governedPriorTeamOptionSigning';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import type {
   ArchitectMutationOfferSheet,
@@ -118,6 +121,21 @@ function buildPipelineWarnings({
   return pipelineWarnings;
 }
 
+function toStrictSalaryCapYear(seasonId: string): number | null {
+  const normalized = seasonId.trim();
+  if (/^\d{4}$/.test(normalized)) {
+    const year = Number(normalized);
+    return year >= 1900 && year <= 9999 ? year : null;
+  }
+
+  const seasonMatch = normalized.match(/^(\d{4})-(\d{2})$/);
+  if (!seasonMatch) return null;
+  const startYear = Number(seasonMatch[1]);
+  const endYear = startYear + 1;
+  if (startYear < 1900 || endYear > 9999) return null;
+  return String(endYear).slice(-2) === seasonMatch[2] ? endYear : null;
+}
+
 function requireTeamState(
   currentState: MutationCurrentState,
   mutationType: string
@@ -177,6 +195,8 @@ function validateSigningSideMutation({
   currentState,
   currentYear,
   asOfDate,
+  worldId,
+  dateDefaulted,
   pipelineWarnings,
 }: {
   mutationType: string;
@@ -184,9 +204,23 @@ function validateSigningSideMutation({
   currentState: MutationCurrentState;
   currentYear: number;
   asOfDate?: string | null;
+  worldId?: string | null;
+  dateDefaulted?: boolean;
   pipelineWarnings: Array<Record<string, unknown>>;
 }): StageValidationResult {
   const { team, player } = requireTeamAndPlayerState(currentState, mutationType);
+  const governedOptionSigningResult =
+    mutationType === 'signFreeAgent'
+      ? validateGovernedPriorTeamOptionSigning({
+          team,
+          player,
+          contract: payload.contract,
+          worldId,
+          year: currentYear,
+          asOfDate,
+          dateDefaulted,
+        })
+      : { valid: true, violations: [], warnings: [] };
   const result = validateSigning({
     team,
     player,
@@ -199,11 +233,18 @@ function validateSigningSideMutation({
   });
 
   return formatValidatorResult({
-    valid: result.valid,
-    violations: result.violations,
+    valid: governedOptionSigningResult.valid && result.valid,
+    violations: [
+      ...governedOptionSigningResult.violations,
+      ...result.violations,
+    ],
     warnings:
       mutationType === 'signFreeAgent'
-        ? [...result.warnings, ...pipelineWarnings]
+        ? [
+            ...governedOptionSigningResult.warnings,
+            ...result.warnings,
+            ...pipelineWarnings,
+          ]
         : result.warnings,
   });
 }
@@ -493,6 +534,7 @@ export function validateNonTradeMutationStage({
   seasonId,
   asOfDate,
   dateDefaulted,
+  worldId,
 }: {
   mutationType: string;
   payload: MutationPayloadLike;
@@ -501,8 +543,29 @@ export function validateNonTradeMutationStage({
   seasonId: string;
   asOfDate?: string | null;
   dateDefaulted?: boolean;
+  worldId?: string | null;
 }): StageValidationResult {
-  const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
+  const salaryCapYear =
+    mutationType === 'signFreeAgent'
+      ? toStrictSalaryCapYear(seasonId)
+      : toEndYear(seasonId);
+  if (mutationType === 'signFreeAgent' && salaryCapYear === null) {
+    const message =
+      'The signing Salary Cap Year could not be derived. No changes were saved.';
+    return {
+      valid: false,
+      error: message,
+      violations: [
+        JSON.stringify({
+          rule: 'governed_signing_salary_cap_year_missing',
+          message,
+          severity: 'error',
+        }),
+      ],
+      warnings: [],
+    };
+  }
+  const currentYear = salaryCapYear ?? new Date().getFullYear();
   const pipelineWarnings = buildPipelineWarnings({
     asOfDate,
     dateDefaulted,
@@ -517,6 +580,8 @@ export function validateNonTradeMutationStage({
         currentState,
         currentYear,
         asOfDate,
+        worldId,
+        dateDefaulted,
         pipelineWarnings,
       });
 

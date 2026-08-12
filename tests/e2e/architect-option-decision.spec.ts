@@ -718,6 +718,11 @@ const playerRow = (page: Page, playerName: string) =>
       .filter({ hasText: playerName }),
   });
 
+const ownFaDecisionRow = (page: Page, playerName: string) =>
+  page
+    .getByTestId('cap-sheet-full-fa-decision-row')
+    .filter({ hasText: playerName });
+
 const optionCell = (page: Page, playerName: string) =>
   playerRow(page, playerName)
     .locator('[data-action-exposure-classification]')
@@ -804,6 +809,14 @@ const capture = async (page: Page, testInfo: TestInfo, label: string) => {
     path: testInfo.outputPath(`${label}.png`),
     fullPage: true,
   });
+};
+
+const captureViewport = async (
+  page: Page,
+  testInfo: TestInfo,
+  label: string
+) => {
+  await page.screenshot({ path: testInfo.outputPath(`${label}.png`) });
 };
 
 const worldTeam = async (worldId: string) =>
@@ -1471,5 +1484,242 @@ test.describe('BZE-275 governed Full Cap Table option/ETO browser proof', () => 
       )
     ).toMatchObject({ priorTeamOfferCeiling: 12_000_000 });
     await capture(page, testInfo, 'BZE-275-repair-branched-replay');
+  });
+
+  test('BZE-276 enforces the declined Rookie Scale ceiling at Prior Team signing and preserves the allowed result', async ({
+    page,
+  }, testInfo) => {
+    await expect
+      .poll(() => readReviewUserId(page), { timeout: 25_000 })
+      .not.toBe('');
+    const userId = await readReviewUserId(page);
+    const rookie = buildFixturePlayer({
+      optionType: 'TO',
+      suffix: 'BZE-276-Prior-Team-Signing',
+      isRookieScale: true,
+      optionSalary: 12_000_000,
+      optionUnlikelyBonus: 200_000,
+    });
+    const { worldId } = await seedOptionWorld({
+      userId,
+      optionType: 'TO',
+      includeBlocked: false,
+      fixtureOverrides: [rookie],
+    });
+    await activateWorld(page, userId, worldId);
+
+    await recordDecision({
+      page,
+      fixture: rookie,
+      choice: 'decline',
+      notice: {
+        deliveredAt: '2026-11-02T17:00:00-05:00',
+        leagueReceivedAt: '2026-11-02T17:01:00-05:00',
+        forwardedAt: '2026-11-03T09:00:00-05:00',
+      },
+    });
+
+    const declinedTeam = await worldTeam(worldId);
+    expect(
+      (Array.isArray(declinedTeam?.capHolds) ? declinedTeam.capHolds : []).find(
+        (hold) =>
+          Boolean(hold) &&
+          typeof hold === 'object' &&
+          !Array.isArray(hold) &&
+          (hold as RecordLike).playerId === rookie.playerId
+      )
+    ).toMatchObject({
+      priorTeamOfferCeiling: 12_000_000,
+      governedContractEventId: expect.any(String),
+    });
+
+    await openTab(page, 'Full Cap Table');
+    const faRow = ownFaDecisionRow(page, rookie.displayName);
+    await expect(faRow).toBeVisible({ timeout: 20_000 });
+    const resignCell = faRow
+      .getByTestId('cap-sheet-full-fa-resign-cell')
+      .first();
+    await expect(resignCell).toHaveAttribute(
+      'data-action-exposure-classification',
+      'V1 supported'
+    );
+    await resignCell.click();
+
+    const modal = page.getByTestId('edit-contract-modal');
+    await expect(modal).toBeVisible({ timeout: 20_000 });
+    await expect(
+      modal.getByTestId('contract-modal-action-context')
+    ).toContainText(rookie.displayName);
+    await modal.getByTestId('contract-action-resign').check();
+    const firstYearSalary = modal.locator('input[inputmode="decimal"]').first();
+    await firstYearSalary.fill('12000001');
+    await firstYearSalary.blur();
+
+    const beforeBlockedTeam = JSON.stringify(await worldTeam(worldId));
+    const beforeBlockedEvents = JSON.stringify(await worldEvents(worldId));
+    const confirm = modal.getByTestId('edit-contract-confirm-action-button');
+    await expect(confirm).toBeEnabled();
+    await confirm.click();
+    const blockedAlert = modal.getByRole('alert');
+    await expect(blockedAlert).toBeVisible({ timeout: 20_000 });
+    await expect(blockedAlert).toContainText(
+      /exceeds the Prior Team's \$12,000,000\.00 limit/i
+    );
+    await expect(blockedAlert).toContainText(/No changes were saved/i);
+    expect(JSON.stringify(await worldTeam(worldId))).toBe(beforeBlockedTeam);
+    expect(JSON.stringify(await worldEvents(worldId))).toBe(
+      beforeBlockedEvents
+    );
+    await blockedAlert.scrollIntoViewIfNeeded();
+    await captureViewport(
+      page,
+      testInfo,
+      'BZE-276-over-ceiling-blocked-no-write-1280x720'
+    );
+
+    await firstYearSalary.fill('12000000');
+    await firstYearSalary.blur();
+    await expect(blockedAlert).toHaveCount(0);
+    await expect(confirm).toBeEnabled();
+    await confirm.click();
+    await expect(modal).toHaveCount(0, { timeout: 25_000 });
+    await waitForReviewDashboard(page);
+    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
+      /Free agent signed/i,
+      { timeout: 20_000 }
+    );
+
+    await openTab(page, 'Full Cap Table');
+    await expect(ownFaDecisionRow(page, rookie.displayName)).toHaveCount(0);
+    const signedRow = playerRow(page, rookie.displayName);
+    await expect(signedRow).toBeVisible({ timeout: 20_000 });
+    await expect(signedRow).toContainText('$12,000,000');
+    await captureViewport(
+      page,
+      testInfo,
+      'BZE-276-exact-ceiling-signed-full-cap-table-1280x720'
+    );
+
+    const persisted = await worldTeam(worldId);
+    expect(teamPlayerIds(persisted)).toContain(rookie.playerId);
+    expect(
+      (Array.isArray(persisted?.capHolds) ? persisted.capHolds : []).some(
+        (hold) =>
+          Boolean(hold) &&
+          typeof hold === 'object' &&
+          !Array.isArray(hold) &&
+          (hold as RecordLike).playerId === rookie.playerId
+      )
+    ).toBe(false);
+    const signedPlayer = (
+      Array.isArray(persisted?.players) ? persisted.players : []
+    ).find(
+      (candidate) =>
+        Boolean(candidate) &&
+        typeof candidate === 'object' &&
+        !Array.isArray(candidate) &&
+        ((candidate as RecordLike).playerId === rookie.playerId ||
+          (candidate as RecordLike).player_id === rookie.playerId)
+    ) as RecordLike | undefined;
+    const signedContract = signedPlayer?.contract as RecordLike | undefined;
+    const signedRows = Array.isArray(signedContract?.salariesByYear)
+      ? signedContract.salariesByYear
+      : [];
+    expect(signedRows[0]).toMatchObject({
+      season: TARGET_SEASON,
+      salary: 12_000_000,
+    });
+    expect(await worldEvents(worldId)).toHaveLength(2);
+
+    // The signed contract starts in 2027-28; align the single-season Roster
+    // room to that Season before asserting its membership.
+    await page
+      .getByRole('combobox', { name: 'Viewing season' })
+      .selectOption({ label: TARGET_SEASON });
+    await openTab(page, 'Roster');
+    await expect(
+      page
+        .getByRole('region', { name: /^Roster$/i })
+        .getByRole('button', { name: rookie.displayName, exact: false })
+        .first()
+    ).toBeVisible();
+    await openTab(page, 'Cap Sheet');
+    await page
+      .getByRole('button', { name: TARGET_SEASON, exact: true })
+      .click();
+    await expect(
+      page
+        .getByRole('region', { name: /^Cap Sheet$/i })
+        .getByText(rookie.displayName, { exact: true })
+        .first()
+    ).toBeVisible();
+    await openTab(page, 'Team History');
+    await expect(page.getByText(/Signed Free Agent/i).first()).toBeVisible();
+    await expect(
+      page.getByText(rookie.displayName, { exact: false }).first()
+    ).toBeVisible();
+    await openTab(page, 'Compare');
+    await expect(page.getByTestId('comparison-event-count')).toContainText(
+      /2\s+committed events/i,
+      { timeout: 20_000 }
+    );
+    await expect(page.getByTestId('comparison-roster-additions')).toContainText(
+      rookie.displayName
+    );
+    await expect(page.getByTestId('cockpit-world-menu-trigger')).toContainText(
+      'BZE 275 TO Review'
+    );
+    await captureViewport(
+      page,
+      testInfo,
+      'BZE-276-signed-history-compare-team-plan-1280x720'
+    );
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForReviewDashboard(page);
+    await expect
+      .poll(() => readActiveWorldId(page), { timeout: 20_000 })
+      .toBe(worldId);
+    await openTab(page, 'Full Cap Table');
+    await expect(ownFaDecisionRow(page, rookie.displayName)).toHaveCount(0);
+    await expect(playerRow(page, rookie.displayName)).toContainText(
+      '$12,000,000'
+    );
+
+    const branchName = 'BZE 276 Signed Branch';
+    const childWorldId = await branchFixtureWorld(
+      page,
+      userId,
+      worldId,
+      branchName
+    );
+    await openTab(page, 'Full Cap Table');
+    await expect(ownFaDecisionRow(page, rookie.displayName)).toHaveCount(0);
+    await expect(playerRow(page, rookie.displayName)).toContainText(
+      '$12,000,000'
+    );
+    const childTeam = await worldTeam(childWorldId);
+    expect(teamPlayerIds(childTeam)).toContain(rookie.playerId);
+    expect(
+      contractLedgerEvents(childTeam).filter(
+        (event) => event.playerId === rookie.playerId
+      )
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ worldId: childWorldId }),
+      ])
+    );
+    expect(await worldEvents(childWorldId)).toHaveLength(2);
+    await captureViewport(
+      page,
+      testInfo,
+      'BZE-276-signed-branch-replay-1280x720'
+    );
+
+    testInfo.annotations.push({
+      type: 'audit-note',
+      description:
+        'BZE-276 fresh governed saved-world proof: MIA declines a $12M fourth-Season Rookie Scale Team Option; a $12,000,001 Prior Team offer is blocked with no team/event write; the exact $12M salary-only offer signs, removes the governed hold, updates Full Cap Table/Roster/Cap Sheet/History/Compare/Team Plan, and survives reload plus branching. Production source readiness remains 0 option-ready / 243 option-blocked.',
+    });
   });
 });

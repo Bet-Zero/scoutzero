@@ -46,6 +46,12 @@ export function normalizeCurrentStateCapHold(
   const notes = toOptionalTrimmedString(record.notes);
   const active = toOptionalBoolean(record.active);
   const reason = toOptionalTrimmedString(record.reason);
+  const priorTeamOfferCeiling = toOptionalNumber(
+    record.priorTeamOfferCeiling
+  );
+  const governedContractEventId = toOptionalTrimmedString(
+    record.governedContractEventId
+  );
 
   if (playerId !== undefined) normalized.playerId = playerId;
   if (playerName !== undefined) normalized.playerName = playerName;
@@ -57,6 +63,12 @@ export function normalizeCurrentStateCapHold(
   if (notes !== undefined) normalized.notes = notes;
   if (active !== undefined) normalized.active = active;
   if (reason !== undefined) normalized.reason = reason;
+  if (priorTeamOfferCeiling !== undefined) {
+    normalized.priorTeamOfferCeiling = priorTeamOfferCeiling;
+  }
+  if (governedContractEventId !== undefined) {
+    normalized.governedContractEventId = governedContractEventId;
+  }
 
   return normalized;
 }

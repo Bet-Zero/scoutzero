@@ -66,6 +66,151 @@ const team = {
 afterEach(cleanup);
 
 describe('Full Cap Table governed rights consumer', () => {
+  it('keeps a governed option hold actionable without exposing Sign & Trade', () => {
+    const signAndTrade = vi.fn();
+    const renounceCapHold = vi.fn();
+    render(
+      <CapSheetFull
+        teamCapSheet={{
+          ...team,
+          players: [],
+          capHolds: [
+            {
+              ...team.capHolds[0],
+              priorTeamOfferCeiling: 12_000_000,
+              governedContractEventId: 'governed-option-decline-event',
+            },
+          ],
+        } as never}
+        currentYear={2027}
+        playersMap={{ [RIGHTS_FIXTURE_PLAYER_ID]: PLAYER }}
+        governedRightsContext={governedContext}
+        onSignAndTradeFreeAgent={signAndTrade}
+        onRenounceCapHold={renounceCapHold}
+      />
+    );
+
+    expect(
+      screen.getByTestId('cap-sheet-full-fa-decision-row')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('cap-sheet-full-fa-resign-cell')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('cap-sheet-full-fa-sign-and-trade-button')
+    ).not.toBeInTheDocument();
+    expect(signAndTrade).not.toHaveBeenCalled();
+
+    const absolve = screen.getByTestId('cap-sheet-full-fa-absolve-button');
+    expect(absolve).toBeEnabled();
+    fireEvent.click(absolve);
+    expect(renounceCapHold).toHaveBeenCalledWith(
+      expect.objectContaining({
+        governedContractEventId: 'governed-option-decline-event',
+        priorTeamOfferCeiling: 12_000_000,
+      })
+    );
+
+    cleanup();
+    render(
+      <CapSheetFull
+        teamCapSheet={{ ...team, players: [] } as never}
+        currentYear={2027}
+        playersMap={{ [RIGHTS_FIXTURE_PLAYER_ID]: PLAYER }}
+        governedRightsContext={governedContext}
+      />
+    );
+    expect(
+      screen.queryByTestId('cap-sheet-full-fa-decision-row')
+    ).not.toBeInTheDocument();
+
+    cleanup();
+    render(
+      <CapSheetFull
+        teamCapSheet={{
+          ...team,
+          players: [],
+          capHolds: [
+            {
+              ...team.capHolds[0],
+              priorTeamOfferCeiling: '12000000',
+              governedContractEventId: 'governed-option-decline-event',
+            },
+          ],
+        } as never}
+        currentYear={2027}
+        playersMap={{ [RIGHTS_FIXTURE_PLAYER_ID]: PLAYER }}
+        governedRightsContext={governedContext}
+      />
+    );
+    expect(
+      screen.queryByTestId('cap-sheet-full-fa-decision-row')
+    ).not.toBeInTheDocument();
+  });
+
+  it('preserves Sign & Trade for an ordinary eligible hold', () => {
+    const signAndTrade = vi.fn();
+    render(
+      <CapSheetFull
+        teamCapSheet={team as never}
+        currentYear={2027}
+        playersMap={{ [RIGHTS_FIXTURE_PLAYER_ID]: PLAYER }}
+        governedRightsContext={governedContext}
+        onSignAndTradeFreeAgent={signAndTrade}
+      />
+    );
+
+    expect(
+      screen.getByTestId('cap-sheet-full-fa-decision-row')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('cap-sheet-full-fa-resign-cell')
+    ).toBeInTheDocument();
+    const signAndTradeButton = screen.getByTestId(
+      'cap-sheet-full-fa-sign-and-trade-button'
+    );
+    expect(signAndTradeButton).toBeInTheDocument();
+    fireEvent.click(signAndTradeButton);
+    expect(signAndTrade).toHaveBeenCalledWith(PLAYER);
+  });
+
+  it.each([
+    [
+      'ceiling-only',
+      {
+        priorTeamOfferCeiling: 12_000_000,
+        governedContractEventId: undefined,
+      },
+    ],
+    [
+      'event-only',
+      {
+        priorTeamOfferCeiling: undefined,
+        governedContractEventId: 'governed-option-decline-event',
+      },
+    ],
+  ])('hides Sign & Trade for a %s governed assertion', (_label, markers) => {
+    render(
+      <CapSheetFull
+        teamCapSheet={{
+          ...team,
+          capHolds: [{ ...team.capHolds[0], ...markers }],
+        } as never}
+        currentYear={2027}
+        playersMap={{ [RIGHTS_FIXTURE_PLAYER_ID]: PLAYER }}
+        governedRightsContext={governedContext}
+        onSignAndTradeFreeAgent={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByTestId('cap-sheet-full-fa-decision-row')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('cap-sheet-full-fa-sign-and-trade-button')
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the replayed Bird tier and Free Agent Amount instead of snapshot fallbacks', () => {
     const renounceCapHold = vi.fn();
     render(
