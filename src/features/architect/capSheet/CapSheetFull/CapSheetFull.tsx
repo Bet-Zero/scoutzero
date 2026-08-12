@@ -895,6 +895,11 @@ export const CapSheetFull = ({
       rights.projectionStatus === 'available' ||
       rights.projectionStatus === 'legacy';
     const holdEndYear = toEndYear(hold.season);
+    const hasGovernedPriorTeamOptionAssertion =
+      isGovernedPriorTeamOptionHold(hold) ||
+      hold.priorTeamOfferCeiling !== undefined ||
+      (typeof hold.governedContractEventId === 'string' &&
+        hold.governedContractEventId.trim().length > 0);
     return (
       <div
         key={`fa-${hold.playerId ?? hold.playerName}-${idx}`}
@@ -920,7 +925,7 @@ export const CapSheetFull = ({
               {hold.playerName || hold.playerId}
             </span>
             {onSignAndTradeFreeAgent &&
-            !isGovernedPriorTeamOptionHold(hold) ? (
+            !hasGovernedPriorTeamOptionAssertion ? (
               <button
                 data-testid="cap-sheet-full-fa-sign-and-trade-button"
                 data-action-exposure-classification="V1 supported"

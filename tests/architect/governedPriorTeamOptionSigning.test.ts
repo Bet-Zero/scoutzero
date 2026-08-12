@@ -654,7 +654,7 @@ describe('governed declined Rookie Scale option signing limit', () => {
     expect(result.violations).toEqual([]);
   });
 
-  it.each(['not-a-season', '2027invalid'])(
+  it.each(['not-a-season', '2027invalid', '9999-00', '1899-00'])(
     'blocks ordinary signing when Salary Cap Year cannot be derived from %s',
     (seasonId) => {
       const result = validateNonTradeMutationStage({

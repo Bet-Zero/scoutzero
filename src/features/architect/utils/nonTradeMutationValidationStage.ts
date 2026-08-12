@@ -125,13 +125,14 @@ function toStrictSalaryCapYear(seasonId: string): number | null {
   const normalized = seasonId.trim();
   if (/^\d{4}$/.test(normalized)) {
     const year = Number(normalized);
-    return year >= 1900 ? year : null;
+    return year >= 1900 && year <= 9999 ? year : null;
   }
 
   const seasonMatch = normalized.match(/^(\d{4})-(\d{2})$/);
   if (!seasonMatch) return null;
   const startYear = Number(seasonMatch[1]);
   const endYear = startYear + 1;
+  if (startYear < 1900 || endYear > 9999) return null;
   return String(endYear).slice(-2) === seasonMatch[2] ? endYear : null;
 }
 

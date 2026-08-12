@@ -174,6 +174,43 @@ describe('Full Cap Table governed rights consumer', () => {
     expect(signAndTrade).toHaveBeenCalledWith(PLAYER);
   });
 
+  it.each([
+    [
+      'ceiling-only',
+      {
+        priorTeamOfferCeiling: 12_000_000,
+        governedContractEventId: undefined,
+      },
+    ],
+    [
+      'event-only',
+      {
+        priorTeamOfferCeiling: undefined,
+        governedContractEventId: 'governed-option-decline-event',
+      },
+    ],
+  ])('hides Sign & Trade for a %s governed assertion', (_label, markers) => {
+    render(
+      <CapSheetFull
+        teamCapSheet={{
+          ...team,
+          capHolds: [{ ...team.capHolds[0], ...markers }],
+        } as never}
+        currentYear={2027}
+        playersMap={{ [RIGHTS_FIXTURE_PLAYER_ID]: PLAYER }}
+        governedRightsContext={governedContext}
+        onSignAndTradeFreeAgent={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByTestId('cap-sheet-full-fa-decision-row')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('cap-sheet-full-fa-sign-and-trade-button')
+    ).not.toBeInTheDocument();
+  });
+
   it('renders the replayed Bird tier and Free Agent Amount instead of snapshot fallbacks', () => {
     const renounceCapHold = vi.fn();
     render(
