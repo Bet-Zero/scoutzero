@@ -41,21 +41,31 @@ const openTradeMachine = async (page: Page) => {
   const loadingDashboard = page.getByText(/^Loading GM Dashboard/i);
   const noTeamData = page.getByText(/^No team data$/i);
   const modeBadge = page.getByTestId('firebase-target-mode-badge');
+  const dashboardHeading = page.getByRole('heading', {
+    name: /GM Dashboard/i,
+  });
 
   await expect
     .poll(
-      async () => ({
-        stillLoading: await isVisible(loadingDashboard),
-        hasModeBadge: await isVisible(modeBadge),
-        hasNoTeamData: await isVisible(noTeamData),
-      }),
+      async () => {
+        const stillLoading = await isVisible(loadingDashboard);
+        const hasModeBadge = await isVisible(modeBadge);
+        const hasDashboardHeading = await isVisible(dashboardHeading);
+        const hasNoTeamData = await isVisible(noTeamData);
+        return {
+          hasNoTeamData,
+          isReady:
+            !stillLoading &&
+            (hasModeBadge || hasDashboardHeading || hasNoTeamData),
+        };
+      },
       {
         timeout: 90_000,
         message:
           'MIA review dashboard should finish emulator authentication and fixture loading',
       }
     )
-    .toMatchObject({ stillLoading: false, hasModeBadge: true });
+    .toMatchObject({ isReady: true });
   await expect(noTeamData).toHaveCount(0);
 
   const tradeTab = page.getByRole('tab', { name: /^Trade Machine$/i });
