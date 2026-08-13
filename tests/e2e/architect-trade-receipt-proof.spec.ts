@@ -33,6 +33,13 @@ const worldCount = async () =>
     .get()
     .then((snapshot) => snapshot.size);
 
+test.afterAll(async () => {
+  const app = admin.apps.find(
+    (candidate) => candidate?.name === 'trade-receipt-proof'
+  );
+  if (app) await app.delete();
+});
+
 const isVisible = async (locator: Locator, timeout = 1_000) =>
   locator.isVisible({ timeout }).catch(() => false);
 
@@ -101,8 +108,12 @@ const routePlayer = async (
   await expect(card).toBeVisible();
   const player = card
     .getByAltText(playerName, { exact: true })
-    .or(card.getByText(playerName, { exact: true }));
-  const menu = player.locator('xpath=following::button[1]');
+    .or(card.getByText(playerName, { exact: true }))
+    .first();
+  const playerRow = player.locator(
+    'xpath=ancestor::div[.//button[normalize-space()="•••"]][1]'
+  );
+  const menu = playerRow.getByRole('button', { name: '•••' });
   await expect(menu).toBeVisible();
   await menu.click();
   const route = page.getByRole('button', {
@@ -184,6 +195,8 @@ test('exact-head Trade Machine produces a retained Two-Way Trade Receipt', async
 
   await expect(receipt.getByText('Tobias Lund').first()).toBeVisible();
   await expect(receipt.getByText('Obi Nwachukwu').first()).toBeVisible();
+  // Two routed Two-Way players appear once as outgoing and once as incoming,
+  // yielding four explanations and four `2W` markers in the detailed receipt.
   await expect(
     receipt.getByText(TWO_WAY_TRADE_MATCHING_EXPLANATION, { exact: true })
   ).toHaveCount(4);

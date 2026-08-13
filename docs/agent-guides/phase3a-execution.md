@@ -13,6 +13,9 @@ execution tooling. `AGENTS.md` remains the repository-wide contract;
 
 - Accepted Canon candidate:
   `6cf8aaf358c158a88e630e8a7336f7e9c3febc17`.
+- Durable accepted-authority ref:
+  `refs/remotes/origin/architect/cba-canon-v2`. If it is absent, fetch only that
+  ref using the exact instruction printed by the lookup command.
 - Accepted Canon artifact:
   `docs/reference/cba/ARCHITECT_CBA_CANON.md` at that candidate only.
 - Accepted Canon SHA-256:
@@ -106,7 +109,10 @@ npm run review:probe -- \
 The helper exports an exact git archive, copies the reviewer fixture into that
 temporary snapshot, points Firebase variables only at the local demo emulators,
 removes common production credential variables, and deletes the snapshot after
-the run. It supplies setup, not cases or judgment.
+the run. It supplies setup, not cases or judgment. For speed it shares the
+checked-out `node_modules`; it fails when the candidate and checked-out
+`package-lock.json` differ, but cannot prove that the installed tree is fresh.
+Run `npm ci` against the checked-out lockfile when dependency freshness matters.
 
 For the first permanent rendered path, run:
 

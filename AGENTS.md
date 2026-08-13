@@ -92,6 +92,9 @@ Always append `-- --reporter=dot` to test commands:
 npm run test:diff -- --reporter=dot
 ```
 
+Exception: `npm run test:phase3a-workflow` uses Node's built-in test runner and
+already selects its dot reporter; run it without an appended Vitest reporter.
+
 Do not run these unless the user prompt contains `RUN FULL SUITE`:
 
 - `npm run test`

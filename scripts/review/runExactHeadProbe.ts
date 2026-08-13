@@ -51,6 +51,7 @@ function safeProbeEnvironment(
   for (const key of Object.keys(env)) {
     if (
       /^(GOOGLE_APPLICATION_CREDENTIALS|FIREBASE_CONFIG)$/i.test(key) ||
+      /^VITE_FIREBASE_/i.test(key) ||
       /^(GOOGLE|GCP|GCLOUD|FIREBASE).*?(CREDENTIAL|TOKEN|KEY|SECRET|ACCOUNT)/i.test(
         key
       )
@@ -62,7 +63,9 @@ function safeProbeEnvironment(
   return {
     ...env,
     NODE_ENV: 'test',
+    VITE_ARCHITECT_REVIEW_MODE: 'true',
     VITE_USE_FIREBASE_EMULATORS: 'true',
+    VITE_FIREBASE_PROJECT_ID: 'demo-architect-review',
     FIRESTORE_EMULATOR_HOST: '127.0.0.1:8082',
     FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099',
     GCLOUD_PROJECT: 'demo-architect-review',
@@ -106,6 +109,9 @@ export function runExactHeadProbe(args: ProbeArguments): number {
   process.stdout.write(`Exact candidate: ${resolvedCandidate}\n`);
   process.stdout.write(`Temporary probe root: ${snapshotRoot}\n`);
 
+  let probeStatus: number | undefined;
+  let primaryError: unknown;
+  let cleanupError: unknown;
   try {
     execFileSync(
       'git',
@@ -123,6 +129,24 @@ export function runExactHeadProbe(args: ProbeArguments): number {
     if (!fs.statSync(nodeModules, { throwIfNoEntry: false })?.isDirectory()) {
       throw new Error(
         'node_modules is required; run npm install before reviewer probes'
+      );
+    }
+    const candidateLock = git(repoRoot, [
+      'rev-parse',
+      `${resolvedCandidate}:package-lock.json`,
+    ]);
+    const checkedOutLock = execFileSync(
+      'git',
+      ['hash-object', 'package-lock.json'],
+      {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }
+    ).trim();
+    if (candidateLock !== checkedOutLock) {
+      throw new Error(
+        'Candidate package-lock.json differs from the checked-out lockfile; checkout the candidate and run npm ci before this exact-source probe'
       );
     }
     fs.symlinkSync(nodeModules, path.join(snapshotRoot, 'node_modules'), 'dir');
@@ -145,9 +169,19 @@ export function runExactHeadProbe(args: ProbeArguments): number {
       stdio: 'inherit',
     });
     if (result.error) throw result.error;
-    return result.status ?? 1;
+    probeStatus = result.status ?? 1;
+  } catch (error) {
+    primaryError = error;
   } finally {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
+    try {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    } catch (error) {
+      cleanupError = error;
+    }
+  }
+
+  let worktreeError: unknown;
+  try {
     const finalStatus = git(repoRoot, [
       'status',
       '--porcelain=v1',
@@ -158,10 +192,25 @@ export function runExactHeadProbe(args: ProbeArguments): number {
         'Reviewer probe changed the source worktree; cleanup or concurrent-write investigation is required'
       );
     }
-    process.stdout.write(
-      'Cleaned temporary probe workspace; source worktree unchanged.\n'
+  } catch (error) {
+    worktreeError = error;
+  }
+
+  const failures = [primaryError, cleanupError, worktreeError].filter(
+    (error): error is NonNullable<typeof error> => error != null
+  );
+  if (failures.length === 1) throw failures[0];
+  if (failures.length > 1) {
+    throw new AggregateError(
+      failures,
+      'Reviewer probe failed with multiple execution or cleanup errors'
     );
   }
+
+  process.stdout.write(
+    'Cleaned temporary probe workspace; source worktree unchanged.\n'
+  );
+  return probeStatus ?? 1;
 }
 
 function isMainModule(): boolean {

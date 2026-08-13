@@ -43,6 +43,12 @@ jobs:
       - name: Architect cast-ledger gate
         run: npm run lint:architect-gate
 
+      - name: Fetch accepted Canon authority ref
+        run: git fetch --no-tags origin architect/cba-canon-v2:refs/remotes/origin/architect/cba-canon-v2
+
+      - name: Phase 3A workflow tooling
+        run: npm run test:phase3a-workflow
+
       - name: Run diff-based tests
         run: npm run test:diff -- --verbose
 
@@ -75,6 +81,12 @@ jobs:
 
       - name: Architect cast-ledger gate
         run: npm run lint:architect-gate
+
+      - name: Fetch accepted Canon authority ref
+        run: git fetch --no-tags origin architect/cba-canon-v2:refs/remotes/origin/architect/cba-canon-v2
+
+      - name: Phase 3A workflow tooling
+        run: npm run test:phase3a-workflow
 
       - name: Run full test suite
         run: npm run test:full

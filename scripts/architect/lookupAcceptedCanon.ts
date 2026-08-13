@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 export const ACCEPTED_CANON_PIN = Object.freeze({
   candidate: '6cf8aaf358c158a88e630e8a7336f7e9c3febc17',
+  authorityRef: 'refs/remotes/origin/architect/cba-canon-v2',
   fingerprint:
     '23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76',
   artifactPath: 'docs/reference/cba/ARCHITECT_CBA_CANON.md',
@@ -28,6 +29,7 @@ type MarkdownRow = string[];
 export interface CanonLookupResult {
   acceptedAuthority: {
     candidate: string;
+    authorityRef: string;
     fingerprint: string;
     artifactPath: string;
     source: 'pinned git object';
@@ -103,7 +105,12 @@ function runGit(repoRoot: string, args: string[]): Buffer {
 }
 
 function assertAcceptedPin(pin: AcceptedCanonPin): void {
-  for (const key of ['candidate', 'fingerprint', 'artifactPath'] as const) {
+  for (const key of [
+    'candidate',
+    'authorityRef',
+    'fingerprint',
+    'artifactPath',
+  ] as const) {
     if (pin[key] !== ACCEPTED_CANON_PIN[key]) {
       throw new Error(
         `Wrong Canon authority: ${key} must remain pinned to ${ACCEPTED_CANON_PIN[key]}`
@@ -131,6 +138,22 @@ export function readAcceptedCanon(
 ): Buffer {
   assertAcceptedPin(pin);
 
+  let authorityTip: string;
+  try {
+    authorityTip = runGit(repoRoot, [
+      'rev-parse',
+      '--verify',
+      `${pin.authorityRef}^{commit}`,
+    ])
+      .toString('utf8')
+      .trim();
+  } catch {
+    throw new Error(
+      `Accepted Canon authority ref is unavailable: ${pin.authorityRef}. ` +
+        'Fetch it with: git fetch origin architect/cba-canon-v2:refs/remotes/origin/architect/cba-canon-v2'
+    );
+  }
+
   const resolvedCandidate = runGit(repoRoot, [
     'rev-parse',
     '--verify',
@@ -145,6 +168,19 @@ export function readAcceptedCanon(
     );
   }
 
+  const authorityMergeBase = runGit(repoRoot, [
+    'merge-base',
+    resolvedCandidate,
+    authorityTip,
+  ])
+    .toString('utf8')
+    .trim();
+  if (authorityMergeBase !== resolvedCandidate) {
+    throw new Error(
+      `Wrong Canon authority: candidate ${resolvedCandidate} is not reachable from ${pin.authorityRef}`
+    );
+  }
+
   const content = runGit(repoRoot, [
     'show',
     `${pin.candidate}:${pin.artifactPath}`,
@@ -154,13 +190,14 @@ export function readAcceptedCanon(
 }
 
 function parseMarkdownRow(line: string): MarkdownRow | null {
-  if (!line.startsWith('|') || !line.endsWith('|')) return null;
+  const trimmed = line.trim();
+  if (!trimmed.startsWith('|') || !trimmed.endsWith('|')) return null;
 
   const cells: string[] = [];
   let current = '';
-  for (let index = 1; index < line.length - 1; index += 1) {
-    const char = line[index];
-    if (char === '|' && line[index - 1] !== '\\') {
+  for (let index = 1; index < trimmed.length - 1; index += 1) {
+    const char = trimmed[index];
+    if (char === '|' && trimmed[index - 1] !== '\\') {
       cells.push(current.trim());
       current = '';
     } else {
@@ -291,6 +328,7 @@ export function lookupAcceptedCanonLeaf(
   return {
     acceptedAuthority: {
       candidate: ACCEPTED_CANON_PIN.candidate,
+      authorityRef: ACCEPTED_CANON_PIN.authorityRef,
       fingerprint: ACCEPTED_CANON_PIN.fingerprint,
       artifactPath: ACCEPTED_CANON_PIN.artifactPath,
       source: 'pinned git object',
@@ -344,6 +382,7 @@ export function formatCanonLookup(result: CanonLookupResult): string {
   const lines = [
     'PINNED ACCEPTED CANON AUTHORITY — working-tree copies are not consulted',
     `Candidate: ${result.acceptedAuthority.candidate}`,
+    `Authority ref: ${result.acceptedAuthority.authorityRef}`,
     `SHA-256:  ${result.acceptedAuthority.fingerprint}`,
     `Artifact: ${result.acceptedAuthority.artifactPath} (${result.acceptedAuthority.source})`,
     '',

@@ -37,8 +37,16 @@ export function resolveProofIdentity(cwd = process.cwd()): ProofIdentity {
   }
 
   const candidate = git(repoRoot, ['rev-parse', 'HEAD']);
-  const originMain = git(repoRoot, ['rev-parse', 'origin/main']);
-  const mergeBase = git(repoRoot, ['merge-base', candidate, originMain]);
+  let originMain: string;
+  let mergeBase: string;
+  try {
+    originMain = git(repoRoot, ['rev-parse', '--verify', 'origin/main']);
+    mergeBase = git(repoRoot, ['merge-base', candidate, originMain]);
+  } catch {
+    throw new Error(
+      'Trade Receipt proof requires a resolvable origin/main and shared merge base; run git fetch origin main first'
+    );
+  }
   return { repoRoot, candidate, originMain, mergeBase };
 }
 
@@ -86,6 +94,11 @@ async function waitForCleanTeardown(): Promise<number[]> {
   return PROOF_PORTS.filter((_, index) => states[index]);
 }
 
+async function openProofPorts(): Promise<number[]> {
+  const states = await Promise.all(PROOF_PORTS.map(portIsOpen));
+  return PROOF_PORTS.filter((_, index) => states[index]);
+}
+
 export async function runTradeReceiptProof(): Promise<number> {
   const identity = resolveProofIdentity();
   const artifactDir = path.join(
@@ -97,7 +110,6 @@ export async function runTradeReceiptProof(): Promise<number> {
   );
   const testResultsDir = path.join(artifactDir, 'test-results');
   const reportDir = path.join(artifactDir, 'html-report');
-  fs.mkdirSync(artifactDir, { recursive: true });
 
   const playwrightBinary = path.join(
     identity.repoRoot,
@@ -108,6 +120,14 @@ export async function runTradeReceiptProof(): Promise<number> {
   if (!fs.existsSync(playwrightBinary)) {
     throw new Error('Playwright is unavailable; run npm install first');
   }
+
+  const baselinePorts = await openProofPorts();
+  if (baselinePorts.length > 0) {
+    throw new Error(
+      `Trade Receipt proof requires its local harness ports to be free before startup; close listeners on: ${baselinePorts.join(', ')}`
+    );
+  }
+  fs.mkdirSync(artifactDir, { recursive: true });
 
   const commandArgs = [
     'test',
@@ -128,6 +148,7 @@ export async function runTradeReceiptProof(): Promise<number> {
       ...process.env,
       PLAYWRIGHT_ARCHITECT_REVIEW_MODE: 'true',
       PLAYWRIGHT_HTML_OUTPUT_DIR: reportDir,
+      PLAYWRIGHT_HTML_OPEN: 'never',
       VITE_SHOW_TRADE_RECEIPT: 'true',
       SCOUTZERO_PROOF_CANDIDATE: identity.candidate,
       SCOUTZERO_BROWSER_PROOF_DIR: artifactDir,
@@ -164,6 +185,7 @@ export async function runTradeReceiptProof(): Promise<number> {
     processSignal: result.signal,
     teardown: {
       checkedPorts: PROOF_PORTS,
+      baselinePorts,
       openPorts,
       clean: openPorts.length === 0,
     },
