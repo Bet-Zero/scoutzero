@@ -153,7 +153,7 @@ function buildTradePayload({
         ],
         entitlementsOut: [],
         salaryMatchingElection: {
-          version: 1,
+          version: 1 as const,
           path: 'ROOM',
           postAssignmentApronTeamSalary: 23_000_000,
           tradedPlayerPreTradeSalaries: {},
@@ -169,7 +169,7 @@ function buildTradePayload({
         ],
         entitlementsOut: [],
         salaryMatchingElection: {
-          version: 1,
+          version: 1 as const,
           path: 'ROOM',
           postAssignmentApronTeamSalary: 23_000_000,
           tradedPlayerPreTradeSalaries: {},
