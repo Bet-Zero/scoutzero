@@ -89,7 +89,15 @@ const makePick = (year, round = '1st') => ({
 
 function runTrade(teams) {
   return validateTrade({
-    teams,
+    teams: teams.map((entry) => ({
+      ...entry,
+      salaryMatchingElection: {
+        version: 1,
+        path: 'ROOM',
+        postAssignmentApronTeamSalary: entry.team.totalSalary,
+        tradedPlayerPreTradeSalaries: {},
+      },
+    })),
     capProjections,
     currentYear,
     tradeCtx,

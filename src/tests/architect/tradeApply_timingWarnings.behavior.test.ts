@@ -152,6 +152,12 @@ function buildTradePayload({
           }),
         ],
         entitlementsOut: [],
+        salaryMatchingElection: {
+          version: 1,
+          path: 'ROOM',
+          postAssignmentApronTeamSalary: 23_000_000,
+          tradedPlayerPreTradeSalaries: {},
+        },
       },
       {
         teamCode: 'B',
@@ -162,6 +168,12 @@ function buildTradePayload({
           }),
         ],
         entitlementsOut: [],
+        salaryMatchingElection: {
+          version: 1,
+          path: 'ROOM',
+          postAssignmentApronTeamSalary: 23_000_000,
+          tradedPlayerPreTradeSalaries: {},
+        },
       },
     ],
     asOfDate,
