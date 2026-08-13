@@ -42,7 +42,7 @@
     "test:roster": "vitest run -c vitest.node.config.js src/tests/roster",
     "test:scouting": "node scripts/run-scouting-tests.mjs",
     "test:diff": "node scripts/run-tests-by-diff.mjs",
-    "test:phase3a-workflow": "tsx --test tests/tooling/phase3aWorkflow.test.ts",
+    "test:phase3a-workflow": "tsx --test tests/tooling/phase3aWorkflow.node-test.ts",
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui",
     "test:e2e:headed": "npx playwright test --headed",
