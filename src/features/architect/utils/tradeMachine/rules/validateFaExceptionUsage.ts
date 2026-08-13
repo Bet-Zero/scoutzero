@@ -104,7 +104,10 @@ export function validateFaExceptionUsage(
     } else {
       // Check for outgoing salary (both salaryOut and outgoingPlayers)
       const hasOutgoingSalary =
-        Number(team.salaryOut || 0) > 0 || (team.outgoingPlayers || []).length > 0;
+        Number(team.salaryOut || 0) > 0 ||
+        (team.outgoingPlayers || []).some(
+          (player) => !isTwoWayTradePlayer(player)
+        );
 
       // Auto-select FA exception for eligible players (if no absorptionMode is set)
       faExceptionEligiblePlayers.forEach((player) => {

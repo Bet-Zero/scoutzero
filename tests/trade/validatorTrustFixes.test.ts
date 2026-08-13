@@ -450,26 +450,34 @@ describe('validator trust fixes', () => {
     ).not.toBe('FA_EXCEPTION');
   });
 
-  it('routes legal FA-exception absorption through validateTrade', () => {
+  it('allows FA-exception absorption with only an explicit nested Two-Way outgoing contract', () => {
     const faExceptionIncoming = makePlayer('fa_exception_sender', 8_000_000, {
       teamCode: 'LAL',
       absorptionMode: 'FA_EXCEPTION',
       bucketType: 'NTMLE',
     });
+    const twoWayOutgoing = makePlayer('bos_matching_counter', 636_435, {
+      teamCode: 'BOS',
+      contract: makeContract(636_435, { contractType: 'TwoWay' }),
+    });
     const lakers = makeTeam(
       'LAL',
-      [faExceptionIncoming, ...makeRoster('LAL', 14)],
+      [faExceptionIncoming, ...makeRoster('LAL', 13)],
       { totalSalary: 165_000_000 }
     );
-    const celtics = makeTeam('BOS', makeRoster('BOS', 14), {
-      totalSalary: 160_000_000,
-      faExceptionBuckets: [{ type: 'NTMLE', remaining: 10_000_000 }],
-    });
+    const celtics = makeTeam(
+      'BOS',
+      [twoWayOutgoing, ...makeRoster('BOS', 13)],
+      {
+        totalSalary: 160_000_000,
+        faExceptionBuckets: [{ type: 'NTMLE', remaining: 10_000_000 }],
+      }
+    );
 
     const result = validateTrade({
       teams: asValidateTradeTeams([
         { team: lakers, sends: [faExceptionIncoming], entitlementsOut: [] },
-        { team: celtics, sends: [], entitlementsOut: [] },
+        { team: celtics, sends: [twoWayOutgoing], entitlementsOut: [] },
       ]),
       capProjections,
       currentYear: CURRENT_YEAR,
@@ -484,17 +492,25 @@ describe('validator trust fixes', () => {
     expect(getRuleSkipReason(celticsResult?.rules?.salaryMatching)).toBe(
       'FA_EXCEPTION'
     );
+    expect(celticsResult?.salaryOut).toBe(0);
+    expect(celticsResult?.faExceptionBuckets).toEqual([
+      expect.objectContaining({ type: 'NTMLE', remaining: 2_000_000 }),
+    ]);
     expect(celticsResult?.hardCapped).toBe(true);
+    expect(celticsResult?.notes).toContain(
+      'Team hard-capped at first apron due to FA exception usage'
+    );
   });
 
-  it('blocks FA-exception aggregation through validateTrade using the live payload shape', () => {
+  it('blocks the equivalent FA-exception acquisition with a Standard outgoing contract', () => {
     const faExceptionIncoming = makePlayer('fa_exception_sender', 8_000_000, {
       teamCode: 'LAL',
       absorptionMode: 'FA_EXCEPTION',
       bucketType: 'NTMLE',
     });
-    const counterPlayer = makePlayer('bos_counter', 2_000_000, {
+    const standardOutgoing = makePlayer('bos_matching_counter', 636_435, {
       teamCode: 'BOS',
+      contract: makeContract(636_435, { contractType: 'STANDARD' }),
     });
     const lakers = makeTeam(
       'LAL',
@@ -503,7 +519,7 @@ describe('validator trust fixes', () => {
     );
     const celtics = makeTeam(
       'BOS',
-      [counterPlayer, ...makeRoster('BOS', 14)],
+      [standardOutgoing, ...makeRoster('BOS', 13)],
       {
         totalSalary: 160_000_000,
         faExceptionBuckets: [{ type: 'NTMLE', remaining: 10_000_000 }],
@@ -513,7 +529,7 @@ describe('validator trust fixes', () => {
     const result = validateTrade({
       teams: asValidateTradeTeams([
         { team: lakers, sends: [faExceptionIncoming], entitlementsOut: [] },
-        { team: celtics, sends: [counterPlayer], entitlementsOut: [] },
+        { team: celtics, sends: [standardOutgoing], entitlementsOut: [] },
       ]),
       capProjections,
       currentYear: CURRENT_YEAR,
@@ -530,6 +546,10 @@ describe('validator trust fixes', () => {
         expect.stringMatching(/Cannot combine FA Exception with outgoing salary/i),
       ])
     );
+    expect(celticsResult?.faExceptionBuckets).toEqual([
+      expect.objectContaining({ type: 'NTMLE', remaining: 10_000_000 }),
+    ]);
+    expect(celticsResult?.hardCapped).toBe(false);
   });
 
   it('threads asOfDate through executeTrade validation so S&T timing ownership changes by date', () => {
