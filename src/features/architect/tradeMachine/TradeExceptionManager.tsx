@@ -6,6 +6,8 @@ type TradeExceptionLike = {
   id?: string | number;
   name?: string;
   amount?: number | string | null;
+  remaining?: number | string | null;
+  remainingAmount?: number | string | null;
   isUsed?: boolean;
   expirationDate?: string | null;
   expiresOn?: string | null;
@@ -20,6 +22,10 @@ function isTpeExpired(tpe: TradeExceptionLike) {
   const expiry = tpe.expirationDate || tpe.expiresOn;
   if (!expiry) return false;
   return new Date(expiry) <= new Date();
+}
+
+function getTpeRemaining(tpe: TradeExceptionLike) {
+  return tpe.remainingAmount ?? tpe.remaining ?? tpe.amount;
 }
 
 export const TradeExceptionManager = ({
@@ -66,7 +72,7 @@ export const TradeExceptionManager = ({
                 </div>
               </div>
               <div className="font-mono text-cockpit-safe">
-                {formatCurrency(tpe.amount)}
+                {formatCurrency(getTpeRemaining(tpe))}
               </div>
             </div>
           ))}
@@ -79,7 +85,9 @@ export const TradeExceptionManager = ({
 
       {expiredExceptions.length > 0 && (
         <div className="mt-3 space-y-1">
-          <div className="text-xs text-cockpit-text-muted font-medium">Expired</div>
+          <div className="text-xs text-cockpit-text-muted font-medium">
+            Expired
+          </div>
           {expiredExceptions.map((tpe) => (
             <div
               key={tpe.id}
@@ -94,7 +102,7 @@ export const TradeExceptionManager = ({
                 </div>
               </div>
               <div className="font-mono text-cockpit-text-muted">
-                {formatCurrency(tpe.amount)}
+                {formatCurrency(getTpeRemaining(tpe))}
               </div>
             </div>
           ))}
@@ -104,10 +112,10 @@ export const TradeExceptionManager = ({
       <div className="mt-3 text-xs text-cockpit-text-muted border-t border-cockpit-edge pt-2">
         <p>Trade exceptions allow acquiring players without matching salary.</p>
         <p className="mt-1">
-          Generated when receiving less salary than sent out.
+          Standard TPEs retain their unused governed component capacity for one
+          year.
         </p>
       </div>
     </div>
   );
 };
-

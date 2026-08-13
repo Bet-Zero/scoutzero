@@ -64,7 +64,9 @@ export type ArchitectActionTeamCapSheet = NonNullable<
 export type DashboardCommittedTeamSnapshot = NonNullable<
   UseArchitectStateReturn['teamCapSheet']
 >;
-export type ComputeWorldMutationArgs = Parameters<typeof computeWorldMutation>[0];
+export type ComputeWorldMutationArgs = Parameters<
+  typeof computeWorldMutation
+>[0];
 export type SignFreeAgentComputeArgs = Extract<
   ComputeWorldMutationArgs,
   { mutationType: 'signFreeAgent' }
@@ -81,8 +83,12 @@ export type TradeMutationPayloadTeam = NonNullable<
 export type TradeMutationPayloadEntitlement = NonNullable<
   TradeMutationPayloadTeam['outgoingEntitlements']
 >[number];
-export type SigningValidationTeam = Parameters<typeof validateSigning>[0]['team'];
-export type SigningValidationPlayer = Parameters<typeof validateSigning>[0]['player'];
+export type SigningValidationTeam = Parameters<
+  typeof validateSigning
+>[0]['team'];
+export type SigningValidationPlayer = Parameters<
+  typeof validateSigning
+>[0]['player'];
 export type SigningValidationCapHold = NonNullable<
   SigningValidationTeam['capHolds']
 >[number];
@@ -219,6 +225,9 @@ export interface TradeDataItem {
   /** Alias used by exportCurrentTrade */
   outgoingPlayers?: ArchitectPlayer[];
   incomingPlayers?: ArchitectPlayer[];
+  salaryMatchingElection?:
+    | import('@/schemas/tradeSalaryMatchingPath').TradeSalaryMatchingElection
+    | null;
 }
 
 export type TradeExecutionPayload = {
@@ -416,12 +425,16 @@ export interface OfferSheet {
 }
 
 export type OfferSheetResolutionAction = 'match' | 'decline';
-export type OfferSheetResolutionMutationType = 'matchOfferSheet' | 'declineOfferSheet';
+export type OfferSheetResolutionMutationType =
+  | 'matchOfferSheet'
+  | 'declineOfferSheet';
 export type OfferSheetLifecycleMutationType =
   | OfferSheetResolutionMutationType
   | 'finalizeMatchedOfferSheet'
   | 'finalizeDeclinedOfferSheet';
-export type OfferSheetLifecycleVisibleArrayKey = 'incomingOfferSheets' | 'offerSheets';
+export type OfferSheetLifecycleVisibleArrayKey =
+  | 'incomingOfferSheets'
+  | 'offerSheets';
 export type OfferSheetLifecycleExpectationPresence = 'present' | 'absent';
 export type OfferSheetFinalizeMutationRoute =
   | {
@@ -817,7 +830,10 @@ export interface UseArchitectActionsReturn {
     player: PlayerRulesProfileInput | ArchitectDashboardPlayer | ArchitectPlayer
   ) => void;
   handleLaunchPlayerContractAction: (
-    player: PlayerRulesProfileInput | ArchitectDashboardPlayer | ArchitectPlayer,
+    player:
+      | PlayerRulesProfileInput
+      | ArchitectDashboardPlayer
+      | ArchitectPlayer,
     action: 'waive' | 'extend' | 'stretch' | 'buyout'
   ) => void;
   handleCapTableModalAction: (

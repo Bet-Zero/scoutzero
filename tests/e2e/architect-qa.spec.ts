@@ -654,6 +654,23 @@ const routeTradePlayer = async (
   await tradeButton.click();
 };
 
+const electRoomSalaryPath = async (
+  page: Page,
+  teamIndex: number,
+  postAssignmentApronTeamSalary: number
+) => {
+  const tradeDialog = page.getByRole('dialog', { name: /Trade Machine/i });
+  const election = tradeDialog
+    .getByTestId('trade-salary-path-election')
+    .nth(teamIndex);
+
+  await expect(election).toBeVisible();
+  await election.getByLabel(/^Elected path$/i).selectOption('ROOM');
+  await election
+    .getByLabel(/^Post-assignment Apron Team Salary$/i)
+    .fill(String(postAssignmentApronTeamSalary));
+};
+
 const executePersistedReviewTradeProof = async (
   page: Page,
   testInfo: TestInfo
@@ -686,6 +703,11 @@ const executePersistedReviewTradeProof = async (
   };
 
   page.on('console', consoleListener);
+  if (process.env.VITE_SHOW_TRADE_RECEIPT === 'true') {
+    await page.evaluate(() => {
+      window.localStorage.setItem('hz.dev.tradeMachineDebug', 'true');
+    });
+  }
   await ensureTeamDataLoaded(page, testInfo);
   const worldId = await ensureWorldSelected(page, testInfo);
 
@@ -721,6 +743,13 @@ const executePersistedReviewTradeProof = async (
     'Los Angeles Lakers'
   );
 
+  // The controlled review fixture has no Apron Team Salary adjustments beyond
+  // its seeded payroll. These exact post-assignment values elect the supported
+  // Room path for both below-cap teams instead of relying on the retired
+  // generic matching-band shortcut.
+  await electRoomSalaryPath(page, 0, 78_800_000);
+  await electRoomSalaryPath(page, 1, 129_100_000);
+
   const validateTradeButton = page.getByRole('button', {
     name: /^Validate Trade$/i,
   });
@@ -742,6 +771,26 @@ const executePersistedReviewTradeProof = async (
       message: 'trade should validate as legal before apply',
     })
     .toBe(true);
+
+  if (process.env.VITE_SHOW_TRADE_RECEIPT === 'true') {
+    const developmentTools = page.getByRole('button', {
+      name: /Development Tools/i,
+    });
+    await expect(developmentTools).toBeVisible();
+    await developmentTools.click();
+
+    const receipt = page.getByTestId('section-trade-receipt');
+    await expect(receipt).toBeVisible();
+    await receipt.getByRole('button', { name: 'Show Details' }).click();
+    await expect(receipt.getByText('Room path', { exact: true })).toHaveCount(2);
+    await expect(receipt.getByText('PASS', { exact: true })).toHaveCount(2);
+    await expect(receipt).toContainText('Allowance: $250,000');
+    await receipt.scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: testInfo.outputPath('salary-path-explanation-1280x720.png'),
+      fullPage: false,
+    });
+  }
 
   const previewCloseButton = page.locator('button[title="Close"]').first();
   if (await isVisible(previewCloseButton, 2000)) {
@@ -869,6 +918,35 @@ const executePersistedReviewTradeProof = async (
     ])
   );
   expect(tradeEventTeamCodes).toEqual(expect.arrayContaining(['LAL', 'BOS']));
+
+  const tradeEventMetadata =
+    tradeEvent?.metadata && typeof tradeEvent.metadata === 'object'
+      ? (tradeEvent.metadata as Record<string, unknown>)
+      : {};
+  const salaryMatchingPaths = Array.isArray(
+    tradeEventMetadata.salaryMatchingPaths
+  )
+    ? tradeEventMetadata.salaryMatchingPaths
+    : [];
+  expect(salaryMatchingPaths).toHaveLength(2);
+  salaryMatchingPaths.forEach((entry) => {
+    expect(entry?.evaluation).toMatchObject({
+      status: 'PASS',
+      electedPath: 'ROOM',
+      canonLeafIds: expect.arrayContaining([
+        'CBA2-A02.9',
+        'CBA2-A02.10',
+        'CBA2-A02.12',
+      ]),
+    });
+  });
+
+  const closeTradeMachineButton = page.getByRole('button', {
+    name: /^Close Trade Machine$/i,
+  });
+  if (await isVisible(closeTradeMachineButton, 2000)) {
+    await closeTradeMachineButton.click();
+  }
 
   return {
     worldId,
@@ -1275,6 +1353,19 @@ const seedReviewWorld = async (
         totalRenounces: 0,
         teamsInvolved: 0,
       },
+      contractBaselineVersion: 2,
+      contractSourceRelease: {
+        releaseId: 'review-contract-source-release',
+        releaseVersion: 1,
+        releaseDigest: `sha256:${'1'.repeat(64)}`,
+      },
+      contractBaselineEffectiveAt: '2026-06-05T12:19:56.526Z',
+      contractBaselineSalaryCapYear: 2026,
+      contractBaselineCoverage: {
+        total: 0,
+        complete: 0,
+        needsInput: 0,
+      },
     });
   return worldId;
 };
@@ -1543,9 +1634,19 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       page.getByAltText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name)
     ).toHaveCount(0);
 
+    await openDashboardTab(page, 'Team History');
+    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
+    await expect(page.getByTestId('team-history-event-row-0')).toContainText(
+      /Trade Executed/i
+    );
+    await page.screenshot({
+      path: testInfo.outputPath('salary-path-reload-history-1280x720.png'),
+      fullPage: false,
+    });
+
     addAuditNote(
       testInfo,
-      'This now covers the real world-backed trade path: a legal Lakers/Celtics trade validates, Apply Trade persists updated team snapshots plus an executeTrade event in architect_worlds/{worldId}, and the re-entered dashboard rehydrates the Lakers roster with Derrick White instead of Austin Reaves.'
+      'This covers the real world-backed governed salary path: explicit Room elections validate with decomposed receipt evidence, Apply Trade persists updated team snapshots plus an executeTrade event carrying the exact path evaluations, and re-entry restores both the Lakers roster result and Team History event.'
     );
 
     await captureEvidence(page, testInfo, 'D-MQ-003-persisted-trade-proof');

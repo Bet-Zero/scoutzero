@@ -17,10 +17,7 @@ import { useTradeMachineInit } from './useTradeMachineInit';
 import { useTradeMachineTeamOps } from './useTradeMachineTeamOps';
 // Wave 29 Step 4: validation extracted to useTradeMachineValidation.ts
 import { useTradeMachineValidation } from './useTradeMachineValidation';
-import {
-  isUnknownRecord,
-  hasTeamSlot,
-} from './useTradeMachine.helpers';
+import { isUnknownRecord, hasTeamSlot } from './useTradeMachine.helpers';
 // TM_DATAWARN_UI_E1: Data validation utilities
 import { extractUsedTpeIds } from '@/features/architect/utils/tradeMachine/utils/tradeExportUtils';
 import {
@@ -37,7 +34,7 @@ import type {
   TradeMachinePreviewAuthority,
   TradeMachineSnapshotValidationDetails,
 } from './useTradeMachine.types';
-
+import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 
 export const useTradeMachine = (
   primaryTeam: string | null | undefined,
@@ -221,6 +218,19 @@ export const useTradeMachine = (
     );
   }, []);
 
+  const setSalaryMatchingElection = useCallback(
+    (teamIndex: number, election: TradeSalaryMatchingElection | null) => {
+      setTeams((previous) =>
+        previous.map((slot, index) =>
+          index === teamIndex
+            ? { ...slot, salaryMatchingElection: election }
+            : slot
+        )
+      );
+    },
+    []
+  );
+
   const exportCurrentTrade = useCallback(() => {
     const tradeData = teams.filter(hasTeamSlot).map((t) => {
       const teamId = t.team.id;
@@ -240,6 +250,7 @@ export const useTradeMachine = (
           .map((ent) => decorateEntitlementForTrade(ent))
           .filter(isUnknownRecord),
         usedTradeExceptions: extractUsedTpeIds(t.sends),
+        salaryMatchingElection: t.salaryMatchingElection ?? null,
       };
     });
 
@@ -254,6 +265,7 @@ export const useTradeMachine = (
           ...slot,
           sends: [] as UnknownRecord[],
           entitlementsOut: [] as UnknownRecord[],
+          salaryMatchingElection: null,
         })
       )
     );
@@ -301,6 +313,7 @@ export const useTradeMachine = (
     hasInjectedDevSntPlayers,
     injectDevSntPlayers,
     clearInjectedDevSntPlayers,
+    setSalaryMatchingElection,
     // Expose ref getter for validatedAt (needed since ref doesn't trigger re-render)
     getValidatedAt: () => validatedAtRef.current,
     // Phase 16.3: Expose init error for UI error surfacing

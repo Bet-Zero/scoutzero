@@ -84,7 +84,8 @@ function buildCreatedFrom(
     outgoingPlayers
       .map((player) => player.name || player.displayName)
       .filter(
-        (value): value is string => typeof value === 'string' && value.length > 0
+        (value): value is string =>
+          typeof value === 'string' && value.length > 0
       )
       .join(', ') || 'Trade'
   );
@@ -159,7 +160,8 @@ function buildTpeConsumptionState({
       warnings.push({
         playerId: player.player_id || player.name,
         tpeId: player.tpeId,
-        reason: 'matchIncoming missing for TPE consumption - consumption skipped',
+        reason:
+          'matchIncoming missing for TPE consumption - consumption skipped',
       });
       return;
     }
@@ -238,8 +240,9 @@ function buildTpeConsumptionHistoryEntries({
     }
 
     const nextTpe =
-      updatedTradeExceptions.find((candidate) => candidate.id === previousTpeId) ||
-      previousTpe;
+      updatedTradeExceptions.find(
+        (candidate) => candidate.id === previousTpeId
+      ) || previousTpe;
     const previousRemaining = getTpeRemaining(previousTpe);
     const nextRemaining = getTpeRemaining(nextTpe);
     const consumedAmount = Math.max(0, previousRemaining - nextRemaining);
@@ -307,7 +310,15 @@ function applyCreatedTpe({
     };
   }
 
-  const createdAmount = toFiniteAmount(createdTPE.amount, 0);
+  const createdAmount = toFiniteAmount(
+    createdTPE.totalAmount ?? createdTPE.amount,
+    0
+  );
+  const createdRemaining = toFiniteAmount(
+    createdTPE.remainingAmount ?? createdTPE.remaining,
+    createdAmount
+  );
+  const createdUsed = toFiniteAmount(createdTPE.usedAmount, 0);
   const tpeId =
     (typeof createdTPE.id === 'string' && createdTPE.id) ||
     `tpe_${teamCode}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -319,7 +330,9 @@ function applyCreatedTpe({
     createdFrom,
   ].join('|');
 
-  const hasDuplicateById = updatedTradeExceptions.some((tpe) => tpe.id === tpeId);
+  const hasDuplicateById = updatedTradeExceptions.some(
+    (tpe) => tpe.id === tpeId
+  );
   const hasDuplicateBySignature = updatedTradeExceptions.some((tpe) => {
     const existingSignature = [
       tpe.createdSeason,
@@ -331,7 +344,8 @@ function applyCreatedTpe({
   });
 
   if (hasDuplicateById || hasDuplicateBySignature) {
-    const isDev = import.meta.env?.DEV || process.env.NODE_ENV === 'development';
+    const isDev =
+      import.meta.env?.DEV || process.env.NODE_ENV === 'development';
     if (isDev) {
       console.info(
         '[tradeExceptionLifecycle] Duplicate TPE detected, skipping creation',
@@ -352,11 +366,13 @@ function applyCreatedTpe({
   const nextTradeExceptions = [
     ...updatedTradeExceptions,
     {
+      ...createdTPE,
       id: tpeId,
       amount: createdAmount,
       totalAmount: createdAmount,
-      remainingAmount: createdAmount,
-      usedAmount: 0,
+      ...(createdTPE.salaryMatchingPath ? {} : { remaining: createdRemaining }),
+      remainingAmount: createdRemaining,
+      usedAmount: createdUsed,
       createdSeason: createdTPE.createdSeason,
       expiresOn: createdTPE.expiresOn,
       createdFrom,

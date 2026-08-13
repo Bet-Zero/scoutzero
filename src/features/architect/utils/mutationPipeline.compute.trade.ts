@@ -309,6 +309,21 @@ export function computeTradeResult({
       Object.keys(entitlementsTraded).length > 0
         ? entitlementsTraded
         : undefined,
+    salaryMatchingPaths: validation.teamResults
+      .map((teamResult, index) => {
+        if (!teamResult.salaryMatchingPathEvaluation) return null;
+        return {
+          teamCode: teamUpdates[index]?.teamCode ?? null,
+          evaluation: teamResult.salaryMatchingPathEvaluation,
+        };
+      })
+      .filter(
+        (
+          entry
+        ): entry is NonNullable<
+          NonNullable<TradeMutationMetadata['salaryMatchingPaths']>[number]
+        > => entry !== null
+      ),
     timestamp,
   };
 

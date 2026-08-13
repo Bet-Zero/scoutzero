@@ -99,6 +99,7 @@ export function validateTradeExceptions(
   } = team;
 
   const { capSettings = {}, yearKey } = context;
+  const usesGovernedTradeSalaryPath = context.source === 'tradeMachine';
   const canonicalTradeDate = context.tradeDate || new Date().toISOString();
   const numericYear = resolveNumericYear(yearKey);
 
@@ -161,7 +162,11 @@ export function validateTradeExceptions(
     }
   }
 
-  if (usesTpe && hasOutgoingSalary(salaryOut, outgoingPlayers, sends)) {
+  if (
+    !usesGovernedTradeSalaryPath &&
+    usesTpe &&
+    hasOutgoingSalary(salaryOut, outgoingPlayers, sends)
+  ) {
     violations.push(
       createIssue(
         'Cannot aggregate trade exception with outgoing salary',
@@ -199,7 +204,9 @@ export function validateTradeExceptions(
       );
     }
 
-    const tpeAmount = tpe.amount || 0;
+    const tpeAmount = Number(
+      tpe.remainingAmount ?? tpe.remaining ?? tpe.amount ?? tpe.totalAmount ?? 0
+    );
     if (totalUsage > tpeAmount) {
       tpeViolations.push(
         createIssue(
@@ -218,10 +225,47 @@ export function validateTradeExceptions(
     violations.push(...tpeViolations);
   });
 
-  const salaryDifference = salaryOut - salaryIn;
   let createdTPE: TradeExceptionRecord | null = null;
 
-  if (salaryDifference > 0 && teamTotalSalary > (capSettings.salaryCap || 0)) {
+  const pathEvaluation = team.salaryMatchingPathEvaluation;
+  const electedStandardComponent = pathEvaluation?.components.find(
+    (component) =>
+      component.kind === 'ELECTED_PATH' && component.path === 'STANDARD_TPE'
+  );
+
+  if (
+    usesGovernedTradeSalaryPath &&
+    pathEvaluation?.status === 'PASS' &&
+    electedStandardComponent &&
+    electedStandardComponent.remaining > 0
+  ) {
+    createdTPE = createTPE({
+      teamCtx: { isOverCap: true },
+      outgoing: electedStandardComponent.outgoingPlayers.reduce(
+        (sum, player) => sum + player.salary,
+        0
+      ),
+      incoming: electedStandardComponent.usedIncoming,
+      tradeDate: canonicalTradeDate,
+      maximumIncoming: electedStandardComponent.maximumIncoming,
+      usedIncoming: electedStandardComponent.usedIncoming,
+      salaryMatchingPath: {
+        path: 'STANDARD_TPE',
+        componentId: electedStandardComponent.componentId,
+        allowance: pathEvaluation.allowance ?? 0,
+        preTradeSalary: electedStandardComponent.outgoingPlayers.reduce(
+          (sum, player) => sum + player.salary,
+          0
+        ),
+        acquiredSalary: electedStandardComponent.usedIncoming,
+        canonLeafIds: pathEvaluation.canonLeafIds,
+      },
+    });
+  } else if (
+    !usesGovernedTradeSalaryPath &&
+    salaryOut - salaryIn > 0 &&
+    teamTotalSalary > (capSettings.salaryCap || 0)
+  ) {
     createdTPE = createTPE({
       teamCtx: { isOverCap: true },
       outgoing: salaryOut,

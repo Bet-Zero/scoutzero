@@ -1,7 +1,12 @@
-import type { TradeContextPayload, TradeContextCurrentState, TradeApplyPreparation } from '@/features/architect/utils/tradeContext/types';
+import type {
+  TradeContextPayload,
+  TradeContextCurrentState,
+  TradeApplyPreparation,
+} from '@/features/architect/utils/tradeContext/types';
 import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import type { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import type { FullLegalityPreviewResult } from '@/features/architect/utils/tradeContext/tradeContext';
+import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 
 export type UnknownRecord = Record<string, unknown>;
 
@@ -41,6 +46,7 @@ export type TradeMachineTeamSlot = {
   sends: TradeMachinePlayer[];
   entitlementsOut: TradeMachineEntitlement[];
   entitlements?: TradeMachineEntitlement[];
+  salaryMatchingElection?: TradeSalaryMatchingElection | null;
 };
 
 export type EntitlementOverrideDocument = UnknownRecord & {

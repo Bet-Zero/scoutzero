@@ -3,13 +3,18 @@ import type { OutgoingPlayersList } from './OutgoingPlayersList';
 import type { EntitlementPicksList } from './EntitlementPicksList';
 import type { getTeamSnapshot } from '@/features/architect/hooks/useTradeMachineSnapshot';
 import type { TradeExceptionLike } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
+import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 
 export type UnknownRecord = Record<string, unknown>;
 export type UseTradeMachineResult = ReturnType<typeof useTradeMachine>;
 export type HookTradeTeamSlot = UseTradeMachineResult['teams'][number];
 export type HookTradeTeam = NonNullable<HookTradeTeamSlot['team']>;
-export type OutgoingPlayersListProps = Parameters<typeof OutgoingPlayersList>[0];
-export type EntitlementPicksListProps = Parameters<typeof EntitlementPicksList>[0];
+export type OutgoingPlayersListProps = Parameters<
+  typeof OutgoingPlayersList
+>[0];
+export type EntitlementPicksListProps = Parameters<
+  typeof EntitlementPicksList
+>[0];
 export type ChildPlayerLike = OutgoingPlayersListProps['sends'][number];
 export type ChildTeamOptionLike = NonNullable<
   OutgoingPlayersListProps['otherTeams']
@@ -151,6 +156,10 @@ export interface TradeTeamCardProps {
   onDeleteSessionEntitlement?: ((entitlement: EntitlementLike) => void) | null;
   worldId?: string | null;
   compact?: boolean;
+  salaryMatchingElection?: TradeSalaryMatchingElection | null;
+  onSalaryMatchingElectionChange?:
+    | ((election: TradeSalaryMatchingElection | null) => void)
+    | null;
 }
 
 export function formatSkipReasonLabel(skipReason: unknown): string | null {

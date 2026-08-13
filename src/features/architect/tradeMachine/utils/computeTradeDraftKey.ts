@@ -27,6 +27,7 @@ interface TradeDraftTeamLike extends UnknownRecord {
   team?: (UnknownRecord & { id?: string | number | null }) | null;
   sends?: TradeDraftPlayerLike[] | null;
   entitlementsOut?: TradeDraftEntitlementLike[] | null;
+  salaryMatchingElection?: UnknownRecord | null;
 }
 
 interface TradeDraftKeyParams {
@@ -71,7 +72,25 @@ export function computeTradeDraftKey({
         .sort()
         .join(',');
 
-      return `${teamId}:${playerIds}:${entitlementIds}`;
+      const salaryPath = t.salaryMatchingElection
+        ? [
+            t.salaryMatchingElection.version,
+            t.salaryMatchingElection.path,
+            t.salaryMatchingElection.postAssignmentApronTeamSalary,
+            Object.entries(
+              (t.salaryMatchingElection.tradedPlayerPreTradeSalaries as
+                | Record<string, unknown>
+                | undefined) || {}
+            )
+              .sort(([first], [second]) => first.localeCompare(second))
+              .map(([playerId, salary]) => `${playerId}=${String(salary)}`)
+              .join(','),
+          ].join(':')
+        : null;
+
+      return `${teamId}:${playerIds}:${entitlementIds}${
+        salaryPath ? `:${salaryPath}` : ''
+      }`;
     })
     .sort() // Sort team parts for consistency regardless of order
     .join('|');

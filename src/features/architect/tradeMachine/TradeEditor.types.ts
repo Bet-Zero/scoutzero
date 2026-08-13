@@ -5,18 +5,25 @@ import type {
   TradeExceptionRef,
   TradeOpenAuthority,
 } from '@/features/architect/cockpit/tradeOpenRequest';
+import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { TradeTeamCard } from './TradeTeamCard';
 import type TradePreviewModal from './TradePreviewModal';
 import type { ValidationDetailsPanel } from './ValidationDetailsPanel';
 
 export type UseTradeMachineResult = ReturnType<typeof useTradeMachine>;
 export type HookTradeTeamSlot = UseTradeMachineResult['teams'][number];
-export type ValidationDetailsPanelProps = Parameters<typeof ValidationDetailsPanel>[0];
+export type ValidationDetailsPanelProps = Parameters<
+  typeof ValidationDetailsPanel
+>[0];
 export type TradePreviewModalProps = Parameters<typeof TradePreviewModal>[0];
 export type TradeTeamCardProps = Parameters<typeof TradeTeamCard>[0];
 export type EditContractModalProps = Parameters<typeof EditContractModal>[0];
-export type HookTradePlayer = Parameters<UseTradeMachineResult['setPlayerTrade']>[1];
-export type HookTradeActionMeta = Parameters<UseTradeMachineResult['setPlayerTrade']>[4];
+export type HookTradePlayer = Parameters<
+  UseTradeMachineResult['setPlayerTrade']
+>[1];
+export type HookTradeActionMeta = Parameters<
+  UseTradeMachineResult['setPlayerTrade']
+>[4];
 export type CardPlayerLike = TradeTeamCardProps['sends'][number];
 export type CardTeamLike = NonNullable<TradeTeamCardProps['team']>;
 export type CardEntitlementLike = NonNullable<
@@ -60,6 +67,7 @@ export type TradeTeamSlotLike = {
 export type TradeDataEntryLike = {
   teamId?: string;
   outgoingEntitlements?: EntitlementLike[];
+  salaryMatchingElection?: TradeSalaryMatchingElection | null;
 };
 
 export type TradeMachineSatModalState = {

@@ -24,9 +24,7 @@ import {
   toSignAndTradePlayerLike,
 } from './tradeContext.payloadNormalization';
 import { normalizeTradeContextPayload } from './tradeContext.snapshot.payloadNorm';
-import type {
-  NormalizedTeamPick,
-} from '@/features/architect/utils/tradeMachine/constants/types';
+import type { NormalizedTeamPick } from '@/features/architect/utils/tradeMachine/constants/types';
 import type {
   AnyRecord,
   BuildPostTradeTeamsSnapshotParams,
@@ -502,6 +500,7 @@ export function buildPostTradeTeamsSnapshot({
         picksIn: [],
         cashSent: teamTrade.cashSent || 0,
         cashReceived: teamTrade.cashReceived || 0,
+        salaryMatchingElection: teamTrade.salaryMatchingElection ?? null,
       };
     }
   );

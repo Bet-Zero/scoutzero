@@ -10,6 +10,8 @@
 
 import type { DataWarning } from '../utils/dataValidation';
 import type { CapHold } from '../../capHolds';
+import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
+import type { TradeSalaryPathEvaluation } from '../utils/tradeSalaryMatchingPaths';
 
 // Normalized cap settings
 export interface CapSettings {
@@ -195,6 +197,14 @@ export interface TradeExceptionRecord {
   source?: string | Record<string, unknown>;
   expires?: string | null;
   type?: string;
+  salaryMatchingPath?: {
+    path: 'STANDARD_TPE';
+    componentId: string;
+    allowance: number;
+    preTradeSalary: number;
+    acquiredSalary: number;
+    canonLeafIds: readonly string[];
+  };
 }
 
 export interface NormalizedTradeExceptionRecord extends TradeExceptionRecord {
@@ -299,7 +309,10 @@ export interface NormalizedTeam {
   absorptionMode?: string;
   bucketType?: string;
   hardCapTrigger?: string | null;
-  postTradeTeam?: { players?: NormalizedPlayer[]; twoWayPlayers?: NormalizedPlayer[] };
+  postTradeTeam?: {
+    players?: NormalizedPlayer[];
+    twoWayPlayers?: NormalizedPlayer[];
+  };
   postTradeStatus?: { isAtOrAboveSecondApron?: boolean };
   validationEntitlements?: unknown[];
   entitlementsOut?: unknown[];
@@ -309,6 +322,8 @@ export interface NormalizedTeam {
   receives?: NormalizedPlayer[];
   faExceptionValidation?: Record<string, unknown>;
   context?: TeamContext;
+  salaryMatchingElection?: TradeSalaryMatchingElection | null;
+  salaryMatchingPathEvaluation?: TradeSalaryPathEvaluation | null;
   capSettings?: CapSettings;
   hardCapLevel?: string | number | null;
   hardCapTriggered?: boolean;
@@ -394,6 +409,7 @@ export interface AuthoritativeSalaryMatchingDetails {
   margin?: number | null;
   hardCapStatus?: HardCapStatusResult | null;
   hardCapCeiling?: AuthoritativeSalaryMatchingHardCapCeilingDetails | null;
+  pathEvaluation?: TradeSalaryPathEvaluation | null;
 }
 
 export interface AuthoritativeSalaryMatchingResult {
@@ -439,7 +455,10 @@ export interface TeamContext {
   asOfDate?: string;
   season?: number | string;
   teams?: TradeTeam[];
-  wasTradedAwayWithinOneYear?: (playerId: unknown, destTeamId: unknown) => boolean;
+  wasTradedAwayWithinOneYear?: (
+    playerId: unknown,
+    destTeamId: unknown
+  ) => boolean;
   currentYear?: number;
   offseason?: boolean;
   seasonState?: string;
@@ -452,6 +471,7 @@ export interface TeamContext {
   worldId?: string;
   timingEnforcementMode?: string;
   isAtOrAboveSecondApron?: boolean;
+  source?: string;
 }
 
 export interface TradeTeam {
@@ -530,10 +550,15 @@ export interface TradeTeam {
   faExceptionBuckets?: TradeFaExceptionBucket[];
   hardCapLevel?: string | number | null;
   hardCapTriggered?: boolean;
-  postTradeTeam?: { players?: NormalizedPlayer[]; twoWayPlayers?: NormalizedPlayer[] };
+  postTradeTeam?: {
+    players?: NormalizedPlayer[];
+    twoWayPlayers?: NormalizedPlayer[];
+  };
   _tpeConsumptionErrors?: unknown[];
   _tpeConsumptionWarnings?: unknown[];
   _blocked?: boolean;
+  salaryMatchingElection?: TradeSalaryMatchingElection | null;
+  salaryMatchingPathEvaluation?: TradeSalaryPathEvaluation | null;
 }
 
 export interface RosterCounts {
@@ -724,6 +749,7 @@ export interface TradeTeamResult {
   faExceptionBuckets: TradeFaExceptionBucket[];
   notes: unknown;
   createdTPE: TradeExceptionRecord | null;
+  salaryMatchingPathEvaluation?: TradeSalaryPathEvaluation | null;
   details: string;
   warningDetails: string;
   _tpeConsumptionErrors?: unknown[];
@@ -806,6 +832,7 @@ export interface TradeReceiptSalaryMatchingEvaluation {
   margin: number | null;
   capSettings: TradeValidatorCapSettings | null | undefined;
   capSettingsSource: string;
+  pathEvaluation: TradeSalaryPathEvaluation | null;
 }
 
 export interface TradeReceiptTeamRow {

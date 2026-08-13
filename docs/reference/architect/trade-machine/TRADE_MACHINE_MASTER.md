@@ -246,11 +246,15 @@ Receiving an S&T player sets hard-cap fields on receiver snapshot:
 
 ### TPE Creation
 
-TPEs are created at trade apply-time when a team sends out more salary than it receives while over the salary cap:
+The live Trade Machine creates a TPE only from a passing elected Standard TPE
+component with remaining capacity. Legacy non-Trade-Machine callers retain
+their compatibility behavior.
 
-- Computed in `computeTradeResult` (`mutationPipeline.js`)
+- Validation owns the exact Standard component; apply owns lifecycle mutation
 - Idempotent: signature-based duplicate detection prevents double-creation
-- Fields: `id`, `amount`, `totalAmount`, `remainingAmount`, `usedAmount`, `createdSeason`, `expiresOn`, `createdFrom`, `isUsed`
+- Fields: `id`, `amount`, `totalAmount`, `remainingAmount`, `usedAmount`, `createdSeason`, `expiresOn`, `createdFrom`, `isUsed`, `salaryMatchingPath`
+- `salaryMatchingPath` preserves the component ID, allowance, pre-trade Salary,
+  acquired Salary, and Canon leaf references through persistence
 
 ### TPE Absorption (Usage)
 
@@ -267,7 +271,10 @@ To absorb a player via TPE, both `absorptionMode` and `tpeId` must be set on the
 2. If `tpeId` is set, it must resolve to a TPE in the team's `appliedTPEs` or `tradeExceptions` → violation: "does not exist on this team"
 3. TPE must not be expired, already consumed, or too small for the player's salary
 4. Prior-year TPEs cannot be used by second-apron teams
-5. TPE cannot be combined with outgoing salary
+5. Room cannot be combined with a held TPE component
+6. Held-TPE use and outgoing salary may coexist only as distinct decomposed
+   components under an explicit governed Standard election; their salaries are
+   never aggregated into one limit
 
 **Apply-time** (`mutationPipeline.js`):
 
@@ -2533,19 +2540,19 @@ Date: 2026-03-01
 | **Second apron aggregation block**   | Cannot aggregate 2+ outgoing into higher incoming                                                    | `rules/basicRules.ts`, `rules/validateAggregation.ts`      | `tests/trade/validateAggregation.test.ts`, `tests/tradeValidatorEdgeCases.test.js`                                                                                         |
 | **S&T aggregation block (Rule 1.6)** | Receiver cannot receive additional players with S&T                                                  | `rules/validateSignAndTrade.ts`                            | `tests/signAndTradeAggregation.test.js`                                                                                                                                    |
 | **60-day aggregation timing**        | Retired from authoritative enforcement pending a reliable acquisition-date field in the live payload | `rules/timingValidation.ts`                                | `tests/trade/timingEnforcement_authoritative.test.js`, `tests/trade/timingGates_softEnforcement.test.js`, `src/tests/architect/tradeApply_timingWarnings.behavior.test.ts` |
-| **TPE + outgoing aggregation**       | Cannot combine TPE with outgoing salary                                                              | `rules/validateTradeExceptions.js:93-97`                   | `tests/trade/tpe_absorption_fail_closed.test.js`                                                                                                                           |
+| **TPE + outgoing decomposition**     | Allowed only as distinct held and elected Standard components; no combined limit                      | `rules/validateSalaryMatching.ts`, `rules/validateTradeExceptions.ts` | `tests/trade/tradeSalaryMatchingPaths.test.ts`                                                                                                                             |
 | **Incoming/outgoing construction**   | Route-aware via `computeMatchingValues()` (SSOT)                                                     | `engine/tradeValidator.js:720` → `utils/matchingValues.js` | `src/tests/trade/tradeMultiSurfaceOfficialValues.test.js`, `src/tests/trade/goldenTrades.test.js`                                                                          |
 
 #### 4. Trade Exceptions (TPE)
 
 | Aspect                                   | Implementation                                   | File(s)                                                   | Test Coverage                                    |
 | ---------------------------------------- | ------------------------------------------------ | --------------------------------------------------------- | ------------------------------------------------ |
-| **TPE creation**                         | When `salaryOut > salaryIn` and over cap         | `mutationPipeline.js` (`computeTradeResult`)              | `tests/trade/tpe_creation_expiry_usage.test.js`  |
+| **TPE creation**                         | Passing governed Standard component with exact remaining capacity | `rules/validateTradeExceptions.ts`, `utils/tradeExceptionLifecycle.ts` | `tests/trade/tradeSalaryMatchingPaths.test.ts`   |
 | **TPE consumption**                      | `absorptionMode='TPE'` + `tpeId` required        | `rules/validateTradeExceptions.js` (fail-closed)          | `tests/trade/tpe_absorption_fail_closed.test.js` |
 | **TPE capacity check**                   | `player salary ≤ TPE remainingAmount`            | `rules/validateTradeExceptions.js`                        | Same                                             |
 | **TPE expiry tracking**                  | `expiresOn` field checked; expired TPEs rejected | `rules/validateTradeExceptions.js`                        | `tests/trade/tpe_creation_expiry_usage.test.js`  |
 | **Second apron prior-year TPE ban**      | `isPriorYearTPE()` check blocks usage            | `rules/validateTradeExceptions.js`, `rules/basicRules.ts` | `tests/trade/secondApron_tpeBan.test.js`         |
-| **TPE + salary aggregation prohibition** | Cannot combine TPE with outgoing salary          | `rules/validateTradeExceptions.js:93-97`                  | `tests/trade/tpe_absorption_fail_closed.test.js` |
+| **TPE + salary component decomposition** | Held and outgoing Standard components remain distinct | `rules/validateSalaryMatching.ts`, `rules/validateTradeExceptions.ts` | `tests/trade/tradeSalaryMatchingPaths.test.ts`   |
 
 #### 5. BYC (Base Year Compensation)
 

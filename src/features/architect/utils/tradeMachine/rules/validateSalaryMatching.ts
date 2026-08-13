@@ -23,6 +23,13 @@ import { SECOND_APRON_SALARY_MISMATCH } from '@/features/architect/utils/tradeMa
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import { isSecondApronTeam } from '@/features/architect/utils/tradeMachine/utils/capUtils';
 import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
+import {
+  evaluateTradeSalaryMatchingPath,
+  type HeldStandardTpeComponentInput,
+  type TradeSalaryPathEvaluation,
+  type TradeSalaryPathPlayer,
+} from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
+import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type {
   AuthoritativeSalaryMatchingResult,
   TeamContext,
@@ -95,6 +102,10 @@ type SalaryMatchingTeam = {
   totals?: {
     hardCapLevel?: unknown;
   } | null;
+  sends?: SalaryMatchingPlayer[] | null;
+  outgoingPlayers?: SalaryMatchingPlayer[] | null;
+  salaryMatchingElection?: TradeSalaryMatchingElection | null;
+  salaryMatchingPathEvaluation?: TradeSalaryPathEvaluation | null;
 } | null;
 
 type TpeUsage = {
@@ -119,7 +130,8 @@ function isDevEnvironment(): boolean {
   };
 
   return (
-    globalProcess.process?.env?.NODE_ENV === 'development' || import.meta?.env?.DEV
+    globalProcess.process?.env?.NODE_ENV === 'development' ||
+    import.meta?.env?.DEV
   );
 }
 
@@ -141,8 +153,27 @@ function getIncomingPlayers(team: SalaryMatchingTeam): SalaryMatchingPlayer[] {
   return [];
 }
 
+function getPlayerIdentity(
+  player: SalaryMatchingPlayer,
+  index: number
+): string {
+  return String(
+    player.player_id ??
+      player.playerId ??
+      player.id ??
+      player.name ??
+      `player-${index}`
+  );
+}
+
+function getTpeCapacity(tpe: TradeExceptionRecord): number {
+  return toFiniteNumber(
+    tpe.remainingAmount ?? tpe.remaining ?? tpe.amount ?? tpe.totalAmount
+  );
+}
+
 // Validator version for trade receipt tracking - bumped for TPE fix
-export const SALARY_MATCHING_VERSION = '2.4.0';
+export const SALARY_MATCHING_VERSION = '3.0.0';
 
 export function validateSalaryMatching(
   team: SalaryMatchingTeam | null | undefined,
@@ -234,6 +265,9 @@ export function validateSalaryMatching(
   let ruleApplied = '';
   let formulaUsed = '';
   const incomingPlayers = getIncomingPlayers(team);
+  const usesGovernedTradeSalaryPath =
+    context.source === 'tradeMachine' ||
+    team.context?.source === 'tradeMachine';
   const hasFaExceptionEligibleIncoming =
     incomingPlayers.length === 0 ||
     incomingPlayers.some((player) => !isTwoWayTradePlayer(player));
@@ -251,7 +285,9 @@ export function validateSalaryMatching(
 
     if (!bucket || salaryIn > bucketRemaining) {
       const bucketSize = bucket ? formatCurrency(bucketRemaining) : '$0';
-      violations.push(`FA Exception bucket insufficient (${bucketSize} remaining)`);
+      violations.push(
+        `FA Exception bucket insufficient (${bucketSize} remaining)`
+      );
     }
 
     return {
@@ -298,6 +334,7 @@ export function validateSalaryMatching(
         );
 
   let tpeAbsorbedSalary = 0;
+  const heldStandardTpeComponents: HeldStandardTpeComponentInput[] = [];
 
   if (hasTPEPlayers && availableTPEs.length > 0) {
     const tpeUsageMap = new Map<TradeExceptionRecord['id'], TpeUsage>();
@@ -305,7 +342,7 @@ export function validateSalaryMatching(
     availableTPEs.forEach((tpe) => {
       tpeUsageMap.set(tpe.id, {
         tpe,
-        amount: toFiniteNumber(tpe.amount),
+        amount: getTpeCapacity(tpe),
         assignedPlayers: [],
         totalAssigned: 0,
       });
@@ -359,6 +396,18 @@ export function validateSalaryMatching(
           `TPE ${tpeId} (${formatCurrency(usage.amount)}) insufficient for assigned players (${formatCurrency(usage.totalAssigned)})`
         );
       }
+
+      if (usage.totalAssigned > 0 && tpeId != null) {
+        heldStandardTpeComponents.push({
+          tpeId: String(tpeId),
+          capacity: usage.amount,
+          incomingPlayers: usage.assignedPlayers.map((player, index) => ({
+            playerId: getPlayerIdentity(player, index),
+            playerName: player.name || player.displayName || 'Unknown player',
+            salary: toFiniteNumber(resolveIncomingTradeSalary(player)),
+          })),
+        });
+      }
     });
 
     if (tpeViolations.length > 0) {
@@ -381,7 +430,7 @@ export function validateSalaryMatching(
       };
     }
 
-    if (salaryIn - tpeAbsorbedSalary <= 0) {
+    if (!usesGovernedTradeSalaryPath && salaryIn - tpeAbsorbedSalary <= 0) {
       return {
         passed: true,
         applicable: false,
@@ -415,8 +464,7 @@ export function validateSalaryMatching(
   const faExceptionValidation = team.faExceptionValidation || null;
   const faExceptionPlayers = incomingPlayers.filter(
     (player) =>
-      !isTwoWayTradePlayer(player) &&
-      player.absorptionMode === 'FA_EXCEPTION'
+      !isTwoWayTradePlayer(player) && player.absorptionMode === 'FA_EXCEPTION'
   );
   const faExceptionAbsorbedSalary =
     faExceptionValidation?.passed === true
@@ -475,7 +523,83 @@ export function validateSalaryMatching(
   const effectiveSalaryIn =
     salaryIn - tpeAbsorbedSalary - faExceptionAbsorbedSalary;
 
-  if (totalSalary < salaryCap) {
+  let pathEvaluation: TradeSalaryPathEvaluation | null = null;
+
+  if (usesGovernedTradeSalaryPath) {
+    const outgoingPlayers = (
+      Array.isArray(team.outgoingPlayers)
+        ? team.outgoingPlayers
+        : Array.isArray(team.sends)
+          ? team.sends
+          : []
+    ).filter((player) => !isTwoWayTradePlayer(player));
+    const matchingIncomingPlayers: TradeSalaryPathPlayer[] = incomingPlayers
+      .filter(
+        (player) =>
+          !isTwoWayTradePlayer(player) &&
+          player.absorptionMode !== 'TPE' &&
+          !player.tpeId &&
+          player.absorptionMode !== 'FA_EXCEPTION'
+      )
+      .map((player, index) => ({
+        playerId: getPlayerIdentity(player, index),
+        playerName: player.name || player.displayName || 'Unknown player',
+        salary: toFiniteNumber(resolveIncomingTradeSalary(player)),
+      }));
+
+    pathEvaluation = evaluateTradeSalaryMatchingPath({
+      election: team.salaryMatchingElection,
+      outgoingPlayers: outgoingPlayers.map((player, index) => ({
+        playerId: getPlayerIdentity(player, index),
+        playerName: player.name || player.displayName || 'Unknown player',
+      })),
+      incomingMatchingPlayers: matchingIncomingPlayers,
+      heldStandardTpeComponents,
+      teamSalary: totalSalary,
+      salaryCap,
+      firstApron: actualFirstApron,
+      transactionDate: context.tradeDate ?? team.context?.tradeDate,
+      salaryCapYear: context.yearKey ?? team.context?.yearKey,
+    });
+    team.salaryMatchingPathEvaluation = pathEvaluation;
+
+    if (pathEvaluation.status === 'NEEDS_INPUT') {
+      const message = `Salary path needs exact input: ${pathEvaluation.missingInputs.join(', ')}`;
+      return {
+        passed: false,
+        applicable: true,
+        skipReason: null,
+        allowableIncoming: null,
+        salaryIn,
+        salaryOut,
+        difference: salaryIn - salaryOut,
+        violations: [message],
+        message,
+        warnings: capSettingsWarnings,
+        details: {
+          ruleApplied: pathEvaluation.ruleLabel,
+          formulaUsed: pathEvaluation.formula,
+          capSettings: {
+            salaryCap,
+            firstApron: actualFirstApron,
+            secondApron,
+          },
+          capSettingsSource,
+          capSettingsWarnings,
+          totalSalary,
+          totalSalarySource,
+          effectiveSalaryIn,
+          margin: null,
+          pathEvaluation,
+        },
+      };
+    }
+
+    allowableIncoming = pathEvaluation.maximumIncoming ?? 0;
+    ruleApplied = pathEvaluation.ruleLabel;
+    formulaUsed = pathEvaluation.formula;
+    violations.push(...pathEvaluation.violations);
+  } else if (totalSalary < salaryCap) {
     const matchingResult = getSalaryMatchingResult({
       teamTotalSalary: totalSalary,
       outgoingSalary: salaryOut,
@@ -627,6 +751,7 @@ export function validateSalaryMatching(
                   : 'salaryMatching',
             }
           : null,
+      pathEvaluation,
     },
   };
 }

@@ -136,6 +136,7 @@ export const TRADE_EXCEPTION_ITEM_ALLOWLIST: PersistenceAllowlist = Object.freez
   'expiresOn', // ISO date string
   'isUsed', // Boolean: fully consumed
   'notes', // Optional notes
+  'salaryMatchingPath', // Governed Standard TPE component provenance and amounts
 ]);
 
 // ==============================================================================
@@ -333,6 +334,7 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.f
   'teamsInvolved', // Array of team codes
   'playersTraded', // Array of player info objects
   'entitlementsTraded', // Object with team-keyed entitlement changes
+  'salaryMatchingPaths', // Exact elected salary-path evaluations by team
   'picksTraded', // Array of pick info objects
 
   // Sign-and-Trade events (Phase 63)

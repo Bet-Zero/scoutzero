@@ -17,6 +17,7 @@ import type {
   TradeContextNormalizedPayload,
   TradeContextPayload,
 } from './types';
+import { TradeSalaryMatchingElectionZ } from '@/schemas/tradeSalaryMatchingPath';
 
 export function normalizeTradePayloadPlayer({
   player,
@@ -113,6 +114,9 @@ export function normalizeTradePayloadTeam({
     normalizeTradeTeamCodeLike(team?.team?.teamCode) ??
     normalizeTradeTeamCodeLike(team?.team?.id) ??
     normalizeTradeTeamCodeLike(team?.teamId);
+  const salaryMatchingElection = TradeSalaryMatchingElectionZ.safeParse(
+    team?.salaryMatchingElection
+  );
 
   return {
     teamCode,
@@ -136,6 +140,11 @@ export function normalizeTradePayloadTeam({
     ...(toFiniteNumberOrUndefined(team?.cashReceived) !== undefined
       ? { cashReceived: toFiniteNumberOrUndefined(team?.cashReceived) }
       : {}),
+    ...(salaryMatchingElection.success
+      ? { salaryMatchingElection: salaryMatchingElection.data }
+      : team?.salaryMatchingElection === null
+        ? { salaryMatchingElection: null }
+        : {}),
   };
 }
 
@@ -157,7 +166,9 @@ export function normalizeTradeContextPayload(
     teams: ingressTeams.map((team, senderIndex) =>
       normalizeTradePayloadTeam({ team, payloadTeamCodes, senderIndex })
     ),
-    ...(payload?.capProjections ? { capProjections: payload.capProjections } : {}),
+    ...(payload?.capProjections
+      ? { capProjections: payload.capProjections }
+      : {}),
     ...(payload?.tradeCtx ? { tradeCtx: payload.tradeCtx } : {}),
     ...(payload?.asOfDate != null ? { asOfDate: payload.asOfDate } : {}),
   };
