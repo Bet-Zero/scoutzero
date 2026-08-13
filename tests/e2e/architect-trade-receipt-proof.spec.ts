@@ -6,11 +6,12 @@ import { TWO_WAY_TRADE_MATCHING_EXPLANATION } from '@/features/architect/utils/t
 
 const CANDIDATE = process.env.SCOUTZERO_PROOF_CANDIDATE ?? '';
 const ARTIFACT_DIR = process.env.SCOUTZERO_BROWSER_PROOF_DIR ?? '';
-const MIA_URL = '/gm/MIA?room=trade';
+const MIA_URL = '/gm/MIA';
 const REVIEW_PROJECT_ID = 'demo-architect-review';
 const REVIEW_FIRESTORE_HOST = '127.0.0.1:8082';
 
 test.use({ viewport: { width: 1280, height: 720 } });
+test.setTimeout(150_000);
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -31,6 +32,40 @@ const worldCount = async () =>
     .collection('architect_worlds')
     .get()
     .then((snapshot) => snapshot.size);
+
+const isVisible = async (locator: Locator, timeout = 1_000) =>
+  locator.isVisible({ timeout }).catch(() => false);
+
+const openTradeMachine = async (page: Page) => {
+  await page.goto(MIA_URL, { waitUntil: 'domcontentloaded' });
+  const loadingDashboard = page.getByText(/^Loading GM Dashboard/i);
+  const noTeamData = page.getByText(/^No team data$/i);
+  const modeBadge = page.getByTestId('firebase-target-mode-badge');
+
+  await expect
+    .poll(
+      async () => ({
+        stillLoading: await isVisible(loadingDashboard),
+        hasModeBadge: await isVisible(modeBadge),
+        hasNoTeamData: await isVisible(noTeamData),
+      }),
+      {
+        timeout: 90_000,
+        message:
+          'MIA review dashboard should finish emulator authentication and fixture loading',
+      }
+    )
+    .toMatchObject({ stillLoading: false, hasModeBadge: true });
+  await expect(noTeamData).toHaveCount(0);
+
+  const tradeTab = page.getByRole('tab', { name: /^Trade Machine$/i });
+  await expect(tradeTab).toBeVisible();
+  await tradeTab.click();
+
+  const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
+  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  return dialog;
+};
 
 const teamCard = (dialog: Locator, page: Page, teamName: string) =>
   dialog
@@ -79,9 +114,7 @@ test('exact-head Trade Machine produces a retained Two-Way Trade Receipt', async
   });
 
   expect(await worldCount()).toBe(0);
-  await page.goto(MIA_URL, { waitUntil: 'domcontentloaded' });
-  const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
-  await expect(dialog).toBeVisible({ timeout: 30_000 });
+  const dialog = await openTradeMachine(page);
   await expect(dialog.getByRole('button', { name: /Miami Heat/i })).toBeVisible(
     {
       timeout: 30_000,
