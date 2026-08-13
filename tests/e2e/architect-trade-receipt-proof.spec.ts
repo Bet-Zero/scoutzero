@@ -160,8 +160,11 @@ test('exact-head Trade Machine produces a retained Two-Way Trade Receipt', async
 
   await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
   await expect(dialog.getByTestId('trade-readiness-summary')).toContainText(
-    'Ready to apply',
+    'Ready with warnings',
     { timeout: 20_000 }
+  );
+  await expect(dialog.getByTestId('trade-readiness-summary')).toContainText(
+    'Team MIA has 13 standard contracts (min 14).'
   );
   await expect(
     dialog.getByRole('button', { name: /^Apply Trade$/i })
@@ -206,7 +209,8 @@ test('exact-head Trade Machine produces a retained Two-Way Trade Receipt', async
       destinationPlayer: 'den_obi_nwachukwu',
     },
     assertions: {
-      readiness: 'Ready to apply',
+      readiness: 'Ready with warnings',
+      rosterWarning: 'Team MIA has 13 standard contracts (min 14).',
       receiptVerdict: 'LEGAL',
       twoWayExplanationCount: 4,
       durableWorldWrites: 0,
