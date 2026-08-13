@@ -3,7 +3,7 @@ import {
   createTpeCreationHistoryEntry,
 } from '@/features/architect/utils/exceptionHistory/historyHelpers';
 import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
-import { isTwoWayTradePlayer } from './twoWayTradeSalary';
+import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 
 type TradeExceptionLifecycleIncomingPlayer = {
   player_id?: string | null;

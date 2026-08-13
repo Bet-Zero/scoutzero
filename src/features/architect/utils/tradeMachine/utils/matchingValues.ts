@@ -11,7 +11,7 @@ import {
   type DataWarning,
 } from './dataValidation';
 import { getSignAndTradeSalaryForYear } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
-import { isTwoWayTradePlayer } from './twoWayTradeSalary';
+import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 
 type YearKey = number | string;
 

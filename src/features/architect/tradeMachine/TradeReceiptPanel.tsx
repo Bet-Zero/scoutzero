@@ -79,7 +79,7 @@ const PlayerListItem = ({ player, direction }: PlayerListItemProps) => {
               2W
             </span>
           )}
-          {direction === 'outgoing' && flags.isBYC && (
+          {!flags.isTwoWay && direction === 'outgoing' && flags.isBYC && (
             <span
               className="text-cockpit-watch ml-1"
               title={`BYC: Base ${formatCurrency(player.baseSalary)} → Match ${formatCurrency(player.matchingValue)} (max of prior, 50% new)`}
@@ -87,7 +87,7 @@ const PlayerListItem = ({ player, direction }: PlayerListItemProps) => {
               BYC
             </span>
           )}
-          {direction === 'incoming' && flags.isPoisonPill && (
+          {!flags.isTwoWay && direction === 'incoming' && flags.isPoisonPill && (
             <span
               className="text-cockpit-info ml-1"
               title={`Poison Pill: Base ${formatCurrency(player.baseSalary)} → Match ${formatCurrency(player.matchingValue)} (averaged salary)`}
@@ -95,7 +95,7 @@ const PlayerListItem = ({ player, direction }: PlayerListItemProps) => {
               PP
             </span>
           )}
-          {flags.hasTradeKicker && (
+          {!flags.isTwoWay && flags.hasTradeKicker && (
             <span
               className="text-cockpit-watch ml-1"
               title={

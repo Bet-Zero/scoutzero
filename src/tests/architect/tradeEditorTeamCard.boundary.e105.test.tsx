@@ -1312,6 +1312,7 @@ describe('TradeTeamCard boundary E105', () => {
 
   it('surfaces the separate Two-Way roster and removes TPE/exception absorption choices', async () => {
     const TradeTeamCard = await loadTradeTeamCard();
+    harness.getTeamSnapshotMock.mockReturnValue(null as never);
     harness.getTeamTpeListMock.mockReturnValue([
       {
         id: 'tpe-1',
@@ -1354,6 +1355,7 @@ describe('TradeTeamCard boundary E105', () => {
       screen.getByRole('option', { name: 'No salary match (Two-Way)' })
     ).toBeInTheDocument();
     expect(screen.getByRole('combobox')).toBeDisabled();
+    expect(screen.getByText('Adjusted')).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: 'TPE' })).not.toBeInTheDocument();
     expect(
       screen.queryByRole('option', { name: 'FA Exception' })

@@ -246,8 +246,11 @@ describe('validator trust fixes', () => {
     };
     const twoWayPlayer = makePlayer('lal_two_way', 636_435, {
       teamCode: 'LAL',
-      contractType: 'two-way',
       isTwoWay: false,
+      contract: makeContract(636_435, {
+        contractType: 'TwoWay',
+        isTwoWay: false,
+      }),
       absorptionMode: 'TPE',
       tpeId: heldTpe.id,
     });
@@ -389,6 +392,62 @@ describe('validator trust fixes', () => {
       outgoingBaseTotal: 2_636_435,
       outgoingMatchingTotal: 2_000_000,
     });
+  });
+
+  it('CBA2-A02.14: ignores stale FA-exception assignment for a Two-Way contract', () => {
+    const faExceptionBucket = {
+      type: 'NTMLE',
+      remaining: 10_000_000,
+    };
+    const twoWayPlayer = makePlayer('lal_two_way_fa_exception', 636_435, {
+      teamCode: 'LAL',
+      contract: makeContract(636_435, { contractType: 'TwoWay' }),
+      absorptionMode: 'FA_EXCEPTION',
+      bucketType: faExceptionBucket.type,
+    });
+
+    const result = validateTrade({
+      teams: asValidateTradeTeams([
+        {
+          team: makeTeam(
+            'LAL',
+            [twoWayPlayer, ...makeRoster('LAL', 14)],
+            { totalSalary: 170_000_000 }
+          ),
+          sends: [twoWayPlayer],
+          entitlementsOut: [],
+        },
+        {
+          team: makeTeam('BOS', makeRoster('BOS', 14), {
+            totalSalary: 100_000_000,
+            faExceptionBuckets: [faExceptionBucket],
+          }),
+          sends: [],
+          entitlementsOut: [],
+        },
+      ]),
+      capProjections,
+      currentYear: CURRENT_YEAR,
+    });
+    const celticsResult = result.teamResults.find(
+      (team) => team.teamId === 'BOS'
+    );
+
+    expect(result.legal).toBe(true);
+    expect(celticsResult?.salaryIn).toBe(0);
+    expect(celticsResult?.hardCapped).toBe(false);
+    expect(celticsResult?.faExceptionBuckets).toEqual([
+      expect.objectContaining({
+        type: faExceptionBucket.type,
+        remaining: 10_000_000,
+      }),
+    ]);
+    expect(celticsResult?.notes).not.toContain(
+      'Team hard-capped at first apron due to FA exception usage'
+    );
+    expect(
+      getRuleSkipReason(celticsResult?.rules?.salaryMatching)
+    ).not.toBe('FA_EXCEPTION');
   });
 
   it('routes legal FA-exception absorption through validateTrade', () => {

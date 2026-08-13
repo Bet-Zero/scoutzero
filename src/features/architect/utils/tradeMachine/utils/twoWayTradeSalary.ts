@@ -11,7 +11,7 @@ export type TwoWayTradePlayerLike = ContractTypeCarrier & {
 function isTwoWayContractType(value: unknown): boolean {
   return (
     typeof value === 'string' &&
-    value.trim().toLowerCase().replace(/[_\s]+/g, '-') === 'two-way'
+    value.trim().toLowerCase().replace(/[-_\s]+/g, '') === 'twoway'
   );
 }
 

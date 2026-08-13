@@ -5,7 +5,7 @@
 
 import { resolvePlayerDestinationTeamId } from './tradeValidator.ruleEnvelopes';
 import { checkRosterCounts } from '../rules/validateRoster';
-import { isTwoWayTradePlayer } from '../utils/twoWayTradeSalary';
+import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import type {
   TradeValidatorPlayer,
   TradeValidatorTeamSlot,

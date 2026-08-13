@@ -10,6 +10,7 @@ import {
   resolvePayroll,
   toNum,
 } from './capUtils';
+import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 
 type NumericLike = number | string | null | undefined;
 
@@ -133,7 +134,10 @@ export function getAllowableIncomingMargin(
 
   // Add only actually USED buckets
   const usedTPE = incomingPlayers
-    .filter((player) => player.absorptionMode === 'TPE')
+    .filter(
+      (player) =>
+        !isTwoWayTradePlayer(player) && player.absorptionMode === 'TPE'
+    )
     .reduce(
       (sum, player) =>
         sum + toNum(player.matchIncoming ?? player.tpeAmount ?? 0),
@@ -141,7 +145,11 @@ export function getAllowableIncomingMargin(
     );
 
   const faUsage = incomingPlayers
-    .filter((player) => player.absorptionMode === 'FA_EXCEPTION')
+    .filter(
+      (player) =>
+        !isTwoWayTradePlayer(player) &&
+        player.absorptionMode === 'FA_EXCEPTION'
+    )
     .reduce((sum, player) => sum + toNum(player.matchIncoming ?? 0), 0);
 
   const margin = baseNoTPE + usedTPE + faUsage;

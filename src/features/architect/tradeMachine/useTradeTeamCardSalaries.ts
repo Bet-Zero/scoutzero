@@ -137,9 +137,9 @@ export const useTradeTeamCardSalaries = ({
     : localIncomingBaseSalary;
 
   const hasOutgoingAdjustment =
-    hasValidatorResult && Math.abs(outgoingSalary - outgoingBaseSalary) > 1;
+    Math.abs(outgoingSalary - outgoingBaseSalary) > 1;
   const hasIncomingAdjustment =
-    hasValidatorResult && Math.abs(incomingSalary - incomingBaseSalary) > 1;
+    Math.abs(incomingSalary - incomingBaseSalary) > 1;
 
   if (hasValidatorResult) {
     warnOnTotalsDivergence(
