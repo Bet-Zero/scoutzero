@@ -39,18 +39,21 @@ do not assume the graph includes uncommitted edits. Use
 
 Use these project commands unless the user explicitly asks for something else.
 
-| Command                    | Use                                                                       |
-| -------------------------- | ------------------------------------------------------------------------- |
-| `npm run dev`              | Start the dev server at `http://localhost:5173` for UI/manual checks      |
-| `npm run build`            | Production build after meaningful UI, route, or component changes         |
-| `npm run typecheck`        | TypeScript check after TS/TSX, hook, or utility changes                   |
-| `npm run validate:project` | Project-structure validation after new folders/files/exports              |
-| `npm run lint`             | ESLint only if asked; repo has many pre-existing errors                   |
-| `npm run lint:md`          | Markdown lint for heavy docs edits or docs-routing changes                |
-| `npm run docs:guardrails`  | Workspace/docs routing guardrails after docs-routing or standards changes |
-| `npm run schema:generate`  | Regenerate schema docs only when schemas change                           |
-| `npm run schema:check`     | Verify generated schema docs only when schemas change                     |
-| `npm run docs`             | Generate component hierarchy docs only if asked/doc-sync requires it      |
+| Command                                    | Use                                                                       |
+| ------------------------------------------ | ------------------------------------------------------------------------- |
+| `npm run dev`                              | Start the dev server at `http://localhost:5173` for UI/manual checks      |
+| `npm run build`                            | Production build after meaningful UI, route, or component changes         |
+| `npm run typecheck`                        | TypeScript check after TS/TSX, hook, or utility changes                   |
+| `npm run validate:project`                 | Project-structure validation after new folders/files/exports              |
+| `npm run lint`                             | ESLint only if asked; repo has many pre-existing errors                   |
+| `npm run lint:md`                          | Markdown lint for heavy docs edits or docs-routing changes                |
+| `npm run docs:guardrails`                  | Workspace/docs routing guardrails after docs-routing or standards changes |
+| `npm run schema:generate`                  | Regenerate schema docs only when schemas change                           |
+| `npm run schema:check`                     | Verify generated schema docs only when schemas change                     |
+| `npm run docs`                             | Generate component hierarchy docs only if asked/doc-sync requires it      |
+| `npm run architect:canon:lookup -- <LEAF>` | Read one leaf from the pinned accepted Canon authority                    |
+| `npm run review:probe -- ...`              | Run an independent temporary probe against an exact candidate             |
+| `npm run architect:proof:trade-receipt`    | Retain the exact-head 1280×720 Trade Receipt proof                        |
 
 ## Testing And Validation
 
@@ -81,6 +84,7 @@ npm run test:diff -- --files AGENTS.md --reporter=dot
 | `npm run test:node`               | Logic-heavy or non-UI changes                              |
 | `npm run test:ui`                 | UI-heavy changes needing broader UI coverage               |
 | `npm run test:profile`            | Only when diagnosing test slowness                         |
+| `npm run test:phase3a-workflow`   | Phase 3A authority/reviewer workflow tooling changes       |
 
 Always append `-- --reporter=dot` to test commands:
 
@@ -175,6 +179,9 @@ Full rules: `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md`,
 
 ## Agent Workflow
 
+- For Phase 3A Canon-correctness and execution-tooling lanes, follow
+  `docs/agent-guides/phase3a-execution.md` as the standing maker/checker
+  execution profile.
 - Do not create new git branches unless the user explicitly asks.
 - Do not amend or squash existing commits.
 - Do not create PRs or merge anything unless explicitly asked.
@@ -263,7 +270,11 @@ Git↔Linear linking (verified against the live integration on 2026-07-07):
 - PR descriptions are the source of truth for Linear automation.
 - Use `Fixes BZE-XXX` in the PR description when the PR should close the
   issue on merge.
-- Use `Refs BZE-XXX` in the PR description for non-closing context.
+- Use `Refs BZE-XXX` only for a still-active issue whose status should
+  participate in the PR lifecycle. Linear advances non-closing references when
+  a PR opens, so link completed foundations descriptively without a magic word,
+  issue ID in the branch/title, or a second PR attachment. Full convention:
+  `docs/agent-guides/phase3a-execution.md`.
 - Do not rely on commit messages alone for Linear linking/closing —
   commit-only linking did not fire in the integration test.
 - For any direct-to-main work (no PR), manually comment on the Linear issue
