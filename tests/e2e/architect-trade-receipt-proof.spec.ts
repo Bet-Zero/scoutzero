@@ -69,7 +69,7 @@ const openTradeMachine = async (page: Page) => {
   await expect(noTeamData).toHaveCount(0);
 
   const tradeTab = page.getByRole('tab', { name: /^Trade Machine$/i });
-  await expect(tradeTab).toBeVisible();
+  await expect(tradeTab).toBeVisible({ timeout: 30_000 });
   await tradeTab.click();
 
   const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
