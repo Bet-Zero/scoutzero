@@ -94,4 +94,90 @@ describe('tradeExceptionLifecycle', () => {
       ])
     );
   });
+
+  it('CBA2-SC-050(h72): ignores Two-Way TPE assignments and attributes creation only to matching-salary players', () => {
+    const result = applyTradeExceptionLifecycle({
+      currentTradeExceptions: [
+        {
+          id: 'existing-tpe',
+          amount: 5_000_000,
+          remainingAmount: 5_000_000,
+          usedAmount: 0,
+          createdSeason: 2025,
+          expiresOn: '2026-07-01T00:00:00.000Z',
+        },
+      ],
+      hasTradeExceptionsValidation: true,
+      createdTPE: {
+        id: 'created-tpe',
+        amount: 2_000_000,
+        createdSeason: 2026,
+        expiresOn: '2027-07-01T00:00:00.000Z',
+      },
+      incomingPlayers: [
+        {
+          player_id: 'incoming-two-way',
+          name: 'Incoming Two-Way',
+          contractType: 'two-way',
+          absorptionMode: 'TPE',
+          tpeId: 'existing-tpe',
+          matchIncoming: 636_435,
+        },
+      ],
+      outgoingPlayers: [
+        { name: 'Outgoing Standard', contractType: 'STANDARD' },
+        { name: 'Outgoing Two-Way', contractType: 'two-way' },
+      ],
+      teamCode: 'BOS',
+      seasonId: '2025-26',
+      seasonYear: 2026,
+      timestampISO: FIXED_TIMESTAMP_ISO,
+      mutationType: 'executeTrade',
+      mutationId: 'mutation_two_way_exclusion',
+    });
+
+    expect(result.blockingIssues).toEqual([]);
+    expect(result.warnings).toEqual([]);
+    expect(result.updatedTradeExceptions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'existing-tpe',
+          remainingAmount: 5_000_000,
+          usedAmount: 0,
+        }),
+        expect.objectContaining({
+          id: 'created-tpe',
+          createdFrom: 'Outgoing Standard',
+        }),
+      ])
+    );
+    expect(result.historyEntries).toEqual([
+      expect.objectContaining({
+        type: 'TPE_CREATED',
+        tpeId: 'created-tpe',
+        createdFrom: 'Outgoing Standard',
+      }),
+    ]);
+
+    const twoWayOnlyCreation = applyTradeExceptionLifecycle({
+      currentTradeExceptions: [],
+      hasTradeExceptionsValidation: true,
+      createdTPE: {
+        id: 'forged-two-way-tpe',
+        amount: 636_435,
+        createdSeason: 2026,
+        expiresOn: '2027-07-01T00:00:00.000Z',
+      },
+      outgoingPlayers: [
+        { name: 'Outgoing Two-Way', contractType: 'two-way' },
+      ],
+      teamCode: 'LAL',
+      seasonId: '2025-26',
+      seasonYear: 2026,
+      timestampISO: FIXED_TIMESTAMP_ISO,
+    });
+
+    expect(twoWayOnlyCreation.updatedTradeExceptions).toEqual([]);
+    expect(twoWayOnlyCreation.historyEntries).toEqual([]);
+  });
 });

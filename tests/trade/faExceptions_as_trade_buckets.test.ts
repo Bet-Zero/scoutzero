@@ -16,6 +16,12 @@ type FaExceptionPlayer = {
   fromTeamId?: number;
   toTeamId?: number;
   salary?: number;
+  contractType?: string;
+  isTwoWay?: boolean;
+  contract?: {
+    contractType?: string;
+    isTwoWay?: boolean;
+  };
 };
 
 type FaExceptionTeamFixture = {
@@ -137,6 +143,27 @@ describe('FA exceptions as trade buckets', () => {
     };
     const v = validateFaExceptionUsage(team);
     expect(v[0]).toMatch(/Second Apron/);
+  });
+
+  it('ignores stale FA exception assignment for a Two-Way player', () => {
+    const team: FaExceptionTeamFixture = {
+      ...baseTeam,
+      teamTotalSalary: 185_000_000,
+      projectedSalary: 185_000_000,
+      team: { faExceptionBuckets: [{ type: 'NTMLE', remaining: 10_000_000 }] },
+      incomingPlayers: [
+        makePlayer(636_435, {
+          absorptionMode: 'FA_EXCEPTION',
+          bucketType: 'NTMLE',
+          contract: { contractType: 'TwoWay' },
+        }),
+      ],
+    };
+
+    expect(validateFaExceptionUsage(team)).toEqual([]);
+    expect(team.team.faExceptionBuckets[0].remaining).toBe(10_000_000);
+    expect(team.team.hardCapFirstApron).toBeUndefined();
+    expect(team.notes).toBeUndefined();
   });
 
   it('rejects aggregation with outgoing salary', () => {

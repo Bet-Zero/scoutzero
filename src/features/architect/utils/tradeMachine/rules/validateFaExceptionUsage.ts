@@ -1,5 +1,6 @@
 import { getApronStatus, getSalaryForYear } from '../../tradeHelpers';
 import { getTeamFaExceptionBuckets } from '../../faExceptionUtils';
+import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 
 type NumericLike = number | string | null | undefined;
 
@@ -13,6 +14,10 @@ type FaExceptionIncomingPlayer = {
   bucketType?: unknown;
   matchIncoming?: NumericLike;
   salary?: NumericLike;
+  contractType?: string | null;
+  isTwoWay?: boolean;
+  contract?: Record<string, unknown> | null;
+  primaryContract?: Record<string, unknown> | null;
 };
 
 type FaExceptionTeamData = {
@@ -55,6 +60,9 @@ export function validateFaExceptionUsage(
   const context = rawContext || {};
   const capSettings = context.capSettings || {};
   const incomingPlayers = rawIncomingPlayers || [];
+  const faExceptionEligiblePlayers = incomingPlayers.filter(
+    (player) => !isTwoWayTradePlayer(player)
+  );
   const resolveIncomingTradeSalary = (player: FaExceptionIncomingPlayer) =>
     Number(
       player?.matchIncoming ??
@@ -71,7 +79,7 @@ export function validateFaExceptionUsage(
   // Check if team is above first apron (cannot use FA exceptions)
   const apronStatus = getApronStatus(Number(teamTotalSalary || 0), capSettings);
   if (apronStatus.includes('1st Apron') || apronStatus.includes('2nd Apron')) {
-    const hasUsage = incomingPlayers.some(
+    const hasUsage = faExceptionEligiblePlayers.some(
       (player) => player.absorptionMode === 'FA_EXCEPTION'
     );
     if (hasUsage) {
@@ -85,7 +93,7 @@ export function validateFaExceptionUsage(
     // Check post-trade salary doesn't exceed first apron
     const projectedSalary = Number(team.projectedSalary || teamTotalSalary);
     if (projectedSalary >= Number(capSettings.firstApron || 0)) {
-      const hasUsage = incomingPlayers.some(
+      const hasUsage = faExceptionEligiblePlayers.some(
         (player) => player.absorptionMode === 'FA_EXCEPTION'
       );
       if (hasUsage) {
@@ -96,10 +104,13 @@ export function validateFaExceptionUsage(
     } else {
       // Check for outgoing salary (both salaryOut and outgoingPlayers)
       const hasOutgoingSalary =
-        Number(team.salaryOut || 0) > 0 || (team.outgoingPlayers || []).length > 0;
+        Number(team.salaryOut || 0) > 0 ||
+        (team.outgoingPlayers || []).some(
+          (player) => !isTwoWayTradePlayer(player)
+        );
 
       // Auto-select FA exception for eligible players (if no absorptionMode is set)
-      incomingPlayers.forEach((player) => {
+      faExceptionEligiblePlayers.forEach((player) => {
         if (
           !player.absorptionMode &&
           buckets.length > 0 &&
@@ -118,7 +129,7 @@ export function validateFaExceptionUsage(
       });
 
       // Check each incoming player using FA Exception
-      incomingPlayers.forEach((player) => {
+      faExceptionEligiblePlayers.forEach((player) => {
         if (player.absorptionMode === 'FA_EXCEPTION') {
           // Check for aggregation with outgoing salary
           if (hasOutgoingSalary) {

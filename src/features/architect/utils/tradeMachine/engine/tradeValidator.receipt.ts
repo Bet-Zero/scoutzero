@@ -12,6 +12,7 @@ import {
 import { SALARY_MATCHING_VERSION } from '../rules/validateSalaryMatching';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
+import { isTwoWayTradePlayer } from '../utils/twoWayTradeSalary';
 import {
   normalizeTeamCodeLike,
   readSalaryMatchingRuleEnvelope,
@@ -159,7 +160,7 @@ export function generateTradeReceipt({
     const outgoingPlayers = (team.outgoingPlayers || team.sends || []).map(
       (player: TradeValidatorPlayer) => {
         const baseSalary = getSalaryForYear(player, context.currentYear) || 0;
-        const matchingValue = player.matchOutgoing || baseSalary;
+        const matchingValue = player.matchOutgoing ?? baseSalary;
         const isBYC = !!player.isBYC || !!player.baseYearCompensation;
         const bycMethod: 'previousSalary' | '50%_of_new' =
           (player.previousSalary || 0) >= Math.floor(baseSalary * 0.5)
@@ -180,6 +181,7 @@ export function generateTradeReceipt({
             tradeKickerPct:
               player.tradeKicker?.percentage || player.tradeKickerPct || 0,
             isSignAndTrade: !!player.signAndTrade,
+            isTwoWay: isTwoWayTradePlayer(player),
           },
           // BYC breakdown: include previous salary and calculation details
           bycDetails: isBYC
@@ -197,7 +199,7 @@ export function generateTradeReceipt({
     const incomingPlayers = (team.incomingPlayers || []).map(
       (player: TradeValidatorPlayer) => {
       const baseSalary = getSalaryForYear(player, context.currentYear) || 0;
-      const matchingValue = player.matchIncoming || baseSalary;
+      const matchingValue = player.matchIncoming ?? baseSalary;
       const isPoisonPill = !!player.isPoisonPill;
       const hasTradeKicker = !!(
         player.tradeKicker?.percentage || player.tradeKickerPct
@@ -216,6 +218,7 @@ export function generateTradeReceipt({
           tradeKickerPct:
             player.tradeKicker?.percentage || player.tradeKickerPct || 0,
           isSignAndTrade: !!player.signAndTrade,
+          isTwoWay: isTwoWayTradePlayer(player),
         },
         // Poison pill breakdown: include extension years and averaging calculation
         poisonPillDetails:

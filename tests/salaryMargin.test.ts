@@ -106,6 +106,16 @@ describe('Salary Margin Utilities', () => {
           { absorptionMode: 'TPE', matchIncoming: 3_000_000, tpeAmount: 9_000_000 },
           { absorptionMode: 'TPE', tpeAmount: 2_000_000 },
           { absorptionMode: 'FA_EXCEPTION', matchIncoming: 1_500_000 },
+          {
+            absorptionMode: 'TPE',
+            matchIncoming: 636_435,
+            contractType: 'TwoWay',
+          },
+          {
+            absorptionMode: 'FA_EXCEPTION',
+            matchIncoming: 636_435,
+            contract: { contractType: 'TwoWay' },
+          },
           { absorptionMode: 'MATCH', matchIncoming: 99_000_000 },
         ],
         context: {
@@ -120,6 +130,7 @@ describe('Salary Margin Utilities', () => {
       // (2026-27 ETPE). On top of that only the USED buckets are added:
       //   used TPE:       $3,000,000 (matchIncoming) + $2,000,000 (tpeAmount)
       //   FA exception:   $1,500,000
+      //   Two-Way rows:   ignored even with stale bucket assignments
       //   MATCH player:   not added (absorbed by the base band)
       // 9,096,000 + 5,000,000 + 1,500,000 = 15,596,000
       expect(getAllowableIncomingMargin(team)).toBe(15_596_000);

@@ -13,6 +13,10 @@ import { areSamePickById } from '@/features/architect/utils/tradeMachine/utils/p
 import { toEndYear } from './seasonFormat';
 import { getTeamApronStatus as getTeamApronStatusSSoT } from '@/features/architect/utils/capUtils';
 import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
+import {
+  isTwoWayTradePlayer,
+  TWO_WAY_TRADE_MATCHING_LABEL,
+} from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 
 type NumericLike = number | string | null | undefined;
 type UnknownRecord = Record<string, unknown>;
@@ -56,11 +60,16 @@ interface SalariesByYearEntry extends UnknownRecord {
 }
 
 interface TradeHelperContract extends UnknownRecord {
+  contractType?: string | null;
+  isTwoWay?: boolean;
   salariesByYear?: SalariesByYearEntry[];
 }
 
 interface TradeHelperPlayer extends UnknownRecord {
   contract?: TradeHelperContract | null;
+  primaryContract?: TradeHelperContract | null;
+  contractType?: string | null;
+  isTwoWay?: boolean;
   salary?: NumericLike;
   bonusesByYear?: Record<string, { likely?: NumericLike } | undefined>;
   isBYC?: boolean;
@@ -524,6 +533,10 @@ export const generateTradeId = (teams: TradeTeamEntry[]): string =>
 
 export const getPlayerAdjustmentTypes = (player: TradeHelperPlayer): string[] => {
   if (!player) return [];
+
+  if (isTwoWayTradePlayer(player)) {
+    return [TWO_WAY_TRADE_MATCHING_LABEL];
+  }
 
   const adjustmentTypes: string[] = [];
 

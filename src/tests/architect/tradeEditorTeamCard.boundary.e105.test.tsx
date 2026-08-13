@@ -39,8 +39,12 @@ type TestPlayer = {
   capHit?: number;
   absorptionMode?: string;
   bucketType?: string;
+  isTwoWay?: boolean;
+  contractType?: string;
   contract?: {
     salariesByYear?: Array<{ salary?: number | string | null }>;
+    contractType?: string;
+    isTwoWay?: boolean;
   };
   bio?: {
     displayName?: string;
@@ -65,6 +69,7 @@ type TestTeam = {
   teamName: string;
   nickname: string;
   players: TestPlayer[];
+  twoWayPlayers?: TestPlayer[];
   entitlements: TestEntitlement[];
   pickRulesById: Record<string, { id: string }>;
   capHolds: Array<{ id: string }>;
@@ -94,6 +99,7 @@ type CapImpactTilesMockProps = {
 
 type OutgoingPlayersListMockProps = {
   sourceTeamId?: string | null;
+  team?: { players?: TestPlayer[] };
 };
 
 type TeamScopedMockProps = {
@@ -423,6 +429,20 @@ const FA_EXCEPTION_PLAYER = {
   name: 'Incoming FA',
   absorptionMode: 'FA_EXCEPTION',
   bucketType: 'ROOM',
+};
+
+const TWO_WAY_PLAYER = {
+  ...INCOMING_PLAYER,
+  id: 'two-way-1',
+  player_id: 'two-way-1',
+  name: 'Tobias Lund',
+  salary: 636_435,
+  capHit: 636_435,
+  contractType: 'two-way',
+  contract: {
+    contractType: 'Two-Way',
+    salariesByYear: [{ salary: 636_435 }],
+  },
 };
 
 const ENTITLEMENT = {
@@ -1288,5 +1308,57 @@ describe('TradeTeamCard boundary E105', () => {
       'setFaBucket',
       'ROOM'
     );
+  });
+
+  it('surfaces the separate Two-Way roster and removes TPE/exception absorption choices', async () => {
+    const TradeTeamCard = await loadTradeTeamCard();
+    harness.getTeamSnapshotMock.mockReturnValue(null as never);
+    harness.getTeamTpeListMock.mockReturnValue([
+      {
+        id: 'tpe-1',
+        amount: 9_000_000,
+        isUsed: false,
+        expirationDate: '2099-01-01',
+        name: 'Test TPE',
+      },
+    ]);
+
+    render(
+      <TradeTeamCard
+        team={{ ...BASE_TEAMS[0].team, twoWayPlayers: [TWO_WAY_PLAYER] }}
+        sends={[]}
+        yearKey={2026}
+        incomingPlayers={[TWO_WAY_PLAYER]}
+        incomingEntitlements={[]}
+        onSetPlayerTrade={vi.fn()}
+        onUndoPlayerTrade={vi.fn()}
+        onRequestSignAndTrade={vi.fn()}
+        onSelectTeam={vi.fn()}
+        onRemove={vi.fn()}
+        onEditContract={vi.fn()}
+        validationResult={{ legal: true }}
+        entitlementsOut={[]}
+      />
+    );
+
+    expect(harness.outgoingPlayersListMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        team: {
+          players: expect.arrayContaining([
+            expect.objectContaining({ id: TWO_WAY_PLAYER.id }),
+          ]),
+        },
+      }),
+      expect.anything()
+    );
+    expect(
+      screen.getByRole('option', { name: 'No salary match (Two-Way)' })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeDisabled();
+    expect(screen.getByText('Adjusted')).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'TPE' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: 'FA Exception' })
+    ).not.toBeInTheDocument();
   });
 });

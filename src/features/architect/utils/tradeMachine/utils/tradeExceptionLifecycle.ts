@@ -3,6 +3,7 @@ import {
   createTpeCreationHistoryEntry,
 } from '@/features/architect/utils/exceptionHistory/historyHelpers';
 import type { TradeExceptionRecord } from '@/features/architect/utils/tradeMachine/constants/types';
+import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 
 type TradeExceptionLifecycleIncomingPlayer = {
   player_id?: string | null;
@@ -14,11 +15,19 @@ type TradeExceptionLifecycleIncomingPlayer = {
   absorptionMode?: string | null;
   tpeId?: string | null;
   matchIncoming?: number | null;
+  isTwoWay?: boolean | null;
+  contractType?: string | null;
+  contract?: Record<string, unknown> | null;
+  primaryContract?: Record<string, unknown> | null;
 };
 
 type TradeExceptionLifecycleOutgoingPlayer = {
   name?: string | null;
   displayName?: string | null;
+  isTwoWay?: boolean | null;
+  contractType?: string | null;
+  contract?: Record<string, unknown> | null;
+  primaryContract?: Record<string, unknown> | null;
 };
 
 export type TradeExceptionLifecycleIssue = {
@@ -108,8 +117,11 @@ function buildTpeConsumptionState({
   const warnings: TradeExceptionLifecycleIssue[] = [];
   const blockingIssues: TradeExceptionLifecycleIssue[] = [];
   const absorptionDetails = new Map<string, TradeAbsorbedPlayer[]>();
+  const tpeEligibleIncomingPlayers = incomingPlayers.filter(
+    (player) => !isTwoWayTradePlayer(player)
+  );
 
-  incomingPlayers.forEach((player) => {
+  tpeEligibleIncomingPlayers.forEach((player) => {
     if (player.absorptionMode === 'TPE') {
       const playerLabel = player.name || player.player_id || 'unknown';
       if (!player.tpeId) {
@@ -140,7 +152,7 @@ function buildTpeConsumptionState({
     };
   }
 
-  incomingPlayers.forEach((player) => {
+  tpeEligibleIncomingPlayers.forEach((player) => {
     if (!player.tpeId) return;
 
     if (player.matchIncoming === undefined || player.matchIncoming === null) {
@@ -284,7 +296,11 @@ function applyCreatedTpe({
   updatedTradeExceptions: TradeExceptionRecord[];
   creationHistoryEntry: TradeExceptionHistoryEntry | null;
 } {
-  if (!createdTPE) {
+  const tpeEligibleOutgoingPlayers = outgoingPlayers.filter(
+    (player) => !isTwoWayTradePlayer(player)
+  );
+
+  if (!createdTPE || tpeEligibleOutgoingPlayers.length === 0) {
     return {
       updatedTradeExceptions,
       creationHistoryEntry: null,
@@ -295,7 +311,7 @@ function applyCreatedTpe({
   const tpeId =
     (typeof createdTPE.id === 'string' && createdTPE.id) ||
     `tpe_${teamCode}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const createdFrom = buildCreatedFrom(outgoingPlayers);
+  const createdFrom = buildCreatedFrom(tpeEligibleOutgoingPlayers);
   const newTpeSignature = [
     createdTPE.createdSeason,
     createdTPE.expiresOn,

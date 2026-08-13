@@ -588,6 +588,7 @@ utils/
       tradeExportUtils.ts
       tradeTimingWindows.ts
       tradeUtilityMisc.ts
+      twoWayTradeSalary.ts
       validateInput.ts
       validationIssueText.ts
   tradeManager.ts
@@ -606,5 +607,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-12T04:57:54.607Z*
+*Generated on: 2026-08-13T08:21:43.880Z*
 *Auto-updated by: npm run docs*

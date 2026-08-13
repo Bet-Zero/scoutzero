@@ -5,7 +5,7 @@
 
 import { resolvePlayerDestinationTeamId } from './tradeValidator.ruleEnvelopes';
 import { checkRosterCounts } from '../rules/validateRoster';
-import { isTwoWayContract } from '@/features/architect/utils/contractUtils';
+import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import type {
   TradeValidatorPlayer,
   TradeValidatorTeamSlot,
@@ -21,15 +21,7 @@ import type {
 export function isTwoWayPlayer(
   player: TradeValidatorPlayer | null | undefined
 ): boolean {
-  if (!player) return false;
-  if (player.isTwoWay === true) return true;
-  // TradeValidatorPlayer carries contractType at runtime but its type doesn't
-  // structurally overlap ContractUtilsPlayer, and isTwoWayContract only reads
-  // the contract-type marker (null-safe). Widening that shared signature ripples
-  // through 10+ callers (weak-type incompatibilities), so bridge here instead.
-  return isTwoWayContract(
-    player as unknown as Parameters<typeof isTwoWayContract>[0]
-  );
+  return isTwoWayTradePlayer(player);
 }
 
 export function shouldRoutePlayerToTeam({

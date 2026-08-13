@@ -21,7 +21,8 @@ import {
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { SECOND_APRON_SALARY_MISMATCH } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
-import { isSecondApronTeam } from '../utils/capUtils';
+import { isSecondApronTeam } from '@/features/architect/utils/tradeMachine/utils/capUtils';
+import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import type {
   AuthoritativeSalaryMatchingResult,
   TeamContext,
@@ -232,8 +233,16 @@ export function validateSalaryMatching(
   let allowableIncoming = 0;
   let ruleApplied = '';
   let formulaUsed = '';
+  const incomingPlayers = getIncomingPlayers(team);
+  const hasFaExceptionEligibleIncoming =
+    incomingPlayers.length === 0 ||
+    incomingPlayers.some((player) => !isTwoWayTradePlayer(player));
 
-  if (team.absorptionMode === 'FA_EXCEPTION' && team.bucketType) {
+  if (
+    team.absorptionMode === 'FA_EXCEPTION' &&
+    team.bucketType &&
+    hasFaExceptionEligibleIncoming
+  ) {
     const buckets = Array.isArray(team.team?.faExceptionBuckets)
       ? team.team.faExceptionBuckets
       : [];
@@ -266,7 +275,6 @@ export function validateSalaryMatching(
     };
   }
 
-  const incomingPlayers = getIncomingPlayers(team);
   const resolveIncomingTradeSalary = (player: SalaryMatchingPlayer): number =>
     Number(
       player?.matchIncoming ??
@@ -276,7 +284,9 @@ export function validateSalaryMatching(
     );
 
   const hasTPEPlayers = incomingPlayers.some(
-    (player) => player.absorptionMode === 'TPE' || !!player.tpeId
+    (player) =>
+      !isTwoWayTradePlayer(player) &&
+      (player.absorptionMode === 'TPE' || !!player.tpeId)
   );
 
   const appliedTPEs = Array.isArray(team.appliedTPEs) ? team.appliedTPEs : [];
@@ -304,7 +314,9 @@ export function validateSalaryMatching(
     const tpeViolations: string[] = [];
 
     incomingPlayers.forEach((player) => {
-      const playerSalary = toFiniteNumber(player.salary || player.matchIncoming || 0);
+      if (isTwoWayTradePlayer(player)) return;
+
+      const playerSalary = toFiniteNumber(resolveIncomingTradeSalary(player));
       const isTpeAbsorbed = player.absorptionMode === 'TPE' || !!player.tpeId;
 
       if (!isTpeAbsorbed) return;
@@ -402,7 +414,9 @@ export function validateSalaryMatching(
 
   const faExceptionValidation = team.faExceptionValidation || null;
   const faExceptionPlayers = incomingPlayers.filter(
-    (player) => player.absorptionMode === 'FA_EXCEPTION'
+    (player) =>
+      !isTwoWayTradePlayer(player) &&
+      player.absorptionMode === 'FA_EXCEPTION'
   );
   const faExceptionAbsorbedSalary =
     faExceptionValidation?.passed === true

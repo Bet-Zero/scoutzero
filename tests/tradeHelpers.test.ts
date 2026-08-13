@@ -12,6 +12,7 @@ import {
   getPlayerAdjustmentTypes,
   getAdjustmentTooltipLabel,
 } from '@/features/architect/utils/tradeHelpers';
+import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 
 // 🔧  simple mock cap settings for 2025 season
 const settings = {
@@ -55,6 +56,21 @@ describe('getSalaryForYear', () => {
   it('falls back to salary property when contract data missing', () => {
     const p = { salary: 8_500_000 };
     expect(getSalaryForYear(p, year)).toBe(8_500_000);
+  });
+});
+
+describe('Two-Way trade classification', () => {
+  it.each(['TwoWay', 'two-way', 'two_way', 'two way'])(
+    'recognizes the explicit %s contract spelling',
+    (contractType) => {
+      expect(
+        isTwoWayTradePlayer({ contract: { contractType } })
+      ).toBe(true);
+    }
+  );
+
+  it('does not infer Two-Way status from salary alone', () => {
+    expect(isTwoWayTradePlayer({ salary: 636_435 })).toBe(false);
   });
 });
 
@@ -160,6 +176,13 @@ describe('other helper surface behavior', () => {
     expect(getAdjustmentTooltipLabel({})).toBe(
       'Adjusted trade matching value (BYC/kicker/poison pill may apply)'
     );
+    expect(
+      getAdjustmentTooltipLabel({
+        contractType: 'two-way',
+        isBYC: true,
+        tradeKicker: true,
+      })
+    ).toBe('Two-Way salary exclusion');
   });
 });
 

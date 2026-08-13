@@ -8,6 +8,7 @@ import {
   TradeTeam,
   UnresolvedTpeUsage,
 } from '../constants/types';
+import { isTwoWayTradePlayer } from './twoWayTradeSalary';
 
 export const SECOND_APRON_TPE_BLOCK =
   'Second apron team cannot use trade exceptions';
@@ -175,7 +176,9 @@ export function buildCanonicalTeamTpeUsage({
   teamHeldTpes.forEach(addTpe);
 
   const tpeAttemptPlayers = (incomingPlayers || []).filter(
-    (player) => player?.absorptionMode === 'TPE' || Boolean(player?.tpeId)
+    (player) =>
+      !isTwoWayTradePlayer(player) &&
+      (player?.absorptionMode === 'TPE' || Boolean(player?.tpeId))
   );
   const usageMap = new Map<string, CanonicalTeamTpeUsageEntry>();
   const unresolvedPlayers: UnresolvedTpeUsage[] = [];
@@ -206,7 +209,14 @@ export function buildCanonicalTeamTpeUsage({
     usageMap.set(tpeId, existingUsage);
   });
 
+  const hasEligibleIncomingPlayer = (incomingPlayers || []).some(
+    (player) => !isTwoWayTradePlayer(player)
+  );
+  const shouldApplyCompatibilityUsage =
+    (incomingPlayers || []).length === 0 || hasEligibleIncomingPlayer;
+
   compatibilityTpes.forEach((rawTpe) => {
+    if (!shouldApplyCompatibilityUsage) return;
     const normalizedTpe = normalizeTpeForValidation(rawTpe);
     if (!normalizedTpe?.id || usageMap.has(normalizedTpe.id)) return;
 
