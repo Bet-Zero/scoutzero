@@ -22,6 +22,7 @@ import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/
 import { SECOND_APRON_SALARY_MISMATCH } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import { isSecondApronTeam } from '../utils/capUtils';
+import { isTwoWayTradePlayer } from '../utils/twoWayTradeSalary';
 import type {
   AuthoritativeSalaryMatchingResult,
   TeamContext,
@@ -276,7 +277,9 @@ export function validateSalaryMatching(
     );
 
   const hasTPEPlayers = incomingPlayers.some(
-    (player) => player.absorptionMode === 'TPE' || !!player.tpeId
+    (player) =>
+      !isTwoWayTradePlayer(player) &&
+      (player.absorptionMode === 'TPE' || !!player.tpeId)
   );
 
   const appliedTPEs = Array.isArray(team.appliedTPEs) ? team.appliedTPEs : [];
@@ -304,7 +307,9 @@ export function validateSalaryMatching(
     const tpeViolations: string[] = [];
 
     incomingPlayers.forEach((player) => {
-      const playerSalary = toFiniteNumber(player.salary || player.matchIncoming || 0);
+      if (isTwoWayTradePlayer(player)) return;
+
+      const playerSalary = toFiniteNumber(resolveIncomingTradeSalary(player));
       const isTpeAbsorbed = player.absorptionMode === 'TPE' || !!player.tpeId;
 
       if (!isTpeAbsorbed) return;

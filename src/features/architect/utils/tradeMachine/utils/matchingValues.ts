@@ -11,6 +11,7 @@ import {
   type DataWarning,
 } from './dataValidation';
 import { getSignAndTradeSalaryForYear } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
+import { isTwoWayTradePlayer } from './twoWayTradeSalary';
 
 type YearKey = number | string;
 
@@ -30,6 +31,8 @@ interface MatchingValueExtension {
 
 interface MatchingValueContractLike {
   isRookieScale?: boolean;
+  isTwoWay?: boolean;
+  contractType?: string | null;
   salariesByYear?: Array<Record<string, unknown>>;
 }
 
@@ -48,6 +51,8 @@ interface MatchingValuePlayer {
   } | null;
   contract?: MatchingValueContractLike | null;
   primaryContract?: MatchingValueContractLike | null;
+  isTwoWay?: boolean;
+  contractType?: string | null;
   signAndTrade?: boolean;
   salary?: number | null;
   newSalary?: number | null;
@@ -132,6 +137,10 @@ export function getMatchingValue(
   yearKey: YearKey,
   isOutgoing = false
 ): number {
+  if (isTwoWayTradePlayer(player)) {
+    return 0;
+  }
+
   const salary = getSalaryForYear(player, yearKey);
 
   // For outgoing BYC players, use max(prior, 50% new salary)
@@ -225,6 +234,12 @@ export function computeMatchingValues({
     (team.sends || []).forEach((player) => {
       const { salary: baseSalary, source: salarySource } =
         getEffectiveTradeSalaryForPlayer(player, yearKey);
+
+      if (isTwoWayTradePlayer(player)) {
+        player.matchOutgoing = 0;
+        player.matchIncoming = 0;
+        return;
+      }
 
       if (
         salarySource === 'player.newSalary' ||

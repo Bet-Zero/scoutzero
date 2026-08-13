@@ -135,6 +135,8 @@ export interface TradeExceptionPlayer {
   // Contract
   contract?: Record<string, unknown>;
   contracts?: Record<string, unknown>;
+  primaryContract?: Record<string, unknown>;
+  contractType?: string | null;
   yearsOfService?: number;
   draftPick?: unknown;
   isMinimum?: boolean;
@@ -747,6 +749,7 @@ export interface TradeReceiptPlayerFlags {
   hasTradeKicker: boolean;
   tradeKickerPct: number;
   isSignAndTrade: boolean;
+  isTwoWay: boolean;
 }
 
 export interface TradeReceiptBycDetails {

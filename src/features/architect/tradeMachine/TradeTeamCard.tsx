@@ -13,6 +13,10 @@ import { TeamSelectDropdown } from '@/shared/components/TeamSelectDropdown';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { TradeExceptionManager } from './TradeExceptionManager';
 import { isFaExceptionEligibleType } from '@/features/architect/utils/faExceptionUtils';
+import {
+  isTwoWayTradePlayer,
+  TWO_WAY_TRADE_MATCHING_EXPLANATION,
+} from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import { validationFlags } from '@/config/validationFlags';
 import { useTradeTeamCardSalaries } from './useTradeTeamCardSalaries';
 // Phase 65: Canonical TPE read accessor
@@ -32,6 +36,9 @@ import type {
   OutgoingPlayersListProps,
   TradeTeamCardProps,
 } from './TradeTeamCard.helpers';
+
+const formatTradeSectionSalary = (salary: number, hasPlayers: boolean) =>
+  hasPlayers && salary === 0 ? '$0' : formatSalary(salary);
 import {
   getPlayerKey,
   getPlayerLabel,
@@ -272,7 +279,7 @@ export const TradeTeamCard = ({
                     {hasValidatorResult ? 'Updating…' : 'Calculating…'}
                   </span>
                 ) : (
-                  formatSalary(outgoingSalary)
+                  formatTradeSectionSalary(outgoingSalary, sends.length > 0)
                 )}
                 {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
                 {/* P0-3: Hide estimate badge during validation - show loading instead */}
@@ -289,7 +296,7 @@ export const TradeTeamCard = ({
                 {!isValidating && hasOutgoingAdjustment && (
                   <span
                     className="px-1.5 py-0.5 text-[10px] bg-cockpit-info/20 text-cockpit-info rounded-md"
-                    title="Includes BYC, poison pill, or trade kicker adjustments"
+                    title="Includes player-specific trade matching adjustments"
                   >
                     Adjusted
                   </span>
@@ -316,8 +323,9 @@ export const TradeTeamCard = ({
                 // Phase 2.4: Check if this player has matching adjustment (BYC, poison pill, kicker)
                 const baseSalary = getSalaryForYear([p], yearKey);
                 const matchingValue = Number(p.matchOutgoing ?? baseSalary);
+                const isTwoWay = isTwoWayTradePlayer(p);
                 const hasPlayerAdjustment =
-                  Math.abs(matchingValue - baseSalary) > 1;
+                  isTwoWay || Math.abs(matchingValue - baseSalary) > 1;
 
                 // P1: Use shared utility for adjustment type detection
                 const adjustmentLabel = getAdjustmentTooltipLabel(
@@ -342,7 +350,7 @@ export const TradeTeamCard = ({
                         className="px-1 py-0.5 text-[10px] bg-cockpit-info/20 text-cockpit-info rounded-md leading-none"
                         title={tooltipText}
                       >
-                        Adj
+                        {isTwoWay ? '2W' : 'Adj'}
                       </span>
                     )}
                     {onUndoPlayerTrade && (
@@ -395,7 +403,10 @@ export const TradeTeamCard = ({
                     {hasValidatorResult ? 'Updating…' : 'Calculating…'}
                   </span>
                 ) : (
-                  formatSalary(incomingSalary)
+                  formatTradeSectionSalary(
+                    incomingSalary,
+                    incomingPlayers.length > 0
+                  )
                 )}
                 {/* Phase 1: Visible indicator when using local estimate (Rule 2) */}
                 {/* P0-3: Hide estimate badge during validation - show loading instead */}
@@ -412,7 +423,7 @@ export const TradeTeamCard = ({
                 {!isValidating && hasIncomingAdjustment && (
                   <span
                     className="px-1.5 py-0.5 text-[10px] bg-cockpit-info/20 text-cockpit-info rounded-md"
-                    title="Includes BYC, poison pill, or trade kicker adjustments"
+                    title="Includes player-specific trade matching adjustments"
                   >
                     Adjusted
                   </span>
@@ -439,8 +450,9 @@ export const TradeTeamCard = ({
                 // Phase 2.4: Check if this player has matching adjustment (BYC, poison pill, kicker)
                 const baseSalary = getSalaryForYear([p], yearKey);
                 const matchingValue = Number(p.matchIncoming ?? baseSalary);
+                const isTwoWay = isTwoWayTradePlayer(p);
                 const hasPlayerAdjustment =
-                  Math.abs(matchingValue - baseSalary) > 1;
+                  isTwoWay || Math.abs(matchingValue - baseSalary) > 1;
 
                 // P1: Use shared utility for adjustment type detection
                 const adjustmentLabel = getAdjustmentTooltipLabel(
@@ -465,7 +477,7 @@ export const TradeTeamCard = ({
                         className="px-1 py-0.5 text-[10px] bg-cockpit-info/20 text-cockpit-info rounded-md leading-none"
                         title={tooltipText}
                       >
-                        Adj
+                        {isTwoWay ? '2W' : 'Adj'}
                       </span>
                     )}
                     {onUndoPlayerTrade && (
@@ -745,11 +757,14 @@ export const TradeTeamCard = ({
           <div className="text-cockpit-text-primary">
             {incomingPlayers.map((p) => {
               // Auto-detect absorption mode: if no explicit mode set and player fits a TPE, default to TPE
+              const isTwoWay = isTwoWayTradePlayer(p);
               const isTpeEligible = tpeEligiblePlayers.some(
                 (ep) => (ep.player_id || ep.id) === (p.player_id || p.id)
               );
               const effectiveMode =
-                p.absorptionMode || (isTpeEligible ? 'TPE' : 'MATCH');
+                isTwoWay
+                  ? 'MATCH'
+                  : p.absorptionMode || (isTpeEligible ? 'TPE' : 'MATCH');
 
               return (
                 <div
@@ -762,6 +777,12 @@ export const TradeTeamCard = ({
                       <select
                         className="bg-cockpit-raised text-xs rounded-md px-1"
                         value={String(effectiveMode)}
+                        disabled={isTwoWay}
+                        title={
+                          isTwoWay
+                            ? TWO_WAY_TRADE_MATCHING_EXPLANATION
+                            : undefined
+                        }
                         onChange={(e) =>
                           onSetPlayerTrade &&
                           onSetPlayerTrade(
@@ -771,9 +792,13 @@ export const TradeTeamCard = ({
                           )
                         }
                       >
-                        <option value="MATCH">Matching</option>
-                        <option value="TPE">TPE</option>
-                        <option value="FA_EXCEPTION">FA Exception</option>
+                        <option value="MATCH">
+                          {isTwoWay ? 'No salary match (Two-Way)' : 'Matching'}
+                        </option>
+                        {!isTwoWay && <option value="TPE">TPE</option>}
+                        {!isTwoWay && (
+                          <option value="FA_EXCEPTION">FA Exception</option>
+                        )}
                       </select>
                       {/* TPE selector - show when TPE mode selected */}
                       {effectiveMode === 'TPE' && (

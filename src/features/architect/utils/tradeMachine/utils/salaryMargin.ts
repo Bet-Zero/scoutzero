@@ -136,13 +136,13 @@ export function getAllowableIncomingMargin(
     .filter((player) => player.absorptionMode === 'TPE')
     .reduce(
       (sum, player) =>
-        sum + toNum(player.matchIncoming || player.tpeAmount || 0),
+        sum + toNum(player.matchIncoming ?? player.tpeAmount ?? 0),
       0
     );
 
   const faUsage = incomingPlayers
     .filter((player) => player.absorptionMode === 'FA_EXCEPTION')
-    .reduce((sum, player) => sum + toNum(player.matchIncoming || 0), 0);
+    .reduce((sum, player) => sum + toNum(player.matchIncoming ?? 0), 0);
 
   const margin = baseNoTPE + usedTPE + faUsage;
 

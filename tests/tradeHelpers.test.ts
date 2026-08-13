@@ -160,6 +160,13 @@ describe('other helper surface behavior', () => {
     expect(getAdjustmentTooltipLabel({})).toBe(
       'Adjusted trade matching value (BYC/kicker/poison pill may apply)'
     );
+    expect(
+      getAdjustmentTooltipLabel({
+        contractType: 'two-way',
+        isBYC: true,
+        tradeKicker: true,
+      })
+    ).toBe('Two-Way salary exclusion');
   });
 });
 

@@ -14,6 +14,7 @@ import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/u
 import { getTeamSnapshot } from '@/features/architect/hooks/useTradeMachineSnapshot';
 import { toSeasonKey } from '@/features/architect/utils/seasonUtils';
 import { getTeamFaExceptionBuckets } from '@/features/architect/utils/faExceptionUtils';
+import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import {
   toPlayerTeamOption,
   toEntitlementTeamOption,
@@ -55,12 +56,30 @@ export const useTradeTeamCardSalaries = ({
   teamTradeExceptions,
   hasTeam,
 }: UseTradeTeamCardSalariesParams) => {
+  const teamTradePlayers = useMemo(() => {
+    const seenIds = new Set<string>();
+    return [...(team?.players ?? []), ...(team?.twoWayPlayers ?? [])].filter(
+      (player) => {
+        const playerId = player.player_id ?? player.id;
+        if (playerId == null) return true;
+
+        const key = String(playerId);
+        if (seenIds.has(key)) return false;
+        seenIds.add(key);
+        return true;
+      }
+    );
+  }, [team?.players, team?.twoWayPlayers]);
+
   const filteredIncomingPlayers = useMemo(
     () =>
       incomingPlayers.filter(
-        (p) => !team?.players?.some((tp) => tp.player_id === p.player_id)
+        (p) =>
+          !teamTradePlayers.some(
+            (tp) => (tp.player_id ?? tp.id) === (p.player_id ?? p.id)
+          )
       ),
-    [incomingPlayers, team?.players]
+    [incomingPlayers, teamTradePlayers]
   );
 
   const teamTotalSalary = useMemo(() => {
@@ -77,12 +96,28 @@ export const useTradeTeamCardSalaries = ({
   const snapshot = getTeamSnapshot(selectedTeamId, validationResult);
   const hasValidatorResult = snapshot !== null;
 
-  const localOutgoingSalary = useMemo(
+  const localOutgoingBaseSalary = useMemo(
     () => getSalaryForYear(sends, yearKey),
     [sends, yearKey]
   );
-  const localIncomingSalary = useMemo(
+  const localIncomingBaseSalary = useMemo(
     () => getSalaryForYear(incomingPlayers, yearKey),
+    [incomingPlayers, yearKey]
+  );
+  const localOutgoingSalary = useMemo(
+    () =>
+      getSalaryForYear(
+        sends.filter((player) => !isTwoWayTradePlayer(player)),
+        yearKey
+      ),
+    [sends, yearKey]
+  );
+  const localIncomingSalary = useMemo(
+    () =>
+      getSalaryForYear(
+        incomingPlayers.filter((player) => !isTwoWayTradePlayer(player)),
+        yearKey
+      ),
     [incomingPlayers, yearKey]
   );
 
@@ -96,10 +131,10 @@ export const useTradeTeamCardSalaries = ({
 
   const outgoingBaseSalary = hasValidatorResult
     ? snapshot.outgoingBaseSalary
-    : localOutgoingSalary;
+    : localOutgoingBaseSalary;
   const incomingBaseSalary = hasValidatorResult
     ? snapshot.incomingBaseSalary
-    : localIncomingSalary;
+    : localIncomingBaseSalary;
 
   const hasOutgoingAdjustment =
     hasValidatorResult && Math.abs(outgoingSalary - outgoingBaseSalary) > 1;
@@ -132,12 +167,12 @@ export const useTradeTeamCardSalaries = ({
   );
 
   const playersCount = useMemo(
-    () => (team?.players?.length || 0) - sends.length + incomingPlayers.length,
-    [team, sends, incomingPlayers]
+    () => teamTradePlayers.length - sends.length + incomingPlayers.length,
+    [teamTradePlayers, sends, incomingPlayers]
   );
   const outgoingPlayersTeam = useMemo(
-    () => ({ players: team?.players ?? [] }),
-    [team?.players]
+    () => ({ players: teamTradePlayers }),
+    [teamTradePlayers]
   );
   const playerOtherTeams = useMemo(
     () => otherTeams.map(toPlayerTeamOption),
@@ -238,6 +273,8 @@ export const useTradeTeamCardSalaries = ({
         ? yearKey
         : toSeasonKey(yearKey);
     return incomingPlayers.filter((player) => {
+      if (isTwoWayTradePlayer(player)) return false;
+
       const playerSalary =
         getCapHitForSeason(player as UnknownRecord, seasonKey) || 0;
       return (teamTradeExceptions || []).some(

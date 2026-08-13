@@ -6,6 +6,7 @@ import {
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
 import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import { TWO_WAY_TRADE_MATCHING_EXPLANATION } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import type {
   TeamPlayerLike,
   TradeReceiptLike,
@@ -28,6 +29,7 @@ type PlayerFlagsLike = {
   hasTradeKicker?: boolean;
   isPoisonPill?: boolean;
   tradeKickerPct?: number | string | null;
+  isTwoWay?: boolean;
 };
 
 const toText = (value: unknown) => (value == null ? '' : String(value));
@@ -44,12 +46,14 @@ const PlayerListItem = ({ player, direction }: PlayerListItemProps) => {
     hasAdjustment &&
     (direction === 'outgoing'
       ? !flags.isBYC && !flags.hasTradeKicker
-      : !flags.isPoisonPill && !flags.hasTradeKicker);
+      : !flags.isPoisonPill && !flags.hasTradeKicker) &&
+    !flags.isTwoWay;
   const showBreakdown =
-    direction === 'outgoing'
+    flags.isTwoWay ||
+    (direction === 'outgoing'
       ? flags.isBYC && player.baseSalary !== player.matchingValue
       : (flags.isPoisonPill || flags.hasTradeKicker) &&
-        player.baseSalary !== player.matchingValue;
+        player.baseSalary !== player.matchingValue);
   const kickerPct = (Number(flags.tradeKickerPct || 0) * 100).toFixed(0);
   const playerName = toText(player.name) || 'Unknown';
   const adjTooltipText = `Adjusted: Base ${formatCurrency(player.baseSalary)} → Match ${formatCurrency(player.matchingValue)}`;
@@ -65,6 +69,14 @@ const PlayerListItem = ({ player, direction }: PlayerListItemProps) => {
               title={adjTooltipText}
             >
               Adj
+            </span>
+          )}
+          {flags.isTwoWay && (
+            <span
+              className="text-cockpit-info ml-1"
+              title={TWO_WAY_TRADE_MATCHING_EXPLANATION}
+            >
+              2W
             </span>
           )}
           {direction === 'outgoing' && flags.isBYC && (
@@ -100,13 +112,18 @@ const PlayerListItem = ({ player, direction }: PlayerListItemProps) => {
           {formatCurrency(player.matchingValue)}
         </span>
       </div>
-      {showBreakdown && direction === 'outgoing' && (
+      {showBreakdown && flags.isTwoWay && (
+        <div className="text-cockpit-text-muted text-xs mt-0.5 pl-2">
+          {TWO_WAY_TRADE_MATCHING_EXPLANATION}
+        </div>
+      )}
+      {showBreakdown && !flags.isTwoWay && direction === 'outgoing' && (
         <div className="text-cockpit-text-muted text-xs mt-0.5 pl-2">
           Base: {formatCurrency(player.baseSalary)} → Match:{' '}
           {formatCurrency(player.matchingValue)} (BYC: max(prior, 50% new))
         </div>
       )}
-      {showBreakdown && direction === 'incoming' && (
+      {showBreakdown && !flags.isTwoWay && direction === 'incoming' && (
         <div className="text-cockpit-text-muted text-xs mt-0.5 pl-2">
           Base: {formatCurrency(player.baseSalary)} → Match:{' '}
           {formatCurrency(player.matchingValue)}

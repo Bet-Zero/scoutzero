@@ -61,6 +61,7 @@ export type TeamLike = Omit<HookTradeTeam, 'pickRulesById'> & {
   teamName?: string | null;
   abbreviation?: string | null;
   players?: HookTradePlayer[] | null;
+  twoWayPlayers?: HookTradePlayer[] | null;
   entitlements?: HookTradeEntitlement[] | null;
   pickRulesById?: Record<string, unknown>;
   capHolds?: unknown[] | null;

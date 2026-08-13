@@ -8,16 +8,12 @@
  *
  * Coverage:
  * - GAP-MISS-003: Incomplete roster charges verification
- * - GAP-MISS-005: Two-way contract trade blocking
+ * - CBA2-A02.14: Two-Way contracts are not blanket-blocked from trades
  */
 import { describe, it, expect } from 'vitest';
 import { validateEligibility } from '@/features/architect/utils/tradeMachine/rules/validateEligibility';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
-import type {
-  TradeExceptionPlayer,
-  ValidationIssue,
-} from '@/features/architect/utils/tradeMachine/constants/types';
+import type { TradeExceptionPlayer } from '@/features/architect/utils/tradeMachine/constants/types';
 
 const currentYear = 2025;
 const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
@@ -44,9 +40,6 @@ const makePlayer = (
   contract: { salariesByYear: [{ season, salary, capHit: salary }] },
   ...extras,
 });
-
-const issueTexts = (issues: ValidationIssue[] = []) =>
-  issues.map((issue) => getValidationIssueText(issue));
 
 function requireIncompleteRosterCharge(
   totals: ReturnType<typeof computeTeamCapTotals>
@@ -140,177 +133,48 @@ describe('GAP-MISS-003: Incomplete Roster Charges (VERIFIED ALREADY IMPLEMENTED)
   });
 });
 
-describe('GAP-MISS-005: Two-Way Contract Trade Block', () => {
-  describe('validateEligibility blocks two-way player trades', () => {
-    it('blocks trade when player has isTwoWay=true', () => {
-      const twoWayPlayer = makePlayer('Two-Way Guy', 500_000, {
-        isTwoWay: true,
-      });
-
-      const team = {
-        teamId: 'BOS',
-        sends: [twoWayPlayer],
-      };
-
-      const result = validateEligibility(team, {});
-      const texts = issueTexts(result.violations);
-
-      expect(result.passed).toBe(false);
-      expect(result.violations.length).toBeGreaterThan(0);
-      expect(result.violations[0]).toMatchObject({
-        rule: 'eligibility',
-        code: 'ELIGIBILITY__TWO_WAY_PLAYER_BLOCKED',
-      });
-      expect(
-        texts.some(
-          (v) => v.includes('Two-way') && v.includes('cannot be traded')
-        )
-      ).toBe(true);
-    });
-
-    it('blocks trade when player has contractType="two-way"', () => {
-      const twoWayPlayer = makePlayer('Two-Way Guy', 500_000, {
-        contractType: 'two-way',
-      });
-
-      const team = {
-        teamId: 'BOS',
-        sends: [twoWayPlayer],
-      };
-
-      const result = validateEligibility(team, {});
-      const texts = issueTexts(result.violations);
-
-      expect(result.passed).toBe(false);
-      expect(
-        texts.some(
-          (v) => v.includes('Two-way') && v.includes('cannot be traded')
-        )
-      ).toBe(true);
-    });
-
-    it('blocks trade when contract.isTwoWay=true', () => {
-      const twoWayPlayer = {
-        name: 'Two-Way Guy',
+describe('CBA2-A02.14: Two-Way Trade Eligibility', () => {
+  it.each([
+    ['top-level flag', { isTwoWay: true }],
+    ['top-level contract type', { contractType: 'two-way' }],
+    [
+      'nested contract marker',
+      {
         contract: {
           salariesByYear: [{ season, salary: 500_000 }],
           isTwoWay: true,
         },
-      };
+      },
+    ],
+  ])('does not invent a blanket eligibility block from the %s', (_label, extras) => {
+    const twoWayPlayer = makePlayer(
+      'Two-Way Guy',
+      500_000,
+      extras as Partial<BatchBPlayer>
+    );
 
-      const team = {
-        teamId: 'BOS',
-        sends: [twoWayPlayer],
-      };
+    const result = validateEligibility(
+      { teamId: 'BOS', sends: [twoWayPlayer] },
+      {}
+    );
 
-      const result = validateEligibility(team, {});
-      const texts = issueTexts(result.violations);
+    expect(result.passed).toBe(true);
+    expect(result.violations).toEqual([]);
+  });
 
-      expect(result.passed).toBe(false);
-      expect(texts.some((v) => v.includes('Two-way'))).toBe(true);
+  it('leaves standard and mixed packages to the salary-matching and roster owners', () => {
+    const standardPlayer = makePlayer('Standard', 10_000_000);
+    const twoWayPlayer = makePlayer('Two-Way', 500_000, {
+      contractType: 'two-way',
     });
 
-    it('allows trade of standard contract player', () => {
-      const standardPlayer = makePlayer('Standard Guy', 10_000_000, {
-        isTwoWay: false,
-      });
+    const result = validateEligibility(
+      { teamId: 'BOS', sends: [standardPlayer, twoWayPlayer] },
+      {}
+    );
 
-      const team = {
-        teamId: 'BOS',
-        sends: [standardPlayer],
-      };
-
-      const result = validateEligibility(team, {});
-      const texts = issueTexts(result.violations);
-
-      // Should pass (no two-way violation)
-      expect(texts.filter((v) => v.includes('Two-way')).length).toBe(0);
-    });
-
-    it('allows trade when player has no two-way indicators', () => {
-      const regularPlayer = makePlayer('Regular Player', 5_000_000);
-
-      const team = {
-        teamId: 'BOS',
-        sends: [regularPlayer],
-      };
-
-      const result = validateEligibility(team, {});
-      const texts = issueTexts(result.violations);
-
-      // Should pass (no two-way violation)
-      expect(texts.filter((v) => v.includes('Two-way')).length).toBe(0);
-    });
-
-    it('violation message mentions waiving as alternative', () => {
-      const twoWayPlayer = makePlayer('Two-Way Guy', 500_000, {
-        isTwoWay: true,
-      });
-
-      const team = {
-        teamId: 'BOS',
-        sends: [twoWayPlayer],
-      };
-
-      const result = validateEligibility(team, {});
-      const texts = issueTexts(result.violations);
-
-      expect(texts.some((v) => v.includes('waived'))).toBe(true);
-    });
-
-    it('handles outgoingPlayers field name (alternative to sends)', () => {
-      const twoWayPlayer = makePlayer('Two-Way Guy', 500_000, {
-        isTwoWay: true,
-      });
-
-      const team = {
-        teamId: 'BOS',
-        outgoingPlayers: [twoWayPlayer],
-      };
-
-      const result = validateEligibility(team, {});
-      const texts = issueTexts(result.violations);
-
-      expect(result.passed).toBe(false);
-      expect(texts.some((v) => v.includes('Two-way'))).toBe(true);
-    });
-
-    it('blocks multiple two-way players in same trade', () => {
-      const twoWay1 = makePlayer('Two-Way 1', 500_000, { isTwoWay: true });
-      const twoWay2 = makePlayer('Two-Way 2', 500_000, { isTwoWay: true });
-
-      const team = {
-        teamId: 'BOS',
-        sends: [twoWay1, twoWay2],
-      };
-
-      const result = validateEligibility(team, {});
-      const texts = issueTexts(result.violations);
-
-      // Should have violations for both
-      const twoWayViolations = texts.filter((v) => v.includes('Two-way'));
-      expect(twoWayViolations.length).toBe(2);
-    });
-
-    it('handles mixed standard and two-way players', () => {
-      const standardPlayer = makePlayer('Standard', 10_000_000);
-      const twoWayPlayer = makePlayer('Two-Way', 500_000, { isTwoWay: true });
-
-      const team = {
-        teamId: 'BOS',
-        sends: [standardPlayer, twoWayPlayer],
-      };
-
-      const result = validateEligibility(team, {});
-      const texts = issueTexts(result.violations);
-
-      // Should fail due to two-way player
-      expect(result.passed).toBe(false);
-
-      // Should have exactly one two-way violation
-      const twoWayViolations = texts.filter((v) => v.includes('Two-way'));
-      expect(twoWayViolations.length).toBe(1);
-    });
+    expect(result.passed).toBe(true);
+    expect(result.violations).toEqual([]);
   });
 });
 
