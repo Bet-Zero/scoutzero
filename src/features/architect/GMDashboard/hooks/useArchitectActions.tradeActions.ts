@@ -18,15 +18,16 @@ import {
   type SignAndTradePreflightResult,
   type OfferSheetPreflightResult,
 } from '@/features/architect/utils/mutationPipeline';
-import { loadWorldTeamData, resolveTeamCode } from '@/features/architect/utils/worldTeamData';
+import {
+  loadWorldTeamData,
+  resolveTeamCode,
+} from '@/features/architect/utils/worldTeamData';
 import {
   BASE_LOCAL_VALIDATED_CAP_AUDIT_STREAM,
   appendLocalCapAuditEvent,
   withLocalCapAuditLifecycleState,
 } from '@/features/architect/utils/capLegality/localCapAuditLog';
-import {
-  validateSignAndTradeContractPayload,
-} from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
+import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import toast from 'react-hot-toast';
 import {
   buildActionSeasonContext,
@@ -66,9 +67,7 @@ import type {
   TradeExecutionPayload,
   TradeMutationPayloadTeam,
 } from './useArchitectActions.types';
-import {
-  toSignAndTradeValidationContract,
-} from './useArchitectActions.types';
+import { toSignAndTradeValidationContract } from './useArchitectActions.types';
 
 export type UseTradeActionsParams = {
   currentYear: number;
@@ -81,7 +80,10 @@ export type UseTradeActionsParams = {
   finishSave: (errorMsg?: string) => void;
   // Shared closures passed from useArchitectActions
   setTeamCapSheetSafe: (team: CapSheet | null) => void;
-  reportMutationError: (message: string, details?: Record<string, unknown>) => void;
+  reportMutationError: (
+    message: string,
+    details?: Record<string, unknown>
+  ) => void;
   getFreeAgencyWorldOnlyMessage: (
     kind: FreeAgencyWorldOnlyActionKind,
     phase: FreeAgencyWorldOnlyActionPhase
@@ -113,7 +115,12 @@ export type UseTradeActionsParams = {
     mutationType: string,
     result: MutationTruthResult,
     options: { requireWorldPersistence: boolean }
-  ) => { ok: boolean; message: string; appliedToLocalState: boolean; persistedToWorld: boolean };
+  ) => {
+    ok: boolean;
+    message: string;
+    appliedToLocalState: boolean;
+    persistedToWorld: boolean;
+  };
   prepareStandardSigningMutationPayload: (
     playerObj: ArchitectPlayer,
     playerId: string,
@@ -155,7 +162,6 @@ export function useTradeActions({
   prepareSignAndTradeTransactionDefinition,
   prepareOfferSheetCreationDefinition,
 }: UseTradeActionsParams) {
-
   const buildTradeExecutionHandoff = useCallback(
     (tradeData: TradeDataItem[]): TradeExecutionHandoff => {
       const resolvedTeamCodes = tradeData.map(
@@ -170,7 +176,9 @@ export function useTradeActions({
         tradeData.map(
           (t, teamIndex): TradeMutationPayloadTeam => ({
             teamCode: resolvedTeamCodes[teamIndex],
-            sends: ((t.outgoing || t.outgoingPlayers || []) as ArchitectPlayer[]).map((p) => {
+            sends: (
+              (t.outgoing || t.outgoingPlayers || []) as ArchitectPlayer[]
+            ).map((p) => {
               const rawDestination =
                 p.receivingTeamId || p.tradeTo || p.toTeamId || p.destTeamId;
               const destinationTeamCode = rawDestination
@@ -249,6 +257,7 @@ export function useTradeActions({
             // TM-PICKS-E1: Include outgoing entitlements in persistence payload
             outgoingEntitlements: t.outgoingEntitlements || [],
             entitlementsOut: t.outgoingEntitlements || [],
+            salaryMatchingElection: t.salaryMatchingElection ?? null,
           })
         );
 

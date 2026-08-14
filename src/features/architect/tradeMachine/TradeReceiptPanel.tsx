@@ -87,14 +87,16 @@ const PlayerListItem = ({ player, direction }: PlayerListItemProps) => {
               BYC
             </span>
           )}
-          {!flags.isTwoWay && direction === 'incoming' && flags.isPoisonPill && (
-            <span
-              className="text-cockpit-info ml-1"
-              title={`Poison Pill: Base ${formatCurrency(player.baseSalary)} → Match ${formatCurrency(player.matchingValue)} (averaged salary)`}
-            >
-              PP
-            </span>
-          )}
+          {!flags.isTwoWay &&
+            direction === 'incoming' &&
+            flags.isPoisonPill && (
+              <span
+                className="text-cockpit-info ml-1"
+                title={`Poison Pill: Base ${formatCurrency(player.baseSalary)} → Match ${formatCurrency(player.matchingValue)} (averaged salary)`}
+              >
+                PP
+              </span>
+            )}
           {!flags.isTwoWay && flags.hasTradeKicker && (
             <span
               className="text-cockpit-watch ml-1"
@@ -296,6 +298,8 @@ const TradeReceiptPanel = ({
               const incomingEntitlements = toList(team.incomingEntitlements);
               const teamViolations = toList(team.violations);
               const teamWarnings = toList(team.warnings);
+              const pathEvaluation =
+                team.salaryMatchingEvaluation?.pathEvaluation ?? null;
 
               return (
                 <div
@@ -333,27 +337,92 @@ const TradeReceiptPanel = ({
                     </div>
                   </div>
 
+                  {pathEvaluation && (
+                    <div className="p-2 mb-2 rounded border border-cockpit-info/30 bg-cockpit-info/10 space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-medium text-cockpit-info">
+                          {pathEvaluation.ruleLabel}
+                        </span>
+                        <span
+                          className={
+                            pathEvaluation.status === 'PASS'
+                              ? 'text-cockpit-safe'
+                              : pathEvaluation.status === 'FAIL'
+                                ? 'text-cockpit-danger'
+                                : 'text-cockpit-watch'
+                          }
+                        >
+                          {pathEvaluation.status}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-cockpit-text-secondary">
+                        Allowance:{' '}
+                        {pathEvaluation.allowance == null
+                          ? 'needs exact Apron Team Salary'
+                          : formatCurrency(pathEvaluation.allowance)}
+                      </div>
+                      {pathEvaluation.components.map((component) => (
+                        <div
+                          key={component.componentId}
+                          className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-t border-cockpit-edge pt-1 text-[11px]"
+                        >
+                          <span className="text-cockpit-text-secondary">
+                            {component.kind === 'HELD_STANDARD_TPE'
+                              ? 'Held Standard TPE'
+                              : pathEvaluation.ruleLabel}{' '}
+                            · {component.timing.toLowerCase().replace('_', ' ')}
+                          </span>
+                          <span className="font-mono text-cockpit-text-primary">
+                            {formatCurrency(component.usedIncoming)} /{' '}
+                            {formatCurrency(component.maximumIncoming)}
+                          </span>
+                        </div>
+                      ))}
+                      {pathEvaluation.missingInputs.length > 0 && (
+                        <div className="text-[11px] text-cockpit-watch">
+                          Needs: {pathEvaluation.missingInputs.join(', ')}
+                        </div>
+                      )}
+                      {pathEvaluation.violations.map((violation) => (
+                        <div
+                          key={violation}
+                          className="text-[11px] text-cockpit-danger"
+                        >
+                          {violation}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-2 text-xs mb-2">
                     <div>
-                      <div className="text-cockpit-text-muted">Outgoing (Base)</div>
+                      <div className="text-cockpit-text-muted">
+                        Outgoing (Base)
+                      </div>
                       <div className="font-mono">
                         {formatCurrency(team.totals?.outgoingBaseTotal)}
                       </div>
                     </div>
                     <div>
-                      <div className="text-cockpit-text-muted">Outgoing (Match)</div>
+                      <div className="text-cockpit-text-muted">
+                        Outgoing (Match)
+                      </div>
                       <div className="font-mono">
                         {formatCurrency(team.totals?.outgoingMatchingTotal)}
                       </div>
                     </div>
                     <div>
-                      <div className="text-cockpit-text-muted">Incoming (Base)</div>
+                      <div className="text-cockpit-text-muted">
+                        Incoming (Base)
+                      </div>
                       <div className="font-mono">
                         {formatCurrency(team.totals?.incomingBaseTotal)}
                       </div>
                     </div>
                     <div>
-                      <div className="text-cockpit-text-muted">Incoming (Match)</div>
+                      <div className="text-cockpit-text-muted">
+                        Incoming (Match)
+                      </div>
                       <div className="font-mono">
                         {formatCurrency(team.totals?.incomingMatchingTotal)}
                       </div>
@@ -362,7 +431,9 @@ const TradeReceiptPanel = ({
 
                   <div className="p-2 rounded border border-cockpit-edge mb-2">
                     <div className="flex justify-between text-xs">
-                      <span className="text-cockpit-text-secondary">Allowable Incoming:</span>
+                      <span className="text-cockpit-text-secondary">
+                        Allowable Incoming:
+                      </span>
                       <span className="font-mono text-cockpit-safe">
                         {formatCurrency(
                           team.salaryMatchingEvaluation?.allowableIncoming
@@ -370,7 +441,9 @@ const TradeReceiptPanel = ({
                       </span>
                     </div>
                     <div className="flex justify-between text-xs">
-                      <span className="text-cockpit-text-secondary">Actual Incoming:</span>
+                      <span className="text-cockpit-text-secondary">
+                        Actual Incoming:
+                      </span>
                       <span className="font-mono">
                         {formatCurrency(
                           team.salaryMatchingEvaluation?.actualIncoming
@@ -378,7 +451,9 @@ const TradeReceiptPanel = ({
                       </span>
                     </div>
                     <div className="flex justify-between text-xs border-t border-cockpit-edge pt-1 mt-1">
-                      <span className="text-cockpit-text-secondary">Margin:</span>
+                      <span className="text-cockpit-text-secondary">
+                        Margin:
+                      </span>
                       <span
                         className={`font-mono ${
                           Number(team.salaryMatchingEvaluation?.margin || 0) >=
@@ -570,7 +645,9 @@ const TradeReceiptPanel = ({
 
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-cockpit-text-secondary text-xs">Full Receipt JSON:</span>
+              <span className="text-cockpit-text-secondary text-xs">
+                Full Receipt JSON:
+              </span>
             </div>
             <pre className="p-3 bg-cockpit-void border border-cockpit-edge rounded overflow-auto max-h-96 text-xs font-mono text-cockpit-text-secondary">
               {JSON.stringify(receipt, null, 2)}

@@ -19,6 +19,7 @@ import {
 } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import { validationFlags } from '@/config/validationFlags';
 import { useTradeTeamCardSalaries } from './useTradeTeamCardSalaries';
+import { TradeSalaryPathElection } from '@/features/architect/tradeMachine/TradeSalaryPathElection';
 // Phase 65: Canonical TPE read accessor
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import type { TeamTpeLike } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
@@ -86,6 +87,8 @@ export const TradeTeamCard = ({
   worldId = null,
   // Multi-team layout compact mode
   compact = false,
+  salaryMatchingElection = null,
+  onSalaryMatchingElectionChange,
 }: TradeTeamCardProps) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -259,6 +262,15 @@ export const TradeTeamCard = ({
         compact={compact}
         isValidating={isValidating}
       />
+
+      {onSalaryMatchingElectionChange && (
+        <TradeSalaryPathElection
+          election={salaryMatchingElection}
+          outgoingPlayers={sends}
+          onChange={onSalaryMatchingElectionChange}
+          compact={compact}
+        />
+      )}
 
       <div className="space-y-1">
         {/* Outgoing section */}
@@ -595,13 +607,20 @@ export const TradeTeamCard = ({
             {/* TMUI-17: gate on ACTIVE TPEs so the "Available" label matches reality */}
             {activeTradeExceptions.length > 0 && (
               <div className="flex gap-2 items-center">
-                <span className="text-cockpit-text-secondary">Available TPEs:</span>
+                <span className="text-cockpit-text-secondary">
+                  Available TPEs:
+                </span>
                 {activeTradeExceptions.map((tpe, tpeIdx) => (
                   <span
                     key={String(tpe.id ?? tpeIdx)}
                     className="bg-cockpit-raised text-cockpit-text-secondary px-2 py-0.5 rounded-full border border-cockpit-edge"
                   >
-                    {formatMillions(Number(tpe.amount ?? 0), 1)}
+                    {formatMillions(
+                      Number(
+                        tpe.remainingAmount ?? tpe.remaining ?? tpe.amount ?? 0
+                      ),
+                      1
+                    )}
                   </span>
                 ))}
               </div>
@@ -761,10 +780,9 @@ export const TradeTeamCard = ({
               const isTpeEligible = tpeEligiblePlayers.some(
                 (ep) => (ep.player_id || ep.id) === (p.player_id || p.id)
               );
-              const effectiveMode =
-                isTwoWay
-                  ? 'MATCH'
-                  : p.absorptionMode || (isTpeEligible ? 'TPE' : 'MATCH');
+              const effectiveMode = isTwoWay
+                ? 'MATCH'
+                : p.absorptionMode || (isTpeEligible ? 'TPE' : 'MATCH');
 
               return (
                 <div
@@ -820,7 +838,12 @@ export const TradeTeamCard = ({
                             )
                             .map((tpe) => {
                               const amount = formatMillions(
-                                Number(tpe.amount ?? 0),
+                                Number(
+                                  tpe.remainingAmount ??
+                                    tpe.remaining ??
+                                    tpe.amount ??
+                                    0
+                                ),
                                 1
                               );
                               const tpeName = tpe.name || tpe.createdFrom;
@@ -829,7 +852,12 @@ export const TradeTeamCard = ({
                                 yearKey
                               );
                               const fits =
-                                Number(tpe.amount ?? 0) >= playerSalary;
+                                Number(
+                                  tpe.remainingAmount ??
+                                    tpe.remaining ??
+                                    tpe.amount ??
+                                    0
+                                ) >= playerSalary;
                               return (
                                 <option
                                   key={String(tpe.id ?? amount)}

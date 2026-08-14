@@ -116,8 +116,16 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
             sends: [makePlayer('a_out', 10_000_000)], // no destination
             entitlementsOut: [],
           },
-          { teamCode: 'TMB', sends: [makePlayer('b_out', 10_000_000)], entitlementsOut: [] },
-          { teamCode: 'TMC', sends: [makePlayer('c_out', 10_000_000)], entitlementsOut: [] },
+          {
+            teamCode: 'TMB',
+            sends: [makePlayer('b_out', 10_000_000)],
+            entitlementsOut: [],
+          },
+          {
+            teamCode: 'TMC',
+            sends: [makePlayer('c_out', 10_000_000)],
+            entitlementsOut: [],
+          },
         ],
       },
     });
@@ -127,5 +135,39 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
     expect(firestoreMocks.writeBatch).not.toHaveBeenCalled();
     expect(firestoreMocks.commit).not.toHaveBeenCalled();
   });
-});
 
+  it('fails before writes when the live Trade Machine payload has no salary-path election', async () => {
+    const result = await applyWorldMutation({
+      userId: 'user_1',
+      worldId: 'world_1',
+      seasonId: '2025-26',
+      mutationType: 'executeTrade',
+      payload: {
+        teams: [
+          {
+            teamCode: 'TMA',
+            sends: [makePlayer('a_out', 10_000_000)],
+            entitlementsOut: [],
+          },
+          {
+            teamCode: 'TMB',
+            sends: [makePlayer('b_out', 10_000_000)],
+            entitlementsOut: [],
+          },
+        ],
+        tradeCtx: {
+          source: 'tradeMachine',
+          asOfDate: '2026-03-15',
+          yearKey: '2025-26',
+        },
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(JSON.stringify(result)).toMatch(
+      /salary path|salaryMatchingElection/i
+    );
+    expect(firestoreMocks.writeBatch).not.toHaveBeenCalled();
+    expect(firestoreMocks.commit).not.toHaveBeenCalled();
+  });
+});

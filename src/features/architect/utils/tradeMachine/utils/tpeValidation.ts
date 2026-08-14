@@ -51,28 +51,51 @@ export function createTPE({
   outgoing,
   incoming,
   tradeDate,
+  maximumIncoming,
+  usedIncoming,
+  salaryMatchingPath,
 }: {
   teamCtx: { isOverCap?: boolean | null };
   outgoing: number;
   incoming: number;
   tradeDate?: string | null;
+  maximumIncoming?: number;
+  usedIncoming?: number;
+  salaryMatchingPath?: TradeExceptionRecord['salaryMatchingPath'];
 }): TradeExceptionRecord | null {
   if (!teamCtx.isOverCap) return null;
-  const amt = Math.max(0, outgoing - incoming);
-  if (amt <= 0) return null;
+  const governedTotal = toFiniteNumber(maximumIncoming, -1);
+  const isGovernedComponent = governedTotal >= 0;
+  const total = isGovernedComponent
+    ? governedTotal
+    : Math.max(0, outgoing - incoming);
+  const consumed = isGovernedComponent
+    ? Math.max(0, toFiniteNumber(usedIncoming, incoming))
+    : 0;
+  const remaining = Math.max(0, total - consumed);
+  if (remaining <= 0) return null;
   const baseDate = tradeDate ? new Date(tradeDate) : new Date();
   const expiry = new Date(baseDate);
   expiry.setUTCFullYear(expiry.getUTCFullYear() + 1);
-  const rounded = Math.round(amt);
+  const roundedTotal = Math.round(total);
+  const roundedRemaining = Math.round(remaining);
+
+  const governedFields = isGovernedComponent
+    ? {}
+    : {
+        remaining: roundedRemaining,
+        expirationDate: expiry.toISOString(),
+      };
 
   return {
-    amount: rounded,
-    totalAmount: rounded,
-    remainingAmount: rounded,
-    remaining: rounded,
+    amount: roundedTotal,
+    totalAmount: roundedTotal,
+    remainingAmount: roundedRemaining,
+    usedAmount: Math.round(consumed),
     createdSeason: baseDate.getUTCFullYear(),
     expiresOn: expiry.toISOString(),
-    expirationDate: expiry.toISOString(),
+    ...governedFields,
+    ...(salaryMatchingPath ? { salaryMatchingPath } : {}),
   };
 }
 
@@ -118,7 +141,10 @@ export function normalizeTpeForValidation(
     amount,
     totalAmount: toFiniteNumber(tpe.totalAmount ?? amount, amount),
     remaining,
-    remainingAmount: toFiniteNumber(tpe.remainingAmount ?? remaining, remaining),
+    remainingAmount: toFiniteNumber(
+      tpe.remainingAmount ?? remaining,
+      remaining
+    ),
     expiresOn,
     expirationDate: tpe.expirationDate ?? expiresOn,
     expiryISO: tpe.expiryISO ?? expiresOn,
@@ -131,7 +157,9 @@ function getPlayerSalary(player: TradeExceptionPlayer): number {
   return toFiniteNumber(player?.matchIncoming ?? player?.salary);
 }
 
-function getPlayerName(player: TradeExceptionPlayer | null | undefined): string {
+function getPlayerName(
+  player: TradeExceptionPlayer | null | undefined
+): string {
   return String(player?.name || player?.displayName || 'Unknown');
 }
 
@@ -168,7 +196,8 @@ export function buildCanonicalTeamTpeUsage({
 
     if (!mergedTpe) return;
 
-    mergedTpe.sourceRef = existing?.sourceRef || normalizedTpe.sourceRef || rawTpe;
+    mergedTpe.sourceRef =
+      existing?.sourceRef || normalizedTpe.sourceRef || rawTpe;
     availableTpeMap.set(normalizedTpe.id, mergedTpe);
   };
 

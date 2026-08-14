@@ -17,14 +17,20 @@ const tradeCtx = {
   asOfDate: '2025-01-20',
 };
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+const issueTexts = (issues = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
 
 const makeSatContract = (firstYearSalary) => ({
   contractType: 'Sign & Trade',
   contractYears: 3,
   firstYearGuaranteed: true,
   salariesByYear: [
-    { season, salary: firstYearSalary, capHit: firstYearSalary, guaranteed: true },
+    {
+      season,
+      salary: firstYearSalary,
+      capHit: firstYearSalary,
+      guaranteed: true,
+    },
     {
       season: `${currentYear}-${String(currentYear + 1).slice(-2)}`,
       salary: Math.round(firstYearSalary * 1.05),
@@ -87,9 +93,37 @@ const makePick = (year, round = '1st') => ({
   type: 'pick',
 });
 
+const getExactFixtureSalary = (player) => {
+  const exactSalary =
+    player.signAndTradeContract?.salariesByYear?.[0]?.salary ??
+    player.contract?.salariesByYear?.find(
+      (salary) => salary.season === season
+    )?.salary;
+
+  if (exactSalary == null) {
+    throw new Error(
+      `Missing exact fixture salary for ${player.player_id ?? player.id ?? 'unknown player'}`
+    );
+  }
+  return exactSalary;
+};
+
 function runTrade(teams) {
   return validateTrade({
-    teams,
+    teams: teams.map((entry) => ({
+      ...entry,
+      salaryMatchingElection: {
+        version: 1,
+        path: 'ROOM',
+        postAssignmentApronTeamSalary: entry.team.totalSalary,
+        tradedPlayerPreTradeSalaries: Object.fromEntries(
+          entry.sends.map((player) => [
+            player.player_id ?? player.id,
+            getExactFixtureSalary(player),
+          ])
+        ),
+      },
+    })),
     capProjections,
     currentYear,
     tradeCtx,

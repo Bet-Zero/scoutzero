@@ -458,10 +458,11 @@ describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
 
 describe('Phase 65: UI Components Use Canonical Accessor', () => {
   // Wave 4 Step 0.5: SeasonAdvanceModal.tsx was split; getTeamTpeList moved to .helpers.ts
+  // BZE-279: ValidationDetailsPanel no longer reads TPE state; it only renders
+  // the authoritative validator snapshot, so the accessor is not required there.
   const uiFiles = [
     'tradeMachine/TradeTeamCard.tsx',
     'tradeMachine/TradeExceptionDashboard.tsx',
-    'tradeMachine/ValidationDetailsPanel.tsx',
     'GMDashboard/components/SeasonAdvanceModal.helpers.ts',
   ];
 

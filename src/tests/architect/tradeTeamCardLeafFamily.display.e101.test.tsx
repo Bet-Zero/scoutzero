@@ -160,7 +160,7 @@ describe('E101 Trade Team Card leaf-family display surfaces', () => {
           {
             id: 'active-exception',
             name: 'Active Exception',
-            amount: 5_000_000,
+            amount: '5000000',
             expirationDate: '2099-01-01',
           },
           {
@@ -185,6 +185,7 @@ describe('E101 Trade Team Card leaf-family display surfaces', () => {
     const expiredRow = screen.getByText('Expired Exception');
 
     expect(screen.getByText('Available Trade Exceptions')).toBeInTheDocument();
+    expect(screen.getByText('$5,000,000')).toBeInTheDocument();
     expect(screen.queryByText('Used Exception')).not.toBeInTheDocument();
     expect(
       activeRow.compareDocumentPosition(expiredHeading) &

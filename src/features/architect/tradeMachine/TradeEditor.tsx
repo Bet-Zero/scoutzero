@@ -115,6 +115,7 @@ export const TradeEditor = ({
     hasInjectedDevSntPlayers,
     injectDevSntPlayers,
     clearInjectedDevSntPlayers,
+    setSalaryMatchingElection,
     // Phase 16.3: Expose init error for UI error surfacing
     initError,
     // Phase 17: Active team count for multi-team destination logic
@@ -168,8 +169,7 @@ export const TradeEditor = ({
   // open with no edits and no objective does not.
   const hasDraftActivity = useMemo(() => {
     const hasStagedAssets = teams.some(
-      (slot) =>
-        slot.sends.length > 0 || (slot.entitlementsOut?.length ?? 0) > 0
+      (slot) => slot.sends.length > 0 || (slot.entitlementsOut?.length ?? 0) > 0
     );
     const hasObjectiveContext = Boolean(
       tradeContext?.objective || tradeContext?.exceptionRef
@@ -203,9 +203,7 @@ export const TradeEditor = ({
     if (!teams[0]?.team || !Array.isArray(roster)) return; // init not ready yet
 
     for (const playerId of requestedStagePlayerIds) {
-      const match = roster.find(
-        (p) => (p?.id || p?.player_id) === playerId
-      );
+      const match = roster.find((p) => (p?.id || p?.player_id) === playerId);
       if (match) {
         setPlayerTrade(
           0,
@@ -224,13 +222,16 @@ export const TradeEditor = ({
   // stages it through the same path as the in-Trade-Machine S&T flow. A ref
   // guards against re-parking a dismissed piece if the seed prop lingers (mirrors
   // the staging effect above).
-  const consumedSignAndTradeSeedRef = useRef<TradeSignAndTradeSeed | null>(null);
+  const consumedSignAndTradeSeedRef = useRef<TradeSignAndTradeSeed | null>(
+    null
+  );
   useEffect(() => {
     if (!requestedSignAndTradeSeed) {
       consumedSignAndTradeSeedRef.current = null;
       return;
     }
-    if (consumedSignAndTradeSeedRef.current === requestedSignAndTradeSeed) return;
+    if (consumedSignAndTradeSeedRef.current === requestedSignAndTradeSeed)
+      return;
     consumedSignAndTradeSeedRef.current = requestedSignAndTradeSeed;
     setPendingSignAndTrade({
       player: requestedSignAndTradeSeed.player,
@@ -246,8 +247,9 @@ export const TradeEditor = ({
   // Phase 17: Updated to require toTeamId for 3+ team trades (same logic as hook)
   const incomingAssets = teams.map((tm, idx) => {
     const players: NonNullable<TradeTeamCardProps['incomingPlayers']> = [];
-    const entitlements: NonNullable<TradeTeamCardProps['incomingEntitlements']> =
-      [];
+    const entitlements: NonNullable<
+      TradeTeamCardProps['incomingEntitlements']
+    > = [];
     teams.forEach((t, j) => {
       if (j !== idx && t.team) {
         t.sends.forEach((p) => {
@@ -443,9 +445,10 @@ export const TradeEditor = ({
       ),
     [teams]
   );
-  const validationWarningsSource = currentSnapshotValidationDetails as
-    | { dataWarnings?: unknown; hasDataIssues?: unknown }
-    | null;
+  const validationWarningsSource = currentSnapshotValidationDetails as {
+    dataWarnings?: unknown;
+    hasDataIssues?: unknown;
+  } | null;
   const validationDataWarnings = Array.isArray(
     validationWarningsSource?.dataWarnings
   )
@@ -456,8 +459,9 @@ export const TradeEditor = ({
   );
   const hasCriticalDataIssues = validationDataWarnings.some(
     (warning) =>
-      String((warning as { severity?: unknown }).severity ?? '').toLowerCase() ===
-      'error'
+      String(
+        (warning as { severity?: unknown }).severity ?? ''
+      ).toLowerCase() === 'error'
   );
   const tradeReadiness = useMemo<TradeReadinessSummary>(() => {
     if (initError && teams.length === 0) {
@@ -1005,7 +1009,9 @@ export const TradeEditor = ({
           data-testid="pending-sign-and-trade"
         >
           <div className="min-w-0 text-sm text-cockpit-text-primary">
-            <span className="font-semibold text-cockpit-info">Sign &amp; Trade:</span>{' '}
+            <span className="font-semibold text-cockpit-info">
+              Sign &amp; Trade:
+            </span>{' '}
             <span data-testid="pending-sign-and-trade-player">
               {pendingSignAndTradePlayerName}
             </span>
@@ -1167,6 +1173,10 @@ export const TradeEditor = ({
                 worldId={worldId}
                 // P0-3: Pass validation in-flight state
                 isValidating={isValidating}
+                salaryMatchingElection={t.salaryMatchingElection ?? null}
+                onSalaryMatchingElectionChange={(election) =>
+                  setSalaryMatchingElection(idx, election)
+                }
               />
             </div>
           );

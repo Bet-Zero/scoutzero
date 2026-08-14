@@ -10,6 +10,8 @@
  *   - Mar 2026: E77 - Migrated authoritative implementation to TypeScript
  */
 
+import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
+
 type UnknownRecord = Record<string, unknown>;
 
 interface TradeDraftPlayerLike extends UnknownRecord {
@@ -27,6 +29,7 @@ interface TradeDraftTeamLike extends UnknownRecord {
   team?: (UnknownRecord & { id?: string | number | null }) | null;
   sends?: TradeDraftPlayerLike[] | null;
   entitlementsOut?: TradeDraftEntitlementLike[] | null;
+  salaryMatchingElection?: TradeSalaryMatchingElection | null;
 }
 
 interface TradeDraftKeyParams {
@@ -71,7 +74,26 @@ export function computeTradeDraftKey({
         .sort()
         .join(',');
 
-      return `${teamId}:${playerIds}:${entitlementIds}`;
+      const salaryPath = JSON.stringify(
+        t.salaryMatchingElection === undefined
+          ? { state: 'missing' }
+          : t.salaryMatchingElection === null
+            ? { state: 'null' }
+            : {
+                state: 'value',
+                version: t.salaryMatchingElection.version,
+                path: t.salaryMatchingElection.path,
+                postAssignmentApronTeamSalary:
+                  t.salaryMatchingElection.postAssignmentApronTeamSalary,
+                tradedPlayerPreTradeSalaries: Object.fromEntries(
+                  Object.entries(
+                    t.salaryMatchingElection.tradedPlayerPreTradeSalaries
+                  ).sort(([first], [second]) => first.localeCompare(second))
+                ),
+              }
+      );
+
+      return `${teamId}:${playerIds}:${entitlementIds}:${salaryPath}`;
     })
     .sort() // Sort team parts for consistency regardless of order
     .join('|');

@@ -7,9 +7,7 @@
  */
 
 import { wrapCommonValidators } from './validationUtils';
-import {
-  validateSalaryMatching,
-} from '../rules/validateSalaryMatching';
+import { validateSalaryMatching } from '../rules/validateSalaryMatching';
 import { validateHardCap } from '../rules/hardCapValidation';
 import { validateStepien } from '../rules/validateStepien';
 import { validateCash } from '../rules/validateCash';
@@ -37,9 +35,7 @@ import {
   isRuleEnvelopeObject,
   toSignAndTradeCapProjectionMap,
 } from './tradeValidator.ruleEnvelopes';
-import {
-  summarizeValidationIssues,
-} from '../utils/validationIssueText';
+import { summarizeValidationIssues } from '../utils/validationIssueText';
 import { validationFlags } from '@/config/validationFlags';
 import type {
   TradeFaExceptionBucket,
@@ -135,7 +131,9 @@ export function validateSingleTeam(
         ? {
             ...team.team,
             faExceptionBuckets: Array.isArray(team.team.faExceptionBuckets)
-              ? team.team.faExceptionBuckets.map((bucket: TradeFaExceptionBucket) => ({ ...bucket }))
+              ? team.team.faExceptionBuckets.map(
+                  (bucket: TradeFaExceptionBucket) => ({ ...bucket })
+                )
               : team.team.faExceptionBuckets,
             hardCapFirstApron: team.team.hardCapFirstApron
               ? { ...team.team.hardCapFirstApron }
@@ -164,17 +162,27 @@ export function validateSingleTeam(
     teamForValidation,
     context
   );
+  teamForValidation.salaryMatchingPathEvaluation =
+    salaryMatchingResult.details.pathEvaluation ?? null;
   const hardCapResult = validators.validateHardCap(teamForValidation, context);
   const stepienResult = validators.validateStepien(teamForValidation, context);
   const cashResult = validators.validateCash(teamForValidation, context);
-  const tradeExceptionsResult = validators.validateTradeExceptions(
-    teamForValidation
-  );
-  // Sign-and-trade owns all S&T-specific season/timing restrictions.
-  const signAndTradeResult = validators.validateSignAndTrade(teamForValidation, {
-    ...context,
-    capProjections: toSignAndTradeCapProjectionMap(context.capProjections),
+  const tradeExceptionsResult = validators.validateTradeExceptions({
+    ...teamForValidation,
+    context: {
+      ...context,
+      ...teamForValidation.context,
+      source: context.source ?? teamForValidation.context?.source,
+    },
   });
+  // Sign-and-trade owns all S&T-specific season/timing restrictions.
+  const signAndTradeResult = validators.validateSignAndTrade(
+    teamForValidation,
+    {
+      ...context,
+      capProjections: toSignAndTradeCapProjectionMap(context.capProjections),
+    }
+  );
   const consentResult = validators.validateConsent(teamForValidation, context);
   const reacquisitionResult = validators.validateReacquisition(
     teamForValidation,
@@ -230,7 +238,9 @@ export function validateSingleTeam(
       // Build allTeamsEntOut with resolved routing from the map
       const tradeParticipantIds = new Set(
         teamsWithAssets
-          .map((t, participantIndex) => resolveTeamIdentity(t, participantIndex))
+          .map((t, participantIndex) =>
+            resolveTeamIdentity(t, participantIndex)
+          )
           .filter(Boolean)
       );
 
@@ -271,10 +281,9 @@ export function validateSingleTeam(
       });
 
       const exclusivityResult = validateEntitlementExclusivity({
-        entitlements:
-          postTradeSet as Parameters<
-            typeof validateEntitlementExclusivity
-          >[0]['entitlements'],
+        entitlements: postTradeSet as Parameters<
+          typeof validateEntitlementExclusivity
+        >[0]['entitlements'],
       });
 
       if (exclusivityResult.valid) {
@@ -318,7 +327,11 @@ export function validateSingleTeam(
       'Salary Matching'
     ),
     hardCap: createRuleEnvelope('hardCap', hardCapResult, 'Hard Cap'),
-    stepienRule: createRuleEnvelope('stepienRule', stepienResult, 'Stepien Rule'),
+    stepienRule: createRuleEnvelope(
+      'stepienRule',
+      stepienResult,
+      'Stepien Rule'
+    ),
     cash: createRuleEnvelope('cash', cashResult, 'Cash Inclusion'),
     faExceptionUsage: createRuleEnvelope(
       'faExceptionUsage',
@@ -371,7 +384,11 @@ export function validateSingleTeam(
       entitlementExclusivityResult,
       'Pick Exclusivity'
     ),
-    rosterCount: createRuleEnvelope('rosterCount', rosterCountResult, 'Roster Count'),
+    rosterCount: createRuleEnvelope(
+      'rosterCount',
+      rosterCountResult,
+      'Roster Count'
+    ),
   };
 
   const violations = Object.values(allRules).flatMap(
@@ -384,8 +401,10 @@ export function validateSingleTeam(
   const isTeamLegal = violations.length === 0;
 
   // Extract salary matching calculations for UI display
-  const salaryMatchingCalcs = readSalaryMatchingRuleEnvelope(salaryMatchingResult);
-  const signAndTradeResultObject = readSignAndTradeRuleEnvelope(signAndTradeResult);
+  const salaryMatchingCalcs =
+    readSalaryMatchingRuleEnvelope(salaryMatchingResult);
+  const signAndTradeResultObject =
+    readSignAndTradeRuleEnvelope(signAndTradeResult);
   const hardCapResultObject = readHardCapRuleEnvelope(hardCapResult);
   const calculations = {
     salaryIn: team.salaryIn || 0,
@@ -441,10 +460,11 @@ export function validateSingleTeam(
       'createdTPE' in tradeExceptionsResult
         ? tradeExceptionsResult.createdTPE || null
         : null,
+    salaryMatchingPathEvaluation:
+      salaryMatchingResult.details.pathEvaluation ?? null,
     details: isTeamLegal
       ? 'Valid trade for this team'
       : summarizeValidationIssues(violations, 'Trade validation failed'),
     warningDetails: summarizeValidationIssues(warnings),
   };
 }
-

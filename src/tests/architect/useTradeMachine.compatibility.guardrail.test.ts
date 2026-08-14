@@ -57,6 +57,7 @@ const expectedReturnKeys = [
   'hasInjectedDevSntPlayers',
   'injectDevSntPlayers',
   'clearInjectedDevSntPlayers',
+  'setSalaryMatchingElection',
   'getValidatedAt',
   'initError',
 ] as const;
@@ -68,6 +69,7 @@ const expectedExportKeys = [
   'incomingPlayers',
   'incomingEntitlements',
   'usedTradeExceptions',
+  'salaryMatchingElection',
 ] as const;
 
 const primaryEntitlement = {

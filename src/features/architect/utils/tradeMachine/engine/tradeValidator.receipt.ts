@@ -339,7 +339,11 @@ export function generateTradeReceipt({
       allowableIncoming: isSkipped
         ? null
         : (salaryMatchingResult.allowableIncoming ?? null),
-      actualIncoming: salaryMatchingResult.salaryIn ?? team.salaryIn ?? null,
+      actualIncoming:
+        salaryMatchingResult.salaryIn ??
+        team.salaryIn ??
+        incomingMatchingTotal ??
+        null,
       // When skipped, passed should be null (validation didn't run)
       passed: isSkipped
         ? null
@@ -355,6 +359,7 @@ export function generateTradeReceipt({
         : salaryMatchingDetails.capSettingsSource ||
           context.capSettingsSource ||
           'unknown',
+      pathEvaluation: teamResult?.salaryMatchingPathEvaluation ?? null,
     };
 
     return {

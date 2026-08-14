@@ -109,7 +109,11 @@ export type RuleEnvelopeObjectLike = {
   } | null;
 };
 
-export type RuleEnvelopeLike = ValidationIssueLike[] | RuleEnvelopeObjectLike | null | undefined;
+export type RuleEnvelopeLike =
+  | ValidationIssueLike[]
+  | RuleEnvelopeObjectLike
+  | null
+  | undefined;
 
 export type TeamIdentityLike = {
   teamCode?: unknown;
@@ -133,6 +137,9 @@ export type SalaryMatchingReceiptDetailsLike = {
   formulaUsed?: string | null;
   margin?: number | null;
   capSettingsSource?: string;
+  pathEvaluation?:
+    | import('../utils/tradeSalaryMatchingPaths').TradeSalaryPathEvaluation
+    | null;
 };
 
 export type SalaryMatchingReceiptRuleLike = {

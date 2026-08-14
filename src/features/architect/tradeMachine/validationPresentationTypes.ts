@@ -1,3 +1,5 @@
+import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
+
 type UnknownRecord = Record<string, unknown>;
 
 export interface ValidationIssueLike {
@@ -143,7 +145,11 @@ export interface TradeReceiptTeamLike {
   teamCode?: string;
   preTradeTeamSalary?: number;
   preTradeTeamSalarySource?: string;
-  salaryMatchingEvaluation?: Record<string, unknown> | null;
+  salaryMatchingEvaluation?:
+    | (Record<string, unknown> & {
+        pathEvaluation?: TradeSalaryPathEvaluation | null;
+      })
+    | null;
   totals?: Record<string, unknown> | null;
   outgoingPlayers?: TeamPlayerLike[];
   incomingPlayers?: TeamPlayerLike[];

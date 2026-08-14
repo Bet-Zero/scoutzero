@@ -18,7 +18,8 @@ import { buildTradeApplyPreparation } from '@/features/architect/utils/tradeCont
 // Phase 59/TM-4B: validateTradeForContext remains compatibility-only in legacy/
 import { validateTradeForContext } from '@/features/architect/utils/tradeContext/legacy';
 
-type TradeMachineModule = typeof import('@/features/architect/utils/tradeMachine');
+type TradeMachineModule =
+  typeof import('@/features/architect/utils/tradeMachine');
 type PostTradeSnapshot = ReturnType<typeof buildPostTradeTeamsSnapshot>;
 type PostTradeTeamUpdate = PostTradeSnapshot['teamUpdates'][number];
 type PostTradeValidationTeam = PostTradeSnapshot['validationTeams'][number];
@@ -29,7 +30,9 @@ vi.mock('@/features/architect/utils/tradeMachine', async (importOriginal) => {
   const actual = (await importOriginal()) as TradeMachineModule;
   return {
     ...actual,
-    validateTrade: (...args: Parameters<TradeMachineModule['validateTrade']>) => {
+    validateTrade: (
+      ...args: Parameters<TradeMachineModule['validateTrade']>
+    ) => {
       validateTradeMock(...args);
       // Call the real implementation
       return actual.validateTrade(...args);
@@ -92,7 +95,9 @@ function requireTeamUpdate(
   snapshot: PostTradeSnapshot,
   teamCode: string
 ): PostTradeTeamUpdate {
-  const teamUpdate = snapshot.teamUpdates.find((team) => team.teamCode === teamCode);
+  const teamUpdate = snapshot.teamUpdates.find(
+    (team) => team.teamCode === teamCode
+  );
   expect(teamUpdate).toBeDefined();
   if (!teamUpdate) {
     throw new Error(`Expected team update for ${teamCode}`);
@@ -147,6 +152,14 @@ describe('Phase 56: Pure computeTradeResult Guardrails', () => {
                 currentSalary: 15000000,
               },
             ],
+            salaryMatchingElection: {
+              version: 1 as const,
+              path: 'STANDARD_TPE' as const,
+              postAssignmentApronTeamSalary: 150000000,
+              tradedPlayerPreTradeSalaries: {
+                'player-a': 15000000,
+              } as Record<string, number>,
+            },
           },
           {
             teamCode: 'TMB',
@@ -157,6 +170,14 @@ describe('Phase 56: Pure computeTradeResult Guardrails', () => {
                 currentSalary: 12000000,
               },
             ],
+            salaryMatchingElection: {
+              version: 1 as const,
+              path: 'STANDARD_TPE' as const,
+              postAssignmentApronTeamSalary: 100000000,
+              tradedPlayerPreTradeSalaries: {
+                'player-b': 12000000,
+              } as Record<string, number>,
+            },
           },
         ],
       };
@@ -363,6 +384,14 @@ describe('Phase 56: Pure computeTradeResult Guardrails', () => {
                 currentSalary: 15000000,
               },
             ],
+            salaryMatchingElection: {
+              version: 1 as const,
+              path: 'STANDARD_TPE' as const,
+              postAssignmentApronTeamSalary: 150000000,
+              tradedPlayerPreTradeSalaries: {
+                'player-a': 15000000,
+              } as Record<string, number>,
+            },
           },
           {
             teamCode: 'TMB',
@@ -373,6 +402,14 @@ describe('Phase 56: Pure computeTradeResult Guardrails', () => {
                 currentSalary: 12000000,
               },
             ],
+            salaryMatchingElection: {
+              version: 1 as const,
+              path: 'STANDARD_TPE' as const,
+              postAssignmentApronTeamSalary: 100000000,
+              tradedPlayerPreTradeSalaries: {
+                'player-b': 12000000,
+              } as Record<string, number>,
+            },
           },
         ],
       };
@@ -395,6 +432,16 @@ describe('Phase 56: Pure computeTradeResult Guardrails', () => {
       expect(preparation.postTradeSnapshot.teamUpdates).toHaveLength(2);
       expect(preparation.validatedContext._isValidatedTradeContext).toBe(true);
       expect(preparation.validationPayload.asOfDate).toBe('2026-03-15');
+      expect(
+        preparation.validationPayload.teams[0].salaryMatchingElection
+      ).toMatchObject({
+        path: 'STANDARD_TPE',
+        tradedPlayerPreTradeSalaries: { 'player-a': 15000000 },
+      });
+      expect(
+        requireValidationTeam(preparation.postTradeSnapshot, 'TMA')
+          .salaryMatchingElection
+      ).toEqual(preparation.validationPayload.teams[0].salaryMatchingElection);
       expect(requireTradeCtx(preparation).asOfDate).toBe('2026-03-15');
       expect(validateTradeMock).toHaveBeenCalledTimes(1);
     });

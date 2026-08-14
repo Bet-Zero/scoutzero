@@ -271,6 +271,7 @@ tradeMachine/
   TradePreviewModal.tsx
   TradeReceiptPanel.tsx
   TradeSalaryCalculator.tsx
+  TradeSalaryPathElection.tsx
   TradeSummaryPanel.tsx
   TradeTeamCard.helpers.ts
   TradeTeamCard.tsx
@@ -586,6 +587,7 @@ utils/
       tpeValidation.ts
       tradeExceptionLifecycle.ts
       tradeExportUtils.ts
+      tradeSalaryMatchingPaths.ts
       tradeTimingWindows.ts
       tradeUtilityMisc.ts
       twoWayTradeSalary.ts
@@ -607,5 +609,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-13T08:21:43.880Z*
+*Generated on: 2026-08-13T15:01:24.447Z*
 *Auto-updated by: npm run docs*

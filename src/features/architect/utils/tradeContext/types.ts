@@ -12,6 +12,7 @@ import type {
   ArchitectTradePayloadPlayer,
   ArchitectTradePayloadTeam,
 } from '@/features/architect/utils/mutationPipeline';
+import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 
 // Local object-shape carrier for snapshot-building compatibility paths.
 // Validator output is narrowed below to the exact live trade bridge contract.
@@ -39,6 +40,7 @@ export interface ValidationTeam {
   picksIn: NonNullable<ArchitectTradePayloadTeam['picksOut']>;
   cashSent: number;
   cashReceived: number;
+  salaryMatchingElection?: TradeSalaryMatchingElection | null;
 }
 
 export interface TradeApplyValidationPlayer {
@@ -127,6 +129,7 @@ export interface PayloadTeamIngress {
   picksIn?: unknown[];
   cashSent?: number | null;
   cashReceived?: number | null;
+  salaryMatchingElection?: TradeSalaryMatchingElection | null;
 }
 
 export interface TradeContextTradeBridge {

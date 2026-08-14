@@ -9,7 +9,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { computeTradeDraftKey, isValidationCurrent } from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
+import {
+  computeTradeDraftKey,
+  isValidationCurrent,
+} from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
 
 describe('computeTradeDraftKey', () => {
   const mockTeamsEmpty = [
@@ -27,26 +30,45 @@ describe('computeTradeDraftKey', () => {
   ];
 
   const mockTeamsWithPicks = [
-    { team: { id: 'BOS' }, sends: [], picksOut: [], entitlementsOut: [{ draftKey: '2025-1-BOS', year: 2025, round: 1, originalTeam: 'BOS' }] },
+    {
+      team: { id: 'BOS' },
+      sends: [],
+      picksOut: [],
+      entitlementsOut: [
+        { draftKey: '2025-1-BOS', year: 2025, round: 1, originalTeam: 'BOS' },
+      ],
+    },
     { team: { id: 'LAL' }, sends: [], picksOut: [], entitlementsOut: [] },
   ];
 
   describe('Basic key computation', () => {
     it('generates a key with yearKey and team IDs', () => {
-      const key = computeTradeDraftKey({ yearKey: 2025, teams: mockTeamsEmpty });
+      const key = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: mockTeamsEmpty,
+      });
       expect(key).toContain('2025');
       expect(key).toContain('BOS');
       expect(key).toContain('LAL');
     });
 
     it('generates different keys for different years', () => {
-      const key2025 = computeTradeDraftKey({ yearKey: 2025, teams: mockTeamsEmpty });
-      const key2026 = computeTradeDraftKey({ yearKey: 2026, teams: mockTeamsEmpty });
+      const key2025 = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: mockTeamsEmpty,
+      });
+      const key2026 = computeTradeDraftKey({
+        yearKey: 2026,
+        teams: mockTeamsEmpty,
+      });
       expect(key2025).not.toBe(key2026);
     });
 
     it('generates different keys for different team sets', () => {
-      const keyBosLal = computeTradeDraftKey({ yearKey: 2025, teams: mockTeamsEmpty });
+      const keyBosLal = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: mockTeamsEmpty,
+      });
       const keyBosMia = computeTradeDraftKey({
         yearKey: 2025,
         teams: [
@@ -60,13 +82,22 @@ describe('computeTradeDraftKey', () => {
 
   describe('Player changes invalidate key', () => {
     it('generates different keys when players are added', () => {
-      const keyEmpty = computeTradeDraftKey({ yearKey: 2025, teams: mockTeamsEmpty });
-      const keyWithPlayers = computeTradeDraftKey({ yearKey: 2025, teams: mockTeamsWithPlayers });
+      const keyEmpty = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: mockTeamsEmpty,
+      });
+      const keyWithPlayers = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: mockTeamsWithPlayers,
+      });
       expect(keyEmpty).not.toBe(keyWithPlayers);
     });
 
     it('generates different keys for different player selections', () => {
-      const keyPlayers1 = computeTradeDraftKey({ yearKey: 2025, teams: mockTeamsWithPlayers });
+      const keyPlayers1 = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: mockTeamsWithPlayers,
+      });
       const keyPlayers2 = computeTradeDraftKey({
         yearKey: 2025,
         teams: [
@@ -84,21 +115,149 @@ describe('computeTradeDraftKey', () => {
 
   describe('Pick changes invalidate key', () => {
     it('generates different keys when picks are added', () => {
-      const keyEmpty = computeTradeDraftKey({ yearKey: 2025, teams: mockTeamsEmpty });
-      const keyWithPicks = computeTradeDraftKey({ yearKey: 2025, teams: mockTeamsWithPicks });
+      const keyEmpty = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: mockTeamsEmpty,
+      });
+      const keyWithPicks = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: mockTeamsWithPicks,
+      });
       expect(keyEmpty).not.toBe(keyWithPicks);
     });
 
     it('generates different keys for different pick selections', () => {
-      const keyPicks1 = computeTradeDraftKey({ yearKey: 2025, teams: mockTeamsWithPicks });
+      const keyPicks1 = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: mockTeamsWithPicks,
+      });
       const keyPicks2 = computeTradeDraftKey({
         yearKey: 2025,
         teams: [
-          { team: { id: 'BOS' }, sends: [], picksOut: [], entitlementsOut: [{ draftKey: '2026-1-BOS', year: 2026, round: 1, originalTeam: 'BOS' }] }, // 2026 instead of 2025
+          {
+            team: { id: 'BOS' },
+            sends: [],
+            picksOut: [],
+            entitlementsOut: [
+              {
+                draftKey: '2026-1-BOS',
+                year: 2026,
+                round: 1,
+                originalTeam: 'BOS',
+              },
+            ],
+          }, // 2026 instead of 2025
           { team: { id: 'LAL' }, sends: [], picksOut: [], entitlementsOut: [] },
         ],
       });
       expect(keyPicks1).not.toBe(keyPicks2);
+    });
+  });
+
+  describe('Salary path changes invalidate key', () => {
+    it('generates a different key when the elected path or an exact input changes', () => {
+      const baseTeam = {
+        team: { id: 'BOS' },
+        sends: [{ id: 'player-1' }],
+        entitlementsOut: [],
+      };
+      const standardKey = computeTradeDraftKey({
+        yearKey: 2027,
+        teams: [
+          {
+            ...baseTeam,
+            salaryMatchingElection: {
+              version: 1,
+              path: 'STANDARD_TPE',
+              postAssignmentApronTeamSalary: 200_000_000,
+              tradedPlayerPreTradeSalaries: {
+                'player-1': 10_000_000,
+              },
+            },
+          },
+        ],
+      });
+      const changedInputKey = computeTradeDraftKey({
+        yearKey: 2027,
+        teams: [
+          {
+            ...baseTeam,
+            salaryMatchingElection: {
+              version: 1,
+              path: 'STANDARD_TPE',
+              postAssignmentApronTeamSalary: 200_000_001,
+              tradedPlayerPreTradeSalaries: {
+                'player-1': 10_000_000,
+              },
+            },
+          },
+        ],
+      });
+      const changedPathKey = computeTradeDraftKey({
+        yearKey: 2027,
+        teams: [
+          {
+            ...baseTeam,
+            salaryMatchingElection: {
+              version: 1,
+              path: 'AGGREGATED_STANDARD_TPE',
+              postAssignmentApronTeamSalary: 200_000_000,
+              tradedPlayerPreTradeSalaries: { 'player-1': 10_000_000 },
+            },
+          },
+        ],
+      });
+      const changedSalaryKey = computeTradeDraftKey({
+        yearKey: 2027,
+        teams: [
+          {
+            ...baseTeam,
+            salaryMatchingElection: {
+              version: 1,
+              path: 'STANDARD_TPE',
+              postAssignmentApronTeamSalary: 200_000_000,
+              tradedPlayerPreTradeSalaries: { 'player-1': 10_000_001 },
+            },
+          },
+        ],
+      });
+      const changedVersionKey = computeTradeDraftKey({
+        yearKey: 2027,
+        teams: [
+          {
+            ...baseTeam,
+            salaryMatchingElection: {
+              // @ts-expect-error Runtime draft keys must still distinguish a
+              // malformed future version before schema validation rejects it.
+              version: 2,
+              path: 'STANDARD_TPE',
+              postAssignmentApronTeamSalary: 200_000_000,
+              tradedPlayerPreTradeSalaries: { 'player-1': 10_000_000 },
+            },
+          },
+        ],
+      });
+      const missingElectionKey = computeTradeDraftKey({
+        yearKey: 2027,
+        teams: [baseTeam],
+      });
+      const nullElectionKey = computeTradeDraftKey({
+        yearKey: 2027,
+        teams: [{ ...baseTeam, salaryMatchingElection: null }],
+      });
+
+      [
+        changedInputKey,
+        changedPathKey,
+        changedSalaryKey,
+        changedVersionKey,
+        missingElectionKey,
+        nullElectionKey,
+      ].forEach((changedKey) => {
+        expect(changedKey).not.toBe(standardKey);
+        expect(isValidationCurrent(changedKey, standardKey)).toBe(false);
+      });
+      expect(missingElectionKey).not.toBe(nullElectionKey);
     });
   });
 
@@ -107,13 +266,21 @@ describe('computeTradeDraftKey', () => {
       const key1 = computeTradeDraftKey({
         yearKey: 2025,
         teams: [
-          { team: { id: 'BOS' }, sends: [{ id: 'player-1' }, { id: 'player-2' }], picksOut: [] },
+          {
+            team: { id: 'BOS' },
+            sends: [{ id: 'player-1' }, { id: 'player-2' }],
+            picksOut: [],
+          },
         ],
       });
       const key2 = computeTradeDraftKey({
         yearKey: 2025,
         teams: [
-          { team: { id: 'BOS' }, sends: [{ id: 'player-2' }, { id: 'player-1' }], picksOut: [] },
+          {
+            team: { id: 'BOS' },
+            sends: [{ id: 'player-2' }, { id: 'player-1' }],
+            picksOut: [],
+          },
         ],
       });
       expect(key1).toBe(key2);
@@ -182,7 +349,7 @@ describe('computeTradeDraftKey', () => {
       });
 
       expect(key).toBe(
-        '2025|unknown:player-1,player-2,unknown:ent-1,ent-2,ent-3,unknown'
+        '2025|unknown:player-1,player-2,unknown:ent-1,ent-2,ent-3,unknown:{"state":"missing"}'
       );
     });
 
@@ -192,7 +359,7 @@ describe('computeTradeDraftKey', () => {
         teams: [{ team: { id: 'BOS' } }],
       });
 
-      expect(key).toBe('2025-26|BOS::');
+      expect(key).toBe('2025-26|BOS:::{"state":"missing"}');
     });
   });
 });
@@ -218,7 +385,7 @@ describe('isValidationCurrent', () => {
 
 describe('Stale Validation State Scenarios', () => {
   // These tests validate the expected behavior described in the bug fix
-  
+
   it('STALE-01: Selecting 2nd team without validating produces different key than validated state', () => {
     // Simulates: User validates trade, then changes trade configuration
     const initialKey = computeTradeDraftKey({
@@ -228,16 +395,20 @@ describe('Stale Validation State Scenarios', () => {
         { team: { id: 'LAL' }, sends: [{ id: 'player-2' }], picksOut: [] },
       ],
     });
-    
+
     // User adds a player to the trade
     const changedKey = computeTradeDraftKey({
       yearKey: 2025,
       teams: [
-        { team: { id: 'BOS' }, sends: [{ id: 'player-1' }, { id: 'player-3' }], picksOut: [] },
+        {
+          team: { id: 'BOS' },
+          sends: [{ id: 'player-1' }, { id: 'player-3' }],
+          picksOut: [],
+        },
         { team: { id: 'LAL' }, sends: [{ id: 'player-2' }], picksOut: [] },
       ],
     });
-    
+
     // Keys should differ, so isValidationCurrent returns false
     expect(isValidationCurrent(changedKey, initialKey)).toBe(false);
   });
@@ -250,11 +421,11 @@ describe('Stale Validation State Scenarios', () => {
         { team: { id: 'LAL' }, sends: [{ id: 'player-2' }], picksOut: [] },
       ],
     };
-    
+
     // Validate twice on same state
     const key1 = computeTradeDraftKey(config);
     const key2 = computeTradeDraftKey(config);
-    
+
     expect(isValidationCurrent(key2, key1)).toBe(true);
   });
 
@@ -266,7 +437,7 @@ describe('Stale Validation State Scenarios', () => {
         { team: { id: 'LAL' }, sends: [], picksOut: [] },
       ],
     });
-    
+
     // User switches LAL to MIA
     const afterSwitch = computeTradeDraftKey({
       yearKey: 2025,
@@ -275,7 +446,7 @@ describe('Stale Validation State Scenarios', () => {
         { team: { id: 'MIA' }, sends: [], picksOut: [] },
       ],
     });
-    
+
     expect(isValidationCurrent(afterSwitch, beforeSwitch)).toBe(false);
   });
 
@@ -287,7 +458,7 @@ describe('Stale Validation State Scenarios', () => {
         { team: { id: 'LAL' }, sends: [], picksOut: [] },
       ],
     });
-    
+
     const withoutPlayer = computeTradeDraftKey({
       yearKey: 2025,
       teams: [
@@ -295,7 +466,7 @@ describe('Stale Validation State Scenarios', () => {
         { team: { id: 'LAL' }, sends: [], picksOut: [] },
       ],
     });
-    
+
     expect(isValidationCurrent(withoutPlayer, withPlayer)).toBe(false);
   });
 });

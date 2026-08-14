@@ -9,7 +9,6 @@ import {
   normalizeYearInput,
   getCapHitForSeason,
 } from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
-import { getSalaryMatchingResult } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 import { getTeamSnapshot } from '@/features/architect/hooks/useTradeMachineSnapshot';
 import { toSeasonKey } from '@/features/architect/utils/seasonUtils';
@@ -161,7 +160,9 @@ export const useTradeTeamCardSalaries = ({
   const { primary } = useMemo(
     () =>
       getTeamColors(
-        team?.id === null || team?.id === undefined ? undefined : String(team.id)
+        team?.id === null || team?.id === undefined
+          ? undefined
+          : String(team.id)
       ),
     [team?.id]
   );
@@ -197,22 +198,9 @@ export const useTradeTeamCardSalaries = ({
     [team]
   );
 
-  const localSalaryMatchingResult = useMemo(() => {
-    if (!hasTeam || !capSettings) return null;
-    return getSalaryMatchingResult({
-      teamTotalSalary,
-      outgoingSalary: localOutgoingSalary,
-      capSettings: {
-        salaryCap: capSettings.salaryCap || Number(capSettings.cap) || 0,
-        firstApron: capSettings.firstApron || 0,
-        secondApron: capSettings.secondApron || 0,
-      },
-    });
-  }, [hasTeam, teamTotalSalary, localOutgoingSalary, capSettings]);
-
   const allowableIncomingNoTPE = hasValidatorResult
     ? snapshot.displayAllowableIncoming
-    : (localSalaryMatchingResult?.allowableIncoming ?? 0);
+    : null;
 
   const salaryMatchingApplicable = hasValidatorResult
     ? snapshot.salaryMatchingApplicable
@@ -223,10 +211,10 @@ export const useTradeTeamCardSalaries = ({
 
   const salaryMatchingRuleLabel = hasValidatorResult
     ? snapshot.salaryMatchingRule
-    : localSalaryMatchingResult?.ruleLabel || '';
+    : '';
   const salaryMatchingFormula = hasValidatorResult
     ? snapshot.salaryMatchingFormula
-    : localSalaryMatchingResult?.formulaUsed || '';
+    : '';
   const hardCapIsLimiter =
     hasValidatorResult &&
     snapshot.isHardCapped &&
@@ -244,28 +232,6 @@ export const useTradeTeamCardSalaries = ({
             : 'Hard Cap')
     : null;
 
-  if (
-    import.meta.env.DEV &&
-    hasValidatorResult &&
-    localSalaryMatchingResult &&
-    snapshot.allowableIncoming != null &&
-    localSalaryMatchingResult.allowableIncoming != null
-  ) {
-    const diff = Math.abs(
-      localSalaryMatchingResult.allowableIncoming - snapshot.allowableIncoming
-    );
-    if (diff > 1) {
-      console.warn('[TradeTeamCard] allowableIncoming DIVERGENCE', {
-        local: localSalaryMatchingResult.allowableIncoming,
-        snapshot: snapshot.allowableIncoming,
-        diff,
-        teamId: team?.id,
-        localRule: localSalaryMatchingResult.ruleLabel,
-        snapshotRule: snapshot.salaryMatchingRule,
-      });
-    }
-  }
-
   const tpeEligiblePlayers = useMemo(() => {
     if (!hasTeam) return [];
     const seasonKey =
@@ -280,7 +246,10 @@ export const useTradeTeamCardSalaries = ({
       return (teamTradeExceptions || []).some(
         (tpe) =>
           !tpe?.isUsed &&
-          playerSalary <= Number(tpe?.amount ?? 0) &&
+          playerSalary <=
+            Number(
+              tpe?.remainingAmount ?? tpe?.remaining ?? tpe?.amount ?? 0
+            ) &&
           (!tpe?.expirationDate ||
             new Date(String(tpe.expirationDate)) > new Date())
       );

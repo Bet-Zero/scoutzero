@@ -36,6 +36,8 @@ import type { computeExpectedCapHoldAmount } from '@/features/architect/utils/ca
 import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
 import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
+import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
+import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
 
 export type LooseRecord = Record<string, unknown>;
 export type MutationScalarId = string | number | null | undefined;
@@ -555,6 +557,7 @@ export type ArchitectTradePayloadTeamIngress = {
   picksIn?: unknown[];
   cashSent?: number | null;
   cashReceived?: number | null;
+  salaryMatchingElection?: TradeSalaryMatchingElection | null;
 };
 
 // Closed mutation-owned handoff: authoritative trade compute anchors on the
@@ -568,6 +571,7 @@ export type ArchitectTradePayloadTeam = {
   picksOut?: NormalizedTeamPick[];
   cashSent?: number | null;
   cashReceived?: number | null;
+  salaryMatchingElection?: TradeSalaryMatchingElection | null;
 };
 export type TradeTpeConsumptionIssue = {
   playerId?: string | null;
@@ -592,6 +596,10 @@ export type TradeMutationMetadata = {
   playersTraded: Array<string | null | undefined>;
   entitlementsTraded?: TradeEntitlementsMovedByTeam;
   timestamp: number;
+  salaryMatchingPaths?: Array<{
+    teamCode: string | null;
+    evaluation: TradeSalaryPathEvaluation;
+  }>;
 };
 export type TradeSnapshotLike = TradeContextPostTradeSnapshot;
 export type TradeApplyValidationTeamLike = TradeContextApplyValidationTeam;

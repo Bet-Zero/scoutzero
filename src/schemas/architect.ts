@@ -149,6 +149,16 @@ const TradeExceptionZ = z.object({
   expiresOn: z.string().optional(),
   isUsed: z.boolean().optional(),
   notes: z.string().optional(),
+  salaryMatchingPath: z
+    .object({
+      path: z.literal('STANDARD_TPE'),
+      componentId: z.string().min(1),
+      allowance: MoneyZ,
+      preTradeSalary: MoneyZ,
+      acquiredSalary: MoneyZ,
+      canonLeafIds: z.array(z.string().min(1)),
+    })
+    .optional(),
 });
 
 export const ExceptionsZ = z
