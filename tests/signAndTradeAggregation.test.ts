@@ -93,6 +93,21 @@ const makePick = (year, round = '1st') => ({
   type: 'pick',
 });
 
+const getExactFixtureSalary = (player) => {
+  const exactSalary =
+    player.signAndTradeContract?.salariesByYear?.[0]?.salary ??
+    player.contract?.salariesByYear?.find(
+      (salary) => salary.season === season
+    )?.salary;
+
+  if (exactSalary == null) {
+    throw new Error(
+      `Missing exact fixture salary for ${player.player_id ?? player.id ?? 'unknown player'}`
+    );
+  }
+  return exactSalary;
+};
+
 function runTrade(teams) {
   return validateTrade({
     teams: teams.map((entry) => ({
@@ -104,11 +119,7 @@ function runTrade(teams) {
         tradedPlayerPreTradeSalaries: Object.fromEntries(
           entry.sends.map((player) => [
             player.player_id ?? player.id,
-            player.signAndTradeContract?.salariesByYear?.[0]?.salary ??
-              player.contract?.salariesByYear?.find(
-                (salary) => salary.season === season
-              )?.capHit ??
-              0,
+            getExactFixtureSalary(player),
           ])
         ),
       },

@@ -378,6 +378,32 @@ export function validateSalaryMatching(
   let tpeAbsorbedSalary = 0;
   const heldStandardTpeComponents: HeldStandardTpeComponentInput[] = [];
 
+  if (
+    usesGovernedTradeSalaryPath &&
+    hasTPEPlayers &&
+    availableTPEs.length === 0
+  ) {
+    const message =
+      'Held Standard TPE assignment could not be verified because this team has no available TPE.';
+    return {
+      passed: false,
+      applicable: true,
+      skipReason: null,
+      violations: [message],
+      salaryIn,
+      salaryOut,
+      allowableIncoming: null,
+      message,
+      details: {
+        ruleApplied: 'TPE_VALIDATION_FAILED',
+        formulaUsed: 'Exact team-held TPE identity and capacity required',
+        tpeAbsorbedSalary: 0,
+        salaryNeedingMatch: salaryIn,
+        capSettingsSource,
+      },
+    };
+  }
+
   if (hasTPEPlayers && availableTPEs.length > 0) {
     const tpeUsageMap = new Map<TradeExceptionRecord['id'], TpeUsage>();
 

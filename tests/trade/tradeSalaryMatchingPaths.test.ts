@@ -449,6 +449,33 @@ describe('governed salary path lifecycle integration', () => {
     expect(result.details.pathEvaluation).toBeUndefined();
   });
 
+  it('fails closed when a designated held TPE has no available team record', () => {
+    const result = validateSalaryMatching(
+      {
+        salaryOut: 0,
+        salaryIn: 2_000_000,
+        teamTotalSalary: 180_000_000,
+        incomingPlayers: [
+          {
+            id: 'held',
+            name: 'Held',
+            matchIncoming: 2_000_000,
+            absorptionMode: 'TPE',
+            tpeId: 'missing-tpe',
+          },
+        ],
+        appliedTPEs: [],
+        salaryMatchingElection: election('STANDARD_TPE'),
+      },
+      context
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.allowableIncoming).toBeNull();
+    expect(result.violations[0]).toMatch(/no available TPE/);
+    expect(result.details.pathEvaluation).toBeUndefined();
+  });
+
   it('creates and applies the exact remaining Standard TPE with one-year expiry', () => {
     const salaryResult = validateSalaryMatching(
       {
