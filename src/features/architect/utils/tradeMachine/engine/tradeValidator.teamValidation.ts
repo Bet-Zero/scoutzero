@@ -167,8 +167,14 @@ export function validateSingleTeam(
   const hardCapResult = validators.validateHardCap(teamForValidation, context);
   const stepienResult = validators.validateStepien(teamForValidation, context);
   const cashResult = validators.validateCash(teamForValidation, context);
-  const tradeExceptionsResult =
-    validators.validateTradeExceptions(teamForValidation);
+  const tradeExceptionsResult = validators.validateTradeExceptions({
+    ...teamForValidation,
+    context: {
+      ...context,
+      ...teamForValidation.context,
+      source: context.source ?? teamForValidation.context?.source,
+    },
+  });
   // Sign-and-trade owns all S&T-specific season/timing restrictions.
   const signAndTradeResult = validators.validateSignAndTrade(
     teamForValidation,

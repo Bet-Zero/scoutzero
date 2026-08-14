@@ -98,7 +98,7 @@ export const TradeSalaryPathElection = ({
           </span>
         </label>
 
-        {election.path !== 'ROOM' && outgoingPlayers.length > 0 && (
+        {outgoingPlayers.length > 0 && (
           <div className="space-y-2">
             <div className="text-xs text-cockpit-text-secondary">
               Exact pre-trade Salary by Traded Player

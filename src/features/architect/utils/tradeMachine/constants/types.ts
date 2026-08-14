@@ -11,7 +11,7 @@
 import type { DataWarning } from '../utils/dataValidation';
 import type { CapHold } from '../../capHolds';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
-import type { TradeSalaryPathEvaluation } from '../utils/tradeSalaryMatchingPaths';
+import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
 
 // Normalized cap settings
 export interface CapSettings {

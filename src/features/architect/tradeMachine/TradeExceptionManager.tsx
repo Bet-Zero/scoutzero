@@ -24,8 +24,9 @@ function isTpeExpired(tpe: TradeExceptionLike) {
   return new Date(expiry) <= new Date();
 }
 
-function getTpeRemaining(tpe: TradeExceptionLike) {
-  return tpe.remainingAmount ?? tpe.remaining ?? tpe.amount;
+function getTpeRemaining(tpe: TradeExceptionLike): number | null {
+  const value = Number(tpe.remainingAmount ?? tpe.remaining ?? tpe.amount);
+  return Number.isFinite(value) ? value : null;
 }
 
 export const TradeExceptionManager = ({

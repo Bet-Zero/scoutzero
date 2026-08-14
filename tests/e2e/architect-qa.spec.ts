@@ -35,11 +35,13 @@ const DEV_LOCAL_STORAGE_FLAGS = {
 const REVIEW_TRADE_LAL_OUTGOING_PLAYER = {
   id: 'austin_reaves',
   name: 'Austin Reaves',
+  exactPreTradeSalary: 15_000_000,
 };
 
 const REVIEW_TRADE_BOS_OUTGOING_PLAYER = {
   id: 'derrick_white',
   name: 'Derrick White',
+  exactPreTradeSalary: 19_800_000,
 };
 
 const REVIEW_MIN_ROSTER_SIZE = 14;
@@ -657,7 +659,9 @@ const routeTradePlayer = async (
 const electRoomSalaryPath = async (
   page: Page,
   teamIndex: number,
-  postAssignmentApronTeamSalary: number
+  postAssignmentApronTeamSalary: number,
+  playerName: string,
+  exactPreTradeSalary: number
 ) => {
   const tradeDialog = page.getByRole('dialog', { name: /Trade Machine/i });
   const election = tradeDialog
@@ -669,6 +673,9 @@ const electRoomSalaryPath = async (
   await election
     .getByLabel(/^Post-assignment Apron Team Salary$/i)
     .fill(String(postAssignmentApronTeamSalary));
+  await election
+    .getByLabel(`${playerName} exact pre-trade Salary`)
+    .fill(String(exactPreTradeSalary));
 };
 
 const executePersistedReviewTradeProof = async (
@@ -747,8 +754,20 @@ const executePersistedReviewTradeProof = async (
   // its seeded payroll. These exact post-assignment values elect the supported
   // Room path for both below-cap teams instead of relying on the retired
   // generic matching-band shortcut.
-  await electRoomSalaryPath(page, 0, 78_800_000);
-  await electRoomSalaryPath(page, 1, 129_100_000);
+  await electRoomSalaryPath(
+    page,
+    0,
+    78_800_000,
+    REVIEW_TRADE_LAL_OUTGOING_PLAYER.name,
+    REVIEW_TRADE_LAL_OUTGOING_PLAYER.exactPreTradeSalary
+  );
+  await electRoomSalaryPath(
+    page,
+    1,
+    129_100_000,
+    REVIEW_TRADE_BOS_OUTGOING_PLAYER.name,
+    REVIEW_TRADE_BOS_OUTGOING_PLAYER.exactPreTradeSalary
+  );
 
   const validateTradeButton = page.getByRole('button', {
     name: /^Validate Trade$/i,

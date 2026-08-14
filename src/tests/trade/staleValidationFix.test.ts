@@ -193,9 +193,71 @@ describe('computeTradeDraftKey', () => {
           },
         ],
       });
+      const changedPathKey = computeTradeDraftKey({
+        yearKey: 2027,
+        teams: [
+          {
+            ...baseTeam,
+            salaryMatchingElection: {
+              version: 1,
+              path: 'AGGREGATED_STANDARD_TPE',
+              postAssignmentApronTeamSalary: 200_000_000,
+              tradedPlayerPreTradeSalaries: { 'player-1': 10_000_000 },
+            },
+          },
+        ],
+      });
+      const changedSalaryKey = computeTradeDraftKey({
+        yearKey: 2027,
+        teams: [
+          {
+            ...baseTeam,
+            salaryMatchingElection: {
+              version: 1,
+              path: 'STANDARD_TPE',
+              postAssignmentApronTeamSalary: 200_000_000,
+              tradedPlayerPreTradeSalaries: { 'player-1': 10_000_001 },
+            },
+          },
+        ],
+      });
+      const changedVersionKey = computeTradeDraftKey({
+        yearKey: 2027,
+        teams: [
+          {
+            ...baseTeam,
+            salaryMatchingElection: {
+              // @ts-expect-error Runtime draft keys must still distinguish a
+              // malformed future version before schema validation rejects it.
+              version: 2,
+              path: 'STANDARD_TPE',
+              postAssignmentApronTeamSalary: 200_000_000,
+              tradedPlayerPreTradeSalaries: { 'player-1': 10_000_000 },
+            },
+          },
+        ],
+      });
+      const missingElectionKey = computeTradeDraftKey({
+        yearKey: 2027,
+        teams: [baseTeam],
+      });
+      const nullElectionKey = computeTradeDraftKey({
+        yearKey: 2027,
+        teams: [{ ...baseTeam, salaryMatchingElection: null }],
+      });
 
-      expect(changedInputKey).not.toBe(standardKey);
-      expect(isValidationCurrent(changedInputKey, standardKey)).toBe(false);
+      [
+        changedInputKey,
+        changedPathKey,
+        changedSalaryKey,
+        changedVersionKey,
+        missingElectionKey,
+        nullElectionKey,
+      ].forEach((changedKey) => {
+        expect(changedKey).not.toBe(standardKey);
+        expect(isValidationCurrent(changedKey, standardKey)).toBe(false);
+      });
+      expect(missingElectionKey).not.toBe(nullElectionKey);
     });
   });
 
@@ -287,7 +349,7 @@ describe('computeTradeDraftKey', () => {
       });
 
       expect(key).toBe(
-        '2025|unknown:player-1,player-2,unknown:ent-1,ent-2,ent-3,unknown'
+        '2025|unknown:player-1,player-2,unknown:ent-1,ent-2,ent-3,unknown:{"state":"missing"}'
       );
     });
 
@@ -297,7 +359,7 @@ describe('computeTradeDraftKey', () => {
         teams: [{ team: { id: 'BOS' } }],
       });
 
-      expect(key).toBe('2025-26|BOS::');
+      expect(key).toBe('2025-26|BOS:::{"state":"missing"}');
     });
   });
 });

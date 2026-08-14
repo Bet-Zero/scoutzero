@@ -10,6 +10,8 @@
  *   - Mar 2026: E77 - Migrated authoritative implementation to TypeScript
  */
 
+import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
+
 type UnknownRecord = Record<string, unknown>;
 
 interface TradeDraftPlayerLike extends UnknownRecord {
@@ -27,7 +29,7 @@ interface TradeDraftTeamLike extends UnknownRecord {
   team?: (UnknownRecord & { id?: string | number | null }) | null;
   sends?: TradeDraftPlayerLike[] | null;
   entitlementsOut?: TradeDraftEntitlementLike[] | null;
-  salaryMatchingElection?: UnknownRecord | null;
+  salaryMatchingElection?: TradeSalaryMatchingElection | null;
 }
 
 interface TradeDraftKeyParams {
@@ -72,25 +74,26 @@ export function computeTradeDraftKey({
         .sort()
         .join(',');
 
-      const salaryPath = t.salaryMatchingElection
-        ? [
-            t.salaryMatchingElection.version,
-            t.salaryMatchingElection.path,
-            t.salaryMatchingElection.postAssignmentApronTeamSalary,
-            Object.entries(
-              (t.salaryMatchingElection.tradedPlayerPreTradeSalaries as
-                | Record<string, unknown>
-                | undefined) || {}
-            )
-              .sort(([first], [second]) => first.localeCompare(second))
-              .map(([playerId, salary]) => `${playerId}=${String(salary)}`)
-              .join(','),
-          ].join(':')
-        : null;
+      const salaryPath = JSON.stringify(
+        t.salaryMatchingElection === undefined
+          ? { state: 'missing' }
+          : t.salaryMatchingElection === null
+            ? { state: 'null' }
+            : {
+                state: 'value',
+                version: t.salaryMatchingElection.version,
+                path: t.salaryMatchingElection.path,
+                postAssignmentApronTeamSalary:
+                  t.salaryMatchingElection.postAssignmentApronTeamSalary,
+                tradedPlayerPreTradeSalaries: Object.fromEntries(
+                  Object.entries(
+                    t.salaryMatchingElection.tradedPlayerPreTradeSalaries
+                  ).sort(([first], [second]) => first.localeCompare(second))
+                ),
+              }
+      );
 
-      return `${teamId}:${playerIds}:${entitlementIds}${
-        salaryPath ? `:${salaryPath}` : ''
-      }`;
+      return `${teamId}:${playerIds}:${entitlementIds}:${salaryPath}`;
     })
     .sort() // Sort team parts for consistency regardless of order
     .join('|');

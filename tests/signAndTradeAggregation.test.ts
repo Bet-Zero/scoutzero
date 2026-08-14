@@ -17,14 +17,20 @@ const tradeCtx = {
   asOfDate: '2025-01-20',
 };
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+const issueTexts = (issues = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
 
 const makeSatContract = (firstYearSalary) => ({
   contractType: 'Sign & Trade',
   contractYears: 3,
   firstYearGuaranteed: true,
   salariesByYear: [
-    { season, salary: firstYearSalary, capHit: firstYearSalary, guaranteed: true },
+    {
+      season,
+      salary: firstYearSalary,
+      capHit: firstYearSalary,
+      guaranteed: true,
+    },
     {
       season: `${currentYear}-${String(currentYear + 1).slice(-2)}`,
       salary: Math.round(firstYearSalary * 1.05),
@@ -95,7 +101,16 @@ function runTrade(teams) {
         version: 1,
         path: 'ROOM',
         postAssignmentApronTeamSalary: entry.team.totalSalary,
-        tradedPlayerPreTradeSalaries: {},
+        tradedPlayerPreTradeSalaries: Object.fromEntries(
+          entry.sends.map((player) => [
+            player.player_id ?? player.id,
+            player.signAndTradeContract?.salariesByYear?.[0]?.salary ??
+              player.contract?.salariesByYear?.find(
+                (salary) => salary.season === season
+              )?.capHit ??
+              0,
+          ])
+        ),
       },
     })),
     capProjections,

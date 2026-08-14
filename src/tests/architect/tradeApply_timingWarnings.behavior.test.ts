@@ -154,9 +154,11 @@ function buildTradePayload({
         entitlementsOut: [],
         salaryMatchingElection: {
           version: 1 as const,
-          path: 'ROOM',
+          path: 'ROOM' as const,
           postAssignmentApronTeamSalary: 23_000_000,
-          tradedPlayerPreTradeSalaries: {},
+          tradedPlayerPreTradeSalaries: {
+            a_out: 10_000_000,
+          } as Record<string, number>,
         },
       },
       {
@@ -170,9 +172,11 @@ function buildTradePayload({
         entitlementsOut: [],
         salaryMatchingElection: {
           version: 1 as const,
-          path: 'ROOM',
+          path: 'ROOM' as const,
           postAssignmentApronTeamSalary: 23_000_000,
-          tradedPlayerPreTradeSalaries: {},
+          tradedPlayerPreTradeSalaries: {
+            b_out: 10_000_000,
+          } as Record<string, number>,
         },
       },
     ],

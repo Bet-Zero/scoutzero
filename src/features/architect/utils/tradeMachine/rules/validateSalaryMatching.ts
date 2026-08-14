@@ -27,7 +27,7 @@ import {
   evaluateTradeSalaryMatchingPath,
   type HeldStandardTpeComponentInput,
   type TradeSalaryPathEvaluation,
-  type TradeSalaryPathPlayer,
+  type TradeSalaryPathInputPlayer,
 } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type {
@@ -153,17 +153,11 @@ function getIncomingPlayers(team: SalaryMatchingTeam): SalaryMatchingPlayer[] {
   return [];
 }
 
-function getPlayerIdentity(
-  player: SalaryMatchingPlayer,
-  index: number
-): string {
-  return String(
-    player.player_id ??
-      player.playerId ??
-      player.id ??
-      player.name ??
-      `player-${index}`
-  );
+function getPlayerIdentity(player: SalaryMatchingPlayer): string | null {
+  const identity = player.player_id ?? player.playerId ?? player.id ?? null;
+  return identity == null || String(identity).trim() === ''
+    ? null
+    : String(identity);
 }
 
 function getTpeCapacity(tpe: TradeExceptionRecord): number {
@@ -268,9 +262,57 @@ export function validateSalaryMatching(
   const usesGovernedTradeSalaryPath =
     context.source === 'tradeMachine' ||
     team.context?.source === 'tradeMachine';
+  const governedOutgoingPlayers = (
+    Array.isArray(team.outgoingPlayers)
+      ? team.outgoingPlayers
+      : Array.isArray(team.sends)
+        ? team.sends
+        : []
+  ).filter((player) => !isTwoWayTradePlayer(player));
+  const governedIncomingPlayers = incomingPlayers.filter(
+    (player) => !isTwoWayTradePlayer(player)
+  );
   const hasFaExceptionEligibleIncoming =
     incomingPlayers.length === 0 ||
     incomingPlayers.some((player) => !isTwoWayTradePlayer(player));
+
+  if (
+    usesGovernedTradeSalaryPath &&
+    salaryOut === 0 &&
+    salaryIn === 0 &&
+    governedOutgoingPlayers.length === 0 &&
+    governedIncomingPlayers.length === 0
+  ) {
+    return {
+      passed: true,
+      applicable: false,
+      skipReason: 'NO_SALARY_MATCHING',
+      allowableIncoming: null,
+      salaryIn,
+      salaryOut,
+      difference: 0,
+      message:
+        'No salary matching is required because this team sends and receives no matching salary.',
+      violations: [],
+      warnings: capSettingsWarnings,
+      details: {
+        ruleApplied: 'No salary matching required',
+        formulaUsed: '$0 outgoing / $0 incoming',
+        capSettings: {
+          salaryCap,
+          firstApron: actualFirstApron,
+          secondApron,
+        },
+        capSettingsSource,
+        capSettingsWarnings,
+        totalSalary,
+        totalSalarySource,
+        effectiveSalaryIn: 0,
+        margin: null,
+        pathEvaluation: null,
+      },
+    };
+  }
 
   if (
     team.absorptionMode === 'FA_EXCEPTION' &&
@@ -358,6 +400,24 @@ export function validateSalaryMatching(
 
       if (!isTpeAbsorbed) return;
 
+      if (usesGovernedTradeSalaryPath && !player.tpeId) {
+        tpeViolations.push(
+          `Held Standard TPE assignment for ${player.name || 'player'} requires an exact tpeId`
+        );
+        return;
+      }
+
+      if (
+        usesGovernedTradeSalaryPath &&
+        player.tpeId &&
+        !tpeUsageMap.has(player.tpeId)
+      ) {
+        tpeViolations.push(
+          `Held Standard TPE ${player.tpeId} assigned to ${player.name || 'player'} could not be verified on this team`
+        );
+        return;
+      }
+
       if (player.tpeId && tpeUsageMap.has(player.tpeId)) {
         const usage = tpeUsageMap.get(player.tpeId);
         if (usage) {
@@ -368,7 +428,7 @@ export function validateSalaryMatching(
         return;
       }
 
-      if (player.absorptionMode === 'TPE') {
+      if (!usesGovernedTradeSalaryPath && player.absorptionMode === 'TPE') {
         let matched = false;
         for (const [, usage] of tpeUsageMap) {
           const remaining = usage.amount - usage.totalAssigned;
@@ -397,12 +457,16 @@ export function validateSalaryMatching(
         );
       }
 
-      if (usage.totalAssigned > 0 && tpeId != null) {
+      if (usage.totalAssigned > 0 && tpeId == null) {
+        tpeViolations.push(
+          'Held Standard TPE component has assigned salary but no verifiable identity'
+        );
+      } else if (usage.totalAssigned > 0) {
         heldStandardTpeComponents.push({
           tpeId: String(tpeId),
           capacity: usage.amount,
-          incomingPlayers: usage.assignedPlayers.map((player, index) => ({
-            playerId: getPlayerIdentity(player, index),
+          incomingPlayers: usage.assignedPlayers.map((player) => ({
+            playerId: getPlayerIdentity(player),
             playerName: player.name || player.displayName || 'Unknown player',
             salary: toFiniteNumber(resolveIncomingTradeSalary(player)),
           })),
@@ -526,31 +590,25 @@ export function validateSalaryMatching(
   let pathEvaluation: TradeSalaryPathEvaluation | null = null;
 
   if (usesGovernedTradeSalaryPath) {
-    const outgoingPlayers = (
-      Array.isArray(team.outgoingPlayers)
-        ? team.outgoingPlayers
-        : Array.isArray(team.sends)
-          ? team.sends
-          : []
-    ).filter((player) => !isTwoWayTradePlayer(player));
-    const matchingIncomingPlayers: TradeSalaryPathPlayer[] = incomingPlayers
-      .filter(
-        (player) =>
-          !isTwoWayTradePlayer(player) &&
-          player.absorptionMode !== 'TPE' &&
-          !player.tpeId &&
-          player.absorptionMode !== 'FA_EXCEPTION'
-      )
-      .map((player, index) => ({
-        playerId: getPlayerIdentity(player, index),
-        playerName: player.name || player.displayName || 'Unknown player',
-        salary: toFiniteNumber(resolveIncomingTradeSalary(player)),
-      }));
+    const matchingIncomingPlayers: TradeSalaryPathInputPlayer[] =
+      incomingPlayers
+        .filter(
+          (player) =>
+            !isTwoWayTradePlayer(player) &&
+            player.absorptionMode !== 'TPE' &&
+            !player.tpeId &&
+            player.absorptionMode !== 'FA_EXCEPTION'
+        )
+        .map((player) => ({
+          playerId: getPlayerIdentity(player),
+          playerName: player.name || player.displayName || 'Unknown player',
+          salary: toFiniteNumber(resolveIncomingTradeSalary(player)),
+        }));
 
     pathEvaluation = evaluateTradeSalaryMatchingPath({
       election: team.salaryMatchingElection,
-      outgoingPlayers: outgoingPlayers.map((player, index) => ({
-        playerId: getPlayerIdentity(player, index),
+      outgoingPlayers: governedOutgoingPlayers.map((player) => ({
+        playerId: getPlayerIdentity(player),
         playerName: player.name || player.displayName || 'Unknown player',
       })),
       incomingMatchingPlayers: matchingIncomingPlayers,
@@ -561,8 +619,6 @@ export function validateSalaryMatching(
       transactionDate: context.tradeDate ?? team.context?.tradeDate,
       salaryCapYear: context.yearKey ?? team.context?.yearKey,
     });
-    team.salaryMatchingPathEvaluation = pathEvaluation;
-
     if (pathEvaluation.status === 'NEEDS_INPUT') {
       const message = `Salary path needs exact input: ${pathEvaluation.missingInputs.join(', ')}`;
       return {

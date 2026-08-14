@@ -1,18 +1,7 @@
 import React, { useState } from 'react';
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
-import type {
-  CapSettingsLike,
-  TeamPlayerLike,
-  TpeLike,
-} from './validationPresentationTypes';
 
 interface TradeSalaryCalculatorProps {
-  teamSalary?: number;
-  outgoingSalary?: number;
-  incomingPlayers?: TeamPlayerLike[];
-  tpes?: TpeLike[];
-  capSettings?: CapSettingsLike | null;
-  yearKey?: string | number | null;
   validatorAllowableIncoming?: number | null;
   validatorRule?: string | null;
   hasValidatorResult?: boolean;
@@ -25,7 +14,7 @@ export const TradeSalaryCalculator = ({
   hasValidatorResult = false,
   validatorSkipReason = null,
 }: TradeSalaryCalculatorProps) => {
-  const [counterfactualIncoming, setCounterfactualIncoming] = useState(0);
+  const [counterfactualIncoming, setCounterfactualIncoming] = useState('');
 
   if (!hasValidatorResult) {
     return (
@@ -39,9 +28,18 @@ export const TradeSalaryCalculator = ({
   }
 
   const canCompare =
-    validatorSkipReason == null && validatorAllowableIncoming != null;
+    validatorSkipReason == null &&
+    validatorAllowableIncoming != null &&
+    counterfactualIncoming.trim() !== '' &&
+    Number.isFinite(Number(counterfactualIncoming)) &&
+    Number(counterfactualIncoming) >= 0;
+  const counterfactualValue = canCompare
+    ? Number(counterfactualIncoming)
+    : null;
   const wouldPass =
-    canCompare && counterfactualIncoming <= validatorAllowableIncoming;
+    counterfactualValue != null &&
+    validatorAllowableIncoming != null &&
+    counterfactualValue <= validatorAllowableIncoming;
 
   return (
     <div className="border border-cockpit-edge rounded-lg p-4 mt-4 bg-cockpit-slab">
@@ -80,27 +78,27 @@ export const TradeSalaryCalculator = ({
               min="0"
               step="0.01"
               value={counterfactualIncoming}
-              onChange={(event) =>
-                setCounterfactualIncoming(Number(event.target.value) || 0)
-              }
+              onChange={(event) => setCounterfactualIncoming(event.target.value)}
               className="mt-1 w-full rounded border border-cockpit-edge bg-cockpit-raised px-2 py-1.5 font-mono text-cockpit-text-primary"
             />
           </label>
-          <div
-            className={`rounded border px-3 py-2 text-sm ${
-              wouldPass
-                ? 'border-cockpit-safe/30 bg-cockpit-safe/15 text-cockpit-safe'
-                : 'border-cockpit-danger/30 bg-cockpit-danger/15 text-cockpit-danger'
-            }`}
-          >
-            {wouldPass
-              ? `Within the validated path by ${formatCurrency(
-                  validatorAllowableIncoming - counterfactualIncoming
-                )}.`
-              : `Exceeds the validated path by ${formatCurrency(
-                  counterfactualIncoming - validatorAllowableIncoming
-                )}.`}
-          </div>
+          {counterfactualValue != null && (
+            <div
+              className={`rounded border px-3 py-2 text-sm ${
+                wouldPass
+                  ? 'border-cockpit-safe/30 bg-cockpit-safe/15 text-cockpit-safe'
+                  : 'border-cockpit-danger/30 bg-cockpit-danger/15 text-cockpit-danger'
+              }`}
+            >
+              {wouldPass
+                ? `Within the validated path by ${formatCurrency(
+                    validatorAllowableIncoming - counterfactualValue
+                  )}.`
+                : `Exceeds the validated path by ${formatCurrency(
+                    counterfactualValue - validatorAllowableIncoming
+                  )}.`}
+            </div>
+          )}
         </div>
       )}
     </div>

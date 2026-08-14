@@ -19,7 +19,7 @@ import {
 } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import { validationFlags } from '@/config/validationFlags';
 import { useTradeTeamCardSalaries } from './useTradeTeamCardSalaries';
-import { TradeSalaryPathElection } from './TradeSalaryPathElection';
+import { TradeSalaryPathElection } from '@/features/architect/tradeMachine/TradeSalaryPathElection';
 // Phase 65: Canonical TPE read accessor
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import type { TeamTpeLike } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';

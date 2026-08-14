@@ -340,9 +340,9 @@ export function generateTradeReceipt({
         ? null
         : (salaryMatchingResult.allowableIncoming ?? null),
       actualIncoming:
-        teamResult?.salaryMatchingPathEvaluation?.actualIncoming ??
         salaryMatchingResult.salaryIn ??
         team.salaryIn ??
+        incomingMatchingTotal ??
         null,
       // When skipped, passed should be null (validation didn't run)
       passed: isSkipped

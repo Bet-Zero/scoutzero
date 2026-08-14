@@ -3,6 +3,7 @@ import {
   type TradeSalaryMatchingElection,
   type TradeSalaryMatchingPath,
 } from '@/schemas/tradeSalaryMatchingPath';
+import { isSupportedSalaryCapYear } from '@/features/architect/utils/governedSeason';
 
 export const TRADE_SALARY_ALLOWANCE = 250_000;
 
@@ -24,6 +25,13 @@ export type TradeSalaryPathPlayer = {
   salary: number;
 };
 
+export type TradeSalaryPathInputPlayer = Omit<
+  TradeSalaryPathPlayer,
+  'playerId'
+> & {
+  playerId: string | null;
+};
+
 export type TradeSalaryPathComponent = {
   componentId: string;
   kind: 'ELECTED_PATH' | 'HELD_STANDARD_TPE';
@@ -39,13 +47,13 @@ export type TradeSalaryPathComponent = {
 export type HeldStandardTpeComponentInput = {
   tpeId: string;
   capacity: number;
-  incomingPlayers: TradeSalaryPathPlayer[];
+  incomingPlayers: TradeSalaryPathInputPlayer[];
 };
 
 export type EvaluateTradeSalaryPathInput = {
   election: unknown;
-  outgoingPlayers: Array<{ playerId: string; playerName: string }>;
-  incomingMatchingPlayers: TradeSalaryPathPlayer[];
+  outgoingPlayers: Array<{ playerId: string | null; playerName: string }>;
+  incomingMatchingPlayers: TradeSalaryPathInputPlayer[];
   heldStandardTpeComponents?: HeldStandardTpeComponentInput[];
   teamSalary: number;
   salaryCap: number;
@@ -81,15 +89,18 @@ function finiteNonnegative(value: unknown): number | null {
 function hasGovernedDate(value: string | null | undefined): boolean {
   if (!value) return false;
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return new Date(`${value}T00:00:00Z`).toISOString().startsWith(value);
+    const timestamp = Date.parse(`${value}T00:00:00Z`);
+    return (
+      Number.isFinite(timestamp) &&
+      new Date(timestamp).toISOString().startsWith(value)
+    );
   }
   if (!/(Z|[+-]\d{2}:\d{2})$/.test(value)) return false;
   return Number.isFinite(new Date(value).getTime());
 }
 
 function hasGovernedYear(value: number | string | null | undefined): boolean {
-  if (typeof value === 'number')
-    return Number.isInteger(value) && value >= 2000;
+  if (typeof value === 'number') return isSupportedSalaryCapYear(value);
   return typeof value === 'string' && /^\d{4}(?:-\d{2})?$/.test(value);
 }
 
@@ -149,7 +160,7 @@ function result({
   };
 }
 
-function playerSalaryTotal(players: readonly TradeSalaryPathPlayer[]): number {
+function playerSalaryTotal(players: ReadonlyArray<{ salary: number }>): number {
   return players.reduce((sum, player) => sum + player.salary, 0);
 }
 
@@ -164,7 +175,10 @@ export function evaluateTradeSalaryMatchingPath({
   transactionDate,
   salaryCapYear,
 }: EvaluateTradeSalaryPathInput): TradeSalaryPathEvaluation {
-  const actualIncoming = playerSalaryTotal(incomingMatchingPlayers);
+  const actualIncoming = incomingMatchingPlayers.reduce(
+    (sum, player) => sum + (finiteNonnegative(player.salary) ?? 0),
+    0
+  );
   const parsedElection = TradeSalaryMatchingElectionZ.safeParse(rawElection);
   if (!parsedElection.success) {
     return result({
@@ -181,6 +195,7 @@ export function evaluateTradeSalaryMatchingPath({
 
   const election = parsedElection.data;
   const missingInputs: string[] = [];
+  const governedTeamSalary = finiteNonnegative(teamSalary);
   const governedSalaryCap = finiteNonnegative(salaryCap);
   const governedFirstApron = finiteNonnegative(firstApron);
   if (!hasGovernedDate(transactionDate)) missingInputs.push('transactionDate');
@@ -191,9 +206,46 @@ export function evaluateTradeSalaryMatchingPath({
   if (governedFirstApron === null || governedFirstApron === 0) {
     missingInputs.push('firstApron');
   }
+  if (governedTeamSalary === null || governedTeamSalary === 0) {
+    missingInputs.push('teamSalary');
+  }
   if (election.postAssignmentApronTeamSalary === null) {
     missingInputs.push('postAssignmentApronTeamSalary');
   }
+  outgoingPlayers.forEach((player, index) => {
+    if (!player.playerId)
+      missingInputs.push(`outgoingPlayers.${index}.identity`);
+  });
+  incomingMatchingPlayers.forEach((player, index) => {
+    if (!player.playerId) {
+      missingInputs.push(`incomingMatchingPlayers.${index}.identity`);
+    }
+    if (finiteNonnegative(player.salary) === null) {
+      missingInputs.push(`incomingMatchingPlayers.${index}.salary`);
+    }
+  });
+  heldStandardTpeComponents.forEach((component, componentIndex) => {
+    if (!component.tpeId.trim()) {
+      missingInputs.push(`heldStandardTpeComponents.${componentIndex}.tpeId`);
+    }
+    if (finiteNonnegative(component.capacity) === null) {
+      missingInputs.push(
+        `heldStandardTpeComponents.${componentIndex}.capacity`
+      );
+    }
+    component.incomingPlayers.forEach((player, playerIndex) => {
+      if (!player.playerId) {
+        missingInputs.push(
+          `heldStandardTpeComponents.${componentIndex}.incomingPlayers.${playerIndex}.identity`
+        );
+      }
+      if (finiteNonnegative(player.salary) === null) {
+        missingInputs.push(
+          `heldStandardTpeComponents.${componentIndex}.incomingPlayers.${playerIndex}.salary`
+        );
+      }
+    });
+  });
 
   if (missingInputs.length > 0) {
     return result({
@@ -213,6 +265,11 @@ export function evaluateTradeSalaryMatchingPath({
     Number(election.postAssignmentApronTeamSalary) > Number(governedFirstApron)
       ? 0
       : TRADE_SALARY_ALLOWANCE;
+  const governedIncomingMatchingPlayers: TradeSalaryPathPlayer[] =
+    incomingMatchingPlayers.map((player) => ({
+      ...player,
+      playerId: String(player.playerId),
+    }));
   const heldComponents: TradeSalaryPathComponent[] =
     heldStandardTpeComponents.map((component) => {
       const usedIncoming = playerSalaryTotal(component.incomingPlayers);
@@ -222,7 +279,10 @@ export function evaluateTradeSalaryMatchingPath({
         path: 'STANDARD_TPE',
         timing: 'NON_SIMULTANEOUS',
         outgoingPlayers: [],
-        incomingPlayers: component.incomingPlayers,
+        incomingPlayers: component.incomingPlayers.map((player) => ({
+          ...player,
+          playerId: String(player.playerId),
+        })),
         maximumIncoming: component.capacity,
         usedIncoming,
         remaining: Math.max(0, component.capacity - usedIncoming),
@@ -236,8 +296,7 @@ export function evaluateTradeSalaryMatchingPath({
         election,
         formula: 'Room path cannot be combined with a Standard TPE component.',
         allowance,
-        maximumIncoming:
-          Math.max(0, Number(governedSalaryCap) - teamSalary) + allowance,
+        maximumIncoming: null,
         actualIncoming,
         components: heldComponents,
         violations: [
@@ -246,7 +305,7 @@ export function evaluateTradeSalaryMatchingPath({
         firstApron: governedFirstApron,
       });
     }
-    if (teamSalary >= Number(governedSalaryCap)) {
+    if (Number(governedTeamSalary) >= Number(governedSalaryCap)) {
       return result({
         status: 'FAIL',
         election,
@@ -261,15 +320,47 @@ export function evaluateTradeSalaryMatchingPath({
       });
     }
 
-    const room = Number(governedSalaryCap) - teamSalary;
+    const exactOutgoingPlayers: TradeSalaryPathPlayer[] = [];
+    outgoingPlayers.forEach((player) => {
+      if (!player.playerId) return;
+      const exactSalary =
+        election.tradedPlayerPreTradeSalaries[player.playerId];
+      if (exactSalary === undefined) {
+        missingInputs.push(`tradedPlayerPreTradeSalaries.${player.playerId}`);
+        return;
+      }
+      exactOutgoingPlayers.push({
+        ...player,
+        playerId: player.playerId,
+        salary: exactSalary,
+      });
+    });
+    if (missingInputs.length > 0) {
+      return result({
+        status: 'NEEDS_INPUT',
+        election,
+        formula:
+          'Room after assignment requires exact pre-trade Salary for every outgoing Traded Player.',
+        allowance,
+        maximumIncoming: null,
+        actualIncoming,
+        missingInputs,
+        firstApron: governedFirstApron,
+      });
+    }
+
+    const preTransactionRoom =
+      Number(governedSalaryCap) - Number(governedTeamSalary);
+    const outgoingSalary = playerSalaryTotal(exactOutgoingPlayers);
+    const room = preTransactionRoom + outgoingSalary;
     const maximumIncoming = room + allowance;
     const component: TradeSalaryPathComponent = {
       componentId: 'room-path',
       kind: 'ELECTED_PATH',
       path: 'ROOM',
       timing: 'SIMULTANEOUS',
-      outgoingPlayers: [],
-      incomingPlayers: incomingMatchingPlayers,
+      outgoingPlayers: exactOutgoingPlayers,
+      incomingPlayers: governedIncomingMatchingPlayers,
       maximumIncoming,
       usedIncoming: actualIncoming,
       remaining: Math.max(0, maximumIncoming - actualIncoming),
@@ -285,7 +376,7 @@ export function evaluateTradeSalaryMatchingPath({
     return result({
       status: violations.length === 0 ? 'PASS' : 'FAIL',
       election,
-      formula: `room $${room.toLocaleString('en-US')} + allowance $${allowance.toLocaleString('en-US')} = $${maximumIncoming.toLocaleString('en-US')}`,
+      formula: `pre-transaction room $${preTransactionRoom.toLocaleString('en-US')} + exact outgoing Salary $${outgoingSalary.toLocaleString('en-US')} + allowance $${allowance.toLocaleString('en-US')} = $${maximumIncoming.toLocaleString('en-US')}`,
       allowance,
       maximumIncoming,
       actualIncoming,
@@ -295,7 +386,7 @@ export function evaluateTradeSalaryMatchingPath({
     });
   }
 
-  if (teamSalary < Number(governedSalaryCap)) {
+  if (Number(governedTeamSalary) < Number(governedSalaryCap)) {
     return result({
       status: 'FAIL',
       election,
@@ -363,12 +454,17 @@ export function evaluateTradeSalaryMatchingPath({
 
   const exactOutgoingPlayers: TradeSalaryPathPlayer[] = [];
   outgoingPlayers.forEach((player) => {
+    if (!player.playerId) return;
     const exactSalary = election.tradedPlayerPreTradeSalaries[player.playerId];
     if (exactSalary === undefined) {
       missingInputs.push(`tradedPlayerPreTradeSalaries.${player.playerId}`);
       return;
     }
-    exactOutgoingPlayers.push({ ...player, salary: exactSalary });
+    exactOutgoingPlayers.push({
+      ...player,
+      playerId: player.playerId,
+      salary: exactSalary,
+    });
   });
 
   if (missingInputs.length > 0) {
@@ -397,7 +493,7 @@ export function evaluateTradeSalaryMatchingPath({
     path: election.path,
     timing: 'SIMULTANEOUS',
     outgoingPlayers: exactOutgoingPlayers,
-    incomingPlayers: incomingMatchingPlayers,
+    incomingPlayers: governedIncomingMatchingPlayers,
     maximumIncoming,
     usedIncoming: actualIncoming,
     remaining: Math.max(0, maximumIncoming - actualIncoming),

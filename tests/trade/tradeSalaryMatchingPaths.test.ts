@@ -57,6 +57,33 @@ describe('governed Trade Machine salary paths', () => {
     expect(evaluate({ transactionDate: '2026-07-15' }).status).toBe('PASS');
   });
 
+  it('fails closed on invalid exact context instead of calculating with it', () => {
+    const invalidSalary = evaluate({ teamSalary: Number.NaN });
+    const zeroSalary = evaluate({ teamSalary: 0 });
+    const invalidDate = evaluate({ transactionDate: '2026-99-99' });
+    const supportedEarlyYear = evaluate({ salaryCapYear: 1001 });
+    const unsupportedYear = evaluate({ salaryCapYear: 10_000 });
+
+    expect(invalidSalary.missingInputs).toContain('teamSalary');
+    expect(zeroSalary.missingInputs).toContain('teamSalary');
+    expect(invalidDate.missingInputs).toContain('transactionDate');
+    expect(supportedEarlyYear.status).toBe('PASS');
+    expect(unsupportedYear.missingInputs).toContain('salaryCapYear');
+  });
+
+  it('fails closed when a Traded Player has no verifiable identity', () => {
+    const result = evaluate({
+      election: election('STANDARD_TPE', { 'player-0': 10_000_000 }),
+      outgoingPlayers: [{ playerId: null, playerName: 'Unknown' }],
+    });
+
+    expect(result.status).toBe('NEEDS_INPUT');
+    expect(result.missingInputs).toContain('outgoingPlayers.0.identity');
+    expect(result.missingInputs).not.toContain(
+      'tradedPlayerPreTradeSalaries.player-0'
+    );
+  });
+
   it('passes Standard TPE at the exact limit and decomposes the component', () => {
     const result = evaluate({});
 
@@ -200,6 +227,46 @@ describe('governed Trade Machine salary paths', () => {
     expect(result.margin).toBeCloseTo(-0.01, 5);
   });
 
+  it('includes exact outgoing Salary in Room capacity and fails closed without it', () => {
+    const positive = evaluate({
+      election: election('ROOM', { outgoing: 10_000_000 }),
+      teamSalary: SALARY_CAP - 1_000_000,
+      incomingMatchingPlayers: [
+        { playerId: 'incoming', playerName: 'Incoming', salary: 11_250_000 },
+      ],
+    });
+    const counterfactual = evaluate({
+      election: election('ROOM', { outgoing: 10_000_000 }),
+      teamSalary: SALARY_CAP - 1_000_000,
+      incomingMatchingPlayers: [
+        {
+          playerId: 'incoming',
+          playerName: 'Incoming',
+          salary: 11_250_000.01,
+        },
+      ],
+    });
+    const missingExactSalary = evaluate({
+      election: election('ROOM'),
+      teamSalary: SALARY_CAP - 1_000_000,
+    });
+
+    expect(positive).toMatchObject({
+      status: 'PASS',
+      maximumIncoming: 11_250_000,
+      margin: 0,
+    });
+    expect(positive.components[0].outgoingPlayers).toEqual([
+      { playerId: 'outgoing', playerName: 'Outgoing', salary: 10_000_000 },
+    ]);
+    expect(counterfactual.status).toBe('FAIL');
+    expect(counterfactual.margin).toBeCloseTo(-0.01, 5);
+    expect(missingExactSalary.status).toBe('NEEDS_INPUT');
+    expect(missingExactSalary.missingInputs).toEqual([
+      'tradedPlayerPreTradeSalaries.outgoing',
+    ]);
+  });
+
   it('fails Room path when a held Standard TPE is also used', () => {
     const result = evaluate({
       election: election('ROOM'),
@@ -259,6 +326,42 @@ describe('governed salary path lifecycle integration', () => {
     },
   };
 
+  it('skips path election only when the participant has no matching salary', () => {
+    const result = validateSalaryMatching(
+      {
+        salaryOut: 0,
+        salaryIn: 0,
+        teamTotalSalary: 180_000_000,
+        outgoingPlayers: [],
+        incomingPlayers: [],
+      },
+      context
+    );
+    const zeroSalaryPlayer = validateSalaryMatching(
+      {
+        salaryOut: 0,
+        salaryIn: 0,
+        teamTotalSalary: 180_000_000,
+        outgoingPlayers: [
+          { id: 'missing-salary', name: 'Missing Salary', matchOutgoing: 0 },
+        ],
+        incomingPlayers: [],
+      },
+      context
+    );
+
+    expect(result).toMatchObject({
+      passed: true,
+      applicable: false,
+      skipReason: 'NO_SALARY_MATCHING',
+      allowableIncoming: null,
+      violations: [],
+    });
+    expect(result.details.pathEvaluation).toBeNull();
+    expect(zeroSalaryPlayer.passed).toBe(false);
+    expect(zeroSalaryPlayer.violations[0]).toMatch(/salaryMatchingElection/);
+  });
+
   it('replaces the generic shortcut in live Trade Machine validation', () => {
     const result = validateSalaryMatching(
       {
@@ -313,6 +416,37 @@ describe('governed salary path lifecycle integration', () => {
     expect(result.passed).toBe(false);
     expect(result.allowableIncoming).toBeNull();
     expect(result.violations[0]).toMatch(/salaryMatchingElection/);
+  });
+
+  it('fails closed when held-TPE absorption has no exact TPE identity', () => {
+    const result = validateSalaryMatching(
+      {
+        salaryOut: 0,
+        salaryIn: 2_000_000,
+        teamTotalSalary: 180_000_000,
+        incomingPlayers: [
+          {
+            id: 'held',
+            name: 'Held',
+            matchIncoming: 2_000_000,
+            absorptionMode: 'TPE',
+          },
+        ],
+        appliedTPEs: [
+          {
+            id: 'held-tpe',
+            amount: 3_000_000,
+            remainingAmount: 3_000_000,
+          },
+        ],
+        salaryMatchingElection: election('STANDARD_TPE'),
+      },
+      context
+    );
+
+    expect(result.passed).toBe(false);
+    expect(result.violations[0]).toMatch(/requires an exact tpeId/);
+    expect(result.details.pathEvaluation).toBeUndefined();
   });
 
   it('creates and applies the exact remaining Standard TPE with one-year expiry', () => {

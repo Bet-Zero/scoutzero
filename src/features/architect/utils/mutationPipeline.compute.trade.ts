@@ -296,6 +296,19 @@ export function computeTradeResult({
   playerUpdates.push(...tradePlayerManifest.playerUpdates);
   playerDeletes.push(...tradePlayerManifest.playerDeletes);
 
+  const salaryMatchingPaths = validation.teamResults.flatMap(
+    (teamResult, index) => {
+      const teamCode = teamUpdates[index]?.teamCode;
+      if (!teamCode || !teamResult.salaryMatchingPathEvaluation) return [];
+      return [
+        {
+          teamCode,
+          evaluation: teamResult.salaryMatchingPathEvaluation,
+        },
+      ];
+    }
+  );
+
   const metadata: TradeMutationMetadata = {
     type: 'trade',
     teamsInvolved: teamUpdates.map((teamUpdate) => teamUpdate.teamCode),
@@ -309,21 +322,8 @@ export function computeTradeResult({
       Object.keys(entitlementsTraded).length > 0
         ? entitlementsTraded
         : undefined,
-    salaryMatchingPaths: validation.teamResults
-      .map((teamResult, index) => {
-        if (!teamResult.salaryMatchingPathEvaluation) return null;
-        return {
-          teamCode: teamUpdates[index]?.teamCode ?? null,
-          evaluation: teamResult.salaryMatchingPathEvaluation,
-        };
-      })
-      .filter(
-        (
-          entry
-        ): entry is NonNullable<
-          NonNullable<TradeMutationMetadata['salaryMatchingPaths']>[number]
-        > => entry !== null
-      ),
+    salaryMatchingPaths:
+      salaryMatchingPaths.length > 0 ? salaryMatchingPaths : undefined,
     timestamp,
   };
 
