@@ -98,16 +98,26 @@ export const ContractDetailsForm = ({
             New Contract Preview
           </h4>
           <div className="flex items-center gap-2">
-            {selectedAction === 'extend' && extensionAvailability ? (
+            {selectedAction === 'extend' ? (
               <select
                 data-testid="governed-extension-route"
-                value={extension.route || extensionAvailability.suggestedRoute || 'veteran'}
-                onChange={(e) =>
+                value={extension.route || extensionAvailability?.suggestedRoute || 'veteran'}
+                onChange={(e) => {
+                  const route = e.target.value as ExtensionStateLike['route'];
                   setExtension({
                     ...extension,
-                    route: e.target.value as ExtensionStateLike['route'],
-                  })
-                }
+                    route,
+                    conditionalHigherMaxPercentage:
+                      route === 'rookie-scale'
+                        ? extension.conditionalHigherMaxPercentage ?? null
+                        : null,
+                    agreedDesignatedVeteranPercentage:
+                      route === 'designated-veteran'
+                        ? extension.agreedDesignatedVeteranPercentage ?? 30
+                        : null,
+                  });
+                }}
+                disabled={!extensionAvailability}
                 className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
               >
                 <option value="rookie-scale">Rookie Scale</option>
@@ -159,6 +169,7 @@ export const ContractDetailsForm = ({
             )}
 
             <select
+              data-testid="contract-years"
               value={extension.years}
               onChange={(e) => {
                 const guardrailYears =
@@ -166,8 +177,10 @@ export const ContractDetailsForm = ({
                     ? Math.min(signingGuardrails.maxYears, 5)
                     : null;
                 const maxYearsOption =
-                  selectedAction === 'extend' && extMax?.maxYears
-                    ? extMax.maxYears
+                  selectedAction === 'extend' && extensionAvailability
+                    ? 5
+                    : selectedAction === 'extend' && extMax?.maxYears
+                      ? extMax.maxYears
                     : guardrailYears || 5;
                 const yrs = Math.min(Number(e.target.value), maxYearsOption);
                 const raisePct =
@@ -192,8 +205,10 @@ export const ContractDetailsForm = ({
             >
               {[1, 2, 3, 4, 5].map((yr) => {
                 const maxYearsOption =
-                  selectedAction === 'extend' && extMax?.maxYears
-                    ? extMax.maxYears
+                  selectedAction === 'extend' && extensionAvailability
+                    ? 5
+                    : selectedAction === 'extend' && extMax?.maxYears
+                      ? extMax.maxYears
                     : isSigningAction && signingGuardrails?.maxYears
                       ? Math.min(signingGuardrails.maxYears, 5)
                       : 5;
@@ -225,6 +240,36 @@ export const ContractDetailsForm = ({
                 Include the UTC offset. No signing time is inferred.
               </span>
             </label>
+            {(extension.route || extensionAvailability.suggestedRoute) ===
+              'rookie-scale' && (
+              <label className="text-xs text-white/70">
+                Conditional Higher Max percentage
+                <input
+                  data-testid="governed-extension-higher-max-percentage"
+                  type="number"
+                  min="25"
+                  max="30"
+                  step="0.0001"
+                  value={extension.conditionalHigherMaxPercentage ?? ''}
+                  onChange={(event) => {
+                    onTermsChange();
+                    setExtension({
+                      ...extension,
+                      conditionalHigherMaxPercentage:
+                        event.target.value === ''
+                          ? null
+                          : Number(event.target.value),
+                    });
+                  }}
+                  placeholder="Optional"
+                  className="mt-1 w-full rounded border border-white/15 bg-black/35 px-3 py-2 text-xs text-white outline-none focus:border-orange-400/50"
+                />
+                <span className="mt-1 block text-[10px] text-white/45">
+                  Optional 25% through 30% clause; qualification remains pending
+                  until governed award evidence resolves it.
+                </span>
+              </label>
+            )}
             {(extension.route || extensionAvailability.suggestedRoute) ===
               'designated-veteran' && (
               <label className="text-xs text-white/70">
@@ -382,29 +427,14 @@ export const ContractDetailsForm = ({
                       'Required Contract or league evidence is unavailable.'}
                 </div>
               </>
-            ) : isExtendEligible && extMax ? (
-              <>
-                <div>
-                  {`Up to ${extMax?.maxYears || 0} years — first-year range ${formatCurrencyFull(
-                    extMax?.minFirstYearSalary ?? 0
-                  )} to ${formatCurrencyFull(extMax?.maxFirstYearSalary ?? 0)}`}
-                </div>
-                <div className="text-[11px] text-orange-100/80">
-                  Raises: {Math.round((extMax?.baseRaisePct || 0) * 100)}%
-                  {extMax?.basedOn ? ` • ${extMax.basedOn}` : ''}
-                </div>
-                {(extMax?.notes || extMax?.type) && (
-                  <div className="text-[11px] text-orange-100/60">
-                    {extMax?.notes || extMax?.type}
-                  </div>
-                )}
-              </>
             ) : (
-              <span>
-                {`Not eligible: ${
-                  playerRulesProfile?.extensionEligibility?.reason || extReason
-                }`}
-              </span>
+              <>
+                <div className="font-medium">Needs governed input</div>
+                <div className="text-[11px] text-orange-100/80">
+                  Governed Contract and league evidence are required before an
+                  extension can be saved.
+                </div>
+              </>
             )}
           </div>
         )}

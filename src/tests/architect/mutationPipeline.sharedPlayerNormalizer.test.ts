@@ -244,7 +244,7 @@ describe('mutationPipeline shared player normalizer boundary', () => {
     expect(result.playerUpdates).toBeUndefined();
   });
 
-  it('keeps future-contract normalization working for a real extension flow', () => {
+  it('rejects legacy extension blobs before future-contract normalization', () => {
     const player = makePlayer('extend_1', 'Extension One', 14_000_000, 'NYK', {
       futureContract: makeContract(22_000_000, {
         signingTeam: 'NYK',
@@ -302,28 +302,10 @@ describe('mutationPipeline shared player normalizer boundary', () => {
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
-
-    const updatedFutureContract = result.playerUpdates?.[0]?.player?.futureContract;
-    expect(updatedFutureContract?.isExtension).toBe(true);
-    expect(updatedFutureContract?.signingDate).toBe(FIXED_TIMESTAMP_ISO);
-    expect(updatedFutureContract?.signingExecutive).toBe('Future GM');
-    expect(updatedFutureContract?.tradeRestrictions).toEqual([
-      'consent required',
-    ]);
-    expect(updatedFutureContract?.startSeason).toBe('2027-28');
-    expect(updatedFutureContract?.endSeason).toBe('2028-29');
-    expect(updatedFutureContract?.noTradeClause).toBe(true);
-    expect(updatedFutureContract?.tradeKicker).toBe(15);
-    expect(updatedFutureContract).not.toHaveProperty('signingTeam');
-    expect(updatedFutureContract).not.toHaveProperty('birdRights');
-    expect(updatedFutureContract).not.toHaveProperty('years');
-    expect(updatedFutureContract).not.toHaveProperty('contractYears');
-    expect(updatedFutureContract).not.toHaveProperty('firstYearGuaranteed');
-    expect(updatedFutureContract).not.toHaveProperty('exceptionType');
-    expect(updatedFutureContract).not.toHaveProperty('originalLength');
-    expect(updatedFutureContract).not.toHaveProperty('firstYearSalary');
-    expect(updatedFutureContract).not.toHaveProperty('year1Salary');
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Governed extension requires');
+    expect(result.teamUpdates).toBeUndefined();
+    expect(result.playerUpdates).toBeUndefined();
   });
 
   it('still shapes persisted player overrides from the narrow carry-through sidecar only', () => {

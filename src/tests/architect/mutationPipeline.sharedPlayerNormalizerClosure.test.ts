@@ -228,7 +228,7 @@ describe('mutationPipeline shared player normalizer closure', () => {
     expect(result.playerUpdates).toBeUndefined();
   });
 
-  it('keeps the narrowed future-contract lane working for a real extension flow', () => {
+  it('rejects legacy extension blobs at the narrowed future-contract lane', () => {
     const player = makePlayer('future_closure_1', 'Future Closure One', 14_000_000, 'NYK', {
       futureContract: makeContract(22_000_000, {
         signingTeam: 'NYK',
@@ -286,35 +286,10 @@ describe('mutationPipeline shared player normalizer closure', () => {
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
-
-    const updatedFutureContract = result.playerUpdates?.[0]?.player?.futureContract;
-    expect(updatedFutureContract?.isExtension).toBe(true);
-    expect(updatedFutureContract?.signingDate).toBe(FIXED_TIMESTAMP_ISO);
-    expect(updatedFutureContract?.signingExecutive).toBe('Future GM');
-    expect(updatedFutureContract?.tradeRestrictions).toEqual([
-      'consent required',
-    ]);
-    expect(updatedFutureContract?.startSeason).toBe('2027-28');
-    expect(updatedFutureContract?.endSeason).toBe('2028-29');
-    expect(updatedFutureContract?.noTradeClause).toBe(true);
-    expect(updatedFutureContract?.tradeKicker).toBe(15);
-    expect(updatedFutureContract).not.toHaveProperty('signingTeam');
-    expect(updatedFutureContract).not.toHaveProperty('birdRights');
-    expect(updatedFutureContract).not.toHaveProperty('rfaOfferSheet');
-    expect(updatedFutureContract).not.toHaveProperty('rfaOfferSheetOnly');
-    expect(updatedFutureContract).not.toHaveProperty('rfaOfferSheetStatus');
-    expect(updatedFutureContract).not.toHaveProperty('legacyFutureBlob');
-    expect(
-      updatedFutureContract?.salariesByYear?.find(
-        (row) => row.season === '2027-28' && row.voidedByExtension === true
-      )
-    ).toBeDefined();
-    expect(
-      updatedFutureContract?.salariesByYear?.some((row) =>
-        Object.prototype.hasOwnProperty.call(row, 'legacyFutureRowBlob')
-      )
-    ).toBe(false);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Governed extension requires');
+    expect(result.teamUpdates).toBeUndefined();
+    expect(result.playerUpdates).toBeUndefined();
   });
 
   it('still shapes persisted trade player overrides from the narrowed normalized player source', () => {

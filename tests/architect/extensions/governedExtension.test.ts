@@ -39,6 +39,7 @@ import {
   type MockTeam,
 } from '../../helpers/architectTestHelpers';
 import { getAllMockData, seedMockData } from '../../__mocks__/firebase';
+import { mutationSnapshotDigest } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
 
 const WORLD_ID = 'world-bze-282';
 const TEAM_ID = 'MIA';
@@ -296,6 +297,34 @@ function proposal(route: GovernedExtensionRoute): GovernedExtensionProposal {
   };
 }
 
+function withUniformCompensation({
+  proposal: input,
+  regularSalary,
+  bonusAmount,
+  classification,
+}: {
+  proposal: GovernedExtensionProposal;
+  regularSalary: number;
+  bonusAmount: number;
+  classification: 'likely' | 'unlikely';
+}): GovernedExtensionProposal {
+  return {
+    ...input,
+    salariesByYear: input.salariesByYear.map((row) => ({
+      ...row,
+      salaryExcludingIncentive: regularSalary,
+      regularSalary,
+      bonuses: [
+        {
+          bonusId: `${classification}-boundary`,
+          classification,
+          amount: bonusAmount,
+        },
+      ],
+    })),
+  };
+}
+
 function request(
   route: GovernedExtensionRoute,
   options: {
@@ -364,6 +393,62 @@ describe('governed Full Cap Table extension routes', () => {
       '2027-10-19T22:00:00.000Z'
     );
     expect(result.event.canonLeafIds).toContain('CBA2-C16.31');
+  });
+
+  it('retains a pending Rookie Scale Higher Max clause without assuming the future award result', () => {
+    const conditional = proposal('rookie-scale');
+    conditional.conditionalHigherMaxPercentage = 30;
+
+    const result = decideGovernedExtension(
+      request('rookie-scale', { proposal: conditional })
+    );
+
+    expect(result.success, JSON.stringify(result)).toBe(true);
+    if (!result.success) return;
+    expect(result.contractState.terms.extensionHigherMax).toEqual({
+      percentage: 30,
+      status: 'pending',
+      firstExtendedSalaryCapYear: 2028,
+      determinationId: null,
+      resolutionEventId: null,
+    });
+  });
+
+  it('applies and retains a Higher Max already qualified at signing', () => {
+    const conditional = proposal('rookie-scale');
+    conditional.conditionalHigherMaxPercentage = 30;
+    conditional.salariesByYear = conditional.salariesByYear.map(
+      (row, index) => ({
+        ...row,
+        salaryExcludingIncentive: 54_000_000 + 4_320_000 * index,
+        regularSalary: 54_000_000 + 4_320_000 * index,
+      })
+    );
+    const result = decideGovernedExtension(
+      request('rookie-scale', {
+        proposal: conditional,
+        baseline: baselineFor('rookie-scale', {
+          contractEvidence: {
+            awardEvidence: {
+              status: 'known',
+              achievement: 'ALL_NBA',
+              achievementSeason: '2025-26',
+              qualificationWindowSatisfied: true,
+              gameThresholdStatus: 'satisfied',
+              determinationId: 'award-determination-bze-282',
+            },
+          },
+        }),
+      })
+    );
+
+    expect(result.success, JSON.stringify(result)).toBe(true);
+    if (!result.success) return;
+    expect(result.contractState.terms.extensionHigherMax).toMatchObject({
+      percentage: 30,
+      status: 'qualified-at-signing',
+      determinationId: 'award-determination-bze-282',
+    });
   });
 });
 
@@ -460,6 +545,111 @@ describe('workflow-specific failure matrix', () => {
     }
   });
 
+  it('accepts the 20% total-incentive boundary and rejects one cent more', () => {
+    const exact = withUniformCompensation({
+      proposal: proposal('rookie-scale'),
+      regularSalary: 30_000_000,
+      bonusAmount: 6_000_000,
+      classification: 'likely',
+    });
+    const accepted = decideGovernedExtension(
+      request('rookie-scale', { proposal: exact })
+    );
+    expect(accepted.success, JSON.stringify(accepted)).toBe(true);
+
+    const excessive = structuredClone(exact);
+    excessive.salariesByYear[0].bonuses[0].amount += 0.01;
+    const rejected = decideGovernedExtension(
+      request('rookie-scale', { proposal: excessive })
+    );
+    expect(rejected.success).toBe(false);
+    if (!rejected.success) {
+      expect(rejected.reasons.join(' ')).toMatch(/exceeds 20% of Regular Salary/i);
+    }
+  });
+
+  it('accepts the 15% unlikely-incentive boundary and rejects one cent more', () => {
+    const exact = withUniformCompensation({
+      proposal: proposal('rookie-scale'),
+      regularSalary: 30_000_000,
+      bonusAmount: 4_500_000,
+      classification: 'unlikely',
+    });
+    const accepted = decideGovernedExtension(
+      request('rookie-scale', { proposal: exact })
+    );
+    expect(accepted.success, JSON.stringify(accepted)).toBe(true);
+
+    const excessive = structuredClone(exact);
+    excessive.salariesByYear[0].bonuses[0].amount += 0.01;
+    const rejected = decideGovernedExtension(
+      request('rookie-scale', { proposal: excessive })
+    );
+    expect(rejected.success).toBe(false);
+    if (!rejected.success) {
+      expect(rejected.reasons.join(' ')).toMatch(
+        /Unlikely Incentive Compensation exceeds 15\.0000%/i
+      );
+    }
+  });
+
+  it('honors only the exact signing-year unlikely percentage in the first extension Season', () => {
+    const originalCompensation = [
+      '2023-24',
+      '2024-25',
+      '2025-26',
+      '2026-27',
+    ].map((season, index) => ({
+      season,
+      salaryExcludingIncentive: 17_000_000 + index * 1_000_000,
+      regularSalary: 17_000_000 + index * 1_000_000,
+      bonuses:
+        season === '2026-27'
+          ? [
+              {
+                bonusId: 'unlikely-boundary',
+                classification: 'unlikely' as const,
+                amount: 3_400_000,
+              },
+            ]
+          : [],
+    }));
+    const grandfathered = proposal('rookie-scale');
+    grandfathered.salariesByYear = grandfathered.salariesByYear.map(
+      (row, index) => ({
+        ...row,
+        salaryExcludingIncentive: 30_000_000 + index * 2_400_000,
+        regularSalary: 30_000_000 + index * 2_400_000,
+        bonuses: [
+          {
+            bonusId: 'unlikely-boundary',
+            classification: 'unlikely',
+            amount: index === 0 ? 5_100_000 : 4_860_000,
+          },
+        ],
+      })
+    );
+    const baseline = baselineFor('rookie-scale', {
+      contractEvidence: { originalCompensation },
+    });
+    const accepted = decideGovernedExtension(
+      request('rookie-scale', { baseline, proposal: grandfathered })
+    );
+    expect(accepted.success, JSON.stringify(accepted)).toBe(true);
+
+    const excessive = structuredClone(grandfathered);
+    excessive.salariesByYear[0].bonuses[0].amount += 0.01;
+    const rejected = decideGovernedExtension(
+      request('rookie-scale', { baseline, proposal: excessive })
+    );
+    expect(rejected.success).toBe(false);
+    if (!rejected.success) {
+      expect(rejected.reasons.join(' ')).toMatch(
+        /Unlikely Incentive Compensation exceeds 17\.0000%/i
+      );
+    }
+  });
+
   it('requires an explicit external award determination identity when needed', () => {
     const result = decideGovernedExtension(
       request('designated-veteran', {
@@ -505,11 +695,30 @@ function compatibilityPlayer(baseline: ContractEventLedgerPayload) {
   };
 }
 
+function persistencePlayerFixture() {
+  return compatibilityPlayer(baselineFor('veteran'));
+}
+
+function persistenceTeamFixture() {
+  const player = persistencePlayerFixture();
+  return {
+    teamCode: TEAM_ID,
+    teamName: 'Miami Heat',
+    roster: [PLAYER_ID],
+    players: [player],
+    capHolds: [],
+    contractEventLedgers: [],
+    totals: { totalSalary: 74_000_000 },
+    source: { type: 'world-snapshot', provider: 'fixture' },
+  };
+}
+
 function computeMutation(
   options: { operationId?: string; omitAuthority?: boolean } = {}
 ) {
   const baseline = baselineFor('veteran');
-  const player = compatibilityPlayer(baseline);
+  const team = persistenceTeamFixture();
+  const player = team.players[0];
   const authority = resolveGovernedExtensionLedgerAuthority({
     baselineLedger: baseline,
     baselineSalaryCapYear: 2027,
@@ -526,15 +735,15 @@ function computeMutation(
       teamCode: TEAM_ID,
       player,
       ...(options.omitAuthority ? {} : { extensionAuthority: authority }),
-      team: {
-        teamCode: TEAM_ID,
-        roster: [PLAYER_ID],
-        players: [player],
-        capHolds: [],
-        contractEventLedgers: [],
-        totals: { totalSalary: 74_000_000 },
-        source: { type: 'world-snapshot', provider: 'fixture' },
+      extensionTeamSnapshot: {
+        exists: true,
+        digest: mutationSnapshotDigest(team),
       },
+      extensionPlayerSnapshot: {
+        exists: true,
+        digest: mutationSnapshotDigest(player),
+      },
+      team,
     },
     seasonId: '2026-27',
     timestamp: Date.parse('2026-10-19T18:01:00-04:00'),
@@ -559,20 +768,12 @@ function seedPersistenceWorld(): void {
     contractBaselineSalaryCapYear: 2027,
   };
   seedWorldMetadata(WORLD_ID, world);
-  const player = compatibilityPlayer(baselineFor('veteran'));
+  const player = persistencePlayerFixture();
+  const team = persistenceTeamFixture();
   seedTeamSnapshot(
     WORLD_ID,
     TEAM_ID,
-    {
-      teamCode: TEAM_ID,
-      teamName: 'Miami Heat',
-      roster: [PLAYER_ID],
-      players: [player],
-      capHolds: [],
-      contractEventLedgers: [],
-      totals: { totalSalary: 74_000_000 },
-      source: { type: 'world-snapshot', provider: 'fixture' },
-    } as unknown as MockTeam,
+    team as unknown as MockTeam,
     { padRoster: false }
   );
   seedMockData(
@@ -672,6 +873,92 @@ describe('governed extension mutation and atomic persistence', () => {
         )
       )
     ).toBe(beforePlayer);
+    expect(
+      [...getAllMockData().keys()].filter((key) => key.includes(`/events/`))
+    ).toHaveLength(eventCountBefore);
+  });
+
+  it('rejects an unrelated concurrent team-snapshot change without a partial write', async () => {
+    seedBaseData();
+    seedPersistenceWorld();
+    const computed = computeMutation({ operationId: 'stale-team-snapshot' });
+    expect(computed.success).toBe(true);
+
+    const concurrentTeam = {
+      ...persistenceTeamFixture(),
+      totals: { totalSalary: 74_000_001 },
+    };
+    seedTeamSnapshot(
+      WORLD_ID,
+      TEAM_ID,
+      concurrentTeam as unknown as MockTeam,
+      { padRoster: false }
+    );
+    const beforeTeam = JSON.stringify(getMockTeamSnapshot(WORLD_ID, TEAM_ID));
+    const playerPath =
+      `architect_worlds/${WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`;
+    const beforePlayer = JSON.stringify(getAllMockData().get(playerPath));
+    const eventCountBefore = [...getAllMockData().keys()].filter((key) =>
+      key.includes(`/events/`)
+    ).length;
+
+    const persisted = await persistWorldMutation({
+      worldId: WORLD_ID,
+      seasonId: '2026-27',
+      mutationType: 'extendPlayer',
+      computeResult: computed,
+      committedTeamUpdates: computed.teamUpdates || [],
+      timestamp: Date.parse('2026-10-19T18:01:00-04:00'),
+    });
+
+    expect(persisted.success).toBe(false);
+    if (!persisted.success) expect(persisted.error).toContain('Team snapshot');
+    expect(JSON.stringify(getMockTeamSnapshot(WORLD_ID, TEAM_ID))).toBe(
+      beforeTeam
+    );
+    expect(JSON.stringify(getAllMockData().get(playerPath))).toBe(beforePlayer);
+    expect(
+      [...getAllMockData().keys()].filter((key) => key.includes(`/events/`))
+    ).toHaveLength(eventCountBefore);
+  });
+
+  it('rejects an unrelated concurrent player-override change without a partial write', async () => {
+    seedBaseData();
+    seedPersistenceWorld();
+    const computed = computeMutation({ operationId: 'stale-player-snapshot' });
+    expect(computed.success).toBe(true);
+
+    const playerPath =
+      `architect_worlds/${WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`;
+    const currentPlayer = getAllMockData().get(playerPath) as Record<
+      string,
+      unknown
+    >;
+    seedMockData(playerPath, {
+      ...currentPlayer,
+      scoutingNote: 'concurrent change outside contract history',
+    });
+    const beforeTeam = JSON.stringify(getMockTeamSnapshot(WORLD_ID, TEAM_ID));
+    const beforePlayer = JSON.stringify(getAllMockData().get(playerPath));
+    const eventCountBefore = [...getAllMockData().keys()].filter((key) =>
+      key.includes(`/events/`)
+    ).length;
+
+    const persisted = await persistWorldMutation({
+      worldId: WORLD_ID,
+      seasonId: '2026-27',
+      mutationType: 'extendPlayer',
+      computeResult: computed,
+      committedTeamUpdates: computed.teamUpdates || [],
+      timestamp: Date.parse('2026-10-19T18:01:00-04:00'),
+    });
+
+    expect(persisted.success).toBe(false);
+    if (!persisted.success) expect(persisted.error).toContain('Player snapshot');
+    expect(JSON.stringify(getMockTeamSnapshot(WORLD_ID, TEAM_ID))).toBe(
+      beforeTeam
+    );
+    expect(JSON.stringify(getAllMockData().get(playerPath))).toBe(beforePlayer);
     expect(
       [...getAllMockData().keys()].filter((key) => key.includes(`/events/`))
     ).toHaveLength(eventCountBefore);

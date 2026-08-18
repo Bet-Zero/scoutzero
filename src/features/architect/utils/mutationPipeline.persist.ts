@@ -55,6 +55,7 @@ import type {
 import { createRightsEventLedger } from '@/features/architect/utils/rightsHistory';
 import { createContractEventLedger } from '@/features/architect/utils/contractHistory';
 import { contractOverlaySetDigest } from '@/features/architect/utils/optionDecisions/contractOverlaySetDigest';
+import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
 
 type ExpectedRightsLedgerReference = Readonly<{
   ledgerId: string;
@@ -381,6 +382,63 @@ export async function persistWorldMutation({
             }
           } else {
             const metadata = computeResult.metadata as Record<string, unknown>;
+            if (mutationType === 'extendPlayer') {
+              const expectedTeamExists = metadata.expectedTeamSnapshotExists;
+              const expectedTeamDigest = metadata.expectedTeamSnapshotDigest;
+              if (
+                typeof expectedTeamExists !== 'boolean' ||
+                (expectedTeamExists && typeof expectedTeamDigest !== 'string') ||
+                (!expectedTeamExists && expectedTeamDigest !== null)
+              ) {
+                throw new Error(
+                  `Extension is missing the expected team-snapshot receipt for ${normalizedTeamCode}.`
+                );
+              }
+              if (
+                currentTeamSnapshot.exists() !== expectedTeamExists ||
+                (expectedTeamExists &&
+                  mutationSnapshotDigest(currentTeamData) !==
+                    expectedTeamDigest)
+              ) {
+                throw new Error(
+                  `Team snapshot for ${normalizedTeamCode} changed before commit. Reload and try again.`
+                );
+              }
+
+              const expectedPlayerExists =
+                metadata.expectedPlayerSnapshotExists;
+              const expectedPlayerDigest =
+                metadata.expectedPlayerSnapshotDigest;
+              const expectedPlayerId = String(metadata.playerId || '').trim();
+              if (
+                !expectedPlayerId ||
+                typeof expectedPlayerExists !== 'boolean' ||
+                (expectedPlayerExists &&
+                  typeof expectedPlayerDigest !== 'string') ||
+                (!expectedPlayerExists && expectedPlayerDigest !== null)
+              ) {
+                throw new Error(
+                  `Extension is missing the expected player-snapshot receipt for ${normalizedTeamCode}.`
+                );
+              }
+              const currentPlayerSnapshot = await transaction.get(
+                worldPlayerRef(
+                  worldId,
+                  normalizedTeamCode,
+                  expectedPlayerId
+                )
+              );
+              if (
+                currentPlayerSnapshot.exists() !== expectedPlayerExists ||
+                (expectedPlayerExists &&
+                  mutationSnapshotDigest(currentPlayerSnapshot.data()) !==
+                    expectedPlayerDigest)
+              ) {
+                throw new Error(
+                  `Player snapshot for ${expectedPlayerId} changed before commit. Reload and try again.`
+                );
+              }
+            }
             const expectedLedgerId = String(
               metadata.expectedContractLedgerId || ''
             );

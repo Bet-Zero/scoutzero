@@ -31,6 +31,7 @@ interface MatchingValueExtension {
 
 interface MatchingValueContractLike {
   isRookieScale?: boolean;
+  isExtension?: boolean;
   isTwoWay?: boolean;
   contractType?: string | null;
   salariesByYear?: Array<Record<string, unknown>>;
@@ -51,6 +52,7 @@ interface MatchingValuePlayer {
   } | null;
   contract?: MatchingValueContractLike | null;
   primaryContract?: MatchingValueContractLike | null;
+  futureContract?: MatchingValueContractLike | null;
   isTwoWay?: boolean;
   contractType?: string | null;
   signAndTrade?: boolean;
@@ -108,6 +110,28 @@ function getRookieScaleAndPoisonPillFlags(player: MatchingValuePlayer) {
     isRookieScale,
     isPoisonPill,
   };
+}
+
+function getExtensionYearsForMatching(
+  player: MatchingValuePlayer
+): MatchingValueExtensionYear[] {
+  if (Array.isArray(player.extensionYears) && player.extensionYears.length > 0) {
+    return player.extensionYears;
+  }
+  if (
+    player.futureContract?.isExtension === true &&
+    Array.isArray(player.futureContract.salariesByYear)
+  ) {
+    return player.futureContract.salariesByYear.map((row) => ({
+      salary:
+        typeof row.salary === 'number'
+          ? row.salary
+          : typeof row.capHit === 'number'
+            ? row.capHit
+            : 0,
+    }));
+  }
+  return [];
 }
 
 /**
@@ -173,12 +197,13 @@ export function getMatchingValue(
   // Check isRookieScale flag from new schema
   const { isPoisonPill } = getRookieScaleAndPoisonPillFlags(player);
 
-  if (!isOutgoing && isPoisonPill && Array.isArray(player.extensionYears)) {
-    const extensionTotal = player.extensionYears.reduce(
+  const extensionYears = getExtensionYearsForMatching(player);
+  if (!isOutgoing && isPoisonPill && extensionYears.length > 0) {
+    const extensionTotal = extensionYears.reduce(
       (sum, year) => sum + (year.salary || 0),
       0
     );
-    const extensionAvg = extensionTotal / player.extensionYears.length;
+    const extensionAvg = extensionTotal / extensionYears.length;
     return (salary + extensionAvg) / 2;
   }
 
@@ -277,19 +302,18 @@ export function computeMatchingValues({
       if (isPoisonPill) {
         const currentSalary = player.currentSalary || baseSalary;
         let averageSalary;
+        const extensionYears = getExtensionYearsForMatching(player);
 
-        // Handle both extensionYears array and extension object formats
-        if (
-          Array.isArray(player.extensionYears) &&
-          player.extensionYears.length > 0
-        ) {
+        // Prefer the canonical governed future Contract, while retaining the
+        // older extensionYears ingress for pre-governed snapshots.
+        if (extensionYears.length > 0) {
           // Calculate average of current salary + all extension years
-          const extensionTotal = player.extensionYears.reduce(
+          const extensionTotal = extensionYears.reduce(
             (sum, year) => sum + (year.salary || 0),
             0
           );
           const totalSalaries = currentSalary + extensionTotal;
-          const totalYears = 1 + player.extensionYears.length;
+          const totalYears = 1 + extensionYears.length;
           averageSalary = Math.floor(totalSalaries / totalYears);
         } else if (player.extension && player.extension.salary) {
           // Legacy single extension format

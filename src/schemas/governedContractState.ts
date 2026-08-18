@@ -260,6 +260,16 @@ export const GovernedContractTermsZ = z.strictObject({
   // making the entire immutable Contract history unreadable.
   extensionEvidence: z.unknown().nullable().optional(),
   extensionLeagueEvidence: z.unknown().nullable().optional(),
+  extensionHigherMax: z
+    .strictObject({
+      percentage: z.number().finite().min(25).max(30),
+      status: z.enum(['pending', 'qualified-at-signing']),
+      firstExtendedSalaryCapYear: z.number().int(),
+      determinationId: NullableStringZ,
+      resolutionEventId: NullableStringZ,
+    })
+    .nullable()
+    .optional(),
   sourceLimitations: z.array(NonEmptyStringZ),
 });
 

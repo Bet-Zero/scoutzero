@@ -114,6 +114,7 @@ export type ExtensionStateLike = {
   raisePct?: number;
   route?: GovernedExtensionRoute;
   signedAt?: string;
+  conditionalHigherMaxPercentage?: number | null;
   agreedDesignatedVeteranPercentage?: number | null;
 };
 

@@ -161,7 +161,13 @@ export type MutationCurrentStateClosedShape = {
   offerSheetId?: undefined;
   optionAuthority?: undefined;
   extensionAuthority?: undefined;
+  extensionTeamSnapshot?: undefined;
+  extensionPlayerSnapshot?: undefined;
 };
+export type MutationDocumentSnapshotReceipt = Readonly<{
+  exists: boolean;
+  digest: string | null;
+}>;
 export type MutationCurrentStateTradeTeamEntryInput = {
   teamCode?: string | null;
   team?: MutationCurrentStateTradeTeamIngress | null;
@@ -181,13 +187,21 @@ export type MutationTeamOnlyCurrentStateIngress = Omit<
 };
 export type MutationTeamAndPlayerCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'teamCode' | 'optionAuthority' | 'extensionAuthority'
+  | 'team'
+  | 'player'
+  | 'teamCode'
+  | 'optionAuthority'
+  | 'extensionAuthority'
+  | 'extensionTeamSnapshot'
+  | 'extensionPlayerSnapshot'
 > & {
   team?: MutationCurrentStateBaseTeamIngress | null;
   player?: MutationCurrentStatePlayerIngress | null;
   teamCode?: string | null;
   optionAuthority?: GovernedOptionLedgerAuthority | null;
   extensionAuthority?: GovernedExtensionLedgerAuthority | null;
+  extensionTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
+  extensionPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
 };
 export type MutationSigningCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
@@ -243,6 +257,8 @@ export type MutationCurrentState = {
   offerSheetId?: string | null;
   optionAuthority?: GovernedOptionLedgerAuthority | null;
   extensionAuthority?: GovernedExtensionLedgerAuthority | null;
+  extensionTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
+  extensionPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
 };
 export type MutationTradeCurrentState = Omit<
   MutationCurrentStateClosedShape,
@@ -258,11 +274,23 @@ export type MutationTeamOnlyCurrentState = Omit<
   };
 export type MutationTeamAndPlayerCurrentState = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'teamCode' | 'optionAuthority' | 'extensionAuthority'
+  | 'team'
+  | 'player'
+  | 'teamCode'
+  | 'optionAuthority'
+  | 'extensionAuthority'
+  | 'extensionTeamSnapshot'
+  | 'extensionPlayerSnapshot'
 > &
   Pick<
     MutationCurrentState,
-    'team' | 'player' | 'teamCode' | 'optionAuthority' | 'extensionAuthority'
+    | 'team'
+    | 'player'
+    | 'teamCode'
+    | 'optionAuthority'
+    | 'extensionAuthority'
+    | 'extensionTeamSnapshot'
+    | 'extensionPlayerSnapshot'
   > & {
     team?: CurrentStatePlayerOpsTeam | null;
     player?: PlayerLike | null;

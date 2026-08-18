@@ -381,17 +381,18 @@ export const EditContractModal = ({
   const actionContextStageLabel = selectedActionLabel
     ? 'Editing terms'
     : 'Choosing action';
-  const extensionEligibility = playerRulesProfile?.extensionEligibility;
-  const isExtendEligible =
-    extensionAvailability
-      ? extensionAvailability.status === 'ready'
-      : extensionEligibility?.isEligible ?? extReason === 'Eligible';
+  const isExtendEligible = extensionAvailability?.status === 'ready';
 
   useEffect(() => {
     if (!extensionAvailability?.suggestedRoute) return;
     setExtension((previous) => ({
       ...previous,
       route: previous.route || extensionAvailability.suggestedRoute || undefined,
+      conditionalHigherMaxPercentage:
+        (previous.route || extensionAvailability.suggestedRoute) ===
+        'rookie-scale'
+          ? previous.conditionalHigherMaxPercentage ?? null
+          : null,
       agreedDesignatedVeteranPercentage:
         (previous.route || extensionAvailability.suggestedRoute) ===
         'designated-veteran'
@@ -499,8 +500,7 @@ export const EditContractModal = ({
   const isGovernedOptionDecisionAction =
     Boolean(optionDecisionAvailability) &&
     (selectedAction === 'accept' || selectedAction === 'decline');
-  const isGovernedExtensionAction =
-    Boolean(extensionAvailability) && selectedAction === 'extend';
+  const isGovernedExtensionAction = selectedAction === 'extend';
   const validationAuthority: ValidationAuthority =
     isGovernedOptionDecisionAction ||
     isGovernedExtensionAction ||
@@ -550,10 +550,33 @@ export const EditContractModal = ({
       };
     }
 
-    if (isGovernedExtensionAction && extensionAvailability) {
+    if (isGovernedExtensionAction) {
+      if (!extensionAvailability) {
+        const reasons = [
+          'Governed Contract and league evidence are required before an extension can be saved.',
+        ];
+        return {
+          ...DEFAULT_VALIDATION_STATE,
+          authority: 'authoritative-preflight' as const,
+          isLegal: false,
+          incomplete: true,
+          reasons,
+          severity: 'error' as const,
+          errors: reasons.map((message) => ({
+            severity: 'error' as const,
+            message,
+          })),
+        };
+      }
       const route =
         extension.route || extensionAvailability.suggestedRoute || null;
       const reasons = [...extensionAvailability.reasons];
+      if (
+        extensionAvailability.status === 'ready' &&
+        !extensionAvailability.contractId
+      ) {
+        reasons.push('The governed Contract identifier is missing.');
+      }
       if (
         extensionAvailability.status === 'ready' &&
         !isZonedDateTime(extension.signedAt ?? null)
@@ -567,6 +590,17 @@ export const EditContractModal = ({
         (!route || !extensionAvailability.allowedRoutes.includes(route))
       ) {
         reasons.push('Select an authenticated extension route.');
+      }
+      if (
+        extensionAvailability.status === 'ready' &&
+        route === 'rookie-scale' &&
+        extension.conditionalHigherMaxPercentage != null &&
+        (extension.conditionalHigherMaxPercentage < 25 ||
+          extension.conditionalHigherMaxPercentage > 30)
+      ) {
+        reasons.push(
+          'Enter a conditional Higher Max percentage from 25% through 30%, or leave it blank.'
+        );
       }
       if (
         extensionAvailability.status === 'ready' &&
@@ -893,6 +927,13 @@ export const EditContractModal = ({
       return;
     }
 
+    if (selectedAction === 'extend' && !extensionAvailability) {
+      setSaveError(
+        'Governed Contract and league evidence are required before an extension can be saved.'
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     const timestamp = new Date().toISOString();
     const overrideUsed =
@@ -951,16 +992,34 @@ export const EditContractModal = ({
             actionResult = await onRenounce?.(player, overrideMetadata);
             break;
           case 'extend': {
+            if (!extensionAvailability) {
+              actionResult = {
+                success: false,
+                message:
+                  'Governed Contract and league evidence are required before an extension can be saved.',
+              };
+              break;
+            }
             const route =
               extension.route ||
-              extensionAvailability?.suggestedRoute ||
+              extensionAvailability.suggestedRoute ||
               'veteran';
+            if (!extensionAvailability.contractId) {
+              actionResult = {
+                success: false,
+                message: 'The governed Contract identifier is missing.',
+              };
+              break;
+            }
             const contract: GovernedExtensionProposal = {
               proposalVersion: 1,
-              contractId: extensionAvailability?.contractId || '',
+              contractId: extensionAvailability.contractId,
               route,
               signedAt: extension.signedAt || '',
-              conditionalHigherMaxPercentage: null,
+              conditionalHigherMaxPercentage:
+                route === 'rookie-scale'
+                  ? extension.conditionalHigherMaxPercentage ?? null
+                  : null,
               agreedDesignatedVeteranPercentage:
                 route === 'designated-veteran'
                   ? extension.agreedDesignatedVeteranPercentage ?? null

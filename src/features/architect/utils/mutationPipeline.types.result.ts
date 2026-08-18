@@ -330,6 +330,10 @@ export type ArchitectWorldMutationHistoryMetadata = {
   buyout?: boolean;
   deadCapAmount?: number;
   extensionYears?: number;
+  expectedTeamSnapshotExists?: boolean;
+  expectedTeamSnapshotDigest?: string | null;
+  expectedPlayerSnapshotExists?: boolean;
+  expectedPlayerSnapshotDigest?: string | null;
   optionType?: string;
   accepted?: boolean;
   contract: ArchitectWorldMutationContractSummary;

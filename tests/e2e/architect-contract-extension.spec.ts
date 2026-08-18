@@ -69,54 +69,6 @@ const getWorldEventDocuments = async (worldId: string) =>
         })
     )) as Array<RecordLike & { id: string }>;
 
-const getPlayerIdFromEntry = (entry: unknown) => {
-  if (typeof entry === 'string') return entry;
-  if (!entry || typeof entry !== 'object') return '';
-
-  const record = entry as RecordLike;
-  return String(record.playerId || record.player_id || record.id || '');
-};
-
-const getTeamPlayerIds = (teamDocument: RecordLike | undefined) => {
-  if (!teamDocument) return [] as string[];
-
-  const rawPlayers = Array.isArray(teamDocument.players)
-    ? teamDocument.players
-    : Array.isArray(teamDocument.roster)
-      ? teamDocument.roster
-      : [];
-
-  return rawPlayers.map(getPlayerIdFromEntry).filter(Boolean);
-};
-
-const findTeamPlayer = (
-  teamDocument: RecordLike | undefined,
-  playerId: string
-) => {
-  const players = Array.isArray(teamDocument?.players)
-    ? teamDocument.players
-    : [];
-
-  return players.find((player) => getPlayerIdFromEntry(player) === playerId) as
-    | RecordLike
-    | undefined;
-};
-
-const getFutureContractRows = (
-  teamDocument: RecordLike | undefined,
-  playerId: string
-) => {
-  const player = findTeamPlayer(teamDocument, playerId);
-  const futureContract =
-    player?.futureContract && typeof player.futureContract === 'object'
-      ? (player.futureContract as RecordLike)
-      : null;
-
-  return Array.isArray(futureContract?.salariesByYear)
-    ? (futureContract.salariesByYear as RecordLike[])
-    : [];
-};
-
 const getExtensionEvent = async (worldId: string) => {
   const events = await getWorldEventDocuments(worldId);
 
@@ -124,15 +76,6 @@ const getExtensionEvent = async (worldId: string) => {
     const eventText = JSON.stringify(event);
     return event.mutationType === 'extendPlayer' && eventText.includes(PLAYER_ID);
   });
-};
-
-const waitForExtensionEvent = async (worldId: string) => {
-  await expect
-    .poll(async () => Boolean(await getExtensionEvent(worldId)), {
-      timeout: 20000,
-      message: `extendPlayer event should persist for ${PLAYER_ID}`,
-    })
-    .toBe(true);
 };
 
 const readReviewUserId = async (page: Page): Promise<string> =>
@@ -237,6 +180,19 @@ const seedReviewWorld = async (userId: string) => {
     tags: [],
     isArchived: false,
     isFavorite: false,
+    contractBaselineVersion: 2,
+    contractSourceRelease: {
+      releaseId: 'bze-282-browser-empty-release',
+      releaseVersion: 1,
+      releaseDigest: `sha256:${'8'.repeat(64)}`,
+    },
+    contractBaselineEffectiveAt: '2028-07-15T12:00:00-04:00',
+    contractBaselineSalaryCapYear: 2029,
+    contractBaselineCoverage: {
+      total: 0,
+      complete: 0,
+      needsInput: 0,
+    },
     stats: {
       totalTrades: 0,
       totalSignings: 0,
@@ -341,9 +297,6 @@ const openDashboardTab = async (page: Page, label: string) => {
   await tab.click();
 };
 
-const fullCapRegion = (page: Page): Locator =>
-  page.getByRole('region', { name: /^Full Cap Table$/i }).first();
-
 const extensionPlayerRow = (page: Page): Locator =>
   page.locator('[data-cap-fit-row]').filter({
     has: page
@@ -384,34 +337,19 @@ const openContractExtensionModal = async (page: Page) => {
   const modal = page.getByTestId('edit-contract-modal');
   await expect(modal).toBeVisible({ timeout: 20000 });
   await expect(modal.getByTestId('contract-modal-action-context')).toContainText(
-    /Extend Contract/i
+    /Extension Needs Input/i
   );
   await expect(modal.getByTestId('contract-modal-action-context')).toContainText(
     PLAYER_NAME
   );
-  await expect(modal.getByText(/^Extend Contract$/i).first()).toBeVisible();
+  await expect(
+    modal.getByText(/^Extension Needs Input$/i).first()
+  ).toBeVisible();
   await expect(modal.getByText(/Extend Contract \(Preview\)/i)).toHaveCount(0);
   await expect(modal.getByText(/Sign & Trade/i)).toHaveCount(0);
   await expect(page.getByLabel(/^Offer Sheet$/i)).toHaveCount(0);
 
   return modal;
-};
-
-const commitContractExtension = async (
-  modal: Locator,
-  worldId: string
-) => {
-  const extendRadio = modal.getByTestId('contract-action-extend');
-  await expect(extendRadio).toBeChecked();
-  await expect(extendRadio).toBeEnabled();
-
-  const confirmActionButton = modal.getByTestId(
-    'edit-contract-confirm-action-button'
-  );
-  await expect(confirmActionButton).toBeEnabled();
-  await confirmActionButton.click();
-  await expect(modal).toHaveCount(0, { timeout: 20000 });
-  await waitForExtensionEvent(worldId);
 };
 
 test.describe('ARCH-CONTRACT-EXTENSION: Full Cap saved-world proof', () => {
@@ -421,93 +359,53 @@ test.describe('ARCH-CONTRACT-EXTENSION: Full Cap saved-world proof', () => {
     await waitForMiaDashboard(page);
   });
 
-  test('MIA Full Cap row extends an eligible player, persists, and reloads', async ({
+  test('MIA Full Cap row fails closed without governed extension evidence and reloads unchanged', async ({
     page,
   }, testInfo: TestInfo) => {
     const worldId = await ensureWorldSelected(page);
+    const teamBefore = await getWorldTeamDocument(worldId, TEAM_CODE);
+    const eventsBefore = await getWorldEventDocuments(worldId);
 
     const modal = await openContractExtensionModal(page);
-    await commitContractExtension(modal, worldId);
-
-    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
-      /Extension saved/i,
-      { timeout: 20000 }
-    );
-
-    const persistedTeamDocument = await getWorldTeamDocument(worldId, TEAM_CODE);
-    expect(getTeamPlayerIds(persistedTeamDocument)).toContain(PLAYER_ID);
-    const extensionRows = getFutureContractRows(
-      persistedTeamDocument,
-      PLAYER_ID
-    ).filter((row) => row.isExtensionSeason === true);
-    expect(extensionRows.length).toBeGreaterThan(0);
-    expect(extensionRows[0]?.season).toBe('2030-31');
-
-    const extensionEvent = await getExtensionEvent(worldId);
-    expect(extensionEvent).toBeTruthy();
-    expect(JSON.stringify(extensionEvent)).toContain('extensionYears');
-
-    await openDashboardTab(page, 'Full Cap Table');
-    await expect(extensionPlayerRow(page).first()).toContainText(PLAYER_NAME);
-    await expect(fullCapRegion(page).getByText(/^2030-31$/).first()).toBeVisible();
-
-    await openDashboardTab(page, 'Roster');
-    const rosterRegion = page.getByRole('region', { name: /^Roster$/i });
+    const extendRadio = modal.getByTestId('contract-action-extend');
+    await expect(extendRadio).toBeChecked();
+    await expect(extendRadio).toBeDisabled();
+    await expect(modal.getByText(/Needs governed input/i).first()).toBeVisible();
     await expect(
-      rosterRegion.getByRole('button', { name: /Marcus Vance/i }).first()
+      modal.getByText(/No pinned governed Contract matches this player/i).first()
     ).toBeVisible();
+    await expect(
+      modal.getByTestId('edit-contract-confirm-action-button')
+    ).toBeDisabled();
+    await expect(
+      modal.getByTestId('edit-contract-confirm-action-button')
+    ).toHaveText(/Authoritative Preflight Pending/i);
+    await expect(modal.getByText(/Advanced: Override Validation/i)).toHaveCount(
+      0
+    );
 
-    await openDashboardTab(page, 'Team History');
-    await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
-    await expect(page.getByText(/Extension Signed/i).first()).toBeVisible();
-    await expect(page.getByText(/extendPlayer/i).first()).toBeVisible();
-
-    await openDashboardTab(page, 'Compare');
-    await expect(page.getByTestId('comparison-event-count')).toContainText(
-      /1\s+committed event/i,
-      { timeout: 20000 }
-    );
-    await expect(page.getByTestId('comparison-changed-teams')).toContainText(
-      /1\s+team changed/i
-    );
-    await expect(page.getByTestId('comparison-changed-players')).toContainText(
-      /1\s+player touched/i
-    );
-    await expect(page.getByTestId('comparison-roster-changed')).toContainText(
-      PLAYER_ID
-    );
-    await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
+    expect(await getExtensionEvent(worldId)).toBeUndefined();
+    expect(await getWorldTeamDocument(worldId, TEAM_CODE)).toEqual(teamBefore);
+    expect(await getWorldEventDocuments(worldId)).toEqual(eventsBefore);
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await waitForMiaDashboard(page);
     await ensureSpecificWorldSelected(page, worldId);
-    await openDashboardTab(page, 'Full Cap Table');
-    await expect(extensionPlayerRow(page).first()).toContainText(PLAYER_NAME);
-    await expect(fullCapRegion(page).getByText(/^2030-31$/).first()).toBeVisible();
-    await openDashboardTab(page, 'Roster');
-    const reloadedRosterRegion = page.getByRole('region', {
-      name: /^Roster$/i,
-    });
+    const reloadedModal = await openContractExtensionModal(page);
     await expect(
-      reloadedRosterRegion
-        .getByRole('button', { name: /Marcus Vance/i })
-        .first()
+      reloadedModal.getByTestId('edit-contract-confirm-action-button')
+    ).toBeDisabled();
+    await expect(
+      reloadedModal.getByText(/Needs governed input/i).first()
     ).toBeVisible();
-
-    const persistedTeamDocumentAfterReload = await getWorldTeamDocument(
-      worldId,
-      TEAM_CODE
-    );
-    expect(
-      getFutureContractRows(persistedTeamDocumentAfterReload, PLAYER_ID).some(
-        (row) => row.isExtensionSeason === true && row.season === '2030-31'
-      )
-    ).toBe(true);
+    expect(await getExtensionEvent(worldId)).toBeUndefined();
+    expect(await getWorldTeamDocument(worldId, TEAM_CODE)).toEqual(teamBefore);
+    expect(await getWorldEventDocuments(worldId)).toEqual(eventsBefore);
 
     testInfo.annotations.push({
       type: 'audit-note',
       description:
-        'MIA saved-world Full Cap Table row overflow extends extension-eligible Marcus Vance through the standard extendPlayer action, records futureContract extension rows, preserves roster membership, records History and Compare evidence, and reloads from the saved world.',
+        'MIA saved-world Full Cap Table extension fails closed when the pinned baseline lacks authenticated contract and league evidence; the action cannot be overridden, creates no event or team write, and remains blocked after reload.',
     });
   });
 });

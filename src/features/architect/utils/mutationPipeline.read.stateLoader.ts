@@ -12,6 +12,11 @@ import {
   getTeam,
   getPlayer,
 } from '@/features/architect/utils/teamLoader';
+import { getDoc } from 'firebase/firestore';
+import {
+  worldPlayerRef,
+  worldTeamRef,
+} from '@/features/architect/utils/architectFirestorePaths';
 import {
   normalizeContractForWorld,
   normalizeSalaryRow,
@@ -28,6 +33,7 @@ import {
 } from './mutationPipeline.read.normalizeTeam';
 import { loadWorldGovernedOptionAuthority } from '@/features/architect/utils/optionDecisions';
 import { loadWorldGovernedExtensionAuthority } from '@/features/architect/utils/extensions';
+import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
 
 // Wave 48 Step 1: lineage helpers extracted to submodule
 export * from './mutationPipeline.read.stateLoader.lineage';
@@ -499,6 +505,13 @@ export async function loadStateForMutation(
           'Governed extension requires teamCode, playerId, and contractId.'
         );
       }
+      // Capture the local documents before resolving hydrated/fallback state.
+      // A concurrent write between these reads can only make the later atomic
+      // digest comparison reject; it cannot bless stale computed state.
+      const [teamDocument, playerDocument] = await Promise.all([
+        getDoc(worldTeamRef(worldId, teamCode)),
+        getDoc(worldPlayerRef(worldId, teamCode, playerId)),
+      ]);
       const [team, player] = (await Promise.all([
         getTeam(worldId, teamCode),
         getPlayer(worldId, teamCode, playerId),
@@ -518,6 +531,18 @@ export async function loadStateForMutation(
         player: toCurrentStatePlayer(player),
         teamCode,
         extensionAuthority,
+        extensionTeamSnapshot: {
+          exists: teamDocument.exists(),
+          digest: teamDocument.exists()
+            ? mutationSnapshotDigest(teamDocument.data())
+            : null,
+        },
+        extensionPlayerSnapshot: {
+          exists: playerDocument.exists(),
+          digest: playerDocument.exists()
+            ? mutationSnapshotDigest(playerDocument.data())
+            : null,
+        },
       };
     }
 

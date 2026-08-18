@@ -223,6 +223,8 @@ export function computeExtensionResult({
     !payload.contractId ||
     !payload.extensionProposal ||
     !currentState.extensionAuthority ||
+    !currentState.extensionTeamSnapshot ||
+    !currentState.extensionPlayerSnapshot ||
     typeof asOfDate !== 'string' ||
     !worldId ||
     !operationId ||
@@ -232,7 +234,7 @@ export function computeExtensionResult({
     return {
       success: false,
       error:
-        'Governed extension requires the pinned Contract, retained extension evidence, an exact proposal and world date, and author provenance.',
+        'Governed extension requires the pinned Contract, retained extension evidence, exact source-snapshot receipts, an exact proposal and world date, and author provenance.',
     };
   }
   const result = decideGovernedExtension({
@@ -310,6 +312,12 @@ export function computeExtensionResult({
       expectedContractOverlaySetDigest: contractOverlaySetDigest(
         team.contractEventLedgers
       ),
+      expectedTeamSnapshotExists: currentState.extensionTeamSnapshot.exists,
+      expectedTeamSnapshotDigest: currentState.extensionTeamSnapshot.digest,
+      expectedPlayerSnapshotExists:
+        currentState.extensionPlayerSnapshot.exists,
+      expectedPlayerSnapshotDigest:
+        currentState.extensionPlayerSnapshot.digest,
       timestamp,
     },
   };

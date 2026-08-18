@@ -113,6 +113,9 @@ const COMMON_CANON_LEAVES = Object.freeze([
   'CBA2-C22.17',
   'CBA2-C22.18',
   'CBA2-C22.19',
+  'CBA2-C23.1',
+  'CBA2-C23.2',
+  'CBA2-C23.3',
   'CBA2-L02.1',
 ]);
 
@@ -503,10 +506,13 @@ function maximumAnnualSalary(
   yearsOfService: number,
   salaryCap: number,
   priorSalary: number,
-  higherMaxQualified: boolean
+  qualifiedHigherMaxPercentage: number | null
 ): number {
   const ordinaryPercent = yearsOfService < 7 ? 0.25 : yearsOfService < 10 ? 0.3 : 0.35;
-  const percent = higherMaxQualified && yearsOfService < 7 ? 0.3 : ordinaryPercent;
+  const percent =
+    qualifiedHigherMaxPercentage !== null && yearsOfService < 7
+      ? qualifiedHigherMaxPercentage / 100
+      : ordinaryPercent;
   return money(Math.max(salaryCap * percent, priorSalary * 1.05));
 }
 
@@ -599,6 +605,37 @@ function validateProposalShape(
       );
     }
     validateBonusIds(row, reasons);
+    const totalIncentives = totalBonuses(row.bonuses);
+    const unlikelyIncentives = row.bonuses
+      .filter((bonus) => bonus.classification === 'unlikely')
+      .reduce((sum, bonus) => sum + bonus.amount, 0);
+    if (exceeds(totalIncentives, row.regularSalary * 0.2)) {
+      reasons.push(
+        `${row.season} total Incentive Compensation exceeds 20% of Regular Salary.`
+      );
+    }
+    const signingSeason = toSeasonCode(evidence.league.signingSalaryCapYear);
+    const signingCompensation = evidence.contract.originalCompensation.find(
+      (original) => original.season === signingSeason
+    );
+    const signingYearUnlikely = signingCompensation
+      ? signingCompensation.bonuses
+          .filter((bonus) => bonus.classification === 'unlikely')
+          .reduce((sum, bonus) => sum + bonus.amount, 0)
+      : 0;
+    const grandfatheredFirstYearPercentage =
+      signingCompensation && signingCompensation.regularSalary > 0
+        ? signingYearUnlikely / signingCompensation.regularSalary
+        : 0;
+    const unlikelyPercentageCeiling =
+      index === 0
+        ? Math.max(0.15, grandfatheredFirstYearPercentage)
+        : 0.15;
+    if (exceeds(unlikelyIncentives, row.regularSalary * unlikelyPercentageCeiling)) {
+      reasons.push(
+        `${row.season} Unlikely Incentive Compensation exceeds ${(unlikelyPercentageCeiling * 100).toFixed(4)}% of Regular Salary.`
+      );
+    }
   });
   validateAnnualChanges(proposal, reasons);
 }
@@ -649,7 +686,6 @@ function validateRookieRoute(
     if (conditional < 25 || conditional > 30) {
       reasons.push('A conditional Higher Max percentage must be between 25% and 30%.');
     }
-    awardQualified(evidence.contract, reasons);
   }
   if (proposal.agreedDesignatedVeteranPercentage !== null) {
     reasons.push('A Rookie Scale Extension cannot use a Designated Veteran percentage election.');
@@ -952,16 +988,20 @@ export function decideGovernedExtension(
   if (!originalLast || yos === null) {
     reasons.push('Years of Service and final-original compensation are required.');
   }
-  const higherMax =
+  const higherMaxQualified =
+    proposal.route === 'rookie-scale' &&
     proposal.conditionalHigherMaxPercentage !== null &&
-    awardQualified(evidence.contract, reasons);
+    awardQualified(evidence.contract, []);
+  const qualifiedHigherMaxPercentage = higherMaxQualified
+    ? proposal.conditionalHigherMaxPercentage
+    : null;
   const applicableMaximum =
     originalLast && yos !== null
       ? maximumAnnualSalary(
           yos,
           evidence.league.salaryCap,
           compensationTotal(originalLast),
-          higherMax
+          qualifiedHigherMaxPercentage
         )
       : 0;
   if (proposal.route === 'rookie-scale') {
@@ -1061,6 +1101,21 @@ export function decideGovernedExtension(
         optionType:
           extensionRows.find((salary) => salary.option !== null)?.option ?? null,
       },
+      extensionHigherMax:
+        proposal.route === 'rookie-scale' &&
+        proposal.conditionalHigherMaxPercentage !== null
+          ? {
+              percentage: proposal.conditionalHigherMaxPercentage,
+              status: higherMaxQualified
+                ? 'qualified-at-signing'
+                : 'pending',
+              firstExtendedSalaryCapYear:
+                evidence.league.firstExtendedSalaryCapYear,
+              determinationId:
+                evidence.contract.awardEvidence.determinationId,
+              resolutionEventId: null,
+            }
+          : null,
     },
     evidence: [
       ...projection.contractState.evidence,

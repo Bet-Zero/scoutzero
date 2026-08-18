@@ -143,6 +143,54 @@ describe('EditContractModal buyout + close gating behavior', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('dispatches an optional Rookie Scale Higher Max clause as pending evidence', async () => {
+    const onExtend = vi.fn().mockResolvedValue({ success: true });
+    render(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2026}
+        initialAction="extend"
+        onExtend={onExtend}
+        extensionAvailability={{
+          status: 'ready',
+          playerId: 'p1',
+          contractId: 'contract-p1',
+          reasons: [],
+          suggestedRoute: 'rookie-scale',
+          allowedRoutes: ['rookie-scale'],
+          firstExtendedSeason: '2026-27',
+        }}
+      />
+    );
+
+    fireEvent.change(screen.getByTestId('governed-extension-signed-at'), {
+      target: { value: '2026-07-08T12:00:00-04:00' },
+    });
+    fireEvent.change(
+      await screen.findByTestId(
+        'governed-extension-higher-max-percentage'
+      ),
+      { target: { value: '30' } }
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: /confirm action/i })
+    );
+
+    await waitFor(() => {
+      expect(onExtend).toHaveBeenCalledWith(
+        PLAYER,
+        expect.objectContaining({
+          route: 'rookie-scale',
+          conditionalHigherMaxPercentage: 30,
+          agreedDesignatedVeteranPercentage: null,
+        })
+      );
+    });
+  });
+
   afterEach(() => {
     cleanup();
   });
