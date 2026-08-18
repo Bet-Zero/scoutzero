@@ -29,6 +29,8 @@ import {
   isGovernedPostCanonOfficialSourceRecord,
   type GovernedAuthority,
   type GovernedCalendarDate,
+  type GovernedPostCanonOfficialCertification,
+  type GovernedPostCanonOfficialSourceRecord,
   type GovernedSeasonCalendarRecord,
   type GovernedSeasonRegistry,
   type GovernedSourceAuthorityClass,
@@ -151,21 +153,17 @@ export interface GovernedManifestCalendar {
   readonly sourceAuthorityClass: GovernedSourceAuthorityClass;
 }
 
-/** Exact post-Canon source lineage actually consumed by one result. */
-export interface GovernedManifestPostCanonSource {
-  readonly sourceRecordId: string;
-  readonly sourceRecordVersion: number;
-  readonly identity: string;
-  readonly officialUrl: string;
-  readonly artifactSha256: string;
-  readonly artifactByteSize: number;
-  readonly certificationRecordId: string;
-  readonly certificationRecordVersion: number;
-  readonly authorityScope: 'time-varying-factual-input-only';
-  readonly retainedArtifactPath: string;
-  readonly retainedArtifactSha256: string;
-  readonly retainedArtifactByteSize: number;
-}
+/**
+ * Exact post-Canon source lineage actually consumed by one result. Keeping this
+ * type derived from both registry contracts makes a newly added authorizing
+ * field a compile-time requirement for the manifest instead of an optional
+ * verifier follow-up.
+ */
+export type GovernedManifestPostCanonSource = Omit<
+  GovernedPostCanonOfficialSourceRecord,
+  'postCanonCertification'
+> &
+  GovernedPostCanonOfficialCertification;
 
 /**
  * The exact inputs a complete result was computed from. Frozen on creation: a
@@ -295,16 +293,39 @@ function postCanonManifestSourceFor(
   return Object.freeze({
     sourceRecordId: source.sourceRecordId,
     sourceRecordVersion: source.sourceRecordVersion,
+    provenanceType: source.provenanceType,
     identity: source.identity,
+    sourceDateBasis: source.sourceDateBasis,
     officialUrl: source.officialUrl,
     artifactSha256: source.artifactSha256,
     artifactByteSize: source.artifactByteSize,
+    retrievalTimestamp: source.retrievalTimestamp,
+    authenticationTimestamp: source.authenticationTimestamp,
+    verifierIdentity: source.verifierIdentity,
+    verificationSessionId: source.verificationSessionId,
+    verificationDate: source.verificationDate,
+    recordLimitations: source.recordLimitations,
+    recordStatus: source.recordStatus,
+    canonLocator: source.canonLocator,
     certificationRecordId: certification.certificationRecordId,
     certificationRecordVersion: certification.certificationRecordVersion,
     authorityScope: certification.authorityScope,
+    publicationDate: certification.publicationDate,
+    firstPartyHost: certification.firstPartyHost,
     retainedArtifactPath: certification.retainedArtifactPath,
     retainedArtifactSha256: certification.retainedArtifactSha256,
     retainedArtifactByteSize: certification.retainedArtifactByteSize,
+    matchingFirstPartyRetrievalCount:
+      certification.matchingFirstPartyRetrievalCount,
+    matchingRetrievalDate: certification.matchingRetrievalDate,
+    exactFields: Object.freeze(
+      certification.exactFields.map((field) => Object.freeze({ ...field }))
+    ),
+    supersedesCertificationRecordVersion:
+      certification.supersedesCertificationRecordVersion,
+    gateHistory: Object.freeze(
+      certification.gateHistory.map((entry) => Object.freeze({ ...entry }))
+    ),
   });
 }
 
@@ -889,6 +910,46 @@ function changedFieldsFor(
     .map(([field]) => field);
 }
 
+function canonicalRetainedContent(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalRetainedContent);
+  if (value == null || typeof value !== 'object') return value;
+
+  return Object.fromEntries(
+    Object.entries(value as Readonly<Record<string, unknown>>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, nestedValue]) => [
+        key,
+        canonicalRetainedContent(nestedValue),
+      ])
+  );
+}
+
+/** Compare every retained field, including nested certification arrays. */
+function changedPostCanonSourceFields(
+  retained: GovernedManifestPostCanonSource,
+  current: GovernedManifestPostCanonSource | null
+): string[] {
+  const retainedRecord = retained as unknown as Readonly<
+    Record<string, unknown>
+  >;
+  const currentRecord = (current ?? {}) as unknown as Readonly<
+    Record<string, unknown>
+  >;
+  return [
+    ...new Set([...Object.keys(retained), ...Object.keys(currentRecord)]),
+  ]
+    .sort()
+    .filter(
+      (field) =>
+        JSON.stringify(
+          canonicalRetainedContent(retainedRecord[field])
+        ) !==
+        JSON.stringify(
+          canonicalRetainedContent(currentRecord[field])
+        )
+    );
+}
+
 /**
  * Check a retained manifest against a registry without changing the manifest.
  *
@@ -907,6 +968,30 @@ export function verifyGovernedInputManifest(
   manifest: GovernedVerifiableInputManifest,
   registry: GovernedSeasonRegistry = CANON_GOVERNED_SEASON_REGISTRY
 ): GovernedManifestVerification {
+  const runtimeManifestVersion: unknown = (
+    manifest as { readonly manifestVersion?: unknown }
+  ).manifestVersion;
+  if (runtimeManifestVersion !== 1 && runtimeManifestVersion !== 2) {
+    const driftVersion =
+      typeof runtimeManifestVersion === 'number' &&
+      Number.isFinite(runtimeManifestVersion)
+        ? runtimeManifestVersion
+        : -1;
+    return Object.freeze({
+      state: 'content-mismatch' as const,
+      driftedInputs: Object.freeze([
+        Object.freeze({
+          inputId: 'manifest-version',
+          recordId: 'governed-input-manifest',
+          recordVersion: driftVersion,
+          kind: 'content-changed' as const,
+          reason: `Manifest version ${String(runtimeManifestVersion)} is unsupported; only versions 1 and 2 may be verified.`,
+          changedFields: Object.freeze(['manifestVersion']),
+        }),
+      ]),
+    });
+  }
+
   if (
     manifest.registry.registryId !== registry.registryId ||
     manifest.registry.canonCandidateCommit !== registry.canonCandidateCommit ||
@@ -1141,59 +1226,19 @@ export function verifyGovernedInputManifest(
       }
 
       const currentManifestSource = postCanonManifestSourceFor(currentSource);
-      const changedFields = changedFieldsFor([
-        [
-          'authorityClass',
-          'post-canon-official',
-          governedSourceAuthorityClass(currentSource),
-        ],
-        ['identity', retainedSource.identity, currentManifestSource?.identity],
-        [
-          'officialUrl',
-          retainedSource.officialUrl,
-          currentManifestSource?.officialUrl,
-        ],
-        [
-          'artifactSha256',
-          retainedSource.artifactSha256,
-          currentManifestSource?.artifactSha256,
-        ],
-        [
-          'artifactByteSize',
-          retainedSource.artifactByteSize,
-          currentManifestSource?.artifactByteSize,
-        ],
-        [
-          'certificationRecordId',
-          retainedSource.certificationRecordId,
-          currentManifestSource?.certificationRecordId,
-        ],
-        [
-          'certificationRecordVersion',
-          retainedSource.certificationRecordVersion,
-          currentManifestSource?.certificationRecordVersion,
-        ],
-        [
-          'authorityScope',
-          retainedSource.authorityScope,
-          currentManifestSource?.authorityScope,
-        ],
-        [
-          'retainedArtifactPath',
-          retainedSource.retainedArtifactPath,
-          currentManifestSource?.retainedArtifactPath,
-        ],
-        [
-          'retainedArtifactSha256',
-          retainedSource.retainedArtifactSha256,
-          currentManifestSource?.retainedArtifactSha256,
-        ],
-        [
-          'retainedArtifactByteSize',
-          retainedSource.retainedArtifactByteSize,
-          currentManifestSource?.retainedArtifactByteSize,
-        ],
-      ]);
+      const changedFields = [
+        ...changedFieldsFor([
+          [
+            'authorityClass',
+            'post-canon-official',
+            governedSourceAuthorityClass(currentSource),
+          ],
+        ]),
+        ...changedPostCanonSourceFields(
+          retainedSource,
+          currentManifestSource
+        ),
+      ];
       if (changedFields.length > 0) {
         drifted.push({
           inputId: `source:${retainedSource.sourceRecordId}`,

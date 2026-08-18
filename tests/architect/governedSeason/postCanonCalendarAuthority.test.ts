@@ -98,6 +98,150 @@ function asLegacyManifest(
   };
 }
 
+function manifestWithPostCanonSourceMutation(
+  manifest: GovernedInputManifest,
+  path: readonly (string | number)[],
+  value: unknown
+): GovernedInputManifest {
+  const altered = JSON.parse(JSON.stringify(manifest)) as GovernedInputManifest;
+  let target: unknown = altered.postCanonSources[0];
+
+  path.slice(0, -1).forEach((segment) => {
+    target = (target as Record<string | number, unknown>)[segment];
+  });
+  (target as Record<string | number, unknown>)[path[path.length - 1]] = value;
+
+  return altered;
+}
+
+const CERTIFICATION_CONTENT_MUTATIONS: readonly {
+  readonly label: string;
+  readonly changedField: string;
+  readonly path: readonly (string | number)[];
+  readonly value: unknown;
+}[] = [
+  {
+    label: 'certification record identity',
+    changedField: 'certificationRecordId',
+    path: ['certificationRecordId'],
+    value: 'POSTCANON-CERT-ALTERED',
+  },
+  {
+    label: 'certification record version',
+    changedField: 'certificationRecordVersion',
+    path: ['certificationRecordVersion'],
+    value: 2,
+  },
+  {
+    label: 'authority scope',
+    changedField: 'authorityScope',
+    path: ['authorityScope'],
+    value: 'cba-rule-authority',
+  },
+  {
+    label: 'publication date',
+    changedField: 'publicationDate',
+    path: ['publicationDate'],
+    value: '2026-08-14',
+  },
+  {
+    label: 'first-party host',
+    changedField: 'firstPartyHost',
+    path: ['firstPartyHost'],
+    value: 'example.com',
+  },
+  {
+    label: 'retained artifact path',
+    changedField: 'retainedArtifactPath',
+    path: ['retainedArtifactPath'],
+    value: 'test-only/altered.html',
+  },
+  {
+    label: 'retained artifact hash',
+    changedField: 'retainedArtifactSha256',
+    path: ['retainedArtifactSha256'],
+    value: 'aa'.repeat(32),
+  },
+  {
+    label: 'retained artifact size',
+    changedField: 'retainedArtifactByteSize',
+    path: ['retainedArtifactByteSize'],
+    value: ARTIFACT_SIZE + 1,
+  },
+  {
+    label: 'matching retrieval count',
+    changedField: 'matchingFirstPartyRetrievalCount',
+    path: ['matchingFirstPartyRetrievalCount'],
+    value: 3,
+  },
+  {
+    label: 'matching retrieval date',
+    changedField: 'matchingRetrievalDate',
+    path: ['matchingRetrievalDate'],
+    value: '2026-08-18',
+  },
+  {
+    label: 'exact field identity',
+    changedField: 'exactFields',
+    path: ['exactFields', 0, 'fieldId'],
+    value: 'alteredOpening',
+  },
+  {
+    label: 'exact relied-upon text',
+    changedField: 'exactFields',
+    path: ['exactFields', 0, 'sourceText'],
+    value: 'altered source text',
+  },
+  {
+    label: 'normalized field value',
+    changedField: 'exactFields',
+    path: ['exactFields', 0, 'normalizedValue'],
+    value: '2026-10-21',
+  },
+  {
+    label: 'certification supersession identity',
+    changedField: 'supersedesCertificationRecordVersion',
+    path: ['supersedesCertificationRecordVersion'],
+    value: 0,
+  },
+  {
+    label: 'gate-history artifact hash',
+    changedField: 'gateHistory',
+    path: ['gateHistory', 0, 'artifactSha256'],
+    value: 'bb'.repeat(32),
+  },
+  {
+    label: 'gate-history artifact size',
+    changedField: 'gateHistory',
+    path: ['gateHistory', 0, 'artifactByteSize'],
+    value: 1,
+  },
+  {
+    label: 'gate-history capture date',
+    changedField: 'gateHistory',
+    path: ['gateHistory', 0, 'capturedOn'],
+    value: '2026-08-16',
+  },
+  {
+    label: 'gate-history byte-retention state',
+    changedField: 'gateHistory',
+    path: ['gateHistory', 0, 'bytesRetained'],
+    value: true,
+  },
+  {
+    label: 'gate-history runtime authority',
+    changedField: 'gateHistory',
+    path: ['gateHistory', 0, 'runtimeAuthority'],
+    value: 'official',
+  },
+  {
+    label: 'gate-history disposition',
+    changedField: 'gateHistory',
+    path: ['gateHistory', 0, 'disposition'],
+    value: 'current',
+  },
+];
+
 describe('BZE-280 retained first-party artifact', () => {
   it('retains the exact authorized NBA Communications bytes and relied-upon text', () => {
     const bytes = readFileSync(resolve(process.cwd(), ARTIFACT_PATH));
@@ -141,6 +285,9 @@ describe('BZE-280 retained first-party artifact', () => {
 
   it('deep-freezes the post-Canon certification and its retained field history', () => {
     const source = shippedPostCanonSource();
+    const manifestSource =
+      resolveGovernedSeasonEnvelope(REQUEST_2027).inputManifest!
+        .postCanonSources[0];
 
     expect(Object.isFrozen(source)).toBe(true);
     expect(Object.isFrozen(source.postCanonCertification)).toBe(true);
@@ -153,6 +300,11 @@ describe('BZE-280 retained first-party artifact', () => {
     expect(Object.isFrozen(source.postCanonCertification.gateHistory)).toBe(
       true
     );
+    expect(Object.isFrozen(manifestSource)).toBe(true);
+    expect(Object.isFrozen(manifestSource.exactFields)).toBe(true);
+    expect(Object.isFrozen(manifestSource.exactFields[0])).toBe(true);
+    expect(Object.isFrozen(manifestSource.gateHistory)).toBe(true);
+    expect(Object.isFrozen(manifestSource.gateHistory[0])).toBe(true);
   });
 });
 
@@ -198,10 +350,17 @@ describe('BZE-280 governed Salary Cap Year 2027 activation', () => {
             'https://pr.nba.com/2026-27-nba-regular-season-schedule/',
           artifactSha256: ARTIFACT_SHA256,
           artifactByteSize: ARTIFACT_SIZE,
+          publicationDate: '2026-08-13',
+          firstPartyHost: 'pr.nba.com',
+          verifierIdentity: 'agent:codex',
+          recordStatus: 'current',
+          canonLocator: null,
           authorityScope: 'time-varying-factual-input-only',
           retainedArtifactPath: ARTIFACT_PATH,
           retainedArtifactSha256: ARTIFACT_SHA256,
           retainedArtifactByteSize: ARTIFACT_SIZE,
+          matchingFirstPartyRetrievalCount: 2,
+          matchingRetrievalDate: '2026-08-17',
         },
       ],
     });
@@ -383,6 +542,62 @@ describe('BZE-280 post-Canon authority fail-closed boundary', () => {
     ).toEqual(expect.arrayContaining(['sourceAuthorityClass']));
   });
 
+  it('detects a certification publication-date change even when the calendar changes consistently', () => {
+    const originalManifest =
+      resolveGovernedSeasonEnvelope(REQUEST_2027).inputManifest!;
+    const source = shippedPostCanonSource();
+    const calendar = shipped2027Calendar();
+    const alteredPublicationDate = '2026-08-14';
+    const alteredSource: GovernedPostCanonOfficialSourceRecord = {
+      ...source,
+      sourceDateBasis: `publication:${alteredPublicationDate}`,
+      postCanonCertification: {
+        ...source.postCanonCertification,
+        publicationDate: alteredPublicationDate,
+      },
+    };
+    const alteredRegistry = registryWithPostCanonSource(
+      alteredSource,
+      CANON_GOVERNED_SEASON_REGISTRY.calendars.map((candidate) =>
+        candidate.recordId === calendar.recordId
+          ? { ...calendar, publicationDate: alteredPublicationDate }
+          : candidate
+      )
+    );
+
+    const verification = verifyGovernedInputManifest(
+      originalManifest,
+      alteredRegistry
+    );
+
+    expect(verification.state).toBe('content-mismatch');
+    expect(
+      verification.driftedInputs.flatMap((entry) => entry.changedFields)
+    ).toEqual(
+      expect.arrayContaining(['sourceDateBasis', 'publicationDate'])
+    );
+  });
+
+  it.each(CERTIFICATION_CONTENT_MUTATIONS)(
+    'fails closed when retained $label changes',
+    ({ changedField, path, value }) => {
+      const manifest =
+        resolveGovernedSeasonEnvelope(REQUEST_2027).inputManifest!;
+      const altered = manifestWithPostCanonSourceMutation(
+        manifest,
+        path,
+        value
+      );
+
+      const verification = verifyGovernedInputManifest(altered);
+
+      expect(verification.state).toBe('content-mismatch');
+      expect(
+        verification.driftedInputs.flatMap((entry) => entry.changedFields)
+      ).toContain(changedField);
+    }
+  );
+
   it('keeps legacy Canon-only manifests verifiable but never lets v1 authorize post-Canon evidence', () => {
     const fixtureRegistry = completeFixtureRegistry();
     const canonOnlyManifest = resolveGovernedSeasonEnvelope({
@@ -406,6 +621,38 @@ describe('BZE-280 post-Canon authority fail-closed boundary', () => {
       rejectedPostCanon.driftedInputs.flatMap((entry) => entry.changedFields)
     ).toContain('manifestVersion');
   });
+
+  it.each([0, 3])(
+    'rejects unsupported manifest version %i before v1 compatibility handling',
+    (manifestVersion) => {
+      const fixtureRegistry = completeFixtureRegistry();
+      const canonOnlyManifest = resolveGovernedSeasonEnvelope({
+        asOfDate: FIXTURE_AS_OF_DATE,
+        salaryCapYear: FIXTURE_SALARY_CAP_YEAR,
+        requiredAuthority: 'official',
+        team: FIXTURE_TEAM,
+        registry: fixtureRegistry,
+      }).inputManifest!;
+      const unsupported = {
+        ...asLegacyManifest(canonOnlyManifest),
+        manifestVersion,
+      } as unknown as GovernedInputManifestV1;
+
+      const verification = verifyGovernedInputManifest(
+        unsupported,
+        fixtureRegistry
+      );
+
+      expect(verification.state).toBe('content-mismatch');
+      expect(verification.driftedInputs).toHaveLength(1);
+      expect(verification.driftedInputs[0]).toMatchObject({
+        inputId: 'manifest-version',
+        recordVersion: manifestVersion,
+        kind: 'content-changed',
+        changedFields: ['manifestVersion'],
+      });
+    }
+  );
 });
 
 describe('BZE-280 append-only source revision behavior', () => {
