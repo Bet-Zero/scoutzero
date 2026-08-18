@@ -14,6 +14,22 @@ import { parseProbeArguments } from '../../scripts/review/runExactHeadProbe.ts';
 
 const repoRoot = process.cwd();
 
+function assertAppearsInOrder(
+  content: string,
+  markers: readonly string[],
+  label: string
+) {
+  const normalizedContent = content.replace(/\s+/g, ' ');
+  let cursor = -1;
+  for (const marker of markers) {
+    const normalizedMarker = marker.replace(/\s+/g, ' ');
+    const next = normalizedContent.indexOf(normalizedMarker, cursor + 1);
+    assert.notEqual(next, -1, `${label} is missing: ${marker}`);
+    assert.ok(next > cursor, `${label} is out of order at: ${marker}`);
+    cursor = next;
+  }
+}
+
 test('accepted Canon lookup returns exact leaves, scenarios, and provenance', () => {
   const cases = [
     ['CBA2-A02.14', 'CBA2-SC-002(b)', 'EV2-0018'],
@@ -75,6 +91,105 @@ test('accepted Canon documentation and durable ref match the runtime pin', () =>
     0,
     reachability.stderr ||
       'accepted candidate is not on the durable authority ref'
+  );
+});
+
+test('Phase 3A policy binds freeze to tranche-specific author review', () => {
+  const profile = fs.readFileSync(
+    path.join(repoRoot, 'docs/agent-guides/phase3a-execution.md'),
+    'utf8'
+  );
+
+  assert.match(profile, /focused failure-testing matrix/);
+  assert.match(
+    profile,
+    /incorrectly authorize, calculate, mutate, persist, or report/
+  );
+  assert.match(profile, /do not impose one enormous generic mutation checklist/);
+  assert.match(profile, /Select the largest coherent, independently reviewable/);
+  assertAppearsInOrder(
+    profile,
+    [
+      'Complete the focused author failure-testing matrix',
+      'Let every started available automated review complete',
+      'resolve or disprove every finding it produced',
+      'Declare the candidate frozen only when author review is complete',
+    ],
+    'pre-freeze author and automated review policy'
+  );
+});
+
+test('Phase 3A policy retains mutable governed bytes before certification', () => {
+  const profile = fs.readFileSync(
+    path.join(repoRoot, 'docs/agent-guides/phase3a-execution.md'),
+    'utf8'
+  );
+
+  assertAppearsInOrder(
+    profile,
+    [
+      'Retrieve the source twice',
+      'Retain those exact bytes in the governed content-addressed location',
+      'Recompute and verify the hash and size from the retained copy',
+      'Verify that the retained copy is independently recoverable',
+      'Only then present its fingerprint for owner certification',
+    ],
+    'mutable-source certification policy'
+  );
+  assert.match(
+    profile,
+    /not already retained and recoverable, stop the authority\ngate before owner certification/
+  );
+});
+
+test('Phase 3A policy settles automated review and exact-head CI before Claude', () => {
+  const profile = fs.readFileSync(
+    path.join(repoRoot, 'docs/agent-guides/phase3a-execution.md'),
+    'utf8'
+  );
+  const template = fs.readFileSync(
+    path.join(repoRoot, '.github/pull_request_template.md'),
+    'utf8'
+  );
+
+  assertAppearsInOrder(
+    profile,
+    [
+      'Open the draft PR as soon as it has a reviewable diff',
+      'Start available automated review while author work and self-review are still underway',
+      'Declare the candidate frozen only when author review is complete',
+      'only the green hosted CI receipt for the frozen final head counts as required evidence',
+      'Only then generate the immutable independent-Claude prompt',
+      'Any subsequent head change invalidates that prompt',
+    ],
+    'automated-review, freeze, CI, and Claude policy'
+  );
+  assert.match(
+    profile,
+    /unavailable or rate-limited does not\nblock the lane indefinitely/
+  );
+  assert.match(
+    profile,
+    /A review that has started but remains pending is not settled/
+  );
+  assert.match(profile, /Draft PR checks may start automatically before freeze/);
+  assert.match(template, /Draft review and freeze record/);
+  assert.match(
+    template,
+    /failure-testing matrix derived from this tranche's risk contract/
+  );
+  assertAppearsInOrder(
+    template,
+    [
+      'Available automated reviewers started while the PR was draft',
+      'Every started automated review completed, or its unavailability/rate limit is recorded',
+      'Author review is complete and every available automated-review finding is settled',
+      'Candidate was frozen only after the preceding author and automated-review work',
+      'Required hosted CI is green on the final exact head',
+      'Immutable Claude prompt was generated only after that exact-head CI was green',
+      'No head change followed the Claude prompt, or every stale prompt was invalidated and replaced',
+    ],
+    'pull request freeze and Claude evidence order'
   );
 });
 
