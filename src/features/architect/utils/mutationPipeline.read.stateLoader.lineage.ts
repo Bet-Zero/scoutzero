@@ -17,6 +17,7 @@ import {
   worldTeamRef,
   worldPlayerRef,
 } from '@/features/architect/utils/architectFirestorePaths';
+import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
 import {
   findPlayerInTeamPlayers,
   getMutationRosterEntryId,
@@ -306,6 +307,7 @@ export async function getFirstExplicitWorldTeamSnapshotFromLineage(
       }
       return {
         snapshotWorldId: lineageWorldId,
+        snapshotDigest: mutationSnapshotDigest(snapshot.data()),
         team: normalizedTeam,
       };
     }
@@ -332,6 +334,7 @@ export async function getFirstExplicitWorldPlayerOverrideFromLineage(
       }
       return {
         overrideWorldId: lineageWorldId,
+        snapshotDigest: mutationSnapshotDigest(overrideSnapshot.data()),
         player: normalizedPlayer,
       };
     }

@@ -332,8 +332,12 @@ export type ArchitectWorldMutationHistoryMetadata = {
   extensionYears?: number;
   expectedTeamSnapshotExists?: boolean;
   expectedTeamSnapshotDigest?: string | null;
+  expectedTeamSourceWorldId?: string | null;
+  expectedTeamSourceSnapshotDigest?: string | null;
   expectedPlayerSnapshotExists?: boolean;
   expectedPlayerSnapshotDigest?: string | null;
+  expectedPlayerSourceWorldId?: string | null;
+  expectedPlayerSourceSnapshotDigest?: string | null;
   optionType?: string;
   accepted?: boolean;
   contract: ArchitectWorldMutationContractSummary;

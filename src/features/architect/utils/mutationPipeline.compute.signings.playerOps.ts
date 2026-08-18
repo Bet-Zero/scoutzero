@@ -26,6 +26,7 @@ import {
 import type {
   ComputeMutationParamsWithCurrentState,
   ComputeResultLike,
+  MutationDocumentSnapshotReceipt,
   MutationPayloadInputByType,
   MutationTeamAndPlayerCurrentState,
 } from './mutationPipeline';
@@ -39,6 +40,30 @@ import {
   applyGovernedExtensionResult,
   decideGovernedExtension,
 } from '@/features/architect/utils/extensions';
+
+function isExactExtensionSnapshotReceipt(
+  receipt: MutationTeamAndPlayerCurrentState['extensionTeamSnapshot'],
+  worldId: string | undefined
+): receipt is MutationDocumentSnapshotReceipt {
+  if (!receipt || !worldId) return false;
+  if (receipt.exists) {
+    return (
+      typeof receipt.digest === 'string' &&
+      receipt.digest.length > 0 &&
+      receipt.sourceWorldId === worldId &&
+      receipt.sourceDigest === receipt.digest
+    );
+  }
+  if (receipt.digest !== null) return false;
+  if (receipt.sourceWorldId === null) return receipt.sourceDigest === null;
+  return (
+    typeof receipt.sourceWorldId === 'string' &&
+    receipt.sourceWorldId.trim().length > 0 &&
+    receipt.sourceWorldId !== worldId &&
+    typeof receipt.sourceDigest === 'string' &&
+    receipt.sourceDigest.length > 0
+  );
+}
 
 export function computeWaiveResult({
   payload,
@@ -223,8 +248,14 @@ export function computeExtensionResult({
     !payload.contractId ||
     !payload.extensionProposal ||
     !currentState.extensionAuthority ||
-    !currentState.extensionTeamSnapshot ||
-    !currentState.extensionPlayerSnapshot ||
+    !isExactExtensionSnapshotReceipt(
+      currentState.extensionTeamSnapshot,
+      worldId
+    ) ||
+    !isExactExtensionSnapshotReceipt(
+      currentState.extensionPlayerSnapshot,
+      worldId
+    ) ||
     typeof asOfDate !== 'string' ||
     !worldId ||
     !operationId ||
@@ -234,7 +265,7 @@ export function computeExtensionResult({
     return {
       success: false,
       error:
-        'Governed extension requires the pinned Contract, retained extension evidence, exact source-snapshot receipts, an exact proposal and world date, and author provenance.',
+        'Governed extension requires the pinned Contract, retained extension evidence, exact local and fallback source-snapshot receipts, an exact proposal and world date, and author provenance.',
     };
   }
   const result = decideGovernedExtension({
@@ -310,16 +341,22 @@ export function computeExtensionResult({
       expectedContractOverlayLedgerVersion:
         result.expectedContractLedger.overlayLedgerVersion,
       expectedContractOverlaySetDigest: contractOverlaySetDigest(
-        currentState.extensionTeamSnapshot.exists
-          ? team.contractEventLedgers
-          : []
+        team.contractEventLedgers
       ),
       expectedTeamSnapshotExists: currentState.extensionTeamSnapshot.exists,
       expectedTeamSnapshotDigest: currentState.extensionTeamSnapshot.digest,
+      expectedTeamSourceWorldId:
+        currentState.extensionTeamSnapshot.sourceWorldId,
+      expectedTeamSourceSnapshotDigest:
+        currentState.extensionTeamSnapshot.sourceDigest,
       expectedPlayerSnapshotExists:
         currentState.extensionPlayerSnapshot.exists,
       expectedPlayerSnapshotDigest:
         currentState.extensionPlayerSnapshot.digest,
+      expectedPlayerSourceWorldId:
+        currentState.extensionPlayerSnapshot.sourceWorldId,
+      expectedPlayerSourceSnapshotDigest:
+        currentState.extensionPlayerSnapshot.sourceDigest,
       timestamp,
     },
   };

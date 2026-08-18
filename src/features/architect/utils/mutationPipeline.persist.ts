@@ -365,6 +365,7 @@ export async function persistWorldMutation({
           const currentTeamData = currentTeamExists
             ? currentTeamSnapshot.data()
             : {};
+          let contractSourceTeamData = currentTeamData;
           if (mutationType === 'renounceRights') {
             const expected = expectedRightsLedgersByTeam[normalizedTeamCode];
             if (!expected) {
@@ -407,6 +408,56 @@ export async function persistWorldMutation({
                   `Team snapshot for ${normalizedTeamCode} changed before commit. Reload and try again.`
                 );
               }
+              const teamSourceWorldIdValue =
+                metadata.expectedTeamSourceWorldId;
+              const expectedTeamSourceWorldId =
+                teamSourceWorldIdValue === null
+                  ? null
+                  : typeof teamSourceWorldIdValue === 'string'
+                    ? teamSourceWorldIdValue.trim()
+                    : undefined;
+              const expectedTeamSourceDigest =
+                metadata.expectedTeamSourceSnapshotDigest;
+              if (
+                expectedTeamSourceWorldId === undefined ||
+                (expectedTeamSourceWorldId === null &&
+                  expectedTeamSourceDigest !== null) ||
+                (expectedTeamSourceWorldId !== null &&
+                  (expectedTeamSourceWorldId.length === 0 ||
+                    typeof expectedTeamSourceDigest !== 'string' ||
+                    expectedTeamSourceDigest.length === 0)) ||
+                (expectedTeamExists && expectedTeamSourceWorldId !== worldId) ||
+                (!expectedTeamExists && expectedTeamSourceWorldId === worldId) ||
+                (expectedTeamExists &&
+                  expectedTeamSourceDigest !== expectedTeamDigest)
+              ) {
+                throw new Error(
+                  `Extension is missing the exact team-source receipt for ${normalizedTeamCode}.`
+                );
+              }
+              if (
+                expectedTeamSourceWorldId !== null &&
+                expectedTeamSourceWorldId !== worldId
+              ) {
+                const sourceTeamSnapshot = await transaction.get(
+                  worldTeamRef(
+                    expectedTeamSourceWorldId,
+                    normalizedTeamCode
+                  )
+                );
+                if (
+                  !sourceTeamSnapshot.exists() ||
+                  mutationSnapshotDigest(sourceTeamSnapshot.data()) !==
+                    expectedTeamSourceDigest
+                ) {
+                  throw new Error(
+                    `Inherited team snapshot for ${normalizedTeamCode} changed before commit. Reload and try again.`
+                  );
+                }
+                contractSourceTeamData = sourceTeamSnapshot.data();
+              } else if (expectedTeamSourceWorldId === null) {
+                contractSourceTeamData = {};
+              }
 
               const expectedPlayerExists =
                 metadata.expectedPlayerSnapshotExists;
@@ -441,6 +492,56 @@ export async function persistWorldMutation({
                   `Player snapshot for ${expectedPlayerId} changed before commit. Reload and try again.`
                 );
               }
+              const playerSourceWorldIdValue =
+                metadata.expectedPlayerSourceWorldId;
+              const expectedPlayerSourceWorldId =
+                playerSourceWorldIdValue === null
+                  ? null
+                  : typeof playerSourceWorldIdValue === 'string'
+                    ? playerSourceWorldIdValue.trim()
+                    : undefined;
+              const expectedPlayerSourceDigest =
+                metadata.expectedPlayerSourceSnapshotDigest;
+              if (
+                expectedPlayerSourceWorldId === undefined ||
+                (expectedPlayerSourceWorldId === null &&
+                  expectedPlayerSourceDigest !== null) ||
+                (expectedPlayerSourceWorldId !== null &&
+                  (expectedPlayerSourceWorldId.length === 0 ||
+                    typeof expectedPlayerSourceDigest !== 'string' ||
+                    expectedPlayerSourceDigest.length === 0)) ||
+                (expectedPlayerExists &&
+                  expectedPlayerSourceWorldId !== worldId) ||
+                (!expectedPlayerExists &&
+                  expectedPlayerSourceWorldId === worldId) ||
+                (expectedPlayerExists &&
+                  expectedPlayerSourceDigest !== expectedPlayerDigest)
+              ) {
+                throw new Error(
+                  `Extension is missing the exact player-source receipt for ${expectedPlayerId}.`
+                );
+              }
+              if (
+                expectedPlayerSourceWorldId !== null &&
+                expectedPlayerSourceWorldId !== worldId
+              ) {
+                const sourcePlayerSnapshot = await transaction.get(
+                  worldPlayerRef(
+                    expectedPlayerSourceWorldId,
+                    normalizedTeamCode,
+                    expectedPlayerId
+                  )
+                );
+                if (
+                  !sourcePlayerSnapshot.exists() ||
+                  mutationSnapshotDigest(sourcePlayerSnapshot.data()) !==
+                    expectedPlayerSourceDigest
+                ) {
+                  throw new Error(
+                    `Inherited player snapshot for ${expectedPlayerId} changed before commit. Reload and try again.`
+                  );
+                }
+              }
             }
             const expectedLedgerId = String(
               metadata.expectedContractLedgerId || ''
@@ -457,8 +558,10 @@ export async function persistWorldMutation({
                 `${mutationType === 'extendPlayer' ? 'Extension' : 'Option decision'} is missing the expected contract-ledger reference for ${normalizedTeamCode}.`
               );
             }
-            const overlays = Array.isArray(currentTeamData.contractEventLedgers)
-              ? currentTeamData.contractEventLedgers
+            const overlays = Array.isArray(
+              contractSourceTeamData.contractEventLedgers
+            )
+              ? contractSourceTeamData.contractEventLedgers
               : [];
             const expectedOverlaySetDigest =
               metadata.expectedContractOverlaySetDigest;
@@ -484,9 +587,7 @@ export async function persistWorldMutation({
                   `Contract history for ${normalizedTeamCode} changed before commit. Reload and try again.`
                 );
               }
-            } else if (
-              !(mutationType === 'extendPlayer' && !currentTeamExists)
-            ) {
+            } else {
               if (!Number.isInteger(expectedOverlayVersion)) {
                 throw new Error(
                   `${mutationType === 'extendPlayer' ? 'Extension' : 'Option decision'} is missing the expected writable overlay version for ${normalizedTeamCode}.`

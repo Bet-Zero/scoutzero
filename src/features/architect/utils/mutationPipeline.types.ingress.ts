@@ -167,6 +167,8 @@ export type MutationCurrentStateClosedShape = {
 export type MutationDocumentSnapshotReceipt = Readonly<{
   exists: boolean;
   digest: string | null;
+  sourceWorldId: string | null;
+  sourceDigest: string | null;
 }>;
 export type MutationCurrentStateTradeTeamEntryInput = {
   teamCode?: string | null;

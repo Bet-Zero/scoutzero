@@ -505,13 +505,38 @@ export async function loadStateForMutation(
           'Governed extension requires teamCode, playerId, and contractId.'
         );
       }
-      // Capture the local documents before resolving hydrated/fallback state.
-      // A concurrent write between these reads can only make the later atomic
-      // digest comparison reject; it cannot bless stale computed state.
-      const [teamDocument, playerDocument] = await Promise.all([
+      const lineageWorldIds = await resolveWorldLineage(worldId);
+      const ancestorWorldIds = lineageWorldIds.slice(1);
+      // Capture the local documents and first mutable fallback documents before
+      // resolving hydrated state. A concurrent write after these reads can only
+      // make the later atomic digest comparison reject; it cannot bless stale
+      // computed state. A null source means the immutable base collection won.
+      const [
+        teamDocument,
+        playerDocument,
+        ancestorTeamDocument,
+        ancestorPlayerDocument,
+      ] = await Promise.all([
         getDoc(worldTeamRef(worldId, teamCode)),
         getDoc(worldPlayerRef(worldId, teamCode, playerId)),
+        getFirstExplicitWorldTeamSnapshotFromLineage(
+          ancestorWorldIds,
+          teamCode
+        ),
+        getFirstExplicitWorldPlayerOverrideFromLineage(
+          ancestorWorldIds,
+          teamCode,
+          playerId
+        ),
       ]);
+      const teamDocumentExists = teamDocument.exists();
+      const playerDocumentExists = playerDocument.exists();
+      const teamDocumentDigest = teamDocumentExists
+        ? mutationSnapshotDigest(teamDocument.data())
+        : null;
+      const playerDocumentDigest = playerDocumentExists
+        ? mutationSnapshotDigest(playerDocument.data())
+        : null;
       const [team, player] = (await Promise.all([
         getTeam(worldId, teamCode),
         getPlayer(worldId, teamCode, playerId),
@@ -532,16 +557,24 @@ export async function loadStateForMutation(
         teamCode,
         extensionAuthority,
         extensionTeamSnapshot: {
-          exists: teamDocument.exists(),
-          digest: teamDocument.exists()
-            ? mutationSnapshotDigest(teamDocument.data())
-            : null,
+          exists: teamDocumentExists,
+          digest: teamDocumentDigest,
+          sourceWorldId: teamDocumentExists
+            ? worldId
+            : ancestorTeamDocument?.snapshotWorldId ?? null,
+          sourceDigest: teamDocumentExists
+            ? teamDocumentDigest
+            : ancestorTeamDocument?.snapshotDigest ?? null,
         },
         extensionPlayerSnapshot: {
-          exists: playerDocument.exists(),
-          digest: playerDocument.exists()
-            ? mutationSnapshotDigest(playerDocument.data())
-            : null,
+          exists: playerDocumentExists,
+          digest: playerDocumentDigest,
+          sourceWorldId: playerDocumentExists
+            ? worldId
+            : ancestorPlayerDocument?.overrideWorldId ?? null,
+          sourceDigest: playerDocumentExists
+            ? playerDocumentDigest
+            : ancestorPlayerDocument?.snapshotDigest ?? null,
         },
       };
     }
