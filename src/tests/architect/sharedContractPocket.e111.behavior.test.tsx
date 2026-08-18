@@ -167,10 +167,16 @@ vi.mock('@/features/architect/utils/contractUtils', () => ({
     }),
 }));
 
-vi.mock('@/features/architect/utils/seasonFormat', () => ({
-  toSeasonCode: (endYear: number) =>
-    `${endYear - 1}-${String(endYear).slice(-2)}`,
-}));
+vi.mock('@/features/architect/utils/seasonFormat', async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import('@/features/architect/utils/seasonFormat')
+  >();
+  return {
+    ...actual,
+    toSeasonCode: (endYear: number) =>
+      `${endYear - 1}-${String(endYear).slice(-2)}`,
+  };
+});
 
 vi.mock('@/features/architect/utils/salaryEngine', () => ({
   buildMinimalRuleContext: () => ({
