@@ -310,7 +310,9 @@ export function computeExtensionResult({
       expectedContractOverlayLedgerVersion:
         result.expectedContractLedger.overlayLedgerVersion,
       expectedContractOverlaySetDigest: contractOverlaySetDigest(
-        team.contractEventLedgers
+        currentState.extensionTeamSnapshot.exists
+          ? team.contractEventLedgers
+          : []
       ),
       expectedTeamSnapshotExists: currentState.extensionTeamSnapshot.exists,
       expectedTeamSnapshotDigest: currentState.extensionTeamSnapshot.digest,

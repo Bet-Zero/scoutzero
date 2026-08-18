@@ -356,12 +356,15 @@ export async function persistWorldMutation({
           if (!team || !normalizedTeamCode) continue;
           const teamRef = worldTeamRef(worldId, normalizedTeamCode);
           const currentTeamSnapshot = await transaction.get(teamRef);
-          if (!currentTeamSnapshot.exists()) {
+          const currentTeamExists = currentTeamSnapshot.exists();
+          if (!currentTeamExists && mutationType !== 'extendPlayer') {
             throw new Error(
               `Team ${normalizedTeamCode} changed before the governed history append could commit. Reload and try again.`
             );
           }
-          const currentTeamData = currentTeamSnapshot.data();
+          const currentTeamData = currentTeamExists
+            ? currentTeamSnapshot.data()
+            : {};
           if (mutationType === 'renounceRights') {
             const expected = expectedRightsLedgersByTeam[normalizedTeamCode];
             if (!expected) {
@@ -481,7 +484,9 @@ export async function persistWorldMutation({
                   `Contract history for ${normalizedTeamCode} changed before commit. Reload and try again.`
                 );
               }
-            } else {
+            } else if (
+              !(mutationType === 'extendPlayer' && !currentTeamExists)
+            ) {
               if (!Number.isInteger(expectedOverlayVersion)) {
                 throw new Error(
                   `${mutationType === 'extendPlayer' ? 'Extension' : 'Option decision'} is missing the expected writable overlay version for ${normalizedTeamCode}.`

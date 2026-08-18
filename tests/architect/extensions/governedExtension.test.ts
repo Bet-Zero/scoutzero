@@ -545,6 +545,42 @@ describe('workflow-specific failure matrix', () => {
     }
   });
 
+  it('counts the active original Season for an in-season Veteran aggregate-term limit', () => {
+    const inSeason = proposal('veteran');
+    inSeason.signedAt = '2027-01-14T18:00:00-05:00';
+    const last = inSeason.salariesByYear.at(-1)!;
+    inSeason.salariesByYear.push({
+      ...last,
+      season: '2031-32',
+      salaryExcludingIncentive: last.salaryExcludingIncentive * 1.08,
+      regularSalary: last.regularSalary * 1.08,
+    });
+
+    const result = decideGovernedExtension({
+      ...request('veteran', { proposal: inSeason }),
+      worldAsOfDate: '2027-01-15',
+      recordedAt: '2027-01-14T18:01:00-05:00',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.reasons.join(' ')).toMatch(/no more than five aggregate Seasons/i);
+    }
+  });
+
+  it('counts the active original Season for an in-season Designated Veteran term', () => {
+    const inSeason = proposal('designated-veteran');
+    inSeason.signedAt = '2027-01-14T18:00:00-05:00';
+
+    const result = decideGovernedExtension({
+      ...request('designated-veteran', { proposal: inSeason }),
+      worldAsOfDate: '2027-01-15',
+      recordedAt: '2027-01-14T18:01:00-05:00',
+    });
+
+    expect(result.success, JSON.stringify(result)).toBe(true);
+  });
+
   it('accepts the 20% total-incentive boundary and rejects one cent more', () => {
     const exact = withUniformCompensation({
       proposal: proposal('rookie-scale'),
@@ -714,11 +750,16 @@ function persistenceTeamFixture() {
 }
 
 function computeMutation(
-  options: { operationId?: string; omitAuthority?: boolean } = {}
+  options: {
+    operationId?: string;
+    omitAuthority?: boolean;
+    localSnapshotsExist?: boolean;
+  } = {}
 ) {
   const baseline = baselineFor('veteran');
   const team = persistenceTeamFixture();
   const player = team.players[0];
+  const localSnapshotsExist = options.localSnapshotsExist ?? true;
   const authority = resolveGovernedExtensionLedgerAuthority({
     baselineLedger: baseline,
     baselineSalaryCapYear: 2027,
@@ -736,12 +777,12 @@ function computeMutation(
       player,
       ...(options.omitAuthority ? {} : { extensionAuthority: authority }),
       extensionTeamSnapshot: {
-        exists: true,
-        digest: mutationSnapshotDigest(team),
+        exists: localSnapshotsExist,
+        digest: localSnapshotsExist ? mutationSnapshotDigest(team) : null,
       },
       extensionPlayerSnapshot: {
-        exists: true,
-        digest: mutationSnapshotDigest(player),
+        exists: localSnapshotsExist,
+        digest: localSnapshotsExist ? mutationSnapshotDigest(player) : null,
       },
       team,
     },
@@ -830,6 +871,78 @@ describe('governed extension mutation and atomic persistence', () => {
         `architect_worlds/${WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`
       )
     ).toMatchObject({ futureContract: { isExtension: true } });
+  });
+
+  it('creates the first local team and player snapshots atomically from fallback state', async () => {
+    seedBaseData();
+    seedWorldMetadata(WORLD_ID, {
+      ...createMockWorld({
+        worldId: WORLD_ID,
+        userId: 'user-bze-282',
+        currentSeason: '2026-27',
+        asOfDate: WORLD_DATE,
+      }),
+      contractBaselineVersion: 2,
+      contractBaselineEffectiveAt: '2026-07-01T00:00:00-04:00',
+      contractBaselineSalaryCapYear: 2027,
+    });
+    const computed = computeMutation({ localSnapshotsExist: false });
+    expect(computed.success).toBe(true);
+
+    const persisted = await persistWorldMutation({
+      worldId: WORLD_ID,
+      seasonId: '2026-27',
+      mutationType: 'extendPlayer',
+      computeResult: computed,
+      committedTeamUpdates: computed.teamUpdates || [],
+      timestamp: Date.parse('2026-10-19T18:01:00-04:00'),
+    });
+
+    expect(persisted.success).toBe(true);
+    expect(getMockTeamSnapshot(WORLD_ID, TEAM_ID)).toMatchObject({
+      contractEventLedgers: [{ ledgerVersion: 2 }],
+    });
+    expect(
+      getAllMockData().get(
+        `architect_worlds/${WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`
+      )
+    ).toMatchObject({ futureContract: { isExtension: true } });
+  });
+
+  it('rejects a concurrent first-snapshot creator with no partial write', async () => {
+    seedBaseData();
+    seedPersistenceWorld();
+    const computed = computeMutation({
+      operationId: 'first-snapshot-race',
+      localSnapshotsExist: false,
+    });
+    expect(computed.success).toBe(true);
+    const beforeTeam = JSON.stringify(getMockTeamSnapshot(WORLD_ID, TEAM_ID));
+    const playerPath =
+      `architect_worlds/${WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`;
+    const beforePlayer = JSON.stringify(getAllMockData().get(playerPath));
+    const eventCountBefore = [...getAllMockData().keys()].filter((key) =>
+      key.includes(`/events/`)
+    ).length;
+
+    const persisted = await persistWorldMutation({
+      worldId: WORLD_ID,
+      seasonId: '2026-27',
+      mutationType: 'extendPlayer',
+      computeResult: computed,
+      committedTeamUpdates: computed.teamUpdates || [],
+      timestamp: Date.parse('2026-10-19T18:01:00-04:00'),
+    });
+
+    expect(persisted.success).toBe(false);
+    if (!persisted.success) expect(persisted.error).toContain('Team snapshot');
+    expect(JSON.stringify(getMockTeamSnapshot(WORLD_ID, TEAM_ID))).toBe(
+      beforeTeam
+    );
+    expect(JSON.stringify(getAllMockData().get(playerPath))).toBe(beforePlayer);
+    expect(
+      [...getAllMockData().keys()].filter((key) => key.includes(`/events/`))
+    ).toHaveLength(eventCountBefore);
   });
 
   it('rejects a stale overlay with no partial team, player, or event write', async () => {

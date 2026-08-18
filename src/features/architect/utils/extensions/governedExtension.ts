@@ -564,9 +564,12 @@ function remainingOriginalSeasons(
   signedAt: string
 ): number {
   const signingYear = Number(signedAt.slice(0, 4));
+  const signingMonth = Number(signedAt.slice(5, 7));
+  const signingSeasonEndYear =
+    signingMonth >= 7 ? signingYear + 1 : signingYear;
   return state.terms.salaries.filter((row) => {
     const endYear = toEndYear(row.season);
-    return endYear !== null && endYear > signingYear;
+    return endYear !== null && endYear >= signingSeasonEndYear;
   }).length;
 }
 
