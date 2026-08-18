@@ -25,10 +25,16 @@ import { CANON_GOVERNED_SEASON_REGISTRY } from './canonGovernedSeasonRegistry';
 import {
   GOVERNED_AUTHORITIES,
   GOVERNED_SYSTEM_LEVEL_IDS,
+  governedSourceAuthorityClass,
+  isGovernedPostCanonOfficialSourceRecord,
   type GovernedAuthority,
   type GovernedCalendarDate,
+  type GovernedPostCanonOfficialCertification,
+  type GovernedPostCanonOfficialSourceRecord,
   type GovernedSeasonCalendarRecord,
   type GovernedSeasonRegistry,
+  type GovernedSourceAuthorityClass,
+  type GovernedSourceRecord,
   type GovernedSystemLevelId,
   type GovernedSystemLevelRecord,
 } from './governedSeasonRecords';
@@ -132,6 +138,7 @@ export interface GovernedManifestInput {
   readonly sourceRecordVersion: number;
   readonly sourceField: string;
   readonly sourceArtifactSha256: string | null;
+  readonly sourceAuthorityClass: GovernedSourceAuthorityClass;
 }
 
 export interface GovernedManifestCalendar {
@@ -143,14 +150,27 @@ export interface GovernedManifestCalendar {
   readonly sourceRecordVersion: number;
   readonly sourceField: string;
   readonly sourceArtifactSha256: string | null;
+  readonly sourceAuthorityClass: GovernedSourceAuthorityClass;
 }
+
+/**
+ * Exact post-Canon source lineage actually consumed by one result. Keeping this
+ * type derived from both registry contracts makes a newly added authorizing
+ * field a compile-time requirement for the manifest instead of an optional
+ * verifier follow-up.
+ */
+export type GovernedManifestPostCanonSource = Omit<
+  GovernedPostCanonOfficialSourceRecord,
+  'postCanonCertification'
+> &
+  GovernedPostCanonOfficialCertification;
 
 /**
  * The exact inputs a complete result was computed from. Frozen on creation: a
  * result that can be edited after the fact proves nothing about immutability.
  */
 export interface GovernedInputManifest {
-  readonly manifestVersion: 1;
+  readonly manifestVersion: 2;
   readonly registry: GovernedRegistryIdentity;
   readonly asOfDate: string;
   readonly salaryCapYear: number;
@@ -158,7 +178,31 @@ export interface GovernedInputManifest {
   readonly team: GovernedTeamContext;
   readonly calendar: GovernedManifestCalendar;
   readonly systemLevels: readonly GovernedManifestInput[];
+  readonly postCanonSources: readonly GovernedManifestPostCanonSource[];
 }
+
+/**
+ * Read-only compatibility shape for manifests emitted before BZE-280. A v1
+ * manifest can verify Canon-only inputs but can never authorize post-Canon
+ * evidence because it has no field capable of retaining that lineage.
+ */
+export interface GovernedInputManifestV1 {
+  readonly manifestVersion: 1;
+  readonly registry: GovernedRegistryIdentity;
+  readonly asOfDate: string;
+  readonly salaryCapYear: number;
+  readonly requiredAuthority: GovernedAuthority;
+  readonly team: GovernedTeamContext;
+  readonly calendar: Omit<GovernedManifestCalendar, 'sourceAuthorityClass'>;
+  readonly systemLevels: readonly Omit<
+    GovernedManifestInput,
+    'sourceAuthorityClass'
+  >[];
+}
+
+export type GovernedVerifiableInputManifest =
+  | GovernedInputManifest
+  | GovernedInputManifestV1;
 
 export interface GovernedSeasonEnvelope {
   readonly status: 'complete' | 'unavailable';
@@ -227,6 +271,62 @@ function sourceArtifactSha256For(
       candidate.sourceRecordVersion === record.sourceRecordVersion
   );
   return source?.artifactSha256 ?? null;
+}
+
+function sourceRecordFor(
+  registry: GovernedSeasonRegistry,
+  record: Pick<GovernedRecordIdentity, 'sourceRecordId' | 'sourceRecordVersion'>
+): GovernedSourceRecord | undefined {
+  return registry.sourceRecords.find(
+    (candidate) =>
+      candidate.sourceRecordId === record.sourceRecordId &&
+      candidate.sourceRecordVersion === record.sourceRecordVersion
+  );
+}
+
+function postCanonManifestSourceFor(
+  source: GovernedSourceRecord
+): GovernedManifestPostCanonSource | null {
+  if (!isGovernedPostCanonOfficialSourceRecord(source)) return null;
+
+  const certification = source.postCanonCertification;
+  return Object.freeze({
+    sourceRecordId: source.sourceRecordId,
+    sourceRecordVersion: source.sourceRecordVersion,
+    provenanceType: source.provenanceType,
+    identity: source.identity,
+    sourceDateBasis: source.sourceDateBasis,
+    officialUrl: source.officialUrl,
+    artifactSha256: source.artifactSha256,
+    artifactByteSize: source.artifactByteSize,
+    retrievalTimestamp: source.retrievalTimestamp,
+    authenticationTimestamp: source.authenticationTimestamp,
+    verifierIdentity: source.verifierIdentity,
+    verificationSessionId: source.verificationSessionId,
+    verificationDate: source.verificationDate,
+    recordLimitations: source.recordLimitations,
+    recordStatus: source.recordStatus,
+    canonLocator: source.canonLocator,
+    certificationRecordId: certification.certificationRecordId,
+    certificationRecordVersion: certification.certificationRecordVersion,
+    authorityScope: certification.authorityScope,
+    publicationDate: certification.publicationDate,
+    firstPartyHost: certification.firstPartyHost,
+    retainedArtifactPath: certification.retainedArtifactPath,
+    retainedArtifactSha256: certification.retainedArtifactSha256,
+    retainedArtifactByteSize: certification.retainedArtifactByteSize,
+    matchingFirstPartyRetrievalCount:
+      certification.matchingFirstPartyRetrievalCount,
+    matchingRetrievalDate: certification.matchingRetrievalDate,
+    exactFields: Object.freeze(
+      certification.exactFields.map((field) => Object.freeze({ ...field }))
+    ),
+    supersedesCertificationRecordVersion:
+      certification.supersedesCertificationRecordVersion,
+    gateHistory: Object.freeze(
+      certification.gateHistory.map((entry) => Object.freeze({ ...entry }))
+    ),
+  });
 }
 
 function unavailableLevel(
@@ -672,6 +772,7 @@ export function resolveGovernedSeasonEnvelope(
   const calendarRecord = calendar.record;
   const calendarSeasonKey = calendar.seasonKey;
   const manifestLevels: GovernedManifestInput[] = [];
+  const usedSourceRecords: GovernedSourceRecord[] = [];
 
   for (const levelId of GOVERNED_SYSTEM_LEVEL_IDS) {
     const level = systemLevels[levelId];
@@ -680,6 +781,13 @@ export function resolveGovernedSeasonEnvelope(
         `The ${levelId} resolution reported available without a governed record and amount.`,
       ]);
     }
+    const levelSource = sourceRecordFor(registry, level.record);
+    if (!levelSource) {
+      return unresolvedEnvelope([
+        `The ${levelId} governed record cites an unavailable source record version.`,
+      ]);
+    }
+    usedSourceRecords.push(levelSource);
     manifestLevels.push(
       Object.freeze({
         levelId,
@@ -690,7 +798,8 @@ export function resolveGovernedSeasonEnvelope(
         sourceRecordId: level.record.sourceRecordId,
         sourceRecordVersion: level.record.sourceRecordVersion,
         sourceField: level.record.sourceField,
-        sourceArtifactSha256: sourceArtifactSha256For(registry, level.record),
+        sourceArtifactSha256: levelSource.artifactSha256,
+        sourceAuthorityClass: governedSourceAuthorityClass(levelSource),
       })
     );
   }
@@ -700,9 +809,30 @@ export function resolveGovernedSeasonEnvelope(
       'The season calendar reported available without a governed record and season key.',
     ]);
   }
+  const calendarSource = sourceRecordFor(registry, calendarRecord);
+  if (!calendarSource) {
+    return unresolvedEnvelope([
+      'The season calendar cites an unavailable source record version.',
+    ]);
+  }
+  usedSourceRecords.push(calendarSource);
+
+  const postCanonSources = [
+    ...new Map(
+      usedSourceRecords
+        .map(postCanonManifestSourceFor)
+        .filter(
+          (source): source is GovernedManifestPostCanonSource => source != null
+        )
+        .map((source) => [
+          `${source.sourceRecordId}@${source.sourceRecordVersion}`,
+          source,
+        ])
+    ).values(),
+  ];
 
   const inputManifest: GovernedInputManifest = Object.freeze({
-    manifestVersion: 1 as const,
+    manifestVersion: 2 as const,
     registry: registryIdentity(registry),
     asOfDate,
     salaryCapYear,
@@ -716,9 +846,11 @@ export function resolveGovernedSeasonEnvelope(
       sourceRecordId: calendarRecord.sourceRecordId,
       sourceRecordVersion: calendarRecord.sourceRecordVersion,
       sourceField: calendarRecord.sourceField,
-      sourceArtifactSha256: sourceArtifactSha256For(registry, calendarRecord),
+      sourceArtifactSha256: calendarSource.artifactSha256,
+      sourceAuthorityClass: governedSourceAuthorityClass(calendarSource),
     }),
     systemLevels: Object.freeze(manifestLevels),
+    postCanonSources: Object.freeze(postCanonSources),
   });
 
   return Object.freeze({
@@ -778,6 +910,44 @@ function changedFieldsFor(
     .map(([field]) => field);
 }
 
+function canonicalRetainedContent(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalRetainedContent);
+  if (value == null || typeof value !== 'object') return value;
+
+  return Object.fromEntries(
+    Object.entries(value as Readonly<Record<string, unknown>>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, nestedValue]) => [
+        key,
+        canonicalRetainedContent(nestedValue),
+      ])
+  );
+}
+
+/** Compare every retained field, including nested certification arrays. */
+function changedPostCanonSourceFields(
+  retained: GovernedManifestPostCanonSource,
+  current: GovernedManifestPostCanonSource | null
+): string[] {
+  const retainedRecord = Object.fromEntries(Object.entries(retained));
+  const currentRecord = current
+    ? Object.fromEntries(Object.entries(current))
+    : {};
+  return [
+    ...new Set([...Object.keys(retained), ...Object.keys(currentRecord)]),
+  ]
+    .sort()
+    .filter(
+      (field) =>
+        JSON.stringify(
+          canonicalRetainedContent(retainedRecord[field])
+        ) !==
+        JSON.stringify(
+          canonicalRetainedContent(currentRecord[field])
+        )
+    );
+}
+
 /**
  * Check a retained manifest against a registry without changing the manifest.
  *
@@ -793,11 +963,36 @@ function changedFieldsFor(
  * was computed from (`CBA2-S02.1`, `CBA2-S02.6`).
  */
 export function verifyGovernedInputManifest(
-  manifest: GovernedInputManifest,
+  manifest: GovernedVerifiableInputManifest,
   registry: GovernedSeasonRegistry = CANON_GOVERNED_SEASON_REGISTRY
 ): GovernedManifestVerification {
+  const runtimeManifestVersion: unknown = (
+    manifest as { readonly manifestVersion?: unknown }
+  ).manifestVersion;
+  if (runtimeManifestVersion !== 1 && runtimeManifestVersion !== 2) {
+    const driftVersion =
+      typeof runtimeManifestVersion === 'number' &&
+      Number.isFinite(runtimeManifestVersion)
+        ? runtimeManifestVersion
+        : -1;
+    return Object.freeze({
+      state: 'content-mismatch' as const,
+      driftedInputs: Object.freeze([
+        Object.freeze({
+          inputId: 'manifest-version',
+          recordId: 'governed-input-manifest',
+          recordVersion: driftVersion,
+          kind: 'content-changed' as const,
+          reason: `Manifest version ${String(runtimeManifestVersion)} is unsupported; only versions 1 and 2 may be verified.`,
+          changedFields: Object.freeze(['manifestVersion']),
+        }),
+      ]),
+    });
+  }
+
   if (
     manifest.registry.registryId !== registry.registryId ||
+    manifest.registry.canonCandidateCommit !== registry.canonCandidateCommit ||
     manifest.registry.canonSha256 !== registry.canonSha256
   ) {
     return Object.freeze({
@@ -859,6 +1054,25 @@ export function verifyGovernedInputManifest(
         sourceArtifactSha256For(registry, calendarRecord),
       ],
     ]);
+    const calendarSource = sourceRecordFor(registry, calendarRecord);
+    if (manifest.manifestVersion === 2) {
+      changedFields.push(
+        ...changedFieldsFor([
+          [
+            'sourceAuthorityClass',
+            manifest.calendar.sourceAuthorityClass,
+            calendarSource
+              ? governedSourceAuthorityClass(calendarSource)
+              : null,
+          ],
+        ])
+      );
+    } else if (
+      calendarSource &&
+      isGovernedPostCanonOfficialSourceRecord(calendarSource)
+    ) {
+      changedFields.push('manifestVersion');
+    }
     if (changedFields.length > 0) {
       drifted.push({
         inputId: 'calendar',
@@ -919,6 +1133,24 @@ export function verifyGovernedInputManifest(
         sourceArtifactSha256For(registry, record),
       ],
     ]);
+    const levelSource = sourceRecordFor(registry, record);
+    if (manifest.manifestVersion === 2) {
+      const currentInput = input as GovernedManifestInput;
+      changedFields.push(
+        ...changedFieldsFor([
+          [
+            'sourceAuthorityClass',
+            currentInput.sourceAuthorityClass,
+            levelSource ? governedSourceAuthorityClass(levelSource) : null,
+          ],
+        ])
+      );
+    } else if (
+      levelSource &&
+      isGovernedPostCanonOfficialSourceRecord(levelSource)
+    ) {
+      changedFields.push('manifestVersion');
+    }
     if (changedFields.length > 0) {
       drifted.push({
         inputId: input.levelId,
@@ -930,6 +1162,93 @@ export function verifyGovernedInputManifest(
       });
     }
   });
+
+  if (manifest.manifestVersion === 2) {
+    const usedPostCanonSourceKeys = new Set(
+      [manifest.calendar, ...manifest.systemLevels]
+        .filter((input) => input.sourceAuthorityClass === 'post-canon-official')
+        .map((input) => `${input.sourceRecordId}@${input.sourceRecordVersion}`)
+    );
+    const retainedPostCanonSourceKeys = new Set(
+      manifest.postCanonSources.map(
+        (source) => `${source.sourceRecordId}@${source.sourceRecordVersion}`
+      )
+    );
+    if (
+      manifest.postCanonSources.length !== retainedPostCanonSourceKeys.size ||
+      usedPostCanonSourceKeys.size !== retainedPostCanonSourceKeys.size ||
+      [...usedPostCanonSourceKeys].some(
+        (key) => !retainedPostCanonSourceKeys.has(key)
+      )
+    ) {
+      drifted.push({
+        inputId: 'post-canon-source-lineage',
+        recordId: manifest.calendar.recordId,
+        recordVersion: manifest.calendar.recordVersion,
+        kind: 'content-changed',
+        reason:
+          'The manifest post-Canon source list does not exactly match the post-Canon sources used by its governed inputs.',
+        changedFields: Object.freeze(['postCanonSources']),
+      });
+    }
+
+    manifest.postCanonSources.forEach((retainedSource) => {
+      const currentSource = registry.sourceRecords.find(
+        (source) =>
+          source.sourceRecordId === retainedSource.sourceRecordId &&
+          source.sourceRecordVersion === retainedSource.sourceRecordVersion
+      );
+      if (!currentSource) {
+        drifted.push({
+          inputId: `source:${retainedSource.sourceRecordId}`,
+          recordId: retainedSource.sourceRecordId,
+          recordVersion: retainedSource.sourceRecordVersion,
+          kind: 'record-absent',
+          reason:
+            'The post-Canon source record version used by this result is not in the registry.',
+          changedFields: Object.freeze([]),
+        });
+        return;
+      }
+      if (currentSource.recordStatus !== 'current') {
+        drifted.push({
+          inputId: `source:${retainedSource.sourceRecordId}`,
+          recordId: retainedSource.sourceRecordId,
+          recordVersion: retainedSource.sourceRecordVersion,
+          kind: 'record-superseded',
+          reason:
+            'The post-Canon source record version used by this result has been superseded.',
+          changedFields: Object.freeze([]),
+        });
+        return;
+      }
+
+      const currentManifestSource = postCanonManifestSourceFor(currentSource);
+      const changedFields = [
+        ...changedFieldsFor([
+          [
+            'authorityClass',
+            'post-canon-official',
+            governedSourceAuthorityClass(currentSource),
+          ],
+        ]),
+        ...changedPostCanonSourceFields(
+          retainedSource,
+          currentManifestSource
+        ),
+      ];
+      if (changedFields.length > 0) {
+        drifted.push({
+          inputId: `source:${retainedSource.sourceRecordId}`,
+          recordId: retainedSource.sourceRecordId,
+          recordVersion: retainedSource.sourceRecordVersion,
+          kind: 'content-changed',
+          reason: `The post-Canon source kept its version but its retained authority content changed (${changedFields.join(', ')}).`,
+          changedFields: Object.freeze(changedFields),
+        });
+      }
+    });
+  }
 
   const state: GovernedManifestVerificationState =
     drifted.length === 0

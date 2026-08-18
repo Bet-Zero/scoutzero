@@ -2,11 +2,9 @@
  * FILE: tests/architect/governedSeason/governedSeasonFixtures.ts
  * PURPOSE: Test-only governed registries for the BZE-270 envelope suites.
  *
- * The Canon-seeded registry deliberately cannot resolve any season complete
- * (its certified levels and its certified calendar land in different Salary Cap
- * Years). These fixtures exercise the resolver's complete and conflicting paths
- * without inventing Canon evidence: every identifier here is prefixed `TEST-`
- * or `SRC2-TEST-` so it can never be mistaken for an accepted Canon record.
+ * These fixtures exercise synthetic complete and conflicting paths without
+ * inventing accepted authority: every identifier here is prefixed `TEST-` or
+ * `SRC2-TEST-` so it cannot be mistaken for a shipped source record.
  */
 
 import {

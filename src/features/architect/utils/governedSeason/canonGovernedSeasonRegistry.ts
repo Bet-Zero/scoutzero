@@ -1,12 +1,16 @@
 /**
  * FILE: src/features/architect/utils/governedSeason/canonGovernedSeasonRegistry.ts
- * PURPOSE: The governed season registry seeded from the accepted Canon candidate.
+ * PURPOSE: The governed season registry anchored to the accepted Canon candidate.
  * OWNERSHIP: Feature: architect/governed season inputs
  *
- * BZE-270. Every record here is transcribed from the accepted Canon candidate
- * `6cf8aaf358c158a88e630e8a7336f7e9c3febc17` (canon SHA-256
+ * BZE-270/BZE-280. CBA rule meaning and `SRC2-*` records remain transcribed
+ * only from accepted Canon candidate
+ * `6cf8aaf358c158a88e630e8a7336f7e9c3febc17` (Canon SHA-256
  * `23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76`),
- * §15.12.1 and §15.12.3. Nothing is added from any other place.
+ * §15.12.1 and §15.12.3. `POSTCANON-SRC-*` records are separately certified,
+ * retained first-party factual inputs published after the Canon freeze. They
+ * cannot introduce or reinterpret a CBA rule, and their Canon leaf mappings
+ * are rule traceability only.
  *
  * WHAT THE ACCEPTED EVIDENCE ACTUALLY COVERS — read this before assuming a
  * season resolves:
@@ -19,18 +23,11 @@
  *               and its dates may not be reused for another Season
  *               (`CBA2-S01.6`).
  *
- * The certified levels and the certified calendar therefore land in *different*
- * Salary Cap Years, so **no Salary Cap Year currently resolves complete** on
- * this registry. That is the honest state of the evidence base, not a defect in
- * the resolver. Repository constants such as `capProjections` carry values for
- * the missing seasons, but they are unversioned copies with no source artifact,
- * exact field, retrieval metadata, or record version, which is the precise
- * defect `CBA2-S02.5` and `CBA2-S01.3` describe. Seeding them here would
- * launder an ungoverned constant into the governed path, so they are excluded.
+ *   `POSTCANON-SRC-0001`  retained 2026-27 NBA Communications schedule release;
+ *                         2026-10-20 opening and 2027-04-11 closing only.
  *
- * To make a season resolve, add a source record with real artifact identity and
- * the governed records it certifies. Do not widen an existing record's
- * effective period to cover a season its source never stated.
+ * The post-Canon calendar combines with unchanged `SRC2-004` levels so Salary
+ * Cap Year 2027 resolves complete. No other season gains coverage.
  */
 
 import {
@@ -114,6 +111,73 @@ const SOURCE_RECORDS: readonly GovernedSourceRecord[] = [
       'Mutable webpage; hash is of content retrieved for R6 and certifies only the stated 2025-26 schedule dates',
     recordStatus: 'current',
     canonLocator: 'ARCHITECT_CBA_CANON.md §15.12.1 / §15.12.3',
+  },
+  {
+    sourceRecordId: 'POSTCANON-SRC-0001',
+    sourceRecordVersion: 1,
+    provenanceType: 'official-mutable',
+    identity:
+      'NBA Communications official release: 2026-27 NBA regular-season schedule',
+    sourceDateBasis: 'publication:2026-08-13',
+    officialUrl: 'https://pr.nba.com/2026-27-nba-regular-season-schedule/',
+    artifactSha256:
+      '2470130997194e83e2419cb272cb384473fe3444a8b2e4fd85b30608daf86c3f',
+    artifactByteSize: 122319,
+    retrievalTimestamp: '2026-08-17T23:37:21Z',
+    authenticationTimestamp: null,
+    verifierIdentity: 'agent:codex',
+    verificationSessionId: 'session:bze-280-authority-gate',
+    verificationDate: '2026-08-17',
+    recordLimitations:
+      'Mutable first-party webpage; this retained capture certifies only the stated 2026-27 regular-season endpoints. Two NBA Cup games per team remain unassigned within Dec. 4-10 and do not affect either endpoint.',
+    recordStatus: 'current',
+    canonLocator: null,
+    postCanonCertification: {
+      certificationRecordId: 'POSTCANON-CERT-0001',
+      certificationRecordVersion: 1,
+      authorityScope: 'time-varying-factual-input-only',
+      publicationDate: '2026-08-13',
+      firstPartyHost: 'pr.nba.com',
+      retainedArtifactPath:
+        'docs/reference/cba/source-artifacts/post-canon/2026-27-nba-regular-season-schedule.2470130997194e83e2419cb272cb384473fe3444a8b2e4fd85b30608daf86c3f.html',
+      retainedArtifactSha256:
+        '2470130997194e83e2419cb272cb384473fe3444a8b2e4fd85b30608daf86c3f',
+      retainedArtifactByteSize: 122319,
+      matchingFirstPartyRetrievalCount: 2,
+      matchingRetrievalDate: '2026-08-17',
+      exactFields: [
+        {
+          fieldId: 'regularSeasonOpening',
+          sourceText:
+            'American Express NBA Tip-Off 2026 will begin on Tuesday, Oct. 20',
+          normalizedValue: '2026-10-20',
+        },
+        {
+          fieldId: 'regularSeasonClosing',
+          sourceText:
+            'The NBA’s 81<sup>st</sup> regular season will conclude on Sunday, April 11, 2027',
+          normalizedValue: '2027-04-11',
+        },
+        {
+          fieldId: 'nbaCupUnassignedGameWindow',
+          sourceText:
+            'The two unassigned games for each team, to be played from Friday, Dec. 4 through Thursday, Dec. 10, will be determined based on the results of Group Play games in the Emirates NBA Cup 2026.',
+          normalizedValue: '2026-12-04/2026-12-10',
+        },
+      ],
+      supersedesCertificationRecordVersion: null,
+      gateHistory: [
+        {
+          artifactSha256:
+            '0169bb5c78a5ddd0727254dcc991222fbe4e82407b3ba36f60dcc038f002fb18',
+          artifactByteSize: 122306,
+          capturedOn: '2026-08-14',
+          bytesRetained: false,
+          runtimeAuthority: 'none',
+          disposition: 'superseded-by-mutable-page-drift',
+        },
+      ],
+    },
   },
 ];
 
@@ -232,13 +296,41 @@ const SEASON_CALENDARS: readonly GovernedSeasonCalendarRecord[] = [
     supersedesRecordVersion: null,
     uncertifiedFields: ['tradeDeadline'],
   },
+  {
+    recordId: 'GOV-CAL-0002',
+    recordVersion: 1,
+    salaryCapYear: 2027,
+    seasonKey: '2026-27',
+    authority: 'official',
+    regularSeasonOpening: {
+      value: '2026-10-20',
+      precision: 'date-only',
+      governingTimeZone: GOVERNING_TIME_ZONE,
+    },
+    regularSeasonClosing: {
+      value: '2027-04-11',
+      precision: 'date-only',
+      governingTimeZone: GOVERNING_TIME_ZONE,
+    },
+    sourceRecordId: 'POSTCANON-SRC-0001',
+    sourceRecordVersion: 1,
+    sourceField:
+      'American Express NBA Tip-Off 2026 will begin on Tuesday, Oct. 20 | The NBA’s 81<sup>st</sup> regular season will conclude on Sunday, April 11, 2027',
+    publicationDate: '2026-08-13',
+    effectiveFrom: '2026-07-01T00:00:00-04:00',
+    effectiveUntil: '2027-07-01T00:00:00-04:00',
+    canonLeafIds: ['CBA2-L01.2', 'CBA2-L01.8', 'CBA2-L01.9', 'CBA2-S01.6'],
+    recordStatus: 'current',
+    supersedesRecordVersion: null,
+    uncertifiedFields: ['tradeDeadline', 'nbaCupGameAssignments'],
+  },
 ];
 
 /** The governed registry the Architect ships with. */
 export const CANON_GOVERNED_SEASON_REGISTRY: GovernedSeasonRegistry =
   createGovernedSeasonRegistry({
     registryId: 'architect-governed-season-registry',
-    registryVersion: 1,
+    registryVersion: 2,
     canonCandidateCommit: ACCEPTED_CANON_CANDIDATE_COMMIT,
     canonSha256: ACCEPTED_CANON_SHA256,
     sourceRecords: SOURCE_RECORDS,
