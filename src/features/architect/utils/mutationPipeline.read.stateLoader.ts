@@ -43,6 +43,8 @@ import {
   resolveWorldLineage,
   getFirstExplicitWorldTeamSnapshotFromLineage,
   getFirstExplicitWorldPlayerOverrideFromLineage,
+  getWorldTeamSnapshotLineageReceipt,
+  getWorldPlayerSnapshotLineageReceipt,
   getSnapshotRosterMembership,
   getSnapshotPlayersMembership,
   getSnapshotCapHoldMembership,
@@ -507,27 +509,13 @@ export async function loadStateForMutation(
       }
       const lineageWorldIds = await resolveWorldLineage(worldId);
       const ancestorWorldIds = lineageWorldIds.slice(1);
-      // Capture the local documents and first mutable fallback documents before
-      // resolving hydrated state. A concurrent write after these reads can only
-      // make the later atomic digest comparison reject; it cannot bless stale
-      // computed state. A null source means the immutable base collection won.
-      const [
-        teamDocument,
-        playerDocument,
-        ancestorTeamDocument,
-        ancestorPlayerDocument,
-      ] = await Promise.all([
+      // Capture the local documents before resolving fallback state. If either
+      // local document is absent, retain every ancestor checked through the
+      // winning mutable source (or through the immutable base fallback). The
+      // transaction later rechecks both the absences and the winning digest.
+      const [teamDocument, playerDocument] = await Promise.all([
         getDoc(worldTeamRef(worldId, teamCode)),
         getDoc(worldPlayerRef(worldId, teamCode, playerId)),
-        getFirstExplicitWorldTeamSnapshotFromLineage(
-          ancestorWorldIds,
-          teamCode
-        ),
-        getFirstExplicitWorldPlayerOverrideFromLineage(
-          ancestorWorldIds,
-          teamCode,
-          playerId
-        ),
       ]);
       const teamDocumentExists = teamDocument.exists();
       const playerDocumentExists = playerDocument.exists();
@@ -537,6 +525,24 @@ export async function loadStateForMutation(
       const playerDocumentDigest = playerDocumentExists
         ? mutationSnapshotDigest(playerDocument.data())
         : null;
+      const [ancestorTeamResolution, ancestorPlayerResolution] =
+        await Promise.all([
+          teamDocumentExists
+            ? Promise.resolve({ source: null, checkedSnapshots: [] })
+            : getWorldTeamSnapshotLineageReceipt(
+                ancestorWorldIds,
+                teamCode
+              ),
+          playerDocumentExists
+            ? Promise.resolve({ source: null, checkedSnapshots: [] })
+            : getWorldPlayerSnapshotLineageReceipt(
+                ancestorWorldIds,
+                teamCode,
+                playerId
+              ),
+        ]);
+      const ancestorTeamDocument = ancestorTeamResolution.source;
+      const ancestorPlayerDocument = ancestorPlayerResolution.source;
       const [team, player] = (await Promise.all([
         getTeam(worldId, teamCode),
         getPlayer(worldId, teamCode, playerId),
@@ -565,6 +571,7 @@ export async function loadStateForMutation(
           sourceDigest: teamDocumentExists
             ? teamDocumentDigest
             : ancestorTeamDocument?.snapshotDigest ?? null,
+          sourceLineage: ancestorTeamResolution.checkedSnapshots,
         },
         extensionPlayerSnapshot: {
           exists: playerDocumentExists,
@@ -575,6 +582,7 @@ export async function loadStateForMutation(
           sourceDigest: playerDocumentExists
             ? playerDocumentDigest
             : ancestorPlayerDocument?.snapshotDigest ?? null,
+          sourceLineage: ancestorPlayerResolution.checkedSnapshots,
         },
       };
     }

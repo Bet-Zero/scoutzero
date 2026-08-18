@@ -46,22 +46,58 @@ function isExactExtensionSnapshotReceipt(
   worldId: string | undefined
 ): receipt is MutationDocumentSnapshotReceipt {
   if (!receipt || !worldId) return false;
+  const sourceLineage = receipt.sourceLineage;
+  if (!Array.isArray(sourceLineage)) return false;
   if (receipt.exists) {
     return (
       typeof receipt.digest === 'string' &&
       receipt.digest.length > 0 &&
       receipt.sourceWorldId === worldId &&
-      receipt.sourceDigest === receipt.digest
+      receipt.sourceDigest === receipt.digest &&
+      sourceLineage.length === 0
     );
   }
   if (receipt.digest !== null) return false;
-  if (receipt.sourceWorldId === null) return receipt.sourceDigest === null;
+  const seenWorldIds = new Set<string>();
+  let winningSource:
+    | Readonly<{ worldId: string; digest: string }>
+    | null = null;
+  for (const entry of sourceLineage) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      return false;
+    }
+    const worldIdValue = (entry as Record<string, unknown>).worldId;
+    const exists = (entry as Record<string, unknown>).exists;
+    const digest = (entry as Record<string, unknown>).digest;
+    if (
+      typeof worldIdValue !== 'string' ||
+      worldIdValue.trim().length === 0 ||
+      worldIdValue === worldId ||
+      seenWorldIds.has(worldIdValue) ||
+      typeof exists !== 'boolean' ||
+      (exists
+        ? typeof digest !== 'string' || digest.length === 0
+        : digest !== null) ||
+      winningSource !== null
+    ) {
+      return false;
+    }
+    seenWorldIds.add(worldIdValue);
+    if (exists === true && typeof digest === 'string') {
+      winningSource = { worldId: worldIdValue, digest };
+    }
+  }
+  if (receipt.sourceWorldId === null) {
+    return receipt.sourceDigest === null && winningSource === null;
+  }
   return (
     typeof receipt.sourceWorldId === 'string' &&
     receipt.sourceWorldId.trim().length > 0 &&
     receipt.sourceWorldId !== worldId &&
     typeof receipt.sourceDigest === 'string' &&
-    receipt.sourceDigest.length > 0
+    receipt.sourceDigest.length > 0 &&
+    winningSource?.worldId === receipt.sourceWorldId &&
+    winningSource.digest === receipt.sourceDigest
   );
 }
 
@@ -349,6 +385,8 @@ export function computeExtensionResult({
         currentState.extensionTeamSnapshot.sourceWorldId,
       expectedTeamSourceSnapshotDigest:
         currentState.extensionTeamSnapshot.sourceDigest,
+      expectedTeamSourceLineage:
+        currentState.extensionTeamSnapshot.sourceLineage,
       expectedPlayerSnapshotExists:
         currentState.extensionPlayerSnapshot.exists,
       expectedPlayerSnapshotDigest:
@@ -357,6 +395,8 @@ export function computeExtensionResult({
         currentState.extensionPlayerSnapshot.sourceWorldId,
       expectedPlayerSourceSnapshotDigest:
         currentState.extensionPlayerSnapshot.sourceDigest,
+      expectedPlayerSourceLineage:
+        currentState.extensionPlayerSnapshot.sourceLineage,
       timestamp,
     },
   };

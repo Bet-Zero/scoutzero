@@ -334,10 +334,20 @@ export type ArchitectWorldMutationHistoryMetadata = {
   expectedTeamSnapshotDigest?: string | null;
   expectedTeamSourceWorldId?: string | null;
   expectedTeamSourceSnapshotDigest?: string | null;
+  expectedTeamSourceLineage?: readonly Readonly<{
+    worldId: string;
+    exists: boolean;
+    digest: string | null;
+  }>[];
   expectedPlayerSnapshotExists?: boolean;
   expectedPlayerSnapshotDigest?: string | null;
   expectedPlayerSourceWorldId?: string | null;
   expectedPlayerSourceSnapshotDigest?: string | null;
+  expectedPlayerSourceLineage?: readonly Readonly<{
+    worldId: string;
+    exists: boolean;
+    digest: string | null;
+  }>[];
   optionType?: string;
   accepted?: boolean;
   contract: ArchitectWorldMutationContractSummary;

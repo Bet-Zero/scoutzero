@@ -169,6 +169,11 @@ export type MutationDocumentSnapshotReceipt = Readonly<{
   digest: string | null;
   sourceWorldId: string | null;
   sourceDigest: string | null;
+  sourceLineage: readonly Readonly<{
+    worldId: string;
+    exists: boolean;
+    digest: string | null;
+  }>[];
 }>;
 export type MutationCurrentStateTradeTeamEntryInput = {
   teamCode?: string | null;

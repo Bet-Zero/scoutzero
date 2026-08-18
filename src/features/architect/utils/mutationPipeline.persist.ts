@@ -86,6 +86,111 @@ function requireDocumentData(value: unknown): DocumentData {
   return value as DocumentData;
 }
 
+async function recheckExtensionSourceLineage({
+  transaction,
+  rawLineage,
+  expectedSourceWorldIdValue,
+  expectedSourceDigest,
+  currentWorldId,
+  sourceRef,
+  receiptLabel,
+  changedLabel,
+  changedIdentifier,
+}: {
+  transaction: Transaction;
+  rawLineage: unknown;
+  expectedSourceWorldIdValue: unknown;
+  expectedSourceDigest: unknown;
+  currentWorldId: string;
+  sourceRef: (sourceWorldId: string) => DocumentReference;
+  receiptLabel: string;
+  changedLabel: string;
+  changedIdentifier: string;
+}): Promise<DocumentData> {
+  const expectedSourceWorldId =
+    expectedSourceWorldIdValue === null
+      ? null
+      : typeof expectedSourceWorldIdValue === 'string'
+        ? expectedSourceWorldIdValue.trim()
+        : undefined;
+  if (
+    expectedSourceWorldId === undefined ||
+    (expectedSourceWorldId === null && expectedSourceDigest !== null) ||
+    (expectedSourceWorldId !== null &&
+      (expectedSourceWorldId.length === 0 ||
+        expectedSourceWorldId === currentWorldId ||
+        typeof expectedSourceDigest !== 'string' ||
+        expectedSourceDigest.length === 0)) ||
+    !Array.isArray(rawLineage)
+  ) {
+    throw new Error(`Extension is missing the exact ${receiptLabel}.`);
+  }
+
+  const seenWorldIds = new Set<string>();
+  let winningSourceWorldId: string | null = null;
+  let winningSourceDigest: string | null = null;
+  let winningSourceData: DocumentData = {};
+  for (const rawEntry of rawLineage) {
+    if (
+      !rawEntry ||
+      typeof rawEntry !== 'object' ||
+      Array.isArray(rawEntry)
+    ) {
+      throw new Error(`Extension is missing the exact ${receiptLabel}.`);
+    }
+    const entry = rawEntry as Record<string, unknown>;
+    const entryWorldId =
+      typeof entry.worldId === 'string' ? entry.worldId.trim() : '';
+    const entryExists = entry.exists;
+    const entryDigest = entry.digest;
+    if (
+      !entryWorldId ||
+      entryWorldId === currentWorldId ||
+      seenWorldIds.has(entryWorldId) ||
+      typeof entryExists !== 'boolean' ||
+      (entryExists
+        ? typeof entryDigest !== 'string' || entryDigest.length === 0
+        : entryDigest !== null) ||
+      winningSourceWorldId !== null
+    ) {
+      throw new Error(`Extension is missing the exact ${receiptLabel}.`);
+    }
+    seenWorldIds.add(entryWorldId);
+
+    const sourceSnapshot = await transaction.get(sourceRef(entryWorldId));
+    const sourceExists = sourceSnapshot.exists();
+    if (
+      sourceExists !== entryExists ||
+      (entryExists &&
+        mutationSnapshotDigest(sourceSnapshot.data()) !== entryDigest)
+    ) {
+      throw new Error(
+        `Inherited ${changedLabel} snapshot for ${changedIdentifier} changed before commit. Reload and try again.`
+      );
+    }
+    if (
+      entryExists === true &&
+      typeof entryDigest === 'string' &&
+      sourceExists
+    ) {
+      winningSourceWorldId = entryWorldId;
+      winningSourceDigest = entryDigest;
+      winningSourceData = sourceSnapshot.data() ?? {};
+    }
+  }
+
+  if (
+    (expectedSourceWorldId === null && winningSourceWorldId !== null) ||
+    (expectedSourceWorldId !== null &&
+      (winningSourceWorldId !== expectedSourceWorldId ||
+        winningSourceDigest !== expectedSourceDigest))
+  ) {
+    throw new Error(`Extension is missing the exact ${receiptLabel}.`);
+  }
+
+  return winningSourceData;
+}
+
 function applyWritesToBatch(
   batch: WriteBatch,
   writes: readonly PreparedMutationWrite[]
@@ -408,55 +513,33 @@ export async function persistWorldMutation({
                   `Team snapshot for ${normalizedTeamCode} changed before commit. Reload and try again.`
                 );
               }
-              const teamSourceWorldIdValue =
-                metadata.expectedTeamSourceWorldId;
-              const expectedTeamSourceWorldId =
-                teamSourceWorldIdValue === null
-                  ? null
-                  : typeof teamSourceWorldIdValue === 'string'
-                    ? teamSourceWorldIdValue.trim()
-                    : undefined;
-              const expectedTeamSourceDigest =
-                metadata.expectedTeamSourceSnapshotDigest;
-              if (
-                expectedTeamSourceWorldId === undefined ||
-                (expectedTeamSourceWorldId === null &&
-                  expectedTeamSourceDigest !== null) ||
-                (expectedTeamSourceWorldId !== null &&
-                  (expectedTeamSourceWorldId.length === 0 ||
-                    typeof expectedTeamSourceDigest !== 'string' ||
-                    expectedTeamSourceDigest.length === 0)) ||
-                (expectedTeamExists && expectedTeamSourceWorldId !== worldId) ||
-                (!expectedTeamExists && expectedTeamSourceWorldId === worldId) ||
-                (expectedTeamExists &&
-                  expectedTeamSourceDigest !== expectedTeamDigest)
-              ) {
-                throw new Error(
-                  `Extension is missing the exact team-source receipt for ${normalizedTeamCode}.`
-                );
-              }
-              if (
-                expectedTeamSourceWorldId !== null &&
-                expectedTeamSourceWorldId !== worldId
-              ) {
-                const sourceTeamSnapshot = await transaction.get(
-                  worldTeamRef(
-                    expectedTeamSourceWorldId,
-                    normalizedTeamCode
-                  )
-                );
+              if (expectedTeamExists) {
                 if (
-                  !sourceTeamSnapshot.exists() ||
-                  mutationSnapshotDigest(sourceTeamSnapshot.data()) !==
-                    expectedTeamSourceDigest
+                  metadata.expectedTeamSourceWorldId !== worldId ||
+                  metadata.expectedTeamSourceSnapshotDigest !==
+                    expectedTeamDigest ||
+                  !Array.isArray(metadata.expectedTeamSourceLineage) ||
+                  metadata.expectedTeamSourceLineage.length !== 0
                 ) {
                   throw new Error(
-                    `Inherited team snapshot for ${normalizedTeamCode} changed before commit. Reload and try again.`
+                    `Extension is missing the exact team-source receipt for ${normalizedTeamCode}.`
                   );
                 }
-                contractSourceTeamData = sourceTeamSnapshot.data();
-              } else if (expectedTeamSourceWorldId === null) {
-                contractSourceTeamData = {};
+              } else {
+                contractSourceTeamData = await recheckExtensionSourceLineage({
+                  transaction,
+                  rawLineage: metadata.expectedTeamSourceLineage,
+                  expectedSourceWorldIdValue:
+                    metadata.expectedTeamSourceWorldId,
+                  expectedSourceDigest:
+                    metadata.expectedTeamSourceSnapshotDigest,
+                  currentWorldId: worldId,
+                  sourceRef: (sourceWorldId) =>
+                    worldTeamRef(sourceWorldId, normalizedTeamCode),
+                  receiptLabel: `team-source lineage receipt for ${normalizedTeamCode}`,
+                  changedLabel: 'team',
+                  changedIdentifier: normalizedTeamCode,
+                });
               }
 
               const expectedPlayerExists =
@@ -492,55 +575,37 @@ export async function persistWorldMutation({
                   `Player snapshot for ${expectedPlayerId} changed before commit. Reload and try again.`
                 );
               }
-              const playerSourceWorldIdValue =
-                metadata.expectedPlayerSourceWorldId;
-              const expectedPlayerSourceWorldId =
-                playerSourceWorldIdValue === null
-                  ? null
-                  : typeof playerSourceWorldIdValue === 'string'
-                    ? playerSourceWorldIdValue.trim()
-                    : undefined;
-              const expectedPlayerSourceDigest =
-                metadata.expectedPlayerSourceSnapshotDigest;
-              if (
-                expectedPlayerSourceWorldId === undefined ||
-                (expectedPlayerSourceWorldId === null &&
-                  expectedPlayerSourceDigest !== null) ||
-                (expectedPlayerSourceWorldId !== null &&
-                  (expectedPlayerSourceWorldId.length === 0 ||
-                    typeof expectedPlayerSourceDigest !== 'string' ||
-                    expectedPlayerSourceDigest.length === 0)) ||
-                (expectedPlayerExists &&
-                  expectedPlayerSourceWorldId !== worldId) ||
-                (!expectedPlayerExists &&
-                  expectedPlayerSourceWorldId === worldId) ||
-                (expectedPlayerExists &&
-                  expectedPlayerSourceDigest !== expectedPlayerDigest)
-              ) {
-                throw new Error(
-                  `Extension is missing the exact player-source receipt for ${expectedPlayerId}.`
-                );
-              }
-              if (
-                expectedPlayerSourceWorldId !== null &&
-                expectedPlayerSourceWorldId !== worldId
-              ) {
-                const sourcePlayerSnapshot = await transaction.get(
-                  worldPlayerRef(
-                    expectedPlayerSourceWorldId,
-                    normalizedTeamCode,
-                    expectedPlayerId
-                  )
-                );
+              if (expectedPlayerExists) {
                 if (
-                  !sourcePlayerSnapshot.exists() ||
-                  mutationSnapshotDigest(sourcePlayerSnapshot.data()) !==
-                    expectedPlayerSourceDigest
+                  metadata.expectedPlayerSourceWorldId !== worldId ||
+                  metadata.expectedPlayerSourceSnapshotDigest !==
+                    expectedPlayerDigest ||
+                  !Array.isArray(metadata.expectedPlayerSourceLineage) ||
+                  metadata.expectedPlayerSourceLineage.length !== 0
                 ) {
                   throw new Error(
-                    `Inherited player snapshot for ${expectedPlayerId} changed before commit. Reload and try again.`
+                    `Extension is missing the exact player-source receipt for ${expectedPlayerId}.`
                   );
                 }
+              } else {
+                await recheckExtensionSourceLineage({
+                  transaction,
+                  rawLineage: metadata.expectedPlayerSourceLineage,
+                  expectedSourceWorldIdValue:
+                    metadata.expectedPlayerSourceWorldId,
+                  expectedSourceDigest:
+                    metadata.expectedPlayerSourceSnapshotDigest,
+                  currentWorldId: worldId,
+                  sourceRef: (sourceWorldId) =>
+                    worldPlayerRef(
+                      sourceWorldId,
+                      normalizedTeamCode,
+                      expectedPlayerId
+                    ),
+                  receiptLabel: `player-source lineage receipt for ${expectedPlayerId}`,
+                  changedLabel: 'player',
+                  changedIdentifier: expectedPlayerId,
+                });
               }
             }
             const expectedLedgerId = String(

@@ -40,9 +40,14 @@ import {
 } from '../../helpers/architectTestHelpers';
 import { getAllMockData, seedMockData } from '../../__mocks__/firebase';
 import { mutationSnapshotDigest } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
+import {
+  getWorldPlayerSnapshotLineageReceipt,
+  getWorldTeamSnapshotLineageReceipt,
+} from '@/features/architect/utils/mutationPipeline.read.stateLoader.lineage';
 
 const WORLD_ID = 'world-bze-282';
 const PARENT_WORLD_ID = 'parent-world-bze-282';
+const GRANDPARENT_WORLD_ID = 'grandparent-world-bze-282';
 const TEAM_ID = 'MIA';
 const PLAYER_ID = 'player-bze-282';
 const CONTRACT_ID = 'contract-bze-282';
@@ -756,6 +761,7 @@ function computeMutation(
     omitAuthority?: boolean;
     localSnapshotsExist?: boolean;
     sourceWorldId?: string | null;
+    skippedSourceWorldIds?: readonly string[];
     malformedSourceReceipt?: boolean;
   } = {}
 ) {
@@ -766,6 +772,9 @@ function computeMutation(
   const sourceWorldId = localSnapshotsExist
     ? WORLD_ID
     : options.sourceWorldId ?? null;
+  const skippedSourceWorldIds = localSnapshotsExist
+    ? []
+    : options.skippedSourceWorldIds ?? [];
   const authority = resolveGovernedExtensionLedgerAuthority({
     baselineLedger: baseline,
     baselineSalaryCapYear: 2027,
@@ -790,6 +799,22 @@ function computeMutation(
           sourceWorldId && !options.malformedSourceReceipt
             ? mutationSnapshotDigest(team)
             : null,
+        sourceLineage: [
+          ...skippedSourceWorldIds.map((worldId) => ({
+            worldId,
+            exists: false,
+            digest: null,
+          })),
+          ...(sourceWorldId && sourceWorldId !== WORLD_ID
+            ? [
+                {
+                  worldId: sourceWorldId,
+                  exists: true,
+                  digest: mutationSnapshotDigest(team),
+                },
+              ]
+            : []),
+        ],
       },
       extensionPlayerSnapshot: {
         exists: localSnapshotsExist,
@@ -799,6 +824,22 @@ function computeMutation(
           sourceWorldId && !options.malformedSourceReceipt
             ? mutationSnapshotDigest(player)
             : null,
+        sourceLineage: [
+          ...skippedSourceWorldIds.map((worldId) => ({
+            worldId,
+            exists: false,
+            digest: null,
+          })),
+          ...(sourceWorldId && sourceWorldId !== WORLD_ID
+            ? [
+                {
+                  worldId: sourceWorldId,
+                  exists: true,
+                  digest: mutationSnapshotDigest(player),
+                },
+              ]
+            : []),
+        ],
       },
       team,
     },
@@ -872,6 +913,55 @@ function seedParentFallbackWorld(): void {
   );
   seedMockData(
     `architect_worlds/${PARENT_WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`,
+    persistencePlayerFixture()
+  );
+}
+
+function seedGrandparentFallbackWorld(): void {
+  seedBaseData();
+  seedWorldMetadata(GRANDPARENT_WORLD_ID, {
+    ...createMockWorld({
+      worldId: GRANDPARENT_WORLD_ID,
+      userId: 'user-bze-282',
+      currentSeason: '2026-27',
+      asOfDate: WORLD_DATE,
+    }),
+    contractBaselineVersion: 2,
+    contractBaselineEffectiveAt: '2026-07-01T00:00:00-04:00',
+    contractBaselineSalaryCapYear: 2027,
+  });
+  seedWorldMetadata(PARENT_WORLD_ID, {
+    ...createMockWorld({
+      worldId: PARENT_WORLD_ID,
+      userId: 'user-bze-282',
+      currentSeason: '2026-27',
+      asOfDate: WORLD_DATE,
+    }),
+    parentWorldId: GRANDPARENT_WORLD_ID,
+    contractBaselineVersion: 2,
+    contractBaselineEffectiveAt: '2026-07-01T00:00:00-04:00',
+    contractBaselineSalaryCapYear: 2027,
+  });
+  seedWorldMetadata(WORLD_ID, {
+    ...createMockWorld({
+      worldId: WORLD_ID,
+      userId: 'user-bze-282',
+      currentSeason: '2026-27',
+      asOfDate: WORLD_DATE,
+    }),
+    parentWorldId: PARENT_WORLD_ID,
+    contractBaselineVersion: 2,
+    contractBaselineEffectiveAt: '2026-07-01T00:00:00-04:00',
+    contractBaselineSalaryCapYear: 2027,
+  });
+  seedTeamSnapshot(
+    GRANDPARENT_WORLD_ID,
+    TEAM_ID,
+    persistenceTeamFixture() as unknown as MockTeam,
+    { padRoster: false }
+  );
+  seedMockData(
+    `architect_worlds/${GRANDPARENT_WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`,
     persistencePlayerFixture()
   );
 }
@@ -1082,6 +1172,163 @@ describe('governed extension mutation and atomic persistence', () => {
     expect(
       [...getAllMockData().keys()].filter((key) => key.includes(`/events/`))
     ).toHaveLength(eventCountBefore);
+  });
+
+  it('creates local snapshots from an unchanged grandparent while a nearer parent remains absent', async () => {
+    seedGrandparentFallbackWorld();
+    const computed = computeMutation({
+      operationId: 'grandparent-fallback-success',
+      localSnapshotsExist: false,
+      sourceWorldId: GRANDPARENT_WORLD_ID,
+      skippedSourceWorldIds: [PARENT_WORLD_ID],
+    });
+    expect(computed.success).toBe(true);
+
+    const persisted = await persistWorldMutation({
+      worldId: WORLD_ID,
+      seasonId: '2026-27',
+      mutationType: 'extendPlayer',
+      computeResult: computed,
+      committedTeamUpdates: computed.teamUpdates || [],
+      timestamp: Date.parse('2026-10-19T18:01:00-04:00'),
+    });
+
+    expect(persisted.success).toBe(true);
+    expect(getMockTeamSnapshot(WORLD_ID, TEAM_ID)).toMatchObject({
+      contractEventLedgers: [{ ledgerVersion: 2 }],
+    });
+    expect(
+      getAllMockData().get(
+        `architect_worlds/${WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`
+      )
+    ).toMatchObject({ futureContract: { isExtension: true } });
+  });
+
+  it('rejects a new nearer-ancestor team snapshot after grandparent fallback was read', async () => {
+    seedGrandparentFallbackWorld();
+    const captured = await getWorldTeamSnapshotLineageReceipt(
+      [PARENT_WORLD_ID, GRANDPARENT_WORLD_ID],
+      TEAM_ID
+    );
+    expect(captured.checkedSnapshots).toEqual([
+      { worldId: PARENT_WORLD_ID, exists: false, digest: null },
+      {
+        worldId: GRANDPARENT_WORLD_ID,
+        exists: true,
+        digest: mutationSnapshotDigest(persistenceTeamFixture()),
+      },
+    ]);
+    const computed = computeMutation({
+      operationId: 'skipped-parent-team-race',
+      localSnapshotsExist: false,
+      sourceWorldId: GRANDPARENT_WORLD_ID,
+      skippedSourceWorldIds: [PARENT_WORLD_ID],
+    });
+    expect(computed.success).toBe(true);
+    seedTeamSnapshot(
+      PARENT_WORLD_ID,
+      TEAM_ID,
+      {
+        ...persistenceTeamFixture(),
+        totals: { totalSalary: 74_000_001 },
+      } as unknown as MockTeam,
+      { padRoster: false }
+    );
+    const childMetadataBefore = JSON.stringify(
+      getAllMockData().get(`architect_worlds/${WORLD_ID}`)
+    );
+    const eventCountBefore = [...getAllMockData().keys()].filter((key) =>
+      key.includes(`/events/`)
+    ).length;
+
+    const persisted = await persistWorldMutation({
+      worldId: WORLD_ID,
+      seasonId: '2026-27',
+      mutationType: 'extendPlayer',
+      computeResult: computed,
+      committedTeamUpdates: computed.teamUpdates || [],
+      timestamp: Date.parse('2026-10-19T18:01:00-04:00'),
+    });
+
+    expect(persisted.success).toBe(false);
+    if (!persisted.success) {
+      expect(persisted.error).toContain('Inherited team snapshot');
+    }
+    expect(getMockTeamSnapshot(WORLD_ID, TEAM_ID)).toBeUndefined();
+    expect(
+      getAllMockData().get(
+        `architect_worlds/${WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`
+      )
+    ).toBeUndefined();
+    expect(
+      [...getAllMockData().keys()].filter((key) => key.includes(`/events/`))
+    ).toHaveLength(eventCountBefore);
+    expect(
+      JSON.stringify(getAllMockData().get(`architect_worlds/${WORLD_ID}`))
+    ).toBe(childMetadataBefore);
+  });
+
+  it('rejects a new nearer-ancestor player override after grandparent fallback was read', async () => {
+    seedGrandparentFallbackWorld();
+    const captured = await getWorldPlayerSnapshotLineageReceipt(
+      [PARENT_WORLD_ID, GRANDPARENT_WORLD_ID],
+      TEAM_ID,
+      PLAYER_ID
+    );
+    expect(captured.checkedSnapshots).toEqual([
+      { worldId: PARENT_WORLD_ID, exists: false, digest: null },
+      {
+        worldId: GRANDPARENT_WORLD_ID,
+        exists: true,
+        digest: mutationSnapshotDigest(persistencePlayerFixture()),
+      },
+    ]);
+    const computed = computeMutation({
+      operationId: 'skipped-parent-player-race',
+      localSnapshotsExist: false,
+      sourceWorldId: GRANDPARENT_WORLD_ID,
+      skippedSourceWorldIds: [PARENT_WORLD_ID],
+    });
+    expect(computed.success).toBe(true);
+    seedMockData(
+      `architect_worlds/${PARENT_WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`,
+      {
+        ...persistencePlayerFixture(),
+        scoutingNote: 'new nearer parent override',
+      }
+    );
+    const childMetadataBefore = JSON.stringify(
+      getAllMockData().get(`architect_worlds/${WORLD_ID}`)
+    );
+    const eventCountBefore = [...getAllMockData().keys()].filter((key) =>
+      key.includes(`/events/`)
+    ).length;
+
+    const persisted = await persistWorldMutation({
+      worldId: WORLD_ID,
+      seasonId: '2026-27',
+      mutationType: 'extendPlayer',
+      computeResult: computed,
+      committedTeamUpdates: computed.teamUpdates || [],
+      timestamp: Date.parse('2026-10-19T18:01:00-04:00'),
+    });
+
+    expect(persisted.success).toBe(false);
+    if (!persisted.success) {
+      expect(persisted.error).toContain('Inherited player snapshot');
+    }
+    expect(getMockTeamSnapshot(WORLD_ID, TEAM_ID)).toBeUndefined();
+    expect(
+      getAllMockData().get(
+        `architect_worlds/${WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`
+      )
+    ).toBeUndefined();
+    expect(
+      [...getAllMockData().keys()].filter((key) => key.includes(`/events/`))
+    ).toHaveLength(eventCountBefore);
+    expect(
+      JSON.stringify(getAllMockData().get(`architect_worlds/${WORLD_ID}`))
+    ).toBe(childMetadataBefore);
   });
 
   it('rejects a concurrent first-snapshot creator with no partial write', async () => {
