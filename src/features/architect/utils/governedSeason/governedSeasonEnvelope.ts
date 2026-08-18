@@ -929,12 +929,10 @@ function changedPostCanonSourceFields(
   retained: GovernedManifestPostCanonSource,
   current: GovernedManifestPostCanonSource | null
 ): string[] {
-  const retainedRecord = retained as unknown as Readonly<
-    Record<string, unknown>
-  >;
-  const currentRecord = (current ?? {}) as unknown as Readonly<
-    Record<string, unknown>
-  >;
+  const retainedRecord = Object.fromEntries(Object.entries(retained));
+  const currentRecord = current
+    ? Object.fromEntries(Object.entries(current))
+    : {};
   return [
     ...new Set([...Object.keys(retained), ...Object.keys(currentRecord)]),
   ]
