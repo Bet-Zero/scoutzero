@@ -118,12 +118,13 @@ freeze:
    started automated review has completed or is recorded unavailable, and all
    available automated-review findings are settled.
 
-After freeze, start required hosted CI and any declared browser/emulator proof
-on the exact candidate. Confirm required hosted CI is green on that final head.
-Only then generate the immutable independent-Claude prompt. Any subsequent head
-change invalidates that prompt and requires a replacement prompt for the new
-exact head after the applicable author, automated-review, and hosted-CI gates
-are satisfied again.
+Draft PR checks may start automatically before freeze, but only the green hosted
+CI receipt for the frozen final head counts as required evidence. After freeze,
+confirm that exact-head CI and any declared browser/emulator proof. Only then
+generate the immutable independent-Claude prompt. Any subsequent head change
+invalidates that prompt and requires a replacement prompt for the new exact head
+after the applicable author, automated-review, and hosted-CI gates are satisfied
+again.
 
 Associate every receipt with the exact candidate SHA. Reuse unaffected evidence
 while the SHA is unchanged.

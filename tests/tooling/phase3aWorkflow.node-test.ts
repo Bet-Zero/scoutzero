@@ -158,7 +158,7 @@ test('Phase 3A policy settles automated review and exact-head CI before Claude',
       'Open the draft PR as soon as it has a reviewable diff',
       'Start available automated review while author work and self-review are still underway',
       'Declare the candidate frozen only when author review is complete',
-      'Confirm required hosted CI is green on that final head',
+      'only the green hosted CI receipt for the frozen final head counts as required evidence',
       'Only then generate the immutable independent-Claude prompt',
       'Any subsequent head change invalidates that prompt',
     ],
@@ -172,6 +172,7 @@ test('Phase 3A policy settles automated review and exact-head CI before Claude',
     profile,
     /A review that has started but remains pending is not settled/
   );
+  assert.match(profile, /Draft PR checks may start automatically before freeze/);
   assert.match(template, /Draft review and freeze record/);
   assert.match(
     template,
