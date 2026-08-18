@@ -39,9 +39,13 @@ tranches when the adjacent obligations share the same inputs, state transition,
 and review proof. Keep distinct workflows separate when combining them would
 blur authority, validation, or landing decisions.
 
-Before candidate freeze, repair every author-known suspicion or resolve it with
-evidence that discriminates the suspected failure from the intended behavior.
-An unresolved concern means the candidate is not ready for independent review.
+Before candidate freeze, derive a focused failure-testing matrix from the
+tranche's declared risk contract. Cover the realistic ways that specific change
+could incorrectly authorize, calculate, mutate, persist, or report a result;
+do not impose one enormous generic mutation checklist on unrelated work. Repair
+every author-known suspicion or resolve it with evidence that discriminates the
+suspected failure from the intended behavior. An unresolved concern means the
+candidate is not ready for freeze or independent review.
 
 ## Preflight and declared risk contract
 
@@ -65,28 +69,59 @@ last authority-gate check and result, and the event that would unblock it. On
 retry, run the authority gate first. Do not repeat implementation preflight
 until the authority gate changes.
 
+When a mutable external source will become governed authority, its bytes must
+be durable before its fingerprint can be certified or used as an implementation
+pin:
+
+1. Retrieve the source twice and confirm that both retrieves have identical
+   bytes.
+2. Retain those exact bytes in the governed content-addressed location.
+3. Recompute and verify the hash and size from the retained copy.
+4. Verify that the retained copy is independently recoverable.
+5. Only then present its fingerprint for owner certification or use it as an
+   implementation pin.
+
+If the exact bytes are not already retained and recoverable, stop the authority
+gate before owner certification. A hash or retrieval receipt without retained
+bytes cannot authorize runtime behavior.
+
 ## Validation responsibilities
 
 | Actor                       | Distinct responsibility                                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Author                      | Focused implementation tests plus positive and fail-closed counterfactuals. Resolve author-known suspicions before freeze.     |
+| Author                      | Risk-contract-specific failure matrix, focused implementation tests, and discriminating positive/fail-closed proof before freeze. |
+| Automated review            | Review the draft early. Settle every available finding before freeze; record optional-reviewer unavailability without waiting indefinitely. |
 | Hosted CI                   | Established domain, static, project-validation, and build checks on the exact candidate.                                       |
 | Independent Claude reviewer | Canon judgment, adversarial probes, test non-vacuity, limitations, and exact base/head scope. The reviewer chooses the probes. |
 | Browser/emulator            | Only rendered, persistence, or cross-room risks. Use deterministic governed fixtures and retain exact-candidate evidence.      |
 | Landing                     | Exact candidate, ancestry, synchronization, unresolved threads, records, and limitations. Do not repeat implementation suites. |
 
-Generic automated reviewers are useful best-effort signals. They are not
-required gates and are never evidence of Canon correctness.
+Automated reviewers are useful best-effort signals, not evidence of Canon
+correctness. An optional reviewer being unavailable or rate-limited does not
+block the lane indefinitely, but the PR must record that fact. Every finding
+that an available reviewer does produce must be resolved or disproved before
+candidate freeze.
 
 ## Candidate freeze and evidence reuse
 
-Once the candidate is genuinely ready and frozen, start these concurrently
-where applicable:
+Open the draft PR as soon as it has a reviewable diff. Start available automated
+review while author work and self-review are still underway. Before candidate
+freeze:
 
-- hosted required CI;
-- the declared browser/emulator proof;
-- independent read-only Claude review; and
-- best-effort generic automated review.
+1. Complete the focused author failure-testing matrix and resolve every
+   author-known concern with discriminating evidence.
+2. Resolve or disprove every finding produced by available automated review.
+3. Record any optional reviewer that was unavailable or rate-limited instead of
+   waiting indefinitely.
+4. Declare the candidate frozen only when author review is complete and all
+   available automated-review findings are settled.
+
+After freeze, start required hosted CI and any declared browser/emulator proof
+on the exact candidate. Confirm required hosted CI is green on that final head.
+Only then generate the immutable independent-Claude prompt. Any subsequent head
+change invalidates that prompt and requires a replacement prompt for the new
+exact head after the applicable author, automated-review, and hosted-CI gates
+are satisfied again.
 
 Associate every receipt with the exact candidate SHA. Reuse unaffected evidence
 while the SHA is unchanged.

@@ -6,6 +6,18 @@ Fixes BZE-XXX
 
 Foundation context: [descriptive foundation name](https://linear.app/...)
 
+## Draft review and freeze record
+
+- Focused failure-testing matrix derived from this tranche's risk contract:
+- Available automated reviewers started while the PR was draft:
+- Findings resolved or disproved:
+- Optional reviewers unavailable or rate-limited (record; do not wait indefinitely):
+- [ ] Author review is complete and every available automated-review finding is settled
+- [ ] Candidate was frozen only after the preceding author and automated-review work
+- [ ] Required hosted CI is green on the final exact head
+- [ ] Immutable Claude prompt was generated only after that exact-head CI was green
+- [ ] Claude prompt has been invalidated and replaced after any subsequent head change
+
 ## Exact candidate record
 
 | Field               | Receipt                            |
@@ -20,6 +32,7 @@ Foundation context: [descriptive foundation name](https://linear.app/...)
 
 ### Author
 
+- Risk-contract-specific failure matrix:
 - Focused positive proof:
 - Fail-closed counterfactual:
 - Other declared checks:
@@ -30,6 +43,7 @@ Foundation context: [descriptive foundation name](https://linear.app/...)
 
 ### Independent review
 
+- Immutable prompt generated after final-head CI, with prompt link:
 - Reviewer, exact base/head, verdict, and request/receipt link:
 - Adversarial probes and test non-vacuity:
 
@@ -52,7 +66,10 @@ Foundation context: [descriptive foundation name](https://linear.app/...)
 
 - [ ] Candidate is frozen and unchanged since required evidence/review
 - [ ] Base/head are clean, synchronized, and ancestry is verified
+- [ ] Every available automated-review finding was resolved or disproved before freeze
+- [ ] Optional automated-review unavailability/rate limiting is recorded without indefinite waiting
 - [ ] Required hosted CI is green on the exact candidate
+- [ ] Independent-Claude prompt was generated after that exact-head CI and still names the current head
 - [ ] Independent Claude returned `ACCEPT` on the exact candidate
 - [ ] Required browser/emulator proof passed, or the declared risk contract justifies a skip
 - [ ] No unresolved thread, product decision, authority ambiguity, failed QA, scope expansion, or material architecture/data concern remains
