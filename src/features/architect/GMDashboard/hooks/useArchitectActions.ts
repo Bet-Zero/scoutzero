@@ -487,6 +487,7 @@ export function useArchitectActions({
     handleExtendContract,
     handleWaiveContract,
     handleOptionDecision,
+    getExtensionAvailability,
     getOptionDecisionAvailability,
     handleRenounceRights,
     capSheetDevTools,
@@ -647,6 +648,7 @@ export function useArchitectActions({
     handleExtendContract,
     handleWaiveContract,
     handleOptionDecision,
+    getExtensionAvailability,
     getOptionDecisionAvailability,
     handleRenounceRights,
 

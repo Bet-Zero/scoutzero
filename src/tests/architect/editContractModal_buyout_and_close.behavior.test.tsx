@@ -47,6 +47,102 @@ describe('EditContractModal buyout + close gating behavior', () => {
     vi.clearAllMocks();
   });
 
+  it('shows governed extension evidence gaps and cannot save through override', () => {
+    const onExtend = vi.fn();
+    render(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2026}
+        initialAction="extend"
+        onExtend={onExtend}
+        extensionAvailability={{
+          status: 'needs-input',
+          playerId: 'p1',
+          contractId: 'contract-p1',
+          reasons: [
+            'Exact transaction history and original compensation bases are missing.',
+          ],
+          suggestedRoute: null,
+          allowedRoutes: [],
+          firstExtendedSeason: null,
+        }}
+      />
+    );
+
+    expect(screen.getByText(/needs governed input/i)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/exact transaction history/i).length
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('button', { name: /authoritative preflight pending/i })
+    ).toBeDisabled();
+    expect(onExtend).not.toHaveBeenCalled();
+  });
+
+  it('collects exact signature evidence and dispatches a governed Veteran proposal', async () => {
+    const onClose = vi.fn();
+    const onExtend = vi.fn().mockResolvedValue({ success: true });
+    render(
+      <EditContractModal
+        isOpen
+        onClose={onClose}
+        player={PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2026}
+        initialAction="extend"
+        onExtend={onExtend}
+        extensionAvailability={{
+          status: 'ready',
+          playerId: 'p1',
+          contractId: 'contract-p1',
+          reasons: [],
+          suggestedRoute: 'veteran',
+          allowedRoutes: ['veteran'],
+          firstExtendedSeason: '2026-27',
+        }}
+      />
+    );
+
+    const confirm = screen.getByRole('button', {
+      name: /authoritative preflight pending/i,
+    });
+    expect(confirm).toBeDisabled();
+    fireEvent.change(screen.getByTestId('governed-extension-signed-at'), {
+      target: { value: '2026-07-08T12:00:00-04:00' },
+    });
+    const enabledConfirm = await screen.findByRole('button', {
+      name: /confirm action/i,
+    });
+    expect(enabledConfirm).toBeEnabled();
+    fireEvent.click(enabledConfirm);
+
+    await waitFor(() => {
+      expect(onExtend).toHaveBeenCalledWith(
+        PLAYER,
+        expect.objectContaining({
+          proposalVersion: 1,
+          contractId: 'contract-p1',
+          route: 'veteran',
+          signedAt: '2026-07-08T12:00:00-04:00',
+          conditionalHigherMaxPercentage: null,
+          agreedDesignatedVeteranPercentage: null,
+          salariesByYear: expect.arrayContaining([
+            expect.objectContaining({
+              season: '2026-27',
+              salaryExcludingIncentive: expect.any(Number),
+              regularSalary: expect.any(Number),
+              bonuses: [],
+            }),
+          ]),
+        })
+      );
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   afterEach(() => {
     cleanup();
   });

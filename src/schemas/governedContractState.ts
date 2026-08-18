@@ -255,6 +255,11 @@ export const GovernedContractTermsZ = z.strictObject({
     optionYear: z.string().nullable(),
     optionType: z.string().nullable(),
   }),
+  // Parsed by the governed extension path. Unknown here by design so a
+  // malformed future release returns a precise Needs input result instead of
+  // making the entire immutable Contract history unreadable.
+  extensionEvidence: z.unknown().nullable().optional(),
+  extensionLeagueEvidence: z.unknown().nullable().optional(),
   sourceLimitations: z.array(NonEmptyStringZ),
 });
 

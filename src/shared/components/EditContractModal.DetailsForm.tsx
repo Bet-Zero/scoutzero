@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatCurrencyFull } from '@/shared/utils/formatting';
 import { TeamSelectDropdown } from '@/shared/components/TeamSelectDropdown';
+import type { GovernedExtensionAvailability } from '@/features/architect/utils/extensions';
 import type {
   SelectedContractAction,
   ExtensionStateLike,
@@ -35,6 +36,7 @@ type ContractDetailsFormProps = {
   extMax: ExtMaxState | null;
   extReason: string;
   isExtendEligible: boolean;
+  extensionAvailability: GovernedExtensionAvailability | null;
   availableSigningExceptions: SigningExceptionOption[];
   signingGuardrails: SigningGuardrailsLike | null;
   remainingGuaranteedForBuyout: number;
@@ -72,6 +74,7 @@ export const ContractDetailsForm = ({
   extMax,
   extReason,
   isExtendEligible,
+  extensionAvailability,
   availableSigningExceptions,
   signingGuardrails,
   remainingGuaranteedForBuyout,
@@ -95,17 +98,35 @@ export const ContractDetailsForm = ({
             New Contract Preview
           </h4>
           <div className="flex items-center gap-2">
-            <select
-              value={extension.contractType}
-              onChange={(e) =>
-                setExtension({ ...extension, contractType: e.target.value })
-              }
-              className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
-            >
-              <option value="Standard">Standard</option>
-              <option value="Rookie Scale">Rookie Scale</option>
-              <option value="Designated veteran">Designated Veteran</option>
-            </select>
+            {selectedAction === 'extend' && extensionAvailability ? (
+              <select
+                data-testid="governed-extension-route"
+                value={extension.route || extensionAvailability.suggestedRoute || 'veteran'}
+                onChange={(e) =>
+                  setExtension({
+                    ...extension,
+                    route: e.target.value as ExtensionStateLike['route'],
+                  })
+                }
+                className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
+              >
+                <option value="rookie-scale">Rookie Scale</option>
+                <option value="veteran">Veteran</option>
+                <option value="designated-veteran">Designated Veteran</option>
+              </select>
+            ) : (
+              <select
+                value={extension.contractType}
+                onChange={(e) =>
+                  setExtension({ ...extension, contractType: e.target.value })
+                }
+                className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
+              >
+                <option value="Standard">Standard</option>
+                <option value="Rookie Scale">Rookie Scale</option>
+                <option value="Designated veteran">Designated Veteran</option>
+              </select>
+            )}
 
             {['signNew', 'resign'].includes(selectedAction) && (
               <select
@@ -185,6 +206,55 @@ export const ContractDetailsForm = ({
             </select>
           </div>
         </div>
+
+        {selectedAction === 'extend' && extensionAvailability && (
+          <div className="mb-4 grid gap-3 md:grid-cols-2">
+            <label className="text-xs text-white/70">
+              Exact signature time
+              <input
+                data-testid="governed-extension-signed-at"
+                value={extension.signedAt || ''}
+                onChange={(event) => {
+                  onTermsChange();
+                  setExtension({ ...extension, signedAt: event.target.value });
+                }}
+                placeholder="2026-10-19T18:00:00-04:00"
+                className="mt-1 w-full rounded border border-white/15 bg-black/35 px-3 py-2 text-xs text-white outline-none focus:border-orange-400/50"
+              />
+              <span className="mt-1 block text-[10px] text-white/45">
+                Include the UTC offset. No signing time is inferred.
+              </span>
+            </label>
+            {(extension.route || extensionAvailability.suggestedRoute) ===
+              'designated-veteran' && (
+              <label className="text-xs text-white/70">
+                Agreed cap percentage
+                <input
+                  data-testid="governed-extension-dv-percentage"
+                  type="number"
+                  min="30"
+                  max="35"
+                  step="0.0001"
+                  value={extension.agreedDesignatedVeteranPercentage ?? ''}
+                  onChange={(event) => {
+                    onTermsChange();
+                    setExtension({
+                      ...extension,
+                      agreedDesignatedVeteranPercentage:
+                        event.target.value === ''
+                          ? null
+                          : Number(event.target.value),
+                    });
+                  }}
+                  className="mt-1 w-full rounded border border-white/15 bg-black/35 px-3 py-2 text-xs text-white outline-none focus:border-orange-400/50"
+                />
+                <span className="mt-1 block text-[10px] text-white/45">
+                  Must be 30% through 35% of the first extended Season cap.
+                </span>
+              </label>
+            )}
+          </div>
+        )}
 
         {isSigningAction && signingGuardrails && (
           <div className="mb-3 flex flex-wrap gap-2 text-[11px] text-white/70">
@@ -296,7 +366,23 @@ export const ContractDetailsForm = ({
 
         {selectedAction === 'extend' && (
           <div className="mt-3 px-3 py-2 bg-orange-500/10 border border-orange-500/20 rounded text-xs text-orange-200 space-y-1">
-            {isExtendEligible && extMax ? (
+            {extensionAvailability ? (
+              <>
+                <div className="font-medium">
+                  {extensionAvailability.status === 'ready'
+                    ? 'Governed extension evidence ready'
+                    : extensionAvailability.status === 'incompatible'
+                      ? 'Governed Contract history is incompatible'
+                      : 'Needs governed input'}
+                </div>
+                <div className="text-[11px] text-orange-100/75">
+                  {extensionAvailability.status === 'ready'
+                    ? `${extensionAvailability.firstExtendedSeason || 'The next Contract Season'} begins the extension. Exact route, timing, term, salary, bonus, and annual-change rules are checked again when saved.`
+                    : extensionAvailability.reasons[0] ||
+                      'Required Contract or league evidence is unavailable.'}
+                </div>
+              </>
+            ) : isExtendEligible && extMax ? (
               <>
                 <div>
                   {`Up to ${extMax?.maxYears || 0} years — first-year range ${formatCurrencyFull(

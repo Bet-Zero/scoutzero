@@ -387,6 +387,11 @@ utils/
     exceptionLifecycle.ts
     exceptionOwnership.ts
     index.ts
+  extensions/
+    applyGovernedExtensionResult.ts
+    governedExtension.ts
+    index.ts
+    worldExtensionAuthority.ts
   faExceptionUtils.ts
   firebaseTeamPlanHelpers.readers.ts
   firebaseTeamPlanHelpers.ts
@@ -609,5 +614,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-13T15:01:24.447Z*
+*Generated on: 2026-08-18T09:37:07.107Z*
 *Auto-updated by: npm run docs*

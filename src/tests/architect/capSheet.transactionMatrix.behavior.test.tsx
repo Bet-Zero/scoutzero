@@ -146,6 +146,29 @@ function salaryRow(endYear: number, salary: number) {
   };
 }
 
+function governedExtensionProposal(): Parameters<
+  UseArchitectActionsReturn['handleExtendContract']
+>[1] {
+  return {
+    proposalVersion: 1,
+    contractId: 'contract-p_extend',
+    route: 'veteran',
+    signedAt: '2025-07-15T12:00:00-04:00',
+    conditionalHigherMaxPercentage: null,
+    agreedDesignatedVeteranPercentage: null,
+    salariesByYear: [
+      {
+        season: toSeasonCode(CURRENT_YEAR + 1),
+        salaryExcludingIncentive: 11_000_000,
+        regularSalary: 11_000_000,
+        bonuses: [],
+        guaranteed: true,
+        option: null,
+      },
+    ],
+  };
+}
+
 function makeRosterPlayer(id: string, salary: number) {
   return {
     id,
@@ -393,7 +416,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     );
   });
 
-  it('base mode: extend contract mutates future state, changes totals, and skips world persistence', async () => {
+  it('base mode: extension fails closed without a governed saved world', async () => {
     const { result } = renderActionsHarness({ worldId: null });
     const targetPlayer = getRequiredPlayer(
       result.current.teamCapSheet,
@@ -404,10 +427,12 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
       CURRENT_YEAR + 1
     );
 
+    let extensionResult;
     await act(async () => {
-      await result.current.actions.handleExtendContract(targetPlayer, {
-        salariesByYear: [salaryRow(CURRENT_YEAR + 1, 11_000_000)],
-      });
+      extensionResult = await result.current.actions.handleExtendContract(
+        targetPlayer,
+        governedExtensionProposal()
+      );
     });
 
     const updatedPlayer = getRequiredPlayer(
@@ -418,10 +443,11 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
       result.current.teamCapSheet,
       CURRENT_YEAR + 1
     );
-    expect(
-      updatedPlayer.futureContract?.salariesByYear?.length
-    ).toBeGreaterThan(0);
-    expect(afterFutureTotal).toBeGreaterThan(beforeFutureTotal);
+    expect(extensionResult).toEqual(
+      expect.objectContaining({ success: false })
+    );
+    expect(updatedPlayer.futureContract?.salariesByYear || []).toHaveLength(0);
+    expect(afterFutureTotal).toBe(beforeFutureTotal);
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
   });
 
@@ -609,18 +635,26 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     });
     expectWorldMutationCall('setDeadCap', { teamCode: 'LAL' });
 
+    await waitFor(() => {
+      expect(
+        result.current.actions.getExtensionAvailability(
+          getRequiredPlayer(result.current.teamCapSheet, 'p_extend')
+        ).status
+      ).not.toBe('loading');
+    });
+    const mutationCallsBeforeExtension =
+      mutationMocks.applyWorldMutation.mock.calls.length;
+    let extensionResult;
     await act(async () => {
-      await result.current.actions.handleExtendContract(
+      extensionResult = await result.current.actions.handleExtendContract(
         getRequiredPlayer(result.current.teamCapSheet, 'p_extend'),
-        {
-          salariesByYear: [salaryRow(CURRENT_YEAR + 1, 11_000_000)],
-        }
+        governedExtensionProposal()
       );
     });
-    expectWorldMutationCall('extendPlayer', {
-      teamCode: 'LAL',
-      playerId: 'p_extend',
-    });
+    expect(extensionResult).toEqual(expect.objectContaining({ success: false }));
+    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledTimes(
+      mutationCallsBeforeExtension
+    );
 
     await act(async () => {
       await result.current.actions.handleWaiveContract(

@@ -346,7 +346,8 @@ export async function persistWorldMutation({
     // silently erases the earlier immutable event.
     if (
       mutationType === 'renounceRights' ||
-      mutationType === 'optionDecision'
+      mutationType === 'optionDecision' ||
+      mutationType === 'extendPlayer'
     ) {
       await runTransaction(db, async (transaction) => {
         for (const { teamCode, team } of teamUpdates) {
@@ -392,7 +393,7 @@ export async function persistWorldMutation({
                 : Number(metadata.expectedContractOverlayLedgerVersion);
             if (!expectedLedgerId || !Number.isInteger(expectedLedgerVersion)) {
               throw new Error(
-                `Option decision is missing the expected contract-ledger reference for ${normalizedTeamCode}.`
+                `${mutationType === 'extendPlayer' ? 'Extension' : 'Option decision'} is missing the expected contract-ledger reference for ${normalizedTeamCode}.`
               );
             }
             const overlays = Array.isArray(currentTeamData.contractEventLedgers)
@@ -425,7 +426,7 @@ export async function persistWorldMutation({
             } else {
               if (!Number.isInteger(expectedOverlayVersion)) {
                 throw new Error(
-                  `Option decision is missing the expected writable overlay version for ${normalizedTeamCode}.`
+                  `${mutationType === 'extendPlayer' ? 'Extension' : 'Option decision'} is missing the expected writable overlay version for ${normalizedTeamCode}.`
                 );
               }
               if (!currentOverlay) {

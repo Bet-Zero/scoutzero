@@ -79,6 +79,14 @@ import {
   type WorldGovernedOptionEntry,
 } from '@/features/architect/utils/optionDecisions';
 import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
+import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
+import {
+  applyGovernedExtensionResult,
+  decideGovernedExtension,
+  loadWorldGovernedExtensionEntries,
+  type GovernedExtensionAvailability,
+  type WorldGovernedExtensionEntry,
+} from '@/features/architect/utils/extensions';
 
 export type UseContractActionsParams = {
   currentYear: number;
@@ -147,6 +155,14 @@ export function useContractActions({
   const [governedOptionLoadReason, setGovernedOptionLoadReason] = useState<
     string | null
   >(null);
+  const [governedExtensionEntries, setGovernedExtensionEntries] = useState<
+    readonly WorldGovernedExtensionEntry[]
+  >([]);
+  const [governedExtensionLoadState, setGovernedExtensionLoadState] = useState<
+    'idle' | 'loading' | 'ready' | 'incompatible'
+  >('idle');
+  const [governedExtensionLoadReason, setGovernedExtensionLoadReason] =
+    useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -190,6 +206,116 @@ export function useContractActions({
     worldAsOfDate,
     worldId,
   ]);
+
+  useEffect(() => {
+    let active = true;
+    if (!worldId || !worldAsOfDate || !teamCode) {
+      setGovernedExtensionEntries([]);
+      setGovernedExtensionLoadState('idle');
+      setGovernedExtensionLoadReason(null);
+      return () => {
+        active = false;
+      };
+    }
+    setGovernedExtensionLoadState('loading');
+    setGovernedExtensionLoadReason(null);
+    void loadWorldGovernedExtensionEntries({
+      worldId,
+      teamId: teamCode,
+      overlays: teamCapSheet?.contractEventLedgers ?? [],
+      worldAsOfDate,
+    })
+      .then((entries) => {
+        if (!active) return;
+        setGovernedExtensionEntries(entries);
+        setGovernedExtensionLoadState('ready');
+      })
+      .catch((error) => {
+        if (!active) return;
+        setGovernedExtensionEntries([]);
+        setGovernedExtensionLoadState('incompatible');
+        setGovernedExtensionLoadReason(
+          error instanceof Error
+            ? error.message
+            : 'Governed extension history could not be loaded.'
+        );
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    teamCapSheet?.contractEventLedgers,
+    teamCode,
+    worldAsOfDate,
+    worldId,
+  ]);
+
+  const getExtensionAvailability = useCallback(
+    (player: ArchitectPlayer): GovernedExtensionAvailability => {
+      const playerId = String(
+        player.id || player.player_id || player.name || ''
+      );
+      const fallback = (
+        status: 'needs-input' | 'incompatible',
+        reason: string
+      ): GovernedExtensionAvailability =>
+        Object.freeze({
+          status,
+          playerId,
+          contractId: null,
+          reasons: Object.freeze([reason]),
+          suggestedRoute: null,
+          allowedRoutes: Object.freeze([]),
+          firstExtendedSeason: null,
+        });
+      if (!worldId) {
+        return fallback(
+          'incompatible',
+          'Open a fresh governed Team Plan to record this extension.'
+        );
+      }
+      if (!playerId) {
+        return fallback('needs-input', 'The exact player identity is required.');
+      }
+      if (governedExtensionLoadState === 'loading') {
+        return fallback(
+          'needs-input',
+          'Checking the pinned Contract, extension evidence, and league inputs…'
+        );
+      }
+      if (governedExtensionLoadState === 'idle') {
+        return fallback(
+          'needs-input',
+          'The Team and governed Team Plan date must finish loading before this extension can be checked.'
+        );
+      }
+      if (governedExtensionLoadState === 'incompatible') {
+        return fallback(
+          'incompatible',
+          governedExtensionLoadReason ||
+            'This Team Plan predates governed extension history. Recreate it.'
+        );
+      }
+      const matches = governedExtensionEntries.filter(
+        (entry) => entry.playerId === playerId
+      );
+      if (matches.length !== 1) {
+        return fallback(
+          matches.length > 1 ? 'incompatible' : 'needs-input',
+          matches.length > 1
+            ? 'More than one governed Contract claims this player.'
+            : 'No pinned governed Contract matches this player.'
+        );
+      }
+      return matches[0].availability;
+    },
+    [
+      governedExtensionEntries,
+      governedExtensionLoadReason,
+      governedExtensionLoadState,
+      worldId,
+    ]
+  );
 
   const getOptionDecisionAvailability = useCallback(
     (
@@ -601,11 +727,11 @@ export function useContractActions({
     [confirmAndRenounceRights]
   );
 
-  // handleExtendContract - directly updates teamCapSheet
+  // Governed Rookie Scale / Veteran / Designated Veteran Extension path.
   const handleExtendContract = useCallback(
     async (
       player: ArchitectPlayer,
-      extensionContract: SigningDetails
+      extensionProposal: GovernedExtensionProposal
     ): Promise<MutationActionResult> => {
       const playerId = player.id || player.player_id || player.name;
       if (!playerId) {
@@ -613,77 +739,94 @@ export function useContractActions({
         toast.error('Cannot save: Player ID missing');
         return { success: false, message: 'Cannot save: Player ID missing.' };
       }
-
+      const availability = getExtensionAvailability(player);
+      if (availability.status !== 'ready' || !availability.contractId) {
+        const message =
+          availability.reasons[0] ||
+          'This extension needs governed Contract and league evidence.';
+        reportMutationError(message, { playerId, availability });
+        return { success: false, message };
+      }
+      if (!worldId || !worldAsOfDate || !userId || !teamCapSheet) {
+        return {
+          success: false,
+          message:
+            'A compatible saved Team Plan, governed date, and signed-in author are required.',
+        };
+      }
+      const entry = governedExtensionEntries.find(
+        (candidate) =>
+          candidate.playerId === String(playerId) &&
+          candidate.contractId === availability.contractId
+      );
+      if (!entry) {
+        return {
+          success: false,
+          message:
+            'The governed extension authority changed. Reload and try again.',
+        };
+      }
+      const proposal = {
+        ...extensionProposal,
+        contractId: entry.contractId,
+      };
+      const preview = decideGovernedExtension({
+        authority: entry.authority,
+        worldId,
+        teamId: teamCode,
+        playerId: String(playerId),
+        contractId: entry.contractId,
+        worldAsOfDate,
+        proposal,
+        operationId: `preview:${entry.contractId}:extension`,
+        authoringIdentity: userId,
+        recordedAt: proposal.signedAt,
+      });
+      if (!preview.success) {
+        const message =
+          preview.reasons[0] || 'This extension needs governed input.';
+        reportMutationError(message, {
+          playerId,
+          reasons: preview.reasons,
+        });
+        return { success: false, message };
+      }
       const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'extendPlayer',
         playerIds: [String(playerId)],
         invalidMessage: 'Extension blocked by post-state cap validation.',
-        computeNextTeam: (beforeTeam) => {
-          const updatedPlayers = (beforeTeam.players || []).map((p) => {
-            if (
-              p.id === playerId ||
-              p.player_id === playerId ||
-              p.name === playerId
-            ) {
-              // Add extension years to futureContract
-              const futureContract = p.futureContract || {
-                salariesByYear: [],
-                extension: true,
-              };
-
-              const newYears: SalaryByYear[] = (
-                extensionContract.salariesByYear || []
-              ).map((y) => ({
-                season: String(y.season || ''),
-                salary: Number(y.salary ?? y.capHit ?? 0),
-                capHit: Number(y.capHit ?? y.salary ?? 0),
-                guaranteed: y.guaranteed ?? true,
-                option: y.option ?? null,
-                optionType: y.optionType ?? null,
-                optionUsed: y.optionUsed ?? null,
-                isExtensionSeason: true,
-              }));
-
-              return {
-                ...p,
-                futureContract: {
-                  ...futureContract,
-                  salariesByYear: [
-                    ...(futureContract.salariesByYear || []),
-                    ...newYears,
-                  ],
-                  extension: true,
-                },
-              };
-            }
-            return p;
+        seasonIdOverride: toSeasonCode(entry.authority.baselineSalaryCapYear),
+        yearOverride: entry.authority.baselineSalaryCapYear,
+        computeNextTeam: (beforeTeam, context) => {
+          const committedPreview = decideGovernedExtension({
+            authority: entry.authority,
+            worldId,
+            teamId: teamCode,
+            playerId: String(playerId),
+            contractId: entry.contractId,
+            worldAsOfDate,
+            proposal,
+            operationId: context.operationId,
+            authoringIdentity: userId,
+            recordedAt: context.occurredAt,
           });
-
-          // Record override audit log if override was used
-          const overrideAuditLog = extensionContract.overrideUsed
-            ? recordOverrideAudit(
-                beforeTeam,
-                'extend',
-                extensionContract.overrideReasons || [],
-                playerId,
-                normalizeOptionalMutationString(
-                  player.name || player.displayName
-                )
-              )
-            : beforeTeam.overrideAuditLog;
-
-          return {
-            ...beforeTeam,
-            players: updatedPlayers,
-            ...(overrideAuditLog ? { overrideAuditLog } : {}),
-          };
+          if (!committedPreview.success) {
+            throw new Error(
+              committedPreview.reasons[0] ||
+                'The governed extension changed before local apply.'
+            );
+          }
+          return applyGovernedExtensionResult({
+            team: beforeTeam as ArchitectMutationTeamRecord,
+            playerId: String(playerId),
+            result: committedPreview,
+          }).team as CapSheet;
         },
         persistPayload: {
           teamCode,
           playerId,
-          extension: {
-            salariesByYear: extensionContract.salariesByYear || [],
-          },
+          contractId: entry.contractId,
+          extensionProposal: proposal,
         },
         receiptContext: {
           actionType: 'extension',
@@ -693,11 +836,10 @@ export function useContractActions({
             normalizeOptionalMutationString(
               player.displayName || player.name
             ) || null,
-          affectedSeasons:
-            extensionContract.salariesByYear?.map((row) => row.season) || [],
+          affectedSeasons: proposal.salariesByYear.map((row) => row.season),
           effectAreas: ['contract', 'cap'],
           notes: [
-            'Current-year cap deltas only change when the extension affects the selected viewing season.',
+            `${preview.route === 'designated-veteran' ? 'Designated Veteran' : preview.route === 'rookie-scale' ? 'Rookie Scale' : 'Veteran'} Extension saved from authenticated Contract and league evidence.`,
           ],
         },
       });
@@ -707,7 +849,18 @@ export function useContractActions({
         'Failed to save extension. Please try again.'
       );
     },
-    [applyCapAuditedTeamMutation, finalizeCapMutationResult, teamCode]
+    [
+      applyCapAuditedTeamMutation,
+      finalizeCapMutationResult,
+      getExtensionAvailability,
+      governedExtensionEntries,
+      reportMutationError,
+      teamCapSheet,
+      teamCode,
+      userId,
+      worldAsOfDate,
+      worldId,
+    ]
   );
 
   // handleWaiveContract - directly updates teamCapSheet
@@ -1109,6 +1262,7 @@ export function useContractActions({
     handleExtendContract,
     handleWaiveContract,
     handleOptionDecision,
+    getExtensionAvailability,
     getOptionDecisionAvailability,
     handleRenounceRights,
     capSheetDevTools,

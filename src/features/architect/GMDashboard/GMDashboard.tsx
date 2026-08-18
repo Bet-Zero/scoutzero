@@ -925,6 +925,19 @@ export const GMDashboard = () => {
       worldId,
     ]
   );
+  const modalExtensionAvailability = useMemo(
+    () =>
+      worldId &&
+      selectedPlayer &&
+      typeof actions.getExtensionAvailability === 'function'
+        ? actions.getExtensionAvailability(
+            selectedPlayer as Parameters<
+              typeof actions.getExtensionAvailability
+            >[0]
+          )
+        : null,
+    [actions.getExtensionAvailability, selectedPlayer, worldId]
+  );
   const modalOnWaive: NonNullable<EditContractModalProps['onWaive']> = (
     player,
     payload
@@ -1000,9 +1013,11 @@ export const GMDashboard = () => {
       extend:
         worldId &&
         initialAction === 'extend' &&
-        selectedPlayerRulesProfile?.extensionEligibility?.isEligible === true
+        modalExtensionAvailability?.status === 'ready'
           ? 'Extend Contract'
-          : 'Extend Contract (Preview)',
+          : worldId
+            ? 'Extension Needs Input'
+            : 'Extend Contract (Preview)',
       waive: worldId ? 'Waive Player' : 'Waive Player (Preview)',
       waiveStretch:
         worldId && actionContext === 'underContract'
@@ -1675,6 +1690,7 @@ export const GMDashboard = () => {
           teamCapSheet={modalTeamCapSheet}
           currentYear={currentYear}
           optionDecisionAvailability={modalOptionDecisionAvailability}
+          extensionAvailability={modalExtensionAvailability}
           {...modalActionCallbacks}
           {...contractModalExposureOverrides}
           playersMap={playersMap}

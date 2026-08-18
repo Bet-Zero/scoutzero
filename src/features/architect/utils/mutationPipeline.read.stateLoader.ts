@@ -27,6 +27,7 @@ import {
   toCurrentStateTeam,
 } from './mutationPipeline.read.normalizeTeam';
 import { loadWorldGovernedOptionAuthority } from '@/features/architect/utils/optionDecisions';
+import { loadWorldGovernedExtensionAuthority } from '@/features/architect/utils/extensions';
 
 // Wave 48 Step 1: lineage helpers extracted to submodule
 export * from './mutationPipeline.read.stateLoader.lineage';
@@ -465,8 +466,7 @@ export async function loadStateForMutation(
       };
     }
 
-    case 'waivePlayer': // fallthrough
-    case 'extendPlayer': {
+    case 'waivePlayer': {
       // Load single team and player
       const teamCode = payload.teamCode;
       const playerId = payload.playerId;
@@ -487,6 +487,37 @@ export async function loadStateForMutation(
         ),
         player: toCurrentStatePlayer(player),
         teamCode,
+      };
+    }
+
+    case 'extendPlayer': {
+      const teamCode = payload.teamCode;
+      const playerId = payload.playerId;
+      const contractId = payload.contractId;
+      if (!teamCode || !playerId || !contractId) {
+        throw new Error(
+          'Governed extension requires teamCode, playerId, and contractId.'
+        );
+      }
+      const [team, player] = (await Promise.all([
+        getTeam(worldId, teamCode),
+        getPlayer(worldId, teamCode, playerId),
+      ])) as [LoadedMutationTeam, LoadedMutationPlayer];
+      const extensionAuthority = await loadWorldGovernedExtensionAuthority({
+        worldId,
+        contractId: String(contractId),
+        overlays: Array.isArray(team?.contractEventLedgers)
+          ? team.contractEventLedgers
+          : [],
+      });
+      return {
+        team: toCurrentStateTeam(
+          team as MutationCurrentStateBaseTeamIngress | null,
+          'playerOps'
+        ),
+        player: toCurrentStatePlayer(player),
+        teamCode,
+        extensionAuthority,
       };
     }
 

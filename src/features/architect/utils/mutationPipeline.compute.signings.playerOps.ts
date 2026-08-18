@@ -15,26 +15,18 @@ import {
   getStretchProvisionYears,
   sumWaiverDeadCapAllocations,
 } from '@/features/architect/utils/waiverDeadCapAllocation';
-import {
-  normalizeContractForWorld,
-  normalizeFutureContract,
-  normalizeSalaryRow,
-} from '@/features/architect/utils/contractNormalization';
+import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
 import {
   getMutationPlayerId,
   getMutationRosterEntryId,
-  getSalaryRowEndYear,
   getTeamSourceRecord,
   requireBasicTeamAndPlayerState,
   synchronizeTeamTotalsSnapshotOrTeam,
-  toOptionalNumber,
 } from './mutationPipeline.helpers';
 import type {
-  ArchitectMutationContract,
   ComputeMutationParamsWithCurrentState,
   ComputeResultLike,
   MutationPayloadInputByType,
-  MutationPipelineSalaryRow,
   MutationTeamAndPlayerCurrentState,
 } from './mutationPipeline';
 import { renounceGovernedRights } from '@/features/architect/utils/rightsHistory';
@@ -43,6 +35,10 @@ import {
   contractOverlaySetDigest,
   decideGovernedOption,
 } from '@/features/architect/utils/optionDecisions';
+import {
+  applyGovernedExtensionResult,
+  decideGovernedExtension,
+} from '@/features/architect/utils/extensions';
 
 export function computeWaiveResult({
   payload,
@@ -195,100 +191,97 @@ export function computeWaiveResult({
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- params required by ComputeMutationParamsWithCurrentState interface
 export function computeExtensionResult({
   payload,
   currentState,
-  seasonId: _seasonId,
+  seasonId,
   timestamp,
+  asOfDate,
+  worldId,
+  operationId,
+  authoringIdentity,
+  recordedAt,
 }: ComputeMutationParamsWithCurrentState<
   MutationTeamAndPlayerCurrentState,
   MutationPayloadInputByType['extendPlayer']
->): ComputeResultLike {
+> & {
+  asOfDate?: string | number | null;
+  worldId?: string;
+  operationId?: string;
+  authoringIdentity?: string;
+  recordedAt?: string;
+}): ComputeResultLike {
   const { team, player } = requireBasicTeamAndPlayerState(
     currentState,
     'extendPlayer'
   );
   const teamCode = currentState.teamCode || team.teamCode || null;
-  const { extension } = payload;
-
   const playerId = payload.playerId || player.player_id || player.id;
-  const updatedTeam = { ...team };
-  const teamPlayers = Array.isArray(updatedTeam.players)
-    ? [...updatedTeam.players]
-    : [];
-
-  const playerIndex = teamPlayers.findIndex(
-    (teamPlayer) => getMutationPlayerId(teamPlayer) === playerId
-  );
-
-  if (playerIndex === -1) {
+  if (
+    !teamCode ||
+    !playerId ||
+    !payload.contractId ||
+    !payload.extensionProposal ||
+    !currentState.extensionAuthority ||
+    typeof asOfDate !== 'string' ||
+    !worldId ||
+    !operationId ||
+    !authoringIdentity ||
+    !recordedAt
+  ) {
     return {
       success: false,
-      error: `Player ${playerId} not found on team ${teamCode}`,
+      error:
+        'Governed extension requires the pinned Contract, retained extension evidence, an exact proposal and world date, and author provenance.',
     };
   }
-
-  const normalizedExtensionRows: MutationPipelineSalaryRow[] = Array.isArray(
-    extension?.salariesByYear
-  )
-    ? extension.salariesByYear.map((row): MutationPipelineSalaryRow => {
-        const normalizedRow = normalizeSalaryRow(row);
-        const capHit = toOptionalNumber(normalizedRow?.capHit);
-        const optionUsed =
-          typeof normalizedRow?.optionUsed === 'boolean'
-            ? normalizedRow.optionUsed
-            : undefined;
-
-        return {
-          ...row,
-          ...(capHit !== undefined ? { capHit } : {}),
-          ...(optionUsed !== undefined ? { optionUsed } : {}),
-          isExtensionSeason: true,
-        };
-      })
-    : [];
-
-  const extensionYearSet = new Set(
-    normalizedExtensionRows
-      .map((row) => getSalaryRowEndYear(row))
-      .filter((year): year is number => typeof year === 'number')
-  );
-
-  const existingFutureContract = teamPlayers[playerIndex].futureContract;
-  const existingRows = (
-    Array.isArray(existingFutureContract?.salariesByYear)
-      ? existingFutureContract.salariesByYear
-      : []
-  ).map((row) => {
-    const rowYear = getSalaryRowEndYear(row as MutationPipelineSalaryRow);
-    return typeof rowYear === 'number' && extensionYearSet.has(rowYear)
-      ? { ...row, voidedByExtension: true }
-      : row;
+  const result = decideGovernedExtension({
+    authority: currentState.extensionAuthority,
+    worldId,
+    teamId: String(teamCode),
+    playerId: String(playerId),
+    contractId: String(payload.contractId),
+    worldAsOfDate: asOfDate,
+    proposal: payload.extensionProposal,
+    operationId,
+    authoringIdentity,
+    recordedAt,
   });
-
-  const rawFutureContract = {
-    ...(existingFutureContract || {}),
-    salariesByYear: [...existingRows, ...normalizedExtensionRows],
-    isExtension: true,
-    signingDate: new Date(timestamp).toISOString(),
-  };
-
-  const updatedPlayer = {
-    ...teamPlayers[playerIndex],
-    futureContract: normalizeFutureContract(
-      rawFutureContract
-    ) as ArchitectMutationContract | null,
-  };
-
-  teamPlayers[playerIndex] = updatedPlayer;
-  updatedTeam.players = teamPlayers;
+  if (!result.success) {
+    return {
+      success: false,
+      error: result.reasons[0] || 'Governed extension needs input.',
+    };
+  }
+  let applied;
+  try {
+    applied = applyGovernedExtensionResult({
+      team,
+      playerId: String(playerId),
+      result,
+    });
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'The governed extension result could not be applied.',
+    };
+  }
+  const updatedTeam = applied.team;
+  const updatedPlayer = applied.updatedPlayer;
 
   updatedTeam.source = {
     ...getTeamSourceRecord(updatedTeam.source),
     type: 'world-snapshot',
     lastModifiedAt: new Date(timestamp).toISOString(),
   };
+
+  updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
+    updatedTeam,
+    toEndYear(seasonId)
+  ).totals;
 
   return {
     success: true,
@@ -299,11 +292,24 @@ export function computeExtensionResult({
       teamCode,
       playerId,
       playerName: player.displayName || player.name,
-      extensionYears: normalizedExtensionRows.length,
+      extensionYears: result.extensionSalaries.length,
       extensionTerms: {
-        years: normalizedExtensionRows.length,
-        salariesByYear: normalizedExtensionRows,
+        years: result.extensionSalaries.length,
+        salariesByYear: result.extensionSalaries,
       },
+      extensionRoute: result.route,
+      contractId: payload.contractId,
+      contractEventId: result.event.eventId,
+      contractLedgerId: result.ledger.ledgerId,
+      contractLedgerVersion: result.ledger.ledgerVersion,
+      expectedContractLedgerId: result.expectedContractLedger.ledgerId,
+      expectedContractLedgerVersion:
+        result.expectedContractLedger.ledgerVersion,
+      expectedContractOverlayLedgerVersion:
+        result.expectedContractLedger.overlayLedgerVersion,
+      expectedContractOverlaySetDigest: contractOverlaySetDigest(
+        team.contractEventLedgers
+      ),
       timestamp,
     },
   };

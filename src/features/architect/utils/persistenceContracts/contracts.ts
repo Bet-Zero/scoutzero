@@ -386,6 +386,7 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.f
 
   // Extension events
   'extensionType',
+  'extensionRoute',
   'extensionYears',
   'extensionTerms',
 
