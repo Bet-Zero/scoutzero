@@ -10,13 +10,15 @@ Foundation context: [descriptive foundation name](https://linear.app/...)
 
 - Focused failure-testing matrix derived from this tranche's risk contract:
 - Available automated reviewers started while the PR was draft:
+- Automated-review completion or recorded unavailability/rate limit:
 - Findings resolved or disproved:
 - Optional reviewers unavailable or rate-limited (record; do not wait indefinitely):
+- [ ] Every started automated review completed, or its unavailability/rate limit is recorded
 - [ ] Author review is complete and every available automated-review finding is settled
 - [ ] Candidate was frozen only after the preceding author and automated-review work
 - [ ] Required hosted CI is green on the final exact head
 - [ ] Immutable Claude prompt was generated only after that exact-head CI was green
-- [ ] Claude prompt has been invalidated and replaced after any subsequent head change
+- [ ] No head change followed the Claude prompt, or every stale prompt was invalidated and replaced
 
 ## Exact candidate record
 
@@ -66,6 +68,7 @@ Foundation context: [descriptive foundation name](https://linear.app/...)
 
 - [ ] Candidate is frozen and unchanged since required evidence/review
 - [ ] Base/head are clean, synchronized, and ancestry is verified
+- [ ] Every started automated review completed, or its unavailability/rate limit is recorded
 - [ ] Every available automated-review finding was resolved or disproved before freeze
 - [ ] Optional automated-review unavailability/rate limiting is recorded without indefinite waiting
 - [ ] Required hosted CI is green on the exact candidate

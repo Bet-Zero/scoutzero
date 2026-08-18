@@ -106,11 +106,13 @@ test('Phase 3A policy binds freeze to tranche-specific author review', () => {
     /incorrectly authorize, calculate, mutate, persist, or report/
   );
   assert.match(profile, /do not impose one enormous generic mutation checklist/);
+  assert.match(profile, /Select the largest coherent, independently reviewable/);
   assertAppearsInOrder(
     profile,
     [
       'Complete the focused author failure-testing matrix',
-      'Resolve or disprove every finding produced by available automated review',
+      'Let every started available automated review complete',
+      'resolve or disprove every finding it produced',
       'Declare the candidate frozen only when author review is complete',
     ],
     'pre-freeze author and automated review policy'
@@ -166,16 +168,27 @@ test('Phase 3A policy settles automated review and exact-head CI before Claude',
     profile,
     /unavailable or rate-limited does not\nblock the lane indefinitely/
   );
+  assert.match(
+    profile,
+    /A review that has started but remains pending is not settled/
+  );
   assert.match(template, /Draft review and freeze record/);
   assert.match(
     template,
     /failure-testing matrix derived from this tranche's risk contract/
   );
-  assert.match(template, /automated-review finding is settled/);
-  assert.match(template, /Required hosted CI is green on the final exact head/);
-  assert.match(
+  assertAppearsInOrder(
     template,
-    /prompt has been invalidated and replaced after any subsequent head change/
+    [
+      'Available automated reviewers started while the PR was draft',
+      'Every started automated review completed, or its unavailability/rate limit is recorded',
+      'Author review is complete and every available automated-review finding is settled',
+      'Candidate was frozen only after the preceding author and automated-review work',
+      'Required hosted CI is green on the final exact head',
+      'Immutable Claude prompt was generated only after that exact-head CI was green',
+      'No head change followed the Claude prompt, or every stale prompt was invalidated and replaced',
+    ],
+    'pull request freeze and Claude evidence order'
   );
 });
 

@@ -90,7 +90,7 @@ bytes cannot authorize runtime behavior.
 | Actor                       | Distinct responsibility                                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Author                      | Risk-contract-specific failure matrix, focused implementation tests, and discriminating positive/fail-closed proof before freeze. |
-| Automated review            | Review the draft early. Settle every available finding before freeze; record optional-reviewer unavailability without waiting indefinitely. |
+| Automated review            | Review the draft early. Finish each started review and settle its findings before freeze; record optional-reviewer unavailability without waiting indefinitely. |
 | Hosted CI                   | Established domain, static, project-validation, and build checks on the exact candidate.                                       |
 | Independent Claude reviewer | Canon judgment, adversarial probes, test non-vacuity, limitations, and exact base/head scope. The reviewer chooses the probes. |
 | Browser/emulator            | Only rendered, persistence, or cross-room risks. Use deterministic governed fixtures and retain exact-candidate evidence.      |
@@ -100,7 +100,7 @@ Automated reviewers are useful best-effort signals, not evidence of Canon
 correctness. An optional reviewer being unavailable or rate-limited does not
 block the lane indefinitely, but the PR must record that fact. Every finding
 that an available reviewer does produce must be resolved or disproved before
-candidate freeze.
+candidate freeze. A review that has started but remains pending is not settled.
 
 ## Candidate freeze and evidence reuse
 
@@ -110,10 +110,12 @@ freeze:
 
 1. Complete the focused author failure-testing matrix and resolve every
    author-known concern with discriminating evidence.
-2. Resolve or disprove every finding produced by available automated review.
+2. Let every started available automated review complete, then resolve or
+   disprove every finding it produced.
 3. Record any optional reviewer that was unavailable or rate-limited instead of
    waiting indefinitely.
-4. Declare the candidate frozen only when author review is complete and all
+4. Declare the candidate frozen only when author review is complete, every
+   started automated review has completed or is recorded unavailable, and all
    available automated-review findings are settled.
 
 After freeze, start required hosted CI and any declared browser/emulator proof
