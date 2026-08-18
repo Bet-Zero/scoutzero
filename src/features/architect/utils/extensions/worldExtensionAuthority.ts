@@ -68,7 +68,7 @@ export async function loadWorldGovernedExtensionEntries({
       overlayError =
         error instanceof Error
           ? error.message
-          : 'The writable governed Contract history is unreadable.';
+          : 'The saved contract history cannot be read.';
       try {
         authority = resolveGovernedExtensionLedgerAuthority({
           baselineLedger,
@@ -86,7 +86,7 @@ export async function loadWorldGovernedExtensionEntries({
           playerId: state.playerId,
           contractId: state.contractId,
           reasons: Object.freeze([
-            `Governed Contract history is incompatible: ${overlayError}`,
+            `Saved contract history is incompatible: ${overlayError}`,
           ]),
           suggestedRoute: null,
           allowedRoutes: Object.freeze([]),
@@ -132,7 +132,7 @@ export async function loadWorldGovernedExtensionAuthority({
     );
   if (!baselineLedger) {
     throw new Error(
-      `Governed Contract ${contractId} is missing from the pinned release.`
+      `Required contract ${contractId} is missing from this Team Plan.`
     );
   }
   const overlay = (overlays ?? []).find(

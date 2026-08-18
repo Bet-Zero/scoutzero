@@ -266,7 +266,7 @@ export const ContractDetailsForm = ({
                 />
                 <span className="mt-1 block text-[10px] text-white/45">
                   Optional 25% through 30% clause; qualification remains pending
-                  until governed award evidence resolves it.
+                  until the required award information resolves it.
                 </span>
               </label>
             )}
@@ -415,10 +415,10 @@ export const ContractDetailsForm = ({
               <>
                 <div className="font-medium">
                   {extensionAvailability.status === 'ready'
-                    ? 'Governed extension evidence ready'
+                    ? 'Extension information ready'
                     : extensionAvailability.status === 'incompatible'
-                      ? 'Governed Contract history is incompatible'
-                      : 'Needs governed input'}
+                      ? 'Extension unavailable'
+                      : 'Required contract information is missing'}
                 </div>
                 <div className="text-[11px] text-orange-100/75">
                   {extensionAvailability.status === 'ready'
@@ -429,9 +429,9 @@ export const ContractDetailsForm = ({
               </>
             ) : (
               <>
-                <div className="font-medium">Needs governed input</div>
+                <div className="font-medium">Extension unavailable</div>
                 <div className="text-[11px] text-orange-100/80">
-                  Governed Contract and league evidence are required before an
+                  Required contract and league information is needed before an
                   extension can be saved.
                 </div>
               </>

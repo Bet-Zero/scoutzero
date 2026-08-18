@@ -553,7 +553,7 @@ export const EditContractModal = ({
     if (isGovernedExtensionAction) {
       if (!extensionAvailability) {
         const reasons = [
-          'Governed Contract and league evidence are required before an extension can be saved.',
+          'Required contract and league information is needed before an extension can be saved.',
         ];
         return {
           ...DEFAULT_VALIDATION_STATE,
@@ -575,7 +575,7 @@ export const EditContractModal = ({
         extensionAvailability.status === 'ready' &&
         !extensionAvailability.contractId
       ) {
-        reasons.push('The governed Contract identifier is missing.');
+        reasons.push('Required contract information is missing.');
       }
       if (
         extensionAvailability.status === 'ready' &&
@@ -739,7 +739,7 @@ export const EditContractModal = ({
               'This governed option is not ready because required evidence is incomplete.'
           : isGovernedExtensionAction && validationState.incomplete
             ? validationState.reasons[0] ||
-              'This extension needs governed Contract and league evidence.'
+              'This extension is unavailable because required contract or league information is incomplete.'
           : validationState.incomplete
             ? 'Finish the contract details to continue'
             : isOptionDecisionAction && !governedOptionNoticeIsComplete
@@ -929,7 +929,7 @@ export const EditContractModal = ({
 
     if (selectedAction === 'extend' && !extensionAvailability) {
       setSaveError(
-        'Governed Contract and league evidence are required before an extension can be saved.'
+        'Required contract and league information is needed before an extension can be saved.'
       );
       return;
     }
@@ -996,7 +996,7 @@ export const EditContractModal = ({
               actionResult = {
                 success: false,
                 message:
-                  'Governed Contract and league evidence are required before an extension can be saved.',
+                  'Required contract and league information is needed before an extension can be saved.',
               };
               break;
             }
@@ -1007,7 +1007,7 @@ export const EditContractModal = ({
             if (!extensionAvailability.contractId) {
               actionResult = {
                 success: false,
-                message: 'The governed Contract identifier is missing.',
+                message: 'Required contract information is missing.',
               };
               break;
             }

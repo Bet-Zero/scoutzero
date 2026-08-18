@@ -237,7 +237,7 @@ export function useContractActions({
         setGovernedExtensionLoadReason(
           error instanceof Error
             ? error.message
-            : 'Governed extension history could not be loaded.'
+            : 'Extension history could not be loaded.'
         );
       });
     return () => {
@@ -271,7 +271,7 @@ export function useContractActions({
       if (!worldId) {
         return fallback(
           'incompatible',
-          'Open a fresh governed Team Plan to record this extension.'
+          'Open a fresh Team Plan to record this extension.'
         );
       }
       if (!playerId) {
@@ -286,14 +286,14 @@ export function useContractActions({
       if (governedExtensionLoadState === 'idle') {
         return fallback(
           'needs-input',
-          'The Team and governed Team Plan date must finish loading before this extension can be checked.'
+          'The team and Team Plan date must finish loading before this extension can be checked.'
         );
       }
       if (governedExtensionLoadState === 'incompatible') {
         return fallback(
           'incompatible',
           governedExtensionLoadReason ||
-            'This Team Plan predates governed extension history. Recreate it.'
+            'This Team Plan predates extension history. Recreate it.'
         );
       }
       const matches = governedExtensionEntries.filter(
@@ -303,8 +303,8 @@ export function useContractActions({
         return fallback(
           matches.length > 1 ? 'incompatible' : 'needs-input',
           matches.length > 1
-            ? 'More than one governed Contract claims this player.'
-            : 'No pinned governed Contract matches this player.'
+            ? 'More than one saved contract matches this player.'
+            : 'Required contract information is missing for this player.'
         );
       }
       return matches[0].availability;
@@ -743,7 +743,7 @@ export function useContractActions({
       if (availability.status !== 'ready' || !availability.contractId) {
         const message =
           availability.reasons[0] ||
-          'This extension needs governed Contract and league evidence.';
+          'This extension is unavailable because required contract or league information is incomplete.';
         reportMutationError(message, { playerId, availability });
         return { success: false, message };
       }
@@ -751,7 +751,7 @@ export function useContractActions({
         return {
           success: false,
           message:
-            'A compatible saved Team Plan, governed date, and signed-in author are required.',
+            'A compatible saved Team Plan, exact date, and signed-in author are required.',
         };
       }
       const entry = governedExtensionEntries.find(
@@ -763,7 +763,7 @@ export function useContractActions({
         return {
           success: false,
           message:
-            'The governed extension authority changed. Reload and try again.',
+            'The extension information changed. Reload and try again.',
         };
       }
       const proposal = {
@@ -784,7 +784,7 @@ export function useContractActions({
       });
       if (!preview.success) {
         const message =
-          preview.reasons[0] || 'This extension needs governed input.';
+          preview.reasons[0] || 'This extension is unavailable.';
         reportMutationError(message, {
           playerId,
           reasons: preview.reasons,
@@ -813,7 +813,7 @@ export function useContractActions({
           if (!committedPreview.success) {
             throw new Error(
               committedPreview.reasons[0] ||
-                'The governed extension changed before local apply.'
+                'The extension information changed before it could be saved.'
             );
           }
           return applyGovernedExtensionResult({
@@ -839,7 +839,7 @@ export function useContractActions({
           affectedSeasons: proposal.salariesByYear.map((row) => row.season),
           effectAreas: ['contract', 'cap'],
           notes: [
-            `${preview.route === 'designated-veteran' ? 'Designated Veteran' : preview.route === 'rookie-scale' ? 'Rookie Scale' : 'Veteran'} Extension saved from authenticated Contract and league evidence.`,
+            `${preview.route === 'designated-veteran' ? 'Designated Veteran' : preview.route === 'rookie-scale' ? 'Rookie Scale' : 'Veteran'} Extension saved from the required contract and league information.`,
           ],
         },
       });

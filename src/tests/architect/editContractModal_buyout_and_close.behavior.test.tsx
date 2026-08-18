@@ -47,7 +47,7 @@ describe('EditContractModal buyout + close gating behavior', () => {
     vi.clearAllMocks();
   });
 
-  it('shows governed extension evidence gaps and cannot save through override', () => {
+  it('shows missing extension information and cannot save through override', () => {
     const onExtend = vi.fn();
     render(
       <EditContractModal
@@ -72,7 +72,9 @@ describe('EditContractModal buyout + close gating behavior', () => {
       />
     );
 
-    expect(screen.getByText(/needs governed input/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/required contract information is missing/i)
+    ).toBeInTheDocument();
     expect(
       screen.getAllByText(/exact transaction history/i).length
     ).toBeGreaterThan(0);

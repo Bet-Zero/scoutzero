@@ -176,17 +176,24 @@ function baselineFor(
   route: GovernedExtensionRoute,
   options: {
     omitEvidence?: boolean;
+    salaryAmounts?: readonly number[];
     contractEvidence?: Partial<GovernedExtensionContractEvidence>;
     leagueEvidence?: Partial<GovernedExtensionLeagueEvidence>;
   } = {}
 ): ContractEventLedgerPayload {
   const isRookie = route === 'rookie-scale';
-  const rows = [
-    salaryRow('2023-24', 17_000_000, isRookie ? 'TO' : null, isRookie ? true : null),
-    salaryRow('2024-25', 18_000_000, isRookie ? 'TO' : null, isRookie ? true : null),
-    salaryRow('2025-26', 19_000_000),
-    salaryRow('2026-27', 20_000_000),
+  const salaryAmounts = options.salaryAmounts ?? [
+    17_000_000, 18_000_000, 19_000_000, 20_000_000,
   ];
+  const rows = ['2023-24', '2024-25', '2025-26', '2026-27'].map(
+    (season, index) =>
+      salaryRow(
+        season,
+        salaryAmounts[index],
+        isRookie && index < 2 ? 'TO' : null,
+        isRookie && index < 2 ? true : null
+      )
+  );
   const base = makeResultingState({
     contractId: CONTRACT_ID,
     contractVersion: 1,
@@ -204,6 +211,7 @@ function baselineFor(
     ...leagueEvidence(),
     ...(options.leagueEvidence || {}),
   };
+  const totalValue = rows.reduce((sum, row) => sum + (row.salary ?? 0), 0);
   const stateWithoutDigest: Omit<GovernedContractState, 'stateDigest'> = {
     ...baseWithoutDigest,
     terms: {
@@ -216,15 +224,14 @@ function baselineFor(
       endSeason: rows.at(-1)!.season,
       contractLength: rows.length,
       salaries: rows,
-      totalValue: 74_000_000,
-      averageAnnualValue: 18_500_000,
-      guaranteedValue: 74_000_000,
+      totalValue,
+      averageAnnualValue: totalValue / rows.length,
+      guaranteedValue: totalValue,
       guaranteedYears: 4,
       birdRights: {
         status: 'Full Bird',
-        yearsOfService:
-          route === 'rookie-scale' ? 4 : route === 'designated-veteran' ? 8 : 9,
-        yearsWithTeam: route === 'veteran' ? 9 : 8,
+        yearsOfService: evidence.yearsOfServiceAtFirstExtendedSeason,
+        yearsWithTeam: evidence.seasonsPlayedForCurrentTeam,
         eligibleFor: ['Veteran Extension'],
       },
       freeAgency: {
@@ -516,7 +523,64 @@ describe('workflow-specific failure matrix', () => {
     if (!result.success) expect(result.reasons.join(' ')).toMatch(/after .*18:00:00/i);
   });
 
-  it('rejects first-year and each independent 8% annual-change basis by one cent', () => {
+  it('accepts the ten-Team-Seasons Veteran ceiling at 107.5% and rejects one cent more', () => {
+    const baseline = baselineFor('veteran', {
+      salaryAmounts: [50_000_000, 50_000_000, 50_000_000, 20_000_000],
+      contractEvidence: {
+        yearsOfServiceAtFirstExtendedSeason: 10,
+        seasonsPlayedForCurrentTeam: 10,
+      },
+    });
+    const exact = proposal('veteran');
+    const firstSalary = 45_687_500;
+    exact.salariesByYear = exact.salariesByYear.map((row, index) => ({
+      ...row,
+      salaryExcludingIncentive: firstSalary + firstSalary * 0.08 * index,
+      regularSalary: firstSalary + firstSalary * 0.08 * index,
+    }));
+
+    const accepted = decideGovernedExtension(
+      request('veteran', { baseline, proposal: exact })
+    );
+    expect(accepted.success, JSON.stringify(accepted)).toBe(true);
+
+    const excessive = structuredClone(exact);
+    excessive.salariesByYear[0].salaryExcludingIncentive += 0.01;
+    const rejected = decideGovernedExtension(
+      request('veteran', { baseline, proposal: excessive })
+    );
+    expect(rejected.success).toBe(false);
+    if (!rejected.success) {
+      expect(rejected.reasons.join(' ')).toMatch(
+        /controlling Veteran Extension ceiling/i
+      );
+    }
+  });
+
+  it('uses the ordinary Veteran ceiling when it permits more than the ten-Team-Seasons route', () => {
+    const baseline = baselineFor('veteran', {
+      salaryAmounts: [50_000_000, 50_000_000, 50_000_000, 20_000_000],
+      contractEvidence: {
+        yearsOfServiceAtFirstExtendedSeason: 10,
+        seasonsPlayedForCurrentTeam: 10,
+      },
+      leagueEvidence: { estimatedAveragePlayerSalary: 40_000_000 },
+    });
+    const ordinary = proposal('veteran');
+    const firstSalary = 56_000_000;
+    ordinary.salariesByYear = ordinary.salariesByYear.map((row, index) => ({
+      ...row,
+      salaryExcludingIncentive: firstSalary + firstSalary * 0.08 * index,
+      regularSalary: firstSalary + firstSalary * 0.08 * index,
+    }));
+
+    const result = decideGovernedExtension(
+      request('veteran', { baseline, proposal: ordinary })
+    );
+    expect(result.success, JSON.stringify(result)).toBe(true);
+  });
+
+  it('rejects the first-year Veteran ceiling and Regular Salary annual change by one cent', () => {
     const tooRich = proposal('veteran');
     tooRich.salariesByYear[0].salaryExcludingIncentive += 0.01;
     tooRich.salariesByYear[0].regularSalary += 0.01;
@@ -525,7 +589,9 @@ describe('workflow-specific failure matrix', () => {
     );
     expect(firstYear.success).toBe(false);
     if (!firstYear.success) {
-      expect(firstYear.reasons.join(' ')).toMatch(/controlling Veteran Extension ceiling/i);
+      expect(firstYear.reasons.join(' ')).toMatch(
+        /controlling Veteran Extension ceiling/i
+      );
     }
 
     const raise = proposal('veteran');
@@ -534,8 +600,63 @@ describe('workflow-specific failure matrix', () => {
       request('veteran', { proposal: raise })
     );
     expect(annual.success).toBe(false);
-    if (!annual.success) expect(annual.reasons.join(' ')).toMatch(/Regular Salary changes/i);
+    if (!annual.success)
+      expect(annual.reasons.join(' ')).toMatch(/Regular Salary changes/i);
   });
+
+  it('rejects the Salary excluding Incentive Compensation annual-change basis by one cent', () => {
+    const excessive = proposal('veteran');
+    excessive.salariesByYear[1].salaryExcludingIncentive += 0.01;
+
+    const result = decideGovernedExtension(
+      request('veteran', { proposal: excessive })
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.reasons.join(' ')).toMatch(
+        /Salary excluding Incentive Compensation changes/i
+      );
+    }
+  });
+
+  it.each([
+    ['likely-bonus', 'likely', 1_000_000],
+    ['unlikely-bonus', 'unlikely', 2_000_000],
+  ] as const)(
+    'accepts bonus %s at its own 8% boundary and rejects one cent more',
+    (bonusId, classification, firstAmount) => {
+      const exact = proposal('rookie-scale');
+      exact.salariesByYear = exact.salariesByYear.map((row, index) => ({
+        ...row,
+        salaryExcludingIncentive: 30_000_000,
+        regularSalary: 30_000_000,
+        bonuses: [
+          {
+            bonusId,
+            classification,
+            amount: index === 0 ? firstAmount : firstAmount * 1.08,
+          },
+        ],
+      }));
+
+      const accepted = decideGovernedExtension(
+        request('rookie-scale', { proposal: exact })
+      );
+      expect(accepted.success, JSON.stringify(accepted)).toBe(true);
+
+      const excessive = structuredClone(exact);
+      excessive.salariesByYear[1].bonuses[0].amount += 0.01;
+      const rejected = decideGovernedExtension(
+        request('rookie-scale', { proposal: excessive })
+      );
+      expect(rejected.success).toBe(false);
+      if (!rejected.success) {
+        expect(rejected.reasons.join(' ')).toMatch(
+          new RegExp(`bonus ${bonusId} changes by more than 8%`, 'i')
+        );
+      }
+    }
+  );
 
   it('rejects one cent of Designated Veteran incentive compensation', () => {
     const withBonus = proposal('designated-veteran');

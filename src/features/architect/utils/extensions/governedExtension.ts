@@ -198,7 +198,7 @@ function temporalInstant(
   reasons: string[]
 ): string | null {
   if (temporal.precision !== 'instant' || !isZonedDateTime(temporal.value)) {
-    reasons.push(`${label} must be an exact governed instant with a UTC offset.`);
+    reasons.push(`${label} must include an exact date, time, and UTC offset.`);
     return null;
   }
   return temporal.value;
@@ -210,7 +210,7 @@ function temporalDate(
   reasons: string[]
 ): string | null {
   if (temporal.precision !== 'date' || !isDateOnly(temporal.value)) {
-    reasons.push(`${label} must be an exact governed date.`);
+    reasons.push(`${label} must be an exact date.`);
     return null;
   }
   return temporal.value;
@@ -251,7 +251,7 @@ function validateRetainedEvidence({
   if (!state) {
     return {
       evidence: null,
-      reasons: ['Governed Contract history is empty.'],
+      reasons: ['Required contract history is unavailable.'],
       incompatible: true,
     };
   }
@@ -309,7 +309,7 @@ function validateRetainedEvidence({
   }
   if (league.signingSalaryCapYear !== authority.baselineSalaryCapYear) {
     reasons.push(
-      `League signing-window evidence is for Salary Cap Year ${league.signingSalaryCapYear}, not the governed world year ${authority.baselineSalaryCapYear}.`
+      `League signing-window evidence is for Salary Cap Year ${league.signingSalaryCapYear}, not Team Plan Salary Cap Year ${authority.baselineSalaryCapYear}.`
     );
   }
   const endYear = toEndYear(state.terms.endSeason);
@@ -333,7 +333,7 @@ function validateRetainedEvidence({
     evidenceSeasons.length !== contract.originalCompensation.length
   ) {
     reasons.push(
-      'Exact original compensation bases must match every governed Contract Season without duplicates.'
+      'Exact original compensation bases must match every saved Contract Season without duplicates.'
     );
   }
   for (const row of contract.originalCompensation) {
@@ -382,7 +382,7 @@ export function inspectGovernedExtension({
   const { state } = latestState(authority);
   const reasons = [...checked.reasons];
   if (state && (state.playerId !== playerId || state.contractId !== contractId)) {
-    reasons.push('The requested player or Contract does not match governed history.');
+    reasons.push('The requested player or Contract does not match saved contract history.');
   }
   const allowedRoutes = checked.evidence ? inferRoutes(checked.evidence) : [];
   return Object.freeze({
@@ -585,10 +585,10 @@ function validateProposalShape(
   reasons: string[]
 ): void {
   if (!isZonedDateTime(proposal.signedAt)) {
-    reasons.push('Extension signature time must be an exact governed instant with a UTC offset.');
+    reasons.push('Extension signature time must include an exact date, time, and UTC offset.');
   }
   if (proposal.contractId !== evidence.state.contractId) {
-    reasons.push('The proposal does not identify the governed Contract.');
+    reasons.push('The proposal does not identify the required Contract.');
   }
   if (proposal.salariesByYear[0]?.season !== evidence.firstExtendedSeason) {
     reasons.push(
@@ -650,7 +650,7 @@ function validateRookieRoute(
   reasons: string[]
 ): void {
   if (!evidence.state.terms.isRookieScale) {
-    reasons.push('The governed Contract is not a Rookie Scale Contract.');
+    reasons.push('The saved Contract is not a Rookie Scale Contract.');
   }
   const exercisedTeamOptions = evidence.state.terms.salaries.filter(
     (row) => row.option === 'TO' && row.optionUsed === true
@@ -968,7 +968,7 @@ export function decideGovernedExtension(
   const reasons: string[] = [];
   validateProposalShape(evidence, proposal, reasons);
   if (!availability.allowedRoutes.includes(proposal.route)) {
-    reasons.push(`${proposal.route} is not an authenticated route for this Contract.`);
+    reasons.push(`${proposal.route} is not an available extension route for this Contract.`);
   }
   const signedAt = parseZonedDateTime(proposal.signedAt);
   if (signedAt !== null && signedAt > instantDayEnd(request.worldAsOfDate)) {
@@ -978,7 +978,7 @@ export function decideGovernedExtension(
     reasons.push('Extension provenance requires an operation identity and author identity.');
   }
   if (!isZonedDateTime(request.recordedAt)) {
-    reasons.push('Extension recording time must be an exact governed instant.');
+    reasons.push('Extension recording time must include an exact date, time, and UTC offset.');
   } else if (
     signedAt !== null &&
     (parseZonedDateTime(request.recordedAt) ?? Number.NEGATIVE_INFINITY) < signedAt
