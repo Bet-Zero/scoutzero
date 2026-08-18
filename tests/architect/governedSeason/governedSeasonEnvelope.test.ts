@@ -44,10 +44,15 @@ describe('BZE-270 governed season registry seeded from accepted Canon', () => {
     );
   });
 
-  it('carries only the source records the accepted Canon certifies', () => {
+  it('keeps accepted Canon records and post-Canon sources visibly separate', () => {
     expect(
       CANON_GOVERNED_SEASON_REGISTRY.sourceRecords.map((r) => r.sourceRecordId)
-    ).toEqual(['SRC2-003', 'SRC2-004', 'SRC2-005']);
+    ).toEqual(['SRC2-003', 'SRC2-004', 'SRC2-005', 'POSTCANON-SRC-0001']);
+    expect(
+      CANON_GOVERNED_SEASON_REGISTRY.postCanonSourceRecords.map(
+        (record) => record.sourceRecordId
+      )
+    ).toEqual(['POSTCANON-SRC-0001']);
     expect(CANON_GOVERNED_SEASON_REGISTRY.supportedSalaryCapYears).toEqual([
       2024, 2026, 2027,
     ]);
@@ -89,8 +94,8 @@ describe('BZE-270 governed season registry seeded from accepted Canon', () => {
   });
 });
 
-describe('BZE-270 honest unavailability on the shipped Canon registry', () => {
-  it('resolves all five 2026-27 levels but stays unavailable with no calendar', () => {
+describe('BZE-270/BZE-280 shipped registry coverage', () => {
+  it('resolves 2026-27 complete from unchanged Canon levels plus the post-Canon calendar', () => {
     const envelope = resolveGovernedSeasonEnvelope({
       asOfDate: '2026-10-15T12:00:00-04:00',
       salaryCapYear: 2027,
@@ -105,12 +110,14 @@ describe('BZE-270 honest unavailability on the shipped Canon registry', () => {
       );
     });
 
-    expect(envelope.calendar.state).toBe('unavailable');
-    expect(envelope.status).toBe('unavailable');
-    expect(envelope.inputManifest).toBeNull();
-    expect(envelope.unavailableReasons.join(' ')).toContain(
-      'No current official season calendar record exists for Salary Cap Year 2027'
+    expect(envelope.calendar.state).toBe('available');
+    expect(envelope.calendar.regularSeasonOpening?.value).toBe('2026-10-20');
+    expect(envelope.calendar.regularSeasonClosing?.value).toBe('2027-04-11');
+    expect(envelope.status).toBe('complete');
+    expect(envelope.inputManifest?.calendar.sourceAuthorityClass).toBe(
+      'post-canon-official'
     );
+    expect(envelope.inputManifest?.postCanonSources).toHaveLength(1);
   });
 
   it('resolves the 2025-26 calendar but stays unavailable with no level records', () => {
@@ -567,7 +574,10 @@ describe('BZE-270 source and version retention', () => {
       sourceRecordVersion: 1,
       sourceField: 'SRC2-TEST-002 test regular-season endpoints',
       sourceArtifactSha256: FIXTURE_SOURCE_SHA256['SRC2-TEST-002'],
+      sourceAuthorityClass: 'accepted-canon',
     });
+    expect(manifest?.manifestVersion).toBe(2);
+    expect(manifest?.postCanonSources).toEqual([]);
     expect(manifest?.systemLevels.map((level) => level.levelId)).toEqual([
       ...GOVERNED_SYSTEM_LEVEL_IDS,
     ]);

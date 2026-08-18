@@ -23,6 +23,8 @@ export type { SalaryCapYearWindow } from './governedTime';
 
 export {
   createGovernedSeasonRegistry,
+  governedSourceAuthorityClass,
+  isGovernedPostCanonOfficialSourceRecord,
   GOVERNED_AUTHORITIES,
   GOVERNED_SOURCE_PROVENANCE_TYPES,
   GOVERNED_SYSTEM_LEVEL_IDS,
@@ -30,12 +32,18 @@ export {
 } from './governedSeasonRecords';
 export type {
   GovernedAuthority,
+  GovernedCanonSourceRecord,
   GovernedCalendarDate,
   GovernedRecordStatus,
+  GovernedPostCanonExactField,
+  GovernedPostCanonGateHistoryEntry,
+  GovernedPostCanonOfficialCertification,
+  GovernedPostCanonOfficialSourceRecord,
   GovernedSeasonCalendarRecord,
   GovernedSeasonRegistry,
   GovernedSeasonRegistryInput,
   GovernedSourceProvenanceType,
+  GovernedSourceAuthorityClass,
   GovernedSourceRecord,
   GovernedSystemLevelId,
   GovernedSystemLevelRecord,
@@ -54,10 +62,12 @@ export {
 export type {
   GovernedCalendarResolution,
   GovernedInputManifest,
+  GovernedInputManifestV1,
   GovernedManifestCalendar,
   GovernedManifestDrift,
   GovernedManifestDriftKind,
   GovernedManifestInput,
+  GovernedManifestPostCanonSource,
   GovernedManifestVerification,
   GovernedManifestVerificationState,
   GovernedReconciliation,
@@ -70,6 +80,7 @@ export type {
   GovernedSeasonEnvelopeRequest,
   GovernedSystemLevelResolution,
   GovernedTeamContext,
+  GovernedVerifiableInputManifest,
 } from './governedSeasonEnvelope';
 
 export {

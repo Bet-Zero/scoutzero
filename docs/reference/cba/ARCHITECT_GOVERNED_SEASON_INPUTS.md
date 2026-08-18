@@ -1,4 +1,4 @@
-# Architect Governed Season Inputs (BZE-270)
+# Architect Governed Season Inputs (BZE-270, BZE-280)
 
 **Scope:** the governed source of date, Salary Cap Year, calendar, team context,
 and the five core annual system levels consumed by the BZE-268 dated
@@ -24,20 +24,29 @@ Tax Level, First Apron, and Second Apron.
 
 Every resolved value retains:
 
-| Retained | Where |
-|---|---|
-| Official vs projected authority | `record.authority`, `manifest.requiredAuthority` |
-| Exact source artifact | `record.sourceRecordId` + `sourceRecordVersion`, and `manifest.*.sourceArtifactSha256` |
-| Exact source field identity | `record.sourceField`, and `manifest.*.sourceField` |
-| Record version | `record.recordVersion` |
-| Effective period | `record.effectiveFrom` / `effectiveUntil` |
-| Availability state | `available` / `unavailable` / `unresolved-conflict` |
-| Canon traceability | `record.canonLeafIds` |
+| Retained                        | Where                                                                                  |
+| ------------------------------- | -------------------------------------------------------------------------------------- |
+| Official vs projected authority | `record.authority`, `manifest.requiredAuthority`                                       |
+| Exact source artifact           | `record.sourceRecordId` + `sourceRecordVersion`, and `manifest.*.sourceArtifactSha256` |
+| Exact source field identity     | `record.sourceField`, and `manifest.*.sourceField`                                     |
+| Record version                  | `record.recordVersion`                                                                 |
+| Effective period                | `record.effectiveFrom` / `effectiveUntil`                                              |
+| Availability state              | `available` / `unavailable` / `unresolved-conflict`                                    |
+| Canon traceability              | `record.canonLeafIds`                                                                  |
+| Source authority boundary       | `manifest.*.sourceAuthorityClass`                                                      |
+| Post-Canon retained evidence    | `manifest.postCanonSources`                                                            |
 
 The manifest keeps the source field and artifact hash, not just the source
-version, so a registry that reuses `SRC2-x@v1` while pointing at a different
+version, so a registry that reuses a source version while pointing at a different
 artifact or quoting a different field cannot certify an earlier result as
 current.
+
+The accepted Canon remains the sole normative authority for CBA rule meaning.
+The separately named `POSTCANON-SRC-*` lane can certify only retained,
+first-party, time-varying factual inputs published after the Canon freeze. Its
+records carry `canonLocator: null`; any `canonLeafIds` on a value sourced there
+trace the rule that governs the value and do not claim the source was in or
+certified by the Canon.
 
 ## 2. Rules the resolver enforces
 
@@ -65,37 +74,68 @@ current.
    registry — including the `CANON_GOVERNED_SEASON_REGISTRY` singleton.
 8. One `sourceRecordId@sourceRecordVersion` must identify exactly one artifact;
    a duplicate key is rejected at construction rather than silently collapsed.
+9. A post-Canon source must be official, use the `POSTCANON-SRC-*` namespace,
+   resolve to the certified first-party host, retain exact bytes and matching
+   fingerprint metadata, and name the exact fields it can authorize. It cannot
+   carry a Canon locator, use weaker provenance, or authorize an unlisted field.
+10. A complete manifest retains the unchanged accepted Canon candidate and
+    fingerprint plus every post-Canon source record, version, certification,
+    official URL, and retained artifact fingerprint actually used.
+11. Pre-BZE-280 manifest version 1 remains verifiable for Canon-only inputs. It
+    cannot authorize a post-Canon source because it has no post-Canon lineage
+    field; such a use is a content mismatch.
 
-## 3. What the accepted evidence actually covers
+## 3. What the governed evidence actually covers
 
-This is the part to read before assuming a season resolves. The registry is
-seeded **only** from source records certified in the accepted Canon candidate:
+The frozen Canon-certified records remain unchanged:
 
-| Source record | Salary Cap Year | Certifies |
-|---|---|---|
-| `SRC2-003` | 2024 (2023-24) | Salary Cap $136.021M **only** |
-| `SRC2-004` | 2027 (2026-27) | Salary Cap, Minimum Team Salary, Tax Level, First Apron, Second Apron — all five |
-| `SRC2-005` | 2026 (2025-26) | Regular Season opening 2025-10-21 and closing 2026-04-12 — no transaction deadline |
+| Source record | Salary Cap Year | Certifies                                                                          |
+| ------------- | --------------- | ---------------------------------------------------------------------------------- |
+| `SRC2-003`    | 2024 (2023-24)  | Salary Cap $136.021M **only**                                                      |
+| `SRC2-004`    | 2027 (2026-27)  | Salary Cap, Minimum Team Salary, Tax Level, First Apron, Second Apron — all five   |
+| `SRC2-005`    | 2026 (2025-26)  | Regular Season opening 2025-10-21 and closing 2026-04-12 — no transaction deadline |
 
-The certified levels and the certified calendar land in **different** Salary Cap
-Years. Therefore **no Salary Cap Year currently resolves complete** on the
-shipped registry:
+One separately certified post-Canon factual source is appended:
 
-- 2026-27 resolves all five levels and has no calendar record.
+- Record: `POSTCANON-SRC-0001@1` /
+  `POSTCANON-CERT-0001@1`.
+- Official artifact: NBA Communications, “2026-27 NBA regular-season
+  schedule,” published 2026-08-13 at
+  `https://pr.nba.com/2026-27-nba-regular-season-schedule/`.
+- Retained capture: 122,319 bytes, SHA-256
+  `2470130997194e83e2419cb272cb384473fe3444a8b2e4fd85b30608daf86c3f`,
+  verified by two matching first-party retrieves on 2026-08-17.
+- Certified fields: Regular Season opening `2026-10-20` and closing
+  `2027-04-11`.
+- Limitations: two games per team remain unassigned for the NBA Cup window from
+  Dec. 4 through Dec. 10. Those games are inside the Regular Season and do not
+  affect either endpoint. The source certifies no trade deadline or final NBA
+  Cup game assignments.
+
+The earlier authority-gate fingerprint
+`0169bb5c78a5ddd0727254dcc991222fbe4e82407b3ba36f60dcc038f002fb18`
+(122,306 bytes) is preserved only as gate history. Mutable-page drift
+superseded it before implementation, its bytes were not retained, and it has no
+runtime authority or usable source version.
+
+Current shipped behavior:
+
+- 2026-27 resolves complete: its unchanged five `SRC2-004` levels combine with
+  the `POSTCANON-SRC-0001` calendar.
 - 2025-26 resolves the calendar and has no level records.
 - 2023-24 resolves the Salary Cap and has neither the other four levels nor a
   calendar.
 
-That is the honest state of the evidence base, not a resolver defect. The repo's
-`capProjections` constants carry values for the missing seasons, but they are
+The repo's `capProjections` constants carry values for missing seasons, but they are
 unversioned copies with no source artifact, exact field, retrieval metadata, or
 record version — the precise defect `CBA2-S01.3` and `CBA2-S02.5` describe.
 Seeding them would launder an ungoverned constant into the governed path, so
 they are excluded.
 
-To make a season resolve, add a source record with real artifact identity plus
-the governed records it certifies. Never widen an existing record's effective
-period to cover a season its source never stated.
+Never widen an existing record's effective period to cover a season its source
+never stated. A later source revision appends both source and governed-record
+versions; it never edits the earlier evaluation or silently changes the bytes
+that evaluation cites.
 
 ## 4. Compatibility fence
 
@@ -125,9 +165,10 @@ Established on this path only (not product-wide):
 - `CBA2-L01.1` — explicit as-of date and Salary Cap Year required, no runtime
   default, on the governed path.
 - `CBA2-L01.9` — calendar records retain source record, publication date,
-  season key, version, and supersession.
-- `CBA2-S01.6` — the 2025-26 endpoints are versioned under `SRC2-005` and are
-  not reusable for another season.
+  season key, version, supersession, and the authority boundary used.
+- `CBA2-S01.6` — the 2025-26 endpoints under `SRC2-005` and the separately
+  certified 2026-27 endpoints under `POSTCANON-SRC-0001` are not reusable for
+  another season.
 - `CBA2-S01.9` — official and projected are separate populations with no
   substitution and no prior-season inheritance.
 - `CBA2-S02.1`, `CBA2-S02.2`, `CBA2-S02.5`, `CBA2-S02.6` — versioned immutable
