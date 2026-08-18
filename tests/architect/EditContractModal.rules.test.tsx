@@ -157,7 +157,7 @@ describe('EditContractModal — PlayerRulesProfile integration', () => {
       expect(confirmButton).toBeDisabled();
     });
     expect(
-      screen.getAllByText(/governed Contract and league evidence/i).length
+      screen.getAllByText(/required contract and league information/i).length
     ).toBeGreaterThan(0);
   });
 
