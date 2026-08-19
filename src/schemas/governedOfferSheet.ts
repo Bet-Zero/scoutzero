@@ -216,40 +216,60 @@ export const GovernedOfferSheetLifecycleEventZ = z.discriminatedUnion(
   ]
 );
 
-export const GovernedOfferSheetLifecycleZ = z.strictObject({
-  payloadVersion: z.literal(1),
-  ledgerId: NonEmptyStringZ,
-  ledgerVersion: PositiveVersionZ,
-  worldId: NonEmptyStringZ,
-  playerId: NonEmptyStringZ,
-  homeTeamId: NonEmptyStringZ,
-  offeringTeamId: NonEmptyStringZ,
-  salaryCapYear: z.number().int(),
-  status: z.enum(['pending-match', 'matched', 'declined']),
-  evidenceReference: z.strictObject({
-    evidenceId: NonEmptyStringZ,
-    evidenceRecordVersion: PositiveVersionZ,
-  }),
-  evidenceSnapshot: GovernedOfferSheetEvidenceZ,
-  rightsReference: z.strictObject({
+export const GovernedOfferSheetLifecycleZ = z
+  .strictObject({
+    payloadVersion: z.literal(1),
     ledgerId: NonEmptyStringZ,
     ledgerVersion: PositiveVersionZ,
-    stateId: NonEmptyStringZ,
-    stateVersion: PositiveVersionZ,
-  }),
-  reservations: z.strictObject({
-    offeringTeam: z.array(GovernedOfferSheetReservationZ).min(1),
-    offeringTeamSalaryReference: GovernedOfferSheetTeamSalaryReferenceZ,
-    homeTeamAuthority: z.enum(['room', 'exception']),
-    arenasApplies: z.boolean(),
-    offeringTeamAccounting: z.enum([
-      'stated-schedule',
-      'average-annual-salary',
-    ]),
-    homeTeamAccounting: z.enum(['stated-schedule', 'average-annual-salary']),
-  }),
-  events: z.array(GovernedOfferSheetLifecycleEventZ).min(1),
-});
+    worldId: NonEmptyStringZ,
+    playerId: NonEmptyStringZ,
+    homeTeamId: NonEmptyStringZ,
+    offeringTeamId: NonEmptyStringZ,
+    salaryCapYear: z.number().int(),
+    status: z.enum(['pending-match', 'matched', 'declined']),
+    evidenceReference: z.strictObject({
+      evidenceId: NonEmptyStringZ,
+      evidenceRecordVersion: PositiveVersionZ,
+    }),
+    evidenceSnapshot: GovernedOfferSheetEvidenceZ,
+    rightsReference: z.strictObject({
+      ledgerId: NonEmptyStringZ,
+      ledgerVersion: PositiveVersionZ,
+      stateId: NonEmptyStringZ,
+      stateVersion: PositiveVersionZ,
+    }),
+    reservations: z.strictObject({
+      offeringTeam: z.array(GovernedOfferSheetReservationZ).min(1),
+      offeringTeamSalaryReference: GovernedOfferSheetTeamSalaryReferenceZ,
+      homeTeamAuthority: z.enum(['room', 'exception']),
+      arenasApplies: z.boolean(),
+      offeringTeamAccounting: z.enum([
+        'stated-schedule',
+        'average-annual-salary',
+      ]),
+      homeTeamAccounting: z.enum(['stated-schedule', 'average-annual-salary']),
+    }),
+    events: z.array(GovernedOfferSheetLifecycleEventZ).min(1),
+  })
+  .superRefine((lifecycle, context) => {
+    const evidence = lifecycle.evidenceSnapshot;
+    if (
+      lifecycle.worldId !== evidence.worldId ||
+      lifecycle.playerId !== evidence.playerId ||
+      lifecycle.homeTeamId !== evidence.homeTeamId ||
+      lifecycle.salaryCapYear !== evidence.salaryCapYear ||
+      lifecycle.evidenceReference.evidenceId !== evidence.evidenceId ||
+      lifecycle.evidenceReference.evidenceRecordVersion !==
+        evidence.evidenceRecordVersion
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['evidenceSnapshot'],
+        message:
+          'Lifecycle identity and evidence reference must match the immutable evidence snapshot.',
+      });
+    }
+  });
 
 export type GovernedOfferSheetEvidence = z.infer<
   typeof GovernedOfferSheetEvidenceZ

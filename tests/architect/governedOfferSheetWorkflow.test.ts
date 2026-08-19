@@ -7,6 +7,7 @@ import {
   oneYearAfter,
 } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
 import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
+import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 import {
   makeGovernedOfferSheetContract,
   makeGovernedOfferSheetEvidence,
@@ -681,6 +682,41 @@ describe('BZE-283 governed RFA Offer Sheet workflow', () => {
     expect(result.teamUpdates ?? []).toHaveLength(0);
   });
 
+  it('rejects mirrored lifecycle identity drift from its immutable evidence', () => {
+    const stored = store();
+    const homeTeam = changedTeam(stored, 'BOS');
+    const offeringTeam = changedTeam(stored, 'LAL');
+    const lifecycle = GovernedOfferSheetLifecycleZ.parse(
+      homeTeam.incomingOfferSheets?.[0]?.governedLifecycle
+    );
+    const driftedLifecycle = { ...lifecycle, playerId: 'drifted-player' };
+    expect(
+      GovernedOfferSheetLifecycleZ.safeParse(driftedLifecycle).success
+    ).toBe(false);
+    const result = resolve(stored, 'declineOfferSheet', undefined, {
+      homeTeam: {
+        ...homeTeam,
+        incomingOfferSheets: homeTeam.incomingOfferSheets?.map((sheet) => ({
+          ...sheet,
+          playerId: 'drifted-player',
+          governedLifecycle: driftedLifecycle,
+        })),
+      },
+      offeringTeam: {
+        ...offeringTeam,
+        offerSheets: offeringTeam.offerSheets?.map((sheet) => ({
+          ...sheet,
+          playerId: 'drifted-player',
+          governedLifecycle: driftedLifecycle,
+        })),
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('readable governed Offer Sheet lifecycle');
+    expect(result.teamUpdates ?? []).toHaveLength(0);
+  });
+
   it('applies exact before-noon, at-noon, and Moratorium notice deadlines', () => {
     expect(exerciseNoticeDeadline('2025-07-08T11:59:59-04:00')).toBe(
       '2025-07-09T23:59:59-04:00'
@@ -854,9 +890,8 @@ describe('BZE-283 governed RFA Offer Sheet workflow', () => {
     );
 
     expect(declined.success, declined.error).toBe(true);
-    expect(
-      declined.playerUpdates?.[0]?.player.contract?.salariesByYear
-    ).toEqual(
+    const finalizedPlayer = declined.playerUpdates?.[0]?.player;
+    expect(finalizedPlayer?.contract?.salariesByYear).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           season: '2025-26',
@@ -866,6 +901,7 @@ describe('BZE-283 governed RFA Offer Sheet workflow', () => {
         }),
       ])
     );
+    expect(getSalaryForYear(finalizedPlayer, 2026)).toBe(10_000_000);
   });
 
   it('blocks the averaging election when the matching Team is not below the cap', () => {

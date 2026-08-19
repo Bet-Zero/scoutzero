@@ -27,11 +27,16 @@ const settings = {
 describe('getSalaryForYear', () => {
   const year = 2025;
 
-  it('extracts capHit from contract.salariesByYear', () => {
+  it('uses an explicit capHit without adding its retained likely incentive twice', () => {
     const p = {
       contract: {
         salariesByYear: [
-          { season: '2024-25', capHit: 12_000_000, salary: 10_000_000 },
+          {
+            season: '2024-25',
+            capHit: 12_000_000,
+            salary: 10_000_000,
+            incentives: { likely: 500_000 },
+          },
         ],
       },
     };
@@ -63,9 +68,7 @@ describe('Two-Way trade classification', () => {
   it.each(['TwoWay', 'two-way', 'two_way', 'two way'])(
     'recognizes the explicit %s contract spelling',
     (contractType) => {
-      expect(
-        isTwoWayTradePlayer({ contract: { contractType } })
-      ).toBe(true);
+      expect(isTwoWayTradePlayer({ contract: { contractType } })).toBe(true);
     }
   );
 

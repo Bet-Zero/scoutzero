@@ -146,6 +146,7 @@ export const getSalaryForYear = (input: unknown, year: unknown): number => {
   return players.reduce((sum: number, player: TradeHelperPlayer) => {
     let base = 0;
     let yData: SalariesByYearEntry = {};
+    let hasExplicitCapHit = false;
 
     if (player?.contract?.salariesByYear?.length) {
       const slice =
@@ -153,12 +154,18 @@ export const getSalaryForYear = (input: unknown, year: unknown): number => {
           (entry: SalariesByYearEntry) => toEndYear(entry.season) === year
         ) ||
         player.contract.salariesByYear.find(
-          (entry: SalariesByYearEntry) =>
-            String(entry.season) === String(year)
+          (entry: SalariesByYearEntry) => String(entry.season) === String(year)
         );
       if (slice) {
         yData = slice;
-        base = Number(slice.capHit ?? slice.salary ?? 0) || 0;
+        const explicitCapHit = Number(slice.capHit);
+        hasExplicitCapHit =
+          slice.capHit !== null &&
+          slice.capHit !== undefined &&
+          Number.isFinite(explicitCapHit);
+        base = hasExplicitCapHit
+          ? explicitCapHit
+          : Number(slice.salary ?? 0) || 0;
       }
     }
 
@@ -166,12 +173,13 @@ export const getSalaryForYear = (input: unknown, year: unknown): number => {
       base = player.salary;
     }
 
-    const likely =
-      (typeof yData.likely_bonus === 'number' ? yData.likely_bonus : 0) ||
-      Number(yData.bonuses?.likely ?? 0) ||
-      Number(yData.incentives?.likely ?? 0) ||
-      Number(yData.likelyIncentives ?? 0) ||
-      Number(player?.bonusesByYear?.[String(year)]?.likely ?? 0);
+    const likely = hasExplicitCapHit
+      ? 0
+      : (typeof yData.likely_bonus === 'number' ? yData.likely_bonus : 0) ||
+        Number(yData.bonuses?.likely ?? 0) ||
+        Number(yData.incentives?.likely ?? 0) ||
+        Number(yData.likelyIncentives ?? 0) ||
+        Number(player?.bonusesByYear?.[String(year)]?.likely ?? 0);
 
     return sum + base + likely;
   }, 0);
@@ -237,7 +245,10 @@ export const getIncomingCeiling = (
           Date.parse(tradeException.expirationDate) > Date.now()) &&
         !(
           totalSalaryNum > secondApronNum &&
-          isPriorYearTPE(tradeException as TradeExceptionRecord, Number(yearKey))
+          isPriorYearTPE(
+            tradeException as TradeExceptionRecord,
+            Number(yearKey)
+          )
         )
     )
     .reduce(
@@ -313,7 +324,9 @@ export function calculateAllowableIncoming(
   ...args: unknown[]
 ): AllowableIncomingResult | number {
   if (typeof args[0] === 'object' && args[0] !== null && args.length === 1) {
-    return _calculateAllowableIncomingObj(args[0] as AllowableIncomingObjectParams);
+    return _calculateAllowableIncomingObj(
+      args[0] as AllowableIncomingObjectParams
+    );
   }
 
   const currentTeamSalary = args[0] as NumericLike;
@@ -365,19 +378,16 @@ export const getSeasonalCashLimit = (yearKey: NumericLike): number => {
   const key = String(yearKey);
   const fallbackKey = Object.keys(CBA_BY_YEAR).pop() as string;
   return (
-    ((CBA_BY_YEAR as Record<string, { cashLimit?: number }>)[key] ??
-      (CBA_BY_YEAR as Record<string, { cashLimit?: number }>)[fallbackKey])
-      .cashLimit || 0
+    (
+      (CBA_BY_YEAR as Record<string, { cashLimit?: number }>)[key] ??
+      (CBA_BY_YEAR as Record<string, { cashLimit?: number }>)[fallbackKey]
+    ).cashLimit || 0
   );
 };
 
 export const getApronStatus = (
   salary: NumericLike,
-  {
-    firstApron,
-    secondApron,
-    salaryCap,
-  }: TradeCapSettingsLike = {}
+  { firstApron, secondApron, salaryCap }: TradeCapSettingsLike = {}
 ): '2nd Apron' | '1st Apron' | 'Below Aprons' => {
   const status = getTeamApronStatusSSoT(
     { totalSalary: salary },
@@ -531,7 +541,9 @@ export const generateTradeId = (teams: TradeTeamEntry[]): string =>
     )
     .join('|');
 
-export const getPlayerAdjustmentTypes = (player: TradeHelperPlayer): string[] => {
+export const getPlayerAdjustmentTypes = (
+  player: TradeHelperPlayer
+): string[] => {
   if (!player) return [];
 
   if (isTwoWayTradePlayer(player)) {
