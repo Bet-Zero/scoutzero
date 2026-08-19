@@ -69,7 +69,9 @@ const getContractSalaryForEndYear = (
   const rows = Array.isArray(player?.contract?.salariesByYear)
     ? player.contract.salariesByYear
     : [];
-  const row = rows.find((salaryRow) => getSalaryRowEndYear(salaryRow) === endYear);
+  const row = rows.find(
+    (salaryRow) => getSalaryRowEndYear(salaryRow) === endYear
+  );
   const salary = Number(row?.salary ?? row?.capHit ?? 0);
   return Number.isFinite(salary) && salary > 0 ? salary : null;
 };
@@ -96,10 +98,11 @@ export const useEditContractModalForm = ({
   const [salaryInputs, setSalaryInputs] = useState<string[]>(['']);
   const [selectedException, setSelectedException] = useState('None');
   const [isOfferSheet, setIsOfferSheet] = useState(false);
-  const [offerSheetTiming, setOfferSheetTiming] = useState<OfferSheetTimingLike>({
-    signedAt: '',
-    receivedAt: '',
-  });
+  const [offerSheetTiming, setOfferSheetTiming] =
+    useState<OfferSheetTimingLike>({
+      signedAt: '',
+      receivedAt: '',
+    });
   const [extReason, setExtReason] = useState('');
   const [extMax, setExtMax] = useState<ExtMaxState | null>(null);
 
@@ -124,12 +127,24 @@ export const useEditContractModalForm = ({
     return SIGNING_EXCEPTION_OPTIONS.filter((option) => {
       if (option.value === 'None' || option.value === 'Minimum') return true;
       if (!teamCapSheet) return false;
-      const exceptionKey = getCanonicalExceptionKeyForSigningMechanism(option.value);
+      const exceptionKey = getCanonicalExceptionKeyForSigningMechanism(
+        option.value
+      );
       if (!exceptionKey) return false;
-      const availability = getCanonicalExceptionAvailability(teamCapSheet, exceptionKey);
-      if (!availability.present || !availability.enabled || !availability.usable) return false;
+      const availability = getCanonicalExceptionAvailability(
+        teamCapSheet,
+        exceptionKey
+      );
+      if (
+        !availability.present ||
+        !availability.enabled ||
+        !availability.usable
+      )
+        return false;
       return !validateExceptionEligibility({
-        team: teamCapSheet as Parameters<typeof validateExceptionEligibility>[0]['team'],
+        team: teamCapSheet as Parameters<
+          typeof validateExceptionEligibility
+        >[0]['team'],
         signedUsing: option.value,
         year: ACTION_YEAR,
       }).blocked;
@@ -151,7 +166,12 @@ export const useEditContractModalForm = ({
 
   useEffect(() => {
     if (!isSigningAction) return;
-    if (availableSigningExceptions.some((option) => option.value === selectedException)) return;
+    if (
+      availableSigningExceptions.some(
+        (option) => option.value === selectedException
+      )
+    )
+      return;
     setSelectedException('None');
   }, [availableSigningExceptions, isSigningAction, selectedException]);
 
@@ -174,11 +194,19 @@ export const useEditContractModalForm = ({
   );
 
   const buildSalarySeries = useCallback(
-    (firstYear: number, years: number, raisePct: number | null | undefined): number[] => {
+    (
+      firstYear: number,
+      years: number,
+      raisePct: number | null | undefined
+    ): number[] => {
       const totalYears = Math.min(Math.max(years, 1), 5);
       const series: number[] = [];
       for (let i = 0; i < totalYears; i += 1) {
-        series.push(i === 0 ? Math.round(firstYear) : Math.round(series[i - 1] * (1 + (raisePct || 0))));
+        series.push(
+          i === 0
+            ? Math.round(firstYear)
+            : Math.round(series[i - 1] * (1 + (raisePct || 0)))
+        );
       }
       return series;
     },
@@ -194,11 +222,15 @@ export const useEditContractModalForm = ({
   );
 
   const buildSigningDispatchPayload = useCallback(
-    (overrides: Partial<StagedSigningPayloadLike> = {}): StagedSigningPayloadLike => {
+    (
+      overrides: Partial<StagedSigningPayloadLike> = {}
+    ): StagedSigningPayloadLike => {
       const years = extension.years || extension.salaries?.length || 0;
       const salaries = (extension.salaries || []).slice(0, years);
       const signedUsing =
-        selectedException && selectedException !== 'None' ? selectedException : null;
+        selectedException && selectedException !== 'None'
+          ? selectedException
+          : null;
       return {
         ...extension,
         years,
@@ -215,7 +247,9 @@ export const useEditContractModalForm = ({
   );
 
   const buildCanonicalSigningDispatchPayload = useCallback(
-    (overrides: Partial<StagedSigningPayloadLike> = {}): StagedSigningPayloadLike => {
+    (
+      overrides: Partial<StagedSigningPayloadLike> = {}
+    ): StagedSigningPayloadLike => {
       const stagedPayload = buildSigningDispatchPayload(overrides);
       const salaries = (stagedPayload.salaries || []).map((value) =>
         Math.round(Number(value) || 0)
@@ -237,7 +271,9 @@ export const useEditContractModalForm = ({
         base: salaries[0] || 0,
         totalValue,
         averageAnnualValue:
-          stagedPayload.years > 0 ? Math.round(totalValue / stagedPayload.years) : 0,
+          stagedPayload.years > 0
+            ? Math.round(totalValue / stagedPayload.years)
+            : 0,
         firstYearGuaranteed: salariesByYear[0]?.guaranteed !== false,
       };
     },
@@ -245,7 +281,9 @@ export const useEditContractModalForm = ({
   );
 
   const buildOfferSheetDispatchPayload = useCallback(
-    (overrides: Partial<StagedSigningPayloadLike> = {}): StagedSigningPayloadLike => {
+    (
+      overrides: Partial<StagedSigningPayloadLike> = {}
+    ): StagedSigningPayloadLike => {
       const staged = buildCanonicalSigningDispatchPayload({
         rfaOfferSheet: true,
         rfaOfferSheetOnly: true,
@@ -254,34 +292,42 @@ export const useEditContractModalForm = ({
         ...overrides,
       });
       const playerId = String(
-        player?.id || player?.player_id || player?.playerId || 'unknown-player'
-      );
+        player?.id || player?.player_id || player?.playerId || ''
+      ).trim();
       return {
         ...staged,
-        offerSheetProposal: {
-          proposalVersion: 1,
-          signedAt: offerSheetTiming.signedAt,
-          receivedAt: offerSheetTiming.receivedAt,
-          principalTermsDocumentId: `architect-principal-terms:${playerId}:v1`,
-          noticeDocumentId: `architect-offer-sheet-notice:${playerId}:v1`,
-          salariesByYear: (staged.salariesByYear || []).map((row) => ({
-            season: row.season,
-            salaryExcludingIncentive: row.salary,
-            regularSalary: row.salary,
-            bonuses: [],
-            guaranteedForLackOfSkill: row.guaranteed,
-            guaranteedForInjuryOrIllness: row.guaranteed,
-            individuallyNegotiatedProtectionConditions: false,
-            option: null,
-          })),
-        },
+        ...(playerId
+          ? {
+              offerSheetProposal: {
+                proposalVersion: 1 as const,
+                signedAt: offerSheetTiming.signedAt,
+                receivedAt: offerSheetTiming.receivedAt,
+                principalTermsDocumentId: `architect-principal-terms:${playerId}:v1`,
+                noticeDocumentId: `architect-offer-sheet-notice:${playerId}:v1`,
+                salariesByYear: (staged.salariesByYear || []).map((row) => ({
+                  season: row.season,
+                  salaryExcludingIncentive: row.salary,
+                  regularSalary: row.salary,
+                  bonuses: [],
+                  guaranteedForLackOfSkill: row.guaranteed,
+                  guaranteedForInjuryOrIllness: row.guaranteed,
+                  individuallyNegotiatedProtectionConditions: false,
+                  option: null,
+                })),
+              },
+            }
+          : {}),
       };
     },
     [buildCanonicalSigningDispatchPayload, offerSheetTiming, player]
   );
 
   const signAndTradeDispatchPayload = useMemo(
-    () => buildSigningDispatchPayload({ signAndTrade: true, contractType: 'Sign & Trade' }),
+    () =>
+      buildSigningDispatchPayload({
+        signAndTrade: true,
+        contractType: 'Sign & Trade',
+      }),
     [buildSigningDispatchPayload]
   );
 
@@ -311,7 +357,11 @@ export const useEditContractModalForm = ({
     const eligibility = playerRulesProfile?.extensionEligibility;
     const terms = playerRulesProfile?.extensionTerms;
     if (eligibility) {
-      setExtReason(eligibility.isEligible ? 'Eligible' : eligibility.reason || 'Not eligible');
+      setExtReason(
+        eligibility.isEligible
+          ? 'Eligible'
+          : eligibility.reason || 'Not eligible'
+      );
       setExtMax(
         terms
           ? {
@@ -337,8 +387,9 @@ export const useEditContractModalForm = ({
           ...ruleCtx.player,
           playerId: String(player.id || player.player_id || 'unknown'),
           displayName: player.displayName || player.name || 'Unknown',
-          yearsOfServiceAtOperation:
-            Number(player.yearsOfService || player.bio?.experience || 0),
+          yearsOfServiceAtOperation: Number(
+            player.yearsOfService || player.bio?.experience || 0
+          ),
           priorSeasonSalary: lastSalaryForPrefill || null,
           currentSeasonSalary: lastSalaryForPrefill || null,
           isRookieScale:
@@ -380,7 +431,13 @@ export const useEditContractModalForm = ({
       setExtReason('Unable to determine eligibility');
       setExtMax(null);
     }
-  }, [CURRENT_YEAR, initialAction, lastSalaryForPrefill, player, playerRulesProfile]);
+  }, [
+    CURRENT_YEAR,
+    initialAction,
+    lastSalaryForPrefill,
+    player,
+    playerRulesProfile,
+  ]);
 
   useEffect(() => {
     if (selectedAction !== 'extend') return;
@@ -407,11 +464,7 @@ export const useEditContractModalForm = ({
     setExtension((prev) => {
       const years = extMax.maxYears || prev.years || 1;
       const safeRaisePct = Math.max(0, (extMax.baseRaisePct ?? 0.08) - 0.0001);
-      const salaries = buildSalarySeries(
-        firstYearSalary,
-        years,
-        safeRaisePct
-      );
+      const salaries = buildSalarySeries(firstYearSalary, years, safeRaisePct);
       setSalaryInputs(toSalaryInputs(salaries, years));
       return {
         years,

@@ -250,6 +250,42 @@ describe('OfferSheetList Free Agency wiring', () => {
     expect(screen.getByRole('button', { name: /^Decline$/i })).toBeDisabled();
   });
 
+  it('explains why an incomplete averaging election disables Match', () => {
+    const lifecycle = makePendingGovernedOfferSheetLifecycle();
+    render(
+      <OfferSheetList
+        title="Incoming"
+        offerSheets={[
+          {
+            ...baseOfferSheet,
+            status: 'PENDING_MATCH' as const,
+            governedLifecycle: {
+              ...lifecycle,
+              reservations: {
+                ...lifecycle.reservations,
+                arenasApplies: true,
+              },
+            },
+          },
+        ]}
+        surfaceRole="incoming"
+        onLifecycleAction={vi.fn()}
+      />
+    );
+
+    fireEvent.change(screen.getByTestId('offer-sheet-resolution-at-os_1'), {
+      target: { value: RESOLUTION_AT },
+    });
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: /Elect average annual Salary/i })
+    );
+
+    expect(screen.getByRole('button', { name: /^Match$/i })).toHaveAttribute(
+      'title',
+      'Enter the averaging statement reference and exact Eastern relay time.'
+    );
+  });
+
   it('returns null for empty offer sheet arrays', () => {
     const { container } = render(
       <OfferSheetList

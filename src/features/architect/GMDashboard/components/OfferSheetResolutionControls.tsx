@@ -47,6 +47,11 @@ export const OfferSheetResolutionControls = ({
         : undefined;
   const baseDisabled =
     actionsDisabled || !governedLifecycleReady || !exactResolutionReady;
+  const matchDisabledReason =
+    disabledReason ??
+    (!electionReady
+      ? 'Enter the averaging statement reference and exact Eastern relay time.'
+      : undefined);
 
   const emit = (action: 'match' | 'decline') => {
     onLifecycleAction?.({
@@ -120,7 +125,7 @@ export const OfferSheetResolutionControls = ({
           type="button"
           onClick={() => emit('match')}
           disabled={baseDisabled || !electionReady}
-          title={baseDisabled ? disabledReason : undefined}
+          title={matchDisabledReason}
           className="rounded bg-blue-600 px-3 py-1 text-xs text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           Match

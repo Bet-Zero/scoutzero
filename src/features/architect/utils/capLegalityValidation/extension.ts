@@ -4,7 +4,6 @@
  * OWNERSHIP: Feature: architect/core
  */
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
-import { getCapSettings } from '@/features/architect/utils/capHelpers';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import type { CapRulesProfile } from '@/features/architect/utils/capRulesProfile';
 import {
@@ -495,7 +494,6 @@ export function validateExtension({
   const violations: CapLegalityViolation[] = [];
   const warnings: CapLegalityViolation[] = [];
 
-  const capSettings = getCapSettings(year);
   const contract = player.contract;
   const offerSheetRestriction = inspectGovernedOfferSheetMatchRestriction(
     contract?.offerSheetMatchRestriction,

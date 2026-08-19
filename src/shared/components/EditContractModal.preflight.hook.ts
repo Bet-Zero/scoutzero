@@ -66,7 +66,9 @@ export const useEditContractModalPreflight = ({
     }
     if (signAndTradeActionDisabledReason) {
       setSignAndTradePreflight(
-        buildSignAndTradePreflightResult('blocked', [signAndTradeActionDisabledReason])
+        buildSignAndTradePreflightResult('blocked', [
+          signAndTradeActionDisabledReason,
+        ])
       );
       return;
     }
@@ -138,13 +140,24 @@ export const useEditContractModalPreflight = ({
       );
       return;
     }
+    if (offerSheetDispatchPayload.years > 4) {
+      setOfferSheetPreflight(
+        buildOfferSheetPreflightResult('blocked', [
+          'An Offer Sheet may cover no more than four Salary Cap Years.',
+        ])
+      );
+      return;
+    }
     setOfferSheetPreflight(
       buildOfferSheetPreflightResult('incomplete', [
         'Checking authoritative offer sheet legality...',
       ])
     );
     void Promise.resolve(
-      resolvedOfferSheetInitiation.getOfferSheetPreflight(player, offerSheetDispatchPayload)
+      resolvedOfferSheetInitiation.getOfferSheetPreflight(
+        player,
+        offerSheetDispatchPayload
+      )
     )
       .then((result) => {
         if (latestOfferSheetPreflightRequestId.current !== requestId) return;

@@ -5,7 +5,15 @@ import { z } from 'zod';
 const NonEmptyStringZ = z.string().refine((value) => value.trim().length > 0, {
   message: 'must contain at least one non-whitespace character',
 });
-const MoneyZ = z.number().int().nonnegative();
+// Governed money records use dollars with at most cent precision, including
+// Arenas maximums and derived Average Annual Salary amounts.
+const MoneyZ = z
+  .number()
+  .finite()
+  .nonnegative()
+  .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, {
+    message: 'must use at most cent precision',
+  });
 const PositiveVersionZ = z.number().int().min(1);
 const ZonedInstantZ = z.string().datetime({ offset: true });
 const Sha256Z = z.string().regex(/^sha256:[0-9a-f]{64}$/);

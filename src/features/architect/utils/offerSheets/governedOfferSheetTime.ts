@@ -35,9 +35,12 @@ export function requireEasternInstant(
 }
 
 export function compareInstant(left: string, right: string): number {
-  return (
-    (parseZonedDateTime(left) as number) - (parseZonedDateTime(right) as number)
-  );
+  const leftMilliseconds = parseZonedDateTime(left);
+  const rightMilliseconds = parseZonedDateTime(right);
+  if (leftMilliseconds == null || rightMilliseconds == null) {
+    return Number.NaN;
+  }
+  return leftMilliseconds - rightMilliseconds;
 }
 
 function localParts(value: string) {
@@ -56,18 +59,40 @@ function dateAfterDays(value: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+function composeEasternInstant(localDateTime: string): string {
+  for (const offset of ['-05:00', '-04:00']) {
+    const candidate = `${localDateTime}${offset}`;
+    if (easternOffsetAt(candidate) === offset) return candidate;
+  }
+
+  // A nonexistent local wall-clock time (for example during the spring DST
+  // gap) must remain visibly invalid so the governed schema fails closed.
+  return `${localDateTime}-05:00`;
+}
+
+function isLeapYear(year: number): boolean {
+  return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
 export function exerciseNoticeDeadline(receivedAt: string): string {
-  const { year, month, day, hour, offset } = localParts(receivedAt);
+  const { year, month, day, hour } = localParts(receivedAt);
   if (month === 7 && day >= 1 && day <= 6) {
     return `${year}-07-07T23:59:59-04:00`;
   }
   const days = hour < 12 ? 1 : 2;
-  return `${dateAfterDays(receivedAt, days)}T23:59:59${offset}`;
+  return composeEasternInstant(`${dateAfterDays(receivedAt, days)}T23:59:59`);
 }
 
 export function oneYearAfter(value: string): string {
-  const nextYear = Number(value.slice(0, 4)) + 1;
-  return `${nextYear}${value.slice(4)}`;
+  const { year, month, day } = localParts(value);
+  const nextYear = year + 1;
+  const normalizedDay =
+    month === 2 && day === 29 && !isLeapYear(nextYear) ? 28 : day;
+  const localDate = `${nextYear}-${String(month).padStart(2, '0')}-${String(
+    normalizedDay
+  ).padStart(2, '0')}`;
+  const localTime = value.slice(11, -6);
+  return composeEasternInstant(`${localDate}T${localTime}`);
 }
 
 export function worldDateContainsInstant(

@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
-import { exerciseNoticeDeadline } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
+import {
+  compareInstant,
+  exerciseNoticeDeadline,
+  oneYearAfter,
+} from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
 import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
 import {
   makeGovernedOfferSheetContract,
   makeGovernedOfferSheetEvidence,
+  makeGovernedOfferSheetFixture,
   makeGovernedOfferSheetProposal,
   makeGovernedOfferSheetState,
 } from '../fixtures/architect/governedOfferSheet';
@@ -446,12 +451,74 @@ describe('BZE-283 governed RFA Offer Sheet workflow', () => {
     expect(result.teamUpdates ?? []).toHaveLength(0);
   });
 
+  it('counts every other governed reservation exactly once in the Room test', () => {
+    const currentState = makeGovernedOfferSheetState();
+    const other = makeGovernedOfferSheetFixture({
+      worldId: 'world_test_123',
+      playerId: 'other-player',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'LAL',
+      offerSheetId: 'os-other-player',
+      salariesByYear: [
+        { season: '2025-26', salary: 15_000_000 },
+        { season: '2026-27', salary: 15_750_000 },
+      ],
+    });
+    const result = store({
+      currentState: {
+        ...currentState,
+        team: {
+          ...currentState.team,
+          players: [
+            {
+              player_id: 'room-consumer',
+              contract: {
+                salariesByYear: [
+                  {
+                    season: '2025-26',
+                    salary: 480_000_000,
+                    capHit: 480_000_000,
+                  },
+                ],
+              },
+            },
+          ],
+          offerSheets: [
+            {
+              id: 'os-other-player',
+              dedupKey: 'os:world_test_123:LAL:other-player:2025-26',
+              playerId: 'other-player',
+              playerName: 'Other Player',
+              offeringTeamCode: 'LAL',
+              homeTeamCode: 'NYK',
+              seasonKey: '2025-26',
+              year: 2026,
+              contractYears: 2,
+              salariesByYear: other.contract.salariesByYear,
+              status: 'PENDING_MATCH',
+              createdAt: other.proposal.receivedAt,
+              totalValue: other.contract.totalValue,
+              governedLifecycle: other.lifecycle,
+            },
+          ],
+        },
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('sufficient governed Room');
+    expect(result.teamUpdates ?? []).toHaveLength(0);
+  });
+
   it('matches at the exact deadline, archives restrictions, and removes both active mirrors', () => {
     const stored = store();
     const matched = resolve(stored, 'matchOfferSheet');
     expect(matched.success, matched.error).toBe(true);
     expect(changedTeam(matched, 'BOS').incomingOfferSheets).toEqual([]);
     expect(changedTeam(matched, 'LAL').offerSheets).toEqual([]);
+    expect(changedTeam(matched, 'LAL').totals?.outstandingOfferSheetTotal).toBe(
+      0
+    );
     const lifecycle = GovernedOfferSheetLifecycleZ.parse(
       matched.metadata?.governedOfferSheetLifecycle
     );
@@ -542,6 +609,38 @@ describe('BZE-283 governed RFA Offer Sheet workflow', () => {
     expect(result.error).toContain('mirrors disagree');
   });
 
+  it('rejects a mirror envelope whose player identity disagrees with its lifecycle', () => {
+    const stored = store();
+    const homeTeam = changedTeam(stored, 'BOS');
+    const incoming = homeTeam.incomingOfferSheets?.[0];
+    const result = resolve(stored, 'matchOfferSheet', undefined, {
+      homeTeam: {
+        ...homeTeam,
+        incomingOfferSheets: [{ ...incoming, playerId: 'wrong-player' }],
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('authenticated lifecycle identity');
+    expect(result.teamUpdates ?? []).toHaveLength(0);
+  });
+
+  it('rejects ambiguous identity matches instead of selecting the first mirror', () => {
+    const stored = store();
+    const homeTeam = changedTeam(stored, 'BOS');
+    const incoming = homeTeam.incomingOfferSheets?.[0];
+    const result = resolve(stored, 'matchOfferSheet', undefined, {
+      homeTeam: {
+        ...homeTeam,
+        incomingOfferSheets: [incoming, { ...incoming, id: 'duplicate-id' }],
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('exactly one matching mirror');
+    expect(result.teamUpdates ?? []).toHaveLength(0);
+  });
+
   it('applies exact before-noon, at-noon, and Moratorium notice deadlines', () => {
     expect(exerciseNoticeDeadline('2025-07-08T11:59:59-04:00')).toBe(
       '2025-07-09T23:59:59-04:00'
@@ -552,6 +651,23 @@ describe('BZE-283 governed RFA Offer Sheet workflow', () => {
     expect(exerciseNoticeDeadline('2025-07-06T23:59:59-04:00')).toBe(
       '2025-07-07T23:59:59-04:00'
     );
+    expect(exerciseNoticeDeadline('2025-10-31T12:00:00-04:00')).toBe(
+      '2025-11-02T23:59:59-05:00'
+    );
+  });
+
+  it('uses the target date Eastern offset for one-year restrictions and normalizes leap day', () => {
+    expect(oneYearAfter('2025-11-01T17:00:00-04:00')).toBe(
+      '2026-11-01T17:00:00-05:00'
+    );
+    expect(oneYearAfter('2024-02-29T17:00:00-05:00')).toBe(
+      '2025-02-28T17:00:00-05:00'
+    );
+    expect(
+      Number.isNaN(
+        compareInstant('2025-02-30T12:00:00-05:00', '2025-03-01T12:00:00-05:00')
+      )
+    ).toBe(true);
   });
 
   it('uses Average Annual Salary for the offering Team on an Arenas sheet', () => {

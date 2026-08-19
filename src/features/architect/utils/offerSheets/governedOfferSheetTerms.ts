@@ -166,13 +166,17 @@ function validateArenas(
       'Fourth-year Salary changes by more than 4.5% of third-year Regular Salary.'
     );
   }
-  for (const row of [third, fourth].filter(Boolean)) {
+  const arenasTailRows = [third, fourth].filter(
+    (row): row is GovernedOfferSheetProposal['salariesByYear'][number] =>
+      row != null
+  );
+  for (const row of arenasTailRows) {
     if (
-      governedOfferSheetBonusTotal(row!) !== 0 ||
-      !row!.guaranteedForLackOfSkill ||
-      !row!.guaranteedForInjuryOrIllness ||
-      row!.individuallyNegotiatedProtectionConditions ||
-      row!.option !== null
+      governedOfferSheetBonusTotal(row) !== 0 ||
+      !row.guaranteedForLackOfSkill ||
+      !row.guaranteedForInjuryOrIllness ||
+      row.individuallyNegotiatedProtectionConditions ||
+      row.option !== null
     ) {
       reasons.push(
         'Arenas Years 3 and 4 must have no bonuses or options and full unconditional protection.'

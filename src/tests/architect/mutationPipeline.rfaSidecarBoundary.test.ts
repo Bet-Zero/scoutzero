@@ -40,18 +40,25 @@ const testState = vi.hoisted(() => ({
       bio:
         base.bio || override.bio
           ? {
-              ...((base.bio as Record<string, unknown> | null | undefined) || {}),
-              ...((override.bio as Record<string, unknown> | null | undefined) ||
+              ...((base.bio as Record<string, unknown> | null | undefined) ||
                 {}),
+              ...((override.bio as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
             }
           : undefined,
       contract:
         base.contract || override.contract
           ? {
-              ...((base.contract as Record<string, unknown> | null | undefined) ||
-                {}),
-              ...((override.contract as Record<string, unknown> | null | undefined) ||
-                {}),
+              ...((base.contract as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
+              ...((override.contract as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
             }
           : undefined,
     })
@@ -103,7 +110,11 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
   validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
-  validateExtension: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateExtension: vi.fn(() => ({
+    valid: true,
+    violations: [],
+    warnings: [],
+  })),
   validateOptionDecision: vi.fn(() => ({
     valid: true,
     violations: [],
@@ -151,6 +162,7 @@ vi.mock('@/features/architect/utils/leagueInvariants', () => ({
 }));
 
 import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import { resolveStoreOfferSheetAuthority } from '@/features/architect/utils/mutationPipeline.read.stateLoader';
 import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 const WORLD_ID = 'world_rfa_sidecar_boundary';
@@ -303,7 +315,9 @@ describe('mutationPipeline RFA sidecar boundary', () => {
           ? input.teams.map((team) => ({
               teamCode: team.teamCode ?? null,
               legal: true,
-              incomingPlayers: Array.isArray(team.receives) ? team.receives : [],
+              incomingPlayers: Array.isArray(team.receives)
+                ? team.receives
+                : [],
             }))
           : [],
       })
@@ -351,10 +365,7 @@ describe('mutationPipeline RFA sidecar boundary', () => {
       rightsLedger: governed.rightsLedger,
     });
 
-    seedDoc(
-      `architect_worlds/${PARENT_WORLD_ID}/teams/NYK`,
-      homeTeamSnapshot
-    );
+    seedDoc(`architect_worlds/${PARENT_WORLD_ID}/teams/NYK`, homeTeamSnapshot);
     seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK`, null);
     seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK/players/rfa_1`, {
       playerId: 'rfa_1',
@@ -418,6 +429,67 @@ describe('mutationPipeline RFA sidecar boundary', () => {
     });
   });
 
+  it('strips governed RFA evidence authored only by a mutable player override', async () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: WORLD_ID,
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      offerSheetId: 'os_rfa_1',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
+    seedWorldMetadata(WORLD_ID, {
+      parentWorldId: PARENT_WORLD_ID,
+      asOfDate: governed.asOfDate,
+    });
+    seedWorldMetadata(PARENT_WORLD_ID, { parentWorldId: null });
+
+    const offeringTeam = makeTeam('BOS', []);
+    const sourcePlayerWithoutEvidence = makePlayer(
+      'rfa_1',
+      'Source Player',
+      7_500_000,
+      'NYK',
+      {
+        contract: makeContract(7_500_000, {
+          freeAgency: { type: 'RFA', year: 2026 },
+        }),
+      }
+    );
+    seedDoc(
+      `architect_worlds/${PARENT_WORLD_ID}/teams/NYK`,
+      makeTeam('NYK', [sourcePlayerWithoutEvidence], {
+        roster: ['rfa_1'],
+        players: [sourcePlayerWithoutEvidence],
+        rightsLedger: governed.rightsLedger,
+      })
+    );
+    seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK`, null);
+    seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK/players/rfa_1`, {
+      playerId: 'rfa_1',
+      displayName: 'Override Player',
+      rfaContext: { governedEvidence: governed.evidence },
+    });
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'BOS') return offeringTeam;
+        throw new Error(`Unexpected team load: ${teamCode}`);
+      }
+    );
+
+    const authority = await resolveStoreOfferSheetAuthority({
+      worldId: WORLD_ID,
+      offeringTeamCode: 'BOS',
+      playerId: 'rfa_1',
+    });
+
+    expect(authority.player.rfaContext?.governedEvidence).toBeUndefined();
+    expect(authority.player.displayName).toBe('Override Player');
+  });
+
   it('executeTrade writes the normalized player-level RFA sidecar through the persisted override payload', async () => {
     const playerA = makePlayer('player_a', 'Player A', 10_000_000, 'LAL', {
       tradeTo: 'BOS',
@@ -471,7 +543,9 @@ describe('mutationPipeline RFA sidecar boundary', () => {
     expect(result.success).toBe(true);
 
     const destinationPlayerWrite = testState.batchSet.mock.calls.find(([ref]) =>
-      String(ref).includes(`architect_worlds/${WORLD_ID}/teams/BOS/players/player_a`)
+      String(ref).includes(
+        `architect_worlds/${WORLD_ID}/teams/BOS/players/player_a`
+      )
     );
     const writtenPlayer = destinationPlayerWrite?.[1] as
       | Record<string, unknown>
@@ -584,7 +658,9 @@ describe('mutationPipeline RFA sidecar boundary', () => {
     expect(result.success).toBe(true);
 
     const matchedPlayerWrite = testState.batchSet.mock.calls.find(([ref]) =>
-      String(ref).includes(`architect_worlds/${WORLD_ID}/teams/NYK/players/rfa_1`)
+      String(ref).includes(
+        `architect_worlds/${WORLD_ID}/teams/NYK/players/rfa_1`
+      )
     );
     const writtenPlayer = matchedPlayerWrite?.[1] as
       | Record<string, unknown>

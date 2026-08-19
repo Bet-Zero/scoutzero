@@ -506,11 +506,27 @@ export function createGovernedOfferSheetLifecycle({
   )?.amount;
   if (currentReservation == null)
     reasons.push(`Principal Terms do not include ${season}.`);
-  activeReservations(state.team?.offerSheets ?? [], season, dedupKey, reasons);
+  const outstandingReservations = activeReservations(
+    state.team?.offerSheets ?? [],
+    season,
+    dedupKey,
+    reasons
+  );
   const totals = state.team
     ? synchronizeTeamTotalsSnapshotOrTeam(state.team, salaryCapYear).totals
     : null;
   const allocations = Number(totals?.totalCapAllocations);
+  const snapshotOutstandingReservations = Number(
+    totals?.outstandingOfferSheetTotal
+  );
+  if (
+    Number.isFinite(snapshotOutstandingReservations) &&
+    snapshotOutstandingReservations !== outstandingReservations
+  ) {
+    reasons.push(
+      'Outstanding Offer Sheet reservations do not reconcile with governed Team Salary.'
+    );
+  }
   const teamCode = String(state.team?.teamCode || '');
   const teamStateReference = state.team
     ? `${worldId}:${teamCode}:${mutationSnapshotDigest(state.team)}`
@@ -564,6 +580,9 @@ export function createGovernedOfferSheetLifecycle({
       'Offering Team Salary cannot be resolved on the governed transaction date.'
     );
   } else if (
+    // governedTeamSalary.total already includes every outstanding Offer Sheet
+    // reservation. Add only the new sheet here so existing Room is not counted
+    // twice.
     (currentReservation ?? 0) >
     evidence.league.salaryCap - governedTeamSalary.total
   ) {
@@ -571,8 +590,13 @@ export function createGovernedOfferSheetLifecycle({
       'The offering Team does not preserve sufficient governed Room for this Offer Sheet.'
     );
   }
-  if (reasons.length > 0 || !rights.ledgerReference || !rights.stateReference)
-    return failure('blocked', reasons);
+  if (!rights.ledgerReference || !rights.stateReference) {
+    return failure('blocked', [
+      ...reasons,
+      'The authenticated RFA rights ledger and projected state references are required.',
+    ]);
+  }
+  if (reasons.length > 0) return failure('blocked', reasons);
   const recordedAt = new Date(timestamp).toISOString();
   const lifecycle: GovernedOfferSheetLifecycle = {
     payloadVersion: 1,
@@ -632,6 +656,7 @@ export function createGovernedOfferSheetLifecycle({
 export function resolveGovernedOfferSheetLifecycle({
   state,
   action,
+  dedupKey,
   resolutionAt,
   worldAsOfDate,
   averagingElectionInput,
@@ -639,17 +664,33 @@ export function resolveGovernedOfferSheetLifecycle({
 }: {
   state: MutationOfferSheetResolutionCurrentState;
   action: 'match' | 'decline';
+  dedupKey?: string | null;
   resolutionAt?: string | number | null;
   worldAsOfDate?: string | number | null;
   averagingElectionInput?: unknown;
   timestamp: number;
 }): Failure | ResolutionSuccess {
-  const homeSheet = state.homeTeam?.incomingOfferSheets?.find(
-    (sheet) => String(sheet.id) === state.offerSheetId
+  const matchesRequestedIdentity = (sheet: ArchitectMutationOfferSheet) => {
+    const normalizedDedupKey = String(dedupKey || '').trim();
+    return (
+      String(sheet.id || '') === state.offerSheetId ||
+      (normalizedDedupKey.length > 0 &&
+        String(sheet.dedupKey || '') === normalizedDedupKey)
+    );
+  };
+  const homeMatches = (state.homeTeam?.incomingOfferSheets ?? []).filter(
+    matchesRequestedIdentity
   );
-  const offeringSheet = state.offeringTeam?.offerSheets?.find(
-    (sheet) => String(sheet.id) === state.offerSheetId
+  const offeringMatches = (state.offeringTeam?.offerSheets ?? []).filter(
+    matchesRequestedIdentity
   );
+  if (homeMatches.length !== 1 || offeringMatches.length !== 1) {
+    return failure('incompatible', [
+      'Offer Sheet resolution requires exactly one matching mirror on each Team.',
+    ]);
+  }
+  const [homeSheet] = homeMatches;
+  const [offeringSheet] = offeringMatches;
   const home = lifecycleFromSheet(homeSheet);
   const offering = lifecycleFromSheet(offeringSheet);
   if (!home.success || !offering.success)
@@ -661,6 +702,29 @@ export function resolveGovernedOfferSheetLifecycle({
       'The two Team Offer Sheet lifecycle mirrors disagree.',
     ]);
   const lifecycle = home.data;
+  const expectedSeason = toSeasonCode(lifecycle.salaryCapYear);
+  const expectedEnvelopeStatuses =
+    action === 'match'
+      ? new Set(['PENDING_MATCH', 'MATCHED'])
+      : new Set(['PENDING_MATCH', 'DECLINED']);
+  const envelopeMatchesLifecycle = (sheet: ArchitectMutationOfferSheet) =>
+    String(sheet.playerId || '') === lifecycle.playerId &&
+    String(sheet.homeTeamCode || '') === lifecycle.homeTeamId &&
+    String(sheet.offeringTeamCode || '') === lifecycle.offeringTeamId &&
+    String(sheet.seasonKey || '') === expectedSeason &&
+    Number(sheet.year) === lifecycle.salaryCapYear &&
+    expectedEnvelopeStatuses.has(String(sheet.status || ''));
+  if (
+    String(homeSheet.id || '') !== String(offeringSheet.id || '') ||
+    String(homeSheet.dedupKey || '') !== String(offeringSheet.dedupKey || '') ||
+    String(homeSheet.status || '') !== String(offeringSheet.status || '') ||
+    !envelopeMatchesLifecycle(homeSheet) ||
+    !envelopeMatchesLifecycle(offeringSheet)
+  ) {
+    return failure('incompatible', [
+      'The two Team Offer Sheet envelopes do not match the authenticated lifecycle identity.',
+    ]);
+  }
   if (lifecycle.status !== 'pending-match')
     return failure('blocked', ['Only a pending Offer Sheet can be resolved.']);
   const reasons: string[] = [];

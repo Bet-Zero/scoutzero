@@ -233,7 +233,8 @@ export async function resolveStoreOfferSheetAuthority({
     team: offeringTeam,
     player: {
       ...canonicalPlayer,
-      ...(sourceGovernedOfferSheetEvidence !== undefined
+      ...(canonicalPlayer.rfaContext ||
+      sourceGovernedOfferSheetEvidence !== undefined
         ? {
             rfaContext: {
               ...(canonicalPlayer.rfaContext || {}),
@@ -964,7 +965,7 @@ export function buildNormalizedOfferSheetFinalContract({
     rfaOfferSheetStatus: undefined,
     tradeRestrictions: matchRestriction
       ? [
-          `Matched Offer Sheet: player consent required and offering-Team trade barred through ${matchRestriction.restrictedUntil}`,
+          `Matched Offer Sheet: player consent required and offering team trade barred through ${matchRestriction.restrictedUntil}`,
           `Matched Offer Sheet: contract amendment and sign-and-trade barred through ${matchRestriction.restrictedUntil}`,
         ]
       : undefined,

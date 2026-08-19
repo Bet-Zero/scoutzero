@@ -1,7 +1,7 @@
 import React from 'react';
 import { formatCurrencyFull } from '@/shared/utils/formatting';
 import { TeamSelectDropdown } from '@/shared/components/TeamSelectDropdown';
-import { GovernedOfferSheetNoticeForm } from './EditContractModal.OfferSheetNoticeForm';
+import { GovernedOfferSheetNoticeForm } from '@/shared/components/EditContractModal.OfferSheetNoticeForm';
 import type { GovernedExtensionAvailability } from '@/features/architect/utils/extensions';
 import type {
   SelectedContractAction,
@@ -32,7 +32,9 @@ type ContractDetailsFormProps = {
   isOfferSheet: boolean;
   setIsOfferSheet: (v: boolean) => void;
   offerSheetTiming: OfferSheetTimingLike;
-  setOfferSheetTiming: React.Dispatch<React.SetStateAction<OfferSheetTimingLike>>;
+  setOfferSheetTiming: React.Dispatch<
+    React.SetStateAction<OfferSheetTimingLike>
+  >;
   destinationTeamId: string | null;
   setDestinationTeamId: (id: string | null) => void;
   buyoutAmountInput: string;
@@ -96,7 +98,9 @@ export const ContractDetailsForm = ({
   onTermsChange,
 }: ContractDetailsFormProps) => (
   <>
-    {['signNew', 'resign', 'extend', 'signAndTrade'].includes(selectedAction) && (
+    {['signNew', 'resign', 'extend', 'signAndTrade'].includes(
+      selectedAction
+    ) && (
       <div className="bg-white/5 rounded-lg border border-white/20 p-4">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-semibold text-sm text-white flex items-center gap-2">
@@ -107,7 +111,11 @@ export const ContractDetailsForm = ({
             {selectedAction === 'extend' ? (
               <select
                 data-testid="governed-extension-route"
-                value={extension.route || extensionAvailability?.suggestedRoute || 'veteran'}
+                value={
+                  extension.route ||
+                  extensionAvailability?.suggestedRoute ||
+                  'veteran'
+                }
                 onChange={(e) => {
                   const route = e.target.value as ExtensionStateLike['route'];
                   setExtension({
@@ -115,11 +123,11 @@ export const ContractDetailsForm = ({
                     route,
                     conditionalHigherMaxPercentage:
                       route === 'rookie-scale'
-                        ? extension.conditionalHigherMaxPercentage ?? null
+                        ? (extension.conditionalHigherMaxPercentage ?? null)
                         : null,
                     agreedDesignatedVeteranPercentage:
                       route === 'designated-veteran'
-                        ? extension.agreedDesignatedVeteranPercentage ?? 30
+                        ? (extension.agreedDesignatedVeteranPercentage ?? 30)
                         : null,
                   });
                 }}
@@ -182,12 +190,13 @@ export const ContractDetailsForm = ({
                   isSigningAction && signingGuardrails?.maxYears
                     ? Math.min(signingGuardrails.maxYears, 5)
                     : null;
-                const maxYearsOption =
-                  selectedAction === 'extend' && extensionAvailability
+                const maxYearsOption = isOfferSheet
+                  ? 4
+                  : selectedAction === 'extend' && extensionAvailability
                     ? 5
                     : selectedAction === 'extend' && extMax?.maxYears
                       ? extMax.maxYears
-                    : guardrailYears || 5;
+                      : guardrailYears || 5;
                 const yrs = Math.min(Number(e.target.value), maxYearsOption);
                 const raisePct =
                   signingGuardrails?.raisePct ?? extension.raisePct ?? 0.05;
@@ -210,14 +219,15 @@ export const ContractDetailsForm = ({
               className="px-2 py-1 rounded bg-black border border-white/20 text-xs text-white focus:border-orange-500 outline-none"
             >
               {[1, 2, 3, 4, 5].map((yr) => {
-                const maxYearsOption =
-                  selectedAction === 'extend' && extensionAvailability
+                const maxYearsOption = isOfferSheet
+                  ? 4
+                  : selectedAction === 'extend' && extensionAvailability
                     ? 5
                     : selectedAction === 'extend' && extMax?.maxYears
                       ? extMax.maxYears
-                    : isSigningAction && signingGuardrails?.maxYears
-                      ? Math.min(signingGuardrails.maxYears, 5)
-                      : 5;
+                      : isSigningAction && signingGuardrails?.maxYears
+                        ? Math.min(signingGuardrails.maxYears, 5)
+                        : 5;
                 return (
                   <option key={yr} value={yr} disabled={yr > maxYearsOption}>
                     {yr}yr
@@ -331,8 +341,8 @@ export const ContractDetailsForm = ({
                 : 'Max'}
             </span>
             <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
-              Raises up to {Math.round((signingGuardrails.raisePct || 0) * 100)}% •
-              Max {signingGuardrails.maxYears || '—'} yrs
+              Raises up to {Math.round((signingGuardrails.raisePct || 0) * 100)}
+              % • Max {signingGuardrails.maxYears || '—'} yrs
             </span>
             {playerRulesProfile?.restrictedFreeAgency?.qualifyingOfferAmount ? (
               <span className="px-2 py-1 rounded bg-red-500/10 border border-red-500/20 text-red-100">
@@ -366,8 +376,9 @@ export const ContractDetailsForm = ({
           {Array.from({ length: 5 }, (_, idx) => {
             const isActive = idx < extension.years;
             const year =
-              (selectedAction === 'extend' ? extensionStartYear : CURRENT_YEAR) +
-              idx;
+              (selectedAction === 'extend'
+                ? extensionStartYear
+                : CURRENT_YEAR) + idx;
             return (
               <div
                 key={idx}
@@ -413,7 +424,9 @@ export const ContractDetailsForm = ({
                         ...prev,
                         salaries: nextSalaries,
                       }));
-                      setSalaryInputs(toSalaryInputs(nextSalaries, activeYears));
+                      setSalaryInputs(
+                        toSalaryInputs(nextSalaries, activeYears)
+                      );
                     }}
                     className="w-full pl-5 pr-2 py-2 rounded bg-black/50 border border-white/10 text-xs text-white font-medium text-center focus:border-cyan-500 focus:bg-cyan-500/10 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                   />
@@ -490,7 +503,10 @@ export const ContractDetailsForm = ({
           Resulting dead cap:{' '}
           <span className="text-white">
             {formatCurrencyFull(
-              Math.max(0, remainingGuaranteedForBuyout - (parsedBuyoutAmount || 0))
+              Math.max(
+                0,
+                remainingGuaranteedForBuyout - (parsedBuyoutAmount || 0)
+              )
             )}
           </span>
         </div>

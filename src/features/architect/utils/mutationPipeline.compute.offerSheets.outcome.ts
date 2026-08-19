@@ -149,6 +149,7 @@ export function computeMatchedOfferSheetOutcome({
   const governed = resolveGovernedOfferSheetLifecycle({
     state: currentState,
     action: 'match',
+    dedupKey: requestedDedupKey,
     resolutionAt,
     worldAsOfDate,
     averagingElectionInput: payload.offerSheetAveragingElection,
@@ -238,6 +239,10 @@ export function computeMatchedOfferSheetOutcome({
     offerSheetId || '',
     resolvedDedupKey
   );
+  updatedOfferingTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
+    updatedOfferingTeam,
+    toEndYear(seasonId)
+  ).totals;
   updatedOfferingTeam.source = {
     ...getTeamSourceRecord(updatedOfferingTeam.source),
     type: 'world-snapshot',
@@ -331,6 +336,7 @@ export function computeDeclinedOfferSheetOutcome({
   const governed = resolveGovernedOfferSheetLifecycle({
     state: currentState,
     action: 'decline',
+    dedupKey,
     resolutionAt,
     worldAsOfDate,
     averagingElectionInput: payload.offerSheetAveragingElection,
