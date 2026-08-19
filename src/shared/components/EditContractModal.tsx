@@ -34,7 +34,6 @@ import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import { formatCurrencyFull, formatCurrency } from '@/shared/utils/formatting';
 import { getCapSettings } from '@/features/architect/utils/capHelpers';
 import {
-  generateExtensionContract,
   getContractYearsForDisplay,
 } from '@/features/architect/utils/contractUtils';
 import { useCapValidation } from '@/features/architect/hooks/useCapValidation';
@@ -50,6 +49,9 @@ import { ContractActionContext } from './EditContractModal.ActionContext';
 import { ContractDetailsForm } from './EditContractModal.DetailsForm';
 import { GovernedOptionNoticeForm } from './EditContractModal.OptionNoticeForm';
 import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
+import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
+import { isZonedDateTime } from '@/features/architect/utils/governedSeason';
+import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import {
   calculateCapHold,
   type CapHoldPlayerInput,
@@ -97,6 +99,7 @@ export const EditContractModal = ({
   onWaive,
   onOptionDecision,
   optionDecisionAvailability = null,
+  extensionAvailability = null,
   onExtend,
   signAndTradeInitiation = null,
   onSignAndTrade,
@@ -256,6 +259,10 @@ export const EditContractModal = ({
     optionDecisionAvailability?.status,
   ]);
   const extensionStartYear = useMemo(() => {
+    const governedStartYear = toEndYear(
+      extensionAvailability?.firstExtendedSeason ?? null
+    );
+    if (governedStartYear) return governedStartYear;
     const latestContractEndYear = contractYears.reduce(
       (latestYear, yearEntry) => Math.max(latestYear, yearEntry.year),
       Number.NEGATIVE_INFINITY
@@ -265,7 +272,7 @@ export const EditContractModal = ({
       : CURRENT_YEAR + 1;
 
     return Math.max(nextYearAfterContract, CURRENT_YEAR + 1);
-  }, [CURRENT_YEAR, contractYears]);
+  }, [CURRENT_YEAR, contractYears, extensionAvailability?.firstExtendedSeason]);
 
   const lastSalaryForPrefill = useMemo(() => {
     if (!player) return 0;
@@ -374,9 +381,25 @@ export const EditContractModal = ({
   const actionContextStageLabel = selectedActionLabel
     ? 'Editing terms'
     : 'Choosing action';
-  const extensionEligibility = playerRulesProfile?.extensionEligibility;
-  const isExtendEligible =
-    extensionEligibility?.isEligible ?? extReason === 'Eligible';
+  const isExtendEligible = extensionAvailability?.status === 'ready';
+
+  useEffect(() => {
+    if (!extensionAvailability?.suggestedRoute) return;
+    setExtension((previous) => ({
+      ...previous,
+      route: previous.route || extensionAvailability.suggestedRoute || undefined,
+      conditionalHigherMaxPercentage:
+        (previous.route || extensionAvailability.suggestedRoute) ===
+        'rookie-scale'
+          ? previous.conditionalHigherMaxPercentage ?? null
+          : null,
+      agreedDesignatedVeteranPercentage:
+        (previous.route || extensionAvailability.suggestedRoute) ===
+        'designated-veteran'
+          ? previous.agreedDesignatedVeteranPercentage ?? 30
+          : null,
+    }));
+  }, [extensionAvailability?.contractId, extensionAvailability?.suggestedRoute, setExtension]);
 
   // Free-agency rows for the year-by-year summary: the season the player hits
   // free agency, carrying the qualifying offer (RFA) and/or the cap hold — shown
@@ -477,8 +500,10 @@ export const EditContractModal = ({
   const isGovernedOptionDecisionAction =
     Boolean(optionDecisionAvailability) &&
     (selectedAction === 'accept' || selectedAction === 'decline');
+  const isGovernedExtensionAction = selectedAction === 'extend';
   const validationAuthority: ValidationAuthority =
     isGovernedOptionDecisionAction ||
+    isGovernedExtensionAction ||
     selectedAction === 'signAndTrade' ||
     (selectedAction === 'signNew' && isOfferSheet)
       ? 'authoritative-preflight'
@@ -525,6 +550,87 @@ export const EditContractModal = ({
       };
     }
 
+    if (isGovernedExtensionAction) {
+      if (!extensionAvailability) {
+        const reasons = [
+          'Required contract and league information is needed before an extension can be saved.',
+        ];
+        return {
+          ...DEFAULT_VALIDATION_STATE,
+          authority: 'authoritative-preflight' as const,
+          isLegal: false,
+          incomplete: true,
+          reasons,
+          severity: 'error' as const,
+          errors: reasons.map((message) => ({
+            severity: 'error' as const,
+            message,
+          })),
+        };
+      }
+      const route =
+        extension.route || extensionAvailability.suggestedRoute || null;
+      const reasons = [...extensionAvailability.reasons];
+      if (
+        extensionAvailability.status === 'ready' &&
+        !extensionAvailability.contractId
+      ) {
+        reasons.push('Required contract information is missing.');
+      }
+      if (
+        extensionAvailability.status === 'ready' &&
+        !isZonedDateTime(extension.signedAt ?? null)
+      ) {
+        reasons.push(
+          'Enter the exact extension signature time with a UTC offset.'
+        );
+      }
+      if (
+        extensionAvailability.status === 'ready' &&
+        (!route || !extensionAvailability.allowedRoutes.includes(route))
+      ) {
+        reasons.push('Select an authenticated extension route.');
+      }
+      if (
+        extensionAvailability.status === 'ready' &&
+        route === 'rookie-scale' &&
+        extension.conditionalHigherMaxPercentage != null &&
+        (extension.conditionalHigherMaxPercentage < 25 ||
+          extension.conditionalHigherMaxPercentage > 30)
+      ) {
+        reasons.push(
+          'Enter a conditional Higher Max percentage from 25% through 30%, or leave it blank.'
+        );
+      }
+      if (
+        extensionAvailability.status === 'ready' &&
+        route === 'designated-veteran' &&
+        (extension.agreedDesignatedVeteranPercentage == null ||
+          extension.agreedDesignatedVeteranPercentage < 30 ||
+          extension.agreedDesignatedVeteranPercentage > 35)
+      ) {
+        reasons.push(
+          'Enter the agreed Designated Veteran percentage from 30% through 35%.'
+        );
+      }
+      const ready =
+        extensionAvailability.status === 'ready' && reasons.length === 0;
+      return {
+        ...DEFAULT_VALIDATION_STATE,
+        authority: 'authoritative-preflight' as const,
+        isLegal: ready,
+        incomplete: !ready,
+        reasons,
+        severity: ready ? ('info' as const) : ('error' as const),
+        errors: ready
+          ? []
+          : reasons.map((message) => ({
+              severity: 'error' as const,
+              message,
+            })),
+      };
+    }
+
     if (validationAuthority === 'authoritative-preflight') {
       return buildAuthoritativePreflightState({
         kind: selectedAction === 'signAndTrade' ? 'sign-and-trade' : 'offer-sheet',
@@ -549,8 +655,11 @@ export const EditContractModal = ({
     advisoryWarnings,
     isAdvisoryValid,
     isExtendEligible,
+    isGovernedExtensionAction,
     isGovernedOptionDecisionAction,
     offerSheetPreflight,
+    extension,
+    extensionAvailability,
     optionDecisionAvailability,
     selectedAction,
     signAndTradePreflight,
@@ -628,6 +737,9 @@ export const EditContractModal = ({
               optionDecisionAvailability.status !== 'ready'
             ? optionDecisionAvailability.reasons[0] ||
               'This governed option is not ready because required evidence is incomplete.'
+          : isGovernedExtensionAction && validationState.incomplete
+            ? validationState.reasons[0] ||
+              'This extension is unavailable because required contract or league information is incomplete.'
           : validationState.incomplete
             ? 'Finish the contract details to continue'
             : isOptionDecisionAction && !governedOptionNoticeIsComplete
@@ -815,6 +927,13 @@ export const EditContractModal = ({
       return;
     }
 
+    if (selectedAction === 'extend' && !extensionAvailability) {
+      setSaveError(
+        'Required contract and league information is needed before an extension can be saved.'
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     const timestamp = new Date().toISOString();
     const overrideUsed =
@@ -873,16 +992,50 @@ export const EditContractModal = ({
             actionResult = await onRenounce?.(player, overrideMetadata);
             break;
           case 'extend': {
-            const contract = generateExtensionContract({
-              firstYearSalary: extension.salaries[0] || 0,
-              years: extension.years,
-              raisePct: extension.raisePct ?? extMax?.baseRaisePct ?? 0.08,
-              startYear: extensionStartYear,
-            });
-            actionResult = await onExtend?.(player, {
-              ...contract,
-              ...(overrideMetadata || {}),
-            });
+            if (!extensionAvailability) {
+              actionResult = {
+                success: false,
+                message:
+                  'Required contract and league information is needed before an extension can be saved.',
+              };
+              break;
+            }
+            const route =
+              extension.route ||
+              extensionAvailability.suggestedRoute ||
+              'veteran';
+            if (!extensionAvailability.contractId) {
+              actionResult = {
+                success: false,
+                message: 'Required contract information is missing.',
+              };
+              break;
+            }
+            const contract: GovernedExtensionProposal = {
+              proposalVersion: 1,
+              contractId: extensionAvailability.contractId,
+              route,
+              signedAt: extension.signedAt || '',
+              conditionalHigherMaxPercentage:
+                route === 'rookie-scale'
+                  ? extension.conditionalHigherMaxPercentage ?? null
+                  : null,
+              agreedDesignatedVeteranPercentage:
+                route === 'designated-veteran'
+                  ? extension.agreedDesignatedVeteranPercentage ?? null
+                  : null,
+              salariesByYear: extension.salaries
+                .slice(0, extension.years)
+                .map((salary, index) => ({
+                  season: toSeasonCode(extensionStartYear + index),
+                  salaryExcludingIncentive: salary,
+                  regularSalary: salary,
+                  bonuses: [],
+                  guaranteed: true,
+                  option: null,
+                })),
+            };
+            actionResult = await onExtend?.(player, contract);
             break;
           }
           case 'waive':
@@ -1024,6 +1177,7 @@ export const EditContractModal = ({
             extMax={extMax}
             extReason={extReason}
             isExtendEligible={isExtendEligible}
+            extensionAvailability={extensionAvailability}
             availableSigningExceptions={availableSigningExceptions}
             signingGuardrails={signingGuardrails}
             remainingGuaranteedForBuyout={remainingGuaranteedForBuyout}

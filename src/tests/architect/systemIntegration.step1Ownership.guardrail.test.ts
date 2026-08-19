@@ -195,7 +195,9 @@ describe('Architect System Integration Step 1 ownership guardrails', () => {
     expect(leagueViewSource).toContain('computeTeamCapTotals');
     expect(tradeTeamCardSource).toContain('computeTeamCapTotals');
     expect(playerRulesProfilesSource).toContain('getContractYearSlice');
-    expect(editContractModalSource).toContain('generateExtensionContract');
+    expect(editContractModalSource).toContain('extensionAvailability');
+    expect(editContractModalSource).toContain('GovernedExtensionProposal');
+    expect(editContractModalSource).not.toContain('generateExtensionContract');
     expect(editContractModalSource).toContain('getContractYearsForDisplay');
   });
 });

@@ -38,6 +38,7 @@ import type {
   WaiveMutationPayloadInput,
 } from './mutationPipeline.types.record';
 import type { GovernedOptionLedgerAuthority } from '@/features/architect/utils/optionDecisions/governedOptionDecision';
+import type { GovernedExtensionLedgerAuthority } from '@/features/architect/utils/extensions';
 import type {
   CurrentStateManualCapTeam,
   CurrentStateOfferSheetMirrorTeam,
@@ -159,7 +160,21 @@ export type MutationCurrentStateClosedShape = {
   destinationTeamCode?: undefined;
   offerSheetId?: undefined;
   optionAuthority?: undefined;
+  extensionAuthority?: undefined;
+  extensionTeamSnapshot?: undefined;
+  extensionPlayerSnapshot?: undefined;
 };
+export type MutationDocumentSnapshotReceipt = Readonly<{
+  exists: boolean;
+  digest: string | null;
+  sourceWorldId: string | null;
+  sourceDigest: string | null;
+  sourceLineage: readonly Readonly<{
+    worldId: string;
+    exists: boolean;
+    digest: string | null;
+  }>[];
+}>;
 export type MutationCurrentStateTradeTeamEntryInput = {
   teamCode?: string | null;
   team?: MutationCurrentStateTradeTeamIngress | null;
@@ -179,12 +194,21 @@ export type MutationTeamOnlyCurrentStateIngress = Omit<
 };
 export type MutationTeamAndPlayerCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'teamCode' | 'optionAuthority'
+  | 'team'
+  | 'player'
+  | 'teamCode'
+  | 'optionAuthority'
+  | 'extensionAuthority'
+  | 'extensionTeamSnapshot'
+  | 'extensionPlayerSnapshot'
 > & {
   team?: MutationCurrentStateBaseTeamIngress | null;
   player?: MutationCurrentStatePlayerIngress | null;
   teamCode?: string | null;
   optionAuthority?: GovernedOptionLedgerAuthority | null;
+  extensionAuthority?: GovernedExtensionLedgerAuthority | null;
+  extensionTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
+  extensionPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
 };
 export type MutationSigningCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
@@ -239,6 +263,9 @@ export type MutationCurrentState = {
   teamCode?: string | null;
   offerSheetId?: string | null;
   optionAuthority?: GovernedOptionLedgerAuthority | null;
+  extensionAuthority?: GovernedExtensionLedgerAuthority | null;
+  extensionTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
+  extensionPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
 };
 export type MutationTradeCurrentState = Omit<
   MutationCurrentStateClosedShape,
@@ -254,9 +281,24 @@ export type MutationTeamOnlyCurrentState = Omit<
   };
 export type MutationTeamAndPlayerCurrentState = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'teamCode' | 'optionAuthority'
+  | 'team'
+  | 'player'
+  | 'teamCode'
+  | 'optionAuthority'
+  | 'extensionAuthority'
+  | 'extensionTeamSnapshot'
+  | 'extensionPlayerSnapshot'
 > &
-  Pick<MutationCurrentState, 'team' | 'player' | 'teamCode' | 'optionAuthority'> & {
+  Pick<
+    MutationCurrentState,
+    | 'team'
+    | 'player'
+    | 'teamCode'
+    | 'optionAuthority'
+    | 'extensionAuthority'
+    | 'extensionTeamSnapshot'
+    | 'extensionPlayerSnapshot'
+  > & {
     team?: CurrentStatePlayerOpsTeam | null;
     player?: PlayerLike | null;
   };

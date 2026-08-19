@@ -16,6 +16,10 @@ import {
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
 import type { GovernedOptionDecisionAvailability } from '@/features/architect/utils/optionDecisions';
+import type {
+  GovernedExtensionAvailability,
+  GovernedExtensionProposal,
+} from '@/features/architect/utils/extensions';
 
 import type {
   ArchitectGeneralMutationDashboardReloadTeamSnapshot,
@@ -844,8 +848,11 @@ export interface UseArchitectActionsReturn {
   handleCapHoldRenounce: (capHold: CapHoldActionItem) => void;
   handleExtendContract: (
     player: ArchitectPlayer,
-    extensionContract: SigningDetails
+    extensionProposal: GovernedExtensionProposal
   ) => Promise<MutationActionResult>;
+  getExtensionAvailability: (
+    player: ArchitectPlayer
+  ) => GovernedExtensionAvailability;
   handleWaiveContract: (
     player: ArchitectPlayer,
     options: WaiveOptions

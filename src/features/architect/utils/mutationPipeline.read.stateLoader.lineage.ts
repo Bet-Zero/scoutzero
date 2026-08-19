@@ -17,6 +17,7 @@ import {
   worldTeamRef,
   worldPlayerRef,
 } from '@/features/architect/utils/architectFirestorePaths';
+import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
 import {
   findPlayerInTeamPlayers,
   getMutationRosterEntryId,
@@ -294,9 +295,34 @@ export async function getFirstExplicitWorldTeamSnapshotFromLineage(
   lineageWorldIds: string[],
   teamCode: string
 ) {
+  const resolution = await getWorldTeamSnapshotLineageReceipt(
+    lineageWorldIds,
+    teamCode
+  );
+  return resolution.source;
+}
+
+export async function getWorldTeamSnapshotLineageReceipt(
+  lineageWorldIds: string[],
+  teamCode: string
+) {
+  const checkedSnapshots: Array<{
+    worldId: string;
+    exists: boolean;
+    digest: string | null;
+  }> = [];
   for (const lineageWorldId of lineageWorldIds) {
     const snapshot = await getDoc(worldTeamRef(lineageWorldId, teamCode));
-    if (snapshot.exists()) {
+    const exists = snapshot.exists();
+    const snapshotDigest = exists
+      ? mutationSnapshotDigest(snapshot.data())
+      : null;
+    checkedSnapshots.push({
+      worldId: lineageWorldId,
+      exists,
+      digest: snapshotDigest,
+    });
+    if (exists) {
       const normalizedTeam = toCurrentStateTeam(
         snapshot.data() as MutationCurrentStateOfferSheetTeamIngress | null,
         'offerSheetResolution'
@@ -305,13 +331,17 @@ export async function getFirstExplicitWorldTeamSnapshotFromLineage(
         continue;
       }
       return {
-        snapshotWorldId: lineageWorldId,
-        team: normalizedTeam,
+        source: {
+          snapshotWorldId: lineageWorldId,
+          snapshotDigest,
+          team: normalizedTeam,
+        },
+        checkedSnapshots,
       };
     }
   }
 
-  return null;
+  return { source: null, checkedSnapshots };
 }
 
 export async function getFirstExplicitWorldPlayerOverrideFromLineage(
@@ -319,11 +349,38 @@ export async function getFirstExplicitWorldPlayerOverrideFromLineage(
   teamCode: string,
   playerId: string
 ) {
+  const resolution = await getWorldPlayerSnapshotLineageReceipt(
+    lineageWorldIds,
+    teamCode,
+    playerId
+  );
+  return resolution.source;
+}
+
+export async function getWorldPlayerSnapshotLineageReceipt(
+  lineageWorldIds: string[],
+  teamCode: string,
+  playerId: string
+) {
+  const checkedSnapshots: Array<{
+    worldId: string;
+    exists: boolean;
+    digest: string | null;
+  }> = [];
   for (const lineageWorldId of lineageWorldIds) {
     const overrideSnapshot = await getDoc(
       worldPlayerRef(lineageWorldId, teamCode, playerId)
     );
-    if (overrideSnapshot.exists()) {
+    const exists = overrideSnapshot.exists();
+    const snapshotDigest = exists
+      ? mutationSnapshotDigest(overrideSnapshot.data())
+      : null;
+    checkedSnapshots.push({
+      worldId: lineageWorldId,
+      exists,
+      digest: snapshotDigest,
+    });
+    if (exists) {
       const normalizedPlayer = toCurrentStatePlayer(
         overrideSnapshot.data() as MutationCurrentStatePlayerIngress | null
       );
@@ -331,11 +388,15 @@ export async function getFirstExplicitWorldPlayerOverrideFromLineage(
         continue;
       }
       return {
-        overrideWorldId: lineageWorldId,
-        player: normalizedPlayer,
+        source: {
+          overrideWorldId: lineageWorldId,
+          snapshotDigest,
+          player: normalizedPlayer,
+        },
+        checkedSnapshots,
       };
     }
   }
 
-  return null;
+  return { source: null, checkedSnapshots };
 }

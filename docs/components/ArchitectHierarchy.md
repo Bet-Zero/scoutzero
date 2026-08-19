@@ -387,6 +387,11 @@ utils/
     exceptionLifecycle.ts
     exceptionOwnership.ts
     index.ts
+  extensions/
+    applyGovernedExtensionResult.ts
+    governedExtension.ts
+    index.ts
+    worldExtensionAuthority.ts
   faExceptionUtils.ts
   firebaseTeamPlanHelpers.readers.ts
   firebaseTeamPlanHelpers.ts
@@ -436,6 +441,7 @@ utils/
   mutationPipeline.read.stateLoader.ts
   mutationPipeline.read.ts
   mutationPipeline.read.utils.ts
+  mutationPipeline.snapshotDigest.ts
   mutationPipeline.ts
   mutationPipeline.types.currentState.ts
   mutationPipeline.types.ingress.ts
@@ -609,5 +615,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-13T15:01:24.447Z*
+*Generated on: 2026-08-18T11:33:25.850Z*
 *Auto-updated by: npm run docs*

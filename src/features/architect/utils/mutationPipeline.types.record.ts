@@ -36,6 +36,7 @@ import type { computeExpectedCapHoldAmount } from '@/features/architect/utils/ca
 import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
 import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
+import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
 
@@ -642,6 +643,7 @@ export type ArchitectMutationPayload = {
   playerName?: string | null;
   contract?: ArchitectMutationContract | null;
   extension?: ArchitectMutationContract | null;
+  extensionProposal?: GovernedExtensionProposal | null;
   signedUsing?: string | null;
   accepted?: boolean;
   signAndTrade?: boolean;
@@ -689,7 +691,11 @@ export type PublicWaiveMutationPayloadInput = PublicMutationPayloadSlice<
   | 'isGracePeriod'
 >;
 export type PublicExtensionMutationPayloadInput = PublicMutationPayloadSlice<
-  'teamCode' | 'playerId' | 'extension'
+  | 'teamCode'
+  | 'playerId'
+  | 'contractId'
+  | 'extension'
+  | 'extensionProposal'
 >;
 export type PublicOptionMutationPayloadInput = PublicMutationPayloadSlice<
   | 'teamCode'
@@ -737,7 +743,7 @@ export type WaiveMutationPayloadInput = NormalizedMutationPayloadSlice<
   'playerId' | 'stretch' | 'stretchYears' | 'buyout' | 'buyoutAmount'
 >;
 export type ExtensionMutationPayloadInput = NormalizedMutationPayloadSlice<
-  'playerId' | 'extension'
+  'playerId' | 'contractId' | 'extension' | 'extensionProposal'
 >;
 export type OptionMutationPayloadInput = NormalizedMutationPayloadSlice<
   'playerId' | 'accepted' | 'targetYear' | 'contractId' | 'optionNotice'

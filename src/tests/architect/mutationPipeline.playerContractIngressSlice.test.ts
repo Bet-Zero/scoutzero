@@ -229,7 +229,7 @@ describe('mutationPipeline player contract ingress slice', () => {
     expect(result.playerUpdates).toBeUndefined();
   });
 
-  it('keeps future-contract mutation compute working while using the smaller future-contract ingress slice', () => {
+  it('rejects legacy extension blobs at the smaller ingress boundary', () => {
     const player = makePlayer('future_ingress_1', 'Future Ingress One', 14_000_000, 'NYK', {
       futureContract: makeContract(22_000_000, {
         signingTeam: 'NYK',
@@ -292,61 +292,10 @@ describe('mutationPipeline player contract ingress slice', () => {
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
-
-    const updatedFutureContract = result.playerUpdates?.[0]?.player?.futureContract;
-    expect(updatedFutureContract?.isExtension).toBe(true);
-    expect(updatedFutureContract?.signingDate).toBe(FIXED_TIMESTAMP_ISO);
-    expect(updatedFutureContract?.contractType).toBe('Standard');
-    expect(updatedFutureContract?.yearsRemaining).toBe(1);
-    expect(updatedFutureContract?.totalValue).toBe(22_000_000);
-    expect(updatedFutureContract?.averageAnnualValue).toBe(22_000_000);
-    expect(updatedFutureContract?.guaranteedValue).toBe(22_000_000);
-    expect(updatedFutureContract?.guaranteedYears).toBe(1);
-    expect(updatedFutureContract?.freeAgency).toMatchObject({
-      type: 'UFA',
-      year: 2027,
-    });
-    expect(updatedFutureContract?.signingExecutive).toBe('Future GM');
-    expect(updatedFutureContract?.tradeRestrictions).toEqual([
-      'consent required',
-    ]);
-    expect(updatedFutureContract?.startSeason).toBe('2027-28');
-    expect(updatedFutureContract?.endSeason).toBe('2028-29');
-    expect(updatedFutureContract?.noTradeClause).toBe(true);
-    expect(updatedFutureContract?.tradeKicker).toBe(15);
-    expect(updatedFutureContract).not.toHaveProperty('signingTeam');
-    expect(updatedFutureContract).not.toHaveProperty('birdRights');
-    expect(updatedFutureContract).not.toHaveProperty('years');
-    expect(updatedFutureContract).not.toHaveProperty('contractYears');
-    expect(updatedFutureContract).not.toHaveProperty('firstYearGuaranteed');
-    expect(updatedFutureContract).not.toHaveProperty('exceptionType');
-    expect(updatedFutureContract).not.toHaveProperty('originalLength');
-    expect(updatedFutureContract).not.toHaveProperty('firstYearSalary');
-    expect(updatedFutureContract).not.toHaveProperty('year1Salary');
-    expect(updatedFutureContract).not.toHaveProperty('rfaOfferSheet');
-    expect(updatedFutureContract).not.toHaveProperty('rfaOfferSheetOnly');
-    expect(updatedFutureContract).not.toHaveProperty('rfaOfferSheetStatus');
-    expect(updatedFutureContract).not.toHaveProperty('isMaxContract');
-    expect(updatedFutureContract).not.toHaveProperty('maxType');
-    expect(updatedFutureContract).not.toHaveProperty(
-      'estimatedCapPercentage'
-    );
-    expect(updatedFutureContract).not.toHaveProperty('supersededIn');
-    expect(updatedFutureContract).not.toHaveProperty(
-      'supersededByContractRef'
-    );
-    expect(updatedFutureContract).not.toHaveProperty('legacyFutureBlob');
-    expect(
-      updatedFutureContract?.salariesByYear?.find(
-        (row) => row.season === '2027-28' && row.voidedByExtension === true
-      )
-    ).toBeDefined();
-    expect(
-      updatedFutureContract?.salariesByYear?.some((row) =>
-        Object.prototype.hasOwnProperty.call(row, 'legacyFutureRowBlob')
-      )
-    ).toBe(false);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Governed extension requires');
+    expect(result.teamUpdates).toBeUndefined();
+    expect(result.playerUpdates).toBeUndefined();
   });
 
   it('tolerates mixed raw contract ingress only at the outer committed boundary', () => {

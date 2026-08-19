@@ -62,6 +62,23 @@ describe('Poison Pill matching values', () => {
     expect(player.matchIncoming).toBe(4_000_000);
   });
 
+  it('uses the governed future Contract when legacy extension years are absent', () => {
+    const player = makePlayer({ currentSalary: 4_000_000 });
+    player.futureContract = {
+      isExtension: true,
+      salariesByYear: [
+        { season: '2025-26', salary: 10_000_000 },
+        { season: '2026-27', salary: 10_000_000 },
+        { season: '2027-28', salary: 10_000_000 },
+      ],
+    };
+
+    computeMatchingValues({ teams: [{ sends: [player] }], yearKey });
+
+    expect(player.matchOutgoing).toBe(4_000_000);
+    expect(player.matchIncoming).toBe(8_500_000);
+  });
+
   it('coexists with BYC for outgoing', () => {
     const player = makePlayer({
       currentSalary: 4_000_000,

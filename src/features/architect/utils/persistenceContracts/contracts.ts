@@ -380,12 +380,23 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.f
   'expectedContractLedgerVersion',
   'expectedContractOverlayLedgerVersion',
   'expectedContractOverlaySetDigest',
+  'expectedTeamSnapshotExists',
+  'expectedTeamSnapshotDigest',
+  'expectedTeamSourceWorldId',
+  'expectedTeamSourceSnapshotDigest',
+  'expectedTeamSourceLineage',
+  'expectedPlayerSnapshotExists',
+  'expectedPlayerSnapshotDigest',
+  'expectedPlayerSourceWorldId',
+  'expectedPlayerSourceSnapshotDigest',
+  'expectedPlayerSourceLineage',
   'freeAgentStatus',
   'freeAgentAmount',
   'priorTeamOfferCeiling',
 
   // Extension events
   'extensionType',
+  'extensionRoute',
   'extensionYears',
   'extensionTerms',
 

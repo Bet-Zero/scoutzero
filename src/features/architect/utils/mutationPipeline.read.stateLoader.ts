@@ -12,6 +12,11 @@ import {
   getTeam,
   getPlayer,
 } from '@/features/architect/utils/teamLoader';
+import { getDoc } from 'firebase/firestore';
+import {
+  worldPlayerRef,
+  worldTeamRef,
+} from '@/features/architect/utils/architectFirestorePaths';
 import {
   normalizeContractForWorld,
   normalizeSalaryRow,
@@ -27,6 +32,8 @@ import {
   toCurrentStateTeam,
 } from './mutationPipeline.read.normalizeTeam';
 import { loadWorldGovernedOptionAuthority } from '@/features/architect/utils/optionDecisions';
+import { loadWorldGovernedExtensionAuthority } from '@/features/architect/utils/extensions';
+import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
 
 // Wave 48 Step 1: lineage helpers extracted to submodule
 export * from './mutationPipeline.read.stateLoader.lineage';
@@ -36,6 +43,8 @@ import {
   resolveWorldLineage,
   getFirstExplicitWorldTeamSnapshotFromLineage,
   getFirstExplicitWorldPlayerOverrideFromLineage,
+  getWorldTeamSnapshotLineageReceipt,
+  getWorldPlayerSnapshotLineageReceipt,
   getSnapshotRosterMembership,
   getSnapshotPlayersMembership,
   getSnapshotCapHoldMembership,
@@ -465,8 +474,7 @@ export async function loadStateForMutation(
       };
     }
 
-    case 'waivePlayer': // fallthrough
-    case 'extendPlayer': {
+    case 'waivePlayer': {
       // Load single team and player
       const teamCode = payload.teamCode;
       const playerId = payload.playerId;
@@ -487,6 +495,95 @@ export async function loadStateForMutation(
         ),
         player: toCurrentStatePlayer(player),
         teamCode,
+      };
+    }
+
+    case 'extendPlayer': {
+      const teamCode = payload.teamCode;
+      const playerId = payload.playerId;
+      const contractId = payload.contractId;
+      if (!teamCode || !playerId || !contractId) {
+        throw new Error(
+          'Governed extension requires teamCode, playerId, and contractId.'
+        );
+      }
+      const lineageWorldIds = await resolveWorldLineage(worldId);
+      const ancestorWorldIds = lineageWorldIds.slice(1);
+      // Capture the local documents before resolving fallback state. If either
+      // local document is absent, retain every ancestor checked through the
+      // winning mutable source (or through the immutable base fallback). The
+      // transaction later rechecks both the absences and the winning digest.
+      const [teamDocument, playerDocument] = await Promise.all([
+        getDoc(worldTeamRef(worldId, teamCode)),
+        getDoc(worldPlayerRef(worldId, teamCode, playerId)),
+      ]);
+      const teamDocumentExists = teamDocument.exists();
+      const playerDocumentExists = playerDocument.exists();
+      const teamDocumentDigest = teamDocumentExists
+        ? mutationSnapshotDigest(teamDocument.data())
+        : null;
+      const playerDocumentDigest = playerDocumentExists
+        ? mutationSnapshotDigest(playerDocument.data())
+        : null;
+      const [ancestorTeamResolution, ancestorPlayerResolution] =
+        await Promise.all([
+          teamDocumentExists
+            ? Promise.resolve({ source: null, checkedSnapshots: [] })
+            : getWorldTeamSnapshotLineageReceipt(
+                ancestorWorldIds,
+                teamCode
+              ),
+          playerDocumentExists
+            ? Promise.resolve({ source: null, checkedSnapshots: [] })
+            : getWorldPlayerSnapshotLineageReceipt(
+                ancestorWorldIds,
+                teamCode,
+                playerId
+              ),
+        ]);
+      const ancestorTeamDocument = ancestorTeamResolution.source;
+      const ancestorPlayerDocument = ancestorPlayerResolution.source;
+      const [team, player] = (await Promise.all([
+        getTeam(worldId, teamCode),
+        getPlayer(worldId, teamCode, playerId),
+      ])) as [LoadedMutationTeam, LoadedMutationPlayer];
+      const extensionAuthority = await loadWorldGovernedExtensionAuthority({
+        worldId,
+        contractId: String(contractId),
+        overlays: Array.isArray(team?.contractEventLedgers)
+          ? team.contractEventLedgers
+          : [],
+      });
+      return {
+        team: toCurrentStateTeam(
+          team as MutationCurrentStateBaseTeamIngress | null,
+          'playerOps'
+        ),
+        player: toCurrentStatePlayer(player),
+        teamCode,
+        extensionAuthority,
+        extensionTeamSnapshot: {
+          exists: teamDocumentExists,
+          digest: teamDocumentDigest,
+          sourceWorldId: teamDocumentExists
+            ? worldId
+            : ancestorTeamDocument?.snapshotWorldId ?? null,
+          sourceDigest: teamDocumentExists
+            ? teamDocumentDigest
+            : ancestorTeamDocument?.snapshotDigest ?? null,
+          sourceLineage: ancestorTeamResolution.checkedSnapshots,
+        },
+        extensionPlayerSnapshot: {
+          exists: playerDocumentExists,
+          digest: playerDocumentDigest,
+          sourceWorldId: playerDocumentExists
+            ? worldId
+            : ancestorPlayerDocument?.overrideWorldId ?? null,
+          sourceDigest: playerDocumentExists
+            ? playerDocumentDigest
+            : ancestorPlayerDocument?.snapshotDigest ?? null,
+          sourceLineage: ancestorPlayerResolution.checkedSnapshots,
+        },
       };
     }
 

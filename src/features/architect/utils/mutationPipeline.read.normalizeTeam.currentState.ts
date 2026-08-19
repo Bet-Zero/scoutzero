@@ -402,6 +402,9 @@ export function normalizeTeamAndPlayerMutationCurrentState(
   const player = normalizeCurrentStatePlayerSnapshot(currentState?.player);
   const teamCode = toOptionalTrimmedString(currentState?.teamCode);
   const optionAuthority = currentState?.optionAuthority;
+  const extensionAuthority = currentState?.extensionAuthority;
+  const extensionTeamSnapshot = currentState?.extensionTeamSnapshot;
+  const extensionPlayerSnapshot = currentState?.extensionPlayerSnapshot;
 
   if (team) {
     normalized.team = team;
@@ -414,6 +417,15 @@ export function normalizeTeamAndPlayerMutationCurrentState(
   }
   if (optionAuthority) {
     normalized.optionAuthority = optionAuthority;
+  }
+  if (extensionAuthority) {
+    normalized.extensionAuthority = extensionAuthority;
+  }
+  if (extensionTeamSnapshot) {
+    normalized.extensionTeamSnapshot = extensionTeamSnapshot;
+  }
+  if (extensionPlayerSnapshot) {
+    normalized.extensionPlayerSnapshot = extensionPlayerSnapshot;
   }
 
   return normalized;

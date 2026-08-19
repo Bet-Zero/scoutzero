@@ -1,6 +1,5 @@
 import type { useCapValidation } from '@/features/architect/hooks/useCapValidation';
 import type {
-  generateExtensionContract,
   getContractYearsForDisplay,
 } from '@/features/architect/utils/contractUtils';
 import type { CapProjectionOverrides } from '@/features/architect/utils/capRulesProfile';
@@ -11,6 +10,11 @@ import type {
   OfferSheetPreflightResult,
 } from '@/features/architect/utils/mutationPipeline';
 import type { PlayerRulesProfileLeagueContext } from '@/features/architect/types';
+import type {
+  GovernedExtensionAvailability,
+  GovernedExtensionProposal,
+  GovernedExtensionRoute,
+} from '@/features/architect/utils/extensions';
 
 export type UseCapValidationParams = Parameters<typeof useCapValidation>[0];
 export type HookPlayerLike = NonNullable<UseCapValidationParams['player']>;
@@ -108,6 +112,10 @@ export type ExtensionStateLike = {
   contractType: string;
   salaries: number[];
   raisePct?: number;
+  route?: GovernedExtensionRoute;
+  signedAt?: string;
+  conditionalHigherMaxPercentage?: number | null;
+  agreedDesignatedVeteranPercentage?: number | null;
 };
 
 export type PlayerRulesProfileLike = UseCapValidationParams['rulesProfile'];
@@ -196,8 +204,7 @@ export type StagedSigningPayloadLike = {
   rfaOfferSheetStatus?: string;
 } & Partial<OverrideMetadataLike>;
 
-export type ExtensionPayloadLike = ReturnType<typeof generateExtensionContract> &
-  Partial<OverrideMetadataLike>;
+export type ExtensionPayloadLike = GovernedExtensionProposal;
 
 export type WaivePayloadLike = {
   stretch: boolean;
@@ -280,6 +287,7 @@ export type EditContractModalProps = {
   onWaive?: WaiveCallback | null;
   onOptionDecision?: OptionDecisionCallback | null;
   optionDecisionAvailability?: GovernedOptionDecisionAvailability | null;
+  extensionAvailability?: GovernedExtensionAvailability | null;
   onExtend?: ExtendCallback | null;
   signAndTradeInitiation?: SignAndTradeInitiation | null;
   onSignAndTrade?: SignAndTradeCallback | null;

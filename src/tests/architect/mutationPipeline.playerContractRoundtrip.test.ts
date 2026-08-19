@@ -238,7 +238,7 @@ describe('mutationPipeline player contract round-trip boundary', () => {
     expect(result.playerUpdates).toBeUndefined();
   });
 
-  it('keeps extension compute working while narrowing future-contract round-trip input', () => {
+  it('rejects legacy extension blobs at the round-trip boundary', () => {
     const player = makePlayer('extend_1', 'Extension One', 14_000_000, 'NYK', {
       futureContract: makeContract(22_000_000, {
         signingTeam: 'NYK',
@@ -284,37 +284,10 @@ describe('mutationPipeline player contract round-trip boundary', () => {
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
-
-    const updatedFutureContract = result.playerUpdates?.[0]?.player?.futureContract;
-    expect(updatedFutureContract?.isExtension).toBe(true);
-    expect(updatedFutureContract?.signingDate).toBe(FIXED_TIMESTAMP_ISO);
-    expect(updatedFutureContract?.signingExecutive).toBe('Future GM');
-    expect(updatedFutureContract?.tradeRestrictions).toEqual([
-      'consent required',
-    ]);
-    expect(updatedFutureContract).not.toHaveProperty('legacyFutureBlob');
-    expect(updatedFutureContract).not.toHaveProperty('rfaOfferSheet');
-    expect(updatedFutureContract).not.toHaveProperty('rfaOfferSheetOnly');
-    expect(updatedFutureContract).not.toHaveProperty('rfaOfferSheetStatus');
-    expect(
-      updatedFutureContract?.salariesByYear?.find(
-        (row) => row.season === '2027-28' && row.voidedByExtension === true
-      )
-    ).toBeDefined();
-    expect(
-      updatedFutureContract?.salariesByYear?.some((row) =>
-        Object.prototype.hasOwnProperty.call(row, 'legacyFutureRowBlob')
-      )
-    ).toBe(false);
-    expect(
-      updatedFutureContract?.salariesByYear?.find(
-        (row) => row.season === '2028-29'
-      )
-    ).toMatchObject({
-      season: '2028-29',
-      isExtensionSeason: true,
-    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Governed extension requires');
+    expect(result.teamUpdates).toBeUndefined();
+    expect(result.playerUpdates).toBeUndefined();
   });
 
   it('tolerates mixed raw contract ingress only at the outer trade boundary', () => {

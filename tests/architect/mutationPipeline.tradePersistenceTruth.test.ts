@@ -1515,7 +1515,7 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(String(result.error)).toContain('conflicting destinations');
   });
 
-  it('does not emit playerDeletes for non-trade contract mutations', () => {
+  it('rejects legacy non-trade extension blobs without mutation writes', () => {
     const player = makePlayer('extend_player', 'LAL', 12_000_000, {
       futureContract: {
         salariesByYear: [],
@@ -1543,8 +1543,10 @@ describe('mutationPipeline trade persistence truth', () => {
       timestamp: TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Governed extension requires');
     expect(result.playerDeletes).toEqual([]);
-    expect(result.playerUpdates?.[0]?.playerId).toBe('extend_player');
+    expect(result.playerUpdates).toBeUndefined();
+    expect(result.teamUpdates).toBeUndefined();
   });
 });
