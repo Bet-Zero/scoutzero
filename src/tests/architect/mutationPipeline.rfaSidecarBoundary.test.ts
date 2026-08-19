@@ -180,6 +180,7 @@ vi.mock('@/features/architect/utils/leagueInvariants', () => ({
 
 import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import { resolveStoreOfferSheetAuthority } from '@/features/architect/utils/mutationPipeline.read.stateLoader';
+import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils/offerSheets';
 import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 const WORLD_ID = 'world_rfa_sidecar_boundary';
@@ -776,6 +777,20 @@ describe('mutationPipeline RFA sidecar boundary', () => {
     const offeringTeam = makeTeam('BOS', [], {
       offerSheets: [offerSheet],
     });
+    const immutableBasePlayer = {
+      ...homePlayer,
+      rfaContext: { governedEvidence: governed.evidence },
+    };
+    testState.getPlayer.mockResolvedValue(immutableBasePlayer);
+    seedDoc('architect_basePlayers/rfa_1', immutableBasePlayer);
+    seedDoc(
+      `architect_worlds/${WORLD_ID}/offerSheetAuthorizations/${offerSheet.id}`,
+      buildGovernedOfferSheetAuthorization({
+        lifecycle: governed.lifecycle,
+        offerSheetId: offerSheet.id,
+        dedupKey: offerSheet.dedupKey,
+      })
+    );
     seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK`, homeTeam);
     seedDoc(`architect_worlds/${WORLD_ID}/teams/BOS`, offeringTeam);
 

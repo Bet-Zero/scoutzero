@@ -165,6 +165,7 @@ import {
   computeWorldMutation,
   type ArchitectMutationContract,
 } from '@/features/architect/utils/mutationPipeline';
+import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils/offerSheets';
 import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 const FIXED_TIMESTAMP = Date.parse('2026-04-10T12:00:00.000Z');
@@ -345,6 +346,26 @@ describe('mutationPipeline current-state ingress hardening', () => {
     const offeringTeam = makeTeam('BOS', [], {
       offerSheets: [{ ...mirroredOfferSheet }],
     });
+    const immutableBasePlayer = makePlayer(
+      'rfa_1',
+      'RFA One',
+      9_000_000,
+      'NYK',
+      { rfaContext: { governedEvidence: governed.evidence } }
+    );
+    testState.getPlayer.mockResolvedValue(immutableBasePlayer);
+    testState.docsByPath.set(
+      'architect_basePlayers/rfa_1',
+      immutableBasePlayer
+    );
+    testState.docsByPath.set(
+      `architect_worlds/${WORLD_ID}/offerSheetAuthorizations/${mirroredOfferSheet.id}`,
+      buildGovernedOfferSheetAuthorization({
+        lifecycle: governed.lifecycle,
+        offerSheetId: mirroredOfferSheet.id,
+        dedupKey: mirroredOfferSheet.dedupKey,
+      })
+    );
     testState.docsByPath.set(
       `architect_worlds/${WORLD_ID}/teams/NYK`,
       homeTeam
