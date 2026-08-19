@@ -470,7 +470,7 @@ describe('Gate 6: Finalize matched recomputes home totals (E1)', () => {
 
   it('removes offer sheet from home team incomingOfferSheets', () => {
     const removesFromHome =
-      /computeMatchedOfferSheetOutcome[\s\S]{0,2500}updatedHomeTeam\.incomingOfferSheets\s*=[\s\S]{0,200}removeOfferSheetEntries/.test(
+      /computeMatchedOfferSheetOutcome[\s\S]{0,4500}updatedHomeTeam\.incomingOfferSheets\s*=[\s\S]{0,200}removeOfferSheetEntries/.test(
         content
       );
     expect(removesFromHome).toBe(true);

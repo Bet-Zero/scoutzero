@@ -38,6 +38,7 @@ import type {
   PublicComputeWorldMutationArgs,
   SignAndTradePreflightResult,
 } from './mutationPipeline.types';
+import type { GovernedOfferSheetProposal } from '@/schemas/governedOfferSheet';
 
 /**
  * Compute mutation result without side effects.
@@ -211,6 +212,7 @@ export async function preflightOfferSheetMutation({
   offeringTeamCode,
   playerId,
   contract,
+  offerSheetProposal,
   timestamp = Date.now(),
 }: {
   worldId: string;
@@ -218,6 +220,7 @@ export async function preflightOfferSheetMutation({
   offeringTeamCode: string;
   playerId: string;
   contract: ArchitectMutationContract;
+  offerSheetProposal?: GovernedOfferSheetProposal;
   timestamp?: number;
 }): Promise<OfferSheetPreflightResult> {
   const source = AUTHORITATIVE_SAT_PREFLIGHT_SOURCE;
@@ -284,6 +287,7 @@ export async function preflightOfferSheetMutation({
     teamCode: offeringTeamCode,
     playerId,
     contract: preflightContract,
+    offerSheetProposal,
     signedUsing: contract.exceptionType ?? null,
   };
 
@@ -299,7 +303,15 @@ export async function preflightOfferSheetMutation({
       currentState,
       'storeOfferSheet'
     );
-    const currentYear = toEndYear(seasonId) ?? new Date().getFullYear();
+    const currentYear = toEndYear(seasonId);
+    if (!currentYear) {
+      return {
+        status: 'incomplete',
+        reasons: ['The Offer Sheet Salary Cap Year could not be derived.'],
+        warnings: [],
+        source,
+      };
+    }
 
     // validateSigning with offer-sheet flags routes into the RFA/offer-sheet validation path:
     // validateOfferSheetTerms (years 1–4, raises ≤8%) + offering-team-vs-home-team checks.
@@ -329,12 +341,15 @@ export async function preflightOfferSheetMutation({
 
     // computeWorldMutation catches pre-compute guardrails: player in home team players[],
     // dedup/worldId checks. Pure compute — does not persist.
+    const worldAsOfDate = await loadWorldAsOfDate(worldId);
+    const { asOfDate } = resolveWorldAsOfDate({ worldAsOfDate });
     const computeResult = computeWorldMutation({
       mutationType: 'storeOfferSheet',
       payload,
       currentState,
       seasonId,
       timestamp,
+      asOfDate,
       worldId,
     });
 

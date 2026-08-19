@@ -111,10 +111,12 @@ const RENOUNCE_MUTATION_PAYLOAD_KEYS = [
 const STORE_OFFER_SHEET_MUTATION_PAYLOAD_KEYS = [
   'contract',
   'offerSheetId',
+  'offerSheetProposal',
   'worldId',
 ] as const satisfies readonly (keyof ArchitectMutationPayload)[];
 const OFFER_SHEET_RESOLUTION_MUTATION_PAYLOAD_KEYS = [
   'dedupKey',
+  'offerSheetAveragingElection',
 ] as const satisfies readonly (keyof ArchitectMutationPayload)[];
 const SIGN_AND_TRADE_MUTATION_PAYLOAD_KEYS = [
   'teamCode',
@@ -606,6 +608,7 @@ export function computeNormalizedWorldMutation(
             currentState: args.currentState,
             seasonId,
             timestamp,
+            asOfDate,
           })
         );
       }
@@ -617,6 +620,7 @@ export function computeNormalizedWorldMutation(
             currentState: args.currentState,
             seasonId,
             timestamp,
+            asOfDate,
           })
         );
       }
@@ -628,6 +632,7 @@ export function computeNormalizedWorldMutation(
             currentState: args.currentState,
             seasonId,
             timestamp,
+            asOfDate,
           })
         );
       }
@@ -639,6 +644,7 @@ export function computeNormalizedWorldMutation(
             currentState: args.currentState,
             seasonId,
             timestamp,
+            asOfDate,
           })
         );
       }

@@ -300,6 +300,8 @@ export const EditContractModal = ({
     setSelectedException,
     isOfferSheet,
     setIsOfferSheet,
+    offerSheetTiming,
+    setOfferSheetTiming,
     extReason,
     extMax,
     signingGuardrails,
@@ -1170,6 +1172,8 @@ export const EditContractModal = ({
             setSelectedException={setSelectedException}
             isOfferSheet={isOfferSheet}
             setIsOfferSheet={setIsOfferSheet}
+            offerSheetTiming={offerSheetTiming}
+            setOfferSheetTiming={setOfferSheetTiming}
             destinationTeamId={destinationTeamId}
             setDestinationTeamId={setDestinationTeamId}
             buyoutAmountInput={buyoutAmountInput}

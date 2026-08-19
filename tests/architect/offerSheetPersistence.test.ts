@@ -18,6 +18,13 @@ import {
   type ArchitectMutationResult,
   type ArchitectMutationTeamRecord,
 } from '../../src/features/architect/utils/mutationPipeline';
+import {
+  makeGovernedOfferSheetEvidence,
+  makeGovernedOfferSheetContract,
+  makeGovernedOfferSheetProposal,
+  makeGovernedOfferSheetRightsLedger,
+} from '../fixtures/architect/governedOfferSheet';
+import type { GovernedOfferSheetProposal } from '@/schemas/governedOfferSheet';
 
 type ComputeWorldMutationArgs = Parameters<typeof computeWorldMutation>[0];
 type StoreOfferSheetArgs = Extract<
@@ -61,6 +68,7 @@ type StoreOfferSheetPayload = {
   playerId: string;
   worldId: string;
   offerSheetId?: string;
+  offerSheetProposal: GovernedOfferSheetProposal;
   contract: OfferSheetContractPayload;
 };
 
@@ -376,6 +384,9 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
       displayName: 'Test Player',
       teamCode: 'BOS',
       contract: { signingTeam: 'BOS' },
+      rfaContext: {
+        governedEvidence: makeGovernedOfferSheetEvidence(),
+      },
     };
 
     const baseHomeTeam: StoreOfferSheetHomeTeam = {
@@ -391,6 +402,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
       ],
       roster: ['player123'],
       incomingOfferSheets: [],
+      rightsLedger: makeGovernedOfferSheetRightsLedger(),
     };
 
     return {
@@ -417,6 +429,44 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
     overrides: StoreOfferSheetPayloadOverrides = {}
   ): StoreOfferSheetPayload => {
     const contractOverrides = overrides.contract ?? {};
+    const requestedRows = contractOverrides.salariesByYear ?? [
+      {
+        season: '2025-26',
+        salary: 25_000_000,
+        capHit: 25_000_000,
+        guaranteed: true,
+      },
+      {
+        season: '2026-27',
+        salary: 26_250_000,
+        capHit: 26_250_000,
+        guaranteed: true,
+      },
+    ];
+    const salaryRows =
+      requestedRows.length === 1
+        ? [
+            ...requestedRows,
+            {
+              ...requestedRows[0],
+              season: '2026-27',
+              salary: Math.round(requestedRows[0].salary * 1.05),
+              capHit: Math.round(requestedRows[0].capHit * 1.05),
+            },
+          ]
+        : requestedRows;
+    const offerSheetProposal = makeGovernedOfferSheetProposal({
+      salariesByYear: salaryRows.map((row) => ({
+        season: row.season,
+        salaryExcludingIncentive: row.salary,
+        regularSalary: row.salary,
+        bonuses: [],
+        guaranteedForLackOfSkill: true,
+        guaranteedForInjuryOrIllness: true,
+        individuallyNegotiatedProtectionConditions: false,
+        option: null,
+      })),
+    });
 
     return {
       teamCode: overrides.teamCode ?? 'LAL',
@@ -425,21 +475,15 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
       ...(overrides.offerSheetId
         ? { offerSheetId: overrides.offerSheetId }
         : {}),
+      offerSheetProposal,
       contract: {
+        ...contractOverrides,
         rfaOfferSheet: true,
         rfaOfferSheetOnly: true,
         rfaOfferSheetStatus: 'PENDING_MATCH',
         contractYears: 4,
         totalValue: 100000000,
-        salariesByYear: contractOverrides.salariesByYear ?? [
-          {
-            season: '2025-26',
-            salary: 25000000,
-            capHit: 25000000,
-            guaranteed: true,
-          },
-        ],
-        ...contractOverrides,
+        salariesByYear: salaryRows,
       },
     };
   };
@@ -450,11 +494,11 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
 
       const result = computeWorldMutation({
         mutationType: 'storeOfferSheet',
+        asOfDate: '2025-07-08',
         payload: createMockPayload({ offerSheetId: 'os_world_time' }),
         currentState: createMockState(),
         seasonId: '2025-26',
         timestamp: wallClockTimestamp,
-        asOfDate: '2026-07-01',
       });
 
       expect(result.success).toBe(true);
@@ -469,8 +513,8 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
       );
 
       expect(offeringSheet.id).toBe(`os_world_time`);
-      expect(offeringSheet.createdAt).toBe('2026-07-01T00:00:00.000Z');
-      expect(homeSheet.createdAt).toBe('2026-07-01T00:00:00.000Z');
+      expect(offeringSheet.createdAt).toBe('2025-07-08T10:00:00-04:00');
+      expect(homeSheet.createdAt).toBe('2025-07-08T10:00:00-04:00');
       expect(offeringSheet.createdAt).not.toBe(
         new Date(wallClockTimestamp).toISOString()
       );
@@ -479,11 +523,11 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
     it('allows Match through D+2, blocks after the window, and leaves Decline unblocked', () => {
       const storeResult = computeWorldMutation({
         mutationType: 'storeOfferSheet',
+        asOfDate: '2025-07-08',
         payload: createMockPayload({ offerSheetId: 'os_match_window' }),
         currentState: createMockState(),
         seasonId: '2025-26',
         timestamp: Date.parse('2026-03-25T12:00:00.000Z'),
-        asOfDate: '2026-07-01',
       });
 
       const offerSheet = requireValue(
@@ -491,7 +535,10 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
         'Expected incoming offer sheet for match-window validation'
       );
 
-      for (const asOfDate of ['2026-07-01', '2026-07-02', '2026-07-03']) {
+      for (const asOfDate of [
+        '2025-07-08T10:00:00-04:00',
+        '2025-07-09T23:59:59-04:00',
+      ]) {
         const result = validateOfferSheetResolution({
           offerSheet,
           actingTeamCode: 'BOS',
@@ -508,7 +555,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
         offerSheet,
         actingTeamCode: 'BOS',
         action: 'match',
-        asOfDate: '2026-07-04',
+        asOfDate: '2025-07-10T00:00:00-04:00',
       });
 
       expect(expiredMatch.valid).toBe(false);
@@ -522,7 +569,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
         offerSheet,
         actingTeamCode: 'BOS',
         action: 'decline',
-        asOfDate: '2026-07-04',
+        asOfDate: '2025-07-10T00:00:00-04:00',
       });
 
       expect(lateDecline.valid).toBe(true);
@@ -538,6 +585,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
       const payload1 = createMockPayload({ offerSheetId: 'os_test_1' });
       const result1 = computeWorldMutation({
         mutationType: 'storeOfferSheet',
+        asOfDate: '2025-07-08',
         payload: payload1,
         currentState,
         seasonId: '2025-26',
@@ -567,6 +615,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
       const payload2 = createMockPayload({ offerSheetId: 'os_test_2' });
       const result2 = computeWorldMutation({
         mutationType: 'storeOfferSheet',
+        asOfDate: '2025-07-08',
         payload: payload2,
         currentState: stateAfterFirst,
         seasonId: '2025-26',
@@ -598,7 +647,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
       ).toBe('os:world_test_123:LAL:player123:2025-26');
     });
 
-    it('should update contract terms in place on second store', () => {
+    it('should reject a retry that changes signed contract terms', () => {
       const currentState = createMockState();
 
       // First store with original salary
@@ -621,6 +670,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
       });
       const result1 = computeWorldMutation({
         mutationType: 'storeOfferSheet',
+        asOfDate: '2025-07-08',
         payload: payload1,
         currentState,
         seasonId: '2025-26',
@@ -654,32 +704,16 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
       });
       const result2 = computeWorldMutation({
         mutationType: 'storeOfferSheet',
+        asOfDate: '2025-07-08',
         payload: payload2,
         currentState: stateAfterFirst,
         seasonId: '2025-26',
         timestamp: Date.now() + 1000,
       });
 
-      const offeringTeamAfter2 = getUpdatedTeam(result2, 'LAL');
-      const offeringTeamAfter2OfferSheets = getOfferSheets(
-        offeringTeamAfter2,
-        'LAL'
-      );
-      const updatedOfferSheet = requireValue(
-        offeringTeamAfter2OfferSheets[0],
-        'Expected updated offer sheet after second store'
-      );
-
-      // Should still be 1 entry
-      expect(offeringTeamAfter2OfferSheets).toHaveLength(1);
-      // Should have UPDATED totalValue
-      expect(updatedOfferSheet.totalValue).toBe(120000000);
-      expect(
-        requireValue(
-          updatedOfferSheet.salariesByYear?.[0],
-          'Expected updated salary row'
-        ).salary
-      ).toBe(30000000);
+      expect(result2.success).toBe(false);
+      expect(String(result2.error)).toContain('signed Principal Terms');
+      expect(result2.teamUpdates ?? []).toHaveLength(0);
     });
   });
 
@@ -694,6 +728,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
 
       const result1 = computeWorldMutation({
         mutationType: 'storeOfferSheet',
+        asOfDate: '2025-07-08',
         payload: payload1,
         currentState,
         seasonId: '2025-26',
@@ -726,6 +761,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
 
       const result2 = computeWorldMutation({
         mutationType: 'storeOfferSheet',
+        asOfDate: '2025-07-08',
         payload: payload2,
         currentState: stateAfterFirst,
         seasonId: '2025-26',
@@ -756,6 +792,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
     it('fails closed when authoritative home team is missing', () => {
       const result = computeWorldMutation({
         mutationType: 'storeOfferSheet',
+        asOfDate: '2025-07-08',
         payload: createMockPayload(),
         currentState: {
           team: createMockState().team,
@@ -776,6 +813,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
     it('fails closed when home team resolves to the offering team', () => {
       const result = computeWorldMutation({
         mutationType: 'storeOfferSheet',
+        asOfDate: '2025-07-08',
         payload: createMockPayload(),
         currentState: createMockState({
           homeTeam: {
@@ -807,6 +845,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
     it('fails closed when canonical player truth is not backed by the home-team snapshot player', () => {
       const result = computeWorldMutation({
         mutationType: 'storeOfferSheet',
+        asOfDate: '2025-07-08',
         payload: createMockPayload(),
         currentState: createMockState({
           homeTeam: {
@@ -847,14 +886,22 @@ describe('Phase 18.2: worldId Required for Offer Sheet Identity', () => {
       displayName: 'Test Player',
       teamCode: 'BOS',
       contract: { signingTeam: 'BOS' },
+      rfaContext: { governedEvidence: makeGovernedOfferSheetEvidence() },
     },
     teamCode: 'LAL',
     homeTeam: {
       teamCode: 'BOS',
       teamName: 'Boston Celtics',
-      players: [{ player_id: 'player123', name: 'Test Player' }],
+      players: [
+        {
+          player_id: 'player123',
+          name: 'Test Player',
+          rfaContext: { governedEvidence: makeGovernedOfferSheetEvidence() },
+        },
+      ],
       roster: ['player123'],
       incomingOfferSheets: [],
+      rightsLedger: makeGovernedOfferSheetRightsLedger(),
     },
   });
 
@@ -930,29 +977,18 @@ describe('Phase 18.2: worldId Required for Offer Sheet Identity', () => {
 
   it('should SUCCEED when worldId is provided', () => {
     const currentState = createMockState();
-
+    const proposal = makeGovernedOfferSheetProposal();
     const payload = {
       teamCode: 'LAL',
       playerId: 'player123',
-      worldId: 'world_test_123', // Valid worldId
-      contract: {
-        rfaOfferSheet: true,
-        rfaOfferSheetOnly: true,
-        contractYears: 4,
-        totalValue: 100000000,
-        salariesByYear: [
-          {
-            season: '2025-26',
-            salary: 25000000,
-            capHit: 25000000,
-            guaranteed: true,
-          },
-        ],
-      },
+      worldId: 'world_test_123',
+      contract: makeGovernedOfferSheetContract(proposal),
+      offerSheetProposal: proposal,
     };
 
     const result = computeWorldMutation({
       mutationType: 'storeOfferSheet',
+      asOfDate: '2025-07-08',
       payload,
       currentState,
       seasonId: '2025-26',
@@ -967,8 +1003,8 @@ describe('Phase 18.2: worldId Required for Offer Sheet Identity', () => {
 // Phase 18.2: Cleanup by dedupKey Tests
 // ==============================================================================
 
-describe('Phase 18.2: finalizeDeclinedOfferSheet Cleanup by dedupKey', () => {
-  it('should remove offer sheet from BOTH teams when arrays have different IDs but same dedupKey', () => {
+describe('Phase 18.2: legacy finalization boundary', () => {
+  it('fails closed when legacy mirrors have no governed lifecycle', () => {
     const dedupKey = 'os:world1:LAL:player123:2025-26';
 
     // Create state where offering team and home team have DIFFERENT IDs for same offer
@@ -1048,22 +1084,14 @@ describe('Phase 18.2: finalizeDeclinedOfferSheet Cleanup by dedupKey', () => {
       timestamp: Date.now(),
     });
 
-    expect(result.success).toBe(true);
-
-    const offeringTeamResult = getUpdatedTeam(result, 'LAL');
-    const homeTeamResult = getUpdatedTeam(result, 'BOS');
-
-    // Both arrays should be empty
-    expect(getOfferSheets(offeringTeamResult, 'LAL')).toHaveLength(0);
-    expect(getIncomingOfferSheets(homeTeamResult, 'BOS')).toHaveLength(0);
-
-    // Player should be added to offering team roster
-    expect(offeringTeamResult.roster).toContain('player123');
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toContain('governed Offer Sheet lifecycle');
+    expect(result.teamUpdates ?? []).toHaveLength(0);
   });
 });
 
-describe('E4: Offer sheet finalization canonical persistence manifests', () => {
-  it('finalizeMatchedOfferSheet emits a same-team player upsert with no delete path', () => {
+describe('E4: legacy finalization authority guard', () => {
+  it('finalizeMatchedOfferSheet rejects an ungoverned historical fragment', () => {
     const offerSheet = {
       id: 'os_match_e4',
       dedupKey: 'os:world1:LAL:player123:2025-26',
@@ -1143,21 +1171,12 @@ describe('E4: Offer sheet finalization canonical persistence manifests', () => {
       timestamp: Date.now(),
     });
 
-    expect(result.success).toBe(true);
-    expect(result.playerUpdates ?? []).toHaveLength(1);
-    expect(result.playerDeletes).toEqual([]);
-    const matchedPlayer = getUpdatedPlayer(result, 'player123');
-    expect(matchedPlayer.playerId).toBe('player123');
-    expect(matchedPlayer.teamCode).toBe('BOS');
-    expect(matchedPlayer.displayName).toBe('Canonical Matched Name');
-    expect(matchedPlayer.contract?.signedUsing).toBe('Match');
-
-    const homeTeamResult = getUpdatedTeam(result, 'BOS');
-    expect(getIncomingOfferSheets(homeTeamResult, 'BOS')).toHaveLength(0);
-    expect(homeTeamResult.capHolds).toHaveLength(0);
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toContain('governed Offer Sheet lifecycle');
+    expect(result.playerUpdates ?? []).toHaveLength(0);
   });
 
-  it('finalizeDeclinedOfferSheet emits move manifest and preserves canonical source player identity', () => {
+  it('finalizeDeclinedOfferSheet rejects an ungoverned historical fragment', () => {
     const offerSheet = {
       id: 'os_decline_e4',
       dedupKey: 'os:world1:LAL:player123:2025-26',
@@ -1247,23 +1266,9 @@ describe('E4: Offer sheet finalization canonical persistence manifests', () => {
       timestamp: Date.now(),
     });
 
-    expect(result.success).toBe(true);
-    expect(result.playerUpdates ?? []).toHaveLength(1);
-    expect(result.playerDeletes).toEqual([
-      { playerId: 'player123', teamCode: 'BOS' },
-    ]);
-    const declinedPlayer = getUpdatedPlayer(result, 'player123');
-    expect(declinedPlayer.teamCode).toBe('LAL');
-    expect(declinedPlayer.displayName).toBe('Canonical Source Name');
-    expect(declinedPlayer.displayName).not.toBe('Fragment-Only Name');
-    expect(declinedPlayer.contract?.signedUsing).toBe('Offer Sheet');
-
-    const offeringTeamResult = getUpdatedTeam(result, 'LAL');
-    const homeTeamResult = getUpdatedTeam(result, 'BOS');
-    expect(offeringTeamResult.roster).toContain('player123');
-    expect(offeringTeamResult.capHolds).toHaveLength(0);
-    expect(homeTeamResult.roster).not.toContain('player123');
-    expect(homeTeamResult.capHolds).toHaveLength(0);
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toContain('governed Offer Sheet lifecycle');
+    expect(result.playerUpdates ?? []).toHaveLength(0);
   });
 
   it('finalizeDeclinedOfferSheet fails closed when canonical source player cannot be resolved', () => {
@@ -1318,6 +1323,6 @@ describe('E4: Offer sheet finalization canonical persistence manifests', () => {
     });
 
     expect(result.success).toBe(false);
-    expect(String(result.error)).toContain('not found on home team roster');
+    expect(String(result.error)).toContain('governed Offer Sheet lifecycle');
   });
 });

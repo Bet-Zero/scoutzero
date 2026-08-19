@@ -92,16 +92,19 @@ const FreeAgencySection = ({
     action,
     offerSheet,
     surfaceRole,
+    resolution,
   }: OfferSheetLifecycleActionEvent) => {
     switch (`${surfaceRole}:${action}`) {
       case 'incoming:match':
         offerSheetLifecycleActionOwner?.matchOfferSheet(
-          offerSheet as OfferSheetFinalizeArg
+          offerSheet as OfferSheetFinalizeArg,
+          resolution
         );
         return;
       case 'incoming:decline':
         offerSheetLifecycleActionOwner?.declineOfferSheet(
-          offerSheet as OfferSheetFinalizeArg
+          offerSheet as OfferSheetFinalizeArg,
+          resolution
         );
         return;
       case 'incoming:finalizeMatched':

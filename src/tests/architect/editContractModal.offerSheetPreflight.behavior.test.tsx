@@ -240,6 +240,67 @@ afterEach(() => {
 });
 
 describe('EditContractModal offer-sheet preflight behavior', () => {
+  it('authors exact Offer Sheet notice evidence into the preview and saved payload', async () => {
+    const getOfferSheetPreflight = vi.fn().mockResolvedValue({
+      status: 'legal',
+      reasons: [],
+      warnings: [],
+      source: 'authoritative-preflight',
+    });
+    const onStoreOfferSheet = vi.fn().mockResolvedValue({ success: true });
+
+    render(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={RFA_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2026}
+        initialAction="signNew"
+        actionsOverride={['signNew']}
+        onStoreOfferSheet={onStoreOfferSheet}
+        getOfferSheetPreflight={getOfferSheetPreflight}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Offer Sheet/i }));
+    fireEvent.change(screen.getByTestId('governed-offer-sheet-signed-at'), {
+      target: { value: '2025-07-08T09:55:00-04:00' },
+    });
+    fireEvent.change(screen.getByTestId('governed-offer-sheet-received-at'), {
+      target: { value: '2025-07-08T10:00:00-04:00' },
+    });
+
+    await waitFor(() => {
+      expect(getOfferSheetPreflight).toHaveBeenLastCalledWith(
+        RFA_PLAYER,
+        expect.objectContaining({
+          offerSheetProposal: expect.objectContaining({
+            signedAt: '2025-07-08T09:55:00-04:00',
+            receivedAt: '2025-07-08T10:00:00-04:00',
+          }),
+        })
+      );
+    });
+
+    const confirmButton = screen.getByTestId('edit-contract-confirm-action-button');
+    await waitFor(() => expect(confirmButton).toBeEnabled());
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => expect(onStoreOfferSheet).toHaveBeenCalledTimes(1));
+    expect(onStoreOfferSheet).toHaveBeenCalledWith(
+      RFA_PLAYER,
+      expect.objectContaining({
+        offerSheetProposal: expect.objectContaining({
+          signedAt: '2025-07-08T09:55:00-04:00',
+          receivedAt: '2025-07-08T10:00:00-04:00',
+          principalTermsDocumentId: 'architect-principal-terms:p_rfa:v1',
+          noticeDocumentId: 'architect-offer-sheet-notice:p_rfa:v1',
+        }),
+      })
+    );
+  });
+
   it('keeps confirm disabled while preflight is pending and enables only after legal result', async () => {
     const onClose = vi.fn();
     const onStoreOfferSheet = vi.fn().mockResolvedValue({ success: true });

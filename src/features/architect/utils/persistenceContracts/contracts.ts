@@ -346,6 +346,7 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.f
   'offeringTeamCode',
   'homeTeamCode',
   'offerSheetId',
+  'governedOfferSheetLifecycle',
   'offeringTeam',
   'homeTeam',
 

@@ -117,6 +117,7 @@ export type ArchitectGeneralMutationDashboardReloadOfferSheet = {
   totalValue?: number | string | null;
   status: string;
   createdAt?: string | number | Date | null;
+  governedLifecycle?: unknown;
 };
 export type ArchitectGeneralMutationDashboardReloadContractFreeAgency = {
   year?: number | null;

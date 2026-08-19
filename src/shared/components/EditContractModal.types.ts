@@ -15,6 +15,7 @@ import type {
   GovernedExtensionProposal,
   GovernedExtensionRoute,
 } from '@/features/architect/utils/extensions';
+import type { GovernedOfferSheetProposal } from '@/schemas/governedOfferSheet';
 
 export type UseCapValidationParams = Parameters<typeof useCapValidation>[0];
 export type HookPlayerLike = NonNullable<UseCapValidationParams['player']>;
@@ -118,6 +119,11 @@ export type ExtensionStateLike = {
   agreedDesignatedVeteranPercentage?: number | null;
 };
 
+export type OfferSheetTimingLike = {
+  signedAt: string;
+  receivedAt: string;
+};
+
 export type PlayerRulesProfileLike = UseCapValidationParams['rulesProfile'];
 
 export type ExtMaxState = {
@@ -202,6 +208,7 @@ export type StagedSigningPayloadLike = {
   rfaOfferSheet?: boolean;
   rfaOfferSheetOnly?: boolean;
   rfaOfferSheetStatus?: string;
+  offerSheetProposal?: GovernedOfferSheetProposal;
 } & Partial<OverrideMetadataLike>;
 
 export type ExtensionPayloadLike = GovernedExtensionProposal;

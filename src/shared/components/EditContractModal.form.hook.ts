@@ -25,6 +25,7 @@ import type {
   SelectedContractAction,
   SigningExceptionOption,
   HookContractDataLike,
+  OfferSheetTimingLike,
 } from './EditContractModal.types';
 
 type GetCapSettingsResult = ReturnType<
@@ -95,6 +96,10 @@ export const useEditContractModalForm = ({
   const [salaryInputs, setSalaryInputs] = useState<string[]>(['']);
   const [selectedException, setSelectedException] = useState('None');
   const [isOfferSheet, setIsOfferSheet] = useState(false);
+  const [offerSheetTiming, setOfferSheetTiming] = useState<OfferSheetTimingLike>({
+    signedAt: '',
+    receivedAt: '',
+  });
   const [extReason, setExtReason] = useState('');
   const [extMax, setExtMax] = useState<ExtMaxState | null>(null);
 
@@ -240,15 +245,39 @@ export const useEditContractModalForm = ({
   );
 
   const buildOfferSheetDispatchPayload = useCallback(
-    (overrides: Partial<StagedSigningPayloadLike> = {}): StagedSigningPayloadLike =>
-      buildCanonicalSigningDispatchPayload({
+    (overrides: Partial<StagedSigningPayloadLike> = {}): StagedSigningPayloadLike => {
+      const staged = buildCanonicalSigningDispatchPayload({
         rfaOfferSheet: true,
         rfaOfferSheetOnly: true,
         rfaOfferSheetStatus: 'PENDING_MATCH',
         contractType: 'Offer Sheet',
         ...overrides,
-      }),
-    [buildCanonicalSigningDispatchPayload]
+      });
+      const playerId = String(
+        player?.id || player?.player_id || player?.playerId || 'unknown-player'
+      );
+      return {
+        ...staged,
+        offerSheetProposal: {
+          proposalVersion: 1,
+          signedAt: offerSheetTiming.signedAt,
+          receivedAt: offerSheetTiming.receivedAt,
+          principalTermsDocumentId: `architect-principal-terms:${playerId}:v1`,
+          noticeDocumentId: `architect-offer-sheet-notice:${playerId}:v1`,
+          salariesByYear: (staged.salariesByYear || []).map((row) => ({
+            season: row.season,
+            salaryExcludingIncentive: row.salary,
+            regularSalary: row.salary,
+            bonuses: [],
+            guaranteedForLackOfSkill: row.guaranteed,
+            guaranteedForInjuryOrIllness: row.guaranteed,
+            individuallyNegotiatedProtectionConditions: false,
+            option: null,
+          })),
+        },
+      };
+    },
+    [buildCanonicalSigningDispatchPayload, offerSheetTiming, player]
   );
 
   const signAndTradeDispatchPayload = useMemo(
@@ -433,6 +462,7 @@ export const useEditContractModalForm = ({
   // Reset non-buyout form state when action changes or modal closes
   useEffect(() => {
     setIsOfferSheet(false);
+    setOfferSheetTiming({ signedAt: '', receivedAt: '' });
   }, [selectedAction, isOpen]);
 
   return {
@@ -444,6 +474,8 @@ export const useEditContractModalForm = ({
     setSelectedException,
     isOfferSheet,
     setIsOfferSheet,
+    offerSheetTiming,
+    setOfferSheetTiming,
     extReason,
     extMax,
     signingGuardrails,

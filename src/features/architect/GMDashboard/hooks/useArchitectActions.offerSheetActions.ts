@@ -29,6 +29,7 @@ import type {
   OfferSheetLifecycleExecutionResult,
   OfferSheetLifecycleMutationType,
   OfferSheetResolutionAction,
+  OfferSheetResolutionInput,
   OfferSheetResolutionMutationType,
   OfferSheetStoreExecutionResult,
   SigningDetails,
@@ -171,7 +172,8 @@ export function useOfferSheetActions({
   const runOfferSheetResolutionAction = useCallback(
     (
       action: OfferSheetResolutionAction,
-      offerSheet: OfferSheet | null | undefined
+      offerSheet: OfferSheet | null | undefined,
+      resolution?: OfferSheetResolutionInput
     ): void => {
       const mutationType: OfferSheetResolutionMutationType =
         action === 'match' ? 'matchOfferSheet' : 'declineOfferSheet';
@@ -234,6 +236,9 @@ export function useOfferSheetActions({
             playerName: offerSheet?.playerName,
             dedupKey: offerSheet?.dedupKey,
             seasonKey: offerSheet?.seasonKey,
+            asOfDate: resolution?.resolutionAt,
+            offerSheetAveragingElection:
+              action === 'match' ? resolution?.averagingElection : null,
           },
           expectation
         );
@@ -314,15 +319,21 @@ export function useOfferSheetActions({
   );
 
   const handleMatchOfferSheet = useCallback(
-    (offerSheet: OfferSheet | null | undefined): void => {
-      runOfferSheetResolutionAction('match', offerSheet);
+    (
+      offerSheet: OfferSheet | null | undefined,
+      resolution?: OfferSheetResolutionInput
+    ): void => {
+      runOfferSheetResolutionAction('match', offerSheet, resolution);
     },
     [runOfferSheetResolutionAction]
   );
 
   const handleDeclineOfferSheet = useCallback(
-    (offerSheet: OfferSheet | null | undefined): void => {
-      runOfferSheetResolutionAction('decline', offerSheet);
+    (
+      offerSheet: OfferSheet | null | undefined,
+      resolution?: OfferSheetResolutionInput
+    ): void => {
+      runOfferSheetResolutionAction('decline', offerSheet, resolution);
     },
     [runOfferSheetResolutionAction]
   );

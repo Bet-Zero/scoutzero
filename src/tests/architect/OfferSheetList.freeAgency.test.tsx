@@ -24,6 +24,7 @@ const baseOfferSheet = {
   totalValue: 120_000_000,
   createdAt: '2026-02-12T00:00:00.000Z',
 };
+const RESOLUTION_AT = '2026-02-13T12:00:00-05:00';
 
 afterEach(() => {
   cleanup();
@@ -72,6 +73,9 @@ describe('OfferSheetList Free Agency wiring', () => {
       />
     );
 
+    fireEvent.change(screen.getByTestId('offer-sheet-resolution-at-os_1'), {
+      target: { value: RESOLUTION_AT },
+    });
     fireEvent.click(
       screen.getByRole('button', { name: /^Match$/i })
     );
@@ -80,6 +84,10 @@ describe('OfferSheetList Free Agency wiring', () => {
       action: 'match',
       offerSheet,
       surfaceRole: 'incoming',
+      resolution: {
+        resolutionAt: RESOLUTION_AT,
+        averagingElection: null,
+      },
     });
   });
 
@@ -96,6 +104,9 @@ describe('OfferSheetList Free Agency wiring', () => {
       />
     );
 
+    fireEvent.change(screen.getByTestId('offer-sheet-resolution-at-os_1'), {
+      target: { value: RESOLUTION_AT },
+    });
     fireEvent.click(
       screen.getByRole('button', { name: /^Decline$/i })
     );
@@ -104,6 +115,10 @@ describe('OfferSheetList Free Agency wiring', () => {
       action: 'decline',
       offerSheet,
       surfaceRole: 'incoming',
+      resolution: {
+        resolutionAt: RESOLUTION_AT,
+        averagingElection: null,
+      },
     });
   });
 
@@ -289,6 +304,10 @@ describe('FreeAgencySection offer-sheet lifecycle routing', () => {
       />
     );
 
+    fireEvent.change(
+      screen.getByTestId('offer-sheet-resolution-at-os_match'),
+      { target: { value: RESOLUTION_AT } }
+    );
     fireEvent.click(
       screen.getByRole('button', { name: /^Match$/i })
     );
@@ -298,8 +317,18 @@ describe('FreeAgencySection offer-sheet lifecycle routing', () => {
     fireEvent.click(screen.getByRole('button', { name: /Finalize Match/i }));
     fireEvent.click(screen.getByRole('button', { name: /Finalize Signing/i }));
 
-    expect(matchOfferSheet).toHaveBeenCalledWith(incomingPendingOfferSheet);
-    expect(declineOfferSheet).toHaveBeenCalledWith(incomingPendingOfferSheet);
+    const resolution = {
+      resolutionAt: RESOLUTION_AT,
+      averagingElection: null,
+    };
+    expect(matchOfferSheet).toHaveBeenCalledWith(
+      incomingPendingOfferSheet,
+      resolution
+    );
+    expect(declineOfferSheet).toHaveBeenCalledWith(
+      incomingPendingOfferSheet,
+      resolution
+    );
     expect(finalizeOfferSheet).toHaveBeenCalledTimes(2);
     expect(finalizeOfferSheet).toHaveBeenNthCalledWith(
       1,

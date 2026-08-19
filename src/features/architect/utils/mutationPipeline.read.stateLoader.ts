@@ -212,6 +212,11 @@ export async function resolveStoreOfferSheetAuthority({
         )
       : null;
   const sourcePlayer = resolvedOwner.snapshotPlayer || capHoldRightsPlayer;
+  // BZE-283 authority is source-owned. A mutable world player override may
+  // alter ordinary player/contract state, but it may never author or replace
+  // the authenticated RFA/QO evidence used to permit an Offer Sheet.
+  const sourceGovernedOfferSheetEvidence =
+    sourcePlayer?.rfaContext?.governedEvidence;
 
   const canonicalPlayer = overrideEntry
     ? normalizeCurrentStatePlayerSnapshot(
@@ -232,6 +237,14 @@ export async function resolveStoreOfferSheetAuthority({
     team: offeringTeam,
     player: {
       ...canonicalPlayer,
+      ...(sourceGovernedOfferSheetEvidence !== undefined
+        ? {
+            rfaContext: {
+              ...(canonicalPlayer.rfaContext || {}),
+              governedEvidence: sourceGovernedOfferSheetEvidence,
+            },
+          }
+        : {}),
       teamCode: resolvedOwner.teamCode,
       teamName: resolvedOwner.team.teamName || canonicalPlayer.teamName || null,
     },
@@ -896,11 +909,13 @@ export function buildNormalizedOfferSheetFinalContract({
   signingTeam,
   signedUsing,
   timestamp,
+  signingDate,
 }: {
   offerSheet: ArchitectMutationOfferSheet;
   signingTeam: string;
   signedUsing: string;
   timestamp: number;
+  signingDate?: string;
 }) {
   const salariesByYear = (offerSheet.salariesByYear || [])
     .map(normalizeSalaryRow)
@@ -932,7 +947,7 @@ export function buildNormalizedOfferSheetFinalContract({
     contractType: 'Standard',
     signedUsing,
     signingTeam,
-    signingDate: new Date(timestamp).toISOString(),
+    signingDate: signingDate || new Date(timestamp).toISOString(),
     contractLength: contractYearsCandidate,
     years: contractYearsCandidate,
     totalValue,

@@ -1,0 +1,93 @@
+/** Exact Eastern-time rules used by governed RFA Offer Sheet decisions. */
+
+import {
+  isDateOnly,
+  isZonedDateTime,
+  parseZonedDateTime,
+} from '@/features/architect/utils/governedSeason';
+
+const EASTERN_OFFSET = /(?:-04:00|-05:00)$/;
+
+export function requireEasternInstant(
+  value: unknown,
+  label: string,
+  reasons: string[]
+): string | null {
+  if (!isZonedDateTime(value) || !EASTERN_OFFSET.test(value)) {
+    reasons.push(`${label} must be an exact Eastern-time instant.`);
+    return null;
+  }
+  return value;
+}
+
+export function compareInstant(left: string, right: string): number {
+  return (parseZonedDateTime(left) as number) -
+    (parseZonedDateTime(right) as number);
+}
+
+function localParts(value: string) {
+  return {
+    year: Number(value.slice(0, 4)),
+    month: Number(value.slice(5, 7)),
+    day: Number(value.slice(8, 10)),
+    hour: Number(value.slice(11, 13)),
+    offset: value.slice(-6),
+  };
+}
+
+function dateAfterDays(value: string, days: number): string {
+  const { year, month, day } = localParts(value);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}
+
+export function exerciseNoticeDeadline(receivedAt: string): string {
+  const { year, month, day, hour, offset } = localParts(receivedAt);
+  if (month === 7 && day >= 1 && day <= 6) {
+    return `${year}-07-07T23:59:59-04:00`;
+  }
+  const days = hour < 12 ? 1 : 2;
+  return `${dateAfterDays(receivedAt, days)}T23:59:59${offset}`;
+}
+
+export function oneYearAfter(value: string): string {
+  const nextYear = Number(value.slice(0, 4)) + 1;
+  return `${nextYear}${value.slice(4)}`;
+}
+
+export function worldDateContainsInstant(
+  worldAsOfDate: unknown,
+  instant: string
+): boolean {
+  if (isDateOnly(worldAsOfDate)) return worldAsOfDate === instant.slice(0, 10);
+  return (
+    isZonedDateTime(worldAsOfDate) && compareInstant(instant, worldAsOfDate) <= 0
+  );
+}
+
+export function qualifyingOfferDeadlines(salaryCapYear: number) {
+  const startYear = salaryCapYear - 1;
+  return {
+    delivery: `${startYear}-06-29T17:00:00-04:00`,
+    unilateralWithdrawalEnds: `${startYear}-07-13T23:59:59-04:00`,
+    consentWithdrawalStarts: `${startYear}-07-14T00:00:00-04:00`,
+    ordinaryOpenThrough: `${startYear}-10-01T23:59:59-04:00`,
+    absoluteOpenThrough: `${salaryCapYear}-03-01T23:59:59-05:00`,
+    offerSheetLastSignedAt: `${salaryCapYear}-03-01T23:59:59-05:00`,
+  };
+}
+
+export function businessDaysBetween(from: string, through: string): number {
+  const start = new Date(`${from.slice(0, 10)}T12:00:00Z`);
+  const end = new Date(`${through.slice(0, 10)}T12:00:00Z`);
+  let count = 0;
+  for (
+    let cursor = new Date(start.getTime() + 86_400_000);
+    cursor <= end;
+    cursor = new Date(cursor.getTime() + 86_400_000)
+  ) {
+    const day = cursor.getUTCDay();
+    if (day !== 0 && day !== 6) count += 1;
+  }
+  return count;
+}

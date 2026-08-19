@@ -217,6 +217,7 @@ export type CurrentStatePlayerRfaContext = {
   pendingHomeTeamCode?: string;
   offerSheetId?: string;
   retainedUntilFinalize?: boolean;
+  governedEvidence?: unknown;
 };
 export type CurrentStatePlayerComputeCore = Omit<
   Pick<

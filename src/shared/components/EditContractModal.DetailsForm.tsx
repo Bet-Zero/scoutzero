@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatCurrencyFull } from '@/shared/utils/formatting';
 import { TeamSelectDropdown } from '@/shared/components/TeamSelectDropdown';
+import { GovernedOfferSheetNoticeForm } from './EditContractModal.OfferSheetNoticeForm';
 import type { GovernedExtensionAvailability } from '@/features/architect/utils/extensions';
 import type {
   SelectedContractAction,
@@ -8,6 +9,7 @@ import type {
   ExtMaxState,
   PlayerRulesProfileLike,
   SigningExceptionOption,
+  OfferSheetTimingLike,
 } from './EditContractModal.types';
 
 type SigningGuardrailsLike = {
@@ -29,6 +31,8 @@ type ContractDetailsFormProps = {
   setSelectedException: (e: string) => void;
   isOfferSheet: boolean;
   setIsOfferSheet: (v: boolean) => void;
+  offerSheetTiming: OfferSheetTimingLike;
+  setOfferSheetTiming: React.Dispatch<React.SetStateAction<OfferSheetTimingLike>>;
   destinationTeamId: string | null;
   setDestinationTeamId: (id: string | null) => void;
   buyoutAmountInput: string;
@@ -67,6 +71,8 @@ export const ContractDetailsForm = ({
   setSelectedException,
   isOfferSheet,
   setIsOfferSheet,
+  offerSheetTiming,
+  setOfferSheetTiming,
   destinationTeamId,
   setDestinationTeamId,
   buyoutAmountInput,
@@ -299,6 +305,14 @@ export const ContractDetailsForm = ({
               </label>
             )}
           </div>
+        )}
+
+        {isOfferSheet && (
+          <GovernedOfferSheetNoticeForm
+            value={offerSheetTiming}
+            onChange={setOfferSheetTiming}
+            onTermsChange={onTermsChange}
+          />
         )}
 
         {isSigningAction && signingGuardrails && (

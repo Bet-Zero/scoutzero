@@ -9,9 +9,11 @@
 import {
   findPlayerInTeamPlayers,
   getTeamSourceRecord,
+  synchronizeTeamTotalsSnapshotOrTeam,
 } from './mutationPipeline.helpers';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { normalizeSalaryRow } from '@/features/architect/utils/contractNormalization';
+import { createGovernedOfferSheetLifecycle } from '@/features/architect/utils/offerSheets';
 import {
   computeMatchedOfferSheetOutcome,
   computeDeclinedOfferSheetOutcome,
@@ -25,25 +27,6 @@ import type {
   MutationPayloadInputByType,
   NormalizedMutationSalaryRow,
 } from './mutationPipeline';
-
-const ISO_DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-function buildOfferSheetCreatedAt({
-  asOfDate,
-  timestamp,
-}: {
-  asOfDate?: string | number | null;
-  timestamp: number;
-}): string {
-  const dateOnly =
-    typeof asOfDate === 'string' && ISO_DATE_ONLY_PATTERN.test(asOfDate.trim())
-      ? asOfDate.trim()
-      : null;
-
-  return dateOnly
-    ? `${dateOnly}T00:00:00.000Z`
-    : new Date(timestamp).toISOString();
-}
 
 function hasActiveUnsignedCapHoldRights(
   team: MutationOfferSheetTeamAndPlayerCurrentState['homeTeam'],
@@ -116,6 +99,12 @@ export function computeStoreOfferSheetResult({
         'storeOfferSheet requires contract terms before offer-sheet creation.',
     };
   }
+  if (!currentYear) {
+    return {
+      success: false,
+      error: 'storeOfferSheet requires a valid Salary Cap Year.',
+    };
+  }
 
   // Validate store-only invariants programmatically just in case
   if (contract.rfaOfferSheetOnly !== true || contract.rfaOfferSheet !== true) {
@@ -167,7 +156,28 @@ export function computeStoreOfferSheetResult({
   // Generate unique ID (includes timestamp for uniqueness, but NOT used for dedup)
   const offerSheetId =
     payload.offerSheetId || `os_${teamCode}_${playerId}_${timestamp}`;
-  const createdAt = buildOfferSheetCreatedAt({ asOfDate, timestamp });
+  const governed = createGovernedOfferSheetLifecycle({
+    state: currentState,
+    contract,
+    proposalInput: payload.offerSheetProposal,
+    worldId,
+    salaryCapYear: currentYear,
+    worldAsOfDate: asOfDate,
+    timestamp,
+    offerSheetId,
+    dedupKey,
+  });
+  if (!governed.success) {
+    return {
+      success: false,
+      error: governed.reasons.join(' '),
+      warnings: [{
+        status: governed.status,
+        reasons: governed.reasons,
+      }],
+    };
+  }
+  const createdAt = governed.receivedAt;
 
   // Build canonical OfferSheet object
   const offerSheet: ArchitectMutationOfferSheet = {
@@ -187,6 +197,7 @@ export function computeStoreOfferSheetResult({
     status: 'PENDING_MATCH',
     createdAt,
     totalValue: contract.totalValue,
+    governedLifecycle: governed.lifecycle,
   };
 
   const updatedOfferingTeam = { ...offeringTeam };
@@ -220,6 +231,10 @@ export function computeStoreOfferSheetResult({
       offerSheet,
     ];
   }
+  updatedOfferingTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
+    updatedOfferingTeam,
+    currentYear
+  ).totals;
 
   // Update source metadata
   updatedOfferingTeam.source = {
@@ -278,6 +293,7 @@ export function computeStoreOfferSheetResult({
       playerId: offerSheet.playerId,
       offerSheetId: offerSheet.id,
       dedupKey, // Phase 18.1: Include for traceability
+      governedOfferSheetLifecycle: governed.lifecycle,
       timestamp,
     },
   };
@@ -294,15 +310,17 @@ export function computeMatchOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
+  asOfDate,
 }: ComputeMutationParamsWithCurrentState<
   MutationOfferSheetResolutionCurrentState,
   MutationPayloadInputByType['matchOfferSheet']
->): ComputeResultLike {
+> & { asOfDate?: string | number | null }): ComputeResultLike {
   return computeMatchedOfferSheetOutcome({
     payload,
     currentState,
     seasonId,
     timestamp,
+    resolutionAt: asOfDate,
     acceptedStatuses: ['PENDING_MATCH'],
     metadataType: 'matchOfferSheet',
   });
@@ -319,15 +337,17 @@ export function computeDeclineOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
+  asOfDate,
 }: ComputeMutationParamsWithCurrentState<
   MutationOfferSheetResolutionCurrentState,
   MutationPayloadInputByType['declineOfferSheet']
->): ComputeResultLike {
+> & { asOfDate?: string | number | null }): ComputeResultLike {
   return computeDeclinedOfferSheetOutcome({
     payload,
     currentState,
     seasonId,
     timestamp,
+    resolutionAt: asOfDate,
     acceptedStatuses: ['PENDING_MATCH'],
     metadataType: 'declineOfferSheet',
   });

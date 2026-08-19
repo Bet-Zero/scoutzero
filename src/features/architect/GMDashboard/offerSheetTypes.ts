@@ -10,7 +10,10 @@
  *  - Return Package: return_packages/trade_machine/TM_VALIDATOR_TS_FREE_AGENCY_OFFER_SHEET_SURFACE_E91_RETURN_PACKAGE.md
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
-import type { FreeAgencyActionOwner } from './hooks/useArchitectActions';
+import type {
+  FreeAgencyActionOwner,
+  OfferSheetResolutionInput,
+} from './hooks/useArchitectActions';
 import type {
   FreeAgentSurfaceEntry,
   FreeAgentPoolProps,
@@ -39,12 +42,14 @@ export interface OfferSheetLike extends LooseRecord {
   totalValue?: number | string | null;
   status: OfferSheetStatus;
   createdAt?: string | number | Date | null;
+  governedLifecycle?: unknown;
 }
 
 export interface OfferSheetLifecycleActionEvent {
   action: OfferSheetLifecycleAction;
   offerSheet: OfferSheetLike;
   surfaceRole: OfferSheetSurfaceRole;
+  resolution?: OfferSheetResolutionInput;
 }
 
 export interface OfferSheetListProps {
