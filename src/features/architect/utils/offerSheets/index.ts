@@ -1,5 +1,6 @@
 export {
   createGovernedOfferSheetLifecycle,
+  buildGovernedOfferSheetAuthorization,
   resolveGovernedOfferSheetLifecycle,
 } from './governedOfferSheetLifecycle';
 export {

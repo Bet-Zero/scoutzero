@@ -17,6 +17,7 @@ const MoneyZ = z
 const PositiveVersionZ = z.number().int().min(1);
 const ZonedInstantZ = z.string().datetime({ offset: true });
 const Sha256Z = z.string().regex(/^sha256:[0-9a-f]{64}$/);
+const StateDigestZ = z.string().regex(/^fnv1a64:[0-9a-f]{16}$/);
 
 export const GovernedOfferSheetSourceZ = z.strictObject({
   provider: NonEmptyStringZ,
@@ -274,6 +275,24 @@ export const GovernedOfferSheetLifecycleZ = z
     }
   });
 
+/**
+ * Client-created once, then immutable under Firestore rules. This anchor binds
+ * the complete pending lifecycle (including evidence, proposal, reservations,
+ * and root event) so writable Team mirrors cannot rewrite it before resolution.
+ */
+export const GovernedOfferSheetAuthorizationZ = z.strictObject({
+  authorizationVersion: z.literal(1),
+  worldId: NonEmptyStringZ,
+  offerSheetId: NonEmptyStringZ,
+  dedupKey: NonEmptyStringZ,
+  playerId: NonEmptyStringZ,
+  homeTeamId: NonEmptyStringZ,
+  offeringTeamId: NonEmptyStringZ,
+  salaryCapYear: z.number().int(),
+  pendingLifecycleDigest: StateDigestZ,
+  immutableEvidenceDigest: StateDigestZ,
+});
+
 export type GovernedOfferSheetEvidence = z.infer<
   typeof GovernedOfferSheetEvidenceZ
 >;
@@ -291,4 +310,7 @@ export type GovernedOfferSheetTeamSalaryReference = z.infer<
 >;
 export type GovernedOfferSheetLifecycle = z.infer<
   typeof GovernedOfferSheetLifecycleZ
+>;
+export type GovernedOfferSheetAuthorization = z.infer<
+  typeof GovernedOfferSheetAuthorizationZ
 >;

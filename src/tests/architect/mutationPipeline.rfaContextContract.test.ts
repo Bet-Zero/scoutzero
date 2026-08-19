@@ -168,6 +168,7 @@ vi.mock('@/features/architect/utils/leagueInvariants', () => ({
 }));
 
 import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils/offerSheets';
 import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 const WORLD_ID = 'world_rfa_context_contract';
@@ -527,6 +528,23 @@ describe('mutationPipeline rfaContext contract', () => {
         retainedUntilFinalize: true,
       },
     });
+    const immutableHomePlayer = {
+      ...homePlayer,
+      rfaContext: { governedEvidence: governed.evidence },
+    };
+    testState.docsByPath.set(
+      'architect_basePlayers/rfa_1',
+      immutableHomePlayer
+    );
+    testState.getPlayer.mockResolvedValue(immutableHomePlayer);
+    testState.docsByPath.set(
+      `architect_worlds/${WORLD_ID}/offerSheetAuthorizations/${offerSheet.id}`,
+      buildGovernedOfferSheetAuthorization({
+        lifecycle: governed.lifecycle,
+        offerSheetId: offerSheet.id,
+        dedupKey: offerSheet.dedupKey,
+      })
+    );
     const homeTeam = makeTeam('NYK', [homePlayer], {
       incomingOfferSheets: [offerSheet],
     });

@@ -26,6 +26,9 @@ import { getAllMockData, resetMockDataStore } from '../__mocks__/firebase.js';
 import { getPlayer } from '@/features/architect/utils/teamLoader';
 import { worldPlayerRef } from '@/features/architect/utils/architectFirestorePaths';
 import { makeGovernedOfferSheetFixture } from '../fixtures/architect/governedOfferSheet';
+import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
+import { buildGeneralMutationCommittedTeamUpdates } from '@/features/architect/utils/mutationPipeline.read.persistence.snapshots';
+import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils/offerSheets';
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
@@ -428,6 +431,23 @@ function makeStoredOfferSheetContract(
 
 function seedBasePlayer(player: TradePlayerFixture) {
   seedMockData(`architect_basePlayers/${player.playerId}`, player);
+}
+
+function seedOfferSheetAuthorization(
+  worldId: string,
+  offerSheet: TradeOfferSheetFixture
+) {
+  const lifecycle = GovernedOfferSheetLifecycleZ.parse(
+    offerSheet.governedLifecycle
+  );
+  seedMockData(
+    `architect_worlds/${worldId}/offerSheetAuthorizations/${offerSheet.id}`,
+    buildGovernedOfferSheetAuthorization({
+      lifecycle,
+      offerSheetId: offerSheet.id,
+      dedupKey: offerSheet.dedupKey,
+    })
+  );
 }
 
 function seedPlayerOverride(
@@ -1176,6 +1196,286 @@ describe('mutationPipeline trade persistence truth', () => {
     ).toHaveLength(0);
   });
 
+  it('rejects a concurrent Offer Sheet creation computed from stale Team snapshots', async () => {
+    const worldId = 'world_offer_sheet_creation_race';
+    const playerId = 'creation_race_rfa';
+    const governed = makeGovernedOfferSheetFixture({
+      worldId,
+      playerId,
+      homeTeamId: 'BOS',
+      offeringTeamId: 'LAL',
+      salariesByYear: makeStoredOfferSheetContract().salariesByYear,
+    });
+    seedWorldMetadata(
+      worldId,
+      createMockWorld({
+        worldId,
+        userId: USER_ID,
+        currentSeason: SEASON_ID,
+        asOfDate: governed.asOfDate,
+      })
+    );
+
+    const player = makePlayer(playerId, 'BOS', 9_000_000, {
+      displayName: 'Creation Race Player',
+      contract: makeContract(9_000_000, {
+        contractType: 'Standard',
+        signingTeam: 'BOS',
+      }),
+      rfaContext: { governedEvidence: governed.evidence },
+    });
+    const lalKeeper = makePlayer('lal_keeper_creation_race', 'LAL', 7_000_000);
+    seedBasePlayer(player);
+    seedBasePlayer(lalKeeper);
+    seedTeamSnapshot(
+      worldId,
+      'BOS',
+      {
+        ...makeTeam('BOS', [player]),
+        incomingOfferSheets: [],
+        rightsLedger: governed.rightsLedger,
+      },
+      { padRoster: false }
+    );
+    seedTeamSnapshot(
+      worldId,
+      'LAL',
+      { ...makeTeam('LAL', [lalKeeper]), offerSheets: [] },
+      { padRoster: false }
+    );
+
+    const payload = {
+      teamCode: 'LAL',
+      playerId,
+      worldId,
+      contract: makeStoredOfferSheetContract(),
+      offerSheetProposal: governed.proposal,
+      signedUsing: 'Cap Space',
+    };
+    const staleState = await loadStateForMutation(
+      worldId,
+      'storeOfferSheet',
+      payload
+    );
+    const firstCreation = computeWorldMutation({
+      mutationType: 'storeOfferSheet',
+      payload,
+      currentState: staleState,
+      seasonId: SEASON_ID,
+      timestamp: TIMESTAMP,
+      asOfDate: governed.asOfDate,
+      worldId,
+    });
+    const staleCreation = computeWorldMutation({
+      mutationType: 'storeOfferSheet',
+      payload,
+      currentState: staleState,
+      seasonId: SEASON_ID,
+      timestamp: TIMESTAMP + 1,
+      asOfDate: governed.asOfDate,
+      worldId,
+    });
+    expect(firstCreation.success, String(firstCreation.error)).toBe(true);
+    expect(staleCreation.success, String(staleCreation.error)).toBe(true);
+
+    const firstPersisted = await persistWorldMutation({
+      worldId,
+      seasonId: SEASON_ID,
+      mutationType: 'storeOfferSheet',
+      computeResult: firstCreation,
+      committedTeamUpdates: buildGeneralMutationCommittedTeamUpdates(
+        firstCreation.teamUpdates,
+        SEASON_ID
+      ),
+      timestamp: TIMESTAMP,
+    });
+    expect(firstPersisted.success, String(firstPersisted.error)).toBe(true);
+    const firstOfferSheetId = requireValue(
+      getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))[0]?.id,
+      'Expected the winning Offer Sheet to persist'
+    );
+    const eventCountAfterWinner = [...getAllMockData().keys()].filter((key) =>
+      key.includes('/events/')
+    ).length;
+
+    const stalePersisted = await persistWorldMutation({
+      worldId,
+      seasonId: SEASON_ID,
+      mutationType: 'storeOfferSheet',
+      computeResult: staleCreation,
+      committedTeamUpdates: buildGeneralMutationCommittedTeamUpdates(
+        staleCreation.teamUpdates,
+        SEASON_ID
+      ),
+      timestamp: TIMESTAMP + 1,
+    });
+
+    expect(stalePersisted.success).toBe(false);
+    if (!stalePersisted.success) {
+      expect(stalePersisted.error).toContain('changed before commit');
+    }
+    expect(getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))).toMatchObject([
+      { id: firstOfferSheetId },
+    ]);
+    expect(
+      getIncomingOfferSheets(requireTeamSnapshot(worldId, 'BOS'))
+    ).toMatchObject([{ id: firstOfferSheetId }]);
+    expect(
+      [...getAllMockData().keys()].filter((key) => key.includes('/events/'))
+    ).toHaveLength(eventCountAfterWinner);
+  });
+
+  it('rejects identically tampered Team mirrors before resolving an Offer Sheet', async () => {
+    const worldId = 'world_offer_sheet_tampered_mirrors';
+    const playerId = 'tampered_mirror_rfa';
+    const governed = makeGovernedOfferSheetFixture({
+      worldId,
+      playerId,
+      homeTeamId: 'BOS',
+      offeringTeamId: 'LAL',
+      salariesByYear: makeStoredOfferSheetContract().salariesByYear,
+    });
+    seedWorldMetadata(
+      worldId,
+      createMockWorld({
+        worldId,
+        userId: USER_ID,
+        currentSeason: SEASON_ID,
+        asOfDate: governed.asOfDate,
+      })
+    );
+
+    const player = makePlayer(playerId, 'BOS', 9_000_000, {
+      displayName: 'Tampered Mirror Player',
+      contract: makeContract(9_000_000, {
+        contractType: 'Standard',
+        signingTeam: 'BOS',
+      }),
+      rfaContext: { governedEvidence: governed.evidence },
+    });
+    const lalKeeper = makePlayer('lal_keeper_tampered_mirror', 'LAL', 7_000_000);
+    seedBasePlayer(player);
+    seedBasePlayer(lalKeeper);
+    seedTeamSnapshot(
+      worldId,
+      'BOS',
+      {
+        ...makeTeam('BOS', [player]),
+        incomingOfferSheets: [],
+        rightsLedger: governed.rightsLedger,
+      },
+      { padRoster: false }
+    );
+    seedTeamSnapshot(
+      worldId,
+      'LAL',
+      { ...makeTeam('LAL', [lalKeeper]), offerSheets: [] },
+      { padRoster: false }
+    );
+
+    const stored = await applyWorldMutation({
+      userId: USER_ID,
+      worldId,
+      seasonId: SEASON_ID,
+      mutationType: 'storeOfferSheet',
+      timestamp: TIMESTAMP,
+      payload: {
+        teamCode: 'LAL',
+        playerId,
+        worldId,
+        contract: makeStoredOfferSheetContract(),
+        offerSheetProposal: governed.proposal,
+        signedUsing: 'Cap Space',
+      },
+    });
+    expect(stored.success, String(stored.error)).toBe(true);
+
+    const homeBeforeTamper = requireTeamSnapshot(worldId, 'BOS');
+    const offeringBeforeTamper = requireTeamSnapshot(worldId, 'LAL');
+    const originalSheet = requireValue(
+      getOfferSheets(offeringBeforeTamper)[0],
+      'Expected a pending Offer Sheet before mirror tampering'
+    );
+    const originalLifecycle = GovernedOfferSheetLifecycleZ.parse(
+      originalSheet.governedLifecycle
+    );
+    const tamperedLifecycle = GovernedOfferSheetLifecycleZ.parse({
+      ...originalLifecycle,
+      evidenceSnapshot: {
+        ...originalLifecycle.evidenceSnapshot,
+        homeTeamMatchingAuthority: {
+          ...originalLifecycle.evidenceSnapshot.homeTeamMatchingAuthority,
+          amount:
+            originalLifecycle.evidenceSnapshot.homeTeamMatchingAuthority
+              .amount + 1,
+        },
+      },
+      reservations: {
+        ...originalLifecycle.reservations,
+        offeringTeam: originalLifecycle.reservations.offeringTeam.map(
+          (reservation, index) =>
+            index === 0
+              ? { ...reservation, amount: reservation.amount - 1 }
+              : reservation
+        ),
+      },
+      events: originalLifecycle.events.map((event) =>
+        event.eventKind === 'offer-sheet-signed'
+          ? {
+              ...event,
+              proposal: {
+                ...event.proposal,
+                principalTermsDocumentId: 'tampered-principal-terms',
+              },
+            }
+          : event
+      ),
+    });
+    const tamperedSheet = {
+      ...originalSheet,
+      governedLifecycle: tamperedLifecycle,
+    };
+    seedMockData(`architect_worlds/${worldId}/teams/BOS`, {
+      ...homeBeforeTamper,
+      incomingOfferSheets: [tamperedSheet],
+    });
+    seedMockData(`architect_worlds/${worldId}/teams/LAL`, {
+      ...offeringBeforeTamper,
+      offerSheets: [tamperedSheet],
+    });
+    const eventCountBeforeResolution = [...getAllMockData().keys()].filter(
+      (key) => key.includes('/events/')
+    ).length;
+
+    const result = await applyWorldMutation({
+      userId: USER_ID,
+      worldId,
+      seasonId: SEASON_ID,
+      mutationType: 'matchOfferSheet',
+      timestamp: TIMESTAMP + 1,
+      payload: {
+        teamCode: 'BOS',
+        offeringTeamCode: 'LAL',
+        offerSheetId: originalSheet.id,
+        offerSheetResolutionAt: governed.resolutionAt,
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toContain('authorization');
+    expect(
+      GovernedOfferSheetLifecycleZ.parse(
+        getOfferSheets(requireTeamSnapshot(worldId, 'LAL'))[0]
+          ?.governedLifecycle
+      ).events[0]
+    ).toMatchObject({
+      proposal: { principalTermsDocumentId: 'tampered-principal-terms' },
+    });
+    expect(
+      [...getAllMockData().keys()].filter((key) => key.includes('/events/'))
+    ).toHaveLength(eventCountBeforeResolution);
+  });
+
   it('rejects a stale competing resolution without overwriting the committed lifecycle', async () => {
     const worldId = 'world_offer_sheet_resolution_race';
     const governed = makeGovernedOfferSheetFixture({
@@ -1544,6 +1844,7 @@ describe('mutationPipeline trade persistence truth', () => {
         contractType: 'Standard',
         signingTeam: 'BOS',
       }),
+      rfaContext: { governedEvidence: governed.evidence },
     });
     const lalKeeper = makePlayer('lal_keeper', 'LAL', 7_000_000);
     const matchedOfferSheet = makeOfferSheet({
@@ -1560,6 +1861,7 @@ describe('mutationPipeline trade persistence truth', () => {
 
     seedBasePlayer(matchedPlayer);
     seedBasePlayer(lalKeeper);
+    seedOfferSheetAuthorization(worldId, matchedOfferSheet);
     seedTeamSnapshot(
       worldId,
       'BOS',
@@ -1669,6 +1971,7 @@ describe('mutationPipeline trade persistence truth', () => {
         contractType: 'Standard',
         signingTeam: 'BOS',
       }),
+      rfaContext: { governedEvidence: governed.evidence },
     });
     const lalKeeper = makePlayer('lal_keeper_2', 'LAL', 6_500_000);
     const declinedOfferSheet = makeOfferSheet({
@@ -1685,6 +1988,7 @@ describe('mutationPipeline trade persistence truth', () => {
 
     seedBasePlayer(declinedPlayer);
     seedBasePlayer(lalKeeper);
+    seedOfferSheetAuthorization(worldId, declinedOfferSheet);
     seedTeamSnapshot(
       worldId,
       'BOS',

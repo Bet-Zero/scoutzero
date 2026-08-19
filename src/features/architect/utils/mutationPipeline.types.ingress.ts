@@ -164,6 +164,7 @@ export type MutationCurrentStateClosedShape = {
   extensionAuthority?: undefined;
   extensionTeamSnapshot?: undefined;
   extensionPlayerSnapshot?: undefined;
+  offerSheetCreationSnapshots?: undefined;
   offerSheetResolutionSnapshots?: undefined;
 };
 export type MutationDocumentSnapshotReceipt = Readonly<{
@@ -176,6 +177,12 @@ export type MutationDocumentSnapshotReceipt = Readonly<{
     exists: boolean;
     digest: string | null;
   }>[];
+}>;
+export type ArchitectOfferSheetCreationSnapshotReceipts = Readonly<{
+  homeTeamCode: string;
+  offeringTeamCode: string;
+  homeTeam: MutationDocumentSnapshotReceipt;
+  offeringTeam: MutationDocumentSnapshotReceipt;
 }>;
 export type MutationCurrentStateTradeTeamEntryInput = {
   teamCode?: string | null;
@@ -214,12 +221,13 @@ export type MutationTeamAndPlayerCurrentStateIngress = Omit<
 };
 export type MutationSigningCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'homeTeam' | 'teamCode'
+  'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
 > & {
   team?: MutationCurrentStateOfferSheetTeamIngress | null;
   player?: MutationCurrentStatePlayerIngress | null;
   homeTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   teamCode?: string | null;
+  offerSheetCreationSnapshots?: ArchitectOfferSheetCreationSnapshotReceipts | null;
 };
 export type MutationOfferSheetMirrorCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
@@ -272,6 +280,7 @@ export type MutationCurrentState = {
   extensionAuthority?: GovernedExtensionLedgerAuthority | null;
   extensionTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
   extensionPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
+  offerSheetCreationSnapshots?: ArchitectOfferSheetCreationSnapshotReceipts | null;
   offerSheetResolutionSnapshots?: ArchitectOfferSheetResolutionSnapshotReceipts | null;
 };
 export type MutationTradeCurrentState = Omit<
@@ -311,9 +320,12 @@ export type MutationTeamAndPlayerCurrentState = Omit<
   };
 export type MutationOfferSheetTeamAndPlayerCurrentState = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'homeTeam' | 'teamCode'
+  'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
 > &
-  Pick<MutationCurrentState, 'team' | 'player' | 'homeTeam' | 'teamCode'> & {
+  Pick<
+    MutationCurrentState,
+    'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
+  > & {
     team?: CurrentStateSigningTeam | null;
     player?: PlayerLike | null;
     homeTeam?: CurrentStateOfferSheetMirrorTeam | null;
@@ -321,9 +333,12 @@ export type MutationOfferSheetTeamAndPlayerCurrentState = Omit<
 export type MutationSigningTeamLike = CurrentStateSigningTeam | TradeTeamLike;
 export type MutationSigningCurrentState = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'homeTeam' | 'teamCode'
+  'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
 > &
-  Pick<MutationCurrentState, 'team' | 'player' | 'homeTeam' | 'teamCode'> & {
+  Pick<
+    MutationCurrentState,
+    'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
+  > & {
     team?: MutationSigningTeamLike | null;
     player?: PlayerLike | null;
     homeTeam?: CurrentStateOfferSheetMirrorTeam | null;

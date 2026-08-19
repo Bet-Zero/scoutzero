@@ -445,6 +445,8 @@ export function normalizeOfferSheetTeamAndPlayerMutationCurrentState(
     'offerSheetMirror'
   );
   const teamCode = toOptionalTrimmedString(currentState?.teamCode);
+  const offerSheetCreationSnapshots =
+    currentState?.offerSheetCreationSnapshots;
 
   if (team) {
     normalized.team = team;
@@ -457,6 +459,9 @@ export function normalizeOfferSheetTeamAndPlayerMutationCurrentState(
   }
   if (teamCode !== undefined) {
     normalized.teamCode = teamCode;
+  }
+  if (offerSheetCreationSnapshots) {
+    normalized.offerSheetCreationSnapshots = offerSheetCreationSnapshots;
   }
 
   return normalized;

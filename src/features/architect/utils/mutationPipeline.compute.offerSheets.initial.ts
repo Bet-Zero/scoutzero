@@ -296,6 +296,8 @@ export function computeStoreOfferSheetResult({
       offerSheetId: offerSheet.id,
       dedupKey, // Phase 18.1: Include for traceability
       governedOfferSheetLifecycle: governed.lifecycle,
+      expectedOfferSheetCreationSnapshots:
+        currentState.offerSheetCreationSnapshots,
       timestamp,
     },
   };

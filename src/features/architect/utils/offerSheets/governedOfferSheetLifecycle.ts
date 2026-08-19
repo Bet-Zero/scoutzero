@@ -2,10 +2,12 @@
 
 import {
   GovernedOfferSheetEvidenceZ,
+  GovernedOfferSheetAuthorizationZ,
   GovernedOfferSheetAveragingElectionZ,
   GovernedOfferSheetLifecycleZ,
   GovernedOfferSheetProposalZ,
   type GovernedOfferSheetLifecycle,
+  type GovernedOfferSheetAuthorization,
   type GovernedOfferSheetTeamSalaryReference,
 } from '@/schemas/governedOfferSheet';
 import { projectRightsStateAsOf } from '@/features/architect/utils/rightsHistory';
@@ -62,6 +64,40 @@ function failure(status: FailureStatus, reasons: readonly string[]): Failure {
 
 function lifecycleFromSheet(sheet: ArchitectMutationOfferSheet | undefined) {
   return GovernedOfferSheetLifecycleZ.safeParse(sheet?.governedLifecycle);
+}
+
+export function buildGovernedOfferSheetAuthorization({
+  lifecycle,
+  offerSheetId,
+  dedupKey,
+}: {
+  lifecycle: GovernedOfferSheetLifecycle;
+  offerSheetId: string;
+  dedupKey: string;
+}): GovernedOfferSheetAuthorization {
+  if (
+    lifecycle.status !== 'pending-match' ||
+    !offerSheetId.trim() ||
+    !dedupKey.trim()
+  ) {
+    throw new Error(
+      'Offer Sheet authorization requires one pending lifecycle with stable envelope identity.'
+    );
+  }
+  return GovernedOfferSheetAuthorizationZ.parse({
+    authorizationVersion: 1,
+    worldId: lifecycle.worldId,
+    offerSheetId: offerSheetId.trim(),
+    dedupKey: dedupKey.trim(),
+    playerId: lifecycle.playerId,
+    homeTeamId: lifecycle.homeTeamId,
+    offeringTeamId: lifecycle.offeringTeamId,
+    salaryCapYear: lifecycle.salaryCapYear,
+    pendingLifecycleDigest: mutationSnapshotDigest(lifecycle),
+    immutableEvidenceDigest: mutationSnapshotDigest(
+      lifecycle.evidenceSnapshot
+    ),
+  });
 }
 
 function activeReservations(
