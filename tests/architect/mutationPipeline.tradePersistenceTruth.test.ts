@@ -1276,6 +1276,71 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(winningMatch.success, String(winningMatch.error)).toBe(true);
     expect(staleDecline.success, String(staleDecline.error)).toBe(true);
 
+    const offeringBeforeConcurrentEdit = requireTeamSnapshot(worldId, 'LAL');
+    const eventCountBeforeConcurrentEdit = [...getAllMockData().keys()].filter(
+      (key) => key.includes('/events/')
+    ).length;
+    seedMockData(`architect_worlds/${worldId}/teams/LAL`, {
+      ...offeringBeforeConcurrentEdit,
+      teamName: 'Concurrent unrelated Team edit',
+    });
+
+    const staleAfterUnrelatedEdit = await persistWorldMutation({
+      worldId,
+      seasonId: SEASON_ID,
+      mutationType: 'matchOfferSheet',
+      computeResult: winningMatch,
+      committedTeamUpdates: winningMatch.teamUpdates ?? [],
+      timestamp: TIMESTAMP + 1,
+    });
+    expect(staleAfterUnrelatedEdit.success).toBe(false);
+    if (!staleAfterUnrelatedEdit.success) {
+      expect(staleAfterUnrelatedEdit.error).toContain('changed before commit');
+    }
+    expect(requireTeamSnapshot(worldId, 'LAL').teamName).toBe(
+      'Concurrent unrelated Team edit'
+    );
+    expect(
+      [...getAllMockData().keys()].filter((key) => key.includes('/events/'))
+    ).toHaveLength(eventCountBeforeConcurrentEdit);
+
+    seedMockData(
+      `architect_worlds/${worldId}/teams/LAL`,
+      offeringBeforeConcurrentEdit
+    );
+
+    const homePlayerPath =
+      `architect_worlds/${worldId}/teams/BOS/players/resolution_race_rfa`;
+    const homePlayerBeforeConcurrentEdit = requireValue(
+      getAllMockData().get(homePlayerPath),
+      'Expected a home player override for the concurrency fixture'
+    );
+    seedMockData(homePlayerPath, {
+      ...(homePlayerBeforeConcurrentEdit as Record<string, unknown>),
+      displayName: 'Concurrent player override edit',
+    });
+
+    const staleAfterPlayerEdit = await persistWorldMutation({
+      worldId,
+      seasonId: SEASON_ID,
+      mutationType: 'matchOfferSheet',
+      computeResult: winningMatch,
+      committedTeamUpdates: winningMatch.teamUpdates ?? [],
+      timestamp: TIMESTAMP + 1,
+    });
+    expect(staleAfterPlayerEdit.success).toBe(false);
+    if (!staleAfterPlayerEdit.success) {
+      expect(staleAfterPlayerEdit.error).toContain('changed before commit');
+    }
+    expect(getAllMockData().get(homePlayerPath)).toMatchObject({
+      displayName: 'Concurrent player override edit',
+    });
+    expect(
+      [...getAllMockData().keys()].filter((key) => key.includes('/events/'))
+    ).toHaveLength(eventCountBeforeConcurrentEdit);
+
+    seedMockData(homePlayerPath, homePlayerBeforeConcurrentEdit);
+
     const winnerPersisted = await persistWorldMutation({
       worldId,
       seasonId: SEASON_ID,

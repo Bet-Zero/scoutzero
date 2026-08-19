@@ -512,6 +512,10 @@ export function normalizeOfferSheetResolutionMutationCurrentState(
   if (offerSheetId !== undefined) {
     normalized.offerSheetId = offerSheetId;
   }
+  if (currentState?.offerSheetResolutionSnapshots) {
+    normalized.offerSheetResolutionSnapshots =
+      currentState.offerSheetResolutionSnapshots;
+  }
 
   return normalized;
 }

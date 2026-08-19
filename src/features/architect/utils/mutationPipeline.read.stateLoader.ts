@@ -266,6 +266,33 @@ function findRawOfferSheetById(
   );
 }
 
+function localDocumentSnapshotReceipt(snapshot: {
+  exists: () => boolean;
+  data: () => unknown;
+}) {
+  const exists = snapshot.exists();
+  return Object.freeze({
+    exists,
+    digest: exists ? mutationSnapshotDigest(snapshot.data()) : null,
+  });
+}
+
+function requireStableLocalSnapshotReceipt({
+  before,
+  after,
+  label,
+}: {
+  before: Readonly<{ exists: boolean; digest: string | null }>;
+  after: Readonly<{ exists: boolean; digest: string | null }>;
+  label: string;
+}): void {
+  if (before.exists !== after.exists || before.digest !== after.digest) {
+    throw new Error(
+      `${label} changed while the Offer Sheet resolution state was loading. Reload and try again.`
+    );
+  }
+}
+
 function rawTeamPlayerId(player: Record<string, unknown>): string {
   const bio =
     player.bio && typeof player.bio === 'object'
@@ -664,6 +691,50 @@ export async function loadStateForMutation(
       if (!offeringTeamCode) throw new Error(`Missing offeringTeamCode`);
       if (!offerSheetId) throw new Error(`Missing offerSheetId`);
 
+      // Capture the exact local documents before and after merged state loading.
+      // The double read closes the gap between teamLoader's merged snapshot and
+      // the raw receipt later checked inside the persistence transaction.
+      const [homeTeamDocumentBefore, offeringTeamDocumentBefore] =
+        await Promise.all([
+          getDoc(worldTeamRef(worldId, homeTeamCode)),
+          getDoc(worldTeamRef(worldId, offeringTeamCode)),
+        ]);
+      const homeTeamReceiptBefore = localDocumentSnapshotReceipt(
+        homeTeamDocumentBefore
+      );
+      const offeringTeamReceiptBefore = localDocumentSnapshotReceipt(
+        offeringTeamDocumentBefore
+      );
+      const homeTeamDataBefore = homeTeamDocumentBefore.exists()
+        ? homeTeamDocumentBefore.data()
+        : {};
+      const offeringTeamDataBefore = offeringTeamDocumentBefore.exists()
+        ? offeringTeamDocumentBefore.data()
+        : {};
+      const rawOfferSheet =
+        findRawOfferSheetById(
+          (homeTeamDataBefore as Record<string, unknown>).incomingOfferSheets,
+          offerSheetId
+        ) ||
+        findRawOfferSheetById(
+          (offeringTeamDataBefore as Record<string, unknown>).offerSheets,
+          offerSheetId
+        );
+      const resolutionPlayerId = String(
+        payload.playerId || rawOfferSheet?.playerId || ''
+      ).trim();
+      const [homePlayerDocumentBefore, offeringPlayerDocumentBefore] =
+        resolutionPlayerId
+          ? await Promise.all([
+              getDoc(
+                worldPlayerRef(worldId, homeTeamCode, resolutionPlayerId)
+              ),
+              getDoc(
+                worldPlayerRef(worldId, offeringTeamCode, resolutionPlayerId)
+              ),
+            ])
+          : [null, null];
+
       const [homeTeamRaw, offeringTeamRaw] = await Promise.all([
         getTeam(worldId, homeTeamCode),
         getTeam(worldId, offeringTeamCode),
@@ -688,6 +759,59 @@ export async function loadStateForMutation(
         payloadPlayerId: payload.playerId as string | null | undefined,
       });
 
+      const [
+        homeTeamDocument,
+        offeringTeamDocument,
+        homePlayerDocument,
+        offeringPlayerDocument,
+      ] = await Promise.all([
+        getDoc(worldTeamRef(worldId, homeTeamCode)),
+        getDoc(worldTeamRef(worldId, offeringTeamCode)),
+        resolutionPlayerId
+          ? getDoc(
+              worldPlayerRef(worldId, homeTeamCode, resolutionPlayerId)
+            )
+          : Promise.resolve(null),
+        resolutionPlayerId
+          ? getDoc(
+              worldPlayerRef(worldId, offeringTeamCode, resolutionPlayerId)
+            )
+          : Promise.resolve(null),
+      ]);
+      const homeTeamReceipt = localDocumentSnapshotReceipt(homeTeamDocument);
+      const offeringTeamReceipt =
+        localDocumentSnapshotReceipt(offeringTeamDocument);
+      const homePlayerReceipt = homePlayerDocument
+        ? localDocumentSnapshotReceipt(homePlayerDocument)
+        : { exists: false, digest: null };
+      const offeringPlayerReceipt = offeringPlayerDocument
+        ? localDocumentSnapshotReceipt(offeringPlayerDocument)
+        : { exists: false, digest: null };
+      requireStableLocalSnapshotReceipt({
+        before: homeTeamReceiptBefore,
+        after: homeTeamReceipt,
+        label: `Team snapshot for ${homeTeamCode}`,
+      });
+      requireStableLocalSnapshotReceipt({
+        before: offeringTeamReceiptBefore,
+        after: offeringTeamReceipt,
+        label: `Team snapshot for ${offeringTeamCode}`,
+      });
+      requireStableLocalSnapshotReceipt({
+        before: homePlayerDocumentBefore
+          ? localDocumentSnapshotReceipt(homePlayerDocumentBefore)
+          : { exists: false, digest: null },
+        after: homePlayerReceipt,
+        label: `Player snapshot for ${resolutionPlayerId} on ${homeTeamCode}`,
+      });
+      requireStableLocalSnapshotReceipt({
+        before: offeringPlayerDocumentBefore
+          ? localDocumentSnapshotReceipt(offeringPlayerDocumentBefore)
+          : { exists: false, digest: null },
+        after: offeringPlayerReceipt,
+        label: `Player snapshot for ${resolutionPlayerId} on ${offeringTeamCode}`,
+      });
+
       return {
         homeTeam: toCurrentStateTeam(homeTeam, 'offerSheetResolution'),
         offeringTeam: toCurrentStateTeam(
@@ -696,6 +820,15 @@ export async function loadStateForMutation(
           'offerSheetResolution'
         ),
         offerSheetId,
+        offerSheetResolutionSnapshots: {
+          playerId: resolutionPlayerId,
+          homeTeamCode,
+          offeringTeamCode,
+          homeTeam: homeTeamReceipt,
+          offeringTeam: offeringTeamReceipt,
+          homePlayer: homePlayerReceipt,
+          offeringPlayer: offeringPlayerReceipt,
+        },
       };
     }
 

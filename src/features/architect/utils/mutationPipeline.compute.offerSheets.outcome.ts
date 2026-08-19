@@ -289,6 +289,8 @@ export function computeMatchedOfferSheetOutcome({
       contract: normalizedContract,
       governedOfferSheetLifecycle: governed.lifecycle,
       expectedGovernedOfferSheetLifecycle: governed.expectedLifecycle,
+      expectedOfferSheetResolutionSnapshots:
+        currentState.offerSheetResolutionSnapshots,
       timestamp,
     },
   };
@@ -505,6 +507,8 @@ export function computeDeclinedOfferSheetOutcome({
       contract: normalizedContract,
       governedOfferSheetLifecycle: governed.lifecycle,
       expectedGovernedOfferSheetLifecycle: governed.expectedLifecycle,
+      expectedOfferSheetResolutionSnapshots:
+        currentState.offerSheetResolutionSnapshots,
       timestamp,
     },
   };

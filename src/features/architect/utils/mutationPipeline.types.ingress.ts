@@ -54,6 +54,7 @@ import type {
   TradeTeamLike,
 } from './mutationPipeline.types.currentState';
 import type {
+  ArchitectOfferSheetResolutionSnapshotReceipts,
   MutationCurrentStateTeamEntry,
   SupportedComputeMutationType,
 } from './mutationPipeline.types.result';
@@ -163,6 +164,7 @@ export type MutationCurrentStateClosedShape = {
   extensionAuthority?: undefined;
   extensionTeamSnapshot?: undefined;
   extensionPlayerSnapshot?: undefined;
+  offerSheetResolutionSnapshots?: undefined;
 };
 export type MutationDocumentSnapshotReceipt = Readonly<{
   exists: boolean;
@@ -229,11 +231,15 @@ export type MutationOfferSheetMirrorCurrentStateIngress = Omit<
 };
 export type MutationOfferSheetResolutionCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
-  'homeTeam' | 'offeringTeam' | 'offerSheetId'
+  | 'homeTeam'
+  | 'offeringTeam'
+  | 'offerSheetId'
+  | 'offerSheetResolutionSnapshots'
 > & {
   homeTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   offeringTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   offerSheetId?: string | null;
+  offerSheetResolutionSnapshots?: ArchitectOfferSheetResolutionSnapshotReceipts | null;
 };
 export type MutationSignAndTradeCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
@@ -266,6 +272,7 @@ export type MutationCurrentState = {
   extensionAuthority?: GovernedExtensionLedgerAuthority | null;
   extensionTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
   extensionPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
+  offerSheetResolutionSnapshots?: ArchitectOfferSheetResolutionSnapshotReceipts | null;
 };
 export type MutationTradeCurrentState = Omit<
   MutationCurrentStateClosedShape,
@@ -331,9 +338,18 @@ export type MutationOfferSheetMirrorCurrentState = Omit<
   };
 export type MutationOfferSheetResolutionCurrentState = Omit<
   MutationCurrentStateClosedShape,
-  'homeTeam' | 'offeringTeam' | 'offerSheetId'
+  | 'homeTeam'
+  | 'offeringTeam'
+  | 'offerSheetId'
+  | 'offerSheetResolutionSnapshots'
 > &
-  Pick<MutationCurrentState, 'homeTeam' | 'offeringTeam' | 'offerSheetId'> & {
+  Pick<
+    MutationCurrentState,
+    | 'homeTeam'
+    | 'offeringTeam'
+    | 'offerSheetId'
+    | 'offerSheetResolutionSnapshots'
+  > & {
     homeTeam?: CurrentStateOfferSheetResolutionTeam | null;
     offeringTeam?: CurrentStateOfferSheetResolutionTeam | null;
   };

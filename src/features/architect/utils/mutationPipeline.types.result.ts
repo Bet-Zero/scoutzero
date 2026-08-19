@@ -308,6 +308,19 @@ export type ArchitectWorldMutationContractSummary = {
   endYear?: string;
   signedUsing?: string;
 };
+export type ArchitectMutationLocalDocumentSnapshotReceipt = Readonly<{
+  exists: boolean;
+  digest: string | null;
+}>;
+export type ArchitectOfferSheetResolutionSnapshotReceipts = Readonly<{
+  playerId: string;
+  homeTeamCode: string;
+  offeringTeamCode: string;
+  homeTeam: ArchitectMutationLocalDocumentSnapshotReceipt;
+  offeringTeam: ArchitectMutationLocalDocumentSnapshotReceipt;
+  homePlayer: ArchitectMutationLocalDocumentSnapshotReceipt;
+  offeringPlayer: ArchitectMutationLocalDocumentSnapshotReceipt;
+}>;
 export type ArchitectWorldMutationHistoryMetadata = {
   mutationType: string;
   category: string;
@@ -349,6 +362,7 @@ export type ArchitectWorldMutationHistoryMetadata = {
     exists: boolean;
     digest: string | null;
   }>[];
+  expectedOfferSheetResolutionSnapshots?: ArchitectOfferSheetResolutionSnapshotReceipts;
   optionType?: string;
   accepted?: boolean;
   contract: ArchitectWorldMutationContractSummary;
