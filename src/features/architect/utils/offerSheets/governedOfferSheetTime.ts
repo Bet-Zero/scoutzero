@@ -59,15 +59,13 @@ function dateAfterDays(value: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-function composeEasternInstant(localDateTime: string): string {
+function composeEasternInstant(localDateTime: string): string | null {
   for (const offset of ['-05:00', '-04:00']) {
     const candidate = `${localDateTime}${offset}`;
     if (easternOffsetAt(candidate) === offset) return candidate;
   }
 
-  // A nonexistent local wall-clock time (for example during the spring DST
-  // gap) must remain visibly invalid so the governed schema fails closed.
-  return `${localDateTime}-05:00`;
+  return null;
 }
 
 function isLeapYear(year: number): boolean {
@@ -80,10 +78,18 @@ export function exerciseNoticeDeadline(receivedAt: string): string {
     return `${year}-07-07T23:59:59-04:00`;
   }
   const days = hour < 12 ? 1 : 2;
-  return composeEasternInstant(`${dateAfterDays(receivedAt, days)}T23:59:59`);
+  const deadline = composeEasternInstant(
+    `${dateAfterDays(receivedAt, days)}T23:59:59`
+  );
+  if (!deadline) {
+    throw new Error(
+      'The Exercise Notice deadline is not a valid Eastern instant.'
+    );
+  }
+  return deadline;
 }
 
-export function oneYearAfter(value: string): string {
+export function oneYearAfter(value: string): string | null {
   const { year, month, day } = localParts(value);
   const nextYear = year + 1;
   const normalizedDay =

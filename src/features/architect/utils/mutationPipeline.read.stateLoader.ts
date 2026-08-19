@@ -204,7 +204,7 @@ export async function resolveStoreOfferSheetAuthority({
   const capHoldRightsPlayer =
     resolvedOwner.capHoldMatch && !resolvedOwner.snapshotPlayer
       ? toCurrentStatePlayer(
-          await getPlayer(worldId, resolvedOwner.teamCode, playerId)
+          await getPlayer(null, resolvedOwner.teamCode, playerId)
         )
       : null;
   const sourcePlayer = resolvedOwner.snapshotPlayer || capHoldRightsPlayer;

@@ -702,6 +702,14 @@ export function resolveGovernedOfferSheetLifecycle({
       'The two Team Offer Sheet lifecycle mirrors disagree.',
     ]);
   const lifecycle = home.data;
+  if (
+    String(state.homeTeam?.teamCode || '') !== lifecycle.homeTeamId ||
+    String(state.offeringTeam?.teamCode || '') !== lifecycle.offeringTeamId
+  ) {
+    return failure('incompatible', [
+      'The Offer Sheet mirrors are stored in Team containers that do not match the authenticated lifecycle identity.',
+    ]);
+  }
   const expectedSeason = toSeasonCode(lifecycle.salaryCapYear);
   const expectedEnvelopeStatuses =
     action === 'match'
@@ -898,6 +906,36 @@ export function resolveGovernedOfferSheetLifecycle({
   if (reasons.length > 0) return failure('blocked', reasons);
   const version = lifecycle.ledgerVersion + 1;
   const recordedAt = new Date(timestamp).toISOString();
+  let resolutionEvent: GovernedOfferSheetLifecycle['events'][number];
+  if (action === 'match') {
+    const restrictionsUntil = oneYearAfter(exactAt);
+    if (!restrictionsUntil) {
+      return failure('incompatible', [
+        'The matched-player restriction anniversary is not a valid Eastern-time instant.',
+      ]);
+    }
+    resolutionEvent = {
+      eventKind: 'offer-sheet-matched',
+      eventId: `${lifecycle.ledgerId}:matched:v${version}`,
+      eventVersion: 1,
+      executedAt: exactAt,
+      recordedAt,
+      restrictionsUntil,
+      playerTradeConsentRequired: true,
+      offeringTeamTradeBarred: true,
+      signAndTradeBarred: true,
+      averagingElection: election,
+      matchingTeamSalaryReference,
+    };
+  } else {
+    resolutionEvent = {
+      eventKind: 'offer-sheet-declined',
+      eventId: `${lifecycle.ledgerId}:declined:v${version}`,
+      eventVersion: 1,
+      executedAt: exactAt,
+      recordedAt,
+    };
+  }
   const next: GovernedOfferSheetLifecycle = {
     ...lifecycle,
     ledgerVersion: version,
@@ -909,30 +947,7 @@ export function resolveGovernedOfferSheetLifecycle({
           ? 'average-annual-salary'
           : 'stated-schedule',
     },
-    events: [
-      ...lifecycle.events,
-      action === 'match'
-        ? {
-            eventKind: 'offer-sheet-matched',
-            eventId: `${lifecycle.ledgerId}:matched:v${version}`,
-            eventVersion: 1,
-            executedAt: exactAt,
-            recordedAt,
-            restrictionsUntil: oneYearAfter(exactAt),
-            playerTradeConsentRequired: true,
-            offeringTeamTradeBarred: true,
-            signAndTradeBarred: true,
-            averagingElection: election,
-            matchingTeamSalaryReference,
-          }
-        : {
-            eventKind: 'offer-sheet-declined',
-            eventId: `${lifecycle.ledgerId}:declined:v${version}`,
-            eventVersion: 1,
-            executedAt: exactAt,
-            recordedAt,
-          },
-    ],
+    events: [...lifecycle.events, resolutionEvent],
   };
   const parsed = GovernedOfferSheetLifecycleZ.safeParse(next);
   return parsed.success

@@ -398,6 +398,34 @@ describe('BZE-283 governed RFA Offer Sheet workflow', () => {
     expect(result.teamUpdates ?? []).toHaveLength(0);
   });
 
+  it('rejects internally inconsistent Salary and Likely Bonus components before reservation math', () => {
+    const proposal = makeGovernedOfferSheetProposal({
+      salariesByYear: makeGovernedOfferSheetProposal().salariesByYear.map(
+        (row, index) => ({
+          ...row,
+          salaryExcludingIncentive: row.regularSalary - 400_000,
+          bonuses: [
+            {
+              bonusId: `likely-${index + 1}`,
+              classification: 'likely' as const,
+              amount: 500_000,
+            },
+          ],
+        })
+      ),
+    });
+    const result = store({
+      proposal,
+      contract: makeGovernedOfferSheetContract(proposal),
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      'Salary excluding Incentive Compensation plus Likely Bonuses must equal Regular Salary'
+    );
+    expect(result.teamUpdates ?? []).toHaveLength(0);
+  });
+
   it('blocks a second outstanding Offer Sheet for the same player', () => {
     const first = store();
     const offeringTeam = changedTeam(first, 'LAL');
@@ -641,6 +669,18 @@ describe('BZE-283 governed RFA Offer Sheet workflow', () => {
     expect(result.teamUpdates ?? []).toHaveLength(0);
   });
 
+  it('rejects mirrors stored under Team containers that disagree with the lifecycle', () => {
+    const stored = store();
+    const offeringTeam = changedTeam(stored, 'LAL');
+    const result = resolve(stored, 'declineOfferSheet', undefined, {
+      offeringTeam: { ...offeringTeam, teamCode: 'MIA' },
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Team containers');
+    expect(result.teamUpdates ?? []).toHaveLength(0);
+  });
+
   it('applies exact before-noon, at-noon, and Moratorium notice deadlines', () => {
     expect(exerciseNoticeDeadline('2025-07-08T11:59:59-04:00')).toBe(
       '2025-07-09T23:59:59-04:00'
@@ -663,6 +703,7 @@ describe('BZE-283 governed RFA Offer Sheet workflow', () => {
     expect(oneYearAfter('2024-02-29T17:00:00-05:00')).toBe(
       '2025-02-28T17:00:00-05:00'
     );
+    expect(oneYearAfter('2025-03-08T02:30:00-05:00')).toBeNull();
     expect(
       Number.isNaN(
         compareInstant('2025-02-30T12:00:00-05:00', '2025-03-01T12:00:00-05:00')

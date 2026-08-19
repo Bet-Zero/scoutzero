@@ -197,6 +197,14 @@ export function validateGovernedOfferSheetTerms({
   const reasons: string[] = [];
   validateProposalAgainstContract(proposal, contract, reasons);
   for (const row of proposal.salariesByYear) {
+    const likelyBonuses = governedOfferSheetBonusTotal(row, 'likely');
+    if (
+      money(row.salaryExcludingIncentive + likelyBonuses) !== row.regularSalary
+    ) {
+      reasons.push(
+        `Salary excluding Incentive Compensation plus Likely Bonuses must equal Regular Salary in Season ${row.season}.`
+      );
+    }
     if (
       new Set(row.bonuses.map((bonus) => bonus.bonusId)).size !==
       row.bonuses.length

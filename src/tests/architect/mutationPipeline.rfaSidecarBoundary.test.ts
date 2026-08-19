@@ -490,6 +490,72 @@ describe('mutationPipeline RFA sidecar boundary', () => {
     expect(authority.player.displayName).toBe('Override Player');
   });
 
+  it('loads immutable base evidence for cap-hold-only RFA ownership', async () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: WORLD_ID,
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      offerSheetId: 'os_rfa_1',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
+    seedWorldMetadata(WORLD_ID, { parentWorldId: null });
+
+    const immutableBasePlayer = makePlayer(
+      'rfa_1',
+      'Base Player',
+      7_500_000,
+      'NYK',
+      {
+        contract: makeContract(7_500_000, {
+          freeAgency: { type: 'RFA', year: 2026 },
+        }),
+      }
+    );
+    seedDoc(
+      `architect_worlds/${WORLD_ID}/teams/NYK`,
+      makeTeam('NYK', [], {
+        roster: [],
+        players: [],
+        capHolds: [{ playerId: 'rfa_1', active: true, isSigned: false }],
+        rightsLedger: governed.rightsLedger,
+      })
+    );
+    seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK/players/rfa_1`, {
+      playerId: 'rfa_1',
+      displayName: 'Override Player',
+      rfaContext: { governedEvidence: governed.evidence },
+    });
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'BOS') return makeTeam('BOS', []);
+        throw new Error(`Unexpected team load: ${teamCode}`);
+      }
+    );
+    testState.getPlayer.mockImplementation(
+      async (requestedWorldId: string | null) =>
+        requestedWorldId === null
+          ? immutableBasePlayer
+          : {
+              ...immutableBasePlayer,
+              rfaContext: { governedEvidence: governed.evidence },
+            }
+    );
+
+    const authority = await resolveStoreOfferSheetAuthority({
+      worldId: WORLD_ID,
+      offeringTeamCode: 'BOS',
+      playerId: 'rfa_1',
+    });
+
+    expect(testState.getPlayer).toHaveBeenCalledWith(null, 'NYK', 'rfa_1');
+    expect(authority.player.rfaContext?.governedEvidence).toBeUndefined();
+    expect(authority.player.displayName).toBe('Override Player');
+  });
+
   it('executeTrade writes the normalized player-level RFA sidecar through the persisted override payload', async () => {
     const playerA = makePlayer('player_a', 'Player A', 10_000_000, 'LAL', {
       tradeTo: 'BOS',
