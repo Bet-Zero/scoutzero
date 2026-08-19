@@ -642,6 +642,10 @@ describe('BZE-283 governed RFA Offer Sheet workflow', () => {
     const stored = store();
     const homeTeam = changedTeam(stored, 'BOS');
     const incoming = homeTeam.incomingOfferSheets?.[0];
+    expect(
+      incoming,
+      'stored mirror should exist on the home Team'
+    ).toBeDefined();
     const result = resolve(stored, 'matchOfferSheet', undefined, {
       homeTeam: {
         ...homeTeam,
@@ -658,6 +662,10 @@ describe('BZE-283 governed RFA Offer Sheet workflow', () => {
     const stored = store();
     const homeTeam = changedTeam(stored, 'BOS');
     const incoming = homeTeam.incomingOfferSheets?.[0];
+    expect(
+      incoming,
+      'stored mirror should exist on the home Team'
+    ).toBeDefined();
     const result = resolve(stored, 'matchOfferSheet', undefined, {
       homeTeam: {
         ...homeTeam,

@@ -5,11 +5,11 @@ import { z } from 'zod';
 const NonEmptyStringZ = z.string().refine((value) => value.trim().length > 0, {
   message: 'must contain at least one non-whitespace character',
 });
+export const MAX_OFFER_SHEET_SALARY_CAP_YEARS = 4;
 // Governed money records use dollars with at most cent precision, including
 // Arenas maximums and derived Average Annual Salary amounts.
 const MoneyZ = z
   .number()
-  .finite()
   .nonnegative()
   .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, {
     message: 'must use at most cent precision',
@@ -161,19 +161,22 @@ export const GovernedOfferSheetProposalZ = z.strictObject({
   receivedAt: ZonedInstantZ,
   principalTermsDocumentId: NonEmptyStringZ,
   noticeDocumentId: NonEmptyStringZ,
-  salariesByYear: z.array(GovernedOfferSheetSalaryZ).min(1).max(4),
+  salariesByYear: z
+    .array(GovernedOfferSheetSalaryZ)
+    .min(1)
+    .max(MAX_OFFER_SHEET_SALARY_CAP_YEARS),
 });
 
 export const GovernedOfferSheetReservationZ = z.strictObject({
   season: NonEmptyStringZ,
-  amount: z.number().finite().nonnegative(),
+  amount: z.number().nonnegative(),
 });
 
 export const GovernedOfferSheetTeamSalaryReferenceZ = z.strictObject({
   ledgerKind: z.literal('team-salary'),
   asOfDate: ZonedInstantZ,
   salaryCap: MoneyZ,
-  totalBeforeOfferSheet: z.number().finite().nonnegative(),
+  totalBeforeOfferSheet: z.number().nonnegative(),
   teamStateReference: NonEmptyStringZ,
   canonLeafIds: z.array(NonEmptyStringZ).min(1),
 });

@@ -14,6 +14,7 @@ import type {
   OfferSheetInitiation,
   SignAndTradeInitiation,
 } from './EditContractModal.types';
+import { MAX_OFFER_SHEET_SALARY_CAP_YEARS } from '@/schemas/governedOfferSheet';
 
 type UseEditContractModalPreflightParams = {
   isOpen: boolean | undefined;
@@ -140,7 +141,7 @@ export const useEditContractModalPreflight = ({
       );
       return;
     }
-    if (offerSheetDispatchPayload.years > 4) {
+    if (offerSheetDispatchPayload.years > MAX_OFFER_SHEET_SALARY_CAP_YEARS) {
       setOfferSheetPreflight(
         buildOfferSheetPreflightResult('blocked', [
           'An Offer Sheet may cover no more than four Salary Cap Years.',

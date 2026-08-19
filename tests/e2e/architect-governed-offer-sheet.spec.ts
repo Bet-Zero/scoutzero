@@ -1,7 +1,6 @@
 /** BZE-283 exact-head browser and persistence proof for governed RFA Offer Sheets. */
 
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import admin from 'firebase-admin';
 
 import {
   makeGovernedOfferSheetFixture,
@@ -24,8 +23,6 @@ const HOME_TEAM = 'BOS';
 const OFFERING_TEAM = 'LAL';
 const PLAYER_ID = 'review_offer_sheet_guard';
 const PLAYER_NAME = 'Review Offer Sheet Guard';
-const AUTHOR_PLAYER_ID = 'bze283_offer_sheet_author';
-const AUTHOR_PLAYER_NAME = 'BZE 283 Offer Sheet Author';
 const LEGACY_PLAYER_NAME = 'Unreadable Legacy Offer';
 const WORLD_SEASON = '2025-26';
 const WORLD_AS_OF_DATE = '2025-07-10';
@@ -34,7 +31,6 @@ const OFFERING_URL = '/gm/LAL?season=2026';
 const RESOLUTION_AT = '2025-07-09T23:59:59-04:00';
 
 const seededWorldIds = new Set<string>();
-let basePlayerBefore: RecordLike | undefined;
 
 const teamPlayers = (team: RecordLike | undefined): RecordLike[] =>
   Array.isArray(team?.players)
@@ -72,25 +68,12 @@ const seedGovernedOfferSheetWorld = async (userId: string) => {
       { season: '2026-27', salary: 10_500_000 },
     ],
   });
-  const authorFixture = makeGovernedOfferSheetFixture({
-    worldId,
-    playerId: AUTHOR_PLAYER_ID,
-    homeTeamId: HOME_TEAM,
-    offeringTeamId: OFFERING_TEAM,
-    offerSheetId: 'bze-283-authoring-fixture',
-    salariesByYear: [
-      { season: '2025-26', salary: 9_000_000 },
-      { season: '2026-27', salary: 9_450_000 },
-    ],
-  });
-  const [world, homeTeam, offeringTeam, basePlayerSnapshot] = await Promise.all(
-    [
-      db.doc(`architect_worlds/${worldId}`).get(),
-      getWorldTeamDocument(worldId, HOME_TEAM),
-      getWorldTeamDocument(worldId, OFFERING_TEAM),
-      db.doc(`architect_basePlayers/${PLAYER_ID}`).get(),
-    ]
-  );
+  const [world, homeTeam, offeringTeam, basePlayerSnapshot] = await Promise.all([
+    db.doc(`architect_worlds/${worldId}`).get(),
+    getWorldTeamDocument(worldId, HOME_TEAM),
+    getWorldTeamDocument(worldId, OFFERING_TEAM),
+    db.doc(`architect_basePlayers/${PLAYER_ID}`).get(),
+  ]);
   if (
     !world.exists ||
     !homeTeam ||
@@ -99,10 +82,10 @@ const seedGovernedOfferSheetWorld = async (userId: string) => {
   ) {
     throw new Error('BZE-283 review seed is incomplete.');
   }
-  basePlayerBefore = basePlayerSnapshot.data() as RecordLike;
+  const basePlayerData = basePlayerSnapshot.data() as RecordLike;
 
   const player: RecordLike = {
-    ...basePlayerBefore,
+    ...basePlayerData,
     id: PLAYER_ID,
     playerId: PLAYER_ID,
     player_id: PLAYER_ID,
@@ -157,118 +140,71 @@ const seedGovernedOfferSheetWorld = async (userId: string) => {
     totalValue: 16_400_000,
   };
 
-  await Promise.all([
-    world.ref.set(
-      {
-        currentSeason: WORLD_SEASON,
-        baselineSeason: WORLD_SEASON,
-        asOfDate: WORLD_AS_OF_DATE,
-        rightsLedgerVersion: 1,
-        contractBaselineVersion: 2,
-        contractSourceRelease: {
-          releaseId: 'bze-283-browser-offer-sheet',
-          releaseVersion: 1,
-          releaseDigest: `sha256:${'9'.repeat(64)}`,
-        },
-        contractBaselineEffectiveAt: '2025-07-01T00:00:00-04:00',
-        contractBaselineSalaryCapYear: 2026,
-        contractBaselineCoverage: {
-          total: 0,
-          complete: 0,
-          needsInput: 0,
-        },
-        description:
-          'BZE-283 deterministic governed Offer Sheet browser proof.',
+  await world.ref.set(
+    {
+      currentSeason: WORLD_SEASON,
+      baselineSeason: WORLD_SEASON,
+      asOfDate: WORLD_AS_OF_DATE,
+      rightsLedgerVersion: 1,
+      contractBaselineVersion: 2,
+      contractSourceRelease: {
+        releaseId: 'bze-283-browser-offer-sheet',
+        releaseVersion: 1,
+        releaseDigest: `sha256:${'9'.repeat(64)}`,
       },
-      { merge: true }
-    ),
-    db.doc(`architect_basePlayers/${PLAYER_ID}`).set(
-      {
-        ...basePlayerBefore,
-        rfaContext: { governedEvidence: fixture.evidence },
+      contractBaselineEffectiveAt: '2025-07-01T00:00:00-04:00',
+      contractBaselineSalaryCapYear: 2026,
+      contractBaselineCoverage: {
+        total: 0,
+        complete: 0,
+        needsInput: 0,
       },
-      { merge: false }
-    ),
-    db.doc(`architect_basePlayers/${AUTHOR_PLAYER_ID}`).set(
-      {
-        id: AUTHOR_PLAYER_ID,
-        playerId: AUTHOR_PLAYER_ID,
-        player_id: AUTHOR_PLAYER_ID,
-        name: AUTHOR_PLAYER_NAME,
-        displayName: AUTHOR_PLAYER_NAME,
-        teamId: HOME_TEAM,
-        teamCode: null,
-        teamName: 'Free Agent',
-        position: 'G',
-        bio: { position: 'G', age: 25, experience: 3 },
-        contract: {
-          contractType: 'VETERAN CONTRACT',
-          signingTeam: HOME_TEAM,
-          startSeason: '2024-25',
-          endSeason: '2025-26',
-          contractLength: 2,
-          yearsRemaining: 0,
-          salariesByYear: [
-            {
-              season: '2024-25',
-              salary: 4_000_000,
-              capHit: 4_000_000,
-              guaranteed: true,
-            },
-            {
-              season: '2025-26',
-              salary: 4_400_000,
-              capHit: 4_400_000,
-              guaranteed: true,
-            },
-          ],
-          birdRights: { status: 'Restricted' },
-          freeAgency: { type: 'RFA', year: 2026, capHold: 6_600_000 },
-        },
-        rfaContext: { governedEvidence: authorFixture.evidence },
-        source: { provider: 'BZE-283 Playwright fixture' },
-      },
-      { merge: false }
-    ),
-    db.doc(`architect_worlds/${worldId}/teams/${HOME_TEAM}`).set(
-      {
-        ...homeTeam,
-        season: WORLD_SEASON,
-        players: [
-          ...teamPlayers(homeTeam).filter(
-            (candidate) =>
-              String(candidate.playerId || candidate.id || '') !== PLAYER_ID
-          ),
-          player,
-        ],
-        roster: [
-          ...new Set([
-            ...(Array.isArray(homeTeam.roster)
-              ? homeTeam.roster.map((entry) =>
-                  typeof entry === 'string'
-                    ? entry
-                    : String((entry as RecordLike)?.playerId || '')
-                )
-              : []),
-            PLAYER_ID,
-          ]),
-        ].filter(Boolean),
-        incomingOfferSheets: [governedOfferSheet, unreadableOfferSheet],
-        rightsLedger: fixture.rightsLedger,
-      },
-      { merge: false }
-    ),
-    db.doc(`architect_worlds/${worldId}/teams/${OFFERING_TEAM}`).set(
-      {
-        ...offeringTeam,
-        season: WORLD_SEASON,
-        offerSheets: [governedOfferSheet],
-      },
-      { merge: false }
-    ),
-  ]);
+      description: 'BZE-283 deterministic governed Offer Sheet browser proof.',
+    },
+    { merge: true }
+  );
 
-  return { worldId, fixture };
+  const stagePendingOfferSheet = () =>
+    Promise.all([
+      db.doc(`architect_worlds/${worldId}/teams/${HOME_TEAM}`).set(
+        {
+          ...homeTeam,
+          season: WORLD_SEASON,
+          players: [
+            ...teamPlayers(homeTeam).filter(
+              (candidate) =>
+                String(candidate.playerId || candidate.id || '') !== PLAYER_ID
+            ),
+            player,
+          ],
+          roster: [
+            ...new Set([
+              ...(Array.isArray(homeTeam.roster)
+                ? homeTeam.roster.map((entry) =>
+                    typeof entry === 'string'
+                      ? entry
+                      : String((entry as RecordLike)?.playerId || '')
+                  )
+                : []),
+              PLAYER_ID,
+            ]),
+          ].filter(Boolean),
+          incomingOfferSheets: [governedOfferSheet, unreadableOfferSheet],
+          rightsLedger: fixture.rightsLedger,
+        },
+        { merge: false }
+      ),
+      db.doc(`architect_worlds/${worldId}/teams/${OFFERING_TEAM}`).set(
+        {
+          ...offeringTeam,
+          season: WORLD_SEASON,
+          offerSheets: [governedOfferSheet],
+        },
+        { merge: false }
+      ),
+    ]);
+
+  return { worldId, fixture, stagePendingOfferSheet };
 };
 
 const waitForUser = async (page: Page) => {
@@ -288,7 +224,7 @@ const capture = async (page: Page, testInfo: TestInfo, name: string) => {
 };
 
 test.describe('BZE-283 governed Offer Sheet browser proof', () => {
-  test.describe.configure({ mode: 'serial', timeout: 300_000 });
+  test.describe.configure({ mode: 'serial', timeout: 240_000 });
 
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
@@ -305,25 +241,19 @@ test.describe('BZE-283 governed Offer Sheet browser proof', () => {
       )
     );
     seededWorldIds.clear();
-    if (basePlayerBefore) {
-      await db
-        .doc(`architect_basePlayers/${PLAYER_ID}`)
-        .set(basePlayerBefore, { merge: false });
-      basePlayerBefore = undefined;
-    }
-    await db.doc(`architect_basePlayers/${AUTHOR_PLAYER_ID}`).delete();
   });
 
   test('authors exact notice evidence, rejects an unreadable row, and persists an exact matched result through reload', async ({
     page,
   }, testInfo) => {
     const userId = await waitForUser(page);
-    const { worldId } = await seedGovernedOfferSheetWorld(userId);
+    const { worldId, stagePendingOfferSheet } =
+      await seedGovernedOfferSheetWorld(userId);
     await activateSeededWorld(page, userId, worldId);
 
     await openDashboardTab(page, 'Free Agency');
     const freeAgentRow = page.locator('li').filter({
-      has: page.getByText(new RegExp(`^${AUTHOR_PLAYER_NAME}$`, 'i')),
+      has: page.getByText(PLAYER_NAME, { exact: true }),
     });
     await expect(freeAgentRow).toBeVisible({ timeout: 20_000 });
     await freeAgentRow
@@ -350,6 +280,7 @@ test.describe('BZE-283 governed Offer Sheet browser proof', () => {
       .fill(makeGovernedOfferSheetProposal().receivedAt);
     await capture(page, testInfo, 'BZE-283-exact-notice-authoring');
     await modal.getByRole('button', { name: /^Cancel$/i }).click();
+    await stagePendingOfferSheet();
 
     await page.goto(HOME_URL, { waitUntil: 'domcontentloaded' });
     await waitForReviewDashboard(page);
