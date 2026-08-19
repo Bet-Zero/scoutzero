@@ -45,6 +45,11 @@ type CreationSuccess = {
 type ResolutionSuccess = {
   success: true;
   lifecycle: GovernedOfferSheetLifecycle;
+  expectedLifecycle: Readonly<{
+    ledgerId: string;
+    ledgerVersion: number;
+    digest: string;
+  }>;
 };
 
 function failure(status: FailureStatus, reasons: readonly string[]): Failure {
@@ -951,7 +956,15 @@ export function resolveGovernedOfferSheetLifecycle({
   };
   const parsed = GovernedOfferSheetLifecycleZ.safeParse(next);
   return parsed.success
-    ? { success: true, lifecycle: parsed.data }
+    ? {
+        success: true,
+        lifecycle: parsed.data,
+        expectedLifecycle: Object.freeze({
+          ledgerId: lifecycle.ledgerId,
+          ledgerVersion: lifecycle.ledgerVersion,
+          digest: mutationSnapshotDigest(lifecycle),
+        }),
+      }
     : failure('incompatible', [
         'The resolved Offer Sheet lifecycle could not be certified.',
       ]);

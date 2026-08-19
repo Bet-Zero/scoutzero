@@ -78,6 +78,23 @@ vi.mock('firebase/firestore', () => ({
     delete: testState.batchDelete,
     commit: testState.batchCommit,
   })),
+  runTransaction: vi.fn(
+    async (
+      _db: unknown,
+      updateFunction: (transaction: {
+        get: typeof testState.getDoc;
+        set: typeof testState.batchSet;
+        update: typeof testState.batchUpdate;
+        delete: typeof testState.batchDelete;
+      }) => Promise<unknown>
+    ) =>
+      updateFunction({
+        get: testState.getDoc,
+        set: testState.batchSet,
+        update: testState.batchUpdate,
+        delete: testState.batchDelete,
+      })
+  ),
   getDoc: testState.getDoc,
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments: unknown[]) => segments.map(String).join('/')),
@@ -390,6 +407,11 @@ describe('mutationPipeline RFA sidecar boundary', () => {
         throw new Error(`Unexpected team load: ${teamCode}`);
       }
     );
+    testState.getPlayer.mockResolvedValue({
+      ...homeSnapshotPlayer,
+      displayName: 'Immutable Base Name',
+      rfaContext: { governedEvidence: governed.evidence },
+    });
 
     const result = await applyWorldMutation({
       userId: 'user_boundary',
@@ -479,6 +501,7 @@ describe('mutationPipeline RFA sidecar boundary', () => {
         throw new Error(`Unexpected team load: ${teamCode}`);
       }
     );
+    testState.getPlayer.mockResolvedValue(sourcePlayerWithoutEvidence);
 
     const authority = await resolveStoreOfferSheetAuthority({
       worldId: WORLD_ID,
@@ -488,6 +511,63 @@ describe('mutationPipeline RFA sidecar boundary', () => {
 
     expect(authority.player.rfaContext?.governedEvidence).toBeUndefined();
     expect(authority.player.displayName).toBe('Override Player');
+  });
+
+  it('strips governed RFA evidence authored only in a mutable Team snapshot', async () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: WORLD_ID,
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      offerSheetId: 'os_rfa_1',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
+    seedWorldMetadata(WORLD_ID, { parentWorldId: null });
+
+    const immutableBasePlayer = makePlayer(
+      'rfa_1',
+      'Immutable Base Player',
+      7_500_000,
+      'NYK',
+      {
+        contract: makeContract(7_500_000, {
+          freeAgency: { type: 'RFA', year: 2026 },
+        }),
+      }
+    );
+    const mutableSnapshotPlayer = {
+      ...immutableBasePlayer,
+      displayName: 'Mutable Snapshot Name',
+      rfaContext: { governedEvidence: governed.evidence },
+    };
+    seedDoc(
+      `architect_worlds/${WORLD_ID}/teams/NYK`,
+      makeTeam('NYK', [mutableSnapshotPlayer], {
+        roster: ['rfa_1'],
+        players: [mutableSnapshotPlayer],
+        rightsLedger: governed.rightsLedger,
+      })
+    );
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'BOS') return makeTeam('BOS', []);
+        throw new Error(`Unexpected team load: ${teamCode}`);
+      }
+    );
+    testState.getPlayer.mockResolvedValue(immutableBasePlayer);
+
+    const authority = await resolveStoreOfferSheetAuthority({
+      worldId: WORLD_ID,
+      offeringTeamCode: 'BOS',
+      playerId: 'rfa_1',
+    });
+
+    expect(testState.getPlayer).toHaveBeenCalledWith(null, 'NYK', 'rfa_1');
+    expect(authority.player.displayName).toBe('Mutable Snapshot Name');
+    expect(authority.player.rfaContext?.governedEvidence).toBeUndefined();
   });
 
   it('loads immutable base evidence for cap-hold-only RFA ownership', async () => {
@@ -696,6 +776,8 @@ describe('mutationPipeline RFA sidecar boundary', () => {
     const offeringTeam = makeTeam('BOS', [], {
       offerSheets: [offerSheet],
     });
+    seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK`, homeTeam);
+    seedDoc(`architect_worlds/${WORLD_ID}/teams/BOS`, offeringTeam);
 
     testState.getTeam.mockImplementation(
       async (_worldId: string, teamCode: string) => {

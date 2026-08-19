@@ -279,6 +279,7 @@ export function computeMatchedOfferSheetOutcome({
     metadata: {
       type: metadataType,
       offerSheetId,
+      dedupKey: resolvedDedupKey,
       playerId,
       homeTeam: homeTeam.teamCode,
       offeringTeam: offeringTeam.teamCode,
@@ -287,6 +288,7 @@ export function computeMatchedOfferSheetOutcome({
       signedUsing: 'Match',
       contract: normalizedContract,
       governedOfferSheetLifecycle: governed.lifecycle,
+      expectedGovernedOfferSheetLifecycle: governed.expectedLifecycle,
       timestamp,
     },
   };
@@ -493,6 +495,7 @@ export function computeDeclinedOfferSheetOutcome({
     metadata: {
       type: metadataType,
       offerSheetId,
+      dedupKey: resolvedDedupKey,
       playerId,
       offeringTeam: offeringTeam.teamCode,
       homeTeam: homeTeam.teamCode,
@@ -501,6 +504,7 @@ export function computeDeclinedOfferSheetOutcome({
       signedUsing: 'Offer Sheet',
       contract: normalizedContract,
       governedOfferSheetLifecycle: governed.lifecycle,
+      expectedGovernedOfferSheetLifecycle: governed.expectedLifecycle,
       timestamp,
     },
   };

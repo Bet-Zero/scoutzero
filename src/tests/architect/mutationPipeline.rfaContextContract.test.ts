@@ -71,6 +71,23 @@ vi.mock('firebase/firestore', () => ({
     delete: testState.batchDelete,
     commit: testState.batchCommit,
   })),
+  runTransaction: vi.fn(
+    async (
+      _db: unknown,
+      updateFunction: (transaction: {
+        get: typeof testState.getDoc;
+        set: typeof testState.batchSet;
+        update: typeof testState.batchUpdate;
+        delete: typeof testState.batchDelete;
+      }) => Promise<unknown>
+    ) =>
+      updateFunction({
+        get: testState.getDoc,
+        set: testState.batchSet,
+        update: testState.batchUpdate,
+        delete: testState.batchDelete,
+      })
+  ),
   getDoc: testState.getDoc,
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments: unknown[]) => segments.map(String).join('/')),
@@ -516,6 +533,14 @@ describe('mutationPipeline rfaContext contract', () => {
     const offeringTeam = makeTeam('BOS', [], {
       offerSheets: [offerSheet],
     });
+    testState.docsByPath.set(
+      `architect_worlds/${WORLD_ID}/teams/NYK`,
+      homeTeam
+    );
+    testState.docsByPath.set(
+      `architect_worlds/${WORLD_ID}/teams/BOS`,
+      offeringTeam
+    );
 
     testState.getTeam.mockImplementation(
       async (_worldId: string, teamCode: string) => {

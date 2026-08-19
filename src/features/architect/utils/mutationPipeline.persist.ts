@@ -56,10 +56,21 @@ import { createRightsEventLedger } from '@/features/architect/utils/rightsHistor
 import { createContractEventLedger } from '@/features/architect/utils/contractHistory';
 import { contractOverlaySetDigest } from '@/features/architect/utils/optionDecisions/contractOverlaySetDigest';
 import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
+import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
 
 type ExpectedRightsLedgerReference = Readonly<{
   ledgerId: string;
   ledgerVersion: number;
+}>;
+
+type ExpectedGovernedOfferSheetLifecycleReference = Readonly<{
+  ledgerId: string;
+  ledgerVersion: number;
+  digest: string;
+  homeTeamCode: string;
+  offeringTeamCode: string;
+  offerSheetId: string;
+  dedupKey: string;
 }>;
 
 type PreparedMutationWrite =
@@ -84,6 +95,120 @@ function requireDocumentData(value: unknown): DocumentData {
     throw new Error('A prepared Firestore mutation write must be an object.');
   }
   return value as DocumentData;
+}
+
+function isOfferSheetResolutionMutation(mutationType: string): boolean {
+  return (
+    mutationType === 'matchOfferSheet' ||
+    mutationType === 'declineOfferSheet' ||
+    mutationType === 'finalizeMatchedOfferSheet' ||
+    mutationType === 'finalizeDeclinedOfferSheet'
+  );
+}
+
+function requireExpectedOfferSheetLifecycleReference({
+  metadata,
+  mutationType,
+}: {
+  metadata: Record<string, unknown>;
+  mutationType: string;
+}): ExpectedGovernedOfferSheetLifecycleReference {
+  const rawExpected = metadata.expectedGovernedOfferSheetLifecycle;
+  const expected =
+    rawExpected && typeof rawExpected === 'object' && !Array.isArray(rawExpected)
+      ? (rawExpected as Record<string, unknown>)
+      : null;
+  const resolved = GovernedOfferSheetLifecycleZ.safeParse(
+    metadata.governedOfferSheetLifecycle
+  );
+  const offerSheetId = String(metadata.offerSheetId || '').trim();
+  const dedupKey = String(metadata.dedupKey || '').trim();
+  const expectedOutcome =
+    mutationType === 'matchOfferSheet' ||
+    mutationType === 'finalizeMatchedOfferSheet'
+      ? 'matched'
+      : 'declined';
+  const ledgerId = String(expected?.ledgerId || '').trim();
+  const ledgerVersion = Number(expected?.ledgerVersion);
+  const digest = String(expected?.digest || '').trim();
+  if (
+    !expected ||
+    !resolved.success ||
+    !offerSheetId ||
+    !dedupKey ||
+    !ledgerId ||
+    !Number.isInteger(ledgerVersion) ||
+    ledgerVersion < 1 ||
+    !digest ||
+    resolved.data.ledgerId !== ledgerId ||
+    resolved.data.ledgerVersion !== ledgerVersion + 1 ||
+    resolved.data.status !== expectedOutcome
+  ) {
+    throw new Error(
+      'Offer Sheet resolution is missing the expected governed lifecycle reference.'
+    );
+  }
+  return Object.freeze({
+    ledgerId,
+    ledgerVersion,
+    digest,
+    homeTeamCode: resolved.data.homeTeamId,
+    offeringTeamCode: resolved.data.offeringTeamId,
+    offerSheetId,
+    dedupKey,
+  });
+}
+
+function recheckOfferSheetLifecycleBeforeCommit({
+  currentTeamData,
+  teamCode,
+  expected,
+}: {
+  currentTeamData: DocumentData;
+  teamCode: string;
+  expected: ExpectedGovernedOfferSheetLifecycleReference;
+}): void {
+  const rawSheets =
+    teamCode === expected.homeTeamCode
+      ? currentTeamData.incomingOfferSheets
+      : teamCode === expected.offeringTeamCode
+        ? currentTeamData.offerSheets
+        : null;
+  if (!Array.isArray(rawSheets)) {
+    throw new Error(
+      `Offer Sheet lifecycle for ${teamCode} changed before commit. Reload and try again.`
+    );
+  }
+  const matches = rawSheets.filter((rawSheet: unknown) => {
+    if (!rawSheet || typeof rawSheet !== 'object' || Array.isArray(rawSheet)) {
+      return false;
+    }
+    const sheet = rawSheet as Record<string, unknown>;
+    return (
+      String(sheet.id || '').trim() === expected.offerSheetId ||
+      String(sheet.dedupKey || '').trim() === expected.dedupKey
+    );
+  });
+  const lifecycle =
+    matches.length === 1 &&
+    matches[0] &&
+    typeof matches[0] === 'object' &&
+    !Array.isArray(matches[0])
+      ? GovernedOfferSheetLifecycleZ.safeParse(
+          (matches[0] as Record<string, unknown>).governedLifecycle
+        )
+      : null;
+  if (
+    !lifecycle?.success ||
+    lifecycle.data.status !== 'pending-match' ||
+    lifecycle.data.ledgerId !== expected.ledgerId ||
+    lifecycle.data.ledgerVersion !== expected.ledgerVersion ||
+    mutationSnapshotDigest(lifecycle.data) !== expected.digest
+  ) {
+    throw new Error(
+      `Offer Sheet lifecycle for ${teamCode} changed before commit. Reload and try again.`
+    );
+  }
 }
 
 async function recheckExtensionSourceLineage({
@@ -446,6 +571,28 @@ export async function persistWorldMutation({
     const metadataRef = worldMetadataRef(worldId);
     writes.push({ kind: 'update', ref: metadataRef, data: worldPatch });
 
+    const isOfferSheetResolution = isOfferSheetResolutionMutation(mutationType);
+    const expectedOfferSheetLifecycle = isOfferSheetResolution
+      ? requireExpectedOfferSheetLifecycleReference({
+          metadata: computeResult.metadata as Record<string, unknown>,
+          mutationType,
+        })
+      : null;
+    if (expectedOfferSheetLifecycle) {
+      const resolutionTeamCodes = new Set(
+        teamUpdates.map(({ teamCode }) => String(teamCode || '').trim())
+      );
+      if (
+        resolutionTeamCodes.size !== 2 ||
+        !resolutionTeamCodes.has(expectedOfferSheetLifecycle.homeTeamCode) ||
+        !resolutionTeamCodes.has(expectedOfferSheetLifecycle.offeringTeamCode)
+      ) {
+        throw new Error(
+          'Offer Sheet resolution must atomically replace both governed Team mirrors.'
+        );
+      }
+    }
+
     // A governed ledger append must compare the exact history it consumed in
     // the same atomic commit that publishes the replacement ledger. Otherwise
     // two tabs can both report success while the later whole-team write
@@ -453,7 +600,8 @@ export async function persistWorldMutation({
     if (
       mutationType === 'renounceRights' ||
       mutationType === 'optionDecision' ||
-      mutationType === 'extendPlayer'
+      mutationType === 'extendPlayer' ||
+      isOfferSheetResolution
     ) {
       await runTransaction(db, async (transaction) => {
         for (const { teamCode, team } of teamUpdates) {
@@ -489,6 +637,12 @@ export async function persistWorldMutation({
                 `Rights history for ${normalizedTeamCode} changed before commit. Reload and try again.`
               );
             }
+          } else if (expectedOfferSheetLifecycle) {
+            recheckOfferSheetLifecycleBeforeCommit({
+              currentTeamData,
+              teamCode: normalizedTeamCode,
+              expected: expectedOfferSheetLifecycle,
+            });
           } else {
             const metadata = computeResult.metadata as Record<string, unknown>;
             if (mutationType === 'extendPlayer') {

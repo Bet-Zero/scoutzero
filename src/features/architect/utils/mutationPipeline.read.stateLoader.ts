@@ -201,18 +201,17 @@ export async function resolveStoreOfferSheetAuthority({
     );
   }
 
-  const capHoldRightsPlayer =
-    resolvedOwner.capHoldMatch && !resolvedOwner.snapshotPlayer
-      ? toCurrentStatePlayer(
-          await getPlayer(null, resolvedOwner.teamCode, playerId)
-        )
-      : null;
-  const sourcePlayer = resolvedOwner.snapshotPlayer || capHoldRightsPlayer;
-  // BZE-283 authority is source-owned. A mutable world player override may
-  // alter ordinary player/contract state, but it may never author or replace
-  // the authenticated RFA/QO evidence used to permit an Offer Sheet.
+  // BZE-283 authority is source-owned. Team snapshots and player overrides are
+  // user-writable, so neither may author or replace the authenticated RFA/QO
+  // evidence used to permit an Offer Sheet. Always read that evidence from the
+  // immutable base player, while retaining world state for ownership and the
+  // player's mutable display/contract fields.
+  const immutableBasePlayer = toCurrentStatePlayer(
+    await getPlayer(null, resolvedOwner.teamCode, playerId)
+  );
+  const sourcePlayer = resolvedOwner.snapshotPlayer || immutableBasePlayer;
   const sourceGovernedOfferSheetEvidence =
-    sourcePlayer?.rfaContext?.governedEvidence;
+    immutableBasePlayer?.rfaContext?.governedEvidence;
 
   const canonicalPlayer = overrideEntry
     ? normalizeCurrentStatePlayerSnapshot(

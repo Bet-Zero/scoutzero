@@ -8,10 +8,15 @@ const testState = vi.hoisted(() => ({
   batchUpdate: vi.fn(),
   batchDelete: vi.fn(),
   batchCommit: vi.fn(async (): Promise<void> => undefined),
-  getDoc: vi.fn(async (): Promise<{ exists: () => boolean; data: () => DocShape }> => ({
-    exists: () => false,
-    data: () => null,
-  })),
+  getDoc: vi.fn(async (ref: unknown) => {
+    const rawPath = String(ref);
+    const path = rawPath.startsWith('db/') ? rawPath.slice(3) : rawPath;
+    const data = testState.docsByPath.get(path);
+    return {
+      exists: () => data !== null && data !== undefined,
+      data: () => data || {},
+    };
+  }),
   getTeam: vi.fn(),
   getPlayer: vi.fn(),
   getLeague: vi.fn(async (): Promise<unknown[]> => []),
@@ -60,6 +65,23 @@ vi.mock('firebase/firestore', () => ({
     delete: testState.batchDelete,
     commit: testState.batchCommit,
   })),
+  runTransaction: vi.fn(
+    async (
+      _db: unknown,
+      updateFunction: (transaction: {
+        get: typeof testState.getDoc;
+        set: typeof testState.batchSet;
+        update: typeof testState.batchUpdate;
+        delete: typeof testState.batchDelete;
+      }) => Promise<unknown>
+    ) =>
+      updateFunction({
+        get: testState.getDoc,
+        set: testState.batchSet,
+        update: testState.batchUpdate,
+        delete: testState.batchDelete,
+      })
+  ),
   getDoc: testState.getDoc,
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments: unknown[]) => segments.map(String).join('/')),
@@ -323,6 +345,14 @@ describe('mutationPipeline current-state ingress hardening', () => {
     const offeringTeam = makeTeam('BOS', [], {
       offerSheets: [{ ...mirroredOfferSheet }],
     });
+    testState.docsByPath.set(
+      `architect_worlds/${WORLD_ID}/teams/NYK`,
+      homeTeam
+    );
+    testState.docsByPath.set(
+      `architect_worlds/${WORLD_ID}/teams/BOS`,
+      offeringTeam
+    );
 
     testState.getTeam.mockImplementation(async (_worldId: string, teamCode: string) => {
       if (teamCode === 'NYK') return homeTeam;
