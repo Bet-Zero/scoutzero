@@ -9,21 +9,21 @@
 import type { ArchitectMutationOfferSheet } from '@/features/architect/utils/mutationPipeline';
 import type { CapLegalityViolation } from './schema';
 import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
-import {
-  isZonedDateTime,
-  parseZonedDateTime,
-} from '@/features/architect/utils/governedSeason';
+import { parseZonedDateTime } from '@/features/architect/utils/governedSeason';
+import { isEasternInstant } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
 
 export function validateOfferSheetResolution({
   offerSheet,
   actingTeamCode,
   action,
   asOfDate,
+  resolutionAt,
 }: {
   offerSheet: ArchitectMutationOfferSheet | null | undefined;
   actingTeamCode: string;
   action: string;
   asOfDate?: string;
+  resolutionAt?: string;
 }) {
   const violations: CapLegalityViolation[] = [];
   const warnings: CapLegalityViolation[] = [];
@@ -96,14 +96,14 @@ export function validateOfferSheetResolution({
           message: 'The Offer Sheet notice lifecycle is unreadable.',
           severity: 'error',
         });
-      } else if (!isZonedDateTime(asOfDate)) {
+      } else if (!isEasternInstant(resolutionAt)) {
         violations.push({
           rule: 'offer_sheet_resolution_instant_required',
-          message: 'Matching requires an exact resolution instant with UTC offset.',
+          message: 'Matching requires an exact Eastern resolution instant.',
           severity: 'error',
         });
       } else if (
-        (parseZonedDateTime(asOfDate) as number) >
+        (parseZonedDateTime(resolutionAt) as number) >
         (parseZonedDateTime(root.exerciseNoticeDeadline) as number)
       ) {
         violations.push({

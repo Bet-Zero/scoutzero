@@ -535,7 +535,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
         'Expected incoming offer sheet for match-window validation'
       );
 
-      for (const asOfDate of [
+      for (const resolutionAt of [
         '2025-07-08T10:00:00-04:00',
         '2025-07-09T23:59:59-04:00',
       ]) {
@@ -543,19 +543,22 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
           offerSheet,
           actingTeamCode: 'BOS',
           action: 'match',
-          asOfDate,
+          asOfDate: '2025-07-10',
+          resolutionAt,
         });
 
-        expect(result.valid, `Expected Match to be allowed on ${asOfDate}`).toBe(
-          true
-        );
+        expect(
+          result.valid,
+          `Expected Match to be allowed at ${resolutionAt}`
+        ).toBe(true);
       }
 
       const expiredMatch = validateOfferSheetResolution({
         offerSheet,
         actingTeamCode: 'BOS',
         action: 'match',
-        asOfDate: '2025-07-10T00:00:00-04:00',
+        asOfDate: '2025-07-10',
+        resolutionAt: '2025-07-10T00:00:00-04:00',
       });
 
       expect(expiredMatch.valid).toBe(false);
@@ -565,11 +568,31 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
         ])
       );
 
+      for (const resolutionAt of [undefined, '2025-07-09T23:59:59-05:00']) {
+        const invalidInstant = validateOfferSheetResolution({
+          offerSheet,
+          actingTeamCode: 'BOS',
+          action: 'match',
+          asOfDate: '2025-07-09T23:59:59-04:00',
+          resolutionAt,
+        });
+
+        expect(invalidInstant.valid).toBe(false);
+        expect(invalidInstant.violations).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              rule: 'offer_sheet_resolution_instant_required',
+            }),
+          ])
+        );
+      }
+
       const lateDecline = validateOfferSheetResolution({
         offerSheet,
         actingTeamCode: 'BOS',
         action: 'decline',
-        asOfDate: '2025-07-10T00:00:00-04:00',
+        asOfDate: '2025-07-10',
+        resolutionAt: '2025-07-10T00:00:00-04:00',
       });
 
       expect(lateDecline.valid).toBe(true);

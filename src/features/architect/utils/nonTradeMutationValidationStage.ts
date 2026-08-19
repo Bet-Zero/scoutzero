@@ -463,6 +463,10 @@ function validateOfferSheetResolutionMutation({
           actingTeamCode,
           action: 'match',
           asOfDate: asOfDate ?? undefined,
+          resolutionAt:
+            typeof payload.offerSheetResolutionAt === 'string'
+              ? payload.offerSheetResolutionAt
+              : undefined,
         })
       : mutationType === 'declineOfferSheet'
         ? validateOfferSheetResolution({
@@ -470,12 +474,20 @@ function validateOfferSheetResolutionMutation({
             actingTeamCode,
             action: 'decline',
             asOfDate: asOfDate ?? undefined,
+            resolutionAt:
+              typeof payload.offerSheetResolutionAt === 'string'
+                ? payload.offerSheetResolutionAt
+                : undefined,
           })
         : validateOfferSheetResolution({
             offerSheet,
             actingTeamCode,
             action: 'finalize',
             asOfDate: asOfDate ?? undefined,
+            resolutionAt:
+              typeof payload.offerSheetResolutionAt === 'string'
+                ? payload.offerSheetResolutionAt
+                : undefined,
           });
 
   return formatValidatorResult({
