@@ -2,4 +2,11 @@ export {
   createGovernedOfferSheetLifecycle,
   resolveGovernedOfferSheetLifecycle,
 } from './governedOfferSheetLifecycle';
-export { validateGovernedOfferSheetTerms } from './governedOfferSheetTerms';
+export {
+  inspectGovernedOfferSheetMatchRestriction,
+  type GovernedOfferSheetRestrictionState,
+} from './governedOfferSheetRestrictions';
+export {
+  governedOfferSheetBonusTotal,
+  validateGovernedOfferSheetTerms,
+} from './governedOfferSheetTerms';

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 
-import { isZonedDateTime } from '@/features/architect/utils/governedSeason';
+import { isEasternInstant } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
 import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
 import type {
   OfferSheetLifecycleActionEvent,
@@ -26,15 +26,27 @@ export const OfferSheetResolutionControls = ({
   );
   const arenasApplies =
     lifecycle.success && lifecycle.data.reservations.arenasApplies;
+  const governedLifecycleReady =
+    lifecycle.success && lifecycle.data.status === 'pending-match';
   const [resolutionAt, setResolutionAt] = useState('');
   const [electAverage, setElectAverage] = useState(false);
   const [statementId, setStatementId] = useState('');
   const [relayedAt, setRelayedAt] = useState('');
-  const exactResolutionReady = isZonedDateTime(resolutionAt);
+  const exactResolutionReady = isEasternInstant(resolutionAt);
   const electionReady =
     !electAverage ||
-    (statementId.trim().length > 0 && isZonedDateTime(relayedAt));
-  const baseDisabled = actionsDisabled || !exactResolutionReady;
+    (statementId.trim().length > 0 && isEasternInstant(relayedAt));
+  const governedDisabledReason =
+    'This offer sheet is missing the saved notice record required to resolve it.';
+  const disabledReason = actionsDisabled
+    ? actionsDisabledReason
+    : !governedLifecycleReady
+      ? governedDisabledReason
+      : !exactResolutionReady
+        ? 'Enter the exact Eastern resolution time.'
+        : undefined;
+  const baseDisabled =
+    actionsDisabled || !governedLifecycleReady || !exactResolutionReady;
 
   const emit = (action: 'match' | 'decline') => {
     onLifecycleAction?.({
@@ -57,6 +69,11 @@ export const OfferSheetResolutionControls = ({
 
   return (
     <div className="ml-auto w-64 space-y-1.5 text-left">
+      {!governedLifecycleReady ? (
+        <p className="text-[10px] leading-snug text-amber-300">
+          {governedDisabledReason}
+        </p>
+      ) : null}
       <label className="block text-[10px] uppercase tracking-wide text-white/45">
         Exact resolution time
         <input
@@ -91,7 +108,7 @@ export const OfferSheetResolutionControls = ({
                 aria-label="Players Association relay time"
                 value={relayedAt}
                 onChange={(event) => setRelayedAt(event.target.value)}
-                placeholder="NBA relay time with offset"
+                placeholder="Eastern relay time with offset"
                 className="w-full rounded border border-white/15 bg-black/40 px-2 py-1.5 text-[10px] text-white outline-none"
               />
             </div>
@@ -103,7 +120,7 @@ export const OfferSheetResolutionControls = ({
           type="button"
           onClick={() => emit('match')}
           disabled={baseDisabled || !electionReady}
-          title={actionsDisabled ? actionsDisabledReason : undefined}
+          title={baseDisabled ? disabledReason : undefined}
           className="rounded bg-blue-600 px-3 py-1 text-xs text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           Match
@@ -112,7 +129,7 @@ export const OfferSheetResolutionControls = ({
           type="button"
           onClick={() => emit('decline')}
           disabled={baseDisabled}
-          title={actionsDisabled ? actionsDisabledReason : undefined}
+          title={baseDisabled ? disabledReason : undefined}
           className="rounded bg-red-600 px-3 py-1 text-xs text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
           Decline

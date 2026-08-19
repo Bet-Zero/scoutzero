@@ -26,7 +26,10 @@ import {
   synchronizeTeamTotalsSnapshotOrTeam,
 } from './mutationPipeline.helpers';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
-import { resolveGovernedOfferSheetLifecycle } from '@/features/architect/utils/offerSheets';
+import {
+  governedOfferSheetBonusTotal,
+  resolveGovernedOfferSheetLifecycle,
+} from '@/features/architect/utils/offerSheets';
 import type { GovernedOfferSheetLifecycle } from '@/schemas/governedOfferSheet';
 import {
   matchesOfferSheetIdentity,
@@ -42,12 +45,16 @@ import type {
 export type OfferSheetOutcomeParams = {
   payload: {
     dedupKey?: string | null;
-    offerSheetAveragingElection?: import('@/schemas/governedOfferSheet').GovernedOfferSheetAveragingElection | null;
+    offerSheetAveragingElection?:
+      | import('@/schemas/governedOfferSheet').GovernedOfferSheetAveragingElection
+      | null;
+    offerSheetResolutionAt?: string | number | null;
   };
   currentState: MutationOfferSheetResolutionCurrentState;
   seasonId: string;
   timestamp: number;
   resolutionAt?: string | number | null;
+  worldAsOfDate?: string | number | null;
   /** Prior offer-sheet statuses this outcome is allowed to run from. */
   acceptedStatuses: readonly string[];
   /** Mutation type recorded in result metadata (drives history/receipt routing). */
@@ -63,19 +70,37 @@ function offerSheetForAccounting(
   lifecycle: GovernedOfferSheetLifecycle,
   side: 'home' | 'offering'
 ) {
+  const signedEvent = lifecycle.events.find(
+    (event) => event.eventKind === 'offer-sheet-signed'
+  );
+  if (!signedEvent) return offerSheet;
   const useAverage =
     side === 'offering' ||
     lifecycle.reservations.homeTeamAccounting === 'average-annual-salary';
-  if (!useAverage || !offerSheet) return offerSheet;
+  const averageBySeason = new Map(
+    lifecycle.reservations.offeringTeam.map((row) => [row.season, row.amount])
+  );
   return {
     ...offerSheet,
-    salariesByYear: lifecycle.reservations.offeringTeam.map((row) => ({
-      season: row.season,
-      salary: row.amount,
-      capHit: row.amount,
-      guaranteed: true,
-      guaranteedAmount: row.amount,
-    })),
+    salariesByYear: signedEvent.proposal.salariesByYear.map((row) => {
+      const likely = governedOfferSheetBonusTotal(row, 'likely');
+      const unlikely = governedOfferSheetBonusTotal(row, 'unlikely');
+      return {
+        season: row.season,
+        salary: row.regularSalary,
+        capHit: useAverage
+          ? (averageBySeason.get(row.season) ?? row.regularSalary)
+          : row.regularSalary,
+        guaranteed:
+          row.guaranteedForLackOfSkill &&
+          row.guaranteedForInjuryOrIllness &&
+          !row.individuallyNegotiatedProtectionConditions,
+        option: row.option,
+        ...(likely > 0 || unlikely > 0
+          ? { incentives: { likely, unlikely } }
+          : {}),
+      };
+    }),
   };
 }
 
@@ -89,6 +114,7 @@ export function computeMatchedOfferSheetOutcome({
   seasonId,
   timestamp,
   resolutionAt,
+  worldAsOfDate,
   acceptedStatuses,
   metadataType,
 }: OfferSheetOutcomeParams): ComputeResultLike {
@@ -124,6 +150,7 @@ export function computeMatchedOfferSheetOutcome({
     state: currentState,
     action: 'match',
     resolutionAt,
+    worldAsOfDate,
     averagingElectionInput: payload.offerSheetAveragingElection,
     timestamp,
   });
@@ -157,6 +184,7 @@ export function computeMatchedOfferSheetOutcome({
     signedUsing: 'Match',
     timestamp,
     signingDate: governed.lifecycle.events.at(-1)?.executedAt,
+    governedLifecycle: governed.lifecycle,
   });
   if (!normalizedContract) {
     return {
@@ -270,6 +298,7 @@ export function computeDeclinedOfferSheetOutcome({
   seasonId,
   timestamp,
   resolutionAt,
+  worldAsOfDate,
   acceptedStatuses,
   metadataType,
 }: OfferSheetOutcomeParams): ComputeResultLike {
@@ -303,6 +332,7 @@ export function computeDeclinedOfferSheetOutcome({
     state: currentState,
     action: 'decline',
     resolutionAt,
+    worldAsOfDate,
     averagingElectionInput: payload.offerSheetAveragingElection,
     timestamp,
   });
@@ -327,7 +357,11 @@ export function computeDeclinedOfferSheetOutcome({
   }
 
   const normalizedContract = buildNormalizedOfferSheetFinalContract({
-    offerSheet: offerSheetForAccounting(offerSheet, governed.lifecycle, 'offering'),
+    offerSheet: offerSheetForAccounting(
+      offerSheet,
+      governed.lifecycle,
+      'offering'
+    ),
     signingTeam: offeringTeam.teamCode || '',
     signedUsing: 'Offer Sheet',
     timestamp,

@@ -18,9 +18,7 @@ import {
   validateDeadCap,
   validateExceptions,
 } from '@/features/architect/utils/capLegalityValidation';
-import {
-  validateGovernedPriorTeamOptionSigning,
-} from '@/features/architect/utils/capLegalityValidation/governedPriorTeamOptionSigning';
+import { validateGovernedPriorTeamOptionSigning } from '@/features/architect/utils/capLegalityValidation/governedPriorTeamOptionSigning';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import type {
   ArchitectMutationOfferSheet,
@@ -208,7 +206,10 @@ function validateSigningSideMutation({
   dateDefaulted?: boolean;
   pipelineWarnings: Array<Record<string, unknown>>;
 }): StageValidationResult {
-  const { team, player } = requireTeamAndPlayerState(currentState, mutationType);
+  const { team, player } = requireTeamAndPlayerState(
+    currentState,
+    mutationType
+  );
   const governedOptionSigningResult =
     mutationType === 'signFreeAgent'
       ? validateGovernedPriorTeamOptionSigning({
@@ -264,7 +265,10 @@ function validateRosterAndContractMutation({
   currentYear: number;
   asOfDate?: string | null;
 }): StageValidationResult {
-  const { team, player } = requireTeamAndPlayerState(currentState, mutationType);
+  const { team, player } = requireTeamAndPlayerState(
+    currentState,
+    mutationType
+  );
 
   switch (mutationType) {
     case 'waivePlayer': {
@@ -290,6 +294,7 @@ function validateRosterAndContractMutation({
         player,
         extension: payload.extension,
         year: currentYear,
+        asOfDate: asOfDate ?? undefined,
       });
 
       return formatValidatorResult({
@@ -301,12 +306,11 @@ function validateRosterAndContractMutation({
 
     case 'optionDecision': {
       const teamCode = team.teamCode || null;
-      const playerId = getPlayerId(
-        player as Parameters<typeof getPlayerId>[0]
-      );
+      const playerId = getPlayerId(player as Parameters<typeof getPlayerId>[0]);
       const updatedTeam = teamCode
-        ? computeResult?.teamUpdates?.find((update) => update.teamCode === teamCode)
-            ?.team
+        ? computeResult?.teamUpdates?.find(
+            (update) => update.teamCode === teamCode
+          )?.team
         : null;
       const updatedPlayer = playerId
         ? computeResult?.playerUpdates?.find(

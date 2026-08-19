@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 const harness = vi.hoisted(() => ({
   writeBatchMock: vi.fn(() => ({
@@ -290,6 +291,17 @@ describe('mutationPipeline committed snapshot round-trip boundary', () => {
   });
 
   it('round-trips only the committed totals, draft-pick, and source slices on offer-sheet team updates', () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: 'world-committed-snapshot-roundtrip',
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      offerSheetId: 'sheet_1',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
     const offerSheet = {
       id: 'sheet_1',
       dedupKey: 'sheet_1::BOS::NYK::rfa_1',
@@ -303,6 +315,7 @@ describe('mutationPipeline committed snapshot round-trip boundary', () => {
       contractYears: '2',
       totalValue: '18000000',
       salariesByYear: [{ season: SEASON_ID, salary: '9000000' }],
+      governedLifecycle: governed.lifecycle,
     };
     const draftPick = {
       id: 'nyk_2028_1',
@@ -362,6 +375,7 @@ describe('mutationPipeline committed snapshot round-trip boundary', () => {
         homeTeamCode: 'NYK',
         offeringTeamCode: 'BOS',
         offerSheetId: 'sheet_1',
+        offerSheetResolutionAt: governed.resolutionAt,
       },
       currentState: {
         homeTeam: homeTeam as CurrentStateInput['homeTeam'],
@@ -370,6 +384,7 @@ describe('mutationPipeline committed snapshot round-trip boundary', () => {
       },
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
+      asOfDate: governed.asOfDate,
     });
 
     expect(result.success).toBe(true);

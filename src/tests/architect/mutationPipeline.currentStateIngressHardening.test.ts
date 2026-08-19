@@ -143,6 +143,7 @@ import {
   computeWorldMutation,
   type ArchitectMutationContract,
 } from '@/features/architect/utils/mutationPipeline';
+import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 const FIXED_TIMESTAMP = Date.parse('2026-04-10T12:00:00.000Z');
 const FIXED_TIMESTAMP_ISO = '2026-04-10T12:00:00.000Z';
@@ -279,6 +280,17 @@ describe('mutationPipeline current-state ingress hardening', () => {
   });
 
   it('keeps the committed match-offer-sheet flow working while stripping team-side compatibility bags at ingress', async () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: WORLD_ID,
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      offerSheetId: 'offer_sheet_1',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
     const mirroredOfferSheet = {
       id: 'offer_sheet_1',
       dedupKey: 'offer_sheet_1::BOS::NYK::rfa_1',
@@ -301,6 +313,7 @@ describe('mutationPipeline current-state ingress hardening', () => {
       ],
       createdAt: FIXED_TIMESTAMP_ISO,
       compatBag: { shouldDrop: true },
+      governedLifecycle: governed.lifecycle,
     };
     const homeTeam = makeTeam('NYK', [
       makePlayer('rfa_1', 'RFA One', 9_000_000, 'NYK'),
@@ -327,6 +340,7 @@ describe('mutationPipeline current-state ingress hardening', () => {
         homeTeamCode: 'NYK',
         offeringTeamCode: 'BOS',
         offerSheetId: 'offer_sheet_1',
+        offerSheetResolutionAt: governed.resolutionAt,
       },
       timestamp: FIXED_TIMESTAMP,
     });

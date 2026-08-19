@@ -1,19 +1,33 @@
 /** Exact Eastern-time rules used by governed RFA Offer Sheet decisions. */
 
 import {
+  GOVERNING_TIME_ZONE,
   isDateOnly,
   isZonedDateTime,
   parseZonedDateTime,
 } from '@/features/architect/utils/governedSeason';
 
-const EASTERN_OFFSET = /(?:-04:00|-05:00)$/;
+function easternOffsetAt(value: string): string | null {
+  const timeZoneName = new Intl.DateTimeFormat('en-US', {
+    timeZone: GOVERNING_TIME_ZONE,
+    timeZoneName: 'longOffset',
+  })
+    .formatToParts(new Date(value))
+    .find((part) => part.type === 'timeZoneName')?.value;
+  const offset = timeZoneName?.replace('GMT', '');
+  return offset && /^[+-]\d{2}:\d{2}$/.test(offset) ? offset : null;
+}
+
+export function isEasternInstant(value: unknown): value is string {
+  return isZonedDateTime(value) && easternOffsetAt(value) === value.slice(-6);
+}
 
 export function requireEasternInstant(
   value: unknown,
   label: string,
   reasons: string[]
 ): string | null {
-  if (!isZonedDateTime(value) || !EASTERN_OFFSET.test(value)) {
+  if (!isEasternInstant(value)) {
     reasons.push(`${label} must be an exact Eastern-time instant.`);
     return null;
   }
@@ -21,8 +35,9 @@ export function requireEasternInstant(
 }
 
 export function compareInstant(left: string, right: string): number {
-  return (parseZonedDateTime(left) as number) -
-    (parseZonedDateTime(right) as number);
+  return (
+    (parseZonedDateTime(left) as number) - (parseZonedDateTime(right) as number)
+  );
 }
 
 function localParts(value: string) {
@@ -61,7 +76,21 @@ export function worldDateContainsInstant(
 ): boolean {
   if (isDateOnly(worldAsOfDate)) return worldAsOfDate === instant.slice(0, 10);
   return (
-    isZonedDateTime(worldAsOfDate) && compareInstant(instant, worldAsOfDate) <= 0
+    isZonedDateTime(worldAsOfDate) &&
+    compareInstant(instant, worldAsOfDate) <= 0
+  );
+}
+
+export function worldDateHasReachedInstant(
+  worldAsOfDate: unknown,
+  instant: string
+): boolean {
+  if (isDateOnly(worldAsOfDate)) {
+    return worldAsOfDate >= instant.slice(0, 10);
+  }
+  return (
+    isZonedDateTime(worldAsOfDate) &&
+    compareInstant(worldAsOfDate, instant) >= 0
   );
 }
 

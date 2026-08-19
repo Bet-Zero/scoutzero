@@ -27,19 +27,34 @@ export const GovernedQualifyingOfferZ = z.strictObject({
   amount: MoneyZ,
   deliveredAt: ZonedInstantZ,
   openThrough: ZonedInstantZ,
+  extensionDocumentId: NonEmptyStringZ.nullable(),
   withdrawnAt: ZonedInstantZ.nullable(),
   withdrawalConsentAt: ZonedInstantZ.nullable(),
+  withdrawalConsentDocumentId: NonEmptyStringZ.nullable(),
   contractYears: z.number().int().positive(),
   annualRaiseBasisPoints: z.number().int().nonnegative(),
+  annualBaseSchedule: z.array(MoneyZ).min(1).max(5),
   fullyProtected: z.boolean(),
   requiredTermsPresent: z.boolean(),
   hasOptionOrEto: z.boolean(),
+  requiredOfferSheetGuaranteedSeasons: z.number().int().positive(),
   calculation: z.strictObject({
-    basis: z.enum(['draft-slot', 'prior-salary', 'starter-criteria', 'two-way']),
+    basis: z.enum([
+      'draft-slot',
+      'prior-salary',
+      'starter-criteria',
+      'two-way',
+    ]),
     certifiedAmount: MoneyZ,
     inputSourceIds: z.array(NonEmptyStringZ).min(1),
+    calculationYear: z.number().int(),
+    draftSlot: z.number().int().positive().nullable(),
     draftSlotAmount: MoneyZ.nullable(),
     priorSalary: MoneyZ.nullable(),
+    officialStarts: z.number().int().nonnegative().nullable(),
+    officialMinutes: z.number().int().nonnegative().nullable(),
+    starterStartsThreshold: z.number().int().nonnegative().nullable(),
+    starterMinutesThreshold: z.number().int().nonnegative().nullable(),
     starterCriteriaAmount: MoneyZ.nullable(),
     twoWayQualifyingAmount: MoneyZ.nullable(),
   }),
@@ -69,10 +84,30 @@ export const GovernedOfferSheetEvidenceZ = z.strictObject({
     otherPlayerEligible: z.boolean(),
   }),
   qualifyingOffer: GovernedQualifyingOfferZ,
+  homeTeamMatchingAuthority: z.strictObject({
+    authorityId: NonEmptyStringZ,
+    authorityVersion: PositiveVersionZ,
+    kind: z.enum(['room', 'exception']),
+    amount: MoneyZ,
+    effectiveFrom: ZonedInstantZ,
+    effectiveThrough: ZonedInstantZ,
+    recordStatus: z.enum(['current', 'superseded']),
+    source: GovernedOfferSheetSourceZ,
+  }),
   league: z.strictObject({
     salaryCap: MoneyZ,
     nonTaxpayerMle: MoneyZ,
     maximumSalary: MoneyZ,
+    maximumSalaryBySeason: z
+      .array(
+        z.strictObject({
+          season: NonEmptyStringZ,
+          amount: MoneyZ,
+        })
+      )
+      .min(1),
+    arenasYearOneMaximum: MoneyZ,
+    arenasYearTwoMaximum: MoneyZ,
     source: GovernedOfferSheetSourceZ,
   }),
 });
@@ -98,6 +133,18 @@ export const GovernedOfferSheetAveragingElectionZ = z.strictObject({
   statementId: NonEmptyStringZ,
   deliveredToNbaAt: ZonedInstantZ,
   relayedToPlayersAssociationAt: ZonedInstantZ,
+});
+
+export const GovernedOfferSheetMatchRestrictionZ = z.strictObject({
+  restrictionVersion: z.literal(1),
+  lifecycleId: NonEmptyStringZ,
+  eventId: NonEmptyStringZ,
+  matchedAt: ZonedInstantZ,
+  restrictedUntil: ZonedInstantZ,
+  offeringTeamId: NonEmptyStringZ,
+  playerTradeConsentRequired: z.literal(true),
+  offeringTeamTradeBarred: z.literal(true),
+  signAndTradeBarred: z.literal(true),
 });
 
 export const GovernedOfferSheetProposalZ = z.strictObject({
@@ -148,6 +195,8 @@ export const GovernedOfferSheetLifecycleEventZ = z.discriminatedUnion(
       offeringTeamTradeBarred: z.literal(true),
       signAndTradeBarred: z.literal(true),
       averagingElection: GovernedOfferSheetAveragingElectionZ.nullable(),
+      matchingTeamSalaryReference:
+        GovernedOfferSheetTeamSalaryReferenceZ.nullable(),
     }),
     z.strictObject({
       eventKind: z.literal('offer-sheet-declined'),
@@ -183,9 +232,12 @@ export const GovernedOfferSheetLifecycleZ = z.strictObject({
   reservations: z.strictObject({
     offeringTeam: z.array(GovernedOfferSheetReservationZ).min(1),
     offeringTeamSalaryReference: GovernedOfferSheetTeamSalaryReferenceZ,
-    homeTeamAuthority: z.enum(['room', 'right-of-first-refusal']),
+    homeTeamAuthority: z.enum(['room', 'exception']),
     arenasApplies: z.boolean(),
-    offeringTeamAccounting: z.enum(['stated-schedule', 'average-annual-salary']),
+    offeringTeamAccounting: z.enum([
+      'stated-schedule',
+      'average-annual-salary',
+    ]),
     homeTeamAccounting: z.enum(['stated-schedule', 'average-annual-salary']),
   }),
   events: z.array(GovernedOfferSheetLifecycleEventZ).min(1),
@@ -199,6 +251,12 @@ export type GovernedOfferSheetProposal = z.infer<
 >;
 export type GovernedOfferSheetAveragingElection = z.infer<
   typeof GovernedOfferSheetAveragingElectionZ
+>;
+export type GovernedOfferSheetMatchRestriction = z.infer<
+  typeof GovernedOfferSheetMatchRestrictionZ
+>;
+export type GovernedOfferSheetTeamSalaryReference = z.infer<
+  typeof GovernedOfferSheetTeamSalaryReferenceZ
 >;
 export type GovernedOfferSheetLifecycle = z.infer<
   typeof GovernedOfferSheetLifecycleZ

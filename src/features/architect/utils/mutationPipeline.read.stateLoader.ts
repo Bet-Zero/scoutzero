@@ -8,10 +8,7 @@
  * Wave 48 Step 1: Lineage helpers extracted to submodule.
  */
 
-import {
-  getTeam,
-  getPlayer,
-} from '@/features/architect/utils/teamLoader';
+import { getTeam, getPlayer } from '@/features/architect/utils/teamLoader';
 import { getDoc } from 'firebase/firestore';
 import {
   worldPlayerRef,
@@ -28,12 +25,11 @@ import {
   removeUndefinedDeep,
   toCurrentStatePlayer,
 } from './mutationPipeline.helpers';
-import {
-  toCurrentStateTeam,
-} from './mutationPipeline.read.normalizeTeam';
+import { toCurrentStateTeam } from './mutationPipeline.read.normalizeTeam';
 import { loadWorldGovernedOptionAuthority } from '@/features/architect/utils/optionDecisions';
 import { loadWorldGovernedExtensionAuthority } from '@/features/architect/utils/extensions';
 import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
+import type { GovernedOfferSheetLifecycle } from '@/schemas/governedOfferSheet';
 
 // Wave 48 Step 1: lineage helpers extracted to submodule
 export * from './mutationPipeline.read.stateLoader.lineage';
@@ -286,7 +282,9 @@ function rawRosterEntryId(entry: unknown): string {
   }
   if (entry && typeof entry === 'object') {
     const record = entry as Record<string, unknown>;
-    return String(record.playerId || record.player_id || record.id || '').trim();
+    return String(
+      record.playerId || record.player_id || record.id || ''
+    ).trim();
   }
   return '';
 }
@@ -324,9 +322,7 @@ async function ensureOfferSheetPlayerOnHomeTeamSnapshot({
   const offerSheet =
     findRawOfferSheetById(homeTeam.incomingOfferSheets, offerSheetId) ||
     findRawOfferSheetById(offeringTeam?.offerSheets, offerSheetId);
-  const playerId = String(
-    payloadPlayerId || offerSheet?.playerId || ''
-  ).trim();
+  const playerId = String(payloadPlayerId || offerSheet?.playerId || '').trim();
   if (!playerId) {
     return homeTeam;
   }
@@ -377,7 +373,6 @@ async function ensureOfferSheetPlayerOnHomeTeamSnapshot({
     roster: rosterHasPlayer ? existingRoster : [...existingRoster, playerId],
   };
 }
-
 
 // ==============================================================================
 // MAIN ENTRY POINT
@@ -542,10 +537,7 @@ export async function loadStateForMutation(
         await Promise.all([
           teamDocumentExists
             ? Promise.resolve({ source: null, checkedSnapshots: [] })
-            : getWorldTeamSnapshotLineageReceipt(
-                ancestorWorldIds,
-                teamCode
-              ),
+            : getWorldTeamSnapshotLineageReceipt(ancestorWorldIds, teamCode),
           playerDocumentExists
             ? Promise.resolve({ source: null, checkedSnapshots: [] })
             : getWorldPlayerSnapshotLineageReceipt(
@@ -580,10 +572,10 @@ export async function loadStateForMutation(
           digest: teamDocumentDigest,
           sourceWorldId: teamDocumentExists
             ? worldId
-            : ancestorTeamDocument?.snapshotWorldId ?? null,
+            : (ancestorTeamDocument?.snapshotWorldId ?? null),
           sourceDigest: teamDocumentExists
             ? teamDocumentDigest
-            : ancestorTeamDocument?.snapshotDigest ?? null,
+            : (ancestorTeamDocument?.snapshotDigest ?? null),
           sourceLineage: ancestorTeamResolution.checkedSnapshots,
         },
         extensionPlayerSnapshot: {
@@ -591,10 +583,10 @@ export async function loadStateForMutation(
           digest: playerDocumentDigest,
           sourceWorldId: playerDocumentExists
             ? worldId
-            : ancestorPlayerDocument?.overrideWorldId ?? null,
+            : (ancestorPlayerDocument?.overrideWorldId ?? null),
           sourceDigest: playerDocumentExists
             ? playerDocumentDigest
-            : ancestorPlayerDocument?.snapshotDigest ?? null,
+            : (ancestorPlayerDocument?.snapshotDigest ?? null),
           sourceLineage: ancestorPlayerResolution.checkedSnapshots,
         },
       };
@@ -854,11 +846,6 @@ export type MutationPlayerIdCarrier = Pick<
   'player_id' | 'playerId' | 'id'
 >;
 
-
-
-
-
-
 export function matchesOfferSheetIdentity(
   offerSheet: ArchitectMutationOfferSheet | null | undefined,
   offerSheetId: string,
@@ -910,12 +897,14 @@ export function buildNormalizedOfferSheetFinalContract({
   signedUsing,
   timestamp,
   signingDate,
+  governedLifecycle,
 }: {
   offerSheet: ArchitectMutationOfferSheet;
   signingTeam: string;
   signedUsing: string;
   timestamp: number;
   signingDate?: string;
+  governedLifecycle?: GovernedOfferSheetLifecycle;
 }) {
   const salariesByYear = (offerSheet.salariesByYear || [])
     .map(normalizeSalaryRow)
@@ -943,6 +932,23 @@ export function buildNormalizedOfferSheetFinalContract({
         ? computedTotalValue
         : undefined;
 
+  const resolutionEvent = governedLifecycle?.events.at(-1);
+  const matchRestriction =
+    governedLifecycle && resolutionEvent?.eventKind === 'offer-sheet-matched'
+      ? {
+          restrictionVersion: 1 as const,
+          lifecycleId: governedLifecycle.ledgerId,
+          eventId: resolutionEvent.eventId,
+          matchedAt: resolutionEvent.executedAt,
+          restrictedUntil: resolutionEvent.restrictionsUntil,
+          offeringTeamId: governedLifecycle.offeringTeamId,
+          playerTradeConsentRequired:
+            resolutionEvent.playerTradeConsentRequired,
+          offeringTeamTradeBarred: resolutionEvent.offeringTeamTradeBarred,
+          signAndTradeBarred: resolutionEvent.signAndTradeBarred,
+        }
+      : undefined;
+
   const normalizedContract = normalizeContractForWorld({
     contractType: 'Standard',
     signedUsing,
@@ -956,6 +962,13 @@ export function buildNormalizedOfferSheetFinalContract({
     rfaOfferSheet: undefined,
     rfaOfferSheetOnly: undefined,
     rfaOfferSheetStatus: undefined,
+    tradeRestrictions: matchRestriction
+      ? [
+          `Matched Offer Sheet: player consent required and offering-Team trade barred through ${matchRestriction.restrictedUntil}`,
+          `Matched Offer Sheet: contract amendment and sign-and-trade barred through ${matchRestriction.restrictedUntil}`,
+        ]
+      : undefined,
+    offerSheetMatchRestriction: matchRestriction,
   }) as ArchitectMutationContract | null;
 
   return removeUndefinedDeep(normalizedContract) as ArchitectMutationContract;

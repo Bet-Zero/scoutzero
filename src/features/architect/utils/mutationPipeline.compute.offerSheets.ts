@@ -46,7 +46,8 @@ export function computeFinalizeMatchedOfferSheetResult({
     currentState,
     seasonId,
     timestamp,
-    resolutionAt: asOfDate,
+    resolutionAt: payload.offerSheetResolutionAt,
+    worldAsOfDate: asOfDate,
     acceptedStatuses: ['MATCHED'],
     metadataType: 'finalizeMatchedOfferSheet',
   });
@@ -73,7 +74,8 @@ export function computeFinalizeDeclinedOfferSheetResult({
     currentState,
     seasonId,
     timestamp,
-    resolutionAt: asOfDate,
+    resolutionAt: payload.offerSheetResolutionAt,
+    worldAsOfDate: asOfDate,
     acceptedStatuses: ['DECLINED'],
     metadataType: 'finalizeDeclinedOfferSheet',
   });

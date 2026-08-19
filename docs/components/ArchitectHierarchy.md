@@ -453,6 +453,7 @@ utils/
   nonTradeMutationValidationStage.ts
   offerSheets/
     governedOfferSheetLifecycle.ts
+    governedOfferSheetRestrictions.ts
     governedOfferSheetTerms.ts
     governedOfferSheetTime.ts
     index.ts
@@ -621,5 +622,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-19T03:28:54.389Z*
+*Generated on: 2026-08-19T04:48:00.666Z*
 *Auto-updated by: npm run docs*

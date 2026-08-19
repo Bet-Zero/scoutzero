@@ -11,6 +11,7 @@ import {
   TradeTeam,
   ValidationIssue,
 } from '../constants/types';
+import { inspectGovernedOfferSheetMatchRestriction } from '@/features/architect/utils/offerSheets';
 import { summarizeValidationIssues } from '../utils/validationIssueText';
 
 type ConsentPlayer = TradeExceptionPlayer & {
@@ -29,6 +30,7 @@ type ConsentPlayer = TradeExceptionPlayer & {
     fullNTC?: boolean;
     limitedNTCList?: Array<string | number>;
     yearsRemaining?: number;
+    offerSheetMatchRestriction?: unknown;
   };
 };
 
@@ -66,9 +68,12 @@ function resolveDestinationTeamId(
   let destTeamId: string | number | null = null;
 
   if (teams.length === 2) {
-    const otherTeam = teams.find((candidate) => candidate.teamId !== team.teamId);
+    const otherTeam = teams.find(
+      (candidate) => candidate.teamId !== team.teamId
+    );
     if (otherTeam) {
-      destTeamId = (otherTeam.teamId as string | number | null | undefined) || null;
+      destTeamId =
+        (otherTeam.teamId as string | number | null | undefined) || null;
     }
   } else if (teams.length > 2) {
     destTeamId = player.destTeamId || player.toTeamId || null;
@@ -99,6 +104,55 @@ export function validateConsent(
   outgoingPlayers.forEach((player) => {
     const playerName = getPlayerName(player);
     const destTeamId = resolveDestinationTeamId(team, player, tradeCtx);
+    const offerSheetRestriction = inspectGovernedOfferSheetMatchRestriction(
+      player.contract?.offerSheetMatchRestriction,
+      tradeCtx.asOfDate ?? tradeCtx.tradeDate
+    );
+
+    if (
+      offerSheetRestriction.status === 'incompatible' ||
+      offerSheetRestriction.status === 'needs-input'
+    ) {
+      violations.push(
+        createIssue(
+          `${playerName}'s matched Offer Sheet restriction cannot be certified for this trade`,
+          'CONSENT__OFFER_SHEET_RESTRICTION_UNRESOLVED',
+          null,
+          { playerName }
+        )
+      );
+    } else if (offerSheetRestriction.status === 'active') {
+      const offeringTeamId =
+        offerSheetRestriction.restriction.offeringTeamId.toUpperCase();
+      if (!destTeamId) {
+        violations.push(
+          createIssue(
+            `${playerName}'s trade destination is required while matched Offer Sheet restrictions are active`,
+            'CONSENT__OFFER_SHEET_DESTINATION_REQUIRED',
+            null,
+            { playerName }
+          )
+        );
+      } else if (String(destTeamId).toUpperCase() === offeringTeamId) {
+        violations.push(
+          createIssue(
+            `${playerName} cannot be traded to the Offer Sheet's offering Team before ${offerSheetRestriction.restriction.restrictedUntil}`,
+            'CONSENT__OFFER_SHEET_OFFERING_TEAM_BARRED',
+            null,
+            { playerName, destTeamId }
+          )
+        );
+      } else if (!hasConsent(player)) {
+        violations.push(
+          createIssue(
+            `${playerName} must consent to a trade before ${offerSheetRestriction.restriction.restrictedUntil} after a matched Offer Sheet`,
+            'CONSENT__OFFER_SHEET_PLAYER_CONSENT_REQUIRED',
+            null,
+            { playerName, destTeamId }
+          )
+        );
+      }
+    }
 
     if (hasFullNTC(player) && !hasConsent(player)) {
       violations.push(
@@ -126,7 +180,11 @@ export function validateConsent(
       );
     }
 
-    if (destTeamId && birdRightsVetoApplies(player, destTeamId) && !hasConsent(player)) {
+    if (
+      destTeamId &&
+      birdRightsVetoApplies(player, destTeamId) &&
+      !hasConsent(player)
+    ) {
       violations.push(
         createIssue(
           `${playerName} has Bird rights veto power and must consent`,
@@ -141,7 +199,9 @@ export function validateConsent(
   return {
     passed: violations.length === 0,
     violations,
-    message: violations.length ? 'Player consent required' : 'Player consent validated',
+    message: violations.length
+      ? 'Player consent required'
+      : 'Player consent validated',
     details: summarizeValidationIssues(violations),
   };
 }

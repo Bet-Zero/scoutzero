@@ -10,10 +10,8 @@
  *  - Return Package: return_packages/trade_machine/TM_VALIDATOR_TS_FREE_AGENCY_OFFER_SHEET_SURFACE_E91_RETURN_PACKAGE.md
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
-import type {
-  FreeAgencyActionOwner,
-  OfferSheetResolutionInput,
-} from './hooks/useArchitectActions';
+import type { FreeAgencyActionOwner } from './hooks/useArchitectActions';
+import type { OfferSheetResolutionInput } from './hooks/useArchitectActions';
 import type {
   FreeAgentSurfaceEntry,
   FreeAgentPoolProps,

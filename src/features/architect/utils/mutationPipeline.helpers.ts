@@ -6,12 +6,8 @@
  * OWNERSHIP: Feature: architect/core
  */
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
-import {
-  synchronizeTeamTotalsSnapshot,
-} from '@/features/architect/utils/capTotals/computeTeamCapTotals';
-import {
-  normalizeCanonicalTeamExceptions,
-} from '@/features/architect/utils/exceptions/exceptionOwnership';
+import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { normalizeCanonicalTeamExceptions } from '@/features/architect/utils/exceptions/exceptionOwnership';
 
 // Type-only imports from the pipeline (safe: import type is erased at runtime — no circular dep at runtime)
 import type {
@@ -58,9 +54,36 @@ export const CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY = `${CURRENT_STAT
 // ==============================================================================
 
 export const AUTHORITATIVE_WORLD_TEAM_CODES = [
-  'ATL', 'BOS', 'BKN', 'CHA', 'CHI', 'CLE', 'DAL', 'DEN', 'DET', 'GSW',
-  'HOU', 'IND', 'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN', 'NOP', 'NYK',
-  'OKC', 'ORL', 'PHI', 'PHX', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS',
+  'ATL',
+  'BOS',
+  'BKN',
+  'CHA',
+  'CHI',
+  'CLE',
+  'DAL',
+  'DEN',
+  'DET',
+  'GSW',
+  'HOU',
+  'IND',
+  'LAC',
+  'LAL',
+  'MEM',
+  'MIA',
+  'MIL',
+  'MIN',
+  'NOP',
+  'NYK',
+  'OKC',
+  'ORL',
+  'PHI',
+  'PHX',
+  'POR',
+  'SAC',
+  'SAS',
+  'TOR',
+  'UTA',
+  'WAS',
 ] as const;
 
 export const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
@@ -98,6 +121,7 @@ export const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
   'tradeKicker',
   'tradeRestrictions',
   'tradeEligibility',
+  'offerSheetMatchRestriction',
 ] as const;
 // These current-contract fields remain on the normalized player seam because
 // option/signing flows spread the existing contract before canonicalization and
@@ -124,7 +148,6 @@ export const CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS = [
   'tradeRestrictions',
 ] as const;
 
-
 // ==============================================================================
 // WRITES SUMMARY CONSTANT
 // ==============================================================================
@@ -145,7 +168,6 @@ export const EMPTY_WRITES_SUMMARY = Object.freeze({
   worldMetadataPatched: 0,
   worldStatsUpdated: false,
 }) as WritesSummaryLike;
-
 
 // Wave 22 Step 1: primitive coercions extracted to submodule
 export * from './mutationPipeline.helpers.primitives';
@@ -187,7 +209,6 @@ import {
 
 // Wave 22 Step 2: player persistence helpers extracted to submodule
 export * from './mutationPipeline.helpers.persistence';
-
 
 // ==============================================================================
 // LOCAL TYPES
@@ -233,7 +254,6 @@ type CurrentStateWithOfferSheetTeams<
   offeringTeam: NonNullable<TCurrentState['offeringTeam']>;
   offerSheetId: string;
 };
-
 
 // ==============================================================================
 // SHARED HELPERS (called from both READ and COMPUTE sections)
@@ -309,7 +329,6 @@ export function materializeCurrentStateBaseTeamPreservedFields<
   return materializedTeam;
 }
 
-
 export function toMutationExceptionPreserveOnlyBuckets(
   value: unknown
 ): MutationExceptionPreserveOnlyBuckets | null {
@@ -323,7 +342,6 @@ export function normalizeMutationExceptionsFromIngress(
     exceptions: toMutationExceptionPreserveOnlyBuckets(value) || null,
   });
 }
-
 
 export function getMutationRosterEntryId(entry: unknown) {
   if (!entry) {
@@ -350,8 +368,9 @@ export function getMutationRosterEntryId(entry: unknown) {
   return playerId || null;
 }
 
-
-export function requireBasicTeamState<TCurrentState extends { team?: unknown | null }>(
+export function requireBasicTeamState<
+  TCurrentState extends { team?: unknown | null },
+>(
   currentState: TCurrentState,
   mutationType: string
 ): CurrentStateWithBasicTeam<TCurrentState> {
@@ -402,7 +421,6 @@ export function requireSigningState<
   return currentState as CurrentStateWithSigningPair<TCurrentState>;
 }
 
-
 export function requireDestinationState(
   currentState: MutationSignAndTradeCurrentState,
   mutationType: string
@@ -442,7 +460,6 @@ export function requireOfferSheetTeamState<
   return currentState as CurrentStateWithOfferSheetTeams<TCurrentState>;
 }
 
-
 // Local boundary helper for the live team.source spread sites only.
 export function getTeamSourceRecord(
   source: TeamLike['source'] | null | undefined
@@ -459,7 +476,6 @@ export function getTeamSourceRecord(
   return {};
 }
 
-
 export function getSalaryRowEndYear(
   row: MutationPipelineSalaryRow | null | undefined
 ): number | null {
@@ -470,7 +486,6 @@ export function getSalaryRowEndYear(
 
   return toEndYear(row?.season) ?? null;
 }
-
 
 export function synchronizeTeamTotalsSnapshotOrTeam<
   T extends
@@ -483,7 +498,6 @@ export function synchronizeTeamTotalsSnapshotOrTeam<
 
   return (synchronizeTeamTotalsSnapshot(team, year) || team) as T;
 }
-
 
 export function cloneWritesSummary(
   summary: WritesSummaryLike = EMPTY_WRITES_SUMMARY

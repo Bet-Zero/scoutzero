@@ -16,6 +16,7 @@ import type {
   ValidationIssue,
   ValidationResult,
 } from '../constants/types';
+import { inspectGovernedOfferSheetMatchRestriction } from '@/features/architect/utils/offerSheets';
 
 type SignAndTradeRulePlayer = SignAndTradeContractCarrier & {
   signAndTrade?: boolean;
@@ -95,7 +96,9 @@ function resolveTeamId(team: SignAndTradeRuleTeam): string | null {
     : null;
 }
 
-function resolveDestinationTeamId(player: SignAndTradeRulePlayer): string | null {
+function resolveDestinationTeamId(
+  player: SignAndTradeRulePlayer
+): string | null {
   const destination =
     player.tradeTo ||
     player.receivingTeamId ||
@@ -103,7 +106,9 @@ function resolveDestinationTeamId(player: SignAndTradeRulePlayer): string | null
     player.destTeamId ||
     null;
 
-  return typeof destination === 'string' && destination.trim() ? destination : null;
+  return typeof destination === 'string' && destination.trim()
+    ? destination
+    : null;
 }
 
 function isTradeMachinePath(tradeCtx: SignAndTradeTradeContext = {}): boolean {
@@ -116,7 +121,9 @@ function getValidationYear(
   return tradeCtx.currentYear || tradeCtx.yearKey || null;
 }
 
-function getSourceTeamCapHolds(team: SignAndTradeRuleTeam): SignAndTradeCapHold[] {
+function getSourceTeamCapHolds(
+  team: SignAndTradeRuleTeam
+): SignAndTradeCapHold[] {
   if (Array.isArray(team.team?.capHolds)) {
     return team.team.capHolds;
   }
@@ -135,7 +142,9 @@ function getContractPlayerLabel(player: SignAndTradeRulePlayer): string {
   return String(player.name || player.id || 'Player');
 }
 
-function isReceivingTeamTaxpayerMleBlocked(team: SignAndTradeRuleTeam): boolean {
+function isReceivingTeamTaxpayerMleBlocked(
+  team: SignAndTradeRuleTeam
+): boolean {
   return (
     team.team?.usedTaxpayerMLEThisSeason === true ||
     team.usedTaxpayerMLEThisSeason === true
@@ -182,11 +191,43 @@ export function validateSignAndTrade(
     (player) => player.signAndTrade === true
   );
 
+  for (const player of [
+    ...incomingSignAndTradePlayers,
+    ...outgoingSignAndTradePlayers,
+  ]) {
+    const restriction = inspectGovernedOfferSheetMatchRestriction(
+      player.contract?.offerSheetMatchRestriction,
+      tradeCtx.asOfDate ?? tradeCtx.tradeDate ?? tradeDateObj
+    );
+    if (restriction.status === 'active') {
+      violations.push(
+        createIssue(
+          `${getPlayerLabel(player)} cannot be used in a sign-and-trade before ${restriction.restriction.restrictedUntil} after a matched Offer Sheet`,
+          'SIGN_AND_TRADE__OFFER_SHEET_MATCH_RESTRICTED',
+          null,
+          { playerId: player.id || null }
+        )
+      );
+    } else if (
+      restriction.status === 'incompatible' ||
+      restriction.status === 'needs-input'
+    ) {
+      violations.push(
+        createIssue(
+          `${getPlayerLabel(player)} has an unreadable matched Offer Sheet restriction`,
+          'SIGN_AND_TRADE__OFFER_SHEET_RESTRICTION_UNRESOLVED',
+          null,
+          { playerId: player.id || null }
+        )
+      );
+    }
+  }
+
   if (
     incomingSignAndTradePlayers.length === 0 &&
     outgoingSignAndTradePlayers.length === 0
   ) {
-    return buildValidationResult([], {
+    return buildValidationResult(violations, {
       hasSignAndTrade: false,
       hardCapped: false,
     });
@@ -198,7 +239,9 @@ export function validateSignAndTrade(
   const eligibilityYear = validationYear || tradeCtx.currentYear || 0;
   const sourceTeamId = resolveTeamId(team);
   const sourceTeamCapHolds = getSourceTeamCapHolds(team);
-  const activeTeamCount = Array.isArray(tradeCtx.teams) ? tradeCtx.teams.length : 2;
+  const activeTeamCount = Array.isArray(tradeCtx.teams)
+    ? tradeCtx.teams.length
+    : 2;
   const requireExplicitDestination =
     strictContractPayload || activeTeamCount >= 3;
 
@@ -285,9 +328,13 @@ export function validateSignAndTrade(
       return;
     }
 
-    const contract = resolveSignAndTradeContractPayload(player, validationYear, {
-      allowPlayerContractFallback: !strictContractPayload,
-    });
+    const contract = resolveSignAndTradeContractPayload(
+      player,
+      validationYear,
+      {
+        allowPlayerContractFallback: !strictContractPayload,
+      }
+    );
 
     const contractValidation = validateSignAndTradeContractPayload(
       contract,

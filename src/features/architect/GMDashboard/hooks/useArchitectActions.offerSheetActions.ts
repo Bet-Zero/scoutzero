@@ -43,7 +43,10 @@ import type { ArchitectReceiptActionContext } from '../postActionHandoff/types';
 export type UseOfferSheetActionsParams = {
   currentYear: number;
   teamCode: string;
-  reportMutationError: (message: string, details?: Record<string, unknown>) => void;
+  reportMutationError: (
+    message: string,
+    details?: Record<string, unknown>
+  ) => void;
   requireActiveWorldForFreeAgencyWorldOnlyCommit: (
     kind: FreeAgencyWorldOnlyActionKind,
     details?: Record<string, unknown>
@@ -93,7 +96,6 @@ export function useOfferSheetActions({
   prepareOfferSheetCreationDefinition,
   applyCapAuditedTeamMutation,
 }: UseOfferSheetActionsParams) {
-
   const handleStoreOfferSheet = useCallback(
     async (
       playerObj: ArchitectPlayer,
@@ -236,7 +238,7 @@ export function useOfferSheetActions({
             playerName: offerSheet?.playerName,
             dedupKey: offerSheet?.dedupKey,
             seasonKey: offerSheet?.seasonKey,
-            asOfDate: resolution?.resolutionAt,
+            offerSheetResolutionAt: resolution?.resolutionAt,
             offerSheetAveragingElection:
               action === 'match' ? resolution?.averagingElection : null,
           },
@@ -466,7 +468,6 @@ export function useOfferSheetActions({
     },
     [applyCapAuditedTeamMutation, currentYear, teamCode]
   );
-
 
   return {
     handleStoreOfferSheet,

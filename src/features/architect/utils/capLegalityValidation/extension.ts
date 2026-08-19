@@ -12,6 +12,7 @@ import {
   HARD_CAP_TYPES,
 } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile/computeProfile';
+import { inspectGovernedOfferSheetMatchRestriction } from '@/features/architect/utils/offerSheets';
 import type {
   CapLegalityViolation,
   MutationSalaryRow,
@@ -163,7 +164,6 @@ function getValidationHardCapStatus(
 // ==============================================================================
 // EXTENSION HELPER FUNCTIONS (Phase 3)
 // ==============================================================================
-
 
 /**
  * Get the last year's salary from a player's current contract.
@@ -459,7 +459,6 @@ export function validateExtensionTermsAndRaises({
  * @returns {{blocked: boolean, reason: string|null, violation: Object|null}}
  */
 
-
 /**
  * Validate a waive action
  *
@@ -491,12 +490,35 @@ export function validateExtension({
   player,
   extension,
   year,
+  asOfDate,
 }: ValidateExtensionParams): MutationValidationResult {
   const violations: CapLegalityViolation[] = [];
   const warnings: CapLegalityViolation[] = [];
 
   const capSettings = getCapSettings(year);
   const contract = player.contract;
+  const offerSheetRestriction = inspectGovernedOfferSheetMatchRestriction(
+    contract?.offerSheetMatchRestriction,
+    asOfDate
+  );
+
+  if (offerSheetRestriction.status === 'active') {
+    violations.push({
+      rule: 'offer_sheet_match_amendment_restricted',
+      message: `A contract matched from an Offer Sheet cannot be amended before ${offerSheetRestriction.restriction.restrictedUntil}.`,
+      severity: 'error',
+    });
+  } else if (
+    offerSheetRestriction.status === 'incompatible' ||
+    offerSheetRestriction.status === 'needs-input'
+  ) {
+    violations.push({
+      rule: 'offer_sheet_match_restriction_unresolved',
+      message:
+        'The matched Offer Sheet restriction cannot be certified for this extension.',
+      severity: 'error',
+    });
+  }
 
   // 0. PHASE 3: Check for two-way contracts (cannot be extended)
   const isTwoWay = getNormalizedContractType(contract) === 'two-way';

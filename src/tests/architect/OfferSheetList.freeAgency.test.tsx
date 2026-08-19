@@ -4,6 +4,7 @@ import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { OfferSheetList } from '@/features/architect/GMDashboard/components/OfferSheetList';
 import { FreeAgencySection } from '@/features/architect/GMDashboard/sections/FreeAgencySection';
+import { makePendingGovernedOfferSheetLifecycle } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 vi.mock('@/features/architect/freeAgency/FreeAgentPool', () => {
   const MockFreeAgentPool = () => (
@@ -23,6 +24,7 @@ const baseOfferSheet = {
   contractYears: 4,
   totalValue: 120_000_000,
   createdAt: '2026-02-12T00:00:00.000Z',
+  governedLifecycle: makePendingGovernedOfferSheetLifecycle(),
 };
 const RESOLUTION_AT = '2026-02-13T12:00:00-05:00';
 
@@ -76,9 +78,7 @@ describe('OfferSheetList Free Agency wiring', () => {
     fireEvent.change(screen.getByTestId('offer-sheet-resolution-at-os_1'), {
       target: { value: RESOLUTION_AT },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: /^Match$/i })
-    );
+    fireEvent.click(screen.getByRole('button', { name: /^Match$/i }));
     expect(onLifecycleAction).toHaveBeenCalledTimes(1);
     expect(onLifecycleAction).toHaveBeenCalledWith({
       action: 'match',
@@ -107,9 +107,7 @@ describe('OfferSheetList Free Agency wiring', () => {
     fireEvent.change(screen.getByTestId('offer-sheet-resolution-at-os_1'), {
       target: { value: RESOLUTION_AT },
     });
-    fireEvent.click(
-      screen.getByRole('button', { name: /^Decline$/i })
-    );
+    fireEvent.click(screen.getByRole('button', { name: /^Decline$/i }));
     expect(onLifecycleAction).toHaveBeenCalledTimes(1);
     expect(onLifecycleAction).toHaveBeenCalledWith({
       action: 'decline',
@@ -194,7 +192,7 @@ describe('OfferSheetList Free Agency wiring', () => {
     render(
       <OfferSheetList
         title="Incoming"
-        offerSheets={[{ ...baseOfferSheet, status: 'PENDING_MATCH' }]}
+        offerSheets={[{ ...baseOfferSheet, status: 'PENDING_MATCH' as const }]}
         surfaceRole="incoming"
         onLifecycleAction={vi.fn()}
         actionsDisabled
@@ -205,12 +203,51 @@ describe('OfferSheetList Free Agency wiring', () => {
     expect(
       screen.getByText(/Requires an active world to commit\./i)
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Match$/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Decline$/i })).toBeDisabled();
+  });
+
+  it('disables resolution when the retained governed lifecycle is missing', () => {
+    render(
+      <OfferSheetList
+        title="Incoming"
+        offerSheets={[
+          {
+            ...baseOfferSheet,
+            status: 'PENDING_MATCH',
+            governedLifecycle: undefined,
+          },
+        ]}
+        surfaceRole="incoming"
+        onLifecycleAction={vi.fn()}
+      />
+    );
+
     expect(
-      screen.getByRole('button', { name: /^Match$/i })
-    ).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: /^Decline$/i })
-    ).toBeDisabled();
+      screen.getByText(
+        /missing the saved notice record required to resolve it/i
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Match$/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Decline$/i })).toBeDisabled();
+  });
+
+  it('keeps resolution disabled when the stated offset is not Eastern for that date', () => {
+    render(
+      <OfferSheetList
+        title="Incoming"
+        offerSheets={[{ ...baseOfferSheet, status: 'PENDING_MATCH' as const }]}
+        surfaceRole="incoming"
+        onLifecycleAction={vi.fn()}
+      />
+    );
+
+    fireEvent.change(screen.getByTestId('offer-sheet-resolution-at-os_1'), {
+      target: { value: '2026-07-09T17:00:00-05:00' },
+    });
+
+    expect(screen.getByRole('button', { name: /^Match$/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Decline$/i })).toBeDisabled();
   });
 
   it('returns null for empty offer sheet arrays', () => {
@@ -304,16 +341,11 @@ describe('FreeAgencySection offer-sheet lifecycle routing', () => {
       />
     );
 
-    fireEvent.change(
-      screen.getByTestId('offer-sheet-resolution-at-os_match'),
-      { target: { value: RESOLUTION_AT } }
-    );
-    fireEvent.click(
-      screen.getByRole('button', { name: /^Match$/i })
-    );
-    fireEvent.click(
-      screen.getByRole('button', { name: /^Decline$/i })
-    );
+    fireEvent.change(screen.getByTestId('offer-sheet-resolution-at-os_match'), {
+      target: { value: RESOLUTION_AT },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /^Match$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^Decline$/i }));
     fireEvent.click(screen.getByRole('button', { name: /Finalize Match/i }));
     fireEvent.click(screen.getByRole('button', { name: /Finalize Signing/i }));
 
@@ -401,13 +433,9 @@ describe('FreeAgencySection offer-sheet lifecycle routing', () => {
         /Offer-sheet lifecycle actions require an active world to commit\./i
       ).length
     ).toBeGreaterThan(0);
-    expect(
-      screen.getByRole('button', { name: /^Match$/i })
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^Match$/i })).toBeDisabled();
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /^Match$/i })
-    );
+    fireEvent.click(screen.getByRole('button', { name: /^Match$/i }));
 
     expect(matchOfferSheet).not.toHaveBeenCalled();
   });

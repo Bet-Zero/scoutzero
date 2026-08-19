@@ -171,10 +171,12 @@ export function computeStoreOfferSheetResult({
     return {
       success: false,
       error: governed.reasons.join(' '),
-      warnings: [{
-        status: governed.status,
-        reasons: governed.reasons,
-      }],
+      warnings: [
+        {
+          status: governed.status,
+          reasons: governed.reasons,
+        },
+      ],
     };
   }
   const createdAt = governed.receivedAt;
@@ -320,7 +322,8 @@ export function computeMatchOfferSheetResult({
     currentState,
     seasonId,
     timestamp,
-    resolutionAt: asOfDate,
+    resolutionAt: payload.offerSheetResolutionAt,
+    worldAsOfDate: asOfDate,
     acceptedStatuses: ['PENDING_MATCH'],
     metadataType: 'matchOfferSheet',
   });
@@ -347,7 +350,8 @@ export function computeDeclineOfferSheetResult({
     currentState,
     seasonId,
     timestamp,
-    resolutionAt: asOfDate,
+    resolutionAt: payload.offerSheetResolutionAt,
+    worldAsOfDate: asOfDate,
     acceptedStatuses: ['PENDING_MATCH'],
     metadataType: 'declineOfferSheet',
   });

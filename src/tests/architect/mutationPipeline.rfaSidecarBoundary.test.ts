@@ -151,6 +151,7 @@ vi.mock('@/features/architect/utils/leagueInvariants', () => ({
 }));
 
 import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 const WORLD_ID = 'world_rfa_sidecar_boundary';
 const PARENT_WORLD_ID = 'world_rfa_sidecar_boundary_parent';
@@ -310,7 +311,25 @@ describe('mutationPipeline RFA sidecar boundary', () => {
   });
 
   it('storeOfferSheet still resolves canonical public player identity through lineage merge output', async () => {
-    seedWorldMetadata(WORLD_ID, { parentWorldId: PARENT_WORLD_ID });
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: WORLD_ID,
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
+    seedWorldMetadata(WORLD_ID, {
+      parentWorldId: PARENT_WORLD_ID,
+      asOfDate: governed.asOfDate,
+    });
+    seedDoc(`architect_worlds/${WORLD_ID}`, {
+      createdBy: 'user_boundary',
+      parentWorldId: PARENT_WORLD_ID,
+      asOfDate: governed.asOfDate,
+    });
     seedWorldMetadata(PARENT_WORLD_ID, { parentWorldId: null });
 
     const offeringTeam = makeTeam('BOS', []);
@@ -323,11 +342,13 @@ describe('mutationPipeline RFA sidecar boundary', () => {
         contract: makeContract(7_500_000, {
           freeAgency: { type: 'RFA', year: 2026 },
         }),
+        rfaContext: { governedEvidence: governed.evidence },
       }
     );
     const homeTeamSnapshot = makeTeam('NYK', [homeSnapshotPlayer], {
       roster: ['rfa_1'],
       players: [homeSnapshotPlayer],
+      rightsLedger: governed.rightsLedger,
     });
 
     seedDoc(
@@ -368,29 +389,14 @@ describe('mutationPipeline RFA sidecar boundary', () => {
         worldId: WORLD_ID,
         teamCode: 'BOS',
         playerId: 'rfa_1',
-        contract: makeContract(9_000_000, {
-          years: 2,
-          contractYears: 2,
-          totalValue: 18_000_000,
-          freeAgency: {
-            type: 'RFA',
-            year: 2026,
-            capHold: null,
-            qualifyingOffer: null,
-            earlyTerminationOption: null,
-            hasOption: false,
-            optionYear: null,
-            optionType: null,
-          },
-          rfaOfferSheet: true,
-          rfaOfferSheetOnly: true,
-        }),
+        contract: governed.contract,
+        offerSheetProposal: governed.proposal,
         signedUsing: 'Offer Sheet',
       },
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
+    expect(result.success, String(result.error)).toBe(true);
 
     const outgoingOfferSheet = result.changedTeams?.find(
       (update) => update.teamCode === 'BOS'
@@ -488,6 +494,23 @@ describe('mutationPipeline RFA sidecar boundary', () => {
   });
 
   it('finalizeMatchedOfferSheet omits the player-level RFA sidecar from the persisted override payload', async () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: WORLD_ID,
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      offerSheetId: 'os_rfa_1',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
+    seedWorldMetadata(WORLD_ID, { asOfDate: governed.asOfDate });
+    seedDoc(`architect_worlds/${WORLD_ID}`, {
+      createdBy: 'user_boundary',
+      parentWorldId: null,
+      asOfDate: governed.asOfDate,
+    });
     const offerSheet = {
       id: 'os_rfa_1',
       dedupKey: `os:${WORLD_ID}:BOS:rfa_1:${SEASON_ID}`,
@@ -517,6 +540,7 @@ describe('mutationPipeline RFA sidecar boundary', () => {
       ],
       status: 'MATCHED',
       createdAt: FIXED_TIMESTAMP_ISO,
+      governedLifecycle: governed.lifecycle,
     };
     const homePlayer = makePlayer('rfa_1', 'Home Player', 7_500_000, 'NYK', {
       rfaOfferSheet: true,
@@ -552,6 +576,7 @@ describe('mutationPipeline RFA sidecar boundary', () => {
         offeringTeamCode: 'BOS',
         offerSheetId: 'os_rfa_1',
         dedupKey: `os:${WORLD_ID}:BOS:rfa_1:${SEASON_ID}`,
+        offerSheetResolutionAt: governed.resolutionAt,
       },
       timestamp: FIXED_TIMESTAMP,
     });
