@@ -439,6 +439,11 @@ describe('mutationPipeline player override boundary', () => {
       }
       throw new Error(`Unexpected team load: ${teamCode}`);
     });
+    testState.getPlayer.mockResolvedValue({
+      ...homeSnapshotPlayer,
+      displayName: 'Immutable Base Name',
+      rfaContext: { governedEvidence: governed.evidence },
+    });
 
     const result = await applyWorldMutation({
       userId: 'user_boundary',
