@@ -53,6 +53,7 @@ export type SignAndTradeContractLike = {
   years?: number | null;
   firstYearGuaranteed?: boolean | null;
   signingTeam?: string | null;
+  offerSheetMatchRestriction?: unknown;
 };
 
 export type SignAndTradeNormalizedContract = SignAndTradeContractLike & {
@@ -147,28 +148,33 @@ function normalizeTeamCode(value: unknown): string | null {
   return trimmed.length === 3 ? trimmed.toUpperCase() : trimmed;
 }
 
-function resolvePlayerId(player: Record<string, unknown> | null | undefined): string | null {
+function resolvePlayerId(
+  player: Record<string, unknown> | null | undefined
+): string | null {
   if (!player) return null;
   const bio = player.bio as Record<string, unknown> | null | undefined;
   const raw =
-    player.playerId ||
-    player.player_id ||
-    player.id ||
-    bio?.playerId ||
-    null;
+    player.playerId || player.player_id || player.id || bio?.playerId || null;
   return raw ? String(raw) : null;
 }
 
-function resolvePlayerName(player: Record<string, unknown> | null | undefined): string | null {
+function resolvePlayerName(
+  player: Record<string, unknown> | null | undefined
+): string | null {
   if (!player) return null;
   const bio = player.bio as Record<string, unknown> | null | undefined;
   const raw = player.displayName || player.name || bio?.displayName || null;
   return raw ? String(raw) : null;
 }
 
-function resolvePlayerTeamId(player: Record<string, unknown> | null | undefined) {
+function resolvePlayerTeamId(
+  player: Record<string, unknown> | null | undefined
+) {
   if (!player) return null;
-  const contract = player.contract as Record<string, unknown> | null | undefined;
+  const contract = player.contract as
+    | Record<string, unknown>
+    | null
+    | undefined;
   return normalizeTeamCode(
     player.teamCode ||
       player.teamId ||
@@ -205,12 +211,16 @@ function toSeasonString(endYear: number): string {
 }
 
 function getContractRows(player: Record<string, unknown>) {
-  const contract = player?.contract as Record<string, unknown> | null | undefined;
-  const primaryContract = player?.primaryContract as Record<string, unknown> | null | undefined;
+  const contract = player?.contract as
+    | Record<string, unknown>
+    | null
+    | undefined;
+  const primaryContract = player?.primaryContract as
+    | Record<string, unknown>
+    | null
+    | undefined;
   const primaryRows =
-    contract?.salariesByYear ||
-    primaryContract?.salariesByYear ||
-    [];
+    contract?.salariesByYear || primaryContract?.salariesByYear || [];
   return Array.isArray(primaryRows) ? primaryRows : [];
 }
 
@@ -256,7 +266,9 @@ function matchPlayerCapHold(
     return true;
   }
   const holdName = hold.playerName || hold.name || null;
-  return Boolean(playerName && holdName && String(holdName) === String(playerName));
+  return Boolean(
+    playerName && holdName && String(holdName) === String(playerName)
+  );
 }
 
 function isActiveCapHoldForYear(
@@ -285,10 +297,22 @@ function isActiveCapHoldForYear(
 function resolveFreeAgencyYear(player: Record<string, unknown>): number | null {
   const bio = player?.bio as Record<string, unknown> | null | undefined;
   const bioDisplay = bio?.display as Record<string, unknown> | null | undefined;
-  const contract = player?.contract as Record<string, unknown> | null | undefined;
-  const contractFreeAgency = contract?.freeAgency as Record<string, unknown> | null | undefined;
-  const primaryContract = player?.primaryContract as Record<string, unknown> | null | undefined;
-  const primaryContractFreeAgency = primaryContract?.freeAgency as Record<string, unknown> | null | undefined;
+  const contract = player?.contract as
+    | Record<string, unknown>
+    | null
+    | undefined;
+  const contractFreeAgency = contract?.freeAgency as
+    | Record<string, unknown>
+    | null
+    | undefined;
+  const primaryContract = player?.primaryContract as
+    | Record<string, unknown>
+    | null
+    | undefined;
+  const primaryContractFreeAgency = primaryContract?.freeAgency as
+    | Record<string, unknown>
+    | null
+    | undefined;
   return toIntegerOrNull(
     player?.freeAgentYear ??
       bioDisplay?.freeAgentYear ??
@@ -324,19 +348,28 @@ export function getPlayerContractStatusForYear(
     endYear: number;
   }>;
 
-  const salaryRowForYear = rowsWithYear.find((entry) => entry.endYear === endYear);
-  const hasSalaryForYear = Boolean(salaryRowForYear && hasPositiveSalary(salaryRowForYear.row));
+  const salaryRowForYear = rowsWithYear.find(
+    (entry) => entry.endYear === endYear
+  );
+  const hasSalaryForYear = Boolean(
+    salaryRowForYear && hasPositiveSalary(salaryRowForYear.row)
+  );
   const salaryForYear = salaryRowForYear
     ? toFiniteNumber(salaryRowForYear.row.capHit ?? salaryRowForYear.row.salary)
     : 0;
   const hasFutureGuaranteedSalary = rowsWithYear.some(
-    (entry) => endYear != null && entry.endYear >= endYear && hasPositiveSalary(entry.row)
+    (entry) =>
+      endYear != null &&
+      entry.endYear >= endYear &&
+      hasPositiveSalary(entry.row)
   );
 
   const matchedHolds = capHolds.filter((hold) =>
     matchPlayerCapHold(hold, playerId, playerName)
   );
-  const hasActiveCapHold = matchedHolds.some((hold) => hold.active !== false && hold.isSigned !== true);
+  const hasActiveCapHold = matchedHolds.some(
+    (hold) => hold.active !== false && hold.isSigned !== true
+  );
   const hasSeasonMatchingCapHold = matchedHolds.some((hold) =>
     isActiveCapHoldForYear(hold, seasonKey, endYear)
   );
@@ -369,7 +402,10 @@ export function getPlayerContractStatusForYear(
     };
   }
 
-  if (hasFutureGuaranteedSalary || (freeAgencyYear != null && freeAgencyYear > endYear)) {
+  if (
+    hasFutureGuaranteedSalary ||
+    (freeAgencyYear != null && freeAgencyYear > endYear)
+  ) {
     return {
       status: PLAYER_CONTRACT_STATUS.UNDER_CONTRACT,
       reasonCode: hasFutureGuaranteedSalary
@@ -547,7 +583,8 @@ function normalizeSalaryRowsFromByYear(
 ) {
   return rows.map((row, index) => {
     const normalizedSeason = (() => {
-      if (typeof row.season === 'string' && row.season.trim()) return row.season;
+      if (typeof row.season === 'string' && row.season.trim())
+        return row.season;
       if (typeof row.year === 'number' && Number.isFinite(row.year)) {
         return toSeasonString(Math.trunc(row.year));
       }
@@ -635,7 +672,10 @@ export function resolveSignAndTradeContractPayload(
     sendOrPlayer.signAndTradeContract ||
     getNestedSignAndTradeContract(sendOrPlayer.signAndTrade) ||
     null;
-  const normalizedExplicit = normalizeSignAndTradeContractPayload(explicit, yearKey);
+  const normalizedExplicit = normalizeSignAndTradeContractPayload(
+    explicit,
+    yearKey
+  );
   if (normalizedExplicit) return normalizedExplicit;
 
   if (options.allowPlayerContractFallback) {
@@ -649,7 +689,8 @@ export function resolveSignAndTradeContractPayload(
               fallbackContractBase.salariesByYear ??
               sendOrPlayer.salariesByYear ??
               null,
-            salaries: fallbackContractBase.salaries ?? sendOrPlayer.salaries ?? null,
+            salaries:
+              fallbackContractBase.salaries ?? sendOrPlayer.salaries ?? null,
             contractYears:
               sendOrPlayer.contractYears ??
               sendOrPlayer.years ??
@@ -661,10 +702,7 @@ export function resolveSignAndTradeContractPayload(
           }
         : sendOrPlayer;
 
-    return normalizeSignAndTradeContractPayload(
-      fallbackContract,
-      yearKey
-    );
+    return normalizeSignAndTradeContractPayload(fallbackContract, yearKey);
   }
 
   return null;
@@ -734,7 +772,11 @@ export function getSignAndTradeSalaryForYear(
   yearKey: number | string,
   options: { allowPlayerContractFallback?: boolean } = {}
 ): number {
-  const contract = resolveSignAndTradeContractPayload(sendOrPlayer, yearKey, options);
+  const contract = resolveSignAndTradeContractPayload(
+    sendOrPlayer,
+    yearKey,
+    options
+  );
   if (!contract) return 0;
 
   const normalizedYear = normalizeYearInput(yearKey);

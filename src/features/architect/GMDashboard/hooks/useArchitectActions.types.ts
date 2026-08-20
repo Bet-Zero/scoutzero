@@ -20,6 +20,7 @@ import type {
   GovernedExtensionAvailability,
   GovernedExtensionProposal,
 } from '@/features/architect/utils/extensions';
+import type { GovernedOfferSheetAveragingElection } from '@/schemas/governedOfferSheet';
 
 import type {
   ArchitectGeneralMutationDashboardReloadTeamSnapshot,
@@ -267,6 +268,8 @@ export type SigningDetails = Omit<Partial<LocalContract>, 'birdRights'> & {
   overrideUsed?: boolean;
   overrideReasons?: string[];
   overrideTimestamp?: string;
+  /** BZE-283: signed Principal Terms and exact notice evidence. */
+  offerSheetProposal?: import('@/schemas/governedOfferSheet').GovernedOfferSheetProposal;
 };
 
 /** Waive options */
@@ -426,6 +429,11 @@ export interface OfferSheet {
   playerId?: string;
   playerName?: string;
   seasonKey?: string;
+}
+
+export interface OfferSheetResolutionInput {
+  resolutionAt: string;
+  averagingElection: GovernedOfferSheetAveragingElection | null;
 }
 
 export type OfferSheetResolutionAction = 'match' | 'decline';
@@ -749,8 +757,14 @@ export interface FreeAgencyWorldOnlyModalActionOwner {
 export interface FreeAgencyOfferSheetLifecycleActionOwner {
   // BZE-191: one-click resolution — Match keeps the player, Decline moves the
   // player + cap to the offering team, both in a single atomic mutation.
-  matchOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
-  declineOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
+  matchOfferSheet: (
+    offerSheet: OfferSheet | null | undefined,
+    resolution?: OfferSheetResolutionInput
+  ) => void;
+  declineOfferSheet: (
+    offerSheet: OfferSheet | null | undefined,
+    resolution?: OfferSheetResolutionInput
+  ) => void;
   finalizeOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
 }
 
@@ -878,8 +892,14 @@ export interface UseArchitectActionsReturn {
     playerObj: ArchitectPlayer,
     contract: SigningDetails
   ) => Promise<MutationActionResult>;
-  handleMatchOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
-  handleDeclineOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
+  handleMatchOfferSheet: (
+    offerSheet: OfferSheet | null | undefined,
+    resolution?: OfferSheetResolutionInput
+  ) => void;
+  handleDeclineOfferSheet: (
+    offerSheet: OfferSheet | null | undefined,
+    resolution?: OfferSheetResolutionInput
+  ) => void;
   handleFinalizeOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
 
   // Trade actions

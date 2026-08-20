@@ -8,13 +8,11 @@
  * Wave 48 Step 1: Lineage helpers extracted to submodule.
  */
 
-import {
-  getTeam,
-  getPlayer,
-} from '@/features/architect/utils/teamLoader';
+import { getTeam, getPlayer } from '@/features/architect/utils/teamLoader';
 import { getDoc } from 'firebase/firestore';
 import {
   worldPlayerRef,
+  worldOfferSheetAuthorizationRef,
   worldTeamRef,
 } from '@/features/architect/utils/architectFirestorePaths';
 import {
@@ -28,12 +26,17 @@ import {
   removeUndefinedDeep,
   toCurrentStatePlayer,
 } from './mutationPipeline.helpers';
-import {
-  toCurrentStateTeam,
-} from './mutationPipeline.read.normalizeTeam';
+import { toCurrentStateTeam } from './mutationPipeline.read.normalizeTeam';
 import { loadWorldGovernedOptionAuthority } from '@/features/architect/utils/optionDecisions';
 import { loadWorldGovernedExtensionAuthority } from '@/features/architect/utils/extensions';
 import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
+import {
+  GovernedOfferSheetAuthorizationZ,
+  GovernedOfferSheetEvidenceZ,
+  GovernedOfferSheetLifecycleZ,
+  type GovernedOfferSheetLifecycle,
+} from '@/schemas/governedOfferSheet';
+import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils/offerSheets';
 
 // Wave 48 Step 1: lineage helpers extracted to submodule
 export * from './mutationPipeline.read.stateLoader.lineage';
@@ -41,7 +44,6 @@ import {
   mergeLineageOverridePlayers,
   toLineageOverrideMergePlayer,
   resolveWorldLineage,
-  getFirstExplicitWorldTeamSnapshotFromLineage,
   getFirstExplicitWorldPlayerOverrideFromLineage,
   getWorldTeamSnapshotLineageReceipt,
   getWorldPlayerSnapshotLineageReceipt,
@@ -60,13 +62,74 @@ import type {
   MutationCurrentState,
   MutationCurrentStateBaseTeamIngress,
   MutationCurrentStateOfferSheetTeamIngress,
+  MutationCurrentStatePlayerIngress,
   MutationCurrentStateTradeTeamIngress,
+  MutationDocumentSnapshotReceipt,
   MutationPayloadLike,
   NormalizedMutationSalaryRow,
   PlayerDeleteLike,
   StoreOfferSheetOwnershipCandidate,
   SupportedComputeMutationType,
 } from './mutationPipeline';
+
+type TeamLineageReceipt = Awaited<
+  ReturnType<typeof getWorldTeamSnapshotLineageReceipt>
+>;
+
+type StoreOfferSheetOwnershipCandidateWithReceipt =
+  StoreOfferSheetOwnershipCandidate & {
+    lineageReceipt: TeamLineageReceipt;
+  };
+
+function requireStableTeamLineageReceipt({
+  before,
+  after,
+  teamCode,
+}: {
+  before: TeamLineageReceipt;
+  after: TeamLineageReceipt;
+  teamCode: string;
+}): void {
+  const beforeIdentity = {
+    sourceWorldId: before.source?.snapshotWorldId ?? null,
+    sourceDigest: before.source?.snapshotDigest ?? null,
+    checkedSnapshots: before.checkedSnapshots,
+  };
+  const afterIdentity = {
+    sourceWorldId: after.source?.snapshotWorldId ?? null,
+    sourceDigest: after.source?.snapshotDigest ?? null,
+    checkedSnapshots: after.checkedSnapshots,
+  };
+  if (
+    mutationSnapshotDigest(beforeIdentity) !==
+    mutationSnapshotDigest(afterIdentity)
+  ) {
+    throw new Error(
+      `Team snapshot for ${teamCode} changed while the Offer Sheet creation state was loading. Reload and try again.`
+    );
+  }
+}
+
+function toOfferSheetCreationTeamReceipt(
+  receipt: TeamLineageReceipt,
+  worldId: string
+): MutationDocumentSnapshotReceipt {
+  const [local, ...ancestorLineage] = receipt.checkedSnapshots;
+  if (!local || local.worldId !== worldId) {
+    throw new Error(
+      'Offer Sheet creation could not retain its exact Team lineage receipt.'
+    );
+  }
+  return Object.freeze({
+    exists: local.exists,
+    digest: local.digest,
+    sourceWorldId: receipt.source?.snapshotWorldId ?? null,
+    sourceDigest: receipt.source?.snapshotDigest ?? null,
+    sourceLineage: Object.freeze(
+      local.exists ? [] : ancestorLineage.map((entry) => Object.freeze(entry))
+    ),
+  });
+}
 
 export async function resolveStoreOfferSheetAuthority({
   worldId,
@@ -77,15 +140,18 @@ export async function resolveStoreOfferSheetAuthority({
   offeringTeamCode: string;
   playerId: string;
 }) {
-  const [offeringTeam, lineageWorldIds] = await Promise.all([
-    getTeam(worldId, offeringTeamCode).then((team) =>
+  const lineageWorldIds = await resolveWorldLineage(worldId);
+  const offeringLineageBefore =
+    await getWorldTeamSnapshotLineageReceipt(
+      lineageWorldIds,
+      offeringTeamCode
+    );
+  const offeringTeam = await getTeam(worldId, offeringTeamCode).then((team) =>
       toCurrentStateTeam(
         team as MutationCurrentStateOfferSheetTeamIngress | null,
         'signing'
       )
-    ),
-    resolveWorldLineage(worldId),
-  ]);
+    );
 
   if (!offeringTeam) {
     throw new Error(
@@ -96,11 +162,11 @@ export async function resolveStoreOfferSheetAuthority({
   const ownershipCandidates = (
     await Promise.all(
       AUTHORITATIVE_WORLD_TEAM_CODES.map(async (teamCode) => {
-        const snapshotEntry =
-          await getFirstExplicitWorldTeamSnapshotFromLineage(
-            lineageWorldIds,
-            teamCode
-          );
+        const lineageReceipt = await getWorldTeamSnapshotLineageReceipt(
+          lineageWorldIds,
+          teamCode
+        );
+        const snapshotEntry = lineageReceipt.source;
         if (!snapshotEntry) {
           return null;
         }
@@ -136,10 +202,11 @@ export async function resolveStoreOfferSheetAuthority({
           playersMatch,
           capHoldMatch,
           snapshotPlayer,
-        } as StoreOfferSheetOwnershipCandidate;
+          lineageReceipt,
+        } as StoreOfferSheetOwnershipCandidateWithReceipt;
       })
     )
-  ).filter(Boolean) as StoreOfferSheetOwnershipCandidate[];
+  ).filter(Boolean) as StoreOfferSheetOwnershipCandidateWithReceipt[];
 
   const rosterOwners = ownershipCandidates.filter(
     (candidate) => candidate.rosterMatch === true
@@ -151,7 +218,8 @@ export async function resolveStoreOfferSheetAuthority({
     (candidate) => candidate.capHoldMatch === true
   );
 
-  let resolvedOwner: StoreOfferSheetOwnershipCandidate | null = null;
+  let resolvedOwner: StoreOfferSheetOwnershipCandidateWithReceipt | null =
+    null;
 
   if (rosterOwners.length === 1) {
     resolvedOwner = rosterOwners[0];
@@ -205,13 +273,17 @@ export async function resolveStoreOfferSheetAuthority({
     );
   }
 
-  const capHoldRightsPlayer =
-    resolvedOwner.capHoldMatch && !resolvedOwner.snapshotPlayer
-      ? toCurrentStatePlayer(
-          await getPlayer(worldId, resolvedOwner.teamCode, playerId)
-        )
-      : null;
-  const sourcePlayer = resolvedOwner.snapshotPlayer || capHoldRightsPlayer;
+  // BZE-283 authority is source-owned. Team snapshots and player overrides are
+  // user-writable, so neither may author or replace the authenticated RFA/QO
+  // evidence used to permit an Offer Sheet. Always read that evidence from the
+  // immutable base player, while retaining world state for ownership and the
+  // player's mutable display/contract fields.
+  const immutableBasePlayer = toCurrentStatePlayer(
+    await getPlayer(null, resolvedOwner.teamCode, playerId)
+  );
+  const sourcePlayer = resolvedOwner.snapshotPlayer || immutableBasePlayer;
+  const sourceGovernedOfferSheetEvidence =
+    immutableBasePlayer?.rfaContext?.governedEvidence;
 
   const canonicalPlayer = overrideEntry
     ? normalizeCurrentStatePlayerSnapshot(
@@ -228,15 +300,54 @@ export async function resolveStoreOfferSheetAuthority({
     );
   }
 
+  const [offeringLineageAfter, homeLineageAfter] = await Promise.all([
+    getWorldTeamSnapshotLineageReceipt(lineageWorldIds, offeringTeamCode),
+    getWorldTeamSnapshotLineageReceipt(
+      lineageWorldIds,
+      resolvedOwner.teamCode
+    ),
+  ]);
+  requireStableTeamLineageReceipt({
+    before: offeringLineageBefore,
+    after: offeringLineageAfter,
+    teamCode: offeringTeamCode,
+  });
+  requireStableTeamLineageReceipt({
+    before: resolvedOwner.lineageReceipt,
+    after: homeLineageAfter,
+    teamCode: resolvedOwner.teamCode,
+  });
+
   return {
     team: offeringTeam,
     player: {
       ...canonicalPlayer,
+      ...(canonicalPlayer.rfaContext ||
+      sourceGovernedOfferSheetEvidence !== undefined
+        ? {
+            rfaContext: {
+              ...(canonicalPlayer.rfaContext || {}),
+              governedEvidence: sourceGovernedOfferSheetEvidence,
+            },
+          }
+        : {}),
       teamCode: resolvedOwner.teamCode,
       teamName: resolvedOwner.team.teamName || canonicalPlayer.teamName || null,
     },
     teamCode: offeringTeamCode,
     homeTeam: resolvedOwner.team,
+    offerSheetCreationSnapshots: Object.freeze({
+      homeTeamCode: resolvedOwner.teamCode,
+      offeringTeamCode,
+      homeTeam: toOfferSheetCreationTeamReceipt(
+        homeLineageAfter,
+        worldId
+      ),
+      offeringTeam: toOfferSheetCreationTeamReceipt(
+        offeringLineageAfter,
+        worldId
+      ),
+    }),
   };
 }
 
@@ -257,6 +368,121 @@ function findRawOfferSheetById(
   );
 }
 
+function requireImmutableOfferSheetResolutionAuthority({
+  worldId,
+  offerSheetId,
+  homeTeamCode,
+  offeringTeamCode,
+  homeSheet,
+  offeringSheet,
+  immutableBasePlayer,
+  authorizationDocument,
+}: {
+  worldId: string;
+  offerSheetId: string;
+  homeTeamCode: string;
+  offeringTeamCode: string;
+  homeSheet: Record<string, unknown> | null;
+  offeringSheet: Record<string, unknown> | null;
+  immutableBasePlayer: unknown;
+  authorizationDocument: {
+    exists: () => boolean;
+    data: () => unknown;
+  };
+}) {
+  const homeLifecycle = GovernedOfferSheetLifecycleZ.safeParse(
+    homeSheet?.governedLifecycle
+  );
+  const offeringLifecycle = GovernedOfferSheetLifecycleZ.safeParse(
+    offeringSheet?.governedLifecycle
+  );
+  const dedupKey = String(homeSheet?.dedupKey || '').trim();
+  if (
+    !homeLifecycle.success ||
+    !offeringLifecycle.success ||
+    homeLifecycle.data.status !== 'pending-match' ||
+    offeringLifecycle.data.status !== 'pending-match' ||
+    String(homeSheet?.id || '').trim() !== offerSheetId ||
+    String(offeringSheet?.id || '').trim() !== offerSheetId ||
+    String(offeringSheet?.dedupKey || '').trim() !== dedupKey ||
+    mutationSnapshotDigest(homeLifecycle.data) !==
+      mutationSnapshotDigest(offeringLifecycle.data)
+  ) {
+    throw new Error(
+      'Offer Sheet resolution requires two identical pending mirrors before immutable authorization can be verified.'
+    );
+  }
+
+  const expectedAuthorization = buildGovernedOfferSheetAuthorization({
+    lifecycle: homeLifecycle.data,
+    offerSheetId,
+    dedupKey,
+  });
+  const storedAuthorization = authorizationDocument.exists()
+    ? GovernedOfferSheetAuthorizationZ.safeParse(authorizationDocument.data())
+    : null;
+  if (
+    !storedAuthorization?.success ||
+    mutationSnapshotDigest(storedAuthorization.data) !==
+      mutationSnapshotDigest(expectedAuthorization) ||
+    storedAuthorization.data.worldId !== worldId ||
+    storedAuthorization.data.homeTeamId !== homeTeamCode ||
+    storedAuthorization.data.offeringTeamId !== offeringTeamCode
+  ) {
+    throw new Error(
+      'Offer Sheet resolution authorization does not match the immutable creation anchor.'
+    );
+  }
+
+  const basePlayer = toCurrentStatePlayer(
+    immutableBasePlayer as MutationCurrentStatePlayerIngress | null
+  );
+  const immutableEvidence = GovernedOfferSheetEvidenceZ.safeParse(
+    basePlayer?.rfaContext?.governedEvidence
+  );
+  if (
+    !immutableEvidence.success ||
+    mutationSnapshotDigest(immutableEvidence.data) !==
+      expectedAuthorization.immutableEvidenceDigest
+  ) {
+    throw new Error(
+      'Offer Sheet resolution authorization does not match immutable base evidence.'
+    );
+  }
+
+  return Object.freeze({
+    authorization: localDocumentSnapshotReceipt(authorizationDocument),
+    immutableEvidenceDigest: expectedAuthorization.immutableEvidenceDigest,
+  });
+}
+
+function localDocumentSnapshotReceipt(snapshot: {
+  exists: () => boolean;
+  data: () => unknown;
+}) {
+  const exists = snapshot.exists();
+  return Object.freeze({
+    exists,
+    digest: exists ? mutationSnapshotDigest(snapshot.data()) : null,
+  });
+}
+
+function requireStableLocalSnapshotReceipt({
+  before,
+  after,
+  label,
+}: {
+  before: Readonly<{ exists: boolean; digest: string | null }>;
+  after: Readonly<{ exists: boolean; digest: string | null }>;
+  label: string;
+}): void {
+  if (before.exists !== after.exists || before.digest !== after.digest) {
+    throw new Error(
+      `${label} changed while the Offer Sheet resolution state was loading. Reload and try again.`
+    );
+  }
+}
+
 function rawTeamPlayerId(player: Record<string, unknown>): string {
   const bio =
     player.bio && typeof player.bio === 'object'
@@ -273,7 +499,9 @@ function rawRosterEntryId(entry: unknown): string {
   }
   if (entry && typeof entry === 'object') {
     const record = entry as Record<string, unknown>;
-    return String(record.playerId || record.player_id || record.id || '').trim();
+    return String(
+      record.playerId || record.player_id || record.id || ''
+    ).trim();
   }
   return '';
 }
@@ -311,9 +539,7 @@ async function ensureOfferSheetPlayerOnHomeTeamSnapshot({
   const offerSheet =
     findRawOfferSheetById(homeTeam.incomingOfferSheets, offerSheetId) ||
     findRawOfferSheetById(offeringTeam?.offerSheets, offerSheetId);
-  const playerId = String(
-    payloadPlayerId || offerSheet?.playerId || ''
-  ).trim();
+  const playerId = String(payloadPlayerId || offerSheet?.playerId || '').trim();
   if (!playerId) {
     return homeTeam;
   }
@@ -364,7 +590,6 @@ async function ensureOfferSheetPlayerOnHomeTeamSnapshot({
     roster: rosterHasPlayer ? existingRoster : [...existingRoster, playerId],
   };
 }
-
 
 // ==============================================================================
 // MAIN ENTRY POINT
@@ -529,10 +754,7 @@ export async function loadStateForMutation(
         await Promise.all([
           teamDocumentExists
             ? Promise.resolve({ source: null, checkedSnapshots: [] })
-            : getWorldTeamSnapshotLineageReceipt(
-                ancestorWorldIds,
-                teamCode
-              ),
+            : getWorldTeamSnapshotLineageReceipt(ancestorWorldIds, teamCode),
           playerDocumentExists
             ? Promise.resolve({ source: null, checkedSnapshots: [] })
             : getWorldPlayerSnapshotLineageReceipt(
@@ -567,10 +789,10 @@ export async function loadStateForMutation(
           digest: teamDocumentDigest,
           sourceWorldId: teamDocumentExists
             ? worldId
-            : ancestorTeamDocument?.snapshotWorldId ?? null,
+            : (ancestorTeamDocument?.snapshotWorldId ?? null),
           sourceDigest: teamDocumentExists
             ? teamDocumentDigest
-            : ancestorTeamDocument?.snapshotDigest ?? null,
+            : (ancestorTeamDocument?.snapshotDigest ?? null),
           sourceLineage: ancestorTeamResolution.checkedSnapshots,
         },
         extensionPlayerSnapshot: {
@@ -578,10 +800,10 @@ export async function loadStateForMutation(
           digest: playerDocumentDigest,
           sourceWorldId: playerDocumentExists
             ? worldId
-            : ancestorPlayerDocument?.overrideWorldId ?? null,
+            : (ancestorPlayerDocument?.overrideWorldId ?? null),
           sourceDigest: playerDocumentExists
             ? playerDocumentDigest
-            : ancestorPlayerDocument?.snapshotDigest ?? null,
+            : (ancestorPlayerDocument?.snapshotDigest ?? null),
           sourceLineage: ancestorPlayerResolution.checkedSnapshots,
         },
       };
@@ -659,6 +881,75 @@ export async function loadStateForMutation(
       if (!offeringTeamCode) throw new Error(`Missing offeringTeamCode`);
       if (!offerSheetId) throw new Error(`Missing offerSheetId`);
 
+      // Capture the exact local documents before and after merged state loading.
+      // The double read closes the gap between teamLoader's merged snapshot and
+      // the raw receipt later checked inside the persistence transaction.
+      const [homeTeamDocumentBefore, offeringTeamDocumentBefore] =
+        await Promise.all([
+          getDoc(worldTeamRef(worldId, homeTeamCode)),
+          getDoc(worldTeamRef(worldId, offeringTeamCode)),
+        ]);
+      const homeTeamReceiptBefore = localDocumentSnapshotReceipt(
+        homeTeamDocumentBefore
+      );
+      const offeringTeamReceiptBefore = localDocumentSnapshotReceipt(
+        offeringTeamDocumentBefore
+      );
+      const homeTeamDataBefore = homeTeamDocumentBefore.exists()
+        ? homeTeamDocumentBefore.data()
+        : {};
+      const offeringTeamDataBefore = offeringTeamDocumentBefore.exists()
+        ? offeringTeamDocumentBefore.data()
+        : {};
+      const rawHomeOfferSheet = findRawOfferSheetById(
+        (homeTeamDataBefore as Record<string, unknown>).incomingOfferSheets,
+        offerSheetId
+      );
+      const rawOfferingOfferSheet = findRawOfferSheetById(
+        (offeringTeamDataBefore as Record<string, unknown>).offerSheets,
+        offerSheetId
+      );
+      const rawOfferSheet = rawHomeOfferSheet || rawOfferingOfferSheet;
+      const resolutionPlayerId = String(
+        payload.playerId || rawOfferSheet?.playerId || ''
+      ).trim();
+      const [
+        homePlayerDocumentBefore,
+        offeringPlayerDocumentBefore,
+        authorizationDocument,
+        immutableBasePlayer,
+      ] =
+        resolutionPlayerId
+          ? await Promise.all([
+              getDoc(
+                worldPlayerRef(worldId, homeTeamCode, resolutionPlayerId)
+              ),
+              getDoc(
+                worldPlayerRef(worldId, offeringTeamCode, resolutionPlayerId)
+              ),
+              getDoc(
+                worldOfferSheetAuthorizationRef(worldId, offerSheetId)
+              ),
+              getPlayer(null, homeTeamCode, resolutionPlayerId),
+            ])
+          : [null, null, null, null];
+      if (!authorizationDocument) {
+        throw new Error(
+          'Offer Sheet resolution requires a stable player identity for immutable authorization.'
+        );
+      }
+      const immutableAuthority =
+        requireImmutableOfferSheetResolutionAuthority({
+          worldId,
+          offerSheetId,
+          homeTeamCode,
+          offeringTeamCode,
+          homeSheet: rawHomeOfferSheet,
+          offeringSheet: rawOfferingOfferSheet,
+          immutableBasePlayer,
+          authorizationDocument,
+        });
+
       const [homeTeamRaw, offeringTeamRaw] = await Promise.all([
         getTeam(worldId, homeTeamCode),
         getTeam(worldId, offeringTeamCode),
@@ -683,6 +974,59 @@ export async function loadStateForMutation(
         payloadPlayerId: payload.playerId as string | null | undefined,
       });
 
+      const [
+        homeTeamDocument,
+        offeringTeamDocument,
+        homePlayerDocument,
+        offeringPlayerDocument,
+      ] = await Promise.all([
+        getDoc(worldTeamRef(worldId, homeTeamCode)),
+        getDoc(worldTeamRef(worldId, offeringTeamCode)),
+        resolutionPlayerId
+          ? getDoc(
+              worldPlayerRef(worldId, homeTeamCode, resolutionPlayerId)
+            )
+          : Promise.resolve(null),
+        resolutionPlayerId
+          ? getDoc(
+              worldPlayerRef(worldId, offeringTeamCode, resolutionPlayerId)
+            )
+          : Promise.resolve(null),
+      ]);
+      const homeTeamReceipt = localDocumentSnapshotReceipt(homeTeamDocument);
+      const offeringTeamReceipt =
+        localDocumentSnapshotReceipt(offeringTeamDocument);
+      const homePlayerReceipt = homePlayerDocument
+        ? localDocumentSnapshotReceipt(homePlayerDocument)
+        : { exists: false, digest: null };
+      const offeringPlayerReceipt = offeringPlayerDocument
+        ? localDocumentSnapshotReceipt(offeringPlayerDocument)
+        : { exists: false, digest: null };
+      requireStableLocalSnapshotReceipt({
+        before: homeTeamReceiptBefore,
+        after: homeTeamReceipt,
+        label: `Team snapshot for ${homeTeamCode}`,
+      });
+      requireStableLocalSnapshotReceipt({
+        before: offeringTeamReceiptBefore,
+        after: offeringTeamReceipt,
+        label: `Team snapshot for ${offeringTeamCode}`,
+      });
+      requireStableLocalSnapshotReceipt({
+        before: homePlayerDocumentBefore
+          ? localDocumentSnapshotReceipt(homePlayerDocumentBefore)
+          : { exists: false, digest: null },
+        after: homePlayerReceipt,
+        label: `Player snapshot for ${resolutionPlayerId} on ${homeTeamCode}`,
+      });
+      requireStableLocalSnapshotReceipt({
+        before: offeringPlayerDocumentBefore
+          ? localDocumentSnapshotReceipt(offeringPlayerDocumentBefore)
+          : { exists: false, digest: null },
+        after: offeringPlayerReceipt,
+        label: `Player snapshot for ${resolutionPlayerId} on ${offeringTeamCode}`,
+      });
+
       return {
         homeTeam: toCurrentStateTeam(homeTeam, 'offerSheetResolution'),
         offeringTeam: toCurrentStateTeam(
@@ -691,6 +1035,18 @@ export async function loadStateForMutation(
           'offerSheetResolution'
         ),
         offerSheetId,
+        offerSheetResolutionSnapshots: {
+          playerId: resolutionPlayerId,
+          homeTeamCode,
+          offeringTeamCode,
+          homeTeam: homeTeamReceipt,
+          offeringTeam: offeringTeamReceipt,
+          homePlayer: homePlayerReceipt,
+          offeringPlayer: offeringPlayerReceipt,
+          authorization: immutableAuthority.authorization,
+          immutableEvidenceDigest:
+            immutableAuthority.immutableEvidenceDigest,
+        },
       };
     }
 
@@ -841,11 +1197,6 @@ export type MutationPlayerIdCarrier = Pick<
   'player_id' | 'playerId' | 'id'
 >;
 
-
-
-
-
-
 export function matchesOfferSheetIdentity(
   offerSheet: ArchitectMutationOfferSheet | null | undefined,
   offerSheetId: string,
@@ -896,11 +1247,15 @@ export function buildNormalizedOfferSheetFinalContract({
   signingTeam,
   signedUsing,
   timestamp,
+  signingDate,
+  governedLifecycle,
 }: {
   offerSheet: ArchitectMutationOfferSheet;
   signingTeam: string;
   signedUsing: string;
   timestamp: number;
+  signingDate?: string;
+  governedLifecycle?: GovernedOfferSheetLifecycle;
 }) {
   const salariesByYear = (offerSheet.salariesByYear || [])
     .map(normalizeSalaryRow)
@@ -928,11 +1283,28 @@ export function buildNormalizedOfferSheetFinalContract({
         ? computedTotalValue
         : undefined;
 
+  const resolutionEvent = governedLifecycle?.events.at(-1);
+  const matchRestriction =
+    governedLifecycle && resolutionEvent?.eventKind === 'offer-sheet-matched'
+      ? {
+          restrictionVersion: 1 as const,
+          lifecycleId: governedLifecycle.ledgerId,
+          eventId: resolutionEvent.eventId,
+          matchedAt: resolutionEvent.executedAt,
+          restrictedUntil: resolutionEvent.restrictionsUntil,
+          offeringTeamId: governedLifecycle.offeringTeamId,
+          playerTradeConsentRequired:
+            resolutionEvent.playerTradeConsentRequired,
+          offeringTeamTradeBarred: resolutionEvent.offeringTeamTradeBarred,
+          signAndTradeBarred: resolutionEvent.signAndTradeBarred,
+        }
+      : undefined;
+
   const normalizedContract = normalizeContractForWorld({
     contractType: 'Standard',
     signedUsing,
     signingTeam,
-    signingDate: new Date(timestamp).toISOString(),
+    signingDate: signingDate || new Date(timestamp).toISOString(),
     contractLength: contractYearsCandidate,
     years: contractYearsCandidate,
     totalValue,
@@ -941,6 +1313,13 @@ export function buildNormalizedOfferSheetFinalContract({
     rfaOfferSheet: undefined,
     rfaOfferSheetOnly: undefined,
     rfaOfferSheetStatus: undefined,
+    tradeRestrictions: matchRestriction
+      ? [
+          `Matched Offer Sheet: player consent required and offering team trade barred through ${matchRestriction.restrictedUntil}`,
+          `Matched Offer Sheet: contract amendment and sign-and-trade barred through ${matchRestriction.restrictedUntil}`,
+        ]
+      : undefined,
+    offerSheetMatchRestriction: matchRestriction,
   }) as ArchitectMutationContract | null;
 
   return removeUndefinedDeep(normalizedContract) as ArchitectMutationContract;

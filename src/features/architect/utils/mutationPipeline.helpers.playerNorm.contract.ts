@@ -155,6 +155,7 @@ export function projectCurrentStatePlayerContractIngress(
   const tradeEligibility = normalizeCurrentStatePlayerContractTradeEligibility(
     contractRecord.tradeEligibility
   );
+  const offerSheetMatchRestriction = contractRecord.offerSheetMatchRestriction;
 
   if (salariesByYear !== undefined) {
     projected.salariesByYear = salariesByYear;
@@ -266,6 +267,12 @@ export function projectCurrentStatePlayerContractIngress(
   }
   if (includeCurrentOnlyContractFields && tradeEligibility !== undefined) {
     projected.tradeEligibility = tradeEligibility;
+  }
+  if (
+    includeCurrentOnlyContractFields &&
+    offerSheetMatchRestriction !== undefined
+  ) {
+    projected.offerSheetMatchRestriction = offerSheetMatchRestriction;
   }
 
   return Object.keys(projected).length > 0 ? projected : undefined;

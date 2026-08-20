@@ -71,6 +71,23 @@ vi.mock('firebase/firestore', () => ({
     delete: testState.batchDelete,
     commit: testState.batchCommit,
   })),
+  runTransaction: vi.fn(
+    async (
+      _db: unknown,
+      updateFunction: (transaction: {
+        get: typeof testState.getDoc;
+        set: typeof testState.batchSet;
+        update: typeof testState.batchUpdate;
+        delete: typeof testState.batchDelete;
+      }) => Promise<unknown>
+    ) =>
+      updateFunction({
+        get: testState.getDoc,
+        set: testState.batchSet,
+        update: testState.batchUpdate,
+        delete: testState.batchDelete,
+      })
+  ),
   getDoc: testState.getDoc,
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments: unknown[]) => segments.map(String).join('/')),
@@ -151,6 +168,8 @@ vi.mock('@/features/architect/utils/leagueInvariants', () => ({
 }));
 
 import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils/offerSheets';
+import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 const WORLD_ID = 'world_rfa_context_contract';
 const SEASON_ID = '2025-26';
@@ -453,6 +472,22 @@ describe('mutationPipeline rfaContext contract', () => {
   });
 
   it('finalizeMatchedOfferSheet still strips the narrowed rfaContext sidecar after resolution', async () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: WORLD_ID,
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      offerSheetId: 'os_rfa_1',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
+    testState.docsByPath.set(`architect_worlds/${WORLD_ID}`, {
+      createdBy: 'user_boundary',
+      parentWorldId: null,
+      asOfDate: governed.asOfDate,
+    });
     const offerSheet = {
       id: 'os_rfa_1',
       dedupKey: `os:${WORLD_ID}:BOS:rfa_1:${SEASON_ID}`,
@@ -482,6 +517,7 @@ describe('mutationPipeline rfaContext contract', () => {
       ],
       status: 'MATCHED',
       createdAt: FIXED_TIMESTAMP_ISO,
+      governedLifecycle: governed.lifecycle,
     };
     const homePlayer = makePlayer('rfa_1', 'Home Player', 7_500_000, 'NYK', {
       rfaOfferSheet: true,
@@ -492,12 +528,37 @@ describe('mutationPipeline rfaContext contract', () => {
         retainedUntilFinalize: true,
       },
     });
+    const immutableHomePlayer = {
+      ...homePlayer,
+      rfaContext: { governedEvidence: governed.evidence },
+    };
+    testState.docsByPath.set(
+      'architect_basePlayers/rfa_1',
+      immutableHomePlayer
+    );
+    testState.getPlayer.mockResolvedValue(immutableHomePlayer);
+    testState.docsByPath.set(
+      `architect_worlds/${WORLD_ID}/offerSheetAuthorizations/${offerSheet.id}`,
+      buildGovernedOfferSheetAuthorization({
+        lifecycle: governed.lifecycle,
+        offerSheetId: offerSheet.id,
+        dedupKey: offerSheet.dedupKey,
+      })
+    );
     const homeTeam = makeTeam('NYK', [homePlayer], {
       incomingOfferSheets: [offerSheet],
     });
     const offeringTeam = makeTeam('BOS', [], {
       offerSheets: [offerSheet],
     });
+    testState.docsByPath.set(
+      `architect_worlds/${WORLD_ID}/teams/NYK`,
+      homeTeam
+    );
+    testState.docsByPath.set(
+      `architect_worlds/${WORLD_ID}/teams/BOS`,
+      offeringTeam
+    );
 
     testState.getTeam.mockImplementation(
       async (_worldId: string, teamCode: string) => {
@@ -518,6 +579,7 @@ describe('mutationPipeline rfaContext contract', () => {
         offeringTeamCode: 'BOS',
         offerSheetId: 'os_rfa_1',
         dedupKey: `os:${WORLD_ID}:BOS:rfa_1:${SEASON_ID}`,
+        offerSheetResolutionAt: governed.resolutionAt,
       },
       timestamp: FIXED_TIMESTAMP,
     });

@@ -72,6 +72,7 @@ export function normalizeDashboardReloadOfferSheet(
   const contractYears = toOptionalNumberishOrNull(record.contractYears);
   const totalValue = toOptionalNumberishOrNull(record.totalValue);
   const createdAt = toOptionalDateLike(record.createdAt);
+  const governedLifecycle = record.governedLifecycle;
 
   if (id !== undefined) {
     normalized.id = id;
@@ -102,6 +103,9 @@ export function normalizeDashboardReloadOfferSheet(
   }
   if (createdAt !== undefined) {
     normalized.createdAt = createdAt;
+  }
+  if (governedLifecycle !== undefined) {
+    normalized.governedLifecycle = safeCloneForAudit(governedLifecycle);
   }
 
   return normalized;

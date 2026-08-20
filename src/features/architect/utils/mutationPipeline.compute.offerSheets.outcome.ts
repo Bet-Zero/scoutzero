@@ -27,20 +27,34 @@ import {
 } from './mutationPipeline.helpers';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import {
+  governedOfferSheetBonusTotal,
+  resolveGovernedOfferSheetLifecycle,
+} from '@/features/architect/utils/offerSheets';
+import type { GovernedOfferSheetLifecycle } from '@/schemas/governedOfferSheet';
+import {
   matchesOfferSheetIdentity,
   buildNormalizedOfferSheetFinalContract,
   removeOfferSheetEntries,
 } from './mutationPipeline.read';
 import type {
+  ArchitectMutationOfferSheet,
   ComputeResultLike,
   MutationOfferSheetResolutionCurrentState,
 } from './mutationPipeline';
 
 export type OfferSheetOutcomeParams = {
-  payload: { dedupKey?: string | null };
+  payload: {
+    dedupKey?: string | null;
+    offerSheetAveragingElection?:
+      | import('@/schemas/governedOfferSheet').GovernedOfferSheetAveragingElection
+      | null;
+    offerSheetResolutionAt?: string | number | null;
+  };
   currentState: MutationOfferSheetResolutionCurrentState;
   seasonId: string;
   timestamp: number;
+  resolutionAt?: string | number | null;
+  worldAsOfDate?: string | number | null;
   /** Prior offer-sheet statuses this outcome is allowed to run from. */
   acceptedStatuses: readonly string[];
   /** Mutation type recorded in result metadata (drives history/receipt routing). */
@@ -49,6 +63,45 @@ export type OfferSheetOutcomeParams = {
 
 function formatAcceptedStatuses(acceptedStatuses: readonly string[]): string {
   return acceptedStatuses.join(' or ');
+}
+
+function offerSheetForAccounting(
+  offerSheet: ArchitectMutationOfferSheet,
+  lifecycle: GovernedOfferSheetLifecycle,
+  side: 'home' | 'offering'
+) {
+  const signedEvent = lifecycle.events.find(
+    (event) => event.eventKind === 'offer-sheet-signed'
+  );
+  if (!signedEvent) return offerSheet;
+  const useAverage =
+    side === 'offering' ||
+    lifecycle.reservations.homeTeamAccounting === 'average-annual-salary';
+  const averageBySeason = new Map(
+    lifecycle.reservations.offeringTeam.map((row) => [row.season, row.amount])
+  );
+  return {
+    ...offerSheet,
+    salariesByYear: signedEvent.proposal.salariesByYear.map((row) => {
+      const likely = governedOfferSheetBonusTotal(row, 'likely');
+      const unlikely = governedOfferSheetBonusTotal(row, 'unlikely');
+      return {
+        season: row.season,
+        salary: row.regularSalary,
+        capHit: useAverage
+          ? (averageBySeason.get(row.season) ?? row.regularSalary)
+          : row.regularSalary,
+        guaranteed:
+          row.guaranteedForLackOfSkill &&
+          row.guaranteedForInjuryOrIllness &&
+          !row.individuallyNegotiatedProtectionConditions,
+        option: row.option,
+        ...(likely > 0 || unlikely > 0
+          ? { incentives: { likely, unlikely } }
+          : {}),
+      };
+    }),
+  };
 }
 
 /**
@@ -60,6 +113,8 @@ export function computeMatchedOfferSheetOutcome({
   currentState,
   seasonId,
   timestamp,
+  resolutionAt,
+  worldAsOfDate,
   acceptedStatuses,
   metadataType,
 }: OfferSheetOutcomeParams): ComputeResultLike {
@@ -91,6 +146,19 @@ export function computeMatchedOfferSheetOutcome({
     };
   }
 
+  const governed = resolveGovernedOfferSheetLifecycle({
+    state: currentState,
+    action: 'match',
+    dedupKey: requestedDedupKey,
+    resolutionAt,
+    worldAsOfDate,
+    averagingElectionInput: payload.offerSheetAveragingElection,
+    timestamp,
+  });
+  if (!governed.success) {
+    return { success: false, error: governed.reasons.join(' ') };
+  }
+
   const playerId = String(offerSheet.playerId || '').trim();
   if (!playerId) {
     return {
@@ -112,10 +180,12 @@ export function computeMatchedOfferSheetOutcome({
   }
 
   const normalizedContract = buildNormalizedOfferSheetFinalContract({
-    offerSheet,
+    offerSheet: offerSheetForAccounting(offerSheet, governed.lifecycle, 'home'),
     signingTeam: homeTeam.teamCode || '',
     signedUsing: 'Match',
     timestamp,
+    signingDate: governed.lifecycle.events.at(-1)?.executedAt,
+    governedLifecycle: governed.lifecycle,
   });
   if (!normalizedContract) {
     return {
@@ -169,6 +239,10 @@ export function computeMatchedOfferSheetOutcome({
     offerSheetId || '',
     resolvedDedupKey
   );
+  updatedOfferingTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
+    updatedOfferingTeam,
+    toEndYear(seasonId)
+  ).totals;
   updatedOfferingTeam.source = {
     ...getTeamSourceRecord(updatedOfferingTeam.source),
     type: 'world-snapshot',
@@ -205,6 +279,7 @@ export function computeMatchedOfferSheetOutcome({
     metadata: {
       type: metadataType,
       offerSheetId,
+      dedupKey: resolvedDedupKey,
       playerId,
       homeTeam: homeTeam.teamCode,
       offeringTeam: offeringTeam.teamCode,
@@ -212,6 +287,10 @@ export function computeMatchedOfferSheetOutcome({
       playerName: updatedPlayer.displayName || updatedPlayer.name,
       signedUsing: 'Match',
       contract: normalizedContract,
+      governedOfferSheetLifecycle: governed.lifecycle,
+      expectedGovernedOfferSheetLifecycle: governed.expectedLifecycle,
+      expectedOfferSheetResolutionSnapshots:
+        currentState.offerSheetResolutionSnapshots,
       timestamp,
     },
   };
@@ -227,6 +306,8 @@ export function computeDeclinedOfferSheetOutcome({
   currentState,
   seasonId,
   timestamp,
+  resolutionAt,
+  worldAsOfDate,
   acceptedStatuses,
   metadataType,
 }: OfferSheetOutcomeParams): ComputeResultLike {
@@ -256,6 +337,19 @@ export function computeDeclinedOfferSheetOutcome({
     };
   }
 
+  const governed = resolveGovernedOfferSheetLifecycle({
+    state: currentState,
+    action: 'decline',
+    dedupKey,
+    resolutionAt,
+    worldAsOfDate,
+    averagingElectionInput: payload.offerSheetAveragingElection,
+    timestamp,
+  });
+  if (!governed.success) {
+    return { success: false, error: governed.reasons.join(' ') };
+  }
+
   const playerId = String(offerSheet.playerId || '').trim();
   if (!playerId) {
     return {
@@ -273,10 +367,15 @@ export function computeDeclinedOfferSheetOutcome({
   }
 
   const normalizedContract = buildNormalizedOfferSheetFinalContract({
-    offerSheet,
+    offerSheet: offerSheetForAccounting(
+      offerSheet,
+      governed.lifecycle,
+      'offering'
+    ),
     signingTeam: offeringTeam.teamCode || '',
     signedUsing: 'Offer Sheet',
     timestamp,
+    signingDate: governed.lifecycle.events.at(-1)?.executedAt,
   });
   if (!normalizedContract) {
     return {
@@ -398,6 +497,7 @@ export function computeDeclinedOfferSheetOutcome({
     metadata: {
       type: metadataType,
       offerSheetId,
+      dedupKey: resolvedDedupKey,
       playerId,
       offeringTeam: offeringTeam.teamCode,
       homeTeam: homeTeam.teamCode,
@@ -405,6 +505,10 @@ export function computeDeclinedOfferSheetOutcome({
       playerName: updatedPlayer.displayName || updatedPlayer.name,
       signedUsing: 'Offer Sheet',
       contract: normalizedContract,
+      governedOfferSheetLifecycle: governed.lifecycle,
+      expectedGovernedOfferSheetLifecycle: governed.expectedLifecycle,
+      expectedOfferSheetResolutionSnapshots:
+        currentState.offerSheetResolutionSnapshots,
       timestamp,
     },
   };

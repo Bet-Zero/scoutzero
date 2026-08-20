@@ -37,6 +37,7 @@ import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
 import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
 import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
+import type { GovernedOfferSheetProposal } from '@/schemas/governedOfferSheet';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
 
@@ -255,6 +256,7 @@ export type ArchitectMutationContract = {
   tradeKicker?: number | null;
   tradeRestrictions?: string[] | null;
   tradeEligibility?: ArchitectMutationTradeEligibility | null;
+  offerSheetMatchRestriction?: unknown;
   isMaxContract?: boolean | null;
   maxType?: string | null;
   estimatedCapPercentage?: number | null;
@@ -341,6 +343,8 @@ export type ArchitectMutationOfferSheet = {
   createdAt?: string | number | Date | null;
   matchedAt?: string | null;
   declinedAt?: string | null;
+  /** BZE-283: strict mirrored RFA/QO/Offer Sheet authority and lifecycle. */
+  governedLifecycle?: unknown;
 };
 
 export type ArchitectMutationCapHold = {
@@ -362,6 +366,8 @@ export type ArchitectMutationPlayerRfaContextIngress = {
   pendingHomeTeamCode?: string | null;
   offerSheetId?: string | null;
   retainedUntilFinalize?: boolean | null;
+  /** BZE-283: authenticated QO/RFA evidence read from canonical player truth. */
+  governedEvidence?: unknown;
 } & Record<string, unknown>;
 
 export type ArchitectMutationPlayerRecord = {
@@ -533,7 +539,13 @@ export type ArchitectTradePayloadTeamRef = {
 // Only read by leagueInvariants.extractIncomingPlayers for cross-team duplicate detection.
 export type ArchitectTradePayloadLegacyReceivingPlayer = Pick<
   ArchitectMutationPlayerRecord,
-  'player_id' | 'id' | 'playerId' | 'bio' | 'displayName' | 'name' | 'playerName'
+  | 'player_id'
+  | 'id'
+  | 'playerId'
+  | 'bio'
+  | 'displayName'
+  | 'name'
+  | 'playerName'
 >;
 
 export type ArchitectTradePayloadTeamIngress = {
@@ -644,6 +656,11 @@ export type ArchitectMutationPayload = {
   contract?: ArchitectMutationContract | null;
   extension?: ArchitectMutationContract | null;
   extensionProposal?: GovernedExtensionProposal | null;
+  offerSheetProposal?: GovernedOfferSheetProposal | null;
+  offerSheetAveragingElection?:
+    | import('@/schemas/governedOfferSheet').GovernedOfferSheetAveragingElection
+    | null;
+  offerSheetResolutionAt?: string | number | null;
   signedUsing?: string | null;
   accepted?: boolean;
   signAndTrade?: boolean;
@@ -691,11 +708,7 @@ export type PublicWaiveMutationPayloadInput = PublicMutationPayloadSlice<
   | 'isGracePeriod'
 >;
 export type PublicExtensionMutationPayloadInput = PublicMutationPayloadSlice<
-  | 'teamCode'
-  | 'playerId'
-  | 'contractId'
-  | 'extension'
-  | 'extensionProposal'
+  'teamCode' | 'playerId' | 'contractId' | 'extension' | 'extensionProposal'
 >;
 export type PublicOptionMutationPayloadInput = PublicMutationPayloadSlice<
   | 'teamCode'
@@ -708,17 +721,20 @@ export type PublicOptionMutationPayloadInput = PublicMutationPayloadSlice<
 export type PublicRenounceMutationPayloadInput = PublicMutationPayloadSlice<
   'teamCode' | 'playerId'
 >;
-export type PublicStoreOfferSheetMutationPayloadInput = PublicMutationPayloadSlice<
-  | 'teamCode'
-  | 'playerId'
-  | 'contract'
-  | 'signedUsing'
-  | 'offerSheetId'
-  | 'worldId'
->;
-export type PublicOfferSheetMirrorMutationPayloadInput = PublicMutationPayloadSlice<
-  'teamCode' | 'homeTeamCode' | 'offeringTeamCode' | 'offerSheetId'
->;
+export type PublicStoreOfferSheetMutationPayloadInput =
+  PublicMutationPayloadSlice<
+    | 'teamCode'
+    | 'playerId'
+    | 'contract'
+    | 'signedUsing'
+    | 'offerSheetId'
+    | 'offerSheetProposal'
+    | 'worldId'
+  >;
+export type PublicOfferSheetMirrorMutationPayloadInput =
+  PublicMutationPayloadSlice<
+    'teamCode' | 'homeTeamCode' | 'offeringTeamCode' | 'offerSheetId'
+  >;
 export type PublicOfferSheetResolutionMutationPayloadInput =
   PublicMutationPayloadSlice<
     | 'teamCode'
@@ -726,6 +742,8 @@ export type PublicOfferSheetResolutionMutationPayloadInput =
     | 'offeringTeamCode'
     | 'offerSheetId'
     | 'dedupKey'
+    | 'offerSheetAveragingElection'
+    | 'offerSheetResolutionAt'
   >;
 export type PublicSignAndTradeMutationPayloadInput = PublicMutationPayloadSlice<
   'teamCode' | 'destinationTeamCode' | 'playerId' | 'contract' | 'signedUsing'
@@ -733,9 +751,8 @@ export type PublicSignAndTradeMutationPayloadInput = PublicMutationPayloadSlice<
 export type PublicSetDeadCapMutationPayloadInput = PublicMutationPayloadSlice<
   'teamCode' | 'deadCap' | 'deadCapChanges'
 >;
-export type PublicSetExceptionsMutationPayloadInput = PublicMutationPayloadSlice<
-  'teamCode' | 'exceptions' | 'exceptionChanges'
->;
+export type PublicSetExceptionsMutationPayloadInput =
+  PublicMutationPayloadSlice<'teamCode' | 'exceptions' | 'exceptionChanges'>;
 export type SigningMutationPayloadInput = NormalizedMutationPayloadSlice<
   'playerId' | 'contract' | 'signedUsing'
 >;
@@ -748,14 +765,18 @@ export type ExtensionMutationPayloadInput = NormalizedMutationPayloadSlice<
 export type OptionMutationPayloadInput = NormalizedMutationPayloadSlice<
   'playerId' | 'accepted' | 'targetYear' | 'contractId' | 'optionNotice'
 >;
-export type RenounceMutationPayloadInput = NormalizedMutationPayloadSlice<'playerId'>;
-export type StoreOfferSheetMutationPayloadInput = NormalizedMutationPayloadSlice<
-  'contract' | 'offerSheetId' | 'worldId'
->;
+export type RenounceMutationPayloadInput =
+  NormalizedMutationPayloadSlice<'playerId'>;
+export type StoreOfferSheetMutationPayloadInput =
+  NormalizedMutationPayloadSlice<
+    'contract' | 'offerSheetId' | 'offerSheetProposal' | 'worldId'
+  >;
 export type OfferSheetMirrorMutationPayloadInput =
   NormalizedMutationPayloadSlice<never>;
 export type OfferSheetResolutionMutationPayloadInput =
-  NormalizedMutationPayloadSlice<'dedupKey'>;
+  NormalizedMutationPayloadSlice<
+    'dedupKey' | 'offerSheetAveragingElection' | 'offerSheetResolutionAt'
+  >;
 export type SignAndTradeMutationPayloadInput = NormalizedMutationPayloadSlice<
   'teamCode' | 'destinationTeamCode' | 'playerId' | 'contract' | 'signedUsing'
 >;

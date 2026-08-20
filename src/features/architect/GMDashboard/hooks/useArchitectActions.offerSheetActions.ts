@@ -29,6 +29,7 @@ import type {
   OfferSheetLifecycleExecutionResult,
   OfferSheetLifecycleMutationType,
   OfferSheetResolutionAction,
+  OfferSheetResolutionInput,
   OfferSheetResolutionMutationType,
   OfferSheetStoreExecutionResult,
   SigningDetails,
@@ -42,7 +43,10 @@ import type { ArchitectReceiptActionContext } from '../postActionHandoff/types';
 export type UseOfferSheetActionsParams = {
   currentYear: number;
   teamCode: string;
-  reportMutationError: (message: string, details?: Record<string, unknown>) => void;
+  reportMutationError: (
+    message: string,
+    details?: Record<string, unknown>
+  ) => void;
   requireActiveWorldForFreeAgencyWorldOnlyCommit: (
     kind: FreeAgencyWorldOnlyActionKind,
     details?: Record<string, unknown>
@@ -92,7 +96,6 @@ export function useOfferSheetActions({
   prepareOfferSheetCreationDefinition,
   applyCapAuditedTeamMutation,
 }: UseOfferSheetActionsParams) {
-
   const handleStoreOfferSheet = useCallback(
     async (
       playerObj: ArchitectPlayer,
@@ -171,7 +174,8 @@ export function useOfferSheetActions({
   const runOfferSheetResolutionAction = useCallback(
     (
       action: OfferSheetResolutionAction,
-      offerSheet: OfferSheet | null | undefined
+      offerSheet: OfferSheet | null | undefined,
+      resolution?: OfferSheetResolutionInput
     ): void => {
       const mutationType: OfferSheetResolutionMutationType =
         action === 'match' ? 'matchOfferSheet' : 'declineOfferSheet';
@@ -234,6 +238,9 @@ export function useOfferSheetActions({
             playerName: offerSheet?.playerName,
             dedupKey: offerSheet?.dedupKey,
             seasonKey: offerSheet?.seasonKey,
+            offerSheetResolutionAt: resolution?.resolutionAt,
+            offerSheetAveragingElection:
+              action === 'match' ? resolution?.averagingElection : null,
           },
           expectation
         );
@@ -314,15 +321,21 @@ export function useOfferSheetActions({
   );
 
   const handleMatchOfferSheet = useCallback(
-    (offerSheet: OfferSheet | null | undefined): void => {
-      runOfferSheetResolutionAction('match', offerSheet);
+    (
+      offerSheet: OfferSheet | null | undefined,
+      resolution?: OfferSheetResolutionInput
+    ): void => {
+      runOfferSheetResolutionAction('match', offerSheet, resolution);
     },
     [runOfferSheetResolutionAction]
   );
 
   const handleDeclineOfferSheet = useCallback(
-    (offerSheet: OfferSheet | null | undefined): void => {
-      runOfferSheetResolutionAction('decline', offerSheet);
+    (
+      offerSheet: OfferSheet | null | undefined,
+      resolution?: OfferSheetResolutionInput
+    ): void => {
+      runOfferSheetResolutionAction('decline', offerSheet, resolution);
     },
     [runOfferSheetResolutionAction]
   );
@@ -455,7 +468,6 @@ export function useOfferSheetActions({
     },
     [applyCapAuditedTeamMutation, currentYear, teamCode]
   );
-
 
   return {
     handleStoreOfferSheet,

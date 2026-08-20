@@ -8,17 +8,22 @@
 
 import type { ArchitectMutationOfferSheet } from '@/features/architect/utils/mutationPipeline';
 import type { CapLegalityViolation } from './schema';
+import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
+import { parseZonedDateTime } from '@/features/architect/utils/governedSeason';
+import { isEasternInstant } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
 
 export function validateOfferSheetResolution({
   offerSheet,
   actingTeamCode,
   action,
   asOfDate,
+  resolutionAt,
 }: {
   offerSheet: ArchitectMutationOfferSheet | null | undefined;
   actingTeamCode: string;
   action: string;
   asOfDate?: string;
+  resolutionAt?: string;
 }) {
   const violations: CapLegalityViolation[] = [];
   const warnings: CapLegalityViolation[] = [];
@@ -77,8 +82,37 @@ export function validateOfferSheetResolution({
       });
     }
 
-    // Phase 21: Check 48-hour window (blocking violation — late match is not allowed)
-    if (action === 'match' && asOfDate && offerSheet?.createdAt) {
+    // BZE-283: the certified notice event owns the exact deadline. Legacy
+    // ungoverned records keep their prior compatibility check, but they cannot
+    // reach the governed mutation compute path.
+    if (action === 'match' && offerSheet?.governedLifecycle !== undefined) {
+      const lifecycle = GovernedOfferSheetLifecycleZ.safeParse(
+        offerSheet.governedLifecycle
+      );
+      const root = lifecycle.success ? lifecycle.data.events[0] : null;
+      if (!lifecycle.success || root?.eventKind !== 'offer-sheet-signed') {
+        violations.push({
+          rule: 'offer_sheet_governed_lifecycle_incompatible',
+          message: 'The Offer Sheet notice lifecycle is unreadable.',
+          severity: 'error',
+        });
+      } else if (!isEasternInstant(resolutionAt)) {
+        violations.push({
+          rule: 'offer_sheet_resolution_instant_required',
+          message: 'Matching requires an exact Eastern resolution instant.',
+          severity: 'error',
+        });
+      } else if (
+        (parseZonedDateTime(resolutionAt) as number) >
+        (parseZonedDateTime(root.exerciseNoticeDeadline) as number)
+      ) {
+        violations.push({
+          rule: 'offer_sheet_window_expired',
+          message: `Exercise Notice deadline expired at ${root.exerciseNoticeDeadline}.`,
+          severity: 'error',
+        });
+      }
+    } else if (action === 'match' && asOfDate && offerSheet?.createdAt) {
       const created = new Date(offerSheet.createdAt);
       const deadline = new Date(created.getTime() + 48 * 60 * 60 * 1000);
       const cutoff = deadline.toISOString().slice(0, 10);

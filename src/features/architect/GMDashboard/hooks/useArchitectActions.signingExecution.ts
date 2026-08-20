@@ -931,11 +931,13 @@ export function useSigningExecution({
           offeringTeamCode: teamCode,
           playerId,
           contract: architectContract,
+          offerSheetProposal: contract.offerSheetProposal,
         },
         mutationPayload: {
           teamCode: teamCode ?? '',
           playerId,
           contract: architectContract,
+          offerSheetProposal: contract.offerSheetProposal,
           signedUsing,
         },
       };

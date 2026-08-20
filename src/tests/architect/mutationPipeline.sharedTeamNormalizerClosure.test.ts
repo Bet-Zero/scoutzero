@@ -6,6 +6,7 @@ import {
   type ArchitectMutationPlayerRecord,
   type ArchitectMutationTeamRecord,
 } from '@/features/architect/utils/mutationPipeline';
+import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 type ComputeArgs = Parameters<typeof computeWorldMutation>[0];
 type CurrentStateFor<TMutationType extends ComputeArgs['mutationType']> =
@@ -322,6 +323,17 @@ describe('mutationPipeline shared team normalizer closure', () => {
   });
 
   it('keeps offer-sheet mirror updates working while preserving roster and exception state', () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: 'world-shared-team-normalizer',
+      playerId: 'rfa_match',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      offerSheetId: 'sheet_match',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_500_000 },
+      ],
+    });
     const homePlayer = makePlayer('rfa_match', 'RFA Match', 7_000_000, 'NYK');
     const offerSheet = makeOfferSheet('rfa_match', {
       id: 'sheet_match',
@@ -329,6 +341,7 @@ describe('mutationPipeline shared team normalizer closure', () => {
       homeTeamCode: 'NYK',
       offeringTeamCode: 'BOS',
       status: 'PENDING_MATCH',
+      governedLifecycle: governed.lifecycle,
     });
     const homeTeam = makeTeam('NYK', [homePlayer], {
       incomingOfferSheets: [offerSheet],
@@ -359,6 +372,7 @@ describe('mutationPipeline shared team normalizer closure', () => {
         homeTeamCode: 'NYK',
         offeringTeamCode: 'BOS',
         offerSheetId: 'sheet_match',
+        offerSheetResolutionAt: governed.resolutionAt,
       },
       currentState: {
         homeTeam: homeTeam as MatchOfferSheetCurrentState['homeTeam'],
@@ -368,6 +382,7 @@ describe('mutationPipeline shared team normalizer closure', () => {
       } as MatchOfferSheetCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
+      asOfDate: governed.asOfDate,
     });
 
     expect(result.success).toBe(true);
@@ -403,6 +418,17 @@ describe('mutationPipeline shared team normalizer closure', () => {
   });
 
   it('keeps offer-sheet finalization working after the resolution-lane split', () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: 'world-shared-team-normalizer',
+      playerId: 'rfa_finalize',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      offerSheetId: 'sheet_finalize',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_500_000 },
+      ],
+    });
     const homePlayer = makePlayer('rfa_finalize', 'RFA Finalize', 7_000_000, 'NYK');
     const matchedOfferSheet = makeOfferSheet('rfa_finalize', {
       id: 'sheet_finalize',
@@ -411,6 +437,7 @@ describe('mutationPipeline shared team normalizer closure', () => {
       offeringTeamCode: 'BOS',
       status: 'MATCHED',
       matchedAt: FIXED_TIMESTAMP_ISO,
+      governedLifecycle: governed.lifecycle,
     });
     const homeTeam = makeTeam('NYK', [homePlayer], {
       incomingOfferSheets: [matchedOfferSheet],
@@ -451,6 +478,7 @@ describe('mutationPipeline shared team normalizer closure', () => {
         offeringTeamCode: 'BOS',
         offerSheetId: 'sheet_finalize',
         dedupKey: 'sheet_finalize',
+        offerSheetResolutionAt: governed.resolutionAt,
       },
       currentState: {
         homeTeam:
@@ -461,6 +489,7 @@ describe('mutationPipeline shared team normalizer closure', () => {
       } as FinalizeMatchedOfferSheetCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
+      asOfDate: governed.asOfDate,
     });
 
     expect(result.success).toBe(true);

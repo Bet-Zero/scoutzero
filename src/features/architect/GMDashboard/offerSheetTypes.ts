@@ -11,6 +11,7 @@
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
 import type { FreeAgencyActionOwner } from './hooks/useArchitectActions';
+import type { OfferSheetResolutionInput } from './hooks/useArchitectActions';
 import type {
   FreeAgentSurfaceEntry,
   FreeAgentPoolProps,
@@ -39,12 +40,14 @@ export interface OfferSheetLike extends LooseRecord {
   totalValue?: number | string | null;
   status: OfferSheetStatus;
   createdAt?: string | number | Date | null;
+  governedLifecycle?: unknown;
 }
 
 export interface OfferSheetLifecycleActionEvent {
   action: OfferSheetLifecycleAction;
   offerSheet: OfferSheetLike;
   surfaceRole: OfferSheetSurfaceRole;
+  resolution?: OfferSheetResolutionInput;
 }
 
 export interface OfferSheetListProps {

@@ -37,6 +37,20 @@ describe('Architect security rules source guardrails', () => {
     expect(rules).toMatch(/match\s+\/architect_worlds\/\{worldId\}/);
   });
 
+  it('makes Offer Sheet authorization anchors create-once and owner-scoped', () => {
+    const rules = readRules();
+    expect(rules).toMatch(
+      /match\s+\/offerSheetAuthorizations\/\{offerSheetId\}/
+    );
+    expect(rules).toMatch(
+      /allow\s+create\s*:\s*if\s+isOpenForClientWorldWrites\(worldId\)/
+    );
+    expect(rules).toMatch(
+      /request\.resource\.data\.pendingLifecycleDigest\.matches\('\^fnv1a64:\[0-9a-f\]\{16\}\$'\)/
+    );
+    expect(rules).toMatch(/allow\s+update\s*,\s*delete\s*:\s*if\s*false\s*;/);
+  });
+
   it('explicitly denies writes to base collections and root teams', () => {
     const rules = readRules();
     const denyBlocks = [

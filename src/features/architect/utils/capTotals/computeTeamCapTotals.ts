@@ -42,6 +42,7 @@ import {
 import { resolveHardCapSnapshotOverlay } from '@/features/architect/utils/capTotals/hardCapSnapshotOverlay';
 import { toEndYear, toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import type { TeamTotals } from '@/features/architect/types';
+import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -72,6 +73,7 @@ export interface ComputedTeamCapTotals extends UnknownRecord {
   deadMoneyTotal: number;
   capHoldsTotal: number;
   incompleteChargesTotal: number;
+  outstandingOfferSheetTotal?: number;
   totalCapAllocations: number;
   salaryCap: number;
   luxuryTax: number;
@@ -170,6 +172,7 @@ export type TeamCapTotalsSnapshot =
 export interface TeamCapSheetLike extends TeamDeadMoneySourcesLike {
   players?: unknown[] | null;
   capHolds?: unknown[] | null;
+  offerSheets?: unknown[] | null;
   totals?: TeamCapTotalsSnapshot | UnknownRecord | null;
   hardCapLevel?: unknown;
   hardCapDetail?: unknown;
@@ -183,6 +186,7 @@ interface CanonicalCapTotalsInputs {
   deadMoneyTotal: number;
   capHoldsTotal: number;
   incompleteChargesTotal: number;
+  outstandingOfferSheetTotal: number;
 }
 
 const num = (v: unknown): number => {
@@ -231,8 +235,25 @@ function computeCanonicalTotalCapAllocations({
   deadMoneyTotal,
   capHoldsTotal,
   incompleteChargesTotal,
+  outstandingOfferSheetTotal,
 }: CanonicalCapTotalsInputs): number {
-  return playersTotal + deadMoneyTotal + capHoldsTotal + incompleteChargesTotal;
+  return playersTotal + deadMoneyTotal + capHoldsTotal + incompleteChargesTotal + outstandingOfferSheetTotal;
+}
+
+function computeOutstandingOfferSheetTotal(
+  offerSheets: unknown[] | null | undefined,
+  season: string
+): number {
+  if (!Array.isArray(offerSheets)) return 0;
+  return offerSheets.reduce<number>((sum, value) => {
+    const record = asRecord(value);
+    if (record?.status !== 'PENDING_MATCH') return sum;
+    const lifecycle = GovernedOfferSheetLifecycleZ.safeParse(
+      record.governedLifecycle
+    );
+    if (!lifecycle.success || lifecycle.data.status !== 'pending-match') return sum;
+    return sum + (lifecycle.data.reservations.offeringTeam.find((row) => row.season === season)?.amount ?? 0);
+  }, 0);
 }
 
 /**
@@ -276,12 +297,17 @@ export function computeTeamCapTotals(
   const missingSlots = Math.max(0, minRoster - standardRosterCount);
   const chargePerSlot = rules.salaries.rookieMin;
   const incompleteChargesTotal = missingSlots * chargePerSlot;
+  const outstandingOfferSheetTotal = computeOutstandingOfferSheetTotal(
+    teamCapSheet?.offerSheets,
+    toSeasonKey(yearKey)
+  );
 
   const totalCapAllocations = computeCanonicalTotalCapAllocations({
     playersTotal,
     deadMoneyTotal,
     capHoldsTotal,
     incompleteChargesTotal,
+    outstandingOfferSheetTotal,
   });
 
   const deltas = {
@@ -297,6 +323,7 @@ export function computeTeamCapTotals(
     deadMoneyTotal,
     capHoldsTotal,
     incompleteChargesTotal,
+    outstandingOfferSheetTotal,
     totalCapAllocations,
     salaryCap,
     luxuryTax,

@@ -189,6 +189,7 @@ export function normalizeCurrentStateOfferSheet(
   const createdAt = toOptionalDateLike(record.createdAt);
   const matchedAt = toOptionalTrimmedString(record.matchedAt);
   const declinedAt = toOptionalTrimmedString(record.declinedAt);
+  const governedLifecycle = record.governedLifecycle;
 
   if (id !== undefined) {
     normalized.id = id;
@@ -235,6 +236,15 @@ export function normalizeCurrentStateOfferSheet(
   if (declinedAt !== undefined) {
     normalized.declinedAt = declinedAt;
   }
+  if (governedLifecycle !== undefined) {
+    try {
+      normalized.governedLifecycle = JSON.parse(
+        JSON.stringify(governedLifecycle)
+      );
+    } catch {
+      normalized.governedLifecycle = governedLifecycle;
+    }
+  }
 
   return normalized;
 }
@@ -250,4 +260,3 @@ export function normalizeCurrentStateOfferSheets(
     .map((entry) => normalizeCurrentStateOfferSheet(entry))
     .filter((entry): entry is ArchitectMutationOfferSheet => entry !== null);
 }
-

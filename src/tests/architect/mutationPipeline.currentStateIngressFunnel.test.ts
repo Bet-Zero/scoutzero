@@ -6,6 +6,7 @@ import {
   type ArchitectMutationPlayerRecord,
   type ArchitectMutationTeamRecord,
 } from '@/features/architect/utils/mutationPipeline';
+import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 type ComputeArgs = Parameters<typeof computeWorldMutation>[0];
 type CurrentStateFor<TMutationType extends ComputeArgs['mutationType']> =
@@ -286,8 +287,20 @@ describe('mutationPipeline current-state ingress funnel', () => {
   });
 
   it('keeps offer-sheet family normalization working after the funnel split', () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: 'world_offer_sheet',
+      playerId: 'rfa_1',
+      homeTeamId: 'LAL',
+      offeringTeamId: 'BOS',
+      salariesByYear: [
+        { season: '2025-26', salary: 8_000_000 },
+        { season: '2026-27', salary: 8_400_000 },
+      ],
+    });
     const homePlayer = makePlayer('rfa_1', 'Offer Sheet Player', 7_000_000, 'LAL');
-    const homeTeam = makeTeam('LAL', [homePlayer]);
+    const homeTeam = makeTeam('LAL', [homePlayer], {
+      rightsLedger: governed.rightsLedger,
+    });
     const offeringTeam = makeTeam('BOS', []);
 
     const result = computeWorldMutation({
@@ -296,31 +309,8 @@ describe('mutationPipeline current-state ingress funnel', () => {
         teamCode: 'BOS',
         playerId: 'rfa_1',
         worldId: 'world_offer_sheet',
-        contract: makeContract(8_000_000, {
-          contractType: 'Offer Sheet',
-          years: 2,
-          contractYears: 2,
-          totalValue: 16_400_000,
-          rfaOfferSheet: true,
-          rfaOfferSheetOnly: true,
-          rfaOfferSheetStatus: 'PENDING_MATCH',
-          salariesByYear: [
-            {
-              season: '2025-26',
-              salary: 8_000_000,
-              capHit: 8_000_000,
-              guaranteed: true,
-              guaranteedAmount: 8_000_000,
-            },
-            {
-              season: '2026-27',
-              salary: 8_400_000,
-              capHit: 8_400_000,
-              guaranteed: true,
-              guaranteedAmount: 8_400_000,
-            },
-          ],
-        }),
+        contract: governed.contract,
+        offerSheetProposal: governed.proposal,
         signedUsing: 'TPMLE',
       },
       currentState: {
@@ -329,12 +319,14 @@ describe('mutationPipeline current-state ingress funnel', () => {
           ...homePlayer,
           teamCode: 'LAL',
           teamName: 'Team LAL',
+          rfaContext: { governedEvidence: governed.evidence },
         } as StoreOfferSheetCurrentState['player'],
         homeTeam: homeTeam as StoreOfferSheetCurrentState['homeTeam'],
         teamCode: 'BOS',
       } as StoreOfferSheetCurrentState,
       seasonId: SEASON_ID,
       timestamp: FIXED_TIMESTAMP,
+      asOfDate: governed.asOfDate,
     });
 
     expect(result.success).toBe(true);

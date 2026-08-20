@@ -219,6 +219,7 @@ export type PreparedOfferSheetCreationDefinition =
         offeringTeamCode: string;
         playerId: string;
         contract: LocalContract;
+        offerSheetProposal?: SigningDetails['offerSheetProposal'];
       };
       mutationPayload: OfferSheetMutationPayload;
     }

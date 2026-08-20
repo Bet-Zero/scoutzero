@@ -165,6 +165,7 @@ export type ValidateExtensionParams = {
   player: MutationPlayer;
   extension: MutationContract | null | undefined;
   year: number;
+  asOfDate?: string;
 };
 
 export type ValidateRenounceRightsParams = {

@@ -36,15 +36,18 @@ export function computeFinalizeMatchedOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
+  asOfDate,
 }: ComputeMutationParamsWithCurrentState<
   MutationOfferSheetResolutionCurrentState,
   MutationPayloadInputByType['finalizeMatchedOfferSheet']
->): ComputeResultLike {
+> & { asOfDate?: string | number | null }): ComputeResultLike {
   return computeMatchedOfferSheetOutcome({
     payload,
     currentState,
     seasonId,
     timestamp,
+    resolutionAt: payload.offerSheetResolutionAt,
+    worldAsOfDate: asOfDate,
     acceptedStatuses: ['MATCHED'],
     metadataType: 'finalizeMatchedOfferSheet',
   });
@@ -61,15 +64,18 @@ export function computeFinalizeDeclinedOfferSheetResult({
   currentState,
   seasonId,
   timestamp,
+  asOfDate,
 }: ComputeMutationParamsWithCurrentState<
   MutationOfferSheetResolutionCurrentState,
   MutationPayloadInputByType['finalizeDeclinedOfferSheet']
->): ComputeResultLike {
+> & { asOfDate?: string | number | null }): ComputeResultLike {
   return computeDeclinedOfferSheetOutcome({
     payload,
     currentState,
     seasonId,
     timestamp,
+    resolutionAt: payload.offerSheetResolutionAt,
+    worldAsOfDate: asOfDate,
     acceptedStatuses: ['DECLINED'],
     metadataType: 'finalizeDeclinedOfferSheet',
   });

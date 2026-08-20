@@ -237,9 +237,11 @@ describe('Gate 2: loadStateForMutation loads BOTH teams for offer sheet mutation
   });
 
   it('returns both homeTeam and offeringTeam from state loader', () => {
-    // Wave 4 Step 4c: ternary bodies in return block require wider constraints
+    // The exact stale-write receipts now follow the three required state fields
+    // in this return block, so keep the structural gate focused on those fields
+    // while allowing the receipt object before the closing brace.
     const returnsBothTeams =
-      /return\s*\{[\s\S]{0,600}homeTeam[\s\S]{0,600}offeringTeam[\s\S]{0,600}offerSheetId[\s\S]{0,300}\}/.test(
+      /return\s*\{[\s\S]{0,600}homeTeam[\s\S]{0,600}offeringTeam[\s\S]{0,600}offerSheetId[\s\S]{0,1200}\}/.test(
         content
       );
     expect(returnsBothTeams).toBe(true);
@@ -470,7 +472,7 @@ describe('Gate 6: Finalize matched recomputes home totals (E1)', () => {
 
   it('removes offer sheet from home team incomingOfferSheets', () => {
     const removesFromHome =
-      /computeMatchedOfferSheetOutcome[\s\S]{0,2500}updatedHomeTeam\.incomingOfferSheets\s*=[\s\S]{0,200}removeOfferSheetEntries/.test(
+      /computeMatchedOfferSheetOutcome[\s\S]{0,4500}updatedHomeTeam\.incomingOfferSheets\s*=[\s\S]{0,200}removeOfferSheetEntries/.test(
         content
       );
     expect(removesFromHome).toBe(true);

@@ -11,6 +11,7 @@
  *  - Master Doc: docs/architect/TRADE_MACHINE_MASTER.md
  */
 import React from 'react';
+import { OfferSheetResolutionControls } from './OfferSheetResolutionControls';
 
 import type {
   OfferSheetLifecycleAction,
@@ -179,6 +180,15 @@ export const OfferSheetList = ({
                 </td>
                 <td className="py-1.5 text-right space-x-2">
                   {lifecycleSurfaceState.kind === 'actions' &&
+                    surfaceRole === 'incoming' &&
+                    os.status === 'PENDING_MATCH' ? (
+                      <OfferSheetResolutionControls
+                        offerSheet={os}
+                        onLifecycleAction={onLifecycleAction}
+                        actionsDisabled={actionsDisabled}
+                        actionsDisabledReason={actionsDisabledReason}
+                      />
+                    ) : lifecycleSurfaceState.kind === 'actions' &&
                     lifecycleSurfaceState.actions.map((action) => (
                       <button
                         key={action}

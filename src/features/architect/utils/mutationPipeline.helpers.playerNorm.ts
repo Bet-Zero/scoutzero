@@ -84,6 +84,7 @@ export function normalizeCurrentStatePlayerRfaContext(
   const retainedUntilFinalize = toOptionalBoolean(
     context.retainedUntilFinalize
   );
+  const governedEvidence = context.governedEvidence;
 
   if (pendingHomeTeamCode !== undefined) {
     normalized.pendingHomeTeamCode = pendingHomeTeamCode;
@@ -93,6 +94,13 @@ export function normalizeCurrentStatePlayerRfaContext(
   }
   if (retainedUntilFinalize !== undefined) {
     normalized.retainedUntilFinalize = retainedUntilFinalize;
+  }
+  if (governedEvidence !== undefined) {
+    try {
+      normalized.governedEvidence = JSON.parse(JSON.stringify(governedEvidence));
+    } catch {
+      normalized.governedEvidence = governedEvidence;
+    }
   }
 
   return Object.keys(normalized).length > 0 ? normalized : undefined;

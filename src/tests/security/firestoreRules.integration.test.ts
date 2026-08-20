@@ -32,6 +32,7 @@ const TEAM_CODE = 'LAL';
 const EVENT_ID = 'evt_1';
 const ENTITLEMENT_ID = 'ent_1';
 const PLAYER_ID = 'player_1';
+const OFFER_SHEET_ID = 'offer_sheet_1';
 const UID_A = 'uid-owner-a';
 const UID_B = 'uid-non-owner-b';
 const HAS_FIRESTORE_EMULATOR_HOST = Boolean(
@@ -98,6 +99,24 @@ async function seedOwnedTierList(tierListId: string): Promise<void> {
       title: 'Owner Tier List',
     });
   });
+}
+
+function offerSheetAuthorizationData(
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return {
+    authorizationVersion: 1,
+    worldId: WORLD_ID,
+    offerSheetId: OFFER_SHEET_ID,
+    dedupKey: `os:${WORLD_ID}:LAL:${PLAYER_ID}:2025-26`,
+    playerId: PLAYER_ID,
+    homeTeamId: 'BOS',
+    offeringTeamId: 'LAL',
+    salaryCapYear: 2026,
+    pendingLifecycleDigest: `fnv1a64:${'a'.repeat(16)}`,
+    immutableEvidenceDigest: `fnv1a64:${'b'.repeat(16)}`,
+    ...overrides,
+  };
 }
 
 beforeAll(async () => {
@@ -372,6 +391,81 @@ describeWithFirestoreEmulator(
         setDoc(doc(db, 'architect_worlds', WORLD_ID, 'events', EVENT_ID), {
           type: 'transaction',
         })
+      );
+    });
+
+    it('5b) owner can create and read an immutable Offer Sheet authorization anchor', async () => {
+      await seedOwnedWorld();
+      const db = ownerDb();
+      const authorizationRef = doc(
+        db,
+        'architect_worlds',
+        WORLD_ID,
+        'offerSheetAuthorizations',
+        OFFER_SHEET_ID
+      );
+      await assertSucceeds(
+        setDoc(authorizationRef, offerSheetAuthorizationData())
+      );
+      await assertSucceeds(getDoc(authorizationRef));
+      await assertFails(
+        updateDoc(authorizationRef, {
+          immutableEvidenceDigest: `fnv1a64:${'c'.repeat(16)}`,
+        })
+      );
+      await assertFails(deleteDoc(authorizationRef));
+    });
+
+    it('5c) non-owners cannot create or read Offer Sheet authorization anchors', async () => {
+      await seedOwnedWorld();
+      const ownerAuthorizationRef = doc(
+        ownerDb(),
+        'architect_worlds',
+        WORLD_ID,
+        'offerSheetAuthorizations',
+        OFFER_SHEET_ID
+      );
+      await assertSucceeds(
+        setDoc(ownerAuthorizationRef, offerSheetAuthorizationData())
+      );
+      const nonOwnerAuthorizationRef = doc(
+        nonOwnerDb(),
+        'architect_worlds',
+        WORLD_ID,
+        'offerSheetAuthorizations',
+        OFFER_SHEET_ID
+      );
+      await assertFails(getDoc(nonOwnerAuthorizationRef));
+      await assertFails(
+        setDoc(
+          doc(
+            nonOwnerDb(),
+            'architect_worlds',
+            WORLD_ID,
+            'offerSheetAuthorizations',
+            'offer_sheet_2'
+          ),
+          offerSheetAuthorizationData({ offerSheetId: 'offer_sheet_2' })
+        )
+      );
+    });
+
+    it('5d) rejects malformed Offer Sheet authorization anchors', async () => {
+      await seedOwnedWorld();
+      const db = ownerDb();
+      await assertFails(
+        setDoc(
+          doc(
+            db,
+            'architect_worlds',
+            WORLD_ID,
+            'offerSheetAuthorizations',
+            OFFER_SHEET_ID
+          ),
+          offerSheetAuthorizationData({
+            pendingLifecycleDigest: `sha256:${'a'.repeat(64)}`,
+          })
+        )
       );
     });
 

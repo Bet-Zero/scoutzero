@@ -61,6 +61,7 @@ const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
   'tradeKicker',
   'tradeRestrictions',
   'tradeEligibility',
+  'offerSheetMatchRestriction',
 ] as const;
 // These current-contract fields remain on the normalized player seam because
 // option/signing flows spread the existing contract before canonicalization and
@@ -155,6 +156,7 @@ export type MutationCurrentStatePlayerContractIngress = {
   tradeKicker?: MutationCurrentStateContractNumberish;
   tradeRestrictions?: string[] | null;
   tradeEligibility?: CurrentStatePlayerContractTradeEligibility | null;
+  offerSheetMatchRestriction?: unknown;
 };
 export type MutationCurrentStatePlayerFutureContractIngress = {
   salariesByYear?: MutationCurrentStatePlayerContractSalaryRowIngress[] | null;
@@ -217,6 +219,7 @@ export type CurrentStatePlayerRfaContext = {
   pendingHomeTeamCode?: string;
   offerSheetId?: string;
   retainedUntilFinalize?: boolean;
+  governedEvidence?: unknown;
 };
 export type CurrentStatePlayerComputeCore = Omit<
   Pick<
@@ -402,17 +405,22 @@ export type CurrentStateTeamMutationCoreFieldMap = Pick<
   | 'hardCapTriggeredBy'
 >;
 export type CurrentStateTeamRosterFieldMap = Pick<CurrentStateTeam, 'roster'>;
-export type CurrentStateTeamExceptionsFieldMap = Pick<CurrentStateTeam, 'exceptions'>;
+export type CurrentStateTeamExceptionsFieldMap = Pick<
+  CurrentStateTeam,
+  'exceptions'
+>;
 export type CurrentStateOfferSheetTeamLiveFieldMap = Pick<
   CurrentStateTeam,
   'offerSheets' | 'incomingOfferSheets'
 >;
-export type CurrentStatePlayerOpsTeamCompute = CurrentStateTeamIdentityFieldMap &
-  CurrentStateTeamMutationCoreFieldMap &
-  CurrentStateTeamRosterFieldMap;
-export type CurrentStateManualCapTeamCompute = CurrentStateTeamIdentityFieldMap &
-  CurrentStateTeamMutationCoreFieldMap &
-  CurrentStateTeamExceptionsFieldMap;
+export type CurrentStatePlayerOpsTeamCompute =
+  CurrentStateTeamIdentityFieldMap &
+    CurrentStateTeamMutationCoreFieldMap &
+    CurrentStateTeamRosterFieldMap;
+export type CurrentStateManualCapTeamCompute =
+  CurrentStateTeamIdentityFieldMap &
+    CurrentStateTeamMutationCoreFieldMap &
+    CurrentStateTeamExceptionsFieldMap;
 export type CurrentStateSigningTeamCompute = CurrentStatePlayerOpsTeamCompute &
   CurrentStateTeamExceptionsFieldMap &
   Pick<CurrentStateTeam, 'offerSheets'>;
@@ -465,15 +473,16 @@ export type CurrentStateBaseTeamDraftPicksCarrier = {
 export type CurrentStateBaseTeamEntitlementIdsCarrier = {
   [CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY]?: CurrentStateBaseTeamPreservedFieldMap['entitlementIds'];
 };
-export type CurrentStateBaseTeamRoundTripCarrier = CurrentStateBaseTeamRosterCarrier &
-  CurrentStateBaseTeamExceptionsCarrier &
-  CurrentStateBaseTeamOfferSheetsCarrier &
-  CurrentStateBaseTeamIncomingOfferSheetsCarrier &
-  CurrentStateBaseTeamTradeExceptionsCarrier &
-  CurrentStateBaseTeamCashLedgerCarrier &
-  CurrentStateBaseTeamExceptionHistoryCarrier &
-  CurrentStateBaseTeamDraftPicksCarrier &
-  CurrentStateBaseTeamEntitlementIdsCarrier;
+export type CurrentStateBaseTeamRoundTripCarrier =
+  CurrentStateBaseTeamRosterCarrier &
+    CurrentStateBaseTeamExceptionsCarrier &
+    CurrentStateBaseTeamOfferSheetsCarrier &
+    CurrentStateBaseTeamIncomingOfferSheetsCarrier &
+    CurrentStateBaseTeamTradeExceptionsCarrier &
+    CurrentStateBaseTeamCashLedgerCarrier &
+    CurrentStateBaseTeamExceptionHistoryCarrier &
+    CurrentStateBaseTeamDraftPicksCarrier &
+    CurrentStateBaseTeamEntitlementIdsCarrier;
 export type CurrentStateBaseTeamPreservedCarrierLike =
   CurrentStateBaseTeamRoundTripCarrier;
 export type CurrentStatePlayerOpsTeam = CurrentStatePlayerOpsTeamCompute &
@@ -501,7 +510,9 @@ export type CurrentStateNonTradeTeamRoundTripMaterializable =
   | CurrentStateSigningTeam
   | CurrentStateOfferSheetMirrorTeam
   | CurrentStateOfferSheetResolutionTeam;
-export type BaseTeamLike = CurrentStatePlayerOpsTeam | CurrentStateManualCapTeam;
+export type BaseTeamLike =
+  | CurrentStatePlayerOpsTeam
+  | CurrentStateManualCapTeam;
 export type OfferSheetTeamLike =
   | CurrentStateSigningTeam
   | CurrentStateOfferSheetMirrorTeam

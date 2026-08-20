@@ -65,6 +65,23 @@ vi.mock('firebase/firestore', () => ({
     delete: testState.batchDelete,
     commit: testState.batchCommit,
   })),
+  runTransaction: vi.fn(
+    async (
+      _db: unknown,
+      updateFunction: (transaction: {
+        get: typeof testState.getDoc;
+        set: typeof testState.batchSet;
+        update: typeof testState.batchUpdate;
+        delete: typeof testState.batchDelete;
+      }) => Promise<unknown>
+    ) =>
+      updateFunction({
+        get: testState.getDoc,
+        set: testState.batchSet,
+        update: testState.batchUpdate,
+        delete: testState.batchDelete,
+      })
+  ),
   getDoc: testState.getDoc,
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments: unknown[]) => segments.map(String).join('/')),
@@ -151,6 +168,7 @@ vi.mock('@/features/architect/utils/leagueInvariants', () => ({
 }));
 
 import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 const WORLD_ID = 'world_boundary_test';
 const PARENT_WORLD_ID = 'world_boundary_parent';
@@ -495,7 +513,7 @@ describe('mutationPipeline compatibility boundary', () => {
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
+    expect(result.success, String(result.error)).toBe(true);
     expect(result.changedTeams).toHaveLength(2);
 
     const bostonTeam = result.changedTeams?.find(
@@ -545,7 +563,25 @@ describe('mutationPipeline compatibility boundary', () => {
   });
 
   it('applies storeOfferSheet from lineage snapshots and surfaces merged canonical player identity in the public result', async () => {
-    seedWorldMetadata(WORLD_ID, { parentWorldId: PARENT_WORLD_ID });
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: WORLD_ID,
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
+    seedWorldMetadata(WORLD_ID, {
+      parentWorldId: PARENT_WORLD_ID,
+      asOfDate: governed.asOfDate,
+    });
+    seedDoc(`architect_worlds/${WORLD_ID}`, {
+      createdBy: 'user_boundary',
+      parentWorldId: PARENT_WORLD_ID,
+      asOfDate: governed.asOfDate,
+    });
     seedWorldMetadata(PARENT_WORLD_ID, { parentWorldId: null });
 
     const offeringTeam = makeTeam('BOS', []);
@@ -554,10 +590,12 @@ describe('mutationPipeline compatibility boundary', () => {
       contract: makeContract(7_500_000, {
         freeAgency: { type: 'RFA', year: 2026 },
       }),
+      rfaContext: { governedEvidence: governed.evidence },
     });
     const homeTeamSnapshot = makeTeam('NYK', [homeSnapshotPlayer], {
       roster: ['rfa_1'],
       players: [homeSnapshotPlayer],
+      rightsLedger: governed.rightsLedger,
     });
 
     seedDoc(
@@ -582,6 +620,11 @@ describe('mutationPipeline compatibility boundary', () => {
       }
       throw new Error(`Unexpected team load: ${teamCode}`);
     });
+    testState.getPlayer.mockResolvedValue({
+      ...homeSnapshotPlayer,
+      displayName: 'Immutable Base Name',
+      rfaContext: { governedEvidence: governed.evidence },
+    });
 
     const result = await applyWorldMutation({
       userId: 'user_boundary',
@@ -592,29 +635,14 @@ describe('mutationPipeline compatibility boundary', () => {
         worldId: WORLD_ID,
         teamCode: 'BOS',
         playerId: 'rfa_1',
-        contract: makeContract(9_000_000, {
-          years: 2,
-          contractYears: 2,
-          totalValue: 18_000_000,
-          freeAgency: {
-            type: 'RFA',
-            year: 2026,
-            capHold: null,
-            qualifyingOffer: null,
-            earlyTerminationOption: null,
-            hasOption: false,
-            optionYear: null,
-            optionType: null,
-          },
-          rfaOfferSheet: true,
-          rfaOfferSheetOnly: true,
-        }),
+        contract: governed.contract,
+        offerSheetProposal: governed.proposal,
         signedUsing: 'Offer Sheet',
       },
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
+    expect(result.success, String(result.error)).toBe(true);
     expect(result.changedTeams).toHaveLength(2);
 
     const outgoingOfferSheet = result.changedTeams?.find(

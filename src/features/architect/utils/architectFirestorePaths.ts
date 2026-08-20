@@ -37,6 +37,7 @@ import {
   ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
   ARCHITECT_WORLD_FREE_AGENT_POOLS_SUBCOLLECTION,
   ARCHITECT_WORLD_CONTRACT_BASELINES_SUBCOLLECTION,
+  ARCHITECT_WORLD_OFFER_SHEET_AUTHORIZATIONS_SUBCOLLECTION,
 } from '@/constants/collections';
 
 // Re-export base collection helpers for convenience
@@ -141,6 +142,19 @@ export const worldContractBaselineRef = (
     worldId,
     ARCHITECT_WORLD_CONTRACT_BASELINES_SUBCOLLECTION,
     shardId
+  );
+
+/** Immutable authorization anchor for one governed Offer Sheet lifecycle. */
+export const worldOfferSheetAuthorizationRef = (
+  worldId: string,
+  offerSheetId: string
+): DocumentReference =>
+  doc(
+    db,
+    ARCHITECT_WORLDS_COLLECTION,
+    worldId,
+    ARCHITECT_WORLD_OFFER_SHEET_AUTHORIZATIONS_SUBCOLLECTION,
+    offerSheetId
   );
 
 /**

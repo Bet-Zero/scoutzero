@@ -40,18 +40,25 @@ const testState = vi.hoisted(() => ({
       bio:
         base.bio || override.bio
           ? {
-              ...((base.bio as Record<string, unknown> | null | undefined) || {}),
-              ...((override.bio as Record<string, unknown> | null | undefined) ||
+              ...((base.bio as Record<string, unknown> | null | undefined) ||
                 {}),
+              ...((override.bio as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
             }
           : undefined,
       contract:
         base.contract || override.contract
           ? {
-              ...((base.contract as Record<string, unknown> | null | undefined) ||
-                {}),
-              ...((override.contract as Record<string, unknown> | null | undefined) ||
-                {}),
+              ...((base.contract as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
+              ...((override.contract as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
             }
           : undefined,
     })
@@ -71,6 +78,23 @@ vi.mock('firebase/firestore', () => ({
     delete: testState.batchDelete,
     commit: testState.batchCommit,
   })),
+  runTransaction: vi.fn(
+    async (
+      _db: unknown,
+      updateFunction: (transaction: {
+        get: typeof testState.getDoc;
+        set: typeof testState.batchSet;
+        update: typeof testState.batchUpdate;
+        delete: typeof testState.batchDelete;
+      }) => Promise<unknown>
+    ) =>
+      updateFunction({
+        get: testState.getDoc,
+        set: testState.batchSet,
+        update: testState.batchUpdate,
+        delete: testState.batchDelete,
+      })
+  ),
   getDoc: testState.getDoc,
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments: unknown[]) => segments.map(String).join('/')),
@@ -103,7 +127,11 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
   validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
-  validateExtension: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateExtension: vi.fn(() => ({
+    valid: true,
+    violations: [],
+    warnings: [],
+  })),
   validateOptionDecision: vi.fn(() => ({
     valid: true,
     violations: [],
@@ -151,6 +179,9 @@ vi.mock('@/features/architect/utils/leagueInvariants', () => ({
 }));
 
 import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import { resolveStoreOfferSheetAuthority } from '@/features/architect/utils/mutationPipeline.read.stateLoader';
+import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils/offerSheets';
+import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 const WORLD_ID = 'world_rfa_sidecar_boundary';
 const PARENT_WORLD_ID = 'world_rfa_sidecar_boundary_parent';
@@ -302,7 +333,9 @@ describe('mutationPipeline RFA sidecar boundary', () => {
           ? input.teams.map((team) => ({
               teamCode: team.teamCode ?? null,
               legal: true,
-              incomingPlayers: Array.isArray(team.receives) ? team.receives : [],
+              incomingPlayers: Array.isArray(team.receives)
+                ? team.receives
+                : [],
             }))
           : [],
       })
@@ -310,7 +343,25 @@ describe('mutationPipeline RFA sidecar boundary', () => {
   });
 
   it('storeOfferSheet still resolves canonical public player identity through lineage merge output', async () => {
-    seedWorldMetadata(WORLD_ID, { parentWorldId: PARENT_WORLD_ID });
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: WORLD_ID,
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
+    seedWorldMetadata(WORLD_ID, {
+      parentWorldId: PARENT_WORLD_ID,
+      asOfDate: governed.asOfDate,
+    });
+    seedDoc(`architect_worlds/${WORLD_ID}`, {
+      createdBy: 'user_boundary',
+      parentWorldId: PARENT_WORLD_ID,
+      asOfDate: governed.asOfDate,
+    });
     seedWorldMetadata(PARENT_WORLD_ID, { parentWorldId: null });
 
     const offeringTeam = makeTeam('BOS', []);
@@ -323,17 +374,16 @@ describe('mutationPipeline RFA sidecar boundary', () => {
         contract: makeContract(7_500_000, {
           freeAgency: { type: 'RFA', year: 2026 },
         }),
+        rfaContext: { governedEvidence: governed.evidence },
       }
     );
     const homeTeamSnapshot = makeTeam('NYK', [homeSnapshotPlayer], {
       roster: ['rfa_1'],
       players: [homeSnapshotPlayer],
+      rightsLedger: governed.rightsLedger,
     });
 
-    seedDoc(
-      `architect_worlds/${PARENT_WORLD_ID}/teams/NYK`,
-      homeTeamSnapshot
-    );
+    seedDoc(`architect_worlds/${PARENT_WORLD_ID}/teams/NYK`, homeTeamSnapshot);
     seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK`, null);
     seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK/players/rfa_1`, {
       playerId: 'rfa_1',
@@ -358,6 +408,11 @@ describe('mutationPipeline RFA sidecar boundary', () => {
         throw new Error(`Unexpected team load: ${teamCode}`);
       }
     );
+    testState.getPlayer.mockResolvedValue({
+      ...homeSnapshotPlayer,
+      displayName: 'Immutable Base Name',
+      rfaContext: { governedEvidence: governed.evidence },
+    });
 
     const result = await applyWorldMutation({
       userId: 'user_boundary',
@@ -368,29 +423,14 @@ describe('mutationPipeline RFA sidecar boundary', () => {
         worldId: WORLD_ID,
         teamCode: 'BOS',
         playerId: 'rfa_1',
-        contract: makeContract(9_000_000, {
-          years: 2,
-          contractYears: 2,
-          totalValue: 18_000_000,
-          freeAgency: {
-            type: 'RFA',
-            year: 2026,
-            capHold: null,
-            qualifyingOffer: null,
-            earlyTerminationOption: null,
-            hasOption: false,
-            optionYear: null,
-            optionType: null,
-          },
-          rfaOfferSheet: true,
-          rfaOfferSheetOnly: true,
-        }),
+        contract: governed.contract,
+        offerSheetProposal: governed.proposal,
         signedUsing: 'Offer Sheet',
       },
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
+    expect(result.success, String(result.error)).toBe(true);
 
     const outgoingOfferSheet = result.changedTeams?.find(
       (update) => update.teamCode === 'BOS'
@@ -410,6 +450,191 @@ describe('mutationPipeline RFA sidecar boundary', () => {
       playerName: 'Override Name',
       homeTeamCode: 'NYK',
     });
+  });
+
+  it('strips governed RFA evidence authored only by a mutable player override', async () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: WORLD_ID,
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      offerSheetId: 'os_rfa_1',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
+    seedWorldMetadata(WORLD_ID, {
+      parentWorldId: PARENT_WORLD_ID,
+      asOfDate: governed.asOfDate,
+    });
+    seedWorldMetadata(PARENT_WORLD_ID, { parentWorldId: null });
+
+    const offeringTeam = makeTeam('BOS', []);
+    const sourcePlayerWithoutEvidence = makePlayer(
+      'rfa_1',
+      'Source Player',
+      7_500_000,
+      'NYK',
+      {
+        contract: makeContract(7_500_000, {
+          freeAgency: { type: 'RFA', year: 2026 },
+        }),
+      }
+    );
+    seedDoc(
+      `architect_worlds/${PARENT_WORLD_ID}/teams/NYK`,
+      makeTeam('NYK', [sourcePlayerWithoutEvidence], {
+        roster: ['rfa_1'],
+        players: [sourcePlayerWithoutEvidence],
+        rightsLedger: governed.rightsLedger,
+      })
+    );
+    seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK`, null);
+    seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK/players/rfa_1`, {
+      playerId: 'rfa_1',
+      displayName: 'Override Player',
+      rfaContext: { governedEvidence: governed.evidence },
+    });
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'BOS') return offeringTeam;
+        throw new Error(`Unexpected team load: ${teamCode}`);
+      }
+    );
+    testState.getPlayer.mockResolvedValue(sourcePlayerWithoutEvidence);
+
+    const authority = await resolveStoreOfferSheetAuthority({
+      worldId: WORLD_ID,
+      offeringTeamCode: 'BOS',
+      playerId: 'rfa_1',
+    });
+
+    expect(authority.player.rfaContext?.governedEvidence).toBeUndefined();
+    expect(authority.player.displayName).toBe('Override Player');
+  });
+
+  it('strips governed RFA evidence authored only in a mutable Team snapshot', async () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: WORLD_ID,
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      offerSheetId: 'os_rfa_1',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
+    seedWorldMetadata(WORLD_ID, { parentWorldId: null });
+
+    const immutableBasePlayer = makePlayer(
+      'rfa_1',
+      'Immutable Base Player',
+      7_500_000,
+      'NYK',
+      {
+        contract: makeContract(7_500_000, {
+          freeAgency: { type: 'RFA', year: 2026 },
+        }),
+      }
+    );
+    const mutableSnapshotPlayer = {
+      ...immutableBasePlayer,
+      displayName: 'Mutable Snapshot Name',
+      rfaContext: { governedEvidence: governed.evidence },
+    };
+    seedDoc(
+      `architect_worlds/${WORLD_ID}/teams/NYK`,
+      makeTeam('NYK', [mutableSnapshotPlayer], {
+        roster: ['rfa_1'],
+        players: [mutableSnapshotPlayer],
+        rightsLedger: governed.rightsLedger,
+      })
+    );
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'BOS') return makeTeam('BOS', []);
+        throw new Error(`Unexpected team load: ${teamCode}`);
+      }
+    );
+    testState.getPlayer.mockResolvedValue(immutableBasePlayer);
+
+    const authority = await resolveStoreOfferSheetAuthority({
+      worldId: WORLD_ID,
+      offeringTeamCode: 'BOS',
+      playerId: 'rfa_1',
+    });
+
+    expect(testState.getPlayer).toHaveBeenCalledWith(null, 'NYK', 'rfa_1');
+    expect(authority.player.displayName).toBe('Mutable Snapshot Name');
+    expect(authority.player.rfaContext?.governedEvidence).toBeUndefined();
+  });
+
+  it('loads immutable base evidence for cap-hold-only RFA ownership', async () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: WORLD_ID,
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      offerSheetId: 'os_rfa_1',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
+    seedWorldMetadata(WORLD_ID, { parentWorldId: null });
+
+    const immutableBasePlayer = makePlayer(
+      'rfa_1',
+      'Base Player',
+      7_500_000,
+      'NYK',
+      {
+        contract: makeContract(7_500_000, {
+          freeAgency: { type: 'RFA', year: 2026 },
+        }),
+      }
+    );
+    seedDoc(
+      `architect_worlds/${WORLD_ID}/teams/NYK`,
+      makeTeam('NYK', [], {
+        roster: [],
+        players: [],
+        capHolds: [{ playerId: 'rfa_1', active: true, isSigned: false }],
+        rightsLedger: governed.rightsLedger,
+      })
+    );
+    seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK/players/rfa_1`, {
+      playerId: 'rfa_1',
+      displayName: 'Override Player',
+      rfaContext: { governedEvidence: governed.evidence },
+    });
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'BOS') return makeTeam('BOS', []);
+        throw new Error(`Unexpected team load: ${teamCode}`);
+      }
+    );
+    testState.getPlayer.mockImplementation(
+      async (requestedWorldId: string | null) =>
+        requestedWorldId === null
+          ? immutableBasePlayer
+          : {
+              ...immutableBasePlayer,
+              rfaContext: { governedEvidence: governed.evidence },
+            }
+    );
+
+    const authority = await resolveStoreOfferSheetAuthority({
+      worldId: WORLD_ID,
+      offeringTeamCode: 'BOS',
+      playerId: 'rfa_1',
+    });
+
+    expect(testState.getPlayer).toHaveBeenCalledWith(null, 'NYK', 'rfa_1');
+    expect(authority.player.rfaContext?.governedEvidence).toBeUndefined();
+    expect(authority.player.displayName).toBe('Override Player');
   });
 
   it('executeTrade writes the normalized player-level RFA sidecar through the persisted override payload', async () => {
@@ -465,7 +690,9 @@ describe('mutationPipeline RFA sidecar boundary', () => {
     expect(result.success).toBe(true);
 
     const destinationPlayerWrite = testState.batchSet.mock.calls.find(([ref]) =>
-      String(ref).includes(`architect_worlds/${WORLD_ID}/teams/BOS/players/player_a`)
+      String(ref).includes(
+        `architect_worlds/${WORLD_ID}/teams/BOS/players/player_a`
+      )
     );
     const writtenPlayer = destinationPlayerWrite?.[1] as
       | Record<string, unknown>
@@ -488,6 +715,23 @@ describe('mutationPipeline RFA sidecar boundary', () => {
   });
 
   it('finalizeMatchedOfferSheet omits the player-level RFA sidecar from the persisted override payload', async () => {
+    const governed = makeGovernedOfferSheetFixture({
+      worldId: WORLD_ID,
+      playerId: 'rfa_1',
+      homeTeamId: 'NYK',
+      offeringTeamId: 'BOS',
+      offerSheetId: 'os_rfa_1',
+      salariesByYear: [
+        { season: SEASON_ID, salary: 9_000_000 },
+        { season: '2026-27', salary: 9_000_000 },
+      ],
+    });
+    seedWorldMetadata(WORLD_ID, { asOfDate: governed.asOfDate });
+    seedDoc(`architect_worlds/${WORLD_ID}`, {
+      createdBy: 'user_boundary',
+      parentWorldId: null,
+      asOfDate: governed.asOfDate,
+    });
     const offerSheet = {
       id: 'os_rfa_1',
       dedupKey: `os:${WORLD_ID}:BOS:rfa_1:${SEASON_ID}`,
@@ -517,6 +761,7 @@ describe('mutationPipeline RFA sidecar boundary', () => {
       ],
       status: 'MATCHED',
       createdAt: FIXED_TIMESTAMP_ISO,
+      governedLifecycle: governed.lifecycle,
     };
     const homePlayer = makePlayer('rfa_1', 'Home Player', 7_500_000, 'NYK', {
       rfaOfferSheet: true,
@@ -532,6 +777,22 @@ describe('mutationPipeline RFA sidecar boundary', () => {
     const offeringTeam = makeTeam('BOS', [], {
       offerSheets: [offerSheet],
     });
+    const immutableBasePlayer = {
+      ...homePlayer,
+      rfaContext: { governedEvidence: governed.evidence },
+    };
+    testState.getPlayer.mockResolvedValue(immutableBasePlayer);
+    seedDoc('architect_basePlayers/rfa_1', immutableBasePlayer);
+    seedDoc(
+      `architect_worlds/${WORLD_ID}/offerSheetAuthorizations/${offerSheet.id}`,
+      buildGovernedOfferSheetAuthorization({
+        lifecycle: governed.lifecycle,
+        offerSheetId: offerSheet.id,
+        dedupKey: offerSheet.dedupKey,
+      })
+    );
+    seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK`, homeTeam);
+    seedDoc(`architect_worlds/${WORLD_ID}/teams/BOS`, offeringTeam);
 
     testState.getTeam.mockImplementation(
       async (_worldId: string, teamCode: string) => {
@@ -552,6 +813,7 @@ describe('mutationPipeline RFA sidecar boundary', () => {
         offeringTeamCode: 'BOS',
         offerSheetId: 'os_rfa_1',
         dedupKey: `os:${WORLD_ID}:BOS:rfa_1:${SEASON_ID}`,
+        offerSheetResolutionAt: governed.resolutionAt,
       },
       timestamp: FIXED_TIMESTAMP,
     });
@@ -559,7 +821,9 @@ describe('mutationPipeline RFA sidecar boundary', () => {
     expect(result.success).toBe(true);
 
     const matchedPlayerWrite = testState.batchSet.mock.calls.find(([ref]) =>
-      String(ref).includes(`architect_worlds/${WORLD_ID}/teams/NYK/players/rfa_1`)
+      String(ref).includes(
+        `architect_worlds/${WORLD_ID}/teams/NYK/players/rfa_1`
+      )
     );
     const writtenPlayer = matchedPlayerWrite?.[1] as
       | Record<string, unknown>

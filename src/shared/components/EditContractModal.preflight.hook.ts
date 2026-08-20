@@ -14,6 +14,7 @@ import type {
   OfferSheetInitiation,
   SignAndTradeInitiation,
 } from './EditContractModal.types';
+import { MAX_OFFER_SHEET_SALARY_CAP_YEARS } from '@/schemas/governedOfferSheet';
 
 type UseEditContractModalPreflightParams = {
   isOpen: boolean | undefined;
@@ -66,7 +67,9 @@ export const useEditContractModalPreflight = ({
     }
     if (signAndTradeActionDisabledReason) {
       setSignAndTradePreflight(
-        buildSignAndTradePreflightResult('blocked', [signAndTradeActionDisabledReason])
+        buildSignAndTradePreflightResult('blocked', [
+          signAndTradeActionDisabledReason,
+        ])
       );
       return;
     }
@@ -138,13 +141,24 @@ export const useEditContractModalPreflight = ({
       );
       return;
     }
+    if (offerSheetDispatchPayload.years > MAX_OFFER_SHEET_SALARY_CAP_YEARS) {
+      setOfferSheetPreflight(
+        buildOfferSheetPreflightResult('blocked', [
+          'An Offer Sheet may cover no more than four Salary Cap Years.',
+        ])
+      );
+      return;
+    }
     setOfferSheetPreflight(
       buildOfferSheetPreflightResult('incomplete', [
         'Checking authoritative offer sheet legality...',
       ])
     );
     void Promise.resolve(
-      resolvedOfferSheetInitiation.getOfferSheetPreflight(player, offerSheetDispatchPayload)
+      resolvedOfferSheetInitiation.getOfferSheetPreflight(
+        player,
+        offerSheetDispatchPayload
+      )
     )
       .then((result) => {
         if (latestOfferSheetPreflightRequestId.current !== requestId) return;

@@ -8,13 +8,7 @@
  */
 
 import React from 'react';
-import {
-  afterEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   cleanup,
   fireEvent,
@@ -112,7 +106,9 @@ vi.mock('@/features/architect/utils/contractUtils', () => ({
     startYear,
   }),
   getContractYearsForDisplay: (player: {
-    contract?: { salariesByYear?: Array<Record<string, unknown>> | null } | null;
+    contract?: {
+      salariesByYear?: Array<Record<string, unknown>> | null;
+    } | null;
   }) =>
     (player?.contract?.salariesByYear || []).map((row) => {
       const season = String(row.season || '');
@@ -129,9 +125,12 @@ vi.mock('@/features/architect/utils/contractUtils', () => ({
       };
     }),
   getContractYearSlice: (
-    contract: {
-      salariesByYear?: Array<Record<string, unknown>> | null;
-    } | null | undefined,
+    contract:
+      | {
+          salariesByYear?: Array<Record<string, unknown>> | null;
+        }
+      | null
+      | undefined,
     year: number
   ) =>
     (contract?.salariesByYear || []).find((row) => {
@@ -144,9 +143,10 @@ vi.mock('@/features/architect/utils/contractUtils', () => ({
 }));
 
 vi.mock('@/features/architect/utils/seasonFormat', async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import('@/features/architect/utils/seasonFormat')
-  >();
+  const actual =
+    await importOriginal<
+      typeof import('@/features/architect/utils/seasonFormat')
+    >();
   return {
     ...actual,
     toSeasonCode: (endYear: number) =>
@@ -240,6 +240,144 @@ afterEach(() => {
 });
 
 describe('EditContractModal offer-sheet preflight behavior', () => {
+  it('authors exact Offer Sheet notice evidence into the preview and saved payload', async () => {
+    const getOfferSheetPreflight = vi.fn().mockResolvedValue({
+      status: 'legal',
+      reasons: [],
+      warnings: [],
+      source: 'authoritative-preflight',
+    });
+    const onStoreOfferSheet = vi.fn().mockResolvedValue({ success: true });
+
+    render(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={RFA_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2026}
+        initialAction="signNew"
+        actionsOverride={['signNew']}
+        onStoreOfferSheet={onStoreOfferSheet}
+        getOfferSheetPreflight={getOfferSheetPreflight}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Offer Sheet/i }));
+    fireEvent.change(screen.getByTestId('governed-offer-sheet-signed-at'), {
+      target: { value: '2025-07-08T09:55:00-04:00' },
+    });
+    fireEvent.change(screen.getByTestId('governed-offer-sheet-received-at'), {
+      target: { value: '2025-07-08T10:00:00-04:00' },
+    });
+
+    await waitFor(() => {
+      expect(getOfferSheetPreflight).toHaveBeenLastCalledWith(
+        RFA_PLAYER,
+        expect.objectContaining({
+          offerSheetProposal: expect.objectContaining({
+            signedAt: '2025-07-08T09:55:00-04:00',
+            receivedAt: '2025-07-08T10:00:00-04:00',
+          }),
+        })
+      );
+    });
+
+    const confirmButton = screen.getByTestId(
+      'edit-contract-confirm-action-button'
+    );
+    await waitFor(() => expect(confirmButton).toBeEnabled());
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => expect(onStoreOfferSheet).toHaveBeenCalledTimes(1));
+    expect(onStoreOfferSheet).toHaveBeenCalledWith(
+      RFA_PLAYER,
+      expect.objectContaining({
+        offerSheetProposal: expect.objectContaining({
+          signedAt: '2025-07-08T09:55:00-04:00',
+          receivedAt: '2025-07-08T10:00:00-04:00',
+          principalTermsDocumentId: 'architect-principal-terms:p_rfa:v1',
+          noticeDocumentId: 'architect-offer-sheet-notice:p_rfa:v1',
+        }),
+      })
+    );
+  });
+
+  it('blocks a five-year Offer Sheet locally before authoritative dispatch', async () => {
+    const getOfferSheetPreflight = vi.fn();
+
+    render(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={RFA_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2026}
+        initialAction="signNew"
+        actionsOverride={['signNew']}
+        onStoreOfferSheet={vi.fn()}
+        getOfferSheetPreflight={getOfferSheetPreflight}
+        playerRulesProfile={{
+          birdRights: {
+            type: 'Full Bird',
+            signingAbilities: { maxYears: 5 },
+          },
+        }}
+      />
+    );
+
+    fireEvent.change(screen.getByTestId('contract-years'), {
+      target: { value: '5' },
+    });
+    fireEvent.click(screen.getByRole('checkbox', { name: /Offer Sheet/i }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('validation-warnings')).toHaveTextContent(
+        'An Offer Sheet may cover no more than four Salary Cap Years.'
+      );
+    });
+    expect(screen.getByRole('option', { name: '5yr' })).toBeDisabled();
+    expect(getOfferSheetPreflight).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId('edit-contract-confirm-action-button')
+    ).toBeDisabled();
+  });
+
+  it('omits retained notice IDs when the player has no canonical identifier', async () => {
+    const getOfferSheetPreflight = vi.fn().mockResolvedValue({
+      status: 'blocked',
+      reasons: ['Player identity is required.'],
+      warnings: [],
+      source: 'authoritative-preflight',
+    });
+    const playerWithoutId = {
+      ...RFA_PLAYER,
+      id: undefined,
+      player_id: undefined,
+    };
+
+    render(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={playerWithoutId}
+        teamCapSheet={{ ...TEAM_CAP_SHEET, players: [playerWithoutId] }}
+        currentYear={2026}
+        initialAction="signNew"
+        actionsOverride={['signNew']}
+        onStoreOfferSheet={vi.fn()}
+        getOfferSheetPreflight={getOfferSheetPreflight}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('checkbox', { name: /Offer Sheet/i }));
+
+    await waitFor(() => expect(getOfferSheetPreflight).toHaveBeenCalled());
+    expect(getOfferSheetPreflight.mock.calls.at(-1)?.[1]).not.toHaveProperty(
+      'offerSheetProposal'
+    );
+  });
+
   it('keeps confirm disabled while preflight is pending and enables only after legal result', async () => {
     const onClose = vi.fn();
     const onStoreOfferSheet = vi.fn().mockResolvedValue({ success: true });
@@ -267,7 +405,9 @@ describe('EditContractModal offer-sheet preflight behavior', () => {
       />
     );
 
-    const confirmButton = screen.getByTestId('edit-contract-confirm-action-button');
+    const confirmButton = screen.getByTestId(
+      'edit-contract-confirm-action-button'
+    );
     const offerSheetCheckbox = screen.getByRole('checkbox');
 
     // Without toggle: confirm enabled (normal signNew validation)
@@ -339,7 +479,9 @@ describe('EditContractModal offer-sheet preflight behavior', () => {
       />
     );
 
-    const confirmButton = screen.getByTestId('edit-contract-confirm-action-button');
+    const confirmButton = screen.getByTestId(
+      'edit-contract-confirm-action-button'
+    );
     fireEvent.click(screen.getByRole('checkbox'));
 
     await waitFor(() => {
@@ -375,7 +517,9 @@ describe('EditContractModal offer-sheet preflight behavior', () => {
       />
     );
 
-    const confirmButton = screen.getByTestId('edit-contract-confirm-action-button');
+    const confirmButton = screen.getByTestId(
+      'edit-contract-confirm-action-button'
+    );
     const checkbox = screen.getByRole('checkbox');
 
     // Toggle on → preflight starts
@@ -405,7 +549,9 @@ describe('EditContractModal offer-sheet preflight behavior', () => {
     await waitFor(() => {
       expect(confirmButton).toBeEnabled();
     });
-    expect(screen.queryByText('Checking authoritative offer sheet legality...')).toBeNull();
+    expect(
+      screen.queryByText('Checking authoritative offer sheet legality...')
+    ).toBeNull();
   });
 
   it('does not call getOfferSheetPreflight when offer sheet toggle is off', async () => {
@@ -425,7 +571,9 @@ describe('EditContractModal offer-sheet preflight behavior', () => {
       />
     );
 
-    const confirmButton = screen.getByTestId('edit-contract-confirm-action-button');
+    const confirmButton = screen.getByTestId(
+      'edit-contract-confirm-action-button'
+    );
 
     // Do NOT click the checkbox
     await waitFor(() => {
@@ -630,7 +778,9 @@ describe('EditContractModal offer-sheet preflight behavior', () => {
     // Modal must reflect the authoritative verdict, not its own local inference.
     const getOfferSheetPreflight = vi.fn().mockResolvedValue({
       status: 'blocked',
-      reasons: ['Offer sheet requires a distinct home team (offering team is the home team).'],
+      reasons: [
+        'Offer sheet requires a distinct home team (offering team is the home team).',
+      ],
       warnings: [],
       source: 'authoritative-preflight',
     });
@@ -649,7 +799,9 @@ describe('EditContractModal offer-sheet preflight behavior', () => {
       />
     );
 
-    const confirmButton = screen.getByTestId('edit-contract-confirm-action-button');
+    const confirmButton = screen.getByTestId(
+      'edit-contract-confirm-action-button'
+    );
     fireEvent.click(screen.getByRole('checkbox'));
 
     await waitFor(() => {

@@ -13,6 +13,7 @@ GMDashboard/
     DraftPositionsInput.tsx
     FullCapFreeAgentModal.tsx
     OfferSheetList.tsx
+    OfferSheetResolutionControls.tsx
     ScenarioMoveRail.tsx
     SeasonAdvanceModal.helpers.ts
     SeasonAdvanceModal.tsx
@@ -450,6 +451,12 @@ utils/
   mutationPipeline.types.ts
   mutationPipeline.validate.ts
   nonTradeMutationValidationStage.ts
+  offerSheets/
+    governedOfferSheetLifecycle.ts
+    governedOfferSheetRestrictions.ts
+    governedOfferSheetTerms.ts
+    governedOfferSheetTime.ts
+    index.ts
   offseason/
     index.ts
     resolveOffseasonTransition.helpers.ts
@@ -615,5 +622,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-18T11:33:25.850Z*
+*Generated on: 2026-08-19T04:48:00.666Z*
 *Auto-updated by: npm run docs*

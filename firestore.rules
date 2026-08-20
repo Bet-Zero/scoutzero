@@ -158,6 +158,43 @@ service cloud.firestore {
         allow write: if isOpenForClientWorldWrites(worldId);
       }
 
+      // A governed Offer Sheet is authored by the world owner, but its initial
+      // lifecycle identity becomes immutable once the atomic creation commits.
+      // Resolution compares the writable Team mirrors against this anchor.
+      match /offerSheetAuthorizations/{offerSheetId} {
+        allow read: if isWorldOwner(worldId);
+        allow create: if isOpenForClientWorldWrites(worldId)
+          && request.resource.data.keys().hasOnly([
+            'authorizationVersion',
+            'worldId',
+            'offerSheetId',
+            'dedupKey',
+            'playerId',
+            'homeTeamId',
+            'offeringTeamId',
+            'salaryCapYear',
+            'pendingLifecycleDigest',
+            'immutableEvidenceDigest'
+          ])
+          && request.resource.data.authorizationVersion == 1
+          && request.resource.data.worldId == worldId
+          && request.resource.data.offerSheetId == offerSheetId
+          && request.resource.data.dedupKey is string
+          && request.resource.data.dedupKey.size() > 0
+          && request.resource.data.playerId is string
+          && request.resource.data.playerId.size() > 0
+          && request.resource.data.homeTeamId is string
+          && request.resource.data.homeTeamId.size() > 0
+          && request.resource.data.offeringTeamId is string
+          && request.resource.data.offeringTeamId.size() > 0
+          && request.resource.data.salaryCapYear is int
+          && request.resource.data.pendingLifecycleDigest is string
+          && request.resource.data.pendingLifecycleDigest.matches('^fnv1a64:[0-9a-f]{16}$')
+          && request.resource.data.immutableEvidenceDigest is string
+          && request.resource.data.immutableEvidenceDigest.matches('^fnv1a64:[0-9a-f]{16}$');
+        allow update, delete: if false;
+      }
+
       match /entitlements/{entitlementId} {
         allow read: if isWorldOwner(worldId);
         allow write: if isOpenForClientWorldWrites(worldId);

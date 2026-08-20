@@ -54,6 +54,7 @@ import type {
   TradeTeamLike,
 } from './mutationPipeline.types.currentState';
 import type {
+  ArchitectOfferSheetResolutionSnapshotReceipts,
   MutationCurrentStateTeamEntry,
   SupportedComputeMutationType,
 } from './mutationPipeline.types.result';
@@ -163,6 +164,8 @@ export type MutationCurrentStateClosedShape = {
   extensionAuthority?: undefined;
   extensionTeamSnapshot?: undefined;
   extensionPlayerSnapshot?: undefined;
+  offerSheetCreationSnapshots?: undefined;
+  offerSheetResolutionSnapshots?: undefined;
 };
 export type MutationDocumentSnapshotReceipt = Readonly<{
   exists: boolean;
@@ -174,6 +177,12 @@ export type MutationDocumentSnapshotReceipt = Readonly<{
     exists: boolean;
     digest: string | null;
   }>[];
+}>;
+export type ArchitectOfferSheetCreationSnapshotReceipts = Readonly<{
+  homeTeamCode: string;
+  offeringTeamCode: string;
+  homeTeam: MutationDocumentSnapshotReceipt;
+  offeringTeam: MutationDocumentSnapshotReceipt;
 }>;
 export type MutationCurrentStateTradeTeamEntryInput = {
   teamCode?: string | null;
@@ -212,12 +221,13 @@ export type MutationTeamAndPlayerCurrentStateIngress = Omit<
 };
 export type MutationSigningCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'homeTeam' | 'teamCode'
+  'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
 > & {
   team?: MutationCurrentStateOfferSheetTeamIngress | null;
   player?: MutationCurrentStatePlayerIngress | null;
   homeTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   teamCode?: string | null;
+  offerSheetCreationSnapshots?: ArchitectOfferSheetCreationSnapshotReceipts | null;
 };
 export type MutationOfferSheetMirrorCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
@@ -229,11 +239,15 @@ export type MutationOfferSheetMirrorCurrentStateIngress = Omit<
 };
 export type MutationOfferSheetResolutionCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
-  'homeTeam' | 'offeringTeam' | 'offerSheetId'
+  | 'homeTeam'
+  | 'offeringTeam'
+  | 'offerSheetId'
+  | 'offerSheetResolutionSnapshots'
 > & {
   homeTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   offeringTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   offerSheetId?: string | null;
+  offerSheetResolutionSnapshots?: ArchitectOfferSheetResolutionSnapshotReceipts | null;
 };
 export type MutationSignAndTradeCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
@@ -266,6 +280,8 @@ export type MutationCurrentState = {
   extensionAuthority?: GovernedExtensionLedgerAuthority | null;
   extensionTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
   extensionPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
+  offerSheetCreationSnapshots?: ArchitectOfferSheetCreationSnapshotReceipts | null;
+  offerSheetResolutionSnapshots?: ArchitectOfferSheetResolutionSnapshotReceipts | null;
 };
 export type MutationTradeCurrentState = Omit<
   MutationCurrentStateClosedShape,
@@ -304,9 +320,12 @@ export type MutationTeamAndPlayerCurrentState = Omit<
   };
 export type MutationOfferSheetTeamAndPlayerCurrentState = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'homeTeam' | 'teamCode'
+  'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
 > &
-  Pick<MutationCurrentState, 'team' | 'player' | 'homeTeam' | 'teamCode'> & {
+  Pick<
+    MutationCurrentState,
+    'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
+  > & {
     team?: CurrentStateSigningTeam | null;
     player?: PlayerLike | null;
     homeTeam?: CurrentStateOfferSheetMirrorTeam | null;
@@ -314,9 +333,12 @@ export type MutationOfferSheetTeamAndPlayerCurrentState = Omit<
 export type MutationSigningTeamLike = CurrentStateSigningTeam | TradeTeamLike;
 export type MutationSigningCurrentState = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'homeTeam' | 'teamCode'
+  'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
 > &
-  Pick<MutationCurrentState, 'team' | 'player' | 'homeTeam' | 'teamCode'> & {
+  Pick<
+    MutationCurrentState,
+    'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
+  > & {
     team?: MutationSigningTeamLike | null;
     player?: PlayerLike | null;
     homeTeam?: CurrentStateOfferSheetMirrorTeam | null;
@@ -331,9 +353,18 @@ export type MutationOfferSheetMirrorCurrentState = Omit<
   };
 export type MutationOfferSheetResolutionCurrentState = Omit<
   MutationCurrentStateClosedShape,
-  'homeTeam' | 'offeringTeam' | 'offerSheetId'
+  | 'homeTeam'
+  | 'offeringTeam'
+  | 'offerSheetId'
+  | 'offerSheetResolutionSnapshots'
 > &
-  Pick<MutationCurrentState, 'homeTeam' | 'offeringTeam' | 'offerSheetId'> & {
+  Pick<
+    MutationCurrentState,
+    | 'homeTeam'
+    | 'offeringTeam'
+    | 'offerSheetId'
+    | 'offerSheetResolutionSnapshots'
+  > & {
     homeTeam?: CurrentStateOfferSheetResolutionTeam | null;
     offeringTeam?: CurrentStateOfferSheetResolutionTeam | null;
   };

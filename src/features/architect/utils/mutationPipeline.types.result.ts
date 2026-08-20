@@ -117,6 +117,7 @@ export type ArchitectGeneralMutationDashboardReloadOfferSheet = {
   totalValue?: number | string | null;
   status: string;
   createdAt?: string | number | Date | null;
+  governedLifecycle?: unknown;
 };
 export type ArchitectGeneralMutationDashboardReloadContractFreeAgency = {
   year?: number | null;
@@ -307,6 +308,21 @@ export type ArchitectWorldMutationContractSummary = {
   endYear?: string;
   signedUsing?: string;
 };
+export type ArchitectMutationLocalDocumentSnapshotReceipt = Readonly<{
+  exists: boolean;
+  digest: string | null;
+}>;
+export type ArchitectOfferSheetResolutionSnapshotReceipts = Readonly<{
+  playerId: string;
+  homeTeamCode: string;
+  offeringTeamCode: string;
+  homeTeam: ArchitectMutationLocalDocumentSnapshotReceipt;
+  offeringTeam: ArchitectMutationLocalDocumentSnapshotReceipt;
+  homePlayer: ArchitectMutationLocalDocumentSnapshotReceipt;
+  offeringPlayer: ArchitectMutationLocalDocumentSnapshotReceipt;
+  authorization: ArchitectMutationLocalDocumentSnapshotReceipt;
+  immutableEvidenceDigest: string;
+}>;
 export type ArchitectWorldMutationHistoryMetadata = {
   mutationType: string;
   category: string;
@@ -348,6 +364,33 @@ export type ArchitectWorldMutationHistoryMetadata = {
     exists: boolean;
     digest: string | null;
   }>[];
+  expectedOfferSheetCreationSnapshots?: Readonly<{
+    homeTeamCode: string;
+    offeringTeamCode: string;
+    homeTeam: Readonly<{
+      exists: boolean;
+      digest: string | null;
+      sourceWorldId: string | null;
+      sourceDigest: string | null;
+      sourceLineage: readonly Readonly<{
+        worldId: string;
+        exists: boolean;
+        digest: string | null;
+      }>[];
+    }>;
+    offeringTeam: Readonly<{
+      exists: boolean;
+      digest: string | null;
+      sourceWorldId: string | null;
+      sourceDigest: string | null;
+      sourceLineage: readonly Readonly<{
+        worldId: string;
+        exists: boolean;
+        digest: string | null;
+      }>[];
+    }>;
+  }>;
+  expectedOfferSheetResolutionSnapshots?: ArchitectOfferSheetResolutionSnapshotReceipts;
   optionType?: string;
   accepted?: boolean;
   contract: ArchitectWorldMutationContractSummary;
