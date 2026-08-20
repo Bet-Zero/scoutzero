@@ -21,9 +21,13 @@ import {
 } from '@/features/architect/utils/governedSeason';
 import {
   composeEasternInstant,
+  oneYearAfter,
   worldDateContainsInstant,
 } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
-import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import {
+  toEndYear,
+  toSeasonCode,
+} from '@/features/architect/utils/seasonFormat';
 
 export type GovernedWaiverLedgerAuthority = GovernedOptionLedgerAuthority;
 
@@ -37,12 +41,16 @@ export type GovernedWaiverAvailability = Readonly<{
 export interface GovernedWaiverRequest {
   authority: GovernedWaiverLedgerAuthority;
   existingLifecycles?: readonly GovernedWaiverLifecycle[] | null;
-  existingDeadCap?: readonly {
-    amountByYear?: readonly {
-      season?: string | null;
-      amount?: number | string | null;
-    }[] | null;
-  }[] | null;
+  existingDeadCap?:
+    | readonly {
+        amountByYear?:
+          | readonly {
+              season?: string | null;
+              amount?: number | string | null;
+            }[]
+          | null;
+      }[]
+    | null;
   worldId: string;
   teamId: string;
   playerId: string;
@@ -168,7 +176,9 @@ function easternInstantFromEpoch(epochMs: number): string | null {
 
 function addExactHours(value: string, hours: number): string | null {
   const time = parseZonedDateTime(value);
-  return time === null ? null : easternInstantFromEpoch(time + hours * 3_600_000);
+  return time === null
+    ? null
+    : easternInstantFromEpoch(time + hours * 3_600_000);
 }
 
 function salaryCapYearForInstant(value: string): number | null {
@@ -188,11 +198,6 @@ function julyOneFollowingSeason(season: string): string | null {
   return endYear ? `${endYear}-07-01T00:00:00-04:00` : null;
 }
 
-function oneYearAfter(value: string): string | null {
-  const nextYear = Number(value.slice(0, 4)) + 1;
-  return composeEasternInstant(`${nextYear}${value.slice(4, 19)}`);
-}
-
 function maxInstant(a: string, b: string): string {
   return (parseZonedDateTime(a) ?? 0) >= (parseZonedDateTime(b) ?? 0) ? a : b;
 }
@@ -201,7 +206,9 @@ function distribute(total: number, weights: readonly number[]): number[] {
   if (total <= 0 || weights.length === 0) return weights.map(() => 0);
   const weightTotal = weights.reduce((sum, value) => sum + value, 0);
   if (weightTotal <= 0) return weights.map(() => 0);
-  const base = weights.map((weight) => Math.floor((total * weight) / weightTotal));
+  const base = weights.map((weight) =>
+    Math.floor((total * weight) / weightTotal)
+  );
   let remainder = total - base.reduce((sum, value) => sum + value, 0);
   for (let index = 0; remainder > 0; index = (index + 1) % base.length) {
     base[index] += 1;
@@ -214,8 +221,9 @@ function evenlyAllocate(total: number, count: number): number[] {
   if (count <= 0) return [];
   const base = Math.floor(total / count);
   const remainder = total - base * count;
-  return Array.from({ length: count }, (_, index) =>
-    base + (index < remainder ? 1 : 0)
+  return Array.from(
+    { length: count },
+    (_, index) => base + (index < remainder ? 1 : 0)
   );
 }
 
@@ -225,10 +233,12 @@ function formerPlayerAmountsBySeason(
   const amounts = new Map<string, number>();
   for (const entry of entries ?? []) {
     for (const row of entry.amountByYear ?? []) {
-      if (!row.season) continue;
+      const endYear = row.season ? toEndYear(row.season) : null;
+      if (!endYear) continue;
+      const season = toSeasonCode(endYear);
       const amount = Number(row.amount);
       if (!Number.isFinite(amount) || amount < 0) continue;
-      amounts.set(row.season, (amounts.get(row.season) ?? 0) + amount);
+      amounts.set(season, (amounts.get(season) ?? 0) + amount);
     }
   }
   return amounts;
@@ -263,22 +273,31 @@ function inspectState(
   playerId: string,
   contractId: string,
   worldAsOfDate: string,
-  existingLifecycles: readonly GovernedWaiverLifecycle[] | null | undefined
-): { state: GovernedContractState | null; reasons: string[]; recorded: boolean } {
+  existingLifecycles: readonly GovernedWaiverLifecycle[] | null | undefined,
+  resolvedState?: GovernedContractState | null
+): {
+  state: GovernedContractState | null;
+  reasons: string[];
+  recorded: boolean;
+} {
   const reasons: string[] = [];
-  let state: GovernedContractState | null = null;
-  try {
-    state = latestContractState(authority).state;
-  } catch (error) {
-    reasons.push(
-      error instanceof Error
-        ? error.message
-        : 'Governed Contract history could not be read.'
-    );
+  let state = resolvedState ?? null;
+  if (resolvedState === undefined) {
+    try {
+      state = latestContractState(authority).state;
+    } catch (error) {
+      reasons.push(
+        error instanceof Error
+          ? error.message
+          : 'Governed Contract history could not be read.'
+      );
+    }
   }
   if (!state) reasons.push('The governed Contract state is missing.');
   if (state && state.contractId !== contractId)
-    reasons.push('The requested Contract does not match the governed Contract.');
+    reasons.push(
+      'The requested Contract does not match the governed Contract.'
+    );
   if (state && state.playerId !== playerId)
     reasons.push('The governed Contract belongs to a different player.');
   if (state && state.teamId !== teamId)
@@ -302,6 +321,7 @@ export function inspectGovernedWaiver({
   playerId,
   contractId,
   worldAsOfDate,
+  resolvedState,
 }: Pick<
   GovernedWaiverRequest,
   | 'authority'
@@ -311,7 +331,9 @@ export function inspectGovernedWaiver({
   | 'playerId'
   | 'contractId'
   | 'worldAsOfDate'
->): GovernedWaiverAvailability {
+> & {
+  resolvedState?: GovernedContractState | null;
+}): GovernedWaiverAvailability {
   const inspection = inspectState(
     authority,
     worldId,
@@ -319,14 +341,17 @@ export function inspectGovernedWaiver({
     playerId,
     contractId,
     worldAsOfDate,
-    existingLifecycles
+    existingLifecycles,
+    resolvedState
   );
   if (inspection.recorded) {
     return Object.freeze({
       status: 'recorded',
       playerId,
       contractId,
-      reasons: Object.freeze(['A waiver lifecycle is already recorded for this Contract.']),
+      reasons: Object.freeze([
+        'A waiver lifecycle is already recorded for this Contract.',
+      ]),
     });
   }
   return Object.freeze({
@@ -366,7 +391,9 @@ export function decideGovernedWaiver(
   if (proposal.contractId !== request.contractId)
     reasons.push('The proposal Contract does not match the governed Contract.');
   if (!isZonedDateTime(proposal.leagueReceivedAt))
-    reasons.push('League receipt must include an exact date, time, and UTC offset.');
+    reasons.push(
+      'League receipt must include an exact date, time, and UTC offset.'
+    );
   if (
     isZonedDateTime(proposal.leagueReceivedAt) &&
     !worldDateContainsInstant(request.worldAsOfDate, proposal.leagueReceivedAt)
@@ -377,19 +404,26 @@ export function decideGovernedWaiver(
     reasons.push('Author provenance requires an exact recorded instant.');
   if (!request.operationId.trim() || !request.authoringIdentity.trim())
     reasons.push('Operation and author identities are required.');
-  if (!Number.isFinite(request.salaryCapAtElection) || request.salaryCapAtElection <= 0)
+  if (
+    !Number.isFinite(request.salaryCapAtElection) ||
+    request.salaryCapAtElection <= 0
+  )
     reasons.push('The governed Salary Cap in effect at election is required.');
   if (proposal.path === 'waive-and-stretch' && !proposal.writtenStretchElection)
     reasons.push('Waive & Stretch requires a written Team Salary election.');
   if (proposal.path !== 'waive-and-stretch' && proposal.writtenStretchElection)
-    reasons.push('A Team Salary stretch election cannot be attached to this path.');
+    reasons.push(
+      'A Team Salary stretch election cannot be attached to this path.'
+    );
   if (proposal.path === 'buyout') {
     if (
       !proposal.writtenBuyoutAgreement ||
       !proposal.playerSignatureRecorded ||
       !proposal.teamSignatureRecorded
     ) {
-      reasons.push('Buyout requires the written agreement and both signatures.');
+      reasons.push(
+        'Buyout requires the written agreement and both signatures.'
+      );
     }
   } else if (
     proposal.buyoutReduction !== 0 ||
@@ -405,14 +439,17 @@ export function decideGovernedWaiver(
   const expiryAt = addExactHours(receiptAt, 48);
   const currentSalaryCapYear = salaryCapYearForInstant(receiptAt);
   if (!expiryAt || !currentSalaryCapYear) {
-    return unavailable('needs-input', ['The exact 48-hour waiver period could not be resolved.']);
+    return unavailable('needs-input', [
+      'The exact 48-hour waiver period could not be resolved.',
+    ]);
   }
   const currentSeason = toSeasonCode(currentSalaryCapYear);
   const allRows = state.terms.salaries
     .map((row) => ({ row, endYear: toEndYear(row.season) }))
     .filter(
       (entry): entry is typeof entry & { endYear: number } =>
-        typeof entry.endYear === 'number' && entry.endYear >= currentSalaryCapYear
+        typeof entry.endYear === 'number' &&
+        entry.endYear >= currentSalaryCapYear
     )
     .sort((a, b) => a.endYear - b.endYear);
   if (allRows.length === 0) {
@@ -451,8 +488,13 @@ export function decideGovernedWaiver(
         `${String(row.season)} retains incentive compensation without complete earning criteria.`
       );
     }
-    if ((row.option === 'PO' || row.option === 'TO') && row.optionUsed === null) {
-      reasons.push(`The ${row.option} decision for ${String(row.season)} is unresolved.`);
+    if (
+      (row.option === 'PO' || row.option === 'TO') &&
+      row.optionUsed === null
+    ) {
+      reasons.push(
+        `The ${row.option} decision for ${String(row.season)} is unresolved.`
+      );
       continue;
     }
     if (row.option === 'ETO' && row.optionUsed === null) {
@@ -460,11 +502,15 @@ export function decideGovernedWaiver(
       continue;
     }
     const optionExcludes =
-      ((row.option === 'PO' || row.option === 'TO') && row.optionUsed === false) ||
+      ((row.option === 'PO' || row.option === 'TO') &&
+        row.optionUsed === false) ||
       (row.option === 'ETO' && row.optionUsed === true);
     if (optionExcludes) continue;
     let amount = 0;
-    if (endYear === currentSalaryCapYear && datePart(expiryAt) >= `${currentSalaryCapYear}-01-10`) {
+    if (
+      endYear === currentSalaryCapYear &&
+      datePart(expiryAt) >= `${currentSalaryCapYear}-01-10`
+    ) {
       amount = row.salary;
     } else if (row.guaranteed === false) {
       amount = 0;
@@ -475,18 +521,26 @@ export function decideGovernedWaiver(
     ) {
       amount = row.guaranteedAmount;
     } else {
-      reasons.push(`Protected Base Compensation is missing for ${String(row.season)}.`);
+      reasons.push(
+        `Protected Base Compensation is missing for ${String(row.season)}.`
+      );
       continue;
     }
     if (amount > row.salary) {
-      reasons.push(`Protected Base Compensation exceeds salary for ${String(row.season)}.`);
+      reasons.push(
+        `Protected Base Compensation exceeds salary for ${String(row.season)}.`
+      );
       continue;
     }
-    if (amount > 0) protectedRows.push({ season: String(row.season), amount });
+    if (amount > 0)
+      protectedRows.push({ season: toSeasonCode(endYear), amount });
   }
   if (reasons.length > 0) return unavailable('needs-input', reasons);
 
-  const protectedTotal = protectedRows.reduce((sum, row) => sum + row.amount, 0);
+  const protectedTotal = protectedRows.reduce(
+    (sum, row) => sum + row.amount,
+    0
+  );
   if (proposal.buyoutReduction > protectedTotal) {
     return unavailable('needs-input', [
       'The buyout reduction cannot exceed remaining protected Base Compensation.',
@@ -517,17 +571,19 @@ export function decideGovernedWaiver(
   let stretchYears: number | null = null;
   let stretchElectionAt: string | null = null;
   let reacquisitionRestrictedUntil: string | null = null;
-  const finalContractSeason = allRows.at(-1)?.row.season;
-  const julyAfterFinal = finalContractSeason
-    ? julyOneFollowingSeason(String(finalContractSeason))
+  const finalContractEndYear = allRows.at(-1)?.endYear;
+  const julyAfterFinal = finalContractEndYear
+    ? julyOneFollowingSeason(toSeasonCode(finalContractEndYear))
     : null;
-  if (!julyAfterFinal) {
-    return unavailable('needs-input', ['The final Contract Season is missing.']);
+  if (!finalContractEndYear || !julyAfterFinal) {
+    return unavailable('needs-input', [
+      'The final Contract Season is missing.',
+    ]);
   }
 
   if (proposal.path === 'waive-and-stretch') {
     stretchElectionAt = expiryAt;
-    const controllingSeptemberOne = `${Number(String(finalContractSeason).slice(0, 4))}-09-01T00:00:00-04:00`;
+    const controllingSeptemberOne = `${finalContractEndYear - 1}-09-01T00:00:00-04:00`;
     if (
       (parseZonedDateTime(expiryAt) ?? 0) >=
       (parseZonedDateTime(controllingSeptemberOne) ?? 0)
@@ -537,28 +593,38 @@ export function decideGovernedWaiver(
       ]);
     }
     const monthDay = expiryAt.slice(5, 10);
-    stretchBranch = monthDay >= '07-01' && monthDay <= '08-31'
-      ? 'july-august'
-      : 'september-june';
-    const currentRows = beforeStretch.filter((row) => row.season === currentSeason);
+    stretchBranch =
+      monthDay >= '07-01' && monthDay <= '08-31'
+        ? 'july-august'
+        : 'september-june';
+    const currentRows = beforeStretch.filter(
+      (row) => row.season === currentSeason
+    );
     const futureRows = beforeStretch.filter(
       (row) => (toEndYear(row.season) ?? 0) > currentSalaryCapYear
     );
-    const applicable = stretchBranch === 'july-august' ? beforeStretch : futureRows;
+    const applicable =
+      stretchBranch === 'july-august' ? beforeStretch : futureRows;
     const unchanged = stretchBranch === 'july-august' ? [] : currentRows;
-    const remainingSeasonCount = stretchBranch === 'july-august'
-      ? allRows.length
-      : allRows.filter((entry) => entry.endYear > currentSalaryCapYear).length;
+    const remainingSeasonCount =
+      stretchBranch === 'july-august'
+        ? allRows.length
+        : allRows.filter((entry) => entry.endYear > currentSalaryCapYear)
+            .length;
     if (remainingSeasonCount <= 0 || applicable.length === 0) {
       return unavailable('needs-input', [
         'No future protected Team Salary is eligible for the selected stretch branch.',
       ]);
     }
     stretchYears = remainingSeasonCount * 2 + 1;
-    const applicableTotal = applicable.reduce((sum, row) => sum + row.teamSalary, 0);
-    const firstStretchYear = stretchBranch === 'july-august'
-      ? currentSalaryCapYear
-      : currentSalaryCapYear + 1;
+    const applicableTotal = applicable.reduce(
+      (sum, row) => sum + row.teamSalary,
+      0
+    );
+    const firstStretchYear =
+      stretchBranch === 'july-august'
+        ? currentSalaryCapYear
+        : currentSalaryCapYear + 1;
     const stretchedAmounts = evenlyAllocate(applicableTotal, stretchYears);
     const stretched = stretchedAmounts.map((amount, index) => ({
       season: toSeasonCode(firstStretchYear + index),
@@ -583,7 +649,9 @@ export function decideGovernedWaiver(
   } else if (proposal.path === 'buyout') {
     const anniversary = oneYearAfter(receiptAt);
     if (!anniversary) {
-      return unavailable('needs-input', ['The buyout reacquisition bar could not be resolved.']);
+      return unavailable('needs-input', [
+        'The buyout reacquisition bar could not be resolved.',
+      ]);
     }
     reacquisitionRestrictedUntil = maxInstant(anniversary, julyAfterFinal);
   }
@@ -593,23 +661,56 @@ export function decideGovernedWaiver(
     at: string;
     leaves: readonly string[];
   }> = [
-    { kind: 'waiver-request', at: receiptAt, leaves: ['CBA2-R01.4', 'CBA2-R01.11', 'CBA2-R01.12'] },
+    {
+      kind: 'waiver-request',
+      at: receiptAt,
+      leaves: ['CBA2-R01.4', 'CBA2-R01.11', 'CBA2-R01.12'],
+    },
   ];
   if (proposal.path === 'buyout') {
-    eventSpecs.push({ kind: 'buyout-agreement', at: receiptAt, leaves: ['CBA2-R05.1', 'CBA2-R05.6'] });
+    eventSpecs.push({
+      kind: 'buyout-agreement',
+      at: receiptAt,
+      leaves: ['CBA2-R05.1', 'CBA2-R05.6'],
+    });
   }
   eventSpecs.push(
-    { kind: 'waiver-expiry', at: expiryAt, leaves: ['CBA2-R01.6', 'CBA2-R01.18'] },
-    { kind: 'contract-termination', at: expiryAt, leaves: ['CBA2-R01.7', 'CBA2-R02.5', 'CBA2-R02.8'] }
+    {
+      kind: 'waiver-expiry',
+      at: expiryAt,
+      leaves: ['CBA2-R01.6', 'CBA2-R01.18'],
+    },
+    {
+      kind: 'contract-termination',
+      at: expiryAt,
+      leaves: ['CBA2-R01.7', 'CBA2-R02.5', 'CBA2-R02.8'],
+    }
   );
   if (proposal.path === 'waive-and-stretch') {
     eventSpecs.push({
       kind: 'team-salary-stretch-election',
       at: expiryAt,
-      leaves: ['CBA2-R04.1', 'CBA2-R04.2', 'CBA2-R04.3', 'CBA2-R04.4', 'CBA2-R04.7', 'CBA2-R04.9'],
+      leaves: [
+        'CBA2-R04.1',
+        'CBA2-R04.2',
+        'CBA2-R04.3',
+        'CBA2-R04.4',
+        'CBA2-R04.7',
+        'CBA2-R04.9',
+      ],
     });
   }
-  eventSpecs.push({ kind: 'set-off-authority', at: expiryAt, leaves: ['CBA2-R05.2', 'CBA2-R05.3', 'CBA2-R05.7', 'CBA2-R05.8', 'CBA2-R05.9'] });
+  eventSpecs.push({
+    kind: 'set-off-authority',
+    at: expiryAt,
+    leaves: [
+      'CBA2-R05.2',
+      'CBA2-R05.3',
+      'CBA2-R05.7',
+      'CBA2-R05.8',
+      'CBA2-R05.9',
+    ],
+  });
   const events: GovernedWaiverEvent[] = [];
   for (const [index, spec] of eventSpecs.entries()) {
     events.push(
@@ -626,7 +727,9 @@ export function decideGovernedWaiver(
     );
   }
 
-  const currentLedger = createContractEventLedger(request.authority.currentLedger);
+  const currentLedger = createContractEventLedger(
+    request.authority.currentLedger
+  );
   const lifecycle = GovernedWaiverLifecycleZ.parse({
     lifecycleVersion: 1,
     lifecycleId: `${request.operationId}:ordinary-waiver`,
@@ -642,7 +745,9 @@ export function decideGovernedWaiver(
     requestIrrevocable: true,
     outcome: 'ordinary-unclaimed',
     events,
-    originalContractSeasons: allRows.map((entry) => String(entry.row.season)),
+    originalContractSeasons: allRows.map((entry) =>
+      toSeasonCode(entry.endYear)
+    ),
     protectedBaseCompensation: protectedTotal,
     buyoutReduction: proposal.path === 'buyout' ? proposal.buyoutReduction : 0,
     buyoutAgreementAt: proposal.path === 'buyout' ? receiptAt : null,
@@ -652,7 +757,9 @@ export function decideGovernedWaiver(
     stretchBranch,
     stretchYears,
     salaryCapAtElection:
-      proposal.path === 'waive-and-stretch' ? request.salaryCapAtElection : null,
+      proposal.path === 'waive-and-stretch'
+        ? request.salaryCapAtElection
+        : null,
     formerPlayerCeilingAtElection:
       proposal.path === 'waive-and-stretch'
         ? Math.floor(request.salaryCapAtElection * 0.15)
@@ -672,12 +779,16 @@ export function decideGovernedWaiver(
     },
     canonLeafIds: CANON_LEAVES,
   });
-  const totalTeamSalary = allocations.reduce((sum, row) => sum + row.teamSalary, 0);
-  const note = proposal.path === 'waive-and-stretch'
-    ? `Waiver pending through ${expiryAt}; Team Salary stretch election schedules ${totalTeamSalary.toLocaleString()} over ${stretchYears} years after ordinary unclaimed expiry.`
-    : proposal.path === 'buyout'
-      ? `Waiver pending through ${expiryAt}; written buyout reduces protected Base Compensation by ${proposal.buyoutReduction.toLocaleString()}.`
-      : `Waiver pending through ${expiryAt}; the Team remains financially responsible until ordinary unclaimed expiry.`;
+  const totalTeamSalary = allocations.reduce(
+    (sum, row) => sum + row.teamSalary,
+    0
+  );
+  const note =
+    proposal.path === 'waive-and-stretch'
+      ? `Waiver pending through ${expiryAt}; Team Salary stretch election schedules ${totalTeamSalary.toLocaleString('en-US')} over ${stretchYears} years after ordinary unclaimed expiry.`
+      : proposal.path === 'buyout'
+        ? `Waiver pending through ${expiryAt}; written buyout reduces protected Base Compensation by ${proposal.buyoutReduction.toLocaleString('en-US')}.`
+        : `Waiver pending through ${expiryAt}; the Team remains financially responsible until ordinary unclaimed expiry.`;
   return Object.freeze({
     success: true as const,
     lifecycle,

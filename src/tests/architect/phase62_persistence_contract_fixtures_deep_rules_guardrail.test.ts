@@ -32,6 +32,7 @@ import {
   EXCEPTION_HISTORY_ITEM_ALLOWLIST,
   DEAD_CAP_ITEM_ALLOWLIST,
   DEAD_CAP_AMOUNT_BY_YEAR_ITEM_ALLOWLIST,
+  GOVERNED_WAIVER_LIFECYCLE_ALLOWLIST,
   CAP_HOLD_ITEM_ALLOWLIST,
   TEAM_DEEP_RULES,
 } from '@/features/architect/utils/persistenceContracts';
@@ -308,6 +309,39 @@ describe('Phase 62: Deep rules for deadCap[] items', () => {
       'team.deadCap[0].amountByYear[1].debugComputedFlag'
     );
     expect(violations.length).toBe(1);
+  });
+
+  it('rejects unknown fields throughout a governed waiver lifecycle', () => {
+    const team = {
+      teamCode: 'BOS',
+      deadCap: [
+        {
+          playerId: 'player_001',
+          governedLifecycle: {
+            lifecycleVersion: 1,
+            debugLifecycleFlag: true,
+            events: [{ eventId: 'event-1', debugEventFlag: true }],
+            allocations: [{ season: '2026-27', debugAllocationFlag: true }],
+            contractAuthority: {
+              ledgerId: 'ledger-1',
+              debugAuthorityFlag: true,
+            },
+          },
+        },
+      ],
+    };
+    const violations = findDisallowedKeyPaths({
+      obj: team,
+      allowlist: TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST,
+      pathPrefix: 'team',
+      deepRules: TEAM_DEEP_RULES,
+    });
+    expect(violations).toEqual([
+      'team.deadCap[0].governedLifecycle.debugLifecycleFlag',
+      'team.deadCap[0].governedLifecycle.events[0].debugEventFlag',
+      'team.deadCap[0].governedLifecycle.allocations[0].debugAllocationFlag',
+      'team.deadCap[0].governedLifecycle.contractAuthority.debugAuthorityFlag',
+    ]);
   });
 });
 
@@ -700,9 +734,7 @@ describe('Phase 62: Actionable error messages for nested violations', () => {
     } catch (error) {
       const message = getThrownMessage(error);
       expect(message).toContain('TEAM');
-      expect(message).toContain(
-        'team.deadCap[0].amountByYear[0].debugFoo'
-      );
+      expect(message).toContain('team.deadCap[0].amountByYear[0].debugFoo');
       expect(message).toContain('persistenceContracts/contracts.ts');
     }
   });
@@ -795,6 +827,16 @@ describe('Phase 62: Contract structure validation for new allowlists', () => {
     expect(TEAM_DEEP_RULES['deadCap.amountByYear']).toBe(
       DEAD_CAP_AMOUNT_BY_YEAR_ITEM_ALLOWLIST
     );
+  });
+
+  it('guards the governed waiver lifecycle below deadCap items', () => {
+    expect(TEAM_DEEP_RULES['deadCap.governedLifecycle']).toBe(
+      GOVERNED_WAIVER_LIFECYCLE_ALLOWLIST
+    );
+    expect(TEAM_DEEP_RULES['deadCap.governedLifecycle.events']).toBeDefined();
+    expect(
+      TEAM_DEEP_RULES['deadCap.governedLifecycle.contractAuthority']
+    ).toBeDefined();
   });
 
   it('TEST 30: TEAM_DEEP_RULES includes capHolds entry', () => {

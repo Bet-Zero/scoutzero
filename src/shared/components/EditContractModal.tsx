@@ -24,18 +24,11 @@
  *   not the final design. Revisit holistically rather than with spot tweaks.
  */
 
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-} from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import { formatCurrencyFull, formatCurrency } from '@/shared/utils/formatting';
 import { getCapSettings } from '@/features/architect/utils/capHelpers';
-import {
-  getContractYearsForDisplay,
-} from '@/features/architect/utils/contractUtils';
+import { getContractYearsForDisplay } from '@/features/architect/utils/contractUtils';
 import { useCapValidation } from '@/features/architect/hooks/useCapValidation';
 import { ValidationWarnings } from '@/features/architect/shared/ValidationWarnings';
 import { TeamSelectDropdown } from '@/shared/components/TeamSelectDropdown';
@@ -54,7 +47,10 @@ import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
 import type { GovernedWaiverProposal } from '@/schemas/governedWaiver';
 import { isZonedDateTime } from '@/features/architect/utils/governedSeason';
 import { composeEasternInstant } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
-import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import {
+  toEndYear,
+  toSeasonCode,
+} from '@/features/architect/utils/seasonFormat';
 import {
   calculateCapHold,
   type CapHoldPlayerInput,
@@ -162,16 +158,17 @@ export const EditContractModal = ({
     actionContext === 'underContract'
       ? actionContext
       : null;
-  const resolvedOfferSheetInitiation = useMemo<OfferSheetInitiation | null>(() => {
-    if (getOfferSheetPreflight && onStoreOfferSheet) {
-      return {
-        getOfferSheetPreflight,
-        onStoreOfferSheet,
-      };
-    }
+  const resolvedOfferSheetInitiation =
+    useMemo<OfferSheetInitiation | null>(() => {
+      if (getOfferSheetPreflight && onStoreOfferSheet) {
+        return {
+          getOfferSheetPreflight,
+          onStoreOfferSheet,
+        };
+      }
 
-    return null;
-  }, [getOfferSheetPreflight, onStoreOfferSheet]);
+      return null;
+    }, [getOfferSheetPreflight, onStoreOfferSheet]);
   const resolvedShowOfferSheetToggle =
     typeof showOfferSheetToggle === 'boolean'
       ? showOfferSheetToggle && Boolean(resolvedOfferSheetInitiation)
@@ -196,26 +193,19 @@ export const EditContractModal = ({
       ? rulesLeagueContext.currentYear
       : null) ??
     CURRENT_YEAR;
-  const actionSeasonLabel = `${ACTION_YEAR - 1}-${String(ACTION_YEAR % 100).padStart(
-    2,
-    '0'
-  )}`;
+  const actionSeasonLabel = `${ACTION_YEAR - 1}-${String(
+    ACTION_YEAR % 100
+  ).padStart(2, '0')}`;
 
-  const capSettings = useMemo(
-    () => getCapSettings(ACTION_YEAR),
-    [ACTION_YEAR]
-  );
+  const capSettings = useMemo(() => getCapSettings(ACTION_YEAR), [ACTION_YEAR]);
 
   const isSigningAction =
     selectedAction === 'signNew' || selectedAction === 'resign';
-
 
   const contractYears = useMemo<ContractYearWithNumberYear[]>(
     () => getContractYearsForDisplay(player).filter(hasNumberContractYear),
     [player]
   );
-
-
 
   const remainingGuaranteedForBuyout = useMemo(() => {
     const salaries = player?.contract?.salariesByYear || [];
@@ -246,7 +236,9 @@ export const EditContractModal = ({
             yearEntry.year === normalizedTargetYear && yearEntry.option
         )
       : null) ??
-    contractYears.find((yearEntry) => yearEntry.year > CURRENT_YEAR && yearEntry.option);
+    contractYears.find(
+      (yearEntry) => yearEntry.year > CURRENT_YEAR && yearEntry.option
+    );
   const optionYear = normalizedTargetYear ?? optionYearEntry?.year ?? null;
   const optionType =
     optionDecisionAvailability?.optionType ?? optionYearEntry?.option ?? null;
@@ -363,19 +355,21 @@ export const EditContractModal = ({
   // Otherwise, infer from player's contract state (when clicking player name)
   const actionSet: ActionSetKey | null = normalizedActionContext
     ? normalizedActionContext
-      : hasOption
-        ? 'option'
-        : isFreeAgent && !isUnderContract
-          ? 'freeAgent'
-          : isUnderContract
-            ? 'underContract'
-            : null;
+    : hasOption
+      ? 'option'
+      : isFreeAgent && !isUnderContract
+        ? 'freeAgent'
+        : isUnderContract
+          ? 'underContract'
+          : null;
 
   const actions = useMemo<ContractActionKey[]>(
     () =>
-      (actionsOverride || (actionSet ? ACTION_SETS[actionSet] : []) || []).filter(
-        isContractActionKey
-      ),
+      (
+        actionsOverride ||
+        (actionSet ? ACTION_SETS[actionSet] : []) ||
+        []
+      ).filter(isContractActionKey),
     [actionSet, actionsOverride]
   );
   const playerDisplayName =
@@ -396,19 +390,24 @@ export const EditContractModal = ({
     if (!extensionAvailability?.suggestedRoute) return;
     setExtension((previous) => ({
       ...previous,
-      route: previous.route || extensionAvailability.suggestedRoute || undefined,
+      route:
+        previous.route || extensionAvailability.suggestedRoute || undefined,
       conditionalHigherMaxPercentage:
         (previous.route || extensionAvailability.suggestedRoute) ===
         'rookie-scale'
-          ? previous.conditionalHigherMaxPercentage ?? null
+          ? (previous.conditionalHigherMaxPercentage ?? null)
           : null,
       agreedDesignatedVeteranPercentage:
         (previous.route || extensionAvailability.suggestedRoute) ===
         'designated-veteran'
-          ? previous.agreedDesignatedVeteranPercentage ?? 30
+          ? (previous.agreedDesignatedVeteranPercentage ?? 30)
           : null,
     }));
-  }, [extensionAvailability?.contractId, extensionAvailability?.suggestedRoute, setExtension]);
+  }, [
+    extensionAvailability?.contractId,
+    extensionAvailability?.suggestedRoute,
+    setExtension,
+  ]);
 
   // Free-agency rows for the year-by-year summary: the season the player hits
   // free agency, carrying the qualifying offer (RFA) and/or the cap hold — shown
@@ -468,29 +467,28 @@ export const EditContractModal = ({
           : 'The exact option Season is required.'
       : null;
 
-  const resolvedSignAndTradeInitiation = useMemo<SignAndTradeInitiation | null>(() => {
-    if (signAndTradeInitiation) {
-      return signAndTradeInitiation;
-    }
+  const resolvedSignAndTradeInitiation =
+    useMemo<SignAndTradeInitiation | null>(() => {
+      if (signAndTradeInitiation) {
+        return signAndTradeInitiation;
+      }
 
-    if (onSignAndTrade && getSignAndTradePreflight) {
-      return {
-        onSignAndTrade,
-        getSignAndTradePreflight,
-      };
-    }
+      if (onSignAndTrade && getSignAndTradePreflight) {
+        return {
+          onSignAndTrade,
+          getSignAndTradePreflight,
+        };
+      }
 
-    return null;
-  }, [getSignAndTradePreflight, onSignAndTrade, signAndTradeInitiation]);
-  const signAndTradeActionDisabledReason =
-    !resolvedSignAndTradeInitiation
-      ? 'Sign-and-trade requires an active world to commit.'
-      : null;
+      return null;
+    }, [getSignAndTradePreflight, onSignAndTrade, signAndTradeInitiation]);
+  const signAndTradeActionDisabledReason = !resolvedSignAndTradeInitiation
+    ? 'Sign-and-trade requires an active world to commit.'
+    : null;
   const resolvedDestinationTeamCode =
     selectedAction === 'signAndTrade' && destinationTeamId
       ? resolveTeamCode(String(destinationTeamId)) || String(destinationTeamId)
       : null;
-
 
   const { signAndTradePreflight, offerSheetPreflight } =
     useEditContractModalPreflight({
@@ -691,7 +689,8 @@ export const EditContractModal = ({
 
     if (validationAuthority === 'authoritative-preflight') {
       return buildAuthoritativePreflightState({
-        kind: selectedAction === 'signAndTrade' ? 'sign-and-trade' : 'offer-sheet',
+        kind:
+          selectedAction === 'signAndTrade' ? 'sign-and-trade' : 'offer-sheet',
         preflight:
           selectedAction === 'signAndTrade'
             ? signAndTradePreflight
@@ -768,7 +767,7 @@ export const EditContractModal = ({
       leagueReceivedAt: waiverLeagueReceiptAt || '',
       writtenStretchElection:
         path === 'waive-and-stretch' && writtenStretchElection,
-      buyoutReduction: path === 'buyout' ? parsedBuyoutAmount ?? 0 : 0,
+      buyoutReduction: path === 'buyout' ? (parsedBuyoutAmount ?? 0) : 0,
       writtenBuyoutAgreement: path === 'buyout' && signedBuyoutAgreement,
       playerSignatureRecorded: path === 'buyout' && signedBuyoutAgreement,
       teamSignatureRecorded: path === 'buyout' && signedBuyoutAgreement,
@@ -829,21 +828,21 @@ export const EditContractModal = ({
               optionDecisionAvailability.status !== 'ready'
             ? optionDecisionAvailability.reasons[0] ||
               'This governed option is not ready because required evidence is incomplete.'
-          : isGovernedExtensionAction && validationState.incomplete
-            ? validationState.reasons[0] ||
-              'This extension is unavailable because required contract or league information is incomplete.'
-          : isGovernedWaiverAction && validationState.incomplete
-            ? validationState.reasons[0] ||
-              'This waiver needs exact League and Contract information.'
-          : validationState.incomplete
-            ? 'Finish the contract details to continue'
-            : isOptionDecisionAction && !governedOptionNoticeIsComplete
-              ? !governedNoticeRequirements?.recipientId.trim()
-                ? 'The governed notice recipient is missing.'
-                : 'Enter all required exact governed notice evidence to continue'
-            : !validationState.isLegal && !isOverrideConfirmed
-              ? 'Resolve the blocking issues above to continue'
-              : null;
+            : isGovernedExtensionAction && validationState.incomplete
+              ? validationState.reasons[0] ||
+                'This extension is unavailable because required contract or league information is incomplete.'
+              : isGovernedWaiverAction && validationState.incomplete
+                ? validationState.reasons[0] ||
+                  'This waiver needs exact League and Contract information.'
+                : validationState.incomplete
+                  ? 'Finish the contract details to continue'
+                  : isOptionDecisionAction && !governedOptionNoticeIsComplete
+                    ? !governedNoticeRequirements?.recipientId.trim()
+                      ? 'The governed notice recipient is missing.'
+                      : 'Enter all required exact governed notice evidence to continue'
+                    : !validationState.isLegal && !isOverrideConfirmed
+                      ? 'Resolve the blocking issues above to continue'
+                      : null;
 
   const showOverrideOption =
     canOverride &&
@@ -870,12 +869,18 @@ export const EditContractModal = ({
     setDestinationTeamId(null);
     setSaveError('');
     setIsSubmitting(false);
-    if (selectedAction !== 'buyout') {
-      setBuyoutAmountInput('');
+    const remainsInWaiverWorkflow =
+      isOpen && ['waive', 'waiveStretch', 'buyout'].includes(selectedAction);
+    if (!remainsInWaiverWorkflow) {
+      setWaiverLeagueReceiptInput('');
     }
-    setWaiverLeagueReceiptInput('');
-    setWrittenStretchElection(false);
-    setSignedBuyoutAgreement(false);
+    if (!isOpen || selectedAction !== 'buyout') {
+      setBuyoutAmountInput('');
+      setSignedBuyoutAgreement(false);
+    }
+    if (!isOpen || selectedAction !== 'waiveStretch') {
+      setWrittenStretchElection(false);
+    }
   }, [selectedAction, isOpen]);
 
   const confirmButtonLabel = useMemo(() => {
@@ -931,8 +936,6 @@ export const EditContractModal = ({
     };
   }, [contractYears, CURRENT_YEAR]);
 
-
-
   const dispatchSelectedFreeAgencyAction = useCallback(
     async (
       overrideMetadata: OverrideMetadataLike | null
@@ -940,7 +943,8 @@ export const EditContractModal = ({
       if (!player) {
         return {
           success: false,
-          message: 'Player is required before this contract action can be saved.',
+          message:
+            'Player is required before this contract action can be saved.',
         };
       }
 
@@ -1121,11 +1125,11 @@ export const EditContractModal = ({
               signedAt: extension.signedAt || '',
               conditionalHigherMaxPercentage:
                 route === 'rookie-scale'
-                  ? extension.conditionalHigherMaxPercentage ?? null
+                  ? (extension.conditionalHigherMaxPercentage ?? null)
                   : null,
               agreedDesignatedVeteranPercentage:
                 route === 'designated-veteran'
-                  ? extension.agreedDesignatedVeteranPercentage ?? null
+                  ? (extension.agreedDesignatedVeteranPercentage ?? null)
                   : null,
               salariesByYear: extension.salaries
                 .slice(0, extension.years)
@@ -1224,223 +1228,230 @@ export const EditContractModal = ({
           {/* Footer stays pinned below the scrollable action content so
               Cancel/Confirm never leave the viewport at short (720p) heights. */}
           <div className="w-full lg:w-[65%] bg-[#0f0f0f] flex min-h-0 flex-col">
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-8 pb-2">
-          <h2 className="text-xl font-bold text-white mb-4">
-            Available Actions
-          </h2>
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-8 pb-2">
+              <h2 className="text-xl font-bold text-white mb-4">
+                Available Actions
+              </h2>
 
-          <ContractActionContext
-            title={actionContextTitle}
-            stageLabel={actionContextStageLabel}
-            playerName={playerDisplayName}
-            seasonLabel={actionSeasonLabel}
-          />
-
-          <ContractActionSelector
-            playerName={playerDisplayName}
-            hasOption={hasOption}
-            actionSet={actionSet}
-            isExpiring={isExpiring}
-            optionType={optionType}
-            optionYear={optionYear}
-            optionTimingError={optionTimingError}
-            actions={actions}
-            isExtendEligible={isExtendEligible}
-            signAndTradeActionDisabledReason={signAndTradeActionDisabledReason}
-            isOptionActionable={isOptionActionable}
-            selectedAction={selectedAction}
-            onSelectAction={setSelectedAction}
-            actionLabelsOverride={actionLabelsOverride}
-            actionDescriptionsOverride={actionDescriptionsOverride}
-            actionContextCopy={actionContextCopy}
-            extensionEligibilityReason={playerRulesProfile?.extensionEligibility?.reason}
-          />
-
-          {isOptionDecisionAction &&
-            optionDecisionAvailability?.status === 'ready' && (
-              <GovernedOptionNoticeForm
-                availability={optionDecisionAvailability}
-                value={optionNotice}
-                onChange={setOptionNotice}
+              <ContractActionContext
+                title={actionContextTitle}
+                stageLabel={actionContextStageLabel}
+                playerName={playerDisplayName}
+                seasonLabel={actionSeasonLabel}
               />
-            )}
 
-          <GovernedWaiverEvidenceForm
-            selectedAction={selectedAction}
-            availability={waiverAvailability}
-            leagueReceiptInput={waiverLeagueReceiptInput}
-            leagueReceiptAt={waiverLeagueReceiptAt}
-            onLeagueReceiptInputChange={setWaiverLeagueReceiptInput}
-            writtenStretchElection={writtenStretchElection}
-            onWrittenStretchElectionChange={setWrittenStretchElection}
-            signedBuyoutAgreement={signedBuyoutAgreement}
-            onSignedBuyoutAgreementChange={setSignedBuyoutAgreement}
-          />
+              <ContractActionSelector
+                playerName={playerDisplayName}
+                hasOption={hasOption}
+                actionSet={actionSet}
+                isExpiring={isExpiring}
+                optionType={optionType}
+                optionYear={optionYear}
+                optionTimingError={optionTimingError}
+                actions={actions}
+                isExtendEligible={isExtendEligible}
+                signAndTradeActionDisabledReason={
+                  signAndTradeActionDisabledReason
+                }
+                isOptionActionable={isOptionActionable}
+                selectedAction={selectedAction}
+                onSelectAction={setSelectedAction}
+                actionLabelsOverride={actionLabelsOverride}
+                actionDescriptionsOverride={actionDescriptionsOverride}
+                actionContextCopy={actionContextCopy}
+                extensionEligibilityReason={
+                  playerRulesProfile?.extensionEligibility?.reason
+                }
+              />
 
-          <ContractDetailsForm
-            selectedAction={selectedAction}
-            isSigningAction={isSigningAction}
-            extension={extension}
-            setExtension={setExtension}
-            salaryInputs={salaryInputs}
-            setSalaryInputs={setSalaryInputs}
-            selectedException={selectedException}
-            setSelectedException={setSelectedException}
-            isOfferSheet={isOfferSheet}
-            setIsOfferSheet={setIsOfferSheet}
-            offerSheetTiming={offerSheetTiming}
-            setOfferSheetTiming={setOfferSheetTiming}
-            destinationTeamId={destinationTeamId}
-            setDestinationTeamId={setDestinationTeamId}
-            buyoutAmountInput={buyoutAmountInput}
-            setBuyoutAmountInput={setBuyoutAmountInput}
-            extMax={extMax}
-            extReason={extReason}
-            isExtendEligible={isExtendEligible}
-            extensionAvailability={extensionAvailability}
-            availableSigningExceptions={availableSigningExceptions}
-            signingGuardrails={signingGuardrails}
-            remainingGuaranteedForBuyout={remainingGuaranteedForBuyout}
-            parsedBuyoutAmount={parsedBuyoutAmount}
-            buyoutAmountIsValid={buyoutAmountIsValid}
-            CURRENT_YEAR={CURRENT_YEAR}
-            extensionStartYear={extensionStartYear}
-            resolvedShowOfferSheetToggle={resolvedShowOfferSheetToggle}
-            playerRulesProfile={playerRulesProfile}
-            clampFirstYearToGuardrails={clampFirstYearToGuardrails}
-            buildSalarySeries={buildSalarySeries}
-            toSalaryInputs={toSalaryInputs}
-            onTermsChange={() => setSaveError('')}
-          />
+              {isOptionDecisionAction &&
+                optionDecisionAvailability?.status === 'ready' && (
+                  <GovernedOptionNoticeForm
+                    availability={optionDecisionAvailability}
+                    value={optionNotice}
+                    onChange={setOptionNotice}
+                  />
+                )}
 
-          {/* === Validation Warnings === */}
-          {selectedAction &&
-            (validationState.warnings.length > 0 ||
-              validationState.errors.length > 0) && (
-              <div className="mt-4 space-y-3">
-                <div className="rounded border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-[11px] text-cyan-100">
-                  <div className="font-semibold uppercase tracking-[0.18em] text-cyan-200/80">
-                    {validationCopy.disclosureTitle}
-                  </div>
-                  <p className="mt-1 text-cyan-50/85">
-                    {validationCopy.disclosureMessage}
-                  </p>
-                </div>
-                <ValidationWarnings
-                  warnings={validationState.warnings}
-                  errors={validationState.errors}
-                  showErrors={showValidationErrors}
-                />
-              </div>
-            )}
+              <GovernedWaiverEvidenceForm
+                selectedAction={selectedAction}
+                availability={waiverAvailability}
+                leagueReceiptInput={waiverLeagueReceiptInput}
+                leagueReceiptAt={waiverLeagueReceiptAt}
+                onLeagueReceiptInputChange={setWaiverLeagueReceiptInput}
+                writtenStretchElection={writtenStretchElection}
+                onWrittenStretchElectionChange={setWrittenStretchElection}
+                signedBuyoutAgreement={signedBuyoutAgreement}
+                onSignedBuyoutAgreementChange={setSignedBuyoutAgreement}
+              />
 
-          {/* === Advanced Override Section === */}
-          {showOverrideOption && (
-            <div className="mt-4 border border-red-500/30 rounded-lg overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="w-full px-4 py-3 flex items-center justify-between bg-red-500/10 hover:bg-red-500/20 transition-colors"
-              >
-                <span className="text-sm font-medium text-red-300">
-                  ⚠️ Advanced: Override Validation
-                </span>
-                <span className="text-red-400 text-sm">
-                  {showAdvanced ? '▲' : '▼'}
-                </span>
-              </button>
+              <ContractDetailsForm
+                selectedAction={selectedAction}
+                isSigningAction={isSigningAction}
+                extension={extension}
+                setExtension={setExtension}
+                salaryInputs={salaryInputs}
+                setSalaryInputs={setSalaryInputs}
+                selectedException={selectedException}
+                setSelectedException={setSelectedException}
+                isOfferSheet={isOfferSheet}
+                setIsOfferSheet={setIsOfferSheet}
+                offerSheetTiming={offerSheetTiming}
+                setOfferSheetTiming={setOfferSheetTiming}
+                destinationTeamId={destinationTeamId}
+                setDestinationTeamId={setDestinationTeamId}
+                buyoutAmountInput={buyoutAmountInput}
+                setBuyoutAmountInput={setBuyoutAmountInput}
+                extMax={extMax}
+                extReason={extReason}
+                isExtendEligible={isExtendEligible}
+                extensionAvailability={extensionAvailability}
+                availableSigningExceptions={availableSigningExceptions}
+                signingGuardrails={signingGuardrails}
+                remainingGuaranteedForBuyout={remainingGuaranteedForBuyout}
+                parsedBuyoutAmount={parsedBuyoutAmount}
+                buyoutAmountIsValid={buyoutAmountIsValid}
+                CURRENT_YEAR={CURRENT_YEAR}
+                extensionStartYear={extensionStartYear}
+                resolvedShowOfferSheetToggle={resolvedShowOfferSheetToggle}
+                playerRulesProfile={playerRulesProfile}
+                clampFirstYearToGuardrails={clampFirstYearToGuardrails}
+                buildSalarySeries={buildSalarySeries}
+                toSalaryInputs={toSalaryInputs}
+                onTermsChange={() => setSaveError('')}
+              />
 
-              {showAdvanced && (
-                <div className="p-4 bg-red-900/10 space-y-4">
-                  <div className="text-xs text-red-300/80 space-y-2">
-                    <p className="font-semibold text-red-300">
-                      {validationCopy.overrideTitle}
-                    </p>
-                    <ul className="list-disc pl-4 space-y-1">
-                      {validationState.reasons.map((reason, idx) => (
-                        <li key={idx}>{reason}</li>
-                      ))}
-                    </ul>
-                    <p className="pt-2 border-t border-red-500/20 mt-2">
-                      {validationCopy.overrideFootnote}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="override-confirm"
-                      className="block text-xs font-medium text-red-300"
-                    >
-                      Type{' '}
-                      <span className="font-mono bg-red-500/20 px-1 rounded">
-                        OVERRIDE
-                      </span>{' '}
-                      to confirm:
-                    </label>
-                    <input
-                      id="override-confirm"
-                      type="text"
-                      value={overrideText}
-                      onChange={(e) => setOverrideText(e.target.value)}
-                      placeholder="OVERRIDE"
-                      className="w-full px-3 py-2 rounded bg-black/50 border border-red-500/30 text-sm text-white placeholder-red-500/40 focus:border-red-500 focus:outline-none"
-                    />
-                    {isOverrideConfirmed && (
-                      <p className="text-xs text-green-400">
-                        ✓ Override confirmed - you may now proceed
+              {/* === Validation Warnings === */}
+              {selectedAction &&
+                (validationState.warnings.length > 0 ||
+                  validationState.errors.length > 0) && (
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-[11px] text-cyan-100">
+                      <div className="font-semibold uppercase tracking-[0.18em] text-cyan-200/80">
+                        {validationCopy.disclosureTitle}
+                      </div>
+                      <p className="mt-1 text-cyan-50/85">
+                        {validationCopy.disclosureMessage}
                       </p>
-                    )}
+                    </div>
+                    <ValidationWarnings
+                      warnings={validationState.warnings}
+                      errors={validationState.errors}
+                      showErrors={showValidationErrors}
+                    />
                   </div>
+                )}
+
+              {/* === Advanced Override Section === */}
+              {showOverrideOption && (
+                <div className="mt-4 border border-red-500/30 rounded-lg overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="w-full px-4 py-3 flex items-center justify-between bg-red-500/10 hover:bg-red-500/20 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-red-300">
+                      ⚠️ Advanced: Override Validation
+                    </span>
+                    <span className="text-red-400 text-sm">
+                      {showAdvanced ? '▲' : '▼'}
+                    </span>
+                  </button>
+
+                  {showAdvanced && (
+                    <div className="p-4 bg-red-900/10 space-y-4">
+                      <div className="text-xs text-red-300/80 space-y-2">
+                        <p className="font-semibold text-red-300">
+                          {validationCopy.overrideTitle}
+                        </p>
+                        <ul className="list-disc pl-4 space-y-1">
+                          {validationState.reasons.map((reason, idx) => (
+                            <li key={idx}>{reason}</li>
+                          ))}
+                        </ul>
+                        <p className="pt-2 border-t border-red-500/20 mt-2">
+                          {validationCopy.overrideFootnote}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="override-confirm"
+                          className="block text-xs font-medium text-red-300"
+                        >
+                          Type{' '}
+                          <span className="font-mono bg-red-500/20 px-1 rounded">
+                            OVERRIDE
+                          </span>{' '}
+                          to confirm:
+                        </label>
+                        <input
+                          id="override-confirm"
+                          type="text"
+                          value={overrideText}
+                          onChange={(e) => setOverrideText(e.target.value)}
+                          placeholder="OVERRIDE"
+                          className="w-full px-3 py-2 rounded bg-black/50 border border-red-500/30 text-sm text-white placeholder-red-500/40 focus:border-red-500 focus:outline-none"
+                        />
+                        {isOverrideConfirmed && (
+                          <p className="text-xs text-green-400">
+                            ✓ Override confirmed - you may now proceed
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {saveError && (
+                <div
+                  role="alert"
+                  className="mt-4 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
+                >
+                  {saveError}
                 </div>
               )}
             </div>
-          )}
 
-          {saveError && (
-            <div
-              role="alert"
-              className="mt-4 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
-            >
-              {saveError}
-            </div>
-          )}
-
-          </div>
-
-          {/* Footer Buttons */}
-          <div className="flex shrink-0 items-center gap-3 px-8 py-4">
-            {disableConfirm && confirmDisabledReason && (
-              <span
-                data-testid="edit-contract-confirm-disabled-reason"
-                className="mr-auto text-xs text-amber-300/80"
+            {/* Footer Buttons */}
+            <div className="flex shrink-0 items-center gap-3 px-8 py-4">
+              {disableConfirm && confirmDisabledReason && (
+                <span
+                  data-testid="edit-contract-confirm-disabled-reason"
+                  className="mr-auto text-xs text-amber-300/80"
+                >
+                  {confirmDisabledReason}
+                </span>
+              )}
+              <button
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="ml-auto px-4 py-2 text-sm font-medium rounded bg-white/5 hover:bg-white/10 text-white transition-colors"
               >
-                {confirmDisabledReason}
-              </span>
-            )}
-            <button
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="ml-auto px-4 py-2 text-sm font-medium rounded bg-white/5 hover:bg-white/10 text-white transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              data-testid="edit-contract-confirm-action-button"
-              onClick={handleConfirm}
-              disabled={disableConfirm}
-              aria-disabled={disableConfirm}
-              title={disableConfirm ? confirmDisabledReason ?? undefined : undefined}
-              className={`px-6 py-2 text-sm font-bold rounded shadow-lg transition-all ${
-                disableConfirm
-                  ? 'cursor-not-allowed bg-white/[0.06] text-white/35 shadow-none ring-1 ring-inset ring-white/10'
-                  : isOverrideConfirmed
-                    ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/20'
-                    : 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
-              }`}
-            >
-              {confirmButtonLabel}
-            </button>
-          </div>
+                Cancel
+              </button>
+              <button
+                data-testid="edit-contract-confirm-action-button"
+                onClick={handleConfirm}
+                disabled={disableConfirm}
+                aria-disabled={disableConfirm}
+                title={
+                  disableConfirm
+                    ? (confirmDisabledReason ?? undefined)
+                    : undefined
+                }
+                className={`px-6 py-2 text-sm font-bold rounded shadow-lg transition-all ${
+                  disableConfirm
+                    ? 'cursor-not-allowed bg-white/[0.06] text-white/35 shadow-none ring-1 ring-inset ring-white/10'
+                    : isOverrideConfirmed
+                      ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/20'
+                      : 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
+                }`}
+              >
+                {confirmButtonLabel}
+              </button>
+            </div>
           </div>
         </div>
       </DialogContent>

@@ -24,7 +24,8 @@ export function GovernedWaiverEvidenceForm({
   signedBuyoutAgreement,
   onSignedBuyoutAgreementChange,
 }: GovernedWaiverEvidenceFormProps) {
-  if (!['waive', 'waiveStretch', 'buyout'].includes(selectedAction)) return null;
+  if (!['waive', 'waiveStretch', 'buyout'].includes(selectedAction))
+    return null;
 
   const ready = availability?.status === 'ready';
   return (
@@ -48,6 +49,8 @@ export function GovernedWaiverEvidenceForm({
 
       <div
         data-testid="governed-waiver-availability"
+        role="status"
+        aria-live="polite"
         className="rounded border border-white/10 bg-black/20 px-3 py-2 text-[11px] text-white/75"
       >
         <span className="font-medium text-white">
@@ -80,10 +83,15 @@ export function GovernedWaiverEvidenceForm({
           type="datetime-local"
           step="1"
           value={leagueReceiptInput}
+          aria-describedby="governed-waiver-league-receipt-hint"
+          aria-invalid={Boolean(leagueReceiptInput && !leagueReceiptAt)}
           onChange={(event) => onLeagueReceiptInputChange(event.target.value)}
           className="w-full rounded border border-white/20 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-orange-500"
         />
-        <p className="mt-1 text-[11px] text-white/55">
+        <p
+          id="governed-waiver-league-receipt-hint"
+          className="mt-1 text-[11px] text-white/55"
+        >
           {leagueReceiptInput && !leagueReceiptAt
             ? 'Choose a valid Eastern time. The skipped daylight-saving hour cannot be used.'
             : leagueReceiptAt
@@ -104,9 +112,9 @@ export function GovernedWaiverEvidenceForm({
             className="mt-0.5"
           />
           <span>
-            A written Team Salary stretch election is on file. This changes
-            Team Salary attribution only; player payments remain on their
-            original schedule.
+            A written Team Salary stretch election is on file. This changes Team
+            Salary attribution only; player payments remain on their original
+            schedule.
           </span>
         </label>
       )}

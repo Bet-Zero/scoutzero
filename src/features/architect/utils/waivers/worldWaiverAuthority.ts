@@ -42,8 +42,7 @@ async function baselineContext(worldId: string) {
   if (!compatibility.compatible) throw new Error(compatibility.message);
   return {
     ledgers: documents.flatMap((document) => document.ledgers),
-    baselineSalaryCapYear:
-      compatibility.metadata.contractBaselineSalaryCapYear,
+    baselineSalaryCapYear: compatibility.metadata.contractBaselineSalaryCapYear,
   };
 }
 
@@ -112,6 +111,7 @@ export async function loadWorldGovernedWaiverEntries({
               playerId: state.playerId,
               contractId: state.contractId,
               worldAsOfDate,
+              resolvedState: state,
             }),
       })
     );
@@ -133,7 +133,9 @@ export async function loadWorldGovernedWaiverAuthority({
     ledger.events.some((event) => event.contractId === contractId)
   );
   if (!baselineLedger) {
-    throw new Error(`Required Contract ${contractId} is missing from this Team Plan.`);
+    throw new Error(
+      `Required Contract ${contractId} is missing from this Team Plan.`
+    );
   }
   const overlay = (overlays ?? []).find(
     (ledger) => ledger.ledgerId === baselineLedger.ledgerId

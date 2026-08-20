@@ -22,6 +22,8 @@ import '@testing-library/jest-dom/vitest';
 import { CapSheetFull } from '@/features/architect/capSheet/CapSheetFull';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHistory';
+import type { GovernedWaiverLifecycle } from '@/schemas/governedWaiver';
+import type { PlayerRulesProfileTeamCapSheet } from '@/features/architect/types/playerRulesProfiles';
 
 // The real modals are heavy and tested elsewhere. Mock them to thin shells that
 // surface the year they received and a save trigger so we can assert the cap
@@ -52,7 +54,7 @@ vi.mock('@/features/architect/capSheet/modals/ManageExceptionsModal', () => ({
 
 const CURRENT_YEAR = 2026;
 
-const teamCapSheet = {
+const teamCapSheet: PlayerRulesProfileTeamCapSheet & { teamId: string } = {
   teamId: 'LAL',
   teamCode: 'LAL',
   players: [
@@ -63,7 +65,7 @@ const teamCapSheet = {
       bio: { playerId: 'player_42', displayName: 'Jane Doe' },
       contract: {
         salariesByYear: [
-          { year: 2026, season: '2025-26', salary: 30_000_000, capHit: 30_000_000 },
+          { season: '2025-26', salary: 30_000_000, capHit: 30_000_000 },
         ],
       },
     },
@@ -74,19 +76,23 @@ const teamCapSheet = {
       bio: { playerId: 'player_99', displayName: 'John Q' },
       contract: {
         salariesByYear: [
-          { year: 2026, season: '2025-26', salary: 5_000_000, capHit: 5_000_000 },
+          { season: '2025-26', salary: 5_000_000, capHit: 5_000_000 },
         ],
       },
     },
   ],
-} as never;
+};
 
 afterEach(() => cleanup());
 
 describe('CapSheetFull — home-base enrichments', () => {
   it('does not render the Cap Tools surface or row kebab without enrichment props', () => {
-    render(<CapSheetFull teamCapSheet={teamCapSheet} currentYear={CURRENT_YEAR} />);
-    expect(screen.queryByTestId('cap-sheet-full-cap-tools')).not.toBeInTheDocument();
+    render(
+      <CapSheetFull teamCapSheet={teamCapSheet} currentYear={CURRENT_YEAR} />
+    );
+    expect(
+      screen.queryByTestId('cap-sheet-full-cap-tools')
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('cap-sheet-full-player-row-overflow')
     ).not.toBeInTheDocument();
@@ -99,7 +105,10 @@ describe('CapSheetFull — home-base enrichments', () => {
       <CapSheetFull
         teamCapSheet={teamCapSheet}
         currentYear={CURRENT_YEAR}
-        manualCapSheetMutationAuthority={{ handleSetDeadCap, handleSetExceptions }}
+        manualCapSheetMutationAuthority={{
+          handleSetDeadCap,
+          handleSetExceptions,
+        }}
       />
     );
 
@@ -114,8 +123,92 @@ describe('CapSheetFull — home-base enrichments', () => {
   });
 
   it('shows waiver responsibility as pending through exact expiry day, then as terminated dead money', () => {
+    const allocation = {
+      season: '2026-27',
+      protectedBaseCompensation: 10_000_000,
+      buyoutReduction: 0,
+      playerPayment: 10_000_000,
+      teamSalary: 10_000_000,
+      setOffReduction: null,
+      isTeamSalaryStretched: false,
+    };
+    const event = (
+      eventVersion: number,
+      eventKind: GovernedWaiverLifecycle['events'][number]['eventKind'],
+      effectiveAt: string,
+      predecessorEventId: string | null
+    ) => ({
+      eventId: `waiver-event-${eventVersion}`,
+      eventVersion,
+      eventKind,
+      effectiveAt,
+      recordedAt: '2026-07-15T12:01:00-04:00',
+      predecessorEventId,
+      authoringIdentity: 'test-user',
+      canonLeafIds: ['CBA2-R01.1'],
+    });
+    const governedLifecycle = {
+      lifecycleVersion: 1,
+      lifecycleId: 'waiver-lifecycle-1',
+      worldId: 'world-waiver-status',
+      teamId: 'LAL',
+      playerId: 'waived-player',
+      playerName: 'Waived Player',
+      contractId: 'waived-contract',
+      path: 'standard',
+      leagueReceivedAt: '2026-07-15T12:00:00-04:00',
+      expiresAt: '2026-07-17T12:00:00-04:00',
+      terminationAt: '2026-07-17T12:00:00-04:00',
+      requestIrrevocable: true,
+      outcome: 'ordinary-unclaimed',
+      events: [
+        event(1, 'waiver-request', '2026-07-15T12:00:00-04:00', null),
+        event(
+          2,
+          'waiver-expiry',
+          '2026-07-17T12:00:00-04:00',
+          'waiver-event-1'
+        ),
+        event(
+          3,
+          'contract-termination',
+          '2026-07-17T12:00:00-04:00',
+          'waiver-event-2'
+        ),
+        event(
+          4,
+          'set-off-authority',
+          '2026-07-17T12:00:00-04:00',
+          'waiver-event-3'
+        ),
+      ],
+      originalContractSeasons: ['2026-27'],
+      protectedBaseCompensation: 10_000_000,
+      buyoutReduction: 0,
+      buyoutAgreementAt: null,
+      playerSignatureRecorded: false,
+      teamSignatureRecorded: false,
+      stretchElectionAt: null,
+      stretchBranch: null,
+      stretchYears: null,
+      salaryCapAtElection: null,
+      formerPlayerCeilingAtElection: null,
+      allocationsBeforeStretch: [allocation],
+      allocations: [allocation],
+      paymentAllocations: [allocation],
+      setOffStatus: 'needs-authenticated-earnings',
+      setOffFormula: 'Authenticated earnings required.',
+      originalContractEndsAt: '2027-06-30T23:59:59-04:00',
+      reacquisitionRestrictedUntil: null,
+      contractAuthority: {
+        ledgerId: 'contract-ledger-1',
+        ledgerVersion: 1,
+        stateDigest: 'fnv1a64:0123456789abcdef',
+      },
+      canonLeafIds: ['CBA2-R01.1'],
+    } satisfies GovernedWaiverLifecycle;
     const waiverTeam = {
-      ...(teamCapSheet as unknown as Record<string, unknown>),
+      ...teamCapSheet,
       deadCap: [
         {
           playerId: 'waived-player',
@@ -125,14 +218,10 @@ describe('CapSheetFull — home-base enrichments', () => {
             { season: '2026-27', amount: 10_000_000, isStretched: false },
           ],
           waiveDate: '2026-07-15T12:00:00-04:00',
-          governedLifecycle: {
-            path: 'standard',
-            expiresAt: '2026-07-17T12:00:00-04:00',
-            stretchYears: null,
-          },
+          governedLifecycle,
         },
       ],
-    } as never;
+    };
     const context = {
       worldId: 'world-waiver-status',
       teamId: 'LAL',
@@ -179,7 +268,10 @@ describe('CapSheetFull — home-base enrichments', () => {
       <CapSheetFull
         teamCapSheet={teamCapSheet}
         currentYear={CURRENT_YEAR}
-        manualCapSheetMutationAuthority={{ handleSetDeadCap, handleSetExceptions }}
+        manualCapSheetMutationAuthority={{
+          handleSetDeadCap,
+          handleSetExceptions,
+        }}
       />
     );
 
@@ -209,9 +301,7 @@ describe('CapSheetFull — home-base enrichments', () => {
     expect(
       screen.getByTestId('cap-sheet-full-exceptions-readout')
     ).toBeInTheDocument();
-    expect(
-      screen.getByTestId('exceptions-readout-probe')
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('exceptions-readout-probe')).toBeInTheDocument();
   });
 
   it('fires onLaunchPlayerAction from the row overflow menu with the chosen action', () => {
@@ -226,7 +316,9 @@ describe('CapSheetFull — home-base enrichments', () => {
       />
     );
 
-    const overflows = screen.getAllByTestId('cap-sheet-full-player-row-overflow');
+    const overflows = screen.getAllByTestId(
+      'cap-sheet-full-player-row-overflow'
+    );
     fireEvent.click(overflows[0]);
     const waiveAction = screen.getByTestId(
       'cap-sheet-full-player-row-action-waive'
@@ -293,7 +385,9 @@ describe('CapSheetFull — home-base enrichments', () => {
       />
     );
 
-    fireEvent.click(screen.getByTestId('cap-sheet-full-sign-free-agent-button'));
+    fireEvent.click(
+      screen.getByTestId('cap-sheet-full-sign-free-agent-button')
+    );
     expect(onLaunchFreeAgentSearch).toHaveBeenCalledTimes(1);
   });
 
@@ -348,15 +442,60 @@ describe('CapSheetFull — home-base enrichments', () => {
           bio: { playerId: 'long_contract', displayName: 'Long Contract' },
           contract: {
             salariesByYear: [
-              { year: 2026, season: '2025-26', salary: 10_000_000, capHit: 10_000_000 },
-              { year: 2027, season: '2026-27', salary: 11_000_000, capHit: 11_000_000 },
-              { year: 2028, season: '2027-28', salary: 12_000_000, capHit: 12_000_000 },
-              { year: 2029, season: '2028-29', salary: 13_000_000, capHit: 13_000_000 },
-              { year: 2030, season: '2029-30', salary: 14_000_000, capHit: 14_000_000 },
-              { year: 2031, season: '2030-31', salary: 15_000_000, capHit: 15_000_000 },
-              { year: 2032, season: '2031-32', salary: 16_000_000, capHit: 16_000_000 },
-              { year: 2033, season: '2032-33', salary: 17_000_000, capHit: 17_000_000 },
-              { year: 2034, season: '2033-34', salary: 18_000_000, capHit: 18_000_000 },
+              {
+                year: 2026,
+                season: '2025-26',
+                salary: 10_000_000,
+                capHit: 10_000_000,
+              },
+              {
+                year: 2027,
+                season: '2026-27',
+                salary: 11_000_000,
+                capHit: 11_000_000,
+              },
+              {
+                year: 2028,
+                season: '2027-28',
+                salary: 12_000_000,
+                capHit: 12_000_000,
+              },
+              {
+                year: 2029,
+                season: '2028-29',
+                salary: 13_000_000,
+                capHit: 13_000_000,
+              },
+              {
+                year: 2030,
+                season: '2029-30',
+                salary: 14_000_000,
+                capHit: 14_000_000,
+              },
+              {
+                year: 2031,
+                season: '2030-31',
+                salary: 15_000_000,
+                capHit: 15_000_000,
+              },
+              {
+                year: 2032,
+                season: '2031-32',
+                salary: 16_000_000,
+                capHit: 16_000_000,
+              },
+              {
+                year: 2033,
+                season: '2032-33',
+                salary: 17_000_000,
+                capHit: 17_000_000,
+              },
+              {
+                year: 2034,
+                season: '2033-34',
+                salary: 18_000_000,
+                capHit: 18_000_000,
+              },
             ],
           },
         },

@@ -98,8 +98,13 @@ export type UseContractActionsParams = {
   worldAsOfDate: string | null;
   rightsLedgerWorldVersion: number | null;
   teamCapSheet: CapSheet | null | undefined;
-  reportMutationError: (message: string, details?: Record<string, unknown>) => void;
-  runManualCapSheetLedgerMutation: (params: ManualCapSheetLedgerMutationParams) => Promise<boolean>;
+  reportMutationError: (
+    message: string,
+    details?: Record<string, unknown>
+  ) => void;
+  runManualCapSheetLedgerMutation: (
+    params: ManualCapSheetLedgerMutationParams
+  ) => Promise<boolean>;
   applyCapAuditedTeamMutation: (params: {
     mutationType: string;
     playerIds?: string[];
@@ -211,12 +216,7 @@ export function useContractActions({
     return () => {
       active = false;
     };
-  }, [
-    teamCapSheet?.contractEventLedgers,
-    teamCode,
-    worldAsOfDate,
-    worldId,
-  ]);
+  }, [teamCapSheet?.contractEventLedgers, teamCode, worldAsOfDate, worldId]);
 
   useEffect(() => {
     let active = true;
@@ -256,7 +256,8 @@ export function useContractActions({
       active = false;
     };
   }, [
-    teamCapSheet,
+    teamCapSheet?.contractEventLedgers,
+    teamCapSheet?.deadCap,
     teamCode,
     worldAsOfDate,
     worldId,
@@ -298,12 +299,7 @@ export function useContractActions({
     return () => {
       active = false;
     };
-  }, [
-    teamCapSheet?.contractEventLedgers,
-    teamCode,
-    worldAsOfDate,
-    worldId,
-  ]);
+  }, [teamCapSheet?.contractEventLedgers, teamCode, worldAsOfDate, worldId]);
 
   const getWaiverAvailability = useCallback(
     (player: ArchitectPlayer): GovernedWaiverAvailability => {
@@ -327,7 +323,10 @@ export function useContractActions({
         );
       }
       if (!playerId) {
-        return fallback('needs-input', 'The exact player identity is required.');
+        return fallback(
+          'needs-input',
+          'The exact player identity is required.'
+        );
       }
       if (governedWaiverLoadState === 'loading') {
         return fallback(
@@ -394,7 +393,10 @@ export function useContractActions({
         );
       }
       if (!playerId) {
-        return fallback('needs-input', 'The exact player identity is required.');
+        return fallback(
+          'needs-input',
+          'The exact player identity is required.'
+        );
       }
       if (governedExtensionLoadState === 'loading') {
         return fallback(
@@ -649,7 +651,10 @@ export function useContractActions({
 
   const handleEditContract = useCallback(
     (
-      player: PlayerRulesProfileInput | ArchitectDashboardPlayer | ArchitectPlayer
+      player:
+        | PlayerRulesProfileInput
+        | ArchitectDashboardPlayer
+        | ArchitectPlayer
     ): void => {
       openPlayerContractModalRoute({
         player: player as PlayerRulesProfileInput | ArchitectPlayer,
@@ -668,7 +673,10 @@ export function useContractActions({
   // write still happens inside EditContractModal via its existing callbacks.
   const handleLaunchPlayerContractAction = useCallback(
     (
-      player: PlayerRulesProfileInput | ArchitectDashboardPlayer | ArchitectPlayer,
+      player:
+        | PlayerRulesProfileInput
+        | ArchitectDashboardPlayer
+        | ArchitectPlayer,
       action: 'waive' | 'extend' | 'stretch' | 'buyout'
     ): void => {
       const initialAction = action === 'stretch' ? 'waiveStretch' : action;
@@ -881,8 +889,7 @@ export function useContractActions({
       if (!entry) {
         return {
           success: false,
-          message:
-            'The extension information changed. Reload and try again.',
+          message: 'The extension information changed. Reload and try again.',
         };
       }
       const proposal = {
@@ -902,8 +909,7 @@ export function useContractActions({
         recordedAt: proposal.signedAt,
       });
       if (!preview.success) {
-        const message =
-          preview.reasons[0] || 'This extension is unavailable.';
+        const message = preview.reasons[0] || 'This extension is unavailable.';
         reportMutationError(message, {
           playerId,
           reasons: preview.reasons,
@@ -999,7 +1005,8 @@ export function useContractActions({
       if (overrideUsed) {
         return {
           success: false,
-          message: 'Governed waiver history cannot be bypassed with an override.',
+          message:
+            'Governed waiver history cannot be bypassed with an override.',
         };
       }
       const availability = getWaiverAvailability(player);
@@ -1044,7 +1051,8 @@ export function useContractActions({
         requiredAuthority: 'official',
         team: { teamId: teamCode, teamCode, worldId },
       });
-      const salaryCap = seasonEnvelope.systemLevels['salary-cap']?.amount ?? null;
+      const salaryCap =
+        seasonEnvelope.systemLevels['salary-cap']?.amount ?? null;
       if (seasonEnvelope.status !== 'complete' || salaryCap === null) {
         const message =
           seasonEnvelope.unavailableReasons[0] ||
@@ -1136,8 +1144,8 @@ export function useContractActions({
         receiptContext: {
           actionType: stretch ? 'waive-stretch' : buyout ? 'buyout' : 'waive',
           headlineOverride: stretch
-              ? 'Waiver and stretch scheduled'
-              : buyout
+            ? 'Waiver and stretch scheduled'
+            : buyout
               ? 'Signed buyout waiver scheduled'
               : 'Waiver request recorded',
           playerId,
@@ -1194,8 +1202,7 @@ export function useContractActions({
       if (!Number.isInteger(targetYearOverride)) {
         return {
           success: false,
-          message:
-            'Cannot save: the exact governed option Season is missing.',
+          message: 'Cannot save: the exact governed option Season is missing.',
         };
       }
       const targetYear = targetYearOverride as number;
@@ -1234,7 +1241,8 @@ export function useContractActions({
       if (!entry) {
         return {
           success: false,
-          message: 'The governed option authority changed. Reload and try again.',
+          message:
+            'The governed option authority changed. Reload and try again.',
         };
       }
       const preview = decideGovernedOption({
@@ -1361,7 +1369,6 @@ export function useContractActions({
     },
     [confirmAndRenounceRights]
   );
-
 
   return {
     handleSetDeadCap,

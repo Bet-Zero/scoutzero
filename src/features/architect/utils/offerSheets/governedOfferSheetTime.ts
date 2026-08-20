@@ -62,14 +62,32 @@ function dateAfterDays(value: string, days: number): string {
 }
 
 export function composeEasternInstant(localDateTime: string): string | null {
-  if (
-    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(localDateTime)
-  ) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(localDateTime)) {
     return null;
   }
+  const normalizedLocalDateTime =
+    localDateTime.length === 16 ? `${localDateTime}:00` : localDateTime;
   for (const offset of ['-05:00', '-04:00']) {
     const candidate = `${localDateTime}${offset}`;
-    if (easternOffsetAt(candidate) === offset) return candidate;
+    if (easternOffsetAt(candidate) !== offset) continue;
+    const instant = new Date(candidate);
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: GOVERNING_TIME_ZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+      })
+        .formatToParts(instant)
+        .filter((part) => part.type !== 'literal')
+        .map((part) => [part.type, part.value])
+    );
+    const roundTripped = `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+    if (roundTripped === normalizedLocalDateTime) return candidate;
   }
 
   return null;

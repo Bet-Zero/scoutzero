@@ -1,6 +1,12 @@
 /** BZE-284 deterministic browser/emulator proof for an ordinary unclaimed waiver. */
 
-import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from '@playwright/test';
 import admin from 'firebase-admin';
 
 import {
@@ -35,8 +41,6 @@ const WORLD_AS_OF_DATE = '2026-07-15';
 const LEAGUE_RECEIPT_INPUT = '2026-07-15T12:00';
 const LEAGUE_RECEIPT = '2026-07-15T12:00-04:00';
 const WAIVER_EXPIRES = '2026-07-17T12:00:00-04:00';
-
-type RecordLike = Record<string, unknown>;
 
 const unknownInstant = () => ({
   precision: 'unknown' as const,
@@ -186,7 +190,9 @@ const buildWaiverFixture = () => {
       retainedCorpus: 'Inline deterministic browser fixture.',
       selectionPolicy: 'Only the bounded BZE-284 waiver record.',
       transformationId: 'bze-284-browser-waiver-v1',
-      limitations: ['Synthetic browser proof; not production source authority.'],
+      limitations: [
+        'Synthetic browser proof; not production source authority.',
+      ],
       evidenceCatalog: {
         transformations: [
           {
@@ -242,7 +248,9 @@ const writeBaselineDocuments = async (
   const batch = db.batch();
   documents.forEach((document) => {
     batch.set(
-      db.doc(`architect_worlds/${worldId}/contractBaselines/${document.shardId}`),
+      db.doc(
+        `architect_worlds/${worldId}/contractBaselines/${document.shardId}`
+      ),
       document
     );
   });
@@ -282,7 +290,11 @@ const seedWaiverWorld = async (userId: string) => {
     incomingOfferSheets: [],
     contractEventLedgers: [],
     totals: { totalSalary: 10_000_000, rosterCount: 1, isHardCapped: false },
-    source: { type: 'review-world-bze-284-fixture', provider: 'playwright', worldId },
+    source: {
+      type: 'review-world-bze-284-fixture',
+      provider: 'playwright',
+      worldId,
+    },
   };
   await Promise.all([
     db.doc(`architect_worlds/${worldId}`).set({
@@ -350,7 +362,7 @@ const openWaiverModal = async (page: Page) => {
   await expect(row).toBeVisible({ timeout: 20_000 });
   await row.getByTestId('cap-sheet-full-player-row-button').hover();
   await page
-    .getByRole('button', { name: new RegExp(`More actions for ${PLAYER_NAME}`, 'i') })
+    .getByRole('button', { name: `More actions for ${PLAYER_NAME}` })
     .click();
   const menu = page.getByTestId('cap-sheet-full-player-row-overflow-menu');
   const action = menu.getByTestId('cap-sheet-full-player-row-action-waive');
@@ -393,7 +405,8 @@ test.describe('ARCH-GOVERNED-WAIVER: Full Cap saved-world proof', () => {
 
   test.afterEach(async () => {
     const db = getReviewAdminDb();
-    if (worldId) await db.recursiveDelete(db.doc(`architect_worlds/${worldId}`));
+    if (worldId)
+      await db.recursiveDelete(db.doc(`architect_worlds/${worldId}`));
     await db.doc(`architect_basePlayers/${PLAYER_ID}`).delete();
     worldId = '';
   });
@@ -441,7 +454,9 @@ test.describe('ARCH-GOVERNED-WAIVER: Full Cap saved-world proof', () => {
     expect(
       (
         await db
-          .doc(`architect_worlds/${worldId}/teams/${TEAM_ID}/players/${PLAYER_ID}`)
+          .doc(
+            `architect_worlds/${worldId}/teams/${TEAM_ID}/players/${PLAYER_ID}`
+          )
           .get()
       ).exists
     ).toBe(false);

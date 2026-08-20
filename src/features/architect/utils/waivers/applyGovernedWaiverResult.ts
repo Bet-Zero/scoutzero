@@ -3,6 +3,7 @@
 import type { ArchitectMutationTeamRecord } from '@/features/architect/utils/mutationPipeline';
 import type { GovernedWaiverLifecycle } from '@/schemas/governedWaiver';
 import type { GovernedWaiverResult } from './governedWaiver';
+import { getMutationRosterEntryId } from '@/features/architect/utils/mutationPipeline.helpers';
 
 export function readGovernedWaiverLifecycles(
   team:
@@ -18,9 +19,8 @@ export function readGovernedWaiverLifecycles(
 ): GovernedWaiverLifecycle[] {
   return (team?.deadCap ?? [])
     .map((entry) => entry.governedLifecycle)
-    .filter(
-      (entry): entry is GovernedWaiverLifecycle =>
-        Boolean(entry && typeof entry === 'object')
+    .filter((entry): entry is GovernedWaiverLifecycle =>
+      Boolean(entry && typeof entry === 'object')
     );
 }
 
@@ -43,15 +43,20 @@ export function applyGovernedWaiverResult<
           entry.playerId === playerId)
     )
   ) {
-    throw new Error('A waiver lifecycle is already recorded for this Contract.');
+    throw new Error(
+      'A waiver lifecycle is already recorded for this Contract.'
+    );
   }
 
   return {
     ...team,
     // By-Laws §5.03: Player List removal is immediate at League receipt.
-    roster: (team.roster ?? []).filter((entry) => String(entry) !== playerId),
+    roster: (team.roster ?? []).filter(
+      (entry) => getMutationRosterEntryId(entry) !== playerId
+    ),
     players: (team.players ?? []).filter((player) => {
-      const id = player.id ?? player.player_id ?? player.playerId ?? player.name;
+      const id =
+        player.id ?? player.player_id ?? player.playerId ?? player.name;
       return String(id ?? '') !== playerId;
     }),
     // This entry is a financial-responsibility carrier until expiry and a
