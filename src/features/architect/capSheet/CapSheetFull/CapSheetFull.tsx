@@ -45,9 +45,9 @@ import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHi
 import type { GovernedOptionDecisionAvailability } from '@/features/architect/utils/optionDecisions';
 import type { GovernedWaiverLifecycle } from '@/schemas/governedWaiver';
 import {
-  isDateOnly,
-  parseZonedDateTime,
-} from '@/features/architect/utils/governedSeason';
+  hasGovernedWaiverTerminated,
+  projectGovernedWaiverDeadCapEntry,
+} from '@/features/architect/utils/waivers';
 import {
   getHoldLookupKeys,
   getPlayerLookupKeys,
@@ -295,6 +295,10 @@ const toEndYear = (value: unknown): number | null => {
 
 const collectDeadCapEndYears = (deadCapEntry: DeadCapEntryLike) => {
   const endYears: number[] = [];
+  for (const allocation of deadCapEntry.governedLifecycle?.allocations ?? []) {
+    const endYear = toEndYear(allocation.season);
+    if (endYear) endYears.push(endYear);
+  }
 
   if (Array.isArray(deadCapEntry.amountByYear)) {
     for (const value of deadCapEntry.amountByYear) {
@@ -322,22 +326,6 @@ const getDeadCapLabel = (deadCapEntry: DeadCapEntryLike) =>
   deadCapEntry.playerId ||
   'Dead money adjustment';
 
-const hasReachedWaiverExpiry = (
-  asOfDate: string | null | undefined,
-  expiresAt: string
-) => {
-  if (!asOfDate) return false;
-  if (isDateOnly(asOfDate)) {
-    // A date-only Team Plan cannot prove which side of the exact expiry time it
-    // occupies. Keep the waiver pending through that date and transition on
-    // the following simulated day.
-    return asOfDate > expiresAt.slice(0, 10);
-  }
-  const asOf = parseZonedDateTime(asOfDate);
-  const expiry = parseZonedDateTime(expiresAt);
-  return asOf !== null && expiry !== null && asOf >= expiry;
-};
-
 const formatWaiverExpiry = (expiresAt: string) => {
   const instant = new Date(expiresAt);
   if (!Number.isFinite(instant.getTime())) return expiresAt;
@@ -357,7 +345,7 @@ const getGovernedDeadCapStatus = (
 ) => {
   const lifecycle = deadCapEntry.governedLifecycle;
   if (!lifecycle) return null;
-  if (!hasReachedWaiverExpiry(asOfDate, lifecycle.expiresAt)) {
+  if (!hasGovernedWaiverTerminated(asOfDate, lifecycle.expiresAt)) {
     return {
       status: 'pending',
       detail: `Waiver pending · expires ${formatWaiverExpiry(lifecycle.expiresAt)}`,
@@ -1078,9 +1066,13 @@ export const CapSheetFull = ({
     );
   };
 
-  const displayedDeadMoney = (
+  const rawDeadMoney = (
     Array.isArray(teamCapSheet.deadCap) ? teamCapSheet.deadCap : []
   ) as DeadCapEntryLike[];
+  const waiverAsOfDate = governedRightsContext?.asOfDate ?? null;
+  const displayedDeadMoney = rawDeadMoney.map((entry) =>
+    projectGovernedWaiverDeadCapEntry(entry, waiverAsOfDate)
+  );
 
   // SSOT: Use computeTeamCapTotals for each year to include
   // players + dead money + cap holds + incomplete roster charges.
@@ -1111,13 +1103,23 @@ export const CapSheetFull = ({
                   )
                 : teamCapSheet.capHolds,
               players: teamCapSheet.players?.map((p) => ({ ...p })),
+              deadCap: rawDeadMoney.map((entry) =>
+                projectGovernedWaiverDeadCapEntry(entry, waiverAsOfDate)
+              ),
             }
           : null,
         year
       );
     }
     return totals;
-  }, [teamCapSheet, allYears, governedRightsContext, resolvedCapHolds]);
+  }, [
+    teamCapSheet,
+    allYears,
+    governedRightsContext,
+    rawDeadMoney,
+    resolvedCapHolds,
+    waiverAsOfDate,
+  ]);
   const hasIncompleteCharges = allYears.some(
     (year) => yearTotalBreakdowns[year].incompleteChargesTotal > 0
   );
@@ -2195,6 +2197,7 @@ export const CapSheetFull = ({
                                       return (
                                         <div
                                           key={year}
+                                          data-testid="cap-sheet-full-dead-money-amount"
                                           className="flex min-h-[38px] items-center justify-center border-l border-white/[0.02] px-2 py-2 text-xs tabular-nums text-red-200/80"
                                         >
                                           {amount > 0

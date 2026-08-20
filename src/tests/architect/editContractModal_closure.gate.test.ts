@@ -265,9 +265,9 @@ describe('Gate 5: World Compute Honors Governed Buyout Fields (E1)', () => {
     expect(waiverEngineContent).toMatch(/teamSignatureRecorded/);
   });
 
-  it('persists dead salary from governed annual allocations', () => {
+  it('persists full protected salary until governed waiver termination', () => {
     expect(waiverEngineContent).toMatch(
-      /amountByYear:\s*allocations\.map[\s\S]{0,300}amount:\s*row\.teamSalary/
+      /amountByYear:\s*beforeStretch\.map[\s\S]{0,300}amount:\s*row\.protectedBaseCompensation/
     );
   });
 });

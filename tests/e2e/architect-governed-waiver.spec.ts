@@ -1,4 +1,4 @@
-/** BZE-284 deterministic browser/emulator proof for an ordinary unclaimed waiver. */
+/** BZE-284 deterministic browser/emulator proof for an ordinary unclaimed waiver and stretch. */
 
 import {
   expect,
@@ -411,10 +411,12 @@ test.describe('ARCH-GOVERNED-WAIVER: Full Cap saved-world proof', () => {
     worldId = '';
   });
 
-  test('records, reloads, and temporally resolves the ordinary unclaimed waiver', async ({
+  test('records, reloads, and temporally resolves pending salary into stretched dead money', async ({
     page,
   }, testInfo: TestInfo) => {
     const modal = await openWaiverModal(page);
+    await modal.getByTestId('contract-action-waive-stretch').check();
+    await modal.getByTestId('governed-waiver-stretch-election').check();
     await modal
       .getByTestId('governed-waiver-league-receipt')
       .fill(LEAGUE_RECEIPT_INPUT);
@@ -432,7 +434,7 @@ test.describe('ARCH-GOVERNED-WAIVER: Full Cap saved-world proof', () => {
     await confirm.click();
     await expect(modal).toHaveCount(0, { timeout: 25_000 });
     await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
-      /Waiver request recorded/i,
+      /Waiver and stretch scheduled/i,
       { timeout: 20_000 }
     );
 
@@ -446,11 +448,18 @@ test.describe('ARCH-GOVERNED-WAIVER: Full Cap saved-world proof', () => {
       playerId: PLAYER_ID,
       governedLifecycle: {
         contractId: CONTRACT_ID,
+        path: 'waive-and-stretch',
         leagueReceivedAt: LEAGUE_RECEIPT,
         expiresAt: WAIVER_EXPIRES,
         outcome: 'ordinary-unclaimed',
+        stretchYears: 7,
       },
     });
+    expect(deadCap[0]?.amountByYear).toEqual([
+      { season: '2026-27', amount: 10_000_000, isStretched: false },
+      { season: '2027-28', amount: 12_000_000, isStretched: false },
+      { season: '2028-29', amount: 14_000_000, isStretched: false },
+    ]);
     expect(
       (
         await db
@@ -476,6 +485,12 @@ test.describe('ARCH-GOVERNED-WAIVER: Full Cap saved-world proof', () => {
     await expect(pending).toHaveAttribute('data-waiver-status', 'pending');
     await expect(pending).toContainText(/Waiver pending/i);
     await expect(pending).toContainText(/Jul 17, 2026, 12:00 PM ET/i);
+    const pendingAmounts = page.getByTestId(
+      'cap-sheet-full-dead-money-amount'
+    );
+    await expect(pendingAmounts.nth(0)).toContainText('$10,000,000');
+    await expect(pendingAmounts.nth(1)).toContainText('$12,000,000');
+    await expect(pendingAmounts.nth(2)).toContainText('$14,000,000');
     await page.screenshot({
       path: testInfo.outputPath('02-waiver-pending.png'),
       fullPage: false,
@@ -497,7 +512,13 @@ test.describe('ARCH-GOVERNED-WAIVER: Full Cap saved-world proof', () => {
       'data-waiver-status',
       'terminated'
     );
-    await expect(terminated).toContainText(/Contract terminated/i);
+    await expect(terminated).toContainText(/Team Salary stretched over 7 Seasons/i);
+    const terminatedAmounts = page.getByTestId(
+      'cap-sheet-full-dead-money-amount'
+    );
+    await expect(terminatedAmounts).toHaveCount(7);
+    await expect(terminatedAmounts.nth(0)).toContainText('$5,142,858');
+    await expect(terminatedAmounts.nth(6)).toContainText('$5,142,857');
     await page.screenshot({
       path: testInfo.outputPath('03-contract-terminated.png'),
       fullPage: false,
@@ -506,7 +527,7 @@ test.describe('ARCH-GOVERNED-WAIVER: Full Cap saved-world proof', () => {
     testInfo.annotations.push({
       type: 'audit-note',
       description:
-        'BZE-284 proof: exact governed receipt, immediate Player List removal, atomic saved-world lifecycle and player deletion, pending expiry truth after reload, then date-driven contract termination truth.',
+        'BZE-284 proof: exact governed Eastern receipt, immediate Player List removal, atomic saved-world lifecycle and player deletion, full protected Team Salary while pending after reload, then date-driven stretched dead money only after termination.',
     });
   });
 });

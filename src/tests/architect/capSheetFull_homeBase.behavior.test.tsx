@@ -126,9 +126,9 @@ describe('CapSheetFull — home-base enrichments', () => {
     const allocation = {
       season: '2026-27',
       protectedBaseCompensation: 10_000_000,
-      buyoutReduction: 0,
-      playerPayment: 10_000_000,
-      teamSalary: 10_000_000,
+      buyoutReduction: 4_000_000,
+      playerPayment: 6_000_000,
+      teamSalary: 6_000_000,
       setOffReduction: null,
       isTeamSalaryStretched: false,
     };
@@ -155,7 +155,7 @@ describe('CapSheetFull — home-base enrichments', () => {
       playerId: 'waived-player',
       playerName: 'Waived Player',
       contractId: 'waived-contract',
-      path: 'standard',
+      path: 'buyout',
       leagueReceivedAt: '2026-07-15T12:00:00-04:00',
       expiresAt: '2026-07-17T12:00:00-04:00',
       terminationAt: '2026-07-17T12:00:00-04:00',
@@ -165,29 +165,35 @@ describe('CapSheetFull — home-base enrichments', () => {
         event(1, 'waiver-request', '2026-07-15T12:00:00-04:00', null),
         event(
           2,
-          'waiver-expiry',
-          '2026-07-17T12:00:00-04:00',
+          'buyout-agreement',
+          '2026-07-15T12:00:00-04:00',
           'waiver-event-1'
         ),
         event(
           3,
-          'contract-termination',
+          'waiver-expiry',
           '2026-07-17T12:00:00-04:00',
           'waiver-event-2'
         ),
         event(
           4,
-          'set-off-authority',
+          'contract-termination',
           '2026-07-17T12:00:00-04:00',
           'waiver-event-3'
+        ),
+        event(
+          5,
+          'set-off-authority',
+          '2026-07-17T12:00:00-04:00',
+          'waiver-event-4'
         ),
       ],
       originalContractSeasons: ['2026-27'],
       protectedBaseCompensation: 10_000_000,
-      buyoutReduction: 0,
-      buyoutAgreementAt: null,
-      playerSignatureRecorded: false,
-      teamSignatureRecorded: false,
+      buyoutReduction: 4_000_000,
+      buyoutAgreementAt: '2026-07-15T12:00:00-04:00',
+      playerSignatureRecorded: true,
+      teamSignatureRecorded: true,
       stretchElectionAt: null,
       stretchBranch: null,
       stretchYears: null,
@@ -199,7 +205,7 @@ describe('CapSheetFull — home-base enrichments', () => {
       setOffStatus: 'needs-authenticated-earnings',
       setOffFormula: 'Authenticated earnings required.',
       originalContractEndsAt: '2027-06-30T23:59:59-04:00',
-      reacquisitionRestrictedUntil: null,
+      reacquisitionRestrictedUntil: '2027-07-15T12:00:00-04:00',
       contractAuthority: {
         ledgerId: 'contract-ledger-1',
         ledgerVersion: 1,
@@ -245,6 +251,9 @@ describe('CapSheetFull — home-base enrichments', () => {
     expect(
       screen.getByTestId('cap-sheet-full-governed-waiver-status')
     ).toHaveClass('whitespace-normal');
+    expect(
+      screen.getAllByTestId('cap-sheet-full-dead-money-amount')[0]
+    ).toHaveTextContent('$10,000,000');
 
     rerender(
       <CapSheetFull
@@ -259,6 +268,9 @@ describe('CapSheetFull — home-base enrichments', () => {
     expect(
       screen.getByTestId('cap-sheet-full-governed-waiver-status')
     ).toHaveTextContent(/contract terminated/i);
+    expect(
+      screen.getAllByTestId('cap-sheet-full-dead-money-amount')[0]
+    ).toHaveTextContent('$6,000,000');
   });
 
   it('opens the exceptions modal scoped to the current season and forwards saves to the authority', () => {

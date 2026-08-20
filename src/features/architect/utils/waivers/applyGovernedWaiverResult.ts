@@ -1,9 +1,58 @@
 /** Pure application of a successful governed waiver result to one Team snapshot. */
 
 import type { ArchitectMutationTeamRecord } from '@/features/architect/utils/mutationPipeline';
-import type { GovernedWaiverLifecycle } from '@/schemas/governedWaiver';
+import {
+  GovernedWaiverLifecycleZ,
+  type GovernedWaiverLifecycle,
+} from '@/schemas/governedWaiver';
 import type { GovernedWaiverResult } from './governedWaiver';
 import { getMutationRosterEntryId } from '@/features/architect/utils/mutationPipeline.helpers';
+import {
+  isDateOnly,
+  parseZonedDateTime,
+} from '@/features/architect/utils/governedSeason';
+
+const MALFORMED_LIFECYCLE_REASON =
+  'A persisted governed waiver lifecycle is malformed or version-incompatible.';
+
+export function hasGovernedWaiverTerminated(
+  asOfDate: string | null | undefined,
+  expiresAt: string
+): boolean {
+  if (!asOfDate) return false;
+  if (isDateOnly(asOfDate)) {
+    // Date-only plans cannot prove which side of an intraday expiry they are
+    // on. Preserve pending responsibility through that date.
+    return asOfDate > expiresAt.slice(0, 10);
+  }
+  const asOf = parseZonedDateTime(asOfDate);
+  const expiry = parseZonedDateTime(expiresAt);
+  return asOf !== null && expiry !== null && asOf >= expiry;
+}
+
+export function projectGovernedWaiverDeadCapEntry<
+  TEntry extends {
+    amountByYear?: unknown;
+    governedLifecycle?: unknown;
+  },
+>(entry: TEntry, asOfDate: string | null | undefined): TEntry {
+  if (entry.governedLifecycle == null) return entry;
+  const parsed = GovernedWaiverLifecycleZ.safeParse(entry.governedLifecycle);
+  if (!parsed.success) throw new Error(MALFORMED_LIFECYCLE_REASON);
+  const lifecycle = parsed.data;
+  const allocations = hasGovernedWaiverTerminated(asOfDate, lifecycle.expiresAt)
+    ? lifecycle.allocations.map((row) => ({
+        season: row.season,
+        amount: row.teamSalary,
+        isStretched: row.isTeamSalaryStretched,
+      }))
+    : lifecycle.allocationsBeforeStretch.map((row) => ({
+        season: row.season,
+        amount: row.protectedBaseCompensation,
+        isStretched: false,
+      }));
+  return { ...entry, amountByYear: allocations };
+}
 
 export function readGovernedWaiverLifecycles(
   team:
@@ -17,11 +66,14 @@ export function readGovernedWaiverLifecycles(
     | null
     | undefined
 ): GovernedWaiverLifecycle[] {
-  return (team?.deadCap ?? [])
-    .map((entry) => entry.governedLifecycle)
-    .filter((entry): entry is GovernedWaiverLifecycle =>
-      Boolean(entry && typeof entry === 'object')
-    );
+  const lifecycles: GovernedWaiverLifecycle[] = [];
+  for (const entry of team?.deadCap ?? []) {
+    if (entry.governedLifecycle == null) continue;
+    const parsed = GovernedWaiverLifecycleZ.safeParse(entry.governedLifecycle);
+    if (!parsed.success) throw new Error(MALFORMED_LIFECYCLE_REASON);
+    lifecycles.push(parsed.data);
+  }
+  return lifecycles;
 }
 
 export function applyGovernedWaiverResult<

@@ -44,6 +44,21 @@ const ZonedInstantZ = NonEmptyStringZ.refine(
   { message: 'must be an exact valid zoned instant' }
 );
 
+function isStrictEasternInstant(value: string): boolean {
+  if (parseStrictZonedInstant(value) === null || value.endsWith('Z')) return false;
+  const timeZoneName = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    timeZoneName: 'longOffset',
+  })
+    .formatToParts(new Date(value))
+    .find((part) => part.type === 'timeZoneName')?.value;
+  return timeZoneName?.replace('GMT', '') === value.slice(-6);
+}
+
+const EasternInstantZ = NonEmptyStringZ.refine(isStrictEasternInstant, {
+  message: 'must be an exact, unambiguous Eastern-time instant',
+});
+
 export const GovernedWaiverPathZ = z.enum([
   'standard',
   'waive-and-stretch',
@@ -55,7 +70,7 @@ export const GovernedWaiverProposalZ = z.strictObject({
   contractId: NonEmptyStringZ,
   path: GovernedWaiverPathZ,
   /** Exact League receipt instant; this is never derived from the runtime clock. */
-  leagueReceivedAt: ZonedInstantZ,
+  leagueReceivedAt: EasternInstantZ,
   /** Written Team Salary election represented by the action, if applicable. */
   writtenStretchElection: z.boolean(),
   /** Reduction of protected Base Compensation, not the resulting obligation. */
@@ -105,9 +120,9 @@ export const GovernedWaiverLifecycleZ = z
     playerName: NonEmptyStringZ,
     contractId: NonEmptyStringZ,
     path: GovernedWaiverPathZ,
-    leagueReceivedAt: ZonedInstantZ,
-    expiresAt: ZonedInstantZ,
-    terminationAt: ZonedInstantZ,
+    leagueReceivedAt: EasternInstantZ,
+    expiresAt: EasternInstantZ,
+    terminationAt: EasternInstantZ,
     requestIrrevocable: z.literal(true),
     outcome: z.literal('ordinary-unclaimed'),
     events: z.array(GovernedWaiverEventZ).min(3),

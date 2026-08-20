@@ -16,11 +16,14 @@ import {
 import type { GovernedOptionLedgerAuthority } from '@/features/architect/utils/optionDecisions';
 import {
   isDateOnly,
+  isSupportedSalaryCapYear,
+  isWithinSalaryCapYear,
   isZonedDateTime,
   parseZonedDateTime,
 } from '@/features/architect/utils/governedSeason';
 import {
   easternInstantCandidates,
+  isEasternInstant,
   oneYearAfter,
   worldDateContainsInstant,
 } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
@@ -57,6 +60,8 @@ export interface GovernedWaiverRequest {
   playerName: string;
   contractId: string;
   worldAsOfDate: string;
+  /** Salary Cap Year containing the Team Plan date and League receipt. */
+  salaryCapYear: number;
   salaryCapAtElection: number;
   proposal: GovernedWaiverProposal;
   operationId: string;
@@ -183,11 +188,35 @@ function addExactHours(value: string, hours: number): string | null {
     : easternInstantFromEpoch(time + hours * 3_600_000);
 }
 
-function salaryCapYearForInstant(value: string): number | null {
-  const year = Number(value.slice(0, 4));
-  const month = Number(value.slice(5, 7));
-  return Number.isInteger(year) && Number.isInteger(month)
-    ? year + (month >= 7 ? 1 : 0)
+export type GovernedWaiverTerminationContext = Readonly<{
+  expiryAt: string;
+  salaryCapYear: number;
+}>;
+
+/**
+ * Resolve ordinary unclaimed termination without deriving a year from receipt
+ * text. The supplied Salary Cap Year must govern the receipt, and the exact
+ * 48-hour expiry either remains in that governed window or crosses once into
+ * the following Salary Cap Year.
+ */
+export function resolveGovernedWaiverTerminationContext(
+  leagueReceivedAt: unknown,
+  receiptSalaryCapYear: number
+): GovernedWaiverTerminationContext | null {
+  if (
+    !isEasternInstant(leagueReceivedAt) ||
+    !isSupportedSalaryCapYear(receiptSalaryCapYear) ||
+    !isWithinSalaryCapYear(leagueReceivedAt, receiptSalaryCapYear)
+  ) {
+    return null;
+  }
+  const expiryAt = addExactHours(leagueReceivedAt, 48);
+  if (!expiryAt) return null;
+  const salaryCapYear = [receiptSalaryCapYear, receiptSalaryCapYear + 1].find(
+    (candidate) => isWithinSalaryCapYear(expiryAt, candidate)
+  );
+  return salaryCapYear
+    ? Object.freeze({ expiryAt, salaryCapYear })
     : null;
 }
 
@@ -385,6 +414,10 @@ export function decideGovernedWaiver(
     ]);
   }
   const proposal = parsedProposal.data;
+  const terminationContext = resolveGovernedWaiverTerminationContext(
+    proposal.leagueReceivedAt,
+    request.salaryCapYear
+  );
   const inspection = inspectState(
     request.authority,
     request.worldId,
@@ -403,12 +436,12 @@ export function decideGovernedWaiver(
   const state = inspection.state;
   if (proposal.contractId !== request.contractId)
     reasons.push('The proposal Contract does not match the governed Contract.');
-  if (!isZonedDateTime(proposal.leagueReceivedAt))
+  if (!isEasternInstant(proposal.leagueReceivedAt))
     reasons.push(
-      'League receipt must include an exact date, time, and UTC offset.'
+      'League receipt must be an exact, unambiguous Eastern-time instant.'
     );
   if (
-    isZonedDateTime(proposal.leagueReceivedAt) &&
+    isEasternInstant(proposal.leagueReceivedAt) &&
     !worldDateContainsInstant(request.worldAsOfDate, proposal.leagueReceivedAt)
   ) {
     reasons.push('League receipt must occur on the current Team Plan date.');
@@ -452,13 +485,12 @@ export function decideGovernedWaiver(
   if (reasons.length > 0 || !state) return unavailable('needs-input', reasons);
 
   const receiptAt = proposal.leagueReceivedAt;
-  const expiryAt = addExactHours(receiptAt, 48);
-  const currentSalaryCapYear = salaryCapYearForInstant(receiptAt);
-  if (!expiryAt || !currentSalaryCapYear) {
+  if (!terminationContext) {
     return unavailable('needs-input', [
-      'The exact 48-hour waiver period could not be resolved.',
+      'The exact 48-hour waiver termination and its governed Salary Cap Year could not be resolved.',
     ]);
   }
+  const { expiryAt, salaryCapYear: currentSalaryCapYear } = terminationContext;
   const currentSeason = toSeasonCode(currentSalaryCapYear);
   const allRows = state.terms.salaries
     .map((row) => ({ row, endYear: toEndYear(row.season) }))
@@ -824,10 +856,13 @@ export function decideGovernedWaiver(
       playerId: request.playerId,
       playerName: request.playerName,
       originalSalary: protectedTotal,
-      amountByYear: allocations.map((row) => ({
+      // Before ordinary unclaimed expiry, the Team retains the full protected
+      // schedule. Consumers project the post-buyout/stretched allocation only
+      // after the termination instant recorded in governedLifecycle.
+      amountByYear: beforeStretch.map((row) => ({
         season: row.season,
-        amount: row.teamSalary,
-        isStretched: row.isTeamSalaryStretched,
+        amount: row.protectedBaseCompensation,
+        isStretched: false,
       })),
       waiveDate: receiptAt,
       notes: note,

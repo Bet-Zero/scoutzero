@@ -55,9 +55,18 @@ export function computeWorldMutation(
     });
   }
 
-  return computeNormalizedWorldMutation(
-    normalizeComputeWorldMutationArgs(args)
-  );
+  try {
+    return computeNormalizedWorldMutation(
+      normalizeComputeWorldMutationArgs(args)
+    );
+  } catch (error) {
+    return withDefaultPlayerDeletes({
+      success: false,
+      error:
+        getErrorMessage(error) ||
+        'Persisted current state could not be normalized safely.',
+    });
+  }
 }
 
 export async function preflightSignAndTradeMutation({

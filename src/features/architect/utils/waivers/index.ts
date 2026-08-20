@@ -1,9 +1,12 @@
 export {
   decideGovernedWaiver,
   inspectGovernedWaiver,
+  resolveGovernedWaiverTerminationContext,
 } from './governedWaiver';
 export {
   applyGovernedWaiverResult,
+  hasGovernedWaiverTerminated,
+  projectGovernedWaiverDeadCapEntry,
   readGovernedWaiverLifecycles,
 } from './applyGovernedWaiverResult';
 export {
@@ -15,6 +18,7 @@ export type {
   GovernedWaiverLedgerAuthority,
   GovernedWaiverRequest,
   GovernedWaiverResult,
+  GovernedWaiverTerminationContext,
 } from './governedWaiver';
 export type { WorldGovernedWaiverEntry } from './worldWaiverAuthority';
 export type {

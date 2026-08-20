@@ -85,6 +85,7 @@ import {
   decideGovernedWaiver,
   loadWorldGovernedWaiverEntries,
   readGovernedWaiverLifecycles,
+  resolveGovernedWaiverTerminationContext,
   type GovernedWaiverAvailability,
   type WorldGovernedWaiverEntry,
 } from '@/features/architect/utils/waivers';
@@ -230,13 +231,16 @@ export function useContractActions({
     }
     setGovernedWaiverLoadState('loading');
     setGovernedWaiverLoadReason(null);
-    void loadWorldGovernedWaiverEntries({
-      worldId,
-      teamId: teamCode,
-      overlays: teamCapSheet?.contractEventLedgers ?? [],
-      existingLifecycles: readGovernedWaiverLifecycles(teamCapSheet),
-      worldAsOfDate,
-    })
+    void Promise.resolve()
+      .then(() =>
+        loadWorldGovernedWaiverEntries({
+          worldId,
+          teamId: teamCode,
+          overlays: teamCapSheet?.contractEventLedgers ?? [],
+          existingLifecycles: readGovernedWaiverLifecycles(teamCapSheet),
+          worldAsOfDate,
+        })
+      )
       .then((entries) => {
         if (!active) return;
         setGovernedWaiverEntries(entries);
@@ -1047,9 +1051,20 @@ export function useContractActions({
       };
       const isStretch = proposal.path === 'waive-and-stretch';
       const isBuyout = proposal.path === 'buyout';
+      const terminationContext = resolveGovernedWaiverTerminationContext(
+        proposal.leagueReceivedAt,
+        currentYear
+      );
+      if (!terminationContext) {
+        return {
+          success: false,
+          message:
+            'The exact Eastern waiver termination and its governed Salary Cap Year are unavailable.',
+        };
+      }
       const seasonEnvelope = resolveGovernedSeasonEnvelope({
-        asOfDate: proposal.leagueReceivedAt,
-        salaryCapYear: currentYear,
+        asOfDate: terminationContext.expiryAt,
+        salaryCapYear: terminationContext.salaryCapYear,
         requiredAuthority: 'official',
         team: { teamId: teamCode, teamCode, worldId },
       });
@@ -1075,6 +1090,7 @@ export function useContractActions({
         playerName,
         contractId: entry.contractId,
         worldAsOfDate,
+        salaryCapYear: currentYear,
         salaryCapAtElection: salaryCap,
         proposal,
         operationId: `preview:${entry.contractId}:waiver`,
@@ -1115,6 +1131,7 @@ export function useContractActions({
             playerName,
             contractId: entry.contractId,
             worldAsOfDate,
+            salaryCapYear: currentYear,
             salaryCapAtElection: salaryCap,
             proposal,
             operationId: context.operationId,

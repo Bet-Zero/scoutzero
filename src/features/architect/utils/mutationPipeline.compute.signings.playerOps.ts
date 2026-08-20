@@ -36,6 +36,7 @@ import {
   applyGovernedWaiverResult,
   decideGovernedWaiver,
   readGovernedWaiverLifecycles,
+  resolveGovernedWaiverTerminationContext,
 } from '@/features/architect/utils/waivers';
 import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
 
@@ -146,9 +147,26 @@ export function computeWaiveResult({
     };
   }
   const salaryCapYear = toEndYear(seasonId);
+  if (salaryCapYear === null) {
+    return {
+      success: false,
+      error: 'The waiver Salary Cap Year is unavailable.',
+    };
+  }
+  const terminationContext = resolveGovernedWaiverTerminationContext(
+    payload.waiverProposal.leagueReceivedAt,
+    salaryCapYear
+  );
+  if (!terminationContext) {
+    return {
+      success: false,
+      error:
+        'The exact Eastern waiver termination and its governed Salary Cap Year are unavailable.',
+    };
+  }
   const seasonEnvelope = resolveGovernedSeasonEnvelope({
-    asOfDate: payload.waiverProposal.leagueReceivedAt,
-    salaryCapYear,
+    asOfDate: terminationContext.expiryAt,
+    salaryCapYear: terminationContext.salaryCapYear,
     requiredAuthority: 'official',
     team: { teamId: String(teamCode), teamCode: String(teamCode), worldId },
   });
@@ -164,9 +182,21 @@ export function computeWaiveResult({
   const playerName = String(
     player.displayName || player.name || playerId
   );
+  let existingLifecycles;
+  try {
+    existingLifecycles = readGovernedWaiverLifecycles(team);
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Persisted governed waiver history could not be read.',
+    };
+  }
   const result = decideGovernedWaiver({
     authority: currentState.waiverAuthority,
-    existingLifecycles: readGovernedWaiverLifecycles(team),
+    existingLifecycles,
     existingDeadCap: team.deadCap,
     worldId,
     teamId: String(teamCode),
@@ -174,6 +204,7 @@ export function computeWaiveResult({
     playerName,
     contractId: String(payload.contractId),
     worldAsOfDate: asOfDate,
+    salaryCapYear,
     salaryCapAtElection: salaryCap,
     proposal: payload.waiverProposal,
     operationId,
@@ -234,8 +265,8 @@ export function computeWaiveResult({
       buyout: result.lifecycle.path === 'buyout',
       buyoutAmount: result.lifecycle.buyoutReduction,
       stretchYears: result.lifecycle.stretchYears ?? undefined,
-      deadCapAmount: result.lifecycle.allocations.reduce(
-        (sum, row) => sum + row.teamSalary,
+      deadCapAmount: result.lifecycle.allocationsBeforeStretch.reduce(
+        (sum, row) => sum + row.protectedBaseCompensation,
         0
       ),
       contractLedgerId: result.expectedContractLedger.ledgerId,

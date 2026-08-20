@@ -122,6 +122,11 @@ export function normalizeCurrentStateDeadCapEntry(
   const governedLifecycle = GovernedWaiverLifecycleZ.safeParse(
     record.governedLifecycle
   );
+  if (record.governedLifecycle != null && !governedLifecycle.success) {
+    throw new Error(
+      'A persisted governed waiver lifecycle is malformed or version-incompatible.'
+    );
+  }
 
   if (id !== undefined) normalized.id = id;
   if (playerId !== undefined) normalized.playerId = playerId;

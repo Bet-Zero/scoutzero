@@ -29,7 +29,10 @@ import { resolveGovernedOptionLedgerAuthority } from '@/features/architect/utils
 import {
   applyGovernedWaiverResult,
   decideGovernedWaiver,
+  projectGovernedWaiverDeadCapEntry,
+  readGovernedWaiverLifecycles,
 } from '@/features/architect/utils/waivers';
+import { normalizeCurrentStateDeadCapEntry } from '@/features/architect/utils/mutationPipeline.read.normalizeData.capData';
 import {
   makeEvent,
   makeResultingState,
@@ -187,6 +190,7 @@ function request(
     baseline?: ContractEventLedgerPayload;
     proposal?: GovernedWaiverProposal;
     worldAsOfDate?: string;
+    salaryCapYear?: number;
     salaryCapAtElection?: number;
     existingLifecycles?: GovernedWaiverLifecycle[];
     existingDeadCap?: Array<{
@@ -209,6 +213,7 @@ function request(
     contractId: CONTRACT_ID,
     worldAsOfDate:
       options.worldAsOfDate ?? inputProposal.leagueReceivedAt.slice(0, 10),
+    salaryCapYear: options.salaryCapYear ?? 2027,
     salaryCapAtElection: options.salaryCapAtElection ?? 180_000_000,
     proposal: inputProposal,
     operationId: `operation-${path}`,
@@ -352,6 +357,25 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
         ),
       }).success
     ).toBe(false);
+  });
+
+  it('requires the League receipt itself to be an exact Eastern instant', () => {
+    const cases = [
+      ['UTC receipt', '2026-07-15T16:00:00Z'],
+      ['non-Eastern offset', '2026-07-15T12:00:00-06:00'],
+      ['wrong Eastern offset for July', '2026-07-15T12:00:00-05:00'],
+      ['ambiguous local time without offset', '2026-11-01T01:30:00'],
+      ['malformed date', '2026-04-31T12:00:00-04:00'],
+    ] as const;
+    for (const [label, leagueReceivedAt] of cases) {
+      const result = decideGovernedWaiver(
+        request('standard', {
+          proposal: proposal('standard', { leagueReceivedAt }),
+          worldAsOfDate: leagueReceivedAt.slice(0, 10),
+        })
+      );
+      expect(result.success, label).toBe(false);
+    }
   });
 
   it('rejects lifecycle fields, events, and allocations that do not belong to their path', () => {
@@ -591,6 +615,128 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
     expect(result.lifecycle.protectedBaseCompensation).toBe(22_000_000);
   });
 
+  it('anchors June 28-30 protection and all three paths to the expiry Salary Cap Year', () => {
+    const baseline = baselineFor({
+      rows: [
+        salaryRow('2025-26', 6_000_000, {
+          guaranteed: false,
+          guaranteedAmount: 0,
+        }),
+        salaryRow('2026-27', 10_000_000),
+        salaryRow('2027-28', 12_000_000),
+      ],
+    });
+    const dates = [
+      {
+        receivedAt: '2026-06-28T12:00:00-04:00',
+        expiresAt: '2026-06-30T12:00:00-04:00',
+        protectedTotal: 28_000_000,
+        originalSeasons: ['2025-26', '2026-27', '2027-28'],
+        stretchBranch: 'september-june',
+      },
+      {
+        receivedAt: '2026-06-29T12:00:00-04:00',
+        expiresAt: '2026-07-01T12:00:00-04:00',
+        protectedTotal: 22_000_000,
+        originalSeasons: ['2026-27', '2027-28'],
+        stretchBranch: 'july-august',
+      },
+      {
+        receivedAt: '2026-06-30T12:00:00-04:00',
+        expiresAt: '2026-07-02T12:00:00-04:00',
+        protectedTotal: 22_000_000,
+        originalSeasons: ['2026-27', '2027-28'],
+        stretchBranch: 'july-august',
+      },
+    ] as const;
+    for (const path of [
+      'standard',
+      'waive-and-stretch',
+      'buyout',
+    ] as const) {
+      for (const expected of dates) {
+        const result = decideGovernedWaiver(
+          request(path, {
+            baseline,
+            salaryCapYear: 2026,
+            proposal: proposal(path, {
+              leagueReceivedAt: expected.receivedAt,
+              ...(path === 'buyout' ? { buyoutReduction: 3_000_000 } : {}),
+            }),
+          })
+        );
+        expectSuccess(result);
+        expect(result.lifecycle.expiresAt, `${path} ${expected.receivedAt}`).toBe(
+          expected.expiresAt
+        );
+        expect(
+          result.lifecycle.protectedBaseCompensation,
+          `${path} ${expected.receivedAt}`
+        ).toBe(expected.protectedTotal);
+        expect(
+          result.lifecycle.originalContractSeasons,
+          `${path} ${expected.receivedAt}`
+        ).toEqual(expected.originalSeasons);
+        if (path === 'waive-and-stretch') {
+          expect(result.lifecycle.stretchBranch).toBe(expected.stretchBranch);
+          expect(result.lifecycle.stretchYears).toBe(5);
+        }
+      }
+    }
+  });
+
+  it('projects full protected Team Salary while pending and termination allocations only after expiry', () => {
+    const buyout = decideGovernedWaiver(request('buyout'));
+    expectSuccess(buyout);
+    const pending = projectGovernedWaiverDeadCapEntry(
+      buyout.deadCapEntry,
+      '2026-07-17'
+    );
+    expect(
+      (pending.amountByYear as Array<{ amount: number }>).reduce(
+        (sum, row) => sum + row.amount,
+        0
+      )
+    ).toBe(36_000_000);
+    const terminated = projectGovernedWaiverDeadCapEntry(
+      buyout.deadCapEntry,
+      buyout.lifecycle.expiresAt
+    );
+    expect(
+      (terminated.amountByYear as Array<{ amount: number }>).reduce(
+        (sum, row) => sum + row.amount,
+        0
+      )
+    ).toBe(27_000_000);
+
+    const stretch = decideGovernedWaiver(request('waive-and-stretch'));
+    expectSuccess(stretch);
+    expect(
+      (
+        projectGovernedWaiverDeadCapEntry(
+          stretch.deadCapEntry,
+          '2026-07-16'
+        ).amountByYear as Array<{ season: string }>
+      ).map((row) => row.season)
+    ).toEqual(['2026-27', '2027-28', '2028-29']);
+    expect(
+      (
+        projectGovernedWaiverDeadCapEntry(
+          stretch.deadCapEntry,
+          stretch.lifecycle.expiresAt
+        ).amountByYear as Array<{ season: string }>
+      ).map((row) => row.season)
+    ).toEqual([
+      '2026-27',
+      '2027-28',
+      '2028-29',
+      '2029-30',
+      '2030-31',
+      '2031-32',
+      '2032-33',
+    ]);
+  });
+
   it('allocates a signed buyout reduction pro rata and records the later reacquisition bar', () => {
     const result = decideGovernedWaiver(request('buyout'));
     expectSuccess(result);
@@ -742,6 +888,7 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
   it('blocks a late stretch election and any Season that breaches the 15% former-player ceiling', () => {
     const late = decideGovernedWaiver(
       request('waive-and-stretch', {
+        salaryCapYear: 2029,
         proposal: proposal('waive-and-stretch', {
           leagueReceivedAt: '2028-09-01T00:00:00-04:00',
         }),
@@ -817,6 +964,37 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
     expect(repeated.success).toBe(false);
     if (!repeated.success) expect(repeated.status).toBe('recorded');
   });
+
+  it('fails closed instead of dropping malformed or version-incompatible persisted lifecycles', () => {
+    const first = decideGovernedWaiver(request('standard'));
+    expectSuccess(first);
+    const malformed = {
+      ...first.lifecycle,
+      lifecycleVersion: 2,
+    };
+    expect(() =>
+      normalizeCurrentStateDeadCapEntry({
+        ...first.deadCapEntry,
+        governedLifecycle: malformed,
+      })
+    ).toThrow(/malformed or version-incompatible/i);
+    expect(() =>
+      readGovernedWaiverLifecycles({
+        deadCap: [{ governedLifecycle: malformed as never }],
+      })
+    ).toThrow(/malformed or version-incompatible/i);
+    expect(() =>
+      applyGovernedWaiverResult({
+        team: {
+          roster: [],
+          players: [],
+          deadCap: [{ governedLifecycle: malformed as never }],
+        },
+        playerId: PLAYER_ID,
+        result: first,
+      })
+    ).toThrow(/malformed or version-incompatible/i);
+  });
 });
 
 function persistencePlayerFixture() {
@@ -860,10 +1038,19 @@ function computeWaiverMutation(
   options: {
     omitAuthority?: boolean;
     omitSnapshotReceipts?: boolean;
+    malformedLifecycle?: unknown;
   } = {}
 ) {
   const baseline = baselineFor();
   const team = persistenceTeamFixture();
+  if (options.malformedLifecycle) {
+    team.deadCap = [
+      {
+        playerId: PLAYER_ID,
+        governedLifecycle: options.malformedLifecycle as never,
+      },
+    ];
+  }
   const player = persistencePlayerFixture();
   return computeWorldMutation({
     mutationType: 'waivePlayer',
@@ -986,6 +1173,19 @@ describe('governed waiver mutation and atomic persistence', () => {
       expect(result.playerUpdates || [], label).toEqual([]);
       expect(result.playerDeletes || [], label).toEqual([]);
     }
+  });
+
+  it('returns no writes when persisted waiver history is version-incompatible', () => {
+    const first = decideGovernedWaiver(request('standard'));
+    expectSuccess(first);
+    const result = computeWaiverMutation({
+      malformedLifecycle: { ...first.lifecycle, lifecycleVersion: 2 },
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/malformed or version-incompatible/i);
+    expect(result.teamUpdates || []).toEqual([]);
+    expect(result.playerUpdates || []).toEqual([]);
+    expect(result.playerDeletes || []).toEqual([]);
   });
 
   it('commits team lifecycle and player deletion atomically', async () => {
