@@ -456,6 +456,109 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
         label: 'buyout missing reacquisition bar',
         lifecycle: { ...buyout.lifecycle, reacquisitionRestrictedUntil: null },
       },
+      {
+        label: 'payment schedule differs from original allocation',
+        lifecycle: {
+          ...standard.lifecycle,
+          paymentAllocations: standard.lifecycle.paymentAllocations.map(
+            (row, index) => (index === 0 ? { ...row, season: '2030-31' } : row)
+          ),
+        },
+      },
+      {
+        label: 'protected compensation total differs',
+        lifecycle: {
+          ...standard.lifecycle,
+          protectedBaseCompensation:
+            standard.lifecycle.protectedBaseCompensation + 1,
+        },
+      },
+      {
+        label: 'buyout reduction total differs',
+        lifecycle: {
+          ...buyout.lifecycle,
+          buyoutReduction: buyout.lifecycle.buyoutReduction + 1,
+        },
+      },
+      {
+        label: 'original player payment differs from post-buyout total',
+        lifecycle: {
+          ...buyout.lifecycle,
+          allocationsBeforeStretch:
+            buyout.lifecycle.allocationsBeforeStretch.map((row, index) =>
+              index === 0
+                ? { ...row, playerPayment: row.playerPayment + 1 }
+                : row
+            ),
+          paymentAllocations: buyout.lifecycle.paymentAllocations.map(
+            (row, index) =>
+              index === 0
+                ? { ...row, playerPayment: row.playerPayment + 1 }
+                : row
+          ),
+        },
+      },
+      {
+        label: 'original Team Salary differs from post-buyout total',
+        lifecycle: {
+          ...buyout.lifecycle,
+          allocationsBeforeStretch:
+            buyout.lifecycle.allocationsBeforeStretch.map((row, index) =>
+              index === 0 ? { ...row, teamSalary: row.teamSalary + 1 } : row
+            ),
+          paymentAllocations: buyout.lifecycle.paymentAllocations.map(
+            (row, index) =>
+              index === 0 ? { ...row, teamSalary: row.teamSalary + 1 } : row
+          ),
+        },
+      },
+      {
+        label: 'original Season amounts do not reconcile individually',
+        lifecycle: {
+          ...buyout.lifecycle,
+          allocationsBeforeStretch:
+            buyout.lifecycle.allocationsBeforeStretch.map((row, index) =>
+              index === 0
+                ? {
+                    ...row,
+                    playerPayment: row.playerPayment + 1,
+                    teamSalary: row.teamSalary + 1,
+                  }
+                : index === 1
+                  ? {
+                      ...row,
+                      playerPayment: row.playerPayment - 1,
+                      teamSalary: row.teamSalary - 1,
+                    }
+                  : row
+            ),
+          paymentAllocations: buyout.lifecycle.paymentAllocations.map(
+            (row, index) =>
+              index === 0
+                ? {
+                    ...row,
+                    playerPayment: row.playerPayment + 1,
+                    teamSalary: row.teamSalary + 1,
+                  }
+                : index === 1
+                  ? {
+                      ...row,
+                      playerPayment: row.playerPayment - 1,
+                      teamSalary: row.teamSalary - 1,
+                    }
+                  : row
+          ),
+        },
+      },
+      {
+        label: 'final Team Salary does not preserve post-buyout total',
+        lifecycle: {
+          ...stretch.lifecycle,
+          allocations: stretch.lifecycle.allocations.map((row, index) =>
+            index === 0 ? { ...row, teamSalary: row.teamSalary + 1 } : row
+          ),
+        },
+      },
     ];
 
     for (const { label, lifecycle } of invalidCases) {
@@ -544,7 +647,7 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
       { option: 'PO' as const, optionHolder: 'player', optionUsed: false },
       { option: 'TO' as const, optionHolder: 'team', optionUsed: false },
       { option: 'ETO' as const, optionHolder: 'player', optionUsed: true },
-    ]) {
+    ] satisfies readonly Partial<ContractSalaryTerm>[]) {
       const baseline = baselineFor({
         rows: [
           salaryRow('2026-27', 10_000_000),

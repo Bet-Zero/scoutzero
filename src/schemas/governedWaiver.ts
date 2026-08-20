@@ -152,11 +152,99 @@ export const GovernedWaiverLifecycleZ = z
       ...lifecycle.allocationsBeforeStretch,
       ...lifecycle.paymentAllocations,
     ].some((allocation) => allocation.isTeamSalaryStretched);
+    const sumAllocationField = (
+      allocations: typeof lifecycle.allocations,
+      field:
+        | 'protectedBaseCompensation'
+        | 'buyoutReduction'
+        | 'playerPayment'
+        | 'teamSalary'
+    ) => allocations.reduce((sum, allocation) => sum + allocation[field], 0);
+    const originalAllocationsMatch =
+      lifecycle.paymentAllocations.length ===
+        lifecycle.allocationsBeforeStretch.length &&
+      lifecycle.paymentAllocations.every((allocation, index) => {
+        const original = lifecycle.allocationsBeforeStretch[index];
+        return (
+          original !== undefined &&
+          allocation.season === original.season &&
+          allocation.protectedBaseCompensation ===
+            original.protectedBaseCompensation &&
+          allocation.buyoutReduction === original.buyoutReduction &&
+          allocation.playerPayment === original.playerPayment &&
+          allocation.teamSalary === original.teamSalary &&
+          allocation.setOffReduction === original.setOffReduction &&
+          allocation.isTeamSalaryStretched === original.isTeamSalaryStretched
+        );
+      });
+    const originalRowsReconcile = lifecycle.allocationsBeforeStretch.every(
+      (allocation) =>
+        allocation.playerPayment ===
+          allocation.protectedBaseCompensation - allocation.buyoutReduction &&
+        allocation.teamSalary === allocation.playerPayment
+    );
+    const protectedTotal = sumAllocationField(
+      lifecycle.allocationsBeforeStretch,
+      'protectedBaseCompensation'
+    );
+    const allocatedBuyoutReduction = sumAllocationField(
+      lifecycle.allocationsBeforeStretch,
+      'buyoutReduction'
+    );
+    const postBuyoutTotal =
+      lifecycle.protectedBaseCompensation - lifecycle.buyoutReduction;
+    const originalPlayerPaymentTotal = sumAllocationField(
+      lifecycle.allocationsBeforeStretch,
+      'playerPayment'
+    );
+    const originalTeamSalaryTotal = sumAllocationField(
+      lifecycle.allocationsBeforeStretch,
+      'teamSalary'
+    );
+    const allocatedTeamSalaryTotal = sumAllocationField(
+      lifecycle.allocations,
+      'teamSalary'
+    );
 
     if (hasStretchedPaymentAllocation) {
       addPathIssue(
         ['paymentAllocations'],
         'player-payment allocations must remain on the original schedule'
+      );
+    }
+    if (!originalAllocationsMatch) {
+      addPathIssue(
+        ['paymentAllocations'],
+        'must exactly match the original allocations before Team Salary stretch'
+      );
+    }
+    if (protectedTotal !== lifecycle.protectedBaseCompensation) {
+      addPathIssue(
+        ['protectedBaseCompensation'],
+        'must equal protected compensation across the original allocations'
+      );
+    }
+    if (allocatedBuyoutReduction !== lifecycle.buyoutReduction) {
+      addPathIssue(
+        ['buyoutReduction'],
+        'must equal the reduction allocated across the original Contract Seasons'
+      );
+    }
+    if (
+      postBuyoutTotal < 0 ||
+      !originalRowsReconcile ||
+      originalPlayerPaymentTotal !== postBuyoutTotal ||
+      originalTeamSalaryTotal !== postBuyoutTotal
+    ) {
+      addPathIssue(
+        ['allocationsBeforeStretch'],
+        'must reconcile player payment and Team Salary to protected compensation after buyout'
+      );
+    }
+    if (allocatedTeamSalaryTotal !== postBuyoutTotal) {
+      addPathIssue(
+        ['allocations'],
+        'must preserve total Team Salary after the buyout reduction'
       );
     }
 
