@@ -330,6 +330,15 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
     expect(
       GovernedWaiverLifecycleZ.safeParse({
         ...valid.lifecycle,
+        events: valid.lifecycle.events.map((event) => ({
+          ...event,
+          recordedAt: '2026-07-15T16:01:00.000Z',
+        })),
+      }).success
+    ).toBe(true);
+    expect(
+      GovernedWaiverLifecycleZ.safeParse({
+        ...valid.lifecycle,
         expiresAt: '2026-07-17T11:59:59-04:00',
       }).success
     ).toBe(false);

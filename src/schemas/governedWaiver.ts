@@ -7,32 +7,20 @@ const NonEmptyStringZ = z.string().refine((value) => value.trim().length > 0, {
 });
 const MoneyZ = z.number().finite().nonnegative();
 const ZONED_INSTANT_PATTERN =
-  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?([+-])(\d{2}):(\d{2})$/;
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 
 function parseStrictZonedInstant(value: string): number | null {
-  const match = ZONED_INSTANT_PATTERN.exec(value);
-  if (!match) return null;
-  const [
-    ,
-    yearText,
-    monthText,
-    dayText,
-    hourText,
-    minuteText,
-    secondText,
-    ,
-    offsetHourText,
-    offsetMinuteText,
-  ] = match;
+  if (!ZONED_INSTANT_PATTERN.test(value)) return null;
+  const offsetMatch = /([+-])(\d{2}):(\d{2})$/.exec(value);
   const [year, month, day, hour, minute, second, offsetHour, offsetMinute] = [
-    yearText,
-    monthText,
-    dayText,
-    hourText,
-    minuteText,
-    secondText ?? '0',
-    offsetHourText,
-    offsetMinuteText,
+    value.slice(0, 4),
+    value.slice(5, 7),
+    value.slice(8, 10),
+    value.slice(11, 13),
+    value.slice(14, 16),
+    value[16] === ':' ? value.slice(17, 19) : '0',
+    offsetMatch?.[2] ?? '0',
+    offsetMatch?.[3] ?? '0',
   ].map(Number);
   const local = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
   if (
