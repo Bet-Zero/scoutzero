@@ -22,7 +22,6 @@ import {
   parseZonedDateTime,
 } from '@/features/architect/utils/governedSeason';
 import {
-  easternInstantCandidates,
   isEasternInstant,
   oneYearAfter,
   worldDateContainsInstant,
@@ -174,10 +173,18 @@ function easternInstantFromEpoch(epochMs: number): string | null {
       .filter((part) => part.type !== 'literal')
       .map((part) => [part.type, part.value])
   );
+  const milliseconds = new Date(epochMs).getUTCMilliseconds();
+  const fractionalSeconds =
+    milliseconds === 0 ? '' : `.${String(milliseconds).padStart(3, '0')}`;
+  const localInstant = `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}${fractionalSeconds}`;
   return (
-    easternInstantCandidates(
-      `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`
-    ).find((candidate) => parseZonedDateTime(candidate) === epochMs) ?? null
+    ['-05:00', '-04:00']
+      .map((offset) => `${localInstant}${offset}`)
+      .find(
+        (candidate) =>
+          isEasternInstant(candidate) &&
+          parseZonedDateTime(candidate) === epochMs
+      ) ?? null
   );
 }
 

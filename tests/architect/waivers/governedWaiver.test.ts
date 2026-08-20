@@ -270,6 +270,20 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
     ]);
   });
 
+  it('preserves fractional-second precision across the exact 48-hour expiry', () => {
+    const result = decideGovernedWaiver(
+      request('standard', {
+        proposal: proposal('standard', {
+          leagueReceivedAt: '2026-07-15T12:01:00.500-04:00',
+        }),
+      })
+    );
+    expectSuccess(result);
+    expect(result.lifecycle.expiresAt).toBe(
+      '2026-07-17T12:01:00.500-04:00'
+    );
+  });
+
   it('keeps standard dead salary in the original Contract Seasons and set-off pending', () => {
     const result = decideGovernedWaiver(request('standard'));
     expectSuccess(result);
@@ -357,6 +371,43 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
         ),
       }).success
     ).toBe(false);
+
+    expect(
+      GovernedWaiverLifecycleZ.safeParse({
+        ...valid.lifecycle,
+        events: valid.lifecycle.events.filter(
+          (event) => event.eventKind !== 'set-off-authority'
+        ),
+      }).success
+    ).toBe(false);
+
+    for (const eventKind of [
+      'waiver-request',
+      'waiver-expiry',
+      'contract-termination',
+      'set-off-authority',
+    ] as const) {
+      const source = valid.lifecycle.events.find(
+        (event) => event.eventKind === eventKind
+      );
+      const prior = valid.lifecycle.events.at(-1);
+      expect(source).toBeDefined();
+      expect(prior).toBeDefined();
+      const duplicate = {
+        ...source!,
+        eventId: `duplicate-${eventKind}`,
+        eventVersion: valid.lifecycle.events.length + 1,
+        effectiveAt: valid.lifecycle.terminationAt,
+        predecessorEventId: prior!.eventId,
+      };
+      expect(
+        GovernedWaiverLifecycleZ.safeParse({
+          ...valid.lifecycle,
+          events: [...valid.lifecycle.events, duplicate],
+        }).success,
+        eventKind
+      ).toBe(false);
+    }
   });
 
   it('requires the League receipt itself to be an exact Eastern instant', () => {

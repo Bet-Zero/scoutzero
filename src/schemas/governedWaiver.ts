@@ -401,35 +401,42 @@ export const GovernedWaiverLifecycleZ = z
       previousEffectiveAt = effectiveAt;
     });
 
-    const requestEvent = lifecycle.events.find(
-      (event) => event.eventKind === 'waiver-request'
-    );
-    const expiryEvent = lifecycle.events.find(
-      (event) => event.eventKind === 'waiver-expiry'
-    );
-    const terminationEvent = lifecycle.events.find(
-      (event) => event.eventKind === 'contract-termination'
-    );
-    if (requestEvent?.effectiveAt !== lifecycle.leagueReceivedAt) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['events'],
-        message: 'must include a waiver request at League receipt',
-      });
-    }
-    if (expiryEvent?.effectiveAt !== lifecycle.expiresAt) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['events'],
-        message: 'must include the exact waiver-expiry event',
-      });
-    }
-    if (terminationEvent?.effectiveAt !== lifecycle.terminationAt) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['events'],
-        message: 'must include the exact contract-termination event',
-      });
+    const requiredEvents = [
+      {
+        eventKind: 'waiver-request' as const,
+        effectiveAt: lifecycle.leagueReceivedAt,
+        message: 'must include exactly one waiver request at League receipt',
+      },
+      {
+        eventKind: 'waiver-expiry' as const,
+        effectiveAt: lifecycle.expiresAt,
+        message: 'must include exactly one waiver-expiry event',
+      },
+      {
+        eventKind: 'contract-termination' as const,
+        effectiveAt: lifecycle.terminationAt,
+        message: 'must include exactly one contract-termination event',
+      },
+      {
+        eventKind: 'set-off-authority' as const,
+        effectiveAt: lifecycle.terminationAt,
+        message: 'must include exactly one set-off-authority event',
+      },
+    ];
+    for (const required of requiredEvents) {
+      const matchingEvents = lifecycle.events.filter(
+        (event) => event.eventKind === required.eventKind
+      );
+      if (
+        matchingEvents.length !== 1 ||
+        matchingEvents[0]?.effectiveAt !== required.effectiveAt
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['events'],
+          message: required.message,
+        });
+      }
     }
   });
 
