@@ -2179,8 +2179,8 @@ export const CapSheetFull = ({
                                           data-waiver-status={governedStatus.status}
                                           className={
                                             governedStatus.status === 'pending'
-                                              ? 'truncate text-[10px] text-amber-300/85'
-                                              : 'truncate text-[10px] text-red-200/65'
+                                              ? 'whitespace-normal text-[10px] leading-4 text-amber-300/85'
+                                              : 'whitespace-normal text-[10px] leading-4 text-red-200/65'
                                           }
                                         >
                                           {governedStatus.detail}

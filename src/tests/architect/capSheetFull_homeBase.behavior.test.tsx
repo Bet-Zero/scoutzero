@@ -153,6 +153,9 @@ describe('CapSheetFull — home-base enrichments', () => {
     expect(
       screen.getByTestId('cap-sheet-full-governed-waiver-status')
     ).toHaveTextContent(/expires Jul 17, 2026.*12:00 PM ET/i);
+    expect(
+      screen.getByTestId('cap-sheet-full-governed-waiver-status')
+    ).toHaveClass('whitespace-normal');
 
     rerender(
       <CapSheetFull
