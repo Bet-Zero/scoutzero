@@ -56,6 +56,10 @@ const MUTATION_PIPELINE_COMPUTE_SIGNINGS_PLAYEROPS_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.compute.signings.playerOps.ts'
 );
+const GOVERNED_WAIVER_ENGINE_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/waivers/governedWaiver.ts'
+);
 
 const FREE_AGENT_POOL_PATH = path.resolve(
   __dirname,
@@ -181,7 +185,7 @@ describe('Gate 3: Cancel Confirm Returns { success:false } (E1)', () => {
   it('waive cancel returns { success: false, message }', () => {
     // Pattern: window.confirm returns { success: false, message: 'Action canceled...' }
     const waiveCancelReturn =
-      /handleWaiveContract[\s\S]{0,800}window\.confirm[\s\S]{0,200}return\s*\{\s*success\s*:\s*false/.test(
+      /handleWaiveContract[\s\S]{0,8000}window\.confirm[\s\S]{0,300}return\s*\{\s*success\s*:\s*false/.test(
         content
       );
     expect(waiveCancelReturn).toBe(true);
@@ -225,7 +229,7 @@ describe('Gate 4: World Success Authoritative Re-sync (E1)', () => {
 
 // === GATE 5: World Compute Honors Buyout Fields ===
 
-describe('Gate 5: World Compute Honors Buyout Fields (E1)', () => {
+describe('Gate 5: World Compute Honors Governed Buyout Fields (E1)', () => {
   // Wave 4 Step 4d: computeWaiveResult moved to mutationPipeline.compute.ts.
   // Wave 8 Step 2: computeWaiveResult further extracted to compute.signings.ts.
   // Later wave: waive/option/renounce/extension moved to .playerOps.ts.
@@ -233,38 +237,30 @@ describe('Gate 5: World Compute Honors Buyout Fields (E1)', () => {
     readFileContent(MUTATION_PIPELINE_PATH) +
     readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) +
     readFileContent(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH) +
-    readFileContent(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PLAYEROPS_PATH);
+    readFileContent(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PLAYEROPS_PATH) +
+    readFileContent(GOVERNED_WAIVER_ENGINE_PATH);
 
-  it('computeWaiveResult reads payload.buyoutAmount', () => {
-    // Pattern: payload.buyoutAmount in computeWaiveResult.
-    // Window widened from 1500 when the CBA stretch-term derivation
-    // (countRemainingContractSeasons / getStretchProvisionYears) was added
-    // ahead of the buyout block. Intent is unchanged: computeWaiveResult must
-    // still read the buyout amount off the payload.
-    const readsBuyoutAmount =
-      /computeWaiveResult[\s\S]{0,2500}payload\.buyoutAmount/.test(content);
-    expect(readsBuyoutAmount).toBe(true);
-  });
-
-  it('boundedBuyoutAmount is clamped with Math.min', () => {
-    // Pattern: boundedBuyoutAmount = buyout ? Math.min(remainingSalary, ...)
-    const clampsBuyout =
-      /boundedBuyoutAmount\s*=\s*buyout\s*\?\s*Math\.min/.test(content);
-    expect(clampsBuyout).toBe(true);
-  });
-
-  it('deadCapAmount uses conditional buyout calculation', () => {
-    // Pattern: deadCapAmount = buyout ? Math.max(0, remainingSalary - boundedBuyoutAmount)
-    const conditionalDeadCap = /deadCapAmount\s*=\s*buyout\s*\?/.test(content);
-    expect(conditionalDeadCap).toBe(true);
-  });
-
-  it('dead cap subtracts boundedBuyoutAmount when buyout is true', () => {
-    // Pattern: remainingSalary - boundedBuyoutAmount in dead cap calculation
-    const subtractsBuyout = /remainingSalary\s*-\s*boundedBuyoutAmount/.test(
-      content
+  it('computeWaiveResult requires and forwards the governed waiver proposal', () => {
+    expect(content).toMatch(
+      /computeWaiveResult[\s\S]{0,5000}waiverProposal[\s\S]{0,5000}decideGovernedWaiver/
     );
-    expect(subtractsBuyout).toBe(true);
+  });
+
+  it('treats the buyout amount as a reduction of protected Base Compensation', () => {
+    expect(content).toMatch(/proposal\.buyoutReduction\s*>\s*protectedTotal/);
+    expect(content).toMatch(/distribute\([\s\S]{0,200}proposal\.buyoutReduction/);
+  });
+
+  it('requires the written agreement and both signatures', () => {
+    expect(content).toMatch(/writtenBuyoutAgreement/);
+    expect(content).toMatch(/playerSignatureRecorded/);
+    expect(content).toMatch(/teamSignatureRecorded/);
+  });
+
+  it('persists dead salary from governed annual allocations', () => {
+    expect(content).toMatch(
+      /amountByYear:\s*allocations\.map[\s\S]{0,300}amount:\s*row\.teamSalary/
+    );
   });
 });
 

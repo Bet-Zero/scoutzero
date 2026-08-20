@@ -85,10 +85,12 @@ const SIGNING_MUTATION_PAYLOAD_KEYS = [
 ] as const satisfies readonly (keyof ArchitectMutationPayload)[];
 const WAIVE_MUTATION_PAYLOAD_KEYS = [
   'playerId',
+  'contractId',
   'stretch',
   'stretchYears',
   'buyout',
   'buyoutAmount',
+  'waiverProposal',
 ] as const satisfies readonly (keyof ArchitectMutationPayload)[];
 const EXTENSION_MUTATION_PAYLOAD_KEYS = [
   'playerId',
@@ -561,6 +563,11 @@ export function computeNormalizedWorldMutation(
             currentState: args.currentState,
             seasonId,
             timestamp,
+            asOfDate,
+            worldId,
+            operationId,
+            authoringIdentity,
+            recordedAt,
           })
         );
       }

@@ -473,7 +473,7 @@ export const ContractDetailsForm = ({
         <div className="bg-white/5 rounded-lg border border-white/20 p-4 space-y-3">
           <h4 className="font-semibold text-sm text-white flex items-center gap-2">
             <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
-            Buyout Terms
+            Buyout reduction
           </h4>
           <div className="text-xs text-white/70">
             Remaining guaranteed salary:{' '}
@@ -486,7 +486,7 @@ export const ContractDetailsForm = ({
               htmlFor="buyout-amount-input"
               className="block text-xs font-medium text-white/80 mb-1"
             >
-              Buyout Amount
+              Reduction of protected Base Compensation
             </label>
             <input
               id="buyout-amount-input"
@@ -501,7 +501,7 @@ export const ContractDetailsForm = ({
             />
           </div>
           <div className="text-[11px] text-white/60">
-            Resulting dead cap:{' '}
+            Estimated remaining obligation:{' '}
             <span className="text-white">
               {formatCurrencyFull(
                 Math.max(

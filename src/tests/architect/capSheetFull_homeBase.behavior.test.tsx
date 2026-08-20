@@ -21,6 +21,7 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { CapSheetFull } from '@/features/architect/capSheet/CapSheetFull';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHistory';
 
 // The real modals are heavy and tested elsewhere. Mock them to thin shells that
 // surface the year they received and a save trigger so we can assert the cap
@@ -110,6 +111,62 @@ describe('CapSheetFull — home-base enrichments', () => {
     );
     fireEvent.click(screen.getByTestId('mock-dead-money-save'));
     expect(handleSetDeadCap).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows waiver responsibility as pending through exact expiry day, then as terminated dead money', () => {
+    const waiverTeam = {
+      ...(teamCapSheet as unknown as Record<string, unknown>),
+      deadCap: [
+        {
+          playerId: 'waived-player',
+          playerName: 'Waived Player',
+          originalSalary: 10_000_000,
+          amountByYear: [
+            { season: '2026-27', amount: 10_000_000, isStretched: false },
+          ],
+          waiveDate: '2026-07-15T12:00:00-04:00',
+          governedLifecycle: {
+            path: 'standard',
+            expiresAt: '2026-07-17T12:00:00-04:00',
+            stretchYears: null,
+          },
+        },
+      ],
+    } as never;
+    const context = {
+      worldId: 'world-waiver-status',
+      teamId: 'LAL',
+      asOfDate: '2026-07-17',
+      worldVersion: RIGHTS_LEDGER_WORLD_VERSION,
+    };
+    const { rerender } = render(
+      <CapSheetFull
+        teamCapSheet={waiverTeam}
+        currentYear={2027}
+        governedRightsContext={context}
+      />
+    );
+    fireEvent.click(screen.getByTestId('cap-sheet-full-dead-money-toggle'));
+    expect(
+      screen.getByTestId('cap-sheet-full-governed-waiver-status')
+    ).toHaveAttribute('data-waiver-status', 'pending');
+    expect(
+      screen.getByTestId('cap-sheet-full-governed-waiver-status')
+    ).toHaveTextContent(/expires Jul 17, 2026.*12:00 PM ET/i);
+
+    rerender(
+      <CapSheetFull
+        teamCapSheet={waiverTeam}
+        currentYear={2027}
+        governedRightsContext={{ ...context, asOfDate: '2026-07-18' }}
+      />
+    );
+    expect(
+      screen.getByTestId('cap-sheet-full-governed-waiver-status')
+    ).toHaveAttribute('data-waiver-status', 'terminated');
+    expect(
+      screen.getByTestId('cap-sheet-full-governed-waiver-status')
+    ).toHaveTextContent(/contract terminated/i);
   });
 
   it('opens the exceptions modal scoped to the current season and forwards saves to the authority', () => {

@@ -29,6 +29,7 @@ import {
 import { toCurrentStateTeam } from './mutationPipeline.read.normalizeTeam';
 import { loadWorldGovernedOptionAuthority } from '@/features/architect/utils/optionDecisions';
 import { loadWorldGovernedExtensionAuthority } from '@/features/architect/utils/extensions';
+import { loadWorldGovernedWaiverAuthority } from '@/features/architect/utils/waivers';
 import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
 import {
   GovernedOfferSheetAuthorizationZ,
@@ -700,19 +701,54 @@ export async function loadStateForMutation(
     }
 
     case 'waivePlayer': {
-      // Load single team and player
       const teamCode = payload.teamCode;
       const playerId = payload.playerId;
-
-      if (!teamCode) {
-        throw new Error(`Missing teamCode in payload for ${mutationType}`);
+      const contractId = payload.contractId;
+      if (!teamCode || !playerId || !contractId) {
+        throw new Error(
+          'Governed waiver requires teamCode, playerId, and contractId.'
+        );
       }
-      if (!playerId) {
-        throw new Error(`Missing playerId in payload for ${mutationType}`);
-      }
-
-      const team = await getTeam(worldId, teamCode);
-      const player = await getPlayer(worldId, teamCode, playerId);
+      const lineageWorldIds = await resolveWorldLineage(worldId);
+      const ancestorWorldIds = lineageWorldIds.slice(1);
+      const [teamDocument, playerDocument] = await Promise.all([
+        getDoc(worldTeamRef(worldId, teamCode)),
+        getDoc(worldPlayerRef(worldId, teamCode, playerId)),
+      ]);
+      const teamDocumentExists = teamDocument.exists();
+      const playerDocumentExists = playerDocument.exists();
+      const teamDocumentDigest = teamDocumentExists
+        ? mutationSnapshotDigest(teamDocument.data())
+        : null;
+      const playerDocumentDigest = playerDocumentExists
+        ? mutationSnapshotDigest(playerDocument.data())
+        : null;
+      const [ancestorTeamResolution, ancestorPlayerResolution] =
+        await Promise.all([
+          teamDocumentExists
+            ? Promise.resolve({ source: null, checkedSnapshots: [] })
+            : getWorldTeamSnapshotLineageReceipt(ancestorWorldIds, teamCode),
+          playerDocumentExists
+            ? Promise.resolve({ source: null, checkedSnapshots: [] })
+            : getWorldPlayerSnapshotLineageReceipt(
+                ancestorWorldIds,
+                teamCode,
+                playerId
+              ),
+        ]);
+      const ancestorTeamDocument = ancestorTeamResolution.source;
+      const ancestorPlayerDocument = ancestorPlayerResolution.source;
+      const [team, player] = (await Promise.all([
+        getTeam(worldId, teamCode),
+        getPlayer(worldId, teamCode, playerId),
+      ])) as [LoadedMutationTeam, LoadedMutationPlayer];
+      const waiverAuthority = await loadWorldGovernedWaiverAuthority({
+        worldId,
+        contractId: String(contractId),
+        overlays: Array.isArray(team?.contractEventLedgers)
+          ? team.contractEventLedgers
+          : [],
+      });
       return {
         team: toCurrentStateTeam(
           team as MutationCurrentStateBaseTeamIngress | null,
@@ -720,6 +756,29 @@ export async function loadStateForMutation(
         ),
         player: toCurrentStatePlayer(player),
         teamCode,
+        waiverAuthority,
+        waiverTeamSnapshot: {
+          exists: teamDocumentExists,
+          digest: teamDocumentDigest,
+          sourceWorldId: teamDocumentExists
+            ? worldId
+            : (ancestorTeamDocument?.snapshotWorldId ?? null),
+          sourceDigest: teamDocumentExists
+            ? teamDocumentDigest
+            : (ancestorTeamDocument?.snapshotDigest ?? null),
+          sourceLineage: ancestorTeamResolution.checkedSnapshots,
+        },
+        waiverPlayerSnapshot: {
+          exists: playerDocumentExists,
+          digest: playerDocumentDigest,
+          sourceWorldId: playerDocumentExists
+            ? worldId
+            : (ancestorPlayerDocument?.overrideWorldId ?? null),
+          sourceDigest: playerDocumentExists
+            ? playerDocumentDigest
+            : (ancestorPlayerDocument?.snapshotDigest ?? null),
+          sourceLineage: ancestorPlayerResolution.checkedSnapshots,
+        },
       };
     }
 

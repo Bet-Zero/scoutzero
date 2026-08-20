@@ -938,6 +938,19 @@ export const GMDashboard = () => {
         : null,
     [actions.getExtensionAvailability, selectedPlayer, worldId]
   );
+  const modalWaiverAvailability = useMemo(
+    () =>
+      worldId &&
+      selectedPlayer &&
+      typeof actions.getWaiverAvailability === 'function'
+        ? actions.getWaiverAvailability(
+            selectedPlayer as Parameters<
+              typeof actions.getWaiverAvailability
+            >[0]
+          )
+        : null,
+    [actions.getWaiverAvailability, selectedPlayer, worldId]
+  );
   const modalOnWaive: NonNullable<EditContractModalProps['onWaive']> = (
     player,
     payload
@@ -1018,15 +1031,28 @@ export const GMDashboard = () => {
           : worldId
             ? 'Extension Needs Input'
             : 'Extend Contract (Preview)',
-      waive: worldId ? 'Waive Player' : 'Waive Player (Preview)',
+      waive:
+        worldId && modalWaiverAvailability?.status === 'ready'
+          ? 'Waive Player'
+          : worldId
+            ? 'Waiver Needs Input'
+            : 'Waive Player (Preview)',
       waiveStretch:
-        worldId && actionContext === 'underContract'
+        worldId &&
+        actionContext === 'underContract' &&
+        modalWaiverAvailability?.status === 'ready'
           ? 'Waive & Stretch'
-          : 'Waive & Stretch (Preview)',
+          : worldId
+            ? 'Waive & Stretch Needs Input'
+            : 'Waive & Stretch (Preview)',
       buyout:
-        worldId && actionContext === 'underContract'
+        worldId &&
+        actionContext === 'underContract' &&
+        modalWaiverAvailability?.status === 'ready'
           ? 'Buyout Contract'
-          : 'Buyout Contract (Preview)',
+          : worldId
+            ? 'Buyout Needs Input'
+            : 'Buyout Contract (Preview)',
       ...(contractModalActionOverrides?.actionLabelsOverride || {}),
     },
   };
@@ -1691,6 +1717,7 @@ export const GMDashboard = () => {
           currentYear={currentYear}
           optionDecisionAvailability={modalOptionDecisionAvailability}
           extensionAvailability={modalExtensionAvailability}
+          waiverAvailability={modalWaiverAvailability}
           {...modalActionCallbacks}
           {...contractModalExposureOverrides}
           playersMap={playersMap}

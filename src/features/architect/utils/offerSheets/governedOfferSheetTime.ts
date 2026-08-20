@@ -8,11 +8,13 @@ import {
 } from '@/features/architect/utils/governedSeason';
 
 function easternOffsetAt(value: string): string | null {
+  const instant = new Date(value);
+  if (!Number.isFinite(instant.getTime())) return null;
   const timeZoneName = new Intl.DateTimeFormat('en-US', {
     timeZone: GOVERNING_TIME_ZONE,
     timeZoneName: 'longOffset',
   })
-    .formatToParts(new Date(value))
+    .formatToParts(instant)
     .find((part) => part.type === 'timeZoneName')?.value;
   const offset = timeZoneName?.replace('GMT', '');
   return offset && /^[+-]\d{2}:\d{2}$/.test(offset) ? offset : null;
@@ -59,7 +61,12 @@ function dateAfterDays(value: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-function composeEasternInstant(localDateTime: string): string | null {
+export function composeEasternInstant(localDateTime: string): string | null {
+  if (
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(localDateTime)
+  ) {
+    return null;
+  }
   for (const offset of ['-05:00', '-04:00']) {
     const candidate = `${localDateTime}${offset}`;
     if (easternOffsetAt(candidate) === offset) return candidate;

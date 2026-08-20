@@ -615,6 +615,11 @@ utils/
     transactionHistoryFence.ts
   validatePhase21.test.ts
   waiverDeadCapAllocation.ts
+  waivers/
+    applyGovernedWaiverResult.ts
+    governedWaiver.ts
+    index.ts
+    worldWaiverAuthority.ts
   worldManager.core.ts
   worldManager.readUtils.ts
   worldManager.ts
@@ -622,5 +627,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-19T04:48:00.666Z*
+*Generated on: 2026-08-20T11:24:26.871Z*
 *Auto-updated by: npm run docs*

@@ -48,9 +48,12 @@ import { ContractActionSelector } from './EditContractModal.ActionSelector';
 import { ContractActionContext } from './EditContractModal.ActionContext';
 import { ContractDetailsForm } from './EditContractModal.DetailsForm';
 import { GovernedOptionNoticeForm } from './EditContractModal.OptionNoticeForm';
+import { GovernedWaiverEvidenceForm } from './EditContractModal.WaiverEvidenceForm';
 import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
 import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
+import type { GovernedWaiverProposal } from '@/schemas/governedWaiver';
 import { isZonedDateTime } from '@/features/architect/utils/governedSeason';
+import { composeEasternInstant } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
 import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import {
   calculateCapHold,
@@ -100,6 +103,7 @@ export const EditContractModal = ({
   onOptionDecision,
   optionDecisionAvailability = null,
   extensionAvailability = null,
+  waiverAvailability = null,
   onExtend,
   signAndTradeInitiation = null,
   onSignAndTrade,
@@ -130,6 +134,9 @@ export const EditContractModal = ({
     null
   ); // Phase 23
   const [buyoutAmountInput, setBuyoutAmountInput] = useState('');
+  const [waiverLeagueReceiptInput, setWaiverLeagueReceiptInput] = useState('');
+  const [writtenStretchElection, setWrittenStretchElection] = useState(false);
+  const [signedBuyoutAgreement, setSignedBuyoutAgreement] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [optionNotice, setOptionNotice] = useState<GovernedOptionNoticeInput>({
@@ -503,9 +510,17 @@ export const EditContractModal = ({
     Boolean(optionDecisionAvailability) &&
     (selectedAction === 'accept' || selectedAction === 'decline');
   const isGovernedExtensionAction = selectedAction === 'extend';
+  const isGovernedWaiverAction = ['waive', 'waiveStretch', 'buyout'].includes(
+    selectedAction
+  );
+  const waiverLeagueReceiptAt = useMemo(
+    () => composeEasternInstant(waiverLeagueReceiptInput),
+    [waiverLeagueReceiptInput]
+  );
   const validationAuthority: ValidationAuthority =
     isGovernedOptionDecisionAction ||
     isGovernedExtensionAction ||
+    isGovernedWaiverAction ||
     selectedAction === 'signAndTrade' ||
     (selectedAction === 'signNew' && isOfferSheet)
       ? 'authoritative-preflight'
@@ -633,6 +648,47 @@ export const EditContractModal = ({
       };
     }
 
+    if (isGovernedWaiverAction) {
+      const reasons = [...(waiverAvailability?.reasons ?? [])];
+      if (!waiverAvailability) {
+        reasons.push(
+          'Open a compatible saved Team Plan before recording this waiver.'
+        );
+      } else if (
+        waiverAvailability.status === 'ready' &&
+        !waiverAvailability.contractId
+      ) {
+        reasons.push('Required governed Contract information is missing.');
+      }
+      if (!waiverLeagueReceiptAt) {
+        reasons.push('Enter the exact League receipt time in Eastern time.');
+      }
+      if (selectedAction === 'waiveStretch' && !writtenStretchElection) {
+        reasons.push('Confirm the written Team Salary stretch election.');
+      }
+      if (selectedAction === 'buyout' && !signedBuyoutAgreement) {
+        reasons.push(
+          'Confirm the written buyout agreement and both signatures.'
+        );
+      }
+      const ready =
+        waiverAvailability?.status === 'ready' && reasons.length === 0;
+      return {
+        ...DEFAULT_VALIDATION_STATE,
+        authority: 'authoritative-preflight' as const,
+        isLegal: ready,
+        incomplete: !ready,
+        reasons,
+        severity: ready ? ('info' as const) : ('error' as const),
+        errors: ready
+          ? []
+          : reasons.map((message) => ({
+              severity: 'error' as const,
+              message,
+            })),
+      };
+    }
+
     if (validationAuthority === 'authoritative-preflight') {
       return buildAuthoritativePreflightState({
         kind: selectedAction === 'signAndTrade' ? 'sign-and-trade' : 'offer-sheet',
@@ -659,13 +715,18 @@ export const EditContractModal = ({
     isExtendEligible,
     isGovernedExtensionAction,
     isGovernedOptionDecisionAction,
+    isGovernedWaiverAction,
     offerSheetPreflight,
     extension,
     extensionAvailability,
     optionDecisionAvailability,
+    signedBuyoutAgreement,
     selectedAction,
     signAndTradePreflight,
     validationAuthority,
+    waiverAvailability,
+    waiverLeagueReceiptAt,
+    writtenStretchElection,
   ]);
   const validationCopy = useMemo(
     () => buildValidationCopy(validationState.authority),
@@ -692,6 +753,35 @@ export const EditContractModal = ({
     selectedAction !== 'buyout' ||
     (parsedBuyoutAmount != null &&
       parsedBuyoutAmount <= remainingGuaranteedForBuyout);
+  const governedWaiverProposal = useMemo<GovernedWaiverProposal | null>(() => {
+    if (!isGovernedWaiverAction) return null;
+    const path =
+      selectedAction === 'waiveStretch'
+        ? 'waive-and-stretch'
+        : selectedAction === 'buyout'
+          ? 'buyout'
+          : 'standard';
+    return {
+      proposalVersion: 1,
+      contractId: waiverAvailability?.contractId || '',
+      path,
+      leagueReceivedAt: waiverLeagueReceiptAt || '',
+      writtenStretchElection:
+        path === 'waive-and-stretch' && writtenStretchElection,
+      buyoutReduction: path === 'buyout' ? parsedBuyoutAmount ?? 0 : 0,
+      writtenBuyoutAgreement: path === 'buyout' && signedBuyoutAgreement,
+      playerSignatureRecorded: path === 'buyout' && signedBuyoutAgreement,
+      teamSignatureRecorded: path === 'buyout' && signedBuyoutAgreement,
+    };
+  }, [
+    isGovernedWaiverAction,
+    parsedBuyoutAmount,
+    selectedAction,
+    signedBuyoutAgreement,
+    waiverAvailability?.contractId,
+    waiverLeagueReceiptAt,
+    writtenStretchElection,
+  ]);
   const isOptionDecisionAction =
     selectedAction === 'accept' || selectedAction === 'decline';
   const governedNoticeRequirements =
@@ -742,6 +832,9 @@ export const EditContractModal = ({
           : isGovernedExtensionAction && validationState.incomplete
             ? validationState.reasons[0] ||
               'This extension is unavailable because required contract or league information is incomplete.'
+          : isGovernedWaiverAction && validationState.incomplete
+            ? validationState.reasons[0] ||
+              'This waiver needs exact League and Contract information.'
           : validationState.incomplete
             ? 'Finish the contract details to continue'
             : isOptionDecisionAction && !governedOptionNoticeIsComplete
@@ -780,6 +873,9 @@ export const EditContractModal = ({
     if (selectedAction !== 'buyout') {
       setBuyoutAmountInput('');
     }
+    setWaiverLeagueReceiptInput('');
+    setWrittenStretchElection(false);
+    setSignedBuyoutAgreement(false);
   }, [selectedAction, isOpen]);
 
   const confirmButtonLabel = useMemo(() => {
@@ -936,6 +1032,11 @@ export const EditContractModal = ({
       return;
     }
 
+    if (isGovernedWaiverAction && !governedWaiverProposal) {
+      setSaveError('Complete the exact governed waiver record before saving.');
+      return;
+    }
+
     setIsSubmitting(true);
     const timestamp = new Date().toISOString();
     const overrideUsed =
@@ -1044,6 +1145,7 @@ export const EditContractModal = ({
             actionResult = await onWaive?.(player, {
               stretch: false,
               buyout: false,
+              waiverProposal: governedWaiverProposal!,
               ...(overrideMetadata || {}),
             });
             break;
@@ -1051,6 +1153,7 @@ export const EditContractModal = ({
             actionResult = await onWaive?.(player, {
               stretch: true,
               buyout: false,
+              waiverProposal: governedWaiverProposal!,
               ...(overrideMetadata || {}),
             });
             break;
@@ -1059,6 +1162,7 @@ export const EditContractModal = ({
               stretch: false,
               buyout: true,
               buyoutAmount: parsedBuyoutAmount ?? 0,
+              waiverProposal: governedWaiverProposal!,
               ...(overrideMetadata || {}),
             });
             break;
@@ -1160,6 +1264,18 @@ export const EditContractModal = ({
                 onChange={setOptionNotice}
               />
             )}
+
+          <GovernedWaiverEvidenceForm
+            selectedAction={selectedAction}
+            availability={waiverAvailability}
+            leagueReceiptInput={waiverLeagueReceiptInput}
+            leagueReceiptAt={waiverLeagueReceiptAt}
+            onLeagueReceiptInputChange={setWaiverLeagueReceiptInput}
+            writtenStretchElection={writtenStretchElection}
+            onWrittenStretchElectionChange={setWrittenStretchElection}
+            signedBuyoutAgreement={signedBuyoutAgreement}
+            onSignedBuyoutAgreementChange={setSignedBuyoutAgreement}
+          />
 
           <ContractDetailsForm
             selectedAction={selectedAction}

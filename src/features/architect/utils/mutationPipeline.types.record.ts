@@ -35,6 +35,7 @@ import type { CanonicalNonTpeExceptionKey } from '@/features/architect/utils/exc
 import type { computeExpectedCapHoldAmount } from '@/features/architect/utils/capHoldTransitionHelpers';
 import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
+import type { GovernedWaiverLifecycle, GovernedWaiverProposal } from '@/schemas/governedWaiver';
 import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
 import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
 import type { GovernedOfferSheetProposal } from '@/schemas/governedOfferSheet';
@@ -280,6 +281,7 @@ export type ArchitectMutationDeadCapEntry = {
   waiveDate?: string | null;
   notes?: string | null;
   stretched?: boolean | null;
+  governedLifecycle?: GovernedWaiverLifecycle | null;
 };
 
 export type ArchitectMutationExceptionEntry = {
@@ -668,6 +670,7 @@ export type ArchitectMutationPayload = {
   stretchYears?: number | string | null;
   buyout?: boolean;
   buyoutAmount?: number | null;
+  waiverProposal?: GovernedWaiverProposal | null;
   isGracePeriod?: boolean;
   targetYear?: number | string | null;
   contractId?: string | null;
@@ -701,10 +704,12 @@ export type PublicSigningMutationPayloadInput = PublicMutationPayloadSlice<
 export type PublicWaiveMutationPayloadInput = PublicMutationPayloadSlice<
   | 'teamCode'
   | 'playerId'
+  | 'contractId'
   | 'stretch'
   | 'stretchYears'
   | 'buyout'
   | 'buyoutAmount'
+  | 'waiverProposal'
   | 'isGracePeriod'
 >;
 export type PublicExtensionMutationPayloadInput = PublicMutationPayloadSlice<
@@ -757,7 +762,13 @@ export type SigningMutationPayloadInput = NormalizedMutationPayloadSlice<
   'playerId' | 'contract' | 'signedUsing'
 >;
 export type WaiveMutationPayloadInput = NormalizedMutationPayloadSlice<
-  'playerId' | 'stretch' | 'stretchYears' | 'buyout' | 'buyoutAmount'
+  | 'playerId'
+  | 'contractId'
+  | 'stretch'
+  | 'stretchYears'
+  | 'buyout'
+  | 'buyoutAmount'
+  | 'waiverProposal'
 >;
 export type ExtensionMutationPayloadInput = NormalizedMutationPayloadSlice<
   'playerId' | 'contractId' | 'extension' | 'extensionProposal'

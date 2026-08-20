@@ -198,6 +198,7 @@ export const DEAD_CAP_ITEM_ALLOWLIST: PersistenceAllowlist = Object.freeze([
   'amountByYear', // Array of year-by-year amounts (nested deep rule)
   'waiveDate',
   'notes',
+  'governedLifecycle', // BZE-284 immutable waiver/stretch/buyout event record
 ]);
 
 /**
@@ -369,6 +370,11 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.f
   'buyoutAmount',
   'stretchYears',
   'deadCapAmount',
+  'waiverLifecycleId',
+  'waiverStatus',
+  'waiverReceivedAt',
+  'waiverExpiresAt',
+  'contractTerminatesAt',
 
   // Option events
   'optionType',

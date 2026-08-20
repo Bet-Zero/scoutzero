@@ -226,6 +226,13 @@ const TEAM_CAP_SHEET = {
   capHolds: [],
 };
 
+const WAIVER_AVAILABILITY = {
+  status: 'ready' as const,
+  playerId: 'p1',
+  contractId: 'contract-p1',
+  reasons: [],
+};
+
 describe('E111 contractUtils behavior', () => {
   it('keeps the UTC June 30 vs July 1 season rollover semantics', () => {
     expect(getCurrentSeasonYear(new Date(Date.UTC(2026, 5, 30)))).toBe(2025);
@@ -292,6 +299,7 @@ describe('E111 EditContractModal behavior', () => {
         currentYear={2026}
         initialAction="waive"
         actionContext="underContract"
+        waiverAvailability={WAIVER_AVAILABILITY}
       />
     );
 
@@ -303,7 +311,13 @@ describe('E111 EditContractModal behavior', () => {
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
     expect(
       screen.getByTestId('edit-contract-confirm-action-button')
-    ).toHaveTextContent('Confirm Action');
+    ).toHaveTextContent('Authoritative Preflight Pending');
+    expect(
+      screen.getByTestId('edit-contract-confirm-action-button')
+    ).toBeDisabled();
+    expect(screen.getByTestId('governed-waiver-availability')).toHaveTextContent(
+      'Contract information ready'
+    );
   });
 
   it('renders current validation and warning paths when validation returns issues', async () => {
@@ -320,8 +334,9 @@ describe('E111 EditContractModal behavior', () => {
         player={PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2026}
-        initialAction="waive"
-        actionContext="underContract"
+        initialAction="resign"
+        actionContext="freeAgent"
+        actionsOverride={['resign']}
       />
     );
 
@@ -454,10 +469,18 @@ describe('E111 EditContractModal behavior', () => {
         initialAction="buyout"
         actionContext="underContract"
         onWaive={onWaive}
+        waiverAvailability={WAIVER_AVAILABILITY}
       />
     );
 
-    fireEvent.change(screen.getByLabelText(/buyout amount/i), {
+    fireEvent.change(screen.getByTestId('governed-waiver-league-receipt'), {
+      target: { value: '2025-12-01T12:00:00' },
+    });
+    fireEvent.click(screen.getByTestId('governed-waiver-buyout-agreement'));
+    fireEvent.change(screen.getByLabelText(
+      'Reduction of protected Base Compensation',
+      { selector: '#buyout-amount-input' }
+    ), {
       target: { value: '5000000' },
     });
     fireEvent.click(
@@ -471,6 +494,13 @@ describe('E111 EditContractModal behavior', () => {
           stretch: false,
           buyout: true,
           buyoutAmount: 5_000_000,
+          waiverProposal: expect.objectContaining({
+            contractId: 'contract-p1',
+            path: 'buyout',
+            leagueReceivedAt: '2025-12-01T12:00-05:00',
+            buyoutReduction: 5_000_000,
+            writtenBuyoutAgreement: true,
+          }),
         })
       );
     });
@@ -480,7 +510,7 @@ describe('E111 EditContractModal behavior', () => {
     });
   });
 
-  it('keeps the current override confirm path and callback metadata', async () => {
+  it('does not allow the governed waiver record to be bypassed by override', async () => {
     import.meta.env.VITE_ENABLE_CBA_OVERRIDE = 'true';
     mockValidationState.errors = [{ severity: 'error', message: 'Illegal move' }];
     mockValidationState.isValid = false;
@@ -499,6 +529,7 @@ describe('E111 EditContractModal behavior', () => {
         actionContext="underContract"
         onWaive={onWaive}
         onAuditLog={onAuditLog}
+        waiverAvailability={WAIVER_AVAILABILITY}
       />
     );
 
@@ -507,38 +538,11 @@ describe('E111 EditContractModal behavior', () => {
     );
     expect(confirmButton).toBeDisabled();
 
-    fireEvent.click(
-      screen.getByRole('button', { name: /advanced: override validation/i })
-    );
-    fireEvent.change(screen.getByLabelText(/type\s+override\s+to confirm/i), {
-      target: { value: 'OVERRIDE' },
-    });
-
-    expect(confirmButton).toHaveTextContent('Force Override');
-    expect(confirmButton).not.toBeDisabled();
-
-    fireEvent.click(confirmButton);
-
-    await waitFor(() => {
-      expect(onWaive).toHaveBeenCalledWith(
-        PLAYER,
-        expect.objectContaining({
-          stretch: false,
-          buyout: false,
-          overrideUsed: true,
-          overrideReasons: ['Illegal move'],
-          overrideTimestamp: expect.any(String),
-        })
-      );
-    });
-
-    expect(onAuditLog).toHaveBeenCalledWith(
-      expect.objectContaining({
-        actionType: 'waive',
-        overrideUsed: true,
-        reasons: ['Illegal move'],
-      })
-    );
+    expect(
+      screen.queryByRole('button', { name: /advanced: override validation/i })
+    ).not.toBeInTheDocument();
+    expect(onWaive).not.toHaveBeenCalled();
+    expect(onAuditLog).not.toHaveBeenCalled();
   });
 
   it('keeps the modal open and shows the current inline alert on failed save results', async () => {
@@ -558,9 +562,13 @@ describe('E111 EditContractModal behavior', () => {
         initialAction="waive"
         actionContext="underContract"
         onWaive={onWaive}
+        waiverAvailability={WAIVER_AVAILABILITY}
       />
     );
 
+    fireEvent.change(screen.getByTestId('governed-waiver-league-receipt'), {
+      target: { value: '2025-12-01T12:00:00' },
+    });
     fireEvent.click(
       screen.getByTestId('edit-contract-confirm-action-button')
     );

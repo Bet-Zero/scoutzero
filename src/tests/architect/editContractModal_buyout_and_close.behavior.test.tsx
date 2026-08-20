@@ -42,6 +42,13 @@ const TEAM_CAP_SHEET = {
   capHolds: [],
 };
 
+const WAIVER_AVAILABILITY = {
+  status: 'ready' as const,
+  playerId: 'p1',
+  contractId: 'contract-p1',
+  reasons: [],
+};
+
 describe('EditContractModal buyout + close gating behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -210,10 +217,18 @@ describe('EditContractModal buyout + close gating behavior', () => {
         currentYear={2026}
         initialAction="buyout"
         onWaive={onWaive}
+        waiverAvailability={WAIVER_AVAILABILITY}
       />
     );
 
-    const buyoutInput = screen.getByLabelText(/buyout amount/i);
+    fireEvent.change(screen.getByTestId('governed-waiver-league-receipt'), {
+      target: { value: '2025-12-01T12:00:00' },
+    });
+    fireEvent.click(screen.getByTestId('governed-waiver-buyout-agreement'));
+    const buyoutInput = screen.getByLabelText(
+      'Reduction of protected Base Compensation',
+      { selector: '#buyout-amount-input' }
+    );
     fireEvent.change(buyoutInput, { target: { value: '5000000' } });
 
     fireEvent.click(screen.getByRole('button', { name: /confirm action/i }));
@@ -225,6 +240,17 @@ describe('EditContractModal buyout + close gating behavior', () => {
           stretch: false,
           buyout: true,
           buyoutAmount: 5_000_000,
+          waiverProposal: {
+            proposalVersion: 1,
+            contractId: 'contract-p1',
+            path: 'buyout',
+            leagueReceivedAt: '2025-12-01T12:00-05:00',
+            writtenStretchElection: false,
+            buyoutReduction: 5_000_000,
+            writtenBuyoutAgreement: true,
+            playerSignatureRecorded: true,
+            teamSignatureRecorded: true,
+          },
         })
       );
     });
@@ -252,9 +278,13 @@ describe('EditContractModal buyout + close gating behavior', () => {
         currentYear={2026}
         initialAction="waive"
         onWaive={onWaive}
+        waiverAvailability={WAIVER_AVAILABILITY}
       />
     );
 
+    fireEvent.change(screen.getByTestId('governed-waiver-league-receipt'), {
+      target: { value: '2025-12-01T12:00:00' },
+    });
     fireEvent.click(screen.getByRole('button', { name: /confirm action/i }));
 
     await waitFor(() => {

@@ -479,7 +479,7 @@ describe('mutationPipeline trade persistence truth', () => {
     vi.clearAllMocks();
   });
 
-  it('allocates standard waiver dead cap by original guaranteed contract seasons', async () => {
+  it('fails closed on a legacy waiver payload without governed Contract and receipt authority', async () => {
     const player = makePlayer('waive_multiyear_truth', 'LAL', 0, {
       displayName: 'Waive Multi-Year Truth',
       contract: makeContract(30_000_000, {
@@ -520,23 +520,13 @@ describe('mutationPipeline trade persistence truth', () => {
       },
     });
 
-    expect(result.success, String(result.error)).toBe(true);
-    const updatedTeam = requireValue(
-      result.teamUpdates?.[0]?.team,
-      'waive result team'
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toMatch(
+      /pinned Contract.*exact.*League receipt.*author provenance/i
     );
-    const deadCapEntry = requireValue(
-      updatedTeam.deadCap?.find(
-        (entry) => entry.playerId === 'waive_multiyear_truth'
-      ),
-      'waive dead cap entry'
-    );
-
-    expect(deadCapEntry.originalSalary).toBe(30_000_000);
-    expect(deadCapEntry.amountByYear).toEqual([
-      { season: SEASON_ID, amount: 12_000_000, isStretched: false },
-      { season: '2026-27', amount: 18_000_000, isStretched: false },
-    ]);
+    expect(result.teamUpdates || []).toEqual([]);
+    expect(result.playerUpdates || []).toEqual([]);
+    expect(result.playerDeletes || []).toEqual([]);
   });
 
   it('persists standard trade destination overrides and deletes superseded source overrides', async () => {

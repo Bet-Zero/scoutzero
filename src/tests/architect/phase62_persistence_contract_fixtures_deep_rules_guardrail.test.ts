@@ -809,6 +809,7 @@ describe('Phase 62: Contract structure validation for new allowlists', () => {
     expect(DEAD_CAP_ITEM_ALLOWLIST).toContain('amountByYear');
     expect(DEAD_CAP_ITEM_ALLOWLIST).toContain('waiveDate');
     expect(DEAD_CAP_ITEM_ALLOWLIST).toContain('notes');
+    expect(DEAD_CAP_ITEM_ALLOWLIST).toContain('governedLifecycle');
   });
 
   it('TEST 32: DEAD_CAP_AMOUNT_BY_YEAR_ITEM_ALLOWLIST has expected fields', () => {

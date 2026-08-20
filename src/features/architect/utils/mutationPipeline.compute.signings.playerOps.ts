@@ -9,16 +9,8 @@ import {
   toEndYear,
   toSeasonCode,
 } from '@/features/architect/utils/seasonFormat';
-import {
-  allocateStandardWaiverDeadCapBySeason,
-  countRemainingContractSeasons,
-  getStretchProvisionYears,
-  sumWaiverDeadCapAllocations,
-} from '@/features/architect/utils/waiverDeadCapAllocation';
 import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
 import {
-  getMutationPlayerId,
-  getMutationRosterEntryId,
   getTeamSourceRecord,
   requireBasicTeamAndPlayerState,
   synchronizeTeamTotalsSnapshotOrTeam,
@@ -40,9 +32,15 @@ import {
   applyGovernedExtensionResult,
   decideGovernedExtension,
 } from '@/features/architect/utils/extensions';
+import {
+  applyGovernedWaiverResult,
+  decideGovernedWaiver,
+  readGovernedWaiverLifecycles,
+} from '@/features/architect/utils/waivers';
+import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
 
-function isExactExtensionSnapshotReceipt(
-  receipt: MutationTeamAndPlayerCurrentState['extensionTeamSnapshot'],
+function isExactPlayerOpsSnapshotReceipt(
+  receipt: MutationDocumentSnapshotReceipt | null | undefined,
   worldId: string | undefined
 ): receipt is MutationDocumentSnapshotReceipt {
   if (!receipt || !worldId) return false;
@@ -106,120 +104,103 @@ export function computeWaiveResult({
   currentState,
   seasonId,
   timestamp,
+  asOfDate,
+  worldId,
+  operationId,
+  authoringIdentity,
+  recordedAt,
 }: ComputeMutationParamsWithCurrentState<
   MutationTeamAndPlayerCurrentState,
   MutationPayloadInputByType['waivePlayer']
->): ComputeResultLike {
+> & {
+  asOfDate?: string | number | null;
+  worldId?: string;
+  operationId?: string;
+  authoringIdentity?: string;
+  recordedAt?: string;
+}): ComputeResultLike {
   const { team, player } = requireBasicTeamAndPlayerState(
     currentState,
     'waivePlayer'
   );
   const teamCode = currentState.teamCode || team.teamCode || null;
-  const stretch = payload.stretch ?? false;
-  const buyout = payload.buyout ?? false;
-
   const playerId = payload.playerId || player.player_id || player.id;
-
-  if (!playerId) {
-    console.error(
-      '[computeWaiveResult] CRITICAL: deadCap entry missing playerId',
-      { payloadId: payload.playerId, playerObj: player }
-    );
-    if (process.env.NODE_ENV !== 'production') {
-      throw new Error('deadCap entry missing playerId');
-    }
+  if (
+    !teamCode ||
+    !playerId ||
+    !payload.contractId ||
+    !payload.waiverProposal ||
+    !currentState.waiverAuthority ||
+    !isExactPlayerOpsSnapshotReceipt(currentState.waiverTeamSnapshot, worldId) ||
+    !isExactPlayerOpsSnapshotReceipt(currentState.waiverPlayerSnapshot, worldId) ||
+    typeof asOfDate !== 'string' ||
+    !worldId ||
+    !operationId ||
+    !authoringIdentity ||
+    !recordedAt
+  ) {
+    return {
+      success: false,
+      error:
+        'Governed waiver requires the pinned Contract, exact local and fallback source-snapshot receipts, an exact League receipt, governed season levels, and author provenance.',
+    };
   }
-
-  const updatedTeam = { ...team };
-
-  updatedTeam.roster = (updatedTeam.roster || []).filter(
-    (entry) => getMutationRosterEntryId(entry) !== playerId
-  );
-
-  updatedTeam.players = (updatedTeam.players || []).filter(
-    (teamPlayer) => getMutationPlayerId(teamPlayer) !== playerId
-  );
-
-  const contract = player.contract;
-  const contractRows = Array.isArray(contract?.salariesByYear)
-    ? contract.salariesByYear
-    : [];
-  const standardDeadCapBySeason = allocateStandardWaiverDeadCapBySeason({
-    salaryRows: contractRows,
-    currentSeason: seasonId,
+  const salaryCapYear = toEndYear(seasonId);
+  const seasonEnvelope = resolveGovernedSeasonEnvelope({
+    asOfDate: payload.waiverProposal.leagueReceivedAt,
+    salaryCapYear,
+    requiredAuthority: 'official',
+    team: { teamId: String(teamCode), teamCode: String(teamCode), worldId },
   });
-  const remainingGuaranteedFromRows = sumWaiverDeadCapAllocations(
-    standardDeadCapBySeason
+  const salaryCap = seasonEnvelope.systemLevels['salary-cap']?.amount ?? null;
+  if (seasonEnvelope.status !== 'complete' || salaryCap === null) {
+    return {
+      success: false,
+      error:
+        seasonEnvelope.unavailableReasons[0] ||
+        'Governed Salary Cap and calendar inputs are unavailable for this waiver.',
+    };
+  }
+  const playerName = String(
+    player.displayName || player.name || playerId
   );
-  // CBA stretch term: dead salary spreads over (2 x seasons remaining) + 1,
-  // derived from the contract itself. Falls back to 3 only if the contract has
-  // no dated rows (guaranteedValue-only path) so the term can't be computed.
-  const remainingSeasonCount = countRemainingContractSeasons({
-    salaryRows: contractRows,
-    currentSeason: seasonId,
+  const result = decideGovernedWaiver({
+    authority: currentState.waiverAuthority,
+    existingLifecycles: readGovernedWaiverLifecycles(team),
+    existingDeadCap: team.deadCap,
+    worldId,
+    teamId: String(teamCode),
+    playerId: String(playerId),
+    playerName,
+    contractId: String(payload.contractId),
+    worldAsOfDate: asOfDate,
+    salaryCapAtElection: salaryCap,
+    proposal: payload.waiverProposal,
+    operationId,
+    authoringIdentity,
+    recordedAt,
   });
-  const stretchYears = getStretchProvisionYears(remainingSeasonCount) || 3;
-  const guaranteedValueFallback = Number(contract?.guaranteedValue) || 0;
-  const remainingSalary =
-    remainingGuaranteedFromRows ||
-    (contractRows.length === 0 ? guaranteedValueFallback : 0);
-  const rawBuyoutAmount = buyout
-    ? Math.max(0, Number(payload.buyoutAmount) || 0)
-    : 0;
-  const boundedBuyoutAmount = buyout
-    ? Math.min(remainingSalary, rawBuyoutAmount)
-    : 0;
-  const deadCapAmount = buyout
-    ? Math.max(0, remainingSalary - boundedBuyoutAmount)
-    : remainingSalary;
-
-  if (stretch && deadCapAmount > 0) {
-    const baseStretchedAmount = Math.floor(deadCapAmount / stretchYears);
-    const remainder = deadCapAmount - baseStretchedAmount * stretchYears;
-
-    updatedTeam.deadCap = updatedTeam.deadCap || [];
-    updatedTeam.deadCap.push({
-      playerId,
-      playerName: player.displayName || playerId,
-      originalSalary: remainingSalary,
-      amountByYear: Array.from({ length: stretchYears }, (_, i) => {
-        const startYear = toEndYear(seasonId) ?? 0;
-        const yearEndYear = startYear + i;
-        const yearAmount = baseStretchedAmount + (i < remainder ? 1 : 0);
-        return {
-          season: toSeasonCode(yearEndYear),
-          amount: yearAmount,
-          isStretched: true,
-        };
-      }),
-      waiveDate: new Date(timestamp).toISOString(),
-      notes: buyout
-        ? `Buyout reduction: $${boundedBuyoutAmount.toLocaleString()} (stretched over ${stretchYears} years)`
-        : `Stretched over ${stretchYears} years`,
+  if (!result.success) {
+    return {
+      success: false,
+      error: result.reasons[0] || 'Governed waiver needs input.',
+    };
+  }
+  let updatedTeam;
+  try {
+    updatedTeam = applyGovernedWaiverResult({
+      team,
+      playerId: String(playerId),
+      result,
     });
-  } else if (deadCapAmount > 0) {
-    const amountByYear =
-      !buyout && remainingGuaranteedFromRows > 0
-        ? standardDeadCapBySeason
-        : [
-            {
-              season: seasonId,
-              amount: deadCapAmount,
-              isStretched: false,
-            },
-          ];
-
-    updatedTeam.deadCap = updatedTeam.deadCap || [];
-    updatedTeam.deadCap.push({
-      playerId,
-      playerName: player.displayName || playerId,
-      originalSalary: remainingSalary,
-      amountByYear,
-      waiveDate: new Date(timestamp).toISOString(),
-      notes: buyout
-        ? `Buyout reduction: $${boundedBuyoutAmount.toLocaleString()}`
-        : undefined,
-    });
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'The governed waiver could not be applied.',
+    };
   }
 
   updatedTeam.source = {
@@ -237,16 +218,52 @@ export function computeWaiveResult({
     success: true,
     teamUpdates: [{ teamCode, team: updatedTeam }],
     playerUpdates: [],
+    playerDeletes: [{ playerId, teamCode: String(teamCode) }],
     metadata: {
       type: 'waive',
       teamCode,
       playerId,
-      playerName: player.displayName || player.name,
-      stretched: stretch,
-      buyout,
-      buyoutAmount: boundedBuyoutAmount,
-      stretchYears: stretch ? stretchYears : undefined,
-      deadCapAmount,
+      playerName,
+      contractId: payload.contractId,
+      waiverLifecycleId: result.lifecycle.lifecycleId,
+      waiverStatus: 'pending-unclaimed-expiry',
+      waiverReceivedAt: result.lifecycle.leagueReceivedAt,
+      waiverExpiresAt: result.lifecycle.expiresAt,
+      contractTerminatesAt: result.lifecycle.terminationAt,
+      stretched: result.lifecycle.path === 'waive-and-stretch',
+      buyout: result.lifecycle.path === 'buyout',
+      buyoutAmount: result.lifecycle.buyoutReduction,
+      stretchYears: result.lifecycle.stretchYears ?? undefined,
+      deadCapAmount: result.lifecycle.allocations.reduce(
+        (sum, row) => sum + row.teamSalary,
+        0
+      ),
+      contractLedgerId: result.expectedContractLedger.ledgerId,
+      contractLedgerVersion: result.expectedContractLedger.ledgerVersion,
+      expectedContractLedgerId: result.expectedContractLedger.ledgerId,
+      expectedContractLedgerVersion:
+        result.expectedContractLedger.ledgerVersion,
+      expectedContractOverlayLedgerVersion:
+        result.expectedContractLedger.overlayLedgerVersion,
+      expectedContractOverlaySetDigest: contractOverlaySetDigest(
+        team.contractEventLedgers
+      ),
+      expectedTeamSnapshotExists: currentState.waiverTeamSnapshot.exists,
+      expectedTeamSnapshotDigest: currentState.waiverTeamSnapshot.digest,
+      expectedTeamSourceWorldId:
+        currentState.waiverTeamSnapshot.sourceWorldId,
+      expectedTeamSourceSnapshotDigest:
+        currentState.waiverTeamSnapshot.sourceDigest,
+      expectedTeamSourceLineage:
+        currentState.waiverTeamSnapshot.sourceLineage,
+      expectedPlayerSnapshotExists: currentState.waiverPlayerSnapshot.exists,
+      expectedPlayerSnapshotDigest: currentState.waiverPlayerSnapshot.digest,
+      expectedPlayerSourceWorldId:
+        currentState.waiverPlayerSnapshot.sourceWorldId,
+      expectedPlayerSourceSnapshotDigest:
+        currentState.waiverPlayerSnapshot.sourceDigest,
+      expectedPlayerSourceLineage:
+        currentState.waiverPlayerSnapshot.sourceLineage,
       timestamp,
     },
   };
@@ -284,11 +301,11 @@ export function computeExtensionResult({
     !payload.contractId ||
     !payload.extensionProposal ||
     !currentState.extensionAuthority ||
-    !isExactExtensionSnapshotReceipt(
+    !isExactPlayerOpsSnapshotReceipt(
       currentState.extensionTeamSnapshot,
       worldId
     ) ||
-    !isExactExtensionSnapshotReceipt(
+    !isExactPlayerOpsSnapshotReceipt(
       currentState.extensionPlayerSnapshot,
       worldId
     ) ||
