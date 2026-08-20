@@ -32,8 +32,10 @@ import {
 } from './helpers/architectReviewWorld';
 
 const TEAM_ID = 'MIA';
-const PLAYER_ID = 'bze284_waiver_player';
-const PLAYER_NAME = 'BZE 284 Waiver Player';
+// This ID is part of the maintained review seed. The proof may overlay it in a
+// saved world, but must never create or mutate the read-only base-player doc.
+const PLAYER_ID = 'mia_silas_park';
+const PLAYER_NAME = 'Silas Park';
 const CONTRACT_ID = 'bze284_waiver_contract';
 const DASHBOARD_URL = '/gm/MIA?season=2027';
 const CURRENT_SEASON = '2026-27';
