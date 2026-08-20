@@ -7,7 +7,7 @@ const NonEmptyStringZ = z.string().refine((value) => value.trim().length > 0, {
 });
 const MoneyZ = z.number().finite().nonnegative();
 const ZONED_INSTANT_PATTERN =
-  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})([+-])(\d{2}):(\d{2})$/;
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?([+-])(\d{2}):(\d{2})$/;
 
 function parseStrictZonedInstant(value: string): number | null {
   const match = ZONED_INSTANT_PATTERN.exec(value);
@@ -30,7 +30,7 @@ function parseStrictZonedInstant(value: string): number | null {
     dayText,
     hourText,
     minuteText,
-    secondText,
+    secondText ?? '0',
     offsetHourText,
     offsetMinuteText,
   ].map(Number);
@@ -53,7 +53,7 @@ function parseStrictZonedInstant(value: string): number | null {
 
 const ZonedInstantZ = NonEmptyStringZ.refine(
   (value) => parseStrictZonedInstant(value) !== null,
-  { message: 'must be an exact valid zoned instant including seconds' }
+  { message: 'must be an exact valid zoned instant' }
 );
 
 export const GovernedWaiverPathZ = z.enum([
