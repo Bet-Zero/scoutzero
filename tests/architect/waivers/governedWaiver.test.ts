@@ -683,14 +683,21 @@ describe('governed waiver mutation and atomic persistence', () => {
   });
 
   it('returns no writes when authority or exact snapshot receipts are absent', () => {
-    for (const result of [
-      computeWaiverMutation({ omitAuthority: true }),
-      computeWaiverMutation({ omitSnapshotReceipts: true }),
-    ]) {
-      expect(result.success).toBe(false);
-      expect(result.teamUpdates || []).toEqual([]);
-      expect(result.playerUpdates || []).toEqual([]);
-      expect(result.playerDeletes || []).toEqual([]);
+    const cases = [
+      {
+        label: 'missing governed Contract authority',
+        result: computeWaiverMutation({ omitAuthority: true }),
+      },
+      {
+        label: 'missing exact snapshot receipts',
+        result: computeWaiverMutation({ omitSnapshotReceipts: true }),
+      },
+    ];
+    for (const { label, result } of cases) {
+      expect(result.success, label).toBe(false);
+      expect(result.teamUpdates || [], label).toEqual([]);
+      expect(result.playerUpdates || [], label).toEqual([]);
+      expect(result.playerDeletes || [], label).toEqual([]);
     }
   });
 
