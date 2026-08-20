@@ -20,7 +20,7 @@ import {
   parseZonedDateTime,
 } from '@/features/architect/utils/governedSeason';
 import {
-  composeEasternInstant,
+  easternInstantCandidates,
   oneYearAfter,
   worldDateContainsInstant,
 } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
@@ -169,8 +169,10 @@ function easternInstantFromEpoch(epochMs: number): string | null {
       .filter((part) => part.type !== 'literal')
       .map((part) => [part.type, part.value])
   );
-  return composeEasternInstant(
-    `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`
+  return (
+    easternInstantCandidates(
+      `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`
+    ).find((candidate) => parseZonedDateTime(candidate) === epochMs) ?? null
   );
 }
 
@@ -224,6 +226,17 @@ function evenlyAllocate(total: number, count: number): number[] {
   return Array.from(
     { length: count },
     (_, index) => base + (index < remainder ? 1 : 0)
+  );
+}
+
+function optionExcludesContractSeason(row: {
+  option: string | null;
+  optionUsed: boolean | null;
+}): boolean {
+  return (
+    ((row.option === 'PO' || row.option === 'TO') &&
+      row.optionUsed === false) ||
+    (row.option === 'ETO' && row.optionUsed === true)
   );
 }
 
@@ -406,9 +419,12 @@ export function decideGovernedWaiver(
     reasons.push('Operation and author identities are required.');
   if (
     !Number.isFinite(request.salaryCapAtElection) ||
+    !Number.isInteger(request.salaryCapAtElection) ||
     request.salaryCapAtElection <= 0
   )
-    reasons.push('The governed Salary Cap in effect at election is required.');
+    reasons.push(
+      'The governed Salary Cap in effect at election must be a positive whole-dollar amount.'
+    );
   if (proposal.path === 'waive-and-stretch' && !proposal.writtenStretchElection)
     reasons.push('Waive & Stretch requires a written Team Salary election.');
   if (proposal.path !== 'waive-and-stretch' && proposal.writtenStretchElection)
@@ -474,8 +490,15 @@ export function decideGovernedWaiver(
 
   const protectedRows: Array<{ season: string; amount: number }> = [];
   for (const { row, endYear } of allRows) {
-    if (row.salary === null || !Number.isFinite(row.salary) || row.salary < 0) {
-      reasons.push(`Base Compensation is missing for ${String(row.season)}.`);
+    if (
+      row.salary === null ||
+      !Number.isFinite(row.salary) ||
+      !Number.isInteger(row.salary) ||
+      row.salary < 0
+    ) {
+      reasons.push(
+        `Base Compensation for ${String(row.season)} must be a nonnegative whole-dollar amount.`
+      );
       continue;
     }
     if (row.capHit === null || row.capHit !== row.salary) {
@@ -501,11 +524,7 @@ export function decideGovernedWaiver(
       reasons.push(`The ETO decision for ${String(row.season)} is unresolved.`);
       continue;
     }
-    const optionExcludes =
-      ((row.option === 'PO' || row.option === 'TO') &&
-        row.optionUsed === false) ||
-      (row.option === 'ETO' && row.optionUsed === true);
-    if (optionExcludes) continue;
+    if (optionExcludesContractSeason(row)) continue;
     let amount = 0;
     if (
       endYear === currentSalaryCapYear &&
@@ -517,12 +536,13 @@ export function decideGovernedWaiver(
     } else if (
       row.guaranteedAmount !== null &&
       Number.isFinite(row.guaranteedAmount) &&
+      Number.isInteger(row.guaranteedAmount) &&
       row.guaranteedAmount >= 0
     ) {
       amount = row.guaranteedAmount;
     } else {
       reasons.push(
-        `Protected Base Compensation is missing for ${String(row.season)}.`
+        `Protected Base Compensation for ${String(row.season)} must be a nonnegative whole-dollar amount.`
       );
       continue;
     }
@@ -536,6 +556,14 @@ export function decideGovernedWaiver(
       protectedRows.push({ season: toSeasonCode(endYear), amount });
   }
   if (reasons.length > 0) return unavailable('needs-input', reasons);
+  const remainingRows = allRows.filter(
+    ({ row }) => !optionExcludesContractSeason(row)
+  );
+  if (remainingRows.length === 0) {
+    return unavailable('needs-input', [
+      'The governed Contract has no remaining Contract Seasons after recorded option decisions.',
+    ]);
+  }
 
   const protectedTotal = protectedRows.reduce(
     (sum, row) => sum + row.amount,
@@ -571,7 +599,7 @@ export function decideGovernedWaiver(
   let stretchYears: number | null = null;
   let stretchElectionAt: string | null = null;
   let reacquisitionRestrictedUntil: string | null = null;
-  const finalContractEndYear = allRows.at(-1)?.endYear;
+  const finalContractEndYear = remainingRows.at(-1)?.endYear;
   const julyAfterFinal = finalContractEndYear
     ? julyOneFollowingSeason(toSeasonCode(finalContractEndYear))
     : null;
@@ -608,8 +636,8 @@ export function decideGovernedWaiver(
     const unchanged = stretchBranch === 'july-august' ? [] : currentRows;
     const remainingSeasonCount =
       stretchBranch === 'july-august'
-        ? allRows.length
-        : allRows.filter((entry) => entry.endYear > currentSalaryCapYear)
+        ? remainingRows.length
+        : remainingRows.filter((entry) => entry.endYear > currentSalaryCapYear)
             .length;
     if (remainingSeasonCount <= 0 || applicable.length === 0) {
       return unavailable('needs-input', [
@@ -745,7 +773,7 @@ export function decideGovernedWaiver(
     requestIrrevocable: true,
     outcome: 'ordinary-unclaimed',
     events,
-    originalContractSeasons: allRows.map((entry) =>
+    originalContractSeasons: remainingRows.map((entry) =>
       toSeasonCode(entry.endYear)
     ),
     protectedBaseCompensation: protectedTotal,

@@ -354,6 +354,117 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
     ).toBe(false);
   });
 
+  it('rejects lifecycle fields, events, and allocations that do not belong to their path', () => {
+    const standard = decideGovernedWaiver(request('standard'));
+    const buyout = decideGovernedWaiver(request('buyout'));
+    const stretch = decideGovernedWaiver(request('waive-and-stretch'));
+    expectSuccess(standard);
+    expectSuccess(buyout);
+    expectSuccess(stretch);
+
+    const invalidCases: Array<{ label: string; lifecycle: unknown }> = [
+      {
+        label: 'standard buyout reduction',
+        lifecycle: { ...standard.lifecycle, buyoutReduction: 1 },
+      },
+      {
+        label: 'standard buyout agreement',
+        lifecycle: {
+          ...standard.lifecycle,
+          buyoutAgreementAt: standard.lifecycle.leagueReceivedAt,
+        },
+      },
+      {
+        label: 'standard buyout signature',
+        lifecycle: { ...standard.lifecycle, playerSignatureRecorded: true },
+      },
+      {
+        label: 'standard buyout event',
+        lifecycle: { ...standard.lifecycle, events: buyout.lifecycle.events },
+      },
+      {
+        label: 'standard stretch election',
+        lifecycle: {
+          ...standard.lifecycle,
+          stretchElectionAt: standard.lifecycle.expiresAt,
+        },
+      },
+      {
+        label: 'standard stretch branch',
+        lifecycle: { ...standard.lifecycle, stretchBranch: 'july-august' },
+      },
+      {
+        label: 'standard stretch years',
+        lifecycle: { ...standard.lifecycle, stretchYears: 7 },
+      },
+      {
+        label: 'standard stretch cap snapshot',
+        lifecycle: { ...standard.lifecycle, salaryCapAtElection: 180_000_000 },
+      },
+      {
+        label: 'standard stretch ceiling',
+        lifecycle: {
+          ...standard.lifecycle,
+          formerPlayerCeilingAtElection: 27_000_000,
+        },
+      },
+      {
+        label: 'standard stretch event',
+        lifecycle: { ...standard.lifecycle, events: stretch.lifecycle.events },
+      },
+      {
+        label: 'standard stretched allocation',
+        lifecycle: {
+          ...standard.lifecycle,
+          allocations: stretch.lifecycle.allocations,
+        },
+      },
+      {
+        label: 'stretched player payment',
+        lifecycle: {
+          ...stretch.lifecycle,
+          paymentAllocations: stretch.lifecycle.paymentAllocations.map(
+            (row, index) =>
+              index === 0 ? { ...row, isTeamSalaryStretched: true } : row
+          ),
+        },
+      },
+      {
+        label: 'buyout missing agreement',
+        lifecycle: { ...buyout.lifecycle, buyoutAgreementAt: null },
+      },
+      {
+        label: 'buyout missing signature',
+        lifecycle: { ...buyout.lifecycle, teamSignatureRecorded: false },
+      },
+      {
+        label: 'stretch missing election',
+        lifecycle: { ...stretch.lifecycle, stretchElectionAt: null },
+      },
+      {
+        label: 'stretch missing cap snapshot',
+        lifecycle: { ...stretch.lifecycle, salaryCapAtElection: null },
+      },
+      {
+        label: 'standard reacquisition bar',
+        lifecycle: {
+          ...standard.lifecycle,
+          reacquisitionRestrictedUntil: '2029-07-01T00:00:00-04:00',
+        },
+      },
+      {
+        label: 'buyout missing reacquisition bar',
+        lifecycle: { ...buyout.lifecycle, reacquisitionRestrictedUntil: null },
+      },
+    ];
+
+    for (const { label, lifecycle } of invalidCases) {
+      expect(GovernedWaiverLifecycleZ.safeParse(lifecycle).success, label).toBe(
+        false
+      );
+    }
+  });
+
   it('applies the January 10 current-Season protection at ordinary expiry', () => {
     const baseline = baselineFor({
       rows: [
@@ -426,6 +537,79 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
     expect(
       result.lifecycle.paymentAllocations.map((row) => row.season)
     ).toEqual(['2026-27', '2027-28', '2028-29']);
+  });
+
+  it('excludes unused option Seasons from stretch length and reacquisition timing', () => {
+    for (const excludedOption of [
+      { option: 'PO' as const, optionHolder: 'player', optionUsed: false },
+      { option: 'TO' as const, optionHolder: 'team', optionUsed: false },
+      { option: 'ETO' as const, optionHolder: 'player', optionUsed: true },
+    ]) {
+      const baseline = baselineFor({
+        rows: [
+          salaryRow('2026-27', 10_000_000),
+          salaryRow('2027-28', 12_000_000),
+          salaryRow('2028-29', 14_000_000, excludedOption),
+        ],
+      });
+      const result = decideGovernedWaiver(
+        request('waive-and-stretch', { baseline })
+      );
+      expectSuccess(result);
+      expect(result.lifecycle.originalContractSeasons).toEqual([
+        '2026-27',
+        '2027-28',
+      ]);
+      expect(result.lifecycle.stretchYears).toBe(5);
+      expect(result.lifecycle.reacquisitionRestrictedUntil).toBe(
+        '2028-07-01T00:00:00-04:00'
+      );
+    }
+
+    const buyout = decideGovernedWaiver(
+      request('buyout', {
+        baseline: baselineFor({
+          rows: [
+            salaryRow('2026-27', 10_000_000),
+            salaryRow('2027-28', 12_000_000),
+            salaryRow('2028-29', 14_000_000, {
+              option: 'PO',
+              optionHolder: 'player',
+              optionUsed: false,
+            }),
+          ],
+        }),
+        proposal: proposal('buyout', { buyoutReduction: 5_000_000 }),
+      })
+    );
+    expectSuccess(buyout);
+    expect(buyout.lifecycle.reacquisitionRestrictedUntil).toBe(
+      '2028-07-01T00:00:00-04:00'
+    );
+  });
+
+  it('fails closed on fractional money inputs', () => {
+    const fractionalBuyout = decideGovernedWaiver(
+      request('buyout', {
+        proposal: proposal('buyout', { buyoutReduction: 1_000_000.5 }),
+      })
+    );
+    expect(fractionalBuyout.success).toBe(false);
+
+    const fractionalCompensation = decideGovernedWaiver(
+      request('standard', {
+        baseline: baselineFor({
+          rows: [
+            salaryRow('2026-27', 10_000_000.5),
+            salaryRow('2027-28', 12_000_000),
+          ],
+        }),
+      })
+    );
+    expect(fractionalCompensation.success).toBe(false);
+    if (!fractionalCompensation.success) {
+      expect(fractionalCompensation.reasons.join(' ')).toMatch(/whole-dollar/i);
+    }
   });
 
   it('leaves the current Team Salary unchanged in September-June and stretches only future Seasons', () => {

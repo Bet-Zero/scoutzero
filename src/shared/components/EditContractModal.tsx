@@ -26,7 +26,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
-import { formatCurrencyFull, formatCurrency } from '@/shared/utils/formatting';
+import { formatCurrencyFull } from '@/shared/utils/formatting';
 import { getCapSettings } from '@/features/architect/utils/capHelpers';
 import { getContractYearsForDisplay } from '@/features/architect/utils/contractUtils';
 import { useCapValidation } from '@/features/architect/hooks/useCapValidation';
@@ -46,7 +46,7 @@ import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision
 import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
 import type { GovernedWaiverProposal } from '@/schemas/governedWaiver';
 import { isZonedDateTime } from '@/features/architect/utils/governedSeason';
-import { composeEasternInstant } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
+import { easternInstantCandidates } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
 import {
   toEndYear,
   toSeasonCode,
@@ -131,6 +131,8 @@ export const EditContractModal = ({
   ); // Phase 23
   const [buyoutAmountInput, setBuyoutAmountInput] = useState('');
   const [waiverLeagueReceiptInput, setWaiverLeagueReceiptInput] = useState('');
+  const [waiverLeagueReceiptOffset, setWaiverLeagueReceiptOffset] =
+    useState('');
   const [writtenStretchElection, setWrittenStretchElection] = useState(false);
   const [signedBuyoutAgreement, setSignedBuyoutAgreement] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -511,10 +513,24 @@ export const EditContractModal = ({
   const isGovernedWaiverAction = ['waive', 'waiveStretch', 'buyout'].includes(
     selectedAction
   );
-  const waiverLeagueReceiptAt = useMemo(
-    () => composeEasternInstant(waiverLeagueReceiptInput),
+  const waiverLeagueReceiptCandidates = useMemo(
+    () => easternInstantCandidates(waiverLeagueReceiptInput),
     [waiverLeagueReceiptInput]
   );
+  const waiverLeagueReceiptAt = useMemo(() => {
+    if (waiverLeagueReceiptCandidates.length === 1)
+      return waiverLeagueReceiptCandidates[0] ?? null;
+    if (!waiverLeagueReceiptOffset) return null;
+    return (
+      waiverLeagueReceiptCandidates.find((candidate) =>
+        candidate.endsWith(waiverLeagueReceiptOffset)
+      ) ?? null
+    );
+  }, [waiverLeagueReceiptCandidates, waiverLeagueReceiptOffset]);
+  const handleWaiverLeagueReceiptInputChange = useCallback((value: string) => {
+    setWaiverLeagueReceiptInput(value);
+    setWaiverLeagueReceiptOffset('');
+  }, []);
   const validationAuthority: ValidationAuthority =
     isGovernedOptionDecisionAction ||
     isGovernedExtensionAction ||
@@ -744,7 +760,8 @@ export const EditContractModal = ({
     const trimmed = String(buyoutAmountInput || '').trim();
     if (!trimmed) return null;
     const amount = Number(trimmed);
-    if (!Number.isFinite(amount) || amount < 0) return null;
+    if (!Number.isFinite(amount) || !Number.isInteger(amount) || amount < 0)
+      return null;
     return amount;
   }, [buyoutAmountInput]);
 
@@ -1022,7 +1039,7 @@ export const EditContractModal = ({
 
     if (selectedAction === 'buyout' && !buyoutAmountIsValid) {
       setSaveError(
-        `Enter a buyout amount between 0 and ${formatCurrencyFull(
+        `Enter a whole-dollar buyout amount between 0 and ${formatCurrencyFull(
           remainingGuaranteedForBuyout
         )}.`
       );
@@ -1278,7 +1295,12 @@ export const EditContractModal = ({
                 availability={waiverAvailability}
                 leagueReceiptInput={waiverLeagueReceiptInput}
                 leagueReceiptAt={waiverLeagueReceiptAt}
-                onLeagueReceiptInputChange={setWaiverLeagueReceiptInput}
+                leagueReceiptCandidates={waiverLeagueReceiptCandidates}
+                leagueReceiptOffset={waiverLeagueReceiptOffset}
+                onLeagueReceiptInputChange={
+                  handleWaiverLeagueReceiptInputChange
+                }
+                onLeagueReceiptOffsetChange={setWaiverLeagueReceiptOffset}
                 writtenStretchElection={writtenStretchElection}
                 onWrittenStretchElectionChange={setWrittenStretchElection}
                 signedBuyoutAgreement={signedBuyoutAgreement}

@@ -61,12 +61,15 @@ function dateAfterDays(value: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-export function composeEasternInstant(localDateTime: string): string | null {
+export function easternInstantCandidates(
+  localDateTime: string
+): readonly string[] {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(localDateTime)) {
-    return null;
+    return [];
   }
   const normalizedLocalDateTime =
     localDateTime.length === 16 ? `${localDateTime}:00` : localDateTime;
+  const candidates: string[] = [];
   for (const offset of ['-05:00', '-04:00']) {
     const candidate = `${localDateTime}${offset}`;
     if (easternOffsetAt(candidate) !== offset) continue;
@@ -87,10 +90,15 @@ export function composeEasternInstant(localDateTime: string): string | null {
         .map((part) => [part.type, part.value])
     );
     const roundTripped = `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
-    if (roundTripped === normalizedLocalDateTime) return candidate;
+    if (roundTripped === normalizedLocalDateTime) candidates.push(candidate);
   }
 
-  return null;
+  return Object.freeze(candidates);
+}
+
+export function composeEasternInstant(localDateTime: string): string | null {
+  const candidates = easternInstantCandidates(localDateTime);
+  return candidates.length === 1 ? (candidates[0] ?? null) : null;
 }
 
 function isLeapYear(year: number): boolean {

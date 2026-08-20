@@ -330,7 +330,6 @@ const seedWaiverWorld = async (userId: string) => {
     db
       .doc(`architect_worlds/${worldId}/teams/${TEAM_ID}/players/${PLAYER_ID}`)
       .set(player),
-    db.doc(`architect_basePlayers/${PLAYER_ID}`).set(player),
     writeBaselineDocuments(
       worldId,
       buildContractBaselineTeamDocuments(release, worldId)
@@ -407,7 +406,6 @@ test.describe('ARCH-GOVERNED-WAIVER: Full Cap saved-world proof', () => {
     const db = getReviewAdminDb();
     if (worldId)
       await db.recursiveDelete(db.doc(`architect_worlds/${worldId}`));
-    await db.doc(`architect_basePlayers/${PLAYER_ID}`).delete();
     worldId = '';
   });
 

@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import {
   compareInstant,
+  composeEasternInstant,
+  easternInstantCandidates,
   exerciseNoticeDeadline,
   oneYearAfter,
 } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
@@ -753,6 +755,15 @@ describe('BZE-283 governed RFA Offer Sheet workflow', () => {
         compareInstant('2025-02-30T12:00:00-05:00', '2025-03-01T12:00:00-05:00')
       )
     ).toBe(true);
+  });
+
+  it('requires an explicit offset for the repeated Eastern hour', () => {
+    expect(easternInstantCandidates('2026-11-01T01:30:00')).toEqual([
+      '2026-11-01T01:30:00-05:00',
+      '2026-11-01T01:30:00-04:00',
+    ]);
+    expect(composeEasternInstant('2026-11-01T01:30:00')).toBeNull();
+    expect(easternInstantCandidates('2026-03-08T02:30:00')).toEqual([]);
   });
 
   it('uses Average Annual Salary for the offering Team on an Arenas sheet', () => {

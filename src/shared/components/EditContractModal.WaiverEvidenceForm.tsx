@@ -6,7 +6,10 @@ type GovernedWaiverEvidenceFormProps = {
   availability: GovernedWaiverAvailability | null;
   leagueReceiptInput: string;
   leagueReceiptAt: string | null;
+  leagueReceiptCandidates: readonly string[];
+  leagueReceiptOffset: string;
   onLeagueReceiptInputChange: (value: string) => void;
+  onLeagueReceiptOffsetChange: (value: string) => void;
   writtenStretchElection: boolean;
   onWrittenStretchElectionChange: (value: boolean) => void;
   signedBuyoutAgreement: boolean;
@@ -18,7 +21,10 @@ export function GovernedWaiverEvidenceForm({
   availability,
   leagueReceiptInput,
   leagueReceiptAt,
+  leagueReceiptCandidates,
+  leagueReceiptOffset,
   onLeagueReceiptInputChange,
+  onLeagueReceiptOffsetChange,
   writtenStretchElection,
   onWrittenStretchElectionChange,
   signedBuyoutAgreement,
@@ -92,13 +98,39 @@ export function GovernedWaiverEvidenceForm({
           id="governed-waiver-league-receipt-hint"
           className="mt-1 text-[11px] text-white/55"
         >
-          {leagueReceiptInput && !leagueReceiptAt
-            ? 'Choose a valid Eastern time. The skipped daylight-saving hour cannot be used.'
-            : leagueReceiptAt
-              ? `Recorded as ${leagueReceiptAt}`
-              : 'Enter the exact time shown on the League receipt.'}
+          {leagueReceiptCandidates.length === 2 && !leagueReceiptAt
+            ? 'This time occurs twice when daylight-saving time ends. Choose the offset shown on the League receipt.'
+            : leagueReceiptInput && !leagueReceiptAt
+              ? 'Choose a valid Eastern time. The skipped daylight-saving hour cannot be used.'
+              : leagueReceiptAt
+                ? `Recorded as ${leagueReceiptAt}`
+                : 'Enter the exact time shown on the League receipt.'}
         </p>
       </div>
+
+      {leagueReceiptCandidates.length === 2 && (
+        <div>
+          <label
+            htmlFor="governed-waiver-league-receipt-offset"
+            className="block text-xs font-medium text-white/85 mb-1"
+          >
+            League receipt UTC offset
+          </label>
+          <select
+            id="governed-waiver-league-receipt-offset"
+            data-testid="governed-waiver-league-receipt-offset"
+            value={leagueReceiptOffset}
+            onChange={(event) =>
+              onLeagueReceiptOffsetChange(event.target.value)
+            }
+            className="w-full rounded border border-white/20 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-orange-500"
+          >
+            <option value="">Choose EDT or EST</option>
+            <option value="-04:00">EDT (UTC−04:00)</option>
+            <option value="-05:00">EST (UTC−05:00)</option>
+          </select>
+        </div>
+      )}
 
       {selectedAction === 'waiveStretch' && (
         <label className="flex items-start gap-2 text-xs text-white/80">

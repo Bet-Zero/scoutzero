@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  cleanup,
+} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { EditContractModal } from '@/shared/components/EditContractModal';
 
@@ -179,9 +185,7 @@ describe('EditContractModal buyout + close gating behavior', () => {
       target: { value: '2026-07-08T12:00:00-04:00' },
     });
     fireEvent.change(
-      await screen.findByTestId(
-        'governed-extension-higher-max-percentage'
-      ),
+      await screen.findByTestId('governed-extension-higher-max-percentage'),
       { target: { value: '30' } }
     );
     fireEvent.click(
@@ -260,14 +264,61 @@ describe('EditContractModal buyout + close gating behavior', () => {
     });
   });
 
+  it('requires an explicit offset during the repeated Eastern hour', async () => {
+    const onWaive = vi.fn().mockResolvedValue({ success: true });
+    render(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2027}
+        initialAction="waive"
+        onWaive={onWaive}
+        waiverAvailability={WAIVER_AVAILABILITY}
+      />
+    );
+
+    fireEvent.change(screen.getByTestId('governed-waiver-league-receipt'), {
+      target: { value: '2026-11-01T01:30:00' },
+    });
+
+    expect(
+      screen.getByText(/this time occurs twice when daylight-saving time ends/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /authoritative preflight pending/i })
+    ).toBeDisabled();
+
+    fireEvent.change(
+      screen.getByTestId('governed-waiver-league-receipt-offset'),
+      { target: { value: '-05:00' } }
+    );
+    expect(
+      screen.getByText('Recorded as 2026-11-01T01:30-05:00')
+    ).toBeInTheDocument();
+    fireEvent.click(
+      await screen.findByRole('button', { name: /confirm action/i })
+    );
+
+    await waitFor(() => {
+      expect(onWaive).toHaveBeenCalledWith(
+        PLAYER,
+        expect.objectContaining({
+          waiverProposal: expect.objectContaining({
+            leagueReceivedAt: '2026-11-01T01:30-05:00',
+          }),
+        })
+      );
+    });
+  });
+
   it('keeps modal open and shows inline error when handler reports canceled confirm', async () => {
     const onClose = vi.fn();
-    const onWaive = vi
-      .fn()
-      .mockResolvedValue({
-        success: false,
-        message: 'Action canceled. No changes were saved.',
-      });
+    const onWaive = vi.fn().mockResolvedValue({
+      success: false,
+      message: 'Action canceled. No changes were saved.',
+    });
 
     render(
       <EditContractModal

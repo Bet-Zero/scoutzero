@@ -994,7 +994,7 @@ export function useContractActions({
       player: ArchitectPlayer,
       options: WaiveOptions
     ): Promise<MutationActionResult> => {
-      const { stretch, buyout, waiverProposal, overrideUsed } = options;
+      const { waiverProposal, overrideUsed } = options;
       const playerId = player.id || player.player_id || player.name;
       if (!playerId) {
         console.error('Waive missing playerId', { player });
@@ -1045,6 +1045,8 @@ export function useContractActions({
         ...waiverProposal,
         contractId: entry.contractId,
       };
+      const isStretch = proposal.path === 'waive-and-stretch';
+      const isBuyout = proposal.path === 'buyout';
       const seasonEnvelope = resolveGovernedSeasonEnvelope({
         asOfDate: proposal.leagueReceivedAt,
         salaryCapYear: currentYear,
@@ -1084,9 +1086,9 @@ export function useContractActions({
         reportMutationError(message, { playerId, reasons: preview.reasons });
         return { success: false, message };
       }
-      const confirmMsg = stretch
+      const confirmMsg = isStretch
         ? `Place ${playerName} on irrevocable waivers and record the written Team Salary stretch election?`
-        : buyout
+        : isBuyout
           ? `Record the signed buyout and place ${playerName} on irrevocable waivers?`
           : `Place ${playerName} on irrevocable waivers?`;
       if (!window.confirm(confirmMsg)) {
@@ -1136,16 +1138,20 @@ export function useContractActions({
           playerId,
           contractId: entry.contractId,
           waiverProposal: proposal,
-          stretch: !!stretch,
+          stretch: isStretch,
           stretchYears: preview.lifecycle.stretchYears ?? 0,
-          buyout: !!buyout,
+          buyout: isBuyout,
           buyoutAmount: preview.lifecycle.buyoutReduction,
         },
         receiptContext: {
-          actionType: stretch ? 'waive-stretch' : buyout ? 'buyout' : 'waive',
-          headlineOverride: stretch
+          actionType: isStretch
+            ? 'waive-stretch'
+            : isBuyout
+              ? 'buyout'
+              : 'waive',
+          headlineOverride: isStretch
             ? 'Waiver and stretch scheduled'
-            : buyout
+            : isBuyout
               ? 'Signed buyout waiver scheduled'
               : 'Waiver request recorded',
           playerId,
@@ -1156,9 +1162,9 @@ export function useContractActions({
           effectAreas: ['roster', 'deadMoney', 'cap'],
           notes: [
             `Player List removal is immediate; the Team remains financially responsible through ${preview.lifecycle.expiresAt}.`,
-            buyout
+            isBuyout
               ? 'The written reduction is allocated pro rata across remaining protected Base Compensation.'
-              : stretch
+              : isStretch
                 ? 'Player payments stay on the original schedule; only Team Salary is re-attributed by the written election.'
                 : 'Protected Base Compensation becomes dead salary only at ordinary unclaimed expiry.',
             'Set-off remains pending until authenticated later earnings exist.',

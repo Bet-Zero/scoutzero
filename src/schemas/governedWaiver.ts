@@ -5,7 +5,7 @@ import { z } from 'zod';
 const NonEmptyStringZ = z.string().refine((value) => value.trim().length > 0, {
   message: 'must contain at least one non-whitespace character',
 });
-const MoneyZ = z.number().finite().nonnegative();
+const MoneyZ = z.number().finite().int().nonnegative();
 const ZONED_INSTANT_PATTERN =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/;
 
@@ -137,6 +137,104 @@ export const GovernedWaiverLifecycleZ = z
     canonLeafIds: z.array(NonEmptyStringZ).min(1),
   })
   .superRefine((lifecycle, context) => {
+    const addPathIssue = (path: (string | number)[], message: string) =>
+      context.addIssue({ code: z.ZodIssueCode.custom, path, message });
+    const buyoutEvents = lifecycle.events.filter(
+      (event) => event.eventKind === 'buyout-agreement'
+    );
+    const stretchEvents = lifecycle.events.filter(
+      (event) => event.eventKind === 'team-salary-stretch-election'
+    );
+    const hasStretchedAllocation = lifecycle.allocations.some(
+      (allocation) => allocation.isTeamSalaryStretched
+    );
+    const hasStretchedPaymentAllocation = [
+      ...lifecycle.allocationsBeforeStretch,
+      ...lifecycle.paymentAllocations,
+    ].some((allocation) => allocation.isTeamSalaryStretched);
+
+    if (hasStretchedPaymentAllocation) {
+      addPathIssue(
+        ['paymentAllocations'],
+        'player-payment allocations must remain on the original schedule'
+      );
+    }
+
+    if (lifecycle.path === 'buyout') {
+      if (
+        lifecycle.buyoutAgreementAt === null ||
+        !lifecycle.playerSignatureRecorded ||
+        !lifecycle.teamSignatureRecorded ||
+        buyoutEvents.length !== 1
+      ) {
+        addPathIssue(
+          ['path'],
+          'buyout requires one written agreement event and both signatures'
+        );
+      }
+    } else if (
+      lifecycle.buyoutReduction !== 0 ||
+      lifecycle.buyoutAgreementAt !== null ||
+      lifecycle.playerSignatureRecorded ||
+      lifecycle.teamSignatureRecorded ||
+      buyoutEvents.length !== 0
+    ) {
+      addPathIssue(
+        ['path'],
+        'buyout fields and events are only valid on the buyout path'
+      );
+    }
+
+    if (lifecycle.path === 'waive-and-stretch') {
+      if (
+        lifecycle.stretchElectionAt === null ||
+        lifecycle.stretchBranch === null ||
+        lifecycle.stretchYears === null ||
+        lifecycle.salaryCapAtElection === null ||
+        lifecycle.formerPlayerCeilingAtElection === null ||
+        stretchEvents.length !== 1 ||
+        !hasStretchedAllocation ||
+        lifecycle.reacquisitionRestrictedUntil === null
+      ) {
+        addPathIssue(
+          ['path'],
+          'waive-and-stretch requires its election, cap snapshot, stretched allocation, event, and reacquisition bar'
+        );
+      }
+    } else if (
+      lifecycle.stretchElectionAt !== null ||
+      lifecycle.stretchBranch !== null ||
+      lifecycle.stretchYears !== null ||
+      lifecycle.salaryCapAtElection !== null ||
+      lifecycle.formerPlayerCeilingAtElection !== null ||
+      stretchEvents.length !== 0 ||
+      hasStretchedAllocation
+    ) {
+      addPathIssue(
+        ['path'],
+        'stretch fields, events, and allocations are only valid on the waive-and-stretch path'
+      );
+    }
+
+    if (
+      lifecycle.path === 'standard' &&
+      lifecycle.reacquisitionRestrictedUntil !== null
+    ) {
+      addPathIssue(
+        ['reacquisitionRestrictedUntil'],
+        'must be null on the standard waiver path'
+      );
+    }
+    if (
+      lifecycle.path === 'buyout' &&
+      lifecycle.reacquisitionRestrictedUntil === null
+    ) {
+      addPathIssue(
+        ['reacquisitionRestrictedUntil'],
+        'must be recorded on the buyout path'
+      );
+    }
+
     const receivedAt = parseStrictZonedInstant(lifecycle.leagueReceivedAt);
     const expiresAt = parseStrictZonedInstant(lifecycle.expiresAt);
     if (
