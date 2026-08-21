@@ -45,7 +45,9 @@ describe('governed waiver Team Salary shared boundary', () => {
     expect(compactCapSheet).toContain('{ asOfDate }');
     expect(workspace).toContain('asOfDate: worldAsOfDate');
     expect(tradeHelper).toContain('{ asOfDate }');
-    expect(tradeTiles).toContain('{ asOfDate }');
+    expect(tradeTiles).toMatch(
+      /computeTeamCapTotals\([\s\S]*?yearKey,\s*\{\s*asOfDate,\s*\}\s*\)/
+    );
     expect(leagueView).toContain('{ asOfDate: season.asOfDate }');
   });
 });
