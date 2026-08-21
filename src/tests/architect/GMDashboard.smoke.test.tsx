@@ -22,6 +22,8 @@ import { GMDashboard } from '@/features/architect/GMDashboard/GMDashboard';
 const {
   mockUseArchitectState,
   mockSetActiveTab,
+  mockCapSheetSectionProps,
+  mockCompactCapSheetCalculation,
   mockCapTableSectionProps,
   mockFreeAgencySectionProps,
   mockTradeSectionProps,
@@ -34,6 +36,8 @@ const {
 } = vi.hoisted(() => ({
   mockUseArchitectState: vi.fn(),
   mockSetActiveTab: vi.fn(),
+  mockCapSheetSectionProps: vi.fn(),
+  mockCompactCapSheetCalculation: vi.fn(),
   mockCapTableSectionProps: vi.fn(),
   mockFreeAgencySectionProps: vi.fn(),
   mockTradeSectionProps: vi.fn(),
@@ -195,9 +199,46 @@ vi.mock('@/features/architect/GMDashboard/sections/RosterSection', () => ({
   RosterSection: () => <div>RosterSection</div>,
 }));
 
-vi.mock('@/features/architect/GMDashboard/sections/CapSheetSection', () => ({
-  CapSheetSection: () => <div>CapSheetSection</div>,
-}));
+vi.mock(
+  '@/features/architect/GMDashboard/sections/CapSheetSection',
+  async () => {
+    const actual = await vi.importActual<
+      typeof import('@/features/architect/GMDashboard/sections/CapSheetSection')
+    >('@/features/architect/GMDashboard/sections/CapSheetSection');
+
+    return {
+      CapSheetSection: (props: Record<string, unknown>) => {
+        mockCapSheetSectionProps(props);
+        const forwardedProps = props as React.ComponentProps<
+          typeof actual.CapSheetSection
+        >;
+        return <actual.CapSheetSection {...forwardedProps} />;
+      },
+    };
+  }
+);
+
+vi.mock('@/features/architect/capSheet/CapSheet', () => {
+  const MockCapSheet = (props: Record<string, unknown>) => {
+    const asOfDate = props.asOfDate as string | null | undefined;
+    const total =
+      asOfDate === '2026-07-01T12:00:00.000-04:00'
+        ? 6_000_000
+        : 10_000_000;
+    mockCompactCapSheetCalculation({ asOfDate, total });
+    return (
+      <div
+        data-testid="mock-compact-cap-sheet-total"
+        data-as-of-date={asOfDate ?? ''}
+        data-total={String(total)}
+      >
+        {total}
+      </div>
+    );
+  };
+
+  return { default: MockCapSheet, CapSheet: MockCapSheet };
+});
 
 vi.mock('@/features/architect/GMDashboard/sections/CapTableSection', () => ({
   CapTableSection: (props: Record<string, any>) => {
@@ -538,6 +579,58 @@ describe('GMDashboard Smoke Test', () => {
       fireEvent.click(within(tablist).getByRole('tab', { name: /^cap sheet$/i }));
 
       expect(mockSetActiveTab).toHaveBeenCalledWith('cap');
+    });
+
+    it('forwards the governed date through CapSheetSection into the compact calculation', () => {
+      let worldAsOfDate = '2026-07-01T11:59:59.999-04:00';
+      mockUseArchitectState.mockImplementation(() => {
+        const state = buildLoadedDashboardState();
+        return {
+          ...state,
+          activeTab: 'cap',
+          currentYear: 2027,
+          selectedRulesYear: 2027,
+          worldId: 'world-date-forwarding',
+          worldAsOfDate,
+          worldCurrentSeason: '2026-27',
+          worldTimeOwner: {
+            ...state.worldTimeOwner,
+            worldId: 'world-date-forwarding',
+            asOfDate: worldAsOfDate,
+          },
+        };
+      });
+
+      const { rerender } = render(<GMDashboard />);
+
+      expect(mockCapSheetSectionProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          currentYear: 2027,
+          asOfDate: '2026-07-01T11:59:59.999-04:00',
+        })
+      );
+      expect(screen.getByTestId('mock-compact-cap-sheet-total')).toHaveAttribute(
+        'data-total',
+        '10000000'
+      );
+
+      worldAsOfDate = '2026-07-01T12:00:00.000-04:00';
+      rerender(<GMDashboard />);
+
+      expect(mockCapSheetSectionProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          currentYear: 2027,
+          asOfDate: '2026-07-01T12:00:00.000-04:00',
+        })
+      );
+      expect(mockCompactCapSheetCalculation).toHaveBeenLastCalledWith({
+        asOfDate: '2026-07-01T12:00:00.000-04:00',
+        total: 6_000_000,
+      });
+      expect(screen.getByTestId('mock-compact-cap-sheet-total')).toHaveAttribute(
+        'data-total',
+        '6000000'
+      );
     });
 
     it('renders dashboard title', async () => {
