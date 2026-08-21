@@ -238,6 +238,66 @@ describe('BZE-284 governed Trade Machine date forwarding', () => {
     expect(result.current.initError).toBeNull();
   });
 
+  it('ignores a stale initialization that finishes after the governed date changes', async () => {
+    let finishPendingLoad: ((team: TradeMachineTeam) => void) | null = null;
+    harness.loadWorldTeamData
+      .mockImplementationOnce(
+        () =>
+          new Promise<TradeMachineTeam>((resolve) => {
+            finishPendingLoad = resolve;
+          })
+      )
+      .mockResolvedValueOnce(buildGovernedTeam('LAL'));
+
+    const { result, rerender } = renderHook(
+      ({ worldAsOfDate }: { worldAsOfDate: string }) => {
+        const [teams, setTeams] = useState<TradeMachineTeamSlot[]>(emptySlots);
+        const [initError, setInitError] = useState<string | null>(null);
+        const lastInitInputsRef = useRef<null | {
+          primaryTeam: string | null | undefined;
+          primaryTeamData: TradeMachineTeam | null;
+          yearKey: string | number;
+          worldId: string | null;
+          worldAsOfDate: string | null;
+        }>(null);
+
+        useTradeMachineInit({
+          primaryTeam: 'LAL',
+          primaryTeamData: null,
+          capProjections: null,
+          yearKey: 2027,
+          worldId: null,
+          worldAsOfDate,
+          setTeams,
+          setInitError,
+          lastInitInputsRef,
+        });
+
+        return { teams, initError };
+      },
+      { initialProps: { worldAsOfDate: BEFORE_EXPIRY } }
+    );
+
+    await waitFor(() => expect(finishPendingLoad).not.toBeNull());
+    rerender({ worldAsOfDate: EXACT_EXPIRY });
+
+    await waitFor(() => {
+      expect(result.current.teams[0]?.team?.teamTotalSalary).toBe(
+        TERMINATED_TEAM_SALARY
+      );
+    });
+
+    await act(async () => {
+      finishPendingLoad?.(buildGovernedTeam('LAL'));
+      await Promise.resolve();
+    });
+
+    expect(result.current.teams[0]?.team?.teamTotalSalary).toBe(
+      TERMINATED_TEAM_SALARY
+    );
+    expect(result.current.initError).toBeNull();
+  });
+
   it('uses the governed date when a Team is selected after waiver expiry', async () => {
     const { result } = renderHook(() => {
       const [teams, setTeams] = useState<TradeMachineTeamSlot[]>(emptySlots);

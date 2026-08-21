@@ -59,6 +59,7 @@ export function useTradeMachineInit({
 }: UseTradeMachineInitParams): void {
   // Initialize teams (slot 0 = primary team, slot 1 = empty)
   useEffect(() => {
+    let cancelled = false;
     const init = async () => {
       if (!primaryTeam) return;
 
@@ -172,6 +173,7 @@ export function useTradeMachineInit({
             }
           );
 
+          if (cancelled) return;
           setTeams([
             {
               team: teamObj,
@@ -183,6 +185,7 @@ export function useTradeMachineInit({
           ]);
         }
       } catch (err) {
+        if (cancelled) return;
         // Phase 16.3: Surface init failures instead of silent blank UI
         console.error('[tradeMachine:init] failed to init trade teams', err);
         setInitError(
@@ -209,6 +212,9 @@ export function useTradeMachineInit({
       }
     };
     init();
+    return () => {
+      cancelled = true;
+    };
   }, [
     primaryTeam,
     primaryTeamData,
