@@ -40,6 +40,7 @@ type UseTradeTeamCardSalariesParams = {
   selectedTeamId: string | null | undefined;
   teamTradeExceptions: TeamTradeException[];
   hasTeam: boolean;
+  worldAsOfDate: string | null;
 };
 
 export const useTradeTeamCardSalaries = ({
@@ -54,6 +55,7 @@ export const useTradeTeamCardSalaries = ({
   selectedTeamId,
   teamTradeExceptions,
   hasTeam,
+  worldAsOfDate,
 }: UseTradeTeamCardSalariesParams) => {
   const teamTradePlayers = useMemo(() => {
     const seenIds = new Set<string>();
@@ -87,10 +89,11 @@ export const useTradeTeamCardSalaries = ({
     if (!normalizedYear) return 0;
     const totals = computeTeamCapTotals(
       team as UnknownRecord,
-      normalizedYear.endYear
+      normalizedYear.endYear,
+      { asOfDate: worldAsOfDate }
     );
     return totals.totalCapAllocations || 0;
-  }, [team, yearKey]);
+  }, [team, worldAsOfDate, yearKey]);
 
   const snapshot = getTeamSnapshot(selectedTeamId, validationResult);
   const hasValidatorResult = snapshot !== null;

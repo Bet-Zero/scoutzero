@@ -211,6 +211,7 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
     expect(capSheetContent).toMatch(
       /const\s+canonicalTotals\s*=\s*React\.useMemo\s*\(\s*\(\)\s*=>\s*computeTeamCapTotals\s*\(/
     );
+    expect(capSheetContent).toContain('{ asOfDate }');
   });
 
   it('Cap Sheet no longer renders the canonical-totals summary surface (moved to TeamStatusStrip in cockpit)', () => {

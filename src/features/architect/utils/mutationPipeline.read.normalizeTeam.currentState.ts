@@ -405,6 +405,9 @@ export function normalizeTeamAndPlayerMutationCurrentState(
   const extensionAuthority = currentState?.extensionAuthority;
   const extensionTeamSnapshot = currentState?.extensionTeamSnapshot;
   const extensionPlayerSnapshot = currentState?.extensionPlayerSnapshot;
+  const waiverAuthority = currentState?.waiverAuthority;
+  const waiverTeamSnapshot = currentState?.waiverTeamSnapshot;
+  const waiverPlayerSnapshot = currentState?.waiverPlayerSnapshot;
 
   if (team) {
     normalized.team = team;
@@ -426,6 +429,15 @@ export function normalizeTeamAndPlayerMutationCurrentState(
   }
   if (extensionPlayerSnapshot) {
     normalized.extensionPlayerSnapshot = extensionPlayerSnapshot;
+  }
+  if (waiverAuthority) {
+    normalized.waiverAuthority = waiverAuthority;
+  }
+  if (waiverTeamSnapshot) {
+    normalized.waiverTeamSnapshot = waiverTeamSnapshot;
+  }
+  if (waiverPlayerSnapshot) {
+    normalized.waiverPlayerSnapshot = waiverPlayerSnapshot;
   }
 
   return normalized;

@@ -16,6 +16,8 @@ import type {
   GovernedExtensionRoute,
 } from '@/features/architect/utils/extensions';
 import type { GovernedOfferSheetProposal } from '@/schemas/governedOfferSheet';
+import type { GovernedWaiverProposal } from '@/schemas/governedWaiver';
+import type { GovernedWaiverAvailability } from '@/features/architect/utils/waivers';
 
 export type UseCapValidationParams = Parameters<typeof useCapValidation>[0];
 export type HookPlayerLike = NonNullable<UseCapValidationParams['player']>;
@@ -217,6 +219,7 @@ export type WaivePayloadLike = {
   stretch: boolean;
   buyout: boolean;
   buyoutAmount?: number;
+  waiverProposal: GovernedWaiverProposal;
 } & Partial<OverrideMetadataLike>;
 
 export type SigningActionCallback = (
@@ -295,6 +298,7 @@ export type EditContractModalProps = {
   onOptionDecision?: OptionDecisionCallback | null;
   optionDecisionAvailability?: GovernedOptionDecisionAvailability | null;
   extensionAvailability?: GovernedExtensionAvailability | null;
+  waiverAvailability?: GovernedWaiverAvailability | null;
   onExtend?: ExtendCallback | null;
   signAndTradeInitiation?: SignAndTradeInitiation | null;
   onSignAndTrade?: SignAndTradeCallback | null;

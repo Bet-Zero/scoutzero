@@ -79,7 +79,11 @@ export function useTradeMachineValidation({
           !Number.isFinite(teamSlot.team.teamTotalSalary) ||
           teamSlot.team.teamTotalSalary === 0
         ) {
-          const { totalWithDead } = getCapTotalsForYear(teamSlot.team, yearKey);
+          const { totalWithDead } = getCapTotalsForYear(
+            teamSlot.team,
+            yearKey,
+            worldAsOfDate
+          );
           return {
             ...teamSlot,
             team: {

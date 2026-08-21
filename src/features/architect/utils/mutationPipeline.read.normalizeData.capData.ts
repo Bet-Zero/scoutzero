@@ -17,6 +17,7 @@ import type {
   ArchitectMutationTeamTotals,
   MutationDeadCapYear,
 } from './mutationPipeline';
+import { GovernedWaiverLifecycleZ } from '@/schemas/governedWaiver';
 
 function safeCloneForAudit<T>(value: T): T {
   if (value === null || value === undefined || typeof value !== 'object') {
@@ -118,6 +119,14 @@ export function normalizeCurrentStateDeadCapEntry(
   const waiveDate = toOptionalTrimmedString(record.waiveDate);
   const notes = toOptionalTrimmedString(record.notes);
   const stretched = toOptionalBoolean(record.stretched);
+  const governedLifecycle = GovernedWaiverLifecycleZ.safeParse(
+    record.governedLifecycle
+  );
+  if (record.governedLifecycle != null && !governedLifecycle.success) {
+    throw new Error(
+      'A persisted governed waiver lifecycle is malformed or version-incompatible.'
+    );
+  }
 
   if (id !== undefined) normalized.id = id;
   if (playerId !== undefined) normalized.playerId = playerId;
@@ -128,6 +137,9 @@ export function normalizeCurrentStateDeadCapEntry(
   if (waiveDate !== undefined) normalized.waiveDate = waiveDate;
   if (notes !== undefined) normalized.notes = notes;
   if (stretched !== undefined) normalized.stretched = stretched;
+  if (governedLifecycle.success) {
+    normalized.governedLifecycle = governedLifecycle.data;
+  }
 
   return normalized;
 }

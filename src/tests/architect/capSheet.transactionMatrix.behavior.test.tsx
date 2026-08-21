@@ -451,41 +451,47 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
   });
 
-  it('base mode: waive / waive-stretch / buyout each produce deterministic state+totals deltas and skip world persistence', async () => {
+  it('base mode: governed waive / stretch / buyout fail closed and skip world persistence', async () => {
     const { result } = renderActionsHarness({ worldId: null });
 
     const waiveBefore = totalForYear(result.current.teamCapSheet);
+    let waiveResult;
     await act(async () => {
-      await result.current.actions.handleWaiveContract(
+      waiveResult = await result.current.actions.handleWaiveContract(
         getRequiredPlayer(result.current.teamCapSheet, 'p_waive'),
         { stretch: false, buyout: false }
       );
     });
     const waiveAfter = totalForYear(result.current.teamCapSheet);
-    expect(getPlayer(result.current.teamCapSheet, 'p_waive')).toBeUndefined();
+    expect(waiveResult).toEqual(expect.objectContaining({ success: false }));
+    expect(getPlayer(result.current.teamCapSheet, 'p_waive')).toBeDefined();
     expect(waiveAfter).toBe(waiveBefore);
 
     const stretchBefore = totalForYear(result.current.teamCapSheet);
+    let stretchResult;
     await act(async () => {
-      await result.current.actions.handleWaiveContract(
+      stretchResult = await result.current.actions.handleWaiveContract(
         getRequiredPlayer(result.current.teamCapSheet, 'p_stretch'),
         { stretch: true, buyout: false }
       );
     });
     const stretchAfter = totalForYear(result.current.teamCapSheet);
-    expect(getPlayer(result.current.teamCapSheet, 'p_stretch')).toBeUndefined();
-    expect(stretchAfter).toBeLessThan(stretchBefore);
+    expect(stretchResult).toEqual(expect.objectContaining({ success: false }));
+    expect(getPlayer(result.current.teamCapSheet, 'p_stretch')).toBeDefined();
+    expect(stretchAfter).toBe(stretchBefore);
 
     const buyoutBefore = totalForYear(result.current.teamCapSheet);
+    let buyoutResult;
     await act(async () => {
-      await result.current.actions.handleWaiveContract(
+      buyoutResult = await result.current.actions.handleWaiveContract(
         getRequiredPlayer(result.current.teamCapSheet, 'p_buyout'),
         { stretch: false, buyout: true, buyoutAmount: 5_000_000 }
       );
     });
     const buyoutAfter = totalForYear(result.current.teamCapSheet);
-    expect(getPlayer(result.current.teamCapSheet, 'p_buyout')).toBeUndefined();
-    expect(buyoutAfter).toBeLessThan(buyoutBefore);
+    expect(buyoutResult).toEqual(expect.objectContaining({ success: false }));
+    expect(getPlayer(result.current.teamCapSheet, 'p_buyout')).toBeDefined();
+    expect(buyoutAfter).toBe(buyoutBefore);
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
   });
 
@@ -656,39 +662,37 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
       mutationCallsBeforeExtension
     );
 
+    const mutationCallsBeforeWaivers =
+      mutationMocks.applyWorldMutation.mock.calls.length;
+    let waiveResult;
     await act(async () => {
-      await result.current.actions.handleWaiveContract(
+      waiveResult = await result.current.actions.handleWaiveContract(
         getRequiredPlayer(result.current.teamCapSheet, 'p_waive'),
         { stretch: false, buyout: false }
       );
     });
-    expectWorldMutationCall('waivePlayer', {
-      teamCode: 'LAL',
-      playerId: 'p_waive',
-    });
+    expect(waiveResult).toEqual(expect.objectContaining({ success: false }));
 
+    let stretchResult;
     await act(async () => {
-      await result.current.actions.handleWaiveContract(
+      stretchResult = await result.current.actions.handleWaiveContract(
         getRequiredPlayer(result.current.teamCapSheet, 'p_stretch'),
         { stretch: true, buyout: false }
       );
     });
-    expectWorldMutationCall('waivePlayer', {
-      teamCode: 'LAL',
-      playerId: 'p_stretch',
-    });
+    expect(stretchResult).toEqual(expect.objectContaining({ success: false }));
 
+    let buyoutResult;
     await act(async () => {
-      await result.current.actions.handleWaiveContract(
+      buyoutResult = await result.current.actions.handleWaiveContract(
         getRequiredPlayer(result.current.teamCapSheet, 'p_buyout'),
         { stretch: false, buyout: true, buyoutAmount: 5_000_000 }
       );
     });
-    expectWorldMutationCall('waivePlayer', {
-      teamCode: 'LAL',
-      playerId: 'p_buyout',
-      buyout: true,
-    });
+    expect(buyoutResult).toEqual(expect.objectContaining({ success: false }));
+    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledTimes(
+      mutationCallsBeforeWaivers
+    );
 
     await act(async () => {
       await result.current.actions.handleRenounceRights(

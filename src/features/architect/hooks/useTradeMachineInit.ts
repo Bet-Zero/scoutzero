@@ -34,6 +34,7 @@ export type UseTradeMachineInitParams = {
   capProjections: UnknownRecord | null | undefined;
   yearKey: number;
   worldId: string | null;
+  worldAsOfDate: string | null;
   setTeams: React.Dispatch<React.SetStateAction<TradeMachineTeamSlot[]>>;
   setInitError: React.Dispatch<React.SetStateAction<string | null>>;
   lastInitInputsRef: React.MutableRefObject<{
@@ -41,6 +42,7 @@ export type UseTradeMachineInitParams = {
     primaryTeamData: TradeMachineTeam | null;
     yearKey: string | number;
     worldId: string | null;
+    worldAsOfDate: string | null;
   } | null>;
 };
 
@@ -50,12 +52,14 @@ export function useTradeMachineInit({
   capProjections,
   yearKey,
   worldId,
+  worldAsOfDate,
   setTeams,
   setInitError,
   lastInitInputsRef,
 }: UseTradeMachineInitParams): void {
   // Initialize teams (slot 0 = primary team, slot 1 = empty)
   useEffect(() => {
+    let cancelled = false;
     const init = async () => {
       if (!primaryTeam) return;
 
@@ -63,7 +67,8 @@ export function useTradeMachineInit({
         lastInitInputsRef.current?.primaryTeam === primaryTeam &&
         lastInitInputsRef.current?.primaryTeamData === primaryTeamData &&
         lastInitInputsRef.current?.yearKey === yearKey &&
-        lastInitInputsRef.current?.worldId === worldId
+        lastInitInputsRef.current?.worldId === worldId &&
+        lastInitInputsRef.current?.worldAsOfDate === worldAsOfDate
       ) {
         return;
       }
@@ -74,6 +79,7 @@ export function useTradeMachineInit({
           primaryTeamData,
           yearKey,
           worldId,
+          worldAsOfDate,
         };
 
         // Phase 16.3: Clear any previous init error on new init attempt
@@ -150,7 +156,7 @@ export function useTradeMachineInit({
             playersTotal: baseline,
             deadMoneyTotal: dead,
             totalWithDead,
-          } = getCapTotalsForYear(teamObj, yearKey);
+          } = getCapTotalsForYear(teamObj, yearKey, worldAsOfDate);
           teamObj.teamTotalSalary = totalWithDead;
           teamObj.projectedSalary = totalWithDead;
 
@@ -167,6 +173,7 @@ export function useTradeMachineInit({
             }
           );
 
+          if (cancelled) return;
           setTeams([
             {
               team: teamObj,
@@ -178,6 +185,7 @@ export function useTradeMachineInit({
           ]);
         }
       } catch (err) {
+        if (cancelled) return;
         // Phase 16.3: Surface init failures instead of silent blank UI
         console.error('[tradeMachine:init] failed to init trade teams', err);
         setInitError(
@@ -204,5 +212,15 @@ export function useTradeMachineInit({
       }
     };
     init();
-  }, [primaryTeam, primaryTeamData, capProjections, yearKey, worldId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    primaryTeam,
+    primaryTeamData,
+    capProjections,
+    yearKey,
+    worldId,
+    worldAsOfDate,
+  ]);
 }

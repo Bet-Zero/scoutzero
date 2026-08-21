@@ -66,6 +66,7 @@ export const useTradeMachine = (
     primaryTeamData: TradeMachineTeam | null;
     yearKey: string | number;
     worldId: string | null;
+    worldAsOfDate: string | null;
   } | null>(null);
 
   // Use the selected season end-year everywhere (no hardcoding)
@@ -92,6 +93,7 @@ export const useTradeMachine = (
     capProjections,
     yearKey,
     worldId,
+    worldAsOfDate,
     setTeams,
     setInitError,
     lastInitInputsRef,
@@ -104,6 +106,7 @@ export const useTradeMachine = (
     capProjections,
     yearKey,
     worldId,
+    worldAsOfDate,
   });
 
   // Stale validation fix: Compute current draft key whenever trade config changes

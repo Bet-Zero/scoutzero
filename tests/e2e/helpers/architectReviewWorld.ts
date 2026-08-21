@@ -103,7 +103,7 @@ export const getReviewAdminDb = () => {
   process.env.FIRESTORE_EMULATOR_HOST = REVIEW_FIRESTORE_EMULATOR_HOST;
 
   const app =
-    admin.apps.find((existingApp) => existingApp.name === REVIEW_APP_NAME) ||
+    admin.apps.find((existingApp) => existingApp?.name === REVIEW_APP_NAME) ||
     admin.initializeApp(
       { projectId: REVIEW_FIRESTORE_PROJECT_ID },
       REVIEW_APP_NAME
@@ -130,21 +130,19 @@ export const getWorldMetadataDocument = async (worldId: string) =>
     .get()
     .then((snapshot) => snapshot.data())) as RecordLike | undefined;
 
-export const getWorldTeamDocument = async (
-  worldId: string,
-  teamCode: string
-) =>
+export const getWorldTeamDocument = async (worldId: string, teamCode: string) =>
   (await getReviewAdminDb()
     .doc(`architect_worlds/${worldId}/teams/${teamCode}`)
     .get()
     .then((snapshot) => snapshot.data())) as RecordLike | undefined;
 
 export const getWorldTeamCodes = async (worldId: string) =>
-  (await getReviewAdminDb()
-    .collection(`architect_worlds/${worldId}/teams`)
-    .get()
-    .then((snapshot) => snapshot.docs.map((docSnapshot) => docSnapshot.id)))
-    .sort();
+  (
+    await getReviewAdminDb()
+      .collection(`architect_worlds/${worldId}/teams`)
+      .get()
+      .then((snapshot) => snapshot.docs.map((docSnapshot) => docSnapshot.id))
+  ).sort();
 
 export const getWorldEventDocuments = async (worldId: string) =>
   (await getReviewAdminDb()
@@ -152,7 +150,7 @@ export const getWorldEventDocuments = async (worldId: string) =>
     .get()
     .then((snapshot) =>
       snapshot.docs
-        .map((docSnapshot) => ({
+        .map((docSnapshot): RecordLike & { id: string } => ({
           id: docSnapshot.id,
           ...(docSnapshot.data() as RecordLike),
         }))
@@ -566,7 +564,10 @@ export const seedSeasonAdvanceReviewWorld = async (
       teamCode === MIA_TEAM_CODE
         ? await buildMiaSeasonAdvanceSnapshot(worldId)
         : buildNonFocusSeasonAdvanceSnapshot(worldId, teamCode);
-    batch.set(db.doc(`architect_worlds/${worldId}/teams/${teamCode}`), snapshot);
+    batch.set(
+      db.doc(`architect_worlds/${worldId}/teams/${teamCode}`),
+      snapshot
+    );
   }
   await batch.commit();
 

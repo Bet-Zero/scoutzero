@@ -359,9 +359,12 @@ export const ACTION_DESCRIPTIONS: Record<ContractActionKey, string> = {
   signAndTrade: 'Sign player and immediately trade them.',
   renounce: 'Release cap hold and rights to this player.',
   extend: 'Add years to the current contract.',
-  waive: 'Release player. Salary remains on cap unless claimed.',
-  waiveStretch: 'Release player and stretch salary over 2x + 1 years.',
-  buyout: 'Negotiate a reduced amount to release player.',
+  waive:
+    'Record an irrevocable League waiver request and its exact 48-hour period.',
+  waiveStretch:
+    'Record the waiver plus a written election to re-attribute Team Salary.',
+  buyout:
+    'Record a signed reduction of protected Base Compensation, then waive.',
 };
 
 export const ACTION_TEST_IDS: Partial<Record<ContractActionKey, string>> = {

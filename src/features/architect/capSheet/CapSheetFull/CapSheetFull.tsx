@@ -43,6 +43,11 @@ import type { FreeAgentSurfaceEntry } from '@/features/architect/freeAgency/Free
 import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
 import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHistory';
 import type { GovernedOptionDecisionAvailability } from '@/features/architect/utils/optionDecisions';
+import type { GovernedWaiverLifecycle } from '@/schemas/governedWaiver';
+import {
+  hasGovernedWaiverTerminated,
+  projectGovernedWaiverDeadCapEntry,
+} from '@/features/architect/utils/waivers';
 import {
   getHoldLookupKeys,
   getPlayerLookupKeys,
@@ -75,6 +80,7 @@ type DeadCapEntryLike = {
   label?: string | null;
   notes?: string | null;
   amountByYear?: unknown;
+  governedLifecycle?: GovernedWaiverLifecycle | null;
 };
 type TeamCapSheetLike = PlayerRulesProfileTeamCapSheet & {
   players?: CapSheetFullPlayerLike[] | null;
@@ -289,6 +295,10 @@ const toEndYear = (value: unknown): number | null => {
 
 const collectDeadCapEndYears = (deadCapEntry: DeadCapEntryLike) => {
   const endYears: number[] = [];
+  for (const allocation of deadCapEntry.governedLifecycle?.allocations ?? []) {
+    const endYear = toEndYear(allocation.season);
+    if (endYear) endYears.push(endYear);
+  }
 
   if (Array.isArray(deadCapEntry.amountByYear)) {
     for (const value of deadCapEntry.amountByYear) {
@@ -315,6 +325,42 @@ const getDeadCapLabel = (deadCapEntry: DeadCapEntryLike) =>
   deadCapEntry.notes ||
   deadCapEntry.playerId ||
   'Dead money adjustment';
+
+const formatWaiverExpiry = (expiresAt: string) => {
+  const instant = new Date(expiresAt);
+  if (!Number.isFinite(instant.getTime())) return expiresAt;
+  return `${new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(instant)} ET`;
+};
+
+const getGovernedDeadCapStatus = (
+  deadCapEntry: DeadCapEntryLike,
+  asOfDate: string | null | undefined
+) => {
+  const lifecycle = deadCapEntry.governedLifecycle;
+  if (!lifecycle) return null;
+  if (!hasGovernedWaiverTerminated(asOfDate, lifecycle.expiresAt)) {
+    return {
+      status: 'pending',
+      detail: `Waiver pending · expires ${formatWaiverExpiry(lifecycle.expiresAt)}`,
+    } as const;
+  }
+  return {
+    status: 'terminated',
+    detail:
+      lifecycle.path === 'waive-and-stretch'
+        ? `Dead money · Team Salary stretched over ${lifecycle.stretchYears} Seasons`
+        : lifecycle.path === 'buyout'
+          ? 'Buyout dead money · Contract terminated'
+          : 'Dead money · Contract terminated',
+  } as const;
+};
 
 const getLatestVisibleEndYear = (
   teamCapSheet: TeamCapSheetLike,
@@ -1020,9 +1066,13 @@ export const CapSheetFull = ({
     );
   };
 
-  const displayedDeadMoney = (
+  const rawDeadMoney = (
     Array.isArray(teamCapSheet.deadCap) ? teamCapSheet.deadCap : []
   ) as DeadCapEntryLike[];
+  const waiverAsOfDate = governedRightsContext?.asOfDate ?? null;
+  const displayedDeadMoney = rawDeadMoney.map((entry) =>
+    projectGovernedWaiverDeadCapEntry(entry, waiverAsOfDate)
+  );
 
   // SSOT: Use computeTeamCapTotals for each year to include
   // players + dead money + cap holds + incomplete roster charges.
@@ -1053,13 +1103,22 @@ export const CapSheetFull = ({
                   )
                 : teamCapSheet.capHolds,
               players: teamCapSheet.players?.map((p) => ({ ...p })),
+              deadCap: rawDeadMoney,
             }
           : null,
-        year
+        year,
+        { asOfDate: waiverAsOfDate }
       );
     }
     return totals;
-  }, [teamCapSheet, allYears, governedRightsContext, resolvedCapHolds]);
+  }, [
+    teamCapSheet,
+    allYears,
+    governedRightsContext,
+    rawDeadMoney,
+    resolvedCapHolds,
+    waiverAsOfDate,
+  ]);
   const hasIncompleteCharges = allYears.some(
     (year) => yearTotalBreakdowns[year].incompleteChargesTotal > 0
   );
@@ -2098,33 +2157,57 @@ export const CapSheetFull = ({
                           </div>
                           <div className="divide-y divide-white/5">
                             {displayedDeadMoney.map((deadCapEntry, index) => (
-                              <div
-                                key={`${String(deadCapEntry.playerId || getDeadCapLabel(deadCapEntry))}-${index}`}
-                                className="grid items-center hover:bg-white/[0.02] transition-colors"
-                                style={{
-                                  gridTemplateColumns: playerGridTemplate,
-                                }}
-                              >
-                                <div className="h-[24px] truncate border-r border-cockpit-edge px-4 py-2 text-xs font-medium text-cockpit-text-primary">
-                                  {getDeadCapLabel(deadCapEntry)}
-                                </div>
-                                {allYears.map((year) => {
-                                  const amount = computeDeadMoneyForYear(
-                                    { deadCap: [deadCapEntry] },
-                                    year
-                                  );
-                                  return (
-                                    <div
-                                      key={year}
-                                      className="flex h-[24px] items-center justify-center border-l border-white/[0.02] px-2 py-2 text-xs tabular-nums text-red-200/80"
-                                    >
-                                      {amount > 0
-                                        ? formatCapSheetMoney(amount)
-                                        : ''}
+                              (() => {
+                                const governedStatus = getGovernedDeadCapStatus(
+                                  deadCapEntry,
+                                  governedRightsContext?.asOfDate
+                                );
+                                return (
+                                  <div
+                                    key={`${String(deadCapEntry.playerId || getDeadCapLabel(deadCapEntry))}-${index}`}
+                                    className="grid items-center hover:bg-white/[0.02] transition-colors"
+                                    style={{
+                                      gridTemplateColumns: playerGridTemplate,
+                                    }}
+                                  >
+                                    <div className="min-h-[38px] overflow-hidden border-r border-cockpit-edge px-4 py-1.5">
+                                      <div className="truncate text-xs font-medium text-cockpit-text-primary">
+                                        {getDeadCapLabel(deadCapEntry)}
+                                      </div>
+                                      {governedStatus ? (
+                                        <div
+                                          data-testid="cap-sheet-full-governed-waiver-status"
+                                          data-waiver-status={governedStatus.status}
+                                          className={
+                                            governedStatus.status === 'pending'
+                                              ? 'whitespace-normal text-[10px] leading-4 text-amber-300/85'
+                                              : 'whitespace-normal text-[10px] leading-4 text-red-200/65'
+                                          }
+                                        >
+                                          {governedStatus.detail}
+                                        </div>
+                                      ) : null}
                                     </div>
-                                  );
-                                })}
-                              </div>
+                                    {allYears.map((year) => {
+                                      const amount = computeDeadMoneyForYear(
+                                        { deadCap: [deadCapEntry] },
+                                        year
+                                      );
+                                      return (
+                                        <div
+                                          key={year}
+                                          data-testid="cap-sheet-full-dead-money-amount"
+                                          className="flex min-h-[38px] items-center justify-center border-l border-white/[0.02] px-2 py-2 text-xs tabular-nums text-red-200/80"
+                                        >
+                                          {amount > 0
+                                            ? formatCapSheetMoney(amount)
+                                            : ''}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })()
                             ))}
                           </div>
                         </div>

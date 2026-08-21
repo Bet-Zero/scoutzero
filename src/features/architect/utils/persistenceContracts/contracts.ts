@@ -35,7 +35,9 @@
  */
 
 export type PersistenceAllowlist = readonly string[];
-export type PersistenceDeepRules = Readonly<Record<string, PersistenceAllowlist>>;
+export type PersistenceDeepRules = Readonly<
+  Record<string, PersistenceAllowlist>
+>;
 
 export interface PersistenceContract {
   topLevel: PersistenceAllowlist;
@@ -59,61 +61,62 @@ export interface PersistenceContractsMap {
  * Top-level keys allowed on team overlay documents.
  * Any key not in this list will trigger a contract violation in test environments.
  */
-export const TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.freeze([
-  // Identity
-  'teamCode',
-  'teamName',
-  'abbreviation',
-  'city',
-  'conference',
-  'division',
-  'season',
+export const TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist =
+  Object.freeze([
+    // Identity
+    'teamCode',
+    'teamName',
+    'abbreviation',
+    'city',
+    'conference',
+    'division',
+    'season',
 
-  // Core roster data
-  'roster', // Array of player IDs
-  'players', // Phase 63: Array of full player objects (used by mutation pipeline)
+    // Core roster data
+    'roster', // Array of player IDs
+    'players', // Phase 63: Array of full player objects (used by mutation pipeline)
 
-  // Financial structures
-  'deadCap', // Array of DeadCapItemZ
-  'capHolds', // Array of CapHoldItemZ
-  'rightsLedger', // BZE-273 immutable dated rights history
-  'contractEventLedgers', // BZE-275 immutable option/ETO event overlays
-  'exceptions', // ExceptionsZ object (contains mle, bae, tpe[], etc.)
-  // Phase 64: 'tradeExceptions' REMOVED from allowlist. Legacy TPE data is now normalized
-  // into exceptions.tpe[] via normalizeTeamTpeSchema() before persistence. See Phase 64 docs.
-  'exceptionHistory', // Array of history entries (TPE lifecycle tracking)
+    // Financial structures
+    'deadCap', // Array of DeadCapItemZ
+    'capHolds', // Array of CapHoldItemZ
+    'rightsLedger', // BZE-273 immutable dated rights history
+    'contractEventLedgers', // BZE-275 immutable option/ETO event overlays
+    'exceptions', // ExceptionsZ object (contains mle, bae, tpe[], etc.)
+    // Phase 64: 'tradeExceptions' REMOVED from allowlist. Legacy TPE data is now normalized
+    // into exceptions.tpe[] via normalizeTeamTpeSchema() before persistence. See Phase 64 docs.
+    'exceptionHistory', // Array of history entries (TPE lifecycle tracking)
 
-  // Draft assets
-  'draftPicks', // Legacy array (backward compat)
-  'draftPicksInventory', // Picks team owns
-  'draftPicksObligations', // Picks team owes
-  'draftPicksContested', // Swaps/conditionals
+    // Draft assets
+    'draftPicks', // Legacy array (backward compat)
+    'draftPicksInventory', // Picks team owns
+    'draftPicksObligations', // Picks team owes
+    'draftPicksContested', // Swaps/conditionals
 
-  // Entitlements
-  'entitlementIds', // Array of entitlement IDs
+    // Entitlements
+    'entitlementIds', // Array of entitlement IDs
 
-  // Free agency world state
-  'offerSheets', // Outgoing offer sheets authored by this team
-  'incomingOfferSheets', // Mirrored incoming offer sheets for the home team
+    // Free agency world state
+    'offerSheets', // Outgoing offer sheets authored by this team
+    'incomingOfferSheets', // Mirrored incoming offer sheets for the home team
 
-  // Computed totals (UI display - _meta is separate)
-  'totals', // TeamTotalsZ object
+    // Computed totals (UI display - _meta is separate)
+    'totals', // TeamTotalsZ object
 
-  // Metadata
-  'source', // ArchitectSourceZ object
-  'lastUpdated',
-  'version',
-  'mergedAt',
+    // Metadata
+    'source', // ArchitectSourceZ object
+    'lastUpdated',
+    'version',
+    'mergedAt',
 
-  // Phase 60: _meta is intentionally preserved for UI computed totals
-  '_meta',
+    // Phase 60: _meta is intentionally preserved for UI computed totals
+    '_meta',
 
-  // Hard cap tracking
-  'hardCapLevel',
-  'hardCapReason',
-  'hardCapTriggeredBy',
-  'hardCapped', // Legacy boolean
-]);
+    // Hard cap tracking
+    'hardCapLevel',
+    'hardCapReason',
+    'hardCapTriggeredBy',
+    'hardCapped', // Legacy boolean
+  ]);
 
 // ==============================================================================
 // TRADE EXCEPTION ITEM PERSISTENCE CONTRACT
@@ -124,20 +127,21 @@ export const TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.fre
 /**
  * Keys allowed on individual trade exception items within exceptions.tpe[].
  */
-export const TRADE_EXCEPTION_ITEM_ALLOWLIST: PersistenceAllowlist = Object.freeze([
-  'id',
-  'amount', // Runtime: initial amount (used interchangeably with totalAmount)
-  'totalAmount', // Max lifetime value
-  'usedAmount', // Amount consumed
-  'remainingAmount', // Amount still available
-  'createdFrom', // Source description (e.g., "Trade with LAL")
-  'createdOn', // ISO date string
-  'createdSeason', // Season code (e.g., "2025-26")
-  'expiresOn', // ISO date string
-  'isUsed', // Boolean: fully consumed
-  'notes', // Optional notes
-  'salaryMatchingPath', // Governed Standard TPE component provenance and amounts
-]);
+export const TRADE_EXCEPTION_ITEM_ALLOWLIST: PersistenceAllowlist =
+  Object.freeze([
+    'id',
+    'amount', // Runtime: initial amount (used interchangeably with totalAmount)
+    'totalAmount', // Max lifetime value
+    'usedAmount', // Amount consumed
+    'remainingAmount', // Amount still available
+    'createdFrom', // Source description (e.g., "Trade with LAL")
+    'createdOn', // ISO date string
+    'createdSeason', // Season code (e.g., "2025-26")
+    'expiresOn', // ISO date string
+    'isUsed', // Boolean: fully consumed
+    'notes', // Optional notes
+    'salaryMatchingPath', // Governed Standard TPE component provenance and amounts
+  ]);
 
 // ==============================================================================
 // EXCEPTION HISTORY ITEM PERSISTENCE CONTRACT
@@ -149,37 +153,38 @@ export const TRADE_EXCEPTION_ITEM_ALLOWLIST: PersistenceAllowlist = Object.freez
  * Keys allowed on individual exception history entries.
  * Covers TPE_CREATED, TPE_CONSUMED, and TPE_EXPIRED entry types.
  */
-export const EXCEPTION_HISTORY_ITEM_ALLOWLIST: PersistenceAllowlist = Object.freeze([
-  // Common fields (all entry types)
-  'historyKey', // Deterministic dedup key
-  'type', // TPE_CREATED | TPE_CONSUMED | TPE_EXPIRED
-  'teamCode',
-  'tpeId',
-  'timestamp', // ISO timestamp
-  'seasonId', // Season code
-  'seasonYear', // End year number
+export const EXCEPTION_HISTORY_ITEM_ALLOWLIST: PersistenceAllowlist =
+  Object.freeze([
+    // Common fields (all entry types)
+    'historyKey', // Deterministic dedup key
+    'type', // TPE_CREATED | TPE_CONSUMED | TPE_EXPIRED
+    'teamCode',
+    'tpeId',
+    'timestamp', // ISO timestamp
+    'seasonId', // Season code
+    'seasonYear', // End year number
 
-  // Optional context fields
-  'worldId', // World context (if not global)
-  'mutationId', // Mutation reference
+    // Optional context fields
+    'worldId', // World context (if not global)
+    'mutationId', // Mutation reference
 
-  // TPE_CREATED specific
-  'amountCreated',
-  'createdFrom',
-  'createdSeason',
-  'expiresOn',
+    // TPE_CREATED specific
+    'amountCreated',
+    'createdFrom',
+    'createdSeason',
+    'expiresOn',
 
-  // TPE_CONSUMED specific
-  'amountConsumed',
-  'remainingAmountAfter',
-  'fullyConsumed',
-  'absorbedPlayers', // Array of { playerId, name, amountAbsorbed }
+    // TPE_CONSUMED specific
+    'amountConsumed',
+    'remainingAmountAfter',
+    'fullyConsumed',
+    'absorbedPlayers', // Array of { playerId, name, amountAbsorbed }
 
-  // TPE_EXPIRED specific
-  'amountExpired',
-  'totalAmount',
-  'toSeason', // Target season after expiry
-]);
+    // TPE_EXPIRED specific
+    'amountExpired',
+    'totalAmount',
+    'toSeason', // Target season after expiry
+  ]);
 
 // ==============================================================================
 // DEAD CAP ITEM PERSISTENCE CONTRACT
@@ -198,6 +203,7 @@ export const DEAD_CAP_ITEM_ALLOWLIST: PersistenceAllowlist = Object.freeze([
   'amountByYear', // Array of year-by-year amounts (nested deep rule)
   'waiveDate',
   'notes',
+  'governedLifecycle', // BZE-284 immutable waiver/stretch/buyout event record
 ]);
 
 /**
@@ -205,11 +211,71 @@ export const DEAD_CAP_ITEM_ALLOWLIST: PersistenceAllowlist = Object.freeze([
  * Phase 62: 3-level nesting support for dead cap year breakdown.
  */
 export const DEAD_CAP_AMOUNT_BY_YEAR_ITEM_ALLOWLIST: PersistenceAllowlist =
+  Object.freeze(['season', 'amount', 'isStretched']);
+
+export const GOVERNED_WAIVER_LIFECYCLE_ALLOWLIST: PersistenceAllowlist =
+  Object.freeze([
+    'lifecycleVersion',
+    'lifecycleId',
+    'worldId',
+    'teamId',
+    'playerId',
+    'playerName',
+    'contractId',
+    'path',
+    'leagueReceivedAt',
+    'expiresAt',
+    'terminationAt',
+    'requestIrrevocable',
+    'outcome',
+    'events',
+    'originalContractSeasons',
+    'protectedBaseCompensation',
+    'buyoutReduction',
+    'buyoutAgreementAt',
+    'playerSignatureRecorded',
+    'teamSignatureRecorded',
+    'stretchElectionAt',
+    'stretchBranch',
+    'stretchYears',
+    'salaryCapAtElection',
+    'formerPlayerCeilingAtElection',
+    'allocationsBeforeStretch',
+    'allocations',
+    'paymentAllocations',
+    'setOffStatus',
+    'setOffFormula',
+    'originalContractEndsAt',
+    'reacquisitionRestrictedUntil',
+    'contractAuthority',
+    'canonLeafIds',
+  ]);
+
+export const GOVERNED_WAIVER_EVENT_ALLOWLIST: PersistenceAllowlist =
+  Object.freeze([
+    'eventId',
+    'eventVersion',
+    'eventKind',
+    'effectiveAt',
+    'recordedAt',
+    'predecessorEventId',
+    'authoringIdentity',
+    'canonLeafIds',
+  ]);
+
+export const GOVERNED_WAIVER_ALLOCATION_ALLOWLIST: PersistenceAllowlist =
   Object.freeze([
     'season',
-    'amount',
-    'isStretched',
+    'protectedBaseCompensation',
+    'buyoutReduction',
+    'playerPayment',
+    'teamSalary',
+    'setOffReduction',
+    'isTeamSalaryStretched',
   ]);
+
+export const GOVERNED_WAIVER_CONTRACT_AUTHORITY_ALLOWLIST: PersistenceAllowlist =
+  Object.freeze(['ledgerId', 'ledgerVersion', 'stateDigest']);
 
 // ==============================================================================
 // CAP HOLD ITEM PERSISTENCE CONTRACT
@@ -247,39 +313,40 @@ export const CAP_HOLD_ITEM_ALLOWLIST: PersistenceAllowlist = Object.freeze([
 /**
  * Top-level keys allowed on player override documents.
  */
-export const PLAYER_OVERRIDE_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.freeze([
-  // Identity
-  'playerId',
-  'displayName',
-  'teamCode',
-  'teamName',
+export const PLAYER_OVERRIDE_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist =
+  Object.freeze([
+    // Identity
+    'playerId',
+    'displayName',
+    'teamCode',
+    'teamName',
 
-  // Player bio
-  'bio', // Nested object (position, age, etc.)
+    // Player bio
+    'bio', // Nested object (position, age, etc.)
 
-  // Contract data
-  'contract', // BasePlayerContractZ object
-  'futureContract', // Optional future contract
+    // Contract data
+    'contract', // BasePlayerContractZ object
+    'futureContract', // Optional future contract
 
-  // Representation
-  'representation', // Agent/agency info
+    // Representation
+    'representation', // Agent/agency info
 
-  // Metadata
-  'source', // Provider info
-  'lastUpdated',
-  'version',
+    // Metadata
+    'source', // Provider info
+    'lastUpdated',
+    'version',
 
-  // RFA/Signing context (Phase 18+)
-  'rfaOfferSheet',
-  'rfaOfferSheetOnly',
-  'rfaContext',
+    // RFA/Signing context (Phase 18+)
+    'rfaOfferSheet',
+    'rfaOfferSheetOnly',
+    'rfaContext',
 
-  // Live player override carry-through for trade/signing timing and routing
-  'isTwoWay',
-  'signedDate',
-  'isNewlySignedFA',
-  'originTeamId',
-]);
+    // Live player override carry-through for trade/signing timing and routing
+    'isTwoWay',
+    'signedDate',
+    'isNewlySignedFA',
+    'originTeamId',
+  ]);
 
 // ==============================================================================
 // EVENT PERSISTENCE CONTRACT
@@ -322,122 +389,128 @@ export const EVENT_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.freeze([
  * Keys allowed on event.metadata for different mutation types.
  * This is a union of all allowed metadata fields across mutation types.
  */
-export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist = Object.freeze([
-  // Common
-  'type', // Mutation type echo
-  'timestamp', // ISO timestamp
-  'summary',
-  'actionType',
-  'dedupKey',
+export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist =
+  Object.freeze([
+    // Common
+    'type', // Mutation type echo
+    'timestamp', // ISO timestamp
+    'summary',
+    'actionType',
+    'dedupKey',
 
-  // Trade events
-  'teamsInvolved', // Array of team codes
-  'playersTraded', // Array of player info objects
-  'entitlementsTraded', // Object with team-keyed entitlement changes
-  'salaryMatchingPaths', // Exact elected salary-path evaluations by team
-  'picksTraded', // Array of pick info objects
+    // Trade events
+    'teamsInvolved', // Array of team codes
+    'playersTraded', // Array of player info objects
+    'entitlementsTraded', // Object with team-keyed entitlement changes
+    'salaryMatchingPaths', // Exact elected salary-path evaluations by team
+    'picksTraded', // Array of pick info objects
 
-  // Sign-and-Trade events (Phase 63)
-  'sourceTeam', // Origin team code
-  'destinationTeam', // Receiving team code
-  'contract', // Signed contract details object
+    // Sign-and-Trade events (Phase 63)
+    'sourceTeam', // Origin team code
+    'destinationTeam', // Receiving team code
+    'contract', // Signed contract details object
 
-  // Offer sheet workflow events
-  'offeringTeamCode',
-  'homeTeamCode',
-  'offerSheetId',
-  'governedOfferSheetLifecycle',
-  'expectedGovernedOfferSheetLifecycle',
-  'expectedOfferSheetCreationSnapshots',
-  'expectedOfferSheetResolutionSnapshots',
-  'offeringTeam',
-  'homeTeam',
+    // Offer sheet workflow events
+    'offeringTeamCode',
+    'homeTeamCode',
+    'offerSheetId',
+    'governedOfferSheetLifecycle',
+    'expectedGovernedOfferSheetLifecycle',
+    'expectedOfferSheetCreationSnapshots',
+    'expectedOfferSheetResolutionSnapshots',
+    'offeringTeam',
+    'homeTeam',
 
-  // Signing events
-  'playerId',
-  'playerName',
-  'signingTeam',
-  'contractValue',
-  'contractYears',
-  'signedUsing', // Exception type used
+    // Signing events
+    'playerId',
+    'playerName',
+    'signingTeam',
+    'contractValue',
+    'contractYears',
+    'signedUsing', // Exception type used
 
-  // Waive/Release events
-  'waivedPlayer',
-  'stretchProvision',
-  'stretched',
-  'buyout',
-  'buyoutAmount',
-  'stretchYears',
-  'deadCapAmount',
+    // Waive/Release events
+    'waivedPlayer',
+    'stretchProvision',
+    'stretched',
+    'buyout',
+    'buyoutAmount',
+    'stretchYears',
+    'deadCapAmount',
+    'waiverLifecycleId',
+    'waiverStatus',
+    'waiverReceivedAt',
+    'waiverExpiresAt',
+    'contractTerminatesAt',
 
-  // Option events
-  'optionType',
-  'optionDecision',
-  'accepted',
-  'targetYear',
-  'effectiveSeason',
-  'contractId',
-  'contractEventId',
-  'contractLedgerId',
-  'contractLedgerVersion',
-  'expectedContractLedgerId',
-  'expectedContractLedgerVersion',
-  'expectedContractOverlayLedgerVersion',
-  'expectedContractOverlaySetDigest',
-  'expectedTeamSnapshotExists',
-  'expectedTeamSnapshotDigest',
-  'expectedTeamSourceWorldId',
-  'expectedTeamSourceSnapshotDigest',
-  'expectedTeamSourceLineage',
-  'expectedPlayerSnapshotExists',
-  'expectedPlayerSnapshotDigest',
-  'expectedPlayerSourceWorldId',
-  'expectedPlayerSourceSnapshotDigest',
-  'expectedPlayerSourceLineage',
-  'freeAgentStatus',
-  'freeAgentAmount',
-  'priorTeamOfferCeiling',
+    // Option events
+    'optionType',
+    'optionDecision',
+    'accepted',
+    'targetYear',
+    'effectiveSeason',
+    'contractId',
+    'contractEventId',
+    'contractLedgerId',
+    'contractLedgerVersion',
+    'expectedContractLedgerId',
+    'expectedContractLedgerVersion',
+    'expectedContractOverlayLedgerVersion',
+    'expectedContractOverlaySetDigest',
+    'expectedTeamSnapshotExists',
+    'expectedTeamSnapshotDigest',
+    'expectedTeamSourceWorldId',
+    'expectedTeamSourceSnapshotDigest',
+    'expectedTeamSourceLineage',
+    'expectedPlayerSnapshotExists',
+    'expectedPlayerSnapshotDigest',
+    'expectedPlayerSourceWorldId',
+    'expectedPlayerSourceSnapshotDigest',
+    'expectedPlayerSourceLineage',
+    'freeAgentStatus',
+    'freeAgentAmount',
+    'priorTeamOfferCeiling',
 
-  // Extension events
-  'extensionType',
-  'extensionRoute',
-  'extensionYears',
-  'extensionTerms',
+    // Extension events
+    'extensionType',
+    'extensionRoute',
+    'extensionYears',
+    'extensionTerms',
 
-  // Renounce events
-  'renouncedPlayer',
-  'capHoldRemoved',
-  'teamCode', // Team renouncing the player's rights
-  'rightsUsed',
-  'birdRightsType',
-  'freeAgentStatus',
-  'rightOfFirstRefusal',
-  'freeAgentAmountRemoved',
-  'rightsLedgerId',
-  'rightsLedgerVersion',
-  'rightsStateId',
-  'rightsStateVersion',
+    // Renounce events
+    'renouncedPlayer',
+    'capHoldRemoved',
+    'teamCode', // Team renouncing the player's rights
+    'rightsUsed',
+    'birdRightsType',
+    'freeAgentStatus',
+    'rightOfFirstRefusal',
+    'freeAgentAmountRemoved',
+    'rightsLedgerId',
+    'rightsLedgerVersion',
+    'rightsStateId',
+    'rightsStateVersion',
 
-  // Cap admin details
-  'exceptionChanges',
-  'deadCapChanges',
+    // Cap admin details
+    'exceptionChanges',
+    'deadCapChanges',
 
-  // Season advance events
-  'fromSeason',
-  'toSeason',
-  'expiredExceptions',
-  'advancedPlayers',
+    // Season advance events
+    'fromSeason',
+    'toSeason',
+    'expiredExceptions',
+    'advancedPlayers',
 
-  // Draft events
-  'draftYear',
-  'draftRound',
-  'draftPick',
-  'selectedPlayer',
+    // Draft events
+    'draftYear',
+    'draftRound',
+    'draftPick',
+    'selectedPlayer',
 
-  // General
-  'notes',
-  'reason',
-]);
+    // General
+    'notes',
+    'reason',
+  ]);
 
 // ==============================================================================
 // DEEP RULES CONFIGURATION
@@ -465,6 +538,15 @@ export const TEAM_DEEP_RULES: PersistenceDeepRules = Object.freeze({
   // Phase 62: Dead cap and cap hold arrays
   deadCap: DEAD_CAP_ITEM_ALLOWLIST,
   'deadCap.amountByYear': DEAD_CAP_AMOUNT_BY_YEAR_ITEM_ALLOWLIST,
+  'deadCap.governedLifecycle': GOVERNED_WAIVER_LIFECYCLE_ALLOWLIST,
+  'deadCap.governedLifecycle.events': GOVERNED_WAIVER_EVENT_ALLOWLIST,
+  'deadCap.governedLifecycle.allocationsBeforeStretch':
+    GOVERNED_WAIVER_ALLOCATION_ALLOWLIST,
+  'deadCap.governedLifecycle.allocations': GOVERNED_WAIVER_ALLOCATION_ALLOWLIST,
+  'deadCap.governedLifecycle.paymentAllocations':
+    GOVERNED_WAIVER_ALLOCATION_ALLOWLIST,
+  'deadCap.governedLifecycle.contractAuthority':
+    GOVERNED_WAIVER_CONTRACT_AUTHORITY_ALLOWLIST,
   capHolds: CAP_HOLD_ITEM_ALLOWLIST,
 });
 

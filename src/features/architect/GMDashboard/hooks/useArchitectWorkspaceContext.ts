@@ -411,10 +411,11 @@ function deriveRosterSummary(
 function deriveCapSummary({
   teamCapSheet,
   currentYear,
+  worldAsOfDate,
   isLoading,
 }: Pick<
   ArchitectWorkspaceContextInput,
-  'teamCapSheet' | 'currentYear' | 'isLoading'
+  'teamCapSheet' | 'currentYear' | 'worldAsOfDate' | 'isLoading'
 >): ArchitectWorkspaceCapSummary {
   if (isLoading && !teamCapSheet) {
     return { status: 'loading', reason: 'Team cap sheet is loading.' };
@@ -435,7 +436,9 @@ function deriveCapSummary({
   }
 
   try {
-    const totals = computeTeamCapTotals(teamCapSheet, currentYear);
+    const totals = computeTeamCapTotals(teamCapSheet, currentYear, {
+      asOfDate: worldAsOfDate,
+    });
     const capSpace = -totals.deltas.vsCap;
     const taxSpace = -totals.deltas.vsLuxuryTax;
     const firstApronSpace = -totals.deltas.vsFirstApron;
@@ -707,7 +710,12 @@ export function deriveArchitectWorkspaceContext({
     },
     saveState,
     roster: deriveRosterSummary(teamCapSheet, isLoading, currentYear),
-    cap: deriveCapSummary({ teamCapSheet, currentYear, isLoading }),
+    cap: deriveCapSummary({
+      teamCapSheet,
+      currentYear,
+      worldAsOfDate,
+      isLoading,
+    }),
     exceptions: deriveExceptionsSummary(teamCapSheet, isLoading, worldId),
     draftAssets: deriveDraftAssetsSummary(
       teamCapSheet,

@@ -245,23 +245,13 @@ describe('useArchitectActions edit-contract world resync behavior', () => {
     vi.restoreAllMocks();
   });
 
-  it('forwards buyout amount, applies optimistic totals, then resyncs to authoritative changedTeams', async () => {
+  it('fails a buyout closed before optimistic state when governed authority is unavailable', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
 
-    let resolveMutation: ((value: ApplyWorldMutationSuccess) => void) | null =
-      null;
-    mutationMocks.applyWorldMutation.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          resolveMutation = resolve;
-        })
-    );
-
     const { result, refreshWorldRosterIndex } = renderActionsHarness('world_1');
-
-    let actionResultPromise: Promise<WaiveResult>;
-    act(() => {
-      actionResultPromise = result.current.actions.handleWaiveContract(
+    let actionResult: WaiveResult;
+    await act(async () => {
+      actionResult = await result.current.actions.handleWaiveContract(
         TEST_PLAYER,
         {
           stretch: false,
@@ -271,60 +261,11 @@ describe('useArchitectActions edit-contract world resync behavior', () => {
       );
     });
 
-    await waitFor(() => {
-      expect(result.current.teamCapSheet.players).toHaveLength(0);
-    });
-
-    // Optimistic state: dead cap should reflect 12M - 5M buyout reduction = 7M.
-    expect(sumDeadCapForSeason(result.current.teamCapSheet)).toBe(7_000_000);
-    expect(makeTotals(result.current.teamCapSheet).deadMoneyTotal).toBe(7_000_000);
-
-    expect(mutationMocks.applyWorldMutation).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mutationType: 'waivePlayer',
-        payload: expect.objectContaining({
-          teamCode: 'LAL',
-          playerId: 'p1',
-          buyout: true,
-          buyoutAmount: 5_000_000,
-        }),
-      })
-    );
-
-    const authoritativeTeam = {
-      ...BASE_TEAM,
-      roster: [],
-      players: [],
-      deadCap: [
-        {
-          playerId: 'p1',
-          playerName: 'Test Player',
-          originalSalary: 12_000_000,
-          amountByYear: [{ season: '2025-26', amount: 6_000_000 }],
-          waiveDate: '2026-03-01T00:00:00.000Z',
-        },
-      ],
-      totals: { source: 'authoritative' },
-    };
-
-    act(() => {
-      resolveMutation?.({
-        success: true,
-        changedTeams: [{ teamCode: 'LAL', team: authoritativeTeam }],
-        event: { operationId: 'auth_waive_1' },
-      });
-    });
-
-    const actionResult = await actionResultPromise!;
-    expect(actionResult).toEqual({ success: true });
-
-    await waitFor(() => {
-      expect(sumDeadCapForSeason(result.current.teamCapSheet)).toBe(6_000_000);
-    });
-
-    // Authoritative resync state should now drive totals.
-    expect(makeTotals(result.current.teamCapSheet).deadMoneyTotal).toBe(6_000_000);
-    expect(refreshWorldRosterIndex).toHaveBeenCalled();
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(actionResult!).toEqual(expect.objectContaining({ success: false }));
+    expect(result.current.teamCapSheet.players).toHaveLength(1);
+    expect(sumDeadCapForSeason(result.current.teamCapSheet)).toBe(0);
+    expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+    expect(confirmSpy).not.toHaveBeenCalled();
   });
 });

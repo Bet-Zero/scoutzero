@@ -271,7 +271,7 @@ describe('Architect core trio pass R3 proof', () => {
     });
   });
 
-  it('returns a waived team state with the player removed and dead cap added', () => {
+  it('fails closed instead of inventing waiver authority from a mutable contract', () => {
     const waivePlayer = {
       player_id: 'player_1',
       id: 'player_1',
@@ -331,44 +331,11 @@ describe('Architect core trio pass R3 proof', () => {
       timestamp: Date.parse('2026-03-15T12:00:00.000Z'),
     });
 
-    const updatedTeam = result.teamUpdates?.[0]?.team;
-
-    expect(result.success).toBe(true);
-    expect(updatedTeam?.roster).toEqual(['player_2']);
-    expect(updatedTeam?.players).toEqual(
-      expect.not.arrayContaining([
-        expect.objectContaining({ player_id: 'player_1' }),
-      ])
-    );
-    expect(updatedTeam?.deadCap).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          playerId: 'player_1',
-          originalSalary: 18_000_000,
-          amountByYear: [
-            expect.objectContaining({
-              season: '2025-26',
-              amount: 12_000_000,
-            }),
-            expect.objectContaining({
-              season: '2026-27',
-              amount: 6_000_000,
-            }),
-          ],
-        }),
-      ])
-    );
-    expect(updatedTeam?.source).toEqual(
-      expect.objectContaining({
-        type: 'world-snapshot',
-        lastModifiedAt: '2026-03-15T12:00:00.000Z',
-      })
-    );
-    expect(updatedTeam?.totals).toEqual(
-      expect.objectContaining({
-        totalCapAllocations: 120_000_000,
-      })
-    );
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/governed waiver requires/i);
+    expect(result.teamUpdates || []).toEqual([]);
+    expect(result.playerUpdates || []).toEqual([]);
+    expect(result.playerDeletes || []).toEqual([]);
   });
 
   it('validates a declined option through the public validator result', () => {

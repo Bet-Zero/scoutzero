@@ -24,18 +24,11 @@
  *   not the final design. Revisit holistically rather than with spot tweaks.
  */
 
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-} from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
-import { formatCurrencyFull, formatCurrency } from '@/shared/utils/formatting';
+import { formatCurrencyFull } from '@/shared/utils/formatting';
 import { getCapSettings } from '@/features/architect/utils/capHelpers';
-import {
-  getContractYearsForDisplay,
-} from '@/features/architect/utils/contractUtils';
+import { getContractYearsForDisplay } from '@/features/architect/utils/contractUtils';
 import { useCapValidation } from '@/features/architect/hooks/useCapValidation';
 import { ValidationWarnings } from '@/features/architect/shared/ValidationWarnings';
 import { TeamSelectDropdown } from '@/shared/components/TeamSelectDropdown';
@@ -48,10 +41,16 @@ import { ContractActionSelector } from './EditContractModal.ActionSelector';
 import { ContractActionContext } from './EditContractModal.ActionContext';
 import { ContractDetailsForm } from './EditContractModal.DetailsForm';
 import { GovernedOptionNoticeForm } from './EditContractModal.OptionNoticeForm';
+import { GovernedWaiverEvidenceForm } from './EditContractModal.WaiverEvidenceForm';
 import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
 import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
+import type { GovernedWaiverProposal } from '@/schemas/governedWaiver';
 import { isZonedDateTime } from '@/features/architect/utils/governedSeason';
-import { toEndYear, toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import { easternInstantCandidates } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
+import {
+  toEndYear,
+  toSeasonCode,
+} from '@/features/architect/utils/seasonFormat';
 import {
   calculateCapHold,
   type CapHoldPlayerInput,
@@ -100,6 +99,7 @@ export const EditContractModal = ({
   onOptionDecision,
   optionDecisionAvailability = null,
   extensionAvailability = null,
+  waiverAvailability = null,
   onExtend,
   signAndTradeInitiation = null,
   onSignAndTrade,
@@ -130,6 +130,11 @@ export const EditContractModal = ({
     null
   ); // Phase 23
   const [buyoutAmountInput, setBuyoutAmountInput] = useState('');
+  const [waiverLeagueReceiptInput, setWaiverLeagueReceiptInput] = useState('');
+  const [waiverLeagueReceiptOffset, setWaiverLeagueReceiptOffset] =
+    useState('');
+  const [writtenStretchElection, setWrittenStretchElection] = useState(false);
+  const [signedBuyoutAgreement, setSignedBuyoutAgreement] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [optionNotice, setOptionNotice] = useState<GovernedOptionNoticeInput>({
@@ -155,16 +160,17 @@ export const EditContractModal = ({
     actionContext === 'underContract'
       ? actionContext
       : null;
-  const resolvedOfferSheetInitiation = useMemo<OfferSheetInitiation | null>(() => {
-    if (getOfferSheetPreflight && onStoreOfferSheet) {
-      return {
-        getOfferSheetPreflight,
-        onStoreOfferSheet,
-      };
-    }
+  const resolvedOfferSheetInitiation =
+    useMemo<OfferSheetInitiation | null>(() => {
+      if (getOfferSheetPreflight && onStoreOfferSheet) {
+        return {
+          getOfferSheetPreflight,
+          onStoreOfferSheet,
+        };
+      }
 
-    return null;
-  }, [getOfferSheetPreflight, onStoreOfferSheet]);
+      return null;
+    }, [getOfferSheetPreflight, onStoreOfferSheet]);
   const resolvedShowOfferSheetToggle =
     typeof showOfferSheetToggle === 'boolean'
       ? showOfferSheetToggle && Boolean(resolvedOfferSheetInitiation)
@@ -189,26 +195,19 @@ export const EditContractModal = ({
       ? rulesLeagueContext.currentYear
       : null) ??
     CURRENT_YEAR;
-  const actionSeasonLabel = `${ACTION_YEAR - 1}-${String(ACTION_YEAR % 100).padStart(
-    2,
-    '0'
-  )}`;
+  const actionSeasonLabel = `${ACTION_YEAR - 1}-${String(
+    ACTION_YEAR % 100
+  ).padStart(2, '0')}`;
 
-  const capSettings = useMemo(
-    () => getCapSettings(ACTION_YEAR),
-    [ACTION_YEAR]
-  );
+  const capSettings = useMemo(() => getCapSettings(ACTION_YEAR), [ACTION_YEAR]);
 
   const isSigningAction =
     selectedAction === 'signNew' || selectedAction === 'resign';
-
 
   const contractYears = useMemo<ContractYearWithNumberYear[]>(
     () => getContractYearsForDisplay(player).filter(hasNumberContractYear),
     [player]
   );
-
-
 
   const remainingGuaranteedForBuyout = useMemo(() => {
     const salaries = player?.contract?.salariesByYear || [];
@@ -239,7 +238,9 @@ export const EditContractModal = ({
             yearEntry.year === normalizedTargetYear && yearEntry.option
         )
       : null) ??
-    contractYears.find((yearEntry) => yearEntry.year > CURRENT_YEAR && yearEntry.option);
+    contractYears.find(
+      (yearEntry) => yearEntry.year > CURRENT_YEAR && yearEntry.option
+    );
   const optionYear = normalizedTargetYear ?? optionYearEntry?.year ?? null;
   const optionType =
     optionDecisionAvailability?.optionType ?? optionYearEntry?.option ?? null;
@@ -356,19 +357,21 @@ export const EditContractModal = ({
   // Otherwise, infer from player's contract state (when clicking player name)
   const actionSet: ActionSetKey | null = normalizedActionContext
     ? normalizedActionContext
-      : hasOption
-        ? 'option'
-        : isFreeAgent && !isUnderContract
-          ? 'freeAgent'
-          : isUnderContract
-            ? 'underContract'
-            : null;
+    : hasOption
+      ? 'option'
+      : isFreeAgent && !isUnderContract
+        ? 'freeAgent'
+        : isUnderContract
+          ? 'underContract'
+          : null;
 
   const actions = useMemo<ContractActionKey[]>(
     () =>
-      (actionsOverride || (actionSet ? ACTION_SETS[actionSet] : []) || []).filter(
-        isContractActionKey
-      ),
+      (
+        actionsOverride ||
+        (actionSet ? ACTION_SETS[actionSet] : []) ||
+        []
+      ).filter(isContractActionKey),
     [actionSet, actionsOverride]
   );
   const playerDisplayName =
@@ -389,19 +392,24 @@ export const EditContractModal = ({
     if (!extensionAvailability?.suggestedRoute) return;
     setExtension((previous) => ({
       ...previous,
-      route: previous.route || extensionAvailability.suggestedRoute || undefined,
+      route:
+        previous.route || extensionAvailability.suggestedRoute || undefined,
       conditionalHigherMaxPercentage:
         (previous.route || extensionAvailability.suggestedRoute) ===
         'rookie-scale'
-          ? previous.conditionalHigherMaxPercentage ?? null
+          ? (previous.conditionalHigherMaxPercentage ?? null)
           : null,
       agreedDesignatedVeteranPercentage:
         (previous.route || extensionAvailability.suggestedRoute) ===
         'designated-veteran'
-          ? previous.agreedDesignatedVeteranPercentage ?? 30
+          ? (previous.agreedDesignatedVeteranPercentage ?? 30)
           : null,
     }));
-  }, [extensionAvailability?.contractId, extensionAvailability?.suggestedRoute, setExtension]);
+  }, [
+    extensionAvailability?.contractId,
+    extensionAvailability?.suggestedRoute,
+    setExtension,
+  ]);
 
   // Free-agency rows for the year-by-year summary: the season the player hits
   // free agency, carrying the qualifying offer (RFA) and/or the cap hold — shown
@@ -461,29 +469,28 @@ export const EditContractModal = ({
           : 'The exact option Season is required.'
       : null;
 
-  const resolvedSignAndTradeInitiation = useMemo<SignAndTradeInitiation | null>(() => {
-    if (signAndTradeInitiation) {
-      return signAndTradeInitiation;
-    }
+  const resolvedSignAndTradeInitiation =
+    useMemo<SignAndTradeInitiation | null>(() => {
+      if (signAndTradeInitiation) {
+        return signAndTradeInitiation;
+      }
 
-    if (onSignAndTrade && getSignAndTradePreflight) {
-      return {
-        onSignAndTrade,
-        getSignAndTradePreflight,
-      };
-    }
+      if (onSignAndTrade && getSignAndTradePreflight) {
+        return {
+          onSignAndTrade,
+          getSignAndTradePreflight,
+        };
+      }
 
-    return null;
-  }, [getSignAndTradePreflight, onSignAndTrade, signAndTradeInitiation]);
-  const signAndTradeActionDisabledReason =
-    !resolvedSignAndTradeInitiation
-      ? 'Sign-and-trade requires an active world to commit.'
-      : null;
+      return null;
+    }, [getSignAndTradePreflight, onSignAndTrade, signAndTradeInitiation]);
+  const signAndTradeActionDisabledReason = !resolvedSignAndTradeInitiation
+    ? 'Sign-and-trade requires an active world to commit.'
+    : null;
   const resolvedDestinationTeamCode =
     selectedAction === 'signAndTrade' && destinationTeamId
       ? resolveTeamCode(String(destinationTeamId)) || String(destinationTeamId)
       : null;
-
 
   const { signAndTradePreflight, offerSheetPreflight } =
     useEditContractModalPreflight({
@@ -503,9 +510,31 @@ export const EditContractModal = ({
     Boolean(optionDecisionAvailability) &&
     (selectedAction === 'accept' || selectedAction === 'decline');
   const isGovernedExtensionAction = selectedAction === 'extend';
+  const isGovernedWaiverAction = ['waive', 'waiveStretch', 'buyout'].includes(
+    selectedAction
+  );
+  const waiverLeagueReceiptCandidates = useMemo(
+    () => easternInstantCandidates(waiverLeagueReceiptInput),
+    [waiverLeagueReceiptInput]
+  );
+  const waiverLeagueReceiptAt = useMemo(() => {
+    if (waiverLeagueReceiptCandidates.length === 1)
+      return waiverLeagueReceiptCandidates[0] ?? null;
+    if (!waiverLeagueReceiptOffset) return null;
+    return (
+      waiverLeagueReceiptCandidates.find((candidate) =>
+        candidate.endsWith(waiverLeagueReceiptOffset)
+      ) ?? null
+    );
+  }, [waiverLeagueReceiptCandidates, waiverLeagueReceiptOffset]);
+  const handleWaiverLeagueReceiptInputChange = useCallback((value: string) => {
+    setWaiverLeagueReceiptInput(value);
+    setWaiverLeagueReceiptOffset('');
+  }, []);
   const validationAuthority: ValidationAuthority =
     isGovernedOptionDecisionAction ||
     isGovernedExtensionAction ||
+    isGovernedWaiverAction ||
     selectedAction === 'signAndTrade' ||
     (selectedAction === 'signNew' && isOfferSheet)
       ? 'authoritative-preflight'
@@ -633,9 +662,51 @@ export const EditContractModal = ({
       };
     }
 
+    if (isGovernedWaiverAction) {
+      const reasons = [...(waiverAvailability?.reasons ?? [])];
+      if (!waiverAvailability) {
+        reasons.push(
+          'Open a compatible saved Team Plan before recording this waiver.'
+        );
+      } else if (
+        waiverAvailability.status === 'ready' &&
+        !waiverAvailability.contractId
+      ) {
+        reasons.push('Required governed Contract information is missing.');
+      }
+      if (!waiverLeagueReceiptAt) {
+        reasons.push('Enter the exact League receipt time in Eastern time.');
+      }
+      if (selectedAction === 'waiveStretch' && !writtenStretchElection) {
+        reasons.push('Confirm the written Team Salary stretch election.');
+      }
+      if (selectedAction === 'buyout' && !signedBuyoutAgreement) {
+        reasons.push(
+          'Confirm the written buyout agreement and both signatures.'
+        );
+      }
+      const ready =
+        waiverAvailability?.status === 'ready' && reasons.length === 0;
+      return {
+        ...DEFAULT_VALIDATION_STATE,
+        authority: 'authoritative-preflight' as const,
+        isLegal: ready,
+        incomplete: !ready,
+        reasons,
+        severity: ready ? ('info' as const) : ('error' as const),
+        errors: ready
+          ? []
+          : reasons.map((message) => ({
+              severity: 'error' as const,
+              message,
+            })),
+      };
+    }
+
     if (validationAuthority === 'authoritative-preflight') {
       return buildAuthoritativePreflightState({
-        kind: selectedAction === 'signAndTrade' ? 'sign-and-trade' : 'offer-sheet',
+        kind:
+          selectedAction === 'signAndTrade' ? 'sign-and-trade' : 'offer-sheet',
         preflight:
           selectedAction === 'signAndTrade'
             ? signAndTradePreflight
@@ -659,13 +730,18 @@ export const EditContractModal = ({
     isExtendEligible,
     isGovernedExtensionAction,
     isGovernedOptionDecisionAction,
+    isGovernedWaiverAction,
     offerSheetPreflight,
     extension,
     extensionAvailability,
     optionDecisionAvailability,
+    signedBuyoutAgreement,
     selectedAction,
     signAndTradePreflight,
     validationAuthority,
+    waiverAvailability,
+    waiverLeagueReceiptAt,
+    writtenStretchElection,
   ]);
   const validationCopy = useMemo(
     () => buildValidationCopy(validationState.authority),
@@ -684,7 +760,8 @@ export const EditContractModal = ({
     const trimmed = String(buyoutAmountInput || '').trim();
     if (!trimmed) return null;
     const amount = Number(trimmed);
-    if (!Number.isFinite(amount) || amount < 0) return null;
+    if (!Number.isFinite(amount) || !Number.isInteger(amount) || amount < 0)
+      return null;
     return amount;
   }, [buyoutAmountInput]);
 
@@ -692,6 +769,35 @@ export const EditContractModal = ({
     selectedAction !== 'buyout' ||
     (parsedBuyoutAmount != null &&
       parsedBuyoutAmount <= remainingGuaranteedForBuyout);
+  const governedWaiverProposal = useMemo<GovernedWaiverProposal | null>(() => {
+    if (!isGovernedWaiverAction) return null;
+    const path =
+      selectedAction === 'waiveStretch'
+        ? 'waive-and-stretch'
+        : selectedAction === 'buyout'
+          ? 'buyout'
+          : 'standard';
+    return {
+      proposalVersion: 1,
+      contractId: waiverAvailability?.contractId || '',
+      path,
+      leagueReceivedAt: waiverLeagueReceiptAt || '',
+      writtenStretchElection:
+        path === 'waive-and-stretch' && writtenStretchElection,
+      buyoutReduction: path === 'buyout' ? (parsedBuyoutAmount ?? 0) : 0,
+      writtenBuyoutAgreement: path === 'buyout' && signedBuyoutAgreement,
+      playerSignatureRecorded: path === 'buyout' && signedBuyoutAgreement,
+      teamSignatureRecorded: path === 'buyout' && signedBuyoutAgreement,
+    };
+  }, [
+    isGovernedWaiverAction,
+    parsedBuyoutAmount,
+    selectedAction,
+    signedBuyoutAgreement,
+    waiverAvailability?.contractId,
+    waiverLeagueReceiptAt,
+    writtenStretchElection,
+  ]);
   const isOptionDecisionAction =
     selectedAction === 'accept' || selectedAction === 'decline';
   const governedNoticeRequirements =
@@ -739,18 +845,21 @@ export const EditContractModal = ({
               optionDecisionAvailability.status !== 'ready'
             ? optionDecisionAvailability.reasons[0] ||
               'This governed option is not ready because required evidence is incomplete.'
-          : isGovernedExtensionAction && validationState.incomplete
-            ? validationState.reasons[0] ||
-              'This extension is unavailable because required contract or league information is incomplete.'
-          : validationState.incomplete
-            ? 'Finish the contract details to continue'
-            : isOptionDecisionAction && !governedOptionNoticeIsComplete
-              ? !governedNoticeRequirements?.recipientId.trim()
-                ? 'The governed notice recipient is missing.'
-                : 'Enter all required exact governed notice evidence to continue'
-            : !validationState.isLegal && !isOverrideConfirmed
-              ? 'Resolve the blocking issues above to continue'
-              : null;
+            : isGovernedExtensionAction && validationState.incomplete
+              ? validationState.reasons[0] ||
+                'This extension is unavailable because required contract or league information is incomplete.'
+              : isGovernedWaiverAction && validationState.incomplete
+                ? validationState.reasons[0] ||
+                  'This waiver needs exact League and Contract information.'
+                : validationState.incomplete
+                  ? 'Finish the contract details to continue'
+                  : isOptionDecisionAction && !governedOptionNoticeIsComplete
+                    ? !governedNoticeRequirements?.recipientId.trim()
+                      ? 'The governed notice recipient is missing.'
+                      : 'Enter all required exact governed notice evidence to continue'
+                    : !validationState.isLegal && !isOverrideConfirmed
+                      ? 'Resolve the blocking issues above to continue'
+                      : null;
 
   const showOverrideOption =
     canOverride &&
@@ -777,8 +886,17 @@ export const EditContractModal = ({
     setDestinationTeamId(null);
     setSaveError('');
     setIsSubmitting(false);
-    if (selectedAction !== 'buyout') {
+    const remainsInWaiverWorkflow =
+      isOpen && ['waive', 'waiveStretch', 'buyout'].includes(selectedAction);
+    if (!remainsInWaiverWorkflow) {
+      setWaiverLeagueReceiptInput('');
+    }
+    if (!isOpen || selectedAction !== 'buyout') {
       setBuyoutAmountInput('');
+      setSignedBuyoutAgreement(false);
+    }
+    if (!isOpen || selectedAction !== 'waiveStretch') {
+      setWrittenStretchElection(false);
     }
   }, [selectedAction, isOpen]);
 
@@ -835,8 +953,6 @@ export const EditContractModal = ({
     };
   }, [contractYears, CURRENT_YEAR]);
 
-
-
   const dispatchSelectedFreeAgencyAction = useCallback(
     async (
       overrideMetadata: OverrideMetadataLike | null
@@ -844,7 +960,8 @@ export const EditContractModal = ({
       if (!player) {
         return {
           success: false,
-          message: 'Player is required before this contract action can be saved.',
+          message:
+            'Player is required before this contract action can be saved.',
         };
       }
 
@@ -922,7 +1039,7 @@ export const EditContractModal = ({
 
     if (selectedAction === 'buyout' && !buyoutAmountIsValid) {
       setSaveError(
-        `Enter a buyout amount between 0 and ${formatCurrencyFull(
+        `Enter a whole-dollar buyout amount between 0 and ${formatCurrencyFull(
           remainingGuaranteedForBuyout
         )}.`
       );
@@ -933,6 +1050,11 @@ export const EditContractModal = ({
       setSaveError(
         'Required contract and league information is needed before an extension can be saved.'
       );
+      return;
+    }
+
+    if (isGovernedWaiverAction && !governedWaiverProposal) {
+      setSaveError('Complete the exact governed waiver record before saving.');
       return;
     }
 
@@ -1020,11 +1142,11 @@ export const EditContractModal = ({
               signedAt: extension.signedAt || '',
               conditionalHigherMaxPercentage:
                 route === 'rookie-scale'
-                  ? extension.conditionalHigherMaxPercentage ?? null
+                  ? (extension.conditionalHigherMaxPercentage ?? null)
                   : null,
               agreedDesignatedVeteranPercentage:
                 route === 'designated-veteran'
-                  ? extension.agreedDesignatedVeteranPercentage ?? null
+                  ? (extension.agreedDesignatedVeteranPercentage ?? null)
                   : null,
               salariesByYear: extension.salaries
                 .slice(0, extension.years)
@@ -1044,6 +1166,7 @@ export const EditContractModal = ({
             actionResult = await onWaive?.(player, {
               stretch: false,
               buyout: false,
+              waiverProposal: governedWaiverProposal!,
               ...(overrideMetadata || {}),
             });
             break;
@@ -1051,6 +1174,7 @@ export const EditContractModal = ({
             actionResult = await onWaive?.(player, {
               stretch: true,
               buyout: false,
+              waiverProposal: governedWaiverProposal!,
               ...(overrideMetadata || {}),
             });
             break;
@@ -1059,6 +1183,7 @@ export const EditContractModal = ({
               stretch: false,
               buyout: true,
               buyoutAmount: parsedBuyoutAmount ?? 0,
+              waiverProposal: governedWaiverProposal!,
               ...(overrideMetadata || {}),
             });
             break;
@@ -1120,211 +1245,235 @@ export const EditContractModal = ({
           {/* Footer stays pinned below the scrollable action content so
               Cancel/Confirm never leave the viewport at short (720p) heights. */}
           <div className="w-full lg:w-[65%] bg-[#0f0f0f] flex min-h-0 flex-col">
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-8 pb-2">
-          <h2 className="text-xl font-bold text-white mb-4">
-            Available Actions
-          </h2>
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-8 pb-2">
+              <h2 className="text-xl font-bold text-white mb-4">
+                Available Actions
+              </h2>
 
-          <ContractActionContext
-            title={actionContextTitle}
-            stageLabel={actionContextStageLabel}
-            playerName={playerDisplayName}
-            seasonLabel={actionSeasonLabel}
-          />
-
-          <ContractActionSelector
-            playerName={playerDisplayName}
-            hasOption={hasOption}
-            actionSet={actionSet}
-            isExpiring={isExpiring}
-            optionType={optionType}
-            optionYear={optionYear}
-            optionTimingError={optionTimingError}
-            actions={actions}
-            isExtendEligible={isExtendEligible}
-            signAndTradeActionDisabledReason={signAndTradeActionDisabledReason}
-            isOptionActionable={isOptionActionable}
-            selectedAction={selectedAction}
-            onSelectAction={setSelectedAction}
-            actionLabelsOverride={actionLabelsOverride}
-            actionDescriptionsOverride={actionDescriptionsOverride}
-            actionContextCopy={actionContextCopy}
-            extensionEligibilityReason={playerRulesProfile?.extensionEligibility?.reason}
-          />
-
-          {isOptionDecisionAction &&
-            optionDecisionAvailability?.status === 'ready' && (
-              <GovernedOptionNoticeForm
-                availability={optionDecisionAvailability}
-                value={optionNotice}
-                onChange={setOptionNotice}
+              <ContractActionContext
+                title={actionContextTitle}
+                stageLabel={actionContextStageLabel}
+                playerName={playerDisplayName}
+                seasonLabel={actionSeasonLabel}
               />
-            )}
 
-          <ContractDetailsForm
-            selectedAction={selectedAction}
-            isSigningAction={isSigningAction}
-            extension={extension}
-            setExtension={setExtension}
-            salaryInputs={salaryInputs}
-            setSalaryInputs={setSalaryInputs}
-            selectedException={selectedException}
-            setSelectedException={setSelectedException}
-            isOfferSheet={isOfferSheet}
-            setIsOfferSheet={setIsOfferSheet}
-            offerSheetTiming={offerSheetTiming}
-            setOfferSheetTiming={setOfferSheetTiming}
-            destinationTeamId={destinationTeamId}
-            setDestinationTeamId={setDestinationTeamId}
-            buyoutAmountInput={buyoutAmountInput}
-            setBuyoutAmountInput={setBuyoutAmountInput}
-            extMax={extMax}
-            extReason={extReason}
-            isExtendEligible={isExtendEligible}
-            extensionAvailability={extensionAvailability}
-            availableSigningExceptions={availableSigningExceptions}
-            signingGuardrails={signingGuardrails}
-            remainingGuaranteedForBuyout={remainingGuaranteedForBuyout}
-            parsedBuyoutAmount={parsedBuyoutAmount}
-            buyoutAmountIsValid={buyoutAmountIsValid}
-            CURRENT_YEAR={CURRENT_YEAR}
-            extensionStartYear={extensionStartYear}
-            resolvedShowOfferSheetToggle={resolvedShowOfferSheetToggle}
-            playerRulesProfile={playerRulesProfile}
-            clampFirstYearToGuardrails={clampFirstYearToGuardrails}
-            buildSalarySeries={buildSalarySeries}
-            toSalaryInputs={toSalaryInputs}
-            onTermsChange={() => setSaveError('')}
-          />
+              <ContractActionSelector
+                playerName={playerDisplayName}
+                hasOption={hasOption}
+                actionSet={actionSet}
+                isExpiring={isExpiring}
+                optionType={optionType}
+                optionYear={optionYear}
+                optionTimingError={optionTimingError}
+                actions={actions}
+                isExtendEligible={isExtendEligible}
+                signAndTradeActionDisabledReason={
+                  signAndTradeActionDisabledReason
+                }
+                isOptionActionable={isOptionActionable}
+                selectedAction={selectedAction}
+                onSelectAction={setSelectedAction}
+                actionLabelsOverride={actionLabelsOverride}
+                actionDescriptionsOverride={actionDescriptionsOverride}
+                actionContextCopy={actionContextCopy}
+                extensionEligibilityReason={
+                  playerRulesProfile?.extensionEligibility?.reason
+                }
+              />
 
-          {/* === Validation Warnings === */}
-          {selectedAction &&
-            (validationState.warnings.length > 0 ||
-              validationState.errors.length > 0) && (
-              <div className="mt-4 space-y-3">
-                <div className="rounded border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-[11px] text-cyan-100">
-                  <div className="font-semibold uppercase tracking-[0.18em] text-cyan-200/80">
-                    {validationCopy.disclosureTitle}
-                  </div>
-                  <p className="mt-1 text-cyan-50/85">
-                    {validationCopy.disclosureMessage}
-                  </p>
-                </div>
-                <ValidationWarnings
-                  warnings={validationState.warnings}
-                  errors={validationState.errors}
-                  showErrors={showValidationErrors}
-                />
-              </div>
-            )}
+              {isOptionDecisionAction &&
+                optionDecisionAvailability?.status === 'ready' && (
+                  <GovernedOptionNoticeForm
+                    availability={optionDecisionAvailability}
+                    value={optionNotice}
+                    onChange={setOptionNotice}
+                  />
+                )}
 
-          {/* === Advanced Override Section === */}
-          {showOverrideOption && (
-            <div className="mt-4 border border-red-500/30 rounded-lg overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="w-full px-4 py-3 flex items-center justify-between bg-red-500/10 hover:bg-red-500/20 transition-colors"
-              >
-                <span className="text-sm font-medium text-red-300">
-                  ⚠️ Advanced: Override Validation
-                </span>
-                <span className="text-red-400 text-sm">
-                  {showAdvanced ? '▲' : '▼'}
-                </span>
-              </button>
+              <GovernedWaiverEvidenceForm
+                selectedAction={selectedAction}
+                availability={waiverAvailability}
+                leagueReceiptInput={waiverLeagueReceiptInput}
+                leagueReceiptAt={waiverLeagueReceiptAt}
+                leagueReceiptCandidates={waiverLeagueReceiptCandidates}
+                leagueReceiptOffset={waiverLeagueReceiptOffset}
+                onLeagueReceiptInputChange={
+                  handleWaiverLeagueReceiptInputChange
+                }
+                onLeagueReceiptOffsetChange={setWaiverLeagueReceiptOffset}
+                writtenStretchElection={writtenStretchElection}
+                onWrittenStretchElectionChange={setWrittenStretchElection}
+                signedBuyoutAgreement={signedBuyoutAgreement}
+                onSignedBuyoutAgreementChange={setSignedBuyoutAgreement}
+              />
 
-              {showAdvanced && (
-                <div className="p-4 bg-red-900/10 space-y-4">
-                  <div className="text-xs text-red-300/80 space-y-2">
-                    <p className="font-semibold text-red-300">
-                      {validationCopy.overrideTitle}
-                    </p>
-                    <ul className="list-disc pl-4 space-y-1">
-                      {validationState.reasons.map((reason, idx) => (
-                        <li key={idx}>{reason}</li>
-                      ))}
-                    </ul>
-                    <p className="pt-2 border-t border-red-500/20 mt-2">
-                      {validationCopy.overrideFootnote}
-                    </p>
-                  </div>
+              <ContractDetailsForm
+                selectedAction={selectedAction}
+                isSigningAction={isSigningAction}
+                extension={extension}
+                setExtension={setExtension}
+                salaryInputs={salaryInputs}
+                setSalaryInputs={setSalaryInputs}
+                selectedException={selectedException}
+                setSelectedException={setSelectedException}
+                isOfferSheet={isOfferSheet}
+                setIsOfferSheet={setIsOfferSheet}
+                offerSheetTiming={offerSheetTiming}
+                setOfferSheetTiming={setOfferSheetTiming}
+                destinationTeamId={destinationTeamId}
+                setDestinationTeamId={setDestinationTeamId}
+                buyoutAmountInput={buyoutAmountInput}
+                setBuyoutAmountInput={setBuyoutAmountInput}
+                extMax={extMax}
+                extReason={extReason}
+                isExtendEligible={isExtendEligible}
+                extensionAvailability={extensionAvailability}
+                availableSigningExceptions={availableSigningExceptions}
+                signingGuardrails={signingGuardrails}
+                remainingGuaranteedForBuyout={remainingGuaranteedForBuyout}
+                parsedBuyoutAmount={parsedBuyoutAmount}
+                buyoutAmountIsValid={buyoutAmountIsValid}
+                CURRENT_YEAR={CURRENT_YEAR}
+                extensionStartYear={extensionStartYear}
+                resolvedShowOfferSheetToggle={resolvedShowOfferSheetToggle}
+                playerRulesProfile={playerRulesProfile}
+                clampFirstYearToGuardrails={clampFirstYearToGuardrails}
+                buildSalarySeries={buildSalarySeries}
+                toSalaryInputs={toSalaryInputs}
+                onTermsChange={() => setSaveError('')}
+              />
 
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="override-confirm"
-                      className="block text-xs font-medium text-red-300"
-                    >
-                      Type{' '}
-                      <span className="font-mono bg-red-500/20 px-1 rounded">
-                        OVERRIDE
-                      </span>{' '}
-                      to confirm:
-                    </label>
-                    <input
-                      id="override-confirm"
-                      type="text"
-                      value={overrideText}
-                      onChange={(e) => setOverrideText(e.target.value)}
-                      placeholder="OVERRIDE"
-                      className="w-full px-3 py-2 rounded bg-black/50 border border-red-500/30 text-sm text-white placeholder-red-500/40 focus:border-red-500 focus:outline-none"
-                    />
-                    {isOverrideConfirmed && (
-                      <p className="text-xs text-green-400">
-                        ✓ Override confirmed - you may now proceed
+              {/* === Validation Warnings === */}
+              {selectedAction &&
+                (validationState.warnings.length > 0 ||
+                  validationState.errors.length > 0) && (
+                  <div className="mt-4 space-y-3">
+                    <div className="rounded border border-cyan-500/20 bg-cyan-500/10 px-3 py-2 text-[11px] text-cyan-100">
+                      <div className="font-semibold uppercase tracking-[0.18em] text-cyan-200/80">
+                        {validationCopy.disclosureTitle}
+                      </div>
+                      <p className="mt-1 text-cyan-50/85">
+                        {validationCopy.disclosureMessage}
                       </p>
-                    )}
+                    </div>
+                    <ValidationWarnings
+                      warnings={validationState.warnings}
+                      errors={validationState.errors}
+                      showErrors={showValidationErrors}
+                    />
                   </div>
+                )}
+
+              {/* === Advanced Override Section === */}
+              {showOverrideOption && (
+                <div className="mt-4 border border-red-500/30 rounded-lg overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="w-full px-4 py-3 flex items-center justify-between bg-red-500/10 hover:bg-red-500/20 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-red-300">
+                      ⚠️ Advanced: Override Validation
+                    </span>
+                    <span className="text-red-400 text-sm">
+                      {showAdvanced ? '▲' : '▼'}
+                    </span>
+                  </button>
+
+                  {showAdvanced && (
+                    <div className="p-4 bg-red-900/10 space-y-4">
+                      <div className="text-xs text-red-300/80 space-y-2">
+                        <p className="font-semibold text-red-300">
+                          {validationCopy.overrideTitle}
+                        </p>
+                        <ul className="list-disc pl-4 space-y-1">
+                          {validationState.reasons.map((reason, idx) => (
+                            <li key={idx}>{reason}</li>
+                          ))}
+                        </ul>
+                        <p className="pt-2 border-t border-red-500/20 mt-2">
+                          {validationCopy.overrideFootnote}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label
+                          htmlFor="override-confirm"
+                          className="block text-xs font-medium text-red-300"
+                        >
+                          Type{' '}
+                          <span className="font-mono bg-red-500/20 px-1 rounded">
+                            OVERRIDE
+                          </span>{' '}
+                          to confirm:
+                        </label>
+                        <input
+                          id="override-confirm"
+                          type="text"
+                          value={overrideText}
+                          onChange={(e) => setOverrideText(e.target.value)}
+                          placeholder="OVERRIDE"
+                          className="w-full px-3 py-2 rounded bg-black/50 border border-red-500/30 text-sm text-white placeholder-red-500/40 focus:border-red-500 focus:outline-none"
+                        />
+                        {isOverrideConfirmed && (
+                          <p className="text-xs text-green-400">
+                            ✓ Override confirmed - you may now proceed
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {saveError && (
+                <div
+                  role="alert"
+                  className="mt-4 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
+                >
+                  {saveError}
                 </div>
               )}
             </div>
-          )}
 
-          {saveError && (
-            <div
-              role="alert"
-              className="mt-4 rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200"
-            >
-              {saveError}
-            </div>
-          )}
-
-          </div>
-
-          {/* Footer Buttons */}
-          <div className="flex shrink-0 items-center gap-3 px-8 py-4">
-            {disableConfirm && confirmDisabledReason && (
-              <span
-                data-testid="edit-contract-confirm-disabled-reason"
-                className="mr-auto text-xs text-amber-300/80"
+            {/* Footer Buttons */}
+            <div className="flex shrink-0 items-center gap-3 px-8 py-4">
+              {disableConfirm && confirmDisabledReason && (
+                <span
+                  data-testid="edit-contract-confirm-disabled-reason"
+                  className="mr-auto text-xs text-amber-300/80"
+                >
+                  {confirmDisabledReason}
+                </span>
+              )}
+              <button
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="ml-auto px-4 py-2 text-sm font-medium rounded bg-white/5 hover:bg-white/10 text-white transition-colors"
               >
-                {confirmDisabledReason}
-              </span>
-            )}
-            <button
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="ml-auto px-4 py-2 text-sm font-medium rounded bg-white/5 hover:bg-white/10 text-white transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              data-testid="edit-contract-confirm-action-button"
-              onClick={handleConfirm}
-              disabled={disableConfirm}
-              aria-disabled={disableConfirm}
-              title={disableConfirm ? confirmDisabledReason ?? undefined : undefined}
-              className={`px-6 py-2 text-sm font-bold rounded shadow-lg transition-all ${
-                disableConfirm
-                  ? 'cursor-not-allowed bg-white/[0.06] text-white/35 shadow-none ring-1 ring-inset ring-white/10'
-                  : isOverrideConfirmed
-                    ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/20'
-                    : 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
-              }`}
-            >
-              {confirmButtonLabel}
-            </button>
-          </div>
+                Cancel
+              </button>
+              <button
+                data-testid="edit-contract-confirm-action-button"
+                onClick={handleConfirm}
+                disabled={disableConfirm}
+                aria-disabled={disableConfirm}
+                title={
+                  disableConfirm
+                    ? (confirmDisabledReason ?? undefined)
+                    : undefined
+                }
+                className={`px-6 py-2 text-sm font-bold rounded shadow-lg transition-all ${
+                  disableConfirm
+                    ? 'cursor-not-allowed bg-white/[0.06] text-white/35 shadow-none ring-1 ring-inset ring-white/10'
+                    : isOverrideConfirmed
+                      ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-900/20'
+                      : 'bg-orange-600 hover:bg-orange-500 text-white shadow-orange-900/20'
+                }`}
+              >
+                {confirmButtonLabel}
+              </button>
+            </div>
           </div>
         </div>
       </DialogContent>

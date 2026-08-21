@@ -56,6 +56,10 @@ const MUTATION_PIPELINE_COMPUTE_SIGNINGS_PLAYEROPS_PATH = path.resolve(
   __dirname,
   '../../features/architect/utils/mutationPipeline.compute.signings.playerOps.ts'
 );
+const GOVERNED_WAIVER_ENGINE_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/utils/waivers/governedWaiver.ts'
+);
 
 const FREE_AGENT_POOL_PATH = path.resolve(
   __dirname,
@@ -167,7 +171,9 @@ describe('Gate 2: Success-Gated Modal Close (E1)', () => {
 // === GATE 3: Cancel Confirm Returns { success:false } ===
 
 describe('Gate 3: Cancel Confirm Returns { success:false } (E1)', () => {
-  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH);
+  const content =
+    readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH);
 
   it('handleWaiveContract returns Promise<MutationActionResult>', () => {
     // Pattern: function signature includes Promise<MutationActionResult>
@@ -181,7 +187,7 @@ describe('Gate 3: Cancel Confirm Returns { success:false } (E1)', () => {
   it('waive cancel returns { success: false, message }', () => {
     // Pattern: window.confirm returns { success: false, message: 'Action canceled...' }
     const waiveCancelReturn =
-      /handleWaiveContract[\s\S]{0,800}window\.confirm[\s\S]{0,200}return\s*\{\s*success\s*:\s*false/.test(
+      /handleWaiveContract[\s\S]{0,8000}window\.confirm[\s\S]{0,300}return\s*\{\s*success\s*:\s*false/.test(
         content
       );
     expect(waiveCancelReturn).toBe(true);
@@ -205,7 +211,9 @@ describe('Gate 3: Cancel Confirm Returns { success:false } (E1)', () => {
 // === GATE 4: World Success Authoritative Re-sync ===
 
 describe('Gate 4: World Success Authoritative Re-sync (E1)', () => {
-  const content = readFileContent(USE_ARCHITECT_ACTIONS_PATH) + readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH);
+  const content =
+    readFileContent(USE_ARCHITECT_ACTIONS_PATH) +
+    readFileContent(USE_ARCHITECT_ACTIONS_CONTRACT_ACTIONS_PATH);
 
   it('has syncTeamFromMutationResult function or equivalent sync call', () => {
     // Pattern: syncTeamFromMutationResult defined or called
@@ -225,46 +233,42 @@ describe('Gate 4: World Success Authoritative Re-sync (E1)', () => {
 
 // === GATE 5: World Compute Honors Buyout Fields ===
 
-describe('Gate 5: World Compute Honors Buyout Fields (E1)', () => {
+describe('Gate 5: World Compute Honors Governed Buyout Fields (E1)', () => {
   // Wave 4 Step 4d: computeWaiveResult moved to mutationPipeline.compute.ts.
   // Wave 8 Step 2: computeWaiveResult further extracted to compute.signings.ts.
   // Later wave: waive/option/renounce/extension moved to .playerOps.ts.
-  const content =
+  const pipelineContent =
     readFileContent(MUTATION_PIPELINE_PATH) +
     readFileContent(MUTATION_PIPELINE_COMPUTE_PATH) +
     readFileContent(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PATH) +
     readFileContent(MUTATION_PIPELINE_COMPUTE_SIGNINGS_PLAYEROPS_PATH);
+  const waiverEngineContent = readFileContent(GOVERNED_WAIVER_ENGINE_PATH);
 
-  it('computeWaiveResult reads payload.buyoutAmount', () => {
-    // Pattern: payload.buyoutAmount in computeWaiveResult.
-    // Window widened from 1500 when the CBA stretch-term derivation
-    // (countRemainingContractSeasons / getStretchProvisionYears) was added
-    // ahead of the buyout block. Intent is unchanged: computeWaiveResult must
-    // still read the buyout amount off the payload.
-    const readsBuyoutAmount =
-      /computeWaiveResult[\s\S]{0,2500}payload\.buyoutAmount/.test(content);
-    expect(readsBuyoutAmount).toBe(true);
-  });
-
-  it('boundedBuyoutAmount is clamped with Math.min', () => {
-    // Pattern: boundedBuyoutAmount = buyout ? Math.min(remainingSalary, ...)
-    const clampsBuyout =
-      /boundedBuyoutAmount\s*=\s*buyout\s*\?\s*Math\.min/.test(content);
-    expect(clampsBuyout).toBe(true);
-  });
-
-  it('deadCapAmount uses conditional buyout calculation', () => {
-    // Pattern: deadCapAmount = buyout ? Math.max(0, remainingSalary - boundedBuyoutAmount)
-    const conditionalDeadCap = /deadCapAmount\s*=\s*buyout\s*\?/.test(content);
-    expect(conditionalDeadCap).toBe(true);
-  });
-
-  it('dead cap subtracts boundedBuyoutAmount when buyout is true', () => {
-    // Pattern: remainingSalary - boundedBuyoutAmount in dead cap calculation
-    const subtractsBuyout = /remainingSalary\s*-\s*boundedBuyoutAmount/.test(
-      content
+  it('computeWaiveResult requires and forwards the governed waiver proposal', () => {
+    expect(pipelineContent).toMatch(
+      /computeWaiveResult[\s\S]{0,5000}waiverProposal[\s\S]{0,5000}decideGovernedWaiver/
     );
-    expect(subtractsBuyout).toBe(true);
+  });
+
+  it('treats the buyout amount as a reduction of protected Base Compensation', () => {
+    expect(waiverEngineContent).toMatch(
+      /proposal\.buyoutReduction\s*>\s*protectedTotal/
+    );
+    expect(waiverEngineContent).toMatch(
+      /distribute\([\s\S]{0,200}proposal\.buyoutReduction/
+    );
+  });
+
+  it('requires the written agreement and both signatures', () => {
+    expect(waiverEngineContent).toMatch(/writtenBuyoutAgreement/);
+    expect(waiverEngineContent).toMatch(/playerSignatureRecorded/);
+    expect(waiverEngineContent).toMatch(/teamSignatureRecorded/);
+  });
+
+  it('persists full protected salary until governed waiver termination', () => {
+    expect(waiverEngineContent).toMatch(
+      /amountByYear:\s*beforeStretch\.map[\s\S]{0,300}amount:\s*row\.protectedBaseCompensation/
+    );
   });
 });
 

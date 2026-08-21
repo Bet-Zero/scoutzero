@@ -33,6 +33,7 @@ export type UseTradeMachineTeamOpsParams = {
   capProjections: UnknownRecord | null | undefined;
   yearKey: number;
   worldId: string | null;
+  worldAsOfDate: string | null;
 };
 
 export type UseTradeMachineTeamOpsResult = {
@@ -47,6 +48,7 @@ export function useTradeMachineTeamOps({
   capProjections,
   yearKey,
   worldId,
+  worldAsOfDate,
 }: UseTradeMachineTeamOpsParams): UseTradeMachineTeamOpsResult {
   // Team management
   const selectTeam = useCallback(
@@ -155,7 +157,7 @@ export function useTradeMachineTeamOps({
           playersTotal: baseline,
           deadMoneyTotal: dead,
           totalWithDead,
-        } = getCapTotalsForYear(teamObj, yearKey);
+        } = getCapTotalsForYear(teamObj, yearKey, worldAsOfDate);
         teamObj.teamTotalSalary = totalWithDead;
         teamObj.projectedSalary = totalWithDead;
 
@@ -184,7 +186,7 @@ export function useTradeMachineTeamOps({
         });
       }
     },
-    [capProjections, yearKey, worldId]
+    [capProjections, yearKey, worldAsOfDate, worldId]
   );
 
   const addTeam = useCallback(() => {

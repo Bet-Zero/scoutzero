@@ -43,13 +43,15 @@ import { resolveHardCapSnapshotOverlay } from '@/features/architect/utils/capTot
 import { toEndYear, toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import type { TeamTotals } from '@/features/architect/types';
 import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
+import { projectGovernedWaiverTeamSalary } from '@/features/architect/utils/waivers/governedWaiverProjection';
 
 type UnknownRecord = Record<string, unknown>;
 
 type TeamPlayerLike = UnknownRecord;
 
-interface CapTotalsOptions {
+export interface CapTotalsOptions {
   capProjections?: unknown;
+  asOfDate?: string | null;
 }
 
 interface TeamCapTotalsMeta {
@@ -290,7 +292,10 @@ export function computeTeamCapTotals(
     teamCapSheet?.capHolds as CapHold[] | null | undefined,
     yearKey
   );
-  const deadMoneyTotal = computeDeadMoneyForYear(teamCapSheet, yearKey);
+  const capTeamAtDate = teamCapSheet
+    ? projectGovernedWaiverTeamSalary(teamCapSheet, options.asOfDate)
+    : teamCapSheet;
+  const deadMoneyTotal = computeDeadMoneyForYear(capTeamAtDate, yearKey);
 
   const standardRosterCount = countStandardRoster(teamCapSheet?.players);
   const minRoster = rules.roster.minStandard;

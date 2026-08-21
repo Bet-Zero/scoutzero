@@ -18,12 +18,6 @@ import {
   getRightsTypeFromPlayer,
 } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
-import {
-  allocateStandardWaiverDeadCapBySeason,
-  countRemainingContractSeasons,
-  getStretchProvisionYears,
-  sumWaiverDeadCapAllocations,
-} from '@/features/architect/utils/waiverDeadCapAllocation';
 import type { ManualExceptionsSavePayload } from '@/features/architect/capSheet/CapSheet/CapSheet';
 import type { ArchitectDashboardPlayer } from './useArchitectState';
 import {
@@ -60,7 +54,6 @@ import type {
   ManualCapSheetLedgerMutationParams,
   MutationActionResult,
   OverrideMetadata,
-  SalaryByYear,
   SigningDetails,
   TeamHistoryDevTools,
   WaiveOptions,
@@ -87,6 +80,16 @@ import {
   type GovernedExtensionAvailability,
   type WorldGovernedExtensionEntry,
 } from '@/features/architect/utils/extensions';
+import {
+  applyGovernedWaiverResult,
+  decideGovernedWaiver,
+  loadWorldGovernedWaiverEntries,
+  readGovernedWaiverLifecycles,
+  resolveGovernedWaiverTerminationContext,
+  type GovernedWaiverAvailability,
+  type WorldGovernedWaiverEntry,
+} from '@/features/architect/utils/waivers';
+import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
 
 export type UseContractActionsParams = {
   currentYear: number;
@@ -96,8 +99,13 @@ export type UseContractActionsParams = {
   worldAsOfDate: string | null;
   rightsLedgerWorldVersion: number | null;
   teamCapSheet: CapSheet | null | undefined;
-  reportMutationError: (message: string, details?: Record<string, unknown>) => void;
-  runManualCapSheetLedgerMutation: (params: ManualCapSheetLedgerMutationParams) => Promise<boolean>;
+  reportMutationError: (
+    message: string,
+    details?: Record<string, unknown>
+  ) => void;
+  runManualCapSheetLedgerMutation: (
+    params: ManualCapSheetLedgerMutationParams
+  ) => Promise<boolean>;
   applyCapAuditedTeamMutation: (params: {
     mutationType: string;
     playerIds?: string[];
@@ -163,6 +171,15 @@ export function useContractActions({
   >('idle');
   const [governedExtensionLoadReason, setGovernedExtensionLoadReason] =
     useState<string | null>(null);
+  const [governedWaiverEntries, setGovernedWaiverEntries] = useState<
+    readonly WorldGovernedWaiverEntry[]
+  >([]);
+  const [governedWaiverLoadState, setGovernedWaiverLoadState] = useState<
+    'idle' | 'loading' | 'ready' | 'incompatible'
+  >('idle');
+  const [governedWaiverLoadReason, setGovernedWaiverLoadReason] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     let active = true;
@@ -200,8 +217,51 @@ export function useContractActions({
     return () => {
       active = false;
     };
+  }, [teamCapSheet?.contractEventLedgers, teamCode, worldAsOfDate, worldId]);
+
+  useEffect(() => {
+    let active = true;
+    if (!worldId || !worldAsOfDate || !teamCode) {
+      setGovernedWaiverEntries([]);
+      setGovernedWaiverLoadState('idle');
+      setGovernedWaiverLoadReason(null);
+      return () => {
+        active = false;
+      };
+    }
+    setGovernedWaiverLoadState('loading');
+    setGovernedWaiverLoadReason(null);
+    void Promise.resolve()
+      .then(() =>
+        loadWorldGovernedWaiverEntries({
+          worldId,
+          teamId: teamCode,
+          overlays: teamCapSheet?.contractEventLedgers ?? [],
+          existingLifecycles: readGovernedWaiverLifecycles(teamCapSheet),
+          worldAsOfDate,
+        })
+      )
+      .then((entries) => {
+        if (!active) return;
+        setGovernedWaiverEntries(entries);
+        setGovernedWaiverLoadState('ready');
+      })
+      .catch((error) => {
+        if (!active) return;
+        setGovernedWaiverEntries([]);
+        setGovernedWaiverLoadState('incompatible');
+        setGovernedWaiverLoadReason(
+          error instanceof Error
+            ? error.message
+            : 'Governed waiver history could not be loaded.'
+        );
+      });
+    return () => {
+      active = false;
+    };
   }, [
     teamCapSheet?.contractEventLedgers,
+    teamCapSheet?.deadCap,
     teamCode,
     worldAsOfDate,
     worldId,
@@ -243,12 +303,74 @@ export function useContractActions({
     return () => {
       active = false;
     };
-  }, [
-    teamCapSheet?.contractEventLedgers,
-    teamCode,
-    worldAsOfDate,
-    worldId,
-  ]);
+  }, [teamCapSheet?.contractEventLedgers, teamCode, worldAsOfDate, worldId]);
+
+  const getWaiverAvailability = useCallback(
+    (player: ArchitectPlayer): GovernedWaiverAvailability => {
+      const playerId = String(
+        player.id || player.player_id || player.name || ''
+      );
+      const fallback = (
+        status: 'needs-input' | 'incompatible',
+        reason: string
+      ): GovernedWaiverAvailability =>
+        Object.freeze({
+          status,
+          playerId,
+          contractId: null,
+          reasons: Object.freeze([reason]),
+        });
+      if (!worldId) {
+        return fallback(
+          'incompatible',
+          'Open a fresh governed Team Plan to record this waiver.'
+        );
+      }
+      if (!playerId) {
+        return fallback(
+          'needs-input',
+          'The exact player identity is required.'
+        );
+      }
+      if (governedWaiverLoadState === 'loading') {
+        return fallback(
+          'needs-input',
+          'Checking the pinned Contract, protection schedule, and league inputs…'
+        );
+      }
+      if (governedWaiverLoadState === 'idle') {
+        return fallback(
+          'needs-input',
+          'The Team and Team Plan date must finish loading first.'
+        );
+      }
+      if (governedWaiverLoadState === 'incompatible') {
+        return fallback(
+          'incompatible',
+          governedWaiverLoadReason ||
+            'This Team Plan predates governed waiver history. Recreate it.'
+        );
+      }
+      const matches = governedWaiverEntries.filter(
+        (entry) => entry.playerId === playerId
+      );
+      if (matches.length !== 1) {
+        return fallback(
+          matches.length > 1 ? 'incompatible' : 'needs-input',
+          matches.length > 1
+            ? 'More than one governed Contract matches this player.'
+            : 'Required governed Contract information is missing for this player.'
+        );
+      }
+      return matches[0].availability;
+    },
+    [
+      governedWaiverEntries,
+      governedWaiverLoadReason,
+      governedWaiverLoadState,
+      worldId,
+    ]
+  );
 
   const getExtensionAvailability = useCallback(
     (player: ArchitectPlayer): GovernedExtensionAvailability => {
@@ -275,7 +397,10 @@ export function useContractActions({
         );
       }
       if (!playerId) {
-        return fallback('needs-input', 'The exact player identity is required.');
+        return fallback(
+          'needs-input',
+          'The exact player identity is required.'
+        );
       }
       if (governedExtensionLoadState === 'loading') {
         return fallback(
@@ -530,7 +655,10 @@ export function useContractActions({
 
   const handleEditContract = useCallback(
     (
-      player: PlayerRulesProfileInput | ArchitectDashboardPlayer | ArchitectPlayer
+      player:
+        | PlayerRulesProfileInput
+        | ArchitectDashboardPlayer
+        | ArchitectPlayer
     ): void => {
       openPlayerContractModalRoute({
         player: player as PlayerRulesProfileInput | ArchitectPlayer,
@@ -549,7 +677,10 @@ export function useContractActions({
   // write still happens inside EditContractModal via its existing callbacks.
   const handleLaunchPlayerContractAction = useCallback(
     (
-      player: PlayerRulesProfileInput | ArchitectDashboardPlayer | ArchitectPlayer,
+      player:
+        | PlayerRulesProfileInput
+        | ArchitectDashboardPlayer
+        | ArchitectPlayer,
       action: 'waive' | 'extend' | 'stretch' | 'buyout'
     ): void => {
       const initialAction = action === 'stretch' ? 'waiveStretch' : action;
@@ -762,8 +893,7 @@ export function useContractActions({
       if (!entry) {
         return {
           success: false,
-          message:
-            'The extension information changed. Reload and try again.',
+          message: 'The extension information changed. Reload and try again.',
         };
       }
       const proposal = {
@@ -783,8 +913,7 @@ export function useContractActions({
         recordedAt: proposal.signedAt,
       });
       if (!preview.success) {
-        const message =
-          preview.reasons[0] || 'This extension is unavailable.';
+        const message = preview.reasons[0] || 'This extension is unavailable.';
         reportMutationError(message, {
           playerId,
           reasons: preview.reasons,
@@ -863,26 +992,13 @@ export function useContractActions({
     ]
   );
 
-  // handleWaiveContract - directly updates teamCapSheet
+  // Governed ordinary unclaimed waiver / stretch / buyout path.
   const handleWaiveContract = useCallback(
     async (
       player: ArchitectPlayer,
       options: WaiveOptions
     ): Promise<MutationActionResult> => {
-      const { stretch, buyout, buyoutAmount, overrideUsed, overrideReasons } =
-        options;
-      const confirmMsg = stretch
-        ? 'Waive and stretch this player?'
-        : buyout
-          ? 'Buy out this player?'
-          : 'Waive this player?';
-      if (!window.confirm(confirmMsg)) {
-        return {
-          success: false,
-          message: 'Action canceled. No changes were saved.',
-        };
-      }
-
+      const { waiverProposal, overrideUsed } = options;
       const playerId = player.id || player.player_id || player.name;
       if (!playerId) {
         console.error('Waive missing playerId', { player });
@@ -890,154 +1006,171 @@ export function useContractActions({
         return { success: false, message: 'Cannot save: Player ID missing.' };
       }
 
-      const normalizedBuyoutAmount = buyout
-        ? Math.max(0, Number(buyoutAmount) || 0)
-        : 0;
-
-      // CBA stretch term for the persisted metadata: (2 x seasons remaining) + 1.
-      const payloadStretchYears = stretch
-        ? getStretchProvisionYears(
-            countRemainingContractSeasons({
-              salaryRows: player.contract?.salariesByYear || [],
-              currentSeason: toSeasonCode(currentYear),
-            })
-          ) || 3
-        : 0;
+      if (overrideUsed) {
+        return {
+          success: false,
+          message:
+            'Governed waiver history cannot be bypassed with an override.',
+        };
+      }
+      const availability = getWaiverAvailability(player);
+      if (availability.status !== 'ready' || !availability.contractId) {
+        const message =
+          availability.reasons[0] ||
+          'This waiver needs governed Contract or league information.';
+        reportMutationError(message, { playerId, availability });
+        return { success: false, message };
+      }
+      if (
+        !worldId ||
+        !worldAsOfDate ||
+        !userId ||
+        !teamCapSheet ||
+        !waiverProposal
+      ) {
+        return {
+          success: false,
+          message:
+            'A compatible saved Team Plan, exact League receipt, and signed-in author are required.',
+        };
+      }
+      const entry = governedWaiverEntries.find(
+        (candidate) =>
+          candidate.playerId === String(playerId) &&
+          candidate.contractId === availability.contractId
+      );
+      if (!entry) {
+        return {
+          success: false,
+          message: 'The governed Contract changed. Reload and try again.',
+        };
+      }
+      const proposal = {
+        ...waiverProposal,
+        contractId: entry.contractId,
+      };
+      const isStretch = proposal.path === 'waive-and-stretch';
+      const isBuyout = proposal.path === 'buyout';
+      const terminationContext = resolveGovernedWaiverTerminationContext(
+        proposal.leagueReceivedAt,
+        currentYear
+      );
+      if (!terminationContext) {
+        return {
+          success: false,
+          message:
+            'The exact Eastern waiver termination and its governed Salary Cap Year are unavailable.',
+        };
+      }
+      const seasonEnvelope = resolveGovernedSeasonEnvelope({
+        asOfDate: terminationContext.expiryAt,
+        salaryCapYear: terminationContext.salaryCapYear,
+        requiredAuthority: 'official',
+        team: { teamId: teamCode, teamCode, worldId },
+      });
+      const salaryCap =
+        seasonEnvelope.systemLevels['salary-cap']?.amount ?? null;
+      if (seasonEnvelope.status !== 'complete' || salaryCap === null) {
+        const message =
+          seasonEnvelope.unavailableReasons[0] ||
+          'Governed Salary Cap and calendar inputs are unavailable.';
+        reportMutationError(message, { playerId });
+        return { success: false, message };
+      }
+      const playerName =
+        normalizeOptionalMutationString(player.displayName || player.name) ||
+        String(playerId);
+      const preview = decideGovernedWaiver({
+        authority: entry.authority,
+        existingLifecycles: readGovernedWaiverLifecycles(teamCapSheet),
+        existingDeadCap: teamCapSheet.deadCap,
+        worldId,
+        teamId: teamCode,
+        playerId: String(playerId),
+        playerName,
+        contractId: entry.contractId,
+        worldAsOfDate,
+        salaryCapYear: currentYear,
+        salaryCapAtElection: salaryCap,
+        proposal,
+        operationId: `preview:${entry.contractId}:waiver`,
+        authoringIdentity: userId,
+        recordedAt: proposal.leagueReceivedAt,
+      });
+      if (!preview.success) {
+        const message = preview.reasons[0] || 'This waiver needs input.';
+        reportMutationError(message, { playerId, reasons: preview.reasons });
+        return { success: false, message };
+      }
+      const confirmMsg = isStretch
+        ? `Place ${playerName} on irrevocable waivers and record the written Team Salary stretch election?`
+        : isBuyout
+          ? `Record the signed buyout and place ${playerName} on irrevocable waivers?`
+          : `Place ${playerName} on irrevocable waivers?`;
+      if (!window.confirm(confirmMsg)) {
+        return {
+          success: false,
+          message: 'Action canceled. No changes were saved.',
+        };
+      }
 
       const mutationResult = applyCapAuditedTeamMutation({
         mutationType: 'waivePlayer',
         playerIds: [String(playerId)],
         invalidMessage: 'Waive action blocked by post-state cap validation.',
-        computeNextTeam: (beforeTeam) => {
-          const rosterPlayer = (beforeTeam.players || []).find(
-            (p) =>
-              p.id === playerId ||
-              p.player_id === playerId ||
-              p.name === playerId
-          );
-          const contractRows: SalaryByYear[] =
-            rosterPlayer?.contract?.salariesByYear ||
-            player.contract?.salariesByYear ||
-            [];
-
-          // Calculate remaining guaranteed money from current/future rows.
-          const standardDeadCapBySeason =
-            allocateStandardWaiverDeadCapBySeason({
-              salaryRows: contractRows,
-              currentSeason: toSeasonCode(currentYear),
-            });
-          const remainingGuaranteed = sumWaiverDeadCapAllocations(
-            standardDeadCapBySeason
-          );
-
-          const boundedBuyoutAmount = buyout
-            ? Math.min(remainingGuaranteed, normalizedBuyoutAmount)
-            : 0;
-
-          // Buyout follows the same model in local + world paths:
-          // dead cap equals remaining guaranteed minus buyout reduction amount.
-          const deadCapAmount = buyout
-            ? Math.max(0, remainingGuaranteed - boundedBuyoutAmount)
-            : remainingGuaranteed;
-
-          const shouldStretch = !!stretch && deadCapAmount > 0;
-          // CBA stretch term: (2 x seasons remaining) + 1, derived from the
-          // contract. Falls back to 3 only when the term can't be computed.
-          const remainingSeasonCount = countRemainingContractSeasons({
-            salaryRows: contractRows,
-            currentSeason: toSeasonCode(currentYear),
+        seasonIdOverride: toSeasonCode(currentYear),
+        yearOverride: currentYear,
+        computeNextTeam: (beforeTeam, context) => {
+          const committedPreview = decideGovernedWaiver({
+            authority: entry.authority,
+            existingLifecycles: readGovernedWaiverLifecycles(beforeTeam),
+            existingDeadCap: beforeTeam.deadCap,
+            worldId,
+            teamId: teamCode,
+            playerId: String(playerId),
+            playerName,
+            contractId: entry.contractId,
+            worldAsOfDate,
+            salaryCapYear: currentYear,
+            salaryCapAtElection: salaryCap,
+            proposal,
+            operationId: context.operationId,
+            authoringIdentity: userId,
+            recordedAt: context.occurredAt,
           });
-          const stretchYears = shouldStretch
-            ? getStretchProvisionYears(remainingSeasonCount) || 3
-            : 1;
-          const baseAmount = shouldStretch
-            ? Math.floor(deadCapAmount / stretchYears)
-            : deadCapAmount;
-          const remainder = shouldStretch
-            ? deadCapAmount - baseAmount * stretchYears
-            : 0;
-
-          const deadCapEntries =
-            deadCapAmount > 0
-              ? [
-                  {
-                    playerId: String(playerId),
-                    playerName:
-                      rosterPlayer?.displayName ||
-                      rosterPlayer?.name ||
-                      player.displayName ||
-                      player.name ||
-                      String(playerId),
-                    originalSalary: remainingGuaranteed,
-                    amountByYear:
-                      !buyout && !shouldStretch
-                        ? standardDeadCapBySeason
-                        : Array.from({ length: stretchYears }, (_, index) => ({
-                            season: toSeasonCode(currentYear + index),
-                            amount:
-                              shouldStretch && index < remainder
-                                ? baseAmount + 1
-                                : baseAmount,
-                            isStretched: shouldStretch,
-                          })),
-                    waiveDate: new Date().toISOString(),
-                    notes: buyout
-                      ? `Buyout reduction: $${boundedBuyoutAmount.toLocaleString()}`
-                      : shouldStretch
-                        ? `Stretched over ${stretchYears} years`
-                        : undefined,
-                  },
-                ]
-              : [];
-
-          const updatedPlayers = (beforeTeam.players || []).filter(
-            (p) =>
-              p.id !== playerId &&
-              p.player_id !== playerId &&
-              p.name !== playerId
-          );
-
-          const updatedRoster = (
-            Array.isArray(beforeTeam.roster) ? beforeTeam.roster : []
-          ).filter((id) => String(id) !== String(playerId));
-
-          // Record override audit log if override was used
-          const overrideAuditLog = overrideUsed
-            ? recordOverrideAudit(
-                beforeTeam,
-                stretch ? 'waiveStretch' : buyout ? 'buyout' : 'waive',
-                overrideReasons || [],
-                playerId,
-                normalizeOptionalMutationString(
-                  player.name || player.displayName
-                )
-              )
-            : beforeTeam.overrideAuditLog;
-
-          return {
-            ...beforeTeam,
-            roster: updatedRoster,
-            players: updatedPlayers,
-            deadCap: [...(beforeTeam.deadCap || []), ...deadCapEntries],
-            ...(overrideAuditLog ? { overrideAuditLog } : {}),
-          };
+          if (!committedPreview.success) {
+            throw new Error(
+              committedPreview.reasons[0] ||
+                'The waiver inputs changed before save.'
+            );
+          }
+          return applyGovernedWaiverResult({
+            team: beforeTeam as ArchitectMutationTeamRecord,
+            playerId: String(playerId),
+            result: committedPreview,
+          }) as CapSheet;
         },
         persistPayload: {
           teamCode,
           playerId,
-          stretch: !!stretch,
-          stretchYears: payloadStretchYears, // CBA term: (2 x seasons remaining) + 1
-          buyout: !!buyout,
-          buyoutAmount: buyout ? normalizedBuyoutAmount : 0,
-          isGracePeriod: false, // Default, UI doesn't currently expose this
+          contractId: entry.contractId,
+          waiverProposal: proposal,
+          stretch: isStretch,
+          stretchYears: preview.lifecycle.stretchYears ?? 0,
+          buyout: isBuyout,
+          buyoutAmount: preview.lifecycle.buyoutReduction,
         },
         receiptContext: {
-          actionType: stretch ? 'waive-stretch' : buyout ? 'buyout' : 'waive',
-          headlineOverride: stretch
-            ? 'Waive-and-stretch saved'
-            : buyout
-              ? 'Buyout saved'
-              : 'Waiver saved',
+          actionType: isStretch
+            ? 'waive-stretch'
+            : isBuyout
+              ? 'buyout'
+              : 'waive',
+          headlineOverride: isStretch
+            ? 'Waiver and stretch scheduled'
+            : isBuyout
+              ? 'Signed buyout waiver scheduled'
+              : 'Waiver request recorded',
           playerId,
           playerName:
             normalizeOptionalMutationString(
@@ -1045,11 +1178,13 @@ export function useContractActions({
             ) || null,
           effectAreas: ['roster', 'deadMoney', 'cap'],
           notes: [
-            buyout
-              ? 'Dead money reflects remaining guaranteed salary after the entered buyout reduction.'
-              : stretch
-                ? 'Dead money is allocated over the stretch schedule generated by this action.'
-                : 'Dead money is based on remaining guaranteed salary available in this action path.',
+            `Player List removal is immediate; the Team remains financially responsible through ${preview.lifecycle.expiresAt}.`,
+            isBuyout
+              ? 'The written reduction is allocated pro rata across remaining protected Base Compensation.'
+              : isStretch
+                ? 'Player payments stay on the original schedule; only Team Salary is re-attributed by the written election.'
+                : 'Protected Base Compensation becomes dead salary only at ordinary unclaimed expiry.',
+            'Set-off remains pending until authenticated later earnings exist.',
           ],
         },
       });
@@ -1060,10 +1195,17 @@ export function useContractActions({
       );
     },
     [
-      currentYear,
       applyCapAuditedTeamMutation,
+      currentYear,
       finalizeCapMutationResult,
+      getWaiverAvailability,
+      governedWaiverEntries,
+      reportMutationError,
+      teamCapSheet,
       teamCode,
+      userId,
+      worldAsOfDate,
+      worldId,
     ]
   );
 
@@ -1083,8 +1225,7 @@ export function useContractActions({
       if (!Number.isInteger(targetYearOverride)) {
         return {
           success: false,
-          message:
-            'Cannot save: the exact governed option Season is missing.',
+          message: 'Cannot save: the exact governed option Season is missing.',
         };
       }
       const targetYear = targetYearOverride as number;
@@ -1123,7 +1264,8 @@ export function useContractActions({
       if (!entry) {
         return {
           success: false,
-          message: 'The governed option authority changed. Reload and try again.',
+          message:
+            'The governed option authority changed. Reload and try again.',
         };
       }
       const preview = decideGovernedOption({
@@ -1251,7 +1393,6 @@ export function useContractActions({
     [confirmAndRenounceRights]
   );
 
-
   return {
     handleSetDeadCap,
     handleSetExceptions,
@@ -1262,6 +1403,7 @@ export function useContractActions({
     handleExtendContract,
     handleWaiveContract,
     handleOptionDecision,
+    getWaiverAvailability,
     getExtensionAvailability,
     getOptionDecisionAvailability,
     handleRenounceRights,

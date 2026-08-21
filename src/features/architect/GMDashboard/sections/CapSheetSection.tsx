@@ -22,6 +22,7 @@ import {
 type ForwardedCapSheetProps = Pick<
   Parameters<typeof CapSheet>[0],
   | 'teamCapSheet'
+  | 'asOfDate'
   | 'onOpenPlayerContractModal'
   | 'manualCapSheetMutationAuthority'
   | 'highlightPlayerId'
@@ -87,6 +88,7 @@ const resolveTeamPlanLabel = (
 const CapSheetSection = ({
   teamCapSheet,
   currentYear,
+  asOfDate = null,
   onOpenPlayerContractModal,
   manualCapSheetMutationAuthority,
   playersMap,
@@ -200,6 +202,7 @@ const CapSheetSection = ({
         <CapSheet
           teamCapSheet={teamCapSheet}
           currentYear={currentYear}
+          asOfDate={asOfDate}
           selectedYear={selectedYear}
           onSelectedYearChange={setSelectedYear}
           onOpenPlayerContractModal={onOpenPlayerContractModal}

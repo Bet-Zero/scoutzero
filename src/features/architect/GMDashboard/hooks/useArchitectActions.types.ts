@@ -20,6 +20,7 @@ import type {
   GovernedExtensionAvailability,
   GovernedExtensionProposal,
 } from '@/features/architect/utils/extensions';
+import type { GovernedWaiverAvailability } from '@/features/architect/utils/waivers';
 import type { GovernedOfferSheetAveragingElection } from '@/schemas/governedOfferSheet';
 
 import type {
@@ -277,6 +278,8 @@ export interface WaiveOptions {
   stretch?: boolean;
   buyout?: boolean;
   buyoutAmount?: number;
+  /** BZE-284: exact League receipt and written waiver/buyout election. */
+  waiverProposal?: import('@/schemas/governedWaiver').GovernedWaiverProposal;
   // Override metadata when action bypasses validation
   overrideUsed?: boolean;
   overrideReasons?: string[];
@@ -867,6 +870,9 @@ export interface UseArchitectActionsReturn {
   getExtensionAvailability: (
     player: ArchitectPlayer
   ) => GovernedExtensionAvailability;
+  getWaiverAvailability: (
+    player: ArchitectPlayer
+  ) => GovernedWaiverAvailability;
   handleWaiveContract: (
     player: ArchitectPlayer,
     options: WaiveOptions

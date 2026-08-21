@@ -189,6 +189,9 @@ const harness = vi.hoisted(() => {
       hardCapLimiterLabel: null,
       hardCapType: null,
     })),
+    computeTeamCapTotalsMock: vi.fn(() => ({
+      totalCapAllocations: 90_000_000,
+    })),
     warnOnTotalsDivergenceMock: vi.fn(),
     getTeamTpeListMock: vi.fn((): TestTpe[] => []),
     editorTradeTeamCardProps: [] as TradeTeamCardMockProps[],
@@ -397,9 +400,7 @@ vi.mock('@/features/architect/hooks/useTradeMachineSnapshot', () => ({
 }));
 
 vi.mock('@/features/architect/utils/capTotals', () => ({
-  computeTeamCapTotals: () => ({
-    totalCapAllocations: 90_000_000,
-  }),
+  computeTeamCapTotals: harness.computeTeamCapTotalsMock,
   warnOnTotalsDivergence: harness.warnOnTotalsDivergenceMock,
 }));
 
@@ -1227,6 +1228,29 @@ describe('TradeTeamCard boundary E105', () => {
     expect(
       screen.getByText('No trade exceptions available for this team.')
     ).toBeInTheDocument();
+  });
+
+  it('forwards the governed world date into the Trade Team Card salary calculation', async () => {
+    const TradeTeamCard = await loadTradeTeamCard();
+
+    render(
+      <TradeTeamCard
+        team={BASE_TEAMS[0].team}
+        sends={[]}
+        yearKey={2027}
+        incomingPlayers={[]}
+        incomingEntitlements={[]}
+        onSelectTeam={vi.fn()}
+        entitlementsOut={[]}
+        worldAsOfDate="2026-07-01T12:00:00.000-04:00"
+      />
+    );
+
+    expect(harness.computeTeamCapTotalsMock).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'ATL' }),
+      2027,
+      { asOfDate: '2026-07-01T12:00:00.000-04:00' }
+    );
   });
 
   it('preserves TPE and FA-exception incoming action wiring', async () => {

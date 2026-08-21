@@ -115,6 +115,22 @@ describe('E101 Trade Team Card leaf-family display surfaces', () => {
     ).toBeInTheDocument();
   });
 
+  it('forwards the governed world date to the shared Team Salary boundary', () => {
+    render(
+      <CapImpactTiles
+        team={{ id: 'LAL' }}
+        yearKey={2027}
+        asOfDate="2026-07-01T12:00:00-04:00"
+      />
+    );
+
+    expect(mockComputeTeamCapTotals).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'LAL' }),
+      2027,
+      { asOfDate: '2026-07-01T12:00:00-04:00' }
+    );
+  });
+
   it('CapImpactTiles preserves snapshot-over-fallback behavior and validating indicator wording', () => {
     render(
       <CapImpactTiles

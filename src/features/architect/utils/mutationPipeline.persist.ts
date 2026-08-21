@@ -924,6 +924,7 @@ export async function persistWorldMutation({
       mutationType === 'renounceRights' ||
       mutationType === 'optionDecision' ||
       mutationType === 'extendPlayer' ||
+      mutationType === 'waivePlayer' ||
       isOfferSheetCreation ||
       isOfferSheetResolution
     ) {
@@ -937,6 +938,7 @@ export async function persistWorldMutation({
           if (
             !currentTeamExists &&
             mutationType !== 'extendPlayer' &&
+            mutationType !== 'waivePlayer' &&
             !isOfferSheetCreation
           ) {
             throw new Error(
@@ -1022,7 +1024,12 @@ export async function persistWorldMutation({
               expected: expectedOfferSheetLifecycle,
             });
           } else {
-            if (mutationType === 'extendPlayer') {
+            if (
+              mutationType === 'extendPlayer' ||
+              mutationType === 'waivePlayer'
+            ) {
+              const operationLabel =
+                mutationType === 'waivePlayer' ? 'Waiver' : 'Extension';
               const expectedTeamExists = metadata.expectedTeamSnapshotExists;
               const expectedTeamDigest = metadata.expectedTeamSnapshotDigest;
               if (
@@ -1031,7 +1038,7 @@ export async function persistWorldMutation({
                 (!expectedTeamExists && expectedTeamDigest !== null)
               ) {
                 throw new Error(
-                  `Extension is missing the expected team-snapshot receipt for ${normalizedTeamCode}.`
+                  `${operationLabel} is missing the expected team-snapshot receipt for ${normalizedTeamCode}.`
                 );
               }
               if (
@@ -1053,7 +1060,7 @@ export async function persistWorldMutation({
                   metadata.expectedTeamSourceLineage.length !== 0
                 ) {
                   throw new Error(
-                    `Extension is missing the exact team-source receipt for ${normalizedTeamCode}.`
+                    `${operationLabel} is missing the exact team-source receipt for ${normalizedTeamCode}.`
                   );
                 }
               } else {
@@ -1070,7 +1077,7 @@ export async function persistWorldMutation({
                   receiptLabel: `team-source lineage receipt for ${normalizedTeamCode}`,
                   changedLabel: 'team',
                   changedIdentifier: normalizedTeamCode,
-                  operationLabel: 'Extension',
+                  operationLabel,
                 });
               }
 
@@ -1087,7 +1094,7 @@ export async function persistWorldMutation({
                 (!expectedPlayerExists && expectedPlayerDigest !== null)
               ) {
                 throw new Error(
-                  `Extension is missing the expected player-snapshot receipt for ${normalizedTeamCode}.`
+                  `${operationLabel} is missing the expected player-snapshot receipt for ${normalizedTeamCode}.`
                 );
               }
               const currentPlayerSnapshot = await transaction.get(
@@ -1116,7 +1123,7 @@ export async function persistWorldMutation({
                   metadata.expectedPlayerSourceLineage.length !== 0
                 ) {
                   throw new Error(
-                    `Extension is missing the exact player-source receipt for ${expectedPlayerId}.`
+                    `${operationLabel} is missing the exact player-source receipt for ${expectedPlayerId}.`
                   );
                 }
               } else {
@@ -1137,7 +1144,7 @@ export async function persistWorldMutation({
                   receiptLabel: `player-source lineage receipt for ${expectedPlayerId}`,
                   changedLabel: 'player',
                   changedIdentifier: expectedPlayerId,
-                  operationLabel: 'Extension',
+                  operationLabel,
                 });
               }
             }
@@ -1153,7 +1160,7 @@ export async function persistWorldMutation({
                 : Number(metadata.expectedContractOverlayLedgerVersion);
             if (!expectedLedgerId || !Number.isInteger(expectedLedgerVersion)) {
               throw new Error(
-                `${mutationType === 'extendPlayer' ? 'Extension' : 'Option decision'} is missing the expected contract-ledger reference for ${normalizedTeamCode}.`
+                `${mutationType === 'extendPlayer' ? 'Extension' : mutationType === 'waivePlayer' ? 'Waiver' : 'Option decision'} is missing the expected contract-ledger reference for ${normalizedTeamCode}.`
               );
             }
             const overlays = Array.isArray(
@@ -1188,7 +1195,7 @@ export async function persistWorldMutation({
             } else {
               if (!Number.isInteger(expectedOverlayVersion)) {
                 throw new Error(
-                  `${mutationType === 'extendPlayer' ? 'Extension' : 'Option decision'} is missing the expected writable overlay version for ${normalizedTeamCode}.`
+                  `${mutationType === 'extendPlayer' ? 'Extension' : mutationType === 'waivePlayer' ? 'Waiver' : 'Option decision'} is missing the expected writable overlay version for ${normalizedTeamCode}.`
                 );
               }
               if (!currentOverlay) {

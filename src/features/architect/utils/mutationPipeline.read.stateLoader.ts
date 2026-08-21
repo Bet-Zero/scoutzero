@@ -29,6 +29,7 @@ import {
 import { toCurrentStateTeam } from './mutationPipeline.read.normalizeTeam';
 import { loadWorldGovernedOptionAuthority } from '@/features/architect/utils/optionDecisions';
 import { loadWorldGovernedExtensionAuthority } from '@/features/architect/utils/extensions';
+import { loadWorldGovernedWaiverAuthority } from '@/features/architect/utils/waivers';
 import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
 import {
   GovernedOfferSheetAuthorizationZ,
@@ -141,17 +142,16 @@ export async function resolveStoreOfferSheetAuthority({
   playerId: string;
 }) {
   const lineageWorldIds = await resolveWorldLineage(worldId);
-  const offeringLineageBefore =
-    await getWorldTeamSnapshotLineageReceipt(
-      lineageWorldIds,
-      offeringTeamCode
-    );
+  const offeringLineageBefore = await getWorldTeamSnapshotLineageReceipt(
+    lineageWorldIds,
+    offeringTeamCode
+  );
   const offeringTeam = await getTeam(worldId, offeringTeamCode).then((team) =>
-      toCurrentStateTeam(
-        team as MutationCurrentStateOfferSheetTeamIngress | null,
-        'signing'
-      )
-    );
+    toCurrentStateTeam(
+      team as MutationCurrentStateOfferSheetTeamIngress | null,
+      'signing'
+    )
+  );
 
   if (!offeringTeam) {
     throw new Error(
@@ -218,8 +218,7 @@ export async function resolveStoreOfferSheetAuthority({
     (candidate) => candidate.capHoldMatch === true
   );
 
-  let resolvedOwner: StoreOfferSheetOwnershipCandidateWithReceipt | null =
-    null;
+  let resolvedOwner: StoreOfferSheetOwnershipCandidateWithReceipt | null = null;
 
   if (rosterOwners.length === 1) {
     resolvedOwner = rosterOwners[0];
@@ -302,10 +301,7 @@ export async function resolveStoreOfferSheetAuthority({
 
   const [offeringLineageAfter, homeLineageAfter] = await Promise.all([
     getWorldTeamSnapshotLineageReceipt(lineageWorldIds, offeringTeamCode),
-    getWorldTeamSnapshotLineageReceipt(
-      lineageWorldIds,
-      resolvedOwner.teamCode
-    ),
+    getWorldTeamSnapshotLineageReceipt(lineageWorldIds, resolvedOwner.teamCode),
   ]);
   requireStableTeamLineageReceipt({
     before: offeringLineageBefore,
@@ -339,10 +335,7 @@ export async function resolveStoreOfferSheetAuthority({
     offerSheetCreationSnapshots: Object.freeze({
       homeTeamCode: resolvedOwner.teamCode,
       offeringTeamCode,
-      homeTeam: toOfferSheetCreationTeamReceipt(
-        homeLineageAfter,
-        worldId
-      ),
+      homeTeam: toOfferSheetCreationTeamReceipt(homeLineageAfter, worldId),
       offeringTeam: toOfferSheetCreationTeamReceipt(
         offeringLineageAfter,
         worldId
@@ -610,6 +603,67 @@ async function ensureOfferSheetPlayerOnHomeTeamSnapshot({
 // PHASE 1: READ - Load state for mutation
 // ==============================================================================
 
+async function loadGovernedPlayerOperationSnapshotReceipts({
+  worldId,
+  teamCode,
+  playerId,
+}: {
+  worldId: string;
+  teamCode: string;
+  playerId: string;
+}) {
+  const lineageWorldIds = await resolveWorldLineage(worldId);
+  const ancestorWorldIds = lineageWorldIds.slice(1);
+  const [teamDocument, playerDocument] = await Promise.all([
+    getDoc(worldTeamRef(worldId, teamCode)),
+    getDoc(worldPlayerRef(worldId, teamCode, playerId)),
+  ]);
+  const teamExists = teamDocument.exists();
+  const playerExists = playerDocument.exists();
+  const teamDigest = teamExists
+    ? mutationSnapshotDigest(teamDocument.data())
+    : null;
+  const playerDigest = playerExists
+    ? mutationSnapshotDigest(playerDocument.data())
+    : null;
+  const [ancestorTeamResolution, ancestorPlayerResolution] = await Promise.all([
+    teamExists
+      ? Promise.resolve({ source: null, checkedSnapshots: [] })
+      : getWorldTeamSnapshotLineageReceipt(ancestorWorldIds, teamCode),
+    playerExists
+      ? Promise.resolve({ source: null, checkedSnapshots: [] })
+      : getWorldPlayerSnapshotLineageReceipt(
+          ancestorWorldIds,
+          teamCode,
+          playerId
+        ),
+  ]);
+  return {
+    team: {
+      exists: teamExists,
+      digest: teamDigest,
+      sourceWorldId: teamExists
+        ? worldId
+        : (ancestorTeamResolution.source?.snapshotWorldId ?? null),
+      sourceDigest: teamExists
+        ? teamDigest
+        : (ancestorTeamResolution.source?.snapshotDigest ?? null),
+      sourceLineage: ancestorTeamResolution.checkedSnapshots,
+    },
+    player: {
+      exists: playerExists,
+      digest: playerDigest,
+      sourceWorldId: playerExists
+        ? worldId
+        : (ancestorPlayerResolution.source?.overrideWorldId ?? null),
+      sourceDigest: playerExists
+        ? playerDigest
+        : (ancestorPlayerResolution.source?.snapshotDigest ?? null),
+      sourceLineage: ancestorPlayerResolution.checkedSnapshots,
+    },
+  };
+}
+
 /**
  * Load required state for a mutation.
  * Uses teamLoader to respect world → parent → base fallback chain.
@@ -700,19 +754,31 @@ export async function loadStateForMutation(
     }
 
     case 'waivePlayer': {
-      // Load single team and player
       const teamCode = payload.teamCode;
       const playerId = payload.playerId;
-
-      if (!teamCode) {
-        throw new Error(`Missing teamCode in payload for ${mutationType}`);
+      const contractId = payload.contractId;
+      if (!teamCode || !playerId || !contractId) {
+        throw new Error(
+          'Governed waiver requires teamCode, playerId, and contractId.'
+        );
       }
-      if (!playerId) {
-        throw new Error(`Missing playerId in payload for ${mutationType}`);
-      }
-
-      const team = await getTeam(worldId, teamCode);
-      const player = await getPlayer(worldId, teamCode, playerId);
+      const snapshotReceipts =
+        await loadGovernedPlayerOperationSnapshotReceipts({
+          worldId,
+          teamCode,
+          playerId,
+        });
+      const [team, player] = (await Promise.all([
+        getTeam(worldId, teamCode),
+        getPlayer(worldId, teamCode, playerId),
+      ])) as [LoadedMutationTeam, LoadedMutationPlayer];
+      const waiverAuthority = await loadWorldGovernedWaiverAuthority({
+        worldId,
+        contractId: String(contractId),
+        overlays: Array.isArray(team?.contractEventLedgers)
+          ? team.contractEventLedgers
+          : [],
+      });
       return {
         team: toCurrentStateTeam(
           team as MutationCurrentStateBaseTeamIngress | null,
@@ -720,6 +786,9 @@ export async function loadStateForMutation(
         ),
         player: toCurrentStatePlayer(player),
         teamCode,
+        waiverAuthority,
+        waiverTeamSnapshot: snapshotReceipts.team,
+        waiverPlayerSnapshot: snapshotReceipts.player,
       };
     }
 
@@ -732,39 +801,12 @@ export async function loadStateForMutation(
           'Governed extension requires teamCode, playerId, and contractId.'
         );
       }
-      const lineageWorldIds = await resolveWorldLineage(worldId);
-      const ancestorWorldIds = lineageWorldIds.slice(1);
-      // Capture the local documents before resolving fallback state. If either
-      // local document is absent, retain every ancestor checked through the
-      // winning mutable source (or through the immutable base fallback). The
-      // transaction later rechecks both the absences and the winning digest.
-      const [teamDocument, playerDocument] = await Promise.all([
-        getDoc(worldTeamRef(worldId, teamCode)),
-        getDoc(worldPlayerRef(worldId, teamCode, playerId)),
-      ]);
-      const teamDocumentExists = teamDocument.exists();
-      const playerDocumentExists = playerDocument.exists();
-      const teamDocumentDigest = teamDocumentExists
-        ? mutationSnapshotDigest(teamDocument.data())
-        : null;
-      const playerDocumentDigest = playerDocumentExists
-        ? mutationSnapshotDigest(playerDocument.data())
-        : null;
-      const [ancestorTeamResolution, ancestorPlayerResolution] =
-        await Promise.all([
-          teamDocumentExists
-            ? Promise.resolve({ source: null, checkedSnapshots: [] })
-            : getWorldTeamSnapshotLineageReceipt(ancestorWorldIds, teamCode),
-          playerDocumentExists
-            ? Promise.resolve({ source: null, checkedSnapshots: [] })
-            : getWorldPlayerSnapshotLineageReceipt(
-                ancestorWorldIds,
-                teamCode,
-                playerId
-              ),
-        ]);
-      const ancestorTeamDocument = ancestorTeamResolution.source;
-      const ancestorPlayerDocument = ancestorPlayerResolution.source;
+      const snapshotReceipts =
+        await loadGovernedPlayerOperationSnapshotReceipts({
+          worldId,
+          teamCode,
+          playerId,
+        });
       const [team, player] = (await Promise.all([
         getTeam(worldId, teamCode),
         getPlayer(worldId, teamCode, playerId),
@@ -784,28 +826,8 @@ export async function loadStateForMutation(
         player: toCurrentStatePlayer(player),
         teamCode,
         extensionAuthority,
-        extensionTeamSnapshot: {
-          exists: teamDocumentExists,
-          digest: teamDocumentDigest,
-          sourceWorldId: teamDocumentExists
-            ? worldId
-            : (ancestorTeamDocument?.snapshotWorldId ?? null),
-          sourceDigest: teamDocumentExists
-            ? teamDocumentDigest
-            : (ancestorTeamDocument?.snapshotDigest ?? null),
-          sourceLineage: ancestorTeamResolution.checkedSnapshots,
-        },
-        extensionPlayerSnapshot: {
-          exists: playerDocumentExists,
-          digest: playerDocumentDigest,
-          sourceWorldId: playerDocumentExists
-            ? worldId
-            : (ancestorPlayerDocument?.overrideWorldId ?? null),
-          sourceDigest: playerDocumentExists
-            ? playerDocumentDigest
-            : (ancestorPlayerDocument?.snapshotDigest ?? null),
-          sourceLineage: ancestorPlayerResolution.checkedSnapshots,
-        },
+        extensionTeamSnapshot: snapshotReceipts.team,
+        extensionPlayerSnapshot: snapshotReceipts.player,
       };
     }
 
@@ -918,37 +940,31 @@ export async function loadStateForMutation(
         offeringPlayerDocumentBefore,
         authorizationDocument,
         immutableBasePlayer,
-      ] =
-        resolutionPlayerId
-          ? await Promise.all([
-              getDoc(
-                worldPlayerRef(worldId, homeTeamCode, resolutionPlayerId)
-              ),
-              getDoc(
-                worldPlayerRef(worldId, offeringTeamCode, resolutionPlayerId)
-              ),
-              getDoc(
-                worldOfferSheetAuthorizationRef(worldId, offerSheetId)
-              ),
-              getPlayer(null, homeTeamCode, resolutionPlayerId),
-            ])
-          : [null, null, null, null];
+      ] = resolutionPlayerId
+        ? await Promise.all([
+            getDoc(worldPlayerRef(worldId, homeTeamCode, resolutionPlayerId)),
+            getDoc(
+              worldPlayerRef(worldId, offeringTeamCode, resolutionPlayerId)
+            ),
+            getDoc(worldOfferSheetAuthorizationRef(worldId, offerSheetId)),
+            getPlayer(null, homeTeamCode, resolutionPlayerId),
+          ])
+        : [null, null, null, null];
       if (!authorizationDocument) {
         throw new Error(
           'Offer Sheet resolution requires a stable player identity for immutable authorization.'
         );
       }
-      const immutableAuthority =
-        requireImmutableOfferSheetResolutionAuthority({
-          worldId,
-          offerSheetId,
-          homeTeamCode,
-          offeringTeamCode,
-          homeSheet: rawHomeOfferSheet,
-          offeringSheet: rawOfferingOfferSheet,
-          immutableBasePlayer,
-          authorizationDocument,
-        });
+      const immutableAuthority = requireImmutableOfferSheetResolutionAuthority({
+        worldId,
+        offerSheetId,
+        homeTeamCode,
+        offeringTeamCode,
+        homeSheet: rawHomeOfferSheet,
+        offeringSheet: rawOfferingOfferSheet,
+        immutableBasePlayer,
+        authorizationDocument,
+      });
 
       const [homeTeamRaw, offeringTeamRaw] = await Promise.all([
         getTeam(worldId, homeTeamCode),
@@ -983,9 +999,7 @@ export async function loadStateForMutation(
         getDoc(worldTeamRef(worldId, homeTeamCode)),
         getDoc(worldTeamRef(worldId, offeringTeamCode)),
         resolutionPlayerId
-          ? getDoc(
-              worldPlayerRef(worldId, homeTeamCode, resolutionPlayerId)
-            )
+          ? getDoc(worldPlayerRef(worldId, homeTeamCode, resolutionPlayerId))
           : Promise.resolve(null),
         resolutionPlayerId
           ? getDoc(
@@ -1044,8 +1058,7 @@ export async function loadStateForMutation(
           homePlayer: homePlayerReceipt,
           offeringPlayer: offeringPlayerReceipt,
           authorization: immutableAuthority.authorization,
-          immutableEvidenceDigest:
-            immutableAuthority.immutableEvidenceDigest,
+          immutableEvidenceDigest: immutableAuthority.immutableEvidenceDigest,
         },
       };
     }

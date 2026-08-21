@@ -155,6 +155,7 @@ export interface TradeTeamCardProps {
   onRevertEntitlementEdit?: ((entitlement: EntitlementLike) => void) | null;
   onDeleteSessionEntitlement?: ((entitlement: EntitlementLike) => void) | null;
   worldId?: string | null;
+  worldAsOfDate?: string | null;
   compact?: boolean;
   salaryMatchingElection?: TradeSalaryMatchingElection | null;
   onSalaryMatchingElectionChange?:

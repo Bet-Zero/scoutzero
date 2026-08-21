@@ -231,6 +231,7 @@ describe('LeagueView loading-boundary behavior', () => {
     expect(seasonFormatMocks.toSeasonCode).toHaveBeenCalledWith(2026);
     expect(season).toEqual({
       endYear: 2026,
+      asOfDate: null,
       seasonCode: '2025-26',
       seasonSourceLabel: 'Default current season',
       sourceBoundaryLabel: 'Read-only base team snapshots after sign-in',
@@ -277,7 +278,8 @@ describe('LeagueView loading-boundary behavior', () => {
     expect(lakersRow).toHaveTextContent('Loaded');
     expect(capTotalsMocks.computeTeamCapTotals).toHaveBeenCalledWith(
       expect.objectContaining({ teamCode: 'LAL' }),
-      2026
+      2026,
+      { asOfDate: null }
     );
   });
 
@@ -362,6 +364,27 @@ describe('LeagueView loading-boundary behavior', () => {
     } finally {
       warnSpy.mockRestore();
     }
+  });
+
+  it('forwards an exact governed date through the League View total boundary', async () => {
+    const season = {
+      ...resolveLeagueViewSeason(),
+      asOfDate: '2026-07-01T12:00:00-04:00',
+    };
+    const team = {
+      id: 'lakers',
+      code: 'LAL',
+      teamName: 'Los Angeles Lakers',
+      conference: 'West',
+    };
+
+    await loadLeagueTeamSummary(team, season);
+
+    expect(capTotalsMocks.computeTeamCapTotals).toHaveBeenCalledWith(
+      expect.objectContaining({ teamCode: 'LAL' }),
+      2026,
+      { asOfDate: '2026-07-01T12:00:00-04:00' }
+    );
   });
 
   it('marks failed team reads as unavailable instead of zero-value league truth', async () => {
@@ -527,7 +550,8 @@ describe('LeagueView Step 2 closeout guardrails', () => {
     expect(lakersRow).toHaveTextContent('Loaded');
     expect(capTotalsMocks.computeTeamCapTotals).toHaveBeenCalledWith(
       expect.objectContaining({ teamCode: 'LAL' }),
-      2026
+      2026,
+      { asOfDate: null }
     );
 
     const hawksRow = screen.getByTestId('league-view-team-row-hawks');

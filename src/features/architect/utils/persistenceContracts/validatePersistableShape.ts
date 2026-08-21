@@ -93,15 +93,14 @@ export function findDisallowedKeyPaths({
         return false;
       });
 
-      // Phase 62: Check for 3-level nested rules (e.g., 'deadCap.amountByYear')
-      // These apply to array items within the current array
+      // Pass every descendant rule down with the current path segment removed.
+      // This supports governed nested objects and arrays at arbitrary depth while
+      // preserving the existing deadCap.amountByYear behavior.
       const nestedArrayRules: PersistableDeepRules = {};
       for (const rulePath of Object.keys(deepRules)) {
         const pathParts = rulePath.split('.');
-        // If rule path is 'deadCap.amountByYear' and current key is 'deadCap',
-        // we need to validate amountByYear within each deadCap item
-        if (pathParts.length === 2 && pathParts[0] === key) {
-          nestedArrayRules[pathParts[1]] = deepRules[rulePath];
+        if (pathParts.length >= 2 && pathParts[0] === key) {
+          nestedArrayRules[pathParts.slice(1).join('.')] = deepRules[rulePath];
         }
       }
 
@@ -125,6 +124,21 @@ export function findDisallowedKeyPaths({
             violations.push(...itemViolations);
           }
         });
+      } else if (
+        deepAllowlist &&
+        value &&
+        typeof value === 'object' &&
+        !Array.isArray(value)
+      ) {
+        const itemViolations = findDisallowedKeyPaths({
+          obj: value,
+          allowlist: deepAllowlist,
+          pathPrefix: currentPath,
+          deepRules:
+            Object.keys(nestedArrayRules).length > 0 ? nestedArrayRules : null,
+          maxDepth: maxDepth - 1,
+        });
+        violations.push(...itemViolations);
       } else if (nestedPathMatch && value && typeof value === 'object') {
         // Handle nested object paths like 'exceptions.tpe'
         const [, nestedKey] = nestedPathMatch.split('.');

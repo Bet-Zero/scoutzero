@@ -147,6 +147,7 @@ export type ManualCapSheetMutationAuthority = {
 type CapSheetProps = {
   teamCapSheet?: TeamCapSheetLike | null;
   currentYear: number;
+  asOfDate?: string | null;
   selectedYear?: number | null;
   onSelectedYearChange?: ((year: number) => void) | null;
   onOpenPlayerContractModal?: ((player: CapSheetPlayerLike) => void) | null;
@@ -275,6 +276,7 @@ const PlayerAvatar = ({
 export const CapSheet = ({
   teamCapSheet,
   currentYear,
+  asOfDate = null,
   selectedYear: controlledSelectedYear = null,
   onSelectedYearChange = null,
   onOpenPlayerContractModal,
@@ -382,9 +384,10 @@ export const CapSheet = ({
   const canonicalTotals = React.useMemo(
     () => computeTeamCapTotals(
       teamCapSheet ? { ...teamCapSheet, players: teamCapSheet.players?.map(p => ({ ...p })) } : null,
-      selectedYear
+      selectedYear,
+      { asOfDate }
     ),
-    [teamCapSheet, selectedYear]
+    [asOfDate, teamCapSheet, selectedYear]
   );
 
   if (!teamCapSheet) {

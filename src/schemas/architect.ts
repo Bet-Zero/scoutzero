@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { JsonValueZ, MoneyZ, PlayerIdZ, SeasonCodeZ, TeamCodeZ } from './common';
 import { ContractEventLedgerPayloadZ } from '@/schemas/contractEventLedger';
+import { GovernedWaiverLifecycleZ } from '@/schemas/governedWaiver';
 
 const HardCapLevelZ = z.enum(['none', 'firstApron', 'secondApron']);
 const EntitlementKindZ = z.enum([
@@ -92,6 +93,8 @@ export const DeadCapItemZ = z.object({
   ),
   waiveDate: z.string().optional(),
   notes: z.string().optional(),
+  /** BZE-284: ordered request/expiry/termination financial lifecycle. */
+  governedLifecycle: GovernedWaiverLifecycleZ.optional(),
 });
 
 export const CapHoldItemZ = z

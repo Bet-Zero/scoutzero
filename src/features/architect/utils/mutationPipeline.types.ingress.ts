@@ -39,6 +39,7 @@ import type {
 } from './mutationPipeline.types.record';
 import type { GovernedOptionLedgerAuthority } from '@/features/architect/utils/optionDecisions/governedOptionDecision';
 import type { GovernedExtensionLedgerAuthority } from '@/features/architect/utils/extensions';
+import type { GovernedWaiverLedgerAuthority } from '@/features/architect/utils/waivers';
 import type {
   CurrentStateManualCapTeam,
   CurrentStateOfferSheetMirrorTeam,
@@ -164,6 +165,9 @@ export type MutationCurrentStateClosedShape = {
   extensionAuthority?: undefined;
   extensionTeamSnapshot?: undefined;
   extensionPlayerSnapshot?: undefined;
+  waiverAuthority?: undefined;
+  waiverTeamSnapshot?: undefined;
+  waiverPlayerSnapshot?: undefined;
   offerSheetCreationSnapshots?: undefined;
   offerSheetResolutionSnapshots?: undefined;
 };
@@ -210,6 +214,9 @@ export type MutationTeamAndPlayerCurrentStateIngress = Omit<
   | 'extensionAuthority'
   | 'extensionTeamSnapshot'
   | 'extensionPlayerSnapshot'
+  | 'waiverAuthority'
+  | 'waiverTeamSnapshot'
+  | 'waiverPlayerSnapshot'
 > & {
   team?: MutationCurrentStateBaseTeamIngress | null;
   player?: MutationCurrentStatePlayerIngress | null;
@@ -218,6 +225,9 @@ export type MutationTeamAndPlayerCurrentStateIngress = Omit<
   extensionAuthority?: GovernedExtensionLedgerAuthority | null;
   extensionTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
   extensionPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
+  waiverAuthority?: GovernedWaiverLedgerAuthority | null;
+  waiverTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
+  waiverPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
 };
 export type MutationSigningCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
@@ -280,6 +290,9 @@ export type MutationCurrentState = {
   extensionAuthority?: GovernedExtensionLedgerAuthority | null;
   extensionTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
   extensionPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
+  waiverAuthority?: GovernedWaiverLedgerAuthority | null;
+  waiverTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
+  waiverPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
   offerSheetCreationSnapshots?: ArchitectOfferSheetCreationSnapshotReceipts | null;
   offerSheetResolutionSnapshots?: ArchitectOfferSheetResolutionSnapshotReceipts | null;
 };
@@ -304,6 +317,9 @@ export type MutationTeamAndPlayerCurrentState = Omit<
   | 'extensionAuthority'
   | 'extensionTeamSnapshot'
   | 'extensionPlayerSnapshot'
+  | 'waiverAuthority'
+  | 'waiverTeamSnapshot'
+  | 'waiverPlayerSnapshot'
 > &
   Pick<
     MutationCurrentState,
@@ -314,6 +330,9 @@ export type MutationTeamAndPlayerCurrentState = Omit<
     | 'extensionAuthority'
     | 'extensionTeamSnapshot'
     | 'extensionPlayerSnapshot'
+    | 'waiverAuthority'
+    | 'waiverTeamSnapshot'
+    | 'waiverPlayerSnapshot'
   > & {
     team?: CurrentStatePlayerOpsTeam | null;
     player?: PlayerLike | null;
