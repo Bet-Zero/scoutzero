@@ -1282,6 +1282,7 @@ export const TradeEditor = ({
             teams[tradeMachineSatModal.teamIndex]?.team || null
           )}
           currentYear={currentYear}
+          worldAsOfDate={governedWorldAsOfDate}
           actionsOverride={['signAndTrade']}
           actionLabelsOverride={{
             signAndTrade: 'Sign & Trade (Trade Machine)',

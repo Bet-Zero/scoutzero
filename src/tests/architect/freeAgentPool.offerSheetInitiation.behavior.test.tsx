@@ -282,6 +282,7 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
       <FreeAgentPool
         freeAgents={[FREE_AGENT]}
         currentYear={2026}
+        worldAsOfDate="2025-07-08"
         actionOwner={actionOwner}
         playersMap={playersMap}
       />
@@ -352,6 +353,7 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
       <FreeAgentPool
         freeAgents={[UFA_FREE_AGENT]}
         currentYear={2026}
+        worldAsOfDate="2025-07-08"
         actionOwner={actionOwner}
         playersMap={playersMap}
       />
@@ -377,6 +379,7 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
       <FreeAgentPool
         freeAgents={[FREE_AGENT]}
         currentYear={2026}
+        worldAsOfDate="2025-07-08"
         actionOwner={actionOwner}
         playersMap={playersMap}
       />
@@ -413,6 +416,7 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
       <FreeAgentPool
         freeAgents={[FREE_AGENT]}
         currentYear={2026}
+        worldAsOfDate="2025-07-08"
         actionOwner={actionOwner}
         playersMap={playersMap}
       />
@@ -440,6 +444,7 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
       <FreeAgentPool
         freeAgents={[FREE_AGENT]}
         currentYear={2026}
+        worldAsOfDate="2025-07-08"
         actionOwner={actionOwner}
         playersMap={playersMap}
       />
@@ -465,6 +470,7 @@ describe('FreeAgentPool offer-sheet initiation wiring', () => {
       <FreeAgentPool
         freeAgents={[FREE_AGENT]}
         currentYear={2026}
+        worldAsOfDate="2025-07-08"
         actionOwner={actionOwner}
         playersMap={playersMap}
       />

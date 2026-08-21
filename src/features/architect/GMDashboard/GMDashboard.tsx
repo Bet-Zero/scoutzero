@@ -82,6 +82,7 @@ import {
   isLikelyEmulatorConnectionError,
 } from '@/firebaseConfig';
 import { capProjections } from '@/features/architect/utils/capProjections';
+import { normalizeSalaryBookAsOfDate } from '@/features/architect/utils/capTotals';
 import { resolveOwnFreeAgents } from '@/features/architect/utils/ownFreeAgents';
 import {
   toSeasonCode,
@@ -491,10 +492,10 @@ export const GMDashboard = () => {
     }
   }, [showContractModal]);
 
-  const simulatedRulesDate = useMemo(
-    () => new Date(currentYear - 1, 6, 15),
-    [currentYear]
-  );
+  const governedRulesDate = useMemo(() => {
+    const normalizedDate = normalizeSalaryBookAsOfDate(worldAsOfDate);
+    return normalizedDate ? new Date(normalizedDate) : null;
+  }, [worldAsOfDate]);
 
   const {
     leagueContext: rulesLeagueContext,
@@ -506,7 +507,7 @@ export const GMDashboard = () => {
     teamCapSheet,
     currentYear,
     teamCode: normalizedTeamId,
-    simulationDate: simulatedRulesDate,
+    simulationDate: governedRulesDate,
     evaluationYears: capTableYears,
   });
 
@@ -1124,6 +1125,7 @@ export const GMDashboard = () => {
   const freeAgencySectionSurface: FreeAgencySectionProps = {
     freeAgents,
     currentYear,
+    worldAsOfDate,
     actionOwner: freeAgencyActionOwner,
     playersMap,
     outgoingOfferSheets: teamCapSheet?.offerSheets || [],
@@ -1716,6 +1718,7 @@ export const GMDashboard = () => {
           capProjections={capProjections}
           teamCapSheet={modalTeamCapSheet}
           currentYear={currentYear}
+          worldAsOfDate={worldAsOfDate}
           optionDecisionAvailability={modalOptionDecisionAvailability}
           extensionAvailability={modalExtensionAvailability}
           waiverAvailability={modalWaiverAvailability}

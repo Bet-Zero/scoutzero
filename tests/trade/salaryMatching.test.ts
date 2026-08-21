@@ -91,6 +91,38 @@ describe('salary matching validation', () => {
     expect(validateSalaryMatching({}).passed).toBe(false);
   });
 
+  it.each([
+    null,
+    undefined,
+    '',
+    '0',
+    false,
+    true,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+  ])('fails closed when Apron Team Salary is unresolved (%p)', (value) => {
+    const result = validateSalaryMatching(
+      makeTeam(10_000_000, 1_000_000, {
+        teamTotalSalary: value as never,
+        team: {
+          apronTeamSalary: value as never,
+        },
+        context: { capSettings },
+      })
+    );
+
+    expect(result).toMatchObject({
+      passed: false,
+      applicable: false,
+      skipReason: 'INVALID_INPUT',
+      allowableIncoming: null,
+    });
+    expect(result.violations).toContain(
+      'Apron Team Salary needs governed input'
+    );
+  });
+
   it('enforces effective allowable incoming for first-apron hard-capped teams', () => {
     const result = validateSalaryMatching(
       makeTeam(10_000_000, 12_000_000, {

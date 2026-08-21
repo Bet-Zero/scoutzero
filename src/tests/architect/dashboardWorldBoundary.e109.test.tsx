@@ -165,6 +165,7 @@ vi.mock('@/shared/components/EditContractModal', () => {
     targetYear,
     actionYear,
     actionContext,
+    worldAsOfDate,
     playerRulesProfile,
     rulesLeagueContext,
     onSignFreeAgent,
@@ -185,6 +186,7 @@ vi.mock('@/shared/components/EditContractModal', () => {
     targetYear?: number | null;
     actionYear?: number | null;
     actionContext?: string | null;
+    worldAsOfDate?: string | null;
     playerRulesProfile?: {
       contractSummary?: { freeAgencyType?: string | null; freeAgencyYear?: number | null };
     } | null;
@@ -210,6 +212,7 @@ vi.mock('@/shared/components/EditContractModal', () => {
       targetYear,
       actionYear,
       actionContext,
+      worldAsOfDate,
       playerRulesProfile,
       rulesLeagueContext,
       onSignFreeAgent,
@@ -1962,6 +1965,7 @@ describe('E109 dashboard/world boundary behavior', () => {
       expect(modalProps).toEqual(
         expect.objectContaining({
           actionYear: 2028,
+          worldAsOfDate: '2026-02-10',
           onSignFreeAgent:
             dashboardActions.freeAgencyActionOwner.dualPathSigning.signFreeAgent,
           onResign:
@@ -1974,6 +1978,11 @@ describe('E109 dashboard/world boundary behavior', () => {
           onWaive: expect.any(Function),
           onOptionDecision: expect.any(Function),
           onRenounce: expect.any(Function),
+        })
+      );
+      expect(mockUsePlayerRulesProfiles).toHaveBeenCalledWith(
+        expect.objectContaining({
+          simulationDate: new Date('2026-02-10T00:00:00Z'),
         })
       );
       expect(modalProps?.onSave).toBeUndefined();

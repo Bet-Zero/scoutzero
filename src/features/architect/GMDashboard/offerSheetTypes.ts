@@ -62,6 +62,7 @@ export interface OfferSheetListProps {
 export interface FreeAgencySectionProps {
   freeAgents?: unknown[] | null;
   currentYear: number;
+  worldAsOfDate?: string | null;
   actionOwner: FreeAgencyActionOwner;
   playersMap?: Record<string, unknown>;
   outgoingOfferSheets?: OfferSheetLike[] | null;

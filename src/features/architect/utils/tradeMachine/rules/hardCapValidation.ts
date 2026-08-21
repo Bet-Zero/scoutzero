@@ -153,8 +153,10 @@ export function validateHardCap(
     team.teamTotalSalary ??
     teamData?.apronTeamSalary ??
     teamData?.teamTotalSalary;
-  const teamTotalSalary = Number(rawApronTeamSalary);
-  if (!Number.isFinite(teamTotalSalary)) {
+  if (
+    typeof rawApronTeamSalary !== 'number' ||
+    !Number.isFinite(rawApronTeamSalary)
+  ) {
     return {
       passed: false,
       violations: ['Apron Team Salary needs governed input'],
@@ -162,6 +164,7 @@ export function validateHardCap(
       hardCapType: null,
     };
   }
+  const teamTotalSalary = rawApronTeamSalary;
 
   const incomingPlayers = normalizePlayers(team.receives || team.incomingPlayers);
   const outgoingPlayers = normalizePlayers(team.sends || team.outgoingPlayers);

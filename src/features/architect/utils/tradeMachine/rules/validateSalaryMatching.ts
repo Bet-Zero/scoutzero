@@ -193,8 +193,10 @@ export function validateSalaryMatching(
   const salaryIn = toFiniteNumber(team.salaryIn ?? context.salaryIn ?? 0);
   const rawApronTeamSalary =
     team.team?.apronTeamSalary ?? team.teamTotalSalary;
-  const totalSalary = Number(rawApronTeamSalary);
-  if (!Number.isFinite(totalSalary)) {
+  if (
+    typeof rawApronTeamSalary !== 'number' ||
+    !Number.isFinite(rawApronTeamSalary)
+  ) {
     return {
       passed: false,
       applicable: false,
@@ -208,6 +210,7 @@ export function validateSalaryMatching(
       },
     };
   }
+  const totalSalary = rawApronTeamSalary;
   const projectedSalary = toFiniteNumber(
     team.projectedSalary ?? totalSalary - salaryOut + salaryIn
   );

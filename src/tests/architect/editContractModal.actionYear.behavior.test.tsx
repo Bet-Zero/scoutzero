@@ -18,6 +18,7 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { EditContractModal } from '@/shared/components/EditContractModal';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
 import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 
 vi.mock('@/shared/components/ui/Dialog', () => ({
@@ -279,6 +280,7 @@ describe('EditContractModal future-year action-year routing', () => {
         player={FUTURE_FA_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2026}
+        worldAsOfDate="2027-07-01T12:00:00-04:00"
         targetYear={2028}
         actionYear={2028}
         actionContext="freeAgent"
@@ -303,6 +305,7 @@ describe('EditContractModal future-year action-year routing', () => {
         player={FUTURE_FA_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2026}
+        worldAsOfDate="2027-07-01T12:00:00-04:00"
         targetYear={2028}
         actionYear={2028}
         actionContext="freeAgent"
@@ -329,6 +332,7 @@ describe('EditContractModal future-year action-year routing', () => {
           player={FUTURE_FA_PLAYER}
           teamCapSheet={teamCapSheet}
           currentYear={2026}
+          worldAsOfDate="2027-07-01T12:00:00-04:00"
           targetYear={2028}
           actionYear={2028}
           actionContext="freeAgent"
@@ -389,6 +393,7 @@ describe('EditContractModal future-year action-year routing', () => {
         player={FUTURE_FA_PLAYER}
         teamCapSheet={{ ...TEAM_CAP_SHEET, exceptions: {} }}
         currentYear={2026}
+        worldAsOfDate="2027-07-01T12:00:00-04:00"
         targetYear={2028}
         actionYear={2028}
         actionContext="freeAgent"
@@ -416,6 +421,147 @@ describe('EditContractModal future-year action-year routing', () => {
     expect(resetOptions).toEqual(['Cap Space / Rights', 'Minimum']);
   });
 
+  it('recomputes exception eligibility from the saved-world date and preserves the decision on reload', () => {
+    const baseTeam = withGovernedSalaryBooks(
+      {
+        ...TEAM_CAP_SHEET,
+        exceptions: {
+          mle: {
+            enabled: true,
+            totalAmount: 12_900_000,
+            usedAmount: 0,
+            remainingAmount: 12_900_000,
+          },
+        },
+      },
+      {
+        salaryCapYear: 2027,
+        asOfDate: '2026-07-15T00:00:00Z',
+        teamSalary: 182_000_000,
+      }
+    );
+    const apronInput = baseTeam.salaryBookInputs.apronAdjustments;
+    if (apronInput.status !== 'ready') {
+      throw new Error('Expected ready governed apron inputs in fixture.');
+    }
+    const datedTeam = {
+      ...baseTeam,
+      salaryBookInputs: {
+        ...baseTeam.salaryBookInputs,
+        apronAdjustments: {
+          ...apronInput,
+          lineItems: [
+            ...apronInput.lineItems.map((lineItem) =>
+              lineItem.canonLeafIds.includes('CBA2-C07.2')
+                ? {
+                    ...lineItem,
+                    effectiveUntil: '2027-01-01T00:00:00Z',
+                  }
+                : lineItem
+            ),
+            {
+              id: 'fixture:apron-team-salary:CBA2-C07.2:2027',
+              ledger: 'apron-team-salary' as const,
+              label: 'CBA2-C07.2 governed 2027 adjustment',
+              amount: 30_000_000,
+              effectiveFrom: '2027-01-01T00:00:00Z',
+              canonLeafIds: ['CBA2-C07.2'],
+              source: {
+                authority: 'external-determination' as const,
+                reference: 'test-fixture:CBA2-C07.2:2027',
+              },
+            },
+          ],
+        },
+      },
+    };
+    const renderForDate = (worldAsOfDate: string) => (
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={FUTURE_FA_PLAYER}
+        teamCapSheet={datedTeam}
+        currentYear={2027}
+        targetYear={2027}
+        actionYear={2027}
+        actionContext="freeAgent"
+        worldAsOfDate={worldAsOfDate}
+        initialAction="signNew"
+        actionsOverride={['signNew']}
+        onSignFreeAgent={vi.fn().mockResolvedValue({ success: true })}
+      />
+    );
+    const getExceptionOptions = () =>
+      within(screen.getAllByRole('combobox')[1])
+        .getAllByRole('option')
+        .map((option) => option.textContent?.trim());
+
+    expect(
+      createCanonicalTeamTotalsSnapshot(datedTeam, 2027, {
+        asOfDate: '2026-07-15',
+      }).apronTeamSalary
+    ).toBe(182_000_000);
+    expect(
+      createCanonicalTeamTotalsSnapshot(datedTeam, 2027, {
+        asOfDate: '2027-02-10',
+      }).apronTeamSalary
+    ).toBe(212_000_000);
+
+    const { rerender, unmount } = render(renderForDate('2026-07-15'));
+    expect(getExceptionOptions()).toContain('Full MLE');
+
+    rerender(renderForDate('2027-02-10'));
+    expect(getExceptionOptions()).not.toContain('Full MLE');
+
+    unmount();
+    render(renderForDate('2027-02-10'));
+    expect(getExceptionOptions()).not.toContain('Full MLE');
+  });
+
+  it('fails closed with clear needs-input copy when the saved-world date is absent or invalid', () => {
+    const { rerender } = render(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={FUTURE_FA_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2027}
+        actionYear={2027}
+        actionContext="freeAgent"
+        worldAsOfDate={null}
+        initialAction="signNew"
+        actionsOverride={['signNew']}
+        onSignFreeAgent={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByTestId('contract-modal-world-date-needs-input')
+    ).toHaveTextContent(/world date needed/i);
+    expect(
+      screen.getByTestId('edit-contract-confirm-action-button')
+    ).toBeDisabled();
+
+    rerender(
+      <EditContractModal
+        isOpen
+        onClose={vi.fn()}
+        player={FUTURE_FA_PLAYER}
+        teamCapSheet={TEAM_CAP_SHEET}
+        currentYear={2027}
+        actionYear={2027}
+        actionContext="freeAgent"
+        worldAsOfDate="2027-02-30"
+        initialAction="signNew"
+        actionsOverride={['signNew']}
+        onSignFreeAgent={vi.fn()}
+      />
+    );
+    expect(
+      screen.getByTestId('contract-modal-world-date-needs-input')
+    ).toBeInTheDocument();
+  });
+
   it('stages standard-sign payloads from the clicked action year without modal-finalized rows or totals', async () => {
     const onClose = vi.fn();
     const onSignFreeAgent = vi.fn().mockResolvedValue({ success: true });
@@ -427,6 +573,7 @@ describe('EditContractModal future-year action-year routing', () => {
         player={FUTURE_FA_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2026}
+        worldAsOfDate="2027-07-01T12:00:00-04:00"
         targetYear={2028}
         actionYear={2028}
         actionContext="freeAgent"
@@ -486,6 +633,7 @@ describe('EditContractModal future-year action-year routing', () => {
         player={FUTURE_RFA_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2026}
+        worldAsOfDate="2027-07-01T12:00:00-04:00"
         targetYear={2028}
         actionYear={2028}
         actionContext="freeAgent"
@@ -530,6 +678,7 @@ describe('EditContractModal future-year action-year routing', () => {
         player={FUTURE_RFA_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2026}
+        worldAsOfDate="2027-07-01T12:00:00-04:00"
         targetYear={2028}
         actionYear={2028}
         actionContext="freeAgent"

@@ -28,6 +28,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent } from '@/shared/components/ui/Dialog';
 import { formatCurrencyFull } from '@/shared/utils/formatting';
 import { getCapSettings } from '@/features/architect/utils/capHelpers';
+import { normalizeSalaryBookAsOfDate } from '@/features/architect/utils/capTotals';
 import { getContractYearsForDisplay } from '@/features/architect/utils/contractUtils';
 import { useCapValidation } from '@/features/architect/hooks/useCapValidation';
 import { ValidationWarnings } from '@/features/architect/shared/ValidationWarnings';
@@ -113,6 +114,7 @@ export const EditContractModal = ({
   actionContext = null, // 'option' | 'freeAgent' | null - from clicked cell
   teamCapSheet = null,
   currentYear: currentYearProp = null,
+  worldAsOfDate = null,
   playerRulesProfile = null,
   rulesLeagueContext = null,
   actionsOverride = null,
@@ -176,19 +178,15 @@ export const EditContractModal = ({
       ? showOfferSheetToggle && Boolean(resolvedOfferSheetInitiation)
       : Boolean(resolvedOfferSheetInitiation);
 
-  const today = new Date();
-  // CURRENT_YEAR = the END year of the current NBA season
-  // e.g., in Dec 2025 we're in the 2025-26 season, so CURRENT_YEAR = 2026
-  // After June, we're in the next season (e.g., July 2025 = 2025-26 season = 2026)
-  const simulationDate = rulesLeagueContext?.simulationDate;
-  const simDate = simulationDate instanceof Date ? simulationDate : today;
-  const validationAsOfDate = simDate.toISOString();
+  const validationAsOfDate = normalizeSalaryBookAsOfDate(worldAsOfDate);
   const CURRENT_YEAR =
     (typeof currentYearProp === 'number' ? currentYearProp : null) ||
     (typeof rulesLeagueContext?.currentYear === 'number'
       ? rulesLeagueContext.currentYear
       : null) ||
-    simDate.getFullYear() + (simDate.getMonth() >= 6 ? 1 : 0);
+    normalizedActionYear ||
+    normalizedTargetYear ||
+    0;
   const ACTION_YEAR =
     normalizedActionYear ??
     normalizedTargetYear ??
@@ -565,6 +563,23 @@ export const EditContractModal = ({
       return DEFAULT_VALIDATION_STATE;
     }
 
+    if (isSigningAction && validationAsOfDate === null) {
+      const reasons = [
+        'World date needed. Exception eligibility cannot be validated until this Team Plan has a valid saved-world date.',
+      ];
+      return {
+        ...DEFAULT_VALIDATION_STATE,
+        isLegal: false,
+        incomplete: true,
+        reasons,
+        severity: 'error' as const,
+        errors: reasons.map((message) => ({
+          severity: 'error' as const,
+          message,
+        })),
+      };
+    }
+
     if (isGovernedOptionDecisionAction && optionDecisionAvailability) {
       const ready = optionDecisionAvailability.status === 'ready';
       return {
@@ -733,6 +748,7 @@ export const EditContractModal = ({
     isGovernedExtensionAction,
     isGovernedOptionDecisionAction,
     isGovernedWaiverAction,
+    isSigningAction,
     offerSheetPreflight,
     extension,
     extensionAvailability,
@@ -741,6 +757,7 @@ export const EditContractModal = ({
     selectedAction,
     signAndTradePreflight,
     validationAuthority,
+    validationAsOfDate,
     waiverAvailability,
     waiverLeagueReceiptAt,
     writtenStretchElection,
@@ -1344,6 +1361,16 @@ export const EditContractModal = ({
                 toSalaryInputs={toSalaryInputs}
                 onTermsChange={() => setSaveError('')}
               />
+
+              {isSigningAction && validationAsOfDate === null ? (
+                <div
+                  data-testid="contract-modal-world-date-needs-input"
+                  className="mt-4 rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100"
+                >
+                  World date needed. Exception eligibility isn&apos;t available
+                  until this Team Plan has a valid saved-world date.
+                </div>
+              ) : null}
 
               {/* === Validation Warnings === */}
               {selectedAction &&

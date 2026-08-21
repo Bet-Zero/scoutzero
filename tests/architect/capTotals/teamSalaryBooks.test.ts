@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { normalizeSalaryBookAsOfDate } from '@/features/architect/utils/capTotals/teamSalaryBooks';
 import { validatePostStateCapLegality } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import { normalizeCurrentStateTeamTotals } from '@/features/architect/utils/mutationPipeline.read.normalizeData.capData';
 import {
@@ -97,6 +98,17 @@ function team(overrides: Record<string, unknown> = {}) {
 }
 
 describe('BZE-285 independent salary books', () => {
+  it('accepts real saved-world dates and rejects impossible calendar dates', () => {
+    expect(normalizeSalaryBookAsOfDate('2027-02-10')).toBe(
+      '2027-02-10T00:00:00Z'
+    );
+    expect(normalizeSalaryBookAsOfDate('2027-02-30')).toBeNull();
+    expect(
+      normalizeSalaryBookAsOfDate('2027-02-30T12:00:00-05:00')
+    ).toBeNull();
+    expect(normalizeSalaryBookAsOfDate(null)).toBeNull();
+  });
+
   it('computes three discriminating books without substituting one total', () => {
     const totals = createCanonicalTeamTotalsSnapshot(team(), YEAR, {
       asOfDate: WORLD_DATE,

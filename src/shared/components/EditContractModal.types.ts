@@ -312,6 +312,7 @@ export type EditContractModalProps = {
   actionContext?: ActionSetKey | null;
   teamCapSheet?: TeamCapSheetLike | null;
   currentYear?: number | null;
+  worldAsOfDate?: string | null;
   playerRulesProfile?: PlayerRulesProfileLike;
   rulesLeagueContext?: RulesLeagueContextLike;
   actionsOverride?: string[] | null;

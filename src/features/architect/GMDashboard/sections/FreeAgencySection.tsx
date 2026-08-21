@@ -42,6 +42,7 @@ type FreeAgentPoolActionOwner = FreeAgentPoolProps['actionOwner'];
 const FreeAgencySection = ({
   freeAgents,
   currentYear,
+  worldAsOfDate,
   actionOwner,
   playersMap,
   outgoingOfferSheets,
@@ -177,6 +178,7 @@ const FreeAgencySection = ({
       <FreeAgentPool
         freeAgents={freeAgents as FreeAgentPoolProps['freeAgents']}
         currentYear={currentYear}
+        worldAsOfDate={worldAsOfDate}
         actionOwner={freeAgentPoolActionOwner}
         playersMap={playersMap as FreeAgentPoolProps['playersMap']}
         selectedPlayerKeys={selectedPlayerKeys}

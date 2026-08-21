@@ -37,7 +37,7 @@ type UseEditContractModalFormParams = {
   playerRulesProfile: PlayerRulesProfileLike | null | undefined;
   capSettings: GetCapSettingsResult | null | undefined;
   teamCapSheet: TeamCapSheetLike | null | undefined;
-  asOfDate: string;
+  asOfDate: string | null;
   ACTION_YEAR: number;
   CURRENT_YEAR: number;
   lastSalaryForPrefill: number;

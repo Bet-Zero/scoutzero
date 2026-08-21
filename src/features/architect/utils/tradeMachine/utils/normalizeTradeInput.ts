@@ -167,6 +167,9 @@ type ContractLike =
   | null
   | undefined;
 
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
 /**
  * Canonicalize the `option` field on each salary row to the short code
  * ('PO' | 'TO' | 'ETO' | null) so one format flows through trade validation.
@@ -234,9 +237,8 @@ function normalizeTeam(
   const raw = team.team;
   const rawApronTeamSalary =
     raw.projectedSalary ?? raw.apronTeamSalary ?? raw.teamTotalSalary;
-  const parsedApronTeamSalary = Number(rawApronTeamSalary);
-  const base = Number.isFinite(parsedApronTeamSalary)
-    ? parsedApronTeamSalary
+  const base = isFiniteNumber(rawApronTeamSalary)
+    ? rawApronTeamSalary
     : Number.NaN;
 
   return {
@@ -245,10 +247,14 @@ function normalizeTeam(
       ...raw,
       id: raw.id || raw.teamId,
       teamName: raw.teamName || raw.name || 'Unknown Team',
-      teamTotalSalary: Number(
-        raw.apronTeamSalary ?? raw.teamTotalSalary ?? base
-      ),
-      projectedSalary: Number(raw.projectedSalary ?? base),
+      teamTotalSalary: isFiniteNumber(raw.apronTeamSalary)
+        ? raw.apronTeamSalary
+        : isFiniteNumber(raw.teamTotalSalary)
+          ? raw.teamTotalSalary
+          : base,
+      projectedSalary: isFiniteNumber(raw.projectedSalary)
+        ? raw.projectedSalary
+        : base,
       players: (raw.players || []).map(
         (player) => normalizePlayer(player, yearKey as number)
       ),
