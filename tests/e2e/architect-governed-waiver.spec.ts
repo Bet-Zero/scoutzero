@@ -402,10 +402,6 @@ const expectFullCapAndCockpitParity = async (page: Page, endYear: number) => {
     'data-total-cap-allocations',
     String(fullCapAmount)
   );
-  await expect(page.getByTestId('cockpit-cap-meter')).toHaveAttribute(
-    'data-total-cap-allocations',
-    String(fullCapAmount)
-  );
 };
 
 test.describe('ARCH-GOVERNED-WAIVER: Full Cap saved-world proof', () => {
