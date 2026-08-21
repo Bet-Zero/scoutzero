@@ -29,6 +29,7 @@ const LEAGUE_VIEW_TEAM_HANDOFF_BOUNDARY_LABEL =
 
 export type LeagueViewSeason = {
   endYear: number;
+  asOfDate: string | null;
   seasonCode: string;
   seasonSourceLabel: string;
   sourceBoundaryLabel: string;
@@ -63,6 +64,7 @@ export const resolveLeagueViewSeason = (): LeagueViewSeason => {
 
   return {
     endYear,
+    asOfDate: null,
     seasonCode: toSeasonCode(endYear),
     seasonSourceLabel: 'Default current season',
     sourceBoundaryLabel: 'Read-only base team snapshots after sign-in',
@@ -103,7 +105,8 @@ export const loadLeagueTeamSummary = async (
 
     const capTotals = computeTeamCapTotals(
       capSheet as CapSheetInputLike,
-      season.endYear
+      season.endYear,
+      { asOfDate: season.asOfDate }
     );
 
     return {

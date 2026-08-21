@@ -188,6 +188,7 @@ export const TeamStatusStrip = ({
         data-testid="cockpit-team-status-strip"
         data-state="ready"
         data-orientation={orientation}
+        data-total-cap-allocations={cap.totalCapAllocations}
         aria-label="Team financial status"
       >
         <div
@@ -239,6 +240,7 @@ export const TeamStatusStrip = ({
       data-testid="cockpit-team-status-strip"
       data-state="ready"
       data-orientation={orientation}
+      data-total-cap-allocations={cap.totalCapAllocations}
       aria-label="Team financial status"
     >
       <TeamStatusTile

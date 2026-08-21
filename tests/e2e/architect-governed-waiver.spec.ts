@@ -387,6 +387,27 @@ const ensureActiveWorld = async (page: Page, worldId: string) => {
     .toBe(worldId);
 };
 
+const expectFullCapAndCockpitParity = async (page: Page, endYear: number) => {
+  const fullCapTotal = page.locator(
+    `[data-testid="cap-sheet-full-total-cell"][data-salary-cap-year="${endYear}"]`
+  );
+  const fullCapAmount = Number(
+    (await fullCapTotal.innerText()).replace(/[^0-9.-]/g, '')
+  );
+  expect(fullCapAmount).toBeGreaterThan(0);
+
+  const statusStrip = page.getByTestId('cockpit-team-status-strip');
+  await expect(statusStrip).toHaveAttribute('data-state', 'ready');
+  await expect(statusStrip).toHaveAttribute(
+    'data-total-cap-allocations',
+    String(fullCapAmount)
+  );
+  await expect(page.getByTestId('cockpit-cap-meter')).toHaveAttribute(
+    'data-total-cap-allocations',
+    String(fullCapAmount)
+  );
+};
+
 test.describe('ARCH-GOVERNED-WAIVER: Full Cap saved-world proof', () => {
   test.describe.configure({ mode: 'serial', timeout: 300_000 });
   test.use({ viewport: { width: 1280, height: 720 } });
@@ -491,6 +512,7 @@ test.describe('ARCH-GOVERNED-WAIVER: Full Cap saved-world proof', () => {
     await expect(pendingAmounts.nth(0)).toContainText('$10,000,000');
     await expect(pendingAmounts.nth(1)).toContainText('$12,000,000');
     await expect(pendingAmounts.nth(2)).toContainText('$14,000,000');
+    await expectFullCapAndCockpitParity(page, 2027);
     await page.screenshot({
       path: testInfo.outputPath('02-waiver-pending.png'),
       fullPage: false,
@@ -519,15 +541,22 @@ test.describe('ARCH-GOVERNED-WAIVER: Full Cap saved-world proof', () => {
     await expect(terminatedAmounts).toHaveCount(7);
     await expect(terminatedAmounts.nth(0)).toContainText('$5,142,858');
     await expect(terminatedAmounts.nth(6)).toContainText('$5,142,857');
+    await expectFullCapAndCockpitParity(page, 2027);
     await page.screenshot({
       path: testInfo.outputPath('03-contract-terminated.png'),
       fullPage: false,
     });
 
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForReviewDashboard(page);
+    await ensureActiveWorld(page, worldId);
+    await openFullCapTable(page);
+    await expectFullCapAndCockpitParity(page, 2027);
+
     testInfo.annotations.push({
       type: 'audit-note',
       description:
-        'BZE-284 proof: exact governed Eastern receipt, immediate Player List removal, atomic saved-world lifecycle and player deletion, full protected Team Salary while pending after reload, then date-driven stretched dead money only after termination.',
+        'BZE-284 proof: exact governed Eastern receipt, immediate Player List removal, atomic saved-world lifecycle and player deletion, full protected Team Salary while pending after reload, then date-driven stretched dead money only after termination; Full Cap Table, cockpit status, and cap posture stay exactly aligned through the transition and a second reload.',
     });
   });
 });

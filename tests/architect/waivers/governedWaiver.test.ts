@@ -38,6 +38,9 @@ import {
   makeResultingState,
 } from '../contractHistory/contractHistoryFixtures';
 import { mutationSnapshotDigest } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
+import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { deriveArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
+import { getCapTotalsForYear } from '@/features/architect/hooks/useTradeMachine.helpers';
 import {
   createMockWorld,
   getMockTeamSnapshot,
@@ -788,6 +791,112 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
     ]);
   });
 
+  it.each([
+    { path: 'standard', finalTotal: 22_000_000, finalSeasons: 2 },
+    { path: 'buyout', finalTotal: 19_000_000, finalSeasons: 2 },
+    { path: 'waive-and-stretch', finalTotal: 22_000_000, finalSeasons: 5 },
+  ] as const)(
+    'keeps canonical, cockpit, and Trade Machine Team Salary aligned across the July 1 expiry for $path',
+    ({ path, finalTotal, finalSeasons }) => {
+      const crossingBaseline = baselineFor({
+        rows: [
+          salaryRow('2025-26', 6_000_000, {
+            guaranteed: false,
+            guaranteedAmount: 0,
+          }),
+          salaryRow('2026-27', 10_000_000),
+          salaryRow('2027-28', 12_000_000),
+        ],
+      });
+      const result = decideGovernedWaiver(
+        request(path, {
+          baseline: crossingBaseline,
+          salaryCapYear: 2026,
+          proposal: proposal(path, {
+            leagueReceivedAt: '2026-06-29T12:00:00-04:00',
+            ...(path === 'buyout' ? { buyoutReduction: 3_000_000 } : {}),
+          }),
+        })
+      );
+      expectSuccess(result);
+      expect(result.lifecycle.expiresAt).toBe('2026-07-01T12:00:00-04:00');
+
+      const team = {
+        teamCode: TEAM_ID,
+        players: Array.from({ length: 15 }, (_, index) => ({
+          id: `remaining-player-${index}`,
+          contract: {
+            contractType: 'STANDARD',
+            salariesByYear: [{ season: '2026-27', salary: 0, capHit: 0 }],
+          },
+        })),
+        capHolds: [],
+        deadCap: [
+          {
+            ...result.deadCapEntry,
+            amountByYear: [{ season: '2026-27', amount: 1 }],
+          },
+        ],
+      };
+      const totalAcrossProjection = (asOfDate: string) => {
+        const totals = Array.from({ length: 8 }, (_, index) => 2026 + index)
+          .map((year) => computeTeamCapTotals(team, year, { asOfDate }))
+          .filter((totals) => totals.deadMoneyTotal > 0);
+        return {
+          total: totals.reduce((sum, row) => sum + row.deadMoneyTotal, 0),
+          seasons: totals.length,
+        };
+      };
+      const instants = {
+        before: '2026-07-01T11:59:59.999-04:00',
+        exact: result.lifecycle.expiresAt,
+        after: '2026-07-01T12:00:00.001-04:00',
+      };
+
+      expect(totalAcrossProjection(instants.before)).toEqual({
+        total: 22_000_000,
+        seasons: 2,
+      });
+      expect(totalAcrossProjection(instants.exact)).toEqual({
+        total: finalTotal,
+        seasons: finalSeasons,
+      });
+      expect(totalAcrossProjection(instants.after)).toEqual({
+        total: finalTotal,
+        seasons: finalSeasons,
+      });
+
+      for (const asOfDate of Object.values(instants)) {
+        const canonical = computeTeamCapTotals(team, 2027, { asOfDate });
+        const preprojectedTeam = {
+          ...team,
+          deadCap: team.deadCap.map((entry) =>
+            projectGovernedWaiverDeadCapEntry(entry, asOfDate)
+          ),
+        };
+        expect(
+          computeTeamCapTotals(preprojectedTeam, 2027, { asOfDate })
+            .totalCapAllocations
+        ).toBe(canonical.totalCapAllocations);
+        const workspace = deriveArchitectWorkspaceContext({
+          teamCapSheet: team,
+          teamId: TEAM_ID,
+          currentYear: 2027,
+          worldId: WORLD_ID,
+          worldAsOfDate: asOfDate,
+        });
+        const trade = getCapTotalsForYear(team, 2027, asOfDate);
+        expect(workspace.cap.status).toBe('available');
+        if (workspace.cap.status === 'available') {
+          expect(workspace.cap.totalCapAllocations).toBe(
+            canonical.totalCapAllocations
+          );
+        }
+        expect(trade.totalWithDead).toBe(canonical.totalCapAllocations);
+      }
+    }
+  );
+
   it('allocates a signed buyout reduction pro rata and records the later reacquisition bar', () => {
     const result = decideGovernedWaiver(request('buyout'));
     expectSuccess(result);
@@ -1045,6 +1154,13 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
         result: first,
       })
     ).toThrow(/malformed or version-incompatible/i);
+    expect(() =>
+      computeTeamCapTotals(
+        { deadCap: [{ governedLifecycle: malformed }] },
+        2027,
+        { asOfDate: '2026-07-18' }
+      )
+    ).toThrow(/malformed or version-incompatible/i);
   });
 });
 
@@ -1087,11 +1203,14 @@ function persistenceTeamFixture(): ArchitectMutationTeamRecord {
 
 function computeWaiverMutation(
   options: {
+    path?: GovernedWaiverPath;
     omitAuthority?: boolean;
     omitSnapshotReceipts?: boolean;
     malformedLifecycle?: unknown;
   } = {}
 ) {
+  const path = options.path ?? 'standard';
+  const waiverProposal = proposal(path);
   const baseline = baselineFor();
   const team = persistenceTeamFixture();
   if (options.malformedLifecycle) {
@@ -1109,10 +1228,10 @@ function computeWaiverMutation(
       teamCode: TEAM_ID,
       playerId: PLAYER_ID,
       contractId: CONTRACT_ID,
-      waiverProposal: proposal('standard'),
-      stretch: false,
-      buyout: false,
-      buyoutAmount: 0,
+      waiverProposal,
+      stretch: path === 'waive-and-stretch',
+      buyout: path === 'buyout',
+      buyoutAmount: waiverProposal.buyoutReduction,
     },
     currentState: {
       teamCode: TEAM_ID,
@@ -1206,6 +1325,19 @@ describe('governed waiver mutation and atomic persistence', () => {
       expectedContractOverlayLedgerVersion: null,
     });
   });
+
+  it.each([
+    { path: 'standard', expectedDeadCapAmount: 36_000_000 },
+    { path: 'buyout', expectedDeadCapAmount: 27_000_000 },
+    { path: 'waive-and-stretch', expectedDeadCapAmount: 36_000_000 },
+  ] as const)(
+    'reports the governed final dead-money obligation on the $path receipt',
+    ({ path, expectedDeadCapAmount }) => {
+      const result = computeWaiverMutation({ path });
+      expect(result.success, String(result.error || '')).toBe(true);
+      expect(result.metadata?.deadCapAmount).toBe(expectedDeadCapAmount);
+    }
+  );
 
   it('returns no writes when authority or exact snapshot receipts are absent', () => {
     const cases = [

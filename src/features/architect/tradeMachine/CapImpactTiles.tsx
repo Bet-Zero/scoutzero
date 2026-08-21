@@ -33,6 +33,7 @@ interface CapImpactTilesProps {
   sends?: TradeAssetLike[];
   incomingPlayers?: TradeAssetLike[];
   yearKey: YearKeyLike;
+  asOfDate?: string | null;
   snapshot?: SnapshotLike | null;
   compact?: boolean;
   isValidating?: boolean;
@@ -43,13 +44,19 @@ export const CapImpactTiles = ({
   sends = [],
   incomingPlayers = [],
   yearKey,
+  asOfDate = null,
   snapshot = null,
   compact = false,
   isValidating = false,
 }: CapImpactTilesProps) => {
   const baselineTotals = useMemo(
-    () => (team ? computeTeamCapTotals(team as CapTotalsTeamLike, yearKey) : null),
-    [team, yearKey]
+    () =>
+      team
+        ? computeTeamCapTotals(team as CapTotalsTeamLike, yearKey, {
+            asOfDate,
+          })
+        : null,
+    [asOfDate, team, yearKey]
   );
 
   const hardCapStatus = useMemo(

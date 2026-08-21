@@ -193,11 +193,12 @@ export function resolveBaseTeamLike(
 
 export const getCapTotalsForYear = (
   teamCapSheet: UnknownRecord | null | undefined,
-  yearKey: number
+  yearKey: number,
+  asOfDate: string | null = null
 ) => {
   if (!teamCapSheet)
     return { playersTotal: 0, deadMoneyTotal: 0, totalWithDead: 0 };
-  const totals = computeTeamCapTotals(teamCapSheet, yearKey);
+  const totals = computeTeamCapTotals(teamCapSheet, yearKey, { asOfDate });
   return {
     playersTotal: totals.playersTotal,
     deadMoneyTotal: totals.deadMoneyTotal,

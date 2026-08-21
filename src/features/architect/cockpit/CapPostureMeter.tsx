@@ -72,6 +72,7 @@ export const CapPostureMeter = ({ context }: CapPostureMeterProps) => {
     <div
       className="flex min-w-0 items-center gap-3 rounded-md border border-cockpit-edge bg-cockpit-inlay px-2.5 py-1"
       data-testid="cockpit-cap-meter"
+      data-total-cap-allocations={totalCapAllocations}
       title={`Total ${formatMillions(totalCapAllocations)} · Cap ${formatMillions(salaryCap)} · Apron1 ${formatMillions(firstApron)} · Apron2 ${formatMillions(secondApron)}`}
     >
       <div className="relative h-1.5 w-32 shrink-0 overflow-hidden rounded-full bg-white/5 md:w-40">

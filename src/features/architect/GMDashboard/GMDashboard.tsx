@@ -1064,6 +1064,7 @@ export const GMDashboard = () => {
   const capSheetSectionSurface: CapSheetSectionProps = {
     teamCapSheet,
     currentYear,
+    asOfDate: worldAsOfDate,
     onOpenPlayerContractModal:
       contractActionRouting.currentYearCapSheet.openPlayerContractModal,
     manualCapSheetMutationAuthority,

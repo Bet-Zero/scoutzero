@@ -34,6 +34,7 @@ export type UseTradeMachineInitParams = {
   capProjections: UnknownRecord | null | undefined;
   yearKey: number;
   worldId: string | null;
+  worldAsOfDate: string | null;
   setTeams: React.Dispatch<React.SetStateAction<TradeMachineTeamSlot[]>>;
   setInitError: React.Dispatch<React.SetStateAction<string | null>>;
   lastInitInputsRef: React.MutableRefObject<{
@@ -41,6 +42,7 @@ export type UseTradeMachineInitParams = {
     primaryTeamData: TradeMachineTeam | null;
     yearKey: string | number;
     worldId: string | null;
+    worldAsOfDate: string | null;
   } | null>;
 };
 
@@ -50,6 +52,7 @@ export function useTradeMachineInit({
   capProjections,
   yearKey,
   worldId,
+  worldAsOfDate,
   setTeams,
   setInitError,
   lastInitInputsRef,
@@ -63,7 +66,8 @@ export function useTradeMachineInit({
         lastInitInputsRef.current?.primaryTeam === primaryTeam &&
         lastInitInputsRef.current?.primaryTeamData === primaryTeamData &&
         lastInitInputsRef.current?.yearKey === yearKey &&
-        lastInitInputsRef.current?.worldId === worldId
+        lastInitInputsRef.current?.worldId === worldId &&
+        lastInitInputsRef.current?.worldAsOfDate === worldAsOfDate
       ) {
         return;
       }
@@ -74,6 +78,7 @@ export function useTradeMachineInit({
           primaryTeamData,
           yearKey,
           worldId,
+          worldAsOfDate,
         };
 
         // Phase 16.3: Clear any previous init error on new init attempt
@@ -150,7 +155,7 @@ export function useTradeMachineInit({
             playersTotal: baseline,
             deadMoneyTotal: dead,
             totalWithDead,
-          } = getCapTotalsForYear(teamObj, yearKey);
+          } = getCapTotalsForYear(teamObj, yearKey, worldAsOfDate);
           teamObj.teamTotalSalary = totalWithDead;
           teamObj.projectedSalary = totalWithDead;
 
@@ -204,5 +209,12 @@ export function useTradeMachineInit({
       }
     };
     init();
-  }, [primaryTeam, primaryTeamData, capProjections, yearKey, worldId]);
+  }, [
+    primaryTeam,
+    primaryTeamData,
+    capProjections,
+    yearKey,
+    worldId,
+    worldAsOfDate,
+  ]);
 }

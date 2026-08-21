@@ -84,6 +84,8 @@ export const TradeEditor = ({
   onSignAndTradeSeedHandled = null,
   tradeContext = null,
 }: TradeEditorProps) => {
+  const governedWorldAsOfDate =
+    typeof worldAsOfDate === 'string' ? worldAsOfDate : null;
   const {
     teams,
     previewAuthority,
@@ -130,7 +132,7 @@ export const TradeEditor = ({
     currentYear ?? new Date().getFullYear(),
     primaryTeamData,
     worldId,
-    worldAsOfDate as string
+    governedWorldAsOfDate
   );
 
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -1171,6 +1173,7 @@ export const TradeEditor = ({
                   onEditContract ? (player) => onEditContract(player) : null
                 }
                 worldId={worldId}
+                worldAsOfDate={governedWorldAsOfDate}
                 // P0-3: Pass validation in-flight state
                 isValidating={isValidating}
                 salaryMatchingElection={t.salaryMatchingElection ?? null}

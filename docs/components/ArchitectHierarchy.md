@@ -618,6 +618,7 @@ utils/
   waivers/
     applyGovernedWaiverResult.ts
     governedWaiver.ts
+    governedWaiverProjection.ts
     index.ts
     worldWaiverAuthority.ts
   worldManager.core.ts
@@ -627,5 +628,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-20T11:24:26.871Z*
+*Generated on: 2026-08-21T00:23:59.727Z*
 *Auto-updated by: npm run docs*

@@ -7,52 +7,14 @@ import {
 } from '@/schemas/governedWaiver';
 import type { GovernedWaiverResult } from './governedWaiver';
 import { getMutationRosterEntryId } from '@/features/architect/utils/mutationPipeline.helpers';
-import {
-  isDateOnly,
-  parseZonedDateTime,
-} from '@/features/architect/utils/governedSeason';
+export {
+  hasGovernedWaiverTerminated,
+  projectGovernedWaiverDeadCapEntry,
+  projectGovernedWaiverTeamSalary,
+} from './governedWaiverProjection';
 
 const MALFORMED_LIFECYCLE_REASON =
   'A persisted governed waiver lifecycle is malformed or version-incompatible.';
-
-export function hasGovernedWaiverTerminated(
-  asOfDate: string | null | undefined,
-  expiresAt: string
-): boolean {
-  if (!asOfDate) return false;
-  if (isDateOnly(asOfDate)) {
-    // Date-only plans cannot prove which side of an intraday expiry they are
-    // on. Preserve pending responsibility through that date.
-    return asOfDate > expiresAt.slice(0, 10);
-  }
-  const asOf = parseZonedDateTime(asOfDate);
-  const expiry = parseZonedDateTime(expiresAt);
-  return asOf !== null && expiry !== null && asOf >= expiry;
-}
-
-export function projectGovernedWaiverDeadCapEntry<
-  TEntry extends {
-    amountByYear?: unknown;
-    governedLifecycle?: unknown;
-  },
->(entry: TEntry, asOfDate: string | null | undefined): TEntry {
-  if (entry.governedLifecycle == null) return entry;
-  const parsed = GovernedWaiverLifecycleZ.safeParse(entry.governedLifecycle);
-  if (!parsed.success) throw new Error(MALFORMED_LIFECYCLE_REASON);
-  const lifecycle = parsed.data;
-  const allocations = hasGovernedWaiverTerminated(asOfDate, lifecycle.expiresAt)
-    ? lifecycle.allocations.map((row) => ({
-        season: row.season,
-        amount: row.teamSalary,
-        isStretched: row.isTeamSalaryStretched,
-      }))
-    : lifecycle.allocationsBeforeStretch.map((row) => ({
-        season: row.season,
-        amount: row.protectedBaseCompensation,
-        isStretched: false,
-      }));
-  return { ...entry, amountByYear: allocations };
-}
 
 export function readGovernedWaiverLifecycles(
   team:

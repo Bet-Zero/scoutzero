@@ -1103,12 +1103,11 @@ export const CapSheetFull = ({
                   )
                 : teamCapSheet.capHolds,
               players: teamCapSheet.players?.map((p) => ({ ...p })),
-              deadCap: rawDeadMoney.map((entry) =>
-                projectGovernedWaiverDeadCapEntry(entry, waiverAsOfDate)
-              ),
+              deadCap: rawDeadMoney,
             }
           : null,
-        year
+        year,
+        { asOfDate: waiverAsOfDate }
       );
     }
     return totals;

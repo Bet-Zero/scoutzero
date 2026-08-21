@@ -7,6 +7,7 @@ export {
   applyGovernedWaiverResult,
   hasGovernedWaiverTerminated,
   projectGovernedWaiverDeadCapEntry,
+  projectGovernedWaiverTeamSalary,
   readGovernedWaiverLifecycles,
 } from './applyGovernedWaiverResult';
 export {

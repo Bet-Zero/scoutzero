@@ -265,8 +265,8 @@ export function computeWaiveResult({
       buyout: result.lifecycle.path === 'buyout',
       buyoutAmount: result.lifecycle.buyoutReduction,
       stretchYears: result.lifecycle.stretchYears ?? undefined,
-      deadCapAmount: result.lifecycle.allocationsBeforeStretch.reduce(
-        (sum, row) => sum + row.protectedBaseCompensation,
+      deadCapAmount: result.lifecycle.allocations.reduce(
+        (sum, row) => sum + row.teamSalary,
         0
       ),
       contractLedgerId: result.expectedContractLedger.ledgerId,

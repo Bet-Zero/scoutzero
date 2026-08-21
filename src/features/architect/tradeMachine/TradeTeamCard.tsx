@@ -85,6 +85,7 @@ export const TradeTeamCard = ({
   onRevertEntitlementEdit,
   onDeleteSessionEntitlement,
   worldId = null,
+  worldAsOfDate = null,
   // Multi-team layout compact mode
   compact = false,
   salaryMatchingElection = null,
@@ -162,6 +163,7 @@ export const TradeTeamCard = ({
     selectedTeamId,
     teamTradeExceptions,
     hasTeam,
+    worldAsOfDate,
   });
 
   // Modified player trade handler to support multiple selections
@@ -258,6 +260,7 @@ export const TradeTeamCard = ({
         sends={sends}
         incomingPlayers={incomingPlayers}
         yearKey={yearKey}
+        asOfDate={worldAsOfDate}
         snapshot={snapshot ? { ...snapshot } : null}
         compact={compact}
         isValidating={isValidating}

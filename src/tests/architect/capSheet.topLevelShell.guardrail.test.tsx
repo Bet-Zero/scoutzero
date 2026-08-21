@@ -228,6 +228,21 @@ describe('MYCT-1C top-level Cap Sheet shell guardrails', () => {
     );
   });
 
+  it('forwards the governed world date into the compact Cap Sheet total', () => {
+    render(
+      <CapSheetSection
+        {...buildBaseProps(2027)}
+        asOfDate="2026-07-01T12:00:00-04:00"
+      />
+    );
+
+    expect(shellHarness.lastCapSheetProps).toMatchObject({
+      currentYear: 2027,
+      selectedYear: 2027,
+      asOfDate: '2026-07-01T12:00:00-04:00',
+    });
+  });
+
   it('keeps DEV fixture controls on a separate support surface outside primary and adjacent authority regions', () => {
     vi.stubEnv('DEV', true);
     localStorage.setItem(DEV_CAP_SHEET_FIXTURE_FLAG, 'true');
