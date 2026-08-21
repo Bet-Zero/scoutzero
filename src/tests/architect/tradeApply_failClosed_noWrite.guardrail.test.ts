@@ -84,7 +84,13 @@ function makeTeam(teamCode: string, players: Array<Record<string, unknown>>) {
     draftPicks: [],
     tradeExceptions: [],
     exceptions: {},
-    totals: { totalSalary, capHit: totalSalary },
+    totals: {
+      teamSalary: totalSalary,
+      apronTeamSalary: totalSalary,
+      taxSalary: totalSalary,
+      totalSalary,
+      capHit: totalSalary,
+    },
   };
 }
 

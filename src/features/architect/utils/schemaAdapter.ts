@@ -123,10 +123,13 @@ export function buildTradeTeamInput(
       roster: teamState.roster || [],
       activeContracts: teamState.activeContracts || [],
       totals: teamState.totals || {},
-      totalSalary:
-        teamState.totals?.totalSalary || teamState.totals?.capHit || 0,
-      teamTotalSalary:
-        teamState.totals?.totalSalary || teamState.totals?.capHit || 0,
+      // Legacy trade-rule names are an explicit Apron Team Salary bridge.
+      // Never source them from generic Cap Sheet aliases.
+      totalSalary: teamState.totals?.apronTeamSalary ?? null,
+      teamTotalSalary: teamState.totals?.apronTeamSalary ?? null,
+      teamSalary: teamState.totals?.teamSalary ?? null,
+      apronTeamSalary: teamState.totals?.apronTeamSalary ?? null,
+      taxSalary: teamState.totals?.taxSalary ?? null,
 
       // Cap data
       capHolds: teamState.capHolds || [],

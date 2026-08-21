@@ -276,10 +276,11 @@ export function computeSigningResult({
   currentState,
   seasonId,
   timestamp,
+  asOfDate = null,
 }: ComputeMutationParamsWithCurrentState<
   MutationSigningCurrentState,
   MutationPayloadInputByType['signFreeAgent']
->): ComputeResultLike {
+> & { asOfDate?: string | number | null }): ComputeResultLike {
   const { team, player } = requireSigningState(currentState, 'signFreeAgent');
   const teamCode = currentState.teamCode || team.teamCode || null;
   const { contract, signedUsing } = payload;
@@ -399,7 +400,8 @@ export function computeSigningResult({
   // Recalculate totals
   updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedTeam,
-    toEndYear(seasonId)
+    toEndYear(seasonId),
+    asOfDate
   ).totals;
 
   const teamUpdates: ArchitectMutationTeamUpdate[] = [

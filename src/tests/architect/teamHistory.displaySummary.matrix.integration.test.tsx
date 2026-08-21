@@ -39,8 +39,20 @@ describe('TEAM_HISTORY_E4 summary/details matrix integration (world mode)', () =
             playersMoved: ['player_trade_a', 'player_trade_b'],
             picksMoved: ['2028 1st (BOS)'],
           },
-          beforeTotalsByTeam: { LAL: { totalCapAllocations: 150000000 } },
-          afterTotalsByTeam: { LAL: { totalCapAllocations: 149000000 } },
+          beforeTotalsByTeam: {
+            LAL: {
+              teamSalary: 150000000,
+              apronTeamSalary: 155000000,
+              taxSalary: 160000000,
+            },
+          },
+          afterTotalsByTeam: {
+            LAL: {
+              teamSalary: 149000000,
+              apronTeamSalary: 153000000,
+              taxSalary: 157000000,
+            },
+          },
         },
         {
           id: 'evt_sign',
@@ -55,8 +67,20 @@ describe('TEAM_HISTORY_E4 summary/details matrix integration (world mode)', () =
             contract: { years: 3, firstYearSalary: 12000000 },
             signedUsing: 'NTMLE',
           },
-          beforeTotalsByTeam: { LAL: { totalCapAllocations: 140000000 } },
-          afterTotalsByTeam: { LAL: { totalCapAllocations: 152000000 } },
+          beforeTotalsByTeam: {
+            LAL: {
+              teamSalary: 140000000,
+              apronTeamSalary: 145000000,
+              taxSalary: 150000000,
+            },
+          },
+          afterTotalsByTeam: {
+            LAL: {
+              teamSalary: 152000000,
+              apronTeamSalary: 158000000,
+              taxSalary: 164000000,
+            },
+          },
         },
         {
           id: 'evt_waive',
@@ -148,10 +172,16 @@ describe('TEAM_HISTORY_E4 summary/details matrix integration (world mode)', () =
     ).toBeInTheDocument();
     expect(screen.getByText('Players')).toBeInTheDocument();
     expect(screen.getByText('Picks')).toBeInTheDocument();
-    expect(screen.getByText('Cap Allocation')).toBeInTheDocument();
+    expect(screen.getByText('Salary Books')).toBeInTheDocument();
     expect(
       screen.getByTestId('team-history-detail-modal').textContent || ''
-    ).toContain('LAL total cap allocations: -$1,000,000');
+    ).toContain('LAL Team Salary: -$1,000,000');
+    expect(
+      screen.getByTestId('team-history-detail-modal').textContent || ''
+    ).toContain('LAL Apron Team Salary: -$2,000,000');
+    expect(
+      screen.getByTestId('team-history-detail-modal').textContent || ''
+    ).toContain('LAL Tax Salary: -$3,000,000');
     expect(screen.getAllByText(/2028 1st/i).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
 

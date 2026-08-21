@@ -58,7 +58,14 @@ function withAboveSecondApron(
       status: 'available',
       season: 2025,
       seasonLabel: '2025-26',
-      totalCapAllocations: 250_000_000,
+      teamSalary: 250_000_000,
+      apronTeamSalary: 252_000_000,
+      taxSalary: 251_000_000,
+      books: {
+        teamSalary: { status: 'available', value: 250_000_000, reason: null },
+        apronTeamSalary: { status: 'available', value: 252_000_000, reason: null },
+        taxSalary: { status: 'available', value: 251_000_000, reason: null },
+      },
       salaryCap: 140_000_000,
       capSpace: -110_000_000,
       luxuryTax: 170_000_000,
@@ -71,7 +78,7 @@ function withAboveSecondApron(
       isOverTax: true,
       isAtOrAboveFirstApron: true,
       isAboveSecondApron: true,
-      source: 'computeTeamCapTotals',
+      source: 'salaryBooks',
     } as ArchitectWorkspaceContext['cap'],
   };
 }
@@ -86,7 +93,14 @@ function withOverSalaryCapOnly(
       status: 'available',
       season: 2025,
       seasonLabel: '2025-26',
-      totalCapAllocations: 150_000_000,
+      teamSalary: 150_000_000,
+      apronTeamSalary: 152_000_000,
+      taxSalary: 151_000_000,
+      books: {
+        teamSalary: { status: 'available', value: 150_000_000, reason: null },
+        apronTeamSalary: { status: 'available', value: 152_000_000, reason: null },
+        taxSalary: { status: 'available', value: 151_000_000, reason: null },
+      },
       salaryCap: 140_000_000,
       capSpace: -10_000_000,
       luxuryTax: 170_000_000,
@@ -99,7 +113,7 @@ function withOverSalaryCapOnly(
       isOverTax: false,
       isAtOrAboveFirstApron: false,
       isAboveSecondApron: false,
-      source: 'computeTeamCapTotals',
+      source: 'salaryBooks',
     } as ArchitectWorkspaceContext['cap'],
   };
 }

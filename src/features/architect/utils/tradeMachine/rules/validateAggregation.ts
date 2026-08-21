@@ -82,7 +82,7 @@ export function validateAggregation(
   const secondApron = capSettings.secondApron || 190000000;
   const isAboveSecondApron =
     postTradeStatus?.isAtOrAboveSecondApron ||
-    isSecondApronTeam({ totalSalary: teamTotalSalary }, capSettings) ||
+    isSecondApronTeam({ apronTeamSalary: teamTotalSalary }, capSettings) ||
     isSecondApronTeam(team.team, capSettings);
 
   // Only apply to second apron teams

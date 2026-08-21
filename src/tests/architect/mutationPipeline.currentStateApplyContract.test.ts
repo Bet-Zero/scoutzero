@@ -215,6 +215,9 @@ function makeTeam(
     exceptions: { mle: null, bae: null, tpe: [] },
     deadCap: [],
     totals: {
+      teamSalary: totalSalary,
+      apronTeamSalary: totalSalary,
+      taxSalary: totalSalary,
       totalSalary,
       capHit: totalSalary,
       totalCapAllocations: totalSalary,
@@ -371,7 +374,7 @@ describe('mutationPipeline current-state apply contract', () => {
     ).toBe(true);
   });
 
-  it('executeTrade still applies when current-state team salary is synthesized from totals as a number', async () => {
+  it('executeTrade still applies when current-state Apron Team Salary is bridged as a number', async () => {
     const playerA = makePlayer('player_a', 'Player A', 10_000_000, 'LAL');
     const playerB = makePlayer('player_b', 'Player B', 10_000_000, 'BOS');
     const teamA = makeTeam('LAL', [playerA]);
@@ -381,10 +384,16 @@ describe('mutationPipeline current-state apply contract', () => {
     delete teamB.teamTotalSalary;
     teamA.totals = {
       ...(teamA.totals as Record<string, unknown>),
+      teamSalary: 120_000_000,
+      apronTeamSalary: 120_000_000,
+      taxSalary: 120_000_000,
       totalSalary: '120000000',
     };
     teamB.totals = {
       ...(teamB.totals as Record<string, unknown>),
+      teamSalary: 121_000_000,
+      apronTeamSalary: 121_000_000,
+      taxSalary: 121_000_000,
       totalSalary: '121000000',
     };
 

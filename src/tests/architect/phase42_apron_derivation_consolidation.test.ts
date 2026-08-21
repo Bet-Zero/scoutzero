@@ -54,16 +54,20 @@ describe('Phase 42: Apron Derivation Consolidation Guardrails', () => {
   const ABOVE_FIRST_BELOW_SECOND = 180_000_000;
   const ABOVE_SECOND_APRON = 190_000_001;
   const UNDER_CAP = 100_000_000;
+  const bookTotals = (salary: number) => ({
+    teamSalary: salary,
+    apronTeamSalary: salary,
+  });
 
   describe('SSOT Baseline (tradeMachine capUtils)', () => {
     describe('getTeamApronStatus', () => {
       it('returns SECOND_APRON only when strictly > secondApron', () => {
         expect(
-          getTeamApronStatus({ totalSalary: ABOVE_SECOND_APRON }, CAP_SETTINGS)
+          getTeamApronStatus(bookTotals(ABOVE_SECOND_APRON), CAP_SETTINGS)
         ).toBe('SECOND_APRON');
         expect(
           getTeamApronStatus(
-            { totalSalary: EXACTLY_AT_SECOND_APRON },
+            bookTotals(EXACTLY_AT_SECOND_APRON),
             CAP_SETTINGS
           )
         ).toBe('FIRST_APRON');
@@ -72,19 +76,19 @@ describe('Phase 42: Apron Derivation Consolidation Guardrails', () => {
       it('returns FIRST_APRON when >= firstApron and <= secondApron', () => {
         expect(
           getTeamApronStatus(
-            { totalSalary: EXACTLY_AT_FIRST_APRON },
+            bookTotals(EXACTLY_AT_FIRST_APRON),
             CAP_SETTINGS
           )
         ).toBe('FIRST_APRON');
         expect(
           getTeamApronStatus(
-            { totalSalary: ABOVE_FIRST_BELOW_SECOND },
+            bookTotals(ABOVE_FIRST_BELOW_SECOND),
             CAP_SETTINGS
           )
         ).toBe('FIRST_APRON');
         expect(
           getTeamApronStatus(
-            { totalSalary: EXACTLY_AT_SECOND_APRON },
+            bookTotals(EXACTLY_AT_SECOND_APRON),
             CAP_SETTINGS
           )
         ).toBe('FIRST_APRON');
@@ -93,18 +97,18 @@ describe('Phase 42: Apron Derivation Consolidation Guardrails', () => {
       it('returns OVER_CAP when >= salaryCap and < firstApron', () => {
         expect(
           getTeamApronStatus(
-            { totalSalary: CAP_SETTINGS.salaryCap },
+            bookTotals(CAP_SETTINGS.salaryCap),
             CAP_SETTINGS
           )
         ).toBe('OVER_CAP');
         expect(
-          getTeamApronStatus({ totalSalary: BELOW_FIRST_APRON }, CAP_SETTINGS)
+          getTeamApronStatus(bookTotals(BELOW_FIRST_APRON), CAP_SETTINGS)
         ).toBe('OVER_CAP');
       });
 
       it('returns UNDER_CAP when < salaryCap', () => {
         expect(
-          getTeamApronStatus({ totalSalary: UNDER_CAP }, CAP_SETTINGS)
+          getTeamApronStatus(bookTotals(UNDER_CAP), CAP_SETTINGS)
         ).toBe('UNDER_CAP');
       });
     });
@@ -112,17 +116,17 @@ describe('Phase 42: Apron Derivation Consolidation Guardrails', () => {
     describe('isSecondApronTeam', () => {
       it('returns true only when strictly > secondApron', () => {
         expect(
-          isSecondApronTeam({ totalSalary: ABOVE_SECOND_APRON }, CAP_SETTINGS)
+          isSecondApronTeam(bookTotals(ABOVE_SECOND_APRON), CAP_SETTINGS)
         ).toBe(true);
         expect(
           isSecondApronTeam(
-            { totalSalary: EXACTLY_AT_SECOND_APRON },
+            bookTotals(EXACTLY_AT_SECOND_APRON),
             CAP_SETTINGS
           )
         ).toBe(false);
         expect(
           isSecondApronTeam(
-            { totalSalary: ABOVE_FIRST_BELOW_SECOND },
+            bookTotals(ABOVE_FIRST_BELOW_SECOND),
             CAP_SETTINGS
           )
         ).toBe(false);
@@ -133,26 +137,26 @@ describe('Phase 42: Apron Derivation Consolidation Guardrails', () => {
       it('returns true when >= firstApron', () => {
         expect(
           isFirstApronTeam(
-            { totalSalary: EXACTLY_AT_FIRST_APRON },
+            bookTotals(EXACTLY_AT_FIRST_APRON),
             CAP_SETTINGS
           )
         ).toBe(true);
         expect(
           isFirstApronTeam(
-            { totalSalary: ABOVE_FIRST_BELOW_SECOND },
+            bookTotals(ABOVE_FIRST_BELOW_SECOND),
             CAP_SETTINGS
           )
         ).toBe(true);
         expect(
-          isFirstApronTeam({ totalSalary: ABOVE_SECOND_APRON }, CAP_SETTINGS)
+          isFirstApronTeam(bookTotals(ABOVE_SECOND_APRON), CAP_SETTINGS)
         ).toBe(true);
       });
 
       it('returns false when < firstApron', () => {
         expect(
-          isFirstApronTeam({ totalSalary: BELOW_FIRST_APRON }, CAP_SETTINGS)
+          isFirstApronTeam(bookTotals(BELOW_FIRST_APRON), CAP_SETTINGS)
         ).toBe(false);
-        expect(isFirstApronTeam({ totalSalary: UNDER_CAP }, CAP_SETTINGS)).toBe(
+        expect(isFirstApronTeam(bookTotals(UNDER_CAP), CAP_SETTINGS)).toBe(
           false
         );
       });
@@ -169,19 +173,19 @@ describe('Phase 42: Apron Derivation Consolidation Guardrails', () => {
 
     describe('Legacy getApronStatus (deprecated)', () => {
       it('maps SSOT values to legacy format correctly', () => {
-        expect(getLegacyApronStatus(ABOVE_SECOND_APRON, CAP_SETTINGS)).toBe(
+        expect(getLegacyApronStatus(bookTotals(ABOVE_SECOND_APRON), CAP_SETTINGS)).toBe(
           'ABOVE_SECOND_APRON'
         );
         expect(
-          getLegacyApronStatus(EXACTLY_AT_SECOND_APRON, CAP_SETTINGS)
+          getLegacyApronStatus(bookTotals(EXACTLY_AT_SECOND_APRON), CAP_SETTINGS)
         ).toBe('ABOVE_FIRST_APRON');
-        expect(getLegacyApronStatus(EXACTLY_AT_FIRST_APRON, CAP_SETTINGS)).toBe(
+        expect(getLegacyApronStatus(bookTotals(EXACTLY_AT_FIRST_APRON), CAP_SETTINGS)).toBe(
           'ABOVE_FIRST_APRON'
         );
-        expect(getLegacyApronStatus(BELOW_FIRST_APRON, CAP_SETTINGS)).toBe(
+        expect(getLegacyApronStatus(bookTotals(BELOW_FIRST_APRON), CAP_SETTINGS)).toBe(
           'OVER_CAP'
         );
-        expect(getLegacyApronStatus(UNDER_CAP, CAP_SETTINGS)).toBe('UNDER_CAP');
+        expect(getLegacyApronStatus(bookTotals(UNDER_CAP), CAP_SETTINGS)).toBe('UNDER_CAP');
       });
     });
 
@@ -329,10 +333,10 @@ describe('Phase 42: Apron Derivation Consolidation Guardrails', () => {
 
       // SSOT
       expect(
-        getTeamApronStatus({ totalSalary: exactlyAtSecond }, CAP_SETTINGS)
+        getTeamApronStatus(bookTotals(exactlyAtSecond), CAP_SETTINGS)
       ).not.toBe('SECOND_APRON');
       expect(
-        getTeamApronStatus({ totalSalary: justAboveSecond }, CAP_SETTINGS)
+        getTeamApronStatus(bookTotals(justAboveSecond), CAP_SETTINGS)
       ).toBe('SECOND_APRON');
 
       // Legacy capUtils
@@ -359,10 +363,10 @@ describe('Phase 42: Apron Derivation Consolidation Guardrails', () => {
 
       // SSOT
       expect(
-        getTeamApronStatus({ totalSalary: exactlyAtFirst }, CAP_SETTINGS)
+        getTeamApronStatus(bookTotals(exactlyAtFirst), CAP_SETTINGS)
       ).toBe('FIRST_APRON');
       expect(
-        getTeamApronStatus({ totalSalary: justBelowFirst }, CAP_SETTINGS)
+        getTeamApronStatus(bookTotals(justBelowFirst), CAP_SETTINGS)
       ).toBe('OVER_CAP');
 
       // Legacy capUtils

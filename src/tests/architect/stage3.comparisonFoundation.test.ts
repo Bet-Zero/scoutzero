@@ -41,22 +41,26 @@ function makeEvent(
 
 const LAL_BEFORE_TOTALS = {
   LAL: {
-    totalCapAllocations: 160_000_000,
-    capSpace: 10_000_000,
+    teamSalary: 160_000_000,
+    apronTeamSalary: 165_000_000,
+    taxSalary: 162_000_000,
+    salaryCap: 170_000_000,
     luxuryTax: 170_000_000,
-    isFirstApron: false,
-    isSecondApron: false,
+    firstApron: 170_000_000,
+    secondApron: 190_000_000,
     isHardCapped: false,
   },
 };
 
 const LAL_AFTER_TOTALS = {
   LAL: {
-    totalCapAllocations: 175_000_000,
-    capSpace: -5_000_000,
+    teamSalary: 175_000_000,
+    apronTeamSalary: 180_000_000,
+    taxSalary: 177_000_000,
+    salaryCap: 170_000_000,
     luxuryTax: 170_000_000,
-    isFirstApron: true,
-    isSecondApron: false,
+    firstApron: 170_000_000,
+    secondApron: 190_000_000,
     isHardCapped: false,
   },
 };
@@ -253,10 +257,10 @@ describe('deriveCapDelta', () => {
     expect(result.capTotalDelta).toBeNull();
   });
 
-  it('derives correct totalCapAllocationsDelta from single event', () => {
+  it('derives the independent salary-book deltas from a single event', () => {
     const result = deriveCapDelta(LAL_BEFORE_TOTALS, LAL_AFTER_TOTALS, 'LAL');
     expect(result.capTotalDelta).not.toBeNull();
-    expect(result.capTotalDelta!.totalCapAllocationsDelta).toBe(
+    expect(result.capTotalDelta!.teamSalaryDelta).toBe(
       175_000_000 - 160_000_000
     );
   });
@@ -274,13 +278,13 @@ describe('deriveCapDelta', () => {
     expect(result.capTotalDelta!.taxSpaceDelta).toBe(-15_000_000);
   });
 
-  it('returns null totalCapAllocationsDelta when before totals are missing for team', () => {
+  it('returns null Team Salary delta when before totals are missing for team', () => {
     const result = deriveCapDelta(
-      { BOS: { totalCapAllocations: 150_000_000 } },
+      { BOS: { teamSalary: 150_000_000 } },
       LAL_AFTER_TOTALS,
       'LAL'
     );
-    expect(result.capTotalDelta!.totalCapAllocationsDelta).toBeNull();
+    expect(result.capTotalDelta!.teamSalaryDelta).toBeNull();
   });
 
   it('detects first-apron crossing: was below, now above', () => {
@@ -293,17 +297,17 @@ describe('deriveCapDelta', () => {
   it('does not report first-apron crossing when team was already above apron before', () => {
     const alreadyAbove = {
       LAL: {
-        totalCapAllocations: 185_000_000,
-        isFirstApron: true,
-        isSecondApron: false,
+        apronTeamSalary: 185_000_000,
+        firstApron: 170_000_000,
+        secondApron: 200_000_000,
         isHardCapped: false,
       },
     };
     const stillAbove = {
       LAL: {
-        totalCapAllocations: 190_000_000,
-        isFirstApron: true,
-        isSecondApron: false,
+        apronTeamSalary: 190_000_000,
+        firstApron: 170_000_000,
+        secondApron: 200_000_000,
         isHardCapped: false,
       },
     };
@@ -312,15 +316,15 @@ describe('deriveCapDelta', () => {
   });
 
   it('detects hard-cap activation', () => {
-    const before = { LAL: { totalCapAllocations: 160_000_000, isFirstApron: false, isSecondApron: false, isHardCapped: false } };
-    const after = { LAL: { totalCapAllocations: 178_000_000, isFirstApron: true, isSecondApron: false, isHardCapped: true } };
+    const before = { LAL: { apronTeamSalary: 160_000_000, firstApron: 170_000_000, secondApron: 190_000_000, isHardCapped: false } };
+    const after = { LAL: { apronTeamSalary: 178_000_000, firstApron: 170_000_000, secondApron: 190_000_000, isHardCapped: true } };
     const result = deriveCapDelta(before, after, 'LAL');
     expect(result.taxApronPostureDelta!.hardCapActivated).toBe(true);
   });
 
   it('returns null apron delta when boolean fields are absent', () => {
-    const before = { LAL: { totalCapAllocations: 160_000_000 } };
-    const after = { LAL: { totalCapAllocations: 175_000_000 } };
+    const before = { LAL: { teamSalary: 160_000_000 } };
+    const after = { LAL: { teamSalary: 175_000_000 } };
     const result = deriveCapDelta(before, after, 'LAL');
     expect(result.taxApronPostureDelta).toBeNull();
   });
@@ -469,7 +473,7 @@ describe('deriveComparisonViewModel', () => {
       currentRosterPlayerIds: ['player_1'],
     });
     expect(vm.capTotalDelta).not.toBeNull();
-    expect(vm.capTotalDelta!.totalCapAllocationsDelta).toBe(15_000_000);
+    expect(vm.capTotalDelta!.teamSalaryDelta).toBe(15_000_000);
     expect(vm.capTotalDelta!.authority).toBe('committed-world / event-derived');
   });
 
@@ -479,16 +483,16 @@ describe('deriveComparisonViewModel', () => {
       eventId: 'evt_a',
       occurredAt: '2026-01-10T00:00:00.000Z',
       mutationType: 'signFreeAgent',
-      beforeTotalsByTeam: { LAL: { totalCapAllocations: 155_000_000 } },
-      afterTotalsByTeam: { LAL: { totalCapAllocations: 162_000_000 } },
+      beforeTotalsByTeam: { LAL: { teamSalary: 155_000_000 } },
+      afterTotalsByTeam: { LAL: { teamSalary: 162_000_000 } },
     });
     const later = makeEvent({
       id: 'evt_b',
       eventId: 'evt_b',
       occurredAt: '2026-02-10T00:00:00.000Z',
       mutationType: 'executeTrade',
-      beforeTotalsByTeam: { LAL: { totalCapAllocations: 162_000_000 } },
-      afterTotalsByTeam: { LAL: { totalCapAllocations: 170_000_000 } },
+      beforeTotalsByTeam: { LAL: { teamSalary: 162_000_000 } },
+      afterTotalsByTeam: { LAL: { teamSalary: 170_000_000 } },
     });
     // Pass newest-first (as useWorldTeamEvents returns)
     const vm = deriveComparisonViewModel({
@@ -496,7 +500,7 @@ describe('deriveComparisonViewModel', () => {
       committedEventRows: [later, earliest],
     });
     // Should use earliest.before (155M) and latest.after (170M)
-    expect(vm.capTotalDelta!.totalCapAllocationsDelta).toBe(15_000_000);
+    expect(vm.capTotalDelta!.teamSalaryDelta).toBe(15_000_000);
   });
 
   it('accumulates changed players from multiple events', () => {
@@ -669,22 +673,22 @@ describe('deriveComparisonViewModel', () => {
       eventId: 'e_new',
       occurredAt: '2026-03-01T00:00:00.000Z',
       mutationType: 'executeTrade',
-      beforeTotalsByTeam: { LAL: { totalCapAllocations: 168_000_000 } },
-      afterTotalsByTeam: { LAL: { totalCapAllocations: 172_000_000 } },
+      beforeTotalsByTeam: { LAL: { teamSalary: 168_000_000 } },
+      afterTotalsByTeam: { LAL: { teamSalary: 172_000_000 } },
     });
     const oldest = makeEvent({
       id: 'e_old',
       eventId: 'e_old',
       occurredAt: '2026-01-01T00:00:00.000Z',
       mutationType: 'signFreeAgent',
-      beforeTotalsByTeam: { LAL: { totalCapAllocations: 158_000_000 } },
-      afterTotalsByTeam: { LAL: { totalCapAllocations: 168_000_000 } },
+      beforeTotalsByTeam: { LAL: { teamSalary: 158_000_000 } },
+      afterTotalsByTeam: { LAL: { teamSalary: 168_000_000 } },
     });
     const vm = deriveComparisonViewModel({
       ...baseInput,
       committedEventRows: [newest, oldest], // newest-first (as from hook)
     });
     // Should use oldest.before (158M) and newest.after (172M) → delta = 14M
-    expect(vm.capTotalDelta!.totalCapAllocationsDelta).toBe(14_000_000);
+    expect(vm.capTotalDelta!.teamSalaryDelta).toBe(14_000_000);
   });
 });

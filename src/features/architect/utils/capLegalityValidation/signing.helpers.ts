@@ -9,6 +9,7 @@ import {
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import type { CapRulesProfile } from '@/features/architect/utils/capRulesProfile';
 import {
+  createCanonicalTeamTotalsSnapshot,
   computeTeamCapTotals,
 } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
@@ -235,11 +236,13 @@ export const getMutationYearsOfService = (player: MutationPlayer): number =>
 
 export const computeCanonicalMutationTeamCapTotals = (
   team: MutationTeam,
-  year: number
+  year: number,
+  asOfDate: string | null = null
 ) =>
-  computeTeamCapTotals(
+  createCanonicalTeamTotalsSnapshot(
     team as Parameters<typeof computeTeamCapTotals>[0],
-    year
+    year,
+    { asOfDate }
   );
 
 export function countTwoWayContracts(players: MutationPlayer[] | null | undefined) {

@@ -258,6 +258,7 @@ describe('Phase 86: OSTE core validation', () => {
       hardCapFirstApron: { active: true, reason: 'Test', season: '2025-26' },
       hardCapped: true,
       totals: {
+        apronTeamSalary: 30_000_000,
         isHardCapped: true,
         hardCapLevel: 'firstApron',
         hardCapDetail: 'Triggered by test',

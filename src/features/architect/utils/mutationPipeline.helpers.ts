@@ -491,12 +491,20 @@ export function synchronizeTeamTotalsSnapshotOrTeam<
   T extends
     | CurrentStateTeamRoundTripMaterializable
     | ArchitectGeneralMutationCommittedTeamSnapshot,
->(team: T, year: number | null | undefined): T {
+>(
+  team: T,
+  year: number | null | undefined,
+  asOfDate: string | number | null | undefined = null
+): T {
   if (typeof year !== 'number' || !Number.isFinite(year)) {
     return team;
   }
 
-  return (synchronizeTeamTotalsSnapshot(team, year) || team) as T;
+  return (
+    synchronizeTeamTotalsSnapshot(team, year, {
+      asOfDate: typeof asOfDate === 'string' ? asOfDate : null,
+    }) || team
+  ) as T;
 }
 
 export function cloneWritesSummary(

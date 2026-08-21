@@ -94,6 +94,7 @@ describe('TM-6B hard-cap ownership guardrails', () => {
 
     const projectionTeam = {
       team: {
+        apronTeamSalary: 179_000_000,
         totalSalary: 179_000_000,
         // Genuinely hard-capped (matching the final-state input below):
         // `hardCapLevel` alone is only the apron-band descriptor.
@@ -129,6 +130,7 @@ describe('TM-6B hard-cap ownership guardrails', () => {
         },
         afterTotalsByTeam: {
           BOS: makeTotals({
+            apronTeamSalary: 181_000_000,
             totalCapAllocations: 181_000_000,
             firstApron: 180_000_000,
             secondApron: 0,

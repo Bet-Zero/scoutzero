@@ -7,6 +7,7 @@ import {
   type ArchitectMutationTeamRecord,
 } from '@/features/architect/utils/mutationPipeline';
 import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 
 type ComputeArgs = Parameters<typeof computeWorldMutation>[0];
 type CurrentStateFor<TMutationType extends ComputeArgs['mutationType']> =
@@ -119,7 +120,7 @@ function makeTeam(
     0
   );
 
-  return {
+  const team = {
     id: teamCode.toLowerCase(),
     teamCode,
     teamName: `Team ${teamCode}`,
@@ -146,6 +147,13 @@ function makeTeam(
     teamTotalSalary: totalSalary,
     ...overrides,
   };
+  return withGovernedSalaryBooks(team, {
+    salaryCapYear: 2026,
+    asOfDate: '2026-04-11T17:00:00.000Z',
+    teamSalary: totalSalary,
+    apronTeamSalary: totalSalary + 1_000_000,
+    taxSalary: totalSalary + 2_000_000,
+  });
 }
 
 describe('mutationPipeline current-state ingress funnel', () => {

@@ -112,10 +112,10 @@ describe('Team History detail view integration', () => {
                 teamsAffected: ['NYK'],
                 playerIds: ['player_raw_only'],
                 beforeTotalsByTeam: {
-                  BOS: { totalCapAllocations: 18000000 },
+                  BOS: { teamSalary: 18000000 },
                 },
                 afterTotalsByTeam: {
-                  BOS: { totalCapAllocations: 19000000 },
+                  BOS: { teamSalary: 19000000 },
                 },
               },
             },
@@ -203,10 +203,10 @@ describe('Team History detail view integration', () => {
               eventId: 'evt_local_first',
               operationId: 'op_local_first',
               beforeTotalsByTeam: {
-                BOS: { totalCapAllocations: 10000000 },
+                BOS: { teamSalary: 10000000 },
               },
               afterTotalsByTeam: {
-                BOS: { totalCapAllocations: 8000000 },
+                BOS: { teamSalary: 8000000 },
               },
             },
             {
@@ -223,10 +223,10 @@ describe('Team History detail view integration', () => {
                 type: 'rawOnlyType',
                 playerIds: ['player_raw_second'],
                 beforeTotalsByTeam: {
-                  BOS: { totalCapAllocations: 15000000 },
+                  BOS: { teamSalary: 15000000 },
                 },
                 afterTotalsByTeam: {
-                  BOS: { totalCapAllocations: 16000000 },
+                  BOS: { teamSalary: 16000000 },
                 },
               },
             },

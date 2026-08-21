@@ -155,10 +155,20 @@ export function useTradeMachineInit({
           const {
             playersTotal: baseline,
             deadMoneyTotal: dead,
-            totalWithDead,
+            teamSalary,
+            apronTeamSalary,
+            taxSalary,
+            salaryBooks,
           } = getCapTotalsForYear(teamObj, yearKey, worldAsOfDate);
-          teamObj.teamTotalSalary = totalWithDead;
-          teamObj.projectedSalary = totalWithDead;
+          // The legacy trade-rule bridge measures apron restrictions. Keep it
+          // explicitly wired to Apron Team Salary while retaining each named
+          // book on the team object for its own consumers and receipts.
+          teamObj.teamTotalSalary = apronTeamSalary;
+          teamObj.projectedSalary = apronTeamSalary;
+          teamObj.teamSalary = teamSalary;
+          teamObj.apronTeamSalary = apronTeamSalary;
+          teamObj.taxSalary = taxSalary;
+          teamObj.salaryBooks = salaryBooks;
 
           if (import.meta.env.DEV)
             console.log(

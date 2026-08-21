@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   computeWorldMutation,
   type ArchitectMutationBirdRights,
@@ -8,6 +8,43 @@ import {
   type ArchitectMutationTeamUpdate,
   type ArchitectMutationTeamRecord,
 } from '@/features/architect/utils/mutationPipeline';
+
+vi.mock(
+  '@/features/architect/utils/capTotals/computeTeamCapTotals',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/architect/utils/capTotals/computeTeamCapTotals')
+      >();
+    const snapshot = (
+      team: Parameters<typeof actual.computeTeamCapTotals>[0],
+      year: number
+    ) => {
+      const legacy = actual.computeTeamCapTotals(team, year);
+      const totals = team?.totals as Record<string, unknown> | null | undefined;
+      return {
+        ...legacy,
+        teamSalary:
+          typeof totals?.teamSalary === 'number' ? totals.teamSalary : null,
+        apronTeamSalary:
+          typeof totals?.apronTeamSalary === 'number'
+            ? totals.apronTeamSalary
+            : null,
+        taxSalary:
+          typeof totals?.taxSalary === 'number' ? totals.taxSalary : null,
+      };
+    };
+
+    return {
+      ...actual,
+      createCanonicalTeamTotalsSnapshot: vi.fn(snapshot),
+      synchronizeTeamTotalsSnapshot: vi.fn((team, year) => ({
+        ...team,
+        totals: snapshot(team, year),
+      })),
+    };
+  }
+);
 
 const SEASON_ID = '2025-26';
 const FIXED_TIMESTAMP = Date.parse('2026-04-11T15:00:00.000Z');
@@ -127,6 +164,8 @@ function makeTeam(
       totalSalary,
       capHit: totalSalary,
       teamSalary: totalSalary,
+      apronTeamSalary: totalSalary,
+      taxSalary: totalSalary,
       rosterCount: players.length,
       isHardCapped: false,
     },
@@ -149,7 +188,7 @@ type SignAndTradeCurrentStatePlayer = NonNullable<
 const requireSuccessfulMutationResult = (
   result: ArchitectMutationResult
 ): SuccessfulMutationResult => {
-  expect(result.success).toBe(true);
+  expect(result.success, String(result.error)).toBe(true);
   expect(result.teamUpdates).toBeDefined();
   expect(result.playerUpdates).toBeDefined();
   if (!result.teamUpdates || !result.playerUpdates) {

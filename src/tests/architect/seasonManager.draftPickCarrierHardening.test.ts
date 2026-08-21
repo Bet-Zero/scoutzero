@@ -97,6 +97,7 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
 
 vi.mock('@/features/architect/utils/capTotals', () => ({
   computeTeamCapTotals: mocks.computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot: mocks.computeTeamCapTotals,
 }));
 
 vi.mock('@/features/architect/utils/entitlements/entitlementResolver', () => ({

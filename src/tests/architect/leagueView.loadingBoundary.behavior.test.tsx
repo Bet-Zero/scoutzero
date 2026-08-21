@@ -49,7 +49,7 @@ const firebaseTeamPlanHelperMocks = vi.hoisted(() => ({
 }));
 
 const capTotalsMocks = vi.hoisted(() => ({
-  computeTeamCapTotals: vi.fn(),
+  createCanonicalTeamTotalsSnapshot: vi.fn(),
 }));
 
 const seasonFormatMocks = vi.hoisted(() => ({
@@ -70,7 +70,8 @@ vi.mock('@/features/architect/utils/firebaseTeamPlanHelpers', () => ({
 }));
 
 vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
-  computeTeamCapTotals: capTotalsMocks.computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot:
+    capTotalsMocks.createCanonicalTeamTotalsSnapshot,
 }));
 
 vi.mock('@/features/architect/utils/seasonFormat', () => ({
@@ -164,8 +165,10 @@ describe('LeagueView loading-boundary behavior', () => {
         };
       }
     );
-    capTotalsMocks.computeTeamCapTotals.mockReturnValue({
-      totalCapAllocations: 123_456_789,
+    capTotalsMocks.createCanonicalTeamTotalsSnapshot.mockReturnValue({
+      teamSalary: 123_456_789,
+      apronTeamSalary: 124_456_789,
+      taxSalary: 125_456_789,
     });
   });
 
@@ -198,9 +201,9 @@ describe('LeagueView loading-boundary behavior', () => {
     );
 
     expect(modelSource).toContain('loadTeamCapSheet');
-    expect(modelSource).toContain('computeTeamCapTotals');
+    expect(modelSource).toContain('createCanonicalTeamTotalsSnapshot');
     expect(modelSource).toContain("@/features/architect/utils/seasonFormat");
-    expect(modelSource).toContain('totalCapAllocations');
+    expect(modelSource).toContain('apronTeamSalary');
     expect(modelSource).not.toMatch(/useEffect|useMemo|useState|<table|TeamLogo/);
 
     expect(truthPanelSource).toMatch(/Season:|Source:|Totals:/);
@@ -210,9 +213,9 @@ describe('LeagueView loading-boundary behavior', () => {
     expect(truthPanelSource).toContain('League read failed');
     expect(truthPanelSource).not.toMatch(/loadTeamCapSheet|computeTeamCapTotals/);
 
-    expect(tableSource).toContain('Not loaded');
+    expect(tableSource).toContain('Needs input');
     expect(tableSource).toContain('totalsLabel');
-    expect(tableSource).toContain('totalCapAllocations');
+    expect(tableSource).toContain('team.apronTeamSalary');
     expect(tableSource).toContain('teamHandoffBoundaryLabel');
     expect(tableSource).not.toContain('Total Salary');
     expect(tableSource).toContain('sourceState');
@@ -235,8 +238,8 @@ describe('LeagueView loading-boundary behavior', () => {
       seasonCode: '2025-26',
       seasonSourceLabel: 'Default current season',
       sourceBoundaryLabel: 'Read-only base team snapshots after sign-in',
-      totalsDisplayLabel: 'Total Cap Allocations',
-      totalsBoundaryLabel: 'computeTeamCapTotals totalCapAllocations',
+      totalsDisplayLabel: 'Independent Salary Books',
+      totalsBoundaryLabel: 'Team Salary / Apron Team Salary / Tax Salary',
       presentationBoundaryLabel:
         'Conference grouping and alphabetical order only; totals are not recomputed.',
       teamHandoffBoundaryLabel:
@@ -256,9 +259,9 @@ describe('LeagueView loading-boundary behavior', () => {
       expect(truthPanel).toHaveTextContent('Season: 2025-26');
       expect(truthPanel).toHaveTextContent('Default current season');
       expect(truthPanel).toHaveTextContent('Read-only base team snapshots after sign-in');
-      expect(truthPanel).toHaveTextContent('Total Cap Allocations');
+      expect(truthPanel).toHaveTextContent('Independent Salary Books');
       expect(truthPanel).toHaveTextContent(
-        'computeTeamCapTotals totalCapAllocations'
+        'Team Salary / Apron Team Salary / Tax Salary'
       );
       expect(truthPanel).toHaveTextContent(
         'Conference grouping and alphabetical order only'
@@ -269,14 +272,14 @@ describe('LeagueView loading-boundary behavior', () => {
       expect(truthPanel).toHaveTextContent('1 of 2 team snapshots loaded');
     });
 
-    expect(screen.getAllByText('Total Cap Allocations').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Independent Salary Books').length).toBeGreaterThan(0);
     expect(screen.queryByText('Total Salary')).not.toBeInTheDocument();
 
     const lakersRow = screen.getByTestId('league-view-team-row-lakers');
     expect(lakersRow).toHaveTextContent('Los Angeles Lakers');
     expect(lakersRow).toHaveTextContent('$123,456,789');
     expect(lakersRow).toHaveTextContent('Loaded');
-    expect(capTotalsMocks.computeTeamCapTotals).toHaveBeenCalledWith(
+    expect(capTotalsMocks.createCanonicalTeamTotalsSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({ teamCode: 'LAL' }),
       2026,
       { asOfDate: null }
@@ -323,14 +326,18 @@ describe('LeagueView loading-boundary behavior', () => {
         capHolds: [],
         deadCap: [],
       });
-      capTotalsMocks.computeTeamCapTotals.mockReturnValueOnce({
-        totalCapAllocations: 22_000_001,
+      capTotalsMocks.createCanonicalTeamTotalsSnapshot.mockReturnValueOnce({
+        teamSalary: 22_000_001,
+        apronTeamSalary: 23_000_001,
+        taxSalary: 24_000_001,
       });
 
       await expect(loadLeagueTeamSummary(team, season)).resolves.toEqual(
         expect.objectContaining({
           id: 'hawks',
-          totalCapAllocations: 22_000_001,
+          teamSalary: 22_000_001,
+          apronTeamSalary: 23_000_001,
+          taxSalary: 24_000_001,
           sourceState: 'loaded',
           sourceLabel: 'Loaded',
         })
@@ -341,7 +348,9 @@ describe('LeagueView loading-boundary behavior', () => {
       await expect(loadLeagueTeamSummary(team, season)).resolves.toEqual(
         expect.objectContaining({
           id: 'hawks',
-          totalCapAllocations: null,
+          teamSalary: null,
+          apronTeamSalary: null,
+          taxSalary: null,
           sourceState: 'unavailable',
           sourceLabel: 'Unavailable',
           failureReason: 'Read-only base team cap sheet was not returned.',
@@ -355,7 +364,9 @@ describe('LeagueView loading-boundary behavior', () => {
       await expect(loadLeagueTeamSummary(team, season)).resolves.toEqual(
         expect.objectContaining({
           id: 'hawks',
-          totalCapAllocations: null,
+          teamSalary: null,
+          apronTeamSalary: null,
+          taxSalary: null,
           sourceState: 'unavailable',
           sourceLabel: 'Unavailable',
           failureReason: 'Permission denied',
@@ -380,7 +391,7 @@ describe('LeagueView loading-boundary behavior', () => {
 
     await loadLeagueTeamSummary(team, season);
 
-    expect(capTotalsMocks.computeTeamCapTotals).toHaveBeenCalledWith(
+    expect(capTotalsMocks.createCanonicalTeamTotalsSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({ teamCode: 'LAL' }),
       2026,
       { asOfDate: '2026-07-01T12:00:00-04:00' }
@@ -392,7 +403,7 @@ describe('LeagueView loading-boundary behavior', () => {
 
     const hawksRow = await screen.findByTestId('league-view-team-row-hawks');
     expect(within(hawksRow).getByText('Atlanta Hawks')).toBeInTheDocument();
-    expect(hawksRow).toHaveTextContent('Not loaded');
+    expect(hawksRow).toHaveTextContent('Needs input');
     expect(hawksRow).toHaveTextContent('Unavailable');
     expect(hawksRow).not.toHaveTextContent('$0');
 
@@ -410,7 +421,9 @@ describe('LeagueView loading-boundary behavior', () => {
         id: 'lakers',
         code: 'LAL',
         teamName: 'Los Angeles Lakers',
-        totalCapAllocations: 100,
+        teamSalary: 100,
+        apronTeamSalary: 110,
+        taxSalary: 120,
         conference: 'West',
         sourceState: 'loaded',
         sourceLabel: 'Loaded',
@@ -419,7 +432,9 @@ describe('LeagueView loading-boundary behavior', () => {
         id: 'celtics',
         code: 'BOS',
         teamName: 'Boston Celtics',
-        totalCapAllocations: null,
+        teamSalary: null,
+        apronTeamSalary: null,
+        taxSalary: null,
         conference: 'East',
         sourceState: 'unavailable',
         sourceLabel: 'Unavailable',
@@ -428,7 +443,9 @@ describe('LeagueView loading-boundary behavior', () => {
         id: 'hawks',
         code: 'ATL',
         teamName: 'Atlanta Hawks',
-        totalCapAllocations: 200,
+        teamSalary: 200,
+        apronTeamSalary: 210,
+        taxSalary: 220,
         conference: 'East',
         sourceState: 'loaded',
         sourceLabel: 'Loaded',
@@ -440,19 +457,19 @@ describe('LeagueView loading-boundary behavior', () => {
     expect(grouped.eastTeams).toEqual([
       expect.objectContaining({
         id: 'hawks',
-        totalCapAllocations: 200,
+        teamSalary: 200,
         sourceState: 'loaded',
       }),
       expect.objectContaining({
         id: 'celtics',
-        totalCapAllocations: null,
+        teamSalary: null,
         sourceState: 'unavailable',
       }),
     ]);
     expect(grouped.westTeams).toEqual([
       expect.objectContaining({
         id: 'lakers',
-        totalCapAllocations: 100,
+        teamSalary: 100,
         sourceState: 'loaded',
       }),
     ]);
@@ -510,8 +527,10 @@ describe('LeagueView Step 2 closeout guardrails', () => {
         };
       }
     );
-    capTotalsMocks.computeTeamCapTotals.mockReturnValue({
-      totalCapAllocations: 123_456_789,
+    capTotalsMocks.createCanonicalTeamTotalsSnapshot.mockReturnValue({
+      teamSalary: 123_456_789,
+      apronTeamSalary: 124_456_789,
+      taxSalary: 125_456_789,
     });
   });
 
@@ -523,14 +542,16 @@ describe('LeagueView Step 2 closeout guardrails', () => {
     const sources = readLeagueViewProductionSources();
 
     expect(sources.model).toContain(
-      "LEAGUE_VIEW_TOTALS_DISPLAY_LABEL = 'Total Cap Allocations'"
+      "LEAGUE_VIEW_TOTALS_DISPLAY_LABEL = 'Independent Salary Books'"
     );
     expect(sources.model).toContain(
-      'totalCapAllocations: capTotals.totalCapAllocations'
+      'apronTeamSalary: capTotals.apronTeamSalary'
     );
     expect(sources.model).not.toContain('totalSalary');
-    expect(sources.table).toContain('formatCapAllocations');
-    expect(sources.table).toContain('team.totalCapAllocations');
+    expect(sources.table).toContain('formatBook');
+    expect(sources.table).toContain('team.teamSalary');
+    expect(sources.table).toContain('team.apronTeamSalary');
+    expect(sources.table).toContain('team.taxSalary');
     expect(sources.table).toContain('<th className="p-2 text-left">{totalsLabel}</th>');
     expect(sources.table).not.toContain('Total Salary');
     expect(sources.truthPanel).toContain('season.totalsDisplayLabel');
@@ -541,25 +562,27 @@ describe('LeagueView Step 2 closeout guardrails', () => {
     const truthPanel = await screen.findByTestId('league-view-truth-panel');
     await waitFor(() => {
       expect(truthPanel).toHaveTextContent(
-        'Total Cap Allocations (computeTeamCapTotals totalCapAllocations)'
+        'Independent Salary Books (Team Salary / Apron Team Salary / Tax Salary)'
       );
     });
 
     const lakersRow = screen.getByTestId('league-view-team-row-lakers');
-    expect(within(lakersRow).getByText('$123,456,789')).toBeInTheDocument();
+    expect(lakersRow).toHaveTextContent('Team: $123,456,789');
+    expect(lakersRow).toHaveTextContent('Apron: $124,456,789');
+    expect(lakersRow).toHaveTextContent('Tax: $125,456,789');
     expect(lakersRow).toHaveTextContent('Loaded');
-    expect(capTotalsMocks.computeTeamCapTotals).toHaveBeenCalledWith(
+    expect(capTotalsMocks.createCanonicalTeamTotalsSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({ teamCode: 'LAL' }),
       2026,
       { asOfDate: null }
     );
 
     const hawksRow = screen.getByTestId('league-view-team-row-hawks');
-    expect(hawksRow).toHaveTextContent('Not loaded');
+    expect(hawksRow).toHaveTextContent('Needs input');
     expect(hawksRow).toHaveTextContent('Unavailable');
     expect(hawksRow).not.toHaveTextContent('$0');
 
-    expect(screen.getAllByText('Total Cap Allocations').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Independent Salary Books').length).toBeGreaterThan(0);
     expect(screen.queryByText('Total Salary')).not.toBeInTheDocument();
   });
 
@@ -587,7 +610,9 @@ describe('LeagueView Step 2 closeout guardrails', () => {
       id: 'celtics',
       code: 'BOS',
       teamName: 'Boston Celtics',
-      totalCapAllocations: 200,
+      teamSalary: 200,
+      apronTeamSalary: 210,
+      taxSalary: 220,
       conference: 'East',
       sourceState: 'loaded',
       sourceLabel: 'Loaded',
@@ -596,7 +621,9 @@ describe('LeagueView Step 2 closeout guardrails', () => {
       id: 'lakers',
       code: 'LAL',
       teamName: 'Los Angeles Lakers',
-      totalCapAllocations: 100,
+      teamSalary: 100,
+      apronTeamSalary: 110,
+      taxSalary: 120,
       conference: 'West',
       sourceState: 'loaded',
       sourceLabel: 'Loaded',
@@ -605,7 +632,9 @@ describe('LeagueView Step 2 closeout guardrails', () => {
       id: 'hawks',
       code: 'ATL',
       teamName: 'Atlanta Hawks',
-      totalCapAllocations: null,
+      teamSalary: null,
+      apronTeamSalary: null,
+      taxSalary: null,
       conference: 'East',
       sourceState: 'unavailable',
       sourceLabel: 'Unavailable',
@@ -624,12 +653,12 @@ describe('LeagueView Step 2 closeout guardrails', () => {
     expect(grouped.eastTeams[1]).toBe(eastLoaded);
     expect(grouped.westTeams[0]).toBe(westLoaded);
     expect(grouped.eastTeams[0]).toMatchObject({
-      totalCapAllocations: null,
+      teamSalary: null,
       sourceState: 'unavailable',
       failureReason: 'Read failed.',
     });
     expect(grouped.eastTeams[1]).toMatchObject({
-      totalCapAllocations: 200,
+      teamSalary: 200,
       sourceState: 'loaded',
     });
   });

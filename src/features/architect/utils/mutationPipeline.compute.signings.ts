@@ -83,10 +83,11 @@ export function computeSetExceptionsResult({
   currentState,
   seasonId,
   timestamp,
+  asOfDate = null,
 }: ComputeMutationParamsWithCurrentState<
   MutationTeamOnlyCurrentState,
   MutationPayloadInputByType['setExceptions']
->): ComputeResultLike {
+> & { asOfDate?: string | number | null }): ComputeResultLike {
   const { team } = requireBasicTeamState(currentState, 'setExceptions');
   const { teamCode } = payload;
 
@@ -117,7 +118,8 @@ export function computeSetExceptionsResult({
   };
   updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedTeam,
-    toEndYear(seasonId)
+    toEndYear(seasonId),
+    asOfDate
   ).totals;
 
   return {

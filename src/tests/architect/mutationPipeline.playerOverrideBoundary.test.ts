@@ -163,6 +163,7 @@ vi.mock('@/features/architect/utils/leagueInvariants', () => ({
 
 import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 
 const WORLD_ID = 'world_player_override_boundary';
 const PARENT_WORLD_ID = 'world_player_override_boundary_parent';
@@ -264,7 +265,7 @@ function makeTeam(
     );
   }, 0);
 
-  return {
+  const team = {
     id: teamCode.toLowerCase(),
     teamCode,
     teamName: `Team ${teamCode}`,
@@ -292,6 +293,13 @@ function makeTeam(
     },
     ...overrides,
   };
+  return withGovernedSalaryBooks(team, {
+    salaryCapYear: 2026,
+    asOfDate: '2025-07-08T09:55:00-04:00',
+    teamSalary: totalSalary,
+    apronTeamSalary: totalSalary + 1_000_000,
+    taxSalary: totalSalary + 2_000_000,
+  });
 }
 
 describe('mutationPipeline player override boundary', () => {

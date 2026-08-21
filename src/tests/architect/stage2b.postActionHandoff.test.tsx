@@ -483,7 +483,10 @@ describe('Stage 2B — deriveReceiptFromTeamSnapshots', () => {
         }),
       ])
     );
-    expect(receipt!.impact.cap.status).toBe('available');
+    expect(receipt!.impact.cap.status).toBe('partial');
+    expect(receipt!.impact.cap.summary).toContain(
+      'Salary-book impact needs governed input'
+    );
     expect(receipt!.message).toContain('Roster count changed');
   });
 

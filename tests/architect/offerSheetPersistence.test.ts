@@ -136,6 +136,22 @@ function getUpdatedPlayer(
   );
 }
 
+function makeCompleteRoster(teamCode: string, count = 15) {
+  return Array.from({ length: count }, (_, index) => ({
+    player_id: `${teamCode.toLowerCase()}_salary_book_${index + 1}`,
+    id: `${teamCode.toLowerCase()}_salary_book_${index + 1}`,
+    name: `${teamCode} Roster ${index + 1}`,
+    teamCode,
+    contract: {
+      contractType: 'Standard',
+      signingTeam: teamCode,
+      salariesByYear: [
+        { season: '2025-26', salary: 1_000_000, capHit: 1_000_000 },
+      ],
+    },
+  }));
+}
+
 describe('Phase 18.1: Offer Sheet Persistence & Idempotency', () => {
   // Mock offer sheet with dedupKey
   const mockOfferSheet: ArchitectMutationOfferSheet = {
@@ -369,11 +385,12 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
   const createMockState = (
     overrides: StoreOfferSheetStateOverrides = {}
   ): StoreOfferSheetState => {
+    const offeringRoster = makeCompleteRoster('LAL');
     const baseTeam: StoreOfferSheetTeam = {
       teamCode: 'LAL',
       teamName: 'Los Angeles Lakers',
-      players: [],
-      roster: [],
+      players: offeringRoster,
+      roster: offeringRoster.map((player) => player.player_id),
       offerSheets: [],
     };
 
@@ -389,6 +406,7 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
       },
     };
 
+    const homeRoster = makeCompleteRoster('BOS', 14);
     const baseHomeTeam: StoreOfferSheetHomeTeam = {
       teamCode: 'BOS',
       teamName: 'Boston Celtics',
@@ -399,8 +417,9 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
           name: 'Test Player',
           contract: { signingTeam: 'BOS' },
         },
+        ...homeRoster,
       ],
-      roster: ['player123'],
+      roster: ['player123', ...homeRoster.map((player) => player.player_id)],
       incomingOfferSheets: [],
       rightsLedger: makeGovernedOfferSheetRightsLedger(),
     };
@@ -894,12 +913,15 @@ describe('Phase 18.2: Idempotency Proof - storeOfferSheet', () => {
 // ==============================================================================
 
 describe('Phase 18.2: worldId Required for Offer Sheet Identity', () => {
-  const createMockState = () => ({
+  const createMockState = () => {
+    const offeringRoster = makeCompleteRoster('LAL');
+    const homeRoster = makeCompleteRoster('BOS', 14);
+    return ({
     team: {
       teamCode: 'LAL',
       teamName: 'Los Angeles Lakers',
-      players: [],
-      roster: [],
+      players: offeringRoster,
+      roster: offeringRoster.map((player) => player.player_id),
       offerSheets: [],
     },
     player: {
@@ -921,12 +943,14 @@ describe('Phase 18.2: worldId Required for Offer Sheet Identity', () => {
           name: 'Test Player',
           rfaContext: { governedEvidence: makeGovernedOfferSheetEvidence() },
         },
+        ...homeRoster,
       ],
-      roster: ['player123'],
+      roster: ['player123', ...homeRoster.map((player) => player.player_id)],
       incomingOfferSheets: [],
       rightsLedger: makeGovernedOfferSheetRightsLedger(),
     },
   });
+  };
 
   it('should FAIL FAST when worldId is missing from payload', () => {
     const currentState = createMockState();

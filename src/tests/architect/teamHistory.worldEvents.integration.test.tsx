@@ -101,7 +101,7 @@ describe('Team History world events integration', () => {
     expect(
       screen.getByTestId('team-history-detail-after-totals').textContent || ''
     ).toContain('149000000');
-    expect(screen.getByText('Cap Allocation')).toBeInTheDocument();
+    expect(screen.getByText('Salary Books')).toBeInTheDocument();
     expect(screen.getByTestId('team-history-detail-row-id')).toHaveTextContent(
       'cap-audit-1'
     );

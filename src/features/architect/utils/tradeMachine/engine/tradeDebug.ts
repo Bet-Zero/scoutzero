@@ -33,7 +33,7 @@ interface DebugPlayer {
 }
 
 interface DebugTeam {
-  team: { teamName?: string; totalSalary?: number };
+  team: { teamName?: string; apronTeamSalary?: number };
   context?: { capSettings?: Record<string, unknown>; normalizedYear?: { seasonString?: string }; yearKey?: string | number | null };
   sends?: DebugPlayer[];
   incomingPlayers?: DebugPlayer[];
@@ -76,11 +76,11 @@ export const debug = {
     const capSettings = team.context?.capSettings || {};
     this.log('', { team: team.team.teamName });
     this.log(`=== ${team.team.teamName} ===`, { team: team.team.teamName });
-    this.log(`Current Salary: ${formatCurrency(team.team.totalSalary)}`, {
+    this.log(`Apron Team Salary: ${formatCurrency(team.team.apronTeamSalary)}`, {
       team: team.team.teamName,
     });
     this.log(
-      `Status: ${getApronStatus(team.team.totalSalary, capSettings)}`,
+      `Status: ${getApronStatus(team.team.apronTeamSalary, capSettings)}`,
       { team: team.team.teamName }
     );
   },
@@ -194,4 +194,3 @@ export const debug = {
       .map((r: DebugRecord) => `${r.time.toLocaleTimeString()} - ${r.msg}`);
   },
 };
-

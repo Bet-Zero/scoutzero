@@ -105,13 +105,28 @@ function getTeamSalaryFromTotals(totals: AnyRecord): number | null {
   if (directTeamSalary !== null) {
     return directTeamSalary;
   }
+  const salaryBooks = asRecord(totals.salaryBooks);
+  const ledgers = asRecord(salaryBooks?.ledgers);
+  const ledger = asRecord(ledgers?.teamSalary);
+  return ledger?.status === 'complete' ? toFiniteNumber(ledger.total) : null;
+}
 
-  const totalCapAllocations = toFiniteNumber(totals.totalCapAllocations);
-  if (totalCapAllocations !== null) {
-    return totalCapAllocations;
-  }
+function getApronTeamSalaryFromTotals(totals: AnyRecord): number | null {
+  const direct = toFiniteNumber(totals.apronTeamSalary);
+  if (direct !== null) return direct;
+  const salaryBooks = asRecord(totals.salaryBooks);
+  const ledgers = asRecord(salaryBooks?.ledgers);
+  const ledger = asRecord(ledgers?.apronTeamSalary);
+  return ledger?.status === 'complete' ? toFiniteNumber(ledger.total) : null;
+}
 
-  return toFiniteNumber(totals.currentCapHit);
+function getTaxSalaryFromTotals(totals: AnyRecord): number | null {
+  const direct = toFiniteNumber(totals.taxSalary);
+  if (direct !== null) return direct;
+  const salaryBooks = asRecord(totals.salaryBooks);
+  const ledgers = asRecord(salaryBooks?.ledgers);
+  const ledger = asRecord(ledgers?.taxSalary);
+  return ledger?.status === 'complete' ? toFiniteNumber(ledger.total) : null;
 }
 
 /**
@@ -214,14 +229,14 @@ function getFinalStateHardCapRecheckStatus({
 function runFinalStateHardCapRecheck({
   teamCode,
   team,
-  teamSalary,
+  apronTeamSalary,
   afterTotals,
   rulesContext,
   violations,
 }: {
   teamCode: string;
   team: AnyRecord;
-  teamSalary: number | null;
+  apronTeamSalary: number | null;
   afterTotals: AnyRecord;
   rulesContext: AnyRecord;
   violations: PostStateCapValidationIssue[];
@@ -233,19 +248,30 @@ function runFinalStateHardCapRecheck({
     rulesContext,
   });
 
+  if (hardCapStatus.isHardCapped && apronTeamSalary === null) {
+    violations.push({
+      code: 'SALARY_BOOK_NEEDS_INPUT',
+      teamCode,
+      path: `afterTotalsByTeam.${teamCode}.apronTeamSalary`,
+      message: `Team ${teamCode} cannot be certified against its hard cap because Apron Team Salary is not complete.`,
+      actual: afterTotals.apronTeamSalary,
+    });
+    return;
+  }
+
   if (
     hardCapStatus.isHardCapped &&
     hardCapStatus.ceiling !== null &&
-    teamSalary !== null &&
-    teamSalary > hardCapStatus.ceiling
+    apronTeamSalary !== null &&
+    apronTeamSalary > hardCapStatus.ceiling
   ) {
     violations.push({
       code: 'HARD_CAP_EXCEEDED',
       teamCode,
-      path: `afterTotalsByTeam.${teamCode}.totalCapAllocations`,
+      path: `afterTotalsByTeam.${teamCode}.apronTeamSalary`,
       message: `Team ${teamCode} exceeds ${hardCapStatus.level || 'hard cap'} ceiling.`,
       expected: hardCapStatus.ceiling,
-      actual: teamSalary,
+      actual: apronTeamSalary,
     });
   }
 }
@@ -409,6 +435,33 @@ function validateTotalsSanity({
   }
 }
 
+function collectIncompleteSalaryBooks({
+  teamCode,
+  totals,
+  warnings,
+}: {
+  teamCode: string;
+  totals: AnyRecord;
+  warnings: PostStateCapValidationIssue[];
+}) {
+  const books = [
+    ['teamSalary', getTeamSalaryFromTotals(totals)],
+    ['apronTeamSalary', getApronTeamSalaryFromTotals(totals)],
+    ['taxSalary', getTaxSalaryFromTotals(totals)],
+  ] as const;
+  for (const [book, value] of books) {
+    if (value === null) {
+      warnings.push({
+        code: 'SALARY_BOOK_NEEDS_INPUT',
+        teamCode,
+        path: `afterTotalsByTeam.${teamCode}.${book}`,
+        message: `Team ${teamCode} has a partial post-state receipt because ${book} is not complete.`,
+        actual: totals[book],
+      });
+    }
+  }
+}
+
 /**
  * Category 2: Mirrored final-state legality re-checks.
  *
@@ -427,7 +480,7 @@ function validateTotalsSanity({
 function runMirroredFinalStateLegalityRechecks({
   teamCode,
   team,
-  teamSalary,
+  apronTeamSalary,
   afterTotals,
   rulesContext,
   hasPlayersData,
@@ -437,7 +490,7 @@ function runMirroredFinalStateLegalityRechecks({
 }: {
   teamCode: string;
   team: AnyRecord;
-  teamSalary: number | null;
+  apronTeamSalary: number | null;
   afterTotals: AnyRecord;
   rulesContext: AnyRecord;
   hasPlayersData: boolean;
@@ -450,7 +503,7 @@ function runMirroredFinalStateLegalityRechecks({
   runFinalStateHardCapRecheck({
     teamCode,
     team,
-    teamSalary,
+    apronTeamSalary,
     afterTotals,
     rulesContext,
     violations,
@@ -484,12 +537,14 @@ function runMirroredFinalStateLegalityRechecks({
 function collectFinalStateWarnings({
   teamCode,
   teamSalary,
+  taxSalary,
   afterTotals,
   minimumTeamSalary,
   warnings,
 }: {
   teamCode: string;
   teamSalary: number | null;
+  taxSalary: number | null;
   afterTotals: AnyRecord;
   minimumTeamSalary: number | null;
   warnings: PostStateCapValidationIssue[];
@@ -502,7 +557,7 @@ function collectFinalStateWarnings({
     warnings.push({
       code: 'SALARY_FLOOR_NOT_MET',
       teamCode,
-      path: `afterTotalsByTeam.${teamCode}.totalCapAllocations`,
+      path: `afterTotalsByTeam.${teamCode}.teamSalary`,
       message: `Team ${teamCode} is below minimum team salary floor.`,
       expected: minimumTeamSalary,
       actual: teamSalary,
@@ -510,14 +565,14 @@ function collectFinalStateWarnings({
   }
 
   const luxuryTax = toFiniteNumber(afterTotals.luxuryTax);
-  if (luxuryTax !== null && teamSalary !== null && teamSalary > luxuryTax) {
+  if (luxuryTax !== null && taxSalary !== null && taxSalary > luxuryTax) {
     warnings.push({
       code: 'LUXURY_TAX_EXCEEDED',
       teamCode,
-      path: `afterTotalsByTeam.${teamCode}.totalCapAllocations`,
+      path: `afterTotalsByTeam.${teamCode}.taxSalary`,
       message: `Team ${teamCode} exceeds luxury tax threshold.`,
       expected: luxuryTax,
-      actual: teamSalary,
+      actual: taxSalary,
     });
   }
 }
@@ -736,6 +791,9 @@ export function validatePostStateCapLegality(
 
     const team = asRecord(afterTeamsByCode[teamCode]) || {};
     const teamSalary = getTeamSalaryFromTotals(afterTotals);
+    const apronTeamSalary = getApronTeamSalaryFromTotals(afterTotals);
+    const taxSalary = getTaxSalaryFromTotals(afterTotals);
+    collectIncompleteSalaryBooks({ teamCode, totals: afterTotals, warnings });
     const hasPlayersData = Array.isArray(team.players);
     const players = hasPlayersData ? (team.players as AnyRecord[]) : [];
 
@@ -745,7 +803,7 @@ export function validatePostStateCapLegality(
     runMirroredFinalStateLegalityRechecks({
       teamCode,
       team,
-      teamSalary,
+      apronTeamSalary,
       afterTotals,
       rulesContext,
       hasPlayersData,
@@ -759,6 +817,7 @@ export function validatePostStateCapLegality(
     collectFinalStateWarnings({
       teamCode,
       teamSalary,
+      taxSalary,
       afterTotals,
       minimumTeamSalary,
       warnings,

@@ -156,10 +156,17 @@ export function useTradeMachineTeamOps({
         const {
           playersTotal: baseline,
           deadMoneyTotal: dead,
-          totalWithDead,
+          teamSalary,
+          apronTeamSalary,
+          taxSalary,
+          salaryBooks,
         } = getCapTotalsForYear(teamObj, yearKey, worldAsOfDate);
-        teamObj.teamTotalSalary = totalWithDead;
-        teamObj.projectedSalary = totalWithDead;
+        teamObj.teamTotalSalary = apronTeamSalary;
+        teamObj.projectedSalary = apronTeamSalary;
+        teamObj.teamSalary = teamSalary;
+        teamObj.apronTeamSalary = apronTeamSalary;
+        teamObj.taxSalary = taxSalary;
+        teamObj.salaryBooks = salaryBooks;
 
         // LOG B) After computing payroll in selectTeam()
         console.log(

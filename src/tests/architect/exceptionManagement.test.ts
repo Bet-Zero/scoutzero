@@ -508,8 +508,12 @@ describe('Exception Management (setExceptions)', () => {
       );
       expect(updatedTotals.yearKey).toBe(2026);
       expect(typeof updatedTotals.totalCapAllocations).toBe('number');
-      expect(updatedTotals.capHit).toBe(updatedTotals.totalCapAllocations);
-      expect(updatedTotals.totalSalary).toBe(updatedTotals.totalCapAllocations);
+      expect(updatedTotals.teamSalary).toBeNull();
+      expect(updatedTotals.apronTeamSalary).toBeNull();
+      expect(updatedTotals.taxSalary).toBeNull();
+      expect(updatedTotals.capHit).toBeNull();
+      expect(updatedTotals.totalSalary).toBeNull();
+      expect(updatedTotals.salaryBooks).toMatchObject({ status: 'needs-input' });
     });
   });
 

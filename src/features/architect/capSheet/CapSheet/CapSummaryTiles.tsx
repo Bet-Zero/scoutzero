@@ -16,7 +16,7 @@ import {
   HARD_CAP_TYPES,
 } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { Lock } from 'lucide-react';
-import type { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import type { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 
 type SummaryHardCapStatus = {
   isHardCapped: boolean;
@@ -28,7 +28,7 @@ type SummaryHardCapStatus = {
 type CapSummaryTilesProps = {
   currentYear: number;
   selectedYear: number;
-  canonicalTotals: ReturnType<typeof computeTeamCapTotals>;
+  canonicalTotals: ReturnType<typeof createCanonicalTeamTotalsSnapshot>;
   hardCapStatus?: SummaryHardCapStatus | null;
   surfaceLabel?: string;
 };
@@ -52,8 +52,10 @@ export const CapSummaryTiles = ({
   // =========================================================================
 
   const {
-    totalCapAllocations,
-    deltas,
+    teamSalary,
+    apronTeamSalary,
+    taxSalary,
+    bookDeltas,
   } = canonicalTotals;
   const showCurrentYearHardCapTruth =
     selectedYear === currentYear && Boolean(hardCapStatus);
@@ -84,13 +86,16 @@ export const CapSummaryTiles = ({
 
   // Calculate space from canonical totals
   // Note: deltas are (total - threshold), so space = -delta
-  const capSpace = -deltas.vsCap;
-  const luxuryTaxSpace = -(deltas.vsLuxuryTax || 0);
-  const firstApronSpace = -deltas.vsFirstApron;
-  const secondApronSpace = -deltas.vsSecondApron;
+  const space = (delta: number | null) => delta === null ? null : -delta;
+  const capSpace = space(bookDeltas.vsCap);
+  const luxuryTaxSpace = space(bookDeltas.vsLuxuryTax);
+  const firstApronSpace = space(bookDeltas.vsFirstApron);
+  const secondApronSpace = space(bookDeltas.vsSecondApron);
 
-  const formatMoney = (amount: number) =>
-    `${amount < 0 ? '-' : ''}$${Math.abs(amount).toLocaleString()}`;
+  const formatMoney = (amount: number | null) =>
+    amount === null
+      ? 'Needs input'
+      : `${amount < 0 ? '-' : ''}$${Math.abs(amount).toLocaleString()}`;
 
   return (
     <section
@@ -134,9 +139,11 @@ export const CapSummaryTiles = ({
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
         <div className="bg-[#1c1c1c] rounded p-4 text-center border border-white/10">
-          <div className="text-sm text-white/70 mb-1">TOTAL CAP ALLOCATIONS</div>
-          <div className="text-lg font-bold text-white">
-            {formatMoney(totalCapAllocations)}
+          <div className="text-sm text-white/70 mb-1">SALARY BOOKS</div>
+          <div className="space-y-0.5 text-xs font-bold text-white">
+            <div>Team {formatMoney(teamSalary)}</div>
+            <div>Apron {formatMoney(apronTeamSalary)}</div>
+            <div>Tax {formatMoney(taxSalary)}</div>
           </div>
         </div>
 
@@ -144,7 +151,7 @@ export const CapSummaryTiles = ({
           <div className="text-sm text-white/70 mb-1">CAP SPACE</div>
           <div
             className={`text-lg font-bold ${
-              capSpace < 0 ? 'text-red-400' : 'text-green-400'
+              capSpace === null ? 'text-white/50' : capSpace < 0 ? 'text-red-400' : 'text-green-400'
             }`}
           >
             {formatMoney(capSpace)}
@@ -155,7 +162,7 @@ export const CapSummaryTiles = ({
           <div className="text-sm text-white/70 mb-1">LUXURY TAX SPACE</div>
           <div
             className={`text-lg font-bold ${
-              luxuryTaxSpace < 0 ? 'text-red-400' : 'text-green-400'
+              luxuryTaxSpace === null ? 'text-white/50' : luxuryTaxSpace < 0 ? 'text-red-400' : 'text-green-400'
             }`}
           >
             {formatMoney(luxuryTaxSpace)}
@@ -166,7 +173,7 @@ export const CapSummaryTiles = ({
           <div className="text-sm text-white/70 mb-1">1ST APRON SPACE</div>
           <div
             className={`text-lg font-bold ${
-              firstApronSpace < 0 ? 'text-red-400' : 'text-green-400'
+              firstApronSpace === null ? 'text-white/50' : firstApronSpace < 0 ? 'text-red-400' : 'text-green-400'
             }`}
           >
             {formatMoney(firstApronSpace)}
@@ -192,7 +199,7 @@ export const CapSummaryTiles = ({
           <div className="text-sm text-white/70 mb-1">2ND APRON SPACE</div>
           <div
             className={`text-lg font-bold ${
-              secondApronSpace < 0 ? 'text-red-400' : 'text-green-400'
+              secondApronSpace === null ? 'text-white/50' : secondApronSpace < 0 ? 'text-red-400' : 'text-green-400'
             }`}
           >
             {formatMoney(secondApronSpace)}
@@ -217,4 +224,3 @@ export const CapSummaryTiles = ({
     </section>
   );
 };
-

@@ -3,14 +3,14 @@ import {
   loadTeamCapSheet,
 } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import {
-  computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot,
 } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
   getDefaultSeasonEndYear,
   toSeasonCode,
 } from '@/features/architect/utils/seasonFormat';
 
-type CapSheetInputLike = Parameters<typeof computeTeamCapTotals>[0];
+type CapSheetInputLike = Parameters<typeof createCanonicalTeamTotalsSnapshot>[0];
 
 type LeagueViewTeamSource = {
   id: string;
@@ -19,9 +19,9 @@ type LeagueViewTeamSource = {
   conference?: string;
 };
 
-export const LEAGUE_VIEW_TOTALS_DISPLAY_LABEL = 'Total Cap Allocations';
+export const LEAGUE_VIEW_TOTALS_DISPLAY_LABEL = 'Independent Salary Books';
 const LEAGUE_VIEW_TOTALS_BOUNDARY_LABEL =
-  'computeTeamCapTotals totalCapAllocations';
+  'Team Salary / Apron Team Salary / Tax Salary';
 const LEAGUE_VIEW_PRESENTATION_BOUNDARY_LABEL =
   'Conference grouping and alphabetical order only; totals are not recomputed.';
 const LEAGUE_VIEW_TEAM_HANDOFF_BOUNDARY_LABEL =
@@ -43,7 +43,9 @@ export type LeagueViewTeamSummary = {
   id: string;
   code?: string;
   teamName: string;
-  totalCapAllocations: number | null;
+  teamSalary: number | null;
+  apronTeamSalary: number | null;
+  taxSalary: number | null;
   conference?: string;
   sourceState: 'loaded' | 'unavailable';
   sourceLabel: string;
@@ -82,7 +84,9 @@ const buildUnavailableTeamSummary = (
   id: team.id,
   code: team.code,
   teamName: team.teamName,
-  totalCapAllocations: null,
+  teamSalary: null,
+  apronTeamSalary: null,
+  taxSalary: null,
   conference: team.conference,
   sourceState: 'unavailable',
   sourceLabel: 'Unavailable',
@@ -103,7 +107,7 @@ export const loadLeagueTeamSummary = async (
       );
     }
 
-    const capTotals = computeTeamCapTotals(
+    const capTotals = createCanonicalTeamTotalsSnapshot(
       capSheet as CapSheetInputLike,
       season.endYear,
       { asOfDate: season.asOfDate }
@@ -113,7 +117,9 @@ export const loadLeagueTeamSummary = async (
       id: team.id,
       code: team.code,
       teamName: team.teamName,
-      totalCapAllocations: capTotals.totalCapAllocations,
+      teamSalary: capTotals.teamSalary,
+      apronTeamSalary: capTotals.apronTeamSalary,
+      taxSalary: capTotals.taxSalary,
       conference: team.conference,
       sourceState: 'loaded',
       sourceLabel: 'Loaded',

@@ -63,6 +63,7 @@ type SalaryMatchingContext = TeamContext & {
 };
 
 type SalaryMatchingTeamData = {
+  apronTeamSalary?: number | string | null;
   totalSalary?: number | string | null;
   faExceptionBuckets?: FaExceptionBucketLike[] | null;
   hardCapSecondApron?: unknown;
@@ -190,9 +191,23 @@ export function validateSalaryMatching(
 
   const salaryOut = toFiniteNumber(team.salaryOut ?? context.salaryOut ?? 0);
   const salaryIn = toFiniteNumber(team.salaryIn ?? context.salaryIn ?? 0);
-  const totalSalary = toFiniteNumber(
-    team.teamTotalSalary ?? context.totalSalary ?? team.team?.totalSalary ?? 0
-  );
+  const rawApronTeamSalary =
+    team.team?.apronTeamSalary ?? team.teamTotalSalary;
+  const totalSalary = Number(rawApronTeamSalary);
+  if (!Number.isFinite(totalSalary)) {
+    return {
+      passed: false,
+      applicable: false,
+      skipReason: 'INVALID_INPUT',
+      allowableIncoming: null,
+      violations: ['Apron Team Salary needs governed input'],
+      details: {
+        ruleApplied: SALARY_MATCHING_RULE_KEYS.INVALID_INPUT,
+        formulaUsed: 'N/A',
+        capSettingsSource: 'N/A',
+      },
+    };
+  }
   const projectedSalary = toFiniteNumber(
     team.projectedSalary ?? totalSalary - salaryOut + salaryIn
   );
@@ -200,9 +215,7 @@ export function validateSalaryMatching(
   const totalSalarySource =
     team.teamTotalSalary !== undefined
       ? 'team.teamTotalSalary'
-      : context.totalSalary !== undefined
-        ? 'context.totalSalary'
-        : 'team.team.totalSalary';
+      : 'team.team.apronTeamSalary';
 
   const teamCapSettings = getTeamCapSettings(team.context?.capSettings);
   const contextCapSettings = getTeamCapSettings(context.capSettings);
@@ -700,8 +713,8 @@ export function validateSalaryMatching(
       );
     }
   } else if (
-    isSecondApronTeam({ totalSalary }, capSettings) ||
-    isSecondApronTeam({ totalSalary: projectedSalary }, capSettings)
+    isSecondApronTeam({ apronTeamSalary: totalSalary }, capSettings) ||
+    isSecondApronTeam({ apronTeamSalary: projectedSalary }, capSettings)
   ) {
     const matchingResult = getSalaryMatchingResult({
       teamTotalSalary: totalSalary,

@@ -56,6 +56,43 @@ vi.mock('@/features/architect/utils/worldManager', () => ({
   getWorldMetadata: vi.fn(async () => ({ parentWorldId: null })),
 }));
 
+vi.mock(
+  '@/features/architect/utils/capTotals/computeTeamCapTotals',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/architect/utils/capTotals/computeTeamCapTotals')
+      >();
+    const snapshot = (
+      team: Parameters<typeof actual.computeTeamCapTotals>[0],
+      year: number
+    ) => {
+      const legacy = actual.computeTeamCapTotals(team, year);
+      const totals = team?.totals as Record<string, unknown> | null | undefined;
+      return {
+        ...legacy,
+        teamSalary:
+          typeof totals?.teamSalary === 'number' ? totals.teamSalary : null,
+        apronTeamSalary:
+          typeof totals?.apronTeamSalary === 'number'
+            ? totals.apronTeamSalary
+            : null,
+        taxSalary:
+          typeof totals?.taxSalary === 'number' ? totals.taxSalary : null,
+      };
+    };
+
+    return {
+      ...actual,
+      createCanonicalTeamTotalsSnapshot: vi.fn(snapshot),
+      synchronizeTeamTotalsSnapshot: vi.fn((team, year) => ({
+        ...team,
+        totals: snapshot(team, year),
+      })),
+    };
+  }
+);
+
 import {
   applyWorldMutation,
   computeWorldMutation,
@@ -128,7 +165,23 @@ function makeTeam(teamCode: string, players: Array<Record<string, unknown>>) {
     tradeExceptions: [],
     exceptionHistory: [],
     exceptions: { tpe: [] },
-    totals: { totalSalary, capHit: totalSalary },
+    totals: {
+      yearKey: 2025,
+      playersTotal: totalSalary,
+      deadMoneyTotal: 0,
+      capHoldsTotal: 0,
+      incompleteChargesTotal: 0,
+      totalCapAllocations: totalSalary,
+      salaryCap: 140_588_000,
+      luxuryTax: 170_814_000,
+      firstApron: 178_132_000,
+      secondApron: 188_931_000,
+      teamSalary: totalSalary,
+      apronTeamSalary: totalSalary,
+      taxSalary: totalSalary,
+      totalSalary,
+      capHit: totalSalary,
+    },
   };
 }
 

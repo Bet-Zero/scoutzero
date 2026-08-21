@@ -103,6 +103,12 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
 
 vi.mock('@/features/architect/utils/capTotals', () => ({
   computeTeamCapTotals: mocks.computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot: (team: Record<string, unknown>, year: number) => ({
+    ...mocks.computeTeamCapTotals(team, year),
+    teamSalary: 120_000_000,
+    apronTeamSalary: 121_000_000,
+    taxSalary: 122_000_000,
+  }),
 }));
 
 vi.mock('@/features/architect/utils/offseason', () => ({
@@ -479,7 +485,12 @@ describe('Architect core trio pass R2 proof', () => {
             },
           },
         ],
-        totals: { totalSalary: 120_000_000 },
+        totals: {
+          teamSalary: 119_000_000,
+          apronTeamSalary: 120_000_000,
+          taxSalary: 121_000_000,
+          totalSalary: 120_000_000,
+        },
         exceptions: {
           mle: {
             available: true,

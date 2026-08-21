@@ -334,6 +334,7 @@ utils/
     governedDatedSalaryLedgers.ts
     hardCapSnapshotOverlay.ts
     index.ts
+    teamSalaryBooks.ts
   capUtils.ts
   cbaConstants.ts
   consentUtils.ts
@@ -628,5 +629,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-21T00:23:59.727Z*
+*Generated on: 2026-08-21T09:59:23.467Z*
 *Auto-updated by: npm run docs*

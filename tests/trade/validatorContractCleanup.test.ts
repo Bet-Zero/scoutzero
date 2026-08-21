@@ -237,6 +237,9 @@ const makeTeam = (
     entitlementIds: extra.entitlementIds ?? [],
     totals: { totalSalary, capHit: totalSalary },
     teamTotalSalary: totalSalary,
+    teamSalary: totalSalary,
+    apronTeamSalary: totalSalary,
+    taxSalary: totalSalary,
     totalSalary,
     ...extra,
   };
@@ -451,7 +454,9 @@ describe('validateTrade contract cleanup', () => {
           teamCode: 'BOS',
           teamName: 'Team BOS',
           preTradeTeamSalary: 170_000_000,
-          preTradeTeamSalarySource: 'team.teamTotalSalary',
+          preTradeTeamSalarySource: 'team.teamSalary',
+          preTradeApronTeamSalary: 170_000_000,
+          preTradeTaxSalary: 170_000_000,
           totals: {
             outgoingBaseTotal: 10_000_000,
             outgoingMatchingTotal: 10_000_000,
@@ -468,7 +473,9 @@ describe('validateTrade contract cleanup', () => {
           teamCode: 'LAL',
           teamName: 'Team LAL',
           preTradeTeamSalary: 160_000_000,
-          preTradeTeamSalarySource: 'team.teamTotalSalary',
+          preTradeTeamSalarySource: 'team.teamSalary',
+          preTradeApronTeamSalary: 160_000_000,
+          preTradeTaxSalary: 160_000_000,
           totals: {
             outgoingBaseTotal: 10_000_000,
             outgoingMatchingTotal: 10_000_000,

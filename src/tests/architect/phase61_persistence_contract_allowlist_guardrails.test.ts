@@ -425,7 +425,7 @@ describe('Phase 61: persistWorldMutation source-scan for contract enforcement', 
 
     expect(committedSnapshotRegion).toContain('return removeUndefinedDeep(');
     expect(committedSnapshotRegion).toContain(
-      'prepareGeneralMutationPersistenceTeamSnapshot(team, seasonId)'
+      'prepareGeneralMutationPersistenceTeamSnapshot(team, seasonId, asOfDate)'
     );
 
     const persistStart = mutationPipelineSource.indexOf(

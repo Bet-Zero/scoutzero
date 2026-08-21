@@ -16,6 +16,7 @@ type CapAlignmentRow = {
   before: number;
   delta: number;
   teamCode: string;
+  book: 'Team Salary' | 'Apron Team Salary' | 'Tax Salary';
 };
 
 const EMPTY_VALUE = '—';
@@ -101,14 +102,15 @@ const stringifySafe = (value: unknown) => {
   }
 };
 
-const readCapAllocationTotal = (
+const readSalaryBook = (
   totalsByTeam: UnknownRecord | null,
-  teamCode: string
+  teamCode: string,
+  field: 'teamSalary' | 'apronTeamSalary' | 'taxSalary'
 ): number | null => {
   const teamTotals = asRecord(totalsByTeam?.[teamCode]);
-  const totalCapAllocations = Number(teamTotals?.totalCapAllocations);
+  const value = Number(teamTotals?.[field]);
 
-  return Number.isFinite(totalCapAllocations) ? totalCapAllocations : null;
+  return Number.isFinite(value) ? value : null;
 };
 
 const buildCapAlignmentRows = ({
@@ -126,10 +128,15 @@ const buildCapAlignmentRows = ({
     ...Object.keys(afterTotalsByTeam || {}),
   ]);
 
+  const books = [
+    ['teamSalary', 'Team Salary'],
+    ['apronTeamSalary', 'Apron Team Salary'],
+    ['taxSalary', 'Tax Salary'],
+  ] as const;
   return orderedTeamCodes
-    .map((teamCode) => {
-      const before = readCapAllocationTotal(beforeTotalsByTeam, teamCode);
-      const after = readCapAllocationTotal(afterTotalsByTeam, teamCode);
+    .flatMap((teamCode) => books.map(([field, book]) => {
+      const before = readSalaryBook(beforeTotalsByTeam, teamCode, field);
+      const after = readSalaryBook(afterTotalsByTeam, teamCode, field);
 
       if (before === null || after === null) {
         return null;
@@ -140,8 +147,9 @@ const buildCapAlignmentRows = ({
         before,
         delta: after - before,
         teamCode,
+        book,
       };
-    })
+    }))
     .filter((row): row is CapAlignmentRow => Boolean(row));
 };
 
@@ -284,8 +292,10 @@ export const HistoryDetailModal = ({
   });
   const referenceCapRow =
     (activeTeamCode &&
-      capAlignmentRows.find((row) => row.teamCode === activeTeamCode)) ||
-    capAlignmentRows[0] ||
+      capAlignmentRows.find(
+        (row) => row.teamCode === activeTeamCode && row.book === 'Team Salary'
+      )) ||
+    capAlignmentRows.find((row) => row.book === 'Team Salary') ||
     null;
   const capAlignmentStatus =
     typeof entry.capDelta === 'number' && referenceCapRow
@@ -613,8 +623,8 @@ export const HistoryDetailModal = ({
             <div className="mt-1 text-sm text-cockpit-text-secondary">{capAlignmentStatus}</div>
             <ul className="mt-2 space-y-1 text-sm text-cockpit-text-primary">
               {capAlignmentRows.map((row) => (
-                <li key={row.teamCode}>
-                  • {row.teamCode} total cap allocations: {formatCurrency(row.before)}{' '}
+                <li key={`${row.teamCode}:${row.book}`}>
+                  • {row.teamCode} {row.book}: {formatCurrency(row.before)}{' '}
                   -&gt; {formatCurrency(row.after)} ({formatNumberDelta(row.delta)})
                 </li>
               ))}
@@ -678,4 +688,3 @@ export const HistoryDetailModal = ({
     </div>
   );
 };
-

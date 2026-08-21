@@ -44,6 +44,11 @@ import { toEndYear, toSeasonKey } from '@/features/architect/utils/seasonFormat'
 import type { TeamTotals } from '@/features/architect/types';
 import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
 import { projectGovernedWaiverTeamSalary } from '@/features/architect/utils/waivers/governedWaiverProjection';
+import {
+  computeTeamSalaryBooks,
+  type TeamSalaryBookComponentTotals,
+} from '@/features/architect/utils/capTotals/teamSalaryBooks';
+import type { SalaryBooksSnapshot } from '@/schemas/salaryBooks';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -91,20 +96,29 @@ export interface ComputedTeamCapTotals extends UnknownRecord {
 }
 
 export interface ComputedTeamCapTotalsSnapshot extends ComputedTeamCapTotals {
-  teamSalary: number;
-  totalSalary: number;
-  capHit: number;
-  currentCapHit: number;
+  teamSalary: number | null;
+  apronTeamSalary: number | null;
+  taxSalary: number | null;
+  salaryBooks: SalaryBooksSnapshot;
+  bookDeltas: {
+    vsCap: number | null;
+    vsLuxuryTax: number | null;
+    vsFirstApron: number | null;
+    vsSecondApron: number | null;
+  };
+  totalSalary: number | null;
+  capHit: number | null;
+  currentCapHit: number | null;
   luxuryTaxLine: number;
-  taxablePayroll: number;
-  capSpace: number;
-  capRoom: number;
+  taxablePayroll: number | null;
+  capSpace: number | null;
+  capRoom: number | null;
   effectiveCap: number;
-  firstApronRoom: number;
-  isFirstApron: boolean;
-  secondApronRoom: number;
-  isSecondApron: boolean;
-  isOverTax: boolean;
+  firstApronRoom: number | null;
+  isFirstApron: boolean | null;
+  secondApronRoom: number | null;
+  isSecondApron: boolean | null;
+  isOverTax: boolean | null;
   isHardCapped: boolean;
   hardCapLevel: string | null;
   hardCapDetail?: string;
@@ -116,7 +130,7 @@ interface RoomExceptionEligibility {
   eligible: boolean;
   reason?: string;
   totals?: {
-    totalCapAllocations: number;
+    teamSalary: number;
     salaryCap: number;
     delta: number;
   };
@@ -175,6 +189,7 @@ export interface TeamCapSheetLike extends TeamDeadMoneySourcesLike {
   players?: unknown[] | null;
   capHolds?: unknown[] | null;
   offerSheets?: unknown[] | null;
+  salaryBookInputs?: unknown;
   totals?: TeamCapTotalsSnapshot | UnknownRecord | null;
   hardCapLevel?: unknown;
   hardCapDetail?: unknown;
@@ -368,29 +383,71 @@ export function createCanonicalTeamTotalsSnapshot(
     options
   );
   const totalCapAllocations = canonicalTotals.totalCapAllocations;
-  const hardCapOverlay = resolveHardCapSnapshotOverlay(
-    teamCapSheet,
-    canonicalTotals
-  );
   const existingTotals = asRecord(teamCapSheet?.totals) || {};
+  const salaryBooks = computeTeamSalaryBooks(
+    teamCapSheet,
+    canonicalTotals satisfies TeamSalaryBookComponentTotals,
+    selectedYear,
+    options.asOfDate
+  );
+  const teamSalary =
+    salaryBooks.ledgers.teamSalary.status === 'complete'
+      ? salaryBooks.ledgers.teamSalary.total
+      : null;
+  const apronTeamSalary =
+    salaryBooks.ledgers.apronTeamSalary.status === 'complete'
+      ? salaryBooks.ledgers.apronTeamSalary.total
+      : null;
+  const taxSalary =
+    salaryBooks.ledgers.taxSalary.status === 'complete'
+      ? salaryBooks.ledgers.taxSalary.total
+      : null;
+  const bookDeltas = {
+    vsCap:
+      teamSalary === null ? null : teamSalary - canonicalTotals.salaryCap,
+    vsLuxuryTax:
+      taxSalary === null ? null : taxSalary - canonicalTotals.luxuryTax,
+    vsFirstApron:
+      apronTeamSalary === null
+        ? null
+        : apronTeamSalary - canonicalTotals.firstApron,
+    vsSecondApron:
+      apronTeamSalary === null
+        ? null
+        : apronTeamSalary - canonicalTotals.secondApron,
+  };
+  const hardCapOverlay = resolveHardCapSnapshotOverlay(teamCapSheet, {
+    firstApron: canonicalTotals.firstApron,
+    secondApron: canonicalTotals.secondApron,
+    apronTeamSalary,
+  });
 
   return {
     ...existingTotals,
     ...canonicalTotals,
-    teamSalary: totalCapAllocations,
-    totalSalary: totalCapAllocations,
-    capHit: totalCapAllocations,
-    currentCapHit: totalCapAllocations,
+    teamSalary,
+    apronTeamSalary,
+    taxSalary,
+    salaryBooks,
+    bookDeltas,
+    totalSalary: teamSalary,
+    capHit: teamSalary,
+    currentCapHit: teamSalary,
     luxuryTaxLine: canonicalTotals.luxuryTax,
-    taxablePayroll: totalCapAllocations,
-    capSpace: canonicalTotals.salaryCap - totalCapAllocations,
-    capRoom: canonicalTotals.salaryCap - totalCapAllocations,
+    taxablePayroll: taxSalary,
+    capSpace: bookDeltas.vsCap === null ? null : -bookDeltas.vsCap,
+    capRoom: bookDeltas.vsCap === null ? null : -bookDeltas.vsCap,
     effectiveCap: canonicalTotals.salaryCap,
-    firstApronRoom: canonicalTotals.firstApron - totalCapAllocations,
-    isFirstApron: totalCapAllocations >= canonicalTotals.firstApron,
-    secondApronRoom: canonicalTotals.secondApron - totalCapAllocations,
-    isSecondApron: totalCapAllocations > canonicalTotals.secondApron,
-    isOverTax: totalCapAllocations > canonicalTotals.luxuryTax,
+    firstApronRoom:
+      bookDeltas.vsFirstApron === null ? null : -bookDeltas.vsFirstApron,
+    isFirstApron:
+      bookDeltas.vsFirstApron === null ? null : bookDeltas.vsFirstApron >= 0,
+    secondApronRoom:
+      bookDeltas.vsSecondApron === null ? null : -bookDeltas.vsSecondApron,
+    isSecondApron:
+      bookDeltas.vsSecondApron === null ? null : bookDeltas.vsSecondApron > 0,
+    isOverTax:
+      bookDeltas.vsLuxuryTax === null ? null : bookDeltas.vsLuxuryTax > 0,
     isHardCapped: hardCapOverlay.isHardCapped,
     hardCapLevel: hardCapOverlay.hardCapLevel,
     ...(hardCapOverlay.hardCapDetail
@@ -432,7 +489,8 @@ export function synchronizeTeamTotalsSnapshot<T extends TeamCapSheetLike>(
  */
 export function canUseRoomException(
   team: TeamCapSheetLike | null | undefined,
-  yearKey: number
+  yearKey: number,
+  asOfDate: string | null = null
 ): RoomExceptionEligibility {
   if (!team || !yearKey) {
     return {
@@ -441,16 +499,22 @@ export function canUseRoomException(
     };
   }
 
-  const totals = computeTeamCapTotals(team, yearKey);
-  const isUnderCap = totals.deltas.vsCap < 0;
+  const totals = createCanonicalTeamTotalsSnapshot(team, yearKey, { asOfDate });
+  if (totals.teamSalary === null || totals.bookDeltas.vsCap === null) {
+    return {
+      eligible: false,
+      reason: 'Room Exception eligibility needs a complete Team Salary book.',
+    };
+  }
+  const isUnderCap = totals.bookDeltas.vsCap < 0;
 
   if (isUnderCap) {
     return {
       eligible: true,
       totals: {
-        totalCapAllocations: totals.totalCapAllocations,
+        teamSalary: totals.teamSalary,
         salaryCap: totals.salaryCap,
-        delta: totals.deltas.vsCap,
+        delta: totals.bookDeltas.vsCap,
       },
     };
   }
@@ -458,11 +522,11 @@ export function canUseRoomException(
   const formatM = (v: number) => `$${(v / 1_000_000).toFixed(2)}M`;
   return {
     eligible: false,
-    reason: `Room Exception requires team to be under the salary cap. Team total: ${formatM(totals.totalCapAllocations)}, Cap: ${formatM(totals.salaryCap)} (${formatM(Math.abs(totals.deltas.vsCap))} over cap)`,
+    reason: `Room Exception requires team to be under the salary cap. Team Salary: ${formatM(totals.teamSalary)}, Cap: ${formatM(totals.salaryCap)} (${formatM(Math.abs(totals.bookDeltas.vsCap))} over cap)`,
     totals: {
-      totalCapAllocations: totals.totalCapAllocations,
+      teamSalary: totals.teamSalary,
       salaryCap: totals.salaryCap,
-      delta: totals.deltas.vsCap,
+      delta: totals.bookDeltas.vsCap,
     },
   };
 }

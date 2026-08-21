@@ -22,6 +22,10 @@ export type {
   ProtectionMeta,
 } from '../../../schemas/architect';
 export type {
+  SalaryBooksSnapshot,
+  TeamSalaryBookInputs,
+} from '../../../schemas/salaryBooks';
+export type {
   PlayerMainDoc,
   ContractDoc,
   PlayerBio,

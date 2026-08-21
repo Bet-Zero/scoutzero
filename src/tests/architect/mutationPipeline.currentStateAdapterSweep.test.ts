@@ -224,6 +224,9 @@ function makeTeam(
     deadCap: [],
     teamTotalSalary: totalSalary,
     totals: {
+      teamSalary: totalSalary,
+      apronTeamSalary: totalSalary,
+      taxSalary: totalSalary,
       totalSalary,
       capHit: totalSalary,
       totalCapAllocations: totalSalary,
@@ -375,7 +378,7 @@ describe('mutationPipeline current-state adapter sweep', () => {
     expect(persistedTeam).not.toHaveProperty('twoWayPlayers');
   });
 
-  it('executeTrade still synthesizes numeric teamTotalSalary for validation and preserves two-way player movement in public output', async () => {
+  it('executeTrade bridges explicit Apron Team Salary for validation and preserves two-way player movement in public output', async () => {
     const playerA = makePlayer('player_a', 'Player A', 10_000_000, 'LAL', {
       isTwoWay: true,
     });
@@ -387,10 +390,16 @@ describe('mutationPipeline current-state adapter sweep', () => {
     delete teamB.teamTotalSalary;
     teamA.totals = {
       ...(teamA.totals as Record<string, unknown>),
+      teamSalary: 120_000_000,
+      apronTeamSalary: 120_000_000,
+      taxSalary: 120_000_000,
       totalSalary: '120000000',
     };
     teamB.totals = {
       ...(teamB.totals as Record<string, unknown>),
+      teamSalary: 121_000_000,
+      apronTeamSalary: 121_000_000,
+      taxSalary: 121_000_000,
       totalSalary: '121000000',
     };
 

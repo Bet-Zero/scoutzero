@@ -235,7 +235,8 @@ export function computeStoreOfferSheetResult({
   }
   updatedOfferingTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedOfferingTeam,
-    currentYear
+    currentYear,
+    asOfDate
   ).totals;
 
   // Update source metadata

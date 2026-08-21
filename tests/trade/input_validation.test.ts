@@ -85,7 +85,9 @@ describe('Trade Input Normalization', () => {
         {
           team: {
             teamName: 'Team A',
-            totalSalary: 100_000_000,
+            teamSalary: 99_000_000,
+            apronTeamSalary: 100_000_000,
+            taxSalary: 101_000_000,
             players: [],
           },
           sends: [],
@@ -93,7 +95,9 @@ describe('Trade Input Normalization', () => {
         {
           team: {
             teamName: 'Team B',
-            payroll: 90_000_000,
+            teamSalary: 89_000_000,
+            apronTeamSalary: 90_000_000,
+            taxSalary: 91_000_000,
             players: [],
           },
           sends: [],

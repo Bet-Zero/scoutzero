@@ -25,12 +25,14 @@ type CapSettingsLike = {
 
 type HardCapValidationTeamData = {
   teamTotalSalary?: number | string | null;
+  apronTeamSalary?: number | string | null;
   totalSalary?: number | string | null;
 } | null;
 
 type HardCapValidationTeam = {
   team?: HardCapValidationTeamData;
   teamTotalSalary?: number | string | null;
+  apronTeamSalary?: number | string | null;
   totalSalary?: number | string | null;
   receives?: PlayerLike[] | null;
   incomingPlayers?: PlayerLike[] | null;
@@ -147,9 +149,19 @@ export function validateHardCap(
   }
 
   const teamData = team.team || team;
-  const teamTotalSalary = toFiniteNumber(
-    team.teamTotalSalary ?? teamData?.teamTotalSalary ?? teamData?.totalSalary ?? 0
-  );
+  const rawApronTeamSalary =
+    team.teamTotalSalary ??
+    teamData?.apronTeamSalary ??
+    teamData?.teamTotalSalary;
+  const teamTotalSalary = Number(rawApronTeamSalary);
+  if (!Number.isFinite(teamTotalSalary)) {
+    return {
+      passed: false,
+      violations: ['Apron Team Salary needs governed input'],
+      warnings,
+      hardCapType: null,
+    };
+  }
 
   const incomingPlayers = normalizePlayers(team.receives || team.incomingPlayers);
   const outgoingPlayers = normalizePlayers(team.sends || team.outgoingPlayers);
@@ -307,7 +319,9 @@ export function validateHardCapLegacy(
     (sum, player) => sum + toFiniteNumber(player.newSalary),
     0
   );
-  const teamTotalSalary = toFiniteNumber(team.team?.totalSalary);
+  const teamTotalSalary = toFiniteNumber(
+    team.team?.apronTeamSalary ?? team.team?.teamTotalSalary
+  );
   const projectedSalary = teamTotalSalary - outgoingSalary + incomingSalary;
   const legacyFirstApron = toFiniteNumber(capSettings.firstApron);
   const legacySecondApron = toFiniteNumber(capSettings.secondApron);

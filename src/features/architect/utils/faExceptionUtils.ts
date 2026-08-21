@@ -66,7 +66,7 @@ export function canUseFaException(
   const now = Date.now();
   if (bucket.expiresAt && Date.parse(bucket.expiresAt) < now) return false;
 
-  const teamObj = { totalSalary: teamTotalSalary };
+  const teamObj = { apronTeamSalary: teamTotalSalary };
   if (capSettings.secondApron && isSecondApronTeam(teamObj, capSettings)) {
     return false;
   }

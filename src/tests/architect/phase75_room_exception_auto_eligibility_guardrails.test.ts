@@ -55,7 +55,7 @@ describe('Phase 75: Source Scan Guardrails', () => {
     'utils/capTotals/computeTeamCapTotals.js'
   );
 
-  it('canUseRoomException exists in computeTeamCapTotals.ts and references computeTeamCapTotals', () => {
+  it('canUseRoomException exists and consumes the canonical named Team Salary snapshot', () => {
     const filePath = path.join(
       srcRoot,
       'utils/capTotals/computeTeamCapTotals.ts'
@@ -65,8 +65,7 @@ describe('Phase 75: Source Scan Guardrails', () => {
     // Function exists
     expect(source).toContain('export function canUseRoomException');
 
-    // Uses computeTeamCapTotals internally
-    expect(source).toContain('computeTeamCapTotals(team, yearKey)');
+    expect(source).toContain('createCanonicalTeamTotalsSnapshot(team, yearKey');
   });
 
   it('computeTeamCapTotals.js is absent after shim retirement', () => {
@@ -195,7 +194,7 @@ describe('Phase 75: canUseRoomException() Unit Tests', () => {
     return { players };
   };
 
-  it('returns eligible: true when team is under the cap', () => {
+  it('fails closed when an old under-cap fixture lacks governed book context', () => {
     // 2024-25 cap is $141M
     // Team with 14+ players to avoid incomplete roster charges
     // Use lower salary to ensure under cap
@@ -216,12 +215,9 @@ describe('Phase 75: canUseRoomException() Unit Tests', () => {
     };
     // Total: 14 players × $5M = $70M < $141M cap
     const result = canUseRoomException(team, 2025);
-    const totals = requireValue(result.totals, 'result.totals');
-
-    expect(result.eligible).toBe(true);
-    expect(result.reason).toBeUndefined();
-    expect(result.totals).toBeDefined();
-    expect(totals.delta).toBeLessThan(0); // negative = under cap
+    expect(result.eligible).toBe(false);
+    expect(result.reason).toContain('complete Team Salary book');
+    expect(result.totals).toBeUndefined();
   });
 
   it('returns eligible: false when team is at the cap (exactly)', () => {
@@ -245,17 +241,16 @@ describe('Phase 75: canUseRoomException() Unit Tests', () => {
     }
   });
 
-  it('returns eligible: false when team is clearly over the cap', () => {
+  it('does not infer over-cap eligibility from an incomplete generic fixture', () => {
     // Team at $160M - clearly over cap
     const team = createMockTeam({ playersSalary: 160_000_000 });
     const result = canUseRoomException(team, 2025);
 
     expect(result.eligible).toBe(false);
     expect(requireValue(result.reason, 'result.reason')).toContain(
-      'under the salary cap'
+      'complete Team Salary book'
     );
-    expect(result.totals).toBeDefined();
-    expect(requireValue(result.totals, 'result.totals').delta).toBeGreaterThan(0); // positive = over cap
+    expect(result.totals).toBeUndefined();
   });
 
   it('returns eligible: false with reason when missing team or yearKey', () => {
@@ -264,13 +259,16 @@ describe('Phase 75: canUseRoomException() Unit Tests', () => {
     expect(canUseRoomException(null, 0).eligible).toBe(false);
   });
 
-  it('includes cap proof numbers in reason text when ineligible', () => {
+  it('does not invent cap proof numbers when governed inputs are absent', () => {
     const team = createMockTeam({ playersSalary: 160_000_000 });
     const result = canUseRoomException(team, 2025);
 
     // Reason should contain dollar amounts for debugging
     expect(result.reason).toBeDefined();
-    expect(requireValue(result.reason, 'result.reason')).toMatch(/\$\d+\.\d+M/); // e.g., $150.00M
+    expect(requireValue(result.reason, 'result.reason')).toContain(
+      'complete Team Salary book'
+    );
+    expect(requireValue(result.reason, 'result.reason')).not.toMatch(/\$\d+\.\d+M/);
   });
 });
 
@@ -314,7 +312,7 @@ describe('Phase 75: Validation - Room Exception Under-Cap Gating', () => {
     };
   };
 
-  it('room signing FAILS when team is clearly over cap (ROOM_REQUIRES_UNDER_CAP)', () => {
+  it('room signing fails closed before threshold comparison when books are incomplete', () => {
     // Team at $160M - clearly over cap
     const team = createValidationTeam({ playersSalary: 160_000_000 });
     const result = validateExceptionEligibility({
@@ -325,13 +323,13 @@ describe('Phase 75: Validation - Room Exception Under-Cap Gating', () => {
     const violation = requireValue(result.violation, 'result.violation');
 
     expect(result.blocked).toBe(true);
-    expect(violation.rule).toBe('ROOM_REQUIRES_UNDER_CAP');
+    expect(violation.rule).toBe('salary_book_needs_input');
     expect(requireValue(result.reason, 'result.reason')).toContain(
-      'under the salary cap'
+      'governed input'
     );
   });
 
-  it('room signing PASSES when team is under cap', () => {
+  it('does not treat a generic under-cap total as a complete salary book', () => {
     // Team with 14 players at $5M each = $70M total
     // 2024-25 cap is $141M, so well under cap
     const players = Array.from({ length: 14 }, (_, i) => ({
@@ -363,7 +361,8 @@ describe('Phase 75: Validation - Room Exception Under-Cap Gating', () => {
       year: 2025,
     });
 
-    expect(result.blocked).toBe(false);
+    expect(result.blocked).toBe(true);
+    expect(result.violation?.rule).toBe('salary_book_needs_input');
   });
 
   it('roommle variant triggers same under-cap check', () => {
@@ -376,7 +375,7 @@ describe('Phase 75: Validation - Room Exception Under-Cap Gating', () => {
     const violation = requireValue(result.violation, 'result.violation');
 
     expect(result.blocked).toBe(true);
-    expect(violation.rule).toBe('ROOM_REQUIRES_UNDER_CAP');
+    expect(violation.rule).toBe('salary_book_needs_input');
   });
 
   it('rmle variant triggers same under-cap check', () => {
@@ -389,10 +388,10 @@ describe('Phase 75: Validation - Room Exception Under-Cap Gating', () => {
     const violation = requireValue(result.violation, 'result.violation');
 
     expect(result.blocked).toBe(true);
-    expect(violation.rule).toBe('ROOM_REQUIRES_UNDER_CAP');
+    expect(violation.rule).toBe('salary_book_needs_input');
   });
 
-  it('reason includes cap proof numbers for debugging', () => {
+  it('reason names the missing governed salary book without guessed dollars', () => {
     const team = createValidationTeam({ playersSalary: 160_000_000 });
     const result = validateExceptionEligibility({
       team,
@@ -402,7 +401,10 @@ describe('Phase 75: Validation - Room Exception Under-Cap Gating', () => {
 
     // Reason should have dollar amounts
     expect(result.blocked).toBe(true);
-    expect(requireValue(result.reason, 'result.reason')).toMatch(/\$/);
+    expect(requireValue(result.reason, 'result.reason')).toContain(
+      'governed input'
+    );
+    expect(requireValue(result.reason, 'result.reason')).not.toMatch(/\$/);
   });
 
   it('non-room exceptions are NOT affected by under-cap gating', () => {
@@ -545,43 +547,35 @@ describe('Phase 75: Boundary and Edge Cases', () => {
         : [],
   });
 
-  it('team well under cap is eligible', () => {
+  it('team well under cap still needs complete governed context', () => {
     // Team at $120M with ~$141M cap
     const team = createMockTeam({ playersSalary: 120_000_000 });
     const result = canUseRoomException(team, 2025);
-    const totals = requireValue(result.totals, 'result.totals');
-
-    expect(result.eligible).toBe(true);
-    expect(totals.delta).toBeLessThan(0);
+    expect(result.eligible).toBe(false);
+    expect(result.totals).toBeUndefined();
   });
 
-  it('team clearly over cap is NOT eligible', () => {
+  it('team clearly over cap is not classified from a generic total', () => {
     // Team at $160M - clearly over
     const team = createMockTeam({ playersSalary: 160_000_000 });
     const result = canUseRoomException(team, 2025);
-    const totals = requireValue(result.totals, 'result.totals');
-
     expect(result.eligible).toBe(false);
-    expect(totals.delta).toBeGreaterThan(0);
+    expect(result.totals).toBeUndefined();
   });
 
-  it('team with no players (zero salary) is eligible', () => {
+  it('team with no players needs an authenticated incomplete-roster charge', () => {
     const team = createMockTeam({ playersSalary: 0 });
     // Note: incomplete roster charges apply but still way under cap
     const result = canUseRoomException(team, 2025);
 
-    // Should still be eligible since way under cap
-    expect(result.eligible).toBe(true);
+    expect(result.eligible).toBe(false);
+    expect(result.reason).toContain('complete Team Salary book');
   });
 
-  it('eligibility result includes totals breakdown', () => {
+  it('does not publish a totals breakdown for incomplete book inputs', () => {
     const team = createMockTeam({ playersSalary: 130_000_000 });
     const result = canUseRoomException(team, 2025);
-    const totals = requireValue(result.totals, 'result.totals');
-
-    expect(result.totals).toBeDefined();
-    expect(typeof totals.totalCapAllocations).toBe('number');
-    expect(typeof totals.salaryCap).toBe('number');
-    expect(typeof totals.delta).toBe('number');
+    expect(result.eligible).toBe(false);
+    expect(result.totals).toBeUndefined();
   });
 });

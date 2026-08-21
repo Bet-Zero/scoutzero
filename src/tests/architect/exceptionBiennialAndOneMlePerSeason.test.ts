@@ -24,6 +24,38 @@ vi.mock(
         totalCapAllocations:
           (team as { totals?: { capHit?: number } })?.totals?.capHit ?? 0,
       })),
+      createCanonicalTeamTotalsSnapshot: vi.fn((team) => {
+        const totals = (team as {
+          totals?: {
+            teamSalary?: number;
+            apronTeamSalary?: number;
+            taxSalary?: number;
+            salaryCap?: number;
+          };
+        })?.totals;
+        return {
+          teamSalary: totals?.teamSalary ?? null,
+          apronTeamSalary: totals?.apronTeamSalary ?? null,
+          taxSalary: totals?.taxSalary ?? null,
+          bookDeltas: {
+            vsCap:
+              typeof totals?.teamSalary === 'number' &&
+              typeof totals?.salaryCap === 'number'
+                ? totals.teamSalary - totals.salaryCap
+                : null,
+          },
+        };
+      }),
+      canUseRoomException: vi.fn((team) => {
+        const totals = (team as {
+          totals?: { teamSalary?: number; salaryCap?: number };
+        })?.totals;
+        return typeof totals?.teamSalary === 'number' &&
+          typeof totals?.salaryCap === 'number' &&
+          totals.teamSalary < totals.salaryCap
+          ? { eligible: true }
+          : { eligible: false, reason: 'Team must be under the salary cap' };
+      }),
     };
   }
 );
@@ -48,6 +80,10 @@ function createTeam(exceptions: Record<string, unknown>) {
     capHolds: [],
     exceptions,
     totals: {
+      teamSalary: UNDER_APRON_CAP_HIT,
+      apronTeamSalary: UNDER_APRON_CAP_HIT,
+      taxSalary: UNDER_APRON_CAP_HIT,
+      salaryCap: CAP.cap,
       capHit: UNDER_APRON_CAP_HIT,
       totalSalary: UNDER_APRON_CAP_HIT,
       totalCapAllocations: UNDER_APRON_CAP_HIT,
@@ -85,7 +121,9 @@ describe('BAE biennial restriction', () => {
       year: YEAR,
     });
     expect(result.valid).toBe(false);
-    expect(hasExceptionBlock(result.violations)).toBe(true);
+    expect(result.violations).toContainEqual(
+      expect.objectContaining({ rule: 'exception_blocked' })
+    );
     expect(
       result.violations.some((v) => /every other season/i.test(v.message ?? ''))
     ).toBe(true);
@@ -151,7 +189,14 @@ describe('One MLE/Room exception per season', () => {
       year: YEAR,
     });
     // Room also requires under-cap; either way it must be blocked.
-    expect(hasExceptionBlock(result.violations)).toBe(true);
+    expect(result.valid).toBe(false);
+    expect(
+      result.violations.some((violation) =>
+        ['exception_blocked', 'ROOM_REQUIRES_UNDER_CAP'].includes(
+          violation.rule ?? ''
+        )
+      )
+    ).toBe(true);
   });
 
   it('does NOT block the same MLE flavor that is already partially used (splitting is allowed)', () => {

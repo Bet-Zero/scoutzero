@@ -32,7 +32,7 @@ interface SalaryMatchTeam {
 
 interface HardCapTeam {
   teamId?: string;
-  team?: { id?: string; totalSalary?: number };
+  team?: { id?: string; apronTeamSalary?: number; totalSalary?: number };
   teamTotalSalary?: number;
   salaryIn?: unknown;
   salaryOut?: unknown;
@@ -100,7 +100,8 @@ export class ValidationCache {
   _generateHardCapKey(team: HardCapTeam, yearKey: string | number) {
     const keyData = {
       teamId: team.teamId || team.team?.id,
-      totalSalary: team.teamTotalSalary || team.team?.totalSalary,
+      apronTeamSalary:
+        team.team?.apronTeamSalary ?? team.teamTotalSalary,
       salaryIn: team.salaryIn,
       salaryOut: team.salaryOut,
       yearKey,

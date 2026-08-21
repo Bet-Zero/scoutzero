@@ -242,7 +242,8 @@ export function computeWaiveResult({
 
   updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedTeam,
-    toEndYear(seasonId)
+    toEndYear(seasonId),
+    asOfDate
   ).totals;
 
   return {
@@ -397,7 +398,8 @@ export function computeExtensionResult({
 
   updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedTeam,
-    toEndYear(seasonId)
+    toEndYear(seasonId),
+    asOfDate
   ).totals;
 
   return {
@@ -543,7 +545,8 @@ export function computeOptionResult({
 
   updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedTeam,
-    toEndYear(seasonId)
+    toEndYear(seasonId),
+    asOfDate
   ).totals;
 
   return {
@@ -671,7 +674,8 @@ export function computeRenounceResult({
 
   updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedTeam,
-    toEndYear(seasonId)
+    toEndYear(seasonId),
+    asOfDate
   ).totals;
 
   return {

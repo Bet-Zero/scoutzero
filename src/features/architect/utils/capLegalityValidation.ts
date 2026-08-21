@@ -25,8 +25,8 @@
  * - This file owns action-specific validation and projection math for
  *   non-trade mutations.
  * - Player-only salary helpers here are allowed for validation and warnings.
- * - This file may call computeTeamCapTotals(...) only when a rule truly needs
- *   canonical totalCapAllocations or the full Cap Sheet allocation set.
+ * - This file may call the canonical totals helpers only when a rule truly
+ *   needs a named salary book or the full Cap Sheet allocation set.
  * - These helpers must not become alternate Cap Sheet totals authorities.
  *
  * TODO: Track consolidation progress in ARCHITECT_PHASE5_HARDENING.md Step 6

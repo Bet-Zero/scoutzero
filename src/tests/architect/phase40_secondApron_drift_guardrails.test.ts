@@ -66,6 +66,25 @@ vi.mock(
           team?.totals?.totalCapAllocations ??
           0,
       })),
+      createCanonicalTeamTotalsSnapshot: vi.fn((team) => {
+        const teamSalary =
+          team?.totals?.teamSalary ?? team?.totals?.capHit ?? Number.NaN;
+        const apronTeamSalary =
+          team?.totals?.apronTeamSalary ?? teamSalary;
+        const taxSalary = team?.totals?.taxSalary ?? teamSalary;
+        return {
+          teamSalary,
+          apronTeamSalary,
+          taxSalary,
+          totalSalary: teamSalary,
+          bookDeltas: {
+            vsCap: teamSalary - 140e6,
+            vsLuxuryTax: taxSalary - 170e6,
+            vsFirstApron: apronTeamSalary - 178e6,
+            vsSecondApron: apronTeamSalary - 190e6,
+          },
+        };
+      }),
     };
   }
 );
@@ -109,7 +128,10 @@ describe('Phase 40: Second Apron Strict Drift Guardrails', () => {
 
     const baseInput: Parameters<typeof buildRuleContextForPlayerMove>[0] = {
       player: { id: 'p1' },
-      teamState: { teamId: 't1', totals: { totalSalary: 0 } },
+      teamState: {
+        teamId: 't1',
+        totals: { teamSalary: 0, apronTeamSalary: 0 },
+      },
       operationType: 'UFA_SIGNING',
       operationSeasonId: '2025-26',
     };
@@ -121,7 +143,8 @@ describe('Phase 40: Second Apron Strict Drift Guardrails', () => {
           teamId: 't1',
           totals: {
             // Salary exactly at second apron
-            totalSalary: CAP_CONTEXT.secondApron,
+            teamSalary: CAP_CONTEXT.secondApron,
+            apronTeamSalary: CAP_CONTEXT.secondApron,
             capHits: { '2025-26': CAP_CONTEXT.secondApron },
           },
         },
@@ -140,7 +163,8 @@ describe('Phase 40: Second Apron Strict Drift Guardrails', () => {
         teamState: {
           teamId: 't1',
           totals: {
-            totalSalary: CAP_CONTEXT.secondApron + 1,
+            teamSalary: CAP_CONTEXT.secondApron + 1,
+            apronTeamSalary: CAP_CONTEXT.secondApron + 1,
             capHits: { '2025-26': CAP_CONTEXT.secondApron + 1 },
           },
         },

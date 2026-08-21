@@ -90,6 +90,8 @@ export interface BuildRuleContextInput {
       };
     }>;
     totals?: {
+      teamSalary?: number | null;
+      apronTeamSalary?: number | null;
       totalSalary?: number;
       capHits?: Record<string, number>;
     };
@@ -237,29 +239,19 @@ function deriveBirdType(player: BuildRuleContextInput['player']): BirdType {
   return birdType;
 }
 
-function computeTeamSalary(
+function readNamedSalaryBook(
   teamState: BuildRuleContextInput['teamState'],
-  seasonId: SeasonId
+  book: 'teamSalary' | 'apronTeamSalary'
 ): number {
-  if (teamState?.totals?.capHits) {
-    const hit = teamState.totals.capHits[seasonId];
-    if (typeof hit === 'number') return hit;
-  }
-
-  if (teamState?.totals?.totalSalary) {
-    return teamState.totals.totalSalary;
-  }
-
-  const players = teamState?.players ?? [];
-  return players.reduce((sum, p) => {
-    const salary = getSalaryForSeason(p, seasonId);
-    return sum + (salary ?? 0);
-  }, 0);
+  const value = teamState?.totals?.[book];
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : Number.NaN;
 }
 
-function deriveApronLevel(teamSalary: number, cap: CapContext): ApronLevel {
+function deriveApronLevel(apronTeamSalary: number, cap: CapContext): ApronLevel {
   return getTeamApronStatus(
-    { totalSalary: teamSalary },
+    { apronTeamSalary },
     {
       salaryCap: cap.salaryCap,
       firstApron: cap.firstApron,
@@ -440,8 +432,9 @@ export function buildTeamContext(
   const teamId = teamState?.teamId ?? teamState?.teamCode ?? 'unknown';
   const teamCode = teamState?.teamCode ?? teamState?.teamId ?? 'UNK';
 
-  const teamSalary = computeTeamSalary(teamState, operationSeasonId);
-  const apronLevel = deriveApronLevel(teamSalary, cap);
+  const teamSalary = readNamedSalaryBook(teamState, 'teamSalary');
+  const apronTeamSalary = readNamedSalaryBook(teamState, 'apronTeamSalary');
+  const apronLevel = deriveApronLevel(apronTeamSalary, cap);
   const capSpace = Math.max(0, cap.salaryCap - teamSalary);
 
   const hardCapStatus = teamState?.hardCapStatus ?? {
@@ -484,6 +477,7 @@ export function buildTeamContext(
     teamId,
     teamCode,
     teamSalaryAtOperation: teamSalary,
+    apronTeamSalaryAtOperation: apronTeamSalary,
     apronLevelAtOperation: apronLevel,
     capSpaceAtOperation: capSpace,
     hardCapStatus,

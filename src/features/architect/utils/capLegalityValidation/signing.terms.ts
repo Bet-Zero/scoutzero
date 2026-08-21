@@ -566,7 +566,7 @@ function buildRuleContextTeamState(
       contract: buildRuleContextContract(teamPlayer.contract),
     })),
     totals: {
-      totalSalary: toFiniteNumber(totals.totalSalary ?? totals.capHit ?? 0, 0),
+      totalSalary: toFiniteNumber(totals.apronTeamSalary, Number.NaN),
     },
     exceptions: {
       fullMLE: {

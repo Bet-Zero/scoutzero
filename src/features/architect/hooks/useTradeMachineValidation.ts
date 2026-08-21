@@ -79,7 +79,12 @@ export function useTradeMachineValidation({
           !Number.isFinite(teamSlot.team.teamTotalSalary) ||
           teamSlot.team.teamTotalSalary === 0
         ) {
-          const { totalWithDead } = getCapTotalsForYear(
+          const {
+            teamSalary,
+            apronTeamSalary,
+            taxSalary,
+            salaryBooks,
+          } = getCapTotalsForYear(
             teamSlot.team,
             yearKey,
             worldAsOfDate
@@ -88,8 +93,12 @@ export function useTradeMachineValidation({
             ...teamSlot,
             team: {
               ...teamSlot.team,
-              teamTotalSalary: totalWithDead,
-              projectedSalary: totalWithDead,
+              teamTotalSalary: apronTeamSalary,
+              projectedSalary: apronTeamSalary,
+              teamSalary,
+              apronTeamSalary,
+              taxSalary,
+              salaryBooks,
             },
           };
         }
@@ -99,6 +108,16 @@ export function useTradeMachineValidation({
       const activeTeams = patchedTeams.filter(hasTeamSlot);
 
       if (activeTeams.length < 2) {
+        return null;
+      }
+      if (
+        activeTeams.some(
+          (slot) =>
+            !Number.isFinite(slot.team.teamTotalSalary) ||
+            !Number.isFinite(slot.team.apronTeamSalary) ||
+            !Number.isFinite(slot.team.taxSalary)
+        )
+      ) {
         return null;
       }
 

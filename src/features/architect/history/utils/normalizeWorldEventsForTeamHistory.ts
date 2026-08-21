@@ -247,7 +247,7 @@ export function toTeamHistoryEventDisplay(
       pushSection(detailSections, 'Players', tradePlayerLines);
       pushSection(detailSections, 'Picks', tradePickLines);
       pushSection(detailSections, 'Teams', [primaryTeamsLine]);
-      pushSection(detailSections, 'Cap Allocation', capDeltaLines);
+      pushSection(detailSections, 'Salary Books', capDeltaLines);
       break;
     }
 
@@ -270,7 +270,7 @@ export function toTeamHistoryEventDisplay(
           ? `Rights/exception used: ${signingInstrument}`
           : null,
       ]);
-      pushSection(detailSections, 'Cap Allocation', capDeltaLines);
+      pushSection(detailSections, 'Salary Books', capDeltaLines);
       break;
     }
 
@@ -294,7 +294,7 @@ export function toTeamHistoryEventDisplay(
           : null,
       ]);
       pushSection(detailSections, 'Teams', [primaryTeamsLine]);
-      pushSection(detailSections, 'Cap Allocation', capDeltaLines);
+      pushSection(detailSections, 'Salary Books', capDeltaLines);
       break;
     }
 
@@ -323,7 +323,7 @@ export function toTeamHistoryEventDisplay(
           : null,
       ]);
       pushSection(detailSections, 'Teams', [primaryTeamsLine]);
-      pushSection(detailSections, 'Cap Allocation', capDeltaLines);
+      pushSection(detailSections, 'Salary Books', capDeltaLines);
       break;
     }
 
@@ -346,7 +346,7 @@ export function toTeamHistoryEventDisplay(
         buyout ? 'Buyout recorded' : null,
         deadCapAmount ? `Dead cap amount: ${deadCapAmount}` : null,
       ]);
-      pushSection(detailSections, 'Cap Allocation', capDeltaLines);
+      pushSection(detailSections, 'Salary Books', capDeltaLines);
       break;
     }
 
@@ -366,7 +366,7 @@ export function toTeamHistoryEventDisplay(
           : null,
         ...contractLines,
       ]);
-      pushSection(detailSections, 'Cap Allocation', capDeltaLines);
+      pushSection(detailSections, 'Salary Books', capDeltaLines);
       break;
     }
 
@@ -406,7 +406,7 @@ export function toTeamHistoryEventDisplay(
           : null,
         ...contractLines,
       ]);
-      pushSection(detailSections, 'Cap Allocation', capDeltaLines);
+      pushSection(detailSections, 'Salary Books', capDeltaLines);
       break;
     }
 
@@ -435,7 +435,7 @@ export function toTeamHistoryEventDisplay(
           : null,
         destinationTeamLabel ? `Team: ${destinationTeamLabel}` : null,
       ]);
-      pushSection(detailSections, 'Cap Allocation', capDeltaLines);
+      pushSection(detailSections, 'Salary Books', capDeltaLines);
       break;
     }
 
@@ -453,7 +453,7 @@ export function toTeamHistoryEventDisplay(
 
       pushSection(detailSections, 'Exception Changes', exceptionChangeLines);
       pushSection(detailSections, 'Teams', [primaryTeamsLine]);
-      pushSection(detailSections, 'Cap Allocation', capDeltaLines);
+      pushSection(detailSections, 'Salary Books', capDeltaLines);
       break;
     }
 
@@ -468,7 +468,7 @@ export function toTeamHistoryEventDisplay(
 
       pushSection(detailSections, 'Dead Cap Changes', deadCapChangeLines);
       pushSection(detailSections, 'Teams', [primaryTeamsLine]);
-      pushSection(detailSections, 'Cap Allocation', capDeltaLines);
+      pushSection(detailSections, 'Salary Books', capDeltaLines);
       break;
     }
 
@@ -488,7 +488,7 @@ export function toTeamHistoryEventDisplay(
           ? 'Event payload did not expose a supported mutation type for Team History normalization.'
           : `No event-specific Team History detail mapping exists for ${mutationType}.`,
       ]);
-      pushSection(detailSections, 'Cap Allocation', capDeltaLines);
+      pushSection(detailSections, 'Salary Books', capDeltaLines);
       break;
     }
   }

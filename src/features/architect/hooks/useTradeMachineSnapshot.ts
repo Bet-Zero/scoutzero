@@ -86,7 +86,7 @@ interface ValidationResultLike {
 interface TeamSnapshot {
   teamId: string | undefined;
   teamName: string | undefined;
-  preTradeTeamSalary: number;
+  preTradeApronTeamSalary: number | null;
   outgoingBaseSalary: number;
   outgoingMatchingSalary: number;
   incomingBaseSalary: number;
@@ -153,8 +153,10 @@ export function getTeamSnapshot(
     teamId: teamResult.teamId,
     teamName: teamResult.teamName,
 
-    // Pre-trade team salary (from validator — see Definition Gate for what this includes)
-    preTradeTeamSalary: teamResult.totalSalary ?? 0,
+    // The validator's compatibility total is explicitly Apron Team Salary.
+    preTradeApronTeamSalary: Number.isFinite(teamResult.totalSalary)
+      ? Number(teamResult.totalSalary)
+      : null,
 
     // Outgoing — from teamResults only, no receipt fallback
     // totals.outgoingBase is base salary, salaryOut is matching-adjusted

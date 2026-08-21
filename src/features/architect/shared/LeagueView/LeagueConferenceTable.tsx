@@ -9,8 +9,8 @@ type LeagueConferenceTableProps = {
   onManageTeam: (teamSlug: string) => void;
 };
 
-const formatCapAllocations = (capAllocations: number | null) =>
-  capAllocations == null ? null : `$${capAllocations.toLocaleString()}`;
+const formatBook = (value: number | null) =>
+  value == null ? 'Needs input' : `$${value.toLocaleString()}`;
 
 export const LeagueConferenceTable = ({
   title,
@@ -38,7 +38,6 @@ export const LeagueConferenceTable = ({
     </thead>
     <tbody>
       {teams.map((team) => {
-        const capAllocations = formatCapAllocations(team.totalCapAllocations);
         const isLoaded = team.sourceState === 'loaded';
 
         return (
@@ -52,11 +51,11 @@ export const LeagueConferenceTable = ({
               {team.teamName}
             </td>
             <td className="p-2">
-              {capAllocations ? (
-                capAllocations
-              ) : (
-                <span className="text-amber-200">Not loaded</span>
-              )}
+              <div className="grid gap-0.5 text-xs">
+                <span>Team: {formatBook(team.teamSalary)}</span>
+                <span>Apron: {formatBook(team.apronTeamSalary)}</span>
+                <span>Tax: {formatBook(team.taxSalary)}</span>
+              </div>
             </td>
             <td className="p-2">
               <span

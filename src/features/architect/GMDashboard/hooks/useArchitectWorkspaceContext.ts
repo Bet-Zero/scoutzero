@@ -10,9 +10,9 @@ import type {
   CapSheet,
 } from './useArchitectState';
 import {
-  computeTeamCapTotals,
-  type ComputedTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot,
 } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import type { SalaryBooksSnapshot } from '@/schemas/salaryBooks';
 import {
   getContractYearSlice,
   isTwoWayContract,
@@ -94,25 +94,48 @@ export type ArchitectWorkspaceCapSummary =
       status: 'available';
       season: number;
       seasonLabel: string;
-      totalCapAllocations: number;
+      teamSalary: number | null;
+      apronTeamSalary: number | null;
+      taxSalary: number | null;
+      books: {
+        teamSalary: ArchitectWorkspaceSalaryBookSummary;
+        apronTeamSalary: ArchitectWorkspaceSalaryBookSummary;
+        taxSalary: ArchitectWorkspaceSalaryBookSummary;
+      };
       salaryCap: number;
-      capSpace: number;
+      capSpace: number | null;
       luxuryTax: number;
-      taxSpace: number;
+      taxSpace: number | null;
       firstApron: number;
-      firstApronSpace: number;
+      firstApronSpace: number | null;
       secondApron: number;
-      secondApronSpace: number;
-      isOverCap: boolean;
-      isOverTax: boolean;
-      isAtOrAboveFirstApron: boolean;
-      isAboveSecondApron: boolean;
-      source: ComputedTeamCapTotals['_meta']['source'];
+      secondApronSpace: number | null;
+      isOverCap: boolean | null;
+      isOverTax: boolean | null;
+      isAtOrAboveFirstApron: boolean | null;
+      isAboveSecondApron: boolean | null;
+      source: 'salaryBooks';
     }
   | {
       status: 'loading' | 'unavailable';
       reason: string;
     };
+
+export type ArchitectWorkspaceSalaryBookSummary =
+  | { status: 'available'; value: number; reason: null }
+  | {
+      status: 'needs-input' | 'not-evaluated';
+      value: null;
+      reason: string;
+    };
+
+function salaryBookSummary(
+  ledger: SalaryBooksSnapshot['ledgers'][keyof SalaryBooksSnapshot['ledgers']]
+): ArchitectWorkspaceSalaryBookSummary {
+  return ledger.status === 'complete'
+    ? { status: 'available', value: ledger.total, reason: null }
+    : { status: ledger.status, value: null, reason: ledger.reason };
+}
 
 export type ArchitectWorkspaceExceptionsSummary =
   | {
@@ -436,19 +459,30 @@ function deriveCapSummary({
   }
 
   try {
-    const totals = computeTeamCapTotals(teamCapSheet, currentYear, {
+    const totals = createCanonicalTeamTotalsSnapshot(teamCapSheet, currentYear, {
       asOfDate: worldAsOfDate,
     });
-    const capSpace = -totals.deltas.vsCap;
-    const taxSpace = -totals.deltas.vsLuxuryTax;
-    const firstApronSpace = -totals.deltas.vsFirstApron;
-    const secondApronSpace = -totals.deltas.vsSecondApron;
+    const negate = (value: number | null) =>
+      value === null ? null : -value;
+    const capSpace = negate(totals.bookDeltas.vsCap);
+    const taxSpace = negate(totals.bookDeltas.vsLuxuryTax);
+    const firstApronSpace = negate(totals.bookDeltas.vsFirstApron);
+    const secondApronSpace = negate(totals.bookDeltas.vsSecondApron);
 
     return {
       status: 'available',
       season: currentYear,
       seasonLabel: toSeasonKey(currentYear),
-      totalCapAllocations: totals.totalCapAllocations,
+      teamSalary: totals.teamSalary,
+      apronTeamSalary: totals.apronTeamSalary,
+      taxSalary: totals.taxSalary,
+      books: {
+        teamSalary: salaryBookSummary(totals.salaryBooks.ledgers.teamSalary),
+        apronTeamSalary: salaryBookSummary(
+          totals.salaryBooks.ledgers.apronTeamSalary
+        ),
+        taxSalary: salaryBookSummary(totals.salaryBooks.ledgers.taxSalary),
+      },
       salaryCap: totals.salaryCap,
       capSpace,
       luxuryTax: totals.luxuryTax,
@@ -457,11 +491,23 @@ function deriveCapSummary({
       firstApronSpace,
       secondApron: totals.secondApron,
       secondApronSpace,
-      isOverCap: totals.deltas.vsCap > 0,
-      isOverTax: totals.deltas.vsLuxuryTax > 0,
-      isAtOrAboveFirstApron: totals.deltas.vsFirstApron >= 0,
-      isAboveSecondApron: totals.deltas.vsSecondApron > 0,
-      source: totals._meta.source,
+      isOverCap:
+        totals.bookDeltas.vsCap === null
+          ? null
+          : totals.bookDeltas.vsCap > 0,
+      isOverTax:
+        totals.bookDeltas.vsLuxuryTax === null
+          ? null
+          : totals.bookDeltas.vsLuxuryTax > 0,
+      isAtOrAboveFirstApron:
+        totals.bookDeltas.vsFirstApron === null
+          ? null
+          : totals.bookDeltas.vsFirstApron >= 0,
+      isAboveSecondApron:
+        totals.bookDeltas.vsSecondApron === null
+          ? null
+          : totals.bookDeltas.vsSecondApron > 0,
+      source: 'salaryBooks',
     };
   } catch (error) {
     return {

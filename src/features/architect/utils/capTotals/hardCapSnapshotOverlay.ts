@@ -13,8 +13,8 @@ type UnknownRecord = Record<string, unknown>;
 
 type CanonicalTotalsLike = Pick<
   ComputedTeamCapTotals,
-  'totalCapAllocations' | 'firstApron' | 'secondApron'
->;
+  'firstApron' | 'secondApron'
+> & { apronTeamSalary: number | null };
 
 export interface HardCapSnapshotOverlay {
   isHardCapped: boolean;
@@ -158,7 +158,10 @@ export function resolveHardCapSnapshotOverlay(
   if (isHardCapped && hardCapLevel) {
     const hardCapCeiling =
       hardCapLevel === 'secondApron' ? totals.secondApron : totals.firstApron;
-    hardCapRoom = hardCapCeiling - totals.totalCapAllocations;
+    hardCapRoom =
+      totals.apronTeamSalary === null
+        ? null
+        : hardCapCeiling - totals.apronTeamSalary;
   }
 
   return {

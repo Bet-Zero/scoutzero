@@ -203,13 +203,13 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
   const capSheetContent = readFileContent(CAP_SHEET_PATH);
   const capSummaryTilesContent = readFileContent(CAP_SUMMARY_TILES_PATH);
 
-  it('CapSheet computes canonicalTotals exactly once from computeTeamCapTotals at runtime', () => {
+  it('CapSheet computes canonicalTotals exactly once from the independent-book snapshot owner', () => {
     const runtimeComputeCalls =
-      capSheetContent.match(/computeTeamCapTotals\s*\(/g) || [];
+      capSheetContent.match(/createCanonicalTeamTotalsSnapshot\s*\(/g) || [];
 
     expect(runtimeComputeCalls).toHaveLength(1);
     expect(capSheetContent).toMatch(
-      /const\s+canonicalTotals\s*=\s*React\.useMemo\s*\(\s*\(\)\s*=>\s*computeTeamCapTotals\s*\(/
+      /const\s+canonicalTotals\s*=\s*React\.useMemo\s*\(\s*\(\)\s*=>\s*createCanonicalTeamTotalsSnapshot\s*\(/
     );
     expect(capSheetContent).toContain('{ asOfDate }');
   });
@@ -222,7 +222,9 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
   it('TeamStatusStrip consumes workspace-context cap fields directly without re-running computeTeamCapTotals', () => {
     const stripContent = readFileContent(TEAM_STATUS_STRIP_PATH);
     expect(stripContent).toContain('useArchitectWorkspaceContext');
-    expect(stripContent).toContain('cap.totalCapAllocations');
+    expect(stripContent).toContain('cap.teamSalary');
+    expect(stripContent).toContain('cap.apronTeamSalary');
+    expect(stripContent).toContain('cap.taxSalary');
     expect(stripContent).toContain('cap.capSpace');
     expect(stripContent).toContain('cap.taxSpace');
     expect(stripContent).toContain('cap.firstApronSpace');
@@ -236,7 +238,7 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
       'deadMoneyTotal',
       'capHoldsTotal',
       'incompleteChargesTotal',
-      'totalCapAllocations',
+      'teamSalary',
     ];
 
     for (const field of canonicalTotalsFields) {
@@ -722,7 +724,7 @@ describe('Gate 7B: Hard-Cap Ownership Canonicalization (Closeout)', () => {
       'canonicalizeTeamUpdatesWithCanonicalTotals'
     );
     expect(mutationPipelineAllContent).toContain(
-      'return canonicalizeComputeResultTeamUpdates(result, seasonId);'
+      'return canonicalizeComputeResultTeamUpdates('
     );
     expect(mutationPipelineAllContent).toContain(
       'buildGeneralMutationCommittedTeamUpdates'
@@ -756,10 +758,10 @@ describe('Gate 7B: Hard-Cap Ownership Canonicalization (Closeout)', () => {
       'computeCanonicalMutationTeamCapTotals'
     );
     expect(actionsContent).toContain(
-      'const canonicalTeam = synchronizeTeamTotalsSnapshot(team, year);'
+      'createCanonicalTeamTotalsSnapshot(team, year, { asOfDate })'
     );
     expect(actionsContent).toContain(
-      'canonicalTeam?.totals || computeTeamCapTotals(team, year)'
+      'canonicalTeam?.totals ||'
     );
   });
 });

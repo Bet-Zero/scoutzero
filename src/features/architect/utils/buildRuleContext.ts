@@ -220,6 +220,7 @@ export function buildMinimalRuleContext(
       teamId: 'unknown',
       teamCode: 'UNK',
       teamSalaryAtOperation: 0,
+      apronTeamSalaryAtOperation: 0,
       apronLevelAtOperation: 'UNDER_CAP',
       capSpaceAtOperation: cap.salaryCap,
       hardCapStatus: {

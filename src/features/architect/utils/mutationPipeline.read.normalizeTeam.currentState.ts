@@ -156,6 +156,7 @@ export function buildPostComputeTradeBoundaryInput(
     capHolds: materializedTeam.capHolds,
     rightsLedger: materializedTeam.rightsLedger,
     contractEventLedgers: materializedTeam.contractEventLedgers,
+    salaryBookInputs: materializedTeam.salaryBookInputs,
     deadCap: materializedTeam.deadCap,
     exceptions: materializedTeam.exceptions,
     tradeExceptions: materializedTeam.tradeExceptions,

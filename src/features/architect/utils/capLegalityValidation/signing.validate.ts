@@ -30,7 +30,6 @@ import type {
 } from './schema';
 import {
   asRecordLike,
-  calculateValidationPlayerOnlyTeamCapHit,
   computeCanonicalMutationTeamCapTotals,
   countStandardRoster,
   countTwoWayContracts,
@@ -67,11 +66,29 @@ export function validateSigning({
   contract,
   signedUsing,
   year,
+  asOfDate,
 }: ValidateSigningParams): MutationValidationResult {
   const violations: CapLegalityViolation[] = [];
   const warnings: CapLegalityViolation[] = [];
 
   const rules = getCapRulesForYear(year);
+  const canonicalSalaryTotals = computeCanonicalMutationTeamCapTotals(
+    team,
+    year,
+    asOfDate ?? null
+  );
+  if (
+    canonicalSalaryTotals.teamSalary === null ||
+    canonicalSalaryTotals.apronTeamSalary === null ||
+    canonicalSalaryTotals.taxSalary === null
+  ) {
+    violations.push({
+      rule: 'salary_book_needs_input',
+      message:
+        'Signing legality needs complete Team Salary, Apron Team Salary, and Tax Salary books.',
+      severity: 'error',
+    });
+  }
   if (!rules) {
     warnings.push({
       rule: 'cap_data',
@@ -109,6 +126,7 @@ export function validateSigning({
     team,
     signedUsing,
     year,
+    asOfDate: asOfDate ?? null,
   });
   if (exceptionCheck.blocked && exceptionCheck.violation) {
     violations.push(exceptionCheck.violation);
@@ -402,12 +420,9 @@ export function validateSigning({
 
     // Only enforce for cap-space signings (no exception, no Bird rights)
     if (isCapSpaceSigning(capSpaceCheckMechanism, capSpaceCheckRightsType)) {
-      // Get current team cap totals (includes cap holds in totalCapAllocations)
-      const teamTotals = computeCanonicalMutationTeamCapTotals(team, year);
-      const currentCapAllocations = toFiniteNumber(
-        teamTotals.totalCapAllocations,
-        0
-      );
+      // Get the current named salary books (Team Salary includes cap holds).
+      const teamTotals = canonicalSalaryTotals;
+      const currentCapAllocations = teamTotals.teamSalary ?? Number.NaN;
       const salaryCap = toFiniteNumber(
         teamTotals.salaryCap ?? rules.cap.salaryCap,
         0
@@ -946,11 +961,7 @@ export function validateSigning({
   // Two-way contracts are excluded - they don't count against standard cap
   // PHASE 2.5 PATCH: Use capHit (not salary) for projected cap calculation
   if (!isTwoWay && rules && !isBirdRightsResigning) {
-    const totals = team.totals || {};
-    const currentCapHit = toFiniteNumber(
-      totals.capHit ?? totals.totalSalary ?? totals.totalCapAllocations,
-      0
-    );
+    const currentCapHit = canonicalSalaryTotals.apronTeamSalary ?? Number.NaN;
     // Use capHit for projection (fallback to salary if capHit not set)
     const contractCapImpact = toFiniteNumber(
       contract?.salariesByYear?.[0]?.capHit ??
@@ -1000,10 +1011,8 @@ export function validateSigning({
     const hardCapStatus = getValidationHardCapStatus(team, rules);
     const signingHardCapTrigger =
       getSigningHardCapTriggerMetadata(signingMechanism);
-    const currentHardCapCapHit = toFiniteNumber(
-      computeCanonicalMutationTeamCapTotals(team, year).totalCapAllocations,
-      0
-    );
+    const currentHardCapCapHit =
+      canonicalSalaryTotals.apronTeamSalary ?? Number.NaN;
     const hardCapContractValue = toFiniteNumber(
       contract?.salariesByYear?.[0]?.capHit ??
         contract?.salariesByYear?.[0]?.salary,
@@ -1044,9 +1053,7 @@ export function validateSigning({
       signedUsing?.toLowerCase() === 'mle' ||
       signedUsing?.toLowerCase() === 'full mle'
     ) {
-      const currentCapHit =
-        toFiniteNumber(team.totals?.capHit, 0) ||
-        calculateValidationPlayerOnlyTeamCapHit(players, year);
+      const currentCapHit = canonicalSalaryTotals.taxSalary ?? Number.NaN;
       if (currentCapHit > rules.cap.luxuryTax) {
         warnings.push({
           rule: 'mle_taxpayer',
@@ -1059,8 +1066,7 @@ export function validateSigning({
 
     // 4. Apron proximity warnings
     const currentCapHit =
-      toFiniteNumber(team.totals?.capHit, 0) ||
-      calculateValidationPlayerOnlyTeamCapHit(players, year);
+      canonicalSalaryTotals.apronTeamSalary ?? Number.NaN;
     const contractValue = toFiniteNumber(
       contract?.salariesByYear?.[0]?.salary,
       0

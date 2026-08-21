@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 import { getTeamColors } from '@/shared/utils/formatting';
 import {
-  computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot,
   warnOnTotalsDivergence,
 } from '@/features/architect/utils/capTotals';
 import {
@@ -84,15 +84,15 @@ export const useTradeTeamCardSalaries = ({
   );
 
   const teamTotalSalary = useMemo(() => {
-    if (!team) return 0;
+    if (!team) return null;
     const normalizedYear = normalizeYearInput(yearKey);
-    if (!normalizedYear) return 0;
-    const totals = computeTeamCapTotals(
+    if (!normalizedYear) return null;
+    const totals = createCanonicalTeamTotalsSnapshot(
       team as UnknownRecord,
       normalizedYear.endYear,
       { asOfDate: worldAsOfDate }
     );
-    return totals.totalCapAllocations || 0;
+    return totals.teamSalary;
   }, [team, worldAsOfDate, yearKey]);
 
   const snapshot = getTeamSnapshot(selectedTeamId, validationResult);

@@ -37,8 +37,12 @@ export type TradeMachineTeam = UnknownRecord & {
   totals?: UnknownRecord | null;
   hardCapped?: unknown;
   hardCapLevel?: string | null;
-  teamTotalSalary?: number;
-  projectedSalary?: number;
+  teamTotalSalary?: number | null;
+  projectedSalary?: number | null;
+  teamSalary?: number | null;
+  apronTeamSalary?: number | null;
+  taxSalary?: number | null;
+  salaryBooks?: unknown;
 };
 
 export type TradeMachineTeamSlot = {

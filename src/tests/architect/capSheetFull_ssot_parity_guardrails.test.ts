@@ -179,8 +179,10 @@ describe('CapSheetFull SSOT Parity — Source-Scan Guardrails', () => {
   // the concatenation.
   const capLegalityValidationSigningSource = readCapLegalitySigningBundle();
 
-  it('TEST 1: CapSheetFull imports computeTeamCapTotals', () => {
-    expect(capSheetFullSource).toMatch(/import.*computeTeamCapTotals.*from/);
+  it('TEST 1: CapSheetFull imports the independent-book canonical snapshot', () => {
+    expect(capSheetFullSource).toMatch(
+      /import.*createCanonicalTeamTotalsSnapshot.*from/
+    );
   });
 
   it('TEST 2: CapSheetFull does NOT contain local reduce salary summation pattern', () => {

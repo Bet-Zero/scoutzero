@@ -21,6 +21,10 @@ const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({
   teamCode: name,
   teamName: name,
   totalSalary,
+  teamSalary: totalSalary,
+  apronTeamSalary: totalSalary,
+  taxSalary: totalSalary,
+  teamTotalSalary: totalSalary,
   players: Array.from({ length: rosterSize }, (_, i) =>
     makePlayer(`${name}${i}`, 1_000_000)
   ),

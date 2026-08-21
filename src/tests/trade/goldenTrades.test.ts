@@ -61,6 +61,10 @@ type GoldenTradePlayer = {
 
 type GoldenTradeTeam = NonNullable<TradeTeam['team']> & {
   totalSalary: number;
+  teamSalary: number;
+  apronTeamSalary: number;
+  taxSalary: number;
+  teamTotalSalary: number;
   players: GoldenTradePlayer[];
   picks: [];
 };
@@ -93,6 +97,10 @@ const makeTeam = (
 ): GoldenTradeTeam => ({
   teamName: name,
   totalSalary,
+  teamSalary: totalSalary,
+  apronTeamSalary: totalSalary,
+  taxSalary: totalSalary,
+  teamTotalSalary: totalSalary,
   players: Array.from({ length: rosterSize }, (_, i) =>
     makePlayer(`${name}${i}`, 1_000_000)
   ),

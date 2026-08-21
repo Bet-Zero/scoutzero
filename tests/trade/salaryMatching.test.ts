@@ -45,6 +45,7 @@ describe('salary matching validation', () => {
   ): SalaryMatchingTeamInput => ({
     salaryOut,
     salaryIn,
+    teamTotalSalary: 150_000_000,
     ...extra,
   });
 
@@ -198,6 +199,10 @@ describe('salary matching validation', () => {
             teamCode: 'A',
             teamName: 'A',
             totalSalary: 177_000_000,
+            teamSalary: 176_000_000,
+            apronTeamSalary: 177_000_000,
+            taxSalary: 178_000_000,
+            teamTotalSalary: 177_000_000,
             players: [makeNormalizedPlayer('a1', 10_000_000)],
           },
           sends: [makeNormalizedPlayer('a1', 10_000_000)],
@@ -210,6 +215,10 @@ describe('salary matching validation', () => {
             teamCode: 'B',
             teamName: 'B',
             totalSalary: 120_000_000,
+            teamSalary: 119_000_000,
+            apronTeamSalary: 120_000_000,
+            taxSalary: 121_000_000,
+            teamTotalSalary: 120_000_000,
             players: [makeNormalizedPlayer('b1', 12_000_000)],
           },
           sends: [makeNormalizedPlayer('b1', 12_000_000)],

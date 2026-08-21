@@ -178,12 +178,11 @@ describe('Dead Money Management (setDeadCap)', () => {
           expect(result.success).toBe(true);
             expect(updatedTeam.totals?.yearKey).toBe(2026);
             expect(typeof updatedTeam.totals?.totalCapAllocations).toBe('number');
-            expect(updatedTeam.totals?.capHit).toBe(
-              updatedTeam.totals?.totalCapAllocations
-          );
-            expect(updatedTeam.totals?.totalSalary).toBe(
-              updatedTeam.totals?.totalCapAllocations
-          );
+            expect(updatedTeam.totals?.teamSalary).toBeNull();
+            expect(updatedTeam.totals?.apronTeamSalary).toBeNull();
+            expect(updatedTeam.totals?.taxSalary).toBeNull();
+            expect(updatedTeam.totals?.capHit).toBeNull();
+            expect(updatedTeam.totals?.totalSalary).toBeNull();
       });
   });
 

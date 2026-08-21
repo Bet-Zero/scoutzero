@@ -85,7 +85,14 @@ const makeWorkspaceContext = (
     status: 'available',
     season: 2025,
     seasonLabel: '2025-26',
-    totalCapAllocations: 140_000_000,
+    teamSalary: 140_000_000,
+    apronTeamSalary: 141_000_000,
+    taxSalary: 142_000_000,
+    books: {
+      teamSalary: { status: 'available', value: 140_000_000, reason: null },
+      apronTeamSalary: { status: 'available', value: 141_000_000, reason: null },
+      taxSalary: { status: 'available', value: 142_000_000, reason: null },
+    },
     salaryCap: 154_000_000,
     capSpace: 14_000_000,
     luxuryTax: 187_000_000,
@@ -98,7 +105,7 @@ const makeWorkspaceContext = (
     isOverTax: false,
     isAtOrAboveFirstApron: false,
     isAboveSecondApron: false,
-    source: 'computeTeamCapTotals',
+    source: 'salaryBooks',
   } as ArchitectWorkspaceContext['cap'],
   exceptions: {
     status: 'available',
@@ -317,7 +324,7 @@ describe('team-status answers', () => {
     const ans = vm.answers.find((a) => a.id === 'cap-posture')!;
     expect(ans.status).toBe('available');
     expect(ans.shortAnswer).toMatch(/Below the salary cap/);
-    expect(ans.evidence.some((c) => c.label.includes('Cap allocations'))).toBe(true);
+    expect(ans.evidence.some((c) => c.label.includes('Team Salary'))).toBe(true);
     expect(
       ans.authorityLabels.includes('committed-world / current-season')
     ).toBe(true);
@@ -495,9 +502,13 @@ describe('scenario answers', () => {
     const compVm = makeComparisonViewModel({
       committedEventCount: 1,
       capTotalDelta: {
-        totalCapAllocationsDelta: 1_000_000,
+        teamSalaryDelta: 1_000_000,
+        apronTeamSalaryDelta: 2_000_000,
+        taxSalaryDelta: 3_000_000,
         capSpaceDelta: -1_000_000,
         taxSpaceDelta: -1_000_000,
+        firstApronSpaceDelta: -2_000_000,
+        secondApronSpaceDelta: -2_000_000,
         authority: 'committed-world / event-derived',
       },
       changedTeams: {

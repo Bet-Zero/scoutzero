@@ -95,7 +95,7 @@ export function getAllowableIncomingMargin(
   // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
   const isAboveSecondApron =
     team?.postTradeStatus?.isAtOrAboveSecondApron ??
-    isSecondApronTeam({ totalSalary: payroll }, capSettings);
+    isSecondApronTeam({ apronTeamSalary: payroll }, capSettings);
   if (isAboveSecondApron || team?.postTradeStatus?.isAtOrAboveFirstApron) {
     console.log('[getAllowableIncomingMargin]', {
       team: team?.nickname || team?.name || team?.id,
@@ -182,7 +182,7 @@ export function getIncomingCeilingForTeam(
 
   // Teams above second apron can only take back equal salary
   // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
-  if (isSecondApronTeam({ totalSalary: teamTotalSalary }, { secondApron })) {
+  if (isSecondApronTeam({ apronTeamSalary: teamTotalSalary }, { secondApron })) {
     return salaryOut as number;
   }
 

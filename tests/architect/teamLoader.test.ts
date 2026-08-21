@@ -194,8 +194,12 @@ describe('Team Loader', () => {
       );
 
       expect(totals.yearKey).toBe(2026);
-      expect(totals.capHit).toBe(totals.totalCapAllocations);
-      expect(totals.totalSalary).toBe(totals.totalCapAllocations);
+      expect(totals.teamSalary).toBeNull();
+      expect(totals.apronTeamSalary).toBeNull();
+      expect(totals.taxSalary).toBeNull();
+      expect(totals.capHit).toBeNull();
+      expect(totals.totalSalary).toBeNull();
+      expect(totals.salaryBooks).toMatchObject({ status: 'needs-input' });
       expect(totals.capHit).not.toBe(999);
     });
 

@@ -28,6 +28,7 @@ export type OffseasonHardCapStateSnapshot = {
   hardCapLevel: string | null | undefined;
   hardCapped: boolean | number | null | undefined;
   totalsIsHardCapped: boolean | null | undefined;
+  apronTeamSalary: number | null | undefined;
 };
 
 function countStandardRoster(players: OffseasonPlayer[]): number {
@@ -116,11 +117,25 @@ export function validateOffseasonState(
       hardCapLevel === 'secondApron'
         ? rules.cap.secondApron
         : rules.cap.firstApron;
-    const projectedCap = Number(team?.totals?.totalCapAllocations || 0);
-    if (projectedCap > ceiling) {
+    const preTransitionApronSalary = preTransitionHardCapState?.apronTeamSalary;
+    const projectedCap =
+      typeof preTransitionApronSalary === 'number' &&
+      Number.isFinite(preTransitionApronSalary)
+        ? preTransitionApronSalary
+        : typeof team?.totals?.apronTeamSalary === 'number' &&
+            Number.isFinite(team.totals.apronTeamSalary)
+          ? team.totals.apronTeamSalary
+          : null;
+    if (projectedCap === null) {
+      violations.push({
+        rule: 'salary_book_needs_input',
+        message: 'Apron Team Salary is required to verify the hard-cap ceiling.',
+        severity: 'error',
+      });
+    } else if (projectedCap > ceiling) {
       violations.push({
         rule: 'hard_cap_violation',
-        message: `Projected cap allocations (${projectedCap}) exceed ${hardCapLevel} ceiling (${ceiling}).`,
+        message: `Apron Team Salary (${projectedCap}) exceeds ${hardCapLevel} ceiling (${ceiling}).`,
         severity: 'error',
       });
     }

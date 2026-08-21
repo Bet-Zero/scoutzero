@@ -24,7 +24,7 @@ import type {
   PlayerRulesProfileInput,
   PlayerRulesProfileTeamCapSheet,
 } from '@/features/architect/types';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
   getContractYearSlice,
   getPlayerCapHitForYear,
@@ -382,7 +382,7 @@ export const CapSheet = ({
 
   // SINGLE SOURCE OF TRUTH: Compute canonical totals once for the entire surface
   const canonicalTotals = React.useMemo(
-    () => computeTeamCapTotals(
+    () => createCanonicalTeamTotalsSnapshot(
       teamCapSheet ? { ...teamCapSheet, players: teamCapSheet.players?.map(p => ({ ...p })) } : null,
       selectedYear,
       { asOfDate }
@@ -845,11 +845,13 @@ export const CapSheet = ({
             <div className="ml-auto flex shrink-0 items-center gap-2">
               <div className="flex items-baseline gap-2 rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 py-0.5">
                 <p className="whitespace-nowrap text-[10px] font-extrabold uppercase tracking-wider text-cockpit-text-primary">
-                  Total Cap Hit
+                  Team Salary
                   <span className="sr-only">Canonical Totals Consumer</span>
                 </p>
                 <span className="whitespace-nowrap text-sm font-extrabold tracking-tight text-cockpit-text-primary tabular-nums">
-                  {formatCapSheetMoney(canonicalTotals.totalCapAllocations)}
+                  {canonicalTotals.teamSalary === null
+                    ? 'Needs input'
+                    : formatCapSheetMoney(canonicalTotals.teamSalary)}
                 </span>
               </div>
               {/* BZE-242: Cap Tools toggle folded onto the totals line so the

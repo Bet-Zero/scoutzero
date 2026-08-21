@@ -230,6 +230,9 @@ function makeTeam(
     cashLedger: { totalOut: 0 },
     exceptions: { mle: null, bae: null, tpe: [] },
     totals: {
+      teamSalary: totalSalary,
+      apronTeamSalary: totalSalary,
+      taxSalary: totalSalary,
       totalSalary,
       capHit: totalSalary,
       totalCapAllocations: totalSalary,
@@ -519,7 +522,7 @@ describe('mutationPipeline current-state normalization closure pass', () => {
     expect(persistedPlayer).not.toHaveProperty('legacyPlayerEnvelope');
   });
 
-  it('keeps executeTrade working when the narrowed trade-team lane must synthesize live salary authority from totals', async () => {
+  it('keeps executeTrade working when the narrowed trade-team lane bridges explicit Apron Team Salary', async () => {
     const playerA = makePlayer('player_a', 'Player A', 10_000_000, 'LAL');
     const playerB = makePlayer('player_b', 'Player B', 10_000_000, 'BOS');
     const teamA = makeTeam('LAL', [playerA]);
@@ -529,10 +532,16 @@ describe('mutationPipeline current-state normalization closure pass', () => {
     delete teamB.teamTotalSalary;
     teamA.totals = {
       ...(teamA.totals as Record<string, unknown>),
+      teamSalary: 120_000_000,
+      apronTeamSalary: 120_000_000,
+      taxSalary: 120_000_000,
       totalSalary: '120000000',
     } as unknown as ArchitectMutationTeamRecord['totals'];
     teamB.totals = {
       ...(teamB.totals as Record<string, unknown>),
+      teamSalary: 121_000_000,
+      apronTeamSalary: 121_000_000,
+      taxSalary: 121_000_000,
       totalSalary: '121000000',
     } as unknown as ArchitectMutationTeamRecord['totals'];
 

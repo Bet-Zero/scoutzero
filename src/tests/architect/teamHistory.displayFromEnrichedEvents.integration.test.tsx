@@ -60,11 +60,23 @@ function buildEvent({
       beforeTotalsByTeam:
         beforeCap == null
           ? {}
-          : { [primaryTeam]: { totalCapAllocations: beforeCap } },
+          : {
+              [primaryTeam]: {
+                teamSalary: beforeCap,
+                apronTeamSalary: beforeCap + 5000000,
+                taxSalary: beforeCap + 10000000,
+              },
+            },
       afterTotalsByTeam:
         afterCap == null
           ? {}
-          : { [primaryTeam]: { totalCapAllocations: afterCap } },
+          : {
+              [primaryTeam]: {
+                teamSalary: afterCap,
+                apronTeamSalary: afterCap + 4000000,
+                taxSalary: afterCap + 8000000,
+              },
+            },
     },
   });
 }
@@ -216,10 +228,16 @@ describe('TEAM_HISTORY_E5 display integration from enriched world events', () =>
     fireEvent.click(screen.getByTestId('team-history-event-row-0'));
     expect(screen.getByText('Players')).toBeInTheDocument();
     expect(screen.getByText('Picks')).toBeInTheDocument();
-    expect(screen.getByText('Cap Allocation')).toBeInTheDocument();
+    expect(screen.getByText('Salary Books')).toBeInTheDocument();
     expect(
       screen.getByTestId('team-history-detail-modal').textContent || ''
-    ).toContain('LAL total cap allocations: -$1,000,000');
+    ).toContain('LAL Team Salary: -$1,000,000');
+    expect(
+      screen.getByTestId('team-history-detail-modal').textContent || ''
+    ).toContain('LAL Apron Team Salary: -$2,000,000');
+    expect(
+      screen.getByTestId('team-history-detail-modal').textContent || ''
+    ).toContain('LAL Tax Salary: -$3,000,000');
     expect(screen.getAllByText(/2028-LAL-R1/i).length).toBeGreaterThan(0);
     expect(screen.getByTestId('team-history-raw-payload')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('team-history-detail-close'));

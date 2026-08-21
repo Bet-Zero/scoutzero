@@ -16,7 +16,9 @@ describe('normalizeTradeInput canonical surfaces', () => {
         {
           team: {
             teamName: 'Team A',
-            payroll: 90_000_000,
+            teamSalary: 89_000_000,
+            apronTeamSalary: 90_000_000,
+            taxSalary: 91_000_000,
             players: [],
           },
           sends: [],
@@ -35,5 +37,12 @@ describe('normalizeTradeInput canonical surfaces', () => {
 
     expect(result.teams[0].team.teamTotalSalary).toBe(90_000_000);
     expect(result.teams[0].team.projectedSalary).toBe(90_000_000);
+
+    const legacyOnly = normalizeTradeInput({
+      teams: [{ team: { totalSalary: 90_000_000, players: [] }, sends: [] }],
+      capProjections,
+      currentYear,
+    });
+    expect(legacyOnly.teams[0].team.teamTotalSalary).toBeNaN();
   });
 });

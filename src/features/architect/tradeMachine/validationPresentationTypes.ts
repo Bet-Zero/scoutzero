@@ -143,8 +143,10 @@ export interface CapSettingsLike {
 export interface TradeReceiptTeamLike {
   teamName?: string;
   teamCode?: string;
-  preTradeTeamSalary?: number;
+  preTradeTeamSalary?: number | null;
   preTradeTeamSalarySource?: string;
+  preTradeApronTeamSalary?: number | null;
+  preTradeTaxSalary?: number | null;
   salaryMatchingEvaluation?:
     | (Record<string, unknown> & {
         pathEvaluation?: TradeSalaryPathEvaluation | null;

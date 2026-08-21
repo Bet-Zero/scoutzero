@@ -20,8 +20,10 @@ import {
   stripComputeOnlyTeamFieldsForPersistence,
 } from './mutationPipeline.read.normalizeTeam';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
-import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import {
+  createCanonicalTeamTotalsSnapshot,
+  synchronizeTeamTotalsSnapshot,
+} from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { normalizeTeamTpeSchema } from '@/features/architect/utils/persistenceContracts';
 import { sanitizeTransientFieldsForPersistence } from '@/features/architect/utils/persistenceContracts/enforcement';
 import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
@@ -80,28 +82,35 @@ export function extractTeamsByCodeFromComputeResult(
 
 export function buildTotalsByTeam(
   teamsByCode: BuildTotalsTeamMap,
-  year: number
+  year: number,
+  asOfDate: string | null = null
 ): PostStateTotalsByTeam {
   const totalsByTeam: PostStateTotalsByTeam = {};
   for (const [teamCode, team] of Object.entries(teamsByCode)) {
-    const canonicalTeam = synchronizeTeamTotalsSnapshot(team, year) || team;
+    const canonicalTeam = asOfDate
+      ? synchronizeTeamTotalsSnapshot(team, year, { asOfDate }) || team
+      : team;
     totalsByTeam[teamCode] =
-      canonicalTeam?.totals || computeTeamCapTotals(team, year);
+      canonicalTeam?.totals ||
+      createCanonicalTeamTotalsSnapshot(team, year, { asOfDate });
   }
   return totalsByTeam;
 }
 
 export function prepareGeneralMutationPersistenceTeamSnapshot(
   team: CurrentStateTeamRoundTripMaterializable | null | undefined,
-  seasonId: string
+  seasonId: string,
+  asOfDate: string | null = null
 ): GeneralMutationPersistenceTeamSnapshot {
   const persistenceReadyTeam = stripComputeOnlyTeamFieldsForPersistence(
     team as CurrentStateTeamPersistenceStripShape
   );
   const canonicalYear = toEndYear(seasonId);
-  const totalsAlignedTeam = Number.isFinite(canonicalYear)
+  const totalsAlignedTeam = Number.isFinite(canonicalYear) && asOfDate
     ? backfillCurrentStateBaseTeamPreservedFields(
-        synchronizeTeamTotalsSnapshot(persistenceReadyTeam, canonicalYear) ||
+        synchronizeTeamTotalsSnapshot(persistenceReadyTeam, canonicalYear, {
+          asOfDate,
+        }) ||
           persistenceReadyTeam,
         persistenceReadyTeam
       ) || persistenceReadyTeam
@@ -115,16 +124,18 @@ export function prepareGeneralMutationPersistenceTeamSnapshot(
 
 export function buildGeneralMutationCommittedTeamSnapshot(
   team: CurrentStateTeamRoundTripMaterializable | null | undefined,
-  seasonId: string
+  seasonId: string,
+  asOfDate: string | null = null
 ): GeneralMutationPersistenceTeamSnapshot {
   return removeUndefinedDeep(
-    prepareGeneralMutationPersistenceTeamSnapshot(team, seasonId)
+    prepareGeneralMutationPersistenceTeamSnapshot(team, seasonId, asOfDate)
   ) as GeneralMutationPersistenceTeamSnapshot;
 }
 
 export function buildGeneralMutationCommittedTeamUpdates(
   teamUpdates: ArchitectMutationTeamUpdate[] | null | undefined,
-  seasonId: string
+  seasonId: string,
+  asOfDate: string | null = null
 ): ArchitectGeneralMutationCommittedTeamUpdate[] {
   if (!Array.isArray(teamUpdates)) {
     return [];
@@ -133,14 +144,15 @@ export function buildGeneralMutationCommittedTeamUpdates(
   return teamUpdates.map((update) => ({
     teamCode: update.teamCode,
     team: update?.team
-      ? buildGeneralMutationCommittedTeamSnapshot(update.team, seasonId)
+      ? buildGeneralMutationCommittedTeamSnapshot(update.team, seasonId, asOfDate)
       : null,
   }));
 }
 
 export function canonicalizeTeamUpdatesWithCanonicalTotals(
   teamUpdates: ArchitectMutationTeamUpdate[] | null | undefined,
-  seasonId: string
+  seasonId: string,
+  asOfDate: string | null = null
 ): ArchitectMutationTeamUpdate[] {
   const canonicalYear = toEndYear(seasonId);
 
@@ -151,8 +163,11 @@ export function canonicalizeTeamUpdatesWithCanonicalTotals(
   return teamUpdates.map((update) => ({
     ...update,
     team: backfillCurrentStateBaseTeamPreservedFields(
-      (synchronizeTeamTotalsSnapshot(update?.team, canonicalYear) ||
-        update?.team) as CurrentStateTeamRoundTripMaterializable,
+      (asOfDate
+        ? synchronizeTeamTotalsSnapshot(update?.team, canonicalYear, {
+            asOfDate,
+          }) || update?.team
+        : update?.team) as CurrentStateTeamRoundTripMaterializable,
       update?.team as CurrentStateTeamRoundTripMaterializable
     ),
   }));
@@ -160,7 +175,8 @@ export function canonicalizeTeamUpdatesWithCanonicalTotals(
 
 export function canonicalizeComputeResultTeamUpdates<T extends ComputeResultLike>(
   result: T,
-  seasonId: string
+  seasonId: string,
+  asOfDate: string | null = null
 ): T {
   if (!Array.isArray(result?.teamUpdates) || result.teamUpdates.length === 0) {
     return result;
@@ -170,7 +186,8 @@ export function canonicalizeComputeResultTeamUpdates<T extends ComputeResultLike
     ...result,
     teamUpdates: canonicalizeTeamUpdatesWithCanonicalTotals(
       result.teamUpdates,
-      seasonId
+      seasonId,
+      asOfDate
     ),
   };
 }

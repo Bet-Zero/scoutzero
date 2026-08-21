@@ -139,18 +139,22 @@ const CapDeltaDisplay = ({
   delta: Stage3CapTotalDelta;
 }) => (
   <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-    <dt className="text-cockpit-text-muted">Cap allocation</dt>
+    <dt className="text-cockpit-text-muted">Team Salary</dt>
     <dd
       className={`font-mono ${
-        delta.totalCapAllocationsDelta === null
+        delta.teamSalaryDelta === null
           ? 'text-cockpit-text-ghost'
-          : delta.totalCapAllocationsDelta > 0
+          : delta.teamSalaryDelta > 0
             ? 'text-cockpit-danger'
             : 'text-cockpit-safe'
       }`}
     >
-      {fmtDelta(delta.totalCapAllocationsDelta)}
+      {fmtDelta(delta.teamSalaryDelta)}
     </dd>
+    <dt className="text-cockpit-text-muted">Apron Team Salary</dt>
+    <dd className="font-mono">{fmtDelta(delta.apronTeamSalaryDelta)}</dd>
+    <dt className="text-cockpit-text-muted">Tax Salary</dt>
+    <dd className="font-mono">{fmtDelta(delta.taxSalaryDelta)}</dd>
     <dt className="text-cockpit-text-muted">Cap space</dt>
     <dd
       className={`font-mono ${
@@ -175,6 +179,10 @@ const CapDeltaDisplay = ({
     >
       {fmtDelta(delta.taxSpaceDelta)}
     </dd>
+    <dt className="text-cockpit-text-muted">First apron space</dt>
+    <dd className="font-mono">{fmtDelta(delta.firstApronSpaceDelta)}</dd>
+    <dt className="text-cockpit-text-muted">Second apron space</dt>
+    <dd className="font-mono">{fmtDelta(delta.secondApronSpaceDelta)}</dd>
   </dl>
 );
 
@@ -483,7 +491,7 @@ export const ComparisonSection = ({
       {hasEvents && viewModel.capTotalDelta && (
         <SectionCard testId="comparison-cap-delta">
           <div className="flex items-center gap-2 mb-2">
-            <SectionHeading>Cap Allocation Delta</SectionHeading>
+            <SectionHeading>Salary Book Deltas</SectionHeading>
             <AuthorityChip label="event-derived" />
           </div>
           <CapDeltaDisplay delta={viewModel.capTotalDelta} />

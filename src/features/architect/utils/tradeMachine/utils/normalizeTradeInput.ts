@@ -77,6 +77,9 @@ interface RawTeamRecord {
   teamName?: string | null;
   name?: string | null;
   teamTotalSalary?: NumericLike;
+  teamSalary?: NumericLike;
+  apronTeamSalary?: NumericLike;
+  taxSalary?: NumericLike;
   totalSalary?: NumericLike;
   projectedSalary?: NumericLike;
   payroll?: NumericLike;
@@ -229,9 +232,12 @@ function normalizeTeam(
   if (!team?.team) return null;
 
   const raw = team.team;
-  const base = toNum(
-    raw.projectedSalary ?? raw.teamTotalSalary ?? raw.totalSalary ?? raw.payroll
-  );
+  const rawApronTeamSalary =
+    raw.projectedSalary ?? raw.apronTeamSalary ?? raw.teamTotalSalary;
+  const parsedApronTeamSalary = Number(rawApronTeamSalary);
+  const base = Number.isFinite(parsedApronTeamSalary)
+    ? parsedApronTeamSalary
+    : Number.NaN;
 
   return {
     ...team,
@@ -239,8 +245,10 @@ function normalizeTeam(
       ...raw,
       id: raw.id || raw.teamId,
       teamName: raw.teamName || raw.name || 'Unknown Team',
-      teamTotalSalary: toNum(raw.teamTotalSalary ?? raw.totalSalary ?? base),
-      projectedSalary: toNum(raw.projectedSalary ?? base),
+      teamTotalSalary: Number(
+        raw.apronTeamSalary ?? raw.teamTotalSalary ?? base
+      ),
+      projectedSalary: Number(raw.projectedSalary ?? base),
       players: (raw.players || []).map(
         (player) => normalizePlayer(player, yearKey as number)
       ),

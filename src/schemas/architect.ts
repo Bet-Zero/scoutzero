@@ -2,6 +2,10 @@ import { z } from 'zod';
 import { JsonValueZ, MoneyZ, PlayerIdZ, SeasonCodeZ, TeamCodeZ } from './common';
 import { ContractEventLedgerPayloadZ } from '@/schemas/contractEventLedger';
 import { GovernedWaiverLifecycleZ } from '@/schemas/governedWaiver';
+import {
+  SalaryBooksSnapshotZ,
+  TeamSalaryBookInputsZ,
+} from '@/schemas/salaryBooks';
 
 const HardCapLevelZ = z.enum(['none', 'firstApron', 'secondApron']);
 const EntitlementKindZ = z.enum([
@@ -256,8 +260,8 @@ export const DraftPickZ = z.object({
 
 export const TeamTotalsZ = z
   .object({
-    totalSalary: MoneyZ.optional(),
-    capHit: MoneyZ.optional(),
+    totalSalary: MoneyZ.nullable().optional(),
+    capHit: MoneyZ.nullable().optional(),
     guaranteedSalary: MoneyZ.optional(),
     nonGuaranteedSalary: MoneyZ.optional(),
     rosterCount: z.number().int().optional(),
@@ -265,27 +269,38 @@ export const TeamTotalsZ = z
     nonGuaranteedContracts: z.number().int().optional(),
     twoWayContracts: z.number().int().optional(),
     emptyRosterCharges: z.number().int().optional(),
-    capSpace: z.number().optional(),
-    capRoom: z.number().optional(),
+    capSpace: z.number().nullable().optional(),
+    capRoom: z.number().nullable().optional(),
     effectiveCap: z.number().optional(),
     luxuryTaxLine: z.number().optional(),
-    taxablePayroll: z.number().optional(),
-    isOverTax: z.boolean().optional(),
+    taxablePayroll: z.number().nullable().optional(),
+    isOverTax: z.boolean().nullable().optional(),
     taxBill: z.number().optional(),
     taxRate: z.number().optional(),
     firstApron: z.number().optional(),
-    firstApronRoom: z.number().optional(),
-    isFirstApron: z.boolean().optional(),
+    firstApronRoom: z.number().nullable().optional(),
+    isFirstApron: z.boolean().nullable().optional(),
     secondApron: z.number().optional(),
-    secondApronRoom: z.number().optional(),
-    isSecondApron: z.boolean().optional(),
+    secondApronRoom: z.number().nullable().optional(),
+    isSecondApron: z.boolean().nullable().optional(),
     isHardCapped: z.boolean().optional(),
     hardCapLevel: HardCapLevelZ.optional(),
     hardCapDetail: z.string().optional(),
     hardCapRoom: z.number().nullable().optional(),
     yearKey: z.number().optional(),
-    teamSalary: z.number().optional(),
-    currentCapHit: z.number().optional(),
+    teamSalary: z.number().nullable().optional(),
+    apronTeamSalary: z.number().nullable().optional(),
+    taxSalary: z.number().nullable().optional(),
+    salaryBooks: SalaryBooksSnapshotZ.optional(),
+    bookDeltas: z
+      .object({
+        vsCap: z.number().nullable(),
+        vsLuxuryTax: z.number().nullable(),
+        vsFirstApron: z.number().nullable(),
+        vsSecondApron: z.number().nullable(),
+      })
+      .optional(),
+    currentCapHit: z.number().nullable().optional(),
     playersTotal: z.number().optional(),
     deadMoneyTotal: z.number().optional(),
     capHoldsTotal: z.number().optional(),
@@ -349,6 +364,7 @@ export const BaseTeamDocZ = z.object({
   deadCap: z.array(DeadCapItemZ).optional().default([]),
   capHolds: z.array(CapHoldItemZ).optional().default([]),
   contractEventLedgers: z.array(ContractEventLedgerPayloadZ).optional(),
+  salaryBookInputs: TeamSalaryBookInputsZ.optional(),
   exceptions: ExceptionsZ,
   draftPicks: z.array(DraftPickZ).optional().default([]),
   /**

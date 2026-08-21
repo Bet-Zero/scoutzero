@@ -638,8 +638,8 @@ export async function applyWorldMutation({
       // substitutes for final-state artifact validation.
       const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
       afterTeamsByCode = extractTeamsByCodeFromComputeResult(computeResult);
-      beforeTotalsByTeam = buildTotalsByTeam(beforeTeamsByCode, year);
-      afterTotalsByTeam = buildTotalsByTeam(afterTeamsByCode, year);
+      beforeTotalsByTeam = buildTotalsByTeam(beforeTeamsByCode, year, asOfDate);
+      afterTotalsByTeam = buildTotalsByTeam(afterTeamsByCode, year, asOfDate);
 
       if (Object.keys(afterTotalsByTeam).length === 0) {
         return buildMutationFailureResult(
@@ -695,7 +695,8 @@ export async function applyWorldMutation({
     const teamUpdates = computeResult.teamUpdates || [];
     const committedTeamUpdates = buildGeneralMutationCommittedTeamUpdates(
       teamUpdates,
-      seasonId
+      seasonId,
+      asOfDate
     );
     const playerUpdates = computeResult.playerUpdates || [];
     const teamCodes = committedTeamUpdates

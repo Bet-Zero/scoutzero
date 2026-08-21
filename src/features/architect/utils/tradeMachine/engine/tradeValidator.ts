@@ -71,35 +71,28 @@ import {
  *
  * DEFINITION GATE COMPLETION (Phase 1.6-1.7)
  * -------------------------------------------
- * DG-1: preTradeTeamSalary includes: Players [x] Dead Money [x] Cap Holds [ ] Likely Incentives [ ]
- * DG-2: postTradeSalary includes: Players [x] Dead Money [x] Cap Holds [ ] Likely Incentives [ ]
+ * DG-1: the trade engine's compatibility salary is Apron Team Salary.
+ * DG-2: projectedSalary is projected Apron Team Salary after matching adjustments.
  * DG-3: Definitions documented in this header block [x]
  *
  * The following fields are used by the UI for cap impact calculations.
  * Before wiring CapImpactTiles to these values, confirm these definitions are correct.
  *
- * preTradeTeamSalary (aka teamTotalSalary):
- * - Source: team.team.teamTotalSalary (passed in from useTradeMachine hook)
- * - Computed in: useTradeMachine.js via getCapTotalsForYear() → computeTeamCapTotals (SSOT)
- * - INCLUDES:
- *   ☑ Active player contracts (capHit from contract.salariesByYear)
- *   ☑ Dead money (from waivedContracts, stretchHistory, or flat deadMoney map)
- *   ☐ Cap holds (NOT included by default — may cause divergence with CapImpactTiles)
- *   ☐ Likely incentives (NOT explicitly handled)
+ * teamTotalSalary is a compatibility bridge only:
+ * - Source: the complete Apron Team Salary book.
+ * - It never falls back to Team Salary, Tax Salary, or a generic payroll total.
  *
  * postTradeSalary (aka projectedSalary):
  * - Source: computed in validateTrade() as teamTotalSalary - salaryOut + salaryIn
- * - FORMULA: preTradeTeamSalary - outgoingMatchingSalary + incomingMatchingSalary
- * - INCLUDES: Same components as preTradeTeamSalary, adjusted for trade
+ * - FORMULA: pre-trade Apron Team Salary - outgoing matching salary + incoming matching salary
  *
  * salaryOut / salaryIn:
  * - Source: computed from player.matchOutgoing / player.matchIncoming
  * - These are MATCHING values (with BYC, poison pill, trade kicker adjustments)
  * - NOT the same as base salary
  *
- * ⚠️ KNOWN GAP: CapImpactTiles computes capHoldsTotal separately.
- *    If cap holds are significant, CapImpactTiles may show different numbers
- *    than validator's projectedSalary. This must be resolved before Phase 1.6.
+ * Receipt/UI Team Salary remains a separate named book and is never read from
+ * this compatibility bridge.
  */
 
 // Trade Receipt Validator Version - bumped for Phase 1 UI wiring / Phase 4 cap settings
@@ -317,8 +310,9 @@ export function validateTrade({
     const outgoingPlayers = team.sends || [];
 
     // Calculate projected salary after trade (will be updated after matching values computed)
-    const currentSalary =
-      team.team.teamTotalSalary || team.team.totalSalary || 0;
+    const currentSalary = Number.isFinite(team.team.teamTotalSalary)
+      ? Number(team.team.teamTotalSalary)
+      : Number.NaN;
 
     return {
       ...team,
@@ -478,7 +472,9 @@ export function validateTrade({
     team.incomingPlayers = incomingPlayers;
     team.salaryOut = salaryOut;
     team.salaryIn = salaryIn;
-    team.projectedSalary = (team.teamTotalSalary || 0) - salaryOut + salaryIn;
+    team.projectedSalary = Number.isFinite(team.teamTotalSalary)
+      ? Number(team.teamTotalSalary) - salaryOut + salaryIn
+      : Number.NaN;
   });
 
   // Run validation rules for each team

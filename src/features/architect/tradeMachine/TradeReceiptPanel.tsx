@@ -316,10 +316,20 @@ const TradeReceiptPanel = ({
                   </div>
 
                   <div className="text-cockpit-text-secondary text-xs mb-2">
-                    Pre-trade Salary: {formatCurrency(team.preTradeTeamSalary)}
+                    Team Salary: {team.preTradeTeamSalary == null
+                      ? 'Needs input'
+                      : formatCurrency(team.preTradeTeamSalary)}
                     <span className="text-cockpit-text-ghost ml-1">
                       ({toText(team.preTradeTeamSalarySource)})
                     </span>
+                  </div>
+                  <div className="text-xs text-cockpit-text-secondary">
+                    Apron Team Salary: {team.preTradeApronTeamSalary == null
+                      ? 'Needs input'
+                      : formatCurrency(team.preTradeApronTeamSalary)}
+                    {' · '}Tax Salary: {team.preTradeTaxSalary == null
+                      ? 'Needs input'
+                      : formatCurrency(team.preTradeTaxSalary)}
                   </div>
 
                   <div className="p-2 mb-2 bg-cockpit-raised rounded border border-cockpit-edge">

@@ -21,6 +21,7 @@ import type {
 import type { TeamHistoryCapSheetLike } from '@/features/architect/history/TeamHistoryTab/types';
 import type { ArchitectMutationTeamTotals } from '@/features/architect/utils/mutationPipeline';
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
+import type { TeamSalaryBookInputs } from '@/schemas/salaryBooks';
 import type { OfferSheetLike } from '../offerSheetTypes';
 import { capProjections } from '@/features/architect/utils/capProjections';
 import type { OffseasonAppliedChangesSummary } from '@/features/architect/utils/offseason/resolveOffseasonTransition';
@@ -249,6 +250,7 @@ export type ArchitectDashboardCapSheet = DashboardBaseTeamCapSheet & {
   incomingOfferSheets?: OfferSheetLike[] | null;
   /** BZE-275: append-only option/ETO overlays rooted in pinned baselines. */
   contractEventLedgers?: ContractEventLedgerPayload[] | null;
+  salaryBookInputs?: TeamSalaryBookInputs | null;
   activeContracts?: LoadedWorldTeamData['activeContracts'] | null;
   hardCapLevel?: LoadedWorldTeamData['hardCapLevel'] | null;
   hardCapReason?: LoadedWorldTeamData['hardCapReason'] | null;

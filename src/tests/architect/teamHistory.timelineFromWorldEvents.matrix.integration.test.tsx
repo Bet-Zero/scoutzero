@@ -122,7 +122,7 @@ describe('TEAM_HISTORY_E3 timeline from world events integration matrix', () => 
     // field now, gated behind the developer-detail toggle, so it no longer renders
     // for owners by default. The canonical owner-facing fields asserted here remain.
     expect(screen.getAllByText('LAL · BOS').length).toBeGreaterThan(0);
-    expect(screen.getByText('Cap Allocation')).toBeInTheDocument();
+    expect(screen.getByText('Salary Books')).toBeInTheDocument();
     expect(
       screen.getByTestId('team-history-detail-modal').textContent || ''
     ).toContain('LAL total cap allocations: -$1,000,000');

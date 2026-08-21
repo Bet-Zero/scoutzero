@@ -105,11 +105,11 @@ export function validateSingleTeam(
     team.team?.nickname ||
     `Team ${index}`;
 
-  // DEV: Definition Gate salary breakdown verification (Phase 1.6-1.7 prep)
+  // DEV: Apron Team Salary bridge breakdown verification.
   if (import.meta.env.DEV && index === 0) {
     console.log('[Definition Gate] Team salary breakdown', {
       team: teamName,
-      preTradeTeamSalary: team.teamTotalSalary,
+      preTradeApronTeamSalary: team.teamTotalSalary,
       salaryOut: team.salaryOut,
       salaryIn: team.salaryIn,
       postTradeSalary: team.projectedSalary,
@@ -417,8 +417,9 @@ export function validateSingleTeam(
     },
   };
 
-  const totalSalary = team.team?.teamTotalSalary || team.team?.totalSalary || 0;
-  const projectedSalary = team.projectedSalary || 0;
+  const totalSalary =
+    team.team?.apronTeamSalary ?? team.teamTotalSalary ?? Number.NaN;
+  const projectedSalary = team.projectedSalary ?? Number.NaN;
   const apronStatus = getApronStatus(projectedSalary, {
     salaryCap: context.capSettings?.salaryCap,
     firstApron: context.capSettings?.firstApron,

@@ -67,6 +67,36 @@ import {
 import { CAP_HOLD_MULTIPLIERS } from '@/features/architect/utils/capHolds';
 import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 
+vi.mock(
+  '@/features/architect/utils/capTotals/computeTeamCapTotals',
+  async (importOriginal) => {
+    const actual = (await importOriginal()) as Record<string, unknown>;
+    return {
+      ...actual,
+      createCanonicalTeamTotalsSnapshot: vi.fn((team) => {
+        const totals = team?.totals || {};
+        const teamSalary = Number(totals.teamSalary);
+        const apronTeamSalary = Number(totals.apronTeamSalary);
+        const taxSalary = Number(totals.taxSalary);
+        return {
+          ...totals,
+          teamSalary: Number.isFinite(teamSalary) ? teamSalary : null,
+          apronTeamSalary: Number.isFinite(apronTeamSalary)
+            ? apronTeamSalary
+            : null,
+          taxSalary: Number.isFinite(taxSalary) ? taxSalary : null,
+          bookDeltas: {
+            vsCap: null,
+            vsLuxuryTax: null,
+            vsFirstApron: null,
+            vsSecondApron: null,
+          },
+        };
+      }),
+    };
+  }
+);
+
 type ComputeWorldMutationInput = Parameters<typeof computeWorldMutation>[0];
 type SignFreeAgentCurrentState = Extract<
   ComputeWorldMutationInput,
@@ -85,6 +115,14 @@ function requireValue<T>(value: T | null | undefined, message: string): T {
   }
 
   return value;
+}
+
+function bookTotals(
+  teamSalary: number,
+  apronTeamSalary = teamSalary,
+  taxSalary = teamSalary
+) {
+  return { teamSalary, apronTeamSalary, taxSalary };
 }
 
 function requireRuleEntry<T extends { rule?: string }>(
@@ -166,6 +204,7 @@ describe('Cap Legality Validation', () => {
         players,
         roster: players.map((p) => p.player_id),
         totals: {
+          ...bookTotals(75_000_000),
           totalSalary: 75_000_000,
           capHit: 75_000_000,
           rosterCount: 15,
@@ -216,6 +255,7 @@ describe('Cap Legality Validation', () => {
         players,
         roster: players.map((p) => p.player_id),
         totals: {
+          ...bookTotals(50_000_000),
           totalSalary: 50_000_000,
           capHit: 50_000_000,
           rosterCount: 10,
@@ -272,6 +312,7 @@ describe('Cap Legality Validation', () => {
         players,
         roster: players.map((p) => p.player_id),
         totals: {
+          ...bookTotals(193_000_000),
           totalSalary: 193_000_000,
           capHit: 193_000_000, // Close to 2025-26 firstApron of ~196M
           rosterCount: 10,
@@ -589,7 +630,7 @@ describe('Cap Legality Validation', () => {
         teamName: 'Los Angeles Lakers',
         players: [],
         roster: [],
-        totals: { capHit: 100_000_000 },
+        totals: { ...bookTotals(100_000_000), capHit: 100_000_000 },
       };
 
       // Player with no experience data (defaults to 0 YOS)
@@ -1682,7 +1723,10 @@ describe('Cap Legality Validation', () => {
         teamName: 'Los Angeles Lakers',
         players: [],
         roster: [],
-        totals: { capHit: SECOND_APRON_2026 + 1_000_000 }, // Already above second apron
+        totals: {
+          ...bookTotals(SECOND_APRON_2026 + 1_000_000),
+          capHit: SECOND_APRON_2026 + 1_000_000,
+        }, // Already above second apron
       };
 
       const player = {
@@ -1726,7 +1770,10 @@ describe('Cap Legality Validation', () => {
         teamName: 'Los Angeles Lakers',
         players: [],
         roster: [],
-        totals: { capHit: SECOND_APRON_2026 + 1_000_000 }, // Already above second apron
+        totals: {
+          ...bookTotals(SECOND_APRON_2026 + 1_000_000),
+          capHit: SECOND_APRON_2026 + 1_000_000,
+        }, // Already above second apron
       };
 
       const player = {
@@ -1763,7 +1810,10 @@ describe('Cap Legality Validation', () => {
         teamName: 'Los Angeles Lakers',
         players: [],
         roster: [],
-        totals: { capHit: SECOND_APRON_2026 + 1_000_000 },
+        totals: {
+          ...bookTotals(SECOND_APRON_2026 + 1_000_000),
+          capHit: SECOND_APRON_2026 + 1_000_000,
+        },
       };
 
       const player = {
@@ -1816,7 +1866,7 @@ describe('Cap Legality Validation', () => {
         teamName: 'Los Angeles Lakers',
         players: [],
         roster: [],
-        totals: { capHit: 150_000_000 }, // Well below second apron
+        totals: { ...bookTotals(150_000_000), capHit: 150_000_000 }, // Well below second apron
       };
 
       const player = {
@@ -1853,7 +1903,10 @@ describe('Cap Legality Validation', () => {
         teamName: 'Los Angeles Lakers',
         players: [],
         roster: [],
-        totals: { capHit: SECOND_APRON_2026 + 1_000_000 }, // Above second apron
+        totals: {
+          ...bookTotals(SECOND_APRON_2026 + 1_000_000),
+          capHit: SECOND_APRON_2026 + 1_000_000,
+        }, // Above second apron
       };
 
       const player = {
@@ -1891,7 +1944,10 @@ describe('Cap Legality Validation', () => {
         teamName: 'Los Angeles Lakers',
         players: [],
         roster: [],
-        totals: { capHit: SECOND_APRON_2026 - 1_000_000 }, // Just below second apron
+        totals: {
+          ...bookTotals(SECOND_APRON_2026 - 1_000_000),
+          capHit: SECOND_APRON_2026 - 1_000_000,
+        }, // Just below second apron
       };
 
       const player = {
@@ -1930,7 +1986,10 @@ describe('Cap Legality Validation', () => {
         teamName: 'Los Angeles Lakers',
         players: [],
         roster: [],
-        totals: { capHit: SECOND_APRON_2026 - 1_500_000 }, // $1.5M below second apron
+        totals: {
+          ...bookTotals(SECOND_APRON_2026 - 1_500_000),
+          capHit: SECOND_APRON_2026 - 1_500_000,
+        }, // $1.5M below second apron
       };
 
       const player = {
@@ -2456,7 +2515,7 @@ describe('Cap Legality Validation', () => {
         teamName: 'Los Angeles Lakers',
         players: [],
         roster: [],
-        totals: { capHit: 100_000_000 },
+        totals: { ...bookTotals(100_000_000), capHit: 100_000_000 },
       };
 
       const player = {
@@ -2895,7 +2954,7 @@ describe('Cap Legality Validation', () => {
         teamName: 'Los Angeles Lakers',
         players: [],
         roster: [],
-        totals: { capHit: 205_000_000 }, // Below second apron
+        totals: { ...bookTotals(205_000_000), capHit: 205_000_000 }, // Below second apron
       };
 
       const player = {
@@ -4993,7 +5052,7 @@ describe('Phase 10: RFA Home-Team vs Offer Sheet Guardrails', () => {
       teamName: 'Atlanta Hawks',
       players: [],
       roster: [],
-      totals: { capHit: 100_000_000 },
+      totals: { ...bookTotals(100_000_000), capHit: 100_000_000 },
     };
 
     const rookiePlayer = {
@@ -5797,7 +5856,7 @@ describe('Phase 13: Offer Sheet Pending State + Finalization Gate', () => {
         teamName: 'Los Angeles Lakers',
         players: [],
         roster: [],
-        totals: { capHit: 100_000_000 },
+        totals: { ...bookTotals(100_000_000), capHit: 100_000_000 },
       };
 
       const rfaPlayerOnGSW = {

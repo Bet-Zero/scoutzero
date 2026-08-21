@@ -14,6 +14,7 @@ interface ArchitectCapSettingsLike extends UnknownRecord {
 }
 
 interface ArchitectCapTeamLike extends UnknownRecord {
+  apronTeamSalary?: NumericLike;
   totalSalary?: NumericLike;
   teamTotalSalary?: NumericLike;
 }
@@ -33,7 +34,7 @@ export function getApronStatus(
   const team =
     typeof teamSalary === 'object' && teamSalary !== null
       ? (teamSalary as ArchitectCapTeamLike)
-      : ({ totalSalary: teamSalary } as ArchitectCapTeamLike);
+      : ({ apronTeamSalary: teamSalary } as ArchitectCapTeamLike);
 
   const status = getTeamApronStatus(team, capSettings);
 
@@ -54,7 +55,7 @@ export function getAllowableIncomingMargin(
   const { teamTotalSalary = 0 } = team;
   const { salaryCap = 0 } = capSettings;
 
-  const teamObj = { totalSalary: teamTotalSalary };
+  const teamObj = { apronTeamSalary: teamTotalSalary };
   if (isSecondApronTeam(teamObj, capSettings)) {
     return 0;
   }
