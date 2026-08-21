@@ -18,6 +18,7 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { EditContractModal } from '@/shared/components/EditContractModal';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 
 vi.mock('@/shared/components/ui/Dialog', () => ({
   Dialog: ({
@@ -319,7 +320,7 @@ describe('EditContractModal future-year action-year routing', () => {
     expect(context.getByText('2027-28')).toBeInTheDocument();
   });
 
-  it('offers only canonical enabled signing exceptions and resets stale selections to None', async () => {
+  it('offers only signing mechanisms with complete governed eligibility', async () => {
     const renderModal = (teamCapSheet: Record<string, unknown>) =>
       render(
         <EditContractModal
@@ -331,29 +332,39 @@ describe('EditContractModal future-year action-year routing', () => {
           targetYear={2028}
           actionYear={2028}
           actionContext="freeAgent"
+          rulesLeagueContext={{
+            simulationDate: new Date('2027-07-01T12:00:00-04:00'),
+          }}
           initialAction="signNew"
           actionsOverride={['signNew']}
           onSignFreeAgent={vi.fn().mockResolvedValue({ success: true })}
         />
       );
 
-    const canonicalTeamCapSheet = {
-      ...TEAM_CAP_SHEET,
-      exceptions: {
-        mle: {
-          enabled: true,
-          totalAmount: 12_900_000,
-          usedAmount: 0,
-          remainingAmount: 12_900_000,
-        },
-        tpmle: {
-          enabled: false,
-          totalAmount: 5_685_000,
-          usedAmount: 0,
-          remainingAmount: 5_685_000,
+    const canonicalTeamCapSheet = withGovernedSalaryBooks(
+      {
+        ...TEAM_CAP_SHEET,
+        exceptions: {
+          mle: {
+            enabled: true,
+            totalAmount: 12_900_000,
+            usedAmount: 0,
+            remainingAmount: 12_900_000,
+          },
+          tpmle: {
+            enabled: false,
+            totalAmount: 5_685_000,
+            usedAmount: 0,
+            remainingAmount: 5_685_000,
+          },
         },
       },
-    };
+      {
+        salaryCapYear: 2028,
+        asOfDate: '2027-07-01T12:00:00-04:00',
+        teamSalary: 50_000_000,
+      }
+    );
 
     const { rerender } = renderModal(canonicalTeamCapSheet);
 
@@ -367,14 +378,9 @@ describe('EditContractModal future-year action-year routing', () => {
 
     expect(initialOptions).toEqual([
       'Cap Space / Rights',
-      'Full MLE',
       'Minimum',
     ]);
-
-    fireEvent.change(initialExceptionSelect, {
-      target: { value: 'Full MLE' },
-    });
-    expect(getExceptionSelect().value).toBe('Full MLE');
+    expect(initialExceptionSelect.value).toBe('None');
 
     rerender(
       <EditContractModal
@@ -386,6 +392,9 @@ describe('EditContractModal future-year action-year routing', () => {
         targetYear={2028}
         actionYear={2028}
         actionContext="freeAgent"
+        rulesLeagueContext={{
+          simulationDate: new Date('2027-07-01T12:00:00-04:00'),
+        }}
         initialAction="signNew"
         actionsOverride={['signNew']}
         onSignFreeAgent={vi.fn().mockResolvedValue({ success: true })}
@@ -394,6 +403,11 @@ describe('EditContractModal future-year action-year routing', () => {
 
     await waitFor(() => {
       expect(getExceptionSelect().value).toBe('None');
+      expect(
+        within(getExceptionSelect())
+          .getAllByRole('option')
+          .map((option) => option.textContent?.trim())
+      ).toEqual(['Cap Space / Rights', 'Minimum']);
     });
 
     const resetOptions = within(getExceptionSelect())

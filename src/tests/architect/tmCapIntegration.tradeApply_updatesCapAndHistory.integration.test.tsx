@@ -3,6 +3,7 @@ import type {
   ArchitectMutationPlayerRecord,
   ArchitectMutationTeamRecord,
 } from '@/features/architect/utils/mutationPipeline';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 
 type FirestoreDocSnapshot = {
   exists: () => boolean;
@@ -11,6 +12,9 @@ type FirestoreDocSnapshot = {
 
 type TeamTotalsPayload = {
   totalCapAllocations?: number | string | null;
+  teamSalary?: number | string | null;
+  apronTeamSalary?: number | string | null;
+  taxSalary?: number | string | null;
 };
 
 type MutationEventPayload = {
@@ -163,7 +167,7 @@ function makeTeam(
     0
   );
 
-  return {
+  return withGovernedSalaryBooks({
     teamCode,
     teamName: `Team ${teamCode}`,
     roster: players.map((player) => String(player.player_id || player.id)),
@@ -180,7 +184,11 @@ function makeTeam(
       teamSalary: totalSalary,
       totalCapAllocations: totalSalary,
     },
-  };
+  }, {
+    salaryCapYear: 2026,
+    asOfDate: new Date(FIXED_TIMESTAMP).toISOString(),
+    teamSalary: totalSalary,
+  }) as ArchitectMutationTeamRecord;
 }
 
 describe('TM_CAP_INTEGRATION_E1 AC1: executeTrade updates cap and history payload deterministically', () => {
@@ -267,16 +275,16 @@ describe('TM_CAP_INTEGRATION_E1 AC1: executeTrade updates cap and history payloa
     const lalCapHit = Number(lalChangedTeam?.totals?.capHit ?? 0);
     const bosCapHit = Number(bosChangedTeam?.totals?.capHit ?? 0);
     const beforeLal = Number(
-      eventPayload?.beforeTotalsByTeam?.LAL?.totalCapAllocations ?? 0
+      eventPayload?.beforeTotalsByTeam?.LAL?.teamSalary ?? 0
     );
     const afterLal = Number(
-      eventPayload?.afterTotalsByTeam?.LAL?.totalCapAllocations ?? 0
+      eventPayload?.afterTotalsByTeam?.LAL?.teamSalary ?? 0
     );
     const beforeBos = Number(
-      eventPayload?.beforeTotalsByTeam?.BOS?.totalCapAllocations ?? 0
+      eventPayload?.beforeTotalsByTeam?.BOS?.teamSalary ?? 0
     );
     const afterBos = Number(
-      eventPayload?.afterTotalsByTeam?.BOS?.totalCapAllocations ?? 0
+      eventPayload?.afterTotalsByTeam?.BOS?.teamSalary ?? 0
     );
 
     expect(lalCapHit).toBe(afterLal);

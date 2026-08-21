@@ -12,6 +12,7 @@ import type {
   TradeMachineTeamSlot,
 } from '@/features/architect/hooks/useTradeMachine.types';
 import { useTradeTeamCardSalaries } from '@/features/architect/tradeMachine/useTradeTeamCardSalaries';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 
 const harness = vi.hoisted(() => ({
   loadWorldTeamData: vi.fn(),
@@ -128,7 +129,7 @@ function buildBuyoutLifecycle(teamCode: string): GovernedWaiverLifecycle {
 }
 
 function buildGovernedTeam(teamCode: 'LAL' | 'BOS'): TradeMachineTeam {
-  return {
+  return withGovernedSalaryBooks({
     id: teamCode,
     teamCode,
     teamName: teamCode === 'LAL' ? 'Los Angeles Lakers' : 'Boston Celtics',
@@ -163,7 +164,11 @@ function buildGovernedTeam(teamCode: 'LAL' | 'BOS'): TradeMachineTeam {
     entitlementIds: [],
     entitlements: [],
     totals: {},
-  };
+  }, {
+    salaryCapYear: 2027,
+    asOfDate: BEFORE_EXPIRY,
+    teamSalary: PENDING_TEAM_SALARY,
+  }) as TradeMachineTeam;
 }
 
 const emptySlots = (): TradeMachineTeamSlot[] => [

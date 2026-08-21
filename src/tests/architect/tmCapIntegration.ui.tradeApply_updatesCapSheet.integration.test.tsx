@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { CapSheetSection } from '@/features/architect/GMDashboard/sections/CapSheetSection';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 
 type FirestoreDocSnapshot = {
   exists: () => boolean;
@@ -147,6 +148,7 @@ type TeamFixture = {
     teamSalary: number;
     totalCapAllocations: number;
   };
+  salaryBookInputs?: unknown;
 };
 
 type MutationResultLike = {
@@ -192,7 +194,7 @@ function makeTeam(teamCode: string, players: PlayerFixture[]): TeamFixture {
     0
   );
 
-  return {
+  return withGovernedSalaryBooks({
     teamCode,
     teamName: `Team ${teamCode}`,
     roster: players.map((player) => String(player.player_id || player.id)),
@@ -210,7 +212,11 @@ function makeTeam(teamCode: string, players: PlayerFixture[]): TeamFixture {
       teamSalary: totalSalary,
       totalCapAllocations: totalSalary,
     },
-  };
+  }, {
+    salaryCapYear: CURRENT_YEAR,
+    asOfDate: new Date(FIXED_TIMESTAMP).toISOString(),
+    teamSalary: totalSalary,
+  }) as TeamFixture;
 }
 
 function parseCurrency(value: string | null | undefined): number {
@@ -219,8 +225,8 @@ function parseCurrency(value: string | null | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function readVisibleTotalCapHit(): number {
-  const label = screen.getByText(/^Total Cap Hit$/i);
+function readVisibleTeamSalary(): number {
+  const label = screen.getByText(/^Team Salary$/i);
   const row = label.parentElement;
   const values = row ? Array.from(row.querySelectorAll('span')) : [];
   const rawValue = values[values.length - 1]?.textContent;
@@ -303,6 +309,7 @@ describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Cap Sheet surface', () =
       <CapSheetSection
         teamCapSheet={beforeLal}
         currentYear={CURRENT_YEAR}
+        asOfDate={new Date(FIXED_TIMESTAMP).toISOString()}
         onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
       />
@@ -313,13 +320,14 @@ describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Cap Sheet surface', () =
 
     // The 'TOTAL CAP ALLOCATIONS' summary tile moved to the cockpit
     // TeamStatusStrip (Phase 2A migration); the cap sheet's canonical total is
-    // read from the 'Total Cap Hit' breakdown footer.
-    const beforeTotal = readVisibleTotalCapHit();
+    // read from the governed Team Salary breakdown footer.
+    const beforeTotal = readVisibleTeamSalary();
 
     rerender(
       <CapSheetSection
         teamCapSheet={afterLal}
         currentYear={CURRENT_YEAR}
+        asOfDate={new Date(FIXED_TIMESTAMP).toISOString()}
         onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
       />
@@ -330,7 +338,7 @@ describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Cap Sheet surface', () =
       expect(screen.getByText('bos_out_10m')).toBeInTheDocument();
     });
 
-    const afterTotal = readVisibleTotalCapHit();
+    const afterTotal = readVisibleTeamSalary();
 
     expect(afterTotal).not.toBe(beforeTotal);
     expect(afterTotal).toBeLessThan(beforeTotal);

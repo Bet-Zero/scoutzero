@@ -455,11 +455,11 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
 
     // Cockpit redesign dropped the in-section "Cap Sheet" heading (the cap sheet
     // is now a cockpit room titled via RoomFrame); assert the primary cap-sheet
-    // surface landmark + the canonical Total Cap Hit line as the render proof.
+    // surface landmark + the governed Team Salary line as the render proof.
     expect(
       screen.getByRole('region', { name: /Primary selected-year cap sheet surface/i })
     ).toBeInTheDocument();
-    expect(screen.getByText(/^Total Cap Hit$/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Team Salary$/i)).toBeInTheDocument();
   });
 
   it('renders Free Agency surface without crash', () => {

@@ -37,8 +37,22 @@ describe('TEAM_HISTORY_E3 timeline from world events integration matrix', () => 
           teamCodes: ['LAL', 'BOS'],
           playerIds: ['player_trade'],
           operationId: 'op_trade',
-          beforeTotalsByTeam: { LAL: { totalCapAllocations: 150000000 } },
-          afterTotalsByTeam: { LAL: { totalCapAllocations: 149000000 } },
+          beforeTotalsByTeam: {
+            LAL: {
+              totalCapAllocations: 150000000,
+              teamSalary: 150000000,
+              apronTeamSalary: 152000000,
+              taxSalary: 151000000,
+            },
+          },
+          afterTotalsByTeam: {
+            LAL: {
+              totalCapAllocations: 149000000,
+              teamSalary: 149000000,
+              apronTeamSalary: 151000000,
+              taxSalary: 150000000,
+            },
+          },
         },
         {
           id: 'evt_sign',
@@ -125,6 +139,6 @@ describe('TEAM_HISTORY_E3 timeline from world events integration matrix', () => 
     expect(screen.getByText('Salary Books')).toBeInTheDocument();
     expect(
       screen.getByTestId('team-history-detail-modal').textContent || ''
-    ).toContain('LAL total cap allocations: -$1,000,000');
+    ).toContain('LAL Team Salary: -$1,000,000');
   });
 });

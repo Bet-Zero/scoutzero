@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CapSheetFull } from '@/features/architect/capSheet/CapSheetFull';
 import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHistory';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 import {
   RIGHTS_FIXTURE_AS_OF_DATE,
   RIGHTS_FIXTURE_PLAYER_ID,
@@ -261,7 +262,8 @@ describe('Full Cap Table governed rights consumer', () => {
     ).toBe(true);
   });
 
-  it('projects a future-season hold in the hold Salary Cap Year', () => {
+  it('fails a future-season hold closed when its rights package is incomplete', () => {
+    const futureAsOfDate = '2027-07-01T12:00:00-04:00';
     const root = makeRightsEstablishedEvent();
     const futureLedger = makeRightsLedger({
       ...root,
@@ -299,41 +301,46 @@ describe('Full Cap Table governed rights consumer', () => {
       })),
     });
 
+    const futureTeam = withGovernedSalaryBooks(
+      {
+        ...team,
+        capHolds: [
+          {
+            ...team.capHolds[0],
+            season: '2027-28',
+          },
+        ],
+        rightsLedger: futureLedger,
+      },
+      {
+        salaryCapYear: 2028,
+        asOfDate: futureAsOfDate,
+        teamSalary: 40_471_733,
+      }
+    );
+
     render(
       <CapSheetFull
-        teamCapSheet={{
-          ...team,
-          capHolds: [
-            {
-              ...team.capHolds[0],
-              season: '2027-28',
-            },
-          ],
-          rightsLedger: futureLedger,
-        } as never}
+        teamCapSheet={futureTeam as never}
         currentYear={2027}
         playersMap={{ [RIGHTS_FIXTURE_PLAYER_ID]: PLAYER }}
-        governedRightsContext={governedContext}
+        governedRightsContext={{ ...governedContext, asOfDate: futureAsOfDate }}
       />
     );
 
     expect(
-      screen.queryByTestId('cap-sheet-full-rights-totals-incomplete')
-    ).not.toBeInTheDocument();
-    expect(
-      screen
-        .getAllByTestId('cap-sheet-full-total-cell')
-        .every((cell) => cell.textContent !== 'Needs input')
-    ).toBe(true);
+      screen.getByTestId('cap-sheet-full-rights-totals-incomplete')
+    ).toBeInTheDocument();
     const futureSeasonTotal = screen
       .getAllByTestId('cap-sheet-full-total-cell')
       .find((cell) => cell.getAttribute('data-salary-cap-year') === '2028');
-    // Existing roster charges plus the governed $21.85M future-year hold.
-    expect(futureSeasonTotal).toHaveTextContent('$40,471,733');
+    // The hold remains visible, but the combined future salary book fails
+    // closed because the future rights package is not fully authoritative.
+    expect(futureSeasonTotal).toHaveTextContent('Needs input');
     fireEvent.click(
       screen.getByTestId('cap-sheet-full-cap-holds-toggle')
     );
-    expect(screen.getByText('$21,850,000')).toBeInTheDocument();
+    expect(screen.queryByText('$21,850,000')).not.toBeInTheDocument();
   });
 
   it('identifies an incompatible pre-ledger world and requires recreation', () => {

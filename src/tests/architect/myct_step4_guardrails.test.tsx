@@ -31,6 +31,7 @@ import {
   canUseRoomException,
   computeTeamCapTotals,
 } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 import { getCapSettingsForYear } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -250,7 +251,13 @@ function buildTeamCapSheet() {
 }
 
 const renderCapSheetSection = () => {
-  const teamCapSheet = buildTeamCapSheet();
+  const baseTeamCapSheet = buildTeamCapSheet();
+  const currentTotals = computeTeamCapTotals(baseTeamCapSheet, CURRENT_YEAR);
+  const teamCapSheet = withGovernedSalaryBooks(baseTeamCapSheet, {
+    salaryCapYear: CURRENT_YEAR,
+    asOfDate: '2025-07-01T12:00:00-04:00',
+    teamSalary: currentTotals.totalCapAllocations,
+  });
 
   render(
     <CapSheetSection
@@ -258,6 +265,7 @@ const renderCapSheetSection = () => {
         teamCapSheet as Parameters<typeof CapSheetSection>[0]['teamCapSheet']
       }
       currentYear={CURRENT_YEAR}
+      asOfDate="2025-07-01T12:00:00-04:00"
       onOpenPlayerContractModal={() => {}}
       manualCapSheetMutationAuthority={{
         handleSetDeadCap: vi.fn(async () => true),
@@ -268,7 +276,7 @@ const renderCapSheetSection = () => {
 
   return {
     teamCapSheet,
-    currentTotals: computeTeamCapTotals(teamCapSheet, CURRENT_YEAR),
+    currentTotals,
     futureTotals: computeTeamCapTotals(teamCapSheet, CURRENT_YEAR + 1),
   };
 };
@@ -293,9 +301,11 @@ describe('MYCT Step 4 Guardrails - Source Scan', () => {
     const capSummaryTilesSource = fs.readFileSync(capSummaryTilesPath, 'utf-8');
 
     expect(capSheetSource).toMatch(
-      /const\s+canonicalTotals\s*=\s*React\.useMemo\s*\(\s*\(\)\s*=>\s*computeTeamCapTotals\s*\(/
+      /const\s+canonicalTotals\s*=\s*React\.useMemo\s*\(\s*\(\)\s*=>\s*createCanonicalTeamTotalsSnapshot\s*\(/
     );
-    expect(capSheetSource.match(/computeTeamCapTotals\s*\(/g) || []).toHaveLength(1);
+    expect(
+      capSheetSource.match(/createCanonicalTeamTotalsSnapshot\s*\(/g) || []
+    ).toHaveLength(1);
     // Phase 2A cockpit migration: the 5-tile canonical totals summary (and its
     // hard-cap badge) moved out of CapSheet to the persistent cockpit
     // TeamStatusStrip. CapSheet no longer owns summaryHardCapStatus and no longer
@@ -310,10 +320,12 @@ describe('MYCT Step 4 Guardrails - Source Scan', () => {
     );
 
     expect(capSummaryTilesSource).toContain(
-      'canonicalTotals: ReturnType<typeof computeTeamCapTotals>;'
+      'canonicalTotals: ReturnType<typeof createCanonicalTeamTotalsSnapshot>;'
     );
     expect(capSummaryTilesSource).not.toContain('getHardCapStatus');
-    expect(capSummaryTilesSource).not.toMatch(/computeTeamCapTotals\s*\(/);
+    expect(capSummaryTilesSource).not.toMatch(
+      /createCanonicalTeamTotalsSnapshot\s*\(/
+    );
     expect(capSummaryTilesSource).toContain(
       'selectedYear === currentYear && Boolean(hardCapStatus)'
     );
@@ -496,7 +508,7 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
   });
 
   it('fails closed for future years and keeps chips, disabled states, and boundary notes aligned with current-season-only exception authority', async () => {
-    const { futureTotals } = renderCapSheetSection();
+    renderCapSheetSection();
 
     // BZE-216: open the Cap Tools drawer to reach the manage buttons.
     fireEvent.click(screen.getByTestId('cap-sheet-tools-toggle'));
@@ -542,11 +554,7 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
         name: 'Selected-year canonical totals summary surface',
       })
     ).not.toBeInTheDocument();
-    expect(
-      within(breakdownSurface).getByText(
-        formatMoney(futureTotals.totalCapAllocations)
-      )
-    ).toBeInTheDocument();
+    expect(within(breakdownSurface).getByText('Needs input')).toBeInTheDocument();
     expect(
       screen.queryByText('Hard Capped at 1st Apron')
     ).not.toBeInTheDocument();

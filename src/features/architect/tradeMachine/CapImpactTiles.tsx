@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { formatMillions } from '@/shared/utils/formatting';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
+import { normalizeYearInput } from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
 import { Lock } from 'lucide-react';
 import {
   isHardCappedAtFirstApron,
@@ -47,14 +48,15 @@ export const CapImpactTiles = ({
   compact = false,
   isValidating = false,
 }: CapImpactTilesProps) => {
+  const normalizedYear = normalizeYearInput(yearKey)?.endYear ?? null;
   const baselineTotals = useMemo(
     () =>
-      team
-        ? createCanonicalTeamTotalsSnapshot(team as CapTotalsTeamLike, Number(yearKey), {
+      team && normalizedYear
+        ? createCanonicalTeamTotalsSnapshot(team as CapTotalsTeamLike, normalizedYear, {
             asOfDate,
           })
         : null,
-    [asOfDate, team, yearKey]
+    [asOfDate, normalizedYear, team]
   );
 
   const hardCapStatus = useMemo(

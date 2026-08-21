@@ -15,6 +15,7 @@ import { CapSheet } from '@/features/architect/capSheet/CapSheet/CapSheet';
 import { CapSheetFull } from '@/features/architect/capSheet/CapSheetFull/CapSheetFull';
 import { CapSheetSection } from '@/features/architect/GMDashboard/sections/CapSheetSection';
 import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 import {
   DEV_CAP_SHEET_FIXTURE_BOUNDARY_FIELD,
   DEV_CAP_SHEET_FIXTURE_FLAG,
@@ -25,6 +26,7 @@ import {
 } from '@/features/architect/capSheet/devCapSheetFixtures';
 
 const CURRENT_YEAR = 2026;
+const TEST_AS_OF_DATE = '2025-07-01T00:00:00Z';
 
 type TeamLike = {
   teamCode: string;
@@ -58,8 +60,11 @@ function expectBefore(first: Element, second: Element) {
   ).not.toBe(0);
 }
 
-function readVisibleTotalCapHit(): number {
-  const label = screen.getByText(/^Total Cap Hit$/i);
+function readVisibleTeamSalary(): number {
+  const breakdown = screen.getByRole('region', {
+    name: 'Selected-year canonical totals breakdown surface',
+  });
+  const label = within(breakdown).getByText(/^Team Salary$/i);
   const row = label.parentElement;
   const values = row ? Array.from(row.querySelectorAll('span')) : [];
   const rawValue = values[values.length - 1]?.textContent;
@@ -153,6 +158,20 @@ function buildTeamFixture(): TeamLike {
     exceptions: {},
     totals: {},
   };
+}
+
+function withGovernedBooks(team: TeamLike, salaryCapYear = CURRENT_YEAR) {
+  const totals = computeTeamCapTotals(team, salaryCapYear, {
+    asOfDate: TEST_AS_OF_DATE,
+  });
+  return withGovernedSalaryBooks(
+    team as unknown as Record<string, unknown>,
+    {
+      salaryCapYear,
+      asOfDate: TEST_AS_OF_DATE,
+      teamSalary: totals.totalCapAllocations,
+    }
+  ) as unknown as TeamLike;
 }
 
 function buildTeamWithCapHoldFixture(): TeamLike {
@@ -590,7 +609,7 @@ function buildTeamWithMultiYearBodyParityFixture(): TeamLike {
 
 function FixtureInjectorHarness() {
   const [teamCapSheet, setTeamCapSheet] = React.useState<TeamLike>(() =>
-    buildTeamFixture()
+    withGovernedBooks(buildTeamFixture())
   );
 
   const handleSetDeadCap = React.useCallback(async (deadCap: unknown) => {
@@ -643,6 +662,7 @@ function FixtureInjectorHarness() {
           teamCapSheet as Parameters<typeof CapSheetSection>[0]['teamCapSheet']
         }
         currentYear={CURRENT_YEAR}
+        asOfDate={TEST_AS_OF_DATE}
         onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
         capSheetDevFixtureControls={{
@@ -673,7 +693,7 @@ function ModalFlowsHarness({
   onExceptionsMutation,
 }: ModalFlowsHarnessProps) {
   const [teamCapSheet, setTeamCapSheet] = React.useState<CapSheetTeamCapSheet>(
-    () => buildTeamFixture() as CapSheetTeamCapSheet
+    () => withGovernedBooks(buildTeamFixture()) as CapSheetTeamCapSheet
   );
 
   const handleSetDeadCap = React.useCallback(async (deadCap: unknown) => {
@@ -723,6 +743,7 @@ function ModalFlowsHarness({
     <CapSheet
       teamCapSheet={teamCapSheet as Parameters<typeof CapSheet>[0]['teamCapSheet']}
       currentYear={CURRENT_YEAR}
+      asOfDate={TEST_AS_OF_DATE}
       onSelectPlayer={() => {}}
       manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
     />
@@ -755,7 +776,7 @@ describe('Cap Sheet UI integration flows', () => {
       'Not representative of real options, guarantee complexity, minimum-contract reimbursement, irregular real-data contract overlaps.'
     );
 
-    const beforeInjectTotal = readVisibleTotalCapHit();
+    const beforeInjectTotal = readVisibleTeamSalary();
 
     fireEvent.click(screen.getByTestId('cap-sheet-inject-fixtures-button'));
 
@@ -774,13 +795,13 @@ describe('Cap Sheet UI integration flows', () => {
     expect(screen.getAllByText('$16,000,000').length).toBeGreaterThan(0);
     expect(screen.getAllByText('$18,000,000').length).toBeGreaterThan(0);
 
-    const afterInjectCurrentYearTotal = readVisibleTotalCapHit();
+    const afterInjectCurrentYearTotal = readVisibleTeamSalary();
     expect(afterInjectCurrentYearTotal).toBeGreaterThan(beforeInjectTotal);
 
     fireEvent.click(screen.getByRole('button', { name: '2026-27' }));
 
     await waitFor(() => {
-      expect(readVisibleTotalCapHit()).not.toBe(afterInjectCurrentYearTotal);
+      expect(readVisibleTeamSalary()).not.toBe(afterInjectCurrentYearTotal);
     });
 
     fireEvent.click(screen.getByTestId('cap-sheet-clear-fixtures-button'));
@@ -837,7 +858,7 @@ describe('Cap Sheet UI integration flows', () => {
       />
     );
 
-    const beforeActionsTotal = readVisibleTotalCapHit();
+    const beforeActionsTotal = readVisibleTeamSalary();
 
     // BZE-216: manage buttons live in the collapsed Cap Tools drawer.
     fireEvent.click(screen.getByTestId('cap-sheet-tools-toggle'));
@@ -876,7 +897,7 @@ describe('Cap Sheet UI integration flows', () => {
       },
     ]);
 
-    const afterDeadMoneyTotal = readVisibleTotalCapHit();
+    const afterDeadMoneyTotal = readVisibleTeamSalary();
     expect(afterDeadMoneyTotal).toBeGreaterThan(beforeActionsTotal);
     expect(screen.getAllByText('$2,500,000').length).toBeGreaterThan(0);
 
@@ -908,7 +929,7 @@ describe('Cap Sheet UI integration flows', () => {
       }),
     });
 
-    expect(readVisibleTotalCapHit()).toBe(afterDeadMoneyTotal);
+    expect(readVisibleTeamSalary()).toBe(afterDeadMoneyTotal);
   });
 
   it('disables manual dead-money and exception edit buttons when no audited authority is provided', () => {
@@ -1038,7 +1059,7 @@ describe('Cap Sheet UI integration flows', () => {
       )
     ).toBeInTheDocument();
     expect(
-      within(breakdownSurface).getByText(/^Total Cap Hit$/i)
+      within(breakdownSurface).getByText(/^Team Salary$/i)
     ).toBeInTheDocument();
     expect(
       within(breakdownSurface).queryByText('Unsigned Hold Wing')
@@ -1065,12 +1086,15 @@ describe('Cap Sheet UI integration flows', () => {
       )
     ).toHaveTextContent('Current season: 2025-26');
     expect(
-      within(adjacentSurface).queryByText(/^Total Cap Hit$/i)
+      within(adjacentSurface).queryByText(/^Team Salary$/i)
     ).not.toBeInTheDocument();
   });
 
   it('keeps future-year cap totals visible while fencing hard-cap and exception truth to the current season', async () => {
-    const teamCapSheet = buildTeamWithFutureYearHardCapBoundaryFixture();
+    const teamCapSheet = withGovernedBooks(
+      buildTeamWithFutureYearHardCapBoundaryFixture(),
+      CURRENT_YEAR + 1
+    );
     const futureYearTotals = computeTeamCapTotals(teamCapSheet, CURRENT_YEAR + 1);
 
     render(
@@ -1079,6 +1103,7 @@ describe('Cap Sheet UI integration flows', () => {
           teamCapSheet as Parameters<typeof CapSheetSection>[0]['teamCapSheet']
         }
         currentYear={CURRENT_YEAR}
+        asOfDate={TEST_AS_OF_DATE}
         onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={{
           handleSetDeadCap: async () => true,
@@ -1098,7 +1123,7 @@ describe('Cap Sheet UI integration flows', () => {
     fireEvent.click(screen.getByRole('button', { name: '2026-27' }));
 
     await waitFor(() => {
-      expect(readVisibleTotalCapHit()).toBe(futureYearTotals.totalCapAllocations);
+      expect(readVisibleTeamSalary()).toBe(futureYearTotals.totalCapAllocations);
     });
 
     expect(
@@ -1196,13 +1221,14 @@ describe('Cap Sheet UI integration flows', () => {
   });
 
   it('makes non-player cap allocations visibly part of Total Cap Hit when present', () => {
-    const teamCapSheet = buildTeamWithMixedAllocationFixture();
+    const teamCapSheet = withGovernedBooks(buildTeamWithMixedAllocationFixture());
     const totals = computeTeamCapTotals(teamCapSheet, CURRENT_YEAR);
 
     render(
       <CapSheet
         teamCapSheet={teamCapSheet as Parameters<typeof CapSheet>[0]['teamCapSheet']}
         currentYear={CURRENT_YEAR}
+        asOfDate={TEST_AS_OF_DATE}
         onSelectPlayer={() => {}}
       />
     );
@@ -1244,8 +1270,8 @@ describe('Cap Sheet UI integration flows', () => {
     expectBefore(breakdownSurface, capHoldsSurface);
     expectBefore(breakdownSurface, controlSurface);
     expect(readBreakdownValue('Player Salaries')).toBe(totals.playersTotal);
-    expect(readVisibleTotalCapHit()).toBe(totals.totalCapAllocations);
-    expect(readVisibleTotalCapHit()).toBeGreaterThan(
+    expect(readVisibleTeamSalary()).toBe(totals.totalCapAllocations);
+    expect(readVisibleTeamSalary()).toBeGreaterThan(
       readBreakdownValue('Player Salaries')
     );
 
@@ -1267,13 +1293,16 @@ describe('Cap Sheet UI integration flows', () => {
   });
 
   it('keeps veteran-minimum and two-way row cap hits aligned with canonical player salaries', () => {
-    const teamCapSheet = buildTeamWithVeteranMinimumAndTwoWayFixture();
+    const teamCapSheet = withGovernedBooks(
+      buildTeamWithVeteranMinimumAndTwoWayFixture()
+    );
     const totals = computeTeamCapTotals(teamCapSheet, CURRENT_YEAR);
 
     render(
       <CapSheet
         teamCapSheet={teamCapSheet as Parameters<typeof CapSheet>[0]['teamCapSheet']}
         currentYear={CURRENT_YEAR}
+        asOfDate={TEST_AS_OF_DATE}
         onSelectPlayer={() => {}}
       />
     );
@@ -1309,11 +1338,14 @@ describe('Cap Sheet UI integration flows', () => {
     expect(totals.playersTotal).toBe(15_176_096);
     expect(totals.totalCapAllocations).toBe(15_176_096);
     expect(readBreakdownValue('Player Salaries')).toBe(totals.playersTotal);
-    expect(readVisibleTotalCapHit()).toBe(totals.totalCapAllocations);
+    expect(readVisibleTeamSalary()).toBe(totals.totalCapAllocations);
   });
 
   it('keeps future-year multi-year row values aligned with canonical cap hits', () => {
-    const teamCapSheet = buildTeamWithFutureYearCapHitAdjustmentsFixture();
+    const teamCapSheet = withGovernedBooks(
+      buildTeamWithFutureYearCapHitAdjustmentsFixture(),
+      CURRENT_YEAR + 1
+    );
     const futureYear = CURRENT_YEAR + 1;
     const totals = computeTeamCapTotals(teamCapSheet, futureYear);
 
@@ -1323,6 +1355,12 @@ describe('Cap Sheet UI integration flows', () => {
         currentYear={CURRENT_YEAR}
         onSelectPlayer={() => {}}
         onActionClick={() => {}}
+        governedRightsContext={{
+          worldId: 'test-world',
+          teamId: 'LAL',
+          asOfDate: TEST_AS_OF_DATE,
+          worldVersion: 3,
+        }}
       />
     );
 
@@ -1374,7 +1412,7 @@ describe('Cap Sheet UI integration flows', () => {
       expect.stringContaining('Base salary $700,000')
     );
 
-    const totalRow = screen.getByText('Total Cap').closest('div.grid');
+    const totalRow = screen.getByText('Team Salary').closest('div.grid');
     expect(totalRow).not.toBeNull();
     expect(
       within(totalRow as HTMLElement).getByText(
@@ -1387,7 +1425,10 @@ describe('Cap Sheet UI integration flows', () => {
   });
 
   it('shows future-only contract contributors in the multi-year body alongside coherent future totals', () => {
-    const teamCapSheet = buildTeamWithFutureOnlyVisiblePlayerFixture();
+    const teamCapSheet = withGovernedBooks(
+      buildTeamWithFutureOnlyVisiblePlayerFixture(),
+      CURRENT_YEAR + 1
+    );
     const futureYear = CURRENT_YEAR + 1;
     const totals = computeTeamCapTotals(teamCapSheet, futureYear);
 
@@ -1397,6 +1438,12 @@ describe('Cap Sheet UI integration flows', () => {
         currentYear={CURRENT_YEAR}
         onSelectPlayer={() => {}}
         onActionClick={() => {}}
+        governedRightsContext={{
+          worldId: 'test-world',
+          teamId: 'LAL',
+          asOfDate: TEST_AS_OF_DATE,
+          worldVersion: 3,
+        }}
       />
     );
 
@@ -1419,7 +1466,7 @@ describe('Cap Sheet UI integration flows', () => {
       within(futureOnlyFirstFutureCell).getByText('$6,000,000')
     ).toBeInTheDocument();
 
-    const totalRow = screen.getByText('Total Cap').closest('div.grid');
+    const totalRow = screen.getByText('Team Salary').closest('div.grid');
     expect(totalRow).not.toBeNull();
 
     const futureTotalCell = getFutureYearCell(totalRow, 1);
@@ -1483,7 +1530,7 @@ describe('Cap Sheet UI integration flows', () => {
       )
     ).toBeInTheDocument();
     expect(
-      within(canonicalTotalsSurface).getByText(/^Total Cap$/i)
+      within(canonicalTotalsSurface).getByText(/^Team Salary$/i)
     ).toBeInTheDocument();
     expect(
       within(canonicalTotalsSurface).getByText(/^Canonical yearly total$/i)
@@ -1507,16 +1554,12 @@ describe('Cap Sheet UI integration flows', () => {
     ).not.toBeInTheDocument();
 
     const totalRow = within(canonicalTotalsSurface)
-      .getByText(/^Total Cap$/i)
+      .getByText(/^Team Salary$/i)
       .closest('div.grid');
     expect(totalRow).not.toBeNull();
 
     const futureTotalCell = getFutureYearCell(totalRow, 1);
-    expect(
-      within(futureTotalCell).getByText(
-        `$${totals.totalCapAllocations.toLocaleString()}`
-      )
-    ).toBeInTheDocument();
+    expect(futureTotalCell).toHaveTextContent('Needs input');
     expect(totals.playersTotal).toBe(20_000_000);
     expect(totals.capHoldsTotal).toBe(4_250_000);
     expect(totals.totalCapAllocations).toBe(24_250_000);
@@ -1559,18 +1602,12 @@ describe('Cap Sheet UI integration flows', () => {
     expect(playerBodyFutureYearSum).toBe(totals.playersTotal);
 
     const totalRow = within(canonicalTotalsSurface)
-      .getByText(/^Total Cap$/i)
+      .getByText(/^Team Salary$/i)
       .closest('div.grid');
     expect(totalRow).not.toBeNull();
 
     const futureTotalCell = getFutureYearCell(totalRow, 1);
-    const displayedFutureTotal = readPrimaryMultiYearCellAmount(futureTotalCell);
-
-    expect(displayedFutureTotal).toBe(totals.totalCapAllocations);
-    expect(displayedFutureTotal).toBeGreaterThan(playerBodyFutureYearSum);
-    expect(displayedFutureTotal - playerBodyFutureYearSum).toBe(
-      totals.capHoldsTotal
-    );
+    expect(futureTotalCell).toHaveTextContent('Needs input');
 
     // Player total carries the reconciled 2027-28 vet-min relief ($2,449,421,
     // was $2,176,096 under the old projected minimum) — see e746836d.

@@ -182,6 +182,7 @@ export const EditContractModal = ({
   // After June, we're in the next season (e.g., July 2025 = 2025-26 season = 2026)
   const simulationDate = rulesLeagueContext?.simulationDate;
   const simDate = simulationDate instanceof Date ? simulationDate : today;
+  const validationAsOfDate = simDate.toISOString();
   const CURRENT_YEAR =
     (typeof currentYearProp === 'number' ? currentYearProp : null) ||
     (typeof rulesLeagueContext?.currentYear === 'number'
@@ -321,6 +322,7 @@ export const EditContractModal = ({
     playerRulesProfile,
     capSettings,
     teamCapSheet,
+    asOfDate: validationAsOfDate,
     ACTION_YEAR,
     CURRENT_YEAR,
     lastSalaryForPrefill,

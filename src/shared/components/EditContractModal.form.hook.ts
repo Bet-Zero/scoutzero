@@ -37,6 +37,7 @@ type UseEditContractModalFormParams = {
   playerRulesProfile: PlayerRulesProfileLike | null | undefined;
   capSettings: GetCapSettingsResult | null | undefined;
   teamCapSheet: TeamCapSheetLike | null | undefined;
+  asOfDate: string;
   ACTION_YEAR: number;
   CURRENT_YEAR: number;
   lastSalaryForPrefill: number;
@@ -81,6 +82,7 @@ export const useEditContractModalForm = ({
   playerRulesProfile,
   capSettings,
   teamCapSheet,
+  asOfDate,
   ACTION_YEAR,
   CURRENT_YEAR,
   lastSalaryForPrefill,
@@ -147,9 +149,10 @@ export const useEditContractModalForm = ({
         >[0]['team'],
         signedUsing: option.value,
         year: ACTION_YEAR,
+        asOfDate,
       }).blocked;
     });
-  }, [ACTION_YEAR, teamCapSheet]);
+  }, [ACTION_YEAR, asOfDate, teamCapSheet]);
 
   const contractDataForValidation = useMemo<HookContractDataLike>(
     () => ({

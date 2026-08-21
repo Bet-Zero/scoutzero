@@ -189,9 +189,11 @@ const harness = vi.hoisted(() => {
       hardCapLimiterLabel: null,
       hardCapType: null,
     })),
-    computeTeamCapTotalsMock: vi.fn(() => ({
+    computeTeamCapTotalsMock: vi.fn(
+      (_team?: unknown, _year?: unknown, _options?: unknown) => ({
       totalCapAllocations: 90_000_000,
-    })),
+      })
+    ),
     warnOnTotalsDivergenceMock: vi.fn(),
     getTeamTpeListMock: vi.fn((): TestTpe[] => []),
     editorTradeTeamCardProps: [] as TradeTeamCardMockProps[],
@@ -401,6 +403,19 @@ vi.mock('@/features/architect/hooks/useTradeMachineSnapshot', () => ({
 
 vi.mock('@/features/architect/utils/capTotals', () => ({
   computeTeamCapTotals: harness.computeTeamCapTotalsMock,
+  createCanonicalTeamTotalsSnapshot: (
+    team?: unknown,
+    year?: unknown,
+    options?: unknown
+  ) => {
+    const totals = harness.computeTeamCapTotalsMock(team, year, options);
+    return {
+      ...totals,
+      teamSalary: totals.totalCapAllocations,
+      apronTeamSalary: totals.totalCapAllocations,
+      taxSalary: totals.totalCapAllocations,
+    };
+  },
   warnOnTotalsDivergence: harness.warnOnTotalsDivergenceMock,
 }));
 
