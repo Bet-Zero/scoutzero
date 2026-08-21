@@ -3,9 +3,11 @@ import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/h
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 describe('validateHardCap', () => {
-  const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+  const issueTexts = (issues = []) =>
+    issues.map((issue) => getValidationIssueText(issue));
 
   const makeTeam = (params) => ({
+    teamTotalSalary: 100_000_000,
     team: {
       totalSalary: 100_000_000,
     },

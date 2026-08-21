@@ -85,7 +85,10 @@ function normalizeHardCapLevel(value: unknown): string | null {
   if (value === true) return 'firstApron';
   if (value === false || value == null) return null;
 
-  const normalized = String(value).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 
   if (!normalized) {
     return null;
@@ -169,6 +172,8 @@ export function resolveHardCapSnapshotOverlay(
     hardCapLevel,
     ...(hardCapDetail ? { hardCapDetail } : {}),
     ...(hardCapReason !== null ? { hardCapReason } : {}),
-    ...(hardCapRoom !== null ? { hardCapRoom } : {}),
+    ...((isHardCapped && hardCapLevel) || hardCapRoom !== null
+      ? { hardCapRoom }
+      : {}),
   };
 }

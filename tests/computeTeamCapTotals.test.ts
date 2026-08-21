@@ -11,6 +11,7 @@ import {
   createCanonicalTeamTotalsSnapshot,
   warnOnTotalsDivergence,
 } from '@/features/architect/utils/capTotals';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 
 // Mock the imports
 vi.mock(
@@ -460,8 +461,9 @@ describe('computeTeamCapTotals', () => {
   });
 
   describe('snapshot containment', () => {
-    it('builds snapshots from canonical totals and applies hard-cap overlay downstream', () => {
+    it('builds snapshots from named books and clears stale hard-cap room when Apron Team Salary needs input', () => {
       const teamCapSheet = {
+        teamCode: 'TST',
         players: [
           {
             id: 'player1',
@@ -483,16 +485,29 @@ describe('computeTeamCapTotals', () => {
         hardCapTriggeredBy: 'Taxpayer MLE',
       };
 
-      const snapshot = createCanonicalTeamTotalsSnapshot(teamCapSheet, 2025);
       const expectedIncomplete = 13 * 1_119_563;
       const expectedTotal = 20_000_000 + expectedIncomplete;
+      const asOfDate = '2024-07-01T00:00:00-04:00';
+      const governedTeamCapSheet = withGovernedSalaryBooks(teamCapSheet, {
+        salaryCapYear: 2025,
+        asOfDate,
+        teamSalary: expectedTotal,
+        apronTeamSalary: expectedTotal,
+        taxSalary: expectedTotal,
+      });
+      const snapshot = createCanonicalTeamTotalsSnapshot(
+        governedTeamCapSheet,
+        2025,
+        { asOfDate }
+      );
 
       expect(snapshot.totalCapAllocations).toBe(expectedTotal);
       expect(snapshot.capSpace).toBe(141_000_000 - expectedTotal);
       expect(snapshot.hardCapLevel).toBe('firstApron');
       expect(snapshot.isHardCapped).toBe(true);
       expect(snapshot.hardCapReason).toBe('Taxpayer MLE hard cap');
-      expect(snapshot.hardCapRoom).toBe(179_000_000 - expectedTotal);
+      expect(snapshot.apronTeamSalary).toBeNull();
+      expect(snapshot.hardCapRoom).toBeNull();
     });
   });
 
