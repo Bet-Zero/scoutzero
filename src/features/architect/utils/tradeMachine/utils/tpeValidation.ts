@@ -93,6 +93,7 @@ export function createTPE({
     remainingAmount: roundedRemaining,
     usedAmount: Math.round(consumed),
     createdSeason: baseDate.getUTCFullYear(),
+    createdOn: tradeDate || baseDate.toISOString(),
     expiresOn: expiry.toISOString(),
     ...governedFields,
     ...(salaryMatchingPath ? { salaryMatchingPath } : {}),

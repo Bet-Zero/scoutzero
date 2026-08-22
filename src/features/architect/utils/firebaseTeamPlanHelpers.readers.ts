@@ -27,6 +27,7 @@ import {
   TeamSalaryBookInputsZ,
   type TeamSalaryBookInputs,
 } from '@/schemas/salaryBooks';
+import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
 
 // ============================================================
 // Private types
@@ -91,6 +92,7 @@ export interface LooseBaseTeamDoc extends UnknownRecord {
   hardCapTriggeredBy?: string | null;
   deadCap?: unknown[] | null;
   salaryBookInputs?: TeamSalaryBookInputs | null;
+  contractEventLedgers?: ContractEventLedgerPayload[] | null;
   totals?:
     | (UnknownRecord & {
         hardCapLevel?: string | null;

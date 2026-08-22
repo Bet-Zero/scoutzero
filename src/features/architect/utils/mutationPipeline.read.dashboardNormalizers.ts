@@ -354,6 +354,9 @@ export function buildGeneralMutationDashboardReloadTeamSnapshot(
   if (team.salaryBookInputs !== undefined) {
     reloadSnapshot.salaryBookInputs = team.salaryBookInputs;
   }
+  if (team.hardCapLedger !== undefined) {
+    reloadSnapshot.hardCapLedger = team.hardCapLedger;
+  }
 
   const deadCap = normalizeDashboardReloadDeadCap(team.deadCap);
   if (deadCap !== undefined) {

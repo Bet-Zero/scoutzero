@@ -220,6 +220,12 @@ export function validateHardCap(
       firstApron: actualFirstApron,
       secondApron,
     },
+    salaryCapYear:
+      typeof context.currentYear === 'number'
+        ? context.currentYear
+        : typeof context.yearKey === 'number'
+          ? context.yearKey
+          : null,
   });
 
   if (!hardCapStatus.isHardCapped) {
@@ -235,6 +241,8 @@ export function validateHardCap(
         firstApron: actualFirstApron,
         secondApron,
       },
+      activeHardCapLedgerEntry:
+        hardCapStatus.activeHardCapLedgerEntry ?? null,
     };
   }
 
@@ -296,6 +304,8 @@ export function validateHardCap(
       firstApron: actualFirstApron,
       secondApron,
     },
+    activeHardCapLedgerEntry:
+      hardCapStatus.activeHardCapLedgerEntry ?? null,
   };
 }
 

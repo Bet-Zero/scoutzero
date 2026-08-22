@@ -13,6 +13,11 @@ import type {
   HardCapTypeCanonical,
   HardCapTypeLegacy,
 } from '../constants/types';
+import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
+import {
+  parseTradeHardCapLedger,
+  selectHardCapLedgerEntry,
+} from './tradeApronRestrictions';
 
 type HardCapStructuredFlag = {
   active?: boolean;
@@ -46,6 +51,7 @@ type HardCapCapSettingsLike = {
 type HardCapTotalsLike = TeamCapTotalsSnapshot | Record<string, unknown> | null;
 
 type HardCapStatusTeamData = {
+  hardCapLedger?: TradeHardCapLedgerEntry[] | null;
   hardCapSecondApron?: HardCapStructuredFlag;
   hardCapFirstApron?: HardCapStructuredFlag;
   hardCapType?: string | boolean | number | null;
@@ -66,6 +72,7 @@ type HardCapStatusTeamData = {
 
 type HardCapStatusTeamLike = {
   team?: HardCapStatusTeamData;
+  hardCapLedger?: TradeHardCapLedgerEntry[] | null;
   hardCapSecondApron?: HardCapStructuredFlag;
   hardCapFirstApron?: HardCapStructuredFlag;
   hardCapType?: string | boolean | number | null;
@@ -88,6 +95,7 @@ type HardCapStatusOptions = {
   isWorldless?: boolean;
   capSettings?: HardCapCapSettingsLike | null;
   inferHardCapFromExceptionUsage?: boolean;
+  salaryCapYear?: number | null;
 };
 
 type CanonicalHardCapType = HardCapTypeCanonical;
@@ -609,12 +617,14 @@ function buildStatus({
   source,
   reason,
   capSettings,
+  ledgerEntry = null,
 }: {
   isHardCapped: boolean;
   hardCapType: CanonicalHardCapType | null;
   source?: string | null;
   reason?: string | null;
   capSettings?: HardCapCapSettingsLike | null;
+  ledgerEntry?: TradeHardCapLedgerEntry | null;
 }): HardCapStatusResult {
   const ceiling = isHardCapped
     ? resolveHardCapCeiling(hardCapType, capSettings)
@@ -641,6 +651,7 @@ function buildStatus({
     hardCapCeilingType: ceiling.hardCapCeilingType,
     hardCapCeilingLabel: ceiling.hardCapCeilingLabel,
     failClosed: ceiling.failClosed,
+    activeHardCapLedgerEntry: ledgerEntry,
   };
 }
 
@@ -658,6 +669,7 @@ export function getHardCapStatus(
     isWorldless = false,
     capSettings = null,
     inferHardCapFromExceptionUsage = false,
+    salaryCapYear = null,
   } = options;
 
   if (!team) {
@@ -671,6 +683,42 @@ export function getHardCapStatus(
   }
 
   const teamLike = team.team || {};
+  const rawLedger = teamLike.hardCapLedger ?? team.hardCapLedger;
+  const parsedLedger = parseTradeHardCapLedger(rawLedger);
+  if (!parsedLedger.valid) {
+    return buildStatus({
+      isHardCapped: true,
+      hardCapType: HARD_CAP_TYPES.UNKNOWN,
+      reason: 'Persisted hard-cap ledger is malformed or version-incompatible.',
+      source: 'team.hardCapLedger (invalid)',
+      capSettings,
+    });
+  }
+  const ledgerEntry = selectHardCapLedgerEntry(rawLedger, salaryCapYear);
+  if (ledgerEntry) {
+    const hardCapType =
+      ledgerEntry.apronLevel === 'FIRST_APRON'
+        ? HARD_CAP_TYPES.FIRST_APRON
+        : HARD_CAP_TYPES.SECOND_APRON;
+    const status = buildStatus({
+      isHardCapped: true,
+      hardCapType,
+      reason: `Transaction Restrictions Table Row ${ledgerEntry.restrictionRow} hard cap for Salary Cap Year ${ledgerEntry.salaryCapYear}.`,
+      source: `team.hardCapLedger.${ledgerEntry.entryId}`,
+      capSettings,
+      ledgerEntry,
+    });
+    return {
+      ...status,
+      hardCapCeiling: ledgerEntry.ceiling,
+      hardCapCeilingType: hardCapType,
+      hardCapCeilingLabel:
+        hardCapType === HARD_CAP_TYPES.FIRST_APRON
+          ? '1st Apron'
+          : '2nd Apron',
+      failClosed: false,
+    };
+  }
   const explicitReason = getExplicitHardCapReason(team, teamLike);
   const hardCapLevelCandidate = getHardCapLevelCandidate(team, teamLike);
   const hardCapSecondApron =

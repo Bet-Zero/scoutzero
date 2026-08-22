@@ -82,6 +82,7 @@ export const TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist =
     'rightsLedger', // BZE-273 immutable dated rights history
     'contractEventLedgers', // BZE-275 immutable option/ETO event overlays
     'salaryBookInputs', // BZE-285 governed Apron and Tax Salary source inputs
+    'hardCapLedger', // BZE-288 immutable season-keyed Trade Machine hard caps
     'exceptions', // ExceptionsZ object (contains mle, bae, tpe[], etc.)
     // Phase 64: 'tradeExceptions' REMOVED from allowlist. Legacy TPE data is now normalized
     // into exceptions.tpe[] via normalizeTeamTpeSchema() before persistence. See Phase 64 docs.
@@ -418,6 +419,7 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist =
     'playersTraded', // Array of player info objects
     'entitlementsTraded', // Object with team-keyed entitlement changes
     'salaryMatchingPaths', // Exact elected salary-path evaluations by team
+    'apronRestrictions', // BZE-288 exact Rows F/H evaluation by team
     'picksTraded', // Array of pick info objects
 
     // Sign-and-Trade events (Phase 63)

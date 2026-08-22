@@ -267,6 +267,12 @@ export function validateSalaryMatching(
         firstApron: actualFirstApron,
         secondApron,
       },
+      salaryCapYear:
+        typeof context.currentYear === 'number'
+          ? context.currentYear
+          : typeof context.yearKey === 'number'
+            ? context.yearKey
+            : null,
     }
   );
 

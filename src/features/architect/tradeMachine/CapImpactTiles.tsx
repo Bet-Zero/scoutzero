@@ -115,7 +115,10 @@ export const CapImpactTiles = ({
   const capHoldsTotal = baselineCapHolds;
 
   return (
-    <div>
+    <div
+      data-apron-team-salary={apronTeamSalary ?? 'needs-input'}
+      data-tax-salary={taxSalary ?? 'needs-input'}
+    >
       <div
         className={`grid ${compact ? 'grid-cols-2' : 'grid-cols-4'} gap-2 text-[11px] transition-opacity ${isValidating ? 'opacity-60' : 'opacity-100'}`}
       >

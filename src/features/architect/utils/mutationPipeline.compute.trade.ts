@@ -15,6 +15,7 @@ import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { applyTradeExceptionLifecycle } from '@/features/architect/utils/tradeMachine/utils/tradeExceptionLifecycle';
 import { appendExceptionHistory } from '@/features/architect/utils/exceptionHistory/historyHelpers';
 import { assertTradeComputeInputs } from '@/features/architect/utils/tradeContext';
+import { createTradeHardCapLedgerEntry } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
 import { normalizeTradeTeamCodeLike } from '@/features/architect/utils/tradeContext/tradeContext';
 import type { TradeContextCurrentState } from '@/features/architect/utils/tradeContext/types';
 import type {
@@ -180,6 +181,27 @@ export function computeTradeResult({
     if (lifecycleResult.historyEntries.length > 0) {
       appendExceptionHistory(updatedTeam, lifecycleResult.historyEntries);
     }
+
+    const transactionId =
+      resolvedMutationId || `${resolvedMutationType}:${timestamp}`;
+    const hardCapEntry = teamResult.apronRestrictionEvaluation
+      ? createTradeHardCapLedgerEntry({
+          evaluation: teamResult.apronRestrictionEvaluation,
+          teamCode: teamUpdate.teamCode || '',
+          transactionId,
+          effectiveAt: timestampISO,
+        })
+      : null;
+    if (hardCapEntry) {
+      const currentLedger = Array.isArray(updatedTeam.hardCapLedger)
+        ? updatedTeam.hardCapLedger
+        : [];
+      updatedTeam.hardCapLedger = currentLedger.some(
+        (entry) => entry.entryId === hardCapEntry.entryId
+      )
+        ? currentLedger
+        : [...currentLedger, hardCapEntry];
+    }
   });
 
   // Phase 11.3: Build entitlementsTraded structure for event log
@@ -308,6 +330,18 @@ export function computeTradeResult({
       ];
     }
   );
+  const apronRestrictions = validation.teamResults.flatMap(
+    (teamResult, index) => {
+      const teamCode = teamUpdates[index]?.teamCode;
+      if (!teamCode || !teamResult.apronRestrictionEvaluation) return [];
+      return [
+        {
+          teamCode,
+          evaluation: teamResult.apronRestrictionEvaluation,
+        },
+      ];
+    }
+  );
 
   const metadata: TradeMutationMetadata = {
     type: 'trade',
@@ -324,6 +358,8 @@ export function computeTradeResult({
         : undefined,
     salaryMatchingPaths:
       salaryMatchingPaths.length > 0 ? salaryMatchingPaths : undefined,
+    apronRestrictions:
+      apronRestrictions.length > 0 ? apronRestrictions : undefined,
     timestamp,
   };
 

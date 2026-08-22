@@ -158,12 +158,15 @@ For the first permanent rendered path, run:
 npm run architect:proof:trade-receipt
 ```
 
-It requires a clean frozen HEAD, runs the deterministic MIA/DEN Two-Way Trade
-Machine/Trade Receipt proof at 1280×720, creates no Architect world, retains a
+It requires a clean frozen HEAD and runs the deterministic MIA/DEN Trade
+Machine/Trade Receipt proof at 1280×720. The harness creates exactly one
+emulator-only governed proof world, demonstrates the changed receipt surface,
+and verifies that validation creates no additional world. It retains a
 screenshot, trace, HTML report, proof record, and SHA-bearing manifest under
-`tmp/browser-proofs/trade-receipt/<candidate>-<timestamp>/`, and verifies harness
-ports are closed. These are ignored local/PR-session artifacts; no hosted
-retention is claimed until a future, separately scoped CI artifact change.
+`tmp/browser-proofs/trade-receipt/<candidate>-<timestamp>/`, then verifies that
+all harness ports are closed. These are ignored local/PR-session artifacts; no
+hosted retention is claimed until a future, separately scoped CI artifact
+change.
 
 ## Evidence hub and status conventions
 

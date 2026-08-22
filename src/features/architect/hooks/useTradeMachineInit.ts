@@ -79,14 +79,6 @@ export function useTradeMachineInit({
       }
 
       try {
-        lastInitInputsRef.current = {
-          primaryTeam,
-          primaryTeamData,
-          yearKey,
-          worldId,
-          worldAsOfDate,
-        };
-
         // Phase 16.3: Clear any previous init error on new init attempt
         setInitError(null);
 
@@ -225,6 +217,18 @@ export function useTradeMachineInit({
           );
 
           if (cancelled) return;
+          // Record completion only after the async initialization survives its
+          // effect lifetime. React Strict Mode intentionally cancels the first
+          // development pass; recording the inputs before this point caused
+          // its replacement pass to deduplicate itself and leave both slots
+          // empty forever.
+          lastInitInputsRef.current = {
+            primaryTeam,
+            primaryTeamData,
+            yearKey,
+            worldId,
+            worldAsOfDate,
+          };
           setTeams([
             {
               team: teamObj,
@@ -253,6 +257,13 @@ export function useTradeMachineInit({
               tradeExceptions: getTeamTpeList(primaryTeamData),
               entitlements: [],
               pickRulesById: {},
+            };
+            lastInitInputsRef.current = {
+              primaryTeam,
+              primaryTeamData,
+              yearKey,
+              worldId,
+              worldAsOfDate,
             };
             setTeams([
               { team: fallbackTeamObj, sends: [], entitlementsOut: [] },

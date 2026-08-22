@@ -32,6 +32,10 @@ import {
 import { isCapHoldAmountValid } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { evaluateRosterCountsAgainstLimits } from '@/features/architect/utils/tradeMachine/rules/validateRoster';
 import { validationFlags } from '@/config/validationFlags';
+import {
+  parseTradeHardCapLedger,
+  selectHardCapLedgerEntry,
+} from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
 
 export const POST_STATE_CAP_VALIDATOR_VERSION = '1.0.0';
 
@@ -40,6 +44,7 @@ type FinalStateHardCapRecheckStatus = {
   isHardCapped: boolean;
   level: string | null;
   ceiling: number | null;
+  invalidLedger?: boolean;
 };
 
 export type PostStateCapValidationIssue = {
@@ -143,12 +148,37 @@ function getFinalStateHardCapRecheckStatus({
   team,
   totals,
   rulesContext,
+  expectedYear,
 }: {
   teamCode: string;
   team: AnyRecord;
   totals: AnyRecord;
   rulesContext: AnyRecord;
+  expectedYear: number | null;
 }): FinalStateHardCapRecheckStatus {
+  const parsedLedger = parseTradeHardCapLedger(team.hardCapLedger);
+  if (!parsedLedger.valid) {
+    return {
+      isHardCapped: true,
+      level: null,
+      ceiling: null,
+      invalidLedger: true,
+    };
+  }
+  const ledgerEntry = selectHardCapLedgerEntry(
+    team.hardCapLedger,
+    expectedYear
+  );
+  if (ledgerEntry) {
+    return {
+      isHardCapped: true,
+      level:
+        ledgerEntry.apronLevel === 'FIRST_APRON'
+          ? 'firstApron'
+          : 'secondApron',
+      ceiling: ledgerEntry.ceiling,
+    };
+  }
   const hardCapByTeam = asRecord(rulesContext.hardCapByTeam) || {};
   const explicit = asRecord(hardCapByTeam[teamCode]);
   const explicitCeiling = toFiniteNumber(explicit?.ceiling);
@@ -233,6 +263,7 @@ function runFinalStateHardCapRecheck({
   afterTotals,
   rulesContext,
   violations,
+  expectedYear,
 }: {
   teamCode: string;
   team: AnyRecord;
@@ -240,13 +271,26 @@ function runFinalStateHardCapRecheck({
   afterTotals: AnyRecord;
   rulesContext: AnyRecord;
   violations: PostStateCapValidationIssue[];
+  expectedYear: number | null;
 }) {
   const hardCapStatus = getFinalStateHardCapRecheckStatus({
     teamCode,
     team,
     totals: afterTotals,
     rulesContext,
+    expectedYear,
   });
+
+  if (hardCapStatus.invalidLedger) {
+    violations.push({
+      code: 'HARD_CAP_LEDGER_INVALID',
+      teamCode,
+      path: `teams.${teamCode}.hardCapLedger`,
+      message: `Team ${teamCode} has malformed or version-incompatible hard-cap history.`,
+      actual: team.hardCapLedger,
+    });
+    return;
+  }
 
   if (hardCapStatus.isHardCapped && apronTeamSalary === null) {
     violations.push({
@@ -487,6 +531,7 @@ function runMirroredFinalStateLegalityRechecks({
   players,
   violations,
   warnings,
+  expectedYear,
 }: {
   teamCode: string;
   team: AnyRecord;
@@ -497,6 +542,7 @@ function runMirroredFinalStateLegalityRechecks({
   players: AnyRecord[];
   violations: PostStateCapValidationIssue[];
   warnings: PostStateCapValidationIssue[];
+  expectedYear: number | null;
 }) {
   // Later-layer hard-cap re-verification against final artifacts.
   // Earlier projected legality remains in tradeMachine/rules/hardCapValidation.ts.
@@ -507,6 +553,7 @@ function runMirroredFinalStateLegalityRechecks({
     afterTotals,
     rulesContext,
     violations,
+    expectedYear,
   });
 
   // Roster limit re-checks mirror earlier projected roster validation.
@@ -810,6 +857,7 @@ export function validatePostStateCapLegality(
       players,
       violations,
       warnings,
+      expectedYear,
     });
 
     // Category 3: Warning-only observational checks

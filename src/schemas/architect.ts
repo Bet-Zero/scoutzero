@@ -6,6 +6,7 @@ import {
   SalaryBooksSnapshotZ,
   TeamSalaryBookInputsZ,
 } from '@/schemas/salaryBooks';
+import { TradeHardCapLedgerZ } from '@/schemas/tradeApronRestriction';
 
 const HardCapLevelZ = z.enum(['none', 'firstApron', 'secondApron']);
 const EntitlementKindZ = z.enum([
@@ -365,6 +366,7 @@ export const BaseTeamDocZ = z.object({
   capHolds: z.array(CapHoldItemZ).optional().default([]),
   contractEventLedgers: z.array(ContractEventLedgerPayloadZ).optional(),
   salaryBookInputs: TeamSalaryBookInputsZ.optional(),
+  hardCapLedger: TradeHardCapLedgerZ.optional(),
   exceptions: ExceptionsZ,
   draftPicks: z.array(DraftPickZ).optional().default([]),
   /**

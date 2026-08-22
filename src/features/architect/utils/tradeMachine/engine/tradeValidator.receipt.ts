@@ -418,6 +418,8 @@ export function generateTradeReceipt({
         incomingMatchingTotal,
       },
       salaryMatchingEvaluation,
+      apronRestrictionEvaluation:
+        teamResult?.apronRestrictionEvaluation ?? null,
       violations: teamResult?.violations || [],
       warnings: teamResult?.warnings || [],
     };
