@@ -23,17 +23,23 @@ const testState = vi.hoisted(() => ({
           ? {
               ...((base.bio as Record<string, unknown> | null | undefined) ||
                 {}),
-              ...((override.bio as Record<string, unknown> | null | undefined) ||
-                {}),
+              ...((override.bio as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
             }
           : undefined,
       contract:
         base.contract || override.contract
           ? {
-              ...((base.contract as Record<string, unknown> | null | undefined) ||
-                {}),
-              ...((override.contract as Record<string, unknown> | null | undefined) ||
-                {}),
+              ...((base.contract as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
+              ...((override.contract as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
             }
           : undefined,
     })
@@ -42,7 +48,7 @@ const testState = vi.hoisted(() => ({
   validateTrade: vi.fn(),
   getWorldMetadata: vi.fn(async () => ({
     parentWorldId: null,
-    asOfDate: '2026-07-01',
+    asOfDate: '2026-07-08',
   })),
 }));
 
@@ -57,6 +63,24 @@ vi.mock('firebase/firestore', () => ({
     delete: testState.batchDelete,
     commit: testState.batchCommit,
   })),
+  runTransaction: vi.fn(
+    async (
+      _db: unknown,
+      updateFunction: (transaction: {
+        get: typeof testState.getDoc;
+        set: typeof testState.batchSet;
+        update: typeof testState.batchUpdate;
+        delete: typeof testState.batchDelete;
+      }) => Promise<unknown>
+    ) =>
+      updateFunction({
+        get: testState.getDoc,
+        set: testState.batchSet,
+        update: testState.batchUpdate,
+        delete: testState.batchDelete,
+      })
+  ),
+
   getDoc: testState.getDoc,
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments: unknown[]) => segments.map(String).join('/')),
@@ -81,7 +105,11 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
   validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
-  validateExtension: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateExtension: vi.fn(() => ({
+    valid: true,
+    violations: [],
+    warnings: [],
+  })),
   validateOptionDecision: vi.fn(() => ({
     valid: true,
     violations: [],
@@ -175,8 +203,8 @@ const signFreeAgentTradeLeak: SignFreeAgentCurrentState = { teams: [] };
 void signFreeAgentTradeLeak;
 
 const SEASON_ID = '2025-26';
-const FIXED_TIMESTAMP = Date.parse('2026-04-12T12:00:00.000Z');
-const FIXED_TIMESTAMP_ISO = '2026-04-12T12:00:00.000Z';
+const FIXED_TIMESTAMP = Date.parse('2026-08-21T12:00:00.000Z');
+const FIXED_TIMESTAMP_ISO = '2026-08-21T12:00:00.000Z';
 const WORLD_ID = 'world_current_state_ingress_closure';
 
 function makeCapProjections() {
@@ -231,7 +259,8 @@ function makePlayer(
   name: string,
   salary: number,
   teamCode: string | null,
-  overrides: Partial<ArchitectMutationPlayerRecord> & Record<string, unknown> = {}
+  overrides: Partial<ArchitectMutationPlayerRecord> &
+    Record<string, unknown> = {}
 ): ArchitectMutationPlayerRecord & Record<string, unknown> {
   return {
     player_id: id,
@@ -343,7 +372,7 @@ beforeEach(() => {
   });
   testState.getWorldMetadata.mockResolvedValue({
     parentWorldId: null,
-    asOfDate: '2026-07-01',
+    asOfDate: '2026-07-08',
   });
 });
 
@@ -379,8 +408,7 @@ describe('mutationPipeline current-state ingress closure', () => {
             team: ignoredTradeTeam as ExecuteTradeTradeTeamField,
           },
         ],
-        destinationTeam:
-          ignoredTradeTeam as SignAndTradeDestinationTeamField,
+        destinationTeam: ignoredTradeTeam as SignAndTradeDestinationTeamField,
         destinationTeamCode: 'BAD',
       } as unknown as SignFreeAgentCurrentState,
       seasonId: SEASON_ID,
@@ -389,7 +417,9 @@ describe('mutationPipeline current-state ingress closure', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.teamUpdates?.map((update) => update.teamCode)).toEqual(['LAL']);
+    expect(result.teamUpdates?.map((update) => update.teamCode)).toEqual([
+      'LAL',
+    ]);
     expect(result.teamUpdates?.[0]?.team?.roster).toContain('fa_outer');
     expect(result.playerUpdates?.[0]?.player?.teamCode).toBe('LAL');
   });
@@ -405,7 +435,12 @@ describe('mutationPipeline current-state ingress closure', () => {
       },
     ];
     const ignoredTradeTeam = makeTeam('BAD', []);
-    const ignoredPlayer = makePlayer('ignored_1', 'Ignored One', 3_000_000, 'BAD');
+    const ignoredPlayer = makePlayer(
+      'ignored_1',
+      'Ignored One',
+      3_000_000,
+      'BAD'
+    );
     const team = makeTeam('LAL', [], {
       tradeExceptions: [
         {
@@ -466,8 +501,7 @@ describe('mutationPipeline current-state ingress closure', () => {
             team: ignoredTradeTeam as ExecuteTradeTradeTeamField,
           },
         ],
-        destinationTeam:
-          ignoredTradeTeam as SignAndTradeDestinationTeamField,
+        destinationTeam: ignoredTradeTeam as SignAndTradeDestinationTeamField,
         teamCode: 'LAL',
       } as unknown as SetExceptionsCurrentState,
       seasonId: SEASON_ID,
@@ -512,7 +546,12 @@ describe('mutationPipeline current-state ingress closure', () => {
       legacyTradeIngressBlob: { shouldDrop: true },
     });
     const ignoredSigningTeam = makeTeam('IGN', []);
-    const ignoredPlayer = makePlayer('ignored_trade', 'Ignored Trade', 5_000_000, 'IGN');
+    const ignoredPlayer = makePlayer(
+      'ignored_trade',
+      'Ignored Trade',
+      5_000_000,
+      'IGN'
+    );
 
     const result = computeWorldMutation({
       mutationType: 'executeTrade',
@@ -597,11 +636,17 @@ describe('mutationPipeline current-state ingress closure', () => {
       10_000_000,
       'LAL'
     );
-    const freeAgent = makePlayer('fa_boundary', 'Boundary Free Agent', 0, null, {
-      contract: null,
-      freeAgency: 'UFA',
-      birdRights: { status: 'Full' },
-    });
+    const freeAgent = makePlayer(
+      'fa_boundary',
+      'Boundary Free Agent',
+      0,
+      null,
+      {
+        contract: null,
+        freeAgency: 'UFA',
+        birdRights: { status: 'Full' },
+      }
+    );
     const initialTeam = makeTeam('LAL', [existingPlayer], {
       capHolds: [
         {
@@ -641,7 +686,7 @@ describe('mutationPipeline current-state ingress closure', () => {
     const result = await applyWorldMutation({
       userId: 'user_current_state_ingress_closure',
       worldId: WORLD_ID,
-      seasonId: SEASON_ID,
+      seasonId: '2026-27',
       mutationType: 'signFreeAgent',
       payload: {
         teamCode: 'LAL',
@@ -650,6 +695,20 @@ describe('mutationPipeline current-state ingress closure', () => {
           years: 2,
           contractYears: 2,
           totalValue: 12_000_000,
+          salariesByYear: [
+            {
+              season: '2026-27',
+              salary: 6_000_000,
+              capHit: 6_000_000,
+              guaranteed: true,
+            },
+            {
+              season: '2027-28',
+              salary: 6_000_000,
+              capHit: 6_000_000,
+              guaranteed: true,
+            },
+          ],
         }),
         signedUsing: 'Cap Space',
       },

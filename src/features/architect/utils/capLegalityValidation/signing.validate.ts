@@ -541,6 +541,12 @@ export function validateSigning({
   const currentStandardRoster = countStandardRoster(players);
   const isTwoWay = getNormalizedContractType(contract) === 'two-way';
   const signingMechanism = resolveSigningMechanism(contract, signedUsing);
+  const signingContractYears = getContractYears(contract);
+  const signingYearsOfService = getMutationYearsOfService(player);
+  const minimumReimbursementApplies =
+    signingMechanism === 'MINIMUM' &&
+    signingContractYears === 1 &&
+    signingYearsOfService >= 3;
   const signingTerms = !isTwoWay
     ? getSigningTermsForPlayer({ team, player, contract, year, signedUsing })
     : null;
@@ -595,6 +601,9 @@ export function validateSigning({
       // Get player's years of service - defaults to 0 (rookie) if not found
       const yos = getMutationYearsOfService(player);
       const minSalary = rules.salaries.getMinimumForYOS(yos);
+      const minimumTeamCharge = minimumReimbursementApplies
+        ? rules.salaries.getMinimumForYOS(2)
+        : minSalary;
 
       // Check if first-year salary is below minimum
       if (firstYearSalary < minSalary) {
@@ -611,10 +620,10 @@ export function validateSigning({
         Number.isFinite(firstYearCapHit) &&
         firstYearCapHit !== firstYearSalary
       ) {
-        if (firstYearCapHit < minSalary) {
+        if (firstYearCapHit < minimumTeamCharge) {
           violations.push({
             rule: 'min_salary_violation',
-            message: `First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) is below CBA minimum ($${(minSalary / 1_000_000).toFixed(2)}M) for ${yos} years of service`,
+            message: `First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) is below the governed Team Salary charge ($${(minimumTeamCharge / 1_000_000).toFixed(2)}M).`,
             severity: 'error',
           });
         }
@@ -741,6 +750,9 @@ export function validateSigning({
         // This enforces "minimum exception" means minimum salary, not just "at least minimum"
         const yos = getMutationYearsOfService(player);
         const minSalary = rules.salaries.getMinimumForYOS(yos);
+        const minimumTeamCharge = minimumReimbursementApplies
+          ? rules.salaries.getMinimumForYOS(2)
+          : minSalary;
 
         if (firstYearSalary > minSalary) {
           violations.push({
@@ -753,12 +765,11 @@ export function validateSigning({
         // Also check capHit if it differs from salary
         if (
           firstYearCapHit !== null &&
-          firstYearCapHit !== firstYearSalary &&
-          firstYearCapHit > minSalary
+          firstYearCapHit !== minimumTeamCharge
         ) {
           violations.push({
             rule: 'first_year_max_invalid',
-            message: `First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) exceeds minimum salary ($${(minSalary / 1_000_000).toFixed(2)}M) for MINIMUM signing.`,
+            message: `First-year cap hit ($${(firstYearCapHit / 1_000_000).toFixed(2)}M) must equal the governed Team Salary charge ($${(minimumTeamCharge / 1_000_000).toFixed(2)}M) for this MINIMUM signing.`,
             severity: 'error',
           });
         }
@@ -980,6 +991,10 @@ export function validateSigning({
       if (firstYearSalary !== null) {
         const yos = getMutationYearsOfService(player);
         const minSalary = rules.salaries.getMinimumForYOS(yos);
+        const minimumTeamCharge =
+          signingMechanism === 'MINIMUM' && minimumReimbursementApplies
+            ? rules.salaries.getMinimumForYOS(2)
+            : minSalary;
 
         // Block if salary is above minimum while team is at/above second apron
         if (firstYearSalary > minSalary) {
@@ -994,7 +1009,7 @@ export function validateSigning({
         if (
           firstYearCapHit !== null &&
           firstYearCapHit !== firstYearSalary &&
-          firstYearCapHit > minSalary
+          firstYearCapHit > minimumTeamCharge
         ) {
           violations.push({
             rule: 'second_apron_minimum_only',

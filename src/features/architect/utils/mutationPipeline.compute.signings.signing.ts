@@ -10,6 +10,15 @@ import {
   getCanonicalExceptionKeyForSigningMechanism,
 } from '@/features/architect/utils/exceptions/exceptionOwnership';
 import { getSigningHardCapTriggerMetadata } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
+import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
+import { isTwoWayContract } from '@/features/architect/utils/contractUtils';
+import { contractOverlaySetDigest } from '@/features/architect/utils/optionDecisions';
+import {
+  applyGovernedSigningSetOff,
+  buildGovernedSigningHistory,
+  resolveGovernedSigningAuthority,
+} from '@/features/architect/utils/signings';
+import type { GovernedSigningAuthority } from '@/features/architect/utils/signings';
 import {
   getMutationPlayerId,
   getMutationRosterEntryId,
@@ -36,57 +45,212 @@ export function resolveSigningMechanismForPipeline(
   contract: ArchitectMutationContract | null | undefined,
   signedUsing: string | null | undefined
 ) {
-  const source = contract?.exceptionType || signedUsing;
-  if (!source) {
+  const normalize = (source: unknown) => {
+    const normalized = String(source || '')
+      .toLowerCase()
+      .replace(/[^a-z]/g, '');
+    if (!normalized) return 'UNKNOWN';
+    if (
+      ['none', 'capspace', 'capspacerights', 'rights'].includes(normalized)
+    ) {
+      return 'CAP_SPACE_OR_RIGHTS';
+    }
+    if (['fullmle', 'ntmle', 'mle', 'full'].includes(normalized)) {
+      return 'FULL_MLE';
+    }
+    if (
+      ['tpmle', 'taxpayermle'].includes(normalized) ||
+      normalized.includes('taxpayer')
+    ) {
+      return 'TPMLE';
+    }
+    if (
+      ['roommle', 'rmle'].includes(normalized) ||
+      normalized.includes('room')
+    ) {
+      return 'ROOM_MLE';
+    }
+    if (['bae', 'biannual'].includes(normalized)) return 'BAE';
+    if (['minimum', 'min', 'vetminimum', 'vetmin'].includes(normalized)) {
+      return 'MINIMUM';
+    }
+    if (normalized === 'tenday' || normalized.includes('tenday')) {
+      return 'TEN_DAY';
+    }
     return 'UNKNOWN';
+  };
+  const contractRoute = normalize(contract?.exceptionType);
+  const payloadRoute = normalize(signedUsing);
+  if (
+    contractRoute !== 'UNKNOWN' &&
+    payloadRoute !== 'UNKNOWN' &&
+    contractRoute !== payloadRoute
+  ) {
+    return 'CONFLICT';
+  }
+  return contractRoute !== 'UNKNOWN' ? contractRoute : payloadRoute;
+}
+
+function standardRosterCount(players: ArchitectMutationPlayerRecord[]): number {
+  return players.filter((player) => !isTwoWayContract(player)).length;
+}
+
+function updateIncompleteRosterChargeAfterSigning({
+  beforeTeam,
+  afterTeam,
+  salaryCapYear,
+}: {
+  beforeTeam: ArchitectMutationTeamRecord;
+  afterTeam: ArchitectMutationTeamRecord;
+  salaryCapYear: number;
+}): string | null {
+  const salaryBookInputs = afterTeam.salaryBookInputs;
+  const input = salaryBookInputs?.incompleteRosterCharge;
+  const minRoster = getCapRulesForYear(salaryCapYear).roster.minStandard;
+  const beforeMissing = Math.max(
+    0,
+    minRoster - standardRosterCount(beforeTeam.players || [])
+  );
+  const afterMissing = Math.max(
+    0,
+    minRoster - standardRosterCount(afterTeam.players || [])
+  );
+  if (beforeMissing === afterMissing) return null;
+  // The validation stage owns missing-input failure. Pure compute remains a
+  // compatibility surface, while a present authenticated aggregate must be
+  // transformed exactly for the roster-slot change.
+  if (!salaryBookInputs || !input || beforeMissing === 0) return null;
+  const perSlot = input.amount / beforeMissing;
+  const nextAmount = perSlot * afterMissing;
+  if (!Number.isSafeInteger(perSlot) || !Number.isSafeInteger(nextAmount)) {
+    return 'The authenticated incomplete-roster charge cannot be reconciled to the exact roster-slot change.';
+  }
+  const apronInput = salaryBookInputs.apronAdjustments;
+  if (apronInput.status !== 'ready') {
+    return 'Apron Team Salary needs its authenticated CBA2-C07.11 incomplete-roster adjustment.';
+  }
+  const apronIncompleteRows = apronInput.lineItems.filter((lineItem) =>
+    lineItem.canonLeafIds.includes('CBA2-C07.11')
+  );
+  if (
+    apronIncompleteRows.length !== 1 ||
+    apronIncompleteRows[0].amount !== -input.amount
+  ) {
+    return 'Apron Team Salary needs one CBA2-C07.11 adjustment that exactly reverses the authenticated incomplete-roster charge.';
+  }
+  afterTeam.salaryBookInputs = {
+    ...salaryBookInputs,
+    incompleteRosterCharge: { ...input, amount: nextAmount },
+    apronAdjustments: {
+      ...apronInput,
+      lineItems: apronInput.lineItems.map((lineItem) =>
+        lineItem.id === apronIncompleteRows[0].id
+          ? { ...lineItem, amount: -nextAmount }
+          : lineItem
+      ),
+    },
+  };
+  return null;
+}
+
+function appendSigningSalaryBookAdjustments({
+  team,
+  player,
+  authority,
+  mechanism,
+  operationId,
+}: {
+  team: ArchitectMutationTeamRecord;
+  player: ArchitectMutationPlayerRecord;
+  authority: GovernedSigningAuthority;
+  mechanism: string;
+  operationId: string;
+}): string | null {
+  const inputs = team.salaryBookInputs;
+  if (!inputs) return null;
+  const taxInput = inputs.taxSalary;
+  if (taxInput.status !== 'ready') return null;
+  const taxBaselines = taxInput.lineItems.filter((lineItem) =>
+    lineItem.canonLeafIds.includes('CBA2-C08.1')
+  );
+  if (taxBaselines.length !== 1) {
+    return 'Tax Salary needs exactly one CBA2-C08.1 baseline before signing compensation can be added.';
+  }
+  const taxBaselineAt = Date.parse(taxBaselines[0].effectiveFrom);
+  const signingAt = Date.parse(authority.effectiveAt);
+  const taxLineItems = [...taxInput.lineItems];
+  const taxSigningLineId = `tax-salary:signing:${operationId}`;
+  if (
+    Number.isFinite(taxBaselineAt) &&
+    Number.isFinite(signingAt) &&
+    signingAt > taxBaselineAt &&
+    !taxLineItems.some((lineItem) => lineItem.id === taxSigningLineId)
+  ) {
+    taxLineItems.push({
+      id: taxSigningLineId,
+      ledger: 'tax-salary',
+      label: 'Post-baseline signed Contract compensation',
+      amount: authority.firstYearCapHit,
+      effectiveFrom: authority.effectiveAt,
+      canonLeafIds: ['CBA2-C08.2'],
+      source: {
+        authority: 'team-state',
+        reference: `signing-operation:${operationId}`,
+      },
+    });
   }
 
-  const normalized = String(source)
-    .toLowerCase()
-    .replace(/[^a-z]/g, '');
-
+  const apronInput = inputs.apronAdjustments;
+  const apronLineItems =
+    apronInput.status === 'ready' ? [...apronInput.lineItems] : null;
+  const yearsOfService = toFiniteIntegerOrNull(
+    player.bio?.yearsExperience ?? player.bio?.experience
+  );
   if (
-    normalized === 'fullmle' ||
-    normalized === 'ntmle' ||
-    normalized === 'mle' ||
-    normalized === 'full'
+    apronLineItems &&
+    mechanism === 'MINIMUM' &&
+    yearsOfService !== null &&
+    yearsOfService <= 1
   ) {
-    return 'FULL_MLE';
-  }
-  if (
-    normalized === 'tpmle' ||
-    normalized === 'taxpayermle' ||
-    normalized.includes('taxpayer')
-  ) {
-    return 'TPMLE';
-  }
-  if (
-    normalized === 'roommle' ||
-    normalized === 'rmle' ||
-    normalized.includes('room')
-  ) {
-    return 'ROOM_MLE';
-  }
-  if (normalized === 'bae' || normalized === 'biannual') {
-    return 'BAE';
-  }
-  if (
-    normalized === 'minimum' ||
-    normalized === 'min' ||
-    normalized === 'vetminimum' ||
-    normalized === 'vetmin'
-  ) {
-    return 'MINIMUM';
-  }
-  if (
-    normalized === 'tenday' ||
-    normalized.includes('tenday') ||
-    normalized.includes('day')
-  ) {
-    return 'TEN_DAY';
+    const twoYosMinimum = getCapRulesForYear(
+      authority.salaryCapYear
+    ).salaries.getMinimumForYOS(2);
+    const uplift = Math.max(0, twoYosMinimum - authority.firstYearCapHit);
+    const apronSigningLineId = `apron-team-salary:minimum-uplift:${operationId}`;
+    if (
+      uplift > 0 &&
+      !apronLineItems.some((lineItem) => lineItem.id === apronSigningLineId)
+    ) {
+      apronLineItems.push({
+        id: apronSigningLineId,
+        ledger: 'apron-team-salary',
+        label: 'Qualifying zero/one-YOS Minimum Contract uplift',
+        amount: uplift,
+        effectiveFrom: authority.effectiveAt,
+        canonLeafIds: ['CBA2-C07.3'],
+        source: {
+          authority: 'team-state',
+          reference: `signing-operation:${operationId}`,
+        },
+      });
+    }
   }
 
-  return 'UNKNOWN';
+  team.salaryBookInputs =
+    apronInput.status === 'ready' && apronLineItems
+      ? {
+          ...inputs,
+          taxSalary: { ...taxInput, lineItems: taxLineItems },
+          apronAdjustments: {
+            ...apronInput,
+            lineItems: apronLineItems,
+          },
+        }
+      : {
+          ...inputs,
+          taxSalary: { ...taxInput, lineItems: taxLineItems },
+        };
+  return null;
 }
 
 export function toFiniteAmount(value: unknown, fallback = 0) {
@@ -184,12 +348,14 @@ export function consumeSigningExceptionUsage({
   mechanism,
   contractValue,
   timestamp,
+  effectiveAt,
   seasonEndYear = null,
 }: {
   updatedTeam: ArchitectMutationTeamRecord;
   mechanism: string;
   contractValue: number;
   timestamp: number;
+  effectiveAt?: string | null;
   /** Season end-year of the signing, recorded for BAE biennial enforcement. */
   seasonEndYear?: number | null;
 }) {
@@ -225,6 +391,13 @@ export function consumeSigningExceptionUsage({
     };
   }
 
+  if (contractValue > availability.remainingAmount) {
+    return {
+      consumedExceptionKey: null,
+      error: `Cannot use ${mechanism} - first-year charge exceeds remaining ${exceptionKey.toUpperCase()} amount.`,
+    };
+  }
+
   if (contractValue <= 0) {
     return {
       consumedExceptionKey: null,
@@ -254,7 +427,7 @@ export function consumeSigningExceptionUsage({
     0,
     availability.remainingAmount - contractValue
   );
-  normalizedState.lastUsedAt = new Date(timestamp).toISOString();
+  normalizedState.lastUsedAt = effectiveAt || new Date(timestamp).toISOString();
   // Record the season the BAE was consumed so the biennial ("every other
   // season") restriction can be enforced after the next season rollover.
   if (exceptionKey === 'bae' && Number.isFinite(seasonEndYear)) {
@@ -277,10 +450,20 @@ export function computeSigningResult({
   seasonId,
   timestamp,
   asOfDate = null,
+  worldId,
+  operationId,
+  authoringIdentity,
+  recordedAt,
 }: ComputeMutationParamsWithCurrentState<
   MutationSigningCurrentState,
   MutationPayloadInputByType['signFreeAgent']
-> & { asOfDate?: string | number | null }): ComputeResultLike {
+> & {
+  asOfDate?: string | number | null;
+  worldId?: string;
+  operationId?: string;
+  authoringIdentity?: string;
+  recordedAt?: string;
+}): ComputeResultLike {
   const { team, player } = requireSigningState(currentState, 'signFreeAgent');
   const teamCode = currentState.teamCode || team.teamCode || null;
   const { contract, signedUsing } = payload;
@@ -288,6 +471,45 @@ export function computeSigningResult({
     contract,
     signedUsing
   );
+  const salaryCapYear = toEndYear(seasonId);
+  // Only the persisted saved-world loader can supply this immutable receipt.
+  // Pure compute callers remain a compatibility surface; they cannot author a
+  // governed signing or persist its history without the receipt.
+  const governedMode = currentState.signingTeamSnapshot != null;
+  if (
+    governedMode &&
+    (!worldId ||
+      !operationId ||
+      !authoringIdentity ||
+      !recordedAt ||
+      typeof asOfDate !== 'string' ||
+      salaryCapYear === null)
+  ) {
+    return {
+      success: false,
+      error:
+        'Governed signing requires an exact saved-world date, Salary Cap Year, operation identity, and author provenance.',
+    };
+  }
+  const governedSigning = governedMode
+    ? resolveGovernedSigningAuthority({
+        team,
+        contract,
+        mechanism: signingMechanism,
+        worldDate: String(asOfDate),
+        salaryCapYear: salaryCapYear as number,
+      })
+    : null;
+  if (governedSigning?.status === 'needs-input') {
+    return {
+      success: false,
+      error:
+        governedSigning.reasons[0] ||
+        'Signing needs complete governed authority inputs.',
+    };
+  }
+  const signingAuthority =
+    governedSigning?.status === 'complete' ? governedSigning.authority : null;
 
   const updatedTeam = { ...team };
   updatedTeam.exceptions = normalizeMutationExceptionsFromIngress(
@@ -323,8 +545,25 @@ export function computeSigningResult({
   const normalizedContract = normalizeContractForWorld({
     ...contract,
     signingTeam: teamCode,
-    signingDate: new Date(timestamp).toISOString(),
+    signingDate: signingAuthority?.worldDate || new Date(timestamp).toISOString(),
   }) as ArchitectMutationContract | null;
+  if (!normalizedContract) {
+    return { success: false, error: 'Signing contract could not be normalized.' };
+  }
+
+  const signingHistory =
+    signingAuthority && worldId && operationId && authoringIdentity && recordedAt
+      ? buildGovernedSigningHistory({
+          contract: normalizedContract,
+          playerId,
+          teamId: String(teamCode),
+          worldId,
+          operationId,
+          authoringIdentity,
+          recordedAt,
+          authority: signingAuthority,
+        })
+      : null;
 
   const updatedPlayer = {
     ...player,
@@ -341,18 +580,21 @@ export function computeSigningResult({
   }
 
   // Update exceptions if signing consumed one
-  const contractValue = toFiniteAmount(
-    contract?.totalValue,
-    toFiniteAmount(
-      normalizedContract?.totalValue,
-      sumContractValueFromRows(normalizedContract || contract)
-    )
-  );
+  const contractValue = signingAuthority
+    ? signingAuthority.exceptionCharge
+    : toFiniteAmount(
+        contract?.totalValue,
+        toFiniteAmount(
+          normalizedContract.totalValue,
+          sumContractValueFromRows(normalizedContract)
+        )
+      );
   const exceptionConsumption = consumeSigningExceptionUsage({
     updatedTeam,
     mechanism: signingMechanism,
     contractValue,
     timestamp,
+    effectiveAt: signingAuthority?.effectiveAt,
     seasonEndYear: seasonId != null ? toEndYear(seasonId) : null,
   });
   if (exceptionConsumption.error) {
@@ -362,6 +604,15 @@ export function computeSigningResult({
     };
   }
   const consumedExceptionKey = exceptionConsumption.consumedExceptionKey;
+
+  if (signingHistory) {
+    updatedTeam.contractEventLedgers = [
+      ...(updatedTeam.contractEventLedgers || []).filter(
+        (ledger) => ledger.ledgerId !== signingHistory.ledger.ledgerId
+      ),
+      signingHistory.ledger,
+    ];
+  }
 
   const signingHardCapTrigger =
     consumedExceptionKey && getSigningHardCapTriggerMetadata(signingMechanism);
@@ -377,6 +628,27 @@ export function computeSigningResult({
     updatedTeam.capHolds = updatedTeam.capHolds.filter(
       (hold) => hold.playerId !== playerId
     );
+  }
+
+  if (signingAuthority) {
+    const rosterChargeError = updateIncompleteRosterChargeAfterSigning({
+      beforeTeam: team,
+      afterTeam: updatedTeam,
+      salaryCapYear: signingAuthority.salaryCapYear,
+    });
+    if (rosterChargeError) {
+      return { success: false, error: rosterChargeError };
+    }
+    const salaryBookAdjustmentError = appendSigningSalaryBookAdjustments({
+      team: updatedTeam,
+      player,
+      authority: signingAuthority,
+      mechanism: signingMechanism,
+      operationId: operationId!,
+    });
+    if (salaryBookAdjustmentError) {
+      return { success: false, error: salaryBookAdjustmentError };
+    }
   }
 
   // Remove pending offer sheet if finalizing an RFA offer
@@ -408,29 +680,57 @@ export function computeSigningResult({
     { teamCode, team: updatedTeam },
   ];
 
-  // Cleanup incomingOfferSheets on home team if applicable
-  if (
-    normalizedContract?.rfaOfferSheet &&
-    currentState.homeTeam &&
-    Array.isArray(currentState.homeTeam.incomingOfferSheets)
-  ) {
-    const existingIncomingOfferSheets = currentState.homeTeam.incomingOfferSheets;
-    const updatedHomeTeam = {
+  let waiverSetOffReduction = 0;
+  if (currentState.homeTeam && currentState.homeTeam.teamCode !== teamCode) {
+    let updatedHomeTeam = {
       ...currentState.homeTeam,
-      incomingOfferSheets: existingIncomingOfferSheets.filter(
-        (offerSheet) => String(offerSheet.playerId || '').trim() !== playerId
-      ),
     };
+    let homeTeamChanged = false;
     if (
-      updatedHomeTeam.incomingOfferSheets.length !==
-      existingIncomingOfferSheets.length
+      normalizedContract.rfaOfferSheet &&
+      Array.isArray(updatedHomeTeam.incomingOfferSheets)
     ) {
+      const incomingOfferSheets = updatedHomeTeam.incomingOfferSheets.filter(
+        (offerSheet) => String(offerSheet.playerId || '').trim() !== playerId
+      );
+      homeTeamChanged =
+        incomingOfferSheets.length !== updatedHomeTeam.incomingOfferSheets.length;
+      updatedHomeTeam.incomingOfferSheets = incomingOfferSheets;
+    }
+    if (
+      signingAuthority &&
+      signingHistory &&
+      operationId &&
+      authoringIdentity &&
+      recordedAt
+    ) {
+      const setOff = applyGovernedSigningSetOff({
+        priorTeam: updatedHomeTeam,
+        signingTeamId: String(teamCode),
+        player,
+        contract: normalizedContract,
+        contractId: signingHistory.contractId,
+        operationId,
+        authoringIdentity,
+        recordedAt,
+        authority: signingAuthority,
+      });
+      updatedHomeTeam = setOff.team;
+      waiverSetOffReduction = setOff.reduction;
+      homeTeamChanged ||= setOff.applied;
+    }
+    if (homeTeamChanged) {
       updatedHomeTeam.source = {
         ...getTeamSourceRecord(updatedHomeTeam.source),
         lastModifiedAt: new Date(timestamp).toISOString(),
       };
+      updatedHomeTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
+        updatedHomeTeam,
+        salaryCapYear,
+        asOfDate
+      ).totals;
       teamUpdates.push({
-        teamCode: currentState.homeTeam.teamCode,
+        teamCode: updatedHomeTeam.teamCode,
         team: updatedHomeTeam,
       });
     }
@@ -449,6 +749,37 @@ export function computeSigningResult({
       rightsUsed: consumedExceptionKey || undefined,
       timestamp,
       signedUsing,
+      contractId: signingHistory?.contractId,
+      contractEventId: signingHistory?.eventId,
+      contractLedgerId: signingHistory?.ledger.ledgerId,
+      contractLedgerVersion: signingHistory?.ledger.ledgerVersion,
+      expectedContractLedgerId: signingHistory?.ledger.ledgerId,
+      expectedContractLedgerVersion: signingHistory?.ledger.ledgerVersion,
+      expectedContractOverlayLedgerVersion: null,
+      expectedContractOverlaySetDigest: contractOverlaySetDigest(
+        team.contractEventLedgers
+      ),
+      governedSeasonInputManifest: signingAuthority?.seasonInputManifest,
+      governedSigningWorldDate: signingAuthority?.worldDate,
+      governedSigningEffectiveAt: signingAuthority?.effectiveAt,
+      waiverSetOffReduction,
+      expectedTeamSnapshotExists: currentState.signingTeamSnapshot?.exists,
+      expectedTeamSnapshotDigest: currentState.signingTeamSnapshot?.digest,
+      expectedTeamSourceWorldId:
+        currentState.signingTeamSnapshot?.sourceWorldId,
+      expectedTeamSourceSnapshotDigest:
+        currentState.signingTeamSnapshot?.sourceDigest,
+      expectedTeamSourceLineage:
+        currentState.signingTeamSnapshot?.sourceLineage,
+      expectedPlayerSnapshotExists: currentState.signingPlayerSnapshot?.exists,
+      expectedPlayerSnapshotDigest: currentState.signingPlayerSnapshot?.digest,
+      expectedPlayerSourceWorldId:
+        currentState.signingPlayerSnapshot?.sourceWorldId,
+      expectedPlayerSourceSnapshotDigest:
+        currentState.signingPlayerSnapshot?.sourceDigest,
+      expectedPlayerSourceLineage:
+        currentState.signingPlayerSnapshot?.sourceLineage,
+      expectedPriorTeamSnapshot: currentState.signingPriorTeamSnapshot,
     },
   };
 }

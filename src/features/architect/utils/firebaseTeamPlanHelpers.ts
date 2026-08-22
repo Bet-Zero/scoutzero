@@ -35,6 +35,7 @@ import { TeamListFull } from '@/constants/teamList';
 import { normalizeTeamExceptionOwnership } from '@/features/architect/utils/exceptions/exceptionOwnership';
 import { normalizeTeamTpeSchema } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 import type { TeamTotals } from '@/features/architect/types';
+import type { TeamSalaryBookInputs } from '@/schemas/salaryBooks';
 import {
   readArchitectNumber,
   readArchitectRecord,
@@ -83,6 +84,7 @@ export type HydratedBaseTeamCapSheet = {
   deadCap: NonNullable<LooseBaseTeamDoc['deadCap']>;
   baseline: LooseBaseTeamDoc;
   totals: TeamTotals;
+  salaryBookInputs?: TeamSalaryBookInputs | null;
 };
 
 /**
@@ -207,6 +209,9 @@ export const hydrateBaseTeam = async (
     deadCap: normalizedBaseDoc.deadCap || [],
     baseline: normalizedBaseDoc,
     totals,
+    ...(normalizedBaseDoc.salaryBookInputs !== undefined
+      ? { salaryBookInputs: normalizedBaseDoc.salaryBookInputs }
+      : {}),
   };
 };
 

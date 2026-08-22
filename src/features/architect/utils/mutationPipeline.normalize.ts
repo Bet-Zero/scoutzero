@@ -553,6 +553,10 @@ export function computeNormalizedWorldMutation(
             seasonId,
             timestamp,
             asOfDate,
+            worldId,
+            operationId,
+            authoringIdentity,
+            recordedAt,
           })
         );
       }

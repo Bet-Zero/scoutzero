@@ -222,6 +222,7 @@ function sameSourceIdentity(
 ): boolean {
   const source = state.source;
   const identity = evidence.sourceIdentity;
+  if (!('releaseId' in source)) return false;
   return (
     identity.releaseId === source.releaseId &&
     identity.releaseVersion === source.releaseVersion &&

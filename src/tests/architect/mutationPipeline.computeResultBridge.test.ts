@@ -30,14 +30,16 @@ const teamLoaderMocks = vi.hoisted(() => ({
     (
       base: Record<string, unknown>,
       override: Record<string, unknown> | null | undefined
-    ) =>
-      override ? { ...base, ...override } : base
+    ) => (override ? { ...base, ...override } : base)
   ),
 }));
 
 const worldManagerMocks = vi.hoisted(() => ({
   updateWorldStats: vi.fn(async () => undefined),
-  getWorldMetadata: vi.fn(async () => ({ parentWorldId: null, asOfDate: '2026-07-01' })),
+  getWorldMetadata: vi.fn(async () => ({
+    parentWorldId: null,
+    asOfDate: '2026-07-08',
+  })),
 }));
 
 vi.mock('@/firebaseConfig', () => ({
@@ -51,6 +53,23 @@ vi.mock('firebase/firestore', () => ({
     delete: firestoreMocks.batchDelete,
     commit: firestoreMocks.batchCommit,
   })),
+  runTransaction: vi.fn(
+    async (
+      _db: unknown,
+      updateFunction: (transaction: {
+        get: typeof firestoreMocks.getDoc;
+        set: typeof firestoreMocks.batchSet;
+        update: typeof firestoreMocks.batchUpdate;
+        delete: typeof firestoreMocks.batchDelete;
+      }) => Promise<unknown>
+    ) =>
+      updateFunction({
+        get: firestoreMocks.getDoc,
+        set: firestoreMocks.batchSet,
+        update: firestoreMocks.batchUpdate,
+        delete: firestoreMocks.batchDelete,
+      })
+  ),
   getDoc: firestoreMocks.getDoc,
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments: unknown[]) => segments.map(String).join('/')),
@@ -140,12 +159,9 @@ import {
 
 const WORLD_ID = 'world_bridge_test';
 const SEASON_ID = '2025-26';
-const FIXED_TIMESTAMP = Date.parse('2026-03-25T12:00:00.000Z');
+const FIXED_TIMESTAMP = Date.parse('2026-08-21T12:00:00.000Z');
 
-function makeContract(
-  salary: number,
-  overrides: Record<string, unknown> = {}
-) {
+function makeContract(salary: number, overrides: Record<string, unknown> = {}) {
   return {
     contractType: 'Standard',
     salariesByYear: [
@@ -237,7 +253,7 @@ describe('mutationPipeline compute result bridge', () => {
     vi.clearAllMocks();
     worldManagerMocks.getWorldMetadata.mockResolvedValue({
       parentWorldId: null,
-      asOfDate: '2026-07-01',
+      asOfDate: '2026-07-08',
     });
   });
 
@@ -248,18 +264,20 @@ describe('mutationPipeline compute result bridge', () => {
       freeAgency: { type: 'Unrestricted', year: 2026 },
     });
 
-    teamLoaderMocks.getTeam.mockImplementation(async (_worldId: string, teamCode: string) => {
-      if (teamCode === 'LAL') {
-        return team;
+    teamLoaderMocks.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'LAL') {
+          return team;
+        }
+        throw new Error(`Unexpected team load: ${teamCode}`);
       }
-      throw new Error(`Unexpected team load: ${teamCode}`);
-    });
+    );
     teamLoaderMocks.getPlayer.mockResolvedValue(freeAgent);
 
     const result = await applyWorldMutation({
       userId: 'user_bridge',
       worldId: WORLD_ID,
-      seasonId: SEASON_ID,
+      seasonId: '2026-27',
       mutationType: 'signFreeAgent',
       payload: {
         teamCode: 'LAL',
@@ -268,23 +286,43 @@ describe('mutationPipeline compute result bridge', () => {
           years: 2,
           contractYears: 2,
           totalValue: 17_000_000,
+          salariesByYear: [
+            {
+              season: '2026-27',
+              salary: 8_500_000,
+              capHit: 8_500_000,
+              guaranteed: true,
+            },
+            {
+              season: '2027-28',
+              salary: 8_500_000,
+              capHit: 8_500_000,
+              guaranteed: true,
+            },
+          ],
         }),
         signedUsing: 'Cap Space',
       },
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
+    expect(result.success, String(result.error || '')).toBe(true);
     expect(result.changedTeams).toHaveLength(1);
     expect(result.changedPlayers).toHaveLength(1);
     expect(result.changedTeams?.[0]?.team?.roster).toContain('fa_1');
     expect(result.changedPlayers?.[0]?.player?.teamCode).toBe('LAL');
 
-    const setPaths = firestoreMocks.batchSet.mock.calls.map(([ref]) => String(ref));
-    const updatePaths = firestoreMocks.batchUpdate.mock.calls.map(([ref]) => String(ref));
+    const setPaths = firestoreMocks.batchSet.mock.calls.map(([ref]) =>
+      String(ref)
+    );
+    const updatePaths = firestoreMocks.batchUpdate.mock.calls.map(([ref]) =>
+      String(ref)
+    );
 
     expect(
-      setPaths.some((path) => path.includes(`architect_worlds/${WORLD_ID}/teams/LAL`))
+      setPaths.some((path) =>
+        path.includes(`architect_worlds/${WORLD_ID}/teams/LAL`)
+      )
     ).toBe(true);
     expect(
       setPaths.some((path) =>
@@ -302,16 +340,22 @@ describe('mutationPipeline compute result bridge', () => {
   });
 
   it('applyWorldMutation(executeTrade) persists player updates, deletes, entitlement patches, and event-backed world writes', async () => {
-    const playerA = makePlayer('player_a', 10_000_000, 'LAL', { tradeTo: 'BOS' });
-    const playerB = makePlayer('player_b', 10_000_000, 'BOS', { tradeTo: 'LAL' });
+    const playerA = makePlayer('player_a', 10_000_000, 'LAL', {
+      tradeTo: 'BOS',
+    });
+    const playerB = makePlayer('player_b', 10_000_000, 'BOS', {
+      tradeTo: 'LAL',
+    });
     const teamA = makeTeam('LAL', [playerA]);
     const teamB = makeTeam('BOS', [playerB]);
 
-    teamLoaderMocks.getTeam.mockImplementation(async (_worldId: string, teamCode: string) => {
-      if (teamCode === 'LAL') return teamA;
-      if (teamCode === 'BOS') return teamB;
-      throw new Error(`Unexpected team load: ${teamCode}`);
-    });
+    teamLoaderMocks.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'LAL') return teamA;
+        if (teamCode === 'BOS') return teamB;
+        throw new Error(`Unexpected team load: ${teamCode}`);
+      }
+    );
 
     const result = await applyWorldMutation({
       userId: 'user_bridge',
@@ -343,11 +387,19 @@ describe('mutationPipeline compute result bridge', () => {
 
     expect(result.success).toBe(true);
     expect(result.changedTeams).toHaveLength(2);
-    expect(result.changedPlayers?.some((update) => update.playerId === 'player_a')).toBe(true);
+    expect(
+      result.changedPlayers?.some((update) => update.playerId === 'player_a')
+    ).toBe(true);
 
-    const setPaths = firestoreMocks.batchSet.mock.calls.map(([ref]) => String(ref));
-    const deletePaths = firestoreMocks.batchDelete.mock.calls.map(([ref]) => String(ref));
-    const updatePaths = firestoreMocks.batchUpdate.mock.calls.map(([ref]) => String(ref));
+    const setPaths = firestoreMocks.batchSet.mock.calls.map(([ref]) =>
+      String(ref)
+    );
+    const deletePaths = firestoreMocks.batchDelete.mock.calls.map(([ref]) =>
+      String(ref)
+    );
+    const updatePaths = firestoreMocks.batchUpdate.mock.calls.map(([ref]) =>
+      String(ref)
+    );
 
     expect(
       setPaths.some((path) =>
@@ -425,8 +477,12 @@ describe('mutationPipeline compute result bridge', () => {
       BOS: { out: [], in: ['pick_lal_2028_1st'] },
     });
     expect(event.metadata.extraRuntimeField).toEqual({ kept: true });
-    expect(event.mutationMetadata.contractSummary.firstYearSalary).toBe(12_000_000);
+    expect(event.mutationMetadata.contractSummary.firstYearSalary).toBe(
+      12_000_000
+    );
     expect(event.mutationMetadata.summary).toBe('Trade completed');
-    expect(event.diffSummary.picksMoved).toContain('LAL: out pick_lal_2028_1st');
+    expect(event.diffSummary.picksMoved).toContain(
+      'LAL: out pick_lal_2028_1st'
+    );
   });
 });

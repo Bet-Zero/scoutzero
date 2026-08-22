@@ -273,6 +273,26 @@ export const GovernedContractTermsZ = z.strictObject({
   sourceLimitations: z.array(NonEmptyStringZ),
 });
 
+const RetainedContractSourceZ = z.strictObject({
+  releaseId: NonEmptyStringZ,
+  releaseVersion: z.number().int().min(1),
+  releaseDigest: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+  sourceProvider: NonEmptyStringZ,
+  sourceRecordVersion: NonEmptyStringZ,
+  sourceObservationId: NonEmptyStringZ,
+  sourceArtifactSha256: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+  sourceContractPath: z.enum(['contract', 'futureContract']),
+});
+
+/** Provenance for a Contract authored by an atomic saved-world mutation. */
+const AuthoredSigningContractSourceZ = z.strictObject({
+  sourceKind: z.literal('saved-world-signing'),
+  operationId: NonEmptyStringZ,
+  authoringIdentity: NonEmptyStringZ,
+  recordedAt: NonEmptyStringZ,
+  worldAsOfDate: NonEmptyStringZ,
+});
+
 export const GovernedContractStateZ = z.strictObject({
   stateVersion: z.literal(1),
   contractId: NonEmptyStringZ,
@@ -286,16 +306,7 @@ export const GovernedContractStateZ = z.strictObject({
     status: z.enum(['complete', 'needs-input']),
     reasons: z.array(NonEmptyStringZ),
   }),
-  source: z.strictObject({
-    releaseId: NonEmptyStringZ,
-    releaseVersion: z.number().int().min(1),
-    releaseDigest: z.string().regex(/^sha256:[0-9a-f]{64}$/),
-    sourceProvider: NonEmptyStringZ,
-    sourceRecordVersion: NonEmptyStringZ,
-    sourceObservationId: NonEmptyStringZ,
-    sourceArtifactSha256: z.string().regex(/^sha256:[0-9a-f]{64}$/),
-    sourceContractPath: z.enum(['contract', 'futureContract']),
-  }),
+  source: z.union([RetainedContractSourceZ, AuthoredSigningContractSourceZ]),
   stateDigest: z.string().regex(/^fnv1a64:[0-9a-f]{16}$/),
 });
 

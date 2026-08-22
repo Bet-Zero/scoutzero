@@ -167,6 +167,7 @@ export type ArchitectGeneralMutationDashboardReloadTeamSnapshot = Pick<
   | 'capHolds'
   | 'rightsLedger'
   | 'contractEventLedgers'
+  | 'salaryBookInputs'
   | 'totals'
   | 'exceptionHistory'
   | 'draftPicks'

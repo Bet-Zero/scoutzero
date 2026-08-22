@@ -925,6 +925,7 @@ export async function persistWorldMutation({
       mutationType === 'optionDecision' ||
       mutationType === 'extendPlayer' ||
       mutationType === 'waivePlayer' ||
+      mutationType === 'signFreeAgent' ||
       isOfferSheetCreation ||
       isOfferSheetResolution
     ) {
@@ -939,6 +940,7 @@ export async function persistWorldMutation({
             !currentTeamExists &&
             mutationType !== 'extendPlayer' &&
             mutationType !== 'waivePlayer' &&
+            mutationType !== 'signFreeAgent' &&
             !isOfferSheetCreation
           ) {
             throw new Error(
@@ -1024,12 +1026,67 @@ export async function persistWorldMutation({
               expected: expectedOfferSheetLifecycle,
             });
           } else {
+            const signingTeamCode = String(metadata.teamCode || '').trim();
+            const isSigningTargetTeam =
+              mutationType === 'signFreeAgent' &&
+              normalizedTeamCode === signingTeamCode;
+            const isSigningPriorTeam =
+              mutationType === 'signFreeAgent' &&
+              normalizedTeamCode !== signingTeamCode;
+            if (mutationType === 'signFreeAgent' && !signingTeamCode) {
+              throw new Error(
+                'Signing is missing its governed destination Team identifier.'
+              );
+            }
+            if (isSigningPriorTeam) {
+              const expectedPriorTeam = requireDocumentSnapshotReference(
+                metadata.expectedPriorTeamSnapshot,
+                `prior Team snapshot for ${normalizedTeamCode}`
+              );
+              assertSnapshotReferenceStillCurrent({
+                exists: currentTeamExists,
+                data: currentTeamData,
+                expected: expectedPriorTeam,
+                label: `Prior Team snapshot for ${normalizedTeamCode}`,
+              });
+              if (expectedPriorTeam.exists) {
+                if (
+                  expectedPriorTeam.sourceWorldId !== worldId ||
+                  expectedPriorTeam.sourceDigest !== expectedPriorTeam.digest ||
+                  expectedPriorTeam.sourceLineage.length !== 0
+                ) {
+                  throw new Error(
+                    `Signing is missing the exact prior Team source receipt for ${normalizedTeamCode}.`
+                  );
+                }
+              } else {
+                await recheckExactSourceLineage({
+                  transaction,
+                  rawLineage: expectedPriorTeam.sourceLineage,
+                  expectedSourceWorldIdValue:
+                    expectedPriorTeam.sourceWorldId,
+                  expectedSourceDigest: expectedPriorTeam.sourceDigest,
+                  currentWorldId: worldId,
+                  sourceRef: (sourceWorldId) =>
+                    worldTeamRef(sourceWorldId, normalizedTeamCode),
+                  receiptLabel: `prior Team source receipt for ${normalizedTeamCode}`,
+                  changedLabel: 'prior Team',
+                  changedIdentifier: normalizedTeamCode,
+                  operationLabel: 'Signing',
+                });
+              }
+            }
             if (
               mutationType === 'extendPlayer' ||
-              mutationType === 'waivePlayer'
+              mutationType === 'waivePlayer' ||
+              isSigningTargetTeam
             ) {
               const operationLabel =
-                mutationType === 'waivePlayer' ? 'Waiver' : 'Extension';
+                mutationType === 'waivePlayer'
+                  ? 'Waiver'
+                  : mutationType === 'signFreeAgent'
+                    ? 'Signing'
+                    : 'Extension';
               const expectedTeamExists = metadata.expectedTeamSnapshotExists;
               const expectedTeamDigest = metadata.expectedTeamSnapshotDigest;
               if (
@@ -1148,91 +1205,96 @@ export async function persistWorldMutation({
                 });
               }
             }
-            const expectedLedgerId = String(
-              metadata.expectedContractLedgerId || ''
-            );
-            const expectedLedgerVersion = Number(
-              metadata.expectedContractLedgerVersion
-            );
-            const expectedOverlayVersion =
-              metadata.expectedContractOverlayLedgerVersion === null
-                ? null
-                : Number(metadata.expectedContractOverlayLedgerVersion);
-            if (!expectedLedgerId || !Number.isInteger(expectedLedgerVersion)) {
-              throw new Error(
-                `${mutationType === 'extendPlayer' ? 'Extension' : mutationType === 'waivePlayer' ? 'Waiver' : 'Option decision'} is missing the expected contract-ledger reference for ${normalizedTeamCode}.`
+            if (!isSigningPriorTeam) {
+              const expectedLedgerId = String(
+                metadata.expectedContractLedgerId || ''
               );
-            }
-            const overlays = Array.isArray(
-              contractSourceTeamData.contractEventLedgers
-            )
-              ? contractSourceTeamData.contractEventLedgers
-              : [];
-            const expectedOverlaySetDigest =
-              metadata.expectedContractOverlaySetDigest;
-            if (
-              typeof expectedOverlaySetDigest !== 'string' ||
-              contractOverlaySetDigest(overlays) !== expectedOverlaySetDigest
-            ) {
-              throw new Error(
-                `Contract history for ${normalizedTeamCode} changed before commit. Reload and try again.`
+              const expectedLedgerVersion = Number(
+                metadata.expectedContractLedgerVersion
               );
-            }
-            const currentOverlay = overlays.find(
-              (ledger: unknown) =>
-                ledger &&
-                typeof ledger === 'object' &&
-                !Array.isArray(ledger) &&
-                (ledger as Record<string, unknown>).ledgerId ===
-                  expectedLedgerId
-            );
-            if (expectedOverlayVersion === null) {
-              if (currentOverlay) {
-                throw new Error(
-                  `Contract history for ${normalizedTeamCode} changed before commit. Reload and try again.`
-                );
-              }
-            } else {
-              if (!Number.isInteger(expectedOverlayVersion)) {
-                throw new Error(
-                  `${mutationType === 'extendPlayer' ? 'Extension' : mutationType === 'waivePlayer' ? 'Waiver' : 'Option decision'} is missing the expected writable overlay version for ${normalizedTeamCode}.`
-                );
-              }
-              if (!currentOverlay) {
-                throw new Error(
-                  `Contract history for ${normalizedTeamCode} changed before commit. Reload and try again.`
-                );
-              }
-              const currentContractLedger = createContractEventLedger(
-                currentOverlay as Parameters<
-                  typeof createContractEventLedger
-                >[0]
-              );
+              const expectedOverlayVersion =
+                metadata.expectedContractOverlayLedgerVersion === null
+                  ? null
+                  : Number(metadata.expectedContractOverlayLedgerVersion);
               if (
-                currentContractLedger.ledgerId !== expectedLedgerId ||
-                currentContractLedger.ledgerVersion !== expectedOverlayVersion
+                !expectedLedgerId ||
+                !Number.isInteger(expectedLedgerVersion)
+              ) {
+                throw new Error(
+                  `${mutationType === 'extendPlayer' ? 'Extension' : mutationType === 'waivePlayer' ? 'Waiver' : mutationType === 'signFreeAgent' ? 'Signing' : 'Option decision'} is missing the expected contract-ledger reference for ${normalizedTeamCode}.`
+                );
+              }
+              const overlays = Array.isArray(
+                contractSourceTeamData.contractEventLedgers
+              )
+                ? contractSourceTeamData.contractEventLedgers
+                : [];
+              const expectedOverlaySetDigest =
+                metadata.expectedContractOverlaySetDigest;
+              if (
+                typeof expectedOverlaySetDigest !== 'string' ||
+                contractOverlaySetDigest(overlays) !== expectedOverlaySetDigest
               ) {
                 throw new Error(
                   `Contract history for ${normalizedTeamCode} changed before commit. Reload and try again.`
                 );
               }
-            }
-            const expectedRightsId = metadata.rightsLedgerId;
-            const expectedRightsVersion = metadata.rightsLedgerVersion;
-            if (
-              typeof expectedRightsId === 'string' &&
-              typeof expectedRightsVersion === 'number'
-            ) {
-              const currentRights = createRightsEventLedger(
-                currentTeamData.rightsLedger
+              const currentOverlay = overlays.find(
+                (ledger: unknown) =>
+                  ledger &&
+                  typeof ledger === 'object' &&
+                  !Array.isArray(ledger) &&
+                  (ledger as Record<string, unknown>).ledgerId ===
+                    expectedLedgerId
               );
-              if (
-                currentRights.ledgerId !== expectedRightsId ||
-                currentRights.ledgerVersion !== expectedRightsVersion
-              ) {
-                throw new Error(
-                  `Rights history for ${normalizedTeamCode} changed before commit. Reload and try again.`
+              if (expectedOverlayVersion === null) {
+                if (currentOverlay) {
+                  throw new Error(
+                    `Contract history for ${normalizedTeamCode} changed before commit. Reload and try again.`
+                  );
+                }
+              } else {
+                if (!Number.isInteger(expectedOverlayVersion)) {
+                  throw new Error(
+                    `${mutationType === 'extendPlayer' ? 'Extension' : mutationType === 'waivePlayer' ? 'Waiver' : mutationType === 'signFreeAgent' ? 'Signing' : 'Option decision'} is missing the expected writable overlay version for ${normalizedTeamCode}.`
+                  );
+                }
+                if (!currentOverlay) {
+                  throw new Error(
+                    `Contract history for ${normalizedTeamCode} changed before commit. Reload and try again.`
+                  );
+                }
+                const currentContractLedger = createContractEventLedger(
+                  currentOverlay as Parameters<
+                    typeof createContractEventLedger
+                  >[0]
                 );
+                if (
+                  currentContractLedger.ledgerId !== expectedLedgerId ||
+                  currentContractLedger.ledgerVersion !== expectedOverlayVersion
+                ) {
+                  throw new Error(
+                    `Contract history for ${normalizedTeamCode} changed before commit. Reload and try again.`
+                  );
+                }
+              }
+              const expectedRightsId = metadata.rightsLedgerId;
+              const expectedRightsVersion = metadata.rightsLedgerVersion;
+              if (
+                typeof expectedRightsId === 'string' &&
+                typeof expectedRightsVersion === 'number'
+              ) {
+                const currentRights = createRightsEventLedger(
+                  currentTeamData.rightsLedger
+                );
+                if (
+                  currentRights.ledgerId !== expectedRightsId ||
+                  currentRights.ledgerVersion !== expectedRightsVersion
+                ) {
+                  throw new Error(
+                    `Rights history for ${normalizedTeamCode} changed before commit. Reload and try again.`
+                  );
+                }
               }
             }
           }

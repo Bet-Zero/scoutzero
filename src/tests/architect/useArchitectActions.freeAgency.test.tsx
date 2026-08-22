@@ -113,18 +113,6 @@ type FreeAgencyWorldMutationArgs = {
     signedUsing?: unknown;
   };
 };
-type FreeAgencyValidationArgs = {
-  contract?: unknown;
-  signedUsing?: unknown;
-};
-type FreeAgencyComputeArgs = {
-  mutationType?: string;
-  seasonId?: string;
-  payload: Record<string, unknown> & {
-    contract?: unknown;
-    signedUsing?: unknown;
-  };
-};
 type FreeAgencyPreflightArgs = {
   seasonId?: string;
   payload?: unknown;
@@ -625,19 +613,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     expect(actionResult).toEqual({
       success: false,
-      message:
-        'Team LAL cannot be certified against its hard cap because Apron Team Salary is not complete.',
+      message: 'Signing requires an active world to commit.',
     });
-    expect(mutationMocks.computeWorldMutation).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mutationType: 'signFreeAgent',
-        payload: expect.objectContaining({
-          playerId: 'player_1',
-          signedUsing: 'Full MLE',
-          teamCode: 'LAL',
-        }),
-      })
-    );
+    expect(validationMocks.validateSigning).not.toHaveBeenCalled();
+    expect(mutationMocks.computeWorldMutation).not.toHaveBeenCalled();
     expect(sandboxOwner.worldOnly).toBeNull();
     expect(
       sandboxOwner.freeAgentModalAvailability.signAndTradeInitiation
@@ -849,8 +828,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     expect(vacuumActionResult).toEqual({
       success: false,
-      message:
-        'Team LAL cannot be certified against its hard cap because Apron Team Salary is not complete.',
+      message: 'Signing requires an active world to commit.',
     });
     expect(summarizeStandardSignPostState(worldResult.current).roster).toContain(
       'player_1'
@@ -862,7 +840,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(vacuumRefresh).not.toHaveBeenCalled();
   });
 
-  it('keeps vacuum standard signing on the local-validated lane even if a world reload helper is present', async () => {
+  it('keeps vacuum signing fail-closed even if a world reload helper is present', async () => {
     const rosterPlayers = Array.from({ length: 13 }, (_, index) =>
       createStandardRosterPlayer(index)
     );
@@ -910,7 +888,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       );
     });
 
-    expect(actionResult?.success).toBe(false);
+    expect(actionResult).toEqual({
+      success: false,
+      message: 'Signing requires an active world to commit.',
+    });
     expect(reloadActiveWorldTeamData).not.toHaveBeenCalled();
     expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
     expect(result.current.teamCapSheet).toEqual(signableBaseTeam);
@@ -1245,7 +1226,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     ]);
   });
 
-  it('reuses the same prepared standard-sign contract for vacuum legality validation and mutation compute', async () => {
+  it('does not prepare or compute a standard signing without saved-world authority', async () => {
     mutationMocks.computeWorldMutation.mockReturnValue({
       success: false,
       error: 'stop after capturing prepared standard-sign payload',
@@ -1261,41 +1242,15 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       );
     });
 
-    const validationArgs = validationMocks.validateSigning.mock.calls.at(
-      -1
-    )?.[0] as FreeAgencyValidationArgs;
-    const computeArgs = mutationMocks.computeWorldMutation.mock.calls.at(
-      -1
-    )?.[0] as FreeAgencyComputeArgs;
-
-    expect(actionResult).toEqual(
-      expect.objectContaining({
-        success: false,
-      })
-    );
-    expect(validationArgs.contract).toBe(computeArgs.payload.contract);
-    expect(validationArgs.signedUsing).toBe(computeArgs.payload.signedUsing);
-    expect(computeArgs).toEqual(
-      expect.objectContaining({
-        mutationType: 'signFreeAgent',
-        seasonId: '2025-26',
-        payload: expect.objectContaining({
-          playerId: 'player_1',
-          signedUsing: 'Full MLE',
-          contract: expect.objectContaining({
-            contractType: 'Staged Modal Contract',
-            signingTeam: 'LAL',
-            startYear: 2026,
-            contractYears: 2,
-            totalValue: 24_600_000,
-            firstYearGuaranteed: true,
-          }),
-        }),
-      })
-    );
+    expect(actionResult).toEqual({
+      success: false,
+      message: 'Signing requires an active world to commit.',
+    });
+    expect(validationMocks.validateSigning).not.toHaveBeenCalled();
+    expect(mutationMocks.computeWorldMutation).not.toHaveBeenCalled();
   });
 
-  it('blocks exception-backed signing in vacuum mode when canonical exception validation fails', async () => {
+  it('blocks exception-backed signing before validation when saved-world authority is absent', async () => {
     validationMocks.validateSigning.mockReturnValue({
       valid: false,
       violations: [
@@ -1323,14 +1278,14 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       );
     });
 
-    expect(actionResult).toEqual(
-      expect.objectContaining({
-        success: false,
-      })
-    );
+    expect(actionResult).toEqual({
+      success: false,
+      message: 'Signing requires an active world to commit.',
+    });
+    expect(validationMocks.validateSigning).not.toHaveBeenCalled();
     expect(mutationMocks.computeWorldMutation).not.toHaveBeenCalled();
     expect(toastMocks.error).toHaveBeenCalledWith(
-      expect.stringContaining('no canonical MLE owner exists')
+      'Signing requires an active world to commit.'
     );
   });
 

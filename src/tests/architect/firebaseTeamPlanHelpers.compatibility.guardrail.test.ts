@@ -190,6 +190,7 @@ const expectedHydratedTeamKeys = [
   'deadCap',
   'baseline',
   'totals',
+  'salaryBookInputs',
 ];
 
 beforeEach(() => {
@@ -318,6 +319,18 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
         ],
       },
       deadCap: [{ id: 'dead-1' }],
+      salaryBookInputs: {
+        version: 1 as const,
+        salaryCapYear: 2026,
+        apronAdjustments: {
+          status: 'not-evaluated' as const,
+          reason: 'Compatibility fixture',
+        },
+        taxSalary: {
+          status: 'not-evaluated' as const,
+          reason: 'Compatibility fixture',
+        },
+      },
       // Genuinely hard-capped: the team used its NT-MLE. `hardCapLevel` alone
       // is only the apron-band descriptor and must not mark a team hard-capped.
       hardCapTriggeredBy: 'NT-MLE',
@@ -389,6 +402,7 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
     expect(hydratedTeam.baseline).not.toBe(baseDoc);
     expect(hydratedTeam.hardCapLevel).toBe('firstApron');
     expect(hydratedTeam.hardCapped).toBe(true);
+    expect(hydratedTeam.salaryBookInputs).toEqual(baseDoc.salaryBookInputs);
     expect(hydratedTeam.exceptions).toEqual(
       expect.objectContaining({
         mle: expect.objectContaining({

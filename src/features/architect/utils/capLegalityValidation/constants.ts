@@ -79,7 +79,7 @@ export const HARD_BLOCK_RULES = [
  * - MINIMUM contracts: 1-2 years
  * - Full MLE (Non-Taxpayer MLE): 1-4 years
  * - Taxpayer MLE: 1-2 years (not 3 - that was incorrect in UI)
- * - Room MLE: 1-2 years
+ * - Room MLE: 1-3 years
  * - BAE (Bi-Annual Exception): 1-2 years
  *
  * Reference: useCapValidation.js exceptionGuardrails (UI validation)
@@ -89,7 +89,7 @@ export const SIGNING_YEARS_LIMITS = {
   MINIMUM: { minYears: 1, maxYears: 2 },
   FULL_MLE: { minYears: 1, maxYears: 4 },
   TPMLE: { minYears: 1, maxYears: 2 },
-  ROOM_MLE: { minYears: 1, maxYears: 2 },
+  ROOM_MLE: { minYears: 1, maxYears: 3 },
   BAE: { minYears: 1, maxYears: 2 },
   TEN_DAY: { minYears: 1, maxYears: 1 },
 };

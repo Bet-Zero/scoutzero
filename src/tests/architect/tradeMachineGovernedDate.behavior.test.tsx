@@ -117,6 +117,7 @@ function buildBuyoutLifecycle(teamCode: string): GovernedWaiverLifecycle {
     paymentAllocations: [allocation],
     setOffStatus: 'needs-authenticated-earnings',
     setOffFormula: 'Authenticated earnings required.',
+    setOffApplication: null,
     originalContractEndsAt: '2027-06-30T23:59:59-04:00',
     reacquisitionRestrictedUntil: '2027-06-29T12:00:00-04:00',
     contractAuthority: {

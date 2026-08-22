@@ -8,10 +8,12 @@ const testState = vi.hoisted(() => ({
   batchUpdate: vi.fn(),
   batchDelete: vi.fn(),
   batchCommit: vi.fn(async (): Promise<void> => undefined),
-  getDoc: vi.fn(async (): Promise<{ exists: () => boolean; data: () => DocShape }> => ({
-    exists: () => false,
-    data: () => null,
-  })),
+  getDoc: vi.fn(
+    async (): Promise<{ exists: () => boolean; data: () => DocShape }> => ({
+      exists: () => false,
+      data: () => null,
+    })
+  ),
   getTeam: vi.fn(),
   getPlayer: vi.fn(),
   getLeague: vi.fn(async (): Promise<unknown[]> => []),
@@ -28,7 +30,7 @@ const testState = vi.hoisted(() => ({
   validateTrade: vi.fn(),
   getWorldMetadata: vi.fn(async () => ({
     parentWorldId: null,
-    asOfDate: '2026-07-01',
+    asOfDate: '2026-07-08',
   })),
 }));
 
@@ -43,6 +45,24 @@ vi.mock('firebase/firestore', () => ({
     delete: testState.batchDelete,
     commit: testState.batchCommit,
   })),
+  runTransaction: vi.fn(
+    async (
+      _db: unknown,
+      updateFunction: (transaction: {
+        get: typeof testState.getDoc;
+        set: typeof testState.batchSet;
+        update: typeof testState.batchUpdate;
+        delete: typeof testState.batchDelete;
+      }) => Promise<unknown>
+    ) =>
+      updateFunction({
+        get: testState.getDoc,
+        set: testState.batchSet,
+        update: testState.batchUpdate,
+        delete: testState.batchDelete,
+      })
+  ),
+
   getDoc: testState.getDoc,
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments: unknown[]) => segments.map(String).join('/')),
@@ -68,7 +88,11 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
   validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
-  validateExtension: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateExtension: vi.fn(() => ({
+    valid: true,
+    violations: [],
+    warnings: [],
+  })),
   validateOptionDecision: vi.fn(() => ({
     valid: true,
     violations: [],
@@ -123,8 +147,8 @@ vi.mock('@/features/architect/utils/leagueInvariants', () => ({
 
 import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
 
-const FIXED_TIMESTAMP = Date.parse('2026-03-25T12:00:00.000Z');
-const FIXED_TIMESTAMP_ISO = '2026-03-25T12:00:00.000Z';
+const FIXED_TIMESTAMP = Date.parse('2026-08-21T12:00:00.000Z');
+const FIXED_TIMESTAMP_ISO = '2026-08-21T12:00:00.000Z';
 const SEASON_ID = '2025-26';
 const WORLD_ID = 'world_current_state_apply_contract';
 
@@ -197,7 +221,15 @@ function makeTeam(
     const contract = player.contract as
       | { salariesByYear?: Array<{ capHit?: number | string | null }> }
       | undefined;
-    return sum + Number(contract?.salariesByYear?.[0]?.capHit ?? player.currentSalary ?? player.salary ?? 0);
+    return (
+      sum +
+      Number(
+        contract?.salariesByYear?.[0]?.capHit ??
+          player.currentSalary ??
+          player.salary ??
+          0
+      )
+    );
   }, 0);
 
   return {
@@ -251,9 +283,7 @@ function buildTradeTeamResult({
     legal: true,
     violations: [],
     warnings: [],
-    rules: tradeExceptionsRule
-      ? { tradeExceptions: tradeExceptionsRule }
-      : {},
+    rules: tradeExceptionsRule ? { tradeExceptions: tradeExceptionsRule } : {},
     salaryOut: 0,
     salaryIn: 0,
     outgoingPlayers: [],
@@ -291,37 +321,46 @@ describe('mutationPipeline current-state apply contract', () => {
 
     testState.getWorldMetadata.mockResolvedValue({
       parentWorldId: null,
-      asOfDate: '2026-07-01',
+      asOfDate: '2026-07-08',
     });
 
-    testState.validateTrade.mockImplementation((input?: { teams?: unknown[] }) => {
-      const teams = Array.isArray(input?.teams)
-        ? (input.teams as Array<Record<string, unknown> | null | undefined>)
-        : [];
-      const legal =
-        teams.length > 0 &&
-        teams.every((teamTrade) => {
-          const team = (teamTrade?.team as Record<string, unknown> | undefined) || {};
-          return typeof team.teamTotalSalary === 'number' && team.teamTotalSalary > 0;
-        });
-
-      return {
-        valid: legal,
-        success: legal,
-        legal,
-        reason: legal ? null : 'teamTotalSalary must be numeric at the apply boundary',
-        violations: [],
-        warnings: [],
-        teamResults: teams.map((teamTrade) => {
-          const team = (teamTrade?.team as Record<string, unknown> | undefined) || {};
-          const teamCode = String(teamTrade?.teamCode || team.teamCode || '');
-          return buildTradeTeamResult({
-            teamCode,
-            totalSalary: Number(team.teamTotalSalary || 0),
+    testState.validateTrade.mockImplementation(
+      (input?: { teams?: unknown[] }) => {
+        const teams = Array.isArray(input?.teams)
+          ? (input.teams as Array<Record<string, unknown> | null | undefined>)
+          : [];
+        const legal =
+          teams.length > 0 &&
+          teams.every((teamTrade) => {
+            const team =
+              (teamTrade?.team as Record<string, unknown> | undefined) || {};
+            return (
+              typeof team.teamTotalSalary === 'number' &&
+              team.teamTotalSalary > 0
+            );
           });
-        }),
-      };
-    });
+
+        return {
+          valid: legal,
+          success: legal,
+          legal,
+          reason: legal
+            ? null
+            : 'teamTotalSalary must be numeric at the apply boundary',
+          violations: [],
+          warnings: [],
+          teamResults: teams.map((teamTrade) => {
+            const team =
+              (teamTrade?.team as Record<string, unknown> | undefined) || {};
+            const teamCode = String(teamTrade?.teamCode || team.teamCode || '');
+            return buildTradeTeamResult({
+              teamCode,
+              totalSalary: Number(team.teamTotalSalary || 0),
+            });
+          }),
+        };
+      }
+    );
   });
 
   it('signFreeAgent still applies through narrowed current-state player loading', async () => {
@@ -332,18 +371,20 @@ describe('mutationPipeline current-state apply contract', () => {
       tpeId: 'legacy_tpe_input',
     });
 
-    testState.getTeam.mockImplementation(async (_worldId: string, teamCode: string) => {
-      if (teamCode === 'LAL') {
-        return team;
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'LAL') {
+          return team;
+        }
+        throw new Error(`Unexpected team load: ${teamCode}`);
       }
-      throw new Error(`Unexpected team load: ${teamCode}`);
-    });
+    );
     testState.getPlayer.mockResolvedValue(freeAgent);
 
     const result = await applyWorldMutation({
       userId: 'user_current_state_contract',
       worldId: WORLD_ID,
-      seasonId: SEASON_ID,
+      seasonId: '2026-27',
       mutationType: 'signFreeAgent',
       payload: {
         teamCode: 'LAL',
@@ -352,6 +393,20 @@ describe('mutationPipeline current-state apply contract', () => {
           years: 2,
           contractYears: 2,
           totalValue: 17_000_000,
+          salariesByYear: [
+            {
+              season: '2026-27',
+              salary: 8_500_000,
+              capHit: 8_500_000,
+              guaranteed: true,
+            },
+            {
+              season: '2027-28',
+              salary: 8_500_000,
+              capHit: 8_500_000,
+              guaranteed: true,
+            },
+          ],
         }),
         signedUsing: 'Cap Space',
       },
@@ -361,7 +416,9 @@ describe('mutationPipeline current-state apply contract', () => {
     expect(result.success).toBe(true);
     expect(result.changedTeams?.[0]?.team?.roster).toContain('fa_1');
     expect(result.changedPlayers?.[0]?.player?.teamCode).toBe('LAL');
-    expect(result.changedPlayers?.[0]?.player?.contract?.signingTeam).toBe('LAL');
+    expect(result.changedPlayers?.[0]?.player?.contract?.signingTeam).toBe(
+      'LAL'
+    );
     expect(result.changedPlayers?.[0]?.player?.representation).toEqual({
       agent: 'Boundary Agent',
       agency: 'Boundary Agency',
@@ -397,11 +454,13 @@ describe('mutationPipeline current-state apply contract', () => {
       totalSalary: '121000000',
     };
 
-    testState.getTeam.mockImplementation(async (_worldId: string, teamCode: string) => {
-      if (teamCode === 'LAL') return teamA;
-      if (teamCode === 'BOS') return teamB;
-      throw new Error(`Unexpected team load: ${teamCode}`);
-    });
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'LAL') return teamA;
+        if (teamCode === 'BOS') return teamB;
+        throw new Error(`Unexpected team load: ${teamCode}`);
+      }
+    );
 
     const result = await applyWorldMutation({
       userId: 'user_current_state_contract',
@@ -432,11 +491,15 @@ describe('mutationPipeline current-state apply contract', () => {
       (update) => update.teamCode === 'BOS'
     )?.team;
     const movedPlayer = bostonTeam?.players?.find(
-      (player) => player.playerId === 'player_a' || player.player_id === 'player_a'
+      (player) =>
+        player.playerId === 'player_a' || player.player_id === 'player_a'
     );
 
     expect(movedPlayer?.displayName).toBe('Player A');
-    expect(result.changedPlayers?.find((update) => update.playerId === 'player_a')?.player?.teamCode).toBe('BOS');
+    expect(
+      result.changedPlayers?.find((update) => update.playerId === 'player_a')
+        ?.player?.teamCode
+    ).toBe('BOS');
   });
 
   it('executeTrade TPE consumption follows authoritative validated apply-time players, not raw payload receives', async () => {
@@ -458,51 +521,61 @@ describe('mutationPipeline current-state apply contract', () => {
       ],
     });
 
-    testState.getTeam.mockImplementation(async (_worldId: string, teamCode: string) => {
-      if (teamCode === 'LAL') return teamA;
-      if (teamCode === 'BOS') return teamB;
-      throw new Error(`Unexpected team load: ${teamCode}`);
-    });
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'LAL') return teamA;
+        if (teamCode === 'BOS') return teamB;
+        throw new Error(`Unexpected team load: ${teamCode}`);
+      }
+    );
 
-    testState.validateTrade.mockImplementationOnce((input?: { teams?: unknown[] }) => {
-      const teams = Array.isArray(input?.teams)
-        ? (input.teams as Array<Record<string, unknown> | null | undefined>)
-        : [];
-      const lalSalary = Number((teams[0]?.team as Record<string, unknown> | undefined)?.teamTotalSalary || 0);
-      const bosSalary = Number((teams[1]?.team as Record<string, unknown> | undefined)?.teamTotalSalary || 0);
+    testState.validateTrade.mockImplementationOnce(
+      (input?: { teams?: unknown[] }) => {
+        const teams = Array.isArray(input?.teams)
+          ? (input.teams as Array<Record<string, unknown> | null | undefined>)
+          : [];
+        const lalSalary = Number(
+          (teams[0]?.team as Record<string, unknown> | undefined)
+            ?.teamTotalSalary || 0
+        );
+        const bosSalary = Number(
+          (teams[1]?.team as Record<string, unknown> | undefined)
+            ?.teamTotalSalary || 0
+        );
 
-      return {
-        valid: true,
-        success: true,
-        legal: true,
-        reason: null,
-        violations: [],
-        warnings: [],
-        teamResults: [
-          buildTradeTeamResult({
-            teamCode: 'LAL',
-            totalSalary: lalSalary,
-          }),
-          buildTradeTeamResult({
-            teamCode: 'BOS',
-            totalSalary: bosSalary,
-            incomingPlayers: [
-              {
-                player_id: 'player_a',
-                id: 'player_a',
-                playerId: 'player_a',
-                name: 'Player A',
-                displayName: 'Player A',
-                absorptionMode: 'TPE',
-                tpeId: 'tpe_bos',
-                matchIncoming: 3_000_000,
-              },
-            ],
-            tradeExceptionsRule: {},
-          }),
-        ],
-      };
-    });
+        return {
+          valid: true,
+          success: true,
+          legal: true,
+          reason: null,
+          violations: [],
+          warnings: [],
+          teamResults: [
+            buildTradeTeamResult({
+              teamCode: 'LAL',
+              totalSalary: lalSalary,
+            }),
+            buildTradeTeamResult({
+              teamCode: 'BOS',
+              totalSalary: bosSalary,
+              incomingPlayers: [
+                {
+                  player_id: 'player_a',
+                  id: 'player_a',
+                  playerId: 'player_a',
+                  name: 'Player A',
+                  displayName: 'Player A',
+                  absorptionMode: 'TPE',
+                  tpeId: 'tpe_bos',
+                  matchIncoming: 3_000_000,
+                },
+              ],
+              tradeExceptionsRule: {},
+            }),
+          ],
+        };
+      }
+    );
 
     const result = await applyWorldMutation({
       userId: 'user_current_state_contract',

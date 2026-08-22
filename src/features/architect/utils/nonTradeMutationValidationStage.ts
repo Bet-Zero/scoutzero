@@ -20,7 +20,11 @@ import {
 } from '@/features/architect/utils/capLegalityValidation';
 import { validateGovernedPriorTeamOptionSigning } from '@/features/architect/utils/capLegalityValidation/governedPriorTeamOptionSigning';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import { resolveGovernedSigningAuthority } from '@/features/architect/utils/signings';
+import { resolveSigningMechanismForPipeline } from './mutationPipeline.compute.signings';
 import type {
+  ArchitectMutationContract,
+  ArchitectMutationTeamRecord,
   ArchitectMutationOfferSheet,
   ComputeResultLike,
   MutationCurrentState,
@@ -222,6 +226,37 @@ function validateSigningSideMutation({
           dateDefaulted,
         })
       : { valid: true, violations: [], warnings: [] };
+  const isGovernedSavedWorldSigning =
+    mutationType === 'signFreeAgent' &&
+    currentState.signingTeamSnapshot != null;
+  const governedSigningAuthority =
+    isGovernedSavedWorldSigning && !dateDefaulted
+      ? resolveGovernedSigningAuthority({
+          team: team as ArchitectMutationTeamRecord,
+          contract: payload.contract as ArchitectMutationContract,
+          mechanism: resolveSigningMechanismForPipeline(
+            payload.contract,
+            payload.signedUsing
+          ),
+          worldDate: asOfDate,
+          salaryCapYear: currentYear,
+        })
+      : isGovernedSavedWorldSigning
+        ? {
+            status: 'needs-input' as const,
+            reasons: [
+              'Signing requires an exact saved-world date; runtime-clock fallback is not permitted.',
+            ],
+          }
+        : null;
+  const governedSigningViolations =
+    governedSigningAuthority?.status === 'needs-input'
+      ? governedSigningAuthority.reasons.map((message) => ({
+          rule: 'governed_signing_needs_input',
+          message,
+          severity: 'error' as const,
+        }))
+      : [];
   const result = validateSigning({
     team,
     player,
@@ -234,9 +269,13 @@ function validateSigningSideMutation({
   });
 
   return formatValidatorResult({
-    valid: governedOptionSigningResult.valid && result.valid,
+    valid:
+      governedOptionSigningResult.valid &&
+      governedSigningViolations.length === 0 &&
+      result.valid,
     violations: [
       ...governedOptionSigningResult.violations,
+      ...governedSigningViolations,
       ...result.violations,
     ],
     warnings:

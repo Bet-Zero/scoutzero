@@ -721,6 +721,12 @@ export async function loadStateForMutation(
       if (!teamCode || !playerId)
         throw new Error('Missing teamCode or playerId');
 
+      const signingSnapshots =
+        await loadGovernedPlayerOperationSnapshotReceipts({
+          worldId,
+          teamCode: String(teamCode),
+          playerId: String(playerId),
+        });
       const [team, player] = (await Promise.all([
         getTeam(worldId, teamCode),
         getPlayer(worldId, teamCode, playerId),
@@ -732,14 +738,21 @@ export async function loadStateForMutation(
         | null
         | undefined;
       let homeTeam = null;
+      let signingPriorTeamSnapshot = null;
       if (homeTeamCode && homeTeamCode !== teamCode) {
-        homeTeam = toCurrentStateTeam(
-          (await getTeam(
+        const [loadedHomeTeam, priorSnapshots] = await Promise.all([
+          getTeam(worldId, homeTeamCode),
+          loadGovernedPlayerOperationSnapshotReceipts({
             worldId,
-            homeTeamCode
-          )) as MutationCurrentStateOfferSheetTeamIngress | null,
+            teamCode: String(homeTeamCode),
+            playerId: String(playerId),
+          }),
+        ]);
+        homeTeam = toCurrentStateTeam(
+          loadedHomeTeam as MutationCurrentStateOfferSheetTeamIngress | null,
           'offerSheetMirror'
         );
+        signingPriorTeamSnapshot = priorSnapshots.team;
       }
 
       return {
@@ -750,6 +763,9 @@ export async function loadStateForMutation(
         player: toCurrentStatePlayer(player),
         teamCode,
         homeTeam,
+        signingTeamSnapshot: signingSnapshots.team,
+        signingPlayerSnapshot: signingSnapshots.player,
+        signingPriorTeamSnapshot,
       };
     }
 

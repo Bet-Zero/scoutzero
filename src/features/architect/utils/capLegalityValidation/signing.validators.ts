@@ -4,9 +4,7 @@
  */
 
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
-import {
-  canUseRoomException,
-} from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { canUseRoomException } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
   getCanonicalExceptionEntry,
   getCanonicalExceptionKeyForSigningMechanism,
@@ -287,7 +285,11 @@ export function validateExceptionEligibility({
     'roommle',
     'rmle',
   ];
-  if (!apronRestrictedMechanisms.some((mechanism) => normalizedException.includes(mechanism))) {
+  if (
+    !apronRestrictedMechanisms.some((mechanism) =>
+      normalizedException.includes(mechanism)
+    )
+  ) {
     return { blocked: false, reason: null, violation: null };
   }
 
@@ -302,7 +304,8 @@ export function validateExceptionEligibility({
       reason: 'Apron Team Salary needs governed input.',
       violation: {
         rule: 'salary_book_needs_input',
-        message: 'Cannot validate exception eligibility until Apron Team Salary is complete.',
+        message:
+          'Cannot validate exception eligibility until Apron Team Salary is complete.',
         severity: 'error',
       },
     };
@@ -321,8 +324,16 @@ export function validateExceptionEligibility({
   // RULE 1: Second Apron teams cannot use any exceptions
   if (isAboveSecondApron) {
     const blockedExceptions = [
-      'mle', 'ntmle', 'fullmle', 'bae', 'tpe', 'tpmle',
-      'taxpayermle', 'room', 'roommle', 'rmle',
+      'mle',
+      'ntmle',
+      'fullmle',
+      'bae',
+      'tpe',
+      'tpmle',
+      'taxpayermle',
+      'room',
+      'roommle',
+      'rmle',
     ];
     if (blockedExceptions.some((e) => normalizedException.includes(e))) {
       return {
@@ -457,17 +468,21 @@ export function validateExceptionEligibility({
     }
   }
 
-  // RULE 6: One MLE per season — a team may use only one of the Non-Taxpayer
-  // MLE, Taxpayer MLE, or Room MLE in a given season. If a different MLE flavor
-  // has already been consumed this season, block the new one. (The BAE is a
-  // separate exception and is intentionally excluded from this mutual
-  // exclusivity check.)
+  // RULE 6: Exception-use exclusivity. NTMLE, TMLE, and Room MLE are mutually
+  // exclusive. Room MLE additionally conflicts with BAE in either direction:
+  // BAE/NTMLE/TMLE use makes Room unavailable, and Room use installs the later
+  // BAE/NTMLE/TMLE bar for that Salary Cap Year (CBA2-C13.30/.40).
   const MLE_FLAVORS: CanonicalNonTpeExceptionKey[] = ['mle', 'tpmle', 'room'];
-  if (
-    canonicalExceptionKey &&
-    MLE_FLAVORS.includes(canonicalExceptionKey)
-  ) {
-    const conflictingFlavor = MLE_FLAVORS.find((flavor) => {
+  const conflictingExceptionKeys: CanonicalNonTpeExceptionKey[] =
+    canonicalExceptionKey === 'room'
+      ? ['mle', 'tpmle', 'bae']
+      : canonicalExceptionKey === 'bae'
+        ? ['room']
+        : canonicalExceptionKey && MLE_FLAVORS.includes(canonicalExceptionKey)
+          ? MLE_FLAVORS.filter((flavor) => flavor !== canonicalExceptionKey)
+          : [];
+  if (canonicalExceptionKey && conflictingExceptionKeys.length > 0) {
+    const conflictingFlavor = conflictingExceptionKeys.find((flavor) => {
       if (flavor === canonicalExceptionKey) return false;
       const entry = getCanonicalExceptionEntry(team, flavor);
       return (entry?.usedAmount ?? 0) > 0;
@@ -481,10 +496,10 @@ export function validateExceptionEligibility({
       };
       return {
         blocked: true,
-        reason: 'Only one MLE may be used per season',
+        reason: 'This exception conflicts with an earlier same-year use',
         violation: {
           rule: 'exception_blocked',
-          message: `Cannot use ${flavorLabels[canonicalExceptionKey]} - the team has already used its ${flavorLabels[conflictingFlavor]} this season. Only one Mid-Level/Room Exception may be used per season.`,
+          message: `Cannot use ${flavorLabels[canonicalExceptionKey]} - the team has already used its ${flavorLabels[conflictingFlavor]} this season. The selected exceptions cannot both be used in the same Salary Cap Year.`,
           severity: 'error',
         },
       };

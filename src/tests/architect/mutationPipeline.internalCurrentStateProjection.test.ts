@@ -28,7 +28,7 @@ const testState = vi.hoisted(() => ({
   validateTrade: vi.fn(),
   getWorldMetadata: vi.fn(async () => ({
     parentWorldId: null,
-    asOfDate: '2026-07-01',
+    asOfDate: '2026-07-08',
   })),
 }));
 
@@ -43,6 +43,24 @@ vi.mock('firebase/firestore', () => ({
     delete: testState.batchDelete,
     commit: testState.batchCommit,
   })),
+  runTransaction: vi.fn(
+    async (
+      _db: unknown,
+      updateFunction: (transaction: {
+        get: typeof testState.getDoc;
+        set: typeof testState.batchSet;
+        update: typeof testState.batchUpdate;
+        delete: typeof testState.batchDelete;
+      }) => Promise<unknown>
+    ) =>
+      updateFunction({
+        get: testState.getDoc,
+        set: testState.batchSet,
+        update: testState.batchUpdate,
+        delete: testState.batchDelete,
+      })
+  ),
+
   getDoc: testState.getDoc,
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments: unknown[]) => segments.map(String).join('/')),
@@ -67,7 +85,11 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
   validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
-  validateExtension: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateExtension: vi.fn(() => ({
+    valid: true,
+    violations: [],
+    warnings: [],
+  })),
   validateOptionDecision: vi.fn(() => ({
     valid: true,
     violations: [],
@@ -139,8 +161,8 @@ type SignFreeAgentCurrentState = CurrentStateFor<'signFreeAgent'>;
 type SignAndTradeCurrentState = CurrentStateFor<'signAndTrade'>;
 
 const SEASON_ID = '2025-26';
-const FIXED_TIMESTAMP = Date.parse('2026-04-14T12:00:00.000Z');
-const FIXED_TIMESTAMP_ISO = '2026-04-14T12:00:00.000Z';
+const FIXED_TIMESTAMP = Date.parse('2026-08-21T12:00:00.000Z');
+const FIXED_TIMESTAMP_ISO = '2026-08-21T12:00:00.000Z';
 const WORLD_ID = 'world_internal_current_state_projection';
 
 function makeBirdRights(
@@ -185,7 +207,8 @@ function makePlayer(
   name: string,
   salary: number,
   teamCode: string | null,
-  overrides: Partial<ArchitectMutationPlayerRecord> & Record<string, unknown> = {}
+  overrides: Partial<ArchitectMutationPlayerRecord> &
+    Record<string, unknown> = {}
 ): ArchitectMutationPlayerRecord & Record<string, unknown> {
   return {
     player_id: id,
@@ -324,31 +347,37 @@ beforeEach(() => {
   });
   testState.getWorldMetadata.mockResolvedValue({
     parentWorldId: null,
-    asOfDate: '2026-07-01',
+    asOfDate: '2026-07-08',
   });
-  testState.validateTrade.mockImplementation((input?: { teams?: unknown[] }) => {
-    const teams = Array.isArray(input?.teams)
-      ? (input.teams as Array<Record<string, unknown> | null | undefined>)
-      : [];
+  testState.validateTrade.mockImplementation(
+    (input?: { teams?: unknown[] }) => {
+      const teams = Array.isArray(input?.teams)
+        ? (input.teams as Array<Record<string, unknown> | null | undefined>)
+        : [];
 
-    return {
-      valid: true,
-      success: true,
-      legal: true,
-      reason: null,
-      violations: [],
-      warnings: [],
-      teamResults: teams.map((teamTrade) => {
-        const team = (teamTrade?.team as Record<string, unknown> | undefined) || {};
-        const totals = (team.totals as Record<string, unknown> | undefined) || {};
-        const teamCode = String(teamTrade?.teamCode || team.teamCode || '');
-        return buildTradeTeamResult({
-          teamCode,
-          totalSalary: Number(team.teamTotalSalary || totals.totalSalary || 0),
-        });
-      }),
-    };
-  });
+      return {
+        valid: true,
+        success: true,
+        legal: true,
+        reason: null,
+        violations: [],
+        warnings: [],
+        teamResults: teams.map((teamTrade) => {
+          const team =
+            (teamTrade?.team as Record<string, unknown> | undefined) || {};
+          const totals =
+            (team.totals as Record<string, unknown> | undefined) || {};
+          const teamCode = String(teamTrade?.teamCode || team.teamCode || '');
+          return buildTradeTeamResult({
+            teamCode,
+            totalSalary: Number(
+              team.teamTotalSalary || totals.totalSalary || 0
+            ),
+          });
+        }),
+      };
+    }
+  );
 });
 
 describe('mutationPipeline internal current-state projection', () => {
@@ -421,9 +450,8 @@ describe('mutationPipeline internal current-state projection', () => {
     expect(result.success).toBe(true);
 
     const committedTeam = findCommittedTeamSnapshot(result.changedTeams, 'LAL');
-    const reloadTeam = buildGeneralMutationDashboardReloadTeamSnapshot(
-      committedTeam
-    );
+    const reloadTeam =
+      buildGeneralMutationDashboardReloadTeamSnapshot(committedTeam);
 
     expect(committedTeam?.tradeExceptions).toEqual([
       expect.objectContaining({
@@ -458,35 +486,43 @@ describe('mutationPipeline internal current-state projection', () => {
 
   it('keeps the player-side projection path working for signFreeAgent and strips loader-only baggage', async () => {
     const team = makeTeam('LAL', []);
-    const freeAgent = makePlayer('fa_projection_1', 'Projection Free Agent', 0, null, {
-      representation: {
-        agent: 'Projection Agent',
-        agency: 'Projection Agency',
-      },
-      source: {
-        provider: 'test-suite',
-        generatedAt: FIXED_TIMESTAMP_ISO,
-        playerPageUrl: 'https://example.com/fa_projection_1',
-      },
-      lastUpdated: FIXED_TIMESTAMP_ISO,
-      version: 'player-version-9',
-      isTwoWay: true,
-      signedDate: '2025-07-09',
-      legacyPlayerProjectionEnvelope: { shouldDrop: true },
-    });
-
-    testState.getTeam.mockImplementation(async (_worldId: string, teamCode: string) => {
-      if (teamCode === 'LAL') {
-        return team;
+    const freeAgent = makePlayer(
+      'fa_projection_1',
+      'Projection Free Agent',
+      0,
+      null,
+      {
+        representation: {
+          agent: 'Projection Agent',
+          agency: 'Projection Agency',
+        },
+        source: {
+          provider: 'test-suite',
+          generatedAt: FIXED_TIMESTAMP_ISO,
+          playerPageUrl: 'https://example.com/fa_projection_1',
+        },
+        lastUpdated: FIXED_TIMESTAMP_ISO,
+        version: 'player-version-9',
+        isTwoWay: true,
+        signedDate: '2025-07-09',
+        legacyPlayerProjectionEnvelope: { shouldDrop: true },
       }
-      throw new Error(`Unexpected team load: ${teamCode}`);
-    });
+    );
+
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'LAL') {
+          return team;
+        }
+        throw new Error(`Unexpected team load: ${teamCode}`);
+      }
+    );
     testState.getPlayer.mockResolvedValue(freeAgent);
 
     const result = await applyWorldMutation({
       userId: 'user_projection_player',
       worldId: WORLD_ID,
-      seasonId: SEASON_ID,
+      seasonId: '2026-27',
       mutationType: 'signFreeAgent',
       payload: {
         teamCode: 'LAL',
@@ -495,6 +531,20 @@ describe('mutationPipeline internal current-state projection', () => {
           years: 2,
           contractYears: 2,
           totalValue: 17_000_000,
+          salariesByYear: [
+            {
+              season: '2026-27',
+              salary: 8_500_000,
+              capHit: 8_500_000,
+              guaranteed: true,
+            },
+            {
+              season: '2027-28',
+              salary: 8_500_000,
+              capHit: 8_500_000,
+              guaranteed: true,
+            },
+          ],
         }),
         signedUsing: 'Cap Space',
       },
@@ -533,7 +583,9 @@ describe('mutationPipeline internal current-state projection', () => {
       provider: 'test-suite',
       playerPageUrl: 'https://example.com/fa_projection_1',
     });
-    expect(persistedPlayer).not.toHaveProperty('legacyPlayerProjectionEnvelope');
+    expect(persistedPlayer).not.toHaveProperty(
+      'legacyPlayerProjectionEnvelope'
+    );
   });
 
   it('keeps the narrowed trade-side projection working through sign-and-trade compute handoff', () => {
@@ -611,7 +663,8 @@ describe('mutationPipeline internal current-state projection', () => {
       currentState: {
         team: sourceTeam as SignAndTradeCurrentState['team'],
         player: satPlayer as SignAndTradeCurrentState['player'],
-        destinationTeam: destinationTeam as SignAndTradeCurrentState['destinationTeam'],
+        destinationTeam:
+          destinationTeam as SignAndTradeCurrentState['destinationTeam'],
         teamCode: 'LAL',
       },
       seasonId: SEASON_ID,
@@ -636,9 +689,11 @@ describe('mutationPipeline internal current-state projection', () => {
       sourceUpdate?.capHolds?.some((hold) => hold.playerId === 'sat_player')
     ).toBe(false);
     expect(destinationUpdate?.roster).toContain('sat_player');
-    expect(destinationUpdate?.players?.some((player) => player.player_id === 'sat_player')).toBe(
-      true
-    );
+    expect(
+      destinationUpdate?.players?.some(
+        (player) => player.player_id === 'sat_player'
+      )
+    ).toBe(true);
     expect(movedPlayer?.teamCode).toBe('BOS');
     expect(movedPlayer?.contract?.contractType).toBe('Sign & Trade');
     expect(

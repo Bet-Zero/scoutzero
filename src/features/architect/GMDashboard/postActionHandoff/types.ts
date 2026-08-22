@@ -498,6 +498,7 @@ export interface DeriveReceiptFromTeamSnapshotsArgs
   selectedYear: number;
   primaryPlayerIds?: string[];
   authority?: ArchitectPostActionReceiptAuthority;
+  economicAsOfDate?: string | null;
 }
 
 function persistenceForAuthority(
@@ -1104,6 +1105,7 @@ export function deriveReceiptFromTeamSnapshots({
   payload,
   actionContext = null,
   authority = 'committed-world',
+  economicAsOfDate = null,
 }: DeriveReceiptFromTeamSnapshotsArgs): ArchitectPostActionReceipt | null {
   const resolvedActionContext = resolveReceiptActionContext({
     mutationType,
@@ -1138,7 +1140,7 @@ export function deriveReceiptFromTeamSnapshots({
       primaryPlayerIds: mergedPlayerIds,
       playerName: baseReceipt.impact.playerName,
       actionContext: resolvedActionContext,
-      asOfDate: occurredAt || extractOccurredAt(result),
+      asOfDate: economicAsOfDate || occurredAt || extractOccurredAt(result),
     });
 
     return {
@@ -1171,7 +1173,7 @@ export function deriveReceiptFromTeamSnapshots({
     primaryPlayerIds: mergedPlayerIds,
     playerName,
     actionContext: resolvedActionContext,
-    asOfDate: occurredAt,
+    asOfDate: economicAsOfDate || occurredAt,
   });
 
   return {

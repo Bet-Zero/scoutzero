@@ -133,7 +133,8 @@ export const FENCED_HISTORY_SCHEMA_MODULE =
  * BZE-275 owns option authority, atomic persistence, and branch identity
  * rewriting; BZE-276 consumes that authority at the Prior Team signing gate;
  * BZE-282 owns governed extension inspection and immutable event creation;
- * BZE-284 consumes the same pinned history for governed waiver authority.
+ * BZE-284 consumes the same pinned history for governed waiver authority;
+ * BZE-286 authors the root event for a governed saved-world signing.
  */
 export const GOVERNED_CONTRACT_HISTORY_CONSUMERS = Object.freeze([
   'src/features/architect/utils/contractSource/contractSourceRelease.ts',
@@ -145,6 +146,7 @@ export const GOVERNED_CONTRACT_HISTORY_CONSUMERS = Object.freeze([
   'src/features/architect/utils/extensions/worldExtensionAuthority.ts',
   'src/features/architect/utils/waivers/governedWaiver.ts',
   'src/features/architect/utils/waivers/worldWaiverAuthority.ts',
+  'src/features/architect/utils/signings/governedSigningHistory.ts',
   'src/features/architect/utils/mutationPipeline.persist.ts',
   'src/features/architect/utils/worldManager.core.ts',
 ] as const);

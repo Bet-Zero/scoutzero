@@ -23,6 +23,7 @@ import {
   readArchitectUnknownArray,
   requireArchitectRecord,
 } from '@/features/architect/utils/architectFirestoreBoundary';
+import type { TeamSalaryBookInputs } from '@/schemas/salaryBooks';
 
 // ============================================================
 // Private types
@@ -86,6 +87,7 @@ export interface LooseBaseTeamDoc extends UnknownRecord {
   hardCapReason?: string | null;
   hardCapTriggeredBy?: string | null;
   deadCap?: unknown[] | null;
+  salaryBookInputs?: TeamSalaryBookInputs | null;
   totals?:
     | (UnknownRecord & {
         hardCapLevel?: string | null;

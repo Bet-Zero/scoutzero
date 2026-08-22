@@ -260,6 +260,12 @@ function authenticatedRfaRelevanceEvidence(
     );
   }
   const source = state.source;
+  if (!('releaseId' in source)) {
+    reasons.push(
+      'RFA-relevance evidence cannot authenticate against an Architect-authored signing source.'
+    );
+    return evidence;
+  }
   if (
     evidence.sourceIdentity.releaseId !== source.releaseId ||
     evidence.sourceIdentity.releaseVersion !== source.releaseVersion ||

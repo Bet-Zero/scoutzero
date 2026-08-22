@@ -28,7 +28,7 @@ const testState = vi.hoisted(() => ({
   validateTrade: vi.fn(),
   getWorldMetadata: vi.fn(async () => ({
     parentWorldId: null,
-    asOfDate: '2026-07-01',
+    asOfDate: '2026-07-08',
   })),
 }));
 
@@ -43,6 +43,24 @@ vi.mock('firebase/firestore', () => ({
     delete: testState.batchDelete,
     commit: testState.batchCommit,
   })),
+  runTransaction: vi.fn(
+    async (
+      _db: unknown,
+      updateFunction: (transaction: {
+        get: typeof testState.getDoc;
+        set: typeof testState.batchSet;
+        update: typeof testState.batchUpdate;
+        delete: typeof testState.batchDelete;
+      }) => Promise<unknown>
+    ) =>
+      updateFunction({
+        get: testState.getDoc,
+        set: testState.batchSet,
+        update: testState.batchUpdate,
+        delete: testState.batchDelete,
+      })
+  ),
+
   getDoc: testState.getDoc,
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments: unknown[]) => segments.map(String).join('/')),
@@ -67,7 +85,11 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
   validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
-  validateExtension: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateExtension: vi.fn(() => ({
+    valid: true,
+    violations: [],
+    warnings: [],
+  })),
   validateOptionDecision: vi.fn(() => ({
     valid: true,
     violations: [],
@@ -126,8 +148,8 @@ import {
   type ArchitectMutationTeamRecord,
 } from '@/features/architect/utils/mutationPipeline';
 
-const FIXED_TIMESTAMP = Date.parse('2026-04-11T18:00:00.000Z');
-const FIXED_TIMESTAMP_ISO = '2026-04-11T18:00:00.000Z';
+const FIXED_TIMESTAMP = Date.parse('2026-08-21T18:00:00.000Z');
+const FIXED_TIMESTAMP_ISO = '2026-08-21T18:00:00.000Z';
 const SEASON_ID = '2025-26';
 const WORLD_ID = 'world_current_state_normalization_closure';
 
@@ -301,37 +323,46 @@ describe('mutationPipeline current-state normalization closure pass', () => {
 
     testState.getWorldMetadata.mockResolvedValue({
       parentWorldId: null,
-      asOfDate: '2026-07-01',
+      asOfDate: '2026-07-08',
     });
 
-    testState.validateTrade.mockImplementation((input?: { teams?: unknown[] }) => {
-      const teams = Array.isArray(input?.teams)
-        ? (input.teams as Array<Record<string, unknown> | null | undefined>)
-        : [];
-      const legal =
-        teams.length > 0 &&
-        teams.every((teamTrade) => {
-          const team = (teamTrade?.team as Record<string, unknown> | undefined) || {};
-          return typeof team.teamTotalSalary === 'number' && team.teamTotalSalary > 0;
-        });
-
-      return {
-        valid: legal,
-        success: legal,
-        legal,
-        reason: legal ? null : 'teamTotalSalary must be numeric at the apply boundary',
-        violations: [],
-        warnings: [],
-        teamResults: teams.map((teamTrade) => {
-          const team = (teamTrade?.team as Record<string, unknown> | undefined) || {};
-          const teamCode = String(teamTrade?.teamCode || team.teamCode || '');
-          return buildTradeTeamResult({
-            teamCode,
-            totalSalary: Number(team.teamTotalSalary || 0),
+    testState.validateTrade.mockImplementation(
+      (input?: { teams?: unknown[] }) => {
+        const teams = Array.isArray(input?.teams)
+          ? (input.teams as Array<Record<string, unknown> | null | undefined>)
+          : [];
+        const legal =
+          teams.length > 0 &&
+          teams.every((teamTrade) => {
+            const team =
+              (teamTrade?.team as Record<string, unknown> | undefined) || {};
+            return (
+              typeof team.teamTotalSalary === 'number' &&
+              team.teamTotalSalary > 0
+            );
           });
-        }),
-      };
-    });
+
+        return {
+          valid: legal,
+          success: legal,
+          legal,
+          reason: legal
+            ? null
+            : 'teamTotalSalary must be numeric at the apply boundary',
+          violations: [],
+          warnings: [],
+          teamResults: teams.map((teamTrade) => {
+            const team =
+              (teamTrade?.team as Record<string, unknown> | undefined) || {};
+            const teamCode = String(teamTrade?.teamCode || team.teamCode || '');
+            return buildTradeTeamResult({
+              teamCode,
+              totalSalary: Number(team.teamTotalSalary || 0),
+            });
+          }),
+        };
+      }
+    );
   });
 
   it('keeps base-team preserve-only round-trip fields through apply and strips hidden/current compute-only persistence baggage', async () => {
@@ -443,35 +474,43 @@ describe('mutationPipeline current-state normalization closure pass', () => {
 
   it('keeps narrowed player normalization working for a committed signFreeAgent flow', async () => {
     const team = makeTeam('LAL', []);
-    const freeAgent = makePlayer('fa_closure_1', 'Closure Free Agent', 0, null, {
-      representation: {
-        agent: 'Closure Agent',
-        agency: 'Closure Agency',
-      },
-      source: {
-        provider: 'test-suite',
-        generatedAt: FIXED_TIMESTAMP_ISO,
-        playerPageUrl: 'https://example.com/fa_closure_1',
-      },
-      lastUpdated: FIXED_TIMESTAMP_ISO,
-      version: 'player-version-7',
-      isTwoWay: true,
-      signedDate: '2025-07-09',
-      legacyPlayerEnvelope: { shouldDrop: true },
-    });
-
-    testState.getTeam.mockImplementation(async (_worldId: string, teamCode: string) => {
-      if (teamCode === 'LAL') {
-        return team;
+    const freeAgent = makePlayer(
+      'fa_closure_1',
+      'Closure Free Agent',
+      0,
+      null,
+      {
+        representation: {
+          agent: 'Closure Agent',
+          agency: 'Closure Agency',
+        },
+        source: {
+          provider: 'test-suite',
+          generatedAt: FIXED_TIMESTAMP_ISO,
+          playerPageUrl: 'https://example.com/fa_closure_1',
+        },
+        lastUpdated: FIXED_TIMESTAMP_ISO,
+        version: 'player-version-7',
+        isTwoWay: true,
+        signedDate: '2025-07-09',
+        legacyPlayerEnvelope: { shouldDrop: true },
       }
-      throw new Error(`Unexpected team load: ${teamCode}`);
-    });
+    );
+
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'LAL') {
+          return team;
+        }
+        throw new Error(`Unexpected team load: ${teamCode}`);
+      }
+    );
     testState.getPlayer.mockResolvedValue(freeAgent);
 
     const result = await applyWorldMutation({
       userId: 'user_current_state_closure',
       worldId: WORLD_ID,
-      seasonId: SEASON_ID,
+      seasonId: '2026-27',
       mutationType: 'signFreeAgent',
       payload: {
         teamCode: 'LAL',
@@ -480,6 +519,20 @@ describe('mutationPipeline current-state normalization closure pass', () => {
           years: 2,
           contractYears: 2,
           totalValue: 17_000_000,
+          salariesByYear: [
+            {
+              season: '2026-27',
+              salary: 8_500_000,
+              capHit: 8_500_000,
+              guaranteed: true,
+            },
+            {
+              season: '2027-28',
+              salary: 8_500_000,
+              capHit: 8_500_000,
+              guaranteed: true,
+            },
+          ],
         }),
         signedUsing: 'Cap Space',
       },
@@ -545,11 +598,13 @@ describe('mutationPipeline current-state normalization closure pass', () => {
       totalSalary: '121000000',
     } as unknown as ArchitectMutationTeamRecord['totals'];
 
-    testState.getTeam.mockImplementation(async (_worldId: string, teamCode: string) => {
-      if (teamCode === 'LAL') return teamA;
-      if (teamCode === 'BOS') return teamB;
-      throw new Error(`Unexpected team load: ${teamCode}`);
-    });
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'LAL') return teamA;
+        if (teamCode === 'BOS') return teamB;
+        throw new Error(`Unexpected team load: ${teamCode}`);
+      }
+    );
 
     const result = await applyWorldMutation({
       userId: 'user_current_state_closure',

@@ -9,6 +9,7 @@
 import { useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { validateSigning } from '@/features/architect/utils/capLegalityValidation';
+import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import {
   applyWorldMutation,
   computeWorldMutation,
@@ -273,6 +274,21 @@ export function useSigningExecution({
         toast.success('Saved changes');
         // Stage 2B: derive a post-action receipt from the committed result.
         if (publishPostActionReceipt) {
+          const signingEventRecord =
+            result.event && typeof result.event === 'object'
+              ? Object.fromEntries(Object.entries(result.event))
+              : null;
+          const signingEventMetadata =
+            signingEventRecord?.metadata &&
+            typeof signingEventRecord.metadata === 'object' &&
+            !Array.isArray(signingEventRecord.metadata)
+              ? (signingEventRecord.metadata as Record<string, unknown>)
+              : undefined;
+          const economicAsOfDate =
+            typeof signingEventMetadata?.governedSigningEffectiveAt ===
+            'string'
+              ? signingEventMetadata.governedSigningEffectiveAt
+              : null;
           const signingPlayerId =
             standardSigningPayload.playerId ||
             playerObj.id ||
@@ -302,6 +318,7 @@ export function useSigningExecution({
                   : [],
                 payload: standardSigningPayload,
                 actionContext: signingReceiptContext,
+                economicAsOfDate,
               })
             : deriveReceiptFromMutationResult({
                 mutationType: 'signFreeAgent',
@@ -513,17 +530,11 @@ export function useSigningExecution({
   const resolveStandardSigningExecutionRoute = useCallback<
     () => StandardSigningExecutionRoute
   >(
-    () =>
-      worldId
-        ? {
-            mode: 'world',
-            execute: executeWorldModeStandardSigning,
-          }
-        : {
-            mode: 'vacuum',
-            execute: executeVacuumModeStandardSigning,
-          },
-    [executeVacuumModeStandardSigning, executeWorldModeStandardSigning, worldId]
+    () => ({
+      mode: 'world',
+      execute: executeWorldModeStandardSigning,
+    }),
+    [executeWorldModeStandardSigning]
   );
 
   const applyCapAuditedTeamMutation = useCallback(
@@ -805,34 +816,53 @@ export function useSigningExecution({
       const salaryRows = Array.isArray(preparedContract.salariesByYear)
         ? preparedContract.salariesByYear
         : [];
-      const baseSalary = Number(salaryRows[0]?.salary) || 0;
+      const yearsOfService = deriveSigningYearsOfService(playerObj, contract);
+      const minimumReimbursementApplies =
+        salaryRows.length === 1 &&
+        yearsOfService != null &&
+        yearsOfService >= 3 &&
+        signedUsing?.toLowerCase() === 'minimum' &&
+        overrides.contractType === 'Signed FA';
+      const minimumRules = minimumReimbursementApplies
+        ? getCapRulesForYear(actionSeasonContext.actionYear)
+        : null;
+      const minimumCharge = minimumRules
+        ? minimumRules.salaries.getMinimumForYOS(2)
+        : null;
+      const governedSalaryRows =
+        minimumCharge === null
+          ? salaryRows
+          : salaryRows.map((row, index) =>
+              index === 0 ? { ...row, capHit: minimumCharge } : row
+            );
+      const baseSalary = Number(governedSalaryRows[0]?.salary) || 0;
       const contractYears =
-        salaryRows.length ||
+        governedSalaryRows.length ||
         Math.max(
           1,
           Number(preparedContract.contractYears ?? preparedContract.years) || 1
         );
-      const totalValue = salaryRows.reduce(
+      const totalValue = governedSalaryRows.reduce(
         (sum, row) => sum + (Number(row?.salary) || 0),
         0
       );
-      const yearsOfService = deriveSigningYearsOfService(playerObj, contract);
 
       return {
         actionSeasonContext,
         signedUsing,
         architectContract: {
           ...preparedContract,
+          salariesByYear: governedSalaryRows,
           years: contractYears,
           contractYears,
           totalValue,
           averageAnnualValue:
             contractYears > 0 ? Math.round(totalValue / contractYears) : 0,
           base: baseSalary,
-          firstYearGuaranteed: salaryRows[0]?.guaranteed !== false,
+          firstYearGuaranteed: governedSalaryRows[0]?.guaranteed !== false,
           guaranteed:
             preparedContract.guaranteed ??
-            salaryRows.every((row) => row?.guaranteed !== false),
+            governedSalaryRows.every((row) => row?.guaranteed !== false),
           signedUsing: signedUsingForContract,
           exceptionType:
             normalizedExceptionType || signedUsingForContract || undefined,
