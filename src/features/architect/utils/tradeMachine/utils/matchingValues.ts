@@ -103,6 +103,7 @@ interface ComputeMatchingValuesParams {
   daysInSeason?: number;
   worldId?: string | null;
   asOfDate?: string | null;
+  requireGovernedSalaryBasis?: boolean;
 }
 
 interface ComputeMatchingValuesResult {
@@ -264,6 +265,7 @@ export function computeMatchingValues({
   daysInSeason,
   worldId = null,
   asOfDate = null,
+  requireGovernedSalaryBasis = false,
 }: ComputeMatchingValuesParams): ComputeMatchingValuesResult {
   // GAP-DATA-001, GAP-DATA-002: Collect data validation warnings
   const allDataWarnings: DataWarning[] = [];
@@ -282,7 +284,11 @@ export function computeMatchingValues({
         return;
       }
 
-      if (worldId && player.signAndTrade !== true) {
+      if (
+        requireGovernedSalaryBasis &&
+        worldId &&
+        player.signAndTrade !== true
+      ) {
         const parsed = GovernedTradeSalaryBasisZ.safeParse(
           player.governedTradeSalaryBasis
         );

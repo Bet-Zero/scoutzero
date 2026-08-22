@@ -25,6 +25,48 @@ const teamLoaderMocks = vi.hoisted(() => ({
   ),
 }));
 
+function makeSalaryAuthority({
+  worldId,
+  teamId,
+  playerId,
+  asOfDate,
+  salaryCapYear,
+}: {
+  worldId: string;
+  teamId: string;
+  playerId: string;
+  asOfDate: string;
+  salaryCapYear: number;
+}) {
+  return {
+    authorityVersion: 1 as const,
+    status: 'ready' as const,
+    worldId,
+    teamId,
+    playerId,
+    contractId: `contract-${playerId}`,
+    asOfDate,
+    salaryCapYear,
+    method: 'ordinary-protection' as const,
+    currentSalary: 10_000_000,
+    outgoingSalary: 10_000_000,
+    incomingSalary: 10_000_000,
+    poisonPillIncomingSalary: null,
+    canonLeafIds: ['CBA2-A03.1'],
+    reasons: [],
+    proof: {
+      ledgerId: `ledger-${playerId}`,
+      ledgerVersion: 1,
+      contractVersion: 1,
+      stateDigest: 'fnv1a64:1111111111111111',
+      calendarRecordId: 'calendar-test',
+      calendarRecordVersion: 1,
+      calendarSourceRecordId: 'calendar-source-test',
+      calendarSourceRecordVersion: 1,
+    },
+  };
+}
+
 vi.mock('@/firebaseConfig', () => ({
   db: {},
 }));
@@ -47,6 +89,42 @@ vi.mock('@/features/architect/utils/teamLoader', () => ({
   getLeague: teamLoaderMocks.getLeague,
   mergePlayerOverride: teamLoaderMocks.mergePlayerOverride,
 }));
+
+vi.mock(
+  '@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis',
+  () => ({
+    loadWorldGovernedTradeSalaryBasisEntries: vi.fn(
+      async ({
+        worldId,
+        teamId,
+        rosterPlayerIds,
+        worldAsOfDate,
+        salaryCapYear,
+      }) =>
+        new Map(
+          rosterPlayerIds.map((playerId: string) => [
+            playerId,
+            makeSalaryAuthority({
+              worldId,
+              teamId,
+              playerId,
+              asOfDate: worldAsOfDate,
+              salaryCapYear,
+            }),
+          ])
+        )
+    ),
+    attachGovernedTradeSalaryBasisToRoster: vi.fn(
+      (players, entries) =>
+        players.map((player: Record<string, unknown>) => ({
+          ...player,
+          governedTradeSalaryBasis: entries.get(
+            String(player.id ?? player.player_id ?? player.playerId ?? '')
+          ),
+        }))
+    ),
+  })
+);
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
   updateWorldStats: vi.fn(async () => undefined),
@@ -248,6 +326,7 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
           source: 'tradeMachine',
           worldId: 'world_1',
           asOfDate: '2026-03-15',
+          yearKey: '2025-26',
         },
       },
     });

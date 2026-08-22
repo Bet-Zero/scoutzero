@@ -1,4 +1,7 @@
-import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
+import {
+  ContractEventLedgerPayloadZ,
+  type ContractEventLedgerPayload,
+} from '@/schemas/contractEventLedger';
 import type {
   ContractSalaryTerm,
   GovernedContractState,
@@ -24,6 +27,7 @@ import {
 } from '@/features/architect/utils/governedSeason';
 import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager.core';
+import { getLeague } from '@/features/architect/utils/teamLoader';
 
 const SALARY_BASIS_LEAVES = Object.freeze([
   'CBA2-A03.1',
@@ -43,6 +47,30 @@ type ProjectedContract = {
   manifest: LifecycleProjectionManifest;
   extensionEffectiveAt: string | null;
 };
+
+export function collectUniqueWorldContractEventLedgers(
+  worldTeams: readonly unknown[]
+): ReadonlyMap<string, ContractEventLedgerPayload> {
+  const overlays = new Map<string, ContractEventLedgerPayload>();
+  for (const team of worldTeams) {
+    if (!team || typeof team !== 'object' || Array.isArray(team)) continue;
+    const rawLedgers = (team as Record<string, unknown>).contractEventLedgers;
+    if (rawLedgers == null) continue;
+    if (!Array.isArray(rawLedgers)) {
+      throw new Error('A Team snapshot has malformed governed Contract history.');
+    }
+    for (const rawOverlay of rawLedgers) {
+      const overlay = ContractEventLedgerPayloadZ.parse(rawOverlay);
+      if (overlays.has(overlay.ledgerId)) {
+        throw new Error(
+          `Governed Contract history ${overlay.ledgerId} is owned by more than one Team snapshot.`
+        );
+      }
+      overlays.set(overlay.ledgerId, overlay);
+    }
+  }
+  return overlays;
+}
 
 function unavailable({
   status,
@@ -477,23 +505,24 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
   worldId,
   teamId,
   rosterPlayerIds,
-  overlays = [],
+  worldTeams,
   worldAsOfDate,
   salaryCapYear,
 }: {
   worldId: string;
   teamId: string;
   rosterPlayerIds: readonly string[];
-  overlays?: readonly ContractEventLedgerPayload[] | null;
+  worldTeams?: readonly unknown[];
   worldAsOfDate: string;
   salaryCapYear: number;
 }): Promise<ReadonlyMap<string, GovernedTradeSalaryBasis>> {
   if (!isDateOnly(worldAsOfDate)) {
     throw new Error('Governed Trade Machine salary basis requires a YYYY-MM-DD world date.');
   }
-  const [documents, metadata] = await Promise.all([
+  const [documents, metadata, resolvedWorldTeams] = await Promise.all([
     listWorldContractBaselines(worldId),
     getWorldMetadata(worldId),
+    worldTeams ? Promise.resolve(worldTeams) : getLeague(worldId),
   ]);
   const compatibility = resolveContractBaselineWorldCompatibility(metadata);
   if (!compatibility.compatible) throw new Error(compatibility.message);
@@ -514,8 +543,8 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
     salaryCapResolution.state === 'available'
       ? salaryCapResolution.amount
       : null;
-  const overlayByLedgerId = new Map(
-    (overlays ?? []).map((ledger) => [ledger.ledgerId, ledger] as const)
+  const overlayByLedgerId = collectUniqueWorldContractEventLedgers(
+    resolvedWorldTeams
   );
   const projectedByPlayer = new Map<string, ProjectedContract[]>();
   const baselineLedgers = documents.flatMap((document) => document.ledgers);
@@ -530,17 +559,12 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
     });
     candidates.push(authority.currentLedger);
   }
-  for (const overlay of overlays ?? []) {
+  for (const overlay of overlayByLedgerId.values()) {
     if (!baselineIds.has(overlay.ledgerId)) candidates.push(overlay);
   }
 
   for (const input of candidates) {
-    let ledger;
-    try {
-      ledger = createContractEventLedger(input);
-    } catch {
-      continue;
-    }
+    const ledger = createContractEventLedger(input);
     const contractId = ledger.events[0]?.contractId;
     if (!contractId) continue;
     const projection = projectContractStateAsOf({

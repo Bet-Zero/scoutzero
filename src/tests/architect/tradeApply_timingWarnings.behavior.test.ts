@@ -28,6 +28,48 @@ const teamLoaderMocks = vi.hoisted(() => ({
   ),
 }));
 
+const makeSalaryAuthority = ({
+  worldId,
+  teamId,
+  playerId,
+  asOfDate,
+  salaryCapYear,
+  salary = 10_000_000,
+}: {
+  worldId: string;
+  teamId: string;
+  playerId: string;
+  asOfDate: string;
+  salaryCapYear: number;
+  salary?: number;
+}) => ({
+  authorityVersion: 1 as const,
+  status: 'ready' as const,
+  worldId,
+  teamId,
+  playerId,
+  contractId: `contract-${playerId}`,
+  asOfDate,
+  salaryCapYear,
+  method: 'ordinary-protection' as const,
+  currentSalary: salary,
+  outgoingSalary: salary,
+  incomingSalary: salary,
+  poisonPillIncomingSalary: null,
+  canonLeafIds: ['CBA2-A03.1'],
+  reasons: [],
+  proof: {
+    ledgerId: `ledger-${playerId}`,
+    ledgerVersion: 1,
+    contractVersion: 1,
+    stateDigest: 'fnv1a64:1111111111111111',
+    calendarRecordId: 'calendar-test',
+    calendarRecordVersion: 1,
+    calendarSourceRecordId: 'calendar-source-test',
+    calendarSourceRecordVersion: 1,
+  },
+});
+
 vi.mock('@/firebaseConfig', () => ({
   db: {},
 }));
@@ -50,6 +92,43 @@ vi.mock('@/features/architect/utils/teamLoader', () => ({
   getLeague: teamLoaderMocks.getLeague,
   mergePlayerOverride: teamLoaderMocks.mergePlayerOverride,
 }));
+
+vi.mock(
+  '@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis',
+  () => ({
+    loadWorldGovernedTradeSalaryBasisEntries: vi.fn(
+      async ({
+        worldId,
+        teamId,
+        rosterPlayerIds,
+        worldAsOfDate,
+        salaryCapYear,
+      }) =>
+        new Map(
+          rosterPlayerIds.map((playerId: string) => [
+            playerId,
+            makeSalaryAuthority({
+              worldId,
+              teamId,
+              playerId,
+              asOfDate: worldAsOfDate,
+              salaryCapYear,
+              salary: playerId.endsWith('_out') ? 10_000_000 : 1_000_000,
+            }),
+          ])
+        )
+    ),
+    attachGovernedTradeSalaryBasisToRoster: vi.fn(
+      (players, entries) =>
+        players.map((player: Record<string, unknown>) => ({
+          ...player,
+          governedTradeSalaryBasis: entries.get(
+            String(player.id ?? player.player_id ?? player.playerId ?? '')
+          ),
+        }))
+    ),
+  })
+);
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
   updateWorldStats: vi.fn(async () => undefined),
@@ -201,6 +280,13 @@ function buildTradePayload({
         sends: [
           makePlayer('a_out', 10_000_000, 'A', {
             tradeTo: 'B',
+            governedTradeSalaryBasis: makeSalaryAuthority({
+              worldId: WORLD_ID,
+              teamId: 'A',
+              playerId: 'a_out',
+              asOfDate,
+              salaryCapYear: 2025,
+            }),
             ...teamAPlayerExtra,
           }),
         ],
@@ -219,6 +305,13 @@ function buildTradePayload({
         sends: [
           makePlayer('b_out', 10_000_000, 'B', {
             tradeTo: 'A',
+            governedTradeSalaryBasis: makeSalaryAuthority({
+              worldId: WORLD_ID,
+              teamId: 'B',
+              playerId: 'b_out',
+              asOfDate,
+              salaryCapYear: 2025,
+            }),
             ...teamBPlayerExtra,
           }),
         ],
@@ -238,6 +331,7 @@ function buildTradePayload({
       source: 'tradeMachine',
       worldId: WORLD_ID,
       asOfDate,
+      yearKey: 2025,
     },
   };
 }

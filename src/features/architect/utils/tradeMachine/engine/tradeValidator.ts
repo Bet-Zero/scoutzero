@@ -347,6 +347,7 @@ export function validateTrade({
     daysInSeason: context.daysInSeason,
     worldId: context.worldId ?? null,
     asOfDate: canonicalAsOfDate,
+    requireGovernedSalaryBasis: context.source === 'tradeMachine',
   });
 
   // Extract data warnings from matching values computation (GAP-DATA-001, GAP-DATA-002)

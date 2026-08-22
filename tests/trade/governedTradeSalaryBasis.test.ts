@@ -4,12 +4,17 @@ import type { ContractSalaryTerm } from '@/schemas/governedContractState';
 import type { GovernedCalendarResolution } from '@/features/architect/utils/governedSeason';
 import type { LifecycleProjectionManifest } from '@/features/architect/utils/contractHistory';
 import {
+  collectUniqueWorldContractEventLedgers,
   resolveGovernedTradeSalaryBasis,
 } from '@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis';
 import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/matchingValues';
 import { normalizeTradeContextPayload } from '@/features/architect/utils/tradeContext/tradeContext.snapshot.payloadNorm';
 import { normalizeCurrentStatePlayerSnapshot } from '@/features/architect/utils/mutationPipeline.helpers.playerNorm';
-import { makeResultingState } from '../architect/contractHistory/contractHistoryFixtures';
+import { buildTradeValidationPlayer } from '@/features/architect/utils/tradeContext/tradeContext.payloadNormalization';
+import {
+  makeResultingState,
+  signingEvent,
+} from '../architect/contractHistory/contractHistoryFixtures';
 
 const WORLD_ID = 'world-bze287';
 const TEAM_ID = 'BOS';
@@ -441,12 +446,14 @@ describe('saved-world validation trust boundary', () => {
       yearKey: YEAR,
       worldId: WORLD_ID,
       asOfDate: '2027-01-08',
+      requireGovernedSalaryBasis: true,
     });
     const tampered = computeMatchingValues({
       teams: [{ teamId: TEAM_ID, sends: [{ ...player }] }],
       yearKey: YEAR,
       worldId: 'other-world',
       asOfDate: '2027-01-08',
+      requireGovernedSalaryBasis: true,
     });
 
     expect(accepted.salaryBasisIssues).toEqual([]);
@@ -484,6 +491,58 @@ describe('saved-world validation trust boundary', () => {
       authority
     );
     expect(persistencePlayer).not.toHaveProperty('governedTradeSalaryBasis');
+  });
+
+  it('replaces a payload salary receipt with live current-state authority at apply time', () => {
+    const authority = resolve(
+      state([row('2026-27', 10_000_000)]),
+      '2027-01-08'
+    );
+    const forged = { ...authority, outgoingSalary: 1, incomingSalary: 1 };
+    const fromLiveState = buildTradeValidationPlayer({
+      player: {
+        player_id: PLAYER_ID,
+        governedTradeSalaryBasis: forged,
+      },
+      sourceTeamState: {
+        [Symbol.for('scoutzero.liveGovernedTradeSalaryAuthority')]: true,
+        players: [{ player_id: PLAYER_ID, governedTradeSalaryBasis: authority }],
+      },
+    });
+    const withoutLiveState = buildTradeValidationPlayer({
+      player: {
+        player_id: PLAYER_ID,
+        governedTradeSalaryBasis: forged,
+      },
+      sourceTeamState: {
+        [Symbol.for('scoutzero.liveGovernedTradeSalaryAuthority')]: true,
+        players: [{ player_id: PLAYER_ID }],
+      },
+    });
+
+    expect(fromLiveState.governedTradeSalaryBasis).toEqual(authority);
+    expect(withoutLiveState).not.toHaveProperty('governedTradeSalaryBasis');
+  });
+
+  it('finds a prior-team Contract overlay but rejects duplicate ownership', () => {
+    const overlay = {
+      payloadVersion: 2 as const,
+      ledgerId: 'ledger-prior-team',
+      ledgerVersion: 1,
+      events: [signingEvent()],
+    };
+    const unique = collectUniqueWorldContractEventLedgers([
+      { teamCode: 'LAL', contractEventLedgers: [] },
+      { teamCode: 'BOS', contractEventLedgers: [overlay] },
+    ]);
+
+    expect(unique.get(overlay.ledgerId)).toEqual(overlay);
+    expect(() =>
+      collectUniqueWorldContractEventLedgers([
+        { teamCode: 'LAL', contractEventLedgers: [overlay] },
+        { teamCode: 'BOS', contractEventLedgers: [overlay] },
+      ])
+    ).toThrow('owned by more than one Team snapshot');
   });
 });
 

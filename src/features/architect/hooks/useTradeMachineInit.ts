@@ -129,9 +129,6 @@ export function useTradeMachineInit({
                   worldId,
                   teamId: String(teamObj.id || teamObj.teamCode || '').toUpperCase(),
                   rosterPlayerIds,
-                  overlays: Array.isArray(teamObj.contractEventLedgers)
-                    ? teamObj.contractEventLedgers
-                    : [],
                   worldAsOfDate,
                   salaryCapYear: yearKey,
                 });

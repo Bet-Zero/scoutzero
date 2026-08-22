@@ -8,7 +8,11 @@
  * Wave 48 Step 1: Lineage helpers extracted to submodule.
  */
 
-import { getTeam, getPlayer } from '@/features/architect/utils/teamLoader';
+import {
+  getTeam,
+  getPlayer,
+  getLeague,
+} from '@/features/architect/utils/teamLoader';
 import { getDoc } from 'firebase/firestore';
 import {
   worldPlayerRef,
@@ -38,6 +42,12 @@ import {
   type GovernedOfferSheetLifecycle,
 } from '@/schemas/governedOfferSheet';
 import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils/offerSheets';
+import {
+  attachGovernedTradeSalaryBasisToRoster,
+  loadWorldGovernedTradeSalaryBasisEntries,
+} from '@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis';
+import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import { LIVE_GOVERNED_TRADE_SALARY_AUTHORITY } from '@/features/architect/utils/tradeContext/tradeContext.payloadNormalization';
 
 // Wave 48 Step 1: lineage helpers extracted to submodule
 export * from './mutationPipeline.read.stateLoader.lineage';
@@ -700,18 +710,62 @@ export async function loadStateForMutation(
         }
       );
 
-      const teamStates = await Promise.all(
-        teamCodes.map((code: string) => getTeam(worldId, code))
+      const [teamStates, worldTeams] = await Promise.all([
+        Promise.all(teamCodes.map((code: string) => getTeam(worldId, code))),
+        getLeague(worldId),
+      ]);
+      const tradeContext = payload.tradeCtx;
+      const worldAsOfDate = String(
+        payload.asOfDate ?? tradeContext?.asOfDate ?? ''
+      ).slice(0, 10);
+      const salaryCapYear = toEndYear(tradeContext?.yearKey);
+      const normalizedTeams = teamCodes.map((code, i) => ({
+        teamCode: code,
+        team: toCurrentStateTeam(
+          (teamStates[i] as MutationCurrentStateTradeTeamIngress | null) ||
+            null,
+          'trade'
+        ),
+      }));
+      normalizedTeams.forEach(({ team }) => {
+        if (!team) return;
+        Object.defineProperty(team, LIVE_GOVERNED_TRADE_SALARY_AUTHORITY, {
+          value: true,
+          enumerable: false,
+        });
+      });
+
+      if (!worldAsOfDate || salaryCapYear === null) {
+        return { teams: normalizedTeams };
+      }
+
+      await Promise.all(
+        normalizedTeams.map(async ({ teamCode, team }) => {
+          if (!team) return;
+          const rosterPlayers = Array.isArray(team.players) ? team.players : [];
+          const rosterPlayerIds = rosterPlayers
+            .map((player) =>
+              String(
+                player.id ?? player.player_id ?? player.playerId ?? ''
+              ).trim()
+            )
+            .filter(Boolean);
+          const entries = await loadWorldGovernedTradeSalaryBasisEntries({
+            worldId,
+            teamId: String(teamCode).toUpperCase(),
+            rosterPlayerIds,
+            worldTeams,
+            worldAsOfDate,
+            salaryCapYear,
+          });
+          team.players = attachGovernedTradeSalaryBasisToRoster(
+            rosterPlayers,
+            entries
+          );
+        })
       );
       return {
-        teams: teamCodes.map((code, i) => ({
-          teamCode: code,
-          team: toCurrentStateTeam(
-            (teamStates[i] as MutationCurrentStateTradeTeamIngress | null) ||
-              null,
-            'trade'
-          ),
-        })),
+        teams: normalizedTeams,
       };
     }
 
