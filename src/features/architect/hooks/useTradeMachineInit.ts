@@ -98,16 +98,7 @@ export function useTradeMachineInit({
           ))) as TradeMachineTeam | null;
 
         if (cancelled) return;
-        if (!baseTeam || !data) {
-          lastInitInputsRef.current = {
-            primaryTeam,
-            primaryTeamData,
-            yearKey,
-            worldId,
-            worldAsOfDate,
-          };
-          return;
-        }
+        if (!baseTeam || !data) return;
 
         if (baseTeam && data) {
           // Build team object, augment exceptions/tpes
