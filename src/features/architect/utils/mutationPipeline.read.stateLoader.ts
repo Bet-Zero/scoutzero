@@ -45,6 +45,7 @@ import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils
 import {
   attachGovernedTradeSalaryBasisToRoster,
   loadWorldGovernedTradeSalaryBasisEntries,
+  resolveTradeSalaryBasisPlayerId,
 } from '@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { LIVE_GOVERNED_TRADE_SALARY_AUTHORITY } from '@/features/architect/utils/tradeContext/tradeContext.payloadNormalization';
@@ -751,11 +752,7 @@ export async function loadStateForMutation(
           if (!team) return;
           const rosterPlayers = Array.isArray(team.players) ? team.players : [];
           const rosterPlayerIds = rosterPlayers
-            .map((player) =>
-              String(
-                player.id ?? player.player_id ?? player.playerId ?? ''
-              ).trim()
-            )
+            .map((player) => resolveTradeSalaryBasisPlayerId(player))
             .filter(Boolean);
           const entries = await loadWorldGovernedTradeSalaryBasisEntries({
             worldId,

@@ -45,7 +45,7 @@ interface MatchingValueTradeKicker {
   maximum?: number | null;
 }
 
-interface MatchingValuePlayer {
+export interface MatchingValuePlayer {
   id?: string | number | null;
   player_id?: string | number | null;
   name?: string | null;
@@ -309,11 +309,12 @@ export function computeMatchingValues({
           return;
         }
         const authority = parsed.data;
+        const normalizedYear = normalizeYearInput(yearKey);
         const identityMatches =
           authority.worldId === worldId &&
           authority.teamId === teamId &&
           authority.playerId === playerId &&
-          authority.salaryCapYear === Number(yearKey) &&
+          authority.salaryCapYear === normalizedYear?.endYear &&
           authority.asOfDate === expectedDate;
         if (
           authority.status !== 'ready' ||

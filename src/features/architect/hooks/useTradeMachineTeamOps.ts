@@ -14,6 +14,7 @@ import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts'
 import {
   attachGovernedTradeSalaryBasisToRoster,
   loadWorldGovernedTradeSalaryBasisEntries,
+  resolveTradeSalaryBasisPlayerId,
 } from '@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis';
 import { type TeamEntry } from '@/constants/teamList';
 import {
@@ -92,34 +93,34 @@ export function useTradeMachineTeamOps({
             ? teamObj.players
             : [];
           const rosterPlayerIds = rosterPlayers
-            .map((player) =>
-              String(
-                player.id ??
-                  player.player_id ??
-                  (player.bio && typeof player.bio === 'object'
-                    ? (player.bio as UnknownRecord).playerId
-                    : '')
-              ).trim()
-            )
+            .map((player) => resolveTradeSalaryBasisPlayerId(player))
             .filter(Boolean);
-          try {
-            const salaryBasis =
-              await loadWorldGovernedTradeSalaryBasisEntries({
-                worldId,
-                teamId: String(teamObj.id || teamObj.teamCode || '').toUpperCase(),
-                rosterPlayerIds,
-                worldAsOfDate,
-                salaryCapYear: yearKey,
-              });
-            teamObj.players = attachGovernedTradeSalaryBasisToRoster(
-              rosterPlayers,
-              salaryBasis
-            );
-          } catch (error) {
+          const salaryBasisTeamId = String(
+            teamObj.id || teamObj.teamCode || ''
+          ).trim().toUpperCase();
+          if (!salaryBasisTeamId) {
             teamObj.governedTradeSalaryBasisLoadError =
-              error instanceof Error
-                ? error.message
-                : 'Governed Trade Machine salary authority could not be loaded.';
+              'Governed Trade Machine salary authority requires a Team identity.';
+          } else {
+            try {
+              const salaryBasis =
+                await loadWorldGovernedTradeSalaryBasisEntries({
+                  worldId,
+                  teamId: salaryBasisTeamId,
+                  rosterPlayerIds,
+                  worldAsOfDate,
+                  salaryCapYear: yearKey,
+                });
+              teamObj.players = attachGovernedTradeSalaryBasisToRoster(
+                rosterPlayers,
+                salaryBasis
+              );
+            } catch (error) {
+              teamObj.governedTradeSalaryBasisLoadError =
+                error instanceof Error
+                  ? error.message
+                  : 'Governed Trade Machine salary authority could not be loaded.';
+            }
           }
         }
 

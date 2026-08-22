@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { validationFlags } from '@/config/validationFlags';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import { makeSalaryAuthority } from '@/tests/fixtures/governedTradeSalaryBasis';
 
 const firestoreMocks = vi.hoisted(() => {
   const commit = vi.fn(async () => undefined);
@@ -28,48 +29,6 @@ const teamLoaderMocks = vi.hoisted(() => ({
   ),
 }));
 
-const makeSalaryAuthority = ({
-  worldId,
-  teamId,
-  playerId,
-  asOfDate,
-  salaryCapYear,
-  salary = 10_000_000,
-}: {
-  worldId: string;
-  teamId: string;
-  playerId: string;
-  asOfDate: string;
-  salaryCapYear: number;
-  salary?: number;
-}) => ({
-  authorityVersion: 1 as const,
-  status: 'ready' as const,
-  worldId,
-  teamId,
-  playerId,
-  contractId: `contract-${playerId}`,
-  asOfDate,
-  salaryCapYear,
-  method: 'ordinary-protection' as const,
-  currentSalary: salary,
-  outgoingSalary: salary,
-  incomingSalary: salary,
-  poisonPillIncomingSalary: null,
-  canonLeafIds: ['CBA2-A03.1'],
-  reasons: [],
-  proof: {
-    ledgerId: `ledger-${playerId}`,
-    ledgerVersion: 1,
-    contractVersion: 1,
-    stateDigest: 'fnv1a64:1111111111111111',
-    calendarRecordId: 'calendar-test',
-    calendarRecordVersion: 1,
-    calendarSourceRecordId: 'calendar-source-test',
-    calendarSourceRecordVersion: 1,
-  },
-});
-
 vi.mock('@/firebaseConfig', () => ({
   db: {},
 }));
@@ -95,7 +54,10 @@ vi.mock('@/features/architect/utils/teamLoader', () => ({
 
 vi.mock(
   '@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis',
-  () => ({
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis')
+    >()),
     loadWorldGovernedTradeSalaryBasisEntries: vi.fn(
       async ({
         worldId,

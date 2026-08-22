@@ -4,10 +4,16 @@ import type { ContractSalaryTerm } from '@/schemas/governedContractState';
 import type { GovernedCalendarResolution } from '@/features/architect/utils/governedSeason';
 import type { LifecycleProjectionManifest } from '@/features/architect/utils/contractHistory';
 import {
+  attachGovernedTradeSalaryBasisToRoster,
   collectUniqueWorldContractEventLedgers,
+  loadWorldGovernedTradeSalaryBasisEntries,
   resolveGovernedTradeSalaryBasis,
+  resolveTradeSalaryBasisPlayerId,
 } from '@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis';
-import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/matchingValues';
+import {
+  computeMatchingValues,
+  type MatchingValuePlayer,
+} from '@/features/architect/utils/tradeMachine/utils/matchingValues';
 import { normalizeTradeContextPayload } from '@/features/architect/utils/tradeContext/tradeContext.snapshot.payloadNorm';
 import { normalizeCurrentStatePlayerSnapshot } from '@/features/architect/utils/mutationPipeline.helpers.playerNorm';
 import { buildTradeValidationPlayer } from '@/features/architect/utils/tradeContext/tradeContext.payloadNormalization';
@@ -57,6 +63,19 @@ function protectionStep(date: string, amount: number) {
     guaranteedAmount: amount,
     status: 'Decision Pending',
     note: `Increases to ${amount} if not waived before ${date}`,
+  };
+}
+
+function instantProtectionStep(instant: string, amount: number) {
+  return {
+    effectiveDate: {
+      precision: 'instant' as const,
+      value: instant,
+      rawValue: instant,
+    },
+    guaranteedAmount: amount,
+    status: 'Decision Pending',
+    note: `Increases to ${amount} at ${instant}`,
   };
 }
 
@@ -117,6 +136,7 @@ function state(
       isRookieScale: overrides.isRookieScale ?? false,
       salaries,
       bonuses: {
+        ...base.terms.bonuses,
         tradeKickerPercent: overrides.tradeKickerPercent ?? null,
       },
       ...(overrides.evidence !== undefined
@@ -210,6 +230,31 @@ describe('governed ordinary Trade Machine salary basis', () => {
     expect(result.reasons.join(' ')).toContain('exact earned Base Compensation');
   });
 
+  it('compares offset protection instants on their UTC date', () => {
+    const result = resolve(
+      state(
+        [
+          row('2026-27', 10_000_000, 2_000_000, [
+            instantProtectionStep('2026-12-15T22:00:00-08:00', 8_000_000),
+          ]),
+        ],
+        {
+          evidence: {
+            evidenceVersion: 1,
+            earnedBaseCompensation: [
+              { season: '2026-27', asOfDate: '2026-12-15', amount: 1_000_000 },
+            ],
+            oneYearMinimum: null,
+            poisonPill: null,
+          },
+        }
+      ),
+      '2026-12-15'
+    );
+
+    expect(result.outgoingSalary).toBe(2_000_000);
+  });
+
   it('changes only at the inclusive January 8 boundary', () => {
     const contractState = state(
       [row('2026-27', 10_000_000, 6_000_000, [protectionStep('2027-01-10', 10_000_000)])],
@@ -255,7 +300,7 @@ describe('governed ordinary Trade Machine salary basis', () => {
     });
   });
 
-  it('excludes authenticated League reimbursement for a one-year Minimum Contract', () => {
+  it('includes authenticated League reimbursement for a one-year Minimum Contract', () => {
     const contractState = state(
       [row('2026-27', 3_000_000, 0, [protectionStep('2027-01-10', 3_000_000)])],
       {
@@ -416,10 +461,24 @@ describe('governed poison-pill incoming basis', () => {
       extensionEffectiveAt: extensionSignedAt,
       salaryCapAtTrade: 164_961_000,
     });
-    evidence.poisonPill.extendedTerms[0].salaryPercentage = 0.25;
     const noCapState = state(
       [row('2026-27', 10_000_000), row('2027-28', 51_000_000)],
-      { isExtension: true, isRookieScale: true, evidence }
+      {
+        isExtension: true,
+        isRookieScale: true,
+        evidence: {
+          ...evidence,
+          poisonPill: {
+            ...evidence.poisonPill,
+            extendedTerms: [
+              {
+                ...evidence.poisonPill.extendedTerms[0],
+                salaryPercentage: 0.25,
+              },
+            ],
+          },
+        },
+      }
     );
     const noCap = resolve(noCapState, '2027-02-01', {
       extensionEffectiveAt: extensionSignedAt,
@@ -431,19 +490,31 @@ describe('governed poison-pill incoming basis', () => {
 });
 
 describe('saved-world validation trust boundary', () => {
+  it('rejects a missing Team identity before loading world authority', async () => {
+    await expect(
+      loadWorldGovernedTradeSalaryBasisEntries({
+        worldId: WORLD_ID,
+        teamId: '   ',
+        rosterPlayerIds: [PLAYER_ID],
+        worldAsOfDate: '2027-01-08',
+        salaryCapYear: YEAR,
+      })
+    ).rejects.toThrow('requires a Team identity');
+  });
+
   it('uses ready authority and rejects a byte-identical player with a different world identity', () => {
     const authority = resolve(
       state([row('2026-27', 10_000_000)]),
       '2027-01-08'
     );
-    const player = {
+    const player: MatchingValuePlayer = {
       id: PLAYER_ID,
       salary: 1,
       governedTradeSalaryBasis: authority,
     };
     const accepted = computeMatchingValues({
       teams: [{ teamId: TEAM_ID, sends: [player] }],
-      yearKey: YEAR,
+      yearKey: '2026-27',
       worldId: WORLD_ID,
       asOfDate: '2027-01-08',
       requireGovernedSalaryBasis: true,
@@ -459,6 +530,18 @@ describe('saved-world validation trust boundary', () => {
     expect(accepted.salaryBasisIssues).toEqual([]);
     expect(player.matchOutgoing).toBe(10_000_000);
     expect(tampered.salaryBasisIssues[0]?.reason).toContain('does not match');
+  });
+
+  it('preserves unmatched roster players without an undefined authority key', () => {
+    const player = { bio: { playerId: PLAYER_ID }, name: 'Fixture Player' };
+    const [unmatched] = attachGovernedTradeSalaryBasisToRoster(
+      [player],
+      new Map()
+    );
+
+    expect(resolveTradeSalaryBasisPlayerId(player)).toBe(PLAYER_ID);
+    expect(unmatched).toBe(player);
+    expect('governedTradeSalaryBasis' in unmatched).toBe(false);
   });
 
   it('carries proof through apply validation but strips it from mutable player persistence', () => {

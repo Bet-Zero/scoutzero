@@ -12,6 +12,7 @@ import type { DataWarning } from '../utils/dataValidation';
 import type { CapHold } from '../../capHolds';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
+import type { GovernedTradeSalaryBasis } from '@/schemas/governedTradeSalaryBasis';
 
 // Normalized cap settings
 export interface CapSettings {
@@ -802,13 +803,13 @@ export interface TradeReceiptTradeKickerDetails {
 }
 
 export interface TradeReceiptSalaryBasisAuthority {
-  status: 'ready' | 'needs-input' | 'incompatible';
-  contractId: string | null;
-  method: string | null;
-  asOfDate: string;
-  salaryCapYear: number;
+  status: GovernedTradeSalaryBasis['status'];
+  contractId: GovernedTradeSalaryBasis['contractId'];
+  method: GovernedTradeSalaryBasis['method'];
+  asOfDate: GovernedTradeSalaryBasis['asOfDate'];
+  salaryCapYear: GovernedTradeSalaryBasis['salaryCapYear'];
   canonLeafIds: string[];
-  proof: Record<string, unknown> | null;
+  proof: GovernedTradeSalaryBasis['proof'];
 }
 
 export interface TradeReceiptPlayerRow {

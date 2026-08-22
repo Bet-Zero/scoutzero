@@ -40,6 +40,11 @@ const SALARY_BASIS_LEAVES = Object.freeze([
   'CBA2-A03.14',
 ]);
 
+/** CBA2-A03.14: ordinary Rookie Scale Extension percentage ceiling. */
+const ORDINARY_ROOKIE_SCALE_MAX_PERCENTAGE = 0.25;
+/** CBA2-A03.6: assumed Salary Cap multiplier for poison-pill calculations. */
+const POISON_PILL_ASSUMED_CAP_MULTIPLIER = 1.045;
+
 type SalaryBasisStatus = GovernedTradeSalaryBasis['status'];
 
 type ProjectedContract = {
@@ -154,7 +159,10 @@ function protectedAmountAsOf(
       reasons.push(`${label} has a protection step without an exact governed date.`);
       return null;
     }
-    const stepDate = date.slice(0, 10);
+    const stepDate =
+      step.effectiveDate.precision === 'instant'
+        ? new Date(Date.parse(date)).toISOString().slice(0, 10)
+        : date;
     if (stepDate <= asOfDate) {
       const amount = exactMoney(
         step.guaranteedAmount,
@@ -262,14 +270,14 @@ function computePoisonPillSalary({
         salaryCapAtTrade === null ||
         term.salaryPercentage === null ||
         term.fixedSalary !== null ||
-        term.salaryPercentage > 0.25
+        term.salaryPercentage > ORDINARY_ROOKIE_SCALE_MAX_PERCENTAGE
       ) {
         reasons.push(
           `Percentage-based poison-pill Salary for ${term.season} lacks the governed Cap or ordinary (non-Higher-Max) percentage.`
         );
         return null;
       }
-      const assumedCap = salaryCapAtTrade * 1.045;
+      const assumedCap = salaryCapAtTrade * POISON_PILL_ASSUMED_CAP_MULTIPLIER;
       salary = assumedCap * term.salaryPercentage;
       salary = Math.min(
         salary,
@@ -519,6 +527,9 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
   if (!isDateOnly(worldAsOfDate)) {
     throw new Error('Governed Trade Machine salary basis requires a YYYY-MM-DD world date.');
   }
+  if (!teamId.trim()) {
+    throw new Error('Governed Trade Machine salary basis requires a Team identity.');
+  }
   const [documents, metadata, resolvedWorldTeams] = await Promise.all([
     listWorldContractBaselines(worldId),
     getWorldMetadata(worldId),
@@ -547,6 +558,9 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
     resolvedWorldTeams
   );
   const projectedByPlayer = new Map<string, ProjectedContract[]>();
+  const rosterPlayerIdSet = new Set(
+    rosterPlayerIds.map((playerId) => playerId.trim()).filter(Boolean)
+  );
   const baselineLedgers = documents.flatMap((document) => document.ledgers);
   const baselineIds = new Set(baselineLedgers.map((ledger) => ledger.ledgerId));
   const candidates: ContractEventLedgerPayload[] = [];
@@ -564,6 +578,8 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
   }
 
   for (const input of candidates) {
+    const candidatePlayerId = input.events[0]?.playerId;
+    if (!candidatePlayerId || !rosterPlayerIdSet.has(candidatePlayerId)) continue;
     const ledger = createContractEventLedger(input);
     const contractId = ledger.events[0]?.contractId;
     if (!contractId) continue;
@@ -643,17 +659,23 @@ export function attachGovernedTradeSalaryBasisToRoster<
   entries: ReadonlyMap<string, GovernedTradeSalaryBasis>
 ): TPlayer[] {
   return (players ?? []).map((player) => {
-    const playerId = String(
-      player.id ?? player.player_id ??
-        (player.bio && typeof player.bio === 'object'
-          ? (player.bio as Record<string, unknown>).playerId
-          : '')
-    ).trim();
-    return {
-      ...player,
-      governedTradeSalaryBasis: entries.get(playerId),
-    };
+    const playerId = resolveTradeSalaryBasisPlayerId(player);
+    const authority = entries.get(playerId);
+    return authority
+      ? { ...player, governedTradeSalaryBasis: authority }
+      : player;
   });
+}
+
+export function resolveTradeSalaryBasisPlayerId(
+  player: Record<string, unknown>
+): string {
+  return String(
+    player.id ?? player.player_id ??
+      (player.bio && typeof player.bio === 'object'
+        ? (player.bio as Record<string, unknown>).playerId
+        : '')
+  ).trim();
 }
 
 export { SALARY_BASIS_LEAVES as GOVERNED_TRADE_SALARY_BASIS_LEAVES };
