@@ -710,15 +710,19 @@ export async function loadStateForMutation(
         }
       );
 
-      const [teamStates, worldTeams] = await Promise.all([
-        Promise.all(teamCodes.map((code: string) => getTeam(worldId, code))),
-        getLeague(worldId),
-      ]);
       const tradeContext = payload.tradeCtx;
+      const requiresGovernedSalaryBasis =
+        tradeContext?.source === 'tradeMachine';
       const worldAsOfDate = String(
         payload.asOfDate ?? tradeContext?.asOfDate ?? ''
       ).slice(0, 10);
       const salaryCapYear = toEndYear(tradeContext?.yearKey);
+      const [teamStates, worldTeams] = await Promise.all([
+        Promise.all(teamCodes.map((code: string) => getTeam(worldId, code))),
+        requiresGovernedSalaryBasis && worldAsOfDate && salaryCapYear !== null
+          ? getLeague(worldId)
+          : Promise.resolve([]),
+      ]);
       const normalizedTeams = teamCodes.map((code, i) => ({
         teamCode: code,
         team: toCurrentStateTeam(
@@ -727,6 +731,9 @@ export async function loadStateForMutation(
           'trade'
         ),
       }));
+      if (!requiresGovernedSalaryBasis) {
+        return { teams: normalizedTeams };
+      }
       normalizedTeams.forEach(({ team }) => {
         if (!team) return;
         Object.defineProperty(team, LIVE_GOVERNED_TRADE_SALARY_AUTHORITY, {

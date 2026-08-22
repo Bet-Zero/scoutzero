@@ -590,7 +590,10 @@ describe('mutationPipeline trade persistence truth', () => {
           },
         ],
         tradeCtx: {
-          source: 'tradeMachine',
+          // This test owns the generic player-override persistence boundary.
+          // The governed Trade Machine authority path has dedicated BZE-287
+          // tests and intentionally requires date/year/Contract fixtures.
+          source: 'mutationPipeline-test',
         },
       },
     });
