@@ -716,7 +716,8 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     await expect(confirmActionButton).toBeEnabled();
     await confirmActionButton.click();
 
-    await expect(modal.getByRole('alert')).toContainText(/Moratorium/i, {
+    const moratoriumAlert = modal.getByRole('alert');
+    await expect(moratoriumAlert).toContainText(/Moratorium/i, {
       timeout: 20000,
     });
     expect(await getWorldTeamDocument(worldId, TEAM_CODE)).toEqual(beforeTeam);
@@ -724,6 +725,7 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     expect(
       await getWorldPlayerDocument(worldId, TEAM_CODE, REVIEW_FREE_AGENT_ID)
     ).toEqual(beforePlayer);
+    await moratoriumAlert.scrollIntoViewIfNeeded();
 
     await page.screenshot({
       path: testInfo.outputPath('governed-signing-fail-closed-1280x720.png'),
