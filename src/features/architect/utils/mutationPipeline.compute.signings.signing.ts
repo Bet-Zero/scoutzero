@@ -222,11 +222,9 @@ function appendSigningSalaryBookAdjustments({
     Number.isSafeInteger(numericYearsOfService)
       ? numericYearsOfService
       : null;
-  const contractYears = Number(
-    contract.contractYears ??
-      contract.years ??
-      contract.salariesByYear?.length
-  );
+  const contractYears = Array.isArray(contract.salariesByYear)
+    ? contract.salariesByYear.length
+    : 0;
   if (
     mechanism === 'MINIMUM' &&
     (yearsOfService === null || yearsOfService < 0)

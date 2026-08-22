@@ -1089,6 +1089,44 @@ describe('governed signing result and immutable history', () => {
     }
   );
 
+  it.each([0, 1])(
+    'fails closed when a %i-YOS two-Season Minimum Contract carries stale one-year metadata',
+    (yearsOfService) => {
+      const minimum = getCapRulesForYear(2027).salaries.getMinimumForYOS(
+        yearsOfService
+      );
+      const result = computeSigning({
+        targetTeam: governedTeam(),
+        targetPlayer: player({ bio: { yearsExperience: yearsOfService } }),
+        signingContract: contract({
+          years: 1,
+          contractYears: 1,
+          totalValue: minimum * 2,
+          signedUsing: 'Minimum',
+          salariesByYear: [
+            {
+              season: '2026-27',
+              salary: minimum,
+              capHit: minimum,
+              guaranteed: true,
+            },
+            {
+              season: '2027-28',
+              salary: minimum,
+              capHit: minimum,
+              guaranteed: true,
+            },
+          ],
+        }),
+        signedUsing: 'Minimum',
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/Contract length.*salary rows.*agree/i);
+      expect(result.teamUpdates || []).toEqual([]);
+      expect(result.playerUpdates || []).toEqual([]);
+    }
+  );
+
   it('fails closed before the authenticated Tax Salary baseline without an Apron-only result', () => {
     const targetTeam = governedTeam({
       salaryBookInputs: governedSalaryBookInputs({
