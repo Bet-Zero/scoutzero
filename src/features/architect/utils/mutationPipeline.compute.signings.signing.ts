@@ -214,7 +214,7 @@ function appendSigningSalaryBookAdjustments({
   const yearsOfService =
     rawYearsOfService != null &&
     Number.isFinite(numericYearsOfService) &&
-    Number.isInteger(numericYearsOfService)
+    Number.isSafeInteger(numericYearsOfService)
       ? numericYearsOfService
       : null;
   if (
