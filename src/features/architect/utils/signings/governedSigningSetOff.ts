@@ -9,19 +9,6 @@ import type {
 } from '@/features/architect/utils/mutationPipeline.types';
 import type { GovernedSigningAuthority } from './governedSigningAuthority';
 
-const playerYearsOfService = (
-  player: ArchitectMutationPlayerRecord
-): number => {
-  const value = Number(
-    player.bio?.yearsExperience ??
-      player.contract?.birdRights?.yearsOfService ??
-      (typeof player.birdRights === 'object'
-        ? player.birdRights?.yearsOfService
-        : null)
-  );
-  return Number.isInteger(value) && value >= 0 ? value : 0;
-};
-
 function allocateReduction(
   values: readonly number[],
   reduction: number
@@ -71,6 +58,7 @@ export function applyGovernedSigningSetOff<
   );
   const matching = (priorTeam.deadCap || [])
     .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => String(entry.playerId || '').trim() === playerId)
     .filter(({ entry }) => {
       const parsed = GovernedWaiverLifecycleZ.safeParse(
         entry.governedLifecycle
@@ -80,7 +68,12 @@ export function applyGovernedSigningSetOff<
           'The prior Team waiver obligation is malformed. No changes were saved.'
         );
       }
-      return parsed.success && parsed.data.playerId === playerId;
+      if (parsed.success && parsed.data.playerId !== playerId) {
+        throw new Error(
+          'The prior Team waiver obligation conflicts with the signing player. No changes were saved.'
+        );
+      }
+      return parsed.success;
     });
   if (matching.length > 1) {
     throw new Error(
@@ -100,8 +93,6 @@ export function applyGovernedSigningSetOff<
     return { team: priorTeam, reduction: 0, applied: false };
   }
 
-  const yos = playerYearsOfService(player);
-  const applicableYos = Math.min(yos, 1);
   let newBaseCompensation = 0;
   let applicableMinimumSalary = 0;
   let reduction = 0;
@@ -123,7 +114,7 @@ export function applyGovernedSigningSetOff<
         'Waiver set-off needs exact overlapping Base Compensation and Minimum Salary inputs. No changes were saved.'
       );
     }
-    const minimum = rules.salaries.getMinimumForYOS(applicableYos);
+    const minimum = rules.salaries.getMinimumForYOS(1);
     newBaseCompensation += salary;
     applicableMinimumSalary += minimum;
     reduction += Math.floor(Math.max(salary - minimum, 0) / 2);
@@ -137,6 +128,9 @@ export function applyGovernedSigningSetOff<
     0
   );
   reduction = Math.min(reduction, available);
+  if (reduction === 0) {
+    return { team: priorTeam, reduction: 0, applied: false };
+  }
   const reductions = allocateReduction(
     lifecycle.allocations.map((allocation) => allocation.teamSalary),
     reduction

@@ -12,13 +12,17 @@ import {
   toContractEventLedgerPayload,
 } from '@/features/architect/utils/contractHistory';
 import { deterministicStateDigest } from '@/features/architect/utils/contractSource/deterministicDigest';
+import {
+  isDateOnly,
+  isZonedDateTime,
+} from '@/features/architect/utils/governedSeason/governedTime';
 import type { ArchitectMutationContract } from '@/features/architect/utils/mutationPipeline.types';
 import type { GovernedSigningAuthority } from './governedSigningAuthority';
 
 const dateValue = (value: unknown): ContractTemporalValue =>
-  typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+  typeof value === 'string' && isDateOnly(value)
     ? { precision: 'date', value, rawValue: value }
-    : typeof value === 'string' && value.trim()
+    : typeof value === 'string' && isZonedDateTime(value)
       ? { precision: 'instant', value, rawValue: value }
       : { precision: 'unknown', value: null, rawValue: null };
 
@@ -154,8 +158,8 @@ function authoredState({
       sourceKind: 'saved-world-signing',
       operationId,
       authoringIdentity,
-      recordedAt,
-      worldAsOfDate: authority.worldDate,
+      recordedAt: dateValue(recordedAt),
+      worldAsOfDate: dateValue(authority.worldDate),
     },
   };
   return GovernedContractStateZ.parse({

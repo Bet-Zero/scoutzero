@@ -289,8 +289,8 @@ const AuthoredSigningContractSourceZ = z.strictObject({
   sourceKind: z.literal('saved-world-signing'),
   operationId: NonEmptyStringZ,
   authoringIdentity: NonEmptyStringZ,
-  recordedAt: NonEmptyStringZ,
-  worldAsOfDate: NonEmptyStringZ,
+  recordedAt: ContractTemporalValueZ,
+  worldAsOfDate: ContractTemporalValueZ,
 });
 
 export const GovernedContractStateZ = z.strictObject({

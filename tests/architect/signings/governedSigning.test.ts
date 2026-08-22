@@ -528,13 +528,19 @@ describe('governed ordinary signing authority', () => {
       )
     ).toEqual([]);
 
+    const teamWithPriorBaeUse = governedTeam();
     const priorBaeUse = validateSigning({
-      team: governedTeam({
+      team: {
+        ...teamWithPriorBaeUse,
         exceptions: {
-          ...governedTeam().exceptions,
-          bae: { usedAmount: 1, remainingAmount: 5_000_000 },
+          ...teamWithPriorBaeUse.exceptions,
+          bae: {
+            ...teamWithPriorBaeUse.exceptions?.bae,
+            usedAmount: 1,
+            remainingAmount: 5_000_000,
+          },
         },
-      }),
+      },
       player: player(),
       contract: roomContract,
       signedUsing: 'Room MLE',
@@ -546,6 +552,43 @@ describe('governed ordinary signing authority', () => {
         expect.objectContaining({ rule: 'exception_blocked' }),
       ])
     );
+  });
+
+  it('warns instead of inventing an exact minimum charge when veteran service time is unverified', () => {
+    const result = validateSigning({
+      team: governedTeam(),
+      player: player({ bio: { age: 30 } }),
+      contract: contract({
+        years: 1,
+        contractYears: 1,
+        totalValue: 5_000_000,
+        signedUsing: 'Minimum',
+        salariesByYear: [
+          {
+            season: '2026-27',
+            salary: 5_000_000,
+            capHit: 5_000_000,
+            guaranteed: true,
+          },
+        ],
+      }),
+      signedUsing: 'Minimum',
+      year: 2027,
+      asOfDate: '2026-07-08T00:00:00Z',
+    });
+
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          rule: 'minimum_reimbursement_yos_unverified',
+        }),
+      ])
+    );
+    expect(
+      result.violations.filter(
+        (issue) => issue.rule === 'first_year_max_invalid'
+      )
+    ).toEqual([]);
   });
 });
 
@@ -664,7 +707,11 @@ describe('governed signing result and immutable history', () => {
         establishmentKind: 'signing',
         source: {
           sourceKind: 'saved-world-signing',
-          worldAsOfDate: WORLD_DATE,
+          worldAsOfDate: {
+            precision: 'date',
+            value: WORLD_DATE,
+            rawValue: WORLD_DATE,
+          },
         },
       },
     });
@@ -815,6 +862,62 @@ describe('governed signing result and immutable history', () => {
             lineItem.amount === twoYosMinimum - zeroYosMinimum
         )
     ).toBe(true);
+  });
+
+  it('fails closed when a Minimum signing lacks exact years of service', () => {
+    const rules = getCapRulesForYear(2027);
+    const rookieMinimum = rules.salaries.getMinimumForYOS(0);
+    const result = computeSigning({
+      targetTeam: governedTeam(),
+      targetPlayer: player({ bio: {} }),
+      signingContract: contract({
+        years: 1,
+        contractYears: 1,
+        totalValue: rookieMinimum,
+        signedUsing: 'Vet Minimum',
+        exceptionType: 'Vet Minimum',
+        salariesByYear: [
+          {
+            season: '2026-27',
+            salary: rookieMinimum,
+            capHit: rookieMinimum,
+            guaranteed: true,
+          },
+        ],
+      }),
+      signedUsing: 'Vet Minimum',
+    });
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringMatching(/exact nonnegative years of service/i),
+    });
+  });
+
+  it('records malformed optional Contract dates as unknown rather than instants', () => {
+    const result = computeSigning({
+      signingContract: contract({
+        salariesByYear: [
+          {
+            season: '2026-27',
+            salary: 10_000_000,
+            capHit: 10_000_000,
+            guaranteed: true,
+            optionDecisionDate: 'not-an-instant',
+          },
+          {
+            season: '2027-28',
+            salary: 11_000_000,
+            capHit: 11_000_000,
+            guaranteed: true,
+          },
+        ],
+      }),
+    });
+    expect(result.success, String(result.error || '')).toBe(true);
+    expect(
+      result.teamUpdates?.[0]?.team.contractEventLedgers?.[0]?.events[0]
+        ?.resultingState.terms.salaries[0]?.optionDecisionDate
+    ).toEqual({ precision: 'unknown', value: null, rawValue: null });
   });
 
   it('persists the team, player, world event, and contract ledger atomically with reload parity', async () => {
@@ -1027,7 +1130,13 @@ describe('governed signing waiver set-off', () => {
       authority: authority.authority,
     });
     expect(result.applied).toBe(true);
-    expect(result.reduction).toBeGreaterThan(0);
+    expect(result.reduction).toBe(
+      Math.floor(
+        (10_000_000 -
+          getCapRulesForYear(2027).salaries.getMinimumForYOS(1)) /
+          2
+      )
+    );
     const updated = GovernedWaiverLifecycleZ.parse(
       result.team.deadCap?.[0]?.governedLifecycle
     );
@@ -1096,12 +1205,25 @@ describe('governed signing waiver set-off', () => {
     });
     expect(authority.status).toBe('complete');
     if (authority.status !== 'complete') return;
+    const oneYearContract = contract({
+      years: 1,
+      contractYears: 1,
+      totalValue: 10_000_000,
+      salariesByYear: [
+        {
+          season: '2026-27',
+          salary: 10_000_000,
+          capHit: 10_000_000,
+          guaranteed: true,
+        },
+      ],
+    });
     const call = (deadCap: ArchitectMutationTeamRecord['deadCap']) =>
       applyGovernedSigningSetOff({
         priorTeam: team({ teamCode: 'BOS', deadCap }),
         signingTeamId: TEAM_ID,
         player: player(),
-        contract: contract(),
+        contract: oneYearContract,
         contractId: 'new-contract-bze-286',
         operationId: OPERATION_ID,
         authoringIdentity: 'user-bze-286',
@@ -1116,10 +1238,84 @@ describe('governed signing waiver set-off', () => {
         },
       ])
     ).toThrow(/malformed/i);
+    expect(() =>
+      call([
+        {
+          playerId: PLAYER_ID,
+          governedLifecycle: { ...lifecycle, playerId: 'other-player' },
+        },
+      ])
+    ).toThrow(/conflicts with the signing player/i);
     const duplicate = {
       playerId: PLAYER_ID,
       governedLifecycle: lifecycle,
     };
     expect(() => call([duplicate, { ...duplicate }])).toThrow(/more than one/i);
+
+    const unrelatedMalformed = {
+      playerId: 'unrelated-player',
+      governedLifecycle: { lifecycleVersion: 2 },
+    };
+    expect(
+      call([
+        unrelatedMalformed,
+        { playerId: PLAYER_ID, governedLifecycle: lifecycle },
+      ]).applied
+    ).toBe(true);
+  });
+
+  it('does not append a set-off event when no Team Salary obligation remains', () => {
+    const lifecycle = waiverLifecycle();
+    const zeroRow = (row: (typeof lifecycle.allocations)[number]) => ({
+      ...row,
+      protectedBaseCompensation: 0,
+      playerPayment: 0,
+      teamSalary: 0,
+    });
+    const zeroLifecycle = GovernedWaiverLifecycleZ.parse({
+      ...lifecycle,
+      protectedBaseCompensation: 0,
+      allocationsBeforeStretch: lifecycle.allocationsBeforeStretch.map(zeroRow),
+      allocations: lifecycle.allocations.map(zeroRow),
+      paymentAllocations: lifecycle.paymentAllocations.map(zeroRow),
+    });
+    const signingContract = contract({
+      years: 1,
+      contractYears: 1,
+      totalValue: 10_000_000,
+      salariesByYear: [
+        {
+          season: '2026-27',
+          salary: 10_000_000,
+          capHit: 10_000_000,
+          guaranteed: true,
+        },
+      ],
+    });
+    const authority = resolveGovernedSigningAuthority({
+      team: team(),
+      contract: signingContract,
+      mechanism: 'FULL_MLE',
+      worldDate: WORLD_DATE,
+      salaryCapYear: 2027,
+    });
+    expect(authority.status).toBe('complete');
+    if (authority.status !== 'complete') return;
+    const priorTeam = team({
+      teamCode: 'BOS',
+      deadCap: [{ playerId: PLAYER_ID, governedLifecycle: zeroLifecycle }],
+    });
+    const result = applyGovernedSigningSetOff({
+      priorTeam,
+      signingTeamId: TEAM_ID,
+      player: player(),
+      contract: signingContract,
+      contractId: 'new-contract-bze-286',
+      operationId: OPERATION_ID,
+      authoringIdentity: 'user-bze-286',
+      recordedAt: RECORDED_AT,
+      authority: authority.authority,
+    });
+    expect(result).toEqual({ team: priorTeam, reduction: 0, applied: false });
   });
 });

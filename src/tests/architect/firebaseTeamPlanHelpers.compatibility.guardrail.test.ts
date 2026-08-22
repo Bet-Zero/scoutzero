@@ -24,6 +24,7 @@ import {
   saveFreeAgents,
   loadFreeAgents,
 } from '@/features/architect/utils/firebaseTeamPlanHelpers';
+import { readLooseBaseTeamDoc } from '@/features/architect/utils/firebaseTeamPlanHelpers.readers';
 
 type FirestoreDocData = Record<string, unknown>;
 type DocValue = FirestoreDocData | null;
@@ -215,6 +216,23 @@ beforeEach(() => {
 });
 
 describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
+  it('rejects malformed governed salary-book inputs at the Firestore read boundary', () => {
+    expect(() =>
+      readLooseBaseTeamDoc(
+        {
+          teamName: 'Malformed Books',
+          salaryBookInputs: {
+            version: 1,
+            salaryCapYear: 2026,
+            apronAdjustments: { status: 'ready', lineItems: 'not-an-array' },
+            taxSalary: { status: 'not-evaluated', reason: 'fixture' },
+          },
+        },
+        'LAL',
+        'architect_baseTeams/LAL'
+      )
+    ).toThrow();
+  });
   it('firebaseTeamPlanHelpers.js is absent after the E113 shim deletion batch', () => {
     expect(fs.existsSync(deletedShimPath)).toBe(false);
   });

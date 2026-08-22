@@ -23,7 +23,10 @@ import {
   readArchitectUnknownArray,
   requireArchitectRecord,
 } from '@/features/architect/utils/architectFirestoreBoundary';
-import type { TeamSalaryBookInputs } from '@/schemas/salaryBooks';
+import {
+  TeamSalaryBookInputsZ,
+  type TeamSalaryBookInputs,
+} from '@/schemas/salaryBooks';
 
 // ============================================================
 // Private types
@@ -527,6 +530,13 @@ export function readLooseBaseTeamDoc(
     `${context}.hardCapTriggeredBy`
   );
   normalized.deadCap = readArchitectUnknownArray(record.deadCap, `${context}.deadCap`);
+  if (record.salaryBookInputs === null) {
+    normalized.salaryBookInputs = null;
+  } else if (record.salaryBookInputs !== undefined) {
+    normalized.salaryBookInputs = TeamSalaryBookInputsZ.parse(
+      record.salaryBookInputs
+    );
+  }
   if (record.totals === null) {
     normalized.totals = null;
   } else if (record.totals !== undefined) {

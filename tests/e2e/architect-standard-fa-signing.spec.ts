@@ -406,10 +406,8 @@ const ensureWorldSelected = async (
 
   const userId = await readReviewUserId(page);
   const worldId = await seedReviewWorld(userId, asOfDate);
-  await activateSeededWorld(page, userId, worldId);
   await seedGovernedBosWorldTeam(worldId);
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await waitForBosDashboard(page);
+  await activateSeededWorld(page, userId, worldId);
   await ensureSpecificWorldSelected(page, worldId);
   return worldId;
 };

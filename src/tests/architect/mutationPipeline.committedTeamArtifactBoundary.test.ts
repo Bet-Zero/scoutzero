@@ -262,6 +262,18 @@ function makeTeam(
     draftPicks: [{ id: 'pick_keep', year: 2028, round: 1, owner: teamCode }],
     entitlementIds: ['entitlement_keep'],
     exceptions: { mle: null, bae: null, tpe: [] },
+    salaryBookInputs: {
+      version: 1,
+      salaryCapYear: 2026,
+      apronAdjustments: {
+        status: 'not-evaluated',
+        reason: 'Committed artifact boundary fixture',
+      },
+      taxSalary: {
+        status: 'not-evaluated',
+        reason: 'Committed artifact boundary fixture',
+      },
+    },
     totals: {
       totalSalary,
       capHit: totalSalary,

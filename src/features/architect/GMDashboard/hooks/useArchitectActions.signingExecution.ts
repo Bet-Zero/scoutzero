@@ -14,6 +14,7 @@ import {
   applyWorldMutation,
   computeWorldMutation,
   findUpdatedTeamSnapshot,
+  resolveSigningMechanismForPipeline,
 } from '@/features/architect/utils/mutationPipeline';
 import type { ArchitectMutationPayload } from '@/features/architect/utils/mutationPipeline';
 import {
@@ -821,14 +822,25 @@ export function useSigningExecution({
         salaryRows.length === 1 &&
         yearsOfService != null &&
         yearsOfService >= 3 &&
-        signedUsing?.toLowerCase() === 'minimum' &&
+        resolveSigningMechanismForPipeline(
+          preparedContract,
+          signedUsing
+        ) === 'MINIMUM' &&
         overrides.contractType === 'Signed FA';
-      const minimumRules = minimumReimbursementApplies
-        ? getCapRulesForYear(actionSeasonContext.actionYear)
-        : null;
-      const minimumCharge = minimumRules
-        ? minimumRules.salaries.getMinimumForYOS(2)
-        : null;
+      let minimumCharge: number | null = null;
+      if (minimumReimbursementApplies) {
+        try {
+          minimumCharge = getCapRulesForYear(
+            actionSeasonContext.actionYear
+          ).salaries.getMinimumForYOS(2);
+        } catch {
+          return {
+            actionSeasonContext,
+            architectContract: null,
+            signedUsing,
+          };
+        }
+      }
       const governedSalaryRows =
         minimumCharge === null
           ? salaryRows

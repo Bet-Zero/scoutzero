@@ -203,9 +203,23 @@ function appendSigningSalaryBookAdjustments({
   const apronInput = inputs.apronAdjustments;
   const apronLineItems =
     apronInput.status === 'ready' ? [...apronInput.lineItems] : null;
-  const yearsOfService = toFiniteIntegerOrNull(
-    player.bio?.yearsExperience ?? player.bio?.experience
-  );
+  const rawYearsOfService =
+    player.bio?.yearsExperience ??
+    player.bio?.experience ??
+    player.contract?.birdRights?.yearsOfService ??
+    (typeof player.birdRights === 'object'
+      ? player.birdRights?.yearsOfService
+      : null);
+  const yearsOfService =
+    rawYearsOfService == null
+      ? null
+      : toFiniteIntegerOrNull(rawYearsOfService);
+  if (
+    mechanism === 'MINIMUM' &&
+    (yearsOfService === null || yearsOfService < 0)
+  ) {
+    return 'Minimum signing needs exact nonnegative years of service before Apron Team Salary can be governed.';
+  }
   if (
     apronLineItems &&
     mechanism === 'MINIMUM' &&

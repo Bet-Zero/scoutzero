@@ -334,6 +334,8 @@ export function validateExceptionEligibility({
       'room',
       'roommle',
       'rmle',
+      'biannual',
+      'full',
     ];
     if (blockedExceptions.some((e) => normalizedException.includes(e))) {
       return {
@@ -494,12 +496,16 @@ export function validateExceptionEligibility({
         room: 'Room Exception',
         bae: 'Bi-Annual Exception',
       };
+      const exclusivityExplanation =
+        canonicalExceptionKey === 'bae' || conflictingFlavor === 'bae'
+          ? 'The Room Exception and Bi-Annual Exception cannot both be used in the same Salary Cap Year.'
+          : 'Only one Mid-Level/Room Exception may be used per season.';
       return {
         blocked: true,
         reason: 'This exception conflicts with an earlier same-year use',
         violation: {
           rule: 'exception_blocked',
-          message: `Cannot use ${flavorLabels[canonicalExceptionKey]} - the team has already used its ${flavorLabels[conflictingFlavor]} this season. The selected exceptions cannot both be used in the same Salary Cap Year.`,
+          message: `Cannot use ${flavorLabels[canonicalExceptionKey]} - the team has already used its ${flavorLabels[conflictingFlavor]} this season. ${exclusivityExplanation}`,
           severity: 'error',
         },
       };
