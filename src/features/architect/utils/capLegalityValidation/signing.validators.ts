@@ -271,25 +271,10 @@ export function validateExceptionEligibility({
   }
 
   const normalizedException = signedUsing.toLowerCase().replace(/[^a-z]/g, '');
-  const apronRestrictedMechanisms = [
-    'mle',
-    'ntmle',
-    'fullmle',
-    'full',
-    'bae',
-    'biannual',
-    'tpe',
-    'tpmle',
-    'taxpayermle',
-    'room',
-    'roommle',
-    'rmle',
-  ];
-  if (
-    !apronRestrictedMechanisms.some((mechanism) =>
-      normalizedException.includes(mechanism)
-    )
-  ) {
+  const canonicalExceptionKey =
+    getCanonicalExceptionKeyForSigningMechanism(signedUsing);
+  const isTradeException = normalizedException === 'tpe';
+  if (!canonicalExceptionKey && !isTradeException) {
     return { blocked: false, reason: null, violation: null };
   }
 
@@ -323,21 +308,7 @@ export function validateExceptionEligibility({
 
   // RULE 1: Second Apron teams cannot use any exceptions
   if (isAboveSecondApron) {
-    const blockedExceptions = [
-      'mle',
-      'ntmle',
-      'fullmle',
-      'bae',
-      'tpe',
-      'tpmle',
-      'taxpayermle',
-      'room',
-      'roommle',
-      'rmle',
-      'biannual',
-      'full',
-    ];
-    if (blockedExceptions.some((e) => normalizedException.includes(e))) {
+    if (canonicalExceptionKey || isTradeException) {
       return {
         blocked: true,
         reason: 'Second apron teams cannot use exceptions',
@@ -370,15 +341,8 @@ export function validateExceptionEligibility({
 
   // RULE 3: Teams above first apron but not hard-capped can only use Taxpayer MLE
   if (isAboveFirstApron && !hardCapStatus.isHardCapped) {
-    const isTaxpayerMLE =
-      normalizedException.includes('taxpayer') ||
-      normalizedException === 'tpmle' ||
-      normalizedException.includes('tpemle');
-
-    const isNonTaxpayerMLE =
-      (normalizedException.includes('mle') ||
-        normalizedException.includes('full')) &&
-      !isTaxpayerMLE;
+    const isTaxpayerMLE = canonicalExceptionKey === 'tpmle';
+    const isNonTaxpayerMLE = canonicalExceptionKey === 'mle';
 
     if (isNonTaxpayerMLE) {
       return {
@@ -444,9 +408,6 @@ export function validateExceptionEligibility({
       };
     }
   }
-
-  const canonicalExceptionKey =
-    getCanonicalExceptionKeyForSigningMechanism(signedUsing);
 
   // RULE 5: BAE biennial restriction — the Bi-Annual Exception cannot be used
   // in consecutive seasons. It is blocked in any season immediately following

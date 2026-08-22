@@ -210,10 +210,13 @@ function appendSigningSalaryBookAdjustments({
     (typeof player.birdRights === 'object'
       ? player.birdRights?.yearsOfService
       : null);
+  const numericYearsOfService = Number(rawYearsOfService);
   const yearsOfService =
-    rawYearsOfService == null
-      ? null
-      : toFiniteIntegerOrNull(rawYearsOfService);
+    rawYearsOfService != null &&
+    Number.isFinite(numericYearsOfService) &&
+    Number.isInteger(numericYearsOfService)
+      ? numericYearsOfService
+      : null;
   if (
     mechanism === 'MINIMUM' &&
     (yearsOfService === null || yearsOfService < 0)

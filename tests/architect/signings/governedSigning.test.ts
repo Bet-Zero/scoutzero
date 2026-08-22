@@ -893,6 +893,35 @@ describe('governed signing result and immutable history', () => {
     });
   });
 
+  it('fails closed instead of truncating fractional years of service', () => {
+    const rules = getCapRulesForYear(2027);
+    const rookieMinimum = rules.salaries.getMinimumForYOS(0);
+    const result = computeSigning({
+      targetTeam: governedTeam(),
+      targetPlayer: player({ bio: { yearsExperience: 0.5 } }),
+      signingContract: contract({
+        years: 1,
+        contractYears: 1,
+        totalValue: rookieMinimum,
+        signedUsing: 'Minimum',
+        salariesByYear: [
+          {
+            season: '2026-27',
+            salary: rookieMinimum,
+            capHit: rookieMinimum,
+            guaranteed: true,
+          },
+        ],
+      }),
+      signedUsing: 'Minimum',
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringMatching(/exact nonnegative years of service/i),
+    });
+  });
+
   it('records malformed optional Contract dates as unknown rather than instants', () => {
     const result = computeSigning({
       signingContract: contract({

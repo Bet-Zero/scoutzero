@@ -825,8 +825,7 @@ export function useSigningExecution({
         resolveSigningMechanismForPipeline(
           preparedContract,
           signedUsing
-        ) === 'MINIMUM' &&
-        overrides.contractType === 'Signed FA';
+        ) === 'MINIMUM';
       let minimumCharge: number | null = null;
       if (minimumReimbursementApplies) {
         try {

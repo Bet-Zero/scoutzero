@@ -8,6 +8,7 @@ import {
   type UseArchitectActionsReturn,
 } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
+import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHistory';
 import { makeRightsLedgerForIdentity } from '../../../tests/fixtures/architect/rightsHistory';
 
@@ -43,6 +44,14 @@ const mutationMocks = vi.hoisted(() => ({
   ),
   preflightSignAndTradeMutation: vi.fn(),
   preflightOfferSheetMutation: vi.fn(),
+  resolveSigningMechanismForPipeline: vi.fn(
+    (contract: { exceptionType?: unknown }, signedUsing: unknown) =>
+      String(signedUsing || contract?.exceptionType || '')
+        .toLowerCase()
+        .includes('minimum')
+        ? 'MINIMUM'
+        : 'FULL_MLE'
+  ),
 }));
 
 const validationMocks = vi.hoisted(() => ({
@@ -68,6 +77,8 @@ vi.mock('@/features/architect/utils/mutationPipeline', () => ({
   findUpdatedTeamSnapshot: mutationMocks.findUpdatedTeamSnapshot,
   preflightSignAndTradeMutation: mutationMocks.preflightSignAndTradeMutation,
   preflightOfferSheetMutation: mutationMocks.preflightOfferSheetMutation,
+  resolveSigningMechanismForPipeline:
+    mutationMocks.resolveSigningMechanismForPipeline,
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
@@ -3159,5 +3170,46 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         ],
       }),
     });
+  });
+
+  it('uses the governed veteran-minimum Team Salary charge across shared preflight preparation', async () => {
+    const rules = getCapRulesForYear(2026);
+    const veteranMinimum = rules.salaries.getMinimumForYOS(8);
+    const teamSalaryCharge = rules.salaries.getMinimumForYOS(2);
+    const veteranPlayer = { ...playerFixture, yearsOfService: 8 };
+    const veteranMinimumContract = buildStagedScalarSigningFixture({
+      years: 1,
+      salaries: [veteranMinimum],
+      contractYears: 1,
+      totalValue: veteranMinimum,
+      exceptionType: 'Minimum',
+      signedUsing: 'Minimum',
+    });
+    const { result } = renderActionsHarness({ worldId: 'world_1' });
+
+    await act(async () => {
+      await result.current.actions.getOfferSheetPreflight(
+        veteranPlayer,
+        veteranMinimumContract
+      );
+      await result.current.actions.getSignAndTradePreflight(
+        veteranPlayer,
+        veteranMinimumContract,
+        'bos'
+      );
+    });
+
+    const offerSheetContract =
+      mutationMocks.preflightOfferSheetMutation.mock.calls.at(-1)?.[0]
+        ?.contract;
+    const signAndTradeContract =
+      mutationMocks.preflightSignAndTradeMutation.mock.calls.at(-1)?.[0]
+        ?.payload?.contract;
+    for (const preparedContract of [offerSheetContract, signAndTradeContract]) {
+      expect(preparedContract?.salariesByYear?.[0]).toMatchObject({
+        salary: veteranMinimum,
+        capHit: teamSalaryCharge,
+      });
+    }
   });
 });
