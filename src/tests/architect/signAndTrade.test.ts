@@ -128,6 +128,15 @@ vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   isOverrideEnabled: vi.fn(() => false),
 }));
 
+vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
+  POST_STATE_CAP_VALIDATOR_VERSION: 'test-post-state-validator',
+  validatePostStateCapLegality: vi.fn(() => ({
+    valid: true,
+    violations: [],
+    warnings: [],
+  })),
+}));
+
 // Mock trade validator - configurable per test
 vi.mock('@/features/architect/utils/tradeMachine', () => ({
   validateTrade: vi.fn(() => ({ valid: true, success: true, legal: true })),

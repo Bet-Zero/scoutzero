@@ -101,6 +101,17 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
 
 vi.mock('@/features/architect/utils/capTotals', () => ({
   computeTeamCapTotals: mocks.computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot: (team: Record<string, unknown>, year: number) => {
+    const totals = mocks.computeTeamCapTotals(team, year);
+    return {
+      ...totals,
+      teamSalary: 120_000_000,
+      apronTeamSalary: 121_000_000,
+      taxSalary: 122_000_000,
+      totalSalary: 120_000_000,
+      capHit: 120_000_000,
+    };
+  },
 }));
 
 vi.mock(
@@ -114,10 +125,27 @@ vi.mock(
     return {
       ...actual,
       computeTeamCapTotals: mocks.computeTeamCapTotals,
+      createCanonicalTeamTotalsSnapshot: vi.fn(
+        (team: Record<string, unknown>, year: number) => ({
+          ...mocks.computeTeamCapTotals(team, year),
+          teamSalary: 120_000_000,
+          apronTeamSalary: 121_000_000,
+          taxSalary: 122_000_000,
+          totalSalary: 120_000_000,
+          capHit: 120_000_000,
+        })
+      ),
       synchronizeTeamTotalsSnapshot: vi.fn(
         (team: Record<string, unknown>, year: number) => ({
           ...team,
-          totals: mocks.computeTeamCapTotals(team, year),
+          totals: {
+            ...mocks.computeTeamCapTotals(team, year),
+            teamSalary: 120_000_000,
+            apronTeamSalary: 121_000_000,
+            taxSalary: 122_000_000,
+            totalSalary: 120_000_000,
+            capHit: 120_000_000,
+          },
         })
       ),
       canUseRoomException: vi.fn((team: Record<string, unknown>, year: number) => {

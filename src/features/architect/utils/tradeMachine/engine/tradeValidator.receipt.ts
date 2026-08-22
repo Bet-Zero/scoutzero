@@ -151,10 +151,17 @@ export function generateTradeReceipt({
       `Team ${index}`;
 
     // Pre-trade team salary with source tracking
-    const preTradeTeamSalary = team.teamTotalSalary || 0;
+    const preTradeTeamSalary = Number.isFinite(team.team?.teamSalary)
+      ? Number(team.team?.teamSalary)
+      : null;
+    const preTradeApronTeamSalary = Number.isFinite(team.team?.apronTeamSalary)
+      ? Number(team.team?.apronTeamSalary)
+      : null;
+    const preTradeTaxSalary = Number.isFinite(team.team?.taxSalary)
+      ? Number(team.team?.taxSalary)
+      : null;
     const preTradeTeamSalarySource =
-      salaryMatchingDetails.totalSalarySource ||
-      'team.teamTotalSalary';
+      'team.teamSalary';
 
     // Build outgoing players list with detailed info
     const outgoingPlayers = (team.outgoingPlayers || team.sends || []).map(
@@ -367,6 +374,8 @@ export function generateTradeReceipt({
       teamName,
       preTradeTeamSalary,
       preTradeTeamSalarySource,
+      preTradeApronTeamSalary,
+      preTradeTaxSalary,
       outgoingPlayers,
       incomingPlayers,
       // Phase 11.3: Include entitlements in trade receipt

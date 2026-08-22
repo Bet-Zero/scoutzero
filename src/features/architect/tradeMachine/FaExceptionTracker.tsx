@@ -40,8 +40,8 @@ export const FaExceptionTracker = ({
         faUsage,
         faExceptionViolations,
         faExceptionWarnings,
-        teamTotalSalary: team.totalSalary || 0,
-        projectedSalary: team.projectedSalary || 0,
+        teamTotalSalary: team.totalSalary ?? null,
+        projectedSalary: team.projectedSalary ?? null,
         hardCapped: Boolean(team.hardCapped),
         apronStatus: team.apronStatus || '',
       };
@@ -163,6 +163,7 @@ export const FaExceptionTracker = ({
           )}
 
           {firstApron > 0 &&
+            typeof team.projectedSalary === 'number' &&
             team.projectedSalary > firstApron * 0.925 &&
             !team.apronStatus.includes('Apron') && (
               <div className="p-2 bg-cockpit-watch/20 border border-cockpit-watch/30 rounded text-xs">
@@ -187,4 +188,3 @@ export const FaExceptionTracker = ({
     </div>
   );
 };
-

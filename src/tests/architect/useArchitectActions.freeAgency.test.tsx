@@ -582,7 +582,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     });
   });
 
-  it('keeps dual-path standard signing sandbox-capable through the grouped owner while world-only modal paths stay unavailable', async () => {
+  it('fails salary-sensitive sandbox signing closed while world-only modal paths stay unavailable', async () => {
     const rosterPlayers = Array.from({ length: 13 }, (_, index) =>
       createStandardRosterPlayer(index)
     );
@@ -623,7 +623,11 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       );
     });
 
-    expect(actionResult).toEqual({ success: true });
+    expect(actionResult).toEqual({
+      success: false,
+      message:
+        'Team LAL cannot be certified against its hard cap because Apron Team Salary is not complete.',
+    });
     expect(mutationMocks.computeWorldMutation).toHaveBeenCalledWith(
       expect.objectContaining({
         mutationType: 'signFreeAgent',
@@ -642,7 +646,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       sandboxOwner.freeAgentModalAvailability.offerSheetInitiation
     ).toBeNull();
     expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
-    expect(result.current.teamCapSheet).toEqual(updatedTeam);
+    expect(result.current.teamCapSheet).toEqual(signableBaseTeam);
   });
 
   it('keeps preview-vs-commit world-only messaging aligned with the capability matrix in sandbox mode', async () => {
@@ -774,7 +778,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(refreshWorldRosterIndex).toHaveBeenCalled();
   });
 
-  it('keeps world-mode and vacuum-mode standard-sign post-state truth coherent', async () => {
+  it('commits governed world signing while vacuum mode fails closed without dated books', async () => {
     const rosterPlayers = Array.from({ length: 13 }, (_, index) =>
       createStandardRosterPlayer(index)
     );
@@ -835,15 +839,24 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         initialTeam: signableBaseTeam,
       });
 
+    let vacuumActionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
-      await vacuumResult.current.actions.handleSign(
+      vacuumActionResult = await vacuumResult.current.actions.handleSign(
         playerFixture,
         contractFixture
       );
     });
 
-    expect(summarizeStandardSignPostState(worldResult.current)).toEqual(
-      summarizeStandardSignPostState(vacuumResult.current)
+    expect(vacuumActionResult).toEqual({
+      success: false,
+      message:
+        'Team LAL cannot be certified against its hard cap because Apron Team Salary is not complete.',
+    });
+    expect(summarizeStandardSignPostState(worldResult.current).roster).toContain(
+      'player_1'
+    );
+    expect(summarizeStandardSignPostState(vacuumResult.current).roster).not.toContain(
+      'player_1'
     );
     expect(worldRefresh).toHaveBeenCalledTimes(1);
     expect(vacuumRefresh).not.toHaveBeenCalled();
@@ -889,15 +902,20 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       reloadActiveWorldTeamData,
     });
 
+    let actionResult: FreeAgencyMutationResult | undefined;
     await act(async () => {
-      await result.current.actions.handleSign(playerFixture, contractFixture);
+      actionResult = await result.current.actions.handleSign(
+        playerFixture,
+        contractFixture
+      );
     });
 
+    expect(actionResult?.success).toBe(false);
     expect(reloadActiveWorldTeamData).not.toHaveBeenCalled();
     expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
-    expect(result.current.teamCapSheet).toEqual(updatedTeam);
+    expect(result.current.teamCapSheet).toEqual(signableBaseTeam);
     expect(summarizeStandardSignPostState(result.current).freeAgentIds).toEqual(
-      []
+      ['player_1']
     );
   });
 

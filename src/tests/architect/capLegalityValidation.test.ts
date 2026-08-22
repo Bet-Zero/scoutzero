@@ -6,13 +6,44 @@
  *  - 2026-01-20: Created for Phase 19 cap hold/cap-space enforcement tests
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   validateSigning,
   isCapSpaceSigning,
   HARD_BLOCK_RULES,
 } from '@/features/architect/utils/capLegalityValidation';
 import { capProjections } from '@/features/architect/utils/capProjections';
+
+vi.mock(
+  '@/features/architect/utils/capTotals/computeTeamCapTotals',
+  async (importOriginal) => {
+    const actual = (await importOriginal()) as Record<string, unknown>;
+    return {
+      ...actual,
+      createCanonicalTeamTotalsSnapshot: vi.fn((team) => ({
+        ...team?.totals,
+        teamSalary: team?.totals?.teamSalary ?? null,
+        apronTeamSalary: team?.totals?.apronTeamSalary ?? null,
+        taxSalary: team?.totals?.taxSalary ?? null,
+        salaryCap: 140_588_000,
+        capHoldsTotal: (team?.capHolds || []).reduce(
+          (sum: number, hold: { amount?: number; active?: boolean; isSigned?: boolean }) =>
+            sum +
+            (hold.active === false || hold.isSigned === true
+              ? 0
+              : Number(hold.amount || 0)),
+          0
+        ),
+        bookDeltas: {
+          vsCap: null,
+          vsLuxuryTax: null,
+          vsFirstApron: null,
+          vsSecondApron: null,
+        },
+      })),
+    };
+  }
+);
 
 type ContractOptions = {
   contractType?: string;
@@ -77,12 +108,24 @@ describe('capLegalityValidation - Phase 19: Cap Hold / Cap Space Enforcement', (
         contractType: 'Standard',
       },
     }));
+    const capHoldsTotal = capHolds.reduce(
+      (sum, hold) =>
+        sum +
+        (hold.active === false || hold.isSigned === true
+          ? 0
+          : Number(hold.amount || 0)),
+      0
+    );
+    const teamSalary = totalPlayerCapHit + capHoldsTotal;
 
     return {
       teamCode: 'TST',
       players,
       capHolds: capHolds,
       totals: {
+        teamSalary,
+        apronTeamSalary: teamSalary,
+        taxSalary: teamSalary,
         capHit: totalPlayerCapHit,
         totalSalary: totalPlayerCapHit,
         ...options,

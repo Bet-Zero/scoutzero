@@ -72,6 +72,9 @@ const SUMMARY_TOTALS = {
   capHoldsTotal: 10_000_000,
   incompleteChargesTotal: 0,
   totalCapAllocations: 165_000_000,
+  teamSalary: 165_000_000,
+  apronTeamSalary: 166_000_000,
+  taxSalary: 164_000_000,
   salaryCap: 140_000_000,
   luxuryTax: 170_000_000,
   firstApron: 178_000_000,
@@ -82,6 +85,38 @@ const SUMMARY_TOTALS = {
     vsFirstApron: -13_000_000,
     vsSecondApron: -23_000_000,
   },
+  bookDeltas: {
+    vsCap: 25_000_000,
+    vsLuxuryTax: -6_000_000,
+    vsFirstApron: -12_000_000,
+    vsSecondApron: -22_000_000,
+  },
+  salaryBooks: {
+    version: 1 as const,
+    status: 'complete' as const,
+    context: { asOfDate: '2026-02-01T00:00:00Z', salaryCapYear: 2026, teamId: 'TST' },
+    ledgers: {
+      teamSalary: { kind: 'team-salary' as const, status: 'complete' as const, total: 165_000_000, lineItems: [] },
+      apronTeamSalary: { kind: 'apron-team-salary' as const, status: 'complete' as const, total: 166_000_000, lineItems: [] },
+      taxSalary: { kind: 'tax-salary' as const, status: 'complete' as const, total: 164_000_000, lineItems: [] },
+    },
+    governedInputs: null,
+  },
+  totalSalary: 165_000_000,
+  capHit: 165_000_000,
+  currentCapHit: 165_000_000,
+  luxuryTaxLine: 170_000_000,
+  taxablePayroll: 164_000_000,
+  capSpace: -25_000_000,
+  capRoom: -25_000_000,
+  effectiveCap: 140_000_000,
+  firstApronRoom: 12_000_000,
+  isFirstApron: false,
+  secondApronRoom: 22_000_000,
+  isSecondApron: false,
+  isOverTax: false,
+  isHardCapped: false,
+  hardCapLevel: null,
   _meta: {
     source: 'computeTeamCapTotals' as const,
     rulesSource: 'reported',
@@ -234,16 +269,18 @@ describe('Cap Sheet display-core E88 compatibility', () => {
     );
 
     expect(labels).toEqual([
-      'TOTAL CAP ALLOCATIONS',
+      'SALARY BOOKS',
       'CAP SPACE',
       'LUXURY TAX SPACE',
       '1ST APRON SPACE',
       '2ND APRON SPACE',
     ]);
 
-    expect(screen.getByText('$165,000,000')).toBeInTheDocument();
+    expect(screen.getByText('Team $165,000,000')).toBeInTheDocument();
     expect(screen.getByText('-$25,000,000')).toBeInTheDocument();
-    expect(screen.getByText('$5,000,000')).toBeInTheDocument();
+    expect(screen.getByText('$6,000,000')).toBeInTheDocument();
+    expect(screen.getByText('$12,000,000')).toBeInTheDocument();
+    expect(screen.getByText('$22,000,000')).toBeInTheDocument();
     expect(
       within(container).getByTestId('cap-summary-surface-truth-banner')
     ).toHaveTextContent('Canonical totals: 2025-26');

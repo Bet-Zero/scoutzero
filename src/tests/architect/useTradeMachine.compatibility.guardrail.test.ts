@@ -23,6 +23,31 @@ vi.mock('@/features/architect/utils/entitlements/entitlementResolver', () => ({
   resolveEntitlementsForTeam: entitlementResolverMocks.resolveEntitlementsForTeam,
 }));
 
+vi.mock(
+  '@/features/architect/utils/capTotals/computeTeamCapTotals',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/architect/utils/capTotals/computeTeamCapTotals')
+      >();
+    return {
+      ...actual,
+      createCanonicalTeamTotalsSnapshot: vi.fn((team, year) => {
+        const legacy = actual.computeTeamCapTotals(team, year);
+        const salary = Number(team?.teamTotalSalary ?? team?.totalSalary ?? 0);
+        return {
+          ...legacy,
+          teamSalary: salary,
+          apronTeamSalary: salary,
+          taxSalary: salary,
+          totalSalary: salary,
+          capHit: salary,
+        };
+      }),
+    };
+  }
+);
+
 const CURRENT_YEAR = 2026;
 const SEASON = '2025-26';
 

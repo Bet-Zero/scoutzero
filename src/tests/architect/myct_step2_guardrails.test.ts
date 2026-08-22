@@ -89,14 +89,14 @@ describe('MYCT Step 2 Guardrails - Source Scan', () => {
     expect(source).not.toMatch(/from\s+['"][^'"]*capProjections['"]/);
   });
 
-  it('snapshot and derived helpers consume computeTeamCapTotals rather than partially recomputing totals', () => {
+  it('snapshot and derived helpers consume the canonical independent-book snapshot rather than partially recomputing totals', () => {
     const source = fs.readFileSync(computeTotalsPath, 'utf-8');
 
     expect(source).toMatch(
       /const\s+canonicalTotals\s*=\s*computeTeamCapTotals\s*\(\s*teamCapSheet\s*,\s*selectedYear\s*,\s*options\s*\)\s*;/
     );
     expect(source).toMatch(
-      /const\s+totals\s*=\s*computeTeamCapTotals\s*\(\s*team\s*,\s*yearKey\s*\)\s*;/
+      /const\s+totals\s*=\s*createCanonicalTeamTotalsSnapshot\s*\(\s*team\s*,\s*yearKey/
     );
   });
 
@@ -318,11 +318,11 @@ describe('MYCT Step 2 Guardrails - Canonical Totals and Future-Year Truth', () =
     const synchronized = synchronizeTeamTotalsSnapshot(team, 2026);
 
     expect(snapshot.totalCapAllocations).toBe(canonicalTotals.totalCapAllocations);
-    expect(snapshot.teamSalary).toBe(canonicalTotals.totalCapAllocations);
-    expect(snapshot.currentCapHit).toBe(canonicalTotals.totalCapAllocations);
-    expect(snapshot.capSpace).toBe(
-      canonicalTotals.salaryCap - canonicalTotals.totalCapAllocations
-    );
+    expect(snapshot.teamSalary).toBeNull();
+    expect(snapshot.apronTeamSalary).toBeNull();
+    expect(snapshot.taxSalary).toBeNull();
+    expect(snapshot.currentCapHit).toBeNull();
+    expect(snapshot.capSpace).toBeNull();
     expect(snapshot.totalCapAllocations).not.toBe(1);
     expect(snapshot.hardCapReason).toBe('stale stored hard cap reason');
 
@@ -330,11 +330,13 @@ describe('MYCT Step 2 Guardrails - Canonical Totals and Future-Year Truth', () =
     expect(synchronized?.totals.totalCapAllocations).toBe(
       canonicalTotals.totalCapAllocations
     );
-    expect(synchronized?.totals.teamSalary).toBe(
-      canonicalTotals.totalCapAllocations
-    );
-    expect(synchronized?.totals.capSpace).toBe(
-      canonicalTotals.salaryCap - canonicalTotals.totalCapAllocations
-    );
+    expect(synchronized?.totals.teamSalary).toBeNull();
+    expect(
+      (synchronized?.totals as Record<string, unknown>).apronTeamSalary
+    ).toBeNull();
+    expect(
+      (synchronized?.totals as Record<string, unknown>).taxSalary
+    ).toBeNull();
+    expect(synchronized?.totals.capSpace).toBeNull();
   });
 });

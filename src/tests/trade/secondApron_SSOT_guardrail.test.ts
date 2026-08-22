@@ -23,18 +23,18 @@ describe('Second Apron SSOT Guardrails', () => {
     test('enforces strict > semantics', () => {
       // Under
       expect(
-        isSecondApronTeam({ totalSalary: secondApron - 1 }, capSettings)
+        isSecondApronTeam({ apronTeamSalary: secondApron - 1 }, capSettings)
       ).toBe(false);
 
       // Boundary (Equal) - CRITICAL CHECK
       // A team with salary EXACTLY at the second apron line is NOT a Second Apron Team
-      expect(isSecondApronTeam({ totalSalary: secondApron }, capSettings)).toBe(
+      expect(isSecondApronTeam({ apronTeamSalary: secondApron }, capSettings)).toBe(
         false
       );
 
       // Over
       expect(
-        isSecondApronTeam({ totalSalary: secondApron + 1 }, capSettings)
+        isSecondApronTeam({ apronTeamSalary: secondApron + 1 }, capSettings)
       ).toBe(true);
     });
 
@@ -44,7 +44,7 @@ describe('Second Apron SSOT Guardrails', () => {
       ).toBe(true);
       expect(
         isSecondApronTeam(
-          { team: { totalSalary: secondApron + 1 } },
+          { team: { apronTeamSalary: secondApron + 1 } },
           capSettings
         )
       ).toBe(true);

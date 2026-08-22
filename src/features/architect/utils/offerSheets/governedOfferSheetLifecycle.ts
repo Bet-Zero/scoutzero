@@ -554,9 +554,16 @@ export function createGovernedOfferSheetLifecycle({
     reasons
   );
   const totals = state.team
-    ? synchronizeTeamTotalsSnapshotOrTeam(state.team, salaryCapYear).totals
+    ? synchronizeTeamTotalsSnapshotOrTeam(
+        state.team,
+        salaryCapYear,
+        signedAt
+      ).totals
     : null;
-  const allocations = Number(totals?.totalCapAllocations);
+  const teamSalary =
+    typeof totals?.teamSalary === 'number' && Number.isFinite(totals.teamSalary)
+      ? totals.teamSalary
+      : null;
   const snapshotOutstandingReservations = Number(
     totals?.outstandingOfferSheetTotal
   );
@@ -579,7 +586,7 @@ export function createGovernedOfferSheetLifecycle({
       team: { teamId: teamCode, teamCode },
     },
     ledgers: {
-      teamSalary: Number.isFinite(allocations)
+      teamSalary: teamSalary !== null
         ? {
             status: 'ready',
             lineItems: [
@@ -587,7 +594,7 @@ export function createGovernedOfferSheetLifecycle({
                 id: `pre-offer-sheet-team-salary:${teamCode}:${salaryCapYear}`,
                 ledger: 'team-salary',
                 label: 'Pre-Offer-Sheet Team Salary',
-                amount: allocations,
+                amount: teamSalary,
                 effectiveFrom: `${salaryCapYear - 1}-07-01T00:00:00-04:00`,
                 canonLeafIds: ['CBA2-L04.3'],
                 source: {
@@ -871,10 +878,15 @@ export function resolveGovernedOfferSheetLifecycle({
     const matchingTotals = state.homeTeam
       ? synchronizeTeamTotalsSnapshotOrTeam(
           state.homeTeam,
-          lifecycle.salaryCapYear
+          lifecycle.salaryCapYear,
+          exactAt
         ).totals
       : null;
-    const matchingAllocations = Number(matchingTotals?.totalCapAllocations);
+    const matchingTeamSalaryTotal =
+      typeof matchingTotals?.teamSalary === 'number' &&
+      Number.isFinite(matchingTotals.teamSalary)
+        ? matchingTotals.teamSalary
+        : null;
     const matchingStateReference = state.homeTeam
       ? `${lifecycle.worldId}:${matchingTeamCode}:${mutationSnapshotDigest(state.homeTeam)}`
       : '';
@@ -885,7 +897,7 @@ export function resolveGovernedOfferSheetLifecycle({
         team: { teamId: matchingTeamCode, teamCode: matchingTeamCode },
       },
       ledgers: {
-        teamSalary: Number.isFinite(matchingAllocations)
+        teamSalary: matchingTeamSalaryTotal !== null
           ? {
               status: 'ready',
               lineItems: [
@@ -893,7 +905,7 @@ export function resolveGovernedOfferSheetLifecycle({
                   id: `pre-match-team-salary:${matchingTeamCode}:${lifecycle.salaryCapYear}`,
                   ledger: 'team-salary',
                   label: 'Pre-Match Team Salary',
-                  amount: matchingAllocations,
+                  amount: matchingTeamSalaryTotal,
                   effectiveFrom: `${lifecycle.salaryCapYear - 1}-07-01T00:00:00-04:00`,
                   canonLeafIds: ['CBA2-C15.10'],
                   source: {

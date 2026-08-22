@@ -47,6 +47,7 @@ const mutationMocks = vi.hoisted(() => ({
 
 const capTotalsMocks = vi.hoisted(() => ({
   computeTeamCapTotals: vi.fn(),
+  createCanonicalTeamTotalsSnapshot: vi.fn(),
 }));
 
 const worldTeamDataMocks = vi.hoisted(() => ({
@@ -89,6 +90,18 @@ vi.mock('@/features/architect/utils/mutationPipeline', () => ({
 vi.mock('@/features/architect/utils/capTotals', () => ({
   computeTeamCapTotals: capTotalsMocks.computeTeamCapTotals,
 }));
+
+vi.mock(
+  '@/features/architect/utils/capTotals/computeTeamCapTotals',
+  () => ({
+    createCanonicalTeamTotalsSnapshot:
+      capTotalsMocks.createCanonicalTeamTotalsSnapshot,
+    synchronizeTeamTotalsSnapshot: (team: Record<string, unknown>, year: number) => ({
+      ...team,
+      totals: capTotalsMocks.createCanonicalTeamTotalsSnapshot(team, year),
+    }),
+  })
+);
 
 vi.mock('@/features/architect/utils/worldTeamData', () => ({
   loadWorldTeamData: worldTeamDataMocks.loadWorldTeamData,
@@ -195,6 +208,15 @@ describe('world optimistic cap mutation serialization (block mode)', () => {
       (teamId: string) => String(teamId || '').toUpperCase()
     );
     capTotalsMocks.computeTeamCapTotals.mockImplementation(() => makeTotals());
+    capTotalsMocks.createCanonicalTeamTotalsSnapshot.mockImplementation(() =>
+      makeTotals({
+        teamSalary: 25_000_000,
+        apronTeamSalary: 25_000_000,
+        taxSalary: 25_000_000,
+        totalSalary: 25_000_000,
+        capHit: 25_000_000,
+      })
+    );
     mutationMocks.applyWorldMutation.mockResolvedValue({
       success: true,
       event: { operationId: 'auth_default' },

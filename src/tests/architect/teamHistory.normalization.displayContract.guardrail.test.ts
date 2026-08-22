@@ -230,28 +230,48 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
     expect(row.summary).toBe('Three-team salary dump routed through BOS');
   });
 
-  it('uses active-team-first cap delta interpretation and Cap Allocation detail lines', () => {
+  it('uses active-team-first Team Salary delta and retains all book identities', () => {
     const row = toTeamHistoryEventDisplay(
       {
         mutationType: 'executeTrade',
         occurredAt: '2026-03-05T03:00:00.000Z',
         teamCodes: ['BOS', 'LAL'],
         beforeTotalsByTeam: {
-          BOS: { totalCapAllocations: 150_000_000 },
-          LAL: { totalCapAllocations: 160_000_000 },
+          BOS: {
+            teamSalary: 150_000_000,
+            apronTeamSalary: 151_000_000,
+            taxSalary: 152_000_000,
+          },
+          LAL: {
+            teamSalary: 160_000_000,
+            apronTeamSalary: 161_000_000,
+            taxSalary: 159_000_000,
+          },
         },
         afterTotalsByTeam: {
-          BOS: { totalCapAllocations: 148_000_000 },
-          LAL: { totalCapAllocations: 163_500_000 },
+          BOS: {
+            teamSalary: 148_000_000,
+            apronTeamSalary: 150_000_000,
+            taxSalary: 149_000_000,
+          },
+          LAL: {
+            teamSalary: 163_500_000,
+            apronTeamSalary: 166_000_000,
+            taxSalary: 164_000_000,
+          },
         },
       },
       { teamCode: 'LAL' }
     );
 
     expect(row.capDelta).toBe(3_500_000);
-    expect(getSectionLines(row, 'Cap Allocation')).toEqual([
-      'LAL total cap allocations: +$3,500,000',
-      'BOS total cap allocations: -$2,000,000',
+    expect(getSectionLines(row, 'Salary Books')).toEqual([
+      'LAL Team Salary: +$3,500,000',
+      'LAL Apron Team Salary: +$5,000,000',
+      'LAL Tax Salary: +$5,000,000',
+      'BOS Team Salary: -$2,000,000',
+      'BOS Apron Team Salary: -$1,000,000',
+      'BOS Tax Salary: -$3,000,000',
     ]);
   });
 

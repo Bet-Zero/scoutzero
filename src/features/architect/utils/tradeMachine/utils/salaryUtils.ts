@@ -34,7 +34,7 @@ type SalaryUtilsCapSettings = TradeValidatorCapSettings & {
 
 type SalaryUtilsTeamData = NonNullable<TradeTeam['team']> & {
   isOverCap?: boolean | null;
-  totalSalary?: number | string | null;
+  apronTeamSalary?: number | string | null;
 };
 
 type SalaryUtilsContext = NonNullable<TradeTeam['context']> & {
@@ -94,7 +94,7 @@ export function getIncomingCeilingForTeam(team: SalaryUtilsTeam | null | undefin
 
   const capSettings = team.context?.capSettings || {};
   const teamTotalSalary = toFiniteNumber(
-    team.teamTotalSalary || team.team?.totalSalary || 0
+    team.team?.apronTeamSalary ?? team.teamTotalSalary
   );
 
   const matchingResult = getSalaryMatchingResult({

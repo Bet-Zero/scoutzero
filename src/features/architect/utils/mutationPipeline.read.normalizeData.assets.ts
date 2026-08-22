@@ -414,7 +414,6 @@ export function resolveCurrentStateTeamTotalSalary(
   }
 
   // Live trade validation/apply expects the explicit top-level teamTotalSalary
-  // bridge. When loaded state omits it, normalize from totals.totalSalary only.
-  return toOptionalNumber(totals?.totalSalary);
+  // bridge to mean Apron Team Salary. Never recover it from a generic alias.
+  return toOptionalNumber(totals?.apronTeamSalary);
 }
-

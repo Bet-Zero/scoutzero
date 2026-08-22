@@ -230,7 +230,8 @@ export function computeMatchedOfferSheetOutcome({
   };
   updatedHomeTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedHomeTeam,
-    toEndYear(seasonId)
+    toEndYear(seasonId),
+    worldAsOfDate
   ).totals;
 
   const updatedOfferingTeam = { ...offeringTeam };
@@ -241,7 +242,8 @@ export function computeMatchedOfferSheetOutcome({
   );
   updatedOfferingTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedOfferingTeam,
-    toEndYear(seasonId)
+    toEndYear(seasonId),
+    worldAsOfDate
   ).totals;
   updatedOfferingTeam.source = {
     ...getTeamSourceRecord(updatedOfferingTeam.source),
@@ -436,7 +438,8 @@ export function computeDeclinedOfferSheetOutcome({
   };
   updatedOfferingTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedOfferingTeam,
-    toEndYear(seasonId)
+    toEndYear(seasonId),
+    worldAsOfDate
   ).totals;
 
   const updatedHomeTeam = { ...homeTeam };
@@ -463,7 +466,8 @@ export function computeDeclinedOfferSheetOutcome({
   };
   updatedHomeTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedHomeTeam,
-    toEndYear(seasonId)
+    toEndYear(seasonId),
+    worldAsOfDate
   ).totals;
 
   const teamUpdates = [

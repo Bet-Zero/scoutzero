@@ -29,6 +29,7 @@ import { makeGovernedOfferSheetFixture } from '../fixtures/architect/governedOff
 import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
 import { buildGeneralMutationCommittedTeamUpdates } from '@/features/architect/utils/mutationPipeline.read.persistence.snapshots';
 import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils/offerSheets';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
@@ -272,7 +273,7 @@ function makeTeam(
     },
   });
 
-  return {
+  const team = {
     ...baseTeam,
     roster: players.map((player) => String(player.player_id || player.id)),
     players,
@@ -282,6 +283,21 @@ function makeTeam(
     offerSheets: [],
     incomingOfferSheets: [],
   };
+  const capHoldsTotal = capHolds.reduce(
+    (sum, hold) =>
+      sum +
+      (hold.active === false || hold.isSigned === true
+        ? 0
+        : Number(hold.amount || 0)),
+    0
+  );
+  return withGovernedSalaryBooks(team, {
+    salaryCapYear: 2026,
+    asOfDate: '2025-07-08T09:55:00-04:00',
+    teamSalary: totalSalary + capHoldsTotal,
+    apronTeamSalary: totalSalary + capHoldsTotal + 1_000_000,
+    taxSalary: totalSalary + capHoldsTotal + 2_000_000,
+  }) as TradeTeamFixture;
 }
 
 function makeOfferSheet(

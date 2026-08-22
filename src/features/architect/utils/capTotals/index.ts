@@ -44,3 +44,11 @@ export type {
   GovernedDatedSalaryLedgerEvaluation,
   GovernedDatedSalaryLedgerRequest,
 } from './governedDatedSalaryLedgers';
+
+export {
+  APRON_SALARY_ADJUSTMENT_LEAVES,
+  TAX_SALARY_LEAVES,
+  computeTeamSalaryBooks,
+  normalizeSalaryBookAsOfDate,
+} from './teamSalaryBooks';
+export type { TeamSalaryBookComponentTotals } from './teamSalaryBooks';

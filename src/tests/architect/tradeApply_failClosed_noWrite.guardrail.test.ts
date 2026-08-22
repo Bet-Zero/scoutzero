@@ -84,7 +84,13 @@ function makeTeam(teamCode: string, players: Array<Record<string, unknown>>) {
     draftPicks: [],
     tradeExceptions: [],
     exceptions: {},
-    totals: { totalSalary, capHit: totalSalary },
+    totals: {
+      teamSalary: totalSalary,
+      apronTeamSalary: totalSalary,
+      taxSalary: totalSalary,
+      totalSalary,
+      capHit: totalSalary,
+    },
   };
 }
 
@@ -166,6 +172,89 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
     expect(result.success).toBe(false);
     expect(JSON.stringify(result)).toMatch(
       /salary path|salaryMatchingElection/i
+    );
+    expect(firestoreMocks.writeBatch).not.toHaveBeenCalled();
+    expect(firestoreMocks.commit).not.toHaveBeenCalled();
+  });
+
+  it('fails before writes when production-path Team Salary and Apron Team Salary books are unresolved', async () => {
+    teamLoaderMocks.getTeam.mockImplementation(async (_worldId, teamCode) => {
+      const playerId = teamCode === 'TMA' ? 'a_out' : 'b_out';
+      const unresolvedTeam = makeTeam(teamCode, [
+        makePlayer(playerId, 10_000_000),
+      ]);
+      return {
+        ...unresolvedTeam,
+        totals: {
+          ...unresolvedTeam.totals,
+          teamSalary: null,
+          apronTeamSalary: null,
+          totalSalary: null,
+          capHit: null,
+        },
+        salaryBookInputs: {
+          version: 1,
+          salaryCapYear: 2026,
+          apronAdjustments: {
+            status: 'needs-input',
+            missingInputs: ['salaryBookInputs.apronAdjustments'],
+            reason: 'Apron Team Salary adjustments are unresolved.',
+          },
+          taxSalary: {
+            status: 'needs-input',
+            missingInputs: ['salaryBookInputs.taxSalary'],
+            reason: 'Tax Salary is unresolved.',
+          },
+        },
+      };
+    });
+
+    const result = await applyWorldMutation({
+      userId: 'user_1',
+      worldId: 'world_1',
+      seasonId: '2025-26',
+      mutationType: 'executeTrade',
+      payload: {
+        teams: [
+          {
+            teamCode: 'TMA',
+            sends: [
+              { ...makePlayer('a_out', 10_000_000), tradeTo: 'TMB' },
+            ],
+            entitlementsOut: [],
+            salaryMatchingElection: {
+              version: 1,
+              path: 'ROOM',
+              postAssignmentApronTeamSalary: 0,
+              tradedPlayerPreTradeSalaries: { a_out: 10_000_000 },
+            },
+          },
+          {
+            teamCode: 'TMB',
+            sends: [
+              { ...makePlayer('b_out', 10_000_000), tradeTo: 'TMA' },
+            ],
+            entitlementsOut: [],
+            salaryMatchingElection: {
+              version: 1,
+              path: 'ROOM',
+              postAssignmentApronTeamSalary: 0,
+              tradedPlayerPreTradeSalaries: { b_out: 10_000_000 },
+            },
+          },
+        ],
+        asOfDate: '2026-03-15',
+        tradeCtx: {
+          source: 'tradeMachine',
+          worldId: 'world_1',
+          asOfDate: '2026-03-15',
+        },
+      },
+    });
+
+    expect(result.success).toBe(false);
+    expect(JSON.stringify(result)).toMatch(
+      /Team Salary|Apron Team Salary|SALARY_BOOK_NEEDS_INPUT/i
     );
     expect(firestoreMocks.writeBatch).not.toHaveBeenCalled();
     expect(firestoreMocks.commit).not.toHaveBeenCalled();

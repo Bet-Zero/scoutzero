@@ -21,12 +21,16 @@ export interface Stage3RosterEntry {
 }
 
 export interface Stage3CapTotalDelta {
-  /** Delta in total cap allocations (after − before). Null if data is missing. */
-  totalCapAllocationsDelta: number | null;
+  /** Independent book deltas (after − before). Null if data is missing. */
+  teamSalaryDelta: number | null;
+  apronTeamSalaryDelta: number | null;
+  taxSalaryDelta: number | null;
   /** Delta in cap space (after − before). Null if data is missing. */
   capSpaceDelta: number | null;
   /** Delta in tax space (after − before). Null if data is missing. */
   taxSpaceDelta: number | null;
+  firstApronSpaceDelta: number | null;
+  secondApronSpaceDelta: number | null;
   authority: 'committed-world / event-derived';
 }
 

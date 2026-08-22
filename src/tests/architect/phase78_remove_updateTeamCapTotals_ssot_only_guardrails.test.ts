@@ -146,19 +146,19 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
       );
     });
 
-    it('TEST 8: seasonManager.ts imports computeTeamCapTotals from capTotals', () => {
+    it('TEST 8: seasonManager.ts imports the canonical independent-book snapshot from capTotals', () => {
       const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
 
       // Must have import from capTotals barrel
       const hasImport =
-        /import\s*\{[^}]*\bcomputeTeamCapTotals\b[^}]*\}\s*from\s*['"]@\/features\/architect\/utils\/capTotals['"]/.test(
+        /import\s*\{[^}]*\bcreateCanonicalTeamTotalsSnapshot\b[^}]*\}\s*from\s*['"]@\/features\/architect\/utils\/capTotals['"]/.test(
           content
         );
 
       expect(hasImport).toBe(true);
     });
 
-    it('TEST 9: seasonManager.ts calls computeTeamCapTotals( at least once', () => {
+    it('TEST 9: seasonManager.ts calls createCanonicalTeamTotalsSnapshot( at least once', () => {
       const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
 
       // Remove comments to check actual code
@@ -168,7 +168,7 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
       );
 
       // Must have actual function call
-      const hasFunctionCall = /\bcomputeTeamCapTotals\s*\([^)]*\)/.test(
+      const hasFunctionCall = /\bcreateCanonicalTeamTotalsSnapshot\s*\([^)]*\)/.test(
         contentWithoutComments
       );
 

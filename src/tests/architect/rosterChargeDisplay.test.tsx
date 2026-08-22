@@ -21,9 +21,23 @@ vi.mock('@/features/architect/hooks/usePlayerRulesProfiles', () => ({
   }),
 }));
 
-// Mock computeTeamCapTotals to return controlled totals
-vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
+const capTotalsMocks = vi.hoisted(() => ({
   computeTeamCapTotals: vi.fn(),
+}));
+
+// Mock the governed totals boundary while preserving controlled totals.
+vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
+  computeTeamCapTotals: capTotalsMocks.computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot: (...args: unknown[]) => {
+    const totals = capTotalsMocks.computeTeamCapTotals(...args);
+    return {
+      ...totals,
+      teamSalary: totals?.teamSalary ?? totals?.totalCapAllocations ?? null,
+      apronTeamSalary:
+        totals?.apronTeamSalary ?? totals?.totalCapAllocations ?? null,
+      taxSalary: totals?.taxSalary ?? totals?.totalCapAllocations ?? null,
+    };
+  },
 }));
 
 import { CapSheet } from '@/features/architect/capSheet/CapSheet/CapSheet';
@@ -330,13 +344,11 @@ describe('CapSheet - Incomplete Roster Charge Visibility (Phase 25)', () => {
     );
 
     expect(screen.getAllByText('$5,000,000').length).toBeGreaterThan(0);
-    // The 'TOTAL CAP ALLOCATIONS' summary tile moved to the cockpit
-    // TeamStatusStrip (Phase 2A migration); the cap sheet's canonical total is
-    // now the breakdown 'Total Cap Hit' footer asserted below.
+    // The selected-year breakdown now closes on governed Team Salary.
     expect(readCurrencyForLabel('Player Salaries')).toBe(9_876_543);
     expect(readCurrencyForLabel('Dead Money')).toBe(4_321_000);
     expect(readCurrencyForLabel('Cap Holds')).toBe(7_654_321);
-    expect(readCurrencyForLabel(/^Total Cap Hit$/i)).toBe(22_971_427);
+    expect(readCurrencyForLabel(/^Team Salary$/i)).toBe(22_971_427);
 
     fireEvent.click(
       screen.getByRole('button', { name: /show cap hold details/i })

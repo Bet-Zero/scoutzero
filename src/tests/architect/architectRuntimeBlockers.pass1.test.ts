@@ -526,6 +526,7 @@ describe('Architect runtime blockers pass 1', () => {
       hardCapFirstApron: { active: true, reason: 'Test', season: '2025-26' },
       hardCapped: true,
       totals: {
+        apronTeamSalary: 23_250_000,
         isHardCapped: true,
         hardCapLevel: 'firstApron',
         hardCapDetail: 'Triggered by test',

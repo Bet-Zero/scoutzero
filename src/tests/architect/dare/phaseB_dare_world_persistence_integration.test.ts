@@ -131,6 +131,21 @@ vi.mock('@/features/architect/utils/capTotals', () => ({
     firstApron: 178000000,
     secondApron: 188000000,
   }),
+  createCanonicalTeamTotalsSnapshot: (_team: unknown, year: number) => ({
+    yearKey: year,
+    playersTotal: 0,
+    deadMoneyTotal: 0,
+    capHoldsTotal: 0,
+    incompleteChargesTotal: 0,
+    totalCapAllocations: 0,
+    teamSalary: 0,
+    apronTeamSalary: 0,
+    taxSalary: 0,
+    salaryCap: 141000000,
+    luxuryTax: 170000000,
+    firstApron: 178000000,
+    secondApron: 188000000,
+  }),
 }));
 
 vi.mock('@/features/architect/utils/seasonFormat', () => ({

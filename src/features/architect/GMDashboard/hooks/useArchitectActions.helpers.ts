@@ -11,8 +11,10 @@ export * from './useArchitectActions.helpers.signing';
 // Wave 34 Step 2: committed offer-sheet identity helpers
 export * from './useArchitectActions.helpers.offerSheet';
 
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
-import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import {
+  createCanonicalTeamTotalsSnapshot,
+  synchronizeTeamTotalsSnapshot,
+} from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
   POST_STATE_CAP_VALIDATOR_VERSION,
   validatePostStateCapLegality,
@@ -216,13 +218,17 @@ export function buildAuditDiffSummary(params: {
 
 export function buildTotalsByTeam(
   teamsByCode: TeamsByCode,
-  year: number
+  year: number,
+  asOfDate: string | null = null
 ): CapAuditEventV1Like['beforeTotalsByTeam'] {
   const totalsByTeam: CapAuditEventV1Like['beforeTotalsByTeam'] = {};
   for (const [teamCode, team] of Object.entries(teamsByCode || {})) {
-    const canonicalTeam = synchronizeTeamTotalsSnapshot(team, year);
+    const canonicalTeam = asOfDate
+      ? synchronizeTeamTotalsSnapshot(team, year, { asOfDate })
+      : team;
     totalsByTeam[teamCode] =
-      canonicalTeam?.totals || computeTeamCapTotals(team, year);
+      canonicalTeam?.totals ||
+      createCanonicalTeamTotalsSnapshot(team, year, { asOfDate });
   }
   return totalsByTeam;
 }
@@ -261,8 +267,16 @@ export function buildCapAuditEvaluation(params: {
     persistFailed,
   } = params;
 
-  const beforeTotalsByTeam = buildTotalsByTeam(beforeTeamsByCode, year);
-  const afterTotalsByTeam = buildTotalsByTeam(afterTeamsByCode, year);
+  const beforeTotalsByTeam = buildTotalsByTeam(
+    beforeTeamsByCode,
+    year,
+    occurredAt
+  );
+  const afterTotalsByTeam = buildTotalsByTeam(
+    afterTeamsByCode,
+    year,
+    occurredAt
+  );
   const validation = validatePostStateCapLegality({
     operationId,
     mutationType,
@@ -347,4 +361,3 @@ export function extractCommittedWorldMetadataPatch(
     asOfDate: patch.asOfDate || null,
   };
 }
-

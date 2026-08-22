@@ -9,6 +9,10 @@ vi.mock('../../features/architect/utils/capRulesProfile', () => ({
       firstApron: 178_000_000,
       secondApron: 190_000_000,
     },
+    roster: {
+      minStandard: 14,
+      graceMin: 12,
+    },
     // Mock minimal exceptions object if needed by other internal calls
     exceptions: {
         taxpayerMLE: 5_000_000,
@@ -41,6 +45,18 @@ vi.mock(
           team?.totals?.totalCapAllocations ??
           0,
       })),
+      createCanonicalTeamTotalsSnapshot: vi.fn((team) => {
+        const apronTeamSalary =
+          team?.totals?.apronTeamSalary ??
+          team?.totals?.capHit ??
+          team?.totals?.totalSalary ??
+          null;
+        return {
+          teamSalary: apronTeamSalary,
+          apronTeamSalary,
+          taxSalary: apronTeamSalary,
+        };
+      }),
     };
   }
 );

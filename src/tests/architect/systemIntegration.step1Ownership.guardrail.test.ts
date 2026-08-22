@@ -186,14 +186,14 @@ describe('Architect System Integration Step 1 ownership guardrails', () => {
     expect(contractUtilsSource).toContain(
       'Downstream surfaces must not re-merge contract rows or reconstruct per-year cap hits locally.'
     );
-    expect(capSheetSource).toContain('computeTeamCapTotals');
+    expect(capSheetSource).toContain('createCanonicalTeamTotalsSnapshot');
     expect(capSheetSource).toContain('getContractYearSlice');
     expect(capSheetSource).toContain('getPlayerCapHitForYear');
-    expect(capSheetFullSource).toContain('computeTeamCapTotals');
+    expect(capSheetFullSource).toContain('createCanonicalTeamTotalsSnapshot');
     expect(capSheetFullSource).toContain('getContractYearSlice');
     expect(capSheetFullSource).toContain('getPlayerCapSheetAmountsForYear');
-    expect(leagueViewSource).toContain('computeTeamCapTotals');
-    expect(tradeTeamCardSource).toContain('computeTeamCapTotals');
+    expect(leagueViewSource).toContain('createCanonicalTeamTotalsSnapshot');
+    expect(tradeTeamCardSource).toContain('createCanonicalTeamTotalsSnapshot');
     expect(playerRulesProfilesSource).toContain('getContractYearSlice');
     expect(editContractModalSource).toContain('extensionAvailability');
     expect(editContractModalSource).toContain('GovernedExtensionProposal');

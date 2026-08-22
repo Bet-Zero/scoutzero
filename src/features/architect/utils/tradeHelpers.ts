@@ -390,7 +390,7 @@ export const getApronStatus = (
   { firstApron, secondApron, salaryCap }: TradeCapSettingsLike = {}
 ): '2nd Apron' | '1st Apron' | 'Below Aprons' => {
   const status = getTeamApronStatusSSoT(
-    { totalSalary: salary },
+    { apronTeamSalary: salary },
     { firstApron, secondApron, salaryCap: salaryCap || 0 }
   );
 

@@ -19,6 +19,30 @@ vi.mock(
           team?.totals?.totalCapAllocations ??
           0,
       })),
+      createCanonicalTeamTotalsSnapshot: vi.fn((team) => {
+        const apronTeamSalary = team?.totals?.apronTeamSalary ?? null;
+        const salaryCap = team?.totals?.salaryCap ?? null;
+        return {
+          teamSalary: team?.totals?.teamSalary ?? null,
+          apronTeamSalary,
+          taxSalary: team?.totals?.taxSalary ?? null,
+          bookDeltas: {
+            vsCap:
+              typeof apronTeamSalary === 'number' && typeof salaryCap === 'number'
+                ? apronTeamSalary - salaryCap
+                : null,
+          },
+        };
+      }),
+      canUseRoomException: vi.fn((team) => {
+        const teamSalary = team?.totals?.teamSalary;
+        const salaryCap = team?.totals?.salaryCap;
+        return typeof teamSalary === 'number' &&
+          typeof salaryCap === 'number' &&
+          teamSalary < salaryCap
+          ? { eligible: true, totals: { teamSalary, salaryCap } }
+          : { eligible: false, reason: 'Team must be under the salary cap' };
+      }),
     };
   }
 );
@@ -53,6 +77,10 @@ describe('validateSigning - Post-Apron Exception Blocking (G0-2)', () => {
       capHolds: [],
       exceptions,
       totals: {
+        teamSalary: capHit,
+        apronTeamSalary: capHit,
+        taxSalary: capHit,
+        salaryCap: SALARY_CAP,
         capHit,
         totalSalary: capHit,
         totalCapAllocations: capHit,

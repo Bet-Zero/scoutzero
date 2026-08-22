@@ -70,7 +70,7 @@ export type TeamLike = Omit<HookTradeTeam, 'pickRulesById'> & {
   entitlements?: HookTradeEntitlement[] | null;
   pickRulesById?: Record<string, unknown>;
   capHolds?: unknown[] | null;
-  teamTotalSalary?: number;
+  teamTotalSalary?: number | null;
 };
 export type TeamTradeException = TradeExceptionLike & {
   id?: string | number;

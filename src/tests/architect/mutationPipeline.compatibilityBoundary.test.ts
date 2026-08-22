@@ -288,6 +288,9 @@ function makeTeam(
     exceptions: { mle: null, bae: null, tpe: [] },
     deadCap: [],
     totals: {
+      teamSalary: totalSalary,
+      apronTeamSalary: totalSalary,
+      taxSalary: totalSalary,
       totalSalary,
       capHit: totalSalary,
       totalCapAllocations: totalSalary,
@@ -453,7 +456,7 @@ describe('mutationPipeline compatibility boundary', () => {
     ).toBe(true);
   });
 
-  it('applies executeTrade with synthesized teamTotalSalary and preserves live player metadata through result and writes', async () => {
+  it('applies executeTrade with Apron Team Salary bridged to trade validation and preserves live player metadata through result and writes', async () => {
     const playerA = makePlayer('player_a', 10_000_000, 'LAL', {
       displayName: 'Player A',
       isTwoWay: true,
@@ -584,7 +587,10 @@ describe('mutationPipeline compatibility boundary', () => {
     });
     seedWorldMetadata(PARENT_WORLD_ID, { parentWorldId: null });
 
-    const offeringTeam = makeTeam('BOS', []);
+    const offeringTeamPlayers = Array.from({ length: 15 }, (_, index) =>
+      makePlayer(`bos_roster_${index + 1}`, 1_000_000, 'BOS')
+    );
+    const offeringTeam = makeTeam('BOS', offeringTeamPlayers);
     const homeSnapshotPlayer = makePlayer('rfa_1', 7_500_000, 'NYK', {
       displayName: 'Snapshot Name',
       contract: makeContract(7_500_000, {
@@ -592,9 +598,15 @@ describe('mutationPipeline compatibility boundary', () => {
       }),
       rfaContext: { governedEvidence: governed.evidence },
     });
-    const homeTeamSnapshot = makeTeam('NYK', [homeSnapshotPlayer], {
-      roster: ['rfa_1'],
-      players: [homeSnapshotPlayer],
+    const homeTeamPlayers = [
+      homeSnapshotPlayer,
+      ...Array.from({ length: 14 }, (_, index) =>
+        makePlayer(`nyk_roster_${index + 1}`, 1_000_000, 'NYK')
+      ),
+    ];
+    const homeTeamSnapshot = makeTeam('NYK', homeTeamPlayers, {
+      roster: homeTeamPlayers.map((player) => String(player.player_id)),
+      players: homeTeamPlayers,
       rightsLedger: governed.rightsLedger,
     });
 

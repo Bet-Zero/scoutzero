@@ -29,6 +29,7 @@ interface BasicRulesTeamContextLike {
 
 interface BasicRulesTeamData {
   teamTotalSalary?: number;
+  apronTeamSalary?: number | null;
   totalSalary?: number;
 }
 
@@ -65,17 +66,17 @@ export function validateSecondApronRules(
   const violations: string[] = [];
 
   const teamTotalSalary =
-    team?.teamTotalSalary ||
-    team?.team?.teamTotalSalary ||
-    team?.team?.totalSalary ||
+    team?.teamTotalSalary ??
+    team?.team?.apronTeamSalary ??
+    team?.team?.teamTotalSalary ??
     0;
 
   const projectedSalary = team?.projectedSalary || teamTotalSalary;
 
   const isAboveSecondApron =
     team?.postTradeStatus?.isAtOrAboveSecondApron ||
-    isSecondApronTeam({ totalSalary: teamTotalSalary }, capSettings) ||
-    isSecondApronTeam({ totalSalary: projectedSalary }, capSettings) ||
+    isSecondApronTeam({ apronTeamSalary: teamTotalSalary }, capSettings) ||
+    isSecondApronTeam({ apronTeamSalary: projectedSalary }, capSettings) ||
     team?.context?.isAtOrAboveSecondApron ||
     false;
 

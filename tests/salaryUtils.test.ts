@@ -99,11 +99,12 @@ describe('salaryUtils compatibility wrapper', () => {
     expect(getIncomingCeilingForTeam(team)).toBe(Number.MAX_SAFE_INTEGER);
   });
 
-  it('uses the existing nested salary fallback and cap alias for ceiling calculations', () => {
+  it('uses explicit nested Apron Team Salary and the cap alias for ceiling calculations', () => {
     const team = {
       sends: [{ matchOutgoing: 10_000_000 }],
       team: {
         isOverCap: true,
+        apronTeamSalary: 130_000_000,
         totalSalary: 130_000_000,
       },
       context: {

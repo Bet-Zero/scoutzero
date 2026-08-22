@@ -539,6 +539,7 @@ export function resolveOffseasonTransition({
     hardCapLevel: nextTeam?.hardCapLevel,
     hardCapped: nextTeam?.hardCapped,
     totalsIsHardCapped: nextTeam?.totals?.isHardCapped,
+    apronTeamSalary: nextTeam?.totals?.apronTeamSalary,
   };
   appliedChangesSummary.hardCapCleared = clearHardCapState(nextTeam);
 

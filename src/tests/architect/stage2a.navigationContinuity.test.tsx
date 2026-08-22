@@ -99,7 +99,14 @@ const contextWithCap: ArchitectWorkspaceContext = {
     status: 'available',
     season: 2026,
     seasonLabel: '2025-26',
-    totalCapAllocations: 145_000_000,
+    teamSalary: 145_000_000,
+    apronTeamSalary: 146_000_000,
+    taxSalary: 147_000_000,
+    books: {
+      teamSalary: { status: 'available', value: 145_000_000, reason: null },
+      apronTeamSalary: { status: 'available', value: 146_000_000, reason: null },
+      taxSalary: { status: 'available', value: 147_000_000, reason: null },
+    },
     salaryCap: 140_588_000,
     capSpace: -4_412_000,
     luxuryTax: 170_814_000,
@@ -112,7 +119,7 @@ const contextWithCap: ArchitectWorkspaceContext = {
     isOverTax: false,
     isAtOrAboveFirstApron: false,
     isAboveSecondApron: false,
-    source: 'computeTeamCapTotals',
+    source: 'salaryBooks',
   },
 };
 

@@ -22,7 +22,7 @@
  *  - 2026-01-07: Phase 5 - Added auto-resolution of conveyance + swaps during season advance
  *                         - Reads positionsMap from world.draftPositionsByYear
  *  - 2026-01-18: Phase 7.2 - Option decline FA-year derivation + cap hold multipliers
- *  - 2026-02-01: Phase 77 - Replaced legacy updateTeamCapTotals with SSOT computeTeamCapTotals
+ *  - 2026-02-01: Phase 77 - Replaced legacy updateTeamCapTotals with canonical totals snapshots
  *                         - Totals recompute uses toYear yearKey for correct season
  *                         - Removed dynamic imports of tradeManager for totals
  *  - 2026-02-03: Phase 86 - Route season transitions through OSTE SSOT
@@ -72,7 +72,7 @@ import {
   ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
 } from '@/constants/collections';
 // Phase 77: SSOT cap totals for season advance
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
 // Phase 16.1: Entitlement SSOT for season manager
 import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitlements/entitlementResolver';
 import {
@@ -336,10 +336,15 @@ export async function advanceSeasonInWorld(
         afterTeamsByCode[teamCode] = safeCloneForAudit(
           committedTeam
         ) as PostStateTeamSnapshots[string];
-        beforeTotalsByTeam[teamCode] = computeTeamCapTotals(team, toYear);
-        afterTotalsByTeam[teamCode] = computeTeamCapTotals(
+        beforeTotalsByTeam[teamCode] = createCanonicalTeamTotalsSnapshot(
+          team,
+          toYear,
+          { asOfDate: targetAsOfDate }
+        );
+        afterTotalsByTeam[teamCode] = createCanonicalTeamTotalsSnapshot(
           committedTeam,
-          toYear
+          toYear,
+          { asOfDate: targetAsOfDate }
         );
 
         const snapshotRef = worldTeamRef(worldId, teamCode);

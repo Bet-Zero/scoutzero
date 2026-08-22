@@ -89,6 +89,7 @@ export interface FreeAgentPoolManagementControls {
 export interface FreeAgentPoolProps {
   freeAgents?: FreeAgentListItem[] | null;
   currentYear: number;
+  worldAsOfDate?: string | null;
   actionOwner: FreeAgentPoolActionOwner;
   playersMap?: Record<string, FreeAgentLookupPlayer>;
   selectedPlayerKeys?: string[];

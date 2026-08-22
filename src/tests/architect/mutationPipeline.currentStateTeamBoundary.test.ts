@@ -259,6 +259,9 @@ function makeTeam(
     cashLedger: { totalOut: 0 },
     exceptions: { room: null, mle: null, bae: null, tpe: [] },
     totals: {
+      teamSalary: totalSalary,
+      apronTeamSalary: totalSalary,
+      taxSalary: totalSalary,
       totalSalary,
       capHit: totalSalary,
       totalCapAllocations: totalSalary,
@@ -336,6 +339,9 @@ describe('mutationPipeline current-state team boundary', () => {
     const lakers = makeTeam('LAL', [lakersOutgoing], {
       teamTotalSalary: undefined,
       totals: {
+        teamSalary: 120_000_000,
+        apronTeamSalary: 120_000_000,
+        taxSalary: 120_000_000,
         totalSalary: 120_000_000,
         capHit: 120_000_000,
         totalCapAllocations: 120_000_000,
@@ -363,6 +369,9 @@ describe('mutationPipeline current-state team boundary', () => {
     const celtics = makeTeam('BOS', [celticsOutgoing], {
       teamTotalSalary: undefined,
       totals: {
+        teamSalary: 121_000_000,
+        apronTeamSalary: 121_000_000,
+        taxSalary: 121_000_000,
         totalSalary: 121_000_000,
         capHit: 121_000_000,
         totalCapAllocations: 121_000_000,

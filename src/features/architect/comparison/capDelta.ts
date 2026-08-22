@@ -7,10 +7,7 @@
  * already carry. Does NOT recompute cap thresholds. Does NOT infer values from
  * display strings. Returns null when inputs are missing or incompatible.
  *
- * Field names match ComputedTeamCapTotals / ComputedTeamCapTotalsSnapshot:
- *   - totalCapAllocations (always required by postStateCapValidator)
- *   - capSpace (from ComputedTeamCapTotalsSnapshot)
- *   - luxuryTax (threshold; taxSpace = luxuryTax - totalCapAllocations when needed)
+ * Field names match the three independent books in ComputedTeamCapTotalsSnapshot.
  *   - isFirstApron, isSecondApron (boolean flags in snapshot)
  *   - isHardCapped (boolean flag in snapshot)
  *
@@ -78,37 +75,54 @@ export function deriveCapDelta(
     const bt = beforeTeam ?? {};
     const at = afterTeam ?? {};
 
-    // Primary: totalCapAllocations (required by postStateCapValidator)
-    const beforeAlloc = safeNumber(bt['totalCapAllocations']);
-    const afterAlloc = safeNumber(at['totalCapAllocations']);
-    const beforeCapSpace = safeNumber(bt['capSpace']);
-    const afterCapSpace = safeNumber(at['capSpace']);
-
-    // Tax space: stored as 'taxSpace' if present, else derive from luxuryTax - totalCapAllocations
+    const beforeTeamSalary = safeNumber(bt['teamSalary']);
+    const afterTeamSalary = safeNumber(at['teamSalary']);
+    const beforeApronSalary = safeNumber(bt['apronTeamSalary']);
+    const afterApronSalary = safeNumber(at['apronTeamSalary']);
+    const beforeTaxSalary = safeNumber(bt['taxSalary']);
+    const afterTaxSalary = safeNumber(at['taxSalary']);
+    const beforeSalaryCap = safeNumber(bt['salaryCap']);
+    const afterSalaryCap = safeNumber(at['salaryCap']);
     const beforeLuxTax = safeNumber(bt['luxuryTax']);
     const afterLuxTax = safeNumber(at['luxuryTax']);
-    const beforeTaxSpace =
-      safeNumber(bt['taxSpace']) ??
-      (beforeLuxTax !== null && beforeAlloc !== null
-        ? beforeLuxTax - beforeAlloc
-        : null);
-    const afterTaxSpace =
-      safeNumber(at['taxSpace']) ??
-      (afterLuxTax !== null && afterAlloc !== null
-        ? afterLuxTax - afterAlloc
-        : null);
+    const beforeFirstApron = safeNumber(bt['firstApron']);
+    const afterFirstApron = safeNumber(at['firstApron']);
+    const beforeSecondApron = safeNumber(bt['secondApron']);
+    const afterSecondApron = safeNumber(at['secondApron']);
+    const space = (threshold: number | null, book: number | null) =>
+      threshold === null || book === null ? null : threshold - book;
+    const beforeCapSpace = space(beforeSalaryCap, beforeTeamSalary);
+    const afterCapSpace = space(afterSalaryCap, afterTeamSalary);
+    const beforeTaxSpace = space(beforeLuxTax, beforeTaxSalary);
+    const afterTaxSpace = space(afterLuxTax, afterTaxSalary);
+    const beforeFirstApronSpace = space(beforeFirstApron, beforeApronSalary);
+    const afterFirstApronSpace = space(afterFirstApron, afterApronSalary);
+    const beforeSecondApronSpace = space(beforeSecondApron, beforeApronSalary);
+    const afterSecondApronSpace = space(afterSecondApron, afterApronSalary);
 
     const hasSomeData =
-      beforeAlloc !== null ||
-      afterAlloc !== null ||
+      beforeTeamSalary !== null ||
+      afterTeamSalary !== null ||
+      beforeApronSalary !== null ||
+      afterApronSalary !== null ||
+      beforeTaxSalary !== null ||
+      afterTaxSalary !== null ||
       beforeCapSpace !== null ||
       afterCapSpace !== null;
 
     if (hasSomeData) {
       capTotalDelta = {
-        totalCapAllocationsDelta:
-          beforeAlloc !== null && afterAlloc !== null
-            ? afterAlloc - beforeAlloc
+        teamSalaryDelta:
+          beforeTeamSalary !== null && afterTeamSalary !== null
+            ? afterTeamSalary - beforeTeamSalary
+            : null,
+        apronTeamSalaryDelta:
+          beforeApronSalary !== null && afterApronSalary !== null
+            ? afterApronSalary - beforeApronSalary
+            : null,
+        taxSalaryDelta:
+          beforeTaxSalary !== null && afterTaxSalary !== null
+            ? afterTaxSalary - beforeTaxSalary
             : null,
         capSpaceDelta:
           beforeCapSpace !== null && afterCapSpace !== null
@@ -117,6 +131,14 @@ export function deriveCapDelta(
         taxSpaceDelta:
           beforeTaxSpace !== null && afterTaxSpace !== null
             ? afterTaxSpace - beforeTaxSpace
+            : null,
+        firstApronSpaceDelta:
+          beforeFirstApronSpace !== null && afterFirstApronSpace !== null
+            ? afterFirstApronSpace - beforeFirstApronSpace
+            : null,
+        secondApronSpaceDelta:
+          beforeSecondApronSpace !== null && afterSecondApronSpace !== null
+            ? afterSecondApronSpace - beforeSecondApronSpace
             : null,
         authority: 'committed-world / event-derived',
       };
@@ -129,10 +151,24 @@ export function deriveCapDelta(
     const bt = beforeTeam ?? {};
     const at = afterTeam ?? {};
 
-    const beforeFirstApron = safeBoolean(bt['isFirstApron']);
-    const afterFirstApron = safeBoolean(at['isFirstApron']);
-    const beforeSecondApron = safeBoolean(bt['isSecondApron']);
-    const afterSecondApron = safeBoolean(at['isSecondApron']);
+    const beforeApronSalary = safeNumber(bt['apronTeamSalary']);
+    const afterApronSalary = safeNumber(at['apronTeamSalary']);
+    const beforeFirstApronThreshold = safeNumber(bt['firstApron']);
+    const afterFirstApronThreshold = safeNumber(at['firstApron']);
+    const beforeSecondApronThreshold = safeNumber(bt['secondApron']);
+    const afterSecondApronThreshold = safeNumber(at['secondApron']);
+    const beforeFirstApron = beforeApronSalary !== null && beforeFirstApronThreshold !== null
+      ? beforeApronSalary >= beforeFirstApronThreshold
+      : null;
+    const afterFirstApron = afterApronSalary !== null && afterFirstApronThreshold !== null
+      ? afterApronSalary >= afterFirstApronThreshold
+      : null;
+    const beforeSecondApron = beforeApronSalary !== null && beforeSecondApronThreshold !== null
+      ? beforeApronSalary > beforeSecondApronThreshold
+      : null;
+    const afterSecondApron = afterApronSalary !== null && afterSecondApronThreshold !== null
+      ? afterApronSalary > afterSecondApronThreshold
+      : null;
     const beforeHardCap = safeBoolean(bt['isHardCapped']);
     const afterHardCap = safeBoolean(at['isHardCapped']);
 

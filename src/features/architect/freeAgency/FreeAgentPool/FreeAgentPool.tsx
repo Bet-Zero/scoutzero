@@ -162,6 +162,8 @@ const buildFreeAgentModalLaunchTarget = (
 
 export const FreeAgentPool = ({
   freeAgents,
+  currentYear,
+  worldAsOfDate,
   actionOwner,
   playersMap = {},
   selectedPlayerKeys: controlledSelectedPlayerKeys,
@@ -445,6 +447,8 @@ export const FreeAgentPool = ({
       player: activeContractModalTarget.surfacePlayer,
       isOpen: true,
       onClose: closeContractModal,
+      currentYear,
+      worldAsOfDate,
       onSignFreeAgent: signFreeAgent,
       signAndTradeInitiation:
         signAndTradeInitiation as EditContractModalProps['signAndTradeInitiation'],
@@ -472,11 +476,13 @@ export const FreeAgentPool = ({
   }, [
     activeContractModalTarget,
     closeContractModal,
+    currentYear,
     dualPathSigningOwner,
     freeAgentModalAvailability,
     handleRemove,
     offerSheetInitiation,
     signAndTradeInitiation,
+    worldAsOfDate,
   ]);
 
   return (

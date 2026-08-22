@@ -45,6 +45,7 @@ describe('salary matching validation', () => {
   ): SalaryMatchingTeamInput => ({
     salaryOut,
     salaryIn,
+    teamTotalSalary: 150_000_000,
     ...extra,
   });
 
@@ -88,6 +89,38 @@ describe('salary matching validation', () => {
     expect(validateSalaryMatching(null).passed).toBe(false);
     expect(validateSalaryMatching(undefined).passed).toBe(false);
     expect(validateSalaryMatching({}).passed).toBe(false);
+  });
+
+  it.each([
+    null,
+    undefined,
+    '',
+    '0',
+    false,
+    true,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+  ])('fails closed when Apron Team Salary is unresolved (%p)', (value) => {
+    const result = validateSalaryMatching(
+      makeTeam(10_000_000, 1_000_000, {
+        teamTotalSalary: value as never,
+        team: {
+          apronTeamSalary: value as never,
+        },
+        context: { capSettings },
+      })
+    );
+
+    expect(result).toMatchObject({
+      passed: false,
+      applicable: false,
+      skipReason: 'INVALID_INPUT',
+      allowableIncoming: null,
+    });
+    expect(result.violations).toContain(
+      'Apron Team Salary needs governed input'
+    );
   });
 
   it('enforces effective allowable incoming for first-apron hard-capped teams', () => {
@@ -198,6 +231,10 @@ describe('salary matching validation', () => {
             teamCode: 'A',
             teamName: 'A',
             totalSalary: 177_000_000,
+            teamSalary: 176_000_000,
+            apronTeamSalary: 177_000_000,
+            taxSalary: 178_000_000,
+            teamTotalSalary: 177_000_000,
             players: [makeNormalizedPlayer('a1', 10_000_000)],
           },
           sends: [makeNormalizedPlayer('a1', 10_000_000)],
@@ -210,6 +247,10 @@ describe('salary matching validation', () => {
             teamCode: 'B',
             teamName: 'B',
             totalSalary: 120_000_000,
+            teamSalary: 119_000_000,
+            apronTeamSalary: 120_000_000,
+            taxSalary: 121_000_000,
+            teamTotalSalary: 120_000_000,
             players: [makeNormalizedPlayer('b1', 12_000_000)],
           },
           sends: [makeNormalizedPlayer('b1', 12_000_000)],

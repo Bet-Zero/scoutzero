@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { formatMillions } from '@/shared/utils/formatting';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
+import { normalizeYearInput } from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
 import { Lock } from 'lucide-react';
 import {
   isHardCappedAtFirstApron,
@@ -13,15 +14,13 @@ type YearKeyLike = string | number;
 
 type TradeAssetLike = Record<string, unknown>;
 
-type CapTotalsTeamLike = NonNullable<Parameters<typeof computeTeamCapTotals>[0]>;
+type CapTotalsTeamLike = NonNullable<Parameters<typeof createCanonicalTeamTotalsSnapshot>[0]>;
 type HardCapTeamLike = NonNullable<
   Parameters<typeof isHardCappedAtFirstApron>[0]
 >;
 type TeamLike = Record<string, unknown> & {
   id?: string | number | null;
   teamId?: string | number | null;
-  teamTotalSalary?: number;
-  totalSalary?: number;
 };
 
 type SnapshotLike = {
@@ -49,14 +48,15 @@ export const CapImpactTiles = ({
   compact = false,
   isValidating = false,
 }: CapImpactTilesProps) => {
+  const normalizedYear = normalizeYearInput(yearKey)?.endYear ?? null;
   const baselineTotals = useMemo(
     () =>
-      team
-        ? computeTeamCapTotals(team as CapTotalsTeamLike, yearKey, {
+      team && normalizedYear
+        ? createCanonicalTeamTotalsSnapshot(team as CapTotalsTeamLike, normalizedYear, {
             asOfDate,
           })
         : null,
-    [asOfDate, team, yearKey]
+    [asOfDate, normalizedYear, team]
   );
 
   const hardCapStatus = useMemo(
@@ -98,44 +98,21 @@ export const CapImpactTiles = ({
 
   const {
     salaryCap,
-    firstApron,
-    secondApron,
     capHoldsTotal: baselineCapHolds,
-    totalCapAllocations: baselineTotalAllocations,
+    teamSalary: baselineTeamSalary,
+    apronTeamSalary,
+    taxSalary,
   } = baselineTotals;
   const { isFirstApronHardCapped, isSecondApronHardCapped, firstApronReason } =
     hardCapStatus;
 
-  const hasValidatorResult = snapshot !== null;
-  const validatorProjectedSalary = snapshot?.projectedSalary ?? null;
-
-  const projectedSalary = hasValidatorResult
-    ? validatorProjectedSalary
-    : baselineTotalAllocations - salaryOut + salaryIn;
+  const projectedSalary = baselineTeamSalary === null
+    ? null
+    : baselineTeamSalary - salaryOut + salaryIn;
 
   const capSpace =
     projectedSalary !== null ? salaryCap - projectedSalary : null;
-  const firstApronSpace =
-    projectedSalary !== null ? firstApron - projectedSalary : null;
-  const secondApronSpace =
-    projectedSalary !== null ? secondApron - projectedSalary : null;
-
   const capHoldsTotal = baselineCapHolds;
-
-  if (import.meta.env.DEV && snapshot) {
-    const teamTotalSalary = team?.teamTotalSalary ?? team?.totalSalary ?? 0;
-    const localProjected = teamTotalSalary - salaryOut + salaryIn;
-    const validatorProjected = snapshot.projectedSalary;
-    const diff = Math.abs(localProjected - (validatorProjected ?? 0));
-    if (diff > 1) {
-      console.warn('[CapImpactTiles] projectedSalary DIVERGENCE', {
-        teamId: team?.id || team?.teamId,
-        localProjected,
-        validatorProjected,
-        diff,
-      });
-    }
-  }
 
   return (
     <div>
@@ -143,11 +120,11 @@ export const CapImpactTiles = ({
         className={`grid ${compact ? 'grid-cols-2' : 'grid-cols-4'} gap-2 text-[11px] transition-opacity ${isValidating ? 'opacity-60' : 'opacity-100'}`}
       >
         <div className="bg-cockpit-inlay rounded-md p-2 text-center border border-cockpit-edge">
-          <div className="text-cockpit-text-muted">TOTAL CAP</div>
+          <div className="text-cockpit-text-muted">TEAM SALARY</div>
           <div className="text-cockpit-text-primary font-bold text-sm tabular-nums">
             {projectedSalary !== null
               ? formatMillions(projectedSalary, 1)
-              : '—'}
+              : 'Needs input'}
           </div>
         </div>
         <div className="bg-cockpit-inlay rounded-md p-2 text-center border border-cockpit-edge">
@@ -161,70 +138,47 @@ export const CapImpactTiles = ({
                 : 'text-cockpit-text-muted'
             }`}
           >
-            {capSpace !== null ? formatMillions(capSpace, 1) : '—'}
+            {capSpace !== null ? formatMillions(capSpace, 1) : 'Needs input'}
           </div>
         </div>
         <div className="bg-cockpit-inlay rounded-md p-2 text-center border border-cockpit-edge relative">
-          <div className="text-cockpit-text-muted">1ST APRON</div>
+          <div className="text-cockpit-text-muted">APRON TEAM SALARY</div>
           <div
             className={`font-bold text-sm tabular-nums ${
-              firstApronSpace !== null
-                ? firstApronSpace < 0
-                  ? 'text-cockpit-danger'
-                  : 'text-cockpit-safe'
-                : 'text-cockpit-text-muted'
+              apronTeamSalary !== null ? 'text-cockpit-text-primary' : 'text-cockpit-text-muted'
             }`}
           >
-            {firstApronSpace !== null
-              ? formatMillions(firstApronSpace, 1)
-              : '—'}
+            {apronTeamSalary !== null
+              ? formatMillions(apronTeamSalary, 1)
+              : 'Needs input'}
           </div>
-          {isFirstApronHardCapped && (
+          {(isFirstApronHardCapped || isSecondApronHardCapped) && (
             <div className="absolute bottom-1 left-1 group">
               <div className="bg-cockpit-raised border border-cockpit-edge rounded-md p-0.5 shadow-md backdrop-blur-md">
                 <Lock size={10} className="text-cockpit-text-primary" />
               </div>
               <div className="hidden group-hover:block absolute bottom-full left-0 mb-2 w-48 p-2 bg-cockpit-raised border border-cockpit-edge shadow-xl rounded-md z-50 pointer-events-none text-center">
                 <div className="text-[10px] font-bold text-cockpit-text-primary mb-0.5">
-                  Hard Capped at 1st Apron
+                  Hard Capped at {isSecondApronHardCapped ? '2nd' : '1st'} Apron
                 </div>
                 <div className="text-[10px] text-cockpit-text-muted leading-tight">
-                  {firstApronReason}
+                  {isSecondApronHardCapped
+                    ? 'Apron Team Salary is measured against the second-apron ceiling.'
+                    : firstApronReason}
                 </div>
               </div>
             </div>
           )}
         </div>
         <div className="bg-cockpit-inlay rounded-md p-2 text-center border border-cockpit-edge relative">
-          <div className="text-cockpit-text-muted">2ND APRON</div>
+          <div className="text-cockpit-text-muted">TAX SALARY</div>
           <div
             className={`font-bold text-sm tabular-nums ${
-              secondApronSpace !== null
-                ? secondApronSpace < 0
-                  ? 'text-cockpit-danger'
-                  : 'text-cockpit-safe'
-                : 'text-cockpit-text-muted'
+              taxSalary !== null ? 'text-cockpit-text-primary' : 'text-cockpit-text-muted'
             }`}
           >
-            {secondApronSpace !== null
-              ? formatMillions(secondApronSpace, 1)
-              : '—'}
+            {taxSalary !== null ? formatMillions(taxSalary, 1) : 'Needs input'}
           </div>
-          {isSecondApronHardCapped && (
-            <div className="absolute bottom-1 left-1 group">
-              <div className="bg-cockpit-raised border border-cockpit-edge rounded-md p-0.5 shadow-md backdrop-blur-md">
-                <Lock size={10} className="text-cockpit-text-primary" />
-              </div>
-              <div className="hidden group-hover:block absolute bottom-full left-0 mb-2 w-48 p-2 bg-cockpit-raised border border-cockpit-edge shadow-xl rounded-md z-50 pointer-events-none text-center">
-                <div className="text-[10px] font-bold text-cockpit-text-primary mb-0.5">
-                  Hard Capped at 2nd Apron
-                </div>
-                <div className="text-[10px] text-cockpit-text-muted leading-tight">
-                  Team salary exceeds 2nd apron threshold
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
       {isValidating && (
@@ -235,7 +189,7 @@ export const CapImpactTiles = ({
       )}
       {capHoldsTotal > 0 && (
         <div className="text-[10px] text-cockpit-text-muted text-center mt-1">
-          Cap Holds (not in projected): {formatMillions(capHoldsTotal, 1)}
+          Free Agent Amounts included in Team Salary: {formatMillions(capHoldsTotal, 1)}
         </div>
       )}
     </div>

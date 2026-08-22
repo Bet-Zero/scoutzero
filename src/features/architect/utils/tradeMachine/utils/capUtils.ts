@@ -15,6 +15,8 @@ interface CapUtilsPayrollStatus {
 }
 
 interface CapUtilsTeamData {
+  teamSalary?: NumericLike;
+  apronTeamSalary?: NumericLike;
   totalSalary?: NumericLike;
   teamTotalSalary?: NumericLike;
   projectedSalary?: NumericLike;
@@ -98,8 +100,8 @@ function resolveComparableTeamData(
   }
 
   if (typeof teamLike === 'number' || typeof teamLike === 'string') {
-    const totalSalary: NumericLike = teamLike;
-    return { totalSalary };
+    const apronTeamSalary: NumericLike = teamLike;
+    return { apronTeamSalary };
   }
 
   const teamContainer: CapUtilsTeamContainer = teamLike;
@@ -126,14 +128,14 @@ export function isFirstApronTeam(
   const teamData = resolveComparableTeamData(team);
   if (!teamData || !capSettings) return false;
 
-  const teamSalary = (teamData.totalSalary || teamData.teamTotalSalary || 0) as
+  const apronTeamSalary = (teamData.apronTeamSalary ?? teamData.teamTotalSalary ?? 0) as
     | number
     | string;
   const firstApron = (capSettings.firstApron || capSettings.apron || 0) as
     | number
     | string;
 
-  return teamSalary >= firstApron;
+  return apronTeamSalary >= firstApron;
 }
 
 /**
@@ -150,7 +152,7 @@ export function isSecondApronTeam(
   // Utilize robust extraction
   const team = resolveComparableTeamData(teamLike);
   if (!team) return false;
-  const teamSalary = (team.totalSalary || team.teamTotalSalary || 0) as
+  const teamSalary = (team.apronTeamSalary ?? team.teamTotalSalary ?? 0) as
     | number
     | string;
   const secondApron = (capSettings.secondApron || 0) as number | string;
@@ -169,16 +171,17 @@ export function getTeamApronStatus(
   const teamData = resolveComparableTeamData(team);
   if (!teamData || !capSettings) return 'UNDER_CAP';
 
-  const teamSalary = (teamData.totalSalary || teamData.teamTotalSalary || 0) as
+  const apronTeamSalary = (teamData.apronTeamSalary ?? teamData.teamTotalSalary ?? 0) as
     | number
     | string;
+  const teamSalary = (teamData.teamSalary ?? 0) as number | string;
   const salaryCap = (capSettings.salaryCap || 0) as number | string;
   const firstApron = (capSettings.firstApron || 0) as number | string;
   const secondApron = (capSettings.secondApron || 0) as number | string;
 
   // Per CBA Art VII Sec 2(f): team is "Second Apron Team" only if salary > secondApron (strict)
-  if (teamSalary > secondApron) return 'SECOND_APRON';
-  if (teamSalary >= firstApron) return 'FIRST_APRON';
+  if (apronTeamSalary > secondApron) return 'SECOND_APRON';
+  if (apronTeamSalary >= firstApron) return 'FIRST_APRON';
   if (teamSalary >= salaryCap) return 'OVER_CAP';
   return 'UNDER_CAP';
 }
@@ -251,9 +254,8 @@ export function resolvePayroll(team: CapUtilsTeamData | null | undefined): numbe
     team.postTradeStatus?.projectedSalary,
     team.preTradeStatus?.projectedSalary,
     team.projectedSalary,
+    team.apronTeamSalary,
     team.teamTotalSalary,
-    team.totalSalary,
-    team.payroll,
   ];
   for (const v of candidates) {
     const n = toNum(v);

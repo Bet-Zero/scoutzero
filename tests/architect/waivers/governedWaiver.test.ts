@@ -38,7 +38,10 @@ import {
   makeResultingState,
 } from '../contractHistory/contractHistoryFixtures';
 import { mutationSnapshotDigest } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import {
+  computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot,
+} from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { deriveArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
 import { getCapTotalsForYear } from '@/features/architect/hooks/useTradeMachine.helpers';
 import {
@@ -867,7 +870,9 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
       });
 
       for (const asOfDate of Object.values(instants)) {
-        const canonical = computeTeamCapTotals(team, 2027, { asOfDate });
+        const canonical = createCanonicalTeamTotalsSnapshot(team, 2027, {
+          asOfDate,
+        });
         const preprojectedTeam = {
           ...team,
           deadCap: team.deadCap.map((entry) =>
@@ -888,11 +893,13 @@ describe('governed ordinary unclaimed waiver lifecycle', () => {
         const trade = getCapTotalsForYear(team, 2027, asOfDate);
         expect(workspace.cap.status).toBe('available');
         if (workspace.cap.status === 'available') {
-          expect(workspace.cap.totalCapAllocations).toBe(
-            canonical.totalCapAllocations
+          expect(workspace.cap.teamSalary).toBe(canonical.teamSalary);
+          expect(workspace.cap.apronTeamSalary).toBe(
+            canonical.apronTeamSalary
           );
+          expect(workspace.cap.taxSalary).toBe(canonical.taxSalary);
         }
-        expect(trade.totalWithDead).toBe(canonical.totalCapAllocations);
+        expect(trade.teamSalary).toBe(canonical.teamSalary);
       }
     }
   );

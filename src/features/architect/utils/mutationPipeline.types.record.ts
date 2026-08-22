@@ -41,6 +41,7 @@ import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
 import type { GovernedOfferSheetProposal } from '@/schemas/governedOfferSheet';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
+import type { TeamSalaryBookInputs } from '@/schemas/salaryBooks';
 
 export type LooseRecord = Record<string, unknown>;
 export type MutationScalarId = string | number | null | undefined;
@@ -439,6 +440,7 @@ export type ArchitectMutationTeamRecord = {
   rightsLedger?: RightsEventLedgerPayload | null;
   /** BZE-275: append-only overlays rooted in immutable contract baselines. */
   contractEventLedgers?: ContractEventLedgerPayload[] | null;
+  salaryBookInputs?: TeamSalaryBookInputs | null;
   deadCap?: ArchitectMutationDeadCapEntry[];
   exceptions?: ArchitectMutationExceptionIngress | null;
   tradeExceptions?: MutationTradeExceptionRecord[];

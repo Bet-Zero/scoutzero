@@ -46,6 +46,30 @@ vi.mock(
           team?.totals?.totalCapAllocations ??
           0,
       })),
+      createCanonicalTeamTotalsSnapshot: vi.fn((team) => ({
+        ...team?.totals,
+        teamSalary: team?.totals?.teamSalary ?? null,
+        apronTeamSalary: team?.totals?.apronTeamSalary ?? null,
+        taxSalary: team?.totals?.taxSalary ?? null,
+        bookDeltas: {
+          vsCap:
+            typeof team?.totals?.teamSalary === 'number'
+              ? team.totals.teamSalary - 154_647_000
+              : null,
+          vsLuxuryTax: null,
+          vsFirstApron: null,
+          vsSecondApron: null,
+        },
+      })),
+      canUseRoomException: vi.fn((team) => {
+        const teamSalary = team?.totals?.teamSalary;
+        return typeof teamSalary === 'number' && teamSalary < 154_647_000
+          ? { eligible: true, totals: { teamSalary, salaryCap: 154_647_000 } }
+          : {
+              eligible: false,
+              reason: 'Team must be under the salary cap to use Room Exception',
+            };
+      }),
     };
   }
 );
@@ -97,6 +121,9 @@ type RoomExceptionTeam = CurrentStateTeam & {
     };
   };
   totals: NonNullable<CurrentStateTeam['totals']> & {
+    teamSalary: number;
+    apronTeamSalary: number;
+    taxSalary: number;
     capHit: number;
     totalSalary: number;
     totalCapAllocations: number;
@@ -156,6 +183,9 @@ function createTeamWithRoomException(
       },
     },
     totals: {
+      teamSalary: capHit,
+      apronTeamSalary: capHit,
+      taxSalary: capHit,
       capHit,
       totalSalary: capHit,
       totalCapAllocations: capHit,

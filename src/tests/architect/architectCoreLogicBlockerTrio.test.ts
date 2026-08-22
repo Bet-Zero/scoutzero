@@ -95,7 +95,42 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
 
 vi.mock('@/features/architect/utils/capTotals', () => ({
   computeTeamCapTotals: mocks.computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot: (team: Record<string, unknown>, year: number) => ({
+    ...mocks.computeTeamCapTotals(team, year),
+    teamSalary: 120_000_000,
+    apronTeamSalary: 121_000_000,
+    taxSalary: 122_000_000,
+    totalSalary: 120_000_000,
+    capHit: 120_000_000,
+  }),
 }));
+
+vi.mock(
+  '@/features/architect/utils/capTotals/computeTeamCapTotals',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/architect/utils/capTotals/computeTeamCapTotals')
+      >();
+    const snapshot = (team: Record<string, unknown>, year: number) => ({
+      ...mocks.computeTeamCapTotals(team, year),
+      teamSalary: 120_000_000,
+      apronTeamSalary: 121_000_000,
+      taxSalary: 122_000_000,
+      totalSalary: 120_000_000,
+      capHit: 120_000_000,
+    });
+    return {
+      ...actual,
+      computeTeamCapTotals: mocks.computeTeamCapTotals,
+      createCanonicalTeamTotalsSnapshot: snapshot,
+      synchronizeTeamTotalsSnapshot: (team: Record<string, unknown>, year: number) => ({
+        ...team,
+        totals: snapshot(team, year),
+      }),
+    };
+  }
+);
 
 vi.mock('@/features/architect/utils/offseason', () => ({
   resolveOffseasonTransition: mocks.resolveOffseasonTransition,

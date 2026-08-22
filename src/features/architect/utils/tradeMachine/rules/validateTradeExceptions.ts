@@ -139,7 +139,7 @@ export function validateTradeExceptions(
   });
 
   const isSecondApronTeam = checkSecondApron(
-    { totalSalary: teamTotalSalary },
+    { apronTeamSalary: teamTotalSalary },
     capSettings
   );
 

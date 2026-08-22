@@ -322,10 +322,11 @@ export function computeSetDeadCapResult({
   currentState,
   seasonId,
   timestamp,
+  asOfDate = null,
 }: ComputeMutationParamsWithCurrentState<
   MutationTeamOnlyCurrentState,
   MutationPayloadInputByType['setDeadCap']
->): ComputeResultLike {
+> & { asOfDate?: string | number | null }): ComputeResultLike {
   const { teamCode } = payload;
   const { team } = requireBasicTeamState(currentState, 'setDeadCap');
 
@@ -350,7 +351,8 @@ export function computeSetDeadCapResult({
   };
   updatedTeam.totals = synchronizeTeamTotalsSnapshotOrTeam(
     updatedTeam,
-    toEndYear(seasonId)
+    toEndYear(seasonId),
+    asOfDate
   ).totals;
 
   return {

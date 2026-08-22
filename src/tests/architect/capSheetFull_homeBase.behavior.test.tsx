@@ -20,7 +20,6 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { CapSheetFull } from '@/features/architect/capSheet/CapSheetFull';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHistory';
 import type { GovernedWaiverLifecycle } from '@/schemas/governedWaiver';
 import type { PlayerRulesProfileTeamCapSheet } from '@/features/architect/types/playerRulesProfiles';
@@ -525,7 +524,7 @@ describe('CapSheetFull — home-base enrichments', () => {
     expect(screen.getByText('$18,000,000')).toBeInTheDocument();
   });
 
-  it('shows canonical footer totals and expandable non-player money details', () => {
+  it('fails the salary-book footer closed while preserving non-player money details', () => {
     const capSheetWithNonPlayerMoney = {
       ...(teamCapSheet as unknown as Record<string, unknown>),
       capHolds: [
@@ -558,15 +557,7 @@ describe('CapSheetFull — home-base enrichments', () => {
     const totalsSurface = screen.getByLabelText(
       'Multi-year canonical yearly totals surface'
     );
-    const expectedCurrentYearTotal = computeTeamCapTotals(
-      capSheetWithNonPlayerMoney,
-      CURRENT_YEAR
-    ).totalCapAllocations;
-    expect(
-      within(totalsSurface).getByText(
-        `$${expectedCurrentYearTotal.toLocaleString()}`
-      )
-    ).toBeInTheDocument();
+    expect(within(totalsSurface).getAllByText('Needs input').length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByTestId('cap-sheet-full-dead-money-toggle'));
     expect(screen.getByText('Waived Player')).toBeInTheDocument();

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   createContractEventLedger,
@@ -19,6 +19,28 @@ import {
   makeEvent,
   makeResultingState,
 } from './contractHistory/contractHistoryFixtures';
+
+vi.mock(
+  '@/features/architect/utils/capTotals/computeTeamCapTotals',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/architect/utils/capTotals/computeTeamCapTotals')
+      >();
+
+    return {
+      ...actual,
+      createCanonicalTeamTotalsSnapshot: vi.fn((team, year) => ({
+        ...actual.computeTeamCapTotals(team, year),
+        teamSalary: 10_000_000,
+        apronTeamSalary: 11_000_000,
+        taxSalary: 12_000_000,
+        totalSalary: 10_000_000,
+        capHit: 10_000_000,
+      })),
+    };
+  }
+);
 
 const WORLD_ID = 'world-bze-276';
 const TEAM_ID = 'DET';
@@ -650,8 +672,8 @@ describe('governed declined Rookie Scale option signing limit', () => {
       dateDefaulted: false,
       worldId: WORLD_ID,
     });
-    expect(result.valid).toBe(true);
     expect(result.violations).toEqual([]);
+    expect(result.valid).toBe(true);
   });
 
   it.each(['not-a-season', '2027invalid', '9999-00', '1899-00'])(

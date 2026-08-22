@@ -77,6 +77,9 @@ interface RawTeamRecord {
   teamName?: string | null;
   name?: string | null;
   teamTotalSalary?: NumericLike;
+  teamSalary?: NumericLike;
+  apronTeamSalary?: NumericLike;
+  taxSalary?: NumericLike;
   totalSalary?: NumericLike;
   projectedSalary?: NumericLike;
   payroll?: NumericLike;
@@ -164,6 +167,9 @@ type ContractLike =
   | null
   | undefined;
 
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
+
 /**
  * Canonicalize the `option` field on each salary row to the short code
  * ('PO' | 'TO' | 'ETO' | null) so one format flows through trade validation.
@@ -229,9 +235,11 @@ function normalizeTeam(
   if (!team?.team) return null;
 
   const raw = team.team;
-  const base = toNum(
-    raw.projectedSalary ?? raw.teamTotalSalary ?? raw.totalSalary ?? raw.payroll
-  );
+  const rawApronTeamSalary =
+    raw.projectedSalary ?? raw.apronTeamSalary ?? raw.teamTotalSalary;
+  const base = isFiniteNumber(rawApronTeamSalary)
+    ? rawApronTeamSalary
+    : Number.NaN;
 
   return {
     ...team,
@@ -239,8 +247,14 @@ function normalizeTeam(
       ...raw,
       id: raw.id || raw.teamId,
       teamName: raw.teamName || raw.name || 'Unknown Team',
-      teamTotalSalary: toNum(raw.teamTotalSalary ?? raw.totalSalary ?? base),
-      projectedSalary: toNum(raw.projectedSalary ?? base),
+      teamTotalSalary: isFiniteNumber(raw.apronTeamSalary)
+        ? raw.apronTeamSalary
+        : isFiniteNumber(raw.teamTotalSalary)
+          ? raw.teamTotalSalary
+          : base,
+      projectedSalary: isFiniteNumber(raw.projectedSalary)
+        ? raw.projectedSalary
+        : base,
       players: (raw.players || []).map(
         (player) => normalizePlayer(player, yearKey as number)
       ),

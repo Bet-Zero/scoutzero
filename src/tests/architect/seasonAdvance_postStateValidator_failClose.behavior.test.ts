@@ -56,6 +56,14 @@ vi.mock('@/features/architect/utils/architectFirestorePaths', () => ({
 
 vi.mock('@/features/architect/utils/capTotals', () => ({
   computeTeamCapTotals: mocks.computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot: (team: Record<string, unknown>, year: number) => ({
+    ...mocks.computeTeamCapTotals(team, year),
+    teamSalary: 20_000_000,
+    apronTeamSalary: 21_000_000,
+    taxSalary: 22_000_000,
+    totalSalary: 20_000_000,
+    capHit: 20_000_000,
+  }),
 }));
 
 vi.mock('@/features/architect/utils/offseason', () => ({

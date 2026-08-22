@@ -93,8 +93,49 @@ export function buildCapPostureAnswer(
   let severity: Stage4GuidedAnswer['severity'] = 'info';
   const blockers: Stage4GuidedAnswer['blockingConstraints'] = [];
 
+  const missingBooks = [
+    cap.teamSalary === null ? cap.books.teamSalary : null,
+    cap.apronTeamSalary === null ? cap.books.apronTeamSalary : null,
+    cap.taxSalary === null ? cap.books.taxSalary : null,
+  ].filter((book): book is NonNullable<typeof book> => book !== null);
+  if (
+    cap.teamSalary === null ||
+    cap.apronTeamSalary === null ||
+    cap.taxSalary === null ||
+    cap.capSpace === null ||
+    cap.taxSpace === null
+  ) {
+    return {
+      ...entry,
+      status: 'unavailable',
+      shortAnswer: 'The independent salary books need more saved-world input.',
+      evidence: [
+        {
+          label: `Team Salary: ${cap.teamSalary === null ? 'Needs input' : formatDollars(cap.teamSalary)}`,
+          authority: 'committed-world / current-season',
+        },
+        {
+          label: `Apron Team Salary: ${cap.apronTeamSalary === null ? 'Needs input' : formatDollars(cap.apronTeamSalary)}`,
+          authority: 'committed-world / current-season',
+        },
+        {
+          label: `Tax Salary: ${cap.taxSalary === null ? 'Needs input' : formatDollars(cap.taxSalary)}`,
+          authority: 'committed-world / current-season',
+        },
+      ],
+      authorityLabels: ['committed-world / current-season'],
+      navigationTargets: [NAV_CAP_SHEET],
+      blockingConstraints: [],
+      deferredReasons: missingBooks.map((book) => ({
+        reason: book.reason ?? 'This salary book needs governed saved-world input.',
+        authority: 'unavailable' as const,
+      })),
+      severity: 'info',
+    };
+  }
+
   chips.push({
-    label: `Cap allocations: ${formatDollars(cap.totalCapAllocations)}`,
+    label: `Team Salary: ${formatDollars(cap.teamSalary)}`,
     authority: 'committed-world / current-season',
   });
   chips.push({
@@ -159,8 +200,8 @@ export function buildCapPostureAnswer(
           ? 'Over the salary cap'
           : 'Below the salary cap';
 
-  const shortAnswer = `${postureSummary} in ${cap.seasonLabel}. Cap allocations ${formatDollars(
-    cap.totalCapAllocations
+  const shortAnswer = `${postureSummary} in ${cap.seasonLabel}. Team Salary ${formatDollars(
+    cap.teamSalary
   )} against a ${formatDollars(cap.salaryCap)} cap.`;
 
   return {

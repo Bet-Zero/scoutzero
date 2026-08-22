@@ -30,7 +30,12 @@ import type {
   MockTeam,
   MockWorldMetadata,
 } from '../helpers/architectTestHelpers.js';
-import { getMockData } from '../__mocks__/firebase.js';
+import {
+  getAllMockData,
+  getMockData,
+  seedMockData,
+} from '../__mocks__/firebase.js';
+import { withDerivedGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 
 describe('Season Manager', () => {
   const worldId = 'world_123';
@@ -139,9 +144,44 @@ describe('Season Manager', () => {
     return result;
   }
 
+  function seedTargetSeasonTeam(
+    teamCode: string,
+    team: MockTeam,
+    options: { padRoster?: boolean } = {}
+  ) {
+    seedTeamSnapshot(
+      worldId,
+      teamCode,
+      withDerivedGovernedSalaryBooks(team, {
+        salaryCapYear: 2027,
+        asOfDate: '2026-07-01T00:00:00Z',
+        apronDelta: 1_000_000,
+        taxDelta: 2_000_000,
+      }) as MockTeam,
+      options
+    );
+  }
+
   beforeEach(() => {
     // processSeasonTransition calls getLeague which needs all 30 teams
     seedBaseData('all');
+    for (const [path, value] of getAllMockData()) {
+      if (
+        path.startsWith('architect_baseTeams/') &&
+        value &&
+        typeof value === 'object'
+      ) {
+        seedMockData(
+          path,
+          withDerivedGovernedSalaryBooks(value as Record<string, unknown>, {
+            salaryCapYear: 2027,
+            asOfDate: '2026-07-01T00:00:00Z',
+            apronDelta: 1_000_000,
+            taxDelta: 2_000_000,
+          })
+        );
+      }
+    }
     const world = createMockWorld({
       worldId,
       userId,
@@ -629,7 +669,7 @@ describe('Season Manager', () => {
           }),
         ],
       });
-      seedTeamSnapshot(worldId, 'LAL', teamWithoutOptions);
+      seedTargetSeasonTeam('LAL', teamWithoutOptions);
 
       const result = expectSeasonAdvanceSuccess(
         await advanceSeasonInWorld(worldId)
@@ -659,7 +699,7 @@ describe('Season Manager', () => {
           }),
         ],
       });
-      seedTeamSnapshot(worldId, 'LAL', teamWithOption);
+      seedTargetSeasonTeam('LAL', teamWithOption);
 
       const result = expectSeasonAdvanceSuccess(
         await advanceSeasonInWorld(worldId, {
@@ -701,7 +741,7 @@ describe('Season Manager', () => {
           }),
         ],
       });
-      seedTeamSnapshot(worldId, 'LAL', teamWithOption);
+      seedTargetSeasonTeam('LAL', teamWithOption);
 
       const result = expectSeasonAdvanceSuccess(
         await advanceSeasonInWorld(worldId, {
@@ -744,7 +784,7 @@ describe('Season Manager', () => {
         ],
         capHolds: [],
       });
-      seedTeamSnapshot(worldId, 'LAL', teamWithOption);
+      seedTargetSeasonTeam('LAL', teamWithOption);
 
       const result = expectSeasonAdvanceSuccess(
         await advanceSeasonInWorld(worldId, {
@@ -842,7 +882,7 @@ describe('Season Manager', () => {
           }),
         ],
       });
-      seedTeamSnapshot(worldId, 'LAL', teamWithExpiring);
+      seedTargetSeasonTeam('LAL', teamWithExpiring);
 
       const result = expectSeasonAdvanceSuccess(
         await advanceSeasonInWorld(worldId)
@@ -900,7 +940,7 @@ describe('Season Manager', () => {
           },
         ],
       });
-      seedTeamSnapshot(worldId, 'MIA', teamWithProtectedPick);
+      seedTargetSeasonTeam('MIA', teamWithProtectedPick);
 
       const result = expectSeasonAdvanceSuccess(
         await advanceSeasonInWorld(worldId)
@@ -936,7 +976,7 @@ describe('Season Manager', () => {
           { id: 'lal_2028_1', year: 2028, round: 1, originalTeam: 'LAL', currentOwner: 'GSW', tradedTo: 'GSW' },
         ],
       });
-      seedTeamSnapshot(worldId, 'LAL', teamWithTradedPicks);
+      seedTargetSeasonTeam('LAL', teamWithTradedPicks);
 
       expectSeasonAdvanceSuccess(await advanceSeasonInWorld(worldId));
 
@@ -967,7 +1007,7 @@ describe('Season Manager', () => {
           { id: 'lal_2028_1', year: 2028, round: 1, originalTeam: 'LAL', currentOwner: 'LAL', owner: 'LAL' },
         ],
       });
-      seedTeamSnapshot(worldId, 'LAL', teamWithOneTradedPick);
+      seedTargetSeasonTeam('LAL', teamWithOneTradedPick);
 
       expectSeasonAdvanceSuccess(await advanceSeasonInWorld(worldId));
 
@@ -998,7 +1038,7 @@ describe('Season Manager', () => {
           { id: 'lal_2027_1', year: 2027, round: 1, originalTeam: 'LAL', owner: 'LAL', status: 'future' },
         ],
       });
-      seedTeamSnapshot(worldId, 'LAL', teamWithPastPick);
+      seedTargetSeasonTeam('LAL', teamWithPastPick);
 
       expectSeasonAdvanceSuccess(await advanceSeasonInWorld(worldId));
 

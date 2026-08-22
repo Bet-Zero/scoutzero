@@ -24,6 +24,7 @@ import {
   makeRightsEstablishedEvent,
   makeRightsLedger,
 } from '../../../tests/fixtures/architect/rightsHistory';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 
 const CAP_SETTINGS = {
   salaryCap: 140_588_000,
@@ -40,7 +41,7 @@ const EXISTING_STANDARD_PLAYERS = Array.from({ length: 13 }, (_, index) => ({
     contractType: 'Standard',
     salariesByYear: [
       {
-        season: '2025-26',
+        season: '2026-27',
         salary: 1_000_000,
         capHit: 1_000_000,
         guaranteed: true,
@@ -49,7 +50,7 @@ const EXISTING_STANDARD_PLAYERS = Array.from({ length: 13 }, (_, index) => ({
   },
 }));
 
-const TEAM_FIXTURE = {
+const TEAM_FIXTURE = withGovernedSalaryBooks({
   teamCode: 'LAL',
   teamName: 'Los Angeles Lakers',
   roster: [],
@@ -60,7 +61,7 @@ const TEAM_FIXTURE = {
       playerName: 'Test Player',
       amount: 9_000_000,
       type: 'FA Cap Hold',
-      season: '2025-26',
+      season: '2026-27',
       isSigned: false,
       active: true,
     },
@@ -75,7 +76,13 @@ const TEAM_FIXTURE = {
     },
   },
   totals: {},
-};
+}, {
+  salaryCapYear: 2027,
+  asOfDate: '2026-07-15T12:00:00.000Z',
+  teamSalary: 22_000_000,
+  apronTeamSalary: 23_000_000,
+  taxSalary: 24_000_000,
+});
 
 const BAE_TEAM_FIXTURE = {
   ...TEAM_FIXTURE,
@@ -134,7 +141,7 @@ function createStandardPlayer(playerId: string, salary: number) {
       contractType: 'Standard',
       salariesByYear: [
         {
-          season: '2025-26',
+          season: '2026-27',
           salary,
           capHit: salary,
           guaranteed: true,
@@ -152,7 +159,7 @@ const SIGNING_PAYLOAD: ArchitectMutationPayload = {
     contractType: 'Signed FA',
     salariesByYear: [
       {
-        season: '2025-26',
+        season: '2026-27',
         salary: 12_000_000,
         capHit: 12_000_000,
         guaranteed: true,
@@ -170,7 +177,7 @@ const BAE_SIGNING_PAYLOAD: ArchitectMutationPayload = {
     contractType: 'Signed FA',
     salariesByYear: [
       {
-        season: '2025-26',
+        season: '2026-27',
         salary: 4_500_000,
         capHit: 4_500_000,
         guaranteed: true,
@@ -188,7 +195,7 @@ const TPMLE_SIGNING_PAYLOAD: ArchitectMutationPayload = {
     contractType: 'Signed FA',
     salariesByYear: [
       {
-        season: '2025-26',
+        season: '2026-27',
         salary: 5_000_000,
         capHit: 5_000_000,
         guaranteed: true,
@@ -205,7 +212,8 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
       player: PLAYER_FIXTURE,
       contract: SIGNING_PAYLOAD.contract,
       signedUsing: 'Full MLE',
-      year: 2026,
+      year: 2027,
+      asOfDate: '2026-07-15T12:00:00.000Z',
     });
 
     expect(validationResult.valid).toBe(false);
@@ -222,7 +230,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
       player: PLAYER_FIXTURE,
       contract: SIGNING_PAYLOAD.contract,
       signedUsing: 'Full MLE',
-      year: 2026,
+      year: 2027,
     });
 
     expect(validationResult.valid).toBe(false);
@@ -234,7 +242,8 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
 
     const beforeTeam = synchronizeTeamTotalsSnapshot(
       LEGACY_ALIAS_ONLY_MLE_TEAM_FIXTURE,
-      2026
+      2027,
+      { asOfDate: '2026-07-15T12:00:00.000Z' }
     );
     const result = computeWorldMutation({
       mutationType: 'signFreeAgent',
@@ -244,8 +253,8 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
         player: PLAYER_FIXTURE,
         teamCode: 'LAL',
       },
-      seasonId: '2025-26',
-      timestamp: Date.parse('2026-03-29T11:59:00.000Z'),
+      seasonId: '2026-27',
+      timestamp: Date.parse('2026-07-15T11:59:00.000Z'),
       worldId: 'world_closeout',
     });
 
@@ -254,7 +263,9 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
   });
 
   it('blocks TPMLE signing when only the full MLE owner exists', () => {
-    const beforeTeam = synchronizeTeamTotalsSnapshot(TEAM_FIXTURE, 2026);
+    const beforeTeam = synchronizeTeamTotalsSnapshot(TEAM_FIXTURE, 2027, {
+      asOfDate: '2026-07-15T12:01:00.000Z',
+    });
     const result = computeWorldMutation({
       mutationType: 'signFreeAgent',
       payload: TPMLE_SIGNING_PAYLOAD,
@@ -263,8 +274,8 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
         player: PLAYER_FIXTURE,
         teamCode: 'LAL',
       },
-      seasonId: '2025-26',
-      timestamp: Date.parse('2026-03-29T12:01:00.000Z'),
+      seasonId: '2026-27',
+      timestamp: Date.parse('2026-07-15T12:01:00.000Z'),
       worldId: 'world_closeout',
     });
 
@@ -273,7 +284,9 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
   });
 
   it('keeps Full-MLE hard-cap truth aligned across compute, totals, validation, and display', () => {
-    const beforeTeam = synchronizeTeamTotalsSnapshot(TEAM_FIXTURE, 2026);
+    const beforeTeam = synchronizeTeamTotalsSnapshot(TEAM_FIXTURE, 2027, {
+      asOfDate: '2026-07-15T12:00:00.000Z',
+    });
     const result = computeWorldMutation({
       mutationType: 'signFreeAgent',
       payload: SIGNING_PAYLOAD,
@@ -282,8 +295,9 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
         player: PLAYER_FIXTURE,
         teamCode: 'LAL',
       },
-      seasonId: '2025-26',
-      timestamp: Date.parse('2026-03-29T12:00:00.000Z'),
+      seasonId: '2026-27',
+      timestamp: Date.parse('2026-07-15T12:00:00.000Z'),
+      asOfDate: '2026-07-15T12:00:00.000Z',
       worldId: 'world_closeout',
     });
 
@@ -293,6 +307,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
     if (!updatedTeam) {
       throw new Error('Expected updated team after signFreeAgent mutation');
     }
+    expect(updatedTeam.totals?.apronTeamSalary).toBeTypeOf('number');
 
     expect(updatedTeam).toEqual(
       expect.objectContaining({
@@ -318,7 +333,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
     );
     expect((updatedTeam as Record<string, unknown>).mle).toBeUndefined();
 
-    expect(buildTotalsByTeam({ LAL: updatedTeam }, 2026).LAL).toEqual(
+    expect(buildTotalsByTeam({ LAL: updatedTeam }, 2027).LAL).toEqual(
       expect.objectContaining({
         isHardCapped: true,
         hardCapLevel: 'firstApron',
@@ -341,7 +356,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
       operationId: 'op_full_mle_hard_cap',
       mutationType: 'signFreeAgent',
       worldId: 'world_closeout',
-      year: 2026,
+      year: 2027,
       afterTeamsByCode: {
         LAL: updatedTeam,
       },
@@ -365,7 +380,9 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
   });
 
   it('keeps BAE hard-cap truth aligned across compute, totals, validation, and display', () => {
-    const beforeTeam = synchronizeTeamTotalsSnapshot(BAE_TEAM_FIXTURE, 2026);
+    const beforeTeam = synchronizeTeamTotalsSnapshot(BAE_TEAM_FIXTURE, 2027, {
+      asOfDate: '2026-07-15T12:02:00.000Z',
+    });
     const result = computeWorldMutation({
       mutationType: 'signFreeAgent',
       payload: BAE_SIGNING_PAYLOAD,
@@ -374,8 +391,9 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
         player: PLAYER_FIXTURE,
         teamCode: 'LAL',
       },
-      seasonId: '2025-26',
-      timestamp: Date.parse('2026-03-29T12:02:00.000Z'),
+      seasonId: '2026-27',
+      timestamp: Date.parse('2026-07-15T12:02:00.000Z'),
+      asOfDate: '2026-07-15T12:02:00.000Z',
       worldId: 'world_closeout',
     });
 
@@ -385,6 +403,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
     if (!updatedTeam) {
       throw new Error('Expected updated team after BAE signFreeAgent mutation');
     }
+    expect(updatedTeam.totals?.apronTeamSalary).toBeTypeOf('number');
 
     expect(updatedTeam).toEqual(
       expect.objectContaining({
@@ -409,7 +428,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
       })
     );
 
-    expect(buildTotalsByTeam({ LAL: updatedTeam }, 2026).LAL).toEqual(
+    expect(buildTotalsByTeam({ LAL: updatedTeam }, 2027).LAL).toEqual(
       expect.objectContaining({
         isHardCapped: true,
         hardCapLevel: 'firstApron',
@@ -433,7 +452,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
       operationId: 'op_bae_hard_cap',
       mutationType: 'signFreeAgent',
       worldId: 'world_closeout',
-      year: 2026,
+      year: 2027,
       afterTeamsByCode: {
         LAL: updatedTeam,
       },
@@ -471,14 +490,21 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
       })),
     });
     const beforeTeam = synchronizeTeamTotalsSnapshot(
-      {
+      withGovernedSalaryBooks({
         ...TEAM_FIXTURE,
         rightsLedger,
         hardCapLevel: 'firstApron',
         hardCapReason: 'Triggered by Non-Taxpayer MLE',
         hardCapTriggeredBy: 'fullMLE',
-      },
-      2026
+      }, {
+        salaryCapYear: 2027,
+        asOfDate: '2026-07-15T12:05:00.000Z',
+        teamSalary: 22_000_000,
+        apronTeamSalary: 23_000_000,
+        taxSalary: 24_000_000,
+      }),
+      2027,
+      { asOfDate: '2026-07-15T12:05:00.000Z' }
     );
     const result = computeWorldMutation({
       mutationType: 'renounceRights',
@@ -523,7 +549,8 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
         totals: {},
       },
       signedUsing: 'BAE',
-      year: 2026,
+      year: 2027,
+      asOfDate: '2026-07-15T12:00:00.000Z',
     });
 
     expect(validationResult.blocked).toBe(true);
@@ -538,7 +565,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
     );
 
     const validationResult = validateExceptionEligibility({
-      team: {
+      team: withGovernedSalaryBooks({
         teamCode: 'LAL',
         teamName: 'Los Angeles Lakers',
         roster: playerSalaries.map((player) => player.id),
@@ -549,7 +576,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
             playerName: 'Second Apron Hold',
             amount: 12_000_000,
             type: 'FA Cap Hold',
-            season: '2025-26',
+            season: '2026-27',
             isSigned: false,
             active: true,
           },
@@ -557,9 +584,16 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
         deadCap: [],
         exceptions: {},
         totals: {},
-      },
+      }, {
+        salaryCapYear: 2027,
+        asOfDate: '2026-07-15T12:00:00.000Z',
+        teamSalary: 228_000_000,
+        apronTeamSalary: 230_000_000,
+        taxSalary: 232_000_000,
+      }),
       signedUsing: 'TPMLE',
-      year: 2026,
+      year: 2027,
+      asOfDate: '2026-07-15T12:00:00.000Z',
     });
 
     expect(validationResult.blocked).toBe(true);
@@ -571,7 +605,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
   it('preserves Full-MLE hard-cap owner metadata through hydration for reload/display parity', async () => {
     const hydratedTeam = await hydrateBaseTeam('LAL', {
       teamName: 'Los Angeles Lakers',
-      season: '2025-26',
+      season: '2026-27',
       abbreviation: 'LAL',
       roster: [],
       capHolds: [],
@@ -619,7 +653,7 @@ describe('Cap Sheet closeout blocker remediation 2: hard-cap ownership', () => {
   it('preserves BAE hard-cap owner metadata through hydration for reload/display parity', async () => {
     const hydratedTeam = await hydrateBaseTeam('LAL', {
       teamName: 'Los Angeles Lakers',
-      season: '2025-26',
+      season: '2026-27',
       abbreviation: 'LAL',
       roster: [],
       capHolds: [],

@@ -144,10 +144,13 @@ export interface TeamContext {
    * Computed as sum of all player cap hits including cap holds and dead money.
    */
   teamSalaryAtOperation: number;
+
+  /** Independent Apron Team Salary used only for apron classification. */
+  apronTeamSalaryAtOperation: number;
   
   /**
    * Team's apron status for operationSeasonId.
-   * Computed by comparing teamSalaryAtOperation against cap thresholds.
+   * Computed by comparing apronTeamSalaryAtOperation against apron thresholds.
    */
   apronLevelAtOperation: ApronLevel;
   

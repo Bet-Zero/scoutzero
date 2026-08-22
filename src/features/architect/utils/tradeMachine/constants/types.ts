@@ -507,6 +507,9 @@ export interface TradeTeam {
     name?: string;
     nickname?: string;
     teamTotalSalary?: number;
+    teamSalary?: number | null;
+    apronTeamSalary?: number | null;
+    taxSalary?: number | null;
     totalSalary?: number;
     roster?: string[];
     draftPicks?: unknown[];
@@ -838,8 +841,10 @@ export interface TradeReceiptSalaryMatchingEvaluation {
 export interface TradeReceiptTeamRow {
   teamCode: string;
   teamName: string;
-  preTradeTeamSalary: number;
+  preTradeTeamSalary: number | null;
   preTradeTeamSalarySource: string;
+  preTradeApronTeamSalary: number | null;
+  preTradeTaxSalary: number | null;
   outgoingPlayers: TradeReceiptPlayerRow[];
   incomingPlayers: TradeReceiptPlayerRow[];
   outgoingEntitlements: TradeReceiptEntitlementRow[];

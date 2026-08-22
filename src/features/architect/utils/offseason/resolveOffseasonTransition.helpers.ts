@@ -106,6 +106,7 @@ type OffseasonTeamTotals = {
   hardCapDetail?: string | null;
   hardCapReason?: string | null;
   totalCapAllocations?: number | string | null;
+  apronTeamSalary?: number | null;
   yearKey?: number | string | null;
   playersTotal?: number | string | null;
   deadMoneyTotal?: number | string | null;

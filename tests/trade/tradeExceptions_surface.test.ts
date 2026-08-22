@@ -27,6 +27,8 @@ const makeLegacyTeam = ({
 } = {}) => ({
   team: {
     totalSalary,
+    apronTeamSalary: totalSalary,
+    teamTotalSalary: totalSalary,
     exceptions: { tpe: tpes },
   },
   receives,

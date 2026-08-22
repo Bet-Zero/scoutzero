@@ -47,15 +47,15 @@ describe('Phase 73 Tile Reactivity and Totals Drift Guardrails', () => {
       expect(content).toMatch(/import\s+.*useMemo.*from\s+['"]react['"]/);
     });
 
-    it('CapImpactTiles.tsx imports computeTeamCapTotals', () => {
+    it('CapImpactTiles.tsx imports the canonical independent-book snapshot', () => {
       const content = fs.readFileSync(capImpactTilesAuthorityPath, 'utf-8');
-      expect(content).toContain('computeTeamCapTotals');
+      expect(content).toContain('createCanonicalTeamTotalsSnapshot');
     });
 
     it('CapImpactTiles.tsx memoizes baselineTotals with correct deps', () => {
       const content = fs.readFileSync(capImpactTilesAuthorityPath, 'utf-8');
-      expect(content).toContain('computeTeamCapTotals(');
-      expect(content).toMatch(/\[team,\s*yearKey\]/);
+      expect(content).toContain('createCanonicalTeamTotalsSnapshot(');
+      expect(content).toMatch(/\[asOfDate,\s*normalizedYear,\s*team\]/);
     });
 
     it('CapImpactTiles.tsx memoizes hardCapStatus', () => {

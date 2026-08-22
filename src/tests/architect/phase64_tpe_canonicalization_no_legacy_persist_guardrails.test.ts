@@ -336,7 +336,7 @@ describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
     const builderSection = source.slice(builderStart, builderEnd);
 
     expect(builderSection).toContain(
-      'buildGeneralMutationCommittedTeamSnapshot(update.team, seasonId)'
+      'buildGeneralMutationCommittedTeamSnapshot(update.team, seasonId, asOfDate)'
     );
 
     const persistStart = source.indexOf('async function persistWorldMutation');
@@ -368,7 +368,7 @@ describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
       'return afterTpeNormalize as GeneralMutationPersistenceTeamSnapshot;'
     );
     expect(source).toContain(
-      'prepareGeneralMutationPersistenceTeamSnapshot(team, seasonId)'
+      'prepareGeneralMutationPersistenceTeamSnapshot(team, seasonId, asOfDate)'
     );
     expect(source).toContain('obj: persistenceReadyTeam');
   });

@@ -265,6 +265,7 @@ const renderPool = (
     <FreeAgentPool
       freeAgents={[FREE_AGENT]}
       currentYear={2026}
+      worldAsOfDate="2025-07-08"
       actionOwner={actionOwner}
       playersMap={playersMap}
       {...overrides}

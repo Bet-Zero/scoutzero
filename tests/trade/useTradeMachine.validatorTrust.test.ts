@@ -2,11 +2,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import capProjections from '@/features/architect/utils/capProjections';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import type {
   NormalizedPlayer,
-  TradeTeamResult,
-  ValidationIssue,
 } from '@/features/architect/utils/tradeMachine/constants/types';
 
 const worldTeamDataMocks = vi.hoisted(() => ({
@@ -97,9 +94,6 @@ function assertDefined<T>(value: T | null | undefined, message: string): T {
   return value;
 }
 
-const issueTexts = (issues: ValidationIssue[] = []) =>
-  issues.map((issue) => getValidationIssueText(issue));
-
 const signAndTradePlayer = makePlayer('sat_player', 0, {
   name: 'Sign And Trade Player',
   teamCode: 'LAL',
@@ -165,7 +159,7 @@ describe('useTradeMachine validator trust contract', () => {
     );
   });
 
-  it('keeps override state separate from authoritative legality in preview validation', async () => {
+  it('keeps override state separate and fails closed when named books are unavailable', async () => {
     const { result } = renderHook(() =>
       useTradeMachine(
         'lakers',
@@ -254,32 +248,11 @@ describe('useTradeMachine validator trust contract', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.snapshotValidationDetails).not.toBeNull();
-      expect(result.current.previewAuthority).not.toBeNull();
-      expect(
-        (
-          result.current.snapshotValidationDetails?.override as
-            | Record<string, unknown>
-            | undefined
-        )
-          ?.requested
-      ).toBe(true);
+      expect(result.current.isValidating).toBe(false);
     });
 
-    expect(result.current.previewAuthority?.legal).toBe(false);
-    expect(result.current.snapshotValidationDetails?.override).toMatchObject({
-      requested: true,
-      appliedToLegality: false,
-    });
-    const firstTeamResult = result.current.snapshotValidationDetails
-      ?.teamResults?.[0] as TradeTeamResult | undefined;
-    const signAndTradeRule = firstTeamResult?.rules?.signAndTrade;
-    expect(
-      issueTexts(signAndTradeRule?.violations ?? [])
-    ).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/only be traded during the offseason/i),
-      ])
-    );
+    expect(result.current.snapshotValidationDetails).toBeNull();
+    expect(result.current.previewAuthority).toBeNull();
+    expect(result.current.forceTrade).toBe(true);
   });
 });

@@ -196,6 +196,27 @@ export function deriveCapPosturePanel(
     workspace,
     hardCapStatus
   );
+  const relevantBookMissing =
+    cap.teamSalary === null ||
+    cap.apronTeamSalary === null ||
+    cap.taxSalary === null;
+  if (relevantBookMissing) {
+    const missing = [
+      cap.teamSalary === null ? 'Team Salary' : null,
+      cap.apronTeamSalary === null ? 'Apron Team Salary' : null,
+      cap.taxSalary === null ? 'Tax Salary' : null,
+    ].filter(Boolean);
+    return {
+      tone: 'muted',
+      statusLabel: 'Salary books need input',
+      detail: `${missing.join(', ')} cannot be evaluated from the saved world yet.`,
+      rosterLabel: deriveRosterLabel(workspace.roster),
+      headlineAmount: null,
+      headlineCaption: null,
+      hardCapLabel: hardCapActive ? 'Hard cap recorded' : null,
+      hardCapDetail: hardCapActive ? hardCapStatus?.reason || null : null,
+    };
+  }
   let tone: TrustPanelTone = 'safe';
   let statusLabel = 'Below cap pressure';
   // Default headline (safe team): the cap room it has left.
@@ -211,23 +232,23 @@ export function deriveCapPosturePanel(
       hardCapStatus?.hardCapCeilingType === 'FIRST_APRON'
         ? cap.firstApronSpace
         : cap.secondApronSpace;
-    headlineCaption = headlineAmount < 0 ? 'over the hard cap' : 'under hard cap';
-  } else if (cap.isAboveSecondApron) {
+    headlineCaption = headlineAmount! < 0 ? 'over the hard cap' : 'under hard cap';
+  } else if (cap.isAboveSecondApron === true) {
     tone = 'danger';
     statusLabel = 'Above 2nd apron';
     headlineAmount = cap.secondApronSpace;
     headlineCaption = 'over the 2nd apron';
-  } else if (cap.isAtOrAboveFirstApron) {
+  } else if (cap.isAtOrAboveFirstApron === true) {
     tone = 'danger';
     statusLabel = 'At or above 1st apron';
     headlineAmount = cap.firstApronSpace;
     headlineCaption = 'over the 1st apron';
-  } else if (cap.isOverTax) {
+  } else if (cap.isOverTax === true) {
     tone = 'watch';
     statusLabel = 'Over luxury tax';
     headlineAmount = cap.taxSpace;
     headlineCaption = 'over the luxury tax';
-  } else if (cap.isOverCap) {
+  } else if (cap.isOverCap === true) {
     tone = 'watch';
     statusLabel = 'Over salary cap';
     headlineAmount = cap.capSpace;
@@ -238,8 +259,8 @@ export function deriveCapPosturePanel(
     tone,
     statusLabel,
     detail: `${cap.seasonLabel}: ${formatTrustPanelMoney(
-      cap.capSpace
-    )} cap space, ${formatTrustPanelMoney(cap.taxSpace)} tax space.`,
+      cap.capSpace!
+    )} cap space, ${formatTrustPanelMoney(cap.taxSpace!)} tax space.`,
     headlineAmount,
     headlineCaption,
     rosterLabel: deriveRosterLabel(workspace.roster),

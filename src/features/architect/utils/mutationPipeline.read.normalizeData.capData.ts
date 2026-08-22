@@ -18,6 +18,7 @@ import type {
   MutationDeadCapYear,
 } from './mutationPipeline';
 import { GovernedWaiverLifecycleZ } from '@/schemas/governedWaiver';
+import { SalaryBooksSnapshotZ } from '@/schemas/salaryBooks';
 
 function safeCloneForAudit<T>(value: T): T {
   if (value === null || value === undefined || typeof value !== 'object') {
@@ -218,7 +219,7 @@ export function normalizeCurrentStateTeamTotals(
   const numberFields = [
     'yearKey', 'playersTotal', 'deadMoneyTotal', 'capHoldsTotal',
     'incompleteChargesTotal', 'totalCapAllocations', 'salaryCap', 'luxuryTax',
-    'totalSalary', 'teamSalary', 'capHit', 'currentCapHit', 'guaranteedSalary',
+    'totalSalary', 'teamSalary', 'apronTeamSalary', 'taxSalary', 'capHit', 'currentCapHit', 'guaranteedSalary',
     'nonGuaranteedSalary', 'rosterCount', 'guaranteedContracts',
     'nonGuaranteedContracts', 'twoWayContracts', 'emptyRosterCharges', 'capSpace',
     'capRoom', 'effectiveCap', 'luxuryTaxLine', 'taxablePayroll', 'taxBill',
@@ -230,6 +231,22 @@ export function normalizeCurrentStateTeamTotals(
     const v = toOptionalNumber(record[field]);
     if (v !== undefined) normalized[field] = v;
   }
+  for (const field of [
+    'totalSalary',
+    'teamSalary',
+    'apronTeamSalary',
+    'taxSalary',
+    'capHit',
+    'currentCapHit',
+    'capSpace',
+    'capRoom',
+    'taxablePayroll',
+    'firstApronRoom',
+    'secondApronRoom',
+    'hardCapRoom',
+  ] as const) {
+    if (record[field] === null) normalized[field] = null;
+  }
 
   const booleanFields = [
     'isOverTax', 'isFirstApron', 'isSecondApron', 'isHardCapped',
@@ -238,6 +255,9 @@ export function normalizeCurrentStateTeamTotals(
   for (const field of booleanFields) {
     const v = toOptionalBoolean(record[field]);
     if (v !== undefined) normalized[field] = v;
+  }
+  for (const field of ['isOverTax', 'isFirstApron', 'isSecondApron'] as const) {
+    if (record[field] === null) normalized[field] = null;
   }
 
   const hardCapLevel = toOptionalTrimmedString(record.hardCapLevel);
@@ -248,6 +268,20 @@ export function normalizeCurrentStateTeamTotals(
     toOptionalBoolean(record.hardCapTriggered);
   const deltas = normalizeCurrentStateTotalsDeltas(record.deltas);
   const meta = normalizeCurrentStateTotalsMeta(record._meta);
+  const salaryBooks = SalaryBooksSnapshotZ.safeParse(record.salaryBooks);
+  if (record.salaryBooks != null && !salaryBooks.success) {
+    throw new Error('Persisted salary-book snapshot is malformed or has lost ledger identity.');
+  }
+  const bookDeltasRecord = asLooseRecord(record.bookDeltas);
+  if (bookDeltasRecord) {
+    normalized.bookDeltas = {
+      vsCap: toOptionalNumber(bookDeltasRecord.vsCap) ?? null,
+      vsLuxuryTax: toOptionalNumber(bookDeltasRecord.vsLuxuryTax) ?? null,
+      vsFirstApron: toOptionalNumber(bookDeltasRecord.vsFirstApron) ?? null,
+      vsSecondApron: toOptionalNumber(bookDeltasRecord.vsSecondApron) ?? null,
+    };
+  }
+  if (salaryBooks.success) normalized.salaryBooks = salaryBooks.data;
 
   if (hardCapLevel !== undefined) normalized.hardCapLevel = hardCapLevel;
   if (hardCapDetail !== undefined) normalized.hardCapDetail = hardCapDetail;

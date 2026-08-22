@@ -22,6 +22,7 @@ import { loadStateForMutation } from '@/features/architect/utils/mutationPipelin
 import { buildGeneralMutationCommittedTeamUpdates } from '@/features/architect/utils/mutationPipeline.read.persistence.snapshots';
 import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils/offerSheets';
 import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
+import { withDerivedGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect/governedOfferSheet';
 
 const WORLD_ID = 'bze_283_offer_sheet_creation_emulator';
@@ -186,16 +187,30 @@ describe('BZE-283 governed Offer Sheet creation on the Firestore emulator', () =
       setDoc(
         doc(db, 'architect_worlds', WORLD_ID, 'teams', HOME_TEAM),
         clone(
-          makeTeam({
-            teamCode: HOME_TEAM,
-            players: [homePlayer],
-            rightsLedger: fixture.rightsLedger,
-          })
+          withDerivedGovernedSalaryBooks(
+            makeTeam({
+              teamCode: HOME_TEAM,
+              players: [homePlayer],
+              rightsLedger: fixture.rightsLedger,
+            }),
+            {
+              salaryCapYear: fixture.evidence.salaryCapYear,
+              asOfDate: fixture.proposal.signedAt,
+            }
+          )
         )
       ),
       setDoc(
         doc(db, 'architect_worlds', WORLD_ID, 'teams', OFFERING_TEAM),
-        clone(makeTeam({ teamCode: OFFERING_TEAM, players: [offeringPlayer] }))
+        clone(
+          withDerivedGovernedSalaryBooks(
+            makeTeam({ teamCode: OFFERING_TEAM, players: [offeringPlayer] }),
+            {
+              salaryCapYear: fixture.evidence.salaryCapYear,
+              asOfDate: fixture.proposal.signedAt,
+            }
+          )
+        )
       ),
     ]);
   }, 60_000);

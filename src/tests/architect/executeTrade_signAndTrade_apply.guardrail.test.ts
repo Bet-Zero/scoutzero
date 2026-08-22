@@ -121,7 +121,13 @@ function makeTeam(
     draftPicks: [],
     tradeExceptions: [],
     exceptions: {},
-    totals: { totalSalary, capHit: totalSalary },
+    totals: {
+      teamSalary: totalSalary,
+      apronTeamSalary: totalSalary,
+      taxSalary: totalSalary,
+      totalSalary,
+      capHit: totalSalary,
+    },
   };
 }
 

@@ -142,6 +142,7 @@ describe('EditContractModal — PlayerRulesProfile integration', () => {
         player={BASE_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
+        worldAsOfDate="2024-07-08"
         initialAction="extend"
         playerRulesProfile={INELIGIBLE_PROFILE}
       />
@@ -169,6 +170,7 @@ describe('EditContractModal — PlayerRulesProfile integration', () => {
         player={BASE_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
+        worldAsOfDate="2024-07-08"
         initialAction="extend"
         playerRulesProfile={ELIGIBLE_PROFILE}
       />
@@ -193,6 +195,7 @@ describe('EditContractModal — PlayerRulesProfile integration', () => {
         player={BASE_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
+        worldAsOfDate="2024-07-08"
         initialAction="extend"
       />
     );
@@ -216,6 +219,7 @@ describe('EditContractModal — PlayerRulesProfile integration', () => {
         player={RFA_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
+        worldAsOfDate="2024-07-08"
         initialAction="resign"
         playerRulesProfile={RFA_PROFILE}
       />
@@ -255,6 +259,7 @@ describe('EditContractModal — Override validation enforcement', () => {
         player={BASE_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
+        worldAsOfDate="2024-07-08"
         initialAction="extend"
         playerRulesProfile={INELIGIBLE_PROFILE}
       />
@@ -279,6 +284,7 @@ describe('EditContractModal — Override validation enforcement', () => {
         player={BASE_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
+        worldAsOfDate="2024-07-08"
         initialAction="extend"
         playerRulesProfile={ELIGIBLE_PROFILE}
       />
@@ -296,6 +302,7 @@ describe('EditContractModal — Override validation enforcement', () => {
         player={BASE_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
+        worldAsOfDate="2024-07-08"
         initialAction="extend"
         playerRulesProfile={ELIGIBLE_PROFILE}
       />
@@ -322,6 +329,7 @@ describe('EditContractModal — Override validation enforcement', () => {
         player={BASE_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
+        worldAsOfDate="2024-07-08"
         initialAction="extend"
         playerRulesProfile={ELIGIBLE_PROFILE}
       />
@@ -344,6 +352,7 @@ describe('EditContractModal — Override validation enforcement', () => {
         player={BASE_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
+        worldAsOfDate="2024-07-08"
         initialAction="extend"
         playerRulesProfile={ELIGIBLE_PROFILE}
       />
@@ -361,6 +370,7 @@ describe('EditContractModal — Override validation enforcement', () => {
         player={BASE_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
+        worldAsOfDate="2024-07-08"
         initialAction="extend"
         extensionAvailability={READY_EXTENSION_AVAILABILITY}
         playerRulesProfile={ELIGIBLE_PROFILE}
@@ -390,6 +400,7 @@ describe('EditContractModal — Override validation enforcement', () => {
         player={BASE_PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
+        worldAsOfDate="2024-07-08"
         initialAction="extend"
         extensionAvailability={READY_ROOKIE_EXTENSION_AVAILABILITY}
         playerRulesProfile={ELIGIBLE_PROFILE}
@@ -429,6 +440,7 @@ describe('EditContractModal — Sign & Trade callback wiring (Gap C guard)', () 
         player={faPlayer}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
+        worldAsOfDate="2024-07-08"
         onSignAndTrade={mockOnSignAndTrade}
         getSignAndTradePreflight={mockGetSignAndTradePreflight}
         actionContext="freeAgent"
@@ -502,6 +514,7 @@ describe('EditContractModal — explicit sign/resign callbacks', () => {
         player={faPlayer}
         teamCapSheet={TEAM_CAP_SHEET}
         currentYear={2025}
+        worldAsOfDate="2024-07-08"
         actionContext="freeAgent"
         onResign={mockOnResign}
       />

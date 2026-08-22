@@ -278,8 +278,8 @@ export function readTeamCapDelta(
 
   const before = asObject(beforeTotalsByTeam[teamCode]);
   const after = asObject(afterTotalsByTeam[teamCode]);
-  const beforeValue = Number(before.totalCapAllocations);
-  const afterValue = Number(after.totalCapAllocations);
+  const beforeValue = Number(before.teamSalary);
+  const afterValue = Number(after.teamSalary);
 
   if (!Number.isFinite(beforeValue) || !Number.isFinite(afterValue)) {
     return null;
@@ -311,23 +311,30 @@ export function buildCapDeltaContext({
     ...Object.keys(afterTotalsByTeam),
   ]);
 
+  const bookFields = [
+    ['teamSalary', 'Team Salary'],
+    ['apronTeamSalary', 'Apron Team Salary'],
+    ['taxSalary', 'Tax Salary'],
+  ] as const;
   const deltaLines = orderedTeamCodes
-    .map((teamCode) => {
-      const delta = readTeamCapDelta(beforeTotalsByTeam, afterTotalsByTeam, teamCode);
-      if (delta === null) {
-        return null;
-      }
+    .flatMap((teamCode) => bookFields.map(([field, label]) => {
+      const before = Number(asObject(beforeTotalsByTeam[teamCode])[field]);
+      const after = Number(asObject(afterTotalsByTeam[teamCode])[field]);
+      if (!Number.isFinite(before) || !Number.isFinite(after)) return null;
+      const delta = after - before;
       return {
         teamCode,
+        field,
         delta,
-        line: `${formatTeamLabel(teamCode, teamNameLookup)} total cap allocations: ${formatSignedCurrency(delta)}`,
+        line: `${formatTeamLabel(teamCode, teamNameLookup)} ${label}: ${formatSignedCurrency(delta)}`,
       };
-    })
+    }))
     .filter(
       (
         value
       ): value is {
         teamCode: string;
+        field: (typeof bookFields)[number][0];
         delta: number;
         line: string;
       } => Boolean(value)
@@ -335,13 +342,15 @@ export function buildCapDeltaContext({
 
   const activeTeamDelta =
     activeTeamCode &&
-    deltaLines.find((value) => value.teamCode === activeTeamCode)?.delta;
+    deltaLines.find(
+      (value) => value.teamCode === activeTeamCode && value.field === 'teamSalary'
+    )?.delta;
 
   return {
     capDelta:
       typeof activeTeamDelta === 'number'
         ? activeTeamDelta
-        : deltaLines[0]?.delta ?? null,
+        : deltaLines.find((value) => value.field === 'teamSalary')?.delta ?? null,
     lines: deltaLines.map((value) => value.line),
   };
 }

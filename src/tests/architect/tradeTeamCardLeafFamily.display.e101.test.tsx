@@ -25,6 +25,16 @@ const {
 
 vi.mock('@/features/architect/utils/capTotals', () => ({
   computeTeamCapTotals: mockComputeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot: (...args: unknown[]) => {
+    const totals = mockComputeTeamCapTotals(...args);
+    return {
+      ...totals,
+      teamSalary: totals?.teamSalary ?? totals?.totalCapAllocations ?? null,
+      apronTeamSalary:
+        totals?.apronTeamSalary ?? totals?.totalCapAllocations ?? null,
+      taxSalary: totals?.taxSalary ?? totals?.totalCapAllocations ?? null,
+    };
+  },
 }));
 
 vi.mock('@/features/architect/utils/tradeHelpers', async () => {
@@ -78,7 +88,7 @@ describe('E101 Trade Team Card leaf-family display surfaces', () => {
     cleanup();
   });
 
-  it('CapImpactTiles preserves tile label order, fallback math, and cap-holds wording', () => {
+  it('CapImpactTiles preserves governed salary-book order and Team Salary math', () => {
     render(
       <CapImpactTiles
         team={{ id: 'LAL' }}
@@ -88,30 +98,29 @@ describe('E101 Trade Team Card leaf-family display surfaces', () => {
       />
     );
 
-    const totalCapLabel = screen.getByText('TOTAL CAP');
+    const teamSalaryLabel = screen.getByText('TEAM SALARY');
     const capSpaceLabel = screen.getByText('CAP SPACE');
-    const firstApronLabel = screen.getByText('1ST APRON');
-    const secondApronLabel = screen.getByText('2ND APRON');
+    const apronTeamSalaryLabel = screen.getByText('APRON TEAM SALARY');
+    const taxSalaryLabel = screen.getByText('TAX SALARY');
 
     expect(
-      totalCapLabel.compareDocumentPosition(capSpaceLabel) &
+      teamSalaryLabel.compareDocumentPosition(capSpaceLabel) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(
-      capSpaceLabel.compareDocumentPosition(firstApronLabel) &
+      capSpaceLabel.compareDocumentPosition(apronTeamSalaryLabel) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(
-      firstApronLabel.compareDocumentPosition(secondApronLabel) &
+      apronTeamSalaryLabel.compareDocumentPosition(taxSalaryLabel) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
 
     expect(screen.getByText('$114.0M')).toBeInTheDocument();
     expect(screen.getByText('$26.0M')).toBeInTheDocument();
-    expect(screen.getByText('$36.0M')).toBeInTheDocument();
-    expect(screen.getByText('$46.0M')).toBeInTheDocument();
+    expect(screen.getAllByText('$120.0M')).toHaveLength(2);
     expect(
-      screen.getByText('Cap Holds (not in projected): $5.0M')
+      screen.getByText('Free Agent Amounts included in Team Salary: $5.0M')
     ).toBeInTheDocument();
   });
 
@@ -131,7 +140,7 @@ describe('E101 Trade Team Card leaf-family display surfaces', () => {
     );
   });
 
-  it('CapImpactTiles preserves snapshot-over-fallback behavior and validating indicator wording', () => {
+  it('CapImpactTiles keeps governed salary books authoritative while validating', () => {
     render(
       <CapImpactTiles
         team={{ id: 'LAL', teamTotalSalary: 136_000_000 }}
@@ -143,8 +152,8 @@ describe('E101 Trade Team Card leaf-family display surfaces', () => {
       />
     );
 
-    expect(screen.getByText('$130.0M')).toBeInTheDocument();
-    expect(screen.getByText('$10.0M')).toBeInTheDocument();
+    expect(screen.getByText('$114.0M')).toBeInTheDocument();
+    expect(screen.getByText('$26.0M')).toBeInTheDocument();
     expect(screen.getByText('Validating...')).toBeInTheDocument();
   });
 

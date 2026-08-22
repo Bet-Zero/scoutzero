@@ -24,6 +24,34 @@ import {
   createMockPlayer,
 } from '../helpers/architectTestHelpers';
 
+vi.mock(
+  '@/features/architect/utils/capTotals/computeTeamCapTotals',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/features/architect/utils/capTotals/computeTeamCapTotals')
+      >();
+    return {
+      ...actual,
+      createCanonicalTeamTotalsSnapshot: vi.fn((team, year) => {
+        const legacy = actual.computeTeamCapTotals(team, year);
+        const totals = team?.totals as Record<string, unknown> | null | undefined;
+        return {
+          ...legacy,
+          teamSalary:
+            typeof totals?.teamSalary === 'number' ? totals.teamSalary : null,
+          apronTeamSalary:
+            typeof totals?.apronTeamSalary === 'number'
+              ? totals.apronTeamSalary
+              : null,
+          taxSalary:
+            typeof totals?.taxSalary === 'number' ? totals.taxSalary : null,
+        };
+      }),
+    };
+  }
+);
+
 type OverrideIssue = NonNullable<Parameters<typeof getOverridePolicy>[0]>[number];
 type SigningTeam = Parameters<typeof validateSigning>[0]['team'];
 
@@ -249,6 +277,9 @@ describe('Validation Always Blocks Invalid States', () => {
       players,
       roster: players.map((p) => p.player_id),
       totals: {
+        teamSalary: 193_000_000,
+        apronTeamSalary: 193_000_000,
+        taxSalary: 193_000_000,
         totalSalary: 193_000_000,
         capHit: 193_000_000,
         isHardCapped: true,

@@ -41,6 +41,10 @@ function makeTeam(
     teamCode: code,
     teamName: code,
     totalSalary,
+    teamSalary: totalSalary,
+    apronTeamSalary: totalSalary,
+    taxSalary: totalSalary,
+    teamTotalSalary: totalSalary,
     players,
   };
 }

@@ -27,7 +27,8 @@ const TONE_CLASS: Record<ArchitectModePresentationTone, string> = {
   muted: 'bg-white/5 text-white/40 border-white/10',
 };
 
-const fmt = (v: number) => `$${(Math.abs(v) / 1_000_000).toFixed(1)}M`;
+const fmt = (v: number | null) =>
+  v === null ? 'Needs input' : `$${(Math.abs(v) / 1_000_000).toFixed(1)}M`;
 
 type CapAvailable = Extract<ArchitectWorkspaceContext['cap'], { status: 'available' }>;
 
@@ -40,8 +41,10 @@ const Sep = () => (
 const CapSummary = ({ cap }: { cap: CapAvailable }) => (
   <>
     <span>
-      {cap.seasonLabel}:{' '}
-      {cap.isOverCap ? (
+      {cap.seasonLabel} Team:{' '}
+      {cap.capSpace === null ? (
+        <span className="text-white/40">Needs input</span>
+      ) : cap.isOverCap ? (
         <span className="text-rose-300">{fmt(cap.capSpace)} over cap</span>
       ) : (
         <span className="text-green-300">{fmt(cap.capSpace)} space</span>
@@ -49,12 +52,18 @@ const CapSummary = ({ cap }: { cap: CapAvailable }) => (
     </span>
     <Sep />
     <span>
-      Tax:{' '}
-      {cap.isOverTax ? (
+      Tax Salary:{' '}
+      {cap.taxSpace === null ? (
+        <span className="text-white/40">Needs input</span>
+      ) : cap.isOverTax ? (
         <span className="text-amber-300">{fmt(cap.taxSpace)} over</span>
       ) : (
         <span>{fmt(cap.taxSpace)} space</span>
       )}
+    </span>
+    <Sep />
+    <span>
+      Apron Salary: {fmt(cap.apronTeamSalary)}
     </span>
     {cap.isAtOrAboveFirstApron && (
       <>

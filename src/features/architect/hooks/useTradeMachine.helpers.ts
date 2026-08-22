@@ -10,7 +10,7 @@ import type {
   TradeMachineEntitlement,
 } from './useTradeMachine.types';
 import { TeamMap, TeamCodeMap, type TeamEntry } from '@/constants/teamList';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 
@@ -197,12 +197,24 @@ export const getCapTotalsForYear = (
   asOfDate: string | null = null
 ) => {
   if (!teamCapSheet)
-    return { playersTotal: 0, deadMoneyTotal: 0, totalWithDead: 0 };
-  const totals = computeTeamCapTotals(teamCapSheet, yearKey, { asOfDate });
+    return {
+      playersTotal: 0,
+      deadMoneyTotal: 0,
+      teamSalary: null,
+      apronTeamSalary: null,
+      taxSalary: null,
+      salaryBooks: null,
+    };
+  const totals = createCanonicalTeamTotalsSnapshot(teamCapSheet, yearKey, {
+    asOfDate,
+  });
   return {
     playersTotal: totals.playersTotal,
     deadMoneyTotal: totals.deadMoneyTotal,
-    totalWithDead: totals.playersTotal + totals.deadMoneyTotal,
+    teamSalary: totals.teamSalary,
+    apronTeamSalary: totals.apronTeamSalary,
+    taxSalary: totals.taxSalary,
+    salaryBooks: totals.salaryBooks,
   };
 };
 

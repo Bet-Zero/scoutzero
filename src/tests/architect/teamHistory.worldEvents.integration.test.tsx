@@ -50,10 +50,20 @@ describe('Team History world events integration', () => {
           playerIds: ['player_77'],
           operationId: 'op_trade_77',
           beforeTotalsByTeam: {
-            LAL: { totalCapAllocations: 150000000 },
+            LAL: {
+              totalCapAllocations: 150000000,
+              teamSalary: 150000000,
+              apronTeamSalary: 152000000,
+              taxSalary: 151000000,
+            },
           },
           afterTotalsByTeam: {
-            LAL: { totalCapAllocations: 149000000 },
+            LAL: {
+              totalCapAllocations: 149000000,
+              teamSalary: 149000000,
+              apronTeamSalary: 151000000,
+              taxSalary: 150000000,
+            },
           },
         },
       ],
@@ -101,7 +111,7 @@ describe('Team History world events integration', () => {
     expect(
       screen.getByTestId('team-history-detail-after-totals').textContent || ''
     ).toContain('149000000');
-    expect(screen.getByText('Cap Allocation')).toBeInTheDocument();
+    expect(screen.getByText('Salary Books')).toBeInTheDocument();
     expect(screen.getByTestId('team-history-detail-row-id')).toHaveTextContent(
       'cap-audit-1'
     );
@@ -117,7 +127,7 @@ describe('Team History world events integration', () => {
     expect(
       screen.getByTestId('team-history-detail-cap-alignment').textContent || ''
     ).toContain(
-      'LAL total cap allocations: $150,000,000 -> $149,000,000 (-$1,000,000)'
+      'LAL Team Salary: $150,000,000 -> $149,000,000 (-$1,000,000)'
     );
     expect(
       screen.getByTestId('team-history-detail-raw-summary').textContent || ''

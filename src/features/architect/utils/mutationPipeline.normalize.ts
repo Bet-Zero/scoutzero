@@ -552,6 +552,7 @@ export function computeNormalizedWorldMutation(
             currentState: args.currentState,
             seasonId,
             timestamp,
+            asOfDate,
           })
         );
       }
@@ -730,5 +731,9 @@ export function computeNormalizedWorldMutation(
     }
   })();
 
-  return canonicalizeComputeResultTeamUpdates(result, seasonId);
+  return canonicalizeComputeResultTeamUpdates(
+    result,
+    seasonId,
+    typeof asOfDate === 'string' ? asOfDate : null
+  );
 }

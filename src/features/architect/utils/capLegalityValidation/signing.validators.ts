@@ -256,10 +256,12 @@ export function validateExceptionEligibility({
   team,
   signedUsing,
   year,
+  asOfDate = null,
 }: {
   team: MutationTeam;
   signedUsing: string | null | undefined;
   year: number;
+  asOfDate?: string | null;
 }) {
   if (!signedUsing) {
     return { blocked: false, reason: null, violation: null };
@@ -270,9 +272,42 @@ export function validateExceptionEligibility({
     return { blocked: false, reason: null, violation: null };
   }
 
-  const canonicalTotals = computeCanonicalMutationTeamCapTotals(team, year);
-  const currentCapHit = toFiniteNumber(canonicalTotals.totalCapAllocations, 0);
   const normalizedException = signedUsing.toLowerCase().replace(/[^a-z]/g, '');
+  const apronRestrictedMechanisms = [
+    'mle',
+    'ntmle',
+    'fullmle',
+    'full',
+    'bae',
+    'biannual',
+    'tpe',
+    'tpmle',
+    'taxpayermle',
+    'room',
+    'roommle',
+    'rmle',
+  ];
+  if (!apronRestrictedMechanisms.some((mechanism) => normalizedException.includes(mechanism))) {
+    return { blocked: false, reason: null, violation: null };
+  }
+
+  const canonicalTotals = computeCanonicalMutationTeamCapTotals(
+    team,
+    year,
+    asOfDate
+  );
+  if (canonicalTotals.apronTeamSalary === null) {
+    return {
+      blocked: true,
+      reason: 'Apron Team Salary needs governed input.',
+      violation: {
+        rule: 'salary_book_needs_input',
+        message: 'Cannot validate exception eligibility until Apron Team Salary is complete.',
+        severity: 'error',
+      },
+    };
+  }
+  const currentCapHit = canonicalTotals.apronTeamSalary;
 
   const isAboveSecondApron = currentCapHit > rules.cap.secondApron;
   const isAboveFirstApron = currentCapHit >= rules.cap.firstApron;
@@ -377,7 +412,8 @@ export function validateExceptionEligibility({
   if (isRoomMLEVariant) {
     const roomEligibility = canUseRoomException(
       team as Parameters<typeof canUseRoomException>[0],
-      year
+      year,
+      asOfDate
     );
     if (!roomEligibility.eligible) {
       return {

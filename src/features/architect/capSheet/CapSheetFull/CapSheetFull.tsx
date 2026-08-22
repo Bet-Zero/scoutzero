@@ -26,7 +26,7 @@ import {
   getPlayerCapSheetAmountsForYear,
   isTwoWayContract,
 } from '@/features/architect/utils/contractUtils';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { computeDeadMoneyForYear } from '@/features/architect/utils/capTotals/deadMoneyForYear';
 import { BirdRightsIcon } from '@/shared/components/BirdRightsIcon';
 import { playerMatchesFocus } from '@/features/architect/GMDashboard/postActionHandoff/playerFocus';
@@ -1074,13 +1074,13 @@ export const CapSheetFull = ({
     projectGovernedWaiverDeadCapEntry(entry, waiverAsOfDate)
   );
 
-  // SSOT: Use computeTeamCapTotals for each year to include
+  // SSOT: Use the canonical salary-book snapshot for each year to include
   // players + dead money + cap holds + incomplete roster charges.
   // Replaces local reduce that missed dead money and incomplete charges.
   const yearTotalBreakdowns = useMemo(() => {
-    const totals: Record<number, ReturnType<typeof computeTeamCapTotals>> = {};
+    const totals: Record<number, ReturnType<typeof createCanonicalTeamTotalsSnapshot>> = {};
     for (const year of allYears) {
-      totals[year] = computeTeamCapTotals(
+      totals[year] = createCanonicalTeamTotalsSnapshot(
         teamCapSheet
           ? {
               ...teamCapSheet,
@@ -1918,7 +1918,7 @@ export const CapSheetFull = ({
                 </div>
 
                 {/* CANONICAL TOTALS (sticky footer): the Total Cap row reads
-                    computeTeamCapTotals(...) outputs directly and stays pinned
+                    canonical salary-book outputs directly and stays pinned
                     to the bottom of the scroll area so it is always visible.
                     Incomplete Roster Charges render as a contributor row
                     *inside* this same block, directly above Total Cap, so the
@@ -1988,7 +1988,7 @@ export const CapSheetFull = ({
                         style={{ background: 'var(--team-secondary,#FDB927)' }}
                       />
                       <span className="block text-[11px] font-extrabold uppercase italic tracking-wide text-white">
-                        Total Cap
+                        Team Salary
                       </span>
                       <span className="sr-only">
                         {'Canonical Yearly Totals'}
@@ -2021,11 +2021,10 @@ export const CapSheetFull = ({
                               : 'text-white'
                           }`}
                         >
-                          {isRightsTotalIncomplete
+                          {isRightsTotalIncomplete ||
+                          yearTotalBreakdowns[year].teamSalary === null
                             ? 'Needs input'
-                            : `$${yearTotalBreakdowns[
-                                year
-                              ].totalCapAllocations.toLocaleString()}`}
+                            : `$${yearTotalBreakdowns[year].teamSalary.toLocaleString()}`}
                         </div>
                       );
                     })}

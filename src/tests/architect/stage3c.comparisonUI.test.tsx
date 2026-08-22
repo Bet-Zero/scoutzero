@@ -85,9 +85,13 @@ const makeViewModelWithEvents = (): Stage3ComparisonViewModel =>
       { playerId: 'player_c', displayName: null, authority: 'committed-world / event-derived' },
     ],
     capTotalDelta: {
-      totalCapAllocationsDelta: 15_000_000,
+      teamSalaryDelta: 15_000_000,
+      apronTeamSalaryDelta: 16_000_000,
+      taxSalaryDelta: 17_000_000,
       capSpaceDelta: -15_000_000,
       taxSpaceDelta: -15_000_000,
+      firstApronSpaceDelta: -16_000_000,
+      secondApronSpaceDelta: -16_000_000,
       authority: 'committed-world / event-derived',
     },
     taxApronPostureDelta: {
@@ -334,9 +338,13 @@ describe('ComparisonSection — cap delta', () => {
     const vm = makeScopeViewModel({
       committedEventCount: 1,
       capTotalDelta: {
-        totalCapAllocationsDelta: 10_000_000,
+        teamSalaryDelta: 10_000_000,
+        apronTeamSalaryDelta: null,
+        taxSalaryDelta: null,
         capSpaceDelta: null,
         taxSpaceDelta: null,
+        firstApronSpaceDelta: null,
+        secondApronSpaceDelta: null,
         authority: 'committed-world / event-derived',
       },
     });

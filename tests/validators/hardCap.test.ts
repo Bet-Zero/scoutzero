@@ -3,9 +3,11 @@ import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/h
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 describe('validateHardCap', () => {
-  const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+  const issueTexts = (issues = []) =>
+    issues.map((issue) => getValidationIssueText(issue));
 
   const makeTeam = (params) => ({
+    teamTotalSalary: 100_000_000,
     team: {
       totalSalary: 100_000_000,
     },
@@ -80,5 +82,35 @@ describe('validateHardCap', () => {
       // hardCapType should be null when no hard cap is triggered
       expect(result.hardCapType).toBeNull();
     });
+  });
+
+  it.each([
+    null,
+    undefined,
+    '',
+    '0',
+    false,
+    true,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+  ])('fails closed when Apron Team Salary is unresolved (%p)', (value) => {
+    const result = validateHardCap({
+      teamTotalSalary: value as never,
+      team: {
+        apronTeamSalary: value as never,
+        teamTotalSalary: value as never,
+      },
+      projectedSalary: 1,
+      capSettings: {
+        firstApron: 172_346_000,
+        secondApron: 182_794_000,
+      },
+    });
+
+    expect(result.passed).toBe(false);
+    expect(issueTexts(result.violations)).toContain(
+      'Apron Team Salary needs governed input'
+    );
   });
 });

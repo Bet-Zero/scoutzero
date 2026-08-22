@@ -53,29 +53,29 @@ describe('Cap Utilities', () => {
     it('treats first apron as >= and second apron as strict >', () => {
       expect(
         isFirstApronTeam(
-          { totalSalary: capSettings.firstApron - 1 },
+          { apronTeamSalary: capSettings.firstApron - 1 },
           capSettings
         )
       ).toBe(false);
       expect(
-        isFirstApronTeam({ totalSalary: capSettings.firstApron }, capSettings)
+        isFirstApronTeam({ apronTeamSalary: capSettings.firstApron }, capSettings)
       ).toBe(true);
 
       expect(
         isSecondApronTeam(
-          { totalSalary: capSettings.secondApron - 1 },
+          { apronTeamSalary: capSettings.secondApron - 1 },
           capSettings
         )
       ).toBe(false);
       expect(
         isSecondApronTeam(
-          { totalSalary: capSettings.secondApron },
+          { apronTeamSalary: capSettings.secondApron },
           capSettings
         )
       ).toBe(false);
       expect(
         isSecondApronTeam(
-          { totalSalary: capSettings.secondApron + 1 },
+          { apronTeamSalary: capSettings.secondApron + 1 },
           capSettings
         )
       ).toBe(true);
@@ -90,13 +90,13 @@ describe('Cap Utilities', () => {
       ).toBe(true);
       expect(
         isSecondApronTeam(
-          { sourceTeam: { totalSalary: capSettings.secondApron + 1 } },
+          { sourceTeam: { apronTeamSalary: capSettings.secondApron + 1 } },
           capSettings
         )
       ).toBe(true);
       expect(
         isSecondApronTeam(
-          { ctx: { totalSalary: capSettings.secondApron } },
+          { ctx: { apronTeamSalary: capSettings.secondApron } },
           capSettings
         )
       ).toBe(false);
@@ -106,31 +106,37 @@ describe('Cap Utilities', () => {
       expect(getTeamApronStatus(null, capSettings)).toBe('UNDER_CAP');
       expect(
         getTeamApronStatus(
-          { totalSalary: capSettings.salaryCap - 1 },
+          {
+            teamSalary: capSettings.salaryCap - 1,
+            apronTeamSalary: capSettings.salaryCap - 1,
+          },
           capSettings
         )
       ).toBe('UNDER_CAP');
       expect(
         getTeamApronStatus(
-          { totalSalary: capSettings.salaryCap },
+          {
+            teamSalary: capSettings.salaryCap,
+            apronTeamSalary: capSettings.salaryCap,
+          },
           capSettings
         )
       ).toBe('OVER_CAP');
       expect(
         getTeamApronStatus(
-          { totalSalary: capSettings.firstApron },
+          { apronTeamSalary: capSettings.firstApron },
           capSettings
         )
       ).toBe('FIRST_APRON');
       expect(
         getTeamApronStatus(
-          { totalSalary: capSettings.secondApron },
+          { apronTeamSalary: capSettings.secondApron },
           capSettings
         )
       ).toBe('FIRST_APRON');
       expect(
         getTeamApronStatus(
-          { totalSalary: capSettings.secondApron + 1 },
+          { apronTeamSalary: capSettings.secondApron + 1 },
           capSettings
         )
       ).toBe('SECOND_APRON');
@@ -231,6 +237,7 @@ describe('Cap Utilities', () => {
         postTradeStatus: { projectedSalary: 150_000_000 },
         preTradeStatus: { projectedSalary: 140_000_000 },
         projectedSalary: 130_000_000,
+        apronTeamSalary: 125_000_000,
         teamTotalSalary: 120_000_000,
         totalSalary: 110_000_000,
         payroll: 100_000_000,
@@ -249,15 +256,15 @@ describe('Cap Utilities', () => {
 
       const team4 = { ...team3 };
       delete team4.projectedSalary;
-      expect(resolvePayroll(team4)).toBe(120_000_000);
+      expect(resolvePayroll(team4)).toBe(125_000_000);
 
       const team5 = { ...team4 };
-      delete team5.teamTotalSalary;
-      expect(resolvePayroll(team5)).toBe(110_000_000);
+      delete team5.apronTeamSalary;
+      expect(resolvePayroll(team5)).toBe(120_000_000);
 
       const team6 = { ...team5 };
-      delete team6.totalSalary;
-      expect(resolvePayroll(team6)).toBe(100_000_000);
+      delete team6.teamTotalSalary;
+      expect(resolvePayroll(team6)).toBe(0);
     });
 
     it('returns 0 for missing or invalid payroll data', () => {

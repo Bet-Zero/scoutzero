@@ -67,6 +67,9 @@ export type MutationPlayer = Omit<
   draftPick?: unknown;
 };
 export type MutationTeamTotals = {
+  teamSalary?: number | string | null;
+  apronTeamSalary?: number | string | null;
+  taxSalary?: number | string | null;
   totalSalary?: number | string | null;
   capHit?: number | string | null;
   totalCapAllocations?: number | string | null;

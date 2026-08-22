@@ -13,8 +13,8 @@ type UnknownRecord = Record<string, unknown>;
 
 type CanonicalTotalsLike = Pick<
   ComputedTeamCapTotals,
-  'totalCapAllocations' | 'firstApron' | 'secondApron'
->;
+  'firstApron' | 'secondApron'
+> & { apronTeamSalary: number | null };
 
 export interface HardCapSnapshotOverlay {
   isHardCapped: boolean;
@@ -85,7 +85,10 @@ function normalizeHardCapLevel(value: unknown): string | null {
   if (value === true) return 'firstApron';
   if (value === false || value == null) return null;
 
-  const normalized = String(value).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normalized = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 
   if (!normalized) {
     return null;
@@ -158,7 +161,10 @@ export function resolveHardCapSnapshotOverlay(
   if (isHardCapped && hardCapLevel) {
     const hardCapCeiling =
       hardCapLevel === 'secondApron' ? totals.secondApron : totals.firstApron;
-    hardCapRoom = hardCapCeiling - totals.totalCapAllocations;
+    hardCapRoom =
+      totals.apronTeamSalary === null
+        ? null
+        : hardCapCeiling - totals.apronTeamSalary;
   }
 
   return {
@@ -166,6 +172,8 @@ export function resolveHardCapSnapshotOverlay(
     hardCapLevel,
     ...(hardCapDetail ? { hardCapDetail } : {}),
     ...(hardCapReason !== null ? { hardCapReason } : {}),
-    ...(hardCapRoom !== null ? { hardCapRoom } : {}),
+    ...((isHardCapped && hardCapLevel) || hardCapRoom !== null
+      ? { hardCapRoom }
+      : {}),
   };
 }

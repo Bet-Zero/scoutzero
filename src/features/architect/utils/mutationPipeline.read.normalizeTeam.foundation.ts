@@ -283,6 +283,7 @@ export type CurrentStateTeamMutationCoreBoundary = Pick<
   | 'capHolds'
   | 'rightsLedger'
   | 'contractEventLedgers'
+  | 'salaryBookInputs'
   | 'deadCap'
   | 'totals'
   | 'source'

@@ -14,7 +14,7 @@ import {
   type TeamDeadMoneySourcesLike,
 } from '@/features/architect/utils/capTotals/deadMoneyForYear';
 import {
-  computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot,
   type TeamCapSheetLike,
 } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import type { PersistMutationResult } from '../hooks/useArchitectActions.types';
@@ -603,34 +603,50 @@ function deriveCapSection(
   beforeTeam: unknown,
   afterTeam: unknown,
   selectedYear: number,
-  effectAreas: Set<ArchitectPostActionImpactArea>
+  effectAreas: Set<ArchitectPostActionImpactArea>,
+  asOfDate: string | null
 ): ArchitectPostActionImpactSection {
   if (!effectAreas.has('cap')) {
     return notApplicableSection();
   }
 
   try {
-    const before = computeTeamCapTotals(
+    const before = createCanonicalTeamTotalsSnapshot(
       beforeTeam as TeamCapSheetLike,
-      selectedYear
+      selectedYear,
+      { asOfDate }
     );
-    const after = computeTeamCapTotals(
+    const after = createCanonicalTeamTotalsSnapshot(
       afterTeam as TeamCapSheetLike,
-      selectedYear
+      selectedYear,
+      { asOfDate }
     );
-    const beforeCapSpace = -before.deltas.vsCap;
-    const afterCapSpace = -after.deltas.vsCap;
-    const beforeTaxSpace = -before.deltas.vsLuxuryTax;
-    const afterTaxSpace = -after.deltas.vsLuxuryTax;
-    const beforeFirstApronSpace = -before.deltas.vsFirstApron;
-    const afterFirstApronSpace = -after.deltas.vsFirstApron;
-    const beforeSecondApronSpace = -before.deltas.vsSecondApron;
-    const afterSecondApronSpace = -after.deltas.vsSecondApron;
-    const capSpaceDelta = afterCapSpace - beforeCapSpace;
+    const space = (delta: number | null) => delta === null ? null : -delta;
+    const beforeCapSpace = space(before.bookDeltas.vsCap);
+    const afterCapSpace = space(after.bookDeltas.vsCap);
+    const beforeTaxSpace = space(before.bookDeltas.vsLuxuryTax);
+    const afterTaxSpace = space(after.bookDeltas.vsLuxuryTax);
+    const beforeFirstApronSpace = space(before.bookDeltas.vsFirstApron);
+    const afterFirstApronSpace = space(after.bookDeltas.vsFirstApron);
+    const beforeSecondApronSpace = space(before.bookDeltas.vsSecondApron);
+    const afterSecondApronSpace = space(after.bookDeltas.vsSecondApron);
+    const delta = (beforeValue: number | null, afterValue: number | null) =>
+      beforeValue === null || afterValue === null ? null : afterValue - beforeValue;
+    const capSpaceDelta = delta(beforeCapSpace, afterCapSpace);
+    const complete = [
+      before.teamSalary,
+      after.teamSalary,
+      before.apronTeamSalary,
+      after.apronTeamSalary,
+      before.taxSalary,
+      after.taxSalary,
+    ].every((value) => value !== null);
 
     return emptySection(
-      'available',
-      capSpaceDelta === 0
+      complete ? 'available' : 'partial',
+      capSpaceDelta === null
+        ? `Salary-book impact needs governed input for ${selectedYear}.`
+        : capSpaceDelta === 0
         ? `Cap space unchanged for ${selectedYear}.`
         : `Cap space changed ${currencyChange(capSpaceDelta)} for ${selectedYear}.`,
       [
@@ -643,12 +659,28 @@ function deriveCapSection(
           delta: capSpaceDelta,
         },
         {
-          key: 'totalCapAllocations',
-          label: 'Total cap allocations',
+          key: 'teamSalary',
+          label: 'Team Salary',
           unit: 'currency',
-          before: before.totalCapAllocations,
-          after: after.totalCapAllocations,
-          delta: after.totalCapAllocations - before.totalCapAllocations,
+          before: before.teamSalary,
+          after: after.teamSalary,
+          delta: delta(before.teamSalary, after.teamSalary),
+        },
+        {
+          key: 'apronTeamSalary',
+          label: 'Apron Team Salary',
+          unit: 'currency',
+          before: before.apronTeamSalary,
+          after: after.apronTeamSalary,
+          delta: delta(before.apronTeamSalary, after.apronTeamSalary),
+        },
+        {
+          key: 'taxSalary',
+          label: 'Tax Salary',
+          unit: 'currency',
+          before: before.taxSalary,
+          after: after.taxSalary,
+          delta: delta(before.taxSalary, after.taxSalary),
         },
         {
           key: 'taxSpace',
@@ -656,7 +688,7 @@ function deriveCapSection(
           unit: 'currency',
           before: beforeTaxSpace,
           after: afterTaxSpace,
-          delta: afterTaxSpace - beforeTaxSpace,
+          delta: delta(beforeTaxSpace, afterTaxSpace),
         },
         {
           key: 'firstApronSpace',
@@ -664,7 +696,7 @@ function deriveCapSection(
           unit: 'currency',
           before: beforeFirstApronSpace,
           after: afterFirstApronSpace,
-          delta: afterFirstApronSpace - beforeFirstApronSpace,
+          delta: delta(beforeFirstApronSpace, afterFirstApronSpace),
         },
         {
           key: 'secondApronSpace',
@@ -672,7 +704,7 @@ function deriveCapSection(
           unit: 'currency',
           before: beforeSecondApronSpace,
           after: afterSecondApronSpace,
-          delta: afterSecondApronSpace - beforeSecondApronSpace,
+          delta: delta(beforeSecondApronSpace, afterSecondApronSpace),
         },
       ]
     );
@@ -927,6 +959,7 @@ function buildImpactFromSnapshots({
   primaryPlayerIds = [],
   playerName = null,
   actionContext = null,
+  asOfDate = null,
 }: {
   mutationType: string;
   beforeTeam: unknown;
@@ -936,6 +969,7 @@ function buildImpactFromSnapshots({
   primaryPlayerIds?: string[];
   playerName?: string | null;
   actionContext?: ArchitectReceiptActionContext | null;
+  asOfDate?: string | null;
 }): ArchitectPostActionImpact {
   const effectAreas = effectAreasForMutation(mutationType, actionContext);
   return {
@@ -946,7 +980,7 @@ function buildImpactFromSnapshots({
     playerName: actionContext?.playerName || playerName,
     affectedSeasons: uniqueStrings(actionContext?.affectedSeasons || []),
     roster: deriveRosterSection(beforeTeam, afterTeam, effectAreas),
-    cap: deriveCapSection(beforeTeam, afterTeam, selectedYear, effectAreas),
+    cap: deriveCapSection(beforeTeam, afterTeam, selectedYear, effectAreas, asOfDate),
     exceptions: deriveExceptionsSection(beforeTeam, afterTeam, effectAreas),
     rights: deriveRightsSection(beforeTeam, afterTeam, effectAreas),
     deadMoney: deriveDeadMoneySection(
@@ -1104,6 +1138,7 @@ export function deriveReceiptFromTeamSnapshots({
       primaryPlayerIds: mergedPlayerIds,
       playerName: baseReceipt.impact.playerName,
       actionContext: resolvedActionContext,
+      asOfDate: occurredAt || extractOccurredAt(result),
     });
 
     return {
@@ -1136,6 +1171,7 @@ export function deriveReceiptFromTeamSnapshots({
     primaryPlayerIds: mergedPlayerIds,
     playerName,
     actionContext: resolvedActionContext,
+    asOfDate: occurredAt,
   });
 
   return {

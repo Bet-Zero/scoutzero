@@ -47,6 +47,7 @@ import {
   normalizeCurrentStateTradeExceptions,
   resolveCurrentStateTeamTotalSalary,
 } from './mutationPipeline.read.normalizeData';
+import { TeamSalaryBookInputsZ } from '@/schemas/salaryBooks';
 import type {
   CurrentStateBaseTeamPreservedFieldMap,
   CurrentStateManualCapTeam,
@@ -76,6 +77,7 @@ export function buildCurrentStateBaseTeamBoundaryInput(
     capHolds: teamRecord.capHolds,
     rightsLedger: teamRecord.rightsLedger,
     contractEventLedgers: teamRecord.contractEventLedgers,
+    salaryBookInputs: teamRecord.salaryBookInputs,
     deadCap: teamRecord.deadCap,
     exceptions:
       teamRecord.exceptions ??
@@ -126,6 +128,7 @@ export function buildCurrentStateTradeTeamBoundaryInput(
     capHolds: teamRecord.capHolds,
     rightsLedger: teamRecord.rightsLedger,
     contractEventLedgers: teamRecord.contractEventLedgers,
+    salaryBookInputs: teamRecord.salaryBookInputs,
     deadCap: teamRecord.deadCap,
     exceptions:
       teamRecord.exceptions ??
@@ -167,6 +170,12 @@ export function normalizeCurrentStateTeamMutationCore(
   const capHolds = normalizeCurrentStateCapHolds(teamRecord.capHolds);
   const rightsLedger = teamRecord.rightsLedger;
   const contractEventLedgers = teamRecord.contractEventLedgers;
+  const salaryBookInputs = TeamSalaryBookInputsZ.safeParse(
+    teamRecord.salaryBookInputs
+  );
+  if (teamRecord.salaryBookInputs != null && !salaryBookInputs.success) {
+    throw new Error('Persisted salary-book inputs are malformed or version-incompatible.');
+  }
   const deadCap = normalizeCurrentStateDeadCap(teamRecord.deadCap);
   const totals = normalizeCurrentStateTeamTotals(teamRecord.totals);
   const source = normalizeCurrentStateTeamSource(teamRecord.source);
@@ -194,6 +203,9 @@ export function normalizeCurrentStateTeamMutationCore(
   }
   if (contractEventLedgers !== undefined) {
     normalized.contractEventLedgers = contractEventLedgers;
+  }
+  if (salaryBookInputs.success) {
+    normalized.salaryBookInputs = salaryBookInputs.data;
   }
   if (deadCap !== undefined) {
     normalized.deadCap = deadCap;

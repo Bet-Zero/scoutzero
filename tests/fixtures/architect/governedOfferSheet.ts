@@ -4,6 +4,7 @@ import type {
   GovernedOfferSheetProposal,
 } from '@/schemas/governedOfferSheet';
 import { makeRightsEstablishedEvent, makeRightsLedger } from './rightsHistory';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 
 const SOURCE = {
   provider: 'NBA retained fixture',
@@ -403,23 +404,36 @@ export function makeGovernedOfferSheetState(
     contract: { signingTeam: 'BOS' },
     rfaContext: { governedEvidence: evidence },
   };
+  const asOfDate = '2025-07-08T09:55:00-04:00';
   return {
-    team: {
+    team: withGovernedSalaryBooks({
       teamCode: 'LAL',
       teamName: 'Los Angeles Lakers',
       players: [],
       roster: [],
       offerSheets: [],
-    },
+    }, {
+      salaryCapYear: 2026,
+      asOfDate,
+      teamSalary: 0,
+      apronTeamSalary: 1_000_000,
+      taxSalary: 2_000_000,
+    }),
     player,
     teamCode: 'LAL',
-    homeTeam: {
+    homeTeam: withGovernedSalaryBooks({
       teamCode: 'BOS',
       teamName: 'Boston Celtics',
       players: [player],
       roster: ['player123'],
       incomingOfferSheets: [],
       rightsLedger: makeGovernedOfferSheetRightsLedger(),
-    },
+    }, {
+      salaryCapYear: 2026,
+      asOfDate,
+      teamSalary: 0,
+      apronTeamSalary: 1_000_000,
+      taxSalary: 2_000_000,
+    }),
   };
 }

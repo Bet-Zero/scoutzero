@@ -24,6 +24,7 @@ import { TeamSlugToCode, TeamCodeMap } from '@/constants/teamList';
 import type { TeamTotals } from '@/features/architect/types';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
+import type { TeamSalaryBookInputs } from '@/schemas/salaryBooks';
 import { createRightsEventLedger } from '@/features/architect/utils/rightsHistory';
 
 // ==== Type Definitions ====
@@ -58,6 +59,7 @@ export type LoadedWorldTeamCapSheet = Pick<
   incomingOfferSheets?: unknown[] | null;
   exceptions?: HydratedBaseTeamCapSheet['exceptions'] | null;
   totals?: TeamTotals | null;
+  salaryBookInputs?: TeamSalaryBookInputs | null;
 };
 
 /**

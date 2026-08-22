@@ -36,7 +36,8 @@ interface TeamStatusStripProps {
 // Abbreviated money so the posture reads like a clean dashboard ($239.3M), not
 // a spreadsheet ($239,343,312). No minus sign — the tile color already conveys
 // negative (red). Millions always carry one decimal ($211.0M, not $211M).
-export const formatMoney = (amount: number): string => {
+export const formatMoney = (amount: number | null): string => {
+  if (amount === null) return 'Needs input';
   if (!Number.isFinite(amount)) return '—';
   const abs = Math.abs(amount);
   if (abs >= 1_000_000) {
@@ -94,8 +95,20 @@ export const TeamStatusStrip = ({
 
   const roster = workspace.roster;
 
-  const spaceColor = (space: number) =>
-    space < 0 ? 'text-red-400' : 'text-green-400';
+  const spaceColor = (space: number | null) =>
+    space === null
+      ? 'text-white/50'
+      : space < 0
+        ? 'text-red-400'
+        : 'text-green-400';
+  const bookValue = (
+    book: typeof cap.books.teamSalary
+  ): string =>
+    book.status === 'available'
+      ? formatMoney(book.value)
+      : book.status === 'not-evaluated'
+        ? 'Not evaluated'
+        : 'Needs input';
 
   // Apron hard-cap badges only appear when the user is viewing the world's
   // current season (per the legacy CapSummaryTiles boundary).
@@ -144,20 +157,20 @@ export const TeamStatusStrip = ({
         dense={dense}
       />
     ),
-    taxSpaceTile: (
+    taxSalaryTile: (
       <TeamStatusTile
-        testId="cockpit-status-tax-space"
-        label="Luxury Tax Space"
-        value={formatMoney(cap.taxSpace)}
+        testId="cockpit-status-tax-salary"
+        label="Tax Salary"
+        value={bookValue(cap.books.taxSalary)}
         valueClassName={spaceColor(cap.taxSpace)}
         dense={dense}
       />
     ),
-    firstApronTile: (
+    apronSalaryTile: (
       <TeamStatusTile
-        testId="cockpit-status-apron1"
-        label="1st Apron Space"
-        value={formatMoney(cap.firstApronSpace)}
+        testId="cockpit-status-apron-salary"
+        label="Apron Team Salary"
+        value={bookValue(cap.books.apronTeamSalary)}
         valueClassName={spaceColor(cap.firstApronSpace)}
         badge={firstApronBadge}
         dense={dense}
@@ -180,7 +193,7 @@ export const TeamStatusStrip = ({
   // the panel's hero verdict), the four space tiles step down into a 2×2 grid,
   // and roster is a thin supporting row. Horizontal keeps the legacy flat band.
   if (isVertical) {
-    const { capSpaceTile, taxSpaceTile, firstApronTile, secondApronTile } =
+    const { capSpaceTile, taxSalaryTile, apronSalaryTile, secondApronTile } =
       spaceTiles(false);
     return (
       <section
@@ -188,7 +201,9 @@ export const TeamStatusStrip = ({
         data-testid="cockpit-team-status-strip"
         data-state="ready"
         data-orientation={orientation}
-        data-total-cap-allocations={cap.totalCapAllocations}
+        data-team-salary={cap.teamSalary ?? undefined}
+        data-apron-team-salary={cap.apronTeamSalary ?? undefined}
+        data-tax-salary={cap.taxSalary ?? undefined}
         aria-label="Team financial status"
       >
         <div
@@ -196,19 +211,19 @@ export const TeamStatusStrip = ({
           data-testid="cockpit-status-total-cap"
         >
           <span className="text-[9px] uppercase tracking-wider text-white/55">
-            Total Cap
+            Team Salary
           </span>
           <span
             className="text-[17px] font-bold leading-none tabular-nums text-white"
             data-testid="cockpit-status-total-cap-value"
           >
-            {formatMoney(cap.totalCapAllocations)}
+            {bookValue(cap.books.teamSalary)}
           </span>
         </div>
         <div className="grid grid-cols-2 gap-1.5">
           {capSpaceTile}
-          {taxSpaceTile}
-          {firstApronTile}
+          {taxSalaryTile}
+          {apronSalaryTile}
           {secondApronTile}
         </div>
         <div
@@ -232,7 +247,7 @@ export const TeamStatusStrip = ({
   // Horizontal lives inside the posture panel's own band, so it carries no
   // border/background of its own — just the tile grid. Tiles are dense so the
   // band stays short enough to keep the Full Cap Table off a scroll.
-  const { capSpaceTile, taxSpaceTile, firstApronTile, secondApronTile } =
+  const { capSpaceTile, taxSalaryTile, apronSalaryTile, secondApronTile } =
     spaceTiles(true);
   return (
     <section
@@ -240,19 +255,21 @@ export const TeamStatusStrip = ({
       data-testid="cockpit-team-status-strip"
       data-state="ready"
       data-orientation={orientation}
-      data-total-cap-allocations={cap.totalCapAllocations}
+      data-team-salary={cap.teamSalary ?? undefined}
+      data-apron-team-salary={cap.apronTeamSalary ?? undefined}
+      data-tax-salary={cap.taxSalary ?? undefined}
       aria-label="Team financial status"
     >
       <TeamStatusTile
         testId="cockpit-status-total-cap"
-        label="Total Cap"
-        value={formatMoney(cap.totalCapAllocations)}
+        label="Team Salary"
+        value={bookValue(cap.books.teamSalary)}
         dense
       />
       {capSpaceTile}
-      {firstApronTile}
+      {apronSalaryTile}
       {secondApronTile}
-      {taxSpaceTile}
+      {taxSalaryTile}
       <TeamStatusTile
         testId="cockpit-status-roster"
         label="Roster"

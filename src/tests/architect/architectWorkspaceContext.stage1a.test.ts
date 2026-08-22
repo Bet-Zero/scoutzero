@@ -194,8 +194,9 @@ describe('Stage 1A Architect workspace context derivation', () => {
     expect(context.cap.status).toBe('available');
     if (context.cap.status === 'available') {
       expect(context.cap.seasonLabel).toBe('2025-26');
-      expect(context.cap.source).toBe('computeTeamCapTotals');
-      expect(Number.isFinite(context.cap.totalCapAllocations)).toBe(true);
+      expect(context.cap.source).toBe('salaryBooks');
+      expect(context.cap.teamSalary).toBeNull();
+      expect(context.cap.books.teamSalary.status).toBe('needs-input');
     }
     // teamFixture has no exceptions field → unavailable with see-cap-sheet hint
     expect(context.exceptions.status).toBe('unavailable');

@@ -164,6 +164,16 @@ vi.mock('@/features/architect/utils/firebaseTeamPlanHelpers', () => ({
 
 vi.mock('@/features/architect/utils/capTotals/computeTeamCapTotals', () => ({
   computeTeamCapTotals: capTotalsMocks.computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot: (...args: unknown[]) => {
+    const totals = capTotalsMocks.computeTeamCapTotals(...args);
+    return {
+      ...totals,
+      teamSalary: totals?.teamSalary ?? totals?.totalCapAllocations ?? null,
+      apronTeamSalary:
+        totals?.apronTeamSalary ?? totals?.totalCapAllocations ?? null,
+      taxSalary: totals?.taxSalary ?? totals?.totalCapAllocations ?? null,
+    };
+  },
 }));
 
 vi.mock('@/shared/components/TeamLogo', () => {
@@ -414,7 +424,10 @@ describe('Grouped 33-file scope UI behavior', () => {
     });
 
     expect(screen.getByText('Atlanta Hawks')).toBeInTheDocument();
-    expect(screen.getAllByText('$123,456,789').length).toBeGreaterThan(0);
+    const hawksRow = screen.getByTestId('league-view-team-row-hawks');
+    expect(hawksRow).toHaveTextContent('Team: $123,456,789');
+    expect(hawksRow).toHaveTextContent('Apron: $123,456,789');
+    expect(hawksRow).toHaveTextContent('Tax: $123,456,789');
 
     fireEvent.click(screen.getAllByText('Manage Team')[0]);
     expect(navigationMocks.navigate).toHaveBeenCalledWith(expect.stringMatching(/^\/gm\//));

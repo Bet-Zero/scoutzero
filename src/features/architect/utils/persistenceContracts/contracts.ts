@@ -81,6 +81,7 @@ export const TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist =
     'capHolds', // Array of CapHoldItemZ
     'rightsLedger', // BZE-273 immutable dated rights history
     'contractEventLedgers', // BZE-275 immutable option/ETO event overlays
+    'salaryBookInputs', // BZE-285 governed Apron and Tax Salary source inputs
     'exceptions', // ExceptionsZ object (contains mle, bae, tpe[], etc.)
     // Phase 64: 'tradeExceptions' REMOVED from allowlist. Legacy TPE data is now normalized
     // into exceptions.tpe[] via normalizeTeamTpeSchema() before persistence. See Phase 64 docs.

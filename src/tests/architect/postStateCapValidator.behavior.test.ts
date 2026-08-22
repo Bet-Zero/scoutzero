@@ -5,13 +5,22 @@ import {
 } from '@/features/architect/utils/capLegality/postStateCapValidator';
 
 function makeTotals(overrides: Record<string, unknown> = {}) {
+  const bookTotal = Object.prototype.hasOwnProperty.call(
+    overrides,
+    'totalCapAllocations'
+  )
+    ? overrides.totalCapAllocations
+    : 128_000_000;
   return {
     yearKey: 2026,
     playersTotal: 120_000_000,
     deadMoneyTotal: 5_000_000,
     capHoldsTotal: 2_000_000,
     incompleteChargesTotal: 1_000_000,
-    totalCapAllocations: 128_000_000,
+    totalCapAllocations: bookTotal,
+    teamSalary: bookTotal,
+    apronTeamSalary: bookTotal,
+    taxSalary: bookTotal,
     salaryCap: 140_000_000,
     luxuryTax: 170_000_000,
     firstApron: 180_000_000,

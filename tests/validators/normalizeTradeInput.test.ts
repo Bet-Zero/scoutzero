@@ -16,7 +16,9 @@ describe('normalizeTradeInput canonical surfaces', () => {
         {
           team: {
             teamName: 'Team A',
-            payroll: 90_000_000,
+            teamSalary: 89_000_000,
+            apronTeamSalary: 90_000_000,
+            taxSalary: 91_000_000,
             players: [],
           },
           sends: [],
@@ -35,5 +37,45 @@ describe('normalizeTradeInput canonical surfaces', () => {
 
     expect(result.teams[0].team.teamTotalSalary).toBe(90_000_000);
     expect(result.teams[0].team.projectedSalary).toBe(90_000_000);
+
+    const legacyOnly = normalizeTradeInput({
+      teams: [{ team: { totalSalary: 90_000_000, players: [] }, sends: [] }],
+      capProjections,
+      currentYear,
+    });
+    expect(legacyOnly.teams[0].team.teamTotalSalary).toBeNaN();
+  });
+
+  it.each([
+    null,
+    undefined,
+    '',
+    '0',
+    false,
+    true,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+  ])('never turns unresolved salary-book values into zero (%p)', (value) => {
+    const result = normalizeTradeInput({
+      teams: [
+        {
+          team: {
+            teamName: 'Unresolved Team',
+            teamTotalSalary: value as never,
+            apronTeamSalary: value as never,
+            projectedSalary: value as never,
+            players: [],
+          },
+          sends: [],
+        },
+      ],
+      capProjections,
+      currentYear,
+    });
+
+    expect(result.teams[0].team.teamTotalSalary).toBeNaN();
+    expect(result.teams[0].team.projectedSalary).toBeNaN();
+    expect(result.teams[0].team.teamTotalSalary).not.toBe(0);
   });
 });
