@@ -7,6 +7,7 @@ import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRu
 import type { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import type { FullLegalityPreviewResult } from '@/features/architect/utils/tradeContext/tradeContext';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
+import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
 
 export type UnknownRecord = Record<string, unknown>;
 
@@ -43,6 +44,8 @@ export type TradeMachineTeam = UnknownRecord & {
   apronTeamSalary?: number | null;
   taxSalary?: number | null;
   salaryBooks?: unknown;
+  contractEventLedgers?: ContractEventLedgerPayload[] | null;
+  governedTradeSalaryBasisLoadError?: string | null;
 };
 
 export type TradeMachineTeamSlot = {

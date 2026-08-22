@@ -801,6 +801,16 @@ export interface TradeReceiptTradeKickerDetails {
   maximum: unknown;
 }
 
+export interface TradeReceiptSalaryBasisAuthority {
+  status: 'ready' | 'needs-input' | 'incompatible';
+  contractId: string | null;
+  method: string | null;
+  asOfDate: string;
+  salaryCapYear: number;
+  canonLeafIds: string[];
+  proof: Record<string, unknown> | null;
+}
+
 export interface TradeReceiptPlayerRow {
   id?: string;
   name: string;
@@ -810,6 +820,7 @@ export interface TradeReceiptPlayerRow {
   bycDetails?: TradeReceiptBycDetails | null;
   poisonPillDetails?: TradeReceiptPoisonPillDetails | null;
   tradeKickerDetails?: TradeReceiptTradeKickerDetails | null;
+  salaryBasisAuthority?: TradeReceiptSalaryBasisAuthority | null;
 }
 
 export interface TradeReceiptEntitlementRow {

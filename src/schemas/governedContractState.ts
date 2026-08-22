@@ -270,6 +270,10 @@ export const GovernedContractTermsZ = z.strictObject({
     })
     .nullable()
     .optional(),
+  // Parsed by the governed Trade Machine salary-basis path. Unknown here by
+  // design: malformed retained evidence must reach that authority and produce
+  // a precise Needs input result instead of making Contract history unreadable.
+  tradeSalaryBasisEvidence: z.unknown().nullable().optional(),
   sourceLimitations: z.array(NonEmptyStringZ),
 });
 

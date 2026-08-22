@@ -592,6 +592,7 @@ utils/
       capUtils.ts
       conveyanceResolution.ts
       dataValidation.ts
+      governedTradeSalaryBasis.ts
       hardCapStatus.ts
       index.ts
       matchingValues.ts
@@ -634,5 +635,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-22T02:52:59.750Z*
+*Generated on: 2026-08-22T11:10:48.517Z*
 *Auto-updated by: npm run docs*

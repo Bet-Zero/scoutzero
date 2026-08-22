@@ -345,10 +345,30 @@ export function validateTrade({
     yearKey: resolvedCurrentYear,
     daysRemainingInSeason: context.daysRemainingInSeason,
     daysInSeason: context.daysInSeason,
+    worldId: context.worldId ?? null,
+    asOfDate: canonicalAsOfDate,
   });
 
   // Extract data warnings from matching values computation (GAP-DATA-001, GAP-DATA-002)
   const dataWarnings = matchingValuesResult?.dataWarnings || [];
+
+  if (matchingValuesResult.salaryBasisIssues.length > 0) {
+    const messages = matchingValuesResult.salaryBasisIssues.map(
+      (issue) =>
+        `${issue.playerId || 'Unknown player'}: ${issue.reason}`
+    );
+    return finishValidation({
+      legal: false,
+      error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+      violations: normalizeValidationIssues(messages, {
+        rule: 'governedTradeSalaryBasis',
+        severity: 'error',
+      }),
+      reason: messages[0] || 'Governed player salary basis is unavailable.',
+      dataWarnings,
+      context,
+    });
+  }
 
   // Phase 17: Validate entitlement routing (uniqueness, destination, ownership)
   // This is a cross-team validation that must happen before per-team validation

@@ -11,6 +11,10 @@ import { loadWorldTeamData } from '@/features/architect/utils/worldTeamData';
 import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitlements/entitlementResolver';
 import { type PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
+import {
+  attachGovernedTradeSalaryBasisToRoster,
+  loadWorldGovernedTradeSalaryBasisEntries,
+} from '@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis';
 import { type TeamEntry } from '@/constants/teamList';
 import {
   DEBUG_ENT,
@@ -82,6 +86,45 @@ export function useTradeMachineTeamOps({
           // Phase 65: Use canonical accessor but store in tradeExceptions for runtime compatibility
           tradeExceptions: getTeamTpeList(data),
         } as TradeMachineTeam & Partial<TeamEntry>;
+
+        if (worldId && worldAsOfDate) {
+          const rosterPlayers = Array.isArray(teamObj.players)
+            ? teamObj.players
+            : [];
+          const rosterPlayerIds = rosterPlayers
+            .map((player) =>
+              String(
+                player.id ??
+                  player.player_id ??
+                  (player.bio && typeof player.bio === 'object'
+                    ? (player.bio as UnknownRecord).playerId
+                    : '')
+              ).trim()
+            )
+            .filter(Boolean);
+          try {
+            const salaryBasis =
+              await loadWorldGovernedTradeSalaryBasisEntries({
+                worldId,
+                teamId: String(teamObj.id || teamObj.teamCode || '').toUpperCase(),
+                rosterPlayerIds,
+                overlays: Array.isArray(teamObj.contractEventLedgers)
+                  ? teamObj.contractEventLedgers
+                  : [],
+                worldAsOfDate,
+                salaryCapYear: yearKey,
+              });
+            teamObj.players = attachGovernedTradeSalaryBasisToRoster(
+              rosterPlayers,
+              salaryBasis
+            );
+          } catch (error) {
+            teamObj.governedTradeSalaryBasisLoadError =
+              error instanceof Error
+                ? error.message
+                : 'Governed Trade Machine salary authority could not be loaded.';
+          }
+        }
 
         // Phase 11.4: Load entitlements for secondary teams (slots 1+)
         // Same logic as primary team init, but for any slot
