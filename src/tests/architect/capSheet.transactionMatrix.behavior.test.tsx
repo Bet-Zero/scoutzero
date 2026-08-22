@@ -532,7 +532,7 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
     expect(mutationMocks.applyWorldMutation).not.toHaveBeenCalled();
   });
 
-  it('base mode: manage exceptions (unchanged totals), dead money save (changed totals), and rights actions route without world persistence', async () => {
+  it('base mode: local bookkeeping remains available while ordinary signing fails closed without world persistence', async () => {
     const { result } = renderActionsHarness({ worldId: null });
 
     const exceptionsBefore = totalForYear(result.current.teamCapSheet);
@@ -586,10 +586,14 @@ describe('Cap Sheet transaction matrix (deterministic)', () => {
         }
       );
     });
-    expect(resignResult?.success).toBe(true);
+    expect(resignResult?.success).toBe(false);
+    expect(resignResult?.message).toMatch(/active world/i);
     const resignAfter = totalForYear(result.current.teamCapSheet);
-    expect(resignAfter).toBeGreaterThan(resignBefore);
-    expect(getPlayer(result.current.teamCapSheet, 'p_resign')).toBeTruthy();
+    expect(resignAfter).toBe(resignBefore);
+    expect(getPlayer(result.current.teamCapSheet, 'p_resign')).toBeFalsy();
+    expect(toastMocks.error).toHaveBeenCalledWith(
+      'Signing requires an active world to commit.'
+    );
 
     const signAndTradeBefore = totalForYear(result.current.teamCapSheet);
     let signAndTradeResult: MatrixSignAndTradeResult | undefined;

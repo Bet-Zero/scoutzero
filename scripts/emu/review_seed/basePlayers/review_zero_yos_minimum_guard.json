@@ -1,0 +1,48 @@
+{
+  "playerId": "review_zero_yos_minimum_guard",
+  "player_id": "review_zero_yos_minimum_guard",
+  "id": "review_zero_yos_minimum_guard",
+  "displayName": "Zero YOS Minimum Guard",
+  "teamId": null,
+  "teamCode": null,
+  "teamName": "Free Agent",
+  "bio": {
+    "position": "G",
+    "height": "6-3",
+    "weight": "190",
+    "age": 21,
+    "experience": 0
+  },
+  "contract": {
+    "contractType": "VETERAN CONTRACT",
+    "isExtension": false,
+    "isRookieScale": false,
+    "signingTeam": "BOS",
+    "startSeason": "2025-26",
+    "endSeason": "2025-26",
+    "contractLength": 1,
+    "yearsRemaining": 0,
+    "totalValue": 1164345,
+    "averageAnnualValue": 1164345,
+    "salariesByYear": [
+      {
+        "season": "2025-26",
+        "salary": 1164345,
+        "capHit": 1164345,
+        "guaranteed": true
+      }
+    ],
+    "noTradeClause": false,
+    "tradeKicker": null,
+    "birdRights": {
+      "status": "Non-Bird",
+      "yearsOfService": 0,
+      "eligibleFor": ["Non-Bird Exception"]
+    },
+    "freeAgency": {
+      "type": "UFA",
+      "year": 2026,
+      "capHold": 0
+    }
+  }
+}

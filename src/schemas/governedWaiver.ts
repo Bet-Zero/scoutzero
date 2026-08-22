@@ -97,7 +97,20 @@ export const GovernedWaiverEventKindZ = z.enum([
   'buyout-agreement',
   'team-salary-stretch-election',
   'set-off-authority',
+  'set-off-application',
 ]);
+
+export const GovernedWaiverSetOffApplicationZ = z.strictObject({
+  applicationVersion: z.literal(1),
+  operationId: NonEmptyStringZ,
+  signingTeamId: NonEmptyStringZ,
+  signingContractId: NonEmptyStringZ,
+  signingDate: NonEmptyStringZ,
+  newBaseCompensation: MoneyZ,
+  applicableMinimumSalary: MoneyZ,
+  reduction: MoneyZ,
+  allocationMethod: z.literal('pro-rata-current-waived-salary'),
+});
 
 export const GovernedWaiverEventZ = z.strictObject({
   eventId: NonEmptyStringZ,
@@ -140,8 +153,12 @@ export const GovernedWaiverLifecycleZ = z
     allocationsBeforeStretch: z.array(GovernedWaiverAllocationZ),
     allocations: z.array(GovernedWaiverAllocationZ),
     paymentAllocations: z.array(GovernedWaiverAllocationZ),
-    setOffStatus: z.literal('needs-authenticated-earnings'),
+    setOffStatus: z.enum([
+      'needs-authenticated-earnings',
+      'applied-nba-signing',
+    ]),
     setOffFormula: NonEmptyStringZ,
+    setOffApplication: GovernedWaiverSetOffApplicationZ.nullable().default(null),
     originalContractEndsAt: ZonedInstantZ,
     reacquisitionRestrictedUntil: ZonedInstantZ.nullable(),
     contractAuthority: z.strictObject({
@@ -167,6 +184,9 @@ export const GovernedWaiverLifecycleZ = z
       ...lifecycle.allocationsBeforeStretch,
       ...lifecycle.paymentAllocations,
     ].some((allocation) => allocation.isTeamSalaryStretched);
+    const setOffEvents = lifecycle.events.filter(
+      (event) => event.eventKind === 'set-off-application'
+    );
     const sumAllocationField = (
       allocations: typeof lifecycle.allocations,
       field:
@@ -220,11 +240,28 @@ export const GovernedWaiverLifecycleZ = z
       lifecycle.allocations,
       'teamSalary'
     );
+    const allocatedSetOffTotal = lifecycle.allocations.reduce(
+      (sum, allocation) => sum + (allocation.setOffReduction ?? 0),
+      0
+    );
 
     if (hasStretchedPaymentAllocation) {
       addPathIssue(
         ['paymentAllocations'],
         'player-payment allocations must remain on the original schedule'
+      );
+    }
+    if (
+      (lifecycle.setOffStatus === 'applied-nba-signing') !==
+        (lifecycle.setOffApplication !== null) ||
+      (lifecycle.setOffStatus === 'applied-nba-signing' &&
+        setOffEvents.length !== 1) ||
+      (lifecycle.setOffStatus === 'needs-authenticated-earnings' &&
+        setOffEvents.length !== 0)
+    ) {
+      addPathIssue(
+        ['setOffStatus'],
+        'set-off status, application receipt, and immutable application event must agree'
       );
     }
     if (!originalAllocationsMatch) {
@@ -256,10 +293,20 @@ export const GovernedWaiverLifecycleZ = z
         'must reconcile player payment and Team Salary to protected compensation after buyout'
       );
     }
-    if (allocatedTeamSalaryTotal !== postBuyoutTotal) {
+    const expectedTeamSalaryTotal =
+      postBuyoutTotal - (lifecycle.setOffApplication?.reduction ?? 0);
+    if (
+      allocatedTeamSalaryTotal !== expectedTeamSalaryTotal ||
+      allocatedSetOffTotal !== (lifecycle.setOffApplication?.reduction ?? 0) ||
+      lifecycle.allocations.some((allocation) =>
+        lifecycle.setOffStatus === 'applied-nba-signing'
+          ? allocation.setOffReduction === null
+          : allocation.setOffReduction !== null
+      )
+    ) {
       addPathIssue(
         ['allocations'],
-        'must preserve total Team Salary after the buyout reduction'
+        'must reconcile Team Salary and allocated set-off reduction after the buyout reduction'
       );
     }
 

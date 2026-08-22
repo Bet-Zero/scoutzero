@@ -23,17 +23,23 @@ const testState = vi.hoisted(() => ({
           ? {
               ...((base.bio as Record<string, unknown> | null | undefined) ||
                 {}),
-              ...((override.bio as Record<string, unknown> | null | undefined) ||
-                {}),
+              ...((override.bio as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
             }
           : undefined,
       contract:
         base.contract || override.contract
           ? {
-              ...((base.contract as Record<string, unknown> | null | undefined) ||
-                {}),
-              ...((override.contract as Record<string, unknown> | null | undefined) ||
-                {}),
+              ...((base.contract as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
+              ...((override.contract as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
             }
           : undefined,
     })
@@ -42,7 +48,7 @@ const testState = vi.hoisted(() => ({
   validateTrade: vi.fn(),
   getWorldMetadata: vi.fn(async () => ({
     parentWorldId: null,
-    asOfDate: '2026-07-01',
+    asOfDate: '2026-07-08',
   })),
 }));
 
@@ -57,6 +63,24 @@ vi.mock('firebase/firestore', () => ({
     delete: testState.batchDelete,
     commit: testState.batchCommit,
   })),
+  runTransaction: vi.fn(
+    async (
+      _db: unknown,
+      updateFunction: (transaction: {
+        get: typeof testState.getDoc;
+        set: typeof testState.batchSet;
+        update: typeof testState.batchUpdate;
+        delete: typeof testState.batchDelete;
+      }) => Promise<unknown>
+    ) =>
+      updateFunction({
+        get: testState.getDoc,
+        set: testState.batchSet,
+        update: testState.batchUpdate,
+        delete: testState.batchDelete,
+      })
+  ),
+
   getDoc: testState.getDoc,
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments: unknown[]) => segments.map(String).join('/')),
@@ -81,7 +105,11 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
   validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
-  validateExtension: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateExtension: vi.fn(() => ({
+    valid: true,
+    violations: [],
+    warnings: [],
+  })),
   validateOptionDecision: vi.fn(() => ({
     valid: true,
     violations: [],
@@ -153,8 +181,8 @@ type SignFreeAgentCurrentState = CurrentStateFor<'signFreeAgent'>;
 type SetDeadCapCurrentState = CurrentStateFor<'setDeadCap'>;
 
 const SEASON_ID = '2025-26';
-const FIXED_TIMESTAMP = Date.parse('2026-04-16T12:00:00.000Z');
-const FIXED_TIMESTAMP_ISO = '2026-04-16T12:00:00.000Z';
+const FIXED_TIMESTAMP = Date.parse('2026-08-21T12:00:00.000Z');
+const FIXED_TIMESTAMP_ISO = '2026-08-21T12:00:00.000Z';
 const WORLD_ID = 'world_payload_ingress_boundary';
 
 function makeBirdRights(
@@ -196,7 +224,8 @@ function makePlayer(
   name: string,
   salary: number,
   teamCode: string | null,
-  overrides: Partial<ArchitectMutationPlayerRecord> & Record<string, unknown> = {}
+  overrides: Partial<ArchitectMutationPlayerRecord> &
+    Record<string, unknown> = {}
 ): ArchitectMutationPlayerRecord & Record<string, unknown> {
   return {
     player_id: id,
@@ -308,13 +337,18 @@ beforeEach(() => {
   });
   testState.getWorldMetadata.mockResolvedValue({
     parentWorldId: null,
-    asOfDate: '2026-07-01',
+    asOfDate: '2026-07-08',
   });
 });
 
 describe('mutationPipeline payload ingress boundary', () => {
   it('keeps sign-free-agent payload ingress narrow while preserving commit and reload continuity', async () => {
-    const existingPlayer = makePlayer('starter_1', 'Starter One', 10_000_000, 'LAL');
+    const existingPlayer = makePlayer(
+      'starter_1',
+      'Starter One',
+      10_000_000,
+      'LAL'
+    );
     const freeAgent = makePlayer('fa_payload', 'Payload Free Agent', 0, null, {
       contract: null,
       freeAgency: 'UFA',
@@ -344,7 +378,7 @@ describe('mutationPipeline payload ingress boundary', () => {
     const result = await applyWorldMutation({
       userId: 'user_payload_ingress_boundary',
       worldId: WORLD_ID,
-      seasonId: SEASON_ID,
+      seasonId: '2026-27',
       mutationType: 'signFreeAgent',
       payload: {
         teamCode: 'LAL',
@@ -353,6 +387,20 @@ describe('mutationPipeline payload ingress boundary', () => {
           years: 2,
           contractYears: 2,
           totalValue: 12_000_000,
+          salariesByYear: [
+            {
+              season: '2026-27',
+              salary: 6_000_000,
+              capHit: 6_000_000,
+              guaranteed: true,
+            },
+            {
+              season: '2027-28',
+              salary: 6_000_000,
+              capHit: 6_000_000,
+              guaranteed: true,
+            },
+          ],
         }),
         signedUsing: 'Minimum',
       },
@@ -485,7 +533,9 @@ describe('mutationPipeline payload ingress boundary', () => {
       teams: [
         {
           teamCode: 'BAD',
-          sends: [{ id: 'ignored_trade_player', player_id: 'ignored_trade_player' }],
+          sends: [
+            { id: 'ignored_trade_player', player_id: 'ignored_trade_player' },
+          ],
           receives: [],
         },
       ],
@@ -505,7 +555,9 @@ describe('mutationPipeline payload ingress boundary', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.teamUpdates?.map((update) => update.teamCode)).toEqual(['LAL']);
+    expect(result.teamUpdates?.map((update) => update.teamCode)).toEqual([
+      'LAL',
+    ]);
     expect(result.teamUpdates?.[0]?.team?.roster).toContain('fa_outer');
     expect(result.teamUpdates?.[0]?.team?.deadCap).toEqual([]);
     expect(result.teamUpdates?.[0]?.team?.exceptions?.room).not.toEqual(

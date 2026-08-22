@@ -34,18 +34,25 @@ const testState = vi.hoisted(() => ({
       bio:
         base.bio || override.bio
           ? {
-              ...((base.bio as Record<string, unknown> | null | undefined) || {}),
-              ...((override.bio as Record<string, unknown> | null | undefined) ||
+              ...((base.bio as Record<string, unknown> | null | undefined) ||
                 {}),
+              ...((override.bio as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
             }
           : undefined,
       contract:
         base.contract || override.contract
           ? {
-              ...((base.contract as Record<string, unknown> | null | undefined) ||
-                {}),
-              ...((override.contract as Record<string, unknown> | null | undefined) ||
-                {}),
+              ...((base.contract as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
+              ...((override.contract as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
             }
           : undefined,
     })
@@ -101,7 +108,7 @@ vi.mock('@/features/architect/utils/worldManager', () => ({
     return (
       testState.worldMetadataById.get(worldId) || {
         parentWorldId: null,
-        asOfDate: '2026-07-01',
+        asOfDate: '2026-07-08',
       }
     );
   }),
@@ -114,7 +121,11 @@ vi.mock('@/features/architect/utils/tradeMachine', () => ({
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
   validateWaive: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
-  validateExtension: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
+  validateExtension: vi.fn(() => ({
+    valid: true,
+    violations: [],
+    warnings: [],
+  })),
   validateOptionDecision: vi.fn(() => ({
     valid: true,
     violations: [],
@@ -173,7 +184,7 @@ import { makeGovernedOfferSheetFixture } from '../../../tests/fixtures/architect
 const WORLD_ID = 'world_boundary_test';
 const PARENT_WORLD_ID = 'world_boundary_parent';
 const SEASON_ID = '2025-26';
-const FIXED_TIMESTAMP = Date.parse('2026-03-25T12:00:00.000Z');
+const FIXED_TIMESTAMP = Date.parse('2026-08-21T12:00:00.000Z');
 
 function seedDoc(path: string, data: DocShape): void {
   testState.docsByPath.set(path, data);
@@ -183,7 +194,7 @@ function seedWorldMetadata(
   worldId: string,
   {
     parentWorldId = null,
-    asOfDate = '2026-07-01',
+    asOfDate = '2026-07-08',
   }: { parentWorldId?: string | null; asOfDate?: string | null } = {}
 ): void {
   testState.worldMetadataById.set(worldId, { parentWorldId, asOfDate });
@@ -263,12 +274,14 @@ function makeTeam(
           Array.isArray(
             (player.contract as Record<string, unknown>).salariesByYear
           )
-          ? (
-              (
-                player.contract as Record<string, unknown>
-              ).salariesByYear as Array<Record<string, unknown>>
-            )[0]?.capHit ?? player.currentSalary ?? player.salary ?? 0
-          : player.currentSalary ?? player.salary ?? 0
+          ? ((
+              (player.contract as Record<string, unknown>)
+                .salariesByYear as Array<Record<string, unknown>>
+            )[0]?.capHit ??
+              player.currentSalary ??
+              player.salary ??
+              0)
+          : (player.currentSalary ?? player.salary ?? 0)
       ),
     0
   );
@@ -316,7 +329,8 @@ function buildTradeValidationResult(
     legal,
     reason: legal ? null : 'teamTotalSalary missing at trade boundary',
     teamResults: teams.map((teamTrade) => {
-      const team = (teamTrade?.team as Record<string, unknown> | undefined) || {};
+      const team =
+        (teamTrade?.team as Record<string, unknown> | undefined) || {};
       const teamCode = String(teamTrade?.teamCode || team.teamCode || '');
       const totalSalary = Number(team.teamTotalSalary || 0);
       return {
@@ -363,18 +377,21 @@ describe('mutationPipeline compatibility boundary', () => {
     seedWorldMetadata(WORLD_ID);
     seedWorldMetadata(PARENT_WORLD_ID);
 
-    testState.validateTrade.mockImplementation((input?: { teams?: unknown[] }) => {
-      const teams = Array.isArray(input?.teams)
-        ? (input.teams as Array<Record<string, unknown> | null | undefined>)
-        : [];
-      const legal =
-        teams.length > 0 &&
-        teams.every((teamTrade) => {
-          const team = (teamTrade?.team as Record<string, unknown> | undefined) || {};
-          return Number(team.teamTotalSalary || 0) > 0;
-        });
-      return buildTradeValidationResult(teams, legal);
-    });
+    testState.validateTrade.mockImplementation(
+      (input?: { teams?: unknown[] }) => {
+        const teams = Array.isArray(input?.teams)
+          ? (input.teams as Array<Record<string, unknown> | null | undefined>)
+          : [];
+        const legal =
+          teams.length > 0 &&
+          teams.every((teamTrade) => {
+            const team =
+              (teamTrade?.team as Record<string, unknown> | undefined) || {};
+            return Number(team.teamTotalSalary || 0) > 0;
+          });
+        return buildTradeValidationResult(teams, legal);
+      }
+    );
   });
 
   it('applies signFreeAgent through the narrowed current-state adapters and persists the public result', async () => {
@@ -397,18 +414,20 @@ describe('mutationPipeline compatibility boundary', () => {
       tpeId: 'legacy_tpe_input',
     });
 
-    testState.getTeam.mockImplementation(async (_worldId: string, teamCode: string) => {
-      if (teamCode === 'LAL') {
-        return team;
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'LAL') {
+          return team;
+        }
+        throw new Error(`Unexpected team load: ${teamCode}`);
       }
-      throw new Error(`Unexpected team load: ${teamCode}`);
-    });
+    );
     testState.getPlayer.mockResolvedValue(freeAgent);
 
     const result = await applyWorldMutation({
       userId: 'user_boundary',
       worldId: WORLD_ID,
-      seasonId: SEASON_ID,
+      seasonId: '2026-27',
       mutationType: 'signFreeAgent',
       payload: {
         teamCode: 'LAL',
@@ -417,6 +436,20 @@ describe('mutationPipeline compatibility boundary', () => {
           years: 2,
           contractYears: 2,
           totalValue: 17_000_000,
+          salariesByYear: [
+            {
+              season: '2026-27',
+              salary: 8_500_000,
+              capHit: 8_500_000,
+              guaranteed: true,
+            },
+            {
+              season: '2027-28',
+              salary: 8_500_000,
+              capHit: 8_500_000,
+              guaranteed: true,
+            },
+          ],
         }),
         signedUsing: 'Cap Space',
       },
@@ -436,10 +469,14 @@ describe('mutationPipeline compatibility boundary', () => {
     );
 
     const setPaths = testState.batchSet.mock.calls.map(([ref]) => String(ref));
-    const updatePaths = testState.batchUpdate.mock.calls.map(([ref]) => String(ref));
+    const updatePaths = testState.batchUpdate.mock.calls.map(([ref]) =>
+      String(ref)
+    );
 
     expect(
-      setPaths.some((path) => path.includes(`architect_worlds/${WORLD_ID}/teams/LAL`))
+      setPaths.some((path) =>
+        path.includes(`architect_worlds/${WORLD_ID}/teams/LAL`)
+      )
     ).toBe(true);
     expect(
       setPaths.some((path) =>
@@ -486,11 +523,13 @@ describe('mutationPipeline compatibility boundary', () => {
     });
     const teamB = makeTeam('BOS', [playerB]);
 
-    testState.getTeam.mockImplementation(async (_worldId: string, teamCode: string) => {
-      if (teamCode === 'LAL') return teamA;
-      if (teamCode === 'BOS') return teamB;
-      throw new Error(`Unexpected team load: ${teamCode}`);
-    });
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'LAL') return teamA;
+        if (teamCode === 'BOS') return teamB;
+        throw new Error(`Unexpected team load: ${teamCode}`);
+      }
+    );
 
     const result = await applyWorldMutation({
       userId: 'user_boundary',
@@ -523,7 +562,8 @@ describe('mutationPipeline compatibility boundary', () => {
       (update) => update.teamCode === 'BOS'
     )?.team;
     const movedPlayer = bostonTeam?.players?.find(
-      (player) => player.playerId === 'player_a' || player.player_id === 'player_a'
+      (player) =>
+        player.playerId === 'player_a' || player.player_id === 'player_a'
     );
 
     expect(movedPlayer?.signedDate).toBe('2026-02-01T00:00:00.000Z');
@@ -546,7 +586,9 @@ describe('mutationPipeline compatibility boundary', () => {
     expect(lakersTeam?.exceptionHistory).toHaveLength(1);
 
     const destinationPlayerWrite = testState.batchSet.mock.calls.find(([ref]) =>
-      String(ref).includes(`architect_worlds/${WORLD_ID}/teams/BOS/players/player_a`)
+      String(ref).includes(
+        `architect_worlds/${WORLD_ID}/teams/BOS/players/player_a`
+      )
     );
     expect(destinationPlayerWrite?.[1]).toMatchObject({
       playerId: 'player_a',
@@ -557,7 +599,9 @@ describe('mutationPipeline compatibility boundary', () => {
       isTwoWay: true,
     });
 
-    const deletePaths = testState.batchDelete.mock.calls.map(([ref]) => String(ref));
+    const deletePaths = testState.batchDelete.mock.calls.map(([ref]) =>
+      String(ref)
+    );
     expect(
       deletePaths.some((path) =>
         path.includes(`architect_worlds/${WORLD_ID}/teams/LAL/players/player_a`)
@@ -610,28 +654,24 @@ describe('mutationPipeline compatibility boundary', () => {
       rightsLedger: governed.rightsLedger,
     });
 
-    seedDoc(
-      `architect_worlds/${PARENT_WORLD_ID}/teams/NYK`,
-      homeTeamSnapshot
-    );
+    seedDoc(`architect_worlds/${PARENT_WORLD_ID}/teams/NYK`, homeTeamSnapshot);
     seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK`, null);
-    seedDoc(
-      `architect_worlds/${WORLD_ID}/teams/NYK/players/rfa_1`,
-      {
-        playerId: 'rfa_1',
+    seedDoc(`architect_worlds/${WORLD_ID}/teams/NYK/players/rfa_1`, {
+      playerId: 'rfa_1',
+      displayName: 'Override Name',
+      bio: {
         displayName: 'Override Name',
-        bio: {
-          displayName: 'Override Name',
-        },
+      },
+    });
+
+    testState.getTeam.mockImplementation(
+      async (_worldId: string, teamCode: string) => {
+        if (teamCode === 'BOS') {
+          return offeringTeam;
+        }
+        throw new Error(`Unexpected team load: ${teamCode}`);
       }
     );
-
-    testState.getTeam.mockImplementation(async (_worldId: string, teamCode: string) => {
-      if (teamCode === 'BOS') {
-        return offeringTeam;
-      }
-      throw new Error(`Unexpected team load: ${teamCode}`);
-    });
     testState.getPlayer.mockResolvedValue({
       ...homeSnapshotPlayer,
       displayName: 'Immutable Base Name',
@@ -679,10 +719,14 @@ describe('mutationPipeline compatibility boundary', () => {
 
     const setPaths = testState.batchSet.mock.calls.map(([ref]) => String(ref));
     expect(
-      setPaths.some((path) => path.includes(`architect_worlds/${WORLD_ID}/teams/BOS`))
+      setPaths.some((path) =>
+        path.includes(`architect_worlds/${WORLD_ID}/teams/BOS`)
+      )
     ).toBe(true);
     expect(
-      setPaths.some((path) => path.includes(`architect_worlds/${WORLD_ID}/teams/NYK`))
+      setPaths.some((path) =>
+        path.includes(`architect_worlds/${WORLD_ID}/teams/NYK`)
+      )
     ).toBe(true);
     expect(
       setPaths.some((path) =>

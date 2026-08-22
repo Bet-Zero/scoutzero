@@ -512,6 +512,11 @@ utils/
   seasonManager.ts
   seasonManagerLegacy.ts
   seasonUtils.ts
+  signings/
+    governedSigningAuthority.ts
+    governedSigningHistory.ts
+    governedSigningSetOff.ts
+    index.ts
   stepienUtils.ts
   subscribeArchitectPlayerData.ts
   teamLoader.ts
@@ -629,5 +634,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-21T09:59:23.467Z*
+*Generated on: 2026-08-22T02:52:59.750Z*
 *Auto-updated by: npm run docs*

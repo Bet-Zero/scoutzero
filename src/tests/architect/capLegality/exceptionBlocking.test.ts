@@ -230,6 +230,23 @@ describe('validateSigning - Post-Apron Exception Blocking (G0-2)', () => {
       expect(hasExceptionBlock).toBe(false);
     });
 
+    it('does not mistake Full Bird rights for the Full MLE above the first apron', () => {
+      const team = createTeamWithCapHit(FIRST_APRON + 1_000_000);
+      const result = validateSigning({
+        team,
+        player: { player_id: 'p1' },
+        contract: createContract(),
+        signedUsing: 'Full Bird',
+        year: YEAR,
+      });
+
+      expect(
+        result.violations.some(
+          (violation) => violation.rule === 'exception_blocked'
+        )
+      ).toBe(false);
+    });
+
     it('Case H: First apron hard-capped team CANNOT use BAE', () => {
       const team = createTeamWithCapHit(FIRST_APRON - 1_000_000, {
         isHardCapped: true,

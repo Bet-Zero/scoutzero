@@ -460,6 +460,9 @@ export function normalizeOfferSheetTeamAndPlayerMutationCurrentState(
   const teamCode = toOptionalTrimmedString(currentState?.teamCode);
   const offerSheetCreationSnapshots =
     currentState?.offerSheetCreationSnapshots;
+  const signingTeamSnapshot = currentState?.signingTeamSnapshot;
+  const signingPlayerSnapshot = currentState?.signingPlayerSnapshot;
+  const signingPriorTeamSnapshot = currentState?.signingPriorTeamSnapshot;
 
   if (team) {
     normalized.team = team;
@@ -475,6 +478,13 @@ export function normalizeOfferSheetTeamAndPlayerMutationCurrentState(
   }
   if (offerSheetCreationSnapshots) {
     normalized.offerSheetCreationSnapshots = offerSheetCreationSnapshots;
+  }
+  if (signingTeamSnapshot) normalized.signingTeamSnapshot = signingTeamSnapshot;
+  if (signingPlayerSnapshot) {
+    normalized.signingPlayerSnapshot = signingPlayerSnapshot;
+  }
+  if (signingPriorTeamSnapshot) {
+    normalized.signingPriorTeamSnapshot = signingPriorTeamSnapshot;
   }
 
   return normalized;

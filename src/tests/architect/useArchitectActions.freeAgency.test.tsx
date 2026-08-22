@@ -8,6 +8,7 @@ import {
   type UseArchitectActionsReturn,
 } from '@/features/architect/GMDashboard/hooks/useArchitectActions';
 import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboard/postActionHandoff/types';
+import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHistory';
 import { makeRightsLedgerForIdentity } from '../../../tests/fixtures/architect/rightsHistory';
 
@@ -43,6 +44,14 @@ const mutationMocks = vi.hoisted(() => ({
   ),
   preflightSignAndTradeMutation: vi.fn(),
   preflightOfferSheetMutation: vi.fn(),
+  resolveSigningMechanismForPipeline: vi.fn(
+    (contract: { exceptionType?: unknown }, signedUsing: unknown) =>
+      String(signedUsing || contract?.exceptionType || '')
+        .toLowerCase()
+        .includes('minimum')
+        ? 'MINIMUM'
+        : 'FULL_MLE'
+  ),
 }));
 
 const validationMocks = vi.hoisted(() => ({
@@ -68,6 +77,8 @@ vi.mock('@/features/architect/utils/mutationPipeline', () => ({
   findUpdatedTeamSnapshot: mutationMocks.findUpdatedTeamSnapshot,
   preflightSignAndTradeMutation: mutationMocks.preflightSignAndTradeMutation,
   preflightOfferSheetMutation: mutationMocks.preflightOfferSheetMutation,
+  resolveSigningMechanismForPipeline:
+    mutationMocks.resolveSigningMechanismForPipeline,
 }));
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
@@ -110,18 +121,6 @@ type FreeAgencyWorldMutationArgs = {
   seasonId?: string;
   payload?: Record<string, unknown> & {
     contract?: FreeAgencyPreparedContract;
-    signedUsing?: unknown;
-  };
-};
-type FreeAgencyValidationArgs = {
-  contract?: unknown;
-  signedUsing?: unknown;
-};
-type FreeAgencyComputeArgs = {
-  mutationType?: string;
-  seasonId?: string;
-  payload: Record<string, unknown> & {
-    contract?: unknown;
     signedUsing?: unknown;
   };
 };
@@ -625,19 +624,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     expect(actionResult).toEqual({
       success: false,
-      message:
-        'Team LAL cannot be certified against its hard cap because Apron Team Salary is not complete.',
+      message: 'Signing requires an active world to commit.',
     });
-    expect(mutationMocks.computeWorldMutation).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mutationType: 'signFreeAgent',
-        payload: expect.objectContaining({
-          playerId: 'player_1',
-          signedUsing: 'Full MLE',
-          teamCode: 'LAL',
-        }),
-      })
-    );
+    expect(validationMocks.validateSigning).not.toHaveBeenCalled();
+    expect(mutationMocks.computeWorldMutation).not.toHaveBeenCalled();
     expect(sandboxOwner.worldOnly).toBeNull();
     expect(
       sandboxOwner.freeAgentModalAvailability.signAndTradeInitiation
@@ -849,8 +839,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
 
     expect(vacuumActionResult).toEqual({
       success: false,
-      message:
-        'Team LAL cannot be certified against its hard cap because Apron Team Salary is not complete.',
+      message: 'Signing requires an active world to commit.',
     });
     expect(summarizeStandardSignPostState(worldResult.current).roster).toContain(
       'player_1'
@@ -862,7 +851,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(vacuumRefresh).not.toHaveBeenCalled();
   });
 
-  it('keeps vacuum standard signing on the local-validated lane even if a world reload helper is present', async () => {
+  it('keeps vacuum signing fail-closed even if a world reload helper is present', async () => {
     const rosterPlayers = Array.from({ length: 13 }, (_, index) =>
       createStandardRosterPlayer(index)
     );
@@ -910,7 +899,10 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       );
     });
 
-    expect(actionResult?.success).toBe(false);
+    expect(actionResult).toEqual({
+      success: false,
+      message: 'Signing requires an active world to commit.',
+    });
     expect(reloadActiveWorldTeamData).not.toHaveBeenCalled();
     expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
     expect(result.current.teamCapSheet).toEqual(signableBaseTeam);
@@ -1245,7 +1237,7 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     ]);
   });
 
-  it('reuses the same prepared standard-sign contract for vacuum legality validation and mutation compute', async () => {
+  it('does not prepare or compute a standard signing without saved-world authority', async () => {
     mutationMocks.computeWorldMutation.mockReturnValue({
       success: false,
       error: 'stop after capturing prepared standard-sign payload',
@@ -1261,41 +1253,15 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       );
     });
 
-    const validationArgs = validationMocks.validateSigning.mock.calls.at(
-      -1
-    )?.[0] as FreeAgencyValidationArgs;
-    const computeArgs = mutationMocks.computeWorldMutation.mock.calls.at(
-      -1
-    )?.[0] as FreeAgencyComputeArgs;
-
-    expect(actionResult).toEqual(
-      expect.objectContaining({
-        success: false,
-      })
-    );
-    expect(validationArgs.contract).toBe(computeArgs.payload.contract);
-    expect(validationArgs.signedUsing).toBe(computeArgs.payload.signedUsing);
-    expect(computeArgs).toEqual(
-      expect.objectContaining({
-        mutationType: 'signFreeAgent',
-        seasonId: '2025-26',
-        payload: expect.objectContaining({
-          playerId: 'player_1',
-          signedUsing: 'Full MLE',
-          contract: expect.objectContaining({
-            contractType: 'Staged Modal Contract',
-            signingTeam: 'LAL',
-            startYear: 2026,
-            contractYears: 2,
-            totalValue: 24_600_000,
-            firstYearGuaranteed: true,
-          }),
-        }),
-      })
-    );
+    expect(actionResult).toEqual({
+      success: false,
+      message: 'Signing requires an active world to commit.',
+    });
+    expect(validationMocks.validateSigning).not.toHaveBeenCalled();
+    expect(mutationMocks.computeWorldMutation).not.toHaveBeenCalled();
   });
 
-  it('blocks exception-backed signing in vacuum mode when canonical exception validation fails', async () => {
+  it('blocks exception-backed signing before validation when saved-world authority is absent', async () => {
     validationMocks.validateSigning.mockReturnValue({
       valid: false,
       violations: [
@@ -1323,14 +1289,14 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
       );
     });
 
-    expect(actionResult).toEqual(
-      expect.objectContaining({
-        success: false,
-      })
-    );
+    expect(actionResult).toEqual({
+      success: false,
+      message: 'Signing requires an active world to commit.',
+    });
+    expect(validationMocks.validateSigning).not.toHaveBeenCalled();
     expect(mutationMocks.computeWorldMutation).not.toHaveBeenCalled();
     expect(toastMocks.error).toHaveBeenCalledWith(
-      expect.stringContaining('no canonical MLE owner exists')
+      'Signing requires an active world to commit.'
     );
   });
 
@@ -3204,5 +3170,46 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
         ],
       }),
     });
+  });
+
+  it('uses the governed veteran-minimum Team Salary charge across shared preflight preparation', async () => {
+    const rules = getCapRulesForYear(2026);
+    const veteranMinimum = rules.salaries.getMinimumForYOS(8);
+    const teamSalaryCharge = rules.salaries.getMinimumForYOS(2);
+    const veteranPlayer = { ...playerFixture, yearsOfService: 8 };
+    const veteranMinimumContract = buildStagedScalarSigningFixture({
+      years: 1,
+      salaries: [veteranMinimum],
+      contractYears: 1,
+      totalValue: veteranMinimum,
+      exceptionType: 'Minimum',
+      signedUsing: 'Minimum',
+    });
+    const { result } = renderActionsHarness({ worldId: 'world_1' });
+
+    await act(async () => {
+      await result.current.actions.getOfferSheetPreflight(
+        veteranPlayer,
+        veteranMinimumContract
+      );
+      await result.current.actions.getSignAndTradePreflight(
+        veteranPlayer,
+        veteranMinimumContract,
+        'bos'
+      );
+    });
+
+    const offerSheetContract =
+      mutationMocks.preflightOfferSheetMutation.mock.calls.at(-1)?.[0]
+        ?.contract;
+    const signAndTradeContract =
+      mutationMocks.preflightSignAndTradeMutation.mock.calls.at(-1)?.[0]
+        ?.payload?.contract;
+    for (const preparedContract of [offerSheetContract, signAndTradeContract]) {
+      expect(preparedContract?.salariesByYear?.[0]).toMatchObject({
+        salary: veteranMinimum,
+        capHit: teamSalaryCharge,
+      });
+    }
   });
 });

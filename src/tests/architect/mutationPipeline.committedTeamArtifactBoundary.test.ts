@@ -22,18 +22,25 @@ const testState = vi.hoisted(() => ({
       bio:
         base.bio || override.bio
           ? {
-              ...((base.bio as Record<string, unknown> | null | undefined) || {}),
-              ...((override.bio as Record<string, unknown> | null | undefined) ||
+              ...((base.bio as Record<string, unknown> | null | undefined) ||
                 {}),
+              ...((override.bio as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
             }
           : undefined,
       contract:
         base.contract || override.contract
           ? {
-              ...((base.contract as Record<string, unknown> | null | undefined) ||
-                {}),
-              ...((override.contract as Record<string, unknown> | null | undefined) ||
-                {}),
+              ...((base.contract as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
+              ...((override.contract as
+                | Record<string, unknown>
+                | null
+                | undefined) || {}),
             }
           : undefined,
     })
@@ -42,7 +49,7 @@ const testState = vi.hoisted(() => ({
   validateTrade: vi.fn(),
   getWorldMetadata: vi.fn(async () => ({
     parentWorldId: null,
-    asOfDate: '2026-07-01',
+    asOfDate: '2026-07-08',
   })),
 }));
 
@@ -57,6 +64,24 @@ vi.mock('firebase/firestore', () => ({
     delete: testState.batchDelete,
     commit: testState.batchCommit,
   })),
+  runTransaction: vi.fn(
+    async (
+      _db: unknown,
+      updateFunction: (transaction: {
+        get: typeof testState.getDoc;
+        set: typeof testState.batchSet;
+        update: typeof testState.batchUpdate;
+        delete: typeof testState.batchDelete;
+      }) => Promise<unknown>
+    ) =>
+      updateFunction({
+        get: testState.getDoc,
+        set: testState.batchSet,
+        update: testState.batchUpdate,
+        delete: testState.batchDelete,
+      })
+  ),
+
   getDoc: testState.getDoc,
   serverTimestamp: vi.fn(() => 'SERVER_TIMESTAMP'),
   collection: vi.fn((...segments: unknown[]) => segments.map(String).join('/')),
@@ -124,8 +149,8 @@ import {
   type ArchitectMutationContract,
 } from '@/features/architect/utils/mutationPipeline';
 
-const FIXED_TIMESTAMP = Date.parse('2026-04-10T12:00:00.000Z');
-const FIXED_TIMESTAMP_ISO = '2026-04-10T12:00:00.000Z';
+const FIXED_TIMESTAMP = Date.parse('2026-08-21T12:00:00.000Z');
+const FIXED_TIMESTAMP_ISO = '2026-08-21T12:00:00.000Z';
 const SEASON_ID = '2025-26';
 const WORLD_ID = 'world_committed_team_artifact_boundary';
 
@@ -187,6 +212,41 @@ function makePlayer(
   };
 }
 
+function readySigningSalaryBookInputs() {
+  const line = (
+    ledger: 'apron-team-salary' | 'tax-salary',
+    leafId: string,
+    amount: number
+  ) => ({
+    id: `${ledger}:${leafId}`,
+    ledger,
+    label: leafId,
+    amount,
+    effectiveFrom: '2026-07-01T00:00:00Z',
+    canonLeafIds: [leafId],
+    source: {
+      authority: 'external-determination' as const,
+      reference: `fixture:${leafId}`,
+    },
+  });
+  return {
+    version: 1 as const,
+    salaryCapYear: 2027,
+    apronAdjustments: {
+      status: 'ready' as const,
+      lineItems: Array.from({ length: 10 }, (_, index) =>
+        line('apron-team-salary', `CBA2-C07.${index + 2}`, 0)
+      ),
+    },
+    taxSalary: {
+      status: 'ready' as const,
+      lineItems: Array.from({ length: 8 }, (_, index) =>
+        line('tax-salary', `CBA2-C08.${index + 1}`, 0)
+      ),
+    },
+  };
+}
+
 function makeTeam(
   teamCode: string,
   players: Array<Record<string, unknown>>,
@@ -237,6 +297,7 @@ function makeTeam(
     draftPicks: [{ id: 'pick_keep', year: 2028, round: 1, owner: teamCode }],
     entitlementIds: ['entitlement_keep'],
     exceptions: { mle: null, bae: null, tpe: [] },
+    salaryBookInputs: readySigningSalaryBookInputs(),
     totals: {
       totalSalary,
       capHit: totalSalary,
@@ -261,7 +322,9 @@ function getPersistedTeamWrite(teamCode: string): Record<string, unknown> {
   return (matchingCall?.[1] || {}) as Record<string, unknown>;
 }
 
-function getHiddenCarrierKeys(value: Record<string, unknown> | null | undefined) {
+function getHiddenCarrierKeys(
+  value: Record<string, unknown> | null | undefined
+) {
   return Object.keys(value || {}).filter((key) =>
     key.startsWith('__currentStateBasePreserved')
   );
@@ -272,7 +335,7 @@ describe('mutationPipeline committed team artifact boundary', () => {
     vi.clearAllMocks();
     testState.getWorldMetadata.mockResolvedValue({
       parentWorldId: null,
-      asOfDate: '2026-07-01',
+      asOfDate: '2026-07-08',
     });
   });
 
@@ -283,11 +346,17 @@ describe('mutationPipeline committed team artifact boundary', () => {
       10_000_000,
       'LAL'
     );
-    const freeAgent = makePlayer('fa_boundary', 'Boundary Free Agent', 0, null, {
-      contract: null,
-      freeAgency: 'UFA',
-      birdRights: { status: 'Full' },
-    });
+    const freeAgent = makePlayer(
+      'fa_boundary',
+      'Boundary Free Agent',
+      0,
+      null,
+      {
+        contract: null,
+        freeAgency: 'UFA',
+        birdRights: { status: 'Full' },
+      }
+    );
     const initialTeam = makeTeam('LAL', [existingPlayer]);
 
     testState.getTeam.mockResolvedValue(initialTeam);
@@ -302,6 +371,20 @@ describe('mutationPipeline committed team artifact boundary', () => {
           years: 2,
           contractYears: 2,
           totalValue: 12_000_000,
+          salariesByYear: [
+            {
+              season: '2026-27',
+              salary: 6_000_000,
+              capHit: 6_000_000,
+              guaranteed: true,
+            },
+            {
+              season: '2027-28',
+              salary: 6_000_000,
+              capHit: 6_000_000,
+              guaranteed: true,
+            },
+          ],
         }),
         signedUsing: 'Cap Space',
       },
@@ -310,11 +393,11 @@ describe('mutationPipeline committed team artifact boundary', () => {
         player: freeAgent,
         teamCode: 'LAL',
       },
-      seasonId: SEASON_ID,
+      seasonId: '2026-27',
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(computeResult.success).toBe(true);
+    expect(computeResult.success, String(computeResult.error || '')).toBe(true);
     const computedTeam = computeResult.teamUpdates?.[0]?.team;
     expect(computedTeam?.players?.map((player) => player.playerId)).toContain(
       'fa_boundary'
@@ -328,7 +411,7 @@ describe('mutationPipeline committed team artifact boundary', () => {
     const result = await applyWorldMutation({
       userId: 'user_committed_team_artifact',
       worldId: WORLD_ID,
-      seasonId: SEASON_ID,
+      seasonId: '2026-27',
       mutationType: 'signFreeAgent',
       payload: {
         teamCode: 'LAL',
@@ -337,18 +420,29 @@ describe('mutationPipeline committed team artifact boundary', () => {
           years: 2,
           contractYears: 2,
           totalValue: 12_000_000,
+          salariesByYear: [
+            {
+              season: '2026-27',
+              salary: 6_000_000,
+              capHit: 6_000_000,
+              guaranteed: true,
+            },
+            {
+              season: '2027-28',
+              salary: 6_000_000,
+              capHit: 6_000_000,
+              guaranteed: true,
+            },
+          ],
         }),
         signedUsing: 'Cap Space',
       },
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
+    expect(result.success, String(result.error || '')).toBe(true);
 
-    const committedTeam = findCommittedTeamSnapshot(
-      result.changedTeams,
-      'LAL'
-    );
+    const committedTeam = findCommittedTeamSnapshot(result.changedTeams, 'LAL');
     expect(committedTeam?.players?.map((player) => player.playerId)).toContain(
       'fa_boundary'
     );
@@ -375,9 +469,9 @@ describe('mutationPipeline committed team artifact boundary', () => {
 
     const dashboardReloadTeam =
       buildGeneralMutationDashboardReloadTeamSnapshot(committedTeam);
-    expect(dashboardReloadTeam?.players?.map((player) => player.playerId)).toContain(
-      'fa_boundary'
-    );
+    expect(
+      dashboardReloadTeam?.players?.map((player) => player.playerId)
+    ).toContain('fa_boundary');
     expect(dashboardReloadTeam?.capHolds).toEqual([]);
     expect(dashboardReloadTeam?.draftPicks).toEqual(committedTeam?.draftPicks);
     expect(dashboardReloadTeam?.entitlementIds).toEqual(
@@ -385,6 +479,9 @@ describe('mutationPipeline committed team artifact boundary', () => {
     );
     expect(dashboardReloadTeam?.exceptionHistory).toEqual(
       committedTeam?.exceptionHistory
+    );
+    expect(dashboardReloadTeam?.salaryBookInputs).toEqual(
+      committedTeam?.salaryBookInputs
     );
 
     const dashboardReloadRecord = dashboardReloadTeam as Record<

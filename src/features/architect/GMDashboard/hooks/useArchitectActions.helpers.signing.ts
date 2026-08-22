@@ -50,9 +50,10 @@ export const ensureContractStructure = (
   if (Array.isArray(legacySalaries) && legacySalaries.length > 0) {
     const yearsRaw = Number(contract.years) || legacySalaries.length;
     const years = Math.max(1, Math.min(yearsRaw, legacySalaries.length));
-    const startYear = Number.isFinite(startYearOverride)
-      ? startYearOverride
-      : new Date().getFullYear();
+    if (!Number.isInteger(startYearOverride)) {
+      return null;
+    }
+    const startYear = startYearOverride;
 
     const salariesByYear = legacySalaries.slice(0, years).map((row, idx) => {
       const salaryRaw =

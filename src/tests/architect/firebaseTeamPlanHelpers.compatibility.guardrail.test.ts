@@ -24,6 +24,7 @@ import {
   saveFreeAgents,
   loadFreeAgents,
 } from '@/features/architect/utils/firebaseTeamPlanHelpers';
+import { readLooseBaseTeamDoc } from '@/features/architect/utils/firebaseTeamPlanHelpers.readers';
 
 type FirestoreDocData = Record<string, unknown>;
 type DocValue = FirestoreDocData | null;
@@ -190,6 +191,7 @@ const expectedHydratedTeamKeys = [
   'deadCap',
   'baseline',
   'totals',
+  'salaryBookInputs',
 ];
 
 beforeEach(() => {
@@ -214,6 +216,23 @@ beforeEach(() => {
 });
 
 describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
+  it('rejects malformed governed salary-book inputs at the Firestore read boundary', () => {
+    expect(() =>
+      readLooseBaseTeamDoc(
+        {
+          teamName: 'Malformed Books',
+          salaryBookInputs: {
+            version: 1,
+            salaryCapYear: 2026,
+            apronAdjustments: { status: 'ready', lineItems: 'not-an-array' },
+            taxSalary: { status: 'not-evaluated', reason: 'fixture' },
+          },
+        },
+        'LAL',
+        'architect_baseTeams/LAL'
+      )
+    ).toThrow();
+  });
   it('firebaseTeamPlanHelpers.js is absent after the E113 shim deletion batch', () => {
     expect(fs.existsSync(deletedShimPath)).toBe(false);
   });
@@ -318,6 +337,18 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
         ],
       },
       deadCap: [{ id: 'dead-1' }],
+      salaryBookInputs: {
+        version: 1 as const,
+        salaryCapYear: 2026,
+        apronAdjustments: {
+          status: 'not-evaluated' as const,
+          reason: 'Compatibility fixture',
+        },
+        taxSalary: {
+          status: 'not-evaluated' as const,
+          reason: 'Compatibility fixture',
+        },
+      },
       // Genuinely hard-capped: the team used its NT-MLE. `hardCapLevel` alone
       // is only the apron-band descriptor and must not mark a team hard-capped.
       hardCapTriggeredBy: 'NT-MLE',
@@ -389,6 +420,7 @@ describe('E82 firebaseTeamPlanHelpers compatibility guardrails', () => {
     expect(hydratedTeam.baseline).not.toBe(baseDoc);
     expect(hydratedTeam.hardCapLevel).toBe('firstApron');
     expect(hydratedTeam.hardCapped).toBe(true);
+    expect(hydratedTeam.salaryBookInputs).toEqual(baseDoc.salaryBookInputs);
     expect(hydratedTeam.exceptions).toEqual(
       expect.objectContaining({
         mle: expect.objectContaining({

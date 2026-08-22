@@ -169,6 +169,9 @@ export type MutationCurrentStateClosedShape = {
   waiverAuthority?: undefined;
   waiverTeamSnapshot?: undefined;
   waiverPlayerSnapshot?: undefined;
+  signingTeamSnapshot?: undefined;
+  signingPlayerSnapshot?: undefined;
+  signingPriorTeamSnapshot?: undefined;
   offerSheetCreationSnapshots?: undefined;
   offerSheetResolutionSnapshots?: undefined;
 };
@@ -232,13 +235,23 @@ export type MutationTeamAndPlayerCurrentStateIngress = Omit<
 };
 export type MutationSigningCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
+  | 'team'
+  | 'player'
+  | 'homeTeam'
+  | 'teamCode'
+  | 'offerSheetCreationSnapshots'
+  | 'signingTeamSnapshot'
+  | 'signingPlayerSnapshot'
+  | 'signingPriorTeamSnapshot'
 > & {
   team?: MutationCurrentStateOfferSheetTeamIngress | null;
   player?: MutationCurrentStatePlayerIngress | null;
   homeTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   teamCode?: string | null;
   offerSheetCreationSnapshots?: ArchitectOfferSheetCreationSnapshotReceipts | null;
+  signingTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
+  signingPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
+  signingPriorTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
 };
 export type MutationOfferSheetMirrorCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
@@ -294,6 +307,9 @@ export type MutationCurrentState = {
   waiverAuthority?: GovernedWaiverLedgerAuthority | null;
   waiverTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
   waiverPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
+  signingTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
+  signingPlayerSnapshot?: MutationDocumentSnapshotReceipt | null;
+  signingPriorTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
   offerSheetCreationSnapshots?: ArchitectOfferSheetCreationSnapshotReceipts | null;
   offerSheetResolutionSnapshots?: ArchitectOfferSheetResolutionSnapshotReceipts | null;
 };
@@ -340,11 +356,25 @@ export type MutationTeamAndPlayerCurrentState = Omit<
   };
 export type MutationOfferSheetTeamAndPlayerCurrentState = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
+  | 'team'
+  | 'player'
+  | 'homeTeam'
+  | 'teamCode'
+  | 'offerSheetCreationSnapshots'
+  | 'signingTeamSnapshot'
+  | 'signingPlayerSnapshot'
+  | 'signingPriorTeamSnapshot'
 > &
   Pick<
     MutationCurrentState,
-    'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
+    | 'team'
+    | 'player'
+    | 'homeTeam'
+    | 'teamCode'
+    | 'offerSheetCreationSnapshots'
+    | 'signingTeamSnapshot'
+    | 'signingPlayerSnapshot'
+    | 'signingPriorTeamSnapshot'
   > & {
     team?: CurrentStateSigningTeam | null;
     player?: PlayerLike | null;
@@ -353,11 +383,25 @@ export type MutationOfferSheetTeamAndPlayerCurrentState = Omit<
 export type MutationSigningTeamLike = CurrentStateSigningTeam | TradeTeamLike;
 export type MutationSigningCurrentState = Omit<
   MutationCurrentStateClosedShape,
-  'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
+  | 'team'
+  | 'player'
+  | 'homeTeam'
+  | 'teamCode'
+  | 'offerSheetCreationSnapshots'
+  | 'signingTeamSnapshot'
+  | 'signingPlayerSnapshot'
+  | 'signingPriorTeamSnapshot'
 > &
   Pick<
     MutationCurrentState,
-    'team' | 'player' | 'homeTeam' | 'teamCode' | 'offerSheetCreationSnapshots'
+    | 'team'
+    | 'player'
+    | 'homeTeam'
+    | 'teamCode'
+    | 'offerSheetCreationSnapshots'
+    | 'signingTeamSnapshot'
+    | 'signingPlayerSnapshot'
+    | 'signingPriorTeamSnapshot'
   > & {
     team?: MutationSigningTeamLike | null;
     player?: PlayerLike | null;

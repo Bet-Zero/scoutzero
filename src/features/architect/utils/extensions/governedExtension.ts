@@ -222,6 +222,7 @@ function sameSourceIdentity(
 ): boolean {
   const source = state.source;
   const identity = evidence.sourceIdentity;
+  if (!('releaseId' in source)) return false;
   return (
     identity.releaseId === source.releaseId &&
     identity.releaseVersion === source.releaseVersion &&
@@ -285,7 +286,12 @@ function validateRetainedEvidence({
   ) {
     reasons.push('Extension evidence is not complete enough to govern a transaction.');
   }
-  if (!sameSourceIdentity(state, contract)) {
+  if (!('releaseId' in state.source)) {
+    reasons.push(
+      'An Architect-authored signing has no pinned source identity and cannot be extended.'
+    );
+    incompatible = true;
+  } else if (!sameSourceIdentity(state, contract)) {
     reasons.push(
       'Extension evidence is unauthenticated because it does not match the pinned Contract source identity.'
     );

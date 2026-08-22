@@ -396,6 +396,9 @@ export async function applyWorldMutation({
     let worldAsOfDate: string | null;
     if (mutationType === 'renounceRights') {
       worldAsOfDate = governedRenounceWorldAsOfDate;
+    } else if (mutationType === 'signFreeAgent') {
+      const signingWorldMetadata = await getWorldMetadata(worldId);
+      worldAsOfDate = signingWorldMetadata?.asOfDate ?? null;
     } else {
       worldAsOfDate = await loadWorldAsOfDate(worldId);
     }
@@ -411,6 +414,17 @@ export async function applyWorldMutation({
     if (mutationType === 'renounceRights' && dateDefaulted) {
       return buildMutationFailureResult(
         'Renunciation requires an explicit governed world date; no runtime-clock fallback is permitted.'
+      );
+    }
+    if (
+      mutationType === 'signFreeAgent' &&
+      (dateDefaulted ||
+        !worldAsOfDate ||
+        (sanitizedPayload.asOfDate != null &&
+          String(sanitizedPayload.asOfDate) !== worldAsOfDate))
+    ) {
+      return buildMutationFailureResult(
+        'Signing requires the exact saved-world date; payload overrides and runtime-clock fallback are not permitted.'
       );
     }
 

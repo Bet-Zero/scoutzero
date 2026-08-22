@@ -246,6 +246,7 @@ export const GOVERNED_WAIVER_LIFECYCLE_ALLOWLIST: PersistenceAllowlist =
     'paymentAllocations',
     'setOffStatus',
     'setOffFormula',
+    'setOffApplication',
     'originalContractEndsAt',
     'reacquisitionRestrictedUntil',
     'contractAuthority',
@@ -277,6 +278,19 @@ export const GOVERNED_WAIVER_ALLOCATION_ALLOWLIST: PersistenceAllowlist =
 
 export const GOVERNED_WAIVER_CONTRACT_AUTHORITY_ALLOWLIST: PersistenceAllowlist =
   Object.freeze(['ledgerId', 'ledgerVersion', 'stateDigest']);
+
+export const GOVERNED_WAIVER_SET_OFF_APPLICATION_ALLOWLIST: PersistenceAllowlist =
+  Object.freeze([
+    'applicationVersion',
+    'operationId',
+    'signingTeamId',
+    'signingContractId',
+    'signingDate',
+    'newBaseCompensation',
+    'applicableMinimumSalary',
+    'reduction',
+    'allocationMethod',
+  ]);
 
 // ==============================================================================
 // CAP HOLD ITEM PERSISTENCE CONTRACT
@@ -468,6 +482,11 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist =
     'expectedPlayerSourceWorldId',
     'expectedPlayerSourceSnapshotDigest',
     'expectedPlayerSourceLineage',
+    'expectedPriorTeamSnapshot',
+    'governedSeasonInputManifest',
+    'governedSigningWorldDate',
+    'governedSigningEffectiveAt',
+    'waiverSetOffReduction',
     'freeAgentStatus',
     'freeAgentAmount',
     'priorTeamOfferCeiling',
@@ -548,6 +567,8 @@ export const TEAM_DEEP_RULES: PersistenceDeepRules = Object.freeze({
     GOVERNED_WAIVER_ALLOCATION_ALLOWLIST,
   'deadCap.governedLifecycle.contractAuthority':
     GOVERNED_WAIVER_CONTRACT_AUTHORITY_ALLOWLIST,
+  'deadCap.governedLifecycle.setOffApplication':
+    GOVERNED_WAIVER_SET_OFF_APPLICATION_ALLOWLIST,
   capHolds: CAP_HOLD_ITEM_ALLOWLIST,
 });
 

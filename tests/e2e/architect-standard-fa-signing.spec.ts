@@ -18,10 +18,12 @@ const BOS_URL = '/gm/BOS';
 const TEAM_CODE = 'BOS';
 const REVIEW_FREE_AGENT_NAME = 'Review Offer Sheet Guard';
 const REVIEW_FREE_AGENT_ID = 'review_offer_sheet_guard';
+const MINIMUM_FREE_AGENT_NAME = 'Zero YOS Minimum Guard';
+const MINIMUM_FREE_AGENT_ID = 'review_zero_yos_minimum_guard';
 const REVIEW_FIRESTORE_EMULATOR_HOST = '127.0.0.1:8082';
 const REVIEW_FIRESTORE_PROJECT_ID = 'demo-architect-review';
 const REVIEW_WORLD_SEASON = '2026-27';
-const REVIEW_WORLD_AS_OF_DATE = '2026-07-01';
+const REVIEW_WORLD_AS_OF_DATE = '2026-07-08';
 const DEV_LOCAL_STORAGE_FLAGS = {
   'hz.dev.capSheetFixtures': 'true',
   'hz.dev.offseasonPreview': 'true',
@@ -57,6 +59,18 @@ const getBaseTeamDocument = async (teamCode: string) =>
 const getWorldTeamDocument = async (worldId: string, teamCode: string) =>
   (await getReviewAdminDb()
     .doc(`architect_worlds/${worldId}/teams/${teamCode}`)
+    .get()
+    .then((snapshot) => snapshot.data())) as
+    | Record<string, unknown>
+    | undefined;
+
+const getWorldPlayerDocument = async (
+  worldId: string,
+  teamCode: string,
+  playerId: string
+) =>
+  (await getReviewAdminDb()
+    .doc(`architect_worlds/${worldId}/teams/${teamCode}/players/${playerId}`)
     .get()
     .then((snapshot) => snapshot.data())) as
     | Record<string, unknown>
@@ -188,38 +202,140 @@ const readActiveWorldId = async (page: Page) =>
     })
     .catch(() => '');
 
-const seedReviewWorld = async (userId: string): Promise<string> => {
+const governedSalaryBookInputs = (
+  taxBaselineEffectiveFrom = '2026-04-12T19:00:00-04:00'
+) => {
+  const line = (
+    ledger: 'apron-team-salary' | 'tax-salary',
+    leafId: string,
+    amount: number,
+    effectiveFrom = '2026-07-01T00:00:00Z'
+  ) => ({
+    id: `${ledger}:${leafId}`,
+    ledger,
+    label: leafId,
+    amount,
+    effectiveFrom,
+    canonLeafIds: [leafId],
+    source: {
+      authority: 'external-determination',
+      reference: `review-fixture:${leafId}`,
+    },
+  });
+  return {
+    version: 1,
+    salaryCapYear: 2027,
+    incompleteRosterCharge: {
+      id: 'team-salary:incomplete-roster',
+      ledger: 'team-salary',
+      label: 'Eleven governed incomplete-roster charges',
+      amount: 11 * 1_357_763,
+      effectiveFrom: '2026-07-01T00:00:00Z',
+      canonLeafIds: ['CBA2-A01.1'],
+      source: {
+        authority: 'external-determination',
+        reference: 'review-fixture:2026-27-rookie-minimum',
+      },
+    },
+    apronAdjustments: {
+      status: 'ready',
+      lineItems: [
+        line('apron-team-salary', 'CBA2-C07.2', 1_000_000),
+        ...Array.from({ length: 8 }, (_, index) =>
+          line('apron-team-salary', `CBA2-C07.${index + 3}`, 0)
+        ),
+        line('apron-team-salary', 'CBA2-C07.11', -(11 * 1_357_763)),
+      ],
+    },
+    taxSalary: {
+      status: 'ready',
+      lineItems: [
+        line(
+          'tax-salary',
+          'CBA2-C08.1',
+          182_000_000,
+          taxBaselineEffectiveFrom
+        ),
+        ...Array.from({ length: 7 }, (_, index) =>
+          line('tax-salary', `CBA2-C08.${index + 2}`, 0)
+        ),
+      ],
+    },
+  };
+};
+
+const seedReviewWorld = async (
+  userId: string,
+  asOfDate = REVIEW_WORLD_AS_OF_DATE
+): Promise<string> => {
   const worldId = `world_standard_fa_${Date.now()}_${Math.random()
     .toString(36)
     .slice(2, 9)}`;
   const now = admin.firestore.Timestamp.now();
-  await getReviewAdminDb().doc(`architect_worlds/${worldId}`).set({
-    worldId,
-    worldName: `Standard FA Proof ${Date.now()}`,
-    description: '',
-    createdBy: userId,
-    createdAt: now,
-    lastModifiedAt: now,
-    currentSeason: REVIEW_WORLD_SEASON,
-    baselineSeason: REVIEW_WORLD_SEASON,
-    asOfDate: REVIEW_WORLD_AS_OF_DATE,
-    parentWorldId: null,
-    branchedFrom: null,
-    childWorlds: [],
-    modifiedTeams: [],
-    actionCount: 0,
-    tags: [],
-    isArchived: false,
-    isFavorite: false,
-    stats: {
-      totalTrades: 0,
-      totalSignings: 0,
-      totalWaives: 0,
-      totalRenounces: 0,
-      teamsInvolved: 0,
-    },
-  });
+  await getReviewAdminDb()
+    .doc(`architect_worlds/${worldId}`)
+    .set({
+      worldId,
+      worldName: `Standard FA Proof ${Date.now()}`,
+      description: '',
+      createdBy: userId,
+      createdAt: now,
+      lastModifiedAt: now,
+      currentSeason: REVIEW_WORLD_SEASON,
+      baselineSeason: REVIEW_WORLD_SEASON,
+      asOfDate,
+      parentWorldId: null,
+      branchedFrom: null,
+      childWorlds: [],
+      modifiedTeams: [],
+      actionCount: 0,
+      tags: [],
+      isArchived: false,
+      isFavorite: false,
+      stats: {
+        totalTrades: 0,
+        totalSignings: 0,
+        totalWaives: 0,
+        totalRenounces: 0,
+        teamsInvolved: 0,
+      },
+      contractBaselineVersion: 2,
+      contractSourceRelease: {
+        releaseId: 'review-contract-source-release',
+        releaseVersion: 1,
+        releaseDigest: `sha256:${'1'.repeat(64)}`,
+      },
+      contractBaselineEffectiveAt: '2026-06-05T12:19:56.526Z',
+      contractBaselineSalaryCapYear: 2026,
+      contractBaselineCoverage: {
+        total: 0,
+        complete: 0,
+        needsInput: 0,
+      },
+    });
   return worldId;
+};
+
+const seedGovernedBosWorldTeam = async (
+  worldId: string,
+  taxBaselineEffectiveFrom?: string
+) => {
+  const baseTeam = await getBaseTeamDocument(TEAM_CODE);
+  if (!baseTeam) {
+    throw new Error(`Base Team ${TEAM_CODE} is unavailable in review mode.`);
+  }
+  await getReviewAdminDb()
+    .doc(`architect_worlds/${worldId}/teams/${TEAM_CODE}`)
+    .set({
+      ...baseTeam,
+      season: REVIEW_WORLD_SEASON,
+      salaryBookInputs: governedSalaryBookInputs(taxBaselineEffectiveFrom),
+    });
+  await getReviewAdminDb()
+    .doc(`architect_worlds/${worldId}`)
+    .update({
+      modifiedTeams: [TEAM_CODE],
+    });
 };
 
 const waitForBosDashboard = async (page: Page) => {
@@ -235,7 +351,9 @@ const waitForBosDashboard = async (page: Page) => {
         const hasFullCapTab = await isVisible(fullCapTab, 1000);
         const hasFreeAgencyTab = await isVisible(freeAgencyTab, 1000);
         const hasNoTeamData = await isVisible(noTeamData, 1000);
-        return !stillLoading && (hasFullCapTab || hasFreeAgencyTab || hasNoTeamData);
+        return (
+          !stillLoading && (hasFullCapTab || hasFreeAgencyTab || hasNoTeamData)
+        );
       },
       {
         timeout: 60000,
@@ -278,7 +396,11 @@ const activateSeededWorld = async (
     .toBe(false);
 };
 
-const ensureWorldSelected = async (page: Page) => {
+const ensureWorldSelected = async (
+  page: Page,
+  asOfDate = REVIEW_WORLD_AS_OF_DATE,
+  taxBaselineEffectiveFrom?: string
+) => {
   await expect
     .poll(async () => await readReviewUserId(page), {
       timeout: 25000,
@@ -287,8 +409,10 @@ const ensureWorldSelected = async (page: Page) => {
     .not.toBe('');
 
   const userId = await readReviewUserId(page);
-  const worldId = await seedReviewWorld(userId);
+  const worldId = await seedReviewWorld(userId, asOfDate);
+  await seedGovernedBosWorldTeam(worldId, taxBaselineEffectiveFrom);
   await activateSeededWorld(page, userId, worldId);
+  await ensureSpecificWorldSelected(page, worldId);
   return worldId;
 };
 
@@ -317,18 +441,24 @@ const openDashboardTab = async (page: Page, label: string) => {
   await tab.click();
 };
 
-const standardFreeAgentRow = (page: Page): Locator =>
+const standardFreeAgentRow = (
+  page: Page,
+  playerName = REVIEW_FREE_AGENT_NAME
+): Locator =>
   page.locator('li').filter({
-    has: page.getByText(new RegExp(`^${REVIEW_FREE_AGENT_NAME}$`, 'i')),
+    has: page.getByText(new RegExp(`^${playerName}$`, 'i')),
   });
 
-const openStandardFreeAgentModal = async (page: Page) => {
+const openStandardFreeAgentModal = async (
+  page: Page,
+  playerName = REVIEW_FREE_AGENT_NAME
+) => {
   await openDashboardTab(page, 'Free Agency');
   await expect(
     page.getByRole('heading', { name: /^Free Agent Pool$/i })
   ).toBeVisible();
 
-  const freeAgentRow = standardFreeAgentRow(page);
+  const freeAgentRow = standardFreeAgentRow(page, playerName);
   await expect(freeAgentRow).toBeVisible({ timeout: 15000 });
 
   const menuButton = freeAgentRow
@@ -351,6 +481,16 @@ const openStandardFreeAgentModal = async (page: Page) => {
   const modal = page.getByTestId('edit-contract-modal');
   await expect(modal).toBeVisible({ timeout: 20000 });
   return modal;
+};
+
+const configureZeroYosMinimumContract = async (modal: Locator) => {
+  const signingMethod = modal.locator('select').filter({ hasText: 'Minimum' });
+  await expect(signingMethod).toHaveCount(1);
+  await signingMethod.selectOption('Minimum');
+  await modal.getByTestId('contract-years').selectOption('1');
+  const firstYearSalary = modal.locator('input[inputmode="decimal"]').first();
+  await firstYearSalary.fill('1357763');
+  await expect(firstYearSalary).toHaveValue('$1,357,763');
 };
 
 const openFullCapStandardFreeAgentModal = async (page: Page) => {
@@ -376,7 +516,9 @@ const openFullCapStandardFreeAgentModal = async (page: Page) => {
     hasText: REVIEW_FREE_AGENT_NAME,
   });
   await expect(targetRow).toBeVisible({ timeout: 15000 });
-  await expect(targetRow.getByText(REVIEW_FREE_AGENT_NAME).first()).toBeVisible();
+  await expect(
+    targetRow.getByText(REVIEW_FREE_AGENT_NAME).first()
+  ).toBeVisible();
 
   const inlineSignButton = targetRow.getByRole('button', {
     name: new RegExp(`^Sign ${REVIEW_FREE_AGENT_NAME}$`, 'i'),
@@ -387,7 +529,9 @@ const openFullCapStandardFreeAgentModal = async (page: Page) => {
   );
 
   await targetRow
-    .getByRole('button', { name: new RegExp(`^${REVIEW_FREE_AGENT_NAME}`, 'i') })
+    .getByRole('button', {
+      name: new RegExp(`^${REVIEW_FREE_AGENT_NAME}`, 'i'),
+    })
     .first()
     .click();
 
@@ -407,6 +551,8 @@ const openFullCapStandardFreeAgentModal = async (page: Page) => {
 };
 
 test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
+  test.setTimeout(120_000);
+
   test.beforeEach(async ({ page }) => {
     await enableDevAuditFlags(page);
     await page.goto(BOS_URL, { waitUntil: 'domcontentloaded' });
@@ -420,14 +566,17 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
 
     const beforeBaseTeamDocument = await getBaseTeamDocument(TEAM_CODE);
     expect(getTeamPlayerIds(beforeBaseTeamDocument)).not.toContain(
-      REVIEW_FREE_AGENT_ID
+      MINIMUM_FREE_AGENT_ID
     );
 
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
       '3 / 15'
     );
 
-    const modal = await openStandardFreeAgentModal(page);
+    const modal = await openStandardFreeAgentModal(
+      page,
+      MINIMUM_FREE_AGENT_NAME
+    );
     await expect(
       page.getByRole('heading', { name: /^Available Actions$/i })
     ).toBeVisible();
@@ -436,9 +585,9 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     });
     await expect(signFreeAgentRadio).toBeVisible();
     await expect(modal.getByText(/^Sign Free Agent$/i).first()).toBeVisible();
-    await expect(
-      modal.getByText(/Sign Free Agent \(Preview\)/i)
-    ).toHaveCount(0);
+    await expect(modal.getByText(/Sign Free Agent \(Preview\)/i)).toHaveCount(
+      0
+    );
     await expect(page.getByLabel(/^Offer Sheet$/i)).toHaveCount(0);
 
     const confirmActionButton = page.getByRole('button', {
@@ -450,25 +599,101 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     await expect(
       page.getByRole('heading', { name: /^New Contract Preview$/i })
     ).toBeVisible();
+    await configureZeroYosMinimumContract(modal);
     await expect(confirmActionButton).toBeEnabled();
     await confirmActionButton.click();
 
-    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
-      /Free agent signed/i,
-      { timeout: 20000 }
-    );
-    await expect(page.getByText(/Roster count changed 3 -> 4/i).first()).toBeVisible();
+    const receiptButton = page.getByTestId('cockpit-last-receipt');
+    await expect(receiptButton).toContainText(/Free agent signed/i, {
+      timeout: 20000,
+    });
     await expect(
-      page.getByText(/Cap space changed -\$3,635,655/i).first()
+      page.getByText(/Roster count changed 3 -> 4/i).first()
     ).toBeVisible();
+    await expect(page.getByText(/Cap space unchanged/i).first()).toBeVisible();
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
       '4 / 15'
     );
-
-    const persistedTeamDocument = await getWorldTeamDocument(worldId, TEAM_CODE);
-    expect(getTeamPlayerIds(persistedTeamDocument)).toContain(
-      REVIEW_FREE_AGENT_ID
+    await receiptButton.click();
+    const capReceiptImpact = page.getByTestId(
+      'cockpit-activity-rail-move-impact-cap'
     );
+    await expect(capReceiptImpact).toContainText(/Tax Salary/i);
+    await expect(capReceiptImpact).toContainText(/\+\$2,449,421/);
+
+    const persistedTeamDocument = await getWorldTeamDocument(
+      worldId,
+      TEAM_CODE
+    );
+    expect(getTeamPlayerIds(persistedTeamDocument)).toContain(
+      MINIMUM_FREE_AGENT_ID
+    );
+    const persistedPlayerDocument = await getWorldPlayerDocument(
+      worldId,
+      TEAM_CODE,
+      MINIMUM_FREE_AGENT_ID
+    );
+    expect(
+      (persistedPlayerDocument?.contract as Record<string, unknown>)
+        ?.signingDate
+    ).toBe(REVIEW_WORLD_AS_OF_DATE);
+    expect(persistedPlayerDocument?.contract).toMatchObject({
+      contractType: 'Standard',
+      signedUsing: 'Minimum',
+      years: 1,
+      contractYears: 1,
+      totalValue: 1_357_763,
+      salariesByYear: [
+        expect.objectContaining({
+          season: '2026-27',
+          salary: 1_357_763,
+          capHit: 1_357_763,
+        }),
+      ],
+    });
+    const contractLedgers = persistedTeamDocument?.contractEventLedgers;
+    expect(Array.isArray(contractLedgers)).toBe(true);
+    expect(JSON.stringify(contractLedgers)).toContain('saved-world-signing');
+    expect(JSON.stringify(contractLedgers)).toContain(REVIEW_WORLD_AS_OF_DATE);
+
+    const salaryBooks = (
+      persistedTeamDocument?.totals as Record<string, unknown> | undefined
+    )?.salaryBooks as Record<string, unknown> | undefined;
+    const ledgers = salaryBooks?.ledgers as
+      | Record<string, Record<string, unknown>>
+      | undefined;
+    const bookTotals = [
+      ledgers?.teamSalary?.total,
+      ledgers?.apronTeamSalary?.total,
+      ledgers?.taxSalary?.total,
+    ];
+    expect(bookTotals.every((value) => typeof value === 'number')).toBe(true);
+    expect(new Set(bookTotals).size).toBe(3);
+    expect(ledgers?.taxSalary?.total).toBe(184_449_421);
+    const persistedSalaryBookInputs =
+      persistedTeamDocument?.salaryBookInputs as
+        | Record<string, Record<string, unknown>>
+        | undefined;
+    const persistedTaxInput = persistedSalaryBookInputs?.taxSalary;
+    const persistedTaxLines = Array.isArray(persistedTaxInput?.lineItems)
+      ? (persistedTaxInput.lineItems as Array<Record<string, unknown>>)
+      : [];
+    expect(
+      persistedTaxLines.filter(
+        (lineItem) =>
+          String(lineItem.id || '').startsWith('tax-salary:signing:') &&
+          Number(lineItem.amount) === 1_357_763 &&
+          JSON.stringify(lineItem.canonLeafIds).includes('CBA2-C08.2')
+      )
+    ).toHaveLength(1);
+    expect(
+      persistedTaxLines.filter(
+        (lineItem) =>
+          String(lineItem.id || '').startsWith('tax-salary:minimum-uplift:') &&
+          Number(lineItem.amount) === 1_091_658 &&
+          JSON.stringify(lineItem.canonLeafIds).includes('CBA2-C08.7')
+      )
+    ).toHaveLength(1);
 
     const persistedEvents = await getWorldEventDocuments(worldId);
     const signingEvent = persistedEvents.find(
@@ -477,19 +702,18 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     expect(signingEvent).toBeTruthy();
 
     await openDashboardTab(page, 'Full Cap Table');
-    await expect(page.locator('body')).toContainText(
-      /Review\s*Offer\s+Sheet/i
-    );
+    await expect(page.locator('body')).toContainText(/Zero\s*YOS\s+Minimum/i);
 
     await openDashboardTab(page, 'Roster');
-    await expect(page.locator('body')).toContainText(
-      /Review\s*Offer\s+Sheet/i
-    );
+    await expect(page.locator('body')).toContainText(/Zero\s*YOS\s+Minimum/i);
 
     await openDashboardTab(page, 'Team History');
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
-    await expect(page.getByText(/Signed Free Agent/i).first()).toBeVisible();
-    await expect(page.getByText(/signFreeAgent/i).first()).toBeVisible();
+    const historyTimeline = page.getByTestId('team-history-section-timeline');
+    await expect(
+      historyTimeline.getByTestId('team-history-event-summary').first()
+    ).toContainText(/Signed Free Agent/i, { timeout: 20000 });
+    await expect(historyTimeline).toContainText(/signFreeAgent/i);
 
     await openDashboardTab(page, 'Compare');
     await expect(page.getByTestId('comparison-event-count')).toContainText(
@@ -504,7 +728,7 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     );
     // BZE-218: Compare prints owner-facing display names, not raw player ids.
     await expect(page.getByTestId('comparison-roster-additions')).toContainText(
-      REVIEW_FREE_AGENT_NAME
+      MINIMUM_FREE_AGENT_NAME
     );
     await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
 
@@ -512,9 +736,7 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     await waitForBosDashboard(page);
     await ensureSpecificWorldSelected(page, worldId);
     await openDashboardTab(page, 'Roster');
-    await expect(page.locator('body')).toContainText(
-      /Review\s*Offer\s+Sheet/i
-    );
+    await expect(page.locator('body')).toContainText(/Zero\s*YOS\s+Minimum/i);
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
       '4 / 15'
     );
@@ -523,14 +745,138 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
       TEAM_CODE
     );
     expect(getTeamPlayerIds(persistedTeamDocumentAfterReload)).toContain(
-      REVIEW_FREE_AGENT_ID
+      MINIMUM_FREE_AGENT_ID
     );
+    expect(persistedTeamDocumentAfterReload?.contractEventLedgers).toEqual(
+      contractLedgers
+    );
+    expect(persistedTeamDocumentAfterReload?.totals).toEqual(
+      persistedTeamDocument?.totals
+    );
+    expect(persistedTeamDocumentAfterReload?.salaryBookInputs).toEqual(
+      persistedTeamDocument?.salaryBookInputs
+    );
+
+    await openDashboardTab(page, 'Team History');
+    const reloadedHistoryTimeline = page.getByTestId(
+      'team-history-section-timeline'
+    );
+    await expect(
+      reloadedHistoryTimeline.getByTestId('team-history-event-summary').first()
+    ).toContainText(/Signed Free Agent/i, { timeout: 20000 });
+
+    await page.screenshot({
+      path: testInfo.outputPath('governed-signing-success-1280x720.png'),
+      fullPage: false,
+    });
 
     testInfo.annotations.push({
       type: 'audit-note',
       description:
-        'BOS saved-world Free Agency row signs Review Offer Sheet Guard through the standard signFreeAgent action, publishes receipt/cockpit deltas, appears in Full Cap Table and Roster, records History and Compare evidence, and reloads from the saved world.',
-      });
+        'BOS saved-world Free Agency signs a qualifying zero-YOS player to the exact 2026-27 one-year $1,357,763 Minimum Standard Contract. The committed Tax Salary contains the separate $1,357,763 CBA2-C08.2 charge and $1,091,658 CBA2-C08.7 uplift, all three books remain distinct, and the exact result survives History, Compare, persistence, and reload.',
+    });
+  });
+
+  test('BOS ordinary signing needs Tax input before its baseline and writes nothing', async ({
+    page,
+  }, testInfo: TestInfo) => {
+    const worldId = await ensureWorldSelected(
+      page,
+      REVIEW_WORLD_AS_OF_DATE,
+      '2026-07-09T00:00:00Z'
+    );
+    const beforeTeam = await getWorldTeamDocument(worldId, TEAM_CODE);
+    const beforeEvents = await getWorldEventDocuments(worldId);
+    const beforePlayer = await getWorldPlayerDocument(
+      worldId,
+      TEAM_CODE,
+      MINIMUM_FREE_AGENT_ID
+    );
+
+    const modal = await openStandardFreeAgentModal(
+      page,
+      MINIMUM_FREE_AGENT_NAME
+    );
+    await modal.getByRole('radio', { name: /Sign Free Agent/i }).check();
+    await configureZeroYosMinimumContract(modal);
+    const confirmActionButton = modal.getByRole('button', {
+      name: /^Confirm Action$/i,
+    });
+    await expect(confirmActionButton).toBeEnabled();
+    await confirmActionButton.click();
+
+    const taxAlert = modal.getByRole('alert');
+    await expect(taxAlert).toContainText(/Tax Salary needs input/i, {
+      timeout: 20000,
+    });
+    await expect(taxAlert).toContainText(/baseline/i);
+    expect(await getWorldTeamDocument(worldId, TEAM_CODE)).toEqual(beforeTeam);
+    expect(await getWorldEventDocuments(worldId)).toEqual(beforeEvents);
+    expect(
+      await getWorldPlayerDocument(
+        worldId,
+        TEAM_CODE,
+        MINIMUM_FREE_AGENT_ID
+      )
+    ).toEqual(beforePlayer);
+    expect(JSON.stringify(beforeTeam?.salaryBookInputs)).not.toContain(
+      'minimum-uplift:'
+    );
+    await taxAlert.scrollIntoViewIfNeeded();
+
+    await page.screenshot({
+      path: testInfo.outputPath(
+        'governed-signing-tax-needs-input-1280x720.png'
+      ),
+      fullPage: false,
+    });
+    testInfo.annotations.push({
+      type: 'audit-note',
+      description:
+        'BOS saved-world Free Agency at 2026-07-08 reports that Tax Salary needs input because the authenticated CBA2-C08.1 baseline is not effective until 2026-07-09. Team, player override, event history, exception consumption, and both governed adjustment books remain unchanged.',
+    });
+  });
+
+  test('BOS ordinary signing fails closed during the Moratorium with no write', async ({
+    page,
+  }, testInfo: TestInfo) => {
+    const worldId = await ensureWorldSelected(page, '2026-07-01');
+    const beforeTeam = await getWorldTeamDocument(worldId, TEAM_CODE);
+    const beforeEvents = await getWorldEventDocuments(worldId);
+    const beforePlayer = await getWorldPlayerDocument(
+      worldId,
+      TEAM_CODE,
+      REVIEW_FREE_AGENT_ID
+    );
+
+    const modal = await openStandardFreeAgentModal(page);
+    await modal.getByRole('radio', { name: /Sign Free Agent/i }).check();
+    const confirmActionButton = modal.getByRole('button', {
+      name: /^Confirm Action$/i,
+    });
+    await expect(confirmActionButton).toBeEnabled();
+    await confirmActionButton.click();
+
+    const moratoriumAlert = modal.getByRole('alert');
+    await expect(moratoriumAlert).toContainText(/Moratorium/i, {
+      timeout: 20000,
+    });
+    expect(await getWorldTeamDocument(worldId, TEAM_CODE)).toEqual(beforeTeam);
+    expect(await getWorldEventDocuments(worldId)).toEqual(beforeEvents);
+    expect(
+      await getWorldPlayerDocument(worldId, TEAM_CODE, REVIEW_FREE_AGENT_ID)
+    ).toEqual(beforePlayer);
+    await moratoriumAlert.scrollIntoViewIfNeeded();
+
+    await page.screenshot({
+      path: testInfo.outputPath('governed-signing-fail-closed-1280x720.png'),
+      fullPage: false,
+    });
+    testInfo.annotations.push({
+      type: 'audit-note',
+      description:
+        'BOS ordinary Veteran signing at saved-world date 2026-07-01 reports the Moratorium boundary and leaves the Team, player override, and immutable world-event collection unchanged.',
+    });
   });
 
   test('BOS Full Cap launcher signs a standard FA, persists, and reloads', async ({
@@ -556,9 +902,9 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     });
     await expect(signFreeAgentRadio).toBeVisible();
     await expect(modal.getByText(/^Sign Free Agent$/i).first()).toBeVisible();
-    await expect(
-      modal.getByText(/Sign Free Agent \(Preview\)/i)
-    ).toHaveCount(0);
+    await expect(modal.getByText(/Sign Free Agent \(Preview\)/i)).toHaveCount(
+      0
+    );
     await expect(page.getByLabel(/^Offer Sheet$/i)).toHaveCount(0);
 
     const confirmActionButton = page.getByRole('button', {
@@ -577,15 +923,20 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
       /Free agent signed/i,
       { timeout: 20000 }
     );
-    await expect(page.getByText(/Roster count changed 3 -> 4/i).first()).toBeVisible();
     await expect(
-      page.getByText(/Cap space changed -\$3,635,655/i).first()
+      page.getByText(/Roster count changed 3 -> 4/i).first()
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Cap space changed -\$3,442,237/i).first()
     ).toBeVisible();
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
       '4 / 15'
     );
 
-    const persistedTeamDocument = await getWorldTeamDocument(worldId, TEAM_CODE);
+    const persistedTeamDocument = await getWorldTeamDocument(
+      worldId,
+      TEAM_CODE
+    );
     expect(getTeamPlayerIds(persistedTeamDocument)).toContain(
       REVIEW_FREE_AGENT_ID
     );
@@ -597,17 +948,13 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     expect(signingEvent).toBeTruthy();
 
     await openDashboardTab(page, 'Full Cap Table');
-    await expect(page.locator('body')).toContainText(
-      /Review\s*Offer\s+Sheet/i
-    );
+    await expect(page.locator('body')).toContainText(/Review\s*Offer\s+Sheet/i);
     await expect(
       page.getByTestId('cap-sheet-full-sign-free-agent-button')
     ).toHaveAttribute('data-action-exposure-classification', 'V1 supported');
 
     await openDashboardTab(page, 'Roster');
-    await expect(page.locator('body')).toContainText(
-      /Review\s*Offer\s+Sheet/i
-    );
+    await expect(page.locator('body')).toContainText(/Review\s*Offer\s+Sheet/i);
 
     await openDashboardTab(page, 'Team History');
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
@@ -635,9 +982,7 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     await waitForBosDashboard(page);
     await ensureSpecificWorldSelected(page, worldId);
     await openDashboardTab(page, 'Roster');
-    await expect(page.locator('body')).toContainText(
-      /Review\s*Offer\s+Sheet/i
-    );
+    await expect(page.locator('body')).toContainText(/Review\s*Offer\s+Sheet/i);
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
       '4 / 15'
     );
