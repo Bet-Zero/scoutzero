@@ -18,6 +18,8 @@ const BOS_URL = '/gm/BOS';
 const TEAM_CODE = 'BOS';
 const REVIEW_FREE_AGENT_NAME = 'Review Offer Sheet Guard';
 const REVIEW_FREE_AGENT_ID = 'review_offer_sheet_guard';
+const MINIMUM_FREE_AGENT_NAME = 'Zero YOS Minimum Guard';
+const MINIMUM_FREE_AGENT_ID = 'review_zero_yos_minimum_guard';
 const REVIEW_FIRESTORE_EMULATOR_HOST = '127.0.0.1:8082';
 const REVIEW_FIRESTORE_PROJECT_ID = 'demo-architect-review';
 const REVIEW_WORLD_SEASON = '2026-27';
@@ -240,11 +242,7 @@ const governedSalaryBookInputs = () => {
         ...Array.from({ length: 8 }, (_, index) =>
           line('apron-team-salary', `CBA2-C07.${index + 3}`, 0)
         ),
-        line(
-          'apron-team-salary',
-          'CBA2-C07.11',
-          -(11 * 1_357_763)
-        ),
+        line('apron-team-salary', 'CBA2-C07.11', -(11 * 1_357_763)),
       ],
     },
     taxSalary: {
@@ -437,18 +435,24 @@ const openDashboardTab = async (page: Page, label: string) => {
   await tab.click();
 };
 
-const standardFreeAgentRow = (page: Page): Locator =>
+const standardFreeAgentRow = (
+  page: Page,
+  playerName = REVIEW_FREE_AGENT_NAME
+): Locator =>
   page.locator('li').filter({
-    has: page.getByText(new RegExp(`^${REVIEW_FREE_AGENT_NAME}$`, 'i')),
+    has: page.getByText(new RegExp(`^${playerName}$`, 'i')),
   });
 
-const openStandardFreeAgentModal = async (page: Page) => {
+const openStandardFreeAgentModal = async (
+  page: Page,
+  playerName = REVIEW_FREE_AGENT_NAME
+) => {
   await openDashboardTab(page, 'Free Agency');
   await expect(
     page.getByRole('heading', { name: /^Free Agent Pool$/i })
   ).toBeVisible();
 
-  const freeAgentRow = standardFreeAgentRow(page);
+  const freeAgentRow = standardFreeAgentRow(page, playerName);
   await expect(freeAgentRow).toBeVisible({ timeout: 15000 });
 
   const menuButton = freeAgentRow
@@ -471,6 +475,16 @@ const openStandardFreeAgentModal = async (page: Page) => {
   const modal = page.getByTestId('edit-contract-modal');
   await expect(modal).toBeVisible({ timeout: 20000 });
   return modal;
+};
+
+const configureZeroYosMinimumContract = async (modal: Locator) => {
+  const signingMethod = modal.locator('select').filter({ hasText: 'Minimum' });
+  await expect(signingMethod).toHaveCount(1);
+  await signingMethod.selectOption('Minimum');
+  await modal.getByTestId('contract-years').selectOption('1');
+  const firstYearSalary = modal.locator('input[inputmode="decimal"]').first();
+  await firstYearSalary.fill('1357763');
+  await expect(firstYearSalary).toHaveValue('$1,357,763');
 };
 
 const openFullCapStandardFreeAgentModal = async (page: Page) => {
@@ -546,14 +560,17 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
 
     const beforeBaseTeamDocument = await getBaseTeamDocument(TEAM_CODE);
     expect(getTeamPlayerIds(beforeBaseTeamDocument)).not.toContain(
-      REVIEW_FREE_AGENT_ID
+      MINIMUM_FREE_AGENT_ID
     );
 
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
       '3 / 15'
     );
 
-    const modal = await openStandardFreeAgentModal(page);
+    const modal = await openStandardFreeAgentModal(
+      page,
+      MINIMUM_FREE_AGENT_NAME
+    );
     await expect(
       page.getByRole('heading', { name: /^Available Actions$/i })
     ).toBeVisible();
@@ -576,39 +593,58 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     await expect(
       page.getByRole('heading', { name: /^New Contract Preview$/i })
     ).toBeVisible();
+    await configureZeroYosMinimumContract(modal);
     await expect(confirmActionButton).toBeEnabled();
     await confirmActionButton.click();
 
-    await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
-      /Free agent signed/i,
-      { timeout: 20000 }
-    );
+    const receiptButton = page.getByTestId('cockpit-last-receipt');
+    await expect(receiptButton).toContainText(/Free agent signed/i, {
+      timeout: 20000,
+    });
     await expect(
       page.getByText(/Roster count changed 3 -> 4/i).first()
     ).toBeVisible();
-    await expect(
-      page.getByText(/Cap space changed -\$3,442,237/i).first()
-    ).toBeVisible();
+    await expect(page.getByText(/Cap space unchanged/i).first()).toBeVisible();
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
       '4 / 15'
     );
+    await receiptButton.click();
+    const capReceiptImpact = page.getByTestId(
+      'cockpit-activity-rail-move-impact-cap'
+    );
+    await expect(capReceiptImpact).toContainText(/Tax Salary/i);
+    await expect(capReceiptImpact).toContainText(/\+\$2,449,421/);
 
     const persistedTeamDocument = await getWorldTeamDocument(
       worldId,
       TEAM_CODE
     );
     expect(getTeamPlayerIds(persistedTeamDocument)).toContain(
-      REVIEW_FREE_AGENT_ID
+      MINIMUM_FREE_AGENT_ID
     );
     const persistedPlayerDocument = await getWorldPlayerDocument(
       worldId,
       TEAM_CODE,
-      REVIEW_FREE_AGENT_ID
+      MINIMUM_FREE_AGENT_ID
     );
     expect(
       (persistedPlayerDocument?.contract as Record<string, unknown>)
         ?.signingDate
     ).toBe(REVIEW_WORLD_AS_OF_DATE);
+    expect(persistedPlayerDocument?.contract).toMatchObject({
+      contractType: 'Standard',
+      signedUsing: 'Minimum',
+      years: 1,
+      contractYears: 1,
+      totalValue: 1_357_763,
+      salariesByYear: [
+        expect.objectContaining({
+          season: '2026-27',
+          salary: 1_357_763,
+          capHit: 1_357_763,
+        }),
+      ],
+    });
     const contractLedgers = persistedTeamDocument?.contractEventLedgers;
     expect(Array.isArray(contractLedgers)).toBe(true);
     expect(JSON.stringify(contractLedgers)).toContain('saved-world-signing');
@@ -627,6 +663,31 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     ];
     expect(bookTotals.every((value) => typeof value === 'number')).toBe(true);
     expect(new Set(bookTotals).size).toBe(3);
+    expect(ledgers?.taxSalary?.total).toBe(184_449_421);
+    const persistedSalaryBookInputs =
+      persistedTeamDocument?.salaryBookInputs as
+        | Record<string, Record<string, unknown>>
+        | undefined;
+    const persistedTaxInput = persistedSalaryBookInputs?.taxSalary;
+    const persistedTaxLines = Array.isArray(persistedTaxInput?.lineItems)
+      ? (persistedTaxInput.lineItems as Array<Record<string, unknown>>)
+      : [];
+    expect(
+      persistedTaxLines.filter(
+        (lineItem) =>
+          String(lineItem.id || '').startsWith('tax-salary:signing:') &&
+          Number(lineItem.amount) === 1_357_763 &&
+          JSON.stringify(lineItem.canonLeafIds).includes('CBA2-C08.2')
+      )
+    ).toHaveLength(1);
+    expect(
+      persistedTaxLines.filter(
+        (lineItem) =>
+          String(lineItem.id || '').startsWith('tax-salary:minimum-uplift:') &&
+          Number(lineItem.amount) === 1_091_658 &&
+          JSON.stringify(lineItem.canonLeafIds).includes('CBA2-C08.7')
+      )
+    ).toHaveLength(1);
 
     const persistedEvents = await getWorldEventDocuments(worldId);
     const signingEvent = persistedEvents.find(
@@ -635,15 +696,18 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     expect(signingEvent).toBeTruthy();
 
     await openDashboardTab(page, 'Full Cap Table');
-    await expect(page.locator('body')).toContainText(/Review\s*Offer\s+Sheet/i);
+    await expect(page.locator('body')).toContainText(/Zero\s*YOS\s+Minimum/i);
 
     await openDashboardTab(page, 'Roster');
-    await expect(page.locator('body')).toContainText(/Review\s*Offer\s+Sheet/i);
+    await expect(page.locator('body')).toContainText(/Zero\s*YOS\s+Minimum/i);
 
     await openDashboardTab(page, 'Team History');
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
-    await expect(page.getByText(/Signed Free Agent/i).first()).toBeVisible();
-    await expect(page.getByText(/signFreeAgent/i).first()).toBeVisible();
+    const historyTimeline = page.getByTestId('team-history-section-timeline');
+    await expect(
+      historyTimeline.getByTestId('team-history-event-summary').first()
+    ).toContainText(/Signed Free Agent/i, { timeout: 20000 });
+    await expect(historyTimeline).toContainText(/signFreeAgent/i);
 
     await openDashboardTab(page, 'Compare');
     await expect(page.getByTestId('comparison-event-count')).toContainText(
@@ -658,7 +722,7 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     );
     // BZE-218: Compare prints owner-facing display names, not raw player ids.
     await expect(page.getByTestId('comparison-roster-additions')).toContainText(
-      REVIEW_FREE_AGENT_NAME
+      MINIMUM_FREE_AGENT_NAME
     );
     await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
 
@@ -666,7 +730,7 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     await waitForBosDashboard(page);
     await ensureSpecificWorldSelected(page, worldId);
     await openDashboardTab(page, 'Roster');
-    await expect(page.locator('body')).toContainText(/Review\s*Offer\s+Sheet/i);
+    await expect(page.locator('body')).toContainText(/Zero\s*YOS\s+Minimum/i);
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
       '4 / 15'
     );
@@ -675,14 +739,25 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
       TEAM_CODE
     );
     expect(getTeamPlayerIds(persistedTeamDocumentAfterReload)).toContain(
-      REVIEW_FREE_AGENT_ID
+      MINIMUM_FREE_AGENT_ID
     );
     expect(persistedTeamDocumentAfterReload?.contractEventLedgers).toEqual(
       contractLedgers
     );
+    expect(persistedTeamDocumentAfterReload?.totals).toEqual(
+      persistedTeamDocument?.totals
+    );
+    expect(persistedTeamDocumentAfterReload?.salaryBookInputs).toEqual(
+      persistedTeamDocument?.salaryBookInputs
+    );
 
     await openDashboardTab(page, 'Team History');
-    await expect(page.getByText(/Signed Free Agent/i).first()).toBeVisible();
+    const reloadedHistoryTimeline = page.getByTestId(
+      'team-history-section-timeline'
+    );
+    await expect(
+      reloadedHistoryTimeline.getByTestId('team-history-event-summary').first()
+    ).toContainText(/Signed Free Agent/i, { timeout: 20000 });
 
     await page.screenshot({
       path: testInfo.outputPath('governed-signing-success-1280x720.png'),
@@ -692,7 +767,7 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
     testInfo.annotations.push({
       type: 'audit-note',
       description:
-        'BOS saved-world Free Agency row signs Review Offer Sheet Guard through the standard signFreeAgent action, publishes receipt/cockpit deltas, appears in Full Cap Table and Roster, records History and Compare evidence, and reloads from the saved world.',
+        'BOS saved-world Free Agency signs a qualifying zero-YOS player to the exact 2026-27 one-year $1,357,763 Minimum Standard Contract. The committed Tax Salary contains the separate $1,357,763 CBA2-C08.2 charge and $1,091,658 CBA2-C08.7 uplift, all three books remain distinct, and the exact result survives History, Compare, persistence, and reload.',
     });
   });
 

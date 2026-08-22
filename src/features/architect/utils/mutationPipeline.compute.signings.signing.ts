@@ -50,9 +50,7 @@ export function resolveSigningMechanismForPipeline(
       .toLowerCase()
       .replace(/[^a-z]/g, '');
     if (!normalized) return 'UNKNOWN';
-    if (
-      ['none', 'capspace', 'capspacerights', 'rights'].includes(normalized)
-    ) {
+    if (['none', 'capspace', 'capspacerights', 'rights'].includes(normalized)) {
       return 'CAP_SPACE_OR_RIGHTS';
     }
     if (['fullmle', 'ntmle', 'mle', 'full'].includes(normalized)) {
@@ -180,10 +178,12 @@ function appendSigningSalaryBookAdjustments({
   const signingAt = Date.parse(authority.effectiveAt);
   const taxLineItems = [...taxInput.lineItems];
   const taxSigningLineId = `tax-salary:signing:${operationId}`;
-  if (
+  const canAppendPostBaselineTaxLine =
     Number.isFinite(taxBaselineAt) &&
     Number.isFinite(signingAt) &&
-    signingAt > taxBaselineAt &&
+    signingAt > taxBaselineAt;
+  if (
+    canAppendPostBaselineTaxLine &&
     !taxLineItems.some((lineItem) => lineItem.id === taxSigningLineId)
   ) {
     taxLineItems.push({
@@ -221,20 +221,39 @@ function appendSigningSalaryBookAdjustments({
     mechanism === 'MINIMUM' &&
     (yearsOfService === null || yearsOfService < 0)
   ) {
-    return 'Minimum signing needs exact nonnegative years of service before Apron Team Salary can be governed.';
+    return 'Minimum signing needs exact nonnegative years of service before Apron Team Salary and Tax Salary can be governed.';
   }
   if (
-    apronLineItems &&
     mechanism === 'MINIMUM' &&
     yearsOfService !== null &&
     yearsOfService <= 1
   ) {
-    const twoYosMinimum = getCapRulesForYear(
-      authority.salaryCapYear
-    ).salaries.getMinimumForYOS(2);
-    const uplift = Math.max(0, twoYosMinimum - authority.firstYearCapHit);
+    const minimumScale = getCapRulesForYear(authority.salaryCapYear).salaries;
+    const applicableMinimum = minimumScale.getMinimumForYOS(yearsOfService);
+    const twoYosMinimum = minimumScale.getMinimumForYOS(2);
+    const uplift = Math.max(0, twoYosMinimum - applicableMinimum);
+    const taxMinimumUpliftLineId = `tax-salary:minimum-uplift:${operationId}`;
+    if (
+      uplift > 0 &&
+      canAppendPostBaselineTaxLine &&
+      !taxLineItems.some((lineItem) => lineItem.id === taxMinimumUpliftLineId)
+    ) {
+      taxLineItems.push({
+        id: taxMinimumUpliftLineId,
+        ledger: 'tax-salary',
+        label: 'Qualifying zero/one-YOS Minimum Contract uplift',
+        amount: uplift,
+        effectiveFrom: authority.effectiveAt,
+        canonLeafIds: ['CBA2-C08.7'],
+        source: {
+          authority: 'team-state',
+          reference: `signing-operation:${operationId}`,
+        },
+      });
+    }
     const apronSigningLineId = `apron-team-salary:minimum-uplift:${operationId}`;
     if (
+      apronLineItems &&
       uplift > 0 &&
       !apronLineItems.some((lineItem) => lineItem.id === apronSigningLineId)
     ) {
@@ -562,14 +581,22 @@ export function computeSigningResult({
   const normalizedContract = normalizeContractForWorld({
     ...contract,
     signingTeam: teamCode,
-    signingDate: signingAuthority?.worldDate || new Date(timestamp).toISOString(),
+    signingDate:
+      signingAuthority?.worldDate || new Date(timestamp).toISOString(),
   }) as ArchitectMutationContract | null;
   if (!normalizedContract) {
-    return { success: false, error: 'Signing contract could not be normalized.' };
+    return {
+      success: false,
+      error: 'Signing contract could not be normalized.',
+    };
   }
 
   const signingHistory =
-    signingAuthority && worldId && operationId && authoringIdentity && recordedAt
+    signingAuthority &&
+    worldId &&
+    operationId &&
+    authoringIdentity &&
+    recordedAt
       ? buildGovernedSigningHistory({
           contract: normalizedContract,
           playerId,
@@ -711,7 +738,8 @@ export function computeSigningResult({
         (offerSheet) => String(offerSheet.playerId || '').trim() !== playerId
       );
       homeTeamChanged =
-        incomingOfferSheets.length !== updatedHomeTeam.incomingOfferSheets.length;
+        incomingOfferSheets.length !==
+        updatedHomeTeam.incomingOfferSheets.length;
       updatedHomeTeam.incomingOfferSheets = incomingOfferSheets;
     }
     if (

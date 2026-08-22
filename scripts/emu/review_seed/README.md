@@ -15,6 +15,7 @@ These fixtures provide just enough data to boot the Architect feature and Trade 
 - `baseTeams/MIN.json` — Minnesota Timberwolves **over-the-second-apron** fixture (BZE-91)
 - `basePlayers/` — Player records for the seeded teams
 - `basePlayers/review_offer_sheet_guard.json` — Unrostered restricted free agent for review-mode free-agency coverage
+- `basePlayers/review_zero_yos_minimum_guard.json` — Unrostered zero-YOS unrestricted free agent for the governed Minimum-contract salary-book proof
 - `basePlayers/mia_*.json` — Roster + own-free-agent records for the MIA coverage fixture
 - `baseEntitlements.json` — Sample entitlements for testing
 

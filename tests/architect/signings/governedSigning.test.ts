@@ -826,14 +826,43 @@ describe('governed signing result and immutable history', () => {
             lineItem.amount === teamCharge
         )
     ).toBe(true);
+    expect(
+      result.teamUpdates?.[0]?.team.salaryBookInputs?.apronAdjustments
+        .status === 'ready' &&
+        result.teamUpdates[0].team.salaryBookInputs.apronAdjustments.lineItems.some(
+          (lineItem) =>
+            lineItem.id === `apron-team-salary:minimum-uplift:${OPERATION_ID}`
+        )
+    ).toBe(false);
+    expect(
+      result.teamUpdates?.[0]?.team.salaryBookInputs?.taxSalary.status ===
+        'ready' &&
+        result.teamUpdates[0].team.salaryBookInputs.taxSalary.lineItems.some(
+          (lineItem) =>
+            lineItem.id === `tax-salary:minimum-uplift:${OPERATION_ID}`
+        )
+    ).toBe(false);
   });
 
-  it('adds the Canon C07.3 Apron uplift for a qualifying zero-YOS Minimum Contract', () => {
+  it('adds separate exact C07.3 Apron and C08.7 Tax uplifts for a qualifying 2026-27 zero-YOS Minimum Contract', () => {
     const rules = getCapRulesForYear(2027);
     const zeroYosMinimum = rules.salaries.getMinimumForYOS(0);
     const twoYosMinimum = rules.salaries.getMinimumForYOS(2);
+    expect(zeroYosMinimum).toBe(1_357_763);
+    expect(twoYosMinimum).toBe(2_449_421);
+    const uplift = twoYosMinimum - zeroYosMinimum;
+    expect(uplift).toBe(1_091_658);
+    const targetTeam = governedTeam();
+    expect(
+      targetTeam.salaryBookInputs?.taxSalary.status === 'ready' &&
+        targetTeam.salaryBookInputs.taxSalary.lineItems.some(
+          (lineItem) =>
+            lineItem.canonLeafIds.includes('CBA2-C08.7') &&
+            lineItem.amount === 0
+        )
+    ).toBe(true);
     const result = computeSigning({
-      targetTeam: governedTeam(),
+      targetTeam,
       targetPlayer: player({ bio: { yearsExperience: 0 } }),
       signingContract: contract({
         years: 1,
@@ -852,16 +881,134 @@ describe('governed signing result and immutable history', () => {
       signedUsing: 'Minimum',
     });
     expect(result.success, String(result.error || '')).toBe(true);
-    const apronInput =
-      result.teamUpdates?.[0]?.team.salaryBookInputs?.apronAdjustments;
+    const updatedTeam = result.teamUpdates?.[0]?.team;
+    const apronInput = updatedTeam?.salaryBookInputs?.apronAdjustments;
+    const taxInput = updatedTeam?.salaryBookInputs?.taxSalary;
+    expect(apronInput?.status).toBe('ready');
+    expect(taxInput?.status).toBe('ready');
+    if (apronInput?.status !== 'ready' || taxInput?.status !== 'ready') return;
+
     expect(
-      apronInput?.status === 'ready' &&
-        apronInput.lineItems.some(
+      apronInput.lineItems.filter(
+        (lineItem) =>
+          lineItem.id === `apron-team-salary:minimum-uplift:${OPERATION_ID}` &&
+          lineItem.canonLeafIds.includes('CBA2-C07.3') &&
+          lineItem.amount === uplift
+      )
+    ).toHaveLength(1);
+    expect(
+      taxInput.lineItems.filter(
+        (lineItem) =>
+          lineItem.id === `tax-salary:minimum-uplift:${OPERATION_ID}` &&
+          lineItem.canonLeafIds.includes('CBA2-C08.7') &&
+          lineItem.amount === uplift
+      )
+    ).toHaveLength(1);
+    expect(
+      taxInput.lineItems.filter(
+        (lineItem) =>
+          lineItem.id === `tax-salary:signing:${OPERATION_ID}` &&
+          lineItem.canonLeafIds.includes('CBA2-C08.2') &&
+          lineItem.amount === zeroYosMinimum
+      )
+    ).toHaveLength(1);
+    expect(updatedTeam?.totals).toMatchObject({
+      teamSalary: 15_357_763,
+      apronTeamSalary: 17_449_421,
+      taxSalary: 102_449_421,
+    });
+    expect(
+      new Set([
+        updatedTeam?.totals?.teamSalary,
+        updatedTeam?.totals?.apronTeamSalary,
+        updatedTeam?.totals?.taxSalary,
+      ]).size
+    ).toBe(3);
+  });
+
+  it('adds the exact C07.3 and C08.7 uplift for a qualifying one-YOS Minimum Contract', () => {
+    const rules = getCapRulesForYear(2027);
+    const oneYosMinimum = rules.salaries.getMinimumForYOS(1);
+    const uplift = rules.salaries.getMinimumForYOS(2) - oneYosMinimum;
+    expect(oneYosMinimum).toBe(2_185_116);
+    expect(uplift).toBe(264_305);
+    const result = computeSigning({
+      targetTeam: governedTeam(),
+      targetPlayer: player({ bio: { yearsExperience: 1 } }),
+      signingContract: contract({
+        years: 1,
+        contractYears: 1,
+        totalValue: oneYosMinimum,
+        signedUsing: 'Minimum',
+        salariesByYear: [
+          {
+            season: '2026-27',
+            salary: oneYosMinimum,
+            capHit: oneYosMinimum,
+            guaranteed: true,
+          },
+        ],
+      }),
+      signedUsing: 'Minimum',
+    });
+    expect(result.success, String(result.error || '')).toBe(true);
+    const inputs = result.teamUpdates?.[0]?.team.salaryBookInputs;
+    expect(
+      inputs?.apronAdjustments.status === 'ready' &&
+        inputs.apronAdjustments.lineItems.some(
           (lineItem) =>
-            lineItem.canonLeafIds.includes('CBA2-C07.3') &&
-            lineItem.amount === twoYosMinimum - zeroYosMinimum
+            lineItem.id ===
+              `apron-team-salary:minimum-uplift:${OPERATION_ID}` &&
+            lineItem.amount === uplift
         )
     ).toBe(true);
+    expect(
+      inputs?.taxSalary.status === 'ready' &&
+        inputs.taxSalary.lineItems.some(
+          (lineItem) =>
+            lineItem.id === `tax-salary:minimum-uplift:${OPERATION_ID}` &&
+            lineItem.amount === uplift
+        )
+    ).toBe(true);
+  });
+
+  it('does not add C07.3 or C08.7 operation lines for a non-Minimum Contract shape', () => {
+    const zeroYosMinimum =
+      getCapRulesForYear(2027).salaries.getMinimumForYOS(0);
+    const result = computeSigning({
+      targetTeam: governedTeam(),
+      targetPlayer: player({ bio: { yearsExperience: 0 } }),
+      signingContract: contract({
+        years: 1,
+        contractYears: 1,
+        totalValue: zeroYosMinimum,
+        signedUsing: null,
+        exceptionType: 'None',
+        salariesByYear: [
+          {
+            season: '2026-27',
+            salary: zeroYosMinimum,
+            capHit: zeroYosMinimum,
+            guaranteed: true,
+          },
+        ],
+      }),
+      signedUsing: null,
+    });
+    expect(result.success, String(result.error || '')).toBe(true);
+    const inputs = result.teamUpdates?.[0]?.team.salaryBookInputs;
+    expect(
+      inputs?.apronAdjustments.status === 'ready' &&
+        inputs.apronAdjustments.lineItems.some((lineItem) =>
+          lineItem.id.includes(`minimum-uplift:${OPERATION_ID}`)
+        )
+    ).toBe(false);
+    expect(
+      inputs?.taxSalary.status === 'ready' &&
+        inputs.taxSalary.lineItems.some((lineItem) =>
+          lineItem.id.includes(`minimum-uplift:${OPERATION_ID}`)
+        )
+    ).toBe(false);
   });
 
   it('fails closed when a Minimum signing lacks exact years of service', () => {
@@ -996,6 +1143,93 @@ describe('governed signing result and immutable history', () => {
         governedSigningEffectiveAt: '2026-07-08T00:00:00Z',
       },
     });
+  });
+
+  it('persists and reloads one exact C08.7 Tax uplift without duplication', async () => {
+    const zeroYosMinimum =
+      getCapRulesForYear(2027).salaries.getMinimumForYOS(0);
+    const uplift =
+      getCapRulesForYear(2027).salaries.getMinimumForYOS(2) - zeroYosMinimum;
+    const targetTeam = governedTeam();
+    const targetPlayer = player({ bio: { yearsExperience: 0 } });
+    const signingContract = contract({
+      years: 1,
+      contractYears: 1,
+      totalValue: zeroYosMinimum,
+      signedUsing: 'Minimum',
+      salariesByYear: [
+        {
+          season: '2026-27',
+          salary: zeroYosMinimum,
+          capHit: zeroYosMinimum,
+          guaranteed: true,
+        },
+      ],
+    });
+    seedWorldMetadata(WORLD_ID, {
+      worldId: WORLD_ID,
+      userId: 'user-bze-286',
+      worldName: 'BZE-286 zero-YOS signing world',
+      season: '2026-27',
+      asOfDate: WORLD_DATE,
+      parentWorldId: null,
+    });
+    seedTeamSnapshot(WORLD_ID, TEAM_ID, targetTeam as MockTeam, {
+      padRoster: false,
+    });
+    seedMockData(
+      `architect_worlds/${WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`,
+      targetPlayer
+    );
+    const computed = computeSigning({
+      targetTeam,
+      targetPlayer,
+      signingContract,
+      signedUsing: 'Minimum',
+    });
+    expect(computed.success, String(computed.error || '')).toBe(true);
+    const computedTaxTotal = computed.teamUpdates?.[0]?.team.totals?.taxSalary;
+    expect(computedTaxTotal).toBe(102_449_421);
+
+    const persisted = await persistWorldMutation({
+      worldId: WORLD_ID,
+      seasonId: '2026-27',
+      mutationType: 'signFreeAgent',
+      computeResult: computed,
+      committedTeamUpdates: computed.teamUpdates || [],
+      timestamp: Date.parse(RECORDED_AT),
+    });
+    expect(persisted.success, String(persisted.error || '')).toBe(true);
+    const reloaded = getMockTeamSnapshot(WORLD_ID, TEAM_ID);
+    expect(reloaded?.totals?.taxSalary).toBe(computedTaxTotal);
+    expect(reloaded?.totals).toMatchObject({
+      teamSalary: 15_357_763,
+      apronTeamSalary: 17_449_421,
+      taxSalary: 102_449_421,
+    });
+    const reloadedTaxInput = reloaded?.salaryBookInputs?.taxSalary;
+    expect(reloadedTaxInput?.status).toBe('ready');
+    if (reloadedTaxInput?.status !== 'ready') return;
+    expect(
+      reloadedTaxInput.lineItems.filter(
+        (lineItem) =>
+          lineItem.id === `tax-salary:minimum-uplift:${OPERATION_ID}` &&
+          lineItem.canonLeafIds.includes('CBA2-C08.7') &&
+          lineItem.amount === uplift
+      )
+    ).toHaveLength(1);
+    expect(
+      reloadedTaxInput.lineItems.filter(
+        (lineItem) =>
+          lineItem.id === `tax-salary:signing:${OPERATION_ID}` &&
+          lineItem.canonLeafIds.includes('CBA2-C08.2') &&
+          lineItem.amount === zeroYosMinimum
+      )
+    ).toHaveLength(1);
+    expect(JSON.stringify(persisted.event)).toContain('signFreeAgent');
+    expect(JSON.stringify(reloaded?.contractEventLedgers)).toContain(
+      'saved-world-signing'
+    );
   });
 
   it('rejects a concurrent Team change with no player, event, or signing overwrite', async () => {
@@ -1161,9 +1395,7 @@ describe('governed signing waiver set-off', () => {
     expect(result.applied).toBe(true);
     expect(result.reduction).toBe(
       Math.floor(
-        (10_000_000 -
-          getCapRulesForYear(2027).salaries.getMinimumForYOS(1)) /
-          2
+        (10_000_000 - getCapRulesForYear(2027).salaries.getMinimumForYOS(1)) / 2
       )
     );
     const updated = GovernedWaiverLifecycleZ.parse(
