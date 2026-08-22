@@ -8,6 +8,7 @@ import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
 import {
   getHardCapStatus,
   HARD_CAP_TYPES,
+  resolveSalaryCapYear,
 } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import type { AuthoritativeHardCapResult, TeamContext } from '../constants/types';
 
@@ -220,12 +221,7 @@ export function validateHardCap(
       firstApron: actualFirstApron,
       secondApron,
     },
-    salaryCapYear:
-      typeof context.currentYear === 'number'
-        ? context.currentYear
-        : typeof context.yearKey === 'number'
-          ? context.yearKey
-          : null,
+    salaryCapYear: resolveSalaryCapYear(context),
   });
 
   if (!hardCapStatus.isHardCapped) {

@@ -28,6 +28,10 @@ import {
   type TeamSalaryBookInputs,
 } from '@/schemas/salaryBooks';
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
+import {
+  TradeHardCapLedgerZ,
+  type TradeHardCapLedgerEntry,
+} from '@/schemas/tradeApronRestriction';
 
 // ============================================================
 // Private types
@@ -93,6 +97,7 @@ export interface LooseBaseTeamDoc extends UnknownRecord {
   deadCap?: unknown[] | null;
   salaryBookInputs?: TeamSalaryBookInputs | null;
   contractEventLedgers?: ContractEventLedgerPayload[] | null;
+  hardCapLedger?: TradeHardCapLedgerEntry[] | null;
   totals?:
     | (UnknownRecord & {
         hardCapLevel?: string | null;
@@ -537,6 +542,13 @@ export function readLooseBaseTeamDoc(
   } else if (record.salaryBookInputs !== undefined) {
     normalized.salaryBookInputs = TeamSalaryBookInputsZ.parse(
       record.salaryBookInputs
+    );
+  }
+  if (record.hardCapLedger === null) {
+    normalized.hardCapLedger = null;
+  } else if (record.hardCapLedger !== undefined) {
+    normalized.hardCapLedger = TradeHardCapLedgerZ.parse(
+      record.hardCapLedger
     );
   }
   if (record.totals === null) {

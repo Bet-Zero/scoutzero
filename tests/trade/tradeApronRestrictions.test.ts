@@ -9,6 +9,8 @@ import {
 } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/hardCapValidation';
+import { createTPE } from '@/features/architect/utils/tradeMachine/utils/tpeValidation';
+import { hydrateBaseTeam } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import type {
   TradeSalaryPathComponent,
   TradeSalaryPathEvaluation,
@@ -376,6 +378,7 @@ describe('governed Trade Machine apron restrictions', () => {
     expect(selectHardCapLedgerEntry(serialized, 2027)?.entryId).toBe(
       'TRADE-1:hard-cap:DET'
     );
+    expect(selectHardCapLedgerEntry(serialized, 2028)).toBeNull();
 
     const status = getHardCapStatus(
       { hardCapLedger: serialized },
@@ -429,6 +432,63 @@ describe('governed Trade Machine apron restrictions', () => {
     });
   });
 
+  it('fails closed instead of applying a persisted hard cap without its salary cap year', () => {
+    const entry = createTradeHardCapLedgerEntry({
+      evaluation: evaluateAggregated(SECOND_APRON),
+      teamCode: 'DET',
+      transactionId: 'TRADE-NO-YEAR',
+      effectiveAt: '2026-07-15T16:00:00Z',
+    });
+    const status = getHardCapStatus(
+      { hardCapLedger: [entry] },
+      { capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON } }
+    );
+
+    expect(status).toMatchObject({
+      isHardCapped: true,
+      hardCapType: 'UNKNOWN',
+      failClosed: true,
+      activeHardCapLedgerEntry: null,
+    });
+  });
+
+  it('preserves validated persisted hard-cap history through saved-team hydration', async () => {
+    const entry = createTradeHardCapLedgerEntry({
+      evaluation: evaluateAggregated(SECOND_APRON),
+      teamCode: 'DET',
+      transactionId: 'TRADE-HYDRATE',
+      effectiveAt: '2026-07-15T16:00:00Z',
+    });
+    expect(entry).not.toBeNull();
+
+    const hydrated = await hydrateBaseTeam('DET', {
+      roster: [],
+      teamName: 'Detroit Pistons',
+      exceptions: {},
+      hardCapLedger: entry ? [entry] : [],
+    });
+
+    expect(hydrated.hardCapLedger).toEqual([entry]);
+    expect(
+      getHardCapStatus(hydrated, {
+        salaryCapYear: 2027,
+        capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+      }).hardCapCeiling
+    ).toBe(SECOND_APRON);
+  });
+
+  it('normalizes generated TPE creation and expiry into the same UTC calendar frame', () => {
+    const tpe = createTPE({
+      teamCtx: { isOverCap: true },
+      outgoing: 8_000_000,
+      incoming: 2_000_000,
+      tradeDate: '2026-11-01T21:00:00-04:00',
+    });
+
+    expect(tpe?.createdOn).toBe('2026-11-02T01:00:00.000Z');
+    expect(tpe?.expiresOn).toBe('2027-11-02T01:00:00.000Z');
+  });
+
   it('does not persist a hard cap for a failed restriction', () => {
     const failed = evaluateAggregated(SECOND_APRON + 1);
     expect(
@@ -436,6 +496,17 @@ describe('governed Trade Machine apron restrictions', () => {
         evaluation: failed as TradeApronRestrictionEvaluation,
         teamCode: 'DET',
         transactionId: 'TRADE-FAIL',
+        effectiveAt: '2026-07-15T16:00:00Z',
+      })
+    ).toBeNull();
+  });
+
+  it('does not persist a hard cap without an attributable team code', () => {
+    expect(
+      createTradeHardCapLedgerEntry({
+        evaluation: evaluateAggregated(SECOND_APRON),
+        teamCode: '   ',
+        transactionId: 'TRADE-NO-TEAM',
         effectiveAt: '2026-07-15T16:00:00Z',
       })
     ).toBeNull();

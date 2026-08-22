@@ -478,14 +478,24 @@ export function selectHardCapLedgerEntry(
 ): TradeHardCapLedgerEntry | null {
   const parsed = parseTradeHardCapLedger(value);
   if (!parsed.valid) return null;
-  const entries =
-    salaryCapYear == null
-      ? parsed.entries.filter(
-          (entry) =>
-            entry.salaryCapYear ===
-            Math.max(...parsed.entries.map((candidate) => candidate.salaryCapYear))
+  return selectHardCapLedgerEntryFromEntries(parsed.entries, salaryCapYear);
+}
+
+export function selectHardCapLedgerEntryFromEntries(
+  parsedEntries: TradeHardCapLedgerEntry[],
+  salaryCapYear?: number | null
+): TradeHardCapLedgerEntry | null {
+  const targetYear =
+    salaryCapYear ??
+    (parsedEntries.length > 0
+      ? Math.max(
+          ...parsedEntries.map((candidate) => candidate.salaryCapYear)
         )
-      : parsed.entries.filter((entry) => entry.salaryCapYear === salaryCapYear);
+      : null);
+  const entries =
+    targetYear === null
+      ? []
+      : parsedEntries.filter((entry) => entry.salaryCapYear === targetYear);
   return (
     [...entries].sort(
       (left, right) =>
@@ -515,14 +525,15 @@ export function createTradeHardCapLedgerEntry({
     evaluation.ceiling === null ||
     evaluation.salaryCapYear === null ||
     !evaluation.transactionDate ||
-    !evaluation.proof
+    !evaluation.proof ||
+    !teamCode.trim()
   ) {
     return null;
   }
   return {
     version: 1,
-    entryId: `${transactionId}:hard-cap:${teamCode}`,
-    teamCode,
+    entryId: `${transactionId}:hard-cap:${teamCode.trim()}`,
+    teamCode: teamCode.trim(),
     salaryCapYear: evaluation.salaryCapYear,
     restrictionRow: evaluation.restrictionRow,
     salaryMatchingPath: evaluation.salaryMatchingPath,

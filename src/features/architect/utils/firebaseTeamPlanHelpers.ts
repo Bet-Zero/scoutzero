@@ -37,6 +37,7 @@ import { normalizeTeamTpeSchema } from '@/features/architect/utils/persistenceCo
 import type { TeamTotals } from '@/features/architect/types';
 import type { TeamSalaryBookInputs } from '@/schemas/salaryBooks';
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
+import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
 import {
   readArchitectNumber,
   readArchitectRecord,
@@ -87,6 +88,7 @@ export type HydratedBaseTeamCapSheet = {
   totals: TeamTotals;
   salaryBookInputs?: TeamSalaryBookInputs | null;
   contractEventLedgers?: ContractEventLedgerPayload[] | null;
+  hardCapLedger?: TradeHardCapLedgerEntry[] | null;
 };
 
 /**
@@ -216,6 +218,9 @@ export const hydrateBaseTeam = async (
       : {}),
     ...(normalizedBaseDoc.contractEventLedgers !== undefined
       ? { contractEventLedgers: normalizedBaseDoc.contractEventLedgers }
+      : {}),
+    ...(normalizedBaseDoc.hardCapLedger !== undefined
+      ? { hardCapLedger: normalizedBaseDoc.hardCapLedger }
       : {}),
   };
 };

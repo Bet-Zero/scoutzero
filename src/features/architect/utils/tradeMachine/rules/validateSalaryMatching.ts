@@ -18,7 +18,10 @@ import {
   getSalaryMatchingResult,
   SALARY_MATCHING_RULE_KEYS,
 } from '@/features/architect/utils/tradeMachine/utils/salaryMatchingRules';
-import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
+import {
+  getHardCapStatus,
+  resolveSalaryCapYear,
+} from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { SECOND_APRON_SALARY_MISMATCH } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import { isSecondApronTeam } from '@/features/architect/utils/tradeMachine/utils/capUtils';
@@ -267,12 +270,7 @@ export function validateSalaryMatching(
         firstApron: actualFirstApron,
         secondApron,
       },
-      salaryCapYear:
-        typeof context.currentYear === 'number'
-          ? context.currentYear
-          : typeof context.yearKey === 'number'
-            ? context.yearKey
-            : null,
+      salaryCapYear: resolveSalaryCapYear(context),
     }
   );
 

@@ -44,7 +44,9 @@ export function TradeApronRestrictionReceipt({
         <span>
           {evaluation.apronLevel === 'FIRST_APRON'
             ? 'First Apron ceiling'
-            : 'Second Apron ceiling'}
+            : evaluation.apronLevel === 'SECOND_APRON'
+              ? 'Second Apron ceiling'
+              : 'Apron ceiling'}
         </span>
         <span className="font-mono text-cockpit-text-primary">
           {evaluation.ceiling == null

@@ -184,10 +184,11 @@ export function computeTradeResult({
 
     const transactionId =
       resolvedMutationId || `${resolvedMutationType}:${timestamp}`;
-    const hardCapEntry = teamResult.apronRestrictionEvaluation
+    const ledgerTeamCode = teamUpdate.teamCode;
+    const hardCapEntry = ledgerTeamCode && teamResult.apronRestrictionEvaluation
       ? createTradeHardCapLedgerEntry({
           evaluation: teamResult.apronRestrictionEvaluation,
-          teamCode: teamUpdate.teamCode || '',
+          teamCode: ledgerTeamCode,
           transactionId,
           effectiveAt: timestampISO,
         })

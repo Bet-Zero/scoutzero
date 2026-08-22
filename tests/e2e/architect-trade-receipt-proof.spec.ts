@@ -331,6 +331,8 @@ const electAggregatedPath = async (card: Locator) => {
   const apronSalary = await card
     .locator('[data-apron-team-salary]')
     .getAttribute('data-apron-team-salary');
+  expect(apronSalary).not.toBeNull();
+  expect(String(apronSalary).trim()).not.toBe('');
   expect(Number.isFinite(Number(apronSalary))).toBe(true);
   await card
     .getByLabel('Elected path')

@@ -78,6 +78,12 @@ export function useTradeMachineInit({
         return;
       }
 
+      // React Strict Mode immediately cleans up and replays this effect in
+      // development. Yield once so the cancelled probe exits before issuing
+      // Firestore reads; the replacement pass then performs the real load.
+      await Promise.resolve();
+      if (cancelled) return;
+
       try {
         // Phase 16.3: Clear any previous init error on new init attempt
         setInitError(null);
@@ -90,6 +96,18 @@ export function useTradeMachineInit({
             worldId,
             primaryTeam
           ))) as TradeMachineTeam | null;
+
+        if (cancelled) return;
+        if (!baseTeam || !data) {
+          lastInitInputsRef.current = {
+            primaryTeam,
+            primaryTeamData,
+            yearKey,
+            worldId,
+            worldAsOfDate,
+          };
+          return;
+        }
 
         if (baseTeam && data) {
           // Build team object, augment exceptions/tpes

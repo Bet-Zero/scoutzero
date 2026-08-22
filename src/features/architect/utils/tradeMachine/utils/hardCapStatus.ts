@@ -16,7 +16,7 @@ import type {
 import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
 import {
   parseTradeHardCapLedger,
-  selectHardCapLedgerEntry,
+  selectHardCapLedgerEntryFromEntries,
 } from './tradeApronRestrictions';
 
 type HardCapStructuredFlag = {
@@ -51,7 +51,7 @@ type HardCapCapSettingsLike = {
 type HardCapTotalsLike = TeamCapTotalsSnapshot | Record<string, unknown> | null;
 
 type HardCapStatusTeamData = {
-  hardCapLedger?: TradeHardCapLedgerEntry[] | null;
+  hardCapLedger?: unknown;
   hardCapSecondApron?: HardCapStructuredFlag;
   hardCapFirstApron?: HardCapStructuredFlag;
   hardCapType?: string | boolean | number | null;
@@ -72,7 +72,7 @@ type HardCapStatusTeamData = {
 
 type HardCapStatusTeamLike = {
   team?: HardCapStatusTeamData;
-  hardCapLedger?: TradeHardCapLedgerEntry[] | null;
+  hardCapLedger?: unknown;
   hardCapSecondApron?: HardCapStructuredFlag;
   hardCapFirstApron?: HardCapStructuredFlag;
   hardCapType?: string | boolean | number | null;
@@ -148,6 +148,14 @@ const LEGACY_HARD_CAP_TYPES: Record<CanonicalHardCapType, LegacyHardCapType> =
     [HARD_CAP_TYPES.SECOND_APRON]: 'SecondApron',
     [HARD_CAP_TYPES.UNKNOWN]: 'Unknown',
   });
+
+export function resolveSalaryCapYear(context: {
+  currentYear?: unknown;
+  yearKey?: unknown;
+}): number | null {
+  if (typeof context.currentYear === 'number') return context.currentYear;
+  return typeof context.yearKey === 'number' ? context.yearKey : null;
+}
 
 function toFiniteNumber(value: unknown): number {
   const numericValue = Number(value);
@@ -694,7 +702,20 @@ export function getHardCapStatus(
       capSettings,
     });
   }
-  const ledgerEntry = selectHardCapLedgerEntry(rawLedger, salaryCapYear);
+  if (parsedLedger.entries.length > 0 && salaryCapYear === null) {
+    return buildStatus({
+      isHardCapped: true,
+      hardCapType: HARD_CAP_TYPES.UNKNOWN,
+      reason:
+        'Persisted hard-cap history cannot be applied without an exact Salary Cap Year.',
+      source: 'team.hardCapLedger (salary cap year unavailable)',
+      capSettings,
+    });
+  }
+  const ledgerEntry = selectHardCapLedgerEntryFromEntries(
+    parsedLedger.entries,
+    salaryCapYear
+  );
   if (ledgerEntry) {
     const hardCapType =
       ledgerEntry.apronLevel === 'FIRST_APRON'
