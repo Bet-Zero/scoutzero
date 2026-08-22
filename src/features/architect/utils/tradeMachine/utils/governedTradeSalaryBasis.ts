@@ -671,7 +671,7 @@ export function resolveTradeSalaryBasisPlayerId(
   player: Record<string, unknown>
 ): string {
   return String(
-    player.id ?? player.player_id ??
+    player.id ?? player.player_id ?? player.playerId ??
       (player.bio && typeof player.bio === 'object'
         ? (player.bio as Record<string, unknown>).playerId
         : '')

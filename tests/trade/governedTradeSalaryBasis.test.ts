@@ -533,13 +533,16 @@ describe('saved-world validation trust boundary', () => {
   });
 
   it('preserves unmatched roster players without an undefined authority key', () => {
-    const player = { bio: { playerId: PLAYER_ID }, name: 'Fixture Player' };
+    const player = { playerId: PLAYER_ID, name: 'Fixture Player' };
     const [unmatched] = attachGovernedTradeSalaryBasisToRoster(
       [player],
       new Map()
     );
 
     expect(resolveTradeSalaryBasisPlayerId(player)).toBe(PLAYER_ID);
+    expect(
+      resolveTradeSalaryBasisPlayerId({ bio: { playerId: PLAYER_ID } })
+    ).toBe(PLAYER_ID);
     expect(unmatched).toBe(player);
     expect('governedTradeSalaryBasis' in unmatched).toBe(false);
   });
