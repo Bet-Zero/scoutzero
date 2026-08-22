@@ -18,6 +18,7 @@ import type {
   TradeContextPayload,
 } from './types';
 import { TradeSalaryMatchingElectionZ } from '@/schemas/tradeSalaryMatchingPath';
+import { GovernedTradeSalaryBasisZ } from '@/schemas/governedTradeSalaryBasis';
 
 export function normalizeTradePayloadPlayer({
   player,
@@ -44,6 +45,9 @@ export function normalizeTradePayloadPlayer({
   const absorptionMode = toNonEmptyString(player?.absorptionMode);
   const tpeId = toNonEmptyString(player?.tpeId);
   const isTwoWay = player?.isTwoWay === true;
+  const governedTradeSalaryBasis = GovernedTradeSalaryBasisZ.safeParse(
+    player?.governedTradeSalaryBasis
+  );
   const tradeTo = resolveOutgoingTradeDestinationTeamCode({
     payloadTeamCodes,
     senderIndex,
@@ -62,6 +66,9 @@ export function normalizeTradePayloadPlayer({
   if (player?.signAndTrade === true) normalized.signAndTrade = true;
   if (player?.signAndTradeContract != null) {
     normalized.signAndTradeContract = player.signAndTradeContract;
+  }
+  if (governedTradeSalaryBasis.success) {
+    normalized.governedTradeSalaryBasis = governedTradeSalaryBasis.data;
   }
   if (tradeTo !== null) normalized.tradeTo = tradeTo;
 

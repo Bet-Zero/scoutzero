@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { makeSalaryAuthority } from '@/tests/fixtures/governedTradeSalaryBasis';
 
 const firestoreMocks = vi.hoisted(() => {
   const commit = vi.fn(async () => undefined);
@@ -47,6 +48,45 @@ vi.mock('@/features/architect/utils/teamLoader', () => ({
   getLeague: teamLoaderMocks.getLeague,
   mergePlayerOverride: teamLoaderMocks.mergePlayerOverride,
 }));
+
+vi.mock(
+  '@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis')
+    >()),
+    loadWorldGovernedTradeSalaryBasisEntries: vi.fn(
+      async ({
+        worldId,
+        teamId,
+        rosterPlayerIds,
+        worldAsOfDate,
+        salaryCapYear,
+      }) =>
+        new Map(
+          rosterPlayerIds.map((playerId: string) => [
+            playerId,
+            makeSalaryAuthority({
+              worldId,
+              teamId,
+              playerId,
+              asOfDate: worldAsOfDate,
+              salaryCapYear,
+            }),
+          ])
+        )
+    ),
+    attachGovernedTradeSalaryBasisToRoster: vi.fn(
+      (players, entries) =>
+        players.map((player: Record<string, unknown>) => ({
+          ...player,
+          governedTradeSalaryBasis: entries.get(
+            String(player.id ?? player.player_id ?? player.playerId ?? '')
+          ),
+        }))
+    ),
+  })
+);
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
   updateWorldStats: vi.fn(async () => undefined),
@@ -248,6 +288,7 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
           source: 'tradeMachine',
           worldId: 'world_1',
           asOfDate: '2026-03-15',
+          yearKey: '2025-26',
         },
       },
     });

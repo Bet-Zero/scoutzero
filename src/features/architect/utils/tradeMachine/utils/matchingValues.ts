@@ -12,6 +12,8 @@ import {
 } from './dataValidation';
 import { getSignAndTradeSalaryForYear } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
+import { GovernedTradeSalaryBasisZ } from '@/schemas/governedTradeSalaryBasis';
+import type { GovernedTradeSalaryBasis } from '@/schemas/governedTradeSalaryBasis';
 
 type YearKey = number | string;
 
@@ -43,7 +45,7 @@ interface MatchingValueTradeKicker {
   maximum?: number | null;
 }
 
-interface MatchingValuePlayer {
+export interface MatchingValuePlayer {
   id?: string | number | null;
   player_id?: string | number | null;
   name?: string | null;
@@ -74,11 +76,19 @@ interface MatchingValuePlayer {
   daysInSeason?: number | null;
   matchOutgoing?: number;
   matchIncoming?: number;
+  governedTradeSalaryBasis?: GovernedTradeSalaryBasis | unknown;
 }
 
 interface MatchingValueTeam {
+  teamId?: string | null;
   sends?: MatchingValuePlayer[];
   dataWarnings?: DataWarning[];
+}
+
+export interface GovernedTradeSalaryBasisIssue {
+  playerId: string | null;
+  teamId: string | null;
+  reason: string;
 }
 
 interface EffectiveTradeSalaryResult {
@@ -91,12 +101,16 @@ interface ComputeMatchingValuesParams {
   yearKey: YearKey;
   daysRemainingInSeason?: number;
   daysInSeason?: number;
+  worldId?: string | null;
+  asOfDate?: string | null;
+  requireGovernedSalaryBasis?: boolean;
 }
 
 interface ComputeMatchingValuesResult {
   dataWarnings: DataWarning[];
   hasBYCDataIssues: boolean;
   hasSalaryFieldIssues: boolean;
+  salaryBasisIssues: GovernedTradeSalaryBasisIssue[];
 }
 
 function getRookieScaleAndPoisonPillFlags(player: MatchingValuePlayer) {
@@ -249,9 +263,13 @@ export function computeMatchingValues({
   yearKey,
   daysRemainingInSeason,
   daysInSeason,
+  worldId = null,
+  asOfDate = null,
+  requireGovernedSalaryBasis = false,
 }: ComputeMatchingValuesParams): ComputeMatchingValuesResult {
   // GAP-DATA-001, GAP-DATA-002: Collect data validation warnings
   const allDataWarnings: DataWarning[] = [];
+  const salaryBasisIssues: GovernedTradeSalaryBasisIssue[] = [];
 
   teams.forEach((team) => {
     const teamWarnings: DataWarning[] = [];
@@ -263,6 +281,62 @@ export function computeMatchingValues({
       if (isTwoWayTradePlayer(player)) {
         player.matchOutgoing = 0;
         player.matchIncoming = 0;
+        return;
+      }
+
+      if (
+        requireGovernedSalaryBasis &&
+        worldId &&
+        player.signAndTrade !== true
+      ) {
+        const parsed = GovernedTradeSalaryBasisZ.safeParse(
+          player.governedTradeSalaryBasis
+        );
+        const playerId =
+          String(player.id ?? player.player_id ?? '').trim() || null;
+        const teamId = String(team.teamId ?? '').trim() || null;
+        const expectedDate =
+          typeof asOfDate === 'string' ? asOfDate.slice(0, 10) : null;
+        if (!parsed.success) {
+          salaryBasisIssues.push({
+            playerId,
+            teamId,
+            reason:
+              'Governed player salary-basis authority is missing or malformed.',
+          });
+          player.matchOutgoing = 0;
+          player.matchIncoming = 0;
+          return;
+        }
+        const authority = parsed.data;
+        const normalizedYear = normalizeYearInput(yearKey);
+        const identityMatches =
+          authority.worldId === worldId &&
+          authority.teamId === teamId &&
+          authority.playerId === playerId &&
+          authority.salaryCapYear === normalizedYear?.endYear &&
+          authority.asOfDate === expectedDate;
+        if (
+          authority.status !== 'ready' ||
+          !identityMatches ||
+          authority.outgoingSalary === null ||
+          authority.incomingSalary === null
+        ) {
+          salaryBasisIssues.push({
+            playerId,
+            teamId,
+            reason: !identityMatches
+              ? 'Governed player salary-basis authority does not match this Team Plan, team, player, date, or Salary Cap Year.'
+              : authority.reasons.join(' ') ||
+                'Governed player salary-basis authority needs input.',
+          });
+          player.matchOutgoing = 0;
+          player.matchIncoming = 0;
+          return;
+        }
+        player.matchOutgoing = authority.outgoingSalary;
+        player.matchIncoming =
+          authority.poisonPillIncomingSalary ?? authority.incomingSalary;
         return;
       }
 
@@ -440,6 +514,7 @@ export function computeMatchingValues({
         warning.code === DATA_WARNING_CODES.SALARY_FIELD_FALLBACK ||
         warning.code === DATA_WARNING_CODES.SALARY_FIELD_MISSING
     ),
+    salaryBasisIssues,
   };
 }
 

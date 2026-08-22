@@ -13,6 +13,7 @@ import { SALARY_MATCHING_VERSION } from '../rules/validateSalaryMatching';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 import { isTwoWayTradePlayer } from '../utils/twoWayTradeSalary';
+import { GovernedTradeSalaryBasisZ } from '@/schemas/governedTradeSalaryBasis';
 import {
   normalizeTeamCodeLike,
   readSalaryMatchingRuleEnvelope,
@@ -56,6 +57,7 @@ type TradeValidatorPlayer = TradeExceptionPlayer & {
   isPoisonPill?: boolean;
   signAndTrade?: boolean;
   isTwoWay?: boolean;
+  governedTradeSalaryBasis?: unknown;
 };
 
 type TradeValidatorTeamData = NonNullable<TradeTeam['team']> & {
@@ -167,7 +169,10 @@ export function generateTradeReceipt({
     const outgoingPlayers = (team.outgoingPlayers || team.sends || []).map(
       (player: TradeValidatorPlayer) => {
         const baseSalary = getSalaryForYear(player, context.currentYear) || 0;
-        const matchingValue = player.matchOutgoing ?? baseSalary;
+      const matchingValue = player.matchOutgoing ?? baseSalary;
+      const salaryBasis = GovernedTradeSalaryBasisZ.safeParse(
+        player.governedTradeSalaryBasis
+      );
         const isBYC = !!player.isBYC || !!player.baseYearCompensation;
         const bycMethod: 'previousSalary' | '50%_of_new' =
           (player.previousSalary || 0) >= Math.floor(baseSalary * 0.5)
@@ -198,6 +203,17 @@ export function generateTradeReceipt({
                 method: bycMethod,
               }
             : null,
+          salaryBasisAuthority: salaryBasis.success
+            ? {
+                status: salaryBasis.data.status,
+                contractId: salaryBasis.data.contractId,
+                method: salaryBasis.data.method,
+                asOfDate: salaryBasis.data.asOfDate,
+                salaryCapYear: salaryBasis.data.salaryCapYear,
+                canonLeafIds: [...salaryBasis.data.canonLeafIds],
+                proof: salaryBasis.data.proof,
+              }
+            : null,
         };
       }
     );
@@ -212,6 +228,9 @@ export function generateTradeReceipt({
         player.tradeKicker?.percentage || player.tradeKickerPct
       );
       const poisonPillMethod = 'averaging_current_plus_extensions' as const;
+      const salaryBasis = GovernedTradeSalaryBasisZ.safeParse(
+        player.governedTradeSalaryBasis
+      );
 
       return {
         id: player.id || player.player_id,
@@ -246,6 +265,17 @@ export function generateTradeReceipt({
               waivedPct:
                 player.tradeKicker?.waived || player.tradeKickerWaivedPct || 0,
               maximum: player.tradeKicker?.maximum,
+            }
+          : null,
+        salaryBasisAuthority: salaryBasis.success
+          ? {
+              status: salaryBasis.data.status,
+              contractId: salaryBasis.data.contractId,
+              method: salaryBasis.data.method,
+              asOfDate: salaryBasis.data.asOfDate,
+              salaryCapYear: salaryBasis.data.salaryCapYear,
+              canonLeafIds: [...salaryBasis.data.canonLeafIds],
+              proof: salaryBasis.data.proof,
             }
           : null,
       };

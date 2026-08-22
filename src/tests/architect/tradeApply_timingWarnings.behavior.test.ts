@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { validationFlags } from '@/config/validationFlags';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import { makeSalaryAuthority } from '@/tests/fixtures/governedTradeSalaryBasis';
 
 const firestoreMocks = vi.hoisted(() => {
   const commit = vi.fn(async () => undefined);
@@ -50,6 +51,46 @@ vi.mock('@/features/architect/utils/teamLoader', () => ({
   getLeague: teamLoaderMocks.getLeague,
   mergePlayerOverride: teamLoaderMocks.mergePlayerOverride,
 }));
+
+vi.mock(
+  '@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis')
+    >()),
+    loadWorldGovernedTradeSalaryBasisEntries: vi.fn(
+      async ({
+        worldId,
+        teamId,
+        rosterPlayerIds,
+        worldAsOfDate,
+        salaryCapYear,
+      }) =>
+        new Map(
+          rosterPlayerIds.map((playerId: string) => [
+            playerId,
+            makeSalaryAuthority({
+              worldId,
+              teamId,
+              playerId,
+              asOfDate: worldAsOfDate,
+              salaryCapYear,
+              salary: playerId.endsWith('_out') ? 10_000_000 : 1_000_000,
+            }),
+          ])
+        )
+    ),
+    attachGovernedTradeSalaryBasisToRoster: vi.fn(
+      (players, entries) =>
+        players.map((player: Record<string, unknown>) => ({
+          ...player,
+          governedTradeSalaryBasis: entries.get(
+            String(player.id ?? player.player_id ?? player.playerId ?? '')
+          ),
+        }))
+    ),
+  })
+);
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
   updateWorldStats: vi.fn(async () => undefined),
@@ -201,6 +242,13 @@ function buildTradePayload({
         sends: [
           makePlayer('a_out', 10_000_000, 'A', {
             tradeTo: 'B',
+            governedTradeSalaryBasis: makeSalaryAuthority({
+              worldId: WORLD_ID,
+              teamId: 'A',
+              playerId: 'a_out',
+              asOfDate,
+              salaryCapYear: 2025,
+            }),
             ...teamAPlayerExtra,
           }),
         ],
@@ -219,6 +267,13 @@ function buildTradePayload({
         sends: [
           makePlayer('b_out', 10_000_000, 'B', {
             tradeTo: 'A',
+            governedTradeSalaryBasis: makeSalaryAuthority({
+              worldId: WORLD_ID,
+              teamId: 'B',
+              playerId: 'b_out',
+              asOfDate,
+              salaryCapYear: 2025,
+            }),
             ...teamBPlayerExtra,
           }),
         ],
@@ -238,6 +293,7 @@ function buildTradePayload({
       source: 'tradeMachine',
       worldId: WORLD_ID,
       asOfDate,
+      yearKey: 2025,
     },
   };
 }

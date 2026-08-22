@@ -31,6 +31,10 @@ import type {
   ValidationTeam,
 } from './types';
 
+export const LIVE_GOVERNED_TRADE_SALARY_AUTHORITY = Symbol.for(
+  'scoutzero.liveGovernedTradeSalaryAuthority'
+);
+
 // Local types copied from tradeContext.ts (used by exception normalization functions)
 type SnapshotTradeException = Required<
   Pick<
@@ -558,9 +562,17 @@ export function buildTradeValidationPlayer({
     getTradePayloadPlayerId(player)
   );
 
+  const liveAuthorityLoaded = Boolean(
+    sourceTeamState &&
+      (sourceTeamState as Record<PropertyKey, unknown>)[
+        LIVE_GOVERNED_TRADE_SALARY_AUTHORITY
+      ]
+  );
+  const payloadPlayer = { ...player };
+  if (liveAuthorityLoaded) delete payloadPlayer.governedTradeSalaryBasis;
   const merged = authoritativeSnapshot
-    ? { ...authoritativeSnapshot, ...player }
-    : { ...player };
+    ? { ...authoritativeSnapshot, ...payloadPlayer }
+    : { ...payloadPlayer };
   const matchIncoming = toFiniteNumberOrUndefined(merged.matchIncoming);
   const matchOutgoing = toFiniteNumberOrUndefined(merged.matchOutgoing);
 

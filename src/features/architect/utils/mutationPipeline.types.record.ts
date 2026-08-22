@@ -38,6 +38,7 @@ import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
 import type { GovernedWaiverLifecycle, GovernedWaiverProposal } from '@/schemas/governedWaiver';
 import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
 import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
+import type { GovernedTradeSalaryBasis } from '@/schemas/governedTradeSalaryBasis';
 import type { GovernedOfferSheetProposal } from '@/schemas/governedOfferSheet';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
@@ -498,6 +499,7 @@ export type ArchitectTradePayloadPlayerIngress =
     isTwoWay?: boolean | null;
     signAndTrade?: boolean;
     signAndTradeContract?: ArchitectTradePayloadSignAndTradeContract | null;
+    governedTradeSalaryBasis?: GovernedTradeSalaryBasis | null;
     receivingTeamIndex?: MutationScalarId;
     receivingTeamId?: MutationScalarId;
     tradeTo?: MutationScalarId;
@@ -521,6 +523,7 @@ export type ArchitectTradePayloadPlayer = {
   isTwoWay?: boolean;
   signAndTrade?: boolean;
   signAndTradeContract?: ArchitectTradePayloadSignAndTradeContract | null;
+  governedTradeSalaryBasis?: GovernedTradeSalaryBasis | null;
   tradeTo?: string | null;
 };
 

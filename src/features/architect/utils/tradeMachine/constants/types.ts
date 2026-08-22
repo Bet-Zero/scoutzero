@@ -12,6 +12,7 @@ import type { DataWarning } from '../utils/dataValidation';
 import type { CapHold } from '../../capHolds';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
+import type { GovernedTradeSalaryBasis } from '@/schemas/governedTradeSalaryBasis';
 
 // Normalized cap settings
 export interface CapSettings {
@@ -801,6 +802,16 @@ export interface TradeReceiptTradeKickerDetails {
   maximum: unknown;
 }
 
+export interface TradeReceiptSalaryBasisAuthority {
+  status: GovernedTradeSalaryBasis['status'];
+  contractId: GovernedTradeSalaryBasis['contractId'];
+  method: GovernedTradeSalaryBasis['method'];
+  asOfDate: GovernedTradeSalaryBasis['asOfDate'];
+  salaryCapYear: GovernedTradeSalaryBasis['salaryCapYear'];
+  canonLeafIds: string[];
+  proof: GovernedTradeSalaryBasis['proof'];
+}
+
 export interface TradeReceiptPlayerRow {
   id?: string;
   name: string;
@@ -810,6 +821,7 @@ export interface TradeReceiptPlayerRow {
   bycDetails?: TradeReceiptBycDetails | null;
   poisonPillDetails?: TradeReceiptPoisonPillDetails | null;
   tradeKickerDetails?: TradeReceiptTradeKickerDetails | null;
+  salaryBasisAuthority?: TradeReceiptSalaryBasisAuthority | null;
 }
 
 export interface TradeReceiptEntitlementRow {
