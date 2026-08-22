@@ -82,10 +82,19 @@ export function validateSigning({
     canonicalSalaryTotals.apronTeamSalary === null ||
     canonicalSalaryTotals.taxSalary === null
   ) {
+    const taxBook = canonicalSalaryTotals.salaryBooks?.ledgers.taxSalary;
+    const taxNeedsInputReason =
+      canonicalSalaryTotals.taxSalary === null &&
+      taxBook &&
+      taxBook.status !== 'complete'
+        ? taxBook.reason
+        : null;
     violations.push({
       rule: 'salary_book_needs_input',
       message:
-        'Signing legality needs complete Team Salary, Apron Team Salary, and Tax Salary books.',
+        taxNeedsInputReason
+          ? `Tax Salary needs input before this signing can be committed: ${taxNeedsInputReason}`
+          : 'Signing legality needs complete Team Salary, Apron Team Salary, and Tax Salary books.',
       severity: 'error',
     });
   }

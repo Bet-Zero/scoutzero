@@ -212,6 +212,41 @@ function makePlayer(
   };
 }
 
+function readySigningSalaryBookInputs() {
+  const line = (
+    ledger: 'apron-team-salary' | 'tax-salary',
+    leafId: string,
+    amount: number
+  ) => ({
+    id: `${ledger}:${leafId}`,
+    ledger,
+    label: leafId,
+    amount,
+    effectiveFrom: '2026-07-01T00:00:00Z',
+    canonLeafIds: [leafId],
+    source: {
+      authority: 'external-determination' as const,
+      reference: `fixture:${leafId}`,
+    },
+  });
+  return {
+    version: 1 as const,
+    salaryCapYear: 2027,
+    apronAdjustments: {
+      status: 'ready' as const,
+      lineItems: Array.from({ length: 10 }, (_, index) =>
+        line('apron-team-salary', `CBA2-C07.${index + 2}`, 0)
+      ),
+    },
+    taxSalary: {
+      status: 'ready' as const,
+      lineItems: Array.from({ length: 8 }, (_, index) =>
+        line('tax-salary', `CBA2-C08.${index + 1}`, 0)
+      ),
+    },
+  };
+}
+
 function makeTeam(
   teamCode: string,
   players: Array<Record<string, unknown>>,
@@ -262,18 +297,7 @@ function makeTeam(
     draftPicks: [{ id: 'pick_keep', year: 2028, round: 1, owner: teamCode }],
     entitlementIds: ['entitlement_keep'],
     exceptions: { mle: null, bae: null, tpe: [] },
-    salaryBookInputs: {
-      version: 1,
-      salaryCapYear: 2026,
-      apronAdjustments: {
-        status: 'not-evaluated',
-        reason: 'Committed artifact boundary fixture',
-      },
-      taxSalary: {
-        status: 'not-evaluated',
-        reason: 'Committed artifact boundary fixture',
-      },
-    },
+    salaryBookInputs: readySigningSalaryBookInputs(),
     totals: {
       totalSalary,
       capHit: totalSalary,
@@ -373,7 +397,7 @@ describe('mutationPipeline committed team artifact boundary', () => {
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(computeResult.success).toBe(true);
+    expect(computeResult.success, String(computeResult.error || '')).toBe(true);
     const computedTeam = computeResult.teamUpdates?.[0]?.team;
     expect(computedTeam?.players?.map((player) => player.playerId)).toContain(
       'fa_boundary'
@@ -416,7 +440,7 @@ describe('mutationPipeline committed team artifact boundary', () => {
       timestamp: FIXED_TIMESTAMP,
     });
 
-    expect(result.success).toBe(true);
+    expect(result.success, String(result.error || '')).toBe(true);
 
     const committedTeam = findCommittedTeamSnapshot(result.changedTeams, 'LAL');
     expect(committedTeam?.players?.map((player) => player.playerId)).toContain(

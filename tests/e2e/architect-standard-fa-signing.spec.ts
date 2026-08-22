@@ -202,7 +202,9 @@ const readActiveWorldId = async (page: Page) =>
     })
     .catch(() => '');
 
-const governedSalaryBookInputs = () => {
+const governedSalaryBookInputs = (
+  taxBaselineEffectiveFrom = '2026-04-12T19:00:00-04:00'
+) => {
   const line = (
     ledger: 'apron-team-salary' | 'tax-salary',
     leafId: string,
@@ -252,7 +254,7 @@ const governedSalaryBookInputs = () => {
           'tax-salary',
           'CBA2-C08.1',
           182_000_000,
-          '2026-04-12T19:00:00-04:00'
+          taxBaselineEffectiveFrom
         ),
         ...Array.from({ length: 7 }, (_, index) =>
           line('tax-salary', `CBA2-C08.${index + 2}`, 0)
@@ -314,7 +316,10 @@ const seedReviewWorld = async (
   return worldId;
 };
 
-const seedGovernedBosWorldTeam = async (worldId: string) => {
+const seedGovernedBosWorldTeam = async (
+  worldId: string,
+  taxBaselineEffectiveFrom?: string
+) => {
   const baseTeam = await getBaseTeamDocument(TEAM_CODE);
   if (!baseTeam) {
     throw new Error(`Base Team ${TEAM_CODE} is unavailable in review mode.`);
@@ -324,7 +329,7 @@ const seedGovernedBosWorldTeam = async (worldId: string) => {
     .set({
       ...baseTeam,
       season: REVIEW_WORLD_SEASON,
-      salaryBookInputs: governedSalaryBookInputs(),
+      salaryBookInputs: governedSalaryBookInputs(taxBaselineEffectiveFrom),
     });
   await getReviewAdminDb()
     .doc(`architect_worlds/${worldId}`)
@@ -393,7 +398,8 @@ const activateSeededWorld = async (
 
 const ensureWorldSelected = async (
   page: Page,
-  asOfDate = REVIEW_WORLD_AS_OF_DATE
+  asOfDate = REVIEW_WORLD_AS_OF_DATE,
+  taxBaselineEffectiveFrom?: string
 ) => {
   await expect
     .poll(async () => await readReviewUserId(page), {
@@ -404,7 +410,7 @@ const ensureWorldSelected = async (
 
   const userId = await readReviewUserId(page);
   const worldId = await seedReviewWorld(userId, asOfDate);
-  await seedGovernedBosWorldTeam(worldId);
+  await seedGovernedBosWorldTeam(worldId, taxBaselineEffectiveFrom);
   await activateSeededWorld(page, userId, worldId);
   await ensureSpecificWorldSelected(page, worldId);
   return worldId;
@@ -768,6 +774,66 @@ test.describe('ARCH-STANDARD-FA: saved-world signing proof', () => {
       type: 'audit-note',
       description:
         'BOS saved-world Free Agency signs a qualifying zero-YOS player to the exact 2026-27 one-year $1,357,763 Minimum Standard Contract. The committed Tax Salary contains the separate $1,357,763 CBA2-C08.2 charge and $1,091,658 CBA2-C08.7 uplift, all three books remain distinct, and the exact result survives History, Compare, persistence, and reload.',
+    });
+  });
+
+  test('BOS ordinary signing needs Tax input before its baseline and writes nothing', async ({
+    page,
+  }, testInfo: TestInfo) => {
+    const worldId = await ensureWorldSelected(
+      page,
+      REVIEW_WORLD_AS_OF_DATE,
+      '2026-07-09T00:00:00Z'
+    );
+    const beforeTeam = await getWorldTeamDocument(worldId, TEAM_CODE);
+    const beforeEvents = await getWorldEventDocuments(worldId);
+    const beforePlayer = await getWorldPlayerDocument(
+      worldId,
+      TEAM_CODE,
+      MINIMUM_FREE_AGENT_ID
+    );
+
+    const modal = await openStandardFreeAgentModal(
+      page,
+      MINIMUM_FREE_AGENT_NAME
+    );
+    await modal.getByRole('radio', { name: /Sign Free Agent/i }).check();
+    await configureZeroYosMinimumContract(modal);
+    const confirmActionButton = modal.getByRole('button', {
+      name: /^Confirm Action$/i,
+    });
+    await expect(confirmActionButton).toBeEnabled();
+    await confirmActionButton.click();
+
+    const taxAlert = modal.getByRole('alert');
+    await expect(taxAlert).toContainText(/Tax Salary needs input/i, {
+      timeout: 20000,
+    });
+    await expect(taxAlert).toContainText(/baseline/i);
+    expect(await getWorldTeamDocument(worldId, TEAM_CODE)).toEqual(beforeTeam);
+    expect(await getWorldEventDocuments(worldId)).toEqual(beforeEvents);
+    expect(
+      await getWorldPlayerDocument(
+        worldId,
+        TEAM_CODE,
+        MINIMUM_FREE_AGENT_ID
+      )
+    ).toEqual(beforePlayer);
+    expect(JSON.stringify(beforeTeam?.salaryBookInputs)).not.toContain(
+      'minimum-uplift:'
+    );
+    await taxAlert.scrollIntoViewIfNeeded();
+
+    await page.screenshot({
+      path: testInfo.outputPath(
+        'governed-signing-tax-needs-input-1280x720.png'
+      ),
+      fullPage: false,
+    });
+    testInfo.annotations.push({
+      type: 'audit-note',
+      description:
+        'BOS saved-world Free Agency at 2026-07-08 reports that Tax Salary needs input because the authenticated CBA2-C08.1 baseline is not effective until 2026-07-09. Team, player override, event history, exception consumption, and both governed adjustment books remain unchanged.',
     });
   });
 

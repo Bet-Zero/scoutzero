@@ -130,7 +130,11 @@ function team(
   };
 }
 
-function governedSalaryBookInputs(): TeamSalaryBookInputs {
+function governedSalaryBookInputs({
+  taxBaselineEffectiveFrom = '2026-07-01T00:00:00Z',
+}: {
+  taxBaselineEffectiveFrom?: string;
+} = {}): TeamSalaryBookInputs {
   const line = (
     ledger: 'apron-team-salary' | 'tax-salary',
     leafId: string,
@@ -168,7 +172,10 @@ function governedSalaryBookInputs(): TeamSalaryBookInputs {
     taxSalary: {
       status: 'ready' as const,
       lineItems: [
-        line('tax-salary', 'CBA2-C08.1', 100_000_000),
+        {
+          ...line('tax-salary', 'CBA2-C08.1', 100_000_000),
+          effectiveFrom: taxBaselineEffectiveFrom,
+        },
         line('tax-salary', 'CBA2-C08.2', 0),
         line('tax-salary', 'CBA2-C08.3', 0),
         line('tax-salary', 'CBA2-C08.4', 0),
@@ -673,6 +680,64 @@ describe('governed signing result and immutable history', () => {
     expect(getAllMockData()).toEqual(before);
   });
 
+  it('returns Needs input and writes nothing when the saved-world date precedes the Tax Salary baseline', async () => {
+    const targetTeam = governedTeam({
+      salaryBookInputs: governedSalaryBookInputs({
+        taxBaselineEffectiveFrom: '2026-07-09T00:00:00Z',
+      }),
+    });
+    const targetPlayer = player({ bio: { yearsExperience: 0 } });
+    const zeroYosMinimum =
+      getCapRulesForYear(2027).salaries.getMinimumForYOS(0);
+    seedWorldMetadata(WORLD_ID, {
+      worldId: WORLD_ID,
+      userId: 'user-bze-286',
+      worldName: 'BZE-286 pre-Tax-baseline world',
+      season: '2026-27',
+      asOfDate: WORLD_DATE,
+      parentWorldId: null,
+    });
+    seedTeamSnapshot(WORLD_ID, TEAM_ID, targetTeam as MockTeam, {
+      padRoster: false,
+    });
+    seedMockData(`architect_basePlayers/${PLAYER_ID}`, targetPlayer);
+    seedMockData(
+      `architect_worlds/${WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`,
+      targetPlayer
+    );
+    const before = new Map(getAllMockData());
+    const result = await applyWorldMutation({
+      userId: 'user-bze-286',
+      worldId: WORLD_ID,
+      seasonId: '2026-27',
+      mutationType: 'signFreeAgent',
+      payload: {
+        teamCode: TEAM_ID,
+        playerId: PLAYER_ID,
+        contract: contract({
+          years: 1,
+          contractYears: 1,
+          totalValue: zeroYosMinimum,
+          signedUsing: 'Minimum',
+          salariesByYear: [
+            {
+              season: '2026-27',
+              salary: zeroYosMinimum,
+              capHit: zeroYosMinimum,
+              guaranteed: true,
+            },
+          ],
+        }),
+        signedUsing: 'Minimum',
+      },
+      timestamp: Date.parse(RECORDED_AT),
+      operationId: `${OPERATION_ID}:pre-tax-baseline`,
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Tax Salary needs input.*baseline/i);
+    expect(getAllMockData()).toEqual(before);
+  });
+
   it('creates a root contract event, consumes first-year exception usage, and absolves the cap hold', () => {
     const targetTeam = team({
       capHolds: [
@@ -972,6 +1037,118 @@ describe('governed signing result and immutable history', () => {
     ).toBe(true);
   });
 
+  it.each([0, 1])(
+    'does not add C07.3 or C08.7 uplifts for an otherwise qualifying %i-YOS two-Season Minimum Contract',
+    (yearsOfService) => {
+      const minimum = getCapRulesForYear(2027).salaries.getMinimumForYOS(
+        yearsOfService
+      );
+      const signingContract = contract({
+        years: 2,
+        contractYears: 2,
+        totalValue: minimum * 2,
+        signedUsing: 'Minimum',
+        salariesByYear: [
+          {
+            season: '2026-27',
+            salary: minimum,
+            capHit: minimum,
+            guaranteed: true,
+          },
+          {
+            season: '2027-28',
+            salary: minimum,
+            capHit: minimum,
+            guaranteed: true,
+          },
+        ],
+      });
+      const result = computeSigning({
+        targetTeam: governedTeam(),
+        targetPlayer: player({ bio: { yearsExperience: yearsOfService } }),
+        signingContract,
+        signedUsing: 'Minimum',
+      });
+      expect(result.success, String(result.error || '')).toBe(true);
+      const updatedTeam = result.teamUpdates?.[0]?.team;
+      const apronInput = updatedTeam?.salaryBookInputs?.apronAdjustments;
+      const taxInput = updatedTeam?.salaryBookInputs?.taxSalary;
+      expect(
+        apronInput?.status === 'ready' &&
+          apronInput.lineItems.some((lineItem) =>
+            lineItem.id.includes(`minimum-uplift:${OPERATION_ID}`)
+          )
+      ).toBe(false);
+      expect(
+        taxInput?.status === 'ready' &&
+          taxInput.lineItems.some((lineItem) =>
+            lineItem.id.includes(`minimum-uplift:${OPERATION_ID}`)
+          )
+      ).toBe(false);
+      expect(updatedTeam?.totals?.teamSalary).toBe(14_000_000 + minimum);
+    }
+  );
+
+  it('fails closed before the authenticated Tax Salary baseline without an Apron-only result', () => {
+    const targetTeam = governedTeam({
+      salaryBookInputs: governedSalaryBookInputs({
+        taxBaselineEffectiveFrom: '2026-07-09T00:00:00Z',
+      }),
+    });
+    const beforeTeam = structuredClone(targetTeam);
+    const zeroYosMinimum =
+      getCapRulesForYear(2027).salaries.getMinimumForYOS(0);
+    const result = computeSigning({
+      targetTeam,
+      targetPlayer: player({ bio: { yearsExperience: 0 } }),
+      signingContract: contract({
+        years: 1,
+        contractYears: 1,
+        totalValue: zeroYosMinimum,
+        signedUsing: 'Minimum',
+        salariesByYear: [
+          {
+            season: '2026-27',
+            salary: zeroYosMinimum,
+            capHit: zeroYosMinimum,
+            guaranteed: true,
+          },
+        ],
+      }),
+      signedUsing: 'Minimum',
+    });
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringMatching(/Tax Salary needs input.*baseline/i),
+    });
+    expect(result.teamUpdates || []).toEqual([]);
+    expect(result.playerUpdates || []).toEqual([]);
+    expect(targetTeam).toEqual(beforeTeam);
+    expect(JSON.stringify(targetTeam.salaryBookInputs)).not.toContain(
+      `minimum-uplift:${OPERATION_ID}`
+    );
+  });
+
+  it('permits a signing at the exact authenticated Tax Salary baseline boundary', () => {
+    const targetTeam = governedTeam({
+      salaryBookInputs: governedSalaryBookInputs({
+        taxBaselineEffectiveFrom: '2026-07-08T00:00:00Z',
+      }),
+    });
+    const result = computeSigning({ targetTeam });
+    expect(result.success, String(result.error || '')).toBe(true);
+    const taxInput = result.teamUpdates?.[0]?.team.salaryBookInputs?.taxSalary;
+    expect(taxInput?.status).toBe('ready');
+    if (taxInput?.status !== 'ready') return;
+    expect(
+      taxInput.lineItems.filter(
+        (lineItem) =>
+          lineItem.id === `tax-salary:signing:${OPERATION_ID}` &&
+          lineItem.canonLeafIds.includes('CBA2-C08.2')
+      )
+    ).toHaveLength(1);
+  });
+
   it('does not add C07.3 or C08.7 operation lines for a non-Minimum Contract shape', () => {
     const zeroYosMinimum =
       getCapRulesForYear(2027).salaries.getMinimumForYOS(0);
@@ -1145,7 +1322,7 @@ describe('governed signing result and immutable history', () => {
     });
   });
 
-  it('persists and reloads one exact C08.7 Tax uplift without duplication', async () => {
+  it('persists and reloads one exact C07.3 Apron and C08.7 Tax uplift without duplication', async () => {
     const zeroYosMinimum =
       getCapRulesForYear(2027).salaries.getMinimumForYOS(0);
     const uplift =
@@ -1208,8 +1385,24 @@ describe('governed signing result and immutable history', () => {
       taxSalary: 102_449_421,
     });
     const reloadedTaxInput = reloaded?.salaryBookInputs?.taxSalary;
+    const reloadedApronInput = reloaded?.salaryBookInputs?.apronAdjustments;
     expect(reloadedTaxInput?.status).toBe('ready');
-    if (reloadedTaxInput?.status !== 'ready') return;
+    expect(reloadedApronInput?.status).toBe('ready');
+    if (
+      reloadedTaxInput?.status !== 'ready' ||
+      reloadedApronInput?.status !== 'ready'
+    ) {
+      return;
+    }
+    expect(
+      reloadedApronInput.lineItems.filter(
+        (lineItem) =>
+          lineItem.id ===
+            `apron-team-salary:minimum-uplift:${OPERATION_ID}` &&
+          lineItem.canonLeafIds.includes('CBA2-C07.3') &&
+          lineItem.amount === uplift
+      )
+    ).toHaveLength(1);
     expect(
       reloadedTaxInput.lineItems.filter(
         (lineItem) =>
@@ -1230,6 +1423,72 @@ describe('governed signing result and immutable history', () => {
     expect(JSON.stringify(reloaded?.contractEventLedgers)).toContain(
       'saved-world-signing'
     );
+  });
+
+  it('persists and reloads a two-Season zero-YOS Minimum without adding either uplift', async () => {
+    const minimum = getCapRulesForYear(2027).salaries.getMinimumForYOS(0);
+    const targetTeam = governedTeam();
+    const targetPlayer = player({ bio: { yearsExperience: 0 } });
+    const signingContract = contract({
+      years: 2,
+      contractYears: 2,
+      totalValue: minimum * 2,
+      signedUsing: 'Minimum',
+      salariesByYear: [
+        {
+          season: '2026-27',
+          salary: minimum,
+          capHit: minimum,
+          guaranteed: true,
+        },
+        {
+          season: '2027-28',
+          salary: minimum,
+          capHit: minimum,
+          guaranteed: true,
+        },
+      ],
+    });
+    seedWorldMetadata(WORLD_ID, {
+      worldId: WORLD_ID,
+      userId: 'user-bze-286',
+      worldName: 'BZE-286 two-Season Minimum world',
+      season: '2026-27',
+      asOfDate: WORLD_DATE,
+      parentWorldId: null,
+    });
+    seedTeamSnapshot(WORLD_ID, TEAM_ID, targetTeam as MockTeam, {
+      padRoster: false,
+    });
+    seedMockData(
+      `architect_worlds/${WORLD_ID}/teams/${TEAM_ID}/players/${PLAYER_ID}`,
+      targetPlayer
+    );
+    const computed = computeSigning({
+      targetTeam,
+      targetPlayer,
+      signingContract,
+      signedUsing: 'Minimum',
+    });
+    expect(computed.success, String(computed.error || '')).toBe(true);
+    const persisted = await persistWorldMutation({
+      worldId: WORLD_ID,
+      seasonId: '2026-27',
+      mutationType: 'signFreeAgent',
+      computeResult: computed,
+      committedTeamUpdates: computed.teamUpdates || [],
+      timestamp: Date.parse(RECORDED_AT),
+    });
+    expect(persisted.success, String(persisted.error || '')).toBe(true);
+    const reloaded = getMockTeamSnapshot(WORLD_ID, TEAM_ID);
+    const serializedInputs = JSON.stringify(reloaded?.salaryBookInputs);
+    expect(serializedInputs).not.toContain(
+      `apron-team-salary:minimum-uplift:${OPERATION_ID}`
+    );
+    expect(serializedInputs).not.toContain(
+      `tax-salary:minimum-uplift:${OPERATION_ID}`
+    );
+    expect(reloaded?.totals?.teamSalary).toBe(15_357_763);
   });
 
   it('rejects a concurrent Team change with no player, event, or signing overwrite', async () => {

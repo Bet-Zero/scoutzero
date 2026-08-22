@@ -154,12 +154,14 @@ function updateIncompleteRosterChargeAfterSigning({
 function appendSigningSalaryBookAdjustments({
   team,
   player,
+  contract,
   authority,
   mechanism,
   operationId,
 }: {
   team: ArchitectMutationTeamRecord;
   player: ArchitectMutationPlayerRecord;
+  contract: ArchitectMutationContract;
   authority: GovernedSigningAuthority;
   mechanism: string;
   operationId: string;
@@ -167,7 +169,9 @@ function appendSigningSalaryBookAdjustments({
   const inputs = team.salaryBookInputs;
   if (!inputs) return null;
   const taxInput = inputs.taxSalary;
-  if (taxInput.status !== 'ready') return null;
+  if (taxInput.status !== 'ready') {
+    return `Tax Salary needs input before this signing can be committed: ${taxInput.reason}`;
+  }
   const taxBaselines = taxInput.lineItems.filter((lineItem) =>
     lineItem.canonLeafIds.includes('CBA2-C08.1')
   );
@@ -176,14 +180,15 @@ function appendSigningSalaryBookAdjustments({
   }
   const taxBaselineAt = Date.parse(taxBaselines[0].effectiveFrom);
   const signingAt = Date.parse(authority.effectiveAt);
+  if (!Number.isFinite(taxBaselineAt) || !Number.isFinite(signingAt)) {
+    return 'Tax Salary needs a valid authenticated CBA2-C08.1 baseline and exact saved-world signing date.';
+  }
+  if (signingAt < taxBaselineAt) {
+    return 'Tax Salary needs input at the exact saved-world date because its authenticated CBA2-C08.1 baseline is not yet effective.';
+  }
   const taxLineItems = [...taxInput.lineItems];
   const taxSigningLineId = `tax-salary:signing:${operationId}`;
-  const canAppendPostBaselineTaxLine =
-    Number.isFinite(taxBaselineAt) &&
-    Number.isFinite(signingAt) &&
-    signingAt > taxBaselineAt;
   if (
-    canAppendPostBaselineTaxLine &&
     !taxLineItems.some((lineItem) => lineItem.id === taxSigningLineId)
   ) {
     taxLineItems.push({
@@ -217,17 +222,23 @@ function appendSigningSalaryBookAdjustments({
     Number.isSafeInteger(numericYearsOfService)
       ? numericYearsOfService
       : null;
+  const contractYears = Number(
+    contract.contractYears ??
+      contract.years ??
+      contract.salariesByYear?.length
+  );
   if (
     mechanism === 'MINIMUM' &&
     (yearsOfService === null || yearsOfService < 0)
   ) {
     return 'Minimum signing needs exact nonnegative years of service before Apron Team Salary and Tax Salary can be governed.';
   }
-  if (
+  const receivesMinimumUplift =
     mechanism === 'MINIMUM' &&
     yearsOfService !== null &&
-    yearsOfService <= 1
-  ) {
+    yearsOfService <= 1 &&
+    contractYears === 1;
+  if (receivesMinimumUplift) {
     const minimumScale = getCapRulesForYear(authority.salaryCapYear).salaries;
     const applicableMinimum = minimumScale.getMinimumForYOS(yearsOfService);
     const twoYosMinimum = minimumScale.getMinimumForYOS(2);
@@ -235,7 +246,6 @@ function appendSigningSalaryBookAdjustments({
     const taxMinimumUpliftLineId = `tax-salary:minimum-uplift:${operationId}`;
     if (
       uplift > 0 &&
-      canAppendPostBaselineTaxLine &&
       !taxLineItems.some((lineItem) => lineItem.id === taxMinimumUpliftLineId)
     ) {
       taxLineItems.push({
@@ -686,6 +696,7 @@ export function computeSigningResult({
     const salaryBookAdjustmentError = appendSigningSalaryBookAdjustments({
       team: updatedTeam,
       player,
+      contract: normalizedContract,
       authority: signingAuthority,
       mechanism: signingMechanism,
       operationId: operationId!,
