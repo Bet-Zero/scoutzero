@@ -60,6 +60,7 @@ const moduleParityCases = [
       'getHardCapStatusFromContext',
       'isTeamHardCapped',
       'resolveHardCapCeiling',
+      'resolveSalaryCapYear',
     ],
   },
   {
