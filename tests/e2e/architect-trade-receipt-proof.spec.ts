@@ -334,17 +334,24 @@ const openTradeMachine = async (page: Page) => {
   return dialog;
 };
 
-const electAggregatedPath = async (card: Locator) => {
+const fillPostAssignmentApronSalary = async (card: Locator) => {
   const apronSalary = await card
     .locator('[data-apron-team-salary]')
     .getAttribute('data-apron-team-salary');
   expect(apronSalary).not.toBeNull();
   expect(String(apronSalary).trim()).not.toBe('');
   expect(Number.isFinite(Number(apronSalary))).toBe(true);
-  await card.getByLabel('Elected path').selectOption('AGGREGATED_STANDARD_TPE');
   await card
     .getByLabel('Post-assignment Apron Team Salary')
     .fill(String(apronSalary));
+};
+
+const electSalaryPath = async (
+  card: Locator,
+  path: 'STANDARD_TPE' | 'AGGREGATED_STANDARD_TPE'
+) => {
+  await card.getByLabel('Elected path').selectOption(path);
+  await fillPostAssignmentApronSalary(card);
 };
 
 const teamCard = (dialog: Locator, teamCode: string) =>
@@ -427,24 +434,19 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
 
   const miamiCard = teamCard(dialog, 'MIA');
   const denverCard = teamCard(dialog, 'DEN');
-  await electAggregatedPath(miamiCard);
-  await electAggregatedPath(denverCard);
+  await electSalaryPath(miamiCard, 'AGGREGATED_STANDARD_TPE');
+  await electSalaryPath(denverCard, 'STANDARD_TPE');
 
   await routePlayer(dialog, page, 'MIA', 'Tobias Lund', 'Denver Nuggets');
   await routePlayer(dialog, page, 'DEN', 'Obi Nwachukwu', 'Miami Heat');
   await routePlayer(dialog, page, 'MIA', 'Owen Frost', 'Denver Nuggets');
   await routePlayer(dialog, page, 'MIA', 'Eli Navarro', 'Denver Nuggets');
   await routePlayer(dialog, page, 'DEN', 'Aaron Pike', 'Miami Heat');
-  await routePlayer(dialog, page, 'DEN', 'Reggie Voss', 'Miami Heat');
 
   const heldTpeIds = {
     MIA: await assignHeldTpe(miamiCard, 'Aaron Pike', 'MIA'),
     DEN: await assignHeldTpe(denverCard, 'Owen Frost', 'DEN'),
   };
-  await miamiCard.getByLabel('Reggie Voss absorption mode').selectOption('TPE');
-  await miamiCard
-    .getByLabel('Reggie Voss held TPE')
-    .selectOption(heldTpeIds.MIA);
   await denverCard
     .getByLabel('Eli Navarro absorption mode')
     .selectOption('TPE');
@@ -463,9 +465,12 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   await denverCard
     .getByLabel('Aaron Pike exact pre-trade Salary')
     .fill('3200000');
+  await miamiCard
+    .getByLabel('Post-assignment Apron Team Salary')
+    .fill('214157763');
   await denverCard
-    .getByLabel('Reggie Voss exact pre-trade Salary')
-    .fill('2000000');
+    .getByLabel('Post-assignment Apron Team Salary')
+    .fill('218600000');
 
   await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
   await page.waitForTimeout(500);
@@ -554,8 +559,14 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       destinationTeam: 'DEN',
       destinationPlayer: 'den_obi_nwachukwu',
       governedApronTransaction: {
-        MIA: ['Owen Frost', 'Eli Navarro'],
-        DEN: ['Aaron Pike', 'Reggie Voss'],
+        elections: {
+          MIA: 'AGGREGATED_STANDARD_TPE',
+          DEN: 'STANDARD_TPE',
+        },
+        heldTpeAbsorptions: {
+          MIA: ['Aaron Pike'],
+          DEN: ['Owen Frost', 'Eli Navarro'],
+        },
         heldTpes: heldTpeIds,
       },
     },

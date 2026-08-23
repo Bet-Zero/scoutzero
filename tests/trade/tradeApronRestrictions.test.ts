@@ -277,6 +277,43 @@ describe('governed Trade Machine apron restrictions', () => {
     });
   });
 
+  it('retains Row H while enforcing an aged held TPE alongside an aggregated election', () => {
+    const heldTpe = {
+      id: 'TPE-AGGREGATED-AGED',
+      amount: 8_000_000,
+      remainingAmount: 8_000_000,
+      createdOn: '2026-02-01T12:00:00-05:00',
+      expiresOn: '2027-02-01T12:00:00-05:00',
+    };
+    const evaluation = evaluateTradeApronRestriction({
+      team: team(SECOND_APRON, [heldTpe]),
+      teamCode: 'DET',
+      pathEvaluation: pathEvaluation({
+        path: 'AGGREGATED_STANDARD_TPE',
+        postSalary: SECOND_APRON,
+        components: [
+          electedComponent('AGGREGATED_STANDARD_TPE'),
+          heldComponent(heldTpe.id),
+        ],
+      }),
+      context: context('2026-11-15T12:00:00-05:00'),
+    });
+
+    expect(evaluation).toMatchObject({
+      status: 'PASS',
+      restrictionRow: 'H',
+      apronLevel: 'SECOND_APRON',
+      ceiling: SECOND_APRON,
+      tpeTimings: [
+        {
+          tpeId: heldTpe.id,
+          createdOn: heldTpe.createdOn,
+          expiresOn: heldTpe.expiresOn,
+        },
+      ],
+    });
+  });
+
   it('CBA2-A05.8: classifies a prior-Salary-Cap-Year TPE against its creation-season closing', () => {
     const heldTpe = {
       id: 'TPE-PRIOR-SCY',

@@ -436,7 +436,11 @@ export function evaluateTradeApronRestriction({
       envelope.calendar.regularSeasonClosing?.value ?? null;
   }
 
-  if (transactionDate && tpeTimings.length > 0) {
+  if (
+    path === 'STANDARD_TPE' &&
+    transactionDate &&
+    tpeTimings.length > 0
+  ) {
     const acquisitionDay = dateOnly(transactionDate);
     for (const timing of tpeTimings) {
       const rowFResolution = resolveRowFClosingForHeldTpe({
