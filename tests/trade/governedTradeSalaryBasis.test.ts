@@ -532,6 +532,33 @@ describe('saved-world validation trust boundary', () => {
     expect(tampered.salaryBasisIssues[0]?.reason).toContain('does not match');
   });
 
+  it('treats equivalent team identity casing as the same governed team', () => {
+    const authority = resolve(
+      state([row('2026-27', 10_000_000)]),
+      '2027-01-08'
+    );
+    const result = computeMatchingValues({
+      teams: [
+        {
+          teamId: TEAM_ID.toLowerCase(),
+          sends: [
+            {
+              id: PLAYER_ID,
+              salary: 1,
+              governedTradeSalaryBasis: authority,
+            },
+          ],
+        },
+      ],
+      yearKey: '2026-27',
+      worldId: WORLD_ID,
+      asOfDate: '2027-01-08',
+      requireGovernedSalaryBasis: true,
+    });
+
+    expect(result.salaryBasisIssues).toEqual([]);
+  });
+
   it('preserves unmatched roster players without an undefined authority key', () => {
     const player = { playerId: PLAYER_ID, name: 'Fixture Player' };
     const [unmatched] = attachGovernedTradeSalaryBasisToRoster(

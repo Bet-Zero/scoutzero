@@ -7,6 +7,7 @@ import {
 import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import { TWO_WAY_TRADE_MATCHING_EXPLANATION } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
+import { TradeApronRestrictionReceipt } from './TradeApronRestrictionReceipt';
 import type {
   TeamPlayerLike,
   TradeReceiptLike,
@@ -300,6 +301,8 @@ const TradeReceiptPanel = ({
               const teamWarnings = toList(team.warnings);
               const pathEvaluation =
                 team.salaryMatchingEvaluation?.pathEvaluation ?? null;
+              const apronRestriction =
+                team.apronRestrictionEvaluation ?? null;
 
               return (
                 <div
@@ -402,6 +405,13 @@ const TradeReceiptPanel = ({
                         </div>
                       ))}
                     </div>
+                  )}
+
+                  {apronRestriction && (
+                    <TradeApronRestrictionReceipt
+                      evaluation={apronRestriction}
+                      teamCode={team.teamCode}
+                    />
                   )}
 
                   <div className="grid grid-cols-2 gap-2 text-xs mb-2">

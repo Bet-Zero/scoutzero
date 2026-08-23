@@ -13,6 +13,8 @@ import type { CapHold } from '../../capHolds';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
 import type { GovernedTradeSalaryBasis } from '@/schemas/governedTradeSalaryBasis';
+import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
+import type { TradeApronRestrictionEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
 
 // Normalized cap settings
 export interface CapSettings {
@@ -185,6 +187,7 @@ export interface TradeExceptionRecord {
   expiryISO?: string | null;
   expiryDate?: string | null;
   createdSeason?: number;
+  createdOn?: string | null;
   season?: number;
   createdAtSeason?: number;
   isUsed?: boolean;
@@ -281,6 +284,7 @@ export interface NormalizedTeam {
     faExceptionBuckets?: TradeFaExceptionBucket[];
     hardCapFirstApron?: Record<string, unknown>;
     hardCapSecondApron?: Record<string, unknown>;
+    hardCapLedger?: TradeHardCapLedgerEntry[];
     capHolds?: CapHold[];
     usedTaxpayerMLEThisSeason?: boolean;
     // Deliberate unknown[]: only .length is accessed in the pipeline; no runtime evidence of element shape
@@ -325,6 +329,7 @@ export interface NormalizedTeam {
   context?: TeamContext;
   salaryMatchingElection?: TradeSalaryMatchingElection | null;
   salaryMatchingPathEvaluation?: TradeSalaryPathEvaluation | null;
+  apronRestrictionEvaluation?: TradeApronRestrictionEvaluation | null;
   capSettings?: CapSettings;
   hardCapLevel?: string | number | null;
   hardCapTriggered?: boolean;
@@ -372,6 +377,7 @@ export interface HardCapStatusResult {
   hardCapCeilingType: Exclude<HardCapTypeCanonical, 'UNKNOWN'> | null;
   hardCapCeilingLabel: string | null;
   failClosed: boolean;
+  activeHardCapLedgerEntry?: TradeHardCapLedgerEntry | null;
 }
 
 export interface HardCapCapLimits {
@@ -603,6 +609,7 @@ export interface AuthoritativeHardCapResult {
   hardCapStatus?: HardCapStatusResult | null;
   capLimits?: HardCapCapLimits;
   trigger?: string | null;
+  activeHardCapLedgerEntry?: TradeHardCapLedgerEntry | null;
 }
 
 export interface HardCapResult extends ValidationResult {
@@ -754,6 +761,7 @@ export interface TradeTeamResult {
   notes: unknown;
   createdTPE: TradeExceptionRecord | null;
   salaryMatchingPathEvaluation?: TradeSalaryPathEvaluation | null;
+  apronRestrictionEvaluation?: TradeApronRestrictionEvaluation | null;
   details: string;
   warningDetails: string;
   _tpeConsumptionErrors?: unknown[];
@@ -868,6 +876,7 @@ export interface TradeReceiptTeamRow {
     incomingMatchingTotal: number;
   };
   salaryMatchingEvaluation: TradeReceiptSalaryMatchingEvaluation;
+  apronRestrictionEvaluation: TradeApronRestrictionEvaluation | null;
   violations: ValidationIssue[];
   warnings: ValidationIssue[];
 }

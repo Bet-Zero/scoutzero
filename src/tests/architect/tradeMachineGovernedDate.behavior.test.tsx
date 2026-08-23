@@ -304,6 +304,58 @@ describe('BZE-284 governed Trade Machine date forwarding', () => {
     expect(result.current.initError).toBeNull();
   });
 
+  it('retries the same Team inputs after a transient null world read', async () => {
+    harness.loadWorldTeamData
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(buildGovernedTeam('LAL'));
+
+    const { result, rerender } = renderHook(
+      ({ capProjections }: { capProjections: Record<string, never> | null }) => {
+        const [teams, setTeams] = useState<TradeMachineTeamSlot[]>(emptySlots);
+        const [initError, setInitError] = useState<string | null>(null);
+        const lastInitInputsRef = useRef<null | {
+          primaryTeam: string | null | undefined;
+          primaryTeamData: TradeMachineTeam | null;
+          yearKey: string | number;
+          worldId: string | null;
+          worldAsOfDate: string | null;
+        }>(null);
+
+        useTradeMachineInit({
+          primaryTeam: 'LAL',
+          primaryTeamData: null,
+          capProjections,
+          yearKey: 2027,
+          worldId: null,
+          worldAsOfDate: BEFORE_EXPIRY,
+          setTeams,
+          setInitError,
+          lastInitInputsRef,
+        });
+
+        return { teams, initError };
+      },
+      {
+        initialProps: {
+          capProjections: null as Record<string, never> | null,
+        },
+      }
+    );
+
+    await waitFor(() =>
+      expect(harness.loadWorldTeamData).toHaveBeenCalledTimes(1)
+    );
+    expect(result.current.teams[0]?.team).toBeNull();
+
+    rerender({ capProjections: {} });
+
+    await waitFor(() => {
+      expect(result.current.teams[0]?.team?.teamCode).toBe('LAL');
+    });
+    expect(harness.loadWorldTeamData).toHaveBeenCalledTimes(2);
+    expect(result.current.initError).toBeNull();
+  });
+
   it('uses the governed date when a Team is selected after waiver expiry', async () => {
     const { result } = renderHook(() => {
       const [teams, setTeams] = useState<TradeMachineTeamSlot[]>(emptySlots);

@@ -13,6 +13,11 @@ import type {
   HardCapTypeCanonical,
   HardCapTypeLegacy,
 } from '../constants/types';
+import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
+import {
+  parseTradeHardCapLedger,
+  selectHardCapLedgerEntryFromEntries,
+} from './tradeApronRestrictions';
 
 type HardCapStructuredFlag = {
   active?: boolean;
@@ -46,6 +51,7 @@ type HardCapCapSettingsLike = {
 type HardCapTotalsLike = TeamCapTotalsSnapshot | Record<string, unknown> | null;
 
 type HardCapStatusTeamData = {
+  hardCapLedger?: unknown;
   hardCapSecondApron?: HardCapStructuredFlag;
   hardCapFirstApron?: HardCapStructuredFlag;
   hardCapType?: string | boolean | number | null;
@@ -66,6 +72,7 @@ type HardCapStatusTeamData = {
 
 type HardCapStatusTeamLike = {
   team?: HardCapStatusTeamData;
+  hardCapLedger?: unknown;
   hardCapSecondApron?: HardCapStructuredFlag;
   hardCapFirstApron?: HardCapStructuredFlag;
   hardCapType?: string | boolean | number | null;
@@ -88,6 +95,7 @@ type HardCapStatusOptions = {
   isWorldless?: boolean;
   capSettings?: HardCapCapSettingsLike | null;
   inferHardCapFromExceptionUsage?: boolean;
+  salaryCapYear?: number | null;
 };
 
 type CanonicalHardCapType = HardCapTypeCanonical;
@@ -140,6 +148,14 @@ const LEGACY_HARD_CAP_TYPES: Record<CanonicalHardCapType, LegacyHardCapType> =
     [HARD_CAP_TYPES.SECOND_APRON]: 'SecondApron',
     [HARD_CAP_TYPES.UNKNOWN]: 'Unknown',
   });
+
+export function resolveSalaryCapYear(context: {
+  currentYear?: unknown;
+  yearKey?: unknown;
+}): number | null {
+  if (typeof context.currentYear === 'number') return context.currentYear;
+  return typeof context.yearKey === 'number' ? context.yearKey : null;
+}
 
 function toFiniteNumber(value: unknown): number {
   const numericValue = Number(value);
@@ -314,17 +330,21 @@ function getHardCapLevelCandidate(
     ['team.team.totals.hardCapLevel', nestedTotals?.hardCapLevel],
   ];
 
+  let fallback: { hardCapType: CanonicalHardCapType; source: string } | null =
+    null;
   for (const [source, rawValue] of levelCandidates) {
     const normalized = normalizeHardCapType(rawValue);
     if (normalized) {
-      return {
+      const candidate = {
         hardCapType: normalized,
         source,
       };
+      if (normalized === HARD_CAP_TYPES.FIRST_APRON) return candidate;
+      fallback ??= candidate;
     }
   }
 
-  return null;
+  return fallback;
 }
 
 function isPresentHardCapTriggerMetadata(value: unknown): boolean {
@@ -609,12 +629,14 @@ function buildStatus({
   source,
   reason,
   capSettings,
+  ledgerEntry = null,
 }: {
   isHardCapped: boolean;
   hardCapType: CanonicalHardCapType | null;
   source?: string | null;
   reason?: string | null;
   capSettings?: HardCapCapSettingsLike | null;
+  ledgerEntry?: TradeHardCapLedgerEntry | null;
 }): HardCapStatusResult {
   const ceiling = isHardCapped
     ? resolveHardCapCeiling(hardCapType, capSettings)
@@ -641,7 +663,26 @@ function buildStatus({
     hardCapCeilingType: ceiling.hardCapCeilingType,
     hardCapCeilingLabel: ceiling.hardCapCeilingLabel,
     failClosed: ceiling.failClosed,
+    activeHardCapLedgerEntry: ledgerEntry,
   };
+}
+
+function selectStrictestHardCapStatus(
+  candidates: HardCapStatusResult[]
+): HardCapStatusResult | null {
+  const typeRank = (candidate: HardCapStatusResult) =>
+    candidate.hardCapType === HARD_CAP_TYPES.FIRST_APRON ||
+    candidate.hardCapType === HARD_CAP_TYPES.UNKNOWN
+      ? 0
+      : 1;
+  return (
+    [...candidates].sort(
+      (left, right) =>
+        typeRank(left) - typeRank(right) ||
+        (left.hardCapCeiling ?? Number.POSITIVE_INFINITY) -
+          (right.hardCapCeiling ?? Number.POSITIVE_INFINITY)
+    )[0] ?? null
+  );
 }
 
 /**
@@ -658,6 +699,7 @@ export function getHardCapStatus(
     isWorldless = false,
     capSettings = null,
     inferHardCapFromExceptionUsage = false,
+    salaryCapYear = null,
   } = options;
 
   if (!team) {
@@ -671,37 +713,92 @@ export function getHardCapStatus(
   }
 
   const teamLike = team.team || {};
-  const explicitReason = getExplicitHardCapReason(team, teamLike);
-  const hardCapLevelCandidate = getHardCapLevelCandidate(team, teamLike);
-  const hardCapSecondApron =
-    teamLike?.hardCapSecondApron || team.hardCapSecondApron;
-  const hardCapFirstApron =
-    teamLike?.hardCapFirstApron || team.hardCapFirstApron;
-
-  if (hardCapSecondApron?.active === true) {
+  const rawLedger = teamLike.hardCapLedger ?? team.hardCapLedger;
+  const parsedLedger = parseTradeHardCapLedger(rawLedger);
+  if (!parsedLedger.valid) {
     return buildStatus({
       isHardCapped: true,
-      hardCapType: HARD_CAP_TYPES.SECOND_APRON,
-      reason:
-        explicitReason ||
-        hardCapSecondApron.reason ||
-        'Second apron hard cap active',
-      source: 'team.team.hardCapSecondApron.active === true',
+      hardCapType: HARD_CAP_TYPES.UNKNOWN,
+      reason: 'Persisted hard-cap ledger is malformed or version-incompatible.',
+      source: 'team.hardCapLedger (invalid)',
       capSettings,
     });
   }
-
-  if (hardCapFirstApron?.active === true) {
+  if (parsedLedger.entries.length > 0 && salaryCapYear === null) {
     return buildStatus({
       isHardCapped: true,
-      hardCapType: HARD_CAP_TYPES.FIRST_APRON,
+      hardCapType: HARD_CAP_TYPES.UNKNOWN,
       reason:
-        explicitReason ||
-        hardCapFirstApron.reason ||
-        'First apron hard cap active',
-      source: 'team.team.hardCapFirstApron.active === true',
+        'Persisted hard-cap history cannot be applied without an exact Salary Cap Year.',
+      source: 'team.hardCapLedger (salary cap year unavailable)',
       capSettings,
     });
+  }
+  const ledgerEntry = selectHardCapLedgerEntryFromEntries(
+    parsedLedger.entries,
+    salaryCapYear
+  );
+  const candidates: HardCapStatusResult[] = [];
+  if (ledgerEntry) {
+    const hardCapType =
+      ledgerEntry.apronLevel === 'FIRST_APRON'
+        ? HARD_CAP_TYPES.FIRST_APRON
+        : HARD_CAP_TYPES.SECOND_APRON;
+    const status = buildStatus({
+      isHardCapped: true,
+      hardCapType,
+      reason: `Transaction Restrictions Table Row ${ledgerEntry.restrictionRow} hard cap for Salary Cap Year ${ledgerEntry.salaryCapYear}.`,
+      source: `team.hardCapLedger.${ledgerEntry.entryId}`,
+      capSettings,
+      ledgerEntry,
+    });
+    candidates.push({
+      ...status,
+      hardCapCeiling: ledgerEntry.ceiling,
+      hardCapCeilingType: hardCapType,
+      hardCapCeilingLabel:
+        hardCapType === HARD_CAP_TYPES.FIRST_APRON ? '1st Apron' : '2nd Apron',
+      failClosed: false,
+    });
+  }
+  const explicitReason = getExplicitHardCapReason(team, teamLike);
+  const hardCapLevelCandidate = getHardCapLevelCandidate(team, teamLike);
+  const structuredCandidates: Array<
+    [string, HardCapStructuredFlag | undefined, CanonicalHardCapType]
+  > = [
+    [
+      'team.hardCapSecondApron.active === true',
+      team.hardCapSecondApron,
+      HARD_CAP_TYPES.SECOND_APRON,
+    ],
+    [
+      'team.team.hardCapSecondApron.active === true',
+      teamLike?.hardCapSecondApron,
+      HARD_CAP_TYPES.SECOND_APRON,
+    ],
+    [
+      'team.hardCapFirstApron.active === true',
+      team.hardCapFirstApron,
+      HARD_CAP_TYPES.FIRST_APRON,
+    ],
+    [
+      'team.team.hardCapFirstApron.active === true',
+      teamLike?.hardCapFirstApron,
+      HARD_CAP_TYPES.FIRST_APRON,
+    ],
+  ];
+  for (const [source, flag, hardCapType] of structuredCandidates) {
+    if (flag?.active !== true) continue;
+    candidates.push(
+      buildStatus({
+        isHardCapped: true,
+        hardCapType,
+        reason:
+          explicitReason || flag.reason || getDefaultHardCapReason(hardCapType),
+        source,
+        capSettings,
+      })
+    );
   }
 
   const typedCandidates: Array<[string, unknown]> = [
@@ -744,26 +841,33 @@ export function getHardCapStatus(
         : normalized;
 
     if (resolvedHardCapType === HARD_CAP_TYPES.SECOND_APRON) {
-      return buildStatus({
-        isHardCapped: true,
-        hardCapType: HARD_CAP_TYPES.SECOND_APRON,
-        reason:
-          explicitReason ||
-          getDefaultHardCapReason(HARD_CAP_TYPES.SECOND_APRON),
-        source: sourceLabel,
-        capSettings,
-      });
+      candidates.push(
+        buildStatus({
+          isHardCapped: true,
+          hardCapType: HARD_CAP_TYPES.SECOND_APRON,
+          reason:
+            explicitReason ||
+            getDefaultHardCapReason(HARD_CAP_TYPES.SECOND_APRON),
+          source: sourceLabel,
+          capSettings,
+        })
+      );
+      continue;
     }
 
     if (resolvedHardCapType === HARD_CAP_TYPES.FIRST_APRON) {
-      return buildStatus({
-        isHardCapped: true,
-        hardCapType: HARD_CAP_TYPES.FIRST_APRON,
-        reason:
-          explicitReason || getDefaultHardCapReason(HARD_CAP_TYPES.FIRST_APRON),
-        source: sourceLabel,
-        capSettings,
-      });
+      candidates.push(
+        buildStatus({
+          isHardCapped: true,
+          hardCapType: HARD_CAP_TYPES.FIRST_APRON,
+          reason:
+            explicitReason ||
+            getDefaultHardCapReason(HARD_CAP_TYPES.FIRST_APRON),
+          source: sourceLabel,
+          capSettings,
+        })
+      );
+      continue;
     }
 
     if (resolvedHardCapType === HARD_CAP_TYPES.UNKNOWN && !unknownSource) {
@@ -772,42 +876,51 @@ export function getHardCapStatus(
   }
 
   if (unknownSource) {
-    return buildStatus({
-      isHardCapped: true,
-      hardCapType: HARD_CAP_TYPES.UNKNOWN,
-      reason:
-        explicitReason ||
-        'Hard cap indicated by legacy/ambiguous value. Applying fail-closed ceiling.',
-      source: unknownSource,
-      capSettings,
-    });
+    candidates.push(
+      buildStatus({
+        isHardCapped: true,
+        hardCapType: HARD_CAP_TYPES.UNKNOWN,
+        reason:
+          explicitReason ||
+          'Hard cap indicated by legacy/ambiguous value. Applying fail-closed ceiling.',
+        source: unknownSource,
+        capSettings,
+      })
+    );
   }
 
   const triggerMetadataSource = getHardCapTriggerMetadataSource(team, teamLike);
   if (triggerMetadataSource) {
     const hardCapType =
       hardCapLevelCandidate?.hardCapType || HARD_CAP_TYPES.UNKNOWN;
-    return buildStatus({
-      isHardCapped: true,
-      hardCapType,
-      reason: explicitReason || getDefaultHardCapReason(hardCapType),
-      source: triggerMetadataSource,
-      capSettings,
-    });
+    candidates.push(
+      buildStatus({
+        isHardCapped: true,
+        hardCapType,
+        reason: explicitReason || getDefaultHardCapReason(hardCapType),
+        source: triggerMetadataSource,
+        capSettings,
+      })
+    );
   }
 
   if (inferHardCapFromExceptionUsage) {
     const compatibilityUsage = getCompatibilityHardCapUsage(team, teamLike);
     if (compatibilityUsage) {
-      return buildStatus({
-        isHardCapped: true,
-        hardCapType: HARD_CAP_TYPES.FIRST_APRON,
-        reason: compatibilityUsage.reason,
-        source: compatibilityUsage.source,
-        capSettings,
-      });
+      candidates.push(
+        buildStatus({
+          isHardCapped: true,
+          hardCapType: HARD_CAP_TYPES.FIRST_APRON,
+          reason: compatibilityUsage.reason,
+          source: compatibilityUsage.source,
+          capSettings,
+        })
+      );
     }
   }
+
+  const strictestStatus = selectStrictestHardCapStatus(candidates);
+  if (strictestStatus) return strictestStatus;
 
   if (isWorldless) {
     const hardCappedField = team.hardCapped;

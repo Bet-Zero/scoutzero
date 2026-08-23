@@ -26,6 +26,7 @@ import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
 import type { TeamSalaryBookInputs } from '@/schemas/salaryBooks';
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
+import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
 import { createRightsEventLedger } from '@/features/architect/utils/rightsHistory';
 
 // ==== Type Definitions ====
@@ -62,6 +63,7 @@ export type LoadedWorldTeamCapSheet = Pick<
   totals?: TeamTotals | null;
   salaryBookInputs?: TeamSalaryBookInputs | null;
   contractEventLedgers?: ContractEventLedgerPayload[] | null;
+  hardCapLedger?: TradeHardCapLedgerEntry[] | null;
 };
 
 /**

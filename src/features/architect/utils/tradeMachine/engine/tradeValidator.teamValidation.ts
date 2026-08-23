@@ -21,6 +21,7 @@ import { enforceTiming } from '../rules/timingValidation';
 import { enforceSecondApronHandcuffs } from '../rules/basicRules';
 import { validateFaExceptionUsage } from '../rules/validateFaExceptionUsage';
 import { validateAggregation } from '../rules/validateAggregation';
+import { evaluateTradeApronRestriction } from '../utils/tradeApronRestrictions';
 import { getApronStatus } from '@/features/architect/utils/tradeHelpers';
 import { computeProjectedRosterLegality } from './tradeValidator.helpers';
 import { buildEntitlementRoutingMap } from '../utils/buildEntitlementRoutingMap';
@@ -164,6 +165,12 @@ export function validateSingleTeam(
   );
   teamForValidation.salaryMatchingPathEvaluation =
     salaryMatchingResult.details.pathEvaluation ?? null;
+  const apronRestrictionResult = evaluateTradeApronRestriction({
+    team: teamForValidation,
+    teamCode: teamId,
+    pathEvaluation: teamForValidation.salaryMatchingPathEvaluation,
+    context,
+  });
   const hardCapResult = validators.validateHardCap(teamForValidation, context);
   const stepienResult = validators.validateStepien(teamForValidation, context);
   const cashResult = validators.validateCash(teamForValidation, context);
@@ -326,6 +333,11 @@ export function validateSingleTeam(
       salaryMatchingResult,
       'Salary Matching'
     ),
+    apronRestriction: createRuleEnvelope(
+      'apronRestriction',
+      apronRestrictionResult,
+      'Apron Restriction'
+    ),
     hardCap: createRuleEnvelope('hardCap', hardCapResult, 'Hard Cap'),
     stepienRule: createRuleEnvelope(
       'stepienRule',
@@ -449,7 +461,8 @@ export function validateSingleTeam(
       teamForValidation.team?.hardCapped ||
         teamForValidation.team?.hardCapFirstApron?.active ||
         signAndTradeResultObject.hardCapped ||
-        hardCapResultObject.hardCapStatus?.isHardCapped
+        hardCapResultObject.hardCapStatus?.isHardCapped ||
+        apronRestrictionResult.hardCapWillPersist
     ),
     apronStatus,
     faExceptionBuckets: teamForValidation.team?.faExceptionBuckets || [],
@@ -463,6 +476,7 @@ export function validateSingleTeam(
         : null,
     salaryMatchingPathEvaluation:
       salaryMatchingResult.details.pathEvaluation ?? null,
+    apronRestrictionEvaluation: apronRestrictionResult,
     details: isTeamLegal
       ? 'Valid trade for this team'
       : summarizeValidationIssues(violations, 'Trade validation failed'),

@@ -261,6 +261,7 @@ tradeMachine/
   FaExceptionTracker.tsx
   OutgoingPlayersList.tsx
   SelectTeamCard.tsx
+  TradeApronRestrictionReceipt.tsx
   TradeEditor.helpers.ts
   TradeEditor.tsx
   TradeEditor.types.ts
@@ -605,8 +606,11 @@ utils/
       stepienEntitlementUtils.ts
       swapResolution.ts
       tpeValidation.ts
+      tradeApronDate.ts
+      tradeApronRestrictions.ts
       tradeExceptionLifecycle.ts
       tradeExportUtils.ts
+      tradeHardCapLedgerAuthority.ts
       tradeSalaryMatchingPaths.ts
       tradeTimingWindows.ts
       tradeUtilityMisc.ts
@@ -635,5 +639,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-22T11:10:48.517Z*
+*Generated on: 2026-08-23T09:55:25.485Z*
 *Auto-updated by: npm run docs*

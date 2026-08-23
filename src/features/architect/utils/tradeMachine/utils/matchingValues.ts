@@ -312,7 +312,7 @@ export function computeMatchingValues({
         const normalizedYear = normalizeYearInput(yearKey);
         const identityMatches =
           authority.worldId === worldId &&
-          authority.teamId === teamId &&
+          authority.teamId.toUpperCase() === teamId?.toUpperCase() &&
           authority.playerId === playerId &&
           authority.salaryCapYear === normalizedYear?.endYear &&
           authority.asOfDate === expectedDate;

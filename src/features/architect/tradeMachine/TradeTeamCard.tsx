@@ -227,6 +227,9 @@ export const TradeTeamCard = ({
 
   return (
     <div
+      data-testid={`trade-team-card-${String(
+        team.teamCode ?? team.id
+      ).toUpperCase()}`}
       className={`flex-1 rounded-lg ${
         compact ? 'p-3 space-y-2' : 'p-4 space-y-4'
       } bg-cockpit-slab relative shadow-cockpit-slab border`}
@@ -796,6 +799,7 @@ export const TradeTeamCard = ({
                   {validationFlags.faExceptionTrade !== 'off' && (
                     <>
                       <select
+                        aria-label={`${getPlayerLabel(p)} absorption mode`}
                         className="bg-cockpit-raised text-xs rounded-md px-1"
                         value={String(effectiveMode)}
                         disabled={isTwoWay}
@@ -824,6 +828,7 @@ export const TradeTeamCard = ({
                       {/* TPE selector - show when TPE mode selected */}
                       {effectiveMode === 'TPE' && (
                         <select
+                          aria-label={`${getPlayerLabel(p)} held TPE`}
                           className="bg-cockpit-raised text-xs rounded-md px-1"
                           value={p.tpeId == null ? '' : String(p.tpeId)}
                           onChange={(e) =>

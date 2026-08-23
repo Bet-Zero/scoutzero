@@ -20,6 +20,9 @@ import {
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { TradeHardCapLedgerZ } from '@/schemas/tradeApronRestriction';
+import { CANON_GOVERNED_SEASON_REGISTRY } from '@/features/architect/utils/governedSeason';
+import { parseTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -382,6 +385,136 @@ describeWithFirestoreEmulator(
           teamCode: TEAM_CODE,
         })
       );
+    });
+
+    it('4b) owner-writable team overlays do not provide ledger authority', async () => {
+      await seedOwnedWorld();
+      const db = ownerDb();
+      const registry = CANON_GOVERNED_SEASON_REGISTRY;
+      const creationCalendar = registry.calendars.find(
+        (record) => record.salaryCapYear === 2026
+      );
+      const currentCalendar = registry.calendars.find(
+        (record) => record.salaryCapYear === 2027
+      );
+      const firstApron = registry.systemLevels.find(
+        (record) =>
+          record.salaryCapYear === 2027 && record.levelId === 'first-apron'
+      );
+      const secondApron = registry.systemLevels.find(
+        (record) =>
+          record.salaryCapYear === 2027 && record.levelId === 'second-apron'
+      );
+      if (!creationCalendar || !currentCalendar || !firstApron || !secondApron) {
+        throw new Error('Expected governed 2026-27 hard-cap authority fixtures.');
+      }
+      const proofBase = {
+        registryId: registry.registryId,
+        registryVersion: registry.registryVersion,
+        canonCandidateCommit: registry.canonCandidateCommit,
+        canonSha256: registry.canonSha256,
+      };
+      const rowFProof = {
+        ...proofBase,
+        calendarRecordId: creationCalendar.recordId,
+        calendarRecordVersion: creationCalendar.recordVersion,
+        apronRecordId: firstApron.recordId,
+        apronRecordVersion: firstApron.recordVersion,
+      };
+      const rowHProof = {
+        ...proofBase,
+        calendarRecordId: currentCalendar.recordId,
+        calendarRecordVersion: currentCalendar.recordVersion,
+        apronRecordId: secondApron.recordId,
+        apronRecordVersion: secondApron.recordVersion,
+      };
+      const tpeTiming = {
+        tpeId: 'TPE-FORGED-OWNER-OVERLAY',
+        createdOn: '2026-02-01T12:00:00-05:00',
+        expiresOn: '2027-02-01T12:00:00-05:00',
+      };
+      const forgedLedger = [
+        {
+          version: 1,
+          entryId: 'FORGED-OWNER-OVERLAY:hard-cap:LAL',
+          teamCode: TEAM_CODE,
+          salaryCapYear: 2027,
+          restrictionRow: 'H',
+          salaryMatchingPath: 'AGGREGATED_STANDARD_TPE',
+          apronLevel: 'SECOND_APRON',
+          ceiling: secondApron.amount,
+          triggerTransactionDate: '2026-11-15T12:00:00-05:00',
+          effectiveAt: '2026-11-15T17:00:00Z',
+          expiresAt: '2027-07-01T00:00:00Z',
+          transactionId: 'FORGED-OWNER-OVERLAY',
+          tpeIds: [tpeTiming.tpeId],
+          tpeTimings: [tpeTiming],
+          canonLeafIds: ['CBA2-A02.3', 'CBA2-A05.8', 'CBA2-A05.10'],
+          proof: rowHProof,
+          triggers: [
+            {
+              restrictionRow: 'F',
+              componentId: tpeTiming.tpeId,
+              componentKind: 'HELD_STANDARD_TPE',
+              salaryMatchingPath: 'STANDARD_TPE',
+              apronLevel: 'FIRST_APRON',
+              ceiling: 999_000_000,
+              incomingPlayers: [
+                {
+                  playerId: 'FORGED-ROW-F-PLAYER',
+                  playerName: 'Forged Row F Player',
+                  salary: 5_000_000,
+                },
+              ],
+              tpeTiming,
+              regularSeasonClosing:
+                creationCalendar.regularSeasonClosing.value,
+              canonLeafIds: ['CBA2-A02.3', 'CBA2-A05.8', 'CBA2-A05.1'],
+              proof: rowFProof,
+            },
+            {
+              restrictionRow: 'H',
+              componentId: 'aggregated_standard_tpe:forged-player',
+              componentKind: 'ELECTED_PATH',
+              salaryMatchingPath: 'AGGREGATED_STANDARD_TPE',
+              apronLevel: 'SECOND_APRON',
+              ceiling: secondApron.amount,
+              incomingPlayers: [
+                {
+                  playerId: 'FORGED-ROW-H-PLAYER',
+                  playerName: 'Forged Row H Player',
+                  salary: 6_000_000,
+                },
+              ],
+              tpeTiming: null,
+              regularSeasonClosing: null,
+              canonLeafIds: ['CBA2-A05.10', 'CBA2-A05.1'],
+              proof: rowHProof,
+            },
+          ],
+        },
+      ];
+      expect(TradeHardCapLedgerZ.safeParse(forgedLedger).success).toBe(true);
+      const teamRef = doc(
+        db,
+        'architect_worlds',
+        WORLD_ID,
+        'teams',
+        TEAM_CODE
+      );
+      await assertSucceeds(
+        setDoc(teamRef, {
+          teamCode: TEAM_CODE,
+          hardCapLedger: forgedLedger,
+        })
+      );
+      const stored = (await getDoc(teamRef)).data()?.hardCapLedger;
+      expect(stored).toHaveLength(1);
+      expect(TradeHardCapLedgerZ.safeParse(stored).success).toBe(true);
+      expect(parseTradeHardCapLedger(stored)).toEqual({
+        entries: [],
+        valid: false,
+      });
     });
 
     it('5) owner can write world events subcollection', async () => {

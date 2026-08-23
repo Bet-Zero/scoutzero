@@ -27,6 +27,9 @@ import {
   TeamSalaryBookInputsZ,
   type TeamSalaryBookInputs,
 } from '@/schemas/salaryBooks';
+import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
+import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
+import { parseTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 
 // ============================================================
 // Private types
@@ -91,6 +94,8 @@ export interface LooseBaseTeamDoc extends UnknownRecord {
   hardCapTriggeredBy?: string | null;
   deadCap?: unknown[] | null;
   salaryBookInputs?: TeamSalaryBookInputs | null;
+  contractEventLedgers?: ContractEventLedgerPayload[] | null;
+  hardCapLedger?: TradeHardCapLedgerEntry[] | null;
   totals?:
     | (UnknownRecord & {
         hardCapLevel?: string | null;
@@ -536,6 +541,15 @@ export function readLooseBaseTeamDoc(
     normalized.salaryBookInputs = TeamSalaryBookInputsZ.parse(
       record.salaryBookInputs
     );
+  }
+  if (record.hardCapLedger === null) {
+    normalized.hardCapLedger = null;
+  } else if (record.hardCapLedger !== undefined) {
+    const parsedLedger = parseTradeHardCapLedger(record.hardCapLedger);
+    if (!parsedLedger.valid) {
+      throw new Error(`${context}.hardCapLedger is not governed authority.`);
+    }
+    normalized.hardCapLedger = parsedLedger.entries;
   }
   if (record.totals === null) {
     normalized.totals = null;

@@ -39,6 +39,8 @@ import type { GovernedWaiverLifecycle, GovernedWaiverProposal } from '@/schemas/
 import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
 import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
 import type { GovernedTradeSalaryBasis } from '@/schemas/governedTradeSalaryBasis';
+import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
+import type { TradeApronRestrictionEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
 import type { GovernedOfferSheetProposal } from '@/schemas/governedOfferSheet';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
@@ -442,6 +444,7 @@ export type ArchitectMutationTeamRecord = {
   /** BZE-275: append-only overlays rooted in immutable contract baselines. */
   contractEventLedgers?: ContractEventLedgerPayload[] | null;
   salaryBookInputs?: TeamSalaryBookInputs | null;
+  hardCapLedger?: TradeHardCapLedgerEntry[] | null;
   deadCap?: ArchitectMutationDeadCapEntry[];
   exceptions?: ArchitectMutationExceptionIngress | null;
   tradeExceptions?: MutationTradeExceptionRecord[];
@@ -619,6 +622,10 @@ export type TradeMutationMetadata = {
   salaryMatchingPaths?: Array<{
     teamCode: string | null;
     evaluation: TradeSalaryPathEvaluation;
+  }>;
+  apronRestrictions?: Array<{
+    teamCode: string | null;
+    evaluation: TradeApronRestrictionEvaluation;
   }>;
 };
 export type TradeSnapshotLike = TradeContextPostTradeSnapshot;
