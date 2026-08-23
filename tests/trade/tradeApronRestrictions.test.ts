@@ -11,6 +11,7 @@ import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/
 import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/hardCapValidation';
 import { createTPE } from '@/features/architect/utils/tradeMachine/utils/tpeValidation';
 import { hydrateBaseTeam } from '@/features/architect/utils/firebaseTeamPlanHelpers';
+import { validatePostStateCapLegality } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import type {
   TradeSalaryPathComponent,
   TradeSalaryPathEvaluation,
@@ -105,7 +106,10 @@ function context(tradeDate: string): TradeValidatorContext {
   };
 }
 
-function team(postSalary: number, tpes: Array<Record<string, unknown>> = []): TradeTeam {
+function team(
+  postSalary: number,
+  tpes: Array<Record<string, unknown>> = []
+): TradeTeam {
   return {
     teamId: 'DET',
     projectedSalary: postSalary,
@@ -152,6 +156,156 @@ describe('governed Trade Machine apron restrictions', () => {
     expect(above.status).toBe('FAIL');
     expect(above.margin).toBeCloseTo(-0.01, 6);
     expect(above.hardCapWillPersist).toBe(false);
+  });
+
+  it.each([
+    {
+      label: 'expired',
+      heldTpeId: 'TPE-EXPIRED',
+      tpes: [
+        {
+          id: 'TPE-EXPIRED',
+          amount: 8_000_000,
+          remainingAmount: 8_000_000,
+          createdOn: '2025-07-15T12:00:00-04:00',
+          expiresOn: '2026-07-15T12:00:00-04:00',
+        },
+      ],
+      expectedStatus: 'FAIL',
+      missingInput: null,
+    },
+    {
+      label: 'missing creation evidence',
+      heldTpeId: 'TPE-MISSING-CREATION',
+      tpes: [
+        {
+          id: 'TPE-MISSING-CREATION',
+          amount: 8_000_000,
+          remainingAmount: 8_000_000,
+          expiresOn: '2027-07-15T12:00:00-04:00',
+        },
+      ],
+      expectedStatus: 'NEEDS_INPUT',
+      missingInput: 'heldTpe.TPE-MISSING-CREATION.createdOn',
+    },
+    {
+      label: 'unattributed identity',
+      heldTpeId: 'TPE-NOT-HELD',
+      tpes: [],
+      expectedStatus: 'NEEDS_INPUT',
+      missingInput: 'heldTpe.TPE-NOT-HELD.identity',
+    },
+  ])(
+    'fails closed for an $label held TPE alongside an aggregated election',
+    ({ heldTpeId, tpes, expectedStatus, missingInput }) => {
+      const evaluation = evaluateTradeApronRestriction({
+        team: team(SECOND_APRON, tpes),
+        teamCode: 'DET',
+        pathEvaluation: pathEvaluation({
+          path: 'AGGREGATED_STANDARD_TPE',
+          postSalary: SECOND_APRON,
+          components: [
+            electedComponent('AGGREGATED_STANDARD_TPE'),
+            heldComponent(heldTpeId),
+          ],
+        }),
+        context: context('2026-07-16T12:00:01-04:00'),
+      });
+
+      expect(evaluation.status).toBe(expectedStatus);
+      if (missingInput)
+        expect(evaluation.missingInputs).toContain(missingInput);
+      if (expectedStatus === 'FAIL') {
+        expect(evaluation.violations[0]).toMatch(
+          /one-year acquisition window/i
+        );
+      }
+    }
+  );
+
+  it('retains held-TPE identity and timing when it is consumed with an aggregated election', () => {
+    const heldTpe = {
+      id: 'TPE-AGGREGATED',
+      amount: 8_000_000,
+      remainingAmount: 8_000_000,
+      createdOn: '2026-07-15T12:00:00-04:00',
+      expiresOn: '2027-07-15T12:00:00-04:00',
+    };
+    const evaluation = evaluateTradeApronRestriction({
+      team: team(SECOND_APRON, [heldTpe]),
+      teamCode: 'DET',
+      pathEvaluation: pathEvaluation({
+        path: 'AGGREGATED_STANDARD_TPE',
+        postSalary: SECOND_APRON,
+        components: [
+          electedComponent('AGGREGATED_STANDARD_TPE'),
+          heldComponent(heldTpe.id),
+        ],
+      }),
+      context: context('2026-11-15T12:00:00-05:00'),
+    });
+    const entry = createTradeHardCapLedgerEntry({
+      evaluation,
+      teamCode: 'DET',
+      transactionId: 'TRADE-AGGREGATED-HELD',
+      effectiveAt: '2026-11-15T17:00:00Z',
+    });
+
+    expect(evaluation).toMatchObject({
+      status: 'PASS',
+      restrictionRow: 'H',
+      tpeId: heldTpe.id,
+      tpeCreatedOn: heldTpe.createdOn,
+      tpeExpiresOn: heldTpe.expiresOn,
+      tpeTimings: [
+        {
+          tpeId: heldTpe.id,
+          createdOn: heldTpe.createdOn,
+          expiresOn: heldTpe.expiresOn,
+        },
+      ],
+    });
+    expect(entry).toMatchObject({
+      tpeIds: [heldTpe.id],
+      tpeTimings: [
+        {
+          tpeId: heldTpe.id,
+          createdOn: heldTpe.createdOn,
+          expiresOn: heldTpe.expiresOn,
+        },
+      ],
+    });
+  });
+
+  it('CBA2-A05.8: classifies a prior-Salary-Cap-Year TPE against its creation-season closing', () => {
+    const heldTpe = {
+      id: 'TPE-PRIOR-SCY',
+      amount: 8_000_000,
+      remainingAmount: 8_000_000,
+      createdOn: '2026-02-01T12:00:00-05:00',
+      expiresOn: '2027-02-01T12:00:00-05:00',
+    };
+    const evaluation = evaluateTradeApronRestriction({
+      team: team(FIRST_APRON, [heldTpe]),
+      teamCode: 'DET',
+      pathEvaluation: pathEvaluation({
+        path: 'STANDARD_TPE',
+        postSalary: FIRST_APRON,
+        components: [heldComponent(heldTpe.id)],
+      }),
+      context: context('2026-11-15T12:00:00-05:00'),
+    });
+
+    expect(evaluation).toMatchObject({
+      status: 'PASS',
+      restrictionRow: 'F',
+      apronLevel: 'FIRST_APRON',
+      regularSeasonClosing: '2026-04-12',
+      proof: {
+        calendarRecordId: 'GOV-CAL-0001',
+        apronRecordId: 'GOV-LVL-0004',
+      },
+    });
   });
 
   it('CBA2-A05.8: Row F attaches only after the governed regular-season closing day', () => {
@@ -415,6 +569,86 @@ describe('governed Trade Machine apron restrictions', () => {
     expect(allowed.passed).toBe(true);
     expect(blocked.passed).toBe(false);
     expect(blocked.violations[0]).toMatch(/hard cap violation/i);
+  });
+
+  it('CBA2-A05.2: keeps the strictest active ceiling across First and Second Apron sources in both validation layers', () => {
+    const rowHEvaluation = evaluateAggregated(SECOND_APRON);
+    const rowHLedgerEntry = createTradeHardCapLedgerEntry({
+      evaluation: rowHEvaluation,
+      teamCode: 'DET',
+      transactionId: 'TRADE-ROW-H-AFTER-FIRST',
+      effectiveAt: '2026-07-15T16:00:00Z',
+    });
+    expect(rowHLedgerEntry).not.toBeNull();
+    if (!rowHLedgerEntry) throw new Error('expected Row H ledger fixture');
+
+    const simultaneousSources = {
+      hardCapLedger: [rowHLedgerEntry],
+      hardCapFirstApron: {
+        active: true,
+        reason: 'Earlier First Apron trigger',
+      },
+      hardCapSecondApron: {
+        active: true,
+        reason: 'Later Second Apron trigger',
+      },
+    };
+    const status = getHardCapStatus(simultaneousSources, {
+      salaryCapYear: 2027,
+      capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+    });
+    expect(status).toMatchObject({
+      isHardCapped: true,
+      hardCapType: 'FIRST_APRON',
+      hardCapCeiling: FIRST_APRON,
+    });
+
+    const primary = validateHardCap(
+      {
+        ...simultaneousSources,
+        teamTotalSalary: FIRST_APRON,
+        projectedSalary: FIRST_APRON + 1,
+        capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+      } as never,
+      context('2026-12-01T12:00:00-05:00')
+    );
+    expect(primary.passed).toBe(false);
+
+    const totals = {
+      yearKey: 2027,
+      playersTotal: FIRST_APRON + 1,
+      deadMoneyTotal: 0,
+      capHoldsTotal: 0,
+      incompleteChargesTotal: 0,
+      totalCapAllocations: FIRST_APRON + 1,
+      teamSalary: FIRST_APRON + 1,
+      apronTeamSalary: FIRST_APRON + 1,
+      taxSalary: FIRST_APRON + 1,
+      salaryCap: 164_961_000,
+      luxuryTax: 200_428_000,
+      firstApron: FIRST_APRON,
+      secondApron: SECOND_APRON,
+    };
+    const postState = validatePostStateCapLegality({
+      operationId: 'TRADE-STRICTEST-CAP-POST-STATE',
+      mutationType: 'executeTrade',
+      worldId: 'WORLD-1',
+      year: 2027,
+      beforeTeamsByCode: { DET: simultaneousSources },
+      afterTeamsByCode: { DET: simultaneousSources },
+      beforeTotalsByTeam: { DET: totals },
+      afterTotalsByTeam: { DET: totals },
+      rulesContext: {
+        capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+      },
+    });
+    expect(postState.violations).toContainEqual(
+      expect.objectContaining({
+        code: 'HARD_CAP_EXCEEDED',
+        expected: FIRST_APRON,
+        actual: FIRST_APRON + 1,
+      })
+    );
   });
 
   it('treats malformed persisted hard-cap history as fail-closed unknown state', () => {

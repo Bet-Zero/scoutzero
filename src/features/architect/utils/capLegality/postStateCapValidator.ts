@@ -25,17 +25,11 @@ import {
   validateDeadCap,
   validateExceptions,
 } from '@/features/architect/utils/capLegalityValidation';
-import {
-  resolveHardCapCeiling as resolveSharedHardCapCeiling,
-  HARD_CAP_TYPES,
-} from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
+import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { isCapHoldAmountValid } from '@/features/architect/utils/capHoldTransitionHelpers';
 import { evaluateRosterCountsAgainstLimits } from '@/features/architect/utils/tradeMachine/rules/validateRoster';
 import { validationFlags } from '@/config/validationFlags';
-import {
-  parseTradeHardCapLedger,
-  selectHardCapLedgerEntry,
-} from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
+import { parseTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
 
 export const POST_STATE_CAP_VALIDATOR_VERSION = '1.0.0';
 
@@ -165,90 +159,67 @@ function getFinalStateHardCapRecheckStatus({
       invalidLedger: true,
     };
   }
-  const ledgerEntry = selectHardCapLedgerEntry(
-    team.hardCapLedger,
-    expectedYear
-  );
-  if (ledgerEntry) {
-    return {
-      isHardCapped: true,
-      level:
-        ledgerEntry.apronLevel === 'FIRST_APRON'
-          ? 'firstApron'
-          : 'secondApron',
-      ceiling: ledgerEntry.ceiling,
-    };
-  }
-  const hardCapByTeam = asRecord(rulesContext.hardCapByTeam) || {};
-  const explicit = asRecord(hardCapByTeam[teamCode]);
-  const explicitCeiling = toFiniteNumber(explicit?.ceiling);
-  if (explicitCeiling !== null) {
-    return {
-      isHardCapped: explicit?.isHardCapped !== false,
-      level:
-        typeof explicit?.hardCapLevel === 'string'
-          ? explicit.hardCapLevel
-          : null,
-      ceiling: explicitCeiling,
-    };
-  }
-
-  const totalsObj = asRecord(team.totals) || {};
-  const hardCapLevelRaw =
-    (typeof team.hardCapLevel === 'string' && team.hardCapLevel) ||
-    (typeof totalsObj.hardCapLevel === 'string' && totalsObj.hardCapLevel) ||
-    (typeof totals.hardCapLevel === 'string' &&
-      (totals.hardCapLevel as string));
-
-  const hardCapTriggered = String(team.hardCapTriggered || '').toLowerCase();
-  const hardCappedRaw =
-    team.hardCapped ??
-    totalsObj.isHardCapped ??
-    totals.isHardCapped ??
-    team.hardCapTriggered ??
-    null;
-
-  const isHardCapped =
-    hardCappedRaw === true ||
-    hardCappedRaw === 1 ||
-    hardCappedRaw === 2 ||
-    String(hardCappedRaw).toLowerCase() === 'firstapron' ||
-    String(hardCappedRaw).toLowerCase() === 'secondapron' ||
-    hardCapTriggered === 'firstapron' ||
-    hardCapTriggered === 'secondapron';
-
-  if (!isHardCapped) {
-    return { isHardCapped: false, level: null, ceiling: null };
-  }
-
   const capSettings = asRecord(rulesContext.capSettings) || {};
   const firstApron =
     toFiniteNumber(capSettings.firstApron) ?? toFiniteNumber(totals.firstApron);
   const secondApron =
     toFiniteNumber(capSettings.secondApron) ??
     toFiniteNumber(totals.secondApron);
+  const teamTotals = asRecord(team.totals) || {};
+  const sharedStatus = getHardCapStatus(
+    {
+      ...team,
+      totals: { ...teamTotals, ...totals },
+    },
+    {
+      capSettings: {
+        firstApron: firstApron ?? undefined,
+        secondApron: secondApron ?? undefined,
+      },
+      inferHardCapFromExceptionUsage: true,
+      salaryCapYear: expectedYear,
+    }
+  );
 
-  const inferredSecondApron =
-    hardCapLevelRaw === 'secondApron' ||
-    hardCappedRaw === 2 ||
-    hardCapTriggered === 'secondapron';
-
-  // Delegate ceiling-value resolution to the shared canonical function in hardCapStatus.ts.
-  // This ensures fallback logic (e.g. SECOND_APRON falls back to firstApron when secondApron
-  // is unavailable) stays in sync with the earlier projection-time legality owner.
-  const hardCapTypeKey = inferredSecondApron
-    ? HARD_CAP_TYPES.SECOND_APRON
-    : HARD_CAP_TYPES.FIRST_APRON;
-  const { hardCapCeiling } = resolveSharedHardCapCeiling(hardCapTypeKey, {
-    firstApron: firstApron ?? undefined,
-    secondApron: secondApron ?? undefined,
-  });
-
-  return {
-    isHardCapped: true,
-    level: inferredSecondApron ? 'secondApron' : 'firstApron',
-    ceiling: hardCapCeiling,
-  };
+  const hardCapByTeam = asRecord(rulesContext.hardCapByTeam) || {};
+  const explicit = asRecord(hardCapByTeam[teamCode]);
+  const explicitCeiling = toFiniteNumber(explicit?.ceiling);
+  const explicitStatus: FinalStateHardCapRecheckStatus | null =
+    explicitCeiling !== null && explicit?.isHardCapped !== false
+      ? {
+          isHardCapped: explicit?.isHardCapped !== false,
+          level:
+            typeof explicit?.hardCapLevel === 'string'
+              ? explicit.hardCapLevel
+              : null,
+          ceiling: explicitCeiling,
+        }
+      : null;
+  const sharedRecheck: FinalStateHardCapRecheckStatus | null =
+    sharedStatus.isHardCapped
+      ? {
+          isHardCapped: true,
+          level:
+            sharedStatus.hardCapCeilingType === 'FIRST_APRON'
+              ? 'firstApron'
+              : sharedStatus.hardCapCeilingType === 'SECOND_APRON'
+                ? 'secondApron'
+                : null,
+          ceiling: sharedStatus.hardCapCeiling,
+        }
+      : null;
+  const active = [sharedRecheck, explicitStatus].filter(
+    (candidate): candidate is FinalStateHardCapRecheckStatus =>
+      candidate !== null
+  );
+  if (active.length === 0) {
+    return { isHardCapped: false, level: null, ceiling: null };
+  }
+  return [...active].sort(
+    (left, right) =>
+      (left.ceiling ?? Number.POSITIVE_INFINITY) -
+      (right.ceiling ?? Number.POSITIVE_INFINITY)
+  )[0];
 }
 
 /**
@@ -370,7 +341,7 @@ function runFinalStateRosterRecheck({
     countFinalStateRosterFromPlayers(players);
   const evaluation = evaluateRosterCountsAgainstLimits(
     standardCount,
-    twoWayCount,
+    twoWayCount
   );
 
   // Route by enforcement level so the post-state gate matches the Trade

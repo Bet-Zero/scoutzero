@@ -23,10 +23,7 @@ export const TradeHardCapLedgerEntryZ = z
     teamCode: z.string().min(1),
     salaryCapYear: z.number().int().positive(),
     restrictionRow: TradeApronRestrictionRowZ,
-    salaryMatchingPath: z.enum([
-      'STANDARD_TPE',
-      'AGGREGATED_STANDARD_TPE',
-    ]),
+    salaryMatchingPath: z.enum(['STANDARD_TPE', 'AGGREGATED_STANDARD_TPE']),
     apronLevel: TradeApronLevelZ,
     ceiling: z.number().finite().positive(),
     triggerTransactionDate: z.string().min(1),
@@ -34,6 +31,15 @@ export const TradeHardCapLedgerEntryZ = z
     expiresAt: z.string().datetime({ offset: true }),
     transactionId: z.string().min(1),
     tpeIds: z.array(z.string().min(1)),
+    tpeTimings: z.array(
+      z
+        .object({
+          tpeId: z.string().min(1),
+          createdOn: z.string().min(1),
+          expiresOn: z.string().min(1),
+        })
+        .strict()
+    ),
     canonLeafIds: z.array(z.string().min(1)).min(1),
     proof: TradeHardCapProofZ,
   })
@@ -46,6 +52,4 @@ export type TradeApronRestrictionRow = z.infer<
 >;
 export type TradeApronLevel = z.infer<typeof TradeApronLevelZ>;
 export type TradeHardCapProof = z.infer<typeof TradeHardCapProofZ>;
-export type TradeHardCapLedgerEntry = z.infer<
-  typeof TradeHardCapLedgerEntryZ
->;
+export type TradeHardCapLedgerEntry = z.infer<typeof TradeHardCapLedgerEntryZ>;

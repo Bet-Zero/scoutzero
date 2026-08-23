@@ -15,7 +15,7 @@ const CANDIDATE = process.env.SCOUTZERO_PROOF_CANDIDATE ?? '';
 const ARTIFACT_DIR = process.env.SCOUTZERO_BROWSER_PROOF_DIR ?? '';
 const MIA_URL = '/gm/MIA';
 const PROOF_WORLD_ID = 'world_trade_receipt_proof';
-const PROOF_AS_OF_DATE = '2027-04-12';
+const PROOF_AS_OF_DATE = '2026-11-15';
 const EMPTY_RELEASE_DIGEST = `sha256:${'3'.repeat(64)}`;
 
 const proofTpe = (teamCode: 'MIA' | 'DEN') => ({
@@ -26,8 +26,14 @@ const proofTpe = (teamCode: 'MIA' | 'DEN') => ({
   usedAmount: 0,
   isUsed: false,
   createdFrom: 'trade-receipt-proof',
-  createdOn: '2026-07-01T12:00:00Z',
-  expiresOn: '2027-07-01T12:00:00Z',
+  createdOn:
+    teamCode === 'MIA'
+      ? '2026-07-15T12:00:00-04:00'
+      : '2026-02-01T12:00:00-05:00',
+  expiresOn:
+    teamCode === 'MIA'
+      ? '2027-07-15T12:00:00-04:00'
+      : '2027-02-01T12:00:00-05:00',
 });
 
 const salaryRow = (season: string, salary: number) => ({
@@ -169,9 +175,7 @@ const salaryBookInputs = (teamCode: 'MIA' | 'DEN') => {
         line(
           'tax-salary',
           `CBA2-C08.${index + 1}`,
-          index === 0
-            ? '2027-04-11T00:00:00Z'
-            : '2027-04-11T01:00:00Z'
+          index === 0 ? '2026-11-14T00:00:00Z' : '2026-11-14T01:00:00Z'
         )
       ),
     },
@@ -282,9 +286,7 @@ const openTradeMachine = async (page: Page) => {
         const hasNoTeamData = await isVisible(noTeamData);
         return {
           hasNoTeamData,
-          isReady:
-            !stillLoading &&
-            (hasDashboardHeading || hasNoTeamData),
+          isReady: !stillLoading && (hasDashboardHeading || hasNoTeamData),
         };
       },
       {
@@ -305,7 +307,9 @@ const openTradeMachine = async (page: Page) => {
           .locator('[data-apron-team-salary]')
           .evaluateAll((elements) =>
             elements.some((element) =>
-              Number.isFinite(Number(element.getAttribute('data-apron-team-salary')))
+              Number.isFinite(
+                Number(element.getAttribute('data-apron-team-salary'))
+              )
             )
           ),
       {
@@ -321,9 +325,12 @@ const openTradeMachine = async (page: Page) => {
 
   const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
   await expect(dialog).toBeVisible({ timeout: 30_000 });
-  await expect(dialog.getByTestId('trade-salary-path-election')).toHaveCount(1, {
-    timeout: 90_000,
-  });
+  await expect(dialog.getByTestId('trade-salary-path-election')).toHaveCount(
+    1,
+    {
+      timeout: 90_000,
+    }
+  );
   return dialog;
 };
 
@@ -334,9 +341,7 @@ const electAggregatedPath = async (card: Locator) => {
   expect(apronSalary).not.toBeNull();
   expect(String(apronSalary).trim()).not.toBe('');
   expect(Number.isFinite(Number(apronSalary))).toBe(true);
-  await card
-    .getByLabel('Elected path')
-    .selectOption('AGGREGATED_STANDARD_TPE');
+  await card.getByLabel('Elected path').selectOption('AGGREGATED_STANDARD_TPE');
   await card
     .getByLabel('Post-assignment Apron Team Salary')
     .fill(String(apronSalary));
@@ -350,9 +355,7 @@ const assignHeldTpe = async (
   playerName: string,
   teamCode: 'MIA' | 'DEN'
 ): Promise<string> => {
-  await card
-    .getByLabel(`${playerName} absorption mode`)
-    .selectOption('TPE');
+  await card.getByLabel(`${playerName} absorption mode`).selectOption('TPE');
   const selector = card.getByLabel(`${playerName} held TPE`);
   const heldTpeId = `proof-tpe-${teamCode}`;
   await selector.selectOption(heldTpeId);
@@ -388,6 +391,10 @@ const routePlayer = async (
 test('exact-head Trade Machine produces a retained governed apron Trade Receipt', async ({
   page,
 }, testInfo) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => {
+    pageErrors.push(error.stack ?? error.message);
+  });
   expect(CANDIDATE).toMatch(/^[0-9a-f]{40}$/);
   expect(ARTIFACT_DIR).not.toBe('');
   fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
@@ -423,20 +430,8 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   await electAggregatedPath(miamiCard);
   await electAggregatedPath(denverCard);
 
-  await routePlayer(
-    dialog,
-    page,
-    'MIA',
-    'Tobias Lund',
-    'Denver Nuggets'
-  );
-  await routePlayer(
-    dialog,
-    page,
-    'DEN',
-    'Obi Nwachukwu',
-    'Miami Heat'
-  );
+  await routePlayer(dialog, page, 'MIA', 'Tobias Lund', 'Denver Nuggets');
+  await routePlayer(dialog, page, 'DEN', 'Obi Nwachukwu', 'Miami Heat');
   await routePlayer(dialog, page, 'MIA', 'Owen Frost', 'Denver Nuggets');
   await routePlayer(dialog, page, 'MIA', 'Eli Navarro', 'Denver Nuggets');
   await routePlayer(dialog, page, 'DEN', 'Aaron Pike', 'Miami Heat');
@@ -446,9 +441,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     MIA: await assignHeldTpe(miamiCard, 'Aaron Pike', 'MIA'),
     DEN: await assignHeldTpe(denverCard, 'Owen Frost', 'DEN'),
   };
-  await miamiCard
-    .getByLabel('Reggie Voss absorption mode')
-    .selectOption('TPE');
+  await miamiCard.getByLabel('Reggie Voss absorption mode').selectOption('TPE');
   await miamiCard
     .getByLabel('Reggie Voss held TPE')
     .selectOption(heldTpeIds.MIA);
@@ -459,18 +452,14 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     .getByLabel('Eli Navarro held TPE')
     .selectOption(heldTpeIds.DEN);
 
-  await miamiCard
-    .getByLabel('Tobias Lund exact pre-trade Salary')
-    .fill('0');
+  await miamiCard.getByLabel('Tobias Lund exact pre-trade Salary').fill('0');
   await miamiCard
     .getByLabel('Owen Frost exact pre-trade Salary')
     .fill('3200000');
   await miamiCard
     .getByLabel('Eli Navarro exact pre-trade Salary')
     .fill('2000000');
-  await denverCard
-    .getByLabel('Obi Nwachukwu exact pre-trade Salary')
-    .fill('0');
+  await denverCard.getByLabel('Obi Nwachukwu exact pre-trade Salary').fill('0');
   await denverCard
     .getByLabel('Aaron Pike exact pre-trade Salary')
     .fill('3200000');
@@ -479,16 +468,18 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     .fill('2000000');
 
   await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+  await page.waitForTimeout(500);
+  expect(pageErrors).toEqual([]);
   await expect(dialog.getByTestId('trade-readiness-summary')).toContainText(
-    'Ready with warnings',
+    'Trade blocked',
     { timeout: 20_000 }
   );
   await expect(dialog.getByTestId('trade-readiness-summary')).toContainText(
-    'Team MIA has a partial post-state receipt because teamSalary is not complete.'
+    'Transaction Restrictions Table Row F prohibits this trade'
   );
   await expect(
     dialog.getByRole('button', { name: /^Apply Trade$/i })
-  ).toBeEnabled();
+  ).toBeDisabled();
 
   const developmentTools = dialog.getByRole('button', {
     name: /Development Tools/i,
@@ -499,7 +490,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   const receipt = dialog.getByTestId('section-trade-receipt');
   await expect(receipt).toBeVisible();
   await expect(receipt).toContainText('Trade Receipt (Debug Mode)');
-  await expect(receipt).toContainText('LEGAL');
+  await expect(receipt).toContainText('ILLEGAL');
   await receipt.getByRole('button', { name: 'Show Details' }).click();
 
   await expect(receipt.getByText('Tobias Lund').first()).toBeVisible();
@@ -510,17 +501,43 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     receipt.getByText(TWO_WAY_TRADE_MATCHING_EXPLANATION, { exact: true })
   ).toHaveCount(4);
   await expect(receipt.getByText('2W', { exact: true })).toHaveCount(4);
-  for (const teamCode of ['heat', 'nuggets']) {
+  const expectedApronProof = {
+    heat: {
+      row: 'H',
+      status: 'PASS',
+      ceiling: 'Second Apron ceiling',
+      leaf: 'CBA2-A05.10',
+      timing:
+        'Held TPE proof-tpe-MIA · created 2026-07-15T12:00:00-04:00 · expires 2027-07-15T12:00:00-04:00',
+    },
+    nuggets: {
+      row: 'F',
+      status: 'FAIL',
+      ceiling: 'First Apron ceiling',
+      leaf: 'CBA2-A05.8',
+      timing:
+        'Held TPE proof-tpe-DEN · created 2026-02-01T12:00:00-05:00 · expires 2027-02-01T12:00:00-05:00',
+    },
+  } as const;
+  for (const teamCode of ['heat', 'nuggets'] as const) {
     const apronProof = receipt.getByTestId(
       `trade-apron-restriction-${teamCode}`
     );
     await expect(apronProof).toBeVisible();
-    await expect(apronProof).toContainText('Row H');
-    await expect(apronProof).toContainText('PASS');
-    await expect(apronProof).toContainText('Second Apron ceiling');
-    await expect(apronProof).toContainText('CBA2-A05.10');
+    await expect(apronProof).toContainText(
+      `Row ${expectedApronProof[teamCode].row}`
+    );
+    await expect(apronProof).toContainText(
+      expectedApronProof[teamCode].status
+    );
+    await expect(apronProof).toContainText(
+      expectedApronProof[teamCode].ceiling
+    );
+    await expect(apronProof).toContainText(expectedApronProof[teamCode].leaf);
+    await expect(apronProof).toContainText(expectedApronProof[teamCode].timing);
   }
   expect(await worldCount()).toBe(1);
+  expect(pageErrors).toEqual([]);
   await receipt
     .getByTestId('trade-apron-restriction-heat')
     .scrollIntoViewIfNeeded();
@@ -543,12 +560,23 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       },
     },
     assertions: {
-      readiness: 'Ready with warnings',
-      postStateWarning:
-        'Team MIA has a partial post-state receipt because teamSalary is not complete.',
-      receiptVerdict: 'LEGAL',
-      apronRestrictionRows: { MIA: 'H', DEN: 'H' },
-      apronRestrictionStatuses: { MIA: 'PASS', DEN: 'PASS' },
+      readiness: 'Trade blocked',
+      blockingReason:
+        'Transaction Restrictions Table Row F prohibits this trade because Denver exceeds the First Apron.',
+      receiptVerdict: 'ILLEGAL',
+      apronRestrictionRows: { MIA: 'H', DEN: 'F' },
+      apronRestrictionStatuses: { MIA: 'PASS', DEN: 'FAIL' },
+      heldTpeTimings: {
+        MIA: {
+          createdOn: '2026-07-15T12:00:00-04:00',
+          expiresOn: '2027-07-15T12:00:00-04:00',
+        },
+        DEN: {
+          createdOn: '2026-02-01T12:00:00-05:00',
+          expiresOn: '2027-02-01T12:00:00-05:00',
+          creationSeasonRegularSeasonClosing: '2026-04-12',
+        },
+      },
       twoWayExplanationCount: 4,
       fixtureWorldCount: 1,
       durableWorldCountChangeAfterValidation: 0,

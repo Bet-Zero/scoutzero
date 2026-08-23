@@ -5,19 +5,19 @@ import {
   type TradeHardCapLedgerEntry,
   type TradeHardCapProof,
 } from '@/schemas/tradeApronRestriction';
-import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
+import {
+  CANON_GOVERNED_SEASON_REGISTRY,
+  isWithinSalaryCapYear,
+  resolveGovernedSeasonEnvelope,
+} from '@/features/architect/utils/governedSeason';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 import type {
   TradeExceptionRecord,
   TradeTeam,
   TradeValidatorContext,
 } from '@/features/architect/utils/tradeMachine/constants/types';
-import type {
-  TradeSalaryMatchingPath,
-} from '@/schemas/tradeSalaryMatchingPath';
-import type {
-  TradeSalaryPathEvaluation,
-} from './tradeSalaryMatchingPaths';
+import type { TradeSalaryMatchingPath } from '@/schemas/tradeSalaryMatchingPath';
+import type { TradeSalaryPathEvaluation } from './tradeSalaryMatchingPaths';
 
 export type TradeApronRestrictionStatus =
   | 'PASS'
@@ -92,8 +92,7 @@ function result(
   return {
     version: 1,
     status: values.status,
-    passed:
-      values.status === 'PASS' || values.status === 'NOT_APPLICABLE',
+    passed: values.status === 'PASS' || values.status === 'NOT_APPLICABLE',
     restrictionRow: values.restrictionRow ?? null,
     salaryMatchingPath: values.salaryMatchingPath ?? null,
     apronLevel: values.apronLevel ?? null,
@@ -155,9 +154,7 @@ function compareAcquisitionToExpiry(
   const acquisitionInstant = exactInstant(acquisition);
   const expiryInstant = exactInstant(expiry);
   if (acquisitionInstant !== null && expiryInstant !== null) {
-    return acquisitionInstant <= expiryInstant
-      ? 'WITHIN_WINDOW'
-      : 'EXPIRED';
+    return acquisitionInstant <= expiryInstant ? 'WITHIN_WINDOW' : 'EXPIRED';
   }
   const acquisitionDay = dateOnly(acquisition);
   const expiryDay = dateOnly(expiry);
@@ -187,24 +184,137 @@ function oneYearAnniversaryDate(value: string): string | null {
 }
 
 function makeProof(
-  envelope: ReturnType<typeof resolveGovernedSeasonEnvelope>,
+  calendarEnvelope: ReturnType<typeof resolveGovernedSeasonEnvelope>,
+  levelEnvelope: ReturnType<typeof resolveGovernedSeasonEnvelope>,
   apronLevel: TradeApronLevel
 ): TradeHardCapProof | null {
-  const calendar = envelope.calendar.record;
+  const calendar = calendarEnvelope.calendar.record;
   const level =
-    envelope.systemLevels[
+    levelEnvelope.systemLevels[
       apronLevel === 'FIRST_APRON' ? 'first-apron' : 'second-apron'
     ].record;
   if (!calendar || !level) return null;
   return {
-    registryId: envelope.registry.registryId,
-    registryVersion: envelope.registry.registryVersion,
-    canonCandidateCommit: envelope.registry.canonCandidateCommit,
-    canonSha256: envelope.registry.canonSha256,
+    registryId: levelEnvelope.registry.registryId,
+    registryVersion: levelEnvelope.registry.registryVersion,
+    canonCandidateCommit: levelEnvelope.registry.canonCandidateCommit,
+    canonSha256: levelEnvelope.registry.canonSha256,
     calendarRecordId: calendar.recordId,
     calendarRecordVersion: calendar.recordVersion,
     apronRecordId: level.recordId,
     apronRecordVersion: level.recordVersion,
+  };
+}
+
+function resolveRowFClosingForHeldTpe({
+  timing,
+  transactionDate,
+  teamCode,
+  worldId,
+}: {
+  timing: TpeTiming;
+  transactionDate: string;
+  teamCode: string;
+  worldId?: string | null;
+}): {
+  closing: string | null;
+  calendarEnvelope: ReturnType<typeof resolveGovernedSeasonEnvelope> | null;
+  missingInputs: string[];
+} {
+  const createdAsOf = envelopeDate(timing.createdOn);
+  if (!createdAsOf) {
+    return {
+      closing: null,
+      calendarEnvelope: null,
+      missingInputs: [`heldTpe.${timing.tpeId}.createdOn`],
+    };
+  }
+  const creationSalaryCapYear =
+    CANON_GOVERNED_SEASON_REGISTRY.calendars.find((calendar) =>
+      isWithinSalaryCapYear(createdAsOf, calendar.salaryCapYear)
+    )?.salaryCapYear ?? null;
+  if (creationSalaryCapYear === null) {
+    return {
+      closing: null,
+      calendarEnvelope: null,
+      missingInputs: [
+        `heldTpe.${timing.tpeId}.creationSeasonCalendarAuthority`,
+      ],
+    };
+  }
+
+  const team = {
+    teamId: teamCode,
+    teamCode,
+    worldId: worldId ?? undefined,
+  };
+  const creationEnvelope = resolveGovernedSeasonEnvelope({
+    // Resolve the retained creation-season calendar at the end of that Salary
+    // Cap Year. The calendar may have been published after the TPE arose; Row
+    // F needs the governed season fact, not a publication-time guess.
+    asOfDate: `${creationSalaryCapYear}-06-30T12:00:00-04:00`,
+    salaryCapYear: creationSalaryCapYear,
+    requiredAuthority: 'official',
+    team,
+  });
+  const creationClosing =
+    creationEnvelope.calendar.state === 'available'
+      ? (creationEnvelope.calendar.regularSeasonClosing?.value ?? null)
+      : null;
+  if (!creationClosing) {
+    return {
+      closing: null,
+      calendarEnvelope: creationEnvelope,
+      missingInputs: [
+        `heldTpe.${timing.tpeId}.creationSeasonCalendarAuthority`,
+      ],
+    };
+  }
+
+  const createdDay = dateOnly(timing.createdOn);
+  if (createdDay && createdDay <= creationClosing) {
+    return {
+      closing: creationClosing,
+      calendarEnvelope: creationEnvelope,
+      missingInputs: [],
+    };
+  }
+
+  const transactionAsOf = envelopeDate(transactionDate);
+  const followingSalaryCapYear = creationSalaryCapYear + 1;
+  if (
+    !transactionAsOf ||
+    !isWithinSalaryCapYear(transactionAsOf, followingSalaryCapYear)
+  ) {
+    return {
+      closing: null,
+      calendarEnvelope: creationEnvelope,
+      missingInputs: [],
+    };
+  }
+  const followingEnvelope = resolveGovernedSeasonEnvelope({
+    asOfDate: transactionAsOf,
+    salaryCapYear: followingSalaryCapYear,
+    requiredAuthority: 'official',
+    team,
+  });
+  const followingClosing =
+    followingEnvelope.calendar.state === 'available'
+      ? (followingEnvelope.calendar.regularSeasonClosing?.value ?? null)
+      : null;
+  if (!followingClosing) {
+    return {
+      closing: null,
+      calendarEnvelope: followingEnvelope,
+      missingInputs: [
+        `heldTpe.${timing.tpeId}.followingSeasonCalendarAuthority`,
+      ],
+    };
+  }
+  return {
+    closing: followingClosing,
+    calendarEnvelope: followingEnvelope,
+    missingInputs: [],
   };
 }
 
@@ -235,9 +345,7 @@ export function evaluateTradeApronRestriction({
   const missingInputs: string[] = [];
   const transactionDate = context.tradeDate ?? context.asOfDate ?? null;
   const salaryCapYear = context.currentYear ?? context.yearKey ?? null;
-  const postSalary = finiteMoney(
-    pathEvaluation.postAssignmentApronTeamSalary
-  );
+  const postSalary = finiteMoney(pathEvaluation.postAssignmentApronTeamSalary);
   const projectedSalary = finiteMoney(team.projectedSalary);
   if (!transactionDate || !dateOnly(transactionDate)) {
     missingInputs.push('transactionDate');
@@ -260,21 +368,27 @@ export function evaluateTradeApronRestriction({
   const tpeTimings: TpeTiming[] = [];
   let regularSeasonClosing: string | null = null;
   let standardWindowExpired = false;
+  let rowFCalendarEnvelope: ReturnType<
+    typeof resolveGovernedSeasonEnvelope
+  > | null = null;
 
-  if (path === 'STANDARD_TPE') {
+  if (path === 'STANDARD_TPE' || path === 'AGGREGATED_STANDARD_TPE') {
     const heldComponents = pathEvaluation.components.filter(
       (component) => component.kind === 'HELD_STANDARD_TPE'
     );
-    if (heldComponents.length === 0) {
+    if (path === 'STANDARD_TPE' && heldComponents.length === 0) {
       return result({
         status: 'NOT_APPLICABLE',
         salaryMatchingPath: path,
         transactionDate,
-        salaryCapYear:
-          typeof salaryCapYear === 'number' ? salaryCapYear : null,
+        salaryCapYear: typeof salaryCapYear === 'number' ? salaryCapYear : null,
       });
     }
     for (const held of heldComponents) {
+      if (!held.componentId?.trim()) {
+        missingInputs.push('heldTpe.identity');
+        continue;
+      }
       const timingResolution = resolveTpeTiming(team, held.componentId);
       missingInputs.push(...timingResolution.missingInputs);
       const timing = timingResolution.timing;
@@ -284,7 +398,9 @@ export function evaluateTradeApronRestriction({
         if (!anniversary) {
           missingInputs.push(`heldTpe.${timing.tpeId}.oneYearAnniversary`);
         } else if (dateOnly(timing.expiresOn) !== anniversary) {
-          missingInputs.push(`heldTpe.${timing.tpeId}.expiresOn.oneYearReconciliation`);
+          missingInputs.push(
+            `heldTpe.${timing.tpeId}.expiresOn.oneYearReconciliation`
+          );
         }
       }
       if (transactionDate && timing) {
@@ -320,26 +436,29 @@ export function evaluateTradeApronRestriction({
       envelope.calendar.regularSeasonClosing?.value ?? null;
   }
 
-  if (
-    path === 'STANDARD_TPE' &&
-    transactionDate &&
-    tpeTimings.length > 0 &&
-    regularSeasonClosing
-  ) {
+  if (transactionDate && tpeTimings.length > 0) {
     const acquisitionDay = dateOnly(transactionDate);
-    const closingDay = dateOnly(regularSeasonClosing);
-    const hasAgedTpe = tpeTimings.some((timing) => {
-      const createdDay = dateOnly(timing.createdOn);
-      return Boolean(createdDay && closingDay && createdDay <= closingDay);
-    });
-    if (
-      acquisitionDay &&
-      closingDay &&
-      acquisitionDay > closingDay &&
-      hasAgedTpe
-    ) {
-      restrictionRow = 'F';
-      apronLevel = 'FIRST_APRON';
+    for (const timing of tpeTimings) {
+      const rowFResolution = resolveRowFClosingForHeldTpe({
+        timing,
+        transactionDate,
+        teamCode,
+        worldId: context.worldId,
+      });
+      missingInputs.push(...rowFResolution.missingInputs);
+      if (!regularSeasonClosing && rowFResolution.closing) {
+        regularSeasonClosing = rowFResolution.closing;
+      }
+      if (
+        acquisitionDay &&
+        rowFResolution.closing &&
+        acquisitionDay > rowFResolution.closing
+      ) {
+        restrictionRow = 'F';
+        apronLevel = 'FIRST_APRON';
+        regularSeasonClosing = rowFResolution.closing;
+        rowFCalendarEnvelope = rowFResolution.calendarEnvelope;
+      }
     }
   }
 
@@ -351,15 +470,16 @@ export function evaluateTradeApronRestriction({
       apronLevel,
       postTransactionApronTeamSalary: postSalary,
       transactionDate,
-      salaryCapYear:
-        typeof salaryCapYear === 'number' ? salaryCapYear : null,
+      salaryCapYear: typeof salaryCapYear === 'number' ? salaryCapYear : null,
       tpeId: tpeTimings[0]?.tpeId ?? null,
       tpeCreatedOn: tpeTimings[0]?.createdOn ?? null,
       tpeExpiresOn: tpeTimings[0]?.expiresOn ?? null,
       tpeTimings,
       regularSeasonClosing,
       canonLeafIds:
-        path === 'STANDARD_TPE' ? ['CBA2-A02.3'] : ['CBA2-A05.10'],
+        path === 'STANDARD_TPE'
+          ? ['CBA2-A02.3']
+          : ['CBA2-A02.3', 'CBA2-A05.10'],
       missingInputs: [...new Set(missingInputs)],
       violations: [
         `Apron restriction needs governed input: ${[
@@ -384,7 +504,9 @@ export function evaluateTradeApronRestriction({
       tpeTimings,
       regularSeasonClosing,
       canonLeafIds: ['CBA2-A02.3'],
-      violations: ['The held Standard TPE is outside its exact one-year acquisition window.'],
+      violations: [
+        'The held Standard TPE is outside its exact one-year acquisition window.',
+      ],
     });
   }
 
@@ -410,7 +532,13 @@ export function evaluateTradeApronRestriction({
     ];
   const ceiling =
     levelResolution.state === 'available' ? levelResolution.amount : null;
-  const proof = makeProof(envelope, apronLevel);
+  const proof = makeProof(
+    restrictionRow === 'F' && rowFCalendarEnvelope
+      ? rowFCalendarEnvelope
+      : envelope,
+    envelope,
+    apronLevel
+  );
   if (ceiling === null || !proof || postSalary === null) {
     return result({
       status: 'NEEDS_INPUT',
@@ -465,7 +593,8 @@ export function parseTradeHardCapLedger(value: unknown): {
   entries: TradeHardCapLedgerEntry[];
   valid: boolean;
 } {
-  if (value === undefined || value === null) return { entries: [], valid: true };
+  if (value === undefined || value === null)
+    return { entries: [], valid: true };
   const parsed = TradeHardCapLedgerZ.safeParse(value);
   return parsed.success
     ? { entries: parsed.data, valid: true }
@@ -488,9 +617,7 @@ export function selectHardCapLedgerEntryFromEntries(
   const targetYear =
     salaryCapYear ??
     (parsedEntries.length > 0
-      ? Math.max(
-          ...parsedEntries.map((candidate) => candidate.salaryCapYear)
-        )
+      ? Math.max(...parsedEntries.map((candidate) => candidate.salaryCapYear))
       : null);
   const entries =
     targetYear === null
@@ -544,6 +671,7 @@ export function createTradeHardCapLedgerEntry({
     expiresAt: `${evaluation.salaryCapYear}-07-01T00:00:00Z`,
     transactionId,
     tpeIds: evaluation.tpeTimings.map((timing) => timing.tpeId),
+    tpeTimings: evaluation.tpeTimings.map((timing) => ({ ...timing })),
     canonLeafIds: [...evaluation.canonLeafIds],
     proof: evaluation.proof,
   };
