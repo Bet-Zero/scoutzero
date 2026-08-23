@@ -176,7 +176,6 @@ function getFinalStateHardCapRecheckStatus({
         firstApron: firstApron ?? undefined,
         secondApron: secondApron ?? undefined,
       },
-      inferHardCapFromExceptionUsage: true,
       salaryCapYear: expectedYear,
     }
   );
