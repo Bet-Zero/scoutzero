@@ -540,6 +540,61 @@ describe('governed Trade Machine apron restrictions', () => {
     });
   });
 
+  it('CBA2-A05.8: authenticates a between-seasons TPE against the following Regular Season', () => {
+    const heldTpe = {
+      id: 'TPE-BETWEEN-SEASONS',
+      amount: 8_000_000,
+      remainingAmount: 8_000_000,
+      createdOn: '2026-05-01T12:00:00-04:00',
+      expiresOn: '2027-05-01T12:00:00-04:00',
+    };
+    const evaluation = evaluateTradeApronRestriction({
+      team: team(FIRST_APRON, [heldTpe]),
+      teamCode: 'DET',
+      pathEvaluation: pathEvaluation({
+        path: 'STANDARD_TPE',
+        postSalary: FIRST_APRON,
+        components: [heldComponent(heldTpe.id)],
+      }),
+      context: context('2027-04-12T12:00:00-04:00'),
+    });
+    expect(evaluation).toMatchObject({
+      status: 'PASS',
+      restrictionRow: 'F',
+      regularSeasonClosing: '2027-04-11',
+      proof: {
+        calendarRecordId: 'GOV-CAL-0002',
+        apronRecordId: 'GOV-LVL-0004',
+      },
+    });
+
+    const entry = createTradeHardCapLedgerEntry({
+      evaluation,
+      teamCode: 'DET',
+      transactionId: 'TRADE-BETWEEN-SEASONS',
+      effectiveAt: '2027-04-12T16:00:00Z',
+    });
+    expect(entry).not.toBeNull();
+    const serialized = JSON.parse(JSON.stringify([entry]));
+    expect(parseTradeHardCapLedger(serialized)).toEqual({
+      entries: serialized,
+      valid: true,
+    });
+    expect(
+      getHardCapStatus(
+        { hardCapLedger: serialized },
+        {
+          salaryCapYear: 2027,
+          capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+        }
+      )
+    ).toMatchObject({
+      hardCapType: 'FIRST_APRON',
+      hardCapCeiling: FIRST_APRON,
+      failClosed: false,
+    });
+  });
+
   it('CBA2-A05.8: Row F attaches only after the governed regular-season closing day', () => {
     const heldTpe = {
       id: 'TPE-1',

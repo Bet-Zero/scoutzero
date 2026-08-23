@@ -73,12 +73,14 @@ function calendarProofIsAuthenticated(
   trigger: TradeApronRestrictionTrigger,
   registry: GovernedSeasonRegistry
 ): boolean {
-  const calendar = registry.calendars.find(
+  const matchingCalendars = registry.calendars.filter(
     (candidate) =>
       candidate.recordId === trigger.proof.calendarRecordId &&
       candidate.recordVersion === trigger.proof.calendarRecordVersion
   );
+  const calendar = matchingCalendars[0];
   if (
+    matchingCalendars.length !== 1 ||
     !calendar ||
     calendar.recordStatus !== 'current' ||
     calendar.authority !== 'official'
@@ -90,12 +92,30 @@ function calendarProofIsAuthenticated(
     return calendar.salaryCapYear === entry.salaryCapYear;
   }
 
+  if (!trigger.tpeTiming) return false;
+  const creationCalendars = registry.calendars.filter(
+    (candidate) =>
+      candidate.recordStatus === 'current' &&
+      candidate.authority === 'official' &&
+      isWithinSalaryCapYear(
+        trigger.tpeTiming?.createdOn ?? '',
+        candidate.salaryCapYear
+      )
+  );
+  const creationCalendar = creationCalendars[0];
+  const createdDay = trigger.tpeTiming.createdOn.match(
+    /^(\d{4}-\d{2}-\d{2})/
+  )?.[1];
+  if (creationCalendars.length !== 1 || !creationCalendar || !createdDay) {
+    return false;
+  }
+
+  const expectedCalendarYear =
+    createdDay <= creationCalendar.regularSeasonClosing.value
+      ? creationCalendar.salaryCapYear
+      : creationCalendar.salaryCapYear + 1;
   return (
-    trigger.tpeTiming !== null &&
-    isWithinSalaryCapYear(
-      trigger.tpeTiming.createdOn,
-      calendar.salaryCapYear
-    ) &&
+    calendar.salaryCapYear === expectedCalendarYear &&
     trigger.regularSeasonClosing === calendar.regularSeasonClosing.value
   );
 }
