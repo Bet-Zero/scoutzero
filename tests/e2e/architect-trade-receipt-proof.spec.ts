@@ -264,6 +264,22 @@ const prepareProofWorld = async (page: Page) => {
 const isVisible = async (locator: Locator, timeout = 1_000) =>
   locator.isVisible({ timeout }).catch(() => false);
 
+const fillPostAssignmentApronSalary = async (
+  card: Locator
+): Promise<number> => {
+  const apronSalary = await card
+    .locator('[data-apron-team-salary]')
+    .getAttribute('data-apron-team-salary');
+  expect(apronSalary).not.toBeNull();
+  expect(String(apronSalary).trim()).not.toBe('');
+  const salary = Number(apronSalary);
+  expect(Number.isFinite(salary)).toBe(true);
+  await card
+    .getByLabel('Post-assignment Apron Team Salary')
+    .fill(String(salary));
+  return salary;
+};
+
 const openTradeMachine = async (page: Page) => {
   await page.goto(MIA_URL, { waitUntil: 'domcontentloaded' });
   const loadingDashboard = page.getByText(/^Loading GM Dashboard/i);
@@ -447,12 +463,12 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   await denverCard
     .getByLabel('Reggie Voss exact pre-trade Salary')
     .fill('2000000');
-  await miamiCard
-    .getByLabel('Post-assignment Apron Team Salary')
-    .fill('214157763');
-  await denverCard
-    .getByLabel('Post-assignment Apron Team Salary')
-    .fill('218600000');
+  const governedPostSalaries = {
+    MIA: await fillPostAssignmentApronSalary(miamiCard),
+    DEN: await fillPostAssignmentApronSalary(denverCard),
+  };
+  expect(governedPostSalaries.MIA).toBeGreaterThan(209_015_000);
+  expect(governedPostSalaries.DEN).toBeGreaterThan(209_015_000);
 
   const proofTeamRefs = ['MIA', 'DEN'].map((teamCode) =>
     getReviewAdminDb().doc(
@@ -576,6 +592,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
           DEN: ['Owen Frost'],
         },
         heldTpes: heldTpeIds,
+        governedPostAssignmentApronSalaries: governedPostSalaries,
       },
     },
     assertions: {
