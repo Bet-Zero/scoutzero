@@ -300,11 +300,14 @@ const openTradeMachine = async (page: Page) => {
         page
           .locator('[data-apron-team-salary]')
           .evaluateAll((elements) =>
-            elements.some((element) =>
-              Number.isFinite(
-                Number(element.getAttribute('data-apron-team-salary'))
-              )
-            )
+            elements.some((element) => {
+              const raw = element.getAttribute('data-apron-team-salary');
+              return (
+                raw !== null &&
+                raw.trim() !== '' &&
+                Number.isFinite(Number(raw))
+              );
+            })
           ),
       {
         timeout: 90_000,
@@ -328,24 +331,11 @@ const openTradeMachine = async (page: Page) => {
   return dialog;
 };
 
-const fillPostAssignmentApronSalary = async (card: Locator) => {
-  const apronSalary = await card
-    .locator('[data-apron-team-salary]')
-    .getAttribute('data-apron-team-salary');
-  expect(apronSalary).not.toBeNull();
-  expect(String(apronSalary).trim()).not.toBe('');
-  expect(Number.isFinite(Number(apronSalary))).toBe(true);
-  await card
-    .getByLabel('Post-assignment Apron Team Salary')
-    .fill(String(apronSalary));
-};
-
 const electSalaryPath = async (
   card: Locator,
   path: 'STANDARD_TPE' | 'AGGREGATED_STANDARD_TPE'
 ) => {
   await card.getByLabel('Elected path').selectOption(path);
-  await fillPostAssignmentApronSalary(card);
 };
 
 const teamCard = (dialog: Locator, teamCode: string) =>

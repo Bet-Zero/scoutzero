@@ -1007,6 +1007,7 @@ describe('governed Trade Machine apron restrictions', () => {
       transactionId: 'TRADE-NO-YEAR',
       effectiveAt: '2026-07-15T16:00:00Z',
     });
+    expect(entry).not.toBeNull();
     const status = getHardCapStatus(
       { hardCapLedger: [entry] },
       { capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON } }
