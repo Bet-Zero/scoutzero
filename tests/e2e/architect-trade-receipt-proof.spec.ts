@@ -26,14 +26,8 @@ const proofTpe = (teamCode: 'MIA' | 'DEN') => ({
   usedAmount: 0,
   isUsed: false,
   createdFrom: 'trade-receipt-proof',
-  createdOn:
-    teamCode === 'MIA'
-      ? '2026-07-15T12:00:00-04:00'
-      : '2026-02-01T12:00:00-05:00',
-  expiresOn:
-    teamCode === 'MIA'
-      ? '2027-07-15T12:00:00-04:00'
-      : '2027-02-01T12:00:00-05:00',
+  createdOn: '2026-02-01T12:00:00-05:00',
+  expiresOn: '2027-02-01T12:00:00-05:00',
 });
 
 const salaryRow = (season: string, salary: number) => ({
@@ -472,6 +466,15 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     .getByLabel('Post-assignment Apron Team Salary')
     .fill('218600000');
 
+  const proofTeamRefs = ['MIA', 'DEN'].map((teamCode) =>
+    getReviewAdminDb().doc(
+      `architect_worlds/${PROOF_WORLD_ID}/teams/${teamCode}`
+    )
+  );
+  const beforeValidationTeams = await Promise.all(
+    proofTeamRefs.map((ref) => ref.get().then((snapshot) => snapshot.data()))
+  );
+
   await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
   await page.waitForTimeout(500);
   expect(pageErrors).toEqual([]);
@@ -506,41 +509,50 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     receipt.getByText(TWO_WAY_TRADE_MATCHING_EXPLANATION, { exact: true })
   ).toHaveCount(4);
   await expect(receipt.getByText('2W', { exact: true })).toHaveCount(4);
-  const expectedApronProof = {
-    heat: {
-      row: 'H',
-      status: 'PASS',
-      ceiling: 'Second Apron ceiling',
-      leaf: 'CBA2-A05.10',
-      timing:
-        'Held TPE proof-tpe-MIA · created 2026-07-15T12:00:00-04:00 · expires 2027-07-15T12:00:00-04:00',
-    },
-    nuggets: {
-      row: 'F',
-      status: 'FAIL',
-      ceiling: 'First Apron ceiling',
-      leaf: 'CBA2-A05.8',
-      timing:
-        'Held TPE proof-tpe-DEN · created 2026-02-01T12:00:00-05:00 · expires 2027-02-01T12:00:00-05:00',
-    },
-  } as const;
-  for (const teamCode of ['heat', 'nuggets'] as const) {
-    const apronProof = receipt.getByTestId(
-      `trade-apron-restriction-${teamCode}`
-    );
-    await expect(apronProof).toBeVisible();
-    await expect(apronProof).toContainText(
-      `Row ${expectedApronProof[teamCode].row}`
-    );
-    await expect(apronProof).toContainText(
-      expectedApronProof[teamCode].status
-    );
-    await expect(apronProof).toContainText(
-      expectedApronProof[teamCode].ceiling
-    );
-    await expect(apronProof).toContainText(expectedApronProof[teamCode].leaf);
-    await expect(apronProof).toContainText(expectedApronProof[teamCode].timing);
-  }
+  const heatApronProof = receipt.getByTestId(
+    'trade-apron-restriction-heat'
+  );
+  await expect(heatApronProof).toBeVisible();
+  await expect(heatApronProof).toContainText('Rows F + H');
+  await expect(heatApronProof).toContainText('FAIL');
+  await expect(heatApronProof).toContainText(
+    'Controlling First Apron ceiling'
+  );
+  await expect(heatApronProof).toContainText(
+    'Row F · Held Standard TPE component proof-tpe-MIA'
+  );
+  await expect(heatApronProof).toContainText('Players: Aaron Pike');
+  await expect(heatApronProof).toContainText(
+    'Held TPE proof-tpe-MIA · created 2026-02-01T12:00:00-05:00 · expires 2027-02-01T12:00:00-05:00'
+  );
+  await expect(heatApronProof).toContainText(
+    'Creation-season regular season ended 2026-04-12'
+  );
+  await expect(heatApronProof).toContainText('Authority GOV-CAL-0001');
+  await expect(heatApronProof).toContainText('GOV-LVL-0004');
+  await expect(heatApronProof).toContainText('CBA2-A05.8');
+  await expect(heatApronProof).toContainText(
+    /Row H · Aggregated Standard TPE component aggregated:/
+  );
+  await expect(heatApronProof).toContainText('Players: Obi Nwachukwu');
+  await expect(heatApronProof).toContainText('Authority GOV-CAL-0002');
+  await expect(heatApronProof).toContainText('GOV-LVL-0005');
+  await expect(heatApronProof).toContainText('CBA2-A05.10');
+
+  const nuggetsApronProof = receipt.getByTestId(
+    'trade-apron-restriction-nuggets'
+  );
+  await expect(nuggetsApronProof).toBeVisible();
+  await expect(nuggetsApronProof).toContainText('Row F');
+  await expect(nuggetsApronProof).toContainText('FAIL');
+  await expect(nuggetsApronProof).toContainText(
+    'Controlling First Apron ceiling'
+  );
+
+  const afterValidationTeams = await Promise.all(
+    proofTeamRefs.map((ref) => ref.get().then((snapshot) => snapshot.data()))
+  );
+  expect(afterValidationTeams).toEqual(beforeValidationTeams);
   expect(await worldCount()).toBe(1);
   expect(pageErrors).toEqual([]);
   await receipt
@@ -573,14 +585,22 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     assertions: {
       readiness: 'Trade blocked',
       blockingReason:
-        'Transaction Restrictions Table Row F prohibits this trade because Denver exceeds the First Apron.',
+        'Transaction Restrictions Table Row F prohibits this trade because the mixed MIA component package exceeds the controlling First Apron.',
       receiptVerdict: 'ILLEGAL',
-      apronRestrictionRows: { MIA: 'H', DEN: 'F' },
-      apronRestrictionStatuses: { MIA: 'PASS', DEN: 'FAIL' },
+      apronRestrictionRows: { MIA: ['F', 'H'], DEN: ['F'] },
+      controllingAprons: { MIA: 'FIRST_APRON', DEN: 'FIRST_APRON' },
+      apronRestrictionStatuses: { MIA: 'FAIL', DEN: 'FAIL' },
+      componentAttribution: {
+        MIA: {
+          F: { componentId: heldTpeIds.MIA, players: ['Aaron Pike'] },
+          H: { componentIdPrefix: 'aggregated:', players: ['Obi Nwachukwu'] },
+        },
+      },
       heldTpeTimings: {
         MIA: {
-          createdOn: '2026-07-15T12:00:00-04:00',
-          expiresOn: '2027-07-15T12:00:00-04:00',
+          createdOn: '2026-02-01T12:00:00-05:00',
+          expiresOn: '2027-02-01T12:00:00-05:00',
+          creationSeasonRegularSeasonClosing: '2026-04-12',
         },
         DEN: {
           createdOn: '2026-02-01T12:00:00-05:00',
@@ -591,6 +611,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       twoWayExplanationCount: 4,
       fixtureWorldCount: 1,
       durableWorldCountChangeAfterValidation: 0,
+      durableTeamDocumentChangeAfterValidation: 0,
     },
   };
   const proofPath = path.join(ARTIFACT_DIR, 'proof.json');

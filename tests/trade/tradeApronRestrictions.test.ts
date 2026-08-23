@@ -12,6 +12,7 @@ import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/h
 import { createTPE } from '@/features/architect/utils/tradeMachine/utils/tpeValidation';
 import { hydrateBaseTeam } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import { validatePostStateCapLegality } from '@/features/architect/utils/capLegality/postStateCapValidator';
+import { computeTradeResult } from '@/features/architect/utils/mutationPipeline.compute.trade';
 import type {
   TradeSalaryPathComponent,
   TradeSalaryPathEvaluation,
@@ -33,14 +34,23 @@ function electedComponent(
     path,
     timing: 'SIMULTANEOUS',
     outgoingPlayers: [],
-    incomingPlayers: [],
+    incomingPlayers: [
+      {
+        playerId: `${path.toLowerCase()}:player`,
+        playerName: 'Elected Component Player',
+        salary: 1_000_000,
+      },
+    ],
     maximumIncoming: 0,
     usedIncoming: 0,
     remaining: 0,
   };
 }
 
-function heldComponent(tpeId = 'TPE-1'): TradeSalaryPathComponent {
+function heldComponent(
+  tpeId = 'TPE-1',
+  playerId = `PLAYER-${tpeId}`
+): TradeSalaryPathComponent {
   return {
     componentId: tpeId,
     kind: 'HELD_STANDARD_TPE',
@@ -48,7 +58,7 @@ function heldComponent(tpeId = 'TPE-1'): TradeSalaryPathComponent {
     timing: 'NON_SIMULTANEOUS',
     outgoingPlayers: [],
     incomingPlayers: [
-      { playerId: 'PLAYER-1', playerName: 'Player One', salary: 5_000_000 },
+      { playerId, playerName: `Player ${playerId}`, salary: 5_000_000 },
     ],
     maximumIncoming: 8_000_000,
     usedIncoming: 5_000_000,
@@ -147,6 +157,13 @@ describe('governed Trade Machine apron restrictions', () => {
       ceiling: SECOND_APRON,
       margin: 0,
       hardCapWillPersist: true,
+      attachedRestrictions: [
+        {
+          restrictionRow: 'H',
+          apronLevel: 'SECOND_APRON',
+          componentId: 'aggregated_standard_tpe:players',
+        },
+      ],
     });
     expect(atCeiling.canonLeafIds).toEqual([
       'CBA2-A05.10',
@@ -156,6 +173,62 @@ describe('governed Trade Machine apron restrictions', () => {
     expect(above.status).toBe('FAIL');
     expect(above.margin).toBeCloseTo(-0.01, 6);
     expect(above.hardCapWillPersist).toBe(false);
+  });
+
+  it.each([
+    {
+      label: 'missing held component players',
+      mutate: (components: TradeSalaryPathComponent[]) => {
+        components[1] = { ...components[1], incomingPlayers: [] };
+      },
+      expected: 'componentAttribution.TPE-ATTRIBUTION.incomingPlayers',
+    },
+    {
+      label: 'one player assigned to both components',
+      mutate: (components: TradeSalaryPathComponent[]) => {
+        components[1] = {
+          ...components[1],
+          incomingPlayers: [{ ...components[0].incomingPlayers[0] }],
+        };
+      },
+      expected:
+        'componentAttribution.player.aggregated_standard_tpe:player.conflict',
+    },
+  ])('fails closed for $label', ({ mutate, expected }) => {
+    const heldTpe = {
+      id: 'TPE-ATTRIBUTION',
+      amount: 8_000_000,
+      remainingAmount: 8_000_000,
+      createdOn: '2026-02-01T12:00:00-05:00',
+      expiresOn: '2027-02-01T12:00:00-05:00',
+    };
+    const components = [
+      electedComponent('AGGREGATED_STANDARD_TPE'),
+      heldComponent(heldTpe.id),
+    ];
+    mutate(components);
+
+    const evaluation = evaluateTradeApronRestriction({
+      team: team(FIRST_APRON, [heldTpe]),
+      teamCode: 'DET',
+      pathEvaluation: pathEvaluation({
+        path: 'AGGREGATED_STANDARD_TPE',
+        postSalary: FIRST_APRON,
+        components,
+      }),
+      context: context('2026-11-15T12:00:00-05:00'),
+    });
+
+    expect(evaluation.status).toBe('NEEDS_INPUT');
+    expect(evaluation.missingInputs).toContain(expected);
+    expect(
+      createTradeHardCapLedgerEntry({
+        evaluation,
+        teamCode: 'DET',
+        transactionId: 'TRADE-ATTRIBUTION-INVALID',
+        effectiveAt: '2026-11-15T17:00:00Z',
+      })
+    ).toBeNull();
   });
 
   it.each([
@@ -277,7 +350,7 @@ describe('governed Trade Machine apron restrictions', () => {
     });
   });
 
-  it('retains Row H while enforcing an aged held TPE alongside an aggregated election', () => {
+  it('attaches Row F and Row H independently and enforces First Apron equality and one cent above', () => {
     const heldTpe = {
       id: 'TPE-AGGREGATED-AGED',
       amount: 8_000_000,
@@ -285,25 +358,28 @@ describe('governed Trade Machine apron restrictions', () => {
       createdOn: '2026-02-01T12:00:00-05:00',
       expiresOn: '2027-02-01T12:00:00-05:00',
     };
-    const evaluation = evaluateTradeApronRestriction({
-      team: team(SECOND_APRON, [heldTpe]),
-      teamCode: 'DET',
-      pathEvaluation: pathEvaluation({
-        path: 'AGGREGATED_STANDARD_TPE',
-        postSalary: SECOND_APRON,
-        components: [
-          electedComponent('AGGREGATED_STANDARD_TPE'),
-          heldComponent(heldTpe.id),
-        ],
-      }),
-      context: context('2026-11-15T12:00:00-05:00'),
-    });
+    const evaluateMixed = (postSalary: number) =>
+      evaluateTradeApronRestriction({
+        team: team(postSalary, [heldTpe]),
+        teamCode: 'DET',
+        pathEvaluation: pathEvaluation({
+          path: 'AGGREGATED_STANDARD_TPE',
+          postSalary,
+          components: [
+            electedComponent('AGGREGATED_STANDARD_TPE'),
+            heldComponent(heldTpe.id),
+          ],
+        }),
+        context: context('2026-11-15T12:00:00-05:00'),
+      });
+    const atFirstApron = evaluateMixed(FIRST_APRON);
+    const oneCentAbove = evaluateMixed(FIRST_APRON + 0.01);
 
-    expect(evaluation).toMatchObject({
+    expect(atFirstApron).toMatchObject({
       status: 'PASS',
-      restrictionRow: 'H',
-      apronLevel: 'SECOND_APRON',
-      ceiling: SECOND_APRON,
+      restrictionRow: 'F',
+      apronLevel: 'FIRST_APRON',
+      ceiling: FIRST_APRON,
       tpeTimings: [
         {
           tpeId: heldTpe.id,
@@ -312,6 +388,80 @@ describe('governed Trade Machine apron restrictions', () => {
         },
       ],
     });
+    expect(
+      atFirstApron.attachedRestrictions.map((trigger) => ({
+        row: trigger.restrictionRow,
+        componentId: trigger.componentId,
+        players: trigger.incomingPlayers.map((player) => player.playerId),
+        level: trigger.apronLevel,
+        calendar: trigger.proof.calendarRecordId,
+        apron: trigger.proof.apronRecordId,
+      }))
+    ).toEqual([
+      {
+        row: 'F',
+        componentId: heldTpe.id,
+        players: [`PLAYER-${heldTpe.id}`],
+        level: 'FIRST_APRON',
+        calendar: 'GOV-CAL-0001',
+        apron: 'GOV-LVL-0004',
+      },
+      {
+        row: 'H',
+        componentId: 'aggregated_standard_tpe:players',
+        players: ['aggregated_standard_tpe:player'],
+        level: 'SECOND_APRON',
+        calendar: 'GOV-CAL-0002',
+        apron: 'GOV-LVL-0005',
+      },
+    ]);
+    expect(oneCentAbove).toMatchObject({
+      status: 'FAIL',
+      restrictionRow: 'F',
+      apronLevel: 'FIRST_APRON',
+      ceiling: FIRST_APRON,
+    });
+    expect(oneCentAbove.margin).toBeCloseTo(-0.01, 6);
+  });
+
+  it('keeps the same cumulative result when component and player order reverse', () => {
+    const heldTpe = {
+      id: 'TPE-ORDER',
+      amount: 8_000_000,
+      remainingAmount: 8_000_000,
+      createdOn: '2026-02-01T12:00:00-05:00',
+      expiresOn: '2027-02-01T12:00:00-05:00',
+    };
+    const elected = electedComponent('AGGREGATED_STANDARD_TPE');
+    elected.incomingPlayers.push({
+      playerId: 'AGGREGATED-SECOND',
+      playerName: 'Aggregated Second',
+      salary: 500_000,
+    });
+    const held = heldComponent(heldTpe.id);
+    held.incomingPlayers.push({
+      playerId: 'HELD-SECOND',
+      playerName: 'Held Second',
+      salary: 250_000,
+    });
+    const evaluate = (components: TradeSalaryPathComponent[]) =>
+      evaluateTradeApronRestriction({
+        team: team(FIRST_APRON, [heldTpe]),
+        teamCode: 'DET',
+        pathEvaluation: pathEvaluation({
+          path: 'AGGREGATED_STANDARD_TPE',
+          postSalary: FIRST_APRON,
+          components,
+        }),
+        context: context('2026-11-15T12:00:00-05:00'),
+      });
+    const forward = evaluate([elected, held]);
+    const reversed = evaluate([
+      { ...held, incomingPlayers: [...held.incomingPlayers].reverse() },
+      { ...elected, incomingPlayers: [...elected.incomingPlayers].reverse() },
+    ]);
+
+    expect(reversed).toEqual(forward);
   });
 
   it('CBA2-A05.8: classifies a prior-Salary-Cap-Year TPE against its creation-season closing', () => {
@@ -342,6 +492,13 @@ describe('governed Trade Machine apron restrictions', () => {
         calendarRecordId: 'GOV-CAL-0001',
         apronRecordId: 'GOV-LVL-0004',
       },
+      attachedRestrictions: [
+        {
+          restrictionRow: 'F',
+          componentId: 'TPE-PRIOR-SCY',
+          apronLevel: 'FIRST_APRON',
+        },
+      ],
     });
   });
 
@@ -606,6 +763,146 @@ describe('governed Trade Machine apron restrictions', () => {
     expect(allowed.passed).toBe(true);
     expect(blocked.passed).toBe(false);
     expect(blocked.violations[0]).toMatch(/hard cap violation/i);
+  });
+
+  it('persists and reloads both mixed triggers with the controlling First Apron', async () => {
+    const heldTpe = {
+      id: 'TPE-MIXED-PERSIST',
+      amount: 8_000_000,
+      remainingAmount: 8_000_000,
+      createdOn: '2026-02-01T12:00:00-05:00',
+      expiresOn: '2027-02-01T12:00:00-05:00',
+    };
+    const evaluation = evaluateTradeApronRestriction({
+      team: team(FIRST_APRON, [heldTpe]),
+      teamCode: 'DET',
+      pathEvaluation: pathEvaluation({
+        path: 'AGGREGATED_STANDARD_TPE',
+        postSalary: FIRST_APRON,
+        components: [
+          electedComponent('AGGREGATED_STANDARD_TPE'),
+          heldComponent(heldTpe.id),
+        ],
+      }),
+      context: context('2026-11-15T12:00:00-05:00'),
+    });
+    const entry = createTradeHardCapLedgerEntry({
+      evaluation,
+      teamCode: 'DET',
+      transactionId: 'TRADE-MIXED-PERSIST',
+      effectiveAt: '2026-11-15T17:00:00Z',
+    });
+    expect(entry).toMatchObject({
+      restrictionRow: 'F',
+      apronLevel: 'FIRST_APRON',
+      ceiling: FIRST_APRON,
+      triggers: [
+        { restrictionRow: 'F', componentId: heldTpe.id },
+        {
+          restrictionRow: 'H',
+          componentId: 'aggregated_standard_tpe:players',
+        },
+      ],
+    });
+
+    const serialized = JSON.parse(JSON.stringify([entry]));
+    const hydrated = await hydrateBaseTeam('DET', {
+      roster: [],
+      teamName: 'Detroit Pistons',
+      exceptions: {},
+      hardCapLedger: serialized,
+    });
+    expect(hydrated.hardCapLedger).toEqual(serialized);
+    expect(hydrated.hardCapLedger?.[0]?.triggers).toHaveLength(2);
+    expect(
+      getHardCapStatus(hydrated, {
+        salaryCapYear: 2027,
+        capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+      })
+    ).toMatchObject({
+      hardCapType: 'FIRST_APRON',
+      hardCapCeiling: FIRST_APRON,
+    });
+
+    const conflictingReload = JSON.parse(JSON.stringify(serialized));
+    conflictingReload[0].triggers[1].incomingPlayers[0].playerId =
+      conflictingReload[0].triggers[0].incomingPlayers[0].playerId;
+    expect(parseTradeHardCapLedger(conflictingReload)).toEqual({
+      entries: [],
+      valid: false,
+    });
+  });
+
+  it('retains both mixed triggers in trade event metadata and the computed team ledger', () => {
+    const heldTpe = {
+      id: 'TPE-MIXED-EVENT',
+      amount: 8_000_000,
+      remainingAmount: 8_000_000,
+      createdOn: '2026-02-01T12:00:00-05:00',
+      expiresOn: '2027-02-01T12:00:00-05:00',
+    };
+    const evaluation = evaluateTradeApronRestriction({
+      team: team(FIRST_APRON, [heldTpe]),
+      teamCode: 'DET',
+      pathEvaluation: pathEvaluation({
+        path: 'AGGREGATED_STANDARD_TPE',
+        postSalary: FIRST_APRON,
+        components: [
+          electedComponent('AGGREGATED_STANDARD_TPE'),
+          heldComponent(heldTpe.id),
+        ],
+      }),
+      context: context('2026-11-15T12:00:00-05:00'),
+    });
+    const currentTeam = team(FIRST_APRON, [heldTpe]).team;
+    const computed = computeTradeResult({
+      payload: {
+        teams: [{ teamCode: 'DET', sends: [], entitlementsOut: [] }],
+      } as never,
+      currentState: {
+        teams: [{ teamCode: 'DET', team: currentTeam }],
+      },
+      seasonId: '2026-27',
+      timestamp: Date.parse('2026-11-15T17:00:00Z'),
+      historyContext: {
+        worldId: 'WORLD-1',
+        mutationType: 'executeTrade',
+        mutationId: 'TRADE-MIXED-EVENT',
+      },
+      postTradeSnapshot: {
+        teamUpdates: [{ teamCode: 'DET', team: currentTeam }],
+        validationTeams: [],
+      } as never,
+      validatedContext: {
+        _isValidatedTradeContext: true,
+        legal: true,
+        reason: null,
+        error: null,
+        violations: [],
+        warnings: [],
+        teamResults: [
+          {
+            rules: {},
+            apronRestrictionEvaluation: evaluation,
+          },
+        ],
+        validationTeams: [{ teamCode: 'DET', receives: [] }],
+      } as never,
+    });
+
+    expect(computed.success).toBe(true);
+    expect(
+      computed.metadata?.apronRestrictions?.[0]?.evaluation
+        .attachedRestrictions
+    ).toEqual(evaluation.attachedRestrictions);
+    expect(computed.teamUpdates?.[0]?.team?.hardCapLedger?.[0]).toMatchObject({
+      restrictionRow: 'F',
+      ceiling: FIRST_APRON,
+      triggers: [
+        { restrictionRow: 'F', componentId: heldTpe.id },
+        { restrictionRow: 'H' },
+      ],
+    });
   });
 
   it('CBA2-A05.2: keeps the strictest active ceiling across First and Second Apron sources in both validation layers', () => {

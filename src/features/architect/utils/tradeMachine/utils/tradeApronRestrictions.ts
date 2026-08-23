@@ -2,6 +2,7 @@ import {
   TradeHardCapLedgerZ,
   type TradeApronLevel,
   type TradeApronRestrictionRow,
+  type TradeApronRestrictionTrigger,
   type TradeHardCapLedgerEntry,
   type TradeHardCapProof,
 } from '@/schemas/tradeApronRestriction';
@@ -41,6 +42,7 @@ export type TradeApronRestrictionEvaluation = {
   tpeCreatedOn: string | null;
   tpeExpiresOn: string | null;
   tpeTimings: TpeTiming[];
+  attachedRestrictions: TradeApronRestrictionTrigger[];
   regularSeasonClosing: string | null;
   hardCapWillPersist: boolean;
   canonLeafIds: readonly string[];
@@ -106,6 +108,7 @@ function result(
     tpeCreatedOn: values.tpeCreatedOn ?? null,
     tpeExpiresOn: values.tpeExpiresOn ?? null,
     tpeTimings: values.tpeTimings ?? [],
+    attachedRestrictions: values.attachedRestrictions ?? [],
     regularSeasonClosing: values.regularSeasonClosing ?? null,
     hardCapWillPersist: values.hardCapWillPersist ?? false,
     canonLeafIds: values.canonLeafIds ?? [],
@@ -368,12 +371,82 @@ export function evaluateTradeApronRestriction({
   const tpeTimings: TpeTiming[] = [];
   let regularSeasonClosing: string | null = null;
   let standardWindowExpired = false;
-  let rowFCalendarEnvelope: ReturnType<
-    typeof resolveGovernedSeasonEnvelope
-  > | null = null;
+  const timingByComponentId = new Map<string, TpeTiming>();
+  const rowFByComponentId = new Map<
+    string,
+    {
+      closing: string;
+      calendarEnvelope: ReturnType<typeof resolveGovernedSeasonEnvelope>;
+    }
+  >();
+
+  const components = pathEvaluation.components;
+  const componentIds = new Set<string>();
+  const playerAssignments = new Map<string, string>();
+  components.forEach((component, componentIndex) => {
+    const componentId = component.componentId?.trim();
+    if (!componentId) {
+      missingInputs.push(`componentAttribution.${componentIndex}.identity`);
+    } else if (componentIds.has(componentId)) {
+      missingInputs.push(`componentAttribution.${componentId}.conflict`);
+    } else {
+      componentIds.add(componentId);
+    }
+    if (
+      component.kind === 'HELD_STANDARD_TPE' &&
+      component.path !== 'STANDARD_TPE'
+    ) {
+      missingInputs.push(
+        `componentAttribution.${componentId || componentIndex}.path`
+      );
+    }
+    if (
+      (component.kind === 'HELD_STANDARD_TPE' ||
+        (path === 'AGGREGATED_STANDARD_TPE' &&
+          component.kind === 'ELECTED_PATH')) &&
+      component.incomingPlayers.length === 0
+    ) {
+      missingInputs.push(
+        `componentAttribution.${componentId || componentIndex}.incomingPlayers`
+      );
+    }
+    component.incomingPlayers.forEach((player, playerIndex) => {
+      const playerId = player.playerId?.trim();
+      if (!playerId) {
+        missingInputs.push(
+          `componentAttribution.${componentId || componentIndex}.incomingPlayers.${playerIndex}.identity`
+        );
+        return;
+      }
+      if (!Number.isFinite(player.salary) || player.salary < 0) {
+        missingInputs.push(
+          `componentAttribution.${componentId || componentIndex}.incomingPlayers.${playerIndex}.salary`
+        );
+      }
+      const priorComponentId = playerAssignments.get(playerId);
+      if (priorComponentId !== undefined) {
+        missingInputs.push(`componentAttribution.player.${playerId}.conflict`);
+      } else if (componentId) {
+        playerAssignments.set(playerId, componentId);
+      }
+    });
+  });
+
+  const electedComponents = components.filter(
+    (component) => component.kind === 'ELECTED_PATH'
+  );
+  const aggregatedComponents = electedComponents.filter(
+    (component) => component.path === 'AGGREGATED_STANDARD_TPE'
+  );
+  if (
+    path === 'AGGREGATED_STANDARD_TPE' &&
+    (electedComponents.length !== 1 || aggregatedComponents.length !== 1)
+  ) {
+    missingInputs.push('componentAttribution.aggregatedStandardTpe');
+  }
 
   if (path === 'STANDARD_TPE' || path === 'AGGREGATED_STANDARD_TPE') {
-    const heldComponents = pathEvaluation.components.filter(
+    const heldComponents = components.filter(
       (component) => component.kind === 'HELD_STANDARD_TPE'
     );
     if (path === 'STANDARD_TPE' && heldComponents.length === 0) {
@@ -392,7 +465,10 @@ export function evaluateTradeApronRestriction({
       const timingResolution = resolveTpeTiming(team, held.componentId);
       missingInputs.push(...timingResolution.missingInputs);
       const timing = timingResolution.timing;
-      if (timing) tpeTimings.push(timing);
+      if (timing) {
+        tpeTimings.push(timing);
+        timingByComponentId.set(held.componentId, timing);
+      }
       if (timing) {
         const anniversary = oneYearAnniversaryDate(timing.createdOn);
         if (!anniversary) {
@@ -416,6 +492,7 @@ export function evaluateTradeApronRestriction({
       }
     }
   }
+  tpeTimings.sort((left, right) => left.tpeId.localeCompare(right.tpeId));
 
   const envelopeAsOf = transactionDate ? envelopeDate(transactionDate) : null;
   const envelope = resolveGovernedSeasonEnvelope({
@@ -436,11 +513,7 @@ export function evaluateTradeApronRestriction({
       envelope.calendar.regularSeasonClosing?.value ?? null;
   }
 
-  if (
-    path === 'STANDARD_TPE' &&
-    transactionDate &&
-    tpeTimings.length > 0
-  ) {
+  if (transactionDate && tpeTimings.length > 0) {
     const acquisitionDay = dateOnly(transactionDate);
     for (const timing of tpeTimings) {
       const rowFResolution = resolveRowFClosingForHeldTpe({
@@ -456,12 +529,16 @@ export function evaluateTradeApronRestriction({
       if (
         acquisitionDay &&
         rowFResolution.closing &&
-        acquisitionDay > rowFResolution.closing
+        acquisitionDay > rowFResolution.closing &&
+        rowFResolution.calendarEnvelope
       ) {
         restrictionRow = 'F';
         apronLevel = 'FIRST_APRON';
         regularSeasonClosing = rowFResolution.closing;
-        rowFCalendarEnvelope = rowFResolution.calendarEnvelope;
+        rowFByComponentId.set(timing.tpeId, {
+          closing: rowFResolution.closing,
+          calendarEnvelope: rowFResolution.calendarEnvelope,
+        });
       }
     }
   }
@@ -479,6 +556,7 @@ export function evaluateTradeApronRestriction({
       tpeCreatedOn: tpeTimings[0]?.createdOn ?? null,
       tpeExpiresOn: tpeTimings[0]?.expiresOn ?? null,
       tpeTimings,
+      attachedRestrictions: [],
       regularSeasonClosing,
       canonLeafIds:
         path === 'STANDARD_TPE'
@@ -506,6 +584,7 @@ export function evaluateTradeApronRestriction({
       tpeCreatedOn: tpeTimings[0]?.createdOn ?? null,
       tpeExpiresOn: tpeTimings[0]?.expiresOn ?? null,
       tpeTimings,
+      attachedRestrictions: [],
       regularSeasonClosing,
       canonLeafIds: ['CBA2-A02.3'],
       violations: [
@@ -514,7 +593,52 @@ export function evaluateTradeApronRestriction({
     });
   }
 
-  if (!restrictionRow || !apronLevel) {
+  type PendingRestriction = {
+    restrictionRow: TradeApronRestrictionRow;
+    component: (typeof components)[number];
+    apronLevel: TradeApronLevel;
+    tpeTiming: TpeTiming | null;
+    closing: string | null;
+    calendarEnvelope: ReturnType<typeof resolveGovernedSeasonEnvelope>;
+  };
+  const pendingRestrictions: PendingRestriction[] = [];
+  for (const component of components) {
+    if (
+      component.kind === 'HELD_STANDARD_TPE' &&
+      rowFByComponentId.has(component.componentId)
+    ) {
+      const rowF = rowFByComponentId.get(component.componentId)!;
+      pendingRestrictions.push({
+        restrictionRow: 'F',
+        component,
+        apronLevel: 'FIRST_APRON',
+        tpeTiming: timingByComponentId.get(component.componentId) ?? null,
+        closing: rowF.closing,
+        calendarEnvelope: rowF.calendarEnvelope,
+      });
+    }
+    if (
+      path === 'AGGREGATED_STANDARD_TPE' &&
+      component.kind === 'ELECTED_PATH' &&
+      component.path === 'AGGREGATED_STANDARD_TPE'
+    ) {
+      pendingRestrictions.push({
+        restrictionRow: 'H',
+        component,
+        apronLevel: 'SECOND_APRON',
+        tpeTiming: null,
+        closing: null,
+        calendarEnvelope: envelope,
+      });
+    }
+  }
+  pendingRestrictions.sort(
+    (left, right) =>
+      left.apronLevel.localeCompare(right.apronLevel) ||
+      left.component.componentId.localeCompare(right.component.componentId)
+  );
+
+  if (pendingRestrictions.length === 0) {
     return result({
       status: 'NOT_APPLICABLE',
       salaryMatchingPath: path,
@@ -525,25 +649,60 @@ export function evaluateTradeApronRestriction({
       tpeCreatedOn: tpeTimings[0]?.createdOn ?? null,
       tpeExpiresOn: tpeTimings[0]?.expiresOn ?? null,
       tpeTimings,
+      attachedRestrictions: [],
       regularSeasonClosing,
       canonLeafIds: ['CBA2-A02.3', 'CBA2-A05.8'],
     });
   }
 
-  const levelResolution =
-    envelope.systemLevels[
-      apronLevel === 'FIRST_APRON' ? 'first-apron' : 'second-apron'
-    ];
-  const ceiling =
-    levelResolution.state === 'available' ? levelResolution.amount : null;
-  const proof = makeProof(
-    restrictionRow === 'F' && rowFCalendarEnvelope
-      ? rowFCalendarEnvelope
-      : envelope,
-    envelope,
-    apronLevel
-  );
-  if (ceiling === null || !proof || postSalary === null) {
+  const attachedRestrictions: TradeApronRestrictionTrigger[] = [];
+  for (const pending of pendingRestrictions) {
+    const levelResolution =
+      envelope.systemLevels[
+        pending.apronLevel === 'FIRST_APRON'
+          ? 'first-apron'
+          : 'second-apron'
+      ];
+    const triggerCeiling =
+      levelResolution.state === 'available' ? levelResolution.amount : null;
+    const triggerProof = makeProof(
+      pending.calendarEnvelope,
+      envelope,
+      pending.apronLevel
+    );
+    if (triggerCeiling === null || !triggerProof) {
+      missingInputs.push(
+        `applicableApronLevel.${pending.restrictionRow}.${pending.component.componentId}`
+      );
+      continue;
+    }
+    attachedRestrictions.push({
+      restrictionRow: pending.restrictionRow,
+      componentId: pending.component.componentId,
+      componentKind: pending.component.kind,
+      salaryMatchingPath:
+        pending.restrictionRow === 'F'
+          ? 'STANDARD_TPE'
+          : 'AGGREGATED_STANDARD_TPE',
+      apronLevel: pending.apronLevel,
+      ceiling: triggerCeiling,
+      incomingPlayers: [...pending.component.incomingPlayers]
+        .map((player) => ({ ...player }))
+        .sort((left, right) => left.playerId.localeCompare(right.playerId)),
+      tpeTiming: pending.tpeTiming ? { ...pending.tpeTiming } : null,
+      regularSeasonClosing: pending.closing,
+      canonLeafIds:
+        pending.restrictionRow === 'F'
+          ? ['CBA2-A02.3', 'CBA2-A05.8', 'CBA2-A05.1']
+          : ['CBA2-A05.10', 'CBA2-A05.1'],
+      proof: triggerProof,
+    });
+  }
+  if (
+    missingInputs.length > 0 ||
+    attachedRestrictions.length !== pendingRestrictions.length ||
+    postSalary === null
+  ) {
     return result({
       status: 'NEEDS_INPUT',
       restrictionRow,
@@ -556,17 +715,41 @@ export function evaluateTradeApronRestriction({
       tpeCreatedOn: tpeTimings[0]?.createdOn ?? null,
       tpeExpiresOn: tpeTimings[0]?.expiresOn ?? null,
       tpeTimings,
+      attachedRestrictions,
       regularSeasonClosing,
-      missingInputs: ['applicableApronLevel'],
+      missingInputs:
+        missingInputs.length > 0
+          ? [...new Set(missingInputs)]
+          : ['applicableApronLevel'],
       violations: ['The applicable governed apron level is unavailable.'],
     });
   }
+  const controllingRestriction = [...attachedRestrictions].sort(
+    (left, right) =>
+      left.ceiling - right.ceiling ||
+      left.restrictionRow.localeCompare(right.restrictionRow) ||
+      left.componentId.localeCompare(right.componentId)
+  )[0];
+  restrictionRow = controllingRestriction.restrictionRow;
+  apronLevel = controllingRestriction.apronLevel;
+  const ceiling = controllingRestriction.ceiling;
+  const proof = controllingRestriction.proof;
   const margin = ceiling - postSalary;
   const passed = postSalary <= ceiling;
-  const baseLeaves =
-    restrictionRow === 'F'
-      ? ['CBA2-A02.3', 'CBA2-A05.8', 'CBA2-A05.1']
-      : ['CBA2-A05.10', 'CBA2-A05.1'];
+  const finalizedRestrictions = attachedRestrictions.map((trigger) => ({
+    ...trigger,
+    canonLeafIds: passed
+      ? [...trigger.canonLeafIds, 'CBA2-A05.2']
+      : [...trigger.canonLeafIds],
+  }));
+  const canonLeafIds = [
+    ...new Set(
+      finalizedRestrictions.flatMap((trigger) =>
+        trigger.canonLeafIds.filter((leafId) => leafId !== 'CBA2-A05.2')
+      )
+    ),
+    ...(passed ? ['CBA2-A05.2'] : []),
+  ];
   return result({
     status: passed ? 'PASS' : 'FAIL',
     restrictionRow,
@@ -581,9 +764,10 @@ export function evaluateTradeApronRestriction({
     tpeCreatedOn: tpeTimings[0]?.createdOn ?? null,
     tpeExpiresOn: tpeTimings[0]?.expiresOn ?? null,
     tpeTimings,
+    attachedRestrictions: finalizedRestrictions,
     regularSeasonClosing,
     hardCapWillPersist: passed,
-    canonLeafIds: passed ? [...baseLeaves, 'CBA2-A05.2'] : baseLeaves,
+    canonLeafIds,
     violations: passed
       ? []
       : [
@@ -657,6 +841,7 @@ export function createTradeHardCapLedgerEntry({
     evaluation.salaryCapYear === null ||
     !evaluation.transactionDate ||
     !evaluation.proof ||
+    evaluation.attachedRestrictions.length === 0 ||
     !teamCode.trim()
   ) {
     return null;
@@ -678,5 +863,12 @@ export function createTradeHardCapLedgerEntry({
     tpeTimings: evaluation.tpeTimings.map((timing) => ({ ...timing })),
     canonLeafIds: [...evaluation.canonLeafIds],
     proof: evaluation.proof,
+    triggers: evaluation.attachedRestrictions.map((trigger) => ({
+      ...trigger,
+      incomingPlayers: trigger.incomingPlayers.map((player) => ({ ...player })),
+      tpeTiming: trigger.tpeTiming ? { ...trigger.tpeTiming } : null,
+      canonLeafIds: [...trigger.canonLeafIds],
+      proof: { ...trigger.proof },
+    })),
   };
 }
