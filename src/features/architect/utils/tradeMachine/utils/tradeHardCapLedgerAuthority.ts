@@ -10,6 +10,7 @@ import {
   type GovernedSeasonRegistry,
   type GovernedSystemLevelRecord,
 } from '@/features/architect/utils/governedSeason';
+import { normalizeTradeApronEnvelopeDate } from './tradeApronDate';
 
 export type ParsedTradeHardCapLedger = {
   entries: TradeHardCapLedgerEntry[];
@@ -93,14 +94,15 @@ function calendarProofIsAuthenticated(
   }
 
   if (!trigger.tpeTiming) return false;
+  const createdAsOf = normalizeTradeApronEnvelopeDate(
+    trigger.tpeTiming.createdOn
+  );
+  if (!createdAsOf) return false;
   const creationCalendars = registry.calendars.filter(
     (candidate) =>
       candidate.recordStatus === 'current' &&
       candidate.authority === 'official' &&
-      isWithinSalaryCapYear(
-        trigger.tpeTiming?.createdOn ?? '',
-        candidate.salaryCapYear
-      )
+      isWithinSalaryCapYear(createdAsOf, candidate.salaryCapYear)
   );
   const creationCalendar = creationCalendars[0];
   const createdDay = trigger.tpeTiming.createdOn.match(

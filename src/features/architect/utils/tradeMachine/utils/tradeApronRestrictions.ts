@@ -18,6 +18,7 @@ import type {
 } from '@/features/architect/utils/tradeMachine/constants/types';
 import type { TradeSalaryMatchingPath } from '@/schemas/tradeSalaryMatchingPath';
 import type { TradeSalaryPathEvaluation } from './tradeSalaryMatchingPaths';
+import { normalizeTradeApronEnvelopeDate } from './tradeApronDate';
 import { parseTradeHardCapLedger } from './tradeHardCapLedgerAuthority';
 
 export { parseTradeHardCapLedger } from './tradeHardCapLedgerAuthority';
@@ -81,12 +82,6 @@ function finiteMoney(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
     ? value
     : null;
-}
-
-function envelopeDate(value: string): string | null {
-  if (exactInstant(value) !== null) return value;
-  const day = dateOnly(value);
-  return day ? `${day}T12:00:00Z` : null;
 }
 
 function result(
@@ -226,7 +221,7 @@ function resolveRowFClosingForHeldTpe({
   calendarEnvelope: ReturnType<typeof resolveGovernedSeasonEnvelope> | null;
   missingInputs: string[];
 } {
-  const createdAsOf = envelopeDate(timing.createdOn);
+  const createdAsOf = normalizeTradeApronEnvelopeDate(timing.createdOn);
   if (!createdAsOf) {
     return {
       closing: null,
@@ -285,7 +280,7 @@ function resolveRowFClosingForHeldTpe({
     };
   }
 
-  const transactionAsOf = envelopeDate(transactionDate);
+  const transactionAsOf = normalizeTradeApronEnvelopeDate(transactionDate);
   const followingSalaryCapYear = creationSalaryCapYear + 1;
   if (
     !transactionAsOf ||
@@ -496,7 +491,9 @@ export function evaluateTradeApronRestriction({
   }
   tpeTimings.sort((left, right) => left.tpeId.localeCompare(right.tpeId));
 
-  const envelopeAsOf = transactionDate ? envelopeDate(transactionDate) : null;
+  const envelopeAsOf = transactionDate
+    ? normalizeTradeApronEnvelopeDate(transactionDate)
+    : null;
   const envelope = resolveGovernedSeasonEnvelope({
     asOfDate: envelopeAsOf ?? undefined,
     salaryCapYear:

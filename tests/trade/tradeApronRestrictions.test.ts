@@ -926,6 +926,88 @@ describe('governed Trade Machine apron restrictions', () => {
     });
   });
 
+  it.each([
+    {
+      label: 'date-only',
+      createdOn: '2026-02-08',
+      expiresOn: '2027-02-08',
+    },
+    {
+      label: 'zoned',
+      createdOn: '2026-02-08T12:00:00-05:00',
+      expiresOn: '2027-02-08T12:00:00-05:00',
+    },
+  ])(
+    'round-trips an honest Row F ledger from $label held-TPE evidence',
+    async ({ label, createdOn, expiresOn }) => {
+      const heldTpe = {
+        id: `TPE-ROW-F-${label.toUpperCase()}`,
+        amount: 8_000_000,
+        remainingAmount: 8_000_000,
+        createdOn,
+        expiresOn,
+      };
+      const evaluation = evaluateTradeApronRestriction({
+        team: team(FIRST_APRON, [heldTpe]),
+        teamCode: 'DET',
+        pathEvaluation: pathEvaluation({
+          path: 'STANDARD_TPE',
+          postSalary: FIRST_APRON,
+          components: [heldComponent(heldTpe.id)],
+        }),
+        context: context('2026-11-15T12:00:00-05:00'),
+      });
+      expect(evaluation).toMatchObject({
+        status: 'PASS',
+        restrictionRow: 'F',
+        apronLevel: 'FIRST_APRON',
+        ceiling: FIRST_APRON,
+        regularSeasonClosing: '2026-04-12',
+      });
+      expect(evaluation.tpeTimings).toEqual([
+        { tpeId: heldTpe.id, createdOn, expiresOn },
+      ]);
+
+      const entry = createTradeHardCapLedgerEntry({
+        evaluation,
+        teamCode: 'DET',
+        transactionId: `TRADE-ROW-F-${label.toUpperCase()}`,
+        effectiveAt: '2026-11-15T17:00:00Z',
+      });
+      expect(entry).not.toBeNull();
+
+      const serialized = JSON.parse(JSON.stringify([entry]));
+      expect(serialized[0].triggers[0].tpeTiming).toEqual({
+        tpeId: heldTpe.id,
+        createdOn,
+        expiresOn,
+      });
+      expect(parseTradeHardCapLedger(serialized)).toEqual({
+        entries: serialized,
+        valid: true,
+      });
+
+      const hydrated = await hydrateBaseTeam('DET', {
+        roster: [],
+        teamName: 'Detroit Pistons',
+        exceptions: {},
+        hardCapLedger: serialized,
+      });
+      expect(hydrated.hardCapLedger).toEqual(serialized);
+      expect(
+        getHardCapStatus(hydrated, {
+          salaryCapYear: 2027,
+          capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+        })
+      ).toMatchObject({
+        isHardCapped: true,
+        hardCapType: 'FIRST_APRON',
+        hardCapCeiling: FIRST_APRON,
+        failClosed: false,
+      });
+    }
+  );
+
   it('reauthenticates honest single-row and cumulative ledgers after serialization', () => {
     const single = createTradeHardCapLedgerEntry({
       evaluation: evaluateAggregated(SECOND_APRON),

@@ -606,6 +606,7 @@ utils/
       stepienEntitlementUtils.ts
       swapResolution.ts
       tpeValidation.ts
+      tradeApronDate.ts
       tradeApronRestrictions.ts
       tradeExceptionLifecycle.ts
       tradeExportUtils.ts
@@ -638,5 +639,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-23T08:16:16.897Z*
+*Generated on: 2026-08-23T09:55:25.485Z*
 *Auto-updated by: npm run docs*
