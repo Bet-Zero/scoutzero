@@ -21,6 +21,10 @@ import type {
   TradeTeam,
   TradeValidatorContext,
 } from '@/features/architect/utils/tradeMachine/constants/types';
+import {
+  CANON_GOVERNED_SEASON_REGISTRY,
+  type GovernedSeasonRegistry,
+} from '@/features/architect/utils/governedSeason';
 
 const FIRST_APRON = 209_015_000;
 const SECOND_APRON = 221_686_000;
@@ -143,6 +147,40 @@ function evaluateAggregated(postSalary: number) {
     }),
     context: context('2026-07-15T12:00:00-04:00'),
   });
+}
+
+function evaluateCumulative(postSalary: number) {
+  const heldTpe = {
+    id: 'TPE-AUTHORITY-CUMULATIVE',
+    amount: 8_000_000,
+    remainingAmount: 8_000_000,
+    createdOn: '2026-02-01T12:00:00-05:00',
+    expiresOn: '2027-02-01T12:00:00-05:00',
+  };
+  return evaluateTradeApronRestriction({
+    team: team(postSalary, [heldTpe]),
+    teamCode: 'DET',
+    pathEvaluation: pathEvaluation({
+      path: 'AGGREGATED_STANDARD_TPE',
+      postSalary,
+      components: [
+        electedComponent('AGGREGATED_STANDARD_TPE'),
+        heldComponent(heldTpe.id),
+      ],
+    }),
+    context: context('2026-11-15T12:00:00-05:00'),
+  });
+}
+
+function createCumulativeLedgerEntry() {
+  const entry = createTradeHardCapLedgerEntry({
+    evaluation: evaluateCumulative(FIRST_APRON),
+    teamCode: 'DET',
+    transactionId: 'TRADE-AUTHORITY-CUMULATIVE',
+    effectiveAt: '2026-11-15T17:00:00Z',
+  });
+  if (!entry) throw new Error('expected cumulative hard-cap ledger fixture');
+  return entry;
 }
 
 describe('governed Trade Machine apron restrictions', () => {
@@ -831,6 +869,259 @@ describe('governed Trade Machine apron restrictions', () => {
       entries: [],
       valid: false,
     });
+  });
+
+  it('reauthenticates honest single-row and cumulative ledgers after serialization', () => {
+    const single = createTradeHardCapLedgerEntry({
+      evaluation: evaluateAggregated(SECOND_APRON),
+      teamCode: 'DET',
+      transactionId: 'TRADE-AUTHORITY-SINGLE',
+      effectiveAt: '2026-07-15T16:00:00Z',
+    });
+    const cumulative = createCumulativeLedgerEntry();
+    expect(single).not.toBeNull();
+    if (!single) throw new Error('expected single-row hard-cap fixture');
+
+    const singleReload = JSON.parse(JSON.stringify([single]));
+    const cumulativeReload = JSON.parse(JSON.stringify([cumulative]));
+    expect(parseTradeHardCapLedger(singleReload)).toEqual({
+      entries: singleReload,
+      valid: true,
+    });
+    expect(parseTradeHardCapLedger(cumulativeReload)).toEqual({
+      entries: cumulativeReload,
+      valid: true,
+    });
+    expect(
+      getHardCapStatus({ hardCapLedger: singleReload }, {
+        salaryCapYear: 2027,
+        capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+      }).hardCapCeiling
+    ).toBe(SECOND_APRON);
+    expect(
+      getHardCapStatus({ hardCapLedger: cumulativeReload }, {
+        salaryCapYear: 2027,
+        capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+      }).hardCapCeiling
+    ).toBe(FIRST_APRON);
+  });
+
+  it.each([
+    {
+      label: 'registry id proof identity',
+      mutate: (entry: ReturnType<typeof createCumulativeLedgerEntry>) => {
+        entry.proof.registryId = 'forged-registry';
+        entry.triggers[0].proof.registryId = 'forged-registry';
+      },
+    },
+    {
+      label: 'registry version proof identity',
+      mutate: (entry: ReturnType<typeof createCumulativeLedgerEntry>) => {
+        entry.proof.registryVersion += 1;
+        entry.triggers[0].proof.registryVersion += 1;
+      },
+    },
+    {
+      label: 'Canon commit proof identity',
+      mutate: (entry: ReturnType<typeof createCumulativeLedgerEntry>) => {
+        entry.proof.canonCandidateCommit = 'forged-commit';
+        entry.triggers[0].proof.canonCandidateCommit = 'forged-commit';
+      },
+    },
+    {
+      label: 'Canon hash proof identity',
+      mutate: (entry: ReturnType<typeof createCumulativeLedgerEntry>) => {
+        entry.proof.canonSha256 = 'f'.repeat(64);
+        entry.triggers[0].proof.canonSha256 = 'f'.repeat(64);
+      },
+    },
+    {
+      label: 'apron record id',
+      mutate: (entry: ReturnType<typeof createCumulativeLedgerEntry>) => {
+        entry.proof.apronRecordId = 'GOV-LVL-MISSING';
+        entry.triggers[0].proof.apronRecordId = 'GOV-LVL-MISSING';
+      },
+    },
+    {
+      label: 'apron record version',
+      mutate: (entry: ReturnType<typeof createCumulativeLedgerEntry>) => {
+        entry.proof.apronRecordVersion = 999;
+        entry.triggers[0].proof.apronRecordVersion = 999;
+      },
+    },
+    {
+      label: 'Salary Cap Year',
+      mutate: (entry: ReturnType<typeof createCumulativeLedgerEntry>) => {
+        entry.salaryCapYear = 2028;
+      },
+    },
+    {
+      label: 'apron level authority record',
+      mutate: (entry: ReturnType<typeof createCumulativeLedgerEntry>) => {
+        entry.proof.apronRecordId = 'GOV-LVL-0005';
+        entry.triggers[0].proof.apronRecordId = 'GOV-LVL-0005';
+      },
+    },
+    {
+      label: 'exact governed amount',
+      mutate: (entry: ReturnType<typeof createCumulativeLedgerEntry>) => {
+        entry.ceiling = FIRST_APRON + 1;
+        entry.triggers[0].ceiling = FIRST_APRON + 1;
+      },
+    },
+    {
+      label: 'calendar record id',
+      mutate: (entry: ReturnType<typeof createCumulativeLedgerEntry>) => {
+        entry.proof.calendarRecordId = 'GOV-CAL-MISSING';
+        entry.triggers[0].proof.calendarRecordId = 'GOV-CAL-MISSING';
+      },
+    },
+    {
+      label: 'calendar record version',
+      mutate: (entry: ReturnType<typeof createCumulativeLedgerEntry>) => {
+        entry.proof.calendarRecordVersion = 999;
+        entry.triggers[0].proof.calendarRecordVersion = 999;
+      },
+    },
+    {
+      label: 'entry and controlling-trigger proof compatibility',
+      mutate: (entry: ReturnType<typeof createCumulativeLedgerEntry>) => {
+        entry.proof.calendarRecordVersion = 999;
+      },
+    },
+  ])('rejects an individually altered $label', ({ mutate }) => {
+    const altered = JSON.parse(
+      JSON.stringify(createCumulativeLedgerEntry())
+    ) as ReturnType<typeof createCumulativeLedgerEntry>;
+    mutate(altered);
+
+    expect(TradeHardCapLedgerZ.safeParse([altered]).success).toBe(true);
+    expect(parseTradeHardCapLedger([altered])).toEqual({
+      entries: [],
+      valid: false,
+    });
+  });
+
+  it('fails closed when the pinned registry cannot resolve trigger authority', () => {
+    const entry = createCumulativeLedgerEntry();
+    const registryWithoutFirstApron: GovernedSeasonRegistry = {
+      ...CANON_GOVERNED_SEASON_REGISTRY,
+      systemLevels: CANON_GOVERNED_SEASON_REGISTRY.systemLevels.filter(
+        (level) => level.recordId !== 'GOV-LVL-0004'
+      ),
+    };
+
+    expect(
+      parseTradeHardCapLedger([entry], registryWithoutFirstApron)
+    ).toEqual({ entries: [], valid: false });
+  });
+
+  it('rejects an internally consistent forged ledger at saved-team hydration', async () => {
+    const entry = createTradeHardCapLedgerEntry({
+      evaluation: evaluateAggregated(SECOND_APRON),
+      teamCode: 'DET',
+      transactionId: 'TRADE-HYDRATE-FORGED-AUTHORITY',
+      effectiveAt: '2026-07-15T16:00:00Z',
+    });
+    if (!entry) throw new Error('expected saved-team ledger fixture');
+    entry.ceiling = SECOND_APRON + 1;
+    entry.triggers[0].ceiling = SECOND_APRON + 1;
+    expect(TradeHardCapLedgerZ.safeParse([entry]).success).toBe(true);
+
+    await expect(
+      hydrateBaseTeam('DET', {
+        roster: [],
+        teamName: 'Detroit Pistons',
+        exceptions: {},
+        hardCapLedger: [entry],
+      })
+    ).rejects.toThrow(/hardCapLedger is not governed authority/i);
+  });
+
+  it('blocks the owner-writable persisted-overlay Row F inflation attack in both enforcement layers', () => {
+    const altered = JSON.parse(
+      JSON.stringify(createCumulativeLedgerEntry())
+    ) as ReturnType<typeof createCumulativeLedgerEntry>;
+    const rowF = altered.triggers.find(
+      (trigger) => trigger.restrictionRow === 'F'
+    );
+    const rowH = altered.triggers.find(
+      (trigger) => trigger.restrictionRow === 'H'
+    );
+    if (!rowF || !rowH) throw new Error('expected cumulative trigger fixtures');
+
+    rowF.ceiling = 999_000_000;
+    altered.restrictionRow = 'H';
+    altered.apronLevel = 'SECOND_APRON';
+    altered.ceiling = SECOND_APRON;
+    altered.proof = { ...rowH.proof };
+
+    expect(TradeHardCapLedgerZ.safeParse([altered]).success).toBe(true);
+    expect(parseTradeHardCapLedger([altered]).valid).toBe(false);
+    expect(
+      getHardCapStatus(
+        { hardCapLedger: [altered] },
+        {
+          salaryCapYear: 2027,
+          capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+        }
+      )
+    ).toMatchObject({
+      isHardCapped: true,
+      hardCapType: 'UNKNOWN',
+      hardCapCeiling: FIRST_APRON,
+      failClosed: true,
+    });
+
+    const primary = validateHardCap(
+      {
+        teamTotalSalary: FIRST_APRON,
+        projectedSalary: FIRST_APRON + 1,
+        hardCapLedger: [altered],
+        capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+      } as never,
+      context('2026-12-01T12:00:00-05:00')
+    );
+    expect(primary).toMatchObject({
+      passed: false,
+      hardCapTypeCanonical: 'UNKNOWN',
+    });
+
+    const totals = {
+      yearKey: 2027,
+      playersTotal: FIRST_APRON + 1,
+      deadMoneyTotal: 0,
+      capHoldsTotal: 0,
+      incompleteChargesTotal: 0,
+      totalCapAllocations: FIRST_APRON + 1,
+      teamSalary: FIRST_APRON + 1,
+      apronTeamSalary: FIRST_APRON + 1,
+      taxSalary: FIRST_APRON + 1,
+      salaryCap: 164_961_000,
+      luxuryTax: 200_428_000,
+      firstApron: FIRST_APRON,
+      secondApron: SECOND_APRON,
+    };
+    const overlayTeam = { teamCode: 'DET', hardCapLedger: [altered] };
+    const postState = validatePostStateCapLegality({
+      operationId: 'TRADE-PERSISTED-LEDGER-AUTHORITY',
+      mutationType: 'executeTrade',
+      worldId: 'WORLD-OWNER-WRITABLE',
+      year: 2027,
+      beforeTeamsByCode: { DET: overlayTeam },
+      afterTeamsByCode: { DET: overlayTeam },
+      beforeTotalsByTeam: { DET: totals },
+      afterTotalsByTeam: { DET: totals },
+      rulesContext: {
+        capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+      },
+    });
+    expect(postState.violations).toContainEqual(
+      expect.objectContaining({
+        code: 'HARD_CAP_LEDGER_INVALID',
+        teamCode: 'DET',
+      })
+    );
   });
 
   it('retains both mixed triggers in trade event metadata and the computed team ledger', () => {

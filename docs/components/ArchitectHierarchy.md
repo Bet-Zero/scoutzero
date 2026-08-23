@@ -609,6 +609,7 @@ utils/
       tradeApronRestrictions.ts
       tradeExceptionLifecycle.ts
       tradeExportUtils.ts
+      tradeHardCapLedgerAuthority.ts
       tradeSalaryMatchingPaths.ts
       tradeTimingWindows.ts
       tradeUtilityMisc.ts
@@ -637,5 +638,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-22T23:19:20.340Z*
+*Generated on: 2026-08-23T08:16:16.897Z*
 *Auto-updated by: npm run docs*

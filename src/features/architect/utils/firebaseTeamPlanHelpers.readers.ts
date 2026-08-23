@@ -28,10 +28,8 @@ import {
   type TeamSalaryBookInputs,
 } from '@/schemas/salaryBooks';
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
-import {
-  TradeHardCapLedgerZ,
-  type TradeHardCapLedgerEntry,
-} from '@/schemas/tradeApronRestriction';
+import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
+import { parseTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 
 // ============================================================
 // Private types
@@ -547,9 +545,11 @@ export function readLooseBaseTeamDoc(
   if (record.hardCapLedger === null) {
     normalized.hardCapLedger = null;
   } else if (record.hardCapLedger !== undefined) {
-    normalized.hardCapLedger = TradeHardCapLedgerZ.parse(
-      record.hardCapLedger
-    );
+    const parsedLedger = parseTradeHardCapLedger(record.hardCapLedger);
+    if (!parsedLedger.valid) {
+      throw new Error(`${context}.hardCapLedger is not governed authority.`);
+    }
+    normalized.hardCapLedger = parsedLedger.entries;
   }
   if (record.totals === null) {
     normalized.totals = null;

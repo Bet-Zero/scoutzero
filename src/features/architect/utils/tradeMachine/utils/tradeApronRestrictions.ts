@@ -1,5 +1,4 @@
 import {
-  TradeHardCapLedgerZ,
   type TradeApronLevel,
   type TradeApronRestrictionRow,
   type TradeApronRestrictionTrigger,
@@ -19,6 +18,9 @@ import type {
 } from '@/features/architect/utils/tradeMachine/constants/types';
 import type { TradeSalaryMatchingPath } from '@/schemas/tradeSalaryMatchingPath';
 import type { TradeSalaryPathEvaluation } from './tradeSalaryMatchingPaths';
+import { parseTradeHardCapLedger } from './tradeHardCapLedgerAuthority';
+
+export { parseTradeHardCapLedger } from './tradeHardCapLedgerAuthority';
 
 export type TradeApronRestrictionStatus =
   | 'PASS'
@@ -775,18 +777,6 @@ export function evaluateTradeApronRestriction({
         ],
     proof,
   });
-}
-
-export function parseTradeHardCapLedger(value: unknown): {
-  entries: TradeHardCapLedgerEntry[];
-  valid: boolean;
-} {
-  if (value === undefined || value === null)
-    return { entries: [], valid: true };
-  const parsed = TradeHardCapLedgerZ.safeParse(value);
-  return parsed.success
-    ? { entries: parsed.data, valid: true }
-    : { entries: [], valid: false };
 }
 
 export function selectHardCapLedgerEntry(

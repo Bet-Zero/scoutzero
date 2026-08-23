@@ -384,6 +384,39 @@ describeWithFirestoreEmulator(
       );
     });
 
+    it('4b) owner-writable team overlays do not provide ledger authority', async () => {
+      await seedOwnedWorld();
+      const db = ownerDb();
+      const teamRef = doc(
+        db,
+        'architect_worlds',
+        WORLD_ID,
+        'teams',
+        TEAM_CODE
+      );
+      await assertSucceeds(
+        setDoc(teamRef, {
+          teamCode: TEAM_CODE,
+          hardCapLedger: [
+            {
+              version: 1,
+              restrictionRow: 'H',
+              apronLevel: 'SECOND_APRON',
+              ceiling: 221_686_000,
+              triggers: [
+                {
+                  restrictionRow: 'F',
+                  apronLevel: 'FIRST_APRON',
+                  ceiling: 999_000_000,
+                },
+              ],
+            },
+          ],
+        })
+      );
+      expect((await getDoc(teamRef)).data()?.hardCapLedger).toHaveLength(1);
+    });
+
     it('5) owner can write world events subcollection', async () => {
       await seedOwnedWorld();
       const db = ownerDb();

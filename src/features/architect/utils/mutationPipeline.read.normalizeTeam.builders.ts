@@ -48,7 +48,7 @@ import {
   resolveCurrentStateTeamTotalSalary,
 } from './mutationPipeline.read.normalizeData';
 import { TeamSalaryBookInputsZ } from '@/schemas/salaryBooks';
-import { TradeHardCapLedgerZ } from '@/schemas/tradeApronRestriction';
+import { parseTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 import type {
   CurrentStateBaseTeamPreservedFieldMap,
   CurrentStateManualCapTeam,
@@ -179,10 +179,8 @@ export function normalizeCurrentStateTeamMutationCore(
   if (teamRecord.salaryBookInputs != null && !salaryBookInputs.success) {
     throw new Error('Persisted salary-book inputs are malformed or version-incompatible.');
   }
-  const hardCapLedger = TradeHardCapLedgerZ.safeParse(
-    teamRecord.hardCapLedger
-  );
-  if (teamRecord.hardCapLedger != null && !hardCapLedger.success) {
+  const hardCapLedger = parseTradeHardCapLedger(teamRecord.hardCapLedger);
+  if (teamRecord.hardCapLedger != null && !hardCapLedger.valid) {
     throw new Error(
       'Persisted hard-cap ledger is malformed or version-incompatible.'
     );
@@ -218,8 +216,8 @@ export function normalizeCurrentStateTeamMutationCore(
   if (salaryBookInputs.success) {
     normalized.salaryBookInputs = salaryBookInputs.data;
   }
-  if (hardCapLedger.success) {
-    normalized.hardCapLedger = hardCapLedger.data;
+  if (teamRecord.hardCapLedger != null && hardCapLedger.valid) {
+    normalized.hardCapLedger = hardCapLedger.entries;
   }
   if (deadCap !== undefined) {
     normalized.deadCap = deadCap;

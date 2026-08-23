@@ -469,6 +469,8 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   };
   expect(governedPostSalaries.MIA).toBeGreaterThan(209_015_000);
   expect(governedPostSalaries.DEN).toBeGreaterThan(209_015_000);
+  expect(governedPostSalaries.MIA).toBeLessThanOrEqual(221_686_000);
+  expect(governedPostSalaries.DEN).toBeLessThanOrEqual(221_686_000);
 
   const proofTeamRefs = ['MIA', 'DEN'].map((teamCode) =>
     getReviewAdminDb().doc(
