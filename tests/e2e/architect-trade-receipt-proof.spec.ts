@@ -419,24 +419,19 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   const miamiCard = teamCard(dialog, 'MIA');
   const denverCard = teamCard(dialog, 'DEN');
   await electSalaryPath(miamiCard, 'AGGREGATED_STANDARD_TPE');
-  await electSalaryPath(denverCard, 'STANDARD_TPE');
+  await electSalaryPath(denverCard, 'AGGREGATED_STANDARD_TPE');
 
   await routePlayer(dialog, page, 'MIA', 'Tobias Lund', 'Denver Nuggets');
   await routePlayer(dialog, page, 'DEN', 'Obi Nwachukwu', 'Miami Heat');
   await routePlayer(dialog, page, 'MIA', 'Owen Frost', 'Denver Nuggets');
   await routePlayer(dialog, page, 'MIA', 'Eli Navarro', 'Denver Nuggets');
   await routePlayer(dialog, page, 'DEN', 'Aaron Pike', 'Miami Heat');
+  await routePlayer(dialog, page, 'DEN', 'Reggie Voss', 'Miami Heat');
 
   const heldTpeIds = {
     MIA: await assignHeldTpe(miamiCard, 'Aaron Pike', 'MIA'),
     DEN: await assignHeldTpe(denverCard, 'Owen Frost', 'DEN'),
   };
-  await denverCard
-    .getByLabel('Eli Navarro absorption mode')
-    .selectOption('TPE');
-  await denverCard
-    .getByLabel('Eli Navarro held TPE')
-    .selectOption(heldTpeIds.DEN);
 
   await miamiCard.getByLabel('Tobias Lund exact pre-trade Salary').fill('0');
   await miamiCard
@@ -449,6 +444,9 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   await denverCard
     .getByLabel('Aaron Pike exact pre-trade Salary')
     .fill('3200000');
+  await denverCard
+    .getByLabel('Reggie Voss exact pre-trade Salary')
+    .fill('2000000');
   await miamiCard
     .getByLabel('Post-assignment Apron Team Salary')
     .fill('214157763');
@@ -524,7 +522,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   await expect(heatApronProof).toContainText(
     /Row H · Aggregated Standard TPE component aggregated:/
   );
-  await expect(heatApronProof).toContainText('Players: Obi Nwachukwu');
+  await expect(heatApronProof).toContainText('Players: Reggie Voss');
   await expect(heatApronProof).toContainText('Authority GOV-CAL-0002');
   await expect(heatApronProof).toContainText('GOV-LVL-0005');
   await expect(heatApronProof).toContainText('CBA2-A05.10');
@@ -533,11 +531,19 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     'trade-apron-restriction-nuggets'
   );
   await expect(nuggetsApronProof).toBeVisible();
-  await expect(nuggetsApronProof).toContainText('Row F');
+  await expect(nuggetsApronProof).toContainText('Rows F + H');
   await expect(nuggetsApronProof).toContainText('FAIL');
   await expect(nuggetsApronProof).toContainText(
     'Controlling First Apron ceiling'
   );
+  await expect(nuggetsApronProof).toContainText(
+    'Row F · Held Standard TPE component proof-tpe-DEN'
+  );
+  await expect(nuggetsApronProof).toContainText('Players: Owen Frost');
+  await expect(nuggetsApronProof).toContainText(
+    /Row H · Aggregated Standard TPE component aggregated:/
+  );
+  await expect(nuggetsApronProof).toContainText('Players: Eli Navarro');
 
   const afterValidationTeams = await Promise.all(
     proofTeamRefs.map((ref) => ref.get().then((snapshot) => snapshot.data()))
@@ -563,11 +569,11 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       governedApronTransaction: {
         elections: {
           MIA: 'AGGREGATED_STANDARD_TPE',
-          DEN: 'STANDARD_TPE',
+          DEN: 'AGGREGATED_STANDARD_TPE',
         },
         heldTpeAbsorptions: {
           MIA: ['Aaron Pike'],
-          DEN: ['Owen Frost', 'Eli Navarro'],
+          DEN: ['Owen Frost'],
         },
         heldTpes: heldTpeIds,
       },
@@ -577,13 +583,17 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       blockingReason:
         'Transaction Restrictions Table Row F prohibits this trade because the mixed MIA component package exceeds the controlling First Apron.',
       receiptVerdict: 'ILLEGAL',
-      apronRestrictionRows: { MIA: ['F', 'H'], DEN: ['F'] },
+      apronRestrictionRows: { MIA: ['F', 'H'], DEN: ['F', 'H'] },
       controllingAprons: { MIA: 'FIRST_APRON', DEN: 'FIRST_APRON' },
       apronRestrictionStatuses: { MIA: 'FAIL', DEN: 'FAIL' },
       componentAttribution: {
         MIA: {
           F: { componentId: heldTpeIds.MIA, players: ['Aaron Pike'] },
-          H: { componentIdPrefix: 'aggregated:', players: ['Obi Nwachukwu'] },
+          H: { componentIdPrefix: 'aggregated:', players: ['Reggie Voss'] },
+        },
+        DEN: {
+          F: { componentId: heldTpeIds.DEN, players: ['Owen Frost'] },
+          H: { componentIdPrefix: 'aggregated:', players: ['Eli Navarro'] },
         },
       },
       heldTpeTimings: {
