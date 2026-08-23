@@ -335,7 +335,11 @@ describe('BZE-284 governed Trade Machine date forwarding', () => {
 
         return { teams, initError };
       },
-      { initialProps: { capProjections: null } }
+      {
+        initialProps: {
+          capProjections: null as Record<string, never> | null,
+        },
+      }
     );
 
     await waitFor(() =>
