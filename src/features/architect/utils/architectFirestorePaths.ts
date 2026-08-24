@@ -35,6 +35,8 @@ import {
   ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
   ARCHITECT_WORLD_PLAYERS_SUBCOLLECTION,
   ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
+  ARCHITECT_WORLD_SEASON_HISTORY_SUBCOLLECTION,
+  ARCHITECT_WORLD_SEASON_TRANSITIONS_SUBCOLLECTION,
   ARCHITECT_WORLD_FREE_AGENT_POOLS_SUBCOLLECTION,
   ARCHITECT_WORLD_CONTRACT_BASELINES_SUBCOLLECTION,
   ARCHITECT_WORLD_OFFER_SHEET_AUTHORIZATIONS_SUBCOLLECTION,
@@ -65,6 +67,32 @@ export const worldsCol = (): CollectionReference =>
 export const worldMetadataRef = (worldId: string): DocumentReference =>
   doc(db, ARCHITECT_WORLDS_COLLECTION, worldId);
 
+/** Immutable team-season close snapshot retained by Season Advance. */
+export const worldSeasonHistoryRef = (
+  worldId: string,
+  historyId: string
+): DocumentReference =>
+  doc(
+    db,
+    ARCHITECT_WORLDS_COLLECTION,
+    worldId,
+    ARCHITECT_WORLD_SEASON_HISTORY_SUBCOLLECTION,
+    historyId
+  );
+
+/** One immutable league-wide Season Advance manifest. */
+export const worldSeasonTransitionRef = (
+  worldId: string,
+  transitionId: string
+): DocumentReference =>
+  doc(
+    db,
+    ARCHITECT_WORLDS_COLLECTION,
+    worldId,
+    ARCHITECT_WORLD_SEASON_TRANSITIONS_SUBCOLLECTION,
+    transitionId
+  );
+
 /**
  * Get reference to a world's teams subcollection
  * Path: architect_worlds/{worldId}/teams
@@ -72,7 +100,12 @@ export const worldMetadataRef = (worldId: string): DocumentReference =>
  * @param worldId - World ID
  */
 export const worldTeamsCol = (worldId: string): CollectionReference =>
-  collection(db, ARCHITECT_WORLDS_COLLECTION, worldId, ARCHITECT_WORLD_TEAMS_SUBCOLLECTION);
+  collection(
+    db,
+    ARCHITECT_WORLDS_COLLECTION,
+    worldId,
+    ARCHITECT_WORLD_TEAMS_SUBCOLLECTION
+  );
 
 /**
  * Get reference to a specific team snapshot within a world
@@ -85,7 +118,13 @@ export const worldTeamRef = (
   worldId: string,
   teamCode: string
 ): DocumentReference =>
-  doc(db, ARCHITECT_WORLDS_COLLECTION, worldId, ARCHITECT_WORLD_TEAMS_SUBCOLLECTION, teamCode);
+  doc(
+    db,
+    ARCHITECT_WORLDS_COLLECTION,
+    worldId,
+    ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
+    teamCode
+  );
 
 /**
  * Get reference to a world's team's players subcollection

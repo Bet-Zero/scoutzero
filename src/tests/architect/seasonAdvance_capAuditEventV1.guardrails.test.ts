@@ -58,14 +58,14 @@ describe('Season Advance CapAuditEventV1 Guardrails', () => {
     }
   });
 
-  it('writes event to the world events subcollection constant path in writeBatch', () => {
+  it('writes the event at the constant path inside the atomic transaction', () => {
     expect(source).toMatch(
       /ARCHITECT_WORLD_EVENTS_SUBCOLLECTION/
     );
     expect(source).toMatch(
       /doc\(\s*db,\s*ARCHITECT_WORLDS_COLLECTION,\s*worldId,\s*ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,\s*eventId\s*\)/
     );
-    expect(source).toMatch(/batch\.set\(eventRef,\s*safeEvent\)/);
+    expect(source).toMatch(/transaction\.set\(eventRef,\s*safeEvent\)/);
   });
 
   it('returns explicit committed-state truth tied to the committed metadata, event, and focus-team snapshot', () => {
@@ -79,8 +79,10 @@ describe('Season Advance CapAuditEventV1 Guardrails', () => {
     expect(source).toContain('currentSeason: toSeason,');
     expect(source).toContain('currentYear: toYear,');
     expect(source).toContain('lastModifiedTeams: teamCodes,');
-    expect(source).toContain('focusTeamSnapshot = safeCloneForAudit(safeTeam)');
-    expect(source).toContain('await batch.commit();');
+    expect(source).toMatch(
+      /focusTeamSnapshot\s*=\s*safeCloneForAudit\(\s*safeTeam\s*\)/
+    );
+    expect(source).toContain('await runTransaction(db, async (transaction) => {');
     expect(source).toContain(
       'function buildSeasonAdvanceCommittedState('
     );

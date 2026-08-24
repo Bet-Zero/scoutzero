@@ -11,7 +11,7 @@ import {
   PERSISTENCE_CONTRACTS,
 } from '@/features/architect/utils/persistenceContracts';
 import { sanitizeTransientFieldsForPersistence } from '@/features/architect/utils/persistenceContracts/enforcement';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
 import { resolveEntitlementsForTeam } from '@/features/architect/utils/entitlements/entitlementResolver';
 import {
   resolvePickRulesByIds,
@@ -42,6 +42,7 @@ import type {
   OffseasonTransitionResult,
 } from '@/features/architect/utils/offseason/resolveOffseasonTransition';
 import type { LoadedWorldTeamCapSheet } from '@/features/architect/utils/worldTeamData';
+import type { CapProjectionOverrides } from '@/features/architect/utils/capRulesProfile';
 // type-only back-reference to seasonManager.ts — erased at runtime, no circular dep
 import type {
   SeasonAdvanceCommittedTeamSnapshot,
@@ -130,6 +131,11 @@ export type DraftResolutionContext = {
   positionsMap?: Record<string, number>;
   draftYear?: number;
   worldId?: string | null;
+  fromYear?: number;
+  toYear?: number;
+  transitionEffectiveAt?: string;
+  capProjections?: CapProjectionOverrides | null;
+  preserveDraftEntitlements?: boolean;
 };
 
 export type TeamSeasonTransitionResult = {
@@ -374,7 +380,11 @@ export async function processTeamSeasonTransitionWithOptions(
   const hasInlineEntitlements =
     Array.isArray(teamData.entitlements) && teamData.entitlements.length > 0;
 
-  if ((hasEntitlementIds || hasInlineEntitlements) && teamCode) {
+  if (
+    !resolutionContext.preserveDraftEntitlements &&
+    (hasEntitlementIds || hasInlineEntitlements) &&
+    teamCode
+  ) {
     try {
       // Use inline entitlements if provided, else resolve from Firestore
       const entitlements: SeasonManagerProjectionEntitlements =
@@ -432,11 +442,19 @@ export async function processTeamSeasonTransitionWithOptions(
   const positionsMap = resolutionContext.positionsMap;
   const draftYear = resolutionContext.draftYear;
   const initialDraftPicks = getSeasonManagerDraftPicks(updatedTeam);
-  if (hasDraftPickIngressArray(updatedTeam)) {
+  if (
+    !resolutionContext.preserveDraftEntitlements &&
+    hasDraftPickIngressArray(updatedTeam)
+  ) {
     updatedTeam.draftPicks = initialDraftPicks;
   }
 
-  if (positionsMap && draftYear && Object.keys(positionsMap).length > 0) {
+  if (
+    !resolutionContext.preserveDraftEntitlements &&
+    positionsMap &&
+    draftYear &&
+    Object.keys(positionsMap).length > 0
+  ) {
     const resolutionOpts = {
       nowIso: new Date().toISOString(),
       method: 'season_advance',
@@ -525,21 +543,23 @@ export async function processTeamSeasonTransitionWithOptions(
   }
 
   // Offseason transition SSOT (OSTE)
-  const toYear = resolveSeasonEndYear(toSeason);
-  const fromYear = resolveSeasonEndYear(fromSeason, toYear - 1);
+  const toYear = resolutionContext.toYear ?? resolveSeasonEndYear(toSeason);
+  const fromYear =
+    resolutionContext.fromYear ?? resolveSeasonEndYear(fromSeason, toYear - 1);
   const transitionContext: OffseasonTransitionContext = {
     worldId: worldId || null,
     teamCode,
+    capProjections: resolutionContext.capProjections,
+    effectiveAt: resolutionContext.transitionEffectiveAt,
   };
-  const transitionResult: OffseasonTransitionResult = resolveOffseasonTransition(
-    {
+  const transitionResult: OffseasonTransitionResult =
+    resolveOffseasonTransition({
       teamCapSheet: updatedTeam,
       fromYear,
       toYear,
       optionDecisions,
       context: transitionContext,
-    }
-  );
+    });
 
   if (!transitionResult.success) {
     const message =
@@ -569,15 +589,17 @@ export async function processTeamSeasonTransitionWithOptions(
   }
 
   // Update draft picks with Stepien recalculation
-  const draftPicksResult = updateDraftPicksWithStepien(
-    toDraftPickCarrier(updatedTeam, teamCode),
-    fromSeason,
-    toSeason
-  );
-  if (draftPicksResult.hasChanges) {
-    hasChanges = true;
-    updatedTeam.draftPicks = draftPicksResult.draftPicks;
-    teamSummary.stepienUpdates = draftPicksResult.stepienUpdates || [];
+  if (!resolutionContext.preserveDraftEntitlements) {
+    const draftPicksResult = updateDraftPicksWithStepien(
+      toDraftPickCarrier(updatedTeam, teamCode),
+      fromSeason,
+      toSeason
+    );
+    if (draftPicksResult.hasChanges) {
+      hasChanges = true;
+      updatedTeam.draftPicks = draftPicksResult.draftPicks;
+      teamSummary.stepienUpdates = draftPicksResult.stepienUpdates || [];
+    }
   }
 
   // ===========================================================================
@@ -587,7 +609,14 @@ export async function processTeamSeasonTransitionWithOptions(
   // This replaces the legacy updateTeamCapTotals() dynamic import.
   // Runs AFTER TPE expiry (Phase 53), non-TPE reset (Phase 76), and all roster changes.
   if (hasChanges) {
-    updatedTeam.totals = computeTeamCapTotals(updatedTeam, toYear);
+    updatedTeam.totals = createCanonicalTeamTotalsSnapshot(
+      updatedTeam,
+      toYear,
+      {
+        asOfDate: resolutionContext.transitionEffectiveAt,
+        capProjections: resolutionContext.capProjections,
+      }
+    );
   }
 
   const committedTeam = hasChanges

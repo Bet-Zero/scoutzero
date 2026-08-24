@@ -522,6 +522,11 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist =
     'toSeason',
     'expiredExceptions',
     'advancedPlayers',
+    'seasonTransitionId',
+    'seasonHistoryIds',
+    'transitionEffectiveAt',
+    'entitlementBoundary',
+    'contractEventIds',
 
     // Draft events
     'draftYear',

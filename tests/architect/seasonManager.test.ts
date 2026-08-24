@@ -40,7 +40,8 @@ import { withDerivedGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryB
 describe('Season Manager', () => {
   const worldId = 'world_123';
   const userId = 'user_123';
-  type AdvanceSeasonInWorld = typeof import('@/features/architect/utils/seasonManager').advanceSeasonInWorld;
+  type AdvanceSeasonInWorld =
+    typeof import('@/features/architect/utils/seasonManager').advanceSeasonInWorld;
   type PersistedSeasonAdvanceEvent = {
     seasonId: string;
     metadata: {
@@ -55,10 +56,7 @@ describe('Season Manager', () => {
     totals?: unknown;
   };
 
-  function requireDefined<T>(
-    value: T | null | undefined,
-    label: string
-  ): T {
+  function requireDefined<T>(value: T | null | undefined, label: string): T {
     expect(value, `${label} should be defined`).toBeDefined();
     if (value == null) {
       throw new Error(`${label} should be defined`);
@@ -86,10 +84,14 @@ describe('Season Manager', () => {
   function requirePersistedTeamSnapshotView(
     teamCode: string
   ): PersistedTeamSnapshotView {
-    const snapshot = getMockData(`architect_worlds/${worldId}/teams/${teamCode}`);
+    const snapshot = getMockData(
+      `architect_worlds/${worldId}/teams/${teamCode}`
+    );
     expect(snapshot).toBeDefined();
     if (typeof snapshot !== 'object' || snapshot === null) {
-      throw new Error(`persisted team snapshot ${teamCode} should be an object`);
+      throw new Error(
+        `persisted team snapshot ${teamCode} should be an object`
+      );
     }
     return snapshot as PersistedTeamSnapshotView;
   }
@@ -114,12 +116,12 @@ describe('Season Manager', () => {
   function requirePersistedSeasonAdvanceEvent(
     eventId: string
   ): PersistedSeasonAdvanceEvent {
-    const event = getMockData(
-      `architect_worlds/${worldId}/events/${eventId}`
-    );
+    const event = getMockData(`architect_worlds/${worldId}/events/${eventId}`);
     expect(event).toBeDefined();
     if (!isPersistedSeasonAdvanceEvent(event)) {
-      throw new Error(`season advance event ${eventId} was not persisted correctly`);
+      throw new Error(
+        `season advance event ${eventId} was not persisted correctly`
+      );
     }
     return event;
   }
@@ -402,7 +404,9 @@ describe('Season Manager', () => {
           createMockPlayer({ playerId: 'player2' }),
         ],
       });
-      seedTeamSnapshot(worldId, 'LAL', teamWithSmallRoster, { padRoster: false });
+      seedTeamSnapshot(worldId, 'LAL', teamWithSmallRoster, {
+        padRoster: false,
+      });
 
       await processSeasonTransition(worldId, '2025-26', '2026-27');
 
@@ -529,7 +533,9 @@ describe('Season Manager', () => {
 
       const updatedTeam = requireTeamSnapshot('LAL');
       const player = requireDefined(
-        updatedTeam.players.find((existingPlayer) => existingPlayer.playerId === 'player1'),
+        updatedTeam.players.find(
+          (existingPlayer) => existingPlayer.playerId === 'player1'
+        ),
         'player1 after season transition'
       );
       expect(player.contract.yearsRemaining).toBe(2);
@@ -574,7 +580,9 @@ describe('Season Manager', () => {
 
       const updatedTeam = requireTeamSnapshot('LAL');
       const player = requireDefined(
-        updatedTeam.players.find((existingPlayer) => existingPlayer.playerId === 'player1'),
+        updatedTeam.players.find(
+          (existingPlayer) => existingPlayer.playerId === 'player1'
+        ),
         'player1 salary history after season transition'
       );
       // Expired years (2024-25, 2025-26) should be removed
@@ -661,9 +669,24 @@ describe('Season Manager', () => {
               endSeason: '2027-28',
               yearsRemaining: 3,
               salariesByYear: [
-                { season: '2025-26', salary: 10_000_000, capHit: 10_000_000, guaranteed: true },
-                { season: '2026-27', salary: 10_000_000, capHit: 10_000_000, guaranteed: true },
-                { season: '2027-28', salary: 10_000_000, capHit: 10_000_000, guaranteed: true },
+                {
+                  season: '2025-26',
+                  salary: 10_000_000,
+                  capHit: 10_000_000,
+                  guaranteed: true,
+                },
+                {
+                  season: '2026-27',
+                  salary: 10_000_000,
+                  capHit: 10_000_000,
+                  guaranteed: true,
+                },
+                {
+                  season: '2027-28',
+                  salary: 10_000_000,
+                  capHit: 10_000_000,
+                  guaranteed: true,
+                },
               ],
             },
           }),
@@ -678,7 +701,7 @@ describe('Season Manager', () => {
       expect(result.toSeason).toBe('2026-27');
     });
 
-    it('exercises option when decision is exercise', async () => {
+    it('rejects an exercise decision without immutable contract-event authority', async () => {
       // Create team with player option for toYear (2027 season = 2026-27)
       const teamWithOption = createMockTeam({
         teamCode: 'LAL',
@@ -691,9 +714,25 @@ describe('Season Manager', () => {
             contract: {
               endSeason: '2027-28',
               salariesByYear: [
-                { season: '2025-26', salary: 10_000_000, capHit: 10_000_000, guaranteed: true },
-                { season: '2026-27', salary: 11_000_000, capHit: 11_000_000, guaranteed: true, option: 'Player Option' },
-                { season: '2027-28', salary: 12_000_000, capHit: 12_000_000, guaranteed: true },
+                {
+                  season: '2025-26',
+                  salary: 10_000_000,
+                  capHit: 10_000_000,
+                  guaranteed: true,
+                },
+                {
+                  season: '2026-27',
+                  salary: 11_000_000,
+                  capHit: 11_000_000,
+                  guaranteed: true,
+                  option: 'Player Option',
+                },
+                {
+                  season: '2027-28',
+                  salary: 12_000_000,
+                  capHit: 12_000_000,
+                  guaranteed: true,
+                },
               ],
             },
           }),
@@ -701,7 +740,7 @@ describe('Season Manager', () => {
       });
       seedTargetSeasonTeam('LAL', teamWithOption);
 
-      const result = expectSeasonAdvanceSuccess(
+      const result = expectSeasonAdvanceFailure(
         await advanceSeasonInWorld(worldId, {
           optionDecisions: {
             player_with_option: {
@@ -712,15 +751,11 @@ describe('Season Manager', () => {
           },
         })
       );
-      expect(result.summary.exercisedOptions).toHaveLength(1);
-      expect(result.summary.exercisedOptions[0].playerName).toBe('Option Player');
-
-      // Player should still be on roster
-      const updatedTeam = requireTeamSnapshot('LAL');
-      expect(updatedTeam.roster).toContain('player_with_option');
+      expect(result.error).toContain('immutable governed contract event');
+      expect(requireWorldMetadata(worldId).currentSeason).toBe('2025-26');
     });
 
-    it('declines option when decision is decline', async () => {
+    it('rejects a decline decision without immutable contract-event authority', async () => {
       // Create team with player option
       const teamWithOption = createMockTeam({
         teamCode: 'LAL',
@@ -733,9 +768,25 @@ describe('Season Manager', () => {
             contract: {
               endSeason: '2027-28',
               salariesByYear: [
-                { season: '2025-26', salary: 10_000_000, capHit: 10_000_000, guaranteed: true },
-                { season: '2026-27', salary: 11_000_000, capHit: 11_000_000, guaranteed: true, option: 'Player Option' },
-                { season: '2027-28', salary: 12_000_000, capHit: 12_000_000, guaranteed: true },
+                {
+                  season: '2025-26',
+                  salary: 10_000_000,
+                  capHit: 10_000_000,
+                  guaranteed: true,
+                },
+                {
+                  season: '2026-27',
+                  salary: 11_000_000,
+                  capHit: 11_000_000,
+                  guaranteed: true,
+                  option: 'Player Option',
+                },
+                {
+                  season: '2027-28',
+                  salary: 12_000_000,
+                  capHit: 12_000_000,
+                  guaranteed: true,
+                },
               ],
             },
           }),
@@ -743,7 +794,7 @@ describe('Season Manager', () => {
       });
       seedTargetSeasonTeam('LAL', teamWithOption);
 
-      const result = expectSeasonAdvanceSuccess(
+      const result = expectSeasonAdvanceFailure(
         await advanceSeasonInWorld(worldId, {
           optionDecisions: {
             player_with_option: {
@@ -754,15 +805,11 @@ describe('Season Manager', () => {
           },
         })
       );
-      expect(result.summary.declinedOptions).toHaveLength(1);
-      expect(result.summary.declinedOptions[0].playerName).toBe('Option Player');
-
-      // Player should be removed from roster
-      const updatedTeam = requireTeamSnapshot('LAL');
-      expect(updatedTeam.roster).not.toContain('player_with_option');
+      expect(result.error).toContain('immutable governed contract event');
+      expect(requireWorldMetadata(worldId).currentSeason).toBe('2025-26');
     });
 
-    it('creates cap hold for declined option', async () => {
+    it('creates no cap hold when decline authority is unavailable', async () => {
       // Create team with player option
       const teamWithOption = createMockTeam({
         teamCode: 'LAL',
@@ -775,9 +822,25 @@ describe('Season Manager', () => {
             contract: {
               endSeason: '2027-28',
               salariesByYear: [
-                { season: '2025-26', salary: 10_000_000, capHit: 10_000_000, guaranteed: true },
-                { season: '2026-27', salary: 11_000_000, capHit: 11_000_000, guaranteed: true, option: 'Player Option' },
-                { season: '2027-28', salary: 12_000_000, capHit: 12_000_000, guaranteed: true },
+                {
+                  season: '2025-26',
+                  salary: 10_000_000,
+                  capHit: 10_000_000,
+                  guaranteed: true,
+                },
+                {
+                  season: '2026-27',
+                  salary: 11_000_000,
+                  capHit: 11_000_000,
+                  guaranteed: true,
+                  option: 'Player Option',
+                },
+                {
+                  season: '2027-28',
+                  salary: 12_000_000,
+                  capHit: 12_000_000,
+                  guaranteed: true,
+                },
               ],
             },
           }),
@@ -786,7 +849,7 @@ describe('Season Manager', () => {
       });
       seedTargetSeasonTeam('LAL', teamWithOption);
 
-      const result = expectSeasonAdvanceSuccess(
+      const result = expectSeasonAdvanceFailure(
         await advanceSeasonInWorld(worldId, {
           optionDecisions: {
             player_with_option: {
@@ -797,18 +860,8 @@ describe('Season Manager', () => {
           },
         })
       );
-
-      // Should have a cap hold created
-      const updatedTeam = requireTeamSnapshot('LAL');
-      expect(updatedTeam.capHolds).toBeDefined();
-      const hold = requireDefined(
-        updatedTeam.capHolds?.find(
-          (capHold) => capHold.playerId === 'player_with_option'
-        ),
-        'player_with_option cap hold after decline'
-      );
-      expect(hold).toBeDefined();
-      expect(hold.amount).toBeGreaterThan(0);
+      expect(result.error).toContain('immutable governed contract event');
+      expect(requireTeamSnapshot('LAL').capHolds).toEqual([]);
     });
 
     it('updates world metadata season', async () => {
@@ -863,7 +916,12 @@ describe('Season Manager', () => {
               endSeason: '2025-26',
               yearsRemaining: 1,
               salariesByYear: [
-                { season: '2025-26', salary: 10_000_000, capHit: 10_000_000, guaranteed: true },
+                {
+                  season: '2025-26',
+                  salary: 10_000_000,
+                  capHit: 10_000_000,
+                  guaranteed: true,
+                },
               ],
             },
           }),
@@ -874,9 +932,24 @@ describe('Season Manager', () => {
               endSeason: '2027-28',
               yearsRemaining: 3,
               salariesByYear: [
-                { season: '2025-26', salary: 10_000_000, capHit: 10_000_000, guaranteed: true },
-                { season: '2026-27', salary: 10_000_000, capHit: 10_000_000, guaranteed: true },
-                { season: '2027-28', salary: 10_000_000, capHit: 10_000_000, guaranteed: true },
+                {
+                  season: '2025-26',
+                  salary: 10_000_000,
+                  capHit: 10_000_000,
+                  guaranteed: true,
+                },
+                {
+                  season: '2026-27',
+                  salary: 10_000_000,
+                  capHit: 10_000_000,
+                  guaranteed: true,
+                },
+                {
+                  season: '2027-28',
+                  salary: 10_000_000,
+                  capHit: 10_000_000,
+                  guaranteed: true,
+                },
               ],
             },
           }),
@@ -894,7 +967,7 @@ describe('Season Manager', () => {
       expect(expiringEntry).toBeDefined();
     });
 
-    it('uses the world-derived draft year even when future-year positions are also saved', async () => {
+    it('fails closed when saved positions require unavailable entitlement-transition authority', async () => {
       seedWorldMetadata(
         worldId,
         createMockWorld({
@@ -942,25 +1015,14 @@ describe('Season Manager', () => {
       });
       seedTargetSeasonTeam('MIA', teamWithProtectedPick);
 
-      const result = expectSeasonAdvanceSuccess(
+      const result = expectSeasonAdvanceFailure(
         await advanceSeasonInWorld(worldId)
       );
-
-      const updatedTeam = requireTeamSnapshot('MIA');
-      const protectedPick = requireDefined(
-        updatedTeam.draftPicks?.find(
-        (pick) => pick.id === 'lal_2026_1'
-        ),
-        'protected pick after season advance'
-      );
-
-      expect(protectedPick.status).toBe('rolled');
-      expect(protectedPick.year).toBe(2027);
-      expect(protectedPick.conveyanceResult?.outcome).toBe('rolled');
+      expect(result.error).toContain('CBA2-A12.3/CBA2-L09.2');
+      expect(requireWorldMetadata(worldId).currentSeason).toBe('2025-26');
     });
 
-    // Stepien recalculation tests
-    it('marks pick as stepienBlocked when adjacent years are traded', async () => {
+    it('does not claim a Stepien verdict while preserving draft entitlements', async () => {
       // Create team that has traded 2026 and 2028 firsts, keeping 2027
       const teamWithTradedPicks = createMockTeam({
         teamCode: 'LAL',
@@ -969,11 +1031,32 @@ describe('Season Manager', () => {
         players: [],
         draftPicks: [
           // 2026 first - traded away
-          { id: 'lal_2026_1', year: 2026, round: 1, originalTeam: 'LAL', currentOwner: 'BOS', tradedTo: 'BOS' },
+          {
+            id: 'lal_2026_1',
+            year: 2026,
+            round: 1,
+            originalTeam: 'LAL',
+            currentOwner: 'BOS',
+            tradedTo: 'BOS',
+          },
           // 2027 first - owned
-          { id: 'lal_2027_1', year: 2027, round: 1, originalTeam: 'LAL', currentOwner: 'LAL', owner: 'LAL' },
+          {
+            id: 'lal_2027_1',
+            year: 2027,
+            round: 1,
+            originalTeam: 'LAL',
+            currentOwner: 'LAL',
+            owner: 'LAL',
+          },
           // 2028 first - traded away
-          { id: 'lal_2028_1', year: 2028, round: 1, originalTeam: 'LAL', currentOwner: 'GSW', tradedTo: 'GSW' },
+          {
+            id: 'lal_2028_1',
+            year: 2028,
+            round: 1,
+            originalTeam: 'LAL',
+            currentOwner: 'GSW',
+            tradedTo: 'GSW',
+          },
         ],
       });
       seedTargetSeasonTeam('LAL', teamWithTradedPicks);
@@ -983,12 +1066,11 @@ describe('Season Manager', () => {
       const updatedTeam = requireTeamSnapshot('LAL');
       const pick2027 = requireDefined(
         updatedTeam.draftPicks?.find((pick) => pick.id === 'lal_2027_1'),
-        '2027 pick after Stepien recalculation'
+        '2027 pick after entitlement-preserving season advance'
       );
-      
-      // 2027 pick should be stepien-blocked because both 2026 and 2028 are traded
-      expect(pick2027.stepienBlocked).toBe(true);
-      expect(pick2027.stepienReason).toContain('consecutive years');
+
+      expect(pick2027.stepienBlocked).toBeUndefined();
+      expect(pick2027.stepienReason).toBeUndefined();
     });
 
     it('does not mark pick as blocked when adjacent years are not both traded', async () => {
@@ -1000,11 +1082,32 @@ describe('Season Manager', () => {
         players: [],
         draftPicks: [
           // 2026 first - traded away
-          { id: 'lal_2026_1', year: 2026, round: 1, originalTeam: 'LAL', currentOwner: 'BOS', tradedTo: 'BOS' },
+          {
+            id: 'lal_2026_1',
+            year: 2026,
+            round: 1,
+            originalTeam: 'LAL',
+            currentOwner: 'BOS',
+            tradedTo: 'BOS',
+          },
           // 2027 first - owned
-          { id: 'lal_2027_1', year: 2027, round: 1, originalTeam: 'LAL', currentOwner: 'LAL', owner: 'LAL' },
+          {
+            id: 'lal_2027_1',
+            year: 2027,
+            round: 1,
+            originalTeam: 'LAL',
+            currentOwner: 'LAL',
+            owner: 'LAL',
+          },
           // 2028 first - owned
-          { id: 'lal_2028_1', year: 2028, round: 1, originalTeam: 'LAL', currentOwner: 'LAL', owner: 'LAL' },
+          {
+            id: 'lal_2028_1',
+            year: 2028,
+            round: 1,
+            originalTeam: 'LAL',
+            currentOwner: 'LAL',
+            owner: 'LAL',
+          },
         ],
       });
       seedTargetSeasonTeam('LAL', teamWithOneTradedPick);
@@ -1020,13 +1123,13 @@ describe('Season Manager', () => {
         updatedTeam.draftPicks?.find((pick) => pick.id === 'lal_2028_1'),
         '2028 pick when adjacent years are not both traded'
       );
-      
+
       // Neither pick should be blocked
       expect(pick2027.stepienBlocked).toBeFalsy();
       expect(pick2028.stepienBlocked).toBeFalsy();
     });
 
-    it('updates pick status from future to available when year passes', async () => {
+    it('does not rewrite draft-pick status without entitlement authority', async () => {
       // Create team with a 2026 pick that has passed
       const teamWithPastPick = createMockTeam({
         teamCode: 'LAL',
@@ -1034,8 +1137,22 @@ describe('Season Manager', () => {
         roster: [],
         players: [],
         draftPicks: [
-          { id: 'lal_2026_1', year: 2026, round: 1, originalTeam: 'LAL', owner: 'LAL', status: 'future' },
-          { id: 'lal_2027_1', year: 2027, round: 1, originalTeam: 'LAL', owner: 'LAL', status: 'future' },
+          {
+            id: 'lal_2026_1',
+            year: 2026,
+            round: 1,
+            originalTeam: 'LAL',
+            owner: 'LAL',
+            status: 'future',
+          },
+          {
+            id: 'lal_2027_1',
+            year: 2027,
+            round: 1,
+            originalTeam: 'LAL',
+            owner: 'LAL',
+            status: 'future',
+          },
         ],
       });
       seedTargetSeasonTeam('LAL', teamWithPastPick);
@@ -1047,9 +1164,8 @@ describe('Season Manager', () => {
         updatedTeam.draftPicks?.find((pick) => pick.id === 'lal_2026_1'),
         '2026 pick after season advance'
       );
-      
-      // 2026 pick should now be 'available' since we advanced to 2026-27
-      expect(pick2026.status).toBe('available');
+
+      expect(pick2026.status).toBe('future');
     });
   });
 });

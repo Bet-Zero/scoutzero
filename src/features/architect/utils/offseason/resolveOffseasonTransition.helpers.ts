@@ -7,9 +7,7 @@ import {
   type CapHold,
   type CapHoldPlayerInput,
 } from '@/features/architect/utils/capHolds';
-import {
-  type TpeLifecycleRecord,
-} from '@/features/architect/utils/tpeLifecycle';
+import { type TpeLifecycleRecord } from '@/features/architect/utils/tpeLifecycle';
 import { type CapProjectionOverrides } from '@/features/architect/utils/capRulesProfile';
 
 // ============================================================
@@ -21,6 +19,8 @@ export type OffseasonTransitionContext = {
   teamId?: string | null;
   teamCode?: string | null;
   capProjections?: CapProjectionOverrides | null;
+  /** Deterministic governed transition instant; required by authoritative callers. */
+  effectiveAt?: string | null;
 };
 
 export type OffseasonViolation = {
@@ -155,7 +155,8 @@ type OffseasonKnownExceptions = {
   biAnnual?: OffseasonExceptionEntry;
 };
 
-export type OffseasonExceptions = OffseasonKnownExceptions & Record<string, unknown>;
+export type OffseasonExceptions = OffseasonKnownExceptions &
+  Record<string, unknown>;
 
 export type OffseasonTeamCapSheet = {
   teamCode?: string | null;
@@ -250,7 +251,6 @@ export type OffseasonTransitionParams = {
   context?: OffseasonTransitionContext;
 };
 
-
 // ============================================================
 // Private helper functions
 // ============================================================
@@ -327,7 +327,9 @@ export function normalizeCapHoldPlayer(
   return normalized;
 }
 
-export function getRosterEntryId(entry: OffseasonRosterEntry | null | undefined): string | null {
+export function getRosterEntryId(
+  entry: OffseasonRosterEntry | null | undefined
+): string | null {
   if (!entry) return null;
   if (typeof entry === 'string') return entry;
   return entry.player_id || entry.playerId || entry.id || null;
@@ -353,7 +355,9 @@ export function filterRosterByPlayerIds(
   });
 }
 
-export function normalizeExceptionsShape(exceptions: OffseasonExceptions | null | undefined): {
+export function normalizeExceptionsShape(
+  exceptions: OffseasonExceptions | null | undefined
+): {
   normalized: OffseasonExceptions;
   changed: boolean;
 } {
@@ -448,9 +452,8 @@ export function advanceDeadMoney(
           ? { ...contract, deadCap: remaining }
           : null;
       })
-      .filter(
-        (contract): contract is OffseasonDeadCapHistoryEntry =>
-          Boolean(contract)
+      .filter((contract): contract is OffseasonDeadCapHistoryEntry =>
+        Boolean(contract)
       );
   }
 
@@ -465,9 +468,8 @@ export function advanceDeadMoney(
           ? { ...contract, deadCap: remaining }
           : null;
       })
-      .filter(
-        (contract): contract is OffseasonDeadCapHistoryEntry =>
-          Boolean(contract)
+      .filter((contract): contract is OffseasonDeadCapHistoryEntry =>
+        Boolean(contract)
       );
   }
 

@@ -36,6 +36,8 @@ const EVENT_ID = 'evt_1';
 const ENTITLEMENT_ID = 'ent_1';
 const PLAYER_ID = 'player_1';
 const OFFER_SHEET_ID = 'offer_sheet_1';
+const SEASON_TRANSITION_ID = 'seasonAdvance__2025-26__2026-27';
+const SEASON_HISTORY_ID = '2025-26__LAL';
 const UID_A = 'uid-owner-a';
 const UID_B = 'uid-non-owner-b';
 const HAS_FIRESTORE_EMULATOR_HOST = Boolean(
@@ -119,6 +121,62 @@ function offerSheetAuthorizationData(
     pendingLifecycleDigest: `fnv1a64:${'a'.repeat(16)}`,
     immutableEvidenceDigest: `fnv1a64:${'b'.repeat(16)}`,
     ...overrides,
+  };
+}
+
+function seasonTransitionManifestData(): Record<string, unknown> {
+  return {
+    schemaVersion: 'season-transition-manifest-v1',
+    transitionId: SEASON_TRANSITION_ID,
+    operationId: 'rules-season-advance',
+    eventId: SEASON_TRANSITION_ID,
+    worldId: WORLD_ID,
+    fromSeason: '2025-26',
+    toSeason: '2026-27',
+    fromSalaryCapYear: 2026,
+    toSalaryCapYear: 2027,
+    seasonCloseDate: '2026-04-12',
+    transitionEffectiveAt: '2026-07-01T00:00:00Z',
+    committedAt: '2026-07-01T00:00:00Z',
+    authority: { registryId: 'rules-fixture' },
+    authorityDigest: `fnv1a64:${'a'.repeat(16)}`,
+    entitlementBoundary: { mode: 'preserve-or-fail' },
+    preAdvanceMetadataDigest: `fnv1a64:${'b'.repeat(16)}`,
+    teamRecords: Array.from({ length: 30 }, (_, index) => ({
+      teamCode: `T${String(index).padStart(2, '0')}`,
+    })),
+    reconciliation: {
+      expectedTeamCount: 30,
+      preparedTeamCount: 30,
+      completeBookCount: 30,
+      historyRecordCount: 30,
+      entitlementPreservationCount: 30,
+    },
+    canonLeafIds: ['CBA2-L08.1'],
+  };
+}
+
+function seasonHistoryData(): Record<string, unknown> {
+  return {
+    schemaVersion: 'season-history-v1',
+    historyId: SEASON_HISTORY_ID,
+    transitionId: SEASON_TRANSITION_ID,
+    worldId: WORLD_ID,
+    teamCode: TEAM_CODE,
+    fromSeason: '2025-26',
+    toSeason: '2026-27',
+    seasonCloseDate: '2026-04-12',
+    transitionEffectiveAt: '2026-07-01T00:00:00Z',
+    preAdvanceState: {},
+    preAdvanceStateDigest: `fnv1a64:${'c'.repeat(16)}`,
+    finalRoster: [],
+    finalRosterDigest: `fnv1a64:${'d'.repeat(16)}`,
+    seasonCloseApronMeasurement: {},
+    beforeTotals: {},
+    afterTotals: {},
+    contractEvents: [],
+    entitlementStateDigest: `fnv1a64:${'e'.repeat(16)}`,
+    authorityDigest: `fnv1a64:${'f'.repeat(16)}`,
   };
 }
 
@@ -405,8 +463,15 @@ describeWithFirestoreEmulator(
         (record) =>
           record.salaryCapYear === 2027 && record.levelId === 'second-apron'
       );
-      if (!creationCalendar || !currentCalendar || !firstApron || !secondApron) {
-        throw new Error('Expected governed 2026-27 hard-cap authority fixtures.');
+      if (
+        !creationCalendar ||
+        !currentCalendar ||
+        !firstApron ||
+        !secondApron
+      ) {
+        throw new Error(
+          'Expected governed 2026-27 hard-cap authority fixtures.'
+        );
       }
       const proofBase = {
         registryId: registry.registryId,
@@ -467,8 +532,7 @@ describeWithFirestoreEmulator(
                 },
               ],
               tpeTiming,
-              regularSeasonClosing:
-                creationCalendar.regularSeasonClosing.value,
+              regularSeasonClosing: creationCalendar.regularSeasonClosing.value,
               canonLeafIds: ['CBA2-A02.3', 'CBA2-A05.8', 'CBA2-A05.1'],
               proof: rowFProof,
             },
@@ -495,13 +559,7 @@ describeWithFirestoreEmulator(
         },
       ];
       expect(TradeHardCapLedgerZ.safeParse(forgedLedger).success).toBe(true);
-      const teamRef = doc(
-        db,
-        'architect_worlds',
-        WORLD_ID,
-        'teams',
-        TEAM_CODE
-      );
+      const teamRef = doc(db, 'architect_worlds', WORLD_ID, 'teams', TEAM_CODE);
       await assertSucceeds(
         setDoc(teamRef, {
           teamCode: TEAM_CODE,
@@ -598,6 +656,83 @@ describeWithFirestoreEmulator(
           offerSheetAuthorizationData({
             pendingLifecycleDigest: `sha256:${'a'.repeat(64)}`,
           })
+        )
+      );
+    });
+
+    it('5e) publishes season history only with the same atomic world transition and keeps it immutable', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), 'architect_worlds', WORLD_ID), {
+          worldId: WORLD_ID,
+          createdBy: UID_A,
+          currentSeason: '2025-26',
+          asOfDate: '2026-04-12',
+          actionCount: 0,
+        });
+      });
+      const db = ownerDb();
+      const historyRef = doc(
+        db,
+        'architect_worlds',
+        WORLD_ID,
+        'seasonHistory',
+        SEASON_HISTORY_ID
+      );
+      const manifestRef = doc(
+        db,
+        'architect_worlds',
+        WORLD_ID,
+        'seasonTransitions',
+        SEASON_TRANSITION_ID
+      );
+      const eventRef = doc(
+        db,
+        'architect_worlds',
+        WORLD_ID,
+        'events',
+        SEASON_TRANSITION_ID
+      );
+
+      await assertFails(setDoc(historyRef, seasonHistoryData()));
+      await assertFails(setDoc(manifestRef, seasonTransitionManifestData()));
+
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'architect_worlds', WORLD_ID), {
+        currentSeason: '2026-27',
+        asOfDate: '2026-07-01',
+        actionCount: 1,
+      });
+      batch.set(eventRef, {
+        eventId: SEASON_TRANSITION_ID,
+        type: 'seasonAdvance',
+        mutationType: 'seasonAdvance',
+        metadata: {
+          seasonTransitionId: SEASON_TRANSITION_ID,
+          fromSeason: '2025-26',
+          toSeason: '2026-27',
+        },
+      });
+      batch.set(manifestRef, seasonTransitionManifestData());
+      batch.set(historyRef, seasonHistoryData());
+      await assertSucceeds(batch.commit());
+
+      await assertSucceeds(getDoc(historyRef));
+      await assertSucceeds(getDoc(manifestRef));
+      await assertFails(updateDoc(historyRef, { finalRoster: ['rewritten'] }));
+      await assertFails(deleteDoc(historyRef));
+      await assertFails(updateDoc(manifestRef, { committedAt: 'later' }));
+      await assertFails(deleteDoc(manifestRef));
+      await assertFails(updateDoc(eventRef, { afterTotalsByTeam: {} }));
+      await assertFails(deleteDoc(eventRef));
+      await assertFails(
+        getDoc(
+          doc(
+            nonOwnerDb(),
+            'architect_worlds',
+            WORLD_ID,
+            'seasonHistory',
+            SEASON_HISTORY_ID
+          )
         )
       );
     });
