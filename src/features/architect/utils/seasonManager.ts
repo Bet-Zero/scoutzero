@@ -218,9 +218,10 @@ export async function advanceSeasonInWorld(
     }
 
     const teams = await getLeague(worldId);
-    assertThirtyTeamLeague(
-      teams as unknown as readonly Record<string, unknown>[]
-    );
+    const governedTeams: Record<string, unknown>[] = teams.map((team) => ({
+      ...team,
+    }));
+    assertThirtyTeamLeague(governedTeams);
     if (
       focusTeamCode &&
       !teams.some((team) => team.teamCode === focusTeamCode)
@@ -230,7 +231,7 @@ export async function advanceSeasonInWorld(
       );
     }
     const optionReferences = resolveCompleteOptionAuthority({
-      teams: teams as unknown as readonly Record<string, unknown>[],
+      teams: governedTeams,
       optionDecisions,
       toSeason,
       transitionEffectiveAt: authority.transitionEffectiveAt,
@@ -384,8 +385,8 @@ export async function advanceSeasonInWorld(
           teamCode,
           beforeTeam,
           committedTeam: safeCommittedTeam,
-          beforeTotals: beforeTotals as unknown as Record<string, unknown>,
-          afterTotals: afterTotals as unknown as Record<string, unknown>,
+          beforeTotals,
+          afterTotals,
           authority,
           authorityDigest,
           optionDecisions,

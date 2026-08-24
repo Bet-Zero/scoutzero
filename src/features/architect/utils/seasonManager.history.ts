@@ -25,8 +25,8 @@ export type PreparedSeasonAdvanceTeam = {
   teamCode: string;
   beforeTeam: UnknownRecord;
   committedTeam: UnknownRecord;
-  beforeTotals: UnknownRecord;
-  afterTotals: UnknownRecord;
+  beforeTotals: unknown;
+  afterTotals: unknown;
   historyRecord: SeasonHistoryRecord;
   teamRecord: SeasonTransitionManifest['teamRecords'][number];
 };
@@ -295,11 +295,15 @@ export function requireSeasonCloseApronMeasurement(
 }
 
 export function assertCompleteIndependentBooks(
-  totals: UnknownRecord,
+  totals: unknown,
   authority: SeasonAdvanceAuthority,
   teamCode: string
 ): void {
-  const books = isRecord(totals.salaryBooks) ? totals.salaryBooks : null;
+  const totalsRecord = isRecord(totals) ? totals : null;
+  const books =
+    totalsRecord && isRecord(totalsRecord.salaryBooks)
+      ? totalsRecord.salaryBooks
+      : null;
   const context = books && isRecord(books.context) ? books.context : null;
   const ledgers = books && isRecord(books.ledgers) ? books.ledgers : null;
   const complete = (key: string) =>
@@ -452,8 +456,8 @@ export function buildPreparedSeasonAdvanceTeam(args: {
   teamCode: string;
   beforeTeam: UnknownRecord;
   committedTeam: UnknownRecord;
-  beforeTotals: UnknownRecord;
-  afterTotals: UnknownRecord;
+  beforeTotals: unknown;
+  afterTotals: unknown;
   authority: SeasonAdvanceAuthority;
   authorityDigest: string;
   optionDecisions: OffseasonOptionDecisionMap;
