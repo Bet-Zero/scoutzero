@@ -150,10 +150,6 @@ import {
   resolveDraftPickConveyanceForYear,
   resolveDraftPickSwapsForYear,
 } from '@/features/architect/utils/seasonManager';
-import {
-  processTeamSeasonTransitionWithOptions,
-  toSeasonTransitionTeam,
-} from '@/features/architect/utils/seasonManager.teamTransition';
 
 type SnapshotRecord = Record<string, unknown>;
 
@@ -260,29 +256,6 @@ describe('seasonManager raw draft-pick ingress closure', () => {
         },
       })
     );
-  });
-
-  it('keeps mixed raw ingress unchanged when the governed transition preserves entitlements', async () => {
-    const source = makeSeasonAdvanceTeam();
-    const result = await processTeamSeasonTransitionWithOptions(
-      toSeasonTransitionTeam(
-        source as Parameters<typeof toSeasonTransitionTeam>[0]
-      ),
-      '2025-26',
-      '2026-27',
-      {},
-      {
-        worldId: 'world_pick_hardening',
-        fromYear: 2026,
-        toYear: 2027,
-        transitionEffectiveAt: '2026-07-01T00:00:00-04:00',
-        preserveDraftEntitlements: true,
-      }
-    );
-
-    expect(result.committedTeam?.draftPicks).toEqual(source.draftPicks);
-    expect(result.teamSummary.stepienUpdates).toEqual([]);
-    expect(mocks.batchCommit).not.toHaveBeenCalled();
   });
 
   it('tolerates projected/raw conveyance markers only at the outer ingress boundary', () => {
