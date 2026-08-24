@@ -249,6 +249,7 @@ const buildReviewDepthPlayer = (
     representation: null,
     original: null,
     contract: {
+      contractId: `review-contract:${playerId}:${REVIEW_WORLD_SEASON}`,
       contractType: 'MINIMUM CONTRACT',
       isExtension: false,
       isRookieScale: false,
