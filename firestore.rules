@@ -67,13 +67,15 @@ service cloud.firestore {
     function publishesSeasonTransition(worldId, transitionId, fromSeason, toSeason) {
       let worldPath = /databases/$(database)/documents/architect_worlds/$(worldId);
       let eventPath = /databases/$(database)/documents/architect_worlds/$(worldId)/events/$(transitionId);
-      return get(worldPath).data.currentSeason == fromSeason
-        && getAfter(worldPath).data.currentSeason == toSeason
-        && existsAfter(eventPath)
-        && getAfter(eventPath).data.eventId == transitionId
-        && getAfter(eventPath).data.metadata.seasonTransitionId == transitionId
-        && getAfter(eventPath).data.metadata.fromSeason == fromSeason
-        && getAfter(eventPath).data.metadata.toSeason == toSeason;
+      let worldBefore = get(worldPath);
+      let worldAfter = getAfter(worldPath);
+      let eventAfter = getAfter(eventPath);
+      return worldBefore.data.currentSeason == fromSeason
+        && worldAfter.data.currentSeason == toSeason
+        && eventAfter.data.eventId == transitionId
+        && eventAfter.data.metadata.seasonTransitionId == transitionId
+        && eventAfter.data.metadata.fromSeason == fromSeason
+        && eventAfter.data.metadata.toSeason == toSeason;
     }
 
     // Lists: strict owner-scoped access.
@@ -169,8 +171,8 @@ service cloud.firestore {
         allow read: if isWorldOwner(worldId);
         allow create: if isOpenForClientWorldWrites(worldId);
         allow update, delete: if isOpenForClientWorldWrites(worldId)
-          && resource.data.mutationType != 'seasonAdvance'
-          && resource.data.type != 'seasonAdvance';
+          && resource.data.get('mutationType', '') != 'seasonAdvance'
+          && resource.data.get('type', '') != 'seasonAdvance';
       }
 
       // Season-close snapshots and the league manifest are append-only. The

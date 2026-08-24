@@ -201,6 +201,9 @@ export type SeasonAdvanceCommittedState = {
 
 export type SeasonAdvanceSuccessResult = {
   success: true;
+  /** The transaction committed; false means only the post-commit reload proof failed. */
+  persistenceConfirmed: boolean;
+  confirmationError?: string;
   fromSeason: string;
   toSeason: string;
   updatedTeams: string[];

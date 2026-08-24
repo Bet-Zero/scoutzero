@@ -44,6 +44,8 @@ export type WorldAdvanceAftermath = {
 
 export type SeasonAdvanceSuccessResult = {
   success: true;
+  persistenceConfirmed?: boolean;
+  confirmationWarning?: string;
   toSeason: string;
   updatedTeams: string[];
   summary?: SeasonAdvanceSummary;
@@ -153,4 +155,3 @@ export type SeasonAdvanceModalComponent = ((
 ) => JSX.Element | null) & {
   propTypes?: Record<string, unknown>;
 };
-

@@ -21,6 +21,23 @@ import type { SeasonAdvanceAuthority } from './seasonManager.authority';
 
 type UnknownRecord = Record<string, unknown>;
 
+// Firestore documents are limited to 1 MiB. Leave margin for field-name and
+// encoding overhead so an oversized team/history/event/manifest fails before
+// the atomic transaction opens.
+const FIRESTORE_SAFE_DOCUMENT_BYTES = 900_000;
+
+export function assertFirestoreDocumentSize(
+  value: unknown,
+  label: string
+): void {
+  const byteLength = new TextEncoder().encode(JSON.stringify(value)).byteLength;
+  if (byteLength > FIRESTORE_SAFE_DOCUMENT_BYTES) {
+    throw new Error(
+      `${label} exceeds the safe Firestore document limit (${byteLength} bytes).`
+    );
+  }
+}
+
 export type PreparedSeasonAdvanceTeam = {
   teamCode: string;
   beforeTeam: UnknownRecord;
@@ -517,6 +534,14 @@ export function buildPreparedSeasonAdvanceTeam(args: {
     entitlementStateDigest,
     authorityDigest: args.authorityDigest,
   });
+  assertFirestoreDocumentSize(
+    args.committedTeam,
+    `Committed team ${args.teamCode}`
+  );
+  assertFirestoreDocumentSize(
+    historyRecord,
+    `Season history ${historyRecord.historyId}`
+  );
   return {
     teamCode: args.teamCode,
     beforeTeam: args.beforeTeam,
@@ -549,7 +574,7 @@ export function buildSeasonTransitionManifest(args: {
   preAdvanceMetadataDigest: string;
   teams: PreparedSeasonAdvanceTeam[];
 }): SeasonTransitionManifest {
-  return SeasonTransitionManifestZ.parse({
+  const manifest = SeasonTransitionManifestZ.parse({
     schemaVersion: 'season-transition-manifest-v1',
     transitionId: args.transitionId,
     operationId: args.operationId,
@@ -581,4 +606,9 @@ export function buildSeasonTransitionManifest(args: {
     },
     canonLeafIds: ['CBA2-L02.1', 'CBA2-L06.2', 'CBA2-L08.1', 'CBA2-L09.2'],
   });
+  assertFirestoreDocumentSize(
+    manifest,
+    `Season transition manifest ${manifest.transitionId}`
+  );
+  return manifest;
 }

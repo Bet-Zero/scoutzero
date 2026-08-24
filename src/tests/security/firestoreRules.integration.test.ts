@@ -38,6 +38,13 @@ const PLAYER_ID = 'player_1';
 const OFFER_SHEET_ID = 'offer_sheet_1';
 const SEASON_TRANSITION_ID = 'seasonAdvance__2025-26__2026-27';
 const SEASON_HISTORY_ID = '2025-26__LAL';
+const RULES_SEASON_TEAM_CODES = [
+  TEAM_CODE,
+  ...Array.from(
+    { length: 29 },
+    (_, index) => `T${String(index).padStart(2, '0')}`
+  ),
+];
 const UID_A = 'uid-owner-a';
 const UID_B = 'uid-non-owner-b';
 const HAS_FIRESTORE_EMULATOR_HOST = Boolean(
@@ -142,9 +149,7 @@ function seasonTransitionManifestData(): Record<string, unknown> {
     authorityDigest: `fnv1a64:${'a'.repeat(16)}`,
     entitlementBoundary: { mode: 'preserve-or-fail' },
     preAdvanceMetadataDigest: `fnv1a64:${'b'.repeat(16)}`,
-    teamRecords: Array.from({ length: 30 }, (_, index) => ({
-      teamCode: `T${String(index).padStart(2, '0')}`,
-    })),
+    teamRecords: RULES_SEASON_TEAM_CODES.map((teamCode) => ({ teamCode })),
     reconciliation: {
       expectedTeamCount: 30,
       preparedTeamCount: 30,
@@ -156,13 +161,16 @@ function seasonTransitionManifestData(): Record<string, unknown> {
   };
 }
 
-function seasonHistoryData(): Record<string, unknown> {
+function seasonHistoryData(
+  teamCode: string = TEAM_CODE,
+  historyId: string = SEASON_HISTORY_ID
+): Record<string, unknown> {
   return {
     schemaVersion: 'season-history-v1',
-    historyId: SEASON_HISTORY_ID,
+    historyId,
     transitionId: SEASON_TRANSITION_ID,
     worldId: WORLD_ID,
-    teamCode: TEAM_CODE,
+    teamCode,
     fromSeason: '2025-26',
     toSeason: '2026-27',
     seasonCloseDate: '2026-04-12',
@@ -713,7 +721,23 @@ describeWithFirestoreEmulator(
         },
       });
       batch.set(manifestRef, seasonTransitionManifestData());
-      batch.set(historyRef, seasonHistoryData());
+      for (const teamCode of RULES_SEASON_TEAM_CODES) {
+        const historyId = `2025-26__${teamCode}`;
+        batch.set(
+          doc(
+            db,
+            'architect_worlds',
+            WORLD_ID,
+            'seasonHistory',
+            historyId
+          ),
+          seasonHistoryData(teamCode, historyId)
+        );
+        batch.set(
+          doc(db, 'architect_worlds', WORLD_ID, 'teams', teamCode),
+          { teamCode, season: '2026-27' }
+        );
+      }
       await assertSucceeds(batch.commit());
 
       await assertSucceeds(getDoc(historyRef));

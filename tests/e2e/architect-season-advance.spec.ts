@@ -172,10 +172,16 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
       worldId,
       MIA_TEAM_CODE
     );
+    expect(miaHistory).toBeDefined();
+    expect(advancedMiaDocument).toBeDefined();
+    expect(seasonAdvanceEvents[0]).toBeDefined();
+    if (!miaHistory || !advancedMiaDocument || !seasonAdvanceEvents[0]) {
+      throw new Error('Season Advance persistence proof documents are missing.');
+    }
     const eventAfterTotals = seasonAdvanceEvents[0]
-      ?.afterTotalsByTeam as Record<string, unknown> | undefined;
-    expect(miaHistory?.afterTotals).toEqual(advancedMiaDocument?.totals);
-    expect(eventAfterTotals?.MIA).toEqual(advancedMiaDocument?.totals);
+      .afterTotalsByTeam as Record<string, unknown>;
+    expect(miaHistory.afterTotals).toEqual(advancedMiaDocument.totals);
+    expect(eventAfterTotals.MIA).toEqual(advancedMiaDocument.totals);
 
     await openDashboardTab(page, 'Full Cap Table');
     await expect(page.getByText(ANDRE_COLE_PLAYER_NAME).first()).toBeVisible();

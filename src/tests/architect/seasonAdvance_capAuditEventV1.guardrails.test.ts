@@ -82,7 +82,9 @@ describe('Season Advance CapAuditEventV1 Guardrails', () => {
     expect(source).toMatch(
       /focusTeamSnapshot\s*=\s*safeCloneForAudit\(\s*safeTeam\s*\)/
     );
-    expect(source).toContain('await runTransaction(db, async (transaction) => {');
+    expect(source).toMatch(
+      /await\s+runTransaction\(db,\s*async\s*\(transaction\)\s*=>\s*\{/
+    );
     expect(source).toContain(
       'function buildSeasonAdvanceCommittedState('
     );

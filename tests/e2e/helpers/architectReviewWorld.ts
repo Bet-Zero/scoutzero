@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import admin from 'firebase-admin';
+import { withDerivedGovernedSalaryBooks } from '../../../src/tests/fixtures/governedSalaryBookInputs';
 
 export const REVIEW_FIRESTORE_EMULATOR_HOST = '127.0.0.1:8082';
 export const REVIEW_FIRESTORE_PROJECT_ID = 'demo-architect-review';
@@ -321,80 +322,6 @@ const toSimpleException = (value: unknown) =>
       }
     : null;
 
-const salaryBookLine = (
-  ledger: 'apron-team-salary' | 'tax-salary',
-  leafId: string,
-  amount: number
-) => ({
-  id: `season-advance-review:${ledger}:${leafId}`,
-  ledger,
-  label: leafId,
-  amount,
-  effectiveFrom: '2026-07-01T00:00:00-04:00',
-  canonLeafIds: [leafId],
-  source: {
-    authority: 'external-determination',
-    reference: `season-advance-review:${leafId}`,
-  },
-});
-
-const buildSeasonAdvanceSalaryBookInputs = (teamCode: TeamCode) => ({
-  version: 1,
-  salaryCapYear: 2027,
-  seasonCloseApronMeasurement: {
-    version: 1,
-    seasonKey: REVIEW_WORLD_SEASON,
-    salaryCapYear: 2026,
-    teamCode,
-    measuredAt: '2026-04-12T19:00:00-04:00',
-    regularSeasonClosing: REVIEW_WORLD_AS_OF_DATE,
-    apronTeamSalary: 0,
-    source: {
-      measurementRecordId: `review-apron-close:${REVIEW_WORLD_SEASON}:${teamCode}`,
-      measurementRecordVersion: 1,
-      authority: 'external-determination',
-      identity: `playwright-review:${teamCode}:last-regular-season-game`,
-      sourceField: 'apronTeamSalaryAtStartOfLastRegularSeasonGame',
-      sourceArtifactSha256:
-        'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
-      retainedArtifactPath: `tests/e2e/fixtures/season-close/${REVIEW_WORLD_SEASON}/${teamCode}.json`,
-      retrievedAt: '2026-04-12T23:30:00Z',
-      authenticatedAt: '2026-04-12T23:35:00Z',
-      verifierIdentity: 'playwright:architect-season-advance',
-      recordStatus: 'current',
-      canonLeafIds: ['CBA2-L08.1'],
-    },
-  },
-  apronAdjustments: {
-    status: 'ready',
-    lineItems: [
-      salaryBookLine('apron-team-salary', 'CBA2-C07.2', 0),
-      salaryBookLine('apron-team-salary', 'CBA2-C07.3', 0),
-      salaryBookLine('apron-team-salary', 'CBA2-C07.4', 0),
-      salaryBookLine('apron-team-salary', 'CBA2-C07.5', 0),
-      salaryBookLine('apron-team-salary', 'CBA2-C07.6', 0),
-      salaryBookLine('apron-team-salary', 'CBA2-C07.7', 0),
-      salaryBookLine('apron-team-salary', 'CBA2-C07.8', 0),
-      salaryBookLine('apron-team-salary', 'CBA2-C07.9', 0),
-      salaryBookLine('apron-team-salary', 'CBA2-C07.10', 0),
-      salaryBookLine('apron-team-salary', 'CBA2-C07.11', 0),
-    ],
-  },
-  taxSalary: {
-    status: 'ready',
-    lineItems: [
-      salaryBookLine('tax-salary', 'CBA2-C08.1', 0),
-      salaryBookLine('tax-salary', 'CBA2-C08.2', 0),
-      salaryBookLine('tax-salary', 'CBA2-C08.3', 0),
-      salaryBookLine('tax-salary', 'CBA2-C08.4', 0),
-      salaryBookLine('tax-salary', 'CBA2-C08.5', 0),
-      salaryBookLine('tax-salary', 'CBA2-C08.6', 0),
-      salaryBookLine('tax-salary', 'CBA2-C08.7', 0),
-      salaryBookLine('tax-salary', 'CBA2-C08.8', 0),
-    ],
-  },
-});
-
 const buildBaseSnapshotShell = ({
   worldId,
   teamCode,
@@ -413,14 +340,14 @@ const buildBaseSnapshotShell = ({
   const tpeList = Array.isArray(exceptions.tpe) ? exceptions.tpe : [];
   const hardCapLevel = baseDoc.hardCapLevel || totals.hardCapLevel || null;
 
-  return {
+  const snapshot = {
     id: teamCode,
     teamCode,
     teamName,
     season: REVIEW_WORLD_SEASON,
     abbreviation: baseDoc.abbreviation || teamCode,
     players,
-    roster: players,
+    roster: players.map((player) => player.playerId),
     activeContracts: buildActiveContracts(players),
     capHolds: Array.isArray(baseDoc.capHolds) ? baseDoc.capHolds : [],
     deadCap: Array.isArray(baseDoc.deadCap) ? baseDoc.deadCap : [],
@@ -457,7 +384,6 @@ const buildBaseSnapshotShell = ({
     hardCapped: Boolean(hardCapLevel),
     baseline: baseDoc,
     totals,
-    salaryBookInputs: buildSeasonAdvanceSalaryBookInputs(teamCode),
     source: {
       type: 'review-world-season-advance-fixture',
       provider: 'playwright',
@@ -465,6 +391,12 @@ const buildBaseSnapshotShell = ({
       season: REVIEW_WORLD_SEASON,
     },
   };
+  return withDerivedGovernedSalaryBooks(snapshot, {
+    salaryCapYear: 2027,
+    asOfDate: '2026-07-01T00:00:00-04:00',
+    apronDelta: 0,
+    taxDelta: 0,
+  });
 };
 
 const buildMiaSeasonAdvanceSnapshot = async (worldId: string) => {
@@ -600,8 +532,8 @@ export const seedSeasonAdvanceReviewWorld = async (
     contractBaselineEffectiveAt: '2026-06-05T12:19:56.526Z',
     contractBaselineSalaryCapYear: 2026,
     contractBaselineCoverage: {
-      total: 0,
-      complete: 0,
+      total: ALL_TEAM_CODES.length * STANDARD_ROSTER_TARGET,
+      complete: ALL_TEAM_CODES.length * STANDARD_ROSTER_TARGET,
       needsInput: 0,
     },
   });

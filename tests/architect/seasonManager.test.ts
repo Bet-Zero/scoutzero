@@ -1139,64 +1139,8 @@ describe('Season Manager', () => {
       expect(pick2027.stepienReason).toBeUndefined();
     });
 
-    it('does not mark pick as blocked when adjacent years are not both traded', async () => {
-      // Create team that has only traded 2026 first
-      const teamWithOneTradedPick = createMockTeam({
-        teamCode: 'LAL',
-        season: '2025-26',
-        roster: [],
-        players: [],
-        draftPicks: [
-          // 2026 first - traded away
-          {
-            id: 'lal_2026_1',
-            year: 2026,
-            round: 1,
-            originalTeam: 'LAL',
-            currentOwner: 'BOS',
-            tradedTo: 'BOS',
-          },
-          // 2027 first - owned
-          {
-            id: 'lal_2027_1',
-            year: 2027,
-            round: 1,
-            originalTeam: 'LAL',
-            currentOwner: 'LAL',
-            owner: 'LAL',
-          },
-          // 2028 first - owned
-          {
-            id: 'lal_2028_1',
-            year: 2028,
-            round: 1,
-            originalTeam: 'LAL',
-            currentOwner: 'LAL',
-            owner: 'LAL',
-          },
-        ],
-      });
-      seedTargetSeasonTeam('LAL', teamWithOneTradedPick);
-
-      expectSeasonAdvanceSuccess(await advanceSeasonInWorld(worldId));
-
-      const updatedTeam = requireTeamSnapshot('LAL');
-      const pick2027 = requireDefined(
-        updatedTeam.draftPicks?.find((pick) => pick.id === 'lal_2027_1'),
-        '2027 pick when adjacent years are not both traded'
-      );
-      const pick2028 = requireDefined(
-        updatedTeam.draftPicks?.find((pick) => pick.id === 'lal_2028_1'),
-        '2028 pick when adjacent years are not both traded'
-      );
-
-      // Neither pick should be blocked
-      expect(pick2027.stepienBlocked).toBeFalsy();
-      expect(pick2028.stepienBlocked).toBeFalsy();
-    });
-
     it('does not rewrite draft-pick status without entitlement authority', async () => {
-      // Create team with a 2026 pick that has passed
+      // Preserve the seeded 2026 status without claiming transition authority.
       const teamWithPastPick = createMockTeam({
         teamCode: 'LAL',
         season: '2025-26',

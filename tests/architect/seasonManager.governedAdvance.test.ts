@@ -56,6 +56,7 @@ const TEAM_CODES = [
 
 const WORLD_ID = 'world_governed_season_advance';
 const TRANSITION_ID = 'seasonAdvance__2025-26__2026-27';
+const seededTeamDocuments = new Map<string, unknown>();
 
 function worldMetadata(overrides: Record<string, unknown> = {}) {
   return {
@@ -138,14 +139,17 @@ function seedLeague(
     ) => Record<string, unknown>;
   } = {}
 ) {
+  seededTeamDocuments.clear();
   seedMockData(`architect_worlds/${WORLD_ID}`, worldMetadata(args.metadata));
   for (const teamCode of TEAM_CODES) {
-    if (teamCode === args.omitTeam) continue;
+    const path = `architect_worlds/${WORLD_ID}/teams/${teamCode}`;
+    if (teamCode === args.omitTeam) {
+      seededTeamDocuments.set(teamCode, undefined);
+      continue;
+    }
     const original = teamSnapshot(teamCode) as Record<string, unknown>;
-    seedMockData(
-      `architect_worlds/${WORLD_ID}/teams/${teamCode}`,
-      args.mutateTeam?.(teamCode, original) ?? original
-    );
+    seedMockData(path, args.mutateTeam?.(teamCode, original) ?? original);
+    seededTeamDocuments.set(teamCode, getMockData(path));
   }
 }
 
@@ -156,6 +160,11 @@ function persistedWorldPaths() {
 }
 
 function expectNoTransitionWrites() {
+  for (const teamCode of TEAM_CODES) {
+    expect(
+      getMockData(`architect_worlds/${WORLD_ID}/teams/${teamCode}`)
+    ).toEqual(seededTeamDocuments.get(teamCode));
+  }
   expect(
     getMockData(
       `architect_worlds/${WORLD_ID}/seasonTransitions/${TRANSITION_ID}`
@@ -698,6 +707,25 @@ describe('governed 30-team Season Advance persistence', () => {
     expectNoTransitionWrites();
   });
 
+  it('aborts an oversized immutable team/history document before every write', async () => {
+    seedLeague({
+      mutateTeam: (teamCode, team) =>
+        teamCode === 'MIA'
+          ? { ...team, teamName: `MIA ${'x'.repeat(900_000)}` }
+          : team,
+    });
+    const transactionSpy = vi.spyOn(firestore, 'runTransaction');
+    try {
+      const result = await advanceSeasonInWorld(WORLD_ID);
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/safe Firestore document limit/i);
+      expect(transactionSpy).not.toHaveBeenCalled();
+      expectNoTransitionWrites();
+    } finally {
+      transactionSpy.mockRestore();
+    }
+  });
+
   it('aborts a partial roster/team transition before every write', async () => {
     seedLeague({
       mutateTeam: (teamCode, team) =>
@@ -736,6 +764,7 @@ describe('governed 30-team Season Advance persistence', () => {
 
   it('aborts before every write when final 30-team post-state reconciliation fails', async () => {
     seedLeague();
+    const transactionSpy = vi.spyOn(firestore, 'runTransaction');
     const validationSpy = vi
       .spyOn(postStateValidator, 'validatePostStateCapLegality')
       .mockReturnValueOnce({
@@ -759,9 +788,11 @@ describe('governed 30-team Season Advance persistence', () => {
           expect.objectContaining({ code: 'TOTALS_NON_FINITE' }),
         ])
       );
+      expect(transactionSpy).not.toHaveBeenCalled();
       expectNoTransitionWrites();
     } finally {
       validationSpy.mockRestore();
+      transactionSpy.mockRestore();
     }
   });
 
@@ -797,8 +828,9 @@ describe('governed 30-team Season Advance persistence', () => {
         const miaPath = `architect_worlds/${WORLD_ID}/teams/MIA`;
         seedMockData(miaPath, {
           ...(getMockData(miaPath) as Record<string, unknown>),
-          concurrentMarker: 'changed-during-league-load',
+          teamName: 'Concurrent MIA mutation',
         });
+        seededTeamDocuments.set('MIA', getMockData(miaPath));
         return result;
       });
     try {
@@ -839,8 +871,12 @@ describe('governed 30-team Season Advance persistence', () => {
       });
     try {
       const result = await advanceSeasonInWorld(WORLD_ID);
-      expect(result.success).toBe(false);
-      expect(result.error).toMatch(/exact reload verification diverged/i);
+      expect(result.success).toBe(true);
+      if (!result.success) throw new Error(result.error);
+      expect(result.persistenceConfirmed).toBe(false);
+      expect(result.confirmationError).toMatch(
+        /exact reload verification diverged/i
+      );
       expect(
         (
           getMockData(`architect_worlds/${WORLD_ID}`) as Record<
@@ -872,7 +908,12 @@ describe('governed 30-team Season Advance persistence', () => {
     );
     const second = await advanceSeasonInWorld(WORLD_ID);
     expect(second.success).toBe(false);
-    expect(second.error).toMatch(/duplicate|replayed/i);
+    expect(second.error).toBe(
+      'Duplicate/replayed Season Advance: immutable history 2025-26__ATL already exists.'
+    );
+    expect(
+      persistedWorldPaths().filter((path) => path.includes('/seasonHistory/'))
+    ).toHaveLength(30);
     expect(
       getMockData(
         `architect_worlds/${WORLD_ID}/seasonTransitions/${TRANSITION_ID}`

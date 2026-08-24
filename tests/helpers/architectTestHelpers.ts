@@ -371,7 +371,10 @@ export function createMockWorld({
     createdBy: userId,
     currentSeason,
     baselineSeason: currentSeason,
-    asOfDate: currentSeason === '2025-26' ? '2026-04-12' : null,
+    asOfDate:
+      currentSeason === '2025-26'
+        ? '2026-04-12'
+        : SAMPLE_WORLD_METADATA.asOfDate,
     parentWorldId,
     ...overrides,
   };

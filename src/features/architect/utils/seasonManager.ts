@@ -32,6 +32,7 @@ import { db } from '@/firebaseConfig';
 import {
   doc,
   getDoc,
+  getDocs,
   runTransaction,
   serverTimestamp,
 } from 'firebase/firestore';
@@ -39,6 +40,7 @@ import { getLeague } from '@/features/architect/utils/teamLoader';
 import { getDraftPositionsMap } from '@/features/architect/utils/worldManager';
 import {
   worldTeamRef,
+  worldTeamsCol,
   worldMetadataRef,
   worldSeasonHistoryRef,
   worldSeasonTransitionRef,
@@ -99,6 +101,7 @@ import {
 import { resolveSeasonAdvanceAuthority } from './seasonManager.authority';
 import {
   assertThirtyTeamLeague,
+  assertFirestoreDocumentSize,
   buildPreparedSeasonAdvanceTeam,
   buildSeasonTransitionManifest,
   resolveCompleteOptionAuthority,
@@ -230,17 +233,17 @@ export async function advanceSeasonInWorld(
       string,
       { exists: boolean; digest: string | null }
     >();
-    await Promise.all(
-      teamDocumentRefs.map(async ({ teamCode, ref }) => {
-        const snapshot = await getDoc(ref);
-        preAdvanceTeamDocuments.set(teamCode, {
-          exists: snapshot.exists(),
-          digest: snapshot.exists()
-            ? mutationSnapshotDigest(snapshot.data())
-            : null,
-        });
-      })
+    const preAdvanceTeamCollection = await getDocs(worldTeamsCol(worldId));
+    const preAdvanceSnapshotsByCode = new Map(
+      preAdvanceTeamCollection.docs.map((snapshot) => [snapshot.id, snapshot])
     );
+    for (const { teamCode } of teamDocumentRefs) {
+      const snapshot = preAdvanceSnapshotsByCode.get(teamCode);
+      preAdvanceTeamDocuments.set(teamCode, {
+        exists: Boolean(snapshot),
+        digest: snapshot ? mutationSnapshotDigest(snapshot.data()) : null,
+      });
+    }
 
     const teams = await getLeague(worldId);
     const governedTeams: Record<string, unknown>[] = teams.map((team) => ({
@@ -520,6 +523,7 @@ export async function advanceSeasonInWorld(
       label: 'EVENT',
     });
     const safeEvent = removeUndefinedDeep(afterEventSanitize);
+    assertFirestoreDocumentSize(safeEvent, 'Season Advance event');
     const manifest = buildSeasonTransitionManifest({
       transitionId,
       operationId,
@@ -583,9 +587,16 @@ export async function advanceSeasonInWorld(
           );
         }
       }
-      if (snapshots[cursor++].exists() || snapshots[cursor++].exists()) {
+      const existingManifest = snapshots[cursor++];
+      if (existingManifest.exists()) {
         throw new Error(
-          `Duplicate/replayed Season Advance transition ${transitionId}.`
+          `Duplicate/replayed Season Advance manifest ${transitionId}.`
+        );
+      }
+      const existingEvent = snapshots[cursor++];
+      if (existingEvent.exists()) {
+        throw new Error(
+          `Duplicate/replayed Season Advance event ${transitionId}.`
         );
       }
 
@@ -610,51 +621,6 @@ export async function advanceSeasonInWorld(
       });
     });
 
-    const reloadSnapshots = await Promise.all([
-      getDoc(metadataRef),
-      getDoc(manifestRef),
-      getDoc(eventRef),
-      ...preparedTeams.map((team) =>
-        getDoc(worldTeamRef(worldId, team.teamCode))
-      ),
-      ...historyRefs.map(({ ref }) => getDoc(ref)),
-    ]);
-    const reloadedMetadata = reloadSnapshots[0];
-    const reloadedManifest = reloadSnapshots[1];
-    const reloadedEvent = reloadSnapshots[2];
-    if (
-      !reloadedMetadata.exists() ||
-      reloadedMetadata.data().currentSeason !== toSeason ||
-      reloadedMetadata.data().currentYear !== toYear ||
-      reloadedMetadata.data().asOfDate !== targetAsOfDate ||
-      !reloadedManifest.exists() ||
-      mutationSnapshotDigest(reloadedManifest.data()) !==
-        mutationSnapshotDigest(manifest) ||
-      !reloadedEvent.exists() ||
-      mutationSnapshotDigest(reloadedEvent.data()) !==
-        mutationSnapshotDigest(safeEvent)
-    ) {
-      throw new Error(
-        'Season Advance committed, but exact reload verification diverged.'
-      );
-    }
-    preparedTeams.forEach((team, index) => {
-      const reloadedTeam = reloadSnapshots[3 + index];
-      const reloadedHistory = reloadSnapshots[3 + preparedTeams.length + index];
-      if (
-        !reloadedTeam.exists() ||
-        mutationSnapshotDigest(reloadedTeam.data()) !==
-          mutationSnapshotDigest(team.committedTeam) ||
-        !reloadedHistory.exists() ||
-        mutationSnapshotDigest(reloadedHistory.data()) !==
-          mutationSnapshotDigest(team.historyRecord)
-      ) {
-        throw new Error(
-          `Season Advance committed, but reload/history verification diverged for ${team.teamCode}.`
-        );
-      }
-    });
-
     const committedState = buildSeasonAdvanceCommittedState({
       metadata: committedMetadata,
       event: {
@@ -665,8 +631,71 @@ export async function advanceSeasonInWorld(
       focusTeamSnapshot,
     });
 
+    try {
+      const reloadSnapshots = await Promise.all([
+        getDoc(metadataRef),
+        getDoc(manifestRef),
+        getDoc(eventRef),
+        ...preparedTeams.map((team) =>
+          getDoc(worldTeamRef(worldId, team.teamCode))
+        ),
+        ...historyRefs.map(({ ref }) => getDoc(ref)),
+      ]);
+      const reloadedMetadata = reloadSnapshots[0];
+      const reloadedManifest = reloadSnapshots[1];
+      const reloadedEvent = reloadSnapshots[2];
+      if (
+        !reloadedMetadata.exists() ||
+        reloadedMetadata.data().currentSeason !== toSeason ||
+        reloadedMetadata.data().currentYear !== toYear ||
+        reloadedMetadata.data().asOfDate !== targetAsOfDate ||
+        !reloadedManifest.exists() ||
+        mutationSnapshotDigest(reloadedManifest.data()) !==
+          mutationSnapshotDigest(manifest) ||
+        !reloadedEvent.exists() ||
+        mutationSnapshotDigest(reloadedEvent.data()) !==
+          mutationSnapshotDigest(safeEvent)
+      ) {
+        throw new Error(
+          'Season Advance committed, but exact reload verification diverged.'
+        );
+      }
+      preparedTeams.forEach((team, index) => {
+        const reloadedTeam = reloadSnapshots[3 + index];
+        const reloadedHistory =
+          reloadSnapshots[3 + preparedTeams.length + index];
+        if (
+          !reloadedTeam.exists() ||
+          mutationSnapshotDigest(reloadedTeam.data()) !==
+            mutationSnapshotDigest(team.committedTeam) ||
+          !reloadedHistory.exists() ||
+          mutationSnapshotDigest(reloadedHistory.data()) !==
+            mutationSnapshotDigest(team.historyRecord)
+        ) {
+          throw new Error(
+            `Season Advance committed, but reload/history verification diverged for ${team.teamCode}.`
+          );
+        }
+      });
+    } catch (confirmationError) {
+      return {
+        success: true,
+        persistenceConfirmed: false,
+        confirmationError:
+          getErrorMessage(confirmationError) ||
+          'Season Advance committed, but reload confirmation failed.',
+        fromSeason,
+        toSeason,
+        updatedTeams,
+        summary,
+        committedState,
+        draftResolutionInfo: { draftYear, hadPositions: false },
+      };
+    }
+
     return {
       success: true,
+      persistenceConfirmed: true,
       fromSeason,
       toSeason,
       updatedTeams,
