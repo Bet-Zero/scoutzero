@@ -146,6 +146,35 @@ describe('Season Manager', () => {
     return result;
   }
 
+  function withGovernedContractEventIds<T extends Record<string, unknown>>(
+    team: T
+  ): T {
+    const teamCode = String(team.teamCode ?? 'UNK');
+    const players = Array.isArray(team.players) ? team.players : [];
+    return {
+      ...team,
+      players: players.map((rawPlayer) => {
+        if (!rawPlayer || typeof rawPlayer !== 'object') return rawPlayer;
+        const player = rawPlayer as Record<string, unknown>;
+        if (!player.contract || typeof player.contract !== 'object') {
+          return player;
+        }
+        const playerId = String(
+          player.playerId ?? player.player_id ?? player.id ?? 'unknown-player'
+        );
+        const contract = player.contract as Record<string, unknown>;
+        return {
+          ...player,
+          contract: {
+            ...contract,
+            contractId:
+              contract.contractId ?? `${teamCode}:${playerId}:contract`,
+          },
+        };
+      }),
+    } as T;
+  }
+
   function seedTargetSeasonTeam(
     teamCode: string,
     team: MockTeam,
@@ -154,12 +183,17 @@ describe('Season Manager', () => {
     seedTeamSnapshot(
       worldId,
       teamCode,
-      withDerivedGovernedSalaryBooks(team, {
-        salaryCapYear: 2027,
-        asOfDate: '2026-07-01T00:00:00Z',
-        apronDelta: 1_000_000,
-        taxDelta: 2_000_000,
-      }) as MockTeam,
+      withDerivedGovernedSalaryBooks(
+        withGovernedContractEventIds(
+          team as MockTeam & Record<string, unknown>
+        ),
+        {
+          salaryCapYear: 2027,
+          asOfDate: '2026-07-01T00:00:00Z',
+          apronDelta: 1_000_000,
+          taxDelta: 2_000_000,
+        }
+      ) as MockTeam,
       options
     );
   }
@@ -175,13 +209,45 @@ describe('Season Manager', () => {
       ) {
         seedMockData(
           path,
-          withDerivedGovernedSalaryBooks(value as Record<string, unknown>, {
-            salaryCapYear: 2027,
-            asOfDate: '2026-07-01T00:00:00Z',
-            apronDelta: 1_000_000,
-            taxDelta: 2_000_000,
-          })
+          withDerivedGovernedSalaryBooks(
+            withGovernedContractEventIds(
+              value as Record<string, unknown>
+            ),
+            {
+              salaryCapYear: 2027,
+              asOfDate: '2026-07-01T00:00:00Z',
+              apronDelta: 1_000_000,
+              taxDelta: 2_000_000,
+            }
+          )
         );
+      } else if (
+        path.startsWith('architect_basePlayers/') &&
+        value &&
+        typeof value === 'object'
+      ) {
+        const player = value as Record<string, unknown>;
+        const contract =
+          player.contract && typeof player.contract === 'object'
+            ? (player.contract as Record<string, unknown>)
+            : null;
+        if (contract) {
+          const playerId = String(
+            player.playerId ??
+              player.player_id ??
+              player.id ??
+              path.split('/').at(-1) ??
+              'unknown-player'
+          );
+          seedMockData(path, {
+            ...player,
+            contract: {
+              ...contract,
+              contractId:
+                contract.contractId ?? `base:${playerId}:contract`,
+            },
+          });
+        }
       }
     }
     const world = createMockWorld({

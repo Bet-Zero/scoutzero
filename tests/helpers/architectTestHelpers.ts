@@ -530,6 +530,7 @@ function createFillerPlayer(playerId: string, teamCode: string): MockPlayer {
       experience: 3,
     },
     contract: {
+      contractId: `${teamCode}:${playerId}:contract`,
       contractType: 'Standard',
       startSeason: '2025-26',
       endSeason: '2027-28',

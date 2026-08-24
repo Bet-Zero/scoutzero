@@ -269,6 +269,7 @@ describe('governed 30-team Season Advance persistence', () => {
       unknown
     >;
     expect(metadata.currentSeason).toBe('2026-27');
+    expect(metadata.currentYear).toBe(2027);
     expect(metadata.asOfDate).toBe('2026-07-01');
     expect(metadata.actionCount).toBe(1);
 
@@ -492,6 +493,52 @@ describe('governed 30-team Season Advance persistence', () => {
       },
     ],
     [
+      'incorrect Apron source identity',
+      (team: Record<string, unknown>) => {
+        const inputs = team.salaryBookInputs as Record<string, unknown>;
+        const measurement = inputs.seasonCloseApronMeasurement as Record<
+          string,
+          unknown
+        >;
+        return {
+          ...team,
+          salaryBookInputs: {
+            ...inputs,
+            seasonCloseApronMeasurement: {
+              ...measurement,
+              source: {
+                ...(measurement.source as Record<string, unknown>),
+                sourceField: 'genericApronTeamSalary',
+              },
+            },
+          },
+        };
+      },
+    ],
+    [
+      'unavailable A12.3 Apron source claim',
+      (team: Record<string, unknown>) => {
+        const inputs = team.salaryBookInputs as Record<string, unknown>;
+        const measurement = inputs.seasonCloseApronMeasurement as Record<
+          string,
+          unknown
+        >;
+        return {
+          ...team,
+          salaryBookInputs: {
+            ...inputs,
+            seasonCloseApronMeasurement: {
+              ...measurement,
+              source: {
+                ...(measurement.source as Record<string, unknown>),
+                canonLeafIds: ['CBA2-L08.1', 'CBA2-A12.3'],
+              },
+            },
+          },
+        };
+      },
+    ],
+    [
       'incomplete Tax book',
       (team: Record<string, unknown>) => ({
         ...team,
@@ -629,6 +676,28 @@ describe('governed 30-team Season Advance persistence', () => {
     expectNoTransitionWrites();
   });
 
+  it('aborts when a changed contract cannot retain complete event identity', async () => {
+    seedLeague({
+      mutateTeam: (teamCode, team) => {
+        if (teamCode !== 'MIA') return team;
+        const players = team.players as Array<Record<string, unknown>>;
+        const contract = players[0].contract as Record<string, unknown>;
+        const { contractId: _contractId, ...contractWithoutId } = contract;
+        return {
+          ...team,
+          players: [
+            { ...players[0], contract: contractWithoutId },
+            ...players.slice(1),
+          ],
+        };
+      },
+    });
+    const result = await advanceSeasonInWorld(WORLD_ID);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/contract-event identity is unavailable/i);
+    expectNoTransitionWrites();
+  });
+
   it('aborts a partial roster/team transition before every write', async () => {
     seedLeague({
       mutateTeam: (teamCode, team) =>
@@ -715,6 +784,30 @@ describe('governed 30-team Season Advance persistence', () => {
       expectNoTransitionWrites();
     } finally {
       transactionSpy.mockRestore();
+    }
+  });
+
+  it('aborts a team mutation that races the league load before every write', async () => {
+    seedLeague();
+    const originalGetDocs = firestore.getDocs;
+    const getDocsSpy = vi
+      .spyOn(firestore, 'getDocs')
+      .mockImplementationOnce(async (query) => {
+        const result = await originalGetDocs(query);
+        const miaPath = `architect_worlds/${WORLD_ID}/teams/MIA`;
+        seedMockData(miaPath, {
+          ...(getMockData(miaPath) as Record<string, unknown>),
+          concurrentMarker: 'changed-during-league-load',
+        });
+        return result;
+      });
+    try {
+      const result = await advanceSeasonInWorld(WORLD_ID);
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/stale\/concurrent team mutation.*MIA/i);
+      expectNoTransitionWrites();
+    } finally {
+      getDocsSpy.mockRestore();
     }
   });
 

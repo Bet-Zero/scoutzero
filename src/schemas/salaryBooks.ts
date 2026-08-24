@@ -31,25 +31,41 @@ export const SeasonCloseApronMeasurementZ = z
         measurementRecordVersion: z.number().int().min(1),
         authority: z.enum(['official', 'external-determination']),
         identity: z.string().min(1),
-        sourceField: z.string().min(1),
+        sourceField: z.literal(
+          'apronTeamSalaryAtStartOfLastRegularSeasonGame'
+        ),
         sourceArtifactSha256: z.string().regex(/^[0-9a-f]{64}$/),
         retainedArtifactPath: z.string().min(1),
         retrievedAt: ZonedInstantZ,
         authenticatedAt: ZonedInstantZ,
         verifierIdentity: z.string().min(1),
         recordStatus: z.literal('current'),
-        canonLeafIds: z.array(z.string().min(1)).min(1),
+        canonLeafIds: z.tuple([z.literal('CBA2-L08.1')]),
       })
       .strict(),
   })
   .strict()
   .superRefine((measurement, context) => {
-    if (!measurement.source.canonLeafIds.includes('CBA2-L08.1')) {
+    if (
+      Date.parse(measurement.source.retrievedAt) <
+      Date.parse(measurement.measuredAt)
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['source', 'canonLeafIds'],
+        path: ['source', 'retrievedAt'],
         message:
-          'Season-close Apron measurement must retain CBA2-L08.1 traceability.',
+          'Season-close Apron evidence cannot be retrieved before it was measured.',
+      });
+    }
+    if (
+      Date.parse(measurement.source.authenticatedAt) <
+      Date.parse(measurement.source.retrievedAt)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['source', 'authenticatedAt'],
+        message:
+          'Season-close Apron evidence cannot be authenticated before retrieval.',
       });
     }
     if (

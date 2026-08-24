@@ -399,11 +399,11 @@ describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
     );
   });
 
-  it('should build a normalized committed snapshot before batch.set in seasonManager', () => {
+  it('should build a normalized committed snapshot before the atomic transaction write', () => {
     // Stage 6B: per-team transition (and the helper that builds the
-    // committed snapshot before batch.set) was extracted into
-    // seasonManager.teamTransition.ts. Read both files so the ordering
-    // invariants remain checkable.
+    // committed snapshot) was extracted into seasonManager.teamTransition.ts.
+    // BZE-289 then moved the 30-team publication into one transaction. Read
+    // both files so normalization-before-write remains checkable.
     const seasonManagerPath = path.join(SRC_ROOT, 'utils/seasonManager.ts');
     const seasonManagerTeamTransitionPath = path.join(
       SRC_ROOT,
@@ -433,22 +433,25 @@ describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
       helperSection.indexOf('return removeUndefinedDeep(normalizedTeam);')
     );
 
-    const writeSliceStart = content.indexOf(
-      'const snapshotRef = worldTeamRef(worldId, teamCode);'
+    const preparedSnapshotIndex = content.indexOf(
+      'const safeCommittedTeam = removeUndefinedDeep(normalizedTeam);'
     );
-    const writeSliceEnd = content.indexOf(
-      'updatedTeams.push(teamCode);',
-      writeSliceStart
+    const transactionWriteIndex = content.indexOf(
+      'transaction.set(',
+      preparedSnapshotIndex
     );
-    const writeSection =
-      writeSliceStart >= 0 && writeSliceEnd > writeSliceStart
-        ? content.slice(writeSliceStart, writeSliceEnd)
-        : '';
+    const transactionWriteSection = content.slice(
+      transactionWriteIndex,
+      transactionWriteIndex + 220
+    );
 
-    expect(content).toContain(
-      'buildSeasonAdvanceCommittedTeamSnapshot(updatedTeam)'
+    expect(content).toContain('buildSeasonAdvanceCommittedTeamSnapshot(');
+    expect(preparedSnapshotIndex).toBeGreaterThan(-1);
+    expect(transactionWriteIndex).toBeGreaterThan(preparedSnapshotIndex);
+    expect(transactionWriteSection).toContain(
+      'worldTeamRef(worldId, prepared.teamCode)'
     );
-    expect(writeSection).toContain('batch.set(snapshotRef, committedTeam);');
+    expect(transactionWriteSection).toContain('prepared.committedTeam');
   });
 });
 

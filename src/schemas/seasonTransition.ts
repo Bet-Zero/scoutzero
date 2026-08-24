@@ -27,7 +27,7 @@ export const SeasonContractTransitionEventZ = z
     worldId: z.string().min(1),
     teamCode: z.string().min(2).max(5),
     playerId: z.string().min(1),
-    contractId: z.string().min(1).nullable(),
+    contractId: z.string().min(1),
     effectiveAt: ZonedInstantZ,
     beforeContract: JsonValueZ.nullable(),
     afterContract: JsonValueZ.nullable(),

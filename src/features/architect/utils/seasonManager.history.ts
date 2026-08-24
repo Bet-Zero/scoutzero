@@ -382,6 +382,12 @@ function contractTransitionEvents(args: {
             : afterContract
               ? 'contract-rolled'
               : 'contract-expired';
+    const resolvedContractId = contractId(beforePlayer, afterPlayer);
+    if (!resolvedContractId) {
+      throw new Error(
+        `Complete contract-event identity is unavailable for ${args.teamCode}/${id}.`
+      );
+    }
     events.push({
       eventId: `${args.transitionId}:${args.teamCode}:${id}:contract`,
       eventVersion: 1,
@@ -389,7 +395,7 @@ function contractTransitionEvents(args: {
       worldId: args.worldId,
       teamCode: args.teamCode,
       playerId: id,
-      contractId: contractId(beforePlayer, afterPlayer),
+      contractId: resolvedContractId,
       effectiveAt: args.effectiveAt,
       beforeContract: jsonClone(
         beforeContract

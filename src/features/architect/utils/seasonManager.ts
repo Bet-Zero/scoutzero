@@ -105,6 +105,7 @@ import {
   type PreparedSeasonAdvanceTeam,
 } from './seasonManager.history';
 import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
+import { AUTHORITATIVE_WORLD_TEAM_CODES } from './mutationPipeline.helpers';
 
 const CAP_AUDIT_EVENT_SCHEMA_VERSION = 'cap-audit-event-v1';
 const SEASON_ADVANCE_MUTATION_TYPE = 'seasonAdvance';
@@ -217,6 +218,30 @@ export async function advanceSeasonInWorld(
       );
     }
 
+    // Capture every current-world team document before the fallback-chain
+    // league load. A current-world mutation during or after that load then
+    // changes a transaction-read digest and cannot be overwritten by a stale
+    // prepared snapshot.
+    const teamDocumentRefs = AUTHORITATIVE_WORLD_TEAM_CODES.map((teamCode) => ({
+      teamCode,
+      ref: worldTeamRef(worldId, teamCode),
+    }));
+    const preAdvanceTeamDocuments = new Map<
+      string,
+      { exists: boolean; digest: string | null }
+    >();
+    await Promise.all(
+      teamDocumentRefs.map(async ({ teamCode, ref }) => {
+        const snapshot = await getDoc(ref);
+        preAdvanceTeamDocuments.set(teamCode, {
+          exists: snapshot.exists(),
+          digest: snapshot.exists()
+            ? mutationSnapshotDigest(snapshot.data())
+            : null,
+        });
+      })
+    );
+
     const teams = await getLeague(worldId);
     const governedTeams: Record<string, unknown>[] = teams.map((team) => ({
       ...team,
@@ -238,26 +263,6 @@ export async function advanceSeasonInWorld(
     });
 
     const preAdvanceMetadataDigest = mutationSnapshotDigest(worldMeta);
-    const teamDocumentRefs = teams.map((team) => ({
-      teamCode: String(team.teamCode),
-      ref: worldTeamRef(worldId, String(team.teamCode)),
-    }));
-    const preAdvanceTeamDocuments = new Map<
-      string,
-      { exists: boolean; digest: string | null }
-    >();
-    await Promise.all(
-      teamDocumentRefs.map(async ({ teamCode, ref }) => {
-        const snapshot = await getDoc(ref);
-        preAdvanceTeamDocuments.set(teamCode, {
-          exists: snapshot.exists(),
-          digest: snapshot.exists()
-            ? mutationSnapshotDigest(snapshot.data())
-            : null,
-        });
-      })
-    );
-
     const updatedTeams: string[] = [];
     let focusTeamSnapshot: SeasonAdvanceFocusTeamSnapshot | null = null;
     const beforeTeamsByCode: PostStateTeamSnapshots = {};
@@ -408,6 +413,8 @@ export async function advanceSeasonInWorld(
         input.amount,
       ])
     );
+    // Season advance intentionally reuses the shared post-state final-artifact
+    // validator after all 30 governed team and book snapshots are prepared.
     const postStateValidation = validatePostStateCapLegality({
       operationId,
       mutationType: SEASON_ADVANCE_MUTATION_TYPE,
@@ -595,6 +602,7 @@ export async function advanceSeasonInWorld(
       transaction.set(eventRef, safeEvent);
       transaction.update(metadataRef, {
         currentSeason: toSeason,
+        currentYear: toYear,
         asOfDate: targetAsOfDate,
         lastModifiedAt: serverTimestamp(),
         lastModifiedTeams: teamCodes,
@@ -617,6 +625,7 @@ export async function advanceSeasonInWorld(
     if (
       !reloadedMetadata.exists() ||
       reloadedMetadata.data().currentSeason !== toSeason ||
+      reloadedMetadata.data().currentYear !== toYear ||
       reloadedMetadata.data().asOfDate !== targetAsOfDate ||
       !reloadedManifest.exists() ||
       mutationSnapshotDigest(reloadedManifest.data()) !==
