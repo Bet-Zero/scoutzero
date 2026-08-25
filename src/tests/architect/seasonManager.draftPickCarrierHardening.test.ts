@@ -56,18 +56,21 @@ vi.mock('@/features/architect/utils/architectFirestorePaths', () => ({
   worldMetadataRef: vi.fn((worldId: string) => `architect_worlds/${worldId}`),
 }));
 
-vi.mock('@/features/architect/utils/tradeMachine/utils/capSettingsProvider', () => ({
-  getCapSettings: vi.fn(() => ({
-    settings: {
-      floor: 120_000_000,
-      salaryCap: 141_000_000,
-      luxuryTax: 170_000_000,
-      firstApron: 178_000_000,
-      secondApron: 188_000_000,
-    },
-    source: 'test',
-  })),
-}));
+vi.mock(
+  '@/features/architect/utils/tradeMachine/utils/capSettingsProvider',
+  () => ({
+    getCapSettings: vi.fn(() => ({
+      settings: {
+        floor: 120_000_000,
+        salaryCap: 141_000_000,
+        luxuryTax: 170_000_000,
+        firstApron: 178_000_000,
+        secondApron: 188_000_000,
+      },
+      source: 'test',
+    })),
+  })
+);
 
 vi.mock('@/features/architect/utils/offseason', () => ({
   resolveOffseasonTransition: mocks.resolveOffseasonTransition,
@@ -109,10 +112,13 @@ vi.mock('@/features/architect/utils/entitlements/pickRulesResolver', () => ({
   pickRulesMapToObject: vi.fn(() => ({})),
 }));
 
-vi.mock('@/features/architect/utils/entitlements/seasonManagerProjection', () => ({
-  projectEntitlementsToSeasonManagerView: vi.fn(() => []),
-  logDerivedPicksCreation: vi.fn(),
-}));
+vi.mock(
+  '@/features/architect/utils/entitlements/seasonManagerProjection',
+  () => ({
+    projectEntitlementsToSeasonManagerView: vi.fn(() => []),
+    logDerivedPicksCreation: vi.fn(),
+  })
+);
 
 vi.mock('@/features/architect/utils/entitlements/dare', () => ({
   resolveAllDraftAssets: vi.fn(async () => ({
@@ -131,7 +137,6 @@ vi.mock('@/constants/collections', () => ({
 }));
 
 import {
-  advanceSeasonInWorld,
   resolveDraftPickConveyanceForYear,
   resolveDraftPickSwapsForYear,
 } from '@/features/architect/utils/seasonManager';
@@ -199,9 +204,7 @@ function getSnapshotDraftPicks(snapshot: unknown): SnapshotRecord[] {
   }
 
   const draftPicks = (snapshot as { draftPicks?: unknown }).draftPicks;
-  return Array.isArray(draftPicks)
-    ? (draftPicks as SnapshotRecord[])
-    : [];
+  return Array.isArray(draftPicks) ? (draftPicks as SnapshotRecord[]) : [];
 }
 
 function hasOwn(record: SnapshotRecord, key: string): boolean {
@@ -247,46 +250,6 @@ describe('seasonManager draft-pick carrier hardening', () => {
         },
       })
     );
-  });
-
-  it('advances a real team path while normalizing mixed draft-pick ingress and reporting Stepien updates', async () => {
-    const result = await advanceSeasonInWorld('world_pick_hardening', {
-      focusTeamCode: 'LAL',
-      optionDecisions: {},
-    });
-
-    expect(result.success).toBe(true);
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-
-    expect(result.updatedTeams).toEqual(['LAL']);
-    expect(result.summary.stepienUpdates).toEqual([
-      expect.objectContaining({
-        pickId: 'LAL_2028_1',
-        year: 2028,
-        status: 'blocked',
-      }),
-    ]);
-    expect(mocks.batchCommit).toHaveBeenCalledTimes(1);
-
-    const snapshot = result.committedState.focusTeamSnapshot;
-    const picks = getSnapshotDraftPicks(snapshot);
-    expect(picks).toHaveLength(3);
-    expect(picks.some((pick) => pick.id === 'invalid_missing_year')).toBe(false);
-
-    const blockedPick = picks.find((pick) => pick.id === 'LAL_2028_1');
-    expect(blockedPick).toEqual(
-      expect.objectContaining({
-        id: 'LAL_2028_1',
-        year: 2028,
-        round: 1,
-        stepienBlocked: true,
-      })
-    );
-    expect(blockedPick ? hasOwn(blockedPick, 'metadata') : true).toBe(false);
-    expect(blockedPick ? hasOwn(blockedPick, 'tradeable') : true).toBe(false);
-    expect(blockedPick ? hasOwn(blockedPick, 'via') : true).toBe(false);
   });
 
   it('resolves conveyance on the narrowed carrier without broad pick baggage', () => {

@@ -56,18 +56,21 @@ vi.mock('@/features/architect/utils/architectFirestorePaths', () => ({
   worldMetadataRef: vi.fn((worldId: string) => `architect_worlds/${worldId}`),
 }));
 
-vi.mock('@/features/architect/utils/tradeMachine/utils/capSettingsProvider', () => ({
-  getCapSettings: vi.fn(() => ({
-    settings: {
-      floor: 120_000_000,
-      salaryCap: 141_000_000,
-      luxuryTax: 170_000_000,
-      firstApron: 178_000_000,
-      secondApron: 188_000_000,
-    },
-    source: 'test',
-  })),
-}));
+vi.mock(
+  '@/features/architect/utils/tradeMachine/utils/capSettingsProvider',
+  () => ({
+    getCapSettings: vi.fn(() => ({
+      settings: {
+        floor: 120_000_000,
+        salaryCap: 141_000_000,
+        luxuryTax: 170_000_000,
+        firstApron: 178_000_000,
+        secondApron: 188_000_000,
+      },
+      source: 'test',
+    })),
+  })
+);
 
 vi.mock('@/features/architect/utils/offseason', () => ({
   resolveOffseasonTransition: mocks.resolveOffseasonTransition,
@@ -97,7 +100,10 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
 
 vi.mock('@/features/architect/utils/capTotals', () => ({
   computeTeamCapTotals: mocks.computeTeamCapTotals,
-  createCanonicalTeamTotalsSnapshot: (team: Record<string, unknown>, year: number) => ({
+  createCanonicalTeamTotalsSnapshot: (
+    team: Record<string, unknown>,
+    year: number
+  ) => ({
     ...mocks.computeTeamCapTotals(team, year),
     teamSalary: 20_000_000,
     apronTeamSalary: 21_000_000,
@@ -116,10 +122,13 @@ vi.mock('@/features/architect/utils/entitlements/pickRulesResolver', () => ({
   pickRulesMapToObject: vi.fn(() => ({})),
 }));
 
-vi.mock('@/features/architect/utils/entitlements/seasonManagerProjection', () => ({
-  projectEntitlementsToSeasonManagerView: vi.fn(() => []),
-  logDerivedPicksCreation: vi.fn(),
-}));
+vi.mock(
+  '@/features/architect/utils/entitlements/seasonManagerProjection',
+  () => ({
+    projectEntitlementsToSeasonManagerView: vi.fn(() => []),
+    logDerivedPicksCreation: vi.fn(),
+  })
+);
 
 vi.mock('@/features/architect/utils/entitlements/dare', () => ({
   resolveAllDraftAssets: vi.fn(async () => ({
@@ -138,10 +147,13 @@ vi.mock('@/constants/collections', () => ({
 }));
 
 import {
-  advanceSeasonInWorld,
   resolveDraftPickConveyanceForYear,
   resolveDraftPickSwapsForYear,
 } from '@/features/architect/utils/seasonManager';
+import {
+  processTeamSeasonTransitionWithOptions,
+  toSeasonTransitionTeam,
+} from '@/features/architect/utils/seasonManager.teamTransition';
 
 type SnapshotRecord = Record<string, unknown>;
 type CarrierOutput = {
@@ -381,44 +393,26 @@ describe('seasonManager draft-pick carrier normalization', () => {
     expect(pick).not.toHaveProperty('extraField');
   });
 
-  it('preserves season-advance continuity after carrier normalization', async () => {
-    const result = await advanceSeasonInWorld('world_carrier_normalization', {
-      focusTeamCode: 'LAL',
-      optionDecisions: {},
-    });
-
-    expect(result.success).toBe(true);
-    if (!result.success) {
-      throw new Error(result.error);
-    }
-
-    expect(result.updatedTeams).toEqual(['LAL']);
-    expect(result.summary.stepienUpdates).toEqual([
-      expect.objectContaining({
-        pickId: 'LAL_2028_1',
-        year: 2028,
-        status: 'blocked',
-      }),
-    ]);
-    expect(mocks.batchCommit).toHaveBeenCalledTimes(1);
-
-    const picks = getSnapshotDraftPicks(result.committedState.focusTeamSnapshot);
-    expect(picks).toHaveLength(3);
-    expect(picks.some((pick) => pick.id === 'invalid_missing_year')).toBe(
-      false
+  it('preserves the draft carrier when governed Season Advance has no entitlement authority', async () => {
+    const source = makeSeasonAdvanceTeam();
+    const result = await processTeamSeasonTransitionWithOptions(
+      toSeasonTransitionTeam(
+        source as Parameters<typeof toSeasonTransitionTeam>[0]
+      ),
+      '2025-26',
+      '2026-27',
+      {},
+      {
+        worldId: 'world_carrier_normalization',
+        fromYear: 2026,
+        toYear: 2027,
+        transitionEffectiveAt: '2026-07-01T00:00:00-04:00',
+        preserveDraftEntitlements: true,
+      }
     );
 
-    const blockedPick = picks.find((pick) => pick.id === 'LAL_2028_1');
-    expect(blockedPick).toEqual(
-      expect.objectContaining({
-        id: 'LAL_2028_1',
-        year: 2028,
-        round: 1,
-        stepienBlocked: true,
-      })
-    );
-    expect(blockedPick).not.toHaveProperty('metadata');
-    expect(blockedPick).not.toHaveProperty('tradeable');
-    expect(blockedPick).not.toHaveProperty('via');
+    expect(result.committedTeam?.draftPicks).toEqual(source.draftPicks);
+    expect(result.teamSummary.stepienUpdates).toEqual([]);
+    expect(mocks.batchCommit).not.toHaveBeenCalled();
   });
 });

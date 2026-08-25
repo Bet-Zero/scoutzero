@@ -3,6 +3,13 @@ import type { TeamSalaryBookInputs } from '@/schemas/salaryBooks';
 
 type UnknownRecord = Record<string, unknown>;
 
+const GOVERNED_REGULAR_SEASON_CLOSINGS: Readonly<
+  Partial<Record<number, string>>
+> = {
+  2026: '2026-04-12',
+  2027: '2027-04-11',
+};
+
 interface GovernedSalaryBookFixtureOptions {
   salaryCapYear: number;
   asOfDate: string;
@@ -59,12 +66,48 @@ export function withGovernedSalaryBooks<T extends UnknownRecord>(
   const positiveApronDelta = Math.max(0, apronDelta);
   const negativeApronDelta = Math.min(0, apronDelta);
   const taxSalary = options.taxSalary ?? options.teamSalary;
+  const teamCode = String(team.teamCode ?? team.abbreviation ?? 'UNK');
+  const sourceSalaryCapYear = options.salaryCapYear - 1;
+  const sourceSeasonKey = `${sourceSalaryCapYear - 1}-${String(
+    sourceSalaryCapYear % 100
+  ).padStart(2, '0')}`;
+  const regularSeasonClosing =
+    GOVERNED_REGULAR_SEASON_CLOSINGS[sourceSalaryCapYear];
 
   return {
     ...team,
     salaryBookInputs: {
       version: 1,
       salaryCapYear: options.salaryCapYear,
+      ...(regularSeasonClosing
+        ? {
+            seasonCloseApronMeasurement: {
+              version: 1 as const,
+              seasonKey: sourceSeasonKey,
+              salaryCapYear: sourceSalaryCapYear,
+              teamCode,
+              measuredAt: `${regularSeasonClosing}T19:00:00-04:00`,
+              regularSeasonClosing,
+              apronTeamSalary,
+              source: {
+                measurementRecordId: `fixture-apron-close:${sourceSeasonKey}:${teamCode}`,
+                measurementRecordVersion: 1,
+                authority: 'external-determination' as const,
+                identity: `authenticated-test-fixture:${teamCode}:${sourceSeasonKey}`,
+                sourceField:
+                  'apronTeamSalaryAtStartOfLastRegularSeasonGame' as const,
+                sourceArtifactSha256:
+                  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                retainedArtifactPath: `test-fixtures/season-close/${sourceSeasonKey}/${teamCode}.json`,
+                retrievedAt: `${regularSeasonClosing}T23:00:00Z`,
+                authenticatedAt: `${regularSeasonClosing}T23:05:00Z`,
+                verifierIdentity: 'test-fixture:governed-salary-books',
+                recordStatus: 'current' as const,
+                canonLeafIds: ['CBA2-L08.1'] as const,
+              },
+            },
+          }
+        : {}),
       incompleteRosterCharge: line(
         'team-salary',
         'CBA2-A01.1',

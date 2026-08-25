@@ -44,9 +44,7 @@ import {
 } from '@/features/architect/utils/exceptionHistory/historyHelpers';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import { resetTeamNonTpeExceptionsForNewSeason } from '@/features/architect/utils/exceptions';
-import {
-  validateOptionDecision,
-} from '@/features/architect/utils/capLegalityValidation';
+import { validateOptionDecision } from '@/features/architect/utils/capLegalityValidation';
 // Wave 17 Step 1: validation extracted to resolveOffseasonTransition.validation.ts
 import {
   validateOffseasonState,
@@ -85,7 +83,6 @@ import {
   type OffseasonTransitionResult,
   type OffseasonViolation,
 } from './resolveOffseasonTransition.helpers';
-
 
 export function resolveOffseasonTransition({
   teamCapSheet,
@@ -181,12 +178,14 @@ export function resolveOffseasonTransition({
     );
 
     if (decision.decision === 'exercise') {
-      player.contract.salariesByYear = salaries.map((row: OffseasonSalaryRow, idx: number) => {
-        if (idx === optionYearIndex) {
-          return { ...row, optionUsed: true };
+      player.contract.salariesByYear = salaries.map(
+        (row: OffseasonSalaryRow, idx: number) => {
+          if (idx === optionYearIndex) {
+            return { ...row, optionUsed: true };
+          }
+          return row;
         }
-        return row;
-      });
+      );
 
       appliedChangesSummary.exercisedOptions.push({
         playerId: playerId || decisionKey,
@@ -410,10 +409,14 @@ export function resolveOffseasonTransition({
     }
 
     if (Array.isArray(contract.salariesByYear)) {
-      contract.salariesByYear = contract.salariesByYear.filter((row: OffseasonSalaryRow) => {
-        const yearEnd = toEndYear(row?.season);
-        return yearEnd !== null && Number.isFinite(yearEnd) && yearEnd >= toYear;
-      });
+      contract.salariesByYear = contract.salariesByYear.filter(
+        (row: OffseasonSalaryRow) => {
+          const yearEnd = toEndYear(row?.season);
+          return (
+            yearEnd !== null && Number.isFinite(yearEnd) && yearEnd >= toYear
+          );
+        }
+      );
     }
   }
 
@@ -453,9 +456,9 @@ export function resolveOffseasonTransition({
   const dpeWasActive =
     dpe &&
     ((dpe.enabled ?? false) ||
-      (Number(dpe.totalAmount ?? 0)) > 0 ||
-      (Number(dpe.usedAmount ?? 0)) > 0 ||
-      (Number(dpe.remainingAmount ?? 0)) > 0 ||
+      Number(dpe.totalAmount ?? 0) > 0 ||
+      Number(dpe.usedAmount ?? 0) > 0 ||
+      Number(dpe.remainingAmount ?? 0) > 0 ||
       dpe.seasonKey !== seasonKey);
   if (!nextTeam.exceptions) {
     nextTeam.exceptions = {};
@@ -487,15 +490,16 @@ export function resolveOffseasonTransition({
 
     if (tpeResult.expiredTPEs && tpeResult.expiredTPEs.length > 0) {
       const teamCode = context?.teamCode || nextTeam.teamCode;
-      const timestampISO = new Date().toISOString();
+      const timestampISO = context?.effectiveAt || new Date().toISOString();
       const expiryHistoryEntries = tpeResult.expiredTPEs
         .map((expiredTpe) => {
           const expiresOn = getTpeExpiryISO(expiredTpe);
           const amountExpired =
             Number(expiredTpe.remainingAmount ?? expiredTpe.amount ?? 0) || 0;
           const totalAmount =
-            Number(expiredTpe.totalAmount ?? expiredTpe.amount ?? amountExpired) ||
-            amountExpired;
+            Number(
+              expiredTpe.totalAmount ?? expiredTpe.amount ?? amountExpired
+            ) || amountExpired;
 
           return createTpeExpiryHistoryEntry({
             teamCode: teamCode || '',

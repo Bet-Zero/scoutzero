@@ -47,6 +47,10 @@ type SeasonAdvancePersistedTeamSnapshot = Pick<
   | 'roster'
   | 'capHolds'
   | 'deadCap'
+  | 'rightsLedger'
+  | 'contractEventLedgers'
+  | 'salaryBookInputs'
+  | 'hardCapLedger'
   | 'draftPicks'
   | 'draftPicksInventory'
   | 'draftPicksObligations'
@@ -71,9 +75,24 @@ export type PostStateTeamSnapshots = NonNullable<
 
 // These three types are also defined in seasonManager.teamTransition.ts.
 // They stay here because SeasonAdvanceTeamSummary (a public type) references them.
-export type StepienUpdate = { pickId: string; year: number; status: string; reason: string };
-export type ConveyanceResolutionEntry = { pickId?: string; year?: number; outcome?: string; position?: number };
-export type SwapResolutionEntry = { pickId?: string; year?: number; resolvedOwner?: string | null; resolvedPosition?: number | null };
+export type StepienUpdate = {
+  pickId: string;
+  year: number;
+  status: string;
+  reason: string;
+};
+export type ConveyanceResolutionEntry = {
+  pickId?: string;
+  year?: number;
+  outcome?: string;
+  position?: number;
+};
+export type SwapResolutionEntry = {
+  pickId?: string;
+  year?: number;
+  resolvedOwner?: string | null;
+  resolvedPosition?: number | null;
+};
 
 // ============================================================
 // Exported types
@@ -109,11 +128,15 @@ export type SeasonAdvanceFocusTeamSnapshot = Pick<
 > &
   Pick<
     TeamHistoryCapSheetLike,
-    'waivedContracts' | 'mleHistory' | 'pickLog' | 'currentPicks' | 'historyTimeline'
+    | 'waivedContracts'
+    | 'mleHistory'
+    | 'pickLog'
+    | 'currentPicks'
+    | 'historyTimeline'
   >;
 
-export type SeasonAdvanceCommittedTeamSnapshot = SeasonAdvancePersistedTeamSnapshot &
-  Partial<SeasonAdvanceFocusTeamSnapshot>;
+export type SeasonAdvanceCommittedTeamSnapshot =
+  SeasonAdvancePersistedTeamSnapshot & Partial<SeasonAdvanceFocusTeamSnapshot>;
 
 export type SeasonAdvanceExpiredTpe =
   OffseasonAppliedChangesSummary['expiredTPEs'][number] & {
@@ -178,6 +201,9 @@ export type SeasonAdvanceCommittedState = {
 
 export type SeasonAdvanceSuccessResult = {
   success: true;
+  /** The transaction committed; false means only the post-commit reload proof failed. */
+  persistenceConfirmed: boolean;
+  confirmationError?: string;
   fromSeason: string;
   toSeason: string;
   updatedTeams: string[];

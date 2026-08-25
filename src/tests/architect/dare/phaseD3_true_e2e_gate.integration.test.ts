@@ -220,15 +220,18 @@ describe('Phase D3: TRUE E2E Gate - Real Entrypoint Verification', () => {
       expect(content).toMatch(/case\s+['"]executeTrade['"]/);
     });
 
-    it('TEST 4: advanceSeasonInWorld authority calls DARE resolver', () => {
+    it('TEST 4: governed Season Advance preserves draft entitlements without claiming DARE authority', () => {
       const seasonManagerPath = path.resolve(
         __dirname,
         '../../../features/architect/utils/seasonManager.ts'
       );
       const content = fs.readFileSync(seasonManagerPath, 'utf8');
 
-      // Must call resolveAllDraftAssets (DARE)
-      expect(content).toContain('resolveAllDraftAssets');
+      expect(content).not.toContain('resolveAllDraftAssets');
+      expect(content).toContain('preserveDraftEntitlements: true');
+      expect(content).toContain(
+        'Required entitlement transition for draft year'
+      );
     });
   });
 

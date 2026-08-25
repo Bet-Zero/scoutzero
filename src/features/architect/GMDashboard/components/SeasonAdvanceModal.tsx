@@ -511,8 +511,16 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
   const renderCompleteStep = () => (
     <div className="space-y-4 text-center py-8">
       <div className="text-5xl">✅</div>
-      <h3 className="text-lg font-semibold text-green-400">
-        Season Advanced Successfully!
+      <h3
+        className={`text-lg font-semibold ${
+          result?.persistenceConfirmed === false
+            ? 'text-amber-300'
+            : 'text-green-400'
+        }`}
+      >
+        {result?.persistenceConfirmed === false
+          ? 'Season Committed; Reload Confirmation Needed'
+          : 'Season Advanced Successfully!'}
       </h3>
       <p className="text-sm text-white/70">
         You are now in the <strong>{result?.toSeason ?? toSeason}</strong>{' '}
@@ -521,6 +529,12 @@ export const SeasonAdvanceModal: SeasonAdvanceModalComponent = ({
       {result?.updatedTeams?.length ? (
         <p className="text-xs text-white/50">
           Updated {result.updatedTeams.length} team(s)
+        </p>
+      ) : null}
+      {result?.persistenceConfirmed === false ? (
+        <p className="text-xs text-amber-200/80">
+          The 30-team transaction committed. Do not run Season Advance again;
+          reload this world to confirm its saved history.
         </p>
       ) : null}
     </div>

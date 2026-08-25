@@ -1,6 +1,85 @@
 import { z } from 'zod';
 import { JsonValueZ } from './common';
 
+const ZonedInstantZ = z
+  .string()
+  .refine(
+    (value) =>
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(
+        value
+      ) && Number.isFinite(Date.parse(value)),
+    { message: 'must be an ISO-8601 instant with an explicit UTC offset' }
+  );
+
+/**
+ * Authenticated, team-specific Apron Team Salary observation at the start of
+ * that team's last Regular Season game. This is evidence for CBA2-L08.1 only:
+ * it deliberately carries no draft-pick freeze, ownership, or Stepien verdict.
+ */
+export const SeasonCloseApronMeasurementZ = z
+  .object({
+    version: z.literal(1),
+    seasonKey: z.string().regex(/^\d{4}-\d{2}$/),
+    salaryCapYear: z.number().int(),
+    teamCode: z.string().min(2).max(5),
+    measuredAt: ZonedInstantZ,
+    regularSeasonClosing: z.string().date(),
+    apronTeamSalary: z.number().finite().nonnegative(),
+    source: z
+      .object({
+        measurementRecordId: z.string().min(1),
+        measurementRecordVersion: z.number().int().min(1),
+        authority: z.enum(['official', 'external-determination']),
+        identity: z.string().min(1),
+        sourceField: z.literal(
+          'apronTeamSalaryAtStartOfLastRegularSeasonGame'
+        ),
+        sourceArtifactSha256: z.string().regex(/^[0-9a-f]{64}$/),
+        retainedArtifactPath: z.string().min(1),
+        retrievedAt: ZonedInstantZ,
+        authenticatedAt: ZonedInstantZ,
+        verifierIdentity: z.string().min(1),
+        recordStatus: z.literal('current'),
+        canonLeafIds: z.tuple([z.literal('CBA2-L08.1')]),
+      })
+      .strict(),
+  })
+  .strict()
+  .superRefine((measurement, context) => {
+    if (
+      Date.parse(measurement.source.retrievedAt) <
+      Date.parse(measurement.measuredAt)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['source', 'retrievedAt'],
+        message:
+          'Season-close Apron evidence cannot be retrieved before it was measured.',
+      });
+    }
+    if (
+      Date.parse(measurement.source.authenticatedAt) <
+      Date.parse(measurement.source.retrievedAt)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['source', 'authenticatedAt'],
+        message:
+          'Season-close Apron evidence cannot be authenticated before retrieval.',
+      });
+    }
+    if (
+      measurement.measuredAt.slice(0, 10) !== measurement.regularSeasonClosing
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['measuredAt'],
+        message:
+          'Season-close Apron measurement must be dated to the governed Regular Season closing date.',
+      });
+    }
+  });
+
 export const SalaryBookStatusZ = z.enum([
   'complete',
   'needs-input',
@@ -73,12 +152,22 @@ export const TeamSalaryBookInputsZ = z
   .object({
     version: z.literal(1),
     salaryCapYear: z.number().int(),
+    seasonCloseApronMeasurement: SeasonCloseApronMeasurementZ.optional(),
     incompleteRosterCharge: SalaryLedgerLineItemZ.optional(),
     apronAdjustments: SalaryLedgerInputZ,
     taxSalary: SalaryLedgerInputZ,
   })
   .strict()
   .superRefine((inputs, context) => {
+    const measurement = inputs.seasonCloseApronMeasurement;
+    if (measurement && measurement.salaryCapYear + 1 !== inputs.salaryCapYear) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['seasonCloseApronMeasurement', 'salaryCapYear'],
+        message:
+          'Season-close Apron evidence must describe the Salary Cap Year immediately before these target-year book inputs.',
+      });
+    }
     const charge = inputs.incompleteRosterCharge;
     if (!charge) return;
     if (charge.ledger !== 'team-salary') {
@@ -197,3 +286,6 @@ export const SalaryBooksSnapshotZ = z
 
 export type TeamSalaryBookInputs = z.infer<typeof TeamSalaryBookInputsZ>;
 export type SalaryBooksSnapshot = z.infer<typeof SalaryBooksSnapshotZ>;
+export type SeasonCloseApronMeasurement = z.infer<
+  typeof SeasonCloseApronMeasurementZ
+>;

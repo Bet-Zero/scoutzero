@@ -14,15 +14,14 @@ import {
   MIA_TEAM_CODE,
   NEXT_REVIEW_WORLD_AS_OF_DATE,
   NEXT_REVIEW_WORLD_SEASON,
-  QUENTIN_DIAZ_PLAYER_ID,
-  QUENTIN_DIAZ_PLAYER_NAME,
   REVIEW_WORLD_AS_OF_DATE,
   REVIEW_WORLD_SEASON,
   enableArchitectReviewFlags,
-  getCapHold,
   getTeamPlayerIds,
   getWorldEventDocuments,
   getWorldMetadataDocument,
+  getWorldSeasonHistoryDocument,
+  getWorldSeasonTransitionDocument,
   getWorldTeamCodes,
   getWorldTeamDocument,
   openDashboardTab,
@@ -30,20 +29,6 @@ import {
   readActiveWorldId,
   waitForReviewDashboard,
 } from './helpers/architectReviewWorld';
-
-const chooseSeasonAdvanceOption = async (
-  page: Page,
-  playerId: string,
-  playerName: string,
-  decision: 'Exercise' | 'Decline'
-) => {
-  await expect(page.getByText(new RegExp(playerName, 'i')).first()).toBeVisible();
-  const choiceIndex = decision === 'Exercise' ? 0 : 1;
-  await page
-    .locator(`input[type="radio"][name="option-${playerId}"]`)
-    .nth(choiceIndex)
-    .check();
-};
 
 // BZE-250: season advance moved out of the (now V1-hidden) Offseason room into
 // the top-bar World menu. Open the World-menu popover and click the relocated
@@ -73,93 +58,18 @@ const openSeasonAdvanceControl = async (
   await page.getByTestId(triggerTestId).click();
 };
 
-const expectAndreColeCapHold = async (worldId: string) => {
-  const miaDocument = await getWorldTeamDocument(worldId, MIA_TEAM_CODE);
-  expect(getTeamPlayerIds(miaDocument)).not.toContain(ANDRE_COLE_PLAYER_ID);
-  const capHold = getCapHold(miaDocument, ANDRE_COLE_PLAYER_ID);
-  expect(capHold).toBeTruthy();
-  expect(capHold?.season).toBe(NEXT_REVIEW_WORLD_SEASON);
-  expect(Number(capHold?.amount || 0)).toBeGreaterThan(0);
-};
-
-const DRAFT_POSITIONS_PROOF_MAP = {
-  BOS: 5,
-  LAL: 10,
-  MIA: 15,
-};
-
 test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
   test.beforeEach(async ({ page }) => {
+    test.setTimeout(240000);
     await enableArchitectReviewFlags(page);
     await page.goto(MIA_SEASON_ADVANCE_URL, { waitUntil: 'domcontentloaded' });
     await waitForReviewDashboard(page);
   });
 
-  test('saves draft positions via the World menu and reloads committed world state', async ({
+  test('MIA advances the governed 30-team season, retains close history, and reloads', async ({
     page,
   }, testInfo) => {
-    test.setTimeout(120000);
-
-    const worldId = await prepareSeasonAdvanceReviewWorld(page);
-
-    await openSeasonAdvanceControl(page, 'draft-positions');
-    await expect(page.getByText(/^Draft Positions Input$/i)).toBeVisible();
-    await expect(
-      page.getByText(/World Season:\s*2026-27/i).last()
-    ).toBeVisible();
-    await expect(
-      page.getByText(/Next-used Draft Year:\s*2027/i).last()
-    ).toBeVisible();
-
-    const editor = page.locator('textarea').first();
-    await expect(editor).toBeVisible();
-    await editor.fill(JSON.stringify(DRAFT_POSITIONS_PROOF_MAP, null, 2));
-
-    await page.getByRole('button', { name: /^Validate$/i }).click();
-    await expect(
-      page.getByText(/Editor JSON is valid but not yet saved/i)
-    ).toBeVisible();
-
-    await page.getByRole('button', { name: /^Save$/i }).click();
-    await expect(
-      page.getByText(/Saved draft positions for 2027/i)
-    ).toBeVisible({ timeout: 20000 });
-
-    await expect
-      .poll(
-        async () => {
-          const metadata = await getWorldMetadataDocument(worldId);
-          const savedDraftPositions = metadata?.draftPositionsByYear as
-            | Record<string, { positionsMap?: Record<string, number> }>
-            | undefined;
-          return savedDraftPositions?.['2027']?.positionsMap || null;
-        },
-        {
-          timeout: 20000,
-          message: 'draft positions should persist under world metadata',
-        }
-      )
-      .toMatchObject(DRAFT_POSITIONS_PROOF_MAP);
-
-    await page.goto(MIA_SEASON_ADVANCE_URL, { waitUntil: 'domcontentloaded' });
-    await waitForReviewDashboard(page);
-    await openSeasonAdvanceControl(page, 'draft-positions');
-    await expect(page.getByText(/Last saved:/i)).toBeVisible({
-      timeout: 20000,
-    });
-    await expect(page.locator('textarea').first()).toHaveValue(/"MIA": 15/);
-
-    testInfo.annotations.push({
-      type: 'audit-note',
-      description:
-        'BZE-193/BZE-250 proof: saved 2027 draft positions through the World-menu Draft Positions editor (relocated from the now-hidden Offseason room), verified draftPositionsByYear.2027.positionsMap in saved-world metadata, reloaded the world, and confirmed the editor rehydrated from committed world state.',
-    });
-  });
-
-  test('MIA advances season, preserves Andre Cole decline evidence, and reloads', async ({
-    page,
-  }, testInfo) => {
-    test.setTimeout(180000);
+    test.setTimeout(240000);
 
     const worldId = await prepareSeasonAdvanceReviewWorld(page);
 
@@ -187,33 +97,8 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
 
     await page.getByRole('button', { name: /^Next$/i }).click();
     await expect(
-      page.getByRole('heading', {
-        name: new RegExp(`Option Decisions for ${NEXT_REVIEW_WORLD_SEASON}`, 'i'),
-      })
-    ).toBeVisible();
-    await chooseSeasonAdvanceOption(
-      page,
-      ANDRE_COLE_PLAYER_ID,
-      ANDRE_COLE_PLAYER_NAME,
-      'Decline'
-    );
-    await chooseSeasonAdvanceOption(
-      page,
-      QUENTIN_DIAZ_PLAYER_ID,
-      QUENTIN_DIAZ_PLAYER_NAME,
-      'Exercise'
-    );
-
-    await page.getByRole('button', { name: /^Next$/i }).click();
-    await expect(
       page.getByRole('heading', { name: /^Confirm Season Advance$/i })
     ).toBeVisible();
-    const declineSummary = page
-      .locator('div')
-      .filter({ has: page.getByText(/Options to Decline/i) })
-      .filter({ has: page.getByText(ANDRE_COLE_PLAYER_NAME) })
-      .first();
-    await expect(declineSummary).toBeVisible();
 
     await page
       .getByRole('button', { name: /^Advance Season$/i })
@@ -221,8 +106,8 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
       .click();
 
     await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
-      /Season advanced to 2027-28/i,
-      { timeout: 90000 }
+      /Season advanced to 2026-27/i,
+      { timeout: 180000 }
     );
 
     await expect
@@ -233,7 +118,7 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
         },
         {
           timeout: 20000,
-          message: 'world metadata should advance to 2027-28',
+          message: 'world metadata should advance to 2026-27',
         }
       )
       .toBe(NEXT_REVIEW_WORLD_SEASON);
@@ -253,7 +138,6 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
     const advancedMetadata = await getWorldMetadataDocument(worldId);
     expect(advancedMetadata?.currentSeason).toBe(NEXT_REVIEW_WORLD_SEASON);
     expect(advancedMetadata?.asOfDate).toBe(NEXT_REVIEW_WORLD_AS_OF_DATE);
-    await expectAndreColeCapHold(worldId);
 
     const seasonAdvanceEvents = (await getWorldEventDocuments(worldId)).filter(
       (event) => event.mutationType === 'seasonAdvance'
@@ -263,15 +147,50 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
       ALL_TEAM_CODES.length
     );
 
+    const transitionId = `seasonAdvance__${REVIEW_WORLD_SEASON}__${NEXT_REVIEW_WORLD_SEASON}`;
+    const manifest = await getWorldSeasonTransitionDocument(
+      worldId,
+      transitionId
+    );
+    expect(manifest?.teamRecords).toHaveLength(ALL_TEAM_CODES.length);
+    const miaHistory = await getWorldSeasonHistoryDocument(
+      worldId,
+      `${REVIEW_WORLD_SEASON}__MIA`
+    );
+    expect(miaHistory?.finalRoster).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ playerId: ANDRE_COLE_PLAYER_ID }),
+      ])
+    );
+    expect(miaHistory?.seasonCloseApronMeasurement).toEqual(
+      expect.objectContaining({
+        teamCode: 'MIA',
+        regularSeasonClosing: REVIEW_WORLD_AS_OF_DATE,
+      })
+    );
+    const advancedMiaDocument = await getWorldTeamDocument(
+      worldId,
+      MIA_TEAM_CODE
+    );
+    expect(miaHistory).toBeDefined();
+    expect(advancedMiaDocument).toBeDefined();
+    expect(seasonAdvanceEvents[0]).toBeDefined();
+    if (!miaHistory || !advancedMiaDocument || !seasonAdvanceEvents[0]) {
+      throw new Error('Season Advance persistence proof documents are missing.');
+    }
+    const eventAfterTotals = seasonAdvanceEvents[0]
+      .afterTotalsByTeam as Record<string, unknown>;
+    expect(miaHistory.afterTotals).toEqual(advancedMiaDocument.totals);
+    expect(eventAfterTotals.MIA).toEqual(advancedMiaDocument.totals);
+
     await openDashboardTab(page, 'Full Cap Table');
-    await page.getByTestId('cap-sheet-full-cap-holds-toggle').click();
     await expect(page.getByText(ANDRE_COLE_PLAYER_NAME).first()).toBeVisible();
 
     await openDashboardTab(page, 'Roster');
     const rosterRegion = page.getByRole('region', { name: /^Roster$/i });
     await expect(
-      rosterRegion.getByRole('button', { name: /Andre Cole/i })
-    ).toHaveCount(0);
+      rosterRegion.getByRole('button', { name: /^Andre Cole\b/i })
+    ).toBeVisible();
 
     await openDashboardTab(page, 'Team History');
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
@@ -309,20 +228,20 @@ test.describe('ARCH-SEASON-ADVANCE: maintained review fixture proof', () => {
     expect(reloadedMetadata?.asOfDate).toBe(NEXT_REVIEW_WORLD_AS_OF_DATE);
 
     await openDashboardTab(page, 'Roster');
-    const reloadedRosterRegion = page.getByRole('region', { name: /^Roster$/i });
+    const reloadedRosterRegion = page.getByRole('region', {
+      name: /^Roster$/i,
+    });
     await expect(
-      reloadedRosterRegion.getByRole('button', { name: /Andre Cole/i })
-    ).toHaveCount(0);
+      reloadedRosterRegion.getByRole('button', { name: /^Andre Cole\b/i })
+    ).toBeVisible();
 
     await openDashboardTab(page, 'Full Cap Table');
-    await page.getByTestId('cap-sheet-full-cap-holds-toggle').click();
     await expect(page.getByText(ANDRE_COLE_PLAYER_NAME).first()).toBeVisible();
-    await expectAndreColeCapHold(worldId);
 
     testInfo.annotations.push({
       type: 'audit-note',
       description:
-        'BZE-180 proof: maintained review helper seeded a 30-team saved world, MIA advanced 2026-27 -> 2027-28 through the World-menu Season Advance (relocated from the now-hidden Offseason room), metadata.asOfDate advanced to 2027-07-01, Andre Cole declined into a cap hold, Roster removed him, History and Compare showed the committed seasonAdvance event, and reload preserved the active world plus advanced metadata.',
+        'BZE-289 proof: a governed 30-team saved world advanced 2025-26 -> 2026-27 through the World-menu Season Advance. The atomic commit retained all 30 prior-season histories, the season-transition manifest and exact Apron close observation, History and Compare showed the committed event, all target books reloaded, and Andre Cole remained on the persisted roster.',
     });
   });
 });

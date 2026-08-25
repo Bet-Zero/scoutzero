@@ -1,13 +1,14 @@
 import { expect, type Page } from '@playwright/test';
 import admin from 'firebase-admin';
+import { withDerivedGovernedSalaryBooks } from '../../../src/tests/fixtures/governedSalaryBookInputs';
 
 export const REVIEW_FIRESTORE_EMULATOR_HOST = '127.0.0.1:8082';
 export const REVIEW_FIRESTORE_PROJECT_ID = 'demo-architect-review';
-export const REVIEW_WORLD_SEASON = '2026-27';
-export const REVIEW_WORLD_AS_OF_DATE = '2026-07-01';
-export const NEXT_REVIEW_WORLD_SEASON = '2027-28';
-export const NEXT_REVIEW_WORLD_AS_OF_DATE = '2027-07-01';
-export const MIA_SEASON_ADVANCE_URL = '/gm/MIA?season=2027';
+export const REVIEW_WORLD_SEASON = '2025-26';
+export const REVIEW_WORLD_AS_OF_DATE = '2026-04-12';
+export const NEXT_REVIEW_WORLD_SEASON = '2026-27';
+export const NEXT_REVIEW_WORLD_AS_OF_DATE = '2026-07-01';
+export const MIA_SEASON_ADVANCE_URL = '/gm/MIA?season=2026';
 export const MIA_TEAM_CODE = 'MIA';
 export const ANDRE_COLE_PLAYER_ID = 'mia_andre_cole';
 export const ANDRE_COLE_PLAYER_NAME = 'Andre Cole';
@@ -91,7 +92,6 @@ const TEAM_NAMES: Record<TeamCode, string> = {
 
 const REVIEW_APP_NAME = 'season-advance-review-world';
 const STANDARD_ROSTER_TARGET = 15;
-const MIA_SUPPORT_PLAYERS_NEEDED_AFTER_ADVANCE = 5;
 
 const isRecord = (value: unknown): value is RecordLike =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -115,12 +115,6 @@ export const getReviewAdminDb = () => {
 export const getBaseTeamDocument = async (teamCode: string) =>
   (await getReviewAdminDb()
     .doc(`architect_baseTeams/${teamCode}`)
-    .get()
-    .then((snapshot) => snapshot.data())) as RecordLike | undefined;
-
-const getBasePlayerDocument = async (playerId: string) =>
-  (await getReviewAdminDb()
-    .doc(`architect_basePlayers/${playerId}`)
     .get()
     .then((snapshot) => snapshot.data())) as RecordLike | undefined;
 
@@ -165,6 +159,24 @@ export const getWorldEventDocuments = async (worldId: string) =>
         })
     )) as Array<RecordLike & { id: string }>;
 
+export const getWorldSeasonHistoryDocument = async (
+  worldId: string,
+  historyId: string
+) =>
+  (await getReviewAdminDb()
+    .doc(`architect_worlds/${worldId}/seasonHistory/${historyId}`)
+    .get()
+    .then((snapshot) => snapshot.data())) as RecordLike | undefined;
+
+export const getWorldSeasonTransitionDocument = async (
+  worldId: string,
+  transitionId: string
+) =>
+  (await getReviewAdminDb()
+    .doc(`architect_worlds/${worldId}/seasonTransitions/${transitionId}`)
+    .get()
+    .then((snapshot) => snapshot.data())) as RecordLike | undefined;
+
 export const getPlayerIdFromEntry = (entry: unknown) => {
   if (typeof entry === 'string') return entry;
   if (!isRecord(entry)) return '';
@@ -199,71 +211,6 @@ export const getCapHold = (
     if (!isRecord(hold)) return false;
     return String(hold.playerId || '') === playerId;
   }) as RecordLike | undefined;
-};
-
-const normalizeContractForReviewWorld = (
-  contract: RecordLike | null | undefined
-) => {
-  if (!contract) return contract ?? null;
-
-  return {
-    ...contract,
-    salariesByYear: Array.isArray(contract.salariesByYear)
-      ? contract.salariesByYear.map((row) =>
-          isRecord(row)
-            ? {
-                ...row,
-                capHit: row.capHit ?? row.salary ?? 0,
-                optionUsed:
-                  typeof row.optionUsed === 'boolean'
-                    ? row.optionUsed
-                    : (row.optionUsed ?? null),
-              }
-            : row
-        )
-      : [],
-  };
-};
-
-const buildHydratedPlayerEntry = (
-  playerId: string,
-  playerData: RecordLike | undefined,
-  teamCode: TeamCode,
-  teamName: string
-) => {
-  if (!playerData) {
-    return buildReviewDepthPlayer(teamCode, teamName, 1, playerId);
-  }
-
-  const bio = isRecord(playerData.bio) ? playerData.bio : {};
-  const contract = isRecord(playerData.contract) ? playerData.contract : null;
-  const futureContract = isRecord(playerData.futureContract)
-    ? playerData.futureContract
-    : null;
-  const resolvedPlayerId = String(playerData.playerId || playerId);
-  const displayName = String(playerData.displayName || playerId);
-
-  return {
-    id: resolvedPlayerId,
-    playerId: resolvedPlayerId,
-    player_id: resolvedPlayerId,
-    name: displayName,
-    displayName,
-    position: bio.position || '',
-    age: bio.age || null,
-    teamCode,
-    teamId: teamCode,
-    teamName,
-    contract: normalizeContractForReviewWorld(contract),
-    futureContract: normalizeContractForReviewWorld(futureContract),
-    bio: {
-      ...bio,
-      playerId: resolvedPlayerId,
-      displayName,
-    },
-    representation: playerData.representation || null,
-    original: playerData,
-  };
 };
 
 const buildReviewDepthPlayer = (
@@ -302,6 +249,7 @@ const buildReviewDepthPlayer = (
     representation: null,
     original: null,
     contract: {
+      contractId: `review-contract:${playerId}:${REVIEW_WORLD_SEASON}`,
       contractType: 'MINIMUM CONTRACT',
       isExtension: false,
       isRookieScale: false,
@@ -393,14 +341,14 @@ const buildBaseSnapshotShell = ({
   const tpeList = Array.isArray(exceptions.tpe) ? exceptions.tpe : [];
   const hardCapLevel = baseDoc.hardCapLevel || totals.hardCapLevel || null;
 
-  return {
+  const snapshot = {
     id: teamCode,
     teamCode,
     teamName,
     season: REVIEW_WORLD_SEASON,
     abbreviation: baseDoc.abbreviation || teamCode,
     players,
-    roster: players,
+    roster: players.map((player) => player.playerId),
     activeContracts: buildActiveContracts(players),
     capHolds: Array.isArray(baseDoc.capHolds) ? baseDoc.capHolds : [],
     deadCap: Array.isArray(baseDoc.deadCap) ? baseDoc.deadCap : [],
@@ -444,6 +392,12 @@ const buildBaseSnapshotShell = ({
       season: REVIEW_WORLD_SEASON,
     },
   };
+  return withDerivedGovernedSalaryBooks(snapshot, {
+    salaryCapYear: 2027,
+    asOfDate: '2026-07-01T00:00:00-04:00',
+    apronDelta: 0,
+    taxDelta: 0,
+  });
 };
 
 const buildMiaSeasonAdvanceSnapshot = async (worldId: string) => {
@@ -453,28 +407,42 @@ const buildMiaSeasonAdvanceSnapshot = async (worldId: string) => {
   }
 
   const teamName = String(baseDoc.teamName || TEAM_NAMES.MIA);
-  const rosterIds = toStringArray(baseDoc.roster);
-  const basePlayers = await Promise.all(
-    rosterIds.map(async (playerId) =>
-      buildHydratedPlayerEntry(
-        playerId,
-        await getBasePlayerDocument(playerId),
-        MIA_TEAM_CODE,
-        teamName
-      )
-    )
-  );
+  const namedProofPlayer = (
+    playerId: string,
+    displayName: string,
+    ordinal: number
+  ) => {
+    const player = buildReviewDepthPlayer(
+      MIA_TEAM_CODE,
+      teamName,
+      ordinal,
+      playerId
+    );
+    return {
+      ...player,
+      name: displayName,
+      displayName,
+      bio: { ...player.bio, displayName },
+    };
+  };
+  // Keep the browser proof deterministic: all 15 contracts are guaranteed in
+  // both governed seasons, so the fixture cannot manufacture an incomplete-
+  // roster charge while it is proving the Season Advance transaction itself.
+  const proofPlayers = [
+    namedProofPlayer(ANDRE_COLE_PLAYER_ID, ANDRE_COLE_PLAYER_NAME, 1),
+    namedProofPlayer(QUENTIN_DIAZ_PLAYER_ID, QUENTIN_DIAZ_PLAYER_NAME, 2),
+  ];
   const supportPlayers = Array.from(
-    { length: MIA_SUPPORT_PLAYERS_NEEDED_AFTER_ADVANCE },
+    { length: STANDARD_ROSTER_TARGET - proofPlayers.length },
     (_, index) =>
       buildReviewDepthPlayer(
         MIA_TEAM_CODE,
         teamName,
-        index + 1,
+        index + proofPlayers.length + 1,
         `mia_season_advance_support_${index + 1}`
       )
   );
-  const players = [...basePlayers, ...supportPlayers] as RecordLike[];
+  const players = [...proofPlayers, ...supportPlayers] as RecordLike[];
 
   return buildBaseSnapshotShell({
     worldId,
@@ -555,6 +523,19 @@ export const seedSeasonAdvanceReviewWorld = async (
       totalWaives: 0,
       totalRenounces: 0,
       teamsInvolved: ALL_TEAM_CODES.length,
+    },
+    contractBaselineVersion: 2,
+    contractSourceRelease: {
+      releaseId: 'review-contract-source-release',
+      releaseVersion: 1,
+      releaseDigest: `sha256:${'1'.repeat(64)}`,
+    },
+    contractBaselineEffectiveAt: '2026-06-05T12:19:56.526Z',
+    contractBaselineSalaryCapYear: 2026,
+    contractBaselineCoverage: {
+      total: ALL_TEAM_CODES.length * STANDARD_ROSTER_TARGET,
+      complete: ALL_TEAM_CODES.length * STANDARD_ROSTER_TARGET,
+      needsInput: 0,
     },
   });
 

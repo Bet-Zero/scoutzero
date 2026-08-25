@@ -64,6 +64,20 @@ service cloud.firestore {
         || addsFinalizedUnclaimedChild(worldId);
     }
 
+    function publishesSeasonTransition(worldId, transitionId, fromSeason, toSeason) {
+      let worldPath = /databases/$(database)/documents/architect_worlds/$(worldId);
+      let eventPath = /databases/$(database)/documents/architect_worlds/$(worldId)/events/$(transitionId);
+      let worldBefore = get(worldPath);
+      let worldAfter = getAfter(worldPath);
+      let eventAfter = getAfter(eventPath);
+      return worldBefore.data.currentSeason == fromSeason
+        && worldAfter.data.currentSeason == toSeason
+        && eventAfter.data.eventId == transitionId
+        && eventAfter.data.metadata.seasonTransitionId == transitionId
+        && eventAfter.data.metadata.fromSeason == fromSeason
+        && eventAfter.data.metadata.toSeason == toSeason;
+    }
+
     // Lists: strict owner-scoped access.
     match /lists/{listId} {
       allow read: if isAuthenticated()
@@ -155,7 +169,97 @@ service cloud.firestore {
 
       match /events/{eventId} {
         allow read: if isWorldOwner(worldId);
-        allow write: if isOpenForClientWorldWrites(worldId);
+        allow create: if isOpenForClientWorldWrites(worldId);
+        allow update, delete: if isOpenForClientWorldWrites(worldId)
+          && resource.data.get('mutationType', '') != 'seasonAdvance'
+          && resource.data.get('type', '') != 'seasonAdvance';
+      }
+
+      // Season-close snapshots and the league manifest are append-only. The
+      // transaction owns their deterministic identities; a client cannot edit
+      // or delete history after the 30-team transition commits.
+      match /seasonHistory/{historyId} {
+        allow read: if isWorldOwner(worldId);
+        allow create: if isOpenForClientWorldWrites(worldId)
+          && request.resource.data.keys().hasAll([
+            'schemaVersion',
+            'historyId',
+            'transitionId',
+            'worldId',
+            'teamCode',
+            'fromSeason',
+            'toSeason',
+            'seasonCloseDate',
+            'transitionEffectiveAt',
+            'preAdvanceState',
+            'preAdvanceStateDigest',
+            'finalRoster',
+            'finalRosterDigest',
+            'seasonCloseApronMeasurement',
+            'beforeTotals',
+            'afterTotals',
+            'contractEvents',
+            'entitlementStateDigest',
+            'authorityDigest'
+          ])
+          && request.resource.data.schemaVersion == 'season-history-v1'
+          && request.resource.data.historyId == historyId
+          && request.resource.data.worldId == worldId
+          && request.resource.data.transitionId is string
+          && publishesSeasonTransition(
+            worldId,
+            request.resource.data.transitionId,
+            request.resource.data.fromSeason,
+            request.resource.data.toSeason
+          )
+          && existsAfter(/databases/$(database)/documents/architect_worlds/$(worldId)/seasonTransitions/$(request.resource.data.transitionId))
+          && getAfter(/databases/$(database)/documents/architect_worlds/$(worldId)/seasonTransitions/$(request.resource.data.transitionId)).data.fromSeason == request.resource.data.fromSeason
+          && getAfter(/databases/$(database)/documents/architect_worlds/$(worldId)/seasonTransitions/$(request.resource.data.transitionId)).data.toSeason == request.resource.data.toSeason;
+        allow update, delete: if false;
+      }
+
+      match /seasonTransitions/{transitionId} {
+        allow read: if isWorldOwner(worldId);
+        allow create: if isOpenForClientWorldWrites(worldId)
+          && request.resource.data.keys().hasAll([
+            'schemaVersion',
+            'transitionId',
+            'operationId',
+            'eventId',
+            'worldId',
+            'fromSeason',
+            'toSeason',
+            'fromSalaryCapYear',
+            'toSalaryCapYear',
+            'seasonCloseDate',
+            'transitionEffectiveAt',
+            'committedAt',
+            'authority',
+            'authorityDigest',
+            'entitlementBoundary',
+            'preAdvanceMetadataDigest',
+            'teamRecords',
+            'reconciliation',
+            'canonLeafIds'
+          ])
+          && request.resource.data.schemaVersion == 'season-transition-manifest-v1'
+          && request.resource.data.transitionId == transitionId
+          && request.resource.data.eventId == transitionId
+          && request.resource.data.worldId == worldId
+          && request.resource.data.teamRecords is list
+          && request.resource.data.teamRecords.size() == 30
+          && request.resource.data.reconciliation.expectedTeamCount == 30
+          && request.resource.data.reconciliation.preparedTeamCount == 30
+          && request.resource.data.reconciliation.completeBookCount == 30
+          && request.resource.data.reconciliation.historyRecordCount == 30
+          && request.resource.data.reconciliation.entitlementPreservationCount == 30
+          && publishesSeasonTransition(
+            worldId,
+            transitionId,
+            request.resource.data.fromSeason,
+            request.resource.data.toSeason
+          );
+        allow update, delete: if false;
       }
 
       // A governed Offer Sheet is authored by the world owner, but its initial

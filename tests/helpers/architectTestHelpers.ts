@@ -371,6 +371,10 @@ export function createMockWorld({
     createdBy: userId,
     currentSeason,
     baselineSeason: currentSeason,
+    asOfDate:
+      currentSeason === '2025-26'
+        ? '2026-04-12'
+        : SAMPLE_WORLD_METADATA.asOfDate,
     parentWorldId,
     ...overrides,
   };
@@ -529,6 +533,7 @@ function createFillerPlayer(playerId: string, teamCode: string): MockPlayer {
       experience: 3,
     },
     contract: {
+      contractId: `${teamCode}:${playerId}:contract`,
       contractType: 'Standard',
       startSeason: '2025-26',
       endSeason: '2027-28',

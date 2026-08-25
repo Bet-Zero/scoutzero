@@ -35,7 +35,10 @@ vi.mock('@/firebaseConfig', () => ({
 }));
 
 vi.mock('firebase/firestore', () => ({
-  getDoc: vi.fn(),
+  getDoc: vi.fn(async () => ({
+    exists: () => false,
+    data: () => undefined,
+  })),
   writeBatch: vi.fn(() => ({
     set: mocks.batchSet,
     update: mocks.batchUpdate,
@@ -316,7 +319,7 @@ describe('Architect core logic blocker trio proof', () => {
     expect(mocks.buildTradeApplyPreparation).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the season-advance handoff/result path on the narrowed Offseason contracts', async () => {
+  it('fails closed before the offseason handoff when governed world metadata is unavailable', async () => {
     mocks.getWorldMetadata.mockResolvedValue({
       currentSeason: '2025-26',
     });
@@ -366,27 +369,14 @@ describe('Architect core logic blocker trio proof', () => {
       },
     });
 
-    expect(result.success).toBe(true);
-    expect(result.toSeason).toBe('2026-27');
-    expect(result.summary).toBeDefined();
-    expect(result.summary?.transitionedExceptions).toEqual(['room']);
-    expect(result.summary?.expiredTPEs).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: 'tpe_1', teamCode: 'BOS' }),
-      ])
-    );
-    expect(mocks.resolveOffseasonTransition).toHaveBeenCalledWith(
+    expect(result).toEqual(
       expect.objectContaining({
-        optionDecisions: {
-          player_1: { decision: 'decline', season: '2025-26' },
-        },
-        context: expect.objectContaining({
-          worldId: 'world_trio_season',
-          teamCode: 'BOS',
-        }),
+        success: false,
+        error: expect.stringMatching(/world metadata.*unavailable/i),
       })
     );
-    expect(mocks.batchCommit).toHaveBeenCalledTimes(1);
+    expect(mocks.resolveOffseasonTransition).not.toHaveBeenCalled();
+    expect(mocks.batchCommit).not.toHaveBeenCalled();
   });
 
   it('keeps mutation-shaped option validation working with numeric roster entries', () => {

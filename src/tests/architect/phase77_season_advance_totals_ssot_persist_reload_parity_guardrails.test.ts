@@ -238,20 +238,23 @@ describe('Phase 77: Source Scan Guardrails', () => {
     return bundle;
   };
 
-  it('TEST 1: seasonManager.ts imports computeTeamCapTotals from capTotals', () => {
+  it('TEST 1: seasonManager imports the canonical independent-book totals snapshot', () => {
     const content = readSeasonManagerBundle();
 
-    // Must import computeTeamCapTotals from capTotals barrel
+    // BZE-289 requires Team Salary, Apron Salary, and Tax Salary to remain
+    // independent, so Season Advance uses the canonical snapshot builder.
     expect(content).toContain(
-      "import { computeTeamCapTotals } from '@/features/architect/utils/capTotals'"
+      "import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals'"
     );
   });
 
-  it('TEST 2: seasonManager.ts calls computeTeamCapTotals during season transition', () => {
+  it('TEST 2: seasonManager recalculates governed totals during season transition', () => {
     const content = readSeasonManagerBundle();
 
-    // Must call computeTeamCapTotals with team and toYear
-    expect(content).toContain('computeTeamCapTotals(updatedTeam, toYear)');
+    expect(content).toContain('createCanonicalTeamTotalsSnapshot(');
+    expect(content).toContain(
+      'capProjections: resolutionContext.capProjections'
+    );
 
     // Must have Phase 77 comment marker
     expect(content).toMatch(/PHASE 77.*SSOT/i);

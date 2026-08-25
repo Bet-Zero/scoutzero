@@ -64,6 +64,9 @@ export const ARCHITECT_WORLD_TEAMS_SUBCOLLECTION = 'teams';
 export const ARCHITECT_WORLD_PLAYERS_SUBCOLLECTION = 'players';
 export const ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION = 'entitlements';
 export const ARCHITECT_WORLD_EVENTS_SUBCOLLECTION = 'events';
+export const ARCHITECT_WORLD_SEASON_HISTORY_SUBCOLLECTION = 'seasonHistory';
+export const ARCHITECT_WORLD_SEASON_TRANSITIONS_SUBCOLLECTION =
+  'seasonTransitions';
 export const ARCHITECT_WORLD_FREE_AGENT_POOLS_SUBCOLLECTION = 'freeAgentPools';
 export const ARCHITECT_WORLD_CONTRACT_BASELINES_SUBCOLLECTION =
   'contractBaselines';
@@ -92,8 +95,7 @@ export const EVALUATIONS_SUBCOLLECTION = 'evaluations';
  * - playerProfileEvaluations/{ownerUid}/players/{playerId}
  */
 export const PLAYER_PROFILE_EVALUATIONS_COLLECTION =
-  env.VITE_PLAYER_PROFILE_EVALUATIONS_COLLECTION ||
-  'playerProfileEvaluations';
+  env.VITE_PLAYER_PROFILE_EVALUATIONS_COLLECTION || 'playerProfileEvaluations';
 export const PLAYER_PROFILE_EVALUATION_PLAYERS_SUBCOLLECTION = 'players';
 
 /**

@@ -380,6 +380,8 @@ export function buildSeasonAdvanceSuccessResult({
 
   return {
     success: true,
+    persistenceConfirmed: advanceResult.persistenceConfirmed,
+    confirmationWarning: advanceResult.confirmationError,
     toSeason: committedState.metadata.currentSeason,
     updatedTeams: committedState.metadata.lastModifiedTeams,
     summary: normalizedSummary,

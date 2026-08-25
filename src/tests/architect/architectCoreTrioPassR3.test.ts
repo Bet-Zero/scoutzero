@@ -38,7 +38,10 @@ vi.mock('@/firebaseConfig', () => ({
 }));
 
 vi.mock('firebase/firestore', () => ({
-  getDoc: vi.fn(),
+  getDoc: vi.fn(async () => ({
+    exists: () => false,
+    data: () => undefined,
+  })),
   writeBatch: vi.fn(() => ({
     set: mocks.batchSet,
     update: mocks.batchUpdate,
@@ -461,7 +464,7 @@ describe('Architect core trio pass R3 proof', () => {
     );
   });
 
-  it('returns the advanced season summary through advanceSeasonInWorld', async () => {
+  it('fails closed before returning a summary when governed world metadata is unavailable', async () => {
     mocks.getWorldMetadata.mockResolvedValue({
       currentSeason: '2025-26',
     });
@@ -509,14 +512,13 @@ describe('Architect core trio pass R3 proof', () => {
       },
     });
 
-    expect(result.success).toBe(true);
-    expect(result.toSeason).toBe('2026-27');
-    expect(result.summary).toBeDefined();
-    expect(result.summary?.transitionedExceptions).toEqual(['room']);
-    expect(result.summary?.expiredTPEs).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: 'tpe_1', teamCode: 'BOS' }),
-      ])
+    expect(result).toEqual(
+      expect.objectContaining({
+        success: false,
+        error: expect.stringMatching(/world metadata.*unavailable/i),
+      })
     );
+    expect(mocks.resolveOffseasonTransition).not.toHaveBeenCalled();
+    expect(mocks.batchCommit).not.toHaveBeenCalled();
   });
 });
