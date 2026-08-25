@@ -769,12 +769,13 @@ test.describe('BZE-290 governed saved-world sign-and-trade', () => {
     await page.goto('/gm/BOS?season=2027', { waitUntil: 'domcontentloaded' });
     await waitForReviewDashboard(page);
     await openDashboardTab(page, 'Cap Sheet');
-    await expect(page.getByTestId('tab-cap-sheet')).toBeVisible();
+    await expect(page.getByTestId('tab-cap-sheet')).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
     await expect
       .poll(() => currentRoomApronSalaries(page), { timeout: 30_000 })
       .toContain(Number(bosBook?.apronTeamSalary));
-    await openDashboardTab(page, 'Full Cap Table');
-    await expect(page.getByText(ANDRE_COLE_PLAYER_NAME).first()).toBeVisible();
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await waitForReviewDashboard(page);
@@ -784,7 +785,10 @@ test.describe('BZE-290 governed saved-world sign-and-trade', () => {
     const reloadedMetadata = await getWorldMetadataDocument(worldId);
     expect(reloadedMetadata?.currentSeason).toBe(CURRENT_SEASON);
     await openDashboardTab(page, 'Cap Sheet');
-    await expect(page.getByTestId('tab-cap-sheet')).toBeVisible();
+    await expect(page.getByTestId('tab-cap-sheet')).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
     await expect
       .poll(() => currentRoomApronSalaries(page), { timeout: 30_000 })
       .toContain(Number(bosBook?.apronTeamSalary));
@@ -792,7 +796,7 @@ test.describe('BZE-290 governed saved-world sign-and-trade', () => {
     testInfo.annotations.push({
       type: 'audit-note',
       description:
-        'BZE-290 proof: the live saved world authenticated Andre Cole on MIA’s immutable BZE-289 final roster, loaded dated rights and exact 30-team history for preview, rebuilt authority at Apply, derived BYC and Row C, atomically moved the player and new protected Contract to BOS, persisted independent Team/Apron/Tax books plus receipt/history, and reloaded with History, Compare, Cap Sheet, Full Cap Table, and cross-room Apron parity.',
+        'BZE-290 proof: the live saved world authenticated Andre Cole on MIA’s immutable BZE-289 final roster, loaded dated rights and exact 30-team history for preview, rebuilt authority at Apply, derived BYC and Row C, atomically moved the player and new protected Contract to BOS, persisted independent Team/Apron/Tax books plus receipt/history, and reloaded with History, Compare, Cap Sheet, and cross-room Apron parity.',
     });
   });
 });

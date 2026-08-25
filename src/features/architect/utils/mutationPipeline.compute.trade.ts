@@ -27,6 +27,7 @@ import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/ca
 import { GovernedSignAndTradeReceiptZ } from '@/schemas/governedSignAndTrade';
 import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
 import { normalizeTradeTeamCodeLike } from '@/features/architect/utils/tradeContext/tradeContext';
+import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
 import type { TradeContextCurrentState } from '@/features/architect/utils/tradeContext/types';
 import type {
   ComputeResultLike,
@@ -418,6 +419,28 @@ export function computeTradeResult({
       };
     }
     destinationPlayer.contract = normalizedContract;
+    const signingEnvelope = resolveGovernedSeasonEnvelope({
+      asOfDate: authority.transactionAt,
+      salaryCapYear: authority.salaryCapYear,
+      requiredAuthority: 'official',
+      team: {
+        teamId: authority.destinationTeamId,
+        teamCode: authority.destinationTeamId,
+        worldId: authority.worldId,
+      },
+    });
+    if (
+      signingEnvelope.status !== 'complete' ||
+      !signingEnvelope.inputManifest ||
+      mutationSnapshotDigest(signingEnvelope.inputManifest) !==
+        mutationSnapshotDigest(authority.seasonInputManifest)
+    ) {
+      return {
+        success: false,
+        error:
+          'Governed sign-and-trade signing authority no longer matches the live official Season inputs.',
+      };
+    }
     const signingAuthority: GovernedSigningAuthority = {
       worldDate: authority.transactionAt,
       effectiveAt: authority.transactionAt,
@@ -427,8 +450,7 @@ export function computeTradeResult({
       firstYearCapHit: authority.contract.rows[0].capHit,
       exceptionCharge: authority.contract.firstSeasonSalary,
       canonLeafIds: authority.canonLeafIds,
-      seasonInputManifest:
-        authority.seasonInputManifest as unknown as GovernedSigningAuthority['seasonInputManifest'],
+      seasonInputManifest: signingEnvelope.inputManifest,
     };
     const signingHistory = buildGovernedSigningHistory({
       contract: normalizedContract,

@@ -149,11 +149,11 @@ function requireMatchingSnapshot(
 }
 
 function activeRootAmount(
-  root: Record<string, unknown>,
+  root: { readonly amountRecords: readonly unknown[] },
   kind: string,
   salaryCapYear: number
 ): number {
-  const rows = Array.isArray(root.amountRecords) ? root.amountRecords : [];
+  const rows = root.amountRecords;
   const matches = rows.filter((entry) => {
     const row = record(entry);
     return (
@@ -727,29 +727,28 @@ export function buildGovernedSignAndTradeAuthority(
       'A prior one-Season Minimum Contract requires authenticated League-reimbursement authority that this V1 does not invent.'
     );
   }
-  const rootRecord = root as unknown as Record<string, unknown>;
   const priorSalary = activeRootAmount(
-    rootRecord,
+    root,
     'prior-regular-salary',
     metadataYear
   );
   const priorSigningBonusAllocation = activeRootAmount(
-    rootRecord,
+    root,
     'prior-signing-bonus-allocation',
     metadataYear
   );
   const earnedPerformanceBonuses = activeRootAmount(
-    rootRecord,
+    root,
     'earned-performance-bonuses',
     metadataYear
   );
   const applicableMinimum = activeRootAmount(
-    rootRecord,
+    root,
     'applicable-minimum-salary',
     metadataYear
   );
   const applicableMaximum = activeRootAmount(
-    rootRecord,
+    root,
     'applicable-maximum-salary',
     metadataYear
   );
