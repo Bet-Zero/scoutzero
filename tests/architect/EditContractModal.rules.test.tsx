@@ -1,5 +1,11 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  cleanup,
+  waitFor,
+} from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { EditContractModal } from '@/shared/components/EditContractModal';
 
@@ -10,8 +16,15 @@ type TeamSelectDropdownProps = {
 
 // Stub TeamSelectDropdown so the S&T destination picker is testable
 vi.mock('@/shared/components/TeamSelectDropdown', () => {
-  const TeamSelectDropdown = ({ selectedTeamId, onChange }: TeamSelectDropdownProps) => (
-    <select data-testid="team-select" value={selectedTeamId || ''} onChange={(e) => onChange(e.target.value)}>
+  const TeamSelectDropdown = ({
+    selectedTeamId,
+    onChange,
+  }: TeamSelectDropdownProps) => (
+    <select
+      data-testid="team-select"
+      value={selectedTeamId || ''}
+      onChange={(e) => onChange(e.target.value)}
+    >
       <option value="">Select Team</option>
       <option value="BOS">Boston Celtics</option>
     </select>
@@ -36,7 +49,12 @@ const BASE_PLAYER = {
     contractType: 'Standard',
     originalLength: 3,
     salariesByYear: [
-      { season: '2024-25', salary: 12_000_000, capHit: 12_000_000, guaranteed: true },
+      {
+        season: '2024-25',
+        salary: 12_000_000,
+        capHit: 12_000_000,
+        guaranteed: true,
+      },
     ],
     freeAgency: {
       type: 'Unrestricted',
@@ -228,7 +246,9 @@ describe('EditContractModal — PlayerRulesProfile integration', () => {
     expect(screen.getByText(/rights\/exception/i)).toBeInTheDocument();
     expect(screen.getByText(/first-year range/i)).toBeInTheDocument();
 
-    const salaryInput = screen.getAllByPlaceholderText('0')[0] as HTMLInputElement;
+    const salaryInput = screen.getAllByPlaceholderText(
+      '0'
+    )[0] as HTMLInputElement;
     fireEvent.change(salaryInput, { target: { value: '1000000' } });
     await waitFor(() => {
       const parsed = Number(salaryInput.value.replace(/[^0-9]/g, ''));
@@ -236,13 +256,13 @@ describe('EditContractModal — PlayerRulesProfile integration', () => {
     });
 
     fireEvent.change(salaryInput, { target: { value: '20000000' } });
-    const secondYearInput = screen.getAllByPlaceholderText('0')[1] as HTMLInputElement;
+    const secondYearInput = screen.getAllByPlaceholderText(
+      '0'
+    )[1] as HTMLInputElement;
     fireEvent.change(secondYearInput, { target: { value: '25000000' } });
 
     await waitFor(() => {
-      const parsed = Number(
-        secondYearInput.value.replace(/[^0-9]/g, '')
-      );
+      const parsed = Number(secondYearInput.value.replace(/[^0-9]/g, ''));
       expect(parsed).toBeLessThanOrEqual(21_600_000);
     });
   });
@@ -269,10 +289,12 @@ describe('EditContractModal — Override validation enforcement', () => {
     const confirmButton = screen.getByRole('button', {
       name: /authoritative preflight pending/i,
     });
-    
+
     await waitFor(() => {
       expect(confirmButton).toBeDisabled();
-      expect(confirmButton).toHaveTextContent(/authoritative preflight pending/i);
+      expect(confirmButton).toHaveTextContent(
+        /authoritative preflight pending/i
+      );
     });
   });
 
@@ -312,7 +334,9 @@ describe('EditContractModal — Override validation enforcement', () => {
       name: /authoritative preflight pending/i,
     });
     expect(confirmButton).toBeDisabled();
-    expect(screen.queryByRole('button', { name: /force override/i })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: /force override/i })
+    ).toBeNull();
   });
 
   it('does not emit an override audit for a governed evidence block', () => {
@@ -384,12 +408,16 @@ describe('EditContractModal — Override validation enforcement', () => {
     // Wait for initial state
     await waitFor(() => {
       // With default prefill from rules profile, should be legal
-      const confirmButton = screen.getByRole('button', { name: /confirm action/i });
+      const confirmButton = screen.getByRole('button', {
+        name: /confirm action/i,
+      });
       expect(confirmButton).toBeEnabled();
     });
 
     // Advanced Override section should NOT be visible
-    expect(screen.queryByText(/Advanced: Override Validation/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Advanced: Override Validation/i)
+    ).not.toBeInTheDocument();
   });
 
   it('offers the governed fifth Rookie Scale extension Season', () => {
@@ -430,17 +458,18 @@ describe('EditContractModal — Sign & Trade callback wiring (Gap C guard)', () 
     const faPlayer = {
       name: 'Trade Target',
       player_id: 'tt_1',
-      freeAgentYear: 2025,
+      freeAgentYear: 2027,
     };
 
-    render(
+    const { container } = render(
       <EditContractModal
         isOpen
         onClose={() => {}}
         player={faPlayer}
         teamCapSheet={TEAM_CAP_SHEET}
-        currentYear={2025}
-        worldAsOfDate="2024-07-08"
+        currentYear={2027}
+        worldAsOfDate="2026-07-15T12:00:00-04:00"
+        initialAction="signAndTrade"
         onSignAndTrade={mockOnSignAndTrade}
         getSignAndTradePreflight={mockGetSignAndTradePreflight}
         actionContext="freeAgent"
@@ -456,9 +485,26 @@ describe('EditContractModal — Sign & Trade callback wiring (Gap C guard)', () 
     const teamSelect = screen.getByTestId('team-select');
     fireEvent.change(teamSelect, { target: { value: 'BOS' } });
 
+    const salaryInputs = container.querySelectorAll<HTMLInputElement>(
+      'input[inputmode="decimal"]'
+    );
+    fireEvent.change(salaryInputs[0], { target: { value: '20000000' } });
+    fireEvent.change(salaryInputs[1], { target: { value: '21000000' } });
+    fireEvent.change(salaryInputs[2], { target: { value: '22000000' } });
+    fireEvent.change(screen.getByTestId('governed-sat-transaction-at'), {
+      target: { value: '2026-07-15T12:00:00-04:00' },
+    });
+    fireEvent.change(screen.getByTestId('governed-sat-higher-max'), {
+      target: { value: 'not-relied-upon' },
+    });
+    fireEvent.click(screen.getByTestId('governed-sat-consent'));
+    fireEvent.click(screen.getByTestId('governed-sat-exhibit-6'));
+
     // If validation blocks, unlock via override
     await waitFor(() => {
-      const advancedToggle = screen.queryByText(/Advanced: Override Validation/i);
+      const advancedToggle = screen.queryByText(
+        /Advanced: Override Validation/i
+      );
       if (advancedToggle) {
         fireEvent.click(advancedToggle);
         const input = screen.getByPlaceholderText('OVERRIDE');

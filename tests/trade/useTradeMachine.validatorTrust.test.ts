@@ -2,9 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import capProjections from '@/features/architect/utils/capProjections';
-import type {
-  NormalizedPlayer,
-} from '@/features/architect/utils/tradeMachine/constants/types';
+import type { NormalizedPlayer } from '@/features/architect/utils/tradeMachine/constants/types';
 
 const worldTeamDataMocks = vi.hoisted(() => ({
   loadWorldTeamData: vi.fn(),
@@ -41,18 +39,17 @@ const makePlayer = (
     playerId: id,
     position: extra.position ?? 'G',
   },
-  contract:
-    extra.contract || {
-      contractType: extra.contractType,
-      salariesByYear: [
-        {
-          season: SEASON,
-          salary,
-          capHit: salary,
-          guaranteed: extra.guaranteed ?? true,
-        },
-      ],
-    },
+  contract: extra.contract || {
+    contractType: extra.contractType,
+    salariesByYear: [
+      {
+        season: SEASON,
+        salary,
+        capHit: salary,
+        guaranteed: extra.guaranteed ?? true,
+      },
+    ],
+  },
   ...extra,
 });
 
@@ -229,11 +226,20 @@ describe('useTradeMachine validator trust contract', () => {
     );
 
     act(() => {
-      result.current.setPlayerTrade(0, definedOutgoingSatPlayer, 'signAndTrade', 'BOS', {
-        signAndTradeContract: makeSatContract(15_000_000),
-      });
+      result.current.setPlayerTrade(
+        0,
+        definedOutgoingSatPlayer,
+        'signAndTrade',
+        'BOS',
+        {
+          signAndTradeContract: makeSatContract(15_000_000),
+          destinationTeamCode: 'BOS',
+        }
+      );
       result.current.setPlayerTrade(1, definedIncomingCounter, 'trade', 'LAL');
     });
+
+    expect(result.current.teams[0]?.sends[0]?.receivingTeamId).toBe('BOS');
 
     act(() => {
       result.current.setForceTrade(true);

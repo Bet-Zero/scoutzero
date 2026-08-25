@@ -8,6 +8,7 @@ import type { validateSignAndTradeContractPayload } from '@/features/architect/u
 import type { FullLegalityPreviewResult } from '@/features/architect/utils/tradeContext/tradeContext';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
+import type { GovernedSignAndTradeProposal } from '@/schemas/governedSignAndTrade';
 
 export type UnknownRecord = Record<string, unknown>;
 
@@ -21,6 +22,8 @@ export type TradeMachineActionMeta = UnknownRecord & {
   signAndTradeContract?: Parameters<
     typeof validateSignAndTradeContractPayload
   >[0];
+  governedSignAndTradeProposal?: GovernedSignAndTradeProposal;
+  destinationTeamCode?: string;
 };
 
 export type TradeMachineTeam = UnknownRecord & {

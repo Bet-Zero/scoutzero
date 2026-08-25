@@ -70,10 +70,13 @@ export function useTradeMachinePlayerOps({
 
               const signAndTradePatch = {
                 tradeTo: destTeamId,
+                receivingTeamId: actionMeta?.destinationTeamCode,
                 signAndTrade: true,
                 signAndTradeContract: validation.contract,
                 contractYears: validation.contract.contractYears,
                 firstYearGuaranteed: validation.contract.firstYearGuaranteed,
+                governedSignAndTradeProposal:
+                  actionMeta?.governedSignAndTradeProposal,
               };
 
               if (playerIndex === -1) {

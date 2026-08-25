@@ -19,6 +19,10 @@ import type {
 } from './types';
 import { TradeSalaryMatchingElectionZ } from '@/schemas/tradeSalaryMatchingPath';
 import { GovernedTradeSalaryBasisZ } from '@/schemas/governedTradeSalaryBasis';
+import {
+  GovernedSignAndTradeAuthorityZ,
+  GovernedSignAndTradeProposalZ,
+} from '@/schemas/governedSignAndTrade';
 
 export function normalizeTradePayloadPlayer({
   player,
@@ -48,11 +52,18 @@ export function normalizeTradePayloadPlayer({
   const governedTradeSalaryBasis = GovernedTradeSalaryBasisZ.safeParse(
     player?.governedTradeSalaryBasis
   );
-  const tradeTo = resolveOutgoingTradeDestinationTeamCode({
+  const governedSignAndTradeAuthority =
+    GovernedSignAndTradeAuthorityZ.safeParse(
+      player?.governedSignAndTradeAuthority
+    );
+  const resolvedDestinationTeamCode = resolveOutgoingTradeDestinationTeamCode({
     payloadTeamCodes,
     senderIndex,
     player: player ?? {},
   });
+  const receivingTeamId = normalizeTradeTeamCodeLike(player?.receivingTeamId);
+  const tradeTo =
+    toNonEmptyString(player?.tradeTo) ?? resolvedDestinationTeamCode;
 
   if (playerId !== undefined) normalized.player_id = playerId;
   if (name !== undefined) normalized.name = name;
@@ -67,8 +78,21 @@ export function normalizeTradePayloadPlayer({
   if (player?.signAndTradeContract != null) {
     normalized.signAndTradeContract = player.signAndTradeContract;
   }
+  const governedSignAndTradeProposal = GovernedSignAndTradeProposalZ.safeParse(
+    player?.governedSignAndTradeProposal
+  );
+  if (governedSignAndTradeProposal.success) {
+    normalized.governedSignAndTradeProposal = governedSignAndTradeProposal.data;
+  }
+  if (governedSignAndTradeAuthority.success) {
+    normalized.governedSignAndTradeAuthority =
+      governedSignAndTradeAuthority.data;
+  }
   if (governedTradeSalaryBasis.success) {
     normalized.governedTradeSalaryBasis = governedTradeSalaryBasis.data;
+  }
+  if (receivingTeamId !== null) {
+    normalized.receivingTeamId = receivingTeamId;
   }
   if (tradeTo !== null) normalized.tradeTo = tradeTo;
 

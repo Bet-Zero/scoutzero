@@ -94,12 +94,7 @@ function buildBuyoutLifecycle(teamCode: string): GovernedWaiverLifecycle {
         EXACT_EXPIRY,
         `${teamCode}-waiver-event-3`
       ),
-      event(
-        5,
-        'set-off-authority',
-        EXACT_EXPIRY,
-        `${teamCode}-waiver-event-4`
-      ),
+      event(5, 'set-off-authority', EXACT_EXPIRY, `${teamCode}-waiver-event-4`),
     ],
     originalContractSeasons: ['2026-27'],
     protectedBaseCompensation: PENDING_TEAM_SALARY,
@@ -130,46 +125,49 @@ function buildBuyoutLifecycle(teamCode: string): GovernedWaiverLifecycle {
 }
 
 function buildGovernedTeam(teamCode: 'LAL' | 'BOS'): TradeMachineTeam {
-  return withGovernedSalaryBooks({
-    id: teamCode,
-    teamCode,
-    teamName: teamCode === 'LAL' ? 'Los Angeles Lakers' : 'Boston Celtics',
-    abbreviation: teamCode,
-    players: Array.from({ length: 15 }, (_, index) => ({
-      id: `${teamCode}-player-${index}`,
-      player_id: `${teamCode}-player-${index}`,
-      name: `${teamCode} Player ${index}`,
-      contract: {
-        contractType: 'STANDARD',
-        salariesByYear: [
-          {
-            season: '2026-27',
-            salary: 0,
-            capHit: 0,
-            guaranteed: true,
-          },
-        ],
-      },
-    })),
-    capHolds: [],
-    deadCap: [
-      {
-        playerId: `${teamCode}-waived-player`,
-        playerName: `${teamCode} Waived Player`,
-        originalSalary: PENDING_TEAM_SALARY,
-        amountByYear: [{ season: '2026-27', amount: 1 }],
-        waiveDate: '2026-06-29T12:00:00-04:00',
-        governedLifecycle: buildBuyoutLifecycle(teamCode),
-      },
-    ],
-    entitlementIds: [],
-    entitlements: [],
-    totals: {},
-  }, {
-    salaryCapYear: 2027,
-    asOfDate: BEFORE_EXPIRY,
-    teamSalary: PENDING_TEAM_SALARY,
-  }) as TradeMachineTeam;
+  return withGovernedSalaryBooks(
+    {
+      id: teamCode,
+      teamCode,
+      teamName: teamCode === 'LAL' ? 'Los Angeles Lakers' : 'Boston Celtics',
+      abbreviation: teamCode,
+      players: Array.from({ length: 15 }, (_, index) => ({
+        id: `${teamCode}-player-${index}`,
+        player_id: `${teamCode}-player-${index}`,
+        name: `${teamCode} Player ${index}`,
+        contract: {
+          contractType: 'STANDARD',
+          salariesByYear: [
+            {
+              season: '2026-27',
+              salary: 0,
+              capHit: 0,
+              guaranteed: true,
+            },
+          ],
+        },
+      })),
+      capHolds: [],
+      deadCap: [
+        {
+          playerId: `${teamCode}-waived-player`,
+          playerName: `${teamCode} Waived Player`,
+          originalSalary: PENDING_TEAM_SALARY,
+          amountByYear: [{ season: '2026-27', amount: 1 }],
+          waiveDate: '2026-06-29T12:00:00-04:00',
+          governedLifecycle: buildBuyoutLifecycle(teamCode),
+        },
+      ],
+      entitlementIds: [],
+      entitlements: [],
+      totals: {},
+    },
+    {
+      salaryCapYear: 2027,
+      asOfDate: BEFORE_EXPIRY,
+      teamSalary: PENDING_TEAM_SALARY,
+    }
+  ) as TradeMachineTeam;
 }
 
 const emptySlots = (): TradeMachineTeamSlot[] => [
@@ -310,7 +308,11 @@ describe('BZE-284 governed Trade Machine date forwarding', () => {
       .mockResolvedValueOnce(buildGovernedTeam('LAL'));
 
     const { result, rerender } = renderHook(
-      ({ capProjections }: { capProjections: Record<string, never> | null }) => {
+      ({
+        capProjections,
+      }: {
+        capProjections: Record<string, never> | null;
+      }) => {
         const [teams, setTeams] = useState<TradeMachineTeamSlot[]>(emptySlots);
         const [initError, setInitError] = useState<string | null>(null);
         const lastInitInputsRef = useRef<null | {
@@ -415,13 +417,55 @@ describe('BZE-284 governed Trade Machine date forwarding', () => {
 
     expect(result.current.handleValidate()).toBe('started');
 
-    const preparationInput = harness.buildTradeApplyPreparation.mock.calls[0]?.[0];
+    const preparationInput =
+      harness.buildTradeApplyPreparation.mock.calls[0]?.[0];
     expect(
       preparationInput.currentState.teams.map(
         (entry: { team: TradeMachineTeam }) => entry.team.teamTotalSalary
       )
     ).toEqual([TERMINATED_TEAM_SALARY, TERMINATED_TEAM_SALARY]);
     expect(preparationInput.payload.tradeCtx.asOfDate).toBe(EXACT_EXPIRY);
+  });
+
+  it('repairs missing independent Apron and Tax books even when Team Salary is populated', () => {
+    vi.useFakeTimers();
+    const teams = (['LAL', 'BOS'] as const).map((teamCode) => ({
+      team: {
+        ...buildGovernedTeam(teamCode),
+        teamTotalSalary: PENDING_TEAM_SALARY,
+        apronTeamSalary: null,
+        taxSalary: null,
+      } as TradeMachineTeam,
+      sends: [],
+      entitlementsOut: [],
+    }));
+
+    const { result } = renderHook(() =>
+      useTradeMachineValidation({
+        teams,
+        capProjections: null,
+        yearKey: 2027,
+        worldId: 'world-date-forwarding',
+        worldAsOfDate: EXACT_EXPIRY,
+        forceTrade: false,
+        currentDraftKey: 'independent-book-repair',
+        setSnapshotValidationDetails: vi.fn(),
+        setPreviewAuthority: vi.fn(),
+        setIsValidating: vi.fn(),
+        lastValidatedDraftKeyRef: { current: null },
+        validatedAtRef: { current: null },
+      })
+    );
+
+    expect(result.current.handleValidate()).toBe('started');
+    const preparedTeams =
+      harness.buildTradeApplyPreparation.mock.calls.at(-1)?.[0].currentState
+        .teams;
+    expect(preparedTeams).toHaveLength(2);
+    preparedTeams.forEach((entry: { team: TradeMachineTeam }) => {
+      expect(Number.isFinite(entry.team.apronTeamSalary)).toBe(true);
+      expect(Number.isFinite(entry.team.taxSalary)).toBe(true);
+    });
   });
 
   it('recomputes Trade Team Card salary totals from the governed date', () => {

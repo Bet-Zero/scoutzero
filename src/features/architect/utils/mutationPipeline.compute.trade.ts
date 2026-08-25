@@ -16,6 +16,16 @@ import { applyTradeExceptionLifecycle } from '@/features/architect/utils/tradeMa
 import { appendExceptionHistory } from '@/features/architect/utils/exceptionHistory/historyHelpers';
 import { assertTradeComputeInputs } from '@/features/architect/utils/tradeContext';
 import { createTradeHardCapLedgerEntry } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
+import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
+import { buildGovernedSigningHistory } from '@/features/architect/utils/signings';
+import type { GovernedSigningAuthority } from '@/features/architect/utils/signings';
+import {
+  appendSigningSalaryBookAdjustments,
+  updateIncompleteRosterChargeAfterSigning,
+} from './mutationPipeline.compute.signings.signing';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
+import { GovernedSignAndTradeReceiptZ } from '@/schemas/governedSignAndTrade';
+import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
 import { normalizeTradeTeamCodeLike } from '@/features/architect/utils/tradeContext/tradeContext';
 import type { TradeContextCurrentState } from '@/features/architect/utils/tradeContext/types';
 import type {
@@ -34,7 +44,11 @@ import type {
   TradeTpeConsumptionIssue,
   TradeValidatedContextLike,
   TradeValidationApplyTimeSlice,
+  ArchitectMutationContract,
+  ArchitectMutationPlayerRecord,
+  ArchitectMutationTeamRecord,
 } from './mutationPipeline';
+import type { GovernedSignAndTradeAuthority } from '@/schemas/governedSignAndTrade';
 
 export function getTradeValidationApplyTimeSlice(
   validatedContext: TradeValidatedContextLike
@@ -65,6 +79,7 @@ export function computeTradeResult({
   historyContext = {},
   postTradeSnapshot,
   validatedContext,
+  governedSignAndTradeAuthority = null,
 }: {
   payload: TradeMutationPayload;
   currentState: TradeContextCurrentState;
@@ -73,6 +88,7 @@ export function computeTradeResult({
   historyContext?: TradeHistoryContextLike;
   postTradeSnapshot: TradeSnapshotLike;
   validatedContext: TradeValidatedContextLike;
+  governedSignAndTradeAuthority?: GovernedSignAndTradeAuthority | null;
 }): ComputeResultLike {
   // Phase 58: Use shared assertions from tradeContext module
   // (replaces Phase 56 inline checks with centralized assertions)
@@ -185,14 +201,15 @@ export function computeTradeResult({
     const transactionId =
       resolvedMutationId || `${resolvedMutationType}:${timestamp}`;
     const ledgerTeamCode = teamUpdate.teamCode;
-    const hardCapEntry = ledgerTeamCode && teamResult.apronRestrictionEvaluation
-      ? createTradeHardCapLedgerEntry({
-          evaluation: teamResult.apronRestrictionEvaluation,
-          teamCode: ledgerTeamCode,
-          transactionId,
-          effectiveAt: timestampISO,
-        })
-      : null;
+    const hardCapEntry =
+      ledgerTeamCode && teamResult.apronRestrictionEvaluation
+        ? createTradeHardCapLedgerEntry({
+            evaluation: teamResult.apronRestrictionEvaluation,
+            teamCode: ledgerTeamCode,
+            transactionId,
+            effectiveAt: timestampISO,
+          })
+        : null;
     if (hardCapEntry) {
       const currentLedger = Array.isArray(updatedTeam.hardCapLedger)
         ? updatedTeam.hardCapLedger
@@ -303,22 +320,6 @@ export function computeTradeResult({
     };
   }
 
-  const tradePlayerManifest = buildTradePlayerPersistenceManifest({
-    payload,
-    currentState,
-    teamUpdates,
-  });
-
-  if ('error' in tradePlayerManifest) {
-    return {
-      success: false,
-      error: tradePlayerManifest.error,
-    };
-  }
-
-  playerUpdates.push(...tradePlayerManifest.playerUpdates);
-  playerDeletes.push(...tradePlayerManifest.playerDeletes);
-
   const salaryMatchingPaths = validation.teamResults.flatMap(
     (teamResult, index) => {
       const teamCode = teamUpdates[index]?.teamCode;
@@ -344,6 +345,293 @@ export function computeTradeResult({
     }
   );
 
+  let governedSignAndTradeReceipt = null;
+  if (governedSignAndTradeAuthority) {
+    const authority = governedSignAndTradeAuthority;
+    const sourceUpdate = teamUpdates.find(
+      (entry) => entry.teamCode === authority.sourceTeamId
+    );
+    const destinationUpdate = teamUpdates.find(
+      (entry) => entry.teamCode === authority.destinationTeamId
+    );
+    const sourceBefore = currentState.teams.find(
+      (entry) => entry.teamCode === authority.sourceTeamId
+    )?.team;
+    const destinationBefore = currentState.teams.find(
+      (entry) => entry.teamCode === authority.destinationTeamId
+    )?.team;
+    if (
+      !sourceUpdate?.team ||
+      !destinationUpdate?.team ||
+      !sourceBefore ||
+      !destinationBefore ||
+      !resolvedWorldId ||
+      !resolvedMutationId
+    ) {
+      return {
+        success: false,
+        error:
+          'Governed sign-and-trade cannot reconcile both exact Team snapshots and operation identity.',
+      };
+    }
+    const destinationPlayer = (destinationUpdate.team.players || []).find(
+      (candidate) =>
+        String(
+          candidate.player_id || candidate.playerId || candidate.id || ''
+        ) === authority.playerId
+    );
+    if (!destinationPlayer?.contract) {
+      return {
+        success: false,
+        error:
+          'Governed sign-and-trade did not author the Contract on the receiving Team.',
+      };
+    }
+    const normalizedContract = normalizeContractForWorld({
+      ...destinationPlayer.contract,
+      contractType: 'Sign & Trade',
+      signingTeam: authority.sourceTeamId,
+      signingDate: authority.transactionAt,
+      signedUsing: authority.contract.signedUsing,
+    }) as ArchitectMutationContract | null;
+    const normalizedRows = (normalizedContract?.salariesByYear || []).map(
+      (row) => ({
+        season: row.season,
+        salary: row.salary,
+        capHit: row.capHit,
+        guaranteed: row.guaranteed,
+        guaranteedAmount: row.guaranteedAmount,
+        option: row.option ?? null,
+        likelyBonuses: Number(row.incentives?.likely || 0),
+        unlikelyBonuses: Number(row.incentives?.unlikely || 0),
+      })
+    );
+    if (
+      !normalizedContract ||
+      mutationSnapshotDigest(normalizedRows) !==
+        mutationSnapshotDigest(authority.contract.rows)
+    ) {
+      return {
+        success: false,
+        error:
+          'The authored sign-and-trade Contract diverged from its live governed authority.',
+      };
+    }
+    destinationPlayer.contract = normalizedContract;
+    const signingAuthority: GovernedSigningAuthority = {
+      worldDate: authority.transactionAt,
+      effectiveAt: authority.transactionAt,
+      salaryCapYear: authority.salaryCapYear,
+      seasonKey: authority.seasonKey,
+      firstYearSalary: authority.contract.firstSeasonSalary,
+      firstYearCapHit: authority.contract.rows[0].capHit,
+      exceptionCharge: authority.contract.firstSeasonSalary,
+      canonLeafIds: authority.canonLeafIds,
+      seasonInputManifest:
+        authority.seasonInputManifest as unknown as GovernedSigningAuthority['seasonInputManifest'],
+    };
+    const signingHistory = buildGovernedSigningHistory({
+      contract: normalizedContract,
+      playerId: authority.playerId,
+      teamId: authority.destinationTeamId,
+      signingTeamId: authority.sourceTeamId,
+      sourceKind: 'saved-world-sign-and-trade',
+      worldId: resolvedWorldId,
+      operationId: resolvedMutationId,
+      authoringIdentity: authority.authoringIdentity,
+      recordedAt: authority.recordedAt,
+      authority: signingAuthority,
+    });
+    destinationUpdate.team.contractEventLedgers = [
+      ...(destinationUpdate.team.contractEventLedgers || []).filter(
+        (ledger) => ledger.ledgerId !== signingHistory.ledger.ledgerId
+      ),
+      signingHistory.ledger,
+    ];
+    const sourceRosterChargeError = updateIncompleteRosterChargeAfterSigning({
+      beforeTeam: sourceBefore as ArchitectMutationTeamRecord,
+      afterTeam: sourceUpdate.team as ArchitectMutationTeamRecord,
+      salaryCapYear: authority.salaryCapYear,
+      requireAuthenticatedBasis: true,
+    });
+    const destinationRosterChargeError =
+      updateIncompleteRosterChargeAfterSigning({
+        beforeTeam: destinationBefore as ArchitectMutationTeamRecord,
+        afterTeam: destinationUpdate.team as ArchitectMutationTeamRecord,
+        salaryCapYear: authority.salaryCapYear,
+        requireAuthenticatedBasis: true,
+      });
+    if (sourceRosterChargeError || destinationRosterChargeError) {
+      return {
+        success: false,
+        error: sourceRosterChargeError || destinationRosterChargeError || '',
+      };
+    }
+    const salaryBookError = appendSigningSalaryBookAdjustments({
+      team: destinationUpdate.team as ArchitectMutationTeamRecord,
+      player: destinationPlayer as ArchitectMutationPlayerRecord,
+      contract: normalizedContract,
+      authority: signingAuthority,
+      mechanism: 'CAP_SPACE_OR_RIGHTS',
+      operationId: resolvedMutationId,
+    });
+    if (salaryBookError) {
+      return { success: false, error: salaryBookError };
+    }
+    [sourceUpdate, destinationUpdate].forEach((entry) => {
+      entry.team!.totals = createCanonicalTeamTotalsSnapshot(
+        entry.team!,
+        authority.salaryCapYear,
+        { asOfDate: authority.transactionAt }
+      );
+    });
+    const destinationApron = apronRestrictions.find(
+      (entry) => entry.teamCode === authority.destinationTeamId
+    )?.evaluation;
+    const destinationSalaryPath = salaryMatchingPaths.find(
+      (entry) => entry.teamCode === authority.destinationTeamId
+    )?.evaluation;
+    const destinationAcquisitionCapacity =
+      destinationSalaryPath?.maximumIncoming == null
+        ? null
+        : destinationSalaryPath.electedPath === 'ROOM'
+          ? destinationSalaryPath.maximumIncoming -
+            (destinationSalaryPath.allowance || 0)
+          : destinationSalaryPath.maximumIncoming;
+    if (
+      destinationSalaryPath?.status !== 'PASS' ||
+      destinationAcquisitionCapacity === null ||
+      authority.salaryTreatment.assigneeRoomAmount >
+        destinationAcquisitionCapacity
+    ) {
+      return {
+        success: false,
+        error:
+          destinationAcquisitionCapacity === null
+            ? destinationSalaryPath?.missingInputs.length
+              ? `Governed sign-and-trade assignee salary path lacks exact input: ${destinationSalaryPath.missingInputs.join(', ')}.`
+              : destinationSalaryPath?.violations.length
+                ? `Governed sign-and-trade assignee salary path failed: ${destinationSalaryPath.violations.join('; ')}`
+                : 'Governed sign-and-trade cannot authenticate the assignee Room or qualifying Exception capacity.'
+            : `Governed sign-and-trade Salary plus unlikely bonuses exceeds assignee Room by $${(
+                authority.salaryTreatment.assigneeRoomAmount -
+                destinationAcquisitionCapacity
+              ).toLocaleString('en-US')}.`,
+      };
+    }
+    const hardCapEntry = (destinationUpdate.team.hardCapLedger || []).find(
+      (entry) =>
+        entry.transactionId === resolvedMutationId &&
+        entry.triggers.some((trigger) => trigger.restrictionRow === 'C')
+    );
+    if (
+      destinationApron?.status !== 'PASS' ||
+      !destinationApron.attachedRestrictions.some(
+        (trigger) => trigger.restrictionRow === 'C'
+      ) ||
+      !hardCapEntry
+    ) {
+      return {
+        success: false,
+        error: `The receiving Team lacks a complete governed Row C First Apron hard-cap result (status=${destinationApron?.status || 'missing'}, rowC=${destinationApron?.attachedRestrictions.some((trigger) => trigger.restrictionRow === 'C') === true ? 'present' : 'missing'}, ledger=${hardCapEntry ? 'present' : 'missing'}, missingInputs=${destinationApron?.missingInputs.join(',') || 'none'}).`,
+      };
+    }
+    const destinationApronTeamSalary = Number(
+      (destinationUpdate.team.totals as Record<string, unknown>).apronTeamSalary
+    );
+    if (
+      !Number.isSafeInteger(destinationApronTeamSalary) ||
+      destinationApron.postTransactionApronTeamSalary !==
+        destinationApronTeamSalary ||
+      destinationApronTeamSalary > hardCapEntry.ceiling
+    ) {
+      return {
+        success: false,
+        error:
+          'The receiving Team’s live post-transaction Apron Team Salary does not reconcile to its governed Row C First Apron result.',
+      };
+    }
+    const salaryBooks = [];
+    for (const entry of [sourceUpdate, destinationUpdate]) {
+      const totals = entry.team!.totals as Record<string, unknown>;
+      const teamSalary = Number(totals.teamSalary);
+      const apronTeamSalary = Number(totals.apronTeamSalary);
+      const taxSalary = Number(totals.taxSalary);
+      if (
+        !Number.isSafeInteger(teamSalary) ||
+        !Number.isSafeInteger(apronTeamSalary) ||
+        !Number.isSafeInteger(taxSalary)
+      ) {
+        return {
+          success: false,
+          error: `Governed salary books are incomplete for ${entry.teamCode}.`,
+        };
+      }
+      salaryBooks.push({
+        teamId: String(entry.teamCode),
+        teamSalary,
+        apronTeamSalary,
+        taxSalary,
+      });
+    }
+    const tradeReceipt = {
+      receiptVersion: 1,
+      worldId: resolvedWorldId,
+      transactionId: resolvedMutationId,
+      playerId: authority.playerId,
+      sourceTeamId: authority.sourceTeamId,
+      destinationTeamId: authority.destinationTeamId,
+      transactionAt: authority.transactionAt,
+      assignorSalary: authority.salaryTreatment.assignorSalary,
+      assigneeSalary: authority.salaryTreatment.assigneeSalary,
+      assigneeRoomAmount: authority.salaryTreatment.assigneeRoomAmount,
+      assigneeAcquisitionCapacity: destinationAcquisitionCapacity,
+      bycTriggered: authority.salaryTreatment.bycTriggered,
+      poisonPillTriggered: authority.salaryTreatment.poisonPillTriggered,
+      salaryMatchingPaths,
+      apronRestrictions,
+      salaryBooks,
+    };
+    governedSignAndTradeReceipt = GovernedSignAndTradeReceiptZ.parse({
+      receiptVersion: 1,
+      receiptId: `${resolvedMutationId}:sign-and-trade-receipt`,
+      transactionId: resolvedMutationId,
+      worldId: resolvedWorldId,
+      sourceTeamId: authority.sourceTeamId,
+      destinationTeamId: authority.destinationTeamId,
+      playerId: authority.playerId,
+      salaryCapYear: authority.salaryCapYear,
+      transactionAt: authority.transactionAt,
+      committedAt: authority.recordedAt,
+      authorityDigest: mutationSnapshotDigest(authority),
+      contractId: signingHistory.contractId,
+      contractEventId: signingHistory.eventId,
+      contractLedgerId: signingHistory.ledger.ledgerId,
+      contractLedgerVersion: signingHistory.ledger.ledgerVersion,
+      hardCapEntryId: hardCapEntry.entryId,
+      salaryBooks,
+      tradeReceipt,
+      verificationStatus: 'complete',
+      canonLeafIds: authority.canonLeafIds,
+    });
+  }
+
+  const tradePlayerManifest = buildTradePlayerPersistenceManifest({
+    payload,
+    currentState,
+    teamUpdates,
+  });
+
+  if ('error' in tradePlayerManifest) {
+    return {
+      success: false,
+      error: tradePlayerManifest.error,
+    };
+  }
+
+  playerUpdates.push(...tradePlayerManifest.playerUpdates);
+  playerDeletes.push(...tradePlayerManifest.playerDeletes);
+
   const metadata: TradeMutationMetadata = {
     type: 'trade',
     teamsInvolved: teamUpdates.map((teamUpdate) => teamUpdate.teamCode),
@@ -362,11 +650,16 @@ export function computeTradeResult({
     apronRestrictions:
       apronRestrictions.length > 0 ? apronRestrictions : undefined,
     timestamp,
+    ...(governedSignAndTradeAuthority ? { governedSignAndTradeAuthority } : {}),
+    ...(governedSignAndTradeReceipt ? { governedSignAndTradeReceipt } : {}),
   };
 
   // Phase 56: Return pure compute result - validation context is passed through, not created here
   return {
     success: true,
+    ...(governedSignAndTradeAuthority
+      ? { _requiresGovernedSignAndTradePersistence: true }
+      : {}),
     teamUpdates,
     playerUpdates,
     playerDeletes,

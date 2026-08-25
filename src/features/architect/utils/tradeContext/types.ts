@@ -14,6 +14,10 @@ import type {
 } from '@/features/architect/utils/mutationPipeline';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { GovernedTradeSalaryBasis } from '@/schemas/governedTradeSalaryBasis';
+import type {
+  GovernedSignAndTradeAuthority,
+  GovernedSignAndTradeProposal,
+} from '@/schemas/governedSignAndTrade';
 
 // Local object-shape carrier for snapshot-building compatibility paths.
 // Validator output is narrowed below to the exact live trade bridge contract.
@@ -95,6 +99,8 @@ export interface PayloadPlayerIngress {
   isTwoWay?: boolean | null;
   signAndTrade?: boolean;
   signAndTradeContract?: ArchitectTradePayloadPlayer['signAndTradeContract'];
+  governedSignAndTradeProposal?: GovernedSignAndTradeProposal | null;
+  governedSignAndTradeAuthority?: GovernedSignAndTradeAuthority | null;
   governedTradeSalaryBasis?: GovernedTradeSalaryBasis | null;
   receivingTeamIndex?: TradeContextScalarId;
   receivingTeamId?: TradeContextScalarId;

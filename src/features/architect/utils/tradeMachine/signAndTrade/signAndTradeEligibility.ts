@@ -1,4 +1,8 @@
 import { normalizeYearInput } from '@/features/architect/utils/tradeMachine/utils/seasonUtils';
+import type {
+  GovernedSignAndTradeAuthority,
+  GovernedSignAndTradeProposal,
+} from '@/schemas/governedSignAndTrade';
 
 export const PLAYER_CONTRACT_STATUS = Object.freeze({
   UNDER_CONTRACT: 'UNDER_CONTRACT',
@@ -102,6 +106,8 @@ export type SignAndTradePlayerLike = {
   rightsRenounced?: boolean;
   signAndTrade?: boolean | { contract?: SignAndTradeContractLike | null };
   signAndTradeContract?: SignAndTradeContractLike | null;
+  governedSignAndTradeProposal?: GovernedSignAndTradeProposal | null;
+  governedSignAndTradeAuthority?: GovernedSignAndTradeAuthority | null;
   salariesByYear?: SignAndTradeSalaryRow[] | null;
   salaries?: unknown[] | null;
   contractYears?: number | null;

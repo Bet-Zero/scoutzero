@@ -17,6 +17,8 @@ import type {
   ValidationResult,
 } from '../constants/types';
 import { inspectGovernedOfferSheetMatchRestriction } from '@/features/architect/utils/offerSheets';
+import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
+import { GovernedSignAndTradeAuthorityZ } from '@/schemas/governedSignAndTrade';
 
 type SignAndTradeRulePlayer = SignAndTradeContractCarrier & {
   signAndTrade?: boolean;
@@ -91,9 +93,9 @@ function resolveTeamId(team: SignAndTradeRuleTeam): string | null {
     team.team?.id ||
     null;
 
-  return typeof teamIdLike === 'string' && teamIdLike.trim()
-    ? teamIdLike
-    : null;
+  if (typeof teamIdLike !== 'string' || !teamIdLike.trim()) return null;
+  const trimmed = teamIdLike.trim();
+  return resolveTeamCode(trimmed) || trimmed;
 }
 
 function resolveDestinationTeamId(
@@ -113,6 +115,25 @@ function resolveDestinationTeamId(
 
 function isTradeMachinePath(tradeCtx: SignAndTradeTradeContext = {}): boolean {
   return tradeCtx.source === 'tradeMachine';
+}
+
+function hasGovernedSavedWorldAuthority(
+  players: SignAndTradeRulePlayer[],
+  worldId: string | null | undefined
+): boolean {
+  if (!worldId) return false;
+
+  return players.some((player) => {
+    const parsed = GovernedSignAndTradeAuthorityZ.safeParse(
+      player.governedSignAndTradeAuthority
+    );
+    if (!parsed.success || parsed.data.worldId !== worldId) return false;
+
+    const resolvedPlayerId = String(
+      player.player_id || player.playerId || player.id || ''
+    ).trim();
+    return resolvedPlayerId === parsed.data.playerId;
+  });
 }
 
 function getValidationYear(
@@ -244,6 +265,10 @@ export function validateSignAndTrade(
     : 2;
   const requireExplicitDestination =
     strictContractPayload || activeTeamCount >= 3;
+  const usesGovernedSavedWorldAuthority = hasGovernedSavedWorldAuthority(
+    [...incomingSignAndTradePlayers, ...outgoingSignAndTradePlayers],
+    tradeCtx.worldId
+  );
 
   if (!tradeCtx.offseason) {
     violations.push(
@@ -361,16 +386,18 @@ export function validateSignAndTrade(
   };
 
   outgoingSignAndTradePlayers.forEach((player) => {
-    const jan15RestrictionDate = getJanuary15RestrictionDate(tradeDateObj);
-    if (tradeDateObj < jan15RestrictionDate) {
-      violations.push(
-        createIssue(
-          `${player.name || 'Player'} cannot be traded until January 15 (sign-and-trade)`,
-          'SIGN_AND_TRADE__JANUARY_15_RESTRICTED',
-          null,
-          { playerId: player.id || null }
-        )
-      );
+    if (!usesGovernedSavedWorldAuthority) {
+      const jan15RestrictionDate = getJanuary15RestrictionDate(tradeDateObj);
+      if (tradeDateObj < jan15RestrictionDate) {
+        violations.push(
+          createIssue(
+            `${player.name || 'Player'} cannot be traded until January 15 (sign-and-trade)`,
+            'SIGN_AND_TRADE__JANUARY_15_RESTRICTED',
+            null,
+            { playerId: player.id || null }
+          )
+        );
+      }
     }
 
     const eligibility = isSignAndTradeEligible({
@@ -437,48 +464,54 @@ export function validateSignAndTrade(
   if (hasSignAndTrade && incomingSignAndTradePlayers.length > 0) {
     hardCapped = true;
 
-    const teamTotalSalary =
-      Number(team.teamTotalSalary || team.team?.teamTotalSalary || 0) || 0;
-    const salaryIn = Number(team.salaryIn || 0) || 0;
-    const salaryOut = Number(team.salaryOut || 0) || 0;
-    const projectedSalary = teamTotalSalary + salaryIn - salaryOut;
+    // Saved worlds use the authenticated Row C restriction and exact books
+    // carried by their governed authority. Preserve the bounded legacy
+    // worldless validator without letting its projected calculation compete
+    // with that saved-world source of truth.
+    if (!usesGovernedSavedWorldAuthority) {
+      const teamTotalSalary =
+        Number(team.teamTotalSalary || team.team?.teamTotalSalary || 0) || 0;
+      const salaryIn = Number(team.salaryIn || 0) || 0;
+      const salaryOut = Number(team.salaryOut || 0) || 0;
+      const projectedSalary = teamTotalSalary + salaryIn - salaryOut;
 
-    const currentYear = tradeCtx.currentYear;
-    if (!currentYear) {
-      violations.push(
-        createIssue(
-          'Cannot validate sign-and-trade: currentYear not provided in trade context',
-          'SIGN_AND_TRADE__MISSING_CURRENT_YEAR'
-        )
-      );
-    } else {
-      const currentYearKey = `${currentYear - 1}-${currentYear
-        .toString()
-        .slice(-2)}`;
-      const yearSettings = tradeCtx.capProjections?.[currentYearKey] || {};
-      const firstApron =
-        yearSettings.firstApron || tradeCtx.capSettings?.firstApron;
-
-      if (!firstApron) {
+      const currentYear = tradeCtx.currentYear;
+      if (!currentYear) {
         violations.push(
           createIssue(
-            'Cannot validate sign-and-trade hard cap: firstApron not available for season',
-            'SIGN_AND_TRADE__MISSING_FIRST_APRON'
+            'Cannot validate sign-and-trade: currentYear not provided in trade context',
+            'SIGN_AND_TRADE__MISSING_CURRENT_YEAR'
           )
         );
-      } else if (projectedSalary > firstApron) {
-        violations.push(
-          createIssue(
-            `Team would exceed hard-cap (first apron: ${firstApron.toLocaleString()}) after receiving sign-and-trade player`,
-            'SIGN_AND_TRADE__FIRST_APRON_HARD_CAP_EXCEEDED',
-            null,
-            {
-              projectedSalary,
-              firstApron,
-              teamId: resolveTeamId(team),
-            }
-          )
-        );
+      } else {
+        const currentYearKey = `${currentYear - 1}-${currentYear
+          .toString()
+          .slice(-2)}`;
+        const yearSettings = tradeCtx.capProjections?.[currentYearKey] || {};
+        const firstApron =
+          yearSettings.firstApron || tradeCtx.capSettings?.firstApron;
+
+        if (!firstApron) {
+          violations.push(
+            createIssue(
+              'Cannot validate sign-and-trade hard cap: firstApron not available for season',
+              'SIGN_AND_TRADE__MISSING_FIRST_APRON'
+            )
+          );
+        } else if (projectedSalary > firstApron) {
+          violations.push(
+            createIssue(
+              `Team would exceed hard-cap (first apron: ${firstApron.toLocaleString()}) after receiving sign-and-trade player`,
+              'SIGN_AND_TRADE__FIRST_APRON_HARD_CAP_EXCEEDED',
+              null,
+              {
+                projectedSalary,
+                firstApron,
+                teamId: resolveTeamId(team),
+              }
+            )
+          );
+        }
       }
     }
   }

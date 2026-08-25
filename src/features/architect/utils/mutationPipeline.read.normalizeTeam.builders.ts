@@ -18,6 +18,7 @@ import {
   CURRENT_STATE_BASE_TEAM_TRADE_EXCEPTIONS_FIELD_KEY,
   normalizeCurrentStateTeamSource,
   normalizeStringArray,
+  toOptionalNumber,
   toOptionalTrimmedString,
 } from './mutationPipeline.helpers';
 import {
@@ -152,6 +153,9 @@ export function buildCurrentStateTradeTeamBoundaryInput(
     hardCapReason: teamRecord.hardCapReason,
     hardCapTriggeredBy: teamRecord.hardCapTriggeredBy,
     teamTotalSalary: teamRecord.teamTotalSalary,
+    teamSalary: teamRecord.teamSalary,
+    apronTeamSalary: teamRecord.apronTeamSalary,
+    taxSalary: teamRecord.taxSalary,
     draftPicks:
       teamRecord.draftPicks ??
       teamRecord[CURRENT_STATE_BASE_TEAM_DRAFT_PICKS_FIELD_KEY],
@@ -177,7 +181,9 @@ export function normalizeCurrentStateTeamMutationCore(
     teamRecord.salaryBookInputs
   );
   if (teamRecord.salaryBookInputs != null && !salaryBookInputs.success) {
-    throw new Error('Persisted salary-book inputs are malformed or version-incompatible.');
+    throw new Error(
+      'Persisted salary-book inputs are malformed or version-incompatible.'
+    );
   }
   const hardCapLedger = parseTradeHardCapLedger(teamRecord.hardCapLedger);
   if (teamRecord.hardCapLedger != null && !hardCapLedger.valid) {
@@ -401,6 +407,15 @@ export function normalizeCurrentStateTradeTeamBoundary(
       teamRecord,
       mutationCore.totals
     ),
+    teamSalary: toOptionalNumber(
+      teamRecord.teamSalary ?? mutationCore.totals?.teamSalary
+    ),
+    apronTeamSalary: toOptionalNumber(
+      teamRecord.apronTeamSalary ?? mutationCore.totals?.apronTeamSalary
+    ),
+    taxSalary: toOptionalNumber(
+      teamRecord.taxSalary ?? mutationCore.totals?.taxSalary
+    ),
   };
 }
 
@@ -531,6 +546,15 @@ export function buildCurrentStateTradeTeam(
   }
   if (boundary.teamTotalSalary !== undefined) {
     normalized.teamTotalSalary = boundary.teamTotalSalary;
+  }
+  if (boundary.teamSalary !== undefined) {
+    normalized.teamSalary = boundary.teamSalary;
+  }
+  if (boundary.apronTeamSalary !== undefined) {
+    normalized.apronTeamSalary = boundary.apronTeamSalary;
+  }
+  if (boundary.taxSalary !== undefined) {
+    normalized.taxSalary = boundary.taxSalary;
   }
 
   return attachCurrentStateBaseTeamPreservedFields(

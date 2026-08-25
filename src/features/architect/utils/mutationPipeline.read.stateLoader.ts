@@ -18,6 +18,9 @@ import {
   worldPlayerRef,
   worldOfferSheetAuthorizationRef,
   worldTeamRef,
+  worldMetadataRef,
+  worldSeasonHistoryRef,
+  worldSeasonTransitionRef,
 } from '@/features/architect/utils/architectFirestorePaths';
 import {
   normalizeContractForWorld,
@@ -49,6 +52,9 @@ import {
 } from '@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { LIVE_GOVERNED_TRADE_SALARY_AUTHORITY } from '@/features/architect/utils/tradeContext/tradeContext.payloadNormalization';
+import { SeasonTransitionManifestZ } from '@/schemas/seasonTransition';
+import type { GovernedSignAndTradeEvidenceBundle } from '@/features/architect/utils/tradeMachine/signAndTrade/governedSignAndTrade';
+import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 
 // Wave 48 Step 1: lineage helpers extracted to submodule
 export * from './mutationPipeline.read.stateLoader.lineage';
@@ -718,8 +724,48 @@ export async function loadStateForMutation(
         payload.asOfDate ?? tradeContext?.asOfDate ?? ''
       ).slice(0, 10);
       const salaryCapYear = toEndYear(tradeContext?.yearKey);
+      const signAndTradeSends = (payload.teams || []).flatMap(
+        (teamTrade, senderIndex) =>
+          (teamTrade.sends || [])
+            .filter((player) => player.signAndTrade === true)
+            .map((player) => ({ teamTrade, senderIndex, player }))
+      );
+      if (signAndTradeSends.length > 1) {
+        throw new Error(
+          'The governed V1 route supports exactly one sign-and-trade player per atomic trade.'
+        );
+      }
+      if (
+        signAndTradeSends.length === 1 &&
+        ((payload.teams || []).length !== 2 ||
+          (payload.teams || []).some(
+            (team) =>
+              (team.entitlementsOut || team.outgoingEntitlements || []).length >
+                0 || Number(team.cashSent || 0) !== 0
+          ))
+      ) {
+        throw new Error(
+          'The governed V1 sign-and-trade route requires exactly two Teams and excludes draft entitlements and cash.'
+        );
+      }
+      const localTeamSnapshots = signAndTradeSends.length
+        ? await Promise.all(
+            teamCodes.map((code) => getDoc(worldTeamRef(worldId, code)))
+          )
+        : null;
+      if (localTeamSnapshots?.some((snapshot) => !snapshot.exists())) {
+        throw new Error(
+          'Governed sign-and-trade requires exact local saved-world snapshots for every involved Team.'
+        );
+      }
       const [teamStates, worldTeams] = await Promise.all([
-        Promise.all(teamCodes.map((code: string) => getTeam(worldId, code))),
+        localTeamSnapshots
+          ? Promise.resolve(
+              localTeamSnapshots.map((snapshot) => snapshot.data())
+            )
+          : Promise.all(
+              teamCodes.map((code: string) => getTeam(worldId, code))
+            ),
         requiresGovernedSalaryBasis && worldAsOfDate && salaryCapYear !== null
           ? getLeague(worldId)
           : Promise.resolve([]),
@@ -732,8 +778,164 @@ export async function loadStateForMutation(
           'trade'
         ),
       }));
+      let governedSignAndTradeEvidence: GovernedSignAndTradeEvidenceBundle | null =
+        null;
+      if (signAndTradeSends.length === 1 && localTeamSnapshots) {
+        const { senderIndex, player } = signAndTradeSends[0];
+        const sourceTeamId = teamCodes[senderIndex];
+        const destinationRaw =
+          player.tradeTo ||
+          player.receivingTeamId ||
+          player.toTeamId ||
+          player.destTeamId;
+        const destinationIdentity = String(
+          destinationRaw ||
+            (teamCodes.length === 2
+              ? teamCodes.find((_, index) => index !== senderIndex)
+              : '') ||
+            ''
+        ).trim();
+        const destinationTeamId =
+          resolveTeamCode(destinationIdentity) ||
+          destinationIdentity.toUpperCase();
+        const playerId = String(
+          player.player_id || player.playerId || player.id || ''
+        ).trim();
+        const destinationIndex = teamCodes.indexOf(destinationTeamId);
+        if (
+          !playerId ||
+          destinationIndex < 0 ||
+          destinationIndex === senderIndex
+        ) {
+          throw new Error(
+            'Governed sign-and-trade requires one exact player and a distinct routed destination Team.'
+          );
+        }
+        const metadataSnapshot = await getDoc(worldMetadataRef(worldId));
+        if (!metadataSnapshot.exists()) {
+          throw new Error(
+            'Governed sign-and-trade requires saved-world metadata.'
+          );
+        }
+        const metadata = metadataSnapshot.data();
+        const currentSeason = String(metadata.currentSeason || '').trim();
+        const seasonMatch = currentSeason.match(/^(\d{4})-(\d{2})$/);
+        if (!seasonMatch) {
+          throw new Error(
+            'Governed sign-and-trade requires a valid current saved-world season.'
+          );
+        }
+        const priorSeason = `${Number(seasonMatch[1]) - 1}-${String(
+          Number(seasonMatch[1]) % 100
+        ).padStart(2, '0')}`;
+        const transitionId = `seasonAdvance__${priorSeason}__${currentSeason}`;
+        const transitionSnapshot = await getDoc(
+          worldSeasonTransitionRef(worldId, transitionId)
+        );
+        if (!transitionSnapshot.exists()) {
+          throw new Error(
+            `Governed sign-and-trade requires immutable transition ${transitionId}.`
+          );
+        }
+        const transition = SeasonTransitionManifestZ.parse(
+          transitionSnapshot.data()
+        );
+        const historySnapshots = await Promise.all(
+          transition.teamRecords.map((entry) =>
+            getDoc(worldSeasonHistoryRef(worldId, entry.historyId))
+          )
+        );
+        if (
+          historySnapshots.length !== 30 ||
+          historySnapshots.some((snapshot) => !snapshot.exists())
+        ) {
+          throw new Error(
+            'Governed sign-and-trade requires the complete immutable 30-team prior-season history set.'
+          );
+        }
+        const sourceHistoryIndex = transition.teamRecords.findIndex(
+          (entry) => entry.teamCode === sourceTeamId
+        );
+        if (sourceHistoryIndex < 0) {
+          throw new Error(
+            'The source Team is missing from the prior-season transition manifest.'
+          );
+        }
+        const [
+          sourcePlayerSnapshot,
+          destinationPlayerSnapshot,
+          immutableBasePlayer,
+        ] = await Promise.all([
+          getDoc(worldPlayerRef(worldId, sourceTeamId, playerId)),
+          getDoc(worldPlayerRef(worldId, destinationTeamId, playerId)),
+          getPlayer(null, sourceTeamId, playerId),
+        ]);
+        governedSignAndTradeEvidence = Object.freeze({
+          worldId,
+          sourceTeamId,
+          destinationTeamId,
+          playerId,
+          worldMetadata: metadata,
+          sourceTeam: localTeamSnapshots[senderIndex].data()!,
+          destinationTeam: localTeamSnapshots[destinationIndex].data()!,
+          sourcePlayerDocument: sourcePlayerSnapshot.exists()
+            ? sourcePlayerSnapshot.data()
+            : null,
+          destinationPlayerDocument: destinationPlayerSnapshot.exists()
+            ? destinationPlayerSnapshot.data()
+            : null,
+          immutableBasePlayer: toCurrentStatePlayer(immutableBasePlayer),
+          transitionManifest: transition,
+          seasonHistories: historySnapshots.map((snapshot) => snapshot.data()),
+          snapshots: Object.freeze({
+            worldMetadata: Object.freeze({
+              exists: true,
+              digest: mutationSnapshotDigest(metadata),
+            }),
+            sourceTeam: Object.freeze({
+              exists: true,
+              digest: mutationSnapshotDigest(
+                localTeamSnapshots[senderIndex].data()
+              ),
+            }),
+            destinationTeam: Object.freeze({
+              exists: true,
+              digest: mutationSnapshotDigest(
+                localTeamSnapshots[destinationIndex].data()
+              ),
+            }),
+            sourcePlayer: Object.freeze({
+              exists: sourcePlayerSnapshot.exists(),
+              digest: sourcePlayerSnapshot.exists()
+                ? mutationSnapshotDigest(sourcePlayerSnapshot.data())
+                : null,
+            }),
+            destinationPlayer: Object.freeze({
+              exists: destinationPlayerSnapshot.exists(),
+              digest: destinationPlayerSnapshot.exists()
+                ? mutationSnapshotDigest(destinationPlayerSnapshot.data())
+                : null,
+            }),
+            seasonHistory: Object.freeze({
+              exists: true,
+              digest: mutationSnapshotDigest(
+                historySnapshots[sourceHistoryIndex].data()
+              ),
+            }),
+            transitionManifest: Object.freeze({
+              exists: true,
+              digest: mutationSnapshotDigest(transition),
+            }),
+          }),
+        });
+      }
       if (!requiresGovernedSalaryBasis) {
-        return { teams: normalizedTeams };
+        return {
+          teams: normalizedTeams,
+          ...(governedSignAndTradeEvidence
+            ? { governedSignAndTradeEvidence }
+            : {}),
+        };
       }
       normalizedTeams.forEach(({ team }) => {
         if (!team) return;
@@ -770,6 +972,9 @@ export async function loadStateForMutation(
       );
       return {
         teams: normalizedTeams,
+        ...(governedSignAndTradeEvidence
+          ? { governedSignAndTradeEvidence }
+          : {}),
       };
     }
 

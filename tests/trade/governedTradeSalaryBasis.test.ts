@@ -191,7 +191,11 @@ function resolve(
 describe('governed ordinary Trade Machine salary basis', () => {
   it('uses exact protected and earned Base Compensation before January 8', () => {
     const contractState = state(
-      [row('2026-27', 10_000_000, 6_000_000, [protectionStep('2027-01-10', 10_000_000)])],
+      [
+        row('2026-27', 10_000_000, 6_000_000, [
+          protectionStep('2027-01-10', 10_000_000),
+        ]),
+      ],
       {
         evidence: {
           evidenceVersion: 1,
@@ -227,7 +231,9 @@ describe('governed ordinary Trade Machine salary basis', () => {
     );
 
     expect(result.status).toBe('needs-input');
-    expect(result.reasons.join(' ')).toContain('exact earned Base Compensation');
+    expect(result.reasons.join(' ')).toContain(
+      'exact earned Base Compensation'
+    );
   });
 
   it('compares offset protection instants on their UTC date', () => {
@@ -257,7 +263,11 @@ describe('governed ordinary Trade Machine salary basis', () => {
 
   it('changes only at the inclusive January 8 boundary', () => {
     const contractState = state(
-      [row('2026-27', 10_000_000, 6_000_000, [protectionStep('2027-01-10', 10_000_000)])],
+      [
+        row('2026-27', 10_000_000, 6_000_000, [
+          protectionStep('2027-01-10', 10_000_000),
+        ]),
+      ],
       {
         evidence: {
           evidenceVersion: 1,
@@ -532,6 +542,29 @@ describe('saved-world validation trust boundary', () => {
     expect(tampered.salaryBasisIssues[0]?.reason).toContain('does not match');
   });
 
+  it('never falls back to legacy salary when sign-and-trade authority is malformed', () => {
+    const player: MatchingValuePlayer = {
+      id: PLAYER_ID,
+      salary: 99_000_000,
+      signAndTrade: true,
+      governedSignAndTradeAuthority: { status: 'forged' } as never,
+    };
+
+    const result = computeMatchingValues({
+      teams: [{ teamId: TEAM_ID, sends: [player] }],
+      yearKey: '2026-27',
+      worldId: WORLD_ID,
+      asOfDate: '2027-01-08',
+      requireGovernedSalaryBasis: true,
+    });
+
+    expect(result.salaryBasisIssues[0]?.reason).toContain(
+      'missing or malformed'
+    );
+    expect(player.matchOutgoing).toBe(0);
+    expect(player.matchIncoming).toBe(0);
+  });
+
   it('treats equivalent team identity casing as the same governed team', () => {
     const authority = resolve(
       state([row('2026-27', 10_000_000)]),
@@ -619,7 +652,9 @@ describe('saved-world validation trust boundary', () => {
       },
       sourceTeamState: {
         [Symbol.for('scoutzero.liveGovernedTradeSalaryAuthority')]: true,
-        players: [{ player_id: PLAYER_ID, governedTradeSalaryBasis: authority }],
+        players: [
+          { player_id: PLAYER_ID, governedTradeSalaryBasis: authority },
+        ],
       },
     });
     const withoutLiveState = buildTradeValidationPlayer({

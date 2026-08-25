@@ -337,10 +337,6 @@ export function buildPostTradeTeamsSnapshot({
       });
     }
 
-    const receivesSignAndTrade = incomingPlayers.some(
-      (p) => p.signAndTrade === true
-    );
-
     if (
       outgoingSignAndTradeIds.length > 0 &&
       Array.isArray(updatedTeam.capHolds)
@@ -443,27 +439,6 @@ export function buildPostTradeTeamsSnapshot({
     };
 
     updatedTeam.totals = computeTeamCapTotals(updatedTeam, currentEndYear);
-
-    if (receivesSignAndTrade) {
-      const totalsObj = updatedTeam.totals as AnyRecord | undefined;
-      const existingLevel =
-        totalsObj?.hardCapLevel ||
-        (updatedTeam.hardCapped === 2 ? 'secondApron' : null);
-      const hardCapLevel =
-        existingLevel === 'secondApron' ? 'secondApron' : 'firstApron';
-
-      updatedTeam.hardCapped = hardCapLevel === 'secondApron' ? 2 : 1;
-      updatedTeam.hardCapLevel = hardCapLevel;
-      updatedTeam.hardCapReason =
-        'Triggered by receiving sign-and-trade player';
-      updatedTeam.hardCapTriggeredBy = 'signAndTrade';
-      updatedTeam.totals = {
-        ...(totalsObj || {}),
-        isHardCapped: true,
-        hardCapLevel,
-        hardCapDetail: 'Triggered by receiving sign-and-trade player',
-      };
-    }
 
     teamUpdates.push({ teamCode, team: updatedTeam });
   }

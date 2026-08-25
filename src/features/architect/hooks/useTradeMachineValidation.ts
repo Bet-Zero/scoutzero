@@ -30,6 +30,7 @@ import type {
   TradeContextPayload,
   TradeContextCurrentState,
 } from '@/features/architect/utils/tradeContext/types';
+import type { GovernedSignAndTradeAuthority } from '@/schemas/governedSignAndTrade';
 
 export type UseTradeMachineValidationParams = {
   teams: TradeMachineTeamSlot[];
@@ -51,7 +52,9 @@ export type UseTradeMachineValidationParams = {
 export type UseTradeMachineValidationResult = {
   // Returns synchronously whether validation could start. 'insufficient' means
   // there are not enough active teams to validate (caller surfaces feedback).
-  handleValidate: () => 'insufficient' | 'started';
+  handleValidate: (
+    governedSignAndTradeAuthority?: GovernedSignAndTradeAuthority | null
+  ) => 'insufficient' | 'started';
 };
 
 export function useTradeMachineValidation({
@@ -68,29 +71,44 @@ export function useTradeMachineValidation({
   lastValidatedDraftKeyRef,
   validatedAtRef,
 }: UseTradeMachineValidationParams): UseTradeMachineValidationResult {
-  const buildCurrentTradePreviewContext =
-    useCallback((): PreparedTradePreviewContext | null => {
+  const buildCurrentTradePreviewContext = useCallback(
+    (
+      governedSignAndTradeAuthority: GovernedSignAndTradeAuthority | null = null
+    ): PreparedTradePreviewContext | null => {
       const patchedTeams = teams.map((teamSlot) => {
         if (!teamSlot.team) {
           return teamSlot;
         }
 
+        const teamCode = String(
+          teamSlot.team.teamCode || teamSlot.team.id || ''
+        )
+          .trim()
+          .toUpperCase();
+        const sends = governedSignAndTradeAuthority
+          ? teamSlot.sends.map((player) => {
+              const candidateId = String(
+                player.player_id || player.playerId || player.id || ''
+              ).trim();
+              return teamCode ===
+                governedSignAndTradeAuthority.sourceTeamId.toUpperCase() &&
+                candidateId === governedSignAndTradeAuthority.playerId
+                ? { ...player, governedSignAndTradeAuthority }
+                : player;
+            })
+          : teamSlot.sends;
+
         if (
           !Number.isFinite(teamSlot.team.teamTotalSalary) ||
-          teamSlot.team.teamTotalSalary === 0
+          teamSlot.team.teamTotalSalary === 0 ||
+          !Number.isFinite(teamSlot.team.apronTeamSalary) ||
+          !Number.isFinite(teamSlot.team.taxSalary)
         ) {
-          const {
-            teamSalary,
-            apronTeamSalary,
-            taxSalary,
-            salaryBooks,
-          } = getCapTotalsForYear(
-            teamSlot.team,
-            yearKey,
-            worldAsOfDate
-          );
+          const { teamSalary, apronTeamSalary, taxSalary, salaryBooks } =
+            getCapTotalsForYear(teamSlot.team, yearKey, worldAsOfDate);
           return {
             ...teamSlot,
+            sends,
             team: {
               ...teamSlot.team,
               teamTotalSalary: apronTeamSalary,
@@ -103,7 +121,7 @@ export function useTradeMachineValidation({
           };
         }
 
-        return teamSlot;
+        return sends === teamSlot.sends ? teamSlot : { ...teamSlot, sends };
       });
       const activeTeams = patchedTeams.filter(hasTeamSlot);
 
@@ -157,7 +175,9 @@ export function useTradeMachineValidation({
           timestamp: Date.now(),
         }),
       };
-    }, [teams, capProjections, yearKey, worldId, worldAsOfDate]);
+    },
+    [teams, capProjections, yearKey, worldId, worldAsOfDate]
+  );
 
   // Core validation compute. Runs the (synchronous) validation for a prepared
   // preview context and writes the snapshot details. Intentionally does NOT
@@ -284,58 +304,65 @@ export function useTradeMachineValidation({
   // Returns synchronously whether validation could start; the compute itself is
   // deferred one tick (TMUI-01) so the "Validating…" state can paint, and the
   // caller can surface feedback when there aren't enough teams (TMUI-03).
-  const handleValidate = useCallback((): 'insufficient' | 'started' => {
-    const previewContext = buildCurrentTradePreviewContext();
-    if (!previewContext) {
-      setSnapshotValidationDetails(null);
-      setPreviewAuthority(null); // TM-1A / TM-3D: clear stale preview authority
-      setIsValidating(false);
-      return 'insufficient';
-    }
-
-    setIsValidating(true);
-    // Defer the synchronous compute one tick so React can paint the
-    // "Validating…" state before the results land.
-    setTimeout(() => {
-      try {
-        const outcome = runValidation(previewContext);
-        if (outcome) {
-          // Stale validation fix: Record the draft key that was validated
-          lastValidatedDraftKeyRef.current = currentDraftKey;
-          validatedAtRef.current = Date.now();
-
-          try {
-            const previewAuthority = getTradePreviewAuthority({
-              payload: previewContext.payload,
-              currentState: previewContext.currentState,
-              seasonId: previewContext.seasonId,
-              preparation: previewContext.preparation,
-            });
-            setPreviewAuthority(previewAuthority);
-          } catch (err) {
-            console.error(
-              '[useTradeMachine] getTradePreviewAuthority unexpected error:',
-              err
-            );
-            setPreviewAuthority(null);
-          }
-        }
-      } finally {
+  const handleValidate = useCallback(
+    (
+      governedSignAndTradeAuthority: GovernedSignAndTradeAuthority | null = null
+    ): 'insufficient' | 'started' => {
+      const previewContext = buildCurrentTradePreviewContext(
+        governedSignAndTradeAuthority
+      );
+      if (!previewContext) {
+        setSnapshotValidationDetails(null);
+        setPreviewAuthority(null); // TM-1A / TM-3D: clear stale preview authority
         setIsValidating(false);
+        return 'insufficient';
       }
-    }, 0);
 
-    return 'started';
-  }, [
-    buildCurrentTradePreviewContext,
-    runValidation,
-    currentDraftKey,
-    setSnapshotValidationDetails,
-    setPreviewAuthority,
-    setIsValidating,
-    lastValidatedDraftKeyRef,
-    validatedAtRef,
-  ]);
+      setIsValidating(true);
+      // Defer the synchronous compute one tick so React can paint the
+      // "Validating…" state before the results land.
+      setTimeout(() => {
+        try {
+          const outcome = runValidation(previewContext);
+          if (outcome) {
+            // Stale validation fix: Record the draft key that was validated
+            lastValidatedDraftKeyRef.current = currentDraftKey;
+            validatedAtRef.current = Date.now();
+
+            try {
+              const previewAuthority = getTradePreviewAuthority({
+                payload: previewContext.payload,
+                currentState: previewContext.currentState,
+                seasonId: previewContext.seasonId,
+                preparation: previewContext.preparation,
+              });
+              setPreviewAuthority(previewAuthority);
+            } catch (err) {
+              console.error(
+                '[useTradeMachine] getTradePreviewAuthority unexpected error:',
+                err
+              );
+              setPreviewAuthority(null);
+            }
+          }
+        } finally {
+          setIsValidating(false);
+        }
+      }, 0);
+
+      return 'started';
+    },
+    [
+      buildCurrentTradePreviewContext,
+      runValidation,
+      currentDraftKey,
+      setSnapshotValidationDetails,
+      setPreviewAuthority,
+      setIsValidating,
+      lastValidatedDraftKeyRef,
+      validatedAtRef,
+    ]
+  );
 
   return { handleValidate };
 }

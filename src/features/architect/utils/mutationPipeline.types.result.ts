@@ -548,6 +548,7 @@ export type TradeTeamUpdate = ArchitectMutationTeamUpdate;
 export type ArchitectMutationBridgeResult = {
   success?: boolean;
   error?: string | Error | null;
+  _requiresGovernedSignAndTradePersistence?: boolean;
   teamUpdates?: ArchitectMutationTeamUpdate[];
   playerUpdates?: ArchitectMutationPlayerUpdate[];
   playerDeletes?: ArchitectMutationPlayerDelete[];

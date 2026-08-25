@@ -24,6 +24,8 @@ import {
   worldPlayerRef,
   worldMetadataRef,
   worldOfferSheetAuthorizationRef,
+  worldSeasonHistoryRef,
+  worldSeasonTransitionRef,
   basePlayerRef,
 } from '@/features/architect/utils/architectFirestorePaths';
 import {
@@ -64,6 +66,10 @@ import {
   GovernedOfferSheetLifecycleZ,
 } from '@/schemas/governedOfferSheet';
 import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils/offerSheets';
+import {
+  GovernedSignAndTradeAuthorityZ,
+  GovernedSignAndTradeReceiptZ,
+} from '@/schemas/governedSignAndTrade';
 
 type ExpectedRightsLedgerReference = Readonly<{
   ledgerId: string;
@@ -177,8 +183,7 @@ function requireDocumentSnapshotReference(
     ...local,
     sourceWorldId:
       typeof sourceWorldId === 'string' ? sourceWorldId.trim() : null,
-    sourceDigest:
-      typeof sourceDigest === 'string' ? sourceDigest.trim() : null,
+    sourceDigest: typeof sourceDigest === 'string' ? sourceDigest.trim() : null,
     sourceLineage: Object.freeze(
       sourceLineage.map((entry) => {
         if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
@@ -352,7 +357,9 @@ function requireExpectedOfferSheetLifecycleReference({
 }): ExpectedGovernedOfferSheetLifecycleReference {
   const rawExpected = metadata.expectedGovernedOfferSheetLifecycle;
   const expected =
-    rawExpected && typeof rawExpected === 'object' && !Array.isArray(rawExpected)
+    rawExpected &&
+    typeof rawExpected === 'object' &&
+    !Array.isArray(rawExpected)
       ? (rawExpected as Record<string, unknown>)
       : null;
   const resolved = GovernedOfferSheetLifecycleZ.safeParse(
@@ -424,9 +431,7 @@ function assertSnapshotReferenceStillCurrent({
     exists !== expected.exists ||
     (exists && mutationSnapshotDigest(data) !== expected.digest)
   ) {
-    throw new Error(
-      `${label} changed before commit. Reload and try again.`
-    );
+    throw new Error(`${label} changed before commit. Reload and try again.`);
   }
 }
 
@@ -529,12 +534,10 @@ async function recheckExactSourceLineage({
   let winningSourceDigest: string | null = null;
   let winningSourceData: DocumentData = {};
   for (const rawEntry of rawLineage) {
-    if (
-      !rawEntry ||
-      typeof rawEntry !== 'object' ||
-      Array.isArray(rawEntry)
-    ) {
-      throw new Error(`${operationLabel} is missing the exact ${receiptLabel}.`);
+    if (!rawEntry || typeof rawEntry !== 'object' || Array.isArray(rawEntry)) {
+      throw new Error(
+        `${operationLabel} is missing the exact ${receiptLabel}.`
+      );
     }
     const entry = rawEntry as Record<string, unknown>;
     const entryWorldId =
@@ -551,7 +554,9 @@ async function recheckExactSourceLineage({
         : entryDigest !== null) ||
       winningSourceWorldId !== null
     ) {
-      throw new Error(`${operationLabel} is missing the exact ${receiptLabel}.`);
+      throw new Error(
+        `${operationLabel} is missing the exact ${receiptLabel}.`
+      );
     }
     seenWorldIds.add(entryWorldId);
 
@@ -845,6 +850,59 @@ export async function persistWorldMutation({
     writes.push({ kind: 'update', ref: metadataRef, data: worldPatch });
 
     const metadata = computeResult.metadata as Record<string, unknown>;
+    const governedSignAndTradeAuthorityParse =
+      GovernedSignAndTradeAuthorityZ.safeParse(
+        metadata.governedSignAndTradeAuthority
+      );
+    const governedSignAndTradeReceiptParse =
+      GovernedSignAndTradeReceiptZ.safeParse(
+        metadata.governedSignAndTradeReceipt
+      );
+    const hasGovernedSignAndTradeMetadata =
+      Object.prototype.hasOwnProperty.call(
+        metadata,
+        'governedSignAndTradeAuthority'
+      ) ||
+      Object.prototype.hasOwnProperty.call(
+        metadata,
+        'governedSignAndTradeReceipt'
+      );
+    const isGovernedSignAndTrade =
+      mutationType === 'executeTrade' &&
+      (hasGovernedSignAndTradeMetadata ||
+        computeResult._requiresGovernedSignAndTradePersistence === true);
+    if (
+      isGovernedSignAndTrade &&
+      (!governedSignAndTradeAuthorityParse.success ||
+        !governedSignAndTradeReceiptParse.success ||
+        governedSignAndTradeReceiptParse.data.authorityDigest !==
+          mutationSnapshotDigest(governedSignAndTradeAuthorityParse.data))
+    ) {
+      throw new Error(
+        'Governed sign-and-trade persistence requires one matching authority and complete receipt.'
+      );
+    }
+    const governedSignAndTradeAuthority =
+      governedSignAndTradeAuthorityParse.success
+        ? governedSignAndTradeAuthorityParse.data
+        : null;
+    if (isGovernedSignAndTrade) {
+      const expectedTeams = new Set([
+        governedSignAndTradeAuthority!.sourceTeamId,
+        governedSignAndTradeAuthority!.destinationTeamId,
+      ]);
+      const actualTeams = new Set(
+        teamUpdates.map((entry) => String(entry.teamCode || '').trim())
+      );
+      if (
+        actualTeams.size !== 2 ||
+        [...expectedTeams].some((teamCode) => !actualTeams.has(teamCode))
+      ) {
+        throw new Error(
+          'Governed sign-and-trade must atomically replace exactly the source and destination Teams.'
+        );
+      }
+    }
     const isOfferSheetCreation = mutationType === 'storeOfferSheet';
     const creationLifecycleParse = isOfferSheetCreation
       ? GovernedOfferSheetLifecycleZ.safeParse(
@@ -926,10 +984,93 @@ export async function persistWorldMutation({
       mutationType === 'extendPlayer' ||
       mutationType === 'waivePlayer' ||
       mutationType === 'signFreeAgent' ||
+      isGovernedSignAndTrade ||
       isOfferSheetCreation ||
       isOfferSheetResolution
     ) {
       await runTransaction(db, async (transaction) => {
+        if (governedSignAndTradeAuthority) {
+          const authority = governedSignAndTradeAuthority;
+          const currentMetadata = await transaction.get(metadataRef);
+          const currentSourcePlayer = await transaction.get(
+            worldPlayerRef(worldId, authority.sourceTeamId, authority.playerId)
+          );
+          const currentDestinationPlayer = await transaction.get(
+            worldPlayerRef(
+              worldId,
+              authority.destinationTeamId,
+              authority.playerId
+            )
+          );
+          const currentHistory = await transaction.get(
+            worldSeasonHistoryRef(worldId, authority.seasonEvidence.historyId)
+          );
+          const currentTransition = await transaction.get(
+            worldSeasonTransitionRef(
+              worldId,
+              authority.seasonEvidence.transitionId
+            )
+          );
+          const currentHistorySet = await Promise.all(
+            authority.snapshots.seasonHistorySet.map((entry) =>
+              transaction.get(worldSeasonHistoryRef(worldId, entry.historyId))
+            )
+          );
+          const exactSnapshotMatches = (
+            snapshot: {
+              exists(): boolean;
+              data(): DocumentData | undefined;
+            },
+            expected: { exists: boolean; digest: string | null }
+          ) =>
+            snapshot.exists() === expected.exists &&
+            (snapshot.exists()
+              ? mutationSnapshotDigest(snapshot.data()) === expected.digest
+              : expected.digest === null);
+          if (
+            !exactSnapshotMatches(
+              currentMetadata,
+              authority.snapshots.worldMetadata
+            ) ||
+            !exactSnapshotMatches(
+              currentSourcePlayer,
+              authority.snapshots.sourcePlayer
+            ) ||
+            !exactSnapshotMatches(
+              currentDestinationPlayer,
+              authority.snapshots.destinationPlayer
+            ) ||
+            !exactSnapshotMatches(
+              currentHistory,
+              authority.snapshots.seasonHistory
+            ) ||
+            !exactSnapshotMatches(
+              currentTransition,
+              authority.snapshots.transitionManifest
+            ) ||
+            currentHistorySet.some(
+              (snapshot, index) =>
+                !snapshot.exists() ||
+                mutationSnapshotDigest(snapshot.data()) !==
+                  authority.snapshots.seasonHistorySet[index].digest
+            )
+          ) {
+            throw new Error(
+              'Governed sign-and-trade authority changed before commit. Reload and try again.'
+            );
+          }
+          if (
+            !currentMetadata.exists() ||
+            currentMetadata.data().currentSeason !== authority.seasonKey ||
+            currentMetadata.data().currentYear !== authority.salaryCapYear ||
+            String(currentMetadata.data().asOfDate || '').slice(0, 10) !==
+              authority.transactionAt.slice(0, 10)
+          ) {
+            throw new Error(
+              'Governed sign-and-trade world season or date drifted before commit.'
+            );
+          }
+        }
         for (const { teamCode, team } of teamUpdates) {
           const normalizedTeamCode = String(teamCode || '').trim();
           if (!team || !normalizedTeamCode) continue;
@@ -951,7 +1092,38 @@ export async function persistWorldMutation({
             ? currentTeamSnapshot.data()
             : {};
           let contractSourceTeamData = currentTeamData;
-          if (expectedOfferSheetCreationSnapshots) {
+          if (governedSignAndTradeAuthority) {
+            const expected =
+              normalizedTeamCode === governedSignAndTradeAuthority.sourceTeamId
+                ? governedSignAndTradeAuthority.snapshots.sourceTeam
+                : normalizedTeamCode ===
+                    governedSignAndTradeAuthority.destinationTeamId
+                  ? governedSignAndTradeAuthority.snapshots.destinationTeam
+                  : null;
+            if (
+              !expected ||
+              currentTeamExists !== expected.exists ||
+              (currentTeamExists &&
+                mutationSnapshotDigest(currentTeamData) !== expected.digest)
+            ) {
+              throw new Error(
+                `Team snapshot for ${normalizedTeamCode} changed before the governed sign-and-trade could commit.`
+              );
+            }
+            if (
+              normalizedTeamCode ===
+                governedSignAndTradeAuthority.destinationTeamId &&
+              (currentTeamData.contractEventLedgers || []).some(
+                (ledger: { ledgerId?: unknown }) =>
+                  String(ledger?.ledgerId || '') ===
+                  governedSignAndTradeReceiptParse.data?.contractLedgerId
+              )
+            ) {
+              throw new Error(
+                `Duplicate/replayed governed sign-and-trade ${governedSignAndTradeReceiptParse.data?.transactionId}.`
+              );
+            }
+          } else if (expectedOfferSheetCreationSnapshots) {
             const expectedTeamSnapshot =
               normalizedTeamCode ===
               expectedOfferSheetCreationSnapshots.homeTeamCode
@@ -978,8 +1150,7 @@ export async function persistWorldMutation({
               await recheckExactSourceLineage({
                 transaction,
                 rawLineage: expectedTeamSnapshot.sourceLineage,
-                expectedSourceWorldIdValue:
-                  expectedTeamSnapshot.sourceWorldId,
+                expectedSourceWorldIdValue: expectedTeamSnapshot.sourceWorldId,
                 expectedSourceDigest: expectedTeamSnapshot.sourceDigest,
                 currentWorldId: worldId,
                 sourceRef: (sourceWorldId) =>
@@ -1063,8 +1234,7 @@ export async function persistWorldMutation({
                 await recheckExactSourceLineage({
                   transaction,
                   rawLineage: expectedPriorTeam.sourceLineage,
-                  expectedSourceWorldIdValue:
-                    expectedPriorTeam.sourceWorldId,
+                  expectedSourceWorldIdValue: expectedPriorTeam.sourceWorldId,
                   expectedSourceDigest: expectedPriorTeam.sourceDigest,
                   currentWorldId: worldId,
                   sourceRef: (sourceWorldId) =>
@@ -1091,7 +1261,8 @@ export async function persistWorldMutation({
               const expectedTeamDigest = metadata.expectedTeamSnapshotDigest;
               if (
                 typeof expectedTeamExists !== 'boolean' ||
-                (expectedTeamExists && typeof expectedTeamDigest !== 'string') ||
+                (expectedTeamExists &&
+                  typeof expectedTeamDigest !== 'string') ||
                 (!expectedTeamExists && expectedTeamDigest !== null)
               ) {
                 throw new Error(
@@ -1155,11 +1326,7 @@ export async function persistWorldMutation({
                 );
               }
               const currentPlayerSnapshot = await transaction.get(
-                worldPlayerRef(
-                  worldId,
-                  normalizedTeamCode,
-                  expectedPlayerId
-                )
+                worldPlayerRef(worldId, normalizedTeamCode, expectedPlayerId)
               );
               if (
                 currentPlayerSnapshot.exists() !== expectedPlayerExists ||
@@ -1304,9 +1471,7 @@ export async function persistWorldMutation({
             worldId,
             creationAuthorization.offerSheetId
           );
-          const authorizationSnapshot = await transaction.get(
-            authorizationRef
-          );
+          const authorizationSnapshot = await transaction.get(authorizationRef);
           if (authorizationSnapshot.exists()) {
             const currentAuthorization =
               GovernedOfferSheetAuthorizationZ.safeParse(
@@ -1331,9 +1496,7 @@ export async function persistWorldMutation({
             worldId,
             expectedOfferSheetLifecycle.offerSheetId
           );
-          const authorizationSnapshot = await transaction.get(
-            authorizationRef
-          );
+          const authorizationSnapshot = await transaction.get(authorizationRef);
           assertSnapshotReferenceStillCurrent({
             exists: authorizationSnapshot.exists(),
             data: authorizationSnapshot.exists()

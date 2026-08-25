@@ -1,7 +1,5 @@
 import type { useCapValidation } from '@/features/architect/hooks/useCapValidation';
-import type {
-  getContractYearsForDisplay,
-} from '@/features/architect/utils/contractUtils';
+import type { getContractYearsForDisplay } from '@/features/architect/utils/contractUtils';
 import type { CapProjectionOverrides } from '@/features/architect/utils/capRulesProfile';
 import type { CapHoldItem, DeadCapItem } from '@/features/architect/types';
 import type {
@@ -16,6 +14,7 @@ import type {
   GovernedExtensionRoute,
 } from '@/features/architect/utils/extensions';
 import type { GovernedOfferSheetProposal } from '@/schemas/governedOfferSheet';
+import type { GovernedSignAndTradeProposal } from '@/schemas/governedSignAndTrade';
 import type { GovernedWaiverProposal } from '@/schemas/governedWaiver';
 import type { GovernedWaiverAvailability } from '@/features/architect/utils/waivers';
 
@@ -198,6 +197,10 @@ export type StagedSigningPayloadLike = {
     option: string | null;
     optionType: string | null;
     optionUsed: boolean | null;
+    incentives?: {
+      likely: number;
+      unlikely: number;
+    };
   }>;
   base?: number;
   totalValue?: number;
@@ -211,7 +214,17 @@ export type StagedSigningPayloadLike = {
   rfaOfferSheetOnly?: boolean;
   rfaOfferSheetStatus?: string;
   offerSheetProposal?: GovernedOfferSheetProposal;
+  governedSignAndTradeProposal?: GovernedSignAndTradeProposal;
 } & Partial<OverrideMetadataLike>;
+
+export type GovernedSignAndTradeProposalDraft = {
+  transactionAt: string;
+  playerConsentConfirmed: boolean;
+  higherMaxStatus: '' | 'not-relied-upon';
+  firstSeasonUnlikelyBonuses: string;
+  exhibit6Excluded: boolean;
+  physicalExamStatus: 'not-required';
+};
 
 export type ExtensionPayloadLike = GovernedExtensionProposal;
 
@@ -224,7 +237,7 @@ export type WaivePayloadLike = {
 
 export type SigningActionCallback = (
   player: PlayerLike,
-  payload: StagedSigningPayloadLike,
+  payload: StagedSigningPayloadLike
 ) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
 export type OptionDecisionCallback = (
@@ -232,19 +245,19 @@ export type OptionDecisionCallback = (
   accept: boolean,
   overrideMetadata?: OverrideMetadataLike | null,
   targetYear?: number | null,
-  notice?: GovernedOptionNoticeInput | null,
+  notice?: GovernedOptionNoticeInput | null
 ) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
 export type SignAndTradeCallback = (
   player: PlayerLike,
   payload: StagedSigningPayloadLike,
-  destTeamCode: string,
+  destTeamCode: string
 ) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
 export type SignAndTradePreflightCallback = (
   player: PlayerLike,
   payload: StagedSigningPayloadLike,
-  destTeamCode: string,
+  destTeamCode: string
 ) =>
   | Promise<SignAndTradePreflightResult | null | undefined>
   | SignAndTradePreflightResult
@@ -258,7 +271,7 @@ export type SignAndTradeInitiation = {
 
 export type GetOfferSheetPreflightCallback = (
   player: PlayerLike,
-  payload: StagedSigningPayloadLike,
+  payload: StagedSigningPayloadLike
 ) =>
   | Promise<OfferSheetPreflightResult | null | undefined>
   | OfferSheetPreflightResult
@@ -272,17 +285,17 @@ export type OfferSheetInitiation = {
 
 export type ExtendCallback = (
   player: PlayerLike,
-  payload: ExtensionPayloadLike,
+  payload: ExtensionPayloadLike
 ) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
 export type WaiveCallback = (
   player: PlayerLike,
-  payload: WaivePayloadLike,
+  payload: WaivePayloadLike
 ) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
 export type SimpleActionCallback = (
   player: PlayerLike,
-  overrideMetadata?: OverrideMetadataLike | null,
+  overrideMetadata?: OverrideMetadataLike | null
 ) => Promise<ActionResultLike | undefined> | ActionResultLike | undefined;
 
 export type AuditLogCallback = (entry: AuditLogEntryLike) => void;

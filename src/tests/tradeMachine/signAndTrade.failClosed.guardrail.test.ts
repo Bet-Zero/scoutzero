@@ -75,7 +75,12 @@ function makeSignAndTradeContract(firstYearSalary: number) {
     contractYears: 3,
     firstYearGuaranteed: true,
     salariesByYear: [
-      { season: SEASON, salary: firstYearSalary, capHit: firstYearSalary, guaranteed: true },
+      {
+        season: SEASON,
+        salary: firstYearSalary,
+        capHit: firstYearSalary,
+        guaranteed: true,
+      },
       {
         season: `${CURRENT_YEAR}-${String(CURRENT_YEAR + 1).slice(-2)}`,
         salary: Math.round(firstYearSalary * 1.05),
@@ -136,9 +141,9 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
     expectCanonicalSignAndTradeIssues(
       result.teamResults[0].rules.signAndTrade.violations
     );
-    expect(issueTexts(result.teamResults[0].rules.signAndTrade.violations).join(' ')).toContain(
-      'ineligible'
-    );
+    expect(
+      issueTexts(result.teamResults[0].rules.signAndTrade.violations).join(' ')
+    ).toContain('ineligible');
   });
 
   it('rejects sign-and-trade when contract payload is missing', () => {
@@ -171,9 +176,9 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
     expectCanonicalSignAndTradeIssues(
       result.teamResults[0].rules.signAndTrade.violations
     );
-    expect(issueTexts(result.teamResults[0].rules.signAndTrade.violations).join(' ')).toContain(
-      'missing signAndTradeContract'
-    );
+    expect(
+      issueTexts(result.teamResults[0].rules.signAndTrade.violations).join(' ')
+    ).toContain('missing signAndTradeContract');
   });
 
   it('uses sign-and-trade contract first-year salary for matching values', () => {
@@ -230,9 +235,7 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
     const result = validateTrade({
       teams: [
         {
-          team: makeTeam('LAL', 120_000_000, [
-            makeCapHold('sat_missing_dest'),
-          ]),
+          team: makeTeam('LAL', 120_000_000, [makeCapHold('sat_missing_dest')]),
           sends: [satPlayer],
           picksOut: [],
         },
@@ -274,12 +277,50 @@ describe('Trade Machine S&T fail-closed guardrails', () => {
     const receiver = result.teamResults.find(
       (entry: TradeTeamResult) => entry.teamId === 'BOS'
     );
-    const signAndTradeRule = receiver?.rules
-      .signAndTrade as SignAndTradeRuleEnvelope | undefined;
+    const signAndTradeRule = receiver?.rules.signAndTrade as
+      | SignAndTradeRuleEnvelope
+      | undefined;
 
     expect(signAndTradeRule?.passed).toBe(true);
     expect(signAndTradeRule?.hardCapped).toBe(true);
     expect(receiver?.hardCapped).toBe(true);
     expect(receiver?.rules.signAndTrade.violations).toEqual([]);
+  });
+
+  it('reconciles product slugs with canonical source-Team identity', () => {
+    const satPlayer = makePlayer('sat_canonical_source', 0, {
+      signAndTrade: true,
+      tradeTo: 'celtics',
+      freeAgentYear: CURRENT_YEAR,
+      originTeamId: 'MIA',
+      signAndTradeContract: makeSignAndTradeContract(15_000_000),
+      contract: {
+        salariesByYear: [{ season: SEASON, salary: 0, capHit: 0 }],
+      },
+    });
+    const sourceTeam = {
+      ...makeTeam('MIA', 120_000_000, [makeCapHold('sat_canonical_source')]),
+      id: 'heat',
+    };
+    const destinationTeam = { ...makeTeam('BOS'), id: 'celtics' };
+
+    const result = validateTrade({
+      teams: [
+        { team: sourceTeam, sends: [satPlayer], picksOut: [] },
+        { team: destinationTeam, sends: [], picksOut: [] },
+      ],
+      capProjections,
+      currentYear: CURRENT_YEAR,
+      tradeCtx: {
+        offseason: true,
+        source: 'tradeMachine',
+        asOfDate: '2025-01-20',
+      },
+    });
+
+    expect(result.teamResults[0].rules.signAndTrade).toMatchObject({
+      passed: true,
+      violations: [],
+    });
   });
 });

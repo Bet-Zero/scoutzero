@@ -107,7 +107,9 @@ function getRuleSkipReason(rule: TradeRuleEnvelope | undefined) {
     details?: { skipReason?: string | null } | null;
   };
 
-  return ruleWithSkipReason.skipReason ?? ruleWithSkipReason.details?.skipReason;
+  return (
+    ruleWithSkipReason.skipReason ?? ruleWithSkipReason.details?.skipReason
+  );
 }
 
 function computeTradeMutation(
@@ -147,12 +149,7 @@ const makePlayer = (
   salary: number,
   extra: MakePlayerExtra = {}
 ): TestTradePlayer => {
-  const {
-    name = id,
-    teamCode = null,
-    contract,
-    ...rest
-  } = extra;
+  const { name = id, teamCode = null, contract, ...rest } = extra;
 
   return {
     id,
@@ -289,7 +286,9 @@ describe('validator trust fixes', () => {
     expect(celticsTwoWayResult?.salaryIn).toBe(0);
     expect(lakersTwoWayResult?.createdTPE).toBeNull();
     expect(celticsTwoWayResult?.createdTPE).toBeNull();
-    expect(lakersTwoWayResult?.rules?.eligibilityEnforcement?.passed).toBe(true);
+    expect(lakersTwoWayResult?.rules?.eligibilityEnforcement?.passed).toBe(
+      true
+    );
     expect(heldTpe.remainingAmount).toBe(3_000_000);
     expect(lakersReceipt?.outgoingPlayers[0]).toMatchObject({
       baseSalary: 636_435,
@@ -310,11 +309,9 @@ describe('validator trust fixes', () => {
     const standardResult = validateTrade({
       teams: asValidateTradeTeams([
         {
-          team: makeTeam(
-            'LAL',
-            [standardPlayer, ...makeRoster('LAL', 14)],
-            { totalSalary: 170_000_000 }
-          ),
+          team: makeTeam('LAL', [standardPlayer, ...makeRoster('LAL', 14)], {
+            totalSalary: 170_000_000,
+          }),
           sends: [standardPlayer],
           entitlementsOut: [],
         },
@@ -409,11 +406,9 @@ describe('validator trust fixes', () => {
     const result = validateTrade({
       teams: asValidateTradeTeams([
         {
-          team: makeTeam(
-            'LAL',
-            [twoWayPlayer, ...makeRoster('LAL', 14)],
-            { totalSalary: 170_000_000 }
-          ),
+          team: makeTeam('LAL', [twoWayPlayer, ...makeRoster('LAL', 14)], {
+            totalSalary: 170_000_000,
+          }),
           sends: [twoWayPlayer],
           entitlementsOut: [],
         },
@@ -445,9 +440,9 @@ describe('validator trust fixes', () => {
     expect(celticsResult?.notes).not.toContain(
       'Team hard-capped at first apron due to FA exception usage'
     );
-    expect(
-      getRuleSkipReason(celticsResult?.rules?.salaryMatching)
-    ).not.toBe('FA_EXCEPTION');
+    expect(getRuleSkipReason(celticsResult?.rules?.salaryMatching)).not.toBe(
+      'FA_EXCEPTION'
+    );
   });
 
   it('allows FA-exception absorption with only an explicit nested Two-Way outgoing contract', () => {
@@ -541,9 +536,13 @@ describe('validator trust fixes', () => {
 
     expect(result.legal).toBe(false);
     expect(celticsResult?.rules?.faExceptionUsage?.passed).toBe(false);
-    expect(issueTexts(celticsResult?.rules?.faExceptionUsage?.violations)).toEqual(
+    expect(
+      issueTexts(celticsResult?.rules?.faExceptionUsage?.violations)
+    ).toEqual(
       expect.arrayContaining([
-        expect.stringMatching(/Cannot combine FA Exception with outgoing salary/i),
+        expect.stringMatching(
+          /Cannot combine FA Exception with outgoing salary/i
+        ),
       ])
     );
     expect(celticsResult?.faExceptionBuckets).toEqual([
@@ -552,7 +551,7 @@ describe('validator trust fixes', () => {
     expect(celticsResult?.hardCapped).toBe(false);
   });
 
-  it('threads asOfDate through executeTrade validation so S&T timing ownership changes by date', () => {
+  it('fails a saved-world S&T closed before legacy timing when live governed evidence is absent', () => {
     const satPlayer = makePlayer('sat_player', 0, {
       teamCode: 'LAL',
       freeAgentYear: CURRENT_YEAR,
@@ -617,33 +616,13 @@ describe('validator trust fixes', () => {
       '2026-02-01'
     );
 
-    const offseasonSignAndTradeRule =
-      offseasonResult._validatedTradeContext?._rawValidation?.teamResults?.[0]
-        ?.rules?.signAndTrade;
-    const offseasonTimingRule =
-      offseasonResult._validatedTradeContext?._rawValidation?.teamResults?.[0]
-        ?.rules?.timingEnforcement;
-    const inSeasonSignAndTradeRule =
-      inSeasonResult._validatedTradeContext?._rawValidation?.teamResults?.[0]
-        ?.rules?.signAndTrade;
-
-    expect(offseasonResult._validatedTradeContext?.legal).toBe(false);
-    expect(issueTexts(offseasonSignAndTradeRule?.violations)).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/January 15/i),
-      ])
-    );
-    expect(issueTexts(offseasonTimingRule?.violations)).not.toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/January 15/i),
-      ])
-    );
-    expect(inSeasonResult._validatedTradeContext?.legal).toBe(false);
-    expect(issueTexts(inSeasonSignAndTradeRule?.violations)).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/only be traded during the offseason/i),
-      ])
-    );
+    for (const result of [offseasonResult, inSeasonResult]) {
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(
+        /exact live saved-world evidence.*operation provenance/i
+      );
+      expect(result._validatedTradeContext).toBeUndefined();
+    }
   });
 
   it('blocks prior-year team-held TPE usage through authoritative apply validation', () => {
@@ -699,12 +678,15 @@ describe('validator trust fixes', () => {
       '2026-02-01'
     );
 
-    const lakersResult = result._validatedTradeContext?._rawValidation?.teamResults?.find(
-      (entry) => entry.teamId === 'LAL'
-    );
+    const lakersResult =
+      result._validatedTradeContext?._rawValidation?.teamResults?.find(
+        (entry) => entry.teamId === 'LAL'
+      );
 
     expect(result._validatedTradeContext?.legal).toBe(false);
-    expect(issueTexts(lakersResult?.rules?.tradeExceptions?.violations)).toEqual(
+    expect(
+      issueTexts(lakersResult?.rules?.tradeExceptions?.violations)
+    ).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/prior-year TPEs cannot be used/i),
       ])
@@ -769,9 +751,10 @@ describe('validator trust fixes', () => {
       '2025-07-10'
     );
 
-    const lakersResult = result._validatedTradeContext?._rawValidation?.teamResults?.find(
-      (entry) => entry.teamId === 'LAL'
-    );
+    const lakersResult =
+      result._validatedTradeContext?._rawValidation?.teamResults?.find(
+        (entry) => entry.teamId === 'LAL'
+      );
 
     expect(result._validatedTradeContext?.legal).toBe(false);
     expect(issueTexts(lakersResult?.rules?.cash?.violations)).toEqual(

@@ -202,14 +202,30 @@ export function materializeCurrentStateTeamForAudit(
 
 export function stripComputeOnlyTeamFieldsForPersistence<
   T extends CurrentStateTeamPersistenceStripShape,
->(team: T): Omit<MaterializedCurrentStateTeam<T>, 'teamTotalSalary'> {
+>(
+  team: T
+): Omit<
+  MaterializedCurrentStateTeam<T>,
+  'teamTotalSalary' | 'teamSalary' | 'apronTeamSalary' | 'taxSalary'
+> {
   const materializedTeam = materializeCurrentStateBaseTeamPreservedFields(team);
   if (!materializedTeam) {
-    return {} as Omit<MaterializedCurrentStateTeam<T>, 'teamTotalSalary'>;
+    return {} as Omit<
+      MaterializedCurrentStateTeam<T>,
+      'teamTotalSalary' | 'teamSalary' | 'apronTeamSalary' | 'taxSalary'
+    >;
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- rest-destructure to strip compute-only field
-  const { teamTotalSalary: _teamTotalSalary, ...persistableTeam } =
-    materializedTeam;
+  const {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- rest-destructure strips compute-only fields
+    teamTotalSalary: _teamTotalSalary,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- rest-destructure strips compute-only fields
+    teamSalary: _teamSalary,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- rest-destructure strips compute-only fields
+    apronTeamSalary: _apronTeamSalary,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- rest-destructure strips compute-only fields
+    taxSalary: _taxSalary,
+    ...persistableTeam
+  } = materializedTeam;
   return persistableTeam;
 }
 
@@ -322,11 +338,12 @@ export type CurrentStateBaseTeamBoundaryFields = {
     | MutationCurrentStateBaseTeamIngress['entitlementIds']
     | CurrentStateBaseTeamPreservedFieldMap['entitlementIds'];
 };
-export type CurrentStateBaseTeamBoundarySource = CurrentStateTeamMutationCoreBoundary &
-  CurrentStateBaseTeamBoundaryFields &
-  CurrentStateBaseTeamPreservedCarrierLike;
-export type CurrentStateBaseTeamBoundaryInput = CurrentStateTeamMutationCoreBoundary &
-  CurrentStateBaseTeamBoundaryFields;
+export type CurrentStateBaseTeamBoundarySource =
+  CurrentStateTeamMutationCoreBoundary &
+    CurrentStateBaseTeamBoundaryFields &
+    CurrentStateBaseTeamPreservedCarrierLike;
+export type CurrentStateBaseTeamBoundaryInput =
+  CurrentStateTeamMutationCoreBoundary & CurrentStateBaseTeamBoundaryFields;
 export type CurrentStateTradeTeamBoundaryBaseFields = {
   roster?:
     | MutationCurrentStateTradeTeamIngress['roster']
@@ -357,6 +374,15 @@ export type CurrentStateTradeTeamBoundaryLiveFields = {
   teamTotalSalary?:
     | MutationCurrentStateTradeTeamIngress['teamTotalSalary']
     | CurrentStateTradeTeam['teamTotalSalary'];
+  teamSalary?:
+    | MutationCurrentStateTradeTeamIngress['teamSalary']
+    | CurrentStateTradeTeam['teamSalary'];
+  apronTeamSalary?:
+    | MutationCurrentStateTradeTeamIngress['apronTeamSalary']
+    | CurrentStateTradeTeam['apronTeamSalary'];
+  taxSalary?:
+    | MutationCurrentStateTradeTeamIngress['taxSalary']
+    | CurrentStateTradeTeam['taxSalary'];
 };
 export type CurrentStateTradeTeamBoundarySource =
   CurrentStateTeamMutationCoreBoundary &
@@ -369,9 +395,10 @@ export type CurrentStateTradeTeamBoundarySource =
     CurrentStateBaseTeamExceptionHistoryCarrier &
     CurrentStateBaseTeamDraftPicksCarrier &
     CurrentStateBaseTeamEntitlementIdsCarrier;
-export type CurrentStateTradeTeamBoundaryInput = CurrentStateTeamMutationCoreBoundary &
-  CurrentStateTradeTeamBoundaryBaseFields &
-  CurrentStateTradeTeamBoundaryLiveFields;
+export type CurrentStateTradeTeamBoundaryInput =
+  CurrentStateTeamMutationCoreBoundary &
+    CurrentStateTradeTeamBoundaryBaseFields &
+    CurrentStateTradeTeamBoundaryLiveFields;
 export type NormalizedCurrentStateBaseTeamBoundary = {
   mutationCore: CurrentStateTeamIdentityFieldMap &
     CurrentStateTeamMutationCoreFieldMap;
@@ -393,4 +420,7 @@ export type NormalizedCurrentStateTradeTeamBoundary = {
   entitlementIds?: CurrentStateTradeTeam['entitlementIds'];
   twoWayPlayers?: CurrentStateTradeTeam['twoWayPlayers'];
   teamTotalSalary?: CurrentStateTradeTeam['teamTotalSalary'];
+  teamSalary?: CurrentStateTradeTeam['teamSalary'];
+  apronTeamSalary?: CurrentStateTradeTeam['apronTeamSalary'];
+  taxSalary?: CurrentStateTradeTeam['taxSalary'];
 };

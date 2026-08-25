@@ -17,6 +17,8 @@ import {
   canonicalizeComputeResultTeamUpdates,
 } from './mutationPipeline.read';
 import { toTradeStateSlice } from './mutationPipeline.helpers';
+import { buildGovernedSignAndTradeAuthority } from '@/features/architect/utils/tradeMachine/signAndTrade/governedSignAndTrade';
+import type { GovernedSignAndTradeAuthority } from '@/schemas/governedSignAndTrade';
 import {
   computeTradeResult,
   computeSigningResult,
@@ -47,7 +49,123 @@ import type {
   SignAndTradePreflightStatus,
   SupportedComputeMutationType,
   TeamLike,
+  TradeMutationPayload,
 } from './mutationPipeline.types';
+
+function prepareGovernedExecuteTradeSignAndTrade({
+  payload,
+  currentState,
+  operationId,
+  authoringIdentity,
+  recordedAt,
+}: {
+  payload: TradeMutationPayload;
+  currentState: MutationCurrentStateInputByType['executeTrade'];
+  operationId?: string;
+  authoringIdentity?: string;
+  recordedAt?: string;
+}): {
+  payload: TradeMutationPayload;
+  currentState: MutationCurrentStateInputByType['executeTrade'];
+  authority: GovernedSignAndTradeAuthority | null;
+} {
+  const signAndTradePlayers = payload.teams.flatMap((team, senderIndex) =>
+    team.sends
+      .filter((player) => player.signAndTrade === true)
+      .map((player) => ({ player, senderIndex }))
+  );
+  if (signAndTradePlayers.length === 0) {
+    return { payload, currentState, authority: null };
+  }
+  if (
+    signAndTradePlayers.length !== 1 ||
+    !operationId ||
+    !authoringIdentity ||
+    !recordedAt ||
+    !currentState.governedSignAndTradeEvidence
+  ) {
+    throw new Error(
+      'Governed sign-and-trade requires one player, exact live saved-world evidence, and operation provenance.'
+    );
+  }
+  const { player, senderIndex } = signAndTradePlayers[0];
+  const authority = buildGovernedSignAndTradeAuthority({
+    evidence: currentState.governedSignAndTradeEvidence,
+    contract: player.signAndTradeContract,
+    proposal: player.governedSignAndTradeProposal,
+    operationId,
+    authoringIdentity,
+    recordedAt,
+  });
+  const governedContract = {
+    contractType: 'Sign & Trade',
+    contractYears: authority.contract.contractYears,
+    years: authority.contract.contractYears,
+    firstYearGuaranteed: true,
+    signedUsing: authority.contract.signedUsing,
+    signingTeam: authority.sourceTeamId,
+    signingDate: authority.transactionAt,
+    base: authority.contract.firstSeasonSalary,
+    totalValue: authority.contract.rows.reduce(
+      (sum, row) => sum + row.salary,
+      0
+    ),
+    averageAnnualValue: Math.round(
+      authority.contract.rows.reduce((sum, row) => sum + row.salary, 0) /
+        authority.contract.contractYears
+    ),
+    salariesByYear: authority.contract.rows.map((row) => ({
+      season: row.season,
+      salary: row.salary,
+      capHit: row.capHit,
+      guaranteed: row.guaranteed,
+      guaranteedAmount: row.guaranteedAmount,
+      option: row.option,
+      optionType: row.option,
+      optionUsed: null,
+      incentives: {
+        likely: row.likelyBonuses,
+        unlikely: row.unlikelyBonuses,
+      },
+    })),
+  };
+  const preparedPayload: TradeMutationPayload = {
+    ...payload,
+    teams: payload.teams.map((team, teamIndex) => ({
+      ...team,
+      sends: team.sends.map((candidate) =>
+        teamIndex === senderIndex && candidate === player
+          ? {
+              ...candidate,
+              signAndTradeContract: governedContract,
+              governedSignAndTradeAuthority: authority,
+            }
+          : candidate
+      ),
+    })),
+  };
+  const preparedState: MutationCurrentStateInputByType['executeTrade'] = {
+    ...currentState,
+    teams: (currentState.teams || []).map((entry, teamIndex) => {
+      if (teamIndex !== senderIndex || !entry.team) return entry;
+      return {
+        ...entry,
+        team: {
+          ...entry.team,
+          players: (entry.team.players || []).map((candidate) => {
+            const candidateId = String(
+              candidate?.player_id || candidate?.playerId || candidate?.id || ''
+            ).trim();
+            return candidateId === authority.playerId
+              ? { ...candidate, governedSignAndTradeAuthority: authority }
+              : candidate;
+          }),
+        },
+      };
+    }),
+  };
+  return { payload: preparedPayload, currentState: preparedState, authority };
+}
 
 // ============================================================
 // Constants
@@ -519,8 +637,15 @@ export function computeNormalizedWorldMutation(
   const result = (() => {
     switch (args.mutationType) {
       case 'executeTrade': {
-        const tradePayload = args.payload;
-        const tradeState = toTradeStateSlice(args.currentState);
+        const governedPreparation = prepareGovernedExecuteTradeSignAndTrade({
+          payload: args.payload,
+          currentState: args.currentState,
+          operationId,
+          authoringIdentity,
+          recordedAt,
+        });
+        const tradePayload = governedPreparation.payload;
+        const tradeState = toTradeStateSlice(governedPreparation.currentState);
 
         // TM-3B: Prepare trade apply inputs in one canonical handoff surface.
         const tradeApplyPreparation = buildTradeApplyPreparation({
@@ -537,9 +662,14 @@ export function computeNormalizedWorldMutation(
           currentState: tradeState,
           seasonId,
           timestamp,
-          historyContext: { worldId, mutationType: args.mutationType },
+          historyContext: {
+            worldId,
+            mutationType: args.mutationType,
+            mutationId: operationId,
+          },
           postTradeSnapshot: tradeApplyPreparation.postTradeSnapshot,
           validatedContext: tradeApplyPreparation.validatedContext,
+          governedSignAndTradeAuthority: governedPreparation.authority,
         });
 
         return withDefaultPlayerDeletes(tradeResult);

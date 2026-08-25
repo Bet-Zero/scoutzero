@@ -34,9 +34,7 @@ const asStringArray = (value: unknown): string[] => {
     return [];
   }
 
-  return value
-    .map((item) => String(item || '').trim())
-    .filter(Boolean);
+  return value.map((item) => String(item || '').trim()).filter(Boolean);
 };
 
 const uniqueStrings = (values: string[]): string[] => {
@@ -134,22 +132,24 @@ const buildCapAlignmentRows = ({
     ['taxSalary', 'Tax Salary'],
   ] as const;
   return orderedTeamCodes
-    .flatMap((teamCode) => books.map(([field, book]) => {
-      const before = readSalaryBook(beforeTotalsByTeam, teamCode, field);
-      const after = readSalaryBook(afterTotalsByTeam, teamCode, field);
+    .flatMap((teamCode) =>
+      books.map(([field, book]) => {
+        const before = readSalaryBook(beforeTotalsByTeam, teamCode, field);
+        const after = readSalaryBook(afterTotalsByTeam, teamCode, field);
 
-      if (before === null || after === null) {
-        return null;
-      }
+        if (before === null || after === null) {
+          return null;
+        }
 
-      return {
-        after,
-        before,
-        delta: after - before,
-        teamCode,
-        book,
-      };
-    }))
+        return {
+          after,
+          before,
+          delta: after - before,
+          teamCode,
+          book,
+        };
+      })
+    )
     .filter((row): row is CapAlignmentRow => Boolean(row));
 };
 
@@ -204,7 +204,9 @@ const resolveTruthContract = (
     label: 'Explicit local timeline row',
     description:
       'Display fields below come directly from the selected local Team History entry. Any raw payload attached to the row is shown separately and does not replace missing normalized fields.',
-    rawPayloadTitle: rawEntry ? 'Attached Local Payload' : 'No Raw Payload Attached',
+    rawPayloadTitle: rawEntry
+      ? 'Attached Local Payload'
+      : 'No Raw Payload Attached',
     rawPayloadDescription: rawEntry
       ? 'Inspect this attached local payload separately from the normalized Team History fields above.'
       : 'This selected local row does not carry a raw payload object.',
@@ -318,10 +320,10 @@ export const HistoryDetailModal = ({
     window.localStorage?.getItem(DEV_TEAM_HISTORY_FIXTURE_FLAG) === 'true';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-cockpit-void/80 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-cockpit-void/80 p-4">
       <div
         data-testid="team-history-detail-modal"
-        className="w-full max-w-2xl rounded-lg border border-cockpit-edge bg-cockpit-slab p-4 text-cockpit-text-primary shadow-cockpit-slab"
+        className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-lg border border-cockpit-edge bg-cockpit-slab p-4 text-cockpit-text-primary shadow-cockpit-slab"
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
@@ -355,7 +357,10 @@ export const HistoryDetailModal = ({
 
         {(onNavigateRoom || onOpenTradeWithRequest) &&
         outboundLinks.length > 0 ? (
-          <div className="mb-4" data-testid="team-history-detail-outbound-links">
+          <div
+            className="mb-4"
+            data-testid="team-history-detail-outbound-links"
+          >
             <div className="mb-1 text-[11px] uppercase tracking-wide text-cockpit-text-muted">
               Go to — committed event; destinations show current results
             </div>
@@ -457,7 +462,9 @@ export const HistoryDetailModal = ({
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase text-cockpit-text-muted">Timestamp</div>
+            <div className="text-xs uppercase text-cockpit-text-muted">
+              Timestamp
+            </div>
             <div
               data-testid="team-history-detail-timestamp"
               className="font-medium"
@@ -479,7 +486,9 @@ export const HistoryDetailModal = ({
             </div>
           )}
           <div>
-            <div className="text-xs uppercase text-cockpit-text-muted">Mutation Type</div>
+            <div className="text-xs uppercase text-cockpit-text-muted">
+              Mutation Type
+            </div>
             <div
               data-testid="team-history-detail-mutation-type"
               className="font-medium"
@@ -499,7 +508,9 @@ export const HistoryDetailModal = ({
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase text-cockpit-text-muted">Team Codes</div>
+            <div className="text-xs uppercase text-cockpit-text-muted">
+              Team Codes
+            </div>
             <div
               data-testid="team-history-detail-team-codes"
               className="font-medium"
@@ -508,7 +519,9 @@ export const HistoryDetailModal = ({
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase text-cockpit-text-muted">Player IDs</div>
+            <div className="text-xs uppercase text-cockpit-text-muted">
+              Player IDs
+            </div>
             <div
               data-testid="team-history-detail-player-ids"
               className="font-medium break-all"
@@ -517,7 +530,9 @@ export const HistoryDetailModal = ({
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase text-cockpit-text-muted">Cap Delta</div>
+            <div className="text-xs uppercase text-cockpit-text-muted">
+              Cap Delta
+            </div>
             <div className="font-medium">
               {formatNumberDelta(entry.capDelta)}
             </div>
@@ -534,60 +549,62 @@ export const HistoryDetailModal = ({
             </div>
           </div>
           {showDeveloperDetail && (
-          <div className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3">
-            <div className="text-xs uppercase text-cockpit-text-muted">Identity</div>
-            <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div>
-                <div className="text-[11px] uppercase text-cockpit-text-muted">
-                  Selected Row ID
+            <div className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3">
+              <div className="text-xs uppercase text-cockpit-text-muted">
+                Identity
+              </div>
+              <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div>
+                  <div className="text-[11px] uppercase text-cockpit-text-muted">
+                    Selected Row ID
+                  </div>
+                  <div
+                    data-testid="team-history-detail-row-id"
+                    className="font-medium break-all"
+                  >
+                    {getDisplayText(entry.id)}
+                  </div>
                 </div>
-                <div
-                  data-testid="team-history-detail-row-id"
-                  className="font-medium break-all"
-                >
-                  {getDisplayText(entry.id)}
+                <div>
+                  <div className="text-[11px] uppercase text-cockpit-text-muted">
+                    Mutation ID
+                  </div>
+                  <div
+                    data-testid="team-history-detail-mutation-id"
+                    className="font-medium break-all"
+                  >
+                    {mutationId}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase text-cockpit-text-muted">
+                    Event ID
+                  </div>
+                  <div
+                    data-testid="team-history-detail-event-id"
+                    className="font-medium break-all"
+                  >
+                    {getDisplayText(entry.eventId)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase text-cockpit-text-muted">
+                    Operation ID
+                  </div>
+                  <div
+                    data-testid="team-history-detail-operation-id"
+                    className="font-medium break-all"
+                  >
+                    {getDisplayText(entry.operationId)}
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className="text-[11px] uppercase text-cockpit-text-muted">
-                  Mutation ID
-                </div>
-                <div
-                  data-testid="team-history-detail-mutation-id"
-                  className="font-medium break-all"
-                >
-                  {mutationId}
-                </div>
-              </div>
-              <div>
-                <div className="text-[11px] uppercase text-cockpit-text-muted">
-                  Event ID
-                </div>
-                <div
-                  data-testid="team-history-detail-event-id"
-                  className="font-medium break-all"
-                >
-                  {getDisplayText(entry.eventId)}
-                </div>
-              </div>
-              <div>
-                <div className="text-[11px] uppercase text-cockpit-text-muted">
-                  Operation ID
-                </div>
-                <div
-                  data-testid="team-history-detail-operation-id"
-                  className="font-medium break-all"
-                >
-                  {getDisplayText(entry.operationId)}
-                </div>
+              <div className="mt-2 text-[11px] text-cockpit-text-muted">
+                Selected row identity is shown exactly as carried on the Team
+                History entry. The modal does not coalesce these IDs into one
+                fallback identifier.
               </div>
             </div>
-            <div className="mt-2 text-[11px] text-cockpit-text-muted">
-              Selected row identity is shown exactly as carried on the Team
-              History entry. The modal does not coalesce these IDs into one
-              fallback identifier.
-            </div>
-          </div>
           )}
           {detailSections.length > 0 && (
             <div
@@ -620,68 +637,71 @@ export const HistoryDetailModal = ({
             <div className="text-xs uppercase text-cockpit-text-muted">
               Cap Delta Alignment
             </div>
-            <div className="mt-1 text-sm text-cockpit-text-secondary">{capAlignmentStatus}</div>
+            <div className="mt-1 text-sm text-cockpit-text-secondary">
+              {capAlignmentStatus}
+            </div>
             <ul className="mt-2 space-y-1 text-sm text-cockpit-text-primary">
               {capAlignmentRows.map((row) => (
                 <li key={`${row.teamCode}:${row.book}`}>
                   • {row.teamCode} {row.book}: {formatCurrency(row.before)}{' '}
-                  -&gt; {formatCurrency(row.after)} ({formatNumberDelta(row.delta)})
+                  -&gt; {formatCurrency(row.after)} (
+                  {formatNumberDelta(row.delta)})
                 </li>
               ))}
             </ul>
           </div>
           {showDeveloperDetail && (
-          <>
-          <div className="md:col-span-2">
-            <div className="text-xs uppercase text-cockpit-text-muted">
-              Before Totals By Team
-            </div>
-            <pre
-              data-testid="team-history-detail-before-totals"
-              className="mt-1 max-h-40 overflow-auto rounded-md bg-cockpit-void p-2 text-xs text-cockpit-text-secondary"
-            >
-              {stringifySafe(beforeTotalsByTeam)}
-            </pre>
-          </div>
-          <div className="md:col-span-2">
-            <div className="text-xs uppercase text-cockpit-text-muted">
-              After Totals By Team
-            </div>
-            <pre
-              data-testid="team-history-detail-after-totals"
-              className="mt-1 max-h-40 overflow-auto rounded-md bg-cockpit-void p-2 text-xs text-cockpit-text-secondary"
-            >
-              {stringifySafe(afterTotalsByTeam)}
-            </pre>
-          </div>
-          <div className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3">
-            <div className="text-xs uppercase text-cockpit-text-muted">
-              {truthContract.rawPayloadTitle}
-            </div>
-            <div className="mt-1 text-[11px] text-cockpit-text-muted">
-              {truthContract.rawPayloadDescription}
-            </div>
-            <ul
-              data-testid="team-history-detail-raw-summary"
-              className="mt-2 space-y-1 text-sm text-cockpit-text-primary"
-            >
-              {rawPayloadSummaryLines.map((line) => (
-                <li key={line}>• {line}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="md:col-span-2">
-            <div className="text-xs uppercase text-cockpit-text-muted">
-              Raw Event Payload
-            </div>
-            <pre
-              data-testid="team-history-raw-payload"
-              className="mt-1 max-h-56 overflow-auto rounded-md bg-cockpit-void p-2 text-xs text-cockpit-text-secondary"
-            >
-              {stringifySafe(rawEntry)}
-            </pre>
-          </div>
-          </>
+            <>
+              <div className="md:col-span-2">
+                <div className="text-xs uppercase text-cockpit-text-muted">
+                  Before Totals By Team
+                </div>
+                <pre
+                  data-testid="team-history-detail-before-totals"
+                  className="mt-1 max-h-40 overflow-auto rounded-md bg-cockpit-void p-2 text-xs text-cockpit-text-secondary"
+                >
+                  {stringifySafe(beforeTotalsByTeam)}
+                </pre>
+              </div>
+              <div className="md:col-span-2">
+                <div className="text-xs uppercase text-cockpit-text-muted">
+                  After Totals By Team
+                </div>
+                <pre
+                  data-testid="team-history-detail-after-totals"
+                  className="mt-1 max-h-40 overflow-auto rounded-md bg-cockpit-void p-2 text-xs text-cockpit-text-secondary"
+                >
+                  {stringifySafe(afterTotalsByTeam)}
+                </pre>
+              </div>
+              <div className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3">
+                <div className="text-xs uppercase text-cockpit-text-muted">
+                  {truthContract.rawPayloadTitle}
+                </div>
+                <div className="mt-1 text-[11px] text-cockpit-text-muted">
+                  {truthContract.rawPayloadDescription}
+                </div>
+                <ul
+                  data-testid="team-history-detail-raw-summary"
+                  className="mt-2 space-y-1 text-sm text-cockpit-text-primary"
+                >
+                  {rawPayloadSummaryLines.map((line) => (
+                    <li key={line}>• {line}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="md:col-span-2">
+                <div className="text-xs uppercase text-cockpit-text-muted">
+                  Raw Event Payload
+                </div>
+                <pre
+                  data-testid="team-history-raw-payload"
+                  className="mt-1 max-h-56 overflow-auto rounded-md bg-cockpit-void p-2 text-xs text-cockpit-text-secondary"
+                >
+                  {stringifySafe(rawEntry)}
+                </pre>
+              </div>
+            </>
           )}
         </div>
       </div>

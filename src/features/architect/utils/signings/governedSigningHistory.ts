@@ -44,6 +44,8 @@ function authoredState({
   authoringIdentity,
   recordedAt,
   authority,
+  signingTeamId,
+  sourceKind,
 }: GovernedSigningHistoryRequest): GovernedContractState {
   const bird = contract.birdRights || {};
   const freeAgency =
@@ -62,7 +64,7 @@ function authoredState({
       isExtension: booleanValue(contract.isExtension),
       isRookieScale: booleanValue(contract.isRookieScale),
       signedUsing: stringValue(contract.signedUsing || contract.exceptionType),
-      signingTeam: teamId,
+      signingTeam: signingTeamId || teamId,
       signingDate: dateValue(authority.worldDate),
       signingExecutive: stringValue(contract.signingExecutive),
       signedByCurrentTeam: booleanValue(contract.signedByCurrentTeam),
@@ -155,7 +157,7 @@ function authoredState({
     evidence: [],
     completeness: { status: 'complete', reasons: [] },
     source: {
-      sourceKind: 'saved-world-signing',
+      sourceKind: sourceKind || 'saved-world-signing',
       operationId,
       authoringIdentity,
       recordedAt: dateValue(recordedAt),
@@ -178,6 +180,8 @@ export type GovernedSigningHistoryRequest = {
   recordedAt: string;
   authority: GovernedSigningAuthority;
   contractId?: string;
+  signingTeamId?: string;
+  sourceKind?: 'saved-world-signing' | 'saved-world-sign-and-trade';
 };
 
 export function buildGovernedSigningHistory(

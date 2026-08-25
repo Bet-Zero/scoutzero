@@ -588,6 +588,7 @@ utils/
       validateStepien.ts
       validateTradeExceptions.ts
     signAndTrade/
+      governedSignAndTrade.ts
       signAndTradeEligibility.ts
     utils/
       buildEntitlementRoutingMap.ts
@@ -641,5 +642,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-24T01:53:39.144Z*
+*Generated on: 2026-08-25T15:46:47.080Z*
 *Auto-updated by: npm run docs*

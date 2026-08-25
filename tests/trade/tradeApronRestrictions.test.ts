@@ -17,6 +17,7 @@ import type {
   TradeSalaryPathComponent,
   TradeSalaryPathEvaluation,
 } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
+import type { TradeSalaryMatchingPath } from '@/schemas/tradeSalaryMatchingPath';
 import type {
   TradeTeam,
   TradeValidatorContext,
@@ -25,9 +26,150 @@ import {
   CANON_GOVERNED_SEASON_REGISTRY,
   type GovernedSeasonRegistry,
 } from '@/features/architect/utils/governedSeason';
+import { GovernedSignAndTradeAuthorityZ } from '@/schemas/governedSignAndTrade';
 
 const FIRST_APRON = 209_015_000;
 const SECOND_APRON = 221_686_000;
+const AUTHORITY_DIGEST = 'fnv1a64:0000000000000000';
+const AUTHORITY_TEAM_CODES = [
+  'ATL',
+  'BOS',
+  'BKN',
+  'CHA',
+  'CHI',
+  'CLE',
+  'DAL',
+  'DEN',
+  'DET',
+  'GSW',
+  'HOU',
+  'IND',
+  'LAC',
+  'LAL',
+  'MEM',
+  'MIA',
+  'MIL',
+  'MIN',
+  'NOP',
+  'NYK',
+  'OKC',
+  'ORL',
+  'PHI',
+  'PHX',
+  'POR',
+  'SAC',
+  'SAS',
+  'TOR',
+  'UTA',
+  'WAS',
+] as const;
+
+function signAndTradeAuthority(firstSeasonSalary: number) {
+  const rows = ['2026-27', '2027-28', '2028-29'].map((season) => ({
+    season,
+    salary: firstSeasonSalary,
+    capHit: firstSeasonSalary,
+    guaranteed: true,
+    guaranteedAmount: firstSeasonSalary,
+    option: null,
+    likelyBonuses: 0,
+    unlikelyBonuses: 0,
+  }));
+  return GovernedSignAndTradeAuthorityZ.parse({
+    authorityVersion: 1,
+    status: 'ready',
+    worldId: 'WORLD-1',
+    sourceTeamId: 'ATL',
+    destinationTeamId: 'DET',
+    playerId: 'SAT-PLAYER',
+    playerName: 'Sign-and-Trade Player',
+    salaryCapYear: 2027,
+    seasonKey: '2026-27',
+    transactionAt: '2026-07-15T12:00:00-04:00',
+    proposal: {
+      proposalVersion: 1,
+      transactionAt: '2026-07-15T12:00:00-04:00',
+      playerConsentConfirmed: true,
+      higherMaxStatus: 'not-relied-upon',
+      firstSeasonUnlikelyBonuses: 0,
+      exhibit6Present: false,
+      physicalExam: { status: 'not-required' },
+    },
+    seasonEvidence: {
+      priorSeason: '2025-26',
+      currentSeason: '2026-27',
+      historyId: '2025-26__ATL',
+      historyDigest: AUTHORITY_DIGEST,
+      transitionId: 'seasonAdvance__2025-26__2026-27',
+      transitionManifestDigest: AUTHORITY_DIGEST,
+      finalRosterDigest: AUTHORITY_DIGEST,
+      finalRosterPlayerDigest: AUTHORITY_DIGEST,
+      seasonCloseApronMeasurementDigest: AUTHORITY_DIGEST,
+    },
+    rightsEvidence: {
+      ledgerId: 'rights-ledger:ATL',
+      ledgerVersion: 1,
+      ledgerDigest: AUTHORITY_DIGEST,
+      stateId: 'rights-state:SAT-PLAYER',
+      stateVersion: 1,
+      birdType: 'Full Bird',
+      signingBirdType: 'Full Bird',
+      freeAgentStatus: 'UFA',
+      rightOfFirstRefusal: 'not-applicable',
+      consumedEventIds: ['rights-established:SAT-PLAYER'],
+    },
+    contract: {
+      contractDigest: AUTHORITY_DIGEST,
+      contractYears: 3,
+      nonOptionYears: 3,
+      firstSeasonFullyProtected: true,
+      signedUsing: 'FULL_BIRD',
+      rows,
+      firstSeasonSalary,
+      firstSeasonLikelyBonuses: 0,
+      firstSeasonUnlikelyBonuses: 0,
+    },
+    salaryTreatment: {
+      salaryCap: 164_961_000,
+      priorContractFinalSalary: 10_000_000,
+      applicableMinimumSalary: 1_000_000,
+      applicableMaximumSalary: 41_240_250,
+      qualifyingOfferTotal: 0,
+      nonQualifyingVeteranFirstYearCeiling: 14_000_000,
+      firstSeasonSalaryPlusUnlikely: firstSeasonSalary,
+      postSigningSourceTeamSalary: 100_000_000,
+      bycTriggered: false,
+      poisonPillTriggered: false,
+      assignorSalary: firstSeasonSalary,
+      assigneeSalary: firstSeasonSalary,
+      assigneeRoomAmount: firstSeasonSalary,
+    },
+    snapshots: {
+      worldMetadata: { exists: true, digest: AUTHORITY_DIGEST },
+      sourceTeam: { exists: true, digest: AUTHORITY_DIGEST },
+      destinationTeam: { exists: true, digest: AUTHORITY_DIGEST },
+      sourcePlayer: { exists: false, digest: null },
+      destinationPlayer: { exists: false, digest: null },
+      seasonHistory: { exists: true, digest: AUTHORITY_DIGEST },
+      seasonHistorySet: AUTHORITY_TEAM_CODES.map((teamId) => ({
+        historyId: `2025-26__${teamId}`,
+        teamId,
+        digest: AUTHORITY_DIGEST,
+      })),
+      transitionManifest: { exists: true, digest: AUTHORITY_DIGEST },
+    },
+    seasonInputManifest: {},
+    authoringIdentity: 'test:trade-apron-restrictions',
+    operationId: 'test-sign-and-trade',
+    recordedAt: '2026-07-15T12:00:00-04:00',
+    canonLeafIds: ['CBA2-A07.6'],
+    proof: {
+      canonCandidateCommit: '6cf8aaf358c158a88e630e8a7336f7e9c3febc17',
+      canonSha256:
+        '23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76',
+    },
+  });
+}
 
 function electedComponent(
   path: 'STANDARD_TPE' | 'AGGREGATED_STANDARD_TPE'
@@ -75,7 +217,7 @@ function pathEvaluation({
   postSalary,
   components,
 }: {
-  path: 'STANDARD_TPE' | 'AGGREGATED_STANDARD_TPE';
+  path: TradeSalaryMatchingPath;
   postSalary: number;
   components?: TradeSalaryPathComponent[];
 }): TradeSalaryPathEvaluation {
@@ -91,7 +233,7 @@ function pathEvaluation({
     maximumIncoming: 10_000_000,
     actualIncoming: 5_000_000,
     margin: 5_000_000,
-    components: components ?? [electedComponent(path)],
+    components: components ?? (path === 'ROOM' ? [] : [electedComponent(path)]),
     missingInputs: [],
     violations: [],
     canonLeafIds: [],
@@ -122,7 +264,8 @@ function context(tradeDate: string): TradeValidatorContext {
 
 function team(
   postSalary: number,
-  tpes: Array<Record<string, unknown>> = []
+  tpes: Array<Record<string, unknown>> = [],
+  signAndTradeSalary: number | null = null
 ): TradeTeam {
   return {
     teamId: 'DET',
@@ -134,7 +277,39 @@ function team(
       apronTeamSalary: postSalary,
       exceptions: { tpe: tpes as never[] },
     },
+    incomingPlayers:
+      signAndTradeSalary === null
+        ? []
+        : [
+            {
+              id: 'SAT-PLAYER',
+              name: 'Sign-and-Trade Player',
+              salary: signAndTradeSalary,
+              matchIncoming: signAndTradeSalary,
+              matchOutgoing: signAndTradeSalary,
+              isTwoWay: false,
+              absorptionMode: 'MATCH',
+              signAndTrade: true,
+              governedSignAndTradeAuthority:
+                signAndTradeAuthority(signAndTradeSalary),
+              contractYears: 3,
+              firstYearGuaranteed: true,
+            },
+          ],
   };
+}
+
+function evaluateSignAndTrade(
+  path: TradeSalaryMatchingPath,
+  postSalary: number,
+  incomingSalary: number | null = 20_000_000
+) {
+  return evaluateTradeApronRestriction({
+    team: team(postSalary, [], incomingSalary),
+    teamCode: 'DET',
+    pathEvaluation: pathEvaluation({ path, postSalary }),
+    context: context('2026-07-15T12:00:00-04:00'),
+  });
 }
 
 function evaluateAggregated(postSalary: number) {
@@ -184,6 +359,96 @@ function createCumulativeLedgerEntry() {
 }
 
 describe('governed Trade Machine apron restrictions', () => {
+  it.each<TradeSalaryMatchingPath>([
+    'ROOM',
+    'STANDARD_TPE',
+    'AGGREGATED_STANDARD_TPE',
+  ])(
+    'CBA2-A07.6: applies receiving sign-and-trade Row C on the %s path at equality and one cent above',
+    (path) => {
+      const atCeiling = evaluateSignAndTrade(path, FIRST_APRON);
+      const above = evaluateSignAndTrade(path, FIRST_APRON + 0.01);
+      const entry = createTradeHardCapLedgerEntry({
+        evaluation: atCeiling,
+        teamCode: 'DET',
+        transactionId: `TRADE-SAT-${path}`,
+        effectiveAt: '2026-07-15T16:00:00Z',
+      });
+
+      expect(atCeiling).toMatchObject({
+        status: 'PASS',
+        restrictionRow: 'C',
+        apronLevel: 'FIRST_APRON',
+        ceiling: FIRST_APRON,
+        margin: 0,
+        hardCapWillPersist: true,
+      });
+      expect(atCeiling.attachedRestrictions).toContainEqual(
+        expect.objectContaining({
+          restrictionRow: 'C',
+          componentId: 'sign-and-trade:SAT-PLAYER',
+          componentKind: 'SIGN_AND_TRADE',
+          salaryMatchingPath: path,
+          apronLevel: 'FIRST_APRON',
+        })
+      );
+      expect(above.status).toBe('FAIL');
+      expect(above.margin).toBeCloseTo(-0.01, 6);
+      expect(entry).toMatchObject({
+        restrictionRow: 'C',
+        salaryMatchingPath: path,
+        apronLevel: 'FIRST_APRON',
+        ceiling: FIRST_APRON,
+      });
+      expect(parseTradeHardCapLedger([entry]).valid).toBe(true);
+    }
+  );
+
+  it('fails closed without an authenticated receiving sign-and-trade salary', () => {
+    const tradeTeam = team(FIRST_APRON, [], 20_000_000);
+    tradeTeam.incomingPlayers![0].matchIncoming = Number.NaN;
+    const evaluation = evaluateTradeApronRestriction({
+      team: tradeTeam,
+      teamCode: 'DET',
+      pathEvaluation: pathEvaluation({
+        path: 'ROOM',
+        postSalary: FIRST_APRON,
+      }),
+      context: context('2026-07-15T12:00:00-04:00'),
+    });
+
+    expect(evaluation.status).toBe('NEEDS_INPUT');
+    expect(evaluation.missingInputs).toContain(
+      'signAndTradeReceiver.SAT-PLAYER.identityOrSalary'
+    );
+    expect(
+      createTradeHardCapLedgerEntry({
+        evaluation,
+        teamCode: 'DET',
+        transactionId: 'TRADE-SAT-MISSING-SALARY',
+        effectiveAt: '2026-07-15T16:00:00Z',
+      })
+    ).toBeNull();
+  });
+
+  it('binds saved-world S&T authority to canonical teamCode while retaining a product-route slug', () => {
+    const evaluation = evaluateTradeApronRestriction({
+      team: team(FIRST_APRON, [], 20_000_000),
+      teamCode: 'pistons',
+      pathEvaluation: pathEvaluation({
+        path: 'ROOM',
+        postSalary: FIRST_APRON,
+      }),
+      context: context('2026-07-15T12:00:00-04:00'),
+    });
+
+    expect(evaluation).toMatchObject({
+      status: 'PASS',
+      restrictionRow: 'C',
+      apronLevel: 'FIRST_APRON',
+    });
+  });
+
   it('CBA2-A05.10/A05.1: classifies Row H and distinguishes equality from one cent above', () => {
     const atCeiling = evaluateAggregated(SECOND_APRON);
     const above = evaluateAggregated(SECOND_APRON + 0.01);
@@ -1030,16 +1295,22 @@ describe('governed Trade Machine apron restrictions', () => {
       valid: true,
     });
     expect(
-      getHardCapStatus({ hardCapLedger: singleReload }, {
-        salaryCapYear: 2027,
-        capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
-      }).hardCapCeiling
+      getHardCapStatus(
+        { hardCapLedger: singleReload },
+        {
+          salaryCapYear: 2027,
+          capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+        }
+      ).hardCapCeiling
     ).toBe(SECOND_APRON);
     expect(
-      getHardCapStatus({ hardCapLedger: cumulativeReload }, {
-        salaryCapYear: 2027,
-        capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
-      }).hardCapCeiling
+      getHardCapStatus(
+        { hardCapLedger: cumulativeReload },
+        {
+          salaryCapYear: 2027,
+          capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+        }
+      ).hardCapCeiling
     ).toBe(FIRST_APRON);
   });
 
@@ -1148,9 +1419,9 @@ describe('governed Trade Machine apron restrictions', () => {
       ),
     };
 
-    expect(
-      parseTradeHardCapLedger([entry], registryWithoutFirstApron)
-    ).toEqual({ entries: [], valid: false });
+    expect(parseTradeHardCapLedger([entry], registryWithoutFirstApron)).toEqual(
+      { entries: [], valid: false }
+    );
   });
 
   it('rejects an internally consistent forged ledger at saved-team hydration', async () => {
@@ -1320,8 +1591,7 @@ describe('governed Trade Machine apron restrictions', () => {
 
     expect(computed.success).toBe(true);
     expect(
-      computed.metadata?.apronRestrictions?.[0]?.evaluation
-        .attachedRestrictions
+      computed.metadata?.apronRestrictions?.[0]?.evaluation.attachedRestrictions
     ).toEqual(evaluation.attachedRestrictions);
     expect(computed.teamUpdates?.[0]?.team?.hardCapLedger?.[0]).toMatchObject({
       restrictionRow: 'F',

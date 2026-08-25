@@ -14,6 +14,10 @@ import { getSignAndTradeSalaryForYear } from '@/features/architect/utils/tradeMa
 import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import { GovernedTradeSalaryBasisZ } from '@/schemas/governedTradeSalaryBasis';
 import type { GovernedTradeSalaryBasis } from '@/schemas/governedTradeSalaryBasis';
+import {
+  GovernedSignAndTradeAuthorityZ,
+  type GovernedSignAndTradeAuthority,
+} from '@/schemas/governedSignAndTrade';
 
 type YearKey = number | string;
 
@@ -48,6 +52,7 @@ interface MatchingValueTradeKicker {
 export interface MatchingValuePlayer {
   id?: string | number | null;
   player_id?: string | number | null;
+  playerId?: string | number | null;
   name?: string | null;
   bio?: {
     displayName?: string | null;
@@ -77,10 +82,12 @@ export interface MatchingValuePlayer {
   matchOutgoing?: number;
   matchIncoming?: number;
   governedTradeSalaryBasis?: GovernedTradeSalaryBasis | unknown;
+  governedSignAndTradeAuthority?: GovernedSignAndTradeAuthority | null;
 }
 
 interface MatchingValueTeam {
   teamId?: string | null;
+  teamCode?: string | null;
   sends?: MatchingValuePlayer[];
   dataWarnings?: DataWarning[];
 }
@@ -129,7 +136,10 @@ function getRookieScaleAndPoisonPillFlags(player: MatchingValuePlayer) {
 function getExtensionYearsForMatching(
   player: MatchingValuePlayer
 ): MatchingValueExtensionYear[] {
-  if (Array.isArray(player.extensionYears) && player.extensionYears.length > 0) {
+  if (
+    Array.isArray(player.extensionYears) &&
+    player.extensionYears.length > 0
+  ) {
     return player.extensionYears;
   }
   if (
@@ -284,11 +294,62 @@ export function computeMatchingValues({
         return;
       }
 
-      if (
-        requireGovernedSalaryBasis &&
-        worldId &&
-        player.signAndTrade !== true
-      ) {
+      if (player.signAndTrade === true && worldId) {
+        const governedSignAndTrade = GovernedSignAndTradeAuthorityZ.safeParse(
+          player.governedSignAndTradeAuthority
+        );
+        if (governedSignAndTrade.success) {
+          const authority = governedSignAndTrade.data;
+          const playerIdentifier = String(
+            player.player_id ?? player.playerId ?? player.id ?? ''
+          ).trim();
+          const teamId = String(team.teamCode ?? team.teamId ?? '')
+            .trim()
+            .toUpperCase();
+          const normalizedYear = normalizeYearInput(yearKey);
+          const expectedDate =
+            typeof asOfDate === 'string' ? asOfDate.slice(0, 10) : null;
+          if (
+            authority.status !== 'ready' ||
+            authority.playerId !== playerIdentifier ||
+            authority.sourceTeamId.toUpperCase() !== teamId ||
+            authority.worldId !== worldId ||
+            authority.salaryCapYear !== normalizedYear?.endYear ||
+            authority.transactionAt.slice(0, 10) !== expectedDate
+          ) {
+            salaryBasisIssues.push({
+              playerId: playerIdentifier || null,
+              teamId: teamId || null,
+              reason:
+                'Governed sign-and-trade salary authority does not match this world, Team, player, date, or Salary Cap Year.',
+            });
+            player.matchOutgoing = 0;
+            player.matchIncoming = 0;
+            return;
+          }
+          player.matchOutgoing = authority.salaryTreatment.assignorSalary;
+          player.matchIncoming = authority.salaryTreatment.assigneeSalary;
+          player.isBYC = authority.salaryTreatment.bycTriggered;
+          player.previousSalary =
+            authority.salaryTreatment.priorContractFinalSalary;
+          player.isPoisonPill = authority.salaryTreatment.poisonPillTriggered;
+          return;
+        }
+        salaryBasisIssues.push({
+          playerId:
+            String(
+              player.player_id ?? player.playerId ?? player.id ?? ''
+            ).trim() || null,
+          teamId: String(team.teamCode ?? team.teamId ?? '').trim() || null,
+          reason:
+            'Governed sign-and-trade salary authority is missing or malformed.',
+        });
+        player.matchOutgoing = 0;
+        player.matchIncoming = 0;
+        return;
+      }
+
+      if (requireGovernedSalaryBasis && worldId) {
         const parsed = GovernedTradeSalaryBasisZ.safeParse(
           player.governedTradeSalaryBasis
         );
@@ -507,7 +568,8 @@ export function computeMatchingValues({
   return {
     dataWarnings: allDataWarnings,
     hasBYCDataIssues: allDataWarnings.some(
-      (warning) => warning.code === DATA_WARNING_CODES.BYC_MISSING_PREVIOUS_SALARY
+      (warning) =>
+        warning.code === DATA_WARNING_CODES.BYC_MISSING_PREVIOUS_SALARY
     ),
     hasSalaryFieldIssues: allDataWarnings.some(
       (warning) =>
