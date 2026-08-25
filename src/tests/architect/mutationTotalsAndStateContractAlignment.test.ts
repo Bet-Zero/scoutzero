@@ -279,7 +279,7 @@ describe('mutation totals and state contract alignment', () => {
     ).toBe(false);
   });
 
-  it('preserves the minimal hard-cap overlay on computed totals for sign-and-trade trade results', () => {
+  it('fails closed before writes when a saved-world sign-and-trade lacks governed authority', () => {
     const satPlayer = makeTradePlayer('sat_player', 0, 'LAL', {
       signAndTrade: true,
       signAndTradeContract: makeSatContract(15_000_000),
@@ -329,23 +329,11 @@ describe('mutation totals and state contract alignment', () => {
       worldId: 'world_test',
     });
 
-    expect(result.success).toBe(true);
-
-    const teamUpdates = result.teamUpdates ?? [];
-    const destinationUpdate = teamUpdates.find(
-      (entry) => entry.teamCode === 'BOS'
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toMatch(
+      /governed sign-and-trade.*exact live saved-world evidence/i
     );
-    const destinationState = destinationUpdate?.team;
-    const destinationTotals = destinationState?.totals as
-      | Record<string, unknown>
-      | undefined;
-
-    expect(destinationState).toBeDefined();
-    expect(destinationTotals).toMatchObject({
-      isHardCapped: true,
-      hardCapLevel: 'firstApron',
-      hardCapDetail: 'Triggered by receiving sign-and-trade player',
-    });
-    expect(typeof destinationTotals?.totalCapAllocations).toBe('number');
+    expect(result.teamUpdates ?? []).toHaveLength(0);
+    expect(result.playerUpdates ?? []).toHaveLength(0);
   });
 });

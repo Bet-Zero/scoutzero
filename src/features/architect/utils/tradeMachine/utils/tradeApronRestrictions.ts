@@ -331,6 +331,8 @@ export function evaluateTradeApronRestriction({
     team.receives ||
     []
   ).filter((player) => player.signAndTrade === true);
+  const usesSavedWorldSignAndTradeAuthority =
+    Boolean(context.worldId) && incomingSignAndTradePlayers.length > 0;
   if (!path || pathEvaluation?.status !== 'PASS') {
     return result({
       status: 'NOT_APPLICABLE',
@@ -339,7 +341,7 @@ export function evaluateTradeApronRestriction({
       salaryCapYear: context.currentYear ?? null,
     });
   }
-  if (path === 'ROOM' && incomingSignAndTradePlayers.length === 0) {
+  if (path === 'ROOM' && !usesSavedWorldSignAndTradeAuthority) {
     return result({
       status: 'NOT_APPLICABLE',
       salaryMatchingPath: path,
@@ -356,7 +358,7 @@ export function evaluateTradeApronRestriction({
     .toUpperCase();
   const postSalary = finiteMoney(pathEvaluation.postAssignmentApronTeamSalary);
   let signAndTradeApronAdjustment = 0;
-  if (context.worldId && incomingSignAndTradePlayers.length > 0) {
+  if (usesSavedWorldSignAndTradeAuthority) {
     incomingSignAndTradePlayers.forEach((player, index) => {
       const authority = GovernedSignAndTradeAuthorityZ.safeParse(
         (
