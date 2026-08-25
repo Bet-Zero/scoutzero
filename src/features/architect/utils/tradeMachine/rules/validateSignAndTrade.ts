@@ -27,6 +27,7 @@ type SignAndTradeRulePlayer = SignAndTradeContractCarrier & {
   receivingTeamId?: string | null;
   toTeamId?: string | null;
   destTeamId?: string | null;
+  fromTeamId?: string | number | null;
   originTeamId?: string | number | null;
   name?: string | null;
   displayName?: string | null;
@@ -121,6 +122,19 @@ function resolveCanonicalTeamIdentity(value: unknown): string | null {
   return resolveTeamCode(identity) || identity.toUpperCase();
 }
 
+function resolveConsistentTeamIdentity(values: unknown[]): {
+  identity: string | null;
+  conflict: boolean;
+} {
+  const identities = values
+    .map(resolveCanonicalTeamIdentity)
+    .filter((identity): identity is string => identity !== null);
+  if (identities.length === 0) return { identity: null, conflict: false };
+  return identities.every((identity) => identity === identities[0])
+    ? { identity: identities[0], conflict: false }
+    : { identity: null, conflict: true };
+}
+
 function isTradeMachinePath(tradeCtx: SignAndTradeTradeContext = {}): boolean {
   return tradeCtx.source === 'tradeMachine';
 }
@@ -152,14 +166,31 @@ function hasGovernedSavedWorldAuthority(
     const resolvedPlayerId = String(
       player.player_id || player.playerId || player.id || ''
     ).trim();
+    const declaredSource = resolveConsistentTeamIdentity([
+      player.fromTeamId,
+      player.originTeamId,
+    ]);
+    const declaredDestination = resolveConsistentTeamIdentity([
+      player.tradeTo,
+      player.receivingTeamId,
+      player.toTeamId,
+      player.destTeamId,
+    ]);
+    if (declaredSource.conflict || declaredDestination.conflict) return false;
     const routedSourceTeamId =
-      direction === 'outgoing'
-        ? teamId
-        : resolveCanonicalTeamIdentity(player.originTeamId);
+      direction === 'outgoing' ? teamId : declaredSource.identity;
     const routedDestinationTeamId =
-      direction === 'incoming'
-        ? teamId
-        : resolveCanonicalTeamIdentity(resolveDestinationTeamId(player));
+      direction === 'incoming' ? teamId : declaredDestination.identity;
+    if (
+      (declaredSource.identity &&
+        direction === 'outgoing' &&
+        declaredSource.identity !== teamId) ||
+      (declaredDestination.identity &&
+        direction === 'incoming' &&
+        declaredDestination.identity !== teamId)
+    ) {
+      return false;
+    }
     return (
       parsed.data.worldId === tradeCtx.worldId &&
       parsed.data.playerId === resolvedPlayerId &&

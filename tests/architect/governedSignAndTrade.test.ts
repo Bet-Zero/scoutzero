@@ -916,6 +916,33 @@ describe('governed saved-world sign-and-trade authority', () => {
     ).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ code: authorityCode })])
     );
+
+    const incomingPlayer = {
+      ...player,
+      fromTeamId: 'ATL',
+      governedSignAndTradeAuthority: authority,
+    };
+    const receivingTeam = {
+      teamId: 'BOS',
+      teamCode: 'BOS',
+      teamName: 'Team BOS',
+      sends: [],
+      incomingPlayers: [incomingPlayer],
+    };
+    expect(validateSignAndTrade(receivingTeam, context).violations).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: authorityCode })])
+    );
+    expect(
+      validateSignAndTrade(
+        {
+          ...receivingTeam,
+          incomingPlayers: [{ ...incomingPlayer, fromTeamId: 'NYK' }],
+        },
+        context
+      ).violations
+    ).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: authorityCode })])
+    );
   });
 
   it('counts first-season unlikely bonuses in the assignee Room amount', () => {
