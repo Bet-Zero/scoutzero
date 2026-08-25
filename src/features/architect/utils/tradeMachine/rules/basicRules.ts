@@ -1,8 +1,6 @@
 /**
- * TM-1C OWNERSHIP NOTE:
- * validateSecondApronRules / enforceSecondApronHandcuffs enforce one second-apron restriction:
- *
- * 1. Cash sent — SSOT; not enforced elsewhere.
+ * Compatibility surface only. Governed Transaction Restrictions Table rows,
+ * including Row I cash, are owned by evaluateTradeApronRestriction.
  *
  * Prior-year TPE restriction: validateTradeExceptions.ts is the sole canonical authority
  * (fires only when the team actively uses a prior-year TPE in this trade; holding a prior-year
@@ -14,39 +12,8 @@
  * equal-value multi-player trades are allowed per CBA). The broad 2+ player block previously
  * in this file was removed in TM-1C followup as it over-blocked relative to the CBA rule.
  */
-import {
-  SECOND_APRON_CASH_BLOCKED,
-} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
-import { isSecondApronTeam } from '../utils/capUtils';
-
-interface BasicRulesCapSettings {
-  secondApron?: number | null;
-}
-
-interface BasicRulesTeamContextLike {
-  isAtOrAboveSecondApron?: boolean;
-}
-
-interface BasicRulesTeamData {
-  teamTotalSalary?: number;
-  apronTeamSalary?: number | null;
-  totalSalary?: number;
-}
-
-interface BasicRulesTeam {
-  teamTotalSalary?: number;
-  projectedSalary?: number;
-  cashSent?: number | null;
-  postTradeStatus?: {
-    isAtOrAboveSecondApron?: boolean;
-  };
-  context?: BasicRulesTeamContextLike;
-  team?: BasicRulesTeamData | null;
-}
-
-interface BasicRulesContext {
-  capSettings?: BasicRulesCapSettings | null;
-}
+type BasicRulesTeam = Record<string, unknown>;
+type BasicRulesContext = Record<string, unknown>;
 
 interface BasicRulesValidationResult {
   passed: boolean;
@@ -59,43 +26,12 @@ interface BasicRulesEnforcementCallbacks {
 }
 
 export function validateSecondApronRules(
-  team: BasicRulesTeam,
-  context: BasicRulesContext = {}
+  _team: BasicRulesTeam,
+  _context: BasicRulesContext = {}
 ): BasicRulesValidationResult {
-  const capSettings = context.capSettings || {};
-  const violations: string[] = [];
-
-  const teamTotalSalary =
-    team?.teamTotalSalary ??
-    team?.team?.apronTeamSalary ??
-    team?.team?.teamTotalSalary ??
-    0;
-
-  const projectedSalary = team?.projectedSalary || teamTotalSalary;
-
-  const isAboveSecondApron =
-    team?.postTradeStatus?.isAtOrAboveSecondApron ||
-    isSecondApronTeam({ apronTeamSalary: teamTotalSalary }, capSettings) ||
-    isSecondApronTeam({ apronTeamSalary: projectedSalary }, capSettings) ||
-    team?.context?.isAtOrAboveSecondApron ||
-    false;
-
-  if (!isAboveSecondApron) {
-    return {
-      passed: true,
-      violations: [],
-      warningsOnly: false,
-    };
-  }
-
-  const cashSent = team.cashSent || 0;
-  if (cashSent > 0) {
-    violations.push(SECOND_APRON_CASH_BLOCKED);
-  }
-
   return {
-    passed: violations.length === 0,
-    violations,
+    passed: true,
+    violations: [],
     warningsOnly: false,
   };
 }

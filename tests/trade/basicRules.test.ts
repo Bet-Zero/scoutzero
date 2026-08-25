@@ -4,7 +4,6 @@ import {
   validateSecondApron,
   validateSecondApronRules,
 } from '@/features/architect/utils/tradeMachine/rules/basicRules';
-import { SECOND_APRON_CASH_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 
 const capSettings = {
   salaryCap: 141_000_000,
@@ -19,7 +18,7 @@ describe('basicRules compatibility surface', () => {
     expect(typeof enforceSecondApronHandcuffs).toBe('function');
   });
 
-  it('preserves the exact direct helper result shape and violation order', () => {
+  it('leaves governed Row I enforcement to the apron evaluator', () => {
     expect(
       validateSecondApronRules(
         {
@@ -29,8 +28,8 @@ describe('basicRules compatibility surface', () => {
         { capSettings }
       )
     ).toEqual({
-      passed: false,
-      violations: [SECOND_APRON_CASH_BLOCKED],
+      passed: true,
+      violations: [],
       warningsOnly: false,
     });
   });
@@ -54,7 +53,7 @@ describe('basicRules compatibility surface', () => {
     );
   });
 
-  it('preserves reject-callback behavior for second-apron enforcement', () => {
+  it('does not emit a duplicate reject callback for governed restrictions', () => {
     const reject = vi.fn();
 
     const violations = enforceSecondApronHandcuffs(
@@ -66,7 +65,7 @@ describe('basicRules compatibility surface', () => {
       { reject }
     );
 
-    expect(violations).toEqual([SECOND_APRON_CASH_BLOCKED]);
-    expect(reject.mock.calls).toEqual([[SECOND_APRON_CASH_BLOCKED]]);
+    expect(violations).toEqual([]);
+    expect(reject).not.toHaveBeenCalled();
   });
 });

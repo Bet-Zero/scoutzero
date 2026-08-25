@@ -693,7 +693,7 @@ describe('validator trust fixes', () => {
     );
   });
 
-  it('blocks seasonal cash-limit overflow through authoritative apply validation', () => {
+  it('rejects cash without complete saved-world authority at apply validation', () => {
     const outgoingLakers = makePlayer('lal_cash_out', 5_000_000, {
       teamCode: 'LAL',
       tradeTo: 'BOS',
@@ -751,14 +751,15 @@ describe('validator trust fixes', () => {
       '2025-07-10'
     );
 
-    const lakersResult =
-      result._validatedTradeContext?._rawValidation?.teamResults?.find(
-        (entry) => entry.teamId === 'LAL'
-      );
-
     expect(result._validatedTradeContext?.legal).toBe(false);
-    expect(issueTexts(lakersResult?.rules?.cash?.violations)).toEqual(
-      expect.arrayContaining([expect.stringMatching(/seasonal limit/i)])
+    expect(
+      issueTexts(result._validatedTradeContext?._rawValidation?.violations)
+    ).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(
+          /cash consideration needs governed input: worldId/i
+        ),
+      ])
     );
   });
 });

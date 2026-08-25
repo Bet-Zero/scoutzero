@@ -44,7 +44,8 @@ export interface ValidationTeam {
   picksOut: NonNullable<ArchitectTradePayloadTeam['picksOut']>;
   picksIn: NonNullable<ArchitectTradePayloadTeam['picksOut']>;
   cashSent: number;
-  cashReceived: number;
+  cashReceived?: number;
+  cashToTeamId?: string | null;
   salaryMatchingElection?: TradeSalaryMatchingElection | null;
 }
 
@@ -137,6 +138,7 @@ export interface PayloadTeamIngress {
   picksIn?: unknown[];
   cashSent?: number | null;
   cashReceived?: number | null;
+  cashToTeamId?: TradeContextScalarId;
   salaryMatchingElection?: TradeSalaryMatchingElection | null;
 }
 

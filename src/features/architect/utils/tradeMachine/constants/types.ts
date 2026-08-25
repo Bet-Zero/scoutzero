@@ -15,6 +15,10 @@ import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/trade
 import type { GovernedTradeSalaryBasis } from '@/schemas/governedTradeSalaryBasis';
 import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
 import type { TradeApronRestrictionEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
+import type {
+  GovernedCashEvaluation,
+  GovernedCashLedger,
+} from '@/schemas/governedCashConsideration';
 
 // Normalized cap settings
 export interface CapSettings {
@@ -270,9 +274,7 @@ export interface NormalizedTeam {
     exceptions?: {
       tpe?: TradeExceptionRecord[];
     };
-    cashLedger?: {
-      totalOut?: number;
-    };
+    cashLedger?: GovernedCashLedger | null;
     // Additional team fields used during validation
     name?: string;
     nickname?: string;
@@ -297,6 +299,7 @@ export interface NormalizedTeam {
   picksOut: NormalizedTeamPick[];
   cashSent: number;
   cashReceived?: number;
+  cashToTeamId?: string | null;
   hardCapped: boolean;
   appliedTPEs: TradeExceptionRecord[];
   // Computed during validation
@@ -502,6 +505,7 @@ export interface TradeTeam {
   appliedTPEs?: TradeExceptionRecord[];
   cashSent?: number;
   cashReceived?: number;
+  cashToTeamId?: string | null;
   outgoingPicks?: Array<Record<string, unknown>>;
   postTradeStatus?: {
     isAtOrAboveSecondApron?: boolean;
@@ -528,9 +532,7 @@ export interface TradeTeam {
     exceptions?: {
       tpe?: TradeExceptionRecord[];
     };
-    cashLedger?: {
-      totalOut?: number;
-    };
+    cashLedger?: GovernedCashLedger | null;
     faExceptionBuckets?: TradeFaExceptionBucket[];
     hardCapFirstApron?: Record<string, unknown>;
     hardCapSecondApron?: Record<string, unknown>;
@@ -628,7 +630,9 @@ export interface TradeExceptionValidationResult extends ValidationResult {
   createdTPE: TradeExceptionRecord | null;
 }
 
-export interface CashValidationResult extends ValidationResult {}
+export interface CashValidationResult extends ValidationResult {
+  details: GovernedCashEvaluation;
+}
 
 export interface ConsentValidationResult extends ValidationResult {}
 
@@ -762,6 +766,7 @@ export interface TradeTeamResult {
   createdTPE: TradeExceptionRecord | null;
   salaryMatchingPathEvaluation?: TradeSalaryPathEvaluation | null;
   apronRestrictionEvaluation?: TradeApronRestrictionEvaluation | null;
+  cashConsiderationEvaluation?: GovernedCashEvaluation | null;
   details: string;
   warningDetails: string;
   _tpeConsumptionErrors?: unknown[];
@@ -877,6 +882,7 @@ export interface TradeReceiptTeamRow {
   };
   salaryMatchingEvaluation: TradeReceiptSalaryMatchingEvaluation;
   apronRestrictionEvaluation: TradeApronRestrictionEvaluation | null;
+  cashConsiderationEvaluation: GovernedCashEvaluation | null;
   violations: ValidationIssue[];
   warnings: ValidationIssue[];
 }

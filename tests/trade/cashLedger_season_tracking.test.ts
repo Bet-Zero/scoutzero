@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { validateCash } from '@/features/architect/utils/tradeMachine/rules/validateCash';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import capProjections from '@/features/architect/utils/capProjections';
@@ -9,17 +9,18 @@ import type {
   TradeTeam,
   ValidationIssue,
 } from '@/features/architect/utils/tradeMachine/constants/types';
+import type {
+  GovernedCashLedger,
+  GovernedCashLedgerEntry,
+} from '@/schemas/governedCashConsideration';
 
-const currentYear = 2025;
-const season = `${currentYear - 1}-${String(currentYear).slice(-2)}`;
+const currentYear = 2027;
+const season = '2026-27';
+const tradeDate = '2026-10-20T12:00:00-04:00';
 
-type CashLedgerFixturePlayer = NormalizedPlayer & TradeExceptionPlayer;
+type FixturePlayer = NormalizedPlayer & TradeExceptionPlayer;
 
-const makePlayer = (
-  name: string,
-  salary: number,
-  extra: Partial<CashLedgerFixturePlayer> = {}
-): CashLedgerFixturePlayer => ({
+const makePlayer = (name: string, salary: number): FixturePlayer => ({
   name,
   salary,
   matchIncoming: salary,
@@ -30,63 +31,101 @@ const makePlayer = (
   contractYears: 1,
   firstYearGuaranteed: true,
   contract: { salariesByYear: [{ season, salary }] },
-  ...extra,
 });
 
-type CashLedgerFixtureTeam = NonNullable<TradeTeam['team']> & {
-  players: CashLedgerFixturePlayer[];
-  cashLedger?: {
-    totalOut?: number;
-  };
+const proof = {
+  canonCandidateCommit: '6cf8aaf358c158a88e630e8a7336f7e9c3febc17' as const,
+  canonSha256:
+    '23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76' as const,
+  salaryCapCents: 16_496_100_000,
+  annualLimitCents: 849_549_150,
+  seasonInputManifest: {},
 };
 
-const makeTeam = (
-  name: string,
-  totalSalary: number,
-  rosterSize = 14
-): CashLedgerFixtureTeam => ({
-  id: name,
-  teamName: name,
-  totalSalary,
-  teamTotalSalary: totalSalary,
-  players: Array.from({ length: rosterSize }, (_, i) =>
-    makePlayer(`${name}${i}`, 1_000_000)
-  ),
-  picks: [],
-});
+function cashLedger(
+  teamId: string,
+  entries: GovernedCashLedgerEntry[] = []
+): GovernedCashLedger {
+  return {
+    ledgerId: `cash-ledger:${teamId}`,
+    ledgerVersion: entries.length,
+    teamId,
+    entries,
+  };
+}
+
+function paidEntry(): GovernedCashLedgerEntry {
+  return {
+    entryVersion: 1,
+    entryId: 'prior-paid:ATL:PAID',
+    transactionId: 'prior-paid',
+    worldId: 'WORLD-CASH',
+    teamId: 'ATL',
+    counterpartyTeamId: 'BOS',
+    direction: 'PAID',
+    amountCents: 749_549_150,
+    salaryCapYear: currentYear,
+    transactionAt: tradeDate,
+    recordedAt: tradeDate,
+    canonLeafIds: ['CBA2-A08.1', 'CBA2-A08.4'],
+    proof,
+  };
+}
+
+function makeTeam(teamId: string, ledger: GovernedCashLedger) {
+  return {
+    id: teamId,
+    teamCode: teamId,
+    teamName: teamId,
+    totalSalary: 100_000_000,
+    teamTotalSalary: 100_000_000,
+    cashLedger: ledger,
+    players: Array.from({ length: 14 }, (_, index) =>
+      makePlayer(`${teamId}${index}`, 1_000_000)
+    ),
+    picks: [],
+  };
+}
 
 const issueTexts = (issues: ValidationIssue[] = []) =>
   issues.map((issue) => getValidationIssueText(issue));
 
-describe('seasonal cash ledger tracking', () => {
-  it('flags the helper rule when cashSent exceeds the seasonal cap', () => {
+describe('governed cash ledger tracking', () => {
+  it('fails closed instead of treating the legacy totalOut field as authority', () => {
     const team: TradeTeam = {
-      teamId: '1',
-      cashSent: 500_000,
+      teamId: 'ATL',
+      cashSent: 1,
       cashReceived: 0,
       team: {
-        cashLedger: {
-          totalOut: 7_000_000,
-        },
+        id: 'ATL',
+        teamCode: 'ATL',
+        cashLedger: { totalOut: 0 } as never,
       },
-      postTradeStatus: {},
     };
 
-    const res = validateCash(team, { season: 2025, capSettings: {} });
+    const result = validateCash(team, {
+      worldId: 'WORLD-CASH',
+      tradeDate,
+      currentYear,
+    });
 
-    expect(issueTexts(res.violations)[0]).toMatch(
-      /Cash sent.*would exceed.*seasonal limit/
-    );
+    expect(issueTexts(result.violations)).toEqual([
+      expect.stringContaining('complete governed cash ledger'),
+    ]);
+    expect(result.details).toMatchObject({
+      status: 'NEEDS_INPUT',
+      missingInputs: ['cashLedger.schema'],
+    });
   });
 
-  it('rejects seasonal cash-limit overflow through live validateTrade using cashSent', () => {
-    const teamA = makeTeam('A', 100_000_000);
-    const teamB = makeTeam('B', 100_000_000);
-    const outgoingA = makePlayer('A1', 2_000_000, { toTeamId: 'B' });
-    const outgoingB = makePlayer('B1', 2_000_000, { toTeamId: 'A' });
-
+  it('rejects one cent beyond the exact governed 5.15% limit in live validation', () => {
+    const teamA = makeTeam('ATL', cashLedger('ATL', [paidEntry()]));
+    const teamB = makeTeam('BOS', cashLedger('BOS'));
+    const outgoingA = makePlayer('ATL-OUT', 2_000_000);
+    const outgoingB = makePlayer('BOS-OUT', 2_000_000);
+    outgoingA.toTeamId = 'BOS';
+    outgoingB.toTeamId = 'ATL';
     teamA.players.push(outgoingA);
-    teamA.cashLedger = { totalOut: 5_600_000 };
     teamB.players.push(outgoingB);
 
     const result = validateTrade({
@@ -95,7 +134,7 @@ describe('seasonal cash ledger tracking', () => {
           team: teamA,
           sends: [outgoingA],
           entitlementsOut: [],
-          cashSent: 500_000,
+          cashSent: 1_000_000.01,
         },
         {
           team: teamB,
@@ -105,17 +144,19 @@ describe('seasonal cash ledger tracking', () => {
       ],
       capProjections,
       currentYear,
-      tradeCtx: { tradeDate: '2025-07-10T00:00:00.000Z' },
+      tradeCtx: {
+        worldId: 'WORLD-CASH',
+        tradeDate,
+        asOfDate: tradeDate,
+      },
     });
 
-    const teamAResult = result.teamResults.find((entry) => entry.teamId === 'A');
-    expect(result.legal).toBe(false);
-    expect(teamAResult).toBeDefined();
-    if (!teamAResult) {
-      throw new Error('Expected Team A validation result');
-    }
-    expect(issueTexts(teamAResult.rules.cash.violations)).toEqual(
-      expect.arrayContaining([expect.stringMatching(/seasonal limit/i)])
+    const teamAResult = result.teamResults.find(
+      (entry) => entry.teamId === 'ATL'
     );
+    expect(result.legal).toBe(false);
+    expect(issueTexts(teamAResult?.rules.cash.violations)).toEqual([
+      expect.stringContaining('exceeds the annual limit by $0.01'),
+    ]);
   });
 });

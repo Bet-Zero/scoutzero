@@ -21,6 +21,7 @@ import type { TradeSalaryPathEvaluation } from './tradeSalaryMatchingPaths';
 import { normalizeTradeApronEnvelopeDate } from './tradeApronDate';
 import { parseTradeHardCapLedger } from './tradeHardCapLedgerAuthority';
 import { GovernedSignAndTradeAuthorityZ } from '@/schemas/governedSignAndTrade';
+import { cashDollarsToCents } from './tradeCashRouting';
 
 export { parseTradeHardCapLedger } from './tradeHardCapLedgerAuthority';
 
@@ -334,6 +335,8 @@ export function evaluateTradeApronRestriction({
   context,
 }: EvaluationInput): TradeApronRestrictionEvaluation {
   const path = pathEvaluation?.electedPath ?? null;
+  const cashSentCents = cashDollarsToCents(team.cashSent);
+  const paysCash = cashSentCents !== null && cashSentCents > 0;
   const incomingSignAndTradePlayers = (
     team.incomingPlayers ||
     team.receives ||
@@ -349,7 +352,7 @@ export function evaluateTradeApronRestriction({
       salaryCapYear: context.currentYear ?? null,
     });
   }
-  if (path === 'ROOM' && !usesSavedWorldSignAndTradeAuthority) {
+  if (path === 'ROOM' && !usesSavedWorldSignAndTradeAuthority && !paysCash) {
     return result({
       status: 'NOT_APPLICABLE',
       salaryMatchingPath: path,
@@ -513,7 +516,8 @@ export function evaluateTradeApronRestriction({
     if (
       path === 'STANDARD_TPE' &&
       heldComponents.length === 0 &&
-      incomingSignAndTradePlayers.length === 0
+      incomingSignAndTradePlayers.length === 0 &&
+      !paysCash
     ) {
       return result({
         status: 'NOT_APPLICABLE',
@@ -610,6 +614,17 @@ export function evaluateTradeApronRestriction({
     }
   }
 
+  if (
+    paysCash &&
+    transactionDate &&
+    regularSeasonClosing &&
+    dateOnly(transactionDate) &&
+    dateOnly(transactionDate)! > regularSeasonClosing
+  ) {
+    missingInputs.push('subsequentSalaryCapYear.systemLevels');
+    missingInputs.push('subsequentSalaryCapYear.A05.17Assumptions');
+  }
+
   if (missingInputs.length > 0) {
     return result({
       status: 'NEEDS_INPUT',
@@ -663,7 +678,11 @@ export function evaluateTradeApronRestriction({
   type PendingRestriction = {
     restrictionRow: TradeApronRestrictionRow;
     componentId: string;
-    componentKind: 'SIGN_AND_TRADE' | 'ELECTED_PATH' | 'HELD_STANDARD_TPE';
+    componentKind:
+      | 'SIGN_AND_TRADE'
+      | 'ELECTED_PATH'
+      | 'HELD_STANDARD_TPE'
+      | 'CASH';
     componentPath: TradeSalaryMatchingPath;
     incomingPlayers: Array<{
       playerId: string;
@@ -672,10 +691,25 @@ export function evaluateTradeApronRestriction({
     }>;
     apronLevel: TradeApronLevel;
     tpeTiming: TpeTiming | null;
+    cashAmountCents: number | null;
     closing: string | null;
     calendarEnvelope: ReturnType<typeof resolveGovernedSeasonEnvelope>;
   };
   const pendingRestrictions: PendingRestriction[] = [];
+  if (paysCash) {
+    pendingRestrictions.push({
+      restrictionRow: 'I',
+      componentId: `cash:${teamCode}`,
+      componentKind: 'CASH',
+      componentPath: path,
+      incomingPlayers: [],
+      apronLevel: 'SECOND_APRON',
+      tpeTiming: null,
+      cashAmountCents: cashSentCents,
+      closing: null,
+      calendarEnvelope: envelope,
+    });
+  }
   incomingSignAndTradePlayers.forEach((player, index) => {
     const incomingPlayerId = resolvePlayerIdentity(player);
     const incomingSalary = finiteMoney(player.matchIncoming);
@@ -699,6 +733,7 @@ export function evaluateTradeApronRestriction({
       ],
       apronLevel: 'FIRST_APRON',
       tpeTiming: null,
+      cashAmountCents: null,
       closing: null,
       calendarEnvelope: envelope,
     });
@@ -717,6 +752,7 @@ export function evaluateTradeApronRestriction({
         incomingPlayers: component.incomingPlayers,
         apronLevel: 'FIRST_APRON',
         tpeTiming: timingByComponentId.get(component.componentId) ?? null,
+        cashAmountCents: null,
         closing: rowF.closing,
         calendarEnvelope: rowF.calendarEnvelope,
       });
@@ -734,6 +770,7 @@ export function evaluateTradeApronRestriction({
         incomingPlayers: component.incomingPlayers,
         apronLevel: 'SECOND_APRON',
         tpeTiming: null,
+        cashAmountCents: null,
         closing: null,
         calendarEnvelope: envelope,
       });
@@ -791,6 +828,7 @@ export function evaluateTradeApronRestriction({
       incomingPlayers: [...pending.incomingPlayers]
         .map((player) => ({ ...player }))
         .sort((left, right) => left.playerId.localeCompare(right.playerId)),
+      cashAmountCents: pending.cashAmountCents,
       tpeTiming: pending.tpeTiming ? { ...pending.tpeTiming } : null,
       regularSeasonClosing: pending.closing,
       canonLeafIds:
@@ -798,7 +836,9 @@ export function evaluateTradeApronRestriction({
           ? ['CBA2-A05.5', 'CBA2-A05.1']
           : pending.restrictionRow === 'F'
             ? ['CBA2-A02.3', 'CBA2-A05.8', 'CBA2-A05.1']
-            : ['CBA2-A05.10', 'CBA2-A05.1'],
+            : pending.restrictionRow === 'H'
+              ? ['CBA2-A05.10', 'CBA2-A05.1']
+              : ['CBA2-A05.11', 'CBA2-A05.1'],
       proof: triggerProof,
     });
   }

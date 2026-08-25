@@ -597,6 +597,7 @@ utils/
       capUtils.ts
       conveyanceResolution.ts
       dataValidation.ts
+      governedCashConsideration.ts
       governedTradeSalaryBasis.ts
       hardCapStatus.ts
       index.ts
@@ -612,6 +613,7 @@ utils/
       tpeValidation.ts
       tradeApronDate.ts
       tradeApronRestrictions.ts
+      tradeCashRouting.ts
       tradeExceptionLifecycle.ts
       tradeExportUtils.ts
       tradeHardCapLedgerAuthority.ts
@@ -643,5 +645,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-25T16:55:27.494Z*
+*Generated on: 2026-08-25T23:45:30.949Z*
 *Auto-updated by: npm run docs*

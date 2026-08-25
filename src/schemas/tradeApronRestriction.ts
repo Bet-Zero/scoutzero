@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const TradeApronRestrictionRowZ = z.enum(['C', 'F', 'H']);
+export const TradeApronRestrictionRowZ = z.enum(['C', 'F', 'H', 'I']);
 export const TradeApronLevelZ = z.enum(['FIRST_APRON', 'SECOND_APRON']);
 
 export const TradeHardCapProofZ = z
@@ -24,6 +24,7 @@ export const TradeApronRestrictionTriggerZ = z
       'SIGN_AND_TRADE',
       'ELECTED_PATH',
       'HELD_STANDARD_TPE',
+      'CASH',
     ]),
     salaryMatchingPath: z.enum([
       'STANDARD_TPE',
@@ -32,17 +33,16 @@ export const TradeApronRestrictionTriggerZ = z
     ]),
     apronLevel: TradeApronLevelZ,
     ceiling: z.number().finite().positive(),
-    incomingPlayers: z
-      .array(
-        z
-          .object({
-            playerId: z.string().min(1),
-            playerName: z.string(),
-            salary: z.number().finite().nonnegative(),
-          })
-          .strict()
-      )
-      .min(1),
+    incomingPlayers: z.array(
+      z
+        .object({
+          playerId: z.string().min(1),
+          playerName: z.string(),
+          salary: z.number().finite().nonnegative(),
+        })
+        .strict()
+    ),
+    cashAmountCents: z.number().int().positive().safe().nullable(),
     tpeTiming: z
       .object({
         tpeId: z.string().min(1),
@@ -62,7 +62,9 @@ export const TradeApronRestrictionTriggerZ = z
         trigger.componentKind !== 'SIGN_AND_TRADE' ||
         trigger.apronLevel !== 'FIRST_APRON' ||
         trigger.tpeTiming !== null ||
-        trigger.regularSeasonClosing !== null
+        trigger.regularSeasonClosing !== null ||
+        trigger.cashAmountCents !== null ||
+        trigger.incomingPlayers.length === 0
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -77,7 +79,9 @@ export const TradeApronRestrictionTriggerZ = z
         trigger.apronLevel !== 'FIRST_APRON' ||
         !trigger.tpeTiming ||
         trigger.tpeTiming.tpeId !== trigger.componentId ||
-        !trigger.regularSeasonClosing
+        !trigger.regularSeasonClosing ||
+        trigger.cashAmountCents !== null ||
+        trigger.incomingPlayers.length === 0
       ) {
         context.addIssue({
           code: z.ZodIssueCode.custom,
@@ -85,16 +89,33 @@ export const TradeApronRestrictionTriggerZ = z
             'Row F requires one attributable held Standard TPE, its timing, creation-season closing, and the First Apron.',
         });
       }
+    } else if (trigger.restrictionRow === 'H') {
+      if (
+        trigger.componentKind !== 'ELECTED_PATH' ||
+        trigger.salaryMatchingPath !== 'AGGREGATED_STANDARD_TPE' ||
+        trigger.apronLevel !== 'SECOND_APRON' ||
+        trigger.tpeTiming !== null ||
+        trigger.cashAmountCents !== null ||
+        trigger.incomingPlayers.length === 0
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'Row H requires an attributable Aggregated Standard TPE component and the Second Apron.',
+        });
+      }
     } else if (
-      trigger.componentKind !== 'ELECTED_PATH' ||
-      trigger.salaryMatchingPath !== 'AGGREGATED_STANDARD_TPE' ||
+      trigger.componentKind !== 'CASH' ||
       trigger.apronLevel !== 'SECOND_APRON' ||
-      trigger.tpeTiming !== null
+      trigger.tpeTiming !== null ||
+      trigger.regularSeasonClosing !== null ||
+      trigger.cashAmountCents === null ||
+      trigger.incomingPlayers.length !== 0
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         message:
-          'Row H requires an attributable Aggregated Standard TPE component and the Second Apron.',
+          'Row I requires a positive cash-payment component and the Second Apron.',
       });
     }
   });

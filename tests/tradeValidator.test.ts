@@ -31,7 +31,8 @@ const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({
   picks,
 });
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+const issueTexts = (issues = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
 
 describe('tradeValidator', () => {
   it('enforces salary matching when a team is over the cap', () => {
@@ -105,7 +106,9 @@ describe('tradeValidator', () => {
     );
     expect(result.teamResults[0].rules.salaryMatching.passed).toBe(false);
     expect(issueTexts(result.teamResults[0].violations)).toEqual(
-      expect.arrayContaining([expect.stringMatching(/Incoming salary exceeds/i)])
+      expect.arrayContaining([
+        expect.stringMatching(/Incoming salary exceeds/i),
+      ])
     );
   });
 
@@ -433,7 +436,7 @@ describe('tradeValidator', () => {
     );
   });
 
-  it('blocks cash considerations for second apron teams', () => {
+  it('fails closed when cash lacks saved-world authority', () => {
     const teamA = makeTeam('A', 210_000_000); // Above 2nd apron (207.8M for 2025-26)
     const teamB = makeTeam('B', 100_000_000);
     const aPlayer = makePlayer('A1', 1_000_000);
@@ -451,9 +454,7 @@ describe('tradeValidator', () => {
     });
 
     expect(result.legal).toBe(false);
-    expect(result.reason).toContain(
-      'Second apron team cannot include cash in trades'
-    );
+    expect(result.reason).toContain('Cash consideration needs governed input');
   });
 
   it('restricts trading picks more than 7 years out', () => {
