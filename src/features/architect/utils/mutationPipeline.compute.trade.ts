@@ -51,6 +51,12 @@ import type {
 } from './mutationPipeline';
 import type { GovernedSignAndTradeAuthority } from '@/schemas/governedSignAndTrade';
 
+function safeIntegerMoney(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const amount = Number(value);
+  return Number.isSafeInteger(amount) ? amount : null;
+}
+
 export function getTradeValidationApplyTimeSlice(
   validatedContext: TradeValidatedContextLike
 ): TradeValidationApplyTimeSlice {
@@ -474,6 +480,7 @@ export function computeTradeResult({
       beforeTeam: sourceBefore as ArchitectMutationTeamRecord,
       afterTeam: sourceUpdate.team as ArchitectMutationTeamRecord,
       salaryCapYear: authority.salaryCapYear,
+      effectiveAt: authority.transactionAt,
       requireAuthenticatedBasis: true,
     });
     const destinationRosterChargeError =
@@ -481,6 +488,7 @@ export function computeTradeResult({
         beforeTeam: destinationBefore as ArchitectMutationTeamRecord,
         afterTeam: destinationUpdate.team as ArchitectMutationTeamRecord,
         salaryCapYear: authority.salaryCapYear,
+        effectiveAt: authority.transactionAt,
         requireAuthenticatedBasis: true,
       });
     if (sourceRosterChargeError || destinationRosterChargeError) {
@@ -558,11 +566,11 @@ export function computeTradeResult({
         error: `The receiving Team lacks a complete governed Row C First Apron hard-cap result (status=${destinationApron?.status || 'missing'}, rowC=${destinationApron?.attachedRestrictions.some((trigger) => trigger.restrictionRow === 'C') === true ? 'present' : 'missing'}, ledger=${hardCapEntry ? 'present' : 'missing'}, missingInputs=${destinationApron?.missingInputs.join(',') || 'none'}).`,
       };
     }
-    const destinationApronTeamSalary = Number(
+    const destinationApronTeamSalary = safeIntegerMoney(
       (destinationUpdate.team.totals as Record<string, unknown>).apronTeamSalary
     );
     if (
-      !Number.isSafeInteger(destinationApronTeamSalary) ||
+      destinationApronTeamSalary === null ||
       destinationApron.postTransactionApronTeamSalary !==
         destinationApronTeamSalary ||
       destinationApronTeamSalary > hardCapEntry.ceiling
@@ -576,13 +584,13 @@ export function computeTradeResult({
     const salaryBooks = [];
     for (const entry of [sourceUpdate, destinationUpdate]) {
       const totals = entry.team!.totals as Record<string, unknown>;
-      const teamSalary = Number(totals.teamSalary);
-      const apronTeamSalary = Number(totals.apronTeamSalary);
-      const taxSalary = Number(totals.taxSalary);
+      const teamSalary = safeIntegerMoney(totals.teamSalary);
+      const apronTeamSalary = safeIntegerMoney(totals.apronTeamSalary);
+      const taxSalary = safeIntegerMoney(totals.taxSalary);
       if (
-        !Number.isSafeInteger(teamSalary) ||
-        !Number.isSafeInteger(apronTeamSalary) ||
-        !Number.isSafeInteger(taxSalary)
+        teamSalary === null ||
+        apronTeamSalary === null ||
+        taxSalary === null
       ) {
         return {
           success: false,

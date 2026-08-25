@@ -12,16 +12,16 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
 import {
   buildContractBaselineTeamDocuments,
   contractBaselineMetadata,
-} from '../../src/features/architect/utils/contractSource/contractSourceRelease';
-import { ContractSourceReleaseZ } from '../../src/schemas/contractSourceRelease';
-import { withGovernedSalaryBooks } from '../../src/tests/fixtures/governedSalaryBookInputs';
+} from '@/features/architect/utils/contractSource/contractSourceRelease';
+import { ContractSourceReleaseZ } from '@/schemas/contractSourceRelease';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 import { makeRightsLedgerForIdentity } from '../fixtures/architect/rightsHistory';
-import { createCanonicalTeamTotalsSnapshot } from '../../src/features/architect/utils/capTotals';
-import { deterministicStateDigest as mutationSnapshotDigest } from '../../src/features/architect/utils/contractSource/deterministicDigest';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
+import { deterministicStateDigest as mutationSnapshotDigest } from '@/features/architect/utils/contractSource/deterministicDigest';
 import {
   SeasonHistoryRecordZ,
   SeasonTransitionManifestZ,
-} from '../../src/schemas/seasonTransition';
+} from '@/schemas/seasonTransition';
 import {
   ALL_TEAM_CODES,
   ANDRE_COLE_PLAYER_ID,
@@ -578,7 +578,7 @@ test.describe('BZE-290 governed saved-world sign-and-trade', () => {
     page.on('pageerror', (error) => console.log(error.message));
     const worldId = await prepareSeasonAdvanceReviewWorld(page);
     await seedAuthenticatedSeasonCloseEvidence(worldId);
-    const transactionAt = new Date(Date.now() - 1_000).toISOString();
+    const transactionAt = '2026-07-10T12:00:00-04:00';
     await configureSignAndTradeWorld(worldId, transactionAt);
     await page.goto('/gm/MIA?season=2027', { waitUntil: 'domcontentloaded' });
     await waitForReviewDashboard(page);

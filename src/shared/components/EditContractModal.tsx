@@ -322,7 +322,9 @@ export const EditContractModal = ({
           signAndTradeProposalDraft.firstSeasonUnlikelyBonuses
         ),
         exhibit6Present: !signAndTradeProposalDraft.exhibit6Excluded,
-        physicalExam: { status: 'not-required' as const },
+        physicalExam: {
+          status: signAndTradeProposalDraft.physicalExamStatus,
+        },
       };
       const parsed = GovernedSignAndTradeProposalZ.safeParse(base);
       return parsed.success ? parsed.data : null;

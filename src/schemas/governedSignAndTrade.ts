@@ -2,7 +2,12 @@ import { z } from 'zod';
 import { JsonValueZ, SeasonCodeZ } from './common';
 
 const NonEmptyStringZ = z.string().trim().min(1);
-const TeamCodeZ = z.string().trim().min(2).max(5);
+const TeamCodeZ = z
+  .string()
+  .trim()
+  .min(2)
+  .max(5)
+  .regex(/^[A-Z0-9]{2,5}$/, 'must be a canonical uppercase Team code');
 const ExactMoneyZ = z.number().int().nonnegative();
 const StateDigestZ = z.string().regex(/^fnv1a64:[0-9a-f]{16}$/);
 const ZonedInstantZ = z
@@ -231,6 +236,21 @@ export const GovernedSignAndTradeAuthorityZ = z
         code: z.ZodIssueCode.custom,
         path: ['contract', 'firstSeasonUnlikelyBonuses'],
         message: 'proposal and authored Contract bonuses must agree',
+      });
+    }
+    const firstRow = authority.contract.rows[0];
+    if (
+      !firstRow ||
+      authority.contract.firstSeasonSalary !== firstRow.salary ||
+      authority.contract.firstSeasonLikelyBonuses !== firstRow.likelyBonuses ||
+      authority.contract.firstSeasonUnlikelyBonuses !==
+        firstRow.unlikelyBonuses
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contract', 'rows', 0],
+        message:
+          'first-Season Contract summary amounts must match the first annual row',
       });
     }
     if (

@@ -989,8 +989,8 @@ export async function persistWorldMutation({
       isOfferSheetResolution
     ) {
       await runTransaction(db, async (transaction) => {
-        if (governedSignAndTradeAuthority) {
-          const authority = governedSignAndTradeAuthority;
+        if (isGovernedSignAndTrade) {
+          const authority = governedSignAndTradeAuthority!;
           const currentMetadata = await transaction.get(metadataRef);
           const currentSourcePlayer = await transaction.get(
             worldPlayerRef(worldId, authority.sourceTeamId, authority.playerId)
@@ -1092,13 +1092,14 @@ export async function persistWorldMutation({
             ? currentTeamSnapshot.data()
             : {};
           let contractSourceTeamData = currentTeamData;
-          if (governedSignAndTradeAuthority) {
+          if (isGovernedSignAndTrade) {
+            const authority = governedSignAndTradeAuthority!;
             const expected =
-              normalizedTeamCode === governedSignAndTradeAuthority.sourceTeamId
-                ? governedSignAndTradeAuthority.snapshots.sourceTeam
+              normalizedTeamCode === authority.sourceTeamId
+                ? authority.snapshots.sourceTeam
                 : normalizedTeamCode ===
-                    governedSignAndTradeAuthority.destinationTeamId
-                  ? governedSignAndTradeAuthority.snapshots.destinationTeam
+                    authority.destinationTeamId
+                  ? authority.snapshots.destinationTeam
                   : null;
             if (
               !expected ||
@@ -1112,7 +1113,7 @@ export async function persistWorldMutation({
             }
             if (
               normalizedTeamCode ===
-                governedSignAndTradeAuthority.destinationTeamId &&
+                authority.destinationTeamId &&
               (currentTeamData.contractEventLedgers || []).some(
                 (ledger: { ledgerId?: unknown }) =>
                   String(ledger?.ledgerId || '') ===

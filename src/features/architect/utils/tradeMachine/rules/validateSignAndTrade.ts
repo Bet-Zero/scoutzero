@@ -19,6 +19,7 @@ import type {
 import { inspectGovernedOfferSheetMatchRestriction } from '@/features/architect/utils/offerSheets';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 import { GovernedSignAndTradeAuthorityZ } from '@/schemas/governedSignAndTrade';
+import { toEndYear } from '@/features/architect/utils/seasonFormat';
 
 type SignAndTradeRulePlayer = SignAndTradeContractCarrier & {
   signAndTrade?: boolean;
@@ -113,26 +114,60 @@ function resolveDestinationTeamId(
     : null;
 }
 
+function resolveCanonicalTeamIdentity(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  const identity = String(value).trim();
+  if (!identity) return null;
+  return resolveTeamCode(identity) || identity.toUpperCase();
+}
+
 function isTradeMachinePath(tradeCtx: SignAndTradeTradeContext = {}): boolean {
   return tradeCtx.source === 'tradeMachine';
 }
 
 function hasGovernedSavedWorldAuthority(
-  players: SignAndTradeRulePlayer[],
-  worldId: string | null | undefined
+  players: Array<{
+    player: SignAndTradeRulePlayer;
+    direction: 'incoming' | 'outgoing';
+  }>,
+  team: SignAndTradeRuleTeam,
+  tradeCtx: SignAndTradeTradeContext
 ): boolean {
-  if (!worldId) return false;
+  if (!tradeCtx.worldId || players.length === 0) return false;
+  const teamId = resolveTeamId(team)?.toUpperCase() || null;
+  const salaryCapYear = toEndYear(
+    tradeCtx.currentYear ?? tradeCtx.yearKey ?? null
+  );
+  const transactionDate = String(
+    tradeCtx.tradeDate ?? tradeCtx.asOfDate ?? ''
+  ).slice(0, 10);
+  if (!teamId || salaryCapYear === null || !transactionDate) return false;
 
-  return players.some((player) => {
+  return players.every(({ player, direction }) => {
     const parsed = GovernedSignAndTradeAuthorityZ.safeParse(
       player.governedSignAndTradeAuthority
     );
-    if (!parsed.success || parsed.data.worldId !== worldId) return false;
+    if (!parsed.success) return false;
 
     const resolvedPlayerId = String(
       player.player_id || player.playerId || player.id || ''
     ).trim();
-    return resolvedPlayerId === parsed.data.playerId;
+    const routedSourceTeamId =
+      direction === 'outgoing'
+        ? teamId
+        : resolveCanonicalTeamIdentity(player.originTeamId);
+    const routedDestinationTeamId =
+      direction === 'incoming'
+        ? teamId
+        : resolveCanonicalTeamIdentity(resolveDestinationTeamId(player));
+    return (
+      parsed.data.worldId === tradeCtx.worldId &&
+      parsed.data.playerId === resolvedPlayerId &&
+      parsed.data.salaryCapYear === salaryCapYear &&
+      parsed.data.transactionAt.slice(0, 10) === transactionDate &&
+      parsed.data.sourceTeamId === routedSourceTeamId &&
+      parsed.data.destinationTeamId === routedDestinationTeamId
+    );
   });
 }
 
@@ -266,9 +301,28 @@ export function validateSignAndTrade(
   const requireExplicitDestination =
     strictContractPayload || activeTeamCount >= 3;
   const usesGovernedSavedWorldAuthority = hasGovernedSavedWorldAuthority(
-    [...incomingSignAndTradePlayers, ...outgoingSignAndTradePlayers],
-    tradeCtx.worldId
+    [
+      ...incomingSignAndTradePlayers.map((player) => ({
+        player,
+        direction: 'incoming' as const,
+      })),
+      ...outgoingSignAndTradePlayers.map((player) => ({
+        player,
+        direction: 'outgoing' as const,
+      })),
+    ],
+    team,
+    tradeCtx
   );
+
+  if (tradeCtx.worldId && !usesGovernedSavedWorldAuthority) {
+    violations.push(
+      createIssue(
+        'Saved-world sign-and-trade validation requires matching governed authority for this world, Team, player, date, and Salary Cap Year.',
+        'SIGN_AND_TRADE__GOVERNED_AUTHORITY_MISSING_OR_MISMATCHED'
+      )
+    );
+  }
 
   if (!tradeCtx.offseason) {
     violations.push(
@@ -386,7 +440,7 @@ export function validateSignAndTrade(
   };
 
   outgoingSignAndTradePlayers.forEach((player) => {
-    if (!usesGovernedSavedWorldAuthority) {
+    if (!tradeCtx.worldId) {
       const jan15RestrictionDate = getJanuary15RestrictionDate(tradeDateObj);
       if (tradeDateObj < jan15RestrictionDate) {
         violations.push(
@@ -468,7 +522,7 @@ export function validateSignAndTrade(
     // carried by their governed authority. Preserve the bounded legacy
     // worldless validator without letting its projected calculation compete
     // with that saved-world source of truth.
-    if (!usesGovernedSavedWorldAuthority) {
+    if (!tradeCtx.worldId) {
       const teamTotalSalary =
         Number(team.teamTotalSalary || team.team?.teamTotalSalary || 0) || 0;
       const salaryIn = Number(team.salaryIn || 0) || 0;

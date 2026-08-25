@@ -85,6 +85,14 @@ function finiteMoney(value: unknown): number | null {
     : null;
 }
 
+function resolvePlayerIdentity(player: {
+  player_id?: unknown;
+  playerId?: unknown;
+  id?: unknown;
+}): string {
+  return String(player.player_id ?? player.playerId ?? player.id ?? '').trim();
+}
+
 function result(
   values: Partial<TradeApronRestrictionEvaluation> &
     Pick<TradeApronRestrictionEvaluation, 'status'>
@@ -367,9 +375,7 @@ export function evaluateTradeApronRestriction({
           }
         ).governedSignAndTradeAuthority
       );
-      const incomingPlayerId = String(
-        player.player_id || player.playerId || player.id || ''
-      ).trim();
+      const incomingPlayerId = resolvePlayerIdentity(player);
       if (!authority.success) {
         missingInputs.push(
           `signAndTradeReceiver.${incomingPlayerId || index}.governedAuthority.schema`
@@ -671,7 +677,7 @@ export function evaluateTradeApronRestriction({
   };
   const pendingRestrictions: PendingRestriction[] = [];
   incomingSignAndTradePlayers.forEach((player, index) => {
-    const incomingPlayerId = String(player.id || player.player_id || '').trim();
+    const incomingPlayerId = resolvePlayerIdentity(player);
     const incomingSalary = finiteMoney(player.matchIncoming);
     if (!incomingPlayerId || incomingSalary === null) {
       missingInputs.push(

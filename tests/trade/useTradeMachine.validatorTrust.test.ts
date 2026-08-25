@@ -239,7 +239,7 @@ describe('useTradeMachine validator trust contract', () => {
       result.current.setPlayerTrade(1, definedIncomingCounter, 'trade', 'LAL');
     });
 
-    expect(result.current.teams[0]?.sends[0]?.receivingTeamId).toBe('BOS');
+    expect(result.current.teams[0]?.sends).toEqual([]);
 
     act(() => {
       result.current.setForceTrade(true);

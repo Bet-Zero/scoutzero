@@ -759,13 +759,7 @@ export async function loadStateForMutation(
         );
       }
       const [teamStates, worldTeams] = await Promise.all([
-        localTeamSnapshots
-          ? Promise.resolve(
-              localTeamSnapshots.map((snapshot) => snapshot.data())
-            )
-          : Promise.all(
-              teamCodes.map((code: string) => getTeam(worldId, code))
-            ),
+        Promise.all(teamCodes.map((code) => getTeam(worldId, code))),
         requiresGovernedSalaryBasis && worldAsOfDate && salaryCapYear !== null
           ? getLeague(worldId)
           : Promise.resolve([]),

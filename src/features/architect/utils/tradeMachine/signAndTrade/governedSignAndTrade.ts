@@ -275,9 +275,25 @@ function validateContract(
       );
     }
     const incentives = record(row.incentives);
-    const likely = money(incentives?.likely) ?? 0;
-    const unlikely = money(incentives?.unlikely) ?? 0;
-    if (likely !== 0 || money(row.tradeBonus) !== null) {
+    if (
+      (row.incentives != null && !incentives) ||
+      (incentives &&
+        Object.keys(incentives).some(
+          (key) => key !== 'likely' && key !== 'unlikely'
+        ))
+    ) {
+      throw new Error(
+        'Sign-and-trade incentives contain an unsupported compensation variant.'
+      );
+    }
+    const likely = money(incentives?.likely ?? 0);
+    const unlikely = money(incentives?.unlikely ?? 0);
+    if (likely === null || unlikely === null) {
+      throw new Error(
+        'Sign-and-trade incentives must be exact nonnegative whole-dollar amounts.'
+      );
+    }
+    if (likely !== 0 || row.tradeBonus != null) {
       throw new Error(
         'Likely incentives and Trade Bonuses are not authorable in the supported sign-and-trade route.'
       );

@@ -63,20 +63,28 @@ export function useTradeMachinePlayerOps({
                 yearKey,
                 { requireActiveYearRow: true }
               );
+              const receivingTeamId = actionMeta?.destinationTeamCode;
+              const governedProposal =
+                actionMeta?.governedSignAndTradeProposal;
 
-              if (!destTeamId || !validation.valid || !validation.contract) {
+              if (
+                !destTeamId ||
+                !receivingTeamId ||
+                !governedProposal ||
+                !validation.valid ||
+                !validation.contract
+              ) {
                 return prev;
               }
 
               const signAndTradePatch = {
                 tradeTo: destTeamId,
-                receivingTeamId: actionMeta?.destinationTeamCode,
+                receivingTeamId,
                 signAndTrade: true,
                 signAndTradeContract: validation.contract,
                 contractYears: validation.contract.contractYears,
                 firstYearGuaranteed: validation.contract.firstYearGuaranteed,
-                governedSignAndTradeProposal:
-                  actionMeta?.governedSignAndTradeProposal,
+                governedSignAndTradeProposal: governedProposal,
               };
 
               if (playerIndex === -1) {

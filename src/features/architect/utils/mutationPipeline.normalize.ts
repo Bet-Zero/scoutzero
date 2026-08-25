@@ -4,7 +4,10 @@
  * (lines 221–652 and 1563–1751).
  */
 
-import { buildTradeApplyPreparation } from '@/features/architect/utils/tradeContext/tradeContext';
+import {
+  buildTradeApplyPreparation,
+  normalizeTradeTeamCodeLike,
+} from '@/features/architect/utils/tradeContext/tradeContext';
 import {
   normalizeTradeMutationCurrentState,
   normalizeTeamOnlyMutationCurrentState,
@@ -89,6 +92,14 @@ function prepareGovernedExecuteTradeSignAndTrade({
     );
   }
   const { player, senderIndex } = signAndTradePlayers[0];
+  const senderTeamCode = normalizeTradeTeamCodeLike(
+    payload.teams[senderIndex]?.teamCode
+  );
+  if (!senderTeamCode) {
+    throw new Error(
+      'Governed sign-and-trade requires an exact source Team identity.'
+    );
+  }
   const authority = buildGovernedSignAndTradeAuthority({
     evidence: currentState.governedSignAndTradeEvidence,
     contract: player.signAndTradeContract,
@@ -146,8 +157,11 @@ function prepareGovernedExecuteTradeSignAndTrade({
   };
   const preparedState: MutationCurrentStateInputByType['executeTrade'] = {
     ...currentState,
-    teams: (currentState.teams || []).map((entry, teamIndex) => {
-      if (teamIndex !== senderIndex || !entry.team) return entry;
+    teams: (currentState.teams || []).map((entry) => {
+      const currentTeamCode = normalizeTradeTeamCodeLike(
+        entry.teamCode ?? entry.team?.teamCode
+      );
+      if (currentTeamCode !== senderTeamCode || !entry.team) return entry;
       return {
         ...entry,
         team: {

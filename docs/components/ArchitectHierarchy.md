@@ -282,6 +282,7 @@ tradeMachine/
   ValidationStateHeader.tsx
   tradeMachineChrome.buttons.tsx
   tradePreviewExportTypes.ts
+  useGovernedSignAndTradePreview.ts
   useTradeTeamCardSalaries.ts
   utils/
     computeTradeDraftKey.ts
@@ -642,5 +643,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-25T15:46:47.080Z*
+*Generated on: 2026-08-25T16:55:27.494Z*
 *Auto-updated by: npm run docs*

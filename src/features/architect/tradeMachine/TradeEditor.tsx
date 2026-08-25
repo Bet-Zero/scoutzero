@@ -38,11 +38,7 @@ import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRu
 import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import {
   GovernedSignAndTradeProposalZ,
-  type GovernedSignAndTradeAuthority,
 } from '@/schemas/governedSignAndTrade';
-import { buildGovernedSignAndTradeAuthority } from '@/features/architect/utils/tradeMachine/signAndTrade/governedSignAndTrade';
-import { loadStateForMutation } from '@/features/architect/utils/mutationPipeline';
-import type { ArchitectMutationPayload } from '@/features/architect/utils/mutationPipeline';
 import { DEV_SNT_INJECTOR_FLAG } from '@/features/architect/tradeMachine/utils/devSntInjector';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 import type {
@@ -71,6 +67,7 @@ import {
   describeTradeException,
   describeTradeOpenAuthority,
 } from '@/features/architect/cockpit/tradeOpenRequest';
+import { useGovernedSignAndTradePreview } from './useGovernedSignAndTradePreview';
 
 export const TradeEditor = ({
   primaryTeam,
@@ -143,8 +140,15 @@ export const TradeEditor = ({
   );
 
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [isPreparingGovernedPreview, setIsPreparingGovernedPreview] =
-    useState(false);
+  const { handleValidateTrade, isPreparingGovernedPreview } =
+    useGovernedSignAndTradePreview({
+      teams,
+      worldId,
+      userId,
+      worldAsOfDate: governedWorldAsOfDate,
+      yearKey,
+      validate: handleValidate,
+    });
   // TMAPPLY-02: in-flight lock so Apply can't double-submit
   const [isApplying, setIsApplying] = useState(false);
   const [tradeMachineSatModal, setTradeMachineSatModal] =
@@ -778,106 +782,6 @@ export const TradeEditor = ({
     },
     []
   );
-
-  const handleValidateTrade = async () => {
-    if (isPreparingGovernedPreview) return;
-    const signAndTradePlayers = teams.flatMap((slot) =>
-      (slot.sends || [])
-        .filter((player) => player.signAndTrade === true)
-        .map((player) => ({ slot, player }))
-    );
-    if (signAndTradePlayers.length === 0) {
-      const status = handleValidate();
-      if (status === 'insufficient') {
-        toast.error('Add at least two teams to validate this trade.');
-      }
-      return;
-    }
-    if (
-      signAndTradePlayers.length !== 1 ||
-      !worldId ||
-      !userId ||
-      !governedWorldAsOfDate
-    ) {
-      toast.error(
-        'Governed sign-and-trade preview requires one player and an active dated saved world.'
-      );
-      return;
-    }
-
-    setIsPreparingGovernedPreview(true);
-    try {
-      const activeTeams = teams.filter((slot) => Boolean(slot.team));
-      if (activeTeams.some((slot) => (slot.entitlementsOut || []).length > 0)) {
-        throw new Error(
-          'The governed V1 sign-and-trade route excludes draft entitlements.'
-        );
-      }
-      const payload: ArchitectMutationPayload = {
-        teams: activeTeams.map((slot) => ({
-          teamCode: String(slot.team?.teamCode || slot.team?.id || ''),
-          sends: (slot.sends || []).map((player) => ({
-            ...player,
-            id: player.id == null ? null : String(player.id),
-            playerId: player.playerId == null ? null : String(player.playerId),
-            player_id:
-              player.player_id == null ? null : String(player.player_id),
-            originTeamId:
-              player.originTeamId == null ? null : String(player.originTeamId),
-            tpeId: player.tpeId == null ? null : String(player.tpeId),
-          })),
-          entitlementsOut: [],
-          salaryMatchingElection: slot.salaryMatchingElection ?? null,
-        })),
-        asOfDate: governedWorldAsOfDate,
-        tradeCtx: {
-          source: 'tradeMachine' as const,
-          worldId,
-          asOfDate: governedWorldAsOfDate,
-          tradeDate: governedWorldAsOfDate,
-          yearKey,
-          offseason: true,
-        },
-      };
-      const currentState = await loadStateForMutation(
-        worldId,
-        'executeTrade',
-        payload
-      );
-      if (!currentState.governedSignAndTradeEvidence) {
-        throw new Error(
-          'Live saved-world sign-and-trade evidence is unavailable.'
-        );
-      }
-      const { player } = signAndTradePlayers[0];
-      const recordedAt = new Date().toISOString();
-      const previewAuthority: GovernedSignAndTradeAuthority =
-        buildGovernedSignAndTradeAuthority({
-          evidence: currentState.governedSignAndTradeEvidence,
-          contract: player.signAndTradeContract,
-          proposal: player.governedSignAndTradeProposal,
-          operationId: `sign-and-trade-preview:${Date.now()}`,
-          authoringIdentity: userId,
-          recordedAt,
-        });
-      const status = handleValidate(previewAuthority);
-      if (status === 'insufficient') {
-        toast.error('Add at least two teams to validate this trade.');
-      }
-    } catch (error) {
-      console.error(
-        '[TradeEditor] Governed sign-and-trade preview failed:',
-        error
-      );
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'Governed sign-and-trade authority could not be loaded.'
-      );
-    } finally {
-      setIsPreparingGovernedPreview(false);
-    }
-  };
 
   const handleApplyTrade = async () => {
     // TMAPPLY-02: in-flight guard against double-submit

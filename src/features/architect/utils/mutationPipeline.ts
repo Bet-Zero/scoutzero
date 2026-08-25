@@ -46,7 +46,6 @@
 
 import { db } from '@/firebaseConfig';
 import { getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { getTeam, getPlayer } from '@/features/architect/utils/teamLoader';
 import {
   getWorldMetadata,
   updateWorldStats,

@@ -18,6 +18,8 @@ import { buildGeneralMutationCommittedTeamUpdates } from '@/features/architect/u
 import { computeMatchingValues } from '@/features/architect/utils/tradeMachine/utils/matchingValues';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
 import { normalizeTradePayloadPlayer } from '@/features/architect/utils/tradeContext/tradeContext.snapshot.payloadNorm';
+import { GovernedSignAndTradeAuthorityZ } from '@/schemas/governedSignAndTrade';
+import { validateSignAndTrade } from '@/features/architect/utils/tradeMachine/rules/validateSignAndTrade';
 
 const TEAM_CODES = [
   'ATL',
@@ -56,8 +58,11 @@ const PLAYER_ID = 'player-governed-sat';
 const TRANSACTION_AT = '2026-07-15T12:00:00-04:00';
 const TRANSITION_ID = 'seasonAdvance__2025-26__2026-27';
 
-function salaryBookTeam(teamCode: string, players: Record<string, unknown>[]) {
-  const governedTeamSalary = teamCode === 'ATL' ? 160_000_000 : 80_000_000;
+function salaryBookTeam(
+  teamCode: string,
+  players: Record<string, unknown>[],
+  governedTeamSalary = teamCode === 'ATL' ? 160_000_000 : 80_000_000
+) {
   return withGovernedSalaryBooks(
     {
       teamCode,
@@ -394,6 +399,10 @@ function computePositiveSignAndTrade(
     2027,
     { asOfDate: TRANSACTION_AT }
   );
+  const currentStateTeams = [
+    { teamCode: 'ATL', team: fixture.evidence.sourceTeam },
+    { teamCode: 'BOS', team: fixture.evidence.destinationTeam },
+  ];
   return computeWorldMutation({
     mutationType: 'executeTrade',
     payload: {
@@ -448,10 +457,7 @@ function computePositiveSignAndTrade(
       },
     },
     currentState: {
-      teams: [
-        { teamCode: 'ATL', team: fixture.evidence.sourceTeam },
-        { teamCode: 'BOS', team: fixture.evidence.destinationTeam },
-      ],
+      teams: currentStateTeams,
       governedSignAndTradeEvidence: fixture.evidence,
     },
     seasonId: '2026-27',
@@ -532,6 +538,67 @@ describe('governed saved-world sign-and-trade authority', () => {
       })
     );
     expect(authority.contract.signedUsing).toBe('FULL_BIRD');
+  });
+
+  it('rejects noncanonical Team codes and first-row Contract summary divergence', () => {
+    const authority = build();
+    expect(
+      GovernedSignAndTradeAuthorityZ.safeParse({
+        ...authority,
+        sourceTeamId: 'atl',
+      }).success
+    ).toBe(false);
+    expect(
+      GovernedSignAndTradeAuthorityZ.safeParse({
+        ...authority,
+        contract: {
+          ...authority.contract,
+          firstSeasonSalary: authority.contract.firstSeasonSalary + 1,
+        },
+      }).success
+    ).toBe(false);
+  });
+
+  it('derives a newly required incomplete-roster charge from governed target-year rules', () => {
+    const fixture = makeFixture();
+    const sourcePlayers = fixture.evidence.sourceTeam.players.slice(0, 14);
+    const sourceTeam = {
+      ...salaryBookTeam('ATL', sourcePlayers, 130_000_000),
+      rightsLedger: fixture.evidence.sourceTeam.rightsLedger,
+    };
+    fixture.evidence = {
+      ...fixture.evidence,
+      sourceTeam,
+      snapshots: {
+        ...fixture.evidence.snapshots,
+        sourceTeam: {
+          exists: true,
+          digest: mutationSnapshotDigest(sourceTeam),
+        },
+      },
+    };
+
+    const result = computePositiveSignAndTrade(
+      fixture,
+      'sat-new-incomplete-roster-charge'
+    );
+
+    expect(result.success, result.error || '').toBe(true);
+    const sourceAfter = result.teamUpdates?.find(
+      (team) => team.teamCode === 'ATL'
+    )?.team;
+    expect(
+      sourceAfter?.salaryBookInputs?.incompleteRosterCharge?.amount
+    ).toBeGreaterThan(0);
+    expect(
+      sourceAfter?.salaryBookInputs?.apronAdjustments.status === 'ready'
+        ? sourceAfter.salaryBookInputs.apronAdjustments.lineItems.find(
+            (line) => line.canonLeafIds.includes('CBA2-C07.11')
+          )?.amount
+        : null
+    ).toBe(
+      -Number(sourceAfter?.salaryBookInputs?.incompleteRosterCharge?.amount)
+    );
   });
 
   it('completes the positive saved-world workflow with Contract, books, Row C, receipt, and history', () => {
@@ -741,6 +808,114 @@ describe('governed saved-world sign-and-trade authority', () => {
       },
     };
     expect(() => build(minimumFixture)).toThrow(/League-reimbursement/i);
+  });
+
+  it('rejects malformed and negative Contract incentive money instead of coercing it to zero', () => {
+    for (const malformed of ['not-money', -1]) {
+      const fixture = makeFixture();
+      fixture.contract.salariesByYear[0].incentives.unlikely =
+        malformed as unknown as number;
+
+      expect(() => build(fixture)).toThrow(
+        /exact nonnegative whole-dollar amounts/i
+      );
+    }
+
+    const malformedContainer = makeFixture();
+    malformedContainer.contract.salariesByYear[0].incentives =
+      'not-an-incentive-record' as unknown as {
+        likely: number;
+        unlikely: number;
+      };
+    expect(() => build(malformedContainer)).toThrow(
+      /unsupported compensation variant/i
+    );
+
+    const malformedTradeBonus = makeFixture();
+    (
+      malformedTradeBonus.contract.salariesByYear[0] as Record<
+        string,
+        unknown
+      >
+    ).tradeBonus = 'not-money';
+    expect(() => build(malformedTradeBonus)).toThrow(
+      /Trade Bonuses are not authorable/i
+    );
+  });
+
+  it('fails saved-world validation closed on missing or identity-drifted governed authority', () => {
+    const fixture = makeFixture();
+    const authority = build(fixture);
+    const player = {
+      id: PLAYER_ID,
+      player_id: PLAYER_ID,
+      name: 'Governed S&T Player',
+      signAndTrade: true,
+      originTeamId: 'ATL',
+      tradeTo: 'BOS',
+      receivingTeamId: 'BOS',
+      signAndTradeContract: fixture.contract,
+    };
+    const team = {
+      teamId: 'ATL',
+      teamCode: 'ATL',
+      teamName: 'Team ATL',
+      sends: [player],
+      capHolds: [
+        {
+          playerId: PLAYER_ID,
+          playerName: 'Governed S&T Player',
+          season: '2026-27',
+          active: true,
+          isSigned: false,
+        },
+      ],
+    };
+    const context = {
+      worldId: WORLD_ID,
+      currentYear: 2027,
+      yearKey: 2027,
+      tradeDate: TRANSACTION_AT,
+      asOfDate: TRANSACTION_AT,
+      offseason: true,
+      source: 'tradeMachine',
+    };
+    const authorityCode =
+      'SIGN_AND_TRADE__GOVERNED_AUTHORITY_MISSING_OR_MISMATCHED';
+
+    expect(validateSignAndTrade(team, context).violations).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: authorityCode })])
+    );
+    expect(
+      validateSignAndTrade(
+        {
+          ...team,
+          sends: [
+            {
+              ...player,
+              governedSignAndTradeAuthority: {
+                ...authority,
+                worldId: 'wrong-world',
+              },
+            },
+          ],
+        },
+        context
+      ).violations
+    ).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: authorityCode })])
+    );
+    expect(
+      validateSignAndTrade(
+        {
+          ...team,
+          sends: [{ ...player, governedSignAndTradeAuthority: authority }],
+        },
+        context
+      ).violations
+    ).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: authorityCode })])
+    );
   });
 
   it('counts first-season unlikely bonuses in the assignee Room amount', () => {
