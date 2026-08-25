@@ -67,7 +67,7 @@ import {
   describeTradeException,
   describeTradeOpenAuthority,
 } from '@/features/architect/cockpit/tradeOpenRequest';
-import { useGovernedSignAndTradePreview } from './useGovernedSignAndTradePreview';
+import { useGovernedSignAndTradePreview } from '@/features/architect/tradeMachine/useGovernedSignAndTradePreview';
 
 export const TradeEditor = ({
   primaryTeam,

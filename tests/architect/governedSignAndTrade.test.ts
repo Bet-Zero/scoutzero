@@ -386,7 +386,8 @@ const build = (fixture = makeFixture()) =>
 
 function computePositiveSignAndTrade(
   fixture = makeFixture(),
-  operationId = 'sat-operation'
+  operationId = 'sat-operation',
+  senderTeamCode = 'ATL'
 ) {
   const electionAuthority = build(fixture);
   const sourceBefore = createCanonicalTeamTotalsSnapshot(
@@ -408,7 +409,7 @@ function computePositiveSignAndTrade(
     payload: {
       teams: [
         {
-          teamCode: 'ATL',
+          teamCode: senderTeamCode,
           sends: [
             {
               player_id: PLAYER_ID,
@@ -557,6 +558,17 @@ describe('governed saved-world sign-and-trade authority', () => {
         },
       }).success
     ).toBe(false);
+  });
+
+  it('rejects a payload sender that differs from the authenticated source Team', () => {
+    const result = computePositiveSignAndTrade(
+      makeFixture(),
+      'sat-wrong-source-route',
+      'BOS'
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/routing.*authenticated source Team/i);
   });
 
   it('derives a newly required incomplete-roster charge from governed target-year rules', () => {
