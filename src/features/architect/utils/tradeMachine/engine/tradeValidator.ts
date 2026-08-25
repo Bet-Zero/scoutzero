@@ -113,6 +113,8 @@ import {
   resolveTeamIdentity,
 } from './tradeValidator.ruleEnvelopes';
 
+
+
 // Wave 9 Step 2: trade receipt builder extracted to submodule
 export * from './tradeValidator.receipt';
 import { generateTradeReceipt } from './tradeValidator.receipt';
@@ -121,6 +123,7 @@ import { resolveTradeCashRouting } from '../utils/tradeCashRouting';
 // Wave 30: per-team validation logic extracted to satellite
 export * from './tradeValidator.teamValidation';
 import { validateSingleTeam } from './tradeValidator.teamValidation';
+
 
 /**
  * Main trade validation entry point
@@ -184,8 +187,7 @@ export function validateTrade({
     capSettingsWarnings: capSettingsResult.warnings,
     normalizedYear: normalizedYear || {
       endYear: resolvedCurrentYear,
-      seasonString:
-        yearToSeason(resolvedCurrentYear) || String(resolvedCurrentYear),
+      seasonString: yearToSeason(resolvedCurrentYear) || String(resolvedCurrentYear),
     },
     teams: [],
   };
@@ -201,10 +203,7 @@ export function validateTrade({
     tradeReceipt = null,
     dataWarnings = [],
     context = baseContext,
-  }: Omit<
-    BuildValidationResultParams,
-    'validationTime'
-  >): TradeValidationResult =>
+  }: Omit<BuildValidationResultParams, 'validationTime'>): TradeValidationResult =>
     buildValidationResult({
       legal,
       reason,
@@ -226,10 +225,13 @@ export function validateTrade({
       error: 'INVALID_INPUT',
       violations: normalizeValidationIssues(
         [
-          createValidationIssue('Trade must include at least 2 teams', {
-            rule: 'inputValidation',
-            severity: 'error',
-          }),
+          createValidationIssue(
+            'Trade must include at least 2 teams',
+            {
+              rule: 'inputValidation',
+              severity: 'error',
+            }
+          ),
         ],
         { rule: 'inputValidation', severity: 'error' }
       ),
@@ -247,10 +249,13 @@ export function validateTrade({
       error: 'INVALID_INPUT',
       violations: normalizeValidationIssues(
         [
-          createValidationIssue('Trade must include at least 2 valid teams', {
-            rule: 'inputValidation',
-            severity: 'error',
-          }),
+          createValidationIssue(
+            'Trade must include at least 2 valid teams',
+            {
+              rule: 'inputValidation',
+              severity: 'error',
+            }
+          ),
         ],
         { rule: 'inputValidation', severity: 'error' }
       ),
@@ -353,9 +358,7 @@ export function validateTrade({
   // implementation (BYC, poison pill, trade kicker) before any salary calculations
   // GAP-DATA-001/002: Now also captures data validation warnings
   const matchingValuesResult = computeMatchingValues({
-    teams: teamsWithAssets as Parameters<
-      typeof computeMatchingValues
-    >[0]['teams'],
+    teams: teamsWithAssets as Parameters<typeof computeMatchingValues>[0]['teams'],
     yearKey: resolvedCurrentYear,
     daysRemainingInSeason: context.daysRemainingInSeason,
     daysInSeason: context.daysInSeason,
@@ -369,7 +372,8 @@ export function validateTrade({
 
   if (matchingValuesResult.salaryBasisIssues.length > 0) {
     const messages = matchingValuesResult.salaryBasisIssues.map(
-      (issue) => `${issue.playerId || 'Unknown player'}: ${issue.reason}`
+      (issue) =>
+        `${issue.playerId || 'Unknown player'}: ${issue.reason}`
     );
     return finishValidation({
       legal: false,
@@ -520,31 +524,30 @@ export function validateTrade({
     })
   );
 
+
   // Calculate summary by team index
-  const summaryByTeamIndex: TradeSummaryByTeamIndexRow[] = teamsWithAssets.map(
-    (team, index) => {
-      const playersOut = (team.sends || [])
-        .map((p) => p.name || 'Unknown Player')
-        .join(', ');
-      const playersIn = (team.incomingPlayers || []).map(
-        (p) => p.name || 'Unknown Player'
-      );
+  const summaryByTeamIndex: TradeSummaryByTeamIndexRow[] = teamsWithAssets.map((team, index) => {
+    const playersOut = (team.sends || [])
+      .map((p) => p.name || 'Unknown Player')
+      .join(', ');
+    const playersIn = (team.incomingPlayers || []).map(
+      (p) => p.name || 'Unknown Player'
+    );
 
-      const capDelta = (team.salaryIn || 0) - (team.salaryOut || 0);
+    const capDelta = (team.salaryIn || 0) - (team.salaryOut || 0);
 
-      return {
-        playersOut,
-        playersIn,
-        capDelta,
-        teamId: resolveTeamIdentity(team, index),
-        teamCode: resolveTeamIdentity(team, index),
-        legal: teamResults[index]?.legal ?? true,
-        violations: teamResults[index]?.violations || [],
-        warnings: teamResults[index]?.warnings || [],
-        teamName: team.team?.teamName || team.team?.name || `Team ${index}`,
-      };
-    }
-  );
+    return {
+      playersOut,
+      playersIn,
+      capDelta,
+      teamId: resolveTeamIdentity(team, index),
+      teamCode: resolveTeamIdentity(team, index),
+      legal: teamResults[index]?.legal ?? true,
+      violations: teamResults[index]?.violations || [],
+      warnings: teamResults[index]?.warnings || [],
+      teamName: team.team?.teamName || team.team?.name || `Team ${index}`,
+    };
+  });
 
   // Determine overall trade legality
   const isOverallLegal = teamResults.every((result) => result.legal);
@@ -557,10 +560,7 @@ export function validateTrade({
   ];
   const reason = isOverallLegal
     ? 'Valid trade'
-    : getFirstValidationIssueText(
-        topLevelViolations,
-        'Trade validation failed'
-      );
+    : getFirstValidationIssueText(topLevelViolations, 'Trade validation failed');
 
   const validationTime = performance.now() - startTime;
 
