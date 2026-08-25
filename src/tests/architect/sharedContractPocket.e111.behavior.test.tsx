@@ -410,6 +410,18 @@ describe('E111 EditContractModal behavior', () => {
         /This action is using authoritative preflight from the action and mutation layer before confirm\./i
       )
     ).toBeInTheDocument();
+    expect(confirmButton).toBeDisabled();
+    expect(getSignAndTradePreflight).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByTestId('governed-sat-transaction-at'), {
+      target: { value: '2025-07-08T12:00:00-04:00' },
+    });
+    fireEvent.change(screen.getByTestId('governed-sat-higher-max'), {
+      target: { value: 'not-relied-upon' },
+    });
+    fireEvent.click(screen.getByTestId('governed-sat-consent'));
+    fireEvent.click(screen.getByTestId('governed-sat-exhibit-6'));
+
     await waitFor(() => {
       expect(confirmButton).not.toBeDisabled();
     });
@@ -422,6 +434,12 @@ describe('E111 EditContractModal behavior', () => {
         expect.objectContaining({
           signAndTrade: true,
           contractType: 'Sign & Trade',
+          governedSignAndTradeProposal: expect.objectContaining({
+            transactionAt: '2025-07-08T12:00:00-04:00',
+            playerConsentConfirmed: true,
+            higherMaxStatus: 'not-relied-upon',
+            exhibit6Present: false,
+          }),
         }),
         'BOS'
       );
@@ -443,14 +461,25 @@ describe('E111 EditContractModal behavior', () => {
         signAndTrade: true,
         contractType: 'Sign & Trade',
         years: 3,
+        contractYears: 3,
         salaries: [12_000_000, 12_000_000, 12_000_000],
+        salariesByYear: expect.arrayContaining([
+          expect.objectContaining({
+            season: '2025-26',
+            salary: 12_000_000,
+            capHit: 12_000_000,
+            guaranteed: true,
+            incentives: { likely: 0, unlikely: 0 },
+          }),
+        ]),
         startYear: 2026,
+        base: 12_000_000,
+        totalValue: 36_000_000,
+        averageAnnualValue: 12_000_000,
+        firstYearGuaranteed: true,
       })
     );
-    expect(stagedPreflightPayload.salariesByYear).toBeUndefined();
-    expect(stagedPreflightPayload.totalValue).toBeUndefined();
-    expect(stagedPreflightPayload.averageAnnualValue).toBeUndefined();
-    expect(stagedPreflightPayload.firstYearGuaranteed).toBeUndefined();
+    expect(stagedPreflightPayload.salariesByYear).toHaveLength(3);
     expect(stagedCommitPayload).toBe(stagedPreflightPayload);
 
     await waitFor(() => {
