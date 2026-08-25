@@ -11,6 +11,7 @@ import type {
   PlayerRulesProfileLike,
   SigningExceptionOption,
   OfferSheetTimingLike,
+  GovernedSignAndTradeProposalDraft,
 } from './EditContractModal.types';
 
 type SigningGuardrailsLike = {
@@ -61,6 +62,10 @@ type ContractDetailsFormProps = {
   ) => number[];
   toSalaryInputs: (series: number[], years: number) => string[];
   onTermsChange: () => void;
+  signAndTradeProposalDraft: GovernedSignAndTradeProposalDraft;
+  setSignAndTradeProposalDraft: React.Dispatch<
+    React.SetStateAction<GovernedSignAndTradeProposalDraft>
+  >;
 };
 
 export const ContractDetailsForm = ({
@@ -97,6 +102,8 @@ export const ContractDetailsForm = ({
   buildSalarySeries,
   toSalaryInputs,
   onTermsChange,
+  signAndTradeProposalDraft,
+  setSignAndTradeProposalDraft,
 }: ContractDetailsFormProps) => {
   const maxYearsOption = isOfferSheet
     ? MAX_OFFER_SHEET_SALARY_CAP_YEARS
@@ -201,13 +208,14 @@ export const ContractDetailsForm = ({
                   const yrs = Math.min(Number(e.target.value), maxYearsOption);
                   const raisePct =
                     signingGuardrails?.raisePct ?? extension.raisePct ?? 0.05;
-                  const firstYear = isSigningAction
-                    ? clampFirstYearToGuardrails(
-                        extension.salaries?.[0] ??
-                          signingGuardrails?.minFirstYear ??
-                          0
-                      )
-                    : extension.salaries?.[0] || 0;
+                  const firstYear =
+                    isSigningAction && selectedAction !== 'signAndTrade'
+                      ? clampFirstYearToGuardrails(
+                          extension.salaries?.[0] ??
+                            signingGuardrails?.minFirstYear ??
+                            0
+                        )
+                      : extension.salaries?.[0] || 0;
                   const salaries = isSigningAction
                     ? buildSalarySeries(firstYear, yrs, raisePct)
                     : Array.from(
@@ -357,7 +365,7 @@ export const ContractDetailsForm = ({
           )}
 
           {selectedAction === 'signAndTrade' && (
-            <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <div className="mb-4 space-y-3 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
               <label className="block text-xs font-bold text-blue-200 uppercase tracking-wider mb-2">
                 Destination Team
               </label>
@@ -370,6 +378,110 @@ export const ContractDetailsForm = ({
                 The player will be signed to your team, then immediately traded
                 to this destination.
               </p>
+              <label className="block text-xs text-white/80">
+                Exact transaction time (with UTC offset)
+                <input
+                  data-testid="governed-sat-transaction-at"
+                  className="mt-1 w-full rounded border border-white/20 bg-black/30 px-2 py-1.5"
+                  value={signAndTradeProposalDraft.transactionAt}
+                  placeholder="2026-07-06T12:00:01-04:00"
+                  onChange={(event) => {
+                    onTermsChange();
+                    setSignAndTradeProposalDraft((current) => ({
+                      ...current,
+                      transactionAt: event.target.value,
+                    }));
+                  }}
+                />
+              </label>
+              <label className="block text-xs text-white/80">
+                Higher Max status
+                <select
+                  data-testid="governed-sat-higher-max"
+                  className="mt-1 w-full rounded border border-white/20 bg-black/30 px-2 py-1.5"
+                  value={signAndTradeProposalDraft.higherMaxStatus}
+                  onChange={(event) => {
+                    onTermsChange();
+                    setSignAndTradeProposalDraft((current) => ({
+                      ...current,
+                      higherMaxStatus: event.target
+                        .value as GovernedSignAndTradeProposalDraft['higherMaxStatus'],
+                    }));
+                  }}
+                >
+                  <option value="">Select status</option>
+                  <option value="not-relied-upon">
+                    Not relied upon (25% or below)
+                  </option>
+                </select>
+              </label>
+              <label className="block text-xs text-white/80">
+                First-season unlikely bonuses
+                <input
+                  data-testid="governed-sat-unlikely-bonuses"
+                  inputMode="numeric"
+                  className="mt-1 w-full rounded border border-white/20 bg-black/30 px-2 py-1.5"
+                  value={signAndTradeProposalDraft.firstSeasonUnlikelyBonuses}
+                  onChange={(event) => {
+                    onTermsChange();
+                    setSignAndTradeProposalDraft((current) => ({
+                      ...current,
+                      firstSeasonUnlikelyBonuses: event.target.value.replace(
+                        /[^0-9]/g,
+                        ''
+                      ),
+                    }));
+                  }}
+                />
+              </label>
+              <label className="flex items-start gap-2 text-xs text-white/80">
+                <input
+                  data-testid="governed-sat-consent"
+                  type="checkbox"
+                  checked={signAndTradeProposalDraft.playerConsentConfirmed}
+                  onChange={(event) => {
+                    onTermsChange();
+                    setSignAndTradeProposalDraft((current) => ({
+                      ...current,
+                      playerConsentConfirmed: event.target.checked,
+                    }));
+                  }}
+                />
+                The player’s affirmative consent is recorded for this
+                assignment.
+              </label>
+              <label className="flex items-start gap-2 text-xs text-white/80">
+                <input
+                  data-testid="governed-sat-exhibit-6"
+                  type="checkbox"
+                  checked={signAndTradeProposalDraft.exhibit6Excluded}
+                  onChange={(event) => {
+                    onTermsChange();
+                    setSignAndTradeProposalDraft((current) => ({
+                      ...current,
+                      exhibit6Excluded: event.target.checked,
+                    }));
+                  }}
+                />
+                Contract excludes Exhibit 6 protection.
+              </label>
+              <label className="block text-xs text-white/80">
+                Physical-exam condition
+                <select
+                  data-testid="governed-sat-physical-status"
+                  className="mt-1 w-full rounded border border-white/20 bg-black/30 px-2 py-1.5"
+                  value={signAndTradeProposalDraft.physicalExamStatus}
+                  disabled
+                >
+                  <option value="not-required">
+                    Not conditioned on examination
+                  </option>
+                </select>
+                <span className="mt-1 block text-[10px] text-white/50">
+                  A conditional examination is unavailable until the saved world
+                  supplies an authenticated assignee-designated record.
+                </span>
+              </label>
             </div>
           )}
 
@@ -405,7 +517,11 @@ export const ContractDetailsForm = ({
                         const nextSalaries = (() => {
                           const arr = [...extension.salaries];
                           let nextVal = parsed;
-                          if (isSigningAction && signingGuardrails) {
+                          if (
+                            isSigningAction &&
+                            selectedAction !== 'signAndTrade' &&
+                            signingGuardrails
+                          ) {
                             if (idx === 0) {
                               nextVal = clampFirstYearToGuardrails(parsed);
                             } else if (signingGuardrails.raisePct != null) {

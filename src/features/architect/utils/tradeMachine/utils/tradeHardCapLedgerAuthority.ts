@@ -89,7 +89,7 @@ function calendarProofIsAuthenticated(
     return false;
   }
 
-  if (trigger.restrictionRow === 'H') {
+  if (trigger.restrictionRow === 'C' || trigger.restrictionRow === 'H') {
     return calendar.salaryCapYear === entry.salaryCapYear;
   }
 
@@ -105,9 +105,8 @@ function calendarProofIsAuthenticated(
       isWithinSalaryCapYear(createdAsOf, candidate.salaryCapYear)
   );
   const creationCalendar = creationCalendars[0];
-  const createdDay = trigger.tpeTiming.createdOn.match(
-    /^(\d{4}-\d{2}-\d{2})/
-  )?.[1];
+  const createdDay =
+    trigger.tpeTiming.createdOn.match(/^(\d{4}-\d{2}-\d{2})/)?.[1];
   if (creationCalendars.length !== 1 || !creationCalendar || !createdDay) {
     return false;
   }
@@ -152,7 +151,9 @@ function entryMatchesAuthenticatedTriggers(
     (trigger) => trigger.restrictionRow === 'H'
   )
     ? 'AGGREGATED_STANDARD_TPE'
-    : 'STANDARD_TPE';
+    : entry.triggers.some((trigger) => trigger.restrictionRow === 'F')
+      ? 'STANDARD_TPE'
+      : controlling.trigger.salaryMatchingPath;
 
   return (
     entry.restrictionRow === controlling.trigger.restrictionRow &&

@@ -27,6 +27,7 @@ import type {
   HookContractDataLike,
   OfferSheetTimingLike,
 } from './EditContractModal.types';
+import type { GovernedSignAndTradeProposal } from '@/schemas/governedSignAndTrade';
 
 type GetCapSettingsResult = ReturnType<
   typeof import('@/features/architect/utils/capHelpers').getCapSettings
@@ -46,6 +47,7 @@ type UseEditContractModalFormParams = {
   selectedAction: SelectedContractAction;
   isOpen: boolean;
   resolvedShowOfferSheetToggle: boolean;
+  governedSignAndTradeProposal: GovernedSignAndTradeProposal | null;
 };
 
 const getSalaryRowEndYear = (row: { season?: unknown; year?: unknown }) => {
@@ -91,6 +93,7 @@ export const useEditContractModalForm = ({
   selectedAction,
   isOpen,
   resolvedShowOfferSheetToggle,
+  governedSignAndTradeProposal,
 }: UseEditContractModalFormParams) => {
   const [extension, setExtension] = useState<ExtensionStateLike>({
     years: 1,
@@ -325,14 +328,26 @@ export const useEditContractModalForm = ({
     [buildCanonicalSigningDispatchPayload, offerSheetTiming, player]
   );
 
-  const signAndTradeDispatchPayload = useMemo(
-    () =>
-      buildSigningDispatchPayload({
-        signAndTrade: true,
-        contractType: 'Sign & Trade',
-      }),
-    [buildSigningDispatchPayload]
-  );
+  const signAndTradeDispatchPayload = useMemo(() => {
+    const staged = buildCanonicalSigningDispatchPayload({
+      signAndTrade: true,
+      contractType: 'Sign & Trade',
+      ...(governedSignAndTradeProposal ? { governedSignAndTradeProposal } : {}),
+    });
+    return {
+      ...staged,
+      salariesByYear: (staged.salariesByYear || []).map((row, index) => ({
+        ...row,
+        incentives: {
+          likely: 0,
+          unlikely:
+            index === 0
+              ? governedSignAndTradeProposal?.firstSeasonUnlikelyBonuses || 0
+              : 0,
+        },
+      })),
+    };
+  }, [buildCanonicalSigningDispatchPayload, governedSignAndTradeProposal]);
 
   const offerSheetDispatchPayload = useMemo(
     () => buildOfferSheetDispatchPayload(),
@@ -485,7 +500,12 @@ export const useEditContractModalForm = ({
   ]);
 
   useEffect(() => {
-    if (!signingGuardrails || !isSigningAction) return;
+    if (
+      !signingGuardrails ||
+      !isSigningAction ||
+      selectedAction === 'signAndTrade'
+    )
+      return;
     setExtension((prev) => {
       const maxYears =
         signingGuardrails.maxYears && signingGuardrails.maxYears > 0
@@ -507,6 +527,7 @@ export const useEditContractModalForm = ({
     });
   }, [
     isSigningAction,
+    selectedAction,
     signingGuardrails,
     lastSalaryForPrefill,
     selectedException,

@@ -20,6 +20,7 @@ import type { TradeSalaryMatchingPath } from '@/schemas/tradeSalaryMatchingPath'
 import type { TradeSalaryPathEvaluation } from './tradeSalaryMatchingPaths';
 import { normalizeTradeApronEnvelopeDate } from './tradeApronDate';
 import { parseTradeHardCapLedger } from './tradeHardCapLedgerAuthority';
+import { GovernedSignAndTradeAuthorityZ } from '@/schemas/governedSignAndTrade';
 
 export { parseTradeHardCapLedger } from './tradeHardCapLedgerAuthority';
 
@@ -82,6 +83,14 @@ function finiteMoney(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
     ? value
     : null;
+}
+
+function resolvePlayerIdentity(player: {
+  player_id?: unknown;
+  playerId?: unknown;
+  id?: unknown;
+}): string {
+  return String(player.player_id ?? player.playerId ?? player.id ?? '').trim();
 }
 
 function result(
@@ -325,6 +334,13 @@ export function evaluateTradeApronRestriction({
   context,
 }: EvaluationInput): TradeApronRestrictionEvaluation {
   const path = pathEvaluation?.electedPath ?? null;
+  const incomingSignAndTradePlayers = (
+    team.incomingPlayers ||
+    team.receives ||
+    []
+  ).filter((player) => player.signAndTrade === true);
+  const usesSavedWorldSignAndTradeAuthority =
+    Boolean(context.worldId) && incomingSignAndTradePlayers.length > 0;
   if (!path || pathEvaluation?.status !== 'PASS') {
     return result({
       status: 'NOT_APPLICABLE',
@@ -333,7 +349,7 @@ export function evaluateTradeApronRestriction({
       salaryCapYear: context.currentYear ?? null,
     });
   }
-  if (path === 'ROOM') {
+  if (path === 'ROOM' && !usesSavedWorldSignAndTradeAuthority) {
     return result({
       status: 'NOT_APPLICABLE',
       salaryMatchingPath: path,
@@ -345,8 +361,56 @@ export function evaluateTradeApronRestriction({
   const missingInputs: string[] = [];
   const transactionDate = context.tradeDate ?? context.asOfDate ?? null;
   const salaryCapYear = context.currentYear ?? context.yearKey ?? null;
+  const canonicalTeamCode = String(team.team?.teamCode || '')
+    .trim()
+    .toUpperCase();
   const postSalary = finiteMoney(pathEvaluation.postAssignmentApronTeamSalary);
-  const projectedSalary = finiteMoney(team.projectedSalary);
+  let signAndTradeApronAdjustment = 0;
+  if (usesSavedWorldSignAndTradeAuthority) {
+    incomingSignAndTradePlayers.forEach((player, index) => {
+      const authority = GovernedSignAndTradeAuthorityZ.safeParse(
+        (
+          player as typeof player & {
+            governedSignAndTradeAuthority?: unknown;
+          }
+        ).governedSignAndTradeAuthority
+      );
+      const incomingPlayerId = resolvePlayerIdentity(player);
+      if (!authority.success) {
+        missingInputs.push(
+          `signAndTradeReceiver.${incomingPlayerId || index}.governedAuthority.schema`
+        );
+        return;
+      }
+      const authorityMismatch =
+        authority.data.worldId !== context.worldId
+          ? 'world'
+          : !canonicalTeamCode ||
+              authority.data.destinationTeamId !== canonicalTeamCode
+            ? 'destinationTeam'
+            : authority.data.playerId !== incomingPlayerId
+              ? 'player'
+              : authority.data.salaryCapYear !== salaryCapYear
+                ? 'salaryCapYear'
+                : authority.data.transactionAt.slice(0, 10) !==
+                    transactionDate?.slice(0, 10)
+                  ? 'transactionDate'
+                  : null;
+      if (authorityMismatch) {
+        missingInputs.push(
+          `signAndTradeReceiver.${incomingPlayerId || index}.governedAuthority.${authorityMismatch}`
+        );
+        return;
+      }
+      signAndTradeApronAdjustment +=
+        authority.data.contract.firstSeasonUnlikelyBonuses;
+    });
+  }
+  const projectedMatchingSalary = finiteMoney(team.projectedSalary);
+  const projectedSalary =
+    projectedMatchingSalary === null
+      ? null
+      : projectedMatchingSalary + signAndTradeApronAdjustment;
   if (!transactionDate || !dateOnly(transactionDate)) {
     missingInputs.push('transactionDate');
   }
@@ -446,7 +510,11 @@ export function evaluateTradeApronRestriction({
     const heldComponents = components.filter(
       (component) => component.kind === 'HELD_STANDARD_TPE'
     );
-    if (path === 'STANDARD_TPE' && heldComponents.length === 0) {
+    if (
+      path === 'STANDARD_TPE' &&
+      heldComponents.length === 0 &&
+      incomingSignAndTradePlayers.length === 0
+    ) {
       return result({
         status: 'NOT_APPLICABLE',
         salaryMatchingPath: path,
@@ -594,13 +662,47 @@ export function evaluateTradeApronRestriction({
 
   type PendingRestriction = {
     restrictionRow: TradeApronRestrictionRow;
-    component: (typeof components)[number];
+    componentId: string;
+    componentKind: 'SIGN_AND_TRADE' | 'ELECTED_PATH' | 'HELD_STANDARD_TPE';
+    componentPath: TradeSalaryMatchingPath;
+    incomingPlayers: Array<{
+      playerId: string;
+      playerName: string;
+      salary: number;
+    }>;
     apronLevel: TradeApronLevel;
     tpeTiming: TpeTiming | null;
     closing: string | null;
     calendarEnvelope: ReturnType<typeof resolveGovernedSeasonEnvelope>;
   };
   const pendingRestrictions: PendingRestriction[] = [];
+  incomingSignAndTradePlayers.forEach((player, index) => {
+    const incomingPlayerId = resolvePlayerIdentity(player);
+    const incomingSalary = finiteMoney(player.matchIncoming);
+    if (!incomingPlayerId || incomingSalary === null) {
+      missingInputs.push(
+        `signAndTradeReceiver.${incomingPlayerId || index}.identityOrSalary`
+      );
+      return;
+    }
+    pendingRestrictions.push({
+      restrictionRow: 'C',
+      componentId: `sign-and-trade:${incomingPlayerId}`,
+      componentKind: 'SIGN_AND_TRADE',
+      componentPath: path,
+      incomingPlayers: [
+        {
+          playerId: incomingPlayerId,
+          playerName: String(player.name || player.displayName || ''),
+          salary: incomingSalary,
+        },
+      ],
+      apronLevel: 'FIRST_APRON',
+      tpeTiming: null,
+      closing: null,
+      calendarEnvelope: envelope,
+    });
+  });
   for (const component of components) {
     if (
       component.kind === 'HELD_STANDARD_TPE' &&
@@ -609,7 +711,10 @@ export function evaluateTradeApronRestriction({
       const rowF = rowFByComponentId.get(component.componentId)!;
       pendingRestrictions.push({
         restrictionRow: 'F',
-        component,
+        componentId: component.componentId,
+        componentKind: component.kind,
+        componentPath: component.path,
+        incomingPlayers: component.incomingPlayers,
         apronLevel: 'FIRST_APRON',
         tpeTiming: timingByComponentId.get(component.componentId) ?? null,
         closing: rowF.closing,
@@ -623,7 +728,10 @@ export function evaluateTradeApronRestriction({
     ) {
       pendingRestrictions.push({
         restrictionRow: 'H',
-        component,
+        componentId: component.componentId,
+        componentKind: component.kind,
+        componentPath: component.path,
+        incomingPlayers: component.incomingPlayers,
         apronLevel: 'SECOND_APRON',
         tpeTiming: null,
         closing: null,
@@ -634,10 +742,10 @@ export function evaluateTradeApronRestriction({
   pendingRestrictions.sort(
     (left, right) =>
       left.apronLevel.localeCompare(right.apronLevel) ||
-      left.component.componentId.localeCompare(right.component.componentId)
+      left.componentId.localeCompare(right.componentId)
   );
 
-  if (pendingRestrictions.length === 0) {
+  if (pendingRestrictions.length === 0 && missingInputs.length === 0) {
     return result({
       status: 'NOT_APPLICABLE',
       salaryMatchingPath: path,
@@ -658,9 +766,7 @@ export function evaluateTradeApronRestriction({
   for (const pending of pendingRestrictions) {
     const levelResolution =
       envelope.systemLevels[
-        pending.apronLevel === 'FIRST_APRON'
-          ? 'first-apron'
-          : 'second-apron'
+        pending.apronLevel === 'FIRST_APRON' ? 'first-apron' : 'second-apron'
       ];
     const triggerCeiling =
       levelResolution.state === 'available' ? levelResolution.amount : null;
@@ -671,29 +777,28 @@ export function evaluateTradeApronRestriction({
     );
     if (triggerCeiling === null || !triggerProof) {
       missingInputs.push(
-        `applicableApronLevel.${pending.restrictionRow}.${pending.component.componentId}`
+        `applicableApronLevel.${pending.restrictionRow}.${pending.componentId}`
       );
       continue;
     }
     attachedRestrictions.push({
       restrictionRow: pending.restrictionRow,
-      componentId: pending.component.componentId,
-      componentKind: pending.component.kind,
-      salaryMatchingPath:
-        pending.restrictionRow === 'F'
-          ? 'STANDARD_TPE'
-          : 'AGGREGATED_STANDARD_TPE',
+      componentId: pending.componentId,
+      componentKind: pending.componentKind,
+      salaryMatchingPath: pending.componentPath,
       apronLevel: pending.apronLevel,
       ceiling: triggerCeiling,
-      incomingPlayers: [...pending.component.incomingPlayers]
+      incomingPlayers: [...pending.incomingPlayers]
         .map((player) => ({ ...player }))
         .sort((left, right) => left.playerId.localeCompare(right.playerId)),
       tpeTiming: pending.tpeTiming ? { ...pending.tpeTiming } : null,
       regularSeasonClosing: pending.closing,
       canonLeafIds:
-        pending.restrictionRow === 'F'
-          ? ['CBA2-A02.3', 'CBA2-A05.8', 'CBA2-A05.1']
-          : ['CBA2-A05.10', 'CBA2-A05.1'],
+        pending.restrictionRow === 'C'
+          ? ['CBA2-A05.5', 'CBA2-A05.1']
+          : pending.restrictionRow === 'F'
+            ? ['CBA2-A02.3', 'CBA2-A05.8', 'CBA2-A05.1']
+            : ['CBA2-A05.10', 'CBA2-A05.1'],
       proof: triggerProof,
     });
   }
@@ -823,7 +928,6 @@ export function createTradeHardCapLedgerEntry({
     !evaluation.restrictionRow ||
     !evaluation.apronLevel ||
     !evaluation.salaryMatchingPath ||
-    evaluation.salaryMatchingPath === 'ROOM' ||
     evaluation.ceiling === null ||
     evaluation.salaryCapYear === null ||
     !evaluation.transactionDate ||

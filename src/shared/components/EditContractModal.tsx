@@ -46,6 +46,10 @@ import { GovernedWaiverEvidenceForm } from './EditContractModal.WaiverEvidenceFo
 import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
 import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
 import type { GovernedWaiverProposal } from '@/schemas/governedWaiver';
+import {
+  GovernedSignAndTradeProposalZ,
+  type GovernedSignAndTradeProposal,
+} from '@/schemas/governedSignAndTrade';
 import { isZonedDateTime } from '@/features/architect/utils/governedSeason';
 import { easternInstantCandidates } from '@/features/architect/utils/offerSheets/governedOfferSheetTime';
 import {
@@ -74,6 +78,7 @@ import type {
   EditContractModalProps,
   ValidationAuthority,
   ValidationStateLike,
+  GovernedSignAndTradeProposalDraft,
 } from './EditContractModal.types';
 import {
   DEFAULT_VALIDATION_STATE,
@@ -89,6 +94,16 @@ import {
   isContractActionKey,
 } from './EditContractModal.helpers';
 export { normalizeContractActionResult } from './EditContractModal.helpers';
+
+const EMPTY_GOVERNED_SIGN_AND_TRADE_PROPOSAL: GovernedSignAndTradeProposalDraft =
+  {
+    transactionAt: '',
+    playerConsentConfirmed: false,
+    higherMaxStatus: '',
+    firstSeasonUnlikelyBonuses: '0',
+    exhibit6Excluded: false,
+    physicalExamStatus: 'not-required',
+  };
 
 export const EditContractModal = ({
   player,
@@ -131,6 +146,10 @@ export const EditContractModal = ({
   const [destinationTeamId, setDestinationTeamId] = useState<string | null>(
     null
   ); // Phase 23
+  const [signAndTradeProposalDraft, setSignAndTradeProposalDraft] =
+    useState<GovernedSignAndTradeProposalDraft>(
+      EMPTY_GOVERNED_SIGN_AND_TRADE_PROPOSAL
+    );
   const [buyoutAmountInput, setBuyoutAmountInput] = useState('');
   const [waiverLeagueReceiptInput, setWaiverLeagueReceiptInput] = useState('');
   const [waiverLeagueReceiptOffset, setWaiverLeagueReceiptOffset] =
@@ -291,6 +310,26 @@ export const EditContractModal = ({
     return targetEntry?.salary || 0;
   }, [CURRENT_YEAR, contractYears, isFreeAgent, optionYear, player]);
 
+  const governedSignAndTradeProposal =
+    useMemo<GovernedSignAndTradeProposal | null>(() => {
+      const base = {
+        proposalVersion: 1 as const,
+        transactionAt: signAndTradeProposalDraft.transactionAt,
+        playerConsentConfirmed:
+          signAndTradeProposalDraft.playerConsentConfirmed,
+        higherMaxStatus: signAndTradeProposalDraft.higherMaxStatus,
+        firstSeasonUnlikelyBonuses: Number(
+          signAndTradeProposalDraft.firstSeasonUnlikelyBonuses
+        ),
+        exhibit6Present: !signAndTradeProposalDraft.exhibit6Excluded,
+        physicalExam: {
+          status: signAndTradeProposalDraft.physicalExamStatus,
+        },
+      };
+      const parsed = GovernedSignAndTradeProposalZ.safeParse(base);
+      return parsed.success ? parsed.data : null;
+    }, [signAndTradeProposalDraft]);
+
   const {
     extension,
     setExtension,
@@ -329,6 +368,7 @@ export const EditContractModal = ({
     selectedAction,
     isOpen: isOpen ?? false,
     resolvedShowOfferSheetToggle,
+    governedSignAndTradeProposal,
   });
 
   // Seed the selected action from initialAction (e.g. a clicked cap-table cell or
@@ -486,7 +526,9 @@ export const EditContractModal = ({
     }, [getSignAndTradePreflight, onSignAndTrade, signAndTradeInitiation]);
   const signAndTradeActionDisabledReason = !resolvedSignAndTradeInitiation
     ? 'Sign-and-trade requires an active world to commit.'
-    : null;
+    : selectedAction === 'signAndTrade' && !governedSignAndTradeProposal
+      ? 'Complete the exact governed sign-and-trade evidence before preflight.'
+      : null;
   const resolvedDestinationTeamCode =
     selectedAction === 'signAndTrade' && destinationTeamId
       ? resolveTeamCode(String(destinationTeamId)) || String(destinationTeamId)
@@ -903,6 +945,7 @@ export const EditContractModal = ({
     setShowAdvanced(false);
     setOverrideText('');
     setDestinationTeamId(null);
+    setSignAndTradeProposalDraft(EMPTY_GOVERNED_SIGN_AND_TRADE_PROPOSAL);
     setSaveError('');
     setIsSubmitting(false);
     const remainsInWaiverWorkflow =
@@ -1360,6 +1403,8 @@ export const EditContractModal = ({
                 buildSalarySeries={buildSalarySeries}
                 toSalaryInputs={toSalaryInputs}
                 onTermsChange={() => setSaveError('')}
+                signAndTradeProposalDraft={signAndTradeProposalDraft}
+                setSignAndTradeProposalDraft={setSignAndTradeProposalDraft}
               />
 
               {isSigningAction && validationAsOfDate === null ? (

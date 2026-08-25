@@ -47,10 +47,6 @@
 import { db } from '@/firebaseConfig';
 import { getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import {
-  getTeam,
-  getPlayer,
-} from '@/features/architect/utils/teamLoader';
-import {
   getWorldMetadata,
   updateWorldStats,
 } from '@/features/architect/utils/worldManager';
@@ -142,6 +138,7 @@ import type {
   DraftPick,
 } from '@/schemas/architect';
 import type { PlayerBio, PlayerDraft } from '@/schemas/players_v2';
+import { GovernedSignAndTradeAuthorityZ } from '@/schemas/governedSignAndTrade';
 import type { SignAndTradeContractLike } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import type {
   PostTradeSnapshot as TradeContextPostTradeSnapshot,
@@ -446,6 +443,27 @@ export async function applyWorldMutation({
       return buildMutationFailureResult(computeResult.error);
     }
 
+    // A governed sign-and-trade can occur later than the saved world's
+    // date-only boundary. Its salary-book lines become effective at the exact
+    // authenticated transaction instant, so validation and committed snapshots
+    // must reconcile at that same instant. Falling back to midnight here would
+    // make the persisted Tax book disagree with the receipt produced by the
+    // pure compute step.
+    let reconciliationAsOfDate = asOfDate;
+    const governedSignAndTradeAuthority =
+      computeResult.metadata?.governedSignAndTradeAuthority;
+    if (governedSignAndTradeAuthority != null) {
+      const authorityParse = GovernedSignAndTradeAuthorityZ.safeParse(
+        governedSignAndTradeAuthority
+      );
+      if (!authorityParse.success) {
+        return buildMutationFailureResult(
+          'Governed sign-and-trade reconciliation requires a valid authenticated authority.'
+        );
+      }
+      reconciliationAsOfDate = authorityParse.data.transactionAt;
+    }
+
     const computeWritesSummary = cloneWritesSummary(
       buildComputeWritesSummary(computeResult)
     );
@@ -652,8 +670,16 @@ export async function applyWorldMutation({
       // substitutes for final-state artifact validation.
       const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
       afterTeamsByCode = extractTeamsByCodeFromComputeResult(computeResult);
-      beforeTotalsByTeam = buildTotalsByTeam(beforeTeamsByCode, year, asOfDate);
-      afterTotalsByTeam = buildTotalsByTeam(afterTeamsByCode, year, asOfDate);
+      beforeTotalsByTeam = buildTotalsByTeam(
+        beforeTeamsByCode,
+        year,
+        reconciliationAsOfDate
+      );
+      afterTotalsByTeam = buildTotalsByTeam(
+        afterTeamsByCode,
+        year,
+        reconciliationAsOfDate
+      );
 
       if (Object.keys(afterTotalsByTeam).length === 0) {
         return buildMutationFailureResult(
@@ -710,7 +736,7 @@ export async function applyWorldMutation({
     const committedTeamUpdates = buildGeneralMutationCommittedTeamUpdates(
       teamUpdates,
       seasonId,
-      asOfDate
+      reconciliationAsOfDate
     );
     const playerUpdates = computeResult.playerUpdates || [];
     const teamCodes = committedTeamUpdates

@@ -93,18 +93,24 @@ function standardRosterCount(players: ArchitectMutationPlayerRecord[]): number {
   return players.filter((player) => !isTwoWayContract(player)).length;
 }
 
-function updateIncompleteRosterChargeAfterSigning({
+export function updateIncompleteRosterChargeAfterSigning({
   beforeTeam,
   afterTeam,
   salaryCapYear,
+  effectiveAt,
+  requireAuthenticatedBasis = false,
 }: {
   beforeTeam: ArchitectMutationTeamRecord;
   afterTeam: ArchitectMutationTeamRecord;
   salaryCapYear: number;
+  effectiveAt?: string;
+  requireAuthenticatedBasis?: boolean;
 }): string | null {
   const salaryBookInputs = afterTeam.salaryBookInputs;
   const input = salaryBookInputs?.incompleteRosterCharge;
-  const minRoster = getCapRulesForYear(salaryCapYear).roster.minStandard;
+  const beforeInput = beforeTeam.salaryBookInputs?.incompleteRosterCharge;
+  const capRules = getCapRulesForYear(salaryCapYear);
+  const minRoster = capRules.roster.minStandard;
   const beforeMissing = Math.max(
     0,
     minRoster - standardRosterCount(beforeTeam.players || [])
@@ -114,14 +120,50 @@ function updateIncompleteRosterChargeAfterSigning({
     minRoster - standardRosterCount(afterTeam.players || [])
   );
   if (beforeMissing === afterMissing) return null;
-  // The validation stage owns missing-input failure. Pure compute remains a
-  // compatibility surface, while a present authenticated aggregate must be
-  // transformed exactly for the roster-slot change.
-  if (!salaryBookInputs || !input || beforeMissing === 0) return null;
-  const perSlot = input.amount / beforeMissing;
-  const nextAmount = perSlot * afterMissing;
-  if (!Number.isSafeInteger(perSlot) || !Number.isSafeInteger(nextAmount)) {
-    return 'The authenticated incomplete-roster charge cannot be reconciled to the exact roster-slot change.';
+  if (!salaryBookInputs) {
+    return requireAuthenticatedBasis
+      ? 'The authenticated incomplete-roster charge cannot be derived for the exact roster-slot change.'
+      : null;
+  }
+  let nextAmount: number;
+  let nextInput = input;
+  if (beforeMissing === 0) {
+    const chargePerSlot = capRules.salaries.rookieMin;
+    nextAmount = chargePerSlot * afterMissing;
+    if (
+      !effectiveAt ||
+      !Number.isSafeInteger(chargePerSlot) ||
+      !Number.isSafeInteger(nextAmount)
+    ) {
+      return 'The governed rookie-Minimum roster charge cannot be derived for the newly open standard-roster slot.';
+    }
+    nextInput = {
+      ...(input || {
+        id: `team-salary:incomplete-roster:${salaryCapYear}`,
+        ledger: 'team-salary' as const,
+        label: 'Incomplete-roster charges',
+        canonLeafIds: ['CBA2-A01.1'],
+        source: {
+          authority: 'canon' as const,
+          reference: `governed-cap-rules:${salaryCapYear}:rookie-minimum`,
+        },
+      }),
+      amount: nextAmount,
+      effectiveFrom: effectiveAt,
+    };
+  } else {
+    const authenticatedInput = beforeInput || input;
+    if (!authenticatedInput) {
+      return requireAuthenticatedBasis
+        ? 'The authenticated incomplete-roster charge cannot be derived for the exact roster-slot change.'
+        : null;
+    }
+    const perSlot = authenticatedInput.amount / beforeMissing;
+    nextAmount = perSlot * afterMissing;
+    if (!Number.isSafeInteger(perSlot) || !Number.isSafeInteger(nextAmount)) {
+      return 'The authenticated incomplete-roster charge cannot be reconciled to the exact roster-slot change.';
+    }
+    nextInput = { ...authenticatedInput, amount: nextAmount };
   }
   const apronInput = salaryBookInputs.apronAdjustments;
   if (apronInput.status !== 'ready') {
@@ -132,13 +174,13 @@ function updateIncompleteRosterChargeAfterSigning({
   );
   if (
     apronIncompleteRows.length !== 1 ||
-    apronIncompleteRows[0].amount !== -input.amount
+    apronIncompleteRows[0].amount !== -(beforeInput?.amount || 0)
   ) {
     return 'Apron Team Salary needs one CBA2-C07.11 adjustment that exactly reverses the authenticated incomplete-roster charge.';
   }
   afterTeam.salaryBookInputs = {
     ...salaryBookInputs,
-    incompleteRosterCharge: { ...input, amount: nextAmount },
+    incompleteRosterCharge: nextInput,
     apronAdjustments: {
       ...apronInput,
       lineItems: apronInput.lineItems.map((lineItem) =>
@@ -151,7 +193,7 @@ function updateIncompleteRosterChargeAfterSigning({
   return null;
 }
 
-function appendSigningSalaryBookAdjustments({
+export function appendSigningSalaryBookAdjustments({
   team,
   player,
   contract,
@@ -188,9 +230,7 @@ function appendSigningSalaryBookAdjustments({
   }
   const taxLineItems = [...taxInput.lineItems];
   const taxSigningLineId = `tax-salary:signing:${operationId}`;
-  if (
-    !taxLineItems.some((lineItem) => lineItem.id === taxSigningLineId)
-  ) {
+  if (!taxLineItems.some((lineItem) => lineItem.id === taxSigningLineId)) {
     taxLineItems.push({
       id: taxSigningLineId,
       ledger: 'tax-salary',
@@ -208,6 +248,39 @@ function appendSigningSalaryBookAdjustments({
   const apronInput = inputs.apronAdjustments;
   const apronLineItems =
     apronInput.status === 'ready' ? [...apronInput.lineItems] : null;
+  const firstSeasonUnlikelyBonus = Number(
+    contract.salariesByYear?.[0]?.incentives?.unlikely ?? 0
+  );
+  if (
+    !Number.isSafeInteger(firstSeasonUnlikelyBonus) ||
+    firstSeasonUnlikelyBonus < 0
+  ) {
+    return 'Apron Team Salary needs an exact nonnegative first-Season Unlikely Bonus amount.';
+  }
+  if (firstSeasonUnlikelyBonus > 0) {
+    if (!apronLineItems) {
+      return 'Apron Team Salary needs its authenticated CBA2-C07.2 Performance Bonus adjustment before this signing can be committed.';
+    }
+    const apronPerformanceBonusLineId = `apron-team-salary:excluded-performance-bonus:${operationId}`;
+    if (
+      !apronLineItems.some(
+        (lineItem) => lineItem.id === apronPerformanceBonusLineId
+      )
+    ) {
+      apronLineItems.push({
+        id: apronPerformanceBonusLineId,
+        ledger: 'apron-team-salary',
+        label: 'Signed Contract Performance Bonus excluded from Team Salary',
+        amount: firstSeasonUnlikelyBonus,
+        effectiveFrom: authority.effectiveAt,
+        canonLeafIds: ['CBA2-C07.2'],
+        source: {
+          authority: 'team-state',
+          reference: `signing-operation:${operationId}`,
+        },
+      });
+    }
+  }
   const rawYearsOfService =
     player.bio?.yearsExperience ??
     player.bio?.experience ??

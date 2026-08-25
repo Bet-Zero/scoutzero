@@ -40,6 +40,7 @@ import type {
 import type { GovernedOptionLedgerAuthority } from '@/features/architect/utils/optionDecisions/governedOptionDecision';
 import type { GovernedExtensionLedgerAuthority } from '@/features/architect/utils/extensions';
 import type { GovernedWaiverLedgerAuthority } from '@/features/architect/utils/waivers';
+import type { GovernedSignAndTradeEvidenceBundle } from '@/features/architect/utils/tradeMachine/signAndTrade/governedSignAndTrade';
 import type {
   CurrentStateManualCapTeam,
   CurrentStateOfferSheetMirrorTeam,
@@ -135,8 +136,9 @@ export type MutationCurrentStateTeamRoundTripIngress = {
   draftPicks?: ArchitectMutationTeamRecord['draftPicks'] | null;
   entitlementIds?: ArchitectMutationTeamRecord['entitlementIds'] | null;
 };
-export type MutationCurrentStateBaseTeamIngress = MutationCurrentStateTeamCoreIngress &
-  MutationCurrentStateTeamRoundTripIngress;
+export type MutationCurrentStateBaseTeamIngress =
+  MutationCurrentStateTeamCoreIngress &
+    MutationCurrentStateTeamRoundTripIngress;
 export type MutationCurrentStateOfferSheetTeamIngress =
   MutationCurrentStateBaseTeamIngress &
     Pick<ArchitectMutationTeamRecord, 'offerSheets' | 'incomingOfferSheets'>;
@@ -148,6 +150,9 @@ export type MutationCurrentStateTradeTeamIngress =
       | 'cashLedger'
       | 'exceptionHistory'
       | 'teamTotalSalary'
+      | 'teamSalary'
+      | 'apronTeamSalary'
+      | 'taxSalary'
       | 'draftPicks'
       | 'entitlementIds'
     > & {
@@ -175,6 +180,7 @@ export type MutationCurrentStateClosedShape = {
   signingPriorTeamSnapshot?: undefined;
   offerSheetCreationSnapshots?: undefined;
   offerSheetResolutionSnapshots?: undefined;
+  governedSignAndTradeEvidence?: undefined;
 };
 export type MutationDocumentSnapshotReceipt = Readonly<{
   exists: boolean;
@@ -199,9 +205,10 @@ export type MutationCurrentStateTradeTeamEntryInput = {
 };
 export type MutationTradeCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
-  'teams'
+  'teams' | 'governedSignAndTradeEvidence'
 > & {
   teams?: MutationCurrentStateTradeTeamEntryInput[];
+  governedSignAndTradeEvidence?: GovernedSignAndTradeEvidenceBundle | null;
 };
 export type MutationTeamOnlyCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
@@ -264,10 +271,7 @@ export type MutationOfferSheetMirrorCurrentStateIngress = Omit<
 };
 export type MutationOfferSheetResolutionCurrentStateIngress = Omit<
   MutationCurrentStateClosedShape,
-  | 'homeTeam'
-  | 'offeringTeam'
-  | 'offerSheetId'
-  | 'offerSheetResolutionSnapshots'
+  'homeTeam' | 'offeringTeam' | 'offerSheetId' | 'offerSheetResolutionSnapshots'
 > & {
   homeTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
   offeringTeam?: MutationCurrentStateOfferSheetTeamIngress | null;
@@ -313,12 +317,13 @@ export type MutationCurrentState = {
   signingPriorTeamSnapshot?: MutationDocumentSnapshotReceipt | null;
   offerSheetCreationSnapshots?: ArchitectOfferSheetCreationSnapshotReceipts | null;
   offerSheetResolutionSnapshots?: ArchitectOfferSheetResolutionSnapshotReceipts | null;
+  governedSignAndTradeEvidence?: GovernedSignAndTradeEvidenceBundle | null;
 };
 export type MutationTradeCurrentState = Omit<
   MutationCurrentStateClosedShape,
-  'teams'
+  'teams' | 'governedSignAndTradeEvidence'
 > &
-  Pick<MutationCurrentState, 'teams'>;
+  Pick<MutationCurrentState, 'teams' | 'governedSignAndTradeEvidence'>;
 export type MutationTeamOnlyCurrentState = Omit<
   MutationCurrentStateClosedShape,
   'team' | 'teamCode'
@@ -418,10 +423,7 @@ export type MutationOfferSheetMirrorCurrentState = Omit<
   };
 export type MutationOfferSheetResolutionCurrentState = Omit<
   MutationCurrentStateClosedShape,
-  | 'homeTeam'
-  | 'offeringTeam'
-  | 'offerSheetId'
-  | 'offerSheetResolutionSnapshots'
+  'homeTeam' | 'offeringTeam' | 'offerSheetId' | 'offerSheetResolutionSnapshots'
 > &
   Pick<
     MutationCurrentState,
@@ -538,7 +540,10 @@ export type MutationPayloadInputByType = {
   setExceptions: SetExceptionsMutationPayloadInput;
 };
 export type LoadedMutationCurrentStateByType = MutationCurrentStateInputByType;
-export type TradeStateSlice = Pick<MutationCurrentState, 'teams'>;
+export type TradeStateSlice = Pick<
+  MutationCurrentState,
+  'teams' | 'governedSignAndTradeEvidence'
+>;
 export type ApplyWorldMutationArgs = {
   userId: string;
   worldId: string;

@@ -28,6 +28,7 @@ import {
   type TeamHistoryEventDisplayOptions,
   type TeamHistoryWorldEventRow,
 } from './normalizeWorldEventsForTeamHistory.utils';
+import { GovernedSignAndTradeReceiptZ } from '@/schemas/governedSignAndTrade';
 
 export function toTeamHistoryEventDisplay(
   eventInput: GenericRecord,
@@ -78,8 +79,7 @@ export function toTeamHistoryEventDisplay(
   const capDelta = capDeltaContext.capDelta;
   const capDeltaLines = capDeltaContext.lines;
 
-  const eventId =
-    firstNonEmptyString(raw.eventId, raw.id) || null;
+  const eventId = firstNonEmptyString(raw.eventId, raw.id) || null;
   const operationId = firstNonEmptyString(raw.operationId) || null;
 
   const detailSections: DisplaySection[] = [];
@@ -215,13 +215,10 @@ export function toTeamHistoryEventDisplay(
       ...toArrayOfStrings(metadata.exceptionChanges),
     ]
   );
-  const firstSpecificDeadCapChange = getFirstSpecificChangeLine(
-    'setDeadCap',
-    [
-      ...toArrayOfStrings(diffSummary.deadCapChanges),
-      ...toArrayOfStrings(metadata.deadCapChanges),
-    ]
-  );
+  const firstSpecificDeadCapChange = getFirstSpecificChangeLine('setDeadCap', [
+    ...toArrayOfStrings(diffSummary.deadCapChanges),
+    ...toArrayOfStrings(metadata.deadCapChanges),
+  ]);
 
   const rawSummary = firstNonEmptyString(
     mutationMetadata.summary,
@@ -234,6 +231,10 @@ export function toTeamHistoryEventDisplay(
 
   switch (mutationType) {
     case 'executeTrade': {
+      const governedSignAndTradeReceipt =
+        GovernedSignAndTradeReceiptZ.safeParse(
+          metadata.governedSignAndTradeReceipt
+        );
       summaryCandidate =
         summaryCandidate ||
         (primaryTeamsLine
@@ -248,6 +249,21 @@ export function toTeamHistoryEventDisplay(
       pushSection(detailSections, 'Picks', tradePickLines);
       pushSection(detailSections, 'Teams', [primaryTeamsLine]);
       pushSection(detailSections, 'Salary Books', capDeltaLines);
+      if (governedSignAndTradeReceipt.success) {
+        const receipt = governedSignAndTradeReceipt.data;
+        const receiptBody = asObject(receipt.tradeReceipt);
+        pushSection(detailSections, 'Trade Receipt', [
+          `Receipt: ${receipt.receiptId}`,
+          `Contract event: ${receipt.contractEventId}`,
+          `Hard-cap entry: ${receipt.hardCapEntryId}`,
+          `Assignor salary: ${formatCurrency(Number(receiptBody.assignorSalary || 0))}`,
+          `Assignee salary: ${formatCurrency(Number(receiptBody.assigneeSalary || 0))}`,
+          `Assignee Room amount: ${formatCurrency(Number(receiptBody.assigneeRoomAmount || 0))}`,
+          `BYC: ${receiptBody.bycTriggered === true ? 'Applied' : 'Not applicable'}`,
+          'Poison pill: Not applicable to this supported S&T route',
+          'Persistence verification: Complete',
+        ]);
+      }
       break;
     }
 
@@ -265,7 +281,9 @@ export function toTeamHistoryEventDisplay(
       pushSection(detailSections, 'Player', [firstPlayerLabel]);
       pushSection(detailSections, 'Contract', contractLines);
       pushSection(detailSections, 'Signing Context', [
-        destinationTeamLabel ? `Destination team: ${destinationTeamLabel}` : null,
+        destinationTeamLabel
+          ? `Destination team: ${destinationTeamLabel}`
+          : null,
         signingInstrument
           ? `Rights/exception used: ${signingInstrument}`
           : null,
@@ -288,7 +306,9 @@ export function toTeamHistoryEventDisplay(
       pushSection(detailSections, 'Player', [firstPlayerLabel]);
       pushSection(detailSections, 'Contract', contractLines);
       pushSection(detailSections, 'Trade Context', [
-        destinationTeamLabel ? `Destination team: ${destinationTeamLabel}` : null,
+        destinationTeamLabel
+          ? `Destination team: ${destinationTeamLabel}`
+          : null,
         signingInstrument
           ? `Rights/exception used: ${signingInstrument}`
           : null,
@@ -317,7 +337,9 @@ export function toTeamHistoryEventDisplay(
       pushSection(detailSections, 'Contract', contractLines);
       pushSection(detailSections, 'Offer Sheet', [
         `Stage: ${displayType}`,
-        destinationTeamLabel ? `Destination team: ${destinationTeamLabel}` : null,
+        destinationTeamLabel
+          ? `Destination team: ${destinationTeamLabel}`
+          : null,
         signingInstrument
           ? `Rights/exception used: ${signingInstrument}`
           : null,
@@ -330,7 +352,10 @@ export function toTeamHistoryEventDisplay(
     case 'waivePlayer':
     case 'waiveAndStretch':
     case 'buyoutPlayer': {
-      const waiverModifiers = [stretched ? 'stretch' : null, buyout ? 'buyout' : null]
+      const waiverModifiers = [
+        stretched ? 'stretch' : null,
+        buyout ? 'buyout' : null,
+      ]
         .filter(Boolean)
         .join(', ');
 
@@ -494,7 +519,11 @@ export function toTeamHistoryEventDisplay(
   }
 
   const hasMeaningfulDetails = detailSections.length > 0;
-  const summary = resolveSummary(displayType, summaryCandidate, hasMeaningfulDetails);
+  const summary = resolveSummary(
+    displayType,
+    summaryCandidate,
+    hasMeaningfulDetails
+  );
   const category = resolveDisplayCategory(raw, mutationMetadata, mutationType);
 
   return {

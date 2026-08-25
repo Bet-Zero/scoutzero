@@ -95,9 +95,9 @@ export function useTradeMachineTeamOps({
           const rosterPlayerIds = rosterPlayers
             .map((player) => resolveTradeSalaryBasisPlayerId(player))
             .filter(Boolean);
-          const salaryBasisTeamId = String(
-            teamObj.id || teamObj.teamCode || ''
-          ).trim().toUpperCase();
+          const salaryBasisTeamId = String(teamObj.id || teamObj.teamCode || '')
+            .trim()
+            .toUpperCase();
           if (!salaryBasisTeamId) {
             teamObj.governedTradeSalaryBasisLoadError =
               'Governed Trade Machine salary authority requires a Team identity.';
@@ -252,6 +252,7 @@ export function useTradeMachineTeamOps({
     setTeams((prev) => {
       // Get the id of the team being removed (to clean up orphan routes)
       const removedTeamId = prev[index]?.team?.id || null;
+      const removedTeamCode = prev[index]?.team?.teamCode || null;
 
       // Filter out the removed team
       const filteredTeams = prev.filter((_, i) => i !== index);
@@ -264,7 +265,14 @@ export function useTradeMachineTeamOps({
         // Clean sends: clear tradeTo if it points to removed team
         const cleanedSends = (teamSlot.sends || []).map((player) => {
           if (player.tradeTo === removedTeamId) {
-            return { ...player, tradeTo: undefined };
+            return {
+              ...player,
+              tradeTo: undefined,
+              receivingTeamId: undefined,
+            };
+          }
+          if (removedTeamCode && player.receivingTeamId === removedTeamCode) {
+            return { ...player, receivingTeamId: undefined };
           }
           return player;
         });

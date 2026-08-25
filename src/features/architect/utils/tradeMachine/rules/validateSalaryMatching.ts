@@ -33,6 +33,7 @@ import {
   type TradeSalaryPathInputPlayer,
 } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
+import { GovernedSignAndTradeAuthorityZ } from '@/schemas/governedSignAndTrade';
 import type {
   AuthoritativeSalaryMatchingResult,
   TeamContext,
@@ -66,6 +67,7 @@ type SalaryMatchingContext = TeamContext & {
 };
 
 type SalaryMatchingTeamData = {
+  teamSalary?: number | string | null;
   apronTeamSalary?: number | string | null;
   totalSalary?: number | string | null;
   faExceptionBuckets?: FaExceptionBucketLike[] | null;
@@ -194,8 +196,7 @@ export function validateSalaryMatching(
 
   const salaryOut = toFiniteNumber(team.salaryOut ?? context.salaryOut ?? 0);
   const salaryIn = toFiniteNumber(team.salaryIn ?? context.salaryIn ?? 0);
-  const rawApronTeamSalary =
-    team.team?.apronTeamSalary ?? team.teamTotalSalary;
+  const rawApronTeamSalary = team.team?.apronTeamSalary ?? team.teamTotalSalary;
   if (
     typeof rawApronTeamSalary !== 'number' ||
     !Number.isFinite(rawApronTeamSalary)
@@ -636,6 +637,19 @@ export function validateSalaryMatching(
   let pathEvaluation: TradeSalaryPathEvaluation | null = null;
 
   if (usesGovernedTradeSalaryPath) {
+    const requiresIndependentTeamSalary =
+      Boolean(context.worldId) &&
+      incomingPlayers.some(
+        (player) =>
+          player.signAndTrade === true &&
+          GovernedSignAndTradeAuthorityZ.safeParse(
+            (
+              player as typeof player & {
+                governedSignAndTradeAuthority?: unknown;
+              }
+            ).governedSignAndTradeAuthority
+          ).success
+      );
     const matchingIncomingPlayers: TradeSalaryPathInputPlayer[] =
       incomingPlayers
         .filter(
@@ -659,7 +673,9 @@ export function validateSalaryMatching(
       })),
       incomingMatchingPlayers: matchingIncomingPlayers,
       heldStandardTpeComponents,
-      teamSalary: totalSalary,
+      teamSalary: requiresIndependentTeamSalary
+        ? Number(team.team?.teamSalary)
+        : totalSalary,
       salaryCap,
       firstApron: actualFirstApron,
       transactionDate: context.tradeDate ?? team.context?.tradeDate,

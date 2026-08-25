@@ -368,6 +368,9 @@ export type CurrentStateTeam = Omit<
     | 'exceptionHistory'
     | 'totals'
     | 'teamTotalSalary'
+    | 'teamSalary'
+    | 'apronTeamSalary'
+    | 'taxSalary'
     | 'draftPicks'
     | 'entitlementIds'
     | 'source'
@@ -381,12 +384,18 @@ export type CurrentStateTeam = Omit<
   | 'tradeExceptions'
   | 'exceptionHistory'
   | 'teamTotalSalary'
+  | 'teamSalary'
+  | 'apronTeamSalary'
+  | 'taxSalary'
 > & {
   players?: CurrentStatePlayer[];
   twoWayPlayers?: CurrentStatePlayer[];
   tradeExceptions?: CurrentStateTradeException[];
   exceptionHistory?: CurrentStateExceptionHistoryEntry[];
   teamTotalSalary?: number;
+  teamSalary?: number;
+  apronTeamSalary?: number;
+  taxSalary?: number;
 };
 export type CurrentStateTeamIdentityFieldMap = Pick<
   CurrentStateTeam,
@@ -507,7 +516,14 @@ export type CurrentStateTradeTeam = CurrentStateTeamIdentityFieldMap &
   CurrentStateTeamExceptionsFieldMap &
   CurrentStateTradeTeamLiveFieldMap &
   CurrentStateBaseTeamExceptionHistoryCarrier &
-  Pick<CurrentStateTeam, 'twoWayPlayers' | 'teamTotalSalary'>;
+  Pick<
+    CurrentStateTeam,
+    | 'twoWayPlayers'
+    | 'teamTotalSalary'
+    | 'teamSalary'
+    | 'apronTeamSalary'
+    | 'taxSalary'
+  >;
 export type CurrentStateNonTradeTeamRoundTripMaterializable =
   | CurrentStatePlayerOpsTeam
   | CurrentStateManualCapTeam
@@ -543,6 +559,9 @@ export type MaterializedCurrentStateTeam<
 export type CurrentStateTeamPersistenceStripShape =
   CurrentStateTeamRoundTripMaterializable & {
     teamTotalSalary?: CurrentStateTradeTeam['teamTotalSalary'];
+    teamSalary?: CurrentStateTradeTeam['teamSalary'];
+    apronTeamSalary?: CurrentStateTradeTeam['apronTeamSalary'];
+    taxSalary?: CurrentStateTradeTeam['taxSalary'];
   };
 // Compute-time team updates stay wider than the committed artifact because the
 // live local-validated trade bridge still needs the explicit teamTotalSalary

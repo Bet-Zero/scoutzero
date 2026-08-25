@@ -7,13 +7,7 @@
  */
 
 import React from 'react';
-import {
-  afterEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   cleanup,
   fireEvent,
@@ -119,7 +113,9 @@ vi.mock('@/features/architect/utils/contractUtils', () => ({
     startYear,
   }),
   getContractYearsForDisplay: (player: {
-    contract?: { salariesByYear?: Array<Record<string, unknown>> | null } | null;
+    contract?: {
+      salariesByYear?: Array<Record<string, unknown>> | null;
+    } | null;
   }) =>
     (player?.contract?.salariesByYear || []).map((row) => {
       const season = String(row.season || '');
@@ -135,9 +131,15 @@ vi.mock('@/features/architect/utils/contractUtils', () => ({
         guaranteed: row.guaranteed,
       };
     }),
-  getContractYearSlice: (contract: {
-    salariesByYear?: Array<Record<string, unknown>> | null;
-  } | null | undefined, year: number) =>
+  getContractYearSlice: (
+    contract:
+      | {
+          salariesByYear?: Array<Record<string, unknown>> | null;
+        }
+      | null
+      | undefined,
+    year: number
+  ) =>
     (contract?.salariesByYear || []).find((row) => {
       const season = String(row.season || '');
       if (/^\d{4}-\d{2}$/.test(season)) {
@@ -148,9 +150,10 @@ vi.mock('@/features/architect/utils/contractUtils', () => ({
 }));
 
 vi.mock('@/features/architect/utils/seasonFormat', async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import('@/features/architect/utils/seasonFormat')
-  >();
+  const actual =
+    await importOriginal<
+      typeof import('@/features/architect/utils/seasonFormat')
+    >();
   return {
     ...actual,
     toSeasonCode: (endYear: number) =>
@@ -222,6 +225,17 @@ afterEach(() => {
   cleanup();
 });
 
+function completeGovernedSignAndTradeEvidence() {
+  fireEvent.change(screen.getByTestId('governed-sat-transaction-at'), {
+    target: { value: '2026-07-15T12:00:00-04:00' },
+  });
+  fireEvent.change(screen.getByTestId('governed-sat-higher-max'), {
+    target: { value: 'not-relied-upon' },
+  });
+  fireEvent.click(screen.getByTestId('governed-sat-consent'));
+  fireEvent.click(screen.getByTestId('governed-sat-exhibit-6'));
+}
+
 describe('EditContractModal SAT preflight behavior', () => {
   it('keeps SAT disabled while authoritative preflight is pending and enables only after legal result', async () => {
     const onClose = vi.fn();
@@ -234,15 +248,15 @@ describe('EditContractModal SAT preflight behavior', () => {
     }>();
     const getSignAndTradePreflight = vi
       .fn()
-      .mockReturnValueOnce(pendingPreflight.promise);
+      .mockReturnValue(pendingPreflight.promise);
 
-    render(
+    const { container } = render(
       <EditContractModal
         isOpen
         onClose={onClose}
         player={PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
-        currentYear={2026}
+        currentYear={2027}
         initialAction="signAndTrade"
         actionContext="freeAgent"
         actionsOverride={['signAndTrade']}
@@ -256,7 +270,24 @@ describe('EditContractModal SAT preflight behavior', () => {
     const confirmButton = screen.getByTestId(
       'edit-contract-confirm-action-button'
     );
+    const salaryInputs = container.querySelectorAll<HTMLInputElement>(
+      'input[inputmode="decimal"]'
+    );
+    fireEvent.change(salaryInputs[0], { target: { value: '20000000' } });
+    fireEvent.change(salaryInputs[1], { target: { value: '21000000' } });
+    fireEvent.change(salaryInputs[2], { target: { value: '22000000' } });
+    expect(
+      Array.from(salaryInputs)
+        .slice(0, 3)
+        .map((input) => input.value)
+    ).toEqual(['$20,000,000', '$21,000,000', '$22,000,000']);
     fireEvent.click(screen.getByRole('button', { name: /select bos/i }));
+    expect(getSignAndTradePreflight).not.toHaveBeenCalled();
+    expect(confirmButton).toBeDisabled();
+    expect(screen.getByTestId('validation-warnings')).toHaveTextContent(
+      'Complete the exact governed sign-and-trade evidence before preflight.'
+    );
+    completeGovernedSignAndTradeEvidence();
 
     await waitFor(() => {
       expect(getSignAndTradePreflight).toHaveBeenCalledWith(
@@ -268,21 +299,41 @@ describe('EditContractModal SAT preflight behavior', () => {
         'BOS'
       );
     });
-    const stagedPreflightPayload =
-      getSignAndTradePreflight.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+    const stagedPreflightPayload = getSignAndTradePreflight.mock.calls.at(
+      -1
+    )?.[1] as Record<string, unknown>;
     expect(stagedPreflightPayload).toEqual(
       expect.objectContaining({
         signAndTrade: true,
         contractType: 'Sign & Trade',
         years: 3,
-        salaries: [12_000_000, 12_000_000, 12_000_000],
-        startYear: 2026,
+        salaries: [20_000_000, 21_000_000, 22_000_000],
+        startYear: 2027,
+        salariesByYear: [
+          expect.objectContaining({
+            season: '2026-27',
+            salary: 20_000_000,
+            capHit: 20_000_000,
+            guaranteed: true,
+            incentives: { likely: 0, unlikely: 0 },
+          }),
+          expect.objectContaining({ season: '2027-28' }),
+          expect.objectContaining({ season: '2028-29' }),
+        ],
+        totalValue: 63_000_000,
+        averageAnnualValue: 21_000_000,
+        firstYearGuaranteed: true,
+        governedSignAndTradeProposal: {
+          proposalVersion: 1,
+          transactionAt: '2026-07-15T12:00:00-04:00',
+          playerConsentConfirmed: true,
+          higherMaxStatus: 'not-relied-upon',
+          firstSeasonUnlikelyBonuses: 0,
+          exhibit6Present: false,
+          physicalExam: { status: 'not-required' },
+        },
       })
     );
-    expect(stagedPreflightPayload.salariesByYear).toBeUndefined();
-    expect(stagedPreflightPayload.totalValue).toBeUndefined();
-    expect(stagedPreflightPayload.averageAnnualValue).toBeUndefined();
-    expect(stagedPreflightPayload.firstYearGuaranteed).toBeUndefined();
 
     expect(confirmButton).toBeDisabled();
     expect(screen.getByTestId('validation-warnings')).toHaveTextContent(
@@ -322,8 +373,10 @@ describe('EditContractModal SAT preflight behavior', () => {
         'BOS'
       );
     });
-    const stagedCommitPayload =
-      onSignAndTrade.mock.calls.at(-1)?.[1] as Record<string, unknown>;
+    const stagedCommitPayload = onSignAndTrade.mock.calls.at(-1)?.[1] as Record<
+      string,
+      unknown
+    >;
     expect(stagedCommitPayload).toBe(stagedPreflightPayload);
     await waitFor(() => {
       expect(onClose).toHaveBeenCalledTimes(1);
@@ -338,15 +391,19 @@ describe('EditContractModal SAT preflight behavior', () => {
       warnings: string[];
       source: 'authoritative-preflight';
     }>();
-    const getSignAndTradePreflight = vi
-      .fn()
-      .mockReturnValueOnce(firstRequest.promise)
-      .mockResolvedValueOnce({
-        status: 'blocked',
-        reasons: ['Receiver would exceed First Apron after sign-and-trade.'],
-        warnings: [],
-        source: 'authoritative-preflight',
-      });
+    const getSignAndTradePreflight = vi.fn(
+      (_player, _payload, destinationTeamCode: string) =>
+        destinationTeamCode === 'BOS'
+          ? firstRequest.promise
+          : Promise.resolve({
+              status: 'blocked' as const,
+              reasons: [
+                'Receiver would exceed First Apron after sign-and-trade.',
+              ],
+              warnings: [],
+              source: 'authoritative-preflight' as const,
+            })
+    );
 
     render(
       <EditContractModal
@@ -354,7 +411,7 @@ describe('EditContractModal SAT preflight behavior', () => {
         onClose={() => {}}
         player={PLAYER}
         teamCapSheet={TEAM_CAP_SHEET}
-        currentYear={2026}
+        currentYear={2027}
         initialAction="signAndTrade"
         actionContext="freeAgent"
         actionsOverride={['signAndTrade']}
@@ -370,6 +427,7 @@ describe('EditContractModal SAT preflight behavior', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /select bos/i }));
+    completeGovernedSignAndTradeEvidence();
     await waitFor(() => {
       expect(getSignAndTradePreflight).toHaveBeenCalledWith(
         PLAYER,

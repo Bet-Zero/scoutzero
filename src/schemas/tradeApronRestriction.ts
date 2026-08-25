@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const TradeApronRestrictionRowZ = z.enum(['F', 'H']);
+export const TradeApronRestrictionRowZ = z.enum(['C', 'F', 'H']);
 export const TradeApronLevelZ = z.enum(['FIRST_APRON', 'SECOND_APRON']);
 
 export const TradeHardCapProofZ = z
@@ -20,10 +20,15 @@ export const TradeApronRestrictionTriggerZ = z
   .object({
     restrictionRow: TradeApronRestrictionRowZ,
     componentId: z.string().min(1),
-    componentKind: z.enum(['ELECTED_PATH', 'HELD_STANDARD_TPE']),
+    componentKind: z.enum([
+      'SIGN_AND_TRADE',
+      'ELECTED_PATH',
+      'HELD_STANDARD_TPE',
+    ]),
     salaryMatchingPath: z.enum([
       'STANDARD_TPE',
       'AGGREGATED_STANDARD_TPE',
+      'ROOM',
     ]),
     apronLevel: TradeApronLevelZ,
     ceiling: z.number().finite().positive(),
@@ -52,7 +57,20 @@ export const TradeApronRestrictionTriggerZ = z
   })
   .strict()
   .superRefine((trigger, context) => {
-    if (trigger.restrictionRow === 'F') {
+    if (trigger.restrictionRow === 'C') {
+      if (
+        trigger.componentKind !== 'SIGN_AND_TRADE' ||
+        trigger.apronLevel !== 'FIRST_APRON' ||
+        trigger.tpeTiming !== null ||
+        trigger.regularSeasonClosing !== null
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'Row C requires one receiving sign-and-trade component and the First Apron.',
+        });
+      }
+    } else if (trigger.restrictionRow === 'F') {
       if (
         trigger.componentKind !== 'HELD_STANDARD_TPE' ||
         trigger.salaryMatchingPath !== 'STANDARD_TPE' ||
@@ -88,7 +106,11 @@ export const TradeHardCapLedgerEntryZ = z
     teamCode: z.string().min(1),
     salaryCapYear: z.number().int().positive(),
     restrictionRow: TradeApronRestrictionRowZ,
-    salaryMatchingPath: z.enum(['STANDARD_TPE', 'AGGREGATED_STANDARD_TPE']),
+    salaryMatchingPath: z.enum([
+      'STANDARD_TPE',
+      'AGGREGATED_STANDARD_TPE',
+      'ROOM',
+    ]),
     apronLevel: TradeApronLevelZ,
     ceiling: z.number().finite().positive(),
     triggerTransactionDate: z.string().min(1),

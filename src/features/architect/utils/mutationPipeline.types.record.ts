@@ -35,10 +35,18 @@ import type { CanonicalNonTpeExceptionKey } from '@/features/architect/utils/exc
 import type { computeExpectedCapHoldAmount } from '@/features/architect/utils/capHoldTransitionHelpers';
 import type { RightsEventLedgerPayload } from '@/schemas/rightsEventLedger';
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
-import type { GovernedWaiverLifecycle, GovernedWaiverProposal } from '@/schemas/governedWaiver';
+import type {
+  GovernedWaiverLifecycle,
+  GovernedWaiverProposal,
+} from '@/schemas/governedWaiver';
 import type { GovernedOptionNoticeInput } from '@/schemas/governedOptionDecision';
 import type { GovernedExtensionProposal } from '@/schemas/governedExtension';
 import type { GovernedTradeSalaryBasis } from '@/schemas/governedTradeSalaryBasis';
+import type {
+  GovernedSignAndTradeAuthority,
+  GovernedSignAndTradeProposal,
+  GovernedSignAndTradeReceipt,
+} from '@/schemas/governedSignAndTrade';
 import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
 import type { TradeApronRestrictionEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
 import type { GovernedOfferSheetProposal } from '@/schemas/governedOfferSheet';
@@ -419,6 +427,8 @@ export type ArchitectMutationPlayerRecord = {
     | ArchitectMutationContract
     | SignAndTradeContractLike
     | null;
+  governedSignAndTradeProposal?: GovernedSignAndTradeProposal | null;
+  governedSignAndTradeAuthority?: GovernedSignAndTradeAuthority | null;
   homeTeamCode?: string | null;
   receivingTeamIndex?: MutationScalarId;
   receivingTeamId?: MutationScalarId;
@@ -460,6 +470,13 @@ export type ArchitectMutationTeamRecord = {
   // This is synthesized from totals.totalSalary when a loaded team does not
   // expose an explicit top-level teamTotalSalary.
   teamTotalSalary?: number | string | null;
+  // Compute-only bridges preserve the three independent pre-mutation salary
+  // books after totals is recomputed for a proposed trade. Persistence strips
+  // these top-level aliases; the governed salaryBooks snapshot remains the
+  // committed authority.
+  teamSalary?: number | string | null;
+  apronTeamSalary?: number | string | null;
+  taxSalary?: number | string | null;
   draftPicks?: DraftPick[];
   entitlementIds?: string[];
   source?: MutationTeamSourceLike;
@@ -502,6 +519,8 @@ export type ArchitectTradePayloadPlayerIngress =
     isTwoWay?: boolean | null;
     signAndTrade?: boolean;
     signAndTradeContract?: ArchitectTradePayloadSignAndTradeContract | null;
+    governedSignAndTradeProposal?: GovernedSignAndTradeProposal | null;
+    governedSignAndTradeAuthority?: GovernedSignAndTradeAuthority | null;
     governedTradeSalaryBasis?: GovernedTradeSalaryBasis | null;
     receivingTeamIndex?: MutationScalarId;
     receivingTeamId?: MutationScalarId;
@@ -512,8 +531,8 @@ export type ArchitectTradePayloadPlayerIngress =
 
 // Closed mutation-owned handoff: apply-time compute only owns a stable player
 // identifier, minimal labeling, salary-matching fields, one SAT contract slice,
-// one canonical routed destination, and the two-way flag needed by roster /
-// eligibility normalization.
+// the product route plus canonical receiving-team identity, and the two-way
+// flag needed by roster / eligibility normalization.
 export type ArchitectTradePayloadPlayer = {
   player_id?: string | null;
   name?: string | null;
@@ -526,7 +545,10 @@ export type ArchitectTradePayloadPlayer = {
   isTwoWay?: boolean;
   signAndTrade?: boolean;
   signAndTradeContract?: ArchitectTradePayloadSignAndTradeContract | null;
+  governedSignAndTradeProposal?: GovernedSignAndTradeProposal | null;
+  governedSignAndTradeAuthority?: GovernedSignAndTradeAuthority | null;
   governedTradeSalaryBasis?: GovernedTradeSalaryBasis | null;
+  receivingTeamId?: string | null;
   tradeTo?: string | null;
 };
 
@@ -627,6 +649,8 @@ export type TradeMutationMetadata = {
     teamCode: string | null;
     evaluation: TradeApronRestrictionEvaluation;
   }>;
+  governedSignAndTradeAuthority?: GovernedSignAndTradeAuthority;
+  governedSignAndTradeReceipt?: GovernedSignAndTradeReceipt;
 };
 export type TradeSnapshotLike = TradeContextPostTradeSnapshot;
 export type TradeApplyValidationTeamLike = TradeContextApplyValidationTeam;

@@ -370,7 +370,15 @@ export function normalizeTradeMutationCurrentState(
       )
     : undefined;
 
-  return teams !== undefined ? { teams } : {};
+  return {
+    ...(teams !== undefined ? { teams } : {}),
+    ...(currentState?.governedSignAndTradeEvidence
+      ? {
+          governedSignAndTradeEvidence:
+            currentState.governedSignAndTradeEvidence,
+        }
+      : {}),
+  };
 }
 
 export function normalizeTeamOnlyMutationCurrentState(
@@ -458,8 +466,7 @@ export function normalizeOfferSheetTeamAndPlayerMutationCurrentState(
     'offerSheetMirror'
   );
   const teamCode = toOptionalTrimmedString(currentState?.teamCode);
-  const offerSheetCreationSnapshots =
-    currentState?.offerSheetCreationSnapshots;
+  const offerSheetCreationSnapshots = currentState?.offerSheetCreationSnapshots;
   const signingTeamSnapshot = currentState?.signingTeamSnapshot;
   const signingPlayerSnapshot = currentState?.signingPlayerSnapshot;
   const signingPriorTeamSnapshot = currentState?.signingPriorTeamSnapshot;

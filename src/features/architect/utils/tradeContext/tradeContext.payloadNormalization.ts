@@ -10,9 +10,7 @@
 
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { isOffseasonAsOfDate } from '@/features/architect/utils/buildRuleContext.helpers';
-import type {
-  SignAndTradePlayerLike,
-} from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
+import type { SignAndTradePlayerLike } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import type {
   TradeExceptionRecord,
   TradeValidatorContext,
@@ -77,7 +75,9 @@ export function toNonEmptyString(value: unknown): string | undefined {
 }
 
 export function toScalarId(value: unknown): string | number | null | undefined {
-  return typeof value === 'string' || typeof value === 'number' || value === null
+  return typeof value === 'string' ||
+    typeof value === 'number' ||
+    value === null
     ? value
     : undefined;
 }
@@ -86,7 +86,9 @@ export function toStringOrNull(value: unknown): string | null | undefined {
   return typeof value === 'string' || value === null ? value : undefined;
 }
 
-export function toObjectRecord(value: unknown): Record<string, unknown> | undefined {
+export function toObjectRecord(
+  value: unknown
+): Record<string, unknown> | undefined {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : undefined;
@@ -144,6 +146,14 @@ export function toSignAndTradePlayerLike(
   if (record.signAndTradeContract != null) {
     normalized.signAndTradeContract =
       record.signAndTradeContract as SignAndTradePlayerLike['signAndTradeContract'];
+  }
+  if (record.governedSignAndTradeProposal != null) {
+    normalized.governedSignAndTradeProposal =
+      record.governedSignAndTradeProposal as SignAndTradePlayerLike['governedSignAndTradeProposal'];
+  }
+  if (record.governedSignAndTradeAuthority != null) {
+    normalized.governedSignAndTradeAuthority =
+      record.governedSignAndTradeAuthority as SignAndTradePlayerLike['governedSignAndTradeAuthority'];
   }
   if (Array.isArray(record.salariesByYear)) {
     normalized.salariesByYear =
@@ -596,7 +606,8 @@ export function buildTradeValidationTeamRecord(
   fallbackTeamCode: string | null
 ): ValidationTeam['team'] {
   const teamRecord = team as Record<string, unknown>;
-  const teamCode = normalizeTradeTeamCodeLike(team.teamCode) ?? fallbackTeamCode;
+  const teamCode =
+    normalizeTradeTeamCodeLike(team.teamCode) ?? fallbackTeamCode;
   const teamId =
     teamRecord.teamId != null ? String(teamRecord.teamId) : undefined;
 
@@ -634,7 +645,10 @@ export function buildTradeValidatorContext(
   const normalizedYearKey =
     rawTradeCtx.yearKey != null ? toEndYear(rawTradeCtx.yearKey) : null;
 
-  if (typeof normalizedYearKey === 'number' && Number.isFinite(normalizedYearKey)) {
+  if (
+    typeof normalizedYearKey === 'number' &&
+    Number.isFinite(normalizedYearKey)
+  ) {
     tradeCtx.yearKey = normalizedYearKey;
   }
 
@@ -654,7 +668,10 @@ export function buildTradeIncomingPlayerSnapshot({
   );
 
   if (authoritativeSnapshot) {
-    return { ...authoritativeSnapshot };
+    const persisted = { ...authoritativeSnapshot };
+    delete persisted.governedSignAndTradeAuthority;
+    delete persisted.governedSignAndTradeProposal;
+    return persisted;
   }
 
   const fallback: AnyRecord = {};

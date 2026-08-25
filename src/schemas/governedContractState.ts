@@ -290,7 +290,7 @@ const RetainedContractSourceZ = z.strictObject({
 
 /** Provenance for a Contract authored by an atomic saved-world mutation. */
 const AuthoredSigningContractSourceZ = z.strictObject({
-  sourceKind: z.literal('saved-world-signing'),
+  sourceKind: z.enum(['saved-world-signing', 'saved-world-sign-and-trade']),
   operationId: NonEmptyStringZ,
   authoringIdentity: NonEmptyStringZ,
   recordedAt: ContractTemporalValueZ,
