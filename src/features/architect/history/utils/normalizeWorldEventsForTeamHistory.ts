@@ -29,6 +29,14 @@ import {
   type TeamHistoryWorldEventRow,
 } from './normalizeWorldEventsForTeamHistory.utils';
 import { GovernedSignAndTradeReceiptZ } from '@/schemas/governedSignAndTrade';
+import { GovernedCashReceiptZ } from '@/schemas/governedCashConsideration';
+
+function formatCashCents(value: number): string {
+  return `$${(value / 100).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
 
 export function toTeamHistoryEventDisplay(
   eventInput: GenericRecord,
@@ -235,6 +243,9 @@ export function toTeamHistoryEventDisplay(
         GovernedSignAndTradeReceiptZ.safeParse(
           metadata.governedSignAndTradeReceipt
         );
+      const governedCashReceipt = GovernedCashReceiptZ.safeParse(
+        metadata.governedCashReceipt
+      );
       summaryCandidate =
         summaryCandidate ||
         (primaryTeamsLine
@@ -261,6 +272,20 @@ export function toTeamHistoryEventDisplay(
           `Assignee Room amount: ${formatCurrency(Number(receiptBody.assigneeRoomAmount || 0))}`,
           `BYC: ${receiptBody.bycTriggered === true ? 'Applied' : 'Not applicable'}`,
           'Poison pill: Not applicable to this supported S&T route',
+          'Persistence verification: Complete',
+        ]);
+      }
+      if (governedCashReceipt.success) {
+        const receipt = governedCashReceipt.data;
+        pushSection(detailSections, 'Cash Consideration Receipt', [
+          `Receipt: ${receipt.receiptId}`,
+          `Salary Cap Year: ${receipt.salaryCapYear}`,
+          ...receipt.entries.map((entry) =>
+            entry.direction === 'PAID'
+              ? `${entry.teamId} paid ${formatCashCents(entry.amountCents)} to ${entry.counterpartyTeamId}`
+              : `${entry.teamId} received ${formatCashCents(entry.amountCents)} from ${entry.counterpartyTeamId}`
+          ),
+          'Salary-book cash deltas: $0.00 for every Team',
           'Persistence verification: Complete',
         ]);
       }

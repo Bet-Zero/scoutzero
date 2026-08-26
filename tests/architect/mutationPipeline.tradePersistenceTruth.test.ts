@@ -36,6 +36,7 @@ import {
   type GovernedCashEvaluation,
 } from '@/schemas/governedCashConsideration';
 import type { TradeApronRestrictionEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
+import { toTeamHistoryEventDisplay } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
@@ -972,6 +973,20 @@ describe('mutationPipeline trade persistence truth', () => {
           ],
         },
       },
+    });
+    const cashHistory = toTeamHistoryEventDisplay(
+      firstPersisted.event as unknown as Record<string, unknown>,
+      { teamCode: 'LAL' }
+    );
+    expect(cashHistory.detailSections).toContainEqual({
+      title: 'Cash Consideration Receipt',
+      lines: expect.arrayContaining([
+        'Salary Cap Year: 2026',
+        'LAL paid $1.00 to BOS',
+        'BOS received $1.00 from LAL',
+        'Salary-book cash deltas: $0.00 for every Team',
+        'Persistence verification: Complete',
+      ]),
     });
     const eventCountAfterWinner = [...getAllMockData().keys()].filter((key) =>
       key.includes('/events/')
