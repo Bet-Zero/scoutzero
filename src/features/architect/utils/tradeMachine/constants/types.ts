@@ -274,7 +274,7 @@ export interface NormalizedTeam {
     exceptions?: {
       tpe?: TradeExceptionRecord[];
     };
-    cashLedger?: GovernedCashLedger | null;
+    cashLedger?: GovernedCashLedger | Record<string, unknown> | null;
     // Additional team fields used during validation
     name?: string;
     nickname?: string;
@@ -532,7 +532,7 @@ export interface TradeTeam {
     exceptions?: {
       tpe?: TradeExceptionRecord[];
     };
-    cashLedger?: GovernedCashLedger | null;
+    cashLedger?: GovernedCashLedger | Record<string, unknown> | null;
     faExceptionBuckets?: TradeFaExceptionBucket[];
     hardCapFirstApron?: Record<string, unknown>;
     hardCapSecondApron?: Record<string, unknown>;

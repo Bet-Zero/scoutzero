@@ -20,6 +20,7 @@ import {
 import { validationFlags } from '@/config/validationFlags';
 import { useTradeTeamCardSalaries } from './useTradeTeamCardSalaries';
 import { TradeSalaryPathElection } from '@/features/architect/tradeMachine/TradeSalaryPathElection';
+import { TradeCashConsiderationInput } from './TradeCashConsiderationInput';
 // Phase 65: Canonical TPE read accessor
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
 import type { TeamTpeLike } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
@@ -90,6 +91,9 @@ export const TradeTeamCard = ({
   compact = false,
   salaryMatchingElection = null,
   onSalaryMatchingElectionChange,
+  cashSent = 0,
+  cashToTeamId = null,
+  onCashConsiderationChange,
 }: TradeTeamCardProps) => {
   const [activeTab, setActiveTab] = useState('players');
   const [editingTeam, setEditingTeam] = useState(false);
@@ -275,6 +279,17 @@ export const TradeTeamCard = ({
           outgoingPlayers={sends}
           onChange={onSalaryMatchingElectionChange}
           compact={compact}
+        />
+      )}
+
+      {worldId && onCashConsiderationChange && (
+        <TradeCashConsiderationInput
+          teamLabel={String(team.teamCode ?? team.id ?? 'Team')}
+          cashSent={cashSent}
+          cashToTeamId={cashToTeamId}
+          otherTeams={otherTeams}
+          disabled={isValidating}
+          onChange={onCashConsiderationChange}
         />
       )}
 

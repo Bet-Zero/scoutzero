@@ -234,6 +234,8 @@ export interface TradeDataItem {
   salaryMatchingElection?:
     | import('@/schemas/tradeSalaryMatchingPath').TradeSalaryMatchingElection
     | null;
+  cashSent?: number;
+  cashToTeamId?: string | null;
 }
 
 export type TradeExecutionPayload = {

@@ -1,11 +1,11 @@
 import {
   GovernedCashLedgerZ,
+  GovernedCashProofZ,
   type GovernedCashEvaluation,
   type GovernedCashLedger,
-  type GovernedCashProof,
 } from '@/schemas/governedCashConsideration';
 import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
-import type { TradeTeam, TradeValidatorContext } from '../constants/types';
+import type { TeamContext, TradeTeam } from '../constants/types';
 import { cashDollarsToCents } from './tradeCashRouting';
 
 const CASH_CANON_COMMIT = '6cf8aaf358c158a88e630e8a7336f7e9c3febc17';
@@ -79,15 +79,16 @@ export function evaluateGovernedCashConsideration({
   context,
 }: {
   team: TradeTeam;
-  context: TradeValidatorContext;
+  context: TeamContext;
 }): GovernedCashEvaluation {
   const resolvedTeamCode = teamCode(team);
   const cashSentCents = cashDollarsToCents(team.cashSent);
   const cashReceivedCents = cashDollarsToCents(team.cashReceived);
-  const malformed: string[] = [];
-  if (cashSentCents === null) malformed.push('cashSent');
-  if (cashReceivedCents === null) malformed.push('cashReceived');
-  if (malformed.length > 0) {
+  if (cashSentCents === null || cashReceivedCents === null) {
+    const malformed = [
+      ...(cashSentCents === null ? ['cashSent'] : []),
+      ...(cashReceivedCents === null ? ['cashReceived'] : []),
+    ];
     return evaluation({
       status: 'NEEDS_INPUT',
       teamId: resolvedTeamCode,
@@ -207,7 +208,8 @@ export function evaluateGovernedCashConsideration({
     (entry) => entry.worldId !== context.worldId
   );
   const transactionDirectionKeys = ledger.entries.map(
-    (entry) => `${entry.transactionId}:${entry.direction}`
+    (entry) =>
+      `${entry.transactionId}:${entry.direction}:${entry.counterpartyTeamId}`
   );
   if (
     ledgerAuthorityMissing ||
@@ -228,13 +230,13 @@ export function evaluateGovernedCashConsideration({
   }
 
   const annualLimitCents = annualCashLimitCents(salaryCapCents);
-  const proof: GovernedCashProof = {
+  const proof = GovernedCashProofZ.parse({
     canonCandidateCommit: CASH_CANON_COMMIT,
     canonSha256: CASH_CANON_SHA256,
     salaryCapCents,
     annualLimitCents,
     seasonInputManifest: envelope.inputManifest,
-  };
+  });
   const currentEntries = ledger.entries.filter(
     (entry) => entry.salaryCapYear === salaryCapYear
   );

@@ -258,6 +258,10 @@ export function useTradeActions({
             outgoingEntitlements: t.outgoingEntitlements || [],
             entitlementsOut: t.outgoingEntitlements || [],
             salaryMatchingElection: t.salaryMatchingElection ?? null,
+            cashSent: t.cashSent ?? 0,
+            cashToTeamId: t.cashToTeamId
+              ? resolveTeamCode(t.cashToTeamId) || t.cashToTeamId
+              : null,
           })
         );
 

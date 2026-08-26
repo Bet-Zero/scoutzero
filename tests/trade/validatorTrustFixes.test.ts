@@ -751,15 +751,10 @@ describe('validator trust fixes', () => {
       '2025-07-10'
     );
 
-    expect(result._validatedTradeContext?.legal).toBe(false);
-    expect(
-      issueTexts(result._validatedTradeContext?._rawValidation?.violations)
-    ).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(
-          /cash consideration needs governed input: worldId/i
-        ),
-      ])
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(
+      /governed cash consideration requires exact world and transaction identity/i
     );
+    expect(result.teamUpdates || []).toEqual([]);
   });
 });

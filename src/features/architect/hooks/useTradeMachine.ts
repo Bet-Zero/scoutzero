@@ -234,6 +234,23 @@ export const useTradeMachine = (
     []
   );
 
+  const setCashConsideration = useCallback(
+    (teamIndex: number, cashSent: number, cashToTeamId: string | null) => {
+      setTeams((previous) =>
+        previous.map((slot, index) =>
+          index === teamIndex
+            ? {
+                ...slot,
+                cashSent,
+                cashToTeamId: cashSent > 0 ? cashToTeamId : null,
+              }
+            : slot
+        )
+      );
+    },
+    []
+  );
+
   const exportCurrentTrade = useCallback(() => {
     const tradeData = teams.filter(hasTeamSlot).map((t) => {
       const teamId = t.team.id;
@@ -254,6 +271,8 @@ export const useTradeMachine = (
           .filter(isUnknownRecord),
         usedTradeExceptions: extractUsedTpeIds(t.sends),
         salaryMatchingElection: t.salaryMatchingElection ?? null,
+        cashSent: t.cashSent ?? 0,
+        cashToTeamId: t.cashToTeamId ?? null,
       };
     });
 
@@ -269,6 +288,8 @@ export const useTradeMachine = (
           sends: [] as UnknownRecord[],
           entitlementsOut: [] as UnknownRecord[],
           salaryMatchingElection: null,
+          cashSent: 0,
+          cashToTeamId: null,
         })
       )
     );
@@ -317,6 +338,7 @@ export const useTradeMachine = (
     injectDevSntPlayers,
     clearInjectedDevSntPlayers,
     setSalaryMatchingElection,
+    setCashConsideration,
     // Expose ref getter for validatedAt (needed since ref doesn't trigger re-render)
     getValidatedAt: () => validatedAtRef.current,
     // Phase 16.3: Expose init error for UI error surfacing

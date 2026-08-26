@@ -36,9 +36,7 @@ import {
 } from '@/features/architect/utils/entitlements/vacuumEntitlementOverlayStore';
 import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
-import {
-  GovernedSignAndTradeProposalZ,
-} from '@/schemas/governedSignAndTrade';
+import { GovernedSignAndTradeProposalZ } from '@/schemas/governedSignAndTrade';
 import { DEV_SNT_INJECTOR_FLAG } from '@/features/architect/tradeMachine/utils/devSntInjector';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 import type {
@@ -122,6 +120,7 @@ export const TradeEditor = ({
     injectDevSntPlayers,
     clearInjectedDevSntPlayers,
     setSalaryMatchingElection,
+    setCashConsideration,
     // Phase 16.3: Expose init error for UI error surfacing
     initError,
     // Phase 17: Active team count for multi-team destination logic
@@ -1204,6 +1203,11 @@ export const TradeEditor = ({
                 salaryMatchingElection={t.salaryMatchingElection ?? null}
                 onSalaryMatchingElectionChange={(election) =>
                   setSalaryMatchingElection(idx, election)
+                }
+                cashSent={t.cashSent ?? 0}
+                cashToTeamId={t.cashToTeamId ?? null}
+                onCashConsiderationChange={(cashSent, cashToTeamId) =>
+                  setCashConsideration(idx, cashSent, cashToTeamId)
                 }
               />
             </div>

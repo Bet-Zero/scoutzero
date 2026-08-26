@@ -51,7 +51,8 @@ export function normalizeCurrentStateTeamSource(
   if (type !== undefined) normalized.type = type;
   if (worldId !== undefined) normalized.worldId = worldId;
   if (generatedAt !== undefined) normalized.generatedAt = generatedAt;
-  if (baseTeamVersion !== undefined) normalized.baseTeamVersion = baseTeamVersion;
+  if (baseTeamVersion !== undefined)
+    normalized.baseTeamVersion = baseTeamVersion;
   if (lastModifiedAt !== undefined) normalized.lastModifiedAt = lastModifiedAt;
 
   return Object.keys(normalized).length > 0 ? normalized : undefined;
@@ -96,7 +97,12 @@ export function toTradeStateSlice(
     });
   }
 
-  return { teams };
+  return {
+    teams,
+    ...(currentState.governedCashTeamSnapshots
+      ? { governedCashTeamSnapshots: currentState.governedCashTeamSnapshots }
+      : {}),
+  };
 }
 
 export function toOptionalTrimmedString(value: unknown): string | undefined {

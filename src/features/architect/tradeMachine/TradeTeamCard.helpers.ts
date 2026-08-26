@@ -161,6 +161,11 @@ export interface TradeTeamCardProps {
   onSalaryMatchingElectionChange?:
     | ((election: TradeSalaryMatchingElection | null) => void)
     | null;
+  cashSent?: number;
+  cashToTeamId?: string | null;
+  onCashConsiderationChange?:
+    | ((cashSent: number, cashToTeamId: string | null) => void)
+    | null;
 }
 
 export function formatSkipReasonLabel(skipReason: unknown): string | null {

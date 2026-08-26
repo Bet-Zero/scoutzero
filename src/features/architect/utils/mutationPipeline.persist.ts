@@ -70,6 +70,10 @@ import {
   GovernedSignAndTradeAuthorityZ,
   GovernedSignAndTradeReceiptZ,
 } from '@/schemas/governedSignAndTrade';
+import {
+  GovernedCashLedgerZ,
+  GovernedCashReceiptZ,
+} from '@/schemas/governedCashConsideration';
 
 type ExpectedRightsLedgerReference = Readonly<{
   ledgerId: string;
@@ -850,6 +854,40 @@ export async function persistWorldMutation({
     writes.push({ kind: 'update', ref: metadataRef, data: worldPatch });
 
     const metadata = computeResult.metadata as Record<string, unknown>;
+    const governedCashReceiptParse = GovernedCashReceiptZ.safeParse(
+      metadata.governedCashReceipt
+    );
+    const hasGovernedCashMetadata = Object.prototype.hasOwnProperty.call(
+      metadata,
+      'governedCashReceipt'
+    );
+    const isGovernedCash =
+      mutationType === 'executeTrade' &&
+      (hasGovernedCashMetadata ||
+        computeResult._requiresGovernedCashPersistence === true);
+    if (isGovernedCash && !governedCashReceiptParse.success) {
+      throw new Error(
+        'Governed cash persistence requires one complete cash receipt.'
+      );
+    }
+    if (isGovernedCash) {
+      const expectedTeams = new Set(
+        governedCashReceiptParse.data!.expectedTeamSnapshots.map(
+          (snapshot) => snapshot.teamId
+        )
+      );
+      const actualTeams = new Set(
+        teamUpdates.map((entry) => String(entry.teamCode || '').trim())
+      );
+      if (
+        expectedTeams.size !== actualTeams.size ||
+        [...expectedTeams].some((teamCode) => !actualTeams.has(teamCode))
+      ) {
+        throw new Error(
+          'Governed cash must atomically replace every participating Team.'
+        );
+      }
+    }
     const governedSignAndTradeAuthorityParse =
       GovernedSignAndTradeAuthorityZ.safeParse(
         metadata.governedSignAndTradeAuthority
@@ -984,6 +1022,7 @@ export async function persistWorldMutation({
       mutationType === 'extendPlayer' ||
       mutationType === 'waivePlayer' ||
       mutationType === 'signFreeAgent' ||
+      isGovernedCash ||
       isGovernedSignAndTrade ||
       isOfferSheetCreation ||
       isOfferSheetResolution
@@ -1092,13 +1131,68 @@ export async function persistWorldMutation({
             ? currentTeamSnapshot.data()
             : {};
           let contractSourceTeamData = currentTeamData;
+          if (isGovernedCash) {
+            const receipt = governedCashReceiptParse.data!;
+            const expectedSnapshot = receipt.expectedTeamSnapshots.find(
+              (snapshot) => snapshot.teamId === normalizedTeamCode
+            );
+            if (
+              !expectedSnapshot ||
+              !expectedSnapshot.exists ||
+              !currentTeamExists ||
+              mutationSnapshotDigest(currentTeamData) !==
+                expectedSnapshot.digest
+            ) {
+              throw new Error(
+                `Team snapshot for ${normalizedTeamCode} changed before governed cash could commit.`
+              );
+            }
+            const currentLedger = GovernedCashLedgerZ.safeParse(
+              currentTeamData.cashLedger
+            );
+            const updatedLedger = GovernedCashLedgerZ.safeParse(
+              team.cashLedger
+            );
+            const evaluation = receipt.teamEvaluations.find(
+              (candidate) => candidate.teamId === normalizedTeamCode
+            );
+            const expectedEntries = receipt.entries.filter(
+              (entry) => entry.teamId === normalizedTeamCode
+            );
+            const cashLedgerDiverged =
+              expectedEntries.length === 0
+                ? Boolean(evaluation) ||
+                  mutationSnapshotDigest(team.cashLedger ?? null) !==
+                    mutationSnapshotDigest(currentTeamData.cashLedger ?? null)
+                : !currentLedger.success ||
+                  !updatedLedger.success ||
+                  !evaluation ||
+                  evaluation.ledgerVersion !==
+                    currentLedger.data.ledgerVersion ||
+                  updatedLedger.data.ledgerVersion !==
+                    currentLedger.data.ledgerVersion + expectedEntries.length ||
+                  expectedEntries.some((entry) =>
+                    currentLedger.data.entries.some(
+                      (existing) => existing.entryId === entry.entryId
+                    )
+                  ) ||
+                  mutationSnapshotDigest(updatedLedger.data.entries) !==
+                    mutationSnapshotDigest([
+                      ...currentLedger.data.entries,
+                      ...expectedEntries,
+                    ]);
+            if (cashLedgerDiverged) {
+              throw new Error(
+                `Cash ledger for ${normalizedTeamCode} changed, replayed, or diverged before commit.`
+              );
+            }
+          }
           if (isGovernedSignAndTrade) {
             const authority = governedSignAndTradeAuthority!;
             const expected =
               normalizedTeamCode === authority.sourceTeamId
                 ? authority.snapshots.sourceTeam
-                : normalizedTeamCode ===
-                    authority.destinationTeamId
+                : normalizedTeamCode === authority.destinationTeamId
                   ? authority.snapshots.destinationTeam
                   : null;
             if (
@@ -1112,8 +1206,7 @@ export async function persistWorldMutation({
               );
             }
             if (
-              normalizedTeamCode ===
-                authority.destinationTeamId &&
+              normalizedTeamCode === authority.destinationTeamId &&
               (currentTeamData.contractEventLedgers || []).some(
                 (ledger: { ledgerId?: unknown }) =>
                   String(ledger?.ledgerId || '') ===
@@ -1124,6 +1217,8 @@ export async function persistWorldMutation({
                 `Duplicate/replayed governed sign-and-trade ${governedSignAndTradeReceiptParse.data?.transactionId}.`
               );
             }
+          } else if (isGovernedCash) {
+            // Cash snapshot and ledger authority are checked above.
           } else if (expectedOfferSheetCreationSnapshots) {
             const expectedTeamSnapshot =
               normalizedTeamCode ===

@@ -20,7 +20,8 @@ vi.mock('@/features/architect/utils/worldTeamData', () => ({
 }));
 
 vi.mock('@/features/architect/utils/entitlements/entitlementResolver', () => ({
-  resolveEntitlementsForTeam: entitlementResolverMocks.resolveEntitlementsForTeam,
+  resolveEntitlementsForTeam:
+    entitlementResolverMocks.resolveEntitlementsForTeam,
 }));
 
 vi.mock(
@@ -83,6 +84,7 @@ const expectedReturnKeys = [
   'injectDevSntPlayers',
   'clearInjectedDevSntPlayers',
   'setSalaryMatchingElection',
+  'setCashConsideration',
   'getValidatedAt',
   'initError',
 ] as const;
@@ -95,6 +97,8 @@ const expectedExportKeys = [
   'incomingEntitlements',
   'usedTradeExceptions',
   'salaryMatchingElection',
+  'cashSent',
+  'cashToTeamId',
 ] as const;
 
 const primaryEntitlement = {
@@ -160,11 +164,7 @@ function makeRoster(teamCode: string, count: number) {
   );
 }
 
-function makeTeamData(
-  teamCode: 'LAL' | 'BOS',
-  id: string,
-  teamName: string
-) {
+function makeTeamData(teamCode: 'LAL' | 'BOS', id: string, teamName: string) {
   const players = makeRoster(teamCode, 14);
 
   return {
@@ -255,9 +255,9 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
 
     expect(Object.keys(useTradeMachineModule)).toEqual(['useTradeMachine']);
     expect(
-      Array.from(source.matchAll(/^export (?:(?:async )?function|const) (\w+)/gm)).map(
-        ([, exportName]) => exportName
-      )
+      Array.from(
+        source.matchAll(/^export (?:(?:async )?function|const) (\w+)/gm)
+      ).map(([, exportName]) => exportName)
     ).toEqual(['useTradeMachine']);
     expect(source).not.toContain('export default');
   });
@@ -294,7 +294,10 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
       secondaryTeam.players,
       'Secondary team players should be loaded'
     );
-    const primaryTeamId = assertDefined(primaryTeam.id, 'Primary team id missing');
+    const primaryTeamId = assertDefined(
+      primaryTeam.id,
+      'Primary team id missing'
+    );
     const secondaryTeamId = assertDefined(
       secondaryTeam.id,
       'Secondary team id missing'
@@ -327,7 +330,12 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
     expect(result.current.validatedAt).toBe(validatedAt);
 
     act(() => {
-      result.current.setPlayerTrade(0, outgoingPlayer, 'trade', secondaryTeamId);
+      result.current.setPlayerTrade(
+        0,
+        outgoingPlayer,
+        'trade',
+        secondaryTeamId
+      );
       result.current.setPlayerTrade(1, incomingPlayer, 'trade', primaryTeamId);
     });
 
@@ -380,22 +388,56 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
       )[0],
       'Expected a secondary entitlement'
     );
-    const primaryTeamId = assertDefined(primaryTeam.id, 'Primary team id missing');
+    const primaryTeamId = assertDefined(
+      primaryTeam.id,
+      'Primary team id missing'
+    );
     const secondaryTeamId = assertDefined(
       secondaryTeam.id,
       'Secondary team id missing'
     );
 
     act(() => {
-      result.current.setPlayerTrade(0, primaryPlayers[0], 'trade', secondaryTeamId);
-      result.current.setPlayerTrade(0, primaryPlayers[1], 'trade', secondaryTeamId);
-      result.current.setPlayerTrade(0, primaryPlayers[2], 'trade', secondaryTeamId);
+      result.current.setPlayerTrade(
+        0,
+        primaryPlayers[0],
+        'trade',
+        secondaryTeamId
+      );
+      result.current.setPlayerTrade(
+        0,
+        primaryPlayers[1],
+        'trade',
+        secondaryTeamId
+      );
+      result.current.setPlayerTrade(
+        0,
+        primaryPlayers[2],
+        'trade',
+        secondaryTeamId
+      );
       result.current.setPlayerTrade(1, secondaryPlayer, 'trade', primaryTeamId);
-      result.current.setPlayerTrade(0, primaryPlayers[0], 'setTpeId', 'LAL-TPE-B');
-      result.current.setPlayerTrade(0, primaryPlayers[1], 'setTpeId', 'LAL-TPE-A');
-      result.current.setPlayerTrade(0, primaryPlayers[2], 'setTpeId', 'LAL-TPE-B');
+      result.current.setPlayerTrade(
+        0,
+        primaryPlayers[0],
+        'setTpeId',
+        'LAL-TPE-B'
+      );
+      result.current.setPlayerTrade(
+        0,
+        primaryPlayers[1],
+        'setTpeId',
+        'LAL-TPE-A'
+      );
+      result.current.setPlayerTrade(
+        0,
+        primaryPlayers[2],
+        'setTpeId',
+        'LAL-TPE-B'
+      );
       result.current.toggleEntitlement(0, primaryTeamEntitlement);
       result.current.toggleEntitlement(1, secondaryTeamEntitlement);
+      result.current.setCashConsideration(0, 1.25, secondaryTeamId);
     });
 
     await waitFor(() => {
@@ -406,10 +448,12 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
 
     const exportPayload = result.current.exportCurrentTrade();
     const primaryExport = exportPayload.find(
-      (teamExport: Record<string, unknown>) => teamExport.teamId === primaryTeamId
+      (teamExport: Record<string, unknown>) =>
+        teamExport.teamId === primaryTeamId
     );
     const secondaryExport = exportPayload.find(
-      (teamExport: Record<string, unknown>) => teamExport.teamId === secondaryTeamId
+      (teamExport: Record<string, unknown>) =>
+        teamExport.teamId === secondaryTeamId
     );
     const definedPrimaryExport = assertDefined(
       primaryExport,
@@ -420,8 +464,12 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
       'Secondary export payload should exist'
     );
 
-    expect(Object.keys(definedPrimaryExport)).toEqual(Array.from(expectedExportKeys));
-    expect(Object.keys(definedSecondaryExport)).toEqual(Array.from(expectedExportKeys));
+    expect(Object.keys(definedPrimaryExport)).toEqual(
+      Array.from(expectedExportKeys)
+    );
+    expect(Object.keys(definedSecondaryExport)).toEqual(
+      Array.from(expectedExportKeys)
+    );
     expect(definedPrimaryExport.outgoingPlayers).toHaveLength(3);
     expect(definedPrimaryExport.incomingPlayers).toHaveLength(1);
     expect(definedPrimaryExport.outgoingEntitlements).toHaveLength(1);
@@ -430,6 +478,14 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
       'LAL-TPE-B',
       'LAL-TPE-A',
     ]);
+    expect(definedPrimaryExport).toMatchObject({
+      cashSent: 1.25,
+      cashToTeamId: secondaryTeamId,
+    });
+    expect(definedSecondaryExport).toMatchObject({
+      cashSent: 0,
+      cashToTeamId: null,
+    });
     expect(definedPrimaryExport.outgoingEntitlements[0]).toMatchObject({
       id: primaryEntitlement.id,
       toTeamId: secondaryTeamId,

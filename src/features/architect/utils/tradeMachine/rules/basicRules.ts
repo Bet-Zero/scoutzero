@@ -12,8 +12,8 @@
  * equal-value multi-player trades are allowed per CBA). The broad 2+ player block previously
  * in this file was removed in TM-1C followup as it over-blocked relative to the CBA rule.
  */
-type BasicRulesTeam = Record<string, unknown>;
-type BasicRulesContext = Record<string, unknown>;
+type BasicRulesTeam = object;
+type BasicRulesContext = object;
 
 interface BasicRulesValidationResult {
   passed: boolean;

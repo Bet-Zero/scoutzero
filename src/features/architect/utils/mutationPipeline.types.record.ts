@@ -441,7 +441,9 @@ export type ArchitectMutationPlayerRecord = {
   destTeamId?: MutationScalarId;
 };
 
-export type ArchitectMutationCashLedger = GovernedCashLedger;
+export type ArchitectMutationCashLedger =
+  | GovernedCashLedger
+  | Record<string, unknown>;
 
 export type ArchitectMutationTeamRecord = {
   id?: MutationScalarId;

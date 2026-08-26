@@ -147,6 +147,8 @@ export function useTradeMachineValidation({
           sends: slot.sends,
           entitlementsOut: slot.entitlementsOut || [],
           salaryMatchingElection: slot.salaryMatchingElection ?? null,
+          cashSent: slot.cashSent ?? 0,
+          cashToTeamId: slot.cashToTeamId ?? null,
         })),
         capProjections: capProjections as TradeContextPayload['capProjections'],
         tradeCtx: {

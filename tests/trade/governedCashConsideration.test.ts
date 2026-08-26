@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   GovernedCashEvaluationZ,
+  GovernedCashReceiptZ,
   type GovernedCashLedger,
   type GovernedCashLedgerEntry,
 } from '@/schemas/governedCashConsideration';
@@ -228,6 +229,126 @@ describe('governed cash consideration', () => {
       projectedPaidCents: 849_000_000,
       projectedReceivedCents: 849_549_151,
     });
+  });
+
+  it('requires an exact paid and received pair in the immutable receipt', () => {
+    const transactionId = 'cash-receipt-pair';
+    const paidEvaluation = evaluateGovernedCashConsideration({
+      team: team('ATL', ledger('ATL'), 1),
+      context,
+    });
+    const receivedEvaluation = evaluateGovernedCashConsideration({
+      team: team('BOS', ledger('BOS'), 0, 1),
+      context,
+    });
+    const paidEntry = ledgerEntry({
+      teamId: 'ATL',
+      counterpartyTeamId: 'BOS',
+      direction: 'PAID',
+      amountCents: 100,
+      transactionId,
+    });
+    const receivedEntry = ledgerEntry({
+      teamId: 'BOS',
+      counterpartyTeamId: 'ATL',
+      direction: 'RECEIVED',
+      amountCents: 100,
+      transactionId,
+    });
+    const receipt = {
+      receiptVersion: 1,
+      receiptId: `${transactionId}:receipt`,
+      transactionId,
+      worldId: WORLD_ID,
+      salaryCapYear: SALARY_CAP_YEAR,
+      transactionAt: TRANSACTION_AT,
+      committedAt: TRANSACTION_AT,
+      teamEvaluations: [paidEvaluation, receivedEvaluation],
+      entries: [paidEntry, receivedEntry],
+      expectedTeamSnapshots: [
+        {
+          teamId: 'ATL',
+          exists: true,
+          digest: 'fnv1a64:0000000000000000',
+        },
+        {
+          teamId: 'BOS',
+          exists: true,
+          digest: 'fnv1a64:0000000000000001',
+        },
+      ],
+      salaryBookCashDeltas: [
+        { teamId: 'ATL', teamSalary: 0, apronTeamSalary: 0, taxSalary: 0 },
+        { teamId: 'BOS', teamSalary: 0, apronTeamSalary: 0, taxSalary: 0 },
+      ],
+      tradeReceipt: null,
+      verificationStatus: 'complete',
+      canonLeafIds: [
+        'CBA2-A05.11',
+        'CBA2-A08.1',
+        'CBA2-A08.2',
+        'CBA2-A08.4',
+        'CBA2-A08.5',
+        'CBA2-A08.6',
+      ],
+    };
+
+    expect(GovernedCashReceiptZ.safeParse(receipt).success).toBe(true);
+    const mismatched = GovernedCashReceiptZ.safeParse({
+      ...receipt,
+      entries: [paidEntry, { ...receivedEntry, amountCents: 99 }],
+    });
+    expect(mismatched.success).toBe(false);
+    if (!mismatched.success) {
+      expect(mismatched.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message:
+              'every paid cash entry must have one matching received entry',
+          }),
+        ])
+      );
+    }
+
+    const mismatchedEvaluation = GovernedCashReceiptZ.safeParse({
+      ...receipt,
+      teamEvaluations: [
+        {
+          ...paidEvaluation,
+          cashSentCents: 99,
+          projectedPaidCents: 99,
+        },
+        receivedEvaluation,
+      ],
+    });
+    expect(mismatchedEvaluation.success).toBe(false);
+    if (!mismatchedEvaluation.success) {
+      expect(mismatchedEvaluation.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: 'receipt evaluation totals must equal its cash entries',
+          }),
+        ])
+      );
+    }
+
+    const missingSnapshot = GovernedCashReceiptZ.safeParse({
+      ...receipt,
+      expectedTeamSnapshots: [
+        { teamId: 'ATL', exists: false, digest: null },
+        receipt.expectedTeamSnapshots[1],
+      ],
+    });
+    expect(missingSnapshot.success).toBe(false);
+    if (!missingSnapshot.success) {
+      expect(missingSnapshot.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: 'governed cash requires an existing saved Team snapshot',
+          }),
+        ])
+      );
+    }
   });
 
   it('fails closed for legacy ledgers and the post-Regular-Season window', () => {

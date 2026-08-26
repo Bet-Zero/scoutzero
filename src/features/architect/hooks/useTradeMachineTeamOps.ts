@@ -291,6 +291,11 @@ export function useTradeMachineTeamOps({
           ...teamSlot,
           sends: cleanedSends,
           entitlementsOut: cleanedEntitlements,
+          cashToTeamId:
+            teamSlot.cashToTeamId === removedTeamId ||
+            (removedTeamCode && teamSlot.cashToTeamId === removedTeamCode)
+              ? null
+              : teamSlot.cashToTeamId,
         };
       });
     });

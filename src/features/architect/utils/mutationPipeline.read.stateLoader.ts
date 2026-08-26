@@ -735,6 +735,11 @@ export async function loadStateForMutation(
           'The governed V1 route supports exactly one sign-and-trade player per atomic trade.'
         );
       }
+      const hasCashConsideration = (payload.teams || []).some((team) => {
+        const cashSent = Number(team.cashSent ?? 0);
+        const cashReceived = Number(team.cashReceived ?? 0);
+        return cashSent > 0 || cashReceived > 0;
+      });
       if (
         signAndTradeSends.length === 1 &&
         ((payload.teams || []).length !== 2 ||
@@ -758,6 +763,24 @@ export async function loadStateForMutation(
           'Governed sign-and-trade requires exact local saved-world snapshots for every involved Team.'
         );
       }
+      const cashLocalTeamSnapshots = hasCashConsideration
+        ? await Promise.all(
+            teamCodes.map((code) => getDoc(worldTeamRef(worldId, code)))
+          )
+        : null;
+      if (cashLocalTeamSnapshots?.some((snapshot) => !snapshot.exists())) {
+        throw new Error(
+          'Governed cash consideration requires exact local saved-world snapshots for every involved Team.'
+        );
+      }
+      const governedCashTeamSnapshots = cashLocalTeamSnapshots?.map(
+        (snapshot, index) =>
+          Object.freeze({
+            teamId: teamCodes[index],
+            exists: true,
+            digest: mutationSnapshotDigest(snapshot.data()),
+          })
+      );
       const [teamStates, worldTeams] = await Promise.all([
         Promise.all(teamCodes.map((code) => getTeam(worldId, code))),
         requiresGovernedSalaryBasis && worldAsOfDate && salaryCapYear !== null
@@ -929,6 +952,7 @@ export async function loadStateForMutation(
           ...(governedSignAndTradeEvidence
             ? { governedSignAndTradeEvidence }
             : {}),
+          ...(governedCashTeamSnapshots ? { governedCashTeamSnapshots } : {}),
         };
       }
       normalizedTeams.forEach(({ team }) => {
@@ -940,7 +964,10 @@ export async function loadStateForMutation(
       });
 
       if (!worldAsOfDate || salaryCapYear === null) {
-        return { teams: normalizedTeams };
+        return {
+          teams: normalizedTeams,
+          ...(governedCashTeamSnapshots ? { governedCashTeamSnapshots } : {}),
+        };
       }
 
       await Promise.all(
@@ -969,6 +996,7 @@ export async function loadStateForMutation(
         ...(governedSignAndTradeEvidence
           ? { governedSignAndTradeEvidence }
           : {}),
+        ...(governedCashTeamSnapshots ? { governedCashTeamSnapshots } : {}),
       };
     }
 

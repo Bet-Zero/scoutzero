@@ -18,9 +18,11 @@ export function cashDollarsToCents(value: unknown): number | null {
 }
 
 function teamIdentity(team: TradeTeam, index: number): string {
+  const candidate = team as TradeTeam & { teamCode?: unknown };
   return (
     String(
       team.teamId ||
+        candidate.teamCode ||
         team.team?.teamCode ||
         team.team?.teamId ||
         team.team?.id ||

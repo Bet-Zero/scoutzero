@@ -262,6 +262,8 @@ tradeMachine/
   OutgoingPlayersList.tsx
   SelectTeamCard.tsx
   TradeApronRestrictionReceipt.tsx
+  TradeCashConsiderationInput.tsx
+  TradeCashConsiderationReceipt.tsx
   TradeEditor.helpers.ts
   TradeEditor.tsx
   TradeEditor.types.ts
@@ -645,5 +647,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-25T23:45:30.949Z*
+*Generated on: 2026-08-26T00:40:18.903Z*
 *Auto-updated by: npm run docs*

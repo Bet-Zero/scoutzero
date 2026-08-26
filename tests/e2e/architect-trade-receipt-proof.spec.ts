@@ -230,6 +230,12 @@ const seedProofWorld = async (uid: string) => {
       teamCode,
       salaryBookInputs: salaryBookInputs(teamCode),
       contractEventLedgers: proofContractLedgers(teamCode),
+      cashLedger: {
+        ledgerVersion: 0,
+        ledgerId: `cash-ledger:${teamCode}`,
+        teamId: teamCode,
+        entries: [],
+      },
       exceptions: {
         ...baseExceptions,
         tpe: [proofTpe(teamCode)],
@@ -313,18 +319,14 @@ const openTradeMachine = async (page: Page) => {
   await expect
     .poll(
       async () =>
-        page
-          .locator('[data-apron-team-salary]')
-          .evaluateAll((elements) =>
-            elements.some((element) => {
-              const raw = element.getAttribute('data-apron-team-salary');
-              return (
-                raw !== null &&
-                raw.trim() !== '' &&
-                Number.isFinite(Number(raw))
-              );
-            })
-          ),
+        page.locator('[data-apron-team-salary]').evaluateAll((elements) =>
+          elements.some((element) => {
+            const raw = element.getAttribute('data-apron-team-salary');
+            return (
+              raw !== null && raw.trim() !== '' && Number.isFinite(Number(raw))
+            );
+          })
+        ),
       {
         timeout: 90_000,
         message: 'the saved proof world should publish governed salary books',
@@ -449,6 +451,9 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     DEN: await assignHeldTpe(denverCard, 'Owen Frost', 'DEN'),
   };
 
+  await miamiCard.getByLabel('MIA cash sent').fill('1');
+  await expect(miamiCard.getByLabel('MIA cash recipient')).toHaveValue('DEN');
+
   await miamiCard.getByLabel('Tobias Lund exact pre-trade Salary').fill('0');
   await miamiCard
     .getByLabel('Owen Frost exact pre-trade Salary')
@@ -515,15 +520,11 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     receipt.getByText(TWO_WAY_TRADE_MATCHING_EXPLANATION, { exact: true })
   ).toHaveCount(4);
   await expect(receipt.getByText('2W', { exact: true })).toHaveCount(4);
-  const heatApronProof = receipt.getByTestId(
-    'trade-apron-restriction-heat'
-  );
+  const heatApronProof = receipt.getByTestId('trade-apron-restriction-heat');
   await expect(heatApronProof).toBeVisible();
   await expect(heatApronProof).toContainText('Rows F + H');
   await expect(heatApronProof).toContainText('FAIL');
-  await expect(heatApronProof).toContainText(
-    'Controlling First Apron ceiling'
-  );
+  await expect(heatApronProof).toContainText('Controlling First Apron ceiling');
   await expect(heatApronProof).toContainText(
     'Row F · Held Standard TPE component proof-tpe-MIA'
   );
@@ -562,6 +563,18 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     /Row H · Aggregated Standard TPE component aggregated:/
   );
   await expect(nuggetsApronProof).toContainText('Players: Eli Navarro');
+
+  const heatCashProof = receipt.getByTestId('trade-cash-consideration-mia');
+  await expect(heatCashProof).toBeVisible();
+  await expect(heatCashProof).toContainText('PASS');
+  await expect(heatCashProof).toContainText('Paid now');
+  await expect(heatCashProof).toContainText('$1.00');
+  await expect(heatCashProof).toContainText('Salary Cap Year 2027');
+  const nuggetsCashProof = receipt.getByTestId('trade-cash-consideration-den');
+  await expect(nuggetsCashProof).toBeVisible();
+  await expect(nuggetsCashProof).toContainText('PASS');
+  await expect(nuggetsCashProof).toContainText('Received now');
+  await expect(nuggetsCashProof).toContainText('$1.00');
 
   const afterValidationTeams = await Promise.all(
     proofTeamRefs.map((ref) => ref.get().then((snapshot) => snapshot.data()))
@@ -605,6 +618,13 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       apronRestrictionRows: { MIA: ['F', 'H'], DEN: ['F', 'H'] },
       controllingAprons: { MIA: 'FIRST_APRON', DEN: 'FIRST_APRON' },
       apronRestrictionStatuses: { MIA: 'FAIL', DEN: 'FAIL' },
+      cashConsideration: {
+        payer: 'MIA',
+        recipient: 'DEN',
+        amountCents: 100,
+        salaryCapYear: 2027,
+        evaluationStatuses: { MIA: 'PASS', DEN: 'PASS' },
+      },
       componentAttribution: {
         MIA: {
           F: { componentId: heldTpeIds.MIA, players: ['Aaron Pike'] },

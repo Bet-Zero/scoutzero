@@ -57,6 +57,8 @@ export type TradeMachineTeamSlot = {
   entitlementsOut: TradeMachineEntitlement[];
   entitlements?: TradeMachineEntitlement[];
   salaryMatchingElection?: TradeSalaryMatchingElection | null;
+  cashSent?: number;
+  cashToTeamId?: string | null;
 };
 
 export type EntitlementOverrideDocument = UnknownRecord & {

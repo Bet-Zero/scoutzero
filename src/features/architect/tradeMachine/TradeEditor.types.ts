@@ -68,6 +68,8 @@ export type TradeDataEntryLike = {
   teamId?: string;
   outgoingEntitlements?: EntitlementLike[];
   salaryMatchingElection?: TradeSalaryMatchingElection | null;
+  cashSent?: number;
+  cashToTeamId?: string | null;
 };
 
 export type TradeMachineSatModalState = {

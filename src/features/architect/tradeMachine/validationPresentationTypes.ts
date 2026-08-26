@@ -1,5 +1,6 @@
 import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
 import type { TradeApronRestrictionEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
+import type { GovernedCashEvaluation } from '@/schemas/governedCashConsideration';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -154,6 +155,7 @@ export interface TradeReceiptTeamLike {
       })
     | null;
   apronRestrictionEvaluation?: TradeApronRestrictionEvaluation | null;
+  cashConsiderationEvaluation?: GovernedCashEvaluation | null;
   totals?: Record<string, unknown> | null;
   outgoingPlayers?: TeamPlayerLike[];
   incomingPlayers?: TeamPlayerLike[];

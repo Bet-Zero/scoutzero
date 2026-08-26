@@ -30,7 +30,19 @@ export const GovernedCashProofZ = z
     annualLimitCents: MoneyCentsZ,
     seasonInputManifest: JsonValueZ,
   })
-  .strict();
+  .strict()
+  .superRefine((proof, context) => {
+    if (
+      proof.annualLimitCents !==
+      Math.floor((proof.salaryCapCents * 515) / 10_000)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['annualLimitCents'],
+        message: 'annual cash limit must equal exactly 5.15% of the Salary Cap',
+      });
+    }
+  });
 
 export const GovernedCashLedgerEntryZ = z
   .object({
@@ -130,7 +142,7 @@ export const GovernedCashEvaluationZ = z
     }
   });
 
-const CashSnapshotReceiptZ = z
+export const GovernedCashSnapshotReceiptZ = z
   .object({
     teamId: TeamCodeZ,
     exists: z.boolean(),
@@ -158,14 +170,15 @@ export const GovernedCashReceiptZ = z
     committedAt: ZonedInstantZ,
     teamEvaluations: z.array(GovernedCashEvaluationZ).min(2),
     entries: z.array(GovernedCashLedgerEntryZ).min(2),
-    expectedTeamSnapshots: z.array(CashSnapshotReceiptZ).min(2),
-    salaryBooks: z
+    expectedTeamSnapshots: z.array(GovernedCashSnapshotReceiptZ).min(2),
+    salaryBookCashDeltas: z
       .array(
         z
           .object({
             teamId: TeamCodeZ,
-            before: JsonValueZ,
-            after: JsonValueZ,
+            teamSalary: z.literal(0),
+            apronTeamSalary: z.literal(0),
+            taxSalary: z.literal(0),
           })
           .strict()
       )
@@ -174,10 +187,191 @@ export const GovernedCashReceiptZ = z
     verificationStatus: z.literal('complete'),
     canonLeafIds: z.array(NonEmptyStringZ).min(1),
   })
-  .strict();
+  .strict()
+  .superRefine((receipt, context) => {
+    const addUniqueTeamIssues = (
+      values: ReadonlyArray<{ teamId: string }>,
+      path: 'teamEvaluations' | 'expectedTeamSnapshots' | 'salaryBookCashDeltas'
+    ) => {
+      const seen = new Set<string>();
+      values.forEach((value, index) => {
+        if (seen.has(value.teamId)) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [path, index, 'teamId'],
+            message: `${path} must contain each Team once`,
+          });
+        }
+        seen.add(value.teamId);
+      });
+      return seen;
+    };
+
+    const evaluationTeams = addUniqueTeamIssues(
+      receipt.teamEvaluations,
+      'teamEvaluations'
+    );
+    const snapshotTeams = addUniqueTeamIssues(
+      receipt.expectedTeamSnapshots,
+      'expectedTeamSnapshots'
+    );
+    const salaryDeltaTeams = addUniqueTeamIssues(
+      receipt.salaryBookCashDeltas,
+      'salaryBookCashDeltas'
+    );
+    const entryIds = new Set<string>();
+    const entryKeys = new Map<string, number>();
+    const entryTeams = new Set<string>();
+    const paidByTeam = new Map<string, number>();
+    const receivedByTeam = new Map<string, number>();
+
+    receipt.teamEvaluations.forEach((evaluation, index) => {
+      if (
+        evaluation.status !== 'PASS' ||
+        !evaluation.passed ||
+        evaluation.proof === null ||
+        evaluation.salaryCapYear !== receipt.salaryCapYear ||
+        evaluation.transactionAt !== receipt.transactionAt
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['teamEvaluations', index],
+          message: 'receipt evaluations must be complete passing authority',
+        });
+      }
+    });
+
+    receipt.expectedTeamSnapshots.forEach((snapshot, index) => {
+      if (!snapshot.exists || snapshot.digest === null) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['expectedTeamSnapshots', index],
+          message: 'governed cash requires an existing saved Team snapshot',
+        });
+      }
+    });
+
+    receipt.entries.forEach((entry, index) => {
+      if (entryIds.has(entry.entryId)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['entries', index, 'entryId'],
+          message: 'receipt entry IDs must be unique',
+        });
+      }
+      entryIds.add(entry.entryId);
+      entryTeams.add(entry.teamId);
+      const directionTotals =
+        entry.direction === 'PAID' ? paidByTeam : receivedByTeam;
+      directionTotals.set(
+        entry.teamId,
+        (directionTotals.get(entry.teamId) || 0) + entry.amountCents
+      );
+      const entryKey = [
+        entry.teamId,
+        entry.counterpartyTeamId,
+        entry.direction,
+        entry.amountCents,
+        entry.salaryCapYear,
+        entry.transactionAt,
+      ].join('|');
+      entryKeys.set(entryKey, (entryKeys.get(entryKey) || 0) + 1);
+      if (
+        entry.transactionId !== receipt.transactionId ||
+        entry.worldId !== receipt.worldId ||
+        entry.salaryCapYear !== receipt.salaryCapYear ||
+        entry.transactionAt !== receipt.transactionAt
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['entries', index],
+          message: 'receipt entries must belong to the receipt transaction',
+        });
+      }
+      if (
+        !evaluationTeams.has(entry.teamId) ||
+        !snapshotTeams.has(entry.teamId) ||
+        !salaryDeltaTeams.has(entry.teamId)
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['entries', index, 'teamId'],
+          message: 'every cash entry Team must have receipt authority',
+        });
+      }
+    });
+
+    receipt.entries.forEach((entry, index) => {
+      const pairedDirection = entry.direction === 'PAID' ? 'RECEIVED' : 'PAID';
+      const pairedKey = [
+        entry.counterpartyTeamId,
+        entry.teamId,
+        pairedDirection,
+        entry.amountCents,
+        entry.salaryCapYear,
+        entry.transactionAt,
+      ].join('|');
+      const entryKey = [
+        entry.teamId,
+        entry.counterpartyTeamId,
+        entry.direction,
+        entry.amountCents,
+        entry.salaryCapYear,
+        entry.transactionAt,
+      ].join('|');
+      if (entryKeys.get(pairedKey) !== entryKeys.get(entryKey)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['entries', index],
+          message:
+            'every paid cash entry must have one matching received entry',
+        });
+      }
+    });
+
+    receipt.teamEvaluations.forEach((evaluation, index) => {
+      if (
+        !entryTeams.has(evaluation.teamId) ||
+        evaluation.cashSentCents !== (paidByTeam.get(evaluation.teamId) || 0) ||
+        evaluation.cashReceivedCents !==
+          (receivedByTeam.get(evaluation.teamId) || 0)
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['teamEvaluations', index],
+          message: 'receipt evaluation totals must equal its cash entries',
+        });
+      }
+    });
+
+    if (
+      evaluationTeams.size !== entryTeams.size ||
+      [...evaluationTeams].some((teamId) => !entryTeams.has(teamId))
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['teamEvaluations'],
+        message: 'receipt evaluations must cover exactly the cash-entry Teams',
+      });
+    }
+
+    if (
+      evaluationTeams.size !== salaryDeltaTeams.size ||
+      [...evaluationTeams].some((teamId) => !salaryDeltaTeams.has(teamId))
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['salaryBookCashDeltas'],
+        message: 'salary-book cash deltas must cover every evaluated Team',
+      });
+    }
+  });
 
 export type GovernedCashLedger = z.infer<typeof GovernedCashLedgerZ>;
 export type GovernedCashProof = z.infer<typeof GovernedCashProofZ>;
 export type GovernedCashLedgerEntry = z.infer<typeof GovernedCashLedgerEntryZ>;
 export type GovernedCashEvaluation = z.infer<typeof GovernedCashEvaluationZ>;
 export type GovernedCashReceipt = z.infer<typeof GovernedCashReceiptZ>;
+export type GovernedCashSnapshotReceipt = z.infer<
+  typeof GovernedCashSnapshotReceiptZ
+>;

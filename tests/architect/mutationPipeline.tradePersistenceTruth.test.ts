@@ -30,6 +30,12 @@ import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
 import { buildGeneralMutationCommittedTeamUpdates } from '@/features/architect/utils/mutationPipeline.read.persistence.snapshots';
 import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils/offerSheets';
 import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
+import { validateTrade } from '@/features/architect/utils/tradeMachine';
+import {
+  GovernedCashLedgerZ,
+  type GovernedCashEvaluation,
+} from '@/schemas/governedCashConsideration';
+import type { TradeApronRestrictionEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
@@ -300,6 +306,24 @@ function makeTeam(
   }) as TradeTeamFixture;
 }
 
+function basicTradeValidation(
+  input: Parameters<typeof validateTrade>[0]
+): ReturnType<typeof validateTrade> {
+  return {
+    valid: true,
+    success: true,
+    legal: true,
+    reason: null,
+    error: null,
+    warnings: [],
+    violations: [],
+    teamResults: Array.from(
+      { length: Array.isArray(input?.teams) ? input.teams.length : 0 },
+      () => ({ rules: {} })
+    ),
+  } as ReturnType<typeof validateTrade>;
+}
+
 function makeOfferSheet(
   overrides: Partial<TradeOfferSheetFixture> = {}
 ): TradeOfferSheetFixture {
@@ -493,6 +517,7 @@ describe('mutationPipeline trade persistence truth', () => {
   beforeEach(() => {
     resetMockDataStore();
     vi.clearAllMocks();
+    vi.mocked(validateTrade).mockImplementation(basicTradeValidation);
   });
 
   it('fails closed on a legacy waiver payload without governed Contract and receipt authority', async () => {
@@ -622,6 +647,358 @@ describe('mutationPipeline trade persistence truth', () => {
     const movedPlayer = await getPlayer(worldId, 'BOS', 'lal_out_18m');
     expect(movedPlayer.teamCode).toBe('BOS');
     expect(movedPlayer.contract?.salariesByYear?.[0]?.salary).toBe(18_000_000);
+  });
+
+  it('atomically persists paired cash ledgers, the uninvolved Team snapshot, Row I, and one receipt while rejecting a stale replay', async () => {
+    const worldId = 'world_trade_truth_cash';
+    const transactionAt = '2025-07-08T09:55:00-04:00';
+    const cashTimestamp = Date.UTC(2025, 6, 8, 14, 0, 0);
+    const annualLimitCents = 796_432_050;
+    const cashProof = {
+      canonCandidateCommit: '6cf8aaf358c158a88e630e8a7336f7e9c3febc17' as const,
+      canonSha256:
+        '23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76' as const,
+      salaryCapCents: 15_464_700_000,
+      annualLimitCents,
+      seasonInputManifest: {},
+    };
+    const cashEvaluation = (
+      teamId: 'LAL' | 'BOS',
+      direction: 'PAID' | 'RECEIVED'
+    ): GovernedCashEvaluation => ({
+      evaluationVersion: 1,
+      status: 'PASS',
+      passed: true,
+      teamId,
+      salaryCapYear: 2026,
+      transactionAt,
+      cashSentCents: direction === 'PAID' ? 100 : 0,
+      cashReceivedCents: direction === 'RECEIVED' ? 100 : 0,
+      priorPaidCents: 0,
+      priorReceivedCents: 0,
+      projectedPaidCents: direction === 'PAID' ? 100 : 0,
+      projectedReceivedCents: direction === 'RECEIVED' ? 100 : 0,
+      annualLimitCents,
+      regularSeasonClosing: '2026-04-12',
+      ledgerVersion: 0,
+      canonLeafIds: [
+        direction === 'PAID' ? 'CBA2-A08.1' : 'CBA2-A08.2',
+        'CBA2-A08.4',
+        'CBA2-A08.5',
+        'CBA2-A08.6',
+      ],
+      missingInputs: [],
+      violations: [],
+      proof: cashProof,
+    });
+    const hardCapProof = {
+      registryId: 'canon-governed-season-registry',
+      registryVersion: 1,
+      canonCandidateCommit: '6cf8aaf358c158a88e630e8a7336f7e9c3febc17',
+      canonSha256:
+        '23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76',
+      calendarRecordId: 'season-2025-26',
+      calendarRecordVersion: 1,
+      apronRecordId: 'apron-2025-26',
+      apronRecordVersion: 1,
+    };
+    const rowIEvaluation: TradeApronRestrictionEvaluation = {
+      version: 1,
+      status: 'PASS',
+      passed: true,
+      restrictionRow: 'I',
+      salaryMatchingPath: 'ROOM',
+      apronLevel: 'SECOND_APRON',
+      ceiling: 207_824_000,
+      postTransactionApronTeamSalary: 20_000_000,
+      margin: 187_824_000,
+      transactionDate: transactionAt,
+      salaryCapYear: 2026,
+      tpeId: null,
+      tpeCreatedOn: null,
+      tpeExpiresOn: null,
+      tpeTimings: [],
+      attachedRestrictions: [
+        {
+          restrictionRow: 'I',
+          componentId: 'cash:LAL:BOS',
+          componentKind: 'CASH',
+          salaryMatchingPath: 'ROOM',
+          apronLevel: 'SECOND_APRON',
+          ceiling: 207_824_000,
+          incomingPlayers: [],
+          cashAmountCents: 100,
+          tpeTiming: null,
+          regularSeasonClosing: null,
+          canonLeafIds: ['CBA2-A05.11'],
+          proof: hardCapProof,
+        },
+      ],
+      regularSeasonClosing: '2026-04-12',
+      hardCapWillPersist: true,
+      canonLeafIds: ['CBA2-A05.11'],
+      missingInputs: [],
+      violations: [],
+      proof: hardCapProof,
+    };
+    vi.mocked(validateTrade).mockImplementation((input) => {
+      const result = basicTradeValidation(input);
+      return {
+        ...result,
+        teamResults: [
+          {
+            teamId: 'LAL',
+            teamCode: 'LAL',
+            teamName: 'Lakers',
+            rules: {},
+            cashConsiderationEvaluation: cashEvaluation('LAL', 'PAID'),
+            apronRestrictionEvaluation: rowIEvaluation,
+          },
+          {
+            teamId: 'BOS',
+            teamCode: 'BOS',
+            teamName: 'Celtics',
+            rules: {},
+            cashConsiderationEvaluation: cashEvaluation('BOS', 'RECEIVED'),
+            apronRestrictionEvaluation: null,
+          },
+          {
+            teamId: 'DET',
+            teamCode: 'DET',
+            teamName: 'Pistons',
+            rules: {},
+            cashConsiderationEvaluation: null,
+            apronRestrictionEvaluation: null,
+          },
+        ],
+        tradeReceipt: {
+          isLegal: true,
+          teams: [
+            {
+              teamCode: 'LAL',
+              cashConsiderationEvaluation: cashEvaluation('LAL', 'PAID'),
+            },
+            {
+              teamCode: 'BOS',
+              cashConsiderationEvaluation: cashEvaluation('BOS', 'RECEIVED'),
+            },
+            {
+              teamCode: 'DET',
+              cashConsiderationEvaluation: null,
+            },
+          ],
+        },
+      } as ReturnType<typeof validateTrade>;
+    });
+
+    seedWorldMetadata(
+      worldId,
+      createMockWorld({
+        worldId,
+        userId: USER_ID,
+        currentSeason: SEASON_ID,
+      })
+    );
+    const lalOut = makePlayer('cash_lal_out', 'LAL', 8_000_000);
+    const bosOut = makePlayer('cash_bos_out', 'BOS', 8_000_000);
+    const detOut = makePlayer('cash_det_out', 'DET', 8_000_000);
+    seedBasePlayer(lalOut);
+    seedBasePlayer(bosOut);
+    seedBasePlayer(detOut);
+    seedTeamSnapshot(
+      worldId,
+      'LAL',
+      {
+        ...makeTeam('LAL', [lalOut]),
+        cashLedger: {
+          ledgerVersion: 0,
+          ledgerId: 'cash-ledger:LAL',
+          teamId: 'LAL',
+          entries: [],
+        },
+      },
+      { padRoster: false }
+    );
+    seedTeamSnapshot(
+      worldId,
+      'BOS',
+      {
+        ...makeTeam('BOS', [bosOut]),
+        cashLedger: {
+          ledgerVersion: 0,
+          ledgerId: 'cash-ledger:BOS',
+          teamId: 'BOS',
+          entries: [],
+        },
+      },
+      { padRoster: false }
+    );
+    seedTeamSnapshot(worldId, 'DET', makeTeam('DET', [detOut]), {
+      padRoster: false,
+    });
+    const salaryBooksBefore = {
+      LAL: requireTeamSnapshot(worldId, 'LAL').salaryBookInputs,
+      BOS: requireTeamSnapshot(worldId, 'BOS').salaryBookInputs,
+      DET: requireTeamSnapshot(worldId, 'DET').salaryBookInputs,
+    };
+    const payload = {
+      teams: [
+        {
+          teamCode: 'LAL',
+          sends: [{ ...lalOut, tradeTo: 'BOS' }],
+          entitlementsOut: [],
+          cashSent: 1,
+          cashToTeamId: 'BOS',
+        },
+        {
+          teamCode: 'BOS',
+          sends: [{ ...bosOut, tradeTo: 'DET' }],
+          entitlementsOut: [],
+        },
+        {
+          teamCode: 'DET',
+          sends: [{ ...detOut, tradeTo: 'LAL' }],
+          entitlementsOut: [],
+        },
+      ],
+      tradeCtx: {
+        source: 'mutationPipeline-test',
+        worldId,
+        tradeDate: transactionAt,
+        asOfDate: transactionAt,
+        currentYear: 2026,
+        yearKey: 2026,
+      },
+    };
+    const staleState = await loadStateForMutation(
+      worldId,
+      'executeTrade',
+      payload
+    );
+    const firstCandidate = computeWorldMutation({
+      mutationType: 'executeTrade',
+      payload,
+      currentState: staleState,
+      seasonId: SEASON_ID,
+      timestamp: cashTimestamp,
+      asOfDate: transactionAt,
+      worldId,
+      operationId: 'cash-operation-first',
+    });
+    const staleCandidate = computeWorldMutation({
+      mutationType: 'executeTrade',
+      payload,
+      currentState: staleState,
+      seasonId: SEASON_ID,
+      timestamp: cashTimestamp + 1,
+      asOfDate: transactionAt,
+      worldId,
+      operationId: 'cash-operation-stale',
+    });
+    expect(firstCandidate.success, String(firstCandidate.error)).toBe(true);
+    expect(staleCandidate.success, String(staleCandidate.error)).toBe(true);
+
+    const firstPersisted = await persistWorldMutation({
+      worldId,
+      seasonId: SEASON_ID,
+      mutationType: 'executeTrade',
+      computeResult: firstCandidate,
+      committedTeamUpdates: buildGeneralMutationCommittedTeamUpdates(
+        firstCandidate.teamUpdates,
+        SEASON_ID
+      ),
+      timestamp: cashTimestamp,
+    });
+    expect(firstPersisted.success, String(firstPersisted.error)).toBe(true);
+
+    const lalSnapshot = requireTeamSnapshot(worldId, 'LAL');
+    const bosSnapshot = requireTeamSnapshot(worldId, 'BOS');
+    const detSnapshot = requireTeamSnapshot(worldId, 'DET');
+    const lalLedger = GovernedCashLedgerZ.parse(lalSnapshot.cashLedger);
+    const bosLedger = GovernedCashLedgerZ.parse(bosSnapshot.cashLedger);
+    expect(lalLedger).toMatchObject({
+      ledgerVersion: 1,
+      entries: [
+        {
+          direction: 'PAID',
+          teamId: 'LAL',
+          counterpartyTeamId: 'BOS',
+          amountCents: 100,
+        },
+      ],
+    });
+    expect(bosLedger).toMatchObject({
+      ledgerVersion: 1,
+      entries: [
+        {
+          direction: 'RECEIVED',
+          teamId: 'BOS',
+          counterpartyTeamId: 'LAL',
+          amountCents: 100,
+        },
+      ],
+    });
+    expect(lalLedger.entries[0].transactionId).toBe(
+      bosLedger.entries[0].transactionId
+    );
+    expect(lalSnapshot.hardCapLedger).toEqual([
+      expect.objectContaining({
+        restrictionRow: 'I',
+        transactionId: lalLedger.entries[0].transactionId,
+      }),
+    ]);
+    expect(lalSnapshot.salaryBookInputs).toEqual(salaryBooksBefore.LAL);
+    expect(bosSnapshot.salaryBookInputs).toEqual(salaryBooksBefore.BOS);
+    expect(detSnapshot.salaryBookInputs).toEqual(salaryBooksBefore.DET);
+    expect(detSnapshot.cashLedger).toBeUndefined();
+
+    expect(firstPersisted.event).toMatchObject({
+      metadata: {
+        governedCashReceipt: {
+          verificationStatus: 'complete',
+          salaryBookCashDeltas: [
+            {
+              teamId: 'LAL',
+              teamSalary: 0,
+              apronTeamSalary: 0,
+              taxSalary: 0,
+            },
+            {
+              teamId: 'BOS',
+              teamSalary: 0,
+              apronTeamSalary: 0,
+              taxSalary: 0,
+            },
+          ],
+        },
+      },
+    });
+    const eventCountAfterWinner = [...getAllMockData().keys()].filter((key) =>
+      key.includes('/events/')
+    ).length;
+
+    const stalePersisted = await persistWorldMutation({
+      worldId,
+      seasonId: SEASON_ID,
+      mutationType: 'executeTrade',
+      computeResult: staleCandidate,
+      committedTeamUpdates: buildGeneralMutationCommittedTeamUpdates(
+        staleCandidate.teamUpdates,
+        SEASON_ID
+      ),
+      timestamp: cashTimestamp + 1,
+    });
+    expect(stalePersisted.success).toBe(false);
+    if (!stalePersisted.success) {
+      expect(stalePersisted.error).toMatch(/snapshot|ledger.*changed/i);
+    }
+    expect(
+      [...getAllMockData().keys()].filter((key) => key.includes('/events/'))
+    ).toHaveLength(eventCountAfterWinner);
+    expect(
+      GovernedCashLedgerZ.parse(requireTeamSnapshot(worldId, 'LAL').cashLedger)
+        .ledgerVersion
+    ).toBe(1);
   });
 
   it('persists sign-and-trade destination overrides with the signed contract and deletes source overrides', async () => {
@@ -877,17 +1254,21 @@ describe('mutationPipeline trade persistence truth', () => {
       worldId,
       'BOS',
       {
-        ...makeTeam('BOS', [bosKeeper], [
-          {
-            playerId: 'cap_hold_rfa',
-            playerName: 'Cap Hold Rights Player',
-            amount: 2_000_000,
-            season: SEASON_ID,
-            type: 'RFA Rights',
-            active: true,
-            isSigned: false,
-          },
-        ]),
+        ...makeTeam(
+          'BOS',
+          [bosKeeper],
+          [
+            {
+              playerId: 'cap_hold_rfa',
+              playerName: 'Cap Hold Rights Player',
+              amount: 2_000_000,
+              season: SEASON_ID,
+              type: 'RFA Rights',
+              active: true,
+              isSigned: false,
+            },
+          ]
+        ),
         rightsLedger: governed.rightsLedger,
       },
       { padRoster: false }
@@ -1362,7 +1743,11 @@ describe('mutationPipeline trade persistence truth', () => {
       }),
       rfaContext: { governedEvidence: governed.evidence },
     });
-    const lalKeeper = makePlayer('lal_keeper_tampered_mirror', 'LAL', 7_000_000);
+    const lalKeeper = makePlayer(
+      'lal_keeper_tampered_mirror',
+      'LAL',
+      7_000_000
+    );
     seedBasePlayer(player);
     seedBasePlayer(lalKeeper);
     seedTeamSnapshot(
@@ -1512,7 +1897,11 @@ describe('mutationPipeline trade persistence truth', () => {
       }),
       rfaContext: { governedEvidence: governed.evidence },
     });
-    const lalKeeper = makePlayer('lal_keeper_resolution_race', 'LAL', 7_000_000);
+    const lalKeeper = makePlayer(
+      'lal_keeper_resolution_race',
+      'LAL',
+      7_000_000
+    );
     seedBasePlayer(player);
     seedBasePlayer(lalKeeper);
     seedTeamSnapshot(
@@ -1618,8 +2007,7 @@ describe('mutationPipeline trade persistence truth', () => {
       offeringBeforeConcurrentEdit
     );
 
-    const homePlayerPath =
-      `architect_worlds/${worldId}/teams/BOS/players/resolution_race_rfa`;
+    const homePlayerPath = `architect_worlds/${worldId}/teams/BOS/players/resolution_race_rfa`;
     const homePlayerBeforeConcurrentEdit = requireValue(
       getAllMockData().get(homePlayerPath),
       'Expected a home player override for the concurrency fixture'
