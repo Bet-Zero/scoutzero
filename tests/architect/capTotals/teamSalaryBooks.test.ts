@@ -145,13 +145,14 @@ describe('BZE-285 independent salary books', () => {
     expect(totals.teamSalary).toBe(12_357_763);
     expect(totals.apronTeamSalary).toBe(12_800_000);
     expect(totals.taxSalary).toBe(20_300_000);
-    const apronCharge =
+    const apronCharges =
       totals.salaryBooks.ledgers.apronTeamSalary.status === 'complete'
-        ? totals.salaryBooks.ledgers.apronTeamSalary.lineItems.find((item) =>
+        ? totals.salaryBooks.ledgers.apronTeamSalary.lineItems.filter((item) =>
             item.canonLeafIds.includes('CBA2-C07.11')
           )
-        : null;
-    expect(apronCharge?.amount).toBe(-1_357_763);
+        : [];
+    expect(apronCharges).toHaveLength(1);
+    expect(apronCharges[0]?.amount).toBe(-1_357_763);
 
     const reloaded = normalizeCurrentStateTeamTotals(
       JSON.parse(JSON.stringify(totals))
@@ -177,13 +178,110 @@ describe('BZE-285 independent salary books', () => {
       YEAR,
       { asOfDate: '2026-07-02T12:00:00-04:00' }
     );
-    expect(totals.incompleteChargesTotal).toBe(0);
+    expect(totals.incompleteChargesTotal).toBeNull();
+    expect(totals.totalCapAllocations).toBeNull();
+    expect(totals.deltas).toEqual({
+      vsCap: null,
+      vsLuxuryTax: null,
+      vsFirstApron: null,
+      vsSecondApron: null,
+    });
     expect(totals.teamSalary).toBeNull();
     expect(totals.incompleteRosterResolution).toMatchObject({
       mode: 'governed',
       status: 'needs-input',
       amount: null,
     });
+  });
+
+  it('rejects the legacy editable charge field when governed evidence is present', () => {
+    const inputs = governedInputs();
+    inputs.unsignedFirstRoundPickState = {
+      version: 1,
+      status: 'ready',
+      teamCode: 'MIA',
+      salaryCapYear: YEAR,
+      entries: [],
+      source: {
+        evidenceId: 'bze-293:MIA:2027:none',
+        evidenceVersion: 1,
+        authority: 'external-determination',
+        reference: 'authenticated-test-team-state:none',
+        authenticatedAt: '2026-07-01T00:00:00-04:00',
+        recordStatus: 'current',
+        canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'],
+      },
+    };
+    inputs.incompleteRosterCharge = {
+      id: 'legacy:incomplete-roster',
+      ledger: 'team-salary',
+      label: 'Legacy editable charge',
+      amount: 1_357_763,
+      effectiveFrom: '2026-07-01T00:00:00-04:00',
+      canonLeafIds: ['CBA2-A01.1'],
+      source: { authority: 'team-state', reference: 'legacy-fixture' },
+    };
+
+    const totals = createCanonicalTeamTotalsSnapshot(
+      team({ players: players(11), salaryBookInputs: inputs }),
+      YEAR,
+      { asOfDate: '2026-07-02T12:00:00-04:00' }
+    );
+
+    expect(totals.incompleteRosterResolution?.status).toBe('complete');
+    expect(totals.teamSalary).toBeNull();
+    expect(totals.salaryBooks.ledgers.teamSalary).toMatchObject({
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.incompleteRosterCharge'],
+    });
+  });
+
+  it('rejects duplicate governed C07.11 adjustment lines', () => {
+    const inputs = governedInputs();
+    if (inputs.apronAdjustments.status === 'ready') {
+      inputs.apronAdjustments.lineItems.push(
+        line('apron-team-salary', 'CBA2-C07.11', 0)
+      );
+    }
+
+    const totals = createCanonicalTeamTotalsSnapshot(
+      team({ salaryBookInputs: inputs }),
+      YEAR,
+      { asOfDate: WORLD_DATE }
+    );
+
+    expect(totals.salaryBooks.ledgers.apronTeamSalary).toMatchObject({
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.apronAdjustments.CBA2-C07.11'],
+    });
+    expect(totals.apronTeamSalary).toBeNull();
+  });
+
+  it('rejects a persisted governed result that no longer reconciles', () => {
+    expect(() =>
+      normalizeCurrentStateTeamTotals({
+        incompleteRosterResolution: {
+          mode: 'governed',
+          status: 'complete',
+          activeWindow: true,
+          window: { opens: '2026-07-01', closes: '2026-10-20' },
+          counts: {
+            underContract: 11,
+            veteranFreeAgentAmounts: 0,
+            offerSheets: 0,
+            unsignedFirstRoundPicks: 0,
+            total: 11,
+          },
+          threshold: 12,
+          missingSlots: 1,
+          chargePerSlot: 1_357_763,
+          amount: 0,
+          canonLeafIds: ['CBA2-C03.1', 'CBA2-C03.2', 'CBA2-C07.11'],
+          missingInputs: [],
+          reason: 'Tampered persisted result.',
+        },
+      })
+    ).toThrow('Persisted governed incomplete-roster result is malformed.');
   });
 
   it('accepts real saved-world dates and rejects impossible calendar dates', () => {

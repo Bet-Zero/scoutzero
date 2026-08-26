@@ -305,16 +305,16 @@ export const TeamTotalsZ = z
     playersTotal: z.number().optional(),
     deadMoneyTotal: z.number().optional(),
     capHoldsTotal: z.number().optional(),
-    incompleteChargesTotal: z.number().optional(),
-    totalCapAllocations: z.number().optional(),
+    incompleteChargesTotal: z.number().nullable().optional(),
+    totalCapAllocations: z.number().nullable().optional(),
     salaryCap: z.number().optional(),
     luxuryTax: z.number().optional(),
     deltas: z
       .object({
-        vsCap: z.number().optional(),
-        vsLuxuryTax: z.number().optional(),
-        vsFirstApron: z.number().optional(),
-        vsSecondApron: z.number().optional(),
+        vsCap: z.number().nullable().optional(),
+        vsLuxuryTax: z.number().nullable().optional(),
+        vsFirstApron: z.number().nullable().optional(),
+        vsSecondApron: z.number().nullable().optional(),
       })
       .optional(),
     _meta: z

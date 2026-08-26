@@ -1,11 +1,24 @@
 import { describe, expect, it } from 'vitest';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { resolveGovernedIncompleteRosterCharge } from '@/features/architect/utils/capTotals/governedIncompleteRosterCharge';
 import { validateNonTradeMutationStage } from '@/features/architect/utils/nonTradeMutationValidationStage';
+import type { GovernedUnsignedFirstRoundPickState } from '@/schemas/governedIncompleteRosterCharge';
 import { makePendingGovernedOfferSheetLifecycle } from '../../../../tests/fixtures/architect/governedOfferSheet';
 
 const YEAR = 2027;
-const MINIMUM = 1_272_870;
+const MINIMUM = 1_357_763;
 const ACTIVE_DATE = '2026-07-02T12:00:00-04:00';
+
+type ResolveInput = Parameters<
+  typeof resolveGovernedIncompleteRosterCharge
+>[0];
+type ResolveOverrides = Partial<
+  Omit<ResolveInput, 'team' | 'salaryCapYear'>
+>;
+type UnavailableCaseMutator = (
+  roster: ReturnType<typeof team>,
+  overrides: ResolveOverrides
+) => void;
 
 function player(index: number, contractType = 'Standard') {
   return {
@@ -19,7 +32,12 @@ function player(index: number, contractType = 'Standard') {
   };
 }
 
-function pickState(entries: Array<Record<string, unknown>> = []) {
+function pickState(
+  entries: Extract<
+    GovernedUnsignedFirstRoundPickState,
+    { status: 'ready' }
+  >['entries'] = []
+): Extract<GovernedUnsignedFirstRoundPickState, { status: 'ready' }> {
   return {
     version: 1 as const,
     status: 'ready' as const,
@@ -33,7 +51,7 @@ function pickState(entries: Array<Record<string, unknown>> = []) {
       reference: 'authenticated-test-team-state',
       authenticatedAt: '2026-07-01T00:00:00-04:00',
       recordStatus: 'current' as const,
-      canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'] as const,
+      canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'],
     },
   };
 }
@@ -47,13 +65,25 @@ function team(count: number) {
     players: Array.from({ length: count }, (_, index) => player(index)),
     capHolds: [] as Array<Record<string, unknown>>,
     offerSheets: [],
-    salaryBookInputs: { unsignedFirstRoundPickState: pickState() },
+    salaryBookInputs: {
+      version: 1 as const,
+      salaryCapYear: YEAR,
+      unsignedFirstRoundPickState: pickState(),
+      apronAdjustments: {
+        status: 'not-evaluated' as const,
+        reason: 'Not needed for resolver fixtures.',
+      },
+      taxSalary: {
+        status: 'not-evaluated' as const,
+        reason: 'Not needed for resolver fixtures.',
+      },
+    },
   };
 }
 
 function resolve(
   roster: ReturnType<typeof team>,
-  overrides: Partial<Parameters<typeof resolveGovernedIncompleteRosterCharge>[0]> = {}
+  overrides: ResolveOverrides = {}
 ) {
   return resolveGovernedIncompleteRosterCharge({
     team: roster,
@@ -138,6 +168,74 @@ describe('BZE-293 governed incomplete-roster charge', () => {
     expect(result.amount).toBe(MINIMUM);
   });
 
+  it('rejects duplicate rookie holds instead of losing one during reconciliation', () => {
+    const roster = team(10);
+    roster.capHolds = [
+      {
+        playerId: 'rookie-1',
+        amount: 4_200_000,
+        season: '2026-27',
+        type: 'Rookie Scale',
+        active: true,
+        isSigned: false,
+      },
+      {
+        playerId: 'rookie-1',
+        amount: 4_200_000,
+        season: '2026-27',
+        type: 'Rookie Scale',
+        active: true,
+        isSigned: false,
+      },
+    ];
+    roster.salaryBookInputs.unsignedFirstRoundPickState = pickState([
+      {
+        pickId: '2026:MIA:1:18',
+        playerId: 'rookie-1',
+        teamCode: 'MIA',
+        salaryCapYear: YEAR,
+        teamSalaryAmount: 4_200_000,
+        includedInTeamSalary: true,
+        requiresUnresolvedDraftDetermination: false,
+        canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'],
+      },
+    ]);
+
+    const result = resolve(roster);
+    expect(result.status).toBe('needs-input');
+    expect(result.missingInputs).toContain(
+      'salaryBookInputs.unsignedFirstRoundPickState.unmatchedRookieHolds'
+    );
+  });
+
+  it('reports the original cap-hold index after active-hold filtering', () => {
+    const roster = team(10);
+    roster.capHolds = [
+      {
+        playerId: 'inactive-hold',
+        amount: 2_000_000,
+        season: '2026-27',
+        type: 'Bird',
+        active: false,
+        isSigned: false,
+      },
+      {
+        playerId: 'veteran-fa-1',
+        amount: 3_000_000,
+        season: '2026-27',
+        type: 'Bird',
+        active: true,
+        isSigned: false,
+      },
+    ];
+
+    const result = resolve(roster);
+    expect(result.status).toBe('needs-input');
+    expect(result.missingInputs).toContain(
+      'team.capHolds[1].governedVeteranFreeAgentAmount'
+    );
+  });
+
   it('counts each governed C03.1 category exactly once', () => {
     const roster = team(8);
     roster.capHolds = [
@@ -156,6 +254,7 @@ describe('BZE-293 governed incomplete-roster charge', () => {
     offerSheet.offeringTeamId = 'MIA';
     offerSheet.salaryCapYear = YEAR;
     offerSheet.evidenceSnapshot.salaryCapYear = YEAR;
+    offerSheet.reservations.offeringTeam[0].season = '2026-27';
     (roster as unknown as { offerSheets: unknown[] }).offerSheets = [
       {
         status: 'PENDING_MATCH',
@@ -211,32 +310,61 @@ describe('BZE-293 governed incomplete-roster charge', () => {
     expect(result.amount).toBeNull();
   });
 
-  it.each([
+  const unavailableCases: ReadonlyArray<
+    readonly [string, UnavailableCaseMutator]
+  > = [
     [
       'missing pick evidence',
-      (roster: ReturnType<typeof team>, _args: Record<string, unknown>) =>
+      (roster) =>
         delete (roster.salaryBookInputs as { unsignedFirstRoundPickState?: unknown })
           .unsignedFirstRoundPickState,
     ],
     [
       'projected minimum',
-      (_roster: ReturnType<typeof team>, args: Record<string, unknown>) => {
-        args.zeroYosMinimumSource = 'projected';
+      (_roster, overrides) => {
+        overrides.zeroYosMinimumSource = 'projected';
       },
     ],
     [
       'missing date',
-      (_roster: ReturnType<typeof team>, args: Record<string, unknown>) => {
-        args.asOfDate = null;
+      (_roster, overrides) => {
+        overrides.asOfDate = null;
       },
     ],
-  ] as const)('fails closed for %s', (_label, mutate) => {
+  ];
+
+  it.each(unavailableCases)('fails closed for %s', (_label, mutate) => {
     const roster = team(11);
-    const args: Record<string, unknown> = {};
-    mutate(roster, args);
-    const result = resolve(roster, args);
+    const overrides: ResolveOverrides = {};
+    mutate(roster, overrides);
+    const result = resolve(roster, overrides);
     expect(result.status).toBe('needs-input');
     expect(result.amount).toBeNull();
+  });
+
+  it('publishes no shared allocation total while the governed charge is unresolved', () => {
+    const roster = team(11);
+    (
+      roster.salaryBookInputs as {
+        unsignedFirstRoundPickState: unknown;
+      }
+    ).unsignedFirstRoundPickState = null;
+
+    const totals = createCanonicalTeamTotalsSnapshot(roster, YEAR, {
+      asOfDate: ACTIVE_DATE,
+    });
+
+    expect(totals.incompleteRosterResolution?.status).toBe('needs-input');
+    expect(totals.incompleteChargesTotal).toBeNull();
+    expect(totals.totalCapAllocations).toBeNull();
+    expect(totals.deltas).toEqual({
+      vsCap: null,
+      vsLuxuryTax: null,
+      vsFirstApron: null,
+      vsSecondApron: null,
+    });
+    expect(totals.teamSalary).toBeNull();
+    expect(totals.apronTeamSalary).toBeNull();
   });
 
   it('names a cross-category duplicate instead of returning a number', () => {
@@ -319,4 +447,75 @@ describe('BZE-293 governed mutation persistence gate', () => {
       );
     }
   );
+
+  it('blocks a governed post-state that drops the derived resolution entirely', () => {
+    const result = validateNonTradeMutationStage({
+      mutationType: 'signFreeAgent',
+      payload: {},
+      currentState: {},
+      computeResult: {
+        success: true,
+        teamUpdates: [
+          {
+            teamCode: 'MIA',
+            team: {
+              salaryBookInputs: {
+                version: 1,
+                salaryCapYear: YEAR,
+                unsignedFirstRoundPickState: pickState(),
+                apronAdjustments: {
+                  status: 'not-evaluated',
+                  reason: 'Not needed for this gate fixture.',
+                },
+                taxSalary: {
+                  status: 'not-evaluated',
+                  reason: 'Not needed for this gate fixture.',
+                },
+              },
+              totals: {},
+            },
+          },
+        ],
+      },
+      seasonId: '2026-27',
+      asOfDate: ACTIVE_DATE,
+      dateDefaulted: false,
+      worldId: 'world-bze-293',
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain(
+      'governed incomplete-roster result is missing'
+    );
+    expect(result.violations?.[0]).toContain(
+      'governed_incomplete_roster_books_required'
+    );
+  });
+
+  it('blocks a count-changing operation that drops the governed Team update', () => {
+    const result = validateNonTradeMutationStage({
+      mutationType: 'waivePlayer',
+      payload: {},
+      currentState: {
+        team: team(11),
+        player: player(1),
+      },
+      computeResult: {
+        success: true,
+        teamUpdates: [],
+      },
+      seasonId: '2026-27',
+      asOfDate: ACTIVE_DATE,
+      dateDefaulted: false,
+      worldId: 'world-bze-293',
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain(
+      'did not produce a reconciled post-action Team state'
+    );
+    expect(result.violations?.[0]).toContain(
+      'governed_incomplete_roster_books_required'
+    );
+  });
 });

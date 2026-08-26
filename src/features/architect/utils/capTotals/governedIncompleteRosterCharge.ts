@@ -2,8 +2,15 @@ import { getPlayerCapHitForYear, isTwoWayContract } from '@/features/architect/u
 import { getActiveUnsignedCapHoldsByEndYear } from '@/features/architect/utils/capHolds';
 import type { CapHold } from '@/features/architect/utils/capHolds';
 import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
+import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
-import { GovernedUnsignedFirstRoundPickStateZ } from '@/schemas/governedIncompleteRosterCharge';
+import {
+  GovernedUnsignedFirstRoundPickStateZ,
+  isGovernedMoney,
+  type GovernedIncompleteRosterResolution,
+} from '@/schemas/governedIncompleteRosterCharge';
+
+export type { GovernedIncompleteRosterResolution } from '@/schemas/governedIncompleteRosterCharge';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -16,27 +23,6 @@ export interface IncompleteRosterTeamLike extends UnknownRecord {
   capHolds?: unknown[] | null;
   offerSheets?: unknown[] | null;
   salaryBookInputs?: unknown;
-}
-
-export interface GovernedIncompleteRosterResolution {
-  mode: 'governed';
-  status: 'complete' | 'needs-input' | 'not-evaluated';
-  activeWindow: boolean | null;
-  window: { opens: string; closes: string } | null;
-  counts: {
-    underContract: number;
-    veteranFreeAgentAmounts: number;
-    offerSheets: number;
-    unsignedFirstRoundPicks: number;
-    total: number;
-  } | null;
-  threshold: 12;
-  missingSlots: number | null;
-  chargePerSlot: number | null;
-  amount: number | null;
-  canonLeafIds: readonly ['CBA2-C03.1', 'CBA2-C03.2', 'CBA2-C07.11'];
-  missingInputs: string[];
-  reason: string;
 }
 
 export interface LegacyIncompleteRosterResolution {
@@ -82,13 +68,6 @@ const identity = (record: UnknownRecord): string | null => {
 
 const stringValue = (value: unknown): string | null =>
   typeof value === 'string' && value.trim() ? value.trim() : null;
-
-const isMoney = (value: unknown): value is number =>
-  typeof value === 'number' &&
-  Number.isFinite(value) &&
-  value >= 0 &&
-  Number.isSafeInteger(Math.round(value * 100)) &&
-  Math.abs(value * 100 - Math.round(value * 100)) < 1e-6;
 
 const unavailable = (
   reason: string,
@@ -182,7 +161,10 @@ export function resolveGovernedIncompleteRosterCharge(args: {
     };
   }
 
-  if (!isMoney(args.zeroYosMinimum) || args.zeroYosMinimumSource !== 'real') {
+  if (
+    !isGovernedMoney(args.zeroYosMinimum) ||
+    args.zeroYosMinimumSource !== 'real'
+  ) {
     return unavailable(
       'The official zero-years-of-service Minimum Salary is unavailable.',
       ['governedSeason.minimumSalaryScale.yos0'],
@@ -209,7 +191,7 @@ export function resolveGovernedIncompleteRosterCharge(args: {
     if (!player || isTwoWayContract(player)) continue;
     const playerId = identity(player);
     const capHit = getPlayerCapHitForYear(player, salaryCapYear);
-    if (!playerId || !isMoney(capHit) || capHit <= 0) {
+    if (!playerId || !isGovernedMoney(capHit) || capHit <= 0) {
       missing.push(`team.players[${index}].currentTeamSalaryContract`);
       continue;
     }
@@ -228,28 +210,30 @@ export function resolveGovernedIncompleteRosterCharge(args: {
   let veteranFreeAgentAmounts = 0;
   activeHolds
     .filter((hold) => !rookieHolds.includes(hold))
-    .forEach((hold, index) => {
+    .forEach((hold) => {
+      const index = (Array.isArray(team.capHolds) ? team.capHolds : []).indexOf(
+        hold
+      );
+      const path =
+        index >= 0
+          ? `team.capHolds[${index}]`
+          : `team.capHolds[identity:${String(hold.playerId ?? 'missing')}]`;
       const playerId = stringValue(hold.playerId);
       if (
         !playerId ||
-        !isMoney(hold.amount) ||
+        !isGovernedMoney(hold.amount) ||
         !hold.governedContractEventId
       ) {
-        missing.push(`team.capHolds[${index}].governedVeteranFreeAgentAmount`);
+        missing.push(`${path}.governedVeteranFreeAgentAmount`);
         return;
       }
-      if (
-        register(
-          playerId,
-          'veteran-free-agent-amount',
-          `team.capHolds[${index}]`
-        )
-      ) {
+      if (register(playerId, 'veteran-free-agent-amount', path)) {
         veteranFreeAgentAmounts += 1;
       }
     });
 
   let offerSheets = 0;
+  const season = toSeasonKey(salaryCapYear);
   (Array.isArray(team.offerSheets) ? team.offerSheets : []).forEach((value, index) => {
     const record = asRecord(value);
     if (record?.status !== 'PENDING_MATCH') return;
@@ -258,7 +242,14 @@ export function resolveGovernedIncompleteRosterCharge(args: {
       !parsed.success ||
       parsed.data.status !== 'pending-match' ||
       parsed.data.offeringTeamId !== teamCode ||
-      parsed.data.salaryCapYear !== salaryCapYear
+      parsed.data.salaryCapYear !== salaryCapYear ||
+      !season ||
+      !parsed.data.reservations.offeringTeam.some(
+        (reservation) =>
+          reservation.season === season &&
+          isGovernedMoney(reservation.amount) &&
+          reservation.amount > 0
+      )
     ) {
       missing.push(`team.offerSheets[${index}].governedLifecycle`);
       return;
@@ -281,19 +272,35 @@ export function resolveGovernedIncompleteRosterCharge(args: {
   ) {
     missing.push('salaryBookInputs.unsignedFirstRoundPickState.identity');
   } else {
-    const rookieHoldsByPlayer = new Map(rookieHolds.map((hold) => [hold.playerId, hold]));
+    const remainingRookieHolds = [...rookieHolds];
+    rookieHolds.forEach((hold) => {
+      if (!stringValue(hold.playerId)) {
+        const index = (Array.isArray(team.capHolds) ? team.capHolds : []).indexOf(
+          hold
+        );
+        missing.push(
+          index >= 0
+            ? `team.capHolds[${index}].playerId`
+            : 'team.capHolds[rookie].playerId'
+        );
+      }
+    });
     for (const [index, entry] of pickState.data.entries.entries()) {
-      const hold = rookieHoldsByPlayer.get(entry.playerId);
+      const holdIndex = remainingRookieHolds.findIndex(
+        (hold) => stringValue(hold.playerId) === entry.playerId
+      );
+      const hold =
+        holdIndex >= 0 ? remainingRookieHolds[holdIndex] : undefined;
       if (!hold || hold.amount !== entry.teamSalaryAmount) {
         missing.push(`salaryBookInputs.unsignedFirstRoundPickState.entries[${index}].teamSalaryAmount`);
         continue;
       }
-      rookieHoldsByPlayer.delete(entry.playerId);
+      remainingRookieHolds.splice(holdIndex, 1);
       if (register(entry.playerId, 'unsigned-first-round-pick', `salaryBookInputs.unsignedFirstRoundPickState.entries[${index}]`)) {
         unsignedFirstRoundPicks += 1;
       }
     }
-    if (rookieHoldsByPlayer.size > 0) {
+    if (remainingRookieHolds.length > 0) {
       missing.push('salaryBookInputs.unsignedFirstRoundPickState.unmatchedRookieHolds');
     }
   }

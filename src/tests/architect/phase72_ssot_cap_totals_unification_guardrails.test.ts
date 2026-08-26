@@ -140,10 +140,10 @@ describe('Phase 72 SSOT Cap Totals Unification Guardrails', () => {
       // Total allocations should include the incomplete charges
       expect(totals.totalCapAllocations).toBeGreaterThan(totals.playersTotal);
       expect(totals.totalCapAllocations).toBe(
-        totals.playersTotal +
+          totals.playersTotal +
           totals.deadMoneyTotal +
           totals.capHoldsTotal +
-          totals.incompleteChargesTotal
+          totals.incompleteChargesTotal!
       );
     });
 

@@ -136,16 +136,75 @@ const INCOMPLETE_ROSTER_COUNT_MUTATIONS = new Set([
 
 function validateReconciledRosterBooks(
   mutationType: string,
-  computeResult: ComputeResultLike
+  computeResult: ComputeResultLike,
+  currentState: MutationCurrentState
 ): StageValidationResult | null {
   if (!INCOMPLETE_ROSTER_COUNT_MUTATIONS.has(mutationType)) return null;
+
+  for (const currentTeam of [
+    currentState.team,
+    currentState.homeTeam,
+    currentState.offeringTeam,
+  ]) {
+    const hasGovernedEvidence = Object.prototype.hasOwnProperty.call(
+      currentTeam?.salaryBookInputs || {},
+      'unsignedFirstRoundPickState'
+    );
+    if (!hasGovernedEvidence) continue;
+    const teamCode =
+      typeof currentTeam?.teamCode === 'string' && currentTeam.teamCode.trim()
+        ? currentTeam.teamCode.trim()
+        : null;
+    const hasPostState =
+      teamCode !== null &&
+      (computeResult.teamUpdates || []).some(
+        (update) => update.teamCode === teamCode
+      );
+    if (hasPostState) continue;
+    const displayTeamCode = teamCode || 'the governed Team';
+    const message = `No changes were saved for ${displayTeamCode}: the count-changing operation did not produce a reconciled post-action Team state.`;
+    return {
+      valid: false,
+      error: message,
+      violations: [
+        JSON.stringify({
+          rule: 'governed_incomplete_roster_books_required',
+          ledger: 'teamUpdates',
+          message,
+          severity: 'error',
+        }),
+      ],
+      warnings: [],
+    };
+  }
 
   for (const update of computeResult.teamUpdates || []) {
     const totals = update.team?.totals as Record<string, unknown> | undefined;
     const rosterResolution = totals?.incompleteRosterResolution as
       | { mode?: unknown }
       | undefined;
-    if (rosterResolution?.mode !== 'governed') continue;
+    const salaryBookInputs = update.team?.salaryBookInputs;
+    const hasGovernedEvidence = Object.prototype.hasOwnProperty.call(
+      salaryBookInputs || {},
+      'unsignedFirstRoundPickState'
+    );
+    if (!hasGovernedEvidence && rosterResolution?.mode !== 'governed') continue;
+    if (rosterResolution?.mode !== 'governed') {
+      const message = `No changes were saved for ${update.teamCode}: the governed incomplete-roster result is missing from the post-action Team state.`;
+      return {
+        valid: false,
+        error: message,
+        violations: [
+          JSON.stringify({
+            rule: 'governed_incomplete_roster_books_required',
+            ledger: 'incompleteRosterResolution',
+            message,
+            severity: 'error',
+          }),
+        ],
+        warnings: [],
+      };
+    }
     const salaryBooks = totals?.salaryBooks as
       | {
           ledgers?: Record<
@@ -687,7 +746,8 @@ export function validateNonTradeMutationStage({
   });
   const rosterBooksResult = validateReconciledRosterBooks(
     mutationType,
-    computeResult
+    computeResult,
+    currentState
   );
   if (rosterBooksResult) return rosterBooksResult;
 

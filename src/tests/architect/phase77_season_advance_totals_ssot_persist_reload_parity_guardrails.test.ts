@@ -572,7 +572,7 @@ describe('Phase 77: Edge Cases', () => {
     // totalCapAllocations should include dead money
     expect(updatedTeam.totals.totalCapAllocations).toBeGreaterThan(
       updatedTeam.totals.playersTotal +
-        updatedTeam.totals.incompleteChargesTotal
+        updatedTeam.totals.incompleteChargesTotal!
     );
   });
 
@@ -602,7 +602,7 @@ describe('Phase 77: Edge Cases', () => {
     // totalCapAllocations should include cap holds
     expect(updatedTeam.totals.totalCapAllocations).toBeGreaterThan(
       updatedTeam.totals.playersTotal +
-        updatedTeam.totals.incompleteChargesTotal
+        updatedTeam.totals.incompleteChargesTotal!
     );
   });
 });

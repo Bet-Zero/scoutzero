@@ -88,21 +88,21 @@ export interface ComputedTeamCapTotals extends UnknownRecord {
   playersTotal: number;
   deadMoneyTotal: number;
   capHoldsTotal: number;
-  incompleteChargesTotal: number;
+  incompleteChargesTotal: number | null;
   incompleteRosterResolution?:
     | GovernedIncompleteRosterResolution
     | LegacyIncompleteRosterResolution;
   outstandingOfferSheetTotal?: number;
-  totalCapAllocations: number;
+  totalCapAllocations: number | null;
   salaryCap: number;
   luxuryTax: number;
   firstApron: number;
   secondApron: number;
   deltas: {
-    vsCap: number;
-    vsLuxuryTax: number;
-    vsFirstApron: number;
-    vsSecondApron: number;
+    vsCap: number | null;
+    vsLuxuryTax: number | null;
+    vsFirstApron: number | null;
+    vsSecondApron: number | null;
   };
   _meta: TeamCapTotalsMeta;
 }
@@ -370,26 +370,32 @@ export function computeTeamCapTotals(
       };
   const incompleteChargesTotal =
     incompleteRosterResolution.status === 'complete'
-      ? (incompleteRosterResolution.amount ?? 0)
-      : 0;
+      ? incompleteRosterResolution.amount
+      : null;
   const outstandingOfferSheetTotal = computeOutstandingOfferSheetTotal(
     teamCapSheet?.offerSheets,
     toSeasonKey(yearKey)
   );
 
-  const totalCapAllocations = computeCanonicalTotalCapAllocations({
-    playersTotal,
-    deadMoneyTotal,
-    capHoldsTotal,
-    incompleteChargesTotal,
-    outstandingOfferSheetTotal,
-  });
+  const totalCapAllocations =
+    incompleteChargesTotal === null
+      ? null
+      : computeCanonicalTotalCapAllocations({
+          playersTotal,
+          deadMoneyTotal,
+          capHoldsTotal,
+          incompleteChargesTotal,
+          outstandingOfferSheetTotal,
+        });
 
   const deltas = {
-    vsCap: totalCapAllocations - salaryCap,
-    vsLuxuryTax: totalCapAllocations - luxuryTax,
-    vsFirstApron: totalCapAllocations - firstApron,
-    vsSecondApron: totalCapAllocations - secondApron,
+    vsCap: totalCapAllocations === null ? null : totalCapAllocations - salaryCap,
+    vsLuxuryTax:
+      totalCapAllocations === null ? null : totalCapAllocations - luxuryTax,
+    vsFirstApron:
+      totalCapAllocations === null ? null : totalCapAllocations - firstApron,
+    vsSecondApron:
+      totalCapAllocations === null ? null : totalCapAllocations - secondApron,
   };
 
   return {
@@ -418,7 +424,7 @@ export function computeTeamCapTotals(
       incompleteRosterCharge:
         incompleteRosterResolution.mode === 'governed'
           ? incompleteRosterResolution
-          : incompleteChargesTotal > 0
+          : incompleteChargesTotal !== null && incompleteChargesTotal > 0
             ? {
                 standardRosterCount: legacyStandardRosterCount,
                 minRoster: rules.roster.minStandard,
@@ -442,7 +448,6 @@ export function createCanonicalTeamTotalsSnapshot(
     selectedYear,
     options
   );
-  const totalCapAllocations = canonicalTotals.totalCapAllocations;
   const existingTotals = asRecord(teamCapSheet?.totals) || {};
   const salaryBooks = computeTeamSalaryBooks(
     teamCapSheet,

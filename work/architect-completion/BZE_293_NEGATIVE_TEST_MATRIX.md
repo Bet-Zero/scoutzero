@@ -46,6 +46,20 @@ Team Salary, and Tax Salary results.
 | A failure state looks successful | Force any Needs input, Not evaluated, validation, persistence, or reload failure | No borrowed number or success receipt appears; the UI names the missing input in GM language |
 | Completed scope regresses | Run focused BZE-273/283/284/285/286/289/290/291 boundary checks | Completed behavior remains green; draft, trade-bonus, and unsupported list-state routes remain fail closed |
 
+## Cross-workflow proof composition
+
+These rows compose the BZE-293-specific roster/book assertions with the shared
+saved-world transaction boundary already landed in the current repository. The
+charge evidence, derived resolution, and all three books are fields of the same
+Team document; they are not independently writable documents.
+
+| Matrix rows | BZE-293-specific proof | Shared persistence proof |
+| --- | --- | --- |
+| Preview/Apply drift | `architect-trade-receipt-proof.spec.ts` validates and applies the exact governed two-Team result; `incompleteRosterCharge.test.ts` blocks every supported non-trade count mutation unless its post-state books reconcile | `mutationPipeline.tradePersistenceTruth.test.ts` rejects stale Team snapshots and replays without an overwrite |
+| Supported mutation reconciliation | `incompleteRosterCharge.test.ts` covers signing, waiver, renunciation, Offer Sheet creation/resolution, missing Team updates, and unresolved post-state books; `architect-trade-receipt-proof.spec.ts` covers trade | `governedSignAndTrade.test.ts` reconciles authenticated governed roster evidence on both Teams; `seasonManager.governedAdvance.test.ts` recomputes and persists the governed target-year result |
+| Concurrency or replay | The governed resolution and books are inside each snapshot digest checked by the shared transaction boundary | `governedSignAndTrade.test.ts` rejects stale Team/player/history snapshots and duplicate transaction ledgers; `seasonManager.governedAdvance.test.ts` rejects concurrent world/Team changes and duplicate transitions with the committed world unchanged |
+| Atomic persistence splits | The browser proof reloads the charge, Team Salary, Apron reversal, Tax independence, receipt, and History from one accepted transaction | `governedSignAndTrade.test.ts` rejects partial two-Team commits before every write; `seasonManager.governedAdvance.test.ts` injects commit failure and verifies no Team, history, manifest, event, or metadata write survives |
+
 ## Explicit exclusions
 
 - Accepted Canon, Phase 2 audit, and completed-child changes.

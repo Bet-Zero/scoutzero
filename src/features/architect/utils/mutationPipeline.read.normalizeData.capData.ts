@@ -19,6 +19,7 @@ import type {
 } from './mutationPipeline';
 import { GovernedWaiverLifecycleZ } from '@/schemas/governedWaiver';
 import { SalaryBooksSnapshotZ } from '@/schemas/salaryBooks';
+import { GovernedIncompleteRosterResolutionZ } from '@/schemas/governedIncompleteRosterCharge';
 
 function safeCloneForAudit<T>(value: T): T {
   if (value === null || value === undefined || typeof value !== 'object') {
@@ -170,6 +171,10 @@ export function normalizeCurrentStateTotalsDeltas(
   if (vsLuxuryTax !== undefined) normalized.vsLuxuryTax = vsLuxuryTax;
   if (vsFirstApron !== undefined) normalized.vsFirstApron = vsFirstApron;
   if (vsSecondApron !== undefined) normalized.vsSecondApron = vsSecondApron;
+  if (record.vsCap === null) normalized.vsCap = null;
+  if (record.vsLuxuryTax === null) normalized.vsLuxuryTax = null;
+  if (record.vsFirstApron === null) normalized.vsFirstApron = null;
+  if (record.vsSecondApron === null) normalized.vsSecondApron = null;
 
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
@@ -194,9 +199,26 @@ export function normalizeCurrentStateTotalsMeta(
   if (seasonKey !== undefined) normalized.seasonKey = seasonKey;
 
   if (incompleteRosterCharge) {
-    normalized.incompleteRosterCharge = safeCloneForAudit(
+    const governedCharge = GovernedIncompleteRosterResolutionZ.safeParse(
       incompleteRosterCharge
-    ) as NonNullable<ArchitectMutationTeamTotals['_meta']>['incompleteRosterCharge'];
+    );
+    if (governedCharge.success) {
+      normalized.incompleteRosterCharge = governedCharge.data;
+    } else if (incompleteRosterCharge.mode === 'governed') {
+      throw new Error(
+        'Persisted governed incomplete-roster metadata is malformed.'
+      );
+    } else {
+      normalized.incompleteRosterCharge = {
+        standardRosterCount:
+          toOptionalNumber(incompleteRosterCharge.standardRosterCount) ?? 0,
+        minRoster: toOptionalNumber(incompleteRosterCharge.minRoster) ?? 0,
+        missingSlots:
+          toOptionalNumber(incompleteRosterCharge.missingSlots) ?? 0,
+        chargePerSlot:
+          toOptionalNumber(incompleteRosterCharge.chargePerSlot) ?? 0,
+      };
+    }
   } else if (record.incompleteRosterCharge === null) {
     normalized.incompleteRosterCharge = null;
   }
@@ -229,6 +251,8 @@ export function normalizeCurrentStateTeamTotals(
     if (v !== undefined) normalized[field] = v;
   }
   for (const field of [
+    'incompleteChargesTotal',
+    'totalCapAllocations',
     'totalSalary',
     'teamSalary',
     'apronTeamSalary',
@@ -279,23 +303,20 @@ export function normalizeCurrentStateTeamTotals(
     };
   }
   if (salaryBooks.success) normalized.salaryBooks = salaryBooks.data;
-  const incompleteRosterResolution = asLooseRecord(
+  const incompleteRosterResolution =
+    GovernedIncompleteRosterResolutionZ.safeParse(
     record.incompleteRosterResolution
   );
-  if (incompleteRosterResolution) {
-    if (
-      incompleteRosterResolution.mode !== 'governed' ||
-      !['complete', 'needs-input', 'not-evaluated'].includes(
-        String(incompleteRosterResolution.status)
-      )
-    ) {
-      throw new Error(
-        'Persisted governed incomplete-roster result is malformed.'
-      );
-    }
-    normalized.incompleteRosterResolution = safeCloneForAudit(
-      incompleteRosterResolution
-    ) as ArchitectMutationTeamTotals['incompleteRosterResolution'];
+  if (
+    record.incompleteRosterResolution != null &&
+    !incompleteRosterResolution.success
+  ) {
+    throw new Error(
+      'Persisted governed incomplete-roster result is malformed.'
+    );
+  }
+  if (incompleteRosterResolution.success) {
+    normalized.incompleteRosterResolution = incompleteRosterResolution.data;
   }
 
   if (hardCapLevel !== undefined) normalized.hardCapLevel = hardCapLevel;

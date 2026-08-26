@@ -100,6 +100,7 @@ capSheet/
   CapSheet/
     CapSheet.tsx
     CapSummaryTiles.tsx
+    IncompleteRosterChargeSummary.tsx
     index.ts
   CapSheetFull/
     CapHoldDetailRow.tsx
@@ -648,5 +649,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-26T08:59:45.604Z*
+*Generated on: 2026-08-26T10:09:10.737Z*
 *Auto-updated by: npm run docs*

@@ -471,10 +471,10 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(totals.capHoldsTotal).toBe(2_000_000);
     expect(totals.incompleteChargesTotal).toBeGreaterThan(0);
     expect(totals.totalCapAllocations).toBe(
-      totals.playersTotal +
+        totals.playersTotal +
         totals.deadMoneyTotal +
         totals.capHoldsTotal +
-        totals.incompleteChargesTotal
+        totals.incompleteChargesTotal!
     );
     expect(totals.totalCapAllocations).toBeGreaterThan(playerOnlyCapHit);
   });
@@ -701,7 +701,7 @@ describe('CapSheetFull SSOT Parity — Behavioral Guardrails', () => {
     expect(totals.incompleteChargesTotal).toBe(0);
     expect(totals.capHoldsTotal).toBe(4_250_000);
     expect(totals.totalCapAllocations).toBe(33_699_421);
-    expect(totals.totalCapAllocations - totals.playersTotal).toBe(
+    expect(totals.totalCapAllocations! - totals.playersTotal).toBe(
       totals.capHoldsTotal
     );
   });

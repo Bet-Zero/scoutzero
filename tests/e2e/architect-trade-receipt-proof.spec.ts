@@ -509,12 +509,16 @@ const assertPersistedIncompleteRosterBooks = (
     throw new Error(`${expected.teamCode} salary books did not persist complete.`);
   }
 
-  const teamCharge = teamSalary.lineItems.find((lineItem) =>
+  const teamChargeLines = teamSalary.lineItems.filter((lineItem) =>
     lineItem.canonLeafIds.includes('CBA2-C03.1')
   );
-  const apronReversal = apronTeamSalary.lineItems.find((lineItem) =>
+  const apronReversalLines = apronTeamSalary.lineItems.filter((lineItem) =>
     lineItem.canonLeafIds.includes('CBA2-C07.11')
   );
+  expect(teamChargeLines).toHaveLength(1);
+  expect(apronReversalLines).toHaveLength(1);
+  const [teamCharge] = teamChargeLines;
+  const [apronReversal] = apronReversalLines;
   expect(teamCharge).toMatchObject({
     amount,
     included: true,
@@ -773,7 +777,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     timeout: 20_000,
   });
   await expect(readiness).toContainText(
-    'Team MIA has a partial post-state receipt because teamSalary is not complete.'
+    'Team MIA has 9 standard contracts (min 14).'
   );
   const applyTrade = dialog.getByRole('button', { name: /^Apply Trade$/i });
   await expect(applyTrade).toBeEnabled();
@@ -1056,8 +1060,8 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
         activeWindow: '2026-07-01 through the day before opening day',
         threshold: 12,
         twoWayPlayersExcluded: {
-          MIA: 'den_obi_nwachukwu',
-          DEN: 'mia_tobias_lund',
+          MIA: 'mia_tobias_lund',
+          DEN: 'den_obi_nwachukwu',
         },
         persisted: persistedIncompleteRosterCharges,
         reloadCapSheetVisible: true,

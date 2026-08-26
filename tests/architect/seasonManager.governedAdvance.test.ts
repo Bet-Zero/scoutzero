@@ -344,6 +344,59 @@ describe('governed 30-team Season Advance persistence', () => {
     ).toEqual(expect.objectContaining({ type: 'seasonAdvance' }));
   });
 
+  it('recomputes and persists the governed target-year roster result during Season Advance', async () => {
+    seedLeague({
+      mutateTeam: (teamCode, team) => {
+        if (teamCode !== 'MIA') return team;
+        const salaryBookInputs = {
+          ...(team.salaryBookInputs as Record<string, unknown>),
+        };
+        delete salaryBookInputs.incompleteRosterCharge;
+        return {
+          ...team,
+          salaryBookInputs: {
+            ...salaryBookInputs,
+            unsignedFirstRoundPickState: {
+              version: 1,
+              status: 'ready',
+              teamCode: 'MIA',
+              salaryCapYear: 2027,
+              entries: [],
+              source: {
+                evidenceId: 'bze-293:season-advance:MIA:2027:none',
+                evidenceVersion: 1,
+                authority: 'external-determination',
+                reference: 'authenticated-test-team-state:none',
+                authenticatedAt: '2026-07-01T00:00:00-04:00',
+                recordStatus: 'current',
+                canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'],
+              },
+            },
+          },
+        };
+      },
+    });
+
+    const result = await advanceSeasonInWorld(WORLD_ID);
+
+    expect(result.success).toBe(true);
+    if (!result.success) throw new Error(result.error);
+    const persistedMia = getMockData(
+      `architect_worlds/${WORLD_ID}/teams/MIA`
+    ) as { totals?: Record<string, unknown> };
+    expect(persistedMia.totals?.incompleteRosterResolution).toMatchObject({
+      mode: 'governed',
+      status: 'complete',
+      activeWindow: true,
+      counts: { underContract: 13, total: 13 },
+      missingSlots: 0,
+      amount: 0,
+    });
+    expect(persistedMia.totals?.salaryBooks).toMatchObject({
+      status: 'complete',
+    });
+  });
+
   it('rolls one complete explicit option decision backed by immutable event authority', async () => {
     seedLeague({
       mutateTeam: (teamCode, team) => {

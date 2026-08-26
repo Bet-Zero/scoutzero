@@ -22,15 +22,15 @@ describe('CapRulesProfile Facade', () => {
     expect(rules.salaries.rookieMin).toBeGreaterThan(1_000_000);
   });
 
-  it('keeps confirmed 2025-26 rules uniformly real', () => {
+  it('keeps the projected 2025-26 rookie minimum distinct from confirmed cap lines', () => {
     const rules = getCapRulesForYear(2026);
 
     expect(rules).toBeDefined();
-    expect(rules.salaries.rookieMinSource).toBe('real');
+    expect(rules.salaries.rookieMinSource).toBe('projected');
     expect(rules._meta).toBeDefined();
-    expect(rules._meta?.sourcesSummary).toBe('real');
-    expect(rules._meta?.sourcesMixed).toBe(false);
-    expect(rules._meta?.sourceTags).toEqual(['real']);
+    expect(rules._meta?.sourcesSummary).toBe('projected');
+    expect(rules._meta?.sourcesMixed).toBe(true);
+    expect(rules._meta?.sourceTags).toEqual(['projected', 'real']);
     expect(rules._meta?.provenance.rookieMinResolver).toBe('capSettings');
   });
 

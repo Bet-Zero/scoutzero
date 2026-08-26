@@ -180,17 +180,19 @@ export const TeamSalaryBookInputsZ = z
         message: 'Incomplete-roster charges belong only to Team Salary.',
       });
     }
-    const hasGovernedLeaves =
-      charge.canonLeafIds.includes('CBA2-C03.1') &&
-      charge.canonLeafIds.includes('CBA2-C03.2');
-    const isLegacyCompatibilityInput =
-      charge.canonLeafIds.includes('CBA2-A01.1');
-    if (charge.amount < 0 || (!hasGovernedLeaves && !isLegacyCompatibilityInput)) {
+    if (charge.amount < 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['incompleteRosterCharge', 'amount'],
+        message: 'Legacy incomplete-roster charge input must be nonnegative.',
+      });
+    }
+    if (!charge.canonLeafIds.includes('CBA2-A01.1')) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['incompleteRosterCharge', 'canonLeafIds'],
         message:
-          'Incomplete-roster charge compatibility input must be nonnegative and retain its declared Canon identity.',
+          'Legacy incomplete-roster charge input must be evidenced by CBA2-A01.1.',
       });
     }
   });

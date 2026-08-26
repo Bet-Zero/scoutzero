@@ -49,7 +49,7 @@ export interface TeamSalaryBookComponentTotals {
   playersTotal: number;
   deadMoneyTotal: number;
   capHoldsTotal: number;
-  incompleteChargesTotal: number;
+  incompleteChargesTotal: number | null;
   incompleteRosterResolution?: IncompleteRosterResolution;
   outstandingOfferSheetTotal?: number;
 }
@@ -224,6 +224,7 @@ function teamSalaryInput(
   }
   if (
     totals.incompleteRosterResolution.mode === 'legacy-compatibility' &&
+    totals.incompleteChargesTotal !== null &&
     totals.incompleteChargesTotal > 0 &&
     !incompleteRosterCharge
   ) {
@@ -270,18 +271,17 @@ function teamSalaryInput(
           },
         };
 
-  // The old editable line is retained only as a compatibility field. It is
-  // never authoritative and may not disagree with the governed derivation.
+  // The old editable line is retained only for legacy compatibility. A team
+  // opting into governed C03 evidence may not carry that authoring surface.
   if (
     totals.incompleteRosterResolution.mode === 'governed' &&
-    incompleteRosterCharge &&
-    incompleteRosterCharge.amount !== governedIncompleteCharge.amount
+    incompleteRosterCharge
   ) {
     return {
       status: 'needs-input',
       missingInputs: ['salaryBookInputs.incompleteRosterCharge'],
       reason:
-        'The legacy incomplete-roster input conflicts with the governed dated result and must not be used.',
+        'The legacy editable incomplete-roster input is unavailable in governed mode and must not be used.',
     };
   }
 
@@ -358,6 +358,17 @@ function apronSalaryInput(
     'salaryBookInputs.apronAdjustments'
   );
   if (covered.status !== 'ready') return covered;
+  const governedRosterLines = covered.lineItems.filter((lineItem) =>
+    lineItem.canonLeafIds.includes('CBA2-C07.11')
+  );
+  if (governedRosterLines.length !== 1) {
+    return {
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.apronAdjustments.CBA2-C07.11'],
+      reason:
+        'Apron Team Salary requires exactly one governed incomplete-roster adjustment.',
+    };
+  }
 
   const teamSalary = teamInput.lineItems.reduce(
     (sum, lineItem) => sum + lineItem.amount,
@@ -416,26 +427,28 @@ export function computeTeamSalaryBooks(
   const inputs = team ? parseInputs(team, salaryCapYear) : null;
   const incompleteRosterResolution =
     totals.incompleteRosterResolution ??
-    ({
-      mode: 'legacy-compatibility',
-      status: 'complete',
-      activeWindow: null,
-      window: null,
-      counts: {
-        underContract: 0,
-        veteranFreeAgentAmounts: 0,
-        offerSheets: 0,
-        unsignedFirstRoundPicks: 0,
-        total: 0,
-      },
-      threshold: 0,
-      missingSlots: 0,
-      chargePerSlot: 0,
-      amount: totals.incompleteChargesTotal,
-      canonLeafIds: ['CBA2-A01.1'],
-      missingInputs: [],
-      reason: 'Legacy compatibility result.',
-    } satisfies IncompleteRosterResolution);
+    (totals.incompleteChargesTotal === null
+      ? undefined
+      : ({
+          mode: 'legacy-compatibility',
+          status: 'complete',
+          activeWindow: null,
+          window: null,
+          counts: {
+            underContract: 0,
+            veteranFreeAgentAmounts: 0,
+            offerSheets: 0,
+            unsignedFirstRoundPicks: 0,
+            total: 0,
+          },
+          threshold: 0,
+          missingSlots: 0,
+          chargePerSlot: 0,
+          amount: totals.incompleteChargesTotal,
+          canonLeafIds: ['CBA2-A01.1'],
+          missingInputs: [],
+          reason: 'Legacy compatibility result.',
+        } satisfies IncompleteRosterResolution));
   const teamInput = teamSalaryInput(
     { ...totals, incompleteRosterResolution },
     asOfDate,
