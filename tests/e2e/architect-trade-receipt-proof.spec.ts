@@ -452,9 +452,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   };
 
   await miamiCard.getByLabel('MIA cash sent').fill('1');
-  await expect(miamiCard.getByLabel('MIA cash recipient')).toHaveValue(
-    'nuggets'
-  );
+  await expect(miamiCard.getByLabel('MIA cash recipient')).toHaveValue('DEN');
 
   await miamiCard.getByLabel('Tobias Lund exact pre-trade Salary').fill('0');
   await miamiCard

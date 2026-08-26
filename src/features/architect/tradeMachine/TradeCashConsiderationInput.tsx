@@ -11,7 +11,7 @@ interface TradeCashConsiderationInputProps {
 }
 
 function teamId(team: TeamOptionLike): string {
-  return String(team.id ?? team.teamCode ?? '').trim();
+  return String(team.teamCode ?? team.id ?? '').trim();
 }
 
 function teamLabel(team: TeamOptionLike): string {
