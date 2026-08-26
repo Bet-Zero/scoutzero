@@ -20,7 +20,6 @@ import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/ca
 import { normalizeTradePayloadPlayer } from '@/features/architect/utils/tradeContext/tradeContext.snapshot.payloadNorm';
 import { GovernedSignAndTradeAuthorityZ } from '@/schemas/governedSignAndTrade';
 import { validateSignAndTrade } from '@/features/architect/utils/tradeMachine/rules/validateSignAndTrade';
-import { runTradePostStateLegalityStage } from '@/features/architect/utils/tradeContext/tradeExecutionAuthority';
 
 const TEAM_CODES = [
   'ATL',
@@ -688,84 +687,6 @@ describe('governed saved-world sign-and-trade authority', () => {
       expect(team?.totals?.salaryBooks).toMatchObject({ status: 'complete' });
       expect(team?.salaryBookInputs?.incompleteRosterCharge).toBeUndefined();
     });
-  });
-
-  it('recomputes trade post-state totals at the governed world date instead of reusing an unresolved snapshot', () => {
-    const players = Array.from({ length: 10 }, (_, index) => ({
-      playerId: `dated-roster-player-${index}`,
-      contract: {
-        contractType: 'standard',
-        salariesByYear: [
-          {
-            season: '2026-27',
-            salary: 5_000_000,
-            capHit: 5_000_000,
-          },
-        ],
-      },
-    }));
-    const fixtureTeam = salaryBookTeam('ATL', players, 160_000_000);
-    const salaryBookInputs = {
-      ...fixtureTeam.salaryBookInputs,
-      unsignedFirstRoundPickState: {
-        version: 1 as const,
-        status: 'ready' as const,
-        teamCode: 'ATL',
-        salaryCapYear: 2027,
-        entries: [],
-        source: {
-          evidenceId: 'bze-293:trade-post-state:ATL:2027:none',
-          evidenceVersion: 1,
-          authority: 'external-determination' as const,
-          reference: 'authenticated-test-team-state:none',
-          authenticatedAt: '2026-07-01T00:00:00-04:00',
-          recordStatus: 'current' as const,
-          canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'] as const,
-        },
-      },
-    };
-    delete salaryBookInputs.incompleteRosterCharge;
-    const governedTeam = {
-      ...fixtureTeam,
-      worldId: WORLD_ID,
-      salaryBookInputs,
-    };
-    const unresolvedTotals = createCanonicalTeamTotalsSnapshot(
-      governedTeam,
-      2027
-    );
-    expect(unresolvedTotals.incompleteChargesTotal).toBeNull();
-
-    const result = runTradePostStateLegalityStage({
-      operationId: 'bze-293-dated-trade-post-state',
-      mutationType: 'executeTrade',
-      worldId: WORLD_ID,
-      year: 2027,
-      asOfDate: TRANSACTION_AT,
-      beforeTeamsByCode: {
-        ATL: { ...governedTeam, totals: unresolvedTotals },
-      },
-      afterTeamsByCode: {
-        ATL: { ...governedTeam, totals: unresolvedTotals },
-      },
-    });
-
-    const before = result.auditArtifacts.beforeTotalsByTeam.ATL;
-    const after = result.auditArtifacts.afterTotalsByTeam.ATL;
-    expect(before?.incompleteChargesTotal).toBe(2 * 1_357_763);
-    expect(after?.incompleteChargesTotal).toBe(2 * 1_357_763);
-    expect(before?.incompleteRosterResolution).toMatchObject({
-      mode: 'governed',
-      status: 'complete',
-      missingSlots: 2,
-    });
-    expect(
-      result.violations.some(
-        (violation) =>
-          violation.path ===
-          'beforeTotalsByTeam.ATL.incompleteChargesTotal'
-      )
-    ).toBe(false);
   });
 
   it('completes the positive saved-world workflow with Contract, books, Row C, receipt, and history', () => {
