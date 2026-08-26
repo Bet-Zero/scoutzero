@@ -1,5 +1,4 @@
 import React from 'react';
-import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
 import type { GovernedCashEvaluation } from '@/schemas/governedCashConsideration';
 
 interface TradeCashConsiderationReceiptProps {
@@ -7,7 +6,12 @@ interface TradeCashConsiderationReceiptProps {
 }
 
 function formatCents(value: number | null): string {
-  return value === null ? 'Needs input' : formatCurrency(value / 100);
+  return value === null
+    ? 'Needs input'
+    : `$${(value / 100).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
 }
 
 function statusClass(status: GovernedCashEvaluation['status']): string {
