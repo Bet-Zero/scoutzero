@@ -73,17 +73,26 @@ export function TradeApronRestrictionReceipt({
         >
           <div className="font-medium text-cockpit-text-primary">
             Row {trigger.restrictionRow} ·{' '}
-            {trigger.componentKind === 'HELD_STANDARD_TPE'
-              ? 'Held Standard TPE'
-              : 'Aggregated Standard TPE'}{' '}
-            component {trigger.componentId}
+            {trigger.componentKind === 'CASH'
+              ? `Cash payment${
+                  trigger.cashAmountCents == null
+                    ? ''
+                    : ` · ${formatCurrency(trigger.cashAmountCents / 100)}`
+                }`
+              : `${
+                  trigger.componentKind === 'HELD_STANDARD_TPE'
+                    ? 'Held Standard TPE'
+                    : 'Aggregated Standard TPE'
+                } component ${trigger.componentId}`}
           </div>
-          <div>
-            Players:{' '}
-            {trigger.incomingPlayers
-              .map((player) => `${player.playerName} (${player.playerId})`)
-              .join(', ')}
-          </div>
+          {trigger.incomingPlayers.length > 0 && (
+            <div>
+              Players:{' '}
+              {trigger.incomingPlayers
+                .map((player) => `${player.playerName} (${player.playerId})`)
+                .join(', ')}
+            </div>
+          )}
           {trigger.tpeTiming && (
             <div>
               Held TPE {trigger.tpeTiming.tpeId} · created{' '}
