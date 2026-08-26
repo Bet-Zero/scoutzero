@@ -22,6 +22,7 @@ import {
   ENABLE_PICK_RULES,
   resolveBaseTeamLike,
   resolveTeamCodeLike,
+  resolveTradeSalaryBasisTeamId,
   resolvePickRulesForEntitlements,
   augmentTeamWithExceptions,
   getCapTotalsForYear,
@@ -95,9 +96,10 @@ export function useTradeMachineTeamOps({
           const rosterPlayerIds = rosterPlayers
             .map((player) => resolveTradeSalaryBasisPlayerId(player))
             .filter(Boolean);
-          const salaryBasisTeamId = String(teamObj.id || teamObj.teamCode || '')
-            .trim()
-            .toUpperCase();
+          const salaryBasisTeamId = resolveTradeSalaryBasisTeamId(
+            baseTeam,
+            data
+          );
           if (!salaryBasisTeamId) {
             teamObj.governedTradeSalaryBasisLoadError =
               'Governed Trade Machine salary authority requires a Team identity.';

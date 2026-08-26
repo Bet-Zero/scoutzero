@@ -7,6 +7,7 @@ import type { GovernedWaiverLifecycle } from '@/schemas/governedWaiver';
 import { useTradeMachineInit } from '@/features/architect/hooks/useTradeMachineInit';
 import { useTradeMachineTeamOps } from '@/features/architect/hooks/useTradeMachineTeamOps';
 import { useTradeMachineValidation } from '@/features/architect/hooks/useTradeMachineValidation';
+import { resolveTradeSalaryBasisTeamId } from '@/features/architect/hooks/useTradeMachine.helpers';
 import type {
   TradeMachineTeam,
   TradeMachineTeamSlot,
@@ -193,6 +194,21 @@ describe('BZE-284 governed Trade Machine date forwarding', () => {
     cleanup();
     vi.clearAllTimers();
     vi.useRealTimers();
+  });
+
+  it('binds saved-world salary authority to the canonical Team code', () => {
+    expect(
+      resolveTradeSalaryBasisTeamId(
+        { id: 'heat', code: 'MIA' },
+        { id: 'heat', teamCode: 'MIA' }
+      )
+    ).toBe('MIA');
+    expect(
+      resolveTradeSalaryBasisTeamId(
+        { id: 'nuggets', code: 'DEN' },
+        { id: 'nuggets', teamCode: 'DEN' }
+      )
+    ).toBe('DEN');
   });
 
   it('reinitializes mounted Trade Machine totals when the governed date reaches exact expiry', async () => {
