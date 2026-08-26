@@ -110,6 +110,7 @@ import {
   normalizeTeamCodeLike,
   normalizeTradeValidationDate,
   resolvePlayerDestinationTeamId,
+  resolveTeamIdentityAliases,
   resolveTeamIdentity,
 } from './tradeValidator.ruleEnvelopes';
 
@@ -286,6 +287,9 @@ export function validateTrade({
   const teamIdsByIndex = routedValidTeams.map((teamSlot, index) =>
     resolveTeamIdentity(teamSlot, index)
   );
+  const teamIdentityAliasesByIndex = routedValidTeams.map((teamSlot, index) =>
+    resolveTeamIdentityAliases(teamSlot, index)
+  );
   const activeTeamCount = routedValidTeams.length;
   const buildRoutedIncomingPlayers = (
     receivingTeamId: string,
@@ -303,6 +307,7 @@ export function validateTrade({
           !shouldRoutePlayerToTeam({
             player,
             receivingTeamId,
+            receivingTeamAliases: teamIdentityAliasesByIndex[receivingIndex],
             activeTeamCount,
           })
         ) {

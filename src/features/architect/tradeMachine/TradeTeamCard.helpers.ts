@@ -53,9 +53,11 @@ export type EntitlementLike = HookTradeEntitlement & {
 };
 export type TeamOptionLike = Omit<
   ChildTeamOptionLike & ChildEntitlementTeamOptionLike,
-  'id' | 'teamName' | 'teamCode'
+  'id' | 'name' | 'nickname' | 'teamName' | 'teamCode'
 > & {
   id?: string | number | null;
+  name?: string | null;
+  nickname?: string | null;
   teamName?: string | null;
   teamCode?: string | null;
 };

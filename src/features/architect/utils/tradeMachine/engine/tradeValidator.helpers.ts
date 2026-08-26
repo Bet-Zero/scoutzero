@@ -27,19 +27,24 @@ export function isTwoWayPlayer(
 export function shouldRoutePlayerToTeam({
   player,
   receivingTeamId,
+  receivingTeamAliases = [receivingTeamId],
   activeTeamCount,
 }: {
   player: TradeValidatorPlayer;
   receivingTeamId: string;
+  receivingTeamAliases?: string[];
   activeTeamCount: number;
 }) {
   const destinationTeamId = resolvePlayerDestinationTeamId(player);
+  const routesToReceivingTeam =
+    destinationTeamId !== null &&
+    receivingTeamAliases.includes(destinationTeamId);
 
   if (activeTeamCount > 2) {
-    return destinationTeamId !== null && destinationTeamId === receivingTeamId;
+    return routesToReceivingTeam;
   }
 
-  return destinationTeamId === null || destinationTeamId === receivingTeamId;
+  return destinationTeamId === null || routesToReceivingTeam;
 }
 
 export function extractPlayerId(p: TradeValidatorPlayer | string | null | undefined) {
