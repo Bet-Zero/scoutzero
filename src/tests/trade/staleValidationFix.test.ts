@@ -113,6 +113,40 @@ describe('computeTradeDraftKey', () => {
     });
   });
 
+  describe('Cash changes invalidate key', () => {
+    it('generates different keys for amount and recipient changes', () => {
+      const noCash = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: mockTeamsEmpty,
+      });
+      const cashToLal = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: [
+          { ...mockTeamsEmpty[0], cashSent: 1, cashToTeamId: 'LAL' },
+          mockTeamsEmpty[1],
+        ],
+      });
+      const cashToMia = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: [
+          { ...mockTeamsEmpty[0], cashSent: 1, cashToTeamId: 'MIA' },
+          mockTeamsEmpty[1],
+        ],
+      });
+      const largerCashToLal = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: [
+          { ...mockTeamsEmpty[0], cashSent: 2, cashToTeamId: 'LAL' },
+          mockTeamsEmpty[1],
+        ],
+      });
+
+      expect(cashToLal).not.toBe(noCash);
+      expect(cashToMia).not.toBe(cashToLal);
+      expect(largerCashToLal).not.toBe(cashToLal);
+    });
+  });
+
   describe('Pick changes invalidate key', () => {
     it('generates different keys when picks are added', () => {
       const keyEmpty = computeTradeDraftKey({

@@ -9,6 +9,7 @@
 import {
   buildTradePlayerPersistenceManifest,
   materializeCurrentStateBaseTeamPreservedFields,
+  removeUndefinedDeep,
   toOptionalTrimmedString,
 } from './mutationPipeline.helpers';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
@@ -25,6 +26,12 @@ import {
 } from './mutationPipeline.compute.signings.signing';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
 import { GovernedSignAndTradeReceiptZ } from '@/schemas/governedSignAndTrade';
+import {
+  GovernedCashLedgerZ,
+  GovernedCashReceiptZ,
+  type GovernedCashEvaluation,
+  type GovernedCashLedgerEntry,
+} from '@/schemas/governedCashConsideration';
 import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
 import { normalizeTradeTeamCodeLike } from '@/features/architect/utils/tradeContext/tradeContext';
 import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
@@ -50,6 +57,11 @@ import type {
   ArchitectMutationTeamRecord,
 } from './mutationPipeline';
 import type { GovernedSignAndTradeAuthority } from '@/schemas/governedSignAndTrade';
+import {
+  canonicalizeTradeCashTeamId,
+  cashDollarsToCents,
+  resolveTradeCashRouting,
+} from '@/features/architect/utils/tradeMachine/utils/tradeCashRouting';
 
 function safeIntegerMoney(value: unknown): number | null {
   if (value === null || value === undefined) return null;
@@ -351,6 +363,271 @@ export function computeTradeResult({
       ];
     }
   );
+
+  let governedCashReceipt = null;
+  const cashRouting = resolveTradeCashRouting(tradeTeams);
+  if (!cashRouting.ok) {
+    return {
+      success: false,
+      error: `Cash routing changed before Apply: ${cashRouting.errors.join('; ')}`,
+    };
+  }
+  const routedCashTeams = cashRouting.teams;
+  const hasCashConsideration = routedCashTeams.some(
+    (team) =>
+      (cashDollarsToCents(team.cashSent) || 0) > 0 ||
+      (cashDollarsToCents(team.cashReceived) || 0) > 0
+  );
+  if (hasCashConsideration) {
+    if (!resolvedWorldId || !resolvedMutationId) {
+      return {
+        success: false,
+        error:
+          'Governed cash consideration requires exact world and transaction identity.',
+      };
+    }
+    const governedCashTeamSnapshots =
+      currentState.governedCashTeamSnapshots ?? [];
+    const currentTeamCodes = new Set(
+      currentState.teams.map((entry) => String(entry.teamCode || '').trim())
+    );
+    const cashSnapshotTeamCodes = new Set(
+      governedCashTeamSnapshots.map((snapshot) => snapshot.teamId)
+    );
+    if (
+      governedCashTeamSnapshots.length !== currentState.teams.length ||
+      currentTeamCodes.size !== cashSnapshotTeamCodes.size ||
+      [...currentTeamCodes].some(
+        (teamCode) => !cashSnapshotTeamCodes.has(teamCode)
+      )
+    ) {
+      return {
+        success: false,
+        error:
+          'Governed cash consideration requires exact saved-world Team snapshots.',
+      };
+    }
+    const teamResultByCode = new Map(
+      validation.teamResults.map((teamResult) => [
+        normalizeTradeTeamCodeLike(teamResult.teamCode),
+        teamResult,
+      ])
+    );
+    const routedTeamByCode = new Map(
+      routedCashTeams.map((team) => [
+        normalizeTradeTeamCodeLike(team.teamCode),
+        team,
+      ])
+    );
+    const expectedPaidByTeam = new Map<string, number>();
+    const expectedReceivedByTeam = new Map<string, number>();
+    const entries: GovernedCashLedgerEntry[] = [];
+
+    for (const payer of routedCashTeams) {
+      const payerCode = normalizeTradeTeamCodeLike(payer.teamCode);
+      const destinationCode = normalizeTradeTeamCodeLike(payer.cashToTeamId);
+      const amountCents = cashDollarsToCents(payer.cashSent);
+      if (!payerCode || amountCents === null || amountCents === 0) continue;
+      if (!destinationCode || !routedTeamByCode.has(destinationCode)) {
+        return {
+          success: false,
+          error: `Governed cash routing for ${payerCode} has no exact recipient.`,
+        };
+      }
+      const payerEvaluation =
+        teamResultByCode.get(payerCode)?.cashConsiderationEvaluation;
+      const receiverEvaluation =
+        teamResultByCode.get(destinationCode)?.cashConsiderationEvaluation;
+      if (
+        payerEvaluation?.status !== 'PASS' ||
+        receiverEvaluation?.status !== 'PASS' ||
+        !payerEvaluation.proof ||
+        !receiverEvaluation.proof ||
+        payerEvaluation.salaryCapYear === null ||
+        receiverEvaluation.salaryCapYear !== payerEvaluation.salaryCapYear ||
+        !payerEvaluation.transactionAt ||
+        receiverEvaluation.transactionAt !== payerEvaluation.transactionAt
+      ) {
+        return {
+          success: false,
+          error:
+            'Governed cash consideration no longer has matching paid and received authority.',
+        };
+      }
+      expectedPaidByTeam.set(
+        payerCode,
+        (expectedPaidByTeam.get(payerCode) || 0) + amountCents
+      );
+      expectedReceivedByTeam.set(
+        destinationCode,
+        (expectedReceivedByTeam.get(destinationCode) || 0) + amountCents
+      );
+      entries.push(
+        {
+          entryVersion: 1,
+          entryId: `${resolvedMutationId}:cash:${payerCode}:PAID:${destinationCode}`,
+          transactionId: resolvedMutationId,
+          worldId: resolvedWorldId,
+          teamId: payerCode,
+          counterpartyTeamId: destinationCode,
+          direction: 'PAID',
+          amountCents,
+          salaryCapYear: payerEvaluation.salaryCapYear,
+          transactionAt: payerEvaluation.transactionAt,
+          recordedAt: timestampISO,
+          canonLeafIds: [
+            ...new Set([...payerEvaluation.canonLeafIds, 'CBA2-A05.11']),
+          ],
+          proof: payerEvaluation.proof,
+        },
+        {
+          entryVersion: 1,
+          entryId: `${resolvedMutationId}:cash:${destinationCode}:RECEIVED:${payerCode}`,
+          transactionId: resolvedMutationId,
+          worldId: resolvedWorldId,
+          teamId: destinationCode,
+          counterpartyTeamId: payerCode,
+          direction: 'RECEIVED',
+          amountCents,
+          salaryCapYear: receiverEvaluation.salaryCapYear,
+          transactionAt: receiverEvaluation.transactionAt,
+          recordedAt: timestampISO,
+          canonLeafIds: [...receiverEvaluation.canonLeafIds],
+          proof: receiverEvaluation.proof,
+        }
+      );
+    }
+
+    const cashEvaluations: GovernedCashEvaluation[] = [];
+    for (const [teamCode, routedTeam] of routedTeamByCode) {
+      if (!teamCode) continue;
+      const teamResult = teamResultByCode.get(teamCode);
+      const cashEvaluation = teamResult?.cashConsiderationEvaluation;
+      const sentCents = expectedPaidByTeam.get(teamCode) || 0;
+      const receivedCents = expectedReceivedByTeam.get(teamCode) || 0;
+      if (sentCents === 0 && receivedCents === 0) continue;
+      if (
+        cashEvaluation?.status !== 'PASS' ||
+        cashEvaluation.cashSentCents !== sentCents ||
+        cashEvaluation.cashReceivedCents !== receivedCents ||
+        cashDollarsToCents(routedTeam.cashSent) !== sentCents ||
+        cashDollarsToCents(routedTeam.cashReceived) !== receivedCents
+      ) {
+        return {
+          success: false,
+          error: `Governed cash evaluation for ${teamCode} diverged before Apply.`,
+        };
+      }
+      cashEvaluations.push(cashEvaluation);
+    }
+
+    for (const teamUpdate of teamUpdates) {
+      const teamCode = normalizeTradeTeamCodeLike(teamUpdate.teamCode);
+      if (!teamCode || !teamUpdate.team) continue;
+      const teamEntries = entries.filter((entry) => entry.teamId === teamCode);
+      if (teamEntries.length === 0) continue;
+      const parsedLedger = GovernedCashLedgerZ.safeParse(
+        teamUpdate.team.cashLedger
+      );
+      const evaluationForTeam =
+        teamResultByCode.get(teamCode)?.cashConsiderationEvaluation;
+      if (
+        !parsedLedger.success ||
+        evaluationForTeam?.ledgerVersion !== parsedLedger.data.ledgerVersion ||
+        teamEntries.some((entry) =>
+          parsedLedger.data.entries.some(
+            (existing) => existing.entryId === entry.entryId
+          )
+        )
+      ) {
+        return {
+          success: false,
+          error: `Governed cash ledger for ${teamCode} changed or already contains this transaction.`,
+        };
+      }
+      teamUpdate.team.cashLedger = GovernedCashLedgerZ.parse({
+        ...parsedLedger.data,
+        ledgerVersion: parsedLedger.data.ledgerVersion + teamEntries.length,
+        entries: [...parsedLedger.data.entries, ...teamEntries],
+      });
+    }
+
+    const payingTeamCodes = [...expectedPaidByTeam.entries()]
+      .filter(([, amount]) => amount > 0)
+      .map(([teamCode]) => teamCode);
+    for (const payingTeamCode of payingTeamCodes) {
+      const teamResult = teamResultByCode.get(payingTeamCode);
+      const teamUpdate = teamUpdates.find(
+        (entry) =>
+          canonicalizeTradeCashTeamId(entry.teamCode) === payingTeamCode
+      );
+      const hasRowI =
+        teamResult?.apronRestrictionEvaluation?.attachedRestrictions.some(
+          (trigger) => trigger.restrictionRow === 'I'
+        );
+      const hasHardCapEntry = (teamUpdate?.team?.hardCapLedger || []).some(
+        (entry) =>
+          entry.transactionId === resolvedMutationId &&
+          Array.isArray(entry.triggers) &&
+          entry.triggers.some((trigger) => trigger.restrictionRow === 'I')
+      );
+      if (
+        teamResult?.apronRestrictionEvaluation?.status !== 'PASS' ||
+        !hasRowI ||
+        !hasHardCapEntry
+      ) {
+        return {
+          success: false,
+          error: `Cash-paying Team ${payingTeamCode} lacks a complete governed Row I hard-cap result.`,
+        };
+      }
+    }
+
+    const salaryCapYears = new Set(
+      cashEvaluations.map((evaluation) => evaluation.salaryCapYear)
+    );
+    const transactionDates = new Set(
+      cashEvaluations.map((evaluation) => evaluation.transactionAt)
+    );
+    if (
+      entries.length < 2 ||
+      salaryCapYears.size !== 1 ||
+      transactionDates.size !== 1
+    ) {
+      return {
+        success: false,
+        error: 'Governed cash receipt cannot reconcile one transaction year.',
+      };
+    }
+    governedCashReceipt = GovernedCashReceiptZ.parse({
+      receiptVersion: 1,
+      receiptId: `${resolvedMutationId}:cash-receipt`,
+      transactionId: resolvedMutationId,
+      worldId: resolvedWorldId,
+      salaryCapYear: [...salaryCapYears][0],
+      transactionAt: [...transactionDates][0],
+      committedAt: timestampISO,
+      teamEvaluations: cashEvaluations,
+      entries,
+      expectedTeamSnapshots: governedCashTeamSnapshots,
+      salaryBookCashDeltas: cashEvaluations.map((evaluation) => ({
+        teamId: evaluation.teamId,
+        teamSalary: 0,
+        apronTeamSalary: 0,
+        taxSalary: 0,
+      })),
+      tradeReceipt: removeUndefinedDeep(
+        validatedContext._rawValidation?.tradeReceipt ?? null
+      ),
+      verificationStatus: 'complete',
+      canonLeafIds: [
+        ...new Set([
+          ...cashEvaluations.flatMap((evaluation) => evaluation.canonLeafIds),
+          'CBA2-A05.11',
+        ]),
+      ],
+    });
+  }
 
   let governedSignAndTradeReceipt = null;
   if (governedSignAndTradeAuthority) {
@@ -680,6 +957,7 @@ export function computeTradeResult({
     apronRestrictions:
       apronRestrictions.length > 0 ? apronRestrictions : undefined,
     timestamp,
+    ...(governedCashReceipt ? { governedCashReceipt } : {}),
     ...(governedSignAndTradeAuthority ? { governedSignAndTradeAuthority } : {}),
     ...(governedSignAndTradeReceipt ? { governedSignAndTradeReceipt } : {}),
   };
@@ -687,6 +965,7 @@ export function computeTradeResult({
   // Phase 56: Return pure compute result - validation context is passed through, not created here
   return {
     success: true,
+    ...(governedCashReceipt ? { _requiresGovernedCashPersistence: true } : {}),
     ...(governedSignAndTradeAuthority
       ? { _requiresGovernedSignAndTradePersistence: true }
       : {}),

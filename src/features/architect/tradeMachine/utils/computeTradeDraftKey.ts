@@ -30,6 +30,8 @@ interface TradeDraftTeamLike extends UnknownRecord {
   sends?: TradeDraftPlayerLike[] | null;
   entitlementsOut?: TradeDraftEntitlementLike[] | null;
   salaryMatchingElection?: TradeSalaryMatchingElection | null;
+  cashSent?: number | null;
+  cashToTeamId?: string | null;
 }
 
 interface TradeDraftKeyParams {
@@ -92,8 +94,14 @@ export function computeTradeDraftKey({
                 ),
               }
       );
+      const cashSent = t.cashSent ?? 0;
+      const cashToTeamId = t.cashToTeamId ?? '';
+      const cash =
+        cashSent === 0 && cashToTeamId === ''
+          ? ''
+          : `:cash=${cashSent}:${cashToTeamId}`;
 
-      return `${teamId}:${playerIds}:${entitlementIds}:${salaryPath}`;
+      return `${teamId}:${playerIds}:${entitlementIds}:${salaryPath}${cash}`;
     })
     .sort() // Sort team parts for consistency regardless of order
     .join('|');

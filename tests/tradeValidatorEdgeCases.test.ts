@@ -1,10 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import capProjections from '@/features/architect/utils/capProjections';
-import {
-  SECOND_APRON_AGGREGATION_UP_BLOCKED,
-  SECOND_APRON_CASH_BLOCKED,
-} from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
+import { SECOND_APRON_AGGREGATION_UP_BLOCKED } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 
 const currentYear = 2025;
@@ -32,10 +29,11 @@ const makeTeam = (name, totalSalary, rosterSize = 14, picks = []) => ({
   picks,
 });
 
-const issueTexts = (issues = []) => issues.map((issue) => getValidationIssueText(issue));
+const issueTexts = (issues = []) =>
+  issues.map((issue) => getValidationIssueText(issue));
 
 describe('tradeValidator edge cases', () => {
-  it('allows 3-team trade mixing players, picks and cash when below aprons', () => {
+  it('fails closed for ambiguous cash routing in a 3-team trade', () => {
     const teamA = makeTeam('A', 100_000_000, 13);
     const teamB = makeTeam('B', 100_000_000);
     const teamC = makeTeam('C', 100_000_000);
@@ -62,12 +60,17 @@ describe('tradeValidator edge cases', () => {
       currentYear,
     });
 
-    expect(result.legal).toBe(true);
-    expect(result.reason).toBe('Valid trade');
+    expect(result.legal).toBe(false);
+    expect(result.error).toBe('CASH_ROUTING_ERROR');
+    expect(result.reason).toContain('explicit destination');
   });
 
   it('fails when a team trades consecutive unprotected firsts in a 3-team deal', () => {
-    const teamA = { ...makeTeam('A', 100_000_000), id: 'A', entitlementIds: ['ent-2027-1', 'ent-2028-1'] };
+    const teamA = {
+      ...makeTeam('A', 100_000_000),
+      id: 'A',
+      entitlementIds: ['ent-2027-1', 'ent-2028-1'],
+    };
     const teamB = { ...makeTeam('B', 100_000_000), id: 'B' };
     const teamC = { ...makeTeam('C', 100_000_000), id: 'C' };
 
@@ -105,7 +108,9 @@ describe('tradeValidator edge cases', () => {
     expect(result.reason).toContain('Stepien');
     expect(result.teamResults[0].legal).toBe(false);
     expect(result.teamResults[0].rules.stepienRule.passed).toBe(false);
-    expect(issueTexts(result.teamResults[0].violations)[0]).toContain('Stepien');
+    expect(issueTexts(result.teamResults[0].violations)[0]).toContain(
+      'Stepien'
+    );
   });
 
   it('allows protected picks to avoid Stepien violations', () => {
@@ -148,9 +153,21 @@ describe('tradeValidator edge cases', () => {
 
     const result = validateTrade({
       teams: [
-        { team: makeTeam('A', 100_000_000), sends: [unroutedPlayer], entitlementsOut: [] },
-        { team: makeTeam('B', 100_000_000), sends: [routedPlayerB], entitlementsOut: [] },
-        { team: makeTeam('C', 100_000_000), sends: [routedPlayerC], entitlementsOut: [] },
+        {
+          team: makeTeam('A', 100_000_000),
+          sends: [unroutedPlayer],
+          entitlementsOut: [],
+        },
+        {
+          team: makeTeam('B', 100_000_000),
+          sends: [routedPlayerB],
+          entitlementsOut: [],
+        },
+        {
+          team: makeTeam('C', 100_000_000),
+          sends: [routedPlayerC],
+          entitlementsOut: [],
+        },
       ],
       capProjections,
       currentYear,
@@ -216,7 +233,9 @@ describe('tradeValidator edge cases', () => {
     });
 
     expect(result.legal).toBe(true);
-    const teamAResult = result.teamResults.find((entry) => entry.teamId === 'A');
+    const teamAResult = result.teamResults.find(
+      (entry) => entry.teamId === 'A'
+    );
     expect(teamAResult?.rules.salaryMatching.passed).toBe(true);
     expect(issueTexts(teamAResult?.violations).join(' ')).not.toContain(
       'Second apron team cannot receive more salary than sent'
@@ -241,7 +260,9 @@ describe('tradeValidator edge cases', () => {
       currentYear,
     });
 
-    const teamAResult = result.teamResults.find((entry) => entry.teamId === 'A');
+    const teamAResult = result.teamResults.find(
+      (entry) => entry.teamId === 'A'
+    );
 
     expect(result.legal).toBe(false);
     expect(result.reason).toContain('aggregate');
@@ -258,7 +279,7 @@ describe('tradeValidator edge cases', () => {
     );
   });
 
-  it('disallows cash from teams over the second apron', () => {
+  it('does not substitute static apron settings for governed cash authority', () => {
     const teamA = makeTeam('A', 210_000_000);
     const teamB = makeTeam('B', 100_000_000);
     const a = makePlayer('A1', 2_000_000);
@@ -276,19 +297,19 @@ describe('tradeValidator edge cases', () => {
     });
 
     expect(result.legal).toBe(false);
-    expect(result.reason).toContain('cash');
-    const teamAResult = result.teamResults.find((entry) => entry.teamId === 'A');
-    expect(teamAResult?.legal).toBe(false);
-    expect(teamAResult?.rules.secondApronEnforcement.passed).toBe(false);
-    expect(issueTexts(teamAResult?.rules.secondApronEnforcement.violations)).toEqual([
-      SECOND_APRON_CASH_BLOCKED,
-    ]);
-    expect(issueTexts(teamAResult?.violations)).toContain(
-      SECOND_APRON_CASH_BLOCKED
+    expect(result.reason).toContain('Cash consideration needs governed input');
+    const teamAResult = result.teamResults.find(
+      (entry) => entry.teamId === 'A'
     );
+    expect(teamAResult?.legal).toBe(false);
+    expect(teamAResult?.rules.cash.passed).toBe(false);
+    expect(issueTexts(teamAResult?.rules.cash.violations)).toEqual([
+      expect.stringContaining('governed input'),
+    ]);
+    expect(teamAResult?.rules.secondApronEnforcement.passed).toBe(true);
   });
 
-  it('permits cash when all teams are below the second apron', () => {
+  it('fails closed on worldless cash even when all teams are below the apron', () => {
     const teamA = makeTeam('A', 100_000_000);
     const teamB = makeTeam('B', 100_000_000);
     const a = makePlayer('A1', 2_000_000);
@@ -305,6 +326,7 @@ describe('tradeValidator edge cases', () => {
       currentYear,
     });
 
-    expect(result.legal).toBe(true);
+    expect(result.legal).toBe(false);
+    expect(result.reason).toContain('Cash consideration needs governed input');
   });
 });

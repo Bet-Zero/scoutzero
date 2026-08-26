@@ -474,7 +474,11 @@ export function buildPostTradeTeamsSnapshot({
         picksOut: teamTrade.picksOut || [],
         picksIn: [],
         cashSent: teamTrade.cashSent || 0,
-        cashReceived: teamTrade.cashReceived || 0,
+        ...(teamTrade.cashReceived !== undefined &&
+        teamTrade.cashReceived !== null
+          ? { cashReceived: teamTrade.cashReceived }
+          : {}),
+        cashToTeamId: teamTrade.cashToTeamId ?? null,
         salaryMatchingElection: teamTrade.salaryMatchingElection ?? null,
       };
     }

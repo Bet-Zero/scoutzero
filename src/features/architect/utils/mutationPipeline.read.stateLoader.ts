@@ -55,6 +55,7 @@ import { LIVE_GOVERNED_TRADE_SALARY_AUTHORITY } from '@/features/architect/utils
 import { SeasonTransitionManifestZ } from '@/schemas/seasonTransition';
 import type { GovernedSignAndTradeEvidenceBundle } from '@/features/architect/utils/tradeMachine/signAndTrade/governedSignAndTrade';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
 
 // Wave 48 Step 1: lineage helpers extracted to submodule
 export * from './mutationPipeline.read.stateLoader.lineage';
@@ -713,7 +714,11 @@ export async function loadStateForMutation(
               `Missing teamCode for trade entry at index ${index}. Payload: ${JSON.stringify(teamTrade)}`
             );
           }
-          return String(code);
+          const normalizedCode = String(code).trim();
+          if (!normalizedCode) {
+            throw new Error(`Missing teamCode for trade entry at index ${index}.`);
+          }
+          return resolveTeamCode(normalizedCode) || normalizedCode.toUpperCase();
         }
       );
 
@@ -735,6 +740,11 @@ export async function loadStateForMutation(
           'The governed V1 route supports exactly one sign-and-trade player per atomic trade.'
         );
       }
+      const hasCashConsideration = (payload.teams || []).some((team) => {
+        const cashSent = Number(team.cashSent ?? 0);
+        const cashReceived = Number(team.cashReceived ?? 0);
+        return cashSent > 0 || cashReceived > 0;
+      });
       if (
         signAndTradeSends.length === 1 &&
         ((payload.teams || []).length !== 2 ||
@@ -758,6 +768,24 @@ export async function loadStateForMutation(
           'Governed sign-and-trade requires exact local saved-world snapshots for every involved Team.'
         );
       }
+      const cashLocalTeamSnapshots = hasCashConsideration
+        ? await Promise.all(
+            teamCodes.map((code) => getDoc(worldTeamRef(worldId, code)))
+          )
+        : null;
+      if (cashLocalTeamSnapshots?.some((snapshot) => !snapshot.exists())) {
+        throw new Error(
+          'Governed cash consideration requires exact local saved-world snapshots for every involved Team.'
+        );
+      }
+      const governedCashTeamSnapshots = cashLocalTeamSnapshots?.map(
+        (snapshot, index) =>
+          Object.freeze({
+            teamId: teamCodes[index],
+            exists: true,
+            digest: mutationSnapshotDigest(snapshot.data()),
+          })
+      );
       const [teamStates, worldTeams] = await Promise.all([
         Promise.all(teamCodes.map((code) => getTeam(worldId, code))),
         requiresGovernedSalaryBasis && worldAsOfDate && salaryCapYear !== null
@@ -929,6 +957,7 @@ export async function loadStateForMutation(
           ...(governedSignAndTradeEvidence
             ? { governedSignAndTradeEvidence }
             : {}),
+          ...(governedCashTeamSnapshots ? { governedCashTeamSnapshots } : {}),
         };
       }
       normalizedTeams.forEach(({ team }) => {
@@ -940,7 +969,10 @@ export async function loadStateForMutation(
       });
 
       if (!worldAsOfDate || salaryCapYear === null) {
-        return { teams: normalizedTeams };
+        return {
+          teams: normalizedTeams,
+          ...(governedCashTeamSnapshots ? { governedCashTeamSnapshots } : {}),
+        };
       }
 
       await Promise.all(
@@ -962,6 +994,27 @@ export async function loadStateForMutation(
             rosterPlayers,
             entries
           );
+          const canonicalTotals = createCanonicalTeamTotalsSnapshot(
+            team,
+            salaryCapYear,
+            { asOfDate: worldAsOfDate }
+          );
+          team.totals = canonicalTotals;
+
+          delete team.teamSalary;
+          delete team.apronTeamSalary;
+          delete team.taxSalary;
+          delete team.teamTotalSalary;
+          if (canonicalTotals.teamSalary !== null) {
+            team.teamSalary = canonicalTotals.teamSalary;
+          }
+          if (canonicalTotals.apronTeamSalary !== null) {
+            team.apronTeamSalary = canonicalTotals.apronTeamSalary;
+            team.teamTotalSalary = canonicalTotals.apronTeamSalary;
+          }
+          if (canonicalTotals.taxSalary !== null) {
+            team.taxSalary = canonicalTotals.taxSalary;
+          }
         })
       );
       return {
@@ -969,6 +1022,7 @@ export async function loadStateForMutation(
         ...(governedSignAndTradeEvidence
           ? { governedSignAndTradeEvidence }
           : {}),
+        ...(governedCashTeamSnapshots ? { governedCashTeamSnapshots } : {}),
       };
     }
 

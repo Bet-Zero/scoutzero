@@ -1,3 +1,5 @@
+import { resolveTeamIdentityAliases } from '../engine/tradeValidator.ruleEnvelopes';
+
 type TeamIdentifierValue = string | number | null | undefined;
 
 type TeamIdentifierLike =
@@ -84,14 +86,7 @@ function resolveTeamId(
   slot: PlayerRoutingTeamSlot,
   index: number
 ): string | number {
-  return (
-    normalizeTeamCode(slot?.team?.id) ||
-    normalizeTeamCode(slot?.team?.teamId) ||
-    normalizeTeamCode(slot?.team?.teamCode) ||
-    normalizeTeamCode(slot?.teamId) ||
-    normalizeTeamCode(slot?.teamCode) ||
-    `team-${index}`
-  );
+  return resolveTeamIdentityAliases(slot, index)[0] || `team-${index}`;
 }
 
 function resolvePlayerDestination(player: PlayerRoutingPlayer): TeamIdentifierValue {
@@ -140,6 +135,7 @@ export function validatePlayerRouting({
       slot,
       index,
       teamId: resolveTeamId(slot, index),
+      aliases: resolveTeamIdentityAliases(slot, index),
     }));
   const activeTeamCount = activeTeams.length;
 
@@ -149,7 +145,7 @@ export function validatePlayerRouting({
 
   const tradeTeamIds = new Set<string | number>();
   for (const activeTeam of activeTeams) {
-    tradeTeamIds.add(activeTeam.teamId);
+    activeTeam.aliases.forEach((alias) => tradeTeamIds.add(alias));
   }
 
   const seenPlayerKeys = new Map<string | number, string | number>();
@@ -158,6 +154,7 @@ export function validatePlayerRouting({
     if (!slot.team) continue;
 
     const fromTeamId = resolveTeamId(slot, index);
+    const fromTeamAliases = resolveTeamIdentityAliases(slot, index);
     const sends = slot.sends || [];
 
     const playersInThisTeam = new Set<string | number>();
@@ -196,7 +193,7 @@ export function validatePlayerRouting({
         );
       }
 
-      if (tradeTo && tradeTo === fromTeamId) {
+      if (tradeTo && fromTeamAliases.includes(String(tradeTo))) {
         errors.push(
           `Player "${playerName}" from ${fromTeamId} cannot be routed to the same team`
         );
@@ -227,4 +224,3 @@ export function enforcePlayerRouting(
     warnings: result.warnings,
   };
 }
-

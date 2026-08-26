@@ -165,11 +165,14 @@ export function normalizeTradePayloadTeam({
       team?.entitlementsOut || team?.outgoingEntitlements || []
     ),
     picksOut: Array.isArray(team?.picksOut) ? team.picksOut : [],
-    ...(toFiniteNumberOrUndefined(team?.cashSent) !== undefined
-      ? { cashSent: toFiniteNumberOrUndefined(team?.cashSent) }
+    ...(team?.cashSent !== undefined && team?.cashSent !== null
+      ? { cashSent: team.cashSent }
       : {}),
-    ...(toFiniteNumberOrUndefined(team?.cashReceived) !== undefined
-      ? { cashReceived: toFiniteNumberOrUndefined(team?.cashReceived) }
+    ...(team?.cashReceived !== undefined && team?.cashReceived !== null
+      ? { cashReceived: team.cashReceived }
+      : {}),
+    ...(team?.cashToTeamId !== undefined && team?.cashToTeamId !== null
+      ? { cashToTeamId: String(team.cashToTeamId).trim().toUpperCase() }
       : {}),
     ...(salaryMatchingElection.success
       ? { salaryMatchingElection: salaryMatchingElection.data }

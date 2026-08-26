@@ -477,6 +477,7 @@ export function validateSingleTeam(
     salaryMatchingPathEvaluation:
       salaryMatchingResult.details.pathEvaluation ?? null,
     apronRestrictionEvaluation: apronRestrictionResult,
+    cashConsiderationEvaluation: cashResult.details,
     details: isTeamLegal
       ? 'Valid trade for this team'
       : summarizeValidationIssues(violations, 'Trade validation failed'),

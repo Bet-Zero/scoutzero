@@ -8,6 +8,7 @@ import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRu
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import { TWO_WAY_TRADE_MATCHING_EXPLANATION } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import { TradeApronRestrictionReceipt } from './TradeApronRestrictionReceipt';
+import { TradeCashConsiderationReceipt } from './TradeCashConsiderationReceipt';
 import type {
   TeamPlayerLike,
   TradeReceiptLike,
@@ -301,8 +302,7 @@ const TradeReceiptPanel = ({
               const teamWarnings = toList(team.warnings);
               const pathEvaluation =
                 team.salaryMatchingEvaluation?.pathEvaluation ?? null;
-              const apronRestriction =
-                team.apronRestrictionEvaluation ?? null;
+              const apronRestriction = team.apronRestrictionEvaluation ?? null;
 
               return (
                 <div
@@ -319,7 +319,8 @@ const TradeReceiptPanel = ({
                   </div>
 
                   <div className="text-cockpit-text-secondary text-xs mb-2">
-                    Team Salary: {team.preTradeTeamSalary == null
+                    Team Salary:{' '}
+                    {team.preTradeTeamSalary == null
                       ? 'Needs input'
                       : formatCurrency(team.preTradeTeamSalary)}
                     <span className="text-cockpit-text-ghost ml-1">
@@ -327,10 +328,12 @@ const TradeReceiptPanel = ({
                     </span>
                   </div>
                   <div className="text-xs text-cockpit-text-secondary">
-                    Apron Team Salary: {team.preTradeApronTeamSalary == null
+                    Apron Team Salary:{' '}
+                    {team.preTradeApronTeamSalary == null
                       ? 'Needs input'
                       : formatCurrency(team.preTradeApronTeamSalary)}
-                    {' · '}Tax Salary: {team.preTradeTaxSalary == null
+                    {' · '}Tax Salary:{' '}
+                    {team.preTradeTaxSalary == null
                       ? 'Needs input'
                       : formatCurrency(team.preTradeTaxSalary)}
                   </div>
@@ -411,6 +414,12 @@ const TradeReceiptPanel = ({
                     <TradeApronRestrictionReceipt
                       evaluation={apronRestriction}
                       teamCode={team.teamCode}
+                    />
+                  )}
+
+                  {team.cashConsiderationEvaluation && (
+                    <TradeCashConsiderationReceipt
+                      evaluation={team.cashConsiderationEvaluation}
                     />
                   )}
 

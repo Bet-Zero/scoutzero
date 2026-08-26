@@ -85,6 +85,7 @@ import {
   buildCurrentStateOfferSheetResolutionTeam,
   buildCurrentStateTradeTeam,
 } from './mutationPipeline.read.normalizeTeam.builders';
+import { GovernedCashSnapshotReceiptZ } from '@/schemas/governedCashConsideration';
 
 // ============================================================
 // Private projection-lane type blocks
@@ -369,6 +370,10 @@ export function normalizeTradeMutationCurrentState(
         normalizeTradeMutationCurrentStateTeamEntry(entry)
       )
     : undefined;
+  const governedCashTeamSnapshots =
+    GovernedCashSnapshotReceiptZ.array().safeParse(
+      currentState?.governedCashTeamSnapshots
+    );
 
   return {
     ...(teams !== undefined ? { teams } : {}),
@@ -377,6 +382,9 @@ export function normalizeTradeMutationCurrentState(
           governedSignAndTradeEvidence:
             currentState.governedSignAndTradeEvidence,
         }
+      : {}),
+    ...(governedCashTeamSnapshots.success
+      ? { governedCashTeamSnapshots: governedCashTeamSnapshots.data }
       : {}),
   };
 }

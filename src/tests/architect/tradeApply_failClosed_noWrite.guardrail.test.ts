@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeSalaryAuthority } from '@/tests/fixtures/governedTradeSalaryBasis';
+import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 
 const firestoreMocks = vi.hoisted(() => {
   const commit = vi.fn(async () => undefined);
@@ -94,6 +95,7 @@ vi.mock('@/features/architect/utils/worldManager', () => ({
 }));
 
 import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import { loadStateForMutation } from '@/features/architect/utils/mutationPipeline.read.stateLoader';
 
 function makePlayer(id: string, salary: number) {
   return {
@@ -139,14 +141,83 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
     vi.clearAllMocks();
 
     teamLoaderMocks.getTeam.mockImplementation(async (_worldId, teamCode) => {
-      if (teamCode === 'TMA') {
-        return makeTeam('TMA', [makePlayer('a_out', 10_000_000)]);
-      }
-      if (teamCode === 'TMB') {
-        return makeTeam('TMB', [makePlayer('b_out', 10_000_000)]);
-      }
-      return makeTeam('TMC', [makePlayer('c_out', 10_000_000)]);
+      const playerId =
+        teamCode === 'TMA'
+          ? 'a_out'
+          : teamCode === 'TMB'
+            ? 'b_out'
+            : 'c_out';
+      return withGovernedSalaryBooks(
+        makeTeam(teamCode, [makePlayer(playerId, 10_000_000)]),
+        {
+          salaryCapYear: 2027,
+          asOfDate: '2026-08-24T12:00:00-04:00',
+          teamSalary: 10_000_000,
+          apronTeamSalary: 11_000_000,
+          taxSalary: 12_000_000,
+        }
+      );
     });
+  });
+
+  it('materializes exact governed pre-trade salary bridges before trade computation', async () => {
+    teamLoaderMocks.getTeam.mockImplementation(async (_worldId, teamCode) =>
+      withGovernedSalaryBooks(
+        makeTeam(
+          teamCode,
+          [
+            makePlayer(
+              teamCode === 'TMA' ? 'a_out' : 'b_out',
+              10_000_000
+            ),
+          ]
+        ),
+        {
+          salaryCapYear: 2027,
+          asOfDate: '2026-08-24T12:00:00-04:00',
+          teamSalary: 10_000_000,
+          apronTeamSalary: 11_000_000,
+          taxSalary: 12_000_000,
+        }
+      )
+    );
+
+    const currentState = await loadStateForMutation(
+      'world_1',
+      'executeTrade',
+      {
+        teams: [
+          { teamCode: 'TMA', sends: [], entitlementsOut: [] },
+          { teamCode: 'TMB', sends: [], entitlementsOut: [] },
+        ],
+        asOfDate: '2026-08-25',
+        tradeCtx: {
+          source: 'tradeMachine',
+          worldId: 'world_1',
+          asOfDate: '2026-08-25',
+          yearKey: '2026-27',
+        },
+      }
+    );
+
+    expect(currentState.teams).toHaveLength(2);
+    for (const entry of currentState.teams || []) {
+      expect(
+        entry.team?.totals?.salaryBooks,
+        JSON.stringify(entry.team?.totals?.salaryBooks)
+      ).toMatchObject({ status: 'complete' });
+      expect(entry.team).toMatchObject({
+        teamSalary: 10_000_000,
+        apronTeamSalary: 11_000_000,
+        taxSalary: 12_000_000,
+        teamTotalSalary: 11_000_000,
+        totals: {
+          teamSalary: 10_000_000,
+          apronTeamSalary: 11_000_000,
+          taxSalary: 12_000_000,
+        },
+      });
+    }
   });
 
   it('fails loudly and does not open a Firestore write batch when 3+ team routing is missing', async () => {
@@ -203,8 +274,8 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
         ],
         tradeCtx: {
           source: 'tradeMachine',
-          asOfDate: '2026-03-15',
-          yearKey: '2025-26',
+          asOfDate: '2026-08-25',
+          yearKey: '2026-27',
         },
       },
     });

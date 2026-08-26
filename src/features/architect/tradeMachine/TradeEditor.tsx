@@ -36,9 +36,7 @@ import {
 } from '@/features/architect/utils/entitlements/vacuumEntitlementOverlayStore';
 import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
-import {
-  GovernedSignAndTradeProposalZ,
-} from '@/schemas/governedSignAndTrade';
+import { GovernedSignAndTradeProposalZ } from '@/schemas/governedSignAndTrade';
 import { DEV_SNT_INJECTOR_FLAG } from '@/features/architect/tradeMachine/utils/devSntInjector';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 import type {
@@ -122,6 +120,7 @@ export const TradeEditor = ({
     injectDevSntPlayers,
     clearInjectedDevSntPlayers,
     setSalaryMatchingElection,
+    setCashConsideration,
     // Phase 16.3: Expose init error for UI error surfacing
     initError,
     // Phase 17: Active team count for multi-team destination logic
@@ -184,7 +183,10 @@ export const TradeEditor = ({
   // open with no edits and no objective does not.
   const hasDraftActivity = useMemo(() => {
     const hasStagedAssets = teams.some(
-      (slot) => slot.sends.length > 0 || (slot.entitlementsOut?.length ?? 0) > 0
+      (slot) =>
+        slot.sends.length > 0 ||
+        (slot.entitlementsOut?.length ?? 0) > 0 ||
+        Number(slot.cashSent ?? 0) > 0
     );
     const hasObjectiveContext = Boolean(
       tradeContext?.objective || tradeContext?.exceptionRef
@@ -456,7 +458,9 @@ export const TradeEditor = ({
     () =>
       teams.some(
         (slot) =>
-          slot.sends.length > 0 || (slot.entitlementsOut?.length ?? 0) > 0
+          slot.sends.length > 0 ||
+          (slot.entitlementsOut?.length ?? 0) > 0 ||
+          Number(slot.cashSent ?? 0) > 0
       ),
     [teams]
   );
@@ -499,7 +503,7 @@ export const TradeEditor = ({
       return {
         tone: 'setup',
         label: 'Setup required',
-        message: 'Add a player or draft asset to the trade.',
+        message: 'Add a player, draft asset, or cash consideration to the trade.',
       };
     }
 
@@ -1204,6 +1208,11 @@ export const TradeEditor = ({
                 salaryMatchingElection={t.salaryMatchingElection ?? null}
                 onSalaryMatchingElectionChange={(election) =>
                   setSalaryMatchingElection(idx, election)
+                }
+                cashSent={t.cashSent ?? 0}
+                cashToTeamId={t.cashToTeamId ?? null}
+                onCashConsiderationChange={(cashSent, cashToTeamId) =>
+                  setCashConsideration(idx, cashSent, cashToTeamId)
                 }
               />
             </div>

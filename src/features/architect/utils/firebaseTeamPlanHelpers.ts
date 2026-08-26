@@ -89,6 +89,7 @@ export type HydratedBaseTeamCapSheet = {
   salaryBookInputs?: TeamSalaryBookInputs | null;
   contractEventLedgers?: ContractEventLedgerPayload[] | null;
   hardCapLedger?: TradeHardCapLedgerEntry[] | null;
+  cashLedger?: LooseBaseTeamDoc['cashLedger'];
 };
 
 /**
@@ -221,6 +222,9 @@ export const hydrateBaseTeam = async (
       : {}),
     ...(normalizedBaseDoc.hardCapLedger !== undefined
       ? { hardCapLedger: normalizedBaseDoc.hardCapLedger }
+      : {}),
+    ...(normalizedBaseDoc.cashLedger !== undefined
+      ? { cashLedger: normalizedBaseDoc.cashLedger }
       : {}),
   };
 };

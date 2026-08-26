@@ -64,6 +64,7 @@ export type LoadedWorldTeamCapSheet = Pick<
   salaryBookInputs?: TeamSalaryBookInputs | null;
   contractEventLedgers?: ContractEventLedgerPayload[] | null;
   hardCapLedger?: TradeHardCapLedgerEntry[] | null;
+  cashLedger?: HydratedBaseTeamCapSheet['cashLedger'];
 };
 
 /**

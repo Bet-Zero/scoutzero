@@ -22,6 +22,7 @@ import {
 } from './mutationPipeline.helpers';
 
 import { normalizeOptionUsed } from '@/features/architect/utils/contractNormalization';
+import { GovernedCashLedgerZ } from '@/schemas/governedCashConsideration';
 
 import type { DraftPick } from '@/schemas/architect';
 import type { MutationCurrentStateContractDateLike } from './mutationPipeline';
@@ -86,19 +87,12 @@ export function toOptionalDateLike(
 export function normalizeCurrentStateCashLedger(
   value: unknown
 ): ArchitectMutationCashLedger | undefined {
+  const parsed = GovernedCashLedgerZ.safeParse(value);
+  if (parsed.success) return parsed.data;
+
   const record = asLooseRecord(value);
-  if (!record) {
-    return undefined;
-  }
-
-  const normalized: ArchitectMutationCashLedger = {};
-  const totalOut = toOptionalNumberish(record.totalOut);
-
-  if (totalOut !== undefined) {
-    normalized.totalOut = totalOut;
-  }
-
-  return Object.keys(normalized).length > 0 ? normalized : undefined;
+  const totalOut = toOptionalNumberish(record?.totalOut);
+  return totalOut === undefined ? undefined : { totalOut };
 }
 
 export function normalizeCurrentStateOfferSheetSalaryRows(

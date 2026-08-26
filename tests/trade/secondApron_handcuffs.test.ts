@@ -5,7 +5,6 @@ import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/
 import { validateTradeExceptions } from '@/features/architect/utils/tradeMachine/rules/validateTradeExceptions';
 import {
   SECOND_APRON_AGGREGATION_UP_BLOCKED,
-  SECOND_APRON_CASH_BLOCKED,
   SECOND_APRON_PRIOR_YEAR_TPE_BLOCKED,
 } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
@@ -45,14 +44,14 @@ describe('second apron handcuffs', () => {
     expect(result.violations).toContain(SECOND_APRON_AGGREGATION_UP_BLOCKED);
   });
 
-  it('rejects cash inclusion', () => {
+  it('leaves cash inclusion to governed Row I', () => {
     const team = {
       teamTotalSalary: 200_000_000,
       postTradeStatus: { isAtOrAboveSecondApron: true },
       cashSent: 1,
     };
     const v = enforceSecondApronHandcuffs(team, {});
-    expect(v).toEqual([SECOND_APRON_CASH_BLOCKED]);
+    expect(v).toEqual([]);
   });
 
   it('routes prior-year TPE usage through validateTradeExceptions', () => {

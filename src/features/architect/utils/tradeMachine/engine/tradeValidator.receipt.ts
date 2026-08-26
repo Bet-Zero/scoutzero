@@ -420,6 +420,8 @@ export function generateTradeReceipt({
       salaryMatchingEvaluation,
       apronRestrictionEvaluation:
         teamResult?.apronRestrictionEvaluation ?? null,
+      cashConsiderationEvaluation:
+        teamResult?.cashConsiderationEvaluation ?? null,
       violations: teamResult?.violations || [],
       warnings: teamResult?.warnings || [],
     };

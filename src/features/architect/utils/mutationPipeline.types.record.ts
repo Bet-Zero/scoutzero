@@ -53,6 +53,10 @@ import type { GovernedOfferSheetProposal } from '@/schemas/governedOfferSheet';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
 import type { TeamSalaryBookInputs } from '@/schemas/salaryBooks';
+import type {
+  GovernedCashLedger,
+  GovernedCashReceipt,
+} from '@/schemas/governedCashConsideration';
 
 export type LooseRecord = Record<string, unknown>;
 export type MutationScalarId = string | number | null | undefined;
@@ -437,9 +441,9 @@ export type ArchitectMutationPlayerRecord = {
   destTeamId?: MutationScalarId;
 };
 
-export type ArchitectMutationCashLedger = {
-  totalOut?: number | string | null;
-};
+export type ArchitectMutationCashLedger =
+  | GovernedCashLedger
+  | Record<string, unknown>;
 
 export type ArchitectMutationTeamRecord = {
   id?: MutationScalarId;
@@ -602,6 +606,7 @@ export type ArchitectTradePayloadTeamIngress = {
   picksIn?: unknown[];
   cashSent?: number | null;
   cashReceived?: number | null;
+  cashToTeamId?: MutationScalarId;
   salaryMatchingElection?: TradeSalaryMatchingElection | null;
 };
 
@@ -616,6 +621,7 @@ export type ArchitectTradePayloadTeam = {
   picksOut?: NormalizedTeamPick[];
   cashSent?: number | null;
   cashReceived?: number | null;
+  cashToTeamId?: string | null;
   salaryMatchingElection?: TradeSalaryMatchingElection | null;
 };
 export type TradeTpeConsumptionIssue = {
@@ -651,6 +657,7 @@ export type TradeMutationMetadata = {
   }>;
   governedSignAndTradeAuthority?: GovernedSignAndTradeAuthority;
   governedSignAndTradeReceipt?: GovernedSignAndTradeReceipt;
+  governedCashReceipt?: GovernedCashReceipt;
 };
 export type TradeSnapshotLike = TradeContextPostTradeSnapshot;
 export type TradeApplyValidationTeamLike = TradeContextApplyValidationTeam;

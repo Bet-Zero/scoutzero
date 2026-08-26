@@ -271,6 +271,31 @@ describe('TradeEditor — in-overlay objective/context banner (Slice 3)', () => 
     );
     expect(onDraftActivityChange).toHaveBeenCalledWith(false);
   });
+
+  it('counts staged cash consideration as meaningful draft activity', () => {
+    const onDraftActivityChange = vi.fn();
+    useTradeMachineMock.mockReturnValue(
+      buildHookReturn({
+        overrides: {
+          teams: [
+            {
+              team: { id: 'LAL', players: [] },
+              sends: [],
+              entitlementsOut: [],
+              cashSent: 1,
+              cashToTeamId: 'BOS',
+            },
+            { team: { id: 'BOS', players: [] }, sends: [], entitlementsOut: [] },
+          ],
+        },
+      })
+    );
+
+    render(
+      <TradeEditor {...baseProps} onDraftActivityChange={onDraftActivityChange} />
+    );
+    expect(onDraftActivityChange).toHaveBeenCalledWith(true);
+  });
 });
 
 describe('TradeEditor — validation and apply readiness hierarchy', () => {
@@ -304,8 +329,34 @@ describe('TradeEditor — validation and apply readiness hierarchy', () => {
     const summary = screen.getByTestId('trade-readiness-summary');
     expect(summary).toHaveTextContent('Setup required');
     expect(summary).toHaveTextContent(
-      'Add a player or draft asset to the trade.'
+      'Add a player, draft asset, or cash consideration to the trade.'
     );
+  });
+
+  it('allows staged cash consideration to reach validation readiness', () => {
+    useTradeMachineMock.mockReturnValue(
+      buildHookReturn({
+        overrides: {
+          teams: [
+            {
+              team: { id: 'LAL', players: [] },
+              sends: [],
+              entitlementsOut: [],
+              cashSent: 1,
+              cashToTeamId: 'BOS',
+            },
+            { team: { id: 'BOS', players: [] }, sends: [], entitlementsOut: [] },
+          ],
+          activeTeamCount: 2,
+        },
+      })
+    );
+
+    render(<TradeEditor {...baseProps} />);
+
+    const summary = screen.getByTestId('trade-readiness-summary');
+    expect(summary).toHaveTextContent('Ready to validate');
+    expect(summary).toHaveTextContent('Run validation before preview or apply.');
   });
 
   it('shows ready-to-validate once setup has teams and staged assets', () => {

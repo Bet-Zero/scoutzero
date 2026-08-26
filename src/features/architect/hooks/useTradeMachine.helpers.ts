@@ -81,6 +81,13 @@ export function resolveTeamCodeLike(
   return null;
 }
 
+export function resolveTradeSalaryBasisTeamId(
+  baseTeam: UnknownRecord | string | null | undefined,
+  teamData: UnknownRecord | null
+): string {
+  return (resolveTeamCodeLike(baseTeam, teamData) ?? '').trim().toUpperCase();
+}
+
 const isPlainObjectValue = (value: unknown) =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 

@@ -3,17 +3,26 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { TWO_WAY_TRADE_MATCHING_EXPLANATION } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import {
+  getTeamPlayerIds,
   getReviewAdminDb,
+  getWorldEventDocuments,
+  getWorldTeamDocument,
+  openDashboardTab,
   readReviewUserId,
 } from './helpers/architectReviewWorld';
 import {
   makeResultingState,
   signingEvent,
 } from '../architect/contractHistory/contractHistoryFixtures';
+import {
+  GovernedCashLedgerZ,
+  GovernedCashReceiptZ,
+} from '@/schemas/governedCashConsideration';
+import { TradeHardCapLedgerZ } from '@/schemas/tradeApronRestriction';
 
 const CANDIDATE = process.env.SCOUTZERO_PROOF_CANDIDATE ?? '';
 const ARTIFACT_DIR = process.env.SCOUTZERO_BROWSER_PROOF_DIR ?? '';
-const MIA_URL = '/gm/MIA';
+const MIA_URL = '/gm/MIA?season=2027';
 const PROOF_WORLD_ID = 'world_trade_receipt_proof';
 const PROOF_AS_OF_DATE = '2026-11-15';
 const EMPTY_RELEASE_DIGEST = `sha256:${'3'.repeat(64)}`;
@@ -176,7 +185,15 @@ const salaryBookInputs = (teamCode: 'MIA' | 'DEN') => {
   };
 };
 
-test.use({ viewport: { width: 1280, height: 720 } });
+test.use({
+  viewport: { width: 1280, height: 720 },
+  trace: {
+    mode: 'on',
+    screenshots: false,
+    snapshots: false,
+    sources: true,
+  },
+});
 test.setTimeout(240_000);
 
 const escapeRegExp = (value: string) =>
@@ -230,6 +247,12 @@ const seedProofWorld = async (uid: string) => {
       teamCode,
       salaryBookInputs: salaryBookInputs(teamCode),
       contractEventLedgers: proofContractLedgers(teamCode),
+      cashLedger: {
+        ledgerVersion: 0,
+        ledgerId: `cash-ledger:${teamCode}`,
+        teamId: teamCode,
+        entries: [],
+      },
       exceptions: {
         ...baseExceptions,
         tpe: [proofTpe(teamCode)],
@@ -313,18 +336,14 @@ const openTradeMachine = async (page: Page) => {
   await expect
     .poll(
       async () =>
-        page
-          .locator('[data-apron-team-salary]')
-          .evaluateAll((elements) =>
-            elements.some((element) => {
-              const raw = element.getAttribute('data-apron-team-salary');
-              return (
-                raw !== null &&
-                raw.trim() !== '' &&
-                Number.isFinite(Number(raw))
-              );
-            })
-          ),
+        page.locator('[data-apron-team-salary]').evaluateAll((elements) =>
+          elements.some((element) => {
+            const raw = element.getAttribute('data-apron-team-salary');
+            return (
+              raw !== null && raw.trim() !== '' && Number.isFinite(Number(raw))
+            );
+          })
+        ),
       {
         timeout: 90_000,
         message: 'the saved proof world should publish governed salary books',
@@ -395,6 +414,20 @@ const routePlayer = async (
   await route.click();
 };
 
+const cancelPlayerTrade = async (
+  dialog: Locator,
+  sourceTeamCode: string,
+  playerName: string
+) => {
+  const card = teamCard(dialog, sourceTeamCode);
+  const outgoingChip = card
+    .locator('span[class*="bg-cockpit-danger/15"]')
+    .filter({ hasText: playerName });
+  await expect(outgoingChip).toHaveCount(1);
+  await outgoingChip.getByRole('button').click();
+  await expect(outgoingChip).toHaveCount(0);
+};
+
 test('exact-head Trade Machine produces a retained governed apron Trade Receipt', async ({
   page,
 }, testInfo) => {
@@ -448,6 +481,9 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     MIA: await assignHeldTpe(miamiCard, 'Aaron Pike', 'MIA'),
     DEN: await assignHeldTpe(denverCard, 'Owen Frost', 'DEN'),
   };
+
+  await miamiCard.getByLabel('MIA cash sent').fill('1');
+  await expect(miamiCard.getByLabel('MIA cash recipient')).toHaveValue('DEN');
 
   await miamiCard.getByLabel('Tobias Lund exact pre-trade Salary').fill('0');
   await miamiCard
@@ -515,15 +551,11 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     receipt.getByText(TWO_WAY_TRADE_MATCHING_EXPLANATION, { exact: true })
   ).toHaveCount(4);
   await expect(receipt.getByText('2W', { exact: true })).toHaveCount(4);
-  const heatApronProof = receipt.getByTestId(
-    'trade-apron-restriction-heat'
-  );
+  const heatApronProof = receipt.getByTestId('trade-apron-restriction-MIA');
   await expect(heatApronProof).toBeVisible();
-  await expect(heatApronProof).toContainText('Rows F + H');
+  await expect(heatApronProof).toContainText('Rows F + H + I');
   await expect(heatApronProof).toContainText('FAIL');
-  await expect(heatApronProof).toContainText(
-    'Controlling First Apron ceiling'
-  );
+  await expect(heatApronProof).toContainText('Controlling First Apron ceiling');
   await expect(heatApronProof).toContainText(
     'Row F · Held Standard TPE component proof-tpe-MIA'
   );
@@ -541,13 +573,12 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     /Row H · Aggregated Standard TPE component aggregated:/
   );
   await expect(heatApronProof).toContainText('Players: Reggie Voss');
+  await expect(heatApronProof).toContainText('Row I · Cash payment');
   await expect(heatApronProof).toContainText('Authority GOV-CAL-0002');
   await expect(heatApronProof).toContainText('GOV-LVL-0005');
   await expect(heatApronProof).toContainText('CBA2-A05.10');
 
-  const nuggetsApronProof = receipt.getByTestId(
-    'trade-apron-restriction-nuggets'
-  );
+  const nuggetsApronProof = receipt.getByTestId('trade-apron-restriction-DEN');
   await expect(nuggetsApronProof).toBeVisible();
   await expect(nuggetsApronProof).toContainText('Rows F + H');
   await expect(nuggetsApronProof).toContainText('FAIL');
@@ -563,6 +594,18 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   );
   await expect(nuggetsApronProof).toContainText('Players: Eli Navarro');
 
+  const heatCashProof = receipt.getByTestId('trade-cash-consideration-mia');
+  await expect(heatCashProof).toBeVisible();
+  await expect(heatCashProof).toContainText('PASS');
+  await expect(heatCashProof).toContainText('Paid now');
+  await expect(heatCashProof).toContainText('$1.00');
+  await expect(heatCashProof).toContainText('Salary Cap Year 2027');
+  const nuggetsCashProof = receipt.getByTestId('trade-cash-consideration-den');
+  await expect(nuggetsCashProof).toBeVisible();
+  await expect(nuggetsCashProof).toContainText('PASS');
+  await expect(nuggetsCashProof).toContainText('Received now');
+  await expect(nuggetsCashProof).toContainText('$1.00');
+
   const afterValidationTeams = await Promise.all(
     proofTeamRefs.map((ref) => ref.get().then((snapshot) => snapshot.data()))
   );
@@ -570,10 +613,209 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   expect(await worldCount()).toBe(1);
   expect(pageErrors).toEqual([]);
   await receipt
-    .getByTestId('trade-apron-restriction-heat')
+    .getByTestId('trade-apron-restriction-MIA')
     .scrollIntoViewIfNeeded();
   const screenshotPath = path.join(ARTIFACT_DIR, 'trade-receipt-1280x720.png');
   await page.screenshot({ path: screenshotPath, fullPage: false });
+
+  await receipt.getByRole('button', { name: 'Hide Details' }).click();
+  await cancelPlayerTrade(dialog, 'MIA', 'Eli Navarro');
+  await cancelPlayerTrade(dialog, 'DEN', 'Reggie Voss');
+  await electSalaryPath(miamiCard, 'STANDARD_TPE');
+  await electSalaryPath(denverCard, 'STANDARD_TPE');
+  await miamiCard.getByLabel('Aaron Pike absorption mode').selectOption('MATCH');
+  await denverCard.getByLabel('Owen Frost absorption mode').selectOption('MATCH');
+
+  await miamiCard.getByLabel('Tobias Lund exact pre-trade Salary').fill('0');
+  await miamiCard
+    .getByLabel('Owen Frost exact pre-trade Salary')
+    .fill('3200000');
+  await denverCard.getByLabel('Obi Nwachukwu exact pre-trade Salary').fill('0');
+  await denverCard
+    .getByLabel('Aaron Pike exact pre-trade Salary')
+    .fill('3200000');
+  const legalPostSalaries = {
+    MIA: await fillPostAssignmentApronSalary(miamiCard),
+    DEN: await fillPostAssignmentApronSalary(denverCard),
+  };
+
+  await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+  const readiness = dialog.getByTestId('trade-readiness-summary');
+  await expect(readiness).toContainText('Ready with warnings', {
+    timeout: 20_000,
+  });
+  await expect(readiness).toContainText(
+    'Team MIA has a partial post-state receipt because teamSalary is not complete.'
+  );
+  const applyTrade = dialog.getByRole('button', { name: /^Apply Trade$/i });
+  await expect(applyTrade).toBeEnabled();
+  await expect(receipt).toContainText('LEGAL');
+  await receipt.getByRole('button', { name: 'Show Details' }).click();
+  const legalHeatApronProof = receipt.getByTestId(
+    'trade-apron-restriction-MIA'
+  );
+  await expect(legalHeatApronProof).toContainText('Row I');
+  await expect(legalHeatApronProof).toContainText('PASS');
+  await expect(legalHeatApronProof).toContainText(
+    'Controlling Second Apron ceiling'
+  );
+  await expect(legalHeatApronProof).toContainText('Row I · Cash payment');
+  await expect(legalHeatApronProof).toContainText(
+    'Hard cap persists through Salary Cap Year 2027'
+  );
+  await expect(receipt.getByTestId('trade-cash-consideration-mia')).toContainText(
+    '$1.00'
+  );
+  const legalScreenshotPath = path.join(
+    ARTIFACT_DIR,
+    'trade-cash-legal-1280x720.png'
+  );
+  await legalHeatApronProof.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: legalScreenshotPath, fullPage: false });
+  await receipt.getByRole('button', { name: 'Hide Details' }).click();
+
+  const salaryBooksBeforeApply = {
+    MIA: beforeValidationTeams[0]?.salaryBookInputs,
+    DEN: beforeValidationTeams[1]?.salaryBookInputs,
+  };
+  await applyTrade.click();
+  await expect(dialog).toHaveCount(0, { timeout: 30_000 });
+
+  await expect
+    .poll(
+      async () => {
+        const [mia, den, events] = await Promise.all([
+          getWorldTeamDocument(PROOF_WORLD_ID, 'MIA'),
+          getWorldTeamDocument(PROOF_WORLD_ID, 'DEN'),
+          getWorldEventDocuments(PROOF_WORLD_ID),
+        ]);
+        const tradeEvent = events.find(
+          (event) => event.mutationType === 'executeTrade'
+        );
+        return {
+          miaHasAaron: getTeamPlayerIds(mia).includes('den_aaron_pike'),
+          miaRemovedOwen: !getTeamPlayerIds(mia).includes('mia_owen_frost'),
+          denHasOwen: getTeamPlayerIds(den).includes('mia_owen_frost'),
+          denRemovedAaron: !getTeamPlayerIds(den).includes('den_aaron_pike'),
+          eventId: String(tradeEvent?.id || ''),
+        };
+      },
+      {
+        timeout: 30_000,
+        message:
+          'legal cash trade should atomically persist both Team snapshots and one executeTrade event',
+      }
+    )
+    .toMatchObject({
+      miaHasAaron: true,
+      miaRemovedOwen: true,
+      denHasOwen: true,
+      denRemovedAaron: true,
+    });
+
+  const miaAfterApply = await getWorldTeamDocument(PROOF_WORLD_ID, 'MIA');
+  const denAfterApply = await getWorldTeamDocument(PROOF_WORLD_ID, 'DEN');
+  const eventsAfterApply = await getWorldEventDocuments(PROOF_WORLD_ID);
+  const tradeEvent = eventsAfterApply.find(
+    (event) => event.mutationType === 'executeTrade'
+  );
+  expect(tradeEvent).toBeDefined();
+  const miaLedger = GovernedCashLedgerZ.parse(miaAfterApply?.cashLedger);
+  const denLedger = GovernedCashLedgerZ.parse(denAfterApply?.cashLedger);
+  expect(miaLedger).toMatchObject({
+    ledgerVersion: 1,
+    entries: [
+      {
+        direction: 'PAID',
+        amountCents: 100,
+        teamId: 'MIA',
+        counterpartyTeamId: 'DEN',
+        salaryCapYear: 2027,
+      },
+    ],
+  });
+  expect(denLedger).toMatchObject({
+    ledgerVersion: 1,
+    entries: [
+      {
+        direction: 'RECEIVED',
+        amountCents: 100,
+        teamId: 'DEN',
+        counterpartyTeamId: 'MIA',
+        salaryCapYear: 2027,
+      },
+    ],
+  });
+  expect(miaLedger.entries[0].transactionId).toBe(
+    denLedger.entries[0].transactionId
+  );
+  expect(miaAfterApply?.salaryBookInputs).toEqual(salaryBooksBeforeApply.MIA);
+  expect(denAfterApply?.salaryBookInputs).toEqual(salaryBooksBeforeApply.DEN);
+  expect(TradeHardCapLedgerZ.parse(miaAfterApply?.hardCapLedger)).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        restrictionRow: 'I',
+        transactionId: miaLedger.entries[0].transactionId,
+      }),
+    ])
+  );
+  const eventMetadata =
+    tradeEvent?.metadata && typeof tradeEvent.metadata === 'object'
+      ? tradeEvent.metadata
+      : {};
+  const cashReceipt = GovernedCashReceiptZ.parse(
+    eventMetadata.governedCashReceipt
+  );
+  expect(cashReceipt).toMatchObject({
+    verificationStatus: 'complete',
+    transactionId: miaLedger.entries[0].transactionId,
+    salaryCapYear: 2027,
+    salaryBookCashDeltas: [
+      { teamId: 'MIA', teamSalary: 0, apronTeamSalary: 0, taxSalary: 0 },
+      { teamId: 'DEN', teamSalary: 0, apronTeamSalary: 0, taxSalary: 0 },
+    ],
+  });
+  expect(getTeamPlayerIds(miaAfterApply)).toEqual(
+    expect.arrayContaining([
+      'den_obi_nwachukwu',
+      'den_aaron_pike',
+      'mia_eli_navarro',
+    ])
+  );
+  expect(getTeamPlayerIds(denAfterApply)).toEqual(
+    expect.arrayContaining([
+      'mia_tobias_lund',
+      'mia_owen_frost',
+      'den_reggie_voss',
+    ])
+  );
+  expect(await worldCount()).toBe(1);
+
+  await page.goto(MIA_URL, { waitUntil: 'domcontentloaded' });
+  await expect(
+    page.getByText('Trade Receipt Proof', { exact: true }).first()
+  ).toBeVisible({ timeout: 90_000 });
+  await openDashboardTab(page, 'Team History');
+  const historyTimeline = page.getByTestId('team-history-section-timeline');
+  const tradeHistoryRow = historyTimeline.getByRole('button', {
+    name: /Trade Executed: MIA ↔ DEN/i,
+  });
+  await expect(tradeHistoryRow).toBeVisible({ timeout: 30_000 });
+  await tradeHistoryRow.click();
+  const historyDetail = page.getByTestId('team-history-detail-modal');
+  await expect(historyDetail).toContainText('Cash Consideration Receipt');
+  await expect(historyDetail).toContainText(cashReceipt.receiptId);
+  await expect(historyDetail).toContainText('MIA paid $1.00 to DEN');
+  await expect(historyDetail).toContainText(
+    'Salary-book cash deltas: $0.00 for every Team'
+  );
+  await expect(historyDetail).toContainText('Persistence verification: Complete');
+  const historyScreenshotPath = path.join(
+    ARTIFACT_DIR,
+    'trade-cash-history-reload-1280x720.png'
+  );
+  await page.screenshot({ path: historyScreenshotPath, fullPage: false });
+  expect(pageErrors).toEqual([]);
 
   const proof = {
     candidate: CANDIDATE,
@@ -602,9 +844,16 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       blockingReason:
         'Transaction Restrictions Table Row F prohibits this trade because the mixed MIA component package exceeds the controlling First Apron.',
       receiptVerdict: 'ILLEGAL',
-      apronRestrictionRows: { MIA: ['F', 'H'], DEN: ['F', 'H'] },
+      apronRestrictionRows: { MIA: ['F', 'H', 'I'], DEN: ['F', 'H'] },
       controllingAprons: { MIA: 'FIRST_APRON', DEN: 'FIRST_APRON' },
       apronRestrictionStatuses: { MIA: 'FAIL', DEN: 'FAIL' },
+      cashConsideration: {
+        payer: 'MIA',
+        recipient: 'DEN',
+        amountCents: 100,
+        salaryCapYear: 2027,
+        evaluationStatuses: { MIA: 'PASS', DEN: 'PASS' },
+      },
       componentAttribution: {
         MIA: {
           F: { componentId: heldTpeIds.MIA, players: ['Aaron Pike'] },
@@ -631,6 +880,21 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       fixtureWorldCount: 1,
       durableWorldCountChangeAfterValidation: 0,
       durableTeamDocumentChangeAfterValidation: 0,
+      savedWorldApply: {
+        readiness: 'Ready with warnings',
+        warning:
+          'Team MIA has a partial post-state receipt because teamSalary is not complete.',
+        electedPaths: { MIA: 'STANDARD_TPE', DEN: 'STANDARD_TPE' },
+        governedPostAssignmentApronSalaries: legalPostSalaries,
+        cashLedgerVersions: { MIA: 1, DEN: 1 },
+        pairedTransactionId: miaLedger.entries[0].transactionId,
+        receiptId: cashReceipt.receiptId,
+        cashAmountCents: 100,
+        salaryBookCashDeltas: cashReceipt.salaryBookCashDeltas,
+        hardCapRows: { MIA: ['I'], DEN: [] },
+        worldCountAfterApply: 1,
+        reloadHistoryReceiptVisible: true,
+      },
     },
   };
   const proofPath = path.join(ARTIFACT_DIR, 'proof.json');
@@ -641,6 +905,14 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   });
   await testInfo.attach('trade-receipt-1280x720', {
     path: screenshotPath,
+    contentType: 'image/png',
+  });
+  await testInfo.attach('trade-cash-legal-1280x720', {
+    path: legalScreenshotPath,
+    contentType: 'image/png',
+  });
+  await testInfo.attach('trade-cash-history-reload-1280x720', {
+    path: historyScreenshotPath,
     contentType: 'image/png',
   });
 });

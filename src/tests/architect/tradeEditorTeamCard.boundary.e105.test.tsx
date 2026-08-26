@@ -941,6 +941,37 @@ describe('TradeEditor boundary E105', () => {
     expect(tradeMachine.refreshEntitlements).toHaveBeenCalledTimes(1);
   });
 
+  it('does not run post-apply callbacks when the authoritative apply rejects', async () => {
+    const tradeMachine = makeTradeMachineReturn();
+    const onApplyTrade = vi
+      .fn()
+      .mockRejectedValue(new Error('Saved-world trade did not commit'));
+    const onAfterTradeApplied = vi.fn();
+    harness.useTradeMachineMock.mockReturnValue(tradeMachine);
+
+    const TradeEditor = await loadTradeEditor();
+    render(
+      <TradeEditor
+        primaryTeam="ATL"
+        capProjections={{}}
+        currentYear={2026}
+        onApplyTrade={onApplyTrade}
+        onAfterTradeApplied={onAfterTradeApplied}
+        onEditContract={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Apply Trade' }));
+
+    await waitFor(() => {
+      expect(harness.toast.error).toHaveBeenCalledWith(
+        'Failed to apply trade: Saved-world trade did not commit'
+      );
+    });
+    expect(onAfterTradeApplied).not.toHaveBeenCalled();
+    expect(tradeMachine.refreshEntitlements).not.toHaveBeenCalled();
+  });
+
   it('preserves entitlement edit/create success flow plus vacuum revert/delete behavior', async () => {
     const tradeMachine = makeTradeMachineReturn();
     harness.useTradeMachineMock.mockReturnValue(tradeMachine);

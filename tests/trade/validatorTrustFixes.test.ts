@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import capProjections from '@/features/architect/utils/capProjections';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
+import { resolveTeamIdentity } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.ruleEnvelopes';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import type {
@@ -231,6 +232,18 @@ const makeSatContract = (firstYearSalary: number): TestContract => ({
 });
 
 describe('validator trust fixes', () => {
+  it('keeps canonical payload Team codes ahead of source-document slugs', () => {
+    expect(
+      resolveTeamIdentity(
+        {
+          teamCode: 'MIA',
+          team: { id: 'heat', teamId: 'heat', teamCode: 'heat' },
+        },
+        0
+      )
+    ).toBe('MIA');
+  });
+
   it('CBA2-SC-002(b): excludes a Two-Way contract from matching and TPE state while the Standard counterfactual remains ordinary', () => {
     const heldTpe = {
       id: 'bos_tpe',
@@ -693,7 +706,7 @@ describe('validator trust fixes', () => {
     );
   });
 
-  it('blocks seasonal cash-limit overflow through authoritative apply validation', () => {
+  it('rejects cash without complete saved-world authority at apply validation', () => {
     const outgoingLakers = makePlayer('lal_cash_out', 5_000_000, {
       teamCode: 'LAL',
       tradeTo: 'BOS',
@@ -751,14 +764,10 @@ describe('validator trust fixes', () => {
       '2025-07-10'
     );
 
-    const lakersResult =
-      result._validatedTradeContext?._rawValidation?.teamResults?.find(
-        (entry) => entry.teamId === 'LAL'
-      );
-
-    expect(result._validatedTradeContext?.legal).toBe(false);
-    expect(issueTexts(lakersResult?.rules?.cash?.violations)).toEqual(
-      expect.arrayContaining([expect.stringMatching(/seasonal limit/i)])
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(
+      /governed cash consideration requires exact world and transaction identity/i
     );
+    expect(result.teamUpdates || []).toEqual([]);
   });
 });

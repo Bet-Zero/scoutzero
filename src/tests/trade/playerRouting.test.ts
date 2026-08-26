@@ -117,6 +117,25 @@ describe('validatePlayerRouting', () => {
   });
 
   describe('tradeTo destination validation', () => {
+    it('prefers canonical payload team codes over saved-world document slugs', () => {
+      const teams = [
+        {
+          teamCode: 'MIA',
+          team: { id: 'heat', teamCode: 'MIA' },
+          sends: [makePlayer('Player A', 'DEN')],
+        },
+        {
+          teamCode: 'DEN',
+          team: { id: 'nuggets', teamCode: 'DEN' },
+          sends: [makePlayer('Player B', 'MIA')],
+        },
+      ];
+
+      const result = validatePlayerRouting({ teams });
+
+      expect(result).toEqual({ valid: true, errors: [], warnings: [] });
+    });
+
     it('should fail when tradeTo points to non-participant team', () => {
       const teams = [
         makeTeamSlot('LAL', [makePlayer('Player A', 'NYK')]), // NYK not in trade!

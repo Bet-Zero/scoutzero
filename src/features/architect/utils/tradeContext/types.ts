@@ -12,6 +12,7 @@ import type {
   ArchitectTradePayloadPlayer,
   ArchitectTradePayloadTeam,
 } from '@/features/architect/utils/mutationPipeline';
+import type { GovernedCashSnapshotReceipt } from '@/schemas/governedCashConsideration';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { GovernedTradeSalaryBasis } from '@/schemas/governedTradeSalaryBasis';
 import type {
@@ -44,7 +45,8 @@ export interface ValidationTeam {
   picksOut: NonNullable<ArchitectTradePayloadTeam['picksOut']>;
   picksIn: NonNullable<ArchitectTradePayloadTeam['picksOut']>;
   cashSent: number;
-  cashReceived: number;
+  cashReceived?: number;
+  cashToTeamId?: string | null;
   salaryMatchingElection?: TradeSalaryMatchingElection | null;
 }
 
@@ -137,6 +139,7 @@ export interface PayloadTeamIngress {
   picksIn?: unknown[];
   cashSent?: number | null;
   cashReceived?: number | null;
+  cashToTeamId?: TradeContextScalarId;
   salaryMatchingElection?: TradeSalaryMatchingElection | null;
 }
 
@@ -173,6 +176,7 @@ export interface CurrentStateTeamEntry {
 
 export interface TradeContextCurrentState {
   teams: CurrentStateTeamEntry[];
+  governedCashTeamSnapshots?: GovernedCashSnapshotReceipt[] | null;
 }
 
 export interface OutgoingTradeRouteLike {

@@ -113,6 +113,12 @@ type TeamIdentityLike = {
   abbreviation?: unknown;
 };
 
+type TeamIdentitySlotLike = {
+  teamCode?: unknown;
+  teamId?: unknown;
+  team?: TeamIdentityLike | null;
+};
+
 type SignAndTradeResultLike = {
   hardCapped?: boolean;
 };
@@ -176,18 +182,30 @@ export function normalizeTeamCodeLike(teamIdLike: unknown): string | null {
   return null;
 }
 
+export function resolveTeamIdentityAliases(
+  teamSlot: TeamIdentitySlotLike | null | undefined,
+  index: number
+): string[] {
+  const aliases = Array.from(
+    new Set(
+      [
+        normalizeTeamCodeLike(teamSlot?.teamCode),
+        normalizeTeamCodeLike(teamSlot?.team?.teamCode),
+        normalizeTeamCodeLike(teamSlot?.teamId),
+        normalizeTeamCodeLike(teamSlot?.team?.teamId),
+        normalizeTeamCodeLike(teamSlot?.team?.id),
+      ].filter((value): value is string => value !== null)
+    )
+  );
+
+  return aliases.length > 0 ? aliases : [`team-${index}`];
+}
+
 export function resolveTeamIdentity(
-  teamSlot: TradeValidatorTeamSlot | null | undefined,
+  teamSlot: TeamIdentitySlotLike | null | undefined,
   index: number
 ): string {
-  return (
-    normalizeTeamCodeLike(teamSlot?.team?.id) ||
-    normalizeTeamCodeLike(teamSlot?.team?.teamId) ||
-    normalizeTeamCodeLike(teamSlot?.team?.teamCode) ||
-    normalizeTeamCodeLike(teamSlot?.teamId) ||
-    normalizeTeamCodeLike(teamSlot?.teamCode) ||
-    `team-${index}`
-  );
+  return resolveTeamIdentityAliases(teamSlot, index)[0];
 }
 
 export function resolvePlayerDestinationTeamId(

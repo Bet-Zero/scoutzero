@@ -262,6 +262,8 @@ tradeMachine/
   OutgoingPlayersList.tsx
   SelectTeamCard.tsx
   TradeApronRestrictionReceipt.tsx
+  TradeCashConsiderationInput.tsx
+  TradeCashConsiderationReceipt.tsx
   TradeEditor.helpers.ts
   TradeEditor.tsx
   TradeEditor.types.ts
@@ -597,6 +599,7 @@ utils/
       capUtils.ts
       conveyanceResolution.ts
       dataValidation.ts
+      governedCashConsideration.ts
       governedTradeSalaryBasis.ts
       hardCapStatus.ts
       index.ts
@@ -612,6 +615,7 @@ utils/
       tpeValidation.ts
       tradeApronDate.ts
       tradeApronRestrictions.ts
+      tradeCashRouting.ts
       tradeExceptionLifecycle.ts
       tradeExportUtils.ts
       tradeHardCapLedgerAuthority.ts
@@ -643,5 +647,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-25T16:55:27.494Z*
+*Generated on: 2026-08-26T00:40:18.903Z*
 *Auto-updated by: npm run docs*

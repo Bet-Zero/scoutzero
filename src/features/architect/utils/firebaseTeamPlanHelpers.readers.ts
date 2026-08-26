@@ -29,6 +29,7 @@ import {
 } from '@/schemas/salaryBooks';
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
 import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
+import type { GovernedCashLedger } from '@/schemas/governedCashConsideration';
 import { parseTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 
 // ============================================================
@@ -96,6 +97,7 @@ export interface LooseBaseTeamDoc extends UnknownRecord {
   salaryBookInputs?: TeamSalaryBookInputs | null;
   contractEventLedgers?: ContractEventLedgerPayload[] | null;
   hardCapLedger?: TradeHardCapLedgerEntry[] | null;
+  cashLedger?: GovernedCashLedger | Record<string, unknown> | null;
   totals?:
     | (UnknownRecord & {
         hardCapLevel?: string | null;
