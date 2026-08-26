@@ -434,6 +434,7 @@ export function evaluateTradeApronRestriction({
     restrictionRow === 'H' ? 'SECOND_APRON' : null;
   const tpeTimings: TpeTiming[] = [];
   let regularSeasonClosing: string | null = null;
+  let transactionRegularSeasonClosing: string | null = null;
   let standardWindowExpired = false;
   const timingByComponentId = new Map<string, TpeTiming>();
   const rowFByComponentId = new Map<
@@ -580,8 +581,9 @@ export function evaluateTradeApronRestriction({
   if (envelope.status !== 'complete') {
     missingInputs.push('governedSeasonEnvelope');
   } else {
-    regularSeasonClosing =
+    transactionRegularSeasonClosing =
       envelope.calendar.regularSeasonClosing?.value ?? null;
+    regularSeasonClosing = transactionRegularSeasonClosing;
   }
 
   if (transactionDate && tpeTimings.length > 0) {
@@ -617,9 +619,9 @@ export function evaluateTradeApronRestriction({
   if (
     paysCash &&
     transactionDate &&
-    regularSeasonClosing &&
+    transactionRegularSeasonClosing &&
     dateOnly(transactionDate) &&
-    dateOnly(transactionDate)! > regularSeasonClosing
+    dateOnly(transactionDate)! > transactionRegularSeasonClosing
   ) {
     missingInputs.push('subsequentSalaryCapYear.systemLevels');
     missingInputs.push('subsequentSalaryCapYear.A05.17Assumptions');

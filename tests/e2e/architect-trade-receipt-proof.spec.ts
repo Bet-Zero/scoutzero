@@ -520,9 +520,9 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     receipt.getByText(TWO_WAY_TRADE_MATCHING_EXPLANATION, { exact: true })
   ).toHaveCount(4);
   await expect(receipt.getByText('2W', { exact: true })).toHaveCount(4);
-  const heatApronProof = receipt.getByTestId('trade-apron-restriction-heat');
+  const heatApronProof = receipt.getByTestId('trade-apron-restriction-MIA');
   await expect(heatApronProof).toBeVisible();
-  await expect(heatApronProof).toContainText('Rows F + H');
+  await expect(heatApronProof).toContainText('Rows F + H + I');
   await expect(heatApronProof).toContainText('FAIL');
   await expect(heatApronProof).toContainText('Controlling First Apron ceiling');
   await expect(heatApronProof).toContainText(
@@ -542,13 +542,12 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     /Row H · Aggregated Standard TPE component aggregated:/
   );
   await expect(heatApronProof).toContainText('Players: Reggie Voss');
+  await expect(heatApronProof).toContainText('Row I · Cash payment');
   await expect(heatApronProof).toContainText('Authority GOV-CAL-0002');
   await expect(heatApronProof).toContainText('GOV-LVL-0005');
   await expect(heatApronProof).toContainText('CBA2-A05.10');
 
-  const nuggetsApronProof = receipt.getByTestId(
-    'trade-apron-restriction-nuggets'
-  );
+  const nuggetsApronProof = receipt.getByTestId('trade-apron-restriction-DEN');
   await expect(nuggetsApronProof).toBeVisible();
   await expect(nuggetsApronProof).toContainText('Rows F + H');
   await expect(nuggetsApronProof).toContainText('FAIL');
@@ -583,7 +582,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   expect(await worldCount()).toBe(1);
   expect(pageErrors).toEqual([]);
   await receipt
-    .getByTestId('trade-apron-restriction-heat')
+    .getByTestId('trade-apron-restriction-MIA')
     .scrollIntoViewIfNeeded();
   const screenshotPath = path.join(ARTIFACT_DIR, 'trade-receipt-1280x720.png');
   await page.screenshot({ path: screenshotPath, fullPage: false });

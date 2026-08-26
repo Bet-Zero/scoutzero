@@ -803,6 +803,31 @@ describe('governed Trade Machine apron restrictions', () => {
         },
       ],
     });
+
+    const mixedCashTeam = team(FIRST_APRON, [heldTpe]);
+    mixedCashTeam.cashSent = 1;
+    const mixedCashEvaluation = evaluateTradeApronRestriction({
+      team: mixedCashTeam,
+      teamCode: 'DET',
+      pathEvaluation: pathEvaluation({
+        path: 'STANDARD_TPE',
+        postSalary: FIRST_APRON,
+        components: [heldComponent(heldTpe.id)],
+      }),
+      context: context('2026-11-15T12:00:00-05:00'),
+    });
+
+    expect(mixedCashEvaluation).toMatchObject({
+      status: 'PASS',
+      restrictionRow: 'F',
+      missingInputs: [],
+      regularSeasonClosing: '2026-04-12',
+    });
+    expect(
+      mixedCashEvaluation.attachedRestrictions.map(
+        (restriction) => restriction.restrictionRow
+      )
+    ).toEqual(['F', 'I']);
   });
 
   it('CBA2-A05.8: authenticates a between-seasons TPE against the following Regular Season', () => {

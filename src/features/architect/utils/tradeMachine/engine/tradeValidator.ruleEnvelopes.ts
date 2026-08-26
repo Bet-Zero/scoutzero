@@ -103,7 +103,11 @@ type RuleEnvelopeObjectLike = {
   } | null;
 };
 
-type RuleEnvelopeLike = ValidationIssueLike[] | RuleEnvelopeObjectLike | null | undefined;
+type RuleEnvelopeLike =
+  | ValidationIssueLike[]
+  | RuleEnvelopeObjectLike
+  | null
+  | undefined;
 
 type TeamIdentityLike = {
   teamCode?: unknown;
@@ -181,11 +185,11 @@ export function resolveTeamIdentity(
   index: number
 ): string {
   return (
-    normalizeTeamCodeLike(teamSlot?.team?.id) ||
-    normalizeTeamCodeLike(teamSlot?.team?.teamId) ||
+    normalizeTeamCodeLike(teamSlot?.teamCode) ||
     normalizeTeamCodeLike(teamSlot?.team?.teamCode) ||
     normalizeTeamCodeLike(teamSlot?.teamId) ||
-    normalizeTeamCodeLike(teamSlot?.teamCode) ||
+    normalizeTeamCodeLike(teamSlot?.team?.teamId) ||
+    normalizeTeamCodeLike(teamSlot?.team?.id) ||
     `team-${index}`
   );
 }
@@ -226,7 +230,9 @@ export function getDeterministicValidationDate(currentYear: number): string {
   return `${currentYear - 1}-07-15`;
 }
 
-export function deriveSeasonStateFromDate(asOfDate: string | number | Date | null | undefined) {
+export function deriveSeasonStateFromDate(
+  asOfDate: string | number | Date | null | undefined
+) {
   const normalizedDate = normalizeTradeValidationDate(asOfDate);
   if (!normalizedDate) {
     return {
@@ -275,16 +281,22 @@ export function hasOwn(obj: object | null | undefined, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(obj || {}, key);
 }
 
-export function normalizeArrayInput<T>(values: T | T[] | null | undefined): T[] {
+export function normalizeArrayInput<T>(
+  values: T | T[] | null | undefined
+): T[] {
   if (values == null) return [];
-  return Array.isArray(values) ? values.filter((value) => value != null) : [values];
+  return Array.isArray(values)
+    ? values.filter((value) => value != null)
+    : [values];
 }
 
 export function isObjectLike(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
-export function isRuleEnvelopeObject(value: unknown): value is RuleEnvelopeObjectLike {
+export function isRuleEnvelopeObject(
+  value: unknown
+): value is RuleEnvelopeObjectLike {
   return isObjectLike(value);
 }
 
@@ -344,7 +356,8 @@ export function readSalaryMatchingRuleEnvelope(
       typeof salaryIn === 'number' || salaryIn === null
         ? (salaryIn ?? null)
         : null,
-    passed: typeof passed === 'boolean' || passed === null ? (passed ?? null) : null,
+    passed:
+      typeof passed === 'boolean' || passed === null ? (passed ?? null) : null,
     details: {
       totalSalarySource:
         typeof totalSalarySource === 'string' ? totalSalarySource : undefined,
@@ -352,14 +365,14 @@ export function readSalaryMatchingRuleEnvelope(
       formulaUsed: normalizedFormulaUsed,
       margin: normalizedMargin,
       capSettingsSource:
-        typeof capSettingsSource === 'string'
-          ? capSettingsSource
-          : undefined,
+        typeof capSettingsSource === 'string' ? capSettingsSource : undefined,
     },
   };
 }
 
-export function readSignAndTradeRuleEnvelope(value: unknown): SignAndTradeResultLike {
+export function readSignAndTradeRuleEnvelope(
+  value: unknown
+): SignAndTradeResultLike {
   if (!isRuleEnvelopeObject(value)) {
     return {};
   }
@@ -381,9 +394,7 @@ export function readHardCapRuleEnvelope(value: unknown): {
   return {
     hardCapStatus: {
       isHardCapped:
-        typeof isHardCapped === 'boolean'
-          ? isHardCapped
-          : undefined,
+        typeof isHardCapped === 'boolean' ? isHardCapped : undefined,
     },
   };
 }
@@ -450,25 +461,20 @@ export function createRuleEnvelope(
     };
   }
 
-  const violations = normalizeValidationIssues(
-    rawResult.violations,
-    {
-      rule: ruleKey,
-      severity: 'error',
-    }
-  );
-  const warnings = normalizeValidationIssues(
-    rawResult.warnings,
-    {
-      rule: ruleKey,
-      severity: 'warning',
-    }
-  );
+  const violations = normalizeValidationIssues(rawResult.violations, {
+    rule: ruleKey,
+    severity: 'error',
+  });
+  const warnings = normalizeValidationIssues(rawResult.warnings, {
+    rule: ruleKey,
+    severity: 'warning',
+  });
   const passed = hasOwn(rawResult, 'passed')
     ? Boolean(rawResult.passed)
     : violations.length === 0;
   const details = hasOwn(rawResult, 'details') ? rawResult.details : null;
-  const rawMessage = typeof rawResult.message === 'string' ? rawResult.message : '';
+  const rawMessage =
+    typeof rawResult.message === 'string' ? rawResult.message : '';
   const message =
     rawMessage ||
     getFirstValidationIssueText(violations) ||

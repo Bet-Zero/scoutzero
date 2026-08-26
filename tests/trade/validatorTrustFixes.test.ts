@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import capProjections from '@/features/architect/utils/capProjections';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
+import { resolveTeamIdentity } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.ruleEnvelopes';
 import { computeWorldMutation } from '@/features/architect/utils/mutationPipeline';
 import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import type {
@@ -231,6 +232,18 @@ const makeSatContract = (firstYearSalary: number): TestContract => ({
 });
 
 describe('validator trust fixes', () => {
+  it('keeps canonical payload Team codes ahead of source-document slugs', () => {
+    expect(
+      resolveTeamIdentity(
+        {
+          teamCode: 'MIA',
+          team: { id: 'heat', teamId: 'heat', teamCode: 'heat' },
+        },
+        0
+      )
+    ).toBe('MIA');
+  });
+
   it('CBA2-SC-002(b): excludes a Two-Way contract from matching and TPE state while the Standard counterfactual remains ordinary', () => {
     const heldTpe = {
       id: 'bos_tpe',
