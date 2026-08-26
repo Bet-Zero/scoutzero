@@ -382,6 +382,22 @@ describe('governed cash consideration', () => {
         'subsequentSalaryCapYear.A05.17Assumptions',
       ],
     });
+
+    expect(
+      evaluateGovernedCashConsideration({
+        team: team('ATL', ledger('ATL'), 1),
+        context: {
+          ...context,
+          tradeDate: undefined,
+          asOfDate: '2026-11-15',
+        },
+      })
+    ).toMatchObject({
+      status: 'PASS',
+      salaryCapYear: 2027,
+      transactionAt: '2026-11-15T12:00:00Z',
+      regularSeasonClosing: '2027-04-11',
+    });
   });
 
   it('attaches current-year Row I only to the cash-paying Team', () => {

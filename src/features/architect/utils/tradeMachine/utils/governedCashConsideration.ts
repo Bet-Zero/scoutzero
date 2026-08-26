@@ -6,6 +6,7 @@ import {
 } from '@/schemas/governedCashConsideration';
 import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
 import type { TeamContext, TradeTeam } from '../constants/types';
+import { normalizeTradeApronEnvelopeDate } from './tradeApronDate';
 import { cashDollarsToCents } from './tradeCashRouting';
 
 const CASH_CANON_COMMIT = '6cf8aaf358c158a88e630e8a7336f7e9c3febc17';
@@ -106,7 +107,11 @@ export function evaluateGovernedCashConsideration({
     });
   }
 
-  const transactionAt = context.tradeDate ?? context.asOfDate ?? null;
+  const rawTransactionAt = context.tradeDate ?? context.asOfDate ?? null;
+  const transactionAt =
+    typeof rawTransactionAt === 'string'
+      ? normalizeTradeApronEnvelopeDate(rawTransactionAt)
+      : null;
   const salaryCapYear = context.currentYear ?? context.yearKey ?? null;
   const missingInputs: string[] = [];
   if (!context.worldId?.trim()) missingInputs.push('worldId');

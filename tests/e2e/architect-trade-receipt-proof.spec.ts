@@ -13,7 +13,7 @@ import {
 
 const CANDIDATE = process.env.SCOUTZERO_PROOF_CANDIDATE ?? '';
 const ARTIFACT_DIR = process.env.SCOUTZERO_BROWSER_PROOF_DIR ?? '';
-const MIA_URL = '/gm/MIA';
+const MIA_URL = '/gm/MIA?season=2027';
 const PROOF_WORLD_ID = 'world_trade_receipt_proof';
 const PROOF_AS_OF_DATE = '2026-11-15';
 const EMPTY_RELEASE_DIGEST = `sha256:${'3'.repeat(64)}`;
