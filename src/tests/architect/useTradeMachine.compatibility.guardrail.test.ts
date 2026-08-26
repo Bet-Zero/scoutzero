@@ -345,6 +345,45 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
     });
   });
 
+  it('clears held TPE identity when a player returns to salary matching', async () => {
+    const { result } = await setupHookWithSecondaryTeam();
+    const primarySlot = assertDefined(
+      result.current.teams[0],
+      'Primary trade slot should be present'
+    );
+    const primaryTeam = assertDefined(
+      primarySlot.team,
+      'Primary team should be loaded'
+    );
+    const player = assertDefined(
+      assertDefined(
+        primaryTeam.players,
+        'Primary team players should be loaded'
+      )[0],
+      'Expected a primary player'
+    );
+    const secondaryTeamId = assertDefined(
+      result.current.teams[1]?.team?.id,
+      'Secondary team id missing'
+    );
+
+    act(() => {
+      result.current.setPlayerTrade(0, player, 'trade', secondaryTeamId);
+      result.current.setPlayerTrade(0, player, 'setTpeId', 'LAL-TPE-A');
+      result.current.setPlayerTrade(0, player, 'setAbsorptionMode', 'MATCH');
+    });
+
+    await waitFor(() => {
+      expect(result.current.teams[0]?.sends[0]).toMatchObject({
+        absorptionMode: 'MATCH',
+        tpeId: null,
+      });
+    });
+    expect(result.current.exportCurrentTrade()[0]?.usedTradeExceptions).toEqual(
+      []
+    );
+  });
+
   it('preserves trade export payload assembly and usedTradeExceptions ordering', async () => {
     const { result } = await setupHookWithSecondaryTeam();
     const primarySlot = assertDefined(

@@ -112,11 +112,15 @@ export function useTradeMachinePlayerOps({
             // For incoming players, find the sending team and update the player there
             {
               const absorptionMode = destTeamId;
+              const absorptionPatch =
+                absorptionMode === 'TPE'
+                  ? { absorptionMode }
+                  : { absorptionMode, tpeId: null };
               // First check if player is in this team's sends
               if (playerIndex !== -1) {
                 newTeams[index].sends[playerIndex] = {
                   ...newTeams[index].sends[playerIndex],
-                  absorptionMode,
+                  ...absorptionPatch,
                 };
               } else {
                 // Player is incoming - find which team is sending them and update there
@@ -128,7 +132,7 @@ export function useTradeMachinePlayerOps({
                   if (otherPlayerIdx !== -1) {
                     newTeams[i].sends[otherPlayerIdx] = {
                       ...newTeams[i].sends[otherPlayerIdx],
-                      absorptionMode,
+                      ...absorptionPatch,
                     };
                     break;
                   }
