@@ -9,6 +9,7 @@
 import {
   buildTradePlayerPersistenceManifest,
   materializeCurrentStateBaseTeamPreservedFields,
+  removeUndefinedDeep,
   toOptionalTrimmedString,
 } from './mutationPipeline.helpers';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
@@ -612,7 +613,9 @@ export function computeTradeResult({
         apronTeamSalary: 0,
         taxSalary: 0,
       })),
-      tradeReceipt: validatedContext._rawValidation?.tradeReceipt ?? null,
+      tradeReceipt: removeUndefinedDeep(
+        validatedContext._rawValidation?.tradeReceipt ?? null
+      ),
       verificationStatus: 'complete',
       canonLeafIds: [
         ...new Set([

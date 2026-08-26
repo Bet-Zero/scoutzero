@@ -33,6 +33,7 @@ import { withGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInpu
 import { validateTrade } from '@/features/architect/utils/tradeMachine';
 import {
   GovernedCashLedgerZ,
+  GovernedCashReceiptZ,
   type GovernedCashEvaluation,
 } from '@/schemas/governedCashConsideration';
 import type { TradeApronRestrictionEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
@@ -774,6 +775,10 @@ describe('mutationPipeline trade persistence truth', () => {
         ],
         tradeReceipt: {
           isLegal: true,
+          capSettings: {
+            salaryCap: 154_647_000,
+            rookieMinSource: undefined,
+          },
           teams: [
             {
               teamCode: 'LAL',
@@ -898,6 +903,28 @@ describe('mutationPipeline trade persistence truth', () => {
     });
     expect(firstCandidate.success, String(firstCandidate.error)).toBe(true);
     expect(staleCandidate.success, String(staleCandidate.error)).toBe(true);
+    expect(
+      GovernedCashReceiptZ.parse(
+        firstCandidate.metadata?.governedCashReceipt
+      ).tradeReceipt
+    ).toEqual({
+      isLegal: true,
+      capSettings: { salaryCap: 154_647_000 },
+      teams: [
+        {
+          teamCode: 'LAL',
+          cashConsiderationEvaluation: cashEvaluation('LAL', 'PAID'),
+        },
+        {
+          teamCode: 'BOS',
+          cashConsiderationEvaluation: cashEvaluation('BOS', 'RECEIVED'),
+        },
+        {
+          teamCode: 'DET',
+          cashConsiderationEvaluation: null,
+        },
+      ],
+    });
 
     const firstPersisted = await persistWorldMutation({
       worldId,
