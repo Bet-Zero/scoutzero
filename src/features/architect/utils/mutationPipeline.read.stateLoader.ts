@@ -55,6 +55,7 @@ import { LIVE_GOVERNED_TRADE_SALARY_AUTHORITY } from '@/features/architect/utils
 import { SeasonTransitionManifestZ } from '@/schemas/seasonTransition';
 import type { GovernedSignAndTradeEvidenceBundle } from '@/features/architect/utils/tradeMachine/signAndTrade/governedSignAndTrade';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
 
 // Wave 48 Step 1: lineage helpers extracted to submodule
 export * from './mutationPipeline.read.stateLoader.lineage';
@@ -989,6 +990,27 @@ export async function loadStateForMutation(
             rosterPlayers,
             entries
           );
+          const canonicalTotals = createCanonicalTeamTotalsSnapshot(
+            team,
+            salaryCapYear,
+            { asOfDate: worldAsOfDate }
+          );
+          team.totals = canonicalTotals;
+
+          delete team.teamSalary;
+          delete team.apronTeamSalary;
+          delete team.taxSalary;
+          delete team.teamTotalSalary;
+          if (canonicalTotals.teamSalary !== null) {
+            team.teamSalary = canonicalTotals.teamSalary;
+          }
+          if (canonicalTotals.apronTeamSalary !== null) {
+            team.apronTeamSalary = canonicalTotals.apronTeamSalary;
+            team.teamTotalSalary = canonicalTotals.apronTeamSalary;
+          }
+          if (canonicalTotals.taxSalary !== null) {
+            team.taxSalary = canonicalTotals.taxSalary;
+          }
         })
       );
       return {

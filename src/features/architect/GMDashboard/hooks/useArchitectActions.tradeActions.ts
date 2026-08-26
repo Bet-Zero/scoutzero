@@ -299,10 +299,17 @@ export function useTradeActions({
 
   const commitTradeExecutionHandoff = useCallback(
     async (tradeExecutionHandoff: TradeExecutionHandoff): Promise<void> => {
-      await runAuthoritativeWorldMutationWithDashboardSync(
+      const result = await runAuthoritativeWorldMutationWithDashboardSync(
         'executeTrade',
         tradeExecutionHandoff.payload
       );
+      if (!result.success) {
+        const message =
+          result.error instanceof Error
+            ? result.error.message
+            : result.error || 'The saved-world trade could not be applied.';
+        throw new Error(message);
+      }
     },
     [runAuthoritativeWorldMutationWithDashboardSync]
   );

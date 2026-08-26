@@ -3036,6 +3036,55 @@ describe('useArchitectActions Free Agency SSOT wiring', () => {
     expect(toastMocks.success).toHaveBeenCalledWith('Saved changes');
   });
 
+  it('rejects world-mode trade apply when the authoritative mutation does not commit', async () => {
+    mutationMocks.applyWorldMutation.mockResolvedValue({
+      success: false,
+      error: 'Cash-paying Team MIA lacks a complete governed Row I hard-cap result.',
+      appliedToLocalState: false,
+      persistedToWorld: false,
+    });
+
+    const { result, refreshWorldRosterIndex } = renderActionsHarness({
+      worldId: 'world_1',
+      initialTeam: baseTeamFixture,
+    });
+    const teamBeforeApply = result.current.teamCapSheet;
+    const tradeData = [
+      {
+        teamId: 'LAL',
+        outgoingPlayers: [playerFixture],
+        incomingPlayers: [],
+        outgoingEntitlements: [],
+        incomingEntitlements: [],
+      },
+      {
+        teamId: 'BOS',
+        outgoingPlayers: [],
+        incomingPlayers: [playerFixture],
+        outgoingEntitlements: [],
+        incomingEntitlements: [],
+      },
+    ];
+
+    let caughtError: unknown = null;
+    await act(async () => {
+      try {
+        await result.current.actions.applyTradeToCapSheet(
+          tradeData as FreeAgencyTradeInput
+        );
+      } catch (error: unknown) {
+        caughtError = error;
+      }
+    });
+
+    expect(caughtError).toBeInstanceOf(Error);
+    expect((caughtError as Error).message).toContain(
+      'Cash-paying Team MIA lacks a complete governed Row I hard-cap result.'
+    );
+    expect(result.current.teamCapSheet).toBe(teamBeforeApply);
+    expect(refreshWorldRosterIndex).not.toHaveBeenCalled();
+  });
+
   it('returns a conservative blocked SAT preflight result in base mode', async () => {
     const { result } = renderActionsHarness({ worldId: null });
 
