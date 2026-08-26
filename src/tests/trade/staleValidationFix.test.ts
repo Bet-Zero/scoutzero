@@ -133,9 +133,17 @@ describe('computeTradeDraftKey', () => {
           mockTeamsEmpty[1],
         ],
       });
+      const largerCashToLal = computeTradeDraftKey({
+        yearKey: 2025,
+        teams: [
+          { ...mockTeamsEmpty[0], cashSent: 2, cashToTeamId: 'LAL' },
+          mockTeamsEmpty[1],
+        ],
+      });
 
       expect(cashToLal).not.toBe(noCash);
       expect(cashToMia).not.toBe(cashToLal);
+      expect(largerCashToLal).not.toBe(cashToLal);
     });
   });
 

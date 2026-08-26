@@ -58,6 +58,7 @@ import type {
 } from './mutationPipeline';
 import type { GovernedSignAndTradeAuthority } from '@/schemas/governedSignAndTrade';
 import {
+  canonicalizeTradeCashTeamId,
   cashDollarsToCents,
   resolveTradeCashRouting,
 } from '@/features/architect/utils/tradeMachine/utils/tradeCashRouting';
@@ -557,7 +558,8 @@ export function computeTradeResult({
     for (const payingTeamCode of payingTeamCodes) {
       const teamResult = teamResultByCode.get(payingTeamCode);
       const teamUpdate = teamUpdates.find(
-        (entry) => entry.teamCode === payingTeamCode
+        (entry) =>
+          canonicalizeTradeCashTeamId(entry.teamCode) === payingTeamCode
       );
       const hasRowI =
         teamResult?.apronRestrictionEvaluation?.attachedRestrictions.some(
@@ -566,6 +568,7 @@ export function computeTradeResult({
       const hasHardCapEntry = (teamUpdate?.team?.hardCapLedger || []).some(
         (entry) =>
           entry.transactionId === resolvedMutationId &&
+          Array.isArray(entry.triggers) &&
           entry.triggers.some((trigger) => trigger.restrictionRow === 'I')
       );
       if (

@@ -123,6 +123,61 @@ describe('governed cash consideration', () => {
     ).toMatchObject({ ok: false });
   });
 
+  it('accepts ordinary cent precision and canonicalizes participant aliases', () => {
+    expect(
+      resolveTradeCashRouting([
+        {
+          teamId: 'lakers',
+          teamCode: 'LAL',
+          team: { id: 'lakers', teamCode: 'LAL' },
+          cashSent: 0.29,
+          cashToTeamId: 'celtics',
+        },
+        {
+          teamId: 'celtics',
+          teamCode: 'BOS',
+          team: { id: 'celtics', teamCode: 'BOS' },
+        },
+      ])
+    ).toMatchObject({
+      ok: true,
+      teams: [
+        { cashSent: 0.29, cashToTeamId: 'BOS', cashReceived: 0 },
+        { cashSent: 0, cashToTeamId: null, cashReceived: 0.29 },
+      ],
+    });
+    expect(
+      resolveTradeCashRouting([
+        {
+          teamId: 'LAL',
+          cashSent: 0.29,
+          cashToTeamId: 'not-a-participant',
+        },
+        { teamId: 'BOS' },
+      ])
+    ).toMatchObject({ ok: false });
+
+    expect(
+      evaluateGovernedCashConsideration({
+        team: {
+          teamId: 'lakers',
+          team: {
+            id: 'lakers',
+            teamCode: 'LAL',
+            cashLedger: ledger('LAL'),
+          },
+          cashSent: 0.29,
+          cashReceived: 0,
+        },
+        context,
+      })
+    ).toMatchObject({
+      status: 'PASS',
+      teamId: 'LAL',
+      cashSentCents: 29,
+    });
+  });
+
   it('fails malformed, ambiguous, self-routed, and unsupported lifecycle cash', () => {
     expect(
       resolveTradeCashRouting([
@@ -193,6 +248,39 @@ describe('governed cash consideration', () => {
     ]);
   });
 
+  it('rejects calendar-invalid instants and inconsistent PASS authority', () => {
+    const valid = evaluateGovernedCashConsideration({
+      team: team('ATL', ledger('ATL'), 1),
+      context,
+    });
+    expect(GovernedCashEvaluationZ.safeParse(valid).success).toBe(true);
+    expect(
+      GovernedCashEvaluationZ.safeParse({
+        ...valid,
+        transactionAt: '2026-02-30T12:00:00Z',
+      }).success
+    ).toBe(false);
+    expect(
+      GovernedCashEvaluationZ.safeParse({
+        ...valid,
+        projectedPaidCents: (valid.projectedPaidCents ?? 0) + 1,
+      }).success
+    ).toBe(false);
+    expect(
+      GovernedCashEvaluationZ.safeParse({
+        ...valid,
+        cashSentCents: ANNUAL_LIMIT_CENTS + 1,
+        projectedPaidCents: ANNUAL_LIMIT_CENTS + 1,
+      }).success
+    ).toBe(false);
+    expect(
+      GovernedCashEvaluationZ.safeParse({
+        ...valid,
+        annualLimitCents: ANNUAL_LIMIT_CENTS - 1,
+      }).success
+    ).toBe(false);
+  });
+
   it('tracks received cash separately without netting or cross-year leakage', () => {
     const entries = [
       ledgerEntry({
@@ -241,18 +329,22 @@ describe('governed cash consideration', () => {
       team: team('BOS', ledger('BOS'), 0, 1),
       context,
     });
+    const amountCents = paidEvaluation.cashSentCents;
+    if (amountCents === null) {
+      throw new Error('Expected the paid evaluation to contain exact cash cents.');
+    }
     const paidEntry = ledgerEntry({
       teamId: 'ATL',
       counterpartyTeamId: 'BOS',
       direction: 'PAID',
-      amountCents: 100,
+      amountCents,
       transactionId,
     });
     const receivedEntry = ledgerEntry({
       teamId: 'BOS',
       counterpartyTeamId: 'ATL',
       direction: 'RECEIVED',
-      amountCents: 100,
+      amountCents,
       transactionId,
     });
     const receipt = {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { JsonValueZ } from './common';
+import { JsonValueZ } from '@/schemas/common';
 
 const NonEmptyStringZ = z.string().trim().min(1);
 const TeamCodeZ = z
@@ -9,15 +9,41 @@ const TeamCodeZ = z
   .max(5)
   .regex(/^[A-Z0-9]{2,5}$/, 'must be a canonical uppercase Team code');
 const StateDigestZ = z.string().regex(/^fnv1a64:[0-9a-f]{16}$/);
-const ZonedInstantZ = z
+const ZonedInstantPattern =
+  /^(\d{4})-(\d{2})-(\d{2})T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/;
+
+export function isGovernedCashZonedInstant(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const match = ZonedInstantPattern.exec(value);
+  if (!match || !Number.isFinite(Date.parse(value))) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [
+    31,
+    leapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ][month - 1];
+
+  return day >= 1 && daysInMonth !== undefined && day <= daysInMonth;
+}
+
+export const GovernedCashZonedInstantZ = z
   .string()
-  .refine(
-    (value) =>
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(
-        value
-      ) && Number.isFinite(Date.parse(value)),
-    { message: 'must be an ISO-8601 instant with an explicit UTC offset' }
-  );
+  .refine(isGovernedCashZonedInstant, {
+    message: 'must be a calendar-valid ISO-8601 instant with an explicit UTC offset',
+  });
 const MoneyCentsZ = z.number().int().nonnegative().safe();
 
 export const GovernedCashProofZ = z
@@ -55,8 +81,8 @@ export const GovernedCashLedgerEntryZ = z
     direction: z.enum(['PAID', 'RECEIVED']),
     amountCents: MoneyCentsZ.positive(),
     salaryCapYear: z.number().int().positive(),
-    transactionAt: ZonedInstantZ,
-    recordedAt: ZonedInstantZ,
+    transactionAt: GovernedCashZonedInstantZ,
+    recordedAt: GovernedCashZonedInstantZ,
     canonLeafIds: z.array(NonEmptyStringZ).min(1),
     proof: GovernedCashProofZ,
   })
@@ -114,7 +140,7 @@ export const GovernedCashEvaluationZ = z
     passed: z.boolean(),
     teamId: TeamCodeZ,
     salaryCapYear: z.number().int().positive().nullable(),
-    transactionAt: ZonedInstantZ.nullable(),
+    transactionAt: GovernedCashZonedInstantZ.nullable(),
     cashSentCents: MoneyCentsZ.nullable(),
     cashReceivedCents: MoneyCentsZ.nullable(),
     priorPaidCents: MoneyCentsZ.nullable(),
@@ -138,6 +164,102 @@ export const GovernedCashEvaluationZ = z
         code: z.ZodIssueCode.custom,
         path: ['passed'],
         message: 'passed must agree with the evaluation status',
+      });
+    }
+    if (evaluation.status !== 'PASS') return;
+
+    const requiredAuthorityFields = [
+      'salaryCapYear',
+      'transactionAt',
+      'cashSentCents',
+      'cashReceivedCents',
+      'priorPaidCents',
+      'priorReceivedCents',
+      'projectedPaidCents',
+      'projectedReceivedCents',
+      'annualLimitCents',
+      'regularSeasonClosing',
+      'ledgerVersion',
+      'proof',
+    ] as const;
+    requiredAuthorityFields.forEach((field) => {
+      if (evaluation[field] === null) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: `PASS requires ${field}`,
+        });
+      }
+    });
+    if (
+      evaluation.canonLeafIds.length === 0 ||
+      evaluation.missingInputs.length > 0 ||
+      evaluation.violations.length > 0
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'PASS requires complete Canon authority without missing inputs or violations',
+      });
+    }
+
+    const {
+      cashSentCents,
+      cashReceivedCents,
+      priorPaidCents,
+      priorReceivedCents,
+      projectedPaidCents,
+      projectedReceivedCents,
+      annualLimitCents,
+      proof,
+    } = evaluation;
+    if (
+      cashSentCents === null ||
+      cashReceivedCents === null ||
+      priorPaidCents === null ||
+      priorReceivedCents === null ||
+      projectedPaidCents === null ||
+      projectedReceivedCents === null ||
+      annualLimitCents === null ||
+      proof === null
+    ) {
+      return;
+    }
+
+    if (
+      !Number.isSafeInteger(priorPaidCents + cashSentCents) ||
+      projectedPaidCents !== priorPaidCents + cashSentCents
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['projectedPaidCents'],
+        message: 'projected paid cash must equal prior paid cash plus current cash sent',
+      });
+    }
+    if (
+      !Number.isSafeInteger(priorReceivedCents + cashReceivedCents) ||
+      projectedReceivedCents !== priorReceivedCents + cashReceivedCents
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['projectedReceivedCents'],
+        message:
+          'projected received cash must equal prior received cash plus current cash received',
+      });
+    }
+    if (proof.annualLimitCents !== annualLimitCents) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['annualLimitCents'],
+        message: 'evaluation annual limit must match its governed proof',
+      });
+    }
+    if (
+      projectedPaidCents > annualLimitCents ||
+      projectedReceivedCents > annualLimitCents
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'PASS projected cash totals cannot exceed the annual limit',
       });
     }
   });
@@ -166,8 +288,8 @@ export const GovernedCashReceiptZ = z
     transactionId: NonEmptyStringZ,
     worldId: NonEmptyStringZ,
     salaryCapYear: z.number().int().positive(),
-    transactionAt: ZonedInstantZ,
-    committedAt: ZonedInstantZ,
+    transactionAt: GovernedCashZonedInstantZ,
+    committedAt: GovernedCashZonedInstantZ,
     teamEvaluations: z.array(GovernedCashEvaluationZ).min(2),
     entries: z.array(GovernedCashLedgerEntryZ).min(2),
     expectedTeamSnapshots: z.array(GovernedCashSnapshotReceiptZ).min(2),

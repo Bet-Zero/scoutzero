@@ -714,7 +714,11 @@ export async function loadStateForMutation(
               `Missing teamCode for trade entry at index ${index}. Payload: ${JSON.stringify(teamTrade)}`
             );
           }
-          return String(code);
+          const normalizedCode = String(code).trim();
+          if (!normalizedCode) {
+            throw new Error(`Missing teamCode for trade entry at index ${index}.`);
+          }
+          return resolveTeamCode(normalizedCode) || normalizedCode.toUpperCase();
         }
       );
 

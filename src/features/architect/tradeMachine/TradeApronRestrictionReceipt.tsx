@@ -80,7 +80,9 @@ export function TradeApronRestrictionReceipt({
                     : ` · ${formatCurrency(trigger.cashAmountCents / 100)}`
                 }`
               : `${
-                  trigger.componentKind === 'HELD_STANDARD_TPE'
+                  trigger.componentKind === 'SIGN_AND_TRADE'
+                    ? 'Sign-and-trade'
+                    : trigger.componentKind === 'HELD_STANDARD_TPE'
                     ? 'Held Standard TPE'
                     : 'Aggregated Standard TPE'
                 } component ${trigger.componentId}`}

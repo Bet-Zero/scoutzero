@@ -1,5 +1,5 @@
 import React from 'react';
-import type { TeamOptionLike } from './TradeTeamCard.helpers';
+import type { TeamOptionLike } from '@/features/architect/tradeMachine/TradeTeamCard.helpers';
 
 interface TradeCashConsiderationInputProps {
   teamLabel: string;

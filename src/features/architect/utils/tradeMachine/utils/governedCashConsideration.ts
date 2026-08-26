@@ -1,39 +1,25 @@
 import {
   GovernedCashLedgerZ,
   GovernedCashProofZ,
+  isGovernedCashZonedInstant,
   type GovernedCashEvaluation,
   type GovernedCashLedger,
 } from '@/schemas/governedCashConsideration';
 import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
-import type { TeamContext, TradeTeam } from '../constants/types';
-import { normalizeTradeApronEnvelopeDate } from './tradeApronDate';
-import { cashDollarsToCents } from './tradeCashRouting';
+import type {
+  TeamContext,
+  TradeTeam,
+} from '@/features/architect/utils/tradeMachine/constants/types';
+import { normalizeTradeApronEnvelopeDate } from '@/features/architect/utils/tradeMachine/utils/tradeApronDate';
+import {
+  canonicalizeTradeCashTeamId,
+  cashDollarsToCents,
+  resolveTradeCashTeamIdentity,
+} from '@/features/architect/utils/tradeMachine/utils/tradeCashRouting';
 
 const CASH_CANON_COMMIT = '6cf8aaf358c158a88e630e8a7336f7e9c3febc17';
 const CASH_CANON_SHA256 =
   '23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76';
-
-function teamCode(team: TradeTeam): string {
-  return String(
-    team.teamId ||
-      team.team?.teamCode ||
-      team.team?.teamId ||
-      team.team?.id ||
-      'UNK'
-  )
-    .trim()
-    .toUpperCase();
-}
-
-function isZonedInstant(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(
-      value
-    ) &&
-    Number.isFinite(Date.parse(value))
-  );
-}
 
 function evaluation(
   values: Partial<GovernedCashEvaluation> &
@@ -82,7 +68,8 @@ export function evaluateGovernedCashConsideration({
   team: TradeTeam;
   context: TeamContext;
 }): GovernedCashEvaluation {
-  const resolvedTeamCode = teamCode(team);
+  const teamIdentity = resolveTradeCashTeamIdentity(team);
+  const resolvedTeamCode = teamIdentity.teamId;
   const cashSentCents = cashDollarsToCents(team.cashSent);
   const cashReceivedCents = cashDollarsToCents(team.cashReceived);
   if (cashSentCents === null || cashReceivedCents === null) {
@@ -115,7 +102,9 @@ export function evaluateGovernedCashConsideration({
   const salaryCapYear = context.currentYear ?? context.yearKey ?? null;
   const missingInputs: string[] = [];
   if (!context.worldId?.trim()) missingInputs.push('worldId');
-  if (!isZonedInstant(transactionAt)) missingInputs.push('transactionAt');
+  if (!isGovernedCashZonedInstant(transactionAt)) {
+    missingInputs.push('transactionAt');
+  }
   if (!Number.isInteger(salaryCapYear)) missingInputs.push('salaryCapYear');
   if (!/^[A-Z0-9]{2,5}$/.test(resolvedTeamCode)) {
     missingInputs.push('teamId');
@@ -128,7 +117,9 @@ export function evaluateGovernedCashConsideration({
         typeof salaryCapYear === 'number' && Number.isInteger(salaryCapYear)
           ? salaryCapYear
           : null,
-      transactionAt: isZonedInstant(transactionAt) ? transactionAt : null,
+      transactionAt: isGovernedCashZonedInstant(transactionAt)
+        ? transactionAt
+        : null,
       cashSentCents,
       cashReceivedCents,
       missingInputs,
@@ -193,7 +184,10 @@ export function evaluateGovernedCashConsideration({
   }
 
   const parsedLedger = GovernedCashLedgerZ.safeParse(team.team?.cashLedger);
-  if (!parsedLedger.success || parsedLedger.data.teamId !== resolvedTeamCode) {
+  if (
+    !parsedLedger.success ||
+    canonicalizeTradeCashTeamId(parsedLedger.data.teamId) !== resolvedTeamCode
+  ) {
     return evaluation({
       status: 'NEEDS_INPUT',
       teamId: resolvedTeamCode,

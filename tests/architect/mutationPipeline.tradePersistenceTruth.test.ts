@@ -851,18 +851,21 @@ describe('mutationPipeline trade persistence truth', () => {
       teams: [
         {
           teamCode: 'LAL',
+          team: { id: 'lakers', teamCode: 'LAL' },
           sends: [{ ...lalOut, tradeTo: 'BOS' }],
           entitlementsOut: [],
           cashSent: 1,
-          cashToTeamId: 'BOS',
+          cashToTeamId: 'celtics',
         },
         {
           teamCode: 'BOS',
+          team: { id: 'celtics', teamCode: 'BOS' },
           sends: [{ ...bosOut, tradeTo: 'DET' }],
           entitlementsOut: [],
         },
         {
           teamCode: 'DET',
+          team: { id: 'pistons', teamCode: 'DET' },
           sends: [{ ...detOut, tradeTo: 'LAL' }],
           entitlementsOut: [],
         },
@@ -975,6 +978,8 @@ describe('mutationPipeline trade persistence truth', () => {
         transactionId: lalLedger.entries[0].transactionId,
       }),
     ]);
+    expect(bosSnapshot.hardCapLedger ?? []).toEqual([]);
+    expect(detSnapshot.hardCapLedger ?? []).toEqual([]);
     expect(lalSnapshot.salaryBookInputs).toEqual(salaryBooksBefore.LAL);
     expect(bosSnapshot.salaryBookInputs).toEqual(salaryBooksBefore.BOS);
     expect(detSnapshot.salaryBookInputs).toEqual(salaryBooksBefore.DET);
@@ -1032,7 +1037,9 @@ describe('mutationPipeline trade persistence truth', () => {
     });
     expect(stalePersisted.success).toBe(false);
     if (!stalePersisted.success) {
-      expect(stalePersisted.error).toMatch(/snapshot|ledger.*changed/i);
+      expect(stalePersisted.error).toContain(
+        'Team snapshot for LAL changed before governed cash could commit.'
+      );
     }
     expect(
       [...getAllMockData().keys()].filter((key) => key.includes('/events/'))

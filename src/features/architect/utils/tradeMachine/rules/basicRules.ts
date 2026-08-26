@@ -29,6 +29,8 @@ export function validateSecondApronRules(
   _team: BasicRulesTeam,
   _context: BasicRulesContext = {}
 ): BasicRulesValidationResult {
+  void _team;
+  void _context;
   return {
     passed: true,
     violations: [],

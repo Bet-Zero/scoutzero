@@ -183,7 +183,10 @@ export const TradeEditor = ({
   // open with no edits and no objective does not.
   const hasDraftActivity = useMemo(() => {
     const hasStagedAssets = teams.some(
-      (slot) => slot.sends.length > 0 || (slot.entitlementsOut?.length ?? 0) > 0
+      (slot) =>
+        slot.sends.length > 0 ||
+        (slot.entitlementsOut?.length ?? 0) > 0 ||
+        Number(slot.cashSent ?? 0) > 0
     );
     const hasObjectiveContext = Boolean(
       tradeContext?.objective || tradeContext?.exceptionRef
@@ -455,7 +458,9 @@ export const TradeEditor = ({
     () =>
       teams.some(
         (slot) =>
-          slot.sends.length > 0 || (slot.entitlementsOut?.length ?? 0) > 0
+          slot.sends.length > 0 ||
+          (slot.entitlementsOut?.length ?? 0) > 0 ||
+          Number(slot.cashSent ?? 0) > 0
       ),
     [teams]
   );
@@ -498,7 +503,7 @@ export const TradeEditor = ({
       return {
         tone: 'setup',
         label: 'Setup required',
-        message: 'Add a player or draft asset to the trade.',
+        message: 'Add a player, draft asset, or cash consideration to the trade.',
       };
     }
 
