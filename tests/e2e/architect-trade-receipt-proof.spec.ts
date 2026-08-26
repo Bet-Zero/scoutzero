@@ -408,22 +408,16 @@ const routePlayer = async (
 
 const cancelPlayerTrade = async (
   dialog: Locator,
-  page: Page,
   sourceTeamCode: string,
   playerName: string
 ) => {
   const card = teamCard(dialog, sourceTeamCode);
-  const player = card
-    .getByAltText(playerName, { exact: true })
-    .or(card.getByText(playerName, { exact: true }))
-    .first();
-  const playerRow = player.locator(
-    'xpath=ancestor::div[contains(@class, "h-[68px]") or contains(@class, "h-[40px]")][1]'
-  );
-  await playerRow.getByRole('button', { name: '•••' }).first().click();
-  const cancel = page.getByRole('button', { name: /^Cancel Trade$/i });
-  await expect(cancel).toBeVisible();
-  await cancel.click();
+  const outgoingChip = card
+    .locator('span[class*="bg-cockpit-danger/15"]')
+    .filter({ hasText: playerName });
+  await expect(outgoingChip).toHaveCount(1);
+  await outgoingChip.getByRole('button').click();
+  await expect(outgoingChip).toHaveCount(0);
 };
 
 test('exact-head Trade Machine produces a retained governed apron Trade Receipt', async ({
@@ -617,8 +611,8 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   await page.screenshot({ path: screenshotPath, fullPage: false });
 
   await receipt.getByRole('button', { name: 'Hide Details' }).click();
-  await cancelPlayerTrade(dialog, page, 'MIA', 'Eli Navarro');
-  await cancelPlayerTrade(dialog, page, 'DEN', 'Reggie Voss');
+  await cancelPlayerTrade(dialog, 'MIA', 'Eli Navarro');
+  await cancelPlayerTrade(dialog, 'DEN', 'Reggie Voss');
   await electSalaryPath(miamiCard, 'STANDARD_TPE');
   await electSalaryPath(denverCard, 'STANDARD_TPE');
   await miamiCard.getByLabel('Aaron Pike absorption mode').selectOption('MATCH');
