@@ -46,9 +46,15 @@ import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
 import { projectGovernedWaiverTeamSalary } from '@/features/architect/utils/waivers/governedWaiverProjection';
 import {
   computeTeamSalaryBooks,
+  normalizeSalaryBookAsOfDate,
   type TeamSalaryBookComponentTotals,
 } from '@/features/architect/utils/capTotals/teamSalaryBooks';
 import type { SalaryBooksSnapshot } from '@/schemas/salaryBooks';
+import {
+  resolveGovernedIncompleteRosterCharge,
+  type GovernedIncompleteRosterResolution,
+  type LegacyIncompleteRosterResolution,
+} from '@/features/architect/utils/capTotals/governedIncompleteRosterCharge';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -66,12 +72,15 @@ interface TeamCapTotalsMeta {
   rulesSources: unknown;
   capSettingsSource: 'via_facade';
   seasonKey: string;
-  incompleteRosterCharge: {
-    standardRosterCount: number;
-    minRoster: number;
-    missingSlots: number;
-    chargePerSlot: number;
-  } | null;
+  incompleteRosterCharge:
+    | GovernedIncompleteRosterResolution
+    | {
+        standardRosterCount: number;
+        minRoster: number;
+        missingSlots: number;
+        chargePerSlot: number;
+      }
+    | null;
 }
 
 export interface ComputedTeamCapTotals extends UnknownRecord {
@@ -80,6 +89,9 @@ export interface ComputedTeamCapTotals extends UnknownRecord {
   deadMoneyTotal: number;
   capHoldsTotal: number;
   incompleteChargesTotal: number;
+  incompleteRosterResolution?:
+    | GovernedIncompleteRosterResolution
+    | LegacyIncompleteRosterResolution;
   outstandingOfferSheetTotal?: number;
   totalCapAllocations: number;
   salaryCap: number;
@@ -186,6 +198,10 @@ export type TeamCapTotalsSnapshot =
   | ComputedTeamCapTotalsSnapshot;
 
 export interface TeamCapSheetLike extends TeamDeadMoneySourcesLike {
+  id?: unknown;
+  teamId?: unknown;
+  teamCode?: unknown;
+  worldId?: unknown;
   players?: unknown[] | null;
   capHolds?: unknown[] | null;
   offerSheets?: unknown[] | null;
@@ -221,8 +237,7 @@ const asRecord = (value: unknown): UnknownRecord | null => {
 };
 
 function countStandardRoster(players?: unknown[] | null): number {
-  if (!Array.isArray(players) || players.length === 0) return 0;
-
+  if (!Array.isArray(players)) return 0;
   return players.filter(
     (player) => !isTwoWayContract((asRecord(player) || {}) as TeamPlayerLike)
   ).length;
@@ -312,11 +327,51 @@ export function computeTeamCapTotals(
     : teamCapSheet;
   const deadMoneyTotal = computeDeadMoneyForYear(capTeamAtDate, yearKey);
 
-  const standardRosterCount = countStandardRoster(teamCapSheet?.players);
-  const minRoster = rules.roster.minStandard;
-  const missingSlots = Math.max(0, minRoster - standardRosterCount);
-  const chargePerSlot = rules.salaries.rookieMin;
-  const incompleteChargesTotal = missingSlots * chargePerSlot;
+  const salaryBookInputs = asRecord(teamCapSheet?.salaryBookInputs);
+  const hasGovernedRosterEvidence = Object.prototype.hasOwnProperty.call(
+    salaryBookInputs || {},
+    'unsignedFirstRoundPickState'
+  );
+  const legacyStandardRosterCount = countStandardRoster(teamCapSheet?.players);
+  const legacyMissingSlots = Math.max(
+    0,
+    rules.roster.minStandard - legacyStandardRosterCount
+  );
+  const incompleteRosterResolution:
+    | GovernedIncompleteRosterResolution
+    | LegacyIncompleteRosterResolution = hasGovernedRosterEvidence
+    ? resolveGovernedIncompleteRosterCharge({
+        team: teamCapSheet,
+        salaryCapYear: yearKey,
+        asOfDate: normalizeSalaryBookAsOfDate(options.asOfDate),
+        zeroYosMinimum: rules.salaries.rookieMin,
+        zeroYosMinimumSource: rules.salaries.rookieMinSource,
+      })
+    : {
+        mode: 'legacy-compatibility',
+        status: 'complete',
+        activeWindow: null,
+        window: null,
+        counts: {
+          underContract: legacyStandardRosterCount,
+          veteranFreeAgentAmounts: 0,
+          offerSheets: 0,
+          unsignedFirstRoundPicks: 0,
+          total: legacyStandardRosterCount,
+        },
+        threshold: rules.roster.minStandard,
+        missingSlots: legacyMissingSlots,
+        chargePerSlot: rules.salaries.rookieMin,
+        amount: legacyMissingSlots * rules.salaries.rookieMin,
+        canonLeafIds: ['CBA2-A01.1'],
+        missingInputs: [],
+        reason:
+          'Legacy compatibility result; governed C03 evidence is not present.',
+      };
+  const incompleteChargesTotal =
+    incompleteRosterResolution.status === 'complete'
+      ? (incompleteRosterResolution.amount ?? 0)
+      : 0;
   const outstandingOfferSheetTotal = computeOutstandingOfferSheetTotal(
     teamCapSheet?.offerSheets,
     toSeasonKey(yearKey)
@@ -343,6 +398,9 @@ export function computeTeamCapTotals(
     deadMoneyTotal,
     capHoldsTotal,
     incompleteChargesTotal,
+    ...(incompleteRosterResolution.mode === 'governed'
+      ? { incompleteRosterResolution }
+      : {}),
     outstandingOfferSheetTotal,
     totalCapAllocations,
     salaryCap,
@@ -358,14 +416,16 @@ export function computeTeamCapTotals(
       capSettingsSource: 'via_facade',
       seasonKey: toSeasonKey(yearKey),
       incompleteRosterCharge:
-        incompleteChargesTotal > 0
-          ? {
-              standardRosterCount,
-              minRoster,
-              missingSlots,
-              chargePerSlot,
-            }
-          : null,
+        incompleteRosterResolution.mode === 'governed'
+          ? incompleteRosterResolution
+          : incompleteChargesTotal > 0
+            ? {
+                standardRosterCount: legacyStandardRosterCount,
+                minRoster: rules.roster.minStandard,
+                missingSlots: legacyMissingSlots,
+                chargePerSlot: rules.salaries.rookieMin,
+              }
+            : null,
     },
   };
 }

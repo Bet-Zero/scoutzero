@@ -194,12 +194,9 @@ export function normalizeCurrentStateTotalsMeta(
   if (seasonKey !== undefined) normalized.seasonKey = seasonKey;
 
   if (incompleteRosterCharge) {
-    normalized.incompleteRosterCharge = {
-      standardRosterCount: toOptionalNumber(incompleteRosterCharge.standardRosterCount) ?? 0,
-      minRoster: toOptionalNumber(incompleteRosterCharge.minRoster) ?? 0,
-      missingSlots: toOptionalNumber(incompleteRosterCharge.missingSlots) ?? 0,
-      chargePerSlot: toOptionalNumber(incompleteRosterCharge.chargePerSlot) ?? 0,
-    };
+    normalized.incompleteRosterCharge = safeCloneForAudit(
+      incompleteRosterCharge
+    ) as NonNullable<ArchitectMutationTeamTotals['_meta']>['incompleteRosterCharge'];
   } else if (record.incompleteRosterCharge === null) {
     normalized.incompleteRosterCharge = null;
   }
@@ -282,6 +279,24 @@ export function normalizeCurrentStateTeamTotals(
     };
   }
   if (salaryBooks.success) normalized.salaryBooks = salaryBooks.data;
+  const incompleteRosterResolution = asLooseRecord(
+    record.incompleteRosterResolution
+  );
+  if (incompleteRosterResolution) {
+    if (
+      incompleteRosterResolution.mode !== 'governed' ||
+      !['complete', 'needs-input', 'not-evaluated'].includes(
+        String(incompleteRosterResolution.status)
+      )
+    ) {
+      throw new Error(
+        'Persisted governed incomplete-roster result is malformed.'
+      );
+    }
+    normalized.incompleteRosterResolution = safeCloneForAudit(
+      incompleteRosterResolution
+    ) as ArchitectMutationTeamTotals['incompleteRosterResolution'];
+  }
 
   if (hardCapLevel !== undefined) normalized.hardCapLevel = hardCapLevel;
   if (hardCapDetail !== undefined) normalized.hardCapDetail = hardCapDetail;

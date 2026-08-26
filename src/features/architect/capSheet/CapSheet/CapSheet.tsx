@@ -801,6 +801,22 @@ export const CapSheet = ({
               </div>
             )}
 
+            {canonicalTotals.incompleteRosterResolution?.status ===
+              'needs-input' && (
+              <div
+                data-testid="incomplete-roster-charge-needs-input"
+                className="flex min-w-0 items-baseline gap-1.5"
+                title={canonicalTotals.incompleteRosterResolution.reason}
+              >
+                <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-cockpit-watch">
+                  Incomplete Roster
+                </p>
+                <span className="text-xs font-bold text-cockpit-watch">
+                  Needs input
+                </span>
+              </div>
+            )}
+
             {canonicalTotals.incompleteChargesTotal > 0 && (
               <div
                 data-testid="incomplete-roster-charge-row"

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { JsonValueZ } from './common';
+import { GovernedUnsignedFirstRoundPickStateZ } from './governedIncompleteRosterCharge';
 
 const ZonedInstantZ = z
   .string()
@@ -153,6 +154,8 @@ export const TeamSalaryBookInputsZ = z
     version: z.literal(1),
     salaryCapYear: z.number().int(),
     seasonCloseApronMeasurement: SeasonCloseApronMeasurementZ.optional(),
+    unsignedFirstRoundPickState:
+      GovernedUnsignedFirstRoundPickStateZ.optional(),
     incompleteRosterCharge: SalaryLedgerLineItemZ.optional(),
     apronAdjustments: SalaryLedgerInputZ,
     taxSalary: SalaryLedgerInputZ,
@@ -177,12 +180,17 @@ export const TeamSalaryBookInputsZ = z
         message: 'Incomplete-roster charges belong only to Team Salary.',
       });
     }
-    if (charge.amount < 0 || !charge.canonLeafIds.includes('CBA2-A01.1')) {
+    const hasGovernedLeaves =
+      charge.canonLeafIds.includes('CBA2-C03.1') &&
+      charge.canonLeafIds.includes('CBA2-C03.2');
+    const isLegacyCompatibilityInput =
+      charge.canonLeafIds.includes('CBA2-A01.1');
+    if (charge.amount < 0 || (!hasGovernedLeaves && !isLegacyCompatibilityInput)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['incompleteRosterCharge', 'amount'],
         message:
-          'Incomplete-roster charge input must be nonnegative and evidenced by CBA2-A01.1.',
+          'Incomplete-roster charge compatibility input must be nonnegative and retain its declared Canon identity.',
       });
     }
   });

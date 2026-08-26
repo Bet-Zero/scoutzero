@@ -10,6 +10,7 @@ import type {
   SalaryLedgerLineItem,
 } from './datedSalaryLedgers';
 import { evaluateDatedSalaryLedgers } from './datedSalaryLedgers';
+import type { IncompleteRosterResolution } from './governedIncompleteRosterCharge';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -49,6 +50,7 @@ export interface TeamSalaryBookComponentTotals {
   deadMoneyTotal: number;
   capHoldsTotal: number;
   incompleteChargesTotal: number;
+  incompleteRosterResolution?: IncompleteRosterResolution;
   outstandingOfferSheetTotal?: number;
 }
 
@@ -206,12 +208,30 @@ function teamSalaryInput(
     };
   }
 
-  if (totals.incompleteChargesTotal > 0 && !incompleteRosterCharge) {
+  if (!totals.incompleteRosterResolution) {
+    return {
+      status: 'needs-input',
+      missingInputs: ['totals.incompleteRosterResolution'],
+      reason: 'Team Salary requires the governed incomplete-roster result.',
+    };
+  }
+  if (totals.incompleteRosterResolution.status !== 'complete') {
+    return {
+      status: 'needs-input',
+      missingInputs: totals.incompleteRosterResolution.missingInputs,
+      reason: totals.incompleteRosterResolution.reason,
+    };
+  }
+  if (
+    totals.incompleteRosterResolution.mode === 'legacy-compatibility' &&
+    totals.incompleteChargesTotal > 0 &&
+    !incompleteRosterCharge
+  ) {
     return {
       status: 'needs-input',
       missingInputs: ['salaryBookInputs.incompleteRosterCharge'],
       reason:
-        'The roster is short of the standard threshold, but no governed dated incomplete-roster charge input is available.',
+        'The legacy roster is short of its compatibility threshold, but no dated compatibility input is available.',
     };
   }
 
@@ -230,17 +250,40 @@ function teamSalaryInput(
     source: { authority: 'team-state', reference },
   });
 
-  const governedIncompleteCharge = incompleteRosterCharge
-    ? ({
-        ...incompleteRosterCharge,
-        ledger: 'team-salary' as const,
-      } satisfies SalaryLedgerLineItem<'team-salary'>)
-    : component(
-        'incomplete-roster',
-        'Incomplete-roster charges',
-        0,
-        'team.players:standard-roster-complete'
-      );
+  const governedIncompleteCharge: SalaryLedgerLineItem<'team-salary'> =
+    totals.incompleteRosterResolution.mode === 'legacy-compatibility' &&
+    incompleteRosterCharge
+      ? {
+          ...incompleteRosterCharge,
+          ledger: 'team-salary',
+        }
+      : {
+          id: `team-salary:${teamId}:incomplete-roster`,
+          ledger: 'team-salary',
+          label: 'Governed incomplete-roster charges',
+          amount: totals.incompleteRosterResolution.amount ?? 0,
+          effectiveFrom: asOfDate,
+          canonLeafIds: ['CBA2-C03.1', 'CBA2-C03.2'],
+          source: {
+            authority: 'canon',
+            reference: 'derived-from:governed-incomplete-roster-resolution',
+          },
+        };
+
+  // The old editable line is retained only as a compatibility field. It is
+  // never authoritative and may not disagree with the governed derivation.
+  if (
+    totals.incompleteRosterResolution.mode === 'governed' &&
+    incompleteRosterCharge &&
+    incompleteRosterCharge.amount !== governedIncompleteCharge.amount
+  ) {
+    return {
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.incompleteRosterCharge'],
+      reason:
+        'The legacy incomplete-roster input conflicts with the governed dated result and must not be used.',
+    };
+  }
 
   return {
     status: 'ready',
@@ -278,9 +321,15 @@ function apronSalaryInput(
   rawInput: SalaryLedgerInput<SalaryLedgerKind> | undefined,
   teamInput: SalaryLedgerInput<'team-salary'>,
   asOfDate: string | null,
-  teamId: string | null
+  teamId: string | null,
+  incompleteRosterResolution: IncompleteRosterResolution | undefined
 ): SalaryLedgerInput<'apron-team-salary'> {
-  if (teamInput.status !== 'ready' || !asOfDate || !teamId) {
+  if (
+    teamInput.status !== 'ready' ||
+    !asOfDate ||
+    !teamId ||
+    !incompleteRosterResolution
+  ) {
     return {
       status: 'needs-input',
       missingInputs:
@@ -329,7 +378,21 @@ function apronSalaryInput(
           reference: 'derived-from:team-salary',
         },
       },
-      ...covered.lineItems,
+      ...covered.lineItems.map((lineItem) =>
+        incompleteRosterResolution.mode === 'governed' &&
+        lineItem.canonLeafIds.includes('CBA2-C07.11')
+          ? {
+              ...lineItem,
+              amount: -(incompleteRosterResolution.amount ?? 0),
+              effectiveFrom: asOfDate,
+              source: {
+                authority: 'canon' as const,
+                reference:
+                  'derived-from:governed-incomplete-roster-resolution',
+              },
+            }
+          : lineItem
+      ),
     ],
   };
 }
@@ -351,8 +414,30 @@ export function computeTeamSalaryBooks(
   const teamCode = nonEmptyString(team?.teamCode);
   const asOfDate = normalizeSalaryBookAsOfDate(asOfDateValue);
   const inputs = team ? parseInputs(team, salaryCapYear) : null;
+  const incompleteRosterResolution =
+    totals.incompleteRosterResolution ??
+    ({
+      mode: 'legacy-compatibility',
+      status: 'complete',
+      activeWindow: null,
+      window: null,
+      counts: {
+        underContract: 0,
+        veteranFreeAgentAmounts: 0,
+        offerSheets: 0,
+        unsignedFirstRoundPicks: 0,
+        total: 0,
+      },
+      threshold: 0,
+      missingSlots: 0,
+      chargePerSlot: 0,
+      amount: totals.incompleteChargesTotal,
+      canonLeafIds: ['CBA2-A01.1'],
+      missingInputs: [],
+      reason: 'Legacy compatibility result.',
+    } satisfies IncompleteRosterResolution);
   const teamInput = teamSalaryInput(
-    totals,
+    { ...totals, incompleteRosterResolution },
     asOfDate,
     teamId,
     inputs?.incompleteRosterCharge as
@@ -363,7 +448,8 @@ export function computeTeamSalaryBooks(
     inputs?.apronAdjustments,
     teamInput,
     asOfDate,
-    teamId
+    teamId,
+    incompleteRosterResolution
   );
   const taxInput = inputs
     ? validateTaxBaseline(

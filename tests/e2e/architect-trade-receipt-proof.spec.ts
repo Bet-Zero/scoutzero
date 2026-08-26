@@ -19,13 +19,44 @@ import {
   GovernedCashReceiptZ,
 } from '@/schemas/governedCashConsideration';
 import { TradeHardCapLedgerZ } from '@/schemas/tradeApronRestriction';
+import { SalaryBooksSnapshotZ } from '@/schemas/salaryBooks';
 
 const CANDIDATE = process.env.SCOUTZERO_PROOF_CANDIDATE ?? '';
 const ARTIFACT_DIR = process.env.SCOUTZERO_BROWSER_PROOF_DIR ?? '';
 const MIA_URL = '/gm/MIA?season=2027';
 const PROOF_WORLD_ID = 'world_trade_receipt_proof';
-const PROOF_AS_OF_DATE = '2026-11-15';
+const PROOF_AS_OF_DATE = '2026-07-07';
 const EMPTY_RELEASE_DIGEST = `sha256:${'3'.repeat(64)}`;
+const ZERO_YOS_MINIMUM = 1_357_763;
+const PROOF_ROSTERS = {
+  MIA: [
+    'mia_marcus_vance',
+    'mia_theo_bennett',
+    'mia_andre_cole',
+    'mia_rashad_pierce',
+    'mia_isaiah_fenn',
+    'mia_lucas_reyes',
+    'mia_devin_oakes',
+    'mia_owen_frost',
+    'mia_eli_navarro',
+    'mia_silas_park',
+    'mia_tobias_lund',
+  ],
+  DEN: [
+    'den_elias_rho',
+    'den_marcus_devlin',
+    'den_otto_grausam',
+    'den_rhys_calder',
+    'den_nikolai_vasquez',
+    'den_damon_pearl',
+    'den_silas_wren',
+    'den_ivo_karlsson',
+    'den_teo_marchetti',
+    'den_aaron_pike',
+    'den_reggie_voss',
+    'den_obi_nwachukwu',
+  ],
+} as const;
 
 const proofTpe = (teamCode: 'MIA' | 'DEN') => ({
   id: `proof-tpe-${teamCode}`,
@@ -150,26 +181,34 @@ const salaryBookInputs = (teamCode: 'MIA' | 'DEN') => {
   return {
     version: 1,
     salaryCapYear: 2027,
-    incompleteRosterCharge: {
-      id: `proof:team-salary:${teamCode}:incomplete-roster`,
-      ledger: 'team-salary',
-      label: 'Governed incomplete-roster charge',
-      amount: teamCode === 'MIA' ? 1_357_763 : 0,
-      effectiveFrom: '2026-07-01T00:00:00Z',
-      canonLeafIds: ['CBA2-A01.1'],
+    unsignedFirstRoundPickState: {
+      version: 1,
+      status: 'ready',
+      teamCode,
+      salaryCapYear: 2027,
+      entries: [],
       source: {
+        evidenceId: `trade-receipt-proof:${teamCode}:unsigned-first-round-picks`,
+        evidenceVersion: 1,
         authority: 'external-determination',
-        reference: `trade-receipt-proof:${teamCode}:incomplete-roster`,
+        reference: 'authenticated-proof-fixture:none',
+        authenticatedAt: '2026-07-01T00:00:00-04:00',
+        recordStatus: 'current',
+        canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'],
       },
     },
     apronAdjustments: {
       status: 'ready',
       lineItems: Array.from({ length: 10 }, (_, index) =>
-        line(
-          'apron-team-salary',
-          `CBA2-C07.${index + 2}`,
-          '2026-07-01T00:00:00Z'
-        )
+        ({
+          ...line(
+            'apron-team-salary',
+            `CBA2-C07.${index + 2}`,
+            '2026-07-01T00:00:00Z'
+          ),
+          amount:
+            index === 0 ? (teamCode === 'MIA' ? 30_000_000 : 8_000_000) : 0,
+        })
       ),
     },
     taxSalary: {
@@ -178,7 +217,7 @@ const salaryBookInputs = (teamCode: 'MIA' | 'DEN') => {
         line(
           'tax-salary',
           `CBA2-C08.${index + 1}`,
-          index === 0 ? '2026-11-14T00:00:00Z' : '2026-11-14T01:00:00Z'
+          index === 0 ? '2026-07-01T00:00:00Z' : '2026-07-01T01:00:00Z'
         )
       ),
     },
@@ -245,6 +284,9 @@ const seedProofWorld = async (uid: string) => {
       id: teamCode,
       teamId: teamCode,
       teamCode,
+      roster: [...PROOF_ROSTERS[teamCode]],
+      capHolds: [],
+      offerSheets: [],
       salaryBookInputs: salaryBookInputs(teamCode),
       contractEventLedgers: proofContractLedgers(teamCode),
       cashLedger: {
@@ -426,6 +468,92 @@ const cancelPlayerTrade = async (
   await expect(outgoingChip).toHaveCount(1);
   await outgoingChip.getByRole('button').click();
   await expect(outgoingChip).toHaveCount(0);
+};
+
+const assertPersistedIncompleteRosterBooks = (
+  teamDocument: Record<string, unknown> | undefined,
+  expected: { teamCode: 'MIA' | 'DEN'; count: number; missingSlots: number }
+) => {
+  const totals = (teamDocument?.totals ?? {}) as Record<string, unknown>;
+  const amount = expected.missingSlots * ZERO_YOS_MINIMUM;
+  expect(totals.incompleteRosterResolution).toMatchObject({
+    mode: 'governed',
+    status: 'complete',
+    activeWindow: true,
+    counts: {
+      underContract: expected.count,
+      veteranFreeAgentAmounts: 0,
+      offerSheets: 0,
+      unsignedFirstRoundPicks: 0,
+      total: expected.count,
+    },
+    threshold: 12,
+    missingSlots: expected.missingSlots,
+    chargePerSlot: ZERO_YOS_MINIMUM,
+    amount,
+    canonLeafIds: ['CBA2-C03.1', 'CBA2-C03.2', 'CBA2-C07.11'],
+    missingInputs: [],
+  });
+
+  const salaryBooks = SalaryBooksSnapshotZ.parse(totals.salaryBooks);
+  const { teamSalary, apronTeamSalary, taxSalary } = salaryBooks.ledgers;
+  expect(salaryBooks).toMatchObject({
+    status: 'complete',
+    context: { salaryCapYear: 2027, teamId: expected.teamCode },
+  });
+  if (
+    teamSalary.status !== 'complete' ||
+    apronTeamSalary.status !== 'complete' ||
+    taxSalary.status !== 'complete'
+  ) {
+    throw new Error(`${expected.teamCode} salary books did not persist complete.`);
+  }
+
+  const teamCharge = teamSalary.lineItems.find((lineItem) =>
+    lineItem.canonLeafIds.includes('CBA2-C03.1')
+  );
+  const apronReversal = apronTeamSalary.lineItems.find((lineItem) =>
+    lineItem.canonLeafIds.includes('CBA2-C07.11')
+  );
+  expect(teamCharge).toMatchObject({
+    amount,
+    included: true,
+    source: {
+      authority: 'canon',
+      reference: 'derived-from:governed-incomplete-roster-resolution',
+    },
+  });
+  expect(apronReversal).toMatchObject({
+    amount: -amount,
+    included: true,
+    source: {
+      authority: 'canon',
+      reference: 'derived-from:governed-incomplete-roster-resolution',
+    },
+  });
+  expect(taxSalary.lineItems).toHaveLength(8);
+  expect(
+    taxSalary.lineItems.some((lineItem) =>
+      lineItem.canonLeafIds.some(
+        (leafId) => leafId === 'CBA2-C03.1' || leafId === 'CBA2-C07.11'
+      )
+    )
+  ).toBe(false);
+  expect(totals.teamSalary).toBe(teamSalary.total);
+  expect(totals.apronTeamSalary).toBe(apronTeamSalary.total);
+  expect(totals.taxSalary).toBe(taxSalary.total);
+
+  return {
+    count: expected.count,
+    missingSlots: expected.missingSlots,
+    chargePerSlot: ZERO_YOS_MINIMUM,
+    amount,
+    teamSalary: teamSalary.total,
+    apronTeamSalary: apronTeamSalary.total,
+    taxSalary: taxSalary.total,
+    teamSalaryCharge: teamCharge?.amount ?? null,
+    apronTeamSalaryReversal: apronReversal?.amount ?? null,
+  };
 };
 
 test('exact-head Trade Machine produces a retained governed apron Trade Receipt', async ({
@@ -751,6 +879,18 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   );
   expect(miaAfterApply?.salaryBookInputs).toEqual(salaryBooksBeforeApply.MIA);
   expect(denAfterApply?.salaryBookInputs).toEqual(salaryBooksBeforeApply.DEN);
+  const persistedIncompleteRosterCharges = {
+    MIA: assertPersistedIncompleteRosterBooks(miaAfterApply, {
+      teamCode: 'MIA',
+      count: 10,
+      missingSlots: 2,
+    }),
+    DEN: assertPersistedIncompleteRosterBooks(denAfterApply, {
+      teamCode: 'DEN',
+      count: 11,
+      missingSlots: 1,
+    }),
+  };
   expect(TradeHardCapLedgerZ.parse(miaAfterApply?.hardCapLedger)).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
@@ -795,6 +935,22 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   await expect(
     page.getByText('Trade Receipt Proof', { exact: true }).first()
   ).toBeVisible({ timeout: 90_000 });
+  await openDashboardTab(page, 'Cap Sheet');
+  const incompleteRosterRow = page.getByTestId(
+    'incomplete-roster-charge-row'
+  );
+  await expect(incompleteRosterRow).toContainText('Incomplete Roster Charge');
+  await expect(incompleteRosterRow).toContainText('$2,715,526');
+  await expect(incompleteRosterRow).toContainText('2 open slots');
+  const incompleteRosterScreenshotPath = path.join(
+    ARTIFACT_DIR,
+    'incomplete-roster-charge-reload-1280x720.png'
+  );
+  await incompleteRosterRow.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: incompleteRosterScreenshotPath,
+    fullPage: false,
+  });
   await openDashboardTab(page, 'Team History');
   const historyTimeline = page.getByTestId('team-history-section-timeline');
   const tradeHistoryRow = historyTimeline.getByRole('button', {
@@ -895,6 +1051,18 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
         worldCountAfterApply: 1,
         reloadHistoryReceiptVisible: true,
       },
+      incompleteRosterCharges: {
+        asOfDate: PROOF_AS_OF_DATE,
+        activeWindow: '2026-07-01 through the day before opening day',
+        threshold: 12,
+        twoWayPlayersExcluded: {
+          MIA: 'den_obi_nwachukwu',
+          DEN: 'mia_tobias_lund',
+        },
+        persisted: persistedIncompleteRosterCharges,
+        reloadCapSheetVisible: true,
+        reloadHistoryVisible: true,
+      },
     },
   };
   const proofPath = path.join(ARTIFACT_DIR, 'proof.json');
@@ -913,6 +1081,10 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   });
   await testInfo.attach('trade-cash-history-reload-1280x720', {
     path: historyScreenshotPath,
+    contentType: 'image/png',
+  });
+  await testInfo.attach('incomplete-roster-charge-reload-1280x720', {
+    path: incompleteRosterScreenshotPath,
     contentType: 'image/png',
   });
 });

@@ -123,6 +123,66 @@ function buildPipelineWarnings({
   return pipelineWarnings;
 }
 
+const INCOMPLETE_ROSTER_COUNT_MUTATIONS = new Set([
+  'signFreeAgent',
+  'storeOfferSheet',
+  'waivePlayer',
+  'renounceRights',
+  'matchOfferSheet',
+  'declineOfferSheet',
+  'finalizeMatchedOfferSheet',
+  'finalizeDeclinedOfferSheet',
+]);
+
+function validateReconciledRosterBooks(
+  mutationType: string,
+  computeResult: ComputeResultLike
+): StageValidationResult | null {
+  if (!INCOMPLETE_ROSTER_COUNT_MUTATIONS.has(mutationType)) return null;
+
+  for (const update of computeResult.teamUpdates || []) {
+    const totals = update.team?.totals as Record<string, unknown> | undefined;
+    const rosterResolution = totals?.incompleteRosterResolution as
+      | { mode?: unknown }
+      | undefined;
+    if (rosterResolution?.mode !== 'governed') continue;
+    const salaryBooks = totals?.salaryBooks as
+      | {
+          ledgers?: Record<
+            string,
+            { status?: unknown; reason?: unknown; missingInputs?: unknown }
+          >;
+        }
+      | undefined;
+    for (const ledgerName of ['teamSalary', 'apronTeamSalary'] as const) {
+      const ledger = salaryBooks?.ledgers?.[ledgerName];
+      if (ledger?.status === 'complete') continue;
+      const missing = Array.isArray(ledger?.missingInputs)
+        ? ledger.missingInputs.join(', ')
+        : 'governed roster inputs';
+      const reason =
+        typeof ledger?.reason === 'string'
+          ? ledger.reason
+          : 'The post-action salary book is not complete.';
+      const message = `No changes were saved for ${update.teamCode}: ${reason} Missing: ${missing}.`;
+      return {
+        valid: false,
+        error: message,
+        violations: [
+          JSON.stringify({
+            rule: 'governed_incomplete_roster_books_required',
+            ledger: ledgerName,
+            message,
+            severity: 'error',
+          }),
+        ],
+        warnings: [],
+      };
+    }
+  }
+  return null;
+}
+
 function toStrictSalaryCapYear(seasonId: string): number | null {
   const normalized = seasonId.trim();
   if (/^\d{4}$/.test(normalized)) {
@@ -625,6 +685,11 @@ export function validateNonTradeMutationStage({
     asOfDate,
     dateDefaulted,
   });
+  const rosterBooksResult = validateReconciledRosterBooks(
+    mutationType,
+    computeResult
+  );
+  if (rosterBooksResult) return rosterBooksResult;
 
   switch (mutationType) {
     case 'signFreeAgent':
