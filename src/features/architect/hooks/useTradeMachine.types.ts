@@ -9,6 +9,7 @@ import type { FullLegalityPreviewResult } from '@/features/architect/utils/trade
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
 import type { GovernedSignAndTradeProposal } from '@/schemas/governedSignAndTrade';
+import type { GovernedCashLedger } from '@/schemas/governedCashConsideration';
 
 export type UnknownRecord = Record<string, unknown>;
 
@@ -48,6 +49,7 @@ export type TradeMachineTeam = UnknownRecord & {
   taxSalary?: number | null;
   salaryBooks?: unknown;
   contractEventLedgers?: ContractEventLedgerPayload[] | null;
+  cashLedger?: GovernedCashLedger | Record<string, unknown> | null;
   governedTradeSalaryBasisLoadError?: string | null;
 };
 
