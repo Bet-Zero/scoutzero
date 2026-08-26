@@ -229,11 +229,22 @@ export function resolveGovernedIncompleteRosterCharge(args: {
   activeHolds
     .filter((hold) => !rookieHolds.includes(hold))
     .forEach((hold, index) => {
-      if (!identity(hold as unknown as UnknownRecord) || !isMoney(hold.amount) || !hold.governedContractEventId) {
+      const playerId = stringValue(hold.playerId);
+      if (
+        !playerId ||
+        !isMoney(hold.amount) ||
+        !hold.governedContractEventId
+      ) {
         missing.push(`team.capHolds[${index}].governedVeteranFreeAgentAmount`);
         return;
       }
-      if (register(hold.playerId, 'veteran-free-agent-amount', `team.capHolds[${index}]`)) {
+      if (
+        register(
+          playerId,
+          'veteran-free-agent-amount',
+          `team.capHolds[${index}]`
+        )
+      ) {
         veteranFreeAgentAmounts += 1;
       }
     });
