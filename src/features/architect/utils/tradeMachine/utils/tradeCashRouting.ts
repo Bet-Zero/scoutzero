@@ -1,11 +1,29 @@
-import type { TradeTeam } from '../constants/types';
-
-export type RoutedTradeCashTeam = TradeTeam & {
-  cashToTeamId?: string | null;
+export type TradeCashRoutingTeam = {
+  teamId?: unknown;
+  teamCode?: unknown;
+  team?: {
+    teamCode?: unknown;
+    teamId?: unknown;
+    id?: unknown;
+  } | null;
+  cashSent?: unknown;
+  cashReceived?: unknown;
+  cashToTeamId?: unknown;
+  cashCondition?: unknown;
+  conditionalCash?: unknown;
+  cashPayableOn?: unknown;
+  signingBonusReimbursement?: unknown;
+  compensationReimbursement?: unknown;
 };
 
-export type TradeCashRoutingResult =
-  | { ok: true; teams: RoutedTradeCashTeam[] }
+export type RoutedTradeCashTeam<T extends TradeCashRoutingTeam> = T & {
+  cashSent: number;
+  cashReceived: number;
+  cashToTeamId: string | null;
+};
+
+export type TradeCashRoutingResult<T extends TradeCashRoutingTeam> =
+  | { ok: true; teams: RoutedTradeCashTeam<T>[] }
   | { ok: false; errors: string[] };
 
 export function cashDollarsToCents(value: unknown): number | null {
@@ -17,12 +35,11 @@ export function cashDollarsToCents(value: unknown): number | null {
   return Number.isSafeInteger(cents) ? cents : null;
 }
 
-function teamIdentity(team: TradeTeam, index: number): string {
-  const candidate = team as TradeTeam & { teamCode?: unknown };
+function teamIdentity(team: TradeCashRoutingTeam, index: number): string {
   return (
     String(
       team.teamId ||
-        candidate.teamCode ||
+        team.teamCode ||
         team.team?.teamCode ||
         team.team?.teamId ||
         team.team?.id ||
@@ -33,8 +50,7 @@ function teamIdentity(team: TradeTeam, index: number): string {
   );
 }
 
-function unsupportedLifecycleClaim(team: TradeTeam): string | null {
-  const candidate = team as TradeTeam & Record<string, unknown>;
+function unsupportedLifecycleClaim(team: TradeCashRoutingTeam): string | null {
   const unsupportedFields = [
     'cashCondition',
     'conditionalCash',
@@ -44,14 +60,16 @@ function unsupportedLifecycleClaim(team: TradeTeam): string | null {
   ];
   return (
     unsupportedFields.find(
-      (field) => candidate[field] !== undefined && candidate[field] !== null
+      (field) =>
+        team[field as keyof TradeCashRoutingTeam] !== undefined &&
+        team[field as keyof TradeCashRoutingTeam] !== null
     ) ?? null
   );
 }
 
-export function resolveTradeCashRouting(
-  teams: TradeTeam[]
-): TradeCashRoutingResult {
+export function resolveTradeCashRouting<T extends TradeCashRoutingTeam>(
+  teams: readonly T[]
+): TradeCashRoutingResult<T> {
   const errors: string[] = [];
   const teamIds = teams.map(teamIdentity);
   if (new Set(teamIds).size !== teamIds.length) {
@@ -59,9 +77,12 @@ export function resolveTradeCashRouting(
   }
 
   const receivedByTeam = new Map(teamIds.map((teamId) => [teamId, 0]));
-  const normalized = teams.map((team) => ({
+  const normalized: RoutedTradeCashTeam<T>[] = teams.map((team) => ({
     ...team,
-  })) as RoutedTradeCashTeam[];
+    cashSent: 0,
+    cashReceived: 0,
+    cashToTeamId: null,
+  }));
 
   teams.forEach((team, index) => {
     const payerTeamId = teamIds[index];
@@ -83,9 +104,7 @@ export function resolveTradeCashRouting(
       return;
     }
 
-    const explicitDestination = String(
-      (team as RoutedTradeCashTeam).cashToTeamId || ''
-    )
+    const explicitDestination = String(team.cashToTeamId || '')
       .trim()
       .toUpperCase();
     const destinationTeamId =

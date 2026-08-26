@@ -60,7 +60,6 @@ import {
   cashDollarsToCents,
   resolveTradeCashRouting,
 } from '@/features/architect/utils/tradeMachine/utils/tradeCashRouting';
-import type { TradeTeam } from '@/features/architect/utils/tradeMachine/constants/types';
 
 function safeIntegerMoney(value: unknown): number | null {
   if (value === null || value === undefined) return null;
@@ -364,9 +363,7 @@ export function computeTradeResult({
   );
 
   let governedCashReceipt = null;
-  const cashRouting = resolveTradeCashRouting(
-    tradeTeams as unknown as TradeTeam[]
-  );
+  const cashRouting = resolveTradeCashRouting(tradeTeams);
   if (!cashRouting.ok) {
     return {
       success: false,
@@ -416,9 +413,7 @@ export function computeTradeResult({
     );
     const routedTeamByCode = new Map(
       routedCashTeams.map((team) => [
-        normalizeTradeTeamCodeLike(
-          (team as TradeTeam & { teamCode?: unknown }).teamCode
-        ),
+        normalizeTradeTeamCodeLike(team.teamCode),
         team,
       ])
     );
@@ -427,9 +422,7 @@ export function computeTradeResult({
     const entries: GovernedCashLedgerEntry[] = [];
 
     for (const payer of routedCashTeams) {
-      const payerCode = normalizeTradeTeamCodeLike(
-        (payer as TradeTeam & { teamCode?: unknown }).teamCode
-      );
+      const payerCode = normalizeTradeTeamCodeLike(payer.teamCode);
       const destinationCode = normalizeTradeTeamCodeLike(payer.cashToTeamId);
       const amountCents = cashDollarsToCents(payer.cashSent);
       if (!payerCode || amountCents === null || amountCents === 0) continue;
