@@ -11,8 +11,15 @@ import {
   verifyCanonFingerprint,
 } from '../../scripts/architect/lookupAcceptedCanon.ts';
 import { parseProbeArguments } from '../../scripts/review/runExactHeadProbe.ts';
+import { resolveProofIdentity } from '../../scripts/review/runTradeReceiptProof.ts';
 
 const repoRoot = process.cwd();
+
+function runGit(cwd: string, args: string[]) {
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  return result.stdout.trim();
+}
 
 function assertAppearsInOrder(
   content: string,
@@ -191,6 +198,101 @@ test('Phase 3A policy settles automated review and exact-head CI before Claude',
     ],
     'pull request freeze and Claude evidence order'
   );
+});
+
+test('Phase 3A policy separates browser diagnostics from retained certification', () => {
+  const profile = fs.readFileSync(
+    path.join(repoRoot, 'docs/agent-guides/phase3a-execution.md'),
+    'utf8'
+  );
+  const template = fs.readFileSync(
+    path.join(repoRoot, '.github/pull_request_template.md'),
+    'utf8'
+  );
+  const certificationHarness = fs.readFileSync(
+    path.join(repoRoot, 'scripts/review/runTradeReceiptProof.ts'),
+    'utf8'
+  );
+
+  assertAppearsInOrder(
+    profile,
+    [
+      'pass the complete workflow in a lightweight diagnostic browser run before candidate freeze',
+      'cannot be cited as certification evidence',
+      'Run retained certification only after that diagnostic pass',
+      'clean, frozen, pushed, and equal to its configured upstream',
+      'Repair the defect, re-pass the complete workflow diagnostically',
+      'then certify that replacement',
+    ],
+    'diagnostic and retained browser evidence policy'
+  );
+  assert.match(profile, /npx playwright test tests\/e2e\/architect-trade-receipt-proof\.spec\.ts/);
+  assert.match(profile, /npm run architect:proof:trade-receipt/);
+  assert.match(profile, /Graphify queries may be used/);
+  assert.match(profile, /only after source topology is stable/);
+  assert.match(profile, /Validation reruns follow the changed risk surface/);
+  assert.match(profile, /test-only assertion or evidence edit/);
+
+  assert.match(certificationHarness, /@\{upstream\}/);
+  assert.match(certificationHarness, /pushedCandidate !== candidate/);
+  assert.match(certificationHarness, /waitForCleanTeardown/);
+  assert.match(certificationHarness, /hashFile\(screenshotPath\)/);
+  assert.match(certificationHarness, /hashFile\(proofPath\)/);
+  assert.match(certificationHarness, /manifest\.json/);
+
+  assertAppearsInOrder(
+    template,
+    [
+      'Non-retained diagnostic command/result',
+      'Retained exact-candidate certification artifact link/path',
+      'Certification defect repair → diagnostic re-pass → replacement certification',
+    ],
+    'pull request browser evidence receipts'
+  );
+  for (const category of [
+    'Implementation',
+    'Local validation',
+    'Browser/emulator work',
+    'Hosted CI and review waits',
+    'Repeated failed attempts',
+  ]) {
+    assert.match(template, new RegExp(`- ${category}:`));
+  }
+});
+
+test('Trade Receipt certification rejects a clean head that is not pushed', () => {
+  const tempRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'trade-receipt-certification-')
+  );
+  const remoteRoot = path.join(tempRoot, 'remote.git');
+  const candidateRoot = path.join(tempRoot, 'candidate');
+
+  try {
+    fs.mkdirSync(candidateRoot);
+    runGit(tempRoot, ['init', '--bare', remoteRoot]);
+    runGit(candidateRoot, ['init', '-b', 'main']);
+    runGit(candidateRoot, ['config', 'user.email', 'phase3a@example.invalid']);
+    runGit(candidateRoot, ['config', 'user.name', 'Phase 3A Guardrail']);
+    fs.writeFileSync(path.join(candidateRoot, 'fixture.txt'), 'one\n', 'utf8');
+    runGit(candidateRoot, ['add', 'fixture.txt']);
+    runGit(candidateRoot, ['commit', '-m', 'initial']);
+    runGit(candidateRoot, ['remote', 'add', 'origin', remoteRoot]);
+    runGit(candidateRoot, ['push', '-u', 'origin', 'main']);
+
+    const pushed = resolveProofIdentity(candidateRoot);
+    assert.equal(pushed.upstream, 'origin/main');
+    assert.equal(pushed.candidate, pushed.originMain);
+
+    fs.writeFileSync(path.join(candidateRoot, 'fixture.txt'), 'two\n', 'utf8');
+    runGit(candidateRoot, ['add', 'fixture.txt']);
+    runGit(candidateRoot, ['commit', '-m', 'unpushed']);
+    assert.throws(
+      () => resolveProofIdentity(candidateRoot),
+      /to equal pushed upstream origin\/main/
+    );
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
 });
 
 test('accepted Canon lookup fails closed for unknown IDs', () => {

@@ -11,6 +11,7 @@ const PROOF_PORTS = [5173, 8082, 9099, 5001, 4001, 4400, 4500, 9150];
 interface ProofIdentity {
   repoRoot: string;
   candidate: string;
+  upstream: string;
   originMain: string;
   mergeBase: string;
 }
@@ -37,6 +38,27 @@ export function resolveProofIdentity(cwd = process.cwd()): ProofIdentity {
   }
 
   const candidate = git(repoRoot, ['rev-parse', 'HEAD']);
+  let upstream: string;
+  let pushedCandidate: string;
+  try {
+    upstream = git(repoRoot, [
+      'rev-parse',
+      '--abbrev-ref',
+      '--symbolic-full-name',
+      '@{upstream}',
+    ]);
+    pushedCandidate = git(repoRoot, ['rev-parse', '--verify', '@{upstream}']);
+  } catch {
+    throw new Error(
+      'Trade Receipt proof requires a pushed exact candidate with a configured upstream branch'
+    );
+  }
+  if (pushedCandidate !== candidate) {
+    throw new Error(
+      `Trade Receipt proof requires HEAD ${candidate} to equal pushed upstream ${upstream} at ${pushedCandidate}`
+    );
+  }
+
   let originMain: string;
   let mergeBase: string;
   try {
@@ -47,7 +69,7 @@ export function resolveProofIdentity(cwd = process.cwd()): ProofIdentity {
       'Trade Receipt proof requires a resolvable origin/main and shared merge base; run git fetch origin main first'
     );
   }
-  return { repoRoot, candidate, originMain, mergeBase };
+  return { repoRoot, candidate, upstream, originMain, mergeBase };
 }
 
 function timestampSlug(date = new Date()): string {
@@ -173,6 +195,7 @@ export async function runTradeReceiptProof(): Promise<number> {
     proof: 'Architect Trade Machine / Trade Receipt',
     base: identity.originMain,
     candidate: identity.candidate,
+    upstream: identity.upstream,
     mergeBase: identity.mergeBase,
     viewport: { width: 1280, height: 720 },
     command: `npm run architect:proof:trade-receipt`,

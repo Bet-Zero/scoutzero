@@ -51,7 +51,10 @@ Foundation context: [descriptive foundation name](https://linear.app/...)
 
 ### Browser/emulator
 
-- Result and exact-candidate artifact link/path, or risk-based skip:
+- Non-retained diagnostic command/result, or risk-based skip:
+- Retained exact-candidate certification artifact link/path, or risk-based skip:
+- Certification defect repair → diagnostic re-pass → replacement certification,
+  if applicable:
 
 ### Skipped checks and limitations
 
@@ -64,6 +67,14 @@ Foundation context: [descriptive foundation name](https://linear.app/...)
 - Candidate repairs, discriminating checks, affected evidence rerun, and
   unaffected evidence reused:
 
+### Approximate execution time
+
+- Implementation:
+- Local validation:
+- Browser/emulator work:
+- Hosted CI and review waits:
+- Repeated failed attempts:
+
 ## Merge eligibility
 
 - [ ] Candidate is frozen and unchanged since required evidence/review
@@ -74,6 +85,7 @@ Foundation context: [descriptive foundation name](https://linear.app/...)
 - [ ] Required hosted CI is green on the exact candidate
 - [ ] Independent-Claude prompt was generated after that exact-head CI and still names the current head
 - [ ] Independent Claude returned `ACCEPT` on the exact candidate
+- [ ] Required browser workflow passed diagnostically before retained certification
 - [ ] Required browser/emulator proof passed, or the declared risk contract justifies a skip
 - [ ] No unresolved thread, product decision, authority ambiguity, failed QA, scope expansion, or material architecture/data concern remains
 - [ ] Linear receipt will link here instead of duplicating this report

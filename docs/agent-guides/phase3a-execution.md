@@ -102,6 +102,53 @@ block the lane indefinitely, but the PR must record that fact. Every finding
 that an available reviewer does produce must be resolved or disproved before
 candidate freeze. A review that has started but remains pending is not settled.
 
+## Browser diagnostics and certification
+
+For a tranche with rendered, persistence, or cross-room risk, pass the complete
+workflow in a lightweight diagnostic browser run before candidate freeze. The
+diagnostic run is an iteration tool: it may exercise an evolving local
+candidate, retains nothing after the shell exits, and cannot be cited as
+certification evidence. For the Trade Machine/Trade Receipt workflow, use the
+existing Playwright spec directly instead of the retained proof wrapper:
+
+```bash
+diagnostic_dir="$(mktemp -d /tmp/scoutzero-trade-receipt-diagnostic.XXXXXX)"
+trap 'rm -rf "$diagnostic_dir"' EXIT
+PLAYWRIGHT_ARCHITECT_REVIEW_MODE=true \
+VITE_SHOW_TRADE_RECEIPT=true \
+SCOUTZERO_PROOF_CANDIDATE="$(git rev-parse HEAD)" \
+SCOUTZERO_BROWSER_PROOF_DIR="$diagnostic_dir" \
+npx playwright test tests/e2e/architect-trade-receipt-proof.spec.ts \
+  --workers=1 --project=chromium --reporter=line \
+  --output="$diagnostic_dir/test-results"
+```
+
+The diagnostic must cover the same complete workflow that will later be
+certified. A passing diagnostic result proves only that the local iteration is
+ready to proceed through author review, freeze, and exact-head checks.
+
+Run retained certification only after that diagnostic pass and after the final
+candidate is clean, frozen, pushed, and equal to its configured upstream. The
+certification wrapper remains the evidence authority: it binds identity and
+merge base, retains the SHA-bearing manifest and artifacts with integrity
+hashes, and verifies clean harness-port teardown.
+
+If certification reveals a real defect, the failed certification is not a
+development loop or reusable evidence. Repair the defect, re-pass the complete
+workflow diagnostically, freeze and push the replacement head, then certify
+that replacement exactly once it satisfies the certification preconditions.
+
+Graphify queries may be used when they materially inform a decision. Ordinarily
+run `graphify update .` only after source topology is stable and graph inputs
+have changed. Do not repeat it after test-only, documentation-only,
+evidence-only, or presentation-only edits unless those edits actually change
+graph inputs.
+
+Validation reruns follow the changed risk surface. Reuse unaffected evidence;
+do not repeat typecheck, build, broad suites, or browser certification after a
+test-only assertion or evidence edit unless that edit can affect the behavior
+covered by the repeated check.
+
 ## Candidate freeze and evidence reuse
 
 Open the draft PR as soon as it has a reviewable diff. Start available automated
@@ -159,10 +206,11 @@ npm run architect:proof:trade-receipt
 ```
 
 It requires a clean frozen HEAD and runs the deterministic MIA/DEN Trade
-Machine/Trade Receipt proof at 1280×720. The harness creates exactly one
-emulator-only governed proof world, demonstrates the changed receipt surface,
-and verifies that validation creates no additional world. It retains a
-screenshot, trace, HTML report, proof record, and SHA-bearing manifest under
+Machine/Trade Receipt proof at 1280×720. HEAD must also equal its configured
+pushed upstream. The harness creates exactly one emulator-only governed proof
+world, demonstrates the changed receipt surface, and verifies that validation
+creates no additional world. It retains a screenshot, trace, HTML report,
+proof record, and SHA-bearing manifest under
 `tmp/browser-proofs/trade-receipt/<candidate>-<timestamp>/`, then verifies that
 all harness ports are closed. These are ignored local/PR-session artifacts; no
 hosted retention is claimed until a future, separately scoped CI artifact
@@ -174,6 +222,11 @@ The PR is the detailed evidence hub. Its description or exact-head comments
 record base/candidate SHAs, risk class, declared and performed checks, hosted
 checks, independent verdict, browser result or justified skip, skipped checks,
 known limitations, repair/evidence-reuse notes, and merge eligibility.
+
+Final tranche receipts also record approximate time spent on implementation,
+local validation, browser/emulator work, hosted CI and review waits, and
+repeated failed attempts. Keep the categories separate so process bottlenecks
+remain visible; estimates are sufficient and do not need minute-level tracking.
 
 Linear receives concise linked receipts: status, PR, accepted candidate, landed
 commit, validation summary, Canon accounting, and remaining scope. Do not paste
