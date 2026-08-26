@@ -633,7 +633,12 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
 
   await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
   const readiness = dialog.getByTestId('trade-readiness-summary');
-  await expect(readiness).toContainText('Ready to apply', { timeout: 20_000 });
+  await expect(readiness).toContainText('Ready with warnings', {
+    timeout: 20_000,
+  });
+  await expect(readiness).toContainText(
+    'Team MIA has a partial post-state receipt because teamSalary is not complete.'
+  );
   const applyTrade = dialog.getByRole('button', { name: /^Apply Trade$/i });
   await expect(applyTrade).toBeEnabled();
   await expect(receipt).toContainText('LEGAL');
@@ -868,7 +873,9 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       durableWorldCountChangeAfterValidation: 0,
       durableTeamDocumentChangeAfterValidation: 0,
       savedWorldApply: {
-        readiness: 'Ready to apply',
+        readiness: 'Ready with warnings',
+        warning:
+          'Team MIA has a partial post-state receipt because teamSalary is not complete.',
         electedPaths: { MIA: 'STANDARD_TPE', DEN: 'STANDARD_TPE' },
         governedPostAssignmentApronSalaries: legalPostSalaries,
         cashLedgerVersions: { MIA: 1, DEN: 1 },
