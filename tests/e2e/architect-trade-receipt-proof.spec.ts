@@ -418,9 +418,9 @@ const cancelPlayerTrade = async (
     .or(card.getByText(playerName, { exact: true }))
     .first();
   const playerRow = player.locator(
-    'xpath=ancestor::div[.//button[normalize-space()="•••"]][1]'
+    'xpath=ancestor::div[contains(@class, "h-[68px]") or contains(@class, "h-[40px]")][1]'
   );
-  await playerRow.getByRole('button', { name: '•••' }).click();
+  await playerRow.getByRole('button', { name: '•••' }).first().click();
   const cancel = page.getByRole('button', { name: /^Cancel Trade$/i });
   await expect(cancel).toBeVisible();
   await cancel.click();
