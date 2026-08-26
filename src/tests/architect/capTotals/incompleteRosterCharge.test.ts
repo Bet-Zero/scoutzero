@@ -326,6 +326,12 @@ describe('BZE-293 governed incomplete-roster charge', () => {
       },
     ],
     [
+      'zero minimum',
+      (_roster, overrides) => {
+        overrides.zeroYosMinimum = 0;
+      },
+    ],
+    [
       'missing date',
       (_roster, overrides) => {
         overrides.asOfDate = null;

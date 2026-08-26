@@ -163,6 +163,7 @@ export function resolveGovernedIncompleteRosterCharge(args: {
 
   if (
     !isGovernedMoney(args.zeroYosMinimum) ||
+    args.zeroYosMinimum <= 0 ||
     args.zeroYosMinimumSource !== 'real'
   ) {
     return unavailable(

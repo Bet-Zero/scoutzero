@@ -568,8 +568,8 @@ describe('CapSheetFull — home-base enrichments', () => {
     expect(screen.getByText('Cap Hold Player')).toBeInTheDocument();
 
     expect(
-      screen.queryByTestId('cap-sheet-full-incomplete-roster-charges')
-    ).not.toBeInTheDocument();
+      screen.getByTestId('cap-sheet-full-incomplete-roster-charges')
+    ).toHaveTextContent('Incomplete roster charges');
   });
 
   it('renders free-agent options separately from roster rows with honest exposure', () => {

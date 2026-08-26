@@ -257,6 +257,30 @@ describe('BZE-285 independent salary books', () => {
     expect(totals.apronTeamSalary).toBeNull();
   });
 
+  it('rejects a C07.11 adjustment line shared with another Canon leaf', () => {
+    const inputs = governedInputs();
+    if (inputs.apronAdjustments.status === 'ready') {
+      const governedLine = inputs.apronAdjustments.lineItems.find((item) =>
+        item.canonLeafIds.includes('CBA2-C07.11')
+      );
+      expect(governedLine).toBeDefined();
+      if (!governedLine) throw new Error('Missing governed C07.11 fixture.');
+      governedLine.canonLeafIds = ['CBA2-C07.11', 'CBA2-C07.10'];
+    }
+
+    const totals = createCanonicalTeamTotalsSnapshot(
+      team({ salaryBookInputs: inputs }),
+      YEAR,
+      { asOfDate: WORLD_DATE }
+    );
+
+    expect(totals.salaryBooks.ledgers.apronTeamSalary).toMatchObject({
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.apronAdjustments.CBA2-C07.11'],
+    });
+    expect(totals.apronTeamSalary).toBeNull();
+  });
+
   it('rejects a persisted governed result that no longer reconciles', () => {
     expect(() =>
       normalizeCurrentStateTeamTotals({

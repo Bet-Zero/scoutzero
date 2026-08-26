@@ -1121,8 +1121,8 @@ export const CapSheetFull = ({
   ]);
   const hasIncompleteCharges = allYears.some(
     (year) =>
-      yearTotalBreakdowns[year].incompleteRosterResolution?.status ===
-        'complete' &&
+      (yearTotalBreakdowns[year].incompleteRosterResolution?.status ??
+        'complete') === 'complete' &&
       (yearTotalBreakdowns[year].incompleteChargesTotal ?? 0) > 0
   );
   const affectedTotalYears = useMemo(() => {

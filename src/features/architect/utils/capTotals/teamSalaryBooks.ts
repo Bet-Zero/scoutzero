@@ -358,8 +358,13 @@ function apronSalaryInput(
     'salaryBookInputs.apronAdjustments'
   );
   if (covered.status !== 'ready') return covered;
-  const governedRosterLines = covered.lineItems.filter((lineItem) =>
-    lineItem.canonLeafIds.includes('CBA2-C07.11')
+  const isExclusiveGovernedRosterLine = (
+    lineItem: SalaryLedgerLineItem<'apron-team-salary'>
+  ) =>
+    lineItem.canonLeafIds.length === 1 &&
+    lineItem.canonLeafIds[0] === 'CBA2-C07.11';
+  const governedRosterLines = covered.lineItems.filter(
+    isExclusiveGovernedRosterLine
   );
   if (governedRosterLines.length !== 1) {
     return {
@@ -391,7 +396,7 @@ function apronSalaryInput(
       },
       ...covered.lineItems.map((lineItem) =>
         incompleteRosterResolution.mode === 'governed' &&
-        lineItem.canonLeafIds.includes('CBA2-C07.11')
+        isExclusiveGovernedRosterLine(lineItem)
           ? {
               ...lineItem,
               amount: -(incompleteRosterResolution.amount ?? 0),
