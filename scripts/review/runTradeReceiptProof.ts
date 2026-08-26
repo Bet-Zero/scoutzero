@@ -135,7 +135,6 @@ export async function runTradeReceiptProof(): Promise<number> {
     '--workers=1',
     '--project=chromium',
     '--reporter=line,html',
-    '--trace=on',
     `--output=${testResultsDir}`,
   ];
   const startedAt = new Date().toISOString();

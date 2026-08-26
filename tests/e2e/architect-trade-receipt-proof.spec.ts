@@ -185,7 +185,15 @@ const salaryBookInputs = (teamCode: 'MIA' | 'DEN') => {
   };
 };
 
-test.use({ viewport: { width: 1280, height: 720 } });
+test.use({
+  viewport: { width: 1280, height: 720 },
+  trace: {
+    mode: 'on',
+    screenshots: false,
+    snapshots: false,
+    sources: true,
+  },
+});
 test.setTimeout(240_000);
 
 const escapeRegExp = (value: string) =>
