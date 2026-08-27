@@ -1982,7 +1982,7 @@ describe('E109 dashboard/world boundary behavior', () => {
       );
       expect(mockUsePlayerRulesProfiles).toHaveBeenCalledWith(
         expect.objectContaining({
-          simulationDate: new Date('2026-02-10T00:00:00Z'),
+          simulationDate: new Date('2026-02-10T00:00:00-05:00'),
         })
       );
       expect(modalProps?.onSave).toBeUndefined();
