@@ -5,10 +5,12 @@ description: Owner-approved (2026-07-11) product boundary and proof standard for
 
 # Architect V1 Completion Contract
 
-**Status: OWNER-APPROVED (approve-with-notes), 2026-07-11** (BZE-244;
-drafted against main `85d1f54c`, owner notes applied the same day). The
-three decisions raised at review were resolved by the owner and are encoded
-below. The verified gap ledger (BZE-245) may begin.
+**Status: OWNER-APPROVED (approve-with-notes), 2026-07-11; amended by locked
+owner decision, 2026-08-27** (BZE-244; drafted against main `85d1f54c`, owner
+notes applied the same day). The 2026-08-27 amendment moves two narrow
+authority-blocked variants to Phase 3B without weakening any supported V1
+workflow. The verified gap ledger (BZE-245) and Phase 3A closure evidence must
+apply this boundary.
 
 ## Precedence
 
@@ -24,7 +26,8 @@ conflict, this contract wins.
 - **Required** (section below): must meet the behavior standard and evidence
   standard before Architect V1 can be called complete.
 - **Excluded**: deliberately out of V1 by owner decision. Not gaps. Do not
-  build, and do not report as missing.
+  build, and do not report as missing. Authority-blocked exclusions must remain
+  visibly fail-closed until their recorded unblocking event occurs.
 - **Undecided**: genuinely needs owner judgment. Do not implement either way
   until decided.
 
@@ -114,12 +117,26 @@ leaving the room. The downloadable trade-summary export is part of V1
 (owner decision 2026-07-11) and is held to this contract's behavior and
 presentation standards like any other required surface.
 
+Supported ordinary trades remain required when their retained contracts need
+no nonzero trade-bonus calculation, or when every required trade-bonus input is
+authenticated. A trade that requires a nonzero trade-bonus calculation but
+lacks the evidence named in the 2026-08-27 exclusion must stop before apply and
+show an honest needs-input result. That exclusion cannot be implemented by
+assuming zero, omitting the condition, or weakening another supported trade
+rule.
+
 ### W10. Draft-asset rules
 
 Pick ownership, protections, conveyance, rookie-scale money, and entitlement
 claims (including blocking conflicting claims). Complete when these rules
-hold across the Trade Machine picks flow and season boundaries. (The
-draft-night room itself is excluded — see exclusions.)
+hold across the supported Trade Machine picks flow and season boundaries using
+authenticated governed asset state. Existing supported pick and entitlement
+trades remain required. A branch-complete ownership, Stepien, protection,
+conveyance, or frozen-pick decision that depends on unavailable authority or
+missing governed lifecycle history must stop before apply and show an honest
+needs-input result under the 2026-08-27 exclusion; the product may not guess a
+branch, reuse simplified legacy rules, or treat the missing condition as
+satisfied. (The draft-night room itself is excluded — see exclusions.)
 
 ### W11. Season advance
 
@@ -177,6 +194,28 @@ product, not only in tests:
 
 ## Deliberate V1 exclusions (owner-decided — not gaps)
 
+- **Authority-blocked branch-complete draft lifecycle variants** — moved to
+  Phase 3B by locked owner decision 2026-08-27: draft ownership, Stepien, and
+  frozen-pick lifecycle behavior that requires the lookup-unavailable composite
+  `CBA2-A12.3` authority or missing governed ownership, protection, conveyance,
+  freeze, unfreeze, or penalty history. These variants must return an honest
+  unavailable/needs-input result before mutation. This exclusion unblocks only
+  when both (a) the pinned accepted-Canon lookup can authenticate the required
+  `CBA2-A12.3` authority and (b) a retained, certified governed source supplies
+  the complete ownership/protection/conveyance and frozen-pick lifecycle history
+  required by the proposed branch. Supported trades of existing picks and
+  entitlements remain V1 requirements.
+- **Ordinary trades requiring unavailable nonzero trade-bonus evidence** —
+  moved to Phase 3B by locked owner decision 2026-08-27. When a proposed trade
+  requires a nonzero trade-bonus calculation, the product must return an honest
+  unavailable/needs-input result before mutation if retained contract evidence
+  lacks authenticated bonus basis, allocation/protection schedule, amendment
+  state, prior-trade/payability history, payer/reallocation state, or payment
+  timing. This exclusion unblocks only when a new immutable contract-source
+  release containing all required fields for the affected Contract is retained,
+  independently recoverable, hash-verified, and certified for the applicable
+  accepted-Canon trade-bonus leaves. Supported ordinary trades that do not
+  require a nonzero trade-bonus calculation remain V1 requirements.
 - **Draft-night experience** (draft room, Make Pick screen, rookies landing
   on rosters) — parked by owner 2026-07-04. Draft-asset rules (W10) remain
   in scope.
@@ -223,6 +262,15 @@ what is stale, contradicted, or missing.
 6. **Owner review.** One hosted artifact link per review wave: screenshots
    of every changed state at 1280×720 plus a plain-language summary. Owner
    replies approve / approve-with-notes / reject.
+
+For every CBA-derived amount, threshold, date, percentage, eligibility result,
+or verdict in the final battery, the expected result must be recorded before
+the product runs, cite the exact pinned accepted-Canon leaf or certified
+governed source identity, and show independent arithmetic where applicable.
+Rendered output, persisted documents, receipts, events, and existing application
+calculations are evidence about actual behavior, never the expectation oracle.
+Unavailable authority requires a fail-closed expectation, including both
+2026-08-27 Phase 3B exclusions.
 
 Final V1 acceptance (parent gate BZE-243): the live scenario battery
 (`tests/e2e/architect-qa.spec.ts` in review mode) passes, remaining
