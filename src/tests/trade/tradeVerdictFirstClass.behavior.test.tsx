@@ -213,6 +213,61 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
 });
 
 describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
+  it('shows Needs input and blocks Apply for an unevaluated first-round rule', () => {
+    useTradeMachineMock.mockReturnValue(
+      buildHookReturn({
+        hasCurrentValidation: true,
+        previewAuthority: {
+          legal: false,
+          reason:
+            'Needs input — Stepien and complete draft-history records are unavailable for this first-round asset.',
+          violations: [
+            {
+              message:
+                'Needs input — Stepien and complete draft-history records are unavailable for this first-round asset.',
+            },
+          ],
+          omittedStages: [],
+        },
+        snapshotValidationDetails: {
+          teamResults: [
+            {
+              teamName: 'Los Angeles Lakers',
+              rules: {
+                stepienRule: {
+                  passed: false,
+                  status: 'NEEDS_INPUT',
+                  evaluated: false,
+                  message:
+                    'Needs input — Stepien and complete draft-history records are unavailable for this first-round asset.',
+                  violations: [
+                    {
+                      message:
+                        'Needs input — Stepien and complete draft-history records are unavailable for this first-round asset.',
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+          dataWarnings: [],
+          hasDataIssues: false,
+        },
+      })
+    );
+
+    render(<TradeEditor {...baseProps} worldId="world-1" />);
+
+    expect(screen.getByTestId('trade-readiness-summary')).toHaveTextContent(
+      'Needs input'
+    );
+    expect(screen.getByTestId('trade-verdict-strip')).toHaveTextContent(
+      'Stepien Rule: Needs input'
+    );
+    expect(screen.getByRole('button', { name: /^Apply Trade$/i })).toBeDisabled();
+    expect(screen.getByTestId('trade-summary-button')).toBeDisabled();
+  });
+
   it('renders team-attributed blocked reasons in the sticky verdict strip', () => {
     useTradeMachineMock.mockReturnValue(
       buildHookReturn({

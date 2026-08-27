@@ -58,7 +58,14 @@ export function TradeSummaryPanel({
   );
   const previewPassed = previewAuthority?.legal === true;
   const previewFailed = previewAuthority?.legal === false;
-  const topStatus = previewPassed
+  const needsInput = snapshotValidationDetails?.teamResults?.some((team) =>
+    Object.values(team.rules ?? {}).some(
+      (rule) => rule?.status === 'NEEDS_INPUT'
+    )
+  );
+  const topStatus = needsInput
+    ? '⚪ Needs input — trade not evaluated'
+    : previewPassed
     ? '✅ Trade passes preview authority'
     : hasOverrideRequest
       ? '⚠️ Override Requested – Preview Authority Still Blocks This Trade'
@@ -70,9 +77,14 @@ export function TradeSummaryPanel({
     <div className="mt-6 text-sm border-t border-cockpit-edge pt-4 space-y-6">
       <div>
         <strong className="text-base">{topStatus}</strong>
-        {previewFailed && !hasOverrideRequest && (
+        {previewFailed && !hasOverrideRequest && !needsInput && (
           <div className="text-xs text-cockpit-text-secondary mt-1">
             Fix the issues below before applying the trade.
+          </div>
+        )}
+        {needsInput && (
+          <div className="text-xs text-cockpit-watch mt-1">
+            Supply the missing draft records before applying this trade.
           </div>
         )}
         {previewFailed && hasOverrideRequest && (
@@ -460,4 +472,3 @@ export function TradeSummaryPanel({
     </div>
   );
 }
-

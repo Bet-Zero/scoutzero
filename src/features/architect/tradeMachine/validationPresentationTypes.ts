@@ -14,6 +14,9 @@ export interface ValidationIssueLike {
 
 export interface ValidationRuleLike {
   passed?: boolean | null;
+  status?: string;
+  evaluated?: boolean;
+  missingInputs?: readonly string[];
   violations?: Array<ValidationIssueLike | string> | null;
   warnings?: Array<ValidationIssueLike | string> | null;
   message?: string;

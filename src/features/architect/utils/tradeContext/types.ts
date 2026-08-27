@@ -44,6 +44,7 @@ export interface ValidationTeam {
   receives: TradeContextValidationPlayer[];
   picksOut: NonNullable<ArchitectTradePayloadTeam['picksOut']>;
   picksIn: NonNullable<ArchitectTradePayloadTeam['picksOut']>;
+  entitlementsOut: NonNullable<ArchitectTradePayloadTeam['entitlementsOut']>;
   cashSent: number;
   cashReceived?: number;
   cashToTeamId?: string | null;

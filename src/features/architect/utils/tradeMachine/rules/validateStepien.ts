@@ -13,6 +13,20 @@ type StepienTeamIdLike = string | number | null | undefined;
 type StepienWarningTerms = Partial<
   ReturnType<typeof normalizeEntitlementTerms>
 >;
+type StepienEvaluationStatus = 'PASS' | 'FAIL' | 'NEEDS_INPUT';
+
+const FIRST_ROUND_DRAFT_AUTHORITY_MISSING_INPUTS = [
+  'acceptedCanon.CBA2-A12.3',
+  'governedDraftHistory.ownership',
+  'governedDraftHistory.protection',
+  'governedDraftHistory.conveyance',
+  'governedDraftHistory.freeze',
+  'governedDraftHistory.unfreeze',
+  'governedDraftHistory.penalty',
+] as const;
+
+const FIRST_ROUND_DRAFT_AUTHORITY_MESSAGE =
+  'Needs input — Stepien and complete draft-history records are unavailable for this first-round asset.';
 
 interface StepienPickLike {
   year?: StepienYearLike;
@@ -109,6 +123,9 @@ interface StepienDebugInfo {
 
 interface StepienResult {
   passed: boolean;
+  status: StepienEvaluationStatus;
+  evaluated: boolean;
+  missingInputs: readonly string[];
   violations: string[];
   warnings: string[];
   message: string;
@@ -116,6 +133,15 @@ interface StepienResult {
   currentYear: number | string;
   farthestYear: number;
   _debug: StepienDebugInfo;
+}
+
+function isFirstRound(round: StepienRoundLike): boolean {
+  if (round === 1) return true;
+  if (typeof round !== 'string') return false;
+
+  return ['1', '1st', 'first', 'first round', 'first_round'].includes(
+    round.trim().toLowerCase()
+  );
 }
 
 function toNumericYear(
@@ -266,6 +292,57 @@ export function validateStepien(
   // Use outgoingPicks primarily (that's what tests use)
   const picks = outgoingPicks.length > 0 ? outgoingPicks : picksOut;
 
+  // The accepted authority and complete governed lifecycle history needed for
+  // a first-round Stepien/frozen-pick verdict are not currently available.
+  // Fail before running the legacy simplified calculation so no caller can
+  // mistake an incomplete branch for affirmative legality. This applies to
+  // every first-round year and identity; second-round assets remain outside
+  // this gate.
+  const firstRoundPicks = picks.filter((pick) => isFirstRound(pick.round));
+  const firstRoundEntitlements = (team.entitlementsOut || []).filter(
+    (entitlement) => isFirstRound(entitlement.round)
+  );
+
+  if (firstRoundPicks.length > 0 || firstRoundEntitlements.length > 0) {
+    const firstRoundYears = [
+      ...firstRoundPicks.map((pick) => pick.year),
+      ...firstRoundEntitlements.map(
+        (entitlement) => entitlement.seasonYear || entitlement.year
+      ),
+    ]
+      .map((year) => Number(year))
+      .filter(Number.isFinite);
+    const farthestYear =
+      firstRoundYears.length > 0
+        ? Math.max(...firstRoundYears)
+        : toNumericYear(currentYear, 2025);
+
+    return {
+      passed: false,
+      status: 'NEEDS_INPUT',
+      evaluated: false,
+      missingInputs: FIRST_ROUND_DRAFT_AUTHORITY_MISSING_INPUTS,
+      violations: [FIRST_ROUND_DRAFT_AUTHORITY_MESSAGE],
+      warnings: [],
+      message: FIRST_ROUND_DRAFT_AUTHORITY_MESSAGE,
+      details:
+        'This first-round asset was not evaluated. Apply is blocked until the required Stepien source and complete ownership, protection, conveyance, and frozen-pick history are available.',
+      currentYear,
+      farthestYear,
+      _debug: {
+        baselineSource: 'entitlements_ssot',
+        baselineYearsCount: 0,
+        outgoingYearsCount:
+          firstRoundPicks.length + firstRoundEntitlements.length,
+        combinedReservationYearsCount: 0,
+        tradePicksConsidered: firstRoundPicks.length,
+        entitlementsConsidered: firstRoundEntitlements.length,
+        totalStepienRelevant: 0,
+        controlByYear: {},
+      },
+    };
+  }
+
   // Phase 13: Entitlements SSOT - ALWAYS derive baseline from validationEntitlements
   // No legacy draftPicksObligations fallback. If no entitlements, baseline is empty.
   const validationEntitlements = team.validationEntitlements || [];
@@ -330,10 +407,6 @@ export function validateStepien(
 
   // Build outgoing years (what's leaving in the trade)
   // Combine: legacy picks being traded + entitlements being traded
-  const firstRoundPicks = picks.filter(
-    (pick) => pick.round === '1st' || pick.round === 1 || pick.round === 'first'
-  );
-
   // Trade picks that reserve years
   const tradePickYears: StepienReservationEntry[] = firstRoundPicks
     .filter((pick) => reservesYearForStepien(pick))
@@ -495,6 +568,9 @@ export function validateStepien(
 
   const result: StepienResult = {
     passed: violations.length === 0,
+    status: violations.length === 0 ? 'PASS' : 'FAIL',
+    evaluated: true,
+    missingInputs: [],
     violations,
     warnings,
     message:

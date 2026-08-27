@@ -95,6 +95,9 @@ export type TradeValidatorActiveTeamSlot = TradeValidatorTeamSlot & {
 
 export type RuleEnvelopeObjectLike = {
   passed?: boolean;
+  status?: string;
+  evaluated?: boolean;
+  missingInputs?: readonly string[];
   violations?: Parameters<typeof normalizeValidationIssues>[0];
   warnings?: Parameters<typeof normalizeValidationIssues>[0];
   message?: string | null;

@@ -371,4 +371,86 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
     expect(firestoreMocks.writeBatch).not.toHaveBeenCalled();
     expect(firestoreMocks.commit).not.toHaveBeenCalled();
   });
+
+  it('rejects an unevaluated first-round asset before any saved-world write', async () => {
+    teamLoaderMocks.getTeam.mockImplementation(async (_worldId, teamCode) => {
+      const playerId = teamCode === 'TMA' ? 'a_out' : 'b_out';
+      return withGovernedSalaryBooks(
+        {
+          ...makeTeam(teamCode, [makePlayer(playerId, 10_000_000)]),
+          entitlementIds:
+            teamCode === 'TMA' ? ['TMA_2029_R1'] : [],
+        },
+        {
+          salaryCapYear: 2027,
+          asOfDate: '2026-08-24T12:00:00-04:00',
+          teamSalary: 10_000_000,
+          apronTeamSalary: 11_000_000,
+          taxSalary: 12_000_000,
+        }
+      );
+    });
+
+    const result = await applyWorldMutation({
+      userId: 'user_1',
+      worldId: 'world_1',
+      seasonId: '2026-27',
+      mutationType: 'executeTrade',
+      payload: {
+        teams: [
+          {
+            teamCode: 'TMA',
+            sends: [
+              { ...makePlayer('a_out', 10_000_000), tradeTo: 'TMB' },
+            ],
+            entitlementsOut: [
+              {
+                id: 'TMA_2029_R1',
+                entitlementId: 'TMA_2029_R1',
+                year: 2029,
+                round: 1,
+                toTeamId: 'TMB',
+              },
+            ],
+            salaryMatchingElection: {
+              version: 1,
+              path: 'ROOM',
+              postAssignmentApronTeamSalary: 0,
+              tradedPlayerPreTradeSalaries: { a_out: 10_000_000 },
+            },
+          },
+          {
+            teamCode: 'TMB',
+            sends: [
+              { ...makePlayer('b_out', 10_000_000), tradeTo: 'TMA' },
+            ],
+            entitlementsOut: [],
+            salaryMatchingElection: {
+              version: 1,
+              path: 'ROOM',
+              postAssignmentApronTeamSalary: 0,
+              tradedPlayerPreTradeSalaries: { b_out: 10_000_000 },
+            },
+          },
+        ],
+        asOfDate: '2026-08-25T12:00:00-04:00',
+        tradeCtx: {
+          source: 'tradeMachine',
+          worldId: 'world_1',
+          asOfDate: '2026-08-25T12:00:00-04:00',
+          yearKey: '2026-27',
+        },
+      },
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      appliedToLocalState: false,
+      persistedToWorld: false,
+    });
+    expect(JSON.stringify(result)).toMatch(/Needs input/i);
+    expect(JSON.stringify(result)).toMatch(/Stepien/i);
+    expect(firestoreMocks.writeBatch).not.toHaveBeenCalled();
+    expect(firestoreMocks.commit).not.toHaveBeenCalled();
+  });
 });
