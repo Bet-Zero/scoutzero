@@ -100,6 +100,7 @@ capSheet/
   CapSheet/
     CapSheet.tsx
     CapSummaryTiles.tsx
+    IncompleteRosterChargeSummary.tsx
     index.ts
   CapSheetFull/
     CapHoldDetailRow.tsx
@@ -336,6 +337,7 @@ utils/
     datedSalaryLedgers.ts
     deadMoneyForYear.ts
     governedDatedSalaryLedgers.ts
+    governedIncompleteRosterCharge.ts
     hardCapSnapshotOverlay.ts
     index.ts
     teamSalaryBooks.ts
@@ -647,5 +649,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-26T00:40:18.903Z*
+*Generated on: 2026-08-26T10:09:10.737Z*
 *Auto-updated by: npm run docs*

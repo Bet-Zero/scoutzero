@@ -186,6 +186,7 @@ export interface TradePostStateLegalityStageInput {
   mutationType: string;
   worldId: string;
   year: number;
+  asOfDate?: string | null;
   beforeTeamsByCode: MutationTeamMap;
   afterTeamsByCode: MutationTeamMap;
 }
@@ -203,6 +204,7 @@ interface TradePostStateLegalityFromComputeResultInput {
   mutationType: string;
   worldId: string;
   seasonId: string;
+  asOfDate?: string | null;
   timestamp: number;
   beforeTeamsByCode: MutationTeamMap;
   computeResult: ComputeResultLike;
@@ -339,11 +341,20 @@ export function runTradePostStateLegalityStage({
   mutationType,
   worldId,
   year,
+  asOfDate,
   beforeTeamsByCode,
   afterTeamsByCode,
 }: TradePostStateLegalityStageInput): TradePostStateLegalityStageResult {
-  const beforeTotalsByTeam = buildTotalsByTeam(beforeTeamsByCode, year);
-  const afterTotalsByTeam = buildTotalsByTeam(afterTeamsByCode, year);
+  const beforeTotalsByTeam = buildTotalsByTeam(
+    beforeTeamsByCode,
+    year,
+    asOfDate ?? null
+  );
+  const afterTotalsByTeam = buildTotalsByTeam(
+    afterTeamsByCode,
+    year,
+    asOfDate ?? null
+  );
 
   if (Object.keys(afterTotalsByTeam).length === 0) {
     return {
@@ -404,6 +415,7 @@ function runTradePostStateLegalityStageFromComputeResult({
   mutationType,
   worldId,
   seasonId,
+  asOfDate,
   timestamp,
   beforeTeamsByCode,
   computeResult,
@@ -416,6 +428,7 @@ function runTradePostStateLegalityStageFromComputeResult({
     mutationType,
     worldId,
     year,
+    asOfDate,
     beforeTeamsByCode,
     afterTeamsByCode,
   });
@@ -481,6 +494,7 @@ export function validateTradePreviewAuthority({
     mutationType,
     worldId: worldId ?? 'preview-world',
     year,
+    asOfDate,
     beforeTeamsByCode,
     afterTeamsByCode,
   });
@@ -703,6 +717,7 @@ export async function validateTradeExecutionAuthority(
     mutationType,
     worldId,
     seasonId,
+    asOfDate,
     timestamp,
     beforeTeamsByCode,
     computeResult,

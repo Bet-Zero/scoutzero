@@ -124,10 +124,10 @@ describe('GAP-MISS-003: Incomplete Roster Charges (VERIFIED ALREADY IMPLEMENTED)
 
       expect(totals.totalCapAllocations).toBeGreaterThan(totalWithoutCharges);
       expect(totals.totalCapAllocations).toBe(
-        totals.playersTotal +
+          totals.playersTotal +
           totals.deadMoneyTotal +
           totals.capHoldsTotal +
-          totals.incompleteChargesTotal
+          totals.incompleteChargesTotal!
       );
     });
   });

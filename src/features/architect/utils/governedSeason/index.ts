@@ -9,6 +9,8 @@
 
 export {
   GOVERNING_TIME_ZONE,
+  governingCalendarDate,
+  governingDayStartInstant,
   isDateOnly,
   isDateOnlyWithinSalaryCapYear,
   isNonEmptyString,

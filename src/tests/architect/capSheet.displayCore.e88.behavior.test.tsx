@@ -4,6 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { CapSummaryTiles } from '@/features/architect/capSheet/CapSheet/CapSummaryTiles';
+import { IncompleteRosterChargeSummary } from '@/features/architect/capSheet/CapSheet/IncompleteRosterChargeSummary';
 import { CapTableSection } from '@/features/architect/GMDashboard/sections/CapTableSection';
 
 type GetRulesProfileForYear = NonNullable<
@@ -254,6 +255,53 @@ const getRulesProfileForYear: GetRulesProfileForYear = (player) => {
 };
 
 describe('Cap Sheet display-core E88 compatibility', () => {
+  it('exposes the governed Needs input reason to assistive technology', () => {
+    const resolution = {
+      mode: 'governed' as const,
+      status: 'needs-input' as const,
+      activeWindow: true,
+      window: { opens: '2026-07-01', closes: '2026-10-20' },
+      counts: null,
+      threshold: 12 as const,
+      missingSlots: null,
+      chargePerSlot: null,
+      amount: null,
+      canonLeafIds: [
+        'CBA2-C03.1',
+        'CBA2-C03.2',
+        'CBA2-C07.11',
+      ] as const,
+      missingInputs: ['salaryBookInputs.unsignedFirstRoundPickState'],
+      reason: 'Unsigned first-round pick state is unresolved.',
+    };
+
+    render(
+      <IncompleteRosterChargeSummary
+        canonicalTotals={{
+          ...SUMMARY_TOTALS,
+          incompleteChargesTotal: null,
+          totalCapAllocations: null,
+          deltas: {
+            vsCap: null,
+            vsLuxuryTax: null,
+            vsFirstApron: null,
+            vsSecondApron: null,
+          },
+          incompleteRosterResolution: resolution,
+          _meta: {
+            ...SUMMARY_TOTALS._meta,
+            incompleteRosterCharge: resolution,
+          },
+        }}
+      />
+    );
+
+    expect(
+      screen.getByTestId('incomplete-roster-charge-needs-input')
+    ).toHaveAccessibleDescription(resolution.reason);
+    expect(screen.queryByTestId('incomplete-roster-charge-row')).toBeNull();
+  });
+
   it('renders CapSummaryTiles in the existing visible order with canonical hard-cap compatibility intact', () => {
     const { container } = render(
       <CapSummaryTiles

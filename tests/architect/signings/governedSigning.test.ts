@@ -757,7 +757,7 @@ describe('governed signing result and immutable history', () => {
     expect(updated?.exceptions?.mle).toMatchObject({
       usedAmount: 10_000_000,
       remainingAmount: 4_104_000,
-      lastUsedAt: '2026-07-08T00:00:00Z',
+      lastUsedAt: '2026-07-08T00:00:00-04:00',
     });
     expect(updated?.capHolds).toEqual([]);
     expect(updated?.contractEventLedgers).toHaveLength(1);
@@ -765,8 +765,8 @@ describe('governed signing result and immutable history', () => {
     expect(ledger?.events).toHaveLength(1);
     expect(ledger?.events[0]).toMatchObject({
       eventKind: 'signing',
-      executedAt: '2026-07-08T00:00:00Z',
-      effectiveAt: '2026-07-08T00:00:00Z',
+      executedAt: '2026-07-08T00:00:00-04:00',
+      effectiveAt: '2026-07-08T00:00:00-04:00',
       recordedAt: RECORDED_AT,
       resultingState: {
         establishmentKind: 'signing',
@@ -1355,7 +1355,7 @@ describe('governed signing result and immutable history', () => {
       mutationType: 'signFreeAgent',
       metadata: {
         governedSigningWorldDate: WORLD_DATE,
-        governedSigningEffectiveAt: '2026-07-08T00:00:00Z',
+        governedSigningEffectiveAt: '2026-07-08T00:00:00-04:00',
       },
     });
   });

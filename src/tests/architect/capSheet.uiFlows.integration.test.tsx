@@ -164,6 +164,9 @@ function withGovernedBooks(team: TeamLike, salaryCapYear = CURRENT_YEAR) {
   const totals = computeTeamCapTotals(team, salaryCapYear, {
     asOfDate: TEST_AS_OF_DATE,
   });
+  if (totals.totalCapAllocations === null) {
+    throw new Error('Expected complete legacy cap totals.');
+  }
   return withGovernedSalaryBooks(
     team as unknown as Record<string, unknown>,
     {
@@ -1416,7 +1419,7 @@ describe('Cap Sheet UI integration flows', () => {
     expect(totalRow).not.toBeNull();
     expect(
       within(totalRow as HTMLElement).getByText(
-        `$${totals.totalCapAllocations.toLocaleString()}`
+        `$${totals.totalCapAllocations!.toLocaleString()}`
       )
     ).toBeInTheDocument();
     // Reconciled 2027-28 vet-min relief (see the $2,449,421 note above).
@@ -1472,7 +1475,7 @@ describe('Cap Sheet UI integration flows', () => {
     const futureTotalCell = getFutureYearCell(totalRow, 1);
     expect(
       within(futureTotalCell).getByText(
-        `$${totals.totalCapAllocations.toLocaleString()}`
+        `$${totals.totalCapAllocations!.toLocaleString()}`
       )
     ).toBeInTheDocument();
     expect(totals.playersTotal).toBe(20_000_000);

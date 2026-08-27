@@ -75,7 +75,7 @@ describe('LeagueView SSOT Compliance (Phase 29)', () => {
       totals.playersTotal +
       totals.deadMoneyTotal +
       totals.capHoldsTotal +
-      totals.incompleteChargesTotal;
+      totals.incompleteChargesTotal!;
 
     expect(totals.totalCapAllocations).toBe(expectedTotal);
     expect(totals.playersTotal).toBe(140000000);
@@ -143,7 +143,7 @@ describe('LeagueView SSOT Compliance (Phase 29)', () => {
     // 2 missing slots × rookieMin (varies by year, but should be > 0)
     expect(totals.incompleteChargesTotal).toBeGreaterThan(0);
     expect(totals.totalCapAllocations).toBe(
-      totals.playersTotal + totals.incompleteChargesTotal
+      totals.playersTotal + totals.incompleteChargesTotal!
     );
   });
 
@@ -241,7 +241,7 @@ describe('LeagueView SSOT Compliance (Phase 29)', () => {
     expect(totals.playersTotal).toBe(120000000);
     expect(totals.incompleteChargesTotal).toBeGreaterThan(0);
     expect(totals.totalCapAllocations).toBe(
-      totals.playersTotal + totals.incompleteChargesTotal
+      totals.playersTotal + totals.incompleteChargesTotal!
     );
   });
 
@@ -326,10 +326,10 @@ describe('LeagueView SSOT Compliance (Phase 29)', () => {
 
     // Total should be sum of all
     expect(totals.totalCapAllocations).toBe(
-      totals.playersTotal +
+        totals.playersTotal +
         totals.capHoldsTotal +
         totals.deadMoneyTotal +
-        totals.incompleteChargesTotal
+        totals.incompleteChargesTotal!
     );
   });
 });

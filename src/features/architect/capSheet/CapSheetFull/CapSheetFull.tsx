@@ -1120,7 +1120,10 @@ export const CapSheetFull = ({
     waiverAsOfDate,
   ]);
   const hasIncompleteCharges = allYears.some(
-    (year) => yearTotalBreakdowns[year].incompleteChargesTotal > 0
+    (year) =>
+      (yearTotalBreakdowns[year].incompleteRosterResolution?.status ??
+        'complete') === 'complete' &&
+      (yearTotalBreakdowns[year].incompleteChargesTotal ?? 0) > 0
   );
   const affectedTotalYears = useMemo(() => {
     const years = new Set<number>();
@@ -1959,7 +1962,8 @@ export const CapSheetFull = ({
                             key={year}
                             className="flex items-center justify-center border-l border-white/10 px-2 py-1 text-[10px] tabular-nums text-amber-200/80"
                           >
-                            {incompleteChargesTotal > 0
+                            {incompleteChargesTotal !== null &&
+                            incompleteChargesTotal > 0
                               ? formatCapSheetMoney(incompleteChargesTotal)
                               : ''}
                           </div>

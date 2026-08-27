@@ -253,6 +253,9 @@ function buildTeamCapSheet() {
 const renderCapSheetSection = () => {
   const baseTeamCapSheet = buildTeamCapSheet();
   const currentTotals = computeTeamCapTotals(baseTeamCapSheet, CURRENT_YEAR);
+  if (currentTotals.totalCapAllocations === null) {
+    throw new Error('Expected complete legacy cap totals.');
+  }
   const teamCapSheet = withGovernedSalaryBooks(baseTeamCapSheet, {
     salaryCapYear: CURRENT_YEAR,
     asOfDate: '2025-07-01T12:00:00-04:00',
@@ -458,7 +461,7 @@ describe('MYCT Step 4 Guardrails - Runtime Consumer Surfaces', () => {
     ).toBeInTheDocument();
     expect(
       within(breakdownSurface).getByText(
-        formatMoney(currentTotals.totalCapAllocations)
+        formatMoney(currentTotals.totalCapAllocations!)
       )
     ).toBeInTheDocument();
 

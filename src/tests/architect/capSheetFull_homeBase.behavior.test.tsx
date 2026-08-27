@@ -21,6 +21,7 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { CapSheetFull } from '@/features/architect/capSheet/CapSheetFull';
 import { RIGHTS_LEDGER_WORLD_VERSION } from '@/features/architect/utils/rightsHistory';
+import { withDerivedGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 import type { GovernedWaiverLifecycle } from '@/schemas/governedWaiver';
 import type { PlayerRulesProfileTeamCapSheet } from '@/features/architect/types/playerRulesProfiles';
 
@@ -570,6 +571,78 @@ describe('CapSheetFull — home-base enrichments', () => {
     expect(
       screen.getByTestId('cap-sheet-full-incomplete-roster-charges')
     ).toHaveTextContent('Incomplete roster charges');
+  });
+
+  it('keeps future pre-window Full Cap Table totals numeric', () => {
+    const governedTeam = withDerivedGovernedSalaryBooks(
+      {
+        ...teamCapSheet,
+        players: (teamCapSheet.players ?? []).map((player) => ({
+          ...player,
+          contract: {
+            ...player.contract,
+            contractType: 'Standard',
+            salariesByYear: [
+              {
+                season: '2026-27',
+                salary: player.id === 'player_42' ? 30_000_000 : 5_000_000,
+                capHit: player.id === 'player_42' ? 30_000_000 : 5_000_000,
+              },
+              {
+                season: '2027-28',
+                salary: player.id === 'player_42' ? 31_000_000 : 5_500_000,
+                capHit: player.id === 'player_42' ? 31_000_000 : 5_500_000,
+              },
+            ],
+          },
+        })),
+        capHolds: [],
+        deadCap: [],
+        offerSheets: [],
+      },
+      {
+        salaryCapYear: 2027,
+        asOfDate: '2026-07-02T12:00:00-04:00',
+      }
+    );
+    delete governedTeam.salaryBookInputs.incompleteRosterCharge;
+    governedTeam.salaryBookInputs.unsignedFirstRoundPickState = {
+      version: 1,
+      status: 'ready',
+      teamCode: 'LAL',
+      salaryCapYear: 2027,
+      entries: [],
+      source: {
+        evidenceId: 'bze-293:full-cap-table:LAL:2027:none',
+        evidenceVersion: 1,
+        authority: 'external-determination',
+        reference: 'authenticated-test-team-state:none',
+        authenticatedAt: '2026-07-01T00:00:00-04:00',
+        recordStatus: 'current',
+        canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'],
+      },
+    };
+
+    render(
+      <CapSheetFull
+        teamCapSheet={governedTeam as never}
+        currentYear={2027}
+        governedRightsContext={{
+          worldId: 'world-bze-293-full-cap-table',
+          teamId: 'LAL',
+          asOfDate: '2026-07-02',
+          worldVersion: RIGHTS_LEDGER_WORLD_VERSION,
+        }}
+      />
+    );
+
+    const totalsSurface = screen.getByLabelText(
+      'Multi-year canonical yearly totals surface'
+    );
+    expect(within(totalsSurface).queryByText('Needs input')).not.toBeInTheDocument();
+    expect(
+      totalsSurface.querySelector('[data-salary-cap-year="2028"]')
+    ).toHaveTextContent('$36,500,000');
   });
 
   it('renders free-agent options separately from roster rows with honest exposure', () => {

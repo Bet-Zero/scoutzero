@@ -238,7 +238,9 @@ function buildTeamFixture() {
 }
 
 function totalForYear(team: MatrixTeamCapSheet, endYear = CURRENT_YEAR): number {
-  return computeTeamCapTotals(team, endYear).totalCapAllocations;
+  const total = computeTeamCapTotals(team, endYear).totalCapAllocations;
+  if (total === null) throw new Error('Expected complete legacy cap totals.');
+  return total;
 }
 
 function getPlayer(team: MatrixTeamCapSheet, playerId: string) {

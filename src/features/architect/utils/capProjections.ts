@@ -45,7 +45,7 @@ export const capProjections: Record<string, CapProjectionLike> = {
     fullMLE: 14104000,
     taxpayerMLE: 5685000,
     rookieMin: 1164345, // ~4% growth
-    rookieMinSource: 'real',
+    rookieMinSource: 'projected',
     growthRate: 0.1,
     confirmed: true,
   },
@@ -138,4 +138,3 @@ export const capProjections: Record<string, CapProjectionLike> = {
     confirmed: false,
   },
 };
-

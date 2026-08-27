@@ -43,6 +43,7 @@ import {
   type PlayerAction,
   type PlayerActionContext,
 } from '@/features/architect/cockpit/playerActionContext';
+import { IncompleteRosterChargeSummary } from './IncompleteRosterChargeSummary';
 
 type NumericLike = number | string | null | undefined;
 type RulesProfileLike = PlayerRulesProfile | null;
@@ -801,46 +802,9 @@ export const CapSheet = ({
               </div>
             )}
 
-            {canonicalTotals.incompleteChargesTotal > 0 && (
-              <div
-                data-testid="incomplete-roster-charge-row"
-                className="flex min-w-0 items-baseline gap-1.5"
-              >
-                <p
-                  className="truncate text-[10px] font-semibold uppercase tracking-wider text-cockpit-watch"
-                  title={
-                    canonicalTotals._meta?.incompleteRosterCharge?.missingSlots
-                      ? `Incomplete Roster Charge — ${canonicalTotals._meta.incompleteRosterCharge.missingSlots} open ${
-                          canonicalTotals._meta.incompleteRosterCharge
-                            .missingSlots === 1
-                            ? 'slot'
-                            : 'slots'
-                        }`
-                      : 'Incomplete Roster Charge'
-                  }
-                >
-                  Incomplete Roster Charge
-                  {canonicalTotals._meta?.incompleteRosterCharge
-                    ?.missingSlots ? (
-                    <span className="sr-only">
-                      {' '}
-                      {
-                        canonicalTotals._meta.incompleteRosterCharge
-                          .missingSlots
-                      }{' '}
-                      open{' '}
-                      {canonicalTotals._meta.incompleteRosterCharge
-                        .missingSlots === 1
-                        ? 'slot'
-                        : 'slots'}
-                    </span>
-                  ) : null}
-                </p>
-                <span className="text-xs font-bold tabular-nums text-cockpit-watch">
-                  {formatCapSheetMoney(canonicalTotals.incompleteChargesTotal)}
-                </span>
-              </div>
-            )}
+            <IncompleteRosterChargeSummary
+              canonicalTotals={canonicalTotals}
+            />
 
             <div className="ml-auto flex shrink-0 items-center gap-2">
               <div className="flex items-baseline gap-2 rounded-md border border-cockpit-edge bg-cockpit-raised px-2.5 py-0.5">

@@ -98,15 +98,323 @@ function team(overrides: Record<string, unknown> = {}) {
 }
 
 describe('BZE-285 independent salary books', () => {
+  it('derives one governed C03 charge, reverses it once for C07.11, and preserves Tax Salary', () => {
+    const inputs = governedInputs();
+    inputs.unsignedFirstRoundPickState = {
+      version: 1,
+      status: 'ready',
+      teamCode: 'MIA',
+      salaryCapYear: YEAR,
+      entries: [],
+      source: {
+        evidenceId: 'bze-293:MIA:2027:none',
+        evidenceVersion: 1,
+        authority: 'external-determination',
+        reference: 'authenticated-test-team-state:none',
+        authenticatedAt: '2026-07-01T00:00:00-04:00',
+        recordStatus: 'current',
+        canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'],
+      },
+    };
+    if (inputs.apronAdjustments.status === 'ready') {
+      inputs.apronAdjustments.lineItems.forEach((item) => {
+        item.effectiveFrom = '2026-07-01T00:00:00-04:00';
+      });
+    }
+    if (inputs.taxSalary.status === 'ready') {
+      inputs.taxSalary.lineItems.forEach((item, index) => {
+        item.effectiveFrom = `2026-07-01T0${index}:00:00-04:00`;
+      });
+    }
+
+    const totals = createCanonicalTeamTotalsSnapshot(
+      team({ players: players(11), salaryBookInputs: inputs }),
+      YEAR,
+      { asOfDate: '2026-07-02T12:00:00-04:00' }
+    );
+
+    expect(totals.incompleteRosterResolution).toMatchObject({
+      mode: 'governed',
+      status: 'complete',
+      activeWindow: true,
+      counts: { underContract: 11, total: 11 },
+      threshold: 12,
+      missingSlots: 1,
+      amount: 1_357_763,
+    });
+    expect(totals.teamSalary).toBe(12_357_763);
+    expect(totals.apronTeamSalary).toBe(12_800_000);
+    expect(totals.taxSalary).toBe(20_300_000);
+    const apronCharges =
+      totals.salaryBooks.ledgers.apronTeamSalary.status === 'complete'
+        ? totals.salaryBooks.ledgers.apronTeamSalary.lineItems.filter((item) =>
+            item.canonLeafIds.includes('CBA2-C07.11')
+          )
+        : [];
+    expect(apronCharges).toHaveLength(1);
+    expect(apronCharges[0]?.amount).toBe(-1_357_763);
+
+    const reloaded = normalizeCurrentStateTeamTotals(
+      JSON.parse(JSON.stringify(totals))
+    );
+    expect(reloaded?.incompleteRosterResolution).toEqual(
+      totals.incompleteRosterResolution
+    );
+    expect(reloaded?.salaryBooks).toEqual(totals.salaryBooks);
+  });
+
+  it('publishes Needs input instead of borrowing a number for unresolved governed pick state', () => {
+    const inputs = governedInputs();
+    inputs.unsignedFirstRoundPickState = {
+      version: 1,
+      status: 'needs-input',
+      teamCode: 'MIA',
+      salaryCapYear: YEAR,
+      missingInputs: ['draftState.unsignedFirstRoundPicks'],
+      reason: 'Unsigned first-round pick state is unresolved.',
+    };
+    const totals = createCanonicalTeamTotalsSnapshot(
+      team({ players: players(11), salaryBookInputs: inputs }),
+      YEAR,
+      { asOfDate: '2026-07-02T12:00:00-04:00' }
+    );
+    expect(totals.incompleteChargesTotal).toBeNull();
+    expect(totals.totalCapAllocations).toBeNull();
+    expect(totals.deltas).toEqual({
+      vsCap: null,
+      vsLuxuryTax: null,
+      vsFirstApron: null,
+      vsSecondApron: null,
+    });
+    expect(totals.teamSalary).toBeNull();
+    expect(totals.incompleteRosterResolution).toMatchObject({
+      mode: 'governed',
+      status: 'needs-input',
+      amount: null,
+    });
+  });
+
+  it('rejects the legacy editable charge field when governed evidence is present', () => {
+    const inputs = governedInputs();
+    inputs.unsignedFirstRoundPickState = {
+      version: 1,
+      status: 'ready',
+      teamCode: 'MIA',
+      salaryCapYear: YEAR,
+      entries: [],
+      source: {
+        evidenceId: 'bze-293:MIA:2027:none',
+        evidenceVersion: 1,
+        authority: 'external-determination',
+        reference: 'authenticated-test-team-state:none',
+        authenticatedAt: '2026-07-01T00:00:00-04:00',
+        recordStatus: 'current',
+        canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'],
+      },
+    };
+    inputs.incompleteRosterCharge = {
+      id: 'legacy:incomplete-roster',
+      ledger: 'team-salary',
+      label: 'Legacy editable charge',
+      amount: 1_357_763,
+      effectiveFrom: '2026-07-01T00:00:00-04:00',
+      canonLeafIds: ['CBA2-A01.1'],
+      source: { authority: 'team-state', reference: 'legacy-fixture' },
+    };
+
+    const totals = createCanonicalTeamTotalsSnapshot(
+      team({ players: players(11), salaryBookInputs: inputs }),
+      YEAR,
+      { asOfDate: '2026-07-02T12:00:00-04:00' }
+    );
+
+    expect(totals.incompleteRosterResolution?.status).toBe('complete');
+    expect(totals.teamSalary).toBeNull();
+    expect(totals.salaryBooks.ledgers.teamSalary).toMatchObject({
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.incompleteRosterCharge'],
+    });
+  });
+
+  it('rejects duplicate governed C07.11 adjustment lines', () => {
+    const inputs = governedInputs();
+    if (inputs.apronAdjustments.status === 'ready') {
+      inputs.apronAdjustments.lineItems.push(
+        line('apron-team-salary', 'CBA2-C07.11', 0)
+      );
+    }
+
+    const totals = createCanonicalTeamTotalsSnapshot(
+      team({ salaryBookInputs: inputs }),
+      YEAR,
+      { asOfDate: WORLD_DATE }
+    );
+
+    expect(totals.salaryBooks.ledgers.apronTeamSalary).toMatchObject({
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.apronAdjustments.CBA2-C07.11'],
+    });
+    expect(totals.apronTeamSalary).toBeNull();
+  });
+
+  it('rejects a C07.11 adjustment line shared with another Canon leaf', () => {
+    const inputs = governedInputs();
+    if (inputs.apronAdjustments.status === 'ready') {
+      const governedLine = inputs.apronAdjustments.lineItems.find((item) =>
+        item.canonLeafIds.includes('CBA2-C07.11')
+      );
+      expect(governedLine).toBeDefined();
+      if (!governedLine) throw new Error('Missing governed C07.11 fixture.');
+      governedLine.canonLeafIds = ['CBA2-C07.11', 'CBA2-C07.10'];
+    }
+
+    const totals = createCanonicalTeamTotalsSnapshot(
+      team({ salaryBookInputs: inputs }),
+      YEAR,
+      { asOfDate: WORLD_DATE }
+    );
+
+    expect(totals.salaryBooks.ledgers.apronTeamSalary).toMatchObject({
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.apronAdjustments.CBA2-C07.11'],
+    });
+    expect(totals.apronTeamSalary).toBeNull();
+  });
+
+  it('rejects a persisted governed result that no longer reconciles', () => {
+    expect(() =>
+      normalizeCurrentStateTeamTotals({
+        incompleteRosterResolution: {
+          mode: 'governed',
+          status: 'complete',
+          activeWindow: true,
+          window: { opens: '2026-07-01', closes: '2026-10-20' },
+          counts: {
+            underContract: 11,
+            veteranFreeAgentAmounts: 0,
+            offerSheets: 0,
+            unsignedFirstRoundPicks: 0,
+            total: 11,
+          },
+          threshold: 12,
+          missingSlots: 1,
+          chargePerSlot: 1_357_763,
+          amount: 0,
+          canonLeafIds: ['CBA2-C03.1', 'CBA2-C03.2', 'CBA2-C07.11'],
+          missingInputs: [],
+          reason: 'Tampered persisted result.',
+        },
+      })
+    ).toThrow('Persisted governed incomplete-roster result is malformed.');
+  });
+
   it('accepts real saved-world dates and rejects impossible calendar dates', () => {
     expect(normalizeSalaryBookAsOfDate('2027-02-10')).toBe(
-      '2027-02-10T00:00:00Z'
+      '2027-02-10T00:00:00-05:00'
+    );
+    expect(normalizeSalaryBookAsOfDate('2027-07-01')).toBe(
+      '2027-07-01T00:00:00-04:00'
     );
     expect(normalizeSalaryBookAsOfDate('2027-02-30')).toBeNull();
     expect(
       normalizeSalaryBookAsOfDate('2027-02-30T12:00:00-05:00')
     ).toBeNull();
     expect(normalizeSalaryBookAsOfDate(null)).toBeNull();
+  });
+
+  it('keeps future pre-window books numeric without borrowing a missing calendar', () => {
+    const futureYear = 2028;
+    const inputs = structuredClone(governedInputs());
+    inputs.salaryCapYear = futureYear;
+    inputs.unsignedFirstRoundPickState = {
+      version: 1,
+      status: 'needs-input',
+      teamCode: 'MIA',
+      salaryCapYear: futureYear,
+      missingInputs: ['draftState.unsignedFirstRoundPicks'],
+      reason:
+        'Future unsigned first-round pick state is unavailable and must not be consulted before July 1.',
+    };
+    if (inputs.apronAdjustments.status === 'ready') {
+      inputs.apronAdjustments.lineItems.forEach((item) => {
+        item.effectiveFrom = '2027-06-29T00:00:00-04:00';
+      });
+    }
+    if (inputs.taxSalary.status === 'ready') {
+      inputs.taxSalary.lineItems.forEach((item) => {
+        item.effectiveFrom = '2027-06-29T00:00:00-04:00';
+      });
+    }
+    const futurePlayers = players().map((player) => ({
+      ...player,
+      contract: {
+        ...player.contract,
+        salariesByYear: player.contract.salariesByYear.map((salary) => ({
+          ...salary,
+          season: '2027-28',
+        })),
+      },
+    }));
+    const futureTeam = team({
+      players: futurePlayers,
+      salaryBookInputs: inputs,
+    });
+
+    const beforeWindow = createCanonicalTeamTotalsSnapshot(
+      futureTeam,
+      futureYear,
+      { asOfDate: '2027-06-30' }
+    );
+    expect(beforeWindow.incompleteRosterResolution).toMatchObject({
+      status: 'complete',
+      activeWindow: false,
+      window: { opens: '2027-07-01', closes: null },
+      amount: 0,
+    });
+    expect(beforeWindow).toMatchObject({
+      incompleteChargesTotal: 0,
+      totalCapAllocations: 14_000_000,
+      teamSalary: 14_000_000,
+      apronTeamSalary: 15_800_000,
+      taxSalary: 20_300_000,
+      taxablePayroll: 20_300_000,
+      salaryBooks: { status: 'complete' },
+    });
+    expect(
+      new Set([
+        beforeWindow.teamSalary,
+        beforeWindow.apronTeamSalary,
+        beforeWindow.taxSalary,
+      ]).size
+    ).toBe(3);
+    expect(
+      normalizeCurrentStateTeamTotals(JSON.parse(JSON.stringify(beforeWindow)))
+    ).toMatchObject({
+      incompleteChargesTotal: 0,
+      totalCapAllocations: 14_000_000,
+      teamSalary: 14_000_000,
+      apronTeamSalary: 15_800_000,
+      taxSalary: 20_300_000,
+      incompleteRosterResolution: {
+        status: 'complete',
+        activeWindow: false,
+        window: { opens: '2027-07-01', closes: null },
+      },
+    });
+
+    const atWindowWithoutOpening = createCanonicalTeamTotalsSnapshot(
+      futureTeam,
+      futureYear,
+      { asOfDate: '2027-07-01' }
+    );
+    expect(atWindowWithoutOpening.incompleteRosterResolution).toMatchObject({
+      status: 'needs-input',
+      activeWindow: null,
+      window: { opens: '2027-07-01', closes: null },
+      amount: null,
+    });
+    expect(atWindowWithoutOpening.totalCapAllocations).toBeNull();
+    expect(atWindowWithoutOpening.teamSalary).toBeNull();
   });
 
   it('computes three discriminating books without substituting one total', () => {
@@ -332,7 +640,7 @@ describe('BZE-285 independent salary books', () => {
     const shortRoster = createCanonicalTeamTotalsSnapshot(
       team({ players: players(13) }),
       YEAR,
-      { asOfDate: WORLD_DATE }
+      { asOfDate: '2026-07-02T12:00:00-04:00' }
     );
     expect(shortRoster.salaryBooks.ledgers.teamSalary.status).toBe(
       'needs-input'

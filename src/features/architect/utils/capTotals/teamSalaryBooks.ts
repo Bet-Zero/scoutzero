@@ -1,3 +1,4 @@
+import { governingDayStartInstant } from '@/features/architect/utils/governedSeason';
 import {
   SalaryBooksSnapshotZ,
   TeamSalaryBookInputsZ,
@@ -10,6 +11,7 @@ import type {
   SalaryLedgerLineItem,
 } from './datedSalaryLedgers';
 import { evaluateDatedSalaryLedgers } from './datedSalaryLedgers';
+import type { IncompleteRosterResolution } from './governedIncompleteRosterCharge';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -48,7 +50,8 @@ export interface TeamSalaryBookComponentTotals {
   playersTotal: number;
   deadMoneyTotal: number;
   capHoldsTotal: number;
-  incompleteChargesTotal: number;
+  incompleteChargesTotal: number | null;
+  incompleteRosterResolution?: IncompleteRosterResolution;
   outstandingOfferSheetTotal?: number;
 }
 
@@ -56,32 +59,10 @@ function nonEmptyString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-function isValidCalendarDate(value: string): boolean {
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return false;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const candidate = new Date(Date.UTC(year, month - 1, day));
-  return (
-    candidate.getUTCFullYear() === year &&
-    candidate.getUTCMonth() === month - 1 &&
-    candidate.getUTCDate() === day
-  );
-}
-
 export function normalizeSalaryBookAsOfDate(
   value: string | null | undefined
 ): string | null {
-  if (!value) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return isValidCalendarDate(value) ? `${value}T00:00:00Z` : null;
-  }
-  return isValidCalendarDate(value.slice(0, 10)) &&
-    /(Z|[+-]\d{2}:\d{2})$/.test(value) &&
-    Number.isFinite(Date.parse(value))
-    ? value
-    : null;
+  return governingDayStartInstant(value);
 }
 
 function requiredLeafCoverage<K extends SalaryLedgerKind>(
@@ -206,12 +187,31 @@ function teamSalaryInput(
     };
   }
 
-  if (totals.incompleteChargesTotal > 0 && !incompleteRosterCharge) {
+  if (!totals.incompleteRosterResolution) {
+    return {
+      status: 'needs-input',
+      missingInputs: ['totals.incompleteRosterResolution'],
+      reason: 'Team Salary requires the governed incomplete-roster result.',
+    };
+  }
+  if (totals.incompleteRosterResolution.status !== 'complete') {
+    return {
+      status: 'needs-input',
+      missingInputs: totals.incompleteRosterResolution.missingInputs,
+      reason: totals.incompleteRosterResolution.reason,
+    };
+  }
+  if (
+    totals.incompleteRosterResolution.mode === 'legacy-compatibility' &&
+    totals.incompleteChargesTotal !== null &&
+    totals.incompleteChargesTotal > 0 &&
+    !incompleteRosterCharge
+  ) {
     return {
       status: 'needs-input',
       missingInputs: ['salaryBookInputs.incompleteRosterCharge'],
       reason:
-        'The roster is short of the standard threshold, but no governed dated incomplete-roster charge input is available.',
+        'The legacy roster is short of its compatibility threshold, but no dated compatibility input is available.',
     };
   }
 
@@ -230,17 +230,39 @@ function teamSalaryInput(
     source: { authority: 'team-state', reference },
   });
 
-  const governedIncompleteCharge = incompleteRosterCharge
-    ? ({
-        ...incompleteRosterCharge,
-        ledger: 'team-salary' as const,
-      } satisfies SalaryLedgerLineItem<'team-salary'>)
-    : component(
-        'incomplete-roster',
-        'Incomplete-roster charges',
-        0,
-        'team.players:standard-roster-complete'
-      );
+  const governedIncompleteCharge: SalaryLedgerLineItem<'team-salary'> =
+    totals.incompleteRosterResolution.mode === 'legacy-compatibility' &&
+    incompleteRosterCharge
+      ? {
+          ...incompleteRosterCharge,
+          ledger: 'team-salary',
+        }
+      : {
+          id: `team-salary:${teamId}:incomplete-roster`,
+          ledger: 'team-salary',
+          label: 'Governed incomplete-roster charges',
+          amount: totals.incompleteRosterResolution.amount ?? 0,
+          effectiveFrom: asOfDate,
+          canonLeafIds: ['CBA2-C03.1', 'CBA2-C03.2'],
+          source: {
+            authority: 'canon',
+            reference: 'derived-from:governed-incomplete-roster-resolution',
+          },
+        };
+
+  // The old editable line is retained only for legacy compatibility. A team
+  // opting into governed C03 evidence may not carry that authoring surface.
+  if (
+    totals.incompleteRosterResolution.mode === 'governed' &&
+    incompleteRosterCharge
+  ) {
+    return {
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.incompleteRosterCharge'],
+      reason:
+        'The legacy editable incomplete-roster input is unavailable in governed mode and must not be used.',
+    };
+  }
 
   return {
     status: 'ready',
@@ -278,9 +300,15 @@ function apronSalaryInput(
   rawInput: SalaryLedgerInput<SalaryLedgerKind> | undefined,
   teamInput: SalaryLedgerInput<'team-salary'>,
   asOfDate: string | null,
-  teamId: string | null
+  teamId: string | null,
+  incompleteRosterResolution: IncompleteRosterResolution | undefined
 ): SalaryLedgerInput<'apron-team-salary'> {
-  if (teamInput.status !== 'ready' || !asOfDate || !teamId) {
+  if (
+    teamInput.status !== 'ready' ||
+    !asOfDate ||
+    !teamId ||
+    !incompleteRosterResolution
+  ) {
     return {
       status: 'needs-input',
       missingInputs:
@@ -309,6 +337,22 @@ function apronSalaryInput(
     'salaryBookInputs.apronAdjustments'
   );
   if (covered.status !== 'ready') return covered;
+  const isExclusiveGovernedRosterLine = (
+    lineItem: SalaryLedgerLineItem<'apron-team-salary'>
+  ) =>
+    lineItem.canonLeafIds.length === 1 &&
+    lineItem.canonLeafIds[0] === 'CBA2-C07.11';
+  const governedRosterLines = covered.lineItems.filter(
+    isExclusiveGovernedRosterLine
+  );
+  if (governedRosterLines.length !== 1) {
+    return {
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.apronAdjustments.CBA2-C07.11'],
+      reason:
+        'Apron Team Salary requires exactly one governed incomplete-roster adjustment.',
+    };
+  }
 
   const teamSalary = teamInput.lineItems.reduce(
     (sum, lineItem) => sum + lineItem.amount,
@@ -329,7 +373,21 @@ function apronSalaryInput(
           reference: 'derived-from:team-salary',
         },
       },
-      ...covered.lineItems,
+      ...covered.lineItems.map((lineItem) =>
+        incompleteRosterResolution.mode === 'governed' &&
+        isExclusiveGovernedRosterLine(lineItem)
+          ? {
+              ...lineItem,
+              amount: -(incompleteRosterResolution.amount ?? 0),
+              effectiveFrom: asOfDate,
+              source: {
+                authority: 'canon' as const,
+                reference:
+                  'derived-from:governed-incomplete-roster-resolution',
+              },
+            }
+          : lineItem
+      ),
     ],
   };
 }
@@ -351,8 +409,32 @@ export function computeTeamSalaryBooks(
   const teamCode = nonEmptyString(team?.teamCode);
   const asOfDate = normalizeSalaryBookAsOfDate(asOfDateValue);
   const inputs = team ? parseInputs(team, salaryCapYear) : null;
+  const incompleteRosterResolution =
+    totals.incompleteRosterResolution ??
+    (totals.incompleteChargesTotal === null
+      ? undefined
+      : ({
+          mode: 'legacy-compatibility',
+          status: 'complete',
+          activeWindow: null,
+          window: null,
+          counts: {
+            underContract: 0,
+            veteranFreeAgentAmounts: 0,
+            offerSheets: 0,
+            unsignedFirstRoundPicks: 0,
+            total: 0,
+          },
+          threshold: 0,
+          missingSlots: 0,
+          chargePerSlot: 0,
+          amount: totals.incompleteChargesTotal,
+          canonLeafIds: ['CBA2-A01.1'],
+          missingInputs: [],
+          reason: 'Legacy compatibility result.',
+        } satisfies IncompleteRosterResolution));
   const teamInput = teamSalaryInput(
-    totals,
+    { ...totals, incompleteRosterResolution },
     asOfDate,
     teamId,
     inputs?.incompleteRosterCharge as
@@ -363,7 +445,8 @@ export function computeTeamSalaryBooks(
     inputs?.apronAdjustments,
     teamInput,
     asOfDate,
-    teamId
+    teamId,
+    incompleteRosterResolution
   );
   const taxInput = inputs
     ? validateTaxBaseline(
@@ -430,10 +513,40 @@ export function computeTeamSalaryBooks(
       },
     },
   });
+  const isProvablyBeforeRosterChargeWindow =
+    incompleteRosterResolution?.mode === 'governed' &&
+    incompleteRosterResolution.status === 'complete' &&
+    incompleteRosterResolution.activeWindow === false &&
+    incompleteRosterResolution.window.closes === null;
+  // A future C03.2 window that has not opened does not consume that season's
+  // calendar. Explicit Team, Apron, and Tax inputs may still be evaluated on
+  // their own dated authority; missing ledger inputs continue to fail closed.
+  const preWindowEvaluation = isProvablyBeforeRosterChargeWindow
+    ? evaluateDatedSalaryLedgers({
+        context: {
+          asOfDate: asOfDate ?? undefined,
+          salaryCapYear,
+          team: teamId
+            ? {
+                teamId,
+                ...(teamCode ? { teamCode } : {}),
+              }
+            : undefined,
+        },
+        ledgers: {
+          teamSalary: teamInput,
+          apronTeamSalary: apronInput,
+          taxSalary: taxInput,
+        },
+      })
+    : null;
   const ledgers = {
     teamSalary: teamEvaluation.ledgers.teamSalary,
-    apronTeamSalary: evaluation.ledgers.apronTeamSalary,
-    taxSalary: evaluation.ledgers.taxSalary,
+    apronTeamSalary:
+      preWindowEvaluation?.ledgers.apronTeamSalary ??
+      evaluation.ledgers.apronTeamSalary,
+    taxSalary:
+      preWindowEvaluation?.ledgers.taxSalary ?? evaluation.ledgers.taxSalary,
   };
   const statuses = Object.values(ledgers).map((ledger) => ledger.status);
   const status = statuses.every((value) => value === 'complete')

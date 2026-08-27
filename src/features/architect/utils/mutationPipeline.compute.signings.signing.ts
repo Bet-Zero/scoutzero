@@ -93,6 +93,7 @@ function standardRosterCount(players: ArchitectMutationPlayerRecord[]): number {
   return players.filter((player) => !isTwoWayContract(player)).length;
 }
 
+/** Legacy-only updater. Governed C03 teams derive the charge from post-state. */
 export function updateIncompleteRosterChargeAfterSigning({
   beforeTeam,
   afterTeam,
@@ -107,6 +108,7 @@ export function updateIncompleteRosterChargeAfterSigning({
   requireAuthenticatedBasis?: boolean;
 }): string | null {
   const salaryBookInputs = afterTeam.salaryBookInputs;
+  if (salaryBookInputs?.unsignedFirstRoundPickState) return null;
   const input = salaryBookInputs?.incompleteRosterCharge;
   const beforeInput = beforeTeam.salaryBookInputs?.incompleteRosterCharge;
   const capRules = getCapRulesForYear(salaryCapYear);

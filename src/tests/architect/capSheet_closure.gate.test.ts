@@ -35,6 +35,11 @@ const CAP_SUMMARY_TILES_PATH = path.resolve(
   '../../features/architect/capSheet/CapSheet/CapSummaryTiles.tsx'
 );
 
+const INCOMPLETE_ROSTER_CHARGE_SUMMARY_PATH = path.resolve(
+  __dirname,
+  '../../features/architect/capSheet/CapSheet/IncompleteRosterChargeSummary.tsx'
+);
+
 // Phase 2A cockpit migration: the canonical-totals summary surface moved
 // from CapSummaryTiles (rendered inside the Cap Sheet room) to
 // TeamStatusStrip (rendered persistently in the cockpit shell, every room).
@@ -202,6 +207,9 @@ describe('Gate 1: Cap % Denominator SSOT (E1/E2)', () => {
 describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
   const capSheetContent = readFileContent(CAP_SHEET_PATH);
   const capSummaryTilesContent = readFileContent(CAP_SUMMARY_TILES_PATH);
+  const incompleteRosterChargeSummaryContent = readFileContent(
+    INCOMPLETE_ROSTER_CHARGE_SUMMARY_PATH
+  );
 
   it('CapSheet computes canonicalTotals exactly once from the independent-book snapshot owner', () => {
     const runtimeComputeCalls =
@@ -237,7 +245,6 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
       'playersTotal',
       'deadMoneyTotal',
       'capHoldsTotal',
-      'incompleteChargesTotal',
       'teamSalary',
     ];
 
@@ -246,6 +253,14 @@ describe('Gate 2: CapSummaryTiles Canonical Totals Consumer (CS-1B)', () => {
         new RegExp(`canonicalTotals\\.${field}`)
       );
     }
+
+    expect(capSheetContent).toMatch(/<IncompleteRosterChargeSummary\b/);
+    expect(incompleteRosterChargeSummaryContent).toMatch(
+      /canonicalTotals\.incompleteChargesTotal/
+    );
+    expect(incompleteRosterChargeSummaryContent).toMatch(
+      /canonicalTotals\.incompleteRosterResolution/
+    );
   });
 
   it('CapSummaryTiles accepts canonicalTotals and does NOT call computeTeamCapTotals locally', () => {
