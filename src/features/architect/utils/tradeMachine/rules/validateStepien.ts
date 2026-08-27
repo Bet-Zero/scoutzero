@@ -319,18 +319,19 @@ export function validateStepien(
   );
 
   if (firstRoundPicks.length > 0 || firstRoundEntitlements.length > 0) {
+    const fallbackYear = toNumericYear(currentYear, 2025);
     const firstRoundYears = [
       ...firstRoundPicks.map((pick) => pick.year),
       ...firstRoundEntitlements.map(
         (entitlement) => entitlement.seasonYear || entitlement.year
       ),
     ]
-      .map((year) => Number(year))
+      .map((year) => toNumericYear(year, fallbackYear))
       .filter(Number.isFinite);
     const farthestYear =
       firstRoundYears.length > 0
         ? Math.max(...firstRoundYears)
-        : toNumericYear(currentYear, 2025);
+        : fallbackYear;
 
     return {
       passed: false,

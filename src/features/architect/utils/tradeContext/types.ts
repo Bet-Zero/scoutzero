@@ -116,9 +116,14 @@ export interface PayloadEntitlementIngress {
   entitlementId?: TradeContextScalarId;
   id?: TradeContextScalarId;
   type?: string | null;
+  kind?: string | null;
   name?: string | null;
+  seasonYear?: number | string | null;
   year?: number | string | null;
   round?: number | string | null;
+  terms?: {
+    round?: number | string | null;
+  } | null;
   toTeamId?: TradeContextScalarId;
 }
 

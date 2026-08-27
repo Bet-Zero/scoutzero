@@ -560,9 +560,14 @@ export type TradePayloadEntitlementLike = {
   entitlementId?: MutationScalarId;
   id?: MutationScalarId;
   type?: string | null;
+  kind?: string | null;
   name?: string | null;
+  seasonYear?: number | string | null;
   year?: number | string | null;
-  round?: number | null;
+  round?: number | string | null;
+  terms?: {
+    round?: number | string | null;
+  } | null;
   toTeamId?: MutationScalarId;
 };
 

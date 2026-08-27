@@ -145,6 +145,19 @@ describe('first-round draft authority fail-closed gate', () => {
     expectNeedsInput(result);
   });
 
+  it.each([null, ''])(
+    'uses the current season for a first-round asset with missing year metadata (%s)',
+    (year) => {
+      const result = validateStepien(
+        makeTeam({ outgoingPicks: [{ year, round: 'first round' }] }),
+        { yearKey: 2026 }
+      );
+
+      expectNeedsInput(result);
+      expect(result.farthestYear).toBe(2026);
+    }
+  );
+
   it.each([
     {
       label: 'direct second-round pick',

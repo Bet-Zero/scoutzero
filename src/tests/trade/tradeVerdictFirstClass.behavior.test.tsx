@@ -43,6 +43,7 @@ vi.mock('@/features/architect/admin/PickRightWizardModal', () => ({
 }));
 
 import { TradeEditor } from '@/features/architect/tradeMachine/TradeEditor';
+import { TradeSummaryPanel } from '@/features/architect/tradeMachine/TradeSummaryPanel';
 import { buildVerdictItems } from '@/features/architect/tradeMachine/verdictSummary';
 
 function buildHookReturn(overrides: Record<string, unknown> = {}) {
@@ -392,5 +393,43 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
     render(<TradeEditor {...baseProps} />);
 
     expect(screen.getByTestId('trade-summary-button')).toBeDisabled();
+  });
+});
+
+describe('TradeSummaryPanel — unevaluated authority presentation', () => {
+  it('labels a team Needs input without presenting an affirmative rejection verdict', () => {
+    render(
+      <TradeSummaryPanel
+        previewAuthority={{
+          legal: false,
+          violations: [
+            'Needs input — Stepien and complete draft-history records are unavailable for this first-round asset.',
+          ],
+        }}
+        snapshotValidationDetails={{
+          summaryByTeamIndex: [
+            { teamId: 'LAL', teamName: 'Los Angeles Lakers' },
+          ],
+          teamResults: [
+            {
+              teamId: 'LAL',
+              teamName: 'Los Angeles Lakers',
+              legal: false,
+              rules: {
+                stepienRule: {
+                  passed: false,
+                  status: 'NEEDS_INPUT',
+                  evaluated: false,
+                },
+              },
+            },
+          ],
+        }}
+      />
+    );
+
+    expect(screen.getByText('Why it needs input')).toBeInTheDocument();
+    expect(screen.getByText('⚪ Needs input')).toBeInTheDocument();
+    expect(screen.queryByText('❌ Rejected')).not.toBeInTheDocument();
   });
 });
