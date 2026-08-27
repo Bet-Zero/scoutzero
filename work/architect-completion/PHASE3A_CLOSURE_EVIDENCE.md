@@ -72,12 +72,12 @@ Configured exact-source probe:
 
 ```text
 npm run review:probe -- \
-  --candidate f3760d6a7ba646bd64f0e5596b57f63c4df534fe \
+  --candidate c560bd54bbe3b8020b73bd7283652a3e7e15e876 \
   --fixture scripts/review/probes/stepienAuthorityClosureProbe.ts
 ```
 
-The candidate has the same product tree as the required base; its only branch
-change before the probe was the V1 contract update.
+This exact pushed candidate contains the contract decision, the discriminator,
+and this evidence matrix. Its product tree is unchanged from the required base.
 
 Observed unsupported result:
 
