@@ -137,6 +137,36 @@ describe('BZE-293 governed incomplete-roster charge', () => {
     expect(result.amount).toBe(activeWindow ? MINIMUM : 0);
   });
 
+  it('resolves date-only July 1 identically to Eastern-midnight July 1', () => {
+    const dateOnly = resolve(team(11), { asOfDate: '2026-07-01' });
+    const easternMidnight = resolve(team(11), {
+      asOfDate: '2026-07-01T00:00:00-04:00',
+    });
+
+    expect(dateOnly).toEqual(easternMidnight);
+    expect(dateOnly).toMatchObject({
+      status: 'complete',
+      activeWindow: true,
+      amount: MINIMUM,
+    });
+  });
+
+  it.each([
+    ['2026-06-30', false, 0],
+    ['2026-10-20', false, 0],
+    ['2026-06-30T20:00:00-11:00', true, MINIMUM],
+  ] as const)(
+    'compares %s as a governing Eastern calendar day',
+    (asOfDate, activeWindow, amount) => {
+      const result = resolve(team(11), { asOfDate });
+      expect(result).toMatchObject({
+        status: 'complete',
+        activeWindow,
+        amount,
+      });
+    }
+  );
+
   it('counts an authenticated unsigned first-round pick only when its Team Salary hold reconciles', () => {
     const roster = team(10);
     roster.capHolds = [

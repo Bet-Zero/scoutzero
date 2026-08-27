@@ -31,6 +31,28 @@ const SALARY_CAP_YEAR_BOUNDARY_OFFSET = '-04:00';
 /** Governing time zone the Canon attaches to CBA and league calendar dates. */
 export const GOVERNING_TIME_ZONE = 'America/New_York';
 
+type GoverningDateTimeParts = {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+};
+
+const GOVERNING_PARTS_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: GOVERNING_TIME_ZONE,
+  calendar: 'gregory',
+  numberingSystem: 'latn',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+});
+
 export function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -83,6 +105,97 @@ export function isDateOnly(value: unknown): value is string {
 /** Epoch milliseconds for a zoned instant, or `null` when it is not one. */
 export function parseZonedDateTime(value: unknown): number | null {
   return isZonedDateTime(value) ? Date.parse(value) : null;
+}
+
+function governingParts(
+  epochMilliseconds: number
+): GoverningDateTimeParts | null {
+  if (!Number.isFinite(epochMilliseconds)) return null;
+  const values = Object.fromEntries(
+    GOVERNING_PARTS_FORMATTER.formatToParts(epochMilliseconds).map((part) => [
+      part.type,
+      part.value,
+    ])
+  );
+  const parts = {
+    year: Number(values.year),
+    month: Number(values.month),
+    day: Number(values.day),
+    hour: Number(values.hour),
+    minute: Number(values.minute),
+    second: Number(values.second),
+  };
+  return Object.values(parts).every(Number.isFinite) ? parts : null;
+}
+
+/**
+ * Governing Eastern calendar day for a saved-world date or offset-bearing
+ * instant. A date-only value already names that day; an instant is converted
+ * before its calendar fields are compared.
+ */
+export function governingCalendarDate(value: unknown): string | null {
+  if (isDateOnly(value)) return value;
+  const epochMilliseconds = parseZonedDateTime(value);
+  if (epochMilliseconds === null) return null;
+  const parts = governingParts(epochMilliseconds);
+  if (!parts) return null;
+  return `${String(parts.year).padStart(4, '0')}-${String(parts.month).padStart(
+    2,
+    '0'
+  )}-${String(parts.day).padStart(2, '0')}`;
+}
+
+function governingOffsetMinutes(epochMilliseconds: number): number | null {
+  const parts = governingParts(epochMilliseconds);
+  if (!parts) return null;
+  const localFieldsAsUtc = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second
+  );
+  return Math.round((localFieldsAsUtc - epochMilliseconds) / 60_000);
+}
+
+/**
+ * Resolve a saved-world calendar date to midnight in the governing Eastern
+ * zone. Offset-bearing instants keep their exact instant. This is deliberately
+ * contextual: generic Canon date-only values remain date-only elsewhere.
+ */
+export function governingDayStartInstant(value: unknown): string | null {
+  if (isZonedDateTime(value)) return value;
+  if (!isDateOnly(value)) return null;
+
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const day = Number(value.slice(8, 10));
+  const intendedFieldsAsUtc = Date.UTC(year, month - 1, day);
+  const firstOffset = governingOffsetMinutes(intendedFieldsAsUtc);
+  if (firstOffset === null) return null;
+  let epochMilliseconds = intendedFieldsAsUtc - firstOffset * 60_000;
+  const resolvedOffset = governingOffsetMinutes(epochMilliseconds);
+  if (resolvedOffset === null) return null;
+  epochMilliseconds = intendedFieldsAsUtc - resolvedOffset * 60_000;
+  const parts = governingParts(epochMilliseconds);
+  if (
+    !parts ||
+    parts.year !== year ||
+    parts.month !== month ||
+    parts.day !== day ||
+    parts.hour !== 0 ||
+    parts.minute !== 0 ||
+    parts.second !== 0
+  ) {
+    return null;
+  }
+
+  const sign = resolvedOffset >= 0 ? '+' : '-';
+  const absoluteOffset = Math.abs(resolvedOffset);
+  const offsetHours = String(Math.floor(absoluteOffset / 60)).padStart(2, '0');
+  const offsetMinutes = String(absoluteOffset % 60).padStart(2, '0');
+  return `${value}T00:00:00${sign}${offsetHours}:${offsetMinutes}`;
 }
 
 export interface SalaryCapYearWindow {

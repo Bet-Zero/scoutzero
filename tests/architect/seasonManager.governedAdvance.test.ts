@@ -11,6 +11,8 @@ import {
 import { withDerivedGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 import { advanceSeasonInWorld } from '@/features/architect/utils/seasonManager';
 import { resolveSeasonAdvanceAuthority } from '@/features/architect/utils/seasonManager.authority';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import { validateNonTradeMutationStage } from '@/features/architect/utils/nonTradeMutationValidationStage';
 import { CANON_GOVERNED_SEASON_REGISTRY } from '@/features/architect/utils/governedSeason';
 import {
   createContractEventLedger,
@@ -381,9 +383,13 @@ describe('governed 30-team Season Advance persistence', () => {
 
     expect(result.success).toBe(true);
     if (!result.success) throw new Error(result.error);
+    const metadata = getMockData(
+      `architect_worlds/${WORLD_ID}`
+    ) as Record<string, unknown>;
+    expect(metadata.asOfDate).toBe('2026-07-01');
     const persistedMia = getMockData(
       `architect_worlds/${WORLD_ID}/teams/MIA`
-    ) as { totals?: Record<string, unknown> };
+    ) as Record<string, unknown> & { totals?: Record<string, unknown> };
     expect(persistedMia.totals?.incompleteRosterResolution).toMatchObject({
       mode: 'governed',
       status: 'complete',
@@ -395,6 +401,41 @@ describe('governed 30-team Season Advance persistence', () => {
     expect(persistedMia.totals?.salaryBooks).toMatchObject({
       status: 'complete',
     });
+
+    const recomputedTotals = createCanonicalTeamTotalsSnapshot(
+      persistedMia,
+      2027,
+      { asOfDate: String(metadata.asOfDate) }
+    );
+    expect(recomputedTotals.incompleteRosterResolution).toEqual(
+      persistedMia.totals?.incompleteRosterResolution
+    );
+    expect(JSON.parse(JSON.stringify(recomputedTotals.salaryBooks))).toEqual(
+      persistedMia.totals?.salaryBooks
+    );
+
+    const firstPlayer = (persistedMia.players as Array<Record<string, unknown>>)[0];
+    const gate = validateNonTradeMutationStage({
+      mutationType: 'waivePlayer',
+      payload: { stretch: false },
+      currentState: { team: persistedMia, player: firstPlayer },
+      computeResult: {
+        success: true,
+        teamUpdates: [
+          {
+            teamCode: 'MIA',
+            team: { ...persistedMia, totals: recomputedTotals },
+          },
+        ],
+      },
+      seasonId: '2026-27',
+      asOfDate: String(metadata.asOfDate),
+      dateDefaulted: false,
+      worldId: WORLD_ID,
+    });
+    expect(gate.violations?.join(' ') ?? '').not.toContain(
+      'governed_incomplete_roster_books_required'
+    );
   });
 
   it('rolls one complete explicit option decision backed by immutable event authority', async () => {

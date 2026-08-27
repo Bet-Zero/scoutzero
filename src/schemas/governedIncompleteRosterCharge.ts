@@ -115,7 +115,7 @@ const CanonLeafIdsZ = z
 const WindowZ = z
   .object({
     opens: z.string().date(),
-    closes: z.string().date(),
+    closes: z.string().date().nullable(),
   })
   .strict();
 const CountsZ = z
@@ -145,6 +145,13 @@ const CompleteResolutionZ = z
   })
   .strict()
   .superRefine((resolution, context) => {
+    if (resolution.activeWindow && resolution.window.closes === null) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['window', 'closes'],
+        message: 'must be known while the governed charge window is active',
+      });
+    }
     const counted =
       resolution.counts.underContract +
       resolution.counts.veteranFreeAgentAmounts +

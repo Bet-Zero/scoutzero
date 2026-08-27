@@ -1,7 +1,12 @@
 import { getPlayerCapHitForYear, isTwoWayContract } from '@/features/architect/utils/contractUtils';
 import { getActiveUnsignedCapHoldsByEndYear } from '@/features/architect/utils/capHolds';
 import type { CapHold } from '@/features/architect/utils/capHolds';
-import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
+import {
+  governingCalendarDate,
+  governingDayStartInstant,
+  isSupportedSalaryCapYear,
+  resolveGovernedSeasonEnvelope,
+} from '@/features/architect/utils/governedSeason';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
 import {
@@ -110,8 +115,51 @@ export function resolveGovernedIncompleteRosterCharge(args: {
     );
   }
 
+  const date = governingCalendarDate(asOfDate);
+  const governedInstant = governingDayStartInstant(asOfDate);
+  if (
+    !date ||
+    !governedInstant ||
+    !isSupportedSalaryCapYear(salaryCapYear)
+  ) {
+    return unavailable(
+      'Incomplete-roster charges require a valid saved-world date and Salary Cap Year.',
+      [
+        ...(!date || !governedInstant ? ['context.asOfDate'] : []),
+        ...(!isSupportedSalaryCapYear(salaryCapYear)
+          ? ['context.salaryCapYear']
+          : []),
+      ]
+    );
+  }
+
+  const opens = `${salaryCapYear - 1}-07-01`;
+  if (date < opens) {
+    return {
+      mode: 'governed',
+      status: 'complete',
+      activeWindow: false,
+      window: { opens, closes: null },
+      counts: {
+        underContract: 0,
+        veteranFreeAgentAmounts: 0,
+        offerSheets: 0,
+        unsignedFirstRoundPicks: 0,
+        total: 0,
+      },
+      threshold: 12,
+      missingSlots: 0,
+      chargePerSlot: 0,
+      amount: 0,
+      canonLeafIds: LEAVES,
+      missingInputs: [],
+      reason:
+        'No incomplete-roster charge applies before the governed offseason window opens.',
+    };
+  }
+
   const envelope = resolveGovernedSeasonEnvelope({
-    asOfDate,
+    asOfDate: governedInstant,
     salaryCapYear,
     requiredAuthority: 'official',
     team: {
@@ -129,13 +177,13 @@ export function resolveGovernedIncompleteRosterCharge(args: {
       'The official Regular Season opening is unavailable for this saved-world date.',
       envelope.missingInputs.length
         ? [...envelope.missingInputs]
-        : ['governedSeason.calendar.regularSeasonOpening']
+        : ['governedSeason.calendar.regularSeasonOpening'],
+      null,
+      { opens, closes: null }
     );
   }
 
-  const opens = `${salaryCapYear - 1}-07-01`;
   const closes = envelope.calendar.regularSeasonOpening.value;
-  const date = asOfDate.slice(0, 10);
   const activeWindow = date >= opens && date < closes;
   const window = { opens, closes };
   if (!activeWindow) {

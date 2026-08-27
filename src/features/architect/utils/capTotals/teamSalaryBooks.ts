@@ -1,3 +1,4 @@
+import { governingDayStartInstant } from '@/features/architect/utils/governedSeason';
 import {
   SalaryBooksSnapshotZ,
   TeamSalaryBookInputsZ,
@@ -58,32 +59,10 @@ function nonEmptyString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-function isValidCalendarDate(value: string): boolean {
-  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return false;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const candidate = new Date(Date.UTC(year, month - 1, day));
-  return (
-    candidate.getUTCFullYear() === year &&
-    candidate.getUTCMonth() === month - 1 &&
-    candidate.getUTCDate() === day
-  );
-}
-
 export function normalizeSalaryBookAsOfDate(
   value: string | null | undefined
 ): string | null {
-  if (!value) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return isValidCalendarDate(value) ? `${value}T00:00:00Z` : null;
-  }
-  return isValidCalendarDate(value.slice(0, 10)) &&
-    /(Z|[+-]\d{2}:\d{2})$/.test(value) &&
-    Number.isFinite(Date.parse(value))
-    ? value
-    : null;
+  return governingDayStartInstant(value);
 }
 
 function requiredLeafCoverage<K extends SalaryLedgerKind>(
@@ -534,10 +513,40 @@ export function computeTeamSalaryBooks(
       },
     },
   });
+  const isProvablyBeforeRosterChargeWindow =
+    incompleteRosterResolution?.mode === 'governed' &&
+    incompleteRosterResolution.status === 'complete' &&
+    incompleteRosterResolution.activeWindow === false &&
+    incompleteRosterResolution.window.closes === null;
+  // A future C03.2 window that has not opened does not consume that season's
+  // calendar. Explicit Team, Apron, and Tax inputs may still be evaluated on
+  // their own dated authority; missing ledger inputs continue to fail closed.
+  const preWindowEvaluation = isProvablyBeforeRosterChargeWindow
+    ? evaluateDatedSalaryLedgers({
+        context: {
+          asOfDate: asOfDate ?? undefined,
+          salaryCapYear,
+          team: teamId
+            ? {
+                teamId,
+                ...(teamCode ? { teamCode } : {}),
+              }
+            : undefined,
+        },
+        ledgers: {
+          teamSalary: teamInput,
+          apronTeamSalary: apronInput,
+          taxSalary: taxInput,
+        },
+      })
+    : null;
   const ledgers = {
     teamSalary: teamEvaluation.ledgers.teamSalary,
-    apronTeamSalary: evaluation.ledgers.apronTeamSalary,
-    taxSalary: evaluation.ledgers.taxSalary,
+    apronTeamSalary:
+      preWindowEvaluation?.ledgers.apronTeamSalary ??
+      evaluation.ledgers.apronTeamSalary,
+    taxSalary:
+      preWindowEvaluation?.ledgers.taxSalary ?? evaluation.ledgers.taxSalary,
   };
   const statuses = Object.values(ledgers).map((ledger) => ledger.status);
   const status = statuses.every((value) => value === 'complete')
