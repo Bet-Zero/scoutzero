@@ -126,6 +126,25 @@ describe('first-round draft authority fail-closed gate', () => {
     expectNeedsInput(validateStepien(team, { yearKey: 2026 }));
   });
 
+  it('inspects every outgoing alias and normalized first-round shape', () => {
+    const result = validateStepien(
+      makeTeam({
+        outgoingPicks: [{ year: 2030, round: '2nd' }],
+        picksOut: [{ year: 2034, round: 'Round 1' }],
+        entitlementsOut: [
+          {
+            id: 'terms-only-first-round',
+            kind: 'pick_ownership',
+            seasonYear: 2035,
+            terms: { round: 1 },
+          },
+        ],
+      })
+    );
+
+    expectNeedsInput(result);
+  });
+
   it.each([
     {
       label: 'direct second-round pick',

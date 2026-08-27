@@ -139,9 +139,16 @@ function isFirstRound(round: StepienRoundLike): boolean {
   if (round === 1) return true;
   if (typeof round !== 'string') return false;
 
-  return ['1', '1st', 'first', 'first round', 'first_round'].includes(
-    round.trim().toLowerCase()
-  );
+  const normalized = round.trim().toLowerCase().replace(/[_-]+/g, ' ');
+  return [
+    '1',
+    '1st',
+    'r1',
+    'round 1',
+    '1st round',
+    'first',
+    'first round',
+  ].includes(normalized);
 }
 
 function toNumericYear(
@@ -298,9 +305,17 @@ export function validateStepien(
   // mistake an incomplete branch for affirmative legality. This applies to
   // every first-round year and identity; second-round assets remain outside
   // this gate.
-  const firstRoundPicks = picks.filter((pick) => isFirstRound(pick.round));
+  const firstRoundPicks = [...outgoingPicks, ...picksOut].filter((pick) =>
+    isFirstRound(pick.round)
+  );
   const firstRoundEntitlements = (team.entitlementsOut || []).filter(
-    (entitlement) => isFirstRound(entitlement.round)
+    (entitlement) => {
+      const embeddedTerms =
+        entitlement.terms && typeof entitlement.terms === 'object'
+          ? (entitlement.terms as { round?: StepienRoundLike })
+          : null;
+      return isFirstRound(entitlement.round ?? embeddedTerms?.round);
+    }
   );
 
   if (firstRoundPicks.length > 0 || firstRoundEntitlements.length > 0) {

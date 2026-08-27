@@ -28,6 +28,8 @@ const PROOF_WORLD_ID = 'world_trade_receipt_proof';
 const PROOF_AS_OF_DATE = '2026-07-07';
 const EMPTY_RELEASE_DIGEST = `sha256:${'3'.repeat(64)}`;
 const ZERO_YOS_MINIMUM = 1_357_763;
+const FIRST_ROUND_PROOF_ENTITLEMENT_ID =
+  'proof-entitlement-MIA-2027-first-round';
 const PROOF_ROSTERS = {
   MIA: [
     'mia_marcus_vance',
@@ -285,6 +287,10 @@ const seedProofWorld = async (uid: string) => {
       teamId: teamCode,
       teamCode,
       roster: [...PROOF_ROSTERS[teamCode]],
+      entitlementIds:
+        teamCode === 'MIA'
+          ? [FIRST_ROUND_PROOF_ENTITLEMENT_ID]
+          : [],
       capHolds: [],
       offerSheets: [],
       salaryBookInputs: salaryBookInputs(teamCode),
@@ -301,6 +307,24 @@ const seedProofWorld = async (uid: string) => {
       },
     });
   }
+  batch.set(
+    db.doc(
+      `architect_worlds/${PROOF_WORLD_ID}/entitlements/${FIRST_ROUND_PROOF_ENTITLEMENT_ID}`
+    ),
+    {
+      id: FIRST_ROUND_PROOF_ENTITLEMENT_ID,
+      entitlementId: FIRST_ROUND_PROOF_ENTITLEMENT_ID,
+      holderTeam: 'MIA',
+      originalTeam: 'MIA',
+      seasonYear: 2027,
+      year: 2027,
+      round: 1,
+      kind: 'pick_ownership',
+      description: 'MIA own 2027 first-round pick',
+      underlyingPickId: 'MIA_2027_1',
+      underlyingStatus: 'clean',
+    }
+  );
   await batch.commit();
 };
 
@@ -470,6 +494,47 @@ const cancelPlayerTrade = async (
   await expect(outgoingChip).toHaveCount(0);
 };
 
+const routeEntitlement = async (
+  card: Locator,
+  page: Page,
+  year: number,
+  round: number,
+  destinationTeam: string
+) => {
+  await card
+    .getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i })
+    .click();
+  const entitlementLabel = card.getByText(`${year} - Round ${round}`, {
+    exact: true,
+  });
+  await expect(entitlementLabel).toBeVisible();
+  const entitlementRow = entitlementLabel.locator(
+    'xpath=ancestor::div[.//button[normalize-space()="•••"]][1]'
+  );
+  await entitlementRow.getByRole('button', { name: '•••' }).click();
+  await page
+    .getByRole('button', {
+      name: new RegExp(`^Trade to ${escapeRegExp(destinationTeam)}$`, 'i'),
+    })
+    .click();
+};
+
+const cancelEntitlementTrade = async (
+  card: Locator,
+  page: Page,
+  year: number,
+  round: number
+) => {
+  const entitlementLabel = card.getByText(`${year} - Round ${round}`, {
+    exact: true,
+  });
+  const entitlementRow = entitlementLabel.locator(
+    'xpath=ancestor::div[.//button[normalize-space()="•••"]][1]'
+  );
+  await entitlementRow.getByRole('button', { name: '•••' }).click();
+  await page.getByRole('button', { name: /^Cancel Trade$/i }).click();
+};
+
 const assertPersistedIncompleteRosterBooks = (
   teamDocument: Record<string, unknown> | undefined,
   expected: { teamCode: 'MIA' | 'DEN'; count: number; missingSlots: number }
@@ -599,6 +664,61 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
 
   const miamiCard = teamCard(dialog, 'MIA');
   const denverCard = teamCard(dialog, 'DEN');
+  const proofTeamRefs = ['MIA', 'DEN'].map((teamCode) =>
+    getReviewAdminDb().doc(
+      `architect_worlds/${PROOF_WORLD_ID}/teams/${teamCode}`
+    )
+  );
+
+  await electSalaryPath(miamiCard, 'STANDARD_TPE');
+  await electSalaryPath(denverCard, 'STANDARD_TPE');
+  await fillPostAssignmentApronSalary(miamiCard);
+  await fillPostAssignmentApronSalary(denverCard);
+
+  const draftAuthorityBefore = {
+    teams: await Promise.all(
+      proofTeamRefs.map((ref) =>
+        ref.get().then((snapshot) => snapshot.data())
+      )
+    ),
+    events: await getWorldEventDocuments(PROOF_WORLD_ID),
+  };
+  await routeEntitlement(miamiCard, page, 2027, 1, 'Denver Nuggets');
+  await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+  const readiness = dialog.getByTestId('trade-readiness-summary');
+  await expect(readiness).toContainText('Needs input', { timeout: 20_000 });
+  await expect(readiness).toContainText(
+    'Stepien and complete draft-history records are unavailable'
+  );
+  await expect(
+    dialog.getByRole('button', { name: /^Apply Trade$/i })
+  ).toBeDisabled();
+  await expect(dialog).not.toContainText('Stepien Rule compliant');
+  const stepienNeedsInputScreenshotPath = path.join(
+    ARTIFACT_DIR,
+    'stepien-needs-input-1280x720.png'
+  );
+  await readiness.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: stepienNeedsInputScreenshotPath,
+    fullPage: false,
+  });
+  expect(
+    await Promise.all(
+      proofTeamRefs.map((ref) =>
+        ref.get().then((snapshot) => snapshot.data())
+      )
+    )
+  ).toEqual(draftAuthorityBefore.teams);
+  expect(await getWorldEventDocuments(PROOF_WORLD_ID)).toEqual(
+    draftAuthorityBefore.events
+  );
+
+  await cancelEntitlementTrade(miamiCard, page, 2027, 1);
+  await miamiCard
+    .getByRole('button', { name: /^(Players|Plr)( \(\d+\))?$/i })
+    .click();
+
   await electSalaryPath(miamiCard, 'AGGREGATED_STANDARD_TPE');
   await electSalaryPath(denverCard, 'AGGREGATED_STANDARD_TPE');
 
@@ -640,11 +760,6 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   expect(governedPostSalaries.MIA).toBeLessThanOrEqual(221_686_000);
   expect(governedPostSalaries.DEN).toBeLessThanOrEqual(221_686_000);
 
-  const proofTeamRefs = ['MIA', 'DEN'].map((teamCode) =>
-    getReviewAdminDb().doc(
-      `architect_worlds/${PROOF_WORLD_ID}/teams/${teamCode}`
-    )
-  );
   const beforeValidationTeams = await Promise.all(
     proofTeamRefs.map((ref) => ref.get().then((snapshot) => snapshot.data()))
   );
@@ -772,7 +887,6 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   };
 
   await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
-  const readiness = dialog.getByTestId('trade-readiness-summary');
   await expect(readiness).toContainText('Ready with warnings', {
     timeout: 20_000,
   });
@@ -1040,6 +1154,25 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       fixtureWorldCount: 1,
       durableWorldCountChangeAfterValidation: 0,
       durableTeamDocumentChangeAfterValidation: 0,
+      draftAuthorityBoundary: {
+        firstRoundEntitlementId: FIRST_ROUND_PROOF_ENTITLEMENT_ID,
+        expectedAuthority: {
+          missingCanonLeaf: 'CBA2-A12.3',
+          requiredCanonLeaves: [
+            'CBA2-L09.2',
+            'CBA2-L09.3',
+            'CBA2-L09.6',
+            'CBA2-A12.4',
+          ],
+          governedHistory:
+            'ownership/protection/conveyance/freeze/unfreeze/penalty',
+        },
+        verdict: 'Needs input',
+        evaluated: false,
+        applyBlocked: true,
+        savedWorldTeamChanges: 0,
+        savedWorldEventChanges: 0,
+      },
       savedWorldApply: {
         readiness: 'Ready with warnings',
         warning:
@@ -1077,6 +1210,10 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   });
   await testInfo.attach('trade-receipt-1280x720', {
     path: screenshotPath,
+    contentType: 'image/png',
+  });
+  await testInfo.attach('stepien-needs-input-1280x720', {
+    path: stepienNeedsInputScreenshotPath,
     contentType: 'image/png',
   });
   await testInfo.attach('trade-cash-legal-1280x720', {
