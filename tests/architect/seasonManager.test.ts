@@ -1084,7 +1084,9 @@ describe('Season Manager', () => {
       const result = expectSeasonAdvanceFailure(
         await advanceSeasonInWorld(worldId)
       );
-      expect(result.error).toContain('CBA2-A12.3/CBA2-L09.2');
+      expect(result.error).toContain(
+        'complete governed ownership, protection, conveyance, freeze, unfreeze, penalty, and transition history is unavailable'
+      );
       expect(requireWorldMetadata(worldId).currentSeason).toBe('2025-26');
     });
 

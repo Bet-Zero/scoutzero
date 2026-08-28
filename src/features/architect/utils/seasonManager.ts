@@ -217,7 +217,7 @@ export async function advanceSeasonInWorld(
     const positionsMap = await getDraftPositionsMap(worldId, draftYear);
     if (positionsMap && Object.keys(positionsMap).length > 0) {
       throw new Error(
-        `Required entitlement transition for draft year ${draftYear} is unavailable under CBA2-A12.3/CBA2-L09.2; Season Advance preserved no draft verdict and wrote nothing.`
+        `Required entitlement transition for draft year ${draftYear} cannot be evaluated because complete governed ownership, protection, conveyance, freeze, unfreeze, penalty, and transition history is unavailable; Season Advance preserved no draft verdict and wrote nothing.`
       );
     }
 

@@ -10,7 +10,10 @@ import {
 } from '../__mocks__/firebase';
 import { withDerivedGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 import { advanceSeasonInWorld } from '@/features/architect/utils/seasonManager';
-import { resolveSeasonAdvanceAuthority } from '@/features/architect/utils/seasonManager.authority';
+import {
+  interpretSeasonAdvanceEntitlementBoundary,
+  resolveSeasonAdvanceAuthority,
+} from '@/features/architect/utils/seasonManager.authority';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { validateNonTradeMutationStage } from '@/features/architect/utils/nonTradeMutationValidationStage';
 import { CANON_GOVERNED_SEASON_REGISTRY } from '@/features/architect/utils/governedSeason';
@@ -22,6 +25,7 @@ import {
   makeEvent,
   makeResultingState,
 } from './contractHistory/contractHistoryFixtures';
+import { SeasonTransitionManifestZ } from '@/schemas/seasonTransition';
 
 const TEAM_CODES = [
   'ATL',
@@ -200,8 +204,20 @@ describe('governed Season Advance authority', () => {
     expect(result.authority.entitlementBoundary).toEqual(
       expect.objectContaining({
         mode: 'preserve-or-fail-closed',
-        unavailableCanonLeafId: 'CBA2-A12.3',
+        authenticatedCanonLeafIds: ['CBA2-A12.3'],
+        governingCanonLeafIds: [
+          'CBA2-A12.3',
+          'CBA2-L08.1',
+          'CBA2-L09.2',
+        ],
+        missingGovernedInputs: expect.arrayContaining([
+          'governedDraftHistory.ownership',
+          'governedDraftHistory.requiredTransition',
+        ]),
       })
+    );
+    expect(result.authority.entitlementBoundary).not.toHaveProperty(
+      'unavailableCanonLeafId'
     );
   });
 
@@ -294,6 +310,61 @@ describe('governed 30-team Season Advance persistence', () => {
       })
     );
     expect(manifest.teamRecords).toHaveLength(30);
+    expect(manifest.entitlementBoundary).toEqual(
+      expect.objectContaining({
+        authenticatedCanonLeafIds: ['CBA2-A12.3'],
+        missingGovernedInputs: expect.arrayContaining([
+          'governedDraftHistory.ownership',
+          'governedDraftHistory.requiredTransition',
+        ]),
+      })
+    );
+    expect(manifest.entitlementBoundary).not.toHaveProperty(
+      'unavailableCanonLeafId'
+    );
+    expect(manifest.canonLeafIds).toEqual(
+      expect.arrayContaining(['CBA2-A12.3', 'CBA2-L09.2'])
+    );
+
+    const currentBoundary = manifest.entitlementBoundary;
+    const legacyBoundary = {
+      mode: 'preserve-or-fail-closed',
+      unavailableCanonLeafId: 'CBA2-A12.3',
+      governingCanonLeafIds: ['CBA2-L08.1', 'CBA2-L09.2'],
+      excludedVerdicts: [
+        'draft-ownership',
+        'stepien',
+        'second-apron-freeze',
+        'conveyance',
+        'swap',
+      ],
+    };
+    const legacyManifest = SeasonTransitionManifestZ.parse({
+      ...manifest,
+      authority: {
+        ...(manifest.authority as Record<string, unknown>),
+        authorityVersion: 'governed-season-advance-authority-v1',
+        entitlementBoundary: legacyBoundary,
+      },
+      entitlementBoundary: legacyBoundary,
+    });
+    expect(legacyManifest.entitlementBoundary).toEqual(legacyBoundary);
+    expect(
+      interpretSeasonAdvanceEntitlementBoundary(
+        legacyManifest.entitlementBoundary
+      )
+    ).toEqual(currentBoundary);
+    for (const authenticatedCanonLeafIds of [
+      ['CBA2-A12.3', 'CBA2-L09.2'],
+      ['CBA2-A12.3', 'CBA2-A12.3'],
+    ]) {
+      expect(
+        interpretSeasonAdvanceEntitlementBoundary({
+          ...(currentBoundary as Record<string, unknown>),
+          authenticatedCanonLeafIds,
+        })
+      ).toBeNull();
+    }
     expect(
       persistedWorldPaths().filter((path) => path.includes('/seasonHistory/'))
     ).toHaveLength(30);
@@ -314,6 +385,7 @@ describe('governed 30-team Season Advance persistence', () => {
       })
     );
     expect(miaHistory.contractEvents).toHaveLength(13);
+    expect(miaHistory.authorityDigest).toBe(manifest.authorityDigest);
     const persistedMia = getMockData(
       `architect_worlds/${WORLD_ID}/teams/MIA`
     ) as Record<string, unknown>;

@@ -101,7 +101,14 @@ describe('validateStepien entitlement authority boundary', () => {
       status: 'NEEDS_INPUT',
       evaluated: false,
     });
-    expect(result.missingInputs).toContain('acceptedCanon.CBA2-A12.3');
+    expect(result.missingInputs).not.toContain('acceptedCanon.CBA2-A12.3');
+    expect(result.missingInputs).toEqual(
+      expect.arrayContaining([
+        'governedDraftHistory.ownership',
+        'governedDraftHistory.protection',
+        'governedDraftHistory.conveyance',
+      ])
+    );
   });
 
   it('does not let partial protection metadata create a legality result', () => {

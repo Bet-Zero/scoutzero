@@ -7,6 +7,7 @@ import test from 'node:test';
 import {
   ACCEPTED_CANON_PIN,
   lookupAcceptedCanonLeaf,
+  parseAcceptedCanonLeafDocument,
   readAcceptedCanon,
   verifyCanonFingerprint,
 } from '../../scripts/architect/lookupAcceptedCanon.ts';
@@ -35,6 +36,25 @@ function assertAppearsInOrder(
     assert.ok(next > cursor, `${label} is out of order at: ${marker}`);
     cursor = next;
   }
+}
+
+function activeLeafRow(canon: string, leafId: string): string {
+  const matches = canon
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith(`| ${leafId} |`))
+    .filter((line) => line.split('|').length === 10);
+  assert.equal(matches.length, 1, `expected one active row for ${leafId}`);
+  return matches[0];
+}
+
+function replaceActiveLeafRow(
+  canon: string,
+  leafId: string,
+  replacement: string
+): string {
+  const row = activeLeafRow(canon, leafId);
+  assert.notEqual(row, replacement, 'replacement must change the active row');
+  return canon.replace(row, replacement);
 }
 
 test('accepted Canon lookup returns exact leaves, scenarios, and provenance', () => {
@@ -69,6 +89,88 @@ test('accepted Canon lookup returns exact leaves, scenarios, and provenance', ()
       );
     }
   }
+});
+
+test('accepted Canon lookup resolves every representative composite authority', () => {
+  const cases = [
+    ['CBA2-A12.3', 'BYL, INFERRED', ['EV2-0086', 'EV2-0087']],
+    ['CBA2-A11.1', 'CBA, INFERRED', ['EV2-0082', 'EV2-0083']],
+    ['CBA2-A02.8', 'CBA, NBA, DERIVED', ['EV2-0009', 'EV2-0010']],
+    ['CBA2-A03.7', 'CBA, INFERRED', ['EV2-0025', 'EV2-0026']],
+  ] as const;
+
+  for (const [leafId, authority, expectedEvidence] of cases) {
+    const result = lookupAcceptedCanonLeaf(leafId, repoRoot);
+    assert.equal(result.leaf.authority, authority);
+    for (const evidenceId of expectedEvidence) {
+      assert.ok(result.leaf.evidenceIds.includes(evidenceId));
+      assert.ok(
+        result.provenance.evidenceComponents.some(
+          (component) => component.id === evidenceId
+        )
+      );
+    }
+  }
+});
+
+test('accepted Canon parser rejects an unrecognized composite constituent', () => {
+  const canon = readAcceptedCanon(repoRoot).toString('utf8');
+  const row = activeLeafRow(canon, 'CBA2-A12.3');
+  const malformed = replaceActiveLeafRow(
+    canon,
+    'CBA2-A12.3',
+    row.replace('| BYL, INFERRED |', '| BYL, UNKNOWN |')
+  );
+
+  assert.throws(
+    () => parseAcceptedCanonLeafDocument(malformed, 'CBA2-A12.3'),
+    /malformed or unrecognized authority classes/
+  );
+});
+
+test('accepted Canon parser rejects malformed or empty composite syntax', () => {
+  const canon = readAcceptedCanon(repoRoot).toString('utf8');
+  const row = activeLeafRow(canon, 'CBA2-A12.3');
+  for (const authority of ['BYL,', 'BYL / INFERRED', 'BYL,  INFERRED', '']) {
+    const malformed = replaceActiveLeafRow(
+      canon,
+      'CBA2-A12.3',
+      row.replace('| BYL, INFERRED |', `| ${authority} |`)
+    );
+    assert.throws(
+      () => parseAcceptedCanonLeafDocument(malformed, 'CBA2-A12.3'),
+      /structurally invalid|malformed or unrecognized authority classes/
+    );
+  }
+});
+
+test('accepted Canon parser rejects duplicate or incomplete active leaf rows', () => {
+  const canon = readAcceptedCanon(repoRoot).toString('utf8');
+  const row = activeLeafRow(canon, 'CBA2-A12.3');
+  assert.throws(
+    () => parseAcceptedCanonLeafDocument(`${canon}\n${row}`, 'CBA2-A12.3'),
+    /multiple active LEAF rows/
+  );
+
+  const incompleteRow = row.replace(/ \| [^|]+ \|$/, ' |');
+  assert.throws(
+    () =>
+      parseAcceptedCanonLeafDocument(
+        `${canon}\n${incompleteRow}`,
+        'CBA2-A12.3'
+      ),
+    /multiple active LEAF rows/
+  );
+
+  const incomplete = replaceActiveLeafRow(
+    canon,
+    'CBA2-A12.3',
+    incompleteRow
+  );
+  assert.throws(
+    () => parseAcceptedCanonLeafDocument(incomplete, 'CBA2-A12.3'),
+    /structurally invalid/
+  );
 });
 
 test('accepted Canon documentation and durable ref match the runtime pin', () => {

@@ -65,7 +65,7 @@ describe('tradeValidator edge cases', () => {
     expect(result.reason).toContain('explicit destination');
   });
 
-  it('fails when a team trades consecutive unprotected firsts in a 3-team deal', () => {
+  it('fails closed when governed first-round lifecycle history is unavailable', () => {
     const teamA = {
       ...makeTeam('A', 100_000_000),
       id: 'A',
@@ -105,11 +105,13 @@ describe('tradeValidator edge cases', () => {
     });
 
     expect(result.legal).toBe(false);
-    expect(result.reason).toContain('Stepien');
+    expect(result.reason).toContain('Needs input');
+    expect(result.reason).toContain('governed ownership');
+    expect(result.reason).not.toContain('CBA2-A12.3');
     expect(result.teamResults[0].legal).toBe(false);
     expect(result.teamResults[0].rules.stepienRule.passed).toBe(false);
     expect(issueTexts(result.teamResults[0].violations)[0]).toContain(
-      'Stepien'
+      'governed ownership'
     );
   });
 

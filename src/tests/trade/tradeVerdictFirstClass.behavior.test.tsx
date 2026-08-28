@@ -221,11 +221,11 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
         previewAuthority: {
           legal: false,
           reason:
-            'Needs input — Stepien and complete draft-history records are unavailable for this first-round asset.',
+            'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
           violations: [
             {
               message:
-                'Needs input — Stepien and complete draft-history records are unavailable for this first-round asset.',
+                'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
             },
           ],
           omittedStages: [],
@@ -240,11 +240,11 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
                   status: 'NEEDS_INPUT',
                   evaluated: false,
                   message:
-                    'Needs input — Stepien and complete draft-history records are unavailable for this first-round asset.',
+                    'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
                   violations: [
                     {
                       message:
-                        'Needs input — Stepien and complete draft-history records are unavailable for this first-round asset.',
+                        'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
                     },
                   ],
                 },
@@ -403,7 +403,7 @@ describe('TradeSummaryPanel — unevaluated authority presentation', () => {
         previewAuthority={{
           legal: false,
           violations: [
-            'Needs input — Stepien and complete draft-history records are unavailable for this first-round asset.',
+            'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
           ],
         }}
         snapshotValidationDetails={{
