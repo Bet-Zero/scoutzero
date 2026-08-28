@@ -118,10 +118,14 @@ export function interpretSeasonAdvanceEntitlementBoundary(
   }
 
   const authenticated = value.authenticatedCanonLeafIds;
-  if (
-    value.unavailableCanonLeafId === 'CBA2-A12.3' ||
-    (Array.isArray(authenticated) && authenticated.includes('CBA2-A12.3'))
-  ) {
+  const isLegacyBoundary =
+    value.unavailableCanonLeafId === 'CBA2-A12.3' &&
+    authenticated === undefined;
+  const isCurrentBoundary =
+    Array.isArray(authenticated) &&
+    authenticated.length === 1 &&
+    authenticated[0] === 'CBA2-A12.3';
+  if (isLegacyBoundary || isCurrentBoundary) {
     return CURRENT_ENTITLEMENT_BOUNDARY;
   }
   return null;

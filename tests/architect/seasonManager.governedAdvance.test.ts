@@ -354,6 +354,17 @@ describe('governed 30-team Season Advance persistence', () => {
         legacyManifest.entitlementBoundary
       )
     ).toEqual(currentBoundary);
+    for (const authenticatedCanonLeafIds of [
+      ['CBA2-A12.3', 'CBA2-L09.2'],
+      ['CBA2-A12.3', 'CBA2-A12.3'],
+    ]) {
+      expect(
+        interpretSeasonAdvanceEntitlementBoundary({
+          ...(currentBoundary as Record<string, unknown>),
+          authenticatedCanonLeafIds,
+        })
+      ).toBeNull();
+    }
     expect(
       persistedWorldPaths().filter((path) => path.includes('/seasonHistory/'))
     ).toHaveLength(30);

@@ -301,8 +301,18 @@ export function parseAcceptedCanonLeafDocument(
   }
 
   const rows = tableRows(canon);
-  const leafRows = rows.filter(
-    (row) => row[0] === leafId && row.length === 8
+  const sameIdRows = rows.filter((row) => row[0] === leafId);
+  const auxiliaryMappingRows = sameIdRows.filter(
+    (row) =>
+      row.length === 5 &&
+      (/CBA2-SC-\d{3}\(/.test(row[1] ?? '') ||
+        row[3]?.startsWith('Inputs/window:'))
+  );
+  const mappingRows = auxiliaryMappingRows.filter((row) =>
+    /CBA2-SC-\d{3}\(/.test(row[1] ?? '')
+  );
+  const leafRows = sameIdRows.filter(
+    (row) => !auxiliaryMappingRows.includes(row)
   );
   if (leafRows.length === 0)
     throw new Error(`Unknown Canon leaf ID: ${leafId}`);
@@ -314,9 +324,6 @@ export function parseAcceptedCanonLeafDocument(
   const leafRow = leafRows[0];
   assertStructurallyValidLeafRow(leafId, leafRow);
 
-  const mappingRows = rows.filter(
-    (row) => row[0] === leafId && /CBA2-SC-\d{3}\(/.test(row[1] ?? '')
-  );
   if (mappingRows.length > 1) {
     throw new Error(
       `Accepted Canon is structurally ambiguous: multiple scenario mappings for ${leafId}`

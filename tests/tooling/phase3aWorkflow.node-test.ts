@@ -153,6 +153,15 @@ test('accepted Canon parser rejects duplicate or incomplete active leaf rows', (
   );
 
   const incompleteRow = row.replace(/ \| [^|]+ \|$/, ' |');
+  assert.throws(
+    () =>
+      parseAcceptedCanonLeafDocument(
+        `${canon}\n${incompleteRow}`,
+        'CBA2-A12.3'
+      ),
+    /multiple active LEAF rows/
+  );
+
   const incomplete = replaceActiveLeafRow(
     canon,
     'CBA2-A12.3',
@@ -160,7 +169,7 @@ test('accepted Canon parser rejects duplicate or incomplete active leaf rows', (
   );
   assert.throws(
     () => parseAcceptedCanonLeafDocument(incomplete, 'CBA2-A12.3'),
-    /Unknown Canon leaf ID|structurally invalid/
+    /structurally invalid/
   );
 });
 
