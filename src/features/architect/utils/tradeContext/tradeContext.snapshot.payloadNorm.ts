@@ -106,29 +106,57 @@ export function normalizeTradePayloadEntitlements(
     return [];
   }
 
-  return entitlements.map((entitlement) => ({
-    ...(entitlement?.entitlementId != null
-      ? { entitlementId: String(entitlement.entitlementId) }
-      : {}),
-    ...(entitlement?.id != null ? { id: String(entitlement.id) } : {}),
-    ...(toNonEmptyString(entitlement?.type) !== undefined
-      ? { type: toNonEmptyString(entitlement?.type) }
-      : {}),
-    ...(toNonEmptyString(entitlement?.name) !== undefined
-      ? { name: toNonEmptyString(entitlement?.name) }
-      : {}),
-    ...(toFiniteNumberOrUndefined(entitlement?.year) !== undefined
-      ? { year: toFiniteNumberOrUndefined(entitlement?.year) }
-      : entitlement?.year != null
-        ? { year: String(entitlement.year) }
+  return entitlements.map((entitlement) => {
+    const normalizedYear = toFiniteNumberOrUndefined(entitlement?.year);
+    const normalizedSeasonYear = toFiniteNumberOrUndefined(
+      entitlement?.seasonYear
+    );
+    const normalizedRound = toFiniteNumberOrUndefined(entitlement?.round);
+    const normalizedTermsRound = toFiniteNumberOrUndefined(
+      entitlement?.terms?.round
+    );
+    const roundAlias = toNonEmptyString(entitlement?.round);
+    const termsRoundAlias = toNonEmptyString(entitlement?.terms?.round);
+
+    return {
+      ...(entitlement?.entitlementId != null
+        ? { entitlementId: String(entitlement.entitlementId) }
         : {}),
-    ...(toFiniteNumberOrUndefined(entitlement?.round) !== undefined
-      ? { round: toFiniteNumberOrUndefined(entitlement?.round) }
-      : {}),
-    ...(entitlement?.toTeamId != null
-      ? { toTeamId: String(entitlement.toTeamId) }
-      : {}),
-  }));
+      ...(entitlement?.id != null ? { id: String(entitlement.id) } : {}),
+      ...(toNonEmptyString(entitlement?.type) !== undefined
+        ? { type: toNonEmptyString(entitlement?.type) }
+        : {}),
+      ...(toNonEmptyString(entitlement?.kind) !== undefined
+        ? { kind: toNonEmptyString(entitlement?.kind) }
+        : {}),
+      ...(toNonEmptyString(entitlement?.name) !== undefined
+        ? { name: toNonEmptyString(entitlement?.name) }
+        : {}),
+      ...(normalizedSeasonYear !== undefined
+        ? { seasonYear: normalizedSeasonYear }
+        : entitlement?.seasonYear != null
+          ? { seasonYear: String(entitlement.seasonYear) }
+          : {}),
+      ...(normalizedYear !== undefined
+        ? { year: normalizedYear }
+        : entitlement?.year != null
+          ? { year: String(entitlement.year) }
+          : {}),
+      ...(normalizedRound !== undefined
+        ? { round: normalizedRound }
+        : roundAlias !== undefined
+          ? { round: roundAlias }
+          : {}),
+      ...(normalizedTermsRound !== undefined
+        ? { terms: { round: normalizedTermsRound } }
+        : termsRoundAlias !== undefined
+          ? { terms: { round: termsRoundAlias } }
+          : {}),
+      ...(entitlement?.toTeamId != null
+        ? { toTeamId: String(entitlement.toTeamId) }
+        : {}),
+    };
+  });
 }
 
 export function normalizeTradePayloadTeam({

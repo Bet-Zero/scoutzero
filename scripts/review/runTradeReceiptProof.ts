@@ -179,12 +179,17 @@ export async function runTradeReceiptProof(): Promise<number> {
 
   const openPorts = await waitForCleanTeardown();
   const screenshotPath = path.join(artifactDir, 'trade-receipt-1280x720.png');
+  const stepienScreenshotPath = path.join(
+    artifactDir,
+    'stepien-needs-input-1280x720.png'
+  );
   const proofPath = path.join(artifactDir, 'proof.json');
   const tracePaths = findFiles(testResultsDir, 'trace.zip');
   const reportPath = path.join(reportDir, 'index.html');
   const passed =
     result.status === 0 &&
     fs.existsSync(screenshotPath) &&
+    fs.existsSync(stepienScreenshotPath) &&
     fs.existsSync(proofPath) &&
     tracePaths.length > 0 &&
     fs.existsSync(reportPath) &&
@@ -216,6 +221,12 @@ export async function runTradeReceiptProof(): Promise<number> {
         ? {
             path: path.relative(identity.repoRoot, screenshotPath),
             sha256: hashFile(screenshotPath),
+          }
+        : null,
+      stepienNeedsInputScreenshot: fs.existsSync(stepienScreenshotPath)
+        ? {
+            path: path.relative(identity.repoRoot, stepienScreenshotPath),
+            sha256: hashFile(stepienScreenshotPath),
           }
         : null,
       trace: tracePaths.map((tracePath) => ({

@@ -43,6 +43,7 @@ vi.mock('@/features/architect/admin/PickRightWizardModal', () => ({
 }));
 
 import { TradeEditor } from '@/features/architect/tradeMachine/TradeEditor';
+import { TradeSummaryPanel } from '@/features/architect/tradeMachine/TradeSummaryPanel';
 import { buildVerdictItems } from '@/features/architect/tradeMachine/verdictSummary';
 
 function buildHookReturn(overrides: Record<string, unknown> = {}) {
@@ -213,6 +214,61 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
 });
 
 describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
+  it('shows Needs input and blocks Apply for an unevaluated first-round rule', () => {
+    useTradeMachineMock.mockReturnValue(
+      buildHookReturn({
+        hasCurrentValidation: true,
+        previewAuthority: {
+          legal: false,
+          reason:
+            'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
+          violations: [
+            {
+              message:
+                'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
+            },
+          ],
+          omittedStages: [],
+        },
+        snapshotValidationDetails: {
+          teamResults: [
+            {
+              teamName: 'Los Angeles Lakers',
+              rules: {
+                stepienRule: {
+                  passed: false,
+                  status: 'NEEDS_INPUT',
+                  evaluated: false,
+                  message:
+                    'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
+                  violations: [
+                    {
+                      message:
+                        'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+          dataWarnings: [],
+          hasDataIssues: false,
+        },
+      })
+    );
+
+    render(<TradeEditor {...baseProps} worldId="world-1" />);
+
+    expect(screen.getByTestId('trade-readiness-summary')).toHaveTextContent(
+      'Needs input'
+    );
+    expect(screen.getByTestId('trade-verdict-strip')).toHaveTextContent(
+      'Stepien Rule: Needs input'
+    );
+    expect(screen.getByRole('button', { name: /^Apply Trade$/i })).toBeDisabled();
+    expect(screen.getByTestId('trade-summary-button')).toBeDisabled();
+  });
+
   it('renders team-attributed blocked reasons in the sticky verdict strip', () => {
     useTradeMachineMock.mockReturnValue(
       buildHookReturn({
@@ -337,5 +393,43 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
     render(<TradeEditor {...baseProps} />);
 
     expect(screen.getByTestId('trade-summary-button')).toBeDisabled();
+  });
+});
+
+describe('TradeSummaryPanel — unevaluated authority presentation', () => {
+  it('labels a team Needs input without presenting an affirmative rejection verdict', () => {
+    render(
+      <TradeSummaryPanel
+        previewAuthority={{
+          legal: false,
+          violations: [
+            'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
+          ],
+        }}
+        snapshotValidationDetails={{
+          summaryByTeamIndex: [
+            { teamId: 'LAL', teamName: 'Los Angeles Lakers' },
+          ],
+          teamResults: [
+            {
+              teamId: 'LAL',
+              teamName: 'Los Angeles Lakers',
+              legal: false,
+              rules: {
+                stepienRule: {
+                  passed: false,
+                  status: 'NEEDS_INPUT',
+                  evaluated: false,
+                },
+              },
+            },
+          ],
+        }}
+      />
+    );
+
+    expect(screen.getByText('Why it needs input')).toBeInTheDocument();
+    expect(screen.getByText('⚪ Needs input')).toBeInTheDocument();
+    expect(screen.queryByText('❌ Rejected')).not.toBeInTheDocument();
   });
 });

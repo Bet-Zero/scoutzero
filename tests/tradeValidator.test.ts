@@ -324,7 +324,7 @@ describe('tradeValidator', () => {
     expect(result.reason).toContain('must be 3-4 years');
   });
 
-  it('detects Stepien Rule violations', () => {
+  it('fails closed when first-round Stepien authority is unavailable', () => {
     const teamA = makeTeam('A', 100_000_000, 14, [
       { year: 2027, round: '1st' },
       { year: 2028, round: '1st' },
@@ -348,25 +348,27 @@ describe('tradeValidator', () => {
     });
 
     expect(result.legal).toBe(false);
-    expect(result.reason).toBe(
-      'Violates Stepien Rule (consecutive future 1sts).'
-    );
+    expect(result.reason).toContain('Needs input');
     expect(issueTexts(result.violations)).toEqual(
       expect.arrayContaining([
-        'Violates Stepien Rule (consecutive future 1sts).',
+        expect.stringContaining('Needs input'),
       ])
     );
     expect(result.teamResults[0].legal).toBe(false);
     expect(issueTexts(result.teamResults[0].violations)).toEqual(
       expect.arrayContaining([
-        'Violates Stepien Rule (consecutive future 1sts).',
+        expect.stringContaining('Needs input'),
       ])
     );
-    expect(result.teamResults[0].rules.stepienRule.passed).toBe(false);
+    expect(result.teamResults[0].rules.stepienRule).toMatchObject({
+      passed: false,
+      status: 'NEEDS_INPUT',
+      evaluated: false,
+    });
     expect(result.teamResults[1].rules.stepienRule.passed).toBe(true);
   });
 
-  it('allows protected picks to bypass Stepien Rule', () => {
+  it('does not treat protection text as complete governed Stepien history', () => {
     const teamA = makeTeam('A', 100_000_000);
     const teamB = makeTeam('B', 100_000_000);
 
@@ -386,7 +388,8 @@ describe('tradeValidator', () => {
       currentYear,
     });
 
-    expect(result.legal).toBe(true);
+    expect(result.legal).toBe(false);
+    expect(result.teamResults[0].rules.stepienRule.status).toBe('NEEDS_INPUT');
   });
 
   it('enforces second apron restrictions', () => {
@@ -457,7 +460,7 @@ describe('tradeValidator', () => {
     expect(result.reason).toContain('Cash consideration needs governed input');
   });
 
-  it('restricts trading picks more than 7 years out', () => {
+  it('fails closed before evaluating a beyond-seven-years first-round pick', () => {
     const teamA = makeTeam('A', 100_000_000);
     const teamB = makeTeam('B', 100_000_000);
 
@@ -475,7 +478,8 @@ describe('tradeValidator', () => {
     });
 
     expect(result.legal).toBe(false);
-    expect(result.reason).toContain('Cannot trade picks beyond');
+    expect(result.reason).toContain('Needs input');
+    expect(result.teamResults[0].rules.stepienRule.status).toBe('NEEDS_INPUT');
   });
 
   it('handles 3-team trades correctly', () => {

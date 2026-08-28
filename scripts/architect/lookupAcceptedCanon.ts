@@ -26,6 +26,8 @@ export type AcceptedCanonPin = typeof ACCEPTED_CANON_PIN;
 
 type MarkdownRow = string[];
 
+type ParsedCanonLookupResult = Omit<CanonLookupResult, 'acceptedAuthority'>;
+
 export interface CanonLookupResult {
   acceptedAuthority: {
     candidate: string;
@@ -221,6 +223,55 @@ function ids(value: string, pattern: RegExp): string[] {
   return [...new Set(value.match(pattern) ?? [])];
 }
 
+function authorityClasses(value: string): string[] | null {
+  if (!value) return null;
+
+  const tokens = value.split(', ');
+  if (
+    tokens.join(', ') !== value ||
+    new Set(tokens).size !== tokens.length ||
+    tokens.some((token) => !AUTHORITY_CLASSES.has(token))
+  ) {
+    return null;
+  }
+  return tokens;
+}
+
+function evidenceIds(value: string): string[] | null {
+  if (!value) return null;
+
+  const tokens = value.split(', ');
+  if (
+    tokens.join(', ') !== value ||
+    new Set(tokens).size !== tokens.length ||
+    tokens.some((token) => !/^EV2-\d{4}$/.test(token))
+  ) {
+    return null;
+  }
+  return tokens;
+}
+
+function assertStructurallyValidLeafRow(
+  leafId: string,
+  row: MarkdownRow
+): void {
+  if (row.length !== 8 || row.some((cell) => cell.length === 0)) {
+    throw new Error(
+      `Accepted Canon leaf ${leafId} is structurally invalid: expected one complete 8-cell LEAF row`
+    );
+  }
+  if (!authorityClasses(row[2] ?? '')) {
+    throw new Error(
+      `Accepted Canon leaf ${leafId} has malformed or unrecognized authority classes`
+    );
+  }
+  if (!evidenceIds(row[5] ?? '')) {
+    throw new Error(
+      `Accepted Canon leaf ${leafId} has malformed or duplicated evidence identity`
+    );
+  }
+}
+
 function findUniqueRow(
   rows: MarkdownRow[],
   predicate: (row: MarkdownRow) => boolean,
@@ -235,21 +286,33 @@ function findUniqueRow(
   return matches[0];
 }
 
-export function lookupAcceptedCanonLeaf(
-  leafId: string,
-  repoRoot = process.cwd()
-): CanonLookupResult {
+/**
+ * Parse structure and provenance from already authenticated Canon text.
+ * This function does not establish candidate identity or fingerprint. Product
+ * callers must use lookupAcceptedCanonLeaf(), which authenticates the pinned
+ * git object before entering this parser.
+ */
+export function parseAcceptedCanonLeafDocument(
+  canon: string,
+  leafId: string
+): ParsedCanonLookupResult {
   if (!LEAF_ID.test(leafId)) {
     throw new Error(`Unknown Canon leaf ID: ${leafId}`);
   }
 
-  const canon = readAcceptedCanon(repoRoot).toString('utf8');
   const rows = tableRows(canon);
-  const leafRows = rows.filter(
+  const sameIdRows = rows.filter((row) => row[0] === leafId);
+  const auxiliaryMappingRows = sameIdRows.filter(
     (row) =>
-      row[0] === leafId &&
-      AUTHORITY_CLASSES.has(row[2] ?? '') &&
-      /^EV2-\d{4}/.test(row[5] ?? '')
+      row.length === 5 &&
+      (/CBA2-SC-\d{3}\(/.test(row[1] ?? '') ||
+        row[3]?.startsWith('Inputs/window:'))
+  );
+  const mappingRows = auxiliaryMappingRows.filter((row) =>
+    /CBA2-SC-\d{3}\(/.test(row[1] ?? '')
+  );
+  const leafRows = sameIdRows.filter(
+    (row) => !auxiliaryMappingRows.includes(row)
   );
   if (leafRows.length === 0)
     throw new Error(`Unknown Canon leaf ID: ${leafId}`);
@@ -259,10 +322,8 @@ export function lookupAcceptedCanonLeaf(
     );
   }
   const leafRow = leafRows[0];
+  assertStructurallyValidLeafRow(leafId, leafRow);
 
-  const mappingRows = rows.filter(
-    (row) => row[0] === leafId && /CBA2-SC-\d{3}\(/.test(row[1] ?? '')
-  );
   if (mappingRows.length > 1) {
     throw new Error(
       `Accepted Canon is structurally ambiguous: multiple scenario mappings for ${leafId}`
@@ -303,7 +364,7 @@ export function lookupAcceptedCanonLeaf(
       rows,
       (candidate) =>
         candidate[0] === evidenceId &&
-        AUTHORITY_CLASSES.has(candidate[2] ?? '') &&
+        authorityClasses(candidate[2] ?? '') !== null &&
         candidate.length >= 10,
       `evidence component row for ${evidenceId}`
     );
@@ -326,13 +387,6 @@ export function lookupAcceptedCanonLeaf(
     );
 
   return {
-    acceptedAuthority: {
-      candidate: ACCEPTED_CANON_PIN.candidate,
-      authorityRef: ACCEPTED_CANON_PIN.authorityRef,
-      fingerprint: ACCEPTED_CANON_PIN.fingerprint,
-      artifactPath: ACCEPTED_CANON_PIN.artifactPath,
-      source: 'pinned git object',
-    },
     leaf: {
       id: leafRow[0],
       rule: leafRow[1],
@@ -375,6 +429,28 @@ export function lookupAcceptedCanonLeaf(
         version: row[14],
       })),
     },
+  };
+}
+
+export function lookupAcceptedCanonLeaf(
+  leafId: string,
+  repoRoot = process.cwd()
+): CanonLookupResult {
+  if (!LEAF_ID.test(leafId)) {
+    throw new Error(`Unknown Canon leaf ID: ${leafId}`);
+  }
+
+  const canon = readAcceptedCanon(repoRoot).toString('utf8');
+  const parsed = parseAcceptedCanonLeafDocument(canon, leafId);
+  return {
+    acceptedAuthority: {
+      candidate: ACCEPTED_CANON_PIN.candidate,
+      authorityRef: ACCEPTED_CANON_PIN.authorityRef,
+      fingerprint: ACCEPTED_CANON_PIN.fingerprint,
+      artifactPath: ACCEPTED_CANON_PIN.artifactPath,
+      source: 'pinned git object',
+    },
+    ...parsed,
   };
 }
 

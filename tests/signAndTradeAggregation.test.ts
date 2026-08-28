@@ -283,7 +283,7 @@ describe('Sign-and-trade aggregation rules', () => {
   });
 
   describe('Picks allowed with S&T', () => {
-    it('allows S&T with draft picks alongside because picks are not players', () => {
+    it('keeps the S&T rule valid while first-round authority blocks overall legality', () => {
       const teamA = makeTeam('A', 100_000_000);
       const teamB = makeTeam('B', 100_000_000);
 
@@ -303,8 +303,13 @@ describe('Sign-and-trade aggregation rules', () => {
         { team: teamB, sends: [bPlayer], picksOut: [] },
       ]);
 
-      expect(result.legal).toBe(true);
+      expect(result.legal).toBe(false);
       expect(result.teamResults[0].rules.signAndTrade.passed).toBe(true);
+      expect(result.teamResults[0].rules.stepienRule).toMatchObject({
+        passed: false,
+        status: 'NEEDS_INPUT',
+        evaluated: false,
+      });
     });
   });
 

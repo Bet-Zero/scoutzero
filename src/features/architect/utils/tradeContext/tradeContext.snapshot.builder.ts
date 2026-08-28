@@ -463,16 +463,33 @@ export function buildPostTradeTeamsSnapshot({
   const validationTeams: ValidationTeam[] = payloadTeams.map(
     (teamTrade, idx) => {
       const teamUpdate = teamUpdates[idx];
+      const validationTeam = buildTradeValidationTeamRecord(
+        teamUpdate.team,
+        teamUpdate.teamCode
+      );
+      const preTradeEntitlementIds = Array.isArray(
+        currentState.teams[idx]?.team?.entitlementIds
+      )
+        ? currentState.teams[idx].team.entitlementIds
+        : validationTeam.entitlementIds;
       return {
-        team: buildTradeValidationTeamRecord(
-          teamUpdate.team,
-          teamUpdate.teamCode
-        ),
+        // Routing verifies that an outgoing entitlement belonged to the
+        // sender before the trade; the remaining validation fields use the
+        // post-trade snapshot. Do not validate ownership against the already
+        // subtracted post-trade entitlement list.
+        team: {
+          ...validationTeam,
+          entitlementIds: preTradeEntitlementIds,
+        },
         teamCode: teamUpdate.teamCode,
         sends: validationSendsByTeam[idx] || [],
         receives: validationReceivesByTeam[idx] || [],
         picksOut: teamTrade.picksOut || [],
         picksIn: [],
+        // Keep outgoing draft-asset identity on the authoritative apply-time
+        // validation snapshot. Omitting this field allowed direct mutation
+        // callers to bypass every entitlement-backed Stepien gate.
+        entitlementsOut: teamTrade.entitlementsOut || [],
         cashSent: teamTrade.cashSent || 0,
         ...(teamTrade.cashReceived !== undefined &&
         teamTrade.cashReceived !== null

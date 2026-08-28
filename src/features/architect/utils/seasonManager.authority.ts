@@ -14,7 +14,70 @@ import {
 import type { CapProjectionOverrides } from '@/features/architect/utils/capRulesProfile';
 
 export const SEASON_ADVANCE_AUTHORITY_VERSION =
-  'governed-season-advance-authority-v1';
+  'governed-season-advance-authority-v2';
+
+export const SEASON_ADVANCE_MISSING_GOVERNED_DRAFT_INPUTS = Object.freeze([
+  'governedDraftHistory.ownership',
+  'governedDraftHistory.protection',
+  'governedDraftHistory.conveyance',
+  'governedDraftHistory.freeze',
+  'governedDraftHistory.unfreeze',
+  'governedDraftHistory.penalty',
+  'governedDraftHistory.requiredTransition',
+] as const);
+
+const SEASON_ADVANCE_EXCLUDED_DRAFT_VERDICTS = Object.freeze([
+  'draft-ownership',
+  'stepien',
+  'second-apron-freeze',
+  'conveyance',
+  'swap',
+] as const);
+
+const LEGACY_ENTITLEMENT_BOUNDARY_GOVERNING_CANON_LEAF_IDS = Object.freeze([
+  'CBA2-L08.1',
+  'CBA2-L09.2',
+] as const);
+
+const LEGACY_ENTITLEMENT_BOUNDARY_KEYS = Object.freeze([
+  'mode',
+  'unavailableCanonLeafId',
+  'governingCanonLeafIds',
+  'excludedVerdicts',
+] as const);
+
+const CURRENT_ENTITLEMENT_BOUNDARY_KEYS = Object.freeze([
+  'mode',
+  'authenticatedCanonLeafIds',
+  'governingCanonLeafIds',
+  'missingGovernedInputs',
+  'excludedVerdicts',
+] as const);
+
+export type SeasonAdvanceEntitlementBoundary = {
+  mode: 'preserve-or-fail-closed';
+  authenticatedCanonLeafIds: readonly ['CBA2-A12.3'];
+  governingCanonLeafIds: readonly [
+    'CBA2-A12.3',
+    'CBA2-L08.1',
+    'CBA2-L09.2',
+  ];
+  missingGovernedInputs: typeof SEASON_ADVANCE_MISSING_GOVERNED_DRAFT_INPUTS;
+  excludedVerdicts: typeof SEASON_ADVANCE_EXCLUDED_DRAFT_VERDICTS;
+};
+
+const CURRENT_ENTITLEMENT_BOUNDARY: SeasonAdvanceEntitlementBoundary =
+  Object.freeze({
+    mode: 'preserve-or-fail-closed',
+    authenticatedCanonLeafIds: Object.freeze(['CBA2-A12.3'] as const),
+    governingCanonLeafIds: Object.freeze([
+      'CBA2-A12.3',
+      'CBA2-L08.1',
+      'CBA2-L09.2',
+    ] as const),
+    missingGovernedInputs: SEASON_ADVANCE_MISSING_GOVERNED_DRAFT_INPUTS,
+    excludedVerdicts: SEASON_ADVANCE_EXCLUDED_DRAFT_VERDICTS,
+  });
 
 export type SeasonAdvanceCalendarManifest = {
   recordId: string;
@@ -44,18 +107,7 @@ export type SeasonAdvanceAuthority = {
   sourceCalendar: SeasonAdvanceCalendarManifest;
   targetInputManifest: GovernedInputManifest;
   targetCapProjections: CapProjectionOverrides;
-  entitlementBoundary: {
-    mode: 'preserve-or-fail-closed';
-    unavailableCanonLeafId: 'CBA2-A12.3';
-    governingCanonLeafIds: readonly ['CBA2-L08.1', 'CBA2-L09.2'];
-    excludedVerdicts: readonly [
-      'draft-ownership',
-      'stepien',
-      'second-apron-freeze',
-      'conveyance',
-      'swap',
-    ];
-  };
+  entitlementBoundary: SeasonAdvanceEntitlementBoundary;
 };
 
 export type SeasonAdvanceAuthorityResult =
@@ -68,6 +120,96 @@ export type SeasonAdvanceAuthorityRequest = {
   worldAsOfDate?: string | null;
   registry?: GovernedSeasonRegistry;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function hasExactKeys(
+  value: Record<string, unknown>,
+  expectedKeys: readonly string[]
+): boolean {
+  const actualKeys = Object.keys(value);
+  return (
+    actualKeys.length === expectedKeys.length &&
+    expectedKeys.every((key) =>
+      Object.prototype.hasOwnProperty.call(value, key)
+    )
+  );
+}
+
+function isExactStringArray(
+  value: unknown,
+  expected: readonly string[]
+): boolean {
+  return (
+    Array.isArray(value) &&
+    value.length === expected.length &&
+    expected.every(
+      (entry, index) =>
+        Object.prototype.hasOwnProperty.call(value, index) &&
+        value[index] === entry
+    )
+  );
+}
+
+function isLegacyEntitlementBoundary(
+  value: Record<string, unknown>
+): boolean {
+  return (
+    hasExactKeys(value, LEGACY_ENTITLEMENT_BOUNDARY_KEYS) &&
+    value.mode === 'preserve-or-fail-closed' &&
+    value.unavailableCanonLeafId === 'CBA2-A12.3' &&
+    isExactStringArray(
+      value.governingCanonLeafIds,
+      LEGACY_ENTITLEMENT_BOUNDARY_GOVERNING_CANON_LEAF_IDS
+    ) &&
+    isExactStringArray(
+      value.excludedVerdicts,
+      SEASON_ADVANCE_EXCLUDED_DRAFT_VERDICTS
+    )
+  );
+}
+
+function isCurrentEntitlementBoundary(
+  value: Record<string, unknown>
+): boolean {
+  return (
+    hasExactKeys(value, CURRENT_ENTITLEMENT_BOUNDARY_KEYS) &&
+    value.mode === 'preserve-or-fail-closed' &&
+    isExactStringArray(value.authenticatedCanonLeafIds, ['CBA2-A12.3']) &&
+    isExactStringArray(
+      value.governingCanonLeafIds,
+      CURRENT_ENTITLEMENT_BOUNDARY.governingCanonLeafIds
+    ) &&
+    isExactStringArray(
+      value.missingGovernedInputs,
+      SEASON_ADVANCE_MISSING_GOVERNED_DRAFT_INPUTS
+    ) &&
+    isExactStringArray(
+      value.excludedVerdicts,
+      SEASON_ADVANCE_EXCLUDED_DRAFT_VERDICTS
+    )
+  );
+}
+
+/**
+ * Return the truthful current interpretation of either a new entitlement
+ * boundary or a durable BZE-289 v1 record. The stored record remains untouched,
+ * so existing manifest bytes and evidence digests preserve their identity.
+ */
+export function interpretSeasonAdvanceEntitlementBoundary(
+  value: unknown
+): SeasonAdvanceEntitlementBoundary | null {
+  if (
+    isRecord(value) &&
+    (isLegacyEntitlementBoundary(value) ||
+      isCurrentEntitlementBoundary(value))
+  ) {
+    return CURRENT_ENTITLEMENT_BOUNDARY;
+  }
+  return null;
+}
 
 function currentOfficialCalendarForSeason(
   registry: GovernedSeasonRegistry,
@@ -245,21 +387,7 @@ export function resolveSeasonAdvanceAuthority(
       sourceCalendar: sourceManifest,
       targetInputManifest: targetManifest,
       targetCapProjections,
-      entitlementBoundary: Object.freeze({
-        mode: 'preserve-or-fail-closed' as const,
-        unavailableCanonLeafId: 'CBA2-A12.3' as const,
-        governingCanonLeafIds: Object.freeze([
-          'CBA2-L08.1',
-          'CBA2-L09.2',
-        ]) as readonly ['CBA2-L08.1', 'CBA2-L09.2'],
-        excludedVerdicts: Object.freeze([
-          'draft-ownership',
-          'stepien',
-          'second-apron-freeze',
-          'conveyance',
-          'swap',
-        ]) as SeasonAdvanceAuthority['entitlementBoundary']['excludedVerdicts'],
-      }),
+      entitlementBoundary: CURRENT_ENTITLEMENT_BOUNDARY,
     }),
   };
 }

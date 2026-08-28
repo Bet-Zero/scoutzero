@@ -18,7 +18,7 @@ import type {
 export interface VerdictItem {
   /** Team the item belongs to; null for trade-wide items. */
   teamName: string | null;
-  kind: 'violation' | 'warning';
+  kind: 'needsInput' | 'violation' | 'warning';
   text: string;
 }
 
@@ -59,6 +59,7 @@ export const buildVerdictItems = (
   previewAuthority: PreviewAuthorityLike | null | undefined
 ): VerdictItem[] => {
   const violations: VerdictItem[] = [];
+  const needsInput: VerdictItem[] = [];
   const warnings: VerdictItem[] = [];
   const seen = new Set<string>();
 
@@ -66,7 +67,13 @@ export const buildVerdictItems = (
     const dedupeKey = `${item.teamName ?? ''}|${item.kind}|${item.text}`;
     if (seen.has(dedupeKey)) return;
     seen.add(dedupeKey);
-    (item.kind === 'violation' ? violations : warnings).push(item);
+    if (item.kind === 'needsInput') {
+      needsInput.push(item);
+    } else if (item.kind === 'violation') {
+      violations.push(item);
+    } else {
+      warnings.push(item);
+    }
   };
 
   for (const team of teamResults ?? []) {
@@ -75,6 +82,19 @@ export const buildVerdictItems = (
     for (const [ruleKey, rule] of Object.entries(rules)) {
       if (!rule || typeof rule !== 'object' || Array.isArray(rule)) continue;
       const label = humanizeRuleKey(ruleKey);
+
+      if (rule.status === 'NEEDS_INPUT') {
+        const detail =
+          rule.message ||
+          getFirstValidationIssueText(rule.violations, '') ||
+          'Needs input before this rule can be evaluated.';
+        push({
+          teamName,
+          kind: 'needsInput',
+          text: `${label}: ${detail}`,
+        });
+        continue;
+      }
 
       if (rule.passed === false) {
         const detail =
@@ -107,5 +127,5 @@ export const buildVerdictItems = (
     push({ teamName: null, kind: 'warning', text });
   }
 
-  return [...violations, ...warnings];
+  return [...needsInput, ...violations, ...warnings];
 };
