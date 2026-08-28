@@ -688,7 +688,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   const readiness = dialog.getByTestId('trade-readiness-summary');
   await expect(readiness).toContainText('Needs input', { timeout: 20_000 });
   await expect(readiness).toContainText(
-    'Stepien and complete draft-history records are unavailable'
+    'Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable'
   );
   await expect(
     dialog.getByRole('button', { name: /^Apply Trade$/i })
