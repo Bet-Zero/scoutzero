@@ -327,6 +327,11 @@ describe('governed 30-team Season Advance persistence', () => {
     );
 
     const currentBoundary = manifest.entitlementBoundary;
+    const currentBoundaryBytes = JSON.stringify(currentBoundary);
+    expect(
+      interpretSeasonAdvanceEntitlementBoundary(currentBoundary)
+    ).toEqual(currentBoundary);
+    expect(JSON.stringify(currentBoundary)).toBe(currentBoundaryBytes);
     const legacyBoundary = {
       mode: 'preserve-or-fail-closed',
       unavailableCanonLeafId: 'CBA2-A12.3',
@@ -348,12 +353,18 @@ describe('governed 30-team Season Advance persistence', () => {
       },
       entitlementBoundary: legacyBoundary,
     });
+    const legacyBoundaryBytes = JSON.stringify(
+      legacyManifest.entitlementBoundary
+    );
     expect(legacyManifest.entitlementBoundary).toEqual(legacyBoundary);
     expect(
       interpretSeasonAdvanceEntitlementBoundary(
         legacyManifest.entitlementBoundary
       )
     ).toEqual(currentBoundary);
+    expect(JSON.stringify(legacyManifest.entitlementBoundary)).toBe(
+      legacyBoundaryBytes
+    );
     for (const authenticatedCanonLeafIds of [
       ['CBA2-A12.3', 'CBA2-L09.2'],
       ['CBA2-A12.3', 'CBA2-A12.3'],
