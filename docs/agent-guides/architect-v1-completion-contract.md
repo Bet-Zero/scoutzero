@@ -131,12 +131,13 @@ Pick ownership, protections, conveyance, rookie-scale money, and entitlement
 claims (including blocking conflicting claims). Complete when these rules
 hold across the supported Trade Machine picks flow and season boundaries using
 authenticated governed asset state. Existing supported pick and entitlement
-trades remain required. A branch-complete ownership, Stepien, protection,
-conveyance, or frozen-pick decision that depends on unavailable authority or
-missing governed lifecycle history must stop before apply and show an honest
-needs-input result under the 2026-08-27 exclusion; the product may not guess a
-branch, reuse simplified legacy rules, or treat the missing condition as
-satisfied. (The draft-night room itself is excluded — see exclusions.)
+trades remain required. `CBA2-A12.3` is authenticated in the pinned accepted
+Canon. A branch-complete ownership, Stepien, protection, conveyance, or
+frozen-pick decision for which complete governed lifecycle history remains
+unavailable must stop before apply and show an honest needs-input result under
+the 2026-08-27 exclusion; the product may not guess a branch, reuse simplified
+legacy rules, or treat the missing condition as satisfied. (The draft-night
+room itself is excluded — see exclusions.)
 
 ### W11. Season advance
 
@@ -196,15 +197,14 @@ product, not only in tests:
 
 - **Authority-blocked branch-complete draft lifecycle variants** — moved to
   Phase 3B by locked owner decision 2026-08-27: draft ownership, Stepien, and
-  frozen-pick lifecycle behavior that requires the lookup-unavailable composite
-  `CBA2-A12.3` authority or missing governed ownership, protection, conveyance,
-  freeze, unfreeze, or penalty history. These variants must return an honest
+  frozen-pick lifecycle behavior for which complete governed ownership,
+  protection, conveyance, freeze, unfreeze, penalty, and required-transition
+  history is missing. `CBA2-A12.3` is authenticated in the pinned accepted
+  Canon and is not a missing input. These variants must return an honest
   unavailable/needs-input result before mutation. This exclusion unblocks only
-  when both (a) the pinned accepted-Canon lookup can authenticate the required
-  `CBA2-A12.3` authority and (b) a retained, certified governed source supplies
-  the complete ownership/protection/conveyance and frozen-pick lifecycle history
-  required by the proposed branch. Supported trades of existing picks and
-  entitlements remain V1 requirements.
+  when a retained, certified governed source supplies the complete lifecycle
+  history required by the proposed branch. Supported trades of existing picks
+  and entitlements remain V1 requirements.
 - **Ordinary trades requiring unavailable nonzero trade-bonus evidence** —
   moved to Phase 3B by locked owner decision 2026-08-27. When a proposed trade
   requires a nonzero trade-bonus calculation, the product must return an honest

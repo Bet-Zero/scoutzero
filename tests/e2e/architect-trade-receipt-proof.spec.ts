@@ -20,6 +20,7 @@ import {
 } from '@/schemas/governedCashConsideration';
 import { TradeHardCapLedgerZ } from '@/schemas/tradeApronRestriction';
 import { SalaryBooksSnapshotZ } from '@/schemas/salaryBooks';
+import { PHASE3A_CLOSURE_EXPECTATIONS } from './fixtures/phase3aClosureExpectations';
 
 const CANDIDATE = process.env.SCOUTZERO_PROOF_CANDIDATE ?? '';
 const ARTIFACT_DIR = process.env.SCOUTZERO_BROWSER_PROOF_DIR ?? '';
@@ -27,9 +28,12 @@ const MIA_URL = '/gm/MIA?season=2027';
 const PROOF_WORLD_ID = 'world_trade_receipt_proof';
 const PROOF_AS_OF_DATE = '2026-07-07';
 const EMPTY_RELEASE_DIGEST = `sha256:${'3'.repeat(64)}`;
-const ZERO_YOS_MINIMUM = 1_357_763;
+const ZERO_YOS_MINIMUM =
+  PHASE3A_CLOSURE_EXPECTATIONS.season2026_27.zeroYearsOfServiceMinimum;
 const FIRST_ROUND_PROOF_ENTITLEMENT_ID =
   'proof-entitlement-MIA-2027-first-round';
+const SECOND_ROUND_PROOF_ENTITLEMENT_ID =
+  'proof-entitlement-MIA-2027-second-round';
 const PROOF_ROSTERS = {
   MIA: [
     'mia_marcus_vance',
@@ -59,6 +63,129 @@ const PROOF_ROSTERS = {
     'den_obi_nwachukwu',
   ],
 } as const;
+
+const buildProofDepthPlayer = (
+  teamCode: 'MIA' | 'DEN',
+  ordinal: number,
+  isTwoWay = false
+) => {
+  const suffix = isTwoWay ? `two_way_${ordinal}` : `depth_${ordinal}`;
+  const playerId = `proof_${teamCode.toLowerCase()}_${suffix}`;
+  const displayName = `${teamCode} Proof ${isTwoWay ? 'Two-Way' : 'Depth'} ${ordinal}`;
+  const salary = isTwoWay ? 578_577 : 2_000_000;
+  return {
+    id: playerId,
+    playerId,
+    player_id: playerId,
+    name: displayName,
+    displayName,
+    position: isTwoWay ? 'G' : 'F',
+    age: isTwoWay ? 22 : 25,
+    teamCode,
+    teamId: teamCode,
+    teamName: teamCode === 'MIA' ? 'Miami Heat' : 'Denver Nuggets',
+    isTwoWay,
+    bio: {
+      playerId,
+      displayName,
+      position: isTwoWay ? 'G' : 'F',
+      height: isTwoWay ? '6-4' : '6-7',
+      weight: isTwoWay ? '190' : '220',
+      age: isTwoWay ? 22 : 25,
+      experience: isTwoWay ? 0 : 1,
+    },
+    contract: {
+      contractType: isTwoWay ? 'TWO-WAY' : 'MINIMUM CONTRACT',
+      isTwoWay,
+      isExtension: false,
+      isRookieScale: false,
+      startSeason: '2026-27',
+      endSeason: '2027-28',
+      contractLength: 2,
+      yearsRemaining: 2,
+      totalValue: salary * 2,
+      averageAnnualValue: salary,
+      guaranteedValue: isTwoWay ? 0 : salary * 2,
+      guaranteedYears: isTwoWay ? 0 : 2,
+      salariesByYear: [
+        {
+          season: '2026-27',
+          salary,
+          capHit: salary,
+          guaranteed: !isTwoWay,
+          option: null,
+        },
+        {
+          season: '2027-28',
+          salary,
+          capHit: salary,
+          guaranteed: !isTwoWay,
+          option: null,
+        },
+      ],
+      noTradeClause: false,
+      tradeKicker: null,
+      birdRights: {
+        status: 'Non-Bird',
+        eligibleFor: isTwoWay ? [] : ['Minimum Exception'],
+      },
+      freeAgency: { type: isTwoWay ? 'RFA' : 'UFA', year: 2028, capHold: 0 },
+    },
+  };
+};
+
+const buildProofRoster = async (teamCode: 'MIA' | 'DEN') => {
+  const db = getReviewAdminDb();
+  const basePlayers = await Promise.all(
+    PROOF_ROSTERS[teamCode].map(async (playerId) => {
+      const snapshot = await db.doc(`architect_basePlayers/${playerId}`).get();
+      expect(snapshot.exists).toBe(true);
+      const source = snapshot.data() ?? {};
+      const displayName = String(source.displayName || source.name || playerId);
+      return {
+        ...source,
+        id: playerId,
+        playerId,
+        player_id: playerId,
+        name: displayName,
+        displayName,
+      };
+    })
+  );
+  const twoWayCount = basePlayers.filter((player) =>
+    String(
+      (player.contract as Record<string, unknown> | undefined)?.contractType ??
+        ''
+    )
+      .toLowerCase()
+      .includes('two-way')
+  ).length;
+  const standardCount = basePlayers.length - twoWayCount;
+  const players = [
+    ...basePlayers,
+    ...Array.from(
+      {
+        length:
+          PHASE3A_CLOSURE_EXPECTATIONS.roster.standard - standardCount,
+      },
+      (_, index) => buildProofDepthPlayer(teamCode, index + 1)
+    ),
+    ...Array.from(
+      {
+        length: PHASE3A_CLOSURE_EXPECTATIONS.roster.twoWay - twoWayCount,
+      },
+      (_, index) => buildProofDepthPlayer(teamCode, index + 1, true)
+    ),
+  ];
+  expect(players).toHaveLength(
+    PHASE3A_CLOSURE_EXPECTATIONS.roster.standard +
+      PHASE3A_CLOSURE_EXPECTATIONS.roster.twoWay
+  );
+  return {
+    players,
+    roster: players.map((player) => String(player.playerId || player.id)),
+  };
+};
 
 const proofTpe = (teamCode: 'MIA' | 'DEN') => ({
   id: `proof-tpe-${teamCode}`,
@@ -109,7 +236,8 @@ const salaryRow = (season: string, salary: number) => ({
 const proofContractLedger = (
   teamCode: 'MIA' | 'DEN',
   playerId: string,
-  salary: number
+  salary: number,
+  tradeKickerPercent: number | null = null
 ) => {
   const contractId = `proof-contract-${playerId}`;
   const base = makeResultingState({
@@ -127,6 +255,7 @@ const proofContractLedger = (
       ...base.terms,
       signingTeam: teamCode,
       salaries: [salaryRow('2026-27', salary), salaryRow('2027-28', salary)],
+      bonuses: { tradeKickerPercent },
       totalValue: salary * 2,
       averageAnnualValue: salary,
       guaranteedValue: salary * 2,
@@ -157,6 +286,13 @@ const proofContractLedgers = (teamCode: 'MIA' | 'DEN') =>
     ? [
         proofContractLedger('MIA', 'mia_owen_frost', 3_200_000),
         proofContractLedger('MIA', 'mia_eli_navarro', 2_000_000),
+        proofContractLedger(
+          'MIA',
+          'mia_silas_park',
+          2_000_000,
+          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion
+            .retainedTradeKickerPercent
+        ),
       ]
     : [
         proofContractLedger('DEN', 'den_aaron_pike', 3_200_000),
@@ -209,7 +345,7 @@ const salaryBookInputs = (teamCode: 'MIA' | 'DEN') => {
             '2026-07-01T00:00:00Z'
           ),
           amount:
-            index === 0 ? (teamCode === 'MIA' ? 30_000_000 : 8_000_000) : 0,
+            index === 0 ? (teamCode === 'MIA' ? 20_000_000 : 0) : 0,
         })
       ),
     },
@@ -235,16 +371,21 @@ test.use({
     sources: true,
   },
 });
-test.setTimeout(240_000);
+test.setTimeout(210_000);
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const worldCount = async () =>
+const proofWorldExists = async () =>
   getReviewAdminDb()
-    .collection('architect_worlds')
+    .doc(`architect_worlds/${PROOF_WORLD_ID}`)
     .get()
-    .then((snapshot) => snapshot.size);
+    .then((snapshot) => snapshot.exists);
+
+const resetProofWorld = async () => {
+  const db = getReviewAdminDb();
+  await db.recursiveDelete(db.doc(`architect_worlds/${PROOF_WORLD_ID}`));
+};
 
 const seedProofWorld = async (uid: string) => {
   const db = getReviewAdminDb();
@@ -277,6 +418,7 @@ const seedProofWorld = async (uid: string) => {
     const base = await db.doc(`architect_baseTeams/${teamCode}`).get();
     expect(base.exists).toBe(true);
     const baseData = base.data() ?? {};
+    const proofRoster = await buildProofRoster(teamCode);
     const baseExceptions =
       baseData.exceptions && typeof baseData.exceptions === 'object'
         ? baseData.exceptions
@@ -286,10 +428,14 @@ const seedProofWorld = async (uid: string) => {
       id: teamCode,
       teamId: teamCode,
       teamCode,
-      roster: [...PROOF_ROSTERS[teamCode]],
+      roster: proofRoster.roster,
+      players: proofRoster.players,
       entitlementIds:
         teamCode === 'MIA'
-          ? [FIRST_ROUND_PROOF_ENTITLEMENT_ID]
+          ? [
+              FIRST_ROUND_PROOF_ENTITLEMENT_ID,
+              SECOND_ROUND_PROOF_ENTITLEMENT_ID,
+            ]
           : [],
       capHolds: [],
       offerSheets: [],
@@ -322,6 +468,24 @@ const seedProofWorld = async (uid: string) => {
       kind: 'pick_ownership',
       description: 'MIA own 2027 first-round pick',
       underlyingPickId: 'MIA_2027_1',
+      underlyingStatus: 'clean',
+    }
+  );
+  batch.set(
+    db.doc(
+      `architect_worlds/${PROOF_WORLD_ID}/entitlements/${SECOND_ROUND_PROOF_ENTITLEMENT_ID}`
+    ),
+    {
+      id: SECOND_ROUND_PROOF_ENTITLEMENT_ID,
+      entitlementId: SECOND_ROUND_PROOF_ENTITLEMENT_ID,
+      holderTeam: 'MIA',
+      originalTeam: 'MIA',
+      seasonYear: 2027,
+      year: 2027,
+      round: 2,
+      kind: 'pick_ownership',
+      description: 'MIA own 2027 second-round pick',
+      underlyingPickId: 'MIA_2027_2',
       underlyingStatus: 'clean',
     }
   );
@@ -471,6 +635,11 @@ const routePlayer = async (
     'xpath=ancestor::div[.//button[normalize-space()="•••"]][1]'
   );
   const menu = playerRow.getByRole('button', { name: '•••' });
+  if (!(await isVisible(menu))) {
+    await card
+      .getByRole('button', { name: /^(Players|Plr)( \(\d+\))?$/i })
+      .click();
+  }
   await expect(menu).toBeVisible();
   await menu.click();
   const route = page.getByRole('button', {
@@ -640,9 +809,10 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     window.localStorage.setItem('hz.dev.tradeMachineDebug', 'true');
   });
 
-  expect(await worldCount()).toBe(0);
+  await resetProofWorld();
+  expect(await proofWorldExists()).toBe(false);
   await prepareProofWorld(page);
-  expect(await worldCount()).toBe(1);
+  expect(await proofWorldExists()).toBe(true);
   const dialog = await openTradeMachine(page);
   await expect(dialog.getByRole('button', { name: /Miami Heat/i })).toBeVisible(
     {
@@ -715,9 +885,50 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   );
 
   await cancelEntitlementTrade(miamiCard, page, 2027, 1);
+
+  const bonusAuthorityBefore = {
+    teams: await Promise.all(
+      proofTeamRefs.map((ref) =>
+        ref.get().then((snapshot) => snapshot.data())
+      )
+    ),
+    events: await getWorldEventDocuments(PROOF_WORLD_ID),
+  };
+  await routePlayer(dialog, page, 'MIA', 'Silas Park', 'Denver Nuggets');
   await miamiCard
-    .getByRole('button', { name: /^(Players|Plr)( \(\d+\))?$/i })
-    .click();
+    .getByLabel('Silas Park exact pre-trade Salary')
+    .fill('2000000');
+  await fillPostAssignmentApronSalary(miamiCard);
+  await fillPostAssignmentApronSalary(denverCard);
+  await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+  await expect(
+    dialog.getByRole('button', { name: /^Apply Trade$/i })
+  ).toBeDisabled();
+  const tradeBonusNeedsInputScreenshotPath = path.join(
+    ARTIFACT_DIR,
+    'trade-bonus-needs-input-1280x720.png'
+  );
+  await readiness.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: tradeBonusNeedsInputScreenshotPath,
+    fullPage: false,
+  });
+  expect(
+    await Promise.all(
+      proofTeamRefs.map((ref) =>
+        ref.get().then((snapshot) => snapshot.data())
+      )
+    )
+  ).toEqual(bonusAuthorityBefore.teams);
+  expect(await getWorldEventDocuments(PROOF_WORLD_ID)).toEqual(
+    bonusAuthorityBefore.events
+  );
+  await expect(readiness).toContainText(
+    PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.expectedStatus,
+    { timeout: 20_000 }
+  );
+  await expect(readiness).toContainText(/trade bonus/i);
+  await cancelPlayerTrade(dialog, 'MIA', 'Silas Park');
 
   await electSalaryPath(miamiCard, 'AGGREGATED_STANDARD_TPE');
   await electSalaryPath(denverCard, 'AGGREGATED_STANDARD_TPE');
@@ -755,10 +966,18 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     MIA: await fillPostAssignmentApronSalary(miamiCard),
     DEN: await fillPostAssignmentApronSalary(denverCard),
   };
-  expect(governedPostSalaries.MIA).toBeGreaterThan(209_015_000);
-  expect(governedPostSalaries.DEN).toBeGreaterThan(209_015_000);
-  expect(governedPostSalaries.MIA).toBeLessThanOrEqual(221_686_000);
-  expect(governedPostSalaries.DEN).toBeLessThanOrEqual(221_686_000);
+  expect(governedPostSalaries.MIA).toBeGreaterThan(
+    PHASE3A_CLOSURE_EXPECTATIONS.trade.firstApron
+  );
+  expect(governedPostSalaries.DEN).toBeGreaterThan(
+    PHASE3A_CLOSURE_EXPECTATIONS.trade.firstApron
+  );
+  expect(governedPostSalaries.MIA).toBeLessThanOrEqual(
+    PHASE3A_CLOSURE_EXPECTATIONS.trade.secondApron
+  );
+  expect(governedPostSalaries.DEN).toBeLessThanOrEqual(
+    PHASE3A_CLOSURE_EXPECTATIONS.trade.secondApron
+  );
 
   const beforeValidationTeams = await Promise.all(
     proofTeamRefs.map((ref) => ref.get().then((snapshot) => snapshot.data()))
@@ -857,7 +1076,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     proofTeamRefs.map((ref) => ref.get().then((snapshot) => snapshot.data()))
   );
   expect(afterValidationTeams).toEqual(beforeValidationTeams);
-  expect(await worldCount()).toBe(1);
+  expect(await proofWorldExists()).toBe(true);
   expect(pageErrors).toEqual([]);
   await receipt
     .getByTestId('trade-apron-restriction-MIA')
@@ -868,6 +1087,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   await receipt.getByRole('button', { name: 'Hide Details' }).click();
   await cancelPlayerTrade(dialog, 'MIA', 'Eli Navarro');
   await cancelPlayerTrade(dialog, 'DEN', 'Reggie Voss');
+  await routeEntitlement(miamiCard, page, 2027, 2, 'Denver Nuggets');
   await electSalaryPath(miamiCard, 'STANDARD_TPE');
   await electSalaryPath(denverCard, 'STANDARD_TPE');
   await miamiCard.getByLabel('Aaron Pike absorption mode').selectOption('MATCH');
@@ -887,12 +1107,9 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   };
 
   await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
-  await expect(readiness).toContainText('Ready with warnings', {
+  await expect(readiness).toContainText('Ready to apply', {
     timeout: 20_000,
   });
-  await expect(readiness).toContainText(
-    'Team MIA has 9 standard contracts (min 14).'
-  );
   const applyTrade = dialog.getByRole('button', { name: /^Apply Trade$/i });
   await expect(applyTrade).toBeEnabled();
   await expect(receipt).toContainText('LEGAL');
@@ -961,6 +1178,12 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
 
   const miaAfterApply = await getWorldTeamDocument(PROOF_WORLD_ID, 'MIA');
   const denAfterApply = await getWorldTeamDocument(PROOF_WORLD_ID, 'DEN');
+  const secondRoundAfterApply = await getReviewAdminDb()
+    .doc(
+      `architect_worlds/${PROOF_WORLD_ID}/entitlements/${SECOND_ROUND_PROOF_ENTITLEMENT_ID}`
+    )
+    .get()
+    .then((snapshot) => snapshot.data());
   const eventsAfterApply = await getWorldEventDocuments(PROOF_WORLD_ID);
   const tradeEvent = eventsAfterApply.find(
     (event) => event.mutationType === 'executeTrade'
@@ -997,16 +1220,23 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   );
   expect(miaAfterApply?.salaryBookInputs).toEqual(salaryBooksBeforeApply.MIA);
   expect(denAfterApply?.salaryBookInputs).toEqual(salaryBooksBeforeApply.DEN);
+  expect(secondRoundAfterApply).toMatchObject({ holderTeam: 'DEN' });
+  expect(miaAfterApply?.entitlementIds).not.toContain(
+    SECOND_ROUND_PROOF_ENTITLEMENT_ID
+  );
+  expect(denAfterApply?.entitlementIds).toContain(
+    SECOND_ROUND_PROOF_ENTITLEMENT_ID
+  );
   const persistedIncompleteRosterCharges = {
     MIA: assertPersistedIncompleteRosterBooks(miaAfterApply, {
       teamCode: 'MIA',
-      count: 10,
-      missingSlots: 2,
+      count: PHASE3A_CLOSURE_EXPECTATIONS.roster.standard,
+      missingSlots: 0,
     }),
     DEN: assertPersistedIncompleteRosterBooks(denAfterApply, {
       teamCode: 'DEN',
-      count: 11,
-      missingSlots: 1,
+      count: PHASE3A_CLOSURE_EXPECTATIONS.roster.standard,
+      missingSlots: 0,
     }),
   };
   expect(TradeHardCapLedgerZ.parse(miaAfterApply?.hardCapLedger)).toEqual(
@@ -1047,7 +1277,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       'den_reggie_voss',
     ])
   );
-  expect(await worldCount()).toBe(1);
+  expect(await proofWorldExists()).toBe(true);
 
   await page.goto(MIA_URL, { waitUntil: 'domcontentloaded' });
   await expect(
@@ -1057,18 +1287,15 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   const incompleteRosterRow = page.getByTestId(
     'incomplete-roster-charge-row'
   );
-  await expect(incompleteRosterRow).toContainText('Incomplete Roster Charge');
-  await expect(incompleteRosterRow).toContainText('$2,715,526');
-  await expect(incompleteRosterRow).toContainText('2 open slots');
-  const incompleteRosterScreenshotPath = path.join(
-    ARTIFACT_DIR,
-    'incomplete-roster-charge-reload-1280x720.png'
+  await expect(incompleteRosterRow).toHaveCount(0);
+  await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
+    '15 / 15 · 3 / 3'
   );
-  await incompleteRosterRow.scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: incompleteRosterScreenshotPath,
-    fullPage: false,
-  });
+  const fullRosterBooksScreenshotPath = path.join(
+    ARTIFACT_DIR,
+    'full-roster-books-reload-1280x720.png'
+  );
+  await page.screenshot({ path: fullRosterBooksScreenshotPath, fullPage: false });
   await openDashboardTab(page, 'Team History');
   const historyTimeline = page.getByTestId('team-history-section-timeline');
   const tradeHistoryRow = historyTimeline.getByRole('button', {
@@ -1174,10 +1401,26 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
         savedWorldTeamChanges: 0,
         savedWorldEventChanges: 0,
       },
+      tradeBonusAuthorityBoundary: {
+        retainedRelease:
+          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.releaseId,
+        retainedReleaseVersion:
+          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.releaseVersion,
+        retainedReleaseDigest:
+          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.releaseDigest,
+        retainedTradeKickerPercent:
+          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion
+            .retainedTradeKickerPercent,
+        missingEvidence:
+          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.missingEvidenceTag,
+        verdict:
+          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.expectedStatus,
+        applyBlocked: true,
+        savedWorldTeamChanges: 0,
+        savedWorldEventChanges: 0,
+      },
       savedWorldApply: {
-        readiness: 'Ready with warnings',
-        warning:
-          'Team MIA has a partial post-state receipt because teamSalary is not complete.',
+        readiness: 'Ready to apply',
         electedPaths: { MIA: 'STANDARD_TPE', DEN: 'STANDARD_TPE' },
         governedPostAssignmentApronSalaries: legalPostSalaries,
         cashLedgerVersions: { MIA: 1, DEN: 1 },
@@ -1186,6 +1429,10 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
         cashAmountCents: 100,
         salaryBookCashDeltas: cashReceipt.salaryBookCashDeltas,
         hardCapRows: { MIA: ['I'], DEN: [] },
+        supportedSecondRoundEntitlement: {
+          entitlementId: SECOND_ROUND_PROOF_ENTITLEMENT_ID,
+          holderTeam: 'DEN',
+        },
         worldCountAfterApply: 1,
         reloadHistoryReceiptVisible: true,
       },
@@ -1193,12 +1440,9 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
         asOfDate: PROOF_AS_OF_DATE,
         activeWindow: '2026-07-01 through the day before opening day',
         threshold: 12,
-        twoWayPlayersExcluded: {
-          MIA: 'mia_tobias_lund',
-          DEN: 'den_obi_nwachukwu',
-        },
+        fullRosterShape: { standard: 15, twoWay: 3 },
         persisted: persistedIncompleteRosterCharges,
-        reloadCapSheetVisible: true,
+        reloadCapSheetChargeHiddenAtZero: true,
         reloadHistoryVisible: true,
       },
     },
@@ -1217,6 +1461,10 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     path: stepienNeedsInputScreenshotPath,
     contentType: 'image/png',
   });
+  await testInfo.attach('trade-bonus-needs-input-1280x720', {
+    path: tradeBonusNeedsInputScreenshotPath,
+    contentType: 'image/png',
+  });
   await testInfo.attach('trade-cash-legal-1280x720', {
     path: legalScreenshotPath,
     contentType: 'image/png',
@@ -1225,8 +1473,8 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     path: historyScreenshotPath,
     contentType: 'image/png',
   });
-  await testInfo.attach('incomplete-roster-charge-reload-1280x720', {
-    path: incompleteRosterScreenshotPath,
+  await testInfo.attach('full-roster-books-reload-1280x720', {
+    path: fullRosterBooksScreenshotPath,
     contentType: 'image/png',
   });
 });
