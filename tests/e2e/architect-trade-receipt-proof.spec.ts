@@ -154,8 +154,11 @@ const buildProofRoster = async (teamCode: 'MIA' | 'DEN') => {
   );
   const twoWayCount = basePlayers.filter((player) =>
     String(
-      (player.contract as Record<string, unknown> | undefined)?.contractType ??
-        ''
+      (
+        (player as Record<string, unknown>).contract as
+          | Record<string, unknown>
+          | undefined
+      )?.contractType ?? ''
     )
       .toLowerCase()
       .includes('two-way')
@@ -1247,9 +1250,9 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       }),
     ])
   );
-  const eventMetadata =
+  const eventMetadata: Record<string, unknown> =
     tradeEvent?.metadata && typeof tradeEvent.metadata === 'object'
-      ? tradeEvent.metadata
+      ? (tradeEvent.metadata as Record<string, unknown>)
       : {};
   const cashReceipt = GovernedCashReceiptZ.parse(
     eventMetadata.governedCashReceipt

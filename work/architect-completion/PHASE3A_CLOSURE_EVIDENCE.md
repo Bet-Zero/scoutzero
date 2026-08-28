@@ -294,12 +294,14 @@ one in-scope evidence-quality issue: the proof receipt reported a fixed world
 count even though the harness had verified only that the dedicated proof world
 existed. The receipt now stores, asserts, and reports the actual
 `proofWorldExistsAfterApply` result. No product behavior or product expectation
-changed.
+changed. A temporary test-inclusive TypeScript configuration then exposed two
+harness-only object-boundary typing gaps in the same browser spec; both were
+narrowed explicitly, and the scoped test-file TypeScript check passed.
 
 Build, broad suites, the remaining integrated W1-W15 browser flow, retained
-browser certification, hosted candidate CI, and automated-review settlement
-were intentionally not used as completion evidence after the mandatory product
-stop. No unrestricted full-suite alias ran.
+browser certification, and frozen-candidate hosted CI were intentionally not
+used as completion evidence after the mandatory product stop. No unrestricted
+full-suite alias ran.
 
 Approximate wall clock: 35 minutes for branch/source/receipt reconciliation,
 40 minutes for expectation and proof-harness work, 35 minutes for browser and
