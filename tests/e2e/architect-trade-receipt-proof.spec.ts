@@ -1277,7 +1277,8 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       'den_reggie_voss',
     ])
   );
-  expect(await proofWorldExists()).toBe(true);
+  const proofWorldExistsAfterApply = await proofWorldExists();
+  expect(proofWorldExistsAfterApply).toBe(true);
 
   await page.goto(MIA_URL, { waitUntil: 'domcontentloaded' });
   await expect(
@@ -1433,7 +1434,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
           entitlementId: SECOND_ROUND_PROOF_ENTITLEMENT_ID,
           holderTeam: 'DEN',
         },
-        worldCountAfterApply: 1,
+        proofWorldExistsAfterApply,
         reloadHistoryReceiptVisible: true,
       },
       incompleteRosterCharges: {

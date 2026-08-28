@@ -289,6 +289,13 @@ completed AST extraction for all 1,814 files, then stopped after its
 symbol-resolution augmentation made no further progress; it produced no
 tracked graph change and was not repeated.
 
+CodeRabbit completed its review of predecessor head `e9738560…` and identified
+one in-scope evidence-quality issue: the proof receipt reported a fixed world
+count even though the harness had verified only that the dedicated proof world
+existed. The receipt now stores, asserts, and reports the actual
+`proofWorldExistsAfterApply` result. No product behavior or product expectation
+changed.
+
 Build, broad suites, the remaining integrated W1-W15 browser flow, retained
 browser certification, hosted candidate CI, and automated-review settlement
 were intentionally not used as completion evidence after the mandatory product
