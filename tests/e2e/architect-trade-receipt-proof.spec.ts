@@ -1157,8 +1157,9 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       draftAuthorityBoundary: {
         firstRoundEntitlementId: FIRST_ROUND_PROOF_ENTITLEMENT_ID,
         expectedAuthority: {
-          missingCanonLeaf: 'CBA2-A12.3',
+          authenticatedCanonLeaf: 'CBA2-A12.3',
           requiredCanonLeaves: [
+            'CBA2-A12.3',
             'CBA2-L09.2',
             'CBA2-L09.3',
             'CBA2-L09.6',

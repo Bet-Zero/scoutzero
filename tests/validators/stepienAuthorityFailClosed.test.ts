@@ -14,7 +14,9 @@ import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/v
  *   set for every adjacent future-Draft pair.
  * - CBA2-A12.4 / EV2-0088 requires season-end Apron Team Salary history and
  *   the seven-season projection for the frozen-pick bar.
- * - pinned lookup of CBA2-A12.3 fails with "Unknown Canon leaf ID".
+ * - CBA2-A12.3 / EV2-0086 and EV2-0087 is authenticated accepted authority.
+ * - complete governed ownership, protection, conveyance, freeze, unfreeze,
+ *   and penalty lifecycle history remains unavailable.
  *
  * Therefore every first-round variant below must stop without a legality
  * verdict. The second-round controls remain supported. No expected result is
@@ -47,7 +49,6 @@ function expectNeedsInput(result: ReturnType<typeof validateStepien>) {
   expect(result.details).toMatch(/Apply is blocked/i);
   expect(result.missingInputs).toEqual(
     expect.arrayContaining([
-      'acceptedCanon.CBA2-A12.3',
       'governedDraftHistory.ownership',
       'governedDraftHistory.protection',
       'governedDraftHistory.conveyance',
@@ -56,6 +57,7 @@ function expectNeedsInput(result: ReturnType<typeof validateStepien>) {
       'governedDraftHistory.penalty',
     ])
   );
+  expect(result.missingInputs).not.toContain('acceptedCanon.CBA2-A12.3');
 }
 
 describe('first-round draft authority fail-closed gate', () => {

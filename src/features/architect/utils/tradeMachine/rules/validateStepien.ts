@@ -15,8 +15,7 @@ type StepienWarningTerms = Partial<
 >;
 type StepienEvaluationStatus = 'PASS' | 'FAIL' | 'NEEDS_INPUT';
 
-const FIRST_ROUND_DRAFT_AUTHORITY_MISSING_INPUTS = [
-  'acceptedCanon.CBA2-A12.3',
+const FIRST_ROUND_GOVERNED_HISTORY_MISSING_INPUTS = [
   'governedDraftHistory.ownership',
   'governedDraftHistory.protection',
   'governedDraftHistory.conveyance',
@@ -25,8 +24,8 @@ const FIRST_ROUND_DRAFT_AUTHORITY_MISSING_INPUTS = [
   'governedDraftHistory.penalty',
 ] as const;
 
-const FIRST_ROUND_DRAFT_AUTHORITY_MESSAGE =
-  'Needs input — Stepien and complete draft-history records are unavailable for this first-round asset.';
+const FIRST_ROUND_GOVERNED_HISTORY_MESSAGE =
+  'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.';
 
 interface StepienPickLike {
   year?: StepienYearLike;
@@ -299,12 +298,11 @@ export function validateStepien(
   // Use outgoingPicks primarily (that's what tests use)
   const picks = outgoingPicks.length > 0 ? outgoingPicks : picksOut;
 
-  // The accepted authority and complete governed lifecycle history needed for
-  // a first-round Stepien/frozen-pick verdict are not currently available.
-  // Fail before running the legacy simplified calculation so no caller can
-  // mistake an incomplete branch for affirmative legality. This applies to
-  // every first-round year and identity; second-round assets remain outside
-  // this gate.
+  // CBA2-A12.3 is authenticated accepted authority. Complete governed draft
+  // lifecycle history is still unavailable, so fail before running the legacy
+  // simplified calculation and never mistake an incomplete branch for
+  // affirmative legality. This applies to every first-round year and identity;
+  // second-round assets remain outside this gate.
   const firstRoundPicks = [...outgoingPicks, ...picksOut].filter((pick) =>
     isFirstRound(pick.round)
   );
@@ -337,12 +335,12 @@ export function validateStepien(
       passed: false,
       status: 'NEEDS_INPUT',
       evaluated: false,
-      missingInputs: FIRST_ROUND_DRAFT_AUTHORITY_MISSING_INPUTS,
-      violations: [FIRST_ROUND_DRAFT_AUTHORITY_MESSAGE],
+      missingInputs: FIRST_ROUND_GOVERNED_HISTORY_MISSING_INPUTS,
+      violations: [FIRST_ROUND_GOVERNED_HISTORY_MESSAGE],
       warnings: [],
-      message: FIRST_ROUND_DRAFT_AUTHORITY_MESSAGE,
+      message: FIRST_ROUND_GOVERNED_HISTORY_MESSAGE,
       details:
-        'This first-round asset was not evaluated. Apply is blocked until the required Stepien source and complete ownership, protection, conveyance, and frozen-pick history are available.',
+        'This first-round asset was not evaluated. Apply is blocked until complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty lifecycle history is available.',
       currentYear,
       farthestYear,
       _debug: {

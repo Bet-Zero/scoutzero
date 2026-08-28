@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien';
 
 const AUTHORITY_MESSAGE =
-  'Needs input — Stepien and complete draft-history records are unavailable for this first-round asset.';
+  'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.';
 
 const makeTeam = (outgoingPicks: Array<Record<string, unknown>>) => ({
   teamId: 'TEST',
@@ -20,7 +20,6 @@ function expectNeedsInput(result: ReturnType<typeof validateStepien>) {
   });
   expect(result.missingInputs).toEqual(
     expect.arrayContaining([
-      'acceptedCanon.CBA2-A12.3',
       'governedDraftHistory.ownership',
       'governedDraftHistory.protection',
       'governedDraftHistory.conveyance',
@@ -29,13 +28,14 @@ function expectNeedsInput(result: ReturnType<typeof validateStepien>) {
       'governedDraftHistory.penalty',
     ])
   );
+  expect(result.missingInputs).not.toContain('acceptedCanon.CBA2-A12.3');
   expect(`${result.message} ${result.details}`).not.toMatch(/compliant/i);
 }
 
 describe('validateStepien authority boundary', () => {
-  // Source-derived oracle: accepted Canon L09.2/L09.3/L09.6 and A12.4 do not
-  // supply CBA2-A12.3 or a complete governed draft-history chain. No first-round
-  // legality result can therefore be computed from the currently accepted inputs.
+  // Source-derived oracle: CBA2-A12.3 is authenticated, while L09.2/L09.3/L09.6
+  // and A12.4 require complete governed draft lifecycle history that is not
+  // available. No first-round legality result can be computed from partial inputs.
   it.each([
     ['single direct pick', [{ year: 2027, round: '1st' }]],
     ['different year', [{ year: 2031, round: 1 }]],

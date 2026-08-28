@@ -1,8 +1,8 @@
 /**
  * BZE-289 boundary regression: the governed 30-team Season Advance must not
- * silently become a DARE consumer while CBA2-A12.3 is unavailable through the
- * mandatory Canon lookup. Standalone DARE behavior remains covered by its own
- * suites; this file fences the Season Advance handoff only.
+ * silently become a DARE consumer while complete governed draft-transition
+ * history is unavailable. CBA2-A12.3 is authenticated; standalone DARE behavior
+ * remains covered by its own suites and this file fences Season Advance only.
  */
 
 import { readFileSync } from 'node:fs';

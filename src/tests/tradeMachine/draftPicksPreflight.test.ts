@@ -2,7 +2,7 @@
  * Trade Machine draft-asset preflight coverage.
  *
  * Accepted Canon L09.2/L09.3/L09.6 and A12.4 require qualifying authority and
- * complete history; the pinned authority has no CBA2-A12.3 leaf. First-round
+ * complete governed lifecycle history; CBA2-A12.3 is authenticated. First-round
  * scenarios therefore assert Needs input instead of simplified Stepien math.
  */
 import { describe, expect, it } from 'vitest';

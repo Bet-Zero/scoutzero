@@ -28,8 +28,21 @@ describe('BZE-289 trade / entitlement boundary at Season Advance', () => {
 
     expect(result.authority.entitlementBoundary).toEqual({
       mode: 'preserve-or-fail-closed',
-      unavailableCanonLeafId: 'CBA2-A12.3',
-      governingCanonLeafIds: ['CBA2-L08.1', 'CBA2-L09.2'],
+      authenticatedCanonLeafIds: ['CBA2-A12.3'],
+      governingCanonLeafIds: [
+        'CBA2-A12.3',
+        'CBA2-L08.1',
+        'CBA2-L09.2',
+      ],
+      missingGovernedInputs: [
+        'governedDraftHistory.ownership',
+        'governedDraftHistory.protection',
+        'governedDraftHistory.conveyance',
+        'governedDraftHistory.freeze',
+        'governedDraftHistory.unfreeze',
+        'governedDraftHistory.penalty',
+        'governedDraftHistory.requiredTransition',
+      ],
       excludedVerdicts: [
         'draft-ownership',
         'stepien',
@@ -48,7 +61,9 @@ describe('BZE-289 trade / entitlement boundary at Season Advance', () => {
       'entitlementBoundary: authority.entitlementBoundary'
     );
     expect(manager).not.toContain('resolveAllDraftAssets');
-    expect(authority).toContain("unavailableCanonLeafId: 'CBA2-A12.3'");
+    expect(authority).not.toContain("unavailableCanonLeafId: 'CBA2-A12.3'");
+    expect(authority).toContain("'governedDraftHistory.requiredTransition'");
+    expect(authority).toContain("'CBA2-A12.3'");
     expect(authority).toContain("'CBA2-L08.1'");
     expect(authority).toContain("'CBA2-L09.2'");
   });

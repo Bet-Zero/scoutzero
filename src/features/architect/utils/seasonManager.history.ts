@@ -279,7 +279,7 @@ export function assertEntitlementsPreserved(
   const after = mutationSnapshotDigest(entitlementState(afterTeam));
   if (before !== after) {
     throw new Error(
-      `Required entitlement transition for ${teamCode} is unsupported under the preserved CBA2-A12.3/CBA2-L09.2 boundary.`
+      `Draft entitlements for ${teamCode} could not be preserved because complete governed ownership, protection, conveyance, freeze, unfreeze, penalty, and required transition history is unavailable.`
     );
   }
   return before;
@@ -604,7 +604,13 @@ export function buildSeasonTransitionManifest(args: {
         (team) => Boolean(team.teamRecord.entitlementStateDigest)
       ).length,
     },
-    canonLeafIds: ['CBA2-L02.1', 'CBA2-L06.2', 'CBA2-L08.1', 'CBA2-L09.2'],
+    canonLeafIds: [
+      'CBA2-A12.3',
+      'CBA2-L02.1',
+      'CBA2-L06.2',
+      'CBA2-L08.1',
+      'CBA2-L09.2',
+    ],
   });
   assertFirestoreDocumentSize(
     manifest,
