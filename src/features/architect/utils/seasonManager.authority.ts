@@ -145,7 +145,11 @@ function isExactStringArray(
   return (
     Array.isArray(value) &&
     value.length === expected.length &&
-    value.every((entry, index) => entry === expected[index])
+    expected.every(
+      (entry, index) =>
+        Object.prototype.hasOwnProperty.call(value, index) &&
+        value[index] === entry
+    )
   );
 }
 

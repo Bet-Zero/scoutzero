@@ -162,6 +162,15 @@ describe('interpretSeasonAdvanceEntitlementBoundary', () => {
     }
   );
 
+  it.each(ARRAY_FIXTURES)(
+    'rejects a sparse $version $key array',
+    ({ fixture, key, expected }) => {
+      const input = cloneBoundary(fixture);
+      input[key] = new Array(expected.length);
+      expect(interpretWithoutMutation(input)).toBeNull();
+    }
+  );
+
   it.each(ARRAY_FIXTURES.filter(({ expected }) => expected.length > 1))(
     'rejects a reordered $version $key array',
     ({ fixture, key, expected }) => {
