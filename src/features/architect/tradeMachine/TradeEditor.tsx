@@ -446,6 +446,10 @@ export const TradeEditor = ({
     () => verdictItems.filter((item) => item.kind === 'warning').length,
     [verdictItems]
   );
+  const needsInputVerdict = useMemo(
+    () => verdictItems.find((item) => item.kind === 'needsInput') ?? null,
+    [verdictItems]
+  );
   const isDevSntInjectorEnabled =
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
@@ -523,6 +527,14 @@ export const TradeEditor = ({
       };
     }
 
+    if (currentPreviewAuthority?.legal === false && needsInputVerdict) {
+      return {
+        tone: 'warning',
+        label: 'Needs input',
+        message: needsInputVerdict.text,
+      };
+    }
+
     if (currentPreviewAuthority?.legal === false) {
       return {
         tone: previewOverrideRequested ? 'warning' : 'blocked',
@@ -595,6 +607,7 @@ export const TradeEditor = ({
     initError,
     isVacuumMode,
     isValidating,
+    needsInputVerdict,
     previewAuthorityReason,
     previewHasApplyTimeWorldChecks,
     previewOverrideRequested,

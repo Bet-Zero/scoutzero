@@ -58,7 +58,14 @@ export function TradeSummaryPanel({
   );
   const previewPassed = previewAuthority?.legal === true;
   const previewFailed = previewAuthority?.legal === false;
-  const topStatus = previewPassed
+  const needsInput = snapshotValidationDetails?.teamResults?.some((team) =>
+    Object.values(team.rules ?? {}).some(
+      (rule) => rule?.status === 'NEEDS_INPUT'
+    )
+  );
+  const topStatus = needsInput
+    ? '⚪ Needs input — trade not evaluated'
+    : previewPassed
     ? '✅ Trade passes preview authority'
     : hasOverrideRequest
       ? '⚠️ Override Requested – Preview Authority Still Blocks This Trade'
@@ -70,9 +77,14 @@ export function TradeSummaryPanel({
     <div className="mt-6 text-sm border-t border-cockpit-edge pt-4 space-y-6">
       <div>
         <strong className="text-base">{topStatus}</strong>
-        {previewFailed && !hasOverrideRequest && (
+        {previewFailed && !hasOverrideRequest && !needsInput && (
           <div className="text-xs text-cockpit-text-secondary mt-1">
             Fix the issues below before applying the trade.
+          </div>
+        )}
+        {needsInput && (
+          <div className="text-xs text-cockpit-watch mt-1">
+            Supply the missing draft records before applying this trade.
           </div>
         )}
         {previewFailed && hasOverrideRequest && (
@@ -92,11 +104,24 @@ export function TradeSummaryPanel({
       />
 
       {showRuleExplanations && topLevelViolations.length > 0 && (
-        <div className="bg-cockpit-slab border border-cockpit-danger/30 rounded p-3">
-          <div className="font-semibold mb-2">Why it fails</div>
+        <div
+          className={`bg-cockpit-slab border rounded p-3 ${
+            needsInput
+              ? 'border-cockpit-watch/30'
+              : 'border-cockpit-danger/30'
+          }`}
+        >
+          <div className="font-semibold mb-2">
+            {needsInput ? 'Why it needs input' : 'Why it fails'}
+          </div>
           <ul className="list-disc list-inside space-y-1">
             {topLevelViolations.map((violation, index) => (
-              <li key={index} className="text-cockpit-danger">
+              <li
+                key={index}
+                className={
+                  needsInput ? 'text-cockpit-watch' : 'text-cockpit-danger'
+                }
+              >
                 {getValidationIssueText(violation)}
               </li>
             ))}
@@ -110,7 +135,12 @@ export function TradeSummaryPanel({
             if (!teamSummary) return null;
 
             const teamResult = snapshotValidationDetails?.teamResults?.[index];
-            const isIllegal = teamResult ? !teamResult.legal : false;
+            const teamNeedsInput = Object.values(
+              teamResult?.rules ?? {}
+            ).some((rule) => rule?.status === 'NEEDS_INPUT');
+            const isIllegal = teamResult
+              ? !teamResult.legal && !teamNeedsInput
+              : false;
             const teamMeta =
               teams.find(
                 (team) => team.team?.teamName === teamSummary.teamName
@@ -144,7 +174,11 @@ export function TradeSummaryPanel({
               <div
                 key={teamSummary.teamName || teamMeta?.team?.id || index}
                 className={`border rounded bg-cockpit-slab overflow-hidden ${
-                  isIllegal ? 'border-cockpit-danger' : 'border-cockpit-edge'
+                  teamNeedsInput
+                    ? 'border-cockpit-watch/40'
+                    : isIllegal
+                      ? 'border-cockpit-danger'
+                      : 'border-cockpit-edge'
                 }`}
               >
                 <div
@@ -162,11 +196,15 @@ export function TradeSummaryPanel({
                       )}
                       <h4 className="font-semibold">{teamSummary.teamName}</h4>
                     </div>
-                    {isIllegal && (
+                    {teamNeedsInput ? (
+                      <span className="text-xs text-cockpit-watch font-semibold">
+                        ⚪ Needs input
+                      </span>
+                    ) : isIllegal ? (
                       <span className="text-xs text-cockpit-danger font-semibold">
                         ❌ Rejected
                       </span>
-                    )}
+                    ) : null}
                   </div>
 
                   {teamResult &&
@@ -460,4 +498,3 @@ export function TradeSummaryPanel({
     </div>
   );
 }
-

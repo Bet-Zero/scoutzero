@@ -38,10 +38,18 @@ export const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
       (warnings[0] && getValidationIssueText(warnings[0])) ||
       rule.message ||
       (rule.skipReason ? `Skipped: ${rule.skipReason}` : '');
+    const needsInput = rule.status === 'NEEDS_INPUT';
 
     return (
       <div>
-        <div className={`${getRuleStatus(rule.passed)}`}>• {label}</div>
+        <div
+          className={
+            needsInput ? 'text-cockpit-watch' : getRuleStatus(rule.passed)
+          }
+        >
+          • {label}
+          {needsInput ? ' · Needs input' : ''}
+        </div>
         {summaryText && (
           <span className="block text-xs text-cockpit-text-muted pl-4">
             {summaryText}
@@ -191,4 +199,3 @@ export const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
     </div>
   );
 };
-

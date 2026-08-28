@@ -371,4 +371,103 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
     expect(firestoreMocks.writeBatch).not.toHaveBeenCalled();
     expect(firestoreMocks.commit).not.toHaveBeenCalled();
   });
+
+  it.each([
+    {
+      label: 'numeric round on the exact discriminator shape',
+      entitlementId: 'TMA_2029_R1',
+      entitlement: { year: 2029, round: 1 },
+    },
+    {
+      label: 'string round alias in another draft year',
+      entitlementId: 'TMA_2031_FIRST',
+      entitlement: { seasonYear: 2031, round: 'first round' },
+    },
+    {
+      label: 'embedded round classification in another draft year',
+      entitlementId: 'TMA_2032_TERMS',
+      entitlement: { seasonYear: 2032, terms: { round: '1st' } },
+    },
+  ])(
+    'rejects $label before any saved-world write',
+    async ({ entitlementId, entitlement }) => {
+      teamLoaderMocks.getTeam.mockImplementation(async (_worldId, teamCode) => {
+        const playerId = teamCode === 'TMA' ? 'a_out' : 'b_out';
+        return withGovernedSalaryBooks(
+          {
+            ...makeTeam(teamCode, [makePlayer(playerId, 10_000_000)]),
+            entitlementIds: teamCode === 'TMA' ? [entitlementId] : [],
+          },
+          {
+            salaryCapYear: 2027,
+            asOfDate: '2026-08-24T12:00:00-04:00',
+            teamSalary: 10_000_000,
+            apronTeamSalary: 11_000_000,
+            taxSalary: 12_000_000,
+          }
+        );
+      });
+
+      const result = await applyWorldMutation({
+        userId: 'user_1',
+        worldId: 'world_1',
+        seasonId: '2026-27',
+        mutationType: 'executeTrade',
+        payload: {
+          teams: [
+            {
+              teamCode: 'TMA',
+              sends: [
+                { ...makePlayer('a_out', 10_000_000), tradeTo: 'TMB' },
+              ],
+              entitlementsOut: [
+                {
+                  id: entitlementId,
+                  entitlementId,
+                  ...entitlement,
+                  toTeamId: 'TMB',
+                },
+              ],
+              salaryMatchingElection: {
+                version: 1,
+                path: 'ROOM',
+                postAssignmentApronTeamSalary: 0,
+                tradedPlayerPreTradeSalaries: { a_out: 10_000_000 },
+              },
+            },
+            {
+              teamCode: 'TMB',
+              sends: [
+                { ...makePlayer('b_out', 10_000_000), tradeTo: 'TMA' },
+              ],
+              entitlementsOut: [],
+              salaryMatchingElection: {
+                version: 1,
+                path: 'ROOM',
+                postAssignmentApronTeamSalary: 0,
+                tradedPlayerPreTradeSalaries: { b_out: 10_000_000 },
+              },
+            },
+          ],
+          asOfDate: '2026-08-25T12:00:00-04:00',
+          tradeCtx: {
+            source: 'tradeMachine',
+            worldId: 'world_1',
+            asOfDate: '2026-08-25T12:00:00-04:00',
+            yearKey: '2026-27',
+          },
+        },
+      });
+
+      expect(result).toMatchObject({
+        success: false,
+        appliedToLocalState: false,
+        persistedToWorld: false,
+      });
+      expect(JSON.stringify(result)).toMatch(/Needs input/i);
+      expect(JSON.stringify(result)).toMatch(/Stepien/i);
+      expect(firestoreMocks.writeBatch).not.toHaveBeenCalled();
+      expect(firestoreMocks.commit).not.toHaveBeenCalled();
+    }
+  );
 });

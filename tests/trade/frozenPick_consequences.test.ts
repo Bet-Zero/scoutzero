@@ -1,27 +1,21 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { validateTrade } from '@/features/architect/utils/tradeMachine/engine/tradeValidator';
 import capProjections from '@/features/architect/utils/capProjections';
-import { getValidationIssueText } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import type {
   NormalizedPlayer,
   NormalizedTeamPick,
   TradeTeam,
-  ValidationIssue,
 } from '@/features/architect/utils/tradeMachine/constants/types';
 
 type TradeTeamDocument = NonNullable<TradeTeam['team']>;
 
-const makePlayer = (
-  name: string,
-  salary: number,
-  year: number
-): NormalizedPlayer => ({
+const makePlayer = (name: string, year: number): NormalizedPlayer => ({
   id: name,
   playerId: name,
   name,
-  salary,
-  matchIncoming: salary,
-  matchOutgoing: salary,
+  salary: 1_000_000,
+  matchIncoming: 1_000_000,
+  matchOutgoing: 1_000_000,
   isTwoWay: false,
   absorptionMode: 'MATCH',
   signAndTrade: false,
@@ -29,72 +23,67 @@ const makePlayer = (
   firstYearGuaranteed: true,
   contract: {
     salariesByYear: [
-      { season: `${year - 1}-${String(year).slice(-2)}`, salary },
+      { season: `${year - 1}-${String(year).slice(-2)}`, salary: 1_000_000 },
     ],
   },
 });
 
 const makeTeam = (
   id: string,
-  name: string,
   totalSalary: number,
-  year: number,
-  rosterSize = 14
+  year: number
 ): TradeTeamDocument => ({
   id,
   teamId: id,
-  teamName: name,
+  teamName: id,
   teamTotalSalary: totalSalary,
-  players: Array.from({ length: rosterSize }, (_, i) =>
-    makePlayer(`${name}${i}`, 1_000_000, year)
-  ),
+  players: Array.from({ length: 14 }, (_, i) => makePlayer(`${id}${i}`, year)),
   picks: [],
 });
 
-const issueTexts = (issues: ValidationIssue[] = []) =>
-  issues.map((issue) => getValidationIssueText(issue));
-
 function runPickTrade(pick: NormalizedTeamPick, currentYear: number) {
-  const teamA = makeTeam('1', 'A', 220_000_000, currentYear); // Above 2025 second apron threshold
-  const teamB = makeTeam('2', 'B', 100_000_000, currentYear);
   return validateTrade({
     teams: [
-      { team: teamA, sends: [], picksOut: [pick] },
-      { team: teamB, sends: [], picksOut: [] },
+      {
+        team: makeTeam('1', 220_000_000, currentYear),
+        sends: [],
+        picksOut: [pick],
+      },
+      {
+        team: makeTeam('2', 100_000_000, currentYear),
+        sends: [],
+        picksOut: [],
+      },
     ],
     capProjections,
     currentYear,
   });
 }
 
-describe('frozen pick consequences', () => {
-  it('rejects 2032 first for second apron team', () => {
-    const pick = { year: 2032, round: 1, teamId: '1' };
-    const res = runPickTrade(pick, 2025);
-    expect(res.teamResults[0].legal).toBe(false);
-    expect(issueTexts(res.teamResults[0].violations)).toContain(
-      'Second apron team cannot trade its own 7-year-out first-round pick.'
-    );
+describe('frozen-pick authority boundary', () => {
+  it.each([
+    ['seven-year-out', { year: 2032, round: 1, teamId: '1' }, 2025],
+    [
+      'protected seven-year-out',
+      { year: 2032, round: 1, teamId: '1', protection: 'top 10' },
+      2025,
+    ],
+    ['different season window', { year: 2033, round: 1, teamId: '1' }, 2027],
+  ])('reports Needs input for %s first-round asset', (_name, pick, year) => {
+    const result = runPickTrade(pick, year);
+    const stepien = result.teamResults[0].rules.stepienRule;
+
+    expect(result.teamResults[0].legal).toBe(false);
+    expect(stepien).toMatchObject({
+      passed: false,
+      status: 'NEEDS_INPUT',
+      evaluated: false,
+    });
   });
 
-  it('rejects protected 2032 first for second apron team', () => {
-    const pick = { year: 2032, round: 1, teamId: '1', protection: 'top 10' };
-    const res = runPickTrade(pick, 2025);
-    expect(res.teamResults[0].legal).toBe(false);
-    expect(issueTexts(res.teamResults[0].violations)).toContain(
-      'Second apron team cannot trade its own 7-year-out first-round pick.'
-    );
-  });
+  it('continues to permit the supported second-round control', () => {
+    const result = runPickTrade({ year: 2032, round: 2, teamId: '1' }, 2025);
 
-  it('allows 2031 first for second apron team', () => {
-    const pick = { year: 2031, round: 1, teamId: '1' };
-    const res = runPickTrade(pick, 2025);
-    expect(res.teamResults[0].legal).toBe(true);
-  });
-
-  it('allows 2033 first for second apron team', () => {
-    const pick = { year: 2033, round: 1, teamId: '1' };
-    const res = runPickTrade(pick, 2027);
-    expect(res.teamResults[0].legal).toBe(true);
+    expect(result.teamResults[0].rules.stepienRule.passed).toBe(true);
   });
 });

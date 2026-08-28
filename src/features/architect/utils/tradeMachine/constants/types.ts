@@ -445,6 +445,9 @@ export interface AuthoritativeSalaryMatchingResult {
 // Common validation result interface
 export interface ValidationResult {
   passed: boolean;
+  status?: string;
+  evaluated?: boolean;
+  missingInputs?: readonly string[];
   violations: ValidationIssue[];
   warnings?: ValidationIssue[];
   message: string;

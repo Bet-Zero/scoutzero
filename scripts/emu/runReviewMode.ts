@@ -559,7 +559,7 @@ const main = async () => {
   // Wait for Firestore to be ready
   log('[review] Waiting for Firestore emulator...');
   const ready = await Promise.race([
-    waitForPort('127.0.0.1', FIRESTORE_PORT, 30000),
+    waitForPort('127.0.0.1', FIRESTORE_PORT, 60000),
     new Promise<boolean>((resolve) => {
       emulatorProcess.on('close', () => resolve(false));
     }),
