@@ -57,7 +57,7 @@ export function TradeSummaryPanel({
     previewAuthority
   );
   const needsInput = verdictItems.some((item) => item.kind === 'needsInput');
-  const tradeWideBlockingItems = verdictItems.filter(
+  const tradeWideBlockingItems = buildVerdictItems([], previewAuthority).filter(
     (item) => item.teamName === null && item.kind !== 'warning'
   );
   const topStatus = needsInput
