@@ -19,12 +19,8 @@ import {
   getPickRowSecondaryText,
 } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
 import type { PickRuleDoc } from '@/features/architect/utils/entitlements/pickRulesResolver';
-import {
-  getValidationIssueText,
-  normalizeValidationIssues,
-} from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import { DataWarningsSection } from './DataWarningsSection';
-import { buildVerdictItems } from './verdictSummary';
+import { buildVerdictItems } from '@/features/architect/tradeMachine/verdictSummary';
 import type {
   PreviewAuthorityLike,
   SnapshotValidationDetailsLike,
@@ -54,15 +50,16 @@ export function TradeSummaryPanel({
 
   const overrideState = snapshotValidationDetails?.override || {};
   const hasOverrideRequest = Boolean(forceTrade || overrideState.requested);
-  const topLevelViolations = normalizeValidationIssues(
-    previewAuthority?.violations
-  );
   const previewPassed = previewAuthority?.legal === true;
   const previewFailed = previewAuthority?.legal === false;
-  const needsInput = buildVerdictItems(
+  const verdictItems = buildVerdictItems(
     snapshotValidationDetails?.teamResults,
     previewAuthority
-  ).some((item) => item.kind === 'needsInput');
+  );
+  const needsInput = verdictItems.some((item) => item.kind === 'needsInput');
+  const tradeWideBlockingItems = verdictItems.filter(
+    (item) => item.teamName === null && item.kind !== 'warning'
+  );
   const topStatus = needsInput
     ? '⚪ Needs input — trade not evaluated'
     : previewPassed
@@ -103,7 +100,7 @@ export function TradeSummaryPanel({
         hasDataIssues={snapshotValidationDetails?.hasDataIssues}
       />
 
-      {showRuleExplanations && topLevelViolations.length > 0 && (
+      {showRuleExplanations && tradeWideBlockingItems.length > 0 && (
         <div
           className={`bg-cockpit-slab border rounded p-3 ${
             needsInput
@@ -115,14 +112,16 @@ export function TradeSummaryPanel({
             {needsInput ? 'Why it needs input' : 'Why it fails'}
           </div>
           <ul className="list-disc list-inside space-y-1">
-            {topLevelViolations.map((violation, index) => (
+            {tradeWideBlockingItems.map((item, index) => (
               <li
                 key={index}
                 className={
-                  needsInput ? 'text-cockpit-watch' : 'text-cockpit-danger'
+                  item.kind === 'needsInput'
+                    ? 'text-cockpit-watch'
+                    : 'text-cockpit-danger'
                 }
               >
-                {getValidationIssueText(violation)}
+                {item.text}
               </li>
             ))}
           </ul>

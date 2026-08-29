@@ -47,6 +47,7 @@ export type UseTradeMachineValidationParams = {
   setIsValidating: (v: boolean) => void;
   lastValidatedDraftKeyRef: React.MutableRefObject<string | null>;
   validatedAtRef: React.MutableRefObject<number | null>;
+  validationGenerationRef: React.MutableRefObject<number>;
 };
 
 export type UseTradeMachineValidationResult = {
@@ -70,6 +71,7 @@ export function useTradeMachineValidation({
   setIsValidating,
   lastValidatedDraftKeyRef,
   validatedAtRef,
+  validationGenerationRef,
 }: UseTradeMachineValidationParams): UseTradeMachineValidationResult {
   const buildCurrentTradePreviewContext = useCallback(
     (
@@ -310,6 +312,8 @@ export function useTradeMachineValidation({
     (
       governedSignAndTradeAuthority: GovernedSignAndTradeAuthority | null = null
     ): 'insufficient' | 'started' => {
+      const validationGeneration = validationGenerationRef.current + 1;
+      validationGenerationRef.current = validationGeneration;
       const previewContext = buildCurrentTradePreviewContext(
         governedSignAndTradeAuthority
       );
@@ -326,6 +330,8 @@ export function useTradeMachineValidation({
       // Defer the synchronous compute one tick so React can paint the
       // "Validating…" state before the results land.
       setTimeout(() => {
+        if (validationGenerationRef.current !== validationGeneration) return;
+
         try {
           const outcome = runValidation(previewContext);
           if (outcome) {
@@ -355,7 +361,9 @@ export function useTradeMachineValidation({
             validatedAtRef.current = null;
           }
         } finally {
-          setIsValidating(false);
+          if (validationGenerationRef.current === validationGeneration) {
+            setIsValidating(false);
+          }
         }
       }, 0);
 
@@ -370,6 +378,7 @@ export function useTradeMachineValidation({
       setIsValidating,
       lastValidatedDraftKeyRef,
       validatedAtRef,
+      validationGenerationRef,
     ]
   );
 

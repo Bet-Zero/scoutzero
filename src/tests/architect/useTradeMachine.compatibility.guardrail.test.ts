@@ -429,6 +429,25 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
     });
   });
 
+  it('does not restore a deferred validation after reset clears it', async () => {
+    const { result } = await setupHookWithSecondaryTeam();
+
+    act(() => {
+      expect(result.current.handleValidate()).toBe('started');
+      result.current.resetTrade();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(result.current.isValidating).toBe(false);
+    expect(result.current.hasCurrentValidation).toBe(false);
+    expect(result.current.snapshotValidationDetails).toBeNull();
+    expect(result.current.previewAuthority).toBeNull();
+    expect(result.current.getValidatedAt()).toBeNull();
+  });
+
   it('clears held TPE identity when a player returns to salary matching', async () => {
     const { result } = await setupHookWithSecondaryTeam();
     const primarySlot = assertDefined(

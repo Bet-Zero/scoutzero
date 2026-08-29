@@ -59,6 +59,7 @@ export const useTradeMachine = (
   // Stale validation fix: Track which draft configuration was validated
   const lastValidatedDraftKeyRef = useRef<string | null>(null);
   const validatedAtRef = useRef<number | null>(null);
+  const validationGenerationRef = useRef(0);
   const lastInitInputsRef = useRef<{
     primaryTeam: string | null | undefined;
     primaryTeamData: TradeMachineTeam | null;
@@ -111,6 +112,7 @@ export const useTradeMachine = (
   const currentDraftKey = useMemo(() => {
     return computeTradeDraftKey({ yearKey, teams });
   }, [yearKey, teams]);
+  const lastObservedDraftKeyRef = useRef(currentDraftKey);
 
   // Wave 29 Step 4: validation sub-hook
   const { handleValidate } = useTradeMachineValidation({
@@ -126,6 +128,7 @@ export const useTradeMachine = (
     setIsValidating,
     lastValidatedDraftKeyRef,
     validatedAtRef,
+    validationGenerationRef,
   });
 
   // Phase 17: Count active teams for multi-team trade detection
@@ -200,22 +203,18 @@ export const useTradeMachine = (
   );
 
   useEffect(() => {
-    const validatedDraftKey = lastValidatedDraftKeyRef.current;
-    if (
-      !validatedDraftKey ||
-      currentDraftKey === validatedDraftKey ||
-      (!snapshotValidationDetails && !previewAuthority)
-    ) {
-      return;
-    }
+    if (lastObservedDraftKeyRef.current === currentDraftKey) return;
+    lastObservedDraftKeyRef.current = currentDraftKey;
 
-    // Once any draft-key input changes, discard the old authority instead of
-    // allowing it to reappear if the user later reconstructs the same draft.
+    // Any draft-key change cancels in-flight validation and permanently
+    // discards completed authority for the prior draft.
+    validationGenerationRef.current += 1;
     lastValidatedDraftKeyRef.current = null;
     validatedAtRef.current = null;
+    setIsValidating(false);
     setSnapshotValidationDetails(null);
     setPreviewAuthority(null);
-  }, [currentDraftKey, previewAuthority, snapshotValidationDetails]);
+  }, [currentDraftKey]);
 
   const hasInjectedDevSntPlayers = useMemo(
     () => hasSyntheticSntPlayers(teams),
@@ -298,6 +297,7 @@ export const useTradeMachine = (
   }, [teams, incomingAssets]);
 
   const resetTrade = useCallback(() => {
+    validationGenerationRef.current += 1;
     setTeams((prev) =>
       // Phase 14.2: Removed picksOut - draft assets are entitlements-only
       (clearSyntheticSntPlayersFromTeams(prev) as TradeMachineTeamSlot[]).map(
@@ -313,6 +313,7 @@ export const useTradeMachine = (
     );
     setSnapshotValidationDetails(null);
     setForceTrade(false);
+    setIsValidating(false);
     setPreviewAuthority(null); // TM-1A / TM-3D: clear preview authority on reset
     lastValidatedDraftKeyRef.current = null;
     validatedAtRef.current = null;

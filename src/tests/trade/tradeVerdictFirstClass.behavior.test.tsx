@@ -250,6 +250,50 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
       },
     ]);
   });
+
+  it('classifies mixed top-level issues independently', () => {
+    const items = buildVerdictItems([], {
+      legal: false,
+      error: 'VALIDATION_BLOCKED',
+      reason: 'Trade is blocked.',
+      violations: [
+        {
+          message: 'Missing governed salary record.',
+          rule: 'governedTradeSalaryBasis',
+          meta: { status: 'NEEDS_INPUT' },
+        },
+        { message: 'Hard cap exceeded.', rule: 'hardCap' },
+      ],
+      warnings: [],
+    });
+
+    expect(items).toEqual([
+      {
+        teamName: null,
+        kind: 'needsInput',
+        text: 'Missing governed salary record.',
+      },
+      { teamName: null, kind: 'violation', text: 'Hard cap exceeded.' },
+    ]);
+  });
+
+  it('renders a reason-only top-level fallback in the validation summary', () => {
+    render(
+      <TradeSummaryPanel
+        previewAuthority={{
+          legal: false,
+          error: 'NEEDS_INPUT',
+          reason: 'Missing governed draft record.',
+          violations: [],
+          warnings: [],
+        }}
+        snapshotValidationDetails={{ teamResults: [] }}
+      />
+    );
+
+    expect(screen.getByText('⚪ Needs input — trade not evaluated')).toBeVisible();
+    expect(screen.getByText('Missing governed draft record.')).toBeVisible();
+  });
 });
 
 describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {

@@ -413,6 +413,7 @@ describe('BZE-284 governed Trade Machine date forwarding', () => {
     const setIsValidating = vi.fn();
     const lastValidatedDraftKeyRef = { current: null };
     const validatedAtRef = { current: null };
+    const validationGenerationRef = { current: 0 };
 
     const { result } = renderHook(() =>
       useTradeMachineValidation({
@@ -428,6 +429,7 @@ describe('BZE-284 governed Trade Machine date forwarding', () => {
         setIsValidating,
         lastValidatedDraftKeyRef,
         validatedAtRef,
+        validationGenerationRef,
       })
     );
 
@@ -470,6 +472,7 @@ describe('BZE-284 governed Trade Machine date forwarding', () => {
         setIsValidating: vi.fn(),
         lastValidatedDraftKeyRef: { current: null },
         validatedAtRef: { current: null },
+        validationGenerationRef: { current: 0 },
       })
     );
 

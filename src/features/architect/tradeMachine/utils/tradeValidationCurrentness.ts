@@ -1,4 +1,4 @@
-import { isValidationCurrent } from './computeTradeDraftKey';
+import { isValidationCurrent } from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
 
 type PreviewAuthorityCandidate = {
   source?: unknown;
@@ -24,6 +24,7 @@ const PREVIEW_AUTHORITY_CONSTRUCTION_FAILURE_CODES = new Set([
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
+/** Return true only for a complete preview-authority payload, not a construction failure. */
 export const hasUsableTradePreviewAuthority = (
   authority: PreviewAuthorityCandidate | null
 ) => {
@@ -47,6 +48,7 @@ export const hasUsableTradePreviewAuthority = (
   });
 };
 
+/** Match one completed validation authority to the exact current trade draft. */
 export const hasCurrentTradeValidation = ({
   currentDraftKey,
   validatedDraftKey,
