@@ -27,6 +27,10 @@ const teamLoaderMocks = vi.hoisted(() => ({
   ),
 }));
 
+const salaryBasisMocks = vi.hoisted(() => ({
+  loadWorldGovernedTradeSalaryBasisEntries: vi.fn(),
+}));
+
 vi.mock('@/firebaseConfig', () => ({
   db: {},
 }));
@@ -56,27 +60,8 @@ vi.mock(
     ...(await importOriginal<
       typeof import('@/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis')
     >()),
-    loadWorldGovernedTradeSalaryBasisEntries: vi.fn(
-      async ({
-        worldId,
-        teamId,
-        rosterPlayerIds,
-        worldAsOfDate,
-        salaryCapYear,
-      }) =>
-        new Map(
-          rosterPlayerIds.map((playerId: string) => [
-            playerId,
-            makeSalaryAuthority({
-              worldId,
-              teamId,
-              playerId,
-              asOfDate: worldAsOfDate,
-              salaryCapYear,
-            }),
-          ])
-        )
-    ),
+    loadWorldGovernedTradeSalaryBasisEntries:
+      salaryBasisMocks.loadWorldGovernedTradeSalaryBasisEntries,
     attachGovernedTradeSalaryBasisToRoster: vi.fn(
       (players, entries) =>
         players.map((player: Record<string, unknown>) => ({
@@ -139,6 +124,28 @@ function makeTeam(teamCode: string, players: Array<Record<string, unknown>>) {
 describe('Trade Apply Fail-Closed Routing Guardrail', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    salaryBasisMocks.loadWorldGovernedTradeSalaryBasisEntries.mockImplementation(
+      async ({
+        worldId,
+        teamId,
+        rosterPlayerIds,
+        worldAsOfDate,
+        salaryCapYear,
+      }) =>
+        new Map(
+          rosterPlayerIds.map((playerId: string) => [
+            playerId,
+            makeSalaryAuthority({
+              worldId,
+              teamId,
+              playerId,
+              asOfDate: worldAsOfDate,
+              salaryCapYear,
+            }),
+          ])
+        )
+    );
 
     teamLoaderMocks.getTeam.mockImplementation(async (_worldId, teamCode) => {
       const playerId =
@@ -368,6 +375,100 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
     expect(JSON.stringify(result)).toMatch(
       /Team Salary|Apron Team Salary|SALARY_BOOK_NEEDS_INPUT/i
     );
+    expect(firestoreMocks.writeBatch).not.toHaveBeenCalled();
+    expect(firestoreMocks.commit).not.toHaveBeenCalled();
+  });
+
+  it('fails with the trade-bonus reason before opening any saved-world write batch', async () => {
+    salaryBasisMocks.loadWorldGovernedTradeSalaryBasisEntries.mockImplementation(
+      async ({
+        worldId,
+        teamId,
+        rosterPlayerIds,
+        worldAsOfDate,
+        salaryCapYear,
+      }) =>
+        new Map(
+          rosterPlayerIds.map((playerId: string) => {
+            const ready = makeSalaryAuthority({
+              worldId,
+              teamId,
+              playerId,
+              asOfDate: worldAsOfDate,
+              salaryCapYear,
+            });
+            return [
+              playerId,
+              playerId === 'a_out'
+                ? {
+                    ...ready,
+                    status: 'needs-input' as const,
+                    method: null,
+                    currentSalary: null,
+                    outgoingSalary: null,
+                    incomingSalary: null,
+                    canonLeafIds: [],
+                    reasons: [
+                      'This Contract has a trade bonus whose allocation is outside this governed tranche.',
+                    ],
+                    proof: null,
+                  }
+                : ready,
+            ];
+          })
+        )
+    );
+
+    const result = await applyWorldMutation({
+      userId: 'user_1',
+      worldId: 'world_1',
+      seasonId: '2026-27',
+      mutationType: 'executeTrade',
+      payload: {
+        teams: [
+          {
+            teamCode: 'TMA',
+            sends: [
+              { ...makePlayer('a_out', 10_000_000), tradeTo: 'TMB' },
+            ],
+            entitlementsOut: [],
+            salaryMatchingElection: {
+              version: 1,
+              path: 'ROOM',
+              postAssignmentApronTeamSalary: 11_000_000,
+              tradedPlayerPreTradeSalaries: { a_out: 10_000_000 },
+            },
+          },
+          {
+            teamCode: 'TMB',
+            sends: [
+              { ...makePlayer('b_out', 10_000_000), tradeTo: 'TMA' },
+            ],
+            entitlementsOut: [],
+            salaryMatchingElection: {
+              version: 1,
+              path: 'ROOM',
+              postAssignmentApronTeamSalary: 11_000_000,
+              tradedPlayerPreTradeSalaries: { b_out: 10_000_000 },
+            },
+          },
+        ],
+        asOfDate: '2026-08-25T12:00:00-04:00',
+        tradeCtx: {
+          source: 'tradeMachine',
+          worldId: 'world_1',
+          asOfDate: '2026-08-25T12:00:00-04:00',
+          yearKey: '2026-27',
+        },
+      },
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      appliedToLocalState: false,
+      persistedToWorld: false,
+    });
+    expect(JSON.stringify(result)).toMatch(/trade bonus whose allocation/i);
     expect(firestoreMocks.writeBatch).not.toHaveBeenCalled();
     expect(firestoreMocks.commit).not.toHaveBeenCalled();
   });

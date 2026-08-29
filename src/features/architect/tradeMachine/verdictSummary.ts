@@ -48,6 +48,30 @@ const humanizeRuleKey = (key: string) =>
 const resolveTeamName = (team: TeamResultLike) =>
   team.teamName || team.teamCode || team.teamId || null;
 
+const previewAuthorityNeedsInput = (
+  previewAuthority: PreviewAuthorityLike,
+  violationText: string
+) => {
+  const statusTokens = [
+    previewAuthority.error,
+    previewAuthority.reason,
+    ...normalizeValidationIssues(previewAuthority.violations).flatMap(
+      (issue) => [issue.code, issue.rule, issue.meta?.status]
+    ),
+  ]
+    .filter((value) => value != null)
+    .map((value) => String(value).trim().toUpperCase());
+
+  return (
+    statusTokens.some(
+      (token) =>
+        token === 'TRADE_SALARY_BASIS_AUTHORITY_ERROR' ||
+        token === 'NEEDS_INPUT' ||
+        token === 'NEEDS-INPUT'
+    ) || /\bneeds input\b/i.test(violationText)
+  );
+};
+
 /**
  * Build the banner strip's verdict items from the current validation payloads.
  * Violations come first, then warnings; duplicate texts are dropped so a rule
@@ -113,6 +137,28 @@ export const buildVerdictItems = (
         if (!text) continue;
         push({ teamName, kind: 'warning', text: `${label}: ${text}` });
       }
+    }
+  }
+
+  if (previewAuthority?.legal === false) {
+    const topLevelViolations = normalizeValidationIssues(
+      previewAuthority.violations
+    );
+    const topLevelTexts =
+      topLevelViolations.length > 0
+        ? topLevelViolations.map((issue) => getValidationIssueText(issue))
+        : [String(previewAuthority.reason ?? '').trim()].filter(Boolean);
+
+    for (const text of topLevelTexts) {
+      if (!text) continue;
+      const kind = previewAuthorityNeedsInput(previewAuthority, text)
+        ? 'needsInput'
+        : 'violation';
+      const alreadyAttributed = [...needsInput, ...violations].some(
+        (item) => item.kind === kind && item.text.includes(text)
+      );
+      if (alreadyAttributed) continue;
+      push({ teamName: null, kind, text });
     }
   }
 

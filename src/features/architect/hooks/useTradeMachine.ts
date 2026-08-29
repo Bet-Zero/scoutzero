@@ -2,10 +2,8 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 // Phase 14.2: Removed ensurePickId import (legacy picks state removed)
 // Phase 16.3: Removed all rawPicks/picksWithIds processing - draft assets are entitlements-only
-import {
-  computeTradeDraftKey,
-  isValidationCurrent,
-} from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
+import { computeTradeDraftKey } from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
+import { hasCurrentTradeValidation } from '@/features/architect/tradeMachine/utils/tradeValidationCurrentness';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
 // Wave 14 Step 1: player ops extracted to useTradeMachinePlayerOps.ts
 import { useTradeMachinePlayerOps } from './useTradeMachinePlayerOps';
@@ -190,14 +188,34 @@ export const useTradeMachine = (
   );
 
   // Stale validation fix: Check if validation result is current for this draft
-  const hasCurrentValidation = useMemo(() => {
-    const teamResults = snapshotValidationDetails?.teamResults;
-    return (
-      Array.isArray(teamResults) &&
-      teamResults.length > 0 &&
-      isValidationCurrent(currentDraftKey, lastValidatedDraftKeyRef.current)
-    );
-  }, [snapshotValidationDetails, currentDraftKey]);
+  const hasCurrentValidation = useMemo(
+    () =>
+      hasCurrentTradeValidation({
+        currentDraftKey,
+        validatedDraftKey: lastValidatedDraftKeyRef.current,
+        snapshotValidationDetails,
+        previewAuthority,
+      }),
+    [snapshotValidationDetails, previewAuthority, currentDraftKey]
+  );
+
+  useEffect(() => {
+    const validatedDraftKey = lastValidatedDraftKeyRef.current;
+    if (
+      !validatedDraftKey ||
+      currentDraftKey === validatedDraftKey ||
+      (!snapshotValidationDetails && !previewAuthority)
+    ) {
+      return;
+    }
+
+    // Once any draft-key input changes, discard the old authority instead of
+    // allowing it to reappear if the user later reconstructs the same draft.
+    lastValidatedDraftKeyRef.current = null;
+    validatedAtRef.current = null;
+    setSnapshotValidationDetails(null);
+    setPreviewAuthority(null);
+  }, [currentDraftKey, previewAuthority, snapshotValidationDetails]);
 
   const hasInjectedDevSntPlayers = useMemo(
     () => hasSyntheticSntPlayers(teams),
@@ -296,6 +314,8 @@ export const useTradeMachine = (
     setSnapshotValidationDetails(null);
     setForceTrade(false);
     setPreviewAuthority(null); // TM-1A / TM-3D: clear preview authority on reset
+    lastValidatedDraftKeyRef.current = null;
+    validatedAtRef.current = null;
   }, []);
 
   return {

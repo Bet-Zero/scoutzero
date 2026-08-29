@@ -316,6 +316,8 @@ export function useTradeMachineValidation({
       if (!previewContext) {
         setSnapshotValidationDetails(null);
         setPreviewAuthority(null); // TM-1A / TM-3D: clear stale preview authority
+        lastValidatedDraftKeyRef.current = null;
+        validatedAtRef.current = null;
         setIsValidating(false);
         return 'insufficient';
       }
@@ -327,10 +329,6 @@ export function useTradeMachineValidation({
         try {
           const outcome = runValidation(previewContext);
           if (outcome) {
-            // Stale validation fix: Record the draft key that was validated
-            lastValidatedDraftKeyRef.current = currentDraftKey;
-            validatedAtRef.current = Date.now();
-
             try {
               const previewAuthority = getTradePreviewAuthority({
                 payload: previewContext.payload,
@@ -339,13 +337,22 @@ export function useTradeMachineValidation({
                 preparation: previewContext.preparation,
               });
               setPreviewAuthority(previewAuthority);
+              // Record the identity only after top-level preview authority was
+              // constructed for this completed validation.
+              lastValidatedDraftKeyRef.current = currentDraftKey;
+              validatedAtRef.current = Date.now();
             } catch (err) {
               console.error(
                 '[useTradeMachine] getTradePreviewAuthority unexpected error:',
                 err
               );
               setPreviewAuthority(null);
+              lastValidatedDraftKeyRef.current = null;
+              validatedAtRef.current = null;
             }
+          } else {
+            lastValidatedDraftKeyRef.current = null;
+            validatedAtRef.current = null;
           }
         } finally {
           setIsValidating(false);

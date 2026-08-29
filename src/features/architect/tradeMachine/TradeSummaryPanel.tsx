@@ -24,6 +24,7 @@ import {
   normalizeValidationIssues,
 } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
 import { DataWarningsSection } from './DataWarningsSection';
+import { buildVerdictItems } from './verdictSummary';
 import type {
   PreviewAuthorityLike,
   SnapshotValidationDetailsLike,
@@ -58,11 +59,10 @@ export function TradeSummaryPanel({
   );
   const previewPassed = previewAuthority?.legal === true;
   const previewFailed = previewAuthority?.legal === false;
-  const needsInput = snapshotValidationDetails?.teamResults?.some((team) =>
-    Object.values(team.rules ?? {}).some(
-      (rule) => rule?.status === 'NEEDS_INPUT'
-    )
-  );
+  const needsInput = buildVerdictItems(
+    snapshotValidationDetails?.teamResults,
+    previewAuthority
+  ).some((item) => item.kind === 'needsInput');
   const topStatus = needsInput
     ? '⚪ Needs input — trade not evaluated'
     : previewPassed
