@@ -59,8 +59,9 @@ export function resolveTrustedPersistedHardCapAuthority(
     retained &&
     explicit &&
     (retained.containingTeamCode !== explicit.containingTeamCode ||
-      JSON.stringify(retained.worldLineage ?? null) !==
-        JSON.stringify(explicit.worldLineage ?? null))
+      (explicit.worldLineage !== undefined &&
+        JSON.stringify(retained.worldLineage ?? null) !==
+          JSON.stringify(explicit.worldLineage ?? null)))
   ) {
     throw new Error(
       'Persisted hard-cap containing-Team or world-lineage authority conflicts with the mutation target.'
@@ -553,9 +554,7 @@ export function parsePersistedTradeHardCapLedger(
   );
   if (rowIEntries.length === 0) return parsed;
 
-  const worldLineage = independentlyTrustedWorldLineage(
-    context.worldLineage
-  );
+  const worldLineage = independentlyTrustedWorldLineage(context.worldLineage);
   if (!worldLineage) return { entries: [], valid: false };
   const cashLedger = parseAuthenticatedCashLedger(
     context.cashLedger,

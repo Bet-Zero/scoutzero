@@ -1307,10 +1307,9 @@ describe('governed Trade Machine apron restrictions', () => {
         entry.canonLeafIds = entry.canonLeafIds.filter(
           (leafId) => leafId !== 'CBA2-A05.11'
         );
-        entry.triggers[0].canonLeafIds =
-          entry.triggers[0].canonLeafIds.filter(
-            (leafId) => leafId !== 'CBA2-A05.11'
-          );
+        entry.triggers[0].canonLeafIds = entry.triggers[0].canonLeafIds.filter(
+          (leafId) => leafId !== 'CBA2-A05.11'
+        );
       },
     },
     {

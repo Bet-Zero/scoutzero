@@ -35,6 +35,21 @@ vi.mock('@/features/architect/utils/worldManager', () => ({
   getWorldMetadata: vi.fn(async (worldId: string) => {
     return worldMetadataById.get(worldId) || { parentWorldId: null };
   }),
+  resolveWorldLineageIds: vi.fn(async (worldId: string) => {
+    const lineage: string[] = [];
+    const visited = new Set<string>();
+    let currentWorldId: string | null = worldId;
+    while (currentWorldId) {
+      if (visited.has(currentWorldId)) {
+        throw new Error(`World lineage cycle detected for ${currentWorldId}`);
+      }
+      visited.add(currentWorldId);
+      lineage.push(currentWorldId);
+      currentWorldId =
+        worldMetadataById.get(currentWorldId)?.parentWorldId ?? null;
+    }
+    return lineage;
+  }),
 }));
 
 vi.mock('@/features/architect/utils/firebaseTeamPlanHelpers', () => ({
@@ -128,7 +143,9 @@ describe('World Context Parent Fallback + Cap Legality Guardrail', () => {
     seedWorld('world-parent', null);
 
     const lakersOutgoing = makePlayer('lal_out', 10_000_000);
-    const lakersSnapshotFromParent = makeTeam('LAL', 177_000_000, [lakersOutgoing]);
+    const lakersSnapshotFromParent = makeTeam('LAL', 177_000_000, [
+      lakersOutgoing,
+    ]);
     seedDoc('architect_worlds/world-child/teams/LAL', null);
     seedDoc('architect_worlds/world-parent/teams/LAL', {
       ...lakersSnapshotFromParent,

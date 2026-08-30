@@ -21,9 +21,7 @@ import {
   projectTradeApplyValidationPlayer,
   toNonEmptyString,
 } from './tradeContext.payloadNormalization';
-import type {
-  TradeValidationResult,
-} from '@/features/architect/utils/tradeMachine/constants/types';
+import type { TradeValidationResult } from '@/features/architect/utils/tradeMachine/constants/types';
 import type {
   ArchitectMutationPlayerRecord,
   ArchitectMutationTeamRecord,
@@ -49,7 +47,6 @@ import { buildTradeValidationPayload } from './tradeContext.snapshot.payloadNorm
 // Wave 26 Step 2: buildPostTradeTeamsSnapshot
 export * from './tradeContext.snapshot.builder';
 import { buildPostTradeTeamsSnapshot } from './tradeContext.snapshot.builder';
-
 
 // ==============================================================================
 // PHASE 56/58: VALIDATION CONTEXT BUILDER
@@ -162,14 +159,14 @@ export function validatePostTradeSnapshotForContext({
       teamResults: [],
       validationTeams: snapshot.validationTeams.map((snapshotTeam) => ({
         teamCode: snapshotTeam.teamCode,
-        receives: normalizeFallbackTradeApplyValidationTeam(snapshotTeam).receives,
+        receives:
+          normalizeFallbackTradeApplyValidationTeam(snapshotTeam).receives,
       })),
       _rawValidation: null,
       _isValidatedTradeContext: true,
     } as unknown as ValidatedTradeContext;
   }
 }
-
 
 // ==============================================================================
 // TM-3B: TRADE APPLY PREPARATION + STAGE-1 VERDICT ADAPTER
@@ -298,11 +295,18 @@ export function buildTradeApplyPreparation({
   seasonId,
   timestamp,
   asOfDate,
+  trustedWorldLineage: explicitTrustedWorldLineage,
 }: BuildTradeApplyPreparationParams): TradeApplyPreparation {
-  const authorityLineages = currentState.teams
+  const retainedAuthorityLineages = currentState.teams
     .map((entry) => getTrustedPersistedHardCapAuthority(entry.team))
     .map((authority) => authority?.worldLineage)
     .filter((lineage): lineage is readonly string[] => Array.isArray(lineage));
+  const authorityLineages = [
+    ...retainedAuthorityLineages,
+    ...(explicitTrustedWorldLineage?.length
+      ? [explicitTrustedWorldLineage]
+      : []),
+  ];
   const trustedWorldLineage = authorityLineages[0];
   if (
     authorityLineages.some(

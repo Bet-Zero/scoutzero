@@ -108,9 +108,7 @@ function prepareGovernedExecuteTradeSignAndTrade({
     authoringIdentity,
     recordedAt,
   });
-  if (
-    senderTeamCode !== normalizeTradeTeamCodeLike(authority.sourceTeamId)
-  ) {
+  if (senderTeamCode !== normalizeTradeTeamCodeLike(authority.sourceTeamId)) {
     throw new Error(
       'Governed sign-and-trade routing must match its authenticated source Team.'
     );

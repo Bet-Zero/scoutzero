@@ -111,15 +111,15 @@ export function prepareGeneralMutationPersistenceTeamSnapshot(
     team as CurrentStateTeamPersistenceStripShape
   );
   const canonicalYear = toEndYear(seasonId);
-  const totalsAlignedTeam = Number.isFinite(canonicalYear) && asOfDate
-    ? backfillCurrentStateBaseTeamPreservedFields(
-        synchronizeTeamTotalsSnapshot(persistenceReadyTeam, canonicalYear, {
-          asOfDate,
-        }) ||
-          persistenceReadyTeam,
-        persistenceReadyTeam
-      ) || persistenceReadyTeam
-    : persistenceReadyTeam;
+  const totalsAlignedTeam =
+    Number.isFinite(canonicalYear) && asOfDate
+      ? backfillCurrentStateBaseTeamPreservedFields(
+          synchronizeTeamTotalsSnapshot(persistenceReadyTeam, canonicalYear, {
+            asOfDate,
+          }) || persistenceReadyTeam,
+          persistenceReadyTeam
+        ) || persistenceReadyTeam
+      : persistenceReadyTeam;
   const afterSanitize =
     sanitizeTransientFieldsForPersistence(totalsAlignedTeam);
   const afterTpeNormalize = normalizeTeamTpeSchema(afterSanitize);
@@ -149,7 +149,11 @@ export function buildGeneralMutationCommittedTeamUpdates(
   return teamUpdates.map((update) => ({
     teamCode: update.teamCode,
     team: update?.team
-      ? buildGeneralMutationCommittedTeamSnapshot(update.team, seasonId, asOfDate)
+      ? buildGeneralMutationCommittedTeamSnapshot(
+          update.team,
+          seasonId,
+          asOfDate
+        )
       : null,
   }));
 }
@@ -178,11 +182,9 @@ export function canonicalizeTeamUpdatesWithCanonicalTotals(
   }));
 }
 
-export function canonicalizeComputeResultTeamUpdates<T extends ComputeResultLike>(
-  result: T,
-  seasonId: string,
-  asOfDate: string | null = null
-): T {
+export function canonicalizeComputeResultTeamUpdates<
+  T extends ComputeResultLike,
+>(result: T, seasonId: string, asOfDate: string | null = null): T {
   if (!Array.isArray(result?.teamUpdates) || result.teamUpdates.length === 0) {
     return result;
   }

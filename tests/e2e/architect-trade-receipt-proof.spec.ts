@@ -348,6 +348,67 @@ const prepareProofWorld = async (page: Page) => {
       worldId: PROOF_WORLD_ID,
     }
   );
+  return uid;
+};
+
+const seedInheritedProofWorld = async ({
+  childWorldId,
+  childWorldName,
+  parentWorldId,
+}: {
+  childWorldId: string;
+  childWorldName: string;
+  parentWorldId: string;
+}) => {
+  const db = getReviewAdminDb();
+  const [parentMetadata, parentMia, parentDen] = await Promise.all([
+    db.doc(`architect_worlds/${parentWorldId}`).get(),
+    getWorldTeamDocument(parentWorldId, 'MIA'),
+    getWorldTeamDocument(parentWorldId, 'DEN'),
+  ]);
+  expect(parentMetadata.exists).toBe(true);
+  expect(parentMia).not.toBeNull();
+  expect(parentDen).not.toBeNull();
+  const now = new Date();
+  const childTeam = (team: Record<string, unknown> | null) => ({
+    ...team,
+    ...(team?.source && typeof team.source === 'object'
+      ? { source: { ...team.source, worldId: childWorldId } }
+      : {}),
+  });
+  const batch = db.batch();
+  batch.set(db.doc(`architect_worlds/${childWorldId}`), {
+    ...parentMetadata.data(),
+    worldId: childWorldId,
+    worldName: childWorldName,
+    description: 'Deterministic inherited-world browser fixture.',
+    createdAt: now,
+    lastModifiedAt: now,
+    parentWorldId,
+    branchedFrom: now,
+    childWorlds: [],
+  });
+  batch.set(
+    db.doc(`architect_worlds/${childWorldId}/teams/MIA`),
+    childTeam(parentMia)
+  );
+  batch.set(
+    db.doc(`architect_worlds/${childWorldId}/teams/DEN`),
+    childTeam(parentDen)
+  );
+  await batch.commit();
+};
+
+const activateProofWorld = async (page: Page, uid: string, worldId: string) => {
+  await page.evaluate(
+    ({ storageKey, nextWorldId }) => {
+      window.localStorage.setItem(storageKey, nextWorldId);
+    },
+    {
+      storageKey: `architect.activeWorldId.${uid}`,
+      nextWorldId: worldId,
+    }
+  );
 };
 
 const isVisible = async (locator: Locator, timeout = 1_000) =>
@@ -646,7 +707,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   });
 
   expect(await worldCount()).toBe(0);
-  await prepareProofWorld(page);
+  const uid = await prepareProofWorld(page);
   expect(await worldCount()).toBe(1);
   const dialog = await openTradeMachine(page);
   await expect(dialog.getByRole('button', { name: /Miami Heat/i })).toBeVisible(
@@ -1069,7 +1130,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   expect(
     parsePersistedTradeHardCapLedger(miaAfterApply?.hardCapLedger, {
       containingTeamCode: 'MIA',
-      worldId: PROOF_WORLD_ID,
+      worldLineage: [PROOF_WORLD_ID],
       cashLedger: miaAfterApply?.cashLedger,
     })
   ).toEqual({ entries: structurallyValidHardCapLedger, valid: true });
@@ -1222,6 +1283,80 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   await page.screenshot({ path: historyScreenshotPath, fullPage: false });
   expect(pageErrors).toEqual([]);
 
+  const parentWorldId = PROOF_WORLD_ID;
+  const childWorldId = 'world_trade_receipt_proof_child';
+  await seedInheritedProofWorld({
+    childWorldId,
+    childWorldName: 'Trade Receipt Proof Child',
+    parentWorldId,
+  });
+  await activateProofWorld(page, uid, childWorldId);
+  const childMia = await getWorldTeamDocument(childWorldId, 'MIA');
+  const childDen = await getWorldTeamDocument(childWorldId, 'DEN');
+  expect(JSON.stringify(childMia?.hardCapLedger)).toBe(miaHardCapLedgerBytes);
+  expect(JSON.stringify(childMia?.cashLedger)).toBe(miaCashLedgerBytes);
+  expect(JSON.stringify(childDen?.cashLedger)).toBe(denCashLedgerBytes);
+  expect(childDen?.hardCapLedger ?? []).toEqual([]);
+
+  await page.goto(MIA_URL, { waitUntil: 'domcontentloaded' });
+  await expect(
+    page.getByText('Trade Receipt Proof Child', { exact: true }).first()
+  ).toBeVisible({ timeout: 90_000 });
+  await openDashboardTab(page, 'Cap Sheet');
+  await page.getByTestId('cap-sheet-exceptions-toggle').click();
+  const childHardCapBanner = page.getByTestId(
+    'cap-sheet-current-season-authority-banner'
+  );
+  await expect(childHardCapBanner).toContainText('Hard Capped');
+  await expect(childHardCapBanner).toContainText(
+    'Transaction Restrictions Table Row I hard cap for Salary Cap Year 2027.'
+  );
+  await expect(childHardCapBanner).not.toContainText(
+    'malformed or version-incompatible'
+  );
+  await expect(childHardCapBanner).not.toContainText('fail-closed');
+
+  const grandchildWorldId = 'world_trade_receipt_proof_grandchild';
+  await seedInheritedProofWorld({
+    childWorldId: grandchildWorldId,
+    childWorldName: 'Trade Receipt Proof Grandchild',
+    parentWorldId: childWorldId,
+  });
+  await activateProofWorld(page, uid, grandchildWorldId);
+  const grandchildMia = await getWorldTeamDocument(grandchildWorldId, 'MIA');
+  const grandchildDen = await getWorldTeamDocument(grandchildWorldId, 'DEN');
+  expect(JSON.stringify(grandchildMia?.hardCapLedger)).toBe(
+    miaHardCapLedgerBytes
+  );
+  expect(JSON.stringify(grandchildMia?.cashLedger)).toBe(miaCashLedgerBytes);
+  expect(JSON.stringify(grandchildDen?.cashLedger)).toBe(denCashLedgerBytes);
+  expect(grandchildDen?.hardCapLedger ?? []).toEqual([]);
+  await page.goto(MIA_URL, { waitUntil: 'domcontentloaded' });
+  await expect(
+    page.getByText('Trade Receipt Proof Grandchild', { exact: true }).first()
+  ).toBeVisible({ timeout: 90_000 });
+  await openDashboardTab(page, 'Cap Sheet');
+  await page.getByTestId('cap-sheet-exceptions-toggle').click();
+  const grandchildHardCapBanner = page.getByTestId(
+    'cap-sheet-current-season-authority-banner'
+  );
+  await expect(grandchildHardCapBanner).toContainText('Hard Capped');
+  await expect(grandchildHardCapBanner).not.toContainText(
+    'malformed or version-incompatible'
+  );
+  expect(
+    JSON.stringify(
+      (await getWorldTeamDocument(parentWorldId, 'MIA'))?.hardCapLedger
+    )
+  ).toBe(miaHardCapLedgerBytes);
+  expect(
+    JSON.stringify(
+      (await getWorldTeamDocument(parentWorldId, 'MIA'))?.cashLedger
+    )
+  ).toBe(miaCashLedgerBytes);
+  expect(await worldCount()).toBe(3);
+  expect(pageErrors).toEqual([]);
+
   const proof = {
     candidate: CANDIDATE,
     route: MIA_URL,
@@ -1282,7 +1417,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
         },
       },
       twoWayExplanationCount: 4,
-      fixtureWorldCount: 1,
+      fixtureWorldCount: 3,
       durableWorldCountChangeAfterValidation: 0,
       durableTeamDocumentChangeAfterValidation: 0,
       tradeBonusAuthorityBoundary: {
@@ -1332,6 +1467,15 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
           result: 'FAIL_CLOSED',
           denCashLedgerUnchanged: true,
           restoredWithoutContamination: true,
+        },
+        savedWorldLineage: {
+          parentWorldId,
+          childWorldId,
+          grandchildWorldId,
+          inheritedRowIBytesPreserved: true,
+          inheritedCashBytesPreserved: true,
+          childReloadValid: true,
+          grandchildReloadValid: true,
         },
       },
       incompleteRosterCharges: {

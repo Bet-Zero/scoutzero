@@ -9,6 +9,7 @@ import {
 import { loadStateForMutation } from '@/features/architect/utils/mutationPipeline.read.stateLoader';
 import { getMockTeamSnapshot } from '../helpers/architectTestHelpers.js';
 import {
+  seedBaseData,
   createMockPlayer,
   createMockTeam,
   createMockWorld,
@@ -23,7 +24,15 @@ import {
   type MockTeamSnapshot,
 } from '../helpers/architectTestHelpers.js';
 import { getAllMockData, resetMockDataStore } from '../__mocks__/firebase.js';
-import { getPlayer } from '@/features/architect/utils/teamLoader';
+import {
+  getLeague,
+  getPlayer,
+  getTeam,
+} from '@/features/architect/utils/teamLoader';
+import {
+  branchWorld,
+  createWorld,
+} from '@/features/architect/utils/worldManager';
 import { worldPlayerRef } from '@/features/architect/utils/architectFirestorePaths';
 import { makeGovernedOfferSheetFixture } from '../fixtures/architect/governedOfferSheet';
 import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
@@ -658,17 +667,22 @@ describe('mutationPipeline trade persistence truth', () => {
   });
 
   it('atomically persists paired cash ledgers, the uninvolved Team snapshot, Row I, and one receipt while rejecting a stale replay', async () => {
-    const worldId = 'world_trade_truth_cash';
     const cashSeasonId = '2026-27';
+    seedBaseData('all');
+    const createdParent = await createWorld({
+      name: 'BZE-298 Row I parent',
+      userId: USER_ID,
+    });
+    const worldId = createdParent.worldId;
     const transactionAt = '2026-07-08T09:55:00-04:00';
     const cashTimestamp = Date.UTC(2026, 6, 8, 14, 0, 0);
     const annualLimitCents = 849_549_150;
-    const cashProof = (teamId: 'LAL' | 'BOS') => {
+    const cashProof = (teamId: 'LAL' | 'BOS', provenanceWorldId = worldId) => {
       const envelope = resolveGovernedSeasonEnvelope({
         asOfDate: transactionAt,
         salaryCapYear: 2027,
         requiredAuthority: 'official',
-        team: { teamId, teamCode: teamId, worldId },
+        team: { teamId, teamCode: teamId, worldId: provenanceWorldId },
         registry: CANON_GOVERNED_SEASON_REGISTRY,
       });
       expect(envelope.status).toBe('complete');
@@ -684,7 +698,9 @@ describe('mutationPipeline trade persistence truth', () => {
     };
     const cashEvaluation = (
       teamId: 'LAL' | 'BOS',
-      direction: 'PAID' | 'RECEIVED'
+      direction: 'PAID' | 'RECEIVED',
+      provenanceWorldId = worldId,
+      ledgerVersion = 0
     ): GovernedCashEvaluation => ({
       evaluationVersion: 1,
       status: 'PASS',
@@ -694,13 +710,14 @@ describe('mutationPipeline trade persistence truth', () => {
       transactionAt,
       cashSentCents: direction === 'PAID' ? 100 : 0,
       cashReceivedCents: direction === 'RECEIVED' ? 100 : 0,
-      priorPaidCents: 0,
-      priorReceivedCents: 0,
-      projectedPaidCents: direction === 'PAID' ? 100 : 0,
-      projectedReceivedCents: direction === 'RECEIVED' ? 100 : 0,
+      priorPaidCents: direction === 'PAID' ? ledgerVersion * 100 : 0,
+      priorReceivedCents: direction === 'RECEIVED' ? ledgerVersion * 100 : 0,
+      projectedPaidCents: direction === 'PAID' ? (ledgerVersion + 1) * 100 : 0,
+      projectedReceivedCents:
+        direction === 'RECEIVED' ? (ledgerVersion + 1) * 100 : 0,
       annualLimitCents,
       regularSeasonClosing: '2027-04-11',
-      ledgerVersion: 0,
+      ledgerVersion,
       canonLeafIds: [
         direction === 'PAID' ? 'CBA2-A08.1' : 'CBA2-A08.2',
         'CBA2-A08.4',
@@ -709,7 +726,7 @@ describe('mutationPipeline trade persistence truth', () => {
       ],
       missingInputs: [],
       violations: [],
-      proof: cashProof(teamId),
+      proof: cashProof(teamId, provenanceWorldId),
     });
     const hardCapProof = {
       registryId: CANON_GOVERNED_SEASON_REGISTRY.registryId,
@@ -762,6 +779,8 @@ describe('mutationPipeline trade persistence truth', () => {
     };
     vi.mocked(validateTrade).mockImplementation((input) => {
       const result = basicTradeValidation(input);
+      const provenanceWorldId = input.tradeCtx?.worldId ?? worldId;
+      const ledgerVersion = provenanceWorldId === worldId ? 0 : 1;
       return {
         ...result,
         teamResults: [
@@ -770,7 +789,12 @@ describe('mutationPipeline trade persistence truth', () => {
             teamCode: 'LAL',
             teamName: 'Lakers',
             rules: {},
-            cashConsiderationEvaluation: cashEvaluation('LAL', 'PAID'),
+            cashConsiderationEvaluation: cashEvaluation(
+              'LAL',
+              'PAID',
+              provenanceWorldId,
+              ledgerVersion
+            ),
             apronRestrictionEvaluation: rowIEvaluation,
           },
           {
@@ -778,7 +802,12 @@ describe('mutationPipeline trade persistence truth', () => {
             teamCode: 'BOS',
             teamName: 'Celtics',
             rules: {},
-            cashConsiderationEvaluation: cashEvaluation('BOS', 'RECEIVED'),
+            cashConsiderationEvaluation: cashEvaluation(
+              'BOS',
+              'RECEIVED',
+              provenanceWorldId,
+              ledgerVersion
+            ),
             apronRestrictionEvaluation: null,
           },
           {
@@ -799,11 +828,21 @@ describe('mutationPipeline trade persistence truth', () => {
           teams: [
             {
               teamCode: 'LAL',
-              cashConsiderationEvaluation: cashEvaluation('LAL', 'PAID'),
+              cashConsiderationEvaluation: cashEvaluation(
+                'LAL',
+                'PAID',
+                provenanceWorldId,
+                ledgerVersion
+              ),
             },
             {
               teamCode: 'BOS',
-              cashConsiderationEvaluation: cashEvaluation('BOS', 'RECEIVED'),
+              cashConsiderationEvaluation: cashEvaluation(
+                'BOS',
+                'RECEIVED',
+                provenanceWorldId,
+                ledgerVersion
+              ),
             },
             {
               teamCode: 'DET',
@@ -814,14 +853,11 @@ describe('mutationPipeline trade persistence truth', () => {
       } as ReturnType<typeof validateTrade>;
     });
 
-    seedWorldMetadata(
-      worldId,
-      createMockWorld({
-        worldId,
-        userId: USER_ID,
-        currentSeason: cashSeasonId,
-      })
-    );
+    seedWorldMetadata(worldId, {
+      ...createdParent.metadata,
+      currentSeason: cashSeasonId,
+      asOfDate: '2026-07-08',
+    });
     const lalOut = makePlayer('cash_lal_out', 'LAL', 8_000_000);
     const bosOut = makePlayer('cash_bos_out', 'BOS', 8_000_000);
     const detOut = makePlayer('cash_det_out', 'DET', 8_000_000);
@@ -1000,7 +1036,7 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(
       parsePersistedTradeHardCapLedger(persistedHardCapLedger, {
         containingTeamCode: 'LAL',
-        worldId,
+        worldLineage: [worldId],
         cashLedger: lalSnapshot.cashLedger,
       })
     ).toEqual({
@@ -1021,7 +1057,7 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(
       getHardCapStatus(reloadedLal, {
         containingTeamCode: 'LAL',
-        worldId,
+        worldLineage: [worldId],
         salaryCapYear: 2027,
         capSettings: {
           firstApron: 215_000_000,
@@ -1063,6 +1099,156 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(requireTeamSnapshot(worldId, 'LAL').hardCapLedger).toEqual(
       persistedHardCapLedger
     );
+
+    const child = await branchWorld(
+      worldId,
+      'BZE-298 Row I child',
+      '',
+      USER_ID
+    );
+    const childWorldId = child.worldId;
+    const childPayload = {
+      teams: [
+        {
+          teamCode: 'LAL',
+          team: { id: 'lakers', teamCode: 'LAL' },
+          sends: [{ ...detOut, teamCode: 'LAL', tradeTo: 'BOS' }],
+          entitlementsOut: [],
+          cashSent: 1,
+          cashToTeamId: 'celtics',
+        },
+        {
+          teamCode: 'BOS',
+          team: { id: 'celtics', teamCode: 'BOS' },
+          sends: [{ ...lalOut, teamCode: 'BOS', tradeTo: 'DET' }],
+          entitlementsOut: [],
+        },
+        {
+          teamCode: 'DET',
+          team: { id: 'pistons', teamCode: 'DET' },
+          sends: [{ ...bosOut, teamCode: 'DET', tradeTo: 'LAL' }],
+          entitlementsOut: [],
+        },
+      ],
+      tradeCtx: { ...payload.tradeCtx, worldId: childWorldId },
+    };
+    const childLal = await getTeam(childWorldId, 'LAL');
+    const childBos = await getTeam(childWorldId, 'BOS');
+    const childLeague = await getLeague(childWorldId);
+    const childMutationState = await loadStateForMutation(
+      childWorldId,
+      'executeTrade',
+      childPayload
+    );
+    expect(childLal.hardCapLedger).toEqual(persistedHardCapLedger);
+    expect(JSON.stringify(childLal.hardCapLedger)).toBe(hardCapLedgerBytes);
+    expect(JSON.stringify(childLal.cashLedger)).toBe(lalLedgerBytes);
+    expect(childBos.hardCapLedger ?? []).toEqual([]);
+    expect(childLeague).toHaveLength(30);
+    expect(
+      childLeague.find((team) => team.teamCode === 'LAL')?.hardCapLedger
+    ).toEqual(persistedHardCapLedger);
+    expect(
+      childMutationState.teams.find((candidate) => candidate.teamCode === 'LAL')
+        ?.team.hardCapLedger
+    ).toEqual(persistedHardCapLedger);
+    expect(
+      getHardCapStatus(childLal, {
+        containingTeamCode: 'LAL',
+        worldLineage: [childWorldId, worldId],
+        salaryCapYear: 2027,
+        capSettings: {
+          firstApron: 215_000_000,
+          secondApron: rowIEvaluation.ceiling,
+        },
+      })
+    ).toMatchObject({
+      isHardCapped: true,
+      hardCapType: 'SECOND_APRON',
+      failClosed: false,
+    });
+
+    const childCandidate = computeWorldMutation({
+      mutationType: 'executeTrade',
+      payload: childPayload,
+      currentState: childMutationState,
+      seasonId: cashSeasonId,
+      timestamp: cashTimestamp + 10_000,
+      asOfDate: transactionAt,
+      worldId: childWorldId,
+      operationId: 'cash-operation-child',
+    });
+    expect(childCandidate.success, String(childCandidate.error)).toBe(true);
+    const childPersisted = await persistWorldMutation({
+      worldId: childWorldId,
+      seasonId: cashSeasonId,
+      mutationType: 'executeTrade',
+      computeResult: childCandidate,
+      committedTeamUpdates: buildGeneralMutationCommittedTeamUpdates(
+        childCandidate.teamUpdates,
+        cashSeasonId
+      ),
+      timestamp: cashTimestamp + 10_000,
+    });
+    expect(childPersisted.success, String(childPersisted.error)).toBe(true);
+
+    const reloadedMixedChild = await getTeam(childWorldId, 'LAL');
+    const mixedCashLedger = GovernedCashLedgerZ.parse(
+      reloadedMixedChild.cashLedger
+    );
+    expect(mixedCashLedger.ledgerVersion).toBe(2);
+    expect(mixedCashLedger.entries.map((entry) => entry.worldId)).toEqual([
+      worldId,
+      childWorldId,
+    ]);
+    expect(reloadedMixedChild.hardCapLedger).toHaveLength(2);
+    expect(
+      getHardCapStatus(reloadedMixedChild, {
+        containingTeamCode: 'LAL',
+        worldLineage: [childWorldId, worldId],
+        salaryCapYear: 2027,
+        capSettings: {
+          firstApron: 215_000_000,
+          secondApron: rowIEvaluation.ceiling,
+        },
+      }).failClosed
+    ).toBe(false);
+    expect(JSON.stringify(requireTeamSnapshot(worldId, 'LAL').cashLedger)).toBe(
+      lalLedgerBytes
+    );
+    expect(
+      JSON.stringify(requireTeamSnapshot(worldId, 'LAL').hardCapLedger)
+    ).toBe(hardCapLedgerBytes);
+    const mixedCashLedgerBytes = JSON.stringify(reloadedMixedChild.cashLedger);
+    const mixedHardCapLedgerBytes = JSON.stringify(
+      reloadedMixedChild.hardCapLedger
+    );
+
+    const grandchild = await branchWorld(
+      childWorldId,
+      'BZE-298 Row I grandchild',
+      '',
+      USER_ID
+    );
+    const grandchildLal = await getTeam(grandchild.worldId, 'LAL');
+    const grandchildLeague = await getLeague(grandchild.worldId);
+    expect(JSON.stringify(grandchildLal.hardCapLedger)).toBe(
+      mixedHardCapLedgerBytes
+    );
+    expect(JSON.stringify(grandchildLal.cashLedger)).toBe(mixedCashLedgerBytes);
+    expect(grandchildLeague).toHaveLength(30);
+    expect(
+      getHardCapStatus(grandchildLal, {
+        containingTeamCode: 'LAL',
+        worldLineage: [grandchild.worldId, childWorldId, worldId],
+        salaryCapYear: 2027,
+        capSettings: {
+          firstApron: 215_000_000,
+          secondApron: rowIEvaluation.ceiling,
+        },
+      }).failClosed
+    ).toBe(false);
+
     expect(bosSnapshot.hardCapLedger ?? []).toEqual([]);
     expect(detSnapshot.hardCapLedger ?? []).toEqual([]);
     expect(lalSnapshot.salaryBookInputs).toEqual(salaryBooksBefore.LAL);

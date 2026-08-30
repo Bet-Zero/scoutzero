@@ -113,7 +113,6 @@ import type {
   UseArchitectStateReturn,
 } from './useArchitectState';
 
-
 // Wave 6 Step 1: type definitions extracted to submodule
 export * from './useArchitectActions.types';
 import type { ActionContext } from './useArchitectModals';
@@ -226,11 +225,9 @@ import type {
 export * from './useArchitectActions.offerSheetExecutors';
 import { useOfferSheetExecutors } from './useArchitectActions.offerSheetExecutors';
 
-
 // Wave 12 Step 2: signing execution + cap-audited mutation sub-hook
 export * from './useArchitectActions.signingExecution';
 import { useSigningExecution } from './useArchitectActions.signingExecution';
-
 
 // Wave 12 Step 1: cap-audit boundary + world-reload orchestration sub-hook
 export * from './useArchitectActions.persistenceHelpers';
@@ -297,6 +294,7 @@ export function useArchitectActions({
   playersMap,
   modals,
   worldId,
+  worldLineage = [],
   seasonId,
   publishPostActionReceipt,
 }: UseArchitectActionsParams): UseArchitectActionsReturn {
@@ -345,6 +343,7 @@ export function useArchitectActions({
   } = usePersistenceHelpers({
     teamCode: teamCode ?? '',
     worldId,
+    worldLineage,
     userId,
     seasonId,
     currentYear,
@@ -359,7 +358,6 @@ export function useArchitectActions({
     refreshWorldRosterIndex,
     publishPostActionReceipt,
   });
-
 
   const {
     applyResolvedStandardSigningState,
@@ -393,7 +391,6 @@ export function useArchitectActions({
     publishPostActionReceipt,
   });
 
-
   const {
     resolveCommittedOfferSheetState,
     applyCommittedOfferSheetState,
@@ -419,7 +416,6 @@ export function useArchitectActions({
     applyCommittedWorldReload,
     applyCapAuditedTeamMutation,
   });
-
 
   // Wave 6 Step 3: trade + sign + sign-and-trade handlers extracted to sub-hook
   const {
@@ -453,7 +449,6 @@ export function useArchitectActions({
     prepareSignAndTradeTransactionDefinition,
     prepareOfferSheetCreationDefinition,
   });
-
 
   // Wave 6 Step 4: RFA offer sheet handlers extracted to sub-hook
   const {
@@ -574,33 +569,31 @@ export function useArchitectActions({
   // the contract modal is allowed to show. Architect V1 supports the proven
   // saved-world standard FA lane while parking advanced Free Agency transaction
   // lanes from the normal user path.
-  const freeAgentModalAvailability = useMemo<FreeAgentModalAvailability>(
-    () => {
-      const standardSigningIsWorldSupported = Boolean(worldId);
-      const offerSheetInitiation = freeAgencyWorldOnlyModalActionOwner
-        ? {
-            getOfferSheetPreflight:
-              freeAgencyWorldOnlyModalActionOwner.getOfferSheetPreflight,
-            storeOfferSheet: freeAgencyWorldOnlyModalActionOwner.storeOfferSheet,
-          }
-        : null;
+  const freeAgentModalAvailability = useMemo<FreeAgentModalAvailability>(() => {
+    const standardSigningIsWorldSupported = Boolean(worldId);
+    const offerSheetInitiation = freeAgencyWorldOnlyModalActionOwner
+      ? {
+          getOfferSheetPreflight:
+            freeAgencyWorldOnlyModalActionOwner.getOfferSheetPreflight,
+          storeOfferSheet: freeAgencyWorldOnlyModalActionOwner.storeOfferSheet,
+        }
+      : null;
 
-      return {
-        visibleActions: ['signNew'],
-        actionLabelsOverride: {
-          signNew: standardSigningIsWorldSupported
-            ? 'Sign Free Agent'
-            : 'Sign Free Agent (Preview)',
-        },
-        standardSigningExposureClassification:
-          standardSigningIsWorldSupported ? 'V1 supported' : 'preview-only',
-        showOfferSheetToggle: Boolean(offerSheetInitiation),
-        signAndTradeInitiation: null,
-        offerSheetInitiation,
-      };
-    },
-    [freeAgencyWorldOnlyModalActionOwner, worldId]
-  );
+    return {
+      visibleActions: ['signNew'],
+      actionLabelsOverride: {
+        signNew: standardSigningIsWorldSupported
+          ? 'Sign Free Agent'
+          : 'Sign Free Agent (Preview)',
+      },
+      standardSigningExposureClassification: standardSigningIsWorldSupported
+        ? 'V1 supported'
+        : 'preview-only',
+      showOfferSheetToggle: Boolean(offerSheetInitiation),
+      signAndTradeInitiation: null,
+      offerSheetInitiation,
+    };
+  }, [freeAgencyWorldOnlyModalActionOwner, worldId]);
 
   // SECTION/LIFECYCLE CONTRACT: FreeAgencySection renders disabled messaging
   // from this published availability surface instead of rebuilding world-mode

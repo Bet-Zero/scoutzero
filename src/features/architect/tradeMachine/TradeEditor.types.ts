@@ -112,6 +112,7 @@ export interface TradeEditorProps {
   primaryTeamData?: PrimaryTeamDataLike;
   onEditContract?: ((player: PlayerLike) => void) | null;
   worldId?: string | null;
+  worldLineage?: readonly string[];
   worldAsOfDate?: string | Date | null;
   userId?: string | null;
   /** Notifies parent when local trade draft has outgoing assets (non-committed). */

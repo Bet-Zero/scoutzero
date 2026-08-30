@@ -108,9 +108,10 @@ export async function getTeam(
 
 async function getTeamFromTrustedLineage(
   worldLineage: readonly string[],
-  teamCode: string
+  teamCode: string,
+  lookupStartIndex = 0
 ): Promise<TeamLike> {
-  const worldId = worldLineage[0];
+  const worldId = worldLineage[lookupStartIndex];
   if (!worldId) {
     throw new Error('Authenticated world lineage is required');
   }
@@ -134,7 +135,7 @@ async function getTeamFromTrustedLineage(
   }
 
   // Try authenticated ancestors without re-deriving lineage from Team data.
-  for (const ancestorWorldId of worldLineage.slice(1)) {
+  for (const ancestorWorldId of worldLineage.slice(lookupStartIndex + 1)) {
     const ancestorSnapshot = await getDoc(
       worldTeamRef(ancestorWorldId, teamCode)
     );
@@ -295,7 +296,7 @@ export async function getLeague(worldId: string | null): Promise<TeamLike[]> {
       }
 
       return worldLineage.length > 1
-        ? getTeamFromTrustedLineage(worldLineage.slice(1), code)
+        ? getTeamFromTrustedLineage(worldLineage, code, 1)
         : getBaseTeam(code);
     })
   );

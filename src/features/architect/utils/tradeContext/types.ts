@@ -213,6 +213,7 @@ export interface BuildTradeApplyPreparationParams {
   seasonId: string;
   timestamp: number;
   asOfDate?: string | number | null;
+  trustedWorldLineage?: readonly string[];
 }
 
 export interface TradeApplyPreparation {

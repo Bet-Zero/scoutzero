@@ -157,7 +157,9 @@ const CompactTradeExceptionRow = ({ tpe }: CompactTradeExceptionRowProps) => {
       </div>
 
       <div className="flex items-center text-[10px] text-cockpit-text-muted group-hover:text-cockpit-text-secondary transition-colors truncate">
-        {Boolean(tpe.createdFrom) && <span>from {String(tpe.createdFrom)}</span>}
+        {Boolean(tpe.createdFrom) && (
+          <span>from {String(tpe.createdFrom)}</span>
+        )}
       </div>
 
       <div className="text-right whitespace-nowrap">
@@ -195,9 +197,7 @@ export const ExceptionTracker = ({
 
   if (!isViewingCurrentYear) {
     return (
-      <section
-        aria-label={surfaceLabel}
-      >
+      <section aria-label={surfaceLabel}>
         <div
           data-testid="cap-sheet-future-year-boundary-panel"
           className="rounded-md border border-cockpit-watch/25 bg-cockpit-watch/[0.06] px-3 py-2 text-cockpit-text-secondary"
@@ -240,7 +240,10 @@ export const ExceptionTracker = ({
   });
 
   const mleException = getCanonicalExceptionAvailability(teamCapSheet, 'mle');
-  const tpMleException = getCanonicalExceptionAvailability(teamCapSheet, 'tpmle');
+  const tpMleException = getCanonicalExceptionAvailability(
+    teamCapSheet,
+    'tpmle'
+  );
   const baeException = getCanonicalExceptionAvailability(teamCapSheet, 'bae');
   const roomException = getCanonicalExceptionAvailability(teamCapSheet, 'room');
 
@@ -278,10 +281,7 @@ export const ExceptionTracker = ({
   }
 
   return (
-    <section
-      aria-label={surfaceLabel}
-      className="space-y-1.5"
-    >
+    <section aria-label={surfaceLabel} className="space-y-1.5">
       {/* Exception cards, TPEs, and hard-cap state explain roster-building
           tools for the current season. They do not recompute the cap table's
           selected-year totals. The banner is the whole default-view surface

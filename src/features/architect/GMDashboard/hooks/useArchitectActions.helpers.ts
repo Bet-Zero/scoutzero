@@ -40,7 +40,6 @@ import type {
 import type { RenounceActionTarget } from './useArchitectActions.helpers.signing';
 import type { ReloadActiveWorldMetadataPatch } from './useArchitectState.types';
 
-
 // Helper to ensure contract has proper structure
 
 export function isCapHoldTarget(
@@ -49,7 +48,9 @@ export function isCapHoldTarget(
   return 'playerName' in value || 'amount' in value;
 }
 
-export function getRenounceTargetDisplayName(target: RenounceActionTarget): string {
+export function getRenounceTargetDisplayName(
+  target: RenounceActionTarget
+): string {
   if (isCapHoldTarget(target)) {
     return String(target.playerName || 'this player');
   }
@@ -238,6 +239,7 @@ export function buildCapAuditEvaluation(params: {
   occurredAt: string;
   mutationType: string;
   worldId: string | null;
+  worldLineage?: readonly string[];
   year: number;
   teamCodes: string[];
   playerIds: string[];
@@ -256,6 +258,7 @@ export function buildCapAuditEvaluation(params: {
     occurredAt,
     mutationType,
     worldId,
+    worldLineage = [],
     year,
     teamCodes,
     playerIds,
@@ -281,6 +284,7 @@ export function buildCapAuditEvaluation(params: {
     operationId,
     mutationType,
     worldId: worldId || BASE_MODE_VALIDATOR_WORLD_ID,
+    worldLineage,
     year,
     beforeTeamsByCode: beforeTeamsByCode as Record<
       string,

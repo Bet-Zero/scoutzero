@@ -398,10 +398,7 @@ describe('persisted hard-cap containing-Team authority', () => {
       childWorldId,
       'trade-child'
     );
-    const hardCapLedger = [
-      ...parent.hardCapLedger,
-      ...child.hardCapLedger,
-    ];
+    const hardCapLedger = [...parent.hardCapLedger, ...child.hardCapLedger];
     const cashLedger = GovernedCashLedgerZ.parse({
       ...parent.cashLedger,
       ledgerVersion: 2,
@@ -524,10 +521,7 @@ describe('persisted hard-cap containing-Team authority', () => {
   });
 
   it.each([
-    [
-      'missing ledger',
-      () => undefined,
-    ],
+    ['missing ledger', () => undefined],
     [
       'received only',
       (ledger: ReturnType<typeof productGeneratedRowI>['cashLedger']) => {

@@ -673,6 +673,7 @@ export interface UseArchitectActionsParams {
   playersMap: StatePlayersMap;
   modals: ArchitectModalsForActions;
   worldId: string | null;
+  worldLineage?: readonly string[];
   seasonId: string;
   /**
    * Stage 2B post-action receipt publisher. Optional; when provided,
