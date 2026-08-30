@@ -268,6 +268,7 @@ const renderCapSheetSection = () => {
         teamCapSheet as Parameters<typeof CapSheetSection>[0]['teamCapSheet']
       }
       currentYear={CURRENT_YEAR}
+      containingTeamCode="TST"
       asOfDate="2025-07-01T12:00:00-04:00"
       onOpenPlayerContractModal={() => {}}
       manualCapSheetMutationAuthority={{

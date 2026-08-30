@@ -325,7 +325,8 @@ export async function getWorldTeamSnapshotLineageReceipt(
     if (exists) {
       const normalizedTeam = toCurrentStateTeam(
         snapshot.data() as MutationCurrentStateOfferSheetTeamIngress | null,
-        'offerSheetResolution'
+        'offerSheetResolution',
+        { containingTeamCode: teamCode, worldId: lineageWorldId }
       );
       if (!normalizedTeam) {
         continue;

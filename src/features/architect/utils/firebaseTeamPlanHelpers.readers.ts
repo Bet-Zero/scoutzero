@@ -30,7 +30,7 @@ import {
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
 import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
 import type { GovernedCashLedger } from '@/schemas/governedCashConsideration';
-import { parseTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
+import { parsePersistedTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 
 // ============================================================
 // Private types
@@ -472,7 +472,8 @@ function readLooseTradeExceptions(
 export function readLooseBaseTeamDoc(
   value: unknown,
   teamCode: string,
-  context: string
+  context: string,
+  worldId: string | null = null
 ): LooseBaseTeamDoc {
   const record = requireArchitectRecord(value, context);
   const normalized = { ...record } as LooseBaseTeamDoc;
@@ -547,7 +548,14 @@ export function readLooseBaseTeamDoc(
   if (record.hardCapLedger === null) {
     normalized.hardCapLedger = null;
   } else if (record.hardCapLedger !== undefined) {
-    const parsedLedger = parseTradeHardCapLedger(record.hardCapLedger);
+    const parsedLedger = parsePersistedTradeHardCapLedger(
+      record.hardCapLedger,
+      {
+        containingTeamCode: teamCode,
+        worldId,
+        cashLedger: record.cashLedger,
+      }
+    );
     if (!parsedLedger.valid) {
       throw new Error(`${context}.hardCapLedger is not governed authority.`);
     }

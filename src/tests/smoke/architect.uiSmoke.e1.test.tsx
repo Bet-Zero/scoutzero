@@ -444,6 +444,7 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
           teamCapSheet as React.ComponentProps<typeof CapSheetSection>['teamCapSheet']
         }
         currentYear={CURRENT_YEAR}
+        containingTeamCode="LAL"
         onOpenPlayerContractModal={vi.fn()}
         manualCapSheetMutationAuthority={{
           handleSetDeadCap: vi.fn(async () => true),

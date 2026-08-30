@@ -47,6 +47,8 @@ type CapSheetDevFixtureControls = {
 
 type CapSheetSectionProps = ForwardedCapSheetProps & {
   currentYear: number;
+  containingTeamCode: string;
+  worldId?: string | null;
   playersMap?: Record<string, unknown>;
   capSheetDevFixtureControls?: CapSheetDevFixtureControls | null;
   onInjectCapSheetFixtures?: DevFixtureAction;
@@ -88,6 +90,8 @@ const resolveTeamPlanLabel = (
 const CapSheetSection = ({
   teamCapSheet,
   currentYear,
+  containingTeamCode,
+  worldId = null,
   asOfDate = null,
   onOpenPlayerContractModal,
   manualCapSheetMutationAuthority,
@@ -239,6 +243,8 @@ const CapSheetSection = ({
             <ExceptionTracker
               teamCapSheet={teamCapSheet}
               currentYear={currentYear}
+              containingTeamCode={containingTeamCode}
+              worldId={worldId}
               selectedYear={selectedYear}
               surfaceLabel={CAP_SHEET_SECTION_SURFACE_LABELS.adjacentDetail}
             />

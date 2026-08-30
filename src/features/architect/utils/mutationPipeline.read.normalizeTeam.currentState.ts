@@ -86,6 +86,7 @@ import {
   buildCurrentStateTradeTeam,
 } from './mutationPipeline.read.normalizeTeam.builders';
 import { GovernedCashSnapshotReceiptZ } from '@/schemas/governedCashConsideration';
+import type { PersistedHardCapAuthorityContext } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 
 // ============================================================
 // Private projection-lane type blocks
@@ -124,14 +125,55 @@ type CurrentStateTeamIngressArgs = {
   [TLane in CurrentStateTeamProjectionLane]: [
     team: CurrentStateTeamIngressByLane[TLane],
     lane: TLane,
+    authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>,
   ];
 }[CurrentStateTeamProjectionLane];
 type CurrentStateTeamBoundaryArgs = {
   [TLane in CurrentStateTeamProjectionLane]: [
     team: CurrentStateTeamBoundaryByLane[TLane],
     lane: TLane,
+    authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>,
   ];
 }[CurrentStateTeamProjectionLane];
+
+const TRUSTED_CONTAINING_TEAM_AUTHORITY = Symbol(
+  'trusted-containing-team-authority'
+);
+type CurrentStateHardCapAuthorityContext = Omit<
+  PersistedHardCapAuthorityContext,
+  'cashLedger'
+>;
+
+function resolveCurrentStateHardCapAuthority(
+  team: object,
+  explicit?: CurrentStateHardCapAuthorityContext
+): CurrentStateHardCapAuthorityContext | undefined {
+  if (explicit) return explicit;
+  return (
+    team as {
+      [TRUSTED_CONTAINING_TEAM_AUTHORITY]?: CurrentStateHardCapAuthorityContext;
+    }
+  )[TRUSTED_CONTAINING_TEAM_AUTHORITY];
+}
+
+function retainCurrentStateHardCapAuthority<T extends object>(
+  team: T,
+  authorityContext?: CurrentStateHardCapAuthorityContext
+): T {
+  if (
+    typeof authorityContext?.containingTeamCode !== 'string' ||
+    !authorityContext.containingTeamCode.trim()
+  ) {
+    return team;
+  }
+  Object.defineProperty(team, TRUSTED_CONTAINING_TEAM_AUTHORITY, {
+    value: Object.freeze({ ...authorityContext }),
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
+  return team;
+}
 
 // ============================================================
 // Exported functions
@@ -158,6 +200,7 @@ export function buildPostComputeTradeBoundaryInput(
     rightsLedger: materializedTeam.rightsLedger,
     contractEventLedgers: materializedTeam.contractEventLedgers,
     salaryBookInputs: materializedTeam.salaryBookInputs,
+    hardCapLedger: materializedTeam.hardCapLedger,
     deadCap: materializedTeam.deadCap,
     exceptions: materializedTeam.exceptions,
     tradeExceptions: materializedTeam.tradeExceptions,
@@ -177,7 +220,8 @@ export function buildPostComputeTradeBoundaryInput(
 }
 
 export function normalizePostComputeTeamSnapshotForPostState(
-  team: ArchitectMutationComputedTeamSnapshot | null | undefined
+  team: ArchitectMutationComputedTeamSnapshot | null | undefined,
+  authorityContext: CurrentStateHardCapAuthorityContext
 ): TradeTeamLike | null {
   if (!isCurrentStateTeamBoundaryObject(team)) {
     return null;
@@ -185,158 +229,227 @@ export function normalizePostComputeTeamSnapshotForPostState(
 
   return normalizeCurrentStateTeamSnapshot(
     buildPostComputeTradeBoundaryInput(team),
-    'trade'
+    'trade',
+    authorityContext
   );
 }
 
 export function toCurrentStateTeam(
   team: CurrentStateTeamIngressByLane['playerOps'],
-  lane: 'playerOps'
+  lane: 'playerOps',
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): CurrentStatePlayerOpsTeam | null;
 export function toCurrentStateTeam(
   team: CurrentStateTeamIngressByLane['manualCap'],
-  lane: 'manualCap'
+  lane: 'manualCap',
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): CurrentStateManualCapTeam | null;
 export function toCurrentStateTeam(
   team: CurrentStateTeamIngressByLane['signing'],
-  lane: 'signing'
+  lane: 'signing',
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): CurrentStateSigningTeam | null;
 export function toCurrentStateTeam(
   team: CurrentStateTeamIngressByLane['offerSheetMirror'],
-  lane: 'offerSheetMirror'
+  lane: 'offerSheetMirror',
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): CurrentStateOfferSheetMirrorTeam | null;
 export function toCurrentStateTeam(
   team: CurrentStateTeamIngressByLane['offerSheetResolution'],
-  lane: 'offerSheetResolution'
+  lane: 'offerSheetResolution',
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): CurrentStateOfferSheetResolutionTeam | null;
 export function toCurrentStateTeam(
   team: CurrentStateTeamIngressByLane['trade'],
-  lane: 'trade'
+  lane: 'trade',
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): TradeTeamLike | null;
 export function toCurrentStateTeam(
-  ...[team, lane]: CurrentStateTeamIngressArgs
+  ...[team, lane, authorityContext]: CurrentStateTeamIngressArgs
 ): CurrentStatePrimaryTeam | null {
   if (!isCurrentStateTeamBoundaryObject(team)) {
     return null;
   }
+  const resolvedAuthorityContext = resolveCurrentStateHardCapAuthority(
+    team,
+    authorityContext
+  );
 
   switch (lane) {
     case 'playerOps':
-      return buildCurrentStatePlayerOpsTeam(
-        normalizeCurrentStateBaseTeamBoundary(
-          buildCurrentStateBaseTeamBoundaryInput(team),
-          CURRENT_STATE_PLAYER_OPS_PRESERVED_FIELDS
-        )
+      return retainCurrentStateHardCapAuthority(
+        buildCurrentStatePlayerOpsTeam(
+          normalizeCurrentStateBaseTeamBoundary(
+            buildCurrentStateBaseTeamBoundaryInput(team),
+            CURRENT_STATE_PLAYER_OPS_PRESERVED_FIELDS,
+            resolvedAuthorityContext
+          )
+        ),
+        resolvedAuthorityContext
       );
     case 'manualCap':
-      return buildCurrentStateManualCapTeam(
-        normalizeCurrentStateBaseTeamBoundary(
-          buildCurrentStateBaseTeamBoundaryInput(team),
-          CURRENT_STATE_MANUAL_CAP_PRESERVED_FIELDS
-        )
+      return retainCurrentStateHardCapAuthority(
+        buildCurrentStateManualCapTeam(
+          normalizeCurrentStateBaseTeamBoundary(
+            buildCurrentStateBaseTeamBoundaryInput(team),
+            CURRENT_STATE_MANUAL_CAP_PRESERVED_FIELDS,
+            resolvedAuthorityContext
+          )
+        ),
+        resolvedAuthorityContext
       );
     case 'signing':
-      return buildCurrentStateSigningTeam(
-        normalizeCurrentStateBaseTeamBoundary(
-          buildCurrentStateBaseTeamBoundaryInput(team),
-          CURRENT_STATE_SIGNING_PRESERVED_FIELDS
-        )
+      return retainCurrentStateHardCapAuthority(
+        buildCurrentStateSigningTeam(
+          normalizeCurrentStateBaseTeamBoundary(
+            buildCurrentStateBaseTeamBoundaryInput(team),
+            CURRENT_STATE_SIGNING_PRESERVED_FIELDS,
+            resolvedAuthorityContext
+          )
+        ),
+        resolvedAuthorityContext
       );
     case 'offerSheetMirror':
-      return buildCurrentStateOfferSheetMirrorTeam(
-        normalizeCurrentStateBaseTeamBoundary(
-          buildCurrentStateBaseTeamBoundaryInput(team),
-          CURRENT_STATE_OFFER_SHEET_MIRROR_PRESERVED_FIELDS
-        )
+      return retainCurrentStateHardCapAuthority(
+        buildCurrentStateOfferSheetMirrorTeam(
+          normalizeCurrentStateBaseTeamBoundary(
+            buildCurrentStateBaseTeamBoundaryInput(team),
+            CURRENT_STATE_OFFER_SHEET_MIRROR_PRESERVED_FIELDS,
+            resolvedAuthorityContext
+          )
+        ),
+        resolvedAuthorityContext
       );
     case 'offerSheetResolution':
-      return buildCurrentStateOfferSheetResolutionTeam(
-        normalizeCurrentStateBaseTeamBoundary(
-          buildCurrentStateBaseTeamBoundaryInput(team),
-          CURRENT_STATE_OFFER_SHEET_RESOLUTION_PRESERVED_FIELDS
-        )
+      return retainCurrentStateHardCapAuthority(
+        buildCurrentStateOfferSheetResolutionTeam(
+          normalizeCurrentStateBaseTeamBoundary(
+            buildCurrentStateBaseTeamBoundaryInput(team),
+            CURRENT_STATE_OFFER_SHEET_RESOLUTION_PRESERVED_FIELDS,
+            resolvedAuthorityContext
+          )
+        ),
+        resolvedAuthorityContext
       );
     case 'trade':
-      return buildCurrentStateTradeTeam(
-        normalizeCurrentStateTradeTeamBoundary(
-          buildCurrentStateTradeTeamBoundaryInput(team)
-        )
+      return retainCurrentStateHardCapAuthority(
+        buildCurrentStateTradeTeam(
+          normalizeCurrentStateTradeTeamBoundary(
+            buildCurrentStateTradeTeamBoundaryInput(team),
+            resolvedAuthorityContext
+          )
+        ),
+        resolvedAuthorityContext
       );
   }
 }
 
 export function normalizeCurrentStateTeamSnapshot(
   team: CurrentStateTeamBoundaryByLane['playerOps'],
-  lane: 'playerOps'
+  lane: 'playerOps',
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): CurrentStatePlayerOpsTeam | null;
 export function normalizeCurrentStateTeamSnapshot(
   team: CurrentStateTeamBoundaryByLane['manualCap'],
-  lane: 'manualCap'
+  lane: 'manualCap',
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): CurrentStateManualCapTeam | null;
 export function normalizeCurrentStateTeamSnapshot(
   team: CurrentStateTeamBoundaryByLane['signing'],
-  lane: 'signing'
+  lane: 'signing',
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): CurrentStateSigningTeam | null;
 export function normalizeCurrentStateTeamSnapshot(
   team: CurrentStateTeamBoundaryByLane['offerSheetMirror'],
-  lane: 'offerSheetMirror'
+  lane: 'offerSheetMirror',
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): CurrentStateOfferSheetMirrorTeam | null;
 export function normalizeCurrentStateTeamSnapshot(
   team: CurrentStateTeamBoundaryByLane['offerSheetResolution'],
-  lane: 'offerSheetResolution'
+  lane: 'offerSheetResolution',
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): CurrentStateOfferSheetResolutionTeam | null;
 export function normalizeCurrentStateTeamSnapshot(
   team: CurrentStateTeamBoundaryByLane['trade'],
-  lane: 'trade'
+  lane: 'trade',
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): TradeTeamLike | null;
 export function normalizeCurrentStateTeamSnapshot(
-  ...[team, lane]: CurrentStateTeamBoundaryArgs
+  ...[team, lane, authorityContext]: CurrentStateTeamBoundaryArgs
 ): CurrentStatePrimaryTeam | null {
   if (!isCurrentStateTeamBoundaryObject(team)) {
     return null;
   }
+  const resolvedAuthorityContext = resolveCurrentStateHardCapAuthority(
+    team,
+    authorityContext
+  );
 
   switch (lane) {
     case 'playerOps':
-      return buildCurrentStatePlayerOpsTeam(
-        normalizeCurrentStateBaseTeamBoundary(
-          buildCurrentStateBaseTeamBoundaryInput(team),
-          CURRENT_STATE_PLAYER_OPS_PRESERVED_FIELDS
-        )
+      return retainCurrentStateHardCapAuthority(
+        buildCurrentStatePlayerOpsTeam(
+          normalizeCurrentStateBaseTeamBoundary(
+            buildCurrentStateBaseTeamBoundaryInput(team),
+            CURRENT_STATE_PLAYER_OPS_PRESERVED_FIELDS,
+            resolvedAuthorityContext
+          )
+        ),
+        resolvedAuthorityContext
       );
     case 'manualCap':
-      return buildCurrentStateManualCapTeam(
-        normalizeCurrentStateBaseTeamBoundary(
-          buildCurrentStateBaseTeamBoundaryInput(team),
-          CURRENT_STATE_MANUAL_CAP_PRESERVED_FIELDS
-        )
+      return retainCurrentStateHardCapAuthority(
+        buildCurrentStateManualCapTeam(
+          normalizeCurrentStateBaseTeamBoundary(
+            buildCurrentStateBaseTeamBoundaryInput(team),
+            CURRENT_STATE_MANUAL_CAP_PRESERVED_FIELDS,
+            resolvedAuthorityContext
+          )
+        ),
+        resolvedAuthorityContext
       );
     case 'signing':
-      return buildCurrentStateSigningTeam(
-        normalizeCurrentStateBaseTeamBoundary(
-          buildCurrentStateBaseTeamBoundaryInput(team),
-          CURRENT_STATE_SIGNING_PRESERVED_FIELDS
-        )
+      return retainCurrentStateHardCapAuthority(
+        buildCurrentStateSigningTeam(
+          normalizeCurrentStateBaseTeamBoundary(
+            buildCurrentStateBaseTeamBoundaryInput(team),
+            CURRENT_STATE_SIGNING_PRESERVED_FIELDS,
+            resolvedAuthorityContext
+          )
+        ),
+        resolvedAuthorityContext
       );
     case 'offerSheetMirror':
-      return buildCurrentStateOfferSheetMirrorTeam(
-        normalizeCurrentStateBaseTeamBoundary(
-          buildCurrentStateBaseTeamBoundaryInput(team),
-          CURRENT_STATE_OFFER_SHEET_MIRROR_PRESERVED_FIELDS
-        )
+      return retainCurrentStateHardCapAuthority(
+        buildCurrentStateOfferSheetMirrorTeam(
+          normalizeCurrentStateBaseTeamBoundary(
+            buildCurrentStateBaseTeamBoundaryInput(team),
+            CURRENT_STATE_OFFER_SHEET_MIRROR_PRESERVED_FIELDS,
+            resolvedAuthorityContext
+          )
+        ),
+        resolvedAuthorityContext
       );
     case 'offerSheetResolution':
-      return buildCurrentStateOfferSheetResolutionTeam(
-        normalizeCurrentStateBaseTeamBoundary(
-          buildCurrentStateBaseTeamBoundaryInput(team),
-          CURRENT_STATE_OFFER_SHEET_RESOLUTION_PRESERVED_FIELDS
-        )
+      return retainCurrentStateHardCapAuthority(
+        buildCurrentStateOfferSheetResolutionTeam(
+          normalizeCurrentStateBaseTeamBoundary(
+            buildCurrentStateBaseTeamBoundaryInput(team),
+            CURRENT_STATE_OFFER_SHEET_RESOLUTION_PRESERVED_FIELDS,
+            resolvedAuthorityContext
+          )
+        ),
+        resolvedAuthorityContext
       );
     case 'trade':
-      return buildCurrentStateTradeTeam(
-        normalizeCurrentStateTradeTeamBoundary(
-          buildCurrentStateTradeTeamBoundaryInput(team)
-        )
+      return retainCurrentStateHardCapAuthority(
+        buildCurrentStateTradeTeam(
+          normalizeCurrentStateTradeTeamBoundary(
+            buildCurrentStateTradeTeamBoundaryInput(team),
+            resolvedAuthorityContext
+          )
+        ),
+        resolvedAuthorityContext
       );
   }
 }

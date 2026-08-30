@@ -14,10 +14,8 @@ import type {
   HardCapTypeLegacy,
 } from '../constants/types';
 import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
-import {
-  parseTradeHardCapLedger,
-  selectHardCapLedgerEntryFromEntries,
-} from './tradeApronRestrictions';
+import { selectHardCapLedgerEntryFromEntries } from './tradeApronRestrictions';
+import { parsePersistedTradeHardCapLedger } from './tradeHardCapLedgerAuthority';
 
 type HardCapStructuredFlag = {
   active?: boolean;
@@ -52,6 +50,7 @@ type HardCapTotalsLike = TeamCapTotalsSnapshot | Record<string, unknown> | null;
 
 type HardCapStatusTeamData = {
   hardCapLedger?: unknown;
+  cashLedger?: unknown;
   hardCapSecondApron?: HardCapStructuredFlag;
   hardCapFirstApron?: HardCapStructuredFlag;
   hardCapType?: string | boolean | number | null;
@@ -73,6 +72,7 @@ type HardCapStatusTeamData = {
 type HardCapStatusTeamLike = {
   team?: HardCapStatusTeamData;
   hardCapLedger?: unknown;
+  cashLedger?: unknown;
   hardCapSecondApron?: HardCapStructuredFlag;
   hardCapFirstApron?: HardCapStructuredFlag;
   hardCapType?: string | boolean | number | null;
@@ -96,6 +96,8 @@ type HardCapStatusOptions = {
   capSettings?: HardCapCapSettingsLike | null;
   inferHardCapFromExceptionUsage?: boolean;
   salaryCapYear?: number | null;
+  containingTeamCode?: string | null;
+  worldId?: string | null;
 };
 
 type CanonicalHardCapType = HardCapTypeCanonical;
@@ -700,6 +702,8 @@ export function getHardCapStatus(
     capSettings = null,
     inferHardCapFromExceptionUsage = false,
     salaryCapYear = null,
+    containingTeamCode = null,
+    worldId = null,
   } = options;
 
   if (!team) {
@@ -714,7 +718,11 @@ export function getHardCapStatus(
 
   const teamLike = team.team || {};
   const rawLedger = teamLike.hardCapLedger ?? team.hardCapLedger;
-  const parsedLedger = parseTradeHardCapLedger(rawLedger);
+  const parsedLedger = parsePersistedTradeHardCapLedger(rawLedger, {
+    containingTeamCode,
+    worldId,
+    cashLedger: teamLike.cashLedger ?? team.cashLedger,
+  });
   if (!parsedLedger.valid) {
     return buildStatus({
       isHardCapped: true,

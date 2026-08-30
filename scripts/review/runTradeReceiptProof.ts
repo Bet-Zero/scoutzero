@@ -183,6 +183,10 @@ export async function runTradeReceiptProof(): Promise<number> {
     artifactDir,
     'stepien-needs-input-1280x720.png'
   );
+  const foreignLedgerScreenshotPath = path.join(
+    artifactDir,
+    'foreign-hard-cap-ledger-fail-closed-1280x720.png'
+  );
   const proofPath = path.join(artifactDir, 'proof.json');
   const tracePaths = findFiles(testResultsDir, 'trace.zip');
   const reportPath = path.join(reportDir, 'index.html');
@@ -190,6 +194,7 @@ export async function runTradeReceiptProof(): Promise<number> {
     result.status === 0 &&
     fs.existsSync(screenshotPath) &&
     fs.existsSync(stepienScreenshotPath) &&
+    fs.existsSync(foreignLedgerScreenshotPath) &&
     fs.existsSync(proofPath) &&
     tracePaths.length > 0 &&
     fs.existsSync(reportPath) &&
@@ -227,6 +232,14 @@ export async function runTradeReceiptProof(): Promise<number> {
         ? {
             path: path.relative(identity.repoRoot, stepienScreenshotPath),
             sha256: hashFile(stepienScreenshotPath),
+          }
+        : null,
+      foreignHardCapLedgerFailClosedScreenshot: fs.existsSync(
+        foreignLedgerScreenshotPath
+      )
+        ? {
+            path: path.relative(identity.repoRoot, foreignLedgerScreenshotPath),
+            sha256: hashFile(foreignLedgerScreenshotPath),
           }
         : null,
       trace: tracePaths.map((tracePath) => ({

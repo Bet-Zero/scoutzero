@@ -194,6 +194,7 @@ export const GMDashboard = () => {
   const { teamId } = useParams();
   const { userId, loading: authLoading } = useAuth();
   const normalizedTeamId = teamId ?? '';
+  const containingTeamCode = resolveTeamCode(normalizedTeamId) ?? '';
 
   // Pin board: an intentional, multi-player collection surfaced in the activity
   // rail. Pinning is an explicit action (the player action menu) — never a
@@ -784,10 +785,14 @@ export const GMDashboard = () => {
         secondApron: workspaceContext.cap.secondApron,
       },
       salaryCapYear: currentYear,
+      containingTeamCode,
+      worldId,
     });
   }, [
     currentYear,
+    containingTeamCode,
     teamCapSheet,
+    worldId,
     workspaceContext.cap,
   ]);
 
@@ -1066,6 +1071,8 @@ export const GMDashboard = () => {
   // read or committed-write authorities.
   const capSheetSectionSurface: CapSheetSectionProps = {
     teamCapSheet,
+    containingTeamCode,
+    worldId,
     currentYear,
     asOfDate: worldAsOfDate,
     onOpenPlayerContractModal:
@@ -1503,6 +1510,8 @@ export const GMDashboard = () => {
               }
               currentYear={currentYear}
               selectedYear={currentYear}
+              containingTeamCode={containingTeamCode}
+              worldId={worldId}
             />
           }
         />

@@ -67,14 +67,18 @@ export function addTeamSnapshot(
 }
 
 export function extractTeamsByCodeFromComputeResult(
-  computeResult: MutationBridgeTeamUpdatesSlice = {}
+  computeResult: MutationBridgeTeamUpdatesSlice = {},
+  worldId: string
 ): MutationTeamMap {
   const teamsByCode: MutationTeamMap = {};
   for (const update of computeResult.teamUpdates || []) {
     addTeamSnapshot(
       teamsByCode,
       update?.teamCode,
-      normalizePostComputeTeamSnapshotForPostState(update?.team)
+      normalizePostComputeTeamSnapshotForPostState(update?.team, {
+        containingTeamCode: update?.teamCode ?? null,
+        worldId,
+      })
     );
   }
   return teamsByCode;

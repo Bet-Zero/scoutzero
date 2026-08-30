@@ -105,6 +105,7 @@ const buildTeamCapSheet = () => ({
 const buildBaseProps = (currentYear = 2026) => ({
   teamCapSheet: buildTeamCapSheet(),
   currentYear,
+  containingTeamCode: 'LAL',
   onOpenPlayerContractModal: vi.fn(),
   manualCapSheetMutationAuthority: {
     handleSetDeadCap: vi.fn(async () => true),
