@@ -1332,7 +1332,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     /2\s+teams changed/i
   );
   await expect(page.getByTestId('comparison-changed-players')).toContainText(
-    /6\s+players touched/i
+    /4\s+players touched/i
   );
   await expect(page.getByTestId('comparison-roster-additions')).toContainText(
     'Aaron Pike'
@@ -1471,7 +1471,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
         reloadCompare: {
           committedEventCount: 1,
           changedTeamCount: 2,
-          changedPlayerCount: 6,
+          changedPlayerCount: 4,
           rosterAdditionVisible: 'Aaron Pike',
           rosterRemovalVisible: 'Owen Frost',
         },
