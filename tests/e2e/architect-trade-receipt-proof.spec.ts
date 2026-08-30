@@ -1322,6 +1322,30 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     'trade-cash-history-reload-1280x720.png'
   );
   await page.screenshot({ path: historyScreenshotPath, fullPage: false });
+  await historyDetail.getByTestId('team-history-detail-close').click();
+  await openDashboardTab(page, 'Compare');
+  await expect(page.getByTestId('comparison-event-count')).toContainText(
+    /1\s+committed event/i,
+    { timeout: 20_000 }
+  );
+  await expect(page.getByTestId('comparison-changed-teams')).toContainText(
+    /2\s+teams changed/i
+  );
+  await expect(page.getByTestId('comparison-changed-players')).toContainText(
+    /6\s+players touched/i
+  );
+  await expect(page.getByTestId('comparison-roster-additions')).toContainText(
+    'Aaron Pike'
+  );
+  await expect(page.getByTestId('comparison-roster-removals')).toContainText(
+    'Owen Frost'
+  );
+  await expect(page.getByTestId('comparison-cap-delta')).toBeVisible();
+  const compareScreenshotPath = path.join(
+    ARTIFACT_DIR,
+    'trade-cash-compare-reload-1280x720.png'
+  );
+  await page.screenshot({ path: compareScreenshotPath, fullPage: false });
   expect(pageErrors).toEqual([]);
 
   const proof = {
@@ -1387,18 +1411,6 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       fixtureWorldCount: 1,
       durableWorldCountChangeAfterValidation: 0,
       durableTeamDocumentChangeAfterValidation: 0,
-      tradeBonusAuthorityBoundary: {
-        retainedTradeKickerPercent:
-          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion
-            .retainedTradeKickerPercent,
-        governedContractTradeKickerRate:
-          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion
-            .retainedTradeKickerPercent / 100,
-        verdict: 'Needs input',
-        applyBlocked: true,
-        savedWorldTeamChanges: 0,
-        savedWorldEventChanges: 0,
-      },
       draftAuthorityBoundary: {
         firstRoundEntitlementId: FIRST_ROUND_PROOF_ENTITLEMENT_ID,
         expectedAuthority: {
@@ -1429,6 +1441,9 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
         retainedTradeKickerPercent:
           PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion
             .retainedTradeKickerPercent,
+        governedContractTradeKickerRate:
+          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion
+            .retainedTradeKickerPercent / 100,
         missingEvidence:
           PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.missingEvidenceTag,
         verdict:
@@ -1453,6 +1468,13 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
         },
         proofWorldExistsAfterApply,
         reloadHistoryReceiptVisible: true,
+        reloadCompare: {
+          committedEventCount: 1,
+          changedTeamCount: 2,
+          changedPlayerCount: 6,
+          rosterAdditionVisible: 'Aaron Pike',
+          rosterRemovalVisible: 'Owen Frost',
+        },
       },
       incompleteRosterCharges: {
         asOfDate: PROOF_AS_OF_DATE,
@@ -1489,6 +1511,10 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   });
   await testInfo.attach('trade-cash-history-reload-1280x720', {
     path: historyScreenshotPath,
+    contentType: 'image/png',
+  });
+  await testInfo.attach('trade-cash-compare-reload-1280x720', {
+    path: compareScreenshotPath,
     contentType: 'image/png',
   });
   await testInfo.attach('full-roster-books-reload-1280x720', {
