@@ -5,17 +5,22 @@ description: BZE-265 source-derived W1-W15 closure evidence map and exact-head i
 
 # Phase 3A Closure Evidence (BZE-265)
 
-**Status:** stopped on a source-derived nonzero trade-bonus presentation defect.
-**Required base:** `0f33acfa3388971ac9015133aaf876f52dfd4be9`.
+**Status:** resumed after the BZE-296 blocker landed; complete diagnostic
+pending.
+**Required base:** `89a8c01bd37d54f0ed639a14a76bc00a51484041`.
 **Closure branch:** `feature/bze-265-phase3a-closure-integration-proof`.
 **Draft PR:** #517.
 
 The worktree was returned to clean synchronized `main` at the required base
-before this branch resumed. Hosted base CI run `33200095176` passed at that
-exact commit. Current main includes completed foundations BZE-294 / PR #518 and
-BZE-295 / PRs #519 and #520. BZE-289, BZE-294, and BZE-295 remain Done. No
-product, CBA, schema, persistence, Canon, governed-source, or completed-child
-implementation is changed in this lane.
+before this branch resumed. Hosted base CI run `33290842948` passed at that
+exact commit, including the hosted full suite and production build. Current
+main includes completed foundations BZE-294 / PR #518, BZE-295 / PRs #519 and
+PR #520, and BZE-296 / PR #521. The paused head `8149b667…` was synchronized by
+normal two-parent merge `d8921cae…`; no rebase, squash, amendment, branch
+replacement, or force-push occurred. BZE-289, BZE-294, BZE-295, and BZE-296
+remain Done. Completed-child observations remain evidence, not new closure
+scope. Relative to current main this lane changes no product, CBA, schema,
+persistence, Canon, governed-source, or completed-child implementation.
 
 ## Locked authority boundary
 
@@ -34,7 +39,10 @@ The V1 completion contract now records the owner's 2026-08-27 decision:
 
 The exclusions do not remove ordinary governed trades, supported second-round
 picks or entitlements, cash, or previously established draft rules from V1.
-No Phase 3B implementation issue was created.
+No Phase 3B implementation issue was created. The 2026-08-27 decision governs
+the two fail-closed variants during this proof; it does not let BZE-265 silently
+make the final owner decision that the completed remaining-exclusions matrix is
+acceptable for V1 closure. That final acceptance remains explicitly pending.
 
 ## Expectation oracle
 
@@ -157,7 +165,7 @@ inputs above, omitted `acceptedCanon.CBA2-A12.3`, and contained no affirmative
 legality copy. The supported second-round result was `PASS`, `evaluated:true`,
 `passed:true`, with no missing inputs.
 
-## Current browser stop: nonzero trade-bonus visibility
+## Historical browser stop and BZE-296 repair
 
 The full-roster browser discriminator reached the retained nonzero-bonus
 boundary after the repaired first-round exclusion passed visibly with Apply
@@ -182,34 +190,42 @@ result. The failing focused expectation is retained in
 `useTradeMachineValidation.ts` logging `[after validate] []` before the UI
 returned to `Not validated`.
 
-This is a real product presentation/honesty defect. It does not currently
-authorize a mutation, but it hides the owner-approved exclusion reason and
-therefore fails the explicit “visible and fail closed before mutation” closure
-requirement. The smallest separate repair is to preserve and present a
-top-level fail-closed preview authority even when validation legitimately has
-no per-Team results; BZE-265 must not make that product change.
+This was a real product presentation/honesty defect. It did not authorize a
+mutation, but it hid the exclusion reason and therefore failed the explicit
+“visible and fail closed before mutation” closure requirement.
+
+BZE-296 / PR #521 landed the separate repair on current main. It preserves a
+completed exact-draft top-level preview authority with an explicit legal
+verdict even when `teamResults` is empty, while rejecting missing, malformed,
+failed-construction, cleared, or stale authority. A current `legal: false`
+result remains unable to preview, export a Trade Summary, Apply, or write. The
+complete BZE-265 diagnostic must now verify the retained 15% source record is
+presented as visible `Needs input` with the trade-bonus reason, disabled Apply,
+and zero Team/event writes before supported controls continue. No BZE-296
+result is claimed as BZE-265 integration proof until that diagnostic passes.
 
 ## Reuse-first W1-W15 map
 
 “Reusable” below means the completed-child evidence still proves its local
-requirement because the only later product landings, BZE-294 and BZE-295, are
-confined to draft authority, accepted-Canon parsing/provenance, and persisted
-entitlement boundary reading. It does not claim the final cross-workstream
-proof passed. The resumed integration run stopped at the W9 bonus exclusion as
-required.
+requirement. BZE-294, BZE-295, and BZE-296 are confined to first-round draft
+authority, accepted-Canon parsing/provenance, persisted entitlement boundary
+reading, and exact-draft Trade Machine validation presentation/currentness.
+They do not reopen unrelated completed workflows or make completed-child
+observations new scope. This table does not claim the final cross-workstream
+proof passed; the resumed complete diagnostic remains the next gate.
 
 | WF  | Required proof                                                 | Evidence decision at required base                                                                                                           | Closure state                                               |
 | --- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | W1  | Saved-world create/switch/date/leave/return/reload             | Reuse BZE-246/BZE-250 local lifecycle receipts; later landings do not touch world selection or persistence                                  | Integrated current-head rerun not reached                   |
 | W2  | Team, Apron, and Tax Salary books across rooms                 | Reuse BZE-285 and exact-head BZE-293 book/roster-charge receipts; current proof fixture records all three governed books                     | Full 15+3 books loaded; post-action cross-room run not reached |
 | W3  | Waive, stretch, buyout                                         | Reuse BZE-284 retained browser evidence; exact `$31M`, five-year `$6.2M`, and `$26M` expectations re-recorded from source                    | Current integrated rerun not reached                        |
-| W4  | Contract and option actions                                    | Reuse completed extension/option receipts; BZE-294/295 have no contract-action diff                                                         | Current integrated rerun not reached                        |
+| W4  | Contract and option actions                                    | Reuse completed extension/option receipts; PRs #518–#521 have no contract-action diff                                                       | Current integrated rerun not reached                        |
 | W5  | Another-team free-agent signing                                | Reuse BZE-286 local workflow evidence; replace the old event-derived oracle with pre-recorded `$3,442,237` source math                       | Oracle corrected; browser rerun not reached                 |
 | W6  | Own free-agent re-sign/absolve                                 | Reuse D-MQ-005A and rights receipts; later landings do not touch this path                                                                   | Current integrated rerun not reached                        |
 | W7  | Offer Sheet create/match/decline                               | Reuse BZE-283 and D-MQ-005B/D/E receipts; `48h` window re-recorded from Canon                                                               | Current integrated rerun not reached                        |
 | W8  | Sign-and-trade                                                 | Reuse BZE-290 retained evidence and D-MQ-005C/F; three-season and First-Apron expectations re-recorded                                      | Current integrated rerun not reached                        |
-| W9  | Ordinary trades, supported entitlements, cash, draft lifecycle | Reuse BZE-279/287/288/291/292 local receipts; current proof adds full 15+3, both exclusions, second-round, cash, books, history, and reload | **Stopped: bonus exclusion reason is hidden after Validate** |
-| W10 | Draft/Stepien/frozen-pick authority and supported-pick control | Current-main source probe plus current browser first-round discriminator; BZE-294/295 are completed foundations                            | First-round fail-closed proof green; second-round source control green; browser apply not reached |
+| W9  | Ordinary trades, supported entitlements, cash, draft lifecycle | Reuse BZE-279/287/288/291/292 local receipts; BZE-296 preserves top-level fail-closed authority; current proof adds full 15+3, both exclusions, second-round, cash, books, history, and reload | Complete integrated diagnostic pending                      |
+| W10 | Draft/Stepien/frozen-pick authority and supported-pick control | Current-main source probe plus current browser first-round discriminator; BZE-294/295 are completed foundations                            | Fresh exact-branch probe and complete browser control pending |
 | W11 | Season Advance and post-advance books/history                  | Reuse BZE-289 exact-head 30-Team evidence and BZE-293 post-advance book evidence; BZE-295 provenance correction recorded                    | Current integrated rerun not reached                        |
 | W12 | Team History and cross-team agreement                          | Reuse only the completed action-specific history receipts; current trade proof includes a reload/history assertion                         | Current assertion not reached after mandatory stop          |
 | W13 | Compare agreement                                              | Reuse completed action-specific Compare receipts; later draft-only landings do not touch Compare                                            | Current integrated rerun not reached                        |
@@ -249,19 +265,21 @@ harness and produced these attempts:
 5. an explicit two-attempt validation-settling control reproduced the same
    product result twice.
 
-Only items 2 and 3 were repaired, because they were test-harness defects. Item
-4/5 is the current product stop. No browser result was used to rewrite the
-source oracle.
+Only items 2 and 3 were repaired in BZE-265 because they were test-harness
+defects. Items 4/5 were the product stop later repaired separately by BZE-296.
+No browser result was used to rewrite the source oracle.
 
 ## Current closure boundary
 
-BZE-265 and BZE-267 stay In Progress at this product-defect boundary. Retained
-exact-head certification, hosted candidate CI, final W1-W15 completion, and the
-immutable independent-Claude prompt were not started. BZE-294 and BZE-295 are
-completed foundations, not reopened scope. No owner-facing V1 review, undraft,
-merge, issue closure, Claude invocation, Phase 3B implementation, or product
-repair inside BZE-265 is authorized. Owner direction is required for the
-smallest separate repair described above.
+BZE-265 and BZE-267 stay In Progress while the resumed discriminator and
+complete diagnostic run. Retained exact-head certification, hosted candidate
+CI, final W1-W15 completion, and the immutable independent-Claude prompt remain
+unstarted at this checkpoint. BZE-289, BZE-294, BZE-295, and BZE-296 are
+completed foundations, not reopened scope. The final owner acceptance of the
+remaining V1/Phase 3B exclusions remains pending even if every objective proof
+gate passes. No owner-facing V1 decision, undraft, merge, issue closure, Claude
+invocation, Phase 3B implementation, or product repair inside BZE-265 is
+authorized.
 
 ## Validation and elapsed-time record
 

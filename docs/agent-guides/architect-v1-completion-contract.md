@@ -235,11 +235,18 @@ product, not only in tests:
 
 ## Undecided — owner decisions required
 
-None open. The three decisions raised at the 2026-07-11 review (the
-Offseason room, authoring controls, and the trade-summary export) were
-resolved by the owner the same day and are encoded in the sections above.
-Any genuinely-owner question surfaced by the gap pass gets added here and
-answered before implementation in either direction.
+The three decisions raised at the 2026-07-11 review (the Offseason room,
+authoring controls, and the trade-summary export) were resolved by the owner
+the same day and are encoded in the sections above.
+
+Final acceptance of the remaining V1/Phase 3B exclusions is still pending at
+the BZE-267 closure boundary. The locked 2026-08-27 amendment governs how the
+two authority-blocked variants behave during the BZE-265 proof; it does not let
+the closure lane silently decide that the final remaining-exclusions matrix is
+acceptable. BZE-265 records the matrix and objective evidence, but only the
+owner can make that final acceptance decision. Any other genuinely owner-level
+question surfaced by the gap pass is likewise answered before implementation
+in either direction.
 
 ## Evidence standard
 

@@ -1388,7 +1388,12 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       durableWorldCountChangeAfterValidation: 0,
       durableTeamDocumentChangeAfterValidation: 0,
       tradeBonusAuthorityBoundary: {
-        retainedTradeKickerPercent: 0.15,
+        retainedTradeKickerPercent:
+          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion
+            .retainedTradeKickerPercent,
+        governedContractTradeKickerRate:
+          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion
+            .retainedTradeKickerPercent / 100,
         verdict: 'Needs input',
         applyBlocked: true,
         savedWorldTeamChanges: 0,
