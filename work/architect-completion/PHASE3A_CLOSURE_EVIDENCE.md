@@ -151,11 +151,11 @@ array rejection. On current main the fresh discriminator must require:
 - no `acceptedCanon.CBA2-A12.3` missing input and no affirmative legality copy;
 - second-round control: `status: PASS`, `evaluated: true`, `passed: true`.
 
-Fresh current-main probe:
+Fresh resumed-branch probe:
 
 ```text
 npm run review:probe -- \
-  --candidate 0f33acfa3388971ac9015133aaf876f52dfd4be9 \
+  --candidate 3f4c1ad7ec7d4ae353384de60f82f622e1d654e9 \
   --fixture scripts/review/probes/stepienAuthorityClosureProbe.ts
 ```
 
@@ -163,7 +163,10 @@ Result: **PASS**. The unsupported first-round result was `NEEDS_INPUT`,
 `evaluated:false`, `passed:false`, carried exactly the six governed-history
 inputs above, omitted `acceptedCanon.CBA2-A12.3`, and contained no affirmative
 legality copy. The supported second-round result was `PASS`, `evaluated:true`,
-`passed:true`, with no missing inputs.
+`passed:true`, with no missing inputs. The exact-snapshot helper cleaned its
+temporary workspace and left the source worktree unchanged. Later checkpoint
+commits changed only the proof harness and this evidence; no Stepien or product
+source changed.
 
 ## Historical browser stop and BZE-296 repair
 
@@ -199,10 +202,11 @@ completed exact-draft top-level preview authority with an explicit legal
 verdict even when `teamResults` is empty, while rejecting missing, malformed,
 failed-construction, cleared, or stale authority. A current `legal: false`
 result remains unable to preview, export a Trade Summary, Apply, or write. The
-complete BZE-265 diagnostic must now verify the retained 15% source record is
+complete BZE-265 diagnostic verified the retained 15% source record is
 presented as visible `Needs input` with the trade-bonus reason, disabled Apply,
-and zero Team/event writes before supported controls continue. No BZE-296
-result is claimed as BZE-265 integration proof until that diagnostic passes.
+disabled Trade Summary, and zero Team/event writes before supported controls
+continue. The top-level fail-closed result remained visible with empty
+`teamResults`; it did not revert to `Not validated`.
 
 ## Reuse-first W1-W15 map
 
@@ -211,30 +215,43 @@ requirement. BZE-294, BZE-295, and BZE-296 are confined to first-round draft
 authority, accepted-Canon parsing/provenance, persisted entitlement boundary
 reading, and exact-draft Trade Machine validation presentation/currentness.
 They do not reopen unrelated completed workflows or make completed-child
-observations new scope. This table does not claim the final cross-workstream
-proof passed; the resumed complete diagnostic remains the next gate.
+observations new scope. The fresh run is used only where #518–#521 made prior
+evidence stale or where cross-workstream agreement was still missing.
 
 | WF  | Required proof                                                 | Evidence decision at required base                                                                                                           | Closure state                                               |
 | --- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| W1  | Saved-world create/switch/date/leave/return/reload             | Reuse BZE-246/BZE-250 local lifecycle receipts; later landings do not touch world selection or persistence                                  | Integrated current-head rerun not reached                   |
-| W2  | Team, Apron, and Tax Salary books across rooms                 | Reuse BZE-285 and exact-head BZE-293 book/roster-charge receipts; current proof fixture records all three governed books                     | Full 15+3 books loaded; post-action cross-room run not reached |
-| W3  | Waive, stretch, buyout                                         | Reuse BZE-284 retained browser evidence; exact `$31M`, five-year `$6.2M`, and `$26M` expectations re-recorded from source                    | Current integrated rerun not reached                        |
-| W4  | Contract and option actions                                    | Reuse completed extension/option receipts; PRs #518–#521 have no contract-action diff                                                       | Current integrated rerun not reached                        |
-| W5  | Another-team free-agent signing                                | Reuse BZE-286 local workflow evidence; replace the old event-derived oracle with pre-recorded `$3,442,237` source math                       | Oracle corrected; browser rerun not reached                 |
-| W6  | Own free-agent re-sign/absolve                                 | Reuse D-MQ-005A and rights receipts; later landings do not touch this path                                                                   | Current integrated rerun not reached                        |
-| W7  | Offer Sheet create/match/decline                               | Reuse BZE-283 and D-MQ-005B/D/E receipts; `48h` window re-recorded from Canon                                                               | Current integrated rerun not reached                        |
-| W8  | Sign-and-trade                                                 | Reuse BZE-290 retained evidence and D-MQ-005C/F; three-season and First-Apron expectations re-recorded                                      | Current integrated rerun not reached                        |
-| W9  | Ordinary trades, supported entitlements, cash, draft lifecycle | Reuse BZE-279/287/288/291/292 local receipts; BZE-296 preserves top-level fail-closed authority; current proof adds full 15+3, both exclusions, second-round, cash, books, history, and reload | Complete integrated diagnostic pending                      |
-| W10 | Draft/Stepien/frozen-pick authority and supported-pick control | Current-main source probe plus current browser first-round discriminator; BZE-294/295 are completed foundations                            | Fresh exact-branch probe and complete browser control pending |
-| W11 | Season Advance and post-advance books/history                  | Reuse BZE-289 exact-head 30-Team evidence and BZE-293 post-advance book evidence; BZE-295 provenance correction recorded                    | Current integrated rerun not reached                        |
-| W12 | Team History and cross-team agreement                          | Reuse only the completed action-specific history receipts; current trade proof includes a reload/history assertion                         | Current assertion not reached after mandatory stop          |
-| W13 | Compare agreement                                              | Reuse completed action-specific Compare receipts; later draft-only landings do not touch Compare                                            | Current integrated rerun not reached                        |
-| W14 | Guide                                                          | Reuse BZE-250 navigation evidence; final current-head glance remains required                                                               | Not reached after mandatory stop                            |
-| W15 | Team Plan state                                                | Reuse completed option/signing/Season-Advance Team Plan receipts as supporting evidence                                                     | Fresh cross-workstream agreement not reached                |
+| W1  | Saved-world create/switch/date/leave/return/reload             | Reuse BZE-246/BZE-250 lifecycle receipts; later landings do not touch world selection or date; fresh trade proof re-enters and reloads its saved world | **PASS — reused plus fresh reload**                         |
+| W2  | Team, Apron, and Tax Salary books across rooms                 | Reuse BZE-285/BZE-293; fresh proof seeds 15 Standard + 3 Two-Way on MIA and DEN, reconciles all three persisted books, and reloads Cap Sheet at `15 / 15 · 3 / 3` | **PASS — reused plus fresh full-roster books**              |
+| W3  | Waive, stretch, buyout                                         | Reuse BZE-284 retained browser evidence; exact `$31M`, five-year `$6.2M`, and `$26M` expectations are re-recorded from source                | **PASS — unaffected evidence reused**                       |
+| W4  | Contract and option actions                                    | Reuse completed extension/option receipts; PRs #518–#521 have no contract-action diff                                                       | **PASS — unaffected evidence reused**                       |
+| W5  | Another-team free-agent signing                                | Reuse BZE-286 workflow evidence; the existing actual `$3,442,237` cap-space decrease is now anchored before execution to `$4.8M - $1,357,763` instead of an event-derived oracle | **PASS — actual reused; oracle corrected**                  |
+| W6  | Own free-agent re-sign/absolve                                 | Reuse D-MQ-005A and rights receipts; later landings do not touch this path                                                                   | **PASS — unaffected evidence reused**                       |
+| W7  | Offer Sheet create/match/decline                               | Reuse BZE-283 and D-MQ-005B/D/E; the `48h` window is re-recorded from `CBA2-L04.3`                                                           | **PASS — unaffected evidence reused**                       |
+| W8  | Sign-and-trade                                                 | Reuse BZE-290 retained evidence and D-MQ-005C/F; three-season and First-Apron expectations are re-recorded                                  | **PASS — unaffected evidence reused**                       |
+| W9  | Ordinary trades, supported entitlements, cash, draft lifecycle | Fresh full-roster proof: first-round and nonzero-bonus paths visibly fail closed/no-write; supported second-round + `$1.00` cash trade validates, applies, persists both Teams, reloads, and appears in History/Compare | **PASS — fresh integrated diagnostic**                      |
+| W10 | Draft/Stepien/frozen-pick authority and supported-pick control | Fresh exact-snapshot probe plus browser first-round no-write discriminator; BZE-294/295 remain completed foundations; supported second-round entitlement transfers to DEN | **PASS for supported path and fail-closed exclusion; owner acceptance pending** |
+| W11 | Season Advance and post-advance books/history                  | Reuse BZE-289 exact-head 30-Team evidence and BZE-293 post-advance book evidence; PRs #518–#521 do not change Season Advance                 | **PASS — unaffected evidence reused**                       |
+| W12 | Team History and cross-team agreement                          | Fresh trade proof deep-compares both Team snapshots, persists one shared event/receipt, reloads, and opens its cash receipt in Team History | **PASS — fresh integrated diagnostic**                      |
+| W13 | Compare agreement                                              | Fresh reloaded Compare shows one committed event, two changed Teams, four touched players, Aaron Pike added, Owen Frost removed, and a cap delta | **PASS — fresh integrated diagnostic**                      |
+| W14 | Guide                                                          | Reuse BZE-250 navigation/guidance evidence; PRs #518–#521 do not touch Guide or its inputs                                                   | **PASS — unaffected evidence reused**                       |
+| W15 | Team Plan state                                                | Reuse completed option/signing/Season-Advance Team Plan receipts; fresh reload selects `Trade Receipt Proof` and shows the reconciled full-roster status | **PASS — reused plus fresh identity/status**                |
 
-Evidence standard #4 (full 15 standard plus 3 Two-Way players) remains required
-for the eventual current-head browser scenarios. BZE-252's seeder is a reusable
-harness input, not current-head closure evidence by itself.
+Evidence standard #4 was met freshly for both Teams in the trade scenario. The
+BZE-252 seeder remains a harness input rather than proof by itself.
+
+## Remaining-exclusions decision matrix
+
+The objective behavior below passed. The matrix is not owner acceptance and
+does not make either exclusion a silent closure assumption.
+
+| Proposed remaining V1 exclusion | Authority still unavailable | Current exact behavior | Supported control | Unblocking event | Owner state |
+| --- | --- | --- | --- | --- | --- |
+| Branch-complete first-round ownership, Stepien, protection, conveyance, and frozen-pick lifecycle variants | Complete governed ownership, protection, conveyance, freeze, unfreeze, penalty, and required-transition history | `NEEDS_INPUT`; unevaluated; false; exact six missing histories; visible reason; Apply disabled; zero Team/event writes | Clean second-round entitlement is `PASS`, transfers MIA → DEN, persists, reloads, and appears in the shared event | Retained certified governed source supplies the complete lifecycle required by the proposed branch | **Pending final owner acceptance** |
+| Ordinary trades requiring a nonzero trade-bonus calculation | Authenticated bonus basis, allocation/protection schedule, amendment state, prior-trade/payability history, payer/reallocation state, and payment timing | Retained Austin Reaves 15% kicker presents top-level `Needs input` with empty `teamResults`; reason visible; Trade Summary/Apply disabled; zero Team/event writes | Ordinary governed player/entitlement/cash trade reaches `Ready to apply`, commits atomically, persists/reloads, and appears in History/Compare | New immutable, recoverable, hash-verified, certified contract-source release supplies all required fields for the affected Contract | **Pending final owner acceptance** |
+
+No completed-child observation was promoted into a third exclusion or new
+scope item. Existing owner-decided V1 exclusions outside this Phase 3A matrix
+remain unchanged.
 
 ## Diagnostic attempts
 
@@ -269,17 +286,33 @@ Only items 2 and 3 were repaired in BZE-265 because they were test-harness
 defects. Items 4/5 were the product stop later repaired separately by BZE-296.
 No browser result was used to rewrite the source oracle.
 
+The resumed post-BZE-296 diagnostic then produced three non-retained attempts:
+
+1. `e1680903…` cleared both blocked paths and reached supported persistence,
+   then a harness object comparison expected JavaScript `-0` where the
+   persisted zero-value book line correctly normalized to `0`;
+2. `db8c7047…` reached reloaded Compare, then the new harness assertion counted
+   six staged players even though the legal control intentionally removed two
+   before Apply; Compare correctly reported four; and
+3. `2fcfdf2e30991fb6d7f0fd14ffa563d3882d65c0` passed the complete diagnostic
+   in 2.2 minutes.
+
+The first two are proof-harness expectation defects, not product defects. Both
+were corrected without changing source authority or product behavior. All
+diagnostic directories were temporary and removed; none is retained or cited
+as exact-head certification.
+
 ## Current closure boundary
 
-BZE-265 and BZE-267 stay In Progress while the resumed discriminator and
-complete diagnostic run. Retained exact-head certification, hosted candidate
-CI, final W1-W15 completion, and the immutable independent-Claude prompt remain
-unstarted at this checkpoint. BZE-289, BZE-294, BZE-295, and BZE-296 are
-completed foundations, not reopened scope. The final owner acceptance of the
-remaining V1/Phase 3B exclusions remains pending even if every objective proof
-gate passes. No owner-facing V1 decision, undraft, merge, issue closure, Claude
-invocation, Phase 3B implementation, or product repair inside BZE-265 is
-authorized.
+BZE-265 and BZE-267 stay In Progress. The objective discriminator and complete
+diagnostic are green; the remaining workflow is final evidence review,
+automated-review settlement, exact candidate freeze/push, hosted exact-head CI,
+retained exact-head certification, and immutable prompt publication. BZE-289,
+BZE-294, BZE-295, and BZE-296 are completed foundations, not reopened scope.
+The final owner acceptance of the remaining V1/Phase 3B exclusions remains
+pending even if every objective proof gate passes. No owner-facing V1 decision,
+undraft, merge, issue closure, Claude invocation, Phase 3B implementation, or
+product repair inside BZE-265 is authorized.
 
 ## Validation and elapsed-time record
 
@@ -316,10 +349,39 @@ changed. A temporary test-inclusive TypeScript configuration then exposed two
 harness-only object-boundary typing gaps in the same browser spec; both were
 narrowed explicitly, and the scoped test-file TypeScript check passed.
 
-Build, broad suites, the remaining integrated W1-W15 browser flow, retained
-browser certification, and frozen-candidate hosted CI were intentionally not
-used as completion evidence after the mandatory product stop. No unrestricted
-full-suite alias ran.
+Resumed validation after BZE-296 landed:
+
+- repository identity, clean synchronized `main` at `89a8c01b…`, PR #517 at
+  paused head `8149b667…`, BZE-265/BZE-267 In Progress, BZE-296 Done, and
+  hosted-main CI `33290842948` were verified live;
+- normal merge `d8921cae…` synchronized the existing branch with exact main;
+- pinned lookups for `CBA2-A12.3`, `CBA2-L09.2`, `CBA2-L09.3`, `CBA2-L09.6`,
+  and `CBA2-A12.4` verified candidate/fingerprint/provenance and the direct
+  missing-history boundary;
+- the retained release records Austin Reaves' 15% kicker, exact release digest,
+  and `terms.bonuses|...|missing-bonus-allocation` evidence limitation;
+- exact-snapshot Stepien discriminator at `3f4c1ad7…`: **PASS**;
+- `npm run typecheck -- --pretty false`: **PASS**;
+- `npm run validate:project`: first sandboxed invocation was denied its TSX IPC
+  socket; approved rerun outside the sandbox **PASS**;
+- targeted Markdown lint for both changed evidence/contract docs: **PASS**;
+- focused Playwright collection for the proof spec: **PASS**, one test;
+- complete non-retained browser diagnostic at `2fcfdf2e…`: **PASS**, one test
+  in 2.2 minutes, after the two harness-only expectation corrections recorded
+  above; and
+- `git diff --check`: **PASS** at every source-change checkpoint.
+
+The branch/commit Graphify hook refreshed the graph through `3f4c1ad7…`.
+Subsequent changes were proof assertions and evidence only; the hook reported
+no new code-graph topology. Per the Phase 3A execution profile, no redundant
+explicit Graphify update was run.
+
+No local production build or broad/full suite was repeated: hosted exact-main
+CI already covered the landed product source, later local changes were
+proof/evidence only, and exact-candidate hosted CI remains the freeze gate. No
+unrestricted full-suite alias ran. Retained browser certification and the
+immutable prompt remain intentionally unstarted until the final candidate is
+clean, frozen, pushed, and hosted-green.
 
 Approximate wall clock: 35 minutes for branch/source/receipt reconciliation,
 40 minutes for expectation and proof-harness work, 35 minutes for browser and
@@ -327,3 +389,9 @@ emulator diagnosis, and 5 minutes for hosted-main and review-state checks.
 About 20 minutes of the browser time was spent on the cold-start limit and the
 two corrected harness assumptions described above; no retained certification
 or hosted candidate wait occurred.
+
+Resumed-tranche estimate before freeze: about 15 minutes for live-state/branch
+reconstruction and synchronization, 15 minutes for source/evidence
+reconciliation and author checks, and 10 minutes for the three browser/emulator
+diagnostic attempts. Hosted-CI, retained-certification, automated-review wait,
+and prompt-publication time are recorded separately after those gates finish.
