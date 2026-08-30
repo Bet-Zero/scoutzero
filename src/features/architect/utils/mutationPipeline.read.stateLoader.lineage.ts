@@ -12,7 +12,8 @@
  */
 
 import { getDoc } from 'firebase/firestore';
-import { resolveWorldLineageIds } from '@/features/architect/utils/worldManager';
+import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
 import {
   worldTeamRef,
   worldPlayerRef,
@@ -266,7 +267,7 @@ export function getSnapshotCapHoldMembership(
 }
 
 export async function resolveWorldLineage(worldId: string) {
-  return resolveWorldLineageIds(worldId);
+  return resolveWorldLineageIdsFromMetadata(worldId, getWorldMetadata);
 }
 
 export async function getFirstExplicitWorldTeamSnapshotFromLineage(

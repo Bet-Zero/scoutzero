@@ -240,10 +240,7 @@ export const ExceptionTracker = ({
   });
 
   const mleException = getCanonicalExceptionAvailability(teamCapSheet, 'mle');
-  const tpMleException = getCanonicalExceptionAvailability(
-    teamCapSheet,
-    'tpmle'
-  );
+  const tpMleException = getCanonicalExceptionAvailability(teamCapSheet, 'tpmle');
   const baeException = getCanonicalExceptionAvailability(teamCapSheet, 'bae');
   const roomException = getCanonicalExceptionAvailability(teamCapSheet, 'room');
 

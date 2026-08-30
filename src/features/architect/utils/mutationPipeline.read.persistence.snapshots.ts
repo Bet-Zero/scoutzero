@@ -149,11 +149,7 @@ export function buildGeneralMutationCommittedTeamUpdates(
   return teamUpdates.map((update) => ({
     teamCode: update.teamCode,
     team: update?.team
-      ? buildGeneralMutationCommittedTeamSnapshot(
-          update.team,
-          seasonId,
-          asOfDate
-        )
+      ? buildGeneralMutationCommittedTeamSnapshot(update.team, seasonId, asOfDate)
       : null,
   }));
 }

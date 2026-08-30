@@ -45,6 +45,7 @@ import {
   type UpdateWorldMetadataInput,
   type WorldMetadata,
   type WorldStats,
+  resolveWorldLineageIdsFromMetadata,
 } from './worldManager.readUtils';
 import {
   createRightsEventLedger,
@@ -296,29 +297,8 @@ const commitBranchCopyOperations = async (
  */
 export const resolveWorldLineageIds = async (
   worldId: string
-): Promise<string[]> => {
-  const lineageIds: string[] = [];
-  const visitedIds = new Set<string>();
-  let currentWorldId: string | null = worldId;
-
-  while (currentWorldId) {
-    if (visitedIds.has(currentWorldId)) {
-      throw new Error(`World lineage cycle detected for ${currentWorldId}`);
-    }
-
-    visitedIds.add(currentWorldId);
-    lineageIds.push(currentWorldId);
-
-    const metadata = await getWorldMetadata(currentWorldId);
-    currentWorldId =
-      typeof metadata.parentWorldId === 'string' &&
-      metadata.parentWorldId.trim()
-        ? metadata.parentWorldId.trim()
-        : null;
-  }
-
-  return lineageIds;
-};
+): Promise<string[]> =>
+  resolveWorldLineageIdsFromMetadata(worldId, getWorldMetadata);
 
 const readEffectiveTeamSnapshotForBranch = async (
   lineageIds: string[],

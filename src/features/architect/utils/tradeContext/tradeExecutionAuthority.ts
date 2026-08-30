@@ -41,7 +41,8 @@
  */
 
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
-import { resolveWorldLineageIds } from '@/features/architect/utils/worldManager';
+import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
 import {
   extractTeamsByCodeFromComputeResult,
   buildTotalsByTeam,
@@ -713,7 +714,10 @@ export async function validateTradeExecutionAuthority(
     timestamp,
     beforeTeamsByCode,
   } = input;
-  const worldLineage = await resolveWorldLineageIds(worldId);
+  const worldLineage = await resolveWorldLineageIdsFromMetadata(
+    worldId,
+    getWorldMetadata
+  );
 
   // =========================================================================
   // STAGE 1: SNAPSHOT_VALIDATION

@@ -48,9 +48,9 @@ import { db } from '@/firebaseConfig';
 import { getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import {
   getWorldMetadata,
-  resolveWorldLineageIds,
   updateWorldStats,
 } from '@/features/architect/utils/worldManager';
+import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
 import {
   createRightsEventLedger,
   resolveRightsWorldCompatibility,
@@ -358,7 +358,10 @@ export async function applyWorldMutation({
   let governedRenounceWorldAsOfDate: string | null = null;
 
   try {
-    const worldLineage = await resolveWorldLineageIds(worldId);
+    const worldLineage = await resolveWorldLineageIdsFromMetadata(
+      worldId,
+      getWorldMetadata
+    );
     // Clean-break compatibility is an ingress property of the saved world, so
     // reject it before attempting to resolve legacy team/player snapshots.
     if (mutationType === 'renounceRights') {

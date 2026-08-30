@@ -14,10 +14,8 @@
  */
 
 import { getDoc, getDocs } from 'firebase/firestore';
-import {
-  getWorldMetadata,
-  resolveWorldLineageIds,
-} from '@/features/architect/utils/worldManager';
+import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
 import { hydrateBaseTeam } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { normalizeTeamExceptionOwnership } from '@/features/architect/utils/exceptions/exceptionOwnership';
@@ -102,7 +100,10 @@ export async function getTeam(
     return await getBaseTeam(teamCode);
   }
 
-  const worldLineage = await resolveWorldLineageIds(worldId);
+  const worldLineage = await resolveWorldLineageIdsFromMetadata(
+    worldId,
+    getWorldMetadata
+  );
   return getTeamFromTrustedLineage(worldLineage, teamCode);
 }
 
@@ -267,7 +268,10 @@ export async function getLeague(worldId: string | null): Promise<TeamLike[]> {
     return await Promise.all(TEAM_CODES.map((code) => getBaseTeam(code)));
   }
 
-  const worldLineage = await resolveWorldLineageIds(worldId);
+  const worldLineage = await resolveWorldLineageIdsFromMetadata(
+    worldId,
+    getWorldMetadata
+  );
 
   // World mode: Batch read all world snapshots first
   // Path: architect_worlds/{worldId}/teams

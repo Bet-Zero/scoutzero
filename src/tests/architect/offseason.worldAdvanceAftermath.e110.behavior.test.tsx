@@ -49,6 +49,10 @@ const {
 }));
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
+  getWorldMetadata: vi.fn(async (worldId: string) => ({
+    worldId,
+    parentWorldId: null,
+  })),
   getDraftPositions: (...args: unknown[]) => mockGetDraftPositions(...args),
   saveDraftPositions: (...args: unknown[]) => mockSaveDraftPositions(...args),
   clearDraftPositions: (...args: unknown[]) => mockClearDraftPositions(...args),

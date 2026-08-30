@@ -59,7 +59,8 @@ import {
   writePersistedActiveWorldId,
 } from './useArchitectState.helpers';
 import { readRoomFromUrl } from './useArchitectDeskNavigation';
-import { resolveWorldLineageIds } from '@/features/architect/utils/worldManager';
+import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
 
 function deepClone<T>(obj: T): T {
   if (typeof structuredClone === 'function') {
@@ -111,7 +112,7 @@ export function useArchitectState({
       return () => {
         active = false;
       };
-    void resolveWorldLineageIds(worldId)
+    void resolveWorldLineageIdsFromMetadata(worldId, getWorldMetadata)
       .then((lineage) => {
         if (active && lineage[0] === worldId) {
           setWorldLineage(Object.freeze([...lineage]));
