@@ -1269,6 +1269,43 @@ describe('governed Trade Machine apron restrictions', () => {
     });
   });
 
+  it('fails closed when Row I governed calendar or Second Apron authority is disputed', () => {
+    const calendar = CANON_GOVERNED_SEASON_REGISTRY.calendars.find(
+      (candidate) => candidate.recordId === 'GOV-CAL-0002'
+    );
+    const secondApron = CANON_GOVERNED_SEASON_REGISTRY.systemLevels.find(
+      (candidate) => candidate.recordId === 'GOV-LVL-0005'
+    );
+    expect(calendar).toBeDefined();
+    expect(secondApron).toBeDefined();
+
+    const disputedRegistries: GovernedSeasonRegistry[] = [
+      {
+        ...CANON_GOVERNED_SEASON_REGISTRY,
+        calendars: [
+          ...CANON_GOVERNED_SEASON_REGISTRY.calendars,
+          { ...calendar!, recordId: 'GOV-CAL-ROW-I-CONFLICT' },
+        ],
+      },
+      {
+        ...CANON_GOVERNED_SEASON_REGISTRY,
+        systemLevels: [
+          ...CANON_GOVERNED_SEASON_REGISTRY.systemLevels,
+          { ...secondApron!, recordId: 'GOV-LVL-ROW-I-CONFLICT' },
+        ],
+      },
+    ];
+
+    disputedRegistries.forEach((registry) => {
+      expect(
+        parseTradeHardCapLedger([createCashLedgerEntry()], registry)
+      ).toEqual({
+        entries: [],
+        valid: false,
+      });
+    });
+  });
+
   it('persists and reloads both mixed triggers with the controlling First Apron', async () => {
     const heldTpe = {
       id: 'TPE-MIXED-PERSIST',
