@@ -1480,7 +1480,10 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
         asOfDate: PROOF_AS_OF_DATE,
         activeWindow: '2026-07-01 through the day before opening day',
         threshold: 12,
-        fullRosterShape: { standard: 15, twoWay: 3 },
+        fullRosterShape: {
+          standard: PHASE3A_CLOSURE_EXPECTATIONS.roster.standard,
+          twoWay: PHASE3A_CLOSURE_EXPECTATIONS.roster.twoWay,
+        },
         persisted: persistedIncompleteRosterCharges,
         reloadCapSheetChargeHiddenAtZero: true,
         reloadHistoryVisible: true,

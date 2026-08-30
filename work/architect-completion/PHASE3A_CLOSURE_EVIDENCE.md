@@ -5,8 +5,8 @@ description: BZE-265 source-derived W1-W15 closure evidence map and exact-head i
 
 # Phase 3A Closure Evidence (BZE-265)
 
-**Status:** resumed after the BZE-296 blocker landed; complete diagnostic
-pending.
+**Status:** complete source-derived discriminator and browser diagnostic pass;
+final exact-head review/certification boundary in progress.
 **Required base:** `89a8c01bd37d54f0ed639a14a76bc00a51484041`.
 **Closure branch:** `feature/bze-265-phase3a-closure-integration-proof`.
 **Draft PR:** #517.
