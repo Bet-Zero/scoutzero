@@ -211,9 +211,166 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
     );
     expect(items).toHaveLength(2);
   });
+
+  it('keeps an empty-team top-level Needs input reason as a trade-wide verdict', () => {
+    const reason =
+      'mia_silas_park: This Contract has a trade bonus whose allocation is outside this governed tranche.';
+    const items = buildVerdictItems([], {
+      legal: false,
+      error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+      reason,
+      violations: [
+        {
+          message: reason,
+          rule: 'governedTradeSalaryBasis',
+        },
+      ],
+      warnings: [],
+    });
+
+    expect(items).toEqual([
+      { teamName: null, kind: 'needsInput', text: reason },
+    ]);
+  });
+
+  it('keeps an empty-team generic top-level rejection visibly blocked', () => {
+    const items = buildVerdictItems([], {
+      legal: false,
+      error: 'ENTITLEMENT_ROUTING_ERROR',
+      reason: 'Entitlement routing is incomplete.',
+      violations: [{ message: 'Entitlement routing is incomplete.' }],
+      warnings: [],
+    });
+
+    expect(items).toEqual([
+      {
+        teamName: null,
+        kind: 'violation',
+        text: 'Entitlement routing is incomplete.',
+      },
+    ]);
+  });
+
+  it('classifies mixed top-level issues independently', () => {
+    const items = buildVerdictItems([], {
+      legal: false,
+      error: 'VALIDATION_BLOCKED',
+      reason: 'Trade is blocked.',
+      violations: [
+        {
+          message: 'Missing governed salary record.',
+          rule: 'governedTradeSalaryBasis',
+          meta: { status: 'NEEDS_INPUT' },
+        },
+        { message: 'Hard cap exceeded.', rule: 'hardCap' },
+      ],
+      warnings: [],
+    });
+
+    expect(items).toEqual([
+      {
+        teamName: null,
+        kind: 'needsInput',
+        text: 'Missing governed salary record.',
+      },
+      { teamName: null, kind: 'violation', text: 'Hard cap exceeded.' },
+    ]);
+  });
+
+  it('renders a reason-only top-level fallback in the validation summary', () => {
+    render(
+      <TradeSummaryPanel
+        previewAuthority={{
+          legal: false,
+          error: 'NEEDS_INPUT',
+          reason: 'Missing governed draft record.',
+          violations: [],
+          warnings: [],
+        }}
+        snapshotValidationDetails={{ teamResults: [] }}
+      />
+    );
+
+    expect(screen.getByText('⚪ Needs input — trade not evaluated')).toBeVisible();
+    expect(screen.getByText('Missing governed draft record.')).toBeVisible();
+  });
 });
 
 describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
+  it('shows the current top-level trade-bonus Needs input authority with no per-Team results', () => {
+    const reason =
+      'mia_silas_park: This Contract has a trade bonus whose allocation is outside this governed tranche.';
+    useTradeMachineMock.mockReturnValue(
+      buildHookReturn({
+        hasCurrentValidation: true,
+        getValidatedAt: () => 1_787_961_600_000,
+        previewAuthority: {
+          legal: false,
+          error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+          reason,
+          violations: [
+            {
+              message: reason,
+              rule: 'governedTradeSalaryBasis',
+              code: 'GOVERNED_TRADE_SALARY_BASIS',
+            },
+          ],
+          warnings: [],
+          source: 'apply-preview',
+          omittedStages: [],
+        },
+        snapshotValidationDetails: {
+          teamResults: [],
+          summaryByTeamIndex: [],
+          dataWarnings: [],
+          hasDataIssues: false,
+        },
+      })
+    );
+
+    render(<TradeEditor {...baseProps} worldId="world-1" />);
+
+    const readiness = screen.getByTestId('trade-readiness-summary');
+    expect(readiness).toHaveTextContent('Needs input');
+    expect(readiness).toHaveTextContent('trade bonus whose allocation');
+    expect(readiness).toHaveTextContent('Validation:');
+    expect(readiness).toHaveTextContent('Last checked');
+    expect(readiness).not.toHaveTextContent('Not validated');
+    expect(screen.getByTestId('trade-verdict-strip')).toHaveTextContent(reason);
+    expect(screen.getByRole('button', { name: /^Apply Trade$/i })).toBeDisabled();
+    expect(screen.getByTestId('trade-summary-button')).toBeDisabled();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /^Validation Results/i })
+    );
+    const summary = screen.getByTestId('section-validation-summary');
+    expect(summary).toHaveTextContent('Needs input — trade not evaluated');
+    expect(summary).toHaveTextContent('Why it needs input');
+    expect(summary).toHaveTextContent('trade bonus whose allocation');
+  });
+
+  it('keeps incomplete top-level payloads in the Not validated state', () => {
+    useTradeMachineMock.mockReturnValue(
+      buildHookReturn({
+        hasCurrentValidation: false,
+        previewAuthority: {
+          legal: false,
+          reason: 'Incomplete preview authority',
+        },
+        snapshotValidationDetails: { teamResults: [] },
+      })
+    );
+
+    render(<TradeEditor {...baseProps} />);
+
+    const readiness = screen.getByTestId('trade-readiness-summary');
+    expect(readiness).toHaveTextContent('Ready to validate');
+    expect(readiness).toHaveTextContent('Not validated');
+    expect(readiness).not.toHaveTextContent('Incomplete preview authority');
+    expect(screen.queryByTestId('trade-verdict-strip')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Apply Trade$/i })).toBeDisabled();
+  });
+
   it('shows Needs input and blocks Apply for an unevaluated first-round rule', () => {
     useTradeMachineMock.mockReturnValue(
       buildHookReturn({

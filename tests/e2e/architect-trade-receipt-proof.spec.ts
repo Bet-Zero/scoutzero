@@ -109,7 +109,8 @@ const salaryRow = (season: string, salary: number) => ({
 const proofContractLedger = (
   teamCode: 'MIA' | 'DEN',
   playerId: string,
-  salary: number
+  salary: number,
+  tradeKickerPercent: number | null = null
 ) => {
   const contractId = `proof-contract-${playerId}`;
   const base = makeResultingState({
@@ -127,6 +128,7 @@ const proofContractLedger = (
       ...base.terms,
       signingTeam: teamCode,
       salaries: [salaryRow('2026-27', salary), salaryRow('2027-28', salary)],
+      bonuses: { tradeKickerPercent },
       totalValue: salary * 2,
       averageAnnualValue: salary,
       guaranteedValue: salary * 2,
@@ -157,6 +159,7 @@ const proofContractLedgers = (teamCode: 'MIA' | 'DEN') =>
     ? [
         proofContractLedger('MIA', 'mia_owen_frost', 3_200_000),
         proofContractLedger('MIA', 'mia_eli_navarro', 2_000_000),
+        proofContractLedger('MIA', 'mia_silas_park', 2_000_000, 0.15),
       ]
     : [
         proofContractLedger('DEN', 'den_aaron_pike', 3_200_000),
@@ -471,6 +474,11 @@ const routePlayer = async (
     'xpath=ancestor::div[.//button[normalize-space()="•••"]][1]'
   );
   const menu = playerRow.getByRole('button', { name: '•••' });
+  if (!(await menu.isVisible())) {
+    await card
+      .getByRole('button', { name: /^(Players|Plr)( \(\d+\))?$/i })
+      .click();
+  }
   await expect(menu).toBeVisible();
   await menu.click();
   const route = page.getByRole('button', {
@@ -715,9 +723,49 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   );
 
   await cancelEntitlementTrade(miamiCard, page, 2027, 1);
+
+  const tradeBonusBefore = {
+    teams: await Promise.all(
+      proofTeamRefs.map((ref) =>
+        ref.get().then((snapshot) => snapshot.data())
+      )
+    ),
+    events: await getWorldEventDocuments(PROOF_WORLD_ID),
+  };
+  await routePlayer(dialog, page, 'MIA', 'Silas Park', 'Denver Nuggets');
   await miamiCard
-    .getByRole('button', { name: /^(Players|Plr)( \(\d+\))?$/i })
-    .click();
+    .getByLabel('Silas Park exact pre-trade Salary')
+    .fill('2000000');
+  await fillPostAssignmentApronSalary(miamiCard);
+  await fillPostAssignmentApronSalary(denverCard);
+  await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+  await expect(readiness).toContainText('Needs input', { timeout: 20_000 });
+  await expect(readiness).toContainText(/trade bonus/i);
+  await expect(readiness).not.toContainText('Not validated');
+  await expect(
+    dialog.getByRole('button', { name: /^Apply Trade$/i })
+  ).toBeDisabled();
+  await expect(dialog.getByTestId('trade-summary-button')).toBeDisabled();
+  const tradeBonusNeedsInputScreenshotPath = path.join(
+    ARTIFACT_DIR,
+    'trade-bonus-needs-input-1280x720.png'
+  );
+  await readiness.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: tradeBonusNeedsInputScreenshotPath,
+    fullPage: false,
+  });
+  expect(
+    await Promise.all(
+      proofTeamRefs.map((ref) =>
+        ref.get().then((snapshot) => snapshot.data())
+      )
+    )
+  ).toEqual(tradeBonusBefore.teams);
+  expect(await getWorldEventDocuments(PROOF_WORLD_ID)).toEqual(
+    tradeBonusBefore.events
+  );
+  await cancelPlayerTrade(dialog, 'MIA', 'Silas Park');
 
   await electSalaryPath(miamiCard, 'AGGREGATED_STANDARD_TPE');
   await electSalaryPath(denverCard, 'AGGREGATED_STANDARD_TPE');
@@ -1154,6 +1202,13 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       fixtureWorldCount: 1,
       durableWorldCountChangeAfterValidation: 0,
       durableTeamDocumentChangeAfterValidation: 0,
+      tradeBonusAuthorityBoundary: {
+        retainedTradeKickerPercent: 0.15,
+        verdict: 'Needs input',
+        applyBlocked: true,
+        savedWorldTeamChanges: 0,
+        savedWorldEventChanges: 0,
+      },
       draftAuthorityBoundary: {
         firstRoundEntitlementId: FIRST_ROUND_PROOF_ENTITLEMENT_ID,
         expectedAuthority: {
@@ -1215,6 +1270,10 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   });
   await testInfo.attach('stepien-needs-input-1280x720', {
     path: stepienNeedsInputScreenshotPath,
+    contentType: 'image/png',
+  });
+  await testInfo.attach('trade-bonus-needs-input-1280x720', {
+    path: tradeBonusNeedsInputScreenshotPath,
     contentType: 'image/png',
   });
   await testInfo.attach('trade-cash-legal-1280x720', {
