@@ -17,6 +17,40 @@ export type ParsedTradeHardCapLedger = {
   valid: boolean;
 };
 
+const ROW_I_CANON_LEAF_IDS = [
+  'CBA2-A05.11',
+  'CBA2-A05.1',
+  'CBA2-A05.2',
+] as const;
+
+function sameLeafSet(
+  actual: readonly string[],
+  expected: readonly string[]
+): boolean {
+  return (
+    actual.length === expected.length &&
+    expected.every((leafId) => actual.includes(leafId))
+  );
+}
+
+function rowILeafProofIsAuthenticated(
+  entry: TradeHardCapLedgerEntry
+): boolean {
+  if (!entry.triggers.some((trigger) => trigger.restrictionRow === 'I')) {
+    return true;
+  }
+  const triggerLeaves = [
+    ...new Set(entry.triggers.flatMap((trigger) => trigger.canonLeafIds)),
+  ];
+  return (
+    entry.triggers
+      .filter((trigger) => trigger.restrictionRow === 'I')
+      .every((trigger) =>
+        sameLeafSet(trigger.canonLeafIds, ROW_I_CANON_LEAF_IDS)
+      ) && sameLeafSet(entry.canonLeafIds, triggerLeaves)
+  );
+}
+
 function sameProof(left: TradeHardCapProof, right: TradeHardCapProof): boolean {
   return (
     left.registryId === right.registryId &&
@@ -93,6 +127,18 @@ function calendarProofIsAuthenticated(
     return calendar.salaryCapYear === entry.salaryCapYear;
   }
 
+  if (trigger.restrictionRow === 'I') {
+    const transactionAsOf = normalizeTradeApronEnvelopeDate(
+      entry.triggerTransactionDate
+    );
+    return (
+      calendar.salaryCapYear === entry.salaryCapYear &&
+      transactionAsOf !== null &&
+      isWithinSalaryCapYear(transactionAsOf, entry.salaryCapYear) &&
+      trigger.componentId === `cash:${entry.teamCode}`
+    );
+  }
+
   if (!trigger.tpeTiming) return false;
   const createdAsOf = normalizeTradeApronEnvelopeDate(
     trigger.tpeTiming.createdOn
@@ -125,6 +171,8 @@ function entryMatchesAuthenticatedTriggers(
   entry: TradeHardCapLedgerEntry,
   registry: GovernedSeasonRegistry
 ): boolean {
+  if (!rowILeafProofIsAuthenticated(entry)) return false;
+
   const authenticated = entry.triggers.map((trigger) => {
     const level = resolveAuthenticatedLevel(entry, trigger, registry);
     return level && calendarProofIsAuthenticated(entry, trigger, registry)
