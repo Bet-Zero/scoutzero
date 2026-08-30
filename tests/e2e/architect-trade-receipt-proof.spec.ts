@@ -765,7 +765,7 @@ const assertPersistedIncompleteRosterBooks = (
     },
   });
   expect(apronReversal).toMatchObject({
-    amount: -amount,
+    amount: amount === 0 ? 0 : -amount,
     included: true,
     source: {
       authority: 'canon',
