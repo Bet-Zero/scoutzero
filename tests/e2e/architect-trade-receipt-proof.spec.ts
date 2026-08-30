@@ -19,6 +19,7 @@ import {
   GovernedCashReceiptZ,
 } from '@/schemas/governedCashConsideration';
 import { TradeHardCapLedgerZ } from '@/schemas/tradeApronRestriction';
+import { parseTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 import { SalaryBooksSnapshotZ } from '@/schemas/salaryBooks';
 
 const CANDIDATE = process.env.SCOUTZERO_PROOF_CANDIDATE ?? '';
@@ -1057,7 +1058,10 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       missingSlots: 1,
     }),
   };
-  expect(TradeHardCapLedgerZ.parse(miaAfterApply?.hardCapLedger)).toEqual(
+  const structurallyValidHardCapLedger = TradeHardCapLedgerZ.parse(
+    miaAfterApply?.hardCapLedger
+  );
+  expect(structurallyValidHardCapLedger).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
         restrictionRow: 'I',
@@ -1065,6 +1069,10 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       }),
     ])
   );
+  expect(parseTradeHardCapLedger(miaAfterApply?.hardCapLedger)).toEqual({
+    entries: structurallyValidHardCapLedger,
+    valid: true,
+  });
   const eventMetadata =
     tradeEvent?.metadata && typeof tradeEvent.metadata === 'object'
       ? tradeEvent.metadata
@@ -1102,6 +1110,19 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     page.getByText('Trade Receipt Proof', { exact: true }).first()
   ).toBeVisible({ timeout: 90_000 });
   await openDashboardTab(page, 'Cap Sheet');
+  await page.getByTestId('cap-sheet-exceptions-toggle').click();
+  const hardCapBanner = page.getByTestId(
+    'cap-sheet-current-season-authority-banner'
+  );
+  await expect(hardCapBanner).toContainText('Hard Capped');
+  await expect(hardCapBanner).toContainText('2nd Apron');
+  await expect(hardCapBanner).toContainText(
+    'Transaction Restrictions Table Row I hard cap for Salary Cap Year 2027.'
+  );
+  await expect(hardCapBanner).not.toContainText(
+    'malformed or version-incompatible'
+  );
+  await expect(hardCapBanner).not.toContainText('fail-closed');
   const incompleteRosterRow = page.getByTestId(
     'incomplete-roster-charge-row'
   );

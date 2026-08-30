@@ -36,8 +36,12 @@ import {
   GovernedCashReceiptZ,
   type GovernedCashEvaluation,
 } from '@/schemas/governedCashConsideration';
-import type { TradeApronRestrictionEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
+import {
+  parseTradeHardCapLedger,
+  type TradeApronRestrictionEvaluation,
+} from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
 import { toTeamHistoryEventDisplay } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
+import { CANON_GOVERNED_SEASON_REGISTRY } from '@/features/architect/utils/governedSeason';
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
@@ -653,14 +657,15 @@ describe('mutationPipeline trade persistence truth', () => {
 
   it('atomically persists paired cash ledgers, the uninvolved Team snapshot, Row I, and one receipt while rejecting a stale replay', async () => {
     const worldId = 'world_trade_truth_cash';
-    const transactionAt = '2025-07-08T09:55:00-04:00';
-    const cashTimestamp = Date.UTC(2025, 6, 8, 14, 0, 0);
-    const annualLimitCents = 796_432_050;
+    const cashSeasonId = '2026-27';
+    const transactionAt = '2026-07-08T09:55:00-04:00';
+    const cashTimestamp = Date.UTC(2026, 6, 8, 14, 0, 0);
+    const annualLimitCents = 849_549_150;
     const cashProof = {
       canonCandidateCommit: '6cf8aaf358c158a88e630e8a7336f7e9c3febc17' as const,
       canonSha256:
         '23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76' as const,
-      salaryCapCents: 15_464_700_000,
+      salaryCapCents: 16_496_100_000,
       annualLimitCents,
       seasonInputManifest: {},
     };
@@ -672,7 +677,7 @@ describe('mutationPipeline trade persistence truth', () => {
       status: 'PASS',
       passed: true,
       teamId,
-      salaryCapYear: 2026,
+      salaryCapYear: 2027,
       transactionAt,
       cashSentCents: direction === 'PAID' ? 100 : 0,
       cashReceivedCents: direction === 'RECEIVED' ? 100 : 0,
@@ -681,7 +686,7 @@ describe('mutationPipeline trade persistence truth', () => {
       projectedPaidCents: direction === 'PAID' ? 100 : 0,
       projectedReceivedCents: direction === 'RECEIVED' ? 100 : 0,
       annualLimitCents,
-      regularSeasonClosing: '2026-04-12',
+      regularSeasonClosing: '2027-04-11',
       ledgerVersion: 0,
       canonLeafIds: [
         direction === 'PAID' ? 'CBA2-A08.1' : 'CBA2-A08.2',
@@ -694,14 +699,14 @@ describe('mutationPipeline trade persistence truth', () => {
       proof: cashProof,
     });
     const hardCapProof = {
-      registryId: 'canon-governed-season-registry',
-      registryVersion: 1,
-      canonCandidateCommit: '6cf8aaf358c158a88e630e8a7336f7e9c3febc17',
-      canonSha256:
-        '23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76',
-      calendarRecordId: 'season-2025-26',
+      registryId: CANON_GOVERNED_SEASON_REGISTRY.registryId,
+      registryVersion: CANON_GOVERNED_SEASON_REGISTRY.registryVersion,
+      canonCandidateCommit:
+        CANON_GOVERNED_SEASON_REGISTRY.canonCandidateCommit,
+      canonSha256: CANON_GOVERNED_SEASON_REGISTRY.canonSha256,
+      calendarRecordId: 'GOV-CAL-0002',
       calendarRecordVersion: 1,
-      apronRecordId: 'apron-2025-26',
+      apronRecordId: 'GOV-LVL-0005',
       apronRecordVersion: 1,
     };
     const rowIEvaluation: TradeApronRestrictionEvaluation = {
@@ -711,11 +716,11 @@ describe('mutationPipeline trade persistence truth', () => {
       restrictionRow: 'I',
       salaryMatchingPath: 'ROOM',
       apronLevel: 'SECOND_APRON',
-      ceiling: 207_824_000,
+      ceiling: 221_686_000,
       postTransactionApronTeamSalary: 20_000_000,
-      margin: 187_824_000,
+      margin: 201_686_000,
       transactionDate: transactionAt,
-      salaryCapYear: 2026,
+      salaryCapYear: 2027,
       tpeId: null,
       tpeCreatedOn: null,
       tpeExpiresOn: null,
@@ -723,22 +728,22 @@ describe('mutationPipeline trade persistence truth', () => {
       attachedRestrictions: [
         {
           restrictionRow: 'I',
-          componentId: 'cash:LAL:BOS',
+          componentId: 'cash:LAL',
           componentKind: 'CASH',
           salaryMatchingPath: 'ROOM',
           apronLevel: 'SECOND_APRON',
-          ceiling: 207_824_000,
+          ceiling: 221_686_000,
           incomingPlayers: [],
           cashAmountCents: 100,
           tpeTiming: null,
           regularSeasonClosing: null,
-          canonLeafIds: ['CBA2-A05.11'],
+          canonLeafIds: ['CBA2-A05.11', 'CBA2-A05.1', 'CBA2-A05.2'],
           proof: hardCapProof,
         },
       ],
-      regularSeasonClosing: '2026-04-12',
+      regularSeasonClosing: '2027-04-11',
       hardCapWillPersist: true,
-      canonLeafIds: ['CBA2-A05.11'],
+      canonLeafIds: ['CBA2-A05.11', 'CBA2-A05.1', 'CBA2-A05.2'],
       missingInputs: [],
       violations: [],
       proof: hardCapProof,
@@ -802,7 +807,7 @@ describe('mutationPipeline trade persistence truth', () => {
       createMockWorld({
         worldId,
         userId: USER_ID,
-        currentSeason: SEASON_ID,
+        currentSeason: cashSeasonId,
       })
     );
     const lalOut = makePlayer('cash_lal_out', 'LAL', 8_000_000);
@@ -875,8 +880,8 @@ describe('mutationPipeline trade persistence truth', () => {
         worldId,
         tradeDate: transactionAt,
         asOfDate: transactionAt,
-        currentYear: 2026,
-        yearKey: 2026,
+        currentYear: 2027,
+        yearKey: 2027,
       },
     };
     const staleState = await loadStateForMutation(
@@ -888,7 +893,7 @@ describe('mutationPipeline trade persistence truth', () => {
       mutationType: 'executeTrade',
       payload,
       currentState: staleState,
-      seasonId: SEASON_ID,
+      seasonId: cashSeasonId,
       timestamp: cashTimestamp,
       asOfDate: transactionAt,
       worldId,
@@ -898,7 +903,7 @@ describe('mutationPipeline trade persistence truth', () => {
       mutationType: 'executeTrade',
       payload,
       currentState: staleState,
-      seasonId: SEASON_ID,
+      seasonId: cashSeasonId,
       timestamp: cashTimestamp + 1,
       asOfDate: transactionAt,
       worldId,
@@ -931,12 +936,12 @@ describe('mutationPipeline trade persistence truth', () => {
 
     const firstPersisted = await persistWorldMutation({
       worldId,
-      seasonId: SEASON_ID,
+      seasonId: cashSeasonId,
       mutationType: 'executeTrade',
       computeResult: firstCandidate,
       committedTeamUpdates: buildGeneralMutationCommittedTeamUpdates(
         firstCandidate.teamUpdates,
-        SEASON_ID
+        cashSeasonId
       ),
       timestamp: cashTimestamp,
     });
@@ -978,6 +983,25 @@ describe('mutationPipeline trade persistence truth', () => {
         transactionId: lalLedger.entries[0].transactionId,
       }),
     ]);
+    const persistedHardCapLedger = JSON.parse(
+      JSON.stringify(lalSnapshot.hardCapLedger)
+    );
+    expect(parseTradeHardCapLedger(persistedHardCapLedger)).toEqual({
+      entries: persistedHardCapLedger,
+      valid: true,
+    });
+    const reloadedState = await loadStateForMutation(
+      worldId,
+      'executeTrade',
+      payload
+    );
+    expect(
+      reloadedState.teams.find((candidate) => candidate.teamCode === 'LAL')
+        ?.team.hardCapLedger
+    ).toEqual(persistedHardCapLedger);
+    expect(requireTeamSnapshot(worldId, 'LAL').hardCapLedger).toEqual(
+      persistedHardCapLedger
+    );
     expect(bosSnapshot.hardCapLedger ?? []).toEqual([]);
     expect(detSnapshot.hardCapLedger ?? []).toEqual([]);
     expect(lalSnapshot.salaryBookInputs).toEqual(salaryBooksBefore.LAL);
@@ -1013,7 +1037,7 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(cashHistory.detailSections).toContainEqual({
       title: 'Cash Consideration Receipt',
       lines: expect.arrayContaining([
-        'Salary Cap Year: 2026',
+        'Salary Cap Year: 2027',
         'LAL paid $1.00 to BOS',
         'BOS received $1.00 from LAL',
         'Salary-book cash deltas: $0.00 for every Team',
@@ -1026,12 +1050,12 @@ describe('mutationPipeline trade persistence truth', () => {
 
     const stalePersisted = await persistWorldMutation({
       worldId,
-      seasonId: SEASON_ID,
+      seasonId: cashSeasonId,
       mutationType: 'executeTrade',
       computeResult: staleCandidate,
       committedTeamUpdates: buildGeneralMutationCommittedTeamUpdates(
         staleCandidate.teamUpdates,
-        SEASON_ID
+        cashSeasonId
       ),
       timestamp: cashTimestamp + 1,
     });

@@ -17,6 +17,40 @@ export type ParsedTradeHardCapLedger = {
   valid: boolean;
 };
 
+const ROW_I_CANON_LEAF_IDS = [
+  'CBA2-A05.11',
+  'CBA2-A05.1',
+  'CBA2-A05.2',
+] as const;
+
+function sameLeafSet(
+  actual: readonly string[],
+  expected: readonly string[]
+): boolean {
+  return (
+    actual.length === expected.length &&
+    expected.every((leafId) => actual.includes(leafId))
+  );
+}
+
+function rowILeafProofIsAuthenticated(
+  entry: TradeHardCapLedgerEntry
+): boolean {
+  if (!entry.triggers.some((trigger) => trigger.restrictionRow === 'I')) {
+    return true;
+  }
+  const triggerLeaves = [
+    ...new Set(entry.triggers.flatMap((trigger) => trigger.canonLeafIds)),
+  ];
+  return (
+    entry.triggers
+      .filter((trigger) => trigger.restrictionRow === 'I')
+      .every((trigger) =>
+        sameLeafSet(trigger.canonLeafIds, ROW_I_CANON_LEAF_IDS)
+      ) && sameLeafSet(entry.canonLeafIds, triggerLeaves)
+  );
+}
+
 function sameProof(left: TradeHardCapProof, right: TradeHardCapProof): boolean {
   return (
     left.registryId === right.registryId &&
@@ -51,12 +85,14 @@ function resolveAuthenticatedLevel(
 
   const expectedLevelId =
     trigger.apronLevel === 'FIRST_APRON' ? 'first-apron' : 'second-apron';
-  const level = registry.systemLevels.find(
+  const matchingLevels = registry.systemLevels.filter(
     (candidate) =>
       candidate.recordId === trigger.proof.apronRecordId &&
       candidate.recordVersion === trigger.proof.apronRecordVersion
   );
+  const level = matchingLevels[0];
   if (
+    matchingLevels.length !== 1 ||
     !level ||
     level.recordStatus !== 'current' ||
     level.authority !== 'official' ||
@@ -65,6 +101,22 @@ function resolveAuthenticatedLevel(
     level.amount !== trigger.ceiling
   ) {
     return null;
+  }
+  if (trigger.restrictionRow === 'I') {
+    const currentOfficialLevels = registry.systemLevels.filter(
+      (candidate) =>
+        candidate.recordStatus === 'current' &&
+        candidate.authority === 'official' &&
+        candidate.salaryCapYear === entry.salaryCapYear &&
+        candidate.levelId === expectedLevelId
+    );
+    if (
+      currentOfficialLevels.length !== 1 ||
+      currentOfficialLevels[0].recordId !== level.recordId ||
+      currentOfficialLevels[0].recordVersion !== level.recordVersion
+    ) {
+      return null;
+    }
   }
   return level;
 }
@@ -91,6 +143,27 @@ function calendarProofIsAuthenticated(
 
   if (trigger.restrictionRow === 'C' || trigger.restrictionRow === 'H') {
     return calendar.salaryCapYear === entry.salaryCapYear;
+  }
+
+  if (trigger.restrictionRow === 'I') {
+    const transactionAsOf = normalizeTradeApronEnvelopeDate(
+      entry.triggerTransactionDate
+    );
+    const currentOfficialCalendars = registry.calendars.filter(
+      (candidate) =>
+        candidate.recordStatus === 'current' &&
+        candidate.authority === 'official' &&
+        candidate.salaryCapYear === entry.salaryCapYear
+    );
+    return (
+      currentOfficialCalendars.length === 1 &&
+      currentOfficialCalendars[0].recordId === calendar.recordId &&
+      currentOfficialCalendars[0].recordVersion === calendar.recordVersion &&
+      calendar.salaryCapYear === entry.salaryCapYear &&
+      transactionAsOf !== null &&
+      isWithinSalaryCapYear(transactionAsOf, entry.salaryCapYear) &&
+      trigger.componentId === `cash:${entry.teamCode}`
+    );
   }
 
   if (!trigger.tpeTiming) return false;
@@ -125,6 +198,8 @@ function entryMatchesAuthenticatedTriggers(
   entry: TradeHardCapLedgerEntry,
   registry: GovernedSeasonRegistry
 ): boolean {
+  if (!rowILeafProofIsAuthenticated(entry)) return false;
+
   const authenticated = entry.triggers.map((trigger) => {
     const level = resolveAuthenticatedLevel(entry, trigger, registry);
     return level && calendarProofIsAuthenticated(entry, trigger, registry)

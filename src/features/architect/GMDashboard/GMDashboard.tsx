@@ -783,8 +783,10 @@ export const GMDashboard = () => {
         firstApron: workspaceContext.cap.firstApron,
         secondApron: workspaceContext.cap.secondApron,
       },
+      salaryCapYear: currentYear,
     });
   }, [
+    currentYear,
     teamCapSheet,
     workspaceContext.cap,
   ]);

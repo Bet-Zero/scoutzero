@@ -324,6 +324,28 @@ function evaluateAggregated(postSalary: number) {
   });
 }
 
+function evaluateCash(postSalary = SECOND_APRON) {
+  const cashTeam = team(postSalary);
+  cashTeam.cashSent = 1;
+  return evaluateTradeApronRestriction({
+    team: cashTeam,
+    teamCode: 'DET',
+    pathEvaluation: pathEvaluation({ path: 'ROOM', postSalary }),
+    context: context('2026-07-15T12:00:00-04:00'),
+  });
+}
+
+function createCashLedgerEntry() {
+  const entry = createTradeHardCapLedgerEntry({
+    evaluation: evaluateCash(),
+    teamCode: 'DET',
+    transactionId: 'TRADE-ROW-I-CASH',
+    effectiveAt: '2026-07-15T16:00:00Z',
+  });
+  if (!entry) throw new Error('expected product-generated Row I fixture');
+  return entry;
+}
+
 function evaluateCumulative(postSalary: number) {
   const heldTpe = {
     id: 'TPE-AUTHORITY-CUMULATIVE',
@@ -1146,6 +1168,142 @@ describe('governed Trade Machine apron restrictions', () => {
     expect(allowed.passed).toBe(true);
     expect(blocked.passed).toBe(false);
     expect(blocked.violations[0]).toMatch(/hard cap violation/i);
+  });
+
+  it('CBA2-A05.11: authenticates a product-generated Row I entry through persistence, Team normalization, and reload status without rewriting it', async () => {
+    const evaluation = evaluateCash();
+    const entry = createCashLedgerEntry();
+    const persisted = JSON.parse(JSON.stringify([entry]));
+    const beforeRead = JSON.stringify(persisted);
+
+    expect(evaluation).toMatchObject({
+      status: 'PASS',
+      restrictionRow: 'I',
+      apronLevel: 'SECOND_APRON',
+      ceiling: SECOND_APRON,
+      hardCapWillPersist: true,
+      proof: {
+        calendarRecordId: 'GOV-CAL-0002',
+        apronRecordId: 'GOV-LVL-0005',
+      },
+    });
+    expect(TradeHardCapLedgerZ.safeParse(persisted).success).toBe(true);
+    expect(parseTradeHardCapLedger(persisted)).toEqual({
+      entries: persisted,
+      valid: true,
+    });
+
+    const hydrated = await hydrateBaseTeam('DET', {
+      roster: [],
+      teamName: 'Detroit Pistons',
+      exceptions: {},
+      hardCapLedger: persisted,
+    });
+    expect(hydrated.hardCapLedger).toEqual(persisted);
+    expect(
+      getHardCapStatus(hydrated, {
+        salaryCapYear: 2027,
+        capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+      })
+    ).toMatchObject({
+      isHardCapped: true,
+      hardCapType: 'SECOND_APRON',
+      hardCapCeiling: SECOND_APRON,
+      failClosed: false,
+      reason:
+        'Transaction Restrictions Table Row I hard cap for Salary Cap Year 2027.',
+    });
+    expect(parseTradeHardCapLedger(persisted).valid).toBe(true);
+    expect(JSON.stringify(persisted)).toBe(beforeRead);
+  });
+
+  it.each([
+    {
+      label: 'cash-paying Team attribution',
+      mutate: (entry: ReturnType<typeof createCashLedgerEntry>) => {
+        entry.triggers[0].componentId = 'cash:BOS';
+      },
+    },
+    {
+      label: 'transaction Salary Cap Year',
+      mutate: (entry: ReturnType<typeof createCashLedgerEntry>) => {
+        entry.triggerTransactionDate = '2027-07-15T12:00:00-04:00';
+      },
+    },
+    {
+      label: 'Row I rule leaf',
+      mutate: (entry: ReturnType<typeof createCashLedgerEntry>) => {
+        entry.canonLeafIds = entry.canonLeafIds.filter(
+          (leafId) => leafId !== 'CBA2-A05.11'
+        );
+        entry.triggers[0].canonLeafIds =
+          entry.triggers[0].canonLeafIds.filter(
+            (leafId) => leafId !== 'CBA2-A05.11'
+          );
+      },
+    },
+    {
+      label: 'calendar authority',
+      mutate: (entry: ReturnType<typeof createCashLedgerEntry>) => {
+        entry.proof.calendarRecordId = 'GOV-CAL-MISSING';
+        entry.triggers[0].proof.calendarRecordId = 'GOV-CAL-MISSING';
+      },
+    },
+    {
+      label: 'Second Apron authority',
+      mutate: (entry: ReturnType<typeof createCashLedgerEntry>) => {
+        entry.proof.apronRecordVersion = 999;
+        entry.triggers[0].proof.apronRecordVersion = 999;
+      },
+    },
+  ])('fails closed for tampered Row I $label', ({ mutate }) => {
+    const altered = JSON.parse(
+      JSON.stringify(createCashLedgerEntry())
+    ) as ReturnType<typeof createCashLedgerEntry>;
+    mutate(altered);
+
+    expect(TradeHardCapLedgerZ.safeParse([altered]).success).toBe(true);
+    expect(parseTradeHardCapLedger([altered])).toEqual({
+      entries: [],
+      valid: false,
+    });
+  });
+
+  it('fails closed when Row I governed calendar or Second Apron authority is disputed', () => {
+    const calendar = CANON_GOVERNED_SEASON_REGISTRY.calendars.find(
+      (candidate) => candidate.recordId === 'GOV-CAL-0002'
+    );
+    const secondApron = CANON_GOVERNED_SEASON_REGISTRY.systemLevels.find(
+      (candidate) => candidate.recordId === 'GOV-LVL-0005'
+    );
+    expect(calendar).toBeDefined();
+    expect(secondApron).toBeDefined();
+
+    const disputedRegistries: GovernedSeasonRegistry[] = [
+      {
+        ...CANON_GOVERNED_SEASON_REGISTRY,
+        calendars: [
+          ...CANON_GOVERNED_SEASON_REGISTRY.calendars,
+          { ...calendar!, recordId: 'GOV-CAL-ROW-I-CONFLICT' },
+        ],
+      },
+      {
+        ...CANON_GOVERNED_SEASON_REGISTRY,
+        systemLevels: [
+          ...CANON_GOVERNED_SEASON_REGISTRY.systemLevels,
+          { ...secondApron!, recordId: 'GOV-LVL-ROW-I-CONFLICT' },
+        ],
+      },
+    ];
+
+    disputedRegistries.forEach((registry) => {
+      expect(
+        parseTradeHardCapLedger([createCashLedgerEntry()], registry)
+      ).toEqual({
+        entries: [],
+        valid: false,
+      });
+    });
   });
 
   it('persists and reloads both mixed triggers with the controlling First Apron', async () => {
