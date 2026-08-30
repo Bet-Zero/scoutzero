@@ -1110,6 +1110,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     page.getByText('Trade Receipt Proof', { exact: true }).first()
   ).toBeVisible({ timeout: 90_000 });
   await openDashboardTab(page, 'Cap Sheet');
+  await page.getByTestId('cap-sheet-exceptions-toggle').click();
   const hardCapBanner = page.getByTestId(
     'cap-sheet-current-season-authority-banner'
   );

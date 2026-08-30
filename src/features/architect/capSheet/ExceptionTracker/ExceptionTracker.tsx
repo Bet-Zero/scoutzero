@@ -228,6 +228,7 @@ export const ExceptionTracker = ({
   const capData = getCapSettingsForYear(currentYear);
   const hardCapStatus = getHardCapStatus(teamCapSheet, {
     capSettings: capData,
+    salaryCapYear: currentYear,
   });
 
   const mleException = getCanonicalExceptionAvailability(teamCapSheet, 'mle');
@@ -380,4 +381,3 @@ export const ExceptionTracker = ({
     </section>
   );
 };
-
