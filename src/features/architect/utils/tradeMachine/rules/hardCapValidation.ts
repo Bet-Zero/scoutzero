@@ -222,6 +222,8 @@ export function validateHardCap(
       secondApron,
     },
     salaryCapYear: resolveSalaryCapYear(context),
+    containingTeamCode: context.containingTeamCode ?? null,
+    worldId: context.worldId ?? null,
   });
 
   if (!hardCapStatus.isHardCapped) {

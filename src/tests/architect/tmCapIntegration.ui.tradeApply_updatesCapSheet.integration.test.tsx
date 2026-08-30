@@ -309,6 +309,7 @@ describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Cap Sheet surface', () =
       <CapSheetSection
         teamCapSheet={beforeLal}
         currentYear={CURRENT_YEAR}
+        containingTeamCode="LAL"
         asOfDate={new Date(FIXED_TIMESTAMP).toISOString()}
         onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
@@ -327,6 +328,7 @@ describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Cap Sheet surface', () =
       <CapSheetSection
         teamCapSheet={afterLal}
         currentYear={CURRENT_YEAR}
+        containingTeamCode="LAL"
         asOfDate={new Date(FIXED_TIMESTAMP).toISOString()}
         onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}

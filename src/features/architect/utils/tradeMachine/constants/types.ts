@@ -482,6 +482,8 @@ export interface TeamContext {
   capSettingsSource?: string;
   capSettingsWarnings?: string[];
   worldId?: string;
+  /** Canonical mutation-routing identity, supplied outside persisted Team data. */
+  containingTeamCode?: string | null;
   timingEnforcementMode?: string;
   isAtOrAboveSecondApron?: boolean;
   source?: string;

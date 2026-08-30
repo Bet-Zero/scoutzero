@@ -669,7 +669,10 @@ export async function applyWorldMutation({
       // The mutation-stage validators above remain required, but they are not
       // substitutes for final-state artifact validation.
       const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
-      afterTeamsByCode = extractTeamsByCodeFromComputeResult(computeResult);
+      afterTeamsByCode = extractTeamsByCodeFromComputeResult(
+        computeResult,
+        worldId
+      );
       beforeTotalsByTeam = buildTotalsByTeam(
         beforeTeamsByCode,
         year,

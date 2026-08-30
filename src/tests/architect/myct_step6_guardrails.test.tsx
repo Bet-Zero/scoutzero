@@ -128,6 +128,7 @@ const buildShellProps = (overrides: Partial<FixtureTeam> = {}) => ({
     ...overrides,
   },
   currentYear: CURRENT_YEAR,
+  containingTeamCode: 'LAL',
   onOpenPlayerContractModal: vi.fn(),
   manualCapSheetMutationAuthority: {
     handleSetDeadCap: vi.fn(async () => true),

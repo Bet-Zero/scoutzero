@@ -37,6 +37,7 @@ import {
   type ArchitectBoundarySalaryRow,
   type ArchitectBoundaryTeam,
 } from '@/features/architect/utils/architectFirestoreBoundary';
+import { parsePersistedTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 
 type UnknownRecord = ArchitectBoundaryRecord;
 
@@ -49,7 +50,9 @@ type ContractLike = ArchitectBoundaryContract;
 type PlayerLike = ArchitectBoundaryPlayer;
 type TeamLike = ArchitectBoundaryTeam;
 
-function deriveTeamTotalsYear(team: TeamLike | null | undefined): number | null {
+function deriveTeamTotalsYear(
+  team: TeamLike | null | undefined
+): number | null {
   const seasonYear =
     typeof team?.season === 'string' ? toEndYear(team.season) : null;
   if (typeof seasonYear === 'number' && Number.isFinite(seasonYear)) {
@@ -105,11 +108,12 @@ export async function getTeam(
     const snapshotData = readTeamDoc(
       worldSnapshotSnap.data(),
       teamCode,
-      `architect_worlds/${worldId}/teams/${teamCode}`
+      `architect_worlds/${worldId}/teams/${teamCode}`,
+      worldId
     );
     // Hydrate roster from base players if needed
     return synchronizeLoadedTeam(
-      await hydrateTeamFromSnapshot(snapshotData, teamCode)
+      await hydrateTeamFromSnapshot(snapshotData, teamCode, worldId)
     );
   }
 
@@ -172,7 +176,8 @@ async function getBaseTeam(teamCode: string): Promise<TeamLike> {
  */
 async function hydrateTeamFromSnapshot(
   snapshotData: TeamLike,
-  teamCode: string
+  teamCode: string,
+  worldId: string
 ): Promise<TeamLike> {
   const snapshotPlayers = snapshotData.players;
 
@@ -182,9 +187,16 @@ async function hydrateTeamFromSnapshot(
   }
 
   // Otherwise, hydrate from base players
-  const hydratedTeam = await hydrateBaseTeam(teamCode, snapshotData);
+  const hydratedTeam = await hydrateBaseTeam(teamCode, snapshotData, {
+    worldId,
+  });
   return synchronizeLoadedTeam(
-    readTeamDoc(hydratedTeam, teamCode, `hydrated team snapshot ${teamCode}`)
+    readTeamDoc(
+      hydratedTeam,
+      teamCode,
+      `hydrated team snapshot ${teamCode}`,
+      worldId
+    )
   );
 }
 
@@ -246,7 +258,8 @@ export async function getLeague(worldId: string | null): Promise<TeamLike[]> {
       readTeamDoc(
         docSnap.data(),
         docSnap.id,
-        `architect_worlds/${worldId}/teams/${docSnap.id}`
+        `architect_worlds/${worldId}/teams/${docSnap.id}`,
+        worldId
       )
     );
   });
@@ -265,7 +278,7 @@ export async function getLeague(worldId: string | null): Promise<TeamLike[]> {
     TEAM_CODES.map(async (code) => {
       const snapshotData = snapshotMap.get(code);
       if (snapshotData) {
-        return await hydrateTeamFromSnapshot(snapshotData, code);
+        return await hydrateTeamFromSnapshot(snapshotData, code, worldId);
       }
 
       // Try parent world
@@ -451,9 +464,23 @@ function mergeSalariesByYear(
 function readTeamDoc(
   value: unknown,
   fallbackTeamCode: string,
-  context: string
+  context: string,
+  worldId: string | null = null
 ): TeamLike {
-  return readArchitectTeam(value, context, fallbackTeamCode);
+  const team = readArchitectTeam(value, context, fallbackTeamCode);
+  if (team.hardCapLedger === null) return team;
+  if (team.hardCapLedger !== undefined) {
+    const parsedLedger = parsePersistedTradeHardCapLedger(team.hardCapLedger, {
+      containingTeamCode: fallbackTeamCode,
+      worldId,
+      cashLedger: team.cashLedger,
+    });
+    if (!parsedLedger.valid) {
+      throw new Error(`${context}.hardCapLedger is not governed authority.`);
+    }
+    team.hardCapLedger = parsedLedger.entries;
+  }
+  return team;
 }
 
 function readPlayerDoc(

@@ -100,6 +100,7 @@ export function validateSingleTeam(
     team.team?.teamId ||
     team.team?.id ||
     resolveTeamIdentity(team, index);
+  const containingTeamCode = teamIdsByIndex[index] ?? null;
   const teamName =
     team.team?.teamName ||
     team.team?.name ||
@@ -161,7 +162,7 @@ export function validateSingleTeam(
   // Run individual validation rules
   const salaryMatchingResult = validators.validateSalaryMatching(
     teamForValidation,
-    context
+    { ...context, containingTeamCode }
   );
   teamForValidation.salaryMatchingPathEvaluation =
     salaryMatchingResult.details.pathEvaluation ?? null;
@@ -171,7 +172,10 @@ export function validateSingleTeam(
     pathEvaluation: teamForValidation.salaryMatchingPathEvaluation,
     context,
   });
-  const hardCapResult = validators.validateHardCap(teamForValidation, context);
+  const hardCapResult = validators.validateHardCap(teamForValidation, {
+    ...context,
+    containingTeamCode,
+  });
   const stepienResult = validators.validateStepien(teamForValidation, context);
   const cashResult = validators.validateCash(teamForValidation, context);
   const tradeExceptionsResult = validators.validateTradeExceptions({

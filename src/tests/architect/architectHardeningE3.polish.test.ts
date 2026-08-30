@@ -286,6 +286,7 @@ describe('Architect TypeScript hardening E3 regression', () => {
           players: [wrapperFixtures.capTablePlayer],
         },
         currentYear: 2026,
+        containingTeamCode: 'TST',
         onOpenPlayerContractModal,
         manualCapSheetMutationAuthority,
       })

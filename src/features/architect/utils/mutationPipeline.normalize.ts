@@ -395,7 +395,10 @@ export function normalizeComputeWorldMutationArgs(
           args.mutationType,
           args.payload
         ),
-        currentState: normalizeTradeMutationCurrentState(args.currentState),
+        currentState: normalizeTradeMutationCurrentState(
+          args.currentState,
+          args.worldId
+        ),
       };
 
     case 'signFreeAgent':

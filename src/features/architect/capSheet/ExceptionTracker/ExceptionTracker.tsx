@@ -35,6 +35,8 @@ const formatSeasonLabel = (endYear: number) =>
 type ExceptionTrackerProps = {
   teamCapSheet: TeamCapSheetLike;
   currentYear: number;
+  containingTeamCode?: string | null;
+  worldId?: string | null;
   selectedYear?: number | null;
   surfaceLabel?: string;
 };
@@ -169,6 +171,8 @@ const CompactTradeExceptionRow = ({ tpe }: CompactTradeExceptionRowProps) => {
 export const ExceptionTracker = ({
   teamCapSheet,
   currentYear,
+  containingTeamCode = null,
+  worldId = null,
   selectedYear = currentYear,
   surfaceLabel = 'Cap sheet current-season exception authority surface',
 }: ExceptionTrackerProps) => {
@@ -229,6 +233,8 @@ export const ExceptionTracker = ({
   const hardCapStatus = getHardCapStatus(teamCapSheet, {
     capSettings: capData,
     salaryCapYear: currentYear,
+    containingTeamCode,
+    worldId,
   });
 
   const mleException = getCanonicalExceptionAvailability(teamCapSheet, 'mle');

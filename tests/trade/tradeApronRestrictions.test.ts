@@ -27,9 +27,15 @@ import {
   type GovernedSeasonRegistry,
 } from '@/features/architect/utils/governedSeason';
 import { GovernedSignAndTradeAuthorityZ } from '@/schemas/governedSignAndTrade';
+import { GovernedCashLedgerZ } from '@/schemas/governedCashConsideration';
+import { evaluateGovernedCashConsideration } from '@/features/architect/utils/tradeMachine/utils/governedCashConsideration';
 
 const FIRST_APRON = 209_015_000;
 const SECOND_APRON = 221_686_000;
+const HARD_CAP_READ_AUTHORITY = {
+  containingTeamCode: 'DET',
+  worldId: 'WORLD-1',
+} as const;
 const AUTHORITY_DIGEST = 'fnv1a64:0000000000000000';
 const AUTHORITY_TEAM_CODES = [
   'ATL',
@@ -250,6 +256,7 @@ function context(tradeDate: string): TradeValidatorContext {
   return {
     source: 'tradeMachine',
     worldId: 'WORLD-1',
+    containingTeamCode: 'DET',
     currentYear: 2027,
     yearKey: 2027,
     tradeDate,
@@ -260,6 +267,16 @@ function context(tradeDate: string): TradeValidatorContext {
       secondApron: SECOND_APRON,
     },
   };
+}
+
+function getDetHardCapStatus(
+  teamValue: Parameters<typeof getHardCapStatus>[0],
+  options: Parameters<typeof getHardCapStatus>[1] = {}
+) {
+  return getHardCapStatus(teamValue, {
+    ...options,
+    ...HARD_CAP_READ_AUTHORITY,
+  });
 }
 
 function team(
@@ -344,6 +361,53 @@ function createCashLedgerEntry() {
   });
   if (!entry) throw new Error('expected product-generated Row I fixture');
   return entry;
+}
+
+function createAuthenticatedCashLedger() {
+  const cashTeam = team(SECOND_APRON);
+  cashTeam.cashSent = 1;
+  if (!cashTeam.team) throw new Error('expected cash Team fixture');
+  cashTeam.team.cashLedger = {
+    ledgerVersion: 0,
+    ledgerId: 'cash-ledger:DET',
+    teamId: 'DET',
+    entries: [],
+  };
+  const cashEvaluation = evaluateGovernedCashConsideration({
+    team: cashTeam,
+    context: context('2026-07-15T12:00:00-04:00'),
+  });
+  if (
+    cashEvaluation.status !== 'PASS' ||
+    !cashEvaluation.proof ||
+    cashEvaluation.cashSentCents === null ||
+    cashEvaluation.salaryCapYear === null ||
+    !cashEvaluation.transactionAt
+  ) {
+    throw new Error('expected authenticated cash fixture');
+  }
+  return GovernedCashLedgerZ.parse({
+    ledgerVersion: 1,
+    ledgerId: 'cash-ledger:DET',
+    teamId: 'DET',
+    entries: [
+      {
+        entryVersion: 1,
+        entryId: 'TRADE-ROW-I-CASH:cash:DET:PAID:BOS',
+        transactionId: 'TRADE-ROW-I-CASH',
+        worldId: 'WORLD-1',
+        teamId: 'DET',
+        counterpartyTeamId: 'BOS',
+        direction: 'PAID',
+        amountCents: cashEvaluation.cashSentCents,
+        salaryCapYear: cashEvaluation.salaryCapYear,
+        transactionAt: cashEvaluation.transactionAt,
+        recordedAt: '2026-07-15T16:00:00Z',
+        canonLeafIds: [...cashEvaluation.canonLeafIds, 'CBA2-A05.11'],
+        proof: cashEvaluation.proof,
+      },
+    ],
+  });
 }
 
 function evaluateCumulative(postSalary: number) {
@@ -893,7 +957,7 @@ describe('governed Trade Machine apron restrictions', () => {
       valid: true,
     });
     expect(
-      getHardCapStatus(
+      getDetHardCapStatus(
         { hardCapLedger: serialized },
         {
           salaryCapYear: 2027,
@@ -1133,7 +1197,7 @@ describe('governed Trade Machine apron restrictions', () => {
     );
     expect(selectHardCapLedgerEntry(serialized, 2028)).toBeNull();
 
-    const status = getHardCapStatus(
+    const status = getDetHardCapStatus(
       { hardCapLedger: serialized },
       {
         salaryCapYear: 2027,
@@ -1173,6 +1237,7 @@ describe('governed Trade Machine apron restrictions', () => {
   it('CBA2-A05.11: authenticates a product-generated Row I entry through persistence, Team normalization, and reload status without rewriting it', async () => {
     const evaluation = evaluateCash();
     const entry = createCashLedgerEntry();
+    const cashLedger = createAuthenticatedCashLedger();
     const persisted = JSON.parse(JSON.stringify([entry]));
     const beforeRead = JSON.stringify(persisted);
 
@@ -1193,15 +1258,20 @@ describe('governed Trade Machine apron restrictions', () => {
       valid: true,
     });
 
-    const hydrated = await hydrateBaseTeam('DET', {
-      roster: [],
-      teamName: 'Detroit Pistons',
-      exceptions: {},
-      hardCapLedger: persisted,
-    });
+    const hydrated = await hydrateBaseTeam(
+      'DET',
+      {
+        roster: [],
+        teamName: 'Detroit Pistons',
+        exceptions: {},
+        hardCapLedger: persisted,
+        cashLedger,
+      },
+      { worldId: HARD_CAP_READ_AUTHORITY.worldId }
+    );
     expect(hydrated.hardCapLedger).toEqual(persisted);
     expect(
-      getHardCapStatus(hydrated, {
+      getDetHardCapStatus(hydrated, {
         salaryCapYear: 2027,
         capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
       })
@@ -1356,7 +1426,7 @@ describe('governed Trade Machine apron restrictions', () => {
     expect(hydrated.hardCapLedger).toEqual(serialized);
     expect(hydrated.hardCapLedger?.[0]?.triggers).toHaveLength(2);
     expect(
-      getHardCapStatus(hydrated, {
+      getDetHardCapStatus(hydrated, {
         salaryCapYear: 2027,
         capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
       })
@@ -1443,7 +1513,7 @@ describe('governed Trade Machine apron restrictions', () => {
       });
       expect(hydrated.hardCapLedger).toEqual(serialized);
       expect(
-        getHardCapStatus(hydrated, {
+        getDetHardCapStatus(hydrated, {
           salaryCapYear: 2027,
           capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
         })
@@ -1478,7 +1548,7 @@ describe('governed Trade Machine apron restrictions', () => {
       valid: true,
     });
     expect(
-      getHardCapStatus(
+      getDetHardCapStatus(
         { hardCapLedger: singleReload },
         {
           salaryCapYear: 2027,
@@ -1487,7 +1557,7 @@ describe('governed Trade Machine apron restrictions', () => {
       ).hardCapCeiling
     ).toBe(SECOND_APRON);
     expect(
-      getHardCapStatus(
+      getDetHardCapStatus(
         { hardCapLedger: cumulativeReload },
         {
           salaryCapYear: 2027,
@@ -1650,7 +1720,7 @@ describe('governed Trade Machine apron restrictions', () => {
     expect(TradeHardCapLedgerZ.safeParse([altered]).success).toBe(true);
     expect(parseTradeHardCapLedger([altered]).valid).toBe(false);
     expect(
-      getHardCapStatus(
+      getDetHardCapStatus(
         { hardCapLedger: [altered] },
         {
           salaryCapYear: 2027,
@@ -1808,7 +1878,7 @@ describe('governed Trade Machine apron restrictions', () => {
         reason: 'Later Second Apron trigger',
       },
     };
-    const status = getHardCapStatus(simultaneousSources, {
+    const status = getDetHardCapStatus(simultaneousSources, {
       salaryCapYear: 2027,
       capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
     });
@@ -1867,7 +1937,7 @@ describe('governed Trade Machine apron restrictions', () => {
   });
 
   it('treats malformed persisted hard-cap history as fail-closed unknown state', () => {
-    const status = getHardCapStatus(
+    const status = getDetHardCapStatus(
       { hardCapLedger: [{ version: 999 }] as never },
       {
         salaryCapYear: 2027,
@@ -1889,7 +1959,7 @@ describe('governed Trade Machine apron restrictions', () => {
       effectiveAt: '2026-07-15T16:00:00Z',
     });
     expect(entry).not.toBeNull();
-    const status = getHardCapStatus(
+    const status = getDetHardCapStatus(
       { hardCapLedger: [entry] },
       { capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON } }
     );
@@ -1920,7 +1990,7 @@ describe('governed Trade Machine apron restrictions', () => {
 
     expect(hydrated.hardCapLedger).toEqual([entry]);
     expect(
-      getHardCapStatus(hydrated, {
+      getDetHardCapStatus(hydrated, {
         salaryCapYear: 2027,
         capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
       }).hardCapCeiling

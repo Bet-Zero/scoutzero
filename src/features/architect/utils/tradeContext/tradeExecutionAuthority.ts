@@ -421,7 +421,10 @@ function runTradePostStateLegalityStageFromComputeResult({
   computeResult,
 }: TradePostStateLegalityFromComputeResultInput): TradePostStateLegalityStageResult {
   const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
-  const afterTeamsByCode = extractTeamsByCodeFromComputeResult(computeResult);
+  const afterTeamsByCode = extractTeamsByCodeFromComputeResult(
+    computeResult,
+    worldId
+  );
 
   return runTradePostStateLegalityStage({
     operationId,

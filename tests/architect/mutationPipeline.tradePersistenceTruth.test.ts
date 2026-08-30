@@ -36,12 +36,14 @@ import {
   GovernedCashReceiptZ,
   type GovernedCashEvaluation,
 } from '@/schemas/governedCashConsideration';
-import {
-  parseTradeHardCapLedger,
-  type TradeApronRestrictionEvaluation,
-} from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
+import { type TradeApronRestrictionEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
+import { parsePersistedTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
+import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { toTeamHistoryEventDisplay } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
-import { CANON_GOVERNED_SEASON_REGISTRY } from '@/features/architect/utils/governedSeason';
+import {
+  CANON_GOVERNED_SEASON_REGISTRY,
+  resolveGovernedSeasonEnvelope,
+} from '@/features/architect/utils/governedSeason';
 
 vi.mock('@/features/architect/utils/capLegalityValidation', () => ({
   validateSigning: vi.fn(() => ({ valid: true, violations: [], warnings: [] })),
@@ -661,13 +663,24 @@ describe('mutationPipeline trade persistence truth', () => {
     const transactionAt = '2026-07-08T09:55:00-04:00';
     const cashTimestamp = Date.UTC(2026, 6, 8, 14, 0, 0);
     const annualLimitCents = 849_549_150;
-    const cashProof = {
-      canonCandidateCommit: '6cf8aaf358c158a88e630e8a7336f7e9c3febc17' as const,
-      canonSha256:
-        '23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76' as const,
-      salaryCapCents: 16_496_100_000,
-      annualLimitCents,
-      seasonInputManifest: {},
+    const cashProof = (teamId: 'LAL' | 'BOS') => {
+      const envelope = resolveGovernedSeasonEnvelope({
+        asOfDate: transactionAt,
+        salaryCapYear: 2027,
+        requiredAuthority: 'official',
+        team: { teamId, teamCode: teamId, worldId },
+        registry: CANON_GOVERNED_SEASON_REGISTRY,
+      });
+      expect(envelope.status).toBe('complete');
+      expect(envelope.inputManifest).not.toBeNull();
+      return {
+        canonCandidateCommit:
+          CANON_GOVERNED_SEASON_REGISTRY.canonCandidateCommit,
+        canonSha256: CANON_GOVERNED_SEASON_REGISTRY.canonSha256,
+        salaryCapCents: 16_496_100_000,
+        annualLimitCents,
+        seasonInputManifest: envelope.inputManifest ?? {},
+      };
     };
     const cashEvaluation = (
       teamId: 'LAL' | 'BOS',
@@ -696,13 +709,12 @@ describe('mutationPipeline trade persistence truth', () => {
       ],
       missingInputs: [],
       violations: [],
-      proof: cashProof,
+      proof: cashProof(teamId),
     });
     const hardCapProof = {
       registryId: CANON_GOVERNED_SEASON_REGISTRY.registryId,
       registryVersion: CANON_GOVERNED_SEASON_REGISTRY.registryVersion,
-      canonCandidateCommit:
-        CANON_GOVERNED_SEASON_REGISTRY.canonCandidateCommit,
+      canonCandidateCommit: CANON_GOVERNED_SEASON_REGISTRY.canonCandidateCommit,
       canonSha256: CANON_GOVERNED_SEASON_REGISTRY.canonSha256,
       calendarRecordId: 'GOV-CAL-0002',
       calendarRecordVersion: 1,
@@ -912,9 +924,8 @@ describe('mutationPipeline trade persistence truth', () => {
     expect(firstCandidate.success, String(firstCandidate.error)).toBe(true);
     expect(staleCandidate.success, String(staleCandidate.error)).toBe(true);
     expect(
-      GovernedCashReceiptZ.parse(
-        firstCandidate.metadata?.governedCashReceipt
-      ).tradeReceipt
+      GovernedCashReceiptZ.parse(firstCandidate.metadata?.governedCashReceipt)
+        .tradeReceipt
     ).toEqual({
       isLegal: true,
       capSettings: { salaryCap: 154_647_000 },
@@ -986,7 +997,13 @@ describe('mutationPipeline trade persistence truth', () => {
     const persistedHardCapLedger = JSON.parse(
       JSON.stringify(lalSnapshot.hardCapLedger)
     );
-    expect(parseTradeHardCapLedger(persistedHardCapLedger)).toEqual({
+    expect(
+      parsePersistedTradeHardCapLedger(persistedHardCapLedger, {
+        containingTeamCode: 'LAL',
+        worldId,
+        cashLedger: lalSnapshot.cashLedger,
+      })
+    ).toEqual({
       entries: persistedHardCapLedger,
       valid: true,
     });
@@ -995,10 +1012,54 @@ describe('mutationPipeline trade persistence truth', () => {
       'executeTrade',
       payload
     );
-    expect(
+    const reloadedLal = requireValue(
       reloadedState.teams.find((candidate) => candidate.teamCode === 'LAL')
+        ?.team,
+      'Expected reloaded LAL mutation state'
+    );
+    expect(reloadedLal.hardCapLedger).toEqual(persistedHardCapLedger);
+    expect(
+      getHardCapStatus(reloadedLal, {
+        containingTeamCode: 'LAL',
+        worldId,
+        salaryCapYear: 2027,
+        capSettings: {
+          firstApron: 215_000_000,
+          secondApron: rowIEvaluation.ceiling,
+        },
+      })
+    ).toMatchObject({
+      isHardCapped: true,
+      hardCapType: 'SECOND_APRON',
+      hardCapCeiling: rowIEvaluation.ceiling,
+      failClosed: false,
+    });
+    const lalLedgerBytes = JSON.stringify(lalSnapshot.cashLedger);
+    const hardCapLedgerBytes = JSON.stringify(lalSnapshot.hardCapLedger);
+    const copiedIntoBos = {
+      ...bosSnapshot,
+      hardCapLedger: JSON.parse(hardCapLedgerBytes),
+    };
+    seedMockData(`architect_worlds/${worldId}/teams/BOS`, copiedIntoBos);
+    await expect(
+      loadStateForMutation(worldId, 'executeTrade', payload)
+    ).rejects.toThrow(/hardCapLedger is not governed authority/i);
+    seedMockData(`architect_worlds/${worldId}/teams/BOS`, bosSnapshot);
+    const repeatedReload = await loadStateForMutation(
+      worldId,
+      'executeTrade',
+      payload
+    );
+    expect(
+      repeatedReload.teams.find((candidate) => candidate.teamCode === 'LAL')
         ?.team.hardCapLedger
     ).toEqual(persistedHardCapLedger);
+    expect(JSON.stringify(requireTeamSnapshot(worldId, 'LAL').cashLedger)).toBe(
+      lalLedgerBytes
+    );
+    expect(
+      JSON.stringify(requireTeamSnapshot(worldId, 'LAL').hardCapLedger)
+    ).toBe(hardCapLedgerBytes);
     expect(requireTeamSnapshot(worldId, 'LAL').hardCapLedger).toEqual(
       persistedHardCapLedger
     );

@@ -272,6 +272,8 @@ export function validateSalaryMatching(
         secondApron,
       },
       salaryCapYear: resolveSalaryCapYear(context),
+      containingTeamCode: context.containingTeamCode ?? null,
+      worldId: context.worldId ?? null,
     }
   );
 
