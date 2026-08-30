@@ -48,6 +48,7 @@ import { db } from '@/firebaseConfig';
 import { getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import {
   getWorldMetadata,
+  resolveWorldLineageIds,
   updateWorldStats,
 } from '@/features/architect/utils/worldManager';
 import {
@@ -357,6 +358,7 @@ export async function applyWorldMutation({
   let governedRenounceWorldAsOfDate: string | null = null;
 
   try {
+    const worldLineage = await resolveWorldLineageIds(worldId);
     // Clean-break compatibility is an ingress property of the saved world, so
     // reject it before attempting to resolve legacy team/player snapshots.
     if (mutationType === 'renounceRights') {
@@ -671,7 +673,8 @@ export async function applyWorldMutation({
       const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
       afterTeamsByCode = extractTeamsByCodeFromComputeResult(
         computeResult,
-        worldId
+        worldId,
+        worldLineage
       );
       beforeTotalsByTeam = buildTotalsByTeam(
         beforeTeamsByCode,
@@ -710,6 +713,7 @@ export async function applyWorldMutation({
         operationId,
         mutationType,
         worldId,
+        worldLineage,
         year,
         beforeTeamsByCode,
         afterTeamsByCode,

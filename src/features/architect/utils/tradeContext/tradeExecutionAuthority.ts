@@ -41,6 +41,7 @@
  */
 
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import { resolveWorldLineageIds } from '@/features/architect/utils/worldManager';
 import {
   extractTeamsByCodeFromComputeResult,
   buildTotalsByTeam,
@@ -185,6 +186,7 @@ export interface TradePostStateLegalityStageInput {
   operationId: string;
   mutationType: string;
   worldId: string;
+  worldLineage: readonly string[];
   year: number;
   asOfDate?: string | null;
   beforeTeamsByCode: MutationTeamMap;
@@ -203,6 +205,7 @@ interface TradePostStateLegalityFromComputeResultInput {
   operationId: string;
   mutationType: string;
   worldId: string;
+  worldLineage: readonly string[];
   seasonId: string;
   asOfDate?: string | null;
   timestamp: number;
@@ -340,6 +343,7 @@ export function runTradePostStateLegalityStage({
   operationId,
   mutationType,
   worldId,
+  worldLineage,
   year,
   asOfDate,
   beforeTeamsByCode,
@@ -384,6 +388,7 @@ export function runTradePostStateLegalityStage({
     operationId,
     mutationType,
     worldId,
+    worldLineage,
     year,
     beforeTeamsByCode,
     afterTeamsByCode,
@@ -414,6 +419,7 @@ function runTradePostStateLegalityStageFromComputeResult({
   operationId,
   mutationType,
   worldId,
+  worldLineage,
   seasonId,
   asOfDate,
   timestamp,
@@ -423,13 +429,15 @@ function runTradePostStateLegalityStageFromComputeResult({
   const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
   const afterTeamsByCode = extractTeamsByCodeFromComputeResult(
     computeResult,
-    worldId
+    worldId,
+    worldLineage
   );
 
   return runTradePostStateLegalityStage({
     operationId,
     mutationType,
     worldId,
+    worldLineage,
     year,
     asOfDate,
     beforeTeamsByCode,
@@ -492,10 +500,21 @@ export function validateTradePreviewAuthority({
   }
 
   const year = toEndYear(seasonId) ?? new Date().getFullYear();
+  const previewWorldLineage = (
+    validatedTradeContext._rawValidation as
+      | { context?: { worldLineage?: unknown } }
+      | null
+      | undefined
+  )?.context?.worldLineage;
   const postStateStage = runTradePostStateLegalityStage({
     operationId,
     mutationType,
     worldId: worldId ?? 'preview-world',
+    worldLineage: Array.isArray(previewWorldLineage)
+      ? previewWorldLineage.filter(
+          (candidate): candidate is string => typeof candidate === 'string'
+        )
+      : [],
     year,
     asOfDate,
     beforeTeamsByCode,
@@ -673,6 +692,7 @@ export async function validateTradeExecutionAuthority(
     timestamp,
     beforeTeamsByCode,
   } = input;
+  const worldLineage = await resolveWorldLineageIds(worldId);
 
   // =========================================================================
   // STAGE 1: SNAPSHOT_VALIDATION
@@ -719,6 +739,7 @@ export async function validateTradeExecutionAuthority(
     operationId,
     mutationType,
     worldId,
+    worldLineage,
     seasonId,
     asOfDate,
     timestamp,

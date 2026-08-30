@@ -204,6 +204,7 @@ export interface ValidatePostTradeSnapshotForContextParams {
   snapshot: PostTradeSnapshot;
   payload: TradeContextPayload;
   seasonId: string;
+  trustedWorldLineage?: readonly string[];
 }
 
 export interface BuildTradeApplyPreparationParams {

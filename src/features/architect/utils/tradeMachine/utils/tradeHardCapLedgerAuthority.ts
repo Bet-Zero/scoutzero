@@ -26,9 +26,72 @@ export type ParsedTradeHardCapLedger = {
 
 export type PersistedHardCapAuthorityContext = {
   containingTeamCode: unknown;
-  worldId?: unknown;
+  worldLineage?: unknown;
   cashLedger?: unknown;
 };
+
+export type TrustedPersistedHardCapAuthorityContext = Omit<
+  PersistedHardCapAuthorityContext,
+  'cashLedger'
+>;
+
+const TRUSTED_PERSISTED_HARD_CAP_AUTHORITY = Symbol(
+  'trusted-persisted-hard-cap-authority'
+);
+
+export function getTrustedPersistedHardCapAuthority(
+  value: object | null | undefined
+): TrustedPersistedHardCapAuthorityContext | undefined {
+  if (!value) return undefined;
+  return (
+    value as {
+      [TRUSTED_PERSISTED_HARD_CAP_AUTHORITY]?: TrustedPersistedHardCapAuthorityContext;
+    }
+  )[TRUSTED_PERSISTED_HARD_CAP_AUTHORITY];
+}
+
+export function resolveTrustedPersistedHardCapAuthority(
+  value: object,
+  explicit?: TrustedPersistedHardCapAuthorityContext
+): TrustedPersistedHardCapAuthorityContext | undefined {
+  const retained = getTrustedPersistedHardCapAuthority(value);
+  if (
+    retained &&
+    explicit &&
+    (retained.containingTeamCode !== explicit.containingTeamCode ||
+      JSON.stringify(retained.worldLineage ?? null) !==
+        JSON.stringify(explicit.worldLineage ?? null))
+  ) {
+    throw new Error(
+      'Persisted hard-cap containing-Team or world-lineage authority conflicts with the mutation target.'
+    );
+  }
+  return retained ?? explicit;
+}
+
+export function retainTrustedPersistedHardCapAuthority<T extends object>(
+  value: T,
+  authorityContext?: TrustedPersistedHardCapAuthorityContext
+): T {
+  if (
+    typeof authorityContext?.containingTeamCode !== 'string' ||
+    !authorityContext.containingTeamCode.trim()
+  ) {
+    return value;
+  }
+  Object.defineProperty(value, TRUSTED_PERSISTED_HARD_CAP_AUTHORITY, {
+    value: Object.freeze({
+      ...authorityContext,
+      ...(Array.isArray(authorityContext.worldLineage)
+        ? { worldLineage: Object.freeze([...authorityContext.worldLineage]) }
+        : {}),
+    }),
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
+  return value;
+}
 
 const ROW_I_CANON_LEAF_IDS = [
   'CBA2-A05.11',
@@ -256,10 +319,20 @@ function canonicalContainingTeamCode(value: unknown): string | null {
   return /^[A-Z0-9]{2,5}$/.test(normalized) ? normalized : null;
 }
 
-function independentlyTrustedWorldId(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  const normalized = value.trim();
-  return normalized ? normalized : null;
+function independentlyTrustedWorldLineage(
+  value: unknown
+): readonly string[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const normalized = value.map((worldId) =>
+    typeof worldId === 'string' ? worldId.trim() : ''
+  );
+  if (
+    normalized.some((worldId) => !worldId) ||
+    new Set(normalized).size !== normalized.length
+  ) {
+    return null;
+  }
+  return normalized;
 }
 
 function canonicalJson(value: unknown): string {
@@ -279,9 +352,13 @@ function canonicalJson(value: unknown): string {
 function cashEntryHasCurrentGovernedProof(
   entry: GovernedCashLedgerEntry,
   containingTeamCode: string,
-  worldId: string,
+  worldLineage: readonly string[],
   registry: GovernedSeasonRegistry
 ): boolean {
+  const provenanceWorldId = entry.worldId.trim();
+  if (!provenanceWorldId || !worldLineage.includes(provenanceWorldId)) {
+    return false;
+  }
   const envelope = resolveGovernedSeasonEnvelope({
     asOfDate: entry.transactionAt,
     salaryCapYear: entry.salaryCapYear,
@@ -289,7 +366,7 @@ function cashEntryHasCurrentGovernedProof(
     team: {
       teamId: containingTeamCode,
       teamCode: containingTeamCode,
-      worldId,
+      worldId: provenanceWorldId,
     },
     registry,
   });
@@ -304,7 +381,7 @@ function cashEntryHasCurrentGovernedProof(
     entry.proof.canonCandidateCommit === registry.canonCandidateCommit &&
     entry.proof.canonSha256 === registry.canonSha256 &&
     entry.teamId === containingTeamCode &&
-    entry.worldId === worldId &&
+    entry.worldId === provenanceWorldId &&
     entry.proof.salaryCapCents === salaryCapCents &&
     entry.proof.annualLimitCents ===
       Math.floor((salaryCapCents * 515) / 10_000) &&
@@ -334,7 +411,7 @@ function cashEntryHasAuthenticatedLeafSet(
 function parseAuthenticatedCashLedger(
   value: unknown,
   containingTeamCode: string,
-  worldId: string,
+  worldLineage: readonly string[],
   registry: GovernedSeasonRegistry
 ): GovernedCashLedger | null {
   const parsed = GovernedCashLedgerZ.safeParse(value);
@@ -359,7 +436,7 @@ function parseAuthenticatedCashLedger(
       !cashEntryHasCurrentGovernedProof(
         entry,
         containingTeamCode,
-        worldId,
+        worldLineage,
         registry
       )
     ) {
@@ -440,8 +517,8 @@ export function parseTradeHardCapLedger(
 
 /**
  * Production persisted-read authority. The containing Team and, for saved-world
- * Row I entries, the world identity are supplied by the caller boundary rather
- * than recovered from persisted Team contents.
+ * Row I entries, the authenticated current/ancestor lineage are supplied by the
+ * caller boundary rather than recovered from persisted Team contents.
  */
 export function parsePersistedTradeHardCapLedger(
   value: unknown,
@@ -476,12 +553,14 @@ export function parsePersistedTradeHardCapLedger(
   );
   if (rowIEntries.length === 0) return parsed;
 
-  const worldId = independentlyTrustedWorldId(context.worldId);
-  if (!worldId) return { entries: [], valid: false };
+  const worldLineage = independentlyTrustedWorldLineage(
+    context.worldLineage
+  );
+  if (!worldLineage) return { entries: [], valid: false };
   const cashLedger = parseAuthenticatedCashLedger(
     context.cashLedger,
     containingTeamCode,
-    worldId,
+    worldLineage,
     registry
   );
   if (

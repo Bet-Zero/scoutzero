@@ -12,6 +12,7 @@ import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { assertPostTradeSnapshot } from './assertions';
 import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
 import { createValidationIssue } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import { getTrustedPersistedHardCapAuthority } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 import {
   buildAuthoritativeTradeApplyReceives,
   buildTradeValidatorContext,
@@ -67,6 +68,7 @@ export function validatePostTradeSnapshotForContext({
   snapshot,
   payload,
   seasonId,
+  trustedWorldLineage,
 }: ValidatePostTradeSnapshotForContextParams): ValidatedTradeContext {
   assertPostTradeSnapshot(snapshot, 'validatePostTradeSnapshotForContext');
 
@@ -77,7 +79,7 @@ export function validatePostTradeSnapshotForContext({
       teams: snapshot.validationTeams,
       capProjections: payload.capProjections || {},
       currentYear,
-      tradeCtx: buildTradeValidatorContext(payload),
+      tradeCtx: buildTradeValidatorContext(payload, trustedWorldLineage),
     };
 
     const validation = validateTrade(validationInput) as TradeValidationResult;
@@ -297,6 +299,21 @@ export function buildTradeApplyPreparation({
   timestamp,
   asOfDate,
 }: BuildTradeApplyPreparationParams): TradeApplyPreparation {
+  const authorityLineages = currentState.teams
+    .map((entry) => getTrustedPersistedHardCapAuthority(entry.team))
+    .map((authority) => authority?.worldLineage)
+    .filter((lineage): lineage is readonly string[] => Array.isArray(lineage));
+  const trustedWorldLineage = authorityLineages[0];
+  if (
+    authorityLineages.some(
+      (lineage) =>
+        JSON.stringify(lineage) !== JSON.stringify(trustedWorldLineage)
+    )
+  ) {
+    throw new Error(
+      'Trade current-state Teams disagree on authenticated world lineage.'
+    );
+  }
   const validationPayload = buildTradeValidationPayload({
     payload,
     asOfDate,
@@ -313,6 +330,7 @@ export function buildTradeApplyPreparation({
     snapshot: postTradeSnapshot,
     payload: validationPayload,
     seasonId,
+    trustedWorldLineage,
   });
 
   return {

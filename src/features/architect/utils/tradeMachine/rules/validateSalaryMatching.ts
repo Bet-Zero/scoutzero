@@ -273,7 +273,7 @@ export function validateSalaryMatching(
       },
       salaryCapYear: resolveSalaryCapYear(context),
       containingTeamCode: context.containingTeamCode ?? null,
-      worldId: context.worldId ?? null,
+      worldLineage: context.worldLineage ?? null,
     }
   );
 

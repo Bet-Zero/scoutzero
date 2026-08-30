@@ -286,7 +286,17 @@ const commitBranchCopyOperations = async (
   }
 };
 
-const resolveWorldLineageIds = async (worldId: string): Promise<string[]> => {
+/**
+ * Resolve the authenticated saved-world ancestry from Firestore metadata.
+ *
+ * The returned order is current world -> immediate parent -> oldest ancestor.
+ * Missing metadata and cycles fail closed through getWorldMetadata(). This is
+ * the single production ancestry algorithm used by branching and persisted
+ * authority readers.
+ */
+export const resolveWorldLineageIds = async (
+  worldId: string
+): Promise<string[]> => {
   const lineageIds: string[] = [];
   const visitedIds = new Set<string>();
   let currentWorldId: string | null = worldId;

@@ -37,6 +37,7 @@ type ExceptionTrackerProps = {
   currentYear: number;
   containingTeamCode?: string | null;
   worldId?: string | null;
+  worldLineage?: readonly string[];
   selectedYear?: number | null;
   surfaceLabel?: string;
 };
@@ -173,6 +174,7 @@ export const ExceptionTracker = ({
   currentYear,
   containingTeamCode = null,
   worldId = null,
+  worldLineage = [],
   selectedYear = currentYear,
   surfaceLabel = 'Cap sheet current-season exception authority surface',
 }: ExceptionTrackerProps) => {
@@ -234,7 +236,7 @@ export const ExceptionTracker = ({
     capSettings: capData,
     salaryCapYear: currentYear,
     containingTeamCode,
-    worldId,
+    worldLineage,
   });
 
   const mleException = getCanonicalExceptionAvailability(teamCapSheet, 'mle');

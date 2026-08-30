@@ -35,6 +35,7 @@ const SECOND_APRON = 221_686_000;
 const HARD_CAP_READ_AUTHORITY = {
   containingTeamCode: 'DET',
   worldId: 'WORLD-1',
+  worldLineage: ['WORLD-1'],
 } as const;
 const AUTHORITY_DIGEST = 'fnv1a64:0000000000000000';
 const AUTHORITY_TEAM_CODES = [
@@ -1267,7 +1268,7 @@ describe('governed Trade Machine apron restrictions', () => {
         hardCapLedger: persisted,
         cashLedger,
       },
-      { worldId: HARD_CAP_READ_AUTHORITY.worldId }
+      { worldLineage: HARD_CAP_READ_AUTHORITY.worldLineage }
     );
     expect(hydrated.hardCapLedger).toEqual(persisted);
     expect(

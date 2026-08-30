@@ -97,7 +97,7 @@ type HardCapStatusOptions = {
   inferHardCapFromExceptionUsage?: boolean;
   salaryCapYear?: number | null;
   containingTeamCode?: string | null;
-  worldId?: string | null;
+  worldLineage?: readonly string[] | null;
 };
 
 type CanonicalHardCapType = HardCapTypeCanonical;
@@ -703,7 +703,7 @@ export function getHardCapStatus(
     inferHardCapFromExceptionUsage = false,
     salaryCapYear = null,
     containingTeamCode = null,
-    worldId = null,
+    worldLineage = null,
   } = options;
 
   if (!team) {
@@ -720,7 +720,7 @@ export function getHardCapStatus(
   const rawLedger = teamLike.hardCapLedger ?? team.hardCapLedger;
   const parsedLedger = parsePersistedTradeHardCapLedger(rawLedger, {
     containingTeamCode,
-    worldId,
+    worldLineage,
     cashLedger: teamLike.cashLedger ?? team.cashLedger,
   });
   if (!parsedLedger.valid) {
@@ -979,6 +979,7 @@ export function getHardCapStatusFromContext(
   context: {
     containingTeamCode: string | null;
     worldId?: string | null;
+    worldLineage?: readonly string[] | null;
     salaryCapYear?: number | null;
     capSettings?: HardCapCapSettingsLike | null;
     capSettingsUsed?: HardCapCapSettingsLike | null;
@@ -990,7 +991,7 @@ export function getHardCapStatusFromContext(
     isWorldless,
     capSettings,
     containingTeamCode: context.containingTeamCode,
-    worldId: context.worldId,
+    worldLineage: context.worldLineage,
     salaryCapYear: context.salaryCapYear,
   });
 }

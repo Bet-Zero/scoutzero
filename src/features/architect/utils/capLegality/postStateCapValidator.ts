@@ -60,6 +60,7 @@ export type PostStateCapValidationInput = {
   operationId: string;
   mutationType: string;
   worldId: string;
+  worldLineage?: readonly string[];
   year?: number;
   toYear?: number;
   beforeTeamsByCode?: Record<string, AnyRecord>;
@@ -144,6 +145,7 @@ function getFinalStateHardCapRecheckStatus({
   rulesContext,
   expectedYear,
   worldId,
+  worldLineage,
 }: {
   teamCode: string;
   team: AnyRecord;
@@ -151,10 +153,11 @@ function getFinalStateHardCapRecheckStatus({
   rulesContext: AnyRecord;
   expectedYear: number | null;
   worldId: string;
+  worldLineage: readonly string[];
 }): FinalStateHardCapRecheckStatus {
   const parsedLedger = parsePersistedTradeHardCapLedger(team.hardCapLedger, {
     containingTeamCode: teamCode,
-    worldId,
+    worldLineage,
     cashLedger: team.cashLedger,
   });
   if (!parsedLedger.valid) {
@@ -184,7 +187,7 @@ function getFinalStateHardCapRecheckStatus({
       },
       salaryCapYear: expectedYear,
       containingTeamCode: teamCode,
-      worldId,
+      worldLineage,
     }
   );
 
@@ -243,6 +246,7 @@ function runFinalStateHardCapRecheck({
   violations,
   expectedYear,
   worldId,
+  worldLineage,
 }: {
   teamCode: string;
   team: AnyRecord;
@@ -252,6 +256,7 @@ function runFinalStateHardCapRecheck({
   violations: PostStateCapValidationIssue[];
   expectedYear: number | null;
   worldId: string;
+  worldLineage: readonly string[];
 }) {
   const hardCapStatus = getFinalStateHardCapRecheckStatus({
     teamCode,
@@ -260,6 +265,7 @@ function runFinalStateHardCapRecheck({
     rulesContext,
     expectedYear,
     worldId,
+    worldLineage,
   });
 
   if (hardCapStatus.invalidLedger) {
@@ -514,6 +520,7 @@ function runMirroredFinalStateLegalityRechecks({
   warnings,
   expectedYear,
   worldId,
+  worldLineage,
 }: {
   teamCode: string;
   team: AnyRecord;
@@ -526,6 +533,7 @@ function runMirroredFinalStateLegalityRechecks({
   warnings: PostStateCapValidationIssue[];
   expectedYear: number | null;
   worldId: string;
+  worldLineage: readonly string[];
 }) {
   // Later-layer hard-cap re-verification against final artifacts.
   // Earlier projected legality remains in tradeMachine/rules/hardCapValidation.ts.
@@ -538,6 +546,7 @@ function runMirroredFinalStateLegalityRechecks({
     violations,
     expectedYear,
     worldId,
+    worldLineage,
   });
 
   // Roster limit re-checks mirror earlier projected roster validation.
@@ -843,6 +852,7 @@ export function validatePostStateCapLegality(
       warnings,
       expectedYear,
       worldId: input.worldId,
+      worldLineage: input.worldLineage ?? [],
     });
 
     // Category 3: Warning-only observational checks

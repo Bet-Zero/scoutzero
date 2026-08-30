@@ -473,7 +473,7 @@ export function readLooseBaseTeamDoc(
   value: unknown,
   teamCode: string,
   context: string,
-  worldId: string | null = null
+  worldLineage: readonly string[] = []
 ): LooseBaseTeamDoc {
   const record = requireArchitectRecord(value, context);
   const normalized = { ...record } as LooseBaseTeamDoc;
@@ -552,7 +552,7 @@ export function readLooseBaseTeamDoc(
       record.hardCapLedger,
       {
         containingTeamCode: teamCode,
-        worldId,
+        worldLineage,
         cashLedger: record.cashLedger,
       }
     );

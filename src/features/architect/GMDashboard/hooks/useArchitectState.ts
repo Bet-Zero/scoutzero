@@ -59,6 +59,7 @@ import {
   writePersistedActiveWorldId,
 } from './useArchitectState.helpers';
 import { readRoomFromUrl } from './useArchitectDeskNavigation';
+import { resolveWorldLineageIds } from '@/features/architect/utils/worldManager';
 
 function deepClone<T>(obj: T): T {
   if (typeof structuredClone === 'function') {
@@ -79,6 +80,7 @@ export function useArchitectState({
 
   // === World state ===
   const [worldId, setWorldId] = useState<string | null>(null);
+  const [worldLineage, setWorldLineage] = useState<readonly string[]>([]);
   const [activeWorldLabel, setActiveWorldLabel] = useState<string | null>(null);
   const [worldAsOfDate, setWorldAsOfDate] = useState<string | null>(null);
   const [worldCurrentSeason, setWorldCurrentSeason] = useState<string | null>(null);
@@ -90,6 +92,26 @@ export function useArchitectState({
   const [isUpdatingWorldAsOfDate, setIsUpdatingWorldAsOfDate] = useState<boolean>(false);
   const [worldRosterIndex, setWorldRosterIndex] = useState<Set<string> | null>(null);
   const [worldPlayerOverrides, setWorldPlayerOverrides] = useState<Record<string, ArchitectPlayer>>({});
+
+  useEffect(() => {
+    let active = true;
+    setWorldLineage([]);
+    if (!worldId) return () => {
+      active = false;
+    };
+    void resolveWorldLineageIds(worldId)
+      .then((lineage) => {
+        if (active && lineage[0] === worldId) {
+          setWorldLineage(Object.freeze([...lineage]));
+        }
+      })
+      .catch(() => {
+        if (active) setWorldLineage([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [worldId]);
 
   // === Selection state ===
   const [currentYear, setCurrentYear] = useState<number>(() => {
@@ -506,6 +528,7 @@ export function useArchitectState({
     capTableYears,
     players: worldAwarePlayers,
     worldId,
+    worldLineage,
     activeWorldLabel,
     worldAsOfDate,
     worldCurrentSeason,

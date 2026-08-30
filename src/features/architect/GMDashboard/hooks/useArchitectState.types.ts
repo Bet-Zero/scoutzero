@@ -418,6 +418,7 @@ export interface UseArchitectStateReturn {
   capTableYears: number[];
   players: ArchitectPlayer[];
   worldId: string | null;
+  worldLineage: readonly string[];
   activeWorldLabel: string | null;
   worldAsOfDate: string | null;
   worldCurrentSeason: string | null;

@@ -376,6 +376,7 @@ export const GMDashboard = () => {
     playersMap,
     capTableYears,
     worldId,
+    worldLineage,
     activeWorldLabel,
     worldAsOfDate,
     worldCurrentSeason,
@@ -786,13 +787,13 @@ export const GMDashboard = () => {
       },
       salaryCapYear: currentYear,
       containingTeamCode,
-      worldId,
+      worldLineage,
     });
   }, [
     currentYear,
     containingTeamCode,
     teamCapSheet,
-    worldId,
+    worldLineage,
     workspaceContext.cap,
   ]);
 
@@ -1073,6 +1074,7 @@ export const GMDashboard = () => {
     teamCapSheet,
     containingTeamCode,
     worldId,
+    worldLineage,
     currentYear,
     asOfDate: worldAsOfDate,
     onOpenPlayerContractModal:
@@ -1512,6 +1514,7 @@ export const GMDashboard = () => {
               selectedYear={currentYear}
               containingTeamCode={containingTeamCode}
               worldId={worldId}
+              worldLineage={worldLineage}
             />
           }
         />

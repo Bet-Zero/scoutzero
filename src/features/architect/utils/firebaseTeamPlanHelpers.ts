@@ -101,13 +101,13 @@ export type HydratedBaseTeamCapSheet = {
 export const hydrateBaseTeam = async (
   teamCode: string,
   baseDoc: LooseBaseTeamDoc,
-  authorityContext: { worldId?: string | null } = {}
+  authorityContext: { worldLineage?: readonly string[] } = {}
 ): Promise<HydratedBaseTeamCapSheet> => {
   const boundaryBaseDoc = readLooseBaseTeamDoc(
     baseDoc,
     teamCode,
     `hydrateBaseTeam(${teamCode})`,
-    authorityContext.worldId ?? null
+    authorityContext.worldLineage ?? []
   );
   const normalizedBaseDoc = normalizeTeamExceptionOwnership(
     normalizeTeamTpeSchema(boundaryBaseDoc)
