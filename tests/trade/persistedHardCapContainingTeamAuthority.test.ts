@@ -9,8 +9,14 @@ import { parsePersistedTradeHardCapLedger } from '@/features/architect/utils/tra
 import { evaluateGovernedCashConsideration } from '@/features/architect/utils/tradeMachine/utils/governedCashConsideration';
 import { CANON_GOVERNED_SEASON_REGISTRY } from '@/features/architect/utils/governedSeason';
 import { hydrateBaseTeam } from '@/features/architect/utils/firebaseTeamPlanHelpers';
-import { toCurrentStateTeam } from '@/features/architect/utils/mutationPipeline.read.normalizeTeam';
-import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
+import {
+  normalizeTradeMutationCurrentState,
+  toCurrentStateTeam,
+} from '@/features/architect/utils/mutationPipeline.read.normalizeTeam';
+import {
+  getHardCapStatus,
+  getHardCapStatusFromContext,
+} from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { validateHardCap } from '@/features/architect/utils/tradeMachine/rules/hardCapValidation';
 import { validateSalaryMatching } from '@/features/architect/utils/tradeMachine/rules/validateSalaryMatching';
 import { validatePostStateCapLegality } from '@/features/architect/utils/capLegality/postStateCapValidator';
@@ -290,6 +296,24 @@ describe('persisted hard-cap containing-Team authority', () => {
       })
     ).toEqual({ entries: hardCapLedger, valid: true });
     expect(
+      getHardCapStatusFromContext(
+        { hardCapLedger, cashLedger },
+        {
+          containingTeamCode: 'MIA',
+          worldId: WORLD_ID,
+          salaryCapYear: SALARY_CAP_YEAR,
+          capSettings: {
+            firstApron: 209_015_000,
+            secondApron: SECOND_APRON,
+          },
+        }
+      )
+    ).toMatchObject({
+      isHardCapped: true,
+      hardCapType: 'SECOND_APRON',
+      failClosed: false,
+    });
+    expect(
       parsePersistedTradeHardCapLedger(hardCapLedger, {
         containingTeamCode: 'MIA',
         worldId: WORLD_ID,
@@ -415,8 +439,7 @@ describe('persisted hard-cap containing-Team authority', () => {
   it.each([
     [
       'missing ledger',
-      (ledger: ReturnType<typeof productGeneratedRowI>['cashLedger']) =>
-        undefined,
+      () => undefined,
     ],
     [
       'received only',
@@ -517,6 +540,11 @@ describe('persisted hard-cap containing-Team authority', () => {
   it('fails a foreign Row I copy at hydration, mutation normalization, status, salary/hard-cap validation, and final-state validation', async () => {
     const { hardCapLedger, cashLedger } = productGeneratedRowI();
     const team = persistedTeam(hardCapLedger, cashLedger);
+    const trustedMiaTeam = toCurrentStateTeam(team, 'trade', {
+      containingTeamCode: 'MIA',
+      worldId: WORLD_ID,
+    });
+    if (!trustedMiaTeam) throw new Error('expected trusted MIA Team fixture');
 
     await expect(
       hydrateBaseTeam('DEN', team, { worldId: WORLD_ID })
@@ -530,6 +558,12 @@ describe('persisted hard-cap containing-Team authority', () => {
     expect(() => toCurrentStateTeam(team, 'trade')).toThrow(
       /hard-cap ledger is malformed or version-incompatible/i
     );
+    expect(() =>
+      normalizeTradeMutationCurrentState(
+        { teams: [{ teamCode: 'DEN', team: trustedMiaTeam }] },
+        WORLD_ID
+      )
+    ).toThrow(/authority conflicts with the mutation target/i);
 
     const status = getHardCapStatus(team, {
       containingTeamCode: 'DEN',

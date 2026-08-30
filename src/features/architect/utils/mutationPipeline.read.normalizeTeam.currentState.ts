@@ -148,12 +148,22 @@ function resolveCurrentStateHardCapAuthority(
   team: object,
   explicit?: CurrentStateHardCapAuthorityContext
 ): CurrentStateHardCapAuthorityContext | undefined {
-  if (explicit) return explicit;
-  return (
+  const retained = (
     team as {
       [TRUSTED_CONTAINING_TEAM_AUTHORITY]?: CurrentStateHardCapAuthorityContext;
     }
   )[TRUSTED_CONTAINING_TEAM_AUTHORITY];
+  if (
+    retained &&
+    explicit &&
+    (retained.containingTeamCode !== explicit.containingTeamCode ||
+      retained.worldId !== explicit.worldId)
+  ) {
+    throw new Error(
+      'Persisted hard-cap containing-Team authority conflicts with the mutation target.'
+    );
+  }
+  return retained ?? explicit;
 }
 
 function retainCurrentStateHardCapAuthority<T extends object>(
@@ -459,14 +469,19 @@ export function normalizeTradeMutationCurrentStateTeamEntry(
     | MutationCurrentStateTradeTeamEntryInput
     | MutationCurrentStateTeamEntry
     | null
-    | undefined
+    | undefined,
+  worldId: string | null | undefined
 ): MutationCurrentStateTeamEntry {
-  const team = normalizeCurrentStateTeamSnapshot(entry?.team, 'trade');
+  const teamCode = toOptionalTrimmedString(entry?.teamCode);
+  const team = normalizeCurrentStateTeamSnapshot(entry?.team, 'trade', {
+    containingTeamCode: teamCode ?? null,
+    worldId,
+  });
   const normalized: MutationCurrentStateTeamEntry = {};
-  const teamCode = toOptionalTrimmedString(entry?.teamCode) ?? team?.teamCode;
+  const normalizedTeamCode = teamCode ?? team?.teamCode;
 
-  if (teamCode !== undefined) {
-    normalized.teamCode = teamCode;
+  if (normalizedTeamCode !== undefined) {
+    normalized.teamCode = normalizedTeamCode;
   }
   if (team) {
     normalized.team = team;
@@ -476,11 +491,12 @@ export function normalizeTradeMutationCurrentStateTeamEntry(
 }
 
 export function normalizeTradeMutationCurrentState(
-  currentState: MutationTradeCurrentStateInput | null | undefined
+  currentState: MutationTradeCurrentStateInput | null | undefined,
+  worldId: string | null | undefined
 ): MutationTradeCurrentState {
   const teams = Array.isArray(currentState?.teams)
     ? currentState.teams.map((entry) =>
-        normalizeTradeMutationCurrentStateTeamEntry(entry)
+        normalizeTradeMutationCurrentStateTeamEntry(entry, worldId)
       )
     : undefined;
   const governedCashTeamSnapshots =

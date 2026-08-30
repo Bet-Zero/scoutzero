@@ -977,12 +977,20 @@ export function isTeamHardCapped(
 export function getHardCapStatusFromContext(
   team: HardCapStatusTeamLike | null | undefined,
   context: {
+    containingTeamCode: string | null;
     worldId?: string | null;
+    salaryCapYear?: number | null;
     capSettings?: HardCapCapSettingsLike | null;
     capSettingsUsed?: HardCapCapSettingsLike | null;
-  } = {}
+  }
 ): HardCapStatusResult {
   const isWorldless = !context.worldId;
   const capSettings = context.capSettings || context.capSettingsUsed || null;
-  return getHardCapStatus(team, { isWorldless, capSettings });
+  return getHardCapStatus(team, {
+    isWorldless,
+    capSettings,
+    containingTeamCode: context.containingTeamCode,
+    worldId: context.worldId,
+    salaryCapYear: context.salaryCapYear,
+  });
 }
