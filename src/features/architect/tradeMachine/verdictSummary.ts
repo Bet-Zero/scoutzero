@@ -48,6 +48,49 @@ const humanizeRuleKey = (key: string) =>
 const resolveTeamName = (team: TeamResultLike) =>
   team.teamName || team.teamCode || team.teamId || null;
 
+const NEEDS_INPUT_MARKERS = new Set([
+  'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+  'GOVERNED_TRADE_SALARY_BASIS',
+  'GOVERNEDTRADESALARYBASIS',
+  'NEEDS_INPUT',
+  'NEEDS-INPUT',
+]);
+
+/** Detect explicit Needs-input markers without borrowing state from sibling issues. */
+const hasNeedsInputMarker = (values: unknown[]) => {
+  const statusTokens = values
+    .filter((value) => value != null)
+    .map((value) => String(value).trim().toUpperCase());
+
+  return (
+    statusTokens.some((token) => NEEDS_INPUT_MARKERS.has(token)) ||
+    statusTokens.some((token) => /\bNEEDS INPUT\b/.test(token))
+  );
+};
+
+/** Classify one normalized top-level issue from only that issue's own fields. */
+const previewAuthorityIssueNeedsInput = (
+  issue: ReturnType<typeof normalizeValidationIssues>[number],
+  violationText: string
+) =>
+  hasNeedsInputMarker([
+    issue.code,
+    issue.rule,
+    issue.meta?.status,
+    violationText,
+  ]);
+
+/** Classify the authority reason only when no structured top-level issue exists. */
+const previewAuthorityReasonNeedsInput = (
+  previewAuthority: PreviewAuthorityLike,
+  reasonText: string
+) =>
+  hasNeedsInputMarker([
+    previewAuthority.error,
+    previewAuthority.reason,
+    reasonText,
+  ]);
+
 /**
  * Build the banner strip's verdict items from the current validation payloads.
  * Violations come first, then warnings; duplicate texts are dropped so a rule
@@ -113,6 +156,40 @@ export const buildVerdictItems = (
         if (!text) continue;
         push({ teamName, kind: 'warning', text: `${label}: ${text}` });
       }
+    }
+  }
+
+  if (previewAuthority?.legal === false) {
+    const topLevelViolations = normalizeValidationIssues(
+      previewAuthority.violations
+    );
+    const topLevelItems =
+      topLevelViolations.length > 0
+        ? topLevelViolations.map((issue) => ({
+            text: getValidationIssueText(issue),
+            kind: previewAuthorityIssueNeedsInput(
+              issue,
+              getValidationIssueText(issue)
+            )
+              ? ('needsInput' as const)
+              : ('violation' as const),
+          }))
+        : [String(previewAuthority.reason ?? '').trim()]
+            .filter(Boolean)
+            .map((text) => ({
+              text,
+              kind: previewAuthorityReasonNeedsInput(previewAuthority, text)
+                ? ('needsInput' as const)
+                : ('violation' as const),
+            }));
+
+    for (const { text, kind } of topLevelItems) {
+      if (!text) continue;
+      const alreadyAttributed = [...needsInput, ...violations].some(
+        (item) => item.kind === kind && item.text.includes(text)
+      );
+      if (alreadyAttributed) continue;
+      push({ teamName: null, kind, text });
     }
   }
 

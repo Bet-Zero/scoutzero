@@ -185,7 +185,7 @@ function makeTeamData(teamCode: 'LAL' | 'BOS', id: string, teamName: string) {
 const primaryTeamData = makeTeamData('LAL', 'lal', 'Los Angeles Lakers');
 const secondaryTeamData = makeTeamData('BOS', 'BOS', 'Boston Celtics');
 
-async function setupHookWithSecondaryTeam() {
+async function setupHookWithSecondaryTeam(worldId: string | null = null) {
   const stablePrimaryTeamData = clone(primaryTeamData);
 
   const hook = renderHook(() =>
@@ -194,7 +194,7 @@ async function setupHookWithSecondaryTeam() {
       capProjections,
       CURRENT_YEAR,
       stablePrimaryTeamData,
-      null,
+      worldId,
       '2026-02-01'
     )
   );
@@ -342,7 +342,110 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
     await waitFor(() => {
       expect(result.current.currentDraftKey).not.toBe(validatedDraftKey);
       expect(result.current.hasCurrentValidation).toBe(false);
+      expect(result.current.snapshotValidationDetails).toBeNull();
+      expect(result.current.previewAuthority).toBeNull();
+      expect(result.current.getValidatedAt()).toBeNull();
     });
+  });
+
+  it('keeps completed top-level blocked authority current without per-Team results', async () => {
+    const { result } = await setupHookWithSecondaryTeam('world-1');
+    const primaryPlayer = assertDefined(
+      result.current.teams[0]?.team?.players?.[0],
+      'Expected a primary player'
+    );
+    const secondaryPlayer = assertDefined(
+      result.current.teams[1]?.team?.players?.[0],
+      'Expected a secondary player'
+    );
+    const tradeBonusPlayer = {
+      ...primaryPlayer,
+      governedTradeSalaryBasis: {
+        authorityVersion: 1 as const,
+        status: 'needs-input' as const,
+        worldId: 'world-1',
+        teamId: 'LAL',
+        playerId: String(primaryPlayer.id ?? primaryPlayer.player_id),
+        contractId: `contract-${String(primaryPlayer.id ?? primaryPlayer.player_id)}`,
+        asOfDate: '2026-02-01',
+        salaryCapYear: 2026,
+        method: null,
+        currentSalary: null,
+        outgoingSalary: null,
+        incomingSalary: null,
+        poisonPillIncomingSalary: null,
+        canonLeafIds: [],
+        reasons: [
+          'This Contract has a trade bonus whose allocation is outside this governed tranche.',
+        ],
+        proof: null,
+      },
+    };
+
+    act(() => {
+      result.current.setPlayerTrade(0, tradeBonusPlayer, 'trade', 'BOS');
+      result.current.setPlayerTrade(1, secondaryPlayer, 'trade', 'lal');
+      result.current.setSalaryMatchingElection(0, {
+        version: 1,
+        path: 'ROOM',
+        postAssignmentApronTeamSalary: 14_000_000,
+        tradedPlayerPreTradeSalaries: {
+          [String(primaryPlayer.id ?? primaryPlayer.player_id)]: 1_000_000,
+        },
+      });
+      result.current.setSalaryMatchingElection(1, {
+        version: 1,
+        path: 'ROOM',
+        postAssignmentApronTeamSalary: 14_000_000,
+        tradedPlayerPreTradeSalaries: {
+          [String(secondaryPlayer.id ?? secondaryPlayer.player_id)]: 1_000_000,
+        },
+      });
+    });
+
+    act(() => {
+      result.current.handleValidate();
+    });
+
+    await waitFor(() => {
+      expect(result.current.isValidating).toBe(false);
+      expect(result.current.snapshotValidationDetails?.teamResults).toEqual([]);
+      expect(result.current.previewAuthority).toMatchObject({
+        source: 'apply-preview',
+        legal: false,
+      });
+      expect(result.current.hasCurrentValidation).toBe(true);
+    });
+
+    act(() => {
+      result.current.resetTrade();
+    });
+
+    await waitFor(() => {
+      expect(result.current.hasCurrentValidation).toBe(false);
+      expect(result.current.snapshotValidationDetails).toBeNull();
+      expect(result.current.previewAuthority).toBeNull();
+      expect(result.current.getValidatedAt()).toBeNull();
+    });
+  });
+
+  it('does not restore a deferred validation after reset clears it', async () => {
+    const { result } = await setupHookWithSecondaryTeam();
+
+    act(() => {
+      expect(result.current.handleValidate()).toBe('started');
+      result.current.resetTrade();
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+
+    expect(result.current.isValidating).toBe(false);
+    expect(result.current.hasCurrentValidation).toBe(false);
+    expect(result.current.snapshotValidationDetails).toBeNull();
+    expect(result.current.previewAuthority).toBeNull();
+    expect(result.current.getValidatedAt()).toBeNull();
   });
 
   it('clears held TPE identity when a player returns to salary matching', async () => {

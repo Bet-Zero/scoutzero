@@ -47,6 +47,7 @@ export type UseTradeMachineValidationParams = {
   setIsValidating: (v: boolean) => void;
   lastValidatedDraftKeyRef: React.MutableRefObject<string | null>;
   validatedAtRef: React.MutableRefObject<number | null>;
+  validationGenerationRef: React.MutableRefObject<number>;
 };
 
 export type UseTradeMachineValidationResult = {
@@ -70,6 +71,7 @@ export function useTradeMachineValidation({
   setIsValidating,
   lastValidatedDraftKeyRef,
   validatedAtRef,
+  validationGenerationRef,
 }: UseTradeMachineValidationParams): UseTradeMachineValidationResult {
   const buildCurrentTradePreviewContext = useCallback(
     (
@@ -310,12 +312,16 @@ export function useTradeMachineValidation({
     (
       governedSignAndTradeAuthority: GovernedSignAndTradeAuthority | null = null
     ): 'insufficient' | 'started' => {
+      const validationGeneration = validationGenerationRef.current + 1;
+      validationGenerationRef.current = validationGeneration;
       const previewContext = buildCurrentTradePreviewContext(
         governedSignAndTradeAuthority
       );
       if (!previewContext) {
         setSnapshotValidationDetails(null);
         setPreviewAuthority(null); // TM-1A / TM-3D: clear stale preview authority
+        lastValidatedDraftKeyRef.current = null;
+        validatedAtRef.current = null;
         setIsValidating(false);
         return 'insufficient';
       }
@@ -324,13 +330,11 @@ export function useTradeMachineValidation({
       // Defer the synchronous compute one tick so React can paint the
       // "Validating…" state before the results land.
       setTimeout(() => {
+        if (validationGenerationRef.current !== validationGeneration) return;
+
         try {
           const outcome = runValidation(previewContext);
           if (outcome) {
-            // Stale validation fix: Record the draft key that was validated
-            lastValidatedDraftKeyRef.current = currentDraftKey;
-            validatedAtRef.current = Date.now();
-
             try {
               const previewAuthority = getTradePreviewAuthority({
                 payload: previewContext.payload,
@@ -339,16 +343,27 @@ export function useTradeMachineValidation({
                 preparation: previewContext.preparation,
               });
               setPreviewAuthority(previewAuthority);
+              // Record the identity only after top-level preview authority was
+              // constructed for this completed validation.
+              lastValidatedDraftKeyRef.current = currentDraftKey;
+              validatedAtRef.current = Date.now();
             } catch (err) {
               console.error(
                 '[useTradeMachine] getTradePreviewAuthority unexpected error:',
                 err
               );
               setPreviewAuthority(null);
+              lastValidatedDraftKeyRef.current = null;
+              validatedAtRef.current = null;
             }
+          } else {
+            lastValidatedDraftKeyRef.current = null;
+            validatedAtRef.current = null;
           }
         } finally {
-          setIsValidating(false);
+          if (validationGenerationRef.current === validationGeneration) {
+            setIsValidating(false);
+          }
         }
       }, 0);
 
@@ -363,6 +378,7 @@ export function useTradeMachineValidation({
       setIsValidating,
       lastValidatedDraftKeyRef,
       validatedAtRef,
+      validationGenerationRef,
     ]
   );
 

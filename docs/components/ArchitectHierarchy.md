@@ -293,6 +293,7 @@ tradeMachine/
     entitlementWarnings.ts
     getOfficialSalaryMatchingSnapshot.ts
     tradeMachineDebugFlag.ts
+    tradeValidationCurrentness.ts
   validationPresentationTypes.ts
   verdictSummary.ts
 types/
@@ -649,5 +650,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-26T10:09:10.737Z*
+*Generated on: 2026-08-29T01:16:43.095Z*
 *Auto-updated by: npm run docs*

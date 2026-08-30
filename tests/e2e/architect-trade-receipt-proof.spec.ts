@@ -294,7 +294,7 @@ const proofContractLedgers = (teamCode: 'MIA' | 'DEN') =>
           'mia_silas_park',
           2_000_000,
           PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion
-            .retainedTradeKickerPercent
+            .retainedTradeKickerPercent / 100
         ),
       ]
     : [
@@ -904,9 +904,16 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   await fillPostAssignmentApronSalary(miamiCard);
   await fillPostAssignmentApronSalary(denverCard);
   await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+  await expect(readiness).toContainText(
+    PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.expectedStatus,
+    { timeout: 20_000 }
+  );
+  await expect(readiness).toContainText(/trade bonus/i);
+  await expect(readiness).not.toContainText('Not validated');
   await expect(
     dialog.getByRole('button', { name: /^Apply Trade$/i })
   ).toBeDisabled();
+  await expect(dialog.getByTestId('trade-summary-button')).toBeDisabled();
   const tradeBonusNeedsInputScreenshotPath = path.join(
     ARTIFACT_DIR,
     'trade-bonus-needs-input-1280x720.png'
@@ -926,11 +933,6 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   expect(await getWorldEventDocuments(PROOF_WORLD_ID)).toEqual(
     bonusAuthorityBefore.events
   );
-  await expect(readiness).toContainText(
-    PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.expectedStatus,
-    { timeout: 20_000 }
-  );
-  await expect(readiness).toContainText(/trade bonus/i);
   await cancelPlayerTrade(dialog, 'MIA', 'Silas Park');
 
   await electSalaryPath(miamiCard, 'AGGREGATED_STANDARD_TPE');
@@ -1385,6 +1387,13 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
       fixtureWorldCount: 1,
       durableWorldCountChangeAfterValidation: 0,
       durableTeamDocumentChangeAfterValidation: 0,
+      tradeBonusAuthorityBoundary: {
+        retainedTradeKickerPercent: 0.15,
+        verdict: 'Needs input',
+        applyBlocked: true,
+        savedWorldTeamChanges: 0,
+        savedWorldEventChanges: 0,
+      },
       draftAuthorityBoundary: {
         firstRoundEntitlementId: FIRST_ROUND_PROOF_ENTITLEMENT_ID,
         expectedAuthority: {
