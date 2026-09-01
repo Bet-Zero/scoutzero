@@ -283,8 +283,9 @@ const CapSheetSection = ({
                 className="mt-1 text-amber-200/55"
               >
                 {syntheticCoverageBoundary.intentLabel}: one `futureContract`
-                probe plus one no-`futureContract` control. Not representative
-                of {syntheticCoverageBoundary.notModeledSeams.join(', ')}.
+                probe plus one no-`futureContract` control. Not
+                representative of{' '}
+                {syntheticCoverageBoundary.notModeledSeams.join(', ')}.
               </div>
               <div
                 data-testid="cap-sheet-fixtures-runtime-note"
