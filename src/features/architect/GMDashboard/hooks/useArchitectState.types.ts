@@ -33,7 +33,9 @@ export type CapProjectionRow = (typeof capProjections)[string];
 export type CapProjectionMap = Record<string, CapProjectionRow | undefined>;
 export type LoadedWorldTeamData = LoadedWorldTeamCapSheet;
 export type LeagueTeamSnapshot = Awaited<ReturnType<typeof getLeague>>[number];
-export type RulesProfileContract = NonNullable<PlayerRulesProfileInput['contract']>;
+export type RulesProfileContract = NonNullable<
+  PlayerRulesProfileInput['contract']
+>;
 export type RulesProfileSalaryRow = NonNullable<
   NonNullable<RulesProfileContract['salariesByYear']>[number]
 >;
@@ -123,12 +125,12 @@ export type ArchitectPlayer = ArchitectDashboardPlayer;
 
 export type WorldRosterPlayerLike = ArchitectDashboardPlayer &
   NonNullable<LeagueTeamSnapshot['players']>[number] & {
-  bio?:
-    | (NonNullable<ArchitectDashboardPlayer['bio']> & {
-        playerId?: string | number | null;
-      })
-    | null;
-};
+    bio?:
+      | (NonNullable<ArchitectDashboardPlayer['bio']> & {
+          playerId?: string | number | null;
+        })
+      | null;
+  };
 
 export type WorldLeagueTeamLike = Pick<LeagueTeamSnapshot, 'roster'> & {
   players?: WorldRosterPlayerLike[];
@@ -418,6 +420,7 @@ export interface UseArchitectStateReturn {
   capTableYears: number[];
   players: ArchitectPlayer[];
   worldId: string | null;
+  worldLineage: readonly string[];
   activeWorldLabel: string | null;
   worldAsOfDate: string | null;
   worldCurrentSeason: string | null;

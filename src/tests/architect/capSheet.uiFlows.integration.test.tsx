@@ -665,6 +665,7 @@ function FixtureInjectorHarness() {
           teamCapSheet as Parameters<typeof CapSheetSection>[0]['teamCapSheet']
         }
         currentYear={CURRENT_YEAR}
+        containingTeamCode="LAL"
         asOfDate={TEST_AS_OF_DATE}
         onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={manualCapSheetMutationAuthority}
@@ -968,6 +969,7 @@ describe('Cap Sheet UI integration flows', () => {
           buildTeamWithCapHoldFixture() as Parameters<typeof CapSheetSection>[0]['teamCapSheet']
         }
         currentYear={CURRENT_YEAR}
+        containingTeamCode="LAL"
         onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={{
           handleSetDeadCap: async () => true,
@@ -1106,6 +1108,7 @@ describe('Cap Sheet UI integration flows', () => {
           teamCapSheet as Parameters<typeof CapSheetSection>[0]['teamCapSheet']
         }
         currentYear={CURRENT_YEAR}
+        containingTeamCode="LAL"
         asOfDate={TEST_AS_OF_DATE}
         onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={{
@@ -1181,6 +1184,7 @@ describe('Cap Sheet UI integration flows', () => {
           teamCapSheet as Parameters<typeof CapSheetSection>[0]['teamCapSheet']
         }
         currentYear={CURRENT_YEAR}
+        containingTeamCode="LAL"
         onOpenPlayerContractModal={() => {}}
         manualCapSheetMutationAuthority={{
           handleSetDeadCap: async () => true,

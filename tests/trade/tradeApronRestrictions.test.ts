@@ -27,9 +27,16 @@ import {
   type GovernedSeasonRegistry,
 } from '@/features/architect/utils/governedSeason';
 import { GovernedSignAndTradeAuthorityZ } from '@/schemas/governedSignAndTrade';
+import { GovernedCashLedgerZ } from '@/schemas/governedCashConsideration';
+import { evaluateGovernedCashConsideration } from '@/features/architect/utils/tradeMachine/utils/governedCashConsideration';
 
 const FIRST_APRON = 209_015_000;
 const SECOND_APRON = 221_686_000;
+const HARD_CAP_READ_AUTHORITY = {
+  containingTeamCode: 'DET',
+  worldId: 'WORLD-1',
+  worldLineage: ['WORLD-1'],
+} as const;
 const AUTHORITY_DIGEST = 'fnv1a64:0000000000000000';
 const AUTHORITY_TEAM_CODES = [
   'ATL',
@@ -250,6 +257,7 @@ function context(tradeDate: string): TradeValidatorContext {
   return {
     source: 'tradeMachine',
     worldId: 'WORLD-1',
+    containingTeamCode: 'DET',
     currentYear: 2027,
     yearKey: 2027,
     tradeDate,
@@ -260,6 +268,16 @@ function context(tradeDate: string): TradeValidatorContext {
       secondApron: SECOND_APRON,
     },
   };
+}
+
+function getDetHardCapStatus(
+  teamValue: Parameters<typeof getHardCapStatus>[0],
+  options: Parameters<typeof getHardCapStatus>[1] = {}
+) {
+  return getHardCapStatus(teamValue, {
+    ...options,
+    ...HARD_CAP_READ_AUTHORITY,
+  });
 }
 
 function team(
@@ -321,6 +339,75 @@ function evaluateAggregated(postSalary: number) {
       postSalary,
     }),
     context: context('2026-07-15T12:00:00-04:00'),
+  });
+}
+
+function evaluateCash(postSalary = SECOND_APRON) {
+  const cashTeam = team(postSalary);
+  cashTeam.cashSent = 1;
+  return evaluateTradeApronRestriction({
+    team: cashTeam,
+    teamCode: 'DET',
+    pathEvaluation: pathEvaluation({ path: 'ROOM', postSalary }),
+    context: context('2026-07-15T12:00:00-04:00'),
+  });
+}
+
+function createCashLedgerEntry() {
+  const entry = createTradeHardCapLedgerEntry({
+    evaluation: evaluateCash(),
+    teamCode: 'DET',
+    transactionId: 'TRADE-ROW-I-CASH',
+    effectiveAt: '2026-07-15T16:00:00Z',
+  });
+  if (!entry) throw new Error('expected product-generated Row I fixture');
+  return entry;
+}
+
+function createAuthenticatedCashLedger() {
+  const cashTeam = team(SECOND_APRON);
+  cashTeam.cashSent = 1;
+  if (!cashTeam.team) throw new Error('expected cash Team fixture');
+  cashTeam.team.cashLedger = {
+    ledgerVersion: 0,
+    ledgerId: 'cash-ledger:DET',
+    teamId: 'DET',
+    entries: [],
+  };
+  const cashEvaluation = evaluateGovernedCashConsideration({
+    team: cashTeam,
+    context: context('2026-07-15T12:00:00-04:00'),
+  });
+  if (
+    cashEvaluation.status !== 'PASS' ||
+    !cashEvaluation.proof ||
+    cashEvaluation.cashSentCents === null ||
+    cashEvaluation.salaryCapYear === null ||
+    !cashEvaluation.transactionAt
+  ) {
+    throw new Error('expected authenticated cash fixture');
+  }
+  return GovernedCashLedgerZ.parse({
+    ledgerVersion: 1,
+    ledgerId: 'cash-ledger:DET',
+    teamId: 'DET',
+    entries: [
+      {
+        entryVersion: 1,
+        entryId: 'TRADE-ROW-I-CASH:cash:DET:PAID:BOS',
+        transactionId: 'TRADE-ROW-I-CASH',
+        worldId: 'WORLD-1',
+        teamId: 'DET',
+        counterpartyTeamId: 'BOS',
+        direction: 'PAID',
+        amountCents: cashEvaluation.cashSentCents,
+        salaryCapYear: cashEvaluation.salaryCapYear,
+        transactionAt: cashEvaluation.transactionAt,
+        recordedAt: '2026-07-15T16:00:00Z',
+        canonLeafIds: [...cashEvaluation.canonLeafIds, 'CBA2-A05.11'],
+        proof: cashEvaluation.proof,
+      },
+    ],
   });
 }
 
@@ -871,7 +958,7 @@ describe('governed Trade Machine apron restrictions', () => {
       valid: true,
     });
     expect(
-      getHardCapStatus(
+      getDetHardCapStatus(
         { hardCapLedger: serialized },
         {
           salaryCapYear: 2027,
@@ -1111,7 +1198,7 @@ describe('governed Trade Machine apron restrictions', () => {
     );
     expect(selectHardCapLedgerEntry(serialized, 2028)).toBeNull();
 
-    const status = getHardCapStatus(
+    const status = getDetHardCapStatus(
       { hardCapLedger: serialized },
       {
         salaryCapYear: 2027,
@@ -1146,6 +1233,147 @@ describe('governed Trade Machine apron restrictions', () => {
     expect(allowed.passed).toBe(true);
     expect(blocked.passed).toBe(false);
     expect(blocked.violations[0]).toMatch(/hard cap violation/i);
+  });
+
+  it('CBA2-A05.11: authenticates a product-generated Row I entry through persistence, Team normalization, and reload status without rewriting it', async () => {
+    const evaluation = evaluateCash();
+    const entry = createCashLedgerEntry();
+    const cashLedger = createAuthenticatedCashLedger();
+    const persisted = JSON.parse(JSON.stringify([entry]));
+    const beforeRead = JSON.stringify(persisted);
+
+    expect(evaluation).toMatchObject({
+      status: 'PASS',
+      restrictionRow: 'I',
+      apronLevel: 'SECOND_APRON',
+      ceiling: SECOND_APRON,
+      hardCapWillPersist: true,
+      proof: {
+        calendarRecordId: 'GOV-CAL-0002',
+        apronRecordId: 'GOV-LVL-0005',
+      },
+    });
+    expect(TradeHardCapLedgerZ.safeParse(persisted).success).toBe(true);
+    expect(parseTradeHardCapLedger(persisted)).toEqual({
+      entries: persisted,
+      valid: true,
+    });
+
+    const hydrated = await hydrateBaseTeam(
+      'DET',
+      {
+        roster: [],
+        teamName: 'Detroit Pistons',
+        exceptions: {},
+        hardCapLedger: persisted,
+        cashLedger,
+      },
+      { worldLineage: HARD_CAP_READ_AUTHORITY.worldLineage }
+    );
+    expect(hydrated.hardCapLedger).toEqual(persisted);
+    expect(
+      getDetHardCapStatus(hydrated, {
+        salaryCapYear: 2027,
+        capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
+      })
+    ).toMatchObject({
+      isHardCapped: true,
+      hardCapType: 'SECOND_APRON',
+      hardCapCeiling: SECOND_APRON,
+      failClosed: false,
+      reason:
+        'Transaction Restrictions Table Row I hard cap for Salary Cap Year 2027.',
+    });
+    expect(parseTradeHardCapLedger(persisted).valid).toBe(true);
+    expect(JSON.stringify(persisted)).toBe(beforeRead);
+  });
+
+  it.each([
+    {
+      label: 'cash-paying Team attribution',
+      mutate: (entry: ReturnType<typeof createCashLedgerEntry>) => {
+        entry.triggers[0].componentId = 'cash:BOS';
+      },
+    },
+    {
+      label: 'transaction Salary Cap Year',
+      mutate: (entry: ReturnType<typeof createCashLedgerEntry>) => {
+        entry.triggerTransactionDate = '2027-07-15T12:00:00-04:00';
+      },
+    },
+    {
+      label: 'Row I rule leaf',
+      mutate: (entry: ReturnType<typeof createCashLedgerEntry>) => {
+        entry.canonLeafIds = entry.canonLeafIds.filter(
+          (leafId) => leafId !== 'CBA2-A05.11'
+        );
+        entry.triggers[0].canonLeafIds = entry.triggers[0].canonLeafIds.filter(
+          (leafId) => leafId !== 'CBA2-A05.11'
+        );
+      },
+    },
+    {
+      label: 'calendar authority',
+      mutate: (entry: ReturnType<typeof createCashLedgerEntry>) => {
+        entry.proof.calendarRecordId = 'GOV-CAL-MISSING';
+        entry.triggers[0].proof.calendarRecordId = 'GOV-CAL-MISSING';
+      },
+    },
+    {
+      label: 'Second Apron authority',
+      mutate: (entry: ReturnType<typeof createCashLedgerEntry>) => {
+        entry.proof.apronRecordVersion = 999;
+        entry.triggers[0].proof.apronRecordVersion = 999;
+      },
+    },
+  ])('fails closed for tampered Row I $label', ({ mutate }) => {
+    const altered = JSON.parse(
+      JSON.stringify(createCashLedgerEntry())
+    ) as ReturnType<typeof createCashLedgerEntry>;
+    mutate(altered);
+
+    expect(TradeHardCapLedgerZ.safeParse([altered]).success).toBe(true);
+    expect(parseTradeHardCapLedger([altered])).toEqual({
+      entries: [],
+      valid: false,
+    });
+  });
+
+  it('fails closed when Row I governed calendar or Second Apron authority is disputed', () => {
+    const calendar = CANON_GOVERNED_SEASON_REGISTRY.calendars.find(
+      (candidate) => candidate.recordId === 'GOV-CAL-0002'
+    );
+    const secondApron = CANON_GOVERNED_SEASON_REGISTRY.systemLevels.find(
+      (candidate) => candidate.recordId === 'GOV-LVL-0005'
+    );
+    expect(calendar).toBeDefined();
+    expect(secondApron).toBeDefined();
+
+    const disputedRegistries: GovernedSeasonRegistry[] = [
+      {
+        ...CANON_GOVERNED_SEASON_REGISTRY,
+        calendars: [
+          ...CANON_GOVERNED_SEASON_REGISTRY.calendars,
+          { ...calendar!, recordId: 'GOV-CAL-ROW-I-CONFLICT' },
+        ],
+      },
+      {
+        ...CANON_GOVERNED_SEASON_REGISTRY,
+        systemLevels: [
+          ...CANON_GOVERNED_SEASON_REGISTRY.systemLevels,
+          { ...secondApron!, recordId: 'GOV-LVL-ROW-I-CONFLICT' },
+        ],
+      },
+    ];
+
+    disputedRegistries.forEach((registry) => {
+      expect(
+        parseTradeHardCapLedger([createCashLedgerEntry()], registry)
+      ).toEqual({
+        entries: [],
+        valid: false,
+      });
+    });
   });
 
   it('persists and reloads both mixed triggers with the controlling First Apron', async () => {
@@ -1198,7 +1426,7 @@ describe('governed Trade Machine apron restrictions', () => {
     expect(hydrated.hardCapLedger).toEqual(serialized);
     expect(hydrated.hardCapLedger?.[0]?.triggers).toHaveLength(2);
     expect(
-      getHardCapStatus(hydrated, {
+      getDetHardCapStatus(hydrated, {
         salaryCapYear: 2027,
         capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
       })
@@ -1285,7 +1513,7 @@ describe('governed Trade Machine apron restrictions', () => {
       });
       expect(hydrated.hardCapLedger).toEqual(serialized);
       expect(
-        getHardCapStatus(hydrated, {
+        getDetHardCapStatus(hydrated, {
           salaryCapYear: 2027,
           capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
         })
@@ -1320,7 +1548,7 @@ describe('governed Trade Machine apron restrictions', () => {
       valid: true,
     });
     expect(
-      getHardCapStatus(
+      getDetHardCapStatus(
         { hardCapLedger: singleReload },
         {
           salaryCapYear: 2027,
@@ -1329,7 +1557,7 @@ describe('governed Trade Machine apron restrictions', () => {
       ).hardCapCeiling
     ).toBe(SECOND_APRON);
     expect(
-      getHardCapStatus(
+      getDetHardCapStatus(
         { hardCapLedger: cumulativeReload },
         {
           salaryCapYear: 2027,
@@ -1492,7 +1720,7 @@ describe('governed Trade Machine apron restrictions', () => {
     expect(TradeHardCapLedgerZ.safeParse([altered]).success).toBe(true);
     expect(parseTradeHardCapLedger([altered]).valid).toBe(false);
     expect(
-      getHardCapStatus(
+      getDetHardCapStatus(
         { hardCapLedger: [altered] },
         {
           salaryCapYear: 2027,
@@ -1650,7 +1878,7 @@ describe('governed Trade Machine apron restrictions', () => {
         reason: 'Later Second Apron trigger',
       },
     };
-    const status = getHardCapStatus(simultaneousSources, {
+    const status = getDetHardCapStatus(simultaneousSources, {
       salaryCapYear: 2027,
       capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
     });
@@ -1709,7 +1937,7 @@ describe('governed Trade Machine apron restrictions', () => {
   });
 
   it('treats malformed persisted hard-cap history as fail-closed unknown state', () => {
-    const status = getHardCapStatus(
+    const status = getDetHardCapStatus(
       { hardCapLedger: [{ version: 999 }] as never },
       {
         salaryCapYear: 2027,
@@ -1731,7 +1959,7 @@ describe('governed Trade Machine apron restrictions', () => {
       effectiveAt: '2026-07-15T16:00:00Z',
     });
     expect(entry).not.toBeNull();
-    const status = getHardCapStatus(
+    const status = getDetHardCapStatus(
       { hardCapLedger: [entry] },
       { capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON } }
     );
@@ -1762,7 +1990,7 @@ describe('governed Trade Machine apron restrictions', () => {
 
     expect(hydrated.hardCapLedger).toEqual([entry]);
     expect(
-      getHardCapStatus(hydrated, {
+      getDetHardCapStatus(hydrated, {
         salaryCapYear: 2027,
         capSettings: { firstApron: FIRST_APRON, secondApron: SECOND_APRON },
       }).hardCapCeiling

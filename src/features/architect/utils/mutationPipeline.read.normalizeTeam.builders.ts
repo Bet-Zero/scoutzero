@@ -49,7 +49,10 @@ import {
   resolveCurrentStateTeamTotalSalary,
 } from './mutationPipeline.read.normalizeData';
 import { TeamSalaryBookInputsZ } from '@/schemas/salaryBooks';
-import { parseTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
+import {
+  parsePersistedTradeHardCapLedger,
+  type PersistedHardCapAuthorityContext,
+} from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 import type {
   CurrentStateBaseTeamPreservedFieldMap,
   CurrentStateManualCapTeam,
@@ -167,7 +170,10 @@ export function buildCurrentStateTradeTeamBoundaryInput(
 }
 
 export function normalizeCurrentStateTeamMutationCore(
-  teamRecord: CurrentStateTeamMutationCoreBoundary
+  teamRecord: CurrentStateTeamMutationCoreBoundary & { cashLedger?: unknown },
+  authorityContext: Omit<PersistedHardCapAuthorityContext, 'cashLedger'> = {
+    containingTeamCode: null,
+  }
 ): CurrentStateTeamIdentityFieldMap & CurrentStateTeamMutationCoreFieldMap {
   const normalized: CurrentStateTeamIdentityFieldMap &
     CurrentStateTeamMutationCoreFieldMap = {};
@@ -185,7 +191,13 @@ export function normalizeCurrentStateTeamMutationCore(
       'Persisted salary-book inputs are malformed or version-incompatible.'
     );
   }
-  const hardCapLedger = parseTradeHardCapLedger(teamRecord.hardCapLedger);
+  const hardCapLedger = parsePersistedTradeHardCapLedger(
+    teamRecord.hardCapLedger,
+    {
+      ...authorityContext,
+      cashLedger: teamRecord.cashLedger,
+    }
+  );
   if (teamRecord.hardCapLedger != null && !hardCapLedger.valid) {
     throw new Error(
       'Persisted hard-cap ledger is malformed or version-incompatible.'
@@ -354,10 +366,14 @@ export function buildCurrentStateBaseTeamPreservedFields(
 
 export function normalizeCurrentStateBaseTeamBoundary(
   teamRecord: CurrentStateBaseTeamBoundaryInput,
-  preservedFields: CurrentStateBaseTeamPreservedField[]
+  preservedFields: CurrentStateBaseTeamPreservedField[],
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): NormalizedCurrentStateBaseTeamBoundary {
   return {
-    mutationCore: normalizeCurrentStateTeamMutationCore(teamRecord),
+    mutationCore: normalizeCurrentStateTeamMutationCore(
+      teamRecord,
+      authorityContext
+    ),
     roster: normalizeRosterEntries(teamRecord.roster),
     exceptions: normalizeCurrentStateTeamExceptions(teamRecord.exceptions),
     offerSheets: normalizeCurrentStateOfferSheets(teamRecord.offerSheets),
@@ -387,9 +403,13 @@ export function buildCurrentStateTradeTeamPreservedFields(
 }
 
 export function normalizeCurrentStateTradeTeamBoundary(
-  teamRecord: CurrentStateTradeTeamBoundaryInput
+  teamRecord: CurrentStateTradeTeamBoundaryInput,
+  authorityContext?: Omit<PersistedHardCapAuthorityContext, 'cashLedger'>
 ): NormalizedCurrentStateTradeTeamBoundary {
-  const mutationCore = normalizeCurrentStateTeamMutationCore(teamRecord);
+  const mutationCore = normalizeCurrentStateTeamMutationCore(
+    teamRecord,
+    authorityContext
+  );
 
   return {
     mutationCore,

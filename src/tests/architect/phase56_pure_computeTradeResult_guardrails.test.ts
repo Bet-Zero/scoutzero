@@ -427,6 +427,7 @@ describe('Phase 56: Pure computeTradeResult Guardrails', () => {
         seasonId: '2025-26',
         timestamp: Date.now(),
         asOfDate: '2026-03-15',
+        trustedWorldLineage: ['world-child', 'world-parent'],
       });
 
       expect(preparation.postTradeSnapshot.teamUpdates).toHaveLength(2);
@@ -443,6 +444,9 @@ describe('Phase 56: Pure computeTradeResult Guardrails', () => {
           .salaryMatchingElection
       ).toEqual(preparation.validationPayload.teams[0].salaryMatchingElection);
       expect(requireTradeCtx(preparation).asOfDate).toBe('2026-03-15');
+      expect(
+        validateTradeMock.mock.calls.at(-1)?.[0].tradeCtx.worldLineage
+      ).toEqual(['world-child', 'world-parent']);
       expect(validateTradeMock).toHaveBeenCalledTimes(1);
     });
   });

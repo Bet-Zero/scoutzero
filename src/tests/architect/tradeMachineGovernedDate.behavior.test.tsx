@@ -421,6 +421,7 @@ describe('BZE-284 governed Trade Machine date forwarding', () => {
         capProjections: null,
         yearKey: 2027,
         worldId: 'world-date-forwarding',
+        worldLineage: ['world-date-forwarding', 'world-date-forwarding-parent'],
         worldAsOfDate: EXACT_EXPIRY,
         forceTrade: false,
         currentDraftKey: 'date-forwarding-draft',
@@ -443,6 +444,10 @@ describe('BZE-284 governed Trade Machine date forwarding', () => {
       )
     ).toEqual([TERMINATED_TEAM_SALARY, TERMINATED_TEAM_SALARY]);
     expect(preparationInput.payload.tradeCtx.asOfDate).toBe(EXACT_EXPIRY);
+    expect(preparationInput.trustedWorldLineage).toEqual([
+      'world-date-forwarding',
+      'world-date-forwarding-parent',
+    ]);
   });
 
   it('repairs missing independent Apron and Tax books even when Team Salary is populated', () => {

@@ -10,7 +10,10 @@ import {
   HARD_CAP_TYPES,
   resolveSalaryCapYear,
 } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
-import type { AuthoritativeHardCapResult, TeamContext } from '../constants/types';
+import type {
+  AuthoritativeHardCapResult,
+  TeamContext,
+} from '../constants/types';
 
 type PlayerLike = {
   newSalary?: number | string | null;
@@ -67,7 +70,9 @@ function toFiniteNumber(value: unknown): number {
   return Number.isFinite(numericValue) ? numericValue : 0;
 }
 
-function normalizePlayers(players: PlayerLike[] | null | undefined): PlayerLike[] {
+function normalizePlayers(
+  players: PlayerLike[] | null | undefined
+): PlayerLike[] {
   return Array.isArray(players) ? players : [];
 }
 
@@ -85,7 +90,8 @@ function isDevEnvironment(): boolean {
   };
 
   return (
-    globalProcess.process?.env?.NODE_ENV === 'development' || import.meta?.env?.DEV
+    globalProcess.process?.env?.NODE_ENV === 'development' ||
+    import.meta?.env?.DEV
   );
 }
 
@@ -167,7 +173,9 @@ export function validateHardCap(
   }
   const teamTotalSalary = rawApronTeamSalary;
 
-  const incomingPlayers = normalizePlayers(team.receives || team.incomingPlayers);
+  const incomingPlayers = normalizePlayers(
+    team.receives || team.incomingPlayers
+  );
   const outgoingPlayers = normalizePlayers(team.sends || team.outgoingPlayers);
 
   const incomingSalary = incomingPlayers.reduce(
@@ -182,10 +190,14 @@ export function validateHardCap(
   const salaryIn = toFiniteNumber(team.salaryIn || incomingSalary);
   const salaryOut = toFiniteNumber(team.salaryOut || outgoingSalary);
   const projectedSalary =
-    team.projectedSalary ?? context.projectedSalary ?? teamTotalSalary + salaryIn - salaryOut;
+    team.projectedSalary ??
+    context.projectedSalary ??
+    teamTotalSalary + salaryIn - salaryOut;
 
   const teamCapSettings =
-    team.capSettings && typeof team.capSettings === 'object' ? team.capSettings : {};
+    team.capSettings && typeof team.capSettings === 'object'
+      ? team.capSettings
+      : {};
   const contextCapSettings =
     context.capSettings && typeof context.capSettings === 'object'
       ? context.capSettings
@@ -222,6 +234,8 @@ export function validateHardCap(
       secondApron,
     },
     salaryCapYear: resolveSalaryCapYear(context),
+    containingTeamCode: context.containingTeamCode ?? null,
+    worldLineage: context.worldLineage ?? null,
   });
 
   if (!hardCapStatus.isHardCapped) {
@@ -237,8 +251,7 @@ export function validateHardCap(
         firstApron: actualFirstApron,
         secondApron,
       },
-      activeHardCapLedgerEntry:
-        hardCapStatus.activeHardCapLedgerEntry ?? null,
+      activeHardCapLedgerEntry: hardCapStatus.activeHardCapLedgerEntry ?? null,
     };
   }
 
@@ -300,8 +313,7 @@ export function validateHardCap(
       firstApron: actualFirstApron,
       secondApron,
     },
-    activeHardCapLedgerEntry:
-      hardCapStatus.activeHardCapLedgerEntry ?? null,
+    activeHardCapLedgerEntry: hardCapStatus.activeHardCapLedgerEntry ?? null,
   };
 }
 
@@ -335,7 +347,10 @@ export function validateHardCapLegacy(
   const legacyFirstApron = toFiniteNumber(capSettings.firstApron);
   const legacySecondApron = toFiniteNumber(capSettings.secondApron);
 
-  if ((team.team as { hardCapFirstApron?: { active?: boolean } }).hardCapFirstApron?.active) {
+  if (
+    (team.team as { hardCapFirstApron?: { active?: boolean } })
+      .hardCapFirstApron?.active
+  ) {
     hardCapType = 'FirstApron';
     if (projectedSalary > legacyFirstApron) {
       violations.push(
@@ -344,7 +359,10 @@ export function validateHardCapLegacy(
     }
   }
 
-  if ((team.team as { hardCapSecondApron?: { active?: boolean } }).hardCapSecondApron?.active) {
+  if (
+    (team.team as { hardCapSecondApron?: { active?: boolean } })
+      .hardCapSecondApron?.active
+  ) {
     hardCapType = 'SecondApron';
     if (projectedSalary > legacySecondApron) {
       violations.push(

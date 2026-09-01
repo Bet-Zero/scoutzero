@@ -35,6 +35,10 @@ vi.mock('@/features/architect/utils/teamLoader', () => ({
 }));
 
 vi.mock('@/features/architect/utils/worldManager', () => ({
+  getWorldMetadata: vi.fn(async (worldId: string) => ({
+    worldId,
+    parentWorldId: null,
+  })),
   updateWorldStats: vi.fn(async (): Promise<void> => undefined),
 }));
 

@@ -59,6 +59,8 @@ import {
   writePersistedActiveWorldId,
 } from './useArchitectState.helpers';
 import { readRoomFromUrl } from './useArchitectDeskNavigation';
+import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
 
 function deepClone<T>(obj: T): T {
   if (typeof structuredClone === 'function') {
@@ -73,23 +75,56 @@ export function useArchitectState({
   authLoading,
 }: UseArchitectStateParams): UseArchitectStateReturn {
   // === Core data state ===
-  const [baselineCapSheet, setBaselineCapSheet] = useState<CapSheet | null>(null);
+  const [baselineCapSheet, setBaselineCapSheet] = useState<CapSheet | null>(
+    null
+  );
   const [teamCapSheet, setTeamCapSheet] = useState<CapSheet | null>(null);
   const [freeAgents, setFreeAgents] = useState<FreeAgent[]>([]);
 
   // === World state ===
   const [worldId, setWorldId] = useState<string | null>(null);
+  const [worldLineage, setWorldLineage] = useState<readonly string[]>([]);
   const [activeWorldLabel, setActiveWorldLabel] = useState<string | null>(null);
   const [worldAsOfDate, setWorldAsOfDate] = useState<string | null>(null);
-  const [worldCurrentSeason, setWorldCurrentSeason] = useState<string | null>(null);
+  const [worldCurrentSeason, setWorldCurrentSeason] = useState<string | null>(
+    null
+  );
   const [rightsLedgerWorldVersion, setRightsLedgerWorldVersion] = useState<
     number | null
   >(null);
-  const [worldMetadataLoading, setWorldMetadataLoading] = useState<boolean>(false);
-  const [hasRestoredActiveWorld, setHasRestoredActiveWorld] = useState<boolean>(false);
-  const [isUpdatingWorldAsOfDate, setIsUpdatingWorldAsOfDate] = useState<boolean>(false);
-  const [worldRosterIndex, setWorldRosterIndex] = useState<Set<string> | null>(null);
-  const [worldPlayerOverrides, setWorldPlayerOverrides] = useState<Record<string, ArchitectPlayer>>({});
+  const [worldMetadataLoading, setWorldMetadataLoading] =
+    useState<boolean>(false);
+  const [hasRestoredActiveWorld, setHasRestoredActiveWorld] =
+    useState<boolean>(false);
+  const [isUpdatingWorldAsOfDate, setIsUpdatingWorldAsOfDate] =
+    useState<boolean>(false);
+  const [worldRosterIndex, setWorldRosterIndex] = useState<Set<string> | null>(
+    null
+  );
+  const [worldPlayerOverrides, setWorldPlayerOverrides] = useState<
+    Record<string, ArchitectPlayer>
+  >({});
+
+  useEffect(() => {
+    let active = true;
+    setWorldLineage([]);
+    if (!worldId)
+      return () => {
+        active = false;
+      };
+    void resolveWorldLineageIdsFromMetadata(worldId, getWorldMetadata)
+      .then((lineage) => {
+        if (active && lineage[0] === worldId) {
+          setWorldLineage(Object.freeze([...lineage]));
+        }
+      })
+      .catch(() => {
+        if (active) setWorldLineage([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [worldId]);
 
   // === Selection state ===
   const [currentYear, setCurrentYear] = useState<number>(() => {
@@ -111,8 +146,11 @@ export function useArchitectState({
     return findClosestYear(defaultYear, availableYears);
   });
 
-  const [selectedRulesYear, setSelectedRulesYear] = useState<number>(currentYear);
-  const [selectedPlayer, setSelectedPlayer] = useState<ArchitectPlayer | null>(null);
+  const [selectedRulesYear, setSelectedRulesYear] =
+    useState<number>(currentYear);
+  const [selectedPlayer, setSelectedPlayer] = useState<ArchitectPlayer | null>(
+    null
+  );
   const [activeTab, setActiveTab] = useState<ActiveTab>(
     // Full Cap Table is the home base / default landing surface. A URL ?room=
     // slug still wins (deep links, League handoff to ?room=roster are unaffected).
@@ -122,7 +160,8 @@ export function useArchitectState({
   // === Offseason state ===
   const [lastCapSheet, setLastCapSheet] = useState<CapSheet | null>(null);
   const [offseasonRun, setOffseasonRun] = useState<boolean>(false);
-  const [offseasonSummary, setOffseasonSummary] = useState<DashboardOffseasonSummary | null>(null);
+  const [offseasonSummary, setOffseasonSummary] =
+    useState<DashboardOffseasonSummary | null>(null);
 
   // === Loading/error state ===
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -132,7 +171,9 @@ export function useArchitectState({
   const [lastSaveError, setLastSaveError] = useState<string | null>(null);
 
   // === Internal hook calls ===
-  const { players } = useArchitectPlayerData() as { players: ArchitectPlayer[] };
+  const { players } = useArchitectPlayerData() as {
+    players: ArchitectPlayer[];
+  };
 
   const {
     activeWorldIdentityTokenRef,
@@ -318,7 +359,10 @@ export function useArchitectState({
     let isCancelled = false;
 
     const validateActiveWorld = async () => {
-      const validatedWorldId = await resolveUsableActiveWorldId(worldId, userId);
+      const validatedWorldId = await resolveUsableActiveWorldId(
+        worldId,
+        userId
+      );
       if (!isCancelled && validatedWorldId !== worldId) {
         setActiveWorld(null);
       }
@@ -415,7 +459,14 @@ export function useArchitectState({
   useEffect(() => {
     if (!worldAwarePlayers || worldAwarePlayers.length === 0) return;
     if (worldId && worldRosterIndex === null) return;
-    setFreeAgents(computeFreeAgents(worldAwarePlayers, currentYear, worldId, worldRosterIndex));
+    setFreeAgents(
+      computeFreeAgents(
+        worldAwarePlayers,
+        currentYear,
+        worldId,
+        worldRosterIndex
+      )
+    );
   }, [worldAwarePlayers, currentYear, worldId, worldRosterIndex]);
 
   // === Higher-level action functions ===
@@ -475,14 +526,24 @@ export function useArchitectState({
       updateAsOfDate,
       advanceByOneDay,
     }),
-    [advanceByOneDay, isUpdatingWorldAsOfDate, updateAsOfDate, worldAsOfDate, worldId]
+    [
+      advanceByOneDay,
+      isUpdatingWorldAsOfDate,
+      updateAsOfDate,
+      worldAsOfDate,
+      worldId,
+    ]
   );
 
   const worldModeBoundary = useMemo<ArchitectWorldModeBoundary>(() => {
     if (!worldId) {
       return { kind: 'sandbox', worldId: null, onReloadWorldData: null };
     }
-    return { kind: 'world', worldId, onReloadWorldData: reloadActiveWorldTeamData };
+    return {
+      kind: 'world',
+      worldId,
+      onReloadWorldData: reloadActiveWorldTeamData,
+    };
   }, [reloadActiveWorldTeamData, worldId]);
 
   return {
@@ -506,6 +567,7 @@ export function useArchitectState({
     capTableYears,
     players: worldAwarePlayers,
     worldId,
+    worldLineage,
     activeWorldLabel,
     worldAsOfDate,
     worldCurrentSeason,

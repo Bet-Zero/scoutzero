@@ -15,6 +15,7 @@
 
 import { getDoc, getDocs } from 'firebase/firestore';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
 import { hydrateBaseTeam } from '@/features/architect/utils/firebaseTeamPlanHelpers';
 import { synchronizeTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { normalizeTeamExceptionOwnership } from '@/features/architect/utils/exceptions/exceptionOwnership';
@@ -37,6 +38,7 @@ import {
   type ArchitectBoundarySalaryRow,
   type ArchitectBoundaryTeam,
 } from '@/features/architect/utils/architectFirestoreBoundary';
+import { parsePersistedTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 
 type UnknownRecord = ArchitectBoundaryRecord;
 
@@ -49,7 +51,9 @@ type ContractLike = ArchitectBoundaryContract;
 type PlayerLike = ArchitectBoundaryPlayer;
 type TeamLike = ArchitectBoundaryTeam;
 
-function deriveTeamTotalsYear(team: TeamLike | null | undefined): number | null {
+function deriveTeamTotalsYear(
+  team: TeamLike | null | undefined
+): number | null {
   const seasonYear =
     typeof team?.season === 'string' ? toEndYear(team.season) : null;
   if (typeof seasonYear === 'number' && Number.isFinite(seasonYear)) {
@@ -96,6 +100,23 @@ export async function getTeam(
     return await getBaseTeam(teamCode);
   }
 
+  const worldLineage = await resolveWorldLineageIdsFromMetadata(
+    worldId,
+    getWorldMetadata
+  );
+  return getTeamFromTrustedLineage(worldLineage, teamCode);
+}
+
+async function getTeamFromTrustedLineage(
+  worldLineage: readonly string[],
+  teamCode: string,
+  lookupStartIndex = 0
+): Promise<TeamLike> {
+  const worldId = worldLineage[lookupStartIndex];
+  if (!worldId) {
+    throw new Error('Authenticated world lineage is required');
+  }
+
   // Try world snapshot first
   // Path: architect_worlds/{worldId}/teams/{teamCode}
   const worldSnapshotRef = worldTeamRef(worldId, teamCode);
@@ -105,26 +126,31 @@ export async function getTeam(
     const snapshotData = readTeamDoc(
       worldSnapshotSnap.data(),
       teamCode,
-      `architect_worlds/${worldId}/teams/${teamCode}`
+      `architect_worlds/${worldId}/teams/${teamCode}`,
+      worldLineage
     );
     // Hydrate roster from base players if needed
     return synchronizeLoadedTeam(
-      await hydrateTeamFromSnapshot(snapshotData, teamCode)
+      await hydrateTeamFromSnapshot(snapshotData, teamCode, worldLineage)
     );
   }
 
-  // Try parent world (recursive)
-  try {
-    const worldMeta = readWorldMetadata(await getWorldMetadata(worldId));
-    if (worldMeta.parentWorldId) {
-      const parentTeam = await getTeam(worldMeta.parentWorldId, teamCode);
-      if (parentTeam) {
-        return synchronizeLoadedTeam(parentTeam);
-      }
+  // Try authenticated ancestors without re-deriving lineage from Team data.
+  for (const ancestorWorldId of worldLineage.slice(lookupStartIndex + 1)) {
+    const ancestorSnapshot = await getDoc(
+      worldTeamRef(ancestorWorldId, teamCode)
+    );
+    if (ancestorSnapshot.exists()) {
+      const snapshotData = readTeamDoc(
+        ancestorSnapshot.data(),
+        teamCode,
+        `architect_worlds/${ancestorWorldId}/teams/${teamCode}`,
+        worldLineage
+      );
+      return synchronizeLoadedTeam(
+        await hydrateTeamFromSnapshot(snapshotData, teamCode, worldLineage)
+      );
     }
-  } catch (error) {
-    // If parent lookup fails, continue to base fallback
-    console.warn(`Failed to load parent world for ${worldId}:`, error);
   }
 
   // Fall back to base
@@ -172,7 +198,8 @@ async function getBaseTeam(teamCode: string): Promise<TeamLike> {
  */
 async function hydrateTeamFromSnapshot(
   snapshotData: TeamLike,
-  teamCode: string
+  teamCode: string,
+  worldLineage: readonly string[]
 ): Promise<TeamLike> {
   const snapshotPlayers = snapshotData.players;
 
@@ -182,9 +209,16 @@ async function hydrateTeamFromSnapshot(
   }
 
   // Otherwise, hydrate from base players
-  const hydratedTeam = await hydrateBaseTeam(teamCode, snapshotData);
+  const hydratedTeam = await hydrateBaseTeam(teamCode, snapshotData, {
+    worldLineage,
+  });
   return synchronizeLoadedTeam(
-    readTeamDoc(hydratedTeam, teamCode, `hydrated team snapshot ${teamCode}`)
+    readTeamDoc(
+      hydratedTeam,
+      teamCode,
+      `hydrated team snapshot ${teamCode}`,
+      worldLineage
+    )
   );
 }
 
@@ -234,6 +268,11 @@ export async function getLeague(worldId: string | null): Promise<TeamLike[]> {
     return await Promise.all(TEAM_CODES.map((code) => getBaseTeam(code)));
   }
 
+  const worldLineage = await resolveWorldLineageIdsFromMetadata(
+    worldId,
+    getWorldMetadata
+  );
+
   // World mode: Batch read all world snapshots first
   // Path: architect_worlds/{worldId}/teams
   const snapshotCollectionRef = worldTeamsCol(worldId);
@@ -246,42 +285,23 @@ export async function getLeague(worldId: string | null): Promise<TeamLike[]> {
       readTeamDoc(
         docSnap.data(),
         docSnap.id,
-        `architect_worlds/${worldId}/teams/${docSnap.id}`
+        `architect_worlds/${worldId}/teams/${docSnap.id}`,
+        worldLineage
       )
     );
   });
-
-  // Get world metadata for parent lookup
-  let parentWorldId: string | null = null;
-  try {
-    const worldMeta = readWorldMetadata(await getWorldMetadata(worldId));
-    parentWorldId = worldMeta.parentWorldId ?? null;
-  } catch (error) {
-    console.warn(`Failed to load world metadata for ${worldId}:`, error);
-  }
 
   // Load all teams: use snapshot if available, otherwise try parent or base
   const teams = await Promise.all(
     TEAM_CODES.map(async (code) => {
       const snapshotData = snapshotMap.get(code);
       if (snapshotData) {
-        return await hydrateTeamFromSnapshot(snapshotData, code);
+        return await hydrateTeamFromSnapshot(snapshotData, code, worldLineage);
       }
 
-      // Try parent world
-      if (parentWorldId) {
-        try {
-          const parentTeam = await getTeam(parentWorldId, code);
-          if (parentTeam) {
-            return parentTeam;
-          }
-        } catch {
-          // Continue to base fallback
-        }
-      }
-
-      // Fall back to base
-      return await getBaseTeam(code);
+      return worldLineage.length > 1
+        ? getTeamFromTrustedLineage(worldLineage, code, 1)
+        : getBaseTeam(code);
     })
   );
 
@@ -451,9 +471,23 @@ function mergeSalariesByYear(
 function readTeamDoc(
   value: unknown,
   fallbackTeamCode: string,
-  context: string
+  context: string,
+  worldLineage: readonly string[] = []
 ): TeamLike {
-  return readArchitectTeam(value, context, fallbackTeamCode);
+  const team = readArchitectTeam(value, context, fallbackTeamCode);
+  if (team.hardCapLedger === null) return team;
+  if (team.hardCapLedger !== undefined) {
+    const parsedLedger = parsePersistedTradeHardCapLedger(team.hardCapLedger, {
+      containingTeamCode: fallbackTeamCode,
+      worldLineage,
+      cashLedger: team.cashLedger,
+    });
+    if (!parsedLedger.valid) {
+      throw new Error(`${context}.hardCapLedger is not governed authority.`);
+    }
+    team.hardCapLedger = parsedLedger.entries;
+  }
+  return team;
 }
 
 function readPlayerDoc(

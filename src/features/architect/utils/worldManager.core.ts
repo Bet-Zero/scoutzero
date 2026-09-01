@@ -45,6 +45,7 @@ import {
   type UpdateWorldMetadataInput,
   type WorldMetadata,
   type WorldStats,
+  resolveWorldLineageIdsFromMetadata,
 } from './worldManager.readUtils';
 import {
   createRightsEventLedger,
@@ -286,29 +287,18 @@ const commitBranchCopyOperations = async (
   }
 };
 
-const resolveWorldLineageIds = async (worldId: string): Promise<string[]> => {
-  const lineageIds: string[] = [];
-  const visitedIds = new Set<string>();
-  let currentWorldId: string | null = worldId;
-
-  while (currentWorldId) {
-    if (visitedIds.has(currentWorldId)) {
-      throw new Error(`World lineage cycle detected for ${currentWorldId}`);
-    }
-
-    visitedIds.add(currentWorldId);
-    lineageIds.push(currentWorldId);
-
-    const metadata = await getWorldMetadata(currentWorldId);
-    currentWorldId =
-      typeof metadata.parentWorldId === 'string' &&
-      metadata.parentWorldId.trim()
-        ? metadata.parentWorldId.trim()
-        : null;
-  }
-
-  return lineageIds;
-};
+/**
+ * Resolve the authenticated saved-world ancestry from Firestore metadata.
+ *
+ * The returned order is current world -> immediate parent -> oldest ancestor.
+ * Missing metadata and cycles fail closed through getWorldMetadata(). This is
+ * the single production ancestry algorithm used by branching and persisted
+ * authority readers.
+ */
+export const resolveWorldLineageIds = async (
+  worldId: string
+): Promise<string[]> =>
+  resolveWorldLineageIdsFromMetadata(worldId, getWorldMetadata);
 
 const readEffectiveTeamSnapshotForBranch = async (
   lineageIds: string[],

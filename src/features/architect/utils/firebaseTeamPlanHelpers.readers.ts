@@ -30,7 +30,7 @@ import {
 import type { ContractEventLedgerPayload } from '@/schemas/contractEventLedger';
 import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
 import type { GovernedCashLedger } from '@/schemas/governedCashConsideration';
-import { parseTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
+import { parsePersistedTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 
 // ============================================================
 // Private types
@@ -290,7 +290,10 @@ function readLooseBirdRights(
   return normalized;
 }
 
-function readLooseContract(value: unknown, context: string): LooseContract | null {
+function readLooseContract(
+  value: unknown,
+  context: string
+): LooseContract | null {
   const contract = readArchitectContract(value, context);
   if (!contract) {
     return null;
@@ -324,7 +327,10 @@ function readLooseContract(value: unknown, context: string): LooseContract | nul
     }
   }
 
-  const totalValue = readNullableNumber(contract.totalValue, `${context}.totalValue`);
+  const totalValue = readNullableNumber(
+    contract.totalValue,
+    `${context}.totalValue`
+  );
   if (totalValue !== undefined) {
     normalized.totalValue = totalValue;
   }
@@ -395,7 +401,10 @@ function readLooseBio(value: unknown, context: string): LooseBio | null {
   if (age !== undefined) {
     normalized.age = age;
   }
-  const experience = readNullableNumber(record.experience, `${context}.experience`);
+  const experience = readNullableNumber(
+    record.experience,
+    `${context}.experience`
+  );
   if (experience !== undefined) {
     normalized.experience = experience;
   }
@@ -414,9 +423,18 @@ export function readLooseBasePlayerDoc(
   normalized.playerId = readArchitectString(record.playerId) ?? playerId;
   normalized.displayName = readArchitectString(record.displayName);
   normalized.bio = readLooseBio(record.bio, `${context}.bio`);
-  normalized.teamCode = readNullableString(record.teamCode, `${context}.teamCode`);
-  normalized.teamName = readNullableString(record.teamName, `${context}.teamName`);
-  normalized.contract = readLooseContract(record.contract, `${context}.contract`);
+  normalized.teamCode = readNullableString(
+    record.teamCode,
+    `${context}.teamCode`
+  );
+  normalized.teamName = readNullableString(
+    record.teamName,
+    `${context}.teamName`
+  );
+  normalized.contract = readLooseContract(
+    record.contract,
+    `${context}.contract`
+  );
   normalized.futureContract = readLooseContract(
     record.futureContract,
     `${context}.futureContract`
@@ -472,12 +490,16 @@ function readLooseTradeExceptions(
 export function readLooseBaseTeamDoc(
   value: unknown,
   teamCode: string,
-  context: string
+  context: string,
+  worldLineage: readonly string[] = []
 ): LooseBaseTeamDoc {
   const record = requireArchitectRecord(value, context);
   const normalized = { ...record } as LooseBaseTeamDoc;
 
-  normalized.roster = readArchitectUnknownArray(record.roster, `${context}.roster`);
+  normalized.roster = readArchitectUnknownArray(
+    record.roster,
+    `${context}.roster`
+  );
   normalized.teamName = readArchitectString(record.teamName);
   normalized.season = readArchitectString(record.season);
   normalized.abbreviation = readNullableString(
@@ -536,7 +558,10 @@ export function readLooseBaseTeamDoc(
     record.hardCapTriggeredBy,
     `${context}.hardCapTriggeredBy`
   );
-  normalized.deadCap = readArchitectUnknownArray(record.deadCap, `${context}.deadCap`);
+  normalized.deadCap = readArchitectUnknownArray(
+    record.deadCap,
+    `${context}.deadCap`
+  );
   if (record.salaryBookInputs === null) {
     normalized.salaryBookInputs = null;
   } else if (record.salaryBookInputs !== undefined) {
@@ -547,7 +572,14 @@ export function readLooseBaseTeamDoc(
   if (record.hardCapLedger === null) {
     normalized.hardCapLedger = null;
   } else if (record.hardCapLedger !== undefined) {
-    const parsedLedger = parseTradeHardCapLedger(record.hardCapLedger);
+    const parsedLedger = parsePersistedTradeHardCapLedger(
+      record.hardCapLedger,
+      {
+        containingTeamCode: teamCode,
+        worldLineage,
+        cashLedger: record.cashLedger,
+      }
+    );
     if (!parsedLedger.valid) {
       throw new Error(`${context}.hardCapLedger is not governed authority.`);
     }
@@ -556,7 +588,10 @@ export function readLooseBaseTeamDoc(
   if (record.totals === null) {
     normalized.totals = null;
   } else if (record.totals !== undefined) {
-    normalized.totals = requireArchitectRecord(record.totals, `${context}.totals`);
+    normalized.totals = requireArchitectRecord(
+      record.totals,
+      `${context}.totals`
+    );
   }
 
   if (!normalized.teamName) {
@@ -580,7 +615,9 @@ export function readLooseFreeAgent(
   const name = readArchitectString(record.name);
   if (hasArchitectField(record, 'name')) {
     if (!name) {
-      throw new Error(`${context}.name must be a non-empty string when present`);
+      throw new Error(
+        `${context}.name must be a non-empty string when present`
+      );
     }
     normalized.name = name;
   }

@@ -13,6 +13,7 @@
 
 import { getDoc } from 'firebase/firestore';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
 import {
   worldTeamRef,
   worldPlayerRef,
@@ -266,29 +267,7 @@ export function getSnapshotCapHoldMembership(
 }
 
 export async function resolveWorldLineage(worldId: string) {
-  const lineageWorldIds: string[] = [];
-  const visitedWorldIds = new Set<string>();
-  let currentWorldId = worldId;
-
-  while (currentWorldId) {
-    if (visitedWorldIds.has(currentWorldId)) {
-      throw new Error(
-        `World lineage cycle detected while resolving authoritative offer-sheet ownership for ${currentWorldId}.`
-      );
-    }
-
-    visitedWorldIds.add(currentWorldId);
-    lineageWorldIds.push(currentWorldId);
-
-    const metadata = (await getWorldMetadata(currentWorldId)) as LooseRecord;
-    const parentWorldId =
-      typeof metadata.parentWorldId === 'string'
-        ? metadata.parentWorldId.trim()
-        : '';
-    currentWorldId = parentWorldId || '';
-  }
-
-  return lineageWorldIds;
+  return resolveWorldLineageIdsFromMetadata(worldId, getWorldMetadata);
 }
 
 export async function getFirstExplicitWorldTeamSnapshotFromLineage(
@@ -325,7 +304,8 @@ export async function getWorldTeamSnapshotLineageReceipt(
     if (exists) {
       const normalizedTeam = toCurrentStateTeam(
         snapshot.data() as MutationCurrentStateOfferSheetTeamIngress | null,
-        'offerSheetResolution'
+        'offerSheetResolution',
+        { containingTeamCode: teamCode, worldLineage: lineageWorldIds }
       );
       if (!normalizedTeam) {
         continue;

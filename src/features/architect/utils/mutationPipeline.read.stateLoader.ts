@@ -167,7 +167,8 @@ export async function resolveStoreOfferSheetAuthority({
   const offeringTeam = await getTeam(worldId, offeringTeamCode).then((team) =>
     toCurrentStateTeam(
       team as MutationCurrentStateOfferSheetTeamIngress | null,
-      'signing'
+      'signing',
+      { containingTeamCode: offeringTeamCode, worldLineage: lineageWorldIds }
     )
   );
 
@@ -703,6 +704,7 @@ export async function loadStateForMutation(
   mutationType: string,
   payload: MutationPayloadLike
 ): Promise<MutationCurrentState> {
+  const worldLineage = await resolveWorldLineage(worldId);
   switch (mutationType) {
     case 'executeTrade': {
       // Load all teams involved in trade
@@ -716,9 +718,13 @@ export async function loadStateForMutation(
           }
           const normalizedCode = String(code).trim();
           if (!normalizedCode) {
-            throw new Error(`Missing teamCode for trade entry at index ${index}.`);
+            throw new Error(
+              `Missing teamCode for trade entry at index ${index}.`
+            );
           }
-          return resolveTeamCode(normalizedCode) || normalizedCode.toUpperCase();
+          return (
+            resolveTeamCode(normalizedCode) || normalizedCode.toUpperCase()
+          );
         }
       );
 
@@ -797,7 +803,8 @@ export async function loadStateForMutation(
         team: toCurrentStateTeam(
           (teamStates[i] as MutationCurrentStateTradeTeamIngress | null) ||
             null,
-          'trade'
+          'trade',
+          { containingTeamCode: code, worldLineage }
         ),
       }));
       let governedSignAndTradeEvidence: GovernedSignAndTradeEvidenceBundle | null =
@@ -1061,7 +1068,8 @@ export async function loadStateForMutation(
         ]);
         homeTeam = toCurrentStateTeam(
           loadedHomeTeam as MutationCurrentStateOfferSheetTeamIngress | null,
-          'offerSheetMirror'
+          'offerSheetMirror',
+          { containingTeamCode: String(homeTeamCode), worldLineage }
         );
         signingPriorTeamSnapshot = priorSnapshots.team;
       }
@@ -1069,7 +1077,8 @@ export async function loadStateForMutation(
       return {
         team: toCurrentStateTeam(
           team as MutationCurrentStateOfferSheetTeamIngress | null,
-          'signing'
+          'signing',
+          { containingTeamCode: String(teamCode), worldLineage }
         ),
         player: toCurrentStatePlayer(player),
         teamCode,
@@ -1109,7 +1118,8 @@ export async function loadStateForMutation(
       return {
         team: toCurrentStateTeam(
           team as MutationCurrentStateBaseTeamIngress | null,
-          'playerOps'
+          'playerOps',
+          { containingTeamCode: String(teamCode), worldLineage }
         ),
         player: toCurrentStatePlayer(player),
         teamCode,
@@ -1148,7 +1158,8 @@ export async function loadStateForMutation(
       return {
         team: toCurrentStateTeam(
           team as MutationCurrentStateBaseTeamIngress | null,
-          'playerOps'
+          'playerOps',
+          { containingTeamCode: String(teamCode), worldLineage }
         ),
         player: toCurrentStatePlayer(player),
         teamCode,
@@ -1182,7 +1193,8 @@ export async function loadStateForMutation(
       return {
         team: toCurrentStateTeam(
           team as MutationCurrentStateBaseTeamIngress | null,
-          'playerOps'
+          'playerOps',
+          { containingTeamCode: String(teamCode), worldLineage }
         ),
         player: toCurrentStatePlayer(player),
         teamCode,
@@ -1369,11 +1381,15 @@ export async function loadStateForMutation(
       });
 
       return {
-        homeTeam: toCurrentStateTeam(homeTeam, 'offerSheetResolution'),
+        homeTeam: toCurrentStateTeam(homeTeam, 'offerSheetResolution', {
+          containingTeamCode: homeTeamCode,
+          worldLineage,
+        }),
         offeringTeam: toCurrentStateTeam(
           (offeringTeamRaw as MutationCurrentStateOfferSheetTeamIngress | null) ||
             null,
-          'offerSheetResolution'
+          'offerSheetResolution',
+          { containingTeamCode: offeringTeamCode, worldLineage }
         ),
         offerSheetId,
         offerSheetResolutionSnapshots: {
@@ -1405,12 +1421,14 @@ export async function loadStateForMutation(
       return {
         team: toCurrentStateTeam(
           (team as MutationCurrentStateTradeTeamIngress | null) || null,
-          'trade'
+          'trade',
+          { containingTeamCode: teamCode, worldLineage }
         ),
         destinationTeam: toCurrentStateTeam(
           (destinationTeam as MutationCurrentStateTradeTeamIngress | null) ||
             null,
-          'trade'
+          'trade',
+          { containingTeamCode: destinationTeamCode, worldLineage }
         ),
         player: toCurrentStatePlayer(player || null),
         teamCode: teamCode as string,
@@ -1435,7 +1453,8 @@ export async function loadStateForMutation(
           worldId,
           teamCode
         )) as MutationCurrentStateBaseTeamIngress | null,
-        'playerOps'
+        'playerOps',
+        { containingTeamCode: teamCode, worldLineage }
       );
       if (!team) {
         throw new Error(`Team ${teamCode} not found for renounceRights`);
@@ -1498,7 +1517,8 @@ export async function loadStateForMutation(
           worldId,
           teamCode
         )) as MutationCurrentStateBaseTeamIngress | null,
-        'manualCap'
+        'manualCap',
+        { containingTeamCode: teamCode, worldLineage }
       );
       return { team, teamCode };
     }
@@ -1511,7 +1531,8 @@ export async function loadStateForMutation(
           worldId,
           teamCode
         )) as MutationCurrentStateBaseTeamIngress | null,
-        'manualCap'
+        'manualCap',
+        { containingTeamCode: teamCode, worldLineage }
       );
       return { team, teamCode };
     }

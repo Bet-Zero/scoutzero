@@ -50,6 +50,7 @@ import {
   getWorldMetadata,
   updateWorldStats,
 } from '@/features/architect/utils/worldManager';
+import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
 import {
   createRightsEventLedger,
   resolveRightsWorldCompatibility,
@@ -357,6 +358,10 @@ export async function applyWorldMutation({
   let governedRenounceWorldAsOfDate: string | null = null;
 
   try {
+    const worldLineage = await resolveWorldLineageIdsFromMetadata(
+      worldId,
+      getWorldMetadata
+    );
     // Clean-break compatibility is an ingress property of the saved world, so
     // reject it before attempting to resolve legacy team/player snapshots.
     if (mutationType === 'renounceRights') {
@@ -669,7 +674,11 @@ export async function applyWorldMutation({
       // The mutation-stage validators above remain required, but they are not
       // substitutes for final-state artifact validation.
       const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
-      afterTeamsByCode = extractTeamsByCodeFromComputeResult(computeResult);
+      afterTeamsByCode = extractTeamsByCodeFromComputeResult(
+        computeResult,
+        worldId,
+        worldLineage
+      );
       beforeTotalsByTeam = buildTotalsByTeam(
         beforeTeamsByCode,
         year,
@@ -707,6 +716,7 @@ export async function applyWorldMutation({
         operationId,
         mutationType,
         worldId,
+        worldLineage,
         year,
         beforeTeamsByCode,
         afterTeamsByCode,
