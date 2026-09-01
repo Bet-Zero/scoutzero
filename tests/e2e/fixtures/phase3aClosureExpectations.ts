@@ -8,8 +8,7 @@
 export const PHASE3A_CLOSURE_EXPECTATIONS = Object.freeze({
   acceptedCanon: {
     candidate: '6cf8aaf358c158a88e630e8a7336f7e9c3febc17',
-    sha256:
-      '23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76',
+    sha256: '23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76',
   },
   season2026_27: {
     salaryCapYear: 2027,

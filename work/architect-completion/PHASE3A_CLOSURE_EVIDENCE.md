@@ -5,22 +5,26 @@ description: BZE-265 source-derived W1-W15 closure evidence map and exact-head i
 
 # Phase 3A Closure Evidence (BZE-265)
 
-**Status:** complete source-derived discriminator and browser diagnostic pass;
-final exact-head review/certification boundary in progress.
-**Required base:** `89a8c01bd37d54f0ed639a14a76bc00a51484041`.
+**Status:** reconciled source-derived discriminator and complete browser
+diagnostic pass on the landed BZE-297/BZE-298 repair chain; final exact-head
+review/certification boundary in progress.
+**Required base:** `b3a039694d1025bce2223331a07d3571cc77fded`.
 **Closure branch:** `feature/bze-265-phase3a-closure-integration-proof`.
 **Draft PR:** #517.
 
 The worktree was returned to clean synchronized `main` at the required base
-before this branch resumed. Hosted base CI run `33290842948` passed at that
-exact commit, including the hosted full suite and production build. Current
-main includes completed foundations BZE-294 / PR #518, BZE-295 / PRs #519 and
-PR #520, and BZE-296 / PR #521. The paused head `8149b667…` was synchronized by
-normal two-parent merge `d8921cae…`; no rebase, squash, amendment, branch
-replacement, or force-push occurred. BZE-289, BZE-294, BZE-295, and BZE-296
-remain Done. Completed-child observations remain evidence, not new closure
-scope. Relative to current main this lane changes no product, CBA, schema,
-persistence, Canon, governed-source, or completed-child implementation.
+before this branch resumed. Hosted post-merge CI run `33489310101` passed at
+that exact commit, including the full suite, typecheck, Architect gates,
+accepted-Canon verification, Phase 3A tooling, project validation, and build.
+Current main includes completed foundations BZE-294 / PR #518, BZE-295 / PRs
+#519 and #520, BZE-296 / PR #521, BZE-297 / PR #522, and BZE-298 / PRs #523,
+#524, and #525. The paused closure head `9815809e…` was synchronized by normal
+two-parent merge `f69edc02…`, whose second parent is the exact required base;
+no rebase, squash, amendment, branch replacement, or force-push occurred.
+BZE-289 and BZE-294 through BZE-298 remain Done. Completed-child observations
+remain evidence, not new closure scope. Relative to current main this lane
+changes no product, CBA, schema, persistence, Canon, governed-source, or
+completed-child implementation.
 
 ## Locked authority boundary
 
@@ -85,6 +89,7 @@ accepted Canon or the named retained governed records:
 | Offer Sheet | `48`-hour matching window | `CBA2-L04.3` |
 | Sign-and-trade | at least `3` non-Option Seasons; receiving Team hard-capped at First Apron `$209,015,000` | `CBA2-A07.1/.2/.4` plus `GOV-LVL-0004` |
 | Ordinary trade controls | room allowance `$250,000`; proof cash `$1.00`; First/Second Aprons as above | `CBA2-A02.9/.10/.12`; governed system levels |
+| Row I cash hard cap | The Team paying `$1.00` in the supported trade is Row I hard-capped at the Second Apron for the rest of Salary Cap Year 2027; the persisted entry must authenticate only for its independently trusted containing Team and current/ancestor world provenance with exactly one matching authenticated `PAID` cash entry | `CBA2-A05.1/.2/.11`, `CBA2-A08.1`; `GOV-CAL-0002`; `GOV-LVL-0005` |
 | Stepien exclusion | authenticated `CBA2-A12.3`; missing governed ownership/protection/conveyance/freeze/unfreeze/penalty history means `NEEDS_INPUT`, unevaluated, false, no write | `EV2-0086`, `EV2-0087`, `CBA2-L09.2/.3/.6`, `CBA2-A12.4` |
 | Supported pick control | clean second-round ownership path remains `PASS`, evaluated, true | accepted Canon boundary plus current-main discriminator |
 | Trade-bonus exclusion | retained Austin Reaves `15%` kicker with `missing-bonus-allocation` means visible `Needs input`, Apply disabled, no write | `salaryswish-retained-2026-06-05@v1`, digest below |
@@ -94,6 +99,16 @@ release `salaryswish-retained-2026-06-05@v1`, digest
 `sha256:46db3137308ff1c05e0066edf09ef08d45b92353bea7a2bcec93fd408adf5950`.
 Its Austin Reaves record retains a 15% kicker but identifies
 `terms.bonuses` as `missing-bonus-allocation`; no bonus amount may be invented.
+
+The Row I expectation is not derived from the repaired application output.
+Pinned accepted-Canon lookups at the required base verified the exact candidate
+and fingerprint above before browser execution. `CBA2-A05.11` identifies the
+cash-paying Team and Second Apron; `CBA2-A05.1/.2` require that Team's immediate
+and continuing apron restriction; `CBA2-A08.1` owns the authenticated paid-cash
+direction. The governed 2026-27 calendar and Second Apron records supply the
+dated ceiling. Therefore a foreign Team, sibling/unrelated world, missing or
+malformed lineage, or absent/non-`PAID` payer record must fail closed and may
+not mutate the saved world.
 
 ## Historical discriminator and completed repair
 
@@ -208,33 +223,70 @@ disabled Trade Summary, and zero Team/event writes before supported controls
 continue. The top-level fail-closed result remained visible with empty
 `teamResults`; it did not revert to `Not validated`.
 
+## Preserved Claude rejection and Row I repair chain
+
+The raw independent-Claude `REJECT` against paused candidate
+`9815809ee4832041f029f7c2ee2ebcf5bc43900c` remains preserved without edits in
+the BZE-265 record. Its blocking discriminator was exact and remains part of
+the historical evidence: a product-generated, schema-valid Row I cash-payment
+entry returned `valid:false` and zero authenticated entries on persisted
+read-back. The retained screenshots also showed the supported cash trade
+becoming `malformed or version-incompatible` after reload. Claude correctly
+rejected the W2/W9/W12/W13 closure claim even though BZE-265 had not introduced
+the underlying product defect.
+
+The blocker was repaired outside this closure lane:
+
+- BZE-297 / PR #522 authenticates the accepted product-generated Row I format,
+  preserves byte-identical persisted entries, and retains disputed or tampered
+  authority as fail-closed.
+- BZE-298 / PR #523 binds every persisted hard-cap entry to an independently
+  trusted containing-Team identity and requires matching authenticated Row I
+  payer evidence.
+- BZE-298 / PR #524 carries authenticated world lineage through saved-world
+  parent, child, and descendant reads and mutations without authorizing sibling
+  or unrelated provenance.
+- BZE-298 / PR #525 restores a behavior-neutral guardrail source layout. Its
+  merge is exact required main `b3a03969…`; post-merge CI `33489310101` passed.
+
+The former discriminator now passes with both structural and authenticated
+read-back validity. Focused current-main proof also establishes persistence,
+reload, `getTeam()`, `getLeague()`, mutation loading, hard-cap status, and
+final-state validation across parent, child, and grandchild worlds. Negative
+cases for a foreign Team, sibling world, unrelated world, missing lineage,
+malformed lineage, missing/`RECEIVED`-only payer evidence, duplicate payer
+evidence, and tampered identity/manifest/leaf data all return fail-closed. The
+mutation/browser probes assert unchanged Team, cash-ledger, and hard-cap bytes
+or restore the temporary adversarial copy before continuing; no negative case
+performs a product write.
+
 ## Reuse-first W1-W15 map
 
 “Reusable” below means the completed-child evidence still proves its local
-requirement. BZE-294, BZE-295, and BZE-296 are confined to first-round draft
-authority, accepted-Canon parsing/provenance, persisted entitlement boundary
-reading, and exact-draft Trade Machine validation presentation/currentness.
-They do not reopen unrelated completed workflows or make completed-child
-observations new scope. The fresh run is used only where #518–#521 made prior
-evidence stale or where cross-workstream agreement was still missing.
+requirement. BZE-294 through BZE-298 are confined to their recorded draft,
+accepted-Canon, validation-presentation, Row I authentication, containing-Team,
+and saved-world-lineage boundaries. They do not reopen unrelated completed
+workflows or make completed-child observations new scope. The fresh run is used
+only where PRs #522–#525 made the rejected Row I evidence stale or where the
+closure proof needed to combine that repair with the existing W1–W15 path.
 
 | WF  | Required proof                                                 | Evidence decision at required base                                                                                                           | Closure state                                               |
 | --- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| W1  | Saved-world create/switch/date/leave/return/reload             | Reuse BZE-246/BZE-250 lifecycle receipts; later landings do not touch world selection or date; fresh trade proof re-enters and reloads its saved world | **PASS — reused plus fresh reload**                         |
-| W2  | Team, Apron, and Tax Salary books across rooms                 | Reuse BZE-285/BZE-293; fresh proof seeds 15 Standard + 3 Two-Way on MIA and DEN, reconciles all three persisted books, and reloads Cap Sheet at `15 / 15 · 3 / 3` | **PASS — reused plus fresh full-roster books**              |
+| W1  | Saved-world create/switch/date/leave/return/reload             | Reuse BZE-246/BZE-250 lifecycle receipts; fresh proof re-enters/reloads the parent world, branches child and grandchild worlds, activates each, and preserves authenticated inherited Row I/cash bytes | **PASS — reused plus fresh parent/descendant reload**       |
+| W2  | Team, Apron, and Tax Salary books across rooms                 | Reuse BZE-285/BZE-293; fresh proof seeds 15 Standard + 3 Two-Way on MIA and DEN, reconciles all three persisted books, reloads Cap Sheet at `15 / 15 · 3 / 3`, and shows valid Row I Second-Apron status without the rejected malformed banner in parent/descendants | **PASS — reused plus fresh full-roster/Row I books**        |
 | W3  | Waive, stretch, buyout                                         | Reuse BZE-284 retained browser evidence; exact `$31M`, five-year `$6.2M`, and `$26M` expectations are re-recorded from source                | **PASS — unaffected evidence reused**                       |
-| W4  | Contract and option actions                                    | Reuse completed extension/option receipts; PRs #518–#521 have no contract-action diff                                                       | **PASS — unaffected evidence reused**                       |
+| W4  | Contract and option actions                                    | Reuse completed extension/option receipts; PRs #522–#525 have no contract-action diff                                                       | **PASS — unaffected evidence reused**                       |
 | W5  | Another-team free-agent signing                                | Reuse BZE-286 workflow evidence; the existing actual `$3,442,237` cap-space decrease is now anchored before execution to `$4.8M - $1,357,763` instead of an event-derived oracle | **PASS — actual reused; oracle corrected**                  |
 | W6  | Own free-agent re-sign/absolve                                 | Reuse D-MQ-005A and rights receipts; later landings do not touch this path                                                                   | **PASS — unaffected evidence reused**                       |
 | W7  | Offer Sheet create/match/decline                               | Reuse BZE-283 and D-MQ-005B/D/E; the `48h` window is re-recorded from `CBA2-L04.3`                                                           | **PASS — unaffected evidence reused**                       |
 | W8  | Sign-and-trade                                                 | Reuse BZE-290 retained evidence and D-MQ-005C/F; three-season and First-Apron expectations are re-recorded                                  | **PASS — unaffected evidence reused**                       |
-| W9  | Ordinary trades, supported entitlements, cash, draft lifecycle | Fresh full-roster proof: first-round and nonzero-bonus paths visibly fail closed/no-write; supported second-round + `$1.00` cash trade validates, applies, persists both Teams, reloads, and appears in History/Compare | **PASS — fresh integrated diagnostic**                      |
+| W9  | Ordinary trades, supported entitlements, cash, draft lifecycle | Fresh full-roster proof: first-round and nonzero-bonus paths visibly fail closed/no-write; supported second-round + `$1.00` cash trade validates, applies, persists both Teams, transfers the entitlement, re-authenticates Row I for MIA, rejects the foreign DEN copy, reloads, and appears in History/Compare | **PASS — fresh integrated diagnostic**                      |
 | W10 | Draft/Stepien/frozen-pick authority and supported-pick control | Fresh exact-snapshot probe plus browser first-round no-write discriminator; BZE-294/295 remain completed foundations; supported second-round entitlement transfers to DEN | **PASS for supported path and fail-closed exclusion; owner acceptance pending** |
-| W11 | Season Advance and post-advance books/history                  | Reuse BZE-289 exact-head 30-Team evidence and BZE-293 post-advance book evidence; PRs #518–#521 do not change Season Advance                 | **PASS — unaffected evidence reused**                       |
-| W12 | Team History and cross-team agreement                          | Fresh trade proof deep-compares both Team snapshots, persists one shared event/receipt, reloads, and opens its cash receipt in Team History | **PASS — fresh integrated diagnostic**                      |
-| W13 | Compare agreement                                              | Fresh reloaded Compare shows one committed event, two changed Teams, four touched players, Aaron Pike added, Owen Frost removed, and a cap delta | **PASS — fresh integrated diagnostic**                      |
-| W14 | Guide                                                          | Reuse BZE-250 navigation/guidance evidence; PRs #518–#521 do not touch Guide or its inputs                                                   | **PASS — unaffected evidence reused**                       |
-| W15 | Team Plan state                                                | Reuse completed option/signing/Season-Advance Team Plan receipts; fresh reload selects `Trade Receipt Proof` and shows the reconciled full-roster status | **PASS — reused plus fresh identity/status**                |
+| W11 | Season Advance and post-advance books/history                  | Reuse BZE-289 exact-head 30-Team evidence and BZE-293 post-advance book evidence; PRs #522–#525 do not change Season Advance                 | **PASS — unaffected evidence reused**                       |
+| W12 | Team History and cross-team agreement                          | Fresh trade proof deep-compares both Team snapshots, persists one shared event/receipt, reloads, opens its cash receipt in Team History, and proves negative foreign/lineage cases leave persisted bytes uncontaminated | **PASS — fresh integrated diagnostic**                      |
+| W13 | Compare agreement                                              | Fresh reloaded Compare shows one committed event, two changed Teams, four touched players, Aaron Pike added, Owen Frost removed, and a cap delta after the supported Row I read-back remains valid | **PASS — fresh integrated diagnostic**                      |
+| W14 | Guide                                                          | Reuse BZE-250 navigation/guidance evidence; PRs #522–#525 do not touch Guide or its inputs                                                   | **PASS — unaffected evidence reused**                       |
+| W15 | Team Plan state                                                | Reuse completed option/signing/Season-Advance Team Plan receipts; fresh parent/child/grandchild reloads show the active proof-world identity and reconciled hard-cap/full-roster status | **PASS — reused plus fresh identity/status**                |
 
 Evidence standard #4 was met freshly for both Teams in the trade scenario. The
 BZE-252 seeder remains a harness input rather than proof by itself.
@@ -302,13 +354,29 @@ were corrected without changing source authority or product behavior. All
 diagnostic directories were temporary and removed; none is retained or cited
 as exact-head certification.
 
+The post-BZE-298 reconciliation produced two further non-retained attempts:
+
+1. the synchronization merge retained `main`'s `worldCount()` assertions but
+   omitted the adjacent helper definition while combining them with BZE-265's
+   stronger proof-world existence assertions; the browser stopped before any
+   product workflow executed; and
+2. after restoring that landed helper and `main`'s 240-second diagnostic
+   timeout, the complete combined diagnostic passed, one test in 1.9 minutes.
+
+The passing run covered both fail-closed/no-write exclusions, supported
+second-round transfer and `$1.00` cash apply, full-roster books, authenticated
+Row I persistence/reload, History, Compare, the foreign-Team negative, and
+parent/child/grandchild lineage. The first attempt was a reconciliation-only
+harness defect. Both diagnostic directories were deleted and all harness ports
+were confirmed closed; neither run is retained certification.
+
 ## Current closure boundary
 
-BZE-265 and BZE-267 stay In Progress. The objective discriminator and complete
+BZE-265 and BZE-267 stay In Progress. The objective discriminators and complete
 diagnostic are green; the remaining workflow is final evidence review,
 automated-review settlement, exact candidate freeze/push, hosted exact-head CI,
-retained exact-head certification, and immutable prompt publication. BZE-289,
-BZE-294, BZE-295, and BZE-296 are completed foundations, not reopened scope.
+retained exact-head certification, and immutable prompt publication. BZE-289
+and BZE-294 through BZE-298 are completed foundations, not reopened scope.
 The final owner acceptance of the remaining V1/Phase 3B exclusions remains
 pending even if every objective proof gate passes. No owner-facing V1 decision,
 undraft, merge, issue closure, Claude invocation, Phase 3B implementation, or
@@ -376,12 +444,40 @@ Subsequent changes were proof assertions and evidence only; the hook reported
 no new code-graph topology. Per the Phase 3A execution profile, no redundant
 explicit Graphify update was run.
 
+Post-rejection repair-chain resumption:
+
+- live repository, PR #517, Linear BZE-265/BZE-267/BZE-297/BZE-298, repair
+  PRs #522–#525, and both originating resolved-thread records were verified;
+- clean synchronized `main`, `origin/main`, and hosted-main run `33489310101`
+  were verified at exact `b3a039694d1025bce2223331a07d3571cc77fded`;
+- normal two-parent synchronization merge `f69edc02…` has parents
+  `9815809e…` and exact main `b3a03969…`; merge base is exact main;
+- the post-merge diff against main remains the same six legitimate BZE-265
+  closure artifacts and contains no repaired product or completed-child file;
+- pinned accepted-Canon lookups passed for `CBA2-A05.1`, `CBA2-A05.2`,
+  `CBA2-A05.5`, `CBA2-A05.8`, `CBA2-A05.10`, `CBA2-A05.11`, and
+  `CBA2-A08.1` at candidate/fingerprint
+  `6cf8aaf3…` / `23fe883f…`;
+- `npm run test:diff -- --files tests/trade/tradeApronRestrictions.test.ts
+  tests/trade/persistedHardCapContainingTeamAuthority.test.ts
+  tests/architect/mutationPipeline.tradePersistenceTruth.test.ts
+  --reporter=dot`: **PASS**, 3 files / 100 tests, including the former Row I
+  discriminator, containing-Team negatives, persisted mutation round trip,
+  `getTeam()`, `getLeague()`, child/grandchild lineage, status, and final state;
+- exact-snapshot Stepien discriminator at `f69edc02…`: **PASS**; unsupported
+  first round remained `NEEDS_INPUT` with exactly six missing histories, and
+  the supported second round remained `PASS`; temporary snapshot cleaned;
+- complete non-retained browser diagnostic after the one recorded harness-only
+  reconciliation correction: **PASS**, 1 test in 1.9 minutes; temporary output
+  deleted and all required harness ports closed; and
+- Prettier check and `git diff --check`: **PASS**.
+
 No local production build or broad/full suite was repeated: hosted exact-main
-CI already covered the landed product source, later local changes were
-proof/evidence only, and exact-candidate hosted CI remains the freeze gate. No
-unrestricted full-suite alias ran. Retained browser certification and the
-immutable prompt remain intentionally unstarted until the final candidate is
-clean, frozen, pushed, and hosted-green.
+CI `33489310101` already covered the landed product source, later local changes
+were proof/evidence only, and exact-candidate hosted CI remains the freeze gate.
+No unrestricted full-suite alias ran. Retained browser certification and the
+replacement immutable prompt remain intentionally unstarted until the final
+candidate is clean, frozen, pushed, and hosted-green.
 
 Approximate wall clock: 35 minutes for branch/source/receipt reconciliation,
 40 minutes for expectation and proof-harness work, 35 minutes for browser and
@@ -390,8 +486,10 @@ About 20 minutes of the browser time was spent on the cold-start limit and the
 two corrected harness assumptions described above; no retained certification
 or hosted candidate wait occurred.
 
-Resumed-tranche estimate before freeze: about 15 minutes for live-state/branch
-reconstruction and synchronization, 15 minutes for source/evidence
-reconciliation and author checks, and 10 minutes for the three browser/emulator
-diagnostic attempts. Hosted-CI, retained-certification, automated-review wait,
-and prompt-publication time are recorded separately after those gates finish.
+Post-rejection resumption estimate before freeze: about 15 minutes for live
+record reconstruction and synchronization, 15 minutes for conflict/evidence
+reconciliation and author checks, 5 minutes for accepted-authority/source
+tests, and 5 minutes of browser execution plus harness startup/teardown. The
+single pre-workflow harness stop added about 2 minutes. Hosted-CI,
+retained-certification, automated-review wait, and prompt-publication time are
+recorded separately after those gates finish.

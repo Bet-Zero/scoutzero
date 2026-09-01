@@ -372,10 +372,16 @@ test.use({
     sources: true,
   },
 });
-test.setTimeout(210_000);
+test.setTimeout(240_000);
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const worldCount = async () =>
+  getReviewAdminDb()
+    .collection('architect_worlds')
+    .get()
+    .then((snapshot) => snapshot.size);
 
 const proofWorldExists = async () =>
   getReviewAdminDb()
