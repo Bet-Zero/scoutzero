@@ -22,12 +22,26 @@ import { TradeHardCapLedgerZ } from '@/schemas/tradeApronRestriction';
 import { parsePersistedTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 import { SalaryBooksSnapshotZ } from '@/schemas/salaryBooks';
 import { PHASE3A_CLOSURE_EXPECTATIONS } from './fixtures/phase3aClosureExpectations';
+import {
+  buildContractBaselineTeamDocuments,
+  contractBaselineMetadata,
+} from '@/features/architect/utils/contractSource/contractSourceRelease';
+import {
+  RETAINED_AUSTIN_MISSING_EVIDENCE,
+  RETAINED_AUSTIN_PLAYER_ID,
+  RETAINED_AUSTIN_TRADE_KICKER_PERCENT,
+  RETAINED_CONTRACT_RELEASE_PATH,
+  loadRetainedAustinTradeBonusAuthority,
+  type RetainedAustinTradeBonusAuthority,
+} from './fixtures/retainedAustinTradeBonusAuthority';
 
 const CANDIDATE = process.env.SCOUTZERO_PROOF_CANDIDATE ?? '';
 const ARTIFACT_DIR = process.env.SCOUTZERO_BROWSER_PROOF_DIR ?? '';
 const MIA_URL = '/gm/MIA?season=2027';
 const DEN_URL = '/gm/DEN?season=2027';
+const LAL_URL = '/gm/LAL?season=2027';
 const PROOF_WORLD_ID = 'world_trade_receipt_proof';
+const RETAINED_TRADE_BONUS_WORLD_ID = 'world_retained_trade_bonus_proof';
 const PROOF_AS_OF_DATE = '2026-07-07';
 const EMPTY_RELEASE_DIGEST = `sha256:${'3'.repeat(64)}`;
 const ZERO_YOS_MINIMUM =
@@ -290,20 +304,13 @@ const proofContractLedgers = (teamCode: 'MIA' | 'DEN') =>
     ? [
         proofContractLedger('MIA', 'mia_owen_frost', 3_200_000),
         proofContractLedger('MIA', 'mia_eli_navarro', 2_000_000),
-        proofContractLedger(
-          'MIA',
-          'mia_silas_park',
-          2_000_000,
-          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion
-            .retainedTradeKickerPercent / 100
-        ),
       ]
     : [
         proofContractLedger('DEN', 'den_aaron_pike', 3_200_000),
         proofContractLedger('DEN', 'den_reggie_voss', 2_000_000),
       ];
 
-const salaryBookInputs = (teamCode: 'MIA' | 'DEN') => {
+const salaryBookInputs = (teamCode: string) => {
   const line = (
     ledger: 'apron-team-salary' | 'tax-salary',
     leafId: string,
@@ -394,6 +401,103 @@ const resetProofWorld = async () => {
   await db.recursiveDelete(db.doc(`architect_worlds/${PROOF_WORLD_ID}`));
 };
 
+const resetRetainedTradeBonusWorld = async () => {
+  const db = getReviewAdminDb();
+  await db.recursiveDelete(
+    db.doc(`architect_worlds/${RETAINED_TRADE_BONUS_WORLD_ID}`)
+  );
+};
+
+const seedRetainedTradeBonusWorld = async (
+  uid: string,
+  retainedAuthority: RetainedAustinTradeBonusAuthority
+) => {
+  const db = getReviewAdminDb();
+  const now = new Date();
+  const baselineDocuments = buildContractBaselineTeamDocuments(
+    retainedAuthority.release,
+    RETAINED_TRADE_BONUS_WORLD_ID
+  );
+  const baselineMetadata = contractBaselineMetadata(retainedAuthority.release);
+  await db.doc(`architect_worlds/${RETAINED_TRADE_BONUS_WORLD_ID}`).set({
+    worldId: RETAINED_TRADE_BONUS_WORLD_ID,
+    worldName: 'Retained Austin Trade Bonus Proof',
+    description:
+      'Authenticated retained-source Austin Reaves trade-bonus proof world.',
+    createdBy: uid,
+    createdAt: now,
+    lastModifiedAt: now,
+    currentSeason: '2026-27',
+    baselineSeason: '2025-26',
+    asOfDate: PROOF_AS_OF_DATE,
+    parentWorldId: null,
+    isArchived: false,
+    ...baselineMetadata,
+  });
+
+  const batch = db.batch();
+  for (const teamCode of ['LAL', 'DEN'] as const) {
+    const base = await db.doc(`architect_baseTeams/${teamCode}`).get();
+    expect(base.exists).toBe(true);
+    const baseData = base.data() ?? {};
+    const proofRoster =
+      teamCode === 'LAL'
+        ? {
+            players: [retainedAuthority.player],
+            roster: [RETAINED_AUSTIN_PLAYER_ID],
+          }
+        : { players: [], roster: [] };
+    const baseExceptions =
+      baseData.exceptions && typeof baseData.exceptions === 'object'
+        ? baseData.exceptions
+        : {};
+    batch.set(
+      db.doc(
+        `architect_worlds/${RETAINED_TRADE_BONUS_WORLD_ID}/teams/${teamCode}`
+      ),
+      {
+        ...baseData,
+        id: teamCode,
+        teamId: teamCode,
+        teamCode,
+        roster: proofRoster.roster,
+        players: proofRoster.players,
+        entitlementIds: [],
+        capHolds: [],
+        offerSheets: [],
+        salaryBookInputs: salaryBookInputs(teamCode),
+        contractEventLedgers: [],
+        cashLedger: {
+          ledgerVersion: 0,
+          ledgerId: `cash-ledger:${teamCode}`,
+          teamId: teamCode,
+          entries: [],
+        },
+        exceptions: { ...baseExceptions, tpe: [] },
+      }
+    );
+  }
+  for (const document of baselineDocuments) {
+    batch.set(
+      db.doc(
+        `architect_worlds/${RETAINED_TRADE_BONUS_WORLD_ID}/contractBaselines/${document.shardId}`
+      ),
+      document
+    );
+  }
+  await batch.commit();
+  return {
+    documentCount: baselineDocuments.length,
+    ledgerCount: baselineDocuments.reduce(
+      (count, document) => count + document.ledgers.length,
+      0
+    ),
+    austinTeamDocumentCount: baselineDocuments.filter(
+      (document) => document.teamId === 'LAL'
+    ).length,
+  };
+};
+
 const seedProofWorld = async (uid: string) => {
   const db = getReviewAdminDb();
   const now = new Date();
@@ -454,10 +558,7 @@ const seedProofWorld = async (uid: string) => {
         teamId: teamCode,
         entries: [],
       },
-      exceptions: {
-        ...baseExceptions,
-        tpe: [proofTpe(teamCode)],
-      },
+      exceptions: { ...baseExceptions, tpe: [proofTpe(teamCode)] },
     });
   }
   batch.set(
@@ -499,7 +600,7 @@ const seedProofWorld = async (uid: string) => {
   await batch.commit();
 };
 
-const prepareProofWorld = async (page: Page) => {
+const prepareReviewUser = async (page: Page) => {
   await page.goto(MIA_URL, { waitUntil: 'domcontentloaded' });
   await expect
     .poll(() => readReviewUserId(page), {
@@ -507,7 +608,11 @@ const prepareProofWorld = async (page: Page) => {
       message: 'review-mode anonymous authentication should become available',
     })
     .not.toBe('');
-  const uid = await readReviewUserId(page);
+  return readReviewUserId(page);
+};
+
+const prepareProofWorld = async (page: Page) => {
+  const uid = await prepareReviewUser(page);
   await seedProofWorld(uid);
   await page.evaluate(
     ({ storageKey, worldId }) => {
@@ -601,8 +706,12 @@ const fillPostAssignmentApronSalary = async (
   return salary;
 };
 
-const openTradeMachine = async (page: Page) => {
-  await page.goto(MIA_URL, { waitUntil: 'domcontentloaded' });
+const openTradeMachine = async (
+  page: Page,
+  route = MIA_URL,
+  worldName = 'Trade Receipt Proof'
+) => {
+  await page.goto(route, { waitUntil: 'domcontentloaded' });
   const loadingDashboard = page.getByText(/^Loading GM Dashboard/i);
   const noTeamData = page.getByText(/^No team data$/i);
   const dashboardHeading = page.getByRole('heading', {
@@ -623,14 +732,14 @@ const openTradeMachine = async (page: Page) => {
       {
         timeout: 90_000,
         message:
-          'MIA review dashboard should finish emulator authentication and fixture loading',
+          'review dashboard should finish emulator authentication and fixture loading',
       }
     )
     .toMatchObject({ isReady: true });
   await expect(noTeamData).toHaveCount(0);
-  await expect(
-    page.getByText('Trade Receipt Proof', { exact: true }).first()
-  ).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByText(worldName, { exact: true }).first()).toBeVisible({
+    timeout: 90_000,
+  });
   await expect
     .poll(
       async () =>
@@ -872,15 +981,153 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   expect(CANDIDATE).toMatch(/^[0-9a-f]{40}$/);
   expect(ARTIFACT_DIR).not.toBe('');
   fs.mkdirSync(ARTIFACT_DIR, { recursive: true });
+  const retainedAuthority = await loadRetainedAustinTradeBonusAuthority();
+  expect(retainedAuthority.artifactSha256).toBe(
+    'sha256:23304518f145babfe19ab5341fc60449f39bbfa2b06ad3ce15ef3b3159b91389'
+  );
+  expect(retainedAuthority.release).toMatchObject({
+    releaseId: 'salaryswish-retained-2026-06-05',
+    releaseVersion: 1,
+    releaseDigest:
+      'sha256:46db3137308ff1c05e0066edf09ef08d45b92353bea7a2bcec93fd408adf5950',
+  });
+  expect(retainedAuthority.tradeKickerPercent).toBe(
+    RETAINED_AUSTIN_TRADE_KICKER_PERCENT
+  );
+  expect(retainedAuthority.missingEvidence).toBe(
+    RETAINED_AUSTIN_MISSING_EVIDENCE
+  );
 
   await page.addInitScript(() => {
     window.localStorage.setItem('hz.dev.tradeMachineDebug', 'true');
   });
 
   await resetProofWorld();
+  await resetRetainedTradeBonusWorld();
   expect(await proofWorldExists()).toBe(false);
   expect(await worldCount()).toBe(0);
+  const authenticatedUid = await prepareReviewUser(page);
+  const retainedBaseline = await seedRetainedTradeBonusWorld(
+    authenticatedUid,
+    retainedAuthority
+  );
+  await activateProofWorld(
+    page,
+    authenticatedUid,
+    RETAINED_TRADE_BONUS_WORLD_ID
+  );
+  expect(await worldCount()).toBe(1);
+  const retainedDialog = await openTradeMachine(
+    page,
+    LAL_URL,
+    'Retained Austin Trade Bonus Proof'
+  );
+  await expect(
+    retainedDialog.getByRole('button', { name: /Los Angeles Lakers/i })
+  ).toBeVisible({ timeout: 30_000 });
+  const retainedTeamPicker = retainedDialog
+    .locator('label', { hasText: /^Select Team$/i })
+    .locator('xpath=following-sibling::select[1]');
+  if ((await retainedTeamPicker.count()) === 0) {
+    await retainedDialog.getByRole('button', { name: /^Add Team$/i }).click();
+  }
+  await retainedDialog
+    .locator('label', { hasText: /^Select Team$/i })
+    .locator('xpath=following-sibling::select[1]')
+    .first()
+    .selectOption('nuggets');
+  const retainedLakersCard = teamCard(retainedDialog, 'LAL');
+  const retainedDenverCard = teamCard(retainedDialog, 'DEN');
+  await electSalaryPath(retainedLakersCard, 'STANDARD_TPE');
+  await electSalaryPath(retainedDenverCard, 'STANDARD_TPE');
+  await fillPostAssignmentApronSalary(retainedLakersCard);
+  await fillPostAssignmentApronSalary(retainedDenverCard);
+  const bonusAuthorityBefore = {
+    teams: await Promise.all(
+      ['LAL', 'DEN'].map((teamCode) =>
+        getReviewAdminDb()
+          .doc(
+            `architect_worlds/${RETAINED_TRADE_BONUS_WORLD_ID}/teams/${teamCode}`
+          )
+          .get()
+          .then((snapshot) => snapshot.data())
+      )
+    ),
+    events: await getWorldEventDocuments(RETAINED_TRADE_BONUS_WORLD_ID),
+  };
+  const retainedAustinDisplayName = String(
+    retainedAuthority.player.displayName
+  );
+  await routePlayer(
+    retainedDialog,
+    page,
+    'LAL',
+    retainedAustinDisplayName,
+    'Denver Nuggets'
+  );
+  await retainedDialog
+    .getByRole('button', { name: /^Validate Trade$/i })
+    .click();
+  const retainedReadiness = retainedDialog.getByTestId(
+    'trade-readiness-summary'
+  );
+  await expect(retainedReadiness).toContainText('Needs input', {
+    timeout: 20_000,
+  });
+  const retainedTradeBonusReason =
+    'This Contract has a trade bonus whose allocation is outside this governed tranche.';
+  await expect(retainedReadiness).toContainText(retainedTradeBonusReason);
+  await expect(retainedReadiness).not.toContainText('Not validated');
+  const retainedApplyTradeButton = retainedDialog.getByRole('button', {
+    name: /^Apply Trade$/i,
+  });
+  const retainedTradeSummaryButton = retainedDialog.getByTestId(
+    'trade-summary-button'
+  );
+  await expect(retainedApplyTradeButton).toBeDisabled();
+  await expect(retainedTradeSummaryButton).toBeDisabled();
+  const retainedTradeBonusReadinessText = (
+    await retainedReadiness.innerText()
+  ).trim();
+  const retainedTradeBonusUiVerdict =
+    retainedTradeBonusReadinessText.match(/needs input/i)?.[0] ?? '';
+  expect(retainedTradeBonusUiVerdict.toLowerCase()).toBe('needs input');
+  expect(retainedTradeBonusReadinessText).toContain(retainedTradeBonusReason);
+  const retainedTradeBonusUiReason = retainedTradeBonusReason;
+  const retainedTradeBonusApplyBlocked =
+    await retainedApplyTradeButton.isDisabled();
+  const retainedTradeBonusSummaryBlocked =
+    await retainedTradeSummaryButton.isDisabled();
+  const tradeBonusNeedsInputScreenshotPath = path.join(
+    ARTIFACT_DIR,
+    'trade-bonus-needs-input-1280x720.png'
+  );
+  await retainedReadiness.scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: tradeBonusNeedsInputScreenshotPath,
+    fullPage: false,
+  });
+  const bonusTeamsAfter = await Promise.all(
+    ['LAL', 'DEN'].map((teamCode) =>
+      getReviewAdminDb()
+        .doc(
+          `architect_worlds/${RETAINED_TRADE_BONUS_WORLD_ID}/teams/${teamCode}`
+        )
+        .get()
+        .then((snapshot) => snapshot.data())
+    )
+  );
+  const bonusEventsAfter = await getWorldEventDocuments(
+    RETAINED_TRADE_BONUS_WORLD_ID
+  );
+  expect(bonusTeamsAfter).toEqual(bonusAuthorityBefore.teams);
+  expect(bonusEventsAfter).toEqual(bonusAuthorityBefore.events);
+  await cancelPlayerTrade(retainedDialog, 'LAL', retainedAustinDisplayName);
+  await resetRetainedTradeBonusWorld();
+  expect(await worldCount()).toBe(0);
+
   const uid = await prepareProofWorld(page);
+  expect(uid).toBe(authenticatedUid);
   expect(await proofWorldExists()).toBe(true);
   expect(await worldCount()).toBe(1);
   const dialog = await openTradeMachine(page);
@@ -951,48 +1198,6 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   );
 
   await cancelEntitlementTrade(miamiCard, page, 2027, 1);
-
-  const bonusAuthorityBefore = {
-    teams: await Promise.all(
-      proofTeamRefs.map((ref) => ref.get().then((snapshot) => snapshot.data()))
-    ),
-    events: await getWorldEventDocuments(PROOF_WORLD_ID),
-  };
-  await routePlayer(dialog, page, 'MIA', 'Silas Park', 'Denver Nuggets');
-  await miamiCard
-    .getByLabel('Silas Park exact pre-trade Salary')
-    .fill('2000000');
-  await fillPostAssignmentApronSalary(miamiCard);
-  await fillPostAssignmentApronSalary(denverCard);
-  await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
-  await expect(readiness).toContainText(
-    PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.expectedStatus,
-    { timeout: 20_000 }
-  );
-  await expect(readiness).toContainText(/trade bonus/i);
-  await expect(readiness).not.toContainText('Not validated');
-  await expect(
-    dialog.getByRole('button', { name: /^Apply Trade$/i })
-  ).toBeDisabled();
-  await expect(dialog.getByTestId('trade-summary-button')).toBeDisabled();
-  const tradeBonusNeedsInputScreenshotPath = path.join(
-    ARTIFACT_DIR,
-    'trade-bonus-needs-input-1280x720.png'
-  );
-  await readiness.scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: tradeBonusNeedsInputScreenshotPath,
-    fullPage: false,
-  });
-  expect(
-    await Promise.all(
-      proofTeamRefs.map((ref) => ref.get().then((snapshot) => snapshot.data()))
-    )
-  ).toEqual(bonusAuthorityBefore.teams);
-  expect(await getWorldEventDocuments(PROOF_WORLD_ID)).toEqual(
-    bonusAuthorityBefore.events
-  );
-  await cancelPlayerTrade(dialog, 'MIA', 'Silas Park');
 
   await electSalaryPath(miamiCard, 'AGGREGATED_STANDARD_TPE');
   await electSalaryPath(denverCard, 'AGGREGATED_STANDARD_TPE');
@@ -1662,25 +1867,39 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
         savedWorldEventChanges: 0,
       },
       tradeBonusAuthorityBoundary: {
-        retainedRelease:
-          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.releaseId,
-        retainedReleaseVersion:
-          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.releaseVersion,
-        retainedReleaseDigest:
-          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.releaseDigest,
-        retainedTradeKickerPercent:
-          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion
-            .retainedTradeKickerPercent,
-        governedContractTradeKickerRate:
-          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion
-            .retainedTradeKickerPercent / 100,
-        missingEvidence:
-          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.missingEvidenceTag,
-        verdict:
-          PHASE3A_CLOSURE_EXPECTATIONS.tradeBonusExclusion.expectedStatus,
-        applyBlocked: true,
-        savedWorldTeamChanges: 0,
-        savedWorldEventChanges: 0,
+        artifact: {
+          path: path.relative(process.cwd(), RETAINED_CONTRACT_RELEASE_PATH),
+          sha256: retainedAuthority.artifactSha256,
+        },
+        release: {
+          releaseId: retainedAuthority.release.releaseId,
+          releaseVersion: retainedAuthority.release.releaseVersion,
+          releaseDigest: retainedAuthority.release.releaseDigest,
+        },
+        baseline: retainedBaseline,
+        contractIdentity: retainedAuthority.contractIdentity,
+        retainedDisplayName: retainedAustinDisplayName,
+        derivedTradeKickerPercent: retainedAuthority.tradeKickerPercent,
+        derivedMissingEvidence: retainedAuthority.missingEvidence,
+        ui: {
+          verdict: retainedTradeBonusUiVerdict,
+          reason: retainedTradeBonusUiReason,
+          readinessText: retainedTradeBonusReadinessText,
+          tradeSummaryBlocked: retainedTradeBonusSummaryBlocked,
+          applyBlocked: retainedTradeBonusApplyBlocked,
+        },
+        noWrite: {
+          teamChanges:
+            JSON.stringify(bonusTeamsAfter) ===
+            JSON.stringify(bonusAuthorityBefore.teams)
+              ? 0
+              : 1,
+          eventChanges:
+            JSON.stringify(bonusEventsAfter) ===
+            JSON.stringify(bonusAuthorityBefore.events)
+              ? 0
+              : 1,
+        },
       },
       savedWorldApply: {
         readiness: 'Ready to apply',

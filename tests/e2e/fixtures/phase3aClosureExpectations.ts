@@ -81,14 +81,4 @@ export const PHASE3A_CLOSURE_EXPECTATIONS = Object.freeze({
       passed: true,
     },
   },
-  tradeBonusExclusion: {
-    releaseId: 'salaryswish-retained-2026-06-05',
-    releaseVersion: 1,
-    releaseDigest:
-      'sha256:46db3137308ff1c05e0066edf09ef08d45b92353bea7a2bcec93fd408adf5950',
-    retainedPlayerId: 'austin_reaves',
-    retainedTradeKickerPercent: 15,
-    missingEvidenceTag: 'missing-bonus-allocation',
-    expectedStatus: 'Needs input',
-  },
 });

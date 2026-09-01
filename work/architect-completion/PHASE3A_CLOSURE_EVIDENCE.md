@@ -73,10 +73,14 @@ calculation.
 
 ## Source-derived expectations recorded before browser execution
 
-The executable oracle is
-`tests/e2e/fixtures/phase3aClosureExpectations.ts`. It was recorded before the
-current browser diagnostic. These values were taken only from the pinned
-accepted Canon or the named retained governed records:
+The numeric and accepted-Canon oracle is
+`tests/e2e/fixtures/phase3aClosureExpectations.ts`. The retained trade-bonus
+oracle is independently derived by
+`tests/e2e/fixtures/retainedAustinTradeBonusAuthority.ts` from authenticated
+artifact bytes and the governed release schema; it does not copy the release,
+Austin, kicker, or limitation values from the numeric fixture. Both boundaries
+are evaluated before browser execution and use only the pinned accepted Canon
+or named retained governed records:
 
 | Boundary                | Pre-execution expectation                                                                                                                                                                                                                                                                                              | Source identity                                                          |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
@@ -94,11 +98,18 @@ accepted Canon or the named retained governed records:
 | Supported pick control  | clean second-round ownership path remains `PASS`, evaluated, true                                                                                                                                                                                                                                                      | accepted Canon boundary plus current-main discriminator                  |
 | Trade-bonus exclusion   | retained Austin Reaves `15%` kicker with `missing-bonus-allocation` means visible `Needs input`, Apply disabled, no write                                                                                                                                                                                              | `salaryswish-retained-2026-06-05@v1`, digest below                       |
 
-The nonzero-bonus expectation remains independently anchored to retained
+The nonzero-bonus expectation is independently anchored to the exact bundled
+artifact
+`public/architect/contract-source-releases/salaryswish-retained-2026-06-05-v1.json`,
+whose trusted raw SHA-256 is
+`sha256:23304518f145babfe19ab5341fc60449f39bbfa2b06ad3ce15ef3b3159b91389`.
+After raw-byte authentication, the governed schema/rebuild verifier pins
 release `salaryswish-retained-2026-06-05@v1`, digest
 `sha256:46db3137308ff1c05e0066edf09ef08d45b92353bea7a2bcec93fd408adf5950`.
-Its Austin Reaves record retains a 15% kicker but identifies
-`terms.bonuses` as `missing-bonus-allocation`; no bonus amount may be invented.
+Exactly one governed `austin_reaves` record then supplies Contract
+`salaryswish:austin-reaves:july-6-2023:2023-24:2026-27:veteran-contract`, a
+15% kicker, and `terms.bonuses` limitation `missing-bonus-allocation`; no bonus
+amount may be invented.
 
 The Row I expectation is not derived from the repaired application output.
 Pinned accepted-Canon lookups at the required base verified the exact candidate
@@ -216,12 +227,51 @@ BZE-296 / PR #521 landed the separate repair on current main. It preserves a
 completed exact-draft top-level preview authority with an explicit legal
 verdict even when `teamResults` is empty, while rejecting missing, malformed,
 failed-construction, cleared, or stale authority. A current `legal: false`
-result remains unable to preview, export a Trade Summary, Apply, or write. The
-complete BZE-265 diagnostic verified the retained 15% source record is
-presented as visible `Needs input` with the trade-bonus reason, disabled Apply,
-disabled Trade Summary, and zero Team/event writes before supported controls
-continue. The top-level fail-closed result remained visible with empty
-`teamResults`; it did not revert to `Not validated`.
+result remains unable to preview, export a Trade Summary, Apply, or write.
+
+## P1 retained-source evidence-integrity repair
+
+PR thread `discussion_r3904692817` established that candidate `de91251e…`
+copied Austin's 15% value into a synthetic Silas Park overlay and labeled an
+overlay-only proof world as retained-source evidence. Its passing UI result did
+not authenticate, seed, or exercise the bundled Austin record and therefore
+could also pass if that artifact or identity disappeared. This is a blocking
+BZE-265 evidence-integrity defect, not a product defect or implementation
+tranche. The raw Claude ACCEPT remains exact historical review of
+`de91251e…`, but the candidate and its retained certification cannot authorize
+landing after this finding.
+
+The replacement proof now fails setup unless it can:
+
+- read the exact bundled bytes and match the trusted raw SHA-256;
+- pass the strict governed release schema, observation hashes, logical digest,
+  normalized-record rebuild, and exact release pin;
+- resolve exactly one Austin record and authenticated observation through the
+  governed player, Team, Contract, source-observation, and state identities;
+- derive and assert the 15% kicker and `missing-bonus-allocation` limitation
+  from that record and evidence catalog; and
+- build the world baseline with the production baseline builder, seed Austin
+  unchanged on LAL, exercise that retained world through the product Trade
+  Machine, and tear it down before the unaffected Row I integration world.
+
+Permanent discriminators mutate missing/corrupt bytes, the raw hash, schema,
+release pin, Austin cardinality, kicker, and limitation receipt. Each must stop
+proof setup. The browser receipt records the observed raw hash, logical release
+pin, Austin Contract/source/state identity, derived kicker and limitation,
+rendered verdict/reason, disabled controls, and zero Team/event changes. The
+earlier diagnostic and certification are explicitly invalidated for this
+boundary; replacement results are recorded only after the complete diagnostic
+and exact-head certification pass.
+
+The complete replacement diagnostic passed as one focused Chromium test in
+3.7 minutes under the existing four-minute cap. The retained world loaded 774
+production-built baseline ledgers, routed authenticated `austin_reaves` from
+LAL, rendered exact `NEEDS INPUT` plus the trade-bonus allocation reason,
+disabled Trade Summary and Apply, and left both Team documents and the world
+event collection unchanged. It was then deleted before the existing MIA/DEN
+workflow proved the supported trade, Row I, persistence/reload, History,
+Compare, foreign-Team, child, and grandchild assertions unchanged. Temporary
+diagnostic output was deleted on shell exit; it is not certification evidence.
 
 ## Preserved Claude rejection and Row I repair chain
 
