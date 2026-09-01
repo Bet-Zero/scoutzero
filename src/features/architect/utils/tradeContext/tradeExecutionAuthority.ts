@@ -41,6 +41,8 @@
  */
 
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
 import {
   extractTeamsByCodeFromComputeResult,
   buildTotalsByTeam,
@@ -58,10 +60,7 @@ import {
 } from '@/features/architect/utils/leagueInvariants';
 import { validatePostStateCapLegality } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import { assertValidatedTradeContext } from './assertions';
-import type {
-  ValidatedTradeContext,
-  ValidationIssue,
-} from './types';
+import type { ValidatedTradeContext, ValidationIssue } from './types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -185,6 +184,7 @@ export interface TradePostStateLegalityStageInput {
   operationId: string;
   mutationType: string;
   worldId: string;
+  worldLineage: readonly string[];
   year: number;
   asOfDate?: string | null;
   beforeTeamsByCode: MutationTeamMap;
@@ -203,6 +203,7 @@ interface TradePostStateLegalityFromComputeResultInput {
   operationId: string;
   mutationType: string;
   worldId: string;
+  worldLineage: readonly string[];
   seasonId: string;
   asOfDate?: string | null;
   timestamp: number;
@@ -213,7 +214,10 @@ interface TradePostStateLegalityFromComputeResultInput {
 function buildTradeSnapshotValidationStageWarnings({
   asOfDate,
   dateDefaulted,
-}: Pick<TradeSnapshotValidationStageInput, 'asOfDate' | 'dateDefaulted'>): unknown[] {
+}: Pick<
+  TradeSnapshotValidationStageInput,
+  'asOfDate' | 'dateDefaulted'
+>): unknown[] {
   if (!dateDefaulted) {
     return [];
   }
@@ -270,14 +274,12 @@ function normalizeValidationIssue(
   return {
     message,
     code,
-    rule:
-      (typeof record?.rule === 'string' && record.rule.trim()
-        ? record.rule
-        : fallbackRule) as ValidationIssue['rule'],
-    severity:
-      (record?.severity === 'warning' || record?.severity === 'error'
-        ? record.severity
-        : severity) as ValidationIssue['severity'],
+    rule: (typeof record?.rule === 'string' && record.rule.trim()
+      ? record.rule
+      : fallbackRule) as ValidationIssue['rule'],
+    severity: (record?.severity === 'warning' || record?.severity === 'error'
+      ? record.severity
+      : severity) as ValidationIssue['severity'],
   };
 }
 
@@ -316,10 +318,7 @@ export function evaluateTradeSnapshotValidationStage({
     violations: (validatedTradeContext.violations || []).map((violation) =>
       typeof violation === 'string' ? violation : JSON.stringify(violation)
     ),
-    warnings: [
-      ...(validatedTradeContext.warnings || []),
-      ...stageWarnings,
-    ],
+    warnings: [...(validatedTradeContext.warnings || []), ...stageWarnings],
   };
 }
 
@@ -340,6 +339,7 @@ export function runTradePostStateLegalityStage({
   operationId,
   mutationType,
   worldId,
+  worldLineage,
   year,
   asOfDate,
   beforeTeamsByCode,
@@ -359,11 +359,13 @@ export function runTradePostStateLegalityStage({
   if (Object.keys(afterTotalsByTeam).length === 0) {
     return {
       valid: false,
-      error: 'Post-state validator requires afterTotalsByTeam for at least one affected team',
+      error:
+        'Post-state validator requires afterTotalsByTeam for at least one affected team',
       violations: [
         {
           rule: 'POST_STATE_TOTALS_UNAVAILABLE',
-          message: 'Unable to build afterTotalsByTeam from computeResult.teamUpdates',
+          message:
+            'Unable to build afterTotalsByTeam from computeResult.teamUpdates',
           severity: 'error',
         } as LooseRecord,
       ],
@@ -384,6 +386,7 @@ export function runTradePostStateLegalityStage({
     operationId,
     mutationType,
     worldId,
+    worldLineage,
     year,
     beforeTeamsByCode,
     afterTeamsByCode,
@@ -404,8 +407,10 @@ export function runTradePostStateLegalityStage({
       beforeTotalsByTeam,
       afterTotalsByTeam,
       postStateValid: postStateValidation.valid,
-      postStateViolations: postStateValidation.violations as MutationResultIssueLike[],
-      postStateWarnings: postStateValidation.warnings as MutationResultIssueLike[],
+      postStateViolations:
+        postStateValidation.violations as MutationResultIssueLike[],
+      postStateWarnings:
+        postStateValidation.warnings as MutationResultIssueLike[],
     },
   };
 }
@@ -414,6 +419,7 @@ function runTradePostStateLegalityStageFromComputeResult({
   operationId,
   mutationType,
   worldId,
+  worldLineage,
   seasonId,
   asOfDate,
   timestamp,
@@ -423,13 +429,15 @@ function runTradePostStateLegalityStageFromComputeResult({
   const year = toEndYear(seasonId) ?? new Date(timestamp).getFullYear();
   const afterTeamsByCode = extractTeamsByCodeFromComputeResult(
     computeResult,
-    worldId
+    worldId,
+    worldLineage
   );
 
   return runTradePostStateLegalityStage({
     operationId,
     mutationType,
     worldId,
+    worldLineage,
     year,
     asOfDate,
     beforeTeamsByCode,
@@ -492,10 +500,21 @@ export function validateTradePreviewAuthority({
   }
 
   const year = toEndYear(seasonId) ?? new Date().getFullYear();
+  const previewWorldLineage = (
+    validatedTradeContext._rawValidation as
+      | { context?: { worldLineage?: unknown } }
+      | null
+      | undefined
+  )?.context?.worldLineage;
   const postStateStage = runTradePostStateLegalityStage({
     operationId,
     mutationType,
     worldId: worldId ?? 'preview-world',
+    worldLineage: Array.isArray(previewWorldLineage)
+      ? previewWorldLineage.filter(
+          (candidate): candidate is string => typeof candidate === 'string'
+        )
+      : [],
     year,
     asOfDate,
     beforeTeamsByCode,
@@ -558,9 +577,16 @@ function buildFailure(
   error: string,
   violations: MutationResultIssueLike[],
   warnings: MutationResultIssueLike[],
-  auditArtifacts: TradeExecutionAuditArtifacts = EMPTY_AUDIT_ARTIFACTS,
+  auditArtifacts: TradeExecutionAuditArtifacts = EMPTY_AUDIT_ARTIFACTS
 ): TradeExecutionAuthorityResult {
-  return { valid: false, failedStage, error, violations, warnings, auditArtifacts };
+  return {
+    valid: false,
+    failedStage,
+    error,
+    violations,
+    warnings,
+    auditArtifacts,
+  };
 }
 
 /**
@@ -586,7 +612,7 @@ async function validateTradeWorldStateAuthorityGates({
     worldId,
     mutationType,
     payload,
-    computeResult,
+    computeResult
   );
 
   if (!leagueInvariantResult.valid) {
@@ -594,28 +620,39 @@ async function validateTradeWorldStateAuthorityGates({
       'LEAGUE_INVARIANTS',
       leagueInvariantResult.error || 'League invariant violation',
       leagueInvariantResult.duplicates
-        ? [{ rule: 'LEAGUE_DUPLICATE_PLAYER', details: leagueInvariantResult.duplicates } as LooseRecord]
+        ? [
+            {
+              rule: 'LEAGUE_DUPLICATE_PLAYER',
+              details: leagueInvariantResult.duplicates,
+            } as LooseRecord,
+          ]
         : [],
-      [],
+      []
     );
   }
 
   // STAGE 3: ENTITLEMENT_INVARIANTS
   // Prevents entitlements from appearing on multiple teams after the trade.
-  const entitlementInvariantResult = await validateMutationEntitlementInvariants(
-    worldId,
-    mutationType,
-    computeResult,
-  );
+  const entitlementInvariantResult =
+    await validateMutationEntitlementInvariants(
+      worldId,
+      mutationType,
+      computeResult
+    );
 
   if (!entitlementInvariantResult.valid) {
     return buildFailure(
       'ENTITLEMENT_INVARIANTS',
       entitlementInvariantResult.error || 'Entitlement invariant violation',
       entitlementInvariantResult.duplicates
-        ? [{ rule: 'LEAGUE_DUPLICATE_ENTITLEMENT', details: entitlementInvariantResult.duplicates } as LooseRecord]
+        ? [
+            {
+              rule: 'LEAGUE_DUPLICATE_ENTITLEMENT',
+              details: entitlementInvariantResult.duplicates,
+            } as LooseRecord,
+          ]
         : [],
-      [],
+      []
     );
   }
 
@@ -624,20 +661,24 @@ async function validateTradeWorldStateAuthorityGates({
   const exclusivityResult = await validateTradeApplyExclusivity(
     worldId,
     mutationType,
-    computeResult,
+    computeResult
   );
 
   if (!exclusivityResult.valid) {
     return buildFailure(
       'ENTITLEMENT_EXCLUSIVITY',
-      exclusivityResult.error || 'Trade would create exclusivity-violating entitlement set',
+      exclusivityResult.error ||
+        'Trade would create exclusivity-violating entitlement set',
       exclusivityResult.teamViolations
-        ? exclusivityResult.teamViolations.map((tv) => ({
-            rule: 'ENTITLEMENT_EXCLUSIVITY_VIOLATION',
-            details: tv,
-          } as LooseRecord))
+        ? exclusivityResult.teamViolations.map(
+            (tv) =>
+              ({
+                rule: 'ENTITLEMENT_EXCLUSIVITY_VIOLATION',
+                details: tv,
+              }) as LooseRecord
+          )
         : [],
-      [],
+      []
     );
   }
 
@@ -658,7 +699,7 @@ async function validateTradeWorldStateAuthorityGates({
  * the behavior of the original inline chain in applyWorldMutation.
  */
 export async function validateTradeExecutionAuthority(
-  input: TradeExecutionAuthorityInput,
+  input: TradeExecutionAuthorityInput
 ): Promise<TradeExecutionAuthorityResult> {
   const {
     worldId,
@@ -673,6 +714,10 @@ export async function validateTradeExecutionAuthority(
     timestamp,
     beforeTeamsByCode,
   } = input;
+  const worldLineage = await resolveWorldLineageIdsFromMetadata(
+    worldId,
+    getWorldMetadata
+  );
 
   // =========================================================================
   // STAGE 1: SNAPSHOT_VALIDATION
@@ -690,18 +735,20 @@ export async function validateTradeExecutionAuthority(
       'SNAPSHOT_VALIDATION',
       validationResult.error || 'Validation failed',
       (validationResult.violations || []) as MutationResultIssueLike[],
-      (validationResult.warnings || []) as MutationResultIssueLike[],
+      (validationResult.warnings || []) as MutationResultIssueLike[]
     );
   }
 
-  const stage1Warnings = (validationResult.warnings || []) as MutationResultIssueLike[];
+  const stage1Warnings = (validationResult.warnings ||
+    []) as MutationResultIssueLike[];
 
-  const worldStateAuthorityFailure = await validateTradeWorldStateAuthorityGates({
-    worldId,
-    mutationType,
-    payload,
-    computeResult,
-  });
+  const worldStateAuthorityFailure =
+    await validateTradeWorldStateAuthorityGates({
+      worldId,
+      mutationType,
+      payload,
+      computeResult,
+    });
 
   if (worldStateAuthorityFailure) {
     return worldStateAuthorityFailure;
@@ -719,6 +766,7 @@ export async function validateTradeExecutionAuthority(
     operationId,
     mutationType,
     worldId,
+    worldLineage,
     seasonId,
     asOfDate,
     timestamp,
@@ -737,7 +785,7 @@ export async function validateTradeExecutionAuthority(
       postStateStage.error || 'Post-state cap validation failed',
       postStateStage.violations,
       combinedWarnings,
-      postStateStage.auditArtifacts,
+      postStateStage.auditArtifacts
     );
   }
 

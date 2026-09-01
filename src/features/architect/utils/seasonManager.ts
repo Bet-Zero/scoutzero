@@ -37,7 +37,11 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { getLeague } from '@/features/architect/utils/teamLoader';
-import { getDraftPositionsMap } from '@/features/architect/utils/worldManager';
+import {
+  getDraftPositionsMap,
+  getWorldMetadata,
+} from '@/features/architect/utils/worldManager';
+import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
 import {
   worldTeamRef,
   worldTeamsCol,
@@ -416,12 +420,17 @@ export async function advanceSeasonInWorld(
         input.amount,
       ])
     );
+    const worldLineage = await resolveWorldLineageIdsFromMetadata(
+      worldId,
+      getWorldMetadata
+    );
     // Season advance intentionally reuses the shared post-state final-artifact
     // validator after all 30 governed team and book snapshots are prepared.
     const postStateValidation = validatePostStateCapLegality({
       operationId,
       mutationType: SEASON_ADVANCE_MUTATION_TYPE,
       worldId,
+      worldLineage,
       year: toYear,
       toYear,
       beforeTeamsByCode,

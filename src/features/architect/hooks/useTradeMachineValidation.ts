@@ -37,6 +37,7 @@ export type UseTradeMachineValidationParams = {
   capProjections: UnknownRecord | null | undefined;
   yearKey: number;
   worldId: string | null;
+  worldLineage?: readonly string[];
   worldAsOfDate: string | null;
   forceTrade: boolean;
   currentDraftKey: string;
@@ -63,6 +64,7 @@ export function useTradeMachineValidation({
   capProjections,
   yearKey,
   worldId,
+  worldLineage = [],
   worldAsOfDate,
   forceTrade,
   currentDraftKey,
@@ -177,10 +179,11 @@ export function useTradeMachineValidation({
           currentState,
           seasonId,
           timestamp: Date.now(),
+          trustedWorldLineage: worldLineage,
         }),
       };
     },
-    [teams, capProjections, yearKey, worldId, worldAsOfDate]
+    [teams, capProjections, yearKey, worldId, worldLineage, worldAsOfDate]
   );
 
   // Core validation compute. Runs the (synchronous) validation for a prepared

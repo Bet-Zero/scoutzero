@@ -23,6 +23,7 @@ type ForwardedTradeEditorProps = Pick<
   | 'primaryTeamData'
   | 'onEditContract'
   | 'worldId'
+  | 'worldLineage'
   | 'worldAsOfDate'
   | 'userId'
   | 'onDraftActivityChange'
@@ -45,6 +46,7 @@ const TradeSection = ({
   primaryTeamData,
   onEditContract,
   worldId = null, // World ID for world-aware team loading
+  worldLineage = [],
   worldAsOfDate = null,
   userId = null,
   onDraftActivityChange = null,
@@ -64,6 +66,7 @@ const TradeSection = ({
     primaryTeamData,
     onEditContract,
     worldId,
+    worldLineage,
     worldAsOfDate,
     userId,
     onDraftActivityChange,

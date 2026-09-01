@@ -101,13 +101,13 @@ export type HydratedBaseTeamCapSheet = {
 export const hydrateBaseTeam = async (
   teamCode: string,
   baseDoc: LooseBaseTeamDoc,
-  authorityContext: { worldId?: string | null } = {}
+  authorityContext: { worldLineage?: readonly string[] } = {}
 ): Promise<HydratedBaseTeamCapSheet> => {
   const boundaryBaseDoc = readLooseBaseTeamDoc(
     baseDoc,
     teamCode,
     `hydrateBaseTeam(${teamCode})`,
-    authorityContext.worldId ?? null
+    authorityContext.worldLineage ?? []
   );
   const normalizedBaseDoc = normalizeTeamExceptionOwnership(
     normalizeTeamTpeSchema(boundaryBaseDoc)
@@ -273,7 +273,8 @@ export const getAllTeams = async () => {
         return {
           id: meta?.id || code.toLowerCase(),
           code,
-          name: meta?.teamName || readArchitectString(teamData.teamName) || code,
+          name:
+            meta?.teamName || readArchitectString(teamData.teamName) || code,
           conference: meta?.conference || null,
         };
       });
@@ -296,7 +297,8 @@ export const saveFreeAgents = async (agents: LooseFreeAgent[]) => {
   try {
     const batch = writeBatch(db);
     agents.forEach((agent) => {
-      const agentId = readArchitectString(agent.id) ?? readArchitectString(agent.name);
+      const agentId =
+        readArchitectString(agent.id) ?? readArchitectString(agent.name);
       if (!agentId) {
         throw new Error('Free agent id or name is required');
       }

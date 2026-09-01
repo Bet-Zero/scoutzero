@@ -64,6 +64,59 @@ export interface WorldMetadata extends UnknownRecord {
   };
 }
 
+export type WorldMetadataReader = (
+  worldId: string
+) => Promise<Pick<WorldMetadata, 'parentWorldId'>>;
+
+/**
+ * Resolve current -> parent -> oldest ancestor through one trusted metadata
+ * reader. Missing metadata is rejected by the reader; malformed metadata and
+ * cycles are rejected here so every production caller shares one algorithm.
+ */
+export async function resolveWorldLineageIdsFromMetadata(
+  worldId: string,
+  readMetadata: WorldMetadataReader
+): Promise<string[]> {
+  const normalizedWorldId = worldId.trim();
+  if (!normalizedWorldId) {
+    throw new Error('worldId is required');
+  }
+
+  const lineageIds: string[] = [];
+  const visitedIds = new Set<string>();
+  let currentWorldId: string | null = normalizedWorldId;
+
+  while (currentWorldId) {
+    if (visitedIds.has(currentWorldId)) {
+      throw new Error(`World lineage cycle detected for ${currentWorldId}`);
+    }
+
+    visitedIds.add(currentWorldId);
+    lineageIds.push(currentWorldId);
+
+    const metadata = await readMetadata(currentWorldId);
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+      throw new Error(`World ${currentWorldId} metadata is unavailable`);
+    }
+    if (
+      metadata.parentWorldId !== undefined &&
+      metadata.parentWorldId !== null &&
+      typeof metadata.parentWorldId !== 'string'
+    ) {
+      throw new Error(
+        `World ${currentWorldId} parentWorldId must be a string or null`
+      );
+    }
+    currentWorldId =
+      typeof metadata.parentWorldId === 'string' &&
+      metadata.parentWorldId.trim()
+        ? metadata.parentWorldId.trim()
+        : null;
+  }
+
+  return lineageIds;
+}
+
 export interface CreateWorldParams {
   name?: string;
   description?: string;
@@ -124,7 +177,9 @@ export function readNullableStringField(
     return null;
   }
   if (typeof record[field] !== 'string') {
-    throw new Error(`${context}.${field} must be a string or null when present`);
+    throw new Error(
+      `${context}.${field} must be a string or null when present`
+    );
   }
   return record[field];
 }
@@ -159,7 +214,10 @@ export function readNumberField(
   return value;
 }
 
-export function readWorldStats(value: unknown, context: string): WorldStats | undefined {
+export function readWorldStats(
+  value: unknown,
+  context: string
+): WorldStats | undefined {
   if (value == null) {
     return undefined;
   }
@@ -193,7 +251,10 @@ export function readDraftPositionsEntry(
   const entry: DraftPositionsEntry = { ...record };
 
   if (record.positionsMap !== undefined) {
-    const posMap = requireArchitectRecord(record.positionsMap, `${context}.positionsMap`);
+    const posMap = requireArchitectRecord(
+      record.positionsMap,
+      `${context}.positionsMap`
+    );
     entry.positionsMap = posMap as Record<string, number>;
   }
 
@@ -235,7 +296,8 @@ export function readWorldMetadataDoc(
   const record = requireArchitectRecord(value, context);
   const metadata = { ...record } as WorldMetadata;
 
-  const worldId = readStringField(record, 'worldId', context) ?? fallbackWorldId;
+  const worldId =
+    readStringField(record, 'worldId', context) ?? fallbackWorldId;
   if (worldId) {
     metadata.worldId = worldId;
   }
@@ -253,7 +315,11 @@ export function readWorldMetadataDoc(
     }
   }
 
-  const parentWorldId = readNullableStringField(record, 'parentWorldId', context);
+  const parentWorldId = readNullableStringField(
+    record,
+    'parentWorldId',
+    context
+  );
   if (parentWorldId !== undefined) {
     metadata.parentWorldId = parentWorldId;
   }

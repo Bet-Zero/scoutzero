@@ -68,7 +68,8 @@ export function addTeamSnapshot(
 
 export function extractTeamsByCodeFromComputeResult(
   computeResult: MutationBridgeTeamUpdatesSlice = {},
-  worldId: string
+  worldId: string,
+  worldLineage: readonly string[]
 ): MutationTeamMap {
   const teamsByCode: MutationTeamMap = {};
   for (const update of computeResult.teamUpdates || []) {
@@ -77,7 +78,7 @@ export function extractTeamsByCodeFromComputeResult(
       update?.teamCode,
       normalizePostComputeTeamSnapshotForPostState(update?.team, {
         containingTeamCode: update?.teamCode ?? null,
-        worldId,
+        worldLineage,
       })
     );
   }
@@ -110,15 +111,15 @@ export function prepareGeneralMutationPersistenceTeamSnapshot(
     team as CurrentStateTeamPersistenceStripShape
   );
   const canonicalYear = toEndYear(seasonId);
-  const totalsAlignedTeam = Number.isFinite(canonicalYear) && asOfDate
-    ? backfillCurrentStateBaseTeamPreservedFields(
-        synchronizeTeamTotalsSnapshot(persistenceReadyTeam, canonicalYear, {
-          asOfDate,
-        }) ||
-          persistenceReadyTeam,
-        persistenceReadyTeam
-      ) || persistenceReadyTeam
-    : persistenceReadyTeam;
+  const totalsAlignedTeam =
+    Number.isFinite(canonicalYear) && asOfDate
+      ? backfillCurrentStateBaseTeamPreservedFields(
+          synchronizeTeamTotalsSnapshot(persistenceReadyTeam, canonicalYear, {
+            asOfDate,
+          }) || persistenceReadyTeam,
+          persistenceReadyTeam
+        ) || persistenceReadyTeam
+      : persistenceReadyTeam;
   const afterSanitize =
     sanitizeTransientFieldsForPersistence(totalsAlignedTeam);
   const afterTpeNormalize = normalizeTeamTpeSchema(afterSanitize);
@@ -177,11 +178,9 @@ export function canonicalizeTeamUpdatesWithCanonicalTotals(
   }));
 }
 
-export function canonicalizeComputeResultTeamUpdates<T extends ComputeResultLike>(
-  result: T,
-  seasonId: string,
-  asOfDate: string | null = null
-): T {
+export function canonicalizeComputeResultTeamUpdates<
+  T extends ComputeResultLike,
+>(result: T, seasonId: string, asOfDate: string | null = null): T {
   if (!Array.isArray(result?.teamUpdates) || result.teamUpdates.length === 0) {
     return result;
   }

@@ -58,7 +58,10 @@ import type {
   TradeObjective,
   FollowThroughContext,
 } from '@/features/architect/cockpit';
-import { useArchitectDeskNavigation, writeLastTeamSlug } from './hooks/useArchitectDeskNavigation';
+import {
+  useArchitectDeskNavigation,
+  writeLastTeamSlug,
+} from './hooks/useArchitectDeskNavigation';
 import { resolvePrimaryPlayerFocusId } from './postActionHandoff/playerFocus';
 import { getHardCapStatus } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import type { ActiveTab } from '@/features/architect/GMDashboard/hooks/useArchitectState.types';
@@ -173,7 +176,9 @@ function isCockpitCapAuditEnabled(): boolean {
   }
 }
 
-const seasonEndYearsFromCaps = (caps: Record<string, unknown> | null | undefined) => {
+const seasonEndYearsFromCaps = (
+  caps: Record<string, unknown> | null | undefined
+) => {
   const keys = Object.keys(caps || {});
   const years = keys
     .map((key) => {
@@ -322,8 +327,9 @@ export const GMDashboard = () => {
   const [freeAgentPoolSavedAt, setFreeAgentPoolSavedAt] = useState<
     string | null
   >(null);
-  const [requestedFreeAgentOpenKey, setRequestedFreeAgentOpenKey] =
-    useState<string | null>(null);
+  const [requestedFreeAgentOpenKey, setRequestedFreeAgentOpenKey] = useState<
+    string | null
+  >(null);
   const [isFullCapFreeAgentModalOpen, setIsFullCapFreeAgentModalOpen] =
     useState(false);
   const [
@@ -337,13 +343,10 @@ export const GMDashboard = () => {
     },
     []
   );
-  const closeFullCapFreeAgentModal = useCallback(
-    () => {
-      setIsFullCapFreeAgentModalOpen(false);
-      setFullCapFreeAgentModalSelectionKey(null);
-    },
-    []
-  );
+  const closeFullCapFreeAgentModal = useCallback(() => {
+    setIsFullCapFreeAgentModalOpen(false);
+    setFullCapFreeAgentModalSelectionKey(null);
+  }, []);
 
   useEffect(() => {
     if (normalizedTeamId) {
@@ -376,6 +379,7 @@ export const GMDashboard = () => {
     playersMap,
     capTableYears,
     worldId,
+    worldLineage,
     activeWorldLabel,
     worldAsOfDate,
     worldCurrentSeason,
@@ -460,9 +464,7 @@ export const GMDashboard = () => {
   const resolvedHistoryTeamCode = useMemo(() => {
     const capSheetTeamCode = String(teamCapSheet?.teamCode ?? '').trim();
     return (
-      capSheetTeamCode ||
-      resolveTeamCode(normalizedTeamId) ||
-      normalizedTeamId
+      capSheetTeamCode || resolveTeamCode(normalizedTeamId) || normalizedTeamId
     );
   }, [normalizedTeamId, teamCapSheet?.teamCode]);
 
@@ -568,10 +570,7 @@ export const GMDashboard = () => {
       if (player) {
         const bio = player.bio as { displayName?: string } | undefined;
         return (
-          bio?.displayName ||
-          player.displayName ||
-          player.name ||
-          playerId
+          bio?.displayName || player.displayName || player.name || playerId
         );
       }
       return playerId;
@@ -603,7 +602,9 @@ export const GMDashboard = () => {
       // re-signed player otherwise reads as a Removal in Compare).
       const id =
         (typeof player['id'] === 'string' ? player['id'] : null) ??
-        (typeof player['player_id'] === 'string' ? player['player_id'] : null) ??
+        (typeof player['player_id'] === 'string'
+          ? player['player_id']
+          : null) ??
         (typeof player['playerId'] === 'string' ? player['playerId'] : null) ??
         (typeof bio?.['playerId'] === 'string' ? bio['playerId'] : null);
       if (id && id.trim()) ids.push(id.trim());
@@ -680,12 +681,17 @@ export const GMDashboard = () => {
     playersMap,
     modals,
     worldId,
+    worldLineage,
     seasonId: toSeasonCode(currentYear),
     publishPostActionReceipt: postActionReceipt.publish,
   });
 
   const handleOffseasonAdvanceApplied = useCallback(
-    (aftermath: Parameters<NonNullable<OffseasonSectionProps['onAfterOffseasonAdvanceApplied']>>[0]) => {
+    (
+      aftermath: Parameters<
+        NonNullable<OffseasonSectionProps['onAfterOffseasonAdvanceApplied']>
+      >[0]
+    ) => {
       const receipt = deriveSeasonAdvanceReceipt({
         aftermath,
         primaryTeamCode: normalizedTeamId,
@@ -786,13 +792,13 @@ export const GMDashboard = () => {
       },
       salaryCapYear: currentYear,
       containingTeamCode,
-      worldId,
+      worldLineage,
     });
   }, [
     currentYear,
     containingTeamCode,
     teamCapSheet,
-    worldId,
+    worldLineage,
     workspaceContext.cap,
   ]);
 
@@ -851,7 +857,9 @@ export const GMDashboard = () => {
     : 'preview-only';
   const freeAgentPoolSeasonKey = toSeasonKey(currentYear);
   const buildFreeAgentPoolScope = useCallback(() => {
-    const teamCode = String(normalizedTeamId || '').trim().toUpperCase();
+    const teamCode = String(normalizedTeamId || '')
+      .trim()
+      .toUpperCase();
     if (!worldId || !teamCode) {
       throw new Error('Open an active Team Plan world to save this pool.');
     }
@@ -912,7 +920,8 @@ export const GMDashboard = () => {
   );
 
   const modalPlayer = selectedPlayer as EditContractModalProps['player'];
-  const modalTeamCapSheet = teamCapSheet as EditContractModalProps['teamCapSheet'];
+  const modalTeamCapSheet =
+    teamCapSheet as EditContractModalProps['teamCapSheet'];
   const modalOptionDecisionAvailability = useMemo(
     () =>
       worldId &&
@@ -926,12 +935,7 @@ export const GMDashboard = () => {
             targetYear
           )
         : null,
-    [
-      actions.getOptionDecisionAvailability,
-      selectedPlayer,
-      targetYear,
-      worldId,
-    ]
+    [actions.getOptionDecisionAvailability, selectedPlayer, targetYear, worldId]
   );
   const modalExtensionAvailability = useMemo(
     () =>
@@ -992,17 +996,16 @@ export const GMDashboard = () => {
       )
     );
   const modalActionCallbacks: EditContractArchitectActionCallbacks = {
-    onSignFreeAgent:
-      freeAgencyActionOwner.dualPathSigning
-        .signFreeAgent as EditContractModalProps['onSignFreeAgent'],
-    onResign:
-      freeAgencyActionOwner.dualPathSigning
-        .signFreeAgent as EditContractModalProps['onResign'],
+    onSignFreeAgent: freeAgencyActionOwner.dualPathSigning
+      .signFreeAgent as EditContractModalProps['onSignFreeAgent'],
+    onResign: freeAgencyActionOwner.dualPathSigning
+      .signFreeAgent as EditContractModalProps['onResign'],
     onSignAndTrade: null,
     getSignAndTradePreflight: null,
     getOfferSheetPreflight: null,
     onStoreOfferSheet: null,
-    onExtend: actions.handleExtendContract as EditContractModalProps['onExtend'],
+    onExtend:
+      actions.handleExtendContract as EditContractModalProps['onExtend'],
     onWaive: modalOnWaive,
     onOptionDecision: modalOnOptionDecision,
     onRenounce: modalOnRenounce,
@@ -1073,6 +1076,7 @@ export const GMDashboard = () => {
     teamCapSheet,
     containingTeamCode,
     worldId,
+    worldLineage,
     currentYear,
     asOfDate: worldAsOfDate,
     onOpenPlayerContractModal:
@@ -1090,7 +1094,8 @@ export const GMDashboard = () => {
     capProjections,
     currentYear,
     playersMap,
-    onApplyTrade: actions.applyTradeToCapSheet as TradeSectionProps['onApplyTrade'],
+    onApplyTrade:
+      actions.applyTradeToCapSheet as TradeSectionProps['onApplyTrade'],
     onAfterTradeApplied: () => {
       closeTrade();
       setActiveTab('capfull');
@@ -1101,6 +1106,7 @@ export const GMDashboard = () => {
         player as Parameters<typeof actions.handleEditContract>[0]
       ),
     worldId,
+    worldLineage,
     worldAsOfDate,
     userId,
     onDraftActivityChange: setTradeDraftActive,
@@ -1331,7 +1337,9 @@ export const GMDashboard = () => {
 
   const seasonSelectorSlot = (
     <label className="hidden items-center gap-1.5 text-[11px] font-medium text-cockpit-text-secondary md:flex">
-      <span className="uppercase tracking-wide text-cockpit-text-muted">Season</span>
+      <span className="uppercase tracking-wide text-cockpit-text-muted">
+        Season
+      </span>
       <select
         value={currentYear}
         onChange={(event) =>
@@ -1377,7 +1385,8 @@ export const GMDashboard = () => {
           className="rounded-md border border-amber-300/40 bg-amber-300/10 px-3 py-1.5 text-amber-100 text-xs"
           data-testid="firebase-emulator-warning-banner"
         >
-          Emulator mode: Firebase emulators not detected. Start them with: npm run emu
+          Emulator mode: Firebase emulators not detected. Start them with: npm
+          run emu
         </div>
       ) : null}
       {error ? (
@@ -1419,7 +1428,8 @@ export const GMDashboard = () => {
     cap: {
       id: 'cap',
       title: 'Cap Sheet',
-      subtitle: workspaceContext.seasons.selectedViewingSeasonLabel ?? undefined,
+      subtitle:
+        workspaceContext.seasons.selectedViewingSeasonLabel ?? undefined,
       hideHeader: true,
       bleed: true,
       content: <CapSheetSection {...capSheetSectionSurface} />,
@@ -1512,6 +1522,7 @@ export const GMDashboard = () => {
               selectedYear={currentYear}
               containingTeamCode={containingTeamCode}
               worldId={worldId}
+              worldLineage={worldLineage}
             />
           }
         />

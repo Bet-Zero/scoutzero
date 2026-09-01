@@ -86,7 +86,13 @@ import {
   buildCurrentStateTradeTeam,
 } from './mutationPipeline.read.normalizeTeam.builders';
 import { GovernedCashSnapshotReceiptZ } from '@/schemas/governedCashConsideration';
-import type { PersistedHardCapAuthorityContext } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
+import {
+  getTrustedPersistedHardCapAuthority,
+  resolveTrustedPersistedHardCapAuthority,
+  retainTrustedPersistedHardCapAuthority,
+  type PersistedHardCapAuthorityContext,
+  type TrustedPersistedHardCapAuthorityContext,
+} from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 
 // ============================================================
 // Private projection-lane type blocks
@@ -136,54 +142,19 @@ type CurrentStateTeamBoundaryArgs = {
   ];
 }[CurrentStateTeamProjectionLane];
 
-const TRUSTED_CONTAINING_TEAM_AUTHORITY = Symbol(
-  'trusted-containing-team-authority'
-);
-type CurrentStateHardCapAuthorityContext = Omit<
-  PersistedHardCapAuthorityContext,
-  'cashLedger'
->;
+type CurrentStateHardCapAuthorityContext =
+  TrustedPersistedHardCapAuthorityContext;
 
-function resolveCurrentStateHardCapAuthority(
-  team: object,
-  explicit?: CurrentStateHardCapAuthorityContext
+export function getCurrentStateHardCapAuthority(
+  team: object | null | undefined
 ): CurrentStateHardCapAuthorityContext | undefined {
-  const retained = (
-    team as {
-      [TRUSTED_CONTAINING_TEAM_AUTHORITY]?: CurrentStateHardCapAuthorityContext;
-    }
-  )[TRUSTED_CONTAINING_TEAM_AUTHORITY];
-  if (
-    retained &&
-    explicit &&
-    (retained.containingTeamCode !== explicit.containingTeamCode ||
-      retained.worldId !== explicit.worldId)
-  ) {
-    throw new Error(
-      'Persisted hard-cap containing-Team authority conflicts with the mutation target.'
-    );
-  }
-  return retained ?? explicit;
+  return getTrustedPersistedHardCapAuthority(team);
 }
 
-function retainCurrentStateHardCapAuthority<T extends object>(
-  team: T,
-  authorityContext?: CurrentStateHardCapAuthorityContext
-): T {
-  if (
-    typeof authorityContext?.containingTeamCode !== 'string' ||
-    !authorityContext.containingTeamCode.trim()
-  ) {
-    return team;
-  }
-  Object.defineProperty(team, TRUSTED_CONTAINING_TEAM_AUTHORITY, {
-    value: Object.freeze({ ...authorityContext }),
-    enumerable: false,
-    configurable: false,
-    writable: false,
-  });
-  return team;
-}
+const resolveCurrentStateHardCapAuthority =
+  resolveTrustedPersistedHardCapAuthority;
+const retainCurrentStateHardCapAuthority =
+  retainTrustedPersistedHardCapAuthority;
 
 // ============================================================
 // Exported functions
@@ -470,12 +441,12 @@ export function normalizeTradeMutationCurrentStateTeamEntry(
     | MutationCurrentStateTeamEntry
     | null
     | undefined,
-  worldId: string | null | undefined
+  worldLineage?: readonly string[]
 ): MutationCurrentStateTeamEntry {
   const teamCode = toOptionalTrimmedString(entry?.teamCode);
   const team = normalizeCurrentStateTeamSnapshot(entry?.team, 'trade', {
     containingTeamCode: teamCode ?? null,
-    worldId,
+    worldLineage,
   });
   const normalized: MutationCurrentStateTeamEntry = {};
   const normalizedTeamCode = teamCode ?? team?.teamCode;
@@ -492,11 +463,11 @@ export function normalizeTradeMutationCurrentStateTeamEntry(
 
 export function normalizeTradeMutationCurrentState(
   currentState: MutationTradeCurrentStateInput | null | undefined,
-  worldId: string | null | undefined
+  worldLineage?: readonly string[]
 ): MutationTradeCurrentState {
   const teams = Array.isArray(currentState?.teams)
     ? currentState.teams.map((entry) =>
-        normalizeTradeMutationCurrentStateTeamEntry(entry, worldId)
+        normalizeTradeMutationCurrentStateTeamEntry(entry, worldLineage)
       )
     : undefined;
   const governedCashTeamSnapshots =

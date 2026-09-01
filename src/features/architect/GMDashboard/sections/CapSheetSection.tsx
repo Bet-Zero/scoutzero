@@ -49,6 +49,7 @@ type CapSheetSectionProps = ForwardedCapSheetProps & {
   currentYear: number;
   containingTeamCode: string;
   worldId?: string | null;
+  worldLineage?: readonly string[];
   playersMap?: Record<string, unknown>;
   capSheetDevFixtureControls?: CapSheetDevFixtureControls | null;
   onInjectCapSheetFixtures?: DevFixtureAction;
@@ -92,6 +93,7 @@ const CapSheetSection = ({
   currentYear,
   containingTeamCode,
   worldId = null,
+  worldLineage = [],
   asOfDate = null,
   onOpenPlayerContractModal,
   manualCapSheetMutationAuthority,
@@ -245,6 +247,7 @@ const CapSheetSection = ({
               currentYear={currentYear}
               containingTeamCode={containingTeamCode}
               worldId={worldId}
+              worldLineage={worldLineage}
               selectedYear={selectedYear}
               surfaceLabel={CAP_SHEET_SECTION_SURFACE_LABELS.adjacentDetail}
             />
@@ -280,9 +283,8 @@ const CapSheetSection = ({
                 className="mt-1 text-amber-200/55"
               >
                 {syntheticCoverageBoundary.intentLabel}: one `futureContract`
-                probe plus one no-`futureContract` control. Not
-                representative of{' '}
-                {syntheticCoverageBoundary.notModeledSeams.join(', ')}.
+                probe plus one no-`futureContract` control. Not representative
+                of {syntheticCoverageBoundary.notModeledSeams.join(', ')}.
               </div>
               <div
                 data-testid="cap-sheet-fixtures-runtime-note"

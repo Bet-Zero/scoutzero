@@ -32,10 +32,15 @@ const SALARY_CAP_YEAR = 2027;
 const SECOND_APRON = 221_686_000;
 const TRANSACTION_ID = 'trade-bze-298-row-i';
 
-function context(tradeDate = TRANSACTION_AT): TeamContext {
+function context(
+  tradeDate = TRANSACTION_AT,
+  worldId = WORLD_ID,
+  worldLineage: readonly string[] = [worldId]
+): TeamContext {
   return {
     source: 'tradeMachine',
-    worldId: WORLD_ID,
+    worldId,
+    worldLineage,
     currentYear: SALARY_CAP_YEAR,
     yearKey: SALARY_CAP_YEAR,
     tradeDate,
@@ -100,11 +105,16 @@ function roomPath(): TradeSalaryPathEvaluation {
   };
 }
 
-function productGeneratedRowI(teamCode = 'MIA', tradeDate = TRANSACTION_AT) {
+function productGeneratedRowI(
+  teamCode = 'MIA',
+  tradeDate = TRANSACTION_AT,
+  provenanceWorldId = WORLD_ID,
+  transactionId = TRANSACTION_ID
+) {
   const team = cashPayingTeam(teamCode);
   const cashEvaluation = evaluateGovernedCashConsideration({
     team,
-    context: context(tradeDate),
+    context: context(tradeDate, provenanceWorldId),
   });
   if (
     cashEvaluation.status !== 'PASS' ||
@@ -123,9 +133,9 @@ function productGeneratedRowI(teamCode = 'MIA', tradeDate = TRANSACTION_AT) {
     entries: [
       {
         entryVersion: 1,
-        entryId: `${TRANSACTION_ID}:cash:${teamCode}:PAID:DEN`,
-        transactionId: TRANSACTION_ID,
-        worldId: WORLD_ID,
+        entryId: `${transactionId}:cash:${teamCode}:PAID:DEN`,
+        transactionId,
+        worldId: provenanceWorldId,
         teamId: teamCode,
         counterpartyTeamId: 'DEN',
         direction: 'PAID',
@@ -142,12 +152,12 @@ function productGeneratedRowI(teamCode = 'MIA', tradeDate = TRANSACTION_AT) {
     team,
     teamCode,
     pathEvaluation: roomPath(),
-    context: context(tradeDate),
+    context: context(tradeDate, provenanceWorldId),
   });
   const hardCapEntry = createTradeHardCapLedgerEntry({
     evaluation: apronEvaluation,
     teamCode,
-    transactionId: TRANSACTION_ID,
+    transactionId,
     effectiveAt: '2026-07-15T16:00:00Z',
   });
   if (!hardCapEntry) throw new Error('expected product-generated Row I entry');
@@ -291,7 +301,7 @@ describe('persisted hard-cap containing-Team authority', () => {
     expect(
       parsePersistedTradeHardCapLedger(hardCapLedger, {
         containingTeamCode: 'MIA',
-        worldId: WORLD_ID,
+        worldLineage: [WORLD_ID],
         cashLedger,
       })
     ).toEqual({ entries: hardCapLedger, valid: true });
@@ -301,6 +311,7 @@ describe('persisted hard-cap containing-Team authority', () => {
         {
           containingTeamCode: 'MIA',
           worldId: WORLD_ID,
+          worldLineage: [WORLD_ID],
           salaryCapYear: SALARY_CAP_YEAR,
           capSettings: {
             firstApron: 209_015_000,
@@ -316,7 +327,7 @@ describe('persisted hard-cap containing-Team authority', () => {
     expect(
       parsePersistedTradeHardCapLedger(hardCapLedger, {
         containingTeamCode: 'MIA',
-        worldId: WORLD_ID,
+        worldLineage: [WORLD_ID],
         cashLedger,
       })
     ).toEqual({ entries: hardCapLedger, valid: true });
@@ -334,10 +345,83 @@ describe('persisted hard-cap containing-Team authority', () => {
     expect(
       parsePersistedTradeHardCapLedger(hardCapLedger, {
         containingTeamCode: 'MIA',
-        worldId: WORLD_ID,
+        worldLineage: [WORLD_ID],
         cashLedger,
       })
     ).toEqual({ entries: hardCapLedger, valid: true });
+  });
+
+  it('accepts authenticated ancestor provenance and rejects siblings or missing lineage', () => {
+    const parentWorldId = 'world-parent';
+    const childWorldId = 'world-child';
+    const siblingWorldId = 'world-sibling';
+    const { hardCapLedger, cashLedger } = productGeneratedRowI(
+      'MIA',
+      TRANSACTION_AT,
+      parentWorldId
+    );
+
+    expect(
+      parsePersistedTradeHardCapLedger(hardCapLedger, {
+        containingTeamCode: 'MIA',
+        worldLineage: [childWorldId, parentWorldId],
+        cashLedger,
+      })
+    ).toEqual({ entries: hardCapLedger, valid: true });
+    expect(
+      parsePersistedTradeHardCapLedger(hardCapLedger, {
+        containingTeamCode: 'MIA',
+        worldLineage: [childWorldId, siblingWorldId],
+        cashLedger,
+      })
+    ).toEqual({ entries: [], valid: false });
+    expect(
+      parsePersistedTradeHardCapLedger(hardCapLedger, {
+        containingTeamCode: 'MIA',
+        cashLedger,
+      })
+    ).toEqual({ entries: [], valid: false });
+  });
+
+  it('authenticates mixed parent and child transactions against each entry provenance', () => {
+    const parentWorldId = 'world-parent';
+    const childWorldId = 'world-child';
+    const parent = productGeneratedRowI(
+      'MIA',
+      TRANSACTION_AT,
+      parentWorldId,
+      'trade-parent'
+    );
+    const child = productGeneratedRowI(
+      'MIA',
+      TRANSACTION_AT,
+      childWorldId,
+      'trade-child'
+    );
+    const hardCapLedger = [...parent.hardCapLedger, ...child.hardCapLedger];
+    const cashLedger = GovernedCashLedgerZ.parse({
+      ...parent.cashLedger,
+      ledgerVersion: 2,
+      entries: [...parent.cashLedger.entries, ...child.cashLedger.entries],
+    });
+
+    expect(
+      parsePersistedTradeHardCapLedger(hardCapLedger, {
+        containingTeamCode: 'MIA',
+        worldLineage: [childWorldId, parentWorldId],
+        cashLedger,
+      })
+    ).toEqual({ entries: hardCapLedger, valid: true });
+
+    const unrelatedOnly = structuredClone(cashLedger);
+    unrelatedOnly.entries[1].worldId = 'world-unrelated';
+    expect(
+      parsePersistedTradeHardCapLedger(hardCapLedger, {
+        containingTeamCode: 'MIA',
+        worldLineage: [childWorldId, parentWorldId],
+        cashLedger: unrelatedOnly,
+      })
+    ).toEqual({ entries: [], valid: false });
   });
 
   it('rejects identical MIA bytes in DEN and a mutually rewritten DEN pair without DEN governed proof', () => {
@@ -345,7 +429,7 @@ describe('persisted hard-cap containing-Team authority', () => {
     expect(
       parsePersistedTradeHardCapLedger(hardCapLedger, {
         containingTeamCode: 'DEN',
-        worldId: WORLD_ID,
+        worldLineage: [WORLD_ID],
         cashLedger,
       })
     ).toEqual({ entries: [], valid: false });
@@ -364,7 +448,7 @@ describe('persisted hard-cap containing-Team authority', () => {
     expect(
       parsePersistedTradeHardCapLedger(rewrittenHardCapLedger, {
         containingTeamCode: 'DEN',
-        worldId: WORLD_ID,
+        worldLineage: [WORLD_ID],
         cashLedger: rewrittenCashLedger,
       })
     ).toEqual({ entries: [], valid: false });
@@ -375,7 +459,7 @@ describe('persisted hard-cap containing-Team authority', () => {
     expect(
       parsePersistedTradeHardCapLedger(hardCapLedger, {
         containingTeamCode: null,
-        worldId: WORLD_ID,
+        worldLineage: [WORLD_ID],
         cashLedger,
       })
     ).toEqual({ entries: [], valid: false });
@@ -385,7 +469,7 @@ describe('persisted hard-cap containing-Team authority', () => {
     expect(
       parsePersistedTradeHardCapLedger(hardCapLedger, {
         containingTeamCode: 'MIA',
-        worldId: WORLD_ID,
+        worldLineage: [WORLD_ID],
         cashLedger: receivedOnly,
       })
     ).toEqual({ entries: [], valid: false });
@@ -429,7 +513,7 @@ describe('persisted hard-cap containing-Team authority', () => {
       expect(
         parsePersistedTradeHardCapLedger(candidate, {
           containingTeamCode: 'MIA',
-          worldId: WORLD_ID,
+          worldLineage: [WORLD_ID],
           cashLedger,
         })
       ).toEqual({ entries: [], valid: false });
@@ -437,10 +521,7 @@ describe('persisted hard-cap containing-Team authority', () => {
   });
 
   it.each([
-    [
-      'missing ledger',
-      () => undefined,
-    ],
+    ['missing ledger', () => undefined],
     [
       'received only',
       (ledger: ReturnType<typeof productGeneratedRowI>['cashLedger']) => {
@@ -531,7 +612,7 @@ describe('persisted hard-cap containing-Team authority', () => {
     expect(
       parsePersistedTradeHardCapLedger(hardCapLedger, {
         containingTeamCode: 'MIA',
-        worldId: WORLD_ID,
+        worldLineage: [WORLD_ID],
         cashLedger: mutate(structuredClone(cashLedger)),
       })
     ).toEqual({ entries: [], valid: false });
@@ -542,17 +623,17 @@ describe('persisted hard-cap containing-Team authority', () => {
     const team = persistedTeam(hardCapLedger, cashLedger);
     const trustedMiaTeam = toCurrentStateTeam(team, 'trade', {
       containingTeamCode: 'MIA',
-      worldId: WORLD_ID,
+      worldLineage: [WORLD_ID],
     });
     if (!trustedMiaTeam) throw new Error('expected trusted MIA Team fixture');
 
     await expect(
-      hydrateBaseTeam('DEN', team, { worldId: WORLD_ID })
+      hydrateBaseTeam('DEN', team, { worldLineage: [WORLD_ID] })
     ).rejects.toThrow(/hardCapLedger is not governed authority/i);
     expect(() =>
       toCurrentStateTeam(team, 'trade', {
         containingTeamCode: 'DEN',
-        worldId: WORLD_ID,
+        worldLineage: [WORLD_ID],
       })
     ).toThrow(/hard-cap ledger is malformed or version-incompatible/i);
     expect(() => toCurrentStateTeam(team, 'trade')).toThrow(
@@ -561,13 +642,13 @@ describe('persisted hard-cap containing-Team authority', () => {
     expect(() =>
       normalizeTradeMutationCurrentState(
         { teams: [{ teamCode: 'DEN', team: trustedMiaTeam }] },
-        WORLD_ID
+        [WORLD_ID]
       )
     ).toThrow(/authority conflicts with the mutation target/i);
 
     const status = getHardCapStatus(team, {
       containingTeamCode: 'DEN',
-      worldId: WORLD_ID,
+      worldLineage: [WORLD_ID],
       salaryCapYear: SALARY_CAP_YEAR,
       capSettings: {
         firstApron: 209_015_000,
@@ -628,6 +709,7 @@ describe('persisted hard-cap containing-Team authority', () => {
       operationId: 'bze-298-foreign-copy',
       mutationType: 'executeTrade',
       worldId: WORLD_ID,
+      worldLineage: [WORLD_ID],
       year: SALARY_CAP_YEAR,
       beforeTeamsByCode: { DEN: team },
       afterTeamsByCode: { DEN: team },

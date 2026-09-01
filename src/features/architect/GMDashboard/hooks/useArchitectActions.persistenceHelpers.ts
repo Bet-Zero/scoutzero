@@ -92,6 +92,7 @@ export type ComputeNextTeam = (
 export interface UsePersistenceHelpersParams {
   teamCode: string;
   worldId: string | null;
+  worldLineage: readonly string[];
   userId: string | null;
   seasonId: string;
   currentYear: number;
@@ -116,6 +117,7 @@ export interface UsePersistenceHelpersParams {
 export function usePersistenceHelpers({
   teamCode,
   worldId,
+  worldLineage,
   userId,
   seasonId,
   currentYear,
@@ -130,13 +132,9 @@ export function usePersistenceHelpers({
   refreshWorldRosterIndex,
   publishPostActionReceipt,
 }: UsePersistenceHelpersParams) {
-
   const setTeamCapSheetSafe = useCallback(
     (
-      nextTeam:
-        | CapSheet
-        | UseArchitectStateReturn['teamCapSheet']
-        | null
+      nextTeam: CapSheet | UseArchitectStateReturn['teamCapSheet'] | null
     ): void => {
       setTeamCapSheet(nextTeam as UseArchitectStateReturn['teamCapSheet']);
     },
@@ -238,6 +236,7 @@ export function usePersistenceHelpers({
         occurredAt,
         mutationType,
         worldId,
+        worldLineage,
         year: yearOverride,
         teamCodes: [teamCode],
         playerIds: playerIds.filter(Boolean).map(String),
@@ -311,7 +310,14 @@ export function usePersistenceHelpers({
         },
       };
     },
-    [currentYear, setTeamCapSheetSafe, teamCapSheet, teamCode, worldId]
+    [
+      currentYear,
+      setTeamCapSheetSafe,
+      teamCapSheet,
+      teamCode,
+      worldId,
+      worldLineage,
+    ]
   );
 
   // === Persistence Helper ===

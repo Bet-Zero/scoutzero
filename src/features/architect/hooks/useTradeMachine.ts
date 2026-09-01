@@ -40,7 +40,8 @@ export const useTradeMachine = (
   currentYear: number, // ← season **end-year**, e.g. 2025 for 2024-25
   primaryTeamData: TradeMachineTeam | null = null,
   worldId: string | null = null, // ← optional worldId for world-aware loading
-  worldAsOfDate: string | null = null
+  worldAsOfDate: string | null = null,
+  worldLineage: readonly string[] = []
 ) => {
   // Main state
   const [teams, setTeams] = useState<TradeMachineTeamSlot[]>([]);
@@ -120,6 +121,7 @@ export const useTradeMachine = (
     capProjections,
     yearKey,
     worldId,
+    worldLineage,
     worldAsOfDate,
     forceTrade,
     currentDraftKey,

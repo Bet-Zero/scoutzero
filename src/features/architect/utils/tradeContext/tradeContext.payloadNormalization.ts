@@ -620,13 +620,17 @@ export function buildTradeValidationTeamRecord(
 }
 
 export function buildTradeValidatorContext(
-  payload: TradeContextPayload
+  payload: TradeContextPayload,
+  trustedWorldLineage?: readonly string[]
 ): TradeValidatorContext {
   const rawTradeCtx = payload.tradeCtx || {};
   const tradeCtx: TradeValidatorContext = {};
   const asOfDate = payload.asOfDate ?? rawTradeCtx.asOfDate;
   if (typeof rawTradeCtx.worldId === 'string') {
     tradeCtx.worldId = rawTradeCtx.worldId;
+  }
+  if (trustedWorldLineage?.length) {
+    tradeCtx.worldLineage = Object.freeze([...trustedWorldLineage]);
   }
   if (typeof rawTradeCtx.source === 'string') {
     tradeCtx.source = rawTradeCtx.source;

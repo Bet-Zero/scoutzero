@@ -108,9 +108,7 @@ function prepareGovernedExecuteTradeSignAndTrade({
     authoringIdentity,
     recordedAt,
   });
-  if (
-    senderTeamCode !== normalizeTradeTeamCodeLike(authority.sourceTeamId)
-  ) {
+  if (senderTeamCode !== normalizeTradeTeamCodeLike(authority.sourceTeamId)) {
     throw new Error(
       'Governed sign-and-trade routing must match its authenticated source Team.'
     );
@@ -395,10 +393,7 @@ export function normalizeComputeWorldMutationArgs(
           args.mutationType,
           args.payload
         ),
-        currentState: normalizeTradeMutationCurrentState(
-          args.currentState,
-          args.worldId
-        ),
+        currentState: normalizeTradeMutationCurrentState(args.currentState),
       };
 
     case 'signFreeAgent':

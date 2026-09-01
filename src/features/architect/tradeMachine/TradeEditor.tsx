@@ -77,6 +77,7 @@ export const TradeEditor = ({
   primaryTeamData = null,
   onEditContract,
   worldId = null, // World ID for world-aware team loading
+  worldLineage = [],
   worldAsOfDate = null,
   userId = null,
   onDraftActivityChange = null,
@@ -135,7 +136,8 @@ export const TradeEditor = ({
     currentYear ?? new Date().getFullYear(),
     primaryTeamData,
     worldId,
-    governedWorldAsOfDate
+    governedWorldAsOfDate,
+    worldLineage
   );
 
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -507,7 +509,8 @@ export const TradeEditor = ({
       return {
         tone: 'setup',
         label: 'Setup required',
-        message: 'Add a player, draft asset, or cash consideration to the trade.',
+        message:
+          'Add a player, draft asset, or cash consideration to the trade.',
       };
     }
 

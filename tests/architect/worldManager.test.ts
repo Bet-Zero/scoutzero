@@ -12,6 +12,7 @@ import * as firestore from 'firebase/firestore';
 import {
   createWorld,
   getWorldMetadata,
+  resolveWorldLineageIds,
   listUserWorlds,
   updateWorldMetadata,
   branchWorld,
@@ -256,6 +257,66 @@ describe('World Manager', () => {
     it('throws error when worldId is missing', async () => {
       await expect(getWorldMetadata(null)).rejects.toThrow(
         'worldId is required'
+      );
+    });
+  });
+
+  describe('resolveWorldLineageIds', () => {
+    it('returns current, parent, and every authenticated ancestor in order', async () => {
+      const ancestor = createMockWorld({
+        worldId: 'lineage_ancestor',
+        userId,
+      });
+      const parent = createMockWorld({
+        worldId: 'lineage_parent',
+        userId,
+        parentWorldId: ancestor.worldId,
+      });
+      const child = createMockWorld({
+        worldId: 'lineage_child',
+        userId,
+        parentWorldId: parent.worldId,
+      });
+      seedWorldMetadata(ancestor.worldId, ancestor);
+      seedWorldMetadata(parent.worldId, parent);
+      seedWorldMetadata(child.worldId, child);
+
+      await expect(resolveWorldLineageIds(child.worldId)).resolves.toEqual([
+        child.worldId,
+        parent.worldId,
+        ancestor.worldId,
+      ]);
+    });
+
+    it('fails closed when ancestor metadata is missing', async () => {
+      const child = createMockWorld({
+        worldId: 'lineage_missing_child',
+        userId,
+        parentWorldId: 'lineage_missing_parent',
+      });
+      seedWorldMetadata(child.worldId, child);
+
+      await expect(resolveWorldLineageIds(child.worldId)).rejects.toThrow(
+        'World lineage_missing_parent not found'
+      );
+    });
+
+    it('fails closed when metadata contains a lineage cycle', async () => {
+      const first = createMockWorld({
+        worldId: 'lineage_cycle_a',
+        userId,
+        parentWorldId: 'lineage_cycle_b',
+      });
+      const second = createMockWorld({
+        worldId: 'lineage_cycle_b',
+        userId,
+        parentWorldId: 'lineage_cycle_a',
+      });
+      seedWorldMetadata(first.worldId, first);
+      seedWorldMetadata(second.worldId, second);
+
+      await expect(resolveWorldLineageIds(first.worldId)).rejects.toThrow(
+        'World lineage cycle detected for lineage_cycle_a'
       );
     });
   });

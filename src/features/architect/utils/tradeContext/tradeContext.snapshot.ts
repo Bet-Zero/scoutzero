@@ -12,6 +12,7 @@ import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { assertPostTradeSnapshot } from './assertions';
 import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
 import { createValidationIssue } from '@/features/architect/utils/tradeMachine/utils/validationIssueText';
+import { getTrustedPersistedHardCapAuthority } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 import {
   buildAuthoritativeTradeApplyReceives,
   buildTradeValidatorContext,
@@ -20,9 +21,7 @@ import {
   projectTradeApplyValidationPlayer,
   toNonEmptyString,
 } from './tradeContext.payloadNormalization';
-import type {
-  TradeValidationResult,
-} from '@/features/architect/utils/tradeMachine/constants/types';
+import type { TradeValidationResult } from '@/features/architect/utils/tradeMachine/constants/types';
 import type {
   ArchitectMutationPlayerRecord,
   ArchitectMutationTeamRecord,
@@ -49,7 +48,6 @@ import { buildTradeValidationPayload } from './tradeContext.snapshot.payloadNorm
 export * from './tradeContext.snapshot.builder';
 import { buildPostTradeTeamsSnapshot } from './tradeContext.snapshot.builder';
 
-
 // ==============================================================================
 // PHASE 56/58: VALIDATION CONTEXT BUILDER
 // ==============================================================================
@@ -67,6 +65,7 @@ export function validatePostTradeSnapshotForContext({
   snapshot,
   payload,
   seasonId,
+  trustedWorldLineage,
 }: ValidatePostTradeSnapshotForContextParams): ValidatedTradeContext {
   assertPostTradeSnapshot(snapshot, 'validatePostTradeSnapshotForContext');
 
@@ -77,7 +76,7 @@ export function validatePostTradeSnapshotForContext({
       teams: snapshot.validationTeams,
       capProjections: payload.capProjections || {},
       currentYear,
-      tradeCtx: buildTradeValidatorContext(payload),
+      tradeCtx: buildTradeValidatorContext(payload, trustedWorldLineage),
     };
 
     const validation = validateTrade(validationInput) as TradeValidationResult;
@@ -160,14 +159,14 @@ export function validatePostTradeSnapshotForContext({
       teamResults: [],
       validationTeams: snapshot.validationTeams.map((snapshotTeam) => ({
         teamCode: snapshotTeam.teamCode,
-        receives: normalizeFallbackTradeApplyValidationTeam(snapshotTeam).receives,
+        receives:
+          normalizeFallbackTradeApplyValidationTeam(snapshotTeam).receives,
       })),
       _rawValidation: null,
       _isValidatedTradeContext: true,
     } as unknown as ValidatedTradeContext;
   }
 }
-
 
 // ==============================================================================
 // TM-3B: TRADE APPLY PREPARATION + STAGE-1 VERDICT ADAPTER
@@ -296,7 +295,29 @@ export function buildTradeApplyPreparation({
   seasonId,
   timestamp,
   asOfDate,
+  trustedWorldLineage: explicitTrustedWorldLineage,
 }: BuildTradeApplyPreparationParams): TradeApplyPreparation {
+  const retainedAuthorityLineages = currentState.teams
+    .map((entry) => getTrustedPersistedHardCapAuthority(entry.team))
+    .map((authority) => authority?.worldLineage)
+    .filter((lineage): lineage is readonly string[] => Array.isArray(lineage));
+  const authorityLineages = [
+    ...retainedAuthorityLineages,
+    ...(explicitTrustedWorldLineage?.length
+      ? [explicitTrustedWorldLineage]
+      : []),
+  ];
+  const trustedWorldLineage = authorityLineages[0];
+  if (
+    authorityLineages.some(
+      (lineage) =>
+        JSON.stringify(lineage) !== JSON.stringify(trustedWorldLineage)
+    )
+  ) {
+    throw new Error(
+      'Trade current-state Teams disagree on authenticated world lineage.'
+    );
+  }
   const validationPayload = buildTradeValidationPayload({
     payload,
     asOfDate,
@@ -313,6 +334,7 @@ export function buildTradeApplyPreparation({
     snapshot: postTradeSnapshot,
     payload: validationPayload,
     seasonId,
+    trustedWorldLineage,
   });
 
   return {
