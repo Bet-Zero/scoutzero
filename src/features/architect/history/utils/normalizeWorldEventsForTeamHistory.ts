@@ -40,6 +40,26 @@ function formatCashCents(value: number): string {
   })}`;
 }
 
+function sanitizePlayerTokensInSummary(
+  summary: string,
+  playerTokens: string[],
+  formatPlayerToken: (playerToken: string) => string
+): string {
+  return uniqueStrings(playerTokens)
+    .sort((left, right) => right.length - left.length)
+    .reduce((visibleSummary, playerToken) => {
+      const escapedToken = playerToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const boundedToken = new RegExp(
+        `(^|[^A-Za-z0-9])${escapedToken}(?=$|[^A-Za-z0-9])`,
+        'g'
+      );
+      return visibleSummary.replace(
+        boundedToken,
+        (_match, prefix: string) => `${prefix}${formatPlayerToken(playerToken)}`
+      );
+    }, summary);
+}
+
 export function toTeamHistoryEventDisplay(
   eventInput: GenericRecord,
   {
@@ -246,9 +266,22 @@ export function toTeamHistoryEventDisplay(
     mutationMetadata.summary,
     metadata.summary
   );
+  const sanitizedRawSummary = rawSummary
+    ? sanitizePlayerTokensInSummary(
+        rawSummary,
+        [
+          ...rawPlayerIds,
+          ...metadataPlayerIds,
+          ...metadataPlayersTraded,
+          ...(metadataPlayerId ? [metadataPlayerId] : []),
+        ],
+        formatEventPlayerLabel
+      )
+    : null;
   let summaryCandidate =
-    rawSummary && !isGenericSummary(rawSummary, mutationType, displayType)
-      ? rawSummary
+    sanitizedRawSummary &&
+    !isGenericSummary(sanitizedRawSummary, mutationType, displayType)
+      ? sanitizedRawSummary
       : null;
 
   switch (mutationType) {

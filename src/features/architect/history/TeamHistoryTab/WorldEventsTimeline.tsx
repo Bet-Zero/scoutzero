@@ -94,8 +94,26 @@ export const WorldEventsTimeline = ({
     if (!resolvePlayerLabel) return undefined;
     const lookup: Record<string, string> = {};
     for (const event of events) {
-      const playerIds = (event as { playerIds?: unknown }).playerIds;
-      if (!Array.isArray(playerIds)) continue;
+      const rawEvent = event as {
+        playerIds?: unknown;
+        metadata?: {
+          playerId?: unknown;
+          playerIds?: unknown;
+          playersTraded?: unknown;
+        };
+        mutationMetadata?: { playerId?: unknown };
+      };
+      const playerIds = [
+        ...(Array.isArray(rawEvent.playerIds) ? rawEvent.playerIds : []),
+        ...(Array.isArray(rawEvent.metadata?.playerIds)
+          ? rawEvent.metadata.playerIds
+          : []),
+        ...(Array.isArray(rawEvent.metadata?.playersTraded)
+          ? rawEvent.metadata.playersTraded
+          : []),
+        rawEvent.mutationMetadata?.playerId,
+        rawEvent.metadata?.playerId,
+      ];
       for (const rawId of playerIds) {
         const playerId = String(rawId || '').trim();
         if (!playerId || lookup[playerId]) continue;

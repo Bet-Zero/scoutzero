@@ -229,6 +229,46 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
     expect(row.summary).toBe('Three-team salary dump routed through BOS');
   });
 
+  it('sanitizes participant IDs in persisted summaries and primary deltas', () => {
+    const unresolvedRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'renounceRights',
+        occurredAt: '2026-03-05T03:55:00.000Z',
+        teamCodes: ['LAL'],
+        playerIds: ['historical_player_1'],
+        metadata: {
+          summary: 'historical_player_1: rights renounced',
+        },
+      },
+      { teamCode: 'LAL' }
+    );
+    const resolvedRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'renounceRights',
+        occurredAt: '2026-03-05T03:50:00.000Z',
+        teamCodes: ['LAL'],
+        metadata: {
+          playerId: 'austin_reaves',
+          summary: 'austin_reaves: rights renounced',
+        },
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: { austin_reaves: 'Austin Reaves' },
+      }
+    );
+
+    expect(unresolvedRow.summary).toBe(
+      'Player details unavailable: rights renounced'
+    );
+    expect(unresolvedRow.primaryDeltas).toBe(
+      'Player details unavailable: rights renounced'
+    );
+    expect(unresolvedRow.summary).not.toContain('historical_player_1');
+    expect(resolvedRow.summary).toBe('Austin Reaves: rights renounced');
+    expect(resolvedRow.primaryDeltas).toBe('Austin Reaves: rights renounced');
+  });
+
   it('keeps every governed entitlement as its own directed trade-history line', () => {
     const row = toTeamHistoryEventDisplay(
       {

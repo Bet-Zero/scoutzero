@@ -440,6 +440,49 @@ describe('Team History world events integration', () => {
     ).toContain('Showing compatible legacy history records for this team.');
   });
 
+  it('resolves names for compatibility events with metadata-only player IDs', () => {
+    window.localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
+    useWorldTeamEventsMock.mockReturnValue({
+      events: [
+        {
+          id: 'metadata-player-trade',
+          eventId: 'metadata-player-trade',
+          mutationType: 'executeTrade',
+          occurredAt: '2026-09-02T07:00:00.000Z',
+          timestamp: '2026-09-02T07:00:00.000Z',
+          teamCodes: ['LAL', 'BOS'],
+          metadata: { playersTraded: ['austin_reaves'] },
+        },
+      ],
+      loading: false,
+      loadingMore: false,
+      error: null,
+      hasMore: false,
+      resolution: 'authoritative',
+      loadMore: null,
+    });
+
+    render(
+      <TeamHistoryTab
+        teamCapSheet={teamCapSheet}
+        worldId="world_lal"
+        resolvePlayerLabel={(playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : playerId
+        }
+      />
+    );
+
+    const row = screen.getByTestId('team-history-row-0');
+    fireEvent.click(row);
+
+    expect(screen.getByTestId('team-history-detail-modal')).toHaveTextContent(
+      'Austin Reaves'
+    );
+    expect(
+      screen.getByTestId('team-history-detail-modal')
+    ).not.toHaveTextContent('austin_reaves');
+  });
+
   it('surfaces the mixed-feed compatibility note when canonical and legacy rows are merged together', () => {
     useWorldTeamEventsMock.mockReturnValue({
       events: [
