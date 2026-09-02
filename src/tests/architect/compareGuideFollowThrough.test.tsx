@@ -72,9 +72,7 @@ describe('ComparisonSection — follow-through focus banner', () => {
   });
 
   it('renders no focus banner without context', () => {
-    render(
-      <ComparisonSection status="available" viewModel={compareViewModel} />
-    );
+    render(<ComparisonSection status="available" viewModel={compareViewModel} />);
     expect(screen.queryByTestId('comparison-focus-banner')).toBeNull();
   });
 });

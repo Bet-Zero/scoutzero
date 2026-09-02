@@ -327,7 +327,9 @@ export function validateStepien(
       .map((year) => toNumericYear(year, fallbackYear))
       .filter(Number.isFinite);
     const farthestYear =
-      firstRoundYears.length > 0 ? Math.max(...firstRoundYears) : fallbackYear;
+      firstRoundYears.length > 0
+        ? Math.max(...firstRoundYears)
+        : fallbackYear;
 
     return {
       passed: false,

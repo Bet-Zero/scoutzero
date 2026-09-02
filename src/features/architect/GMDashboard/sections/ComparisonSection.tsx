@@ -43,7 +43,11 @@ interface ComparisonSectionProps {
 }
 
 /** Context-focused banner shown when Compare is launched with follow-through. */
-const CompareFocusBanner = ({ context }: { context: FollowThroughContext }) => {
+const CompareFocusBanner = ({
+  context,
+}: {
+  context: FollowThroughContext;
+}) => {
   const focus = describeCompareFocus(context);
   if (!focus) return null;
   return (
@@ -105,9 +109,7 @@ const RosterList = ({
   emptyLabel: string;
 }) => {
   if (entries.length === 0) {
-    return (
-      <p className="text-xs text-cockpit-text-ghost italic">{emptyLabel}</p>
-    );
+    return <p className="text-xs text-cockpit-text-ghost italic">{emptyLabel}</p>;
   }
   return (
     <ul className="space-y-0.5">
@@ -123,7 +125,11 @@ const RosterList = ({
   );
 };
 
-const CapDeltaDisplay = ({ delta }: { delta: Stage3CapTotalDelta }) => (
+const CapDeltaDisplay = ({
+  delta,
+}: {
+  delta: Stage3CapTotalDelta;
+}) => (
   <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
     <dt className="text-cockpit-text-muted">Team Salary</dt>
     <dd
@@ -172,11 +178,7 @@ const CapDeltaDisplay = ({ delta }: { delta: Stage3CapTotalDelta }) => (
   </dl>
 );
 
-const ApronPostureDisplay = ({
-  delta,
-}: {
-  delta: Stage3TaxApronPostureDelta;
-}) => {
+const ApronPostureDisplay = ({ delta }: { delta: Stage3TaxApronPostureDelta }) => {
   const rows: { label: string; value: boolean | null }[] = [
     { label: 'Crossed first apron', value: delta.crossedFirstApron },
     { label: 'Crossed second apron', value: delta.crossedSecondApron },
@@ -234,11 +236,7 @@ const UnavailableList = ({
 }) => (
   <ul className="space-y-1">
     {entries.map((entry) => (
-      <li
-        key={entry.field}
-        data-field={entry.field}
-        className="text-xs text-cockpit-text-muted"
-      >
+      <li key={entry.field} data-field={entry.field} className="text-xs text-cockpit-text-muted">
         <span className="text-cockpit-text-secondary">
           {formatUnavailableFieldLabel(entry.field)}
         </span>
@@ -331,8 +329,7 @@ export const ComparisonSection = ({
     );
   }
 
-  const { scope, committedEventCount, changedTeams, changedPlayers } =
-    viewModel;
+  const { scope, committedEventCount, changedTeams, changedPlayers } = viewModel;
   const hasEvents = committedEventCount > 0;
 
   return (
@@ -378,8 +375,7 @@ export const ComparisonSection = ({
               className="text-cockpit-text-muted"
               data-testid="comparison-changed-teams"
             >
-              {changedTeams.teamCodes.length} team
-              {changedTeams.teamCodes.length !== 1 ? 's' : ''} changed
+              {changedTeams.teamCodes.length} team{changedTeams.teamCodes.length !== 1 ? 's' : ''} changed
             </span>
           )}
           {changedPlayers.playerIds.length > 0 && (

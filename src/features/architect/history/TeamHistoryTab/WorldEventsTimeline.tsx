@@ -60,13 +60,20 @@ export const WorldEventsTimeline = ({
   onEventsLoaded = null,
 }: WorldEventsTimelineProps) => {
   const handledRequestKeyRef = useRef<number | null>(null);
-  const { events, loading, loadingMore, error, hasMore, resolution, loadMore } =
-    useWorldTeamEvents({
-      worldId,
-      teamCode,
-      limit: 50,
-      enabled: Boolean(worldId && teamCode),
-    });
+  const {
+    events,
+    loading,
+    loadingMore,
+    error,
+    hasMore,
+    resolution,
+    loadMore,
+  } = useWorldTeamEvents({
+    worldId,
+    teamCode,
+    limit: 50,
+    enabled: Boolean(worldId && teamCode),
+  });
 
   // Report by content signature, not array identity: hook mocks (and any
   // upstream memoization slip) may hand back a fresh array each render, and

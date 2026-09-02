@@ -117,7 +117,9 @@ export function TradeSummaryPanel({
       {showRuleExplanations && tradeWideBlockingItems.length > 0 && (
         <div
           className={`bg-cockpit-slab border rounded p-3 ${
-            needsInput ? 'border-cockpit-watch/30' : 'border-cockpit-danger/30'
+            needsInput
+              ? 'border-cockpit-watch/30'
+              : 'border-cockpit-danger/30'
           }`}
         >
           <div className="font-semibold mb-2">
@@ -146,9 +148,9 @@ export function TradeSummaryPanel({
             if (!teamSummary) return null;
 
             const teamResult = snapshotValidationDetails?.teamResults?.[index];
-            const teamNeedsInput = Object.values(teamResult?.rules ?? {}).some(
-              (rule) => rule?.status === 'NEEDS_INPUT'
-            );
+            const teamNeedsInput = Object.values(
+              teamResult?.rules ?? {}
+            ).some((rule) => rule?.status === 'NEEDS_INPUT');
             const isIllegal = teamResult
               ? !teamResult.legal && !teamNeedsInput
               : false;
@@ -349,9 +351,7 @@ export function TradeSummaryPanel({
                           })}
                         </div>
                       ) : (
-                        <div className="text-xs text-cockpit-text-muted italic">
-                          None
-                        </div>
+                        <div className="text-xs text-cockpit-text-muted italic">None</div>
                       )}
                     </div>
 
@@ -412,9 +412,7 @@ export function TradeSummaryPanel({
                           )}
                         </div>
                       ) : (
-                        <div className="text-xs text-cockpit-text-muted italic">
-                          None
-                        </div>
+                        <div className="text-xs text-cockpit-text-muted italic">None</div>
                       )}
                     </div>
                   </div>
@@ -487,9 +485,7 @@ export function TradeSummaryPanel({
                         )}
                       </div>
                     ) : (
-                      <div className="text-xs text-cockpit-text-muted italic">
-                        None
-                      </div>
+                      <div className="text-xs text-cockpit-text-muted italic">None</div>
                     )}
 
                     {entitlementWarnings.length > 0 && (

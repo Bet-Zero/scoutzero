@@ -74,7 +74,9 @@ const RULE_LABELS: Record<string, string> = {
 
 const humanizeRuleKey = (key: string) =>
   RULE_LABELS[key] ||
-  key.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
+  key
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/^./, (c) => c.toUpperCase());
 
 const resolveTeamName = (team: TeamResultLike) =>
   team.teamName || team.teamCode || team.teamId || null;

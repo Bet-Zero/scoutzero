@@ -103,21 +103,21 @@ describe('TEAM_HISTORY_E3 timeline from world events integration matrix', () => 
 
     render(<TeamHistoryTab teamCapSheet={teamCapSheet} worldId="world_lal" />);
 
-    expect(
-      screen.getByTestId('team-history-row-0').textContent || ''
-    ).toContain('Trade Executed');
-    expect(
-      screen.getByTestId('team-history-row-1').textContent || ''
-    ).toContain('Signed Free Agent');
-    expect(
-      screen.getByTestId('team-history-row-2').textContent || ''
-    ).toContain('Sign-and-Trade Executed');
-    expect(
-      screen.getByTestId('team-history-row-3').textContent || ''
-    ).toContain('Waive Player');
-    expect(
-      screen.getByTestId('team-history-row-4').textContent || ''
-    ).toContain('Exceptions Updated');
+    expect(screen.getByTestId('team-history-row-0').textContent || '').toContain(
+      'Trade Executed'
+    );
+    expect(screen.getByTestId('team-history-row-1').textContent || '').toContain(
+      'Signed Free Agent'
+    );
+    expect(screen.getByTestId('team-history-row-2').textContent || '').toContain(
+      'Sign-and-Trade Executed'
+    );
+    expect(screen.getByTestId('team-history-row-3').textContent || '').toContain(
+      'Waive Player'
+    );
+    expect(screen.getByTestId('team-history-row-4').textContent || '').toContain(
+      'Exceptions Updated'
+    );
 
     fireEvent.click(screen.getByTestId('team-history-row-0'));
 

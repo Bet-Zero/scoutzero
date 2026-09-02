@@ -32,8 +32,7 @@ export const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
     return null;
   };
   const getRuleStatus = (passed: boolean | null | undefined) => {
-    if (passed === undefined || passed === null)
-      return 'text-cockpit-text-muted';
+    if (passed === undefined || passed === null) return 'text-cockpit-text-muted';
     return passed ? 'text-cockpit-safe' : 'text-cockpit-danger';
   };
 
@@ -159,10 +158,7 @@ export const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
                           issueMeta.claimsA.length > 0
                             ? String(
                                 (
-                                  issueMeta.claimsA[0] as Record<
-                                    string,
-                                    unknown
-                                  >
+                                  issueMeta.claimsA[0] as Record<string, unknown>
                                 )?.meta ?? ''
                               )
                             : '';
@@ -178,20 +174,21 @@ export const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
                               </div>
                             )}
                             {entitlementIds.length > 0 && (
-                              <div className="text-cockpit-text-muted mt-0.5">
-                                Conflicts between: {entitlementIds.join(' ↔ ')}
-                              </div>
-                            )}
+                                <div className="text-cockpit-text-muted mt-0.5">
+                                  Conflicts between:{' '}
+                                  {entitlementIds.join(' ↔ ')}
+                                </div>
+                              )}
                             {claimMeta && (
-                              <div className="text-cockpit-text-muted mt-0.5">
-                                Claim: {claimMeta}
-                              </div>
-                            )}
+                                <div className="text-cockpit-text-muted mt-0.5">
+                                  Claim:{' '}
+                                  {claimMeta}
+                                </div>
+                              )}
                           </div>
                         );
                       })}
-                    {team.rules.entitlementExclusivity.violations.length >
-                      3 && (
+                    {team.rules.entitlementExclusivity.violations.length > 3 && (
                       <div className="text-xs text-cockpit-text-ghost pl-2">
                         +
                         {team.rules.entitlementExclusivity.violations.length -

@@ -29,9 +29,7 @@ describe('TradeSalaryCalculator governed counterfactual', () => {
 
     expect(screen.getByText('$20,000,000')).toBeTruthy();
     expect(screen.getByText('Room path')).toBeTruthy();
-    expect(
-      screen.getByText(/Uses only the last official validation result/i)
-    ).toBeTruthy();
+    expect(screen.getByText(/Uses only the last official validation result/i)).toBeTruthy();
   });
 
   it('does not imply pass or fail until a counterfactual value is entered', () => {
@@ -51,9 +49,7 @@ describe('TradeSalaryCalculator governed counterfactual', () => {
     expect(screen.getByText('Within the validated path by $0.')).toBeTruthy();
 
     fireEvent.change(input, { target: { value: '20000000.01' } });
-    expect(
-      screen.getByText('Exceeds the validated path by $0.01.')
-    ).toBeTruthy();
+    expect(screen.getByText('Exceeds the validated path by $0.01.')).toBeTruthy();
 
     fireEvent.change(input, { target: { value: '' } });
     expect(input.value).toBe('');
@@ -80,8 +76,6 @@ describe('TradeSalaryCalculator governed counterfactual', () => {
         validatorAllowableIncoming={null}
       />
     );
-    expect(
-      screen.getByText(/Exact governed inputs are still required/i)
-    ).toBeTruthy();
+    expect(screen.getByText(/Exact governed inputs are still required/i)).toBeTruthy();
   });
 });
