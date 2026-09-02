@@ -1398,9 +1398,6 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   expect(afterValidationTeams).toEqual(beforeValidationTeams);
   expect(await proofWorldExists()).toBe(true);
   expect(pageErrors).toEqual([]);
-  await receipt
-    .getByTestId('trade-apron-restriction-MIA')
-    .scrollIntoViewIfNeeded();
   if (!OWNER_REVIEW_MODE) {
     await receipt
       .getByTestId('trade-apron-restriction-MIA')
