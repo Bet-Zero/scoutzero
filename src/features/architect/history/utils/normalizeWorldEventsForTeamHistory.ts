@@ -87,6 +87,10 @@ export function toTeamHistoryEventDisplay(
   const metadataPlayersTraded = uniqueStrings(
     toArrayOfStrings(metadata.playersTraded)
   );
+  const metadataPlayerId = firstNonEmptyString(
+    mutationMetadata.playerId,
+    metadata.playerId
+  );
   const diffSummaryPlayersMoved = uniqueStrings(
     toArrayOfStrings(diffSummary.playersMoved)
   );
@@ -97,9 +101,11 @@ export function toTeamHistoryEventDisplay(
         ? metadataPlayerIds
         : metadataPlayersTraded.length > 0
           ? metadataPlayersTraded
-          : mutationType === 'executeTrade'
-            ? diffSummaryPlayersMoved
-            : [];
+          : metadataPlayerId
+            ? [metadataPlayerId]
+            : mutationType === 'executeTrade'
+              ? diffSummaryPlayersMoved
+              : [];
 
   const occurredAt = toIsoString(raw.occurredAt) || toIsoString(raw.timestamp);
   const timestamp = toIsoString(raw.timestamp) || occurredAt;
@@ -132,10 +138,6 @@ export function toTeamHistoryEventDisplay(
   const metadataPlayerName = firstNonEmptyString(
     mutationMetadata.playerName,
     metadata.playerName
-  );
-  const metadataPlayerId = firstNonEmptyString(
-    mutationMetadata.playerId,
-    metadata.playerId
   );
   // Single-player mutations record the display name in their own metadata;
   // merge it into the caller lookup so owner-facing copy prefers real names

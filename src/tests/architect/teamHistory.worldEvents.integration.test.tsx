@@ -272,6 +272,51 @@ describe('Team History world events integration', () => {
     ).toEqual([]);
   });
 
+  it('keeps direction neutral when a later compatibility event uses fallback participant evidence', () => {
+    const selectedEntry = {
+      activeTeamCode: 'LAL',
+      timelineSourceKey: 'world-events' as const,
+      truthKind: 'authoritative-world-event' as const,
+      entry: {
+        id: 'trade-before-compatibility-event',
+        eventId: 'trade-before-compatibility-event',
+        mutationType: 'executeTrade',
+        type: 'Trade Executed',
+        category: 'trade',
+        timestamp: '2026-09-01T12:00:00.000Z',
+        occurredAt: '2026-09-01T12:00:00.000Z',
+        teamsInvolved: ['LAL', 'BOS'],
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['player_1'],
+      },
+    };
+    const participantEvidence = [
+      { diffSummary: { playersMoved: ['player_1'] } },
+      { metadata: { playerId: 'player_1' } },
+      { mutationMetadata: { playerId: 'player_1' } },
+    ];
+
+    for (const evidence of participantEvidence) {
+      expect(
+        resolveReliableTradePlayerMovements({
+          selectedEntry,
+          committedWorldEvents: [
+            selectedEntry.entry,
+            {
+              eventId: 'later-compatibility-event',
+              mutationType: 'executeTrade',
+              occurredAt: '2026-09-02T12:00:00.000Z',
+              teamCodes: ['BOS', 'NYK'],
+              ...evidence,
+            },
+          ],
+          coveredTeamCodes: ['LAL', 'BOS'],
+          resolvePlayerTeamCode: () => 'LAL',
+        })
+      ).toEqual([]);
+    }
+  });
+
   it('keeps independently provable directions when another player was superseded', () => {
     const selectedEntry = {
       activeTeamCode: 'LAL',
@@ -440,7 +485,7 @@ describe('Team History world events integration', () => {
     ).toContain('Showing compatible legacy history records for this team.');
   });
 
-  it('resolves names for compatibility events with metadata-only player IDs', () => {
+  it('keeps metadata-only player details actionable with resolved names', () => {
     window.localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
     useWorldTeamEventsMock.mockReturnValue({
       events: [
@@ -451,7 +496,7 @@ describe('Team History world events integration', () => {
           occurredAt: '2026-09-02T07:00:00.000Z',
           timestamp: '2026-09-02T07:00:00.000Z',
           teamCodes: ['LAL', 'BOS'],
-          metadata: { playersTraded: ['austin_reaves'] },
+          metadata: { playerId: 'austin_reaves' },
         },
       ],
       loading: false,
@@ -466,6 +511,7 @@ describe('Team History world events integration', () => {
       <TeamHistoryTab
         teamCapSheet={teamCapSheet}
         worldId="world_lal"
+        onPlayerAction={vi.fn()}
         resolvePlayerLabel={(playerId) =>
           playerId === 'austin_reaves' ? 'Austin Reaves' : playerId
         }
@@ -481,6 +527,9 @@ describe('Team History world events integration', () => {
     expect(
       screen.getByTestId('team-history-detail-modal')
     ).not.toHaveTextContent('austin_reaves');
+    expect(
+      screen.getByTestId('team-history-player-austin_reaves-actions-overflow')
+    ).toBeInTheDocument();
   });
 
   it('resolves names for events with diff-summary-only player IDs', () => {
