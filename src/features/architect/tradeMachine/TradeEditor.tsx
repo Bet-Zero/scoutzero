@@ -1132,15 +1132,14 @@ export const TradeEditor = ({
         <TradeVerdictStrip
           items={
             needsInputVerdict
-              ? verdictItems.filter(
-                  (item) =>
-                    item !== needsInputVerdict &&
-                    !(
-                      item.kind === 'needsInput' &&
+              ? verdictItems.filter((item) => {
+                  const duplicatesReadiness =
+                    item === needsInputVerdict ||
+                    (item.kind === 'needsInput' &&
                       (needsInputVerdict.text.endsWith(item.text) ||
-                        item.text.endsWith(needsInputVerdict.text))
-                    )
-                )
+                        item.text.endsWith(needsInputVerdict.text)));
+                  return Boolean(item.teamName) || !duplicatesReadiness;
+                })
               : verdictItems
           }
         />

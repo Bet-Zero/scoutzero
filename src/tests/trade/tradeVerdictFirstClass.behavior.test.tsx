@@ -475,6 +475,24 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
                 },
               },
             },
+            {
+              teamName: 'Boston Celtics',
+              rules: {
+                stepienRule: {
+                  passed: false,
+                  status: 'NEEDS_INPUT',
+                  evaluated: false,
+                  message:
+                    'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
+                  violations: [
+                    {
+                      message:
+                        'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
+                    },
+                  ],
+                },
+              },
+            },
           ],
           dataWarnings: [],
           hasDataIssues: false,
@@ -490,7 +508,10 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
     expect(screen.getByTestId('trade-readiness-summary')).toHaveTextContent(
       'Stepien eligibility cannot be confirmed'
     );
-    expect(screen.queryByTestId('trade-verdict-strip')).not.toBeInTheDocument();
+    const strip = screen.getByTestId('trade-verdict-strip');
+    expect(strip).toHaveTextContent('Los Angeles Lakers');
+    expect(strip).toHaveTextContent('Boston Celtics');
+    expect(strip).toHaveTextContent('Stepien eligibility cannot be confirmed');
     expect(
       screen.getByRole('button', { name: /^Apply Trade$/i })
     ).toBeDisabled();

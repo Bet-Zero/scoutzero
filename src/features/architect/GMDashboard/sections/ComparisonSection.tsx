@@ -111,12 +111,12 @@ const RosterList = ({
   }
   return (
     <ul className="space-y-0.5">
-      {entries.map((entry) => (
+      {entries.map((entry, index) => (
         <li
           key={entry.playerId}
           className="text-xs text-cockpit-text-secondary"
         >
-          {entry.displayName || 'Player'}
+          {entry.displayName || `Player details unavailable (${index + 1})`}
         </li>
       ))}
     </ul>

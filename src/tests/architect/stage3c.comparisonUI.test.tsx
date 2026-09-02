@@ -296,6 +296,30 @@ describe('ComparisonSection — with committed events', () => {
     expect(chgEl).not.toHaveTextContent('player_c');
   });
 
+  it('keeps unresolved roster rows distinct without exposing player IDs', () => {
+    const viewModel = makeViewModelWithEvents();
+    viewModel.rosterAdditions = [
+      {
+        playerId: 'historical_player_1',
+        displayName: null,
+        authority: 'committed-world / event-derived',
+      },
+      {
+        playerId: 'custom_player_2',
+        displayName: null,
+        authority: 'committed-world / event-derived',
+      },
+    ];
+
+    render(<ComparisonSection status="available" viewModel={viewModel} />);
+
+    const additions = screen.getByTestId('comparison-roster-additions');
+    expect(additions).toHaveTextContent('Player details unavailable (1)');
+    expect(additions).toHaveTextContent('Player details unavailable (2)');
+    expect(additions).not.toHaveTextContent('historical_player_1');
+    expect(additions).not.toHaveTextContent('custom_player_2');
+  });
+
   it('keeps internal comparison terminology out of normal mode', () => {
     render(
       <ComparisonSection
