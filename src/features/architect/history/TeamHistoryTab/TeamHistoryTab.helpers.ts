@@ -124,7 +124,10 @@ const eventPlayerIds = (event: Record<string, unknown>): string[] => {
   const directPlayerIds = eventStringList(event, 'playerIds');
   const metadata = asRecord(event.metadata);
   const metadataPlayerIds = metadata
-    ? eventStringList(metadata, 'playerIds', 'playersTraded')
+    ? [
+        ...eventStringList(metadata, 'playerIds'),
+        ...eventStringList(metadata, 'playersTraded'),
+      ]
     : [];
   const mutationMetadata = asRecord(event.mutationMetadata);
   const singlePlayerIds = [mutationMetadata?.playerId, metadata?.playerId]

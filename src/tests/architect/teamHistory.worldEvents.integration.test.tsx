@@ -293,6 +293,12 @@ describe('Team History world events integration', () => {
     const participantEvidence = [
       { metadata: { playerIds: ['player_1'] } },
       { metadata: { playersTraded: ['player_1'] } },
+      {
+        metadata: {
+          playerIds: ['other_metadata_player'],
+          playersTraded: ['player_1'],
+        },
+      },
       { diffSummary: { playersMoved: ['player_1'] } },
       { metadata: { playerId: 'player_1' } },
       { mutationMetadata: { playerId: 'player_1' } },
