@@ -123,6 +123,31 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
     expect(onPlayerAction).not.toHaveBeenCalled();
   });
 
+  it('resolves IDs only in player detail fields without rewriting ordinary prose', () => {
+    render(
+      <HistoryDetailModal
+        selectedEntry={{
+          ...tradeEntry,
+          entry: {
+            ...tradeEntry.entry,
+            playerIds: ['cap'],
+            detailSections: [
+              { title: 'Player', lines: ['cap'] },
+              { title: 'Waiver', lines: ['Dead cap amount: $1,000'] },
+            ],
+          },
+        }}
+        onClose={vi.fn()}
+        resolvePlayerLabel={(id) => (id === 'cap' ? 'Cap Player' : id)}
+      />
+    );
+
+    const modal = screen.getByTestId('team-history-detail-modal');
+    expect(modal).toHaveTextContent('Cap Player');
+    expect(modal).toHaveTextContent('Dead cap amount: $1,000');
+    expect(modal).not.toHaveTextContent('Dead Cap Player amount: $1,000');
+  });
+
   it('shows a deferred unavailable message for draft/asset events (no fake link)', () => {
     const draftEntry: TeamHistorySelectedEntry = {
       ...tradeEntry,

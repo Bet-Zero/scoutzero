@@ -54,6 +54,22 @@ const uniqueStrings = (values: string[]): string[] => {
   return result;
 };
 
+const replaceCompleteToken = (
+  value: string,
+  token: string,
+  replacement: string
+) => {
+  const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const boundedToken = new RegExp(
+    `(^|[^A-Za-z0-9])${escapedToken}(?=$|[^A-Za-z0-9])`,
+    'g'
+  );
+  return value.replace(
+    boundedToken,
+    (_match, prefix: string) => `${prefix}${replacement}`
+  );
+};
+
 const getDisplayText = (value: unknown) => {
   if (typeof value === 'string') {
     const trimmed = value.trim();
@@ -362,18 +378,26 @@ export const HistoryDetailModal = ({
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
     window.localStorage?.getItem(DEV_TEAM_HISTORY_FIXTURE_FLAG) === 'true';
-  const presentDetailLine = (line: unknown) => {
+  const presentDetailLine = (line: unknown, resolvePlayers = false) => {
     let presentedLine = String(line ?? '');
-    normalizedPlayerIds.forEach((playerId) => {
-      const resolvedLabel = resolvePlayerLabel?.(playerId);
-      const safeLabel =
-        resolvedLabel && resolvedLabel !== playerId ? resolvedLabel : 'Player';
-      presentedLine = presentedLine.replaceAll(playerId, safeLabel);
-    });
+    if (resolvePlayers) {
+      normalizedPlayerIds.forEach((playerId) => {
+        const resolvedLabel = resolvePlayerLabel?.(playerId);
+        const safeLabel =
+          resolvedLabel && resolvedLabel !== playerId
+            ? resolvedLabel
+            : 'Player';
+        presentedLine = replaceCompleteToken(
+          presentedLine,
+          playerId,
+          safeLabel
+        );
+      });
+    }
     normalizedTeamCodes.forEach((teamCode) => {
       const teamName = TEAM_NAME_BY_CODE.get(teamCode.toUpperCase());
       if (teamName) {
-        presentedLine = presentedLine.replaceAll(teamCode, teamName);
+        presentedLine = replaceCompleteToken(presentedLine, teamCode, teamName);
       }
     });
     return presentedLine;
@@ -475,8 +499,17 @@ export const HistoryDetailModal = ({
   const visibleDetailSections = showDeveloperDetail
     ? detailSections
     : detailSections.flatMap((section) => {
-        if (/^players?$/i.test(section.title || '') && onPlayerAction) {
-          return [];
+        if (/^players?$/i.test(section.title || '')) {
+          return onPlayerAction
+            ? []
+            : [
+                {
+                  ...section,
+                  lines: (section.lines || []).map((line) =>
+                    presentDetailLine(line, true)
+                  ),
+                },
+              ];
         }
         if (/^picks?$/i.test(section.title || '')) {
           return [
@@ -490,7 +523,7 @@ export const HistoryDetailModal = ({
         if (/cash consideration receipt/i.test(section.title || '')) {
           const cashLines = (section.lines || [])
             .filter((line) => /\b(?:paid|received)\b/i.test(String(line)))
-            .map(presentDetailLine);
+            .map((line) => presentDetailLine(line));
           return cashLines.length > 0
             ? [{ ...section, title: 'Cash', lines: cashLines }]
             : [];
@@ -501,7 +534,7 @@ export const HistoryDetailModal = ({
         return [
           {
             ...section,
-            lines: (section.lines || []).map(presentDetailLine),
+            lines: (section.lines || []).map((line) => presentDetailLine(line)),
           },
         ];
       });
