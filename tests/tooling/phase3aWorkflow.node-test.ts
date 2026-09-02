@@ -346,6 +346,14 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
   assert.match(certificationHarness, /waitForCleanTeardown/);
   assert.match(certificationHarness, /collectGovernedScreenshotArtifacts/);
   assert.match(certificationHarness, /verifyGovernedScreenshotArtifacts/);
+  assert.match(
+    certificationHarness,
+    /result\.status === 0 &&\s+screenshotVerification\.valid/
+  );
+  assert.equal(
+    certificationHarness.match(/\.\.\.screenshotArtifacts/g)?.length,
+    1
+  );
   assert.match(certificationHarness, /hashFile\(proofPath\)/);
   assert.match(certificationHarness, /manifest\.json/);
 
@@ -398,20 +406,28 @@ test('Trade Receipt certification binds all eight governed screenshots', async (
   );
   const artifactDir = path.join(tempRoot, 'artifacts');
   fs.mkdirSync(artifactDir);
-  const originalBytes = await sharp({
-    create: {
-      width: 1280,
-      height: 720,
-      channels: 4,
-      background: { r: 18, g: 52, b: 86, alpha: 1 },
-    },
-  })
-    .png()
-    .toBuffer();
+  const originalBytes = new Map<string, Buffer>();
 
   try {
-    for (const { filename } of GOVERNED_TRADE_RECEIPT_SCREENSHOTS) {
-      fs.writeFileSync(path.join(artifactDir, filename), originalBytes);
+    for (const [index, { filename }] of
+      GOVERNED_TRADE_RECEIPT_SCREENSHOTS.entries()) {
+      const screenshotBytes = await sharp({
+        create: {
+          width: 1280,
+          height: 720,
+          channels: 4,
+          background: {
+            r: 18 + index,
+            g: 52 + index,
+            b: 86 + index,
+            alpha: 1,
+          },
+        },
+      })
+        .png()
+        .toBuffer();
+      originalBytes.set(filename, screenshotBytes);
+      fs.writeFileSync(path.join(artifactDir, filename), screenshotBytes);
     }
 
     const artifacts = collectGovernedScreenshotArtifacts(
@@ -425,6 +441,12 @@ test('Trade Receipt certification binds all eight governed screenshots', async (
       assert.equal(receipt.path, path.join('artifacts', filename));
       assert.match(receipt.sha256, /^[a-f0-9]{64}$/);
     }
+    assert.equal(
+      new Set(
+        Object.values(artifacts).map((receipt) => receipt?.sha256)
+      ).size,
+      8
+    );
     assert.deepEqual(
       await verifyGovernedScreenshotArtifacts(
         artifactDir,
@@ -453,7 +475,7 @@ test('Trade Receipt certification binds all eight governed screenshots', async (
         false,
         `removing ${filename} must prevent certification`
       );
-      fs.writeFileSync(filePath, originalBytes);
+      fs.writeFileSync(filePath, originalBytes.get(filename)!);
     }
 
     const recorded = collectGovernedScreenshotArtifacts(
@@ -478,7 +500,7 @@ test('Trade Receipt certification binds all eight governed screenshots', async (
           error.includes(`${filename} bytes do not match`)
         )
       );
-      fs.writeFileSync(filePath, originalBytes);
+      fs.writeFileSync(filePath, originalBytes.get(filename)!);
     }
 
     const corruptFilename = GOVERNED_TRADE_RECEIPT_SCREENSHOTS[3].filename;
@@ -499,7 +521,10 @@ test('Trade Receipt certification binds all eight governed screenshots', async (
       )
     );
 
-    fs.writeFileSync(path.join(artifactDir, corruptFilename), originalBytes);
+    fs.writeFileSync(
+      path.join(artifactDir, corruptFilename),
+      originalBytes.get(corruptFilename)!
+    );
     const wrongSizeFilename =
       GOVERNED_TRADE_RECEIPT_SCREENSHOTS[4].filename;
     const wrongSizeBytes = await sharp({
