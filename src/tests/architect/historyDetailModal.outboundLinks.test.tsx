@@ -138,6 +138,13 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
             timestamp: '2026-09-02T14:30:00.000Z',
             detailSections: [
               { title: 'Players', lines: ['Austin Reaves'] },
+              {
+                title: 'Picks',
+                lines: [
+                  'LAL: out proof-entitlement-LAL-2027-second-round',
+                  'BOS: in proof-entitlement-LAL-2027-second-round',
+                ],
+              },
               { title: 'Trade Receipt', lines: ['Receipt: GOV-raw'] },
               {
                 title: 'Cash Consideration Receipt',
@@ -163,12 +170,19 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
     expect(modal).toHaveTextContent('Boston Celtics');
     expect(modal).toHaveTextContent('Austin Reaves');
     expect(modal).toHaveTextContent(
+      'Sent by Los Angeles Lakers: 2027 second-round pick'
+    );
+    expect(modal).toHaveTextContent(
+      'Received by Boston Celtics: 2027 second-round pick'
+    );
+    expect(modal).toHaveTextContent(
       'Los Angeles Lakers paid $1.00 to Boston Celtics'
     );
     expect(modal).not.toHaveTextContent('Authoritative world-event row');
     expect(modal).not.toHaveTextContent('Mutation Type');
     expect(modal).not.toHaveTextContent('GOV-event');
     expect(modal).not.toHaveTextContent('austin_reaves');
+    expect(modal).not.toHaveTextContent('proof-entitlement');
     expect(modal).not.toHaveTextContent('Trade Receipt');
     expect(modal).not.toHaveTextContent('GOV-cash-raw');
     expect(modal).not.toHaveTextContent('Persistence verification');

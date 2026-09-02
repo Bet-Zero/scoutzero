@@ -1750,7 +1750,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     await expect(historyDetail).toContainText('Miami Heat');
     await expect(historyDetail).toContainText('Denver Nuggets');
     await expect(historyDetail).not.toContainText(
-      /AUTHORITATIVE WORLD-EVENT ROW|mutation type|raw payload|normalized|receipt ID|governed|proof_/i
+      /AUTHORITATIVE WORLD-EVENT ROW|mutation type|raw payload|normalized|receipt ID|governed|proof[-_]|entitlement/i
     );
     await expect(
       historyDetail.getByTestId('team-history-detail-timestamp')

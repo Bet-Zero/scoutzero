@@ -365,9 +365,53 @@ export const HistoryDetailModal = ({
     });
     return presentedLine;
   };
+  const presentDraftAssetLine = (line: unknown) => {
+    const rawLine = String(line ?? '');
+    const prefixedTeamCode = rawLine.match(/^([A-Z]{2,3}):/i)?.[1];
+    const teamCode =
+      normalizedTeamCodes.find(
+        (code) => code.toUpperCase() === prefixedTeamCode?.toUpperCase()
+      ) ||
+      normalizedTeamCodes.find((code) =>
+        new RegExp(`(?:^|\\W)${code}(?:\\W|$)`, 'i').test(rawLine)
+      );
+    const teamName = teamCode
+      ? TEAM_NAME_BY_CODE.get(teamCode.toUpperCase()) || teamCode
+      : 'Team';
+    const year = rawLine.match(/\b(20\d{2})\b/)?.[1];
+    const round = rawLine.match(/\b(first|second|1st|2nd|1|2)[-_\s]*round\b/i)?.[1];
+    const roundLabel = /^(?:first|1st|1)$/i.test(round || '')
+      ? 'first-round'
+      : /^(?:second|2nd|2)$/i.test(round || '')
+        ? 'second-round'
+        : null;
+
+    if (!year || !roundLabel) {
+      return `${teamName} draft pick included in this move`;
+    }
+    if (/\bout\b/i.test(rawLine)) {
+      return `Sent by ${teamName}: ${year} ${roundLabel} pick`;
+    }
+    if (/\bin\b/i.test(rawLine)) {
+      return `Received by ${teamName}: ${year} ${roundLabel} pick`;
+    }
+    return `${teamName} ${year} ${roundLabel} pick`;
+  };
   const visibleDetailSections = showDeveloperDetail
     ? detailSections
     : detailSections.flatMap((section) => {
+        if (/^players?$/i.test(section.title || '') && onPlayerAction) {
+          return [];
+        }
+        if (/^picks?$/i.test(section.title || '')) {
+          return [
+            {
+              ...section,
+              title: 'Draft picks',
+              lines: (section.lines || []).map(presentDraftAssetLine),
+            },
+          ];
+        }
         if (/cash consideration receipt/i.test(section.title || '')) {
           const cashLines = (section.lines || [])
             .filter((line) => /\b(?:paid|received)\b/i.test(String(line)))
