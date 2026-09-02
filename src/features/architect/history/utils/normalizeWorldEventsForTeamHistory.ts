@@ -54,18 +54,23 @@ function sanitizePlayerTokensInSummary(
     }))
     .filter(({ playerToken, replacement }) => replacement !== playerToken);
 
-  for (const { escapedToken } of replacements) {
+  for (const { playerToken, escapedToken } of replacements) {
     const boundedToken = new RegExp(
       `(^|[^A-Za-z0-9_])${escapedToken}(?=$|[^A-Za-z0-9_])`,
       'g'
     );
     const occurrenceCount = Array.from(summary.matchAll(boundedToken)).length;
 
-    // A repeated token can be both a schema-valid player id and ordinary prose
-    // (for example, "cap: Dead cap amount changed"). Without trustworthy
-    // occurrence-level provenance, reject that raw summary and let the
-    // structured event fallback render instead of guessing.
-    if (occurrenceCount > 1) return null;
+    // A plain word or repeated token can be both a schema-valid player id and
+    // ordinary prose (for example, "Dead cap amount changed"). Without
+    // trustworthy occurrence-level provenance, reject that raw summary and
+    // let the structured event fallback render instead of guessing.
+    if (
+      occurrenceCount > 1 ||
+      (occurrenceCount > 0 && /^[A-Za-z]+$/.test(playerToken))
+    ) {
+      return null;
+    }
   }
 
   if (replacements.length === 0) return summary;

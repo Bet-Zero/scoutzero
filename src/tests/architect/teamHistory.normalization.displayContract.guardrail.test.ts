@@ -432,6 +432,19 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
         playerNameLookup: { cap: 'Cap Player' },
       }
     );
+    const singleOccurrenceShortIdSummaryRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:00:30.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['cap'],
+        metadata: { summary: 'Dead cap amount changed' },
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: { cap: 'Cap Player' },
+      }
+    );
     const repeatedIdSummaryRow = toTeamHistoryEventDisplay(
       {
         mutationType: 'executeTrade',
@@ -486,6 +499,15 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
     expect(shortIdSummaryRow.summary).toBe('Trade Executed: LAL ↔ BOS');
     expect(shortIdSummaryRow.summary).not.toContain('Dead Cap Player');
     expect(shortIdSummaryRow.primaryDeltas).not.toContain('cap');
+    expect(singleOccurrenceShortIdSummaryRow.summary).toBe(
+      'Trade Executed: LAL ↔ BOS'
+    );
+    expect(singleOccurrenceShortIdSummaryRow.primaryDeltas).toBe(
+      'Trade Executed: LAL ↔ BOS'
+    );
+    expect(singleOccurrenceShortIdSummaryRow.summary).not.toContain(
+      'Cap Player'
+    );
     expect(repeatedIdSummaryRow.summary).toBe('Trade Executed: LAL ↔ BOS');
     expect(repeatedIdSummaryRow.primaryDeltas).toBe(
       'Trade Executed: LAL ↔ BOS'
