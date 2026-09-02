@@ -274,6 +274,7 @@ export function toTeamHistoryEventDisplay(
           ...metadataPlayerIds,
           ...metadataPlayersTraded,
           ...(metadataPlayerId ? [metadataPlayerId] : []),
+          ...(metadataPlayerName ? [metadataPlayerName] : []),
         ],
         formatEventPlayerLabel
       )
