@@ -132,7 +132,7 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
             ...tradeEntry.entry,
             playerIds: ['cap'],
             detailSections: [
-              { title: 'Player', lines: ['cap'] },
+              { title: 'Player', lines: ['cap', 'dead_cap'] },
               { title: 'Waiver', lines: ['Dead cap amount: $1,000'] },
             ],
           },
@@ -144,6 +144,8 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
 
     const modal = screen.getByTestId('team-history-detail-modal');
     expect(modal).toHaveTextContent('Cap Player');
+    expect(modal).toHaveTextContent('dead_cap');
+    expect(modal).not.toHaveTextContent('dead_Cap Player');
     expect(modal).toHaveTextContent('Dead cap amount: $1,000');
     expect(modal).not.toHaveTextContent('Dead Cap Player amount: $1,000');
   });

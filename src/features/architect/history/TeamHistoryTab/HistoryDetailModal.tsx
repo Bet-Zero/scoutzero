@@ -61,7 +61,7 @@ const replaceCompleteToken = (
 ) => {
   const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const boundedToken = new RegExp(
-    `(^|[^A-Za-z0-9])${escapedToken}(?=$|[^A-Za-z0-9])`,
+    `(^|[^A-Za-z0-9_])${escapedToken}(?=$|[^A-Za-z0-9_])`,
     'g'
   );
   return value.replace(
