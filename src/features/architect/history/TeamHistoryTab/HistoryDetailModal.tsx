@@ -542,18 +542,21 @@ export const HistoryDetailModal = ({
             <ul className="flex flex-col gap-1">
               {normalizedPlayerIds.map((playerId) => {
                 const resolvedLabel = resolvePlayerLabel?.(playerId);
-                const label =
+                const hasResolvedLabel = Boolean(
                   resolvedLabel && resolvedLabel !== playerId
-                    ? resolvedLabel
-                    : 'Player';
+                );
+                const label = hasResolvedLabel
+                  ? resolvedLabel
+                  : 'Player details unavailable';
                 const movement = movementByPlayerId.get(playerId);
-                const context = buildPlayerActionContext({
-                  player: { id: playerId },
-                  playerLabel: label,
-                  sourceRoom: 'history',
-                  eventId: eventIdForContext,
-                });
-                if (!context) return null;
+                const context = hasResolvedLabel
+                  ? buildPlayerActionContext({
+                      player: { id: playerId },
+                      playerLabel: label,
+                      sourceRoom: 'history',
+                      eventId: eventIdForContext,
+                    })
+                  : null;
                 return (
                   <li
                     key={playerId}
@@ -573,23 +576,38 @@ export const HistoryDetailModal = ({
                         </span>
                       ) : null}
                     </span>
-                    <PlayerActionMenu
-                      context={context}
-                      visibleActions={[]}
-                      overflowActions={[
-                        'view-on-roster',
-                        'view-on-cap',
-                        'view-in-full-cap',
-                        'compare-impact',
-                        'guide-next-move',
-                      ]}
-                      menuAlign="left"
-                      testIdPrefix={`team-history-player-${playerId}-actions`}
-                      onAction={(action, ctx) => {
-                        onPlayerAction(action, ctx);
-                        onClose();
-                      }}
-                    />
+                    {context ? (
+                      <PlayerActionMenu
+                        context={context}
+                        visibleActions={[]}
+                        overflowActions={[
+                          'view-on-roster',
+                          'view-on-cap',
+                          'view-in-full-cap',
+                          'compare-impact',
+                          'guide-next-move',
+                        ]}
+                        menuAlign="left"
+                        testIdPrefix={`team-history-player-${playerId}-actions`}
+                        onAction={(action, ctx) => {
+                          onPlayerAction(action, ctx);
+                          onClose();
+                        }}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        aria-label="Player actions unavailable until player details can be resolved"
+                        title="Player actions unavailable until player details can be resolved"
+                        className="flex h-5 w-5 shrink-0 cursor-not-allowed items-center justify-center rounded text-cockpit-text-muted opacity-50"
+                        data-testid={`team-history-player-${playerId}-actions-overflow`}
+                      >
+                        <span aria-hidden className="text-sm leading-none">
+                          ⋯
+                        </span>
+                      </button>
+                    )}
                   </li>
                 );
               })}

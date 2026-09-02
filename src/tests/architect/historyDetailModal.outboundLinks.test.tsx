@@ -90,6 +90,39 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
     );
   });
 
+  it('keeps unresolved historical player actions disabled without exposing IDs', () => {
+    const onPlayerAction = vi.fn();
+    const unresolvedEntry: TeamHistorySelectedEntry = {
+      ...tradeEntry,
+      entry: {
+        ...tradeEntry.entry,
+        playerIds: ['historical_player_1', 'custom_player_2'],
+      },
+    };
+
+    render(
+      <HistoryDetailModal
+        selectedEntry={unresolvedEntry}
+        onClose={vi.fn()}
+        onPlayerAction={onPlayerAction}
+        resolvePlayerLabel={(id) => id}
+      />
+    );
+
+    expect(screen.getAllByText('Player details unavailable')).toHaveLength(2);
+    expect(screen.queryByText('historical_player_1')).not.toBeInTheDocument();
+    expect(screen.queryByText('custom_player_2')).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(
+        'team-history-player-historical_player_1-actions-overflow'
+      )
+    ).toBeDisabled();
+    expect(
+      screen.getByTestId('team-history-player-custom_player_2-actions-overflow')
+    ).toBeDisabled();
+    expect(onPlayerAction).not.toHaveBeenCalled();
+  });
+
   it('shows a deferred unavailable message for draft/asset events (no fake link)', () => {
     const draftEntry: TeamHistorySelectedEntry = {
       ...tradeEntry,
