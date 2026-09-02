@@ -106,12 +106,14 @@ describe('tradeValidator edge cases', () => {
 
     expect(result.legal).toBe(false);
     expect(result.reason).toContain('Needs input');
-    expect(result.reason).toContain('governed ownership');
+    expect(result.reason).toContain(
+      'complete protection and conveyance history is unavailable'
+    );
     expect(result.reason).not.toContain('CBA2-A12.3');
     expect(result.teamResults[0].legal).toBe(false);
     expect(result.teamResults[0].rules.stepienRule.passed).toBe(false);
     expect(issueTexts(result.teamResults[0].violations)[0]).toContain(
-      'governed ownership'
+      'complete protection and conveyance history is unavailable'
     );
   });
 
