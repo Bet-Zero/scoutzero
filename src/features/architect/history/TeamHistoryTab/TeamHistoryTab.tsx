@@ -1,9 +1,4 @@
-import React, {
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import React, { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { WaiveStretchTracker } from '@/features/architect/offseason/WaiveStretchTracker';
 import { ExceptionHistoryTracker } from '@/features/architect/capSheet/ExceptionHistoryTracker';
 import { DraftPickTracker } from '@/features/architect/offseason/DraftPickTracker';
@@ -77,10 +72,7 @@ const TimelineEntryCards = ({
           className="group w-full rounded-lg border border-cockpit-edge bg-cockpit-slab p-3 text-left shadow-cockpit-slab transition-colors hover:border-cockpit-text-muted hover:bg-cockpit-raised focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
         >
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <div
-              data-testid="team-history-event-summary"
-              className="min-w-0"
-            >
+            <div data-testid="team-history-event-summary" className="min-w-0">
               <span
                 data-testid={`team-history-row-${idx}`}
                 className="block truncate text-sm font-bold text-cockpit-text-primary"

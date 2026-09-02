@@ -106,11 +106,13 @@ const eventStringList = (
   primaryField: string,
   fallbackField?: string
 ): string[] => {
-  const candidate = event[primaryField] ??
-    (fallbackField ? event[fallbackField] : null);
+  const candidate =
+    event[primaryField] ?? (fallbackField ? event[fallbackField] : null);
   if (!Array.isArray(candidate)) return [];
   return Array.from(
-    new Set(candidate.map((value) => String(value || '').trim()).filter(Boolean))
+    new Set(
+      candidate.map((value) => String(value || '').trim()).filter(Boolean)
+    )
   );
 };
 
@@ -176,10 +178,7 @@ export const resolveReliableTradePlayerMovements = ({
   const selectedTime = parseTimelineTimestamp(
     selectedEvent.occurredAt ?? selectedEvent.timestamp
   );
-  if (
-    playerIds.length === 0 ||
-    selectedTime === Number.NEGATIVE_INFINITY
-  ) {
+  if (playerIds.length === 0 || selectedTime === Number.NEGATIVE_INFINITY) {
     return [];
   }
 
@@ -189,11 +188,10 @@ export const resolveReliableTradePlayerMovements = ({
     if (!eventPlayerIds.some((playerId) => playerIds.includes(playerId))) {
       continue;
     }
-    const eventTime = parseTimelineTimestamp(event.occurredAt ?? event.timestamp);
-    if (
-      eventTime === Number.NEGATIVE_INFINITY ||
-      eventTime >= selectedTime
-    ) {
+    const eventTime = parseTimelineTimestamp(
+      event.occurredAt ?? event.timestamp
+    );
+    if (eventTime === Number.NEGATIVE_INFINITY || eventTime >= selectedTime) {
       return [];
     }
   }

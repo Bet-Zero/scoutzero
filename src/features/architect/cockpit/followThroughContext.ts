@@ -86,8 +86,8 @@ const WARNING_OBJECTIVE: Record<FollowThroughWarning, string> = {
 export function buildFollowThroughContext(
   input: FollowThroughContext
 ): FollowThroughContext {
-  const playerIds = (input.playerIds ?? []).filter(
-    (id): id is string => Boolean(id && id.trim())
+  const playerIds = (input.playerIds ?? []).filter((id): id is string =>
+    Boolean(id && id.trim())
   );
   const context: FollowThroughContext = { origin: input.origin };
   if (input.teamCode) context.teamCode = input.teamCode;
@@ -102,7 +102,8 @@ export function buildFollowThroughContext(
   if (input.multiSeason || input.origin === 'season-advance') {
     context.multiSeason = true;
   }
-  if (input.unavailableReason) context.unavailableReason = input.unavailableReason;
+  if (input.unavailableReason)
+    context.unavailableReason = input.unavailableReason;
   return context;
 }
 

@@ -28,7 +28,9 @@ describe('TradeSalaryPathElection owner-facing presentation', () => {
       screen.getByLabelText('Austin Reaves exact pre-trade Salary')
     ).toHaveValue('$12,345,678');
     expect(screen.queryByText(/governed input/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/generic matching estimate/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/generic matching estimate/i)
+    ).not.toBeInTheDocument();
   });
 
   it('accepts a plain amount while focused and returns the numeric value', () => {

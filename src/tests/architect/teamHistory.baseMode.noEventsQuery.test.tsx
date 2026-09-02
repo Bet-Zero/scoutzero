@@ -145,11 +145,11 @@ describe('Team History base mode no-events query', () => {
     expect(
       screen.getByTestId('team-history-detail-sections')
     ).not.toHaveTextContent('Timestamp sourced from timestamp');
-    expect(screen.getByTestId('team-history-detail-sections')).toHaveTextContent(
-      'Action: consumeTradeException'
-    );
-    expect(screen.getByTestId('team-history-detail-sections')).toHaveTextContent(
-      'Counterparty: Boston Celtics'
-    );
+    expect(
+      screen.getByTestId('team-history-detail-sections')
+    ).toHaveTextContent('Action: consumeTradeException');
+    expect(
+      screen.getByTestId('team-history-detail-sections')
+    ).toHaveTextContent('Counterparty: Boston Celtics');
   });
 });

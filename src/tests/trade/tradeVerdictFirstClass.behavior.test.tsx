@@ -122,8 +122,7 @@ const blockedDetails = {
           passed: false,
           violations: [
             {
-              message:
-                'Second apron team cannot receive more salary than sent',
+              message: 'Second apron team cannot receive more salary than sent',
             },
           ],
         },
@@ -138,7 +137,10 @@ afterEach(cleanup);
 
 describe('buildVerdictItems — team-attributed verdict flattening', () => {
   it('maps failed rules to team-attributed violations with rule labels', () => {
-    const items = buildVerdictItems(blockedDetails.teamResults, blockedAuthority);
+    const items = buildVerdictItems(
+      blockedDetails.teamResults,
+      blockedAuthority
+    );
     expect(items).toEqual([
       {
         teamName: 'Miami Heat',
@@ -397,7 +399,9 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
     expect(readiness).toHaveTextContent('Not validated');
     expect(readiness).not.toHaveTextContent('Incomplete preview authority');
     expect(screen.queryByTestId('trade-verdict-strip')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Apply Trade$/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /^Apply Trade$/i })
+    ).toBeDisabled();
   });
 
   it('shows Needs input and blocks Apply for an unevaluated first-round rule', () => {

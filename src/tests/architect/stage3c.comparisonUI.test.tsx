@@ -50,10 +50,14 @@ const makeScopeViewModel = (
   taxApronPostureDelta: null,
   exceptionDelta: {
     status: 'deferred',
-    reason: 'Exception delta is not reliably derivable from the current event stream.',
+    reason:
+      'Exception delta is not reliably derivable from the current event stream.',
   },
   changedTeams: { teamCodes: [], authority: 'committed-world / event-derived' },
-  changedPlayers: { playerIds: [], authority: 'committed-world / event-derived' },
+  changedPlayers: {
+    playerIds: [],
+    authority: 'committed-world / event-derived',
+  },
   committedEventCount: 0,
   committedEventReferences: [],
   isMultiSeasonComparison: false,
@@ -123,19 +127,16 @@ const makeViewModelWithEvents = (): Stage3ComparisonViewModel =>
 
 describe('ComparisonSection — sandbox state', () => {
   it('renders sandbox message when status is sandbox', () => {
-    render(
-      <ComparisonSection
-        status="sandbox"
-        viewModel={null}
-      />
-    );
+    render(<ComparisonSection status="sandbox" viewModel={null} />);
     expect(screen.getByTestId('comparison-sandbox-state')).toBeInTheDocument();
     expect(screen.getByText(/requires a saved world/i)).toBeInTheDocument();
   });
 
   it('does not render available content in sandbox state', () => {
     render(<ComparisonSection status="sandbox" viewModel={null} />);
-    expect(screen.queryByTestId('comparison-available')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('comparison-available')
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -210,7 +211,9 @@ describe('ComparisonSection — no committed events', () => {
     render(
       <ComparisonSection status="available" viewModel={makeScopeViewModel()} />
     );
-    expect(screen.getByTestId('comparison-unavailable-summary')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('comparison-unavailable-summary')
+    ).toBeInTheDocument();
     expect(screen.getByText(/Cap totals/)).toBeInTheDocument();
     expect(screen.getByText(/Draft picks/)).toBeInTheDocument();
   });
@@ -312,7 +315,9 @@ describe('ComparisonSection — with committed events', () => {
         viewModel={makeViewModelWithEvents()}
       />
     );
-    expect(screen.queryByTestId('comparison-empty-state')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('comparison-empty-state')
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -336,7 +341,9 @@ describe('ComparisonSection — cap delta', () => {
   it('does not render cap delta section when capTotalDelta is null', () => {
     const vm = makeScopeViewModel({ committedEventCount: 1 });
     render(<ComparisonSection status="available" viewModel={vm} />);
-    expect(screen.queryByTestId('comparison-cap-delta')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('comparison-cap-delta')
+    ).not.toBeInTheDocument();
   });
 
   it('renders cap space delta with correct sign', () => {
@@ -400,7 +407,9 @@ describe('ComparisonSection — apron posture', () => {
   it('does not render apron section when taxApronPostureDelta is null', () => {
     const vm = makeScopeViewModel({ committedEventCount: 1 });
     render(<ComparisonSection status="available" viewModel={vm} />);
-    expect(screen.queryByTestId('comparison-apron-delta')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('comparison-apron-delta')
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -526,10 +535,7 @@ describe('ComparisonSection — navigation buttons', () => {
 
   it('does not render nav buttons when callbacks are not provided', () => {
     render(
-      <ComparisonSection
-        status="available"
-        viewModel={makeScopeViewModel()}
-      />
+      <ComparisonSection status="available" viewModel={makeScopeViewModel()} />
     );
     expect(
       screen.queryByTestId('comparison-nav-history')

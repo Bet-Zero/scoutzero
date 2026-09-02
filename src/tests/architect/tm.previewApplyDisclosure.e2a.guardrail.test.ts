@@ -131,7 +131,9 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
   // ─── ValidationDetailsPanel: Section header ───────────────────────────────
 
   it('ValidationDetailsPanel identifies the visible rule results', () => {
-    expect(validationDetailsPanelSrc).toContain('CBA rule results for each team');
+    expect(validationDetailsPanelSrc).toContain(
+      'CBA rule results for each team'
+    );
   });
 
   it('ValidationDetailsPanel preserves the final-check disclosure', () => {

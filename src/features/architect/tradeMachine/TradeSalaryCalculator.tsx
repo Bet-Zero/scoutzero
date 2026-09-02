@@ -78,7 +78,9 @@ export const TradeSalaryCalculator = ({
               min="0"
               step="0.01"
               value={counterfactualIncoming}
-              onChange={(event) => setCounterfactualIncoming(event.target.value)}
+              onChange={(event) =>
+                setCounterfactualIncoming(event.target.value)
+              }
               className="mt-1 w-full rounded border border-cockpit-edge bg-cockpit-raised px-2 py-1.5 font-mono text-cockpit-text-primary"
             />
           </label>

@@ -1751,33 +1751,19 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     await expect(historyDetail).toContainText('Denver Nuggets');
     await expect(historyDetail.getByText('Saved on')).toBeVisible();
     await expect(
-      historyDetail.getByTestId(
-        'team-history-player-mia_tobias_lund-direction'
-      )
-    ).toHaveText(
-      'Sent by Miami Heat · Received by Denver Nuggets'
-    );
+      historyDetail.getByTestId('team-history-player-mia_tobias_lund-direction')
+    ).toHaveText('Sent by Miami Heat · Received by Denver Nuggets');
     await expect(
-      historyDetail.getByTestId(
-        'team-history-player-mia_owen_frost-direction'
-      )
-    ).toHaveText(
-      'Sent by Miami Heat · Received by Denver Nuggets'
-    );
+      historyDetail.getByTestId('team-history-player-mia_owen_frost-direction')
+    ).toHaveText('Sent by Miami Heat · Received by Denver Nuggets');
     await expect(
       historyDetail.getByTestId(
         'team-history-player-den_obi_nwachukwu-direction'
       )
-    ).toHaveText(
-      'Sent by Denver Nuggets · Received by Miami Heat'
-    );
+    ).toHaveText('Sent by Denver Nuggets · Received by Miami Heat');
     await expect(
-      historyDetail.getByTestId(
-        'team-history-player-den_aaron_pike-direction'
-      )
-    ).toHaveText(
-      'Sent by Denver Nuggets · Received by Miami Heat'
-    );
+      historyDetail.getByTestId('team-history-player-den_aaron_pike-direction')
+    ).toHaveText('Sent by Denver Nuggets · Received by Miami Heat');
     await expect(historyDetail).not.toContainText(
       /AUTHORITATIVE WORLD-EVENT ROW|mutation type|raw payload|normalized|receipt ID|governed|proof[-_]|entitlement/i
     );

@@ -51,20 +51,24 @@ describe('Team History detail view integration', () => {
     expect(screen.getByTestId('team-history-detail-teams')).toHaveTextContent(
       'Boston Celtics'
     );
-    expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
-      'Synthetic DEV fixture row'
-    );
-    expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
-      'non-authoritative test data'
-    );
+    expect(
+      screen.getByTestId('team-history-detail-truth-note')
+    ).toHaveTextContent('Synthetic DEV fixture row');
+    expect(
+      screen.getByTestId('team-history-detail-truth-note')
+    ).toHaveTextContent('non-authoritative test data');
     expect(screen.getByTestId('team-history-detail-row-id')).toHaveTextContent(
       'th-fixture-trade-BOS'
     );
-    expect(screen.getByTestId('team-history-detail-mutation-id')).toHaveTextContent(
-      'mutation-trade-BOS-001'
-    );
-    expect(screen.getByTestId('team-history-detail-event-id')).toHaveTextContent('—');
-    expect(screen.getByTestId('team-history-detail-raw-summary')).toHaveTextContent(
+    expect(
+      screen.getByTestId('team-history-detail-mutation-id')
+    ).toHaveTextContent('mutation-trade-BOS-001');
+    expect(
+      screen.getByTestId('team-history-detail-event-id')
+    ).toHaveTextContent('—');
+    expect(
+      screen.getByTestId('team-history-detail-raw-summary')
+    ).toHaveTextContent(
       'No raw payload fields were carried on this selected entry.'
     );
 
@@ -126,58 +130,60 @@ describe('Team History detail view integration', () => {
 
     fireEvent.click(screen.getByTestId('team-history-row-0'));
 
-    expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
-      'Explicit local timeline row'
-    );
+    expect(
+      screen.getByTestId('team-history-detail-truth-note')
+    ).toHaveTextContent('Explicit local timeline row');
     expect(screen.getByText('Attached Local Payload')).toBeInTheDocument();
     expect(screen.getByTestId('team-history-detail-type')).toHaveTextContent(
       'Manual Entry'
     );
-    expect(screen.getByTestId('team-history-detail-raw-type')).toHaveTextContent(
-      'rawFallbackOnly'
-    );
-    expect(screen.getByTestId('team-history-detail-mutation-type')).toHaveTextContent(
-      '—'
-    );
+    expect(
+      screen.getByTestId('team-history-detail-raw-type')
+    ).toHaveTextContent('rawFallbackOnly');
+    expect(
+      screen.getByTestId('team-history-detail-mutation-type')
+    ).toHaveTextContent('—');
     expect(screen.getByTestId('team-history-detail-teams')).toHaveTextContent(
       'Boston Celtics'
     );
-    expect(screen.getByTestId('team-history-detail-team-codes')).toHaveTextContent(
-      'BOS'
-    );
-    expect(screen.getByTestId('team-history-detail-team-codes')).not.toHaveTextContent(
-      'LAL'
-    );
-    expect(screen.getByTestId('team-history-detail-player-ids')).toHaveTextContent(
-      'player_normalized'
-    );
+    expect(
+      screen.getByTestId('team-history-detail-team-codes')
+    ).toHaveTextContent('BOS');
+    expect(
+      screen.getByTestId('team-history-detail-team-codes')
+    ).not.toHaveTextContent('LAL');
+    expect(
+      screen.getByTestId('team-history-detail-player-ids')
+    ).toHaveTextContent('player_normalized');
     expect(
       screen.getByTestId('team-history-detail-player-ids')
     ).not.toHaveTextContent('player_raw_only');
-    expect(screen.getByTestId('team-history-detail-event-id')).toHaveTextContent(
-      'evt_local_1'
-    );
-    expect(screen.getByTestId('team-history-detail-mutation-id')).toHaveTextContent(
-      'mutation_local_1'
-    );
-    expect(screen.getByTestId('team-history-detail-operation-id')).toHaveTextContent(
-      'op_local_1'
-    );
-    expect(screen.getByTestId('team-history-detail-before-totals')).toHaveTextContent(
-      '—'
-    );
-    expect(screen.getByTestId('team-history-detail-after-totals')).toHaveTextContent(
-      '—'
-    );
-    expect(screen.getByTestId('team-history-detail-cap-alignment')).toHaveTextContent(
+    expect(
+      screen.getByTestId('team-history-detail-event-id')
+    ).toHaveTextContent('evt_local_1');
+    expect(
+      screen.getByTestId('team-history-detail-mutation-id')
+    ).toHaveTextContent('mutation_local_1');
+    expect(
+      screen.getByTestId('team-history-detail-operation-id')
+    ).toHaveTextContent('op_local_1');
+    expect(
+      screen.getByTestId('team-history-detail-before-totals')
+    ).toHaveTextContent('—');
+    expect(
+      screen.getByTestId('team-history-detail-after-totals')
+    ).toHaveTextContent('—');
+    expect(
+      screen.getByTestId('team-history-detail-cap-alignment')
+    ).toHaveTextContent(
       'Displayed cap delta has no normalized before/after totals to reconcile against.'
     );
-    expect(screen.getByTestId('team-history-detail-raw-summary')).toHaveTextContent(
-      'Raw event ID: evt_raw_different'
-    );
-    expect(screen.getByTestId('team-history-detail-raw-summary')).toHaveTextContent(
-      'Raw playerIds: player_raw_only'
-    );
+    expect(
+      screen.getByTestId('team-history-detail-raw-summary')
+    ).toHaveTextContent('Raw event ID: evt_raw_different');
+    expect(
+      screen.getByTestId('team-history-detail-raw-summary')
+    ).toHaveTextContent('Raw playerIds: player_raw_only');
   });
 
   it('keeps one selected-entry owner driving the modal as explicit local rows change', () => {
@@ -241,13 +247,15 @@ describe('Team History detail view integration', () => {
     expect(screen.getByTestId('team-history-detail-summary')).toHaveTextContent(
       'FIRST_LOCAL_SELECTED_ENTRY'
     );
-    expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
-      'Explicit local timeline row'
-    );
-    expect(screen.getByTestId('team-history-detail-event-id')).toHaveTextContent(
-      'evt_local_first'
-    );
-    expect(screen.getByTestId('team-history-detail-cap-alignment')).toHaveTextContent(
+    expect(
+      screen.getByTestId('team-history-detail-truth-note')
+    ).toHaveTextContent('Explicit local timeline row');
+    expect(
+      screen.getByTestId('team-history-detail-event-id')
+    ).toHaveTextContent('evt_local_first');
+    expect(
+      screen.getByTestId('team-history-detail-cap-alignment')
+    ).toHaveTextContent(
       'Displayed cap delta does not match BOS before/after totals.'
     );
 
@@ -263,23 +271,25 @@ describe('Team History detail view integration', () => {
     expect(screen.getByTestId('team-history-detail-type')).toHaveTextContent(
       'Custom'
     );
-    expect(screen.getByTestId('team-history-detail-mutation-type')).toHaveTextContent(
-      '—'
-    );
-    expect(screen.getByTestId('team-history-detail-event-id')).toHaveTextContent(
-      '—'
-    );
-    expect(screen.getByTestId('team-history-detail-operation-id')).toHaveTextContent(
-      'op_local_second'
-    );
-    expect(screen.getByTestId('team-history-detail-before-totals')).toHaveTextContent(
-      '—'
-    );
-    expect(screen.getByTestId('team-history-detail-cap-alignment')).toHaveTextContent(
+    expect(
+      screen.getByTestId('team-history-detail-mutation-type')
+    ).toHaveTextContent('—');
+    expect(
+      screen.getByTestId('team-history-detail-event-id')
+    ).toHaveTextContent('—');
+    expect(
+      screen.getByTestId('team-history-detail-operation-id')
+    ).toHaveTextContent('op_local_second');
+    expect(
+      screen.getByTestId('team-history-detail-before-totals')
+    ).toHaveTextContent('—');
+    expect(
+      screen.getByTestId('team-history-detail-cap-alignment')
+    ).toHaveTextContent(
       'Displayed cap delta has no normalized before/after totals to reconcile against.'
     );
-    expect(screen.getByTestId('team-history-detail-raw-summary')).toHaveTextContent(
-      'Raw event ID: evt_raw_second'
-    );
+    expect(
+      screen.getByTestId('team-history-detail-raw-summary')
+    ).toHaveTextContent('Raw event ID: evt_raw_second');
   });
 });

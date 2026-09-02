@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
 import { injectTeamHistoryFixtures } from '@/features/architect/history/devTeamHistoryFixtures';
 
@@ -62,7 +68,9 @@ describe('Team History E84 surface integration', () => {
     expect(screen.getByTestId('team-history-row-0')).toBeInTheDocument();
     expect(screen.getByTestId('team-history-waived-row-0')).toBeInTheDocument();
     expect(screen.getByTestId('team-history-tpe-row-0')).toBeInTheDocument();
-    expect(screen.getByTestId('team-history-pick-log-row-0')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-pick-log-row-0')
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('team-history-row-0'));
 

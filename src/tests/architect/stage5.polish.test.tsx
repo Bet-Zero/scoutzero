@@ -117,7 +117,13 @@ const makeWorkspaceContext = (
     errorMessage: null,
   },
   saveState: deriveArchitectTeamPlanSaveState({ worldId: 'world_test' }),
-  roster: { status: 'available', count: 15, standardCount: 15, twoWayCount: 0, source: 'players' },
+  roster: {
+    status: 'available',
+    count: 15,
+    standardCount: 15,
+    twoWayCount: 0,
+    source: 'players',
+  },
   cap: {
     status: 'unavailable',
     reason: 'No cap snapshot available in this fixture.',
@@ -222,10 +228,7 @@ describe('ArchitectTabBar (Stage 5A)', () => {
   it('invokes the descriptor onActivate when clicked', () => {
     const onActivate = vi.fn();
     render(
-      <ArchitectTabBar
-        activeTab="cap"
-        tabs={makeTabDescriptors(onActivate)}
-      />
+      <ArchitectTabBar activeTab="cap" tabs={makeTabDescriptors(onActivate)} />
     );
     fireEvent.click(screen.getByTestId('polish-tab-guide'));
     expect(onActivate).toHaveBeenCalledWith('guide');
@@ -405,7 +408,7 @@ describe('ScenarioMoveRail (Stage 5A polish)', () => {
       />
     );
     const button = screen.getByTestId('scenario-move-rail-open-history');
-    expect(button).toHaveTextContent("View full history");
+    expect(button).toHaveTextContent('View full history');
     expect(button).toHaveAttribute('type', 'button');
   });
 

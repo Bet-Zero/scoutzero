@@ -125,7 +125,9 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
       screen.queryByTestId('team-history-outbound-trade-context')
     ).toBeNull();
     // Non-committed entries still navigate to current-result rooms.
-    expect(screen.getByTestId('team-history-outbound-roster')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-outbound-roster')
+    ).toBeInTheDocument();
   });
 
   it('shows ordinary saved-move language and resolved names in normal mode', () => {

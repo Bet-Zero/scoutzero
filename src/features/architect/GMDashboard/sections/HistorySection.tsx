@@ -47,9 +47,7 @@ const HistorySection = ({
     worldId={worldId}
     resolvePlayerTeamCode={resolvePlayerTeamCode}
     requestedHistoryEventDetail={requestedHistoryEventDetail}
-    onRequestedHistoryEventDetailHandled={
-      onRequestedHistoryEventDetailHandled
-    }
+    onRequestedHistoryEventDetailHandled={onRequestedHistoryEventDetailHandled}
     onInjectTeamHistoryFixtures={onInjectTeamHistoryFixtures}
     onClearTeamHistoryFixtures={onClearTeamHistoryFixtures}
     hasInjectedTeamHistoryFixtures={hasInjectedTeamHistoryFixtures}
