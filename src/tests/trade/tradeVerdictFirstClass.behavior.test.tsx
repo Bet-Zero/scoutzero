@@ -348,6 +348,115 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
     expect(JSON.stringify(items)).not.toContain('governed tranche');
   });
 
+  it('presents an invalid protection-step amount alongside the trade-bonus blocker', () => {
+    const items = buildVerdictItems(
+      [],
+      {
+        legal: false,
+        error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+        reason:
+          'austin_reaves: This Contract has a trade bonus whose allocation is outside this governed tranche. 2026-27 protection step is missing or invalid in governed Contract history.',
+        violations: [],
+        warnings: [],
+      },
+      {
+        resolvePlayerName: (playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      }
+    );
+
+    expect(items).toEqual([
+      {
+        teamName: null,
+        kind: 'needsInput',
+        text: 'Austin Reaves: Available contract information is insufficient to determine the trade-bonus allocation. Protection-step salary information for 2026-27 is missing or invalid.',
+      },
+    ]);
+    expect(JSON.stringify(items)).not.toContain('austin_reaves');
+    expect(JSON.stringify(items)).not.toContain('governed Contract history');
+    expect(JSON.stringify(items)).not.toContain('governed tranche');
+  });
+
+  it.each([
+    {
+      label: 'current salary with a resolved player',
+      reason:
+        'austin_reaves: 2026-27 Base Compensation is missing or invalid in governed Contract history.',
+      resolvePlayerName: (playerId: string) =>
+        playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      expected:
+        'Austin Reaves: Base salary information for 2026-27 is missing or invalid.',
+    },
+    {
+      label: 'current salary without a resolved player',
+      reason:
+        'austin_reaves: 2026-27 Base Compensation is missing or invalid in governed Contract history.',
+      resolvePlayerName: () => null,
+      expected:
+        'Traded player: Base salary information for 2026-27 is missing or invalid.',
+    },
+    {
+      label: 'protected salary with a resolved player',
+      reason:
+        'austin_reaves: 2026-27 protected Base Compensation is missing or invalid in governed Contract history.',
+      resolvePlayerName: (playerId: string) =>
+        playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      expected:
+        'Austin Reaves: Protected salary information for 2026-27 is missing or invalid.',
+    },
+    {
+      label: 'protected salary without a resolved player',
+      reason:
+        'austin_reaves: 2026-27 protected Base Compensation is missing or invalid in governed Contract history.',
+      resolvePlayerName: () => null,
+      expected:
+        'Traded player: Protected salary information for 2026-27 is missing or invalid.',
+    },
+    {
+      label: 'post-season salary with a resolved player',
+      reason:
+        'austin_reaves: Post-season salary basis requires governed 2027-28 terms.',
+      resolvePlayerName: (playerId: string) =>
+        playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      expected:
+        'Austin Reaves: Next-season salary information for 2027-28 is required.',
+    },
+    {
+      label: 'post-season salary without a resolved player',
+      reason:
+        'austin_reaves: Post-season salary basis requires governed 2027-28 terms.',
+      resolvePlayerName: () => null,
+      expected:
+        'Traded player: Next-season salary information for 2027-28 is required.',
+    },
+  ])('presents standalone $label without internal wording', (example) => {
+    const items = buildVerdictItems(
+      [
+        {
+          teamName: 'Miami Heat',
+          rules: {
+            salaryMatching: {
+              status: 'NEEDS_INPUT',
+              message: example.reason,
+            },
+          },
+        },
+      ],
+      null,
+      { resolvePlayerName: example.resolvePlayerName }
+    );
+
+    expect(items).toEqual([
+      {
+        teamName: 'Miami Heat',
+        kind: 'needsInput',
+        text: example.expected,
+      },
+    ]);
+    expect(JSON.stringify(items)).not.toContain('austin_reaves');
+    expect(JSON.stringify(items)).not.toContain('governed');
+  });
+
   it('keeps an empty-team generic top-level rejection visibly blocked', () => {
     const items = buildVerdictItems([], {
       legal: false,

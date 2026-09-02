@@ -32,6 +32,8 @@ const TRADE_BONUS_REASONS = new RegExp(TRADE_BONUS_REASON_SOURCE, 'gi');
 const PLAYER_REASON_PREFIX = /\b(?<playerId>[A-Za-z0-9_-]+):\s*/gi;
 const MISSING_PROTECTED_SALARY_REASON =
   /(?<season>\d{4}-\d{2}) protected Base Compensation is missing or invalid in governed Contract history\.?/gi;
+const MISSING_PROTECTION_STEP_REASON =
+  /(?<season>\d{4}-\d{2}) protection step is missing or invalid in governed Contract history\.?/gi;
 const MISSING_BASE_SALARY_REASON =
   /(?<season>\d{4}-\d{2}) Base Compensation is missing or invalid in governed Contract history\.?/gi;
 const POST_SEASON_SALARY_REASON =
@@ -45,11 +47,22 @@ export const presentTradeValidationText = (
   text: string,
   options: VerdictPresentationOptions = {}
 ): string => {
-  const firstBonusIndex = text.search(TRADE_BONUS_REASON);
+  const firstPresentedReasonIndex = [
+    TRADE_BONUS_REASON,
+    MISSING_PROTECTED_SALARY_REASON,
+    MISSING_PROTECTION_STEP_REASON,
+    MISSING_BASE_SALARY_REASON,
+    POST_SEASON_SALARY_REASON,
+  ]
+    .map((pattern) => text.search(pattern))
+    .filter((index) => index >= 0)
+    .sort((left, right) => left - right)[0];
   const playerReasonMatch = [...text.matchAll(PLAYER_REASON_PREFIX)]
     .filter(
       (match) =>
-        match.index != null && match.index + match[0].length <= firstBonusIndex
+        match.index != null &&
+        firstPresentedReasonIndex != null &&
+        match.index + match[0].length <= firstPresentedReasonIndex
     )
     .at(-1);
   if (playerReasonMatch?.groups?.playerId && playerReasonMatch.index != null) {
@@ -61,30 +74,32 @@ export const presentTradeValidationText = (
         : 'Traded player';
     const reasonsStart = playerReasonMatch.index + playerReasonMatch[0].length;
     const playerReasons = text.slice(reasonsStart);
-    if (TRADE_BONUS_REASON.test(playerReasons)) {
-      let presentedBonus = false;
-      const presentedReasons = playerReasons
-        .replace(TRADE_BONUS_REASONS, () => {
-          if (presentedBonus) return ' ';
-          presentedBonus = true;
-          return 'Available contract information is insufficient to determine the trade-bonus allocation.';
-        })
-        .replace(
-          MISSING_PROTECTED_SALARY_REASON,
-          'Protected salary information for $<season> is missing or invalid.'
-        )
-        .replace(
-          MISSING_BASE_SALARY_REASON,
-          'Base salary information for $<season> is missing or invalid.'
-        )
-        .replace(
-          POST_SEASON_SALARY_REASON,
-          'Next-season salary information for $<season> is required.'
-        )
-        .replace(/\s+/g, ' ')
-        .trim();
-      return `${playerName}: ${presentedReasons}`;
-    }
+    let presentedBonus = false;
+    const presentedReasons = playerReasons
+      .replace(TRADE_BONUS_REASONS, () => {
+        if (presentedBonus) return ' ';
+        presentedBonus = true;
+        return 'Available contract information is insufficient to determine the trade-bonus allocation.';
+      })
+      .replace(
+        MISSING_PROTECTED_SALARY_REASON,
+        'Protected salary information for $<season> is missing or invalid.'
+      )
+      .replace(
+        MISSING_PROTECTION_STEP_REASON,
+        'Protection-step salary information for $<season> is missing or invalid.'
+      )
+      .replace(
+        MISSING_BASE_SALARY_REASON,
+        'Base salary information for $<season> is missing or invalid.'
+      )
+      .replace(
+        POST_SEASON_SALARY_REASON,
+        'Next-season salary information for $<season> is required.'
+      )
+      .replace(/\s+/g, ' ')
+      .trim();
+    return `${playerName}: ${presentedReasons}`;
   }
 
   if (STEPIEN_HISTORY_REASON.test(text)) {
