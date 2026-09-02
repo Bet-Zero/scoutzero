@@ -272,7 +272,7 @@ describe('Team History world events integration', () => {
     ).toEqual([]);
   });
 
-  it('keeps direction neutral when a later compatibility event uses fallback participant evidence', () => {
+  it('keeps direction neutral when any later compatibility field identifies the player', () => {
     const selectedEntry = {
       activeTeamCode: 'LAL',
       timelineSourceKey: 'world-events' as const,
@@ -291,6 +291,8 @@ describe('Team History world events integration', () => {
       },
     };
     const participantEvidence = [
+      { metadata: { playerIds: ['player_1'] } },
+      { metadata: { playersTraded: ['player_1'] } },
       { diffSummary: { playersMoved: ['player_1'] } },
       { metadata: { playerId: 'player_1' } },
       { mutationMetadata: { playerId: 'player_1' } },
@@ -307,6 +309,7 @@ describe('Team History world events integration', () => {
               mutationType: 'executeTrade',
               occurredAt: '2026-09-02T12:00:00.000Z',
               teamCodes: ['BOS', 'NYK'],
+              playerIds: ['other_player'],
               ...evidence,
             },
           ],

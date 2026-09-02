@@ -122,22 +122,27 @@ const eventStringList = (
 
 const eventPlayerIds = (event: Record<string, unknown>): string[] => {
   const directPlayerIds = eventStringList(event, 'playerIds');
-  if (directPlayerIds.length > 0) return directPlayerIds;
-
   const metadata = asRecord(event.metadata);
   const metadataPlayerIds = metadata
     ? eventStringList(metadata, 'playerIds', 'playersTraded')
     : [];
-  if (metadataPlayerIds.length > 0) return metadataPlayerIds;
-
   const mutationMetadata = asRecord(event.mutationMetadata);
-  const singlePlayerId = [mutationMetadata?.playerId, metadata?.playerId]
+  const singlePlayerIds = [mutationMetadata?.playerId, metadata?.playerId]
     .map((value) => String(value || '').trim())
-    .find(Boolean);
-  if (singlePlayerId) return [singlePlayerId];
-
+    .filter(Boolean);
   const diffSummary = asRecord(event.diffSummary);
-  return diffSummary ? eventStringList(diffSummary, 'playersMoved') : [];
+  const diffSummaryPlayerIds = diffSummary
+    ? eventStringList(diffSummary, 'playersMoved')
+    : [];
+
+  return Array.from(
+    new Set([
+      ...directPlayerIds,
+      ...metadataPlayerIds,
+      ...singlePlayerIds,
+      ...diffSummaryPlayerIds,
+    ])
+  );
 };
 
 /**
