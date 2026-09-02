@@ -483,6 +483,48 @@ describe('Team History world events integration', () => {
     ).not.toHaveTextContent('austin_reaves');
   });
 
+  it('resolves names for events with diff-summary-only player IDs', () => {
+    window.localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
+    useWorldTeamEventsMock.mockReturnValue({
+      events: [
+        {
+          id: 'diff-summary-player-trade',
+          eventId: 'diff-summary-player-trade',
+          mutationType: 'executeTrade',
+          occurredAt: '2026-09-02T07:00:00.000Z',
+          timestamp: '2026-09-02T07:00:00.000Z',
+          teamCodes: ['LAL', 'BOS'],
+          diffSummary: { playersMoved: ['austin_reaves'] },
+        },
+      ],
+      loading: false,
+      loadingMore: false,
+      error: null,
+      hasMore: false,
+      resolution: 'authoritative',
+      loadMore: null,
+    });
+
+    render(
+      <TeamHistoryTab
+        teamCapSheet={teamCapSheet}
+        worldId="world_lal"
+        resolvePlayerLabel={(playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : playerId
+        }
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('team-history-row-0'));
+
+    expect(screen.getByTestId('team-history-detail-modal')).toHaveTextContent(
+      'Austin Reaves'
+    );
+    expect(
+      screen.getByTestId('team-history-detail-modal')
+    ).not.toHaveTextContent('austin_reaves');
+  });
+
   it('surfaces the mixed-feed compatibility note when canonical and legacy rows are merged together', () => {
     useWorldTeamEventsMock.mockReturnValue({
       events: [

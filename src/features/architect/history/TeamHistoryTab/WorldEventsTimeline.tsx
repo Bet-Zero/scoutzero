@@ -96,6 +96,7 @@ export const WorldEventsTimeline = ({
     for (const event of events) {
       const rawEvent = event as {
         playerIds?: unknown;
+        diffSummary?: { playersMoved?: unknown };
         metadata?: {
           playerId?: unknown;
           playerIds?: unknown;
@@ -110,6 +111,9 @@ export const WorldEventsTimeline = ({
           : []),
         ...(Array.isArray(rawEvent.metadata?.playersTraded)
           ? rawEvent.metadata.playersTraded
+          : []),
+        ...(Array.isArray(rawEvent.diffSummary?.playersMoved)
+          ? rawEvent.diffSummary.playersMoved
           : []),
         rawEvent.mutationMetadata?.playerId,
         rawEvent.metadata?.playerId,
