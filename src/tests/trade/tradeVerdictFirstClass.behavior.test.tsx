@@ -317,6 +317,7 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
             sends: [
               {
                 id: 'player_bio_only',
+                name: 'player_bio_only',
                 bio: { displayName: 'Bio Display Player' },
               } as never,
             ],

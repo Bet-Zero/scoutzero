@@ -60,10 +60,19 @@ export function TradeSummaryPanel({
       const playerWithBio = player as typeof player & {
         bio?: { displayName?: string | null } | null;
       };
-      const name = String(
-        player.name ?? playerWithBio.bio?.displayName ?? player.fullName ?? ''
-      ).trim();
-      if (id && name && id !== name) playerNameById.set(id, name);
+      const name = [
+        player.name,
+        playerWithBio.bio?.displayName,
+        player.fullName,
+      ]
+        .find(
+          (candidate) =>
+            typeof candidate === 'string' &&
+            candidate.trim() !== '' &&
+            candidate.trim() !== id
+        )
+        ?.trim();
+      if (id && name) playerNameById.set(id, name);
     });
   const verdictOptions = {
     resolvePlayerName: (playerId: string) => playerNameById.get(playerId),
