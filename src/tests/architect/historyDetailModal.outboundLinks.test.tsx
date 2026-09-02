@@ -361,14 +361,18 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
   });
 
   it('preserves the calendar day for a date-only saved value', () => {
+    const dateOnlyEntry = toTeamHistoryEventDisplay({
+      mutationType: 'executeTrade',
+      timestamp: '2025-07-01',
+      teamCodes: ['LAL', 'BOS'],
+    });
+
+    expect(dateOnlyEntry.timestamp).toBe('2025-07-01');
     render(
       <HistoryDetailModal
         selectedEntry={{
           ...tradeEntry,
-          entry: {
-            ...tradeEntry.entry,
-            timestamp: '2025-07-01',
-          },
+          entry: dateOnlyEntry,
         }}
         onClose={vi.fn()}
       />

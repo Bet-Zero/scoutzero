@@ -148,6 +148,31 @@ const eventPlayerIds = (event: Record<string, unknown>): string[] => {
   );
 };
 
+const hasUnboundCompatibilityPlayerNames = (
+  event: Record<string, unknown>
+): boolean => {
+  const metadata = asRecord(event.metadata);
+  const compatibilityNames = metadata
+    ? eventStringList(metadata, 'playersTraded')
+    : [];
+  if (compatibilityNames.length === 0) return false;
+
+  const mutationMetadata = asRecord(event.mutationMetadata);
+  const diffSummary = asRecord(event.diffSummary);
+  const canonicalPlayerIds = new Set([
+    ...eventStringList(event, 'playerIds'),
+    ...(metadata ? eventStringList(metadata, 'playerIds') : []),
+    ...[mutationMetadata?.playerId, metadata?.playerId]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean),
+    ...(diffSummary ? eventStringList(diffSummary, 'playersMoved') : []),
+  ]);
+
+  return compatibilityNames.some(
+    (compatibilityName) => !canonicalPlayerIds.has(compatibilityName)
+  );
+};
+
 /**
  * Resolves player direction only when retained world truth makes it exact.
  *
@@ -225,13 +250,17 @@ export const resolveReliableTradePlayerMovements = ({
   for (const playerId of playerIds) {
     const hasLaterOrUnorderedEvent = events.some((event) => {
       if (eventIdentity(event) === selectedId) return false;
-      if (!eventPlayerIds(event).includes(playerId)) return false;
 
       const eventTime = parseTimelineTimestamp(
         event.occurredAt ?? event.timestamp
       );
+      const isLaterOrUnordered =
+        eventTime === Number.NEGATIVE_INFINITY || eventTime >= selectedTime;
+      if (!isLaterOrUnordered) return false;
+
       return (
-        eventTime === Number.NEGATIVE_INFINITY || eventTime >= selectedTime
+        eventPlayerIds(event).includes(playerId) ||
+        hasUnboundCompatibilityPlayerNames(event)
       );
     });
     if (hasLaterOrUnorderedEvent) continue;

@@ -326,6 +326,44 @@ describe('Team History world events integration', () => {
     }
   });
 
+  it('keeps direction neutral when later name-only evidence cannot bind to a canonical id', () => {
+    const selectedEntry = {
+      activeTeamCode: 'LAL',
+      timelineSourceKey: 'world-events' as const,
+      truthKind: 'authoritative-world-event' as const,
+      entry: {
+        id: 'trade-before-name-only-event',
+        eventId: 'trade-before-name-only-event',
+        mutationType: 'executeTrade',
+        type: 'Trade Executed',
+        category: 'trade',
+        timestamp: '2026-09-01T12:00:00.000Z',
+        occurredAt: '2026-09-01T12:00:00.000Z',
+        teamsInvolved: ['LAL', 'BOS'],
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['austin_reaves'],
+      },
+    };
+
+    expect(
+      resolveReliableTradePlayerMovements({
+        selectedEntry,
+        committedWorldEvents: [
+          selectedEntry.entry,
+          {
+            eventId: 'later-name-only-event',
+            mutationType: 'executeTrade',
+            occurredAt: '2026-09-02T12:00:00.000Z',
+            teamCodes: ['BOS', 'NYK'],
+            metadata: { playersTraded: ['Austin Reaves'] },
+          },
+        ],
+        coveredTeamCodes: ['LAL', 'BOS'],
+        resolvePlayerTeamCode: () => 'LAL',
+      })
+    ).toEqual([]);
+  });
+
   it('keeps independently provable directions when another player was superseded', () => {
     const selectedEntry = {
       activeTeamCode: 'LAL',

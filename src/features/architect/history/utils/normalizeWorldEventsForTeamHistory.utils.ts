@@ -171,6 +171,7 @@ export function toIsoString(input: unknown): string | null {
   }
 
   if (typeof input === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
     const millis = Date.parse(input);
     return Number.isFinite(millis) ? new Date(millis).toISOString() : input;
   }
