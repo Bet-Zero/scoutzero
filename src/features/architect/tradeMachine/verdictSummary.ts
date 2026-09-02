@@ -66,6 +66,16 @@ const INVALID_FIXED_POISON_PILL_SALARY_REASON =
   /Fixed poison-pill Salary evidence for (?<season>\d{4}-\d{2}) is inconsistent\.?/gi;
 const INVALID_PERCENTAGE_POISON_PILL_SALARY_REASON =
   /Percentage-based poison-pill Salary for (?<season>\d{4}-\d{2}) lacks the governed Cap or ordinary \(non-Higher-Max\) percentage\.?/gi;
+const MISSING_SIGN_AND_TRADE_SALARY_REASON =
+  /Governed sign-and-trade salary authority is missing or malformed\.?/gi;
+const MISMATCHED_SIGN_AND_TRADE_SALARY_REASON =
+  /Governed sign-and-trade salary authority does not match this world, Team, player, date, or Salary Cap Year\.?/gi;
+const MISSING_GOVERNED_SALARY_BASIS_REASON =
+  /Governed player salary-basis authority is missing or malformed\.?/gi;
+const MISMATCHED_GOVERNED_SALARY_BASIS_REASON =
+  /Governed player salary-basis authority does not match this Team Plan, team, player, date, or Salary Cap Year\.?/gi;
+const GOVERNED_SALARY_BASIS_NEEDS_INPUT_REASON =
+  /Governed player salary-basis authority needs input\.?/gi;
 
 const SALARY_REASON_PRESENTATIONS: ReadonlyArray<readonly [RegExp, string]> = [
   [
@@ -139,6 +149,26 @@ const SALARY_REASON_PRESENTATIONS: ReadonlyArray<readonly [RegExp, string]> = [
   [
     INVALID_PERCENTAGE_POISON_PILL_SALARY_REASON,
     'Percentage-based poison-pill salary information for $<season> is incomplete.',
+  ],
+  [
+    MISSING_SIGN_AND_TRADE_SALARY_REASON,
+    'Sign-and-trade salary information is missing or invalid.',
+  ],
+  [
+    MISMATCHED_SIGN_AND_TRADE_SALARY_REASON,
+    'Sign-and-trade salary information does not match this saved world, team, player, date, or salary-cap year.',
+  ],
+  [
+    MISSING_GOVERNED_SALARY_BASIS_REASON,
+    'Trade salary information is missing or invalid.',
+  ],
+  [
+    MISMATCHED_GOVERNED_SALARY_BASIS_REASON,
+    'Trade salary information does not match this saved plan, team, player, date, or salary-cap year.',
+  ],
+  [
+    GOVERNED_SALARY_BASIS_NEEDS_INPUT_REASON,
+    'Trade salary information needs input.',
   ],
 ];
 

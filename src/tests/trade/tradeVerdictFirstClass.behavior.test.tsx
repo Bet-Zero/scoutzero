@@ -476,6 +476,40 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
       expected:
         'Austin Reaves: Percentage-based poison-pill salary information for 2027-28 is incomplete.',
     },
+    {
+      label: 'missing sign-and-trade salary authority',
+      reason:
+        'austin_reaves: Governed sign-and-trade salary authority is missing or malformed.',
+      expected:
+        'Austin Reaves: Sign-and-trade salary information is missing or invalid.',
+    },
+    {
+      label: 'mismatched sign-and-trade salary authority',
+      reason:
+        'austin_reaves: Governed sign-and-trade salary authority does not match this world, Team, player, date, or Salary Cap Year.',
+      expected:
+        'Austin Reaves: Sign-and-trade salary information does not match this saved world, team, player, date, or salary-cap year.',
+    },
+    {
+      label: 'missing governed salary-basis authority',
+      reason:
+        'austin_reaves: Governed player salary-basis authority is missing or malformed.',
+      expected:
+        'Austin Reaves: Trade salary information is missing or invalid.',
+    },
+    {
+      label: 'mismatched governed salary-basis authority',
+      reason:
+        'austin_reaves: Governed player salary-basis authority does not match this Team Plan, team, player, date, or Salary Cap Year.',
+      expected:
+        'Austin Reaves: Trade salary information does not match this saved plan, team, player, date, or salary-cap year.',
+    },
+    {
+      label: 'governed salary-basis authority needs input',
+      reason:
+        'austin_reaves: Governed player salary-basis authority needs input.',
+      expected: 'Austin Reaves: Trade salary information needs input.',
+    },
   ])('presents $label in GM language', (example) => {
     const items = buildVerdictItems(
       [],
@@ -558,6 +592,14 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
       resolvePlayerName: () => null,
       expected:
         'Traded player: Next-season salary information for 2027-28 is required.',
+    },
+    {
+      label: 'governed salary-basis mismatch without a resolved player',
+      reason:
+        'austin_reaves: Governed player salary-basis authority does not match this Team Plan, team, player, date, or Salary Cap Year.',
+      resolvePlayerName: () => null,
+      expected:
+        'Traded player: Trade salary information does not match this saved plan, team, player, date, or salary-cap year.',
     },
   ])('presents standalone $label without internal wording', (example) => {
     const items = buildVerdictItems(
