@@ -89,8 +89,10 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
 
   // ─── TradeEditor: Apply-area disclosure ───────────────────────────────────
 
-  it('TradeEditor disclosure mentions apply time', () => {
-    expect(tradeEditorSrc).toContain('apply time');
+  it('TradeEditor disclosure says final checks run when the move is applied', () => {
+    expect(tradeEditorSrc).toContain(
+      'Final roster and draft-asset checks run when you apply it'
+    );
   });
 
   it('TradeEditor gates apply with previewAuthority rather than snapshot detail legality', () => {
@@ -99,8 +101,8 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
     expect(tradeEditorSrc).not.toContain('fullLegalityResult');
   });
 
-  it('TradeEditor disclosure mentions exclusivity', () => {
-    expect(tradeEditorSrc).toContain('exclusivity');
+  it('TradeEditor disclosure does not expose implementation gate names', () => {
+    expect(tradeEditorSrc).not.toContain('exclusivity');
   });
 
   it('TradeEditor disclosure does not claim guaranteed apply success', () => {
@@ -111,12 +113,14 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
 
   // ─── TradeLegalChecker: Legend disclosure ─────────────────────────────────
 
-  it('TradeLegalChecker legend mentions apply time', () => {
-    expect(tradeLegalCheckerSrc).toContain('apply time');
+  it('TradeLegalChecker legend says final checks run when the trade is applied', () => {
+    expect(tradeLegalCheckerSrc).toContain(
+      'Final roster and draft-asset checks run when you apply the trade'
+    );
   });
 
-  it('TradeLegalChecker legend clarifies preview covers CBA validator and post-state cap', () => {
-    expect(tradeLegalCheckerSrc).toContain('Preview covers CBA validator');
+  it('TradeLegalChecker keeps the final-check disclosure concise', () => {
+    expect(tradeLegalCheckerSrc).not.toContain('Preview covers CBA validator');
   });
 
   it('TradeLegalChecker legend does not claim guaranteed apply success', () => {
@@ -126,12 +130,14 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
 
   // ─── ValidationDetailsPanel: Section header ───────────────────────────────
 
-  it('ValidationDetailsPanel section header includes preview-only qualifier', () => {
-    expect(validationDetailsPanelSrc).toContain('preview only');
+  it('ValidationDetailsPanel identifies the visible rule results', () => {
+    expect(validationDetailsPanelSrc).toContain('CBA rule results for each team');
   });
 
-  it('ValidationDetailsPanel section header includes post-state qualifier', () => {
-    expect(validationDetailsPanelSrc).toContain('post-state');
+  it('ValidationDetailsPanel preserves the final-check disclosure', () => {
+    expect(validationDetailsPanelSrc).toContain(
+      'draft-asset checks run when the trade is applied'
+    );
   });
 
   it('ValidationDetailsPanel does not claim post-state checks only run at apply time', () => {
