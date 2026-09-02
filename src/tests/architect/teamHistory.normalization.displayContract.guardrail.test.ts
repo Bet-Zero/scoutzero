@@ -395,6 +395,18 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       },
       { teamCode: 'LAL' }
     );
+    const retainedDisplayNameRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T02:50:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        metadata: {
+          playersTraded: ['Austin Reaves'],
+          summary: 'Austin Reaves was traded',
+        },
+      },
+      { teamCode: 'LAL' }
+    );
 
     expect(unresolvedRow.summary).toBe('Player details unavailable was waived');
     expect(unresolvedRow.summary).not.toContain('historical_player_1');
@@ -405,6 +417,13 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
     );
     expect(diffSummaryOnlyRow.primaryDeltas).not.toContain(
       'historical_player_1'
+    );
+    expect(retainedDisplayNameRow.summary).toBe('Austin Reaves was traded');
+    expect(getSectionLines(retainedDisplayNameRow, 'Players')).toEqual([
+      'Austin Reaves',
+    ]);
+    expect(retainedDisplayNameRow.summary).not.toContain(
+      'Player details unavailable'
     );
   });
 

@@ -248,7 +248,7 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
 
   it('presents accumulated bonus-compensation and trade-kicker reasons without internal wording', () => {
     const reason =
-      'austin_reaves: 2026-27 has bonus compensation whose trade treatment is outside this governed tranche. This Contract has a trade bonus whose allocation is outside this governed tranche.';
+      'austin_reaves: 2026-27 has bonus compensation whose trade treatment is outside this governed tranche. This Contract has a trade bonus whose allocation is outside this governed tranche. Post-season salary basis requires governed 2027-28 terms.';
     const items = buildVerdictItems(
       [],
       {
@@ -278,6 +278,7 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
     ]);
     expect(JSON.stringify(items)).not.toContain('austin_reaves');
     expect(JSON.stringify(items)).not.toContain('governed tranche');
+    expect(JSON.stringify(items)).not.toContain('Post-season salary basis');
   });
 
   it('keeps an empty-team generic top-level rejection visibly blocked', () => {

@@ -26,8 +26,9 @@ export interface VerdictPresentationOptions {
   resolvePlayerName?: (playerId: string) => string | null | undefined;
 }
 
+const PLAYER_PREFIXED_REASON = /^(?<playerId>[^:]+):\s*(?<reasons>[\s\S]+)$/i;
 const TRADE_BONUS_REASON =
-  /^(?<playerId>[^:]+):\s*(?:(?:This Contract|\d{4}-\d{2}) (?:has a trade bonus whose allocation|has bonus compensation whose trade treatment) is outside this governed tranche\.?\s*)+$/i;
+  /(?:This Contract|\d{4}-\d{2}) (?:has a trade bonus whose allocation|has bonus compensation whose trade treatment) is outside this governed tranche\.?/i;
 
 const STEPIEN_HISTORY_REASON =
   /(?:complete governed ownership|complete protection).*history is unavailable/i;
@@ -37,9 +38,12 @@ export const presentTradeValidationText = (
   text: string,
   options: VerdictPresentationOptions = {}
 ): string => {
-  const tradeBonusMatch = text.match(TRADE_BONUS_REASON);
-  if (tradeBonusMatch?.groups?.playerId) {
-    const playerId = tradeBonusMatch.groups.playerId.trim();
+  const playerReasonMatch = text.match(PLAYER_PREFIXED_REASON);
+  if (
+    playerReasonMatch?.groups?.playerId &&
+    TRADE_BONUS_REASON.test(playerReasonMatch.groups.reasons)
+  ) {
+    const playerId = playerReasonMatch.groups.playerId.trim();
     const resolvedName = options.resolvePlayerName?.(playerId)?.trim();
     const playerName =
       resolvedName && resolvedName !== playerId

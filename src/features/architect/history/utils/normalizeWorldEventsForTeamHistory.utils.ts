@@ -274,8 +274,10 @@ export function formatPlayerLabel(
   }
   // Owner-facing copy must never use an unresolved identifier as a name.
   const playerName = playerNameLookup?.[playerToken]?.trim();
-  return isSafePlayerDisplayName(playerName, playerToken)
-    ? playerName
+  if (isSafePlayerDisplayName(playerName, playerToken)) return playerName;
+
+  return isSafePlayerDisplayName(playerToken)
+    ? playerToken.trim()
     : 'Player details unavailable';
 }
 
