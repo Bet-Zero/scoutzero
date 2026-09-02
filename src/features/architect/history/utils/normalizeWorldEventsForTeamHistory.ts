@@ -50,8 +50,7 @@ function sanitizePlayerTokensInSummary(
     .reduce((visibleSummary, playerToken) => {
       const escapedToken = playerToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const boundedToken = new RegExp(
-        `(^|[^A-Za-z0-9])${escapedToken}(?=$|[^A-Za-z0-9])`,
-        'g'
+        `(^|[^A-Za-z0-9_])${escapedToken}(?=$|[^A-Za-z0-9_])`
       );
       return visibleSummary.replace(
         boundedToken,

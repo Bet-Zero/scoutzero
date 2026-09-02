@@ -360,6 +360,19 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       },
       { teamCode: 'LAL' }
     );
+    const shortIdSummaryRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:01:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['cap'],
+        metadata: { summary: 'cap: Dead cap amount changed' },
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: { cap: 'Cap Player' },
+      }
+    );
 
     expect(getSectionLines(unresolvedRow, 'Players')).toEqual([
       'Player details unavailable',
@@ -376,6 +389,10 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
     expect(getSectionLines(compatibilityNameRow, 'Players')).toEqual([
       'Historical Player',
     ]);
+    expect(shortIdSummaryRow.summary).toBe(
+      'Cap Player: Dead cap amount changed'
+    );
+    expect(shortIdSummaryRow.summary).not.toContain('Dead Cap Player');
   });
 
   it('rejects ID-valued metadata-only player names without hiding real names', () => {
