@@ -347,7 +347,7 @@ export const ComparisonSection = ({
             Saved Move Comparison
           </h2>
           <span className="text-[11px] text-cockpit-text-muted">
-            Read-only · Before and after
+            Read-only · Before and after, based on saved moves
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2 mb-1">

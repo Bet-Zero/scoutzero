@@ -14,7 +14,7 @@
  * - multi-season warning renders when isMultiSeasonComparison is true
  * - deferred exception/draft summaries render
  * - navigation buttons are navigation-only (call callbacks, no mutation)
- * - authority labels are visible
+ * - owner-facing provenance remains visible without internal authority labels
  */
 
 import React from 'react';
@@ -234,6 +234,9 @@ describe('ComparisonSection — with committed events', () => {
     const el = screen.getByTestId('comparison-event-count');
     expect(el).toHaveTextContent('3');
     expect(el).toHaveTextContent(/saved move/i);
+    expect(
+      screen.getByText('Read-only · Before and after, based on saved moves')
+    ).toBeInTheDocument();
   });
 
   it('renders changed teams count', () => {
