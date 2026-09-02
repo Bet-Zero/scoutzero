@@ -44,19 +44,37 @@ function sanitizePlayerTokensInSummary(
   summary: string,
   playerTokens: string[],
   formatPlayerToken: (playerToken: string) => string
-): string {
-  return uniqueStrings(playerTokens)
-    .sort((left, right) => right.length - left.length)
-    .reduce((visibleSummary, playerToken) => {
-      const escapedToken = playerToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const boundedToken = new RegExp(
-        `(^|[^A-Za-z0-9_])${escapedToken}(?=$|[^A-Za-z0-9_])`
-      );
-      return visibleSummary.replace(
-        boundedToken,
-        (_match, prefix: string) => `${prefix}${formatPlayerToken(playerToken)}`
-      );
-    }, summary);
+): string | null {
+  let visibleSummary = summary;
+
+  for (const playerToken of uniqueStrings(playerTokens).sort(
+    (left, right) => right.length - left.length
+  )) {
+    const replacement = formatPlayerToken(playerToken);
+    if (replacement === playerToken) continue;
+
+    const escapedToken = playerToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const boundedToken = new RegExp(
+      `(^|[^A-Za-z0-9_])${escapedToken}(?=$|[^A-Za-z0-9_])`,
+      'g'
+    );
+    const occurrenceCount = Array.from(
+      visibleSummary.matchAll(boundedToken)
+    ).length;
+
+    // A repeated lowercase word can be both a schema-valid player id and
+    // ordinary prose (for example, "cap: Dead cap amount changed"). Without
+    // trustworthy occurrence-level provenance, reject that raw summary and
+    // let the structured event fallback render instead of guessing.
+    if (/^[a-z]+$/.test(playerToken) && occurrenceCount > 1) return null;
+
+    visibleSummary = visibleSummary.replace(
+      boundedToken,
+      (_match, prefix: string) => `${prefix}${replacement}`
+    );
+  }
+
+  return visibleSummary;
 }
 
 export function toTeamHistoryEventDisplay(
