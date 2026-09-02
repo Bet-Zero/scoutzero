@@ -4,9 +4,60 @@ import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 
 const PROOF_SPEC = 'tests/e2e/architect-trade-receipt-proof.spec.ts';
 const PROOF_PORTS = [5173, 8082, 9099, 5001, 4001, 4400, 4500, 9150];
+
+export const GOVERNED_TRADE_RECEIPT_SCREENSHOTS = [
+  { key: 'screenshot', filename: 'trade-receipt-1280x720.png' },
+  {
+    key: 'stepienNeedsInputScreenshot',
+    filename: 'stepien-needs-input-1280x720.png',
+  },
+  {
+    key: 'foreignHardCapLedgerFailClosedScreenshot',
+    filename: 'foreign-hard-cap-ledger-fail-closed-1280x720.png',
+  },
+  {
+    key: 'tradeBonusNeedsInputScreenshot',
+    filename: 'trade-bonus-needs-input-1280x720.png',
+  },
+  {
+    key: 'tradeCashLegalScreenshot',
+    filename: 'trade-cash-legal-1280x720.png',
+  },
+  {
+    key: 'fullRosterBooksReloadScreenshot',
+    filename: 'full-roster-books-reload-1280x720.png',
+  },
+  {
+    key: 'tradeCashHistoryReloadScreenshot',
+    filename: 'trade-cash-history-reload-1280x720.png',
+  },
+  {
+    key: 'tradeCashCompareReloadScreenshot',
+    filename: 'trade-cash-compare-reload-1280x720.png',
+  },
+] as const;
+
+type GovernedScreenshotKey =
+  (typeof GOVERNED_TRADE_RECEIPT_SCREENSHOTS)[number]['key'];
+
+interface ScreenshotReceipt {
+  path: string;
+  sha256: string;
+}
+
+export type GovernedScreenshotArtifacts = Record<
+  GovernedScreenshotKey,
+  ScreenshotReceipt | null
+>;
+
+interface GovernedScreenshotVerification {
+  valid: boolean;
+  errors: string[];
+}
 
 interface ProofIdentity {
   repoRoot: string;
@@ -78,6 +129,89 @@ function timestampSlug(date = new Date()): string {
 
 function hashFile(filePath: string): string {
   return createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
+export function collectGovernedScreenshotArtifacts(
+  artifactDir: string,
+  repoRoot: string
+): GovernedScreenshotArtifacts {
+  return Object.fromEntries(
+    GOVERNED_TRADE_RECEIPT_SCREENSHOTS.map(({ key, filename }) => {
+      const filePath = path.join(artifactDir, filename);
+      return [
+        key,
+        fs.existsSync(filePath) && fs.statSync(filePath).isFile()
+          ? {
+              path: path.relative(repoRoot, filePath),
+              sha256: hashFile(filePath),
+            }
+          : null,
+      ];
+    })
+  ) as GovernedScreenshotArtifacts;
+}
+
+export async function verifyGovernedScreenshotArtifacts(
+  artifactDir: string,
+  repoRoot: string,
+  artifacts: GovernedScreenshotArtifacts
+): Promise<GovernedScreenshotVerification> {
+  const errors: string[] = [];
+  const expectedKeys = GOVERNED_TRADE_RECEIPT_SCREENSHOTS.map(
+    ({ key }) => key
+  );
+  const actualKeys = Object.keys(artifacts);
+  if (
+    actualKeys.length !== expectedKeys.length ||
+    actualKeys.some((key, index) => key !== expectedKeys[index])
+  ) {
+    errors.push(
+      `governed screenshot manifest keys must be exactly: ${expectedKeys.join(', ')}`
+    );
+  }
+
+  const recordedPaths = new Set<string>();
+  for (const { key, filename } of GOVERNED_TRADE_RECEIPT_SCREENSHOTS) {
+    const receipt = artifacts[key];
+    if (!receipt) {
+      errors.push(`${filename} is missing`);
+      continue;
+    }
+
+    const filePath = path.join(artifactDir, filename);
+    const expectedPath = path.relative(repoRoot, filePath);
+    if (receipt.path !== expectedPath) {
+      errors.push(`${filename} has an unexpected manifest path`);
+    }
+    if (recordedPaths.has(receipt.path)) {
+      errors.push(`${filename} duplicates another screenshot manifest path`);
+    }
+    recordedPaths.add(receipt.path);
+
+    if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+      errors.push(`${filename} is unavailable during verification`);
+      continue;
+    }
+    if (hashFile(filePath) !== receipt.sha256) {
+      errors.push(`${filename} bytes do not match its manifest SHA-256`);
+    }
+
+    try {
+      const metadata = await sharp(filePath).metadata();
+      if (
+        metadata.format !== 'png' ||
+        metadata.width !== 1280 ||
+        metadata.height !== 720
+      ) {
+        errors.push(`${filename} must be a 1280x720 PNG`);
+      }
+      await sharp(filePath).raw().toBuffer();
+    } catch {
+      errors.push(`${filename} is not a decodable PNG`);
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
 }
 
 function findFiles(root: string, name: string): string[] {
@@ -178,23 +312,21 @@ export async function runTradeReceiptProof(): Promise<number> {
   });
 
   const openPorts = await waitForCleanTeardown();
-  const screenshotPath = path.join(artifactDir, 'trade-receipt-1280x720.png');
-  const stepienScreenshotPath = path.join(
+  const screenshotArtifacts = collectGovernedScreenshotArtifacts(
     artifactDir,
-    'stepien-needs-input-1280x720.png'
+    identity.repoRoot
   );
-  const foreignLedgerScreenshotPath = path.join(
+  const screenshotVerification = await verifyGovernedScreenshotArtifacts(
     artifactDir,
-    'foreign-hard-cap-ledger-fail-closed-1280x720.png'
+    identity.repoRoot,
+    screenshotArtifacts
   );
   const proofPath = path.join(artifactDir, 'proof.json');
   const tracePaths = findFiles(testResultsDir, 'trace.zip');
   const reportPath = path.join(reportDir, 'index.html');
   const passed =
     result.status === 0 &&
-    fs.existsSync(screenshotPath) &&
-    fs.existsSync(stepienScreenshotPath) &&
-    fs.existsSync(foreignLedgerScreenshotPath) &&
+    screenshotVerification.valid &&
     fs.existsSync(proofPath) &&
     tracePaths.length > 0 &&
     fs.existsSync(reportPath) &&
@@ -222,26 +354,7 @@ export async function runTradeReceiptProof(): Promise<number> {
       clean: openPorts.length === 0,
     },
     artifacts: {
-      screenshot: fs.existsSync(screenshotPath)
-        ? {
-            path: path.relative(identity.repoRoot, screenshotPath),
-            sha256: hashFile(screenshotPath),
-          }
-        : null,
-      stepienNeedsInputScreenshot: fs.existsSync(stepienScreenshotPath)
-        ? {
-            path: path.relative(identity.repoRoot, stepienScreenshotPath),
-            sha256: hashFile(stepienScreenshotPath),
-          }
-        : null,
-      foreignHardCapLedgerFailClosedScreenshot: fs.existsSync(
-        foreignLedgerScreenshotPath
-      )
-        ? {
-            path: path.relative(identity.repoRoot, foreignLedgerScreenshotPath),
-            sha256: hashFile(foreignLedgerScreenshotPath),
-          }
-        : null,
+      ...screenshotArtifacts,
       trace: tracePaths.map((tracePath) => ({
         path: path.relative(identity.repoRoot, tracePath),
         sha256: hashFile(tracePath),
@@ -269,6 +382,9 @@ export async function runTradeReceiptProof(): Promise<number> {
     `Manifest: ${path.join(artifactDir, 'manifest.json')}\n`
   );
   if (!passed) {
+    for (const error of screenshotVerification.errors) {
+      process.stderr.write(`Screenshot evidence error: ${error}\n`);
+    }
     if (openPorts.length > 0) {
       process.stderr.write(
         `Proof teardown left listeners on ports: ${openPorts.join(', ')}\n`
