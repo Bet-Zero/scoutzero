@@ -233,7 +233,7 @@ export const presentTradeValidationText = (
   }
 
   if (STEPIEN_HISTORY_REASON.test(text)) {
-    return "Stepien eligibility cannot be confirmed because the pick's complete protection and conveyance history is unavailable.";
+    return 'Stepien eligibility cannot be confirmed because complete pick ownership, protection and conveyance terms, trading restrictions and their release, and penalty history are unavailable.';
   }
 
   return text;

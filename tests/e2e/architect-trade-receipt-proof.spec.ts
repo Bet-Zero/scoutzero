@@ -1220,7 +1220,7 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   const readiness = dialog.getByTestId('trade-readiness-summary');
   await expect(readiness).toContainText('Needs input', { timeout: 20_000 });
   await expect(readiness).toContainText(
-    "Stepien eligibility cannot be confirmed because the pick's complete protection and conveyance history is unavailable"
+    'Stepien eligibility cannot be confirmed because complete pick ownership, protection and conveyance terms, trading restrictions and their release, and penalty history are unavailable'
   );
   await expect(
     dialog.getByRole('button', { name: /^Apply Trade$/i })

@@ -25,7 +25,7 @@ const FIRST_ROUND_GOVERNED_HISTORY_MISSING_INPUTS = [
 ] as const;
 
 const FIRST_ROUND_GOVERNED_HISTORY_MESSAGE =
-  "Needs input — Stepien eligibility cannot be confirmed because the pick's complete protection and conveyance history is unavailable.";
+  'Needs input — Stepien eligibility cannot be confirmed because complete pick ownership, protection and conveyance terms, trading restrictions and their release, and penalty history are unavailable.';
 
 interface StepienPickLike {
   year?: StepienYearLike;
@@ -338,7 +338,7 @@ export function validateStepien(
       warnings: [],
       message: FIRST_ROUND_GOVERNED_HISTORY_MESSAGE,
       details:
-        "This first-round asset was not evaluated. Apply is blocked until the pick's complete protection and conveyance history is available.",
+        'This first-round asset was not evaluated. Apply is blocked until complete pick ownership, protection and conveyance terms, trading restrictions and their release, and penalty history are available.',
       currentYear,
       farthestYear,
       _debug: {

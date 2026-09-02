@@ -342,6 +342,24 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
         playerNameLookup: { austin_reaves: 'Austin Reaves' },
       }
     );
+    const unresolvedAlphabeticIdRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:03:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['HistoricalPlayer'],
+      },
+      { teamCode: 'LAL' }
+    );
+    const compatibilityNameRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:02:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        metadata: { playersTraded: ['Historical Player'] },
+      },
+      { teamCode: 'LAL' }
+    );
 
     expect(getSectionLines(unresolvedRow, 'Players')).toEqual([
       'Player details unavailable',
@@ -351,6 +369,13 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       'historical_player_1'
     );
     expect(getSectionLines(resolvedRow, 'Players')).toEqual(['Austin Reaves']);
+    expect(getSectionLines(unresolvedAlphabeticIdRow, 'Players')).toEqual([
+      'Player details unavailable',
+    ]);
+    expect(unresolvedAlphabeticIdRow.summary).not.toContain('HistoricalPlayer');
+    expect(getSectionLines(compatibilityNameRow, 'Players')).toEqual([
+      'Historical Player',
+    ]);
   });
 
   it('rejects ID-valued metadata-only player names without hiding real names', () => {

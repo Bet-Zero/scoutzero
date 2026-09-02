@@ -164,7 +164,11 @@ export function toTeamHistoryEventDisplay(
       ? isSafePlayerDisplayName(metadataPlayerName)
         ? metadataPlayerName.trim()
         : 'Player details unavailable'
-      : formatPlayerLabel(playerToken, effectivePlayerNameLookup);
+      : formatPlayerLabel(
+          playerToken,
+          effectivePlayerNameLookup,
+          metadataPlayersTraded.includes(playerToken)
+        );
   const playerLabels = uniqueStrings(displayPlayerTokens).map((playerToken) =>
     formatEventPlayerLabel(playerToken)
   );

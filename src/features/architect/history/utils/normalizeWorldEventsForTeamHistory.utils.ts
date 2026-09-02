@@ -267,7 +267,8 @@ export function formatTeamLabel(
 
 export function formatPlayerLabel(
   playerToken: string,
-  playerNameLookup?: Record<string, string>
+  playerNameLookup?: Record<string, string>,
+  allowLiteralName = false
 ): string {
   if (!playerToken) {
     return '';
@@ -276,7 +277,7 @@ export function formatPlayerLabel(
   const playerName = playerNameLookup?.[playerToken]?.trim();
   if (isSafePlayerDisplayName(playerName, playerToken)) return playerName;
 
-  return isSafePlayerDisplayName(playerToken)
+  return allowLiteralName && isSafePlayerDisplayName(playerToken)
     ? playerToken.trim()
     : 'Player details unavailable';
 }

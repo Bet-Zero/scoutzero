@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien';
 
 const AUTHORITY_MESSAGE =
-  "Needs input — Stepien eligibility cannot be confirmed because the pick's complete protection and conveyance history is unavailable.";
+  'Needs input — Stepien eligibility cannot be confirmed because complete pick ownership, protection and conveyance terms, trading restrictions and their release, and penalty history are unavailable.';
 
 const makeTeam = (outgoingPicks: Array<Record<string, unknown>>) => ({
   teamId: 'TEST',
@@ -29,6 +29,10 @@ function expectNeedsInput(result: ReturnType<typeof validateStepien>) {
     ])
   );
   expect(result.missingInputs).not.toContain('acceptedCanon.CBA2-A12.3');
+  expect(result.details).toContain('complete pick ownership');
+  expect(result.details).toContain('protection and conveyance terms');
+  expect(result.details).toContain('trading restrictions and their release');
+  expect(result.details).toContain('penalty history');
   expect(`${result.message} ${result.details}`).not.toMatch(/compliant/i);
 }
 
