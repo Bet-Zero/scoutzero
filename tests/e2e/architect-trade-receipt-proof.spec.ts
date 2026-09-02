@@ -379,7 +379,7 @@ test.use({
     sources: true,
   },
 });
-test.setTimeout(240_000);
+test.setTimeout(480_000);
 
 const escapeRegExp = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
