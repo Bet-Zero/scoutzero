@@ -207,8 +207,12 @@ const WorldHistoryDetailModal = ({
   const activeTeamCode = String(selectedEntry?.activeTeamCode || '')
     .trim()
     .toUpperCase();
+  const selectedMutationType = String(
+    selectedEntry?.entry.mutationType ?? selectedEntry?.entry.type ?? ''
+  ).trim();
   const counterpartTeamCode =
     selectedEntry?.truthKind === 'authoritative-world-event' &&
+    selectedMutationType === 'executeTrade' &&
     selectedTeamCodes.length === 2 &&
     selectedTeamCodes.includes(activeTeamCode)
       ? selectedTeamCodes.find((teamCode) => teamCode !== activeTeamCode) ||

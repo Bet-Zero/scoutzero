@@ -502,6 +502,52 @@ describe('Team History world events integration', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('does not fetch a counterpart feed for a two-team non-trade history row', async () => {
+    window.localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
+    useWorldTeamEventsMock.mockReturnValue({
+      events: [
+        {
+          id: 'sign-and-trade-row',
+          eventId: 'sign-and-trade-row',
+          mutationType: 'signAndTrade',
+          occurredAt: '2026-09-02T06:40:00.000Z',
+          timestamp: '2026-09-02T06:40:00.000Z',
+          teamCodes: ['LAL', 'BOS'],
+          playerIds: ['player_1'],
+        },
+      ],
+      loading: false,
+      loadingMore: false,
+      error: null,
+      hasMore: false,
+      resolution: 'authoritative',
+      loadMore: null,
+    });
+
+    render(
+      <TeamHistoryTab
+        teamCapSheet={teamCapSheet}
+        worldId="world_lal"
+        resolvePlayerTeamCode={() => 'BOS'}
+        resolvePlayerLabel={() => 'Player One'}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('team-history-row-0'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('team-history-detail-modal')
+      ).toBeInTheDocument();
+    });
+    expect(useWorldTeamEventsMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ teamCode: 'BOS', enabled: true })
+    );
+    expect(useWorldTeamEventsMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ teamCode: null, enabled: false })
+    );
+  });
+
   it('surfaces the legacy compatibility note when the hook resolves through the bounded fallback contract', () => {
     useWorldTeamEventsMock.mockReturnValue({
       events: [
