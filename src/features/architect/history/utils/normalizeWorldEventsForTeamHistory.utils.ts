@@ -391,12 +391,12 @@ export function deriveTradePickLines(metadata: GenericRecord): string[] {
     const outgoing = toArrayOfStrings(transferObject.out);
     const incoming = toArrayOfStrings(transferObject.in);
 
-    if (outgoing.length > 0) {
-      lines.push(`${teamCode}: out ${outgoing.join(', ')}`);
-    }
-    if (incoming.length > 0) {
-      lines.push(`${teamCode}: in ${incoming.join(', ')}`);
-    }
+    outgoing.forEach((entitlementId) => {
+      lines.push(`${teamCode}: out ${entitlementId}`);
+    });
+    incoming.forEach((entitlementId) => {
+      lines.push(`${teamCode}: in ${entitlementId}`);
+    });
   });
 
   return lines;

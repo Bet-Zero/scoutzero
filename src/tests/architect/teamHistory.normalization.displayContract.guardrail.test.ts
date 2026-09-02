@@ -29,7 +29,9 @@ function getSectionLines(
   row: ReturnType<typeof toTeamHistoryEventDisplay>,
   title: string
 ) {
-  return row.detailSections.find((section) => section.title === title)?.lines || [];
+  return (
+    row.detailSections.find((section) => section.title === title)?.lines || []
+  );
 }
 
 describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
@@ -184,7 +186,13 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
 
   it.each(normalizationMatrix)(
     'normalizes $mutationType through the owned Team History display contract',
-    ({ input, expectedCategory, expectedType, expectedSummary, expectedSections }) => {
+    ({
+      input,
+      expectedCategory,
+      expectedType,
+      expectedSummary,
+      expectedSections,
+    }) => {
       const row = toTeamHistoryEventDisplay(input, { teamCode: 'LAL' });
 
       expect(row.category).toBe(expectedCategory);
@@ -228,6 +236,36 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
     );
 
     expect(row.summary).toBe('Three-team salary dump routed through BOS');
+  });
+
+  it('keeps every governed entitlement as its own directed trade-history line', () => {
+    const row = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:30:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        metadata: {
+          entitlementsTraded: {
+            LAL: {
+              out: ['2028-LAL-R1', 'pick_lal_2029_2nd'],
+              in: [],
+            },
+            BOS: {
+              out: [],
+              in: ['2028-LAL-R1', 'pick_lal_2029_2nd'],
+            },
+          },
+        },
+      },
+      { teamCode: 'LAL' }
+    );
+
+    expect(getSectionLines(row, 'Picks')).toEqual([
+      'LAL: out 2028-LAL-R1',
+      'LAL: out pick_lal_2029_2nd',
+      'BOS: in 2028-LAL-R1',
+      'BOS: in pick_lal_2029_2nd',
+    ]);
   });
 
   it('uses active-team-first Team Salary delta and retains all book identities', () => {
@@ -302,7 +340,9 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
 
     expect(genericExceptionRow.category).toBe('entitlements');
     expect(genericExceptionRow.type).toBe('Exceptions Updated');
-    expect(genericExceptionRow.summary).toBe('Exceptions Updated (detail limited)');
+    expect(genericExceptionRow.summary).toBe(
+      'Exceptions Updated (detail limited)'
+    );
     expect(getSectionLines(genericExceptionRow, 'Exception Changes')).toEqual([
       'No exception change detail was included in this event payload.',
     ]);

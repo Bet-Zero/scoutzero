@@ -252,7 +252,12 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
             detailSections: [
               {
                 title: 'Picks',
-                lines: ['LAL: out 2028-LAL-R1', 'BOS: in pick_lal_2029_2nd'],
+                lines: [
+                  'LAL: out 2028-LAL-R1',
+                  'LAL: out pick_lal_2029_2nd',
+                  'BOS: in 2030-BOS-R1',
+                  'BOS: in pick_bos_2031_2nd',
+                ],
               },
             ],
           },
@@ -266,7 +271,13 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
       'Sent by Los Angeles Lakers: 2028 first-round pick'
     );
     expect(modal).toHaveTextContent(
-      'Received by Boston Celtics: 2029 second-round pick'
+      'Sent by Los Angeles Lakers: 2029 second-round pick'
+    );
+    expect(modal).toHaveTextContent(
+      'Received by Boston Celtics: 2030 first-round pick'
+    );
+    expect(modal).toHaveTextContent(
+      'Received by Boston Celtics: 2031 second-round pick'
     );
     expect(modal).not.toHaveTextContent('draft pick included in this move');
   });
