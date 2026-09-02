@@ -269,6 +269,51 @@ describe('Team History world events integration', () => {
     ).toEqual([]);
   });
 
+  it('keeps independently provable directions when another player was superseded', () => {
+    const selectedEntry = {
+      activeTeamCode: 'LAL',
+      timelineSourceKey: 'world-events' as const,
+      truthKind: 'authoritative-world-event' as const,
+      entry: {
+        id: 'trade-mixed-latest-evidence',
+        eventId: 'trade-mixed-latest-evidence',
+        mutationType: 'executeTrade',
+        type: 'Trade Executed',
+        category: 'trade',
+        timestamp: '2026-09-01T12:00:00.000Z',
+        occurredAt: '2026-09-01T12:00:00.000Z',
+        teamsInvolved: ['LAL', 'BOS'],
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['player_superseded', 'player_still_provable'],
+      },
+    };
+
+    expect(
+      resolveReliableTradePlayerMovements({
+        selectedEntry,
+        committedWorldEvents: [
+          selectedEntry.entry,
+          {
+            eventId: 'later-player-event',
+            mutationType: 'executeTrade',
+            occurredAt: '2026-09-02T12:00:00.000Z',
+            teamCodes: ['BOS', 'NYK'],
+            playerIds: ['player_superseded'],
+          },
+        ],
+        coveredTeamCodes: ['LAL', 'BOS'],
+        resolvePlayerTeamCode: (playerId) =>
+          playerId === 'player_still_provable' ? 'BOS' : 'NYK',
+      })
+    ).toEqual([
+      {
+        playerId: 'player_still_provable',
+        sourceTeamCode: 'LAL',
+        destinationTeamCode: 'BOS',
+      },
+    ]);
+  });
+
   it('uses retained teamsAffected when the primary teamCodes list is empty', () => {
     const selectedEntry = {
       activeTeamCode: 'LAL',

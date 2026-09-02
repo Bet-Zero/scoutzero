@@ -193,30 +193,29 @@ export const resolveReliableTradePlayerMovements = ({
     return [];
   }
 
-  for (const event of events) {
-    if (eventIdentity(event) === selectedId) continue;
-    const eventPlayerIds = eventStringList(event, 'playerIds');
-    if (!eventPlayerIds.some((playerId) => playerIds.includes(playerId))) {
-      continue;
-    }
-    const eventTime = parseTimelineTimestamp(
-      event.occurredAt ?? event.timestamp
-    );
-    if (eventTime === Number.NEGATIVE_INFINITY || eventTime >= selectedTime) {
-      return [];
-    }
-  }
-
   const movements: TeamHistoryPlayerMovement[] = [];
   for (const playerId of playerIds) {
+    const hasLaterOrUnorderedEvent = events.some((event) => {
+      if (eventIdentity(event) === selectedId) return false;
+      if (!eventStringList(event, 'playerIds').includes(playerId)) return false;
+
+      const eventTime = parseTimelineTimestamp(
+        event.occurredAt ?? event.timestamp
+      );
+      return (
+        eventTime === Number.NEGATIVE_INFINITY || eventTime >= selectedTime
+      );
+    });
+    if (hasLaterOrUnorderedEvent) continue;
+
     const destinationTeamCode = String(resolvePlayerTeamCode(playerId) || '')
       .trim()
       .toUpperCase();
-    if (!teamCodes.includes(destinationTeamCode)) return [];
+    if (!teamCodes.includes(destinationTeamCode)) continue;
     const sourceTeamCode = teamCodes.find(
       (teamCode) => teamCode !== destinationTeamCode
     );
-    if (!sourceTeamCode) return [];
+    if (!sourceTeamCode) continue;
     movements.push({ playerId, sourceTeamCode, destinationTeamCode });
   }
   return movements;

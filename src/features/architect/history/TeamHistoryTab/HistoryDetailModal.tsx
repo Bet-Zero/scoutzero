@@ -439,6 +439,39 @@ export const HistoryDetailModal = ({
     }
     return `${teamName} ${pickLabel}`;
   };
+  const presentDraftAssetLines = (lines: unknown[]) => {
+    const presentedLines = lines.map(presentDraftAssetLine);
+    const identities = lines.map((line) => {
+      const rawLine = String(line ?? '');
+      return (
+        rawLine.match(/^([A-Z]{2,3}):\s*(?:out|in)\s+(.+)$/i)?.[2] || rawLine
+      )
+        .trim()
+        .toLowerCase();
+    });
+    const identitiesByPresentation = new Map<string, string[]>();
+
+    // A retained deterministic identity may distinguish otherwise identical
+    // rights. Bind a stable option number to that identity without exposing it.
+    presentedLines.forEach((presentedLine, index) => {
+      const variants = identitiesByPresentation.get(presentedLine) || [];
+      if (!variants.includes(identities[index])) {
+        variants.push(identities[index]);
+      }
+      identitiesByPresentation.set(presentedLine, variants);
+    });
+
+    return presentedLines.map((presentedLine, index) => {
+      const variants = [
+        ...(identitiesByPresentation.get(presentedLine) || []),
+      ].sort();
+      if (variants.length < 2) return presentedLine;
+
+      return `${presentedLine} · option ${
+        variants.indexOf(identities[index]) + 1
+      } of ${variants.length}`;
+    });
+  };
   const visibleDetailSections = showDeveloperDetail
     ? detailSections
     : detailSections.flatMap((section) => {
@@ -450,7 +483,7 @@ export const HistoryDetailModal = ({
             {
               ...section,
               title: 'Draft picks',
-              lines: (section.lines || []).map(presentDraftAssetLine),
+              lines: presentDraftAssetLines(section.lines || []),
             },
           ];
         }

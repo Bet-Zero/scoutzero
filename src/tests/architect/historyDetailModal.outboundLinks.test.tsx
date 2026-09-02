@@ -282,6 +282,39 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
     expect(modal).not.toHaveTextContent('draft pick included in this move');
   });
 
+  it('keeps distinct deterministic rights distinguishable without raw IDs', () => {
+    render(
+      <HistoryDetailModal
+        selectedEntry={{
+          ...tradeEntry,
+          entry: {
+            ...tradeEntry.entry,
+            detailSections: [
+              {
+                title: 'Picks',
+                lines: [
+                  'BOS: in ent:BOS:2027:1:swap:bbbbbbbb',
+                  'BOS: in ent:BOS:2027:1:swap:aaaaaaaa',
+                ],
+              },
+            ],
+          },
+        }}
+        onClose={vi.fn()}
+      />
+    );
+
+    const modal = screen.getByTestId('team-history-detail-modal');
+    expect(modal).toHaveTextContent(
+      'Received by Boston Celtics: 2027 first-round swap right · option 1 of 2'
+    );
+    expect(modal).toHaveTextContent(
+      'Received by Boston Celtics: 2027 first-round swap right · option 2 of 2'
+    );
+    expect(modal).not.toHaveTextContent('aaaaaaaa');
+    expect(modal).not.toHaveTextContent('bbbbbbbb');
+  });
+
   it('reveals diagnostics only after the deliberate developer flag is enabled', () => {
     window.localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
     render(
