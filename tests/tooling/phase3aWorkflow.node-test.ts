@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import sharp from 'sharp';
 import {
   ACCEPTED_CANON_PIN,
   lookupAcceptedCanonLeaf,
@@ -12,7 +13,12 @@ import {
   verifyCanonFingerprint,
 } from '../../scripts/architect/lookupAcceptedCanon.ts';
 import { parseProbeArguments } from '../../scripts/review/runExactHeadProbe.ts';
-import { resolveProofIdentity } from '../../scripts/review/runTradeReceiptProof.ts';
+import {
+  collectGovernedScreenshotArtifacts,
+  GOVERNED_TRADE_RECEIPT_SCREENSHOTS,
+  resolveProofIdentity,
+  verifyGovernedScreenshotArtifacts,
+} from '../../scripts/review/runTradeReceiptProof.ts';
 
 const repoRoot = process.cwd();
 
@@ -338,7 +344,16 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
   assert.match(certificationHarness, /@\{upstream\}/);
   assert.match(certificationHarness, /pushedCandidate !== candidate/);
   assert.match(certificationHarness, /waitForCleanTeardown/);
-  assert.match(certificationHarness, /hashFile\(screenshotPath\)/);
+  assert.match(certificationHarness, /collectGovernedScreenshotArtifacts/);
+  assert.match(certificationHarness, /verifyGovernedScreenshotArtifacts/);
+  assert.match(
+    certificationHarness,
+    /result\.status === 0 &&\s+screenshotVerification\.valid/
+  );
+  assert.equal(
+    certificationHarness.match(/\.\.\.screenshotArtifacts/g)?.length,
+    1
+  );
   assert.match(certificationHarness, /hashFile\(proofPath\)/);
   assert.match(certificationHarness, /manifest\.json/);
 
@@ -359,6 +374,190 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
     'Repeated failed attempts',
   ]) {
     assert.match(template, new RegExp(`- ${category}:`));
+  }
+});
+
+test('Trade Receipt certification binds all eight governed screenshots', async () => {
+  const expected = [
+    ['screenshot', 'trade-receipt-1280x720.png'],
+    ['stepienNeedsInputScreenshot', 'stepien-needs-input-1280x720.png'],
+    [
+      'foreignHardCapLedgerFailClosedScreenshot',
+      'foreign-hard-cap-ledger-fail-closed-1280x720.png',
+    ],
+    ['tradeBonusNeedsInputScreenshot', 'trade-bonus-needs-input-1280x720.png'],
+    ['tradeCashLegalScreenshot', 'trade-cash-legal-1280x720.png'],
+    ['fullRosterBooksReloadScreenshot', 'full-roster-books-reload-1280x720.png'],
+    ['tradeCashHistoryReloadScreenshot', 'trade-cash-history-reload-1280x720.png'],
+    ['tradeCashCompareReloadScreenshot', 'trade-cash-compare-reload-1280x720.png'],
+  ];
+  assert.deepEqual(
+    GOVERNED_TRADE_RECEIPT_SCREENSHOTS.map(({ key, filename }) => [
+      key,
+      filename,
+    ]),
+    expected
+  );
+  assert.equal(new Set(expected.map(([key]) => key)).size, 8);
+  assert.equal(new Set(expected.map(([, filename]) => filename)).size, 8);
+
+  const tempRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'trade-receipt-screenshots-')
+  );
+  const artifactDir = path.join(tempRoot, 'artifacts');
+  fs.mkdirSync(artifactDir);
+  const originalBytes = new Map<string, Buffer>();
+
+  try {
+    for (const [index, { filename }] of
+      GOVERNED_TRADE_RECEIPT_SCREENSHOTS.entries()) {
+      const screenshotBytes = await sharp({
+        create: {
+          width: 1280,
+          height: 720,
+          channels: 4,
+          background: {
+            r: 18 + index,
+            g: 52 + index,
+            b: 86 + index,
+            alpha: 1,
+          },
+        },
+      })
+        .png()
+        .toBuffer();
+      originalBytes.set(filename, screenshotBytes);
+      fs.writeFileSync(path.join(artifactDir, filename), screenshotBytes);
+    }
+
+    const artifacts = collectGovernedScreenshotArtifacts(
+      artifactDir,
+      tempRoot
+    );
+    assert.deepEqual(Object.keys(artifacts), expected.map(([key]) => key));
+    for (const [key, filename] of expected) {
+      const receipt = artifacts[key as keyof typeof artifacts];
+      assert.ok(receipt);
+      assert.equal(receipt.path, path.join('artifacts', filename));
+      assert.match(receipt.sha256, /^[a-f0-9]{64}$/);
+    }
+    assert.equal(
+      new Set(
+        Object.values(artifacts).map((receipt) => receipt?.sha256)
+      ).size,
+      8
+    );
+    assert.deepEqual(
+      await verifyGovernedScreenshotArtifacts(
+        artifactDir,
+        tempRoot,
+        artifacts
+      ),
+      { valid: true, errors: [] }
+    );
+
+    for (const { key, filename } of GOVERNED_TRADE_RECEIPT_SCREENSHOTS) {
+      const filePath = path.join(artifactDir, filename);
+      fs.unlinkSync(filePath);
+      const missing = collectGovernedScreenshotArtifacts(
+        artifactDir,
+        tempRoot
+      );
+      assert.equal(missing[key], null);
+      assert.equal(
+        (
+          await verifyGovernedScreenshotArtifacts(
+            artifactDir,
+            tempRoot,
+            missing
+          )
+        ).valid,
+        false,
+        `removing ${filename} must prevent certification`
+      );
+      fs.writeFileSync(filePath, originalBytes.get(filename)!);
+    }
+
+    const recorded = collectGovernedScreenshotArtifacts(
+      artifactDir,
+      tempRoot
+    );
+    for (const { filename } of GOVERNED_TRADE_RECEIPT_SCREENSHOTS) {
+      const filePath = path.join(artifactDir, filename);
+      fs.appendFileSync(filePath, Buffer.from('changed'));
+      const verification = await verifyGovernedScreenshotArtifacts(
+        artifactDir,
+        tempRoot,
+        recorded
+      );
+      assert.equal(
+        verification.valid,
+        false,
+        `changing ${filename} bytes must invalidate its recorded hash`
+      );
+      assert.ok(
+        verification.errors.some((error) =>
+          error.includes(`${filename} bytes do not match`)
+        )
+      );
+      fs.writeFileSync(filePath, originalBytes.get(filename)!);
+    }
+
+    const corruptFilename = GOVERNED_TRADE_RECEIPT_SCREENSHOTS[3].filename;
+    fs.writeFileSync(
+      path.join(artifactDir, corruptFilename),
+      Buffer.from('not a PNG')
+    );
+    const corrupt = collectGovernedScreenshotArtifacts(artifactDir, tempRoot);
+    const corruptVerification = await verifyGovernedScreenshotArtifacts(
+      artifactDir,
+      tempRoot,
+      corrupt
+    );
+    assert.equal(corruptVerification.valid, false);
+    assert.ok(
+      corruptVerification.errors.some((error) =>
+        error.includes(`${corruptFilename} is not a decodable PNG`)
+      )
+    );
+
+    fs.writeFileSync(
+      path.join(artifactDir, corruptFilename),
+      originalBytes.get(corruptFilename)!
+    );
+    const wrongSizeFilename =
+      GOVERNED_TRADE_RECEIPT_SCREENSHOTS[4].filename;
+    const wrongSizeBytes = await sharp({
+      create: {
+        width: 1279,
+        height: 720,
+        channels: 4,
+        background: { r: 18, g: 52, b: 86, alpha: 1 },
+      },
+    })
+      .png()
+      .toBuffer();
+    fs.writeFileSync(
+      path.join(artifactDir, wrongSizeFilename),
+      wrongSizeBytes
+    );
+    const wrongSize = collectGovernedScreenshotArtifacts(
+      artifactDir,
+      tempRoot
+    );
+    const wrongSizeVerification = await verifyGovernedScreenshotArtifacts(
+      artifactDir,
+      tempRoot,
+      wrongSize
+    );
+    assert.equal(wrongSizeVerification.valid, false);
+    assert.ok(
+      wrongSizeVerification.errors.some((error) =>
+        error.includes(`${wrongSizeFilename} must be a 1280x720 PNG`)
+      )
+    );
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 });
 
