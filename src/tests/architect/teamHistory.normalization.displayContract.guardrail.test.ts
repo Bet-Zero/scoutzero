@@ -421,11 +421,9 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
     expect(shortIdSummaryRow.summary).toBe('Trade Executed: LAL ↔ BOS');
     expect(shortIdSummaryRow.summary).not.toContain('Dead Cap Player');
     expect(shortIdSummaryRow.primaryDeltas).not.toContain('cap');
-    expect(repeatedIdSummaryRow.summary).toBe(
-      'Historical Player was traded for Historical Player'
-    );
+    expect(repeatedIdSummaryRow.summary).toBe('Trade Executed: LAL ↔ BOS');
     expect(repeatedIdSummaryRow.primaryDeltas).toBe(
-      'Historical Player was traded for Historical Player'
+      'Trade Executed: LAL ↔ BOS'
     );
     expect(repeatedIdSummaryRow.summary).not.toContain('historical_player_1');
     expect(repeatedIdSummaryRow.primaryDeltas).not.toContain(

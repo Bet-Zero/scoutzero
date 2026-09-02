@@ -62,11 +62,11 @@ function sanitizePlayerTokensInSummary(
       visibleSummary.matchAll(boundedToken)
     ).length;
 
-    // A repeated alphabetic word can be both a schema-valid player id and
-    // ordinary prose (for example, "cap: Dead cap amount changed"). Without
-    // trustworthy occurrence-level provenance, reject that raw summary and
-    // let the structured event fallback render instead of guessing.
-    if (/^[A-Za-z]+$/.test(playerToken) && occurrenceCount > 1) return null;
+    // A repeated token can be both a schema-valid player id and ordinary prose
+    // (for example, "cap: Dead cap amount changed"). Without trustworthy
+    // occurrence-level provenance, reject that raw summary and let the
+    // structured event fallback render instead of guessing.
+    if (occurrenceCount > 1) return null;
 
     visibleSummary = visibleSummary.replace(
       boundedToken,
