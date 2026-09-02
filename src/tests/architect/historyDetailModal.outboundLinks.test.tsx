@@ -360,6 +360,29 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
     ).not.toHaveTextContent('2026-09-02T14:30:00.000Z');
   });
 
+  it('preserves the calendar day for a date-only saved value', () => {
+    render(
+      <HistoryDetailModal
+        selectedEntry={{
+          ...tradeEntry,
+          entry: {
+            ...tradeEntry.entry,
+            timestamp: '2025-07-01',
+          },
+        }}
+        onClose={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Saved on')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-detail-timestamp')
+    ).toHaveTextContent('Jul 1, 2025');
+    expect(
+      screen.getByTestId('team-history-detail-timestamp')
+    ).not.toHaveTextContent('Jun 30');
+  });
+
   it('preserves year and round for canonical retained pick identifiers', () => {
     render(
       <HistoryDetailModal

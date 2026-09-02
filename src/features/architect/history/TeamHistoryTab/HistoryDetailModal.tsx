@@ -111,6 +111,27 @@ const formatTeams = (teamsInvolved: string[] | null | undefined) => {
 
 const formatHistoryDate = (value: string | null | undefined) => {
   if (!value) return EMPTY_VALUE;
+  const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, yearText, monthText, dayText] = dateOnlyMatch;
+    const year = Number(yearText);
+    const month = Number(monthText);
+    const day = Number(dayText);
+    const parsedDate = new Date(Date.UTC(year, month - 1, day));
+    if (
+      parsedDate.getUTCFullYear() !== year ||
+      parsedDate.getUTCMonth() !== month - 1 ||
+      parsedDate.getUTCDate() !== day
+    ) {
+      return EMPTY_VALUE;
+    }
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(parsedDate);
+  }
   const parsed = Date.parse(value);
   if (!Number.isFinite(parsed)) return EMPTY_VALUE;
   return new Intl.DateTimeFormat('en-US', {
