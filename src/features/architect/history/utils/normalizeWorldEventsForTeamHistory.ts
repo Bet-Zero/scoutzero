@@ -87,12 +87,19 @@ export function toTeamHistoryEventDisplay(
   const metadataPlayersTraded = uniqueStrings(
     toArrayOfStrings(metadata.playersTraded)
   );
+  const diffSummaryPlayersMoved = uniqueStrings(
+    toArrayOfStrings(diffSummary.playersMoved)
+  );
   const playerIds =
     rawPlayerIds.length > 0
       ? rawPlayerIds
       : metadataPlayerIds.length > 0
         ? metadataPlayerIds
-        : metadataPlayersTraded;
+        : metadataPlayersTraded.length > 0
+          ? metadataPlayersTraded
+          : mutationType === 'executeTrade'
+            ? diffSummaryPlayersMoved
+            : [];
 
   const occurredAt = toIsoString(raw.occurredAt) || toIsoString(raw.timestamp);
   const timestamp = toIsoString(raw.timestamp) || occurredAt;
@@ -221,8 +228,8 @@ export function toTeamHistoryEventDisplay(
   const buyout = mutationMetadata.buyout === true || metadata.buyout === true;
 
   const tradePlayerTokens =
-    uniqueStrings(toArrayOfStrings(diffSummary.playersMoved)).length > 0
-      ? uniqueStrings(toArrayOfStrings(diffSummary.playersMoved))
+    diffSummaryPlayersMoved.length > 0
+      ? diffSummaryPlayersMoved
       : displayPlayerTokens;
   const tradePlayerLines = tradePlayerTokens.map((playerToken) =>
     formatEventPlayerLabel(playerToken)

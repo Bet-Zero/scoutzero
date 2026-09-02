@@ -509,6 +509,7 @@ describe('Team History world events integration', () => {
       <TeamHistoryTab
         teamCapSheet={teamCapSheet}
         worldId="world_lal"
+        onPlayerAction={vi.fn()}
         resolvePlayerLabel={(playerId) =>
           playerId === 'austin_reaves' ? 'Austin Reaves' : playerId
         }
@@ -523,6 +524,9 @@ describe('Team History world events integration', () => {
     expect(
       screen.getByTestId('team-history-detail-modal')
     ).not.toHaveTextContent('austin_reaves');
+    expect(
+      screen.getByTestId('team-history-player-austin_reaves-actions-overflow')
+    ).toBeInTheDocument();
   });
 
   it('surfaces the mixed-feed compatibility note when canonical and legacy rows are merged together', () => {
