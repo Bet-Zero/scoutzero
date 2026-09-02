@@ -190,6 +190,9 @@ describe('Team History world events integration', () => {
     fireEvent.click(screen.getByTestId('team-history-row-0'));
 
     await waitFor(() => {
+      expect(useWorldTeamEventsMock).toHaveBeenCalledWith(
+        expect.objectContaining({ teamCode: 'BOS', enabled: true })
+      );
       expect(
         screen.getByTestId('team-history-player-player_lal_out-direction')
       ).toHaveTextContent(
@@ -238,10 +241,11 @@ describe('Team History world events integration', () => {
             eventId: 'later-player-event',
             mutationType: 'executeTrade',
             occurredAt: '2026-09-02T12:00:00.000Z',
-            teamCodes: ['LAL', 'NYK'],
+            teamCodes: ['BOS', 'NYK'],
             playerIds: ['player_1'],
           },
         ],
+        coveredTeamCodes: ['LAL', 'BOS'],
         resolvePlayerTeamCode: () => 'LAL',
       })
     ).toEqual([]);
@@ -249,9 +253,67 @@ describe('Team History world events integration', () => {
       resolveReliableTradePlayerMovements({
         selectedEntry,
         committedWorldEvents: [selectedEntry.entry],
+        coveredTeamCodes: ['LAL', 'BOS'],
         resolvePlayerTeamCode: () => 'NYK',
       })
     ).toEqual([]);
+
+    expect(
+      resolveReliableTradePlayerMovements({
+        selectedEntry,
+        committedWorldEvents: [selectedEntry.entry],
+        coveredTeamCodes: ['LAL'],
+        resolvePlayerTeamCode: () => 'BOS',
+      })
+    ).toEqual([]);
+  });
+
+  it('keeps player direction neutral when the counterpart retained feed cannot bind the selected event', async () => {
+    window.localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
+    useWorldTeamEventsMock.mockImplementation(
+      ({ teamCode }: { teamCode?: string | null }) => ({
+        events:
+          teamCode === 'LAL'
+            ? [
+                {
+                  id: 'trade-direction-incomplete',
+                  eventId: 'trade-direction-incomplete',
+                  mutationType: 'executeTrade',
+                  occurredAt: '2026-09-02T06:40:00.000Z',
+                  teamCodes: ['LAL', 'BOS'],
+                  playerIds: ['player_1'],
+                },
+              ]
+            : [],
+        loading: false,
+        loadingMore: false,
+        error: null,
+        hasMore: false,
+        resolution: 'authoritative',
+        loadMore: null,
+      })
+    );
+
+    render(
+      <TeamHistoryTab
+        teamCapSheet={teamCapSheet}
+        worldId="world_lal"
+        onPlayerAction={vi.fn()}
+        resolvePlayerTeamCode={() => 'BOS'}
+        resolvePlayerLabel={() => 'Player One'}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('team-history-row-0'));
+
+    await waitFor(() => {
+      expect(useWorldTeamEventsMock).toHaveBeenCalledWith(
+        expect.objectContaining({ teamCode: 'BOS', enabled: true })
+      );
+    });
+    expect(
+      screen.queryByTestId('team-history-player-player_1-direction')
+    ).not.toBeInTheDocument();
   });
 
   it('surfaces the legacy compatibility note when the hook resolves through the bounded fallback contract', () => {

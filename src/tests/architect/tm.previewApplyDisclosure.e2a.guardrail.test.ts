@@ -40,6 +40,12 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
     path.join(tmRoot, 'TradeEditor.tsx'),
     'utf-8'
   );
+  const tradeEditorDisclosureText = Array.from(
+    tradeEditorSrc.matchAll(
+      /['"]([^'"]*Final roster and draft-asset checks run[^'"]*)['"]/g
+    ),
+    (match) => match[1]
+  ).join('\n');
   const tradeLegalCheckerSrc = fs.readFileSync(
     path.join(tmRoot, 'TradeLegalChecker.tsx'),
     'utf-8'
@@ -102,7 +108,7 @@ describe('E2A TM preview/apply disclosure guardrails', () => {
   });
 
   it('TradeEditor disclosure does not expose implementation gate names', () => {
-    expect(tradeEditorSrc).not.toContain('exclusivity');
+    expect(tradeEditorDisclosureText).not.toMatch(/exclusivity/i);
   });
 
   it('TradeEditor disclosure does not claim guaranteed apply success', () => {

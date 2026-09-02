@@ -9,7 +9,6 @@ import {
 } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
 import type { RequestedHistoryEventDetail } from './types';
 import { TeamListFull } from '@/constants/teamList';
-import { resolveReliableTradePlayerMovements } from './TeamHistoryTab.helpers';
 
 const TEAM_NAME_LOOKUP = Object.fromEntries(
   TeamListFull.map((team) => [team.code, team.teamName])
@@ -110,24 +109,11 @@ export const WorldEventsTimeline = ({
   }, [events, resolvePlayerLabel]);
 
   const timelineRows = useMemo(() => {
-    const rows = normalizeWorldEventsForTeamHistory(events, teamCode, {
+    return normalizeWorldEventsForTeamHistory(events, teamCode, {
       playerNameLookup,
       teamNameLookup: TEAM_NAME_LOOKUP,
     });
-    return rows.map((entry) => ({
-      ...entry,
-      playerMovements: resolveReliableTradePlayerMovements({
-        selectedEntry: {
-          activeTeamCode: teamCode,
-          entry,
-          timelineSourceKey: 'world-events',
-          truthKind: 'authoritative-world-event',
-        },
-        committedWorldEvents: events,
-        resolvePlayerTeamCode,
-      }),
-    }));
-  }, [events, playerNameLookup, resolvePlayerTeamCode, teamCode]);
+  }, [events, playerNameLookup, teamCode]);
 
   useEffect(() => {
     if (!requestedHistoryEventDetail) {

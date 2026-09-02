@@ -128,10 +128,12 @@ const eventStringList = (
 export const resolveReliableTradePlayerMovements = ({
   selectedEntry,
   committedWorldEvents,
+  coveredTeamCodes,
   resolvePlayerTeamCode,
 }: {
   selectedEntry: TeamHistorySelectedEntry | null;
   committedWorldEvents: unknown[];
+  coveredTeamCodes: string[];
   resolvePlayerTeamCode?: ((playerId: string) => string | null) | null;
 }): TeamHistoryPlayerMovement[] => {
   if (
@@ -169,7 +171,12 @@ export const resolveReliableTradePlayerMovements = ({
   if (
     !activeTeamCode ||
     teamCodes.length !== 2 ||
-    !teamCodes.includes(activeTeamCode)
+    !teamCodes.includes(activeTeamCode) ||
+    !teamCodes.every((teamCode) =>
+      coveredTeamCodes
+        .map((coveredTeamCode) => coveredTeamCode.trim().toUpperCase())
+        .includes(teamCode)
+    )
   ) {
     return [];
   }

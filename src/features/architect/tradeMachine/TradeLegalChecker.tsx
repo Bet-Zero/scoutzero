@@ -7,7 +7,7 @@ import type {
   TeamResultLike,
   ValidationRuleLike,
 } from './validationPresentationTypes';
-import { presentTradeValidationText } from './verdictSummary';
+import { presentTradeValidationText } from '@/features/architect/tradeMachine/verdictSummary';
 
 interface TradeLegalCheckerProps {
   teamResults?: TeamResultLike[];
@@ -25,9 +25,14 @@ export const TradeLegalChecker = ({ teamResults }: TradeLegalCheckerProps) => {
       const player = [
         ...(team.outgoingPlayers ?? []),
         ...(team.incomingPlayers ?? []),
-      ].find((candidate) => (candidate.player_id || candidate.id) === playerId);
-      const name = player?.name || player?.fullName;
-      if (name && name !== playerId) return name;
+      ].find(
+        (candidate) =>
+          candidate.player_id === playerId || candidate.id === playerId
+      );
+      const name = [player?.name, player?.fullName].find(
+        (candidate) => typeof candidate === 'string' && candidate !== playerId
+      );
+      if (name) return name;
     }
     return null;
   };

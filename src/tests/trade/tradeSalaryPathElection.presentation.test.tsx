@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import { useState } from 'react';
 import { TradeSalaryPathElection } from '@/features/architect/tradeMachine/TradeSalaryPathElection';
 
 afterEach(cleanup);
@@ -54,5 +55,41 @@ describe('TradeSalaryPathElection owner-facing presentation', () => {
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ postAssignmentApronTeamSalary: 214_000_000 })
     );
+  });
+
+  it('preserves an intermediate decimal draft while controlled values update', () => {
+    const observedValues: Array<number | null> = [];
+    const Harness = () => {
+      const [amount, setAmount] = useState<number | null>(null);
+      return (
+        <TradeSalaryPathElection
+          election={{
+            version: 1,
+            path: 'STANDARD_TPE',
+            postAssignmentApronTeamSalary: amount,
+            tradedPlayerPreTradeSalaries: {},
+          }}
+          outgoingPlayers={[]}
+          onChange={(next) => {
+            const value = next?.postAssignmentApronTeamSalary ?? null;
+            observedValues.push(value);
+            setAmount(value);
+          }}
+        />
+      );
+    };
+
+    render(<Harness />);
+    const input = screen.getByLabelText('Post-assignment Apron Team Salary');
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: '12' } });
+    expect(input).toHaveValue('12');
+    fireEvent.change(input, { target: { value: '12.' } });
+    expect(input).toHaveValue('12.');
+    fireEvent.change(input, { target: { value: '12.5' } });
+    expect(input).toHaveValue('12.5');
+    expect(observedValues).toEqual([12, 12, 12.5]);
+    fireEvent.blur(input);
+    expect(input).toHaveValue('$12.5');
   });
 });

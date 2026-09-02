@@ -307,6 +307,40 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
     expect(screen.getByText('⚪ Needs input — trade not ready')).toBeVisible();
     expect(screen.getByText('Missing governed draft record.')).toBeVisible();
   });
+
+  it('resolves a staged player name from bio.displayName in the summary', () => {
+    render(
+      <TradeSummaryPanel
+        teams={[
+          {
+            team: { id: 'LAL' },
+            sends: [
+              {
+                id: 'player_bio_only',
+                bio: { displayName: 'Bio Display Player' },
+              } as never,
+            ],
+          },
+        ]}
+        previewAuthority={{
+          legal: false,
+          error: 'NEEDS_INPUT',
+          reason:
+            'player_bio_only: This Contract has a trade bonus whose allocation is outside this governed tranche.',
+          violations: [],
+          warnings: [],
+        }}
+        snapshotValidationDetails={{ teamResults: [] }}
+      />
+    );
+
+    expect(
+      screen.getByText(
+        'Bio Display Player: Available contract information is insufficient to determine the trade-bonus allocation.'
+      )
+    ).toBeVisible();
+    expect(document.body.textContent).not.toContain('player_bio_only');
+  });
 });
 
 describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {

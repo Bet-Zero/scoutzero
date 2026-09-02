@@ -57,7 +57,12 @@ export function TradeSummaryPanel({
     .flatMap((team) => team.sends || [])
     .forEach((player) => {
       const id = String(player.player_id ?? player.id ?? '').trim();
-      const name = String(player.name ?? player.fullName ?? '').trim();
+      const playerWithBio = player as typeof player & {
+        bio?: { displayName?: string | null } | null;
+      };
+      const name = String(
+        player.name ?? playerWithBio.bio?.displayName ?? player.fullName ?? ''
+      ).trim();
       if (id && name && id !== name) playerNameById.set(id, name);
     });
   const verdictOptions = {

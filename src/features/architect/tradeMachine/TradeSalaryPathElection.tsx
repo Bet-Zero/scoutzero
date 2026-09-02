@@ -46,6 +46,7 @@ const CurrencyInput = ({
   className: string;
 }) => {
   const [focused, setFocused] = useState(false);
+  const [draft, setDraft] = useState('');
   return (
     <input
       aria-label={ariaLabel}
@@ -53,13 +54,15 @@ const CurrencyInput = ({
       inputMode="decimal"
       className={className}
       placeholder="$0"
-      value={
-        focused ? (value ?? '') : value == null ? '' : formatCurrency(value)
-      }
-      onFocus={() => setFocused(true)}
+      value={focused ? draft : value == null ? '' : formatCurrency(value)}
+      onFocus={() => {
+        setDraft(value == null ? '' : String(value));
+        setFocused(true);
+      }}
       onBlur={() => setFocused(false)}
       onChange={(event) => {
         const normalized = event.target.value.replace(/[^\d.-]/g, '');
+        setDraft(normalized);
         if (!normalized) return onChange(null);
         const nextValue = Number(normalized);
         if (Number.isFinite(nextValue) && nextValue >= 0) onChange(nextValue);

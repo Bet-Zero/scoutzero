@@ -16,6 +16,7 @@ import type {
 import {
   resolveTeamHistoryTimeline,
   buildSelectedHistoryEntry,
+  resolveReliableTradePlayerMovements,
   resolveWaivedContractDisplayEntries,
 } from './TeamHistoryTab.helpers';
 import {
@@ -24,6 +25,10 @@ import {
 } from './worldEventsShare';
 import { WorldEventsTimeline } from './WorldEventsTimeline';
 import { TeamListFull } from '@/constants/teamList';
+import {
+  useWorldTeamEvents,
+  type WorldEventRecord,
+} from '@/features/architect/history/hooks/useWorldTeamEvents';
 
 const TEAM_NAME_LOOKUP = Object.fromEntries(
   TeamListFull.map((team) => [team.code, team.teamName])
@@ -130,6 +135,144 @@ const WorldReconciledWaivePanel = ({
     [teamCapSheet, committedWorldEvents]
   );
   return <WaiveStretchTracker waivedContracts={entries} />;
+};
+
+const getEventIdentity = (event: Record<string, unknown>): string | null => {
+  const value = event.eventId ?? event.id ?? event.operationId;
+  const identity = String(value ?? '').trim();
+  return identity || null;
+};
+
+/**
+ * Resolves historical player direction only after the selected two-Team event
+ * is present in both Team-scoped retained feeds. That proves the loaded union
+ * contains every later event involving either possible endpoint; ambiguous or
+ * incomplete coverage remains neutral.
+ */
+const WorldHistoryDetailModal = ({
+  selectedEntry,
+  worldId,
+  activeTeamEventsStore,
+  resolvePlayerTeamCode,
+  onClose,
+  onNavigateRoom,
+  onOpenTradeWithRequest,
+  onPlayerAction,
+  resolvePlayerLabel,
+}: {
+  selectedEntry: TeamHistorySelectedEntry | null;
+  worldId: string;
+  activeTeamEventsStore: SharedWorldEventsStore;
+  resolvePlayerTeamCode?: ((playerId: string) => string | null) | null;
+  onClose: () => void;
+} & Pick<
+  TeamHistoryTabProps,
+  | 'onNavigateRoom'
+  | 'onOpenTradeWithRequest'
+  | 'onPlayerAction'
+  | 'resolvePlayerLabel'
+>) => {
+  const activeTeamEvents = useSyncExternalStore(
+    activeTeamEventsStore.subscribe,
+    activeTeamEventsStore.get,
+    activeTeamEventsStore.get
+  );
+  const selectedTeamCodes = useMemo(() => {
+    const entry = selectedEntry?.entry;
+    const values = Array.isArray(entry?.teamCodes)
+      ? entry.teamCodes
+      : Array.isArray(entry?.teamsInvolved)
+        ? entry.teamsInvolved
+        : [];
+    return Array.from(
+      new Set(
+        values
+          .map((teamCode) =>
+            String(teamCode || '')
+              .trim()
+              .toUpperCase()
+          )
+          .filter(Boolean)
+      )
+    );
+  }, [selectedEntry]);
+  const activeTeamCode = String(selectedEntry?.activeTeamCode || '')
+    .trim()
+    .toUpperCase();
+  const counterpartTeamCode =
+    selectedEntry?.truthKind === 'authoritative-world-event' &&
+    selectedTeamCodes.length === 2 &&
+    selectedTeamCodes.includes(activeTeamCode)
+      ? selectedTeamCodes.find((teamCode) => teamCode !== activeTeamCode) ||
+        null
+      : null;
+  const {
+    events: counterpartTeamEvents,
+    loading: counterpartLoading,
+    error: counterpartError,
+  } = useWorldTeamEvents({
+    worldId,
+    teamCode: counterpartTeamCode,
+    limit: 50,
+    enabled: Boolean(selectedEntry && counterpartTeamCode),
+  });
+
+  const playerMovements = useMemo(() => {
+    if (
+      !selectedEntry ||
+      !counterpartTeamCode ||
+      counterpartLoading ||
+      counterpartError
+    ) {
+      return [];
+    }
+
+    const selectedIdentity = getEventIdentity(
+      selectedEntry.entry as Record<string, unknown>
+    );
+    if (
+      !selectedIdentity ||
+      !counterpartTeamEvents.some(
+        (event) => getEventIdentity(event) === selectedIdentity
+      )
+    ) {
+      return [];
+    }
+
+    const eventsByIdentity = new Map<string, WorldEventRecord>();
+    [...activeTeamEvents, ...counterpartTeamEvents].forEach((event) => {
+      const identity = getEventIdentity(event);
+      if (identity) eventsByIdentity.set(identity, event);
+    });
+
+    return resolveReliableTradePlayerMovements({
+      selectedEntry,
+      committedWorldEvents: Array.from(eventsByIdentity.values()),
+      coveredTeamCodes: [activeTeamCode, counterpartTeamCode],
+      resolvePlayerTeamCode,
+    });
+  }, [
+    activeTeamCode,
+    activeTeamEvents,
+    counterpartError,
+    counterpartLoading,
+    counterpartTeamCode,
+    counterpartTeamEvents,
+    resolvePlayerTeamCode,
+    selectedEntry,
+  ]);
+
+  return (
+    <HistoryDetailModal
+      selectedEntry={selectedEntry}
+      onClose={onClose}
+      onNavigateRoom={onNavigateRoom}
+      onOpenTradeWithRequest={onOpenTradeWithRequest}
+      onPlayerAction={onPlayerAction}
+      resolvePlayerLabel={resolvePlayerLabel}
+      playerMovements={playerMovements}
+    />
+  );
 };
 
 export const TeamHistoryTab = ({
@@ -401,14 +544,28 @@ export const TeamHistoryTab = ({
         </aside>
       </div>
 
-      <HistoryDetailModal
-        selectedEntry={selectedEntry}
-        onClose={() => setSelectedEntry(null)}
-        onNavigateRoom={onNavigateRoom}
-        onOpenTradeWithRequest={onOpenTradeWithRequest}
-        onPlayerAction={onPlayerAction}
-        resolvePlayerLabel={resolvePlayerLabel}
-      />
+      {timelineResolution.usesWorldEvents && selectedEntry ? (
+        <WorldHistoryDetailModal
+          selectedEntry={selectedEntry}
+          worldId={worldId || ''}
+          activeTeamEventsStore={worldEventsStore}
+          resolvePlayerTeamCode={resolvePlayerTeamCode}
+          onClose={() => setSelectedEntry(null)}
+          onNavigateRoom={onNavigateRoom}
+          onOpenTradeWithRequest={onOpenTradeWithRequest}
+          onPlayerAction={onPlayerAction}
+          resolvePlayerLabel={resolvePlayerLabel}
+        />
+      ) : (
+        <HistoryDetailModal
+          selectedEntry={selectedEntry}
+          onClose={() => setSelectedEntry(null)}
+          onNavigateRoom={onNavigateRoom}
+          onOpenTradeWithRequest={onOpenTradeWithRequest}
+          onPlayerAction={onPlayerAction}
+          resolvePlayerLabel={resolvePlayerLabel}
+        />
+      )}
     </div>
   );
 };

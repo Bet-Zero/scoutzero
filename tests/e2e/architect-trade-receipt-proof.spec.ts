@@ -1317,6 +1317,10 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   const screenshotPath = path.join(ARTIFACT_DIR, 'trade-receipt-1280x720.png');
   if (OWNER_REVIEW_MODE) {
     await expect(receipt).toHaveCount(0);
+    await expect(readiness).toContainText('Trade blocked');
+    await expect(readiness).toContainText(
+      'Transaction Restrictions Table Row F prohibits this trade'
+    );
     await expect(readiness).not.toContainText(
       /Local checks|duplicate-player|pick-conflict|exclusivity|governed input|generic matching estimate/i
     );
@@ -1456,6 +1460,10 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
     'trade-cash-legal-1280x720.png'
   );
   if (OWNER_REVIEW_MODE) {
+    await expect(readiness).toContainText('Ready to apply');
+    await expect(readiness).toContainText(
+      'Final roster and draft-asset checks run when you apply it'
+    );
     await expect(readiness).not.toContainText(
       /Local checks|duplicate-player|pick-conflict|exclusivity|governed input|generic matching estimate/i
     );
