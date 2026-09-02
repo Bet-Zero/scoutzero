@@ -273,6 +273,7 @@ export function toTeamHistoryEventDisplay(
           ...rawPlayerIds,
           ...metadataPlayerIds,
           ...metadataPlayersTraded,
+          ...tradePlayerTokens,
           ...(metadataPlayerId ? [metadataPlayerId] : []),
           ...(metadataPlayerName &&
           !isSafePlayerDisplayName(
