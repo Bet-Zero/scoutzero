@@ -315,6 +315,39 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
     expect(JSON.stringify(items)).not.toContain('Post-season salary basis');
   });
 
+  it('preserves a missing base-salary blocker before the trade-bonus clause', () => {
+    const items = buildVerdictItems(
+      [
+        {
+          teamName: 'Miami Heat',
+          rules: {
+            salaryMatching: {
+              status: 'NEEDS_INPUT',
+              message:
+                'austin_reaves: 2026-27 Base Compensation is missing or invalid in governed Contract history. This Contract has a trade bonus whose allocation is outside this governed tranche.',
+            },
+          },
+        },
+      ],
+      null,
+      {
+        resolvePlayerName: (playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      }
+    );
+
+    expect(items).toEqual([
+      {
+        teamName: 'Miami Heat',
+        kind: 'needsInput',
+        text: 'Austin Reaves: Base salary information for 2026-27 is missing or invalid. Available contract information is insufficient to determine the trade-bonus allocation.',
+      },
+    ]);
+    expect(JSON.stringify(items)).not.toContain('austin_reaves');
+    expect(JSON.stringify(items)).not.toContain('governed Contract history');
+    expect(JSON.stringify(items)).not.toContain('governed tranche');
+  });
+
   it('keeps an empty-team generic top-level rejection visibly blocked', () => {
     const items = buildVerdictItems([], {
       legal: false,

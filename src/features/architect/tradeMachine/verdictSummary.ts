@@ -29,10 +29,11 @@ export interface VerdictPresentationOptions {
 const TRADE_BONUS_REASON_SOURCE = String.raw`(?:This Contract|\d{4}-\d{2}) (?:has a trade bonus whose allocation|has bonus compensation whose trade treatment) is outside this governed tranche\.?`;
 const TRADE_BONUS_REASON = new RegExp(TRADE_BONUS_REASON_SOURCE, 'i');
 const TRADE_BONUS_REASONS = new RegExp(TRADE_BONUS_REASON_SOURCE, 'gi');
-const PLAYER_TRADE_BONUS_REASON = new RegExp(
-  String.raw`(?<playerId>[A-Za-z0-9_-]+):\s*(?=${TRADE_BONUS_REASON_SOURCE})`,
-  'i'
-);
+const PLAYER_REASON_PREFIX = /\b(?<playerId>[A-Za-z0-9_-]+):\s*/gi;
+const MISSING_PROTECTED_SALARY_REASON =
+  /(?<season>\d{4}-\d{2}) protected Base Compensation is missing or invalid in governed Contract history\.?/gi;
+const MISSING_BASE_SALARY_REASON =
+  /(?<season>\d{4}-\d{2}) Base Compensation is missing or invalid in governed Contract history\.?/gi;
 const POST_SEASON_SALARY_REASON =
   /Post-season salary basis requires governed (?<season>\d{4}-\d{2}) terms\.?/gi;
 
@@ -44,7 +45,13 @@ export const presentTradeValidationText = (
   text: string,
   options: VerdictPresentationOptions = {}
 ): string => {
-  const playerReasonMatch = text.match(PLAYER_TRADE_BONUS_REASON);
+  const firstBonusIndex = text.search(TRADE_BONUS_REASON);
+  const playerReasonMatch = [...text.matchAll(PLAYER_REASON_PREFIX)]
+    .filter(
+      (match) =>
+        match.index != null && match.index + match[0].length <= firstBonusIndex
+    )
+    .at(-1);
   if (playerReasonMatch?.groups?.playerId && playerReasonMatch.index != null) {
     const playerId = playerReasonMatch.groups.playerId.trim();
     const resolvedName = options.resolvePlayerName?.(playerId)?.trim();
@@ -55,15 +62,28 @@ export const presentTradeValidationText = (
     const reasonsStart = playerReasonMatch.index + playerReasonMatch[0].length;
     const playerReasons = text.slice(reasonsStart);
     if (TRADE_BONUS_REASON.test(playerReasons)) {
-      const additionalReasons = playerReasons
-        .replace(TRADE_BONUS_REASONS, ' ')
+      let presentedBonus = false;
+      const presentedReasons = playerReasons
+        .replace(TRADE_BONUS_REASONS, () => {
+          if (presentedBonus) return ' ';
+          presentedBonus = true;
+          return 'Available contract information is insufficient to determine the trade-bonus allocation.';
+        })
+        .replace(
+          MISSING_PROTECTED_SALARY_REASON,
+          'Protected salary information for $<season> is missing or invalid.'
+        )
+        .replace(
+          MISSING_BASE_SALARY_REASON,
+          'Base salary information for $<season> is missing or invalid.'
+        )
         .replace(
           POST_SEASON_SALARY_REASON,
           'Next-season salary information for $<season> is required.'
         )
         .replace(/\s+/g, ' ')
         .trim();
-      return `${playerName}: Available contract information is insufficient to determine the trade-bonus allocation.${additionalReasons ? ` ${additionalReasons}` : ''}`;
+      return `${playerName}: ${presentedReasons}`;
     }
   }
 
