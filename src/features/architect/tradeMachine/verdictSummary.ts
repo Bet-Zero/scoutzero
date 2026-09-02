@@ -27,7 +27,7 @@ export interface VerdictPresentationOptions {
 }
 
 const TRADE_BONUS_REASON =
-  /^(?<playerId>[^:]+):\s*(?:This Contract|\d{4}-\d{2}) (?:has a trade bonus whose allocation|has bonus compensation whose trade treatment) is outside this governed tranche\.?$/i;
+  /^(?<playerId>[^:]+):\s*(?:(?:This Contract|\d{4}-\d{2}) (?:has a trade bonus whose allocation|has bonus compensation whose trade treatment) is outside this governed tranche\.?\s*)+$/i;
 
 const STEPIEN_HISTORY_REASON =
   /(?:complete governed ownership|complete protection).*history is unavailable/i;

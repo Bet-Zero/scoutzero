@@ -246,6 +246,40 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
     ]);
   });
 
+  it('presents accumulated bonus-compensation and trade-kicker reasons without internal wording', () => {
+    const reason =
+      'austin_reaves: 2026-27 has bonus compensation whose trade treatment is outside this governed tranche. This Contract has a trade bonus whose allocation is outside this governed tranche.';
+    const items = buildVerdictItems(
+      [],
+      {
+        legal: false,
+        error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+        reason,
+        violations: [
+          {
+            message: reason,
+            rule: 'governedTradeSalaryBasis',
+          },
+        ],
+        warnings: [],
+      },
+      {
+        resolvePlayerName: (playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      }
+    );
+
+    expect(items).toEqual([
+      {
+        teamName: null,
+        kind: 'needsInput',
+        text: 'Austin Reaves: Available contract information is insufficient to determine the trade-bonus allocation.',
+      },
+    ]);
+    expect(JSON.stringify(items)).not.toContain('austin_reaves');
+    expect(JSON.stringify(items)).not.toContain('governed tranche');
+  });
+
   it('keeps an empty-team generic top-level rejection visibly blocked', () => {
     const items = buildVerdictItems([], {
       legal: false,
