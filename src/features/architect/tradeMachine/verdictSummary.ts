@@ -171,6 +171,26 @@ const SALARY_REASON_PRESENTATIONS: ReadonlyArray<readonly [RegExp, string]> = [
   ],
 ];
 
+const PLAYER_SCOPED_REASON_PATTERNS = [
+  TRADE_BONUS_REASON,
+  ...SALARY_REASON_PRESENTATIONS.map(([pattern]) => pattern),
+];
+
+const findPlayerReasonBoundary = (text: string) =>
+  PLAYER_SCOPED_REASON_PATTERNS.flatMap((pattern) => {
+    const flags = pattern.flags.includes('g')
+      ? pattern.flags
+      : `${pattern.flags}g`;
+    return [...text.matchAll(new RegExp(pattern.source, flags))]
+      .map((match) => match.index)
+      .filter(
+        (index): index is number =>
+          index != null && /:\s*$/.test(text.slice(0, index))
+      );
+  })
+    .sort((left, right) => right - left)
+    .at(0);
+
 const STEPIEN_HISTORY_REASON =
   /(?:complete governed ownership|complete protection).*history is unavailable/i;
 
@@ -179,17 +199,11 @@ export const presentTradeValidationText = (
   text: string,
   options: VerdictPresentationOptions = {}
 ): string => {
-  const firstPresentedReasonIndex = [
-    TRADE_BONUS_REASON,
-    ...SALARY_REASON_PRESENTATIONS.map(([pattern]) => pattern),
-  ]
-    .map((pattern) => text.search(pattern))
-    .filter((index) => index >= 0)
-    .sort((left, right) => left - right)[0];
+  const playerReasonIndex = findPlayerReasonBoundary(text);
   const playerPrefix =
-    firstPresentedReasonIndex == null
+    playerReasonIndex == null
       ? null
-      : text.slice(0, firstPresentedReasonIndex).match(/:\s*$/);
+      : text.slice(0, playerReasonIndex).match(/:\s*$/);
   if (playerPrefix?.index != null) {
     const completePrefix = text.slice(0, playerPrefix.index).trim();
     const playerIdCandidates = [completePrefix];

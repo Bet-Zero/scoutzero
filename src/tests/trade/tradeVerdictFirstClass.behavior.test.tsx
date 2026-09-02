@@ -618,6 +618,31 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
       expected:
         'Traded player: Trade salary information is missing or invalid.',
     },
+    {
+      label: 'schema-valid player ID containing a recognized blocker phrase',
+      reason:
+        'custom. Governed player salary-basis authority is missing or malformed.: Governed player salary-basis authority is missing or malformed.',
+      resolvePlayerName: (playerId: string) =>
+        playerId ===
+        'custom. Governed player salary-basis authority is missing or malformed.'
+          ? 'Custom Player'
+          : null,
+      expected:
+        'Custom Player: Trade salary information is missing or invalid.',
+    },
+    {
+      label:
+        'schema-valid player ID containing a colon-delimited recognized blocker phrase',
+      reason:
+        'custom: Governed player salary-basis authority is missing or malformed.: Governed player salary-basis authority is missing or malformed.',
+      resolvePlayerName: (playerId: string) =>
+        playerId ===
+        'custom: Governed player salary-basis authority is missing or malformed.'
+          ? 'Custom Player'
+          : null,
+      expected:
+        'Custom Player: Trade salary information is missing or invalid.',
+    },
   ])('presents standalone $label without internal wording', (example) => {
     const items = buildVerdictItems(
       [
