@@ -273,9 +273,43 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
       {
         teamName: null,
         kind: 'needsInput',
-        text: 'Austin Reaves: Available contract information is insufficient to determine the trade-bonus allocation.',
+        text: 'Austin Reaves: Available contract information is insufficient to determine the trade-bonus allocation. Next-season salary information for 2027-28 is required.',
       },
     ]);
+    expect(JSON.stringify(items)).not.toContain('austin_reaves');
+    expect(JSON.stringify(items)).not.toContain('governed tranche');
+    expect(JSON.stringify(items)).not.toContain('Post-season salary basis');
+  });
+
+  it('resolves a trade-bonus player after the team rule label', () => {
+    const items = buildVerdictItems(
+      [
+        {
+          teamName: 'Miami Heat',
+          rules: {
+            salaryMatching: {
+              status: 'NEEDS_INPUT',
+              message:
+                'austin_reaves: This Contract has a trade bonus whose allocation is outside this governed tranche. Post-season salary basis requires governed 2027-28 terms.',
+            },
+          },
+        },
+      ],
+      null,
+      {
+        resolvePlayerName: (playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      }
+    );
+
+    expect(items).toEqual([
+      {
+        teamName: 'Miami Heat',
+        kind: 'needsInput',
+        text: 'Austin Reaves: Available contract information is insufficient to determine the trade-bonus allocation. Next-season salary information for 2027-28 is required.',
+      },
+    ]);
+    expect(JSON.stringify(items)).not.toContain('Salary Matching');
     expect(JSON.stringify(items)).not.toContain('austin_reaves');
     expect(JSON.stringify(items)).not.toContain('governed tranche');
     expect(JSON.stringify(items)).not.toContain('Post-season salary basis');
