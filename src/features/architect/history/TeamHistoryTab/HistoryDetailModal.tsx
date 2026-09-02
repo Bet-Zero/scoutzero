@@ -527,7 +527,7 @@ export const HistoryDetailModal = ({
     ? detailSections
     : detailSections.flatMap((section) => {
         if (/^players?$/i.test(section.title || '')) {
-          return onPlayerAction
+          return onPlayerAction && normalizedPlayerIds.length > 0
             ? []
             : [
                 {

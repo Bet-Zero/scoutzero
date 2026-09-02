@@ -12,6 +12,7 @@ import '@testing-library/jest-dom/vitest';
 import { HistoryDetailModal } from '@/features/architect/history/TeamHistoryTab/HistoryDetailModal';
 import type { TeamHistorySelectedEntry } from '@/features/architect/history/TeamHistoryTab/types';
 import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
+import { toTeamHistoryEventDisplay } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
 
 const tradeEntry: TeamHistorySelectedEntry = {
   activeTeamCode: 'LAL',
@@ -184,6 +185,33 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
         'team-history-player-HistoricalPlayer-actions-overflow'
       )
     ).toBeDisabled();
+  });
+
+  it('preserves a name-only player section when no action row can replace it', () => {
+    const nameOnlyEntry = toTeamHistoryEventDisplay({
+      mutationType: 'waivePlayer',
+      occurredAt: '2026-03-05T02:58:00.000Z',
+      metadata: { playerName: 'Austin Reaves' },
+    });
+
+    expect(nameOnlyEntry.playerIds).toEqual([]);
+    render(
+      <HistoryDetailModal
+        selectedEntry={{
+          ...tradeEntry,
+          entry: nameOnlyEntry,
+        }}
+        onClose={vi.fn()}
+        onPlayerAction={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByTestId('team-history-detail-sections')
+    ).toHaveTextContent('Austin Reaves');
+    expect(
+      screen.queryByTestId('team-history-detail-player-menus')
+    ).not.toBeInTheDocument();
   });
 
   it('resolves IDs only in player detail fields without rewriting ordinary prose', () => {
