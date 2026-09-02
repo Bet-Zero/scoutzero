@@ -209,6 +209,35 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
     ).not.toHaveTextContent('2026-09-02T14:30:00.000Z');
   });
 
+  it('preserves year and round for canonical retained pick identifiers', () => {
+    render(
+      <HistoryDetailModal
+        selectedEntry={{
+          ...tradeEntry,
+          entry: {
+            ...tradeEntry.entry,
+            detailSections: [
+              {
+                title: 'Picks',
+                lines: ['LAL: out 2028-LAL-R1', 'BOS: in pick_lal_2029_2nd'],
+              },
+            ],
+          },
+        }}
+        onClose={vi.fn()}
+      />
+    );
+
+    const modal = screen.getByTestId('team-history-detail-modal');
+    expect(modal).toHaveTextContent(
+      'Sent by Los Angeles Lakers: 2028 first-round pick'
+    );
+    expect(modal).toHaveTextContent(
+      'Received by Boston Celtics: 2029 second-round pick'
+    );
+    expect(modal).not.toHaveTextContent('draft pick included in this move');
+  });
+
   it('reveals diagnostics only after the deliberate developer flag is enabled', () => {
     window.localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
     render(

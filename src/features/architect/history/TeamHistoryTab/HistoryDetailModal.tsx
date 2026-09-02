@@ -391,10 +391,11 @@ export const HistoryDetailModal = ({
     const teamName = teamCode
       ? TEAM_NAME_BY_CODE.get(teamCode.toUpperCase()) || teamCode
       : 'Team';
-    const year = rawLine.match(/\b(20\d{2})\b/)?.[1];
-    const round = rawLine.match(
-      /\b(first|second|1st|2nd|1|2)[-_\s]*round\b/i
-    )?.[1];
+    const year = rawLine.match(/(?:^|[-_\s])(20\d{2})(?=$|[-_\s])/)?.[1];
+    const round =
+      rawLine.match(/\b(first|second|1st|2nd|1|2)[-_\s]*round\b/i)?.[1] ||
+      rawLine.match(/(?:^|[-_\s])R([12])(?=$|[-_\s])/i)?.[1] ||
+      rawLine.match(/(?:^|[-_\s])(1st|2nd)(?=$|[-_\s])/i)?.[1];
     const roundLabel = /^(?:first|1st|1)$/i.test(round || '')
       ? 'first-round'
       : /^(?:second|2nd|2)$/i.test(round || '')
