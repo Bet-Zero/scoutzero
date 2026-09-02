@@ -157,6 +157,35 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
     expect(onPlayerAction).not.toHaveBeenCalled();
   });
 
+  it('does not treat canonical IDs duplicated into compatibility metadata as names', () => {
+    render(
+      <HistoryDetailModal
+        selectedEntry={{
+          ...tradeEntry,
+          entry: {
+            ...tradeEntry.entry,
+            playerIds: ['HistoricalPlayer'],
+            raw: {
+              playerIds: ['HistoricalPlayer'],
+              metadata: { playersTraded: ['HistoricalPlayer'] },
+            },
+          },
+        }}
+        onClose={vi.fn()}
+        onPlayerAction={vi.fn()}
+        resolvePlayerLabel={(playerId) => playerId}
+      />
+    );
+
+    expect(screen.getByText('Player details unavailable')).toBeInTheDocument();
+    expect(screen.queryByText('HistoricalPlayer')).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(
+        'team-history-player-HistoricalPlayer-actions-overflow'
+      )
+    ).toBeDisabled();
+  });
+
   it('resolves IDs only in player detail fields without rewriting ordinary prose', () => {
     render(
       <HistoryDetailModal
@@ -316,6 +345,7 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
                 lines: [
                   'LAL: out 2028-LAL-R1',
                   'LAL: out 2028-NYK-R1',
+                  'LAL: out ent:UNK:2032:1:own:abc12345',
                   'BOS: in 2030-BOS-R1',
                   'BOS: in ent:MIA:2031:2:swap:abc12345',
                 ],
@@ -335,12 +365,17 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
       'Sent by Los Angeles Lakers: 2028 first-round pick · New York Knicks'
     );
     expect(modal).toHaveTextContent(
+      'Sent by Los Angeles Lakers: 2032 first-round pick'
+    );
+    expect(modal).toHaveTextContent(
       'Received by Boston Celtics: 2030 first-round pick'
     );
     expect(modal).toHaveTextContent(
       'Received by Boston Celtics: 2031 second-round swap right · Miami Heat'
     );
     expect(modal).not.toHaveTextContent('draft pick included in this move');
+    expect(modal).not.toHaveTextContent('undefined');
+    expect(modal).not.toHaveTextContent('UNK');
   });
 
   it('keeps distinct deterministic rights distinguishable without raw IDs', () => {

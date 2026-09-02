@@ -360,6 +360,20 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       },
       { teamCode: 'LAL' }
     );
+    const canonicalIdDuplicatedIntoCompatibilityFieldRow =
+      toTeamHistoryEventDisplay(
+        {
+          mutationType: 'executeTrade',
+          occurredAt: '2026-03-05T03:01:30.000Z',
+          teamCodes: ['LAL', 'BOS'],
+          playerIds: ['HistoricalPlayer'],
+          metadata: {
+            playersTraded: ['HistoricalPlayer'],
+            summary: 'HistoricalPlayer was traded',
+          },
+        },
+        { teamCode: 'LAL' }
+      );
     const shortIdSummaryRow = toTeamHistoryEventDisplay(
       {
         mutationType: 'executeTrade',
@@ -418,6 +432,12 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
     expect(getSectionLines(compatibilityNameRow, 'Players')).toEqual([
       'Historical Player',
     ]);
+    expect(
+      getSectionLines(canonicalIdDuplicatedIntoCompatibilityFieldRow, 'Players')
+    ).toEqual(['Player details unavailable']);
+    expect(canonicalIdDuplicatedIntoCompatibilityFieldRow.summary).not.toContain(
+      'HistoricalPlayer'
+    );
     expect(shortIdSummaryRow.summary).toBe('Trade Executed: LAL ↔ BOS');
     expect(shortIdSummaryRow.summary).not.toContain('Dead Cap Player');
     expect(shortIdSummaryRow.primaryDeltas).not.toContain('cap');

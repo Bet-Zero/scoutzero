@@ -323,9 +323,26 @@ export const HistoryDetailModal = ({
     (entry.id != null ? String(entry.id) : null);
   const rawEntry = asRecord(entry.raw);
   const rawMetadata = asRecord(rawEntry?.metadata);
+  const rawMutationMetadata = asRecord(rawEntry?.mutationMetadata);
+  const rawDiffSummary = asRecord(rawEntry?.diffSummary);
+  const idBearingPlayerTokens = new Set(
+    uniqueStrings([
+      ...asStringArray(rawEntry?.playerIds),
+      ...asStringArray(rawMetadata?.playerIds),
+      ...asStringArray(rawMutationMetadata?.playerIds),
+      ...asStringArray(rawDiffSummary?.playersMoved),
+      ...asStringArray([
+        rawEntry?.playerId,
+        rawMetadata?.playerId,
+        rawMutationMetadata?.playerId,
+      ]),
+    ])
+  );
   const literalCompatibilityPlayerNames = new Set(
-    asStringArray(rawMetadata?.playersTraded).filter((playerName) =>
-      isSafePlayerDisplayName(playerName)
+    asStringArray(rawMetadata?.playersTraded).filter(
+      (playerName) =>
+        !idBearingPlayerTokens.has(playerName) &&
+        isSafePlayerDisplayName(playerName)
     )
   );
   const truthContract = resolveTruthContract(selectedEntry, rawEntry);
@@ -457,9 +474,12 @@ export const HistoryDetailModal = ({
         : entitlementKind === 'conv'
           ? 'conveyance right'
           : 'pick';
+    const assetTeamName = assetTeamCode
+      ? TEAM_NAME_BY_CODE.get(assetTeamCode)
+      : null;
     const assetTeamQualifier =
-      assetTeamCode && assetTeamCode !== teamCode?.toUpperCase()
-        ? ` · ${TEAM_NAME_BY_CODE.get(assetTeamCode)}`
+      assetTeamName && assetTeamCode !== teamCode?.toUpperCase()
+        ? ` · ${assetTeamName}`
         : '';
     const pickLabel = `${year} ${roundLabel} ${assetKindLabel}${assetTeamQualifier}`;
     if (/\bout\b/i.test(rawLine)) {

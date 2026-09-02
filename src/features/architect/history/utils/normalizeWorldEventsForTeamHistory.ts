@@ -111,6 +111,17 @@ export function toTeamHistoryEventDisplay(
   const diffSummaryPlayersMoved = uniqueStrings(
     toArrayOfStrings(diffSummary.playersMoved)
   );
+  const idBearingPlayerTokens = new Set([
+    ...rawPlayerIds,
+    ...metadataPlayerIds,
+    ...diffSummaryPlayersMoved,
+    ...(metadataPlayerId ? [metadataPlayerId] : []),
+  ]);
+  const literalCompatibilityPlayerNames = new Set(
+    metadataPlayersTraded.filter(
+      (playerToken) => !idBearingPlayerTokens.has(playerToken)
+    )
+  );
   const playerIds =
     rawPlayerIds.length > 0
       ? rawPlayerIds
@@ -184,7 +195,7 @@ export function toTeamHistoryEventDisplay(
       : formatPlayerLabel(
           playerToken,
           effectivePlayerNameLookup,
-          metadataPlayersTraded.includes(playerToken)
+          literalCompatibilityPlayerNames.has(playerToken)
         );
   const playerLabels = uniqueStrings(displayPlayerTokens).map((playerToken) =>
     formatEventPlayerLabel(playerToken)
