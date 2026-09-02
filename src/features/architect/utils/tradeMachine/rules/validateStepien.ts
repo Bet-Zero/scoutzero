@@ -25,7 +25,7 @@ const FIRST_ROUND_GOVERNED_HISTORY_MISSING_INPUTS = [
 ] as const;
 
 const FIRST_ROUND_GOVERNED_HISTORY_MESSAGE =
-  'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.';
+  "Needs input — Stepien eligibility cannot be confirmed because the pick's complete protection and conveyance history is unavailable.";
 
 interface StepienPickLike {
   year?: StepienYearLike;
@@ -327,9 +327,7 @@ export function validateStepien(
       .map((year) => toNumericYear(year, fallbackYear))
       .filter(Number.isFinite);
     const farthestYear =
-      firstRoundYears.length > 0
-        ? Math.max(...firstRoundYears)
-        : fallbackYear;
+      firstRoundYears.length > 0 ? Math.max(...firstRoundYears) : fallbackYear;
 
     return {
       passed: false,
@@ -340,7 +338,7 @@ export function validateStepien(
       warnings: [],
       message: FIRST_ROUND_GOVERNED_HISTORY_MESSAGE,
       details:
-        'This first-round asset was not evaluated. Apply is blocked until complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty lifecycle history is available.',
+        "This first-round asset was not evaluated. Apply is blocked until the pick's complete protection and conveyance history is available.",
       currentYear,
       farthestYear,
       _debug: {

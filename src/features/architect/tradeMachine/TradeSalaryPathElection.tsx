@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
 import {
   createEmptyTradeSalaryMatchingElection,
   type TradeSalaryMatchingElection,
@@ -33,6 +34,40 @@ function playerName(player: ElectionPlayer): string {
   return player.name ?? player.bio?.displayName ?? playerId(player) ?? 'Player';
 }
 
+const CurrencyInput = ({
+  value,
+  onChange,
+  ariaLabel,
+  className,
+}: {
+  value: number | null | undefined;
+  onChange: (value: number | null) => void;
+  ariaLabel: string;
+  className: string;
+}) => {
+  const [focused, setFocused] = useState(false);
+  return (
+    <input
+      aria-label={ariaLabel}
+      type="text"
+      inputMode="decimal"
+      className={className}
+      placeholder="$0"
+      value={
+        focused ? (value ?? '') : value == null ? '' : formatCurrency(value)
+      }
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onChange={(event) => {
+        const normalized = event.target.value.replace(/[^\d.-]/g, '');
+        if (!normalized) return onChange(null);
+        const nextValue = Number(normalized);
+        if (Number.isFinite(nextValue) && nextValue >= 0) onChange(nextValue);
+      }}
+    />
+  );
+};
+
 export const TradeSalaryPathElection = ({
   election,
   outgoingPlayers,
@@ -46,8 +81,8 @@ export const TradeSalaryPathElection = ({
     <div>
       <div className="text-xs font-semibold text-cockpit-info">Salary path</div>
       <div className="text-[11px] text-cockpit-text-muted">
-        Choose the legal component this team is using. Validation stays blocked
-        until every exact input is supplied.
+        Choose how this team will match salary. Complete every required amount
+        before validation.
       </div>
     </div>
 
@@ -74,34 +109,27 @@ export const TradeSalaryPathElection = ({
     {election && (
       <>
         <label className="block text-xs text-cockpit-text-secondary">
-          Post-assignment Apron Team Salary
-          <input
-            aria-label="Post-assignment Apron Team Salary"
-            type="number"
-            min="0"
-            step="0.01"
-            inputMode="decimal"
+          Apron salary after the trade
+          <CurrencyInput
+            ariaLabel="Post-assignment Apron Team Salary"
             className="mt-1 w-full rounded border border-cockpit-edge bg-cockpit-raised px-2 py-1.5 font-mono text-cockpit-text-primary"
-            placeholder="Exact amount"
-            value={election.postAssignmentApronTeamSalary ?? ''}
-            onChange={(event) =>
+            value={election.postAssignmentApronTeamSalary ?? null}
+            onChange={(value) =>
               onChange({
                 ...election,
-                postAssignmentApronTeamSalary:
-                  event.target.value === '' ? null : Number(event.target.value),
+                postAssignmentApronTeamSalary: value,
               })
             }
           />
           <span className="mt-1 block text-[10px] text-cockpit-text-muted">
-            Exact Apron Team Salary—not projected Team Salary—determines whether
-            the $250,000 allowance remains.
+            The $250,000 trade allowance is based on this amount.
           </span>
         </label>
 
         {outgoingPlayers.length > 0 && (
           <div className="space-y-2">
             <div className="text-xs text-cockpit-text-secondary">
-              Exact pre-trade Salary by Traded Player
+              Player salaries used for this trade
             </div>
             {outgoingPlayers.map((player) => {
               const id = playerId(player);
@@ -113,21 +141,16 @@ export const TradeSalaryPathElection = ({
                   }`}
                 >
                   <span className="truncate">{playerName(player)}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    inputMode="decimal"
-                    aria-label={`${playerName(player)} exact pre-trade Salary`}
+                  <CurrencyInput
+                    ariaLabel={`${playerName(player)} exact pre-trade Salary`}
                     className="rounded border border-cockpit-edge bg-cockpit-raised px-2 py-1 font-mono text-cockpit-text-primary"
-                    placeholder="Exact amount"
-                    value={election.tradedPlayerPreTradeSalaries[id] ?? ''}
-                    onChange={(event) => {
+                    value={election.tradedPlayerPreTradeSalaries[id] ?? null}
+                    onChange={(value) => {
                       const next = {
                         ...election.tradedPlayerPreTradeSalaries,
                       };
-                      if (event.target.value === '') delete next[id];
-                      else next[id] = Number(event.target.value);
+                      if (value === null) delete next[id];
+                      else next[id] = value;
                       onChange({
                         ...election,
                         tradedPlayerPreTradeSalaries: next,
@@ -138,8 +161,7 @@ export const TradeSalaryPathElection = ({
               );
             })}
             <div className="text-[10px] text-cockpit-text-muted">
-              This governed input carries any required pre-trade Salary
-              adjustment; the generic matching estimate is never substituted.
+              Enter the salary used for each player in this trade.
             </div>
           </div>
         )}

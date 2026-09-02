@@ -22,8 +22,14 @@ export const MUTATION_DISPLAY_CONFIG: Record<string, MutationDisplayConfig> = {
   storeOfferSheet: { category: 'offer-sheet', type: 'Offer Sheet Stored' },
   matchOfferSheet: { category: 'offer-sheet', type: 'Offer Sheet Matched' },
   declineOfferSheet: { category: 'offer-sheet', type: 'Offer Sheet Declined' },
-  finalizeMatchedOfferSheet: { category: 'offer-sheet', type: 'Offer Sheet Finalized (Matched)' },
-  finalizeDeclinedOfferSheet: { category: 'offer-sheet', type: 'Offer Sheet Finalized (Declined)' },
+  finalizeMatchedOfferSheet: {
+    category: 'offer-sheet',
+    type: 'Offer Sheet Finalized (Matched)',
+  },
+  finalizeDeclinedOfferSheet: {
+    category: 'offer-sheet',
+    type: 'Offer Sheet Finalized (Declined)',
+  },
   waivePlayer: { category: 'cap-transaction', type: 'Waive Player' },
   waiveAndStretch: { category: 'cap-transaction', type: 'Waive & Stretch' },
   buyoutPlayer: { category: 'cap-transaction', type: 'Buyout Player' },
@@ -251,7 +257,7 @@ export function formatTeamLabel(
     return '';
   }
   const teamName = teamNameLookup?.[teamCode];
-  return teamName ? `${teamCode} (${teamName})` : teamCode;
+  return teamName || teamCode;
 }
 
 export function formatPlayerLabel(
@@ -261,8 +267,8 @@ export function formatPlayerLabel(
   if (!playerToken) {
     return '';
   }
-  // Owner-facing copy: show the display name alone when it is known; the raw
-  // player id is a fallback, never a suffix (BZE-218).
+  // Owner-facing copy: show the display name alone when it is known; callers
+  // that render normal mode provide the player-name lookup.
   const playerName = playerNameLookup?.[playerToken];
   return playerName || playerToken;
 }
@@ -317,18 +323,20 @@ export function buildCapDeltaContext({
     ['taxSalary', 'Tax Salary'],
   ] as const;
   const deltaLines = orderedTeamCodes
-    .flatMap((teamCode) => bookFields.map(([field, label]) => {
-      const before = Number(asObject(beforeTotalsByTeam[teamCode])[field]);
-      const after = Number(asObject(afterTotalsByTeam[teamCode])[field]);
-      if (!Number.isFinite(before) || !Number.isFinite(after)) return null;
-      const delta = after - before;
-      return {
-        teamCode,
-        field,
-        delta,
-        line: `${formatTeamLabel(teamCode, teamNameLookup)} ${label}: ${formatSignedCurrency(delta)}`,
-      };
-    }))
+    .flatMap((teamCode) =>
+      bookFields.map(([field, label]) => {
+        const before = Number(asObject(beforeTotalsByTeam[teamCode])[field]);
+        const after = Number(asObject(afterTotalsByTeam[teamCode])[field]);
+        if (!Number.isFinite(before) || !Number.isFinite(after)) return null;
+        const delta = after - before;
+        return {
+          teamCode,
+          field,
+          delta,
+          line: `${formatTeamLabel(teamCode, teamNameLookup)} ${label}: ${formatSignedCurrency(delta)}`,
+        };
+      })
+    )
     .filter(
       (
         value
@@ -343,14 +351,16 @@ export function buildCapDeltaContext({
   const activeTeamDelta =
     activeTeamCode &&
     deltaLines.find(
-      (value) => value.teamCode === activeTeamCode && value.field === 'teamSalary'
+      (value) =>
+        value.teamCode === activeTeamCode && value.field === 'teamSalary'
     )?.delta;
 
   return {
     capDelta:
       typeof activeTeamDelta === 'number'
         ? activeTeamDelta
-        : deltaLines.find((value) => value.field === 'teamSalary')?.delta ?? null,
+        : (deltaLines.find((value) => value.field === 'teamSalary')?.delta ??
+          null),
     lines: deltaLines.map((value) => value.line),
   };
 }
@@ -361,7 +371,9 @@ export function deriveTradePickLines(metadata: GenericRecord): string[] {
     return picksTraded;
   }
 
-  const legacyEntitlementsTraded = toArrayOfStrings(metadata.entitlementsTraded);
+  const legacyEntitlementsTraded = toArrayOfStrings(
+    metadata.entitlementsTraded
+  );
   if (legacyEntitlementsTraded.length > 0) {
     return legacyEntitlementsTraded;
   }
@@ -389,7 +401,9 @@ export function isGenericChangePlaceholder(
   mutationType: string,
   line: string | null | undefined
 ): boolean {
-  const normalized = String(line || '').trim().toLowerCase();
+  const normalized = String(line || '')
+    .trim()
+    .toLowerCase();
   if (!normalized) {
     return false;
   }
@@ -472,7 +486,10 @@ export function resolveContractSummary(
   const totalValue = Number(contract.totalValue || metadata.contractValue);
 
   const resolved = {
-    years: Number.isFinite(contractYears) && contractYears > 0 ? contractYears : undefined,
+    years:
+      Number.isFinite(contractYears) && contractYears > 0
+        ? contractYears
+        : undefined,
     firstYearSalary:
       Number.isFinite(firstYearSalary) && firstYearSalary > 0
         ? firstYearSalary
@@ -518,7 +535,8 @@ export function buildFallbackEventId(
   teamsInvolved: string[]
 ): string {
   const dateToken = occurredAt || timestamp || 'undated';
-  const teamToken = teamsInvolved.length > 0 ? teamsInvolved.join('-') : 'teamless';
+  const teamToken =
+    teamsInvolved.length > 0 ? teamsInvolved.join('-') : 'teamless';
   return `world-event-${mutationType}-${dateToken}-${teamToken}`;
 }
 

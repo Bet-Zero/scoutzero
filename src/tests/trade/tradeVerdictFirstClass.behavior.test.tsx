@@ -122,8 +122,7 @@ const blockedDetails = {
           passed: false,
           violations: [
             {
-              message:
-                'Second apron team cannot receive more salary than sent',
+              message: 'Second apron team cannot receive more salary than sent',
             },
           ],
         },
@@ -138,7 +137,10 @@ afterEach(cleanup);
 
 describe('buildVerdictItems — team-attributed verdict flattening', () => {
   it('maps failed rules to team-attributed violations with rule labels', () => {
-    const items = buildVerdictItems(blockedDetails.teamResults, blockedAuthority);
+    const items = buildVerdictItems(
+      blockedDetails.teamResults,
+      blockedAuthority
+    );
     expect(items).toEqual([
       {
         teamName: 'Miami Heat',
@@ -214,22 +216,33 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
 
   it('keeps an empty-team top-level Needs input reason as a trade-wide verdict', () => {
     const reason =
-      'mia_silas_park: This Contract has a trade bonus whose allocation is outside this governed tranche.';
-    const items = buildVerdictItems([], {
-      legal: false,
-      error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
-      reason,
-      violations: [
-        {
-          message: reason,
-          rule: 'governedTradeSalaryBasis',
-        },
-      ],
-      warnings: [],
-    });
+      'austin_reaves: This Contract has a trade bonus whose allocation is outside this governed tranche.';
+    const items = buildVerdictItems(
+      [],
+      {
+        legal: false,
+        error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+        reason,
+        violations: [
+          {
+            message: reason,
+            rule: 'governedTradeSalaryBasis',
+          },
+        ],
+        warnings: [],
+      },
+      {
+        resolvePlayerName: (playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      }
+    );
 
     expect(items).toEqual([
-      { teamName: null, kind: 'needsInput', text: reason },
+      {
+        teamName: null,
+        kind: 'needsInput',
+        text: 'Austin Reaves: Available contract information is insufficient to determine the trade-bonus allocation.',
+      },
     ]);
   });
 
@@ -291,7 +304,7 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
       />
     );
 
-    expect(screen.getByText('⚪ Needs input — trade not evaluated')).toBeVisible();
+    expect(screen.getByText('⚪ Needs input — trade not ready')).toBeVisible();
     expect(screen.getByText('Missing governed draft record.')).toBeVisible();
   });
 });
@@ -299,9 +312,19 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
 describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
   it('shows the current top-level trade-bonus Needs input authority with no per-Team results', () => {
     const reason =
-      'mia_silas_park: This Contract has a trade bonus whose allocation is outside this governed tranche.';
+      'austin_reaves: This Contract has a trade bonus whose allocation is outside this governed tranche.';
     useTradeMachineMock.mockReturnValue(
       buildHookReturn({
+        teams: [
+          {
+            team: { id: 'LAL', players: [] },
+            sends: [
+              { id: 'austin_reaves', name: 'Austin Reaves', tradeTo: 'BOS' },
+            ],
+            entitlementsOut: [],
+          },
+          { team: { id: 'BOS', players: [] }, sends: [], entitlementsOut: [] },
+        ],
         hasCurrentValidation: true,
         getValidatedAt: () => 1_787_961_600_000,
         previewAuthority: {
@@ -332,21 +355,29 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
 
     const readiness = screen.getByTestId('trade-readiness-summary');
     expect(readiness).toHaveTextContent('Needs input');
-    expect(readiness).toHaveTextContent('trade bonus whose allocation');
+    expect(readiness).toHaveTextContent('Austin Reaves');
+    expect(readiness).toHaveTextContent('insufficient');
+    expect(readiness).not.toHaveTextContent('austin_reaves');
+    expect(readiness).not.toHaveTextContent('governed tranche');
     expect(readiness).toHaveTextContent('Validation:');
     expect(readiness).toHaveTextContent('Last checked');
     expect(readiness).not.toHaveTextContent('Not validated');
-    expect(screen.getByTestId('trade-verdict-strip')).toHaveTextContent(reason);
-    expect(screen.getByRole('button', { name: /^Apply Trade$/i })).toBeDisabled();
+    expect(screen.queryByTestId('trade-verdict-strip')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /^Apply Trade$/i })
+    ).toBeDisabled();
     expect(screen.getByTestId('trade-summary-button')).toBeDisabled();
 
     fireEvent.click(
       screen.getByRole('button', { name: /^Validation Results/i })
     );
     const summary = screen.getByTestId('section-validation-summary');
-    expect(summary).toHaveTextContent('Needs input — trade not evaluated');
+    expect(summary).toHaveTextContent('Needs input — trade not ready');
     expect(summary).toHaveTextContent('Why it needs input');
-    expect(summary).toHaveTextContent('trade bonus whose allocation');
+    expect(summary).toHaveTextContent('Austin Reaves');
+    expect(summary).toHaveTextContent('insufficient');
+    expect(summary).not.toHaveTextContent('austin_reaves');
+    expect(summary).not.toHaveTextContent('governed tranche');
   });
 
   it('keeps incomplete top-level payloads in the Not validated state', () => {
@@ -368,7 +399,9 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
     expect(readiness).toHaveTextContent('Not validated');
     expect(readiness).not.toHaveTextContent('Incomplete preview authority');
     expect(screen.queryByTestId('trade-verdict-strip')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Apply Trade$/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /^Apply Trade$/i })
+    ).toBeDisabled();
   });
 
   it('shows Needs input and blocks Apply for an unevaluated first-round rule', () => {
@@ -419,10 +452,13 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
     expect(screen.getByTestId('trade-readiness-summary')).toHaveTextContent(
       'Needs input'
     );
-    expect(screen.getByTestId('trade-verdict-strip')).toHaveTextContent(
-      'Stepien Rule: Needs input'
+    expect(screen.getByTestId('trade-readiness-summary')).toHaveTextContent(
+      'Stepien eligibility cannot be confirmed'
     );
-    expect(screen.getByRole('button', { name: /^Apply Trade$/i })).toBeDisabled();
+    expect(screen.queryByTestId('trade-verdict-strip')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /^Apply Trade$/i })
+    ).toBeDisabled();
     expect(screen.getByTestId('trade-summary-button')).toBeDisabled();
   });
 
@@ -470,7 +506,7 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
     const summary = screen.getByTestId('trade-readiness-summary');
     expect(summary).toHaveTextContent('Ready to apply');
     expect(summary).toHaveTextContent(
-      'the Team Plan runs duplicate-player, pick-conflict, and exclusivity checks at apply time'
+      'Final roster and draft-asset checks run when you apply it to the active Team Plan'
     );
     expect(screen.queryByTestId('trade-verdict-strip')).not.toBeInTheDocument();
   });

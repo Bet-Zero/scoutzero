@@ -8,6 +8,11 @@ import {
   type TeamHistoryWorldEventRow,
 } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
 import type { RequestedHistoryEventDetail } from './types';
+import { TeamListFull } from '@/constants/teamList';
+
+const TEAM_NAME_LOOKUP = Object.fromEntries(
+  TeamListFull.map((team) => [team.code, team.teamName])
+);
 
 type WorldEventsTimelineProps = {
   worldId: string;
@@ -40,7 +45,9 @@ const formatHistoryTimestamp = (value: string | null | undefined) => {
 
 const getEntryTeams = (entry: TeamHistoryWorldEventRow) => {
   const teams = Array.isArray(entry.teamCodes) ? entry.teamCodes : [];
-  return teams.length > 0 ? teams.join(' · ') : 'Team plan';
+  return teams.length > 0
+    ? teams.map((team) => TEAM_NAME_LOOKUP[team] || team).join(' · ')
+    : 'Team plan';
 };
 
 export const WorldEventsTimeline = ({
@@ -53,20 +60,13 @@ export const WorldEventsTimeline = ({
   onEventsLoaded = null,
 }: WorldEventsTimelineProps) => {
   const handledRequestKeyRef = useRef<number | null>(null);
-  const {
-    events,
-    loading,
-    loadingMore,
-    error,
-    hasMore,
-    resolution,
-    loadMore,
-  } = useWorldTeamEvents({
-    worldId,
-    teamCode,
-    limit: 50,
-    enabled: Boolean(worldId && teamCode),
-  });
+  const { events, loading, loadingMore, error, hasMore, resolution, loadMore } =
+    useWorldTeamEvents({
+      worldId,
+      teamCode,
+      limit: 50,
+      enabled: Boolean(worldId && teamCode),
+    });
 
   // Report by content signature, not array identity: hook mocks (and any
   // upstream memoization slip) may hand back a fresh array each render, and
@@ -110,6 +110,7 @@ export const WorldEventsTimeline = ({
     () =>
       normalizeWorldEventsForTeamHistory(events, teamCode, {
         playerNameLookup,
+        teamNameLookup: TEAM_NAME_LOOKUP,
       }),
     [events, teamCode, playerNameLookup]
   );
@@ -243,7 +244,7 @@ export const WorldEventsTimeline = ({
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-cockpit-text-muted">
                 <span className="rounded-md border border-cockpit-edge bg-cockpit-raised px-2 py-0.5">
-                  {entry.mutationType || entry.type || 'Team plan move'}
+                  {entry.type || 'Team move'}
                 </span>
                 <span>{getEntryTeams(entry)}</span>
               </div>

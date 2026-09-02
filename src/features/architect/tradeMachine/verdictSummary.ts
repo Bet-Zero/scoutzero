@@ -22,6 +22,39 @@ export interface VerdictItem {
   text: string;
 }
 
+export interface VerdictPresentationOptions {
+  resolvePlayerName?: (playerId: string) => string | null | undefined;
+}
+
+const TRADE_BONUS_REASON =
+  /^(?<playerId>[^:]+):\s*(?:This Contract|\d{4}-\d{2}) (?:has a trade bonus whose allocation|has bonus compensation whose trade treatment) is outside this governed tranche\.?$/i;
+
+const STEPIEN_HISTORY_REASON =
+  /(?:complete governed ownership|complete protection).*history is unavailable/i;
+
+/** Present authority diagnostics in GM language without changing their result. */
+export const presentTradeValidationText = (
+  text: string,
+  options: VerdictPresentationOptions = {}
+): string => {
+  const tradeBonusMatch = text.match(TRADE_BONUS_REASON);
+  if (tradeBonusMatch?.groups?.playerId) {
+    const playerId = tradeBonusMatch.groups.playerId.trim();
+    const resolvedName = options.resolvePlayerName?.(playerId)?.trim();
+    const playerName =
+      resolvedName && resolvedName !== playerId
+        ? resolvedName
+        : 'Traded player';
+    return `${playerName}: Available contract information is insufficient to determine the trade-bonus allocation.`;
+  }
+
+  if (STEPIEN_HISTORY_REASON.test(text)) {
+    return "Stepien eligibility cannot be confirmed because the pick's complete protection and conveyance history is unavailable.";
+  }
+
+  return text;
+};
+
 // Owner-facing rule names, mirroring the Rule Compliance Overview grid.
 const RULE_LABELS: Record<string, string> = {
   salaryMatching: 'Salary Matching',
@@ -41,9 +74,7 @@ const RULE_LABELS: Record<string, string> = {
 
 const humanizeRuleKey = (key: string) =>
   RULE_LABELS[key] ||
-  key
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/^./, (c) => c.toUpperCase());
+  key.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
 
 const resolveTeamName = (team: TeamResultLike) =>
   team.teamName || team.teamCode || team.teamId || null;
@@ -99,7 +130,8 @@ const previewAuthorityReasonNeedsInput = (
  */
 export const buildVerdictItems = (
   teamResults: TeamResultLike[] | null | undefined,
-  previewAuthority: PreviewAuthorityLike | null | undefined
+  previewAuthority: PreviewAuthorityLike | null | undefined,
+  options: VerdictPresentationOptions = {}
 ): VerdictItem[] => {
   const violations: VerdictItem[] = [];
   const needsInput: VerdictItem[] = [];
@@ -107,15 +139,19 @@ export const buildVerdictItems = (
   const seen = new Set<string>();
 
   const push = (item: VerdictItem) => {
-    const dedupeKey = `${item.teamName ?? ''}|${item.kind}|${item.text}`;
+    const presentedItem = {
+      ...item,
+      text: presentTradeValidationText(item.text, options),
+    };
+    const dedupeKey = `${presentedItem.teamName ?? ''}|${presentedItem.kind}|${presentedItem.text}`;
     if (seen.has(dedupeKey)) return;
     seen.add(dedupeKey);
-    if (item.kind === 'needsInput') {
-      needsInput.push(item);
-    } else if (item.kind === 'violation') {
-      violations.push(item);
+    if (presentedItem.kind === 'needsInput') {
+      needsInput.push(presentedItem);
+    } else if (presentedItem.kind === 'violation') {
+      violations.push(presentedItem);
     } else {
-      warnings.push(item);
+      warnings.push(presentedItem);
     }
   };
 

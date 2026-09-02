@@ -579,7 +579,10 @@ export function toTeamHistoryEventDisplay(
 export function normalizeWorldEventsForTeamHistory(
   rawEvents: GenericRecord[],
   activeTeamCode?: string | null,
-  options: Pick<TeamHistoryEventDisplayOptions, 'playerNameLookup'> = {}
+  options: Pick<
+    TeamHistoryEventDisplayOptions,
+    'playerNameLookup' | 'teamNameLookup'
+  > = {}
 ): TeamHistoryWorldEventRow[] {
   const normalizedTeamCode = activeTeamCode
     ? String(activeTeamCode).trim()
@@ -589,6 +592,7 @@ export function normalizeWorldEventsForTeamHistory(
     toTeamHistoryEventDisplay(asObject(rawInput), {
       teamCode: normalizedTeamCode,
       playerNameLookup: options.playerNameLookup,
+      teamNameLookup: options.teamNameLookup,
     })
   );
 

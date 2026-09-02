@@ -434,6 +434,31 @@ export const TradeEditor = ({
     currentPreviewAuthority.omittedStages.length > 0;
   const canApplyTrade =
     hasCurrentValidation && currentPreviewAuthority?.legal === true;
+  const tradePlayerNameById = useMemo(() => {
+    const names = new Map<string, string>();
+    const candidates = [
+      ...teams.flatMap((slot) => slot.sends),
+      ...Object.values(playersMap),
+    ];
+    for (const candidate of candidates) {
+      if (!candidate || typeof candidate !== 'object') continue;
+      const record = candidate as Record<string, unknown>;
+      const bio =
+        record.bio && typeof record.bio === 'object'
+          ? (record.bio as Record<string, unknown>)
+          : null;
+      const id = String(record.player_id ?? record.id ?? '').trim();
+      const name = String(
+        record.displayName ??
+          record.fullName ??
+          record.name ??
+          bio?.displayName ??
+          ''
+      ).trim();
+      if (id && name && id !== name) names.set(id, name);
+    }
+    return names;
+  }, [playersMap, teams]);
   // BZE-247: team-attributed violations/warnings for the sticky verdict band,
   // derived from the same payloads the Validation Results panel renders.
   const verdictItems = useMemo(() => {
@@ -441,9 +466,14 @@ export const TradeEditor = ({
       null) as SnapshotValidationDetailsLike | null;
     return buildVerdictItems(
       details?.teamResults,
-      (currentPreviewAuthority ?? null) as PreviewAuthorityLike | null
+      (currentPreviewAuthority ?? null) as PreviewAuthorityLike | null,
+      { resolvePlayerName: (playerId) => tradePlayerNameById.get(playerId) }
     );
-  }, [currentPreviewAuthority, currentSnapshotValidationDetails]);
+  }, [
+    currentPreviewAuthority,
+    currentSnapshotValidationDetails,
+    tradePlayerNameById,
+  ]);
   const verdictWarningCount = useMemo(
     () => verdictItems.filter((item) => item.kind === 'warning').length,
     [verdictItems]
@@ -577,18 +607,13 @@ export const TradeEditor = ({
         };
       }
 
-      // E2A disclosure guardrail: the apply surface must keep naming the
-      // remaining apply-only gates (duplicates, pick conflicts, exclusivity)
-      // and that they run at apply time. BZE-247 folds that disclosure into
-      // the green ready state so a fully validated legal trade actually
-      // reaches "Ready to apply" in world mode.
       return {
         tone: 'success',
         label: 'Ready to apply',
         message: previewHasApplyTimeWorldChecks
           ? isVacuumMode
-            ? 'Local checks passed; duplicate-player, pick-conflict, and exclusivity checks run at apply time.'
-            : 'Local checks passed; the Team Plan runs duplicate-player, pick-conflict, and exclusivity checks at apply time.'
+            ? 'This trade is ready. Final roster and draft-asset checks run when you apply it.'
+            : 'This move is ready. Final roster and draft-asset checks run when you apply it to the active Team Plan.'
           : isVacuumMode
             ? 'Applies this trade to the sandbox session.'
             : 'Applies this move to the active Team Plan.',
@@ -1104,7 +1129,21 @@ export const TradeEditor = ({
         {/* BZE-247: the verdict's team-attributed reasons and warnings live in
             the sticky band with the banner — at the point of decision, not
             buried in the collapsed Validation Results panel. */}
-        <TradeVerdictStrip items={verdictItems} />
+        <TradeVerdictStrip
+          items={
+            needsInputVerdict
+              ? verdictItems.filter(
+                  (item) =>
+                    item !== needsInputVerdict &&
+                    !(
+                      item.kind === 'needsInput' &&
+                      (needsInputVerdict.text.endsWith(item.text) ||
+                        item.text.endsWith(needsInputVerdict.text))
+                    )
+                )
+              : verdictItems
+          }
+        />
       </div>
 
       {/* Phase 16.3: Init error display */}

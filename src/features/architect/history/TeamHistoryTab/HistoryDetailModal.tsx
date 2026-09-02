@@ -8,6 +8,7 @@ import { resolveHistoryOutboundLinks } from './historyOutboundLinks';
 import { PlayerActionMenu } from '@/features/architect/cockpit/PlayerActionMenu';
 import { buildPlayerActionContext } from '@/features/architect/cockpit/playerActionContext';
 import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
+import { TeamListFull } from '@/constants/teamList';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -74,13 +75,43 @@ const formatNumberDelta = (value: unknown) => {
   return `${sign}$${Math.abs(value).toLocaleString()}`;
 };
 
+const TEAM_NAME_BY_CODE = new Map<string, string>(
+  TeamListFull.map((team) => [team.code, team.teamName])
+);
+
 const formatTeams = (teamsInvolved: string[] | null | undefined) => {
   if (!Array.isArray(teamsInvolved) || teamsInvolved.length === 0) {
     return EMPTY_VALUE;
   }
 
-  return teamsInvolved.join(' · ');
+  return teamsInvolved
+    .map((team) => TEAM_NAME_BY_CODE.get(team.toUpperCase()) || team)
+    .join(' · ');
 };
+
+const formatHistoryDate = (value: string | null | undefined) => {
+  if (!value) return EMPTY_VALUE;
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return EMPTY_VALUE;
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(parsed));
+};
+
+const formatMoveType = (value: string | null | undefined) => {
+  if (!value) return 'Team move';
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/^./, (character) => character.toUpperCase());
+};
+
+const TECHNICAL_DETAIL_SECTIONS =
+  /receipt|salary books|source truth|raw|payload|identity|^teams$/i;
 
 const formatList = (items: unknown) => {
   if (!Array.isArray(items) || items.length === 0) {
@@ -318,6 +349,43 @@ export const HistoryDetailModal = ({
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
     window.localStorage?.getItem(DEV_TEAM_HISTORY_FIXTURE_FLAG) === 'true';
+  const presentDetailLine = (line: unknown) => {
+    let presentedLine = String(line ?? '');
+    normalizedPlayerIds.forEach((playerId) => {
+      const resolvedLabel = resolvePlayerLabel?.(playerId);
+      const safeLabel =
+        resolvedLabel && resolvedLabel !== playerId ? resolvedLabel : 'Player';
+      presentedLine = presentedLine.replaceAll(playerId, safeLabel);
+    });
+    normalizedTeamCodes.forEach((teamCode) => {
+      const teamName = TEAM_NAME_BY_CODE.get(teamCode.toUpperCase());
+      if (teamName) {
+        presentedLine = presentedLine.replaceAll(teamCode, teamName);
+      }
+    });
+    return presentedLine;
+  };
+  const visibleDetailSections = showDeveloperDetail
+    ? detailSections
+    : detailSections.flatMap((section) => {
+        if (/cash consideration receipt/i.test(section.title || '')) {
+          const cashLines = (section.lines || [])
+            .filter((line) => /\b(?:paid|received)\b/i.test(String(line)))
+            .map(presentDetailLine);
+          return cashLines.length > 0
+            ? [{ ...section, title: 'Cash', lines: cashLines }]
+            : [];
+        }
+        if (TECHNICAL_DETAIL_SECTIONS.test(section.title || '')) {
+          return [];
+        }
+        return [
+          {
+            ...section,
+            lines: (section.lines || []).map(presentDetailLine),
+          },
+        ];
+      });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-cockpit-void/80 p-4">
@@ -327,7 +395,7 @@ export const HistoryDetailModal = ({
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-lg font-semibold">History Item Detail</h3>
+            <h3 className="text-lg font-semibold">Saved Move Details</h3>
             <p
               data-testid="team-history-detail-summary"
               className="text-sm text-cockpit-text-secondary"
@@ -345,15 +413,17 @@ export const HistoryDetailModal = ({
           </button>
         </div>
 
-        <div
-          data-testid="team-history-detail-truth-note"
-          className="mb-4 rounded-md border border-cockpit-info/20 bg-cockpit-info/5 px-3 py-2 text-xs text-cockpit-info"
-        >
-          <div className="font-semibold uppercase tracking-[0.08em]">
-            {truthContract.label}
+        {showDeveloperDetail && (
+          <div
+            data-testid="team-history-detail-truth-note"
+            className="mb-4 rounded-md border border-cockpit-info/20 bg-cockpit-info/5 px-3 py-2 text-xs text-cockpit-info"
+          >
+            <div className="font-semibold uppercase tracking-[0.08em]">
+              {truthContract.label}
+            </div>
+            <div className="mt-1 text-[11px]">{truthContract.description}</div>
           </div>
-          <div className="mt-1 text-[11px]">{truthContract.description}</div>
-        </div>
+        )}
 
         {(onNavigateRoom || onOpenTradeWithRequest) &&
         outboundLinks.length > 0 ? (
@@ -362,7 +432,7 @@ export const HistoryDetailModal = ({
             data-testid="team-history-detail-outbound-links"
           >
             <div className="mb-1 text-[11px] uppercase tracking-wide text-cockpit-text-muted">
-              Go to — committed event; destinations show current results
+              Continue from this saved move
             </div>
             <div className="flex flex-wrap gap-1.5">
               {outboundLinks.map((link) => {
@@ -411,7 +481,11 @@ export const HistoryDetailModal = ({
             </div>
             <ul className="flex flex-col gap-1">
               {normalizedPlayerIds.map((playerId) => {
-                const label = resolvePlayerLabel?.(playerId) ?? playerId;
+                const resolvedLabel = resolvePlayerLabel?.(playerId);
+                const label =
+                  resolvedLabel && resolvedLabel !== playerId
+                    ? resolvedLabel
+                    : 'Player';
                 const context = buildPlayerActionContext({
                   player: { id: playerId },
                   playerLabel: label,
@@ -455,21 +529,21 @@ export const HistoryDetailModal = ({
         <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
           <div>
             <div className="text-xs uppercase text-cockpit-text-muted">
-              Category / Type
+              Move
             </div>
             <div data-testid="team-history-detail-type" className="font-medium">
-              {entry.category || EMPTY_VALUE} · {entry.type || EMPTY_VALUE}
+              {formatMoveType(entry.type || entry.category)}
             </div>
           </div>
           <div>
             <div className="text-xs uppercase text-cockpit-text-muted">
-              Timestamp
+              Date
             </div>
             <div
               data-testid="team-history-detail-timestamp"
               className="font-medium"
             >
-              {entry.timestamp || entry.occurredAt || EMPTY_VALUE}
+              {formatHistoryDate(entry.timestamp || entry.occurredAt)}
             </div>
           </div>
           {showDeveloperDetail && (
@@ -487,18 +561,7 @@ export const HistoryDetailModal = ({
           )}
           <div>
             <div className="text-xs uppercase text-cockpit-text-muted">
-              Mutation Type
-            </div>
-            <div
-              data-testid="team-history-detail-mutation-type"
-              className="font-medium"
-            >
-              {getDisplayText(entry.mutationType)}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs uppercase text-cockpit-text-muted">
-              Teams Involved
+              Teams
             </div>
             <div
               data-testid="team-history-detail-teams"
@@ -509,47 +572,48 @@ export const HistoryDetailModal = ({
           </div>
           <div>
             <div className="text-xs uppercase text-cockpit-text-muted">
-              Team Codes
-            </div>
-            <div
-              data-testid="team-history-detail-team-codes"
-              className="font-medium"
-            >
-              {formatList(normalizedTeamCodes)}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs uppercase text-cockpit-text-muted">
-              Player IDs
-            </div>
-            <div
-              data-testid="team-history-detail-player-ids"
-              className="font-medium break-all"
-            >
-              {formatList(normalizedPlayerIds)}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs uppercase text-cockpit-text-muted">
               Cap Delta
             </div>
             <div className="font-medium">
               {formatNumberDelta(entry.capDelta)}
             </div>
           </div>
-          <div className="md:col-span-2">
-            <div className="text-xs uppercase text-cockpit-text-muted">
-              Primary Deltas
-            </div>
-            <div
-              data-testid="team-history-detail-deltas"
-              className="font-medium"
-            >
-              {entry.primaryDeltas || EMPTY_VALUE}
-            </div>
-          </div>
           {showDeveloperDetail && (
-            <div className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3">
+            <div className="md:col-span-2 space-y-3 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div>
+                  <div className="text-[11px] uppercase text-cockpit-text-muted">
+                    Mutation Type
+                  </div>
+                  <div data-testid="team-history-detail-mutation-type">
+                    {getDisplayText(entry.mutationType)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase text-cockpit-text-muted">
+                    Team Codes
+                  </div>
+                  <div data-testid="team-history-detail-team-codes">
+                    {formatList(normalizedTeamCodes)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase text-cockpit-text-muted">
+                    Player IDs
+                  </div>
+                  <div data-testid="team-history-detail-player-ids">
+                    {formatList(normalizedPlayerIds)}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] uppercase text-cockpit-text-muted">
+                  Normalized deltas
+                </div>
+                <div data-testid="team-history-detail-deltas">
+                  {entry.primaryDeltas || EMPTY_VALUE}
+                </div>
+              </div>
               <div className="text-xs uppercase text-cockpit-text-muted">
                 Identity
               </div>
@@ -606,12 +670,12 @@ export const HistoryDetailModal = ({
               </div>
             </div>
           )}
-          {detailSections.length > 0 && (
+          {visibleDetailSections.length > 0 && (
             <div
               className="md:col-span-2 space-y-3"
               data-testid="team-history-detail-sections"
             >
-              {detailSections.map((section, index) => (
+              {visibleDetailSections.map((section, index) => (
                 <div
                   key={`${section.title}-${index}`}
                   className="rounded-md border border-cockpit-edge bg-cockpit-inlay p-2"
@@ -630,28 +694,28 @@ export const HistoryDetailModal = ({
               ))}
             </div>
           )}
-          <div
-            data-testid="team-history-detail-cap-alignment"
-            className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3"
-          >
-            <div className="text-xs uppercase text-cockpit-text-muted">
-              Cap Delta Alignment
-            </div>
-            <div className="mt-1 text-sm text-cockpit-text-secondary">
-              {capAlignmentStatus}
-            </div>
-            <ul className="mt-2 space-y-1 text-sm text-cockpit-text-primary">
-              {capAlignmentRows.map((row) => (
-                <li key={`${row.teamCode}:${row.book}`}>
-                  • {row.teamCode} {row.book}: {formatCurrency(row.before)}{' '}
-                  -&gt; {formatCurrency(row.after)} (
-                  {formatNumberDelta(row.delta)})
-                </li>
-              ))}
-            </ul>
-          </div>
           {showDeveloperDetail && (
             <>
+              <div
+                data-testid="team-history-detail-cap-alignment"
+                className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3"
+              >
+                <div className="text-xs uppercase text-cockpit-text-muted">
+                  Cap Delta Alignment
+                </div>
+                <div className="mt-1 text-sm text-cockpit-text-secondary">
+                  {capAlignmentStatus}
+                </div>
+                <ul className="mt-2 space-y-1 text-sm text-cockpit-text-primary">
+                  {capAlignmentRows.map((row) => (
+                    <li key={`${row.teamCode}:${row.book}`}>
+                      • {row.teamCode} {row.book}: {formatCurrency(row.before)}{' '}
+                      -&gt; {formatCurrency(row.after)} (
+                      {formatNumberDelta(row.delta)})
+                    </li>
+                  ))}
+                </ul>
+              </div>
               <div className="md:col-span-2">
                 <div className="text-xs uppercase text-cockpit-text-muted">
                   Before Totals By Team

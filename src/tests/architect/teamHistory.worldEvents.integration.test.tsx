@@ -89,22 +89,24 @@ describe('Team History world events integration', () => {
     fireEvent.click(firstRow);
 
     expect(screen.getByTestId('team-history-detail-modal')).toBeInTheDocument();
-    expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
-      'Authoritative world-event row'
-    );
-    expect(screen.getByText('Underlying World-Event Payload')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-detail-truth-note')
+    ).toHaveTextContent('Authoritative world-event row');
+    expect(
+      screen.getByText('Underlying World-Event Payload')
+    ).toBeInTheDocument();
     expect(
       screen.getByTestId('team-history-detail-mutation-type').textContent || ''
     ).toContain('executeTrade');
     expect(
       screen.getByTestId('team-history-detail-type').textContent || ''
-    ).toContain('trade · Trade Executed');
+    ).toContain('Trade Executed');
     expect(
       screen.getByTestId('team-history-detail-player-ids').textContent || ''
     ).toContain('player_77');
     expect(
       screen.getByTestId('team-history-detail-timestamp').textContent || ''
-    ).toContain('2026-03-01T09:00:00.000Z');
+    ).not.toContain('2026-03-01T09:00:00.000Z');
     expect(
       screen.getByTestId('team-history-detail-before-totals').textContent || ''
     ).toContain('totalCapAllocations');
@@ -115,9 +117,9 @@ describe('Team History world events integration', () => {
     expect(screen.getByTestId('team-history-detail-row-id')).toHaveTextContent(
       'cap-audit-1'
     );
-    expect(screen.getByTestId('team-history-detail-event-id')).toHaveTextContent(
-      'cap-audit-1'
-    );
+    expect(
+      screen.getByTestId('team-history-detail-event-id')
+    ).toHaveTextContent('cap-audit-1');
     expect(
       screen.getByTestId('team-history-detail-operation-id')
     ).toHaveTextContent('op_trade_77');
@@ -126,9 +128,7 @@ describe('Team History world events integration', () => {
     ).toContain('Displayed cap delta matches LAL before/after totals.');
     expect(
       screen.getByTestId('team-history-detail-cap-alignment').textContent || ''
-    ).toContain(
-      'LAL Team Salary: $150,000,000 -> $149,000,000 (-$1,000,000)'
-    );
+    ).toContain('LAL Team Salary: $150,000,000 -> $149,000,000 (-$1,000,000)');
     expect(
       screen.getByTestId('team-history-detail-raw-summary').textContent || ''
     ).toContain('Raw event ID: cap-audit-1');
@@ -249,9 +249,9 @@ describe('Team History world events integration', () => {
 
     render(<TeamHistoryTab teamCapSheet={teamCapSheet} worldId="world_lal" />);
 
-    expect(screen.getByTestId('team-history-row-0').textContent || '').toContain(
-      'Trade Executed'
-    );
+    expect(
+      screen.getByTestId('team-history-row-0').textContent || ''
+    ).toContain('Trade Executed');
     expect(
       screen.getByTestId('team-history-world-events-inline-error')
         .textContent || ''

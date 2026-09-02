@@ -1,9 +1,4 @@
-import React, {
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from 'react';
+import React, { useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { WaiveStretchTracker } from '@/features/architect/offseason/WaiveStretchTracker';
 import { ExceptionHistoryTracker } from '@/features/architect/capSheet/ExceptionHistoryTracker';
 import { DraftPickTracker } from '@/features/architect/offseason/DraftPickTracker';
@@ -28,6 +23,11 @@ import {
   type SharedWorldEventsStore,
 } from './worldEventsShare';
 import { WorldEventsTimeline } from './WorldEventsTimeline';
+import { TeamListFull } from '@/constants/teamList';
+
+const TEAM_NAME_LOOKUP = Object.fromEntries(
+  TeamListFull.map((team) => [team.code, team.teamName])
+);
 
 const formatHistoryTimestamp = (value: string | null | undefined) => {
   if (!value) return '—';
@@ -48,7 +48,9 @@ const getEntryTeams = (entry: TeamHistoryLooseTimelineEntry) => {
     : Array.isArray(entry.teamCodes)
       ? entry.teamCodes
       : [];
-  return teams.length > 0 ? teams.join(' · ') : 'Team plan';
+  return teams.length > 0
+    ? teams.map((team) => TEAM_NAME_LOOKUP[team] || team).join(' · ')
+    : 'Team plan';
 };
 
 const TimelineEntryCards = ({
@@ -70,10 +72,7 @@ const TimelineEntryCards = ({
           className="group w-full rounded-lg border border-cockpit-edge bg-cockpit-slab p-3 text-left shadow-cockpit-slab transition-colors hover:border-cockpit-text-muted hover:bg-cockpit-raised focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
         >
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <div
-              data-testid="team-history-event-summary"
-              className="min-w-0"
-            >
+            <div data-testid="team-history-event-summary" className="min-w-0">
               <span
                 data-testid={`team-history-row-${idx}`}
                 className="block truncate text-sm font-bold text-cockpit-text-primary"
@@ -93,7 +92,7 @@ const TimelineEntryCards = ({
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-cockpit-text-muted">
             <span className="rounded-md border border-cockpit-edge bg-cockpit-raised px-2 py-0.5">
-              {entry.type || entry.mutationType || 'Team plan move'}
+              {entry.type || 'Team move'}
             </span>
             <span>{getEntryTeams(entry)}</span>
           </div>

@@ -1584,7 +1584,7 @@ export const GMDashboard = () => {
     compare: {
       id: 'compare',
       title: 'Compare',
-      subtitle: 'Committed scenario comparison',
+      subtitle: 'Saved move comparison',
       content: (
         <ComparisonSection
           status={comparisonViewModel.status}

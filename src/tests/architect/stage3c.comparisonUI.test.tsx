@@ -50,10 +50,14 @@ const makeScopeViewModel = (
   taxApronPostureDelta: null,
   exceptionDelta: {
     status: 'deferred',
-    reason: 'Exception delta is not reliably derivable from the current event stream.',
+    reason:
+      'Exception delta is not reliably derivable from the current event stream.',
   },
   changedTeams: { teamCodes: [], authority: 'committed-world / event-derived' },
-  changedPlayers: { playerIds: [], authority: 'committed-world / event-derived' },
+  changedPlayers: {
+    playerIds: [],
+    authority: 'committed-world / event-derived',
+  },
   committedEventCount: 0,
   committedEventReferences: [],
   isMultiSeasonComparison: false,
@@ -76,13 +80,25 @@ const makeViewModelWithEvents = (): Stage3ComparisonViewModel =>
       authority: 'committed-world / event-derived',
     },
     rosterAdditions: [
-      { playerId: 'player_a', displayName: null, authority: 'committed-world / event-derived' },
+      {
+        playerId: 'player_a',
+        displayName: 'Austin Reaves',
+        authority: 'committed-world / event-derived',
+      },
     ],
     rosterRemovals: [
-      { playerId: 'player_b', displayName: null, authority: 'committed-world / event-derived' },
+      {
+        playerId: 'player_b',
+        displayName: 'Derrick White',
+        authority: 'committed-world / event-derived',
+      },
     ],
     rosterChangedPlayers: [
-      { playerId: 'player_c', displayName: null, authority: 'committed-world / event-derived' },
+      {
+        playerId: 'player_c',
+        displayName: 'Bam Adebayo',
+        authority: 'committed-world / event-derived',
+      },
     ],
     capTotalDelta: {
       teamSalaryDelta: 15_000_000,
@@ -111,19 +127,16 @@ const makeViewModelWithEvents = (): Stage3ComparisonViewModel =>
 
 describe('ComparisonSection — sandbox state', () => {
   it('renders sandbox message when status is sandbox', () => {
-    render(
-      <ComparisonSection
-        status="sandbox"
-        viewModel={null}
-      />
-    );
+    render(<ComparisonSection status="sandbox" viewModel={null} />);
     expect(screen.getByTestId('comparison-sandbox-state')).toBeInTheDocument();
-    expect(screen.getByText(/requires a committed world/i)).toBeInTheDocument();
+    expect(screen.getByText(/requires a saved world/i)).toBeInTheDocument();
   });
 
   it('does not render available content in sandbox state', () => {
     render(<ComparisonSection status="sandbox" viewModel={null} />);
-    expect(screen.queryByTestId('comparison-available')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('comparison-available')
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -176,7 +189,7 @@ describe('ComparisonSection — no committed events', () => {
     );
     const eventCountEl = screen.getByTestId('comparison-event-count');
     expect(eventCountEl).toHaveTextContent('0');
-    expect(eventCountEl).toHaveTextContent(/committed event/i);
+    expect(eventCountEl).toHaveTextContent(/saved move/i);
   });
 
   it('shows world name in scope header', () => {
@@ -186,18 +199,21 @@ describe('ComparisonSection — no committed events', () => {
     expect(screen.getByText('Test World')).toBeInTheDocument();
   });
 
-  it('shows committed-world authority chip', () => {
+  it('does not expose internal authority labels', () => {
     render(
       <ComparisonSection status="available" viewModel={makeScopeViewModel()} />
     );
-    expect(screen.getByText(/committed world/i)).toBeInTheDocument();
+    expect(screen.queryByText(/committed world/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/event-derived/i)).not.toBeInTheDocument();
   });
 
   it('renders deferred/unavailable summary', () => {
     render(
       <ComparisonSection status="available" viewModel={makeScopeViewModel()} />
     );
-    expect(screen.getByTestId('comparison-unavailable-summary')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('comparison-unavailable-summary')
+    ).toBeInTheDocument();
     expect(screen.getByText(/Cap totals/)).toBeInTheDocument();
     expect(screen.getByText(/Draft picks/)).toBeInTheDocument();
   });
@@ -217,7 +233,7 @@ describe('ComparisonSection — with committed events', () => {
     );
     const el = screen.getByTestId('comparison-event-count');
     expect(el).toHaveTextContent('3');
-    expect(el).toHaveTextContent(/committed event/i);
+    expect(el).toHaveTextContent(/saved move/i);
   });
 
   it('renders changed teams count', () => {
@@ -244,7 +260,7 @@ describe('ComparisonSection — with committed events', () => {
     expect(el).toHaveTextContent(/player/i);
   });
 
-  it('renders roster addition player id', () => {
+  it('renders the roster addition display name without its raw id', () => {
     render(
       <ComparisonSection
         status="available"
@@ -252,10 +268,11 @@ describe('ComparisonSection — with committed events', () => {
       />
     );
     const addEl = screen.getByTestId('comparison-roster-additions');
-    expect(addEl).toHaveTextContent('player_a');
+    expect(addEl).toHaveTextContent('Austin Reaves');
+    expect(addEl).not.toHaveTextContent('player_a');
   });
 
-  it('renders roster removal player id', () => {
+  it('renders the roster removal display name without its raw id', () => {
     render(
       <ComparisonSection
         status="available"
@@ -263,10 +280,11 @@ describe('ComparisonSection — with committed events', () => {
       />
     );
     const remEl = screen.getByTestId('comparison-roster-removals');
-    expect(remEl).toHaveTextContent('player_b');
+    expect(remEl).toHaveTextContent('Derrick White');
+    expect(remEl).not.toHaveTextContent('player_b');
   });
 
-  it('renders roster changed player id', () => {
+  it('renders the changed player display name without its raw id', () => {
     render(
       <ComparisonSection
         status="available"
@@ -274,18 +292,20 @@ describe('ComparisonSection — with committed events', () => {
       />
     );
     const chgEl = screen.getByTestId('comparison-roster-changed');
-    expect(chgEl).toHaveTextContent('player_c');
+    expect(chgEl).toHaveTextContent('Bam Adebayo');
+    expect(chgEl).not.toHaveTextContent('player_c');
   });
 
-  it('renders event-derived authority chips', () => {
+  it('keeps internal comparison terminology out of normal mode', () => {
     render(
       <ComparisonSection
         status="available"
         viewModel={makeViewModelWithEvents()}
       />
     );
-    const chips = screen.getAllByText(/event-derived/i);
-    expect(chips.length).toBeGreaterThan(0);
+    expect(screen.queryByText(/event-derived/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/committed event/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/players touched/i)).not.toBeInTheDocument();
   });
 
   it('does not render empty state when events present', () => {
@@ -295,7 +315,9 @@ describe('ComparisonSection — with committed events', () => {
         viewModel={makeViewModelWithEvents()}
       />
     );
-    expect(screen.queryByTestId('comparison-empty-state')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('comparison-empty-state')
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -319,7 +341,9 @@ describe('ComparisonSection — cap delta', () => {
   it('does not render cap delta section when capTotalDelta is null', () => {
     const vm = makeScopeViewModel({ committedEventCount: 1 });
     render(<ComparisonSection status="available" viewModel={vm} />);
-    expect(screen.queryByTestId('comparison-cap-delta')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('comparison-cap-delta')
+    ).not.toBeInTheDocument();
   });
 
   it('renders cap space delta with correct sign', () => {
@@ -383,7 +407,9 @@ describe('ComparisonSection — apron posture', () => {
   it('does not render apron section when taxApronPostureDelta is null', () => {
     const vm = makeScopeViewModel({ committedEventCount: 1 });
     render(<ComparisonSection status="available" viewModel={vm} />);
-    expect(screen.queryByTestId('comparison-apron-delta')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('comparison-apron-delta')
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -401,7 +427,7 @@ describe('ComparisonSection — multi-season warning', () => {
     expect(
       screen.getByTestId('comparison-multi-season-warning')
     ).toBeInTheDocument();
-    expect(screen.getByText(/multi-season/i)).toBeInTheDocument();
+    expect(screen.getByText(/includes a season change/i)).toBeInTheDocument();
   });
 
   it('does not render multi-season warning when isMultiSeasonComparison is false', () => {
@@ -509,10 +535,7 @@ describe('ComparisonSection — navigation buttons', () => {
 
   it('does not render nav buttons when callbacks are not provided', () => {
     render(
-      <ComparisonSection
-        status="available"
-        viewModel={makeScopeViewModel()}
-      />
+      <ComparisonSection status="available" viewModel={makeScopeViewModel()} />
     );
     expect(
       screen.queryByTestId('comparison-nav-history')

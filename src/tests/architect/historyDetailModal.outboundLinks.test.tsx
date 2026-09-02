@@ -11,6 +11,7 @@ import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { HistoryDetailModal } from '@/features/architect/history/TeamHistoryTab/HistoryDetailModal';
 import type { TeamHistorySelectedEntry } from '@/features/architect/history/TeamHistoryTab/types';
+import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
 
 const tradeEntry: TeamHistorySelectedEntry = {
   activeTeamCode: 'LAL',
@@ -28,7 +29,10 @@ const tradeEntry: TeamHistorySelectedEntry = {
   },
 };
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  window.localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
+});
 
 describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () => {
   it('routes a trade event to rooms and opens a no-clone trade context', () => {
@@ -121,6 +125,83 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
       screen.queryByTestId('team-history-outbound-trade-context')
     ).toBeNull();
     // Non-committed entries still navigate to current-result rooms.
-    expect(screen.getByTestId('team-history-outbound-roster')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-outbound-roster')
+    ).toBeInTheDocument();
+  });
+
+  it('shows ordinary saved-move language and resolved names in normal mode', () => {
+    render(
+      <HistoryDetailModal
+        selectedEntry={{
+          ...tradeEntry,
+          entry: {
+            ...tradeEntry.entry,
+            timestamp: '2026-09-02T14:30:00.000Z',
+            detailSections: [
+              { title: 'Players', lines: ['Austin Reaves'] },
+              { title: 'Trade Receipt', lines: ['Receipt: GOV-raw'] },
+              {
+                title: 'Cash Consideration Receipt',
+                lines: [
+                  'Receipt: GOV-cash-raw',
+                  'LAL paid $1.00 to BOS',
+                  'Persistence verification: Complete',
+                ],
+              },
+            ],
+            raw: { eventId: 'GOV-event', playerIds: ['austin_reaves'] },
+          },
+        }}
+        onClose={vi.fn()}
+        onPlayerAction={vi.fn()}
+        resolvePlayerLabel={(id) => (id === 'p1' ? 'Austin Reaves' : id)}
+      />
+    );
+
+    const modal = screen.getByTestId('team-history-detail-modal');
+    expect(modal).toHaveTextContent('Saved Move Details');
+    expect(modal).toHaveTextContent('Los Angeles Lakers');
+    expect(modal).toHaveTextContent('Boston Celtics');
+    expect(modal).toHaveTextContent('Austin Reaves');
+    expect(modal).toHaveTextContent(
+      'Los Angeles Lakers paid $1.00 to Boston Celtics'
+    );
+    expect(modal).not.toHaveTextContent('Authoritative world-event row');
+    expect(modal).not.toHaveTextContent('Mutation Type');
+    expect(modal).not.toHaveTextContent('GOV-event');
+    expect(modal).not.toHaveTextContent('austin_reaves');
+    expect(modal).not.toHaveTextContent('Trade Receipt');
+    expect(modal).not.toHaveTextContent('GOV-cash-raw');
+    expect(modal).not.toHaveTextContent('Persistence verification');
+    expect(
+      screen.getByTestId('team-history-detail-timestamp')
+    ).not.toHaveTextContent('2026-09-02T14:30:00.000Z');
+  });
+
+  it('reveals diagnostics only after the deliberate developer flag is enabled', () => {
+    window.localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
+    render(
+      <HistoryDetailModal
+        selectedEntry={{
+          ...tradeEntry,
+          entry: {
+            ...tradeEntry.entry,
+            raw: { eventId: 'GOV-event', playerIds: ['austin_reaves'] },
+          },
+        }}
+        onClose={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByTestId('team-history-detail-truth-note')
+    ).toHaveTextContent('Authoritative world-event row');
+    expect(
+      screen.getByTestId('team-history-detail-mutation-type')
+    ).toHaveTextContent('executeTrade');
+    expect(screen.getByTestId('team-history-raw-payload')).toHaveTextContent(
+      'GOV-event'
+    );
   });
 });

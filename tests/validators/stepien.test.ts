@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { validateStepien } from '@/features/architect/utils/tradeMachine/rules/validateStepien';
 
 const AUTHORITY_MESSAGE =
-  'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.';
+  "Needs input — Stepien eligibility cannot be confirmed because the pick's complete protection and conveyance history is unavailable.";
 
 const makeTeam = (outgoingPicks: Array<Record<string, unknown>>) => ({
   teamId: 'TEST',

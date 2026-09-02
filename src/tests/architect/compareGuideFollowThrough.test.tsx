@@ -36,7 +36,7 @@ const guideViewModel = {
 afterEach(() => cleanup());
 
 describe('ComparisonSection — follow-through focus banner', () => {
-  it('shows a receipt-focused banner labeled Committed world', () => {
+  it('shows a receipt-focused banner without an internal authority label', () => {
     render(
       <ComparisonSection
         status="available"
@@ -48,12 +48,13 @@ describe('ComparisonSection — follow-through focus banner', () => {
       />
     );
     expect(screen.getByTestId('comparison-focus-banner')).toBeInTheDocument();
-    expect(
-      screen.getByTestId('comparison-focus-authority')
-    ).toHaveTextContent('Committed world');
+    expect(screen.getByTestId('comparison-focus-banner')).toHaveTextContent(
+      'Comparing the latest saved move'
+    );
+    expect(screen.queryByTestId('comparison-focus-authority')).toBeNull();
   });
 
-  it('labels a player-focused comparison Unavailable (deltas deferred)', () => {
+  it('explains an unavailable player-focused comparison in product language', () => {
     render(
       <ComparisonSection
         status="available"
@@ -64,13 +65,16 @@ describe('ComparisonSection — follow-through focus banner', () => {
         })}
       />
     );
-    expect(
-      screen.getByTestId('comparison-focus-authority')
-    ).toHaveTextContent('Unavailable');
+    expect(screen.getByTestId('comparison-focus-banner')).toHaveTextContent(
+      'Player-level comparison is not available yet'
+    );
+    expect(screen.queryByTestId('comparison-focus-authority')).toBeNull();
   });
 
   it('renders no focus banner without context', () => {
-    render(<ComparisonSection status="available" viewModel={compareViewModel} />);
+    render(
+      <ComparisonSection status="available" viewModel={compareViewModel} />
+    );
     expect(screen.queryByTestId('comparison-focus-banner')).toBeNull();
   });
 });
