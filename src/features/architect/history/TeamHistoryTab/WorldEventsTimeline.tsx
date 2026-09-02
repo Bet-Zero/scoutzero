@@ -9,6 +9,7 @@ import {
 } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
 import type { RequestedHistoryEventDetail } from './types';
 import { TeamListFull } from '@/constants/teamList';
+import { resolveReliableTradePlayerMovements } from './TeamHistoryTab.helpers';
 
 const TEAM_NAME_LOOKUP = Object.fromEntries(
   TeamListFull.map((team) => [team.code, team.teamName])
@@ -17,6 +18,7 @@ const TEAM_NAME_LOOKUP = Object.fromEntries(
 type WorldEventsTimelineProps = {
   worldId: string;
   teamCode: string | null;
+  resolvePlayerTeamCode?: ((playerId: string) => string | null) | null;
   onSelectEntry: (entry: TeamHistoryWorldEventRow) => void;
   requestedHistoryEventDetail?: RequestedHistoryEventDetail | null;
   onRequestedHistoryEventDetailHandled?: ((requestKey: number) => void) | null;
@@ -53,6 +55,7 @@ const getEntryTeams = (entry: TeamHistoryWorldEventRow) => {
 export const WorldEventsTimeline = ({
   worldId,
   teamCode,
+  resolvePlayerTeamCode = null,
   onSelectEntry,
   requestedHistoryEventDetail = null,
   onRequestedHistoryEventDetailHandled = null,
@@ -113,14 +116,25 @@ export const WorldEventsTimeline = ({
     return lookup;
   }, [events, resolvePlayerLabel]);
 
-  const timelineRows = useMemo(
-    () =>
-      normalizeWorldEventsForTeamHistory(events, teamCode, {
+  const timelineRows = useMemo(() => {
+    const rows = normalizeWorldEventsForTeamHistory(events, teamCode, {
         playerNameLookup,
         teamNameLookup: TEAM_NAME_LOOKUP,
+      });
+    return rows.map((entry) => ({
+      ...entry,
+      playerMovements: resolveReliableTradePlayerMovements({
+        selectedEntry: {
+          activeTeamCode: teamCode,
+          entry,
+          timelineSourceKey: 'world-events',
+          truthKind: 'authoritative-world-event',
+        },
+        committedWorldEvents: events,
+        resolvePlayerTeamCode,
       }),
-    [events, teamCode, playerNameLookup]
-  );
+    }));
+  }, [events, playerNameLookup, resolvePlayerTeamCode, teamCode]);
 
   useEffect(() => {
     if (!requestedHistoryEventDetail) {

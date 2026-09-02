@@ -79,6 +79,9 @@ const TEAM_NAME_BY_CODE = new Map<string, string>(
   TeamListFull.map((team) => [team.code, team.teamName])
 );
 
+const formatTeamName = (teamCode: string) =>
+  TEAM_NAME_BY_CODE.get(teamCode.toUpperCase()) || 'Team';
+
 const formatTeams = (teamsInvolved: string[] | null | undefined) => {
   if (!Array.isArray(teamsInvolved) || teamsInvolved.length === 0) {
     return EMPTY_VALUE;
@@ -281,6 +284,7 @@ const buildRawPayloadSummaryLines = (
 export const HistoryDetailModal = ({
   selectedEntry,
   onClose,
+  playerMovements = [],
   onNavigateRoom,
   onOpenTradeWithRequest,
   onPlayerAction,
@@ -311,6 +315,15 @@ export const HistoryDetailModal = ({
     ...asStringArray(entry.teamsInvolved),
   ]);
   const normalizedPlayerIds = asStringArray(entry.playerIds);
+  const resolvedPlayerMovements =
+    playerMovements.length > 0
+      ? playerMovements
+      : Array.isArray(entry.playerMovements)
+        ? entry.playerMovements
+        : [];
+  const movementByPlayerId = new Map(
+    resolvedPlayerMovements.map((movement) => [movement.playerId, movement])
+  );
   const beforeTotalsByTeam = asRecord(entry.beforeTotalsByTeam);
   const afterTotalsByTeam = asRecord(entry.afterTotalsByTeam);
   const detailSections = Array.isArray(entry.detailSections)
@@ -530,6 +543,7 @@ export const HistoryDetailModal = ({
                   resolvedLabel && resolvedLabel !== playerId
                     ? resolvedLabel
                     : 'Player';
+                const movement = movementByPlayerId.get(playerId);
                 const context = buildPlayerActionContext({
                   player: { id: playerId },
                   playerLabel: label,
@@ -543,8 +557,18 @@ export const HistoryDetailModal = ({
                     className="flex items-center gap-1.5 rounded-md border border-cockpit-edge bg-cockpit-inlay px-2 py-1"
                     data-testid={`team-history-player-${playerId}`}
                   >
-                    <span className="min-w-0 flex-1 truncate text-xs text-cockpit-text-primary">
-                      {label}
+                    <span className="min-w-0 flex-1 text-xs text-cockpit-text-primary">
+                      <span className="block truncate">{label}</span>
+                      {movement ? (
+                        <span
+                          className="mt-0.5 block truncate text-[11px] text-cockpit-text-muted"
+                          data-testid={`team-history-player-${playerId}-direction`}
+                        >
+                          Sent by {formatTeamName(movement.sourceTeamCode)} ·
+                          Received by{' '}
+                          {formatTeamName(movement.destinationTeamCode)}
+                        </span>
+                      ) : null}
                     </span>
                     <PlayerActionMenu
                       context={context}
@@ -581,7 +605,9 @@ export const HistoryDetailModal = ({
           </div>
           <div>
             <div className="text-xs uppercase text-cockpit-text-muted">
-              Date
+              {selectedEntry.truthKind === 'authoritative-world-event'
+                ? 'Saved on'
+                : 'Date'}
             </div>
             <div
               data-testid="team-history-detail-timestamp"

@@ -160,6 +160,13 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
         }}
         onClose={vi.fn()}
         onPlayerAction={vi.fn()}
+        playerMovements={[
+          {
+            playerId: 'p1',
+            sourceTeamCode: 'LAL',
+            destinationTeamCode: 'BOS',
+          },
+        ]}
         resolvePlayerLabel={(id) => (id === 'p1' ? 'Austin Reaves' : id)}
       />
     );
@@ -169,6 +176,15 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
     expect(modal).toHaveTextContent('Los Angeles Lakers');
     expect(modal).toHaveTextContent('Boston Celtics');
     expect(modal).toHaveTextContent('Austin Reaves');
+    expect(
+      screen.getByTestId('team-history-player-p1-direction')
+    ).toHaveTextContent(
+      'Sent by Los Angeles Lakers · Received by Boston Celtics'
+    );
+    expect(screen.getByText('Saved on')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-player-p1-actions-overflow')
+    ).toBeInTheDocument();
     expect(modal).toHaveTextContent(
       'Sent by Los Angeles Lakers: 2027 second-round pick'
     );

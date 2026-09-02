@@ -24,6 +24,12 @@ export type TeamHistoryDetailSectionLike = {
   lines?: Array<string | number | null | undefined> | null;
 };
 
+export type TeamHistoryPlayerMovement = {
+  playerId: string;
+  sourceTeamCode: string;
+  destinationTeamCode: string;
+};
+
 export type TeamHistoryLooseTimelineEntry = {
   id?: string | number | null;
   category?: string | null;
@@ -37,6 +43,7 @@ export type TeamHistoryLooseTimelineEntry = {
   capDelta?: number | null;
   summary?: string | null;
   detailSections?: TeamHistoryDetailSectionLike[] | null;
+  playerMovements?: TeamHistoryPlayerMovement[] | null;
   mutationId?: string | null;
   mutationType?: string | null;
   operationId?: string | null;
@@ -153,6 +160,7 @@ export type TeamHistoryCapSheetLike = {
 export type TeamHistoryTabProps = {
   teamCapSheet: TeamHistoryCapSheetLike;
   worldId?: string | null;
+  resolvePlayerTeamCode?: ((playerId: string) => string | null) | null;
   requestedHistoryEventDetail?: RequestedHistoryEventDetail | null;
   onRequestedHistoryEventDetailHandled?: ((requestKey: number) => void) | null;
   onInjectTeamHistoryFixtures?: (() => void) | null;
@@ -163,4 +171,5 @@ export type TeamHistoryTabProps = {
 export type HistoryDetailModalProps = {
   selectedEntry: TeamHistorySelectedEntry | null;
   onClose: () => void;
+  playerMovements?: TeamHistoryPlayerMovement[];
 } & HistoryOutboundCallbacks;

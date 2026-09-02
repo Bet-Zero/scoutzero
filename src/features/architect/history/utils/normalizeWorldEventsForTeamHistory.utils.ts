@@ -54,6 +54,11 @@ export type TeamHistoryWorldEventRow = {
   teamCodes: string[];
   teamsInvolved: string[];
   playerIds: string[];
+  playerMovements?: Array<{
+    playerId: string;
+    sourceTeamCode: string;
+    destinationTeamCode: string;
+  }>;
   primaryDeltas: string;
   capDelta: number | null;
   summary: string;

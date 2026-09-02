@@ -20,6 +20,7 @@ import type {
 type HistorySectionProps = {
   teamCapSheet: TeamHistoryCapSheetLike | null | undefined;
   worldId?: string | null;
+  resolvePlayerTeamCode?: ((playerId: string) => string | null) | null;
   requestedHistoryEventDetail?: RequestedHistoryEventDetail | null;
   onRequestedHistoryEventDetailHandled?: ((requestKey: number) => void) | null;
   onInjectTeamHistoryFixtures?: (() => void) | null;
@@ -30,6 +31,7 @@ type HistorySectionProps = {
 const HistorySection = ({
   teamCapSheet,
   worldId,
+  resolvePlayerTeamCode,
   requestedHistoryEventDetail,
   onRequestedHistoryEventDetailHandled,
   onInjectTeamHistoryFixtures,
@@ -43,6 +45,7 @@ const HistorySection = ({
   <TeamHistoryTab
     teamCapSheet={teamCapSheet!}
     worldId={worldId}
+    resolvePlayerTeamCode={resolvePlayerTeamCode}
     requestedHistoryEventDetail={requestedHistoryEventDetail}
     onRequestedHistoryEventDetailHandled={
       onRequestedHistoryEventDetailHandled

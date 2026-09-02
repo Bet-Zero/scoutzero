@@ -143,6 +143,7 @@ const WorldReconciledWaivePanel = ({
 export const TeamHistoryTab = ({
   teamCapSheet,
   worldId,
+  resolvePlayerTeamCode = null,
   requestedHistoryEventDetail = null,
   onRequestedHistoryEventDetailHandled = null,
   onInjectTeamHistoryFixtures = null,
@@ -329,6 +330,7 @@ export const TeamHistoryTab = ({
               <WorldEventsTimeline
                 worldId={worldId || ''}
                 teamCode={teamCapSheet?.teamCode || null}
+                resolvePlayerTeamCode={resolvePlayerTeamCode}
                 resolvePlayerLabel={resolvePlayerLabel}
                 onEventsLoaded={worldEventsStore.set}
                 requestedHistoryEventDetail={requestedHistoryEventDetail}

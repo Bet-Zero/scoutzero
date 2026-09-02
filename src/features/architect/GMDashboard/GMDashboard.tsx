@@ -1578,6 +1578,10 @@ export const GMDashboard = () => {
           resolvePlayerLabel={(playerId) =>
             resolveFocusedPlayerLabel(playerId) ?? playerId
           }
+          resolvePlayerTeamCode={(playerId) => {
+            const playerTeamCode = playersMap[playerId]?.teamCode;
+            return playerTeamCode ? String(playerTeamCode) : null;
+          }}
         />
       ),
     },

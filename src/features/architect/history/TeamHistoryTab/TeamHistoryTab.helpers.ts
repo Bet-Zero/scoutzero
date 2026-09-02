@@ -8,6 +8,7 @@ import type {
   TeamHistoryCapSheetLike,
   TeamHistoryDisplayEntry,
   TeamHistoryLooseTimelineEntry,
+  TeamHistoryPlayerMovement,
   TeamHistorySelectedEntry,
   TeamHistoryTimelineSourceKey,
   TeamHistoryWaivedContractEntry,
@@ -91,6 +92,125 @@ const parseTimelineTimestamp = (value: unknown): number => {
 
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+};
+
+const eventIdentity = (event: Record<string, unknown>): string | null => {
+  const value = event.eventId ?? event.id ?? event.operationId;
+  return value == null || String(value).trim().length === 0
+    ? null
+    : String(value).trim();
+};
+
+const eventStringList = (
+  event: Record<string, unknown>,
+  primaryField: string,
+  fallbackField?: string
+): string[] => {
+  const candidate = event[primaryField] ??
+    (fallbackField ? event[fallbackField] : null);
+  if (!Array.isArray(candidate)) return [];
+  return Array.from(
+    new Set(candidate.map((value) => String(value || '').trim()).filter(Boolean))
+  );
+};
+
+/**
+ * Resolves player direction only when retained world truth makes it exact.
+ *
+ * A two-team executeTrade event proves the two possible endpoints. The current
+ * saved-world player override proves which endpoint each player occupies, but
+ * only while the selected trade remains that player's latest retained event.
+ * Anything missing, multi-team, invalidly dated, or superseded stays neutral
+ * instead of guessing from player order or the active team alone.
+ */
+export const resolveReliableTradePlayerMovements = ({
+  selectedEntry,
+  committedWorldEvents,
+  resolvePlayerTeamCode,
+}: {
+  selectedEntry: TeamHistorySelectedEntry | null;
+  committedWorldEvents: unknown[];
+  resolvePlayerTeamCode?: ((playerId: string) => string | null) | null;
+}): TeamHistoryPlayerMovement[] => {
+  if (
+    !selectedEntry ||
+    selectedEntry.truthKind !== 'authoritative-world-event' ||
+    !resolvePlayerTeamCode
+  ) {
+    return [];
+  }
+
+  const selectedId = eventIdentity(asRecord(selectedEntry.entry) || {});
+  if (!selectedId) return [];
+
+  const events = committedWorldEvents
+    .map(asRecord)
+    .filter((event): event is Record<string, unknown> => Boolean(event));
+  const selectedEvent = events.find(
+    (event) => eventIdentity(event) === selectedId
+  );
+  if (!selectedEvent) return [];
+
+  const mutationType = String(
+    selectedEvent.mutationType ?? selectedEvent.type ?? ''
+  ).trim();
+  if (mutationType !== 'executeTrade') return [];
+
+  const activeTeamCode = String(selectedEntry.activeTeamCode || '')
+    .trim()
+    .toUpperCase();
+  const teamCodes = eventStringList(
+    selectedEvent,
+    'teamCodes',
+    'teamsAffected'
+  ).map((teamCode) => teamCode.toUpperCase());
+  if (
+    !activeTeamCode ||
+    teamCodes.length !== 2 ||
+    !teamCodes.includes(activeTeamCode)
+  ) {
+    return [];
+  }
+
+  const playerIds = eventStringList(selectedEvent, 'playerIds');
+  const selectedTime = parseTimelineTimestamp(
+    selectedEvent.occurredAt ?? selectedEvent.timestamp
+  );
+  if (
+    playerIds.length === 0 ||
+    selectedTime === Number.NEGATIVE_INFINITY
+  ) {
+    return [];
+  }
+
+  for (const event of events) {
+    if (eventIdentity(event) === selectedId) continue;
+    const eventPlayerIds = eventStringList(event, 'playerIds');
+    if (!eventPlayerIds.some((playerId) => playerIds.includes(playerId))) {
+      continue;
+    }
+    const eventTime = parseTimelineTimestamp(event.occurredAt ?? event.timestamp);
+    if (
+      eventTime === Number.NEGATIVE_INFINITY ||
+      eventTime >= selectedTime
+    ) {
+      return [];
+    }
+  }
+
+  const movements: TeamHistoryPlayerMovement[] = [];
+  for (const playerId of playerIds) {
+    const destinationTeamCode = String(resolvePlayerTeamCode(playerId) || '')
+      .trim()
+      .toUpperCase();
+    if (!teamCodes.includes(destinationTeamCode)) return [];
+    const sourceTeamCode = teamCodes.find(
+      (teamCode) => teamCode !== destinationTeamCode
+    );
+    if (!sourceTeamCode) return [];
+    movements.push({ playerId, sourceTeamCode, destinationTeamCode });
+  }
+  return movements;
 };
 
 export const buildSelectedHistoryEntry = ({
