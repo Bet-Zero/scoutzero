@@ -15,6 +15,7 @@ import {
   formatRightOfFirstRefusal,
   formatTeamLabel,
   getFirstSpecificChangeLine,
+  isSafePlayerDisplayName,
   isGenericSummary,
   normalizeMutationType,
   pushSection,
@@ -112,13 +113,15 @@ export function toTeamHistoryEventDisplay(
   // Single-player mutations record the display name in their own metadata;
   // merge it into the caller lookup so owner-facing copy prefers real names
   // over raw player ids even when no external lookup is supplied (BZE-218).
+  const metadataBoundPlayerId =
+    metadataPlayerId || (playerIds.length === 1 ? playerIds[0] : null);
   const effectivePlayerNameLookup: Record<string, string> = {
-    ...(metadataPlayerId && metadataPlayerName
-      ? { [metadataPlayerId]: metadataPlayerName }
+    ...(metadataBoundPlayerId && metadataPlayerName
+      ? { [metadataBoundPlayerId]: metadataPlayerName }
       : {}),
     ...(playerNameLookup || {}),
   };
-  const fallbackPlayerToken = metadataPlayerId || metadataPlayerName;
+  const fallbackPlayerToken = metadataBoundPlayerId || metadataPlayerName;
   const displayPlayerTokens =
     playerIds.length > 0
       ? playerIds
@@ -129,7 +132,9 @@ export function toTeamHistoryEventDisplay(
     !metadataPlayerId &&
     metadataPlayerName &&
     playerToken === metadataPlayerName
-      ? metadataPlayerName
+      ? isSafePlayerDisplayName(metadataPlayerName)
+        ? metadataPlayerName.trim()
+        : 'Player details unavailable'
       : formatPlayerLabel(playerToken, effectivePlayerNameLookup);
   const playerLabels = uniqueStrings(displayPlayerTokens).map((playerToken) =>
     formatEventPlayerLabel(playerToken)

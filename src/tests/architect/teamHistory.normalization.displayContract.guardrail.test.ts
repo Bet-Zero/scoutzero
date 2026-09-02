@@ -73,7 +73,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
         teamCodes: ['LAL'],
         playerIds: ['player_sign'],
         mutationMetadata: {
-          playerName: 'player_sign',
+          playerName: 'Darius Cole',
           teamCode: 'LAL',
           signedUsing: 'NTMLE',
           contract: {
@@ -84,7 +84,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       },
       expectedCategory: 'free-agency',
       expectedType: 'Signed Free Agent',
-      expectedSummary: 'Signed Free Agent: player_sign → LAL',
+      expectedSummary: 'Signed Free Agent: Darius Cole → LAL',
       expectedSections: ['Player', 'Contract', 'Signing Context'],
     },
     {
@@ -95,7 +95,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
         teamCodes: ['LAL', 'CHI'],
         playerIds: ['player_sat'],
         mutationMetadata: {
-          playerName: 'player_sat',
+          playerName: 'Evan Brooks',
           teamCode: 'LAL',
           signedUsing: 'Bird',
           contract: {
@@ -106,7 +106,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       },
       expectedCategory: 'trade',
       expectedType: 'Sign-and-Trade Executed',
-      expectedSummary: 'Sign-and-Trade Executed: player_sat (LAL ↔ CHI)',
+      expectedSummary: 'Sign-and-Trade Executed: Evan Brooks (LAL ↔ CHI)',
       expectedSections: ['Player', 'Contract', 'Trade Context', 'Teams'],
     },
     {
@@ -117,7 +117,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
         teamCodes: ['LAL', 'BOS'],
         playerIds: ['player_offer_decline'],
         mutationMetadata: {
-          playerName: 'player_offer_decline',
+          playerName: 'Jordan Lee',
           teamCode: 'LAL',
           signedUsing: 'Offer Sheet',
           contract: {
@@ -128,8 +128,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       },
       expectedCategory: 'offer-sheet',
       expectedType: 'Offer Sheet Finalized (Declined)',
-      expectedSummary:
-        'Offer Sheet Finalized (Declined): player_offer_decline → LAL',
+      expectedSummary: 'Offer Sheet Finalized (Declined): Jordan Lee → LAL',
       expectedSections: ['Player', 'Contract', 'Offer Sheet', 'Teams'],
     },
     {
@@ -140,14 +139,14 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
         teamCodes: ['LAL'],
         playerIds: ['player_waive'],
         mutationMetadata: {
-          playerName: 'player_waive',
+          playerName: 'Malik Turner',
           stretched: true,
           deadCapAmount: 4_500_000,
         },
       },
       expectedCategory: 'cap-transaction',
       expectedType: 'Waive Player',
-      expectedSummary: 'Waive Player: player_waive (stretch)',
+      expectedSummary: 'Waive Player: Malik Turner (stretch)',
       expectedSections: ['Player', 'Waiver'],
     },
     {
@@ -203,7 +202,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
         playerIds: ['player_anchor'],
         mutationMetadata: {
           summary: 'Signed Free Agent',
-          playerName: 'player_anchor',
+          playerName: 'Devin Price',
           teamCode: 'LAL',
           signedUsing: 'NTMLE',
         },
@@ -211,7 +210,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       { teamCode: 'LAL' }
     );
 
-    expect(row.summary).toBe('Signed Free Agent: player_anchor → LAL');
+    expect(row.summary).toBe('Signed Free Agent: Devin Price → LAL');
   });
 
   it('preserves materially specific source summaries when they are already grounded', () => {
@@ -312,6 +311,31 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       'historical_player_1'
     );
     expect(getSectionLines(resolvedRow, 'Players')).toEqual(['Austin Reaves']);
+  });
+
+  it('rejects ID-valued metadata-only player names without hiding real names', () => {
+    const unresolvedRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'waivePlayer',
+        occurredAt: '2026-03-05T03:02:00.000Z',
+        metadata: { playerName: 'historical_player_1' },
+      },
+      { teamCode: 'LAL' }
+    );
+    const resolvedRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'waivePlayer',
+        occurredAt: '2026-03-05T03:01:00.000Z',
+        metadata: { playerName: 'Austin Reaves' },
+      },
+      { teamCode: 'LAL' }
+    );
+
+    expect(unresolvedRow.summary).toBe(
+      'Waive Player: Player details unavailable'
+    );
+    expect(unresolvedRow.summary).not.toContain('historical_player_1');
+    expect(resolvedRow.summary).toBe('Waive Player: Austin Reaves');
   });
 
   it('uses active-team-first Team Salary delta and retains all book identities', () => {

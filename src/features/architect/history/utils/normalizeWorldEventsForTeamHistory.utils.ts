@@ -274,9 +274,21 @@ export function formatPlayerLabel(
   }
   // Owner-facing copy must never use an unresolved identifier as a name.
   const playerName = playerNameLookup?.[playerToken]?.trim();
-  return playerName && playerName !== playerToken
+  return isSafePlayerDisplayName(playerName, playerToken)
     ? playerName
     : 'Player details unavailable';
+}
+
+export function isSafePlayerDisplayName(
+  value: unknown,
+  playerToken?: string
+): value is string {
+  if (typeof value !== 'string') return false;
+  const normalized = value.trim();
+  if (!normalized || normalized === playerToken) return false;
+  if (/[_:/\\]|\d/.test(normalized)) return false;
+
+  return /\s/.test(normalized) || normalized !== normalized.toLowerCase();
 }
 
 export function readTeamCapDelta(

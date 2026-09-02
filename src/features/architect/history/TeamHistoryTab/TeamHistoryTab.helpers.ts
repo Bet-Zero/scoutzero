@@ -120,6 +120,16 @@ const eventStringList = (
     : normalize(event[fallbackField]);
 };
 
+const eventPlayerIds = (event: Record<string, unknown>): string[] => {
+  const directPlayerIds = eventStringList(event, 'playerIds');
+  if (directPlayerIds.length > 0) return directPlayerIds;
+
+  const metadata = asRecord(event.metadata);
+  return metadata
+    ? eventStringList(metadata, 'playerIds', 'playersTraded')
+    : [];
+};
+
 /**
  * Resolves player direction only when retained world truth makes it exact.
  *
@@ -185,7 +195,7 @@ export const resolveReliableTradePlayerMovements = ({
     return [];
   }
 
-  const playerIds = eventStringList(selectedEvent, 'playerIds');
+  const playerIds = eventPlayerIds(selectedEvent);
   const selectedTime = parseTimelineTimestamp(
     selectedEvent.occurredAt ?? selectedEvent.timestamp
   );
@@ -197,7 +207,7 @@ export const resolveReliableTradePlayerMovements = ({
   for (const playerId of playerIds) {
     const hasLaterOrUnorderedEvent = events.some((event) => {
       if (eventIdentity(event) === selectedId) return false;
-      if (!eventStringList(event, 'playerIds').includes(playerId)) return false;
+      if (!eventPlayerIds(event).includes(playerId)) return false;
 
       const eventTime = parseTimelineTimestamp(
         event.occurredAt ?? event.timestamp
