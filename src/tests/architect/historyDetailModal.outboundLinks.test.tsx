@@ -123,6 +123,40 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
     expect(onPlayerAction).not.toHaveBeenCalled();
   });
 
+  it('preserves safe literal compatibility names without enabling ID actions', () => {
+    const onPlayerAction = vi.fn();
+    const compatibilityEntry: TeamHistorySelectedEntry = {
+      ...tradeEntry,
+      entry: {
+        ...tradeEntry.entry,
+        playerIds: ['Historical Player'],
+        raw: {
+          metadata: { playersTraded: ['Historical Player'] },
+        },
+      },
+    };
+
+    render(
+      <HistoryDetailModal
+        selectedEntry={compatibilityEntry}
+        onClose={vi.fn()}
+        onPlayerAction={onPlayerAction}
+        resolvePlayerLabel={(playerId) => playerId}
+      />
+    );
+
+    expect(screen.getByText('Historical Player')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Player details unavailable')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId(
+        'team-history-player-Historical Player-actions-overflow'
+      )
+    ).toBeDisabled();
+    expect(onPlayerAction).not.toHaveBeenCalled();
+  });
+
   it('resolves IDs only in player detail fields without rewriting ordinary prose', () => {
     render(
       <HistoryDetailModal

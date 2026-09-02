@@ -8,6 +8,7 @@ import { resolveHistoryOutboundLinks } from './historyOutboundLinks';
 import { PlayerActionMenu } from '@/features/architect/cockpit/PlayerActionMenu';
 import { buildPlayerActionContext } from '@/features/architect/cockpit/playerActionContext';
 import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
+import { isSafePlayerDisplayName } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory.utils';
 import { TeamListFull } from '@/constants/teamList';
 
 type UnknownRecord = Record<string, unknown>;
@@ -321,6 +322,12 @@ export const HistoryDetailModal = ({
     (typeof entry.eventId === 'string' && entry.eventId) ||
     (entry.id != null ? String(entry.id) : null);
   const rawEntry = asRecord(entry.raw);
+  const rawMetadata = asRecord(rawEntry?.metadata);
+  const literalCompatibilityPlayerNames = new Set(
+    asStringArray(rawMetadata?.playersTraded).filter((playerName) =>
+      isSafePlayerDisplayName(playerName)
+    )
+  );
   const truthContract = resolveTruthContract(selectedEntry, rawEntry);
   const normalizedTeamsInvolved = uniqueStrings([
     ...asStringArray(entry.teamsInvolved),
@@ -634,14 +641,18 @@ export const HistoryDetailModal = ({
             <ul className="flex flex-col gap-1">
               {normalizedPlayerIds.map((playerId) => {
                 const resolvedLabel = resolvePlayerLabel?.(playerId);
-                const hasResolvedLabel = Boolean(
+                const hasCanonicalResolvedLabel = Boolean(
                   resolvedLabel && resolvedLabel !== playerId
                 );
-                const label = hasResolvedLabel
+                const hasLiteralCompatibilityLabel =
+                  literalCompatibilityPlayerNames.has(playerId);
+                const label = hasCanonicalResolvedLabel
                   ? resolvedLabel
-                  : 'Player details unavailable';
+                  : hasLiteralCompatibilityLabel
+                    ? playerId
+                    : 'Player details unavailable';
                 const movement = movementByPlayerId.get(playerId);
-                const context = hasResolvedLabel
+                const context = hasCanonicalResolvedLabel
                   ? buildPlayerActionContext({
                       player: { id: playerId },
                       playerLabel: label,
