@@ -373,10 +373,23 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       },
       { teamCode: 'LAL' }
     );
+    const pairedIdentityRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'waivePlayer',
+        occurredAt: '2026-03-05T03:00:00.000Z',
+        metadata: {
+          playerId: 'austin_reaves',
+          playerName: 'Austin Reaves',
+          summary: 'Austin Reaves was waived',
+        },
+      },
+      { teamCode: 'LAL' }
+    );
 
     expect(unresolvedRow.summary).toBe('Player details unavailable was waived');
     expect(unresolvedRow.summary).not.toContain('historical_player_1');
     expect(resolvedRow.summary).toBe('Waive Player: Austin Reaves');
+    expect(pairedIdentityRow.summary).toBe('Austin Reaves was waived');
   });
 
   it('uses active-team-first Team Salary delta and retains all book identities', () => {
