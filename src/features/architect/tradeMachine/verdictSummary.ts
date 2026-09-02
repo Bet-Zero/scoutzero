@@ -34,10 +34,113 @@ const MISSING_PROTECTED_SALARY_REASON =
   /(?<season>\d{4}-\d{2}) protected Base Compensation is missing or invalid in governed Contract history\.?/gi;
 const MISSING_PROTECTION_STEP_REASON =
   /(?<season>\d{4}-\d{2}) protection step is missing or invalid in governed Contract history\.?/gi;
+const MISSING_PROTECTION_STEP_DATE_REASON =
+  /(?<season>\d{4}-\d{2}) has a protection step without an exact governed date\.?/gi;
+const MISSING_PROTECTION_SCHEDULE_REASON =
+  /(?<season>\d{4}-\d{2}) is not fully protected and has no authenticated protection schedule\.?/gi;
 const MISSING_BASE_SALARY_REASON =
   /(?<season>\d{4}-\d{2}) Base Compensation is missing or invalid in governed Contract history\.?/gi;
 const POST_SEASON_SALARY_REASON =
   /Post-season salary basis requires governed (?<season>\d{4}-\d{2}) terms\.?/gi;
+const MISSING_EARNED_SALARY_REASON =
+  /(?<season>\d{4}-\d{2}) is partially protected and exact earned Base Compensation is unavailable for (?<date>\d{4}-\d{2}-\d{2})\.?/gi;
+const MISSING_MINIMUM_REIMBURSEMENT_REASON =
+  /One-year Minimum Contract reimbursement authority is unavailable\.?/gi;
+const MISSING_SALARY_OR_CALENDAR_REASON =
+  /Current Contract Salary or governed Regular Season calendar is unavailable\.?/gi;
+const MISSING_CURRENT_CONTRACT_REASON =
+  /No governed current Contract was found for this roster player\.?/gi;
+const AMBIGUOUS_CURRENT_CONTRACT_REASON =
+  /More than one governed current Contract claims this roster player and Salary Cap Year\.?/gi;
+const MISSING_POISON_PILL_INPUTS_REASON =
+  /This Rookie Scale Extension lacks authenticated poison-pill calculation inputs\.?/gi;
+const INVALID_POISON_PILL_IDENTITY_REASON =
+  /The retained poison-pill Extension identity or timing is invalid\.?/gi;
+const POISON_PILL_SEASON_MISMATCH_REASON =
+  /Poison-pill evidence identifies (?<identifiedSeason>\d{4}-\d{2}), not current Season (?<currentSeason>\d{4}-\d{2}), as the last original year\.?/gi;
+const MISSING_POISON_PILL_ORIGINAL_SALARY_REASON =
+  /Poison-pill original-term Salary is missing or invalid in governed Contract history\.?/gi;
+const MISSING_POISON_PILL_EXTENDED_TERM_REASON =
+  /Governed Contract history has no extended-term row for (?<season>\d{4}-\d{2})\.?/gi;
+const INVALID_FIXED_POISON_PILL_SALARY_REASON =
+  /Fixed poison-pill Salary evidence for (?<season>\d{4}-\d{2}) is inconsistent\.?/gi;
+const INVALID_PERCENTAGE_POISON_PILL_SALARY_REASON =
+  /Percentage-based poison-pill Salary for (?<season>\d{4}-\d{2}) lacks the governed Cap or ordinary \(non-Higher-Max\) percentage\.?/gi;
+
+const SALARY_REASON_PRESENTATIONS: ReadonlyArray<readonly [RegExp, string]> = [
+  [
+    MISSING_PROTECTED_SALARY_REASON,
+    'Protected salary information for $<season> is missing or invalid.',
+  ],
+  [
+    MISSING_PROTECTION_STEP_REASON,
+    'Protection-step salary information for $<season> is missing or invalid.',
+  ],
+  [
+    MISSING_PROTECTION_STEP_DATE_REASON,
+    'A protection-step date for $<season> is missing or invalid.',
+  ],
+  [
+    MISSING_PROTECTION_SCHEDULE_REASON,
+    'Protection schedule information for $<season> is unavailable.',
+  ],
+  [
+    MISSING_BASE_SALARY_REASON,
+    'Base salary information for $<season> is missing or invalid.',
+  ],
+  [
+    POST_SEASON_SALARY_REASON,
+    'Next-season salary information for $<season> is required.',
+  ],
+  [
+    MISSING_EARNED_SALARY_REASON,
+    'Earned salary information for $<season> as of $<date> is unavailable.',
+  ],
+  [
+    MISSING_MINIMUM_REIMBURSEMENT_REASON,
+    'One-year minimum-contract reimbursement information is unavailable.',
+  ],
+  [
+    MISSING_SALARY_OR_CALENDAR_REASON,
+    'Current salary or regular-season calendar information is unavailable.',
+  ],
+  [
+    MISSING_CURRENT_CONTRACT_REASON,
+    'Current contract information is unavailable for this roster player.',
+  ],
+  [
+    AMBIGUOUS_CURRENT_CONTRACT_REASON,
+    'Current contract information is ambiguous for this roster player and salary-cap year.',
+  ],
+  [
+    MISSING_POISON_PILL_INPUTS_REASON,
+    'Required poison-pill calculation information is unavailable.',
+  ],
+  [
+    INVALID_POISON_PILL_IDENTITY_REASON,
+    'The poison-pill extension identity or timing is invalid.',
+  ],
+  [
+    POISON_PILL_SEASON_MISMATCH_REASON,
+    'Poison-pill terms identify $<identifiedSeason>, not current season $<currentSeason>, as the last original year.',
+  ],
+  [
+    MISSING_POISON_PILL_ORIGINAL_SALARY_REASON,
+    'Original-term salary information for the poison-pill calculation is missing or invalid.',
+  ],
+  [
+    MISSING_POISON_PILL_EXTENDED_TERM_REASON,
+    'Extension salary information for $<season> is unavailable.',
+  ],
+  [
+    INVALID_FIXED_POISON_PILL_SALARY_REASON,
+    'Fixed poison-pill salary information for $<season> is inconsistent.',
+  ],
+  [
+    INVALID_PERCENTAGE_POISON_PILL_SALARY_REASON,
+    'Percentage-based poison-pill salary information for $<season> is incomplete.',
+  ],
+];
 
 const STEPIEN_HISTORY_REASON =
   /(?:complete governed ownership|complete protection).*history is unavailable/i;
@@ -49,10 +152,7 @@ export const presentTradeValidationText = (
 ): string => {
   const firstPresentedReasonIndex = [
     TRADE_BONUS_REASON,
-    MISSING_PROTECTED_SALARY_REASON,
-    MISSING_PROTECTION_STEP_REASON,
-    MISSING_BASE_SALARY_REASON,
-    POST_SEASON_SALARY_REASON,
+    ...SALARY_REASON_PRESENTATIONS.map(([pattern]) => pattern),
   ]
     .map((pattern) => text.search(pattern))
     .filter((index) => index >= 0)
@@ -75,28 +175,19 @@ export const presentTradeValidationText = (
     const reasonsStart = playerReasonMatch.index + playerReasonMatch[0].length;
     const playerReasons = text.slice(reasonsStart);
     let presentedBonus = false;
-    const presentedReasons = playerReasons
-      .replace(TRADE_BONUS_REASONS, () => {
+    const bonusPresentedReasons = playerReasons.replace(
+      TRADE_BONUS_REASONS,
+      () => {
         if (presentedBonus) return ' ';
         presentedBonus = true;
         return 'Available contract information is insufficient to determine the trade-bonus allocation.';
-      })
-      .replace(
-        MISSING_PROTECTED_SALARY_REASON,
-        'Protected salary information for $<season> is missing or invalid.'
-      )
-      .replace(
-        MISSING_PROTECTION_STEP_REASON,
-        'Protection-step salary information for $<season> is missing or invalid.'
-      )
-      .replace(
-        MISSING_BASE_SALARY_REASON,
-        'Base salary information for $<season> is missing or invalid.'
-      )
-      .replace(
-        POST_SEASON_SALARY_REASON,
-        'Next-season salary information for $<season> is required.'
-      )
+      }
+    );
+    const presentedReasons = SALARY_REASON_PRESENTATIONS.reduce(
+      (reasons, [pattern, replacement]) =>
+        reasons.replace(pattern, replacement),
+      bonusPresentedReasons
+    )
       .replace(/\s+/g, ' ')
       .trim();
     return `${playerName}: ${presentedReasons}`;

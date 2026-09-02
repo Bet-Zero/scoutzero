@@ -379,6 +379,136 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
 
   it.each([
     {
+      label: 'missing protection-step date',
+      reason:
+        'austin_reaves: 2026-27 has a protection step without an exact governed date.',
+      expected:
+        'Austin Reaves: A protection-step date for 2026-27 is missing or invalid.',
+    },
+    {
+      label: 'missing protection schedule',
+      reason:
+        'austin_reaves: 2026-27 is not fully protected and has no authenticated protection schedule.',
+      expected:
+        'Austin Reaves: Protection schedule information for 2026-27 is unavailable.',
+    },
+    {
+      label: 'missing earned salary',
+      reason:
+        'austin_reaves: 2026-27 is partially protected and exact earned Base Compensation is unavailable for 2026-09-02.',
+      expected:
+        'Austin Reaves: Earned salary information for 2026-27 as of 2026-09-02 is unavailable.',
+    },
+    {
+      label: 'missing minimum reimbursement input',
+      reason:
+        'austin_reaves: One-year Minimum Contract reimbursement authority is unavailable.',
+      expected:
+        'Austin Reaves: One-year minimum-contract reimbursement information is unavailable.',
+    },
+    {
+      label: 'missing salary or calendar',
+      reason:
+        'austin_reaves: Current Contract Salary or governed Regular Season calendar is unavailable.',
+      expected:
+        'Austin Reaves: Current salary or regular-season calendar information is unavailable.',
+    },
+    {
+      label: 'missing current contract',
+      reason:
+        'austin_reaves: No governed current Contract was found for this roster player.',
+      expected:
+        'Austin Reaves: Current contract information is unavailable for this roster player.',
+    },
+    {
+      label: 'ambiguous current contract',
+      reason:
+        'austin_reaves: More than one governed current Contract claims this roster player and Salary Cap Year.',
+      expected:
+        'Austin Reaves: Current contract information is ambiguous for this roster player and salary-cap year.',
+    },
+    {
+      label: 'missing poison-pill inputs',
+      reason:
+        'austin_reaves: This Rookie Scale Extension lacks authenticated poison-pill calculation inputs.',
+      expected:
+        'Austin Reaves: Required poison-pill calculation information is unavailable.',
+    },
+    {
+      label: 'invalid poison-pill identity',
+      reason:
+        'austin_reaves: The retained poison-pill Extension identity or timing is invalid.',
+      expected:
+        'Austin Reaves: The poison-pill extension identity or timing is invalid.',
+    },
+    {
+      label: 'poison-pill season mismatch',
+      reason:
+        'austin_reaves: Poison-pill evidence identifies 2027-28, not current Season 2026-27, as the last original year.',
+      expected:
+        'Austin Reaves: Poison-pill terms identify 2027-28, not current season 2026-27, as the last original year.',
+    },
+    {
+      label: 'missing poison-pill original salary',
+      reason:
+        'austin_reaves: Poison-pill original-term Salary is missing or invalid in governed Contract history.',
+      expected:
+        'Austin Reaves: Original-term salary information for the poison-pill calculation is missing or invalid.',
+    },
+    {
+      label: 'missing poison-pill extension salary',
+      reason:
+        'austin_reaves: Governed Contract history has no extended-term row for 2027-28.',
+      expected:
+        'Austin Reaves: Extension salary information for 2027-28 is unavailable.',
+    },
+    {
+      label: 'inconsistent fixed poison-pill salary',
+      reason:
+        'austin_reaves: Fixed poison-pill Salary evidence for 2027-28 is inconsistent.',
+      expected:
+        'Austin Reaves: Fixed poison-pill salary information for 2027-28 is inconsistent.',
+    },
+    {
+      label: 'incomplete percentage poison-pill salary',
+      reason:
+        'austin_reaves: Percentage-based poison-pill Salary for 2027-28 lacks the governed Cap or ordinary (non-Higher-Max) percentage.',
+      expected:
+        'Austin Reaves: Percentage-based poison-pill salary information for 2027-28 is incomplete.',
+    },
+  ])('presents $label in GM language', (example) => {
+    const items = buildVerdictItems(
+      [],
+      {
+        legal: false,
+        error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+        reason: example.reason,
+        violations: [],
+        warnings: [],
+      },
+      {
+        resolvePlayerName: (playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      }
+    );
+
+    expect(items).toEqual([
+      {
+        teamName: null,
+        kind: 'needsInput',
+        text: example.expected,
+      },
+    ]);
+    expect(JSON.stringify(items)).not.toContain('austin_reaves');
+    expect(JSON.stringify(items)).not.toContain('governed');
+    expect(JSON.stringify(items)).not.toContain('authenticated');
+    expect(JSON.stringify(items)).not.toContain('authority');
+    expect(JSON.stringify(items)).not.toContain('retained');
+    expect(JSON.stringify(items)).not.toContain('evidence');
+  });
+
+  it.each([
+    {
       label: 'current salary with a resolved player',
       reason:
         'austin_reaves: 2026-27 Base Compensation is missing or invalid in governed Contract history.',
