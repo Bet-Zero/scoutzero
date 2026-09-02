@@ -95,11 +95,23 @@ const PROOF_ROSTERS = {
 
 const OWNER_DEPTH_NAMES = {
   MIA: {
-    standard: ['Caleb Foster', 'Julian Mercer', 'Darius Sloan', 'Micah Turner'],
+    standard: [
+      'Caleb Foster',
+      'Julian Mercer',
+      'Darius Sloan',
+      'Micah Turner',
+      'Jonah Pierce',
+    ],
     twoWay: ['Noah Hayes', 'Trevor Banks', 'Malik Dawson'],
   },
   DEN: {
-    standard: ['Evan Brooks', 'Jordan Price', 'Cameron Ellis', 'Adrian Wells'],
+    standard: [
+      'Evan Brooks',
+      'Jordan Price',
+      'Cameron Ellis',
+      'Adrian Wells',
+      'Xavier Monroe',
+    ],
     twoWay: ['Nolan Grant', 'Isaac Rhodes', 'Miles Carter'],
   },
 } as const;
@@ -1726,7 +1738,9 @@ test('exact-head Trade Machine produces a retained governed apron Trade Receipt'
   await openDashboardTab(page, 'Team History');
   const historyTimeline = page.getByTestId('team-history-section-timeline');
   const tradeHistoryRow = historyTimeline.getByRole('button', {
-    name: /Trade Executed: MIA ↔ DEN/i,
+    name: OWNER_REVIEW_MODE
+      ? /Trade Executed: Miami Heat ↔ Denver Nuggets/i
+      : /Trade Executed: MIA ↔ DEN/i,
   });
   await expect(tradeHistoryRow).toBeVisible({ timeout: 30_000 });
   await tradeHistoryRow.click();
