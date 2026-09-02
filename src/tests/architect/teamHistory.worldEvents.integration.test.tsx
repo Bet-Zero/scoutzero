@@ -89,7 +89,10 @@ describe('Team History world events integration', () => {
     const secondRow = screen.getByTestId('team-history-row-1');
 
     expect(firstRow.textContent || '').toContain('Trade Executed');
-    expect(secondRow.textContent || '').toContain('Waive Player: player_123');
+    expect(secondRow.textContent || '').toContain(
+      'Waive Player: Player details unavailable'
+    );
+    expect(secondRow.textContent || '').not.toContain('player_123');
     expect(
       screen.queryByTestId('team-history-world-events-compatibility-note')
     ).not.toBeInTheDocument();

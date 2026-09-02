@@ -125,8 +125,14 @@ export function toTeamHistoryEventDisplay(
       : fallbackPlayerToken
         ? [fallbackPlayerToken]
         : [];
+  const formatEventPlayerLabel = (playerToken: string) =>
+    !metadataPlayerId &&
+    metadataPlayerName &&
+    playerToken === metadataPlayerName
+      ? metadataPlayerName
+      : formatPlayerLabel(playerToken, effectivePlayerNameLookup);
   const playerLabels = uniqueStrings(displayPlayerTokens).map((playerToken) =>
-    formatPlayerLabel(playerToken, effectivePlayerNameLookup)
+    formatEventPlayerLabel(playerToken)
   );
   const firstPlayerLabel = playerLabels[0] || null;
 
@@ -194,7 +200,7 @@ export function toTeamHistoryEventDisplay(
       ? uniqueStrings(toArrayOfStrings(diffSummary.playersMoved))
       : displayPlayerTokens;
   const tradePlayerLines = tradePlayerTokens.map((playerToken) =>
-    formatPlayerLabel(playerToken, effectivePlayerNameLookup)
+    formatEventPlayerLabel(playerToken)
   );
   const tradePickLines =
     uniqueStrings(toArrayOfStrings(diffSummary.picksMoved)).length > 0

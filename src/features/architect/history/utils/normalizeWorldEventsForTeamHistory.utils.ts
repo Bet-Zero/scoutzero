@@ -272,10 +272,11 @@ export function formatPlayerLabel(
   if (!playerToken) {
     return '';
   }
-  // Owner-facing copy: show the display name alone when it is known; callers
-  // that render normal mode provide the player-name lookup.
-  const playerName = playerNameLookup?.[playerToken];
-  return playerName || playerToken;
+  // Owner-facing copy must never use an unresolved identifier as a name.
+  const playerName = playerNameLookup?.[playerToken]?.trim();
+  return playerName && playerName !== playerToken
+    ? playerName
+    : 'Player details unavailable';
 }
 
 export function readTeamCapDelta(

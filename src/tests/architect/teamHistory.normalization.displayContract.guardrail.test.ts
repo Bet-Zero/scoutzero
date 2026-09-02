@@ -281,6 +281,39 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
     ]);
   });
 
+  it('keeps unresolved player IDs out of normal-mode world-event rows', () => {
+    const unresolvedRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:10:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['historical_player_1'],
+      },
+      { teamCode: 'LAL' }
+    );
+    const resolvedRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:05:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['austin_reaves'],
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: { austin_reaves: 'Austin Reaves' },
+      }
+    );
+
+    expect(getSectionLines(unresolvedRow, 'Players')).toEqual([
+      'Player details unavailable',
+    ]);
+    expect(unresolvedRow.summary).not.toContain('historical_player_1');
+    expect(getSectionLines(unresolvedRow, 'Players')).not.toContain(
+      'historical_player_1'
+    );
+    expect(getSectionLines(resolvedRow, 'Players')).toEqual(['Austin Reaves']);
+  });
+
   it('uses active-team-first Team Salary delta and retains all book identities', () => {
     const row = toTeamHistoryEventDisplay(
       {
@@ -363,7 +396,9 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
 
     expect(unknownRow.category).toBe('world-event');
     expect(unknownRow.type).toBe('Mystery Mutation');
-    expect(unknownRow.summary).toBe('Mystery Mutation: player_unknown');
+    expect(unknownRow.summary).toBe(
+      'Mystery Mutation: Player details unavailable'
+    );
     expect(getSectionLines(unknownRow, 'Event Detail')).toEqual([
       'No event-specific Team History detail mapping exists for mysteryMutation.',
     ]);
