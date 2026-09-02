@@ -224,7 +224,7 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
       'Sent by Los Angeles Lakers: 2027 second-round pick'
     );
     expect(modal).toHaveTextContent(
-      'Received by Boston Celtics: 2027 second-round pick'
+      'Received by Boston Celtics: 2027 second-round pick from Los Angeles Lakers'
     );
     expect(modal).toHaveTextContent(
       'Los Angeles Lakers paid $1.00 to Boston Celtics'
@@ -254,7 +254,7 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
                 title: 'Picks',
                 lines: [
                   'LAL: out 2028-LAL-R1',
-                  'LAL: out pick_lal_2029_2nd',
+                  'LAL: out 2028-NYK-R1',
                   'BOS: in 2030-BOS-R1',
                   'BOS: in pick_bos_2031_2nd',
                 ],
@@ -271,7 +271,7 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
       'Sent by Los Angeles Lakers: 2028 first-round pick'
     );
     expect(modal).toHaveTextContent(
-      'Sent by Los Angeles Lakers: 2029 second-round pick'
+      'Sent by Los Angeles Lakers: 2028 first-round pick from New York Knicks'
     );
     expect(modal).toHaveTextContent(
       'Received by Boston Celtics: 2030 first-round pick'

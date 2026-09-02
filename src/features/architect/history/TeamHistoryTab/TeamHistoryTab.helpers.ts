@@ -106,14 +106,18 @@ const eventStringList = (
   primaryField: string,
   fallbackField?: string
 ): string[] => {
-  const candidate =
-    event[primaryField] ?? (fallbackField ? event[fallbackField] : null);
-  if (!Array.isArray(candidate)) return [];
-  return Array.from(
-    new Set(
-      candidate.map((value) => String(value || '').trim()).filter(Boolean)
-    )
-  );
+  const normalize = (candidate: unknown): string[] =>
+    Array.isArray(candidate)
+      ? Array.from(
+          new Set(
+            candidate.map((value) => String(value || '').trim()).filter(Boolean)
+          )
+        )
+      : [];
+  const primaryValues = normalize(event[primaryField]);
+  return primaryValues.length > 0 || !fallbackField
+    ? primaryValues
+    : normalize(event[fallbackField]);
 };
 
 /**

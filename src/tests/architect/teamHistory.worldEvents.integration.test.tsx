@@ -268,6 +268,42 @@ describe('Team History world events integration', () => {
     ).toEqual([]);
   });
 
+  it('uses retained teamsAffected when the primary teamCodes list is empty', () => {
+    const selectedEntry = {
+      activeTeamCode: 'LAL',
+      timelineSourceKey: 'world-events' as const,
+      truthKind: 'authoritative-world-event' as const,
+      entry: {
+        id: 'trade-legacy-team-list',
+        eventId: 'trade-legacy-team-list',
+        mutationType: 'executeTrade',
+        type: 'Trade Executed',
+        category: 'trade',
+        timestamp: '2026-09-01T12:00:00.000Z',
+        occurredAt: '2026-09-01T12:00:00.000Z',
+        teamsInvolved: ['LAL', 'BOS'],
+        teamCodes: [],
+        teamsAffected: ['LAL', 'BOS'],
+        playerIds: ['player_1'],
+      },
+    };
+
+    expect(
+      resolveReliableTradePlayerMovements({
+        selectedEntry,
+        committedWorldEvents: [selectedEntry.entry],
+        coveredTeamCodes: ['LAL', 'BOS'],
+        resolvePlayerTeamCode: () => 'BOS',
+      })
+    ).toEqual([
+      {
+        playerId: 'player_1',
+        sourceTeamCode: 'LAL',
+        destinationTeamCode: 'BOS',
+      },
+    ]);
+  });
+
   it('keeps player direction neutral when the counterpart retained feed cannot bind the selected event', async () => {
     window.localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
     useWorldTeamEventsMock.mockImplementation(
