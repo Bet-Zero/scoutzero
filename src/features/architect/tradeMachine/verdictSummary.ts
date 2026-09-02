@@ -205,24 +205,12 @@ export const presentTradeValidationText = (
       ? null
       : text.slice(0, playerReasonIndex).match(/:\s*$/);
   if (playerPrefix?.index != null) {
-    const completePrefix = text.slice(0, playerPrefix.index).trim();
-    const playerIdCandidates = [completePrefix];
-    for (const separator of completePrefix.matchAll(/:\s+/g)) {
-      if (separator.index == null) continue;
-      const candidate = completePrefix
-        .slice(separator.index + separator[0].length)
-        .trim();
-      if (candidate) playerIdCandidates.push(candidate);
-    }
-    const resolvedPlayer = playerIdCandidates
-      .map((playerId) => ({
-        playerId,
-        playerName: options.resolvePlayerName?.(playerId)?.trim(),
-      }))
-      .find(
-        ({ playerId, playerName }) => playerName && playerName !== playerId
-      );
-    const playerName = resolvedPlayer?.playerName || 'Traded player';
+    const playerId = text.slice(0, playerPrefix.index).trim();
+    const resolvedName = options.resolvePlayerName?.(playerId)?.trim();
+    const playerName =
+      resolvedName && resolvedName !== playerId
+        ? resolvedName
+        : 'Traded player';
     const reasonsStart = playerPrefix.index + playerPrefix[0].length;
     const playerReasons = text.slice(reasonsStart);
     let presentedBonus = false;
@@ -351,6 +339,11 @@ export const buildVerdictItems = (
     }
   };
 
+  const presentRuleText = (label: string, detail: string) => {
+    const presentedDetail = presentTradeValidationText(detail, options);
+    return presentedDetail === detail ? `${label}: ${detail}` : presentedDetail;
+  };
+
   for (const team of teamResults ?? []) {
     const teamName = resolveTeamName(team);
     const rules = team.rules ?? {};
@@ -366,7 +359,7 @@ export const buildVerdictItems = (
         push({
           teamName,
           kind: 'needsInput',
-          text: `${label}: ${detail}`,
+          text: presentRuleText(label, detail),
         });
         continue;
       }
@@ -379,14 +372,18 @@ export const buildVerdictItems = (
         push({
           teamName,
           kind: 'violation',
-          text: detail ? `${label}: ${detail}` : `${label} failed`,
+          text: detail ? presentRuleText(label, detail) : `${label} failed`,
         });
       }
 
       for (const warning of normalizeValidationIssues(rule.warnings)) {
         const text = getValidationIssueText(warning);
         if (!text) continue;
-        push({ teamName, kind: 'warning', text: `${label}: ${text}` });
+        push({
+          teamName,
+          kind: 'warning',
+          text: presentRuleText(label, text),
+        });
       }
     }
   }

@@ -643,6 +643,15 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
       expected:
         'Custom Player: Trade salary information is missing or invalid.',
     },
+    {
+      label: 'unmatched player ID ending in another known player ID',
+      reason:
+        'custom: austin_reaves: Governed player salary-basis authority is missing or malformed.',
+      resolvePlayerName: (playerId: string) =>
+        playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      expected:
+        'Traded player: Trade salary information is missing or invalid.',
+    },
   ])('presents standalone $label without internal wording', (example) => {
     const items = buildVerdictItems(
       [
