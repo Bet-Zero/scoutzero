@@ -7,6 +7,7 @@ import {
   buildFallbackEventId,
   buildSpecificChangeLines,
   deriveTradePickLines,
+  expandTradePickLines,
   firstNonEmptyString,
   formatCurrency,
   formatMutationLabel,
@@ -197,7 +198,9 @@ export function toTeamHistoryEventDisplay(
   );
   const tradePickLines =
     uniqueStrings(toArrayOfStrings(diffSummary.picksMoved)).length > 0
-      ? uniqueStrings(toArrayOfStrings(diffSummary.picksMoved))
+      ? uniqueStrings(
+          expandTradePickLines(toArrayOfStrings(diffSummary.picksMoved))
+        )
       : uniqueStrings(deriveTradePickLines(metadata));
 
   const exceptionChangeLines = buildSpecificChangeLines(

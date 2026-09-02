@@ -383,6 +383,9 @@ export const HistoryDetailModal = ({
     const transferMatch = rawLine.match(/^([A-Z]{2,3}):\s*(?:out|in)\s+(.+)$/i);
     const prefixedTeamCode = transferMatch?.[1];
     const assetIdentity = transferMatch?.[2] || rawLine;
+    const deterministicIdentity = assetIdentity.match(
+      /^(?:ent|vacuum):([A-Z]{2,3}):(20\d{2}):([12]):(own|swap|conv):/i
+    );
     const teamCode =
       normalizedTeamCodes.find(
         (code) => code.toUpperCase() === prefixedTeamCode?.toUpperCase()
@@ -393,15 +396,20 @@ export const HistoryDetailModal = ({
     const teamName = teamCode
       ? TEAM_NAME_BY_CODE.get(teamCode.toUpperCase()) || teamCode
       : 'Team';
-    const originalTeamCode = assetIdentity
-      .split(/[^A-Z0-9]+/i)
-      .map((token) => token.toUpperCase())
-      .find((token) => TEAM_NAME_BY_CODE.has(token));
-    const year = rawLine.match(/(?:^|[-_\s])(20\d{2})(?=$|[-_\s])/)?.[1];
+    const assetTeamCode =
+      deterministicIdentity?.[1]?.toUpperCase() ||
+      assetIdentity
+        .split(/[^A-Z0-9]+/i)
+        .map((token) => token.toUpperCase())
+        .find((token) => TEAM_NAME_BY_CODE.has(token));
+    const year =
+      deterministicIdentity?.[2] ||
+      rawLine.match(/(?:^|[-_:\s])(20\d{2})(?=$|[-_:\s])/)?.[1];
     const round =
-      rawLine.match(/\b(first|second|1st|2nd|1|2)[-_\s]*round\b/i)?.[1] ||
-      rawLine.match(/(?:^|[-_\s])R([12])(?=$|[-_\s])/i)?.[1] ||
-      rawLine.match(/(?:^|[-_\s])(1st|2nd)(?=$|[-_\s])/i)?.[1];
+      deterministicIdentity?.[3] ||
+      rawLine.match(/\b(first|second|1st|2nd|1|2)[-_:\s]*round\b/i)?.[1] ||
+      rawLine.match(/(?:^|[-_:\s])R([12])(?=$|[-_:\s])/i)?.[1] ||
+      rawLine.match(/(?:^|[-_:\s])(1st|2nd)(?=$|[-_:\s])/i)?.[1];
     const roundLabel = /^(?:first|1st|1)$/i.test(round || '')
       ? 'first-round'
       : /^(?:second|2nd|2)$/i.test(round || '')
@@ -411,11 +419,18 @@ export const HistoryDetailModal = ({
     if (!year || !roundLabel) {
       return `${teamName} draft pick included in this move`;
     }
-    const originalTeamQualifier =
-      originalTeamCode && originalTeamCode !== teamCode?.toUpperCase()
-        ? ` from ${TEAM_NAME_BY_CODE.get(originalTeamCode)}`
+    const entitlementKind = deterministicIdentity?.[4]?.toLowerCase();
+    const assetKindLabel =
+      entitlementKind === 'swap'
+        ? 'swap right'
+        : entitlementKind === 'conv'
+          ? 'conveyance right'
+          : 'pick';
+    const assetTeamQualifier =
+      assetTeamCode && assetTeamCode !== teamCode?.toUpperCase()
+        ? ` · ${TEAM_NAME_BY_CODE.get(assetTeamCode)}`
         : '';
-    const pickLabel = `${year} ${roundLabel} pick${originalTeamQualifier}`;
+    const pickLabel = `${year} ${roundLabel} ${assetKindLabel}${assetTeamQualifier}`;
     if (/\bout\b/i.test(rawLine)) {
       return `Sent by ${teamName}: ${pickLabel}`;
     }

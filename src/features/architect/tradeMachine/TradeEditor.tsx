@@ -448,14 +448,18 @@ export const TradeEditor = ({
           ? (record.bio as Record<string, unknown>)
           : null;
       const id = String(record.player_id ?? record.id ?? '').trim();
-      const name = String(
-        record.displayName ??
-          record.fullName ??
-          record.name ??
-          bio?.displayName ??
-          ''
-      ).trim();
-      if (id && name && id !== name) names.set(id, name);
+      const name = [
+        record.displayName,
+        record.fullName,
+        record.name,
+        bio?.displayName,
+      ].find(
+        (candidate) =>
+          typeof candidate === 'string' &&
+          candidate.trim() !== '' &&
+          candidate.trim() !== id
+      );
+      if (id && typeof name === 'string') names.set(id, name.trim());
     }
     return names;
   }, [playersMap, teams]);

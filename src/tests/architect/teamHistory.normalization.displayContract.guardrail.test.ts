@@ -260,6 +260,27 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
     ]);
   });
 
+  it('splits every entitlement in the persisted grouped pick summary', () => {
+    const row = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:15:00.000Z',
+        teamCodes: ['BOS', 'NYK'],
+        diffSummary: {
+          picksMoved: [
+            'BOS: out ent:BOS:2027:1:swap:abc12345, ent:NYK:2027:1:conv:def67890',
+          ],
+        },
+      },
+      { teamCode: 'BOS' }
+    );
+
+    expect(getSectionLines(row, 'Picks')).toEqual([
+      'BOS: out ent:BOS:2027:1:swap:abc12345',
+      'BOS: out ent:NYK:2027:1:conv:def67890',
+    ]);
+  });
+
   it('uses active-team-first Team Salary delta and retains all book identities', () => {
     const row = toTeamHistoryEventDisplay(
       {

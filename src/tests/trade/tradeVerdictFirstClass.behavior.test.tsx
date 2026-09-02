@@ -345,6 +345,46 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
 });
 
 describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
+  it('continues past an ID-valued display name to a friendly staged-player name', () => {
+    const reason =
+      'player_1: This Contract has a trade bonus whose allocation is outside this governed tranche.';
+    useTradeMachineMock.mockReturnValue(
+      buildHookReturn({
+        teams: [
+          {
+            team: { id: 'LAL', players: [] },
+            sends: [
+              {
+                id: 'player_1',
+                displayName: 'player_1',
+                fullName: 'Austin Reaves',
+                tradeTo: 'BOS',
+              },
+            ],
+            entitlementsOut: [],
+          },
+          { team: { id: 'BOS', players: [] }, sends: [], entitlementsOut: [] },
+        ],
+        hasCurrentValidation: true,
+        previewAuthority: {
+          legal: false,
+          error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+          reason,
+          violations: [{ message: reason, rule: 'governedTradeSalaryBasis' }],
+          warnings: [],
+          omittedStages: [],
+        },
+        snapshotValidationDetails: { teamResults: [] },
+      })
+    );
+
+    render(<TradeEditor {...baseProps} worldId="world-1" />);
+
+    const readiness = screen.getByTestId('trade-readiness-summary');
+    expect(readiness).toHaveTextContent('Austin Reaves');
+    expect(readiness).not.toHaveTextContent('player_1');
+  });
+
   it('shows the current top-level trade-bonus Needs input authority with no per-Team results', () => {
     const reason =
       'austin_reaves: This Contract has a trade bonus whose allocation is outside this governed tranche.';

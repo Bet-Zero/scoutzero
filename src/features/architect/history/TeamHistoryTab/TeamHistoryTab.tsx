@@ -143,6 +143,29 @@ const getEventIdentity = (event: Record<string, unknown>): string | null => {
   return identity || null;
 };
 
+export const resolveSelectedEventTeamCodes = (
+  entry: TeamHistorySelectedEntry['entry'] | null | undefined
+): string[] => {
+  const normalize = (values: unknown): string[] =>
+    Array.isArray(values)
+      ? values
+          .map((teamCode) =>
+            String(teamCode || '')
+              .trim()
+              .toUpperCase()
+          )
+          .filter(Boolean)
+      : [];
+  const primaryTeamCodes = normalize(entry?.teamCodes);
+  return Array.from(
+    new Set(
+      primaryTeamCodes.length > 0
+        ? primaryTeamCodes
+        : normalize(entry?.teamsInvolved)
+    )
+  );
+};
+
 /**
  * Resolves historical player direction only after the selected two-Team event
  * is present in both Team-scoped retained feeds. That proves the loaded union
@@ -177,25 +200,10 @@ const WorldHistoryDetailModal = ({
     activeTeamEventsStore.get,
     activeTeamEventsStore.get
   );
-  const selectedTeamCodes = useMemo(() => {
-    const entry = selectedEntry?.entry;
-    const values = Array.isArray(entry?.teamCodes)
-      ? entry.teamCodes
-      : Array.isArray(entry?.teamsInvolved)
-        ? entry.teamsInvolved
-        : [];
-    return Array.from(
-      new Set(
-        values
-          .map((teamCode) =>
-            String(teamCode || '')
-              .trim()
-              .toUpperCase()
-          )
-          .filter(Boolean)
-      )
-    );
-  }, [selectedEntry]);
+  const selectedTeamCodes = useMemo(
+    () => resolveSelectedEventTeamCodes(selectedEntry?.entry),
+    [selectedEntry]
+  );
   const activeTeamCode = String(selectedEntry?.activeTeamCode || '')
     .trim()
     .toUpperCase();

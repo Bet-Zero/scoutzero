@@ -9,6 +9,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
+import { resolveSelectedEventTeamCodes } from '@/features/architect/history/TeamHistoryTab/TeamHistoryTab';
 import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
 import { resolveReliableTradePlayerMovements } from '@/features/architect/history/TeamHistoryTab/TeamHistoryTab.helpers';
 
@@ -302,6 +303,15 @@ describe('Team History world events integration', () => {
         destinationTeamCode: 'BOS',
       },
     ]);
+  });
+
+  it('uses teamsInvolved when the modal wrapper receives an empty teamCodes list', () => {
+    expect(
+      resolveSelectedEventTeamCodes({
+        teamCodes: [],
+        teamsInvolved: ['LAL', 'BOS'],
+      } as never)
+    ).toEqual(['LAL', 'BOS']);
   });
 
   it('keeps player direction neutral when the counterpart retained feed cannot bind the selected event', async () => {

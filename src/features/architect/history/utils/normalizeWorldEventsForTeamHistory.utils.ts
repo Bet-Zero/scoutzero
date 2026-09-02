@@ -373,14 +373,14 @@ export function buildCapDeltaContext({
 export function deriveTradePickLines(metadata: GenericRecord): string[] {
   const picksTraded = toArrayOfStrings(metadata.picksTraded);
   if (picksTraded.length > 0) {
-    return picksTraded;
+    return expandTradePickLines(picksTraded);
   }
 
   const legacyEntitlementsTraded = toArrayOfStrings(
     metadata.entitlementsTraded
   );
   if (legacyEntitlementsTraded.length > 0) {
-    return legacyEntitlementsTraded;
+    return expandTradePickLines(legacyEntitlementsTraded);
   }
 
   const entitlementsTraded = asObject(metadata.entitlementsTraded);
@@ -400,6 +400,23 @@ export function deriveTradePickLines(metadata: GenericRecord): string[] {
   });
 
   return lines;
+}
+
+export function expandTradePickLines(lines: string[]): string[] {
+  return lines.flatMap((line) => {
+    const groupedTransfer = line.match(
+      /^(\s*[A-Z]{2,3}:\s*(?:out|in)\s+)(.+)$/i
+    );
+    if (!groupedTransfer) return [line];
+
+    const entitlementIds = groupedTransfer[2]
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    return entitlementIds.map(
+      (entitlementId) => `${groupedTransfer[1]}${entitlementId}`
+    );
+  });
 }
 
 export function isGenericChangePlaceholder(

@@ -224,7 +224,7 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
       'Sent by Los Angeles Lakers: 2027 second-round pick'
     );
     expect(modal).toHaveTextContent(
-      'Received by Boston Celtics: 2027 second-round pick from Los Angeles Lakers'
+      'Received by Boston Celtics: 2027 second-round pick · Los Angeles Lakers'
     );
     expect(modal).toHaveTextContent(
       'Los Angeles Lakers paid $1.00 to Boston Celtics'
@@ -256,7 +256,7 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
                   'LAL: out 2028-LAL-R1',
                   'LAL: out 2028-NYK-R1',
                   'BOS: in 2030-BOS-R1',
-                  'BOS: in pick_bos_2031_2nd',
+                  'BOS: in ent:MIA:2031:2:swap:abc12345',
                 ],
               },
             ],
@@ -271,13 +271,13 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
       'Sent by Los Angeles Lakers: 2028 first-round pick'
     );
     expect(modal).toHaveTextContent(
-      'Sent by Los Angeles Lakers: 2028 first-round pick from New York Knicks'
+      'Sent by Los Angeles Lakers: 2028 first-round pick · New York Knicks'
     );
     expect(modal).toHaveTextContent(
       'Received by Boston Celtics: 2030 first-round pick'
     );
     expect(modal).toHaveTextContent(
-      'Received by Boston Celtics: 2031 second-round pick'
+      'Received by Boston Celtics: 2031 second-round swap right · Miami Heat'
     );
     expect(modal).not.toHaveTextContent('draft pick included in this move');
   });
