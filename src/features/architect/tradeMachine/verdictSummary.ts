@@ -29,7 +29,6 @@ export interface VerdictPresentationOptions {
 const TRADE_BONUS_REASON_SOURCE = String.raw`(?:This Contract|\d{4}-\d{2}) (?:has a trade bonus whose allocation|has bonus compensation whose trade treatment) is outside this governed tranche\.?`;
 const TRADE_BONUS_REASON = new RegExp(TRADE_BONUS_REASON_SOURCE, 'i');
 const TRADE_BONUS_REASONS = new RegExp(TRADE_BONUS_REASON_SOURCE, 'gi');
-const PLAYER_REASON_PREFIX = /\b(?<playerId>[A-Za-z0-9_-]+):\s*/gi;
 const MISSING_PROTECTED_SALARY_REASON =
   /(?<season>\d{4}-\d{2}) protected Base Compensation is missing or invalid in governed Contract history\.?/gi;
 const MISSING_PROTECTION_STEP_REASON =
@@ -187,22 +186,30 @@ export const presentTradeValidationText = (
     .map((pattern) => text.search(pattern))
     .filter((index) => index >= 0)
     .sort((left, right) => left - right)[0];
-  const playerReasonMatch = [...text.matchAll(PLAYER_REASON_PREFIX)]
-    .filter(
-      (match) =>
-        match.index != null &&
-        firstPresentedReasonIndex != null &&
-        match.index + match[0].length <= firstPresentedReasonIndex
-    )
-    .at(-1);
-  if (playerReasonMatch?.groups?.playerId && playerReasonMatch.index != null) {
-    const playerId = playerReasonMatch.groups.playerId.trim();
-    const resolvedName = options.resolvePlayerName?.(playerId)?.trim();
-    const playerName =
-      resolvedName && resolvedName !== playerId
-        ? resolvedName
-        : 'Traded player';
-    const reasonsStart = playerReasonMatch.index + playerReasonMatch[0].length;
+  const playerPrefix =
+    firstPresentedReasonIndex == null
+      ? null
+      : text.slice(0, firstPresentedReasonIndex).match(/:\s*$/);
+  if (playerPrefix?.index != null) {
+    const completePrefix = text.slice(0, playerPrefix.index).trim();
+    const playerIdCandidates = [completePrefix];
+    for (const separator of completePrefix.matchAll(/:\s+/g)) {
+      if (separator.index == null) continue;
+      const candidate = completePrefix
+        .slice(separator.index + separator[0].length)
+        .trim();
+      if (candidate) playerIdCandidates.push(candidate);
+    }
+    const resolvedPlayer = playerIdCandidates
+      .map((playerId) => ({
+        playerId,
+        playerName: options.resolvePlayerName?.(playerId)?.trim(),
+      }))
+      .find(
+        ({ playerId, playerName }) => playerName && playerName !== playerId
+      );
+    const playerName = resolvedPlayer?.playerName || 'Traded player';
+    const reasonsStart = playerPrefix.index + playerPrefix[0].length;
     const playerReasons = text.slice(reasonsStart);
     let presentedBonus = false;
     const bonusPresentedReasons = playerReasons.replace(

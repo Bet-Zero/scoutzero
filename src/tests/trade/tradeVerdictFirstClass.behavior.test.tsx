@@ -601,6 +601,23 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
       expected:
         'Traded player: Trade salary information does not match this saved plan, team, player, date, or salary-cap year.',
     },
+    {
+      label: 'schema-valid punctuated player ID with a resolved player',
+      reason:
+        'custom.player.: Governed player salary-basis authority is missing or malformed.',
+      resolvePlayerName: (playerId: string) =>
+        playerId === 'custom.player.' ? 'Custom Player' : null,
+      expected:
+        'Custom Player: Trade salary information is missing or invalid.',
+    },
+    {
+      label: 'schema-valid punctuated player ID without a resolved player',
+      reason:
+        'custom.player.: Governed player salary-basis authority is missing or malformed.',
+      resolvePlayerName: () => null,
+      expected:
+        'Traded player: Trade salary information is missing or invalid.',
+    },
   ])('presents standalone $label without internal wording', (example) => {
     const items = buildVerdictItems(
       [
@@ -626,6 +643,7 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
       },
     ]);
     expect(JSON.stringify(items)).not.toContain('austin_reaves');
+    expect(JSON.stringify(items)).not.toContain('custom.player.');
     expect(JSON.stringify(items)).not.toContain('governed');
   });
 
