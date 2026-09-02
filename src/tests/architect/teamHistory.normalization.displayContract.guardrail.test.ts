@@ -269,6 +269,51 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
     expect(resolvedRow.primaryDeltas).toBe('Austin Reaves: rights renounced');
   });
 
+  it('prefers a canonical singular player identity over compatibility names', () => {
+    const row = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:45:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        metadata: {
+          playerId: 'austin_reaves',
+          playersTraded: ['Austin Reaves'],
+          summary: 'Austin Reaves was traded',
+        },
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: { austin_reaves: 'Austin Reaves' },
+      }
+    );
+
+    expect(row.playerIds).toEqual(['austin_reaves']);
+    expect(getSectionLines(row, 'Players')).toEqual(['Austin Reaves']);
+    expect(row.summary).toBe('Austin Reaves was traded');
+  });
+
+  it('does not reinterpret an inserted display name as another player ID', () => {
+    const row = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:40:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['long_custom_id', 'Cap'],
+        metadata: { summary: 'long_custom_id was traded' },
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: {
+          long_custom_id: 'Cap Smith',
+          Cap: 'Other Player',
+        },
+      }
+    );
+
+    expect(row.summary).toBe('Cap Smith was traded');
+    expect(row.summary).not.toContain('Other Player Smith');
+  });
+
   it('keeps every governed entitlement as its own directed trade-history line', () => {
     const row = toTeamHistoryEventDisplay(
       {

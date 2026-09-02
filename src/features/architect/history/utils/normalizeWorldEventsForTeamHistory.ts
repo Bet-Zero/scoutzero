@@ -45,36 +45,51 @@ function sanitizePlayerTokensInSummary(
   playerTokens: string[],
   formatPlayerToken: (playerToken: string) => string
 ): string | null {
-  let visibleSummary = summary;
+  const replacements = uniqueStrings(playerTokens)
+    .sort((left, right) => right.length - left.length)
+    .map((playerToken) => ({
+      playerToken,
+      replacement: formatPlayerToken(playerToken),
+      escapedToken: playerToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+    }))
+    .filter(({ playerToken, replacement }) => replacement !== playerToken);
 
-  for (const playerToken of uniqueStrings(playerTokens).sort(
-    (left, right) => right.length - left.length
-  )) {
-    const replacement = formatPlayerToken(playerToken);
-    if (replacement === playerToken) continue;
-
-    const escapedToken = playerToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const { escapedToken } of replacements) {
     const boundedToken = new RegExp(
       `(^|[^A-Za-z0-9_])${escapedToken}(?=$|[^A-Za-z0-9_])`,
       'g'
     );
-    const occurrenceCount = Array.from(
-      visibleSummary.matchAll(boundedToken)
-    ).length;
+    const occurrenceCount = Array.from(summary.matchAll(boundedToken)).length;
 
     // A repeated token can be both a schema-valid player id and ordinary prose
     // (for example, "cap: Dead cap amount changed"). Without trustworthy
     // occurrence-level provenance, reject that raw summary and let the
     // structured event fallback render instead of guessing.
     if (occurrenceCount > 1) return null;
-
-    visibleSummary = visibleSummary.replace(
-      boundedToken,
-      (_match, prefix: string) => `${prefix}${replacement}`
-    );
   }
 
-  return visibleSummary;
+  if (replacements.length === 0) return summary;
+
+  const replacementByToken = new Map(
+    replacements.map(({ playerToken, replacement }) => [
+      playerToken,
+      replacement,
+    ])
+  );
+  const boundedPlayerTokens = new RegExp(
+    `(^|[^A-Za-z0-9_])(${replacements
+      .map(({ escapedToken }) => escapedToken)
+      .join('|')})(?=$|[^A-Za-z0-9_])`,
+    'g'
+  );
+
+  return summary.replace(
+    boundedPlayerTokens,
+    (_match, prefix: string, playerToken: string) =>
+      `${prefix}${
+        replacementByToken.get(playerToken) || 'Player details unavailable'
+      }`
+  );
 }
 
 export function toTeamHistoryEventDisplay(
@@ -127,13 +142,12 @@ export function toTeamHistoryEventDisplay(
       ? rawPlayerIds
       : metadataPlayerIds.length > 0
         ? metadataPlayerIds
-        : metadataPlayersTraded.length > 0
-          ? metadataPlayersTraded
-          : metadataPlayerId
-            ? [metadataPlayerId]
-            : mutationType === 'executeTrade'
-              ? diffSummaryPlayersMoved
-              : [];
+        : metadataPlayerId
+          ? [metadataPlayerId]
+          : mutationType === 'executeTrade' &&
+              diffSummaryPlayersMoved.length > 0
+            ? diffSummaryPlayersMoved
+            : metadataPlayersTraded;
 
   const occurredAt = toIsoString(raw.occurredAt) || toIsoString(raw.timestamp);
   const timestamp = toIsoString(raw.timestamp) || occurredAt;
