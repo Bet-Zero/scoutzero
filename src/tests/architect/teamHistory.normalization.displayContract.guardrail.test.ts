@@ -452,8 +452,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
         teamCodes: ['LAL', 'BOS'],
         playerIds: ['historical_player_1'],
         metadata: {
-          summary:
-            'historical_player_1 was traded for historical_player_1',
+          summary: 'historical_player_1 was traded for historical_player_1',
         },
       },
       {
@@ -493,9 +492,9 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
     expect(
       getSectionLines(canonicalIdDuplicatedIntoCompatibilityFieldRow, 'Players')
     ).toEqual(['Player details unavailable']);
-    expect(canonicalIdDuplicatedIntoCompatibilityFieldRow.summary).not.toContain(
-      'HistoricalPlayer'
-    );
+    expect(
+      canonicalIdDuplicatedIntoCompatibilityFieldRow.summary
+    ).not.toContain('HistoricalPlayer');
     expect(shortIdSummaryRow.summary).toBe('Trade Executed: LAL ↔ BOS');
     expect(shortIdSummaryRow.summary).not.toContain('Dead Cap Player');
     expect(shortIdSummaryRow.primaryDeltas).not.toContain('cap');
@@ -520,9 +519,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       'Trade Executed: LAL ↔ BOS'
     );
     expect(titleCaseShortIdSummaryRow.primaryDeltas).not.toContain('Cap');
-    expect(titleCaseShortIdSummaryRow.summary).not.toContain(
-      'Dead Cap Player'
-    );
+    expect(titleCaseShortIdSummaryRow.summary).not.toContain('Dead Cap Player');
   });
 
   it('rejects ID-valued metadata-only player names without hiding real names', () => {

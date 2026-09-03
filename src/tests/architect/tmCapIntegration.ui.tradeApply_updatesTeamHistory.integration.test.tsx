@@ -101,11 +101,15 @@ describe('TM_CAP_INTEGRATION_E2 UI: trade apply updates Team History surface', (
     ).toHaveTextContent('lal_out_18m');
     expect(screen.getByText('Players')).toBeInTheDocument();
     expect(
-      screen.getByTestId('team-history-detail-sections')
-    ).toHaveTextContent('lal_out_18m');
+      Array.from(
+        screen
+          .getByTestId('team-history-detail-sections')
+          .querySelectorAll('li')
+      ).filter((row) => row.textContent === '• Player details unavailable')
+    ).toHaveLength(2);
     expect(
       screen.getByTestId('team-history-detail-sections')
-    ).toHaveTextContent('bos_out_10m');
+    ).not.toHaveTextContent(/lal_out_18m|bos_out_10m/);
 
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
     expect(
