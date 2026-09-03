@@ -25,7 +25,7 @@ describe('TEAM_HISTORY_E4 summary/details matrix integration (world mode)', () =
     vi.clearAllMocks();
   });
 
-  it('renders token-rich summaries and structured sections for required mutation families', () => {
+  it('renders owner-facing summaries and structured sections for required mutation families', () => {
     useWorldTeamEventsMock.mockReturnValue({
       events: [
         {
@@ -132,24 +132,24 @@ describe('TEAM_HISTORY_E4 summary/details matrix integration (world mode)', () =
     render(<TeamHistoryTab teamCapSheet={teamCapSheet} worldId="world_lal" />);
 
     expect(screen.getByTestId('team-history-event-row-0')).toHaveTextContent(
-      'Trade Executed: LAL ↔ BOS'
+      'Trade Executed: Los Angeles Lakers ↔ Boston Celtics'
     );
     expect(screen.getByTestId('team-history-event-row-0')).toHaveTextContent(
-      'executeTrade'
+      'trade'
     );
 
     expect(screen.getByTestId('team-history-event-row-1')).toHaveTextContent(
-      'Signed Free Agent: player_sign → LAL'
+      'Signed Free Agent: Player details unavailable → Los Angeles Lakers'
     );
     expect(screen.getByTestId('team-history-event-row-1')).toHaveTextContent(
-      'signFreeAgent'
+      'free-agency'
     );
 
     expect(screen.getByTestId('team-history-event-row-2')).toHaveTextContent(
-      'Waive Player: player_waive'
+      'Waive Player: Player details unavailable'
     );
     expect(screen.getByTestId('team-history-event-row-2')).toHaveTextContent(
-      'waivePlayer'
+      'cap-transaction'
     );
 
     expect(screen.getByTestId('team-history-event-row-3')).toHaveTextContent(
@@ -159,10 +159,10 @@ describe('TEAM_HISTORY_E4 summary/details matrix integration (world mode)', () =
       'Exceptions Updated: NTMLE remaining reduced'
     );
     expect(screen.getByTestId('team-history-event-row-5')).toHaveTextContent(
-      'Sign-and-Trade Executed:'
+      'Sign-and-Trade Executed: Player details unavailable (Los Angeles Lakers ↔ Chicago Bulls)'
     );
     expect(screen.getByTestId('team-history-event-row-5')).toHaveTextContent(
-      'signAndTrade'
+      'trade'
     );
 
     fireEvent.click(screen.getByTestId('team-history-event-row-0'));
@@ -171,24 +171,19 @@ describe('TEAM_HISTORY_E4 summary/details matrix integration (world mode)', () =
       screen.getByTestId('team-history-detail-sections')
     ).toBeInTheDocument();
     expect(screen.getByText('Players')).toBeInTheDocument();
-    expect(screen.getByText('Picks')).toBeInTheDocument();
-    expect(screen.getByText('Salary Books')).toBeInTheDocument();
+    expect(screen.getByText('Draft picks')).toBeInTheDocument();
+    expect(screen.queryByText('Salary Books')).not.toBeInTheDocument();
     expect(
-      screen.getByTestId('team-history-detail-modal').textContent || ''
-    ).toContain('LAL Team Salary: -$1,000,000');
-    expect(
-      screen.getByTestId('team-history-detail-modal').textContent || ''
-    ).toContain('LAL Apron Team Salary: -$2,000,000');
-    expect(
-      screen.getByTestId('team-history-detail-modal').textContent || ''
-    ).toContain('LAL Tax Salary: -$3,000,000');
-    expect(screen.getAllByText(/2028 1st/i).length).toBeGreaterThan(0);
+      screen.getByText(/Boston Celtics 2028 first-round pick/)
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
 
     fireEvent.click(screen.getByTestId('team-history-event-row-1'));
     expect(screen.getByText('Contract')).toBeInTheDocument();
     expect(screen.getByText('Signing Context')).toBeInTheDocument();
-    expect(screen.getByText(/Destination team: LAL/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Destination team: Los Angeles Lakers/i)
+    ).toBeInTheDocument();
     expect(screen.getByText(/First year salary/i)).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
 
@@ -204,7 +199,9 @@ describe('TEAM_HISTORY_E4 summary/details matrix integration (world mode)', () =
 
     fireEvent.click(screen.getByTestId('team-history-event-row-5'));
     expect(screen.getByText('Trade Context')).toBeInTheDocument();
-    expect(screen.getByText('Teams')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-detail-sections')
+    ).not.toHaveTextContent('Teams');
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
   });
 });
