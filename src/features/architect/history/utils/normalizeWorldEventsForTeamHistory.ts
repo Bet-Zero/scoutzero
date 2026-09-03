@@ -7,6 +7,7 @@ import {
   buildFallbackEventId,
   buildSpecificChangeLines,
   deriveTradePickLines,
+  expandTradePickLines,
   firstNonEmptyString,
   formatCurrency,
   formatMutationLabel,
@@ -14,6 +15,7 @@ import {
   formatRightOfFirstRefusal,
   formatTeamLabel,
   getFirstSpecificChangeLine,
+  isSafePlayerDisplayName,
   isGenericSummary,
   normalizeMutationType,
   pushSection,
@@ -36,6 +38,63 @@ function formatCashCents(value: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
+}
+
+function sanitizePlayerTokensInSummary(
+  summary: string,
+  playerTokens: string[],
+  formatPlayerToken: (playerToken: string) => string
+): string | null {
+  const replacements = uniqueStrings(playerTokens)
+    .sort((left, right) => right.length - left.length)
+    .map((playerToken) => ({
+      playerToken,
+      replacement: formatPlayerToken(playerToken),
+      escapedToken: playerToken.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+    }))
+    .filter(({ playerToken, replacement }) => replacement !== playerToken);
+
+  for (const { playerToken, escapedToken } of replacements) {
+    const boundedToken = new RegExp(
+      `(^|[^A-Za-z0-9_])${escapedToken}(?=$|[^A-Za-z0-9_])`,
+      'g'
+    );
+    const occurrenceCount = Array.from(summary.matchAll(boundedToken)).length;
+
+    // A plain word or repeated token can be both a schema-valid player id and
+    // ordinary prose (for example, "Dead cap amount changed"). Without
+    // trustworthy occurrence-level provenance, reject that raw summary and
+    // let the structured event fallback render instead of guessing.
+    if (
+      occurrenceCount > 1 ||
+      (occurrenceCount > 0 && /^[A-Za-z]+$/.test(playerToken))
+    ) {
+      return null;
+    }
+  }
+
+  if (replacements.length === 0) return summary;
+
+  const replacementByToken = new Map(
+    replacements.map(({ playerToken, replacement }) => [
+      playerToken,
+      replacement,
+    ])
+  );
+  const boundedPlayerTokens = new RegExp(
+    `(^|[^A-Za-z0-9_])(${replacements
+      .map(({ escapedToken }) => escapedToken)
+      .join('|')})(?=$|[^A-Za-z0-9_])`,
+    'g'
+  );
+
+  return summary.replace(
+    boundedPlayerTokens,
+    (_match, prefix: string, playerToken: string) =>
+      `${prefix}${
+        replacementByToken.get(playerToken) || 'Player details unavailable'
+      }`
+  );
 }
 
 export function toTeamHistoryEventDisplay(
@@ -65,12 +124,35 @@ export function toTeamHistoryEventDisplay(
   const metadataPlayersTraded = uniqueStrings(
     toArrayOfStrings(metadata.playersTraded)
   );
+  const metadataPlayerId = firstNonEmptyString(
+    mutationMetadata.playerId,
+    metadata.playerId
+  );
+  const diffSummaryPlayersMoved = uniqueStrings(
+    toArrayOfStrings(diffSummary.playersMoved)
+  );
+  const idBearingPlayerTokens = new Set([
+    ...rawPlayerIds,
+    ...metadataPlayerIds,
+    ...diffSummaryPlayersMoved,
+    ...(metadataPlayerId ? [metadataPlayerId] : []),
+  ]);
+  const literalCompatibilityPlayerNames = new Set(
+    metadataPlayersTraded.filter(
+      (playerToken) => !idBearingPlayerTokens.has(playerToken)
+    )
+  );
   const playerIds =
     rawPlayerIds.length > 0
       ? rawPlayerIds
       : metadataPlayerIds.length > 0
         ? metadataPlayerIds
-        : metadataPlayersTraded;
+        : metadataPlayerId
+          ? [metadataPlayerId]
+          : mutationType === 'executeTrade' &&
+              diffSummaryPlayersMoved.length > 0
+            ? diffSummaryPlayersMoved
+            : metadataPlayersTraded;
 
   const occurredAt = toIsoString(raw.occurredAt) || toIsoString(raw.timestamp);
   const timestamp = toIsoString(raw.timestamp) || occurredAt;
@@ -104,28 +186,38 @@ export function toTeamHistoryEventDisplay(
     mutationMetadata.playerName,
     metadata.playerName
   );
-  const metadataPlayerId = firstNonEmptyString(
-    mutationMetadata.playerId,
-    metadata.playerId
-  );
   // Single-player mutations record the display name in their own metadata;
   // merge it into the caller lookup so owner-facing copy prefers real names
   // over raw player ids even when no external lookup is supplied (BZE-218).
+  const metadataBoundPlayerId =
+    metadataPlayerId || (playerIds.length === 1 ? playerIds[0] : null);
   const effectivePlayerNameLookup: Record<string, string> = {
-    ...(metadataPlayerId && metadataPlayerName
-      ? { [metadataPlayerId]: metadataPlayerName }
+    ...(metadataBoundPlayerId && metadataPlayerName
+      ? { [metadataBoundPlayerId]: metadataPlayerName }
       : {}),
     ...(playerNameLookup || {}),
   };
-  const fallbackPlayerToken = metadataPlayerId || metadataPlayerName;
+  const fallbackPlayerToken = metadataBoundPlayerId || metadataPlayerName;
   const displayPlayerTokens =
     playerIds.length > 0
       ? playerIds
       : fallbackPlayerToken
         ? [fallbackPlayerToken]
         : [];
+  const formatEventPlayerLabel = (playerToken: string) =>
+    !metadataPlayerId &&
+    metadataPlayerName &&
+    playerToken === metadataPlayerName
+      ? isSafePlayerDisplayName(metadataPlayerName)
+        ? metadataPlayerName.trim()
+        : 'Player details unavailable'
+      : formatPlayerLabel(
+          playerToken,
+          effectivePlayerNameLookup,
+          literalCompatibilityPlayerNames.has(playerToken)
+        );
   const playerLabels = uniqueStrings(displayPlayerTokens).map((playerToken) =>
-    formatPlayerLabel(playerToken, effectivePlayerNameLookup)
+    formatEventPlayerLabel(playerToken)
   );
   const firstPlayerLabel = playerLabels[0] || null;
 
@@ -189,15 +281,17 @@ export function toTeamHistoryEventDisplay(
   const buyout = mutationMetadata.buyout === true || metadata.buyout === true;
 
   const tradePlayerTokens =
-    uniqueStrings(toArrayOfStrings(diffSummary.playersMoved)).length > 0
-      ? uniqueStrings(toArrayOfStrings(diffSummary.playersMoved))
+    diffSummaryPlayersMoved.length > 0
+      ? diffSummaryPlayersMoved
       : displayPlayerTokens;
   const tradePlayerLines = tradePlayerTokens.map((playerToken) =>
-    formatPlayerLabel(playerToken, effectivePlayerNameLookup)
+    formatEventPlayerLabel(playerToken)
   );
   const tradePickLines =
     uniqueStrings(toArrayOfStrings(diffSummary.picksMoved)).length > 0
-      ? uniqueStrings(toArrayOfStrings(diffSummary.picksMoved))
+      ? uniqueStrings(
+          expandTradePickLines(toArrayOfStrings(diffSummary.picksMoved))
+        )
       : uniqueStrings(deriveTradePickLines(metadata));
 
   const exceptionChangeLines = buildSpecificChangeLines(
@@ -232,9 +326,30 @@ export function toTeamHistoryEventDisplay(
     mutationMetadata.summary,
     metadata.summary
   );
+  const sanitizedRawSummary = rawSummary
+    ? sanitizePlayerTokensInSummary(
+        rawSummary,
+        [
+          ...rawPlayerIds,
+          ...metadataPlayerIds,
+          ...metadataPlayersTraded,
+          ...tradePlayerTokens,
+          ...(metadataPlayerId ? [metadataPlayerId] : []),
+          ...(metadataPlayerName &&
+          !isSafePlayerDisplayName(
+            metadataPlayerName,
+            metadataPlayerId || undefined
+          )
+            ? [metadataPlayerName]
+            : []),
+        ],
+        formatEventPlayerLabel
+      )
+    : null;
   let summaryCandidate =
-    rawSummary && !isGenericSummary(rawSummary, mutationType, displayType)
-      ? rawSummary
+    sanitizedRawSummary &&
+    !isGenericSummary(sanitizedRawSummary, mutationType, displayType)
+      ? sanitizedRawSummary
       : null;
 
   switch (mutationType) {
@@ -579,7 +694,10 @@ export function toTeamHistoryEventDisplay(
 export function normalizeWorldEventsForTeamHistory(
   rawEvents: GenericRecord[],
   activeTeamCode?: string | null,
-  options: Pick<TeamHistoryEventDisplayOptions, 'playerNameLookup'> = {}
+  options: Pick<
+    TeamHistoryEventDisplayOptions,
+    'playerNameLookup' | 'teamNameLookup'
+  > = {}
 ): TeamHistoryWorldEventRow[] {
   const normalizedTeamCode = activeTeamCode
     ? String(activeTeamCode).trim()
@@ -589,6 +707,7 @@ export function normalizeWorldEventsForTeamHistory(
     toTeamHistoryEventDisplay(asObject(rawInput), {
       teamCode: normalizedTeamCode,
       playerNameLookup: options.playerNameLookup,
+      teamNameLookup: options.teamNameLookup,
     })
   );
 

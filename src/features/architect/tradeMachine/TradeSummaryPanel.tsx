@@ -52,23 +52,51 @@ export function TradeSummaryPanel({
   const hasOverrideRequest = Boolean(forceTrade || overrideState.requested);
   const previewPassed = previewAuthority?.legal === true;
   const previewFailed = previewAuthority?.legal === false;
+  const playerNameById = new Map<string, string>();
+  teams
+    .flatMap((team) => team.sends || [])
+    .forEach((player) => {
+      const id = String(player.player_id ?? player.id ?? '').trim();
+      const playerWithBio = player as typeof player & {
+        bio?: { displayName?: string | null } | null;
+      };
+      const name = [
+        player.name,
+        playerWithBio.bio?.displayName,
+        player.fullName,
+      ]
+        .find(
+          (candidate) =>
+            typeof candidate === 'string' &&
+            candidate.trim() !== '' &&
+            candidate.trim() !== id
+        )
+        ?.trim();
+      if (id && name) playerNameById.set(id, name);
+    });
+  const verdictOptions = {
+    resolvePlayerName: (playerId: string) => playerNameById.get(playerId),
+  };
   const verdictItems = buildVerdictItems(
     snapshotValidationDetails?.teamResults,
-    previewAuthority
+    previewAuthority,
+    verdictOptions
   );
   const needsInput = verdictItems.some((item) => item.kind === 'needsInput');
-  const tradeWideBlockingItems = buildVerdictItems([], previewAuthority).filter(
-    (item) => item.teamName === null && item.kind !== 'warning'
-  );
+  const tradeWideBlockingItems = buildVerdictItems(
+    [],
+    previewAuthority,
+    verdictOptions
+  ).filter((item) => item.teamName === null && item.kind !== 'warning');
   const topStatus = needsInput
-    ? '⚪ Needs input — trade not evaluated'
+    ? '⚪ Needs input — trade not ready'
     : previewPassed
-    ? '✅ Trade passes preview authority'
-    : hasOverrideRequest
-      ? '⚠️ Override Requested – Preview Authority Still Blocks This Trade'
-      : previewFailed
-        ? '❌ Trade fails preview authority'
-        : '⚪ Preview authority unavailable';
+      ? '✅ Trade passes validation'
+      : hasOverrideRequest
+        ? '⚠️ Override requested — trade remains blocked'
+        : previewFailed
+          ? '❌ Trade fails validation'
+          : '⚪ Validation unavailable';
 
   return (
     <div className="mt-6 text-sm border-t border-cockpit-edge pt-4 space-y-6">
@@ -81,14 +109,14 @@ export function TradeSummaryPanel({
         )}
         {needsInput && (
           <div className="text-xs text-cockpit-watch mt-1">
-            Supply the missing draft records before applying this trade.
+            Add the missing information before applying this trade.
           </div>
         )}
         {previewFailed && hasOverrideRequest && (
           <div className="text-xs text-cockpit-watch/80 mt-1">
             {String(
               overrideState.message ||
-                'Override state is tracked separately. It does not change authoritative legality.'
+                'The override request does not change the trade result.'
             )}
           </div>
         )}
@@ -103,9 +131,7 @@ export function TradeSummaryPanel({
       {showRuleExplanations && tradeWideBlockingItems.length > 0 && (
         <div
           className={`bg-cockpit-slab border rounded p-3 ${
-            needsInput
-              ? 'border-cockpit-watch/30'
-              : 'border-cockpit-danger/30'
+            needsInput ? 'border-cockpit-watch/30' : 'border-cockpit-danger/30'
           }`}
         >
           <div className="font-semibold mb-2">
@@ -134,9 +160,9 @@ export function TradeSummaryPanel({
             if (!teamSummary) return null;
 
             const teamResult = snapshotValidationDetails?.teamResults?.[index];
-            const teamNeedsInput = Object.values(
-              teamResult?.rules ?? {}
-            ).some((rule) => rule?.status === 'NEEDS_INPUT');
+            const teamNeedsInput = Object.values(teamResult?.rules ?? {}).some(
+              (rule) => rule?.status === 'NEEDS_INPUT'
+            );
             const isIllegal = teamResult
               ? !teamResult.legal && !teamNeedsInput
               : false;
@@ -337,7 +363,9 @@ export function TradeSummaryPanel({
                           })}
                         </div>
                       ) : (
-                        <div className="text-xs text-cockpit-text-muted italic">None</div>
+                        <div className="text-xs text-cockpit-text-muted italic">
+                          None
+                        </div>
                       )}
                     </div>
 
@@ -398,7 +426,9 @@ export function TradeSummaryPanel({
                           )}
                         </div>
                       ) : (
-                        <div className="text-xs text-cockpit-text-muted italic">None</div>
+                        <div className="text-xs text-cockpit-text-muted italic">
+                          None
+                        </div>
                       )}
                     </div>
                   </div>
@@ -471,7 +501,9 @@ export function TradeSummaryPanel({
                         )}
                       </div>
                     ) : (
-                      <div className="text-xs text-cockpit-text-muted italic">None</div>
+                      <div className="text-xs text-cockpit-text-muted italic">
+                        None
+                      </div>
                     )}
 
                     {entitlementWarnings.length > 0 && (

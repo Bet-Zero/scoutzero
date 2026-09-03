@@ -1,9 +1,17 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
+import { resolveSelectedEventTeamCodes } from '@/features/architect/history/TeamHistoryTab/TeamHistoryTab';
 import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
+import { resolveReliableTradePlayerMovements } from '@/features/architect/history/TeamHistoryTab/TeamHistoryTab.helpers';
 
 const useWorldTeamEventsMock = vi.fn();
 
@@ -81,7 +89,10 @@ describe('Team History world events integration', () => {
     const secondRow = screen.getByTestId('team-history-row-1');
 
     expect(firstRow.textContent || '').toContain('Trade Executed');
-    expect(secondRow.textContent || '').toContain('Waive Player: player_123');
+    expect(secondRow.textContent || '').toContain(
+      'Waive Player: Player details unavailable'
+    );
+    expect(secondRow.textContent || '').not.toContain('player_123');
     expect(
       screen.queryByTestId('team-history-world-events-compatibility-note')
     ).not.toBeInTheDocument();
@@ -89,22 +100,24 @@ describe('Team History world events integration', () => {
     fireEvent.click(firstRow);
 
     expect(screen.getByTestId('team-history-detail-modal')).toBeInTheDocument();
-    expect(screen.getByTestId('team-history-detail-truth-note')).toHaveTextContent(
-      'Authoritative world-event row'
-    );
-    expect(screen.getByText('Underlying World-Event Payload')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-detail-truth-note')
+    ).toHaveTextContent('Authoritative world-event row');
+    expect(
+      screen.getByText('Underlying World-Event Payload')
+    ).toBeInTheDocument();
     expect(
       screen.getByTestId('team-history-detail-mutation-type').textContent || ''
     ).toContain('executeTrade');
     expect(
       screen.getByTestId('team-history-detail-type').textContent || ''
-    ).toContain('trade · Trade Executed');
+    ).toContain('Trade Executed');
     expect(
       screen.getByTestId('team-history-detail-player-ids').textContent || ''
     ).toContain('player_77');
     expect(
       screen.getByTestId('team-history-detail-timestamp').textContent || ''
-    ).toContain('2026-03-01T09:00:00.000Z');
+    ).not.toContain('2026-03-01T09:00:00.000Z');
     expect(
       screen.getByTestId('team-history-detail-before-totals').textContent || ''
     ).toContain('totalCapAllocations');
@@ -115,9 +128,9 @@ describe('Team History world events integration', () => {
     expect(screen.getByTestId('team-history-detail-row-id')).toHaveTextContent(
       'cap-audit-1'
     );
-    expect(screen.getByTestId('team-history-detail-event-id')).toHaveTextContent(
-      'cap-audit-1'
-    );
+    expect(
+      screen.getByTestId('team-history-detail-event-id')
+    ).toHaveTextContent('cap-audit-1');
     expect(
       screen.getByTestId('team-history-detail-operation-id')
     ).toHaveTextContent('op_trade_77');
@@ -126,15 +139,481 @@ describe('Team History world events integration', () => {
     ).toContain('Displayed cap delta matches LAL before/after totals.');
     expect(
       screen.getByTestId('team-history-detail-cap-alignment').textContent || ''
-    ).toContain(
-      'LAL Team Salary: $150,000,000 -> $149,000,000 (-$1,000,000)'
-    );
+    ).toContain('LAL Team Salary: $150,000,000 -> $149,000,000 (-$1,000,000)');
     expect(
       screen.getByTestId('team-history-detail-raw-summary').textContent || ''
     ).toContain('Raw event ID: cap-audit-1');
     expect(
       screen.getByTestId('team-history-detail-raw-summary').textContent || ''
     ).toContain('Raw mutation type: executeTrade');
+  });
+
+  it('uses the latest retained two-team event and current world roster to show exact player direction', async () => {
+    window.localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
+    useWorldTeamEventsMock.mockReturnValue({
+      events: [
+        {
+          id: 'trade-direction-1',
+          eventId: 'trade-direction-1',
+          mutationType: 'executeTrade',
+          occurredAt: '2026-09-02T06:40:00.000Z',
+          timestamp: '2026-09-02T06:40:00.000Z',
+          teamCodes: ['LAL', 'BOS'],
+          playerIds: ['player_lal_out', 'player_bos_in'],
+        },
+      ],
+      loading: false,
+      loadingMore: false,
+      error: null,
+      hasMore: false,
+      resolution: 'authoritative',
+      loadMore: null,
+    });
+
+    render(
+      <TeamHistoryTab
+        teamCapSheet={{
+          ...teamCapSheet,
+          roster: ['player_bos_in'],
+        }}
+        worldId="world_lal"
+        onPlayerAction={vi.fn()}
+        resolvePlayerTeamCode={(playerId) =>
+          playerId === 'player_lal_out' ? 'BOS' : 'LAL'
+        }
+        resolvePlayerLabel={(playerId) =>
+          playerId === 'player_lal_out'
+            ? 'Laker Outbound'
+            : playerId === 'player_bos_in'
+              ? 'Celtic Inbound'
+              : playerId
+        }
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('team-history-row-0'));
+
+    await waitFor(() => {
+      expect(useWorldTeamEventsMock).toHaveBeenCalledWith(
+        expect.objectContaining({ teamCode: 'BOS', enabled: true })
+      );
+      expect(
+        screen.getByTestId('team-history-player-player_lal_out-direction')
+      ).toHaveTextContent(
+        'Sent by Los Angeles Lakers · Received by Boston Celtics'
+      );
+    });
+    expect(
+      screen.getByTestId('team-history-player-player_bos_in-direction')
+    ).toHaveTextContent(
+      'Sent by Boston Celtics · Received by Los Angeles Lakers'
+    );
+    expect(screen.getByText('Saved on')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-player-player_lal_out-actions-overflow')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('team-history-detail-truth-note')
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps player direction neutral when retained event ordering cannot prove it', () => {
+    const selectedEntry = {
+      activeTeamCode: 'LAL',
+      timelineSourceKey: 'world-events' as const,
+      truthKind: 'authoritative-world-event' as const,
+      entry: {
+        id: 'trade-old',
+        eventId: 'trade-old',
+        mutationType: 'executeTrade',
+        type: 'Trade Executed',
+        category: 'trade',
+        timestamp: '2026-09-01T12:00:00.000Z',
+        occurredAt: '2026-09-01T12:00:00.000Z',
+        teamsInvolved: ['LAL', 'BOS'],
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['player_1'],
+      },
+    };
+
+    expect(
+      resolveReliableTradePlayerMovements({
+        selectedEntry,
+        committedWorldEvents: [
+          selectedEntry.entry,
+          {
+            eventId: 'later-player-event',
+            mutationType: 'executeTrade',
+            occurredAt: '2026-09-02T12:00:00.000Z',
+            teamCodes: ['BOS', 'NYK'],
+            metadata: { playersTraded: ['player_1'] },
+          },
+        ],
+        coveredTeamCodes: ['LAL', 'BOS'],
+        resolvePlayerTeamCode: () => 'LAL',
+      })
+    ).toEqual([]);
+    expect(
+      resolveReliableTradePlayerMovements({
+        selectedEntry,
+        committedWorldEvents: [selectedEntry.entry],
+        coveredTeamCodes: ['LAL', 'BOS'],
+        resolvePlayerTeamCode: () => 'NYK',
+      })
+    ).toEqual([]);
+
+    expect(
+      resolveReliableTradePlayerMovements({
+        selectedEntry,
+        committedWorldEvents: [selectedEntry.entry],
+        coveredTeamCodes: ['LAL'],
+        resolvePlayerTeamCode: () => 'BOS',
+      })
+    ).toEqual([]);
+  });
+
+  it('keeps direction neutral when any later compatibility field identifies the player', () => {
+    const selectedEntry = {
+      activeTeamCode: 'LAL',
+      timelineSourceKey: 'world-events' as const,
+      truthKind: 'authoritative-world-event' as const,
+      entry: {
+        id: 'trade-before-compatibility-event',
+        eventId: 'trade-before-compatibility-event',
+        mutationType: 'executeTrade',
+        type: 'Trade Executed',
+        category: 'trade',
+        timestamp: '2026-09-01T12:00:00.000Z',
+        occurredAt: '2026-09-01T12:00:00.000Z',
+        teamsInvolved: ['LAL', 'BOS'],
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['player_1'],
+      },
+    };
+    const participantEvidence = [
+      { metadata: { playerIds: ['player_1'] } },
+      { metadata: { playersTraded: ['player_1'] } },
+      {
+        metadata: {
+          playerIds: ['other_metadata_player'],
+          playersTraded: ['player_1'],
+        },
+      },
+      { diffSummary: { playersMoved: ['player_1'] } },
+      { metadata: { playerId: 'player_1' } },
+      { mutationMetadata: { playerId: 'player_1' } },
+    ];
+
+    for (const evidence of participantEvidence) {
+      expect(
+        resolveReliableTradePlayerMovements({
+          selectedEntry,
+          committedWorldEvents: [
+            selectedEntry.entry,
+            {
+              eventId: 'later-compatibility-event',
+              mutationType: 'executeTrade',
+              occurredAt: '2026-09-02T12:00:00.000Z',
+              teamCodes: ['BOS', 'NYK'],
+              playerIds: ['other_player'],
+              ...evidence,
+            },
+          ],
+          coveredTeamCodes: ['LAL', 'BOS'],
+          resolvePlayerTeamCode: () => 'LAL',
+        })
+      ).toEqual([]);
+    }
+  });
+
+  it('keeps direction neutral when later name-only evidence cannot bind to a canonical id', () => {
+    const selectedEntry = {
+      activeTeamCode: 'LAL',
+      timelineSourceKey: 'world-events' as const,
+      truthKind: 'authoritative-world-event' as const,
+      entry: {
+        id: 'trade-before-name-only-event',
+        eventId: 'trade-before-name-only-event',
+        mutationType: 'executeTrade',
+        type: 'Trade Executed',
+        category: 'trade',
+        timestamp: '2026-09-01T12:00:00.000Z',
+        occurredAt: '2026-09-01T12:00:00.000Z',
+        teamsInvolved: ['LAL', 'BOS'],
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['austin_reaves'],
+      },
+    };
+
+    expect(
+      resolveReliableTradePlayerMovements({
+        selectedEntry,
+        committedWorldEvents: [
+          selectedEntry.entry,
+          {
+            eventId: 'later-name-only-event',
+            mutationType: 'executeTrade',
+            occurredAt: '2026-09-02T12:00:00.000Z',
+            teamCodes: ['BOS', 'NYK'],
+            metadata: { playersTraded: ['Austin Reaves'] },
+          },
+        ],
+        coveredTeamCodes: ['LAL', 'BOS'],
+        resolvePlayerTeamCode: () => 'LAL',
+      })
+    ).toEqual([]);
+  });
+
+  it('keeps a compatibility-name-only selected trade direction-neutral', () => {
+    const selectedEntry = {
+      activeTeamCode: 'LAL',
+      timelineSourceKey: 'world-events' as const,
+      truthKind: 'authoritative-world-event' as const,
+      entry: {
+        id: 'trade-name-only-selected',
+        eventId: 'trade-name-only-selected',
+        mutationType: 'executeTrade',
+        type: 'Trade Executed',
+        category: 'trade',
+        timestamp: '2026-09-01T12:00:00.000Z',
+        occurredAt: '2026-09-01T12:00:00.000Z',
+        teamsInvolved: ['LAL', 'BOS'],
+        teamCodes: ['LAL', 'BOS'],
+        metadata: { playersTraded: ['Austin Reaves'] },
+      },
+    };
+
+    expect(
+      resolveReliableTradePlayerMovements({
+        selectedEntry,
+        committedWorldEvents: [selectedEntry.entry],
+        coveredTeamCodes: ['LAL', 'BOS'],
+        resolvePlayerTeamCode: () => 'BOS',
+      })
+    ).toEqual([]);
+  });
+
+  it('keeps independently provable directions when another player was superseded', () => {
+    const selectedEntry = {
+      activeTeamCode: 'LAL',
+      timelineSourceKey: 'world-events' as const,
+      truthKind: 'authoritative-world-event' as const,
+      entry: {
+        id: 'trade-mixed-latest-evidence',
+        eventId: 'trade-mixed-latest-evidence',
+        mutationType: 'executeTrade',
+        type: 'Trade Executed',
+        category: 'trade',
+        timestamp: '2026-09-01T12:00:00.000Z',
+        occurredAt: '2026-09-01T12:00:00.000Z',
+        teamsInvolved: ['LAL', 'BOS'],
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['player_superseded', 'player_still_provable'],
+      },
+    };
+
+    expect(
+      resolveReliableTradePlayerMovements({
+        selectedEntry,
+        committedWorldEvents: [
+          selectedEntry.entry,
+          {
+            eventId: 'later-player-event',
+            mutationType: 'executeTrade',
+            occurredAt: '2026-09-02T12:00:00.000Z',
+            teamCodes: ['BOS', 'NYK'],
+            metadata: { playerIds: ['player_superseded'] },
+          },
+        ],
+        coveredTeamCodes: ['LAL', 'BOS'],
+        resolvePlayerTeamCode: (playerId) =>
+          playerId === 'player_still_provable' ? 'BOS' : 'NYK',
+      })
+    ).toEqual([
+      {
+        playerId: 'player_still_provable',
+        sourceTeamCode: 'LAL',
+        destinationTeamCode: 'BOS',
+      },
+    ]);
+  });
+
+  it('uses retained teamsAffected when the primary teamCodes list is empty', () => {
+    const selectedEntry = {
+      activeTeamCode: 'LAL',
+      timelineSourceKey: 'world-events' as const,
+      truthKind: 'authoritative-world-event' as const,
+      entry: {
+        id: 'trade-legacy-team-list',
+        eventId: 'trade-legacy-team-list',
+        mutationType: 'executeTrade',
+        type: 'Trade Executed',
+        category: 'trade',
+        timestamp: '2026-09-01T12:00:00.000Z',
+        occurredAt: '2026-09-01T12:00:00.000Z',
+        teamsInvolved: ['LAL', 'BOS'],
+        teamCodes: [],
+        teamsAffected: ['LAL', 'BOS'],
+        playerIds: ['player_1'],
+      },
+    };
+
+    expect(
+      resolveReliableTradePlayerMovements({
+        selectedEntry,
+        committedWorldEvents: [selectedEntry.entry],
+        coveredTeamCodes: ['LAL', 'BOS'],
+        resolvePlayerTeamCode: () => 'BOS',
+      })
+    ).toEqual([
+      {
+        playerId: 'player_1',
+        sourceTeamCode: 'LAL',
+        destinationTeamCode: 'BOS',
+      },
+    ]);
+  });
+
+  it('uses teamsInvolved when the modal wrapper receives an empty teamCodes list', () => {
+    expect(
+      resolveSelectedEventTeamCodes({
+        teamCodes: [],
+        teamsInvolved: ['LAL', 'BOS'],
+      } as never)
+    ).toEqual(['LAL', 'BOS']);
+  });
+
+  it('keeps player direction neutral when the counterpart retained feed cannot bind the selected event', async () => {
+    window.localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
+    useWorldTeamEventsMock.mockImplementation(
+      ({ teamCode }: { teamCode?: string | null }) => ({
+        events:
+          teamCode === 'LAL'
+            ? [
+                {
+                  id: 'trade-direction-incomplete',
+                  eventId: 'trade-direction-incomplete',
+                  mutationType: 'executeTrade',
+                  occurredAt: '2026-09-02T06:40:00.000Z',
+                  teamCodes: ['LAL', 'BOS'],
+                  playerIds: ['player_1'],
+                },
+              ]
+            : [],
+        loading: false,
+        loadingMore: false,
+        error: null,
+        hasMore: false,
+        resolution: 'authoritative',
+        loadMore: null,
+      })
+    );
+
+    render(
+      <TeamHistoryTab
+        teamCapSheet={teamCapSheet}
+        worldId="world_lal"
+        onPlayerAction={vi.fn()}
+        resolvePlayerTeamCode={() => 'BOS'}
+        resolvePlayerLabel={() => 'Player One'}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('team-history-row-0'));
+
+    await waitFor(() => {
+      expect(useWorldTeamEventsMock).toHaveBeenCalledWith(
+        expect.objectContaining({ teamCode: 'BOS', enabled: true })
+      );
+    });
+    expect(
+      screen.queryByTestId('team-history-player-player_1-direction')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not fetch a counterpart feed for a two-team non-trade history row', async () => {
+    window.localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
+    useWorldTeamEventsMock.mockReturnValue({
+      events: [
+        {
+          id: 'sign-and-trade-row',
+          eventId: 'sign-and-trade-row',
+          mutationType: 'signAndTrade',
+          occurredAt: '2026-09-02T06:40:00.000Z',
+          timestamp: '2026-09-02T06:40:00.000Z',
+          teamCodes: ['LAL', 'BOS'],
+          playerIds: ['player_1'],
+        },
+      ],
+      loading: false,
+      loadingMore: false,
+      error: null,
+      hasMore: false,
+      resolution: 'authoritative',
+      loadMore: null,
+    });
+
+    render(
+      <TeamHistoryTab
+        teamCapSheet={teamCapSheet}
+        worldId="world_lal"
+        resolvePlayerTeamCode={() => 'BOS'}
+        resolvePlayerLabel={() => 'Player One'}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('team-history-row-0'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('team-history-detail-modal')
+      ).toBeInTheDocument();
+    });
+    expect(useWorldTeamEventsMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ teamCode: 'BOS', enabled: true })
+    );
+    expect(useWorldTeamEventsMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ teamCode: null, enabled: false })
+    );
+  });
+
+  it('does not fetch a counterpart feed for a playerless trade', async () => {
+    window.localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
+    useWorldTeamEventsMock.mockReturnValue({
+      events: [
+        {
+          id: 'draft-only-trade',
+          eventId: 'draft-only-trade',
+          mutationType: 'executeTrade',
+          occurredAt: '2026-09-02T06:40:00.000Z',
+          timestamp: '2026-09-02T06:40:00.000Z',
+          teamCodes: ['LAL', 'BOS'],
+          diffSummary: { picksMoved: ['2028-LAL-R1'] },
+        },
+      ],
+      loading: false,
+      loadingMore: false,
+      error: null,
+      hasMore: false,
+      resolution: 'authoritative',
+      loadMore: null,
+    });
+
+    render(<TeamHistoryTab teamCapSheet={teamCapSheet} worldId="world_lal" />);
+
+    fireEvent.click(screen.getByTestId('team-history-row-0'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('team-history-detail-modal')
+      ).toBeInTheDocument();
+    });
+    expect(useWorldTeamEventsMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ teamCode: 'BOS', enabled: true })
+    );
+    expect(useWorldTeamEventsMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ teamCode: null, enabled: false })
+    );
   });
 
   it('surfaces the legacy compatibility note when the hook resolves through the bounded fallback contract', () => {
@@ -165,6 +644,99 @@ describe('Team History world events integration', () => {
       screen.getByTestId('team-history-world-events-compatibility-note')
         .textContent || ''
     ).toContain('Showing compatible legacy history records for this team.');
+  });
+
+  it('keeps metadata-only player details actionable with resolved names', () => {
+    window.localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
+    useWorldTeamEventsMock.mockReturnValue({
+      events: [
+        {
+          id: 'metadata-player-trade',
+          eventId: 'metadata-player-trade',
+          mutationType: 'executeTrade',
+          occurredAt: '2026-09-02T07:00:00.000Z',
+          timestamp: '2026-09-02T07:00:00.000Z',
+          teamCodes: ['LAL', 'BOS'],
+          metadata: { playerId: 'austin_reaves' },
+        },
+      ],
+      loading: false,
+      loadingMore: false,
+      error: null,
+      hasMore: false,
+      resolution: 'authoritative',
+      loadMore: null,
+    });
+
+    render(
+      <TeamHistoryTab
+        teamCapSheet={teamCapSheet}
+        worldId="world_lal"
+        onPlayerAction={vi.fn()}
+        resolvePlayerLabel={(playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : playerId
+        }
+      />
+    );
+
+    const row = screen.getByTestId('team-history-row-0');
+    fireEvent.click(row);
+
+    expect(screen.getByTestId('team-history-detail-modal')).toHaveTextContent(
+      'Austin Reaves'
+    );
+    expect(
+      screen.getByTestId('team-history-detail-modal')
+    ).not.toHaveTextContent('austin_reaves');
+    expect(
+      screen.getByTestId('team-history-player-austin_reaves-actions-overflow')
+    ).toBeInTheDocument();
+  });
+
+  it('resolves names for events with diff-summary-only player IDs', () => {
+    window.localStorage.removeItem(DEV_TEAM_HISTORY_FIXTURE_FLAG);
+    useWorldTeamEventsMock.mockReturnValue({
+      events: [
+        {
+          id: 'diff-summary-player-trade',
+          eventId: 'diff-summary-player-trade',
+          mutationType: 'executeTrade',
+          occurredAt: '2026-09-02T07:00:00.000Z',
+          timestamp: '2026-09-02T07:00:00.000Z',
+          teamCodes: ['LAL', 'BOS'],
+          diffSummary: { playersMoved: ['austin_reaves'] },
+        },
+      ],
+      loading: false,
+      loadingMore: false,
+      error: null,
+      hasMore: false,
+      resolution: 'authoritative',
+      loadMore: null,
+    });
+
+    render(
+      <TeamHistoryTab
+        teamCapSheet={teamCapSheet}
+        worldId="world_lal"
+        onPlayerAction={vi.fn()}
+        resolvePlayerLabel={(playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : playerId
+        }
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('team-history-row-0'));
+
+    expect(screen.getByTestId('team-history-detail-modal')).toHaveTextContent(
+      'Austin Reaves'
+    );
+    expect(
+      screen.getByTestId('team-history-detail-modal')
+    ).not.toHaveTextContent('austin_reaves');
+    expect(
+      screen.getByTestId('team-history-player-austin_reaves-actions-overflow')
+    ).toBeInTheDocument();
   });
 
   it('surfaces the mixed-feed compatibility note when canonical and legacy rows are merged together', () => {
@@ -249,9 +821,9 @@ describe('Team History world events integration', () => {
 
     render(<TeamHistoryTab teamCapSheet={teamCapSheet} worldId="world_lal" />);
 
-    expect(screen.getByTestId('team-history-row-0').textContent || '').toContain(
-      'Trade Executed'
-    );
+    expect(
+      screen.getByTestId('team-history-row-0').textContent || ''
+    ).toContain('Trade Executed');
     expect(
       screen.getByTestId('team-history-world-events-inline-error')
         .textContent || ''

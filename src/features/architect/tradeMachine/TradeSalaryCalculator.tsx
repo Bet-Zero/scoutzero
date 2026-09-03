@@ -21,7 +21,7 @@ export const TradeSalaryCalculator = ({
       <div className="border border-cockpit-edge rounded-lg p-4 mt-4 bg-cockpit-slab">
         <h3 className="font-medium mb-2">Salary Path Counterfactual</h3>
         <p className="text-cockpit-text-secondary text-sm">
-          Validate the elected path first. No generic matching estimate is used.
+          Validate the selected salary path to see the matching result.
         </p>
       </div>
     );
@@ -78,7 +78,9 @@ export const TradeSalaryCalculator = ({
               min="0"
               step="0.01"
               value={counterfactualIncoming}
-              onChange={(event) => setCounterfactualIncoming(event.target.value)}
+              onChange={(event) =>
+                setCounterfactualIncoming(event.target.value)
+              }
               className="mt-1 w-full rounded border border-cockpit-edge bg-cockpit-raised px-2 py-1.5 font-mono text-cockpit-text-primary"
             />
           </label>

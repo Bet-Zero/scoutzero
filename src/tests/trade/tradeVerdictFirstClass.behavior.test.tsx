@@ -122,8 +122,7 @@ const blockedDetails = {
           passed: false,
           violations: [
             {
-              message:
-                'Second apron team cannot receive more salary than sent',
+              message: 'Second apron team cannot receive more salary than sent',
             },
           ],
         },
@@ -138,7 +137,10 @@ afterEach(cleanup);
 
 describe('buildVerdictItems — team-attributed verdict flattening', () => {
   it('maps failed rules to team-attributed violations with rule labels', () => {
-    const items = buildVerdictItems(blockedDetails.teamResults, blockedAuthority);
+    const items = buildVerdictItems(
+      blockedDetails.teamResults,
+      blockedAuthority
+    );
     expect(items).toEqual([
       {
         teamName: 'Miami Heat',
@@ -214,23 +216,469 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
 
   it('keeps an empty-team top-level Needs input reason as a trade-wide verdict', () => {
     const reason =
-      'mia_silas_park: This Contract has a trade bonus whose allocation is outside this governed tranche.';
-    const items = buildVerdictItems([], {
-      legal: false,
-      error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
-      reason,
-      violations: [
-        {
-          message: reason,
-          rule: 'governedTradeSalaryBasis',
-        },
-      ],
-      warnings: [],
-    });
+      'austin_reaves: This Contract has a trade bonus whose allocation is outside this governed tranche.';
+    const items = buildVerdictItems(
+      [],
+      {
+        legal: false,
+        error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+        reason,
+        violations: [
+          {
+            message: reason,
+            rule: 'governedTradeSalaryBasis',
+          },
+        ],
+        warnings: [],
+      },
+      {
+        resolvePlayerName: (playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      }
+    );
 
     expect(items).toEqual([
-      { teamName: null, kind: 'needsInput', text: reason },
+      {
+        teamName: null,
+        kind: 'needsInput',
+        text: 'Austin Reaves: Available contract information is insufficient to determine the trade-bonus allocation.',
+      },
     ]);
+  });
+
+  it('presents accumulated bonus-compensation and trade-kicker reasons without internal wording', () => {
+    const reason =
+      'austin_reaves: 2026-27 has bonus compensation whose trade treatment is outside this governed tranche. This Contract has a trade bonus whose allocation is outside this governed tranche. Post-season salary basis requires governed 2027-28 terms.';
+    const items = buildVerdictItems(
+      [],
+      {
+        legal: false,
+        error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+        reason,
+        violations: [
+          {
+            message: reason,
+            rule: 'governedTradeSalaryBasis',
+          },
+        ],
+        warnings: [],
+      },
+      {
+        resolvePlayerName: (playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      }
+    );
+
+    expect(items).toEqual([
+      {
+        teamName: null,
+        kind: 'needsInput',
+        text: 'Austin Reaves: Available contract information is insufficient to determine the trade-bonus allocation. Next-season salary information for 2027-28 is required.',
+      },
+    ]);
+    expect(JSON.stringify(items)).not.toContain('austin_reaves');
+    expect(JSON.stringify(items)).not.toContain('governed tranche');
+    expect(JSON.stringify(items)).not.toContain('Post-season salary basis');
+  });
+
+  it('resolves a trade-bonus player after the team rule label', () => {
+    const items = buildVerdictItems(
+      [
+        {
+          teamName: 'Miami Heat',
+          rules: {
+            salaryMatching: {
+              status: 'NEEDS_INPUT',
+              message:
+                'austin_reaves: This Contract has a trade bonus whose allocation is outside this governed tranche. Post-season salary basis requires governed 2027-28 terms.',
+            },
+          },
+        },
+      ],
+      null,
+      {
+        resolvePlayerName: (playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      }
+    );
+
+    expect(items).toEqual([
+      {
+        teamName: 'Miami Heat',
+        kind: 'needsInput',
+        text: 'Austin Reaves: Available contract information is insufficient to determine the trade-bonus allocation. Next-season salary information for 2027-28 is required.',
+      },
+    ]);
+    expect(JSON.stringify(items)).not.toContain('Salary Matching');
+    expect(JSON.stringify(items)).not.toContain('austin_reaves');
+    expect(JSON.stringify(items)).not.toContain('governed tranche');
+    expect(JSON.stringify(items)).not.toContain('Post-season salary basis');
+  });
+
+  it('preserves a missing base-salary blocker before the trade-bonus clause', () => {
+    const items = buildVerdictItems(
+      [
+        {
+          teamName: 'Miami Heat',
+          rules: {
+            salaryMatching: {
+              status: 'NEEDS_INPUT',
+              message:
+                'austin_reaves: 2026-27 Base Compensation is missing or invalid in governed Contract history. This Contract has a trade bonus whose allocation is outside this governed tranche.',
+            },
+          },
+        },
+      ],
+      null,
+      {
+        resolvePlayerName: (playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      }
+    );
+
+    expect(items).toEqual([
+      {
+        teamName: 'Miami Heat',
+        kind: 'needsInput',
+        text: 'Austin Reaves: Base salary information for 2026-27 is missing or invalid. Available contract information is insufficient to determine the trade-bonus allocation.',
+      },
+    ]);
+    expect(JSON.stringify(items)).not.toContain('austin_reaves');
+    expect(JSON.stringify(items)).not.toContain('governed Contract history');
+    expect(JSON.stringify(items)).not.toContain('governed tranche');
+  });
+
+  it('presents an invalid protection-step amount alongside the trade-bonus blocker', () => {
+    const items = buildVerdictItems(
+      [],
+      {
+        legal: false,
+        error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+        reason:
+          'austin_reaves: This Contract has a trade bonus whose allocation is outside this governed tranche. 2026-27 protection step is missing or invalid in governed Contract history.',
+        violations: [],
+        warnings: [],
+      },
+      {
+        resolvePlayerName: (playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      }
+    );
+
+    expect(items).toEqual([
+      {
+        teamName: null,
+        kind: 'needsInput',
+        text: 'Austin Reaves: Available contract information is insufficient to determine the trade-bonus allocation. Protection-step salary information for 2026-27 is missing or invalid.',
+      },
+    ]);
+    expect(JSON.stringify(items)).not.toContain('austin_reaves');
+    expect(JSON.stringify(items)).not.toContain('governed Contract history');
+    expect(JSON.stringify(items)).not.toContain('governed tranche');
+  });
+
+  it.each([
+    {
+      label: 'missing protection-step date',
+      reason:
+        'austin_reaves: 2026-27 has a protection step without an exact governed date.',
+      expected:
+        'Austin Reaves: A protection-step date for 2026-27 is missing or invalid.',
+    },
+    {
+      label: 'missing protection schedule',
+      reason:
+        'austin_reaves: 2026-27 is not fully protected and has no authenticated protection schedule.',
+      expected:
+        'Austin Reaves: Protection schedule information for 2026-27 is unavailable.',
+    },
+    {
+      label: 'missing earned salary',
+      reason:
+        'austin_reaves: 2026-27 is partially protected and exact earned Base Compensation is unavailable for 2026-09-02.',
+      expected:
+        'Austin Reaves: Earned salary information for 2026-27 as of 2026-09-02 is unavailable.',
+    },
+    {
+      label: 'missing minimum reimbursement input',
+      reason:
+        'austin_reaves: One-year Minimum Contract reimbursement authority is unavailable.',
+      expected:
+        'Austin Reaves: One-year minimum-contract reimbursement information is unavailable.',
+    },
+    {
+      label: 'missing salary or calendar',
+      reason:
+        'austin_reaves: Current Contract Salary or governed Regular Season calendar is unavailable.',
+      expected:
+        'Austin Reaves: Current salary or regular-season calendar information is unavailable.',
+    },
+    {
+      label: 'missing current contract',
+      reason:
+        'austin_reaves: No governed current Contract was found for this roster player.',
+      expected:
+        'Austin Reaves: Current contract information is unavailable for this roster player.',
+    },
+    {
+      label: 'ambiguous current contract',
+      reason:
+        'austin_reaves: More than one governed current Contract claims this roster player and Salary Cap Year.',
+      expected:
+        'Austin Reaves: Current contract information is ambiguous for this roster player and salary-cap year.',
+    },
+    {
+      label: 'missing poison-pill inputs',
+      reason:
+        'austin_reaves: This Rookie Scale Extension lacks authenticated poison-pill calculation inputs.',
+      expected:
+        'Austin Reaves: Required poison-pill calculation information is unavailable.',
+    },
+    {
+      label: 'invalid poison-pill identity',
+      reason:
+        'austin_reaves: The retained poison-pill Extension identity or timing is invalid.',
+      expected:
+        'Austin Reaves: The poison-pill extension identity or timing is invalid.',
+    },
+    {
+      label: 'poison-pill season mismatch',
+      reason:
+        'austin_reaves: Poison-pill evidence identifies 2027-28, not current Season 2026-27, as the last original year.',
+      expected:
+        'Austin Reaves: Poison-pill terms identify 2027-28, not current season 2026-27, as the last original year.',
+    },
+    {
+      label: 'missing poison-pill original salary',
+      reason:
+        'austin_reaves: Poison-pill original-term Salary is missing or invalid in governed Contract history.',
+      expected:
+        'Austin Reaves: Original-term salary information for the poison-pill calculation is missing or invalid.',
+    },
+    {
+      label: 'missing poison-pill extension salary',
+      reason:
+        'austin_reaves: Governed Contract history has no extended-term row for 2027-28.',
+      expected:
+        'Austin Reaves: Extension salary information for 2027-28 is unavailable.',
+    },
+    {
+      label: 'inconsistent fixed poison-pill salary',
+      reason:
+        'austin_reaves: Fixed poison-pill Salary evidence for 2027-28 is inconsistent.',
+      expected:
+        'Austin Reaves: Fixed poison-pill salary information for 2027-28 is inconsistent.',
+    },
+    {
+      label: 'incomplete percentage poison-pill salary',
+      reason:
+        'austin_reaves: Percentage-based poison-pill Salary for 2027-28 lacks the governed Cap or ordinary (non-Higher-Max) percentage.',
+      expected:
+        'Austin Reaves: Percentage-based poison-pill salary information for 2027-28 is incomplete.',
+    },
+    {
+      label: 'missing sign-and-trade salary authority',
+      reason:
+        'austin_reaves: Governed sign-and-trade salary authority is missing or malformed.',
+      expected:
+        'Austin Reaves: Sign-and-trade salary information is missing or invalid.',
+    },
+    {
+      label: 'mismatched sign-and-trade salary authority',
+      reason:
+        'austin_reaves: Governed sign-and-trade salary authority does not match this world, Team, player, date, or Salary Cap Year.',
+      expected:
+        'Austin Reaves: Sign-and-trade salary information does not match this saved world, team, player, date, or salary-cap year.',
+    },
+    {
+      label: 'missing governed salary-basis authority',
+      reason:
+        'austin_reaves: Governed player salary-basis authority is missing or malformed.',
+      expected:
+        'Austin Reaves: Trade salary information is missing or invalid.',
+    },
+    {
+      label: 'mismatched governed salary-basis authority',
+      reason:
+        'austin_reaves: Governed player salary-basis authority does not match this Team Plan, team, player, date, or Salary Cap Year.',
+      expected:
+        'Austin Reaves: Trade salary information does not match this saved plan, team, player, date, or salary-cap year.',
+    },
+    {
+      label: 'governed salary-basis authority needs input',
+      reason:
+        'austin_reaves: Governed player salary-basis authority needs input.',
+      expected: 'Austin Reaves: Trade salary information needs input.',
+    },
+  ])('presents $label in GM language', (example) => {
+    const items = buildVerdictItems(
+      [],
+      {
+        legal: false,
+        error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+        reason: example.reason,
+        violations: [],
+        warnings: [],
+      },
+      {
+        resolvePlayerName: (playerId) =>
+          playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      }
+    );
+
+    expect(items).toEqual([
+      {
+        teamName: null,
+        kind: 'needsInput',
+        text: example.expected,
+      },
+    ]);
+    expect(JSON.stringify(items)).not.toContain('austin_reaves');
+    expect(JSON.stringify(items)).not.toContain('governed');
+    expect(JSON.stringify(items)).not.toContain('authenticated');
+    expect(JSON.stringify(items)).not.toContain('authority');
+    expect(JSON.stringify(items)).not.toContain('retained');
+    expect(JSON.stringify(items)).not.toContain('evidence');
+  });
+
+  it.each([
+    {
+      label: 'current salary with a resolved player',
+      reason:
+        'austin_reaves: 2026-27 Base Compensation is missing or invalid in governed Contract history.',
+      resolvePlayerName: (playerId: string) =>
+        playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      expected:
+        'Austin Reaves: Base salary information for 2026-27 is missing or invalid.',
+    },
+    {
+      label: 'current salary without a resolved player',
+      reason:
+        'austin_reaves: 2026-27 Base Compensation is missing or invalid in governed Contract history.',
+      resolvePlayerName: () => null,
+      expected:
+        'Traded player: Base salary information for 2026-27 is missing or invalid.',
+    },
+    {
+      label: 'protected salary with a resolved player',
+      reason:
+        'austin_reaves: 2026-27 protected Base Compensation is missing or invalid in governed Contract history.',
+      resolvePlayerName: (playerId: string) =>
+        playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      expected:
+        'Austin Reaves: Protected salary information for 2026-27 is missing or invalid.',
+    },
+    {
+      label: 'protected salary without a resolved player',
+      reason:
+        'austin_reaves: 2026-27 protected Base Compensation is missing or invalid in governed Contract history.',
+      resolvePlayerName: () => null,
+      expected:
+        'Traded player: Protected salary information for 2026-27 is missing or invalid.',
+    },
+    {
+      label: 'post-season salary with a resolved player',
+      reason:
+        'austin_reaves: Post-season salary basis requires governed 2027-28 terms.',
+      resolvePlayerName: (playerId: string) =>
+        playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      expected:
+        'Austin Reaves: Next-season salary information for 2027-28 is required.',
+    },
+    {
+      label: 'post-season salary without a resolved player',
+      reason:
+        'austin_reaves: Post-season salary basis requires governed 2027-28 terms.',
+      resolvePlayerName: () => null,
+      expected:
+        'Traded player: Next-season salary information for 2027-28 is required.',
+    },
+    {
+      label: 'governed salary-basis mismatch without a resolved player',
+      reason:
+        'austin_reaves: Governed player salary-basis authority does not match this Team Plan, team, player, date, or Salary Cap Year.',
+      resolvePlayerName: () => null,
+      expected:
+        'Traded player: Trade salary information does not match this saved plan, team, player, date, or salary-cap year.',
+    },
+    {
+      label: 'schema-valid punctuated player ID with a resolved player',
+      reason:
+        'custom.player.: Governed player salary-basis authority is missing or malformed.',
+      resolvePlayerName: (playerId: string) =>
+        playerId === 'custom.player.' ? 'Custom Player' : null,
+      expected:
+        'Custom Player: Trade salary information is missing or invalid.',
+    },
+    {
+      label: 'schema-valid punctuated player ID without a resolved player',
+      reason:
+        'custom.player.: Governed player salary-basis authority is missing or malformed.',
+      resolvePlayerName: () => null,
+      expected:
+        'Traded player: Trade salary information is missing or invalid.',
+    },
+    {
+      label: 'schema-valid player ID containing a recognized blocker phrase',
+      reason:
+        'custom. Governed player salary-basis authority is missing or malformed.: Governed player salary-basis authority is missing or malformed.',
+      resolvePlayerName: (playerId: string) =>
+        playerId ===
+        'custom. Governed player salary-basis authority is missing or malformed.'
+          ? 'Custom Player'
+          : null,
+      expected:
+        'Custom Player: Trade salary information is missing or invalid.',
+    },
+    {
+      label:
+        'schema-valid player ID containing a colon-delimited recognized blocker phrase',
+      reason:
+        'custom: Governed player salary-basis authority is missing or malformed.: Governed player salary-basis authority is missing or malformed.',
+      resolvePlayerName: (playerId: string) =>
+        playerId ===
+        'custom: Governed player salary-basis authority is missing or malformed.'
+          ? 'Custom Player'
+          : null,
+      expected:
+        'Custom Player: Trade salary information is missing or invalid.',
+    },
+    {
+      label: 'unmatched player ID ending in another known player ID',
+      reason:
+        'custom: austin_reaves: Governed player salary-basis authority is missing or malformed.',
+      resolvePlayerName: (playerId: string) =>
+        playerId === 'austin_reaves' ? 'Austin Reaves' : null,
+      expected:
+        'Traded player: Trade salary information is missing or invalid.',
+    },
+  ])('presents standalone $label without internal wording', (example) => {
+    const items = buildVerdictItems(
+      [
+        {
+          teamName: 'Miami Heat',
+          rules: {
+            salaryMatching: {
+              status: 'NEEDS_INPUT',
+              message: example.reason,
+            },
+          },
+        },
+      ],
+      null,
+      { resolvePlayerName: example.resolvePlayerName }
+    );
+
+    expect(items).toEqual([
+      {
+        teamName: 'Miami Heat',
+        kind: 'needsInput',
+        text: example.expected,
+      },
+    ]);
+    expect(JSON.stringify(items)).not.toContain('austin_reaves');
+    expect(JSON.stringify(items)).not.toContain('custom.player.');
+    expect(JSON.stringify(items)).not.toContain('governed');
   });
 
   it('keeps an empty-team generic top-level rejection visibly blocked', () => {
@@ -291,17 +739,102 @@ describe('buildVerdictItems — team-attributed verdict flattening', () => {
       />
     );
 
-    expect(screen.getByText('⚪ Needs input — trade not evaluated')).toBeVisible();
+    expect(screen.getByText('⚪ Needs input — trade not ready')).toBeVisible();
     expect(screen.getByText('Missing governed draft record.')).toBeVisible();
+  });
+
+  it('resolves a staged player name from bio.displayName in the summary', () => {
+    render(
+      <TradeSummaryPanel
+        teams={[
+          {
+            team: { id: 'LAL' },
+            sends: [
+              {
+                id: 'player_bio_only',
+                name: 'player_bio_only',
+                bio: { displayName: 'Bio Display Player' },
+              } as never,
+            ],
+          },
+        ]}
+        previewAuthority={{
+          legal: false,
+          error: 'NEEDS_INPUT',
+          reason:
+            'player_bio_only: This Contract has a trade bonus whose allocation is outside this governed tranche.',
+          violations: [],
+          warnings: [],
+        }}
+        snapshotValidationDetails={{ teamResults: [] }}
+      />
+    );
+
+    expect(
+      screen.getByText(
+        'Bio Display Player: Available contract information is insufficient to determine the trade-bonus allocation.'
+      )
+    ).toBeVisible();
+    expect(document.body.textContent).not.toContain('player_bio_only');
   });
 });
 
 describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
-  it('shows the current top-level trade-bonus Needs input authority with no per-Team results', () => {
+  it('continues past an ID-valued display name to a friendly staged-player name', () => {
     const reason =
-      'mia_silas_park: This Contract has a trade bonus whose allocation is outside this governed tranche.';
+      'player_1: This Contract has a trade bonus whose allocation is outside this governed tranche.';
     useTradeMachineMock.mockReturnValue(
       buildHookReturn({
+        teams: [
+          {
+            team: { id: 'LAL', players: [] },
+            sends: [
+              {
+                id: 'player_1',
+                displayName: 'player_1',
+                fullName: 'Austin Reaves',
+                tradeTo: 'BOS',
+              },
+            ],
+            entitlementsOut: [],
+          },
+          { team: { id: 'BOS', players: [] }, sends: [], entitlementsOut: [] },
+        ],
+        hasCurrentValidation: true,
+        previewAuthority: {
+          legal: false,
+          error: 'TRADE_SALARY_BASIS_AUTHORITY_ERROR',
+          reason,
+          violations: [{ message: reason, rule: 'governedTradeSalaryBasis' }],
+          warnings: [],
+          omittedStages: [],
+        },
+        snapshotValidationDetails: { teamResults: [] },
+      })
+    );
+
+    render(<TradeEditor {...baseProps} worldId="world-1" />);
+
+    const readiness = screen.getByTestId('trade-readiness-summary');
+    expect(readiness).toHaveTextContent('Austin Reaves');
+    expect(readiness).not.toHaveTextContent('player_1');
+  });
+
+  it('shows the current top-level trade-bonus Needs input authority with no per-Team results', () => {
+    const reason =
+      'austin_reaves: This Contract has a trade bonus whose allocation is outside this governed tranche.';
+    useTradeMachineMock.mockReturnValue(
+      buildHookReturn({
+        teams: [
+          {
+            team: { id: 'LAL', players: [] },
+            sends: [
+              { id: 'austin_reaves', name: 'Austin Reaves', tradeTo: 'BOS' },
+            ],
+            entitlementsOut: [],
+          },
+          { team: { id: 'BOS', players: [] }, sends: [], entitlementsOut: [] },
+        ],
         hasCurrentValidation: true,
         getValidatedAt: () => 1_787_961_600_000,
         previewAuthority: {
@@ -332,21 +865,29 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
 
     const readiness = screen.getByTestId('trade-readiness-summary');
     expect(readiness).toHaveTextContent('Needs input');
-    expect(readiness).toHaveTextContent('trade bonus whose allocation');
+    expect(readiness).toHaveTextContent('Austin Reaves');
+    expect(readiness).toHaveTextContent('insufficient');
+    expect(readiness).not.toHaveTextContent('austin_reaves');
+    expect(readiness).not.toHaveTextContent('governed tranche');
     expect(readiness).toHaveTextContent('Validation:');
     expect(readiness).toHaveTextContent('Last checked');
     expect(readiness).not.toHaveTextContent('Not validated');
-    expect(screen.getByTestId('trade-verdict-strip')).toHaveTextContent(reason);
-    expect(screen.getByRole('button', { name: /^Apply Trade$/i })).toBeDisabled();
+    expect(screen.queryByTestId('trade-verdict-strip')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /^Apply Trade$/i })
+    ).toBeDisabled();
     expect(screen.getByTestId('trade-summary-button')).toBeDisabled();
 
     fireEvent.click(
       screen.getByRole('button', { name: /^Validation Results/i })
     );
     const summary = screen.getByTestId('section-validation-summary');
-    expect(summary).toHaveTextContent('Needs input — trade not evaluated');
+    expect(summary).toHaveTextContent('Needs input — trade not ready');
     expect(summary).toHaveTextContent('Why it needs input');
-    expect(summary).toHaveTextContent('trade bonus whose allocation');
+    expect(summary).toHaveTextContent('Austin Reaves');
+    expect(summary).toHaveTextContent('insufficient');
+    expect(summary).not.toHaveTextContent('austin_reaves');
+    expect(summary).not.toHaveTextContent('governed tranche');
   });
 
   it('keeps incomplete top-level payloads in the Not validated state', () => {
@@ -368,7 +909,9 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
     expect(readiness).toHaveTextContent('Not validated');
     expect(readiness).not.toHaveTextContent('Incomplete preview authority');
     expect(screen.queryByTestId('trade-verdict-strip')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Apply Trade$/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /^Apply Trade$/i })
+    ).toBeDisabled();
   });
 
   it('shows Needs input and blocks Apply for an unevaluated first-round rule', () => {
@@ -407,6 +950,24 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
                 },
               },
             },
+            {
+              teamName: 'Boston Celtics',
+              rules: {
+                stepienRule: {
+                  passed: false,
+                  status: 'NEEDS_INPUT',
+                  evaluated: false,
+                  message:
+                    'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
+                  violations: [
+                    {
+                      message:
+                        'Needs input — Complete governed ownership, protection, conveyance, freeze, unfreeze, and penalty history is unavailable for this first-round asset.',
+                    },
+                  ],
+                },
+              },
+            },
           ],
           dataWarnings: [],
           hasDataIssues: false,
@@ -419,10 +980,16 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
     expect(screen.getByTestId('trade-readiness-summary')).toHaveTextContent(
       'Needs input'
     );
-    expect(screen.getByTestId('trade-verdict-strip')).toHaveTextContent(
-      'Stepien Rule: Needs input'
+    expect(screen.getByTestId('trade-readiness-summary')).toHaveTextContent(
+      'Stepien eligibility cannot be confirmed'
     );
-    expect(screen.getByRole('button', { name: /^Apply Trade$/i })).toBeDisabled();
+    const strip = screen.getByTestId('trade-verdict-strip');
+    expect(strip).toHaveTextContent('Los Angeles Lakers');
+    expect(strip).toHaveTextContent('Boston Celtics');
+    expect(strip).toHaveTextContent('Stepien eligibility cannot be confirmed');
+    expect(
+      screen.getByRole('button', { name: /^Apply Trade$/i })
+    ).toBeDisabled();
     expect(screen.getByTestId('trade-summary-button')).toBeDisabled();
   });
 
@@ -470,7 +1037,7 @@ describe('TradeEditor — verdict at the point of decision (BZE-247)', () => {
     const summary = screen.getByTestId('trade-readiness-summary');
     expect(summary).toHaveTextContent('Ready to apply');
     expect(summary).toHaveTextContent(
-      'the Team Plan runs duplicate-player, pick-conflict, and exclusivity checks at apply time'
+      'Final roster and draft-asset checks run when you apply it to the active Team Plan'
     );
     expect(screen.queryByTestId('trade-verdict-strip')).not.toBeInTheDocument();
   });

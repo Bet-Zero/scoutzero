@@ -33,27 +33,27 @@ describe('E2A TradeLegalChecker disclosure rendering', () => {
   it('renders the disclosure paragraph when teamResults is empty', () => {
     render(<TradeLegalChecker teamResults={[]} />);
     const disclosure = screen.getByText(
-      /Preview covers CBA validator/i
+      /Final roster and draft-asset checks run when you apply the trade/i
     );
     expect(disclosure).toBeTruthy();
   });
 
-  it('disclosure mentions apply time', () => {
+  it('disclosure says the remaining checks run on apply', () => {
     render(<TradeLegalChecker teamResults={[]} />);
-    const disclosure = screen.getByText(/apply time/i);
+    const disclosure = screen.getByText(/when you apply the trade/i);
     expect(disclosure).toBeTruthy();
   });
 
-  it('disclosure mentions world-state checks', () => {
+  it('disclosure names roster and draft-asset checks', () => {
     render(<TradeLegalChecker teamResults={[]} />);
-    const disclosure = screen.getByText(/World-state checks/i);
+    const disclosure = screen.getByText(/roster and draft-asset checks/i);
     expect(disclosure).toBeTruthy();
   });
 
-  it('disclosure mentions exclusivity as an apply-only check', () => {
+  it('disclosure does not expose the implementation exclusivity term', () => {
     render(<TradeLegalChecker teamResults={[]} />);
     const bodyText = document.body.textContent ?? '';
-    expect(bodyText).toMatch(/exclusivity/i);
+    expect(bodyText).not.toMatch(/exclusivity/i);
   });
 
   it('no rendered text implies guaranteed apply success', () => {
@@ -61,5 +61,40 @@ describe('E2A TradeLegalChecker disclosure rendering', () => {
     const bodyText = document.body.textContent ?? '';
     expect(bodyText).not.toMatch(/guaranteed.*apply/i);
     expect(bodyText).not.toMatch(/apply.*guaranteed/i);
+  });
+
+  it('resolves independent player id and display-name fallbacks', () => {
+    render(
+      <TradeLegalChecker
+        teamResults={[
+          {
+            teamName: 'Miami Heat',
+            outgoingPlayers: [
+              {
+                player_id: 'legacy_player_id',
+                id: 'player_1',
+                name: 'player_1',
+                fullName: 'Player One',
+              },
+            ],
+            rules: {
+              cash: {
+                passed: false,
+                violations: [
+                  'player_1: This Contract has a trade bonus whose allocation is outside this governed tranche.',
+                ],
+              },
+            },
+          },
+        ]}
+      />
+    );
+
+    expect(
+      screen.getByText(
+        'Player One: Available contract information is insufficient to determine the trade-bonus allocation.'
+      )
+    ).toBeVisible();
+    expect(document.body.textContent).not.toContain('player_1');
   });
 });

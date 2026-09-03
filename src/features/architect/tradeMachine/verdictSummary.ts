@@ -22,6 +22,223 @@ export interface VerdictItem {
   text: string;
 }
 
+export interface VerdictPresentationOptions {
+  resolvePlayerName?: (playerId: string) => string | null | undefined;
+}
+
+const TRADE_BONUS_REASON_SOURCE = String.raw`(?:This Contract|\d{4}-\d{2}) (?:has a trade bonus whose allocation|has bonus compensation whose trade treatment) is outside this governed tranche\.?`;
+const TRADE_BONUS_REASON = new RegExp(TRADE_BONUS_REASON_SOURCE, 'i');
+const TRADE_BONUS_REASONS = new RegExp(TRADE_BONUS_REASON_SOURCE, 'gi');
+const MISSING_PROTECTED_SALARY_REASON =
+  /(?<season>\d{4}-\d{2}) protected Base Compensation is missing or invalid in governed Contract history\.?/gi;
+const MISSING_PROTECTION_STEP_REASON =
+  /(?<season>\d{4}-\d{2}) protection step is missing or invalid in governed Contract history\.?/gi;
+const MISSING_PROTECTION_STEP_DATE_REASON =
+  /(?<season>\d{4}-\d{2}) has a protection step without an exact governed date\.?/gi;
+const MISSING_PROTECTION_SCHEDULE_REASON =
+  /(?<season>\d{4}-\d{2}) is not fully protected and has no authenticated protection schedule\.?/gi;
+const MISSING_BASE_SALARY_REASON =
+  /(?<season>\d{4}-\d{2}) Base Compensation is missing or invalid in governed Contract history\.?/gi;
+const POST_SEASON_SALARY_REASON =
+  /Post-season salary basis requires governed (?<season>\d{4}-\d{2}) terms\.?/gi;
+const MISSING_EARNED_SALARY_REASON =
+  /(?<season>\d{4}-\d{2}) is partially protected and exact earned Base Compensation is unavailable for (?<date>\d{4}-\d{2}-\d{2})\.?/gi;
+const MISSING_MINIMUM_REIMBURSEMENT_REASON =
+  /One-year Minimum Contract reimbursement authority is unavailable\.?/gi;
+const MISSING_SALARY_OR_CALENDAR_REASON =
+  /Current Contract Salary or governed Regular Season calendar is unavailable\.?/gi;
+const MISSING_CURRENT_CONTRACT_REASON =
+  /No governed current Contract was found for this roster player\.?/gi;
+const AMBIGUOUS_CURRENT_CONTRACT_REASON =
+  /More than one governed current Contract claims this roster player and Salary Cap Year\.?/gi;
+const MISSING_POISON_PILL_INPUTS_REASON =
+  /This Rookie Scale Extension lacks authenticated poison-pill calculation inputs\.?/gi;
+const INVALID_POISON_PILL_IDENTITY_REASON =
+  /The retained poison-pill Extension identity or timing is invalid\.?/gi;
+const POISON_PILL_SEASON_MISMATCH_REASON =
+  /Poison-pill evidence identifies (?<identifiedSeason>\d{4}-\d{2}), not current Season (?<currentSeason>\d{4}-\d{2}), as the last original year\.?/gi;
+const MISSING_POISON_PILL_ORIGINAL_SALARY_REASON =
+  /Poison-pill original-term Salary is missing or invalid in governed Contract history\.?/gi;
+const MISSING_POISON_PILL_EXTENDED_TERM_REASON =
+  /Governed Contract history has no extended-term row for (?<season>\d{4}-\d{2})\.?/gi;
+const INVALID_FIXED_POISON_PILL_SALARY_REASON =
+  /Fixed poison-pill Salary evidence for (?<season>\d{4}-\d{2}) is inconsistent\.?/gi;
+const INVALID_PERCENTAGE_POISON_PILL_SALARY_REASON =
+  /Percentage-based poison-pill Salary for (?<season>\d{4}-\d{2}) lacks the governed Cap or ordinary \(non-Higher-Max\) percentage\.?/gi;
+const MISSING_SIGN_AND_TRADE_SALARY_REASON =
+  /Governed sign-and-trade salary authority is missing or malformed\.?/gi;
+const MISMATCHED_SIGN_AND_TRADE_SALARY_REASON =
+  /Governed sign-and-trade salary authority does not match this world, Team, player, date, or Salary Cap Year\.?/gi;
+const MISSING_GOVERNED_SALARY_BASIS_REASON =
+  /Governed player salary-basis authority is missing or malformed\.?/gi;
+const MISMATCHED_GOVERNED_SALARY_BASIS_REASON =
+  /Governed player salary-basis authority does not match this Team Plan, team, player, date, or Salary Cap Year\.?/gi;
+const GOVERNED_SALARY_BASIS_NEEDS_INPUT_REASON =
+  /Governed player salary-basis authority needs input\.?/gi;
+
+const SALARY_REASON_PRESENTATIONS: ReadonlyArray<readonly [RegExp, string]> = [
+  [
+    MISSING_PROTECTED_SALARY_REASON,
+    'Protected salary information for $<season> is missing or invalid.',
+  ],
+  [
+    MISSING_PROTECTION_STEP_REASON,
+    'Protection-step salary information for $<season> is missing or invalid.',
+  ],
+  [
+    MISSING_PROTECTION_STEP_DATE_REASON,
+    'A protection-step date for $<season> is missing or invalid.',
+  ],
+  [
+    MISSING_PROTECTION_SCHEDULE_REASON,
+    'Protection schedule information for $<season> is unavailable.',
+  ],
+  [
+    MISSING_BASE_SALARY_REASON,
+    'Base salary information for $<season> is missing or invalid.',
+  ],
+  [
+    POST_SEASON_SALARY_REASON,
+    'Next-season salary information for $<season> is required.',
+  ],
+  [
+    MISSING_EARNED_SALARY_REASON,
+    'Earned salary information for $<season> as of $<date> is unavailable.',
+  ],
+  [
+    MISSING_MINIMUM_REIMBURSEMENT_REASON,
+    'One-year minimum-contract reimbursement information is unavailable.',
+  ],
+  [
+    MISSING_SALARY_OR_CALENDAR_REASON,
+    'Current salary or regular-season calendar information is unavailable.',
+  ],
+  [
+    MISSING_CURRENT_CONTRACT_REASON,
+    'Current contract information is unavailable for this roster player.',
+  ],
+  [
+    AMBIGUOUS_CURRENT_CONTRACT_REASON,
+    'Current contract information is ambiguous for this roster player and salary-cap year.',
+  ],
+  [
+    MISSING_POISON_PILL_INPUTS_REASON,
+    'Required poison-pill calculation information is unavailable.',
+  ],
+  [
+    INVALID_POISON_PILL_IDENTITY_REASON,
+    'The poison-pill extension identity or timing is invalid.',
+  ],
+  [
+    POISON_PILL_SEASON_MISMATCH_REASON,
+    'Poison-pill terms identify $<identifiedSeason>, not current season $<currentSeason>, as the last original year.',
+  ],
+  [
+    MISSING_POISON_PILL_ORIGINAL_SALARY_REASON,
+    'Original-term salary information for the poison-pill calculation is missing or invalid.',
+  ],
+  [
+    MISSING_POISON_PILL_EXTENDED_TERM_REASON,
+    'Extension salary information for $<season> is unavailable.',
+  ],
+  [
+    INVALID_FIXED_POISON_PILL_SALARY_REASON,
+    'Fixed poison-pill salary information for $<season> is inconsistent.',
+  ],
+  [
+    INVALID_PERCENTAGE_POISON_PILL_SALARY_REASON,
+    'Percentage-based poison-pill salary information for $<season> is incomplete.',
+  ],
+  [
+    MISSING_SIGN_AND_TRADE_SALARY_REASON,
+    'Sign-and-trade salary information is missing or invalid.',
+  ],
+  [
+    MISMATCHED_SIGN_AND_TRADE_SALARY_REASON,
+    'Sign-and-trade salary information does not match this saved world, team, player, date, or salary-cap year.',
+  ],
+  [
+    MISSING_GOVERNED_SALARY_BASIS_REASON,
+    'Trade salary information is missing or invalid.',
+  ],
+  [
+    MISMATCHED_GOVERNED_SALARY_BASIS_REASON,
+    'Trade salary information does not match this saved plan, team, player, date, or salary-cap year.',
+  ],
+  [
+    GOVERNED_SALARY_BASIS_NEEDS_INPUT_REASON,
+    'Trade salary information needs input.',
+  ],
+];
+
+const PLAYER_SCOPED_REASON_PATTERNS = [
+  TRADE_BONUS_REASON,
+  ...SALARY_REASON_PRESENTATIONS.map(([pattern]) => pattern),
+];
+
+const findPlayerReasonBoundary = (text: string) =>
+  PLAYER_SCOPED_REASON_PATTERNS.flatMap((pattern) => {
+    const flags = pattern.flags.includes('g')
+      ? pattern.flags
+      : `${pattern.flags}g`;
+    return [...text.matchAll(new RegExp(pattern.source, flags))]
+      .map((match) => match.index)
+      .filter(
+        (index): index is number =>
+          index != null && /:\s*$/.test(text.slice(0, index))
+      );
+  })
+    .sort((left, right) => right - left)
+    .at(0);
+
+const STEPIEN_HISTORY_REASON =
+  /(?:complete governed ownership|complete protection).*history is unavailable/i;
+
+/** Present authority diagnostics in GM language without changing their result. */
+export const presentTradeValidationText = (
+  text: string,
+  options: VerdictPresentationOptions = {}
+): string => {
+  const playerReasonIndex = findPlayerReasonBoundary(text);
+  const playerPrefix =
+    playerReasonIndex == null
+      ? null
+      : text.slice(0, playerReasonIndex).match(/:\s*$/);
+  if (playerPrefix?.index != null) {
+    const playerId = text.slice(0, playerPrefix.index).trim();
+    const resolvedName = options.resolvePlayerName?.(playerId)?.trim();
+    const playerName =
+      resolvedName && resolvedName !== playerId
+        ? resolvedName
+        : 'Traded player';
+    const reasonsStart = playerPrefix.index + playerPrefix[0].length;
+    const playerReasons = text.slice(reasonsStart);
+    let presentedBonus = false;
+    const bonusPresentedReasons = playerReasons.replace(
+      TRADE_BONUS_REASONS,
+      () => {
+        if (presentedBonus) return ' ';
+        presentedBonus = true;
+        return 'Available contract information is insufficient to determine the trade-bonus allocation.';
+      }
+    );
+    const presentedReasons = SALARY_REASON_PRESENTATIONS.reduce(
+      (reasons, [pattern, replacement]) =>
+        reasons.replace(pattern, replacement),
+      bonusPresentedReasons
+    )
+      .replace(/\s+/g, ' ')
+      .trim();
+    return `${playerName}: ${presentedReasons}`;
+  }
+
+  if (STEPIEN_HISTORY_REASON.test(text)) {
+    return 'Stepien eligibility cannot be confirmed because complete pick ownership, protection and conveyance terms, trading restrictions and their release, and penalty history are unavailable.';
+  }
+
+  return text;
+};
+
 // Owner-facing rule names, mirroring the Rule Compliance Overview grid.
 const RULE_LABELS: Record<string, string> = {
   salaryMatching: 'Salary Matching',
@@ -41,9 +258,7 @@ const RULE_LABELS: Record<string, string> = {
 
 const humanizeRuleKey = (key: string) =>
   RULE_LABELS[key] ||
-  key
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/^./, (c) => c.toUpperCase());
+  key.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
 
 const resolveTeamName = (team: TeamResultLike) =>
   team.teamName || team.teamCode || team.teamId || null;
@@ -99,7 +314,8 @@ const previewAuthorityReasonNeedsInput = (
  */
 export const buildVerdictItems = (
   teamResults: TeamResultLike[] | null | undefined,
-  previewAuthority: PreviewAuthorityLike | null | undefined
+  previewAuthority: PreviewAuthorityLike | null | undefined,
+  options: VerdictPresentationOptions = {}
 ): VerdictItem[] => {
   const violations: VerdictItem[] = [];
   const needsInput: VerdictItem[] = [];
@@ -107,16 +323,25 @@ export const buildVerdictItems = (
   const seen = new Set<string>();
 
   const push = (item: VerdictItem) => {
-    const dedupeKey = `${item.teamName ?? ''}|${item.kind}|${item.text}`;
+    const presentedItem = {
+      ...item,
+      text: presentTradeValidationText(item.text, options),
+    };
+    const dedupeKey = `${presentedItem.teamName ?? ''}|${presentedItem.kind}|${presentedItem.text}`;
     if (seen.has(dedupeKey)) return;
     seen.add(dedupeKey);
-    if (item.kind === 'needsInput') {
-      needsInput.push(item);
-    } else if (item.kind === 'violation') {
-      violations.push(item);
+    if (presentedItem.kind === 'needsInput') {
+      needsInput.push(presentedItem);
+    } else if (presentedItem.kind === 'violation') {
+      violations.push(presentedItem);
     } else {
-      warnings.push(item);
+      warnings.push(presentedItem);
     }
+  };
+
+  const presentRuleText = (label: string, detail: string) => {
+    const presentedDetail = presentTradeValidationText(detail, options);
+    return presentedDetail === detail ? `${label}: ${detail}` : presentedDetail;
   };
 
   for (const team of teamResults ?? []) {
@@ -134,7 +359,7 @@ export const buildVerdictItems = (
         push({
           teamName,
           kind: 'needsInput',
-          text: `${label}: ${detail}`,
+          text: presentRuleText(label, detail),
         });
         continue;
       }
@@ -147,14 +372,18 @@ export const buildVerdictItems = (
         push({
           teamName,
           kind: 'violation',
-          text: detail ? `${label}: ${detail}` : `${label} failed`,
+          text: detail ? presentRuleText(label, detail) : `${label} failed`,
         });
       }
 
       for (const warning of normalizeValidationIssues(rule.warnings)) {
         const text = getValidationIssueText(warning);
         if (!text) continue;
-        push({ teamName, kind: 'warning', text: `${label}: ${text}` });
+        push({
+          teamName,
+          kind: 'warning',
+          text: presentRuleText(label, text),
+        });
       }
     }
   }

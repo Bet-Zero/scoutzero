@@ -60,6 +60,7 @@ describe('resolveHistoryOutboundLinks', () => {
     ]);
     const tradeCtx = links.find((l) => l.id === 'trade-context');
     expect(tradeCtx?.kind).toBe('trade-context');
+    expect(tradeCtx?.label).toBe('Review this trade');
     expect(tradeCtx?.tradeRequest?.source).toBe('history');
     expect(tradeCtx?.tradeRequest?.relatedEventId).toBe('evt_42');
     expect(tradeCtx?.tradeRequest?.authority).toBe('committed-event-reference');

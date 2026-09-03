@@ -1578,13 +1578,17 @@ export const GMDashboard = () => {
           resolvePlayerLabel={(playerId) =>
             resolveFocusedPlayerLabel(playerId) ?? playerId
           }
+          resolvePlayerTeamCode={(playerId) => {
+            const playerTeamCode = playersMap[playerId]?.teamCode;
+            return playerTeamCode ? String(playerTeamCode) : null;
+          }}
         />
       ),
     },
     compare: {
       id: 'compare',
       title: 'Compare',
-      subtitle: 'Committed scenario comparison',
+      subtitle: 'Saved move comparison',
       content: (
         <ComparisonSection
           status={comparisonViewModel.status}

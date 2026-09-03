@@ -83,8 +83,13 @@ describe('TEAM_HISTORY_E4 fail-soft guardrail', () => {
     expect(
       screen
         .getByTestId('team-history-event-row-2')
-        .textContent?.includes('Mystery Mutation: player_unknown')
+        .textContent?.includes('Mystery Mutation: Player details unavailable')
     ).toBe(true);
+    expect(
+      screen
+        .getByTestId('team-history-event-row-2')
+        .textContent?.includes('player_unknown')
+    ).toBe(false);
 
     fireEvent.click(screen.getByTestId('team-history-event-row-0'));
     expect(screen.getByTestId('team-history-detail-modal')).toBeTruthy();
@@ -105,7 +110,9 @@ describe('TEAM_HISTORY_E4 fail-soft guardrail', () => {
     fireEvent.click(screen.getByTestId('team-history-event-row-2'));
     expect(screen.getByText('Event Detail')).toBeTruthy();
     expect(
-      screen.getByText(/No event-specific Team History detail mapping exists for mysteryMutation/i)
+      screen.getByText(
+        /No event-specific Team History detail mapping exists for mysteryMutation/i
+      )
     ).toBeTruthy();
   });
 });

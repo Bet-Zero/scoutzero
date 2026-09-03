@@ -8,6 +8,7 @@ import type {
   TeamHistoryCapSheetLike,
   TeamHistoryDisplayEntry,
   TeamHistoryLooseTimelineEntry,
+  TeamHistoryPlayerMovement,
   TeamHistorySelectedEntry,
   TeamHistoryTimelineSourceKey,
   TeamHistoryWaivedContractEntry,
@@ -91,6 +92,186 @@ const parseTimelineTimestamp = (value: unknown): number => {
 
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+};
+
+const eventIdentity = (event: Record<string, unknown>): string | null => {
+  const value = event.eventId ?? event.id ?? event.operationId;
+  return value == null || String(value).trim().length === 0
+    ? null
+    : String(value).trim();
+};
+
+const eventStringList = (
+  event: Record<string, unknown>,
+  primaryField: string,
+  fallbackField?: string
+): string[] => {
+  const normalize = (candidate: unknown): string[] =>
+    Array.isArray(candidate)
+      ? Array.from(
+          new Set(
+            candidate.map((value) => String(value || '').trim()).filter(Boolean)
+          )
+        )
+      : [];
+  const primaryValues = normalize(event[primaryField]);
+  return primaryValues.length > 0 || !fallbackField
+    ? primaryValues
+    : normalize(event[fallbackField]);
+};
+
+export const resolveCanonicalEventPlayerIds = (
+  eventInput: unknown
+): string[] => {
+  const event = asRecord(eventInput);
+  if (!event) return [];
+
+  const metadata = asRecord(event.metadata);
+  const mutationMetadata = asRecord(event.mutationMetadata);
+  const diffSummary = asRecord(event.diffSummary);
+
+  return Array.from(
+    new Set([
+      ...eventStringList(event, 'playerIds'),
+      ...(metadata ? eventStringList(metadata, 'playerIds') : []),
+      ...[mutationMetadata?.playerId, metadata?.playerId]
+        .map((value) => String(value || '').trim())
+        .filter(Boolean),
+      ...(diffSummary ? eventStringList(diffSummary, 'playersMoved') : []),
+    ])
+  );
+};
+
+const eventPlayerIds = (event: Record<string, unknown>): string[] => {
+  const metadata = asRecord(event.metadata);
+
+  return Array.from(
+    new Set([
+      ...resolveCanonicalEventPlayerIds(event),
+      ...(metadata ? eventStringList(metadata, 'playersTraded') : []),
+    ])
+  );
+};
+
+const hasUnboundCompatibilityPlayerNames = (
+  event: Record<string, unknown>
+): boolean => {
+  const metadata = asRecord(event.metadata);
+  const compatibilityNames = metadata
+    ? eventStringList(metadata, 'playersTraded')
+    : [];
+  if (compatibilityNames.length === 0) return false;
+
+  const canonicalPlayerIds = new Set(resolveCanonicalEventPlayerIds(event));
+
+  return compatibilityNames.some(
+    (compatibilityName) => !canonicalPlayerIds.has(compatibilityName)
+  );
+};
+
+/**
+ * Resolves player direction only when retained world truth makes it exact.
+ *
+ * A two-team executeTrade event proves the two possible endpoints. The current
+ * saved-world player override proves which endpoint each player occupies, but
+ * only while the selected trade remains that player's latest retained event.
+ * Anything missing, multi-team, invalidly dated, or superseded stays neutral
+ * instead of guessing from player order or the active team alone.
+ */
+export const resolveReliableTradePlayerMovements = ({
+  selectedEntry,
+  committedWorldEvents,
+  coveredTeamCodes,
+  resolvePlayerTeamCode,
+}: {
+  selectedEntry: TeamHistorySelectedEntry | null;
+  committedWorldEvents: unknown[];
+  coveredTeamCodes: string[];
+  resolvePlayerTeamCode?: ((playerId: string) => string | null) | null;
+}): TeamHistoryPlayerMovement[] => {
+  if (
+    !selectedEntry ||
+    selectedEntry.truthKind !== 'authoritative-world-event' ||
+    !resolvePlayerTeamCode
+  ) {
+    return [];
+  }
+
+  const selectedId = eventIdentity(asRecord(selectedEntry.entry) || {});
+  if (!selectedId) return [];
+
+  const events = committedWorldEvents
+    .map(asRecord)
+    .filter((event): event is Record<string, unknown> => Boolean(event));
+  const selectedEvent = events.find(
+    (event) => eventIdentity(event) === selectedId
+  );
+  if (!selectedEvent) return [];
+
+  const mutationType = String(
+    selectedEvent.mutationType ?? selectedEvent.type ?? ''
+  ).trim();
+  if (mutationType !== 'executeTrade') return [];
+
+  const activeTeamCode = String(selectedEntry.activeTeamCode || '')
+    .trim()
+    .toUpperCase();
+  const teamCodes = eventStringList(
+    selectedEvent,
+    'teamCodes',
+    'teamsAffected'
+  ).map((teamCode) => teamCode.toUpperCase());
+  if (
+    !activeTeamCode ||
+    teamCodes.length !== 2 ||
+    !teamCodes.includes(activeTeamCode) ||
+    !teamCodes.every((teamCode) =>
+      coveredTeamCodes
+        .map((coveredTeamCode) => coveredTeamCode.trim().toUpperCase())
+        .includes(teamCode)
+    )
+  ) {
+    return [];
+  }
+
+  const playerIds = resolveCanonicalEventPlayerIds(selectedEvent);
+  const selectedTime = parseTimelineTimestamp(
+    selectedEvent.occurredAt ?? selectedEvent.timestamp
+  );
+  if (playerIds.length === 0 || selectedTime === Number.NEGATIVE_INFINITY) {
+    return [];
+  }
+
+  const movements: TeamHistoryPlayerMovement[] = [];
+  for (const playerId of playerIds) {
+    const hasLaterOrUnorderedEvent = events.some((event) => {
+      if (eventIdentity(event) === selectedId) return false;
+
+      const eventTime = parseTimelineTimestamp(
+        event.occurredAt ?? event.timestamp
+      );
+      const isLaterOrUnordered =
+        eventTime === Number.NEGATIVE_INFINITY || eventTime >= selectedTime;
+      if (!isLaterOrUnordered) return false;
+
+      return (
+        eventPlayerIds(event).includes(playerId) ||
+        hasUnboundCompatibilityPlayerNames(event)
+      );
+    });
+    if (hasLaterOrUnorderedEvent) continue;
+
+    const destinationTeamCode = String(resolvePlayerTeamCode(playerId) || '')
+      .trim()
+      .toUpperCase();
+    if (!teamCodes.includes(destinationTeamCode)) continue;
+    const sourceTeamCode = teamCodes.find(
+      (teamCode) => teamCode !== destinationTeamCode
+    );
+    if (!sourceTeamCode) continue;
+    movements.push({ playerId, sourceTeamCode, destinationTeamCode });
+  }
+  return movements;
 };
 
 export const buildSelectedHistoryEntry = ({

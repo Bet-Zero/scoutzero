@@ -8,6 +8,8 @@ import { resolveHistoryOutboundLinks } from './historyOutboundLinks';
 import { PlayerActionMenu } from '@/features/architect/cockpit/PlayerActionMenu';
 import { buildPlayerActionContext } from '@/features/architect/cockpit/playerActionContext';
 import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
+import { isSafePlayerDisplayName } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory.utils';
+import { TeamListFull } from '@/constants/teamList';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -53,6 +55,22 @@ const uniqueStrings = (values: string[]): string[] => {
   return result;
 };
 
+const replaceCompleteToken = (
+  value: string,
+  token: string,
+  replacement: string
+) => {
+  const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const boundedToken = new RegExp(
+    `(^|[^A-Za-z0-9_])${escapedToken}(?=$|[^A-Za-z0-9_])`,
+    'g'
+  );
+  return value.replace(
+    boundedToken,
+    (_match, prefix: string) => `${prefix}${replacement}`
+  );
+};
+
 const getDisplayText = (value: unknown) => {
   if (typeof value === 'string') {
     const trimmed = value.trim();
@@ -74,13 +92,67 @@ const formatNumberDelta = (value: unknown) => {
   return `${sign}$${Math.abs(value).toLocaleString()}`;
 };
 
+const TEAM_NAME_BY_CODE = new Map<string, string>(
+  TeamListFull.map((team) => [team.code, team.teamName])
+);
+
+const formatTeamName = (teamCode: string) =>
+  TEAM_NAME_BY_CODE.get(teamCode.toUpperCase()) || 'Team';
+
 const formatTeams = (teamsInvolved: string[] | null | undefined) => {
   if (!Array.isArray(teamsInvolved) || teamsInvolved.length === 0) {
     return EMPTY_VALUE;
   }
 
-  return teamsInvolved.join(' · ');
+  return teamsInvolved
+    .map((team) => TEAM_NAME_BY_CODE.get(team.toUpperCase()) || team)
+    .join(' · ');
 };
+
+const formatHistoryDate = (value: string | null | undefined) => {
+  if (!value) return EMPTY_VALUE;
+  const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const [, yearText, monthText, dayText] = dateOnlyMatch;
+    const year = Number(yearText);
+    const month = Number(monthText);
+    const day = Number(dayText);
+    const parsedDate = new Date(Date.UTC(year, month - 1, day));
+    if (
+      parsedDate.getUTCFullYear() !== year ||
+      parsedDate.getUTCMonth() !== month - 1 ||
+      parsedDate.getUTCDate() !== day
+    ) {
+      return EMPTY_VALUE;
+    }
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(parsedDate);
+  }
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return EMPTY_VALUE;
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(parsed));
+};
+
+const formatMoveType = (value: string | null | undefined) => {
+  if (!value) return 'Team move';
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/^./, (character) => character.toUpperCase());
+};
+
+const TECHNICAL_DETAIL_SECTIONS =
+  /receipt|salary books|source truth|raw|payload|identity|^teams$/i;
 
 const formatList = (items: unknown) => {
   if (!Array.isArray(items) || items.length === 0) {
@@ -250,6 +322,7 @@ const buildRawPayloadSummaryLines = (
 export const HistoryDetailModal = ({
   selectedEntry,
   onClose,
+  playerMovements = [],
   onNavigateRoom,
   onOpenTradeWithRequest,
   onPlayerAction,
@@ -270,6 +343,29 @@ export const HistoryDetailModal = ({
     (typeof entry.eventId === 'string' && entry.eventId) ||
     (entry.id != null ? String(entry.id) : null);
   const rawEntry = asRecord(entry.raw);
+  const rawMetadata = asRecord(rawEntry?.metadata);
+  const rawMutationMetadata = asRecord(rawEntry?.mutationMetadata);
+  const rawDiffSummary = asRecord(rawEntry?.diffSummary);
+  const idBearingPlayerTokens = new Set(
+    uniqueStrings([
+      ...asStringArray(rawEntry?.playerIds),
+      ...asStringArray(rawMetadata?.playerIds),
+      ...asStringArray(rawMutationMetadata?.playerIds),
+      ...asStringArray(rawDiffSummary?.playersMoved),
+      ...asStringArray([
+        rawEntry?.playerId,
+        rawMetadata?.playerId,
+        rawMutationMetadata?.playerId,
+      ]),
+    ])
+  );
+  const literalCompatibilityPlayerNames = new Set(
+    asStringArray(rawMetadata?.playersTraded).filter(
+      (playerName) =>
+        !idBearingPlayerTokens.has(playerName) &&
+        isSafePlayerDisplayName(playerName)
+    )
+  );
   const truthContract = resolveTruthContract(selectedEntry, rawEntry);
   const normalizedTeamsInvolved = uniqueStrings([
     ...asStringArray(entry.teamsInvolved),
@@ -280,6 +376,15 @@ export const HistoryDetailModal = ({
     ...asStringArray(entry.teamsInvolved),
   ]);
   const normalizedPlayerIds = asStringArray(entry.playerIds);
+  const resolvedPlayerMovements =
+    playerMovements.length > 0
+      ? playerMovements
+      : Array.isArray(entry.playerMovements)
+        ? entry.playerMovements
+        : [];
+  const movementByPlayerId = new Map(
+    resolvedPlayerMovements.map((movement) => [movement.playerId, movement])
+  );
   const beforeTotalsByTeam = asRecord(entry.beforeTotalsByTeam);
   const afterTotalsByTeam = asRecord(entry.afterTotalsByTeam);
   const detailSections = Array.isArray(entry.detailSections)
@@ -318,6 +423,169 @@ export const HistoryDetailModal = ({
     import.meta.env.DEV &&
     typeof window !== 'undefined' &&
     window.localStorage?.getItem(DEV_TEAM_HISTORY_FIXTURE_FLAG) === 'true';
+  const presentDetailLine = (line: unknown, resolvePlayers = false) => {
+    let presentedLine = String(line ?? '');
+    if (resolvePlayers) {
+      normalizedPlayerIds.forEach((playerId) => {
+        const resolvedLabel = resolvePlayerLabel?.(playerId);
+        const safeLabel =
+          resolvedLabel && resolvedLabel !== playerId
+            ? resolvedLabel
+            : 'Player';
+        presentedLine = replaceCompleteToken(
+          presentedLine,
+          playerId,
+          safeLabel
+        );
+      });
+    }
+    normalizedTeamCodes.forEach((teamCode) => {
+      const teamName = TEAM_NAME_BY_CODE.get(teamCode.toUpperCase());
+      if (teamName) {
+        presentedLine = replaceCompleteToken(presentedLine, teamCode, teamName);
+      }
+    });
+    return presentedLine;
+  };
+  const presentDraftAssetLine = (line: unknown) => {
+    const rawLine = String(line ?? '');
+    const transferMatch = rawLine.match(/^([A-Z]{2,3}):\s*(?:out|in)\s+(.+)$/i);
+    const prefixedTeamCode = transferMatch?.[1];
+    const assetIdentity = transferMatch?.[2] || rawLine;
+    const deterministicIdentity = assetIdentity.match(
+      /^(?:ent|vacuum):([A-Z]{2,3}):(20\d{2}):([12]):(own|swap|conv):/i
+    );
+    const teamCode =
+      normalizedTeamCodes.find(
+        (code) => code.toUpperCase() === prefixedTeamCode?.toUpperCase()
+      ) ||
+      normalizedTeamCodes.find((code) =>
+        new RegExp(`(?:^|\\W)${code}(?:\\W|$)`, 'i').test(rawLine)
+      );
+    const teamName = teamCode
+      ? TEAM_NAME_BY_CODE.get(teamCode.toUpperCase()) || teamCode
+      : 'Team';
+    const assetTeamCode =
+      deterministicIdentity?.[1]?.toUpperCase() ||
+      assetIdentity
+        .split(/[^A-Z0-9]+/i)
+        .map((token) => token.toUpperCase())
+        .find((token) => TEAM_NAME_BY_CODE.has(token));
+    const year =
+      deterministicIdentity?.[2] ||
+      rawLine.match(/(?:^|[-_:\s])(20\d{2})(?=$|[-_:\s])/)?.[1];
+    const round =
+      deterministicIdentity?.[3] ||
+      rawLine.match(/\b(first|second|1st|2nd|1|2)[-_:\s]*round\b/i)?.[1] ||
+      rawLine.match(/(?:^|[-_:\s])R([12])(?=$|[-_:\s])/i)?.[1] ||
+      rawLine.match(/(?:^|[-_:\s])(1st|2nd)(?=$|[-_:\s])/i)?.[1];
+    const roundLabel = /^(?:first|1st|1)$/i.test(round || '')
+      ? 'first-round'
+      : /^(?:second|2nd|2)$/i.test(round || '')
+        ? 'second-round'
+        : null;
+
+    if (!year || !roundLabel) {
+      return `${teamName} draft pick included in this move`;
+    }
+    const entitlementKind = deterministicIdentity?.[4]?.toLowerCase();
+    const assetKindLabel =
+      entitlementKind === 'swap'
+        ? 'swap right'
+        : entitlementKind === 'conv'
+          ? 'conveyance right'
+          : 'pick';
+    const assetTeamName = assetTeamCode
+      ? TEAM_NAME_BY_CODE.get(assetTeamCode)
+      : null;
+    const assetTeamQualifier =
+      assetTeamName && assetTeamCode !== teamCode?.toUpperCase()
+        ? ` · ${assetTeamName}`
+        : '';
+    const pickLabel = `${year} ${roundLabel} ${assetKindLabel}${assetTeamQualifier}`;
+    if (/\bout\b/i.test(rawLine)) {
+      return `Sent by ${teamName}: ${pickLabel}`;
+    }
+    if (/\bin\b/i.test(rawLine)) {
+      return `Received by ${teamName}: ${pickLabel}`;
+    }
+    return `${teamName} ${pickLabel}`;
+  };
+  const presentDraftAssetLines = (lines: unknown[]) => {
+    const presentedLines = lines.map(presentDraftAssetLine);
+    const identities = lines.map((line) => {
+      const rawLine = String(line ?? '');
+      return (
+        rawLine.match(/^([A-Z]{2,3}):\s*(?:out|in)\s+(.+)$/i)?.[2] || rawLine
+      )
+        .trim()
+        .toLowerCase();
+    });
+    const identitiesByPresentation = new Map<string, string[]>();
+
+    // A retained deterministic identity may distinguish otherwise identical
+    // rights. Bind a stable option number to that identity without exposing it.
+    presentedLines.forEach((presentedLine, index) => {
+      const variants = identitiesByPresentation.get(presentedLine) || [];
+      if (!variants.includes(identities[index])) {
+        variants.push(identities[index]);
+      }
+      identitiesByPresentation.set(presentedLine, variants);
+    });
+
+    return presentedLines.map((presentedLine, index) => {
+      const variants = [
+        ...(identitiesByPresentation.get(presentedLine) || []),
+      ].sort();
+      if (variants.length < 2) return presentedLine;
+
+      return `${presentedLine} · option ${
+        variants.indexOf(identities[index]) + 1
+      } of ${variants.length}`;
+    });
+  };
+  const visibleDetailSections = showDeveloperDetail
+    ? detailSections
+    : detailSections.flatMap((section) => {
+        if (/^players?$/i.test(section.title || '')) {
+          return onPlayerAction && normalizedPlayerIds.length > 0
+            ? []
+            : [
+                {
+                  ...section,
+                  lines: (section.lines || []).map((line) =>
+                    presentDetailLine(line, true)
+                  ),
+                },
+              ];
+        }
+        if (/^picks?$/i.test(section.title || '')) {
+          return [
+            {
+              ...section,
+              title: 'Draft picks',
+              lines: presentDraftAssetLines(section.lines || []),
+            },
+          ];
+        }
+        if (/cash consideration receipt/i.test(section.title || '')) {
+          const cashLines = (section.lines || [])
+            .filter((line) => /\b(?:paid|received)\b/i.test(String(line)))
+            .map((line) => presentDetailLine(line));
+          return cashLines.length > 0
+            ? [{ ...section, title: 'Cash', lines: cashLines }]
+            : [];
+        }
+        if (TECHNICAL_DETAIL_SECTIONS.test(section.title || '')) {
+          return [];
+        }
+        return [
+          {
+            ...section,
+            lines: (section.lines || []).map((line) => presentDetailLine(line)),
+          },
+        ];
+      });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-cockpit-void/80 p-4">
@@ -327,7 +595,7 @@ export const HistoryDetailModal = ({
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h3 className="text-lg font-semibold">History Item Detail</h3>
+            <h3 className="text-lg font-semibold">Saved Move Details</h3>
             <p
               data-testid="team-history-detail-summary"
               className="text-sm text-cockpit-text-secondary"
@@ -345,15 +613,17 @@ export const HistoryDetailModal = ({
           </button>
         </div>
 
-        <div
-          data-testid="team-history-detail-truth-note"
-          className="mb-4 rounded-md border border-cockpit-info/20 bg-cockpit-info/5 px-3 py-2 text-xs text-cockpit-info"
-        >
-          <div className="font-semibold uppercase tracking-[0.08em]">
-            {truthContract.label}
+        {showDeveloperDetail && (
+          <div
+            data-testid="team-history-detail-truth-note"
+            className="mb-4 rounded-md border border-cockpit-info/20 bg-cockpit-info/5 px-3 py-2 text-xs text-cockpit-info"
+          >
+            <div className="font-semibold uppercase tracking-[0.08em]">
+              {truthContract.label}
+            </div>
+            <div className="mt-1 text-[11px]">{truthContract.description}</div>
           </div>
-          <div className="mt-1 text-[11px]">{truthContract.description}</div>
-        </div>
+        )}
 
         {(onNavigateRoom || onOpenTradeWithRequest) &&
         outboundLinks.length > 0 ? (
@@ -362,7 +632,7 @@ export const HistoryDetailModal = ({
             data-testid="team-history-detail-outbound-links"
           >
             <div className="mb-1 text-[11px] uppercase tracking-wide text-cockpit-text-muted">
-              Go to — committed event; destinations show current results
+              Continue from this saved move
             </div>
             <div className="flex flex-wrap gap-1.5">
               {outboundLinks.map((link) => {
@@ -411,40 +681,77 @@ export const HistoryDetailModal = ({
             </div>
             <ul className="flex flex-col gap-1">
               {normalizedPlayerIds.map((playerId) => {
-                const label = resolvePlayerLabel?.(playerId) ?? playerId;
-                const context = buildPlayerActionContext({
-                  player: { id: playerId },
-                  playerLabel: label,
-                  sourceRoom: 'history',
-                  eventId: eventIdForContext,
-                });
-                if (!context) return null;
+                const resolvedLabel = resolvePlayerLabel?.(playerId);
+                const hasCanonicalResolvedLabel = Boolean(
+                  resolvedLabel && resolvedLabel !== playerId
+                );
+                const hasLiteralCompatibilityLabel =
+                  literalCompatibilityPlayerNames.has(playerId);
+                const label = hasCanonicalResolvedLabel
+                  ? resolvedLabel
+                  : hasLiteralCompatibilityLabel
+                    ? playerId
+                    : 'Player details unavailable';
+                const movement = movementByPlayerId.get(playerId);
+                const context = hasCanonicalResolvedLabel
+                  ? buildPlayerActionContext({
+                      player: { id: playerId },
+                      playerLabel: label,
+                      sourceRoom: 'history',
+                      eventId: eventIdForContext,
+                    })
+                  : null;
                 return (
                   <li
                     key={playerId}
                     className="flex items-center gap-1.5 rounded-md border border-cockpit-edge bg-cockpit-inlay px-2 py-1"
                     data-testid={`team-history-player-${playerId}`}
                   >
-                    <span className="min-w-0 flex-1 truncate text-xs text-cockpit-text-primary">
-                      {label}
+                    <span className="min-w-0 flex-1 text-xs text-cockpit-text-primary">
+                      <span className="block truncate">{label}</span>
+                      {movement ? (
+                        <span
+                          className="mt-0.5 block truncate text-[11px] text-cockpit-text-muted"
+                          data-testid={`team-history-player-${playerId}-direction`}
+                        >
+                          Sent by {formatTeamName(movement.sourceTeamCode)} ·
+                          Received by{' '}
+                          {formatTeamName(movement.destinationTeamCode)}
+                        </span>
+                      ) : null}
                     </span>
-                    <PlayerActionMenu
-                      context={context}
-                      visibleActions={[]}
-                      overflowActions={[
-                        'view-on-roster',
-                        'view-on-cap',
-                        'view-in-full-cap',
-                        'compare-impact',
-                        'guide-next-move',
-                      ]}
-                      menuAlign="left"
-                      testIdPrefix={`team-history-player-${playerId}-actions`}
-                      onAction={(action, ctx) => {
-                        onPlayerAction(action, ctx);
-                        onClose();
-                      }}
-                    />
+                    {context ? (
+                      <PlayerActionMenu
+                        context={context}
+                        visibleActions={[]}
+                        overflowActions={[
+                          'view-on-roster',
+                          'view-on-cap',
+                          'view-in-full-cap',
+                          'compare-impact',
+                          'guide-next-move',
+                        ]}
+                        menuAlign="left"
+                        testIdPrefix={`team-history-player-${playerId}-actions`}
+                        onAction={(action, ctx) => {
+                          onPlayerAction(action, ctx);
+                          onClose();
+                        }}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        aria-label="Player actions unavailable until player details can be resolved"
+                        title="Player actions unavailable until player details can be resolved"
+                        className="flex h-5 w-5 shrink-0 cursor-not-allowed items-center justify-center rounded text-cockpit-text-muted opacity-50"
+                        data-testid={`team-history-player-${playerId}-actions-overflow`}
+                      >
+                        <span aria-hidden className="text-sm leading-none">
+                          ⋯
+                        </span>
+                      </button>
+                    )}
                   </li>
                 );
               })}
@@ -455,21 +762,23 @@ export const HistoryDetailModal = ({
         <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
           <div>
             <div className="text-xs uppercase text-cockpit-text-muted">
-              Category / Type
+              Move
             </div>
             <div data-testid="team-history-detail-type" className="font-medium">
-              {entry.category || EMPTY_VALUE} · {entry.type || EMPTY_VALUE}
+              {formatMoveType(entry.type || entry.category)}
             </div>
           </div>
           <div>
             <div className="text-xs uppercase text-cockpit-text-muted">
-              Timestamp
+              {selectedEntry.truthKind === 'authoritative-world-event'
+                ? 'Saved on'
+                : 'Date'}
             </div>
             <div
               data-testid="team-history-detail-timestamp"
               className="font-medium"
             >
-              {entry.timestamp || entry.occurredAt || EMPTY_VALUE}
+              {formatHistoryDate(entry.timestamp || entry.occurredAt)}
             </div>
           </div>
           {showDeveloperDetail && (
@@ -487,18 +796,7 @@ export const HistoryDetailModal = ({
           )}
           <div>
             <div className="text-xs uppercase text-cockpit-text-muted">
-              Mutation Type
-            </div>
-            <div
-              data-testid="team-history-detail-mutation-type"
-              className="font-medium"
-            >
-              {getDisplayText(entry.mutationType)}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs uppercase text-cockpit-text-muted">
-              Teams Involved
+              Teams
             </div>
             <div
               data-testid="team-history-detail-teams"
@@ -509,47 +807,48 @@ export const HistoryDetailModal = ({
           </div>
           <div>
             <div className="text-xs uppercase text-cockpit-text-muted">
-              Team Codes
-            </div>
-            <div
-              data-testid="team-history-detail-team-codes"
-              className="font-medium"
-            >
-              {formatList(normalizedTeamCodes)}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs uppercase text-cockpit-text-muted">
-              Player IDs
-            </div>
-            <div
-              data-testid="team-history-detail-player-ids"
-              className="font-medium break-all"
-            >
-              {formatList(normalizedPlayerIds)}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs uppercase text-cockpit-text-muted">
               Cap Delta
             </div>
             <div className="font-medium">
               {formatNumberDelta(entry.capDelta)}
             </div>
           </div>
-          <div className="md:col-span-2">
-            <div className="text-xs uppercase text-cockpit-text-muted">
-              Primary Deltas
-            </div>
-            <div
-              data-testid="team-history-detail-deltas"
-              className="font-medium"
-            >
-              {entry.primaryDeltas || EMPTY_VALUE}
-            </div>
-          </div>
           {showDeveloperDetail && (
-            <div className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3">
+            <div className="md:col-span-2 space-y-3 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div>
+                  <div className="text-[11px] uppercase text-cockpit-text-muted">
+                    Mutation Type
+                  </div>
+                  <div data-testid="team-history-detail-mutation-type">
+                    {getDisplayText(entry.mutationType)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase text-cockpit-text-muted">
+                    Team Codes
+                  </div>
+                  <div data-testid="team-history-detail-team-codes">
+                    {formatList(normalizedTeamCodes)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase text-cockpit-text-muted">
+                    Player IDs
+                  </div>
+                  <div data-testid="team-history-detail-player-ids">
+                    {formatList(normalizedPlayerIds)}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] uppercase text-cockpit-text-muted">
+                  Normalized deltas
+                </div>
+                <div data-testid="team-history-detail-deltas">
+                  {entry.primaryDeltas || EMPTY_VALUE}
+                </div>
+              </div>
               <div className="text-xs uppercase text-cockpit-text-muted">
                 Identity
               </div>
@@ -606,12 +905,12 @@ export const HistoryDetailModal = ({
               </div>
             </div>
           )}
-          {detailSections.length > 0 && (
+          {visibleDetailSections.length > 0 && (
             <div
               className="md:col-span-2 space-y-3"
               data-testid="team-history-detail-sections"
             >
-              {detailSections.map((section, index) => (
+              {visibleDetailSections.map((section, index) => (
                 <div
                   key={`${section.title}-${index}`}
                   className="rounded-md border border-cockpit-edge bg-cockpit-inlay p-2"
@@ -630,28 +929,28 @@ export const HistoryDetailModal = ({
               ))}
             </div>
           )}
-          <div
-            data-testid="team-history-detail-cap-alignment"
-            className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3"
-          >
-            <div className="text-xs uppercase text-cockpit-text-muted">
-              Cap Delta Alignment
-            </div>
-            <div className="mt-1 text-sm text-cockpit-text-secondary">
-              {capAlignmentStatus}
-            </div>
-            <ul className="mt-2 space-y-1 text-sm text-cockpit-text-primary">
-              {capAlignmentRows.map((row) => (
-                <li key={`${row.teamCode}:${row.book}`}>
-                  • {row.teamCode} {row.book}: {formatCurrency(row.before)}{' '}
-                  -&gt; {formatCurrency(row.after)} (
-                  {formatNumberDelta(row.delta)})
-                </li>
-              ))}
-            </ul>
-          </div>
           {showDeveloperDetail && (
             <>
+              <div
+                data-testid="team-history-detail-cap-alignment"
+                className="md:col-span-2 rounded-md border border-cockpit-edge bg-cockpit-inlay p-3"
+              >
+                <div className="text-xs uppercase text-cockpit-text-muted">
+                  Cap Delta Alignment
+                </div>
+                <div className="mt-1 text-sm text-cockpit-text-secondary">
+                  {capAlignmentStatus}
+                </div>
+                <ul className="mt-2 space-y-1 text-sm text-cockpit-text-primary">
+                  {capAlignmentRows.map((row) => (
+                    <li key={`${row.teamCode}:${row.book}`}>
+                      • {row.teamCode} {row.book}: {formatCurrency(row.before)}{' '}
+                      -&gt; {formatCurrency(row.after)} (
+                      {formatNumberDelta(row.delta)})
+                    </li>
+                  ))}
+                </ul>
+              </div>
               <div className="md:col-span-2">
                 <div className="text-xs uppercase text-cockpit-text-muted">
                   Before Totals By Team

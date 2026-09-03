@@ -20,6 +20,11 @@ import {
   describeCompareFocus,
   type FollowThroughContext,
 } from '@/features/architect/cockpit';
+import { TeamListFull } from '@/constants/teamList';
+
+const TEAM_NAME_BY_CODE = new Map<string, string>(
+  TeamListFull.map((team) => [team.code, team.teamName])
+);
 
 interface ComparisonSectionProps {
   status: ComparisonViewModelStatus;
@@ -38,11 +43,7 @@ interface ComparisonSectionProps {
 }
 
 /** Context-focused banner shown when Compare is launched with follow-through. */
-const CompareFocusBanner = ({
-  context,
-}: {
-  context: FollowThroughContext;
-}) => {
+const CompareFocusBanner = ({ context }: { context: FollowThroughContext }) => {
   const focus = describeCompareFocus(context);
   if (!focus) return null;
   return (
@@ -54,17 +55,11 @@ const CompareFocusBanner = ({
         <span className="text-sm font-semibold text-cockpit-text-secondary">
           {focus.heading}
         </span>
-        <span
-          className="inline-flex items-center rounded border border-cockpit-edge bg-cockpit-raised px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cockpit-text-muted"
-          data-testid="comparison-focus-authority"
-        >
-          {focus.authorityLabel}
-        </span>
       </div>
       {focus.authority === 'unavailable' ? (
         <p className="mt-1 text-[11px] text-cockpit-text-muted">
-          Player-level comparison is not available yet. Showing the committed
-          team/event view below.
+          Player-level comparison is not available yet. Showing the saved team
+          changes below.
         </p>
       ) : null}
     </div>
@@ -74,12 +69,6 @@ const CompareFocusBanner = ({
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-
-const AuthorityChip = ({ label }: { label: string }) => (
-  <span className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-md border bg-cockpit-raised text-cockpit-text-muted border-cockpit-edge uppercase tracking-wide">
-    {label}
-  </span>
-);
 
 const SectionCard = ({
   children,
@@ -116,28 +105,25 @@ const RosterList = ({
   emptyLabel: string;
 }) => {
   if (entries.length === 0) {
-    return <p className="text-xs text-cockpit-text-ghost italic">{emptyLabel}</p>;
+    return (
+      <p className="text-xs text-cockpit-text-ghost italic">{emptyLabel}</p>
+    );
   }
   return (
     <ul className="space-y-0.5">
-      {entries.map((entry) => (
+      {entries.map((entry, index) => (
         <li
           key={entry.playerId}
           className="text-xs text-cockpit-text-secondary"
-          title={entry.playerId}
         >
-          {entry.displayName || entry.playerId}
+          {entry.displayName || `Player details unavailable (${index + 1})`}
         </li>
       ))}
     </ul>
   );
 };
 
-const CapDeltaDisplay = ({
-  delta,
-}: {
-  delta: Stage3CapTotalDelta;
-}) => (
+const CapDeltaDisplay = ({ delta }: { delta: Stage3CapTotalDelta }) => (
   <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
     <dt className="text-cockpit-text-muted">Team Salary</dt>
     <dd
@@ -186,7 +172,11 @@ const CapDeltaDisplay = ({
   </dl>
 );
 
-const ApronPostureDisplay = ({ delta }: { delta: Stage3TaxApronPostureDelta }) => {
+const ApronPostureDisplay = ({
+  delta,
+}: {
+  delta: Stage3TaxApronPostureDelta;
+}) => {
   const rows: { label: string; value: boolean | null }[] = [
     { label: 'Crossed first apron', value: delta.crossedFirstApron },
     { label: 'Crossed second apron', value: delta.crossedSecondApron },
@@ -231,6 +221,12 @@ const formatUnavailableFieldLabel = (field: string) =>
     .toLowerCase()
     .replace(/^./, (char) => char.toUpperCase());
 
+const presentUnavailableReason = (reason: string) =>
+  reason
+    .replace(/committed events?/gi, 'saved moves')
+    .replace(/current event stream/gi, 'saved moves')
+    .replace(/event stream/gi, 'saved moves');
+
 const UnavailableList = ({
   entries,
 }: {
@@ -238,12 +234,16 @@ const UnavailableList = ({
 }) => (
   <ul className="space-y-1">
     {entries.map((entry) => (
-      <li key={entry.field} data-field={entry.field} className="text-xs text-cockpit-text-muted">
+      <li
+        key={entry.field}
+        data-field={entry.field}
+        className="text-xs text-cockpit-text-muted"
+      >
         <span className="text-cockpit-text-secondary">
           {formatUnavailableFieldLabel(entry.field)}
         </span>
         {' — '}
-        {entry.reason}
+        {presentUnavailableReason(entry.reason)}
       </li>
     ))}
   </ul>
@@ -273,11 +273,10 @@ export const ComparisonSection = ({
         data-testid="comparison-sandbox-state"
       >
         <p className="text-sm font-semibold text-cockpit-text-secondary">
-          Comparison requires a committed world
+          Comparison requires a saved world
         </p>
         <p className="text-xs text-cockpit-text-muted">
-          Create or select a world below to compare committed scenario changes
-          for this team.
+          Create or select a world below to compare saved changes for this team.
         </p>
         {worldPickerSlot && (
           <div
@@ -332,7 +331,8 @@ export const ComparisonSection = ({
     );
   }
 
-  const { scope, committedEventCount, changedTeams, changedPlayers } = viewModel;
+  const { scope, committedEventCount, changedTeams, changedPlayers } =
+    viewModel;
   const hasEvents = committedEventCount > 0;
 
   return (
@@ -344,21 +344,20 @@ export const ComparisonSection = ({
       <SectionCard testId="comparison-scope">
         <div className="flex flex-wrap items-baseline gap-2 mb-1">
           <h2 className="text-sm font-semibold text-cockpit-text-secondary">
-            Committed Scenario Comparison
+            Saved Move Comparison
           </h2>
           <span className="text-[11px] text-cockpit-text-muted">
-            Read-only · Event-derived
+            Read-only · Before and after, based on saved moves
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2 mb-1">
-          <AuthorityChip label="Committed world" />
           {scope.worldName && (
             <span className="text-sm font-semibold text-cockpit-text-secondary">
               {scope.worldName}
             </span>
           )}
           <span className="text-xs text-cockpit-text-muted">
-            {scope.teamCode}
+            {TEAM_NAME_BY_CODE.get(scope.teamCode) || scope.teamCode}
             {scope.currentSeason ? ` · ${scope.currentSeason}` : ''}
           </span>
         </div>
@@ -369,15 +368,18 @@ export const ComparisonSection = ({
           data-testid="comparison-event-count"
         >
           <span>
-            <span className="font-semibold text-cockpit-text-secondary">{committedEventCount}</span>
-            {' '}committed event{committedEventCount !== 1 ? 's' : ''}
+            <span className="font-semibold text-cockpit-text-secondary">
+              {committedEventCount}
+            </span>{' '}
+            saved move{committedEventCount !== 1 ? 's' : ''}
           </span>
           {changedTeams.teamCodes.length > 0 && (
             <span
               className="text-cockpit-text-muted"
               data-testid="comparison-changed-teams"
             >
-              {changedTeams.teamCodes.length} team{changedTeams.teamCodes.length !== 1 ? 's' : ''} changed
+              {changedTeams.teamCodes.length} team
+              {changedTeams.teamCodes.length !== 1 ? 's' : ''} changed
             </span>
           )}
           {changedPlayers.playerIds.length > 0 && (
@@ -385,7 +387,8 @@ export const ComparisonSection = ({
               className="text-cockpit-text-muted"
               data-testid="comparison-changed-players"
             >
-              {changedPlayers.playerIds.length} player{changedPlayers.playerIds.length !== 1 ? 's' : ''} touched
+              {changedPlayers.playerIds.length} player
+              {changedPlayers.playerIds.length !== 1 ? 's' : ''} changed
             </span>
           )}
         </div>
@@ -434,8 +437,8 @@ export const ComparisonSection = ({
           className="rounded-md border border-cockpit-watch/30 bg-cockpit-watch/10 px-3 py-2 text-xs text-cockpit-watch"
           data-testid="comparison-multi-season-warning"
         >
-          Multi-season comparison — this world includes season-advance events.
-          Cap delta accumulates across multiple seasons.
+          This saved world includes a season change. Salary changes include more
+          than one season.
         </div>
       )}
 
@@ -443,8 +446,8 @@ export const ComparisonSection = ({
       {!hasEvents && (
         <SectionCard testId="comparison-empty-state">
           <p className="text-xs text-cockpit-text-muted italic">
-            No committed events in this world yet. Cap baseline and roster delta
-            will appear here once mutations are committed.
+            No saved moves in this world yet. Salary and roster changes will
+            appear here after a move is saved.
           </p>
         </SectionCard>
       )}
@@ -454,7 +457,6 @@ export const ComparisonSection = ({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <SectionCard testId="comparison-roster-additions">
             <SectionHeading>Additions</SectionHeading>
-            <AuthorityChip label="event-derived" />
             <div className="mt-1">
               <RosterList
                 entries={viewModel.rosterAdditions}
@@ -465,7 +467,6 @@ export const ComparisonSection = ({
 
           <SectionCard testId="comparison-roster-removals">
             <SectionHeading>Removals</SectionHeading>
-            <AuthorityChip label="event-derived" />
             <div className="mt-1">
               <RosterList
                 entries={viewModel.rosterRemovals}
@@ -476,7 +477,6 @@ export const ComparisonSection = ({
 
           <SectionCard testId="comparison-roster-changed">
             <SectionHeading>Contract Changes</SectionHeading>
-            <AuthorityChip label="event-derived" />
             <div className="mt-1">
               <RosterList
                 entries={viewModel.rosterChangedPlayers}
@@ -490,10 +490,7 @@ export const ComparisonSection = ({
       {/* Cap total delta */}
       {hasEvents && viewModel.capTotalDelta && (
         <SectionCard testId="comparison-cap-delta">
-          <div className="flex items-center gap-2 mb-2">
-            <SectionHeading>Salary Book Deltas</SectionHeading>
-            <AuthorityChip label="event-derived" />
-          </div>
+          <SectionHeading>Salary Changes</SectionHeading>
           <CapDeltaDisplay delta={viewModel.capTotalDelta} />
         </SectionCard>
       )}
@@ -501,10 +498,7 @@ export const ComparisonSection = ({
       {/* Tax / apron posture delta */}
       {hasEvents && viewModel.taxApronPostureDelta && (
         <SectionCard testId="comparison-apron-delta">
-          <div className="flex items-center gap-2 mb-2">
-            <SectionHeading>Tax / Apron Status</SectionHeading>
-            <AuthorityChip label="event-derived" />
-          </div>
+          <SectionHeading>Tax / Apron Status</SectionHeading>
           <ApronPostureDisplay delta={viewModel.taxApronPostureDelta} />
         </SectionCard>
       )}

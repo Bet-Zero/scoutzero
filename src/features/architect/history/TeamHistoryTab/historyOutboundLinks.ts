@@ -159,7 +159,7 @@ export function resolveHistoryOutboundLinks(
     if (!isCommitted) return null;
     return {
       id: 'trade-context',
-      label: 'Open Trade context',
+      label: 'Review this trade',
       kind: 'trade-context',
       tradeRequest: buildTradeOpenRequest({
         source: 'history',

@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
+import { DEV_TEAM_HISTORY_FIXTURE_FLAG } from '@/features/architect/history/devTeamHistoryFixtures';
 
 const useWorldTeamEventsMock = vi.fn();
 
@@ -24,6 +25,7 @@ describe('TEAM_HISTORY_E3 timeline from world events integration matrix', () => 
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
+    window.localStorage.setItem(DEV_TEAM_HISTORY_FIXTURE_FLAG, 'true');
   });
 
   it('renders required mutation families and opens detail modal with canonical fields', () => {
@@ -101,21 +103,21 @@ describe('TEAM_HISTORY_E3 timeline from world events integration matrix', () => 
 
     render(<TeamHistoryTab teamCapSheet={teamCapSheet} worldId="world_lal" />);
 
-    expect(screen.getByTestId('team-history-row-0').textContent || '').toContain(
-      'Trade Executed'
-    );
-    expect(screen.getByTestId('team-history-row-1').textContent || '').toContain(
-      'Signed Free Agent'
-    );
-    expect(screen.getByTestId('team-history-row-2').textContent || '').toContain(
-      'Sign-and-Trade Executed'
-    );
-    expect(screen.getByTestId('team-history-row-3').textContent || '').toContain(
-      'Waive Player'
-    );
-    expect(screen.getByTestId('team-history-row-4').textContent || '').toContain(
-      'Exceptions Updated'
-    );
+    expect(
+      screen.getByTestId('team-history-row-0').textContent || ''
+    ).toContain('Trade Executed');
+    expect(
+      screen.getByTestId('team-history-row-1').textContent || ''
+    ).toContain('Signed Free Agent');
+    expect(
+      screen.getByTestId('team-history-row-2').textContent || ''
+    ).toContain('Sign-and-Trade Executed');
+    expect(
+      screen.getByTestId('team-history-row-3').textContent || ''
+    ).toContain('Waive Player');
+    expect(
+      screen.getByTestId('team-history-row-4').textContent || ''
+    ).toContain('Exceptions Updated');
 
     fireEvent.click(screen.getByTestId('team-history-row-0'));
 
@@ -125,20 +127,22 @@ describe('TEAM_HISTORY_E3 timeline from world events integration matrix', () => 
     ).toContain('executeTrade');
     expect(
       screen.getByTestId('team-history-detail-type').textContent || ''
-    ).toContain('trade · Trade Executed');
+    ).toContain('Trade Executed');
     expect(
       screen.getByTestId('team-history-detail-timestamp').textContent || ''
-    ).toContain('2026-03-01T15:00:00.000Z');
+    ).not.toContain('2026-03-01T15:00:00.000Z');
     expect(
       screen.getByTestId('team-history-detail-player-ids').textContent || ''
     ).toContain('player_trade');
     // BZE-229 (owner-approved): the raw event ID (evt_trade) is a developer-only
     // field now, gated behind the developer-detail toggle, so it no longer renders
     // for owners by default. The canonical owner-facing fields asserted here remain.
-    expect(screen.getAllByText('LAL · BOS').length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText('Los Angeles Lakers · Boston Celtics').length
+    ).toBeGreaterThan(0);
     expect(screen.getByText('Salary Books')).toBeInTheDocument();
     expect(
       screen.getByTestId('team-history-detail-modal').textContent || ''
-    ).toContain('LAL Team Salary: -$1,000,000');
+    ).toContain('Los Angeles Lakers Team Salary: -$1,000,000');
   });
 });

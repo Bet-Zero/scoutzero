@@ -22,8 +22,14 @@ export const MUTATION_DISPLAY_CONFIG: Record<string, MutationDisplayConfig> = {
   storeOfferSheet: { category: 'offer-sheet', type: 'Offer Sheet Stored' },
   matchOfferSheet: { category: 'offer-sheet', type: 'Offer Sheet Matched' },
   declineOfferSheet: { category: 'offer-sheet', type: 'Offer Sheet Declined' },
-  finalizeMatchedOfferSheet: { category: 'offer-sheet', type: 'Offer Sheet Finalized (Matched)' },
-  finalizeDeclinedOfferSheet: { category: 'offer-sheet', type: 'Offer Sheet Finalized (Declined)' },
+  finalizeMatchedOfferSheet: {
+    category: 'offer-sheet',
+    type: 'Offer Sheet Finalized (Matched)',
+  },
+  finalizeDeclinedOfferSheet: {
+    category: 'offer-sheet',
+    type: 'Offer Sheet Finalized (Declined)',
+  },
   waivePlayer: { category: 'cap-transaction', type: 'Waive Player' },
   waiveAndStretch: { category: 'cap-transaction', type: 'Waive & Stretch' },
   buyoutPlayer: { category: 'cap-transaction', type: 'Buyout Player' },
@@ -54,6 +60,11 @@ export type TeamHistoryWorldEventRow = {
   teamCodes: string[];
   teamsInvolved: string[];
   playerIds: string[];
+  playerMovements?: Array<{
+    playerId: string;
+    sourceTeamCode: string;
+    destinationTeamCode: string;
+  }>;
   primaryDeltas: string;
   capDelta: number | null;
   summary: string;
@@ -160,6 +171,7 @@ export function toIsoString(input: unknown): string | null {
   }
 
   if (typeof input === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
     const millis = Date.parse(input);
     return Number.isFinite(millis) ? new Date(millis).toISOString() : input;
   }
@@ -251,20 +263,36 @@ export function formatTeamLabel(
     return '';
   }
   const teamName = teamNameLookup?.[teamCode];
-  return teamName ? `${teamCode} (${teamName})` : teamCode;
+  return teamName || teamCode;
 }
 
 export function formatPlayerLabel(
   playerToken: string,
-  playerNameLookup?: Record<string, string>
+  playerNameLookup?: Record<string, string>,
+  allowLiteralName = false
 ): string {
   if (!playerToken) {
     return '';
   }
-  // Owner-facing copy: show the display name alone when it is known; the raw
-  // player id is a fallback, never a suffix (BZE-218).
-  const playerName = playerNameLookup?.[playerToken];
-  return playerName || playerToken;
+  // Owner-facing copy must never use an unresolved identifier as a name.
+  const playerName = playerNameLookup?.[playerToken]?.trim();
+  if (isSafePlayerDisplayName(playerName, playerToken)) return playerName;
+
+  return allowLiteralName && isSafePlayerDisplayName(playerToken)
+    ? playerToken.trim()
+    : 'Player details unavailable';
+}
+
+export function isSafePlayerDisplayName(
+  value: unknown,
+  playerToken?: string
+): value is string {
+  if (typeof value !== 'string') return false;
+  const normalized = value.trim();
+  if (!normalized || normalized === playerToken) return false;
+  if (/[_:/\\]|\d/.test(normalized)) return false;
+
+  return /\s/.test(normalized) || normalized !== normalized.toLowerCase();
 }
 
 export function readTeamCapDelta(
@@ -317,18 +345,20 @@ export function buildCapDeltaContext({
     ['taxSalary', 'Tax Salary'],
   ] as const;
   const deltaLines = orderedTeamCodes
-    .flatMap((teamCode) => bookFields.map(([field, label]) => {
-      const before = Number(asObject(beforeTotalsByTeam[teamCode])[field]);
-      const after = Number(asObject(afterTotalsByTeam[teamCode])[field]);
-      if (!Number.isFinite(before) || !Number.isFinite(after)) return null;
-      const delta = after - before;
-      return {
-        teamCode,
-        field,
-        delta,
-        line: `${formatTeamLabel(teamCode, teamNameLookup)} ${label}: ${formatSignedCurrency(delta)}`,
-      };
-    }))
+    .flatMap((teamCode) =>
+      bookFields.map(([field, label]) => {
+        const before = Number(asObject(beforeTotalsByTeam[teamCode])[field]);
+        const after = Number(asObject(afterTotalsByTeam[teamCode])[field]);
+        if (!Number.isFinite(before) || !Number.isFinite(after)) return null;
+        const delta = after - before;
+        return {
+          teamCode,
+          field,
+          delta,
+          line: `${formatTeamLabel(teamCode, teamNameLookup)} ${label}: ${formatSignedCurrency(delta)}`,
+        };
+      })
+    )
     .filter(
       (
         value
@@ -343,14 +373,16 @@ export function buildCapDeltaContext({
   const activeTeamDelta =
     activeTeamCode &&
     deltaLines.find(
-      (value) => value.teamCode === activeTeamCode && value.field === 'teamSalary'
+      (value) =>
+        value.teamCode === activeTeamCode && value.field === 'teamSalary'
     )?.delta;
 
   return {
     capDelta:
       typeof activeTeamDelta === 'number'
         ? activeTeamDelta
-        : deltaLines.find((value) => value.field === 'teamSalary')?.delta ?? null,
+        : (deltaLines.find((value) => value.field === 'teamSalary')?.delta ??
+          null),
     lines: deltaLines.map((value) => value.line),
   };
 }
@@ -358,12 +390,14 @@ export function buildCapDeltaContext({
 export function deriveTradePickLines(metadata: GenericRecord): string[] {
   const picksTraded = toArrayOfStrings(metadata.picksTraded);
   if (picksTraded.length > 0) {
-    return picksTraded;
+    return expandTradePickLines(picksTraded);
   }
 
-  const legacyEntitlementsTraded = toArrayOfStrings(metadata.entitlementsTraded);
+  const legacyEntitlementsTraded = toArrayOfStrings(
+    metadata.entitlementsTraded
+  );
   if (legacyEntitlementsTraded.length > 0) {
-    return legacyEntitlementsTraded;
+    return expandTradePickLines(legacyEntitlementsTraded);
   }
 
   const entitlementsTraded = asObject(metadata.entitlementsTraded);
@@ -374,22 +408,41 @@ export function deriveTradePickLines(metadata: GenericRecord): string[] {
     const outgoing = toArrayOfStrings(transferObject.out);
     const incoming = toArrayOfStrings(transferObject.in);
 
-    if (outgoing.length > 0) {
-      lines.push(`${teamCode}: out ${outgoing.join(', ')}`);
-    }
-    if (incoming.length > 0) {
-      lines.push(`${teamCode}: in ${incoming.join(', ')}`);
-    }
+    outgoing.forEach((entitlementId) => {
+      lines.push(`${teamCode}: out ${entitlementId}`);
+    });
+    incoming.forEach((entitlementId) => {
+      lines.push(`${teamCode}: in ${entitlementId}`);
+    });
   });
 
   return lines;
+}
+
+export function expandTradePickLines(lines: string[]): string[] {
+  return lines.flatMap((line) => {
+    const groupedTransfer = line.match(
+      /^(\s*[A-Z]{2,3}:\s*(?:out|in)\s+)(.+)$/i
+    );
+    if (!groupedTransfer) return [line];
+
+    const entitlementIds = groupedTransfer[2]
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    return entitlementIds.map(
+      (entitlementId) => `${groupedTransfer[1]}${entitlementId}`
+    );
+  });
 }
 
 export function isGenericChangePlaceholder(
   mutationType: string,
   line: string | null | undefined
 ): boolean {
-  const normalized = String(line || '').trim().toLowerCase();
+  const normalized = String(line || '')
+    .trim()
+    .toLowerCase();
   if (!normalized) {
     return false;
   }
@@ -472,7 +525,10 @@ export function resolveContractSummary(
   const totalValue = Number(contract.totalValue || metadata.contractValue);
 
   const resolved = {
-    years: Number.isFinite(contractYears) && contractYears > 0 ? contractYears : undefined,
+    years:
+      Number.isFinite(contractYears) && contractYears > 0
+        ? contractYears
+        : undefined,
     firstYearSalary:
       Number.isFinite(firstYearSalary) && firstYearSalary > 0
         ? firstYearSalary
@@ -518,7 +574,8 @@ export function buildFallbackEventId(
   teamsInvolved: string[]
 ): string {
   const dateToken = occurredAt || timestamp || 'undated';
-  const teamToken = teamsInvolved.length > 0 ? teamsInvolved.join('-') : 'teamless';
+  const teamToken =
+    teamsInvolved.length > 0 ? teamsInvolved.join('-') : 'teamless';
   return `world-event-${mutationType}-${dateToken}-${teamToken}`;
 }
 

@@ -117,7 +117,13 @@ const makeWorkspaceContext = (
     errorMessage: null,
   },
   saveState: deriveArchitectTeamPlanSaveState({ worldId: 'world_test' }),
-  roster: { status: 'available', count: 15, standardCount: 15, twoWayCount: 0, source: 'players' },
+  roster: {
+    status: 'available',
+    count: 15,
+    standardCount: 15,
+    twoWayCount: 0,
+    source: 'players',
+  },
   cap: {
     status: 'unavailable',
     reason: 'No cap snapshot available in this fixture.',
@@ -222,10 +228,7 @@ describe('ArchitectTabBar (Stage 5A)', () => {
   it('invokes the descriptor onActivate when clicked', () => {
     const onActivate = vi.fn();
     render(
-      <ArchitectTabBar
-        activeTab="cap"
-        tabs={makeTabDescriptors(onActivate)}
-      />
+      <ArchitectTabBar activeTab="cap" tabs={makeTabDescriptors(onActivate)} />
     );
     fireEvent.click(screen.getByTestId('polish-tab-guide'));
     expect(onActivate).toHaveBeenCalledWith('guide');
@@ -241,18 +244,19 @@ describe('ComparisonSection (Stage 5A polish)', () => {
     render(
       <ComparisonSection status="available" viewModel={makeComparisonVm()} />
     );
-    expect(screen.getByText('Committed Scenario Comparison')).toBeInTheDocument();
+    expect(screen.getByText('Saved Move Comparison')).toBeInTheDocument();
     expect(
-      screen.getByText(/Read-only · Event-derived/i)
+      screen.getByText(/Read-only · Before and after/i)
     ).toBeInTheDocument();
   });
 
-  it('renders the scope authority chip as "Committed world"', () => {
+  it('keeps authority vocabulary out of the owner-facing scope', () => {
     render(
       <ComparisonSection status="available" viewModel={makeComparisonVm()} />
     );
     const scope = screen.getByTestId('comparison-scope');
-    expect(scope).toHaveTextContent('Committed world');
+    expect(scope).not.toHaveTextContent('Committed world');
+    expect(scope).not.toHaveTextContent('Event-derived');
   });
 
   it('navigation buttons use type="button" and "View …" labels', () => {
@@ -404,7 +408,7 @@ describe('ScenarioMoveRail (Stage 5A polish)', () => {
       />
     );
     const button = screen.getByTestId('scenario-move-rail-open-history');
-    expect(button).toHaveTextContent("View full history");
+    expect(button).toHaveTextContent('View full history');
     expect(button).toHaveAttribute('type', 'button');
   });
 

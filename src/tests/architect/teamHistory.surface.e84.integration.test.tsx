@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { TeamHistoryTab } from '@/features/architect/history/TeamHistoryTab';
 import { injectTeamHistoryFixtures } from '@/features/architect/history/devTeamHistoryFixtures';
 
@@ -62,13 +68,17 @@ describe('Team History E84 surface integration', () => {
     expect(screen.getByTestId('team-history-row-0')).toBeInTheDocument();
     expect(screen.getByTestId('team-history-waived-row-0')).toBeInTheDocument();
     expect(screen.getByTestId('team-history-tpe-row-0')).toBeInTheDocument();
-    expect(screen.getByTestId('team-history-pick-log-row-0')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-pick-log-row-0')
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('team-history-row-0'));
 
     expect(screen.getByTestId('team-history-detail-modal')).toBeInTheDocument();
-    expect(screen.getByText('History Item Detail')).toBeInTheDocument();
-    expect(screen.getByTestId('team-history-detail-summary')).toBeInTheDocument();
+    expect(screen.getByText('Saved Move Details')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-detail-summary')
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
 
@@ -117,18 +127,20 @@ describe('Team History E84 surface integration', () => {
     const row = screen.getByTestId('team-history-event-row-0');
     const summary = screen.getByTestId('team-history-row-0');
     expect(screen.getByTestId('team-history-world-banner')).toBeInTheDocument();
-    expect(summary).toHaveTextContent('Trade Executed: LAL ↔ BOS');
-    expect(row).toHaveTextContent('executeTrade');
+    expect(summary).toHaveTextContent(
+      'Trade Executed: Los Angeles Lakers ↔ Boston Celtics'
+    );
+    expect(row).toHaveTextContent('Trade Executed');
 
     fireEvent.click(row);
 
     expect(screen.getByTestId('team-history-detail-modal')).toBeInTheDocument();
-    expect(screen.getByTestId('team-history-detail-mutation-type')).toHaveTextContent(
-      'executeTrade'
-    );
-    expect(screen.getByTestId('team-history-detail-player-ids')).toHaveTextContent(
-      'lal_player'
-    );
+    expect(
+      screen.queryByTestId('team-history-detail-mutation-type')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('team-history-detail-modal')
+    ).not.toHaveTextContent('lal_player');
 
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
 

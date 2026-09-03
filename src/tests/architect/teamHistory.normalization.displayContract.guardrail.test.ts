@@ -73,7 +73,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
         teamCodes: ['LAL'],
         playerIds: ['player_sign'],
         mutationMetadata: {
-          playerName: 'player_sign',
+          playerName: 'Darius Cole',
           teamCode: 'LAL',
           signedUsing: 'NTMLE',
           contract: {
@@ -84,7 +84,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       },
       expectedCategory: 'free-agency',
       expectedType: 'Signed Free Agent',
-      expectedSummary: 'Signed Free Agent: player_sign → LAL',
+      expectedSummary: 'Signed Free Agent: Darius Cole → LAL',
       expectedSections: ['Player', 'Contract', 'Signing Context'],
     },
     {
@@ -95,7 +95,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
         teamCodes: ['LAL', 'CHI'],
         playerIds: ['player_sat'],
         mutationMetadata: {
-          playerName: 'player_sat',
+          playerName: 'Evan Brooks',
           teamCode: 'LAL',
           signedUsing: 'Bird',
           contract: {
@@ -106,7 +106,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       },
       expectedCategory: 'trade',
       expectedType: 'Sign-and-Trade Executed',
-      expectedSummary: 'Sign-and-Trade Executed: player_sat (LAL ↔ CHI)',
+      expectedSummary: 'Sign-and-Trade Executed: Evan Brooks (LAL ↔ CHI)',
       expectedSections: ['Player', 'Contract', 'Trade Context', 'Teams'],
     },
     {
@@ -117,7 +117,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
         teamCodes: ['LAL', 'BOS'],
         playerIds: ['player_offer_decline'],
         mutationMetadata: {
-          playerName: 'player_offer_decline',
+          playerName: 'Jordan Lee',
           teamCode: 'LAL',
           signedUsing: 'Offer Sheet',
           contract: {
@@ -128,8 +128,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       },
       expectedCategory: 'offer-sheet',
       expectedType: 'Offer Sheet Finalized (Declined)',
-      expectedSummary:
-        'Offer Sheet Finalized (Declined): player_offer_decline → LAL',
+      expectedSummary: 'Offer Sheet Finalized (Declined): Jordan Lee → LAL',
       expectedSections: ['Player', 'Contract', 'Offer Sheet', 'Teams'],
     },
     {
@@ -140,14 +139,14 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
         teamCodes: ['LAL'],
         playerIds: ['player_waive'],
         mutationMetadata: {
-          playerName: 'player_waive',
+          playerName: 'Malik Turner',
           stretched: true,
           deadCapAmount: 4_500_000,
         },
       },
       expectedCategory: 'cap-transaction',
       expectedType: 'Waive Player',
-      expectedSummary: 'Waive Player: player_waive (stretch)',
+      expectedSummary: 'Waive Player: Malik Turner (stretch)',
       expectedSections: ['Player', 'Waiver'],
     },
     {
@@ -203,7 +202,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
         playerIds: ['player_anchor'],
         mutationMetadata: {
           summary: 'Signed Free Agent',
-          playerName: 'player_anchor',
+          playerName: 'Devin Price',
           teamCode: 'LAL',
           signedUsing: 'NTMLE',
         },
@@ -211,7 +210,7 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
       { teamCode: 'LAL' }
     );
 
-    expect(row.summary).toBe('Signed Free Agent: player_anchor → LAL');
+    expect(row.summary).toBe('Signed Free Agent: Devin Price → LAL');
   });
 
   it('preserves materially specific source summaries when they are already grounded', () => {
@@ -228,6 +227,373 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
     );
 
     expect(row.summary).toBe('Three-team salary dump routed through BOS');
+  });
+
+  it('sanitizes participant IDs in persisted summaries and primary deltas', () => {
+    const unresolvedRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'renounceRights',
+        occurredAt: '2026-03-05T03:55:00.000Z',
+        teamCodes: ['LAL'],
+        playerIds: ['historical_player_1'],
+        metadata: {
+          summary: 'historical_player_1: rights renounced',
+        },
+      },
+      { teamCode: 'LAL' }
+    );
+    const resolvedRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'renounceRights',
+        occurredAt: '2026-03-05T03:50:00.000Z',
+        teamCodes: ['LAL'],
+        metadata: {
+          playerId: 'austin_reaves',
+          summary: 'austin_reaves: rights renounced',
+        },
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: { austin_reaves: 'Austin Reaves' },
+      }
+    );
+
+    expect(unresolvedRow.summary).toBe(
+      'Player details unavailable: rights renounced'
+    );
+    expect(unresolvedRow.primaryDeltas).toBe(
+      'Player details unavailable: rights renounced'
+    );
+    expect(unresolvedRow.summary).not.toContain('historical_player_1');
+    expect(resolvedRow.summary).toBe('Austin Reaves: rights renounced');
+    expect(resolvedRow.primaryDeltas).toBe('Austin Reaves: rights renounced');
+  });
+
+  it('prefers a canonical singular player identity over compatibility names', () => {
+    const row = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:45:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        metadata: {
+          playerId: 'austin_reaves',
+          playersTraded: ['Austin Reaves'],
+          summary: 'Austin Reaves was traded',
+        },
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: { austin_reaves: 'Austin Reaves' },
+      }
+    );
+
+    expect(row.playerIds).toEqual(['austin_reaves']);
+    expect(getSectionLines(row, 'Players')).toEqual(['Austin Reaves']);
+    expect(row.summary).toBe('Austin Reaves was traded');
+  });
+
+  it('does not reinterpret an inserted display name as another player ID', () => {
+    const row = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:40:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['long_custom_id', 'Cap'],
+        metadata: { summary: 'long_custom_id was traded' },
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: {
+          long_custom_id: 'Cap Smith',
+          Cap: 'Other Player',
+        },
+      }
+    );
+
+    expect(row.summary).toBe('Cap Smith was traded');
+    expect(row.summary).not.toContain('Other Player Smith');
+  });
+
+  it('keeps every governed entitlement as its own directed trade-history line', () => {
+    const row = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:30:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        metadata: {
+          entitlementsTraded: {
+            LAL: {
+              out: ['2028-LAL-R1', 'pick_lal_2029_2nd'],
+              in: [],
+            },
+            BOS: {
+              out: [],
+              in: ['2028-LAL-R1', 'pick_lal_2029_2nd'],
+            },
+          },
+        },
+      },
+      { teamCode: 'LAL' }
+    );
+
+    expect(getSectionLines(row, 'Picks')).toEqual([
+      'LAL: out 2028-LAL-R1',
+      'LAL: out pick_lal_2029_2nd',
+      'BOS: in 2028-LAL-R1',
+      'BOS: in pick_lal_2029_2nd',
+    ]);
+  });
+
+  it('splits every entitlement in the persisted grouped pick summary', () => {
+    const row = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:15:00.000Z',
+        teamCodes: ['BOS', 'NYK'],
+        diffSummary: {
+          picksMoved: [
+            'BOS: out ent:BOS:2027:1:swap:abc12345, ent:NYK:2027:1:conv:def67890',
+          ],
+        },
+      },
+      { teamCode: 'BOS' }
+    );
+
+    expect(getSectionLines(row, 'Picks')).toEqual([
+      'BOS: out ent:BOS:2027:1:swap:abc12345',
+      'BOS: out ent:NYK:2027:1:conv:def67890',
+    ]);
+  });
+
+  it('keeps unresolved player IDs out of normal-mode world-event rows', () => {
+    const unresolvedRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:10:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['historical_player_1'],
+      },
+      { teamCode: 'LAL' }
+    );
+    const resolvedRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:05:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['austin_reaves'],
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: { austin_reaves: 'Austin Reaves' },
+      }
+    );
+    const unresolvedAlphabeticIdRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:03:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['HistoricalPlayer'],
+      },
+      { teamCode: 'LAL' }
+    );
+    const compatibilityNameRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:02:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        metadata: { playersTraded: ['Historical Player'] },
+      },
+      { teamCode: 'LAL' }
+    );
+    const canonicalIdDuplicatedIntoCompatibilityFieldRow =
+      toTeamHistoryEventDisplay(
+        {
+          mutationType: 'executeTrade',
+          occurredAt: '2026-03-05T03:01:30.000Z',
+          teamCodes: ['LAL', 'BOS'],
+          playerIds: ['HistoricalPlayer'],
+          metadata: {
+            playersTraded: ['HistoricalPlayer'],
+            summary: 'HistoricalPlayer was traded',
+          },
+        },
+        { teamCode: 'LAL' }
+      );
+    const shortIdSummaryRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:01:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['cap'],
+        metadata: { summary: 'cap: Dead cap amount changed' },
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: { cap: 'Cap Player' },
+      }
+    );
+    const singleOccurrenceShortIdSummaryRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:00:30.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['cap'],
+        metadata: { summary: 'Dead cap amount changed' },
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: { cap: 'Cap Player' },
+      }
+    );
+    const repeatedIdSummaryRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T03:00:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['historical_player_1'],
+        metadata: {
+          summary: 'historical_player_1 was traded for historical_player_1',
+        },
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: { historical_player_1: 'Historical Player' },
+      }
+    );
+    const titleCaseShortIdSummaryRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T02:59:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        playerIds: ['Cap'],
+        metadata: { summary: 'Cap: Dead Cap amount changed' },
+      },
+      {
+        teamCode: 'LAL',
+        playerNameLookup: { Cap: 'Cap Player' },
+      }
+    );
+
+    expect(getSectionLines(unresolvedRow, 'Players')).toEqual([
+      'Player details unavailable',
+    ]);
+    expect(unresolvedRow.summary).not.toContain('historical_player_1');
+    expect(getSectionLines(unresolvedRow, 'Players')).not.toContain(
+      'historical_player_1'
+    );
+    expect(getSectionLines(resolvedRow, 'Players')).toEqual(['Austin Reaves']);
+    expect(getSectionLines(unresolvedAlphabeticIdRow, 'Players')).toEqual([
+      'Player details unavailable',
+    ]);
+    expect(unresolvedAlphabeticIdRow.summary).not.toContain('HistoricalPlayer');
+    expect(getSectionLines(compatibilityNameRow, 'Players')).toEqual([
+      'Historical Player',
+    ]);
+    expect(
+      getSectionLines(canonicalIdDuplicatedIntoCompatibilityFieldRow, 'Players')
+    ).toEqual(['Player details unavailable']);
+    expect(
+      canonicalIdDuplicatedIntoCompatibilityFieldRow.summary
+    ).not.toContain('HistoricalPlayer');
+    expect(shortIdSummaryRow.summary).toBe('Trade Executed: LAL ↔ BOS');
+    expect(shortIdSummaryRow.summary).not.toContain('Dead Cap Player');
+    expect(shortIdSummaryRow.primaryDeltas).not.toContain('cap');
+    expect(singleOccurrenceShortIdSummaryRow.summary).toBe(
+      'Trade Executed: LAL ↔ BOS'
+    );
+    expect(singleOccurrenceShortIdSummaryRow.primaryDeltas).toBe(
+      'Trade Executed: LAL ↔ BOS'
+    );
+    expect(singleOccurrenceShortIdSummaryRow.summary).not.toContain(
+      'Cap Player'
+    );
+    expect(repeatedIdSummaryRow.summary).toBe('Trade Executed: LAL ↔ BOS');
+    expect(repeatedIdSummaryRow.primaryDeltas).toBe(
+      'Trade Executed: LAL ↔ BOS'
+    );
+    expect(repeatedIdSummaryRow.summary).not.toContain('historical_player_1');
+    expect(repeatedIdSummaryRow.primaryDeltas).not.toContain(
+      'historical_player_1'
+    );
+    expect(titleCaseShortIdSummaryRow.summary).toBe(
+      'Trade Executed: LAL ↔ BOS'
+    );
+    expect(titleCaseShortIdSummaryRow.primaryDeltas).not.toContain('Cap');
+    expect(titleCaseShortIdSummaryRow.summary).not.toContain('Dead Cap Player');
+  });
+
+  it('rejects ID-valued metadata-only player names without hiding real names', () => {
+    const unresolvedRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'waivePlayer',
+        occurredAt: '2026-03-05T03:02:00.000Z',
+        metadata: {
+          playerName: 'historical_player_1',
+          summary: 'historical_player_1 was waived',
+        },
+      },
+      { teamCode: 'LAL' }
+    );
+    const resolvedRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'waivePlayer',
+        occurredAt: '2026-03-05T03:01:00.000Z',
+        metadata: { playerName: 'Austin Reaves' },
+      },
+      { teamCode: 'LAL' }
+    );
+    const pairedIdentityRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'waivePlayer',
+        occurredAt: '2026-03-05T03:00:00.000Z',
+        metadata: {
+          playerId: 'austin_reaves',
+          playerName: 'Austin Reaves',
+          summary: 'Austin Reaves was waived',
+        },
+      },
+      { teamCode: 'LAL' }
+    );
+    const diffSummaryOnlyRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T02:55:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        diffSummary: { playersMoved: ['historical_player_1'] },
+        metadata: { summary: 'historical_player_1 was traded' },
+      },
+      { teamCode: 'LAL' }
+    );
+    const retainedDisplayNameRow = toTeamHistoryEventDisplay(
+      {
+        mutationType: 'executeTrade',
+        occurredAt: '2026-03-05T02:50:00.000Z',
+        teamCodes: ['LAL', 'BOS'],
+        metadata: {
+          playersTraded: ['Austin Reaves'],
+          summary: 'Austin Reaves was traded',
+        },
+      },
+      { teamCode: 'LAL' }
+    );
+
+    expect(unresolvedRow.summary).toBe('Player details unavailable was waived');
+    expect(unresolvedRow.summary).not.toContain('historical_player_1');
+    expect(resolvedRow.summary).toBe('Waive Player: Austin Reaves');
+    expect(pairedIdentityRow.summary).toBe('Austin Reaves was waived');
+    expect(diffSummaryOnlyRow.summary).toBe(
+      'Player details unavailable was traded'
+    );
+    expect(diffSummaryOnlyRow.primaryDeltas).not.toContain(
+      'historical_player_1'
+    );
+    expect(retainedDisplayNameRow.summary).toBe('Austin Reaves was traded');
+    expect(getSectionLines(retainedDisplayNameRow, 'Players')).toEqual([
+      'Austin Reaves',
+    ]);
+    expect(retainedDisplayNameRow.summary).not.toContain(
+      'Player details unavailable'
+    );
   });
 
   it('uses active-team-first Team Salary delta and retains all book identities', () => {
@@ -312,7 +678,9 @@ describe('TEAM_HISTORY_E6 normalization display-contract guardrail', () => {
 
     expect(unknownRow.category).toBe('world-event');
     expect(unknownRow.type).toBe('Mystery Mutation');
-    expect(unknownRow.summary).toBe('Mystery Mutation: player_unknown');
+    expect(unknownRow.summary).toBe(
+      'Mystery Mutation: Player details unavailable'
+    );
     expect(getSectionLines(unknownRow, 'Event Detail')).toEqual([
       'No event-specific Team History detail mapping exists for mysteryMutation.',
     ]);
