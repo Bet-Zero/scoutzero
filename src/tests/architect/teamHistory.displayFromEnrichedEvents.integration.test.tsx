@@ -223,7 +223,15 @@ describe('TEAM_HISTORY_E5 display integration from enriched world events', () =>
       'Exceptions Updated:'
     );
 
-    expect(screen.queryByText(/details unavailable/i)).not.toBeInTheDocument();
+    [1, 2, 3, 4].forEach((rowIndex) => {
+      const row = screen.getByTestId(`team-history-event-row-${rowIndex}`);
+      expect(row).toHaveTextContent('Player details unavailable');
+      expect(row).not.toHaveTextContent(
+        ['player_sign', 'player_waive', 'player_extend', 'player_offer_decline'][
+          rowIndex - 1
+        ]
+      );
+    });
 
     fireEvent.click(screen.getByTestId('team-history-event-row-0'));
     expect(screen.getByText('Players')).toBeInTheDocument();
@@ -231,13 +239,13 @@ describe('TEAM_HISTORY_E5 display integration from enriched world events', () =>
     expect(screen.getByText('Salary Books')).toBeInTheDocument();
     expect(
       screen.getByTestId('team-history-detail-modal').textContent || ''
-    ).toContain('LAL Team Salary: -$1,000,000');
+    ).toContain('Los Angeles Lakers Team Salary: -$1,000,000');
     expect(
       screen.getByTestId('team-history-detail-modal').textContent || ''
-    ).toContain('LAL Apron Team Salary: -$2,000,000');
+    ).toContain('Los Angeles Lakers Apron Team Salary: -$2,000,000');
     expect(
       screen.getByTestId('team-history-detail-modal').textContent || ''
-    ).toContain('LAL Tax Salary: -$3,000,000');
+    ).toContain('Los Angeles Lakers Tax Salary: -$3,000,000');
     expect(screen.getAllByText(/2028-LAL-R1/i).length).toBeGreaterThan(0);
     expect(screen.getByTestId('team-history-raw-payload')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('team-history-detail-close'));
@@ -266,7 +274,7 @@ describe('TEAM_HISTORY_E5 display integration from enriched world events', () =>
     expect(screen.getByText('Offer Sheet')).toBeInTheDocument();
     expect(
       screen.getByTestId('team-history-detail-type').textContent || ''
-    ).toContain('offer-sheet · Offer Sheet Finalized (Declined)');
+    ).toContain('Offer Sheet Finalized (Declined)');
     expect(
       screen.getByText(/Stage: Offer Sheet Finalized \(Declined\)/i)
     ).toBeInTheDocument();

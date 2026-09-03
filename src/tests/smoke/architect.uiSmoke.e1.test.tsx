@@ -577,10 +577,10 @@ describe('ARCHITECT_SMOKE_E1: emulator-first world-mode UI smoke', () => {
     fireEvent.click(row);
 
     expect(screen.getByTestId('team-history-detail-modal')).toBeInTheDocument();
-    expect(screen.getByText('History Item Detail')).toBeInTheDocument();
+    expect(screen.getByText('Saved Move Details')).toBeInTheDocument();
     expect(
       screen.getByTestId('team-history-detail-timestamp')
-    ).toHaveTextContent('2026-02-10T14:00:00.000Z');
+    ).toHaveTextContent('Feb 10, 2026, 2:00 PM');
   });
 
   it('renders Offseason world surface and season advance controls', async () => {

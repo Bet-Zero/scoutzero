@@ -251,7 +251,7 @@ describe('ValidationDetailsPanel Guardrail Tests (Tasks B, C, D, E)', () => {
       expect(callout).toBeTruthy();
       // Verify the callout contains the key text
       expect(callout.textContent).toContain('Validate Trade');
-      expect(callout.textContent).toContain('to generate official results');
+      expect(callout.textContent).toContain('to generate results');
     });
 
     it('B-GR-02: does NOT show Official tags when hasValidatorResult=false', () => {
