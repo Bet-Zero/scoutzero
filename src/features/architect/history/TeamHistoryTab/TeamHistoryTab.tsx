@@ -16,6 +16,7 @@ import type {
 import {
   resolveTeamHistoryTimeline,
   buildSelectedHistoryEntry,
+  resolveCanonicalEventPlayerIds,
   resolveReliableTradePlayerMovements,
   resolveWaivedContractDisplayEntries,
 } from './TeamHistoryTab.helpers';
@@ -210,9 +211,12 @@ const WorldHistoryDetailModal = ({
   const selectedMutationType = String(
     selectedEntry?.entry.mutationType ?? selectedEntry?.entry.type ?? ''
   ).trim();
+  const selectedHasCanonicalPlayerParticipants =
+    resolveCanonicalEventPlayerIds(selectedEntry?.entry.raw).length > 0;
   const counterpartTeamCode =
     selectedEntry?.truthKind === 'authoritative-world-event' &&
     selectedMutationType === 'executeTrade' &&
+    selectedHasCanonicalPlayerParticipants &&
     selectedTeamCodes.length === 2 &&
     selectedTeamCodes.includes(activeTeamCode)
       ? selectedTeamCodes.find((teamCode) => teamCode !== activeTeamCode) ||

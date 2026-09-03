@@ -120,30 +120,35 @@ const eventStringList = (
     : normalize(event[fallbackField]);
 };
 
-const eventPlayerIds = (event: Record<string, unknown>): string[] => {
-  const directPlayerIds = eventStringList(event, 'playerIds');
+export const resolveCanonicalEventPlayerIds = (
+  eventInput: unknown
+): string[] => {
+  const event = asRecord(eventInput);
+  if (!event) return [];
+
   const metadata = asRecord(event.metadata);
-  const metadataPlayerIds = metadata
-    ? [
-        ...eventStringList(metadata, 'playerIds'),
-        ...eventStringList(metadata, 'playersTraded'),
-      ]
-    : [];
   const mutationMetadata = asRecord(event.mutationMetadata);
-  const singlePlayerIds = [mutationMetadata?.playerId, metadata?.playerId]
-    .map((value) => String(value || '').trim())
-    .filter(Boolean);
   const diffSummary = asRecord(event.diffSummary);
-  const diffSummaryPlayerIds = diffSummary
-    ? eventStringList(diffSummary, 'playersMoved')
-    : [];
 
   return Array.from(
     new Set([
-      ...directPlayerIds,
-      ...metadataPlayerIds,
-      ...singlePlayerIds,
-      ...diffSummaryPlayerIds,
+      ...eventStringList(event, 'playerIds'),
+      ...(metadata ? eventStringList(metadata, 'playerIds') : []),
+      ...[mutationMetadata?.playerId, metadata?.playerId]
+        .map((value) => String(value || '').trim())
+        .filter(Boolean),
+      ...(diffSummary ? eventStringList(diffSummary, 'playersMoved') : []),
+    ])
+  );
+};
+
+const eventPlayerIds = (event: Record<string, unknown>): string[] => {
+  const metadata = asRecord(event.metadata);
+
+  return Array.from(
+    new Set([
+      ...resolveCanonicalEventPlayerIds(event),
+      ...(metadata ? eventStringList(metadata, 'playersTraded') : []),
     ])
   );
 };
@@ -157,16 +162,7 @@ const hasUnboundCompatibilityPlayerNames = (
     : [];
   if (compatibilityNames.length === 0) return false;
 
-  const mutationMetadata = asRecord(event.mutationMetadata);
-  const diffSummary = asRecord(event.diffSummary);
-  const canonicalPlayerIds = new Set([
-    ...eventStringList(event, 'playerIds'),
-    ...(metadata ? eventStringList(metadata, 'playerIds') : []),
-    ...[mutationMetadata?.playerId, metadata?.playerId]
-      .map((value) => String(value || '').trim())
-      .filter(Boolean),
-    ...(diffSummary ? eventStringList(diffSummary, 'playersMoved') : []),
-  ]);
+  const canonicalPlayerIds = new Set(resolveCanonicalEventPlayerIds(event));
 
   return compatibilityNames.some(
     (compatibilityName) => !canonicalPlayerIds.has(compatibilityName)
@@ -238,7 +234,7 @@ export const resolveReliableTradePlayerMovements = ({
     return [];
   }
 
-  const playerIds = eventPlayerIds(selectedEvent);
+  const playerIds = resolveCanonicalEventPlayerIds(selectedEvent);
   const selectedTime = parseTimelineTimestamp(
     selectedEvent.occurredAt ?? selectedEvent.timestamp
   );
