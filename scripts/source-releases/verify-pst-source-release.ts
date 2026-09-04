@@ -1,12 +1,7 @@
 /** Deterministic verifier for private PST source-release metadata and bytes. */
 
 import { createHash } from 'node:crypto';
-import {
-  lstat,
-  readFile,
-  readdir,
-  stat,
-} from 'node:fs/promises';
+import { lstat, readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -71,6 +66,11 @@ const CaptureArtifactZ = z
   })
   .passthrough();
 
+const CaptureInventoryFileZ = CaptureArtifactZ.extend({
+  targetId: z.string().min(1),
+  repeatOf: z.string().nullable(),
+});
+
 const CaptureResultZ = z
   .object({
     sequence: z.number().int(),
@@ -97,7 +97,7 @@ const CaptureManifestZ = z
     generatedAt: z.string().min(1),
     requiredPageCount: z.literal(39),
     repeatPageCount: z.literal(3),
-    files: z.array(CaptureArtifactZ).length(126),
+    files: z.array(CaptureInventoryFileZ).length(126),
     results: z.array(CaptureResultZ).length(42),
   })
   .passthrough();
@@ -140,7 +140,8 @@ export function canonicalJson(value: unknown): string {
   }
   if (value === null || typeof value !== 'object') {
     const encoded = JSON.stringify(value);
-    if (encoded === undefined) fail('Release metadata is not JSON-serializable.');
+    if (encoded === undefined)
+      fail('Release metadata is not JSON-serializable.');
     return encoded;
   }
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
@@ -159,7 +160,8 @@ function sha256(value: Uint8Array | string): string {
 export function computePstSourceReleaseDigest(
   release: Omit<PstSourceRelease, 'releaseDigestSha256'> | PstSourceRelease
 ): string {
-  const { releaseDigestSha256: _ignored, ...material } = release as PstSourceRelease;
+  const { releaseDigestSha256: _ignored, ...material } =
+    release as PstSourceRelease;
   return sha256(canonicalJson(material));
 }
 
@@ -180,6 +182,16 @@ function assertNoChallengeToken(value: string, location: string): void {
   }
 }
 
+function assertSafeRelativePath(value: string, location: string): void {
+  if (
+    path.isAbsolute(value) ||
+    value.startsWith('\\') ||
+    value.split(/[\\/]/).includes('..')
+  ) {
+    fail(`Unsafe relative path is forbidden at ${location}.`);
+  }
+}
+
 function pageArtifacts(page: PstSourcePageCapture): PstReleaseArtifact[] {
   return [page.rawResponse, page.serializedDom, page.screenshot];
 }
@@ -193,7 +205,9 @@ export function verifyPstSourceReleaseInvariants(
   }
   const expectedReleaseId = `pst-current-${release.source.captureIssue.toLowerCase()}-${release.sourceCaptureManifest.sha256.slice(0, 16)}`;
   if (release.releaseId !== expectedReleaseId) {
-    fail(`Release ID must be the immutable content identity ${expectedReleaseId}.`);
+    fail(
+      `Release ID must be the immutable content identity ${expectedReleaseId}.`
+    );
   }
   if (release.supersedes?.releaseId === release.releaseId) {
     fail('A release cannot supersede itself.');
@@ -213,18 +227,32 @@ export function verifyPstSourceReleaseInvariants(
   if (required.length !== 39 || repeats.length !== 3) {
     fail('Release must contain 39 canonical pages and 3 repeat captures.');
   }
-  if (!sameStrings(required.map((page) => page.sourcePageId), EXPECTED_REQUIRED_PAGE_IDS)) {
+  if (
+    !sameStrings(
+      required.map((page) => page.sourcePageId),
+      EXPECTED_REQUIRED_PAGE_IDS
+    )
+  ) {
     fail('Canonical source-page set is missing, duplicated, or unexpected.');
   }
-  if (!sameStrings(repeats.map((page) => page.sourcePageId), EXPECTED_REPEAT_IDS)) {
-    fail('Repeat-evidence source-page set is missing, duplicated, or unexpected.');
+  if (
+    !sameStrings(
+      repeats.map((page) => page.sourcePageId),
+      EXPECTED_REPEAT_IDS
+    )
+  ) {
+    fail(
+      'Repeat-evidence source-page set is missing, duplicated, or unexpected.'
+    );
   }
   const ordered = [...release.pages].sort(
     (left, right) => left.sequence - right.sequence
   );
   ordered.forEach((page, index) => {
     if (page.sequence !== index + 1) {
-      fail('Page capture sequences must be unique and contiguous from 1 to 42.');
+      fail(
+        'Page capture sequences must be unique and contiguous from 1 to 42.'
+      );
     }
   });
   const captureIds = release.pages.map((page) => page.captureId);
@@ -241,11 +269,12 @@ export function verifyPstSourceReleaseInvariants(
     if (page.captureStartedAt >= page.captureCompletedAt) {
       fail(`Capture window is not increasing for ${page.captureId}.`);
     }
-    const expectedType = page.sourcePageId === 'year-index'
-      ? 'index'
-      : page.sourcePageId.startsWith('team-')
-        ? 'team'
-        : 'year';
+    const expectedType =
+      page.sourcePageId === 'year-index'
+        ? 'index'
+        : page.sourcePageId.startsWith('team-')
+          ? 'team'
+          : 'year';
     if (page.pageType !== expectedType) {
       fail(`Page type does not match source identity for ${page.captureId}.`);
     }
@@ -270,9 +299,9 @@ export function verifyPstSourceReleaseInvariants(
     }
   }
 
-  const artifactPaths = release.pages.flatMap(pageArtifacts).map(
-    (artifact) => artifact.relativePath
-  );
+  const artifactPaths = release.pages
+    .flatMap(pageArtifacts)
+    .map((artifact) => artifact.relativePath);
   if (new Set(artifactPaths).size !== 126) {
     fail('Release metadata has a duplicate evidence-file path.');
   }
@@ -292,7 +321,9 @@ export function verifyPstSourceReleaseInvariants(
       repeat.rawResponse.byteSize === original.rawResponse.byteSize &&
       repeat.rawResponse.sha256 === original.rawResponse.sha256;
     if (!stable) {
-      fail(`Repeat page ${repeat.sourcePageId} is unstable in canonical content.`);
+      fail(
+        `Repeat page ${repeat.sourcePageId} is unstable in canonical content.`
+      );
     }
   }
 }
@@ -389,7 +420,9 @@ function assertCaptureResultMatchesRelease(
     page.pstLastUpdated === result.pstLastUpdated &&
     page.semanticSha256 === result.semanticSha256;
   if (!scalarMatches) {
-    fail(`Release page metadata differs from capture manifest for ${page.captureId}.`);
+    fail(
+      `Release page metadata differs from capture manifest for ${page.captureId}.`
+    );
   }
   for (const file of result.files) {
     const releaseArtifact = releaseArtifactFor(page, file.kind);
@@ -398,7 +431,9 @@ function assertCaptureResultMatchesRelease(
       releaseArtifact.byteSize !== file.byteSize ||
       releaseArtifact.sha256 !== file.sha256
     ) {
-      fail(`Release artifact metadata differs for ${page.captureId}/${file.kind}.`);
+      fail(
+        `Release artifact metadata differs for ${page.captureId}/${file.kind}.`
+      );
     }
     if (
       file.kind === 'screenshot' &&
@@ -454,6 +489,52 @@ export async function verifyPstSourceRelease(
   if (new Set(manifestPaths).size !== 126) {
     fail('Capture manifest has a duplicate evidence-file path.');
   }
+  manifest.files.forEach((file) =>
+    assertSafeRelativePath(
+      file.relativePath,
+      `capture manifest ${file.relativePath}`
+    )
+  );
+  const resultSequences = manifest.results.map((result) => result.sequence);
+  if (
+    new Set(resultSequences).size !== 42 ||
+    !sameStrings(
+      resultSequences.map(String),
+      Array.from({ length: 42 }, (_, index) => String(index + 1))
+    )
+  ) {
+    fail('Capture manifest result sequences are missing or duplicated.');
+  }
+  const inventoryByPath = new Map(
+    manifest.files.map((file) => [file.relativePath, file])
+  );
+  for (const result of manifest.results) {
+    const kinds = result.files.map((file) => file.kind);
+    if (!sameStrings(kinds, ['rawHtml', 'serializedDom', 'screenshot'])) {
+      fail(
+        `Capture result ${result.sequence} has missing or duplicate evidence kinds.`
+      );
+    }
+    for (const file of result.files) {
+      assertSafeRelativePath(
+        file.relativePath,
+        `capture result ${result.sequence}/${file.kind}`
+      );
+      const inventoryFile = inventoryByPath.get(file.relativePath);
+      if (
+        !inventoryFile ||
+        inventoryFile.targetId !== result.targetId ||
+        inventoryFile.repeatOf !== result.repeatOf ||
+        inventoryFile.kind !== file.kind ||
+        inventoryFile.byteSize !== file.byteSize ||
+        inventoryFile.sha256 !== file.sha256
+      ) {
+        fail(
+          `Capture manifest inventories disagree for result ${result.sequence}/${file.kind}.`
+        );
+      }
+    }
+  }
   const actualPaths = await regularFileInventory(evidenceRoot);
   const expectedPaths = [
     ...manifestPaths,
@@ -467,7 +548,8 @@ export async function verifyPstSourceRelease(
   for (const file of manifest.files) {
     const absolute = path.join(evidenceRoot, file.relativePath);
     const fileStat = await lstat(absolute);
-    if (!fileStat.isFile()) fail(`Evidence entry is not a file: ${file.relativePath}`);
+    if (!fileStat.isFile())
+      fail(`Evidence entry is not a file: ${file.relativePath}`);
     const bytes = await readFile(absolute);
     if (bytes.byteLength !== file.byteSize) {
       fail(`Evidence byte-size mismatch: ${file.relativePath}`);
@@ -482,9 +564,16 @@ export async function verifyPstSourceRelease(
   );
   for (const result of manifest.results) {
     const page = pagesBySequence.get(result.sequence);
-    if (!page) fail(`Capture result ${result.sequence} is missing from the release.`);
-    assertNoChallengeToken(result.requestedUrl, `capture result ${result.sequence}`);
-    assertNoChallengeToken(result.finalUrl, `capture result ${result.sequence}`);
+    if (!page)
+      fail(`Capture result ${result.sequence} is missing from the release.`);
+    assertNoChallengeToken(
+      result.requestedUrl,
+      `capture result ${result.sequence}`
+    );
+    assertNoChallengeToken(
+      result.finalUrl,
+      `capture result ${result.sequence}`
+    );
     assertCaptureResultMatchesRelease(result, page);
   }
 
@@ -494,7 +583,10 @@ export async function verifyPstSourceRelease(
       fail('Archive filename does not match release metadata.');
     }
     const archiveStat = await stat(input.archivePath);
-    if (!archiveStat.isFile() || archiveStat.size !== release.package.byteSize) {
+    if (
+      !archiveStat.isFile() ||
+      archiveStat.size !== release.package.byteSize
+    ) {
       fail('Archive byte size does not match release metadata.');
     }
     archiveSha256 = sha256(await readFile(input.archivePath));
@@ -522,7 +614,9 @@ function parseCliArgs(argv: string[]): PstSourceReleaseVerificationInput {
     const key = argv[index];
     const value = argv[index + 1];
     if (!['--release', '--evidence', '--archive'].includes(key) || !value) {
-      fail('Usage: --release <json> --evidence <directory> [--archive <tar.gz>]');
+      fail(
+        'Usage: --release <json> --evidence <directory> [--archive <tar.gz>]'
+      );
     }
     values.set(key, value);
   }
@@ -539,7 +633,9 @@ function parseCliArgs(argv: string[]): PstSourceReleaseVerificationInput {
 }
 
 async function main(): Promise<void> {
-  const receipt = await verifyPstSourceRelease(parseCliArgs(process.argv.slice(2)));
+  const receipt = await verifyPstSourceRelease(
+    parseCliArgs(process.argv.slice(2))
+  );
   process.stdout.write(`${JSON.stringify(receipt, null, 2)}\n`);
 }
 

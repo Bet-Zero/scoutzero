@@ -328,7 +328,8 @@ describe('BZE-305 governed PST source release', () => {
     const repeat = fixture.release.pages.find(
       (page) => page.captureId === 'team-CHI:repeat-1'
     );
-    if (!repeat) throw new Error('Synthetic fixture is missing the CHI repeat.');
+    if (!repeat)
+      throw new Error('Synthetic fixture is missing the CHI repeat.');
     repeat.semanticSha256 = '0'.repeat(64);
     fixture.release.releaseDigestSha256 = computePstSourceReleaseDigest(
       fixture.release

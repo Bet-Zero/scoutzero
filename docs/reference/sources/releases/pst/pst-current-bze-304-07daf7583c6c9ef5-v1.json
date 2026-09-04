@@ -38,10 +38,7 @@
     "canonicalBytes": "raw-response-html",
     "requiredPageCount": 39,
     "repeatCaptureCount": 3,
-    "secondaryEvidence": [
-      "serialized-dom",
-      "screenshot"
-    ]
+    "secondaryEvidence": ["serialized-dom", "screenshot"]
   },
   "counts": {
     "pageCaptures": 42,
