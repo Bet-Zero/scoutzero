@@ -557,6 +557,12 @@ export async function verifyPstSourceRelease(
     if (sha256(bytes) !== file.sha256) {
       fail(`Evidence SHA-256 mismatch: ${file.relativePath}`);
     }
+    if (
+      (file.kind === 'rawHtml' || file.kind === 'serializedDom') &&
+      CHALLENGE_TOKEN_PATTERN.test(Buffer.from(bytes).toString('utf8'))
+    ) {
+      fail(`Challenge-token value is forbidden in ${file.relativePath}.`);
+    }
   }
 
   const pagesBySequence = new Map(

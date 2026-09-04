@@ -67,6 +67,12 @@ conclusion:
 - Ordinary requests to the acknowledgements page, `/terms.htm`,
   `/privacy.htm`, and `/robots.txt` each returned HTTP 403, so those responses
   established no additional terms or permission.
+- No Cloudflare challenge/clearance token name appears in the manifest, raw
+  HTML, or serialized DOM. Some secondary post-load DOM files do preserve
+  dynamic third-party ad iframe URLs containing pseudonymous advertising
+  identifiers and generic reCAPTCHA frame URLs. They are not canonical PST
+  source bytes or PST access credentials, but this incidental capture data is
+  another reason the exact package must remain private and unredistributed.
 
 No express reuse license was established. Keep the retained raw pages private
 as internal source evidence and do not publicly redistribute them. PST is a
