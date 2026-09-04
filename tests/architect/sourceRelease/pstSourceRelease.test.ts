@@ -13,6 +13,8 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  CalendarDateZ,
+  CaptureTimestampZ,
   PstSourceReleaseZ,
   type PstSourcePageCapture,
   type PstSourceRelease,
@@ -36,9 +38,11 @@ type SyntheticFixture = {
   release: PstSourceRelease;
 };
 
+/** Computes fixture hashes with the same byte semantics as the verifier. */
 const sha256 = (value: Uint8Array | string): string =>
   createHash('sha256').update(value).digest('hex');
 
+/** Recomputes and writes strict release metadata after a fixture mutation. */
 async function writeRelease(fixture: SyntheticFixture): Promise<void> {
   fixture.release.releaseDigestSha256 = computePstSourceReleaseDigest(
     fixture.release
@@ -50,6 +54,7 @@ async function writeRelease(fixture: SyntheticFixture): Promise<void> {
   );
 }
 
+/** Builds the manifest inventory entry for one synthetic page artifact. */
 function resultFile(
   page: PstSourcePageCapture,
   kind: 'rawHtml' | 'serializedDom' | 'screenshot'
@@ -73,6 +78,7 @@ function resultFile(
   };
 }
 
+/** Creates an isolated complete release package for success and failure tests. */
 async function makeSyntheticFixture(): Promise<SyntheticFixture> {
   const root = await mkdtemp(path.join(tmpdir(), 'bze305-pst-release-'));
   temporaryRoots.push(root);
@@ -320,6 +326,67 @@ describe('BZE-305 governed PST source release', () => {
 
     expect(() => verifyPstSourceReleaseInvariants(fixture.release)).toThrow(
       /Challenge-token value is forbidden/
+    );
+  });
+
+  it('compares capture windows as instants when milliseconds are optional', async () => {
+    const fixture = await makeSyntheticFixture();
+    fixture.release.source.capturedAt.startedAt = '2026-09-04T06:45:33Z';
+    fixture.release.pages[0].captureStartedAt = '2026-09-04T06:45:33Z';
+    fixture.release.pages[0].captureCompletedAt = '2026-09-04T06:45:33.001Z';
+    fixture.release.releaseDigestSha256 = computePstSourceReleaseDigest(
+      fixture.release
+    );
+
+    expect(() =>
+      verifyPstSourceReleaseInvariants(fixture.release)
+    ).not.toThrow();
+
+    fixture.release.pages[0].captureStartedAt = '2026-09-04T06:45:33.001Z';
+    fixture.release.pages[0].captureCompletedAt = '2026-09-04T06:45:33Z';
+    fixture.release.releaseDigestSha256 = computePstSourceReleaseDigest(
+      fixture.release
+    );
+
+    expect(() => verifyPstSourceReleaseInvariants(fixture.release)).toThrow(
+      /Capture window is not increasing/
+    );
+
+    fixture.release.source.capturedAt.startedAt = '2026-09-04T06:50:35.001Z';
+    fixture.release.source.capturedAt.completedAt = '2026-09-04T06:50:35Z';
+    fixture.release.releaseDigestSha256 = computePstSourceReleaseDigest(
+      fixture.release
+    );
+
+    expect(() => verifyPstSourceReleaseInvariants(fixture.release)).toThrow(
+      /Release capture window is not increasing/
+    );
+  });
+
+  it('rejects a page capture outside the release window', async () => {
+    const fixture = await makeSyntheticFixture();
+    fixture.release.pages[0].captureStartedAt = '2026-09-04T06:45:33.362Z';
+    fixture.release.releaseDigestSha256 = computePstSourceReleaseDigest(
+      fixture.release
+    );
+
+    expect(() => verifyPstSourceReleaseInvariants(fixture.release)).toThrow(
+      /Capture window falls outside the release/
+    );
+  });
+
+  it('rejects impossible calendar dates and UTC timestamps', () => {
+    expect(CalendarDateZ.safeParse('2028-02-29').success).toBe(true);
+    expect(CalendarDateZ.safeParse('2026-02-29').success).toBe(false);
+    expect(CalendarDateZ.safeParse('2026-13-01').success).toBe(false);
+    expect(CaptureTimestampZ.safeParse('2026-09-04T23:59:59Z').success).toBe(
+      true
+    );
+    expect(CaptureTimestampZ.safeParse('2026-09-04T24:00:00Z').success).toBe(
+      false
+    );
+    expect(CaptureTimestampZ.safeParse('2026-09-04T23:60:00Z').success).toBe(
+      false
     );
   });
 

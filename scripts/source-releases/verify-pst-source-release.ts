@@ -12,7 +12,7 @@ import {
   type PstReleaseArtifact,
   type PstSourcePageCapture,
   type PstSourceRelease,
-} from '../../src/schemas/pstSourceRelease';
+} from '@/schemas/pstSourceRelease';
 
 const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 const CHALLENGE_TOKEN_PATTERN = /__cf_chl|cf_clearance/i;
@@ -123,17 +123,21 @@ export type PstSourceReleaseVerificationReceipt = {
   packageFilesVerified: 128;
 };
 
+/** Identifies a closed verification failure suitable for CLI reporting. */
 export class PstSourceReleaseVerificationError extends Error {
+  /** Creates a named source-release verification error. */
   constructor(message: string) {
     super(message);
     this.name = 'PstSourceReleaseVerificationError';
   }
 }
 
+/** Orders strings by Unicode code point for platform-independent canonicalization. */
 export function compareCodePoints(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
+/** Serializes JSON values with recursively sorted object keys. */
 export function canonicalJson(value: unknown): string {
   if (value === undefined) {
     fail('Canonical release metadata cannot contain undefined values.');
@@ -153,10 +157,12 @@ export function canonicalJson(value: unknown): string {
     .join(',')}}`;
 }
 
+/** Computes a lowercase SHA-256 digest for bytes or text. */
 function sha256(value: Uint8Array | string): string {
   return createHash('sha256').update(value).digest('hex');
 }
 
+/** Computes the immutable digest over release metadata other than the digest field. */
 export function computePstSourceReleaseDigest(
   release: Omit<PstSourceRelease, 'releaseDigestSha256'> | PstSourceRelease
 ): string {
@@ -165,10 +171,12 @@ export function computePstSourceReleaseDigest(
   return sha256(canonicalJson(material));
 }
 
+/** Throws the verifier's stable failure type. */
 function fail(message: string): never {
   throw new PstSourceReleaseVerificationError(message);
 }
 
+/** Compares two string collections without depending on their input order. */
 function sameStrings(actual: string[], expected: string[]): boolean {
   return (
     JSON.stringify([...actual].sort(compareCodePoints)) ===
@@ -176,12 +184,14 @@ function sameStrings(actual: string[], expected: string[]): boolean {
   );
 }
 
+/** Rejects capture-session challenge values from persisted metadata or text. */
 function assertNoChallengeToken(value: string, location: string): void {
   if (CHALLENGE_TOKEN_PATTERN.test(value)) {
     fail(`Challenge-token value is forbidden at ${location}.`);
   }
 }
 
+/** Rejects absolute paths and parent traversal in retained package metadata. */
 function assertSafeRelativePath(value: string, location: string): void {
   if (
     path.isAbsolute(value) ||
@@ -192,10 +202,17 @@ function assertSafeRelativePath(value: string, location: string): void {
   }
 }
 
+/** Returns the three evidence artifacts governed for one page capture. */
 function pageArtifacts(page: PstSourcePageCapture): PstReleaseArtifact[] {
   return [page.rawResponse, page.serializedDom, page.screenshot];
 }
 
+/** Converts a schema-validated UTC timestamp to a chronological instant. */
+function timestampMilliseconds(value: string): number {
+  return Date.parse(value);
+}
+
+/** Enforces release identity, page-set, timing, path, and repeat invariants. */
 export function verifyPstSourceReleaseInvariants(
   release: PstSourceRelease
 ): void {
@@ -212,9 +229,13 @@ export function verifyPstSourceReleaseInvariants(
   if (release.supersedes?.releaseId === release.releaseId) {
     fail('A release cannot supersede itself.');
   }
-  if (
-    release.source.capturedAt.startedAt >= release.source.capturedAt.completedAt
-  ) {
+  const releaseStartedAt = timestampMilliseconds(
+    release.source.capturedAt.startedAt
+  );
+  const releaseCompletedAt = timestampMilliseconds(
+    release.source.capturedAt.completedAt
+  );
+  if (releaseStartedAt >= releaseCompletedAt) {
     fail('Release capture window is not increasing.');
   }
 
@@ -266,8 +287,16 @@ export function verifyPstSourceReleaseInvariants(
     if (page.requestedUrl !== page.finalUrl) {
       fail(`Requested/final URL drift for ${page.captureId}.`);
     }
-    if (page.captureStartedAt >= page.captureCompletedAt) {
+    const pageStartedAt = timestampMilliseconds(page.captureStartedAt);
+    const pageCompletedAt = timestampMilliseconds(page.captureCompletedAt);
+    if (pageStartedAt >= pageCompletedAt) {
       fail(`Capture window is not increasing for ${page.captureId}.`);
+    }
+    if (
+      pageStartedAt < releaseStartedAt ||
+      pageCompletedAt > releaseCompletedAt
+    ) {
+      fail(`Capture window falls outside the release for ${page.captureId}.`);
     }
     const expectedType =
       page.sourcePageId === 'year-index'
@@ -328,6 +357,7 @@ export function verifyPstSourceReleaseInvariants(
   }
 }
 
+/** Reads and strictly parses checked-in source-release metadata. */
 async function parseRelease(releasePath: string): Promise<PstSourceRelease> {
   let raw: string;
   try {
@@ -348,6 +378,7 @@ async function parseRelease(releasePath: string): Promise<PstSourceRelease> {
   return parsed.data;
 }
 
+/** Reads and validates the retained capture manifest. */
 async function parseCaptureManifest(
   manifestPath: string
 ): Promise<{ bytes: Uint8Array; manifest: CaptureManifest }> {
@@ -370,6 +401,7 @@ async function parseCaptureManifest(
   return { bytes, manifest: parsed.data };
 }
 
+/** Recursively inventories regular package files using portable relative paths. */
 async function regularFileInventory(
   root: string,
   directory = root
@@ -389,6 +421,7 @@ async function regularFileInventory(
   return paths.sort(compareCodePoints);
 }
 
+/** Selects the release artifact corresponding to one capture-manifest kind. */
 function releaseArtifactFor(
   page: PstSourcePageCapture,
   kind: z.infer<typeof CaptureArtifactZ>['kind']
@@ -398,6 +431,7 @@ function releaseArtifactFor(
   return page.screenshot;
 }
 
+/** Requires a capture-manifest result to match the governed page metadata. */
 function assertCaptureResultMatchesRelease(
   result: CaptureResult,
   page: PstSourcePageCapture
@@ -445,6 +479,7 @@ function assertCaptureResultMatchesRelease(
   }
 }
 
+/** Verifies release metadata, recovered evidence bytes, and an optional archive. */
 export async function verifyPstSourceRelease(
   input: PstSourceReleaseVerificationInput
 ): Promise<PstSourceReleaseVerificationReceipt> {
@@ -614,6 +649,7 @@ export async function verifyPstSourceRelease(
   };
 }
 
+/** Parses the bounded verifier CLI arguments. */
 function parseCliArgs(argv: string[]): PstSourceReleaseVerificationInput {
   const values = new Map<string, string>();
   for (let index = 0; index < argv.length; index += 2) {
@@ -638,6 +674,7 @@ function parseCliArgs(argv: string[]): PstSourceReleaseVerificationInput {
   };
 }
 
+/** Runs the source-release verifier CLI and emits its deterministic receipt. */
 async function main(): Promise<void> {
   const receipt = await verifyPstSourceRelease(
     parseCliArgs(process.argv.slice(2))

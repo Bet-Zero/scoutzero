@@ -4,10 +4,61 @@ import { z } from 'zod';
 
 const NonEmptyStringZ = z.string().trim().min(1);
 const Sha256Z = z.string().regex(/^[0-9a-f]{64}$/);
-const CaptureTimestampZ = z
+const CALENDAR_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const CAPTURE_TIMESTAMP_PATTERN =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{3})?Z$/;
+
+/** Returns whether a YYYY-MM-DD string names a real Gregorian calendar day. */
+function isValidCalendarDate(value: string): boolean {
+  const match = CALENDAR_DATE_PATTERN.exec(value);
+  if (!match) return false;
+  const [, yearText, monthText, dayText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [
+    31,
+    leapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
+  return (
+    year > 0 &&
+    month >= 1 &&
+    month <= 12 &&
+    day >= 1 &&
+    day <= daysInMonth[month - 1]
+  );
+}
+
+/** Returns whether a timestamp is a real UTC instant in the accepted format. */
+function isValidCaptureTimestamp(value: string): boolean {
+  const match = CAPTURE_TIMESTAMP_PATTERN.exec(value);
+  if (!match) return false;
+  const [, year, month, day, hour, minute, second] = match;
+  return (
+    isValidCalendarDate(`${year}-${month}-${day}`) &&
+    Number(hour) <= 23 &&
+    Number(minute) <= 59 &&
+    Number(second) <= 59
+  );
+}
+
+export const CaptureTimestampZ = z
   .string()
-  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/);
-const CalendarDateZ = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+  .refine(isValidCaptureTimestamp, 'must be a valid UTC capture timestamp');
+export const CalendarDateZ = z
+  .string()
+  .refine(isValidCalendarDate, 'must be a valid calendar date');
 const SafeRelativePathZ = NonEmptyStringZ.refine(
   (value) =>
     !value.startsWith('/') &&

@@ -2,7 +2,7 @@
   "schemaVersion": "scoutzero-pst-source-release/v1",
   "releaseId": "pst-current-bze-304-07daf7583c6c9ef5",
   "releaseVersion": 1,
-  "releaseDigestSha256": "649b59a867fc57928f6bd3dd7bb75bf48f6984dab94956c39e95a3a6fec3dd7c",
+  "releaseDigestSha256": "44a18a7c339906ab147cc026d0e598d6d7ee655a2427c767fdce1685cd30cb7a",
   "supersedes": null,
   "source": {
     "provider": "Pro Sports Transactions",
@@ -11,7 +11,7 @@
     "governanceIssue": "BZE-305",
     "capturedAt": {
       "startedAt": "2026-09-04T06:45:33.363Z",
-      "completedAt": "2026-09-04T06:49:32.525Z"
+      "completedAt": "2026-09-04T06:50:35.136Z"
     }
   },
   "sourceCaptureManifest": {
