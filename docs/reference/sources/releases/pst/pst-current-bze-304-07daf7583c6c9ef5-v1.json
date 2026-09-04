@@ -1,0 +1,1487 @@
+{
+  "schemaVersion": "scoutzero-pst-source-release/v1",
+  "releaseId": "pst-current-bze-304-07daf7583c6c9ef5",
+  "releaseVersion": 1,
+  "releaseDigestSha256": "649b59a867fc57928f6bd3dd7bb75bf48f6984dab94956c39e95a3a6fec3dd7c",
+  "supersedes": null,
+  "source": {
+    "provider": "Pro Sports Transactions",
+    "sourceFamily": "NBA draft-pick transactions",
+    "captureIssue": "BZE-304",
+    "governanceIssue": "BZE-305",
+    "capturedAt": {
+      "startedAt": "2026-09-04T06:45:33.363Z",
+      "completedAt": "2026-09-04T06:49:32.525Z"
+    }
+  },
+  "sourceCaptureManifest": {
+    "schemaVersion": "bze304-human-assisted-pst-capture-v1",
+    "relativePath": "manifest.json",
+    "sha256": "07daf7583c6c9ef5083a8c5547fc37c1767c296afdacf691ec4f256cdeff2a2f",
+    "sidecarRelativePath": "manifest.sha256"
+  },
+  "package": {
+    "archiveName": "scoutzero-pst-current-bze304-07daf7583c6c9ef5-evidence.tar.gz",
+    "byteSize": 5348841,
+    "sha256": "ace3c381e3d2e39fd108804641be2654d2be0b3ebecf9d784ee186f11ea4b1ac",
+    "packageFileCount": 128,
+    "capturedFileCount": 126,
+    "remoteRetention": {
+      "provider": "Linear",
+      "issueIdentifier": "BZE-305",
+      "attachmentId": "ce382197-6bd4-4f5b-93c5-36ded7ff6d87",
+      "attachmentUrl": "https://uploads.linear.app/48c72032-d53f-4e3b-8d40-57d875b69126/26f24033-fa89-43d6-a19f-f6b51b50a695/315293d2-5aac-489a-9e40-1c44be617a25",
+      "authenticatedRetrievalRequired": true
+    }
+  },
+  "canonicalPolicy": {
+    "canonicalBytes": "raw-response-html",
+    "requiredPageCount": 39,
+    "repeatCaptureCount": 3,
+    "secondaryEvidence": [
+      "serialized-dom",
+      "screenshot"
+    ]
+  },
+  "counts": {
+    "pageCaptures": 42,
+    "canonicalRequiredPages": 39,
+    "repeatEvidenceCaptures": 3,
+    "rawHtmlFiles": 42,
+    "serializedDomFiles": 42,
+    "screenshotFiles": 42
+  },
+  "pages": [
+    {
+      "sequence": 1,
+      "captureId": "team-ATL",
+      "sourcePageId": "team-ATL",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Atlanta Hawks",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Hawks.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Hawks.htm",
+      "pageTitle": "Atlanta Hawks Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:45:33.363Z",
+      "captureCompletedAt": "2026-09-04T06:45:36.465Z",
+      "pstLastUpdated": "2026-07-19",
+      "semanticSha256": "63d0ceee9b372a296c3806c58b3bb54bdfa41823dd787b6a93664c5ebff51735",
+      "rawResponse": {
+        "relativePath": "raw/01-team-ATL.html",
+        "byteSize": 39741,
+        "sha256": "59dbe498996b934409964eae657e09a71e00027007b4bb01b0d1691a27d08598"
+      },
+      "serializedDom": {
+        "relativePath": "dom/01-team-ATL.html",
+        "byteSize": 323662,
+        "sha256": "faab4e3f8f524f14e8b04743adb740d42016d924e78eaf7e24e58f27708759d4"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/01-team-ATL.png",
+        "byteSize": 118863,
+        "sha256": "18802be5902e5b83d9e4da28126ec736cc909e31916c8643455a95c86bd7a2ec",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 2,
+      "captureId": "team-HOU",
+      "sourcePageId": "team-HOU",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Houston Rockets",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Rockets.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Rockets.htm",
+      "pageTitle": "Houston Rockets Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:45:38.475Z",
+      "captureCompletedAt": "2026-09-04T06:45:42.231Z",
+      "pstLastUpdated": "2026-07-28",
+      "semanticSha256": "3c0903f37056789508936623ee00306974df31ae805fa27ef83ed4bb24a688d1",
+      "rawResponse": {
+        "relativePath": "raw/02-team-HOU.html",
+        "byteSize": 52524,
+        "sha256": "5300f0511fa24714159a588eb8ccdbaa4c6e30ec0ba1b6d1c9bfceb0a8fb04d7"
+      },
+      "serializedDom": {
+        "relativePath": "dom/02-team-HOU.html",
+        "byteSize": 61922,
+        "sha256": "f71511d320948a0cd8ec1e6cff3539d7ba8b80a6a2522eebf92b28533208a75f"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/02-team-HOU.png",
+        "byteSize": 81505,
+        "sha256": "277073d617be615b9496ba6e8a9b2869871553e1a1b74e7b08693fd3d05d46c6",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 3,
+      "captureId": "year-2026",
+      "sourcePageId": "year-2026",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "year",
+      "expectedIdentity": "2026",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2026.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2026.htm",
+      "pageTitle": "2026 NBA Draft Pick Transactions",
+      "captureStartedAt": "2026-09-04T06:45:44.232Z",
+      "captureCompletedAt": "2026-09-04T06:45:49.553Z",
+      "pstLastUpdated": null,
+      "semanticSha256": "d9e3c7ad1e2bcdde6fa64bdd77fc0cbce80b53f16a0ffca82194fab1a1840867",
+      "rawResponse": {
+        "relativePath": "raw/03-year-2026.html",
+        "byteSize": 78813,
+        "sha256": "f8d300264894e89adc9b53e34aacd7e4c1e5cb41ecee8d438913eafd71638774"
+      },
+      "serializedDom": {
+        "relativePath": "dom/03-year-2026.html",
+        "byteSize": 89575,
+        "sha256": "03b23c055beee250fa2fce47cd0cbb433be48993831a1d9894048f430c61db2e"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/03-year-2026.png",
+        "byteSize": 115885,
+        "sha256": "17deffeff081d0b62c9d0985a3f0554b564115384375d1c419623667aa09239b",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 4,
+      "captureId": "year-index",
+      "sourcePageId": "year-index",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "index",
+      "expectedIdentity": "PST draft-year index",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/index.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/index.htm",
+      "pageTitle": "Basketball Draft Pick Transactions",
+      "captureStartedAt": "2026-09-04T06:45:51.602Z",
+      "captureCompletedAt": "2026-09-04T06:45:57.369Z",
+      "pstLastUpdated": null,
+      "semanticSha256": "79e108dde976058c2bdd26759346cb00c2eea42a79bb268a6648550aca39ebf2",
+      "rawResponse": {
+        "relativePath": "raw/04-year-index.html",
+        "byteSize": 15034,
+        "sha256": "18f965e8b179ae72bb689356cfa102e11233bf1dd4989cf171b06fdb9ada9e58"
+      },
+      "serializedDom": {
+        "relativePath": "dom/04-year-index.html",
+        "byteSize": 304986,
+        "sha256": "d99f7921b9ada9ac44493d9a7694b8b55520e619c7707da2e324aea50a65251c"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/04-year-index.png",
+        "byteSize": 88139,
+        "sha256": "c0cd81e8f149da130268016d776d71b7f421ae86f68f646466cb85daa30d9541",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 5,
+      "captureId": "team-BOS",
+      "sourcePageId": "team-BOS",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Boston Celtics",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Celtics.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Celtics.htm",
+      "pageTitle": "Boston Celtics Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:45:59.370Z",
+      "captureCompletedAt": "2026-09-04T06:46:04.321Z",
+      "pstLastUpdated": "2026-07-19",
+      "semanticSha256": "b418431e69d958d356e242b17a20e3cc1858c6fa8bb3ac7acc2f2b9165149d98",
+      "rawResponse": {
+        "relativePath": "raw/05-team-BOS.html",
+        "byteSize": 37804,
+        "sha256": "28c6f8e029f992250355f9a12eefc14ca19d565b6a48934c1a5a0a4e8f088c29"
+      },
+      "serializedDom": {
+        "relativePath": "dom/05-team-BOS.html",
+        "byteSize": 48368,
+        "sha256": "6ee11977bdf7bab181838a74495701d56ddb2ca404a02e2a0a3e0052dc243ab3"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/05-team-BOS.png",
+        "byteSize": 118644,
+        "sha256": "d42e12e601cc031256a05cb32e26c66345a7265baffef7ebcb289a3183825fdf",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 6,
+      "captureId": "team-BKN",
+      "sourcePageId": "team-BKN",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Brooklyn Nets",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Nets.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Nets.htm",
+      "pageTitle": "Brooklyn Nets Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:46:06.326Z",
+      "captureCompletedAt": "2026-09-04T06:46:12.504Z",
+      "pstLastUpdated": "2026-04-20",
+      "semanticSha256": "e95413c7243d15e1d1c035e77717a095311c9f1ca01b82f2f74c869f6c495d92",
+      "rawResponse": {
+        "relativePath": "raw/06-team-BKN.html",
+        "byteSize": 56789,
+        "sha256": "2ffe51d3ba7637565f1ac1c125ddceb4b1838816ab4c09a0e79ea2202c89a4c2"
+      },
+      "serializedDom": {
+        "relativePath": "dom/06-team-BKN.html",
+        "byteSize": 67271,
+        "sha256": "966e2da282a095a769921a9abf3f056cada3597f8eb632308dc10cd828a6d4ba"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/06-team-BKN.png",
+        "byteSize": 124420,
+        "sha256": "6f2ecd1dd564b598320fe5769d0f9dfbf97c656398308ffbdff50202dfbf3f54",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 7,
+      "captureId": "team-CHA",
+      "sourcePageId": "team-CHA",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Charlotte Hornets",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Hornets.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Hornets.htm",
+      "pageTitle": "Charlotte Hornets Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:46:14.506Z",
+      "captureCompletedAt": "2026-09-04T06:46:18.042Z",
+      "pstLastUpdated": "2026-07-13",
+      "semanticSha256": "de0958807035c50bc3e573cf0ea71354476001d917731be7ba0bd95d9097d016",
+      "rawResponse": {
+        "relativePath": "raw/07-team-CHA.html",
+        "byteSize": 57193,
+        "sha256": "3b98469cffd6286d75917305c4d264787fc5995099b63da6b20b84dffb0780ec"
+      },
+      "serializedDom": {
+        "relativePath": "dom/07-team-CHA.html",
+        "byteSize": 67077,
+        "sha256": "9528c18e1a164cf00d35bf21eceb7e523f9db77f9b20cef4a1b48322ec17d06a"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/07-team-CHA.png",
+        "byteSize": 110132,
+        "sha256": "fc403bdca74a21c1e3420cd11fa20aba807713745d8c570252129724a67cfce1",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 8,
+      "captureId": "team-CHI",
+      "sourcePageId": "team-CHI",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Chicago Bulls",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Bulls.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Bulls.htm",
+      "pageTitle": "Chicago Bulls Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:46:20.047Z",
+      "captureCompletedAt": "2026-09-04T06:46:23.567Z",
+      "pstLastUpdated": "2026-07-19",
+      "semanticSha256": "c456dee4d81fd28fe7d611a58401f234b9ef86ee5ebec22a95c1f8ae30988900",
+      "rawResponse": {
+        "relativePath": "raw/08-team-CHI.html",
+        "byteSize": 38638,
+        "sha256": "cff8bf9dd04b865b064d771b2759623cd5630604791ddbcdd8b6ca96e516f0cf"
+      },
+      "serializedDom": {
+        "relativePath": "dom/08-team-CHI.html",
+        "byteSize": 48677,
+        "sha256": "1027eb3ecc36870513889209667ece5df94e188ca04ef39bf2d5ad2ae5cd5168"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/08-team-CHI.png",
+        "byteSize": 133808,
+        "sha256": "69fd0abbce670b32e71b1f908e62a310b58a7ff56840664425373c0462622482",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 9,
+      "captureId": "team-CLE",
+      "sourcePageId": "team-CLE",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Cleveland Cavaliers",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Cavaliers.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Cavaliers.htm",
+      "pageTitle": "Cleveland Cavaliers Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:46:25.568Z",
+      "captureCompletedAt": "2026-09-04T06:46:28.987Z",
+      "pstLastUpdated": "2026-08-20",
+      "semanticSha256": "f9bd3a6279670f23deb490864ddc1ff1c7ccb48b26272bc8e3e8271cb21c6abd",
+      "rawResponse": {
+        "relativePath": "raw/09-team-CLE.html",
+        "byteSize": 35487,
+        "sha256": "6a0be8d1c09297ec7508af5755d8b8807b8ebba037a8cdfd031035ea0dc1e6cb"
+      },
+      "serializedDom": {
+        "relativePath": "dom/09-team-CLE.html",
+        "byteSize": 45407,
+        "sha256": "6bd7654774394459b4502021a95789c17bec89603efdbbac214e65f74697dbc2"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/09-team-CLE.png",
+        "byteSize": 145254,
+        "sha256": "807943cc9cbefdaa0f4f646cd59147d228d91bd3ea9d11642d271d57ab4ddf14",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 10,
+      "captureId": "team-DAL",
+      "sourcePageId": "team-DAL",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Dallas Mavericks",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Mavericks.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Mavericks.htm",
+      "pageTitle": "Dallas Mavericks Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:46:30.989Z",
+      "captureCompletedAt": "2026-09-04T06:46:34.305Z",
+      "pstLastUpdated": "2026-07-19",
+      "semanticSha256": "e2dd4e7bd844ed0f8bd18fb6246f7c78d6dadd0f746e284ac92cc3acb58aeac9",
+      "rawResponse": {
+        "relativePath": "raw/10-team-DAL.html",
+        "byteSize": 45232,
+        "sha256": "2809222eaceea696e29cfd946c7c3277f8d187a581249766a1f484cadcbfac7d"
+      },
+      "serializedDom": {
+        "relativePath": "dom/10-team-DAL.html",
+        "byteSize": 55218,
+        "sha256": "7e2ada6c3c6bd1d1b9fe674a6f37a5fd6f4973422728e82de9bccf34aba9d364"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/10-team-DAL.png",
+        "byteSize": 117987,
+        "sha256": "33f68f594d271a21b472e4fbdb18d401eb47a7d182155d8b66c43cb83f466056",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 11,
+      "captureId": "team-DEN",
+      "sourcePageId": "team-DEN",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Denver Nuggets",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Nuggets.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Nuggets.htm",
+      "pageTitle": "Denver Nuggets Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:46:36.306Z",
+      "captureCompletedAt": "2026-09-04T06:46:40.456Z",
+      "pstLastUpdated": "2026-08-20",
+      "semanticSha256": "8dbff0b15a593151c7ab1a6d893521e00be1ab64e7aa3e8767c5d4b006ea0c24",
+      "rawResponse": {
+        "relativePath": "raw/11-team-DEN.html",
+        "byteSize": 23205,
+        "sha256": "f8fb9768f0c3ad4c17725b88467843bd01240afd0cef76dc019c6ccec72fde21"
+      },
+      "serializedDom": {
+        "relativePath": "dom/11-team-DEN.html",
+        "byteSize": 33273,
+        "sha256": "3b0578bc865cdcb99f55288595cce2f17585ba9131d890fca03e6968eebf53b7"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/11-team-DEN.png",
+        "byteSize": 131651,
+        "sha256": "2a9945d92e26ce273071191fb7204058fdb0fb2f6b94e2a76ff6e4506e9874c5",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 12,
+      "captureId": "team-DET",
+      "sourcePageId": "team-DET",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Detroit Pistons",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Pistons.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Pistons.htm",
+      "pageTitle": "Detroit Pistons Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:46:42.458Z",
+      "captureCompletedAt": "2026-09-04T06:46:48.079Z",
+      "pstLastUpdated": "2026-07-28",
+      "semanticSha256": "ff038360924ea45361eae045faf950e1b13c44812acc3ac8f5591ddb4d31b833",
+      "rawResponse": {
+        "relativePath": "raw/12-team-DET.html",
+        "byteSize": 46406,
+        "sha256": "5f1e6aacf05152a6ccdfdbbaacb84024a5b8693c136e2b0a7200ccbbaa6322c2"
+      },
+      "serializedDom": {
+        "relativePath": "dom/12-team-DET.html",
+        "byteSize": 366411,
+        "sha256": "4d967b82dbeaf6035ba85bcc3ec3e77fa7cadcd40c61dca27df25d3cad63e99e"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/12-team-DET.png",
+        "byteSize": 92828,
+        "sha256": "92bb8f630f8a7dfd628fece84d9c33525a160021cd4c72a4bdf2946d811197ff",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 13,
+      "captureId": "team-GSW",
+      "sourcePageId": "team-GSW",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Golden State Warriors",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Warriors.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Warriors.htm",
+      "pageTitle": "Golden State Warriors Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:46:50.083Z",
+      "captureCompletedAt": "2026-09-04T06:46:53.474Z",
+      "pstLastUpdated": "2026-07-28",
+      "semanticSha256": "2276efd401bb5388f1206e2dca7405bf0073bd0f3a8df3ebf3e017cb54b84000",
+      "rawResponse": {
+        "relativePath": "raw/13-team-GSW.html",
+        "byteSize": 23534,
+        "sha256": "358d0a1c5fa36c29c731c9fc447017ebcdfec59939608af50d4e4084befe43b9"
+      },
+      "serializedDom": {
+        "relativePath": "dom/13-team-GSW.html",
+        "byteSize": 309947,
+        "sha256": "7d727867efef7a670cf4f5abb3abbf09c6fe582c73f353b92b5d62e1d5394310"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/13-team-GSW.png",
+        "byteSize": 122349,
+        "sha256": "2c25962da9a1be9aa92366f5165ae79b5102850c577d1aba6859e5f9a0981784",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 14,
+      "captureId": "team-IND",
+      "sourcePageId": "team-IND",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Indiana Pacers",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Pacers.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Pacers.htm",
+      "pageTitle": "Indiana Pacers Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:46:55.482Z",
+      "captureCompletedAt": "2026-09-04T06:46:59.151Z",
+      "pstLastUpdated": "2026-07-28",
+      "semanticSha256": "092fa53a96490d91f47708bdcb186103189fc1e66770bbee99d028a9590262fd",
+      "rawResponse": {
+        "relativePath": "raw/14-team-IND.html",
+        "byteSize": 36162,
+        "sha256": "37abd0d64cddbd800fe66ec6c217987714f92878e21a9528e9c4b46f4f243cf1"
+      },
+      "serializedDom": {
+        "relativePath": "dom/14-team-IND.html",
+        "byteSize": 46225,
+        "sha256": "725d0c6b34cbd3791a26aea29de0af2a95a700e87db2f9f1cb413ebe5846de4b"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/14-team-IND.png",
+        "byteSize": 129187,
+        "sha256": "ef51d91d146f2cf81667050b9762a66d575cdf534481be1cd6331f530858c8d6",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 15,
+      "captureId": "team-LAC",
+      "sourcePageId": "team-LAC",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Los Angeles Clippers",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Clippers.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Clippers.htm",
+      "pageTitle": "Los Angeles Clippers Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:50:32.238Z",
+      "captureCompletedAt": "2026-09-04T06:50:35.136Z",
+      "pstLastUpdated": "2026-07-28",
+      "semanticSha256": "e00d13a14a32745088df58213de72365c910250e0a6fc082794eacc4f0738ce9",
+      "rawResponse": {
+        "relativePath": "raw/15-team-LAC.html",
+        "byteSize": 46557,
+        "sha256": "9071d93fedc0aa755ace3d7d98cec9aadc0e91db76d256d6d1dde9d2232a9080"
+      },
+      "serializedDom": {
+        "relativePath": "dom/15-team-LAC.html",
+        "byteSize": 332976,
+        "sha256": "216e9e8d0fdd9c56d0d5de2c3142b64c7567f7023c15a896e77219c1a7d339ec"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/15-team-LAC.png",
+        "byteSize": 103388,
+        "sha256": "77d60643400de2d622d735741c92ca609b5426228b4c8a3aa8a692d196e33095",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 16,
+      "captureId": "team-LAL",
+      "sourcePageId": "team-LAL",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Los Angeles Lakers",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Lakers.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Lakers.htm",
+      "pageTitle": "Los Angeles Lakers Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:47:05.640Z",
+      "captureCompletedAt": "2026-09-04T06:47:09.042Z",
+      "pstLastUpdated": "2026-07-08",
+      "semanticSha256": "36c1b1ed74348e092e034919d6aed0b66c2128f1e51a715408ce9fcf57a58439",
+      "rawResponse": {
+        "relativePath": "raw/16-team-LAL.html",
+        "byteSize": 26982,
+        "sha256": "c0eb430e233ee07a244d4e54bc249b75096abe66c6c773a890e642935d274153"
+      },
+      "serializedDom": {
+        "relativePath": "dom/16-team-LAL.html",
+        "byteSize": 279968,
+        "sha256": "809c4feb5daea44ba2b68294af69d99cac0060cf84ac576ce9494cb1494b5862"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/16-team-LAL.png",
+        "byteSize": 121608,
+        "sha256": "1ae5b34977fadc03538744868dca02fc80e5c07889206f78b6bf5dd553ff68fc",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 17,
+      "captureId": "team-MEM",
+      "sourcePageId": "team-MEM",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Memphis Grizzlies",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Grizzlies.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Grizzlies.htm",
+      "pageTitle": "Memphis Grizzlies Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:47:11.060Z",
+      "captureCompletedAt": "2026-09-04T06:47:14.417Z",
+      "pstLastUpdated": "2026-07-19",
+      "semanticSha256": "a3ac7ec151e5cf8e655c4eb291d31ee540c001ae198b2e5b0f3e31d5a92e51a8",
+      "rawResponse": {
+        "relativePath": "raw/17-team-MEM.html",
+        "byteSize": 52239,
+        "sha256": "29b42a1e573dffceb7d27ba836af78bad6d9b6619fb5b285845d97869356f63d"
+      },
+      "serializedDom": {
+        "relativePath": "dom/17-team-MEM.html",
+        "byteSize": 372151,
+        "sha256": "780b068ab65a1cc6364091a21fb828a2bae144da7be0e091feb48b6272cb25ea"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/17-team-MEM.png",
+        "byteSize": 122547,
+        "sha256": "904bff74bb1a4d58177dbdc2206850f513605df6295171ff1bc5a62b7315f266",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 18,
+      "captureId": "team-MIA",
+      "sourcePageId": "team-MIA",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Miami Heat",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Heat.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Heat.htm",
+      "pageTitle": "Miami Heat Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:47:16.420Z",
+      "captureCompletedAt": "2026-09-04T06:47:19.629Z",
+      "pstLastUpdated": "2026-07-28",
+      "semanticSha256": "69663f83c6af8725a8d72a185f3efdc819c0477a651e3e4e8f06ef6934faefba",
+      "rawResponse": {
+        "relativePath": "raw/18-team-MIA.html",
+        "byteSize": 45972,
+        "sha256": "69c2271a90a5925da5f98f6ebb806a0b317bb1e9c96ee4e770f25c0ef2ac0ab7"
+      },
+      "serializedDom": {
+        "relativePath": "dom/18-team-MIA.html",
+        "byteSize": 365723,
+        "sha256": "dea9ac762134b67bb970090c2c0f6530f04b9aead7aa7c7166ad88e6347dcee8"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/18-team-MIA.png",
+        "byteSize": 87216,
+        "sha256": "60e1a3640ede5a93208a60aea39b18b6cd1b747112d08087d6a4a5ddfc80a0f7",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 19,
+      "captureId": "team-MIL",
+      "sourcePageId": "team-MIL",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Milwaukee Bucks",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Bucks.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Bucks.htm",
+      "pageTitle": "Milwaukee Bucks Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:47:21.631Z",
+      "captureCompletedAt": "2026-09-04T06:47:25.498Z",
+      "pstLastUpdated": "2026-07-06",
+      "semanticSha256": "5bd1ba95121d4ff035fdce29ae80b9c4090ea9f01a9e21ee67fa52d63d4e56c9",
+      "rawResponse": {
+        "relativePath": "raw/19-team-MIL.html",
+        "byteSize": 35683,
+        "sha256": "4c774189bd9109fe6f48687dd8c6eebc317e8a7e442cc7f6aa081afc938cb70a"
+      },
+      "serializedDom": {
+        "relativePath": "dom/19-team-MIL.html",
+        "byteSize": 45694,
+        "sha256": "6062fd800c1e7dbf44ed86272bd3b3040ead40531c3097af6fbe53c98b07144c"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/19-team-MIL.png",
+        "byteSize": 154819,
+        "sha256": "ebc6628fbfdfb932246bb6fa3af0d69e6220eac6d2836d1eb46e2fb5ab858194",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 20,
+      "captureId": "team-MIN",
+      "sourcePageId": "team-MIN",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Minnesota Timberwolves",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Timberwolves.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Timberwolves.htm",
+      "pageTitle": "Minnesota Timberwolves Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:47:27.519Z",
+      "captureCompletedAt": "2026-09-04T06:47:31.452Z",
+      "pstLastUpdated": "2026-07-13",
+      "semanticSha256": "8fb502fd799d25416cb06239c146c16862b81e89b05f08b9bef10bda433ed324",
+      "rawResponse": {
+        "relativePath": "raw/20-team-MIN.html",
+        "byteSize": 35477,
+        "sha256": "58d788b867985e704564e0a9dd3ba142c509e57dfea11ec7f3d8ffaa2c769591"
+      },
+      "serializedDom": {
+        "relativePath": "dom/20-team-MIN.html",
+        "byteSize": 322112,
+        "sha256": "e40047f39a89f38d7d5ac52f4f727d34d7799f2ae25be87ba4540d1623ab0332"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/20-team-MIN.png",
+        "byteSize": 127564,
+        "sha256": "7b759b2bd69de7089d71240983ebf8a3c11f6ddc865df7184cf960bd01946f41",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 21,
+      "captureId": "team-NOP",
+      "sourcePageId": "team-NOP",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "New Orleans Pelicans",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Pelicans.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Pelicans.htm",
+      "pageTitle": "New Orleans Pelicans Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:47:33.468Z",
+      "captureCompletedAt": "2026-09-04T06:47:36.139Z",
+      "pstLastUpdated": "2026-07-19",
+      "semanticSha256": "c8ca3b987d9ab77252240056e7777d16f04cd4317d1e9dd3298c4a63473276a8",
+      "rawResponse": {
+        "relativePath": "raw/21-team-NOP.html",
+        "byteSize": 36078,
+        "sha256": "fb20ca95bfbcf7711caca7ef3a6df5929531295a08e934fd96d356ba650bd7e8"
+      },
+      "serializedDom": {
+        "relativePath": "dom/21-team-NOP.html",
+        "byteSize": 354915,
+        "sha256": "86fac32d54cafb8c232e6844f32bcd13d918c4c894b0f67fb18895f976c7e923"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/21-team-NOP.png",
+        "byteSize": 116759,
+        "sha256": "caaa24236a822302e50584c85f948082d4d963d0ec00b145292ab5804c8900cc",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 22,
+      "captureId": "team-NYK",
+      "sourcePageId": "team-NYK",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "New York Knicks",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Knicks.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Knicks.htm",
+      "pageTitle": "New York Knicks Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:47:38.142Z",
+      "captureCompletedAt": "2026-09-04T06:47:41.807Z",
+      "pstLastUpdated": "2026-06-24",
+      "semanticSha256": "719a4f746eced1a04586cc37508a076ad845b50b4d6466e5afd87515b0198676",
+      "rawResponse": {
+        "relativePath": "raw/22-team-NYK.html",
+        "byteSize": 57132,
+        "sha256": "85f9bb760fd067864fb7f93875efbc1439d63023b8f01fe1c265cbfe16cc97a9"
+      },
+      "serializedDom": {
+        "relativePath": "dom/22-team-NYK.html",
+        "byteSize": 377079,
+        "sha256": "2c33fcd0fe03ba03559dda3a11dab6bbe38bec68661718c6a0d5621ef5458db3"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/22-team-NYK.png",
+        "byteSize": 95028,
+        "sha256": "510a7606601c6a9ecf3b4efa5e52f0f1bba1b1e2dec5429bbf3489c7eb70bbbc",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 23,
+      "captureId": "team-OKC",
+      "sourcePageId": "team-OKC",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Oklahoma City Thunder",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Thunder.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Thunder.htm",
+      "pageTitle": "Oklahoma City Thunder Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:47:43.819Z",
+      "captureCompletedAt": "2026-09-04T06:47:47.797Z",
+      "pstLastUpdated": "2026-07-28",
+      "semanticSha256": "33465589d53628dd2a57b81dd3bfbd303396d8993ba4ab05f813f6fcb5008cc7",
+      "rawResponse": {
+        "relativePath": "raw/23-team-OKC.html",
+        "byteSize": 79621,
+        "sha256": "748ffd126b58357713099ec08a1d5441fd329996341fe38d3a5d71972dfbacfc"
+      },
+      "serializedDom": {
+        "relativePath": "dom/23-team-OKC.html",
+        "byteSize": 399473,
+        "sha256": "8410092c7c60129b03d8c475a821e98896ca1f53f8950b6b8f347bd1b08404ca"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/23-team-OKC.png",
+        "byteSize": 93129,
+        "sha256": "b2a8bfd612194acb373338db2168175a5bd048c703dfec8ef015620d509bc53e",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 24,
+      "captureId": "team-ORL",
+      "sourcePageId": "team-ORL",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Orlando Magic",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Magic.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Magic.htm",
+      "pageTitle": "Orlando Magic Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:47:49.820Z",
+      "captureCompletedAt": "2026-09-04T06:47:53.275Z",
+      "pstLastUpdated": "2026-07-13",
+      "semanticSha256": "5b50659330b89be63398836d40f23b504ddaf7b060056dd02fbbfe459f3652a4",
+      "rawResponse": {
+        "relativePath": "raw/24-team-ORL.html",
+        "byteSize": 31738,
+        "sha256": "546ffa350ff114a387f542d8e4425199abf7f7c5407a48ded80e1c765b4d02d8"
+      },
+      "serializedDom": {
+        "relativePath": "dom/24-team-ORL.html",
+        "byteSize": 351513,
+        "sha256": "bb5a6cd4eeeaa56c89369af115bd78c272f677e9139e1f39dc11f328bf281f5a"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/24-team-ORL.png",
+        "byteSize": 114672,
+        "sha256": "a8fc37dca5239d1a379746c06f1516881a320ef2cc761eb6d442b85c73d90c0c",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 25,
+      "captureId": "team-PHI",
+      "sourcePageId": "team-PHI",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Philadelphia 76ers",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/76ers.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/76ers.htm",
+      "pageTitle": "Philadelphia 76ers Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:47:55.278Z",
+      "captureCompletedAt": "2026-09-04T06:47:58.186Z",
+      "pstLastUpdated": "2026-07-28",
+      "semanticSha256": "69cc3eef1a632628770e848cd2522b43957a9656da9bdf0e73b92940b964a70d",
+      "rawResponse": {
+        "relativePath": "raw/25-team-PHI.html",
+        "byteSize": 50714,
+        "sha256": "218e2bb1c8ce725ad40ae20fa7228bac0c493c04d20225b283e7660e4d6b8c80"
+      },
+      "serializedDom": {
+        "relativePath": "dom/25-team-PHI.html",
+        "byteSize": 370383,
+        "sha256": "fb4292810249d3bbcb0b52d6c417ce111988e59223f2e53840b71008a45ff48c"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/25-team-PHI.png",
+        "byteSize": 103737,
+        "sha256": "cfc83a98efd87d3fd6d2a56243b3e5286c5586c7089d8479c84814e8bf84d199",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 26,
+      "captureId": "team-PHX",
+      "sourcePageId": "team-PHX",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Phoenix Suns",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Suns.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Suns.htm",
+      "pageTitle": "Phoenix Suns Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:48:00.196Z",
+      "captureCompletedAt": "2026-09-04T06:48:03.541Z",
+      "pstLastUpdated": "2026-07-28",
+      "semanticSha256": "398ec8ed066ab36a4a819c33e744e3149ec79cd39b276ebaf32d4838baec2c53",
+      "rawResponse": {
+        "relativePath": "raw/26-team-PHX.html",
+        "byteSize": 69588,
+        "sha256": "8fb087218401c84daec1e2705f3ccb2938de0943bca69cb2fe381e0accf56d17"
+      },
+      "serializedDom": {
+        "relativePath": "dom/26-team-PHX.html",
+        "byteSize": 389437,
+        "sha256": "28af1a6997538488061f0df3cdb7f3a88ec757cdbccc35e424c7d655edc8a22a"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/26-team-PHX.png",
+        "byteSize": 132888,
+        "sha256": "91917b223c4c7efcb6e443e0fb86abbf6b2daa0b9406a4e456822af1b7030214",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 27,
+      "captureId": "team-POR",
+      "sourcePageId": "team-POR",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Portland Trail Blazers",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Blazers.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Blazers.htm",
+      "pageTitle": "Portland Trailblazers Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:48:05.566Z",
+      "captureCompletedAt": "2026-09-04T06:48:11.408Z",
+      "pstLastUpdated": "2026-07-19",
+      "semanticSha256": "b3990a2770a1027467f0e38cda5c577b8797cdd2bd39247f7741b47924e329c2",
+      "rawResponse": {
+        "relativePath": "raw/27-team-POR.html",
+        "byteSize": 45379,
+        "sha256": "680a2a4649d6554fa4495ad3ebfe4e80081dedcd15fc6b4191f3749dfbd28124"
+      },
+      "serializedDom": {
+        "relativePath": "dom/27-team-POR.html",
+        "byteSize": 55373,
+        "sha256": "e12e3da7f84f9f1c4a348454d7da81d2401a493c3639f100196db1a7db60dffb"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/27-team-POR.png",
+        "byteSize": 113290,
+        "sha256": "ab932787209f1a2caae1365e0000dd85d9518ebdfe4a4e372c14fffcddcf02c2",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 28,
+      "captureId": "team-SAC",
+      "sourcePageId": "team-SAC",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Sacramento Kings",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Kings.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Kings.htm",
+      "pageTitle": "Sacramento Kings Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:48:13.421Z",
+      "captureCompletedAt": "2026-09-04T06:48:17.701Z",
+      "pstLastUpdated": "2026-08-20",
+      "semanticSha256": "ea9e30f626ea781f305cde4550b901bb782da32d04c6a912c2e296c03a8a1d1d",
+      "rawResponse": {
+        "relativePath": "raw/28-team-SAC.html",
+        "byteSize": 35842,
+        "sha256": "fd4fb6f6fa682929dfa3e06811ea0f087be187aec1e402cbb7348201e9e3f721"
+      },
+      "serializedDom": {
+        "relativePath": "dom/28-team-SAC.html",
+        "byteSize": 355801,
+        "sha256": "4fbc4acc6e2f60bd9fc136e4b0c320648c3416b16815204c75463d4624f89af9"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/28-team-SAC.png",
+        "byteSize": 104860,
+        "sha256": "69f555864ba51e6c75884dc4950c043a0e78cf3393be64681a608082ebb1b634",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 29,
+      "captureId": "team-SAS",
+      "sourcePageId": "team-SAS",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "San Antonio Spurs",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Spurs.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Spurs.htm",
+      "pageTitle": "San Antonio Spurs Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:48:19.702Z",
+      "captureCompletedAt": "2026-09-04T06:48:23.124Z",
+      "pstLastUpdated": "2026-05-10",
+      "semanticSha256": "25feca37d5e5ad3c4f5e425b0ba2d2d9c1b9178dfb13ce929f288b1096f6315f",
+      "rawResponse": {
+        "relativePath": "raw/29-team-SAS.html",
+        "byteSize": 47761,
+        "sha256": "86b8dad6fd8ba705ec16f291d40263f6ab447180d5639294cef2a97d4c7fdb9f"
+      },
+      "serializedDom": {
+        "relativePath": "dom/29-team-SAS.html",
+        "byteSize": 367617,
+        "sha256": "5ed8a8c6811a2b092458227517f7280ce6aa83a1ccff67dc191c269149cdc4f7"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/29-team-SAS.png",
+        "byteSize": 96575,
+        "sha256": "1002a4a66334cd9b63ba7bad1a7db9f98802e99d67b7c15443fc8380b11bbab5",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 30,
+      "captureId": "team-TOR",
+      "sourcePageId": "team-TOR",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Toronto Raptors",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Raptors.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Raptors.htm",
+      "pageTitle": "Toronto Raptors Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:48:25.126Z",
+      "captureCompletedAt": "2026-09-04T06:48:27.665Z",
+      "pstLastUpdated": "2026-05-10",
+      "semanticSha256": "e92458b7006303e6953fa4237b52e8ac99253df49a8f7e064e14180be26c16b2",
+      "rawResponse": {
+        "relativePath": "raw/30-team-TOR.html",
+        "byteSize": 11758,
+        "sha256": "fc2b8538662187d152009bebad47cbba93e85b6a16c4bf4b199d30337d59fb2a"
+      },
+      "serializedDom": {
+        "relativePath": "dom/30-team-TOR.html",
+        "byteSize": 21496,
+        "sha256": "77a6219ab1642f754dc829a26bdaace1f50d58c367ea8ae3e415f530fa0d9d30"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/30-team-TOR.png",
+        "byteSize": 62151,
+        "sha256": "07ca57b4c5bc61a1a47b3167d84423589eb49b9e68dea867a1d851482f08230b",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 31,
+      "captureId": "team-UTA",
+      "sourcePageId": "team-UTA",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Utah Jazz",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Jazz.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Jazz.htm",
+      "pageTitle": "Utah Jazz Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:48:29.673Z",
+      "captureCompletedAt": "2026-09-04T06:48:33.865Z",
+      "pstLastUpdated": "2026-07-13",
+      "semanticSha256": "03e05888f57d34905ad77eea3cb7e6f502077b448daefe49da20e71942775d07",
+      "rawResponse": {
+        "relativePath": "raw/31-team-UTA.html",
+        "byteSize": 90992,
+        "sha256": "be45572c49aea0b611da9e6081440cde5d0eb8c815586c0fd1b57e0fc33cb914"
+      },
+      "serializedDom": {
+        "relativePath": "dom/31-team-UTA.html",
+        "byteSize": 444509,
+        "sha256": "4111c9d1927fa1346e4ac8e43ec0b3e523de17c33e21f527f535feb62bc752c8"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/31-team-UTA.png",
+        "byteSize": 115798,
+        "sha256": "dbbdfc6d13861215cd9e9b3721aabd68f556dbfec651c8cb675ec764bb2a1f20",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 32,
+      "captureId": "team-WAS",
+      "sourcePageId": "team-WAS",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "team",
+      "expectedIdentity": "Washington Wizards",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Wizards.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Wizards.htm",
+      "pageTitle": "Washington Wizards Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:48:35.867Z",
+      "captureCompletedAt": "2026-09-04T06:48:39.419Z",
+      "pstLastUpdated": "2026-07-28",
+      "semanticSha256": "cd351be4c4bc9ba433646d6dda187a5bbc0a301cf6222e014631806d1ae05de4",
+      "rawResponse": {
+        "relativePath": "raw/32-team-WAS.html",
+        "byteSize": 69764,
+        "sha256": "a82ea205b375f1414580f9909b6746fa9476a0be8c5121690122c7ba52b926b3"
+      },
+      "serializedDom": {
+        "relativePath": "dom/32-team-WAS.html",
+        "byteSize": 388551,
+        "sha256": "9404693de6cc5646eead3fc3c4287cf2a07cb41b17e49b285bad680fcb4755da"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/32-team-WAS.png",
+        "byteSize": 112044,
+        "sha256": "2a043c7dc2451cf630408c9d09c1ffaf567d751d14d4e574f76c9aa378ac68c1",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 33,
+      "captureId": "year-2027",
+      "sourcePageId": "year-2027",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "year",
+      "expectedIdentity": "2027",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2027.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2027.htm",
+      "pageTitle": "2027 NBA Draft Pick Pending Transactions",
+      "captureStartedAt": "2026-09-04T06:48:41.437Z",
+      "captureCompletedAt": "2026-09-04T06:48:46.694Z",
+      "pstLastUpdated": "2026-08-20",
+      "semanticSha256": "f4b83e5ffa90601979a5fa5a9d38b362f63da622ce4e6643280a6151fbca6679",
+      "rawResponse": {
+        "relativePath": "raw/33-year-2027.html",
+        "byteSize": 121515,
+        "sha256": "3cdd153f23a06d2d54c49c0f445b89a3bd89b1e5012da938a495c91ebd91561f"
+      },
+      "serializedDom": {
+        "relativePath": "dom/33-year-2027.html",
+        "byteSize": 131574,
+        "sha256": "a4e193eb3fbee43274abeeaddb301a6c3adce9ffa317d38c10ae665160cad93d"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/33-year-2027.png",
+        "byteSize": 123508,
+        "sha256": "9e98892610dee2196190e5e62bb0ea7fbe2f9a28aa50fdbb6fd4f3bc85238ac4",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 34,
+      "captureId": "year-2028",
+      "sourcePageId": "year-2028",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "year",
+      "expectedIdentity": "2028",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2028.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2028.htm",
+      "pageTitle": "2028 NBA Draft Pick Pending Transactions",
+      "captureStartedAt": "2026-09-04T06:48:48.703Z",
+      "captureCompletedAt": "2026-09-04T06:48:51.456Z",
+      "pstLastUpdated": "2026-07-08",
+      "semanticSha256": "2387e6073b270fb580ed272efa625cece3cfa1247ae5723cf599773f281a1441",
+      "rawResponse": {
+        "relativePath": "raw/34-year-2028.html",
+        "byteSize": 85230,
+        "sha256": "62e07486dac68c23ac40171d2b8ef21230fcb473ec9ae7f4828e903d8bcca5c4"
+      },
+      "serializedDom": {
+        "relativePath": "dom/34-year-2028.html",
+        "byteSize": 93942,
+        "sha256": "31b85ff3f757634909a30e5c5b71ae0055bd6dd8964e57201538e843645f3a27"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/34-year-2028.png",
+        "byteSize": 109401,
+        "sha256": "3312c7cb31c18e7fed63c446ce2c63b23f9badd8f9096fe97021d47a62247c74",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 35,
+      "captureId": "year-2029",
+      "sourcePageId": "year-2029",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "year",
+      "expectedIdentity": "2029",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2029.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2029.htm",
+      "pageTitle": "2029 NBA Draft Pick Pending Transactions",
+      "captureStartedAt": "2026-09-04T06:48:53.460Z",
+      "captureCompletedAt": "2026-09-04T06:48:56.810Z",
+      "pstLastUpdated": "2026-07-13",
+      "semanticSha256": "be3cfe6c4365b89c6461828661f5f56ed5f312958697b73aea1aea24b66dd385",
+      "rawResponse": {
+        "relativePath": "raw/35-year-2029.html",
+        "byteSize": 73513,
+        "sha256": "40b19cff04900198557ef0fb789ed04457565cbf23e5af881ae407a93b91c79e"
+      },
+      "serializedDom": {
+        "relativePath": "dom/35-year-2029.html",
+        "byteSize": 393021,
+        "sha256": "7c4ca035f6f1c13f7769a8b0a7fbb42833503fad8ff1804f3b9d42737b7cc4b0"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/35-year-2029.png",
+        "byteSize": 104149,
+        "sha256": "e45e4c36510a30a1f791842ada338a498e3836ec5ca4cbf9913d4ba21c77eda7",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 36,
+      "captureId": "year-2030",
+      "sourcePageId": "year-2030",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "year",
+      "expectedIdentity": "2030",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2030.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2030.htm",
+      "pageTitle": "2030 NBA Draft Pick Pending Transactions",
+      "captureStartedAt": "2026-09-04T06:48:58.846Z",
+      "captureCompletedAt": "2026-09-04T06:49:01.864Z",
+      "pstLastUpdated": "2026-07-08",
+      "semanticSha256": "708affcc9a50e8f254ba3f6cf44af866e12957e6b5f32eb65762d43be61a96ea",
+      "rawResponse": {
+        "relativePath": "raw/36-year-2030.html",
+        "byteSize": 58879,
+        "sha256": "c96ba13718d50fc26686b02b5d1b2e6bad7fc3f584c459e72c5d5664a6e0bbab"
+      },
+      "serializedDom": {
+        "relativePath": "dom/36-year-2030.html",
+        "byteSize": 378628,
+        "sha256": "d5b161298335d3b5e8c11e61476f0cd85cad8d5818c10dfb003eccb6ccec398d"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/36-year-2030.png",
+        "byteSize": 135593,
+        "sha256": "59d86d5205619c4bdc98037614301d1f1b1eaa9968f779605cd5e1f0d0f2e1e3",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 37,
+      "captureId": "year-2031",
+      "sourcePageId": "year-2031",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "year",
+      "expectedIdentity": "2031",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2031.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2031.htm",
+      "pageTitle": "2031 NBA Draft Pick Pending Transactions",
+      "captureStartedAt": "2026-09-04T06:49:03.894Z",
+      "captureCompletedAt": "2026-09-04T06:49:07.167Z",
+      "pstLastUpdated": "2026-08-20",
+      "semanticSha256": "1255856c67339a80a1594a82eaa6bd3af16e2d8260ab5134b90e82120891a1a3",
+      "rawResponse": {
+        "relativePath": "raw/37-year-2031.html",
+        "byteSize": 52294,
+        "sha256": "a97fd3d5c145baf2af4a113a3e81bc70f3a30ab7fe21d903a488c6bd5d83ea0f"
+      },
+      "serializedDom": {
+        "relativePath": "dom/37-year-2031.html",
+        "byteSize": 371896,
+        "sha256": "4e67fcb9016ff62c504e06d7eb31784a4ab5afa34c262e80f01b622413c2d389"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/37-year-2031.png",
+        "byteSize": 89632,
+        "sha256": "9ad51f724a86a9d6b85cb18b3febf10aae1f8178201d1eed4373fbad38f7b1ae",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 38,
+      "captureId": "year-2032",
+      "sourcePageId": "year-2032",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "year",
+      "expectedIdentity": "2032",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2032.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2032.htm",
+      "pageTitle": "2032 NBA Draft Pick Pending Transactions",
+      "captureStartedAt": "2026-09-04T06:49:09.176Z",
+      "captureCompletedAt": "2026-09-04T06:49:12.251Z",
+      "pstLastUpdated": "2026-08-20",
+      "semanticSha256": "73e775e8d0d4eb238574e5f7fba4ec0f88f9218b99d3b428c4fa8db5ff5e3937",
+      "rawResponse": {
+        "relativePath": "raw/38-year-2032.html",
+        "byteSize": 32597,
+        "sha256": "1a890f9efc70d0f318993e6a09ec69f0584348248faa441c7e1ca7f906dafe61"
+      },
+      "serializedDom": {
+        "relativePath": "dom/38-year-2032.html",
+        "byteSize": 352291,
+        "sha256": "22c44597d7424c29e198d20c3ec28e19cf22cdc9b822a198d5a6cb5dba0b29b8"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/38-year-2032.png",
+        "byteSize": 89631,
+        "sha256": "2d1bfb45653634d269fe4f63104a1739e8e50b6efad045b94e2e88824bcc3260",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 39,
+      "captureId": "year-2033",
+      "sourcePageId": "year-2033",
+      "classification": "canonical-required",
+      "repeatOf": null,
+      "pageType": "year",
+      "expectedIdentity": "2033",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2033.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2033.htm",
+      "pageTitle": "2033 NBA Draft Pick Pending Transactions",
+      "captureStartedAt": "2026-09-04T06:49:14.283Z",
+      "captureCompletedAt": "2026-09-04T06:49:17.153Z",
+      "pstLastUpdated": "2026-07-13",
+      "semanticSha256": "7c7aa39ac5521c8e20eca46a47fed301ac48a801f27bcf034dcbf1aa628b19e8",
+      "rawResponse": {
+        "relativePath": "raw/39-year-2033.html",
+        "byteSize": 23492,
+        "sha256": "f1fd4ba7ecaf66879629e8756cdfd69cf89cbac976e2a3658371f95aebf0c3a4"
+      },
+      "serializedDom": {
+        "relativePath": "dom/39-year-2033.html",
+        "byteSize": 343097,
+        "sha256": "dc16a0dfcb28908435ce8594c3423a147703438085d6de17128e3ff445b421f9"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/39-year-2033.png",
+        "byteSize": 88099,
+        "sha256": "5335eb1e563026d48d77e3f3d7c0d444ac71e366c3076696cfe511e35d1a4b05",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 40,
+      "captureId": "team-CHI:repeat-1",
+      "sourcePageId": "team-CHI",
+      "classification": "repeat-evidence",
+      "repeatOf": "team-CHI",
+      "pageType": "team",
+      "expectedIdentity": "Chicago Bulls",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Bulls.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Bulls.htm",
+      "pageTitle": "Chicago Bulls Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:49:19.160Z",
+      "captureCompletedAt": "2026-09-04T06:49:22.217Z",
+      "pstLastUpdated": "2026-07-19",
+      "semanticSha256": "c456dee4d81fd28fe7d611a58401f234b9ef86ee5ebec22a95c1f8ae30988900",
+      "rawResponse": {
+        "relativePath": "raw/40-team-CHI-repeat.html",
+        "byteSize": 38638,
+        "sha256": "cff8bf9dd04b865b064d771b2759623cd5630604791ddbcdd8b6ca96e516f0cf"
+      },
+      "serializedDom": {
+        "relativePath": "dom/40-team-CHI-repeat.html",
+        "byteSize": 358438,
+        "sha256": "95104562dd661ef8e59dad8f17b7e489e42461edbbfe0a27a1b7d21b516517ce"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/40-team-CHI-repeat.png",
+        "byteSize": 113372,
+        "sha256": "11f7988abe3d2151002ca0f693e694f759c6bbe3638d7ce94b4d7b4e7b35988f",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 41,
+      "captureId": "team-HOU:repeat-1",
+      "sourcePageId": "team-HOU",
+      "classification": "repeat-evidence",
+      "repeatOf": "team-HOU",
+      "pageType": "team",
+      "expectedIdentity": "Houston Rockets",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Rockets.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Future/Rockets.htm",
+      "pageTitle": "Houston Rockets Future Draft Pick Status",
+      "captureStartedAt": "2026-09-04T06:49:24.225Z",
+      "captureCompletedAt": "2026-09-04T06:49:27.108Z",
+      "pstLastUpdated": "2026-07-28",
+      "semanticSha256": "3c0903f37056789508936623ee00306974df31ae805fa27ef83ed4bb24a688d1",
+      "rawResponse": {
+        "relativePath": "raw/41-team-HOU-repeat.html",
+        "byteSize": 52524,
+        "sha256": "5300f0511fa24714159a588eb8ccdbaa4c6e30ec0ba1b6d1c9bfceb0a8fb04d7"
+      },
+      "serializedDom": {
+        "relativePath": "dom/41-team-HOU-repeat.html",
+        "byteSize": 305624,
+        "sha256": "3f1fb5ef46f24590bee2bdf651b240858340f976b64331b1e95ae2aa259621be"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/41-team-HOU-repeat.png",
+        "byteSize": 95461,
+        "sha256": "0c9532c4144604b860f8a82901de4bfd2ba6a4c1280789b42d5154314fa364ea",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    {
+      "sequence": 42,
+      "captureId": "year-2026:repeat-1",
+      "sourcePageId": "year-2026",
+      "classification": "repeat-evidence",
+      "repeatOf": "year-2026",
+      "pageType": "year",
+      "expectedIdentity": "2026",
+      "requestedUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2026.htm",
+      "finalUrl": "https://www.prosportstransactions.com/basketball/DraftTrades/Years/2026.htm",
+      "pageTitle": "2026 NBA Draft Pick Transactions",
+      "captureStartedAt": "2026-09-04T06:49:29.121Z",
+      "captureCompletedAt": "2026-09-04T06:49:32.525Z",
+      "pstLastUpdated": null,
+      "semanticSha256": "d9e3c7ad1e2bcdde6fa64bdd77fc0cbce80b53f16a0ffca82194fab1a1840867",
+      "rawResponse": {
+        "relativePath": "raw/42-year-2026-repeat.html",
+        "byteSize": 78813,
+        "sha256": "f8d300264894e89adc9b53e34aacd7e4c1e5cb41ecee8d438913eafd71638774"
+      },
+      "serializedDom": {
+        "relativePath": "dom/42-year-2026-repeat.html",
+        "byteSize": 331521,
+        "sha256": "7ff154045fc07fc2e39d86080895cd62c08496ca2d3c1f8ea56102bddcea2f49"
+      },
+      "screenshot": {
+        "relativePath": "screenshots/42-year-2026-repeat.png",
+        "byteSize": 97127,
+        "sha256": "569a006df05fdbb0b8146954bc7a29dbea19b7835de9f5b71ff1c74e5aef9315",
+        "width": 1280,
+        "height": 720
+      }
+    }
+  ],
+  "sourceUse": {
+    "inspectedAt": "2026-09-04",
+    "copyrightNotice": "Copyright © 2005-2026 Frank Marousek - All rights reserved.",
+    "acknowledgementsUrl": "https://www.prosportstransactions.com/acknowledgements.htm",
+    "notices": [
+      {
+        "category": "copyright",
+        "finding": "All 42 raw pages visibly carry “Copyright © 2005-2026 Frank Marousek - All rights reserved.”"
+      },
+      {
+        "category": "attribution",
+        "finding": "All 42 raw-page footers link the label “Acknowledgements” to https://www.prosportstransactions.com/acknowledgements.htm; an ordinary retrieval returned HTTP 403."
+      },
+      {
+        "category": "terms",
+        "finding": "No terms link or terms text was present in the 42 raw pages; an ordinary request to /terms.htm returned HTTP 403."
+      },
+      {
+        "category": "privacy",
+        "finding": "No privacy link or privacy text was present in the 42 raw pages; an ordinary request to /privacy.htm returned HTTP 403."
+      },
+      {
+        "category": "robots",
+        "finding": "No robots meta tag or robots text was present in the 42 raw pages; an ordinary request to /robots.txt returned HTTP 403."
+      },
+      {
+        "category": "license",
+        "finding": "No express license text was found in the 42 captured raw pages."
+      },
+      {
+        "category": "reuse",
+        "finding": "No reuse or redistribution permission was found; the visible copyright notice says “All rights reserved.”"
+      }
+    ],
+    "expressReuseLicenseFound": false,
+    "legalConclusion": "none",
+    "distributionBoundary": "private-internal-evidence-only"
+  },
+  "limitations": [
+    "No express reuse license was established; retain raw pages only as private internal evidence and do not publicly redistribute them.",
+    "PST is a third-party transaction source, not official NBA rule or team authority.",
+    "This immutable capture proves the source bytes observed during its capture window, not continuing freshness.",
+    "Serialized DOM and screenshots are secondary evidence; only the 39 required raw response HTML files are canonical source bytes.",
+    "This release does not authorize or implement parsing, lifecycle modeling, Firestore records, Canon changes, or a positive first-round product path."
+  ]
+}
