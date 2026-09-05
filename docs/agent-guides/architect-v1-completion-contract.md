@@ -6,11 +6,13 @@ description: Owner-approved (2026-07-11) product boundary and proof standard for
 # Architect V1 Completion Contract
 
 **Status: OWNER-APPROVED (approve-with-notes), 2026-07-11; amended by locked
-owner decision, 2026-08-27** (BZE-244; drafted against main `85d1f54c`, owner
-notes applied the same day). The 2026-08-27 amendment moves two narrow
-authority-blocked variants to Phase 3B without weakening any supported V1
-workflow. The verified gap ledger (BZE-245) and Phase 3A closure evidence must
-apply this boundary.
+owner decisions, 2026-08-27 and BZE-301 (2026-09-04)** (BZE-244; drafted
+against main `85d1f54c`, owner notes applied the same day). BZE-301 supersedes
+the first-round lifecycle exclusion: branch-complete first-round lifecycle is
+V1-required across all 278 currently exposed first-round entitlements.
+Unavailable nonzero trade-bonus authority remains deferred to Phase 3B.
+Accepted Phase 3A evidence remains valid for its proven boundary; V1 acceptance
+must also satisfy the expanded first-round requirement.
 
 ## Precedence
 
@@ -132,12 +134,16 @@ claims (including blocking conflicting claims). Complete when these rules
 hold across the supported Trade Machine picks flow and season boundaries using
 authenticated governed asset state. Existing supported pick and entitlement
 trades remain required. `CBA2-A12.3` is authenticated in the pinned accepted
-Canon. A branch-complete ownership, Stepien, protection, conveyance, or
-frozen-pick decision for which complete governed lifecycle history remains
-unavailable must stop before apply and show an honest needs-input result under
-the 2026-08-27 exclusion; the product may not guess a branch, reuse simplified
-legacy rules, or treat the missing condition as satisfied. (The draft-night
-room itself is excluded — see exclusions.)
+Canon. Branch-complete first-round ownership, Stepien, protection, conveyance,
+freeze, unfreeze, penalty, and required-transition lifecycle support is required
+for all 278 currently exposed first-round entitlements (240 ownership, 27 swap
+rights, and 11 conveyance rights). No smaller certified subset is approved.
+Until a fully implemented positive path with complete governed lifecycle data
+is accepted, unavailable history must still stop before apply and show an
+honest needs-input result. Source-content completeness alone does not satisfy
+this requirement. The product may not guess a branch, reuse simplified legacy
+rules, or treat a missing condition as satisfied. (The draft-night room itself
+is excluded — see exclusions.)
 
 ### W11. Season advance
 
@@ -195,16 +201,6 @@ product, not only in tests:
 
 ## Deliberate V1 exclusions (owner-decided — not gaps)
 
-- **Authority-blocked branch-complete draft lifecycle variants** — moved to
-  Phase 3B by locked owner decision 2026-08-27: draft ownership, Stepien, and
-  frozen-pick lifecycle behavior for which complete governed ownership,
-  protection, conveyance, freeze, unfreeze, penalty, and required-transition
-  history is missing. `CBA2-A12.3` is authenticated in the pinned accepted
-  Canon and is not a missing input. These variants must return an honest
-  unavailable/needs-input result before mutation. This exclusion unblocks only
-  when a retained, certified governed source supplies the complete lifecycle
-  history required by the proposed branch. Supported trades of existing picks
-  and entitlements remain V1 requirements.
 - **Ordinary trades requiring unavailable nonzero trade-bonus evidence** —
   moved to Phase 3B by locked owner decision 2026-08-27. When a proposed trade
   requires a nonzero trade-bonus calculation, the product must return an honest
@@ -239,14 +235,11 @@ The three decisions raised at the 2026-07-11 review (the Offseason room,
 authoring controls, and the trade-summary export) were resolved by the owner
 the same day and are encoded in the sections above.
 
-Final acceptance of the remaining V1/Phase 3B exclusions is still pending at
-the BZE-267 closure boundary. The locked 2026-08-27 amendment governs how the
-two authority-blocked variants behave during the BZE-265 proof; it does not let
-the closure lane silently decide that the final remaining-exclusions matrix is
-acceptable. BZE-265 records the matrix and objective evidence, but only the
-owner can make that final acceptance decision. Any other genuinely owner-level
-question surfaced by the gap pass is likewise answered before implementation
-in either direction.
+Phase 3A (BZE-267) is complete. Its accepted proof of the first-round safe stop
+remains valid, but does not satisfy BZE-301's expanded W10 requirement. Nonzero
+trade bonus remains a post-V1 needs-input/no-write boundary. Final Architect V1
+acceptance remains with the owner under BZE-243; any proposed reduction of the
+278-entitlement first-round universe requires an explicit owner decision.
 
 ## Evidence standard
 
@@ -276,8 +269,10 @@ the product runs, cite the exact pinned accepted-Canon leaf or certified
 governed source identity, and show independent arithmetic where applicable.
 Rendered output, persisted documents, receipts, events, and existing application
 calculations are evidence about actual behavior, never the expectation oracle.
-Unavailable authority requires a fail-closed expectation, including both
-2026-08-27 Phase 3B exclusions.
+Unavailable authority requires a fail-closed expectation, including the
+nonzero trade-bonus exclusion and the first-round safe stop pending accepted
+positive-path implementation. First-round safe-stop proof alone cannot close
+the expanded W10 requirement.
 
 Final V1 acceptance (parent gate BZE-243): the live scenario battery
 (`tests/e2e/architect-qa.spec.ts` in review mode) passes, remaining
