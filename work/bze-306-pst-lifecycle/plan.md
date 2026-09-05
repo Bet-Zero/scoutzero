@@ -45,15 +45,15 @@ defects block freeze; they cannot be counted as external-source gaps.
 
 ## Declared failure matrix
 
-| Risk | Discriminating expectation and author check |
-| --- | --- |
-| Semantic loss | Every source table/row/cell, status, link, text span and narrative has an address; independently inspect current-byte examples for protections, replacement, priority, election, amendment, and did-not-convey reasons. Synthetic fixtures exercise the same structures without publishing source prose. |
-| Reference collision / cross-pick leakage | Page/table/row/cell identities are composite. Terms in another pick's transaction clause never become the selected asset's protection. Check the current LAC and IND evidence before defining expected terms. |
-| Chronology / branch ambiguity | Capture, update, transaction and effective dates remain distinct. Stable output sorting adds no precedence. Same-date/undated ambiguity and mutually exclusive alternatives remain explicit. |
-| Duplicate observations | Team/year observations support one normalized claim/event where identity is proved; uncertain equivalence remains explicit and never counts as an extra proven transfer. |
-| Determinism | Rebuild from the pinned archive with permuted input enumeration, different local paths and unchanged parser/schema; compare exact bytes/digests. Verification rejects tampering and broken references. |
-| Accounting | Independently pin all 278 IDs and 240/27/11 kinds. Test omissions, duplicates, wrong kind/year and unsupported derivative mappings. Resolved 2026 assets stay in the denominator. |
-| Source / runtime isolation | No network acquisition, Firestore imports/writes, runtime consumer, world migration or UI/rules changes. Private outputs cannot be written to served/tracked source locations by the CLI. |
+| Risk                                     | Discriminating expectation and author check                                                                                                                                                                                                                                                              |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Semantic loss                            | Every source table/row/cell, status, link, text span and narrative has an address; independently inspect current-byte examples for protections, replacement, priority, election, amendment, and did-not-convey reasons. Synthetic fixtures exercise the same structures without publishing source prose. |
+| Reference collision / cross-pick leakage | Page/table/row/cell identities are composite. Terms in another pick's transaction clause never become the selected asset's protection. Check the current LAC and IND evidence before defining expected terms.                                                                                            |
+| Chronology / branch ambiguity            | Capture, update, transaction and effective dates remain distinct. Stable output sorting adds no precedence. Same-date/undated ambiguity and mutually exclusive alternatives remain explicit.                                                                                                             |
+| Duplicate observations                   | Team/year observations support one normalized claim/event where identity is proved; uncertain equivalence remains explicit and never counts as an extra proven transfer.                                                                                                                                 |
+| Determinism                              | Rebuild from the pinned archive with permuted input enumeration, different local paths and unchanged parser/schema; compare exact bytes/digests. Verification rejects tampering and broken references.                                                                                                   |
+| Accounting                               | Independently pin all 278 IDs and 240/27/11 kinds. Test omissions, duplicates, wrong kind/year and unsupported derivative mappings. Resolved 2026 assets stay in the denominator.                                                                                                                        |
+| Source / runtime isolation               | No network acquisition, Firestore imports/writes, runtime consumer, world migration or UI/rules changes. Private outputs cannot be written to served/tracked source locations by the CLI.                                                                                                                |
 
 ## Checkpoints
 

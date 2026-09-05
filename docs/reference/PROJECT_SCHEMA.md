@@ -71,6 +71,8 @@ Top-level directory structure and purposes:
 - `schema-tools/` - Schema validation and migration tools
 - `firebaseConfig.node.js` - Node.js Firebase configuration
 - `emu/` - Local emulator workflow scripts (port cleanup, seed gate, export fallback)
+- `source-releases/pst-lifecycle/` - Offline private PST observation, lifecycle
+  reconstruction, exact comparison accounting and reproducible verification
 
 #### docs/
 
@@ -142,6 +144,15 @@ Top-level directory structure and purposes:
 - **Testing:** Vitest (1.6.1), @testing-library/react (14.2.1)
 
 ## Script Interfaces
+
+### Private PST lifecycle candidates
+
+`scripts/source-releases/pst-lifecycle/cli.ts` builds or verifies private
+source/lifecycle artifacts from the accepted PST release and pinned 278-ID
+comparison universe. Its observation and lifecycle contracts are defined in
+`src/schemas/pstLifecycle.ts`. No runtime release or Firestore write is produced.
+See [the runbook](../operations/PST_LIFECYCLE_CANDIDATES.md) for exact arguments,
+artifact definitions, validation and independent recovery.
 
 ### Emulator Workflow
 

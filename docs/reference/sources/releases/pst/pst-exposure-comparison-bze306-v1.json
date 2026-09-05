@@ -1,0 +1,1968 @@
+{
+  "schemaVersion": "pst-exposure-comparison-v1",
+  "role": "comparison-only; no holder, branch, or source-fact authority",
+  "originalArtifact": "data/pst/pst_entitlement_assets_2026_2033.json",
+  "originalArtifactSha256": "69411cc0b9cc29f9d1e0b8faa573750dc52c2c265419cf204191493c5c16de60",
+  "originalArtifactBytes": 199082,
+  "byTeamArtifactSha256": "30ae67656a7b7018408c9eac5be07c8bb2e7051a7475e9481c6ba9c1b8d943b5",
+  "counts": {
+    "total": 278,
+    "pick_ownership": 240,
+    "swap_right": 27,
+    "conveyance_right": 11
+  },
+  "entitlements": [
+    {
+      "id": "ent:ATL:2026:1:conv:cdbad2a3",
+      "kind": "conveyance_right",
+      "seasonYear": 2026,
+      "round": 1,
+      "poolUnderlyingPickIds": ["ATL_2026_1st", "SAS_2026_1st"]
+    },
+    {
+      "id": "ent:ATL:2027:1:own:a9553581",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "ATL_2027_1st"
+    },
+    {
+      "id": "ent:ATL:2028:1:conv:637154f3",
+      "kind": "conveyance_right",
+      "seasonYear": 2028,
+      "round": 1,
+      "poolUnderlyingPickIds": ["ATL_2028_1st", "CLE_2028_1st", "UTA_2028_1st"]
+    },
+    {
+      "id": "ent:ATL:2028:1:own:b041c84c",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "ATL_2028_1st"
+    },
+    {
+      "id": "ent:ATL:2029:1:own:bc3a9b84",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "ATL_2029_1st"
+    },
+    {
+      "id": "ent:ATL:2030:1:own:8679b743",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "ATL_2030_1st"
+    },
+    {
+      "id": "ent:ATL:2031:1:own:6d3ebbac",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "ATL_2031_1st"
+    },
+    {
+      "id": "ent:ATL:2032:1:own:ef3b9f14",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "ATL_2032_1st"
+    },
+    {
+      "id": "ent:ATL:2033:1:own:e4c36db6",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "ATL_2033_1st"
+    },
+    {
+      "id": "ent:BKN:2026:1:own:6d6555d2",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "BKN_2026_1st"
+    },
+    {
+      "id": "ent:BKN:2027:1:own:6a003407",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "BKN_2027_1st"
+    },
+    {
+      "id": "ent:BKN:2027:1:own:6c2212cf",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "PHI_2027_1st"
+    },
+    {
+      "id": "ent:BKN:2028:1:own:8c4f9663",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "BKN_2028_1st"
+    },
+    {
+      "id": "ent:BKN:2028:1:swap:03b16c68",
+      "kind": "swap_right",
+      "seasonYear": 2028,
+      "round": 1,
+      "swapControllerPickId": "BKN_2028_1st"
+    },
+    {
+      "id": "ent:BKN:2028:1:swap:3c588bfc",
+      "kind": "swap_right",
+      "seasonYear": 2028,
+      "round": 1,
+      "swapControllerPickId": "BKN_2028_1st"
+    },
+    {
+      "id": "ent:BKN:2029:1:own:f9ed7bb6",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "BKN_2029_1st"
+    },
+    {
+      "id": "ent:BKN:2030:1:own:6eda55f4",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "BKN_2030_1st"
+    },
+    {
+      "id": "ent:BKN:2031:1:own:96d5ab7f",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "BKN_2031_1st"
+    },
+    {
+      "id": "ent:BKN:2032:1:own:23b6add2",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "BKN_2032_1st"
+    },
+    {
+      "id": "ent:BKN:2032:1:own:8cca83fd",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "DEN_2032_1st"
+    },
+    {
+      "id": "ent:BKN:2033:1:own:bcd30a44",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "BKN_2033_1st"
+    },
+    {
+      "id": "ent:BOS:2026:1:own:40f9a17d",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "BOS_2026_1st"
+    },
+    {
+      "id": "ent:BOS:2027:1:own:6b4b56bd",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "BOS_2027_1st"
+    },
+    {
+      "id": "ent:BOS:2028:1:own:8e0206fd",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "SAS_2028_1st"
+    },
+    {
+      "id": "ent:BOS:2029:1:conv:71a06a81",
+      "kind": "conveyance_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "poolUnderlyingPickIds": ["MIL_2029_1st", "POR_2029_1st"]
+    },
+    {
+      "id": "ent:BOS:2029:1:own:efba9eae",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "BOS_2029_1st"
+    },
+    {
+      "id": "ent:BOS:2029:1:swap:a0110e0d",
+      "kind": "swap_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "poolUnderlyingPickIds": ["BOS_2029_1st", "MIL_2029_1st", "POR_2029_1st"],
+      "swapControllerPickId": "BOS_2029_1st"
+    },
+    {
+      "id": "ent:BOS:2030:1:own:b4e3f078",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "BOS_2030_1st"
+    },
+    {
+      "id": "ent:BOS:2031:1:own:738cea7e",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "BOS_2031_1st"
+    },
+    {
+      "id": "ent:BOS:2032:1:own:00cfda5f",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "BOS_2032_1st"
+    },
+    {
+      "id": "ent:BOS:2033:1:own:fce12c57",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "BOS_2033_1st"
+    },
+    {
+      "id": "ent:CHA:2026:1:own:7ac7575b",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "CHA_2026_1st"
+    },
+    {
+      "id": "ent:CHA:2027:1:own:e8faa520",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "MIA_2027_1st"
+    },
+    {
+      "id": "ent:CHA:2028:1:own:aa65321b",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "CHA_2028_1st"
+    },
+    {
+      "id": "ent:CHA:2029:1:own:9f1f3676",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "CHA_2029_1st"
+    },
+    {
+      "id": "ent:CHA:2030:1:own:a110e9f8",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "CHA_2030_1st"
+    },
+    {
+      "id": "ent:CHA:2031:1:own:dc7d66cf",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "CHA_2031_1st"
+    },
+    {
+      "id": "ent:CHA:2032:1:own:d77d1733",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "CHA_2032_1st"
+    },
+    {
+      "id": "ent:CHA:2033:1:own:3a568e5e",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "CHA_2033_1st"
+    },
+    {
+      "id": "ent:CHI:2026:1:own:d11cfef8",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "POR_2026_1st"
+    },
+    {
+      "id": "ent:CHI:2026:1:own:e73cc0b6",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "CHI_2026_1st"
+    },
+    {
+      "id": "ent:CHI:2027:1:own:862bc913",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "CHI_2027_1st"
+    },
+    {
+      "id": "ent:CHI:2028:1:own:2afbfb42",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "CHI_2028_1st"
+    },
+    {
+      "id": "ent:CHI:2029:1:own:93f7bc5a",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "CHI_2029_1st"
+    },
+    {
+      "id": "ent:CHI:2030:1:own:382a238d",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "CHI_2030_1st"
+    },
+    {
+      "id": "ent:CHI:2031:1:own:b0ead7ea",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "CHI_2031_1st"
+    },
+    {
+      "id": "ent:CHI:2032:1:own:7d42b539",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "CHI_2032_1st"
+    },
+    {
+      "id": "ent:CHI:2033:1:own:baa33ef0",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "CHI_2033_1st"
+    },
+    {
+      "id": "ent:CLE:2026:1:own:aa7ba34e",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "MIN_2026_1st"
+    },
+    {
+      "id": "ent:CLE:2026:1:own:db4dd5ff",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "CLE_2026_1st"
+    },
+    {
+      "id": "ent:CLE:2027:1:own:ad0c537b",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "CLE_2027_1st"
+    },
+    {
+      "id": "ent:CLE:2029:1:own:8f1d1f99",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "CLE_2029_1st"
+    },
+    {
+      "id": "ent:CLE:2030:1:own:d5acf375",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "CLE_2030_1st"
+    },
+    {
+      "id": "ent:CLE:2031:1:own:01d967b1",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "CLE_2031_1st"
+    },
+    {
+      "id": "ent:CLE:2032:1:own:dea3bff1",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "CLE_2032_1st"
+    },
+    {
+      "id": "ent:CLE:2033:1:own:20b65b7c",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "CLE_2033_1st"
+    },
+    {
+      "id": "ent:DAL:2026:1:own:3daa9299",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "DAL_2026_1st"
+    },
+    {
+      "id": "ent:DAL:2027:1:own:dc59d484",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "DAL_2027_1st"
+    },
+    {
+      "id": "ent:DAL:2028:1:own:aacf716f",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "DAL_2028_1st"
+    },
+    {
+      "id": "ent:DAL:2029:1:conv:17d1e789",
+      "kind": "conveyance_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "poolUnderlyingPickIds": ["HOU_2029_1st", "PHX_2029_1st"]
+    },
+    {
+      "id": "ent:DAL:2029:1:own:3ed63fa4",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "DAL_2029_1st"
+    },
+    {
+      "id": "ent:DAL:2029:1:own:7a6c5e2c",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "LAL_2029_1st"
+    },
+    {
+      "id": "ent:DAL:2029:1:swap:370ed486",
+      "kind": "swap_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "poolUnderlyingPickIds": ["DAL_2029_1st", "HOU_2029_1st", "PHX_2029_1st"],
+      "swapControllerPickId": "DAL_2029_1st"
+    },
+    {
+      "id": "ent:DAL:2030:1:own:dfa5f2a1",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "DAL_2030_1st"
+    },
+    {
+      "id": "ent:DAL:2031:1:own:a9ad0fae",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "DAL_2031_1st"
+    },
+    {
+      "id": "ent:DAL:2032:1:own:c7bc90a2",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "DAL_2032_1st"
+    },
+    {
+      "id": "ent:DAL:2033:1:own:76a59054",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "DAL_2033_1st"
+    },
+    {
+      "id": "ent:DEN:2026:1:own:cc7c6e9f",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "DEN_2026_1st"
+    },
+    {
+      "id": "ent:DEN:2027:1:own:73a5a9c7",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "DEN_2027_1st"
+    },
+    {
+      "id": "ent:DEN:2028:1:own:df664113",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "DEN_2028_1st"
+    },
+    {
+      "id": "ent:DEN:2029:1:own:4ce95dc8",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "DEN_2029_1st"
+    },
+    {
+      "id": "ent:DEN:2030:1:own:b4bae73e",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "DEN_2030_1st"
+    },
+    {
+      "id": "ent:DEN:2031:1:own:d84fa1a2",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "DEN_2031_1st"
+    },
+    {
+      "id": "ent:DEN:2033:1:own:982bd9ef",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "DEN_2033_1st"
+    },
+    {
+      "id": "ent:DET:2026:1:own:9e978e3b",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "DET_2026_1st"
+    },
+    {
+      "id": "ent:DET:2027:1:own:bbe3a9da",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "DET_2027_1st"
+    },
+    {
+      "id": "ent:DET:2028:1:own:8399931d",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "DET_2028_1st"
+    },
+    {
+      "id": "ent:DET:2029:1:own:89e07158",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "DET_2029_1st"
+    },
+    {
+      "id": "ent:DET:2030:1:own:055249ba",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "DET_2030_1st"
+    },
+    {
+      "id": "ent:DET:2031:1:own:4a42ccfd",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "DET_2031_1st"
+    },
+    {
+      "id": "ent:DET:2032:1:own:0fe766a4",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "DET_2032_1st"
+    },
+    {
+      "id": "ent:DET:2033:1:own:66f9ee75",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "DET_2033_1st"
+    },
+    {
+      "id": "ent:GSW:2026:1:own:340147aa",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "GSW_2026_1st"
+    },
+    {
+      "id": "ent:GSW:2027:1:own:2085153c",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "GSW_2027_1st"
+    },
+    {
+      "id": "ent:GSW:2028:1:own:2125f0c6",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "GSW_2028_1st"
+    },
+    {
+      "id": "ent:GSW:2029:1:own:a6e23a0e",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "GSW_2029_1st"
+    },
+    {
+      "id": "ent:GSW:2031:1:own:b7fa8478",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "GSW_2031_1st"
+    },
+    {
+      "id": "ent:GSW:2032:1:own:7b2dba75",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "GSW_2032_1st"
+    },
+    {
+      "id": "ent:GSW:2033:1:own:8b99074c",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "GSW_2033_1st"
+    },
+    {
+      "id": "ent:HOU:2026:1:own:71e050e2",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "HOU_2026_1st"
+    },
+    {
+      "id": "ent:HOU:2027:1:own:83e64692",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "HOU_2027_1st"
+    },
+    {
+      "id": "ent:HOU:2027:1:swap:602994a3",
+      "kind": "swap_right",
+      "seasonYear": 2027,
+      "round": 1,
+      "swapControllerPickId": "HOU_2027_1st"
+    },
+    {
+      "id": "ent:HOU:2028:1:own:ca5298f7",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "HOU_2028_1st"
+    },
+    {
+      "id": "ent:HOU:2029:1:conv:8c5fc3c8",
+      "kind": "conveyance_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "poolUnderlyingPickIds": ["DAL_2029_1st", "PHX_2029_1st"]
+    },
+    {
+      "id": "ent:HOU:2029:1:own:c5d6829c",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "HOU_2029_1st"
+    },
+    {
+      "id": "ent:HOU:2029:1:swap:a6cf2ab5",
+      "kind": "swap_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "poolUnderlyingPickIds": ["DAL_2029_1st", "HOU_2029_1st", "PHX_2029_1st"],
+      "swapControllerPickId": "HOU_2029_1st"
+    },
+    {
+      "id": "ent:HOU:2030:1:own:74105819",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "HOU_2030_1st"
+    },
+    {
+      "id": "ent:HOU:2031:1:own:a70901f8",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "HOU_2031_1st"
+    },
+    {
+      "id": "ent:HOU:2032:1:own:e9e31947",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "HOU_2032_1st"
+    },
+    {
+      "id": "ent:HOU:2033:1:own:7b093a9d",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "HOU_2033_1st"
+    },
+    {
+      "id": "ent:IND:2026:1:own:f7778247",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "IND_2026_1st"
+    },
+    {
+      "id": "ent:IND:2027:1:own:33e0a25e",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "IND_2027_1st"
+    },
+    {
+      "id": "ent:IND:2028:1:own:d68cee70",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "IND_2028_1st"
+    },
+    {
+      "id": "ent:IND:2029:1:own:021304fe",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "IND_2029_1st"
+    },
+    {
+      "id": "ent:IND:2030:1:own:998e83ba",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "IND_2030_1st"
+    },
+    {
+      "id": "ent:IND:2031:1:own:dfd930c8",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "IND_2031_1st"
+    },
+    {
+      "id": "ent:IND:2032:1:own:4b9df240",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "IND_2032_1st"
+    },
+    {
+      "id": "ent:IND:2033:1:own:e0c3592e",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "IND_2033_1st"
+    },
+    {
+      "id": "ent:LAC:2027:1:own:d0fc7a61",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "LAC_2027_1st"
+    },
+    {
+      "id": "ent:LAC:2028:1:own:21a62110",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "LAC_2028_1st"
+    },
+    {
+      "id": "ent:LAC:2029:1:own:214df56b",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "PHI_2029_1st"
+    },
+    {
+      "id": "ent:LAC:2029:1:own:ee954e79",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "LAC_2029_1st"
+    },
+    {
+      "id": "ent:LAC:2030:1:own:c96f322f",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "LAC_2030_1st"
+    },
+    {
+      "id": "ent:LAC:2031:1:own:9acc5197",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "LAC_2031_1st"
+    },
+    {
+      "id": "ent:LAC:2032:1:own:6c8be81f",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "LAC_2032_1st"
+    },
+    {
+      "id": "ent:LAC:2033:1:own:18f85503",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "LAC_2033_1st"
+    },
+    {
+      "id": "ent:LAL:2026:1:own:a636a44c",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "LAL_2026_1st"
+    },
+    {
+      "id": "ent:LAL:2028:1:own:3c592186",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "LAL_2028_1st"
+    },
+    {
+      "id": "ent:LAL:2030:1:own:7498a9b3",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "LAL_2030_1st"
+    },
+    {
+      "id": "ent:LAL:2031:1:own:3f3e1da4",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "LAL_2031_1st"
+    },
+    {
+      "id": "ent:LAL:2032:1:own:f51ea601",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "LAL_2032_1st"
+    },
+    {
+      "id": "ent:LAL:2033:1:own:54343586",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "LAL_2033_1st"
+    },
+    {
+      "id": "ent:MEM:2026:1:own:52087944",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "MEM_2026_1st"
+    },
+    {
+      "id": "ent:MEM:2027:1:own:3a79eace",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "MEM_2027_1st"
+    },
+    {
+      "id": "ent:MEM:2028:1:own:2582e99e",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "MEM_2028_1st"
+    },
+    {
+      "id": "ent:MEM:2029:1:own:754ca84f",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "MEM_2029_1st"
+    },
+    {
+      "id": "ent:MEM:2029:1:swap:8d2c8473",
+      "kind": "swap_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "swapControllerPickId": "MEM_2029_1st"
+    },
+    {
+      "id": "ent:MEM:2030:1:conv:21955caf",
+      "kind": "conveyance_right",
+      "seasonYear": 2030,
+      "round": 1,
+      "poolUnderlyingPickIds": ["MEM_2030_1st", "PHX_2030_1st", "WAS_2030_1st"]
+    },
+    {
+      "id": "ent:MEM:2030:1:own:20796810",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "MEM_2030_1st"
+    },
+    {
+      "id": "ent:MEM:2031:1:own:41dcf8ec",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "MEM_2031_1st"
+    },
+    {
+      "id": "ent:MEM:2032:1:own:812b1295",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "MEM_2032_1st"
+    },
+    {
+      "id": "ent:MEM:2033:1:own:b2227c61",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "MEM_2033_1st"
+    },
+    {
+      "id": "ent:MIA:2026:1:own:404d8408",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "MIA_2026_1st"
+    },
+    {
+      "id": "ent:MIA:2028:1:own:2026e763",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "MIA_2028_1st"
+    },
+    {
+      "id": "ent:MIA:2029:1:own:dd737eb7",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "MIA_2029_1st"
+    },
+    {
+      "id": "ent:MIA:2030:1:own:ac356244",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "MIA_2030_1st"
+    },
+    {
+      "id": "ent:MIA:2031:1:own:fde33634",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "MIA_2031_1st"
+    },
+    {
+      "id": "ent:MIA:2032:1:own:a2e71a39",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "MIA_2032_1st"
+    },
+    {
+      "id": "ent:MIA:2033:1:own:3db9c424",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "MIA_2033_1st"
+    },
+    {
+      "id": "ent:MIL:2026:1:own:c9debd2f",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "MIL_2026_1st"
+    },
+    {
+      "id": "ent:MIL:2027:1:own:b0a8d2e9",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "MIL_2027_1st"
+    },
+    {
+      "id": "ent:MIL:2029:1:conv:ee7d19b8",
+      "kind": "conveyance_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "poolUnderlyingPickIds": ["BOS_2029_1st", "POR_2029_1st"]
+    },
+    {
+      "id": "ent:MIL:2029:1:own:2d71129c",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "MIL_2029_1st"
+    },
+    {
+      "id": "ent:MIL:2029:1:swap:eb1dbc38",
+      "kind": "swap_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "poolUnderlyingPickIds": ["BOS_2029_1st", "MIL_2029_1st", "POR_2029_1st"],
+      "swapControllerPickId": "MIL_2029_1st"
+    },
+    {
+      "id": "ent:MIL:2031:1:own:f3855628",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "MIL_2031_1st"
+    },
+    {
+      "id": "ent:MIL:2032:1:own:41555387",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "MIL_2032_1st"
+    },
+    {
+      "id": "ent:MIL:2033:1:own:1aedd7b1",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "MIL_2033_1st"
+    },
+    {
+      "id": "ent:MIN:2027:1:own:3db9a7ae",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "MIN_2027_1st"
+    },
+    {
+      "id": "ent:MIN:2028:1:own:29feb4e8",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "MIN_2028_1st"
+    },
+    {
+      "id": "ent:MIN:2029:1:own:37eab925",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "MIN_2029_1st"
+    },
+    {
+      "id": "ent:MIN:2032:1:own:8025aba6",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "MIN_2032_1st"
+    },
+    {
+      "id": "ent:MIN:2033:1:own:8afffc2f",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "MIN_2033_1st"
+    },
+    {
+      "id": "ent:NOP:2026:1:own:a7f84b36",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "NOP_2026_1st"
+    },
+    {
+      "id": "ent:NOP:2026:1:swap:67d855c8",
+      "kind": "swap_right",
+      "seasonYear": 2026,
+      "round": 1,
+      "swapControllerPickId": "NOP_2026_1st"
+    },
+    {
+      "id": "ent:NOP:2027:1:own:1286760f",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "NOP_2027_1st"
+    },
+    {
+      "id": "ent:NOP:2028:1:own:bd4d70cd",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "NOP_2028_1st"
+    },
+    {
+      "id": "ent:NOP:2029:1:own:2bb8dd2e",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "NOP_2029_1st"
+    },
+    {
+      "id": "ent:NOP:2030:1:own:62318cba",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "NOP_2030_1st"
+    },
+    {
+      "id": "ent:NOP:2031:1:own:3ec67b70",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "NOP_2031_1st"
+    },
+    {
+      "id": "ent:NOP:2032:1:own:3f42e2be",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "NOP_2032_1st"
+    },
+    {
+      "id": "ent:NOP:2033:1:own:e4fab823",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "NOP_2033_1st"
+    },
+    {
+      "id": "ent:NYK:2026:1:own:cb13bf62",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "WAS_2026_1st"
+    },
+    {
+      "id": "ent:NYK:2026:1:own:ff4cb43f",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "NYK_2026_1st"
+    },
+    {
+      "id": "ent:NYK:2027:1:own:db92e84c",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "NYK_2027_1st"
+    },
+    {
+      "id": "ent:NYK:2028:1:own:a0ae58c2",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "NYK_2028_1st"
+    },
+    {
+      "id": "ent:NYK:2029:1:own:17e9bbe7",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "NYK_2029_1st"
+    },
+    {
+      "id": "ent:NYK:2030:1:own:08f04437",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "NYK_2030_1st"
+    },
+    {
+      "id": "ent:NYK:2031:1:own:677829f9",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "NYK_2031_1st"
+    },
+    {
+      "id": "ent:NYK:2032:1:own:28cf9053",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "NYK_2032_1st"
+    },
+    {
+      "id": "ent:NYK:2033:1:own:3e44e40f",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "NYK_2033_1st"
+    },
+    {
+      "id": "ent:OKC:2026:1:own:24c1b3ff",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "PHI_2026_1st"
+    },
+    {
+      "id": "ent:OKC:2026:1:own:2bb9685f",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "OKC_2026_1st"
+    },
+    {
+      "id": "ent:OKC:2027:1:own:1998ae69",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "SAS_2027_1st"
+    },
+    {
+      "id": "ent:OKC:2027:1:own:9117ae92",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "OKC_2027_1st"
+    },
+    {
+      "id": "ent:OKC:2027:1:swap:c42ee1ab",
+      "kind": "swap_right",
+      "seasonYear": 2027,
+      "round": 1,
+      "swapControllerPickId": "OKC_2027_1st"
+    },
+    {
+      "id": "ent:OKC:2028:1:own:cbe1984c",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "OKC_2028_1st"
+    },
+    {
+      "id": "ent:OKC:2028:1:swap:cc46fc90",
+      "kind": "swap_right",
+      "seasonYear": 2028,
+      "round": 1,
+      "swapControllerPickId": "OKC_2028_1st"
+    },
+    {
+      "id": "ent:OKC:2029:1:own:984d4f7d",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "OKC_2029_1st"
+    },
+    {
+      "id": "ent:OKC:2030:1:own:ee870080",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "OKC_2030_1st"
+    },
+    {
+      "id": "ent:OKC:2031:1:own:d98fdce2",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "OKC_2031_1st"
+    },
+    {
+      "id": "ent:OKC:2032:1:own:609695ef",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "OKC_2032_1st"
+    },
+    {
+      "id": "ent:OKC:2033:1:own:cac99134",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "OKC_2033_1st"
+    },
+    {
+      "id": "ent:ORL:2026:1:conv:a2c80e04",
+      "kind": "conveyance_right",
+      "seasonYear": 2026,
+      "round": 1,
+      "poolUnderlyingPickIds": ["ORL_2026_1st", "PHX_2026_1st", "WAS_2026_1st"]
+    },
+    {
+      "id": "ent:ORL:2026:1:own:daafc2af",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "ORL_2026_1st"
+    },
+    {
+      "id": "ent:ORL:2027:1:own:2670d0a0",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "ORL_2027_1st"
+    },
+    {
+      "id": "ent:ORL:2028:1:own:13b4199e",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "ORL_2028_1st"
+    },
+    {
+      "id": "ent:ORL:2029:1:own:dd47a15e",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "ORL_2029_1st"
+    },
+    {
+      "id": "ent:ORL:2030:1:own:b8139dc6",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "ORL_2030_1st"
+    },
+    {
+      "id": "ent:ORL:2031:1:own:d6792c72",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "ORL_2031_1st"
+    },
+    {
+      "id": "ent:ORL:2032:1:own:2d8a1683",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "ORL_2032_1st"
+    },
+    {
+      "id": "ent:ORL:2033:1:own:afe02dd7",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "ORL_2033_1st"
+    },
+    {
+      "id": "ent:PHI:2028:1:own:99b4a98a",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "PHI_2028_1st"
+    },
+    {
+      "id": "ent:PHI:2029:1:swap:7b652e13",
+      "kind": "swap_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "swapControllerPickId": "PHI_2029_1st"
+    },
+    {
+      "id": "ent:PHI:2030:1:own:6937ba96",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "PHI_2030_1st"
+    },
+    {
+      "id": "ent:PHI:2031:1:own:e2f9fd96",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "PHI_2031_1st"
+    },
+    {
+      "id": "ent:PHI:2032:1:own:0ddc32b5",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "PHI_2032_1st"
+    },
+    {
+      "id": "ent:PHI:2033:1:own:b1cb4be7",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "PHI_2033_1st"
+    },
+    {
+      "id": "ent:PHX:2026:1:own:ff6dbd91",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "PHX_2026_1st"
+    },
+    {
+      "id": "ent:PHX:2027:1:own:dd721887",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "PHX_2027_1st"
+    },
+    {
+      "id": "ent:PHX:2028:1:own:b44992e5",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "PHX_2028_1st"
+    },
+    {
+      "id": "ent:PHX:2029:1:conv:1d9f4771",
+      "kind": "conveyance_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "poolUnderlyingPickIds": ["DAL_2029_1st", "HOU_2029_1st"]
+    },
+    {
+      "id": "ent:PHX:2029:1:own:fcba7cfa",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "PHX_2029_1st"
+    },
+    {
+      "id": "ent:PHX:2029:1:swap:1c8408ca",
+      "kind": "swap_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "poolUnderlyingPickIds": ["DAL_2029_1st", "HOU_2029_1st", "PHX_2029_1st"],
+      "swapControllerPickId": "PHX_2029_1st"
+    },
+    {
+      "id": "ent:PHX:2030:1:own:adebbc43",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "PHX_2030_1st"
+    },
+    {
+      "id": "ent:PHX:2031:1:own:97b00469",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "PHX_2031_1st"
+    },
+    {
+      "id": "ent:PHX:2032:1:own:90db4de6",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "PHX_2032_1st"
+    },
+    {
+      "id": "ent:PHX:2033:1:own:2162a435",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "PHX_2033_1st"
+    },
+    {
+      "id": "ent:POR:2027:1:own:a4c985b6",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "POR_2027_1st"
+    },
+    {
+      "id": "ent:POR:2028:1:own:33a6c593",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "POR_2028_1st"
+    },
+    {
+      "id": "ent:POR:2028:1:own:9b3f8af7",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "MIL_2028_1st"
+    },
+    {
+      "id": "ent:POR:2028:1:swap:b15835c9",
+      "kind": "swap_right",
+      "seasonYear": 2028,
+      "round": 1,
+      "swapControllerPickId": "POR_2028_1st"
+    },
+    {
+      "id": "ent:POR:2029:1:conv:37a5df0d",
+      "kind": "conveyance_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "poolUnderlyingPickIds": ["BOS_2029_1st", "MIL_2029_1st"]
+    },
+    {
+      "id": "ent:POR:2029:1:own:e2463a86",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "POR_2029_1st"
+    },
+    {
+      "id": "ent:POR:2029:1:swap:ac7c7b89",
+      "kind": "swap_right",
+      "seasonYear": 2029,
+      "round": 1,
+      "poolUnderlyingPickIds": ["BOS_2029_1st", "MIL_2029_1st", "POR_2029_1st"],
+      "swapControllerPickId": "POR_2029_1st"
+    },
+    {
+      "id": "ent:POR:2030:1:own:14a85bfe",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "MIL_2030_1st"
+    },
+    {
+      "id": "ent:POR:2030:1:own:7ede419a",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "POR_2030_1st"
+    },
+    {
+      "id": "ent:POR:2030:1:swap:f164ac97",
+      "kind": "swap_right",
+      "seasonYear": 2030,
+      "round": 1,
+      "swapControllerPickId": "POR_2030_1st"
+    },
+    {
+      "id": "ent:POR:2031:1:own:41e7bd67",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "POR_2031_1st"
+    },
+    {
+      "id": "ent:POR:2032:1:own:2c11127b",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "POR_2032_1st"
+    },
+    {
+      "id": "ent:POR:2033:1:own:4686e7f9",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "POR_2033_1st"
+    },
+    {
+      "id": "ent:SAC:2026:1:own:473c2062",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "SAC_2026_1st"
+    },
+    {
+      "id": "ent:SAC:2027:1:own:3d8ada73",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "CHA_2027_1st"
+    },
+    {
+      "id": "ent:SAC:2027:1:own:4517cd94",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "SAC_2027_1st"
+    },
+    {
+      "id": "ent:SAC:2028:1:own:1401311d",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "SAC_2028_1st"
+    },
+    {
+      "id": "ent:SAC:2029:1:own:167e1d38",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "SAC_2029_1st"
+    },
+    {
+      "id": "ent:SAC:2030:1:own:7b1b6512",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "SAC_2030_1st"
+    },
+    {
+      "id": "ent:SAC:2031:1:own:612869da",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "MIN_2031_1st"
+    },
+    {
+      "id": "ent:SAC:2031:1:own:c26337ab",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "SAC_2031_1st"
+    },
+    {
+      "id": "ent:SAC:2032:1:own:6abd0f16",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "SAC_2032_1st"
+    },
+    {
+      "id": "ent:SAC:2033:1:own:e9a196f6",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "SAC_2033_1st"
+    },
+    {
+      "id": "ent:SAS:2026:1:own:aa97ccf4",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "SAS_2026_1st"
+    },
+    {
+      "id": "ent:SAS:2026:1:own:efdc0226",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "ATL_2026_1st"
+    },
+    {
+      "id": "ent:SAS:2026:1:swap:27bf7939",
+      "kind": "swap_right",
+      "seasonYear": 2026,
+      "round": 1,
+      "swapControllerPickId": "SAS_2026_1st"
+    },
+    {
+      "id": "ent:SAS:2028:1:own:eb789563",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "BOS_2028_1st"
+    },
+    {
+      "id": "ent:SAS:2028:1:swap:a6d6f140",
+      "kind": "swap_right",
+      "seasonYear": 2028,
+      "round": 1,
+      "swapControllerPickId": "SAS_2028_1st"
+    },
+    {
+      "id": "ent:SAS:2029:1:own:e29b43f6",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "SAS_2029_1st"
+    },
+    {
+      "id": "ent:SAS:2030:1:own:3882922b",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "MIN_2030_1st"
+    },
+    {
+      "id": "ent:SAS:2030:1:own:5005a7d1",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "SAS_2030_1st"
+    },
+    {
+      "id": "ent:SAS:2030:1:swap:70316042",
+      "kind": "swap_right",
+      "seasonYear": 2030,
+      "round": 1,
+      "swapControllerPickId": "SAS_2030_1st"
+    },
+    {
+      "id": "ent:SAS:2030:1:swap:f29e043f",
+      "kind": "swap_right",
+      "seasonYear": 2030,
+      "round": 1,
+      "swapControllerPickId": "SAS_2030_1st"
+    },
+    {
+      "id": "ent:SAS:2031:1:own:d7fc4d3f",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "SAS_2031_1st"
+    },
+    {
+      "id": "ent:SAS:2031:1:swap:0622a6cf",
+      "kind": "swap_right",
+      "seasonYear": 2031,
+      "round": 1,
+      "swapControllerPickId": "SAS_2031_1st"
+    },
+    {
+      "id": "ent:SAS:2032:1:own:8d95ce5f",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "SAS_2032_1st"
+    },
+    {
+      "id": "ent:SAS:2033:1:own:50c03107",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "SAS_2033_1st"
+    },
+    {
+      "id": "ent:TOR:2026:1:own:61fce112",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "TOR_2026_1st"
+    },
+    {
+      "id": "ent:TOR:2027:1:own:29d9e651",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "TOR_2027_1st"
+    },
+    {
+      "id": "ent:TOR:2028:1:own:d917f516",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "TOR_2028_1st"
+    },
+    {
+      "id": "ent:TOR:2029:1:own:d3e27549",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "TOR_2029_1st"
+    },
+    {
+      "id": "ent:TOR:2030:1:own:4dd0e23f",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "TOR_2030_1st"
+    },
+    {
+      "id": "ent:TOR:2031:1:own:67938472",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "TOR_2031_1st"
+    },
+    {
+      "id": "ent:TOR:2032:1:own:3d9df314",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "TOR_2032_1st"
+    },
+    {
+      "id": "ent:TOR:2033:1:own:7b88fa35",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "TOR_2033_1st"
+    },
+    {
+      "id": "ent:UTA:2026:1:own:3e660bfa",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "LAC_2026_1st"
+    },
+    {
+      "id": "ent:UTA:2026:1:own:8dfa7b6e",
+      "kind": "pick_ownership",
+      "seasonYear": 2026,
+      "round": 1,
+      "underlyingPickId": "UTA_2026_1st"
+    },
+    {
+      "id": "ent:UTA:2026:1:swap:1307f714",
+      "kind": "swap_right",
+      "seasonYear": 2026,
+      "round": 1,
+      "swapControllerPickId": "UTA_2026_1st"
+    },
+    {
+      "id": "ent:UTA:2026:1:swap:b66b56b8",
+      "kind": "swap_right",
+      "seasonYear": 2026,
+      "round": 1,
+      "swapControllerPickId": "UTA_2026_1st"
+    },
+    {
+      "id": "ent:UTA:2027:1:own:12c23f6d",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "LAL_2027_1st"
+    },
+    {
+      "id": "ent:UTA:2027:1:own:ddae06a2",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "UTA_2027_1st"
+    },
+    {
+      "id": "ent:UTA:2028:1:own:0631c12b",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "UTA_2028_1st"
+    },
+    {
+      "id": "ent:UTA:2028:1:own:67924a6c",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "CLE_2028_1st"
+    },
+    {
+      "id": "ent:UTA:2028:1:swap:86d202c9",
+      "kind": "swap_right",
+      "seasonYear": 2028,
+      "round": 1,
+      "swapControllerPickId": "UTA_2028_1st"
+    },
+    {
+      "id": "ent:UTA:2029:1:own:9badf441",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "UTA_2029_1st"
+    },
+    {
+      "id": "ent:UTA:2030:1:own:52f86508",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "UTA_2030_1st"
+    },
+    {
+      "id": "ent:UTA:2031:1:own:23401a1f",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "UTA_2031_1st"
+    },
+    {
+      "id": "ent:UTA:2032:1:own:88a1a2f8",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "UTA_2032_1st"
+    },
+    {
+      "id": "ent:UTA:2033:1:own:7de8f991",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "UTA_2033_1st"
+    },
+    {
+      "id": "ent:WAS:2026:1:swap:00ca3e46",
+      "kind": "swap_right",
+      "seasonYear": 2026,
+      "round": 1,
+      "swapControllerPickId": "WAS_2026_1st"
+    },
+    {
+      "id": "ent:WAS:2027:1:own:794db128",
+      "kind": "pick_ownership",
+      "seasonYear": 2027,
+      "round": 1,
+      "underlyingPickId": "WAS_2027_1st"
+    },
+    {
+      "id": "ent:WAS:2028:1:conv:80e51545",
+      "kind": "conveyance_right",
+      "seasonYear": 2028,
+      "round": 1,
+      "poolUnderlyingPickIds": ["BKN_2028_1st", "PHX_2028_1st", "WAS_2028_1st"]
+    },
+    {
+      "id": "ent:WAS:2028:1:own:af9bdd68",
+      "kind": "pick_ownership",
+      "seasonYear": 2028,
+      "round": 1,
+      "underlyingPickId": "WAS_2028_1st"
+    },
+    {
+      "id": "ent:WAS:2028:1:swap:7ace9784",
+      "kind": "swap_right",
+      "seasonYear": 2028,
+      "round": 1,
+      "swapControllerPickId": "WAS_2028_1st"
+    },
+    {
+      "id": "ent:WAS:2029:1:own:7702fe47",
+      "kind": "pick_ownership",
+      "seasonYear": 2029,
+      "round": 1,
+      "underlyingPickId": "WAS_2029_1st"
+    },
+    {
+      "id": "ent:WAS:2030:1:own:390d0c7e",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "GSW_2030_1st"
+    },
+    {
+      "id": "ent:WAS:2030:1:own:9c54babe",
+      "kind": "pick_ownership",
+      "seasonYear": 2030,
+      "round": 1,
+      "underlyingPickId": "WAS_2030_1st"
+    },
+    {
+      "id": "ent:WAS:2030:1:swap:2fe743e6",
+      "kind": "swap_right",
+      "seasonYear": 2030,
+      "round": 1,
+      "swapControllerPickId": "WAS_2030_1st"
+    },
+    {
+      "id": "ent:WAS:2031:1:own:a78a0f2d",
+      "kind": "pick_ownership",
+      "seasonYear": 2031,
+      "round": 1,
+      "underlyingPickId": "WAS_2031_1st"
+    },
+    {
+      "id": "ent:WAS:2032:1:own:87537b4b",
+      "kind": "pick_ownership",
+      "seasonYear": 2032,
+      "round": 1,
+      "underlyingPickId": "WAS_2032_1st"
+    },
+    {
+      "id": "ent:WAS:2033:1:own:0eb2be17",
+      "kind": "pick_ownership",
+      "seasonYear": 2033,
+      "round": 1,
+      "underlyingPickId": "WAS_2033_1st"
+    }
+  ]
+}

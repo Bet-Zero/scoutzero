@@ -241,6 +241,11 @@ trade bonus remains a post-V1 needs-input/no-write boundary. Final Architect V1
 acceptance remains with the owner under BZE-243; any proposed reduction of the
 278-entitlement first-round universe requires an explicit owner decision.
 
+The remaining-exclusions matrix in
+`work/architect-completion/PHASE3A_CLOSURE_EVIDENCE.md` is historical: its
+first-round exclusion and pending owner states are superseded by BZE-301 and
+this contract. Its safe-stop evidence remains accepted for that behavior only.
+
 ## Evidence standard
 
 A required workflow counts as complete only with ALL of the following.
