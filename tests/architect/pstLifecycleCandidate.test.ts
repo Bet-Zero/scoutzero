@@ -1,6 +1,13 @@
-import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   requirePrivateOutput,
   verifyPstCandidate,
@@ -8,6 +15,10 @@ import {
 } from '../../scripts/source-releases/pst-lifecycle/candidate';
 
 describe('private derived candidate integrity', () => {
+  beforeAll(async () => {
+    await mkdir(path.resolve('tmp'), { recursive: true });
+  });
+
   it('rejects public, src, data and existing output directories', async () => {
     for (const directory of [
       'public/lifecycle',
@@ -78,6 +89,7 @@ describe('private derived candidate integrity', () => {
       'terms',
       'reconstruct',
       'branch-links',
+      'dependency-links',
       'account',
       'reference-gaps',
       'candidate',
