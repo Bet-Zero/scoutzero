@@ -52,6 +52,19 @@ exact protected byte citations, lineage and preservation of existing disposition
 It neither derives a claim from matching text nor promotes source qualification
 to complete requirement satisfaction. Substitute private local paths:
 
+All three inputs must already exist below `scoutzero-official-nba-html` in the
+operating system temporary directory. Both commands and the callable generation
+and retained-input entry points validate locations and metadata before reading
+any input contents. The private root, input ancestors and source directories
+must belong to the current user with owner-only read/traverse permissions;
+archive, assessment and every source member must be regular, owner-readable,
+owner-only files. Symlinks and hard-linked files are rejected, including nested
+members and intermediate path components. The configured OS temporary-path alias
+is resolved; arbitrary aliases and paths outside the private root are rejected.
+Use fresh copies with directories `0700` and files `0600`; do not change or move
+accepted evidence in place. This is a pre-read storage boundary, not protection
+against concurrent filesystem mutation by the same owner.
+
 ```bash
 NBA_PRIVATE_ROOT="$(node --input-type=module -e \
   "import os from 'node:os'; import path from 'node:path'; console.log(path.join(os.tmpdir(), 'scoutzero-official-nba-html'))")"
@@ -64,7 +77,7 @@ node --import tsx scripts/source-releases/official-nba-html/cli.ts verify \
   --v2 "$NBA_V2_DIRECTORY" --archive "$NBA_V2_ARCHIVE" \
   --assessment "$NBA_AUTHOR_ASSESSMENT" --out "$NBA_PRIVATE_ROOT/new-supplement"
 
-npm run test:node -- tests/architect/officialNbaHtmlEvidence.test.ts --reporter=dot
+npm run test:node -- tests/architect/officialNbaHtmlEvidence.test.ts tests/architect/officialNbaHtmlPrivateInputs.test.ts --reporter=dot
 ```
 
 Build refuses an existing or non-private output directory. Verify independently

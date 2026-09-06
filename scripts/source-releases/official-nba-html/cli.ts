@@ -3,7 +3,7 @@ import { readFile, mkdir, writeFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { canonicalJson, compareCodePoints } from '../verify-pst-source-release';
-import { requirePrivateOutput } from './private-output';
+import { requirePrivateInputs, requirePrivateOutput } from './private-output';
 import {
   verifyRetainedV2,
   BASELINE_DIGEST,
@@ -45,9 +45,17 @@ export async function buildOfficialHtmlSupplement(
   archive: string,
   assessmentPath: string
 ) {
+  const privateInputs = await requirePrivateInputs({
+    directory: v2,
+    archive,
+    assessment: assessmentPath,
+  });
   const initial = await fingerprints();
-  const inputs = await verifyRetainedV2(v2, archive);
-  const assessmentBytes = await readFile(assessmentPath);
+  const inputs = await verifyRetainedV2(
+    privateInputs.directory,
+    privateInputs.archive
+  );
+  const assessmentBytes = await readFile(privateInputs.assessment);
   const assessment = verifyAuthorAssessment(
     JSON.parse(assessmentBytes.toString('utf8')),
     inputs

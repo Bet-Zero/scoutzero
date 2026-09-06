@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { sha256 } from './compare';
 import { qualifyRetainedPair, REGISTERED_SOURCE_IDS } from './qualify';
 import { canonicalJson, compareCodePoints } from '../verify-pst-source-release';
+import { requirePrivateInputs } from './private-output';
 
 export const V2_ARCHIVE_SHA256 =
   'b8cc8c2c505a31dea10285f944215240d6ad8d51213bc6c48302bbd12fafbf83';
@@ -83,7 +84,12 @@ async function inventory(root: string, relative = ''): Promise<string[]> {
 }
 
 export async function verifyRetainedV2(directory: string, archivePath: string) {
-  const archive = await readFile(archivePath);
+  const checked = await requirePrivateInputs({
+    directory,
+    archive: archivePath,
+  });
+  directory = checked.directory;
+  const archive = await readFile(checked.archive);
   if (archive.length !== 1298210 || sha256(archive) !== V2_ARCHIVE_SHA256)
     throw new Error('Wrong retained v2 archive');
   const actual = await inventory(directory);
