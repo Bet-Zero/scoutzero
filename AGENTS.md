@@ -59,6 +59,12 @@ Use these project commands unless the user explicitly asks for something else.
 
 Default to the narrowest truthful validation.
 
+Before adding costly safeguards, name the concrete failure prevented, the
+smallest meaningful proof, and why an existing or simpler check is insufficient.
+Proportional proof never waives source qualification, privacy, independent review,
+or product requirements. After repairs, recheck affected risks and required
+exact-head gates; reuse unaffected evidence with its dependencies and scope stated.
+
 For docs-only changes, run docs validation (`npm run lint:md` when applicable
 and `npm run docs:guardrails` for docs-routing/standards changes). Do not run
 app tests unless the docs change affects commands, schemas, generated outputs,
@@ -191,8 +197,14 @@ Full rules: `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md`,
 - For long-running plan execution requested by the user: follow the active plan,
   continue to the next executable step, validate after each source-change
   checkpoint, commit at safe checkpoints, and stop only for a real blocker.
-- Concurrent agents may work only on clearly non-overlapping files/contracts,
-  with separate validation scopes.
+- Batch authorized author work, scoped checks, and in-scope repairs into one
+  coherent assignment. Keep required independent-review invocation, candidate
+  freeze, owner-decision, permission, and merge stops explicit; routine work
+  within that authorization needs no additional owner checkpoint.
+- Keep one lead per shared change. Already-authorized independent work may
+  proceed only after checking file/contract dependencies, with isolated working
+  state and separate validation. Do not create another product assignment or
+  change priorities merely to increase parallelism.
 - If validation fails, first determine whether the current change caused it.
   Fix in-scope failures; document pre-existing or unrelated failures.
 
@@ -200,11 +212,16 @@ Full rules: `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md`,
 
 Session-start checks, in order:
 
-1. Is main green (`npm run test:diff -- --reporter=dot` on main scope)? If not,
-   fixing main is the task. Start no new branch-mode UI work while main is red.
-2. Work awaiting owner review does NOT block starting the next wave. Start it
-   on its own branch and batch review requests so the owner can review several
-   waves in one sitting.
+1. Verify clean local main and live origin/main, explaining any divergence.
+   A passing run of the required hosted CI on that exact synchronized SHA
+   satisfies the ordinary green-main check. Run a local main check only for a concrete known
+   risk, unavailable hosted receipt, or stale signal; use the narrowest relevant
+   scope (`npm run test:diff -- --reporter=dot` when unsure). If main is red,
+   resolve the failure before new branch-mode UI work; distinguish pre-existing
+   local/environment failures from regressions.
+2. Work awaiting owner review does not block the next already-authorized,
+   independent wave. Follow the dependency/isolation rule above, obtain branch
+   authorization where needed, and batch review requests for one owner sitting.
 
 ## Owner Review Model (owner-set, 2026-07-08)
 
@@ -298,7 +315,16 @@ validation scope.
 Build plans with enough detail that execution can match expectations exactly.
 If a requirement is unclear, ask before guessing.
 
-When you do need to explain or check something, use plain language — skip the jargon or define it in a word, and lead with the why and the tradeoff, not the code.
+Lead with what was built, researched, checked, or blocked, its practical effect,
+and the recommended next move. Distinguish reusable tooling, established facts,
+complete requirements, and remaining blockers; link technical records instead
+of repeating them. Use plain language and explain tradeoffs that need a decision.
+
+For ordinary explanations of already-verified facts in the same conversation,
+reuse that evidence without claiming a new live check. Refresh live state at
+fresh-session, changed-evidence, implementation, handoff, review/landing, and
+authority-dependent decisions. Mandatory governing-source reads at those
+boundaries still apply; conversation memory cannot replace them.
 
 ## Reference Docs
 

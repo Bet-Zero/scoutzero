@@ -7,7 +7,10 @@ description: Accepted maker/checker execution profile for Architect Phase 3A lan
 
 This is the standing lane profile for Phase 3A Canon-correctness and its
 execution tooling. `AGENTS.md` remains the repository-wide contract;
-`docs/agent-guides/architect-boundary.md` remains the product boundary.
+`docs/agent-guides/architect-boundary.md` remains the product boundary, with
+requirements and exclusions governed by the
+[V1 completion contract](architect-v1-completion-contract.md). Efficiency rules
+do not change those requirements, source qualification, privacy, or owner gates.
 
 ## Authorities
 
@@ -24,7 +27,8 @@ execution tooling. `AGENTS.md` remains the repository-wide contract;
   `4b21456d491f9593edc2961afae47ef64ae28e32`.
 - Phase 2 exact 815-leaf gap register: the artifact at commit
   `19dc84fc4050ce9cf749136dae1f9854adc72ef7`.
-- Phase 3A program record: Linear BZE-267 and its live child lane.
+- Phase 3A program record: Linear BZE-267 (accepted foundation). Active work
+  follows the currently authorized issue and parent.
 
 The working-tree Canon is not an authority fallback. Use
 `npm run architect:canon:lookup -- <CBA2-LEAF>`; the command reads the pinned
@@ -49,25 +53,34 @@ candidate is not ready for freeze or independent review.
 
 ## Preflight and declared risk contract
 
-Verify live state; never inherit SHAs or statuses from a prior conversation.
+Apply the live-state refresh boundaries in `AGENTS.md`; never inherit SHAs or
+statuses from a prior conversation as current authority.
 
 1. Verify clean `main`, `origin/main`, their equality or explained divergence,
    and the proposed branch ancestry.
 2. Hosted required CI passing on the exact clean synchronized `origin/main` SHA
    satisfies ordinary green-main preflight. Run a local main check only when a
    concrete known risk, unavailable hosted receipt, or stale signal justifies it.
-3. Read BZE-267, the proposed child, relevant parent/foundation issues, their PR
-   evidence, and the accepted Canon/audit authority for the selected scope.
+3. Read BZE-267, the currently authorized issue, relevant parent/foundation
+   issues, their PR evidence, and the accepted Canon/audit authority for the
+   selected scope.
 4. Before implementation, record a risk class and the intended author, hosted
    CI, independent-review, browser/emulator, and landing checks. Expand the
    contract only when a newly discovered risk explains why.
-5. Create one BZE-267 child, one BZE-numbered branch, and one PR. The live child
-   is the sole High / In Progress execution lane.
+5. Use the currently authorized issue and parent, one BZE-numbered branch, and
+   one PR. BZE-267 is completed Phase 3A context, not a default parent for new work.
+   Keep one lead per shared change and follow `AGENTS.md` for already-authorized
+   independent work; do not create extra assignments or change priorities for
+   parallelism, or reopen completed foundations.
 
-For source-blocked work, record the exact missing field, controlling authority,
-last authority-gate check and result, and the event that would unblock it. On
-retry, run the authority gate first. Do not repeat implementation preflight
-until the authority gate changes.
+For source-blocked work, distinguish reusable-tool progress from established
+facts, complete requirements, and blockers. Record the exact missing fact/field,
+affected records, controlling authority, last authority-gate check/result,
+attempted sources, and a specific untried route or unblocking event. Link shared
+evidence once; do not repeat searches without a new source, changed evidence, or
+a stated reason the prior attempt was insufficient. If no route is actionable,
+stop the blocked work with that record. On retry, run the authority gate first.
+Do not repeat implementation preflight until the authority gate changes.
 
 When a mutable external source will become governed authority, its bytes must
 be durable before its fingerprint can be certified or used as an implementation
@@ -84,6 +97,15 @@ pin:
 If the exact bytes are not already retained and recoverable, stop the authority
 gate before owner certification. A hash or retrieval receipt without retained
 bytes cannot authorize runtime behavior.
+
+When evidence preservation is in scope, identify the original inventory and
+paths, inclusion/exclusion rules, and capture time. Author and reviewer verify
+that same original set; keep later additions separate. Reconcile scope changes
+by membership, not totals: different counts alone prove neither loss nor
+preservation. If the original inventory is unavailable, record the missing proof
+without inventing historical membership. Retain source-bearing inventories
+privately under existing evidence limits; shared scope does not replace the
+reviewer's independent verification or choice of probes.
 
 ### Bounded official-NBA-HTML exception
 
@@ -161,16 +183,15 @@ have changed. Do not repeat it after test-only, documentation-only,
 evidence-only, or presentation-only edits unless those edits actually change
 graph inputs.
 
-Validation reruns follow the changed risk surface. Reuse unaffected evidence;
-do not repeat typecheck, build, broad suites, or browser certification after a
-test-only assertion or evidence edit unless that edit can affect the behavior
-covered by the repeated check.
-
 ## Candidate freeze and evidence reuse
 
 Open the draft PR as soon as it has a reviewable diff. Start available automated
-review while author work and self-review are still underway. Before candidate
-freeze:
+review while author work and self-review are still underway. Account for review
+triggers, including pushes and marking a draft ready, before freeze so pending
+review is not mistaken for completion. Batch author work, scoped checks, and
+in-scope repairs without extra owner relays; preserve separately required Claude
+invocation, frozen-candidate, owner-decision, permission, and merge stops.
+Before candidate freeze:
 
 1. Complete the focused author failure-testing matrix and resolve every
    author-known concern with discriminating evidence.
@@ -190,14 +211,23 @@ invalidates that prompt and requires a replacement prompt for the new exact head
 after the applicable author, automated-review, and hosted-CI gates are satisfied
 again.
 
-Associate every receipt with the exact candidate SHA. Reuse unaffected evidence
-while the SHA is unchanged.
+Associate every receipt with the exact candidate SHA it actually checked.
+Validation reruns follow the changed risk surface. Reuse unaffected evidence
+with its dependencies and scope stated; a new receipt or session alone does not
+justify rebuilding every package or rerunning every suite. Investigate
+contradictions and missing proof. Do not repeat typecheck, build, broad suites,
+or browser certification after a test-only assertion or evidence edit unless it
+can affect the behavior covered by that check; required exact-head gates still
+apply.
 
 After a narrow repair, require discriminating repair tests, affected risk checks,
 exact-head CI, and delta-focused independent re-review. Do not reconstruct
 untouched accepted evidence without a concrete reason. If the repair changes the
 candidate, any evidence that depends on the changed surface is stale; unaffected
 evidence remains usable when its scope is stated.
+
+Never dismiss a real late finding to finish faster. Resolve it before handoff or
+landing; if it changes the head, apply the replacement-candidate gates above.
 
 Reviewers can run a temporary, independently authored TypeScript probe without
 changing the source worktree:
@@ -282,6 +312,6 @@ Do not recast those concerns as tooling limitations to bypass the stop.
 ## Fresh-session reconstruction
 
 A fresh session reads `AGENTS.md`, this profile, and the Architect boundary;
-verifies live git state; reads BZE-267 and its live child plus linked PR evidence;
-uses the pinned Canon lookup for selected leaves; then declares the lane's risk
+verifies live git state; reads BZE-267 and the currently authorized issue plus
+linked PR evidence; uses the pinned Canon lookup for selected leaves; then declares the lane's risk
 contract before making changes. Conversation memory is never an authority.
