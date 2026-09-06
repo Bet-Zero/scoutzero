@@ -11,7 +11,8 @@ export const PRIVATE_EVIDENCE_ROOT = path.join(
 );
 
 export async function requirePrivateOutput(
-  outputDirectory: string
+  outputDirectory: string,
+  mode: 'new' | 'existing' = 'new'
 ): Promise<string> {
   await mkdir(PRIVATE_EVIDENCE_ROOT, { recursive: true, mode: 0o700 });
   const stat = await lstat(PRIVATE_EVIDENCE_ROOT);
@@ -35,10 +36,15 @@ export async function requirePrivateOutput(
       'Output may not be the private root or inside the checkout'
     );
   try {
-    await lstat(resolved);
-    throw new Error('Refusing to replace an existing candidate directory');
+    const candidate = await lstat(resolved);
+    if (mode === 'new')
+      throw new Error('Refusing to replace an existing candidate directory');
+    if (!candidate.isDirectory())
+      throw new Error('Private candidate must be a regular directory');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    if (mode === 'existing')
+      throw new Error('Missing private candidate directory');
   }
   return resolved;
 }

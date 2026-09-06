@@ -205,7 +205,10 @@ async function main() {
     options.set(args[i], args[i + 1]);
   }
   const output = options.get('--out')!;
-  if (command === 'build') await requirePrivateOutput(output);
+  const checkedOutput = await requirePrivateOutput(
+    output,
+    command === 'build' ? 'new' : 'existing'
+  );
   const { files, coverage } = await buildOfficialHtmlSupplement(
     options.get('--v2')!,
     options.get('--archive')!,
@@ -219,7 +222,7 @@ async function main() {
       await mkdir(path.dirname(location), { recursive: true });
       await writeFile(location, bytes, { flag: 'wx', mode: 0o600 });
     }
-  } else await verifyFiles(output, files);
+  } else await verifyFiles(checkedOutput, files);
   console.log(
     JSON.stringify({
       command,

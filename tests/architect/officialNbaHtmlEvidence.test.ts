@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtemp, mkdir, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm, symlink, realpath } from 'node:fs/promises';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import {
   compareOfficialHtml,
   sha256,
@@ -567,9 +568,18 @@ it('keeps new private outputs outside the Vite-served checkout and rejects exist
   try {
     const output = path.join(parent, 'candidate');
     expect(await requirePrivateOutput(output)).not.toContain(process.cwd());
+    await expect(requirePrivateOutput(output, 'existing')).rejects.toThrow(
+      /Missing/
+    );
     await mkdir(output);
     await expect(requirePrivateOutput(output)).rejects.toThrow(/existing/);
+    expect(await requirePrivateOutput(output, 'existing')).toBe(
+      await realpath(output)
+    );
     await symlink(process.cwd(), path.join(parent, 'escape'));
+    await expect(
+      requirePrivateOutput(path.join(parent, 'escape'), 'existing')
+    ).rejects.toThrow(/regular directory/);
     await expect(
       requirePrivateOutput(path.join(parent, 'escape', 'candidate'))
     ).rejects.toThrow();
@@ -577,3 +587,32 @@ it('keeps new private outputs outside the Vite-served checkout and rejects exist
     await rm(parent, { recursive: true, force: true });
   }
 });
+
+it.each(['build', 'verify'])(
+  'rejects checkout output at the %s CLI boundary before reading sources',
+  (command) => {
+    const result = spawnSync(
+      process.execPath,
+      [
+        '--import',
+        'tsx',
+        'scripts/source-releases/official-nba-html/cli.ts',
+        command,
+        '--v2',
+        'missing-synthetic-input',
+        '--archive',
+        'missing-synthetic-archive',
+        '--assessment',
+        'missing-synthetic-assessment',
+        '--out',
+        process.cwd(),
+      ],
+      { encoding: 'utf8', timeout: 15000 }
+    );
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      'Output must be below the external private evidence root'
+    );
+    expect(result.stdout).not.toContain('PASS');
+  }
+);
