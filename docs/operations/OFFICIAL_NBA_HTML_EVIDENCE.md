@@ -32,7 +32,42 @@ bytes. Source qualification, partial facts and complete requirement satisfaction
 are separate decisions. Orlando's incompatible records remain held; no value
 is selected. Preserve all 556 IDs / 278 entitlements and every reviewer caveat.
 
-Operational commands and the final private supplement identity are recorded in
-the exact-candidate PR receipt. This narrow exception has no effect on the
+## Offline reproduction
+
+Recover v2 attachment `0a5749fd-d152-4336-a909-cc85c326704f` through authenticated
+Linear access. Its archive is 1,298,210 bytes with SHA-256
+`b8cc8c2c505a31dea10285f944215240d6ad8d51213bc6c48302bbd12fafbf83`;
+manifest SHA-256 is
+`15b1e9e94c7f27ed1c1ba388d5de6eca5bc6f5f795f4a4b0b5b81ec7fe3e10ba`.
+Reject unsafe, duplicate, linked or nonregular archive members before extracting
+the exact 108-file inventory into fresh private storage. The verifier checks the
+archive and manifest pins and every retained file before interpreting HTML.
+
+The private author assessment is a separate input, retained verbatim. Its claims
+and limitations require semantic review; the verifier checks source eligibility,
+exact protected byte citations, lineage and preservation of existing dispositions.
+It neither derives a claim from matching text nor promotes source qualification
+to complete requirement satisfaction. Substitute private local paths:
+
+```bash
+node --import tsx scripts/source-releases/official-nba-html/cli.ts build \
+  --v2 "$NBA_V2_DIRECTORY" --archive "$NBA_V2_ARCHIVE" \
+  --assessment "$NBA_AUTHOR_ASSESSMENT" --out tmp/nba-html-new-supplement
+
+node --import tsx scripts/source-releases/official-nba-html/cli.ts verify \
+  --v2 "$NBA_V2_DIRECTORY" --archive "$NBA_V2_ARCHIVE" \
+  --assessment "$NBA_AUTHOR_ASSESSMENT" --out tmp/nba-html-new-supplement
+
+npm run test:node -- tests/architect/officialNbaHtmlEvidence.test.ts --reporter=dot
+```
+
+Build refuses an existing or non-private output directory. Verify independently
+regenerates every candidate file and requires exact inventory and byte equality.
+The manifest binds verifier implementation hashes, lockfile, unchanged v2 and
+the author-assessment input. Retain and independently recover the generated
+package before using its qualification results. The exact-candidate PR receipt
+records the private supplement identity and recovery proof.
+
+This narrow exception has no effect on the
 60 Second Apron determinations, future lottery-method gap, 927 other occurrences,
 five uncaptured PST pages, Needs input/no-write or trade-bonus deferral.
