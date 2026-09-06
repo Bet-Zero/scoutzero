@@ -210,6 +210,7 @@
     "husky": "^9.1.7",
     "jsdom": "^26.1.0",
     "markdownlint-cli": "^0.47.0",
+    "parse5": "7.3.0",
     "playwright": "^1.56.0",
     "postcss": "^8.5.3",
     "prettier": "^3.5.3",

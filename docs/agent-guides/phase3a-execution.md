@@ -85,6 +85,23 @@ If the exact bytes are not already retained and recoverable, stop the authority
 gate before owner certification. A hash or retrieval receipt without retained
 bytes cannot authorize runtime behavior.
 
+### Bounded official-NBA-HTML exception
+
+Owner approval on BZE-307, comment `0512fa3e-35d0-4a46-ba67-d4669b973455`,
+permits reassessment of its already-retained v2 official NBA HTML only. Unequal
+originals may qualify when a versioned offline verifier accounts for every
+difference as narrowly identified non-factual monitoring/security markup and
+proves byte equality of everything else, including embedded data, tables,
+links, dates, attribution and footnotes. Retain both untouched originals,
+separate hashes/sizes, provenance, exact byte locators and independent recovery.
+Never call unequal originals identical. Unexplained differences fail; rendered
+text matching, broad script removal and prose/data normalization are forbidden.
+See [the bounded verifier contract](../operations/OFFICIAL_NBA_HTML_EVIDENCE.md).
+This exception changes neither the PST release gate nor unrelated source policy;
+qualification alone supplies no factual verdict, complete requirement or runtime
+authority. Missing metadata, secondary attribution and conflicting statements
+remain independent blockers.
+
 ## Validation responsibilities
 
 | Actor                       | Distinct responsibility                                                                                                        |
