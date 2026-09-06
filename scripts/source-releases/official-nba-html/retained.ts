@@ -145,6 +145,9 @@ export async function verifyRetainedV2(directory: string, archivePath: string) {
         .object({
           id: z.string(),
           url: z.string(),
+          officialPrimary: z.boolean(),
+          rawByteIdentical: z.boolean(),
+          firstReceiptLimitation: z.boolean(),
           candidateBaselineRequirementIds: z.array(z.string()),
           captures: z
             .array(

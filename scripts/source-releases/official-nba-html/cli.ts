@@ -3,7 +3,7 @@ import { readFile, mkdir, writeFile, readdir, lstat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { canonicalJson, compareCodePoints } from '../verify-pst-source-release';
-import { requirePrivateOutput } from '../pst-lifecycle/candidate';
+import { requirePrivateOutput } from './private-output';
 import {
   verifyRetainedV2,
   BASELINE_DIGEST,
@@ -20,10 +20,14 @@ const implementationPaths = [
   'retained.ts',
   'assessment.ts',
   'cli.ts',
+  'private-output.ts',
 ]
   .map((name) => `scripts/source-releases/official-nba-html/${name}`)
   .concat([
     'docs/operations/OFFICIAL_NBA_HTML_EVIDENCE.md',
+    'docs/agent-guides/phase3a-execution.md',
+    'scripts/source-releases/verify-pst-source-release.ts',
+    'src/schemas/pstSourceRelease.ts',
     'package-lock.json',
   ]);
 const serialize = (value: unknown) => Buffer.from(`${canonicalJson(value)}\n`);
@@ -55,14 +59,7 @@ export async function buildOfficialHtmlSupplement(
   files.set('author-assessment.json', serialize(assessment));
   files.set('source-qualification.json', serialize(inputs.qualifications));
   files.set('occurrences.json', serialize(inputs.occurrences));
-  const priorSources = JSON.parse(
-    inputs.files.get('source-records.json')!.toString('utf8')
-  ) as Array<{
-    id: string;
-    officialPrimary: boolean;
-    rawByteIdentical: boolean;
-    firstReceiptLimitation: boolean;
-  }>;
+  const priorSources = inputs.qualifications.map((q) => q.sourceRecord);
   const qualifiedBefore = priorSources
     .filter(
       (s) =>
@@ -107,10 +104,19 @@ export async function buildOfficialHtmlSupplement(
       .sort(),
     changedEvidenceMappingIds: [
       ...new Set(
-        assessment.observations.flatMap((x) => x.baselineRequirementIds)
+        assessment.observationCoverage.mapping
+          .filter(
+            (m) =>
+              m.newPartialObservationIds.length +
+                m.newQuarantinedObservationIds.length +
+                m.corroboratedObservationIds.length >
+              0
+          )
+          .map((m) => m.baselineRequirementId)
       ),
     ].sort(),
     completeRequirementsNewlySatisfied: 0,
+    observationCoverage: assessment.observationCoverage,
     remaining: assessment.remaining,
     conflictingRequirementIds: assessment.conflictingRequirementIds,
     outsidePass: {
@@ -163,6 +169,8 @@ async function verifyFiles(
   files: Map<string, Buffer>,
   relative = ''
 ): Promise<void> {
+  if (!(await lstat(directory)).isDirectory())
+    throw new Error('Non-directory candidate root');
   const actual: string[] = [];
   async function visit(rel: string): Promise<void> {
     for (const name of await readdir(path.join(directory, rel))) {

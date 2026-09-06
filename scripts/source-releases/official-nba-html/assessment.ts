@@ -1,6 +1,6 @@
 /** Author claims are retained for review, not inferred by the byte qualifier. */
 import { z } from 'zod';
-import { sha256 } from './compare';
+import { sha256, elementLocations } from './compare';
 import type { verifyRetainedV2 } from './retained';
 
 const citationZ = z
@@ -81,11 +81,24 @@ export function verifyAuthorAssessment(value: unknown, inputs: Inputs) {
     JSON.stringify(conflicts)
   )
     throw new Error('Existing conflict was waived');
+  const observationBytes = inputs.files.get('observations.json');
+  if (!observationBytes)
+    throw new Error('Missing retained file: observations.json');
   const existing = z
-    .array(z.object({ id: z.string() }).passthrough())
-    .parse(JSON.parse(inputs.files.get('observations.json')!.toString('utf8')));
+    .array(
+      z
+        .object({
+          id: z.string(),
+          baselineRequirementIds: z.array(z.string()).min(1),
+          eligiblePartialObservation: z.boolean(),
+          fullRequirementSatisfied: z.literal(false),
+        })
+        .passthrough()
+    )
+    .parse(JSON.parse(observationBytes.toString('utf8')));
   const existingIds = new Set(existing.map((x) => x.id));
   const allIds = new Set(existingIds);
+  const locations = new Map<string, ReturnType<typeof elementLocations>>();
   function checkCitation(citation: z.infer<typeof citationZ>): void {
     const source = inputs.qualifications.find(
       (q) => q.sourceId === citation.sourceId
@@ -97,6 +110,23 @@ export function verifyAuthorAssessment(value: unknown, inputs: Inputs) {
     const bytes = inputs.files.get(
       source.sourceRecord.captures[citation.capture].path
     )!;
+    const sourceHash = sha256(bytes);
+    if (sourceHash !== source.byteProof.originals[citation.capture].sha256)
+      throw new Error(
+        'Qualified original changed before citation verification'
+      );
+    if (!locations.has(sourceHash))
+      locations.set(sourceHash, elementLocations(bytes));
+    const matching = locations
+      .get(sourceHash)!
+      .filter(
+        (x) =>
+          x.start === citation.byteStart &&
+          x.end === citation.byteEnd &&
+          x.locator === citation.locator
+      );
+    if (matching.length !== 1)
+      throw new Error('Citation label does not match a unique parsed element');
     if (
       citation.byteStart >= citation.byteEnd ||
       citation.byteEnd > bytes.length ||
@@ -144,6 +174,82 @@ export function verifyAuthorAssessment(value: unknown, inputs: Inputs) {
       throw new Error('Unknown or duplicate corroboration');
     corroborated.add(corroboration.existingObservationId);
     corroboration.citations.forEach(checkCitation);
+    const observation = existing.find(
+      (x) => x.id === corroboration.existingObservationId
+    )!;
+    for (const citation of corroboration.citations) {
+      const source = inputs.qualifications.find(
+        (q) => q.sourceId === citation.sourceId
+      )!;
+      if (
+        observation.baselineRequirementIds.some(
+          (id) =>
+            !ids.has(id) ||
+            !source.sourceRecord.candidateBaselineRequirementIds.includes(id)
+        )
+      )
+        throw new Error(
+          'Corroboration/source mapping lacks retained observation lineage'
+        );
+    }
   }
-  return assessment;
+  const mapping = inputs.scopedIds.map((baselineRequirementId) => ({
+    baselineRequirementId,
+    priorEligibleObservationIds: existing
+      .filter(
+        (o) =>
+          o.eligiblePartialObservation &&
+          o.baselineRequirementIds.includes(baselineRequirementId)
+      )
+      .map((o) => o.id)
+      .sort(),
+    newPartialObservationIds: assessment.observations
+      .filter(
+        (o) =>
+          o.status === 'partial' &&
+          o.baselineRequirementIds.includes(baselineRequirementId)
+      )
+      .map((o) => o.id)
+      .sort(),
+    newQuarantinedObservationIds: assessment.observations
+      .filter(
+        (o) =>
+          o.status === 'quarantined' &&
+          o.baselineRequirementIds.includes(baselineRequirementId)
+      )
+      .map((o) => o.id)
+      .sort(),
+    corroboratedObservationIds: existing
+      .filter(
+        (o) =>
+          corroborated.has(o.id) &&
+          o.baselineRequirementIds.includes(baselineRequirementId)
+      )
+      .map((o) => o.id)
+      .sort(),
+  }));
+  const eligibleBefore = existing.filter(
+    (o) => o.eligiblePartialObservation
+  ).length;
+  return {
+    ...assessment,
+    observationCoverage: {
+      totalBefore: existing.length,
+      totalAfter: existing.length + assessment.observations.length,
+      eligiblePartialBefore: eligibleBefore,
+      eligiblePartialAfter:
+        eligibleBefore +
+        assessment.observations.filter((o) => o.status === 'partial').length,
+      scopedIdsWithPartialBefore: mapping.filter(
+        (m) => m.priorEligibleObservationIds.length > 0
+      ).length,
+      scopedIdsWithPartialAfter: mapping.filter(
+        (m) =>
+          m.priorEligibleObservationIds.length +
+            m.newPartialObservationIds.length >
+          0
+      ).length,
+      mapping,
+    },
+  };
 }

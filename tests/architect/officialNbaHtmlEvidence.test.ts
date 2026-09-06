@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { mkdtemp, mkdir, rm, symlink } from 'node:fs/promises';
+import path from 'node:path';
 import {
   compareOfficialHtml,
   sha256,
+  elementLocations,
 } from '../../scripts/source-releases/official-nba-html/compare';
 import { qualifyRetainedPair } from '../../scripts/source-releases/official-nba-html/qualify';
 import {
@@ -9,6 +12,10 @@ import {
   type verifyRetainedV2,
 } from '../../scripts/source-releases/official-nba-html/retained';
 import { verifyAuthorAssessment } from '../../scripts/source-releases/official-nba-html/assessment';
+import {
+  PRIVATE_EVIDENCE_ROOT,
+  requirePrivateOutput,
+} from '../../scripts/source-releases/official-nba-html/private-output';
 
 // Synthetic documents only: invented identifiers, timing values and factual data.
 const monitoring = (queue = '2', app = '100') =>
@@ -366,13 +373,20 @@ describe('lineage and author-claim boundaries', () => {
       byteStart: start,
       byteEnd: end,
       sha256: sha256(a.bytes.subarray(start, end)),
-      locator: 'article',
+      locator: elementLocations(a.bytes).find(
+        (x) => x.start === start && x.end === end
+      )!.locator,
     };
     const inputs: Awaited<ReturnType<typeof verifyRetainedV2>> = {
       files: new Map([
         ['a', a.bytes],
         ['b', b.bytes],
-        ['observations.json', Buffer.from('[{"id":"prior"}]')],
+        [
+          'observations.json',
+          Buffer.from(
+            '[{"id":"prior","baselineRequirementIds":["gap:synthetic"],"eligiblePartialObservation":true,"fullRequirementSatisfied":false}]'
+          ),
+        ],
       ]),
       qualifications: [
         {
@@ -380,6 +394,9 @@ describe('lineage and author-claim boundaries', () => {
           sourceRecord: {
             id: '2026-notes',
             url: qualified.url,
+            officialPrimary: true,
+            rawByteIdentical: false,
+            firstReceiptLimitation: false,
             candidateBaselineRequirementIds: ['gap:synthetic'],
             captures: [
               { path: 'a', receipt: 'ra' },
@@ -461,6 +478,36 @@ describe('lineage and author-claim boundaries', () => {
     ).toHaveLength(1);
   });
 
+  it('rejects a dishonest location label even when its byte range and hash match', () => {
+    const { inputs, assessment } = fixture();
+    assessment.observations[0].citations[0].locator =
+      'article/table@bytes[1,2)';
+    expect(() => verifyAuthorAssessment(assessment, inputs)).toThrow(
+      'Citation label does not match a unique parsed element'
+    );
+  });
+
+  it('checks each corroboration against the retained observation lineage', () => {
+    const { inputs, assessment } = fixture();
+    inputs.files.set(
+      'observations.json',
+      Buffer.from(
+        '[{"id":"prior","baselineRequirementIds":["gap:unrelated"],"eligiblePartialObservation":true,"fullRequirementSatisfied":false}]'
+      )
+    );
+    expect(() => verifyAuthorAssessment(assessment, inputs)).toThrow(
+      'Corroboration/source mapping lacks retained observation lineage'
+    );
+  });
+
+  it('identifies a missing retained observation file', () => {
+    const { inputs, assessment } = fixture();
+    inputs.files.delete('observations.json');
+    expect(() => verifyAuthorAssessment(assessment, inputs)).toThrow(
+      'Missing retained file: observations.json'
+    );
+  });
+
   it('rejects missing IDs, unmapped facts, duplicate observations and false completeness', () => {
     const { inputs, assessment } = fixture();
     expect(() =>
@@ -510,4 +557,23 @@ describe('lineage and author-claim boundaries', () => {
     assessment.conflictingRequirementIds = ['gap:synthetic'];
     expect(() => verifyAuthorAssessment(assessment, inputs)).toThrow();
   });
+});
+
+it('keeps new private outputs outside the Vite-served checkout and rejects existing/symlink destinations', async () => {
+  await expect(
+    requirePrivateOutput(path.resolve('tmp/new-private-evidence'))
+  ).rejects.toThrow();
+  const parent = await mkdtemp(path.join(PRIVATE_EVIDENCE_ROOT, 'synthetic-'));
+  try {
+    const output = path.join(parent, 'candidate');
+    expect(await requirePrivateOutput(output)).not.toContain(process.cwd());
+    await mkdir(output);
+    await expect(requirePrivateOutput(output)).rejects.toThrow(/existing/);
+    await symlink(process.cwd(), path.join(parent, 'escape'));
+    await expect(
+      requirePrivateOutput(path.join(parent, 'escape', 'candidate'))
+    ).rejects.toThrow();
+  } finally {
+    await rm(parent, { recursive: true, force: true });
+  }
 });

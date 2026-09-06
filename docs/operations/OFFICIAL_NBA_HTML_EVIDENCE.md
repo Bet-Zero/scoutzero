@@ -3,9 +3,12 @@
 BZE-307 owner approval `0512fa3e-35d0-4a46-ba67-d4669b973455` permits only
 offline reassessment of the retained v2 supplement. No acquisition, PST
 requalification, CBA interpretation or runtime consumer belongs to this tool.
-The accepted baseline and v1/v2 remain immutable. Private source bytes and
-source-bearing reports must remain in ignored, non-served `tmp/` storage and
-the existing private Linear evidence attachments.
+The accepted baseline and v1/v2 remain immutable. New private source bytes and
+source-bearing reports belong in an owner-only directory under the operating
+system temporary directory, outside the checkout, and the existing private
+Linear evidence attachments. Vite can serve ignored checkout files: repository
+`tmp/` is not a safe destination for new evidence. Preserve accepted originals
+while independently verifying copies into external private storage.
 
 The verifier recognizes two deliberately limited forms:
 
@@ -50,13 +53,16 @@ It neither derives a claim from matching text nor promotes source qualification
 to complete requirement satisfaction. Substitute private local paths:
 
 ```bash
+NBA_PRIVATE_ROOT="$(node --input-type=module -e \
+  "import os from 'node:os'; import path from 'node:path'; console.log(path.join(os.tmpdir(), 'scoutzero-official-nba-html'))")"
+
 node --import tsx scripts/source-releases/official-nba-html/cli.ts build \
   --v2 "$NBA_V2_DIRECTORY" --archive "$NBA_V2_ARCHIVE" \
-  --assessment "$NBA_AUTHOR_ASSESSMENT" --out tmp/nba-html-new-supplement
+  --assessment "$NBA_AUTHOR_ASSESSMENT" --out "$NBA_PRIVATE_ROOT/new-supplement"
 
 node --import tsx scripts/source-releases/official-nba-html/cli.ts verify \
   --v2 "$NBA_V2_DIRECTORY" --archive "$NBA_V2_ARCHIVE" \
-  --assessment "$NBA_AUTHOR_ASSESSMENT" --out tmp/nba-html-new-supplement
+  --assessment "$NBA_AUTHOR_ASSESSMENT" --out "$NBA_PRIVATE_ROOT/new-supplement"
 
 npm run test:node -- tests/architect/officialNbaHtmlEvidence.test.ts --reporter=dot
 ```

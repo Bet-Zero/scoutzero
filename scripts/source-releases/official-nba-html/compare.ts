@@ -43,6 +43,15 @@ function elements(bytes: Buffer): ElementSpan[] {
   return result;
 }
 
+/** Parsed element identity for evidence locators; labels are never accepted on trust. */
+export function elementLocations(bytes: Buffer): Span[] {
+  return elements(bytes).map(({ start, end, locator }) => ({
+    start,
+    end,
+    locator,
+  }));
+}
+
 // Only two integer values in this entire literal configuration grammar are eligible.
 // Identifiers and every other character remain part of the protected byte comparison.
 const MONITOR =
