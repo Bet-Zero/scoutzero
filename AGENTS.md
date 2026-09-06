@@ -213,8 +213,8 @@ Full rules: `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md`,
 Session-start checks, in order:
 
 1. Verify clean local main and live origin/main, explaining any divergence.
-   Passing required hosted CI on that exact synchronized SHA satisfies the
-   ordinary green-main check. Run a local main check only for a concrete known
+   A passing run of the required hosted CI on that exact synchronized SHA
+   satisfies the ordinary green-main check. Run a local main check only for a concrete known
    risk, unavailable hosted receipt, or stale signal; use the narrowest relevant
    scope (`npm run test:diff -- --reporter=dot` when unsure). If main is red,
    resolve the failure before new branch-mode UI work; distinguish pre-existing

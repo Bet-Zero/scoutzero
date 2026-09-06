@@ -27,7 +27,8 @@ do not change those requirements, source qualification, privacy, or owner gates.
   `4b21456d491f9593edc2961afae47ef64ae28e32`.
 - Phase 2 exact 815-leaf gap register: the artifact at commit
   `19dc84fc4050ce9cf749136dae1f9854adc72ef7`.
-- Phase 3A program record: Linear BZE-267 and its live child lane.
+- Phase 3A program record: Linear BZE-267 (accepted foundation). Active work
+  follows the currently authorized issue and parent.
 
 The working-tree Canon is not an authority fallback. Use
 `npm run architect:canon:lookup -- <CBA2-LEAF>`; the command reads the pinned
@@ -60,13 +61,14 @@ statuses from a prior conversation as current authority.
 2. Hosted required CI passing on the exact clean synchronized `origin/main` SHA
    satisfies ordinary green-main preflight. Run a local main check only when a
    concrete known risk, unavailable hosted receipt, or stale signal justifies it.
-3. Read BZE-267, the proposed child, relevant parent/foundation issues, their PR
-   evidence, and the accepted Canon/audit authority for the selected scope.
+3. Read BZE-267, the currently authorized issue, relevant parent/foundation
+   issues, their PR evidence, and the accepted Canon/audit authority for the
+   selected scope.
 4. Before implementation, record a risk class and the intended author, hosted
    CI, independent-review, browser/emulator, and landing checks. Expand the
    contract only when a newly discovered risk explains why.
-5. Use the authorized issue, one BZE-numbered branch, and one PR; new Phase 3A
-   tranches belong under BZE-267. Reuse an existing live child when applicable.
+5. Use the currently authorized issue and parent, one BZE-numbered branch, and
+   one PR. BZE-267 is completed Phase 3A context, not a default parent for new work.
    Keep one lead per shared change and follow `AGENTS.md` for already-authorized
    independent work; do not create extra assignments or change priorities for
    parallelism, or reopen completed foundations.
@@ -310,6 +312,6 @@ Do not recast those concerns as tooling limitations to bypass the stop.
 ## Fresh-session reconstruction
 
 A fresh session reads `AGENTS.md`, this profile, and the Architect boundary;
-verifies live git state; reads BZE-267 and its live child plus linked PR evidence;
-uses the pinned Canon lookup for selected leaves; then declares the lane's risk
+verifies live git state; reads BZE-267 and the currently authorized issue plus
+linked PR evidence; uses the pinned Canon lookup for selected leaves; then declares the lane's risk
 contract before making changes. Conversation memory is never an authority.
