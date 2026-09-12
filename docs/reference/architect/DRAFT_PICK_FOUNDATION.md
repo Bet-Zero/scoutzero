@@ -77,13 +77,16 @@ ordering outputs. Results say `component-permits`, `component-prohibits` or
 Apply and are not wired into live validation or mutation. Synthetic tests prove
 software behavior only; they establish no real team's facts or readiness.
 
-`reviewDraftPickComponents` composes these decisions with the existing Apron
+`reviewDraftPickComponents` composes these decisions, the isolated cash-sale
+restriction and the existing Apron
 mechanisms into one immutable JSON-safe review. Apron inputs must match the same
 proposal/state context and date and the pick's original team/year; the original
 team is not inferred from its current holder. Missing or duplicate Apron inputs
 stay explicit without suppressing independent ownership/Stepien results. The
 review preserves the Apron component's separate ownership and placement gaps;
-it does not overwrite them with another component's conclusion.
+it does not overwrite them with another component's conclusion. Consideration
+facts use the same request and qualification checks: a cash-sale prohibition or
+missing consideration remains visible beside permitting ownership/Stepien.
 
 The review always carries `apply: blocked` and no overall trading verdict.
 It has no production caller or supported Apply consumption path. An adversarial
@@ -140,3 +143,24 @@ order, pool allocation nor a final draft slot. Ownership is also an independent
 input, never inferred from the original team. A released restriction is not a
 positive first-round trading verdict. None of these modules is imported by live
 Trade Machine validation/Apply, season advance or saved-world mutation.
+
+## Isolated first-round cash-sale bar
+
+`evaluateDraftPickCashSale` implements the freshly looked-up CBA2-A12.2 direct
+prohibition for a complete unconditional exchange of authenticated original
+firsts solely for established cash or cash equivalents. Its scoped input must
+identify every outgoing first and all return consideration between the same
+parties, match the current proposal/state/date/release and retain qualified,
+accepted evidence without limitations. It does not classify cash equivalence
+from an asset's name or shape.
+
+One established positive cash amount proves consideration when every return
+item is already established as cash/equivalent; other unknown amounts cannot
+change that prohibition. An established noncash-only exchange is outside this
+particular bar. Mixed consideration, unclassified equivalents, conditional or
+incomplete exchanges and missing positive-value evidence remain unimplemented
+or need input. No allocation or valuation semantics are invented.
+
+The component reuses operation qualification and returns no whole-trade verdict.
+Existing annual cash limits, cash ledgers and Apron cash rules remain separate
+and unchanged. The live first-round Apply block remains intact.

@@ -5,6 +5,7 @@ import {
   DraftPickApronContextZ,
 } from '@/schemas/draftPickReview';
 import { evaluateOriginalDraftPickOwnership } from '@/features/architect/utils/draftPickOwnership';
+import { evaluateDraftPickCashSale } from '@/features/architect/utils/draftPickCashSale';
 import { evaluateSuppliedDraftStepien } from '@/features/architect/utils/draftStepien';
 import { evaluateDraftApronLifecycle } from '@/features/architect/utils/draftApronMechanisms';
 import { parseDraftOperationRequest } from '@/features/architect/utils/draftPickInputResolver';
@@ -73,6 +74,7 @@ export function reviewDraftPickComponents(input: unknown) {
     request: structuredClone(request),
     ownership: evaluateOriginalDraftPickOwnership(request, data.facts),
     stepien: evaluateSuppliedDraftStepien(request, data.facts),
+    cashSale: evaluateDraftPickCashSale(request, data.facts),
     apron,
   });
 }

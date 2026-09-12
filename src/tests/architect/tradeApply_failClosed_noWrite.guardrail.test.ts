@@ -559,6 +559,9 @@ describe('unsupported draft review metadata cannot bypass Apply', () => {
     const { DraftOriginalOwnershipFactZ, DraftStepienFactZ } = await import(
       '@/schemas/draftPickOperation'
     );
+    const { DraftPickConsiderationFactZ } = await import(
+      '@/schemas/draftPickConsideration'
+    );
     const { DraftPickApronContextZ } = await import(
       '@/schemas/draftPickReview'
     );
@@ -622,7 +625,9 @@ describe('unsupported draft review metadata cannot bypass Apply', () => {
     f.facts = f.facts.map((fact, i) => ({
       ...(i === 0
         ? DraftOriginalOwnershipFactZ.parse(fact)
-        : DraftStepienFactZ.parse(fact)),
+        : i === 1
+          ? DraftStepienFactZ.parse(fact)
+          : DraftPickConsiderationFactZ.parse(fact)),
       context: { ...f.request.context },
     }));
     f.apron = f.apron.map((fact) => {
@@ -635,6 +640,7 @@ describe('unsupported draft review metadata cannot bypass Apply', () => {
       status: 'reviewed',
       ownership: { status: 'component-permits' },
       stepien: { status: 'component-permits' },
+      cashSale: { status: 'component-permits' },
       apply: 'blocked',
     });
     teamLoaderMocks.getTeam.mockImplementation(async (_worldId, teamCode) =>

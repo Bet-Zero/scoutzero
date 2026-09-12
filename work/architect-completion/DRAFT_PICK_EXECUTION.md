@@ -35,7 +35,7 @@ projections remain non-executable; the A/B/C/D overlay remains distinct.
 | Structural correction | Frozen correction and Claude access | Queued | Focused correction review when available |
 | Release load/comparison | Accepted foundation | BZE-311 frozen, PR #534 | Independent review |
 | Ownership/supplied Stepien | Accepted foundation and pinned Canon | BZE-312 frozen, PR #535 | Independent review |
-| Component review/blocked ingress | Provisional BZE-312 | BZE-313 repaired, PR #536 | Final CI, settle finding, freeze |
+| Component review/blocked ingress | Provisional BZE-312/314 | BZE-313 repaired, PR #536 | Final CI, settle finding, freeze |
 | Isolated cash-sale prohibition | Provisional BZE-312; pinned A12.2 | BZE-314, PR #537 | Settle automated review/CI, freeze |
 
 No branch may merge its provisional ancestor without required independent
@@ -96,3 +96,17 @@ remains future; no pre-reset invocation or waiting process was started. A single
 bounded post-reset retry is permitted only while useful work continues. An
 unavailable checker blocks acceptance/landing, not completion of authorized
 independent author work. Do not self-accept or retry provider failures in a loop.
+
+BZE-313 composition extension uses BZE-314 `575a314c61aa715963422aa646a38075a253a734`
+as an additional provisional ancestor. Expected before implementation: complete
+noncash returns permit only this restriction; a cash-only sale prohibits beside
+passing ownership/Stepien; missing, duplicate, stale or mixed consideration stays
+Needs input. All results retain Apply blocked and reload deterministically.
+The unchanged live gate also rejects a synthetic request carrying a review with
+all these components permitting. This does not establish supported consumption.
+
+The combined extension passed 63 focused cases (18 review, 36 cash-sale and nine
+mutation ingress), final typecheck, project/schema checks, docs guardrails,
+scoped Markdown and diff checks. The merge resolves documentation conflicts by
+retaining the current continuation and regenerating hierarchy from combined
+source. Neither provisional ancestor is accepted or merged to main.

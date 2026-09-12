@@ -4,6 +4,7 @@ import {
   DraftOriginalOwnershipFactZ,
   DraftStepienFactZ,
 } from '@/schemas/draftPickOperation';
+import { DraftPickConsiderationFactZ } from '@/schemas/draftPickConsideration';
 import { syntheticOriginal } from './fixtures/draftPickOperation';
 import { DraftPickApronContextZ } from '@/schemas/draftPickReview';
 import { syntheticDraftReview as fixture } from './fixtures/draftPickReview';
@@ -20,6 +21,7 @@ describe('synthetic draft component composition', () => {
     const r = requireReview();
     expect(r.ownership.status).toBe('component-permits');
     expect(r.stepien.status).toBe('component-permits');
+    expect(r.cashSale.status).toBe('component-permits');
     expect(r.apron[0]).toMatchObject({
       status: 'evaluated',
       result: {
@@ -35,6 +37,34 @@ describe('synthetic draft component composition', () => {
       apply: 'blocked',
     });
   });
+  it.each(['cash', 'missing', 'duplicate', 'stale', 'mixed'])(
+    'preserves the %s consideration result beside independent permitting components',
+    (kind) => {
+      const f = fixture();
+      const cash = DraftPickConsiderationFactZ.parse(f.facts[2]);
+      if (kind === 'cash' || kind === 'mixed') {
+        const payment = {
+          id: 'synthetic-payment',
+          kind: 'cash' as const,
+          amountCents: 1,
+        };
+        cash.consideration =
+          kind === 'cash' ? [payment] : [...cash.consideration, payment];
+      }
+      if (kind === 'stale') cash.context.stateVersion = 'older-state';
+      f.facts[2] = cash;
+      if (kind === 'missing') f.facts.pop();
+      if (kind === 'duplicate') f.facts.push(structuredClone(cash));
+      const result = requireReview(f);
+      expect(result.cashSale.status).toBe(
+        kind === 'cash' ? 'component-prohibits' : 'needs-input'
+      );
+      expect(result.ownership.status).toBe('component-permits');
+      expect(result.stepien.status).toBe('component-permits');
+      expect(result.apply).toBe('blocked');
+      expect(review(JSON.parse(JSON.stringify(f)))).toEqual(result);
+    }
+  );
   it.each(['team', 'date', 'proposal', 'origin', 'year'])(
     'blocks wrong Apron %s without invalidating independent ownership',
     (kind) => {
