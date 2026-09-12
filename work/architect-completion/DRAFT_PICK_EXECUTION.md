@@ -26,8 +26,8 @@ W10/V1 self-acceptance or automatic new research.
 | ----------------------------------------- | ------------------------------------------------------- | --------------------------- | -------------------------------------------------------- |
 | Structural correction acceptance          | Claude access; exact frozen correction                  | Queued                      | Bounded post-reset retry                                 |
 | Release loading and successor comparison  | Accepted foundation                                     | BZE-311 In Review           | Settle minor automated findings, freeze and queue Claude |
-| Operation inputs and isolated known rules | Accepted foundation and pinned Canon                    | BZE-312 author tests passed | Finish checks and queue review                           |
-| Test/review integration slice             | Necessary components; explicit provisional dependencies | Conditional                 | Reuse existing mutation/persistence seams                |
+| Operation inputs and isolated known rules | Accepted foundation and pinned Canon                    | BZE-312 review queued       | Await Claude acceptance                                  |
+| Test/review integration slice             | Necessary components; explicit provisional dependencies | BZE-313 author proof passed | Commit and queue review                                  |
 
 ## BZE-312 expected results before implementation
 
@@ -53,23 +53,65 @@ window cannot become a permitting component result.
 
 ## Current author checkpoint
 
+BZE-314 next author expectations (before implementation): a complete direct
+exchange of authenticated original firsts solely for established positive cash
+or cash equivalents is prohibited by CBA2-A12.2. Complete established noncash-only
+consideration is outside that prohibition. Mixed consideration, unclassified
+equivalence, incomplete/conditional exchange, unknown positive value, duplicate
+items, mismatched context/identities or unqualified evidence need input. One
+known positive cash amount suffices without requiring every other cash amount.
+No valuation/equivalence inference or whole-trade permission is implemented.
+
 BZE-311 [PR #534](https://github.com/Bet-Zero/scoutzero/pull/534):
-`70ef50567508deeee8a26c0067055efd39e6d3e8` after four minor automated repairs; predecessor hosted CI passed.
-Exact private probe passed 278 IDs, 1,483 occurrences, 877 dependencies, five
-predecessors/states and reload equality. Automated review returned four minor
-code/docs findings, now repaired with 25 release tests/typecheck/Markdown passing. Replacement-head receipts are being collected. Claude
-acceptance remains required and pending. This is not merged or accepted.
+`f8a92dc44f1dd718136080c4381e49730affd24c`. All six automated findings are
+settled (four minor, two material impact-reporting corrections). The 28 release
+checks and typecheck passed after the final repair; exact private preservation
+and reload probe passed all 278/1,483/877/five. Final hosted CI passed. No merge.
 
-BZE-312 branch: `feature/bze-312-draft-known-rules`, based directly on accepted
-main. Ownership and supplied-branch Stepien author code passed 53 synthetic
-operation cases plus all 22 unchanged Apron tests. Final typecheck, project/schema
-checks, docs guardrails, scoped Markdown and Graphify update passed. A shared
-unresolved dependency blocks all branches; only separately scoped unknowns can
-be irrelevant to a proved violation. No foundation,
-legacy lineage, runtime gate, world or source data changed.
+BZE-312 [PR #535](https://github.com/Bet-Zero/scoutzero/pull/535): frozen at
+`5ef2e071d1b74f98651c875c520c70906de55638`. Hosted CI including build passed;
+GitHub Codex completed without findings. CodeRabbit was rate-limited and is
+recorded unavailable. The immutable private Claude request was generated after
+those gates, SHA-256 `5a8d3329d8ff5300d4fc07d83db30ffaa98aa8c3f5e62a73d3d96240709f97d5`.
+Its 53 operation cases, 22 Apron cases and exact live-block discriminator passed.
 
-Next actions: commit/open BZE-312 draft PR and collect hosted/automated review. Settle BZE-311 automated findings and replacement-head
-receipts in its isolated repair checkout. Inspect the existing mutation/reload
-harness for the next useful integration slice; keep unreviewed dependencies
-explicit. Claude access is not retried before the recorded 10:50 Detroit reset.
-No full suite or browser/emulator proof for disconnected data/rule changes.
+BZE-313 is the one active High lane on `feature/bze-313-draft-review-path`, staged
+on the provisional BZE-312 head above. Neither ancestor nor descendant may land
+without independent acceptance. It composes existing ownership, Stepien and
+Apron results for the same proposal/state/date/original pick and keeps Apply
+blocked. Expected results were recorded before implementation: wrong context,
+duplicate/missing Apron inputs block the relevant component; known separate
+components remain visible; a composed result never grants overall authority.
+
+Author validation: 88 scoped node cases passed (13 composition, 53 operation,
+22 Apron), plus nine existing mutation-seam cases including the added passing-
+components/blocked-Apply discriminator. Both rejected attempts opened no write
+batch and retained identical serialized state/review; a stale state version
+blocked revalidation. Final typecheck, project/schema checks, docs guardrails,
+scoped Markdown, diff check and Graphify update passed. The initial UI runner
+selected no `.ts` files; the correct node runner was used. An initial fixture
+used the existing FNV state digest as a SHA-256 proposal digest; the input gate
+rejected it. The fixture now computes an actual SHA-256 and the test passes.
+
+Next: commit and queue BZE-313 hosted/automated review; retain final BZE-311
+immutable checker request after clean-head verification. Independent Claude
+acceptance remains queued under the retained pre-reset limit. No pre-reset
+invocation, sleeping process, source reacquisition, runtime mutation change or
+activation. Local full suite and browser/emulator certification are skipped:
+no rendered or saved-world behavior changed, and no successful first-round
+persistence path is being claimed. Exact PR receipts supersede earlier in-file
+checkpoint commands. Private source reviews and interrupted outputs remain
+unchanged at the original structural checkpoint.
+
+BZE-314 author checkpoint: `feature/bze-314-draft-cash-sale`, based provisionally
+on frozen BZE-312 `5ef2e071d1b74f98651c875c520c70906de55638` and independent of
+BZE-311/313 code. The newly looked-up CBA2-A12.2 restriction is separate from
+accepted annual cash limits. Thirty-six synthetic restriction cases and nine
+unchanged governed-cash cases passed. Final typecheck, project/schema checks,
+docs guardrails and Graphify update passed. Commit/push and hosted/automated
+review are next; no new real facts or runtime activation.
+
+BZE-313 PR #536 remains at `b979abc34e0624f6fd02ffb7ba1eb4896308c577`.
+Its PR now targets main because the existing CI workflow only accepts that
+base. The unreviewed BZE-312 ancestor remains explicit and blocks merging;
+changing the PR target does not accept it. No candidate code changed.
