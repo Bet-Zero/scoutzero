@@ -83,6 +83,19 @@ All 25 composition and nine real mutation-ingress cases passed, including the
 seven new discriminators; typecheck passed. No new independent acceptance is
 claimed before the exact replacement-head gates and focused review.
 
+The completed automated review of `c5fa4da156f64dc819c23ad44dd3a3105d51a8f6`
+identified one remaining identity edge case: an opaque Apron ID could disagree
+with its team/year/round tuple yet be filtered as unrelated. Unlike the operation's
+original-first schema, the isolated Apron carrier permits opaque IDs. The composer
+now reuses the operation's full identity contract before filtering, without
+authenticating source bytes or changing Apron rule mechanics. Three inconsistent-ID
+variants and an incomplete-identity control failed before this repair; a coherent
+different pick still passes the unrelated-input control. All 28 composition cases,
+typecheck, scoped Markdown and diff checks passed. The nine preceding mutation
+checks are reused: their complete fixture identity and actual ingress path are
+unchanged. Replacement exact-head gates and independent review remain pending.
+The original finding is retained in PR536.
+
 Earlier BZE-313 automated finding 3996327901 remains part of the review scope:
 its initial Apply call did not receive the review. The retained correction attaches
 the real component review and a forged allowance through unsupported tradeCtx

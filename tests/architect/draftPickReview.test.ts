@@ -146,8 +146,41 @@ describe('synthetic draft component composition', () => {
       expect(requireReview(f).apron[0].status).toBe('needs-input');
     }
     f.apron = [valid, { input: { originalPick: { id: 'MIA_2030_1st' } } }];
+    expect(requireReview(f).apron[0].status).toBe('needs-input');
+    f.apron = [
+      valid,
+      {
+        input: {
+          originalPick: {
+            id: 'MIA_2030_1st',
+            originalTeam: 'MIA',
+            draftYear: 2030,
+            round: 1,
+          },
+        },
+      },
+    ];
     expect(requireReview(f).apron[0].status).toBe('evaluated');
   });
+  it.each(['TYPO_2028_1st', 'MIA_2030_1st', 'BOS_2029_1st'])(
+    'blocks inconsistent Apron ID %s before treating the row as unrelated',
+    (id) => {
+      const f = fixture();
+      const valid = DraftPickApronContextZ.parse(f.apron[0]);
+      const inconsistent = structuredClone(valid);
+      inconsistent.input.originalPick.id = id;
+      for (const apron of [
+        [valid, inconsistent],
+        [inconsistent, valid],
+      ]) {
+        f.apron = apron;
+        const r = requireReview(f);
+        expect(r.apron[0].status).toBe('needs-input');
+        expect(r.ownership.status).toBe('component-permits');
+        expect(r.apply).toBe('blocked');
+      }
+    }
+  );
   it('reloads identically, freezes the receipt and leaves caller inputs writable', () => {
     const f = fixture(),
       before = JSON.stringify(f),

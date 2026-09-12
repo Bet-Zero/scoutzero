@@ -1,6 +1,6 @@
 /** Review composition only; no aggregate legality or mutation authority. */
 import { z } from 'zod';
-import { DraftEvidenceIdZ } from '@/schemas/draftPickEvidence';
+import { DraftOriginalFirstZ } from '@/schemas/draftPickOperation';
 import {
   DraftPickReviewInputZ,
   DraftPickApronContextZ,
@@ -32,7 +32,9 @@ export function reviewDraftPickComponents(input: unknown) {
   const data = parsed.data;
   const request = data.request;
   const locator = z.object({
-    input: z.object({ originalPick: z.object({ id: DraftEvidenceIdZ }) }),
+    input: z.object({
+      originalPick: DraftPickApronContextZ.shape.input.shape.originalPick,
+    }),
   });
   const apron = request.outgoing.map((pick) => {
     const blocked = (reason: string) => ({
@@ -45,7 +47,13 @@ export function reviewDraftPickComponents(input: unknown) {
       const p = locator.safeParse(row);
       // Every row is an Apron input; an unreadable identity is not unrelated.
       if (!p.success) return blocked('unidentified-apron-input');
-      if (p.data.input.originalPick.id === pick.id) rows.push(row);
+      // Reuse the operation's ID/tuple contract, without authenticating sources.
+      const identity = DraftOriginalFirstZ.safeParse({
+        ...p.data.input.originalPick,
+        kind: 'authenticated-original-pick',
+      });
+      if (!identity.success) return blocked('inconsistent-apron-original-pick');
+      if (identity.data.id === pick.id) rows.push(row);
     }
     if (rows.length !== 1)
       return blocked(
