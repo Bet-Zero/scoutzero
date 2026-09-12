@@ -52,12 +52,22 @@ L09.2/.3/.4 before implementation.
   third at-or-below regular season in the four following seasons. The calendar
   input is distinct from the team's measurement event. Three known qualifying
   observations may decide release with the fourth explicitly future.
+  A missing or conflicting fourth observation cannot undo three independently
+  established qualifying seasons. If an earlier unknown could move the release
+  date earlier, the result reports only a proven latest release date and leaves
+  the exact date absent; before that boundary the current restriction is blocked.
 - L08.7: two of the four following observations above the Apron establish the
   penalty component. A12.7 supplies the separate no-penalty consequence after
   a qualifying release.
 - L09.4: freeze-trigger history, current frozen state, unfreeze, penalty,
   no-penalty, ownership and placement remain distinct. Missing follow-up history
   cannot turn a known original freeze into a known current restriction.
+
+Known results retain the observation result IDs they rely on and separate calendar
+source IDs. Two established above observations decide the penalty even if other
+observations remain unknown. This proves a component without filling those gaps.
+Storage preserves scoped support with review limitations; it does not impose the
+stricter mechanism-input acceptance predicate on historical evidence records.
 
 These functions require scoped qualified input sources with accepted review and
 no unresolved limitations. They do not authenticate bytes or establish the 60

@@ -90,6 +90,59 @@ describe('isolated Canon Apron components', () => {
     expect(result.noPenalty).toMatchObject({ status: 'known', value: false });
     expect(result.unfrozen).toMatchObject({ status: 'known', value: false });
     expect(result.placement.status).toBe('blocked');
+    expect(result.penalized).toMatchObject({
+      sourceResultIds: ['measurement-0', 'measurement-1', 'measurement-2'],
+      calendarSourceIds: [],
+    });
+  });
+  it.each(['missing', 'conflicting'] as const)(
+    'retains a conclusive threshold with an irrelevant %s fourth observation',
+    (state) => {
+      for (const penalty of [true, false]) {
+        const d = input(
+          penalty
+            ? [true, true, true, false, false]
+            : [true, false, false, false, false]
+        );
+        if (state === 'missing') d.observations.pop();
+        else d.observations[4].state = state;
+        const result = evaluateDraftApronLifecycle(d);
+        expect(result.penalized).toMatchObject({
+          status: 'known',
+          value: penalty,
+        });
+        expect(result.unfrozen).toMatchObject({
+          status: 'known',
+          value: !penalty,
+        });
+        if (!penalty) {
+          expect(result.releaseEffectiveAt).toBe('2030-04-14T00:00:00-04:00');
+          expect(result.unfrozen).toMatchObject({
+            sourceResultIds: [
+              'measurement-0',
+              'measurement-1',
+              'measurement-2',
+              'measurement-3',
+            ],
+            calendarSourceIds: ['synthetic-only'],
+          });
+        }
+      }
+    }
+  );
+  it('proves release by a date without inventing exact timing across an earlier unknown', () => {
+    const d = input([true, false, false, false, false]);
+    d.observations[1].state = 'conflicting';
+    let result = evaluateDraftApronLifecycle(d);
+    expect(result.unfrozen).toMatchObject({ status: 'known', value: true });
+    expect(result.releaseEffectiveAt).toBeUndefined();
+    expect(result.releaseEffectiveNoLaterThan).toBe(
+      '2031-04-14T00:00:00-04:00'
+    );
+    d.asOf = '2031-04-13T23:59:59-04:00';
+    result = evaluateDraftApronLifecycle(d);
+    expect(result.frozen.status).toBe('blocked');
+    expect(result.noPenalty.status).toBe('blocked');
   });
   it.each([
     'unresolved',
@@ -120,6 +173,7 @@ describe('isolated Canon Apron components', () => {
     'unqualified',
     'no-season-end',
     'bad-next-day',
+    'wrong-calendar-season',
   ])('blocks %s input', (error) => {
     const d = input();
     if (error === 'missing') d.observations.pop();
@@ -135,6 +189,10 @@ describe('isolated Canon Apron components', () => {
     if (error === 'no-season-end') d.regularSeasonEnds = [];
     if (error === 'bad-next-day')
       d.regularSeasonEnds[3].dayAfterStartsAt = '2031-04-13T00:00:00-04:00';
+    if (error === 'wrong-calendar-season') {
+      d.regularSeasonEnds[3].date = '2032-04-13';
+      d.regularSeasonEnds[3].dayAfterStartsAt = '2032-04-14T00:00:00-04:00';
+    }
     expect(evaluateDraftApronLifecycle(d).unfrozen.status).toBe('blocked');
   });
   it('keeps known future alternatives; does not label absent historical values future', () => {

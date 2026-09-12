@@ -162,6 +162,7 @@ describe('bounded evidence foundation', () => {
     'lost-dependency',
     'duplicate-id',
     'overlay-promotion',
+    'overlay-controls',
     'reverse-edge',
     'predecessor',
     'as-of',
@@ -174,6 +175,8 @@ describe('bounded evidence foundation', () => {
       input.retained.entitlements[1].entitlementId = 'legacy-own';
     if (kind === 'overlay-promotion')
       input.overlay[0].authorityStatus = 'supported in stated scope';
+    if (kind === 'overlay-controls')
+      input.overlay[0].controlsAtStart = 'different operation';
     if (kind === 'reverse-edge')
       input.retained.dependencies[0].entitlementIds.pop();
     if (kind === 'predecessor')
@@ -183,6 +186,69 @@ describe('bounded evidence foundation', () => {
     if (kind === 'as-of') input.release.asOf = '2030-06-06T12:00:00Z';
     if (kind === 'executable-program') input.programs[0].executable = true;
     expect(() => buildDraftPickFoundation(input)).toThrow();
+  });
+
+  it('requires pool notes to reference retained clauses for the same dependency', () => {
+    const base = syntheticFoundationInput();
+    base.retained.dependencies[3].family = 'contractual-priority-ties';
+    base.overlay.find((d) => d.id === 'd3')!.family =
+      'contractual-priority-ties';
+    const input = {
+      ...base,
+      poolScopeNotes: [
+        {
+          dependencyId: 'd3',
+          pool: ['AAA', 'BBB'],
+          sourceNamedMembers: ['AAA', 'BBB'],
+          clauseRef: 'synthetic-source#clause',
+          relation: 'shared-pool-scope-only',
+        },
+      ],
+    };
+    expect(buildDraftPickFoundation(input).poolScopeNotes).toEqual(
+      input.poolScopeNotes
+    );
+    input.poolScopeNotes[0].clauseRef = 'missing-clause';
+    expect(() => buildDraftPickFoundation(input)).toThrow('Pool scope');
+    input.poolScopeNotes[0].clauseRef = 'synthetic-source#clause';
+    input.programs[0].dependencyId = 'd0';
+    expect(() => buildDraftPickFoundation(input)).toThrow('Pool scope');
+  });
+
+  it('retains scoped support and review limitations without treating storage as runtime approval', () => {
+    const source = {
+      id: 'synthetic',
+      artifactSha256: 'c'.repeat(64),
+      locator: 'source#clause',
+      scope: 'one component only',
+      qualification: 'qualified',
+      publishedAt: null,
+      capturedAt: null,
+      review: {
+        status: 'accepted-with-limitations',
+        reference: 'synthetic-review',
+        limitations: ['Does not establish a whole asset'],
+      },
+    };
+    const assertion = {
+      id: 'claim',
+      status: 'supported in stated scope',
+      claim: 'component support',
+      effectiveAt: null,
+      effectiveDateScope: 'unknown',
+      sources: [source],
+      alternatives: [],
+      governingAlternativesComplete: false,
+      unresolvedDependencyIds: ['d3'],
+    };
+    const input = { ...syntheticFoundationInput(), assertions: [assertion] };
+    const f = buildDraftPickFoundation(input);
+    expect(f.assertions[0]).toEqual(assertion);
+    expect(f.execution).toBe('disabled');
+    source.qualification = 'unqualified';
+    expect(() => buildDraftPickFoundation(input)).toThrow(
+      'qualified scoped source'
+    );
   });
 
   it('requires explicit complete future alternatives and separates effective dates from captures', () => {

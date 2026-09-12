@@ -60,9 +60,15 @@ export function buildDraftPickFoundation(input: unknown) {
       throw new Error('Unknown program dependency');
   }
   for (const note of data.poolScopeNotes) {
+    const hasReferencedClause = data.programs.some(
+      (program) =>
+        program.dependencyId === note.dependencyId &&
+        program.clauses.some((clause) => clause.sourceRef === note.clauseRef)
+    );
     if (
       dependencies.get(note.dependencyId)?.family !==
         'contractual-priority-ties' ||
+      !hasReferencedClause ||
       note.pool.some((member) => !note.sourceNamedMembers.includes(member))
     ) {
       throw new Error(

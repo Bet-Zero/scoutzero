@@ -12,11 +12,29 @@ export const DRAFT_APRON_CANON = {
   sha256: '23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76',
 } as const;
 
-type Component<T> =
-  | { status: 'known'; value: T; sourceResultIds: string[]; leaf: string }
+export type DraftApronComponent<T> =
+  | {
+      status: 'known';
+      value: T;
+      sourceResultIds: string[];
+      calendarSourceIds: string[];
+      leaf: string;
+    }
   | { status: 'blocked'; reason: string; leaf: string }
   | { status: 'future-pending'; alternatives: string[]; leaf: string }
   | { status: 'non-applicable'; reason: string; leaf: string };
+type Component<T> = DraftApronComponent<T>;
+export type DraftApronLifecycleResult = {
+  freezeTriggered: Component<boolean>;
+  frozen: Component<boolean>;
+  unfrozen: Component<boolean>;
+  penalized: Component<boolean>;
+  noPenalty: Component<boolean>;
+  owned: Component<boolean>;
+  placement: Component<never>;
+  releaseEffectiveAt?: string;
+  releaseEffectiveNoLaterThan?: string;
+};
 const blocked = (leaf: string, reason: string): Component<never> => ({
   status: 'blocked',
   reason,
@@ -25,8 +43,15 @@ const blocked = (leaf: string, reason: string): Component<never> => ({
 const known = <T>(
   leaf: string,
   value: T,
-  sourceResultIds: string[]
-): Component<T> => ({ status: 'known', value, sourceResultIds, leaf });
+  sourceResultIds: string[],
+  calendarSourceIds: string[] = []
+): Component<T> => ({
+  status: 'known',
+  value,
+  sourceResultIds,
+  calendarSourceIds,
+  leaf,
+});
 const qualified = (sources: DraftApronObservation['sources']) =>
   sources.length > 0 &&
   sources.every(
@@ -120,9 +145,14 @@ export function evaluateDraftApronFreeze(input: unknown): Component<boolean> {
 }
 
 /** A12.5: uses the governed next-day boundary, not a team game's ending instant. */
-function releaseBoundary(d: DraftApronInput, season: number): string | null {
+function releaseBoundary(d: DraftApronInput, season: number) {
   const end = d.regularSeasonEnds.find((s) => s.seasonStartYear === season);
-  if (!end || !qualified(end.sources)) return null;
+  if (
+    !end ||
+    Number(end.date.slice(0, 4)) !== season + 1 ||
+    !qualified(end.sources)
+  )
+    return null;
   const nextDate = new Date(Date.parse(`${end.date}T00:00:00Z`) + 86_400_000)
     .toISOString()
     .slice(0, 10);
@@ -139,11 +169,16 @@ function releaseBoundary(d: DraftApronInput, season: number): string | null {
     Date.parse(observation.value.measuredAt) >= Date.parse(end.dayAfterStartsAt)
   )
     return null;
-  return end.dayAfterStartsAt;
+  return {
+    effectiveAt: end.dayAfterStartsAt,
+    sourceIds: end.sources.map((s) => s.id),
+  };
 }
 
 /** L08.7 / A12.5 / A12.7: no ordering or final-slot calculation. */
-export function evaluateDraftApronLifecycle(input: unknown) {
+export function evaluateDraftApronLifecycle(
+  input: unknown
+): DraftApronLifecycleResult {
   const unavailable = (reason: string) => ({
     frozen: blocked('CBA2-A12.4', reason),
     unfrozen: blocked('CBA2-A12.5', reason),
@@ -193,7 +228,6 @@ export function evaluateDraftApronLifecycle(input: unknown) {
       ),
     };
   });
-  if (history.some((h) => h.result.status === 'blocked')) return result;
   if (
     history.some(
       (h, i) =>
@@ -209,10 +243,12 @@ export function evaluateDraftApronLifecycle(input: unknown) {
   const below = knownHistory.filter(
     (h) => h.result.status === 'known' && !h.result.value
   );
-  const refs = [trigger, ...knownHistory.map((h) => h.result)].flatMap((r) =>
-    r.status === 'known' ? r.sourceResultIds : []
-  );
+  const references = (rows: typeof history) =>
+    [trigger, ...rows.map((h) => h.result)].flatMap((r) =>
+      r.status === 'known' ? r.sourceResultIds : []
+    );
   if (above.length >= 2) {
+    const refs = references(above.slice(0, 2));
     return {
       ...result,
       frozen: known('CBA2-A12.4', true, refs),
@@ -228,21 +264,37 @@ export function evaluateDraftApronLifecycle(input: unknown) {
         ...result,
         unfrozen: blocked('CBA2-A12.5', 'missing-or-conflicting-season-end'),
       };
-    const released = Date.parse(d.asOf) >= Date.parse(boundary);
+    const exactTiming = !history.some(
+      (h) => h.year < below[2].year && h.result.status === 'blocked'
+    );
+    // Exact timing also relies on earlier above observations to exclude an
+    // earlier third qualifying year; a by-date result needs only three below.
+    const refs = references(
+      exactTiming
+        ? knownHistory.filter((h) => h.year <= below[2].year)
+        : below.slice(0, 3)
+    );
+    const released = Date.parse(d.asOf) >= Date.parse(boundary.effectiveAt);
+    // An earlier unknown can move the third qualifying season earlier. It
+    // cannot undo release after the third independently known qualifying year.
+    if (!exactTiming && !released) return result;
     return {
       ...result,
-      frozen: known('CBA2-A12.4', !released, refs),
-      unfrozen: known('CBA2-A12.5', released, refs),
+      frozen: known('CBA2-A12.4', !released, refs, boundary.sourceIds),
+      unfrozen: known('CBA2-A12.5', released, refs, boundary.sourceIds),
       penalized: released
-        ? known('CBA2-L08.7', false, refs)
+        ? known('CBA2-L08.7', false, refs, boundary.sourceIds)
         : blocked('CBA2-L08.7', 'release-not-yet-effective'),
-      noPenalty: known('CBA2-A12.7', released, refs),
-      releaseEffectiveAt: boundary,
+      noPenalty: known('CBA2-A12.7', released, refs, boundary.sourceIds),
+      ...(exactTiming
+        ? { releaseEffectiveAt: boundary.effectiveAt }
+        : { releaseEffectiveNoLaterThan: boundary.effectiveAt }),
     };
   }
+  if (history.some((h) => h.result.status === 'blocked')) return result;
   return {
     ...result,
-    frozen: known('CBA2-A12.4', true, refs),
+    frozen: known('CBA2-A12.4', true, references(knownHistory)),
     unfrozen: {
       status: 'future-pending' as const,
       alternatives: ['release-after-third-at-or-below', 'remain-frozen'],

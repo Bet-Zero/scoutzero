@@ -78,6 +78,7 @@ export function validateDraftPickLineage(
       !d ||
       d.authorityStatus !== row.authorityStatus ||
       d.family !== row.family ||
+      d.controlsAtStart !== row.controlsAtStart ||
       !same(d.entitlementIds, row.entitlementIds) ||
       !same(d.baselineOccurrenceIds, row.baselineOccurrenceIds)
     ) {

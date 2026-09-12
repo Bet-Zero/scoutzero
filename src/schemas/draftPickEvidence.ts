@@ -77,11 +77,11 @@ export const DraftEvidenceAssertionZ = z
     }
     if (
       record.status === 'supported in stated scope' &&
-      !record.sources.length
+      !record.sources.some((source) => source.qualification === 'qualified')
     ) {
       ctx.addIssue({
         code: 'custom',
-        message: 'Supported claims require scoped source references',
+        message: 'Supported claims require a qualified scoped source reference',
       });
     }
   });
