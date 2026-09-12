@@ -115,3 +115,54 @@ BZE-313 PR #536 remains at `b979abc34e0624f6fd02ffb7ba1eb4896308c577`.
 Its PR now targets main because the existing CI workflow only accepts that
 base. The unreviewed BZE-312 ancestor remains explicit and blocks merging;
 changing the PR target does not accept it. No candidate code changed.
+
+## Resumed independent review, September 12
+
+The corrected BZE-309 structural assessment received unconditional independent
+ACCEPT; [the accepted disposition](https://linear.app/bzero/issue/BZE-309#comment-c3a19cdd-27eb-4bdc-903b-b95ae9795d9c)
+preserves Stage B open and the source-search stop. No structural identity was
+resolved by that correction. The completion plan carries the current queue;
+the preceding author checkpoints are historical.
+
+BZE-312 candidate `5ef2e071d1b74f98651c875c520c70906de55638` received REVISE
+for one material selector finding: a malformed same-scope duplicate could
+disappear before conflict detection and allow a component permit. The original
+review and independently chosen probes remain separately retained. Its other
+ownership, Stepien, Canon and non-activation conclusions are reused.
+
+The focused repair selects by scope before payload validation. An ownership
+record whose pick ID cannot be resolved blocks; a known different pick remains
+unrelated. Stepien records in its scope remain selected regardless of an invalid
+extra pick field. Seven malformed-envelope regression cases failed against the
+original selector, then passed after repair, including both record orders and
+single-invalid-record controls. A different identified pick and unrelated scope
+still permit the valid control. All 61 operation tests and typecheck passed. This discriminates
+the concrete conflict-hiding failure absent from the original 53 cases.
+
+This is author repair evidence, awaiting exact replacement-head checks and
+focused independent delta acceptance. There is no mutation wiring, whole-trade
+permission, production activation, source acquisition or real-team readiness.
+
+## Accepted base and cash-sale synchronization
+
+BZE-312 repair candidate `d40c55376b7b86e87f600c53f0a2455dadcf15e6` received
+unconditional independent ACCEPT and landed through PR535 at
+`3957f7cfad73989513004ed78e468cc82672ff50`. The landed tree equals the accepted
+candidate; main/local/origin synchronization and post-merge CI34723340457 passed.
+BZE-312 is Done. Original REVISE and focused correction ACCEPT remain separately
+retained; none of this grants overall trading or production Apply permission.
+
+BZE-314 is brought forward by a normal merge of that accepted main. The only
+merge conflict was this historical execution record; both the later queue
+checkpoint and the accepted repair history are preserved. Cash-sale source and
+schema are unchanged from the frozen candidate. The changed shared selector
+requires one focused integration discriminator: a valid noncash permit beside
+a malformed same-scope cash contradiction must need input in either order.
+No ownership/Stepien reimplementation, new source facts or activation is involved.
+
+All 39 cash-sale cases passed, including three malformed-envelope variants of
+that discriminator. Scoped Markdown and diff checks passed. The accepted
+predecessor's typecheck and unchanged cash-rule validation are reused; the
+replacement exact-head hosted typecheck/build and independent delta verdict
+remain required. No local full suite or browser/emulator rerun is warranted
+for this disconnected rule and documentation/test integration.

@@ -138,6 +138,51 @@ describe('operation-specific selection and qualification', () => {
       missing
     );
   });
+  it.each([
+    ['omitted', undefined],
+    ['null', null],
+    ['string', 'BOS_2028_1st'],
+    ['array', []],
+    ['missing ID', {}],
+    ['numeric ID', { id: 17 }],
+    ['empty ID', { id: '' }],
+  ])(
+    'blocks a same-scope malformed %s pick envelope in either order',
+    (_, malformedPick) => {
+      const f = fixture();
+      const contradictoryOwner = {
+        ...f.ownership,
+        pick: malformedPick,
+        claims: [{ ...f.ownership.claims[0], team: 'MIA' }],
+      };
+      const contradictoryStepien = {
+        ...structuredClone(f.stepien),
+        pick: malformedPick,
+      };
+      contradictoryStepien.branches[0].drafts[2].retained = [];
+      for (const facts of [
+        [f.ownership, contradictoryOwner],
+        [contradictoryOwner, f.ownership],
+        [contradictoryOwner],
+      ])
+        expect(own(f.request, facts).status).toBe(missing);
+      for (const facts of [
+        [f.stepien, contradictoryStepien],
+        [contradictoryStepien, f.stepien],
+        [contradictoryStepien],
+      ])
+        expect(step(f.request, facts).status).toBe(missing);
+    }
+  );
+  it('still ignores a different identified pick and unrelated fact scopes', () => {
+    const f = fixture();
+    const unrelated = [
+      { ...f.ownership, pick: pick(2030), unexpected: true },
+      { scope: 'lottery-method', pick: null },
+    ];
+    expect(own(f.request, [f.ownership, ...unrelated]).status).toBe(permit);
+    expect(step(f.request, [f.stepien, ...unrelated]).status).toBe(permit);
+  });
   it('never converts a projection or an inconsistent year tuple into an original pick', () => {
     const f = fixture();
     const projection = {
