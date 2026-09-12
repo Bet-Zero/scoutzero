@@ -34,13 +34,23 @@ W10/V1 self-acceptance or automatic new research.
 BZE-311 branch: `feature/bze-311-draft-release-updates`, based on verified main.
 No pending structural finding is used as an accepted implementation premise.
 Release loading and comparison are disconnected from live mutation and validation.
-First scoped pass: 42 node tests passed (25 new release checks, 17 foundation and
-mapper checks). Remaining checks, private probe, hosted CI and review are pending.
+Scoped checks: 42 node tests passed (25 new release checks, 17 foundation and
+mapper checks), plus eight unchanged Trade Machine date tests. Typecheck,
+project/schema checks, docs guardrails and changed-document Markdown passed.
+Graphify was updated and includes the new source modules.
+
+Initial code checkpoint: `52e6e2b1573e27d1aaa242acec0c325aeb403224`.
+Its exact private probe passed complete retained-object and reload equality:
+278 IDs, 1,483 occurrences, 877 dependencies, five predecessors and all five
+states; no world adoption or writes. The pre-push gate rejected one unknown
+index-signature typing pattern. A typed identity-accessor repair is being
+validated without adding a cast exception. Required hosted CI and independent
+review remain pending; no merge or acceptance is claimed.
 Fresh pinned Canon lookups: CBA2-L09.2 and CBA2-L09.3.
 
-Next commands: scoped release/foundation tests after author repairs,
-`npm run typecheck`, `npm run schema:check`, `npm run validate:project`,
-`npm run docs:guardrails`, changed-doc Markdown checks, stable-input Graphify
-update, then exact-candidate private `npm run review:probe` and hosted CI.
+Next commands: finish scoped repair tests and typecheck, commit the repair,
+push the branch, run the replacement-head private `npm run review:probe`,
+then collect hosted CI and available automated review. Reuse unaffected
+project/schema/UI/docs checks; the new graph hook follows source changes.
 No local full suite for this data-only assignment; no browser/emulator proof
 because rendered and saved-world behavior is unchanged.

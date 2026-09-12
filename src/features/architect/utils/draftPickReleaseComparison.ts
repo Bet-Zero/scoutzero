@@ -9,12 +9,12 @@ import {
   type LoadedDraftPickRelease,
 } from '@/features/architect/utils/draftPickRelease';
 
-type Row = { [key: string]: unknown };
 const equal = (a: unknown, b: unknown) =>
   canonicalStringify(a) === canonicalStringify(b);
 const sorted = (ids: string[]) => [...new Set(ids)].sort();
-const keyed = <T extends Row>(rows: T[], key: string) =>
-  new Map(rows.map((r) => [String(r[key]), r]));
+const keyed = <T>(rows: T[], identity: (row: T) => string) =>
+  new Map(rows.map((row) => [identity(row), row]));
+const identity = (row: { id: string }) => row.id;
 function freeze<T>(value: T): T {
   if (value && typeof value === 'object' && !Object.isFrozen(value)) {
     Object.values(value).forEach(freeze);
@@ -23,17 +23,20 @@ function freeze<T>(value: T): T {
   return value;
 }
 
-function changes<T extends Row>(before: T[], after: T[], key = 'id') {
-  const a = keyed(before, key),
-    b = keyed(after, key);
+function changes<T extends object>(
+  before: T[],
+  after: T[],
+  identify: (row: T) => string
+) {
+  const a = keyed(before, identify),
+    b = keyed(after, identify);
   return sorted([...a.keys(), ...b.keys()]).flatMap((id) => {
     const old = a.get(id),
       next = b.get(id);
     if (old && next && equal(old, next)) return [];
-    const fields = sorted([
-      ...Object.keys(old ?? {}),
-      ...Object.keys(next ?? {}),
-    ]);
+    const oldFields = new Map(Object.entries(old ?? {}));
+    const nextFields = new Map(Object.entries(next ?? {}));
+    const fields = sorted([...oldFields.keys(), ...nextFields.keys()]);
     return [
       {
         id,
@@ -46,9 +49,9 @@ function changes<T extends Row>(before: T[], after: T[], key = 'id') {
           (k) =>
             !old ||
             !next ||
-            !(k in old) ||
-            !(k in next) ||
-            !equal(old[k], next[k])
+            !oldFields.has(k) ||
+            !nextFields.has(k) ||
+            !equal(oldFields.get(k), nextFields.get(k))
         ),
         before: old ?? null,
         after: next ?? null,
@@ -94,22 +97,35 @@ export function compareDraftPickReleases(
     );
 
   const sections = {
-    dependencies: changes(a.retained.dependencies, b.retained.dependencies),
+    dependencies: changes(
+      a.retained.dependencies,
+      b.retained.dependencies,
+      identity
+    ),
     entitlements: changes(
       a.retained.entitlements,
       b.retained.entitlements,
-      'entitlementId'
+      (row) => row.entitlementId
     ),
-    occurrences: changes(a.retained.occurrences, b.retained.occurrences),
+    occurrences: changes(
+      a.retained.occurrences,
+      b.retained.occurrences,
+      identity
+    ),
     predecessors: changes(
       a.retained.predecessorDependencies,
-      b.retained.predecessorDependencies
+      b.retained.predecessorDependencies,
+      identity
     ),
-    overlay: changes(a.overlay, b.overlay),
-    assertions: changes(a.assertions, b.assertions),
-    sourceRights: changes(a.sourceRights, b.sourceRights),
-    programs: changes(a.programs, b.programs),
-    retainedArtifacts: changes(a.retainedArtifacts, b.retainedArtifacts),
+    overlay: changes(a.overlay, b.overlay, identity),
+    assertions: changes(a.assertions, b.assertions, identity),
+    sourceRights: changes(a.sourceRights, b.sourceRights, identity),
+    programs: changes(a.programs, b.programs, identity),
+    retainedArtifacts: changes(
+      a.retainedArtifacts,
+      b.retainedArtifacts,
+      identity
+    ),
   };
   const dependencyIds = new Set(sections.dependencies.map((d) => d.id));
   sections.overlay.forEach((d) => dependencyIds.add(d.id));
