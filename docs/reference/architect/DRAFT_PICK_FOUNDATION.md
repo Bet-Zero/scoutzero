@@ -73,6 +73,72 @@ The September 12 sustained-run owner amendment authorizes this extension while
 Stage B remains open. It does not change source acceptance, the June 5 starting
 scenario, existing-world adoption policy or the live first-round Apply block.
 
+## Supplied ownership and Stepien components
+
+The September 12 sustained-run authorization permits these disconnected
+components while Stage B remains open. They use freshly looked-up pinned Canon
+CBA2-A12.1, CBA2-A12.3 and CBA2-L09.6 at the same accepted candidate below.
+
+`draftPickOperation.ts` describes operation-specific supplied facts.
+`draftPickInputResolver.ts` selects only the requested fact kind and original-pick
+ID, checks the exact proposal digest, current state version, release, team and
+date, and requires applicable effective dates plus qualified sources whose
+accepted review covers that operation scope without limitations. The caller
+authenticates source bytes and supplies the current proposal/state independently;
+passing the schema does neither. Publication/capture dates never substitute for
+effective dates. Unrelated evidence need not be resolved for a component decision.
+
+`evaluateOriginalDraftPickOwnership` supports full authenticated original firsts.
+It reuses existing ownership claim normalization, rejects duplicate claims, and
+requires complete current claim coverage. Expected acquisition is not ownership.
+Conditional source-named rights and generated projections have no implemented
+correspondence here. A permitting ownership result says nothing about Stepien,
+Apron restrictions, other clauses or a whole trade.
+
+`evaluateSuppliedDraftStepien` checks each adjacent future-draft pair in every
+supplied possible post-trade branch. An authenticated retained first from another
+team counts. Complete empty inventories in one possible branch can prohibit even
+when other branches are unknown. A known first establishes its neighboring pairs
+without requiring irrelevant missing inventories. Permission requires a complete
+branch set, every relevant pair established, no unresolved branch dependency and
+a governed retained-first guarantee for all drafts after the enumerated window.
+The boundary pair is checked explicitly. The governed calendar limits this
+component to dates between a completed draft and the next draft's start; draft
+night is outside its supported scope.
+
+These are caller-supplied branch/coverage facts, not invented protection,
+conveyance, swap, pool or lottery programs. No retained projection becomes an
+executable asset. Missing governing methods cannot be replaced by supplied
+ordering outputs. Results say `component-permits`, `component-prohibits` or
+`needs-input`, always with `tradingVerdict: not-evaluated`. They never authorize
+Apply and are not wired into live validation or mutation. Synthetic tests prove
+software behavior only; they establish no real team's facts or readiness.
+
+`reviewDraftPickComponents` composes these decisions, the isolated cash-sale
+restriction and the existing Apron
+mechanisms into one immutable JSON-safe review. Apron inputs must match the same
+proposal/state context and date and the pick's original team/year; the original
+team is not inferred from its current holder. Missing, duplicate or unidentified
+Apron inputs stay explicit without suppressing independent ownership/Stepien
+results. Apron identity must satisfy the operation's original-pick ID/team/year/round
+contract before a row can be treated as unrelated. Missing or inconsistent identity
+stays explicit; a coherent different pick remains outside the selected component. The
+review preserves the Apron component's separate ownership and placement gaps;
+it does not overwrite them with another component's conclusion. Consideration
+facts use the same request and qualification checks: a cash-sale prohibition or
+missing consideration remains visible beside permitting ownership/Stepien.
+
+The review always carries `apply: blocked` and no overall trading verdict.
+It has no production caller or supported Apply consumption path. An adversarial
+synthetic test injects the review into the actual mutation request's unsupported
+metadata, then retries with forged `allowed`/`legal` fields. The existing real
+validator rejects both attempts before any write batch; serialized state and
+component review remain identical. This establishes rejection of untrusted
+metadata, not integration of the review into Apply or successful first-round
+persistence/emulator certification. The supported review-to-Apply path remains
+unfinished. Source completeness, remaining governing methods and explicit owner
+activation acceptance still govern the corresponding future integration.
+
 ## Isolated Apron mechanisms
 
 `draftApronMechanisms.ts` uses the pinned Canon candidate
@@ -117,3 +183,24 @@ order, pool allocation nor a final draft slot. Ownership is also an independent
 input, never inferred from the original team. A released restriction is not a
 positive first-round trading verdict. None of these modules is imported by live
 Trade Machine validation/Apply, season advance or saved-world mutation.
+
+## Isolated first-round cash-sale bar
+
+`evaluateDraftPickCashSale` implements the freshly looked-up CBA2-A12.2 direct
+prohibition for a complete unconditional exchange of authenticated original
+firsts solely for established cash or cash equivalents. Its scoped input must
+identify every outgoing first and all return consideration between the same
+parties, match the current proposal/state/date/release and retain qualified,
+accepted evidence without limitations. It does not classify cash equivalence
+from an asset's name or shape.
+
+One established positive cash amount proves consideration when every return
+item is already established as cash/equivalent; other unknown amounts cannot
+change that prohibition. An established noncash-only exchange is outside this
+particular bar. Mixed consideration, unclassified equivalents, conditional or
+incomplete exchanges and missing positive-value evidence remain unimplemented
+or need input. No allocation or valuation semantics are invented.
+
+The component reuses operation qualification and returns no whole-trade verdict.
+Existing annual cash limits, cash ledgers and Apron cash rules remain separate
+and unchanged. The live first-round Apply block remains intact.
