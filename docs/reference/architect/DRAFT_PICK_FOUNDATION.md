@@ -36,6 +36,43 @@ world adoption, upgrade, migration, persistence or source-collection operation.
 Private retained inputs and derived output stay outside the checkout. Public
 tests contain synthetic claims only.
 
+## Verified loading and proposed updates
+
+`serializeDraftPickFoundation` serializes retained inputs, leaving derived fields
+to be rebuilt. `loadDraftPickRelease` verifies those exact UTF-8 bytes against a
+separately supplied SHA-256 pin and compares the complete expected release
+identity, as-of date and review record before rebuilding through the existing
+foundation validator. The pin must come from the retained review record; a pin
+calculated from an unknown payload is not evidence of acceptance. Original
+source qualification and artifact recovery remain the caller's responsibility.
+
+Loading explicitly distinguishes `retained-baseline` from `proposal`. Rejected
+or unreviewed inputs cannot be loaded as the retained baseline. Accepted storage
+limitations remain visible and do not become permission to execute a mechanism.
+The loader also rejects duplicate retained-artifact identities; comparison may
+not silently collapse different records with the same ID.
+
+`compareDraftPickReleases` requires loaded models. Changed payload bytes require
+a new release ID. A successor must preserve exact legacy IDs and original-pick
+references, occurrence baseline records, and predecessor IDs, not merely their
+counts. Changed dependency links are validated by the existing foundation.
+The comparison reports added/removed/changed records and fields, old and new
+controlled-operation labels, registered entitlement associations, and unchanged
+dependencies that can carry forward. Overlay changes remain separate from
+changes to the five evidence states.
+
+Registered associations are not proof of clause-level causality. Changes to
+records without complete operation bindings carry explicit `unmappedImpact`;
+an empty operation list does not establish that a successor has no effect.
+Both models and the comparison are immutable. Loading and comparing never
+adopt a release, mutate a world, establish an economic identity, interpret an
+opaque program or return a trading verdict. Inputs and derived private outputs
+remain outside the checkout; these pure utilities perform no file or network I/O.
+
+The September 12 sustained-run owner amendment authorizes this extension while
+Stage B remains open. It does not change source acceptance, the June 5 starting
+scenario, existing-world adoption policy or the live first-round Apply block.
+
 ## Isolated Apron mechanisms
 
 `draftApronMechanisms.ts` uses the pinned Canon candidate
