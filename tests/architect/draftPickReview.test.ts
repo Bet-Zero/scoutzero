@@ -106,6 +106,48 @@ describe('synthetic draft component composition', () => {
     expect(r.ownership.status).toBe('needs-input');
     expect(r.apron[0].status).toBe('evaluated');
   });
+  it.each([
+    ['null', null],
+    ['string', 'BOS_2028_1st'],
+    ['array', []],
+    ['missing ID', {}],
+    ['numeric ID', { id: 17 }],
+    ['empty ID', { id: '' }],
+  ])(
+    'keeps an unidentified Apron %s pick explicit in either order',
+    (_, malformedPick) => {
+      const f = fixture();
+      const valid = DraftPickApronContextZ.parse(f.apron[0]);
+      const malformed = {
+        ...valid,
+        input: { ...valid.input, originalPick: malformedPick },
+      };
+      expect(requireReview(f).apron[0].status).toBe('evaluated');
+      for (const apron of [
+        [valid, malformed],
+        [malformed, valid],
+        [malformed],
+      ]) {
+        f.apron = apron;
+        const r = requireReview(f);
+        expect(r.apron[0].status).toBe('needs-input');
+        expect(r.ownership.status).toBe('component-permits');
+        expect(r.stepien.status).toBe('component-permits');
+        expect(r.cashSale.status).toBe('component-permits');
+        expect(r.apply).toBe('blocked');
+      }
+    }
+  );
+  it('keeps an unidentified Apron row explicit but ignores a different identified pick', () => {
+    const f = fixture();
+    const valid = f.apron[0];
+    for (const unidentified of [null, {}, { input: null }]) {
+      f.apron = [valid, unidentified];
+      expect(requireReview(f).apron[0].status).toBe('needs-input');
+    }
+    f.apron = [valid, { input: { originalPick: { id: 'MIA_2030_1st' } } }];
+    expect(requireReview(f).apron[0].status).toBe('evaluated');
+  });
   it('reloads identically, freezes the receipt and leaves caller inputs writable', () => {
     const f = fixture(),
       before = JSON.stringify(f),

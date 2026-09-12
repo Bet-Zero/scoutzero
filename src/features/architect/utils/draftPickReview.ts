@@ -1,5 +1,6 @@
 /** Review composition only; no aggregate legality or mutation authority. */
 import { z } from 'zod';
+import { DraftEvidenceIdZ } from '@/schemas/draftPickEvidence';
 import {
   DraftPickReviewInputZ,
   DraftPickApronContextZ,
@@ -31,7 +32,7 @@ export function reviewDraftPickComponents(input: unknown) {
   const data = parsed.data;
   const request = data.request;
   const locator = z.object({
-    input: z.object({ originalPick: z.object({ id: z.string() }) }),
+    input: z.object({ originalPick: z.object({ id: DraftEvidenceIdZ }) }),
   });
   const apron = request.outgoing.map((pick) => {
     const blocked = (reason: string) => ({
@@ -39,10 +40,13 @@ export function reviewDraftPickComponents(input: unknown) {
       status: 'needs-input' as const,
       reason,
     });
-    const rows = data.apron.filter((row) => {
+    const rows: typeof data.apron = [];
+    for (const row of data.apron) {
       const p = locator.safeParse(row);
-      return p.success && p.data.input.originalPick.id === pick.id;
-    });
+      // Every row is an Apron input; an unreadable identity is not unrelated.
+      if (!p.success) return blocked('unidentified-apron-input');
+      if (p.data.input.originalPick.id === pick.id) rows.push(row);
+    }
     if (rows.length !== 1)
       return blocked(
         rows.length ? 'conflicting-apron-inputs' : 'missing-apron-input'

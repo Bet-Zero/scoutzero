@@ -185,4 +185,22 @@ describe('synthetic CBA2-A12.2 direct selection sale component', () => {
     expect(evaluate(loaded.request, [loaded.fact])).toEqual(result);
     expect(JSON.stringify(f)).toBe(before);
   });
+  it.each([null, 'BOS_2028_1st', { id: 17 }])(
+    'retains malformed same-scope consideration conflicts: %j',
+    (malformedPick) => {
+      const f = fixture();
+      const conflictingCash = {
+        ...structuredClone(f.fact),
+        pick: malformedPick,
+      };
+      f.fact.consideration[0].kind = 'established-noncash';
+      f.fact.consideration[0].amountCents = null;
+      expect(evaluate(f.request, [f.fact]).status).toBe('component-permits');
+      for (const facts of [
+        [f.fact, conflictingCash],
+        [conflictingCash, f.fact],
+      ])
+        expect(evaluate(f.request, facts).status).toBe('needs-input');
+    }
+  );
 });

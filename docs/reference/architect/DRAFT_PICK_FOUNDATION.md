@@ -81,8 +81,10 @@ software behavior only; they establish no real team's facts or readiness.
 restriction and the existing Apron
 mechanisms into one immutable JSON-safe review. Apron inputs must match the same
 proposal/state context and date and the pick's original team/year; the original
-team is not inferred from its current holder. Missing or duplicate Apron inputs
-stay explicit without suppressing independent ownership/Stepien results. The
+team is not inferred from its current holder. Missing, duplicate or unidentified
+Apron inputs stay explicit without suppressing independent ownership/Stepien
+results. An unreadable pick ID cannot make an Apron row unrelated; an independently
+identified different pick remains outside the selected component. The
 review preserves the Apron component's separate ownership and placement gaps;
 it does not overwrite them with another component's conclusion. Consideration
 facts use the same request and qualification checks: a cash-sale prohibition or

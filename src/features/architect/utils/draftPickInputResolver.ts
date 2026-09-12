@@ -1,5 +1,6 @@
 /** Operation-specific selection. No source retrieval, promotion or world adoption. */
 import { z } from 'zod';
+import { DraftEvidenceIdZ } from '@/schemas/draftPickEvidence';
 import {
   DraftOperationRequestZ,
   type DraftOperationContext,
@@ -78,18 +79,21 @@ export function selectDraftOperationFact<T>(
   schema: z.ZodType<T>,
   selector: { scope: string; pickId?: string }
 ): { fact: T; reason?: never } | { reason: string; fact?: never } {
-  const envelope = z.object({
-    scope: z.string(),
-    pick: z.object({ id: z.string() }).optional(),
-  });
-  const matching = inputs.filter((input) => {
-    const p = envelope.safeParse(input);
-    return (
-      p.success &&
-      p.data.scope === selector.scope &&
-      (selector.pickId === undefined || p.data.pick?.id === selector.pickId)
-    );
-  });
+  const envelope = z.object({ scope: z.string() });
+  const pickEnvelope = z.object({ pick: z.object({ id: DraftEvidenceIdZ }) });
+  const matching: unknown[] = [];
+  for (const input of inputs) {
+    const scoped = envelope.safeParse(input);
+    if (!scoped.success || scoped.data.scope !== selector.scope) continue;
+    if (selector.pickId !== undefined) {
+      const identified = pickEnvelope.safeParse(input);
+      // An ambiguous same-scope record cannot safely be called unrelated.
+      if (!identified.success)
+        return { reason: 'invalid-or-unsupported-operation-fact' };
+      if (identified.data.pick.id !== selector.pickId) continue;
+    }
+    matching.push(input);
+  }
   if (matching.length !== 1)
     return {
       reason: matching.length

@@ -1,112 +1,117 @@
 # Draft-pick sustained execution
 
-September 12, 2026 owner authorization extends work beyond the source tranche
-into independently buildable data handling, isolated rules and test/review
-integration. Recorded in the existing [completion plan](https://linear.app/bzero/document/draft-picks-completion-plan-and-execution-gates-82f1eea7abb1).
-One lead and one active High implementation lane; queued work has No priority.
-No source publication, production/world writes, baseline-adoption decision,
-live first-round activation or W10/V1 self-acceptance.
+September 12, 2026 owner authorization covers the existing implementation queue,
+then a supported review/emulator-only first-round saved-world vertical slice.
+The [completion plan](https://linear.app/bzero/document/draft-picks-completion-plan-and-execution-gates-82f1eea7abb1)
+and exact PR/Linear receipts govern current progress. One lead; no speculative
+backlog. Production first-round Apply stays blocked. No source publication,
+baseline adoption, automatic event replay, world migration or W10/V1 acceptance.
 
-## Authority and source checkpoint
+## Accepted authority and current evidence
 
-Accepted main is `5d9a4c277b7e8712d10ff6d6e5a58fc5d477cf50`;
-[exact-main CI passed](https://github.com/Bet-Zero/scoutzero/actions/runs/34688668075).
-[PR #533](https://github.com/Bet-Zero/scoutzero/pull/533) is landed and accepted;
-BZE-267/310 are Done. BZE-309 stays In Progress / No priority.
+Accepted main: `ce6d3557a5aba6f82e16e71535f888e119d8be1e`;
+[post-merge CI passed](https://github.com/Bet-Zero/scoutzero/actions/runs/34724465431).
+Its tree exactly equals accepted cash-sale candidate `eb1b8d7435b7b9acc54687ab5188e57fa61a9813`.
+Local main/origin/live main are synchronized. Foundation PR533 and BZE-267/310
+remain accepted and Done.
 
-Corrected structural candidate
-`6968583757d93a2cd7387c762f6bb63716d7258fe40d26871b1d8ee1c33cc1cd`
-remains pending Claude acceptance, with the original candidate/reviews and
-interrupted outputs preserved unchanged. Its private exact assignment is linked
-from [BZE-309's checkpoint](https://linear.app/bzero/issue/BZE-309#comment-6bcb031f-a1ac-4c57-a587-8e05641df26a).
-No structural source routes were repeated and no new NBA facts were established.
-The proposed 12 identity gaps and incomplete 2027–29 method remain blockers;
-post-2029 governing publication is a separate future event, not a search task.
+The corrected BZE-309 assessment received unconditional independent ACCEPT:
+[corrected disposition](https://linear.app/bzero/issue/BZE-309#comment-c3a19cdd-27eb-4bdc-903b-b95ae9795d9c).
+Original research/reviews and the correction remain separately retained.
+Stage B stays open: twelve unreconciled 2029 economic identities and incomplete
+2027–29 cutoff-tie/constrained-drawing procedures remain structural blockers.
+Post-2029 method awaits a future Board decision. No identity was resolved by the
+correction. No exhausted source route is reopened and future outcomes are not
+current search tasks. Other unresolved lifecycle dependencies remain intact.
 
-Retained evidence: 278 IDs, 1,483 occurrences, 877 dependencies, five predecessors;
-203 supported, 150 future-pending, 29 non-applicable, 494 unresolved, one
-conflicting. Preservation is not proof of executable economic rights. Twelve
-projections remain non-executable; the A/B/C/D overlay remains distinct.
+Retained evidence remains 278 IDs, 1,483 occurrences, 877 dependencies and five
+predecessors; 203 supported, 150 future-pending, 29 non-applicable, 494 unresolved
+and one conflicting dependency. Preservation is not executable economic identity.
+The twelve projections and the A/B/C/D overlay have not been promoted.
 
 ## Current execution queue
 
-| Deliverable | Actual prerequisite | Status | Next action |
-| --- | --- | --- | --- |
-| Structural correction | Frozen correction and Claude access | Queued | Focused correction review when available |
-| Release load/comparison | Accepted foundation | BZE-311 frozen, PR #534 | Independent review |
-| Ownership/supplied Stepien | Accepted foundation and pinned Canon | BZE-312 frozen, PR #535 | Independent review |
-| Component review/blocked ingress | Provisional BZE-312/314 | BZE-313 repaired, PR #536 | Final CI, settle finding, freeze |
-| Isolated cash-sale prohibition | Provisional BZE-312; pinned A12.2 | BZE-314, PR #537 | Settle automated review/CI, freeze |
+| Deliverable | Status | Next action |
+| --- | --- | --- |
+| Corrected structural assessment | Independently accepted; BZE-309 open | Preserve blockers and source-search stop |
+| Original ownership / supplied Stepien | BZE-312 Done; PR535 accepted and landed | Reuse accepted components |
+| Isolated cash-sale prohibition | BZE-314 Done; PR537 accepted and landed | Reuse accepted component |
+| Component composition / blocked ingress | BZE-313 / PR536, integrating accepted main | Repair unidentified Apron selection; final checks and focused review |
+| Retained release loading / successor comparison | BZE-311 / PR534, frozen on old main | Synchronize only after PR536 lands; new final-head review |
+| Supported review-mode saved-world positive path | Authorized successor after the four land | One coherent next issue; reuse existing mutation/persistence |
 
-No branch may merge its provisional ancestor without required independent
-acceptance. PR #536/#537 target main to run the existing CI workflow; that target
-does not accept their BZE-312 ancestor. No new source or product assignment is
-created merely to occupy reviewer downtime.
+Every objective code candidate needs unconditional independent ACCEPT, green
+exact-head CI, settled threads, accepted ancestry and no owner-judgment limitation.
+After landing, verify the tree, main synchronization, post-merge CI and Done
+receipt. Only the owner can activate production first-round trading or accept W10/V1.
 
-## Candidate receipts
+## Accepted implementation receipts
 
-- [PR #534](https://github.com/Bet-Zero/scoutzero/pull/534): frozen
-  `f8a92dc44f1dd718136080c4381e49730affd24c`, independent main base.
-  Six automated findings settled; final 28 release tests, typecheck and
-  [CI](https://github.com/Bet-Zero/scoutzero/actions/runs/34695324325) passed.
-  Exact private load/no-change/reload probe preserved all counts and lineages.
-  Private immutable assignment SHA-256:
-  `97f36d7b4ed7106dc2fa4f07618b273f09de3d031b367445843deb6acd4e5dea`.
-- [PR #535](https://github.com/Bet-Zero/scoutzero/pull/535): frozen
-  `5ef2e071d1b74f98651c875c520c70906de55638`, independent main base.
-  53 operation and 22 unchanged Apron tests, exact live-block probe and
-  [CI](https://github.com/Bet-Zero/scoutzero/actions/runs/34694903301) passed.
-  GitHub Codex completed without findings; CodeRabbit rate-limited.
-  Private immutable assignment SHA-256:
-  `5a8d3329d8ff5300d4fc07d83db30ffaa98aa8c3f5e62a73d3d96240709f97d5`.
-- [PR #536](https://github.com/Bet-Zero/scoutzero/pull/536): provisional BZE-312.
-  Original candidate `b979abc34e0624f6fd02ffb7ba1eb4896308c577`; current repair
-  identity is recorded in the PR after this commit. Original 88 component tests
-  passed; repair reran 13 review and nine mutation tests plus typecheck.
-- [PR #537](https://github.com/Bet-Zero/scoutzero/pull/537):
-  `575a314c61aa715963422aa646a38075a253a734`, provisional BZE-312.
-  36 synthetic restriction and nine unchanged governed-cash cases passed.
-  Hosted/automated gates remain pending at this author checkpoint.
+- [PR535 / BZE-312](https://github.com/Bet-Zero/scoutzero/pull/535): accepted
+  candidate `d40c55376b7b86e87f600c53f0a2455dadcf15e6`, merged
+  `3957f7cfad73989513004ed78e468cc82672ff50`. Original `5ef2e071…` received REVISE
+  for malformed same-scope facts disappearing before conflict detection. Seven
+  new regression cases failed before the focused repair; all 61 operation cases
+  and typecheck passed afterward. A fresh focused Claude delta review accepted
+  the repair unconditionally, reusing unaffected Canon/ownership/Stepien findings.
+  Original REVISE and correction ACCEPT remain separate. Exact-head CI34722749360
+  and post-merge CI34723340457 passed. No whole-trade verdict was introduced.
+- [PR537 / BZE-314](https://github.com/Bet-Zero/scoutzero/pull/537): normal merge
+  synchronized old `575a314c…` onto accepted ownership/Stepien main; cash-sale
+  source/schema stayed byte-identical. Three targeted shared-selector regression
+  variants joined the original 36 cases; all 39 passed. Accepted candidate
+  `eb1b8d7435b7b9acc54687ab5188e57fa61a9813` received unconditional Claude ACCEPT
+  after pinned CBA2-A12.2 inspection and 29 independently chosen oracle cases.
+  The initial empty probe attempt is excluded from proof; its output is preserved.
+  Exact CI34723844191 and post-merge CI34724465431 passed. No mixed-consideration
+  allocation, economic equivalence classifier or valuation was invented.
 
-Project/schema checks, docs guardrails, scoped Markdown, diff checks and Graphify
-updates passed for the new components. The legacy schema generator does not
-cover the new Zod contracts; targeted tests exercise those contracts. Unrelated
-untracked generator outputs were retained outside the checkout. PR receipts
-state each exact command, final head and any subsequent gate or repair.
+## Current BZE-313 integration risk and proof
 
-## Material integration correction and limits
+The old frozen composition candidate is `f167d1850593e387bb8d13af5cddbf498fa5061e`.
+Normal synchronization with accepted cash-sale main has one documentation conflict;
+this current record replaces contradictory historical queue rows while git retains
+those original checkpoints. Predecessor rule implementations are reused unchanged.
 
-GitHub Codex finding 3996327901 correctly identified that the original BZE-313
-Apply call never received the review. The repaired test attaches the actual
-review, then a forged allowance, in unsupported `tradeCtx` request metadata.
-The real validator rejects both without opening a write batch; serialized state
-and review are stable and stale state blocks component revalidation. Original
-review prose and original commit remain unchanged in history.
+A concrete author check found the Apron locator could drop a malformed duplicate
+before identity/conflict handling. Expected behavior, recorded before repair:
+unidentified Apron input must remain needs-input for requested picks; identified
+unrelated picks may be ignored; other components remain independently visible and
+Apply remains blocked. Seven new regression cases failed against the old locator.
+The repair retains unreadable identities instead of silently discarding them.
+All 25 composition and nine real mutation-ingress cases passed, including the
+seven new discriminators; typecheck passed. No new independent acceptance is
+claimed before the exact replacement-head gates and focused review.
 
-This is adversarial ingress evidence, not supported review consumption. That
-supported review-to-Apply path remains unfinished; no production seam was
-invented or enabled. No successful first-round mutation, receipt/history
-persistence, room integration or season-transition certification is claimed.
-Browser/emulator certification and full suite are skipped because no rendered
-or saved-world behavior changed and final integrated acceptance was not reached.
-Required hosted CI includes build and the existing unrelated emulator gate.
+Earlier BZE-313 automated finding 3996327901 remains part of the review scope:
+its initial Apply call did not receive the review. The retained correction attaches
+the real component review and a forged allowance through unsupported tradeCtx
+metadata. Both are rejected at the actual validator before a write batch opens.
+This proves blocked ingress, not supported review consumption. No successful
+first-round mutation, receipt/history persistence or room/reload flow exists yet.
 
-Claude's retained reset is September 12 at 10:50 America/Detroit. At 09:44 it
-remains future; no pre-reset invocation or waiting process was started. A single
-bounded post-reset retry is permitted only while useful work continues. An
-unavailable checker blocks acceptance/landing, not completion of authorized
-independent author work. Do not self-accept or retry provider failures in a loop.
+## BZE-311 retained candidate and next integration
 
-BZE-313 composition extension uses BZE-314 `575a314c61aa715963422aa646a38075a253a734`
-as an additional provisional ancestor. Expected before implementation: complete
-noncash returns permit only this restriction; a cash-only sale prohibits beside
-passing ownership/Stepien; missing, duplicate, stale or mixed consideration stays
-Needs input. All results retain Apply blocked and reload deterministically.
-The unchanged live gate also rejects a synthetic request carrying a review with
-all these components permitting. This does not establish supported consumption.
+[PR534](https://github.com/Bet-Zero/scoutzero/pull/534) remains frozen at
+`f8a92dc44f1dd718136080c4381e49730affd24c`. Six automated findings are settled;
+28 release tests, typecheck and CI34695324325 passed. The private retained-load,
+preservation and reload probe preserves all IDs/counts/lineages. That evidence is
+reused where unchanged. Only after PR536 lands, merge current main normally,
+validate actual integration risk and generate a replacement exact-head assignment.
+Do not present its old immutable request as a current-base acceptance request.
 
-The combined extension passed 63 focused cases (18 review, 36 cash-sale and nine
-mutation ingress), final typecheck, project/schema checks, docs guardrails,
-scoped Markdown and diff checks. The merge resolves documentation conflicts by
-retaining the current continuation and regenerating hierarchy from combined
-source. Neither provisional ancestor is accepted or merged to main.
+## Validation boundaries and remaining product proof
+
+Code/schema input tests prove these actual Zod contracts; legacy schema generation
+does not cover them. Original project/schema/docs checks and unaffected component
+validation are reused with their dependencies stated. Required hosted CI includes
+build and the existing emulator gate. Disconnected component changes need no
+local browser certification or repeated broad author suites.
+
+The next supported positive slice requires deterministic governed synthetic data,
+all rule inputs, guarded mutation, atomic/retry protection, actual pick movement
+in receipt/history/Compare and navigation/reload consistency for every touched team.
+Browser/emulator proof and any rendered evidence at 1280×720 are required there.
+No manually invoked full suite has run; the one final integrated authorization is
+reserved for a genuinely ready candidate. Existing hosted post-merge CI runs its
+configured validation. Passing components establish no real NBA team's readiness.
