@@ -40,9 +40,9 @@ tests contain synthetic claims only.
 
 `serializeDraftPickFoundation` serializes retained inputs, leaving derived fields
 to be rebuilt. `loadDraftPickRelease` verifies those exact UTF-8 bytes against a
-separately supplied SHA-256 pin and compares the complete expected release
-identity, as-of date and review record before rebuilding through the existing
-foundation validator. The pin must come from the retained review record; a pin
+separately supplied SHA-256 pin, rebuilds through the existing foundation
+validator, then compares the complete expected release identity, as-of date
+and review record. The pin must come from the retained review record; a pin
 calculated from an unknown payload is not evidence of acceptance. Original
 source qualification and artifact recovery remain the caller's responsibility.
 

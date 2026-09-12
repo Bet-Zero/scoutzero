@@ -30,8 +30,17 @@ export function requireLoadedDraftPickRelease(value: LoadedDraftPickRelease) {
 
 /** Serialize retained inputs; derived read-model fields are rebuilt on every load. */
 export function serializeDraftPickFoundation(foundation: DraftPickFoundation) {
-  const { originalPicks, legacyRecords, execution, ...input } = foundation;
-  return canonicalStringify(input);
+  return canonicalStringify({
+    release: foundation.release,
+    retained: foundation.retained,
+    overlay: foundation.overlay,
+    assertions: foundation.assertions,
+    sourceRights: foundation.sourceRights,
+    programs: foundation.programs,
+    poolScopeNotes: foundation.poolScopeNotes,
+    retainedArtifacts: foundation.retainedArtifacts,
+    retainedBranchDetails: foundation.retainedBranchDetails,
+  });
 }
 
 /** A matching pin proves integrity against that pin, not the pin's authority. */

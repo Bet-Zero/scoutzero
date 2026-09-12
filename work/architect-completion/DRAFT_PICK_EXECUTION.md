@@ -40,17 +40,19 @@ project/schema checks, docs guardrails and changed-document Markdown passed.
 Graphify was updated and includes the new source modules.
 
 Initial code checkpoint: `52e6e2b1573e27d1aaa242acec0c325aeb403224`.
-Its exact private probe passed complete retained-object and reload equality:
-278 IDs, 1,483 occurrences, 877 dependencies, five predecessors and all five
-states; no world adoption or writes. The pre-push gate rejected one unknown
-index-signature typing pattern. A typed identity-accessor repair is being
-validated without adding a cast exception. Required hosted CI and independent
-review remain pending; no merge or acceptance is claimed.
-Fresh pinned Canon lookups: CBA2-L09.2 and CBA2-L09.3.
+The typed identity repair landed on this branch at
+`6e3142c6f1e7c9aca7723d9126197afd22dc6aaa`; repair tests, typecheck and push
+passed. Its exact private probe preserved all 278 IDs, 1,483 occurrences, 877
+dependencies, five predecessors/states and reload equality. Hosted CI passed.
 
-Next commands: finish scoped repair tests and typecheck, commit the repair,
-push the branch, run the replacement-head private `npm run review:probe`,
-then collect hosted CI and available automated review. Reuse unaffected
-project/schema/UI/docs checks; the new graph hook follows source changes.
-No local full suite for this data-only assignment; no browser/emulator proof
-because rendered and saved-world behavior is unchanged.
+[PR #534](https://github.com/Bet-Zero/scoutzero/pull/534) received four minor
+automated findings: serialization's unused bindings, documented validation
+order, pending-gate wording and stale next commands. These are repaired here;
+serialization behavior is covered by the existing release tests. Both final-head
+hosted CI and independent Claude acceptance remain required before merge.
+
+Next actions: collect replacement-head serialization/typecheck/private-probe
+and hosted receipts, settle automated threads, then freeze and queue Claude.
+No local full suite or browser/emulator proof for disconnected data handling.
+BZE-312 proceeds independently from accepted main under the sustained-run
+permission, with its current continuation in the same record on that branch.
