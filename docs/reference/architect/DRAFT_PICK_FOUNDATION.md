@@ -121,3 +121,24 @@ order, pool allocation nor a final draft slot. Ownership is also an independent
 input, never inferred from the original team. A released restriction is not a
 positive first-round trading verdict. None of these modules is imported by live
 Trade Machine validation/Apply, season advance or saved-world mutation.
+
+## Isolated first-round cash-sale bar
+
+`evaluateDraftPickCashSale` implements the freshly looked-up CBA2-A12.2 direct
+prohibition for a complete unconditional exchange of authenticated original
+firsts solely for established cash or cash equivalents. Its scoped input must
+identify every outgoing first and all return consideration between the same
+parties, match the current proposal/state/date/release and retain qualified,
+accepted evidence without limitations. It does not classify cash equivalence
+from an asset's name or shape.
+
+One established positive cash amount proves consideration when every return
+item is already established as cash/equivalent; other unknown amounts cannot
+change that prohibition. An established noncash-only exchange is outside this
+particular bar. Mixed consideration, unclassified equivalents, conditional or
+incomplete exchanges and missing positive-value evidence remain unimplemented
+or need input. No allocation or valuation semantics are invented.
+
+The component reuses operation qualification and returns no whole-trade verdict.
+Existing annual cash limits, cash ledgers and Apron cash rules remain separate
+and unchanged. The live first-round Apply block remains intact.
