@@ -299,6 +299,7 @@ describe('non-adopting successor comparison', () => {
     );
     expect(result.sections.dependencies).toEqual([]);
     expect(result.changedDependencyIds).toEqual(['d1']);
+    expect(result.unchangedDependencyIds).not.toContain('d1');
     expect(result.associationScope).toBe(
       'registered-links-not-proven-causality'
     );
@@ -310,4 +311,55 @@ describe('non-adopting successor comparison', () => {
     const proposal = await load(successor(), 'proposal');
     expect(() => compareDraftPickReleases(proposal, good)).toThrow('baseline');
   });
+  it.each(['membership', 'removed', 'additional-clause'])(
+    'maps %s pool scope changes through their established dependency',
+    async (kind) => {
+      const input = syntheticFoundationInput();
+      input.retained.dependencies[3].family = 'contractual-priority-ties';
+      input.overlay.find((d) => d.id === 'd3')!.family =
+        'contractual-priority-ties';
+      const baseline = {
+        ...input,
+        poolScopeNotes: [
+          {
+            dependencyId: 'd3',
+            pool: ['AAA_2030_1st', 'BBB_2030_1st'],
+            sourceNamedMembers: [
+              'AAA_2030_1st',
+              'BBB_2030_1st',
+              'CCC_2030_1st',
+            ],
+            clauseRef: 'synthetic-source#clause',
+            relation: 'shared-pool-scope-only',
+          },
+        ],
+      };
+      const next = structuredClone(baseline);
+      next.release.id = 'synthetic-v2';
+      if (kind === 'membership')
+        next.poolScopeNotes[0].pool[1] = 'CCC_2030_1st';
+      if (kind === 'removed') next.poolScopeNotes = [];
+      if (kind === 'additional-clause')
+        next.poolScopeNotes.push({
+          ...next.poolScopeNotes[0],
+          pool: ['BBB_2030_1st', 'CCC_2030_1st'],
+        });
+      const result = compareDraftPickReleases(
+        await load(baseline),
+        await load(next, 'proposal')
+      );
+      expect(result.sections.dependencies).toEqual([]);
+      expect(result.sections.poolScopeNotes).toHaveLength(1);
+      expect(result.changedDependencyIds).toEqual(['d3']);
+      expect(result.unchangedDependencyIds).toEqual(['d0', 'd1', 'd2', 'd4']);
+      expect(result.associatedEntitlementIds).toEqual([
+        'legacy-own',
+        'legacy-projection',
+      ]);
+      expect(result.affectedOperations).toEqual([
+        'synthetic controlled decision 3',
+      ]);
+      expect(result.unmappedImpact).not.toContain('poolScopeNotes');
+    }
+  );
 });

@@ -76,6 +76,18 @@ function lineage(f: DraftPickFoundation) {
   };
 }
 
+// Notes have no independent identity. Preserve every note, grouped by its
+// validated dependency link, rather than collapsing multiple clauses in a Map.
+function scopeNotes(notes: DraftPickFoundation['poolScopeNotes']) {
+  const grouped = new Map<string, typeof notes>();
+  for (const note of notes) {
+    const rows = grouped.get(note.dependencyId) ?? [];
+    rows.push(note);
+    grouped.set(note.dependencyId, rows);
+  }
+  return [...grouped].map(([dependencyId, notes]) => ({ dependencyId, notes }));
+}
+
 export function compareDraftPickReleases(
   predecessor: LoadedDraftPickRelease,
   proposed: LoadedDraftPickRelease
@@ -117,6 +129,11 @@ export function compareDraftPickReleases(
       b.retained.predecessorDependencies,
       identity
     ),
+    poolScopeNotes: changes(
+      scopeNotes(a.poolScopeNotes),
+      scopeNotes(b.poolScopeNotes),
+      (row) => row.dependencyId
+    ),
     overlay: changes(a.overlay, b.overlay, identity),
     assertions: changes(a.assertions, b.assertions, identity),
     sourceRights: changes(a.sourceRights, b.sourceRights, identity),
@@ -129,7 +146,7 @@ export function compareDraftPickReleases(
   };
   const dependencyIds = new Set(sections.dependencies.map((d) => d.id));
   sections.overlay.forEach((d) => dependencyIds.add(d.id));
-  for (const d of sections.programs) {
+  for (const d of [...sections.programs, ...sections.poolScopeNotes]) {
     for (const row of [d.before, d.after])
       if (row) dependencyIds.add(String(row.dependencyId));
   }
@@ -160,7 +177,7 @@ export function compareDraftPickReleases(
       ] as const
     ).filter((key) => sections[key].length > 0),
     ...Object.entries(additionalChanges)
-      .filter(([, changed]) => changed)
+      .filter(([key, changed]) => changed && key !== 'poolScopeNotes')
       .map(([key]) => key),
   ];
   return freeze({
@@ -174,9 +191,7 @@ export function compareDraftPickReleases(
     associationScope: 'registered-links-not-proven-causality' as const,
     unmappedImpact,
     unchangedDependencyIds: a.retained.dependencies
-      .filter(
-        (d) => !sections.dependencies.some((change) => change.id === d.id)
-      )
+      .filter((d) => !dependencyIds.has(d.id))
       .map((d) => d.id)
       .sort(),
     adoption: 'not-performed' as const,

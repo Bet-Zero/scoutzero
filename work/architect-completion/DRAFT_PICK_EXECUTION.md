@@ -56,3 +56,10 @@ and hosted receipts, settle automated threads, then freeze and queue Claude.
 No local full suite or browser/emulator proof for disconnected data handling.
 BZE-312 proceeds independently from accepted main under the sustained-run
 permission, with its current continuation in the same record on that branch.
+
+Further automated review of PR #534 identified two material impact-reporting
+repairs: pool notes now preserve grouped clauses and include their validated
+dependency links; impacted dependencies cannot also enter the unchanged set.
+The 28 release tests and typecheck passed after repair. Replacement-head private
+probe and CI will follow the repair commit before any freeze. Original reviews
+remain unchanged; these are author corrections, not independent acceptance.
