@@ -365,6 +365,7 @@ utils/
   draftPickInputResolver.ts
   draftPickLineage.ts
   draftPickOwnership.ts
+  draftPickReview.ts
   draftPickUtils.ts
   draftStepien.ts
   entitlements/
@@ -657,5 +658,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-09-12T12:51:28.525Z*
+*Generated on: 2026-09-12T13:16:29.546Z*
 *Auto-updated by: npm run docs*

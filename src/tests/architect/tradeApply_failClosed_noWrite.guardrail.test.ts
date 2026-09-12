@@ -62,14 +62,13 @@ vi.mock(
     >()),
     loadWorldGovernedTradeSalaryBasisEntries:
       salaryBasisMocks.loadWorldGovernedTradeSalaryBasisEntries,
-    attachGovernedTradeSalaryBasisToRoster: vi.fn(
-      (players, entries) =>
-        players.map((player: Record<string, unknown>) => ({
-          ...player,
-          governedTradeSalaryBasis: entries.get(
-            String(player.id ?? player.player_id ?? player.playerId ?? '')
-          ),
-        }))
+    attachGovernedTradeSalaryBasisToRoster: vi.fn((players, entries) =>
+      players.map((player: Record<string, unknown>) => ({
+        ...player,
+        governedTradeSalaryBasis: entries.get(
+          String(player.id ?? player.player_id ?? player.playerId ?? '')
+        ),
+      }))
     ),
   })
 );
@@ -149,11 +148,7 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
 
     teamLoaderMocks.getTeam.mockImplementation(async (_worldId, teamCode) => {
       const playerId =
-        teamCode === 'TMA'
-          ? 'a_out'
-          : teamCode === 'TMB'
-            ? 'b_out'
-            : 'c_out';
+        teamCode === 'TMA' ? 'a_out' : teamCode === 'TMB' ? 'b_out' : 'c_out';
       return withGovernedSalaryBooks(
         makeTeam(teamCode, [makePlayer(playerId, 10_000_000)]),
         {
@@ -170,15 +165,9 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
   it('materializes exact governed pre-trade salary bridges before trade computation', async () => {
     teamLoaderMocks.getTeam.mockImplementation(async (_worldId, teamCode) =>
       withGovernedSalaryBooks(
-        makeTeam(
-          teamCode,
-          [
-            makePlayer(
-              teamCode === 'TMA' ? 'a_out' : 'b_out',
-              10_000_000
-            ),
-          ]
-        ),
+        makeTeam(teamCode, [
+          makePlayer(teamCode === 'TMA' ? 'a_out' : 'b_out', 10_000_000),
+        ]),
         {
           salaryCapYear: 2027,
           asOfDate: '2026-08-24T12:00:00-04:00',
@@ -189,23 +178,19 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
       )
     );
 
-    const currentState = await loadStateForMutation(
-      'world_1',
-      'executeTrade',
-      {
-        teams: [
-          { teamCode: 'TMA', sends: [], entitlementsOut: [] },
-          { teamCode: 'TMB', sends: [], entitlementsOut: [] },
-        ],
+    const currentState = await loadStateForMutation('world_1', 'executeTrade', {
+      teams: [
+        { teamCode: 'TMA', sends: [], entitlementsOut: [] },
+        { teamCode: 'TMB', sends: [], entitlementsOut: [] },
+      ],
+      asOfDate: '2026-08-25',
+      tradeCtx: {
+        source: 'tradeMachine',
+        worldId: 'world_1',
         asOfDate: '2026-08-25',
-        tradeCtx: {
-          source: 'tradeMachine',
-          worldId: 'world_1',
-          asOfDate: '2026-08-25',
-          yearKey: '2026-27',
-        },
-      }
-    );
+        yearKey: '2026-27',
+      },
+    });
 
     expect(currentState.teams).toHaveLength(2);
     for (const entry of currentState.teams || []) {
@@ -336,9 +321,7 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
         teams: [
           {
             teamCode: 'TMA',
-            sends: [
-              { ...makePlayer('a_out', 10_000_000), tradeTo: 'TMB' },
-            ],
+            sends: [{ ...makePlayer('a_out', 10_000_000), tradeTo: 'TMB' }],
             entitlementsOut: [],
             salaryMatchingElection: {
               version: 1,
@@ -349,9 +332,7 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
           },
           {
             teamCode: 'TMB',
-            sends: [
-              { ...makePlayer('b_out', 10_000_000), tradeTo: 'TMA' },
-            ],
+            sends: [{ ...makePlayer('b_out', 10_000_000), tradeTo: 'TMA' }],
             entitlementsOut: [],
             salaryMatchingElection: {
               version: 1,
@@ -428,9 +409,7 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
         teams: [
           {
             teamCode: 'TMA',
-            sends: [
-              { ...makePlayer('a_out', 10_000_000), tradeTo: 'TMB' },
-            ],
+            sends: [{ ...makePlayer('a_out', 10_000_000), tradeTo: 'TMB' }],
             entitlementsOut: [],
             salaryMatchingElection: {
               version: 1,
@@ -441,9 +420,7 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
           },
           {
             teamCode: 'TMB',
-            sends: [
-              { ...makePlayer('b_out', 10_000_000), tradeTo: 'TMA' },
-            ],
+            sends: [{ ...makePlayer('b_out', 10_000_000), tradeTo: 'TMA' }],
             entitlementsOut: [],
             salaryMatchingElection: {
               version: 1,
@@ -518,9 +495,7 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
           teams: [
             {
               teamCode: 'TMA',
-              sends: [
-                { ...makePlayer('a_out', 10_000_000), tradeTo: 'TMB' },
-              ],
+              sends: [{ ...makePlayer('a_out', 10_000_000), tradeTo: 'TMB' }],
               entitlementsOut: [
                 {
                   id: entitlementId,
@@ -538,9 +513,7 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
             },
             {
               teamCode: 'TMB',
-              sends: [
-                { ...makePlayer('b_out', 10_000_000), tradeTo: 'TMA' },
-              ],
+              sends: [{ ...makePlayer('b_out', 10_000_000), tradeTo: 'TMA' }],
               entitlementsOut: [],
               salaryMatchingElection: {
                 version: 1,
@@ -571,4 +544,132 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
       expect(firestoreMocks.commit).not.toHaveBeenCalled();
     }
   );
+});
+
+// BZE-313: complete component evidence still cannot replace full Apply authority.
+// Reuse the existing safe storage seam; no validator is mocked in this file.
+describe('draft component review cannot bypass Apply', () => {
+  it('rejects a passing synthetic component review, retries and reload without any write', async () => {
+    const { reviewDraftPickComponents } = await import(
+      '@/features/architect/utils/draftPickReview'
+    );
+    const { syntheticDraftReview } = await import(
+      '../../../tests/architect/fixtures/draftPickReview'
+    );
+    const { DraftOriginalOwnershipFactZ, DraftStepienFactZ } = await import(
+      '@/schemas/draftPickOperation'
+    );
+    const { DraftPickApronContextZ } = await import(
+      '@/schemas/draftPickReview'
+    );
+    const { mutationSnapshotDigest } = await import(
+      '@/features/architect/utils/mutationPipeline.snapshotDigest'
+    );
+    vi.clearAllMocks();
+    const f = syntheticDraftReview();
+    const asOf = '2026-08-25T12:00:00-04:00';
+    const payload = {
+      teams: [
+        {
+          teamCode: 'BOS',
+          sends: [],
+          entitlementsOut: [
+            {
+              id: 'synthetic-bos-2028-first',
+              entitlementId: 'synthetic-bos-2028-first',
+              underlyingPickId: 'BOS_2028_1st',
+              originalTeam: 'BOS',
+              holderTeam: 'BOS',
+              kind: 'pick_ownership',
+              seasonYear: 2028,
+              round: 1,
+              toTeamId: 'MIA',
+            },
+          ],
+        },
+        { teamCode: 'MIA', sends: [], entitlementsOut: [] },
+      ],
+      asOfDate: asOf,
+      tradeCtx: {
+        source: 'tradeMachine',
+        worldId: 'synthetic-draft-review-only',
+        asOfDate: asOf,
+        yearKey: '2026-27',
+      },
+    };
+    const storedTeams = ['BOS', 'MIA'].map((teamCode) =>
+      withGovernedSalaryBooks(
+        {
+          ...makeTeam(teamCode, []),
+          entitlementIds:
+            teamCode === 'BOS' ? ['synthetic-bos-2028-first'] : [],
+        },
+        {
+          salaryCapYear: 2027,
+          asOfDate: asOf,
+          teamSalary: 0,
+          apronTeamSalary: 0,
+          taxSalary: 0,
+        }
+      )
+    );
+    f.request.context.asOf = asOf;
+    const { createHash } = await import('node:crypto');
+    f.request.context.proposalSha256 = createHash('sha256')
+      .update(JSON.stringify(payload))
+      .digest('hex');
+    f.request.context.stateVersion = mutationSnapshotDigest(storedTeams);
+    f.facts = f.facts.map((fact, i) => ({
+      ...(i === 0
+        ? DraftOriginalOwnershipFactZ.parse(fact)
+        : DraftStepienFactZ.parse(fact)),
+      context: { ...f.request.context },
+    }));
+    f.apron = f.apron.map((fact) => {
+      const d = DraftPickApronContextZ.parse(fact);
+      return { context: { ...f.request.context }, input: { ...d.input, asOf } };
+    });
+    const originalState = JSON.stringify(storedTeams);
+    const review = reviewDraftPickComponents(f);
+    expect(review).toMatchObject({
+      status: 'reviewed',
+      ownership: { status: 'component-permits' },
+      stepien: { status: 'component-permits' },
+      apply: 'blocked',
+    });
+    teamLoaderMocks.getTeam.mockImplementation(async (_worldId, teamCode) =>
+      structuredClone(storedTeams.find((t) => t.teamCode === teamCode))
+    );
+    salaryBasisMocks.loadWorldGovernedTradeSalaryBasisEntries.mockResolvedValue(
+      new Map()
+    );
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = await applyWorldMutation({
+        userId: 'synthetic-review-user',
+        worldId: 'synthetic-draft-review-only',
+        seasonId: '2026-27',
+        mutationType: 'executeTrade',
+        payload: structuredClone(payload),
+      });
+      expect(result).toMatchObject({
+        success: false,
+        appliedToLocalState: false,
+        persistedToWorld: false,
+      });
+      expect(JSON.stringify(result)).toMatch(/Stepien/i);
+      expect(firestoreMocks.writeBatch).not.toHaveBeenCalled();
+      expect(firestoreMocks.commit).not.toHaveBeenCalled();
+      expect(JSON.stringify(storedTeams)).toBe(originalState);
+      expect(reviewDraftPickComponents(JSON.parse(JSON.stringify(f)))).toEqual(
+        review
+      );
+    }
+    const staleRequest = structuredClone(f);
+    staleRequest.request.context.stateVersion = 'changed-world-version';
+    expect(reviewDraftPickComponents(staleRequest)).toMatchObject({
+      ownership: { status: 'needs-input' },
+      stepien: { status: 'needs-input' },
+      apply: 'blocked',
+    });
+  });
 });

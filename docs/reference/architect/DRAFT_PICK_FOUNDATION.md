@@ -77,6 +77,23 @@ ordering outputs. Results say `component-permits`, `component-prohibits` or
 Apply and are not wired into live validation or mutation. Synthetic tests prove
 software behavior only; they establish no real team's facts or readiness.
 
+`reviewDraftPickComponents` composes these decisions with the existing Apron
+mechanisms into one immutable JSON-safe review. Apron inputs must match the same
+proposal/state context and date and the pick's original team/year; the original
+team is not inferred from its current holder. Missing or duplicate Apron inputs
+stay explicit without suppressing independent ownership/Stepien results. The
+review preserves the Apron component's separate ownership and placement gaps;
+it does not overwrite them with another component's conclusion.
+
+The review always carries `apply: blocked` and no overall trading verdict.
+It has no production caller. A synthetic integration test reuses the existing
+mutation test seam and real validator: a passing component review still cannot
+authorize first-round Apply, two attempts open no write batch, and serialized
+state/review reload identically. This is a blocked-path test, not a successful
+first-round persistence or emulator certification. Source completeness, the
+remaining governing methods and explicit owner activation acceptance remain
+prerequisites for the corresponding future integration.
+
 ## Isolated Apron mechanisms
 
 `draftApronMechanisms.ts` uses the pinned Canon candidate
