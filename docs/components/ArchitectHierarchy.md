@@ -360,6 +360,9 @@ utils/
     index.ts
     worldContractBaseline.ts
   contractUtils.ts
+  draftApronMechanisms.ts
+  draftPickFoundation.ts
+  draftPickLineage.ts
   draftPickUtils.ts
   entitlements/
     computeEntitlementClaims.ts
@@ -417,6 +420,7 @@ utils/
   leagueInvariants.playerInvariants.ts
   leagueInvariants.ts
   loadArchitectBasePlayer.ts
+  mapDraftPickRetained.ts
   mutationPipeline.compute.offerSheets.initial.ts
   mutationPipeline.compute.offerSheets.outcome.ts
   mutationPipeline.compute.offerSheets.ts
@@ -650,5 +654,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-08-29T01:16:43.095Z*
+*Generated on: 2026-09-12T09:30:32.867Z*
 *Auto-updated by: npm run docs*
