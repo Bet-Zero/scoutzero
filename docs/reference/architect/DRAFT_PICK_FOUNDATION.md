@@ -86,13 +86,15 @@ review preserves the Apron component's separate ownership and placement gaps;
 it does not overwrite them with another component's conclusion.
 
 The review always carries `apply: blocked` and no overall trading verdict.
-It has no production caller. A synthetic integration test reuses the existing
-mutation test seam and real validator: a passing component review still cannot
-authorize first-round Apply, two attempts open no write batch, and serialized
-state/review reload identically. This is a blocked-path test, not a successful
-first-round persistence or emulator certification. Source completeness, the
-remaining governing methods and explicit owner activation acceptance remain
-prerequisites for the corresponding future integration.
+It has no production caller or supported Apply consumption path. An adversarial
+synthetic test injects the review into the actual mutation request's unsupported
+metadata, then retries with forged `allowed`/`legal` fields. The existing real
+validator rejects both attempts before any write batch; serialized state and
+component review remain identical. This establishes rejection of untrusted
+metadata, not integration of the review into Apply or successful first-round
+persistence/emulator certification. The supported review-to-Apply path remains
+unfinished. Source completeness, remaining governing methods and explicit owner
+activation acceptance still govern the corresponding future integration.
 
 ## Isolated Apron mechanisms
 

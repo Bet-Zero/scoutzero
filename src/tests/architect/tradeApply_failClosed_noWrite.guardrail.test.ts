@@ -548,8 +548,8 @@ describe('Trade Apply Fail-Closed Routing Guardrail', () => {
 
 // BZE-313: complete component evidence still cannot replace full Apply authority.
 // Reuse the existing safe storage seam; no validator is mocked in this file.
-describe('draft component review cannot bypass Apply', () => {
-  it('rejects a passing synthetic component review, retries and reload without any write', async () => {
+describe('unsupported draft review metadata cannot bypass Apply', () => {
+  it('ignores injected review metadata, including a forged allowance, without any write', async () => {
     const { reviewDraftPickComponents } = await import(
       '@/features/architect/utils/draftPickReview'
     );
@@ -643,13 +643,28 @@ describe('draft component review cannot bypass Apply', () => {
     salaryBasisMocks.loadWorldGovernedTradeSalaryBasisEntries.mockResolvedValue(
       new Map()
     );
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // This is adversarial request metadata, not a supported review-consumption
+    // contract. The proposal digest above identifies the ordinary trade payload;
+    // the attached review (or forged permission) must not become authority.
+    const injectedReviews = [
+      review,
+      { ...review, apply: 'allowed', tradingVerdict: 'legal' },
+    ];
+    for (const injectedReview of injectedReviews) {
+      const attemptedPayload = {
+        ...structuredClone(payload),
+        tradeCtx: {
+          ...payload.tradeCtx,
+          draftPickReview: structuredClone(injectedReview),
+        },
+      };
+      expect(attemptedPayload.tradeCtx.draftPickReview).toEqual(injectedReview);
       const result = await applyWorldMutation({
         userId: 'synthetic-review-user',
         worldId: 'synthetic-draft-review-only',
         seasonId: '2026-27',
         mutationType: 'executeTrade',
-        payload: structuredClone(payload),
+        payload: attemptedPayload,
       });
       expect(result).toMatchObject({
         success: false,
