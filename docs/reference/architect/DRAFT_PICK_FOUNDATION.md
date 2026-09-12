@@ -36,6 +36,47 @@ world adoption, upgrade, migration, persistence or source-collection operation.
 Private retained inputs and derived output stay outside the checkout. Public
 tests contain synthetic claims only.
 
+## Supplied ownership and Stepien components
+
+The September 12 sustained-run authorization permits these disconnected
+components while Stage B remains open. They use freshly looked-up pinned Canon
+CBA2-A12.1, CBA2-A12.3 and CBA2-L09.6 at the same accepted candidate below.
+
+`draftPickOperation.ts` describes operation-specific supplied facts.
+`draftPickInputResolver.ts` selects only the requested fact kind and original-pick
+ID, checks the exact proposal digest, current state version, release, team and
+date, and requires applicable effective dates plus qualified sources whose
+accepted review covers that operation scope without limitations. The caller
+authenticates source bytes and supplies the current proposal/state independently;
+passing the schema does neither. Publication/capture dates never substitute for
+effective dates. Unrelated evidence need not be resolved for a component decision.
+
+`evaluateOriginalDraftPickOwnership` supports full authenticated original firsts.
+It reuses existing ownership claim normalization, rejects duplicate claims, and
+requires complete current claim coverage. Expected acquisition is not ownership.
+Conditional source-named rights and generated projections have no implemented
+correspondence here. A permitting ownership result says nothing about Stepien,
+Apron restrictions, other clauses or a whole trade.
+
+`evaluateSuppliedDraftStepien` checks each adjacent future-draft pair in every
+supplied possible post-trade branch. An authenticated retained first from another
+team counts. Complete empty inventories in one possible branch can prohibit even
+when other branches are unknown. A known first establishes its neighboring pairs
+without requiring irrelevant missing inventories. Permission requires a complete
+branch set, every relevant pair established, no unresolved branch dependency and
+a governed retained-first guarantee for all drafts after the enumerated window.
+The boundary pair is checked explicitly. The governed calendar limits this
+component to dates between a completed draft and the next draft's start; draft
+night is outside its supported scope.
+
+These are caller-supplied branch/coverage facts, not invented protection,
+conveyance, swap, pool or lottery programs. No retained projection becomes an
+executable asset. Missing governing methods cannot be replaced by supplied
+ordering outputs. Results say `component-permits`, `component-prohibits` or
+`needs-input`, always with `tradingVerdict: not-evaluated`. They never authorize
+Apply and are not wired into live validation or mutation. Synthetic tests prove
+software behavior only; they establish no real team's facts or readiness.
+
 ## Isolated Apron mechanisms
 
 `draftApronMechanisms.ts` uses the pinned Canon candidate

@@ -362,8 +362,11 @@ utils/
   contractUtils.ts
   draftApronMechanisms.ts
   draftPickFoundation.ts
+  draftPickInputResolver.ts
   draftPickLineage.ts
+  draftPickOwnership.ts
   draftPickUtils.ts
+  draftStepien.ts
   entitlements/
     computeEntitlementClaims.ts
     dare/
@@ -654,5 +657,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-09-12T09:30:32.867Z*
+*Generated on: 2026-09-12T12:51:28.525Z*
 *Auto-updated by: npm run docs*
