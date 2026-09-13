@@ -190,6 +190,36 @@ input, never inferred from the original team. A released restriction is not a
 positive first-round trading verdict. Production Trade Machine Apply and season
 advance receive no permission from these components.
 
+## Supplied relative order among penalized firsts
+
+`evaluateSuppliedDraftPenaltyOrder` adds only the independently established
+CBA2-L08.8 comparison: lower official winning percentage precedes higher among
+multiple penalized original firsts in the same Draft. Its source-qualified fact
+must list the complete penalized set and the original Team's percentage for each
+pick. It does not establish penalty eligibility or infer percentages from wins,
+losses, a current holder, or an assumed season length.
+
+The request and evidence must share the exact proposal/state/release/date/team
+context and Draft year. The caller authenticates the actual source bytes and
+current context, as for the other supplied components. Qualified accepted sources
+must cover this precise scope with no review limitations. Incomplete membership,
+unresolved dependencies, duplicate or inconsistent original identities, unsupported
+conditional rights and inapplicable evidence remain needs-input.
+
+Official percentages use exact decimal text from zero through one, at most
+64 characters. Unsupported representations fail closed. Comparison uses no
+floating-point conversion, rounding or epsilon; equivalent trailing-zero forms
+are ties. Every tie remains needs-input. A supplied tie result cannot substitute
+for an established governing procedure.
+
+A complete correctly ordered proposal permits this component; a complete reversed
+or otherwise incorrect order prohibits it. A proposal with missing, duplicate or
+unlisted picks needs input. The immutable output identifies the established
+relative order but retains `tradingVerdict: not-evaluated`, `apply: blocked` and
+`placement: not-evaluated`. Existing Apron placement remains blocked. There is no
+lottery, cutoff, drawing, pool allocation, final-slot, mutation or production
+activation path in this utility. Synthetic scenarios establish no NBA facts.
+
 ## Isolated first-round cash-sale bar
 
 `evaluateDraftPickCashSale` implements the freshly looked-up CBA2-A12.2 direct
