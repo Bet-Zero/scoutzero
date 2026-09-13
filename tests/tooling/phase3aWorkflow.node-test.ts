@@ -357,8 +357,15 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
   assert.match(certificationHarness, /verifyGovernedScreenshotArtifacts/);
   assert.match(
     certificationHarness,
-    /runs\.length === groups\.length &&\s+runs\.every\(\(run\) => run\.status === 0 && run\.clean\) &&\s+screenshotVerification\.valid/
+    /runs\.length === groups\.length &&\s+runs\.every\([\s\S]*?run\.status === 0 &&\s+\(draftSeason \? run\.clean === null : run\.clean\)[\s\S]*?screenshotVerification\.valid/
   );
+  // A shared season harness defers teardown until every bounded phase ends.
+  // Null never claims per-phase teardown; final open ports must still be zero.
+  assert.match(
+    certificationHarness,
+    /finally\s*\{\s*if \(stopHarness\) await stopHarness\(\)/
+  );
+  assert.match(certificationHarness, /openPorts\.length === 0;/);
   assert.equal(
     certificationHarness.match(/\.\.\.screenshotArtifacts/g)?.length,
     1

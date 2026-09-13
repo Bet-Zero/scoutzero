@@ -377,6 +377,10 @@ utils/
     commitGate.ts
     consumption.ts
     fixturePins.ts
+    seasonCapability.ts
+    seasonEvidence.ts
+    seasonFixturePin.ts
+    seasonTotals.ts
   draftStepien.ts
   entitlements/
     computeEntitlementClaims.ts
@@ -669,5 +673,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-09-13T04:16:37.265Z*
+*Generated on: 2026-09-13T06:16:48.452Z*
 *Auto-updated by: npm run docs*

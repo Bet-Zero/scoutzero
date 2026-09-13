@@ -420,6 +420,7 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist =
     'playersTraded', // Array of player info objects
     'entitlementsTraded', // Object with team-keyed entitlement changes
     'draftReviewReceipt', // Committed synthetic review movement, never permission
+    'draftReviewSeasonReceipt', // Local synthetic historical result, never permission
     'salaryMatchingPaths', // Exact elected salary-path evaluations by team
     'apronRestrictions', // Exact Rows C/F/H evaluation by team
     'governedSignAndTradeAuthority',

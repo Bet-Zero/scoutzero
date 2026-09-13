@@ -5,6 +5,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { startSeasonProofHarness } from './seasonProofHarness';
 
 const PROOF_SPEC = 'tests/e2e/architect-trade-receipt-proof.spec.ts';
 const PROOF_PORTS = [5173, 8082, 9099, 5001, 4001, 4400, 4500, 9150];
@@ -261,8 +262,10 @@ async function openProofPorts(): Promise<number[]> {
 }
 
 export async function runTradeReceiptProof(
-  draftReview = false
+  draftReview = false,
+  draftSeason = false
 ): Promise<number> {
+  draftReview = draftReview || draftSeason;
   const identity = resolveProofIdentity();
   const definitions = draftReview
     ? DRAFT_REVIEW_SCREENSHOTS
@@ -271,7 +274,11 @@ export async function runTradeReceiptProof(
     identity.repoRoot,
     'tmp',
     'browser-proofs',
-    draftReview ? 'draft-review' : 'trade-receipt',
+    draftSeason
+      ? 'draft-season'
+      : draftReview
+        ? 'draft-review'
+        : 'trade-receipt',
     `${identity.candidate}-${timestampSlug()}`
   );
   const testResultsDir = path.join(artifactDir, 'test-results');
@@ -297,70 +304,98 @@ export async function runTradeReceiptProof(
 
   const commandArgs = [
     'test',
-    draftReview ? 'tests/e2e/architect-draft-review-proof.spec.ts' : PROOF_SPEC,
+    draftSeason
+      ? 'tests/e2e/architect-draft-season-proof.spec.ts'
+      : draftReview
+        ? 'tests/e2e/architect-draft-review-proof.spec.ts'
+        : PROOF_SPEC,
     '--workers=1',
     '--project=chromium',
     '--reporter=line,html',
     `--output=${testResultsDir}`,
+    ...(draftSeason
+      ? ['--config=scripts/review/draftSeasonProof.config.ts']
+      : []),
   ];
   const startedAt = new Date().toISOString();
   process.stdout.write(`Exact candidate: ${identity.candidate}\n`);
   process.stdout.write(`Artifact directory: ${artifactDir}\n`);
 
-  // Each focused draft proof has its own four-minute budget and clean harness.
-  // Keep one exact-head manifest without treating a stopped combined run as pass.
-  const groups = draftReview
+  // Each focused phase has its own four-minute budget. The season continuation
+  // consumes the preceding real writes in the same owned emulator, with exact
+  // checkpoint/state comparison; it never reseeds an advanced world.
+  const groups = draftSeason
     ? [
-        'consumes components',
-        'required component failures',
-        'denied final metadata',
+        'season record persists',
+        'season continuation trades',
+        'season review rejects',
+        'season denied final metadata',
       ]
-    : [''];
+    : draftReview
+      ? [
+          'consumes components',
+          'required component failures',
+          'denied final metadata',
+        ]
+      : [''];
   const runs: {
     command: string[];
     status: number | null;
     signal: string | null;
-    clean: boolean;
+    clean: boolean | null;
   }[] = [];
-  for (const [index, group] of groups.entries()) {
-    const scopedArgs = draftReview
-      ? [
-          ...commandArgs.filter((a) => !a.startsWith('--output=')),
-          '--grep',
-          group,
-          `--output=${path.join(testResultsDir, String(index))}`,
-        ]
-      : commandArgs;
-    const result = spawnSync(playwrightBinary, scopedArgs, {
-      cwd: identity.repoRoot,
-      env: {
-        ...process.env,
-        PLAYWRIGHT_ARCHITECT_REVIEW_MODE: 'true',
-        PLAYWRIGHT_HTML_OUTPUT_DIR: draftReview
-          ? path.join(reportDir, String(index))
-          : reportDir,
-        PLAYWRIGHT_HTML_OPEN: 'never',
-        VITE_SHOW_TRADE_RECEIPT: 'true',
-        ...(draftReview
-          ? {
-              ARCHITECT_REVIEW_WORLD_ONLY: 'true',
-              VITE_ARCHITECT_DRAFT_REVIEW: 'true',
-            }
-          : {}),
-        SCOUTZERO_PROOF_CANDIDATE: identity.candidate,
-        SCOUTZERO_BROWSER_PROOF_DIR: artifactDir,
-      },
-      stdio: 'inherit',
-      ...(draftReview ? { timeout: 240000 } : {}),
-    });
-    const remainingPorts = await waitForCleanTeardown();
-    runs.push({
-      command: scopedArgs,
-      status: result.status,
-      signal: result.signal,
-      clean: remainingPorts.length === 0,
-    });
-    if (result.status !== 0 || remainingPorts.length > 0) break;
+  const stopHarness = draftSeason
+    ? await startSeasonProofHarness(identity.repoRoot, artifactDir)
+    : null;
+  try {
+    for (const [index, group] of groups.entries()) {
+      const scopedArgs = draftReview
+        ? [
+            ...commandArgs.filter((a) => !a.startsWith('--output=')),
+            '--grep',
+            group,
+            `--output=${path.join(testResultsDir, String(index))}`,
+          ]
+        : commandArgs;
+      const result = spawnSync(playwrightBinary, scopedArgs, {
+        cwd: identity.repoRoot,
+        env: {
+          ...process.env,
+          PLAYWRIGHT_ARCHITECT_REVIEW_MODE: 'true',
+          PLAYWRIGHT_HTML_OUTPUT_DIR: draftReview
+            ? path.join(reportDir, String(index))
+            : reportDir,
+          PLAYWRIGHT_HTML_OPEN: 'never',
+          VITE_SHOW_TRADE_RECEIPT: 'true',
+          ...(draftReview
+            ? {
+                ARCHITECT_REVIEW_WORLD_ONLY: 'true',
+                VITE_ARCHITECT_DRAFT_REVIEW: 'true',
+              }
+            : {}),
+          ...(draftSeason
+            ? {
+                SCOUTZERO_SHARED_SEASON_PROOF: 'true',
+                SCOUTZERO_SEASON_CONTINUATION: index === 1 ? 'true' : 'false',
+              }
+            : {}),
+          SCOUTZERO_PROOF_CANDIDATE: identity.candidate,
+          SCOUTZERO_BROWSER_PROOF_DIR: artifactDir,
+        },
+        stdio: 'inherit',
+        ...(draftReview ? { timeout: 240000 } : {}),
+      });
+      const remainingPorts = draftSeason ? [] : await waitForCleanTeardown();
+      runs.push({
+        command: scopedArgs,
+        status: result.status,
+        signal: result.signal,
+        clean: draftSeason ? null : remainingPorts.length === 0,
+      });
+      if (result.status !== 0 || remainingPorts.length > 0) break;
+    }
+  } finally {
+    if (stopHarness) await stopHarness();
   }
 
   const openPorts = await waitForCleanTeardown();
@@ -383,13 +418,18 @@ export async function runTradeReceiptProof(
       )
     : [path.join(reportDir, 'index.html')];
   const additionalProofPaths = draftReview
-    ? ['negative-proof.json', 'atomic-proof.json'].map((name) =>
-        path.join(artifactDir, name)
-      )
+    ? [
+        ...(draftSeason ? ['season-proof.json'] : []),
+        'negative-proof.json',
+        'atomic-proof.json',
+      ].map((name) => path.join(artifactDir, name))
     : [];
   const passed =
     runs.length === groups.length &&
-    runs.every((run) => run.status === 0 && run.clean) &&
+    runs.every(
+      (run) =>
+        run.status === 0 && (draftSeason ? run.clean === null : run.clean)
+    ) &&
     screenshotVerification.valid &&
     fs.existsSync(proofPath) &&
     additionalProofPaths.every((proof) => fs.existsSync(proof)) &&
@@ -399,15 +439,17 @@ export async function runTradeReceiptProof(
 
   const manifest = {
     schemaVersion: 1,
-    proof: draftReview
-      ? 'Synthetic first-round review mutation (production disabled)'
-      : 'Architect Trade Machine / Trade Receipt',
+    proof: draftSeason
+      ? 'Synthetic freeze season record and subsequent first-round trade (production disabled)'
+      : draftReview
+        ? 'Synthetic first-round review mutation (production disabled)'
+        : 'Architect Trade Machine / Trade Receipt',
     base: identity.originMain,
     candidate: identity.candidate,
     upstream: identity.upstream,
     mergeBase: identity.mergeBase,
     viewport: { width: 1280, height: 720 },
-    command: `npm run architect:proof:trade-receipt${draftReview ? ' -- --draft-review' : ''}`,
+    command: `npm run architect:proof:trade-receipt${draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
     playwright: commandArgs,
     startedAt,
     completedAt: new Date().toISOString(),
@@ -415,6 +457,7 @@ export async function runTradeReceiptProof(
     processStatus: runs.at(-1)?.status ?? null,
     processSignal: runs.at(-1)?.signal ?? null,
     runs,
+    sharedOwnedSeasonHarness: draftSeason,
     teardown: {
       checkedPorts: PROOF_PORTS,
       baselinePorts,
@@ -483,7 +526,10 @@ function isMainModule(): boolean {
 }
 
 if (isMainModule()) {
-  runTradeReceiptProof(process.argv.includes('--draft-review'))
+  runTradeReceiptProof(
+    process.argv.includes('--draft-review'),
+    process.argv.includes('--draft-season')
+  )
     .then((code) => {
       process.exitCode = code;
     })

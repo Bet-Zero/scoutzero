@@ -99,6 +99,8 @@ export type SwapResolutionEntry = {
 // ============================================================
 
 export type SeasonAdvanceRequest = {
+  /** Private local-review token. Never a production activation flag. */
+  draftReviewAuthority?: object;
   fromSeason?: string;
   toSeason?: string;
   optionDecisions?: OffseasonOptionDecisionMap;

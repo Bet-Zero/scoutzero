@@ -1,5 +1,7 @@
 /** Pure synthetic receipt calculation; callers must enforce the review environment. */
 import { DraftReviewMutationReceiptZ } from '@/schemas/draftPickReviewMutation';
+import { DraftReviewSeasonReceiptZ } from '@/schemas/draftReviewSeason';
+import { SYNTHETIC_DRAFT_SEASON_PIN } from '@/features/architect/utils/draftReview/seasonFixturePin';
 import type { ComparisonEventRow } from './deriveComparisonViewModel';
 
 export type DraftAssetDeltaEntry = {
@@ -17,7 +19,29 @@ export function deriveDraftAssetDelta(
   >();
   const seen = new Set<string>();
   let count = 0;
+  let seasonSeen = false;
   for (const row of rows) {
+    if (row.mutationType === 'seasonAdvance') {
+      const parsed = DraftReviewSeasonReceiptZ.safeParse(
+        row.raw?.metadata && typeof row.raw.metadata === 'object'
+          ? Reflect.get(row.raw.metadata, 'draftReviewSeasonReceipt')
+          : null
+      );
+      // This single accepted fixture advances before its trade. No claim that
+      // an already-traded pick survived an unsupported later season is inferred.
+      if (
+        !parsed.success ||
+        count !== 0 ||
+        seasonSeen ||
+        parsed.data.worldId !== worldId ||
+        parsed.data.operationId !== row.raw?.operationId ||
+        parsed.data.releaseId !== SYNTHETIC_DRAFT_SEASON_PIN.release.id ||
+        parsed.data.releaseSha256 !== SYNTHETIC_DRAFT_SEASON_PIN.payloadSha256
+      )
+        return null;
+      seasonSeen = true;
+      continue;
+    }
     if (row.mutationType !== 'executeTrade') {
       // Other pick-changing operation families have no receipt contract here.
       if (/season|entitlement|pick|convey|swap/i.test(row.mutationType ?? ''))
@@ -35,6 +59,14 @@ export function deriveDraftAssetDelta(
       receipt.data.worldId !== worldId ||
       receipt.data.operationId !== row.raw?.operationId ||
       seen.has(receipt.data.operationId)
+    )
+      return null;
+    if (
+      seasonSeen &&
+      (receipt.data.releaseId !== SYNTHETIC_DRAFT_SEASON_PIN.release.id ||
+        receipt.data.releaseSha256 !==
+          SYNTHETIC_DRAFT_SEASON_PIN.payloadSha256 ||
+        receipt.data.asOfDate !== '2026-07-01')
     )
       return null;
     seen.add(receipt.data.operationId);

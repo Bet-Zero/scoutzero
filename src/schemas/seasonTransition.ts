@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { JsonValueZ, SeasonCodeZ } from './common';
 import { SeasonCloseApronMeasurementZ } from './salaryBooks';
+import { DraftReviewFreezeEventZ } from './draftReviewSeason';
 
 const StateDigestZ = z.string().regex(/^fnv1a64:[0-9a-f]{16}$/);
 const ZonedInstantZ = z
@@ -79,6 +80,7 @@ export const SeasonHistoryRecordZ = z
     finalRoster: z.array(JsonValueZ),
     finalRosterDigest: StateDigestZ,
     seasonCloseApronMeasurement: SeasonCloseApronMeasurementZ,
+    draftReviewFreezeEvent: DraftReviewFreezeEventZ.optional(),
     beforeTotals: JsonValueZ,
     afterTotals: JsonValueZ,
     contractEvents: z.array(SeasonContractTransitionEventZ),
@@ -95,6 +97,7 @@ const SeasonTransitionTeamRecordZ = z
     committedStateDigest: StateDigestZ,
     finalRosterDigest: StateDigestZ,
     seasonCloseApronMeasurementDigest: StateDigestZ,
+    draftReviewFreezeResultId: z.string().min(1).optional(),
     entitlementStateDigest: StateDigestZ,
     contractEventIds: z.array(z.string().min(1)),
     booksStatus: z.literal('complete'),

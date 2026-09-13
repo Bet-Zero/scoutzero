@@ -485,6 +485,7 @@ export function buildPreparedSeasonAdvanceTeam(args: {
   authorityDigest: string;
   optionDecisions: OffseasonOptionDecisionMap;
   optionReferences: Map<string, OptionEventReference>;
+  draftReviewFreezeEvent?: import('@/schemas/draftReviewSeason').DraftReviewFreezeEvent;
 }): PreparedSeasonAdvanceTeam {
   const measurement = requireSeasonCloseApronMeasurement(
     args.beforeTeam,
@@ -528,6 +529,9 @@ export function buildPreparedSeasonAdvanceTeam(args: {
     finalRoster,
     finalRosterDigest: mutationSnapshotDigest(finalRoster),
     seasonCloseApronMeasurement: measurement,
+    ...(args.draftReviewFreezeEvent
+      ? { draftReviewFreezeEvent: args.draftReviewFreezeEvent }
+      : {}),
     beforeTotals: jsonClone(args.beforeTotals),
     afterTotals: jsonClone(args.afterTotals),
     contractEvents,
@@ -556,6 +560,12 @@ export function buildPreparedSeasonAdvanceTeam(args: {
       committedStateDigest: mutationSnapshotDigest(args.committedTeam),
       finalRosterDigest: historyRecord.finalRosterDigest,
       seasonCloseApronMeasurementDigest: mutationSnapshotDigest(measurement),
+      ...(args.draftReviewFreezeEvent
+        ? {
+            draftReviewFreezeResultId:
+              args.draftReviewFreezeEvent.sourceResultId,
+          }
+        : {}),
       entitlementStateDigest,
       contractEventIds: contractEvents.map((event) => event.eventId),
       booksStatus: 'complete',
@@ -600,8 +610,8 @@ export function buildSeasonTransitionManifest(args: {
       ).length,
       historyRecordCount: args.teams.filter((team) => team.historyRecord)
         .length,
-      entitlementPreservationCount: args.teams.filter(
-        (team) => Boolean(team.teamRecord.entitlementStateDigest)
+      entitlementPreservationCount: args.teams.filter((team) =>
+        Boolean(team.teamRecord.entitlementStateDigest)
       ).length,
     },
     canonLeafIds: [

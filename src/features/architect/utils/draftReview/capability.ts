@@ -15,6 +15,7 @@ import { SyntheticDraftMutationSourceZ } from '@/schemas/draftPickReviewMutation
 import { DraftPickApronContextZ } from '@/schemas/draftPickReview';
 import { loadDraftPickRelease } from '@/features/architect/utils/draftPickRelease';
 import { SYNTHETIC_DRAFT_REVIEW_PINS } from './fixturePins';
+import { SYNTHETIC_DRAFT_SEASON_PIN } from './seasonFixturePin';
 import {
   ARCHITECT_WORLDS_COLLECTION,
   ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
@@ -48,7 +49,12 @@ export type DraftReviewCapabilityRecord = Readonly<{
     toTeam: string;
   }>[];
 }>;
-const trustedPins = freeze(structuredClone(SYNTHETIC_DRAFT_REVIEW_PINS));
+const trustedPins = freeze(
+  structuredClone({
+    ...SYNTHETIC_DRAFT_REVIEW_PINS,
+    [SYNTHETIC_DRAFT_SEASON_PIN.release.id]: SYNTHETIC_DRAFT_SEASON_PIN,
+  })
+);
 const records = new WeakMap<object, DraftReviewCapabilityRecord>();
 const verifiedForApply = new WeakSet<object>();
 function freeze<T>(v: T): T {
