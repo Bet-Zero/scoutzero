@@ -53,6 +53,14 @@ export async function loadDraftPickRelease(
   const use = DraftPickReleaseUseZ.parse(intendedUse);
   if (typeof serializedInput !== 'string')
     throw new Error('Expected serialized draft input');
+  // TextEncoder replaces lone UTF-16 surrogates. Reject such text so the
+  // original string parsed below cannot differ from the bytes being pinned.
+  const utf8 = new TextEncoder().encode(serializedInput);
+  if (
+    new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(utf8) !==
+    serializedInput
+  )
+    throw new Error('Draft release requires well-formed UTF-8 text');
   const digest = await sha256Digest(serializedInput);
   if (digest !== `sha256:${pin.payloadSha256}`)
     throw new Error('Draft release payload digest mismatch');

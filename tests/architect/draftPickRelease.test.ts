@@ -45,6 +45,46 @@ function successor() {
 }
 
 describe('pinned draft release loading', () => {
+  it.each(['\uD800', '\uDC00'])(
+    'rejects raw UTF-16 surrogate %j that aliases different pinned UTF-8 content',
+    async (surrogate) => {
+      const input = syntheticFoundationInput();
+      input.retained.dependencies[0].evidenceRefs = ['source#\uFFFD'];
+      const d = document(input);
+      const substituted = d.serialized.replace(
+        'source#\uFFFD',
+        `source#${surrogate}`
+      );
+      expect(substituted).not.toBe(d.serialized);
+      expect(createHash('sha256').update(substituted).digest('hex')).toBe(
+        d.pin.payloadSha256
+      );
+      await expect(
+        loadDraftPickRelease(d.serialized, d.pin, 'retained-baseline')
+      ).resolves.toHaveProperty('execution', 'disabled');
+      await expect(
+        loadDraftPickRelease(substituted, d.pin, 'proposal')
+      ).rejects.toThrow('well-formed UTF-8');
+    }
+  );
+
+  it.each([
+    'source#\uFFFD',
+    'source#\uD83C\uDFC0',
+    'source#\uD800',
+    'source#\uDC00',
+  ])(
+    'preserves properly serialized Unicode or JSON escapes: %j',
+    async (reference) => {
+      const input = syntheticFoundationInput();
+      input.retained.dependencies[0].evidenceRefs = [reference];
+      const loaded = await load(input);
+      expect(loaded.foundation.retained.dependencies[0].evidenceRefs).toEqual([
+        reference,
+      ]);
+    }
+  );
+
   it('reconstructs and freezes every retained field, without making any right executable', async () => {
     const input = syntheticFoundationInput();
     const result = await load(input);

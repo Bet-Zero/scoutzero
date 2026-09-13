@@ -45,6 +45,9 @@ validator, then compares the complete expected release identity, as-of date
 and review record. The pin must come from the retained review record; a pin
 calculated from an unknown payload is not evidence of acceptance. Original
 source qualification and artifact recovery remain the caller's responsibility.
+Raw lone UTF-16 surrogates are rejected before hashing; the parsed text must
+exactly match its UTF-8 encoding. Valid Unicode and explicit JSON escape
+sequences are preserved without normalization.
 
 Loading explicitly distinguishes `retained-baseline` from `proposal`. Rejected
 or unreviewed inputs cannot be loaded as the retained baseline. Accepted storage
@@ -57,13 +60,16 @@ a new release ID. A successor must preserve exact legacy IDs and original-pick
 references, occurrence baseline records, and predecessor IDs, not merely their
 counts. Changed dependency links are validated by the existing foundation.
 The comparison reports added/removed/changed records and fields, old and new
-controlled-operation labels, registered entitlement associations, and unchanged
-dependencies that can carry forward. Overlay changes remain separate from
-changes to the five evidence states.
+controlled-operation labels, registered entitlement associations, and dependencies
+unchanged within those registered associations. Overlay changes remain separate
+from changes to the five evidence states.
 
 Registered associations are not proof of clause-level causality. Changes to
 records without complete operation bindings carry explicit `unmappedImpact`;
 an empty operation list does not establish that a successor has no effect.
+An unchanged dependency ID does not establish safe carry-forward while
+`unmappedImpact` remains nonempty. Comparison permits earlier-dated proposals;
+it performs no date-ordered adoption or automatic baseline update.
 Both models and the comparison are immutable. Loading and comparing never
 adopt a release, mutate a world, establish an economic identity, interpret an
 opaque program or return a trading verdict. Inputs and derived private outputs

@@ -132,6 +132,27 @@ cover these Zod contracts. No new browser/emulator behavior or production import
 are introduced. A replacement immutable Claude assignment follows final-head CI
 and settled review threads; unconditional acceptance is still required.
 
+## BZE-311 focused independent correction
+
+Final integrated candidate `ef86b425383ef7443588fb5e5e3e2d1a3a5d3984` passed
+CI34726750732, then received independent REVISE for one material finding: the
+loader hashed UTF-8 replacement bytes for a raw lone UTF-16 surrogate while
+parsing the original, different string. That allowed different parsed content
+under one payload pin/release ID. Original report SHA-256
+`9a5c0cdfd1724af042dcd6293123978532249f95b8924a7aa71e16753b529271` is retained
+unchanged, separate from this correction and its eventual verdict.
+
+Two high/low-surrogate regression cases failed before repair while 32 other
+cases passed. The loader now rejects text that does not round-trip through UTF-8
+exactly, before hashing or parsing. The shared digest helper and comparison
+algorithm remain unchanged. Four positive controls retain replacement characters,
+paired Unicode and explicit JSON escapes. All 34 release cases, typecheck,
+scoped Markdown and diff checks passed after repair. Minor review observations are clarified in the foundation doc: unmapped
+impact limits carry-forward claims; earlier-dated proposals are comparison only,
+not adoption. Replacement exact-head gates and focused delta review are required.
+Reuse the original review's unaffected material findings; no private corpus replay
+or re-audit of the accepted component stack is justified by this narrow repair.
+
 ## Validation boundaries and remaining product proof
 
 Code/schema input tests prove these actual Zod contracts; legacy schema generation
