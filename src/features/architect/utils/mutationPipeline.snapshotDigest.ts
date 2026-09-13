@@ -1,6 +1,7 @@
 /** Stable compare-before-write digest for raw Firestore mutation documents. */
 
 import { deterministicStateDigest } from '@/features/architect/utils/contractSource';
+import { canonicalStringify } from '@/features/architect/utils/contractSource/deterministicDigest';
 
 function toDigestMaterial(value: unknown): unknown {
   if (
@@ -30,4 +31,9 @@ function toDigestMaterial(value: unknown): unknown {
 
 export function mutationSnapshotDigest(value: unknown): string {
   return deterministicStateDigest(toDigestMaterial(value));
+}
+
+/** Exact compare material where hash equality alone must not grant authority. */
+export function mutationSnapshotText(value: unknown): string {
+  return canonicalStringify(toDigestMaterial(value));
 }

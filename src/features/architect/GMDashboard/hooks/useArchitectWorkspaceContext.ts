@@ -628,7 +628,13 @@ function deriveDraftAssetsSummary(
   }
 
   const picks = teamCapSheet?.draftPicks;
-  if (!teamCapSheet || !Array.isArray(picks)) {
+  if (
+    !teamCapSheet ||
+    !Array.isArray(picks) ||
+    (picks.length === 0 &&
+      Array.isArray(teamCapSheet.entitlementIds) &&
+      teamCapSheet.entitlementIds.length > 0)
+  ) {
     return {
       status: 'unavailable',
       deferralHint: 'see-trade-history',

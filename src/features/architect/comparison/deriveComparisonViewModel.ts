@@ -3,7 +3,8 @@
  * PURPOSE: Aggregator — derives the Stage 3 comparison view model from committed event rows.
  * OWNERSHIP: Feature: architect/comparison
  *
- * Pure function. All inputs are plain data; no Firestore reads, no React, no state.
+ * No Firestore reads or React. Synthetic draft receipts also require the actual
+ * review environment; saved event metadata cannot enable this display in production.
  * Authority is preserved on every output field.
  *
  * Event ordering: assumes committedEventRows are ordered newest-first (desc by occurredAt),
@@ -18,10 +19,13 @@ import type {
 import { deriveRosterDelta } from './rosterDelta';
 import { deriveCapDelta } from './capDelta';
 import { detectSeasonMismatch } from './seasonMismatch';
+import { deriveDraftAssetDelta } from './deriveDraftAssetDelta';
+import { isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
 
 type GenericRecord = Record<string, unknown>;
 
 export type ComparisonEventRow = {
+  raw?: GenericRecord;
   id: string;
   eventId: string | null;
   occurredAt: string | null;
@@ -118,7 +122,10 @@ export function deriveComparisonViewModel(
   // Changed teams: accumulate from event teamsInvolved / teamCodes + world metadata
   const changedTeamCodesSet = new Set<string>();
   for (const row of sorted) {
-    for (const code of [...(row.teamsInvolved ?? []), ...(row.teamCodes ?? [])]) {
+    for (const code of [
+      ...(row.teamsInvolved ?? []),
+      ...(row.teamCodes ?? []),
+    ]) {
       if (typeof code === 'string' && code.trim()) {
         changedTeamCodesSet.add(code.trim());
       }
@@ -152,7 +159,9 @@ export function deriveComparisonViewModel(
       return {
         ...entry,
         displayName:
-          resolved && resolved !== entry.playerId ? resolved : entry.displayName,
+          resolved && resolved !== entry.playerId
+            ? resolved
+            : entry.displayName,
       };
     });
 
@@ -181,8 +190,7 @@ export function deriveComparisonViewModel(
     if (capTotalDelta === null) {
       unavailableSummary.push({
         field: 'capTotalDelta',
-        reason:
-          'A starting cap baseline is not available for this team yet.',
+        reason: 'A starting cap baseline is not available for this team yet.',
       });
     }
   } else {
@@ -202,8 +210,10 @@ export function deriveComparisonViewModel(
     });
   }
 
-  // Draft delta is always deferred in Stage 3
-  unavailableSummary.push(DRAFT_UNAVAILABLE);
+  const draftAssetDelta = isSyntheticDraftReviewEnvironment()
+    ? deriveDraftAssetDelta(sorted, worldId, teamCode)
+    : null;
+  if (!draftAssetDelta) unavailableSummary.push(DRAFT_UNAVAILABLE);
 
   return {
     scope: {
@@ -215,6 +225,7 @@ export function deriveComparisonViewModel(
       authority: 'committed-world',
     },
     rosterAdditions,
+    draftAssetDelta,
     rosterRemovals,
     rosterChangedPlayers,
     capTotalDelta,

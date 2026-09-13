@@ -199,6 +199,33 @@ describe('ComparisonSection — no committed events', () => {
     expect(screen.getByText('Test World')).toBeInTheDocument();
   });
 
+  it('renders committed pick additions and removals without treating them as players', () => {
+    const model = makeViewModelWithEvents();
+    model.rosterAdditions = [];
+    model.rosterRemovals = [];
+    model.draftAssetDelta = {
+      additions: [
+        {
+          entitlementId: 'original-first',
+          displayName: 'BOS 2028 first-round pick',
+        },
+      ],
+      removals: [
+        {
+          entitlementId: 'original-second',
+          displayName: 'MIA 2028 second-round pick',
+        },
+      ],
+    };
+    render(<ComparisonSection status="available" viewModel={model} />);
+    expect(screen.getByText('BOS 2028 first-round pick')).toBeInTheDocument();
+    expect(screen.getByText('MIA 2028 second-round pick')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Player details unavailable/)
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('original-first')).not.toBeInTheDocument();
+  });
+
   it('does not expose internal authority labels', () => {
     render(
       <ComparisonSection status="available" viewModel={makeScopeViewModel()} />

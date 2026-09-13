@@ -111,8 +111,27 @@ describe('Team History E84 subsection rendering', () => {
 
     rerender(<DraftPickTracker pickLog={[]} currentPicks={{}} />);
 
-    expect(screen.getByText('No draft pick trades logged.')).toBeInTheDocument();
+    expect(
+      screen.getByText('No draft pick trades logged.')
+    ).toBeInTheDocument();
     expect(screen.getByText('No picks currently owned.')).toBeInTheDocument();
+    rerender(
+      <DraftPickTracker
+        pickLog={[]}
+        currentPicks={{}}
+        inventoryUnavailable
+        usesSavedMoves
+      />
+    );
+    expect(
+      screen.queryByText('No picks currently owned.')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Pick inventory is not available in this view.')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('See Saved Moves for draft-pick trades.')
+    ).toBeInTheDocument();
   });
 
   it('preserves waive/stretch row ordering and empty states', () => {
@@ -146,12 +165,12 @@ describe('Team History E84 subsection rendering', () => {
     expect(screen.getByTestId('team-history-waived-row-1')).toHaveTextContent(
       'Player Second'
     );
-    expect(screen.getByTestId('team-history-dead-cap-row-2026')).toHaveTextContent(
-      '2026'
-    );
-    expect(screen.getByTestId('team-history-dead-cap-row-2027')).toHaveTextContent(
-      '2027'
-    );
+    expect(
+      screen.getByTestId('team-history-dead-cap-row-2026')
+    ).toHaveTextContent('2026');
+    expect(
+      screen.getByTestId('team-history-dead-cap-row-2027')
+    ).toHaveTextContent('2027');
 
     rerender(<WaiveStretchTracker waivedContracts={[]} />);
 

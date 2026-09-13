@@ -265,6 +265,7 @@ export type MutationEventEntitlementsMovedByTeam = Record<
   MutationEventEntitlementTransferSummary
 >;
 export type MutationEventMetadataLike = {
+  draftReviewReceipt?: import('@/schemas/draftPickReviewMutation').DraftReviewMutationReceipt;
   playersTraded?: readonly (string | number | null | undefined)[] | null;
   teamsAffected?: readonly (string | number | null | undefined)[] | null;
   teamsInvolved?: readonly (string | number | null | undefined)[] | null;

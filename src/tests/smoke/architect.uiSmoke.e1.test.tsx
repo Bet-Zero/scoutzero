@@ -37,6 +37,7 @@ vi.mock('@/shared/hooks/useAuth', () => ({
 }));
 
 vi.mock('@/firebaseConfig', () => ({
+  isSyntheticDraftReviewEnvironment: () => false,
   db: {},
   functions: {},
   auth: {},

@@ -402,6 +402,20 @@ describe('Stage 1C exception summary derivation', () => {
     }
   });
 
+  it('does not turn saved entitlement IDs absent from the legacy pick view into a zero inventory', () => {
+    const context = deriveArchitectWorkspaceContext({
+      teamCapSheet: {
+        ...teamFixture,
+        draftPicks: [],
+        entitlementIds: ['original-first'],
+      },
+      currentYear: 2026,
+      worldId: 'world_deadline',
+      worldModeBoundary: worldBoundary('world_deadline'),
+    });
+    expect(context.draftAssets.status).toBe('unavailable');
+  });
+
   it('derives the draft-pick stash from cap sheet draftPicks in GM language', () => {
     const teamWithPicks = {
       ...teamFixture,

@@ -552,6 +552,7 @@ export type TradeStateSlice = Pick<
   'teams' | 'governedSignAndTradeEvidence' | 'governedCashTeamSnapshots'
 >;
 export type ApplyWorldMutationArgs = {
+  draftReviewAuthority?: object;
   userId: string;
   worldId: string;
   seasonId: string;
@@ -562,6 +563,7 @@ export type ApplyWorldMutationArgs = {
 };
 export type PublicComputeWorldMutationArgsByType = {
   [TMutationType in SupportedComputeMutationType]: {
+    draftReviewAuthority?: object;
     mutationType: TMutationType;
     payload: PublicMutationPayloadInputByType[TMutationType];
     currentState: PublicMutationCurrentStateInputByType[TMutationType];
@@ -576,6 +578,7 @@ export type PublicComputeWorldMutationArgsByType = {
 };
 export type LegacyPublicComputeWorldMutationArgsByType = {
   [TMutationType in SupportedComputeMutationType]: {
+    draftReviewAuthority?: object;
     mutationType: TMutationType;
     payload: ArchitectMutationPayload;
     currentState: PublicMutationCurrentStateInputByType[TMutationType];
@@ -593,6 +596,7 @@ export type PublicComputeWorldMutationArgs =
   | LegacyPublicComputeWorldMutationArgsByType[SupportedComputeMutationType];
 export type ComputeWorldMutationArgsByType = {
   [TMutationType in SupportedComputeMutationType]: {
+    draftReviewAuthority?: object;
     mutationType: TMutationType;
     payload: MutationPayloadInputByType[TMutationType];
     currentState: MutationCurrentStateInputByType[TMutationType];

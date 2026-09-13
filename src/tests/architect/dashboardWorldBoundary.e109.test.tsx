@@ -106,6 +106,7 @@ vi.mock('react-router-dom', () => ({
 }));
 
 vi.mock('@/firebaseConfig', () => ({
+  isSyntheticDraftReviewEnvironment: () => false,
   FIREBASE_TARGET_MODE: 'EMULATOR',
   ARCHITECT_REVIEW_MODE: false,
   isLikelyEmulatorConnectionError: () => false,

@@ -6,6 +6,7 @@ import {
   buildStepienOutgoingPicksFromEntitlements,
 } from '../utils/stepienEntitlementUtils';
 import type { TradeTeam } from '../constants/types';
+import { reviewedFirstsPermit } from '@/features/architect/utils/draftReview/capability';
 
 type StepienYearLike = number | string | null | undefined;
 type StepienRoundLike = number | string | null | undefined;
@@ -38,6 +39,8 @@ interface StepienPickLike {
 }
 
 interface StepienEntitlementLike {
+  id?: string;
+  entitlementId?: string;
   terms?: unknown;
   kind?: string;
   seasonYear?: StepienYearLike;
@@ -47,6 +50,7 @@ interface StepienEntitlementLike {
 }
 
 interface StepienTradeContext {
+  draftReviewAuthority?: object;
   year?: number | string;
   yearKey?: number | string;
   capSettings?: {
@@ -317,6 +321,43 @@ export function validateStepien(
   );
 
   if (firstRoundPicks.length > 0 || firstRoundEntitlements.length > 0) {
+    if (
+      reviewedFirstsPermit(
+        tradeCtx.draftReviewAuthority,
+        String(team.teamId ?? team.team?.teamId ?? team.team?.id ?? ''),
+        firstRoundEntitlements.map((e) =>
+          String(e.entitlementId ?? e.id ?? '')
+        ),
+        firstRoundPicks.length > 0
+      )
+    ) {
+      return {
+        passed: true,
+        status: 'PASS',
+        evaluated: true,
+        missingInputs: [],
+        violations: [],
+        warnings: [],
+        message:
+          'Supplied first-round review components permit this synthetic exchange.',
+        details:
+          'Review environment only; all remaining trade gates still apply.',
+        currentYear,
+        farthestYear: Math.max(
+          ...firstRoundEntitlements.map((e) => Number(e.seasonYear ?? e.year))
+        ),
+        _debug: {
+          baselineSource: 'entitlements_ssot',
+          baselineYearsCount: 0,
+          outgoingYearsCount: firstRoundEntitlements.length,
+          combinedReservationYearsCount: 0,
+          tradePicksConsidered: 0,
+          entitlementsConsidered: firstRoundEntitlements.length,
+          totalStepienRelevant: firstRoundEntitlements.length,
+          controlByYear: {},
+        },
+      };
+    }
     const fallbackYear = toNumericYear(currentYear, 2025);
     const firstRoundYears = [
       ...firstRoundPicks.map((pick) => pick.year),

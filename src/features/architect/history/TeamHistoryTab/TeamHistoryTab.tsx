@@ -555,6 +555,11 @@ export const TeamHistoryTab = ({
             <DraftPickTracker
               pickLog={teamCapSheet.pickLog || []}
               currentPicks={teamCapSheet.currentPicks || {}}
+              inventoryUnavailable={
+                Array.isArray(teamCapSheet.entitlementIds) &&
+                teamCapSheet.entitlementIds.length > 0
+              }
+              usesSavedMoves={timelineResolution.usesWorldEvents}
             />
           </section>
         </aside>

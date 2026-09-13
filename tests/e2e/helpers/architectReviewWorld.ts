@@ -213,7 +213,7 @@ export const getCapHold = (
   }) as RecordLike | undefined;
 };
 
-const buildReviewDepthPlayer = (
+export const buildReviewDepthPlayer = (
   teamCode: TeamCode,
   teamName: string,
   ordinal: number,

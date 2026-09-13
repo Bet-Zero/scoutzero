@@ -138,7 +138,7 @@ describe('Phase 57: Forbid validateTrade in Compute/Persist Modules', () => {
       readSourceFile('src/features/architect/utils/mutationPipeline.persist.ts');
 
       // Extract the persistWorldMutation function region
-      const persistStart = 'export async function persistWorldMutation({';
+      const persistStart = 'export async function persistWorldMutation(';
       const persistEnd = '\n/**\n * Apply mutation';
 
       const regionCode = extractRegion(source, persistStart, persistEnd);
