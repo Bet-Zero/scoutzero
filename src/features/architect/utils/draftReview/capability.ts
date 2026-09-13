@@ -15,6 +15,7 @@ import { SyntheticDraftMutationSourceZ } from '@/schemas/draftPickReviewMutation
 import { DraftPickApronContextZ } from '@/schemas/draftPickReview';
 import { loadDraftPickRelease } from '@/features/architect/utils/draftPickRelease';
 import { SYNTHETIC_DRAFT_REVIEW_PINS } from './fixturePins';
+import { SYNTHETIC_DRAFT_SEASON_PIN } from './seasonFixturePin';
 import {
   ARCHITECT_WORLDS_COLLECTION,
   ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
@@ -48,7 +49,12 @@ export type DraftReviewCapabilityRecord = Readonly<{
     toTeam: string;
   }>[];
 }>;
-const trustedPins = freeze(structuredClone(SYNTHETIC_DRAFT_REVIEW_PINS));
+const trustedPins = freeze(
+  structuredClone({
+    ...SYNTHETIC_DRAFT_REVIEW_PINS,
+    [SYNTHETIC_DRAFT_SEASON_PIN.release.id]: SYNTHETIC_DRAFT_SEASON_PIN,
+  })
+);
 const records = new WeakMap<object, DraftReviewCapabilityRecord>();
 const verifiedForApply = new WeakSet<object>();
 function freeze<T>(v: T): T {
@@ -217,6 +223,35 @@ export async function prepareSyntheticDraftReview(
   const documentSnapshots: Record<string, string | null> = {
     [metadataRef.path]: mutationSnapshotText(metadata),
   };
+  if (source.version === 2) {
+    const lifecycle = loaded.foundation.retainedArtifacts.find(
+      (entry) => entry.id === 'synthetic-season-source'
+    );
+    if (
+      !lifecycle ||
+      (await sha256Digest(canonicalStringify(lifecycle.content))) !==
+        `sha256:${lifecycle.sha256}`
+    )
+      throw new Error(
+        'The v2 trade has no retained synthetic season authority.'
+      );
+    const { captureSyntheticSeasonPrerequisite } = await import(
+      './seasonPrerequisite'
+    );
+    Object.assign(
+      documentSnapshots,
+      await captureSyntheticSeasonPrerequisite({
+        worldId: args.worldId,
+        metadata,
+        pin,
+        lifecycle: lifecycle.content,
+        teams: Object.fromEntries(
+          teamSnapshots.docs.map((snapshot) => [snapshot.id, snapshot.data()])
+        ),
+        readDocument: async (path) => (await getDoc(doc(db, path))).data(),
+      })
+    );
+  }
   await Promise.all(
     teamSnapshots.docs.map(async (snapshot) => {
       const team = snapshot.data();

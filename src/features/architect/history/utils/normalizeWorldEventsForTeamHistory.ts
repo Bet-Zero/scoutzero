@@ -32,6 +32,8 @@ import {
 } from './normalizeWorldEventsForTeamHistory.utils';
 import { GovernedSignAndTradeReceiptZ } from '@/schemas/governedSignAndTrade';
 import { GovernedCashReceiptZ } from '@/schemas/governedCashConsideration';
+import { DraftReviewSeasonReceiptZ } from '@/schemas/draftReviewSeason';
+import { isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
 
 function formatCashCents(value: number): string {
   return `$${(value / 100).toLocaleString('en-US', {
@@ -173,6 +175,33 @@ export function toTeamHistoryEventDisplay(
   const operationId = firstNonEmptyString(raw.operationId) || null;
 
   const detailSections: DisplaySection[] = [];
+  let hasDraftSeasonRecord = false;
+  if (
+    rawMutationType === 'seasonAdvance' &&
+    isSyntheticDraftReviewEnvironment()
+  ) {
+    const receipt = DraftReviewSeasonReceiptZ.safeParse(
+      metadata.draftReviewSeasonReceipt
+    );
+    if (
+      receipt.success &&
+      receipt.data.worldId === raw.worldId &&
+      receipt.data.operationId === operationId
+    ) {
+      const event = receipt.data.freezeEvents.find(
+        (item) => item.originalPick.originalTeam === teamCode
+      );
+      if (event) {
+        hasDraftSeasonRecord = true;
+        pushSection(detailSections, 'Draft Pick Season Record', [
+          `${formatTeamLabel(event.originalPick.originalTeam, teamNameLookup)} ${event.originalPick.draftYear} first-round pick`,
+          `${event.triggerSalaryCapYear}: ${event.freezeTriggered ? 'freeze triggered' : 'freeze not triggered'} at the last regular-season game`,
+          'Original pick inventory preserved through season advance.',
+          'Synthetic review only. Later restriction changes and trading availability are not established by this record.',
+        ]);
+      }
+    }
+  }
 
   const primaryTeamsLine =
     teamsInvolved.length > 0
@@ -648,11 +677,12 @@ export function toTeamHistoryEventDisplay(
 
       pushSection(detailSections, 'Players', playerLabels.slice(0, 5));
       pushSection(detailSections, 'Teams', [primaryTeamsLine]);
-      pushSection(detailSections, 'Event Detail', [
-        mutationType === 'unknown'
-          ? 'Event payload did not expose a supported mutation type for Team History normalization.'
-          : `No event-specific Team History detail mapping exists for ${mutationType}.`,
-      ]);
+      if (!hasDraftSeasonRecord)
+        pushSection(detailSections, 'Event Detail', [
+          mutationType === 'unknown'
+            ? 'Event payload did not expose a supported mutation type for Team History normalization.'
+            : `No event-specific Team History detail mapping exists for ${mutationType}.`,
+        ]);
       pushSection(detailSections, 'Salary Books', capDeltaLines);
       break;
     }

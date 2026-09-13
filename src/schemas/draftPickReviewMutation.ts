@@ -6,7 +6,7 @@ import {
 } from '@/schemas/draftPickEvidence';
 import { DraftPickReviewInputZ } from '@/schemas/draftPickReview';
 
-export const SyntheticDraftMutationSourceZ = z
+export const SyntheticDraftMutationSourceV1Z = z
   .object({
     kind: z.literal('synthetic-original-first-review-only'),
     version: z.literal(1),
@@ -23,6 +23,14 @@ export const SyntheticDraftMutationSourceZ = z
     reviews: z.array(DraftPickReviewInputZ).min(1),
   })
   .strict();
+
+// Separately pinned lifecycle fixture; the accepted v1 release bytes stay fixed.
+export const SyntheticDraftMutationSourceV2Z =
+  SyntheticDraftMutationSourceV1Z.extend({ version: z.literal(2) }).strict();
+export const SyntheticDraftMutationSourceZ = z.discriminatedUnion('version', [
+  SyntheticDraftMutationSourceV1Z,
+  SyntheticDraftMutationSourceV2Z,
+]);
 
 export type SyntheticDraftMutationSource = z.infer<
   typeof SyntheticDraftMutationSourceZ

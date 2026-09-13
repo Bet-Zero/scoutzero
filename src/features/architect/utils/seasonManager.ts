@@ -29,6 +29,10 @@
  */
 
 import { db } from '@/firebaseConfig';
+import { consumeSyntheticDraftSeasonReview } from './draftReview/seasonCapability';
+import { DraftReviewSeasonReceiptZ } from '@/schemas/draftReviewSeason';
+import { mutationSnapshotText } from './mutationPipeline.snapshotDigest';
+import { compactSyntheticSeasonEventTotals } from './draftReview/seasonTotals';
 import {
   doc,
   getDoc,
@@ -150,7 +154,7 @@ export async function advanceSeasonInWorld(
   }
 
   const operationTimestamp = Date.now();
-  const operationId = generateSeasonAdvanceOperationId(operationTimestamp);
+  let operationId = generateSeasonAdvanceOperationId(operationTimestamp);
   const occurredAt = new Date(operationTimestamp).toISOString();
   const optionDecisions = options.optionDecisions || {};
   const focusTeamCode = isNonEmptyString(options.focusTeamCode)
@@ -200,6 +204,17 @@ export async function advanceSeasonInWorld(
       );
     }
     const authority = authorityResult.authority;
+    const draftReview =
+      options.draftReviewAuthority !== undefined ||
+      worldMeta.draftReviewSeasonReleaseId !== undefined
+        ? consumeSyntheticDraftSeasonReview(options.draftReviewAuthority, {
+            worldId,
+            metadata: worldMeta,
+            authority,
+            optionDecisions,
+          })
+        : null;
+    if (draftReview) operationId = draftReview.operationId;
     if (options.toSeason && options.toSeason !== authority.toSeason) {
       return {
         success: false,
@@ -241,6 +256,15 @@ export async function advanceSeasonInWorld(
     const preAdvanceSnapshotsByCode = new Map(
       preAdvanceTeamCollection.docs.map((snapshot) => [snapshot.id, snapshot])
     );
+    if (
+      draftReview &&
+      preAdvanceTeamCollection.docs.some(
+        (snapshot) =>
+          draftReview.snapshots[snapshot.ref.path] !==
+          mutationSnapshotText(snapshot.data())
+      )
+    )
+      throw new Error('Synthetic season team state changed after review.');
     for (const { teamCode } of teamDocumentRefs) {
       const snapshot = preAdvanceSnapshotsByCode.get(teamCode);
       preAdvanceTeamDocuments.set(teamCode, {
@@ -403,6 +427,13 @@ export async function advanceSeasonInWorld(
           authorityDigest,
           optionDecisions,
           optionReferences,
+          ...(draftReview
+            ? {
+                draftReviewFreezeEvent: draftReview.freezeEvents.find(
+                  (event) => event.originalPick.originalTeam === teamCode
+                ),
+              }
+            : {}),
         })
       );
       if (focusTeamCode === teamCode) {
@@ -500,6 +531,43 @@ export async function advanceSeasonInWorld(
         contractEventIds: preparedTeams.flatMap(
           (team) => team.teamRecord.contractEventIds
         ),
+        ...(draftReview
+          ? {
+              draftReviewSeasonReceipt: DraftReviewSeasonReceiptZ.parse({
+                scope: 'synthetic-review-only',
+                operationId,
+                worldId,
+                transitionId,
+                fromSeason,
+                toSeason,
+                effectiveAt: authority.transitionEffectiveAt,
+                releaseId: draftReview.freezeEvents[0].releaseId,
+                releaseSha256: draftReview.freezeEvents[0].releaseSha256,
+                entitlementState: 'preserved-exactly',
+                entitlementStateDigests: Object.fromEntries(
+                  preparedTeams.map((team) => [
+                    team.teamCode,
+                    team.teamRecord.entitlementStateDigest,
+                  ])
+                ),
+                salaryBookHistory: Object.fromEntries(
+                  preparedTeams.map((team) => [
+                    team.teamCode,
+                    {
+                      historyId: team.historyRecord.historyId,
+                      beforeTotalsDigest: mutationSnapshotDigest(
+                        team.historyRecord.beforeTotals
+                      ),
+                      afterTotalsDigest: mutationSnapshotDigest(
+                        team.historyRecord.afterTotals
+                      ),
+                    },
+                  ])
+                ),
+                freezeEvents: draftReview.freezeEvents,
+              }),
+            }
+          : {}),
       },
       teamsAffected: teamCodes,
       schemaVersion: CAP_AUDIT_EVENT_SCHEMA_VERSION,
@@ -510,8 +578,15 @@ export async function advanceSeasonInWorld(
       worldId,
       teamCodes,
       playerIds: [] as string[],
-      beforeTotalsByTeam,
-      afterTotalsByTeam,
+      // The full books remain in each immutable history record in this same
+      // transaction, with exact digests above. Avoid duplicating all30 detailed
+      // ledgers inside the single synthetic event's Firestore document.
+      beforeTotalsByTeam: draftReview
+        ? compactSyntheticSeasonEventTotals(beforeTotalsByTeam)
+        : beforeTotalsByTeam,
+      afterTotalsByTeam: draftReview
+        ? compactSyntheticSeasonEventTotals(afterTotalsByTeam)
+        : afterTotalsByTeam,
       valid: postStateValidation.valid,
       violations: postStateValidation.violations,
       warnings: postStateValidation.warnings,
@@ -551,12 +626,18 @@ export async function advanceSeasonInWorld(
     }));
 
     await runTransaction(db, async (transaction) => {
+      // These consumed source/roster/entitlement documents join the existing
+      // transaction. No separate writer or post-commit history append exists.
+      const reviewEntries = draftReview
+        ? Object.entries(draftReview.snapshots)
+        : [];
       const refs = [
         metadataRef,
         ...teamDocumentRefs.map(({ ref }) => ref),
         ...historyRefs.map(({ ref }) => ref),
         manifestRef,
         eventRef,
+        ...reviewEntries.map(([path]) => doc(db, path)),
       ];
       const snapshots = await Promise.all(
         refs.map((reference) => transaction.get(reference))
@@ -607,6 +688,14 @@ export async function advanceSeasonInWorld(
         throw new Error(
           `Duplicate/replayed Season Advance event ${transitionId}.`
         );
+      }
+      for (const [path, expected] of reviewEntries) {
+        const snapshot = snapshots[cursor++];
+        if (
+          (snapshot.exists() ? mutationSnapshotText(snapshot.data()) : null) !==
+          expected
+        )
+          throw new Error(`Stale synthetic lifecycle input at commit: ${path}`);
       }
 
       for (const prepared of preparedTeams) {

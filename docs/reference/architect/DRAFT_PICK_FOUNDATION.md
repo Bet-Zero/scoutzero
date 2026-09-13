@@ -284,3 +284,44 @@ browser evidence at 1280x720, including both teams' History, Compare and reload
 states, component/staleness rejection and an emulator-only denied final write.
 Its world-only fixture skips the source-collection seeder. The proof is software
 integration evidence, not production activation, baseline adoption or W10 closure.
+
+## Synthetic season-close freeze history
+
+`prepareSyntheticDraftSeasonReview` provides a separately pinned local review
+handoff to the existing Season Advance writer. The supplied 2025-26 observations
+are evaluated by the existing A12.4 owner; L08.3 stores those historical results
+with the original 2033 first, trigger year, timestamp and source result ID. The
+record does not establish current ownership, unfreeze, penalty, placement or
+trading availability. Its test threshold is explicitly synthetic and never
+enters the governed salary-level registry.
+
+The finite fixture begins at the governed 2025-26 close. All 30 teams have full
+embedded rosters and complete stipulated original-pick inventories. One existing
+transaction preserves those inventories, advances the teams to 2026-27, and
+publishes the histories, manifest, event and metadata together. A private
+one-use capability fences exact owned world, source, date and operation inputs;
+the writer rechecks every consumed metadata/team/entitlement document. Embedded
+rosters are the Season Advance read authority; the subsequent trade retains its
+separate dependency checks. Forged fields and production builds cannot activate
+this handoff.
+
+The v2 trade issuer requires the matching persisted season manifest, event and
+all 30 histories, including source/context, current team and salary-book digest
+links. Merely editing a world to the target season does not qualify. Those
+records join the existing trade transaction's commit-time input checks; the
+seven earlier v1 fixtures retain their separate contract.
+
+Detailed salary books remain in the existing immutable season histories. The
+synthetic event stores exact scalar totals plus history IDs and digests, avoiding
+duplicate all-team ledgers in one Firestore document without relaxing the size
+limit. History displays the actual original pick's historical trigger. Compare
+can retain the later supported trade's pick movement after this particular
+preservation event, only in review mode. Unknown or subsequent season/pick
+events still make that comparison unavailable.
+
+The proof order is season advancement, then the 2026-27 original-first exchange.
+The accepted registry lacks complete 2025-26 core levels for a preceding trade
+and 2027-28 levels for a later advance. This proves neither a traded pick crossing
+a later year nor real NBA readiness. `npm run architect:proof:trade-receipt --
+--draft-season` retains the exact-head browser/emulator record, including all30
+history reconciliation, both-team leave/return/reload and atomic-write denial.
