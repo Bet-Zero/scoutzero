@@ -216,52 +216,67 @@ test('synthetic first-round review consumes components and persists through the 
     },
     { uid, root }
   );
-  for (const [team, expected] of [
-    ['BOS', bos],
-    ['MIA', mia],
-  ] as const) {
-    await page.goto(`/gm/${team}?season=2027`, {
-      waitUntil: 'domcontentloaded',
-    });
-    await openDashboardTab(page, 'Team History');
-    await page
-      .getByTestId('team-history-section-timeline')
-      .getByRole('button', { name: /Trade Executed:/ })
-      .click();
-    await expect(
-      page
-        .getByTestId('team-history-detail-modal')
-        .getByText('Sent by Boston Celtics: 2028 first-round pick', {
-          exact: false,
-        })
-        .first()
-    ).toBeVisible();
-    await expect(page.getByTestId('team-history-detail-modal')).toContainText(
-      'Received by Miami Heat: 2028 first-round pick · Boston Celtics'
-    );
-    await capture(page, `${team.toLowerCase()}-history`);
-    await page
-      .getByTestId('team-history-detail-modal')
-      .getByRole('button', { name: /close/i })
-      .click();
-    await openDashboardTab(page, 'Compare');
-    await expect(
-      page.getByText('BOS 2028 first-round pick', { exact: true })
-    ).toBeVisible();
-    await expect(
-      page.getByText('MIA 2028 second-round pick', { exact: true })
-    ).toBeVisible();
-    await capture(page, `${team.toLowerCase()}-compare`);
-    await openDashboardTab(page, 'Roster');
-    await openDashboardTab(page, 'Compare');
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await openDashboardTab(page, 'Compare');
-    await expect(
-      page.getByText('BOS 2028 first-round pick', { exact: true })
-    ).toBeVisible();
-    await capture(page, `${team.toLowerCase()}-reload`);
-    expect(await getWorldTeamDocument(root, team)).toEqual(expected);
-  }
+  // Both pages observe the same committed world; no mutations occur in this phase.
+  await Promise.all(
+    (
+      [
+        ['BOS', bos],
+        ['MIA', mia],
+      ] as const
+    ).map(async ([team, expected]) => {
+      const teamPage = team === 'BOS' ? page : await page.context().newPage();
+      try {
+        await teamPage.goto(`/gm/${team}?season=2027`, {
+          waitUntil: 'domcontentloaded',
+        });
+        await openDashboardTab(teamPage, 'Team History');
+        await teamPage
+          .getByTestId('team-history-section-timeline')
+          .getByRole('button', { name: /Trade Executed:/ })
+          .click();
+        await expect(
+          teamPage
+            .getByTestId('team-history-detail-modal')
+            .getByText('Sent by Boston Celtics: 2028 first-round pick', {
+              exact: false,
+            })
+            .first()
+        ).toBeVisible();
+        await expect(
+          teamPage.getByTestId('team-history-detail-modal')
+        ).toContainText(
+          'Received by Miami Heat: 2028 first-round pick · Boston Celtics'
+        );
+        await capture(teamPage, `${team.toLowerCase()}-history`);
+        await teamPage
+          .getByTestId('team-history-detail-modal')
+          .getByRole('button', { name: /close/i })
+          .click();
+        await openDashboardTab(teamPage, 'Compare');
+        await expect(
+          teamPage.getByText('BOS 2028 first-round pick', { exact: true })
+        ).toBeVisible();
+        await expect(
+          teamPage.getByText('MIA 2028 second-round pick', { exact: true })
+        ).toBeVisible();
+        await capture(teamPage, `${team.toLowerCase()}-compare`);
+        await openDashboardTab(teamPage, 'Roster');
+        await openDashboardTab(teamPage, 'Compare');
+        await teamPage.reload({ waitUntil: 'domcontentloaded' });
+        await openDashboardTab(teamPage, 'Compare');
+        await expect(
+          teamPage.getByText('BOS 2028 first-round pick', { exact: true })
+        ).toBeVisible();
+        await expect(
+          teamPage.getByText('MIA 2028 second-round pick', { exact: true })
+        ).toBeVisible();
+        await capture(teamPage, `${team.toLowerCase()}-reload`);
+        expect(await getWorldTeamDocument(root, team)).toEqual(expected);
+      } finally {
+        if (teamPage !== page) await teamPage.close();
+      }
+    })
+  );
   // Every source collection stays empty: this proof never invokes the source seeder.
   const db = getReviewAdminDb();
   const sourceSnapshots = await Promise.all(

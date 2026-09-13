@@ -135,3 +135,20 @@ process cap. Repair production build, project checks and docs guardrails passed.
 The exact-head certificate will recheck the positive, component/staleness and
 atomic rollback groups separately before independent acceptance. Unchanged
 component and fixture author results above are reused with that scope.
+
+The first hosted repair run exposed an old source-marker literal; its one-character
+update preserves the no-validation-in-persistence guardrail (27 tests passed).
+The next hosted run passed all 6,140 node tests and exposed two per-file UI mocks
+missing the new environment export. Both mocks now explicitly return false;
+30 dashboard-boundary tests passed and all 10 smoke tests passed with CI's UTC
+timezone. One local smoke assertion had expected UTC text in the local timezone;
+no production formatter or assertion was changed for it.
+
+The first exact-head certificate attempt timed out and recorded FAIL, including
+unclean teardown; its leftover emulator was stopped explicitly. Diagnostic 15
+then passed with the same certificate flags/reports (3.9m): both teams use
+independent pages observing the same committed world, preserving each full
+History/Compare/leave-return/reload sequence and complete before/after state
+checks. Both pick labels are asserted after each reload. All six explicit
+1280x720 captures, full trace and structured receipts remain required. Final
+exact-head CI, certificate and independent acceptance are still pending.
