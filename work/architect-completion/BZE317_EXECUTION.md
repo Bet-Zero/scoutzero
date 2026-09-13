@@ -141,3 +141,26 @@ passed. Browser negative coverage adds the edited-world skip case; repaired
 full workflow diagnostics, replacement exact-head hosted CI/certification and
 focused independent review are recorded in the PR. Prior evidence is retained
 separately; the old candidate cannot satisfy the final landing gate.
+
+## Proof-harness readiness repair
+
+Automated finding R2 (inline3999045718) identified the alternate Codespaces
+readiness message. The owned season harness now accepts that exact message or
+the existing localhost message, and waits for Firebase's complete emulator
+readiness signal. A real Codespaces-mode startup probe uses loopback binding,
+checks HTTP readiness, and verifies all eight harness ports close after the
+existing teardown grace period. Its first early-shutdown attempt exposed an
+orphaned emulator before full startup; that failure is retained separately and
+the exact owned child was stopped. The repaired probe passed.
+
+The focused typecheck and 19 workflow checks passed (the workflow check needed
+its permitted retry after a sandbox IPC denial). This changes only harness
+startup recognition. The complete repaired R1 browser diagnostics, domain/UI
+checks and application build remain applicable to their unchanged surfaces;
+the final candidate still requires exact-head CI and browser certification.
+
+Graphify's 18,551-to-18,546 shrink was inspected before override: eight obsolete
+generated `docs/schema` nodes were removed, eight unchanged reference-schema
+nodes received normalized IDs, and three new prerequisite symbols were added.
+No application module was lost. The old graph and exact node delta were retained
+before the explicit AST reconciliation.

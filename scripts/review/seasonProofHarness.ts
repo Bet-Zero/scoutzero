@@ -57,7 +57,13 @@ export async function startSeasonProofHarness(
         'utf8'
       );
       if (
-        output.includes('[review] Review mode ready at http://127.0.0.1:5173')
+        output.includes('All emulators ready!') &&
+        (output.includes(
+          '[review] Review mode ready at http://127.0.0.1:5173'
+        ) ||
+          output.includes(
+            '[review] Review mode ready (Codespaces — open the forwarded port 5173 in your browser)'
+          ))
       )
         return stop;
       await new Promise((resolve) => setTimeout(resolve, 250));
