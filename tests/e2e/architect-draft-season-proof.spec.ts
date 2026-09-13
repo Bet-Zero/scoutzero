@@ -198,12 +198,10 @@ test('season record persists with all thirty histories and exact reload', async 
     () => Reflect.get(window, '__draftSeasonReview').payload
   );
   retain('season-proof.json', { uid, payload, result, before, advanced });
-  await page
-    .context()
-    .storageState({
-      path: path.join(proofDir, 'browser-state.json'),
-      indexedDB: true,
-    });
+  await page.context().storageState({
+    path: path.join(proofDir, 'browser-state.json'),
+    indexedDB: true,
+  });
 });
 
 test('season continuation trades the persisted world and reloads both teams', async ({
@@ -296,12 +294,10 @@ test('season continuation trades the persisted world and reloads both teams', as
         await expect(detail).toContainText(
           team === 'BOS' ? 'freeze triggered' : 'freeze not triggered'
         );
-        const disclosure = detail
-          .getByRole('listitem')
-          .filter({
-            hasText:
-              'Synthetic review only. Later restriction changes and trading availability are not established by this record.',
-          });
+        const disclosure = detail.getByRole('listitem').filter({
+          hasText:
+            'Synthetic review only. Later restriction changes and trading availability are not established by this record.',
+        });
         await disclosure.scrollIntoViewIfNeeded();
         await expect(disclosure).toBeVisible();
         await expect(
@@ -398,6 +394,46 @@ test('season review rejects forged and stale supplied inputs without writes', as
     expect(await savedState(id)).toEqual(before);
     results.push({ kind, result });
   }
+  const skippedId = `${worldId}_skipped_advance`;
+  await prepare(page, skippedId); // Issuance alone does not perform Season Advance.
+  const skippedRoot = getReviewAdminDb()
+    .collection(ARCHITECT_WORLDS_COLLECTION)
+    .doc(skippedId);
+  const edited = getReviewAdminDb().batch();
+  edited.update(skippedRoot, {
+    currentSeason: '2026-27',
+    currentYear: 2027,
+    asOfDate: '2026-07-01',
+    actionCount: 1,
+  });
+  for (const team of (
+    await skippedRoot.collection(ARCHITECT_WORLD_TEAMS_SUBCOLLECTION).get()
+  ).docs)
+    edited.update(team.ref, { season: '2026-27' });
+  await edited.commit();
+  const skippedBefore = await savedState(skippedId);
+  const skipped = await page.evaluate(async () => {
+    const { uid, id, payload } = Reflect.get(window, '__draftSeasonReview');
+    const modulePath =
+      '/src/features/architect/utils/draftReview/capability.ts';
+    const { prepareSyntheticDraftReview } = await import(modulePath);
+    try {
+      const result = await prepareSyntheticDraftReview({
+        userId: uid,
+        worldId: id,
+        operationId: 'skipped-season-trade',
+        seasonId: '2026-27',
+        mutationType: 'executeTrade',
+        payload,
+      });
+      return { status: result.status };
+    } catch {
+      return { status: 'blocked' };
+    }
+  });
+  expect(skipped.status).toBe('blocked');
+  expect(await savedState(skippedId)).toEqual(skippedBefore);
+  results.push({ kind: 'skipped-advance', result: skipped });
   retain('negative-proof.json', results);
 });
 

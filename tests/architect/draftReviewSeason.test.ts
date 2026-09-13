@@ -308,6 +308,114 @@ describe('synthetic freeze history through the existing Season Advance writer', 
         .success
     ).toBe(true);
   }, 30000);
+  it('rejects a v2 trade in a world edited to skip the persisted advance', async () => {
+    const fixture = seed();
+    seedMockData(root, {
+      ...fixture.metadata,
+      currentSeason: '2026-27',
+      asOfDate: '2026-07-01',
+      actionCount: 1,
+    });
+    for (const [team, data] of Object.entries(fixture.teams))
+      seedMockData(`${root}/teams/${team}`, { ...data, season: '2026-27' });
+    const before = state();
+    await expect(
+      prepareSyntheticDraftReview({
+        ...request,
+        seasonId: '2026-27',
+        mutationType: 'executeTrade',
+        payload: fixture.source.proposal,
+      })
+    ).rejects.toThrow();
+    expect(state()).toEqual(before);
+  });
+  it('requires the exact persisted manifest, event and every history before the v2 trade', async () => {
+    const fixture = seed();
+    const authority = await prepareSyntheticDraftSeasonReview(request);
+    expect(
+      (await advanceSeasonInWorld(worldId, { draftReviewAuthority: authority }))
+        .success
+    ).toBe(true);
+    const persisted = state();
+    const args = {
+      ...request,
+      seasonId: '2026-27',
+      mutationType: 'executeTrade',
+      payload: fixture.source.proposal,
+    };
+    for (const [path, field, value] of [
+      [`${root}/seasonTransitions/${transitionId}`, '__missing__', null],
+      [`${root}/events/${transitionId}`, '__missing__', null],
+      [`${root}/seasonHistory/2025-26__WAS`, '__missing__', null],
+      [
+        `${root}/seasonTransitions/${transitionId}`,
+        'operationId',
+        'wrong-operation',
+      ],
+      [`${root}/events/${transitionId}`, 'metadata', {}],
+      [`${root}/seasonHistory/2025-26__WAS`, 'worldId', 'other-world'],
+      [`${root}/seasonHistory/2025-26__BOS`, 'afterTotals', {}],
+      [`${root}/seasonHistory/2025-26__MIA`, 'draftReviewFreezeEvent', {}],
+    ] as const) {
+      resetMockDataStore();
+      for (const [key, data] of persisted.entries()) seedMockData(key, data);
+      expect(state()).toEqual(persisted);
+      if (field === '__missing__') {
+        resetMockDataStore();
+        for (const [key, data] of persisted.entries())
+          if (key !== path) seedMockData(key, data);
+      } else
+        seedMockData(path, {
+          ...(getMockData(path) as object),
+          [field]: value,
+        });
+      const before = state();
+      await expect(
+        prepareSyntheticDraftReview(args),
+        `${path}:${field}`
+      ).rejects.toThrow();
+      expect(state()).toEqual(before);
+    }
+  }, 30000);
+  it('fences season evidence changed at the actual later-trade transaction', async () => {
+    const fixture = seed();
+    const authority = await prepareSyntheticDraftSeasonReview(request);
+    expect(
+      (await advanceSeasonInWorld(worldId, { draftReviewAuthority: authority }))
+        .success
+    ).toBe(true);
+    const args = {
+      ...request,
+      operationId: 'trade-after-season',
+      seasonId: '2026-27',
+      mutationType: 'executeTrade',
+      payload: fixture.source.proposal,
+    };
+    const prepared = await prepareSyntheticDraftReview(args);
+    expect(prepared.status).toBe('prepared');
+    if (prepared.status !== 'prepared') throw new Error('No prepared trade');
+    const original = firestore.runTransaction;
+    let expected: ReturnType<typeof state> | undefined;
+    vi.spyOn(firestore, 'runTransaction').mockImplementation(
+      async (...transactionArgs) => {
+        const path = `${root}/seasonHistory/2025-26__WAS`;
+        seedMockData(path, {
+          ...(getMockData(path) as object),
+          changedAfterTradeReview: true,
+        });
+        expected = state();
+        return original(...transactionArgs);
+      }
+    );
+    const result = await applyWorldMutation({
+      ...args,
+      draftReviewAuthority: prepared.authority,
+    });
+    expect(expected).toBeDefined();
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/changed before commit/);
+    expect(state()).toEqual(expected);
+  }, 30000);
 });
 
 describe('historical result contract without a new freeze algorithm', () => {

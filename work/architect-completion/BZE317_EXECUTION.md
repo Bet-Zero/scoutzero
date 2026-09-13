@@ -116,3 +116,28 @@ checker verdict, any delta repairs, and landing. No manual full suite or broad
 trade/Architect suite was run: this change uses the scoped checks above. No
 NBA source research, production activation or W10/V1 acceptance is claimed.
 Prior failed or stopped diagnostic runs are not passes.
+
+## Material automated finding and focused repair
+
+PR540 finding R1 (inline3998955079) correctly identified that registering the
+v2 pin alone permitted an owner-edited world to skip Season Advance. An isolated
+probe of original candidate de68f41936dc96201afd202451ef964c706c7344
+demonstrated that exact counterexample (one case passed as an expected defect).
+No independent Claude prompt had been generated or acceptance claimed.
+
+The v2 issuer now requires the exact persisted transition manifest, event, and
+all 30 season histories. It checks accepted authority, source/release/date and
+operation context, current committed team digests, history links and book
+digests, and the historical freeze results through the unchanged A12.4 owner.
+No new algorithm or current trading verdict is inferred from the freeze record.
+Every consumed history/manifest/event document joins the existing trade
+transaction's stale-input fence. The accepted seven v1 pins take their existing
+path with no added season requirement.
+
+Repair evidence: 23 focused node cases passed in 77.49 seconds, including the
+legal control, the original skip counterexample, missing/altered records, and
+a changed history injected only at the actual trade transaction. Typecheck
+passed. Browser negative coverage adds the edited-world skip case; repaired
+full workflow diagnostics, replacement exact-head hosted CI/certification and
+focused independent review are recorded in the PR. Prior evidence is retained
+separately; the old candidate cannot satisfy the final landing gate.

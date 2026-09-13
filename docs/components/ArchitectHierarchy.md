@@ -380,6 +380,7 @@ utils/
     seasonCapability.ts
     seasonEvidence.ts
     seasonFixturePin.ts
+    seasonPrerequisite.ts
     seasonTotals.ts
   draftStepien.ts
   entitlements/
@@ -673,5 +674,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-09-13T06:16:48.452Z*
+*Generated on: 2026-09-13T06:57:21.522Z*
 *Auto-updated by: npm run docs*

@@ -223,6 +223,35 @@ export async function prepareSyntheticDraftReview(
   const documentSnapshots: Record<string, string | null> = {
     [metadataRef.path]: mutationSnapshotText(metadata),
   };
+  if (source.version === 2) {
+    const lifecycle = loaded.foundation.retainedArtifacts.find(
+      (entry) => entry.id === 'synthetic-season-source'
+    );
+    if (
+      !lifecycle ||
+      (await sha256Digest(canonicalStringify(lifecycle.content))) !==
+        `sha256:${lifecycle.sha256}`
+    )
+      throw new Error(
+        'The v2 trade has no retained synthetic season authority.'
+      );
+    const { captureSyntheticSeasonPrerequisite } = await import(
+      './seasonPrerequisite'
+    );
+    Object.assign(
+      documentSnapshots,
+      await captureSyntheticSeasonPrerequisite({
+        worldId: args.worldId,
+        metadata,
+        pin,
+        lifecycle: lifecycle.content,
+        teams: Object.fromEntries(
+          teamSnapshots.docs.map((snapshot) => [snapshot.id, snapshot.data()])
+        ),
+        readDocument: async (path) => (await getDoc(doc(db, path))).data(),
+      })
+    );
+  }
   await Promise.all(
     teamSnapshots.docs.map(async (snapshot) => {
       const team = snapshot.data();

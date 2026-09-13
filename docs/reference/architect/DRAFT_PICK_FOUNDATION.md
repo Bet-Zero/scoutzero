@@ -305,6 +305,12 @@ rosters are the Season Advance read authority; the subsequent trade retains its
 separate dependency checks. Forged fields and production builds cannot activate
 this handoff.
 
+The v2 trade issuer requires the matching persisted season manifest, event and
+all 30 histories, including source/context, current team and salary-book digest
+links. Merely editing a world to the target season does not qualify. Those
+records join the existing trade transaction's commit-time input checks; the
+seven earlier v1 fixtures retain their separate contract.
+
 Detailed salary books remain in the existing immutable season histories. The
 synthetic event stores exact scalar totals plus history IDs and digests, avoiding
 duplicate all-team ledgers in one Firestore document without relaxing the size
