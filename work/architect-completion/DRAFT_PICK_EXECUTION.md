@@ -9,9 +9,9 @@ baseline adoption, automatic event replay, world migration or W10/V1 acceptance.
 
 ## Accepted authority and current evidence
 
-Accepted main: `ce6d3557a5aba6f82e16e71535f888e119d8be1e`;
-[post-merge CI passed](https://github.com/Bet-Zero/scoutzero/actions/runs/34724465431).
-Its tree exactly equals accepted cash-sale candidate `eb1b8d7435b7b9acc54687ab5188e57fa61a9813`.
+Accepted main: `457b453585423c94ebc12649a42b4fb8b29cdccb`;
+[post-merge CI passed](https://github.com/Bet-Zero/scoutzero/actions/runs/34726326745).
+Its tree exactly equals accepted composition candidate `b5c05311d8ecee1e082344ed750eb2327959faf9`.
 Local main/origin/live main are synchronized. Foundation PR533 and BZE-267/310
 remain accepted and Done.
 
@@ -36,8 +36,8 @@ The twelve projections and the A/B/C/D overlay have not been promoted.
 | Corrected structural assessment | Independently accepted; BZE-309 open | Preserve blockers and source-search stop |
 | Original ownership / supplied Stepien | BZE-312 Done; PR535 accepted and landed | Reuse accepted components |
 | Isolated cash-sale prohibition | BZE-314 Done; PR537 accepted and landed | Reuse accepted component |
-| Component composition / blocked ingress | BZE-313 / PR536, integrating accepted main | Repair unidentified Apron selection; final checks and focused review |
-| Retained release loading / successor comparison | BZE-311 / PR534, frozen on old main | Synchronize only after PR536 lands; new final-head review |
+| Component composition / blocked ingress | BZE-313 Done; PR536 accepted and landed | Reuse accepted composition; supported consumption remains unfinished |
+| Retained release loading / successor comparison | BZE-311 / PR534, synchronizing accepted stack | Final integration checks; replacement exact-head review |
 | Supported review-mode saved-world positive path | Authorized successor after the four land | One coherent next issue; reuse existing mutation/persistence |
 
 Every objective code candidate needs unconditional independent ACCEPT, green
@@ -66,7 +66,7 @@ receipt. Only the owner can activate production first-round trading or accept W1
   Exact CI34723844191 and post-merge CI34724465431 passed. No mixed-consideration
   allocation, economic equivalence classifier or valuation was invented.
 
-## Current BZE-313 integration risk and proof
+## Accepted BZE-313 integration and proof
 
 The old frozen composition candidate is `f167d1850593e387bb8d13af5cddbf498fa5061e`.
 Normal synchronization with accepted cash-sale main has one documentation conflict;
@@ -80,8 +80,8 @@ unrelated picks may be ignored; other components remain independently visible an
 Apply remains blocked. Seven new regression cases failed against the old locator.
 The repair retains unreadable identities instead of silently discarding them.
 All 25 composition and nine real mutation-ingress cases passed, including the
-seven new discriminators; typecheck passed. No new independent acceptance is
-claimed before the exact replacement-head gates and focused review.
+seven new discriminators; typecheck passed. The following identity repair
+preceded final independent review.
 
 The completed automated review of `c5fa4da156f64dc819c23ad44dd3a3105d51a8f6`
 identified one remaining identity edge case: an opaque Apron ID could disagree
@@ -93,8 +93,12 @@ variants and an incomplete-identity control failed before this repair; a coheren
 different pick still passes the unrelated-input control. All 28 composition cases,
 typecheck, scoped Markdown and diff checks passed. The nine preceding mutation
 checks are reused: their complete fixture identity and actual ingress path are
-unchanged. Replacement exact-head gates and independent review remain pending.
-The original finding is retained in PR536.
+unchanged. Final candidate `b5c05311d8ecee1e082344ed750eb2327959faf9` received
+unconditional Claude ACCEPT after 22 independently selected probe oracles passed.
+No material findings or owner-judgment limitations remain. Exact-head CI34725623729
+and post-merge CI34726326745 passed; the landed tree is exact and main synchronized.
+The original finding and separate original review are retained in PR536 and the
+owner-only checkpoint. This acceptance covers composition only.
 
 Earlier BZE-313 automated finding 3996327901 remains part of the review scope:
 its initial Apply call did not receive the review. The retained correction attaches
@@ -103,15 +107,51 @@ metadata. Both are rejected at the actual validator before a write batch opens.
 This proves blocked ingress, not supported review consumption. No successful
 first-round mutation, receipt/history persistence or room/reload flow exists yet.
 
-## BZE-311 retained candidate and next integration
+## BZE-311 retained implementation and final integration
 
-[PR534](https://github.com/Bet-Zero/scoutzero/pull/534) remains frozen at
-`f8a92dc44f1dd718136080c4381e49730affd24c`. Six automated findings are settled;
+[PR534](https://github.com/Bet-Zero/scoutzero/pull/534) was frozen at
+`f8a92dc44f1dd718136080c4381e49730affd24c`. Six automated findings were settled;
 28 release tests, typecheck and CI34695324325 passed. The private retained-load,
-preservation and reload probe preserves all IDs/counts/lineages. That evidence is
-reused where unchanged. Only after PR536 lands, merge current main normally,
-validate actual integration risk and generate a replacement exact-head assignment.
-Do not present its old immutable request as a current-base acceptance request.
+preservation and reload probe preserved all IDs/counts/lineages. That original
+candidate and immutable assignment remain retained, but the old-base assignment
+is superseded for final review.
+
+Normal synchronization onto accepted composition main changed no release loader,
+comparison, schema, foundation dependency or test implementation. Three real
+conflicts were documentation only: both independent foundation sections are
+preserved, the hierarchy includes both implementations, and this execution record
+reflects the landed stack. The original work-log versions remain in git.
+
+Risk contract: retained data integrity and coexistence on the current main.
+The 28-case release suite passed on this combined tree. Scoped installed
+Markdown lint, docs guardrails and diff checks passed. Exact-head hosted CI
+remains required after the normal merge commit.
+The unchanged original foundation/private preservation/first-round boundary
+checks are reused with their scope stated. The legacy schema generator does not
+cover these Zod contracts. No new browser/emulator behavior or production imports
+are introduced. A replacement immutable Claude assignment follows final-head CI
+and settled review threads; unconditional acceptance is still required.
+
+## BZE-311 focused independent correction
+
+Final integrated candidate `ef86b425383ef7443588fb5e5e3e2d1a3a5d3984` passed
+CI34726750732, then received independent REVISE for one material finding: the
+loader hashed UTF-8 replacement bytes for a raw lone UTF-16 surrogate while
+parsing the original, different string. That allowed different parsed content
+under one payload pin/release ID. Original report SHA-256
+`9a5c0cdfd1724af042dcd6293123978532249f95b8924a7aa71e16753b529271` is retained
+unchanged, separate from this correction and its eventual verdict.
+
+Two high/low-surrogate regression cases failed before repair while 32 other
+cases passed. The loader now rejects text that does not round-trip through UTF-8
+exactly, before hashing or parsing. The shared digest helper and comparison
+algorithm remain unchanged. Four positive controls retain replacement characters,
+paired Unicode and explicit JSON escapes. All 34 release cases, typecheck,
+scoped Markdown and diff checks passed after repair. Minor review observations are clarified in the foundation doc: unmapped
+impact limits carry-forward claims; earlier-dated proposals are comparison only,
+not adoption. Replacement exact-head gates and focused delta review are required.
+Reuse the original review's unaffected material findings; no private corpus replay
+or re-audit of the accepted component stack is justified by this narrow repair.
 
 ## Validation boundaries and remaining product proof
 

@@ -366,6 +366,8 @@ utils/
   draftPickInputResolver.ts
   draftPickLineage.ts
   draftPickOwnership.ts
+  draftPickRelease.ts
+  draftPickReleaseComparison.ts
   draftPickReview.ts
   draftPickUtils.ts
   draftStepien.ts
