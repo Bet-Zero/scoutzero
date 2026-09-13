@@ -100,17 +100,27 @@ const fmtDelta = (v: number | null): string => {
 const RosterList = ({
   entries,
   emptyLabel,
+  draftEntries = [],
 }: {
   entries: Stage3RosterEntry[];
   emptyLabel: string;
+  draftEntries?: { entitlementId: string; displayName: string }[];
 }) => {
-  if (entries.length === 0) {
+  if (entries.length === 0 && draftEntries.length === 0) {
     return (
       <p className="text-xs text-cockpit-text-ghost italic">{emptyLabel}</p>
     );
   }
   return (
     <ul className="space-y-0.5">
+      {draftEntries.map((entry) => (
+        <li
+          key={`pick:${entry.entitlementId}`}
+          className="text-xs text-cockpit-text-secondary"
+        >
+          {entry.displayName}
+        </li>
+      ))}
       {entries.map((entry, index) => (
         <li
           key={entry.playerId}
@@ -460,6 +470,7 @@ export const ComparisonSection = ({
             <div className="mt-1">
               <RosterList
                 entries={viewModel.rosterAdditions}
+                draftEntries={viewModel.draftAssetDelta?.additions}
                 emptyLabel="None detected"
               />
             </div>
@@ -470,6 +481,7 @@ export const ComparisonSection = ({
             <div className="mt-1">
               <RosterList
                 entries={viewModel.rosterRemovals}
+                draftEntries={viewModel.draftAssetDelta?.removals}
                 emptyLabel="None detected"
               />
             </div>

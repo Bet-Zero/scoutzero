@@ -523,6 +523,7 @@ export function normalizeComputeWorldMutationArgs(
 export function computeTypedWorldMutation<
   TMutationType extends SupportedComputeMutationType,
 >({
+  draftReviewAuthority,
   mutationType,
   payload,
   currentState,
@@ -534,6 +535,7 @@ export function computeTypedWorldMutation<
   authoringIdentity,
   recordedAt,
 }: {
+  draftReviewAuthority?: object;
   mutationType: TMutationType;
   payload:
     | PublicMutationPayloadInputByType[TMutationType]
@@ -548,6 +550,7 @@ export function computeTypedWorldMutation<
   recordedAt?: string;
 }): ComputeResultLike {
   return computeNormalizedWorldMutation({
+    draftReviewAuthority,
     mutationType,
     payload: normalizeComputeWorldMutationPayload(mutationType, payload),
     currentState,
@@ -668,6 +671,7 @@ export function computeNormalizedWorldMutation(
 
         // TM-3B: Prepare trade apply inputs in one canonical handoff surface.
         const tradeApplyPreparation = buildTradeApplyPreparation({
+          draftReviewAuthority: args.draftReviewAuthority,
           payload: tradePayload,
           currentState: tradeState,
           seasonId,

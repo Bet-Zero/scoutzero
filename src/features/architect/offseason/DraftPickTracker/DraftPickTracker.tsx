@@ -16,11 +16,15 @@ type DraftPickInventoryRow = {
 type DraftPickTrackerProps = {
   pickLog?: DraftPickLogEntry[];
   currentPicks?: Record<string, DraftPickInventoryRow | undefined>;
+  inventoryUnavailable?: boolean;
+  usesSavedMoves?: boolean;
 };
 
 export const DraftPickTracker = ({
   pickLog = [],
   currentPicks = {},
+  inventoryUnavailable = false,
+  usesSavedMoves = false,
 }: DraftPickTrackerProps) => {
   const years = Array.from(new Set(Object.keys(currentPicks).map(Number))).sort(
     (a, b) => a - b
@@ -30,7 +34,11 @@ export const DraftPickTracker = ({
     <div className="text-white">
       <h3 className="text-lg font-semibold mb-2">Draft Pick Trade Log</h3>
       {pickLog.length === 0 ? (
-        <p>No draft pick trades logged.</p>
+        <p>
+          {usesSavedMoves
+            ? 'See Saved Moves for draft-pick trades.'
+            : 'No draft pick trades logged.'}
+        </p>
       ) : (
         <table
           data-testid="team-history-pick-log-table"
@@ -65,7 +73,11 @@ export const DraftPickTracker = ({
 
       <h3 className="mt-6 text-lg font-semibold">Current Pick Inventory</h3>
       {years.length === 0 ? (
-        <p>No picks currently owned.</p>
+        <p>
+          {inventoryUnavailable
+            ? 'Pick inventory is not available in this view.'
+            : 'No picks currently owned.'}
+        </p>
       ) : (
         <table
           data-testid="team-history-current-picks-table"
@@ -96,4 +108,3 @@ export const DraftPickTracker = ({
     </div>
   );
 };
-

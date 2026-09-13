@@ -45,7 +45,10 @@ const parsePortEnv = (value: string | undefined, fallback: number): number => {
   return port;
 };
 
-const UI_PORT = parsePortEnv(process.env.SCOUTZERO_EMU_UI_PORT, DEFAULT_UI_PORT);
+const UI_PORT = parsePortEnv(
+  process.env.SCOUTZERO_EMU_UI_PORT,
+  DEFAULT_UI_PORT
+);
 
 /**
  * Demo project ID for review mode.
@@ -579,7 +582,13 @@ const main = async () => {
   // Seed data
   log('[review] Seeding review data...');
   try {
-    await runSeed();
+    if (process.env.ARCHITECT_REVIEW_WORLD_ONLY === 'true') {
+      log(
+        '[review] World-only fixture mode: source-collection seeder skipped.'
+      );
+    } else {
+      await runSeed();
+    }
   } catch (error) {
     log(`[review] ⚠️  Seed warning: ${String(error)}`);
     // Continue anyway - data might already exist
@@ -610,7 +619,9 @@ const main = async () => {
   }
 
   if (process.env.CODESPACES === 'true') {
-    log(`[review] Review mode ready (Codespaces — open the forwarded port ${VITE_PORT} in your browser)`);
+    log(
+      `[review] Review mode ready (Codespaces — open the forwarded port ${VITE_PORT} in your browser)`
+    );
   } else {
     log(`[review] Review mode ready at http://127.0.0.1:${VITE_PORT}`);
   }

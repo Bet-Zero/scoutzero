@@ -45,6 +45,11 @@
  */
 
 import { db } from '@/firebaseConfig';
+import {
+  verifyDraftReviewApply,
+  requireDraftReviewApply,
+} from '@/features/architect/utils/draftReview/capability';
+import { DraftReviewMutationReceiptZ } from '@/schemas/draftPickReviewMutation';
 import { getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import {
   getWorldMetadata,
@@ -323,6 +328,7 @@ export async function applyWorldMutation({
   payload,
   timestamp = Date.now(),
   operationId: operationIdOverride,
+  draftReviewAuthority,
 }: ApplyWorldMutationArgs): Promise<ArchitectMutationResult> {
   // Input validation
   if (!userId) {
@@ -430,9 +436,30 @@ export async function applyWorldMutation({
       );
     }
 
+    if (draftReviewAuthority !== undefined) {
+      if (
+        mutationType !== 'executeTrade' ||
+        !worldAsOfDate ||
+        asOfDate !== worldAsOfDate
+      )
+        throw new Error(
+          'Draft review requires the exact saved-world trade date.'
+        );
+      verifyDraftReviewApply(draftReviewAuthority, {
+        userId,
+        worldId,
+        seasonId,
+        operationId,
+        payload: sanitizedPayload,
+        state: currentState,
+        asOfDate: worldAsOfDate,
+      });
+    }
+
     // PHASE 2: COMPUTE (PURE) - Calculate mutation result
     const computeResult: ComputeResultLike = computeTypedWorldMutation({
       mutationType,
+      draftReviewAuthority,
       payload: sanitizedPayload,
       currentState,
       seasonId,
@@ -446,6 +473,36 @@ export async function applyWorldMutation({
 
     if (!computeResult.success) {
       return buildMutationFailureResult(computeResult.error);
+    }
+
+    if (draftReviewAuthority !== undefined) {
+      const review = requireDraftReviewApply(draftReviewAuthority);
+      const actual = (computeResult.entitlementUpdates ?? [])
+        .map((e) => `${e.entitlementId}:${e.holderTeam}`)
+        .sort();
+      const expected = review.movements
+        .map((e) => `${e.entitlementId}:${e.toTeam}`)
+        .sort();
+      if (JSON.stringify(actual) !== JSON.stringify(expected))
+        throw new Error(
+          'Computed pick movement differs from the consumed review.'
+        );
+      computeResult.metadata = {
+        ...computeResult.metadata,
+        draftReviewReceipt: DraftReviewMutationReceiptZ.parse({
+          scope: 'synthetic-review-only',
+          operationId,
+          worldId,
+          releaseId: review.releaseId,
+          releaseSha256: review.releaseSha256,
+          asOfDate: review.asOfDate,
+          movements: review.movements,
+        }),
+        picksTraded: review.movements.flatMap((p) => {
+          const name = `${p.originalTeam} ${p.year} ${p.round === 1 ? 'first' : 'second'}-round pick`;
+          return [`${p.fromTeam}: out ${name}`, `${p.toTeam}: in ${name}`];
+        }),
+      };
     }
 
     // A governed sign-and-trade can occur later than the saved world's
@@ -800,6 +857,7 @@ export async function applyWorldMutation({
 
     const persistResult: PersistWorldMutationResult =
       await persistWorldMutation({
+        draftReviewAuthority,
         worldId,
         seasonId,
         mutationType,
@@ -863,11 +921,13 @@ export async function applyWorldMutation({
     }
 
     // PHASE 5: POST-UPDATE - Update world stats and metadata
-    await updateWorldStats(
-      worldId,
-      getMutationActionType(mutationType),
-      teamCodes
-    );
+    if (draftReviewAuthority === undefined) {
+      await updateWorldStats(
+        worldId,
+        getMutationActionType(mutationType),
+        teamCodes
+      );
+    }
     writesSummary.worldStatsUpdated = true;
 
     // Return success result

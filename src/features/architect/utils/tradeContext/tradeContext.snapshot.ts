@@ -62,6 +62,7 @@ import { buildPostTradeTeamsSnapshot } from './tradeContext.snapshot.builder';
  * This is required for correct TPE absorption validation.
  */
 export function validatePostTradeSnapshotForContext({
+  draftReviewAuthority,
   snapshot,
   payload,
   seasonId,
@@ -76,7 +77,10 @@ export function validatePostTradeSnapshotForContext({
       teams: snapshot.validationTeams,
       capProjections: payload.capProjections || {},
       currentYear,
-      tradeCtx: buildTradeValidatorContext(payload, trustedWorldLineage),
+      tradeCtx: {
+        ...buildTradeValidatorContext(payload, trustedWorldLineage),
+        draftReviewAuthority,
+      },
     };
 
     const validation = validateTrade(validationInput) as TradeValidationResult;
@@ -290,6 +294,7 @@ export function buildSignAndTradeTradeHandoff({
  * anything.
  */
 export function buildTradeApplyPreparation({
+  draftReviewAuthority,
   payload,
   currentState,
   seasonId,
@@ -331,6 +336,7 @@ export function buildTradeApplyPreparation({
   });
 
   const validatedContext = validatePostTradeSnapshotForContext({
+    draftReviewAuthority,
     snapshot: postTradeSnapshot,
     payload: validationPayload,
     seasonId,

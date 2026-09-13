@@ -81,6 +81,10 @@ export interface Stage3ComparisonScope {
 }
 
 export interface Stage3ComparisonViewModel {
+  draftAssetDelta?: {
+    additions: import('./deriveDraftAssetDelta').DraftAssetDeltaEntry[];
+    removals: import('./deriveDraftAssetDelta').DraftAssetDeltaEntry[];
+  } | null;
   scope: Stage3ComparisonScope;
   /** Players appearing in acquisition-type events who are currently on roster. */
   rosterAdditions: Stage3RosterEntry[];

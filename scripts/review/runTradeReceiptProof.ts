@@ -9,6 +9,14 @@ import sharp from 'sharp';
 const PROOF_SPEC = 'tests/e2e/architect-trade-receipt-proof.spec.ts';
 const PROOF_PORTS = [5173, 8082, 9099, 5001, 4001, 4400, 4500, 9150];
 
+export const DRAFT_REVIEW_SCREENSHOTS = ['bos', 'mia'].flatMap((team) =>
+  ['history', 'compare', 'reload'].map((state) => ({
+    key: `${team}-${state}`,
+    filename: `${team}-${state}-1280x720.png`,
+  }))
+);
+type ScreenshotDefinition = { key: string; filename: string };
+
 export const GOVERNED_TRADE_RECEIPT_SCREENSHOTS = [
   { key: 'screenshot', filename: 'trade-receipt-1280x720.png' },
   {
@@ -41,16 +49,13 @@ export const GOVERNED_TRADE_RECEIPT_SCREENSHOTS = [
   },
 ] as const;
 
-type GovernedScreenshotKey =
-  (typeof GOVERNED_TRADE_RECEIPT_SCREENSHOTS)[number]['key'];
-
 interface ScreenshotReceipt {
   path: string;
   sha256: string;
 }
 
 export type GovernedScreenshotArtifacts = Record<
-  GovernedScreenshotKey,
+  string,
   ScreenshotReceipt | null
 >;
 
@@ -133,10 +138,11 @@ function hashFile(filePath: string): string {
 
 export function collectGovernedScreenshotArtifacts(
   artifactDir: string,
-  repoRoot: string
+  repoRoot: string,
+  definitions: readonly ScreenshotDefinition[] = GOVERNED_TRADE_RECEIPT_SCREENSHOTS
 ): GovernedScreenshotArtifacts {
   return Object.fromEntries(
-    GOVERNED_TRADE_RECEIPT_SCREENSHOTS.map(({ key, filename }) => {
+    definitions.map(({ key, filename }) => {
       const filePath = path.join(artifactDir, filename);
       return [
         key,
@@ -154,12 +160,11 @@ export function collectGovernedScreenshotArtifacts(
 export async function verifyGovernedScreenshotArtifacts(
   artifactDir: string,
   repoRoot: string,
-  artifacts: GovernedScreenshotArtifacts
+  artifacts: GovernedScreenshotArtifacts,
+  definitions: readonly ScreenshotDefinition[] = GOVERNED_TRADE_RECEIPT_SCREENSHOTS
 ): Promise<GovernedScreenshotVerification> {
   const errors: string[] = [];
-  const expectedKeys = GOVERNED_TRADE_RECEIPT_SCREENSHOTS.map(
-    ({ key }) => key
-  );
+  const expectedKeys = definitions.map(({ key }) => key);
   const actualKeys = Object.keys(artifacts);
   if (
     actualKeys.length !== expectedKeys.length ||
@@ -171,7 +176,7 @@ export async function verifyGovernedScreenshotArtifacts(
   }
 
   const recordedPaths = new Set<string>();
-  for (const { key, filename } of GOVERNED_TRADE_RECEIPT_SCREENSHOTS) {
+  for (const { key, filename } of definitions) {
     const receipt = artifacts[key];
     if (!receipt) {
       errors.push(`${filename} is missing`);
@@ -255,13 +260,18 @@ async function openProofPorts(): Promise<number[]> {
   return PROOF_PORTS.filter((_, index) => states[index]);
 }
 
-export async function runTradeReceiptProof(): Promise<number> {
+export async function runTradeReceiptProof(
+  draftReview = false
+): Promise<number> {
   const identity = resolveProofIdentity();
+  const definitions = draftReview
+    ? DRAFT_REVIEW_SCREENSHOTS
+    : GOVERNED_TRADE_RECEIPT_SCREENSHOTS;
   const artifactDir = path.join(
     identity.repoRoot,
     'tmp',
     'browser-proofs',
-    'trade-receipt',
+    draftReview ? 'draft-review' : 'trade-receipt',
     `${identity.candidate}-${timestampSlug()}`
   );
   const testResultsDir = path.join(artifactDir, 'test-results');
@@ -287,7 +297,7 @@ export async function runTradeReceiptProof(): Promise<number> {
 
   const commandArgs = [
     'test',
-    PROOF_SPEC,
+    draftReview ? 'tests/e2e/architect-draft-review-proof.spec.ts' : PROOF_SPEC,
     '--workers=1',
     '--project=chromium',
     '--reporter=line,html',
@@ -297,56 +307,114 @@ export async function runTradeReceiptProof(): Promise<number> {
   process.stdout.write(`Exact candidate: ${identity.candidate}\n`);
   process.stdout.write(`Artifact directory: ${artifactDir}\n`);
 
-  const result = spawnSync(playwrightBinary, commandArgs, {
-    cwd: identity.repoRoot,
-    env: {
-      ...process.env,
-      PLAYWRIGHT_ARCHITECT_REVIEW_MODE: 'true',
-      PLAYWRIGHT_HTML_OUTPUT_DIR: reportDir,
-      PLAYWRIGHT_HTML_OPEN: 'never',
-      VITE_SHOW_TRADE_RECEIPT: 'true',
-      SCOUTZERO_PROOF_CANDIDATE: identity.candidate,
-      SCOUTZERO_BROWSER_PROOF_DIR: artifactDir,
-    },
-    stdio: 'inherit',
-  });
+  // Each focused draft proof has its own four-minute budget and clean harness.
+  // Keep one exact-head manifest without treating a stopped combined run as pass.
+  const groups = draftReview
+    ? [
+        'consumes components',
+        'required component failures',
+        'denied final metadata',
+      ]
+    : [''];
+  const runs: {
+    command: string[];
+    status: number | null;
+    signal: string | null;
+    clean: boolean;
+  }[] = [];
+  for (const [index, group] of groups.entries()) {
+    const scopedArgs = draftReview
+      ? [
+          ...commandArgs.filter((a) => !a.startsWith('--output=')),
+          '--grep',
+          group,
+          `--output=${path.join(testResultsDir, String(index))}`,
+        ]
+      : commandArgs;
+    const result = spawnSync(playwrightBinary, scopedArgs, {
+      cwd: identity.repoRoot,
+      env: {
+        ...process.env,
+        PLAYWRIGHT_ARCHITECT_REVIEW_MODE: 'true',
+        PLAYWRIGHT_HTML_OUTPUT_DIR: draftReview
+          ? path.join(reportDir, String(index))
+          : reportDir,
+        PLAYWRIGHT_HTML_OPEN: 'never',
+        VITE_SHOW_TRADE_RECEIPT: 'true',
+        ...(draftReview
+          ? {
+              ARCHITECT_REVIEW_WORLD_ONLY: 'true',
+              VITE_ARCHITECT_DRAFT_REVIEW: 'true',
+            }
+          : {}),
+        SCOUTZERO_PROOF_CANDIDATE: identity.candidate,
+        SCOUTZERO_BROWSER_PROOF_DIR: artifactDir,
+      },
+      stdio: 'inherit',
+      ...(draftReview ? { timeout: 240000 } : {}),
+    });
+    const remainingPorts = await waitForCleanTeardown();
+    runs.push({
+      command: scopedArgs,
+      status: result.status,
+      signal: result.signal,
+      clean: remainingPorts.length === 0,
+    });
+    if (result.status !== 0 || remainingPorts.length > 0) break;
+  }
 
   const openPorts = await waitForCleanTeardown();
   const screenshotArtifacts = collectGovernedScreenshotArtifacts(
     artifactDir,
-    identity.repoRoot
+    identity.repoRoot,
+    definitions
   );
   const screenshotVerification = await verifyGovernedScreenshotArtifacts(
     artifactDir,
     identity.repoRoot,
-    screenshotArtifacts
+    screenshotArtifacts,
+    definitions
   );
   const proofPath = path.join(artifactDir, 'proof.json');
   const tracePaths = findFiles(testResultsDir, 'trace.zip');
-  const reportPath = path.join(reportDir, 'index.html');
+  const reportPaths = draftReview
+    ? groups.map((_, index) =>
+        path.join(reportDir, String(index), 'index.html')
+      )
+    : [path.join(reportDir, 'index.html')];
+  const additionalProofPaths = draftReview
+    ? ['negative-proof.json', 'atomic-proof.json'].map((name) =>
+        path.join(artifactDir, name)
+      )
+    : [];
   const passed =
-    result.status === 0 &&
+    runs.length === groups.length &&
+    runs.every((run) => run.status === 0 && run.clean) &&
     screenshotVerification.valid &&
     fs.existsSync(proofPath) &&
+    additionalProofPaths.every((proof) => fs.existsSync(proof)) &&
     tracePaths.length > 0 &&
-    fs.existsSync(reportPath) &&
+    reportPaths.every((report) => fs.existsSync(report)) &&
     openPorts.length === 0;
 
   const manifest = {
     schemaVersion: 1,
-    proof: 'Architect Trade Machine / Trade Receipt',
+    proof: draftReview
+      ? 'Synthetic first-round review mutation (production disabled)'
+      : 'Architect Trade Machine / Trade Receipt',
     base: identity.originMain,
     candidate: identity.candidate,
     upstream: identity.upstream,
     mergeBase: identity.mergeBase,
     viewport: { width: 1280, height: 720 },
-    command: `npm run architect:proof:trade-receipt`,
+    command: `npm run architect:proof:trade-receipt${draftReview ? ' -- --draft-review' : ''}`,
     playwright: commandArgs,
     startedAt,
     completedAt: new Date().toISOString(),
     result: passed ? 'PASS' : 'FAIL',
-    processStatus: result.status,
-    processSignal: result.signal,
+    processStatus: runs.at(-1)?.status ?? null,
+    processSignal: runs.at(-1)?.signal ?? null,
+    runs,
     teardown: {
       checkedPorts: PROOF_PORTS,
       baselinePorts,
@@ -355,13 +423,25 @@ export async function runTradeReceiptProof(): Promise<number> {
     },
     artifacts: {
       ...screenshotArtifacts,
+      additionalProofs: additionalProofPaths.map((proof) =>
+        fs.existsSync(proof)
+          ? {
+              path: path.relative(identity.repoRoot, proof),
+              sha256: hashFile(proof),
+            }
+          : null
+      ),
       trace: tracePaths.map((tracePath) => ({
         path: path.relative(identity.repoRoot, tracePath),
         sha256: hashFile(tracePath),
       })),
-      report: fs.existsSync(reportPath)
-        ? path.relative(identity.repoRoot, reportPath)
-        : null,
+      report: draftReview
+        ? reportPaths
+            .filter((report) => fs.existsSync(report))
+            .map((report) => path.relative(identity.repoRoot, report))
+        : fs.existsSync(reportPaths[0])
+          ? path.relative(identity.repoRoot, reportPaths[0])
+          : null,
       proof: fs.existsSync(proofPath)
         ? {
             path: path.relative(identity.repoRoot, proofPath),
@@ -390,7 +470,7 @@ export async function runTradeReceiptProof(): Promise<number> {
         `Proof teardown left listeners on ports: ${openPorts.join(', ')}\n`
       );
     }
-    return result.status || 1;
+    return runs.find((run) => run.status !== 0)?.status || 1;
   }
   return 0;
 }
@@ -403,7 +483,7 @@ function isMainModule(): boolean {
 }
 
 if (isMainModule()) {
-  runTradeReceiptProof()
+  runTradeReceiptProof(process.argv.includes('--draft-review'))
     .then((code) => {
       process.exitCode = code;
     })

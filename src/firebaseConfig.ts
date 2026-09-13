@@ -22,6 +22,7 @@ import firebaseProjectConfig from '../firebase.json';
 
 // Guard to prevent double-connecting to emulators
 let emulatorsConnected = false;
+let connectedFirestoreEndpoint: FirebaseEmulatorEndpoint | null = null;
 
 const FIREBASE_TARGET_MODES = {
   EMULATOR: 'EMULATOR',
@@ -249,6 +250,7 @@ if (shouldConnectEmulators) {
       firestoreEndpoint.host,
       firestoreEndpoint.port
     );
+    connectedFirestoreEndpoint = Object.freeze({ ...firestoreEndpoint });
     connectAuthEmulator(
       auth,
       `http://${authEndpoint.host}:${authEndpoint.port}`,
@@ -293,3 +295,16 @@ if (shouldConnectEmulators) {
 
 // Export review mode status for use by other modules
 export const ARCHITECT_REVIEW_MODE = isReviewMode;
+
+/** Actual successful connection, not a requested environment flag. */
+export function isSyntheticDraftReviewEnvironment(): boolean {
+  return (
+    import.meta.env.DEV === true &&
+    import.meta.env.VITE_ARCHITECT_DRAFT_REVIEW === 'true' &&
+    ARCHITECT_REVIEW_MODE &&
+    FIREBASE_TARGET_MODE === 'EMULATOR' &&
+    db.app.options.projectId === 'demo-architect-review' &&
+    connectedFirestoreEndpoint !== null &&
+    ['127.0.0.1', 'localhost', '::1'].includes(connectedFirestoreEndpoint.host)
+  );
+}

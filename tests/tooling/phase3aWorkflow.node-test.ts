@@ -15,6 +15,7 @@ import {
 import { parseProbeArguments } from '../../scripts/review/runExactHeadProbe.ts';
 import {
   collectGovernedScreenshotArtifacts,
+  DRAFT_REVIEW_SCREENSHOTS,
   GOVERNED_TRADE_RECEIPT_SCREENSHOTS,
   resolveProofIdentity,
   verifyGovernedScreenshotArtifacts,
@@ -168,11 +169,7 @@ test('accepted Canon parser rejects duplicate or incomplete active leaf rows', (
     /multiple active LEAF rows/
   );
 
-  const incomplete = replaceActiveLeafRow(
-    canon,
-    'CBA2-A12.3',
-    incompleteRow
-  );
+  const incomplete = replaceActiveLeafRow(canon, 'CBA2-A12.3', incompleteRow);
   assert.throws(
     () => parseAcceptedCanonLeafDocument(incomplete, 'CBA2-A12.3'),
     /structurally invalid/
@@ -220,8 +217,14 @@ test('Phase 3A policy binds freeze to tranche-specific author review', () => {
     profile,
     /incorrectly authorize, calculate, mutate, persist, or report/
   );
-  assert.match(profile, /do not impose one enormous generic mutation checklist/);
-  assert.match(profile, /Select the largest coherent, independently reviewable/);
+  assert.match(
+    profile,
+    /do not impose one enormous generic mutation checklist/
+  );
+  assert.match(
+    profile,
+    /Select the largest coherent, independently reviewable/
+  );
   assertAppearsInOrder(
     profile,
     [
@@ -287,7 +290,10 @@ test('Phase 3A policy settles automated review and exact-head CI before Claude',
     profile,
     /A review that has started but remains pending is not settled/
   );
-  assert.match(profile, /Draft PR checks may start automatically before freeze/);
+  assert.match(
+    profile,
+    /Draft PR checks may start automatically before freeze/
+  );
   assert.match(template, /Draft review and freeze record/);
   assert.match(
     template,
@@ -334,7 +340,10 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
     ],
     'diagnostic and retained browser evidence policy'
   );
-  assert.match(profile, /npx playwright test tests\/e2e\/architect-trade-receipt-proof\.spec\.ts/);
+  assert.match(
+    profile,
+    /npx playwright test tests\/e2e\/architect-trade-receipt-proof\.spec\.ts/
+  );
   assert.match(profile, /npm run architect:proof:trade-receipt/);
   assert.match(profile, /Graphify queries may be used/);
   assert.match(profile, /only after source topology is stable/);
@@ -348,7 +357,7 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
   assert.match(certificationHarness, /verifyGovernedScreenshotArtifacts/);
   assert.match(
     certificationHarness,
-    /result\.status === 0 &&\s+screenshotVerification\.valid/
+    /runs\.length === groups\.length &&\s+runs\.every\(\(run\) => run\.status === 0 && run\.clean\) &&\s+screenshotVerification\.valid/
   );
   assert.equal(
     certificationHarness.match(/\.\.\.screenshotArtifacts/g)?.length,
@@ -377,6 +386,60 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
   }
 });
 
+test('draft review evidence requires History, Compare and reload for both teams', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'draft-review-proof-'));
+  try {
+    const png = await sharp({
+      create: { width: 1280, height: 720, channels: 4, background: '#123456' },
+    })
+      .png()
+      .toBuffer();
+    assert.deepEqual(
+      DRAFT_REVIEW_SCREENSHOTS.map((d) => d.filename),
+      [
+        'bos-history-1280x720.png',
+        'bos-compare-1280x720.png',
+        'bos-reload-1280x720.png',
+        'mia-history-1280x720.png',
+        'mia-compare-1280x720.png',
+        'mia-reload-1280x720.png',
+      ]
+    );
+    for (const { filename } of DRAFT_REVIEW_SCREENSHOTS)
+      fs.writeFileSync(path.join(root, filename), png);
+    const artifacts = collectGovernedScreenshotArtifacts(
+      root,
+      root,
+      DRAFT_REVIEW_SCREENSHOTS
+    );
+    assert.equal(
+      (
+        await verifyGovernedScreenshotArtifacts(
+          root,
+          root,
+          artifacts,
+          DRAFT_REVIEW_SCREENSHOTS
+        )
+      ).valid,
+      true
+    );
+    fs.unlinkSync(path.join(root, 'mia-reload-1280x720.png'));
+    assert.equal(
+      (
+        await verifyGovernedScreenshotArtifacts(
+          root,
+          root,
+          artifacts,
+          DRAFT_REVIEW_SCREENSHOTS
+        )
+      ).valid,
+      false
+    );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('Trade Receipt certification binds all eight governed screenshots', async () => {
   const expected = [
     ['screenshot', 'trade-receipt-1280x720.png'],
@@ -387,9 +450,18 @@ test('Trade Receipt certification binds all eight governed screenshots', async (
     ],
     ['tradeBonusNeedsInputScreenshot', 'trade-bonus-needs-input-1280x720.png'],
     ['tradeCashLegalScreenshot', 'trade-cash-legal-1280x720.png'],
-    ['fullRosterBooksReloadScreenshot', 'full-roster-books-reload-1280x720.png'],
-    ['tradeCashHistoryReloadScreenshot', 'trade-cash-history-reload-1280x720.png'],
-    ['tradeCashCompareReloadScreenshot', 'trade-cash-compare-reload-1280x720.png'],
+    [
+      'fullRosterBooksReloadScreenshot',
+      'full-roster-books-reload-1280x720.png',
+    ],
+    [
+      'tradeCashHistoryReloadScreenshot',
+      'trade-cash-history-reload-1280x720.png',
+    ],
+    [
+      'tradeCashCompareReloadScreenshot',
+      'trade-cash-compare-reload-1280x720.png',
+    ],
   ];
   assert.deepEqual(
     GOVERNED_TRADE_RECEIPT_SCREENSHOTS.map(({ key, filename }) => [
@@ -409,8 +481,10 @@ test('Trade Receipt certification binds all eight governed screenshots', async (
   const originalBytes = new Map<string, Buffer>();
 
   try {
-    for (const [index, { filename }] of
-      GOVERNED_TRADE_RECEIPT_SCREENSHOTS.entries()) {
+    for (const [
+      index,
+      { filename },
+    ] of GOVERNED_TRADE_RECEIPT_SCREENSHOTS.entries()) {
       const screenshotBytes = await sharp({
         create: {
           width: 1280,
@@ -430,11 +504,11 @@ test('Trade Receipt certification binds all eight governed screenshots', async (
       fs.writeFileSync(path.join(artifactDir, filename), screenshotBytes);
     }
 
-    const artifacts = collectGovernedScreenshotArtifacts(
-      artifactDir,
-      tempRoot
+    const artifacts = collectGovernedScreenshotArtifacts(artifactDir, tempRoot);
+    assert.deepEqual(
+      Object.keys(artifacts),
+      expected.map(([key]) => key)
     );
-    assert.deepEqual(Object.keys(artifacts), expected.map(([key]) => key));
     for (const [key, filename] of expected) {
       const receipt = artifacts[key as keyof typeof artifacts];
       assert.ok(receipt);
@@ -442,27 +516,18 @@ test('Trade Receipt certification binds all eight governed screenshots', async (
       assert.match(receipt.sha256, /^[a-f0-9]{64}$/);
     }
     assert.equal(
-      new Set(
-        Object.values(artifacts).map((receipt) => receipt?.sha256)
-      ).size,
+      new Set(Object.values(artifacts).map((receipt) => receipt?.sha256)).size,
       8
     );
     assert.deepEqual(
-      await verifyGovernedScreenshotArtifacts(
-        artifactDir,
-        tempRoot,
-        artifacts
-      ),
+      await verifyGovernedScreenshotArtifacts(artifactDir, tempRoot, artifacts),
       { valid: true, errors: [] }
     );
 
     for (const { key, filename } of GOVERNED_TRADE_RECEIPT_SCREENSHOTS) {
       const filePath = path.join(artifactDir, filename);
       fs.unlinkSync(filePath);
-      const missing = collectGovernedScreenshotArtifacts(
-        artifactDir,
-        tempRoot
-      );
+      const missing = collectGovernedScreenshotArtifacts(artifactDir, tempRoot);
       assert.equal(missing[key], null);
       assert.equal(
         (
@@ -478,10 +543,7 @@ test('Trade Receipt certification binds all eight governed screenshots', async (
       fs.writeFileSync(filePath, originalBytes.get(filename)!);
     }
 
-    const recorded = collectGovernedScreenshotArtifacts(
-      artifactDir,
-      tempRoot
-    );
+    const recorded = collectGovernedScreenshotArtifacts(artifactDir, tempRoot);
     for (const { filename } of GOVERNED_TRADE_RECEIPT_SCREENSHOTS) {
       const filePath = path.join(artifactDir, filename);
       fs.appendFileSync(filePath, Buffer.from('changed'));
@@ -525,8 +587,7 @@ test('Trade Receipt certification binds all eight governed screenshots', async (
       path.join(artifactDir, corruptFilename),
       originalBytes.get(corruptFilename)!
     );
-    const wrongSizeFilename =
-      GOVERNED_TRADE_RECEIPT_SCREENSHOTS[4].filename;
+    const wrongSizeFilename = GOVERNED_TRADE_RECEIPT_SCREENSHOTS[4].filename;
     const wrongSizeBytes = await sharp({
       create: {
         width: 1279,
@@ -537,14 +598,8 @@ test('Trade Receipt certification binds all eight governed screenshots', async (
     })
       .png()
       .toBuffer();
-    fs.writeFileSync(
-      path.join(artifactDir, wrongSizeFilename),
-      wrongSizeBytes
-    );
-    const wrongSize = collectGovernedScreenshotArtifacts(
-      artifactDir,
-      tempRoot
-    );
+    fs.writeFileSync(path.join(artifactDir, wrongSizeFilename), wrongSizeBytes);
+    const wrongSize = collectGovernedScreenshotArtifacts(artifactDir, tempRoot);
     const wrongSizeVerification = await verifyGovernedScreenshotArtifacts(
       artifactDir,
       tempRoot,

@@ -44,9 +44,9 @@ import {
   type PurgeWorldResult,
   type UpdateWorldMetadataInput,
   type WorldMetadata,
-  type WorldStats,
   resolveWorldLineageIdsFromMetadata,
 } from './worldManager.readUtils';
+import { buildWorldStatsUpdate } from './worldManager.stats';
 import {
   createRightsEventLedger,
   resolveRightsWorldCompatibility,
@@ -962,45 +962,10 @@ export async function updateWorldStats(
   }
 
   const metadata = await getWorldMetadata(worldId);
-  const currentStats = metadata.stats || {
-    totalTrades: 0,
-    totalSignings: 0,
-    totalWaives: 0,
-    teamsInvolved: 0,
-  };
-
   const metadataRef = worldMetadataRef(worldId);
   const updates: Record<string, unknown> = {
     lastModifiedAt: serverTimestamp(),
-    actionCount: (metadata.actionCount || 0) + 1,
+    ...buildWorldStatsUpdate(metadata, actionType, teamCodes),
   };
-
-  const statsUpdate: WorldStats = { ...currentStats };
-  switch (actionType) {
-    case 'trade':
-      statsUpdate.totalTrades = (currentStats.totalTrades || 0) + 1;
-      break;
-    case 'signing':
-      statsUpdate.totalSignings = (currentStats.totalSignings || 0) + 1;
-      break;
-    case 'waive':
-      statsUpdate.totalWaives = (currentStats.totalWaives || 0) + 1;
-      break;
-    case 'renounce':
-      statsUpdate.totalRenounces = (currentStats.totalRenounces || 0) + 1;
-      break;
-    default:
-      break;
-  }
-
-  if (teamCodes.length > 0) {
-    const currentModifiedTeams = new Set(metadata.modifiedTeams || []);
-    teamCodes.forEach((code) => currentModifiedTeams.add(code));
-    updates.modifiedTeams = Array.from(currentModifiedTeams);
-    statsUpdate.teamsInvolved = currentModifiedTeams.size;
-  }
-
-  updates.stats = statsUpdate;
-
   await updateDoc(metadataRef, updates);
 }

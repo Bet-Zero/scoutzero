@@ -150,6 +150,7 @@ cockpit/
 comparison/
   capDelta.ts
   deriveComparisonViewModel.ts
+  deriveDraftAssetDelta.ts
   index.ts
   rosterDelta.ts
   seasonMismatch.ts
@@ -370,6 +371,10 @@ utils/
   draftPickReleaseComparison.ts
   draftPickReview.ts
   draftPickUtils.ts
+  draftReview/
+    capability.ts
+    consumption.ts
+    fixturePins.ts
   draftStepien.ts
   entitlements/
     computeEntitlementClaims.ts
@@ -656,10 +661,11 @@ utils/
     worldWaiverAuthority.ts
   worldManager.core.ts
   worldManager.readUtils.ts
+  worldManager.stats.ts
   worldManager.ts
   worldTeamData.ts
 ```
 
 ---
-*Generated on: 2026-09-12T13:52:01.584Z*
+*Generated on: 2026-09-13T01:58:31.536Z*
 *Auto-updated by: npm run docs*

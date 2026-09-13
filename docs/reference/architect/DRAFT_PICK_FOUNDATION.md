@@ -135,14 +135,14 @@ facts use the same request and qualification checks: a cash-sale prohibition or
 missing consideration remains visible beside permitting ownership/Stepien.
 
 The review always carries `apply: blocked` and no overall trading verdict.
-It has no production caller or supported Apply consumption path. An adversarial
+It grants no production Apply permission. The original adversarial
 synthetic test injects the review into the actual mutation request's unsupported
 metadata, then retries with forged `allowed`/`legal` fields. The existing real
 validator rejects both attempts before any write batch; serialized state and
 component review remain identical. This establishes rejection of untrusted
 metadata, not integration of the review into Apply or successful first-round
-persistence/emulator certification. The supported review-to-Apply path remains
-unfinished. Source completeness, remaining governing methods and explicit owner
+persistence/emulator certification. The separate synthetic consumption path below
+does not promote that original ingress proof. Source completeness, remaining governing methods and explicit owner
 activation acceptance still govern the corresponding future integration.
 
 ## Isolated Apron mechanisms
@@ -187,8 +187,8 @@ observations carry above/at-or-below alternatives and an explicit future event.
 Placement always remains blocked: this assignment calculates neither lottery
 order, pool allocation nor a final draft slot. Ownership is also an independent
 input, never inferred from the original team. A released restriction is not a
-positive first-round trading verdict. None of these modules is imported by live
-Trade Machine validation/Apply, season advance or saved-world mutation.
+positive first-round trading verdict. Production Trade Machine Apply and season
+advance receive no permission from these components.
 
 ## Isolated first-round cash-sale bar
 
@@ -210,3 +210,42 @@ or need input. No allocation or valuation semantics are invented.
 The component reuses operation qualification and returns no whole-trade verdict.
 Existing annual cash limits, cash ledgers and Apron cash rules remain separate
 and unchanged. The live first-round Apply block remains intact.
+
+## Synthetic review consumption
+
+`prepareSyntheticDraftReview` loads a separately pinned, explicitly synthetic
+retained release from its own saved world. It matches the exact proposal, date,
+season, complete original-pick inventory and entitlement documents before
+rebinding the supplied component inputs to that operation. The fixture models
+an unconditional BOS original first exchanged for a MIA original second, with
+complete stipulated ownership, post-trade Stepien and consideration inputs.
+Those synthetic names establish no real team's asset readiness.
+
+Every required component must permit its own scope. The Apron consumption
+boundary supports a non-applicable trigger, a known never-frozen original, or
+a released original with a known no-penalty result. It does not infer ownership
+or resolve placement, protection, conditional programs or blocked pool identities.
+The immutable component results retain their original verdicts and gaps.
+
+Only a development build with explicit review mode, the draft-review opt-in and
+an actually connected loopback Firestore emulator for `demo-architect-review`
+can prepare or consume the private object capability. A serialized review,
+fixture flag or forged permission field cannot substitute for that capability.
+Production builds reject it even when client review flags are supplied.
+
+The supported handoff enters the existing `applyWorldMutation` trade pipeline.
+It checks the actual current state and proposal, preserves the other trade gates,
+and compares every consumed world, team, entitlement and roster override snapshot
+inside the existing transaction writer. The event's stable operation ID prevents
+repeat application. Team changes, pick ownership, event, metadata and statistics
+commit together; there is no second persistence system or post-commit stats write
+for this review path. The receipt identifies the original pick and both parties.
+Team History uses its existing movement formatter; Compare derives additions
+and removals only from complete, consistent committed receipts. Legacy inventory
+views report unavailable data when they cannot represent saved entitlement IDs.
+
+`npm run architect:proof:trade-receipt -- --draft-review` retains exact-candidate
+browser evidence at 1280x720, including both teams' History, Compare and reload
+states, component/staleness rejection and an emulator-only denied final write.
+Its world-only fixture skips the source-collection seeder. The proof is software
+integration evidence, not production activation, baseline adoption or W10 closure.

@@ -707,6 +707,8 @@ export interface TradeFaExceptionBucket {
 }
 
 export interface TradeValidatorContext extends TeamContext {
+  /** Private object identity; serialized metadata cannot authorize review consumption. */
+  draftReviewAuthority?: object;
   capProjections?: TradeValidatorCapProjections;
   currentYear?: number;
   yearKey?: number;

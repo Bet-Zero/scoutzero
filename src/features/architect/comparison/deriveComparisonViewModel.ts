@@ -18,10 +18,12 @@ import type {
 import { deriveRosterDelta } from './rosterDelta';
 import { deriveCapDelta } from './capDelta';
 import { detectSeasonMismatch } from './seasonMismatch';
+import { deriveDraftAssetDelta } from './deriveDraftAssetDelta';
 
 type GenericRecord = Record<string, unknown>;
 
 export type ComparisonEventRow = {
+  raw?: GenericRecord;
   id: string;
   eventId: string | null;
   occurredAt: string | null;
@@ -118,7 +120,10 @@ export function deriveComparisonViewModel(
   // Changed teams: accumulate from event teamsInvolved / teamCodes + world metadata
   const changedTeamCodesSet = new Set<string>();
   for (const row of sorted) {
-    for (const code of [...(row.teamsInvolved ?? []), ...(row.teamCodes ?? [])]) {
+    for (const code of [
+      ...(row.teamsInvolved ?? []),
+      ...(row.teamCodes ?? []),
+    ]) {
       if (typeof code === 'string' && code.trim()) {
         changedTeamCodesSet.add(code.trim());
       }
@@ -152,7 +157,9 @@ export function deriveComparisonViewModel(
       return {
         ...entry,
         displayName:
-          resolved && resolved !== entry.playerId ? resolved : entry.displayName,
+          resolved && resolved !== entry.playerId
+            ? resolved
+            : entry.displayName,
       };
     });
 
@@ -181,8 +188,7 @@ export function deriveComparisonViewModel(
     if (capTotalDelta === null) {
       unavailableSummary.push({
         field: 'capTotalDelta',
-        reason:
-          'A starting cap baseline is not available for this team yet.',
+        reason: 'A starting cap baseline is not available for this team yet.',
       });
     }
   } else {
@@ -202,8 +208,8 @@ export function deriveComparisonViewModel(
     });
   }
 
-  // Draft delta is always deferred in Stage 3
-  unavailableSummary.push(DRAFT_UNAVAILABLE);
+  const draftAssetDelta = deriveDraftAssetDelta(sorted, worldId, teamCode);
+  if (!draftAssetDelta) unavailableSummary.push(DRAFT_UNAVAILABLE);
 
   return {
     scope: {
@@ -215,6 +221,7 @@ export function deriveComparisonViewModel(
       authority: 'committed-world',
     },
     rosterAdditions,
+    draftAssetDelta,
     rosterRemovals,
     rosterChangedPlayers,
     capTotalDelta,

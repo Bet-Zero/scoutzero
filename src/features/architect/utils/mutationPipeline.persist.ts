@@ -7,6 +7,10 @@
  */
 
 import { db } from '@/firebaseConfig';
+import { requireDraftReviewApply } from '@/features/architect/utils/draftReview/capability';
+import { mutationSnapshotText } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
+import { buildWorldStatsUpdate } from '@/features/architect/utils/worldManager.stats';
+import { readWorldMetadataDoc } from '@/features/architect/utils/worldManager.readUtils';
 import {
   writeBatch,
   runTransaction,
@@ -646,6 +650,7 @@ function applyWritesToTransaction(
  * or mutation computation.
  */
 export async function persistWorldMutation({
+  draftReviewAuthority,
   worldId,
   seasonId,
   mutationType,
@@ -656,6 +661,7 @@ export async function persistWorldMutation({
   auditContext = {},
   expectedRightsLedgersByTeam = {},
 }: {
+  draftReviewAuthority?: object;
   worldId: string;
   seasonId: string;
   mutationType: string;
@@ -789,7 +795,21 @@ export async function persistWorldMutation({
     // 3. Write event log entry
     // Use timestamp + random suffix to avoid collisions if multiple mutations occur at same millisecond
     const randomSuffix = Math.random().toString(36).substring(2, 8);
-    eventId = `${mutationType}_${timestamp}_${randomSuffix}`;
+    const draftReview =
+      draftReviewAuthority !== undefined
+        ? requireDraftReviewApply(draftReviewAuthority)
+        : null;
+    if (
+      draftReview &&
+      (mutationType !== 'executeTrade' ||
+        draftReview.worldId !== worldId ||
+        draftReview.seasonId !== seasonId ||
+        draftReview.operationId !== auditContext.operationId)
+    )
+      throw new Error('Draft review persistence context changed.');
+    eventId = draftReview
+      ? `draft_review_${draftReview.operationId}`
+      : `${mutationType}_${timestamp}_${randomSuffix}`;
     const eventsCol = collection(
       db,
       ARCHITECT_WORLDS_COLLECTION,
@@ -851,6 +871,19 @@ export async function persistWorldMutation({
     }
 
     const metadataRef = worldMetadataRef(worldId);
+    if (draftReview) {
+      const exactMetadata = draftReview.documentSnapshots[metadataRef.path];
+      if (!exactMetadata)
+        throw new Error('Draft review is missing its world metadata snapshot.');
+      Object.assign(
+        worldPatch,
+        buildWorldStatsUpdate(
+          readWorldMetadataDoc(JSON.parse(exactMetadata), worldId),
+          'trade',
+          teamCodesPatched
+        )
+      );
+    }
     writes.push({ kind: 'update', ref: metadataRef, data: worldPatch });
 
     const metadata = computeResult.metadata as Record<string, unknown>;
@@ -1025,9 +1058,31 @@ export async function persistWorldMutation({
       isGovernedCash ||
       isGovernedSignAndTrade ||
       isOfferSheetCreation ||
-      isOfferSheetResolution
+      isOfferSheetResolution ||
+      draftReview !== null
     ) {
       await runTransaction(db, async (transaction) => {
+        if (draftReview) {
+          requireDraftReviewApply(draftReviewAuthority);
+          const priorEvent = await transaction.get(eventRef);
+          if (priorEvent.exists())
+            throw new Error('This draft review operation was already applied.');
+          const consumed = Object.entries(draftReview.documentSnapshots);
+          const currentDocuments = await Promise.all(
+            consumed.map(([path]) => transaction.get(doc(db, path)))
+          );
+          for (const [index, [, snapshot]] of consumed.entries()) {
+            const current = currentDocuments[index];
+            if (
+              (current.exists()
+                ? mutationSnapshotText(current.data())
+                : null) !== snapshot
+            )
+              throw new Error(
+                'Draft review state, release or date changed before commit. Reload and review again.'
+              );
+          }
+        }
         if (isGovernedSignAndTrade) {
           const authority = governedSignAndTradeAuthority!;
           const currentMetadata = await transaction.get(metadataRef);
@@ -1219,6 +1274,9 @@ export async function persistWorldMutation({
             }
           } else if (isGovernedCash) {
             // Cash snapshot and ledger authority are checked above.
+          } else if (draftReview) {
+            // The complete synthetic source and exact saved-world snapshots
+            // were checked above. This trade appends no player contract ledger.
           } else if (expectedOfferSheetCreationSnapshots) {
             const expectedTeamSnapshot =
               normalizedTeamCode ===
