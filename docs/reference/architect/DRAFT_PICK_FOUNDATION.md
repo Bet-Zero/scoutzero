@@ -236,12 +236,17 @@ Production builds reject it even when client review flags are supplied.
 The supported handoff enters the existing `applyWorldMutation` trade pipeline.
 It checks the actual current state and proposal, preserves the other trade gates,
 and compares every consumed world, team, entitlement and roster override snapshot
-inside the existing transaction writer. The event's stable operation ID prevents
+inside the existing transaction writer. Only the coordinator issues the one-use
+seal binding its exact validated persistence arguments to that capability;
+calling the public capability verifier or creating another gate cannot issue
+a recognized seal. The writer rejects altered or reused seals and rechecks the
+bound result after transaction reads. The event's stable operation ID prevents
 repeat application. Team changes, pick ownership, event, metadata and statistics
 commit together; there is no second persistence system or post-commit stats write
 for this review path. The receipt identifies the original pick and both parties.
 Team History uses its existing movement formatter; Compare derives additions
-and removals only from complete, consistent committed receipts. Legacy inventory
+and removals from complete, consistent synthetic receipts only in the actual
+review environment. Production event metadata cannot enable that display. Legacy inventory
 views report unavailable data when they cannot represent saved entitlement IDs.
 
 `npm run architect:proof:trade-receipt -- --draft-review` retains exact-candidate

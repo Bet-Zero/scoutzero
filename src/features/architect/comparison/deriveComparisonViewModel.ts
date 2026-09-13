@@ -3,7 +3,8 @@
  * PURPOSE: Aggregator — derives the Stage 3 comparison view model from committed event rows.
  * OWNERSHIP: Feature: architect/comparison
  *
- * Pure function. All inputs are plain data; no Firestore reads, no React, no state.
+ * No Firestore reads or React. Synthetic draft receipts also require the actual
+ * review environment; saved event metadata cannot enable this display in production.
  * Authority is preserved on every output field.
  *
  * Event ordering: assumes committedEventRows are ordered newest-first (desc by occurredAt),
@@ -19,6 +20,7 @@ import { deriveRosterDelta } from './rosterDelta';
 import { deriveCapDelta } from './capDelta';
 import { detectSeasonMismatch } from './seasonMismatch';
 import { deriveDraftAssetDelta } from './deriveDraftAssetDelta';
+import { isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
 
 type GenericRecord = Record<string, unknown>;
 
@@ -208,7 +210,9 @@ export function deriveComparisonViewModel(
     });
   }
 
-  const draftAssetDelta = deriveDraftAssetDelta(sorted, worldId, teamCode);
+  const draftAssetDelta = isSyntheticDraftReviewEnvironment()
+    ? deriveDraftAssetDelta(sorted, worldId, teamCode)
+    : null;
   if (!draftAssetDelta) unavailableSummary.push(DRAFT_UNAVAILABLE);
 
   return {

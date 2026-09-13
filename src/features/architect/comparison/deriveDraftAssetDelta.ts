@@ -1,4 +1,4 @@
-/** Net movements from complete committed receipts; never infer opaque rights. */
+/** Pure synthetic receipt calculation; callers must enforce the review environment. */
 import { DraftReviewMutationReceiptZ } from '@/schemas/draftPickReviewMutation';
 import type { ComparisonEventRow } from './deriveComparisonViewModel';
 

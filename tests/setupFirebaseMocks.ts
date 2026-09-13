@@ -36,6 +36,8 @@ setContractSourceReleaseLoaderForTests(async () => testContractSourceRelease);
 // Mock Firebase app initialization
 vi.mock('@/firebaseConfig', () => {
   return {
+    // Ordinary test callers run with the same closed review boundary as production.
+    isSyntheticDraftReviewEnvironment: () => false,
     db: {
       // Mock db object for Firestore operations
     },

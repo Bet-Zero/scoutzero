@@ -373,6 +373,7 @@ utils/
   draftPickUtils.ts
   draftReview/
     capability.ts
+    commitGate.ts
     consumption.ts
     fixturePins.ts
   draftStepien.ts
@@ -667,5 +668,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-09-13T01:58:31.536Z*
+*Generated on: 2026-09-13T02:48:44.872Z*
 *Auto-updated by: npm run docs*

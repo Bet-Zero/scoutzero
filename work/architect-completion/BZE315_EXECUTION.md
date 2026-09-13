@@ -66,14 +66,17 @@ Before the first reviewable commit:
   synthetic world construction, existing world statistics, real blocked ingress
   and workspace inventory honesty.
 - Scoped UI: 38 passed across Compare and History subsections.
-- Typecheck passed before final presentation/test-only edits; final check pending.
+- Final initial-candidate typecheck and production build passed. The production
+  bundle rejects capability consumption unconditionally; this is a compiled
+  environment boundary, not an event or fixture field.
 - Schema check, project validation, scoped Markdown and docs guardrails passed.
   The generator covers only legacy schema boilerplate, not these Zod contracts;
   its three newly generated untracked boilerplate files were removed. Contract
   validation is supplied by the scoped behavioral tests and actual loader.
-- Production build, final workflow tooling, Graphify and exact-head hosted CI
-  remain required. The frozen certificate and independent Claude review have
-  not yet occurred. Manual full-suite allowance remains unused.
+- Workflow tooling: 19 passed. Graphify updated at initial candidate
+  `0fe0d376a3b673ad0f9c08cfd00fe96296830098`; exact-head hosted PR validation
+  run `34731999864` passed. The frozen certificate and independent Claude
+  review have not yet occurred. Manual full-suite allowance remains unused.
 
 Diagnostics are author evidence, not exact-head certification. Six 1280x720
 images and the positive/negative/atomic receipts are retained privately; the
@@ -90,3 +93,45 @@ weakening movement, no-write or commit-stage requirements.
 The only added presentation is actual committed pick movement in the existing
 Compare lists and correction of false empty legacy inventory claims. No layout,
 product direction or normal first-round activation is proposed.
+
+## Automated review repairs
+
+PR #538 found two material gaps before freeze. Compare now requires the actual
+synthetic review environment before deriving draft deltas from event metadata;
+a production user-created receipt cannot enable the display. The existing
+unavailable state remains explicit.
+
+The public capability verifier alone no longer authorizes persistence. Only
+the mutation coordinator seals a result after all its validation succeeds.
+Its private gate binds the capability object and every persistence argument
+to exact normalized snapshot text. The writer consumes that seal once, rejects
+changed results, and rechecks after asynchronous transaction reads before any
+writes. Transaction retries can recheck the unchanged consumed result; callers
+cannot reuse a consumed seal. A caller-created gate has an independent registry
+and cannot mint a seal recognized by the writer. The writer's reverse import
+of the consume-only function is evaluated at call time, after module setup;
+no mint function for the coordinator's registry is exported.
+
+Targeted repair checks: 73 node tests across commit seals, production receipt
+display, existing Compare aggregation and cap-audit persistence; 49 UI tests
+across Compare and dashboard smoke; typecheck passed. An initial node run found
+the older shared Firebase test mock missing the new environment export; its
+default now explicitly stays closed, and all 73 tests passed on rerun.
+
+The browser harness additionally attempts direct writes with a publicly
+verified real capability, a forged seal and a foreign-gate seal, asserting no
+saved-state change before the genuine positive control. Diagnostic 12 reached
+successful mutation but was interrupted at the four-minute budget during the
+first team's reload while other validation competed for resources. It is not
+passing evidence. Diagnostic 13 reached both-team reload checks but exceeded
+its 180-second inner timeout; it also is not passing evidence.
+
+Replacement positive diagnostic 14 passed (3.4m), including all three direct
+writer attacks, the real positive mutation, both-team re-entry/reload and empty
+source collections. Navigation waits for DOM readiness and then asserts the
+actual rendered state; independent source reads run together. The 200-second
+inner test timeout remains below the certificate's unchanged four-minute
+process cap. Repair production build, project checks and docs guardrails passed.
+The exact-head certificate will recheck the positive, component/staleness and
+atomic rollback groups separately before independent acceptance. Unchanged
+component and fixture author results above are reused with that scope.

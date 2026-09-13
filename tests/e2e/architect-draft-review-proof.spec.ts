@@ -13,7 +13,8 @@ import {
 import { SYNTHETIC_DRAFT_RELEASES } from './fixtures/syntheticDraftMutationReleases';
 
 test.use({ viewport: { width: 1280, height: 720 }, trace: 'on' });
-test.setTimeout(180000);
+// Leave startup/teardown inside the wrapper's unchanged four-minute process cap.
+test.setTimeout(200000);
 const root = 'world_synthetic_draft_review';
 const proofDir =
   process.env.SCOUTZERO_BROWSER_PROOF_DIR ||
@@ -51,7 +52,7 @@ async function savedState(worldId: string) {
   };
 }
 async function authenticate(page: Page) {
-  await page.goto('/gm/BOS?season=2027');
+  await page.goto('/gm/BOS?season=2027', { waitUntil: 'domcontentloaded' });
   await expect
     .poll(() => readReviewUserId(page), { timeout: 30000 })
     .not.toBe('');
@@ -124,6 +125,64 @@ test('synthetic first-round review consumes components and persists through the 
   const forged = await apply(page, 'forged');
   expect(forged.success, JSON.stringify(forged)).toBe(false);
   expect(await savedState(root)).toEqual(beforeAll);
+  // A real, publicly verified capability still cannot call the writer directly
+  // or mint a result seal by instantiating its own gate.
+  const directWriter = await page.evaluate(async () => {
+    const capabilityPath =
+      '/src/features/architect/utils/draftReview/capability.ts';
+    const pipelinePath = '/src/features/architect/utils/mutationPipeline.ts';
+    const gatePath = '/src/features/architect/utils/draftReview/commitGate.ts';
+    const { verifyDraftReviewApply } = await import(capabilityPath);
+    const { loadStateForMutation, persistWorldMutation } = await import(
+      pipelinePath
+    );
+    const { createDraftReviewCommitGate } = await import(gatePath);
+    const { args, prepared } = Reflect.get(window, '__syntheticDraftReview');
+    const state = await loadStateForMutation(
+      args.worldId,
+      'executeTrade',
+      args.payload
+    );
+    verifyDraftReviewApply(prepared.authority, {
+      ...args,
+      state,
+      asOfDate: '2026-07-15',
+    });
+    const result = {
+      worldId: args.worldId,
+      seasonId: args.seasonId,
+      mutationType: 'executeTrade',
+      computeResult: {
+        success: true,
+        metadata: {},
+        entitlementUpdates: [
+          { entitlementId: 'review-BOS-2028-1', holderTeam: 'DEN' },
+        ],
+      },
+      committedTeamUpdates: [],
+      timestamp: Date.now(),
+      auditContext: { operationId: args.operationId },
+    };
+    const denied = [];
+    for (const token of [
+      undefined,
+      {},
+      createDraftReviewCommitGate().seal(prepared.authority, result),
+    ])
+      denied.push(
+        await persistWorldMutation({
+          ...result,
+          draftReviewAuthority: prepared.authority,
+          draftReviewCommit: token,
+        })
+      );
+    return denied;
+  });
+  for (const attempt of directWriter) {
+    expect(attempt.success).toBe(false);
+    expect(attempt.error).toContain('exact validated one-use result');
+  }
+  expect(await savedState(root)).toEqual(beforeAll);
   const result = await apply(page);
   expect(result.success, JSON.stringify(result)).toBe(true);
   const events = await getWorldEventDocuments(root);
@@ -161,7 +220,9 @@ test('synthetic first-round review consumes components and persists through the 
     ['BOS', bos],
     ['MIA', mia],
   ] as const) {
-    await page.goto(`/gm/${team}?season=2027`);
+    await page.goto(`/gm/${team}?season=2027`, {
+      waitUntil: 'domcontentloaded',
+    });
     await openDashboardTab(page, 'Team History');
     await page
       .getByTestId('team-history-section-timeline')
@@ -193,7 +254,7 @@ test('synthetic first-round review consumes components and persists through the 
     await capture(page, `${team.toLowerCase()}-compare`);
     await openDashboardTab(page, 'Roster');
     await openDashboardTab(page, 'Compare');
-    await page.reload();
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await openDashboardTab(page, 'Compare');
     await expect(
       page.getByText('BOS 2028 first-round pick', { exact: true })
@@ -203,18 +264,21 @@ test('synthetic first-round review consumes components and persists through the 
   }
   // Every source collection stays empty: this proof never invokes the source seeder.
   const db = getReviewAdminDb();
-  for (const name of [
-    'players_v2',
-    'architect_basePlayers',
-    'architect_baseTeams',
-    'architect_baseEntitlements',
-    'architect_basePickRules',
-  ])
-    expect((await db.collection(name).get()).size).toBe(0);
+  const sourceSnapshots = await Promise.all(
+    [
+      'players_v2',
+      'architect_basePlayers',
+      'architect_baseTeams',
+      'architect_baseEntitlements',
+      'architect_basePickRules',
+    ].map((name) => db.collection(name).get())
+  );
+  for (const snapshot of sourceSnapshots) expect(snapshot.size).toBe(0);
   expect(await savedState(root)).toEqual(afterAll);
   retain('proof.json', {
     normal,
     forged,
+    directWriter,
     result,
     retry,
     before: beforeAll,

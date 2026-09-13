@@ -1,7 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { deriveComparisonViewModel } from '@/features/architect/comparison/deriveComparisonViewModel';
 import { deriveDraftAssetDelta } from '@/features/architect/comparison/deriveDraftAssetDelta';
 import type { ComparisonEventRow } from '@/features/architect/comparison/deriveComparisonViewModel';
 import type { DraftReviewMutationReceipt } from '@/schemas/draftPickReviewMutation';
+
+const environment = vi.hoisted(() => ({ allowed: false }));
+vi.mock('@/firebaseConfig', () => ({
+  isSyntheticDraftReviewEnvironment: () => environment.allowed,
+}));
 
 function event(
   operationId = 'op1',
@@ -40,6 +46,28 @@ function event(
   };
 }
 describe('committed original-pick comparison', () => {
+  it('does not promote a schema-shaped user event into a production draft delta', () => {
+    const input = {
+      worldId: 'world',
+      worldName: 'World',
+      teamCode: 'BOS',
+      baselineSeason: '2026-27',
+      currentSeason: '2026-27',
+      committedEventRows: [event()],
+      currentRosterPlayerIds: [],
+    };
+    environment.allowed = false;
+    const production = deriveComparisonViewModel(input);
+    expect(production.draftAssetDelta).toBeNull();
+    expect(
+      production.unavailableSummary.some((s) => s.field === 'draftAssetDelta')
+    ).toBe(true);
+    environment.allowed = true;
+    expect(
+      deriveComparisonViewModel(input).draftAssetDelta?.removals
+    ).toHaveLength(1);
+    environment.allowed = false;
+  });
   it('shows the same actual movement for both teams and after serialization', () => {
     const row = event();
     expect(deriveDraftAssetDelta([row], 'world', 'BOS')).toEqual({

@@ -7,6 +7,7 @@
  */
 
 import { db } from '@/firebaseConfig';
+import { consumeDraftReviewCommit } from './mutationPipeline';
 import { requireDraftReviewApply } from '@/features/architect/utils/draftReview/capability';
 import { mutationSnapshotText } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
 import { buildWorldStatsUpdate } from '@/features/architect/utils/worldManager.stats';
@@ -649,19 +650,9 @@ function applyWritesToTransaction(
  * It must not absorb legality/business-rule ownership, authority sequencing,
  * or mutation computation.
  */
-export async function persistWorldMutation({
-  draftReviewAuthority,
-  worldId,
-  seasonId,
-  mutationType,
-  computeResult,
-  committedTeamUpdates,
-  timestamp,
-  payloadAsOfDate, // Phase 20: Only write asOfDate if explicitly provided in payload
-  auditContext = {},
-  expectedRightsLedgersByTeam = {},
-}: {
+export type PersistWorldMutationArgs = {
   draftReviewAuthority?: object;
+  draftReviewCommit?: object;
   worldId: string;
   seasonId: string;
   mutationType: string;
@@ -673,7 +664,23 @@ export async function persistWorldMutation({
   expectedRightsLedgersByTeam?: Readonly<
     Record<string, ExpectedRightsLedgerReference>
   >;
-}): Promise<PersistWorldMutationResult> {
+};
+
+export async function persistWorldMutation(
+  args: PersistWorldMutationArgs
+): Promise<PersistWorldMutationResult> {
+  const {
+    draftReviewAuthority,
+    worldId,
+    seasonId,
+    mutationType,
+    computeResult,
+    committedTeamUpdates,
+    timestamp,
+    payloadAsOfDate, // Phase 20: Only write asOfDate if explicitly provided in payload
+    auditContext = {},
+    expectedRightsLedgersByTeam = {},
+  } = args;
   const writes: PreparedMutationWrite[] = [];
   const teamCodesPatched = [];
   const playerIdsPatched = new Set<string>();
@@ -685,6 +692,23 @@ export async function persistWorldMutation({
   const entitlementUpdates = computeResult.entitlementUpdates || [];
 
   try {
+    const {
+      draftReviewAuthority: authority,
+      draftReviewCommit: commit,
+      ...result
+    } = args;
+    if (
+      authority === undefined &&
+      (commit !== undefined ||
+        computeResult.metadata?.draftReviewReceipt !== undefined)
+    )
+      throw new Error(
+        'Draft review persistence requires the exact validated one-use result.'
+      );
+    const assertDraftResultUnchanged =
+      authority !== undefined
+        ? consumeDraftReviewCommit(commit, authority, result)
+        : null;
     // 1. Write team snapshots
     for (const { teamCode, team } of teamUpdates) {
       if (!team) {
@@ -1063,6 +1087,7 @@ export async function persistWorldMutation({
     ) {
       await runTransaction(db, async (transaction) => {
         if (draftReview) {
+          assertDraftResultUnchanged!();
           requireDraftReviewApply(draftReviewAuthority);
           const priorEvent = await transaction.get(eventRef);
           if (priorEvent.exists())
@@ -1722,6 +1747,7 @@ export async function persistWorldMutation({
             });
           }
         }
+        assertDraftResultUnchanged?.();
         applyWritesToTransaction(transaction, writes);
       });
     } else {

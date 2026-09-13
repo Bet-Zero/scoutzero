@@ -45,6 +45,8 @@
  */
 
 import { db } from '@/firebaseConfig';
+import { createDraftReviewCommitGate } from '@/features/architect/utils/draftReview/commitGate';
+import type { PersistWorldMutationArgs } from './mutationPipeline.persist';
 import {
   verifyDraftReviewApply,
   requireDraftReviewApply,
@@ -319,6 +321,12 @@ import {
   computeNormalizedWorldMutation,
   computeTypedWorldMutation,
 } from './mutationPipeline.normalize';
+
+// Only this coordinator can seal a result after all mutation validation passes.
+// Persistence may consume a seal but cannot issue one. The reverse import in
+// the writer is used only at call time, after both modules have initialized.
+const draftReviewCommitGate = createDraftReviewCommitGate();
+export const consumeDraftReviewCommit = draftReviewCommitGate.consume;
 
 export async function applyWorldMutation({
   userId,
@@ -855,39 +863,47 @@ export async function applyWorldMutation({
       }
     }
 
+    const persistArgs: PersistWorldMutationArgs = {
+      draftReviewAuthority,
+      worldId,
+      seasonId,
+      mutationType,
+      computeResult,
+      committedTeamUpdates,
+      timestamp,
+      expectedRightsLedgersByTeam,
+      payloadAsOfDate:
+        sanitizedPayload.asOfDate != null
+          ? String(sanitizedPayload.asOfDate)
+          : null, // Phase 20: Only persist if explicitly provided
+      auditContext: {
+        operationId,
+        validatorVersion: POST_STATE_CAP_VALIDATOR_VERSION,
+        schemaVersion: CAP_AUDIT_EVENT_SCHEMA_VERSION,
+        mutationCategory: getMutationActionType(mutationType),
+        teamCodes,
+        playerIds: playerIds as string[],
+        beforeTotalsByTeam,
+        afterTotalsByTeam,
+        valid: postStateValidation.valid,
+        violations: (postStateValidation.violations || []).map((v) =>
+          typeof v === 'string' ? v : JSON.stringify(v)
+        ),
+        warnings: (postStateValidation.warnings || []).map((w) =>
+          typeof w === 'string' ? w : JSON.stringify(w)
+        ),
+        diffSummary,
+      },
+    };
+    if (draftReviewAuthority !== undefined) {
+      const { draftReviewAuthority: authority, ...result } = persistArgs;
+      persistArgs.draftReviewCommit = draftReviewCommitGate.seal(
+        authority!,
+        result
+      );
+    }
     const persistResult: PersistWorldMutationResult =
-      await persistWorldMutation({
-        draftReviewAuthority,
-        worldId,
-        seasonId,
-        mutationType,
-        computeResult,
-        committedTeamUpdates,
-        timestamp,
-        expectedRightsLedgersByTeam,
-        payloadAsOfDate:
-          sanitizedPayload.asOfDate != null
-            ? String(sanitizedPayload.asOfDate)
-            : null, // Phase 20: Only persist if explicitly provided
-        auditContext: {
-          operationId,
-          validatorVersion: POST_STATE_CAP_VALIDATOR_VERSION,
-          schemaVersion: CAP_AUDIT_EVENT_SCHEMA_VERSION,
-          mutationCategory: getMutationActionType(mutationType),
-          teamCodes,
-          playerIds: playerIds as string[],
-          beforeTotalsByTeam,
-          afterTotalsByTeam,
-          valid: postStateValidation.valid,
-          violations: (postStateValidation.violations || []).map((v) =>
-            typeof v === 'string' ? v : JSON.stringify(v)
-          ),
-          warnings: (postStateValidation.warnings || []).map((w) =>
-            typeof w === 'string' ? w : JSON.stringify(w)
-          ),
-          diffSummary,
-        },
-      });
+      await persistWorldMutation(persistArgs);
 
     if (!persistResult.success) {
       return buildMutationFailureResult(persistResult.error, {
