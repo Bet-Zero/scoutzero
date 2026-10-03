@@ -210,7 +210,12 @@ export async function prepareSeasonAdvance(args: {
       contract: PERSISTENCE_CONTRACTS.TEAM,
       label: 'TEAM',
     });
-    const safeCommittedTeam = removeUndefinedDeep(normalizedTeam);
+    // Match the history/event JSON representation at the shared publication
+    // boundary. Admin Firestore preserves -0, unlike the browser SDK; without
+    // this canonical clone the saved team and its history differ after reload.
+    const safeCommittedTeam = removeUndefinedDeep(
+      safeCloneForAudit(normalizedTeam) as typeof normalizedTeam
+    );
 
     beforeTeamsByCode[teamCode] = beforeTeam as PostStateTeamSnapshots[string];
     afterTeamsByCode[teamCode] = safeCloneForAudit(

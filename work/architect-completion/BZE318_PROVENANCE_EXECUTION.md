@@ -98,3 +98,15 @@ receipts does not mutate that candidate. Old candidate/handoff/evidence remain
 unchanged historical author evidence. Full suite, broad lint, source acquisition,
 production deployment and real-asset activation are intentionally not run.
 Required independent Claude review remains mandatory and unavailable here.
+
+
+The first exact-head season run found a real serialization difference: Admin
+Firestore preserved a computed `-0` in committed team salary-book entries while
+JSON-cloned history contained `0`. The shared preparation now applies the same
+existing canonical JSON clone to the committed team before publication. This
+changes no rule amounts and restores exact history/team/reload equality across
+both persistence adapters. The failed certificate is retained; replacement
+exact-head proof follows this repair. Workflow tests initially refused the
+uncommitted changed lockfile (expected exact-source safeguard); all 19 passed
+once the matching dependency change was committed. Graphify refreshed to 16,437
+nodes / 42,035 edges; schema check and docs checks passed.
