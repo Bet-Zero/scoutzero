@@ -129,7 +129,8 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
 
   describe('Phase 77 Invariant Preservation', () => {
     it('TEST 7: seasonManager.ts does NOT call updateTeamCapTotals (except in comments)', () => {
-      const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
+      const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8') +
+        fs.readFileSync(SEASON_MANAGER_PATH.replace('seasonManager.ts', 'seasonManager.teamTransition.core.ts'), 'utf-8');
 
       // Remove comments
       const contentWithoutComments = content.replace(
@@ -147,7 +148,8 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
     });
 
     it('TEST 8: seasonManager.ts imports the canonical independent-book snapshot from capTotals', () => {
-      const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
+      const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8') +
+        fs.readFileSync(SEASON_MANAGER_PATH.replace('seasonManager.ts', 'seasonManager.teamTransition.core.ts'), 'utf-8');
 
       // Must have import from capTotals barrel
       const hasImport =
@@ -159,7 +161,8 @@ describe('Phase 78: Remove updateTeamCapTotals - SSOT-Only Guardrails', () => {
     });
 
     it('TEST 9: seasonManager.ts calls createCanonicalTeamTotalsSnapshot( at least once', () => {
-      const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
+      const content = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8') +
+        fs.readFileSync(SEASON_MANAGER_PATH.replace('seasonManager.ts', 'seasonManager.teamTransition.core.ts'), 'utf-8');
 
       // Remove comments to check actual code
       const contentWithoutComments = content.replace(

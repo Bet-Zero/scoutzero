@@ -146,7 +146,8 @@ describe('CAP_AUDITABILITY Closure Gate 2: Call-site invocation', () => {
   });
 
   it('invokes validatePostStateCapLegality in seasonManager.ts (advanceSeasonInWorld)', () => {
-    const source = readSource(SEASON_MANAGER_PATH);
+    const source = readSource(SEASON_MANAGER_PATH) +
+      readSource(SEASON_MANAGER_PATH.replace('seasonManager.ts', 'seasonManager.prepare.ts'));
 
     expect(
       source,
@@ -215,7 +216,8 @@ describe('CAP_AUDITABILITY Closure Gate 3: Event envelope fields', () => {
   });
 
   it('seasonManager.ts emits all required CapAuditEventV1 fields', () => {
-    const source = readSource(SEASON_MANAGER_PATH);
+    const source = readSource(SEASON_MANAGER_PATH) +
+      readSource(SEASON_MANAGER_PATH.replace('seasonManager.ts', 'seasonManager.prepare.ts'));
     const missingFields: string[] = [];
 
     for (const field of requiredCapAuditEventV1Fields) {

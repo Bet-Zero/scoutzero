@@ -119,3 +119,15 @@ synthetic proof, retains/hashes every compiled file, and rejects source/runtime
 changes through teardown. The negative-zero rerun before this tooling repair
 still executed the old server bundle and is not a result for the repaired source.
 This closes the exact-candidate evidence dependency introduced by server execution.
+
+Hosted CI on the first implementation head passed type/cast/workflow and the
+real Offer Sheet emulator gate, then exposed ten stale source-location guard
+assertions in four older season/audit test files. Their normalization, canonical
+book calculation, post-state validation and atomic write invariants now follow
+the shared preparation/core; all 62 focused guard tests pass. An approved local
+`test:diff -- --reporter=dot` diagnostic auto-selected FULL because the lockfile
+changed; it was stopped after CI annotations isolated these narrower failures.
+No direct full-suite command was invoked. The new exact-head hosted gate retains
+its normal repository-selected diff scope. Automated Codex review of `849159ab`
+found no major issues (PR541 comment 5967753039); a focused proof-tooling/test-only
+delta review is requested before final freeze. None substitutes for Claude.
