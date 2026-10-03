@@ -1,8 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "include": [
-    "src/vite-env.d.ts",
-    "tests/architect/waivers/governedWaiver.test.ts",
-    "tests/e2e/architect-governed-waiver.spec.ts"
-  ]
-}

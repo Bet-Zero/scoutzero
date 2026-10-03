@@ -49,7 +49,7 @@ in `src/tests/shared/hooks.smoke.test.tsx` comment. 57/57 smoke tests pass.
 
 ### 2. Move `src/firebaseHelpers.ts` into `src/firebase/` ✅
 
-**File:** `src/firebaseHelpers.ts` → [src/firebase/firebaseHelpers.ts](../../src/firebase/firebaseHelpers.ts)  
+**File:** `src/firebaseHelpers.ts` → [src/firebase/firebaseHelpers.ts](../../../src/firebase/firebaseHelpers.ts)  
 Moved to sit alongside `listHelpers.ts`, `rankerHelpers.ts`, `rosterHelpers.ts`.
 Updated relative `./firebaseConfig` import to `@/firebaseConfig`. No import sites
 needed updating (file had no callers in the app). 57/57 smoke tests pass.
@@ -112,10 +112,10 @@ expectations alongside a brief confirmation that the shape change is intentional
 
 **Done:**
 
-- [TieramidBoard.tsx](../../src/features/tierMaker/TieramidBoard.tsx): extracted utility
+- [TieramidBoard.tsx](../../../src/features/tierMaker/TieramidBoard.tsx): extracted utility
   functions → `tierMaker/utils/tieramidHelpers.ts`; pool section → `TieramidPool.tsx`.
   1194 → ~1083 lines.
-- [TradeTeamCard.tsx](../../src/features/architect/tradeMachine/TradeTeamCard.tsx): extracted
+- [TradeTeamCard.tsx](../../../src/features/architect/tradeMachine/TradeTeamCard.tsx): extracted
   all local types, props interface, and utility functions → `TradeTeamCard.helpers.ts`.
   1211 → ~1034 lines. Guardrail checks pass.
 
@@ -142,7 +142,7 @@ split) before the main file splits.
 
 ### 6. Split `seasonManager.ts` (2,295 lines)
 
-**File:** [src/features/architect/utils/seasonManager.ts](../../src/features/architect/utils/seasonManager.ts)  
+**File:** [src/features/architect/utils/seasonManager.ts](../../../src/features/architect/utils/seasonManager.ts)  
 **Effort:** M–L (1 day)  
 **Risk:** Medium — consumed by `mutationPipeline.ts` and offseason utilities
 
@@ -158,7 +158,7 @@ Keep `seasonManager.ts` as a thin re-export barrel after splitting.
 
 ### 7. Split `capLegalityValidation.ts` (4,820 lines)
 
-**File:** [src/features/architect/utils/capLegalityValidation.ts](../../src/features/architect/utils/capLegalityValidation.ts)  
+**File:** [src/features/architect/utils/capLegalityValidation.ts](../../../src/features/architect/utils/capLegalityValidation.ts)  
 **Effort:** L (1–2 days)  
 **Risk:** Medium-high — central to trade and contract validation across architect
 
@@ -177,7 +177,7 @@ Run `npm run test:cap-sheet-boundary -- --reporter=dot` as the validation gate.
 
 ### 8. Split `useArchitectActions.ts` (6,139 lines)
 
-**File:** [src/features/architect/GMDashboard/hooks/useArchitectActions.ts](../../src/features/architect/GMDashboard/hooks/useArchitectActions.ts)  
+**File:** [src/features/architect/GMDashboard/hooks/useArchitectActions.ts](../../../src/features/architect/GMDashboard/hooks/useArchitectActions.ts)  
 **Effort:** L (2 days)  
 **Risk:** High — this hook is the primary action dispatcher for all Architect mutations
 
@@ -199,7 +199,7 @@ throughout — split incrementally, one domain at a time).
 
 ### 9. Split `mutationPipeline.ts` (13,412 lines)
 
-**File:** [src/features/architect/utils/mutationPipeline.ts](../../src/features/architect/utils/mutationPipeline.ts)  
+**File:** [src/features/architect/utils/mutationPipeline.ts](../../../src/features/architect/utils/mutationPipeline.ts)  
 **Effort:** XL (3–5 days)  
 **Risk:** Very high — the central write layer for all Architect state changes
 
