@@ -1,0 +1,268 @@
+name: Independent Claude Review
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-request:
+    if: >-
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/claude-independent-review ') &&
+      (
+        github.event.comment.author_association == 'OWNER' ||
+        github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'COLLABORATOR'
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      valid: ${{ steps.guard.outputs.valid }}
+      reason: ${{ steps.guard.outputs.reason }}
+      pr_number: ${{ steps.guard.outputs.pr_number }}
+      candidate_sha: ${{ steps.guard.outputs.candidate_sha }}
+      base_sha: ${{ steps.guard.outputs.base_sha }}
+    steps:
+      - name: Validate immutable review request
+        id: guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_BODY: ${{ github.event.comment.body }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          first_line="$(printf '%s\n' "$REQUEST_BODY" | sed -n '1p' | tr -d '\r')"
+          IFS=' ' read -r command candidate base extra <<< "$first_line"
+
+          valid=false
+          reason=malformed-request
+
+          if [[ "$command" == "/claude-independent-review" ]] \
+            && [[ "${candidate:-}" =~ ^[0-9a-fA-F]{40}$ ]] \
+            && [[ "${base:-}" =~ ^[0-9a-fA-F]{40}$ ]] \
+            && [[ -z "${extra:-}" ]]; then
+            pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
+            live_head="$(jq -r '.head.sha' <<< "$pr_json")"
+            preserved_base="$(jq -r '.base.sha' <<< "$pr_json")"
+
+            if [[ "$live_head" != "$candidate" ]]; then
+              reason=head-mismatch
+            elif [[ "$preserved_base" != "$base" ]]; then
+              reason=base-mismatch
+            else
+              valid=true
+              reason=ok
+            fi
+          fi
+
+          {
+            echo "valid=$valid"
+            echo "reason=$reason"
+            echo "pr_number=$PR_NUMBER"
+            echo "candidate_sha=${candidate:-}"
+            echo "base_sha=${base:-}"
+          } >> "$GITHUB_OUTPUT"
+
+  invalid-request:
+    needs: validate-request
+    if: needs.validate-request.outputs.valid != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Record rejected review request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ needs.validate-request.outputs.pr_number }}
+          REASON: ${{ needs.validate-request.outputs.reason }}
+        shell: bash
+        run: |
+          cat > /tmp/rejected-review.md <<EOF
+          ## Independent Claude review not started
+
+          The review request failed closed before the Claude credential was used.
+
+          **Reason:** \`$REASON\`
+
+          Freeze the replacement candidate and post a new exact request. Do not reuse this request.
+          EOF
+          gh pr comment "$PR_NUMBER" --body-file /tmp/rejected-review.md
+          exit 1
+
+  independent-review:
+    needs: validate-request
+    if: needs.validate-request.outputs.valid == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      actions: read
+    outputs:
+      structured: ${{ steps.claude.outputs.structured_output }}
+      session_id: ${{ steps.claude.outputs.session_id }}
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate-request.outputs.candidate_sha }}
+          fetch-depth: 0
+
+      - name: Verify exact candidate ancestry
+        env:
+          CANDIDATE_SHA: ${{ needs.validate-request.outputs.candidate_sha }}
+          BASE_SHA: ${{ needs.validate-request.outputs.base_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          git cat-file -e "${BASE_SHA}^{commit}"
+          git merge-base --is-ancestor "$BASE_SHA" "$CANDIDATE_SHA"
+
+      - name: Run independent Claude checker
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ github.token }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          prompt: |
+            You are ScoutZero's independent Checker. This is review-only work.
+
+            Repository: ${{ github.repository }}
+            PR: #${{ needs.validate-request.outputs.pr_number }}
+            Exact frozen candidate: ${{ needs.validate-request.outputs.candidate_sha }}
+            Exact preserved base: ${{ needs.validate-request.outputs.base_sha }}
+
+            The author handoff is the immutable triggering PR comment below. Treat it as author evidence to challenge, not as independent acceptance:
+
+            --- BEGIN AUTHOR HANDOFF ---
+            ${{ github.event.comment.body }}
+            --- END AUTHOR HANDOFF ---
+
+            First verify the checked-out HEAD and base identities. Then read the exact candidate's:
+            - AGENTS.md
+            - docs/agent-guides/phase3a-execution.md
+            - docs/agent-guides/architect-boundary.md
+            - docs/agent-guides/independent-review-boundary.md
+            - any direct evidence locators named by the handoff
+
+            Follow independent-review-boundary.md. Judge the author's material claims, assumptions, evidence, accounting, trust boundaries, and stated limitations. Choose your own targeted adversarial probes. Expand only when a concrete risk justifies it; do not reproduce the complete author pipeline by default.
+
+            This checker job has read-only repository/GitHub permissions. Do not edit files, create commits, push branches, merge, deploy, write Firestore/source data, change billing/credentials, or start adjacent work. For any accepted CBA rule you independently rely on, use only:
+            npm run architect:canon:lookup -- <leaf>
+
+            Return ACCEPT only when there is no material unresolved finding for the exact claimed scope. Non-blocking observations may coexist with ACCEPT. Return REVISE when an objective repair or additional discriminating proof is required. If ACCEPT, there must be no blocking finding.
+
+            Keep scope limits explicit: synthetic or bounded proof never implies real-NBA readiness unless the handoff's claimed scope actually proves it.
+          claude_args: >-
+            --max-turns 40
+            --allowedTools "Read,Glob,Grep,Bash"
+            --json-schema '{"type":"object","properties":{"verdict":{"type":"string","enum":["ACCEPT","REVISE"]},"summary":{"type":"string"},"review_report":{"type":"string"},"findings":{"type":"array","items":{"type":"object","properties":{"severity":{"type":"string","enum":["blocking","non-blocking"]},"title":{"type":"string"},"detail":{"type":"string"},"evidence":{"type":"string"},"required_next_step":{"type":"string"}},"required":["severity","title","detail","evidence","required_next_step"],"additionalProperties":false}},"validation":{"type":"array","items":{"type":"string"}},"scope_limits":{"type":"array","items":{"type":"string"}}},"required":["verdict","summary","review_report","findings","validation","scope_limits"],"additionalProperties":false}'
+
+  publish-verdict:
+    needs: [validate-request, independent-review]
+    if: always() && needs.validate-request.outputs.valid == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Publish durable independent-review receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ needs.validate-request.outputs.pr_number }}
+          CANDIDATE_SHA: ${{ needs.validate-request.outputs.candidate_sha }}
+          BASE_SHA: ${{ needs.validate-request.outputs.base_sha }}
+          REVIEW_RESULT: ${{ needs.independent-review.result }}
+          STRUCTURED_OUTPUT: ${{ needs.independent-review.outputs.structured }}
+          SESSION_ID: ${{ needs.independent-review.outputs.session_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$REVIEW_RESULT" != "success" ]] || [[ -z "$STRUCTURED_OUTPUT" ]]; then
+            cat > /tmp/review-failure.md <<EOF
+          ## Independent Claude review failed to produce a verdict
+
+          Candidate: \`$CANDIDATE_SHA\`
+          Base: \`$BASE_SHA\`
+          Workflow: $RUN_URL
+
+          The independent-review gate remains unsatisfied. Do not self-accept, merge on this basis, or ask the owner to substitute a verdict.
+          EOF
+            gh pr comment "$PR_NUMBER" --body-file /tmp/review-failure.md
+            exit 1
+          fi
+
+          export STRUCTURED_OUTPUT
+          receipt="$(mktemp)"
+          python - "$receipt" <<'PY'
+          import json
+          import os
+          import sys
+
+          output = json.loads(os.environ["STRUCTURED_OUTPUT"])
+          path = sys.argv[1]
+
+          def bullets(items):
+              if not items:
+                  return "- None"
+              return "\n".join(f"- {item}" for item in items)
+
+          findings = output.get("findings", [])
+          if findings:
+              finding_text = []
+              for index, finding in enumerate(findings, 1):
+                  finding_text.append(
+                      f"{index}. **{finding['severity'].upper()} — {finding['title']}**\n"
+                      f"   - Detail: {finding['detail']}\n"
+                      f"   - Evidence: {finding['evidence']}\n"
+                      f"   - Required next step: {finding['required_next_step']}"
+                  )
+              findings_md = "\n".join(finding_text)
+          else:
+              findings_md = "None."
+
+          with open(path, "w", encoding="utf-8") as fh:
+              fh.write(
+                  "<!-- scoutzero-independent-claude-review\n"
+                  f"candidate: {os.environ['CANDIDATE_SHA']}\n"
+                  f"base: {os.environ['BASE_SHA']}\n"
+                  f"session: {os.environ.get('SESSION_ID', '')}\n"
+                  f"run: {os.environ['RUN_URL']}\n"
+                  f"verdict: {output['verdict']}\n"
+                  "-->\n"
+                  f"## Independent Claude Review — {output['verdict']}\n\n"
+                  f"**Candidate:** `{os.environ['CANDIDATE_SHA']}`  \n"
+                  f"**Base:** `{os.environ['BASE_SHA']}`  \n"
+                  f"**Claude session:** `{os.environ.get('SESSION_ID', '') or 'not returned'}`  \n"
+                  f"**Workflow:** {os.environ['RUN_URL']}\n\n"
+                  f"### Summary\n{output['summary']}\n\n"
+                  f"### Governing review report\n{output['review_report']}\n\n"
+                  f"### Findings\n{findings_md}\n\n"
+                  f"### Independent validation performed\n{bullets(output.get('validation', []))}\n\n"
+                  f"### Scope limits\n{bullets(output.get('scope_limits', []))}\n\n"
+                  "This receipt is the complete structured result returned by the independent checker for the exact candidate above."
+              )
+          PY
+
+          gh pr comment "$PR_NUMBER" --body-file "$receipt"
+
+          verdict="$(python - <<'PY'
+          import json
+          import os
+          print(json.loads(os.environ["STRUCTURED_OUTPUT"])["verdict"])
+          PY
+          )"
+
+          if [[ "$verdict" != "ACCEPT" ]]; then
+            exit 1
+          fi
