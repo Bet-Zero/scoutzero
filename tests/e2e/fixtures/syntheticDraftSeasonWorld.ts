@@ -1,19 +1,26 @@
 /** World-only fixture: no NBA facts, no source collection writes. */
-import { SYNTHETIC_DRAFT_SEASON_RELEASE } from './syntheticDraftSeasonRelease';
+import {
+  ARCHITECT_WORLDS_COLLECTION,
+  ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
+  ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
+} from '@/constants/collections';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import {
+  hashTransitionState,
+  provenanceHash,
+  provenanceRoot,
+} from '@/features/architect/utils/certifiedHistory';
+import { SYNTHETIC_DRAFT_SEASON_PIN } from '@/features/architect/utils/draftReview/seasonFixturePin';
 import { SyntheticDraftMutationSourceV2Z } from '@/schemas/draftPickReviewMutation';
 import { SyntheticDraftSeasonSourceZ } from '@/schemas/draftReviewSeason';
+import { TransitionProvenanceRecordZ } from '@/schemas/transitionProvenance';
+import { withDerivedGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 import {
   ALL_TEAM_CODES,
   buildReviewDepthPlayer,
   getReviewAdminDb,
 } from '../helpers/architectReviewWorld';
-import { withDerivedGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
-import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
-import {
-  ARCHITECT_WORLDS_COLLECTION,
-  ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
-  ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
-} from '@/constants/collections';
+import { SYNTHETIC_DRAFT_SEASON_RELEASE } from './syntheticDraftSeasonRelease';
 
 export function syntheticDraftSeasonFixture(uid: string, worldId: string) {
   const retained = JSON.parse(SYNTHETIC_DRAFT_SEASON_RELEASE);
@@ -34,6 +41,7 @@ export function syntheticDraftSeasonFixture(uid: string, worldId: string) {
     asOfDate: '2026-04-12',
     actionCount: 0,
     parentWorldId: null,
+    draftInventoryRevision: 0,
     isArchived: false,
     draftReviewReleaseId: retained.release.id,
     draftReviewSeasonReleaseId: retained.release.id,
@@ -163,6 +171,46 @@ export async function seedSyntheticDraftSeasonWorld(
       root.collection(ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION).doc(id),
       entitlement
     );
+  for (const [path, data] of Object.entries(
+    await syntheticDraftSeasonBaseline(fixture)
+  ))
+    batch.set(db.doc(path), data);
   await batch.commit();
   return fixture.source;
+}
+
+/** Test-only trusted initialization. Never callable by a saved-world owner. */
+export async function syntheticDraftSeasonBaseline(
+  fixture: ReturnType<typeof syntheticDraftSeasonFixture>
+) {
+  const worldId = fixture.metadata.worldId;
+  const root = `${ARCHITECT_WORLDS_COLLECTION}/${worldId}`;
+  const state: Record<string, unknown> = { [root]: fixture.metadata };
+  for (const [id, team] of Object.entries(fixture.teams))
+    state[`${root}/${ARCHITECT_WORLD_TEAMS_SUBCOLLECTION}/${id}`] = team;
+  for (const [id, entitlement] of Object.entries(fixture.source.entitlements))
+    state[`${root}/${ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION}/${id}`] =
+      entitlement;
+  const baseline = TransitionProvenanceRecordZ.parse({
+    schemaVersion: 1,
+    worldId,
+    recordId: 'baseline',
+    kind: 'baseline',
+    scope: 'synthetic-review-only',
+    releaseId: SYNTHETIC_DRAFT_SEASON_PIN.release.id,
+    releaseSha256: SYNTHETIC_DRAFT_SEASON_PIN.payloadSha256,
+    predecessor: null,
+    stateHashes: await hashTransitionState(state),
+    publishedHashes: {},
+    createdAt: '2026-04-12T00:00:00Z',
+  });
+  return {
+    [`${provenanceRoot(worldId)}/baseline`]: baseline,
+    [`${provenanceRoot(worldId)}/head`]: {
+      schemaVersion: 1,
+      worldId,
+      recordId: 'baseline',
+      recordSha256: await provenanceHash(baseline),
+    },
+  };
 }

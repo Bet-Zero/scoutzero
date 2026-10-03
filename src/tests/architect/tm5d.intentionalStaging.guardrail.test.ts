@@ -240,7 +240,7 @@ describe('TM-5D intentional staging guardrails', () => {
       readRepoFile('src/features/architect/utils/mutationPipeline.persist.ts') +
       readRepoFile('src/features/architect/utils/mutationPipeline.validate.ts'));
     const seasonManagerSource = readRepoFile(
-      'src/features/architect/utils/seasonManager.ts'
+      'src/features/architect/utils/seasonManager.prepare.ts'
     );
 
     expect(postStateSource).toContain(

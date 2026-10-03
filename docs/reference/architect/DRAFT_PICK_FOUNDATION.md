@@ -325,3 +325,78 @@ and 2027-28 levels for a later advance. This proves neither a traded pick crossi
 a later year nor real NBA readiness. `npm run architect:proof:trade-receipt --
 --draft-season` retains the exact-head browser/emulator record, including all30
 history reconciliation, both-team leave/return/reload and atomic-write denial.
+
+## Inventory membership and history origin
+
+BZE-318 adds an opt-in `draftInventoryRevision` on the existing world metadata.
+Only newly seeded synthetic worlds receive it here; existing worlds are neither
+migrated nor given first-round permission. Review issuance requires a valid
+revision and captures metadata **before** scanning collections. The existing
+commit transaction re-reads that exact metadata. Firestore rules require every
+team, entitlement and event write (including unknown-ID creation and deletion)
+to advance the same revision in the same atomic commit. Clients cannot install,
+remove, rewind or skip the revision. A change after transaction reads conflicts
+at commit and must retry against the changed metadata, which rejects the old
+review. An unchanged transaction retry retains the existing one-use result seal.
+
+The reviewed trade and synthetic Season Advance advance the revision in their
+existing atomic writes. Other client writers are denied in these fenced worlds
+unless their atomic write also advances it; this is deliberate fail-closed
+behavior, not a claim that every editing tool supports fenced worlds. The
+owner-callable non-atomic Admin purge refuses fenced worlds. Fixture Admin
+initialization/teardown is trusted setup outside concurrent reviewed operations;
+privileged administrative access is not made safe by client rules. Future use
+must deploy matching rules and adapt any additional authorized writer before
+admitting fenced real-asset worlds. No production rule/function deployment is
+performed by this lane.
+
+The revision establishes **membership freshness**, not history origin. The
+original BZE-318 counterexample published a fully consistent owner-created
+season bundle with a substituted player identity across history, current team
+and salary books, recomputing every consumed digest. The old consumer accepted
+it. The retained before-repair probe now expects rejection and fails on that
+historical candidate; the replacement rejects the same permitted publication.
+Custom records remain saved and retain their existing display behavior.
+
+The October 3 owner decision requires certified transition history for governed
+first-round prior-state authority. `transitionProvenance` is an internal,
+server-owned receipt collection; owners may read it but cannot create, alter or
+delete its records or head. Existing history, manifests and events keep their
+custom save rules. A matching protected certificate authenticates their exact
+SHA-256 content; a client flag, matching FNV digests or private capability cannot
+confer certification. No existing world or history is retro-certified.
+
+`advanceCertifiedArchitectSeason` reuses the shared Season Advance preparation
+and validation. Its authenticated server transaction reads actual owner/world
+metadata, complete teams, entitlements, events, histories and manifests, and the
+protected head with every predecessor through the baseline. The current state
+must match that trusted predecessor, and the accepted pinned rule/release inputs
+must qualify. Only then does it compute the transition itself and atomically
+publish the ordinary teams/history/manifest/event, inventory revision, statistics,
+certificate and head. Requests contain operation identity and expected revision,
+never a client-generated output bundle. Replay/concurrent publication cannot
+produce a second event or partly advance the world.
+
+This lane admits only the already-supported synthetic season release in the
+isolated demo emulator. Its baseline is created by trusted fixture Admin setup
+before owner edits; there is no client or callable enrollment/adoption path.
+The certificate contract says `synthetic-review-only`. Production callable use
+refuses that release; production/default first-round Apply remains blocked.
+The ordinary uncertified Season Advance path remains supported for existing
+worlds. Edits to certified input state preserve data but make governed authority
+unavailable; this intentionally does not certify an arbitrary custom lineage.
+
+The v2 history consumer verifies the complete protected lineage, all published
+history/manifest/event hashes, and committed team state before rule review.
+Every consumed provenance document also joins the existing trade transaction's
+exact snapshot checks. Missing or substituted predecessors fail closed with
+Needs-input/unavailable behavior; no quiet migration or later NBA replay occurs.
+Future certified transitions must preserve this complete trusted-input boundary;
+merely writing a new certificate over client history would violate it.
+
+Four claims remain distinct: records agree; an authorized validated ScoutZero
+transition produced them; qualified NBA sources establish real-world facts; a
+user created a legitimate simulation. Certification establishes the second from
+an accepted baseline, not the third. NBA source qualification, the June 5 baseline,
+all 278 entitlements, unresolved BZE-309 identities/procedures and activation gates
+remain unchanged. No production rule/function deployment occurs in this lane.

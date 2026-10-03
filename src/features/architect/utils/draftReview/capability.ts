@@ -16,6 +16,7 @@ import { DraftPickApronContextZ } from '@/schemas/draftPickReview';
 import { loadDraftPickRelease } from '@/features/architect/utils/draftPickRelease';
 import { SYNTHETIC_DRAFT_REVIEW_PINS } from './fixturePins';
 import { SYNTHETIC_DRAFT_SEASON_PIN } from './seasonFixturePin';
+import { requireDraftInventoryRevision } from './inventoryFence';
 import {
   ARCHITECT_WORLDS_COLLECTION,
   ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
@@ -170,6 +171,9 @@ export async function prepareSyntheticDraftReview(
     metadata.parentWorldId != null
   )
     throw new Error('Review requires its own saved synthetic world.');
+  // Read before the collection scans. Every relevant client writer must change
+  // this same metadata document atomically, including previously unknown IDs.
+  requireDraftInventoryRevision(metadata);
   const releaseId = metadata.draftReviewReleaseId;
   const pin =
     typeof releaseId === 'string' && Object.hasOwn(trustedPins, releaseId)

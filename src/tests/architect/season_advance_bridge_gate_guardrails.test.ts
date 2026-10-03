@@ -35,10 +35,10 @@ const SEASON_MANAGER_PATH = path.resolve(
 );
 // Stage 6B: per-team transition (and HYDRATION_ONLY_KEYS /
 // stripHydrationOnlyFields, sanitize/assertPersistable/removeUndefined
-// ordering) was extracted into seasonManager.teamTransition.ts.
+// ordering) was extracted into seasonManager.teamTransition.core.ts.
 const SEASON_MANAGER_TEAM_TRANSITION_PATH = path.resolve(
   __dirname,
-  '../../features/architect/utils/seasonManager.teamTransition.ts'
+  '../../features/architect/utils/seasonManager.teamTransition.core.ts'
 );
 const readSeasonManagerBundle = (): string => {
   let bundle = fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8');
@@ -74,7 +74,7 @@ describe('Season Advance Bridge Gate — Source-Scan Guardrails', () => {
 
   it('TEST 3: Correct ordering — stripHydration before sanitize before normalize before assertPersistable before removeUndefined', () => {
     // Stage 6B: the bridge-gate ordering lives entirely inside
-    // seasonManager.teamTransition.ts. Read just that file so the
+    // seasonManager.teamTransition.core.ts. Read just that file so the
     // ordering check is scoped to one sub-module and doesn't confuse
     // the team-transition ordering with the event-payload
     // assertPersistableOrThrow call inside seasonManager.ts.

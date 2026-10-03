@@ -6,19 +6,20 @@ import {
   ARCHITECT_WORLD_SEASON_TRANSITIONS_SUBCOLLECTION,
 } from '@/constants/collections';
 import {
-  SeasonHistoryRecordZ,
-  SeasonTransitionManifestZ,
-} from '@/schemas/seasonTransition';
-import {
-  DraftReviewSeasonReceiptZ,
-  SyntheticDraftSeasonSourceZ,
-} from '@/schemas/draftReviewSeason';
-import type { DraftPickReleasePin } from '@/schemas/draftPickRelease';
-import {
   mutationSnapshotDigest as digest,
   mutationSnapshotText as snapshotText,
 } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
 import { resolveSeasonAdvanceAuthority } from '@/features/architect/utils/seasonManager.authority';
+import type { DraftPickReleasePin } from '@/schemas/draftPickRelease';
+import {
+  DraftReviewSeasonReceiptZ,
+  SyntheticDraftSeasonSourceZ,
+} from '@/schemas/draftReviewSeason';
+import {
+  SeasonHistoryRecordZ,
+  SeasonTransitionManifestZ,
+} from '@/schemas/seasonTransition';
+import { provenanceHash, readCertifiedLineage } from '../certifiedHistory';
 import { buildSyntheticFreezeEvents } from './seasonEvidence';
 import { compactSyntheticSeasonEventTotals } from './seasonTotals';
 
@@ -41,6 +42,24 @@ export async function captureSyntheticSeasonPrerequisite(args: {
   };
   const lifecycle = SyntheticDraftSeasonSourceZ.parse(args.lifecycle);
   const transitionId = 'seasonAdvance__2025-26__2026-27';
+  const lineage = await readCertifiedLineage({
+    worldId: args.worldId,
+    releaseId: args.pin.release.id,
+    releaseSha256: args.pin.payloadSha256,
+    readDocument: args.readDocument,
+  }).catch(() => {
+    throw new Error(
+      'Certified prior season history is unavailable. Custom history is preserved but cannot authorize first-round decisions.'
+    );
+  });
+  const certificate = lineage.records.find(
+    (record) =>
+      record.recordId === transitionId && record.kind === 'seasonAdvance'
+  );
+  if (!certificate)
+    throw new Error(
+      'Certified prior season history is unavailable. Custom history is preserved but cannot authorize first-round decisions.'
+    );
   const root = `${ARCHITECT_WORLDS_COLLECTION}/${args.worldId}`;
   const teams = Object.keys(args.teams).sort();
   const authority = resolveSeasonAdvanceAuthority({
@@ -64,6 +83,22 @@ export async function captureSyntheticSeasonPrerequisite(args: {
     ),
   ];
   const documents = await Promise.all(paths.map(args.readDocument));
+  if (Object.keys(certificate.publishedHashes).length !== paths.length)
+    return fail();
+  for (const [index, path] of paths.entries())
+    if (
+      certificate.publishedHashes[path] !==
+      (await provenanceHash(documents[index]))
+    )
+      return fail();
+  // The predecessor's committed team state is authenticated independently of
+  // client-recomputed history hashes and joins this review's normal snapshots.
+  for (const [team, data] of Object.entries(args.teams))
+    if (
+      certificate.stateHashes[`${root}/teams/${team}`] !==
+      (await provenanceHash(data))
+    )
+      return fail();
   const manifest = SeasonTransitionManifestZ.parse(documents[0]);
   const e = documents[1];
   if (!isRecord(e)) return fail();
@@ -172,7 +207,10 @@ export async function captureSyntheticSeasonPrerequisite(args: {
       snapshotText(compactSyntheticSeasonEventTotals(afterTotals))
   )
     return fail();
-  return Object.fromEntries(
-    paths.map((path, index) => [path, snapshotText(documents[index])])
-  );
+  return {
+    ...lineage.documents,
+    ...Object.fromEntries(
+      paths.map((path, index) => [path, snapshotText(documents[index])])
+    ),
+  };
 }

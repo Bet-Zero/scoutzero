@@ -365,7 +365,7 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
     certificationHarness,
     /finally\s*\{\s*if \(stopHarness\) await stopHarness\(\)/
   );
-  assert.match(certificationHarness, /openPorts\.length === 0;/);
+  assert.match(certificationHarness, /openPorts\.length === 0 &&/);
   assert.equal(
     certificationHarness.match(/\.\.\.screenshotArtifacts/g)?.length,
     1

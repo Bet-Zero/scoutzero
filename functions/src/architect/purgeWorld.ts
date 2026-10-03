@@ -437,6 +437,16 @@ export const purgeArchitectWorld = onCall(
       }
     }
 
+    // The current recursive Admin deletion is not atomic and bypasses rules.
+    // It must not race a reviewed inventory. Only new synthetic fixtures opt
+    // into this fence; their teardown uses the emulator fixture owner.
+    if ('draftInventoryRevision' in worldData) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Inventory-fenced review worlds cannot use recursive client-requested deletion.'
+      );
+    }
+
     // 4) Check if world has child worlds - prevent deletion if so
     const childWorlds = worldData.childWorlds || [];
     if (childWorlds.length > 0) {

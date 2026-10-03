@@ -19,12 +19,19 @@ const SEASON_MANAGER_HELPERS_PATH = path.resolve(
 );
 const SEASON_MANAGER_TEAM_TRANSITION_PATH = path.resolve(
   __dirname,
-  '../../features/architect/utils/seasonManager.teamTransition.ts'
+  '../../features/architect/utils/seasonManager.teamTransition.core.ts'
 );
 
 describe('Season Advance CapAuditEventV1 Guardrails', () => {
   const source =
     fs.readFileSync(SEASON_MANAGER_PATH, 'utf-8') +
+    fs.readFileSync(
+      SEASON_MANAGER_PATH.replace(
+        'seasonManager.ts',
+        'seasonManager.prepare.ts'
+      ),
+      'utf-8'
+    ) +
     (fs.existsSync(SEASON_MANAGER_HELPERS_PATH)
       ? fs.readFileSync(SEASON_MANAGER_HELPERS_PATH, 'utf-8')
       : '') +
@@ -33,8 +40,12 @@ describe('Season Advance CapAuditEventV1 Guardrails', () => {
       : '');
 
   it('constructs an operation-level CapAuditEventV1 envelope with required fields', () => {
-    expect(source).toContain("const CAP_AUDIT_EVENT_SCHEMA_VERSION = 'cap-audit-event-v1'");
-    expect(source).toContain("const SEASON_ADVANCE_MUTATION_TYPE = 'seasonAdvance'");
+    expect(source).toContain(
+      "const CAP_AUDIT_EVENT_SCHEMA_VERSION = 'cap-audit-event-v1'"
+    );
+    expect(source).toContain(
+      "const SEASON_ADVANCE_MUTATION_TYPE = 'seasonAdvance'"
+    );
 
     const requiredFieldPatterns = [
       /schemaVersion:\s*CAP_AUDIT_EVENT_SCHEMA_VERSION/,
@@ -59,9 +70,7 @@ describe('Season Advance CapAuditEventV1 Guardrails', () => {
   });
 
   it('writes the event at the constant path inside the atomic transaction', () => {
-    expect(source).toMatch(
-      /ARCHITECT_WORLD_EVENTS_SUBCOLLECTION/
-    );
+    expect(source).toMatch(/ARCHITECT_WORLD_EVENTS_SUBCOLLECTION/);
     expect(source).toMatch(
       /doc\(\s*db,\s*ARCHITECT_WORLDS_COLLECTION,\s*worldId,\s*ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,\s*eventId\s*\)/
     );
@@ -69,9 +78,7 @@ describe('Season Advance CapAuditEventV1 Guardrails', () => {
   });
 
   it('returns explicit committed-state truth tied to the committed metadata, event, and focus-team snapshot', () => {
-    expect(source).toContain(
-      'export type SeasonAdvanceCommittedState = {'
-    );
+    expect(source).toContain('export type SeasonAdvanceCommittedState = {');
     expect(source).toContain('committedState: SeasonAdvanceCommittedState;');
     expect(source).toContain(
       'const committedMetadata: SeasonAdvanceCommittedMetadata = {'
@@ -85,10 +92,10 @@ describe('Season Advance CapAuditEventV1 Guardrails', () => {
     expect(source).toMatch(
       /await\s+runTransaction\(db,\s*async\s*\(transaction\)\s*=>\s*\{/
     );
+    expect(source).toContain('function buildSeasonAdvanceCommittedState(');
     expect(source).toContain(
-      'function buildSeasonAdvanceCommittedState('
+      'const committedState = buildSeasonAdvanceCommittedState({'
     );
-    expect(source).toContain('const committedState = buildSeasonAdvanceCommittedState({');
     expect(source).toContain('eventId,');
     expect(source).toContain('occurredAt,');
     expect(source).toContain('focusTeamCode: focusTeamCode ?? undefined,');

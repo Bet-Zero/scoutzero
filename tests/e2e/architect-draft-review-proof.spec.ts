@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
+import { deleteField } from 'firebase/firestore';
 import { seedSyntheticDraftReviewWorld } from './fixtures/syntheticDraftReviewWorld';
 import {
   getReviewAdminDb,
@@ -415,4 +416,300 @@ test('an actual denied final metadata write rolls back every queued trade write'
     allQueuedWritesRolledBack: true,
     events: 0,
   });
+});
+
+// The extra economic claim is absent from every consumed-document snapshot.
+// A collection fence must deny its unfenced write or reject the stale commit.
+test('inventory membership cannot change invisibly after review', async ({
+  page,
+}) => {
+  const uid = await authenticate(page);
+  const worldId = `${root}_membership_unfenced`;
+  expect((await prepare(page, uid, worldId)).status).toBe('prepared');
+  const before = await savedState(worldId);
+  const environment = await initializeTestEnvironment({
+    projectId: 'demo-architect-review',
+    firestore: { host: '127.0.0.1', port: 8082 },
+  });
+  const owner = environment.authenticatedContext(uid).firestore();
+  let addition: { written: boolean; error?: string };
+  try {
+    await owner
+      .doc(`architect_worlds/${worldId}/entitlements/competing-original-first`)
+      .set({
+        id: 'competing-original-first',
+        kind: 'pick_ownership',
+        holderTeam: 'DEN',
+        originalTeam: 'BOS',
+        seasonYear: 2028,
+        round: 1,
+        underlyingPickId: 'BOS_2028_1st',
+      });
+    addition = { written: true };
+  } catch (error) {
+    addition = { written: false, error: String(error) };
+  } finally {
+    await environment.cleanup();
+  }
+  if (addition.written) {
+    const afterAddition = await savedState(worldId);
+    const result = await apply(page);
+    expect(
+      result.success,
+      JSON.stringify({ addition, success: result.success, error: result.error })
+    ).toBe(false);
+    expect(await savedState(worldId)).toEqual(afterAddition);
+  } else {
+    expect(addition.error).toMatch(
+      /permission|denied|insufficient|evaluation error/i
+    );
+    expect(await savedState(worldId)).toEqual(before);
+    expect((await apply(page)).success).toBe(true);
+  }
+  retain('membership-unfenced-proof.json', { addition, protected: true });
+});
+
+// Every client API (including raw owner SDK writes) reaches these same rules.
+test('inventory membership changes advance the fence or fail atomically', async ({
+  page,
+}) => {
+  const uid = await authenticate(page);
+  const environment = await initializeTestEnvironment({
+    projectId: 'demo-architect-review',
+    firestore: { host: '127.0.0.1', port: 8082 },
+  });
+  const owner = environment.authenticatedContext(uid).firestore();
+  const cases = [];
+  try {
+    for (const kind of [
+      'addition',
+      'removal',
+      'reassignment',
+      'team-addition',
+      'team-removal',
+      'team-inventory',
+      'event-addition',
+    ]) {
+      const worldId = `${root}_fence_${kind}`;
+      expect((await prepare(page, uid, worldId)).status).toBe('prepared');
+      const world = owner.doc(`architect_worlds/${worldId}`);
+      const before = await savedState(worldId);
+      const queue = (batch: ReturnType<typeof owner.batch>) => {
+        const claim = world.collection('entitlements').doc('review-BOS-2028-1');
+        if (kind === 'addition')
+          batch.set(world.collection('entitlements').doc('extra'), {
+            ...before.entitlements.find((e) => e.id === 'review-BOS-2028-1')!
+              .data,
+            id: 'extra',
+            holderTeam: 'DEN',
+          });
+        if (kind === 'removal') batch.delete(claim);
+        if (kind === 'reassignment') batch.update(claim, { holderTeam: 'DEN' });
+        if (kind === 'team-addition')
+          batch.set(world.collection('teams').doc('XXX'), {
+            entitlementIds: ['extra'],
+          });
+        if (kind === 'team-removal')
+          batch.delete(world.collection('teams').doc('DEN'));
+        if (kind === 'team-inventory')
+          batch.update(world.collection('teams').doc('DEN'), {
+            entitlementIds: ['extra'],
+          });
+        if (kind === 'event-addition')
+          batch.set(world.collection('events').doc('extra'), {
+            mutationType: 'executeTrade',
+          });
+      };
+      const denied = owner.batch();
+      queue(denied);
+      await expect(denied.commit()).rejects.toThrow(
+        /permission|denied|evaluation/i
+      );
+      expect(await savedState(worldId)).toEqual(before);
+      const admitted = owner.batch();
+      queue(admitted);
+      admitted.update(world, { draftInventoryRevision: 1 });
+      await admitted.commit();
+      const changed = await savedState(worldId);
+      expect(changed.metadata?.draftInventoryRevision).toBe(1);
+      const result = await apply(page);
+      expect(result.success, `${kind}: ${result.error}`).toBe(false);
+      expect(await savedState(worldId)).toEqual(changed);
+      // A client cannot remove, rewind, skip, or replace the fence's type.
+      for (const revision of [0, 3, '1', null]) {
+        await expect(
+          world.update({ draftInventoryRevision: revision })
+        ).rejects.toThrow(/permission|denied|evaluation/i);
+      }
+      await expect(
+        world.update({ draftInventoryRevision: deleteField() })
+      ).rejects.toThrow(/permission|denied|evaluation/i);
+      expect(await savedState(worldId)).toEqual(changed);
+      cases.push({
+        kind,
+        unfencedDenied: true,
+        revision: 1,
+        staleCommitRejected: true,
+        noPartialWrites: true,
+      });
+    }
+  } finally {
+    await environment.cleanup();
+  }
+  retain('membership-changes-proof.json', cases);
+});
+
+test('inventory membership is fenced after transaction reads and unchanged retries succeed', async ({
+  page,
+}) => {
+  const uid = await authenticate(page);
+  const environment = await initializeTestEnvironment({
+    projectId: 'demo-architect-review',
+    firestore: { host: '127.0.0.1', port: 8082 },
+  });
+  const owner = environment.authenticatedContext(uid).firestore();
+  const cases = [];
+  try {
+    for (const kind of ['membership-race', 'unchanged-retry'] as const) {
+      const worldId = `${root}_${kind}`;
+      expect((await prepare(page, uid, worldId)).status).toBe('prepared');
+      let intercepted = 0;
+      let afterIntervention: Awaited<ReturnType<typeof savedState>> | undefined;
+      await page.route(/documents:commit(?:\?|$)/, async (route) => {
+        const body = route.request().postData() || '';
+        if (
+          !body.includes('draft_review_synthetic-first-exchange') ||
+          intercepted++
+        ) {
+          await route.continue();
+          return;
+        }
+        // Actual final Commit RPC: all SDK transaction reads have completed.
+        if (kind === 'membership-race') {
+          const batch = owner.batch();
+          const world = owner.doc(`architect_worlds/${worldId}`);
+          batch.set(world.collection('entitlements').doc('post-read-claim'), {
+            id: 'post-read-claim',
+            kind: 'pick_ownership',
+            holderTeam: 'DEN',
+            originalTeam: 'BOS',
+            seasonYear: 2028,
+            round: 1,
+            underlyingPickId: 'BOS_2028_1st',
+          });
+          batch.update(world, { draftInventoryRevision: 1 });
+          await batch.commit();
+          afterIntervention = await savedState(worldId);
+          await route.continue();
+        } else {
+          await route.fulfill({
+            status: 409,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              error: {
+                code: 409,
+                status: 'ABORTED',
+                message: 'BZE-318 unchanged transaction retry probe',
+              },
+            }),
+          });
+        }
+      });
+      let result;
+      try {
+        result = await apply(page);
+      } finally {
+        await page.unroute(/documents:commit(?:\?|$)/);
+      }
+      expect(intercepted).toBeGreaterThan(0);
+      expect(result.appliedToLocalState).toBe(true);
+      if (kind === 'membership-race') {
+        expect(result.success, result.error).toBe(false);
+        expect(result.error).toContain('changed before commit');
+        expect(await savedState(worldId)).toEqual(afterIntervention);
+      } else {
+        expect(result.success, result.error).toBe(true);
+        expect(intercepted).toBe(2);
+        const after = await savedState(worldId);
+        expect(after.events).toHaveLength(1);
+        expect(after.metadata?.stats.totalTrades).toBe(1);
+        expect(after.metadata?.draftInventoryRevision).toBe(1);
+        expect((await apply(page)).success).toBe(false);
+        expect(await savedState(worldId)).toEqual(after);
+      }
+      cases.push({
+        kind,
+        intercepted,
+        success: result.success,
+        error: result.error ?? null,
+        noPartialWrites: true,
+      });
+    }
+  } finally {
+    await environment.cleanup();
+  }
+  retain('membership-commit-race-proof.json', cases);
+});
+
+test('inventory membership competing reviews transfer one economic right only once', async ({
+  page,
+}) => {
+  const uid = await authenticate(page);
+  const worldId = `${root}_competing`;
+  expect((await prepare(page, uid, worldId)).status).toBe('prepared');
+  const results = await page.evaluate(async () => {
+    const capabilityPath =
+      '/src/features/architect/utils/draftReview/capability.ts';
+    const pipelinePath = '/src/features/architect/utils/mutationPipeline.ts';
+    const { prepareSyntheticDraftReview } = await import(capabilityPath);
+    const { applyWorldMutation } = await import(pipelinePath);
+    const { args, prepared } = Reflect.get(window, '__syntheticDraftReview');
+    const competingArgs = { ...args, operationId: 'competing-first-exchange' };
+    const competing = await prepareSyntheticDraftReview(competingArgs);
+    if (competing.status !== 'prepared')
+      throw new Error('Competing review must be initially valid');
+    const results = await Promise.all([
+      applyWorldMutation({ ...args, draftReviewAuthority: prepared.authority }),
+      applyWorldMutation({
+        ...competingArgs,
+        draftReviewAuthority: competing.authority,
+      }),
+    ]);
+    return results.map((r) => ({ success: r.success, error: r.error ?? null }));
+  });
+  expect(results.filter((r) => r.success)).toHaveLength(1);
+  const after = await savedState(worldId);
+  expect(after.events).toHaveLength(1);
+  expect(after.metadata?.stats.totalTrades).toBe(1);
+  expect(after.metadata?.draftInventoryRevision).toBe(1);
+  expect(
+    after.entitlements.find((e) => e.id === 'review-BOS-2028-1')?.data
+      .holderTeam
+  ).toBe('MIA');
+  retain('membership-competing-proof.json', {
+    results,
+    trades: 1,
+    revision: 1,
+  });
+});
+
+test('inventory membership fence also stops the owner-callable Admin purge', async ({
+  page,
+}) => {
+  const uid = await authenticate(page);
+  const worldId = `${root}_purge`;
+  expect((await prepare(page, uid, worldId)).status).toBe('prepared');
+  const before = await savedState(worldId);
+  const result = await page.evaluate(async (worldId) => {
+    const modulePath = '/src/features/architect/utils/worldManager.ts';
+    const { purgeWorld } = await import(modulePath);
+    try {
+      return { result: await purgeWorld(worldId) };
+    } catch (error) {
+      return { error: String(error) };
+    }
+  }, worldId);
+  expect(result.error).toContain('Inventory-fenced review worlds');
+  expect(await savedState(worldId)).toEqual(before);
+  retain('membership-admin-purge-proof.json', { result, unchanged: true });
 });

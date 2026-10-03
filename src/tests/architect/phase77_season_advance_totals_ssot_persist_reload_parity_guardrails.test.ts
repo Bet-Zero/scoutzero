@@ -225,10 +225,10 @@ describe('Phase 77: Source Scan Guardrails', () => {
     '../../features/architect/utils/seasonManager.ts'
   );
   // Stage 6B: per-team transition logic (including the Phase 77 totals
-  // recompute) was extracted into seasonManager.teamTransition.ts.
+  // recompute) was extracted into seasonManager.teamTransition.core.ts.
   const seasonManagerTeamTransitionPath = path.resolve(
     __dirname,
-    '../../features/architect/utils/seasonManager.teamTransition.ts'
+    '../../features/architect/utils/seasonManager.teamTransition.core.ts'
   );
   const readSeasonManagerBundle = (): string => {
     let bundle = fs.readFileSync(seasonManagerPath, 'utf8');
@@ -614,14 +614,14 @@ describe('Phase 77: Edge Cases', () => {
 describe('Phase 77: Ordering Invariants', () => {
   it('TEST 14: Source confirms totals recompute runs AFTER OSTE (which handles TPE expiry)', () => {
     // Stage 6B: per-team transition was extracted into the
-    // seasonManager.teamTransition.ts sub-module.
+    // seasonManager.teamTransition.core.ts sub-module.
     const seasonManagerPath = path.resolve(
       __dirname,
       '../../features/architect/utils/seasonManager.ts'
     );
     const seasonManagerTeamTransitionPath = path.resolve(
       __dirname,
-      '../../features/architect/utils/seasonManager.teamTransition.ts'
+      '../../features/architect/utils/seasonManager.teamTransition.core.ts'
     );
     let content = fs.readFileSync(seasonManagerPath, 'utf8');
     if (fs.existsSync(seasonManagerTeamTransitionPath)) {
@@ -653,14 +653,14 @@ describe('Phase 77: Ordering Invariants', () => {
 
   it('TEST 15: Source confirms totals recompute runs AFTER OSTE (which handles non-TPE reset)', () => {
     // Stage 6B: per-team transition was extracted into the
-    // seasonManager.teamTransition.ts sub-module.
+    // seasonManager.teamTransition.core.ts sub-module.
     const seasonManagerPath = path.resolve(
       __dirname,
       '../../features/architect/utils/seasonManager.ts'
     );
     const seasonManagerTeamTransitionPath = path.resolve(
       __dirname,
-      '../../features/architect/utils/seasonManager.teamTransition.ts'
+      '../../features/architect/utils/seasonManager.teamTransition.core.ts'
     );
     let content = fs.readFileSync(seasonManagerPath, 'utf8');
     if (fs.existsSync(seasonManagerTeamTransitionPath)) {
@@ -694,7 +694,7 @@ describe('Phase 77: Ordering Invariants', () => {
 
   it('TEST 16: Source confirms totals recompute comment references Phase 77', () => {
     // Stage 6B: per-team transition was extracted into the
-    // seasonManager.teamTransition.ts sub-module; the Phase 77 comment
+    // seasonManager.teamTransition.core.ts sub-module; the Phase 77 comment
     // block lives there now.
     const seasonManagerPath = path.resolve(
       __dirname,
@@ -702,7 +702,7 @@ describe('Phase 77: Ordering Invariants', () => {
     );
     const seasonManagerTeamTransitionPath = path.resolve(
       __dirname,
-      '../../features/architect/utils/seasonManager.teamTransition.ts'
+      '../../features/architect/utils/seasonManager.teamTransition.core.ts'
     );
     let content = fs.readFileSync(seasonManagerPath, 'utf8');
     if (fs.existsSync(seasonManagerTeamTransitionPath)) {

@@ -187,7 +187,8 @@ describe('Phase D3: TRUE E2E Gate - Real Entrypoint Verification', () => {
         __dirname,
         '../../../features/architect/utils/seasonManager.ts'
       );
-      const content = fs.readFileSync(seasonManagerPath, 'utf8');
+      const content = fs.readFileSync(seasonManagerPath, 'utf8') +
+        fs.readFileSync(seasonManagerPath.replace('seasonManager.ts', 'seasonManager.prepare.ts'), 'utf8');
 
       // Must export advanceSeasonInWorld
       expect(content).toContain('export async function advanceSeasonInWorld');
@@ -225,7 +226,8 @@ describe('Phase D3: TRUE E2E Gate - Real Entrypoint Verification', () => {
         __dirname,
         '../../../features/architect/utils/seasonManager.ts'
       );
-      const content = fs.readFileSync(seasonManagerPath, 'utf8');
+      const content = fs.readFileSync(seasonManagerPath, 'utf8') +
+        fs.readFileSync(seasonManagerPath.replace('seasonManager.ts', 'seasonManager.prepare.ts'), 'utf8');
 
       expect(content).not.toContain('resolveAllDraftAssets');
       expect(content).toContain('preserveDraftEntitlements: true');

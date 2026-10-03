@@ -33,6 +33,32 @@ service cloud.firestore {
         && !('partialBranchCleanupClaim' in get(/databases/$(database)/documents/architect_worlds/$(worldId)).data);
     }
 
+    // Opt-in only: existing worlds are never silently migrated. In a fenced
+    // world ALL team, entitlement and event writers must advance this shared
+    // revision in their own atomic commit, or rules deny the complete write.
+    // This includes creates/deletes at IDs the reviewing client has never seen.
+    function advancesDraftInventory(worldId) {
+      let worldPath = /databases/$(database)/documents/architect_worlds/$(worldId);
+      let before = get(worldPath).data;
+      let after = getAfter(worldPath).data;
+      return !('draftInventoryRevision' in before)
+        || (before.draftInventoryRevision is int
+          && before.draftInventoryRevision >= 0
+          && after.draftInventoryRevision is int
+          && after.draftInventoryRevision <= 9007199254740991
+          && after.draftInventoryRevision == before.draftInventoryRevision + 1);
+    }
+
+    function preservesDraftInventoryFence() {
+      return ('draftInventoryRevision' in resource.data)
+        ? ('draftInventoryRevision' in request.resource.data
+          && request.resource.data.draftInventoryRevision is int
+          && request.resource.data.draftInventoryRevision <= 9007199254740991
+          && (request.resource.data.draftInventoryRevision == resource.data.draftInventoryRevision
+            || request.resource.data.draftInventoryRevision == resource.data.draftInventoryRevision + 1))
+        : !('draftInventoryRevision' in request.resource.data);
+    }
+
     function preservesPartialBranchCleanupClaim() {
       return !('partialBranchCleanupClaim' in resource.data)
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
@@ -147,6 +173,7 @@ service cloud.firestore {
       allow create: if false;
       allow update: if isWorldMetadataOwner()
         && request.resource.data.createdBy == resource.data.createdBy
+        && preservesDraftInventoryFence()
         && preservesGovernedContractMetadata()
         && preservesPartialBranchCleanupClaim()
         && preservesFinalizedChildLineage(worldId);
@@ -154,7 +181,8 @@ service cloud.firestore {
 
       match /teams/{teamCode} {
         allow read: if isWorldOwner(worldId);
-        allow write: if isOpenForClientWorldWrites(worldId);
+        allow write: if isOpenForClientWorldWrites(worldId)
+          && advancesDraftInventory(worldId);
 
         match /players/{playerId} {
           allow read: if isWorldOwner(worldId);
@@ -169,10 +197,19 @@ service cloud.firestore {
 
       match /events/{eventId} {
         allow read: if isWorldOwner(worldId);
-        allow create: if isOpenForClientWorldWrites(worldId);
+        allow create: if isOpenForClientWorldWrites(worldId)
+          && advancesDraftInventory(worldId);
         allow update, delete: if isOpenForClientWorldWrites(worldId)
+          && advancesDraftInventory(worldId)
           && resource.data.get('mutationType', '') != 'seasonAdvance'
           && resource.data.get('type', '') != 'seasonAdvance';
+      }
+
+      // Certification is separate from custom history. Only trusted server
+      // transitions may publish receipts/head; no owner claim can opt in.
+      match /transitionProvenance/{recordId} {
+        allow read: if isWorldOwner(worldId);
+        allow write: if false;
       }
 
       // Season-close snapshots and the league manifest are append-only. The
@@ -301,7 +338,8 @@ service cloud.firestore {
 
       match /entitlements/{entitlementId} {
         allow read: if isWorldOwner(worldId);
-        allow write: if isOpenForClientWorldWrites(worldId);
+        allow write: if isOpenForClientWorldWrites(worldId)
+          && advancesDraftInventory(worldId);
       }
 
       // Governed roots are created only by initializeArchitectWorld through the

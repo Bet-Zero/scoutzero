@@ -1,25 +1,28 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ComparisonEventRow } from '@/features/architect/comparison/deriveComparisonViewModel';
+import { deriveDraftAssetDelta } from '@/features/architect/comparison/deriveDraftAssetDelta';
+import { toTeamHistoryEventDisplay } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
+import { prepareSyntheticDraftReview } from '@/features/architect/utils/draftReview/capability';
+import { prepareSyntheticDraftSeasonReview } from '@/features/architect/utils/draftReview/seasonCapability';
+import { buildSyntheticFreezeEvents } from '@/features/architect/utils/draftReview/seasonEvidence';
+import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
+import { mutationSnapshotDigest } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
+import { advanceSeasonInWorld } from '@/features/architect/utils/seasonManager';
+import { DraftReviewSeasonReceiptZ } from '@/schemas/draftReviewSeason';
 import * as firestore from 'firebase/firestore';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  failMockBatchCommitAfter,
   getAllMockData,
   getMockData,
-  seedMockData,
   resetMockDataStore,
-  failMockBatchCommitAfter,
+  seedMockData,
 } from '../__mocks__/firebase';
-import { syntheticDraftSeasonFixture } from '../e2e/fixtures/syntheticDraftSeasonWorld';
-import { prepareSyntheticDraftSeasonReview } from '@/features/architect/utils/draftReview/seasonCapability';
-import { advanceSeasonInWorld } from '@/features/architect/utils/seasonManager';
-import { buildSyntheticFreezeEvents } from '@/features/architect/utils/draftReview/seasonEvidence';
-import { prepareSyntheticDraftReview } from '@/features/architect/utils/draftReview/capability';
-import { applyWorldMutation } from '@/features/architect/utils/mutationPipeline';
-import { DraftReviewSeasonReceiptZ } from '@/schemas/draftReviewSeason';
-import { deriveDraftAssetDelta } from '@/features/architect/comparison/deriveDraftAssetDelta';
-import type { ComparisonEventRow } from '@/features/architect/comparison/deriveComparisonViewModel';
-import { mutationSnapshotDigest } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
-import { toTeamHistoryEventDisplay } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
+import {
+  syntheticDraftSeasonBaseline,
+  syntheticDraftSeasonFixture,
+} from '../e2e/fixtures/syntheticDraftSeasonWorld';
 
-const mode = vi.hoisted(() => ({ allowed: true }));
+const mode = vi.hoisted(() => ({ allowed: true, userId: 'review-user' }));
 vi.mock('@/firebaseConfig', () => ({
   db: {},
   functions: {},
@@ -53,6 +56,55 @@ vi.mock('firebase/firestore', async () => {
     },
   };
 });
+vi.mock('firebase/functions', () => ({
+  httpsCallable: () => async (input: unknown) => {
+    const { publishCertifiedSeasonTransition } = await import(
+      '@/features/architect/utils/seasonManager.server'
+    );
+    const ref = (path: string): any => ({
+      path,
+      doc: (id: string) => ref(`${path}/${id}`),
+      collection: (id: string) => ({
+        ...ref(`${path}/${id}`),
+        isCollection: true,
+      }),
+    });
+    const db = {
+      doc: ref,
+      collection: ref,
+      runTransaction: async (callback: (tx: any) => Promise<unknown>) =>
+        firestore.runTransaction({} as any, async (tx) =>
+          callback({
+            get: async (target: any) => {
+              if (target.isCollection) {
+                const rows = await firestore.getDocs(
+                  firestore.collection({}, target.path)
+                );
+                return { ...rows, size: rows.docs.length };
+              }
+              const row = await tx.get(firestore.doc({}, target.path));
+              return { exists: row.exists(), data: () => row.data() };
+            },
+            set: (target: any, data: any) =>
+              tx.set(firestore.doc({}, target.path), data),
+            update: (target: any, data: any) =>
+              tx.update(firestore.doc({}, target.path), data),
+            create: (target: any, data: any) => {
+              if (getMockData(target.path)) throw new Error('Already exists');
+              tx.set(firestore.doc({}, target.path), data);
+            },
+          })
+        ),
+    };
+    return {
+      data: await publishCertifiedSeasonTransition(
+        db as any,
+        mode.userId,
+        input
+      ),
+    };
+  },
+}));
 const worldId = 'synthetic-season-test';
 const root = `architect_worlds/${worldId}`;
 const transitionId = 'seasonAdvance__2025-26__2026-27';
@@ -62,24 +114,31 @@ const request = {
   operationId: 'synthetic-season-advance',
 };
 const state = () => structuredClone(getAllMockData());
-function seed() {
+async function seed() {
   const fixture = syntheticDraftSeasonFixture(request.userId, worldId);
   seedMockData(root, fixture.metadata);
   for (const [id, team] of Object.entries(fixture.teams))
     seedMockData(`${root}/teams/${id}`, team);
   for (const [id, ent] of Object.entries(fixture.source.entitlements))
     seedMockData(`${root}/entitlements/${id}`, ent);
+  for (const [path, data] of Object.entries(
+    await syntheticDraftSeasonBaseline(fixture)
+  ))
+    seedMockData(path, data);
   return fixture;
 }
 beforeEach(() => {
   resetMockDataStore();
   mode.allowed = true;
+  mode.userId = 'review-user';
+  vi.stubEnv('FUNCTIONS_EMULATOR', 'true');
+  vi.stubEnv('GCLOUD_PROJECT', 'demo-architect-review');
   vi.restoreAllMocks();
 });
 
 describe('synthetic freeze history through the existing Season Advance writer', () => {
   it('retains all30 accepted trigger results atomically, preserves original IDs, and consumes a later first trade', async () => {
-    const fixture = seed();
+    const fixture = await seed();
     const token = await prepareSyntheticDraftSeasonReview(request);
     expect(Object.isFrozen(token)).toBe(true);
     const result = await advanceSeasonInWorld(worldId, {
@@ -203,7 +262,7 @@ describe('synthetic freeze history through the existing Season Advance writer', 
   it.each(['default', 'forged', 'production'] as const)(
     'blocks %s permission without a write',
     async (kind) => {
-      seed();
+      await seed();
       const token = await prepareSyntheticDraftSeasonReview(request);
       const before = state();
       if (kind === 'production') mode.allowed = false;
@@ -223,7 +282,7 @@ describe('synthetic freeze history through the existing Season Advance writer', 
   it.each(['date', 'release', 'ownership', 'measurement', 'missing'] as const)(
     'rejects %s before issuance',
     async (kind) => {
-      seed();
+      await seed();
       if (kind === 'date' || kind === 'release') {
         const metadata = getMockData(root) as any;
         seedMockData(root, {
@@ -262,7 +321,7 @@ describe('synthetic freeze history through the existing Season Advance writer', 
   it.each(['team', 'entitlement', 'metadata'] as const)(
     'fences actual commit-time %s changes',
     async (kind) => {
-      seed();
+      await seed();
       const token = await prepareSyntheticDraftSeasonReview(request);
       const original = firestore.runTransaction;
       let expected: ReturnType<typeof state>;
@@ -287,13 +346,15 @@ describe('synthetic freeze history through the existing Season Advance writer', 
       });
       expect(result.success).toBe(false);
       expect(expected, JSON.stringify(result)).toBeDefined();
-      expect(result.success ? '' : result.error).toMatch(/Stale|concurrent/);
+      expect(result.success ? '' : result.error).toMatch(
+        /Stale|concurrent|certified predecessor/
+      );
       expect(state()).toEqual(expected!);
     },
     30000
   );
   it('writes nothing on a failed atomic commit and allows a fresh retry exactly once', async () => {
-    seed();
+    await seed();
     const token = await prepareSyntheticDraftSeasonReview(request);
     const before = state();
     failMockBatchCommitAfter(0);
@@ -309,7 +370,7 @@ describe('synthetic freeze history through the existing Season Advance writer', 
     ).toBe(true);
   }, 30000);
   it('rejects a v2 trade in a world edited to skip the persisted advance', async () => {
-    const fixture = seed();
+    const fixture = await seed();
     seedMockData(root, {
       ...fixture.metadata,
       currentSeason: '2026-27',
@@ -330,7 +391,7 @@ describe('synthetic freeze history through the existing Season Advance writer', 
     expect(state()).toEqual(before);
   });
   it('requires the exact persisted manifest, event and every history before the v2 trade', async () => {
-    const fixture = seed();
+    const fixture = await seed();
     const authority = await prepareSyntheticDraftSeasonReview(request);
     expect(
       (await advanceSeasonInWorld(worldId, { draftReviewAuthority: authority }))
@@ -356,6 +417,11 @@ describe('synthetic freeze history through the existing Season Advance writer', 
       [`${root}/seasonHistory/2025-26__WAS`, 'worldId', 'other-world'],
       [`${root}/seasonHistory/2025-26__BOS`, 'afterTotals', {}],
       [`${root}/seasonHistory/2025-26__MIA`, 'draftReviewFreezeEvent', {}],
+      [`${root}/transitionProvenance/baseline`, '__missing__', null],
+      [`${root}/transitionProvenance/baseline`, 'stateHashes', {}],
+      [`${root}/transitionProvenance/${transitionId}`, '__missing__', null],
+      [`${root}/transitionProvenance/${transitionId}`, 'publishedHashes', {}],
+      [`${root}/transitionProvenance/head`, 'worldId', 'another-world'],
     ] as const) {
       resetMockDataStore();
       for (const [key, data] of persisted.entries()) seedMockData(key, data);
@@ -377,45 +443,79 @@ describe('synthetic freeze history through the existing Season Advance writer', 
       expect(state()).toEqual(before);
     }
   }, 30000);
-  it('fences season evidence changed at the actual later-trade transaction', async () => {
-    const fixture = seed();
+  it.each([
+    'seasonHistory/2025-26__WAS',
+    'transitionProvenance/baseline',
+    'transitionProvenance/head',
+  ])(
+    'fences %s changed at the actual later-trade transaction',
+    async (relativePath) => {
+      const fixture = await seed();
+      const authority = await prepareSyntheticDraftSeasonReview(request);
+      expect(
+        (
+          await advanceSeasonInWorld(worldId, {
+            draftReviewAuthority: authority,
+          })
+        ).success
+      ).toBe(true);
+      const args = {
+        ...request,
+        operationId: 'trade-after-season',
+        seasonId: '2026-27',
+        mutationType: 'executeTrade',
+        payload: fixture.source.proposal,
+      };
+      const prepared = await prepareSyntheticDraftReview(args);
+      expect(prepared.status).toBe('prepared');
+      if (prepared.status !== 'prepared') throw new Error('No prepared trade');
+      const original = firestore.runTransaction;
+      let expected: ReturnType<typeof state> | undefined;
+      vi.spyOn(firestore, 'runTransaction').mockImplementation(
+        async (...transactionArgs) => {
+          const path = `${root}/${relativePath}`;
+          seedMockData(path, {
+            ...(getMockData(path) as object),
+            changedAfterTradeReview: true,
+          });
+          expected = state();
+          return original(...transactionArgs);
+        }
+      );
+      const result = await applyWorldMutation({
+        ...args,
+        draftReviewAuthority: prepared.authority,
+      });
+      expect(expected).toBeDefined();
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/changed before commit/);
+      expect(state()).toEqual(expected);
+    },
+    30000
+  );
+});
+
+describe('server certification admission', () => {
+  it('refuses a different authenticated owner with no writes', async () => {
+    await seed();
     const authority = await prepareSyntheticDraftSeasonReview(request);
+    const before = state();
+    mode.userId = 'different-owner';
     expect(
       (await advanceSeasonInWorld(worldId, { draftReviewAuthority: authority }))
         .success
-    ).toBe(true);
-    const args = {
-      ...request,
-      operationId: 'trade-after-season',
-      seasonId: '2026-27',
-      mutationType: 'executeTrade',
-      payload: fixture.source.proposal,
-    };
-    const prepared = await prepareSyntheticDraftReview(args);
-    expect(prepared.status).toBe('prepared');
-    if (prepared.status !== 'prepared') throw new Error('No prepared trade');
-    const original = firestore.runTransaction;
-    let expected: ReturnType<typeof state> | undefined;
-    vi.spyOn(firestore, 'runTransaction').mockImplementation(
-      async (...transactionArgs) => {
-        const path = `${root}/seasonHistory/2025-26__WAS`;
-        seedMockData(path, {
-          ...(getMockData(path) as object),
-          changedAfterTradeReview: true,
-        });
-        expected = state();
-        return original(...transactionArgs);
-      }
+    ).toBe(false);
+    expect(state()).toEqual(before);
+  });
+  it('refuses production certification even for an otherwise supported payload', async () => {
+    const { publishCertifiedSeasonTransition } = await import(
+      '@/features/architect/utils/seasonManager.server'
     );
-    const result = await applyWorldMutation({
-      ...args,
-      draftReviewAuthority: prepared.authority,
-    });
-    expect(expected).toBeDefined();
-    expect(result.success).toBe(false);
-    expect(result.error).toMatch(/changed before commit/);
-    expect(state()).toEqual(expected);
-  }, 30000);
+    vi.stubEnv('FUNCTIONS_EMULATOR', 'false');
+    await expect(
+      publishCertifiedSeasonTransition(null as any, 'review-user', {})
+    ).rejects.toThrow(/unavailable/);
+  });
 });
 
 describe('historical result contract without a new freeze algorithm', () => {

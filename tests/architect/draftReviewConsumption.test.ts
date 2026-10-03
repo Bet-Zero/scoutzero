@@ -57,6 +57,7 @@ function setup(
   mock.docs.set(root, {
     createdBy: 'review-user',
     parentWorldId: null,
+    draftInventoryRevision: 0,
     currentSeason: '2026-27',
     asOfDate: '2026-07-15',
     draftReviewReleaseId: release.release.id,
@@ -200,6 +201,25 @@ describe('supported synthetic review consumption', () => {
       mock.docs.clear();
     }
   });
+  it.each([
+    undefined,
+    null,
+    -1,
+    0.5,
+    '0',
+    Number.MAX_SAFE_INTEGER,
+    Number.MAX_SAFE_INTEGER + 1,
+  ])(
+    'rejects a missing or unusable inventory fence %s without issuing permission',
+    async (revision) => {
+      const args = setup();
+      mock.docs.get('architect_worlds/review_world')!.draftInventoryRevision =
+        revision;
+      await expect(prepareSyntheticDraftReview(args)).rejects.toThrow(
+        /inventory revision/
+      );
+    }
+  );
   it('default/production environment denies both issuance and an otherwise valid capability', async () => {
     const args = setup();
     const r = await prepareSyntheticDraftReview(args);

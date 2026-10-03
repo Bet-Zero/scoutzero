@@ -226,7 +226,7 @@ function findFiles(root: string, name: string): string[] {
   for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
     const entryPath = path.join(root, entry.name);
     if (entry.isDirectory()) matches.push(...findFiles(entryPath, name));
-    else if (entry.name === name) matches.push(entryPath);
+    else if (!name || entry.name === name) matches.push(entryPath);
   }
   return matches;
 }
@@ -302,6 +302,50 @@ export async function runTradeReceiptProof(
   }
   fs.mkdirSync(artifactDir, { recursive: true });
 
+  // Functions run compiled output, not Vite source. Always rebuild from the
+  // exact candidate; a clean git tree alone cannot detect stale functions/lib.
+  let functionsBuild: {
+    candidate: string;
+    command: string;
+    log: string;
+    artifacts: { builtPath: string; path: string; sha256: string }[];
+  } | null = null;
+  if (draftReview) {
+    const logPath = path.join(artifactDir, 'functions-build.log');
+    const log = fs.openSync(logPath, 'w');
+    let result;
+    try {
+      result = spawnSync('npm', ['--prefix', 'functions', 'run', 'build'], {
+        cwd: identity.repoRoot,
+        stdio: ['ignore', log, log],
+        timeout: 60000,
+        env: process.env,
+      });
+    } finally {
+      fs.closeSync(log);
+    }
+    if (result.status !== 0)
+      throw new Error(`Exact-head functions build failed; see ${logPath}`);
+    const builtRoot = path.join(identity.repoRoot, 'functions/lib');
+    const retainedRoot = path.join(artifactDir, 'functions-build');
+    fs.cpSync(builtRoot, retainedRoot, { recursive: true });
+    functionsBuild = {
+      candidate: identity.candidate,
+      command: 'npm --prefix functions run build',
+      log: path.relative(identity.repoRoot, logPath),
+      artifacts: findFiles(builtRoot, '')
+        .sort()
+        .map((builtPath) => ({
+          builtPath: path.relative(identity.repoRoot, builtPath),
+          path: path.relative(
+            identity.repoRoot,
+            path.join(retainedRoot, path.relative(builtRoot, builtPath))
+          ),
+          sha256: hashFile(builtPath),
+        })),
+    };
+  }
+
   const commandArgs = [
     'test',
     draftSeason
@@ -329,13 +373,15 @@ export async function runTradeReceiptProof(
         'season record persists',
         'season continuation trades',
         'season review rejects',
-        'season denied final metadata',
+        'season publication rejects',
+        'season history trust boundary',
       ]
     : draftReview
       ? [
           'consumes components',
           'required component failures',
           'denied final metadata',
+          'inventory membership',
         ]
       : [''];
   const runs: {
@@ -419,7 +465,19 @@ export async function runTradeReceiptProof(
     : [path.join(reportDir, 'index.html')];
   const additionalProofPaths = draftReview
     ? [
-        ...(draftSeason ? ['season-proof.json'] : []),
+        ...(draftSeason
+          ? [
+              'season-proof.json',
+              'history-trust-counterexample.json',
+              'certified-lineage-proof.json',
+            ]
+          : [
+              'membership-unfenced-proof.json',
+              'membership-changes-proof.json',
+              'membership-commit-race-proof.json',
+              'membership-competing-proof.json',
+              'membership-admin-purge-proof.json',
+            ]),
         'negative-proof.json',
         'atomic-proof.json',
       ].map((name) => path.join(artifactDir, name))
@@ -435,7 +493,15 @@ export async function runTradeReceiptProof(
     additionalProofPaths.every((proof) => fs.existsSync(proof)) &&
     tracePaths.length > 0 &&
     reportPaths.every((report) => fs.existsSync(report)) &&
-    openPorts.length === 0;
+    openPorts.length === 0 &&
+    resolveProofIdentity(identity.repoRoot).candidate === identity.candidate &&
+    (!functionsBuild ||
+      functionsBuild.artifacts.every(
+        (file) =>
+          hashFile(path.join(identity.repoRoot, file.builtPath)) ===
+            file.sha256 &&
+          hashFile(path.join(identity.repoRoot, file.path)) === file.sha256
+      ));
 
   const manifest = {
     schemaVersion: 1,
@@ -458,6 +524,7 @@ export async function runTradeReceiptProof(
     processSignal: runs.at(-1)?.signal ?? null,
     runs,
     sharedOwnedSeasonHarness: draftSeason,
+    functionsBuild,
     teardown: {
       checkedPorts: PROOF_PORTS,
       baselinePorts,

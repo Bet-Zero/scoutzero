@@ -1,6 +1,6 @@
 /** Stable compare-before-write digest for raw Firestore mutation documents. */
 
-import { deterministicStateDigest } from '@/features/architect/utils/contractSource';
+import { deterministicStateDigest } from '@/features/architect/utils/contractSource/deterministicDigest';
 import { canonicalStringify } from '@/features/architect/utils/contractSource/deterministicDigest';
 
 function toDigestMaterial(value: unknown): unknown {

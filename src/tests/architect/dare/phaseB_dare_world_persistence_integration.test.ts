@@ -17,7 +17,7 @@ function readUtility(fileName: string): string {
 
 describe('BZE-289 governed Season Advance / DARE boundary', () => {
   it('does not call DARE or claim an entitlement-transition verdict', () => {
-    const source = readUtility('seasonManager.ts');
+    const source = readUtility('seasonManager.ts') + readUtility('seasonManager.prepare.ts');
 
     expect(source).not.toContain('resolveAllDraftAssets');
     expect(source).not.toContain('applyGatedDraftPicksTransition');
@@ -28,7 +28,7 @@ describe('BZE-289 governed Season Advance / DARE boundary', () => {
   });
 
   it('fails before league loading or any write when saved draft positions require a transition', () => {
-    const source = readUtility('seasonManager.ts');
+    const source = readUtility('seasonManager.ts') + readUtility('seasonManager.prepare.ts');
     const positionsRead = source.indexOf(
       'const positionsMap = await getDraftPositionsMap(worldId, draftYear);'
     );
@@ -45,7 +45,7 @@ describe('BZE-289 governed Season Advance / DARE boundary', () => {
   });
 
   it('guards every legacy entitlement mutation behind the non-preserving path', () => {
-    const source = readUtility('seasonManager.teamTransition.ts');
+    const source = readUtility('seasonManager.teamTransition.core.ts');
 
     expect(source).toContain('!resolutionContext.preserveDraftEntitlements');
     expect(source).toContain('resolveEntitlementsForTeam(');

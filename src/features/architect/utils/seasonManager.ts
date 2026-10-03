@@ -28,11 +28,21 @@
  *  - 2026-02-03: Phase 86 - Route season transitions through OSTE SSOT
  */
 
-import { db } from '@/firebaseConfig';
-import { consumeSyntheticDraftSeasonReview } from './draftReview/seasonCapability';
-import { DraftReviewSeasonReceiptZ } from '@/schemas/draftReviewSeason';
-import { mutationSnapshotText } from './mutationPipeline.snapshotDigest';
-import { compactSyntheticSeasonEventTotals } from './draftReview/seasonTotals';
+import {
+  worldMetadataRef,
+  worldSeasonHistoryRef,
+  worldSeasonTransitionRef,
+  worldTeamRef,
+  worldTeamsCol,
+} from '@/features/architect/utils/architectFirestorePaths';
+import { getLeague } from '@/features/architect/utils/teamLoader';
+import {
+  getDraftPositionsMap,
+  getWorldMetadata,
+} from '@/features/architect/utils/worldManager';
+import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
+import { prepareSeasonAdvance } from './seasonManager.prepare';
+import { db, functions } from '@/firebaseConfig';
 import {
   doc,
   getDoc,
@@ -40,86 +50,31 @@ import {
   runTransaction,
   serverTimestamp,
 } from 'firebase/firestore';
-import { getLeague } from '@/features/architect/utils/teamLoader';
-import {
-  getDraftPositionsMap,
-  getWorldMetadata,
-} from '@/features/architect/utils/worldManager';
-import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
-import {
-  worldTeamRef,
-  worldTeamsCol,
-  worldMetadataRef,
-  worldSeasonHistoryRef,
-  worldSeasonTransitionRef,
-} from '@/features/architect/utils/architectFirestorePaths';
+import { httpsCallable } from 'firebase/functions';
+import { requireDraftInventoryRevision } from './draftReview/inventoryFence';
+import { consumeSyntheticDraftSeasonReview } from './draftReview/seasonCapability';
 import {
   isNonEmptyString,
-  resolveDraftPickSwapsForYear,
   resolveDraftPickConveyanceForYear,
+  resolveDraftPickSwapsForYear,
 } from './seasonManager.draftResolution';
-export { resolveDraftPickSwapsForYear, resolveDraftPickConveyanceForYear };
-// Phase 65: Canonical TPE normalization for persistence
+export { resolveDraftPickConveyanceForYear, resolveDraftPickSwapsForYear };
 import {
-  normalizeTeamTpeSchema,
-  assertPersistableOrThrow,
-  PERSISTENCE_CONTRACTS,
-} from '@/features/architect/utils/persistenceContracts';
-import { sanitizeTransientFieldsForPersistence } from '@/features/architect/utils/persistenceContracts/enforcement';
-import {
-  POST_STATE_CAP_VALIDATOR_VERSION,
-  validatePostStateCapLegality,
-} from '@/features/architect/utils/capLegality/postStateCapValidator';
-import {
-  ARCHITECT_WORLDS_COLLECTION,
   ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
+  ARCHITECT_WORLDS_COLLECTION,
 } from '@/constants/collections';
-// Phase 77: SSOT cap totals for season advance
-import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
-// Wave 15 Step 1: per-team transition logic extracted to seasonManager.teamTransition.ts
+import { AUTHORITATIVE_WORLD_TEAM_CODES } from './mutationPipeline.helpers';
+import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
+import { resolveSeasonAdvanceAuthority } from './seasonManager.authority';
 import {
-  removeUndefinedDeep,
-  toSeasonTransitionTeam,
-  processTeamSeasonTransitionWithOptions,
-  type DraftResolutionContext,
-} from './seasonManager.teamTransition';
-// Wave 37 Step 1: types and helper functions extracted to submodule
-export * from './seasonManager.helpers';
-import {
-  generateSeasonAdvanceOperationId,
-  safeCloneForAudit,
   buildSeasonAdvanceCommittedState,
-  buildSeasonAdvanceFocusTeamSnapshot,
+  generateSeasonAdvanceOperationId,
   getErrorMessage,
   type SeasonAdvanceRequest,
   type SeasonAdvanceResult,
-  type SeasonAdvanceSuccessResult,
-  type SeasonAdvanceFailureResult,
-  type SeasonAdvanceSummary,
-  type SeasonAdvanceFocusTeamSnapshot,
-  type SeasonAdvanceCommittedTeamSnapshot,
-  type PostStateTeamSnapshots,
-  type SeasonAdvanceDraftResolutionInfo,
-  type SeasonAdvanceCommittedMetadata,
-  type SeasonAdvanceCommittedEvent,
-  type SeasonAdvanceCommittedState,
-  type SeasonAdvanceExpiredTpe,
-  type PostStateCapTotalsByTeam,
 } from './seasonManager.helpers';
-import { resolveSeasonAdvanceAuthority } from './seasonManager.authority';
-import {
-  assertThirtyTeamLeague,
-  assertFirestoreDocumentSize,
-  buildPreparedSeasonAdvanceTeam,
-  buildSeasonTransitionManifest,
-  resolveCompleteOptionAuthority,
-  type PreparedSeasonAdvanceTeam,
-} from './seasonManager.history';
-import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
-import { AUTHORITATIVE_WORLD_TEAM_CODES } from './mutationPipeline.helpers';
-
-const CAP_AUDIT_EVENT_SCHEMA_VERSION = 'cap-audit-event-v1';
-const SEASON_ADVANCE_MUTATION_TYPE = 'seasonAdvance';
+// Wave 37 Step 1: types and helper functions extracted to submodule
+export * from './seasonManager.helpers';
 
 // ==============================================================================
 // GOVERNED 30-TEAM SEASON ADVANCEMENT
@@ -231,7 +186,23 @@ export async function advanceSeasonInWorld(
     const targetAsOfDate = authority.metadataAsOfDate;
     const transitionId = `seasonAdvance__${fromSeason}__${toSeason}`;
     const eventId = transitionId;
-    const authorityDigest = mutationSnapshotDigest(authority);
+
+    if (draftReview) {
+      // The capability preserves the reviewed client operation; it does not
+      // certify history. The server validates and computes from trusted state.
+      const call = httpsCallable<unknown, SeasonAdvanceResult>(
+        functions,
+        'advanceCertifiedArchitectSeason'
+      );
+      return (
+        await call({
+          worldId,
+          operationId,
+          expectedInventoryRevision: requireDraftInventoryRevision(worldMeta),
+          focusTeamCode,
+        })
+      ).data;
+    }
 
     const positionsMap = await getDraftPositionsMap(worldId, draftYear);
     if (positionsMap && Object.keys(positionsMap).length > 0) {
@@ -256,15 +227,6 @@ export async function advanceSeasonInWorld(
     const preAdvanceSnapshotsByCode = new Map(
       preAdvanceTeamCollection.docs.map((snapshot) => [snapshot.id, snapshot])
     );
-    if (
-      draftReview &&
-      preAdvanceTeamCollection.docs.some(
-        (snapshot) =>
-          draftReview.snapshots[snapshot.ref.path] !==
-          mutationSnapshotText(snapshot.data())
-      )
-    )
-      throw new Error('Synthetic season team state changed after review.');
     for (const { teamCode } of teamDocumentRefs) {
       const snapshot = preAdvanceSnapshotsByCode.get(teamCode);
       preAdvanceTeamDocuments.set(teamCode, {
@@ -274,235 +236,33 @@ export async function advanceSeasonInWorld(
     }
 
     const teams = await getLeague(worldId);
-    const governedTeams: Record<string, unknown>[] = teams.map((team) => ({
-      ...team,
-    }));
-    assertThirtyTeamLeague(governedTeams);
-    if (
-      focusTeamCode &&
-      !teams.some((team) => team.teamCode === focusTeamCode)
-    ) {
-      throw new Error(
-        `Focus team ${focusTeamCode} is not in the governed league.`
-      );
-    }
-    const optionReferences = resolveCompleteOptionAuthority({
-      teams: governedTeams,
-      optionDecisions,
-      toSeason,
-      transitionEffectiveAt: authority.transitionEffectiveAt,
-    });
-
-    const preAdvanceMetadataDigest = mutationSnapshotDigest(worldMeta);
-    const updatedTeams: string[] = [];
-    let focusTeamSnapshot: SeasonAdvanceFocusTeamSnapshot | null = null;
-    const beforeTeamsByCode: PostStateTeamSnapshots = {};
-    const afterTeamsByCode: PostStateTeamSnapshots = {};
-    const beforeTotalsByTeam: PostStateCapTotalsByTeam = {};
-    const afterTotalsByTeam: PostStateCapTotalsByTeam = {};
-    const summary: SeasonAdvanceSummary = {
-      exercisedOptions: [],
-      declinedOptions: [],
-      expiredContracts: [],
-      transitionedExceptions: [],
-      stepienUpdates: [],
-      expiredTPEs: [],
-      // Phase 5: Track draft pick resolutions
-      conveyanceResolutions: [],
-      swapResolutions: [],
-    };
-    const preparedTeams: PreparedSeasonAdvanceTeam[] = [];
-
-    for (const team of teams) {
-      const transitionTeam = toSeasonTransitionTeam(team);
-      const teamCode = transitionTeam.teamCode;
-      if (!isNonEmptyString(teamCode)) {
-        throw new Error(
-          'Encountered team without teamCode during season advance'
-        );
-      }
-
-      const draftResolutionContext: DraftResolutionContext = {
-        draftYear,
-        worldId,
-        fromYear,
-        toYear,
-        transitionEffectiveAt: authority.transitionEffectiveAt,
-        capProjections: authority.targetCapProjections,
-        preserveDraftEntitlements: true,
-      };
-
-      const { committedTeam, teamSummary } =
-        await processTeamSeasonTransitionWithOptions(
-          transitionTeam,
-          fromSeason,
-          toSeason,
-          optionDecisions,
-          draftResolutionContext
-        );
-
-      if (teamSummary.exercisedOptions.length > 0) {
-        summary.exercisedOptions.push(...teamSummary.exercisedOptions);
-      }
-      if (teamSummary.declinedOptions.length > 0) {
-        summary.declinedOptions.push(...teamSummary.declinedOptions);
-      }
-      if (teamSummary.expiredContracts.length > 0) {
-        summary.expiredContracts.push(...teamSummary.expiredContracts);
-      }
-      if (teamSummary.transitionedExceptions.length > 0) {
-        summary.transitionedExceptions.push(
-          ...teamSummary.transitionedExceptions
-        );
-      }
-      if (teamSummary.stepienUpdates.length > 0) {
-        summary.stepienUpdates.push(...teamSummary.stepienUpdates);
-      }
-      if (teamSummary.expiredTPEs?.length > 0) {
-        // Embellish with team info for global summary
-        summary.expiredTPEs.push(
-          ...teamSummary.expiredTPEs.map(
-            (tpe): SeasonAdvanceExpiredTpe => ({
-              ...tpe,
-              teamCode,
-            })
-          )
-        );
-      }
-      if (!committedTeam) {
-        throw new Error(
-          `Season Advance did not prepare a committed state for ${teamCode}.`
-        );
-      }
-
-      const beforeTeam = safeCloneForAudit(team) as Record<string, unknown>;
-      const provisionalCommitted = safeCloneForAudit(
-        committedTeam
-      ) as SeasonAdvanceCommittedTeamSnapshot & Record<string, unknown>;
-      const beforeTotals = createCanonicalTeamTotalsSnapshot(team, toYear, {
-        asOfDate: authority.transitionEffectiveAt,
-        capProjections: authority.targetCapProjections,
-      });
-      const afterTotals = createCanonicalTeamTotalsSnapshot(
-        provisionalCommitted,
-        toYear,
-        {
-          asOfDate: authority.transitionEffectiveAt,
-          capProjections: authority.targetCapProjections,
-        }
-      );
-      const committedWithTotals = {
-        ...provisionalCommitted,
-        totals: afterTotals,
-      };
-      const afterSanitize =
-        sanitizeTransientFieldsForPersistence(committedWithTotals);
-      const normalizedTeam = normalizeTeamTpeSchema(
-        afterSanitize as SeasonAdvanceCommittedTeamSnapshot
-      ) as SeasonAdvanceCommittedTeamSnapshot & Record<string, unknown>;
-      assertPersistableOrThrow({
-        obj: normalizedTeam,
-        contract: PERSISTENCE_CONTRACTS.TEAM,
-        label: 'TEAM',
-      });
-      const safeCommittedTeam = removeUndefinedDeep(normalizedTeam);
-
-      beforeTeamsByCode[teamCode] =
-        beforeTeam as PostStateTeamSnapshots[string];
-      afterTeamsByCode[teamCode] = safeCloneForAudit(
-        safeCommittedTeam
-      ) as PostStateTeamSnapshots[string];
-      beforeTotalsByTeam[teamCode] = beforeTotals;
-      afterTotalsByTeam[teamCode] = afterTotals;
-      preparedTeams.push(
-        buildPreparedSeasonAdvanceTeam({
-          worldId,
-          transitionId,
-          teamCode,
-          beforeTeam,
-          committedTeam: safeCommittedTeam,
-          beforeTotals,
-          afterTotals,
-          authority,
-          authorityDigest,
-          optionDecisions,
-          optionReferences,
-          ...(draftReview
-            ? {
-                draftReviewFreezeEvent: draftReview.freezeEvents.find(
-                  (event) => event.originalPick.originalTeam === teamCode
-                ),
-              }
-            : {}),
-        })
-      );
-      if (focusTeamCode === teamCode) {
-        const safeTeam = buildSeasonAdvanceFocusTeamSnapshot(safeCommittedTeam);
-        focusTeamSnapshot = safeCloneForAudit(
-          safeTeam
-        ) as SeasonAdvanceFocusTeamSnapshot;
-      }
-      updatedTeams.push(teamCode);
-    }
-
-    const governedAmounts = Object.fromEntries(
-      authority.targetInputManifest.systemLevels.map((input) => [
-        input.levelId,
-        input.amount,
-      ])
-    );
-    const worldLineage = await resolveWorldLineageIdsFromMetadata(
+    const prepared = await prepareSeasonAdvance({
       worldId,
-      getWorldMetadata
-    );
-    // Season advance intentionally reuses the shared post-state final-artifact
-    // validator after all 30 governed team and book snapshots are prepared.
-    const postStateValidation = validatePostStateCapLegality({
+      worldMeta,
+      teams,
+      authority,
       operationId,
-      mutationType: SEASON_ADVANCE_MUTATION_TYPE,
-      worldId,
-      worldLineage,
-      year: toYear,
-      toYear,
-      beforeTeamsByCode,
-      afterTeamsByCode,
-      beforeTotalsByTeam,
-      afterTotalsByTeam,
-      rulesContext: {
-        capSettings: {
-          salaryCap: governedAmounts['salary-cap'],
-          floor: governedAmounts['minimum-team-salary'],
-          luxuryTax: governedAmounts['tax-level'],
-          firstApron: governedAmounts['first-apron'],
-          secondApron: governedAmounts['second-apron'],
-        },
-        minimumTeamSalary: governedAmounts['minimum-team-salary'],
-        capSettingsSource: `governed:${authority.targetInputManifest.registry.registryId}@v${authority.targetInputManifest.registry.registryVersion}`,
-      },
+      occurredAt,
+      optionDecisions,
+      focusTeamCode,
+      worldLineage: await resolveWorldLineageIdsFromMetadata(
+        worldId,
+        getWorldMetadata
+      ),
+      draftReview,
     });
-
-    if (!postStateValidation.valid) {
-      return {
-        success: false,
-        error: 'Post-state cap validation failed for season advance',
-        violations: postStateValidation.violations,
-        warnings: postStateValidation.warnings || [],
-      };
-    }
-
-    const teamCodes = updatedTeams.slice();
-    const committedMetadata: SeasonAdvanceCommittedMetadata = {
-      currentSeason: toSeason,
-      currentYear: toYear,
-      asOfDate: targetAsOfDate,
-      lastModifiedTeams: teamCodes,
-    };
-    const diffSummary = {
-      teamsAdvanced: teamCodes.length,
-      optionsDecisionsCount: Object.keys(optionDecisions || {}).length,
-      resolvedConveyances: summary.conveyanceResolutions.length,
-      resolvedSwaps: summary.swapResolutions.length,
-    };
+    if (!prepared.success) return prepared;
+    const {
+      preparedTeams,
+      committedMetadata,
+      safeEvent,
+      manifest,
+      summary,
+      updatedTeams,
+      focusTeamSnapshot,
+      preAdvanceMetadataDigest,
+      teamCodes,
+    } = prepared;
     const eventRef = doc(
       db,
       ARCHITECT_WORLDS_COLLECTION,
@@ -510,115 +270,6 @@ export async function advanceSeasonInWorld(
       ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
       eventId
     );
-    const eventPayload = {
-      eventId,
-      type: SEASON_ADVANCE_MUTATION_TYPE,
-      timestamp: occurredAt,
-      seasonId: toSeason,
-      metadata: {
-        type: SEASON_ADVANCE_MUTATION_TYPE,
-        timestamp: occurredAt,
-        fromSeason,
-        toSeason,
-        teamsInvolved: teamCodes,
-        seasonTransitionId: transitionId,
-        seasonHistoryIds: preparedTeams.map(
-          (team) => team.historyRecord.historyId
-        ),
-        transitionEffectiveAt: authority.transitionEffectiveAt,
-        governedSeasonInputManifest: authority.targetInputManifest,
-        entitlementBoundary: authority.entitlementBoundary,
-        contractEventIds: preparedTeams.flatMap(
-          (team) => team.teamRecord.contractEventIds
-        ),
-        ...(draftReview
-          ? {
-              draftReviewSeasonReceipt: DraftReviewSeasonReceiptZ.parse({
-                scope: 'synthetic-review-only',
-                operationId,
-                worldId,
-                transitionId,
-                fromSeason,
-                toSeason,
-                effectiveAt: authority.transitionEffectiveAt,
-                releaseId: draftReview.freezeEvents[0].releaseId,
-                releaseSha256: draftReview.freezeEvents[0].releaseSha256,
-                entitlementState: 'preserved-exactly',
-                entitlementStateDigests: Object.fromEntries(
-                  preparedTeams.map((team) => [
-                    team.teamCode,
-                    team.teamRecord.entitlementStateDigest,
-                  ])
-                ),
-                salaryBookHistory: Object.fromEntries(
-                  preparedTeams.map((team) => [
-                    team.teamCode,
-                    {
-                      historyId: team.historyRecord.historyId,
-                      beforeTotalsDigest: mutationSnapshotDigest(
-                        team.historyRecord.beforeTotals
-                      ),
-                      afterTotalsDigest: mutationSnapshotDigest(
-                        team.historyRecord.afterTotals
-                      ),
-                    },
-                  ])
-                ),
-                freezeEvents: draftReview.freezeEvents,
-              }),
-            }
-          : {}),
-      },
-      teamsAffected: teamCodes,
-      schemaVersion: CAP_AUDIT_EVENT_SCHEMA_VERSION,
-      validatorVersion: POST_STATE_CAP_VALIDATOR_VERSION,
-      operationId,
-      mutationType: SEASON_ADVANCE_MUTATION_TYPE,
-      occurredAt,
-      worldId,
-      teamCodes,
-      playerIds: [] as string[],
-      // The full books remain in each immutable history record in this same
-      // transaction, with exact digests above. Avoid duplicating all30 detailed
-      // ledgers inside the single synthetic event's Firestore document.
-      beforeTotalsByTeam: draftReview
-        ? compactSyntheticSeasonEventTotals(beforeTotalsByTeam)
-        : beforeTotalsByTeam,
-      afterTotalsByTeam: draftReview
-        ? compactSyntheticSeasonEventTotals(afterTotalsByTeam)
-        : afterTotalsByTeam,
-      valid: postStateValidation.valid,
-      violations: postStateValidation.violations,
-      warnings: postStateValidation.warnings,
-      diffSummary,
-      mutationMetadata: {
-        mutationType: SEASON_ADVANCE_MUTATION_TYPE,
-        category: 'offseason',
-        worldId,
-        teams: teamCodes,
-        players: [] as string[],
-      },
-    };
-    const afterEventSanitize =
-      sanitizeTransientFieldsForPersistence(eventPayload);
-    assertPersistableOrThrow({
-      obj: afterEventSanitize,
-      contract: PERSISTENCE_CONTRACTS.EVENT,
-      label: 'EVENT',
-    });
-    const safeEvent = removeUndefinedDeep(afterEventSanitize);
-    assertFirestoreDocumentSize(safeEvent, 'Season Advance event');
-    const manifest = buildSeasonTransitionManifest({
-      transitionId,
-      operationId,
-      eventId,
-      worldId,
-      occurredAt,
-      authority,
-      authorityDigest,
-      preAdvanceMetadataDigest,
-      teams: preparedTeams,
-    });
     const manifestRef = worldSeasonTransitionRef(worldId, transitionId);
     const historyRefs = preparedTeams.map((team) => ({
       team,
@@ -628,16 +279,12 @@ export async function advanceSeasonInWorld(
     await runTransaction(db, async (transaction) => {
       // These consumed source/roster/entitlement documents join the existing
       // transaction. No separate writer or post-commit history append exists.
-      const reviewEntries = draftReview
-        ? Object.entries(draftReview.snapshots)
-        : [];
       const refs = [
         metadataRef,
         ...teamDocumentRefs.map(({ ref }) => ref),
         ...historyRefs.map(({ ref }) => ref),
         manifestRef,
         eventRef,
-        ...reviewEntries.map(([path]) => doc(db, path)),
       ];
       const snapshots = await Promise.all(
         refs.map((reference) => transaction.get(reference))
@@ -689,15 +336,6 @@ export async function advanceSeasonInWorld(
           `Duplicate/replayed Season Advance event ${transitionId}.`
         );
       }
-      for (const [path, expected] of reviewEntries) {
-        const snapshot = snapshots[cursor++];
-        if (
-          (snapshot.exists() ? mutationSnapshotText(snapshot.data()) : null) !==
-          expected
-        )
-          throw new Error(`Stale synthetic lifecycle input at commit: ${path}`);
-      }
-
       for (const prepared of preparedTeams) {
         transaction.set(
           worldTeamRef(worldId, prepared.teamCode),

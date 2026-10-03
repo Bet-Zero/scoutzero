@@ -37,6 +37,7 @@ export async function seedSyntheticDraftReviewWorld(
     baselineSeason: '2026-27',
     asOfDate: '2026-07-15',
     parentWorldId: null,
+    draftInventoryRevision: 0,
     isArchived: false,
     draftReviewReleaseId: retained.release.id,
     draftReviewReleaseText: serialized,

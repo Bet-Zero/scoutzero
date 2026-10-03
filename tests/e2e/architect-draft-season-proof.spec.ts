@@ -1,23 +1,23 @@
+import { DraftReviewSeasonReceiptZ } from '@/schemas/draftReviewSeason';
+import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { expect, test, type Page } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
-import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { seedSyntheticDraftSeasonWorld } from './fixtures/syntheticDraftSeasonWorld';
 import {
   getReviewAdminDb,
-  readReviewUserId,
   openDashboardTab,
+  readReviewUserId,
 } from './helpers/architectReviewWorld';
-import { DraftReviewSeasonReceiptZ } from '@/schemas/draftReviewSeason';
 // Persisted salary books are plain JSON. Import the pure digest without the
 // application contract-source barrel (which initializes Firebase in Node).
-import { deterministicStateDigest as mutationSnapshotDigest } from '@/features/architect/utils/contractSource/deterministicDigest';
 import {
   ARCHITECT_WORLDS_COLLECTION,
-  ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
   ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
   ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
+  ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
 } from '@/constants/collections';
+import { deterministicStateDigest as mutationSnapshotDigest } from '@/features/architect/utils/contractSource/deterministicDigest';
 
 test.use({
   viewport: { width: 1280, height: 720 },
@@ -70,6 +70,7 @@ async function savedState(id: string) {
     ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
     'seasonHistory',
     'seasonTransitions',
+    'transitionProvenance',
   ];
   const snapshots = await Promise.all(
     collections.map((name) => root.collection(name).get())
@@ -88,6 +89,7 @@ async function savedState(id: string) {
     entitlements: { id: string; data: Record<string, any> }[];
     events: { id: string; data: Record<string, any> }[];
     seasonHistory: { id: string; data: Record<string, any> }[];
+    transitionProvenance: { id: string; data: Record<string, any> }[];
     seasonTransitions: { id: string; data: Record<string, any> }[];
   };
 }
@@ -158,6 +160,10 @@ test('season record persists with all thirty histories and exact reload', async 
   expect(advanced.teams).toHaveLength(30);
   expect(advanced.seasonHistory).toHaveLength(30);
   expect(advanced.seasonTransitions).toHaveLength(1);
+  expect(advanced.transitionProvenance).toHaveLength(3);
+  expect(
+    advanced.transitionProvenance.find((r) => r.id === 'head')!.data.recordId
+  ).toBe(transitionId);
   const seasonEvent = advanced.events[0].data;
   const receipt = DraftReviewSeasonReceiptZ.parse(
     seasonEvent.metadata.draftReviewSeasonReceipt
@@ -437,35 +443,341 @@ test('season review rejects forged and stale supplied inputs without writes', as
   retain('negative-proof.json', results);
 });
 
-test('season denied final metadata write leaves no partial history or freeze record', async ({
+test('season publication rejects a conflicting final record atomically and supports a clean retry', async ({
   page,
 }) => {
   const id = `${worldId}_atomic`;
   await prepare(page, id);
+  const db = getReviewAdminDb();
+  const root = db.collection(ARCHITECT_WORLDS_COLLECTION).doc(id);
+  // A custom record occupying the output identity makes the actual saved state
+  // diverge from the certified predecessor. Rejection preserves every record.
+  const occupied = root.collection('seasonTransitions').doc(transitionId);
+  await occupied.set({ custom: 'preserve this record' });
   const before = await savedState(id);
-  const originalRules = fs.readFileSync('firestore.rules', 'utf8');
-  const anchor = 'allow update: if isWorldMetadataOwner()';
-  expect(originalRules.split(anchor)).toHaveLength(2);
-  const configure = async (rules: string) => {
-    const env = await initializeTestEnvironment({
-      projectId: 'demo-architect-review',
-      firestore: { host: '127.0.0.1', port: 8082, rules },
-    });
-    await env.cleanup();
-  };
-  await configure(
-    originalRules.replace(anchor, `${anchor} && worldId != '${id}'`)
-  );
-  let result;
-  try {
-    result = await advance(page);
-  } finally {
-    await configure(originalRules);
-  }
+  const result = await advance(page);
   expect(result.success).toBe(false);
-  expect(String(result.error)).toMatch(
-    /permission|denied|insufficient|evaluation error|false for 'update'/i
-  );
   expect(await savedState(id)).toEqual(before);
-  retain('atomic-proof.json', { result, before, after: await savedState(id) });
+  await occupied.delete(); // Test fixture repair only; no application migration.
+  const calls = await page.evaluate(
+    async ({ id }) => {
+      const functionPath = '/node_modules/.vite/deps/firebase_functions.js';
+      const { httpsCallable } = await import(functionPath);
+      const configPath = '/src/firebaseConfig.ts';
+      const { functions } = await import(configPath);
+      const invoke = httpsCallable(
+        functions,
+        'advanceCertifiedArchitectSeason'
+      );
+      const request = {
+        worldId: id,
+        operationId: 'concurrent-certified-advance',
+        expectedInventoryRevision: 0,
+        focusTeamCode: 'BOS',
+      };
+      return Promise.all(
+        [1, 2].map(async () => {
+          try {
+            return { success: true, result: (await invoke(request)).data };
+          } catch (error) {
+            return { success: false, error: String(error) };
+          }
+        })
+      );
+    },
+    { id }
+  );
+  expect(calls.filter((row) => row.success)).toHaveLength(1);
+  const after = await savedState(id);
+  expect(after.metadata.actionCount).toBe(1);
+  expect(after.metadata.draftInventoryRevision).toBe(1);
+  expect(after.events).toHaveLength(1);
+  expect(after.seasonHistory).toHaveLength(30);
+  expect(after.transitionProvenance).toHaveLength(3);
+  expect(after.entitlements).toEqual(before.entitlements);
+  retain('atomic-proof.json', { result, before, after, calls });
+});
+
+// The original passing limitation probe is now a discriminating rejection:
+// a fully consistent custom bundle stays saved but cannot confer authority.
+test('season history trust boundary rejects consistent owner-authored substitution', async ({
+  page,
+}) => {
+  const id = `${worldId}_owner_substitution`;
+  const uid = await prepare(page, id);
+  expect((await advance(page)).success).toBe(true); // Authoritative software control.
+  const template = await savedState(id);
+  const originalPlayerId = template.teams.find((t) => t.id === 'BOS')!.data
+    .roster[0];
+  const inventedPlayerId = 'owner_substituted_bos_player';
+  // Replace the same identity in current team, historical roster, contract and
+  // salary-book entries. No stale hash is left behind and money is unchanged.
+  const substituted = JSON.parse(
+    JSON.stringify(template).replaceAll(originalPlayerId, inventedPlayerId)
+  ) as typeof template;
+  const history = substituted.seasonHistory.find(
+    (h) => h.id === '2025-26__BOS'
+  )!.data;
+  const manifest = substituted.seasonTransitions[0].data;
+  const record = manifest.teamRecords.find(
+    (r: { teamCode: string }) => r.teamCode === 'BOS'
+  );
+  const event = substituted.events[0].data;
+  const bos = substituted.teams.find((t) => t.id === 'BOS')!.data;
+  history.preAdvanceStateDigest = mutationSnapshotDigest(
+    history.preAdvanceState
+  );
+  history.finalRosterDigest = mutationSnapshotDigest(history.finalRoster);
+  record.preAdvanceStateDigest = history.preAdvanceStateDigest;
+  record.finalRosterDigest = history.finalRosterDigest;
+  record.committedStateDigest = mutationSnapshotDigest(bos);
+  event.metadata.draftReviewSeasonReceipt.salaryBookHistory.BOS = {
+    historyId: history.historyId,
+    beforeTotalsDigest: mutationSnapshotDigest(history.beforeTotals),
+    afterTotalsDigest: mutationSnapshotDigest(history.afterTotals),
+  };
+  manifest.operationId = 'owner-authored-substitute';
+  event.operationId = manifest.operationId;
+  event.metadata.draftReviewSeasonReceipt.operationId = manifest.operationId;
+  expect(history.preAdvanceState.roster).toContain(inventedPlayerId);
+  expect(history.preAdvanceStateDigest).not.toBe(
+    template.seasonHistory.find((h) => h.id === history.historyId)!.data
+      .preAdvanceStateDigest
+  );
+
+  // Start again at the real pre-advance world. This emulator-only initializer
+  // stands in for creating a fresh owned world, not permission to edit history.
+  const source = await seedSyntheticDraftSeasonWorld(uid, id);
+  const before = await savedState(id);
+  expect(before.teams.find((t) => t.id === 'BOS')!.data.roster).toContain(
+    originalPlayerId
+  );
+  expect(before.seasonHistory).toHaveLength(0);
+  const environment = await initializeTestEnvironment({
+    projectId: 'demo-architect-review',
+    firestore: { host: '127.0.0.1', port: 8082 },
+  });
+  try {
+    const owner = environment.authenticatedContext(uid).firestore();
+    const root = owner.doc(`architect_worlds/${id}`);
+    const batch = owner.batch();
+    for (const collection of [
+      'teams',
+      'seasonHistory',
+      'seasonTransitions',
+      'events',
+    ] as const)
+      for (const row of substituted[collection])
+        batch.set(root.collection(collection).doc(row.id), row.data);
+    batch.update(root, {
+      currentSeason: '2026-27',
+      currentYear: 2027,
+      asOfDate: '2026-07-01',
+      actionCount: 1,
+      draftInventoryRevision: 1,
+    });
+    // No call to Season Advance and no private season capability is used here.
+    await batch.commit();
+    await expect(
+      root
+        .collection('seasonHistory')
+        .doc(history.historyId)
+        .update({ authorityDigest: 'forged' })
+    ).rejects.toThrow(/permission|denied|evaluation/i);
+  } finally {
+    await environment.cleanup();
+  }
+  const published = await savedState(id);
+  expect(
+    published.seasonHistory.find((h) => h.id === history.historyId)!.data
+  ).toEqual(history);
+  const result = await page.evaluate(
+    async ({ uid, id, payload }) => {
+      const capabilityPath =
+        '/src/features/architect/utils/draftReview/capability.ts';
+      const pipelinePath = '/src/features/architect/utils/mutationPipeline.ts';
+      const { prepareSyntheticDraftReview } = await import(capabilityPath);
+      const { applyWorldMutation } = await import(pipelinePath);
+      const args = {
+        userId: uid,
+        worldId: id,
+        operationId: 'after-owner-substitution',
+        seasonId: '2026-27',
+        mutationType: 'executeTrade',
+        payload,
+      };
+      let review;
+      try {
+        review = await prepareSyntheticDraftReview(args);
+      } catch (error) {
+        return { prepared: false, error: String(error) };
+      }
+      if (review.status !== 'prepared') return { prepared: false };
+      const normal = await applyWorldMutation(args);
+      const trade = await applyWorldMutation({
+        ...args,
+        draftReviewAuthority: review.authority,
+      });
+      return {
+        prepared: true,
+        defaultSuccess: normal.success,
+        reviewSuccess: trade.success,
+        error: trade.error ?? null,
+      };
+    },
+    { uid, id, payload: source.proposal }
+  );
+  expect(result, JSON.stringify(result)).toMatchObject({
+    prepared: false,
+  });
+  expect(await savedState(id)).toEqual(published);
+  retain('history-trust-counterexample.json', {
+    originalPlayerId,
+    inventedPlayerId,
+    originalHistory: template.seasonHistory.find(
+      (h) => h.id === history.historyId
+    ),
+    substitutedHistory: history,
+    substitutedManifest: manifest,
+    substitutedEvent: event,
+    ownerSdkPublicationSucceeded: true,
+    laterEditsDenied: true,
+    result,
+    boundary:
+      'Consistent owner-authored simulation history is not independent transition or NBA provenance.',
+  });
+});
+
+test('season history trust boundary protects certificates and every predecessor across reload', async ({
+  page,
+}) => {
+  const id = `${worldId}_lineage`;
+  const uid = await prepare(page, id);
+  const initial = await savedState(id);
+  const environment = await initializeTestEnvironment({
+    projectId: 'demo-architect-review',
+    firestore: { host: '127.0.0.1', port: 8082 },
+  });
+  try {
+    const root = environment
+      .authenticatedContext(uid)
+      .firestore()
+      .doc(`architect_worlds/${id}`);
+    const certificates = root.collection('transitionProvenance');
+    const baseline = initial.transitionProvenance.find(
+      (r) => r.id === 'baseline'
+    )!.data;
+    await expect(
+      certificates.doc('forged').set({ ...baseline, recordId: 'forged' })
+    ).rejects.toThrow(/permission|denied|evaluation/i);
+    await expect(
+      certificates.doc('head').update({ recordId: 'forged' })
+    ).rejects.toThrow(/permission|denied|evaluation/i);
+    await expect(certificates.doc('baseline').delete()).rejects.toThrow(
+      /permission|denied|evaluation/i
+    );
+    await expect(
+      environment
+        .authenticatedContext('other-owner')
+        .firestore()
+        .doc(`architect_worlds/${id}/transitionProvenance/head`)
+        .get()
+    ).rejects.toThrow(/permission|denied|evaluation/i);
+  } finally {
+    await environment.cleanup();
+  }
+  expect(await savedState(id)).toEqual(initial);
+  const arbitrary = await page.evaluate(
+    async ({ id }) => {
+      const functionPath = '/node_modules/.vite/deps/firebase_functions.js';
+      const { httpsCallable } = await import(functionPath);
+      const configPath = '/src/firebaseConfig.ts';
+      const { functions } = await import(configPath);
+      try {
+        await httpsCallable(
+          functions,
+          'advanceCertifiedArchitectSeason'
+        )({
+          worldId: id,
+          operationId: 'arbitrary-history',
+          expectedInventoryRevision: 0,
+          focusTeamCode: 'BOS',
+          history: { internallyConsistent: true },
+        });
+        return { rejected: false };
+      } catch (error) {
+        return { rejected: true, error: String(error) };
+      }
+    },
+    { id }
+  );
+  expect(arbitrary.rejected).toBe(true);
+  expect(await savedState(id)).toEqual(initial);
+  expect((await advance(page)).success).toBe(true);
+  const certified = await savedState(id);
+  const payload = await page.evaluate(
+    () => Reflect.get(window, '__draftSeasonReview').payload
+  );
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  const review = () =>
+    page.evaluate(
+      async ({ id, uid, payload }) => {
+        const modulePath =
+          '/src/features/architect/utils/draftReview/capability.ts';
+        const { prepareSyntheticDraftReview } = await import(modulePath);
+        try {
+          const result = await prepareSyntheticDraftReview({
+            worldId: id,
+            userId: uid,
+            operationId: 'lineage-after-reload',
+            seasonId: '2026-27',
+            mutationType: 'executeTrade',
+            payload,
+          });
+          return { prepared: result.status === 'prepared' };
+        } catch (error) {
+          return { prepared: false, error: String(error) };
+        }
+      },
+      { id, uid, payload }
+    );
+  expect(await review()).toEqual({ prepared: true });
+  expect(await savedState(id)).toEqual(certified);
+  const root = getReviewAdminDb()
+    .collection(ARCHITECT_WORLDS_COLLECTION)
+    .doc(id);
+  const rejections = [];
+  // Privileged corruption probes: clients cannot write these certificates, but
+  // verification must cover predecessor content and missing links, not just head.
+  for (const recordId of ['baseline', transitionId, 'head']) {
+    const ref = root.collection('transitionProvenance').doc(recordId);
+    const original = (await ref.get()).data()!;
+    await ref.delete();
+    const before = await savedState(id);
+    const result = await review();
+    expect(result.prepared, recordId).toBe(false);
+    expect(await savedState(id)).toEqual(before);
+    rejections.push({ recordId, result });
+    await ref.set(original);
+  }
+  const team = root.collection('teams').doc('BOS');
+  const originalTeam = (await team.get()).data()!;
+  await team.update({ roster: ['consistent-looking-substitution'] });
+  const tampered = await savedState(id);
+  const result = await review();
+  expect(result.prepared).toBe(false);
+  expect(await savedState(id)).toEqual(tampered);
+  await team.set(originalTeam);
+  expect(await review()).toEqual({ prepared: true });
+  expect(await savedState(id)).toEqual(certified);
+  retain('certified-lineage-proof.json', {
+    clientCertificateWritesDenied: true,
+    nonOwnerReadDenied: true,
+    arbitrary,
+    initial,
+    certified,
+    reloaded: true,
+    rejections,
+    tamperedCurrentState: result,
+  });
 });

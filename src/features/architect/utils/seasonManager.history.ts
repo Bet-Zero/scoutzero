@@ -1,6 +1,6 @@
 /** Immutable Season Advance history, reconciliation, and fail-closed checks. */
 
-import { AUTHORITATIVE_WORLD_TEAM_CODES } from './mutationPipeline.helpers';
+import { AUTHORITATIVE_WORLD_TEAM_CODES } from './leagueTeams';
 import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
 import { toEndYear } from './seasonFormat';
 import { createContractEventLedger } from './contractHistory';
