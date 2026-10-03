@@ -532,6 +532,7 @@ describeWithFirestoreEmulator(
               salaryMatchingPath: 'STANDARD_TPE',
               apronLevel: 'FIRST_APRON',
               ceiling: 999_000_000,
+              cashAmountCents: null,
               incomingPlayers: [
                 {
                   playerId: 'FORGED-ROW-F-PLAYER',
@@ -551,6 +552,7 @@ describeWithFirestoreEmulator(
               salaryMatchingPath: 'AGGREGATED_STANDARD_TPE',
               apronLevel: 'SECOND_APRON',
               ceiling: secondApron.amount,
+              cashAmountCents: null,
               incomingPlayers: [
                 {
                   playerId: 'FORGED-ROW-H-PLAYER',

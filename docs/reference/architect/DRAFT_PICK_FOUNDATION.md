@@ -370,7 +370,9 @@ moves, the smallest correction is trusted publication through the existing
 server-function boundary plus rules denying client creation of certified
 history/manifest/events. That server must recompute/validate the transition
 against trusted initial state and the exact current world, not sign arbitrary
-client payloads. Previously owner-authored histories cannot silently acquire
+client payloads. Every certified input must be protected or derived from a
+trusted baseline and accepted transition lineage; an owner-writable current
+snapshot alone is not a trust root. Previously owner-authored histories cannot silently acquire
 that guarantee. Choosing the treatment of those worlds and any custom-history
 mode is an owner product decision; no such architecture or policy is introduced
 here. NBA source qualification and all BZE-309 evidence gaps remain separate.

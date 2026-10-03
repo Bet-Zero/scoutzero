@@ -28,14 +28,14 @@ existing mutation writer. Check additions, removals, reassignment, races after
 transaction reads, competing trades, retry, no partial event/ownership/stats,
 and the unchanged legal and default-blocked controls.
 
-Proposed correction: a monotonic inventory revision on existing world metadata,
+Implemented candidate: a monotonic inventory revision on existing world metadata,
 enforced by rules for every entitlement write and team inventory membership
 change in explicitly fenced worlds. Existing transaction metadata reads fence
 the collection. Clients cannot install, remove or rewind the fence. Only new
 synthetic fixtures opt in here; no existing world migration or production
 activation. Non-participating writers must fail closed, not bypass the fence.
 
-Concrete B counterexample to construct: an authenticated owner publishes a
+Concrete B counterexample retained: an authenticated owner publishes a
 complete internally consistent alternative season history/manifest/event bundle
 at creation, with recalculated digests and matching current team state. This
 tests origin, not stale hashes. Trace the existing Admin-created baseline,
@@ -110,8 +110,75 @@ This proves owner-authored consistency, not certified transition origin. The
 smallest proposed solution uses the existing server-function hosting boundary
 for authoritative transition validation/publication and denies browser creation
 of certified records. A server stamp on arbitrary client payloads is insufficient.
-The product decision is whether governed worlds guarantee only supported moves,
+Every certified input must be protected or derived from the trusted baseline
+and accepted transition lineage; mutable current Team documents cannot alone
+supply that origin. The product decision is whether governed worlds guarantee
+only supported moves,
 with explicitly separate custom simulation history, and how existing writable
 histories are treated. No implicit migration or new authority implementation.
 This separable owner decision does not waive independent review of the inventory
 candidate or authorize production first-round assets.
+
+## Author validation and evidence reuse
+
+The complete nine-phase diagnostic browser/emulator run passed: all existing
+v1/v2 legal, negative and atomic scenarios plus membership and history probes.
+The legal flow retains both-team leave/return and full reload state equality.
+The new matrix proves unknown-ID addition, deletion, reassignment, team addition
+and deletion, team inventory mutation and event addition either require an
+atomic revision advance or are denied. Old reviews reject the advanced state
+without partial ownership/event/stats writes. A write injected after transaction
+reads forces retry and rejection; a conflict without inventory change retries
+successfully once. Competing operation IDs transfer only once; replay fails.
+Owner-callable Admin purge refuses the fenced world without deleting anything.
+The trust probe publishes its alternative bundle through authenticated client
+rules, proves later immutable-history editing fails, and retains default Apply
+blocked. No production/source collections were seeded or written.
+
+Completed author commands (logs retained in the final evidence package):
+
+- `npm run test:node -- tests/architect/draftReviewConsumption.test.ts tests/architect/draftReviewSeason.test.ts tests/architect/draftReviewCommitGate.test.ts tests/architect/draftReviewWorldFixture.test.ts tests/architect/draftReviewEnvironment.test.ts tests/architect/draftReviewComparison.test.ts tests/architect/draftPickReview.test.ts src/tests/architect/capAuditEventV1.persistWorldMutation.guardrails.test.ts src/tests/architect/seasonAdvance_postStateValidator_failClose.behavior.test.ts --reporter=dot`: 93 tests, nine files.
+- `npm run test:ui -- src/tests/architect/tmCapIntegration.ui.tradeApply_updatesTeamHistory.integration.test.tsx src/tests/architect/teamHistory.displayFromEnrichedEvents.integration.test.tsx src/tests/architect/teamHistory.detailView.integration.test.tsx --reporter=dot`: five tests, three files.
+- `npm run test:rules -- --reporter=dot`, inside the demo Firestore emulator:
+  28 tests passed. Initial run exposed an existing fixture defect; unchanged
+  main reproduced it (25 pass / one fail). Two missing `cashAmountCents: null`
+  fields are now present so the existing forged-ledger authority test reaches
+  its intended assertion. No schema or ledger policy changed.
+- `npm run typecheck`, `npm run build`, `npm --prefix functions run build`:
+  passed; existing bundle-size warning retained.
+- `npm run validate:project`, `npm run docs:guardrails`, scoped Markdown lint,
+  and `npm run test:phase3a-workflow` (19 tests): passed. Initial project/workflow
+  attempts encountered sandbox IPC restrictions; the configured reruns passed.
+- `graphify update .`: refreshed topology (16,405 nodes, 41,877 edges);
+  the new fence helper's four consumers were verified. No later source-topology
+  change; subsequent edits affect proof packaging, fixture shape and docs only.
+- `git diff --check`: clean. No full suite, ESLint, schema generation/check,
+  production deployment, migration or source pipeline was requested or run.
+  Schema generation is inapplicable: the marker is explicitly opt-in world
+  metadata and no canonical schema definition changed.
+
+Early draft PR541 at `9aa574c1cb17eeaed116ced7b67884a65bbb3d60` passed hosted
+CI37108422596. Automated Codex review completed with no major issues
+([receipt](https://github.com/Bet-Zero/scoutzero/pull/541#issuecomment-5967042144));
+CodeRabbit skipped the draft and is optional. These are author-side receipts,
+not Claude acceptance. The final commit must receive its own green hosted CI.
+Existing node/UI/build proof is reused where subsequent fixture/docs/packaging
+edits leave its dependency surface unchanged; required exact-head browser
+certificates are produced after final freeze and published separately so this
+record does not mutate the certified candidate. The wrapper requires and hashes
+all five membership JSON artifacts and the history counterexample JSON.
+
+Cloud harness uses installed Firebase CLI/cache, writable XDG config, and
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium`. That optional config
+override preserves the default browser selection elsewhere. Both retained
+commands use world-only demo fixtures:
+`npm run architect:proof:trade-receipt -- --draft-review` and
+`npm run architect:proof:trade-receipt -- --draft-season`.
+
+Disposition: implementation candidate only. No normal merge, activation or Done
+claim. Required Claude review is unavailable by explicit owner confirmation.
+The separable inventory change still needs that acceptance; certified history
+also needs the owner product/authority decision above. BZE-309's accepted source
+disposition, all 278 entitlement IDs, June 5, 2026 start, and Stage B/W10/V1
+status are unchanged. Final immutable handoff will identify exact head/base,
+artifact hashes, CI, risk locators, known limits and the focused checker request.

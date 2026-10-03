@@ -421,7 +421,15 @@ export async function runTradeReceiptProof(
     : [path.join(reportDir, 'index.html')];
   const additionalProofPaths = draftReview
     ? [
-        ...(draftSeason ? ['season-proof.json'] : []),
+        ...(draftSeason
+          ? ['season-proof.json', 'history-trust-counterexample.json']
+          : [
+              'membership-unfenced-proof.json',
+              'membership-changes-proof.json',
+              'membership-commit-race-proof.json',
+              'membership-competing-proof.json',
+              'membership-admin-purge-proof.json',
+            ]),
         'negative-proof.json',
         'atomic-proof.json',
       ].map((name) => path.join(artifactDir, name))
