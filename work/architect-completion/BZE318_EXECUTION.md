@@ -152,8 +152,10 @@ Completed author commands (logs retained in the final evidence package):
 - `graphify update .`: refreshed topology (16,405 nodes, 41,877 edges);
   the new fence helper's four consumers were verified. No later source-topology
   change; subsequent edits affect proof packaging, fixture shape and docs only.
-- `git diff --check`: clean. No full suite, ESLint, schema generation/check,
-  production deployment, migration or source pipeline was requested or run.
+- `git diff --check`: clean. Repository commit/push hooks regenerated component
+  docs and passed the Architect cast-ledger gate (which runs scoped ESLint).
+  No full suite, manual broad ESLint, schema generation/check, production
+  deployment, migration or source pipeline was requested or run.
   Schema generation is inapplicable: the marker is explicitly opt-in world
   metadata and no canonical schema definition changed.
 
