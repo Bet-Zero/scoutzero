@@ -201,6 +201,13 @@ Full rules: `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md`,
   coherent assignment. Keep required independent-review invocation, candidate
   freeze, owner-decision, permission, and merge stops explicit; routine work
   within that authorization needs no additional owner checkpoint.
+- When required independent Claude review is available through
+  `.github/workflows/claude-independent-review.yml`, the author invokes it
+  directly from the exact frozen PR using
+  `docs/agent-guides/independent-review-boundary.md`. Do not ask the owner to
+  relay routine reviewer prompts or verdicts. Only a green exact-candidate
+  `ACCEPT` satisfies that gate; `REVISE` or workflow failure returns to
+  author-side repair unless a genuine owner-reserved decision remains.
 - Keep one lead per shared change. Already-authorized independent work may
   proceed only after checking file/contract dependencies, with isolated working
   state and separate validation. Do not create another product assignment or
