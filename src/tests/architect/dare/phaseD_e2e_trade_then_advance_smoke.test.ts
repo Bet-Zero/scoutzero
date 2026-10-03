@@ -54,7 +54,7 @@ describe('BZE-289 trade / entitlement boundary at Season Advance', () => {
   });
 
   it('carries the boundary into the immutable transition manifest', () => {
-    const manager = readUtility('seasonManager.ts');
+    const manager = readUtility('seasonManager.ts') + readUtility('seasonManager.prepare.ts');
     const authority = readUtility('seasonManager.authority.ts');
 
     expect(manager).toContain(
@@ -69,8 +69,8 @@ describe('BZE-289 trade / entitlement boundary at Season Advance', () => {
   });
 
   it('does not recalculate Stepien or entitlement ownership on the governed path', () => {
-    const manager = readUtility('seasonManager.ts');
-    const transition = readUtility('seasonManager.teamTransition.ts');
+    const manager = readUtility('seasonManager.ts') + readUtility('seasonManager.prepare.ts');
+    const transition = readUtility('seasonManager.teamTransition.core.ts');
 
     expect(manager).toContain('preserveDraftEntitlements: true');
     expect(transition).toContain(

@@ -406,7 +406,18 @@ describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
     const preparation = fs.readFileSync(path.join(SRC_ROOT, 'utils/seasonManager.prepare.ts'), 'utf-8');
     const client = fs.readFileSync(seasonManagerPath, 'utf-8');
     const content = core + preparation + client;
+    expect(client.indexOf('await prepareSeasonAdvance(')).toBeGreaterThan(-1);
     expect(client.indexOf('await prepareSeasonAdvance(')).toBeLessThan(client.indexOf('await runTransaction('));
+    const server = fs.readFileSync(path.join(SRC_ROOT, 'utils/seasonManager.server.ts'), 'utf-8');
+    const preparationCall = server.indexOf('await prepareSeasonAdvance(');
+    const rejectedPreparation = server.indexOf('if (!prepared.success)', preparationCall);
+    const firstWrite = server.search(/transaction\.(?:set|create|update|delete)\(/);
+    expect(preparationCall).toBeGreaterThan(-1);
+    expect(rejectedPreparation).toBeGreaterThan(preparationCall);
+    expect(firstWrite).toBeGreaterThan(rejectedPreparation);
+    expect(server).toMatch(/const\s*\{[^}]*preparedTeams[^}]*\}\s*=\s*prepared/);
+    expect(server.slice(firstWrite)).toMatch(/transaction\.set\([\s\S]*?team\.committedTeam\s*\)/);
+    expect(server.slice(rejectedPreparation, firstWrite)).toContain('for (const team of preparedTeams)');
 
     const helperStart = content.indexOf(
       'function buildSeasonAdvanceCommittedTeamSnapshot'

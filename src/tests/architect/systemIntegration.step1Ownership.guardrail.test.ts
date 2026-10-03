@@ -33,7 +33,7 @@ describe('Architect System Integration Step 1 ownership guardrails', () => {
     readArchitectFile('utils/mutationPipeline.ts') +
     readArchitectFile('utils/mutationPipeline.read.ts') +
     readArchitectFile('utils/mutationPipeline.read.stateLoader.ts');
-  const seasonManagerSource = readArchitectFile('utils/seasonManager.ts');
+  const seasonManagerSource = (readArchitectFile('utils/seasonManager.ts') + readArchitectFile('utils/seasonManager.teamTransition.core.ts'));
   const persistenceEnforcementSource = readArchitectFile(
     'utils/persistenceContracts/enforcement.ts'
   );

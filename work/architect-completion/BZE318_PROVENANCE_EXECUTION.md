@@ -131,3 +131,17 @@ No direct full-suite command was invoked. The new exact-head hosted gate retains
 its normal repository-selected diff scope. Automated Codex review of `849159ab`
 found no major issues (PR541 comment 5967753039); a focused proof-tooling/test-only
 delta review is requested before final freeze. None substitutes for Claude.
+
+Both exact-head browser certificates at `e2dee81c` passed (eight inventory tests,
+six season/provenance tests, retained compiled runtime and clean teardown).
+The broader hosted diff gate exposed additional old source scans for the same
+extraction, so every direct season-source guard was selected together: 138 tests
+across 14 files, with one remaining DARE source locator then repaired. Automated
+review raised two objective P2 test gaps (PR541 discussions 4172547687 and
+4172547692). Guards now separately prove both entrypoints import/call shared
+preparation, reject failed preparation before any writes, and reach the actual
+post-state validator; the server ordering guard also requires publication of
+`preparedTeams`/`team.committedTeam`. The focused delta (54 tests in three files)
+passes. Runtime implementation is unchanged from the reviewed `849159ab`.
+A fresh exact-head gate and certificate pair will bind the final test repairs;
+prior passes are retained as author evidence, not relabeled to a newer head.

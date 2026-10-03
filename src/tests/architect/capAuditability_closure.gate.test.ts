@@ -145,19 +145,20 @@ describe('CAP_AUDITABILITY Closure Gate 2: Call-site invocation', () => {
     ).toMatch(/validatePostStateCapLegality\s*\(/);
   });
 
-  it('invokes validatePostStateCapLegality in seasonManager.ts (advanceSeasonInWorld)', () => {
-    const source = readSource(SEASON_MANAGER_PATH) +
-      readSource(SEASON_MANAGER_PATH.replace('seasonManager.ts', 'seasonManager.prepare.ts'));
-
-    expect(
-      source,
-      'seasonManager.ts must import validatePostStateCapLegality'
-    ).toContain('validatePostStateCapLegality');
-
-    expect(
-      source,
-      'seasonManager.ts must call validatePostStateCapLegality(...)'
-    ).toMatch(/validatePostStateCapLegality\s*\(/);
+  it.each(['seasonManager.ts', 'seasonManager.server.ts'])('keeps %s connected to shared post-state validation', (file) => {
+    const entry = readSource(SEASON_MANAGER_PATH.replace('seasonManager.ts', file));
+    const preparation = readSource(SEASON_MANAGER_PATH.replace('seasonManager.ts', 'seasonManager.prepare.ts'));
+    expect(entry).toMatch(/import\s*\{\s*prepareSeasonAdvance\s*\}\s*from\s*['"]\.\/seasonManager\.prepare['"]/);
+    const preparationCall = entry.indexOf('await prepareSeasonAdvance(');
+    expect(preparationCall).toBeGreaterThan(-1);
+    const rejectedPreparation = entry.indexOf('if (!prepared.success)', preparationCall);
+    expect(rejectedPreparation).toBeGreaterThan(preparationCall);
+    expect(rejectedPreparation).toBeLessThan(entry.search(/transaction\.(?:set|create|update|delete)\(/));
+    const validation = preparation.indexOf('const postStateValidation = validatePostStateCapLegality(');
+    const rejection = preparation.indexOf('if (!postStateValidation.valid)', validation);
+    expect(validation).toBeGreaterThan(-1);
+    expect(rejection).toBeGreaterThan(validation);
+    expect(rejection).toBeLessThan(preparation.lastIndexOf('success: true'));
   });
 
   it('invokes validatePostStateCapLegality in useArchitectActions.ts (base-mode + preview)', () => {
