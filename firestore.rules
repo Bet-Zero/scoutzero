@@ -205,6 +205,13 @@ service cloud.firestore {
           && resource.data.get('type', '') != 'seasonAdvance';
       }
 
+      // Certification is separate from custom history. Only trusted server
+      // transitions may publish receipts/head; no owner claim can opt in.
+      match /transitionProvenance/{recordId} {
+        allow read: if isWorldOwner(worldId);
+        allow write: if false;
+      }
+
       // Season-close snapshots and the league manifest are append-only. The
       // transaction owns their deterministic identities; a client cannot edit
       // or delete history after the 30-team transition commits.

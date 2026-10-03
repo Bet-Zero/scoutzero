@@ -329,7 +329,7 @@ export async function runTradeReceiptProof(
         'season record persists',
         'season continuation trades',
         'season review rejects',
-        'season denied final metadata',
+        'season publication rejects',
         'season history trust boundary',
       ]
     : draftReview
@@ -422,7 +422,11 @@ export async function runTradeReceiptProof(
   const additionalProofPaths = draftReview
     ? [
         ...(draftSeason
-          ? ['season-proof.json', 'history-trust-counterexample.json']
+          ? [
+              'season-proof.json',
+              'history-trust-counterexample.json',
+              'certified-lineage-proof.json',
+            ]
           : [
               'membership-unfenced-proof.json',
               'membership-changes-proof.json',

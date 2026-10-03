@@ -345,6 +345,7 @@ utils/
     teamSalaryBooks.ts
   capUtils.ts
   cbaConstants.ts
+  certifiedHistory.ts
   consentUtils.ts
   contractHistory/
     contractEventRecords.ts
@@ -381,6 +382,7 @@ utils/
     seasonCapability.ts
     seasonEvidence.ts
     seasonFixturePin.ts
+    seasonInputs.ts
     seasonPrerequisite.ts
     seasonTotals.ts
   draftStepien.ts
@@ -439,6 +441,7 @@ utils/
   leagueInvariants.entitlementInvariants.ts
   leagueInvariants.playerInvariants.ts
   leagueInvariants.ts
+  leagueTeams.ts
   loadArchitectBasePlayer.ts
   mapDraftPickRetained.ts
   mutationPipeline.compute.offerSheets.initial.ts
@@ -541,6 +544,9 @@ utils/
   seasonManager.draftResolution.ts
   seasonManager.helpers.ts
   seasonManager.history.ts
+  seasonManager.prepare.ts
+  seasonManager.server.ts
+  seasonManager.teamTransition.core.ts
   seasonManager.teamTransition.ts
   seasonManager.ts
   seasonManagerLegacy.ts
@@ -675,5 +681,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-10-03T08:03:22.788Z*
+*Generated on: 2026-10-03T09:18:51.375Z*
 *Auto-updated by: npm run docs*

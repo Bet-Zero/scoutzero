@@ -11,7 +11,7 @@ import {
   HARD_CAP_TYPES,
 } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { computePlayerRulesProfile } from '@/features/architect/utils/playerRulesProfile/computeProfile';
-import { inspectGovernedOfferSheetMatchRestriction } from '@/features/architect/utils/offerSheets';
+import { inspectGovernedOfferSheetMatchRestriction } from '@/features/architect/utils/offerSheets/governedOfferSheetRestrictions';
 import type {
   CapLegalityViolation,
   MutationSalaryRow,

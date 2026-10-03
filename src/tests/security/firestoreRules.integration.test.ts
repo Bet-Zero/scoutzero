@@ -670,6 +670,37 @@ describeWithFirestoreEmulator(
       );
     });
 
+    it('keeps certified provenance server-owned while allowing owner reads', async () => {
+      await seedOwnedWorld();
+      const path = [
+        'architect_worlds',
+        WORLD_ID,
+        'transitionProvenance',
+        'head',
+      ] as const;
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), ...path), {
+          recordId: 'baseline',
+        });
+      });
+      const owner = doc(ownerDb(), ...path);
+      await assertSucceeds(getDoc(owner));
+      await assertFails(setDoc(owner, { recordId: 'forged' }));
+      await assertFails(deleteDoc(owner));
+      await assertFails(
+        setDoc(
+          doc(
+            ownerDb(),
+            'architect_worlds',
+            WORLD_ID,
+            'transitionProvenance',
+            'forged'
+          ),
+          { recordId: 'forged' }
+        )
+      );
+    });
+
     it('5e) publishes season history only with the same atomic world transition and keeps it immutable', async () => {
       await testEnv.withSecurityRulesDisabled(async (context) => {
         await setDoc(doc(context.firestore(), 'architect_worlds', WORLD_ID), {

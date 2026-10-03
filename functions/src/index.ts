@@ -39,5 +39,6 @@
  */
 
 // Export architect functions
-export { purgeArchitectWorld } from './architect/purgeWorld';
+export { advanceCertifiedArchitectSeason } from './architect/certifiedSeason';
 export { initializeArchitectWorld } from './architect/initializeWorld';
+export { purgeArchitectWorld } from './architect/purgeWorld';

@@ -351,28 +351,52 @@ admitting fenced real-asset worlds. No production rule/function deployment is
 performed by this lane.
 
 The revision establishes **membership freshness**, not history origin. The
-retained adversarial emulator test publishes a complete owner-created season
-bundle with a substituted player identity in the historical roster, current
-team and salary books, recomputing every consumed digest. Append-only history
-rules admit initial publication; the v2 consumer then accepts the consistent
-bundle. Later editing is still denied. The private capability and one-use seal
-protect the current in-process mutation path and exact commit inputs, not who
-created previous database records. Source pins still bind the stipulated
-synthetic measurements and pick terms; the counterexample does not defeat those
-pins or enable production first-round Apply.
+original BZE-318 counterexample published a fully consistent owner-created
+season bundle with a substituted player identity across history, current team
+and salary books, recomputing every consumed digest. The old consumer accepted
+it. The retained before-repair probe now expects rejection and fails on that
+historical candidate; the replacement rejects the same permitted publication.
+Custom records remain saved and retain their existing display behavior.
 
-Four claims must remain distinct: records agree; a trusted ScoutZero transition
-produced them; retained NBA sources establish real-world facts; a user created a
-legitimate simulation. Owner-created simulation history is useful, but its
-agreement cannot supply the other two forms of provenance. If governed saved
-worlds must guarantee that their history came only from supported ScoutZero
-moves, the smallest correction is trusted publication through the existing
-server-function boundary plus rules denying client creation of certified
-history/manifest/events. That server must recompute/validate the transition
-against trusted initial state and the exact current world, not sign arbitrary
-client payloads. Every certified input must be protected or derived from a
-trusted baseline and accepted transition lineage; an owner-writable current
-snapshot alone is not a trust root. Previously owner-authored histories cannot silently acquire
-that guarantee. Choosing the treatment of those worlds and any custom-history
-mode is an owner product decision; no such architecture or policy is introduced
-here. NBA source qualification and all BZE-309 evidence gaps remain separate.
+The October 3 owner decision requires certified transition history for governed
+first-round prior-state authority. `transitionProvenance` is an internal,
+server-owned receipt collection; owners may read it but cannot create, alter or
+delete its records or head. Existing history, manifests and events keep their
+custom save rules. A matching protected certificate authenticates their exact
+SHA-256 content; a client flag, matching FNV digests or private capability cannot
+confer certification. No existing world or history is retro-certified.
+
+`advanceCertifiedArchitectSeason` reuses the shared Season Advance preparation
+and validation. Its authenticated server transaction reads actual owner/world
+metadata, complete teams, entitlements, events, histories and manifests, and the
+protected head with every predecessor through the baseline. The current state
+must match that trusted predecessor, and the accepted pinned rule/release inputs
+must qualify. Only then does it compute the transition itself and atomically
+publish the ordinary teams/history/manifest/event, inventory revision, statistics,
+certificate and head. Requests contain operation identity and expected revision,
+never a client-generated output bundle. Replay/concurrent publication cannot
+produce a second event or partly advance the world.
+
+This lane admits only the already-supported synthetic season release in the
+isolated demo emulator. Its baseline is created by trusted fixture Admin setup
+before owner edits; there is no client or callable enrollment/adoption path.
+The certificate contract says `synthetic-review-only`. Production callable use
+refuses that release; production/default first-round Apply remains blocked.
+The ordinary uncertified Season Advance path remains supported for existing
+worlds. Edits to certified input state preserve data but make governed authority
+unavailable; this intentionally does not certify an arbitrary custom lineage.
+
+The v2 history consumer verifies the complete protected lineage, all published
+history/manifest/event hashes, and committed team state before rule review.
+Every consumed provenance document also joins the existing trade transaction's
+exact snapshot checks. Missing or substituted predecessors fail closed with
+Needs-input/unavailable behavior; no quiet migration or later NBA replay occurs.
+Future certified transitions must preserve this complete trusted-input boundary;
+merely writing a new certificate over client history would violate it.
+
+Four claims remain distinct: records agree; an authorized validated ScoutZero
+transition produced them; qualified NBA sources establish real-world facts; a
+user created a legitimate simulation. Certification establishes the second from
+an accepted baseline, not the third. NBA source qualification, the June 5 baseline,
+all 278 entitlements, unresolved BZE-309 identities/procedures and activation gates
+remain unchanged. No production rule/function deployment occurs in this lane.

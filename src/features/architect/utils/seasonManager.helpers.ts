@@ -8,7 +8,7 @@
  */
 
 import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
-import { removeUndefinedDeep } from './seasonManager.teamTransition';
+import { removeUndefinedDeep } from './seasonManager.teamTransition.core';
 import type {
   PostStateCapValidationInput,
   PostStateCapValidationIssue,

@@ -35,6 +35,10 @@ async function main() {
       ['/architect/baseTeams/{teamCode}', 'BaseTeamDoc'],
       ['/architect/basePlayers/{playerId}', 'BasePlayerDoc'],
       ['/architect_worlds/{worldId}/teams/{teamCode}', 'WorldTeamSnapshot'],
+      [
+        '/architect_worlds/{worldId}/transitionProvenance/{recordId}',
+        'Server-only TransitionProvenanceRecord / TransitionProvenanceHead (src/schemas/transitionProvenance.ts); synthetic review only; no client enrollment',
+      ],
     ]) +
       '\n' +
       '- Canonical source: `src/schemas/architect.ts`\n' +

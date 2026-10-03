@@ -8,7 +8,7 @@
   },
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('lib',{recursive:true,force:true})\"",
-    "build": "npm run clean && tsc && npm run copy:contract-release",
+    "build": "npm run clean && tsc && npm run copy:contract-release && node ../scripts/buildCertifiedSeason.mjs",
     "copy:contract-release": "node -e \"const fs=require('node:fs');const src='../public/architect/contract-source-releases';const dir='lib/architect/assets';fs.mkdirSync(dir,{recursive:true});for(const file of fs.readdirSync(src).filter((name)=>name.endsWith('.json'))){fs.copyFileSync(src+'/'+file,dir+'/'+file)}\"",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",

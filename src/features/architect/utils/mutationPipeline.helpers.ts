@@ -53,38 +53,7 @@ export const CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY = `${CURRENT_STAT
 // use runtime import due to circular dep; values are const arrays so safe to copy)
 // ==============================================================================
 
-export const AUTHORITATIVE_WORLD_TEAM_CODES = [
-  'ATL',
-  'BOS',
-  'BKN',
-  'CHA',
-  'CHI',
-  'CLE',
-  'DAL',
-  'DEN',
-  'DET',
-  'GSW',
-  'HOU',
-  'IND',
-  'LAC',
-  'LAL',
-  'MEM',
-  'MIA',
-  'MIL',
-  'MIN',
-  'NOP',
-  'NYK',
-  'OKC',
-  'ORL',
-  'PHI',
-  'PHX',
-  'POR',
-  'SAC',
-  'SAS',
-  'TOR',
-  'UTA',
-  'WAS',
-] as const;
+export { AUTHORITATIVE_WORLD_TEAM_CODES } from './leagueTeams';
 
 export const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
   'salariesByYear',
