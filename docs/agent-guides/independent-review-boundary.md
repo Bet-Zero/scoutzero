@@ -86,7 +86,7 @@ When `.github/workflows/claude-independent-review.yml` is available and the gove
    `/claude-independent-review <candidate-sha> <base-sha>`
    Put the compact handoff described above in the remainder of that same comment.
 3. The workflow must verify the live PR head and preserved base against those exact SHAs before using the Claude credential. A stale or malformed request fails closed.
-4. Claude runs as a read/test-only checker and returns validated structured `ACCEPT` or `REVISE` output. A separate non-Claude step publishes the complete verdict receipt to the PR.
+4. Claude runs in a credential-protected review workspace: the trusted preserved base stays at the workspace root, the candidate is isolated as untrusted review material, and candidate-owned commands/config are never executed in the credentialed checker job. Claude performs read-only adversarial inspection and returns validated structured `ACCEPT` or `REVISE` output; when a material concern needs dynamic execution beyond retained author/CI evidence, it returns `REVISE` with the exact discriminating proof required. A separate non-Claude step publishes the complete verdict receipt to the PR.
 5. Only a green independent-review workflow with `ACCEPT` for the unchanged exact candidate satisfies the required reviewer gate. `REVISE`, execution failure, missing output, or identity mismatch does not.
 6. After an objective repair, freeze the replacement candidate and post a new request. Preserve the old request and verdict as historical evidence; never edit them into acceptance.
 
