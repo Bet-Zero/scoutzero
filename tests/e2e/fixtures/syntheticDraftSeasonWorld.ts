@@ -34,6 +34,7 @@ export function syntheticDraftSeasonFixture(uid: string, worldId: string) {
     asOfDate: '2026-04-12',
     actionCount: 0,
     parentWorldId: null,
+    draftInventoryRevision: 0,
     isArchived: false,
     draftReviewReleaseId: retained.release.id,
     draftReviewSeasonReleaseId: retained.release.id,

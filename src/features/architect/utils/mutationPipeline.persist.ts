@@ -9,6 +9,7 @@
 import { db } from '@/firebaseConfig';
 import { consumeDraftReviewCommit } from './mutationPipeline';
 import { requireDraftReviewApply } from '@/features/architect/utils/draftReview/capability';
+import { requireDraftInventoryRevision } from './draftReview/inventoryFence';
 import { mutationSnapshotText } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
 import { buildWorldStatsUpdate } from '@/features/architect/utils/worldManager.stats';
 import { readWorldMetadataDoc } from '@/features/architect/utils/worldManager.readUtils';
@@ -901,6 +902,10 @@ export async function persistWorldMutation(
         throw new Error('Draft review is missing its world metadata snapshot.');
       Object.assign(
         worldPatch,
+        {
+          draftInventoryRevision:
+            requireDraftInventoryRevision(JSON.parse(exactMetadata)) + 1,
+        },
         buildWorldStatsUpdate(
           readWorldMetadataDoc(JSON.parse(exactMetadata), worldId),
           'trade',

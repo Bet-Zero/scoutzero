@@ -469,3 +469,150 @@ test('season denied final metadata write leaves no partial history or freeze rec
   expect(await savedState(id)).toEqual(before);
   retain('atomic-proof.json', { result, before, after: await savedState(id) });
 });
+
+// This is an intentionally passing LIMITATION probe, not provenance acceptance.
+// Append-only rules prevent editing a published history, but do not prove who
+// computed a mutually consistent bundle at initial creation.
+test('season history trust boundary permits consistent owner-authored substitution', async ({
+  page,
+}) => {
+  const id = `${worldId}_owner_substitution`;
+  const uid = await prepare(page, id);
+  expect((await advance(page)).success).toBe(true); // Authoritative software control.
+  const template = await savedState(id);
+  const originalPlayerId = template.teams.find((t) => t.id === 'BOS')!.data
+    .roster[0];
+  const inventedPlayerId = 'owner_substituted_bos_player';
+  // Replace the same identity in current team, historical roster, contract and
+  // salary-book entries. No stale hash is left behind and money is unchanged.
+  const substituted = JSON.parse(
+    JSON.stringify(template).replaceAll(originalPlayerId, inventedPlayerId)
+  ) as typeof template;
+  const history = substituted.seasonHistory.find(
+    (h) => h.id === '2025-26__BOS'
+  )!.data;
+  const manifest = substituted.seasonTransitions[0].data;
+  const record = manifest.teamRecords.find(
+    (r: { teamCode: string }) => r.teamCode === 'BOS'
+  );
+  const event = substituted.events[0].data;
+  const bos = substituted.teams.find((t) => t.id === 'BOS')!.data;
+  history.preAdvanceStateDigest = mutationSnapshotDigest(
+    history.preAdvanceState
+  );
+  history.finalRosterDigest = mutationSnapshotDigest(history.finalRoster);
+  record.preAdvanceStateDigest = history.preAdvanceStateDigest;
+  record.finalRosterDigest = history.finalRosterDigest;
+  record.committedStateDigest = mutationSnapshotDigest(bos);
+  event.metadata.draftReviewSeasonReceipt.salaryBookHistory.BOS = {
+    historyId: history.historyId,
+    beforeTotalsDigest: mutationSnapshotDigest(history.beforeTotals),
+    afterTotalsDigest: mutationSnapshotDigest(history.afterTotals),
+  };
+  manifest.operationId = 'owner-authored-substitute';
+  event.operationId = manifest.operationId;
+  event.metadata.draftReviewSeasonReceipt.operationId = manifest.operationId;
+  expect(history.preAdvanceState.roster).toContain(inventedPlayerId);
+  expect(history.preAdvanceStateDigest).not.toBe(
+    template.seasonHistory.find((h) => h.id === history.historyId)!.data
+      .preAdvanceStateDigest
+  );
+
+  // Start again at the real pre-advance world. This emulator-only initializer
+  // stands in for creating a fresh owned world, not permission to edit history.
+  const source = await seedSyntheticDraftSeasonWorld(uid, id);
+  const before = await savedState(id);
+  expect(before.teams.find((t) => t.id === 'BOS')!.data.roster).toContain(
+    originalPlayerId
+  );
+  expect(before.seasonHistory).toHaveLength(0);
+  const environment = await initializeTestEnvironment({
+    projectId: 'demo-architect-review',
+    firestore: { host: '127.0.0.1', port: 8082 },
+  });
+  try {
+    const owner = environment.authenticatedContext(uid).firestore();
+    const root = owner.doc(`architect_worlds/${id}`);
+    const batch = owner.batch();
+    for (const collection of [
+      'teams',
+      'seasonHistory',
+      'seasonTransitions',
+      'events',
+    ] as const)
+      for (const row of substituted[collection])
+        batch.set(root.collection(collection).doc(row.id), row.data);
+    batch.update(root, {
+      currentSeason: '2026-27',
+      currentYear: 2027,
+      asOfDate: '2026-07-01',
+      actionCount: 1,
+      draftInventoryRevision: 1,
+    });
+    // No call to Season Advance and no private season capability is used here.
+    await batch.commit();
+    await expect(
+      root
+        .collection('seasonHistory')
+        .doc(history.historyId)
+        .update({ authorityDigest: 'forged' })
+    ).rejects.toThrow(/permission|denied|evaluation/i);
+  } finally {
+    await environment.cleanup();
+  }
+  const published = await savedState(id);
+  expect(
+    published.seasonHistory.find((h) => h.id === history.historyId)!.data
+  ).toEqual(history);
+  const result = await page.evaluate(
+    async ({ uid, id, payload }) => {
+      const capabilityPath =
+        '/src/features/architect/utils/draftReview/capability.ts';
+      const pipelinePath = '/src/features/architect/utils/mutationPipeline.ts';
+      const { prepareSyntheticDraftReview } = await import(capabilityPath);
+      const { applyWorldMutation } = await import(pipelinePath);
+      const args = {
+        userId: uid,
+        worldId: id,
+        operationId: 'after-owner-substitution',
+        seasonId: '2026-27',
+        mutationType: 'executeTrade',
+        payload,
+      };
+      const review = await prepareSyntheticDraftReview(args);
+      if (review.status !== 'prepared') return { prepared: false };
+      const normal = await applyWorldMutation(args);
+      const trade = await applyWorldMutation({
+        ...args,
+        draftReviewAuthority: review.authority,
+      });
+      return {
+        prepared: true,
+        defaultSuccess: normal.success,
+        reviewSuccess: trade.success,
+        error: trade.error ?? null,
+      };
+    },
+    { uid, id, payload: source.proposal }
+  );
+  expect(result, JSON.stringify(result)).toMatchObject({
+    prepared: true,
+    defaultSuccess: false,
+    reviewSuccess: true,
+  });
+  retain('history-trust-counterexample.json', {
+    originalPlayerId,
+    inventedPlayerId,
+    originalHistory: template.seasonHistory.find(
+      (h) => h.id === history.historyId
+    ),
+    substitutedHistory: history,
+    substitutedManifest: manifest,
+    substitutedEvent: event,
+    ownerSdkPublicationSucceeded: true,
+    laterEditsDenied: true,
+    result,
+    limitation:
+      'Consistent owner-authored simulation history is not independent transition or NBA provenance.',
+  });
+});

@@ -377,6 +377,7 @@ utils/
     commitGate.ts
     consumption.ts
     fixturePins.ts
+    inventoryFence.ts
     seasonCapability.ts
     seasonEvidence.ts
     seasonFixturePin.ts
@@ -674,5 +675,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-09-13T06:57:21.522Z*
+*Generated on: 2026-10-03T08:03:22.788Z*
 *Auto-updated by: npm run docs*

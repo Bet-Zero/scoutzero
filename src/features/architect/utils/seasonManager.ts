@@ -30,6 +30,7 @@
 
 import { db } from '@/firebaseConfig';
 import { consumeSyntheticDraftSeasonReview } from './draftReview/seasonCapability';
+import { requireDraftInventoryRevision } from './draftReview/inventoryFence';
 import { DraftReviewSeasonReceiptZ } from '@/schemas/draftReviewSeason';
 import { mutationSnapshotText } from './mutationPipeline.snapshotDigest';
 import { compactSyntheticSeasonEventTotals } from './draftReview/seasonTotals';
@@ -710,6 +711,12 @@ export async function advanceSeasonInWorld(
       transaction.set(manifestRef, manifest);
       transaction.set(eventRef, safeEvent);
       transaction.update(metadataRef, {
+        ...(draftReview
+          ? {
+              draftInventoryRevision:
+                requireDraftInventoryRevision(worldMeta) + 1,
+            }
+          : {}),
         currentSeason: toSeason,
         currentYear: toYear,
         asOfDate: targetAsOfDate,

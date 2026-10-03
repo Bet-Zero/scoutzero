@@ -325,3 +325,52 @@ and 2027-28 levels for a later advance. This proves neither a traded pick crossi
 a later year nor real NBA readiness. `npm run architect:proof:trade-receipt --
 --draft-season` retains the exact-head browser/emulator record, including all30
 history reconciliation, both-team leave/return/reload and atomic-write denial.
+
+## Inventory membership and history origin
+
+BZE-318 adds an opt-in `draftInventoryRevision` on the existing world metadata.
+Only newly seeded synthetic worlds receive it here; existing worlds are neither
+migrated nor given first-round permission. Review issuance requires a valid
+revision and captures metadata **before** scanning collections. The existing
+commit transaction re-reads that exact metadata. Firestore rules require every
+team, entitlement and event write (including unknown-ID creation and deletion)
+to advance the same revision in the same atomic commit. Clients cannot install,
+remove, rewind or skip the revision. A change after transaction reads conflicts
+at commit and must retry against the changed metadata, which rejects the old
+review. An unchanged transaction retry retains the existing one-use result seal.
+
+The reviewed trade and synthetic Season Advance advance the revision in their
+existing atomic writes. Other client writers are denied in these fenced worlds
+unless their atomic write also advances it; this is deliberate fail-closed
+behavior, not a claim that every editing tool supports fenced worlds. The
+owner-callable non-atomic Admin purge refuses fenced worlds. Fixture Admin
+initialization/teardown is trusted setup outside concurrent reviewed operations;
+privileged administrative access is not made safe by client rules. Future use
+must deploy matching rules and adapt any additional authorized writer before
+admitting fenced real-asset worlds. No production rule/function deployment is
+performed by this lane.
+
+The revision establishes **membership freshness**, not history origin. The
+retained adversarial emulator test publishes a complete owner-created season
+bundle with a substituted player identity in the historical roster, current
+team and salary books, recomputing every consumed digest. Append-only history
+rules admit initial publication; the v2 consumer then accepts the consistent
+bundle. Later editing is still denied. The private capability and one-use seal
+protect the current in-process mutation path and exact commit inputs, not who
+created previous database records. Source pins still bind the stipulated
+synthetic measurements and pick terms; the counterexample does not defeat those
+pins or enable production first-round Apply.
+
+Four claims must remain distinct: records agree; a trusted ScoutZero transition
+produced them; retained NBA sources establish real-world facts; a user created a
+legitimate simulation. Owner-created simulation history is useful, but its
+agreement cannot supply the other two forms of provenance. If governed saved
+worlds must guarantee that their history came only from supported ScoutZero
+moves, the smallest correction is trusted publication through the existing
+server-function boundary plus rules denying client creation of certified
+history/manifest/events. That server must recompute/validate the transition
+against trusted initial state and the exact current world, not sign arbitrary
+client payloads. Previously owner-authored histories cannot silently acquire
+that guarantee. Choosing the treatment of those worlds and any custom-history
+mode is an owner product decision; no such architecture or policy is introduced
+here. NBA source qualification and all BZE-309 evidence gaps remain separate.

@@ -724,19 +724,13 @@ describeWithFirestoreEmulator(
       for (const teamCode of RULES_SEASON_TEAM_CODES) {
         const historyId = `2025-26__${teamCode}`;
         batch.set(
-          doc(
-            db,
-            'architect_worlds',
-            WORLD_ID,
-            'seasonHistory',
-            historyId
-          ),
+          doc(db, 'architect_worlds', WORLD_ID, 'seasonHistory', historyId),
           seasonHistoryData(teamCode, historyId)
         );
-        batch.set(
-          doc(db, 'architect_worlds', WORLD_ID, 'teams', teamCode),
-          { teamCode, season: '2026-27' }
-        );
+        batch.set(doc(db, 'architect_worlds', WORLD_ID, 'teams', teamCode), {
+          teamCode,
+          season: '2026-27',
+        });
       }
       await assertSucceeds(batch.commit());
 
@@ -914,3 +908,56 @@ describeWithFirestoreEmulator(
     });
   }
 );
+
+describeWithFirestoreEmulator('draft inventory opt-in boundary', () => {
+  it('does not permit a client to install a fence on an existing world', async () => {
+    await seedOwnedWorld();
+    await assertFails(
+      updateDoc(doc(ownerDb(), 'architect_worlds', WORLD_ID), {
+        draftInventoryRevision: 0,
+      })
+    );
+    // Existing worlds and their authorized editing behavior remain unchanged.
+    await assertSucceeds(
+      setDoc(
+        doc(ownerDb(), 'architect_worlds', WORLD_ID, 'entitlements', 'legacy'),
+        { holderTeam: 'BOS' }
+      )
+    );
+  });
+  it('cannot spoof a revision without owner permission, even in one atomic batch', async () => {
+    await seedOwnedWorld();
+    await testEnv.withSecurityRulesDisabled((context) =>
+      updateDoc(doc(context.firestore(), 'architect_worlds', WORLD_ID), {
+        draftInventoryRevision: 0,
+      })
+    );
+    const db = nonOwnerDb();
+    const batch = writeBatch(db);
+    batch.set(
+      doc(db, 'architect_worlds', WORLD_ID, 'entitlements', 'foreign'),
+      { holderTeam: 'BOS' }
+    );
+    batch.update(doc(db, 'architect_worlds', WORLD_ID), {
+      draftInventoryRevision: 1,
+    });
+    await assertFails(batch.commit());
+    expect(
+      (await getDoc(doc(ownerDb(), 'architect_worlds', WORLD_ID))).data()
+        ?.draftInventoryRevision
+    ).toBe(0);
+    expect(
+      (
+        await getDoc(
+          doc(
+            ownerDb(),
+            'architect_worlds',
+            WORLD_ID,
+            'entitlements',
+            'foreign'
+          )
+        )
+      ).exists()
+    ).toBe(false);
+  });
+});

@@ -37,6 +37,10 @@ export default defineConfig({
   use: {
     /* Base URL - Vite dev server */
     baseURL: playwrightBaseUrl,
+    // Managed cloud images may provide Chromium as a system package.
+    launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+      : undefined,
     /* Collect trace on failure */
     trace: 'on-first-retry',
     /* Screenshot on failure */

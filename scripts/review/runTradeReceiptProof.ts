@@ -330,12 +330,14 @@ export async function runTradeReceiptProof(
         'season continuation trades',
         'season review rejects',
         'season denied final metadata',
+        'season history trust boundary',
       ]
     : draftReview
       ? [
           'consumes components',
           'required component failures',
           'denied final metadata',
+          'inventory membership',
         ]
       : [''];
   const runs: {

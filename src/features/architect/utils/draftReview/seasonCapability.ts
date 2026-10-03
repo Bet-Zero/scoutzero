@@ -21,6 +21,7 @@ import {
 } from '@/features/architect/utils/seasonManager.authority';
 import { SYNTHETIC_DRAFT_SEASON_PIN } from './seasonFixturePin';
 import { buildSyntheticFreezeEvents } from './seasonEvidence';
+import { requireDraftInventoryRevision } from './inventoryFence';
 
 function freeze<T>(value: T): T {
   if (value && typeof value === 'object') {
@@ -63,6 +64,7 @@ export async function prepareSyntheticDraftSeasonReview(args: {
     typeof metadata.draftReviewReleaseText !== 'string'
   )
     throw new Error('No owned, separately pinned synthetic lifecycle world.');
+  requireDraftInventoryRevision(metadata);
   const authority = resolveSeasonAdvanceAuthority({
     worldId: args.worldId,
     worldSeason: metadata.currentSeason,
