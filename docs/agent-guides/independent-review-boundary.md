@@ -77,6 +77,21 @@ A reviewer handoff should be compact and decision-oriented. Provide:
 
 Do not make the reviewer ingest or replay the full corpus when a claim/delta map and direct locators are sufficient.
 
+## Automated invocation route
+
+When `.github/workflows/claude-independent-review.yml` is available and the governing workflow requires a fresh Claude review, the author invokes the checker directly instead of asking the owner to relay prompts or verdicts.
+
+1. Finish author work, settle author/automated findings, push, and freeze the exact candidate.
+2. Post one immutable PR comment whose first line is exactly:
+   `/claude-independent-review <candidate-sha> <base-sha>`
+   Put the compact handoff described above in the remainder of that same comment.
+3. The workflow must verify the live PR head and preserved base against those exact SHAs before using the Claude credential. A stale or malformed request fails closed.
+4. Claude runs as a read/test-only checker and returns validated structured `ACCEPT` or `REVISE` output. A separate non-Claude step publishes the complete verdict receipt to the PR.
+5. Only a green independent-review workflow with `ACCEPT` for the unchanged exact candidate satisfies the required reviewer gate. `REVISE`, execution failure, missing output, or identity mismatch does not.
+6. After an objective repair, freeze the replacement candidate and post a new request. Preserve the old request and verdict as historical evidence; never edit them into acceptance.
+
+Routine maker/checker handoffs through this route require no owner relay. Owner input remains necessary only for genuine product, source-policy, permission, legal, billing, or other owner-reserved decisions. If the workflow or Claude access is unavailable, follow the usage-limit behavior below rather than substituting a reviewer.
+
 ## Usage-limit behavior
 
 Reviewer unavailability or rate limits do not authorize self-acceptance, weaker evidence standards, repeated relaunch loops, billing changes, provider/account switching, or rebuilding a frozen candidate. Preserve the exact checkpoint and continue only authorized author-side work that does not depend on the unfinished review. Resume the focused review when access returns.
