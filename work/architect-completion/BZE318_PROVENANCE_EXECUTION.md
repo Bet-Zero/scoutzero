@@ -110,3 +110,12 @@ exact-head proof follows this repair. Workflow tests initially refused the
 uncommitted changed lockfile (expected exact-source safeguard); all 19 passed
 once the matching dependency change was committed. Graphify refreshed to 16,437
 nodes / 42,035 edges; schema check and docs checks passed.
+
+
+A follow-up certificate exposed stale ignored `functions/lib` output: the old
+proof coordinator started emulators without rebuilding functions. The corrected
+coordinator now rebuilds functions from the clean pushed candidate before any
+synthetic proof, retains/hashes every compiled file, and rejects source/runtime
+changes through teardown. The negative-zero rerun before this tooling repair
+still executed the old server bundle and is not a result for the repaired source.
+This closes the exact-candidate evidence dependency introduced by server execution.
