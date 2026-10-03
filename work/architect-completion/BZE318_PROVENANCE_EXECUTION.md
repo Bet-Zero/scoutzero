@@ -141,7 +141,7 @@ review raised two objective P2 test gaps (PR541 discussions 4172547687 and
 4172547692). Guards now separately prove both entrypoints import/call shared
 preparation, reject failed preparation before any writes, and reach the actual
 post-state validator; the server ordering guard also requires publication of
-`preparedTeams`/`team.committedTeam`. The focused delta (54 tests in three files)
+`preparedTeams`/`team.committedTeam`. The focused delta (41 tests in three files)
 passes. Runtime implementation is unchanged from the reviewed `849159ab`.
 A fresh exact-head gate and certificate pair will bind the final test repairs;
 prior passes are retained as author evidence, not relabeled to a newer head.
