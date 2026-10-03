@@ -145,3 +145,21 @@ post-state validator; the server ordering guard also requires publication of
 passes. Runtime implementation is unchanged from the reviewed `849159ab`.
 A fresh exact-head gate and certificate pair will bind the final test repairs;
 prior passes are retained as author evidence, not relabeled to a newer head.
+
+At `d034ef12`, hosted CI37113740591 and both rebuilt-runtime certificates passed
+(eight inventory tests; six season/provenance tests). Focused automated delta
+review added P2 findings 4172592674 / 4172592677 about the guard assertions,
+not runtime behavior. The failure guard now parses actual statements and
+requires a terminating return/throw before any writes. The server-write guard
+parses the first transaction call and requires its exact team reference and
+`team.committedTeam` argument; it cannot scan through a later call. Three
+adversarial guard cases substitute log-and-continue branches and insert an
+unprepared first write; all 35 focused tests pass, including those rejection
+checks. These final changes touch only the two guard files and this record.
+
+Per phase3a-execution evidence reuse, retain the unchanged `d034ef12` browser
+certificates under their original candidate identity. No app, rules, functions,
+shared preparation, fixture, browser test or proof-tool dependency changes in
+this final assertion-only delta. The final package verifies that exact file
+allowlist against `d034ef12`; it does not relabel browser evidence. Final-head
+hosted CI and focused automated delta review remain required before freeze.

@@ -1,3 +1,4 @@
+import ts from 'typescript';
 /**
  * FILE: src/tests/architect/phase65_forbid_direct_tradeExceptions_reads_guardrail.test.js
  * PURPOSE: Guardrail tests ensuring production code uses getTeamTpeList() instead of
@@ -41,6 +42,25 @@ type ForbiddenReadViolation = {
   content: string;
   pattern: string;
 };
+
+function assertPreparedFirstServerWrite(source: string) {
+  const ast = ts.createSourceFile('server.ts', source, ts.ScriptTarget.Latest, true);
+  const writes: ts.CallExpression[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
+        node.expression.expression.getText(ast) === 'transaction' &&
+        ['set', 'create', 'update', 'delete'].includes(node.expression.name.text)) writes.push(node);
+    ts.forEachChild(node, visit);
+  };
+  visit(ast);
+  const first = writes[0];
+  expect(first).toBeDefined();
+  expect(first.expression.getText(ast)).toBe('transaction.set');
+  expect(first.arguments).toHaveLength(2);
+  expect(first.arguments[1].getText(ast)).toBe('team.committedTeam');
+  expect(first.arguments[0].getText(ast).replace(/\s/g, '')).toBe('root.collection(ARCHITECT_WORLD_TEAMS_SUBCOLLECTION).doc(team.teamCode)');
+  return first;
+}
 
 // ==============================================================================
 // CONFIGURATION
@@ -399,6 +419,14 @@ describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
     );
   });
 
+  it('rejects an unprepared write inserted before the committed-team publication', () => {
+    const server = fs.readFileSync(path.join(SRC_ROOT, 'utils/seasonManager.server.ts'), 'utf-8');
+    const first = assertPreparedFirstServerWrite(server);
+    const changed = server.slice(0, first.getStart()) + '{ transaction.set(root, metadata); ' + first.getText() + '; }' + server.slice(first.end + 1);
+    expect(changed).not.toBe(server);
+    expect(() => assertPreparedFirstServerWrite(changed)).toThrow();
+  });
+
   it('should build a normalized committed snapshot before the atomic transaction write', () => {
     // Both publication adapters share preparation and the same normalization.
     const seasonManagerPath = path.join(SRC_ROOT, 'utils/seasonManager.ts');
@@ -416,7 +444,7 @@ describe('Phase 65: seasonManager TPE Normalization at Persistence', () => {
     expect(rejectedPreparation).toBeGreaterThan(preparationCall);
     expect(firstWrite).toBeGreaterThan(rejectedPreparation);
     expect(server).toMatch(/const\s*\{[^}]*preparedTeams[^}]*\}\s*=\s*prepared/);
-    expect(server.slice(firstWrite)).toMatch(/transaction\.set\([\s\S]*?team\.committedTeam\s*\)/);
+    assertPreparedFirstServerWrite(server);
     expect(server.slice(rejectedPreparation, firstWrite)).toContain('for (const team of preparedTeams)');
 
     const helperStart = content.indexOf(

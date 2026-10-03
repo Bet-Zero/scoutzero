@@ -1,3 +1,4 @@
+import ts from 'typescript';
 /**
  * FILE: src/tests/architect/capAuditability_closure.gate.test.ts
  * PURPOSE: Permanent regression gates for CAP_AUDITABILITY closure (E6).
@@ -49,6 +50,27 @@ const CAP_AUDIT_DEBUG_PANEL_PATH =
 
 function readSource(relativePath: string): string {
   return readFileSync(resolve(process.cwd(), relativePath), 'utf-8');
+}
+
+// Source guards inspect statement boundaries, not just matching condition text.
+function assertTerminatingFailure(source: string, condition: string) {
+  const ast = ts.createSourceFile('season.ts', source, ts.ScriptTarget.Latest, true);
+  let rejection: ts.IfStatement | undefined;
+  const writes: ts.CallExpression[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isIfStatement(node) && node.expression.getText(ast).replace(/\s/g, '') === condition) rejection = node;
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
+        node.expression.expression.getText(ast) === 'transaction' &&
+        ['set', 'create', 'update', 'delete'].includes(node.expression.name.text)) writes.push(node);
+    ts.forEachChild(node, visit);
+  };
+  visit(ast);
+  expect(rejection, condition).toBeDefined();
+  if (!rejection) throw new Error('Missing failure branch');
+  const branch = rejection.thenStatement;
+  const exit = ts.isBlock(branch) ? branch.statements.at(-1) : branch;
+  expect(exit && (ts.isReturnStatement(exit) || ts.isThrowStatement(exit)), 'Failure must terminate').toBe(true);
+  if (writes.length) expect(rejection.end).toBeLessThan(writes[0].getStart(ast));
 }
 
 // === Gate 1: Validator version + rule codes ===
@@ -156,9 +178,18 @@ describe('CAP_AUDITABILITY Closure Gate 2: Call-site invocation', () => {
     expect(rejectedPreparation).toBeLessThan(entry.search(/transaction\.(?:set|create|update|delete)\(/));
     const validation = preparation.indexOf('const postStateValidation = validatePostStateCapLegality(');
     const rejection = preparation.indexOf('if (!postStateValidation.valid)', validation);
+    assertTerminatingFailure(entry, '!prepared.success');
+    assertTerminatingFailure(preparation, '!postStateValidation.valid');
     expect(validation).toBeGreaterThan(-1);
     expect(rejection).toBeGreaterThan(validation);
     expect(rejection).toBeLessThan(preparation.lastIndexOf('success: true'));
+  });
+
+  it.each(['seasonManager.ts', 'seasonManager.server.ts'])('rejects a log-and-continue failure branch in %s', (file) => {
+    const entry = readSource(SEASON_MANAGER_PATH.replace('seasonManager.ts', file));
+    const changed = entry.replace(/if \(!prepared\.success\)[^\n]*/, 'if (!prepared.success) console.error(prepared.error);');
+    expect(changed).not.toBe(entry);
+    expect(() => assertTerminatingFailure(changed, '!prepared.success')).toThrow();
   });
 
   it('invokes validatePostStateCapLegality in useArchitectActions.ts (base-mode + preview)', () => {
