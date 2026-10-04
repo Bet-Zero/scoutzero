@@ -92,6 +92,8 @@ When `.github/workflows/claude-independent-review.yml` is available and the gove
 
 Routine maker/checker handoffs through this route require no owner relay. Owner input remains necessary only for genuine product, source-policy, permission, legal, billing, or other owner-reserved decisions. If the workflow or Claude access is unavailable, follow the usage-limit behavior below rather than substituting a reviewer.
 
+Only the separate receipt jobs have `pull-requests: write` for PR comments. They have no checkout or Claude credential. The credentialed checker remains read-only; a completed Claude session without a successfully published receipt and green workflow does not satisfy the gate.
+
 ## Usage-limit behavior
 
 Reviewer unavailability or rate limits do not authorize self-acceptance, weaker evidence standards, repeated relaunch loops, billing changes, provider/account switching, or rebuilding a frozen candidate. Preserve the exact checkpoint and continue only authorized author-side work that does not depend on the unfinished review. Resume the focused review when access returns.

@@ -89,7 +89,7 @@ jobs:
     if: needs.validate-request.outputs.valid != 'true'
     runs-on: ubuntu-latest
     permissions:
-      issues: write
+      pull-requests: write
     steps:
       - name: Record rejected review request
         env:
@@ -103,7 +103,7 @@ jobs:
 
           The review request failed closed before the Claude credential was used.
 
-          **Reason:** `$REASON`
+          **Reason:** \`$REASON\`
 
           Freeze the replacement candidate and post a new exact request. Do not reuse this request.
           EOF
@@ -207,8 +207,7 @@ jobs:
     if: always() && needs.validate-request.outputs.valid == 'true'
     runs-on: ubuntu-latest
     permissions:
-      issues: write
-      pull-requests: read
+      pull-requests: write
     steps:
       - name: Publish durable independent-review receipt
         env:
