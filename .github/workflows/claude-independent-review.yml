@@ -152,7 +152,7 @@ jobs:
 
       - name: Run independent Claude checker
         id: claude
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@cab360f6565aa35a51d6ce9e43f1f4287c0a32ea # v1; re-verify auth before updating
         with:
           github_token: ${{ github.token }}
           # This selects the action's token-free helper and untrusted-content

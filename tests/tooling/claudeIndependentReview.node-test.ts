@@ -333,6 +333,11 @@ else:
 }
 
 test('Token-free action mode admits only an already-verified repository writer', () => {
+  assert.match(
+    workflow,
+    /uses: anthropics\/claude-code-action@cab360f6565aa35a51d6ce9e43f1f4287c0a32ea\b/,
+    'execute only the upstream action commit covered by the token-free proof'
+  );
   for (const permission of ['admin', 'write']) {
     const result = runRequestGuard(permission);
     assert.equal(result.valid, 'true');
