@@ -135,6 +135,11 @@ remain independent blockers.
 | Browser/emulator            | Only rendered, persistence, or cross-room risks. Use deterministic governed fixtures and retain exact-candidate evidence.      |
 | Landing                     | Exact candidate, ancestry, synchronization, unresolved threads, records, and limitations. Do not repeat implementation suites. |
 
+When the repository independent-review workflow is available, required fresh
+Claude checks use the automated exact-candidate route defined in
+`docs/agent-guides/independent-review-boundary.md`. Routine reviewer handoff
+and verdict collection are author responsibilities, not owner relay steps.
+
 Automated reviewers are useful best-effort signals, not evidence of Canon
 correctness. An optional reviewer being unavailable or rate-limited does not
 block the lane indefinitely, but the PR must record that fact. Every finding

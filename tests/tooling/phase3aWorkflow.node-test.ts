@@ -823,3 +823,6 @@ test('review probe runs in an exact temporary snapshot and cleans it', () => {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 });
+
+// Execute the actual workflow publisher with isolated GitHub/Claude-output doubles.
+import './claudeIndependentReview.node-test.ts';
