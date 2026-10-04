@@ -267,3 +267,92 @@ test('Claude-readable checkouts never persist the GitHub token', () => {
     );
   }
 });
+
+function runRequestGuard(
+  permission: string,
+  actor = 'reviewer',
+  apiFailure = false
+) {
+  const guard = workflow
+    .split('      - name: Validate immutable review request')[1]
+    .split('        run: |\n')[1]
+    .split('\n  invalid-request:')[0]
+    .split('\n')
+    .map((line) => (line.startsWith('          ') ? line.slice(10) : line))
+    .join('\n');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-request-'));
+  try {
+    const bin = path.join(dir, 'bin');
+    fs.mkdirSync(bin);
+    const python = spawnSync('which', ['python3'], {
+      encoding: 'utf8',
+    }).stdout.trim();
+    fs.writeFileSync(
+      path.join(bin, 'gh'),
+      `#!${python}
+import json,os,sys
+if '/collaborators/' in sys.argv[2]:
+ if os.environ['API_FAILURE']=='true': sys.exit(1)
+ print(json.dumps({'permission':os.environ['ACTOR_PERMISSION']}))
+else:
+ print(json.dumps({'head':{'sha':os.environ['CANDIDATE_SHA']},'base':{'sha':os.environ['BASE_SHA']}}))
+`,
+      { mode: 0o755 }
+    );
+    const output = path.join(dir, 'output');
+    const result = spawnSync('bash', ['-c', guard], {
+      cwd: dir,
+      encoding: 'utf8',
+      timeout: 10000,
+      env: {
+        ...process.env,
+        PATH: `${bin}:${process.env.PATH}`,
+        GH_TOKEN: 'fake',
+        GITHUB_REPOSITORY: 'Bet-Zero/scoutzero',
+        PR_NUMBER: '543',
+        CANDIDATE_SHA: candidate,
+        BASE_SHA: base,
+        REQUEST_BODY: `/claude-independent-review ${candidate} ${base}\nReview this exact candidate.`,
+        REQUEST_ACTOR: actor,
+        ACTOR_PERMISSION: permission,
+        API_FAILURE: String(apiFailure),
+        GITHUB_OUTPUT: output,
+      },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return Object.fromEntries(
+      fs
+        .readFileSync(output, 'utf8')
+        .trim()
+        .split('\n')
+        .map((line) => line.split('='))
+    );
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test('Token-free action mode admits only an already-verified repository writer', () => {
+  for (const permission of ['admin', 'write']) {
+    const result = runRequestGuard(permission);
+    assert.equal(result.valid, 'true');
+    assert.equal(result.request_actor, 'reviewer');
+  }
+  for (const permission of ['read', 'triage', 'none', 'unknown']) {
+    const result = runRequestGuard(permission);
+    assert.equal(result.valid, 'false');
+    assert.equal(result.reason, 'actor-not-writer');
+  }
+  assert.equal(runRequestGuard('write', 'reviewer', true).valid, 'false');
+  for (const actor of ['*', 'reviewer,other', 'a\nvalid=true'])
+    assert.equal(runRequestGuard('write', actor).valid, 'false');
+  assert.match(
+    workflow,
+    /allowed_non_write_users: \$\{\{ needs.validate-request.outputs.request_actor \}\}/
+  );
+  assert.match(
+    workflow,
+    /request_actor: \$\{\{ steps.guard.outputs.request_actor \}\}/
+  );
+  assert.match(workflow, /if: needs.validate-request.outputs.valid != 'true'/);
+});

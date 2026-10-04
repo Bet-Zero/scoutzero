@@ -27,12 +27,14 @@ jobs:
       pr_number: ${{ steps.guard.outputs.pr_number }}
       candidate_sha: ${{ steps.guard.outputs.candidate_sha }}
       base_sha: ${{ steps.guard.outputs.base_sha }}
+      request_actor: ${{ steps.guard.outputs.request_actor }}
     steps:
       - name: Validate immutable review request
         id: guard
         env:
           GH_TOKEN: ${{ github.token }}
           REQUEST_BODY: ${{ github.event.comment.body }}
+          REQUEST_ACTOR: ${{ github.event.comment.user.login }}
           PR_NUMBER: ${{ github.event.issue.number }}
         shell: bash
         run: |
@@ -46,7 +48,8 @@ jobs:
           if [[ "$command" == "/claude-independent-review" ]] \
             && [[ "${candidate:-}" =~ ^[0-9a-fA-F]{40}$ ]] \
             && [[ "${base:-}" =~ ^[0-9a-fA-F]{40}$ ]] \
-            && [[ -z "${extra:-}" ]]; then
+            && [[ -z "${extra:-}" ]] \
+            && [[ "$REQUEST_ACTOR" =~ ^[a-zA-Z0-9-]{1,39}$ ]]; then
             pr_json="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}")"
             live_head="$(jq -r '.head.sha' <<< "$pr_json")"
             preserved_base="$(jq -r '.base.sha' <<< "$pr_json")"
@@ -55,9 +58,16 @@ jobs:
               reason=head-mismatch
             elif [[ "$preserved_base" != "$base" ]]; then
               reason=base-mismatch
+            elif ! permission_json="$(gh api "repos/${GITHUB_REPOSITORY}/collaborators/${REQUEST_ACTOR}/permission")"; then
+              reason=actor-permission-unavailable
             else
-              valid=true
-              reason=ok
+              permission="$(jq -r '.permission' <<< "$permission_json")"
+              if [[ "$permission" == "admin" || "$permission" == "write" ]]; then
+                valid=true
+                reason=ok
+              else
+                reason=actor-not-writer
+              fi
             fi
           fi
 
@@ -67,6 +77,11 @@ jobs:
             echo "pr_number=$PR_NUMBER"
             echo "candidate_sha=${candidate:-}"
             echo "base_sha=${base:-}"
+            if [[ "$valid" == true ]]; then
+              echo "request_actor=$REQUEST_ACTOR"
+            else
+              echo "request_actor="
+            fi
           } >> "$GITHUB_OUTPUT"
 
   invalid-request:
@@ -140,6 +155,10 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           github_token: ${{ github.token }}
+          # This selects the action's token-free helper and untrusted-content
+          # hardening. The actor has ALREADY passed our explicit writer check;
+          # this does not admit non-writers or expand the comment trigger.
+          allowed_non_write_users: ${{ needs.validate-request.outputs.request_actor }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
             actions: read
