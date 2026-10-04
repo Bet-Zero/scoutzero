@@ -92,7 +92,7 @@ jobs:
 
           Freeze the replacement candidate and post a new exact request. Do not reuse this request.
           EOF
-          gh pr comment "$PR_NUMBER" --body-file /tmp/rejected-review.md
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file /tmp/rejected-review.md
           exit 1
 
   independent-review:
@@ -213,7 +213,7 @@ jobs:
 
           The independent-review gate remains unsatisfied. Do not self-accept, merge on this basis, or ask the owner to substitute a verdict.
           EOF
-            gh pr comment "$PR_NUMBER" --body-file /tmp/review-failure.md
+            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file /tmp/review-failure.md
             exit 1
           fi
 
@@ -367,7 +367,7 @@ jobs:
 
           if ! verify_live_identity; then
             stale_receipt
-            gh pr comment "$PR_NUMBER" --body-file "$receipt"
+            gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$receipt"
             exit 1
           fi
           receipt_id="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -F "body=@$receipt" --jq '.id')"

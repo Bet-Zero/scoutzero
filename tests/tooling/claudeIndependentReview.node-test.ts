@@ -65,6 +65,8 @@ if a[0]=='api' and len(a)>1 and '/pulls/' in a[1]:
  changed=(p/'changed').exists();change=os.environ.get('CHANGE','')
  print(json.dumps({'head':{'sha':'c'*40 if changed and change.endswith('head') else os.environ['CANDIDATE_SHA']},'base':{'sha':'d'*40 if changed and change.endswith('base') else os.environ['BASE_SHA']}}))
 else:
+ if a[0]=='pr' and ('--repo' not in a or a[a.index('--repo')+1]!=os.environ['GITHUB_REPOSITORY']):
+  sys.stderr.write('No git checkout or explicit repository for gh pr comment');sys.exit(1)
  if '--body-file' in a: body=pathlib.Path(a[a.index('--body-file')+1]).read_text()
  else: body=pathlib.Path(next(x[6:] for x in a if x.startswith('body=@'))).read_text()
  with (p/'receipts').open('a') as f:f.write(json.dumps(body)+'\\n')
@@ -136,6 +138,7 @@ test('Claude publisher catches head and base changes during receipt construction
   for (const change of ['after-parse-head', 'after-parse-base']) {
     const result = runPublisher(valid, { change });
     assert.notEqual(result.status, 0, `${change} became green`);
+    assert.equal(result.receipts.length, 1, 'missing durable stale receipt');
     assert.ok(
       result.receipts.every((r) => !r.includes('effective_verdict: ACCEPT')),
       'published stale ACCEPT'
@@ -221,6 +224,7 @@ test('Claude publisher keeps execution, missing output and GitHub identity failu
     runPublisher(valid, { apiFailure: true }),
   ]) {
     assert.notEqual(result.status, 0);
+    assert.equal(result.receipts.length, 1, 'missing durable failure receipt');
     assert.ok(
       result.receipts.every((r) => !r.includes('effective_verdict: ACCEPT'))
     );
