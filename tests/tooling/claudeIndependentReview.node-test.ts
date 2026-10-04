@@ -251,6 +251,58 @@ test('Claude checker retains trusted root, isolated candidate and read-only tool
   assert.match(job, /Do not execute candidate-owned scripts/);
 });
 
+test('PR receipt writers have PR-comment permission without Claude credentials or checkout', () => {
+  for (const name of ['invalid-request', 'publish-verdict']) {
+    const job = workflow.split(`  ${name}:\n`)[1].split(/\n  [a-z-]+:\n/)[0];
+    assert.match(
+      job,
+      /permissions:\n      pull-requests: write/,
+      `${name}: real PR smoke returned HTTP 403 with issues:write and pull-requests:read`
+    );
+    assert.doesNotMatch(
+      job,
+      /CLAUDE_CODE_OAUTH_TOKEN|uses:|(?:contents|issues|actions): write/,
+      'PR publication belongs to an isolated non-Claude job'
+    );
+  }
+});
+
+test('Invalid request receipt preserves the rejection reason as literal text', () => {
+  const script = workflow
+    .split('  invalid-request:\n')[1]
+    .split('  independent-review:\n')[0]
+    .split('        run: |\n')[1]
+    .split('\n')
+    .map((line) => (line.startsWith('          ') ? line.slice(10) : line))
+    .join('\n');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-rejection-'));
+  try {
+    fs.writeFileSync(
+      path.join(dir, 'gh'),
+      '#!/bin/bash\nwhile [[ "$1" != "--body-file" ]]; do shift; done\ncat "$2"\n',
+      { mode: 0o755 }
+    );
+    const result = spawnSync('bash', ['-c', script], {
+      cwd: dir,
+      encoding: 'utf8',
+      timeout: 10000,
+      env: {
+        ...process.env,
+        PATH: `${dir}:${process.env.PATH}`,
+        GH_TOKEN: 'fake',
+        GITHUB_REPOSITORY: 'Bet-Zero/scoutzero',
+        PR_NUMBER: '543',
+        REASON: 'head-mismatch',
+      },
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /\*\*Reason:\*\* `head-mismatch`/);
+    assert.equal(result.stderr, '', 'rejection reason must never be executed');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('Claude-readable checkouts never persist the GitHub token', () => {
   const job = workflow
     .split('  independent-review:\n')[1]
