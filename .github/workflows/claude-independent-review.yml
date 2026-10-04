@@ -113,12 +113,14 @@ jobs:
         with:
           ref: ${{ needs.validate-request.outputs.base_sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Checkout review candidate in isolated subdirectory
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.validate-request.outputs.candidate_sha }}
           fetch-depth: 0
+          persist-credentials: false
           path: pr-head
 
       - name: Verify exact candidate ancestry before credential use

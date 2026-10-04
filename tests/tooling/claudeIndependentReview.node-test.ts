@@ -250,3 +250,20 @@ test('Claude checker retains trusted root, isolated candidate and read-only tool
   );
   assert.match(job, /Do not execute candidate-owned scripts/);
 });
+
+test('Claude-readable checkouts never persist the GitHub token', () => {
+  const job = workflow
+    .split('  independent-review:\n')[1]
+    .split('  publish-verdict:\n')[0];
+  const checkouts = [
+    ...job.matchAll(/uses: actions\/checkout@v4[\s\S]*?(?=\n      - name:|$)/g),
+  ];
+  assert.equal(checkouts.length, 2);
+  for (const checkout of checkouts) {
+    assert.match(
+      checkout[0],
+      /persist-credentials: false/,
+      'GitHub token remains readable from a checkout'
+    );
+  }
+});
