@@ -58,6 +58,7 @@ export function buildDraftPickArchivalPoolView(
   const occurrences = new Map(
     foundation.retained.occurrences.map((o) => [o.id, o])
   );
+  const originalPickIds = new Set(foundation.originalPicks.map((p) => p.id));
 
   for (const [family, pool] of Object.entries(map.pools)) {
     if (
@@ -102,6 +103,8 @@ export function buildDraftPickArchivalPoolView(
       row.nativePoolFamily
     )
       throw new Error('Archival pool family mismatch');
+    if (pool.referencedOriginalPicks.some((id) => !originalPickIds.has(id)))
+      throw new Error('Archival original pick absent from foundation');
     const nativeClauses = row.nativePoolClauseIds.map((id) => {
       const clause = DraftArchivalNativePoolClauseZ.parse(clauses.get(id));
       const selection = clause.signature.semantic.children[0].parameters;
