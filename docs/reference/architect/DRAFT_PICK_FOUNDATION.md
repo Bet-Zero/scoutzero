@@ -36,6 +36,29 @@ world adoption, upgrade, migration, persistence or source-collection operation.
 Private retained inputs and derived output stay outside the checkout. Public
 tests contain synthetic claims only.
 
+## Archival pool bindings
+
+The October 8 owner authorization (BZE-320) adds
+`buildDraftPickArchivalPoolView` for the frozen twelve-record archival sidecar.
+It consumes the existing foundation input and explicit retained-artifact IDs
+for the sidecar and native source index. Callers authenticate those exact inputs;
+the function checks structural consistency, not source qualification or economic
+meaning. Its schema lives in `draftPickArchival.ts`.
+
+The view binds each archival ID to its supplied native clauses and three
+original picks. It checks the original raw record, dependency and occurrence
+lineage, pool family/year/round and unique identities. Broad inherited pick
+associations never choose a pool. Raw holder/kind/selector fields remain archival
+data, and all native records stay intact in the original retained artifacts.
+No clause rank, recipient, exercise result or economic correspondence is inferred.
+
+Bindings remain unresolved, non-transferable and non-executable, with zero
+accounting delta. The complete foundation is unchanged. The existing release
+serializer retains the source artifacts; rebuilding the view after loading
+revalidates its links. Derived bindings are not new evidence or release authority.
+No trade, review capability, season-advance, UI or saved-world consumer calls this
+view. This repair cannot close BZE-309 correspondence questions or activate Apply.
+
 ## Verified loading and proposed updates
 
 `serializeDraftPickFoundation` serializes retained inputs, leaving derived fields
