@@ -98,6 +98,48 @@ test('accepted Canon lookup returns exact leaves, scenarios, and provenance', ()
   }
 });
 
+test('accepted Canon npm launcher works without IPC sockets and rejects unknown leaves', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'canon-no-ipc-'));
+  const preload = path.join(dir, 'deny-sockets.cjs');
+  fs.writeFileSync(
+    preload,
+    `require('node:net').Server.prototype.listen = function () { throw new Error('IPC socket unavailable'); };`
+  );
+  try {
+    // The CLI formerly opened an IPC server before entering the authority code.
+    // Run the actual npm interface with listen unavailable in every Node child.
+    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    for (const [leaf, expected] of [
+      ['CBA2-A12.1', 0],
+      ['CBA2-A99.999', 1],
+    ] as const) {
+      const result = spawnSync(
+        npm,
+        ['run', 'architect:canon:lookup', '--', leaf],
+        {
+          cwd: repoRoot,
+          encoding: 'utf8',
+          shell: process.platform === 'win32',
+          env: {
+            ...process.env,
+            NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --require="${preload}"`,
+          },
+        }
+      );
+      assert.equal(result.status, expected, result.stderr);
+      if (expected === 0) {
+        assert.match(result.stdout, /LEAF CBA2-A12.1/);
+        assert.match(result.stdout, new RegExp(ACCEPTED_CANON_PIN.fingerprint));
+      } else {
+        assert.match(result.stderr, /Unknown Canon leaf ID/);
+        assert.doesNotMatch(result.stdout, /PINNED ACCEPTED CANON AUTHORITY/);
+      }
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('accepted Canon lookup resolves every representative composite authority', () => {
   const cases = [
     ['CBA2-A12.3', 'BYL, INFERRED', ['EV2-0086', 'EV2-0087']],
