@@ -207,8 +207,8 @@ export function deriveRealDraftSelection(
                 ? 'The retained starting position assigns this pick to another team.'
                 : components?.status === 'reviewed' &&
                     components.ownership.status === 'component-permits'
-                  ? 'Recorded ownership supports this team conveying the pick. The proposed trade still needs complete post-trade branches and exchange terms.'
-                  : 'The recorded right can be inspected. Complete ownership, possible post-trade branches and exchange terms must be established before a trade can pass.',
+                    ? 'Recorded ownership supports this team conveying the pick. Every possible outcome for its remaining first-round picks and the exchange terms still need review.'
+                    : 'The recorded right can be inspected. Ownership, every possible outcome for remaining picks, and exchange terms must be established before a trade can pass.',
         evidence: (row?.evidence ?? []).map((e) => ({
           ...e,
           current:

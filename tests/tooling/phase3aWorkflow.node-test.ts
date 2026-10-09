@@ -17,6 +17,7 @@ import {
   collectGovernedScreenshotArtifacts,
   DRAFT_REVIEW_SCREENSHOTS,
   GOVERNED_TRADE_RECEIPT_SCREENSHOTS,
+  REAL_DRAFT_SCREENSHOTS,
   resolveProofIdentity,
   verifyGovernedScreenshotArtifacts,
 } from '../../scripts/review/runTradeReceiptProof.ts';
@@ -484,6 +485,54 @@ test('draft review evidence requires History, Compare and reload for both teams'
       ).valid,
       false
     );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('real retained review certificate requires all nine changed states', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'real-draft-proof-'));
+  try {
+    assert.equal(REAL_DRAFT_SCREENSHOTS.length, 9);
+    const png = await sharp({
+      create: { width: 1280, height: 720, channels: 4, background: '#123456' },
+    })
+      .png()
+      .toBuffer();
+    for (const { filename } of REAL_DRAFT_SCREENSHOTS)
+      fs.writeFileSync(path.join(root, filename), png);
+    const artifacts = collectGovernedScreenshotArtifacts(
+      root,
+      root,
+      REAL_DRAFT_SCREENSHOTS
+    );
+    assert.equal(
+      (
+        await verifyGovernedScreenshotArtifacts(
+          root,
+          root,
+          artifacts,
+          REAL_DRAFT_SCREENSHOTS
+        )
+      ).valid,
+      true
+    );
+    for (const { filename } of REAL_DRAFT_SCREENSHOTS) {
+      fs.unlinkSync(path.join(root, filename));
+      assert.equal(
+        (
+          await verifyGovernedScreenshotArtifacts(
+            root,
+            root,
+            artifacts,
+            REAL_DRAFT_SCREENSHOTS
+          )
+        ).valid,
+        false,
+        filename
+      );
+      fs.writeFileSync(path.join(root, filename), png);
+    }
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

@@ -9,6 +9,43 @@
 
 Run everything from **repo root** (the folder that contains `package.json`).
 
+## Retained first-round review in Trade Machine
+
+The first real-data slice reads a privately retained, pinned projection from
+the BZE-321 Linear evidence attachment. Recover `real-draft-review.json` outside
+the repository and start the existing development/review server with
+`SCOUTZERO_DRAFT_REVIEW_RELEASE=/absolute/private/path/real-draft-review.json`.
+The Vite read service returns only that exact installed projection. It never
+bundles the package into public assets, retrieves raw source bodies, adopts a
+release into Firestore, or enables first-round Apply. An absent or changed
+installation shows a needs-input result. Static hosted builds do not install
+this private read service automatically.
+
+Select a first-round entitlement in the normal Trade Machine. Its June 5
+starting-position review distinguishes recorded grants, future exercise
+alternatives, archived pool entries, independent component results, and the
+missing facts relevant to transfer. It does not certify later saved-world
+changes. All 278 inventory records and their original occurrence links remain
+in the package; the current 29-fact action/source crosswalk is retained with it.
+Only selected accepted grant/election scopes and one complete ownership scope
+are mapped in this slice. Unmapped facts cannot be inferred from a release hash.
+
+After a complete diagnostic browser run, freeze and push the clean candidate.
+Retain the exact-head proof through the existing wrapper:
+
+```bash
+SCOUTZERO_DRAFT_REVIEW_RELEASE=/absolute/private/path/real-draft-review.json \
+SCOUTZERO_DRAFT_REVIEW_CASES=/absolute/private/path/browser-cases.json \
+npm run architect:proof:trade-receipt -- --real-draft
+```
+
+The scenario file contains real selected IDs and expected outcomes, not runtime
+authority. The proof uses emulator-only presentation worlds, the installed
+product loader, all nine changed states at 1280×720, reload/stale-response/date
+checks, and saved-state comparisons proving review creates no writes. Keep its
+source-bearing manifest, trace, cases, and projection in private Linear.
+This review does not complete the outstanding source closure or V1 gates.
+
 ---
 
 ## Quick Reference

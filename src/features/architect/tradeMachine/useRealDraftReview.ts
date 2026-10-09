@@ -38,6 +38,7 @@ export function useRealDraftReview(
     error?: string;
   } | null>(null);
   useEffect(() => {
+    setResult(null);
     if (!selections.length) return;
     const controller = new AbortController();
     async function read() {

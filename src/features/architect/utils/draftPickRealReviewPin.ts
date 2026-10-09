@@ -1,7 +1,7 @@
 /** Read-only projection of accepted evidence; raw sources remain in private Linear. */
 export const REAL_DRAFT_REVIEW_PIN = Object.freeze({
   payloadSha256:
-    'fffa963f16c419f0eaf91a21f83f93ad7faa122679e2ef3988c23a2ef7ace1ed',
+    '3f288ba96decf716b25596510beb01d9f741781169e98e553d04c58409530671',
   inventorySha256:
     '1630576795d6ae5c378f9d0c689c95b83f027ea2a8e42f0b468150a2665daf22',
   acceptanceReference:

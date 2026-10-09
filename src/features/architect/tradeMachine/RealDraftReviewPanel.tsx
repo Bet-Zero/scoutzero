@@ -72,10 +72,11 @@ export function RealDraftReviewPanel({
                         : row.components.ownership.status ===
                             'component-prohibits'
                           ? 'Held by another team'
-                          : 'Needs complete claims'}
+                          : 'Needs complete ownership evidence'}
                     </p>
                     <p>
-                      Consecutive first-round picks: Needs post-trade branches
+                      Consecutive first-round picks: Needs every possible
+                      outcome
                     </p>
                     <p>
                       Apron restriction:{' '}
@@ -87,7 +88,7 @@ export function RealDraftReviewPanel({
                         ? 'Does not apply to this draft year'
                         : 'Needs team-season evidence'}
                     </p>
-                    <p>Exchange terms: Needs complete consideration</p>
+                    <p>Exchange terms: Needs all cash and asset terms</p>
                   </div>
                 )}
                 {row.evidence.length > 0 && (
@@ -113,9 +114,11 @@ export function RealDraftReviewPanel({
                 )}
                 {row.blockers.length > 0 && (
                   <ul className="mt-2 space-y-1 text-xs text-cockpit-watch">
-                    {row.blockers.map((b) => (
-                      <li key={b.dependencyId}>{b.reason}</li>
-                    ))}
+                    {[...new Set(row.blockers.map((b) => b.reason))].map(
+                      (reason) => (
+                        <li key={reason}>{reason}</li>
+                      )
+                    )}
                   </ul>
                 )}
               </details>

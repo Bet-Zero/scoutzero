@@ -146,6 +146,31 @@ describe('retained real-data review boundary (synthetic public cases)', () => {
       stepien: { status: 'needs-input' },
     });
   });
+  it('does not promote a supported sibling or source-native identity into ownership', async () => {
+    const f = await fixture();
+    f.data.records[0].ownership = null;
+    f.data.records[0].evidence = [
+      {
+        dependencyId: 'd0',
+        status: 'supported in stated scope',
+        summary: 'A separate grant is identified',
+        limitation: 'No holder claim',
+        effectiveAt: '2030-06-05T00:00:00Z',
+        sourceRefs: ['synthetic#grant'],
+        alternativesComplete: false,
+      },
+    ];
+    const original = deriveRealDraftSelection(await f.load(), f.args);
+    expect(original.records[0].components?.ownership.status).toBe(
+      'needs-input'
+    );
+    f.data.records[0].role = 'source-native';
+    f.data.records[0].originalPick = null;
+    const derivative = deriveRealDraftSelection(await f.load(), f.args);
+    expect(derivative.records[0].components).toBeNull();
+    expect(derivative.tradingVerdict).toBe('not-evaluated');
+    expect(derivative.apply).toBe('blocked');
+  });
   it.each(['2030-06-06', '2029-06-05', null])(
     'withholds component conclusions for wrong or absent world date %s',
     async (date) => {
