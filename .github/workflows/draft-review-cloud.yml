@@ -15,11 +15,11 @@ concurrency:
   group: bze321-cloud-inspection
   cancel-in-progress: false
 
-# Public project number, filled by the agent after authorized project discovery.
-# An empty value deliberately skips authentication; a green skipped workflow
-# never proves a connection. The GCP provider must pin the accepted commit SHA.
+# Public project number verified against the existing Firebase web configuration
+# and Identity Toolkit's live project response. This does not establish IAM access.
+# The GCP provider must pin the independently accepted commit SHA.
 env:
-  SCOUTZERO_GCP_PROJECT_NUMBER: ''
+  SCOUTZERO_GCP_PROJECT_NUMBER: '105500121903'
 
 jobs:
   configuration:

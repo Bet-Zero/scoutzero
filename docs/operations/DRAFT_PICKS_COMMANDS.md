@@ -88,12 +88,17 @@ of a live connection. No private key or permanent credential file is needed.
 
 `scripts/architect/draftReviewCloudConnection.ts` produces the exact public IAM
 configuration from a verified project number and independently accepted commit.
-An agent with authorized project IAM access performs the bootstrap, not the
-product owner through a technical checklist:
+An agent with authorized project IAM access performs the bootstrap. This coding
+session exposes credential status but no Google Cloud authorization control or
+interactive browser. Do not ask the owner to enable a nonexistent connection
+setting. Without agent IAM access, the project owner must create the scoped
+connection in Google Cloud Console using the exact reviewed configuration.
+Provide copy-ready Console fields, not CLI commands or credential requests.
 
-- Read the project number from Google Cloud for `scoutzero-bf1ae`; never guess
-  it or use a project number from another account. Set that public number in
-  `.github/workflows/draft-review-cloud.yml`, then finish CI and Claude review.
+- Project number `105500121903` is recorded in the existing Firebase web app
+  configuration and was confirmed through Identity Toolkit's live project
+  response. It is now set in `.github/workflows/draft-review-cloud.yml`.
+  This public identifier is not an authenticated production inspection.
 - Generate the plan for that exact accepted head. Create the dedicated pool,
   OIDC provider, service account and custom role only if absent. Compare any
   existing configuration first; stop on an unexpected collision. Enable only
@@ -112,8 +117,7 @@ product owner through a technical checklist:
   document-read permission covers the whole database, including source and
   saved-world documents; IAM does not restrict it to the five release paths.
   The reviewed preflight itself requests only those five document paths.
-  The
-  plan separately lists publication permissions; add those only after publisher
+  The plan separately lists publication permissions; add those only after publisher
   review and the corresponding exact-commit trust update. Even then the account
   has no document update/delete, IAM administration, key creation or index
   management privileges. Document creation is not collection-scoped: IAM alone
@@ -122,9 +126,10 @@ product owner through a technical checklist:
   the reviewed publisher must additionally enforce the fixed paths and
   create-only preconditions. Do not claim IAM itself supplies that path boundary.
 
-The new workflow initially has an empty project number and skips authentication.
-This is an explicit **unconfigured** state, not a passing cloud proof. Once IAM
-is installed, rerun the push run for the accepted commit. The provider's commit
+The workflow has the verified public project number, but Google IAM setup is
+still required. Its authentication failure before that setup is an access gate,
+not a passing cloud proof. Once IAM is installed, rerun the push run for the
+accepted commit. The provider's commit
 restriction must match that run; do not widen it just to make a run pass.
 The pinned Google action obtains a ten-minute OAuth token in runner memory with
 `create_credentials_file: false`. Checkout persists no GitHub credential and
