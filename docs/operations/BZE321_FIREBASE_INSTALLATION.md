@@ -78,7 +78,7 @@ and `draft-review-publication`. For both, restrict deployment to the selected br
   it. This is the production authorization gate; Claude remains the independent
   code reviewer. No claim of two-human approval is made.
 
-The worker verifies the appropriate settings before Google authentication; missing or
+The worker verifies owner approval, non-bypass and custom-policy enablement before Google authentication. The exact allowed branch is independently enforced by both the immutable worker guard and Google’s attested `ref` condition; it does not depend on a mutable branch-list response. missing or
 unreadable protection fails closed. The existing Production environment is not
 modified. Its inspected configuration had no protection rules/branch policy.
 Attempting to create the dedicated environment through the current GitHub

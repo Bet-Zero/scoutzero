@@ -357,14 +357,7 @@ describe('protected workflow identity', () => {
         custom_branch_policies: true,
       },
     };
-    const branches = {
-      branch_policies: [
-        { name: 'feature/bze-321-hosted-draft-review', type: 'branch' },
-      ],
-    };
-    expect(() =>
-      verifyProtection(environment, branches, 'publish')
-    ).not.toThrow();
+    expect(() => verifyProtection(environment, 'publish')).not.toThrow();
     for (const change of [
       { can_admins_bypass: true },
       { protection_rules: [] },
@@ -372,20 +365,16 @@ describe('protected workflow identity', () => {
       { name: 'Production' },
     ])
       expect(() =>
-        verifyProtection({ ...environment, ...change }, branches, 'publish')
+        verifyProtection({ ...environment, ...change }, 'publish')
       ).toThrow();
-    expect(() =>
-      verifyProtection(
-        environment,
-        { branch_policies: [{ name: '*', type: 'branch' }] },
-        'publish'
-      )
-    ).toThrow();
   });
   it('checks out the called workflow identity, never caller code, and exports encrypted evidence only', () => {
     const worker = yaml.load(
       readFileSync('.github/workflows/draft-review-worker.yml', 'utf8')
     ) as any;
+    expect(worker.jobs['bounded-operation'].if).toContain(
+      "github.ref == 'refs/heads/feature/bze-321-hosted-draft-review'"
+    );
     const steps = worker.jobs['bounded-operation'].steps;
     expect(Object.keys(worker.on)).toEqual(['workflow_call']);
     const checkout = steps.find((step: any) =>

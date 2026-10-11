@@ -3,13 +3,8 @@ import {
   PUBLICATION_ENVIRONMENT,
 } from './draftReviewDeploymentPlan.js';
 
-export function verifyProtection(
-  environment: unknown,
-  branches: unknown,
-  mode: string
-) {
+export function verifyProtection(environment: unknown, mode: string) {
   const value = environment as any;
-  const policies = (branches as any)?.branch_policies;
   const name =
     mode === 'inspect'
       ? INSPECTION_ENVIRONMENT
@@ -31,11 +26,7 @@ export function verifyProtection(
       ) ||
         reviewer.reviewers.length !== 1)) ||
     value.deployment_branch_policy?.protected_branches !== false ||
-    value.deployment_branch_policy?.custom_branch_policies !== true ||
-    !Array.isArray(policies) ||
-    policies.length !== 1 ||
-    policies[0].name !== 'feature/bze-321-hosted-draft-review' ||
-    policies[0].type !== 'branch'
+    value.deployment_branch_policy?.custom_branch_policies !== true
   )
     throw new Error('PRODUCTION_PROTECTION_REQUIRED');
 }

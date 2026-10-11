@@ -75,7 +75,9 @@ jobs:
             if (!response.ok) throw new Error('Protection inspection unavailable');
             return response.json();
           };
-          verifyProtection(await get(base), await get(base + '/deployment-branch-policies'), mode);
+          // Exact branch identity is independently enforced by the Google OIDC
+          // condition and this immutable job's if guard, not a mutable list.
+          verifyProtection(await get(base), mode);
           if (mode === 'publish' && (!/^[a-f0-9]{64}$/.test(process.env.APPROVED_INSTALLATION_SHA256 ?? '') || !/^[1-9][0-9]{0,29}$/.test(process.env.INSTALLATION_GENERATION ?? ''))) throw new Error('Reviewed installation approval required');
           NODE
       - name: Exchange bounded GitHub identity
