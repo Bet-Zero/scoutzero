@@ -44,7 +44,7 @@ jobs:
         run: npm run lint:architect-gate
 
       - name: Draft data architecture boundary
-        run: npm run test:node -- tests/architect/draftReviewArchitecture.guardrail.test.ts --reporter=dot
+        run: npm run test:node -- tests/architect/draftReviewArchitecture.guardrail.test.ts tests/architect/draftReviewCloudConnection.test.ts --reporter=dot
 
       - name: Fetch accepted Canon authority ref
         run: git fetch --no-tags origin architect/cba-canon-v2:refs/remotes/origin/architect/cba-canon-v2
@@ -89,7 +89,7 @@ jobs:
         run: npm run lint:architect-gate
 
       - name: Draft data architecture boundary
-        run: npm run test:node -- tests/architect/draftReviewArchitecture.guardrail.test.ts --reporter=dot
+        run: npm run test:node -- tests/architect/draftReviewArchitecture.guardrail.test.ts tests/architect/draftReviewCloudConnection.test.ts --reporter=dot
 
       - name: Fetch accepted Canon authority ref
         run: git fetch --no-tags origin architect/cba-canon-v2:refs/remotes/origin/architect/cba-canon-v2

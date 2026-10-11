@@ -1,0 +1,80 @@
+name: Draft review cloud connection (read-only)
+
+on:
+  push:
+    branches: ['feature/bze-321-hosted-draft-review']
+    paths:
+      - '.github/workflows/draft-review-cloud.yml'
+      - 'scripts/architect/*DraftReviewCloud*'
+      - 'scripts/architect/draftReviewCloud*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bze321-cloud-inspection
+  cancel-in-progress: false
+
+# Public project number, filled by the agent after authorized project discovery.
+# An empty value deliberately skips authentication; a green skipped workflow
+# never proves a connection. The GCP provider must pin the accepted commit SHA.
+env:
+  SCOUTZERO_GCP_PROJECT_NUMBER: ''
+
+jobs:
+  configuration:
+    if: >-
+      github.repository_id == '997820257' &&
+      github.repository_owner_id == '205859440'
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.config.outputs.ready }}
+      provider: ${{ steps.config.outputs.provider }}
+    steps:
+      - name: Check non-secret project configuration
+        id: config
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$SCOUTZERO_GCP_PROJECT_NUMBER" =~ ^[1-9][0-9]{5,19}$ ]]; then
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo 'Cloud identity is not configured. No authentication or deployment attempted.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
+          echo "provider=projects/${SCOUTZERO_GCP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/scoutzero-bze321/providers/github" >> "$GITHUB_OUTPUT"
+
+  inspect:
+    needs: configuration
+    if: needs.configuration.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: Production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - name: Install locked dependencies before cloud authentication
+        run: npm ci --ignore-scripts
+      - name: Exchange GitHub identity for a short-lived Google access token
+        id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          project_id: scoutzero-bf1ae
+          workload_identity_provider: ${{ needs.configuration.outputs.provider }}
+          service_account: scoutzero-draft-release@scoutzero-bf1ae.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_lifetime: 600s
+          access_token_scopes: https://www.googleapis.com/auth/cloud-platform
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Inspect existing database, rules, and immutable release without writes
+        env:
+          SCOUTZERO_GCP_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: node --import tsx scripts/architect/checkDraftReviewCloud.ts
