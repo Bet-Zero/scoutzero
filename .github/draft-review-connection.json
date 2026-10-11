@@ -6,7 +6,6 @@
     "sts.googleapis.com",
     "firestore.googleapis.com",
     "firebaserules.googleapis.com",
-    "storage.googleapis.com",
     "cloudresourcemanager.googleapis.com"
   ],
   "attributeMapping": {
@@ -23,10 +22,7 @@
       "datastore.entities.get",
       "firebaserules.releases.get",
       "firebaserules.rulesets.get"
-    ],
-    "bucketMetadataPermission": "storage.buckets.get",
-    "bucket": "scoutzero-bf1ae.firebasestorage.app",
-    "bucketMetadataRoleId": "scoutzeroDraftBucketInspect"
+    ]
   },
   "publication": {
     "account": "scoutzero-draft-publish@scoutzero-bf1ae.iam.gserviceaccount.com",
@@ -42,11 +38,6 @@
       "firebaserules.rulesets.test"
     ],
     "projectRoleId": "scoutzeroDraftPublisher"
-  },
-  "storage": {
-    "roleId": "scoutzeroDraftInstallationRead",
-    "permission": "storage.objects.get",
-    "condition": "resource.name == 'projects/_/buckets/scoutzero-bf1ae.firebasestorage.app/objects/bze321/approved-installation.json'"
   },
   "requiredGitHubProtection": {
     "environments": ["draft-review-inspection", "draft-review-publication"],

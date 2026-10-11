@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
+import {
+  readFileSync,
+  mkdtempSync,
+  writeFileSync,
+  rmSync,
+  existsSync,
+} from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import yaml from 'js-yaml';
 import { runInNewContext } from 'node:vm';
 // Public synthetic payload; production's private release is never a test fixture.
@@ -17,7 +26,7 @@ import {
   digest,
   validateInstallation,
   publishInstallation,
-  readInstallation,
+  decodeInstallation,
   REVIEW_RULE_ADDITION,
   releasePermissionCases,
 } from '../../scripts/architect/draftReviewInstallation';
@@ -79,8 +88,6 @@ function cloud(
             )
           : PUBLICATION_PERMISSIONS,
       });
-    if (url.includes('storage.googleapis.com'))
-      return Response.json(installation);
     if (url.endsWith('/databases/(default)'))
       return Response.json({
         name: 'projects/scoutzero-bf1ae/databases/(default)',
@@ -123,6 +130,55 @@ function cloud(
 }
 
 describe('bounded immutable deployment', () => {
+  it('completes the actual inspection CLI and retains encrypted evidence with no Storage access', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'draft-inspection-no-storage-'));
+    try {
+      const transport = join(dir, 'transport.mjs');
+      writeFileSync(
+        transport,
+        `
+        globalThis.fetch = async (input, init) => {
+          const url = String(input);
+          if (init?.method && init.method !== 'GET') throw new Error('WRITE_FORBIDDEN');
+          const rulesetName = 'projects/scoutzero-bf1ae/rulesets/test';
+          if (url.includes('storage.googleapis.com')) throw new Error('STORAGE_FORBIDDEN');
+          if (url.endsWith('/databases/(default)')) return Response.json({name:'projects/scoutzero-bf1ae/databases/(default)',type:'FIRESTORE_NATIVE'});
+          if (url.endsWith('/releases/cloud.firestore')) return Response.json({name:'projects/scoutzero-bf1ae/releases/cloud.firestore',rulesetName});
+          if (url.endsWith('/rulesets/test')) return Response.json({name:rulesetName,source:{files:[{name:'firestore.rules',content:'private-test-rule-marker'}]}});
+          if (url.includes('/documents/architect_draftPickReleases/')) return new Response(null,{status:404});
+          throw new Error('UNEXPECTED_ENDPOINT');
+        };
+      `
+      );
+      const output = execFileSync(
+        process.execPath,
+        [
+          '--import',
+          'tsx',
+          '--import',
+          transport,
+          'scripts/architect/runDraftReviewWorker.ts',
+        ],
+        {
+          env: {
+            ...process.env,
+            DRAFT_OPERATION: 'inspect',
+            SCOUTZERO_GCP_ACCESS_TOKEN: 'synthetic',
+            RUNNER_TEMP: dir,
+          },
+          encoding: 'utf8',
+          timeout: 20000,
+        }
+      );
+      expect(output).toContain('"stableDoubleRead":true');
+      expect(output).toContain('"writesPerformed":0');
+      expect(output).not.toContain('private-test-rule-marker');
+      expect(existsSync(join(dir, 'draft-rules.cms'))).toBe(true);
+      expect(existsSync(join(dir, 'draft-rules-private.json'))).toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
   it('retains unknown live rules and completes all five GETs without authorizing a write', async () => {
     const f = cloud({ drift: true });
     let retained: any;
@@ -232,7 +288,7 @@ describe('bounded immutable deployment', () => {
     );
     expect(f.calls.some((call) => call.method === 'DELETE')).toBe(false);
   });
-  it('rejects data alteration, extra paths, overwritten live rules and non-approved storage bytes', async () => {
+  it('rejects data alteration, extra paths, overwritten live rules and non-approved transfer bytes', async () => {
     const original = bundle();
     for (const alter of [
       (b: any) => {
@@ -253,15 +309,18 @@ describe('bounded immutable deployment', () => {
       alter(changed);
       expect(() => validateInstallation(changed)).toThrow();
     }
-    const f = cloud();
-    await expect(
-      readInstallation('synthetic', '123', '0'.repeat(64), f.request)
-    ).rejects.toThrow('DIGEST_MISMATCH');
-    expect(f.calls).toHaveLength(1);
-    await expect(
-      readInstallation('synthetic', '../other', '0'.repeat(64), f.request)
-    ).rejects.toThrow('APPROVED_INSTALLATION_REQUIRED');
-    expect(f.calls).toHaveLength(1);
+    const bytes = Buffer.from(JSON.stringify(original));
+    expect(decodeInstallation(bytes, digest(bytes))).toEqual(original);
+    expect(() => decodeInstallation(bytes, '0'.repeat(64))).toThrow(
+      'DIGEST_MISMATCH'
+    );
+    expect(() => decodeInstallation(bytes, '../other')).toThrow(
+      'APPROVED_INSTALLATION_REQUIRED'
+    );
+    const invalid = Buffer.from('not json');
+    expect(() => decodeInstallation(invalid, digest(invalid))).toThrow(
+      'INSTALLATION_INVALID_JSON'
+    );
   });
   it('covers unauthenticated reads, listing and client mutations across all five release paths', () => {
     const cases = releasePermissionCases() as any[];
@@ -331,6 +390,8 @@ describe('protected workflow identity', () => {
       "assertion.job_workflow_sha == '" + 'a'.repeat(40)
     );
     expect(plan.attributeCondition).not.toContain('assertion.sha ');
+    expect(plan.requiredApis).not.toContain('storage.googleapis.com');
+    expect(JSON.stringify(plan)).not.toContain('storage.');
     expect(plan.inspection.account).not.toBe(plan.publication.account);
     expect(plan.inspection.member).not.toBe(plan.publication.member);
     expect(

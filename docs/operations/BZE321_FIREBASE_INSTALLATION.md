@@ -1,164 +1,152 @@
 # BZE-321: bounded Firebase installation
 
-Status: prepared for independent security review, not installed or merge-ready.
-The owner authorized workflow implementation/review, not an automatic IAM upgrade.
+Status: revised no-Storage candidate; no production installation or merge readiness.
+Owner authorization covers preparation/review, not new production IAM grants.
 
-## One execution path
+## Verified production state
 
-1. Accept the frozen worker through existing CI and independent Claude review.
-   `.github/workflows/draft-review-cloud.yml` calls the reusable worker by full
-   commit SHA. Google also requires that exact `job_workflow_ref` and
-   `job_workflow_sha`, repository/owner IDs, branch, push event and environment.
-   Application commits can change without changing Google trust. Changing worker
-   code requires a new security review and trust update; that restriction remains.
-2. Configure the two protected GitHub environments and the scoped Google trust
-   below. Do not expand the existing inspection account's permissions.
-3. Run inspection without a per-run owner approval; the pinned read-only identity and branch restriction govern it. It performs two GET-only reads
-   of database identity, live rules and the five document paths, checking stable
-   rules identity/content and the existing bucket’s support for conditional access. Unknown rules are retained rather than discarded.
-   Only an OpenSSL CMS encrypted snapshot is uploaded to the public repository's
-   Actions artifacts (seven-day retention). The snapshot includes the actual
-   production rules and repository comparison input. Its plaintext digest is in
-   the run receipt. The evidence-decryption key is retained privately outside Git
-   at `/workspace/bze321-private/inspection-key/key.pem`; it is not a Google
-   credential and confers no service access. Preserve it until the snapshot is
-   decrypted and retained in existing private evidence. If unavailable, stop;
-   never publish the plaintext snapshot as a recovery shortcut.
-4. Codex compares the exact live rules with the repository, reporting actual
-   permission differences. Prepare a candidate by inserting only the fixed
-   `REVIEW_RULE_ADDITION` from `draftReviewInstallation.ts` into the appropriate
-   document scope. Every existing byte must remain unchanged. If an existing
-   grant conflicts with release privacy, stop for the specific permission choice;
-   do not delete that grant or add an ineffective deny override. Rules allow
-   expressions are additive. A missing/ambiguous insertion point also stops.
-5. Reuse the existing emulator proof with `SCOUTZERO_DRAFT_REVIEW_RULES` pointing
-   to the privately retained candidate and `SCOUTZERO_DRAFT_REVIEW_RELEASE` to the
-   accepted release. Validate existing permission differences with focused probes
-   selected from the actual diff. Obtain focused independent acceptance of the
-   reconciliation; no repeat review of unchanged application foundations.
-6. Prepare one private JSON object with `baselineRuleset`, `baselineRules`,
-   `proposedRules`, and the already-prepared five `documents`. Store it at the
-   existing bucket object `bze321/approved-installation.json`, without overwriting
-   an existing generation. Pin its Storage generation and exact byte SHA-256 in
-   the publication environment variables below. No raw evidence is product data;
-   this object is installation input, not another application source of truth.
-7. Only after review, explicit permission authorization and publication approval:
-   read/verify that object, check every required project permission with the non-mutating Resource Manager `testIamPermissions` API, verify current production baseline, run the Rules API
-   permission tests, create the candidate ruleset, recheck the baseline, update
-   only the existing `cloud.firestore` release, verify it, then atomically create
-   the five absent documents using `currentDocument.exists: false`. Verify their
-   full bytes and installed rules afterward. A retry recognizes the exact approved
-   rules and complete matching data. It never changes conflicting records.
-8. Prove real hosted GM authentication/read/review, denied unsigned/invalid
-   sessions, integrity failures and preserved existing functionality. Keep Apply
-   disabled. Complete normal landing gates only after live proof.
+The assumed `scoutzero-bf1ae.firebasestorage.app` bucket **does not exist**.
+Google Storage returned HTTP 404 / `notFound`, including in the authenticated
+inspection run. Do not enable billing, create a bucket, or grant Storage access.
+Earlier Storage setup instructions and installation-generation variables are
+superseded by this document.
 
-The Rules Releases API has **no conditional update / compare-and-swap field**.
-The publication approval must reserve a short rules-deployment window with no
-other Console/CLI publisher. GitHub concurrency serializes this worker only.
-The worker checks before/after but cannot prevent another administrator racing
-the update. It never blindly rolls rules back over another publisher's change.
+[Inspection 38176121374](https://github.com/Bet-Zero/scoutzero/actions/runs/38176121374)
+passed protected-environment verification and keyless Google authentication.
+The already-trusted worker captured the live rules twice and reached the bucket
+check only after completing the Firestore reads. The job then failed at that
+unrelated bucket check, but retained encrypted rules evidence successfully.
+The revised inspector removes that check entirely. Its CLI regression proof
+forbids every Storage request and every non-GET request.
 
-## Consolidated owner setup, after worker acceptance
+Retained snapshot digest:
+`bc93ddc039576e84037826e6d9cc8eb51bff8bd17c3a30a22bfd8efcab8fe61d`.
+Production rule digest:
+`dbb7133b279d7b5634aef959c70372ed4e5da4a7ea7d26fbf6d9134ecbee31de`.
+Ruleset: `projects/scoutzero-bf1ae/rulesets/18da078f-7dd8-40eb-b1c4-3d2957a5c5c5`.
+The encrypted artifact was independently downloaded and decrypted; both digests
+were checked. Plaintext evidence and its decryption key remain outside Git under
+`/workspace/bze321-private/`. Public logs/artifacts contain no plaintext rules.
 
-No Google action has been performed by this implementation. The exact generated
-configuration will be retained in `.github/draft-review-connection.json`, using
-the worker revision invoked by the caller. Review that receipt before applying.
+### Actual mismatch and preservation
 
-### GitHub approvals
+Production allows public reads of base teams, base players, and all `players_v2`
+descendants. It allows authenticated owners to create validated worlds, update
+their metadata, and create/update world teams and players; deletion is denied.
+Unmatched collections are denied. The repository would instead restrict source
+reads to authenticated sessions, disable client world creation, change world
+write conditions, and add many currently absent collection permissions.
+Replacing production with the repository file would change existing behavior.
 
-Open repository **Settings → Environments** and create `draft-review-inspection`
-and `draft-review-publication`. For both, restrict deployment to the selected branch below. Publication additionally requires the owner reviewer:
+The installation therefore uses the **actual live source plus one fixed
+`REVIEW_RULE_ADDITION`**, not `firestore.rules`. Removing that exact addition
+reproduces every baseline byte. No existing permission is removed or broadened.
+The addition permits authenticated exact-document reads of the derived release
+and its four parts; client lists and writes remain denied. No broad live grant
+conflicts with that restriction. Fifteen emulator checks of existing public,
+world-owner, non-owner, update and denied-delete permissions returned identical
+results for baseline and candidate. Five existing release permission/integrity
+tests passed against this candidate with the real 278-record release and all
+29 unresolved requirements. These are emulator results, not hosted GM proof.
 
-- Publication required reviewer: **Bet-Zero** (user ID `205859440`). Inspection needs no per-run reviewer.
-- Disallow administrators bypassing protection.
-- Deployment branches/tags: selected **branch**
-  `feature/bze-321-hosted-draft-review`, no wildcard/tag rule.
-- Leave self-review prevention off: the sole owner may initiate a run and approve
-  it. This is the production authorization gate; Claude remains the independent
-  code reviewer. No claim of two-human approval is made.
+## Transfer through existing GitHub, without Google Storage
 
-The worker verifies owner approval, non-bypass and custom-policy enablement before Google authentication. The exact allowed branch is independently enforced by both the immutable worker guard and Google’s attested `ref` condition; it does not depend on a mutable branch-list response. missing or
-unreadable protection fails closed. The existing Production environment is not
-modified. Its inspected configuration had no protection rules/branch policy.
-Attempting to create the dedicated environment through the current GitHub
-connection returned HTTP 403 (`Resource not accessible by integration`), so this
-specific browser action requires the owner, not a general credential expansion.
+Use GitHub's documented
+[encrypted-file approach for large secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets#storing-large-secrets).
+Only `.github/bze321-installation.json.gpg` is committed. It contains the already
+prepared five documents, the exact live baseline and the tested additive rules.
+This is an installation input, never an application data provider. Runtime still
+reads the authenticated Firestore release through ScoutZero's existing endpoint.
 
-Leave publication variables unset until the exact rules/input have passed review:
+The random 384-bit decryption passphrase is kept outside Git and outside chat.
+Set it only as `BZE321_INSTALLATION_PASSPHRASE` in the protected
+`draft-review-publication` environment. It is not a Google credential and grants
+no cloud access. The worker passes it on stdin to GPG, never on the command line;
+it decrypts into bounded memory, does not log input/provider bodies, validates
+the approved plaintext digest, and removes its temporary GPG directory. No
+plaintext input is uploaded as an artifact. Inspection receives no passphrase.
+The encrypted input is part of the immutable reviewed worker checkout, so an
+application/caller commit cannot substitute it.
 
-- `BZE321_INSTALLATION_GENERATION`: immutable Storage object generation.
-- `BZE321_APPROVED_INSTALLATION_SHA256`: exact private installation JSON digest.
+Protected publication variable `BZE321_APPROVED_INSTALLATION_SHA256`:
+`9fcc427f7fdf45b12b06ad2c6da2f798b2aa39dc8b4d70a8f3576d60515921f0`.
+The former `BZE321_INSTALLATION_GENERATION` is unused and unnecessary.
+Local GPG and actual reader proofs verified exact recovery of all five documents,
+wrong-key rejection and wrong-digest rejection without any network requests.
 
-The five-document upload also needs an authenticated uploader. No agent upload
-permission currently exists. The bounded fallback is an owner Console upload of
-the exact reviewed private object; do not grant Storage Admin or expose its URL.
+The current GitHub integration cannot administer environment secrets (HTTP 403
+on its environment public-key endpoint). One owner browser secret entry is the
+remaining secure transfer connection. Never paste the passphrase into chat,
+a PR, a repository variable, logs or a repository file. Retire the environment
+secret after successful installation and verification; retain private recovery
+evidence under the existing policy.
 
-### Google trust and permissions
+## One bounded execution path
 
-In project `scoutzero-bf1ae`, edit the existing pool/provider
-`scoutzero-bze321/github` using the generated mapping/condition. This replaces
-the caller-commit restriction with an equally immutable called-worker restriction
-plus protected environment identity. Never replace it with branch-only trust.
-Keep the existing issuer `https://token.actions.githubusercontent.com`.
+1. Finish exact-candidate CI and focused independent Claude acceptance of the
+   changed transport and actual-rules reconciliation. Reuse unchanged app and
+   release evidence. The candidate is not authorized by its tests alone.
+2. Keep the already-configured dedicated environments. Both restrict the exact
+   feature branch and forbid administrator bypass; publication requires Bet-Zero
+   (user ID `205859440`). Before cloud authentication the worker checks these
+   protections. Exact branch identity is also required by immutable code and
+   Google's attested claims. Existing Production environment is untouched.
+3. After acceptance, apply the reviewed worker revision to the existing Google
+   provider condition, preserving repository IDs, exact branch/event,
+   environment/subject and immutable `job_workflow_ref` / `job_workflow_sha`.
+   This is a change to deployment code, not another application-commit pin.
+   The inspection run above used the already-saved trust without any Google edit.
+   Do not activate a changed worker until its review passes.
+4. With explicit owner permission, configure the separate publisher role below,
+   the protected input secret/digest, and approve the publication run. Reserve a
+   short window with no other administrator deploying Firestore rules.
+5. The fixed worker decrypts/validates the input, verifies all eight project
+   permissions through non-mutating `testIamPermissions`, checks the exact live
+   baseline, and tests release permissions with the Rules API. Only then does it
+   create the additive ruleset, recheck/repoint the existing release, and atomically
+   create the five absent records with `currentDocument.exists: false`.
+6. Verify the installed rules and exact record bytes. Prove hosted authentication,
+   GM read/review, denied/failure states and preserved existing functionality.
+   Complete normal landing gates only after live proof. Keep Apply disabled.
 
-The existing account `scoutzero-draft-release@scoutzero-bf1ae.iam.gserviceaccount.com`
-stays read-only. Replace its repository-wide pool impersonation binding with the
-generated inspection-environment member. Preserve unrelated IAM bindings.
+No rules API compare-and-swap exists. The worker checks before/after and GitHub
+serializes this worker, but an exclusive administrator deployment window remains
+necessary. It never blindly rolls back rules, overwrites conflicting documents,
+alters source collections, or changes saved worlds.
 
-For publication, create the separate account
-`scoutzero-draft-publish@scoutzero-bf1ae.iam.gserviceaccount.com` only after explicit
-owner approval of these permissions. Bind `roles/iam.workloadIdentityUser` on that
-account only to the generated publication-environment member. No service account
-keys, IAM administration or project-wide Token Creator grants are required.
+## Exact permissions; no Storage role or billing requirement
 
-| Operation                                | Required permission               |
-| ---------------------------------------- | --------------------------------- |
-| Inspect existing database                | `datastore.databases.getMetadata` |
-| Read the five documents                  | `datastore.entities.get`          |
-| Read active rules release                | `firebaserules.releases.get`      |
-| Read exact active rules source           | `firebaserules.rulesets.get`      |
-| Atomically create absent documents       | `datastore.entities.create`       |
-| Test proposed rules                      | `firebaserules.rulesets.test`     |
-| Create immutable ruleset                 | `firebaserules.rulesets.create`   |
-| Point existing release to tested ruleset | `firebaserules.releases.update`   |
-| Fetch installation object                | `storage.objects.get`             |
+The existing inspection identity stays read-only with the first four permissions.
+The separate proposed publisher `scoutzero-draft-publish@scoutzero-bf1ae.iam.gserviceaccount.com`
+needs all eight, using custom project role `scoutzeroDraftPublisher`:
 
-The first four form the existing inspection role. Use custom role ID `scoutzeroDraftPublisher` for the eight publisher permissions, `scoutzeroDraftBucketInspect` for bucket metadata inspection, and `scoutzeroDraftInstallationRead` for the conditional installation-object read. The generated configuration also lists all required Google APIs; it does not enable them or grant permissions. Resource Manager permission testing needs no IAM-administration grant and supplements, never replaces, actual API authorization. Inspection additionally needs a bucket-only `storage.buckets.get` metadata binding to verify that the existing bucket supports conditional IAM. It does not read bucket objects. If uniform bucket-level access is disabled, stop; do not enable it and change existing ACL behavior as a workaround. The publisher needs all eight
-Firestore/Rules permissions in a separate custom project role, plus a separate
-bucket binding granting only `storage.objects.get`, conditioned on:
+| Operation                        | Permission                        |
+| -------------------------------- | --------------------------------- |
+| Inspect database                 | `datastore.databases.getMetadata` |
+| Read fixed records               | `datastore.entities.get`          |
+| Read active rules release        | `firebaserules.releases.get`      |
+| Read exact rules source          | `firebaserules.rulesets.get`      |
+| Create absent records atomically | `datastore.entities.create`       |
+| Test candidate rules             | `firebaserules.rulesets.test`     |
+| Create immutable ruleset         | `firebaserules.rulesets.create`   |
+| Update existing rules release    | `firebaserules.releases.update`   |
 
-```text
-resource.name == 'projects/_/buckets/scoutzero-bf1ae.firebasestorage.app/objects/bze321/approved-installation.json'
-```
+Each service account's `roles/iam.workloadIdentityUser` binding uses only its
+own environment-specific principal. Preserve the removal of the old broad
+repository binding. The generated `.github/draft-review-connection.json` lists
+the full condition, bindings and required APIs. No Storage API/role, IAM admin,
+Token Creator, entity update/delete/list, new database or service-account key
+is required. Firestore IAM read/create permissions are database-wide; the
+immutable worker and protected approval restrict actual access to the five
+release paths. That limitation still requires explicit acceptance, not an
+unannounced permission expansion.
 
-No entity update/delete/list, bucket write/list, database creation, API enabling,
-rules release creation/deletion, source pipeline or saved-world mutation is used.
-Firestore IAM cannot restrict entity permissions to five document paths. The
-fixed, pinned worker additionally enforces those paths and create-only writes.
-That limitation must be accepted explicitly; it must not be misrepresented as
-collection-scoped IAM. Inspect/read rights likewise are database-wide in IAM.
+## Remaining hosted verification gate
 
-### Hosted verification access
-
-The Vercel integration is authenticated as `bet-zero`, whose default team is the correct ScoutZero team, but its team listing returned no teams; the exact ScoutZero project lookup
-returned 403 for `brents-projects-686e97fc`. No Vercel CLI or configured credential
-is available in this environment. The required owner action is to reauthorize the existing Vercel integration specifically for that team/project. A different account is not established as necessary. Browser
-dashboard access alone does not authorize the connector. Do not disable deployment
-protection, transfer the project, or add another hosting/data provider.
-
-## Evidence and limits
-
-Author tests cover fixed identity, protection fail-closed behavior, retained drift,
-additive source preservation, input hash/generation, fixed create-only paths,
-permission failures, concurrent drift, conflicts and safe retries. Emulator proof
-covers the actual new addition against the repository baseline using the private
-release. This is **not** a comparison with the still-unretrieved production rules.
-Current access cannot run the new worker until its one-time trust/protection setup.
-No claimed hosted functionality or merge readiness follows from local/CI tests.
-
-Underlying references:
-[GitHub reusable-workflow OIDC](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-with-reusable-workflows),
-[Firestore method permissions](https://firebase.google.com/docs/firestore/security/iam),
-[Firebase Rules permissions](https://firebase.google.com/docs/projects/iam/permissions),
-[Rules release update API](https://firebase.google.com/docs/reference/rules/rest/v1/projects.releases/patch).
+The existing Vercel integration is authenticated as `bet-zero` with the correct
+default team but cannot access ScoutZero's team/project (403). Reauthorization
+for `brents-projects-686e97fc` is required; another account is not established as
+necessary. The coding environment also blocks the owned Vercel preview origin
+before TLS. Restore that exact origin's allowed network access; do not disable
+Vercel deployment protection. These gates are independent of Firestore inspection.
+No hosted GM improvement, release publication or merge is claimed yet.

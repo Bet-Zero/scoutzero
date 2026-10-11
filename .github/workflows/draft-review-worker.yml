@@ -62,7 +62,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           DRAFT_OPERATION: ${{ inputs.operation }}
-          INSTALLATION_GENERATION: ${{ vars.BZE321_INSTALLATION_GENERATION }}
           APPROVED_INSTALLATION_SHA256: ${{ vars.BZE321_APPROVED_INSTALLATION_SHA256 }}
         run: |
           node --import tsx --input-type=module <<'NODE'
@@ -78,7 +77,7 @@ jobs:
           // Exact branch identity is independently enforced by the Google OIDC
           // condition and this immutable job's if guard, not a mutable list.
           verifyProtection(await get(base), mode);
-          if (mode === 'publish' && (!/^[a-f0-9]{64}$/.test(process.env.APPROVED_INSTALLATION_SHA256 ?? '') || !/^[1-9][0-9]{0,29}$/.test(process.env.INSTALLATION_GENERATION ?? ''))) throw new Error('Reviewed installation approval required');
+          if (mode === 'publish' && (!/^[a-f0-9]{64}$/.test(process.env.APPROVED_INSTALLATION_SHA256 ?? ''))) throw new Error('Reviewed installation approval required');
           NODE
       - name: Exchange bounded GitHub identity
         id: auth
@@ -96,7 +95,7 @@ jobs:
         env:
           DRAFT_OPERATION: ${{ inputs.operation }}
           SCOUTZERO_GCP_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
-          INSTALLATION_GENERATION: ${{ vars.BZE321_INSTALLATION_GENERATION }}
+          INSTALLATION_PASSPHRASE: ${{ inputs.operation == 'publish' && secrets.BZE321_INSTALLATION_PASSPHRASE || '' }}
           APPROVED_INSTALLATION_SHA256: ${{ vars.BZE321_APPROVED_INSTALLATION_SHA256 }}
         run: node --import tsx scripts/architect/runDraftReviewWorker.ts
       - name: Retain encrypted rules evidence only

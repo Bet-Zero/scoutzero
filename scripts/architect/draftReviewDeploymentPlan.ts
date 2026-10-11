@@ -6,8 +6,6 @@ import {
 export const INSPECTION_ENVIRONMENT = 'draft-review-inspection';
 export const PUBLICATION_ENVIRONMENT = 'draft-review-publication';
 export const PUBLICATION_ACCOUNT = `scoutzero-draft-publish@${DRAFT_CLOUD_PROJECT}.iam.gserviceaccount.com`;
-export const RELEASE_OBJECT = 'bze321/approved-installation.json';
-export const RELEASE_BUCKET = 'scoutzero-bf1ae.firebasestorage.app';
 export const INSPECTION_PERMISSIONS = Object.freeze([
   'datastore.databases.getMetadata',
   'datastore.entities.get',
@@ -52,7 +50,6 @@ export function sustainableDraftConnectionPlan(workerSha: string) {
       'sts.googleapis.com',
       'firestore.googleapis.com',
       'firebaserules.googleapis.com',
-      'storage.googleapis.com',
       'cloudresourcemanager.googleapis.com',
     ],
     attributeMapping: {
@@ -65,21 +62,12 @@ export function sustainableDraftConnectionPlan(workerSha: string) {
       account: DRAFT_CLOUD_ACCOUNT,
       member: member(INSPECTION_ENVIRONMENT),
       permissions: INSPECTION_PERMISSIONS,
-      bucketMetadataPermission: 'storage.buckets.get',
-      bucket: RELEASE_BUCKET,
-      bucketMetadataRoleId: 'scoutzeroDraftBucketInspect',
     },
     publication: {
       account: PUBLICATION_ACCOUNT,
       member: member(PUBLICATION_ENVIRONMENT),
       permissions: PUBLICATION_PERMISSIONS,
       projectRoleId: 'scoutzeroDraftPublisher',
-    },
-    // This additional bucket binding is object-read-only, not project storage access.
-    storage: {
-      roleId: 'scoutzeroDraftInstallationRead',
-      permission: 'storage.objects.get',
-      condition: `resource.name == 'projects/_/buckets/${RELEASE_BUCKET}/objects/${RELEASE_OBJECT}'`,
     },
     requiredGitHubProtection: {
       environments: [INSPECTION_ENVIRONMENT, PUBLICATION_ENVIRONMENT],

@@ -1,4 +1,8 @@
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import {
   prepareDraftReviewDocuments,
@@ -7,11 +11,7 @@ import {
   draftReviewPartDocument,
 } from '../../server/draftReviewFirestore.js';
 import { inspectDraftReviewCloud } from './draftReviewCloudPreflight.js';
-import {
-  RELEASE_BUCKET,
-  RELEASE_OBJECT,
-  PUBLICATION_PERMISSIONS,
-} from './draftReviewDeploymentPlan.js';
+import { PUBLICATION_PERMISSIONS } from './draftReviewDeploymentPlan.js';
 
 export const digest = (value: string | Buffer) =>
   createHash('sha256').update(value).digest('hex');
@@ -119,7 +119,6 @@ export function cloudJson(token: string, request: typeof fetch = fetch) {
       ![
         'firebaserules.googleapis.com',
         'firestore.googleapis.com',
-        'storage.googleapis.com',
         'cloudresourcemanager.googleapis.com',
       ].includes(new URL(url).host)
     )
@@ -164,26 +163,63 @@ export function cloudJson(token: string, request: typeof fetch = fetch) {
   };
 }
 
-export async function readInstallation(
-  token: string,
-  generation: string,
-  approvedHash: string,
-  request: typeof fetch = fetch
-) {
+/** Offline transport: only ciphertext is committed; the protected environment holds its key. */
+export function readInstallation(approvedHash: string, passphrase: string) {
   if (
-    !/^[1-9][0-9]{0,29}$/.test(generation) ||
-    !/^[a-f0-9]{64}$/.test(approvedHash)
+    !/^[a-f0-9]{64}$/.test(approvedHash) ||
+    !/^[A-Za-z0-9_-]{64}$/.test(passphrase)
   )
     throw new Error('APPROVED_INSTALLATION_REQUIRED');
-  const response = await cloudJson(
-    token,
-    request
-  )(
-    `https://storage.googleapis.com/storage/v1/b/${RELEASE_BUCKET}/o/${encodeURIComponent(RELEASE_OBJECT)}?alt=media&generation=${generation}`
-  );
-  if (digest(response.bytes) !== approvedHash)
+  const file = '.github/bze321-installation.json.gpg';
+  let home: string | undefined;
+  let bytes: Buffer;
+  try {
+    if (statSync(file).size > 4000000) throw new Error('INPUT_TOO_LARGE');
+    home = mkdtempSync(join(tmpdir(), 'draft-installation-gpg-'));
+    bytes = execFileSync(
+      'gpg',
+      [
+        '--homedir',
+        home,
+        '--batch',
+        '--quiet',
+        '--pinentry-mode',
+        'loopback',
+        '--passphrase-fd',
+        '0',
+        '--no-symkey-cache',
+        '--decrypt',
+        file,
+      ],
+      {
+        input: passphrase,
+        maxBuffer: 4000000,
+        timeout: 20000,
+        // Never pass a cloud token or other runner secrets to the decryptor.
+        env: { PATH: process.env.PATH, LANG: 'C.UTF-8' },
+        stdio: ['pipe', 'pipe', 'ignore'],
+      }
+    );
+  } catch {
+    throw new Error('INSTALLATION_DECRYPTION_FAILED');
+  } finally {
+    if (home) rmSync(home, { recursive: true, force: true });
+  }
+  return decodeInstallation(bytes, approvedHash);
+}
+
+export function decodeInstallation(bytes: Buffer, approvedHash: string) {
+  if (!/^[a-f0-9]{64}$/.test(approvedHash))
+    throw new Error('APPROVED_INSTALLATION_REQUIRED');
+  if (bytes.length > 4000000 || digest(bytes) !== approvedHash)
     throw new Error('INSTALLATION_DIGEST_MISMATCH');
-  return validateInstallation(response.value);
+  let value: unknown;
+  try {
+    value = JSON.parse(bytes.toString('utf8'));
+  } catch {
+    throw new Error('INSTALLATION_INVALID_JSON');
+  }
+  return validateInstallation(value);
 }
 
 /** Create-only documents; byte-preserving reviewed rules addition. No generic deploy command. */
