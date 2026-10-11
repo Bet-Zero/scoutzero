@@ -49,6 +49,7 @@ function cloud(
     drift?: boolean;
     concurrent?: boolean;
     failTests?: boolean;
+    missingPermissions?: boolean;
     installed?: boolean;
     rulesInstalled?: boolean;
     conflict?: boolean;
@@ -70,6 +71,14 @@ function cloud(
     const method = init?.method ?? 'GET';
     const body = init?.body ? JSON.parse(String(init.body)) : undefined;
     calls.push({ url, method, body });
+    if (url.endsWith(':testIamPermissions'))
+      return Response.json({
+        permissions: options.missingPermissions
+          ? PUBLICATION_PERMISSIONS.filter(
+              (permission) => permission !== 'datastore.entities.create'
+            )
+          : PUBLICATION_PERMISSIONS,
+      });
     if (url.includes('storage.googleapis.com'))
       return Response.json(installation);
     if (url.endsWith('/databases/(default)'))
@@ -141,7 +150,14 @@ describe('bounded immutable deployment', () => {
       releaseVerified: true,
       documentWrites: 5,
     });
-    const writes = f.calls.filter((call) => call.method !== 'GET');
+    const writes = f.calls.filter(
+      (call) =>
+        call.method !== 'GET' && !call.url.endsWith(':testIamPermissions')
+    );
+    expect(f.calls[0].url).toBe(
+      'https://cloudresourcemanager.googleapis.com/v1/projects/scoutzero-bf1ae:testIamPermissions'
+    );
+    expect(f.calls[0].body.permissions).toEqual(PUBLICATION_PERMISSIONS);
     expect(writes.map((call) => call.method)).toEqual([
       'POST',
       'POST',
@@ -164,6 +180,7 @@ describe('bounded immutable deployment', () => {
     { drift: true },
     { installed: true, conflict: true },
     { failTests: true },
+    { missingPermissions: true },
   ])(
     'makes no production mutations when a safety check fails: %j',
     async (options) => {
@@ -174,7 +191,11 @@ describe('bounded immutable deployment', () => {
       expect(
         f.calls
           .filter((call) => call.method !== 'GET')
-          .every((call) => call.url.endsWith(':test'))
+          .every(
+            (call) =>
+              call.url.endsWith(':test') ||
+              call.url.endsWith(':testIamPermissions')
+          )
       ).toBe(true);
     }
   );

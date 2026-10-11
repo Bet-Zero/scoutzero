@@ -16,6 +16,24 @@ permissions:
   contents: read
 
 jobs:
+  draft-worker-permission-probe:
+    name: Draft worker GitHub read-permission proof
+    if: github.event_name == 'pull_request' && github.head_ref == 'feature/bze-321-hosted-draft-review'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      # Same GITHUB_TOKEN permissions and REST endpoint families as the frozen
+      # worker, using an existing environment. No Google identity or writes.
+      - name: Prove environment metadata and branch-policy reads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/Bet-Zero/scoutzero/environments/Production --jq '{name,protectionRuleCount:(.protection_rules|length)}'
+          gh api repos/Bet-Zero/scoutzero/environments/Production/deployment-branch-policies --jq '{branchPolicyCount:(.branch_policies|length)}'
+
   # PR validation - uses diff-based testing for speed
   pr-validation:
     name: PR Validation (Diff-based)

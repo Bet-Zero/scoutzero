@@ -43,7 +43,7 @@ The owner authorized workflow implementation/review, not an automatic IAM upgrad
    the publication environment variables below. No raw evidence is product data;
    this object is installation input, not another application source of truth.
 7. Only after review, explicit permission authorization and publication approval:
-   read/verify that object, verify current production baseline, run the Rules API
+   read/verify that object, check every required project permission with the non-mutating Resource Manager `testIamPermissions` API, verify current production baseline, run the Rules API
    permission tests, create the candidate ruleset, recheck the baseline, update
    only the existing `cloud.firestore` release, verify it, then atomically create
    the five absent documents using `currentDocument.exists: false`. Verify their
@@ -124,7 +124,7 @@ keys, IAM administration or project-wide Token Creator grants are required.
 | Point existing release to tested ruleset | `firebaserules.releases.update`   |
 | Fetch installation object                | `storage.objects.get`             |
 
-The first four form the existing inspection role. Inspection additionally needs a bucket-only `storage.buckets.get` metadata binding to verify that the existing bucket supports conditional IAM. It does not read bucket objects. If uniform bucket-level access is disabled, stop; do not enable it and change existing ACL behavior as a workaround. The publisher needs all eight
+The first four form the existing inspection role. Use custom role ID `scoutzeroDraftPublisher` for the eight publisher permissions, `scoutzeroDraftBucketInspect` for bucket metadata inspection, and `scoutzeroDraftInstallationRead` for the conditional installation-object read. The generated configuration also lists all required Google APIs; it does not enable them or grant permissions. Resource Manager permission testing needs no IAM-administration grant and supplements, never replaces, actual API authorization. Inspection additionally needs a bucket-only `storage.buckets.get` metadata binding to verify that the existing bucket supports conditional IAM. It does not read bucket objects. If uniform bucket-level access is disabled, stop; do not enable it and change existing ACL behavior as a workaround. The publisher needs all eight
 Firestore/Rules permissions in a separate custom project role, plus a separate
 bucket binding granting only `storage.objects.get`, conditioned on:
 
@@ -141,10 +141,9 @@ collection-scoped IAM. Inspect/read rights likewise are database-wide in IAM.
 
 ### Hosted verification access
 
-The connected Vercel account returned no teams; the exact ScoutZero project lookup
+The Vercel integration is authenticated as `bet-zero`, whose default team is the correct ScoutZero team, but its team listing returned no teams; the exact ScoutZero project lookup
 returned 403 for `brents-projects-686e97fc`. No Vercel CLI or configured credential
-is available in this environment. The required owner action is to connect the
-Vercel integration with an account that can access that team/project. Browser
+is available in this environment. The required owner action is to reauthorize the existing Vercel integration specifically for that team/project. A different account is not established as necessary. Browser
 dashboard access alone does not authorize the connector. Do not disable deployment
 protection, transfer the project, or add another hosting/data provider.
 

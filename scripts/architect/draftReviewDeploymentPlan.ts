@@ -47,6 +47,14 @@ export function sustainableDraftConnectionPlan(workerSha: string) {
   return {
     provider:
       'projects/105500121903/locations/global/workloadIdentityPools/scoutzero-bze321/providers/github',
+    requiredApis: [
+      'iamcredentials.googleapis.com',
+      'sts.googleapis.com',
+      'firestore.googleapis.com',
+      'firebaserules.googleapis.com',
+      'storage.googleapis.com',
+      'cloudresourcemanager.googleapis.com',
+    ],
     attributeMapping: {
       'google.subject': 'assertion.sub',
       'attribute.repository_id': 'assertion.repository_id',
@@ -59,14 +67,17 @@ export function sustainableDraftConnectionPlan(workerSha: string) {
       permissions: INSPECTION_PERMISSIONS,
       bucketMetadataPermission: 'storage.buckets.get',
       bucket: RELEASE_BUCKET,
+      bucketMetadataRoleId: 'scoutzeroDraftBucketInspect',
     },
     publication: {
       account: PUBLICATION_ACCOUNT,
       member: member(PUBLICATION_ENVIRONMENT),
       permissions: PUBLICATION_PERMISSIONS,
+      projectRoleId: 'scoutzeroDraftPublisher',
     },
     // This additional bucket binding is object-read-only, not project storage access.
     storage: {
+      roleId: 'scoutzeroDraftInstallationRead',
       permission: 'storage.objects.get',
       condition: `resource.name == 'projects/_/buckets/${RELEASE_BUCKET}/objects/${RELEASE_OBJECT}'`,
     },

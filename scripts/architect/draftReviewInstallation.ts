@@ -7,7 +7,11 @@ import {
   draftReviewPartDocument,
 } from '../../server/draftReviewFirestore.js';
 import { inspectDraftReviewCloud } from './draftReviewCloudPreflight.js';
-import { RELEASE_BUCKET, RELEASE_OBJECT } from './draftReviewDeploymentPlan.js';
+import {
+  RELEASE_BUCKET,
+  RELEASE_OBJECT,
+  PUBLICATION_PERMISSIONS,
+} from './draftReviewDeploymentPlan.js';
 
 export const digest = (value: string | Buffer) =>
   createHash('sha256').update(value).digest('hex');
@@ -116,6 +120,7 @@ export function cloudJson(token: string, request: typeof fetch = fetch) {
         'firebaserules.googleapis.com',
         'firestore.googleapis.com',
         'storage.googleapis.com',
+        'cloudresourcemanager.googleapis.com',
       ].includes(new URL(url).host)
     )
       throw new Error('HOST_REJECTED');
@@ -189,6 +194,20 @@ export async function publishInstallation(
 ) {
   validateInstallation(bundle);
   const api = cloudJson(token, request);
+  // Non-mutating IAM check: refuse to change rules when the account cannot
+  // complete the entire installation. Actual API authorization remains binding.
+  const access = await api(
+    'https://cloudresourcemanager.googleapis.com/v1/projects/scoutzero-bf1ae:testIamPermissions',
+    'POST',
+    { permissions: PUBLICATION_PERMISSIONS }
+  );
+  if (
+    !Array.isArray(access.value.permissions) ||
+    PUBLICATION_PERMISSIONS.some(
+      (permission) => !access.value.permissions.includes(permission)
+    )
+  )
+    throw new Error('PUBLICATION_PERMISSIONS_INCOMPLETE');
   let live: { content: string; rulesetName: string } | undefined;
   const inspected = await inspectDraftReviewCloud(token, request, {
     retain: (snapshot) => {
