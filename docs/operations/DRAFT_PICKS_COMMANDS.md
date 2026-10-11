@@ -18,8 +18,39 @@ the repository and start the existing development/review server with
 The Vite read service returns only that exact installed projection. It never
 bundles the package into public assets, retrieves raw source bodies, adopts a
 release into Firestore, or enables first-round Apply. An absent or changed
-installation shows a needs-input result. Static hosted builds do not install
-this private read service automatically.
+installation shows a needs-input result.
+
+The Vercel application has a separate Node endpoint at
+`/api/architect/draft-review`. Filesystem routing precedes the SPA fallback,
+and unknown API paths return 404 instead of HTML. The endpoint validates the
+existing Firebase ID token with Google's project-keyed account lookup before
+reading private storage. Existing anonymous GM sessions are supported; this is
+access to the derived product projection, not access to private Linear evidence.
+No local emulator configuration can redirect the production session check.
+
+Hosting installation (performed by the agent/operator with hosting access):
+
+1. Recover and verify the unchanged private projection from BZE-321 attachment
+   `524e6b98-ff1c-4d94-ae9e-53bd2c2106b4`. Its SHA-256 is
+   `3f288ba96decf716b25596510beb01d9f741781169e98e553d04c58409530671`.
+2. Install only that derived JSON in a **private** Vercel Blob store, at
+   `architect/draft-review/<sha256>.json`, with no random suffix. Keep all raw
+   source bodies, claim maps, browser traces and cases in private Linear.
+3. Configure server-only `SCOUTZERO_DRAFT_REVIEW_BLOB_URL` with the exact private
+   object URL and `BLOB_READ_WRITE_TOKEN` with the store credential. Retain the
+   application's existing `VITE_FIREBASE_PROJECT_ID=scoutzero-bf1ae` and
+   `VITE_FIREBASE_API_KEY`. Never give the storage variables a `VITE_` prefix.
+4. Deploy through the existing GitHub/Vercel integration. Verify a real hosted
+   GM session can retrieve the unchanged bytes; verify missing/invalid sessions
+   are rejected and unavailable/corrupt storage stays fail-closed. Then run the
+   Trade Machine cases in that hosted application. A green deployment alone is
+   not proof that the private data has been installed.
+
+The endpoint makes read requests only, rejects redirects, caps body size and
+upstream time, verifies the installed pin before responding, and disables browser
+and CDN caching. It never forwards storage credentials or upstream errors.
+Without hosting/storage access, record installation and hosted positive proof as
+blocked; do not publish the package in GitHub or a static Vite asset as a workaround.
 
 Select a first-round entitlement in the normal Trade Machine. Its June 5
 starting-position review distinguishes recorded grants, future exercise
@@ -44,6 +75,11 @@ authority. The proof uses emulator-only presentation worlds, the installed
 product loader, all nine changed states at 1280×720, reload/stale-response/date
 checks, and saved-state comparisons proving review creates no writes. Keep its
 source-bearing manifest, trace, cases, and projection in private Linear.
+The browser proof also checks that the existing session token accompanies API
+requests. It uses the local read service; the separate Node HTTP adapter test
+can load the real private file with `SCOUTZERO_DRAFT_REVIEW_RELEASE` and prove
+exact byte delivery with controlled auth/storage responses. Neither test claims
+to verify an actual hosted Firebase session or installed Vercel Blob object.
 This review does not complete the outstanding source closure or V1 gates.
 
 ---

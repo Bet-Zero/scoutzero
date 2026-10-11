@@ -91,6 +91,13 @@ test('real retained picks render scoped results without writes or stale review',
     { uid, worldId: REAL_DRAFT_WORLD }
   );
   const results = [];
+  const sessionRequests: boolean[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/architect/draft-review')
+      sessionRequests.push(
+        /^Bearer \S+$/.test(request.headers().authorization || '')
+      );
+  });
   for (const scenario of cases.cases) {
     await seedRealDraftReviewWorld(uid, scenario, cases.asOfDate);
     const before = await savedRealDraftState();
@@ -149,6 +156,8 @@ test('real retained picks render scoped results without writes or stale review',
       await page.unrouteAll();
     }
   }
+  expect(sessionRequests.length).toBeGreaterThan(0);
+  expect(sessionRequests.every(Boolean)).toBe(true);
   fs.writeFileSync(
     path.join(proofDir, 'proof.json'),
     JSON.stringify(
@@ -163,6 +172,7 @@ test('real retained picks render scoped results without writes or stale review',
         staleSelectionRemoved: true,
         effectiveDateMismatch: true,
         unavailable: true,
+        firebaseSessionAttached: true,
       },
       null,
       2
