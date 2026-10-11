@@ -102,4 +102,25 @@ describe('draft review session boundary', () => {
     );
     expect(view.result.current).not.toHaveProperty('review');
   });
+  it('discards a response already in flight when the session changes', async () => {
+    session.user = { uid: 'gm-a', getIdToken: async () => 'token-a' };
+    let deliver!: (response: Response) => void;
+    const request = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          deliver = resolve;
+        })
+    );
+    vi.stubGlobal('fetch', request);
+    const view = renderHook(hook);
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    session.user = null;
+    view.rerender();
+    await act(async () => deliver(new Response('{}')));
+    expect(view.result.current).not.toHaveProperty('review');
+    expect(view.result.current).toHaveProperty(
+      'error',
+      'Sign in to load the retained pick review.'
+    );
+  });
 });
