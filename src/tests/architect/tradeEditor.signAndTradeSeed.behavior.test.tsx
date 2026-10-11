@@ -19,6 +19,11 @@ vi.mock('react-hot-toast', () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }),
 }));
 
+// The retained-review session boundary has its own focused tests.
+vi.mock('@/shared/hooks/useAuth', () => ({
+  useAuth: () => ({ user: null, userId: null, loading: false }),
+}));
+
 vi.mock('@/features/architect/hooks/useTradeMachine', () => ({
   useTradeMachine: harness.useTradeMachineMock,
 }));
