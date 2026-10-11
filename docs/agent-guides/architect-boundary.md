@@ -37,6 +37,19 @@ split it into a separately flagged issue — never absorb it silently.
 
 ## Owner gates
 
+- Draft-pick application data uses ScoutZero's existing Firebase/Firestore
+  architecture; first-party Firebase Storage is permitted for immutable release
+  files when needed. Vercel hosts the app, not a separate draft-data store.
+  Linear is development coordination/private evidence retention only, never a
+  product runtime dependency. A missing credential cannot authorize another
+  provider. Owner directions: BZE-321 comments `3a7a53b0-f6a5-4e12-a538-7223492e126b`
+  and `2c01c2f2-7a28-47c1-8ed4-3d9b5e38989b`.
+- Draft-data delivery reviews must trace the actual client, endpoint and data
+  source against this architecture. Security checks or a code-level ACCEPT do
+  not approve a provider choice. Production source writes, release publication,
+  saved-world adoption and first-round Apply keep their separate authorization
+  gates. Hosted read/review proof is required before landing hosted delivery.
+
 - Nothing subjective (visual/layout/copy) ships without owner sign-off on
   screenshots. Branch-mode UI work stays off main until approval.
 - Owner reviews at **1280×720**; screenshot every changed room at that size

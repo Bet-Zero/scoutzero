@@ -19,6 +19,11 @@ import '@testing-library/jest-dom/vitest';
 
 const useTradeMachineMock = vi.fn();
 
+// The retained-review session boundary has its own focused tests.
+vi.mock('@/shared/hooks/useAuth', () => ({
+  useAuth: () => ({ user: null, userId: null, loading: false }),
+}));
+
 vi.mock('@/features/architect/hooks/useTradeMachine', () => ({
   useTradeMachine: (...args: unknown[]) => useTradeMachineMock(...args),
 }));

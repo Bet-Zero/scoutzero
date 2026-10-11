@@ -18,8 +18,155 @@ the repository and start the existing development/review server with
 The Vite read service returns only that exact installed projection. It never
 bundles the package into public assets, retrieves raw source bodies, adopts a
 release into Firestore, or enables first-round Apply. An absent or changed
-installation shows a needs-input result. Static hosted builds do not install
-this private read service automatically.
+installation shows a needs-input result.
+
+The hosted application keeps the same Node endpoint at
+`/api/architect/draft-review`. Vercel hosts the app; **Firebase/Firestore is the
+only product data source**. Linear retains development evidence and is never
+queried by the product. The browser supplies its existing Firebase ID token.
+Google's project-keyed lookup validates that exact session; Firestore then
+applies its security rules to read requests using that same token. Existing
+anonymous GM sessions can read the derived projection. No admin/storage secret
+is needed, and production never consults emulator configuration.
+
+The endpoint reads one exact version from
+`architect_draftPickReleases/<payloadSha256>`, then its four `parts/0` through
+`parts/3` documents. The unchanged 1,608,904-byte projection exceeds Firestore's
+1 MiB document limit; 512 KiB binary parts fit safely within it. The manifest
+binds format, payload and inventory hashes, acceptance reference, byte length,
+part size and count. Parts bind index and payload identity. There is no `latest`
+pointer, external URL, provider selector, or source fallback. Full byte length
+and SHA-256 must match before a response is sent. A hash authenticates the
+retained artifact, not missing basketball facts or publication permission.
+
+Firestore rules permit authenticated individual reads and deny client listing,
+create, update and delete. Unknown paths and parts without a manifest fail
+closed. These rules are code only until separately authorized deployment.
+Nothing here modifies `architect_baseEntitlements`, other source collections,
+saved worlds, or first-round Apply.
+
+Release preparation and gated deployment:
+
+1. The agent may recover the unchanged derived projection from private evidence
+   for development and offline preparation. Never ship raw sources, claim maps,
+   cases or traces as product data. Prepare a private, non-overwriting document
+   bundle without network access:
+
+   ```bash
+   npm run architect:draft-review:prepare -- /private/real-draft-review.json /private/firestore-release.json
+   ```
+
+2. Production publication and rule deployment require separate owner authority.
+   The October 11 continuation grants that authority for this exact reviewed
+   release and its narrow read-only rules only. Access and live verification
+   remain unsatisfied; no broader release or source write is authorized.
+   The prepared bundle is reviewable input, not an installed release.
+   A qualified, authorized publisher must create the four parts and
+   manifest at their exact immutable IDs, with no overwrite; publish the
+   manifest last. Do not run production push/admin/source pipeline commands or
+   repurpose protected source collections. Later releases require their own
+   qualification, publication gate and code pin; never silently replace one.
+3. After that authorization and scoped Firebase access, deploy the narrow rules
+   and publish only the accepted derived version. Keep the app's existing
+   `VITE_FIREBASE_PROJECT_ID=scoutzero-bf1ae` and `VITE_FIREBASE_API_KEY`.
+   No new provider credentials or environment-based data endpoint is accepted.
+4. Use the existing GitHub/Vercel app deployment. Prove real hosted Firebase
+   authentication, exact release bytes, unsigned/invalid/foreign-session
+   rejection, and the Trade Machine GM review flow with no world/source writes.
+   A green preview build or emulator proof does not establish live delivery.
+   Keep the PR unmerged until authorized installation and hosted proof pass.
+
+### Keyless GitHub connection for this installation
+
+The owner confirmed there is no Firebase credential in repository Actions or
+the Production environment; do not request additional GitHub metadata access.
+Use Google Cloud Workload Identity Federation with service-account impersonation.
+The account is `scoutzero-draft-release@scoutzero-bf1ae.iam.gserviceaccount.com`;
+the pool/provider is `scoutzero-bze321/github`. These are proposed configuration
+identifiers until an authorized administrator creates/verifies them, not a claim
+of a live connection. No private key or permanent credential file is needed.
+
+`scripts/architect/draftReviewCloudConnection.ts` produces the exact public IAM
+configuration from a verified project number and independently accepted commit.
+An agent with authorized project IAM access performs the bootstrap. This coding
+session exposes credential status but no Google Cloud authorization control or
+interactive browser. Do not ask the owner to enable a nonexistent connection
+setting. Without agent IAM access, the project owner must create the scoped
+connection in Google Cloud Console using the exact reviewed configuration.
+Provide copy-ready Console fields, not CLI commands or credential requests.
+
+- Project number `105500121903` is recorded in the existing Firebase web app
+  configuration and was confirmed through Identity Toolkit's live project
+  response. It is now set in `.github/workflows/draft-review-cloud.yml`.
+  This public identifier is not an authenticated production inspection.
+- Generate the plan for that exact accepted head. Create the dedicated pool,
+  OIDC provider, service account and custom role only if absent. Compare any
+  existing configuration first; stop on an unexpected collision. Enable only
+  the required IAM Credentials/STS/Firestore/Rules APIs if necessary; do not
+  create a database or change its configuration.
+- Apply the plan's account and project bindings by merging into current IAM
+  policies with their etags. Never replace unrelated bindings. The bootstrap
+  identity needs IAM setup authority; the runtime account does not receive it.
+  Re-read the installed provider and compare its complete attribute condition
+  with the generated plan for the accepted SHA before relying on authentication.
+- Provider trust requires the immutable repository and owner IDs, repository
+  name, exact branch/workflow, Production environment subject, push event and
+  accepted commit SHA together. Forks, PR merge refs, other workflows and later
+  commits cannot reuse the grant. GitHub repository names alone are insufficient.
+- The initial custom role allows database/document and Rules reads only. The
+  document-read permission covers the whole database, including source and
+  saved-world documents; IAM does not restrict it to the five release paths.
+  The reviewed preflight itself requests only those five document paths.
+  The plan separately lists publication permissions; add those only after publisher
+  review and the corresponding exact-commit trust update. Even then the account
+  has no document update/delete, IAM administration, key creation or index
+  management privileges. Document creation is not collection-scoped: IAM alone
+  cannot prevent creating a new source or world document. It cannot narrow
+  entity permissions to five document paths:
+  the reviewed publisher must additionally enforce the fixed paths and
+  create-only preconditions. Do not claim IAM itself supplies that path boundary.
+
+The workflow has the verified public project number, but Google IAM setup is
+still required. Its authentication failure before that setup is an access gate,
+not a passing cloud proof. Once IAM is installed, rerun the push run for the
+accepted commit. The provider's commit
+restriction must match that run; do not widen it just to make a run pass.
+The pinned Google action obtains a ten-minute OAuth token in runner memory with
+`create_credentials_file: false`. Checkout persists no GitHub credential and
+dependency lifecycle scripts are disabled before authentication.
+
+The only post-authentication command is a GET-only preflight. It checks the
+actual native Firestore database, active rules release, ruleset and all five
+immutable document paths. Active rules must exactly match the accepted base or
+approved rules; unknown drift stops without replacement. Existing documents
+must be wholly absent or reconstruct the exact accepted payload. Partial or
+conflicting installation stops for agent investigation, never overwrite.
+Logs contain only safe status/hashes, not tokens, rules bodies or private data.
+
+This workflow cannot install data or rules. After its live read passes, the
+agent must still perform the authorized create-only installation using a
+reviewed publisher and a separately pinned trust update. The private projection
+must not be committed or uploaded as a public GitHub artifact; GitHub execution
+does not relax existing private-evidence handling. Remove this lane's trust or
+disable its provider after the installation assignment is complete. Do not
+turn it into a general production deployment service.
+
+References: [Google's GitHub federation setup](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines)
+and [Firebase CI authentication](https://firebase.google.com/docs/cli#cli-ci-systems).
+
+The endpoint makes GET requests for data only, rejects redirects, bounds each
+response and upstream time, and disables browser/CDN caching. Provider errors
+never reach the browser. Unavailable/invalid releases remain needs-input. Missing
+access must be reported precisely; it never permits another data provider,
+a static public copy, or an unapproved production publication.
+
+Architecture enforcement: the mandatory CI guard walks the actual endpoint
+import closure and network call sites, rejects new provider dependencies and
+non-Firebase release calls, and checks the client still uses the same-origin
+endpoint. Its negative cases include the rejected Blob approach and Linear
+runtime access. Transport tests separately inspect every effective request URL,
+method and credential. The governing Architect boundary requires independent
+review to trace this actual flow against both owner architecture comments.
 
 Select a first-round entitlement in the normal Trade Machine. Its June 5
 starting-position review distinguishes recorded grants, future exercise
@@ -44,6 +191,13 @@ authority. The proof uses emulator-only presentation worlds, the installed
 product loader, all nine changed states at 1280×720, reload/stale-response/date
 checks, and saved-state comparisons proving review creates no writes. Keep its
 source-bearing manifest, trace, cases, and projection in private Linear.
+The browser proof also checks that the existing session token accompanies API
+requests. It uses the local read service; the separate Node HTTP adapter test
+can load the real private file with `SCOUTZERO_DRAFT_REVIEW_RELEASE` and prove
+exact byte delivery with controlled Google/Firestore responses. The Firestore
+emulator gate checks authenticated reads and denied writes with the actual rules;
+its optional private-file case reconstructs all real bytes. None of these proofs
+substitutes for an actual hosted Firebase session and authorized release.
 This review does not complete the outstanding source closure or V1 gates.
 
 ---
