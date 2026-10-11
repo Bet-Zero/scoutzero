@@ -31,6 +31,6 @@ jobs:
       contents: read
       actions: read
       id-token: write
-    uses: Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@0fb1b922164519002175a32b933d240db6ba5b03
+    uses: Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@65f335f409a49dbb02163beb9e1a8969e18036ae
     with:
       operation: ${{ needs.request.outputs.operation }}
