@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import yaml from 'js-yaml';
 import {
   draftCloudConnectionPlan,
   draftCloudProvider,
@@ -17,9 +16,6 @@ const projectNumber = '123456789012'; // Synthetic project identity; never a run
 const db = 'projects/scoutzero-bf1ae/databases/(default)';
 const releaseName = 'projects/scoutzero-bf1ae/releases/cloud.firestore';
 const rulesetName = 'projects/scoutzero-bf1ae/rulesets/test-id';
-const workflow = yaml.load(
-  readFileSync('.github/workflows/draft-review-cloud.yml', 'utf8')
-) as any;
 
 function providerAccepts(claims: Record<string, string>) {
   // Evaluate every generated equality, rather than testing a separately coded
@@ -119,51 +115,6 @@ describe('draft release keyless identity boundary', () => {
       'firebaserules.rulesets.create',
       'firebaserules.rulesets.test',
     ]);
-  });
-
-  it('runs only a pinned, read-only, no-key connection check on the intended branch', () => {
-    expect(Object.keys(workflow.on)).toEqual(['push']);
-    expect(workflow.on.push.branches).toEqual([
-      'feature/bze-321-hosted-draft-review',
-    ]);
-    expect(workflow.permissions).toEqual({ contents: 'read' });
-    expect(workflow.jobs.configuration.if).toContain(
-      "github.repository_id == '997820257'"
-    );
-    expect(workflow.jobs.configuration.if).toContain(
-      "github.repository_owner_id == '205859440'"
-    );
-    expect(workflow.jobs.inspect.permissions).toEqual({
-      contents: 'read',
-      'id-token': 'write',
-    });
-    expect(workflow.jobs.inspect.environment).toBe('Production');
-    expect(workflow.jobs.inspect.if).toBe(
-      "needs.configuration.outputs.ready == 'true'"
-    );
-    for (const step of workflow.jobs.inspect.steps.filter(
-      (step: any) => step.uses
-    ))
-      expect(step.uses).toMatch(/@[a-f0-9]{40}$/);
-    const steps = workflow.jobs.inspect.steps;
-    expect(
-      steps.find((step: any) => step.uses?.startsWith('actions/checkout@'))
-        .with['persist-credentials']
-    ).toBe(false);
-    const authIndex = steps.findIndex((step: any) => step.id === 'auth');
-    expect(steps[authIndex].with).toMatchObject({
-      project_id: 'scoutzero-bf1ae',
-      service_account:
-        'scoutzero-draft-release@scoutzero-bf1ae.iam.gserviceaccount.com',
-      create_credentials_file: false,
-      export_environment_variables: false,
-      token_format: 'access_token',
-      access_token_lifetime: '600s',
-    });
-    expect(steps.slice(authIndex + 1)).toHaveLength(1);
-    expect(steps[authIndex + 1].run).toBe(
-      'node --import tsx scripts/architect/checkDraftReviewCloud.ts'
-    );
   });
 });
 

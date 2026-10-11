@@ -62,8 +62,7 @@ Release preparation and gated deployment:
    remain unsatisfied; no broader release or source write is authorized.
    The prepared bundle is reviewable input, not an installed release.
    A qualified, authorized publisher must create the four parts and
-   manifest at their exact immutable IDs, with no overwrite; publish the
-   manifest last. Do not run production push/admin/source pipeline commands or
+   manifest at their exact immutable IDs in one atomic create-only commit. Do not run production push/admin/source pipeline commands or
    repurpose protected source collections. Later releases require their own
    qualification, publication gate and code pin; never silently replace one.
 3. After that authorization and scoped Firebase access, deploy the narrow rules
@@ -76,94 +75,34 @@ Release preparation and gated deployment:
    A green preview build or emulator proof does not establish live delivery.
    Keep the PR unmerged until authorized installation and hosted proof pass.
 
-### Keyless GitHub connection for this installation
+### Bounded keyless installation workflow
 
-The owner confirmed there is no Firebase credential in repository Actions or
-the Production environment; do not request additional GitHub metadata access.
-Use Google Cloud Workload Identity Federation with service-account impersonation.
-The account is `scoutzero-draft-release@scoutzero-bf1ae.iam.gserviceaccount.com`;
-the pool/provider is `scoutzero-bze321/github`. These are proposed configuration
-identifiers until an authorized administrator creates/verifies them, not a claim
-of a live connection. No private key or permanent credential file is needed.
+The sustainable connection and exact owner setup are described in
+[BZE-321 Firebase installation](BZE321_FIREBASE_INSTALLATION.md). Google trust
+pins the reusable worker, not each application commit. Inspection and publication
+use separate identities and protected GitHub environments. That configuration is
+proposed until explicitly authorized and installed; no new permissions were
+granted while preparing it.
 
-`scripts/architect/draftReviewCloudConnection.ts` produces the exact public IAM
-configuration from a verified project number and independently accepted commit.
-An agent with authorized project IAM access performs the bootstrap. This coding
-session exposes credential status but no Google Cloud authorization control or
-interactive browser. Do not ask the owner to enable a nonexistent connection
-setting. Without agent IAM access, the project owner must create the scoped
-connection in Google Cloud Console using the exact reviewed configuration.
-Provide copy-ready Console fields, not CLI commands or credential requests.
+Inspection retains actual production rules in an encrypted evidence artifact,
+even when their bytes differ from the repository. The agent decrypts and compares
+them privately, preserves legitimate production behavior, tests the exact additive
+candidate, and obtains independent acceptance before requesting publication
+approval. The old hash-only result is not a semantic diagnosis of production.
 
-- Project number `105500121903` is recorded in the existing Firebase web app
-  configuration and was confirmed through Identity Toolkit's live project
-  response. It is now set in `.github/workflows/draft-review-cloud.yml`.
-  This public identifier is not an authenticated production inspection.
-- Generate the plan for that exact accepted head. Create the dedicated pool,
-  OIDC provider, service account and custom role only if absent. Compare any
-  existing configuration first; stop on an unexpected collision. Enable only
-  the required IAM Credentials/STS/Firestore/Rules APIs if necessary; do not
-  create a database or change its configuration.
-- Apply the plan's account and project bindings by merging into current IAM
-  policies with their etags. Never replace unrelated bindings. The bootstrap
-  identity needs IAM setup authority; the runtime account does not receive it.
-  Re-read the installed provider and compare its complete attribute condition
-  with the generated plan for the accepted SHA before relying on authentication.
-- Provider trust requires the immutable repository and owner IDs, repository
-  name, exact branch/workflow, Production environment subject, push event and
-  accepted commit SHA together. Forks, PR merge refs, other workflows and later
-  commits cannot reuse the grant. GitHub repository names alone are insufficient.
-- The initial custom role allows database/document and Rules reads only. The
-  document-read permission covers the whole database, including source and
-  saved-world documents; IAM does not restrict it to the five release paths.
-  The reviewed preflight itself requests only those five document paths.
-  The plan separately lists publication permissions; add those only after publisher
-  review and the corresponding exact-commit trust update. Even then the account
-  has no document update/delete, IAM administration, key creation or index
-  management privileges. Document creation is not collection-scoped: IAM alone
-  cannot prevent creating a new source or world document. It cannot narrow
-  entity permissions to five document paths:
-  the reviewed publisher must additionally enforce the fixed paths and
-  create-only preconditions. Do not claim IAM itself supplies that path boundary.
+Publication reads one approved, generation-pinned private installation object
+from the existing Firebase Storage bucket. The installed application continues
+to use only Firestore. The installer validates all five fixed document paths and
+the unchanged payload, preserves every byte of the existing rules, tests release
+permissions, rechecks the active ruleset, and commits all five absent records
+atomically with create-only preconditions. Matching completed installation is a
+no-op; conflicting/partial data is never overwritten. No source collection or
+saved world is a publication target.
 
-The workflow has the verified public project number, but Google IAM setup is
-still required. Its authentication failure before that setup is an access gate,
-not a passing cloud proof. Once IAM is installed, rerun the push run for the
-accepted commit. The provider's commit
-restriction must match that run; do not widen it just to make a run pass.
-The pinned Google action obtains a ten-minute OAuth token in runner memory with
-`create_credentials_file: false`. Checkout persists no GitHub credential and
-dependency lifecycle scripts are disabled before authentication.
-
-The only post-authentication command is a GET-only preflight. It checks the
-actual native Firestore database, active rules release, ruleset and all five
-immutable document paths. Active rules must exactly match the accepted base or
-approved rules; unknown drift stops without replacement. Existing documents
-must be wholly absent or reconstruct the exact accepted payload. Partial or
-conflicting installation stops for agent investigation, never overwrite.
-Logs contain only safe status/hashes, not tokens, rules bodies or private data.
-Failures identify the local inspection stage, a fixed error code, HTTP status
-when available and only an allowlisted Google reason such as `SERVICE_DISABLED`.
-Unknown exception text, response messages/metadata and stack traces are never
-published. A successful token exchange followed by a failed preflight proves
-the connection works, not that production configuration passed inspection.
-
-The provider's exact-commit condition also fences diagnostic repairs. After
-such a repair passes CI and independent review, the project owner must update
-only its `assertion.sha` value to the accepted commit before that new code can
-authenticate. Keep all other trust clauses and read-only permissions intact;
-do not bypass the pin or grant write access to investigate an inspection error.
-
-This workflow cannot install data or rules. After its live read passes, the
-agent must still perform the authorized create-only installation using a
-reviewed publisher and a separately pinned trust update. The private projection
-must not be committed or uploaded as a public GitHub artifact; GitHub execution
-does not relax existing private-evidence handling. Remove this lane's trust or
-disable its provider after the installation assignment is complete. Do not
-turn it into a general production deployment service.
-
-References: [Google's GitHub federation setup](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-deployment-pipelines)
-and [Firebase CI authentication](https://firebase.google.com/docs/cli#cli-ci-systems).
+CI/emulator success does not establish production access or hosted behavior.
+Keep PR #547 open until authenticated hosted GM review and denial/failure states
+are proven against real Firebase. All 278 entitlements and 29 unresolved V1
+evidence requirements remain mandatory; first-round Apply stays disabled.
 
 The endpoint makes GET requests for data only, rejects redirects, bounds each
 response and upstream time, and disables browser/CDN caching. Provider errors
@@ -240,16 +179,16 @@ npm run draft-picks:assets-manual-check  # Generate clean manual check output
 
 ## What Each Command Does
 
-| Command                     | Description                                                      |
-| --------------------------- | ---------------------------------------------------------------- |
-| `draft-picks:scrape`        | Scrape RealGM draft picks for all 30 teams                       |
-| `draft-picks:build`         | Build ledger from mentions + build draft assets (no audits)      |
-| `draft-picks:reports`       | Generate TSV counts and MD pick lists for manual verification    |
-| `draft-picks:audits`        | Run semantic, recipient inventory, and draft assets audits       |
-| `draft-picks:verify`        | Build + Reports + Audits (no scrape, uses existing mentions)     |
-| `draft-picks:scrape-verify` | Scrape + verify (full end-to-end)                                |
-| `draft-picks:assets-manual-check` | Generate clean one-line-per-pick manual check output       |
-| `team:publish`              | Stage and push all teams to Firestore (runs stage:team + push)   |
+| Command                           | Description                                                    |
+| --------------------------------- | -------------------------------------------------------------- |
+| `draft-picks:scrape`              | Scrape RealGM draft picks for all 30 teams                     |
+| `draft-picks:build`               | Build ledger from mentions + build draft assets (no audits)    |
+| `draft-picks:reports`             | Generate TSV counts and MD pick lists for manual verification  |
+| `draft-picks:audits`              | Run semantic, recipient inventory, and draft assets audits     |
+| `draft-picks:verify`              | Build + Reports + Audits (no scrape, uses existing mentions)   |
+| `draft-picks:scrape-verify`       | Scrape + verify (full end-to-end)                              |
+| `draft-picks:assets-manual-check` | Generate clean one-line-per-pick manual check output           |
+| `team:publish`                    | Stage and push all teams to Firestore (runs stage:team + push) |
 
 ---
 
@@ -257,27 +196,27 @@ npm run draft-picks:assets-manual-check  # Generate clean manual check output
 
 All audits write to: `team-scrape/draft-picks/_artifacts/audits/`
 
-| Audit                        | Report File                                    |
-| ---------------------------- | ---------------------------------------------- |
-| Semantic Assertions          | `semantic_assertions_report.json`              |
-| Recipient Inventory Invariant | `recipient_inventory_invariant_report.json`   |
-| Draft Assets Invariant       | `draft_assets_invariant_report.json`           |
+| Audit                         | Report File                                 |
+| ----------------------------- | ------------------------------------------- |
+| Semantic Assertions           | `semantic_assertions_report.json`           |
+| Recipient Inventory Invariant | `recipient_inventory_invariant_report.json` |
+| Draft Assets Invariant        | `draft_assets_invariant_report.json`        |
 
 ---
 
 ## Verification Outputs
 
-| Output Type      | Location                                                                            |
-| ---------------- | ----------------------------------------------------------------------------------- |
-| Mentions         | `team-scrape/draft-picks/_artifacts/output/mentions/`                               |
-| Structured picks | `team-scrape/draft-picks/_artifacts/output/structured/`                             |
-| Ledger (master)  | `team-scrape/shared/firestore_staging/_artifacts/output/ledger/pick_ledger.json`    |
-| Ledger (by team) | `team-scrape/shared/firestore_staging/_artifacts/output/ledger/by_team/{TEAM}.json` |
-| Draft assets     | `team-scrape/shared/firestore_staging/_artifacts/output/draft_assets/{TEAM}.json`   |
-| Staged baseTeams | `team-scrape/shared/firestore_staging/_artifacts/output/baseTeams/{TEAM}.json`      |
-| Audit reports    | `team-scrape/draft-picks/_artifacts/audits/`                                        |
-| Draft Asset Review | `team-scrape/draft-picks/_artifacts/audits/draft_assets_team_lists.md`            |
-| **Manual Check** | `team-scrape/draft-picks/_artifacts/audits/draft_assets_manual_check.md`            |
+| Output Type        | Location                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------- |
+| Mentions           | `team-scrape/draft-picks/_artifacts/output/mentions/`                               |
+| Structured picks   | `team-scrape/draft-picks/_artifacts/output/structured/`                             |
+| Ledger (master)    | `team-scrape/shared/firestore_staging/_artifacts/output/ledger/pick_ledger.json`    |
+| Ledger (by team)   | `team-scrape/shared/firestore_staging/_artifacts/output/ledger/by_team/{TEAM}.json` |
+| Draft assets       | `team-scrape/shared/firestore_staging/_artifacts/output/draft_assets/{TEAM}.json`   |
+| Staged baseTeams   | `team-scrape/shared/firestore_staging/_artifacts/output/baseTeams/{TEAM}.json`      |
+| Audit reports      | `team-scrape/draft-picks/_artifacts/audits/`                                        |
+| Draft Asset Review | `team-scrape/draft-picks/_artifacts/audits/draft_assets_team_lists.md`              |
+| **Manual Check**   | `team-scrape/draft-picks/_artifacts/audits/draft_assets_manual_check.md`            |
 
 ---
 

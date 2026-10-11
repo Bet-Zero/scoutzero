@@ -96,13 +96,25 @@ export function draftCloudFailureSummary(error: unknown) {
 /** GET-only preflight. No writes, provider selection, raw output, or credential files. */
 export async function inspectDraftReviewCloud(
   accessToken: string,
-  request: typeof fetch = fetch
+  request: typeof fetch = fetch,
+  evidence?: {
+    retain: (snapshot: {
+      rulesetName: string;
+      content: string;
+      sha256: string;
+    }) => void;
+  }
 ) {
   let stage: Stage = 'credential';
   try {
-    return await inspect(accessToken, request, (next) => {
-      stage = next;
-    });
+    return await inspect(
+      accessToken,
+      request,
+      (next) => {
+        stage = next;
+      },
+      evidence
+    );
   } catch (error) {
     throw new CloudPreflightFailure(stage, error);
   }
@@ -111,7 +123,14 @@ export async function inspectDraftReviewCloud(
 async function inspect(
   accessToken: string,
   request: typeof fetch,
-  setStage: (stage: Stage) => void
+  setStage: (stage: Stage) => void,
+  evidence?: {
+    retain: (snapshot: {
+      rulesetName: string;
+      content: string;
+      sha256: string;
+    }) => void;
+  }
 ) {
   if (!accessToken || /\s/.test(accessToken))
     throw new Error('A short-lived Google Cloud access token is required.');
@@ -207,7 +226,12 @@ async function inspect(
     throw new Error('Unexpected production ruleset.');
   setStage('rules-compatibility');
   const rulesSha256 = sha(files[0].content);
-  if (![BASE_RULES_SHA, APPROVED_RULES_SHA].includes(rulesSha256))
+  evidence?.retain({
+    rulesetName: release.rulesetName,
+    content: files[0].content,
+    sha256: rulesSha256,
+  });
+  if (!evidence && ![BASE_RULES_SHA, APPROVED_RULES_SHA].includes(rulesSha256))
     throw new Error(
       'Production rules differ; inspect drift before any deployment.'
     );
@@ -255,7 +279,9 @@ async function inspect(
     rules:
       rulesSha256 === APPROVED_RULES_SHA
         ? 'approved-installed'
-        : 'accepted-base',
+        : rulesSha256 === BASE_RULES_SHA
+          ? 'accepted-base'
+          : 'different-preserved-for-review',
     documents: present ? 'approved-installed' : 'absent',
     writesPerformed: 0,
   };

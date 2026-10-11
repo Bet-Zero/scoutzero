@@ -51,7 +51,12 @@ beforeAll(async () => {
     firestore: {
       host,
       port: Number(port),
-      rules: readFileSync('firestore.rules', 'utf8'),
+      // The same permission proof can validate a privately captured production
+      // baseline plus the exact reviewed addition before publication approval.
+      rules: readFileSync(
+        process.env.SCOUTZERO_DRAFT_REVIEW_RULES ?? 'firestore.rules',
+        'utf8'
+      ),
     },
   });
   await env.withSecurityRulesDisabled(async (context) => {
