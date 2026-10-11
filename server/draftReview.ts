@@ -1,10 +1,13 @@
-import { createHash } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { REAL_DRAFT_REVIEW_PIN } from '../src/features/architect/utils/draftPickRealReviewPin.js';
-
-export const DRAFT_REVIEW_BLOB_PATH = `/architect/draft-review/${REAL_DRAFT_REVIEW_PIN.payloadSha256}.json`;
-const PROJECT_ID = 'scoutzero-bf1ae';
-const MAX_RELEASE_BYTES = 2 * 1024 * 1024;
+import {
+  DRAFT_REVIEW_PROJECT_ID as PROJECT_ID,
+  DRAFT_REVIEW_DOCUMENT,
+  DRAFT_REVIEW_PART_COUNT,
+  draftReviewPartDocument,
+  verifyDraftReviewManifest,
+  readDraftReviewPart,
+  verifyDraftReviewBytes,
+} from './draftReviewFirestore.js';
 
 // Rejection filter only. Google's lookup below must still validate this exact
 // token. The filter also prevents a misconfigured API key accepting another app.
@@ -25,23 +28,6 @@ function sessionSubject(token: string): string | null {
   } catch {
     return null;
   }
-}
-
-/** No raw evidence, user-selected URLs, or replacement authority pins. */
-export function privateDraftReviewUrl(value: string): URL {
-  const url = new URL(value);
-  if (
-    url.protocol !== 'https:' ||
-    !/^[a-z0-9-]+\.private\.blob\.vercel-storage\.com$/.test(url.hostname) ||
-    url.port ||
-    url.username ||
-    url.password ||
-    url.search ||
-    url.hash ||
-    url.pathname !== DRAFT_REVIEW_BLOB_PATH
-  )
-    throw new Error('Invalid private release location');
-  return url;
 }
 
 async function boundedBody(
@@ -103,12 +89,8 @@ export async function serveDraftReview(
   }
   try {
     const apiKey = env.VITE_FIREBASE_API_KEY;
-    const blobToken = env.BLOB_READ_WRITE_TOKEN;
-    if (!apiKey || !blobToken || env.VITE_FIREBASE_PROJECT_ID !== PROJECT_ID)
+    if (!apiKey || env.VITE_FIREBASE_PROJECT_ID !== PROJECT_ID)
       throw new Error('Hosted review is not configured');
-    const blobUrl = privateDraftReviewUrl(
-      env.SCOUTZERO_DRAFT_REVIEW_BLOB_URL || ''
-    );
 
     // Google's project-keyed lookup validates the existing Firebase ID token.
     // Never consult emulator variables or accept a locally decoded JWT as proof.
@@ -149,20 +131,34 @@ export async function serveDraftReview(
       return;
     }
 
-    // Private Vercel Blob GET protocol. The storage token never reaches clients
-    // or redirects; only this immutable derived projection can be retrieved.
-    const response = await request(blobUrl, {
-      headers: { Authorization: `Bearer ${blobToken}` },
-      redirect: 'error',
-      cache: 'no-store',
-      signal: AbortSignal.timeout(10000),
-    });
-    const bytes = await boundedBody(response, MAX_RELEASE_BYTES);
-    if (
-      createHash('sha256').update(bytes).digest('hex') !==
-      REAL_DRAFT_REVIEW_PIN.payloadSha256
-    )
-      throw new Error('Unrecognized release');
+    // Use the caller's Firebase session: Firestore rules remain authoritative.
+    // No service/admin credential, provider URL, emulator or mutable latest alias.
+    const readDocument = async (name: string, limit: number) => {
+      const response = await request(
+        `https://firestore.googleapis.com/v1/${name}`,
+        {
+          method: 'GET',
+          headers: { Authorization: authorization },
+          redirect: 'error',
+          cache: 'no-store',
+          signal: AbortSignal.timeout(10000),
+        }
+      );
+      return JSON.parse(
+        (await boundedBody(response, limit)).toString('utf8')
+      ) as unknown;
+    };
+    verifyDraftReviewManifest(await readDocument(DRAFT_REVIEW_DOCUMENT, 16384));
+    const parts = await Promise.all(
+      Array.from({ length: DRAFT_REVIEW_PART_COUNT }, async (_, index) =>
+        readDraftReviewPart(
+          await readDocument(draftReviewPartDocument(index), 750000),
+          index
+        )
+      )
+    );
+    const bytes = Buffer.concat(parts);
+    verifyDraftReviewBytes(bytes);
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.end(bytes);

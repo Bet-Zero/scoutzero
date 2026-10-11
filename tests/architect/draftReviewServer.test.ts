@@ -2,18 +2,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import handler from '../../api/architect/draft-review';
+import { serveDraftReview } from '../../server/draftReview';
 import {
-  DRAFT_REVIEW_BLOB_PATH,
-  privateDraftReviewUrl,
-  serveDraftReview,
-} from '../../server/draftReview';
+  DRAFT_REVIEW_DOCUMENT,
+  DRAFT_REVIEW_MANIFEST_FIELDS,
+  DRAFT_REVIEW_BYTE_LENGTH,
+  DRAFT_REVIEW_PART_BYTES,
+  DRAFT_REVIEW_PART_COUNT,
+  draftReviewPartDocument,
+  prepareDraftReviewDocuments,
+} from '../../server/draftReviewFirestore';
 
-const blobUrl = `https://store.private.blob.vercel-storage.com${DRAFT_REVIEW_BLOB_PATH}`;
 const configured = {
   VITE_FIREBASE_PROJECT_ID: 'scoutzero-bf1ae',
   VITE_FIREBASE_API_KEY: 'public-project-key',
-  BLOB_READ_WRITE_TOKEN: 'server-storage-secret',
-  SCOUTZERO_DRAFT_REVIEW_BLOB_URL: blobUrl,
 };
 // Deliberately unsigned fixture: only controlled Google responses authorize it.
 // Production must send the same token to Google; decoding alone grants nothing.
@@ -27,6 +29,34 @@ const fixtureToken = (value = claims) =>
 const authorization = `Bearer ${fixtureToken()}`;
 const account = () =>
   new Response(JSON.stringify({ users: [{ localId: 'gm' }] }));
+const manifest = () => ({
+  name: DRAFT_REVIEW_DOCUMENT,
+  fields: structuredClone(DRAFT_REVIEW_MANIFEST_FIELDS),
+});
+const jsonResponse = (value: unknown) => new Response(JSON.stringify(value));
+function fakeParts() {
+  return Array.from({ length: DRAFT_REVIEW_PART_COUNT }, (_, index) => ({
+    name: draftReviewPartDocument(index),
+    fields: {
+      payloadSha256: DRAFT_REVIEW_MANIFEST_FIELDS.payloadSha256,
+      index: { integerValue: String(index) },
+      bytes: {
+        bytesValue: Buffer.alloc(
+          Math.min(
+            DRAFT_REVIEW_PART_BYTES,
+            DRAFT_REVIEW_BYTE_LENGTH - index * DRAFT_REVIEW_PART_BYTES
+          )
+        ).toString('base64'),
+      },
+    },
+  }));
+}
+function releaseRequest(documents: unknown[] = [manifest(), ...fakeParts()]) {
+  const request = vi.fn<typeof fetch>().mockResolvedValueOnce(account());
+  for (const document of documents)
+    request.mockResolvedValueOnce(jsonResponse(document));
+  return request;
+}
 async function call(
   request = vi.fn<typeof fetch>(),
   options: {
@@ -103,31 +133,15 @@ describe('hosted draft review trust and delivery boundary', () => {
       expect((await call(request, { authorization })).statusCode).toBe(401);
     expect(request).not.toHaveBeenCalled();
   });
-  it('requires the expected Firebase project and a private, fixed object location', async () => {
+  it('requires the existing Firebase project and API key before data access', async () => {
     const request = vi.fn<typeof fetch>();
     for (const env of [
       {},
       { ...configured, VITE_FIREBASE_PROJECT_ID: 'foreign' },
-      { ...configured, BLOB_READ_WRITE_TOKEN: '' },
-      {
-        ...configured,
-        SCOUTZERO_DRAFT_REVIEW_BLOB_URL: 'http://localhost/file',
-      },
+      { ...configured, VITE_FIREBASE_API_KEY: '' },
     ])
       expect((await call(request, { env })).statusCode).toBe(503);
     expect(request).not.toHaveBeenCalled();
-    expect(privateDraftReviewUrl(blobUrl).href).toBe(blobUrl);
-    for (const url of [
-      blobUrl.replace('.private.', '.public.'),
-      blobUrl + '?pin=evil',
-      blobUrl + '#data',
-      blobUrl.replace('https:', 'http:'),
-      blobUrl.replace('https://', 'https://user:pass@'),
-      blobUrl.replace('/architect/', ':444/architect/'),
-      blobUrl.replace('.com/', '.com.evil.test/'),
-      blobUrl.replace(DRAFT_REVIEW_BLOB_PATH, '/different.json'),
-    ])
-      expect(() => privateDraftReviewUrl(url)).toThrow();
   });
   it.each([400, 401, 403])(
     'refuses invalid, expired or foreign-project tokens (%s) without reading storage',
@@ -158,28 +172,97 @@ describe('hosted draft review trust and delivery boundary', () => {
     expect((await call(request)).statusCode).toBe(401);
     expect(request).toHaveBeenCalledTimes(1);
   });
-  it('separates credentials and refuses a substituted release even if storage succeeds', async () => {
-    const request = vi
-      .fn<typeof fetch>()
-      .mockResolvedValueOnce(account())
-      .mockResolvedValueOnce(new Response('{"version":1,"records":[]}'));
-    const response = await call(request);
+  it('uses only same-project Firestore and caller identity; cannot redirect to an external release provider', async () => {
+    const request = releaseRequest(); // All parts have correct shape but unrecognized bytes.
+    const response = await call(request, {
+      env: {
+        ...configured,
+        SCOUTZERO_DRAFT_REVIEW_BLOB_URL: 'https://unapproved.example/release',
+        BLOB_READ_WRITE_TOKEN: 'must-never-be-used',
+        FIRESTORE_EMULATOR_HOST: 'unapproved.example:80',
+        FIREBASE_AUTH_EMULATOR_HOST: 'unapproved.example:80',
+      },
+    });
     expect(response.statusCode).toBe(503);
     expect(response.body).toBeUndefined();
-    const [authCall, storageCall] = request.mock.calls;
+    const [authCall, ...dataCalls] = request.mock.calls;
     expect(authCall[1]?.body).toBe(JSON.stringify({ idToken: fixtureToken() }));
     expect(authCall[1]?.headers).not.toHaveProperty('Authorization');
-    expect(String(storageCall[0])).toBe(blobUrl);
-    expect(storageCall[1]?.headers).toEqual({
-      Authorization: 'Bearer server-storage-secret',
-    });
+    expect(dataCalls.map(([url]) => String(url))).toEqual([
+      `https://firestore.googleapis.com/v1/${DRAFT_REVIEW_DOCUMENT}`,
+      ...Array.from(
+        { length: DRAFT_REVIEW_PART_COUNT },
+        (_, index) =>
+          `https://firestore.googleapis.com/v1/${draftReviewPartDocument(index)}`
+      ),
+    ]);
+    for (const [, options] of dataCalls) {
+      expect(options?.method).toBe('GET');
+      expect(options?.headers).toEqual({ Authorization: authorization });
+      expect(options?.body).toBeUndefined();
+    }
     for (const [, options] of request.mock.calls) {
       expect(options?.redirect).toBe('error');
       expect(options?.signal).toBeInstanceOf(AbortSignal);
       expect(options?.cache).toBe('no-store');
     }
   });
-  it.each([404, 500, 302])(
+  it('rejects every changed manifest identity and external location without fetching parts', async () => {
+    for (const field of Object.keys(DRAFT_REVIEW_MANIFEST_FIELDS)) {
+      const value = manifest();
+      Object.assign(value.fields, { [field]: { stringValue: 'substituted' } });
+      const request = releaseRequest([value]);
+      expect((await call(request)).statusCode).toBe(503);
+      expect(request).toHaveBeenCalledTimes(2);
+    }
+    for (const value of [
+      {
+        ...manifest(),
+        name: DRAFT_REVIEW_DOCUMENT.replace('scoutzero-bf1ae', 'foreign'),
+      },
+      {
+        ...manifest(),
+        fields: {
+          ...manifest().fields,
+          url: { stringValue: 'https://unapproved.example/release' },
+        },
+      },
+    ]) {
+      const request = releaseRequest([value]);
+      expect((await call(request)).statusCode).toBe(503);
+      expect(request).toHaveBeenCalledTimes(2);
+    }
+  });
+  it('rejects missing, duplicated, reordered, truncated and malformed parts', async () => {
+    for (const change of [
+      (parts: ReturnType<typeof fakeParts>) => {
+        parts[1] = parts[0];
+      },
+      (parts: ReturnType<typeof fakeParts>) => {
+        [parts[0], parts[1]] = [parts[1], parts[0]];
+      },
+      (parts: ReturnType<typeof fakeParts>) => {
+        parts[0].fields.bytes.bytesValue = 'eA==';
+      },
+      (parts: ReturnType<typeof fakeParts>) => {
+        parts[0].fields.bytes.bytesValue += '!';
+      },
+      (parts: ReturnType<typeof fakeParts>) => {
+        parts[0].fields.payloadSha256 = { stringValue: 'foreign' };
+      },
+      (parts: ReturnType<typeof fakeParts>) => {
+        parts[0].fields.index.integerValue = '01';
+      },
+    ]) {
+      const parts = fakeParts();
+      change(parts);
+      expect(
+        (await call(releaseRequest([manifest(), ...parts]))).statusCode
+      ).toBe(503);
+    }
+    expect((await call(releaseRequest([manifest()]))).statusCode).toBe(503);
+  });
+  it.each([401, 403, 404, 500, 302])(
     'fails closed on unavailable or redirecting storage (%s)',
     async (status) => {
       const request = vi
@@ -216,10 +299,7 @@ describe('hosted draft review trust and delivery boundary', () => {
     async () => {
       const bytes = readFileSync(process.env.SCOUTZERO_DRAFT_REVIEW_RELEASE!);
       const nativeFetch = globalThis.fetch;
-      const upstream = vi
-        .fn<typeof fetch>()
-        .mockResolvedValueOnce(account())
-        .mockResolvedValueOnce(new Response(bytes));
+      const upstream = releaseRequest(prepareDraftReviewDocuments(bytes));
       vi.stubGlobal('fetch', upstream);
       for (const [key, value] of Object.entries(configured))
         vi.stubEnv(key, value);

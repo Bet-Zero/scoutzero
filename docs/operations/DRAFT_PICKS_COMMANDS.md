@@ -20,37 +20,73 @@ bundles the package into public assets, retrieves raw source bodies, adopts a
 release into Firestore, or enables first-round Apply. An absent or changed
 installation shows a needs-input result.
 
-The Vercel application has a separate Node endpoint at
-`/api/architect/draft-review`. Filesystem routing precedes the SPA fallback,
-and unknown API paths return 404 instead of HTML. The endpoint validates the
-existing Firebase ID token with Google's project-keyed account lookup before
-reading private storage. Existing anonymous GM sessions are supported; this is
-access to the derived product projection, not access to private Linear evidence.
-No local emulator configuration can redirect the production session check.
+The hosted application keeps the same Node endpoint at
+`/api/architect/draft-review`. Vercel hosts the app; **Firebase/Firestore is the
+only product data source**. Linear retains development evidence and is never
+queried by the product. The browser supplies its existing Firebase ID token.
+Google's project-keyed lookup validates that exact session; Firestore then
+applies its security rules to read requests using that same token. Existing
+anonymous GM sessions can read the derived projection. No admin/storage secret
+is needed, and production never consults emulator configuration.
 
-Hosting installation (performed by the agent/operator with hosting access):
+The endpoint reads one exact version from
+`architect_draftPickReleases/<payloadSha256>`, then its four `parts/0` through
+`parts/3` documents. The unchanged 1,608,904-byte projection exceeds Firestore's
+1 MiB document limit; 512 KiB binary parts fit safely within it. The manifest
+binds format, payload and inventory hashes, acceptance reference, byte length,
+part size and count. Parts bind index and payload identity. There is no `latest`
+pointer, external URL, provider selector, or source fallback. Full byte length
+and SHA-256 must match before a response is sent. A hash authenticates the
+retained artifact, not missing basketball facts or publication permission.
 
-1. Recover and verify the unchanged private projection from BZE-321 attachment
-   `524e6b98-ff1c-4d94-ae9e-53bd2c2106b4`. Its SHA-256 is
-   `3f288ba96decf716b25596510beb01d9f741781169e98e553d04c58409530671`.
-2. Install only that derived JSON in a **private** Vercel Blob store, at
-   `architect/draft-review/<sha256>.json`, with no random suffix. Keep all raw
-   source bodies, claim maps, browser traces and cases in private Linear.
-3. Configure server-only `SCOUTZERO_DRAFT_REVIEW_BLOB_URL` with the exact private
-   object URL and `BLOB_READ_WRITE_TOKEN` with the store credential. Retain the
-   application's existing `VITE_FIREBASE_PROJECT_ID=scoutzero-bf1ae` and
-   `VITE_FIREBASE_API_KEY`. Never give the storage variables a `VITE_` prefix.
-4. Deploy through the existing GitHub/Vercel integration. Verify a real hosted
-   GM session can retrieve the unchanged bytes; verify missing/invalid sessions
-   are rejected and unavailable/corrupt storage stays fail-closed. Then run the
-   Trade Machine cases in that hosted application. A green deployment alone is
-   not proof that the private data has been installed.
+Firestore rules permit authenticated individual reads and deny client listing,
+create, update and delete. Unknown paths and parts without a manifest fail
+closed. These rules are code only until separately authorized deployment.
+Nothing here modifies `architect_baseEntitlements`, other source collections,
+saved worlds, or first-round Apply.
 
-The endpoint makes read requests only, rejects redirects, caps body size and
-upstream time, verifies the installed pin before responding, and disables browser
-and CDN caching. It never forwards storage credentials or upstream errors.
-Without hosting/storage access, record installation and hosted positive proof as
-blocked; do not publish the package in GitHub or a static Vite asset as a workaround.
+Release preparation and gated deployment:
+
+1. The agent may recover the unchanged derived projection from private evidence
+   for development and offline preparation. Never ship raw sources, claim maps,
+   cases or traces as product data. Prepare a private, non-overwriting document
+   bundle without network access:
+
+   ```bash
+   npm run architect:draft-review:prepare -- /private/real-draft-review.json /private/firestore-release.json
+   ```
+
+2. **STOP before production publication.** Owner authorization for release
+   publication and rule deployment is distinct from code approval and is not
+   granted by BZE-321. The prepared bundle is reviewable input, not an installed
+   release. A qualified, authorized publisher must create the four parts and
+   manifest at their exact immutable IDs, with no overwrite; publish the
+   manifest last. Do not run production push/admin/source pipeline commands or
+   repurpose protected source collections. Later releases require their own
+   qualification, publication gate and code pin; never silently replace one.
+3. After that authorization and scoped Firebase access, deploy the narrow rules
+   and publish only the accepted derived version. Keep the app's existing
+   `VITE_FIREBASE_PROJECT_ID=scoutzero-bf1ae` and `VITE_FIREBASE_API_KEY`.
+   No new provider credentials or environment-based data endpoint is accepted.
+4. Use the existing GitHub/Vercel app deployment. Prove real hosted Firebase
+   authentication, exact release bytes, unsigned/invalid/foreign-session
+   rejection, and the Trade Machine GM review flow with no world/source writes.
+   A green preview build or emulator proof does not establish live delivery.
+   Keep the PR unmerged until authorized installation and hosted proof pass.
+
+The endpoint makes GET requests for data only, rejects redirects, bounds each
+response and upstream time, and disables browser/CDN caching. Provider errors
+never reach the browser. Unavailable/invalid releases remain needs-input. Missing
+access must be reported precisely; it never permits another data provider,
+a static public copy, or an unapproved production publication.
+
+Architecture enforcement: the mandatory CI guard walks the actual endpoint
+import closure and network call sites, rejects new provider dependencies and
+non-Firebase release calls, and checks the client still uses the same-origin
+endpoint. Its negative cases include the rejected Blob approach and Linear
+runtime access. Transport tests separately inspect every effective request URL,
+method and credential. The governing Architect boundary requires independent
+review to trace this actual flow against both owner architecture comments.
 
 Select a first-round entitlement in the normal Trade Machine. Its June 5
 starting-position review distinguishes recorded grants, future exercise
@@ -78,8 +114,10 @@ source-bearing manifest, trace, cases, and projection in private Linear.
 The browser proof also checks that the existing session token accompanies API
 requests. It uses the local read service; the separate Node HTTP adapter test
 can load the real private file with `SCOUTZERO_DRAFT_REVIEW_RELEASE` and prove
-exact byte delivery with controlled auth/storage responses. Neither test claims
-to verify an actual hosted Firebase session or installed Vercel Blob object.
+exact byte delivery with controlled Google/Firestore responses. The Firestore
+emulator gate checks authenticated reads and denied writes with the actual rules;
+its optional private-file case reconstructs all real bytes. None of these proofs
+substitutes for an actual hosted Firebase session and authorized release.
 This review does not complete the outstanding source closure or V1 gates.
 
 ---

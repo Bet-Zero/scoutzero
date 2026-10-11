@@ -45,6 +45,23 @@
 
 - `entitlementIds[]` - Entitlement ownership for the team (resolved via base + world overrides)
 
+### `/architect_draftPickReleases/{payloadSha256}` - Governed Review Release
+
+Read-only derived application data in the existing ScoutZero Firebase project.
+The manifest binds format, payload/inventory hashes, retained acceptance
+reference, exact byte length, part size and count. Four `parts/{0..3}` documents
+carry at most 512 KiB of binary bytes each, plus payload identity and part index.
+This preserves the exact pinned projection without exceeding Firestore's 1 MiB
+document limit. The endpoint validates every field, reassembles the parts and
+verifies SHA-256 before returning data.
+
+Canonical wire schemas: `src/schemas/draftPickHostedRelease.ts`. Authenticated
+individual reads only; listing and client writes are denied. No raw evidence,
+mutable latest pointer, provider URL, or Linear runtime fetch. A prepared local
+bundle is not publication authorization. Production publication/rule deployment
+and hosted GM proof remain separate gates; existing base collections and saved
+worlds are unchanged. See [the operation contract](../../operations/DRAFT_PICKS_COMMANDS.md).
+
 ### `/architect_baseEntitlements/{entitlementId}` - Entitlement Definitions ✅ FINAL
 
 **Status**: ✅ Active (Phase 10)
