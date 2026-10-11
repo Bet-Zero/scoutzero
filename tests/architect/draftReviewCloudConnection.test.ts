@@ -6,7 +6,10 @@ import {
   draftCloudProvider,
   DRAFT_CLOUD_IDENTITY,
 } from '../../scripts/architect/draftReviewCloudConnection';
-import { inspectDraftReviewCloud } from '../../scripts/architect/draftReviewCloudPreflight';
+import {
+  inspectDraftReviewCloud,
+  draftCloudFailureSummary,
+} from '../../scripts/architect/draftReviewCloudPreflight';
 import { prepareDraftReviewDocuments } from '../../server/draftReviewFirestore';
 
 const candidate = 'a'.repeat(40);
@@ -165,6 +168,132 @@ describe('draft release keyless identity boundary', () => {
 });
 
 describe('read-only production connection preflight', () => {
+  it.each([
+    [`https://firestore.googleapis.com/v1/${db}`, 'database'],
+    [`https://firebaserules.googleapis.com/v1/${releaseName}`, 'rules-release'],
+    [`https://firebaserules.googleapis.com/v1/${rulesetName}`, 'ruleset'],
+  ])(
+    'identifies the failing service stage without exposing its body: %s',
+    async (url, stage) => {
+      const f = fixture(
+        new Map([
+          [
+            url,
+            Response.json(
+              {
+                error: {
+                  message: 'private response and credential must never appear',
+                  details: [
+                    {
+                      '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                      reason: 'SERVICE_DISABLED',
+                      metadata: { credential: 'private-response-marker' },
+                    },
+                  ],
+                },
+              },
+              { status: 403 }
+            ),
+          ],
+        ])
+      );
+      const error = await inspectDraftReviewCloud('synthetic', f.request).catch(
+        (e) => e
+      );
+      expect(draftCloudFailureSummary(error)).toEqual({
+        stage,
+        code: 'HTTP_ERROR',
+        status: 403,
+        reason: 'SERVICE_DISABLED',
+        writesPerformed: 0,
+      });
+      expect(JSON.stringify(error)).not.toContain('private');
+      expect(f.calls.every((call) => call.options?.method === 'GET')).toBe(
+        true
+      );
+    }
+  );
+
+  it('does not publish unknown Google reasons or exception text', async () => {
+    const url = `https://firestore.googleapis.com/v1/${db}`;
+    const f = fixture(
+      new Map([
+        [
+          url,
+          Response.json(
+            {
+              error: {
+                details: [
+                  {
+                    '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                    reason: 'private-marker',
+                  },
+                ],
+              },
+            },
+            { status: 403 }
+          ),
+        ],
+      ])
+    );
+    const error = await inspectDraftReviewCloud('synthetic', f.request).catch(
+      (e) => e
+    );
+    expect(draftCloudFailureSummary(error)).toEqual({
+      stage: 'database',
+      code: 'HTTP_ERROR',
+      status: 403,
+      writesPerformed: 0,
+    });
+    const networkFailure = await inspectDraftReviewCloud(
+      'synthetic',
+      async () => {
+        throw new Error('private-marker bearer-token URL response');
+      }
+    ).catch((e) => e);
+    expect(draftCloudFailureSummary(networkFailure)).toEqual({
+      stage: 'database',
+      code: 'REQUEST_OR_INTERNAL_FAILURE',
+      writesPerformed: 0,
+    });
+    expect(networkFailure.message).not.toContain('private-marker');
+    expect(networkFailure.cause).toBeUndefined();
+    expect(draftCloudFailureSummary(new Error('private-marker'))).toEqual({
+      code: 'UNCLASSIFIED_FAILURE',
+      writesPerformed: 0,
+    });
+  });
+
+  it('bounds error bodies and keeps non-JSON errors diagnosable', async () => {
+    for (const body of ['private not JSON', 'x'.repeat(17000)]) {
+      const f = fixture(
+        new Map([
+          [
+            `https://firestore.googleapis.com/v1/${db}`,
+            new Response(body, { status: 403 }),
+          ],
+        ])
+      );
+      const error = await inspectDraftReviewCloud('synthetic', f.request).catch(
+        (e) => e
+      );
+      expect(draftCloudFailureSummary(error)).toEqual(
+        body.length > 16384
+          ? {
+              stage: 'database',
+              code: 'RESPONSE_TOO_LARGE',
+              writesPerformed: 0,
+            }
+          : {
+              stage: 'database',
+              code: 'HTTP_ERROR',
+              status: 403,
+              writesPerformed: 0,
+            }
+      );
+    }
+  });
+
   it('accepts the unchanged pre-release production rules without assuming installation', async () => {
     const approved = readFileSync('firestore.rules', 'utf8');
     const start = approved.indexOf(
@@ -282,9 +411,15 @@ describe('read-only production connection preflight', () => {
         ],
       ])
     );
-    await expect(
-      inspectDraftReviewCloud('synthetic', f.request)
-    ).rejects.toThrow('differ');
+    const error = await inspectDraftReviewCloud('synthetic', f.request).catch(
+      (e) => e
+    );
+    expect(error.message).toContain('differ');
+    expect(draftCloudFailureSummary(error)).toEqual({
+      stage: 'rules-compatibility',
+      code: 'RULES_DRIFT',
+      writesPerformed: 0,
+    });
     expect(f.calls).toHaveLength(3);
   });
 

@@ -142,6 +142,17 @@ approved rules; unknown drift stops without replacement. Existing documents
 must be wholly absent or reconstruct the exact accepted payload. Partial or
 conflicting installation stops for agent investigation, never overwrite.
 Logs contain only safe status/hashes, not tokens, rules bodies or private data.
+Failures identify the local inspection stage, a fixed error code, HTTP status
+when available and only an allowlisted Google reason such as `SERVICE_DISABLED`.
+Unknown exception text, response messages/metadata and stack traces are never
+published. A successful token exchange followed by a failed preflight proves
+the connection works, not that production configuration passed inspection.
+
+The provider's exact-commit condition also fences diagnostic repairs. After
+such a repair passes CI and independent review, the project owner must update
+only its `assertion.sha` value to the accepted commit before that new code can
+authenticate. Keep all other trust clauses and read-only permissions intact;
+do not bypass the pin or grant write access to investigate an inspection error.
 
 This workflow cannot install data or rules. After its live read passes, the
 agent must still perform the authorized create-only installation using a

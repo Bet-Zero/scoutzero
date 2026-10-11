@@ -16,10 +16,102 @@ const database = `projects/${DRAFT_CLOUD_PROJECT}/databases/(default)`;
 const releaseName = `projects/${DRAFT_CLOUD_PROJECT}/releases/cloud.firestore`;
 const sha = (text: string) => createHash('sha256').update(text).digest('hex');
 
+const stages = [
+  'credential',
+  'database',
+  'rules-release',
+  'ruleset',
+  'rules-compatibility',
+  'manifest',
+  'part-0',
+  'part-1',
+  'part-2',
+  'part-3',
+  'release-integrity',
+] as const;
+type Stage = (typeof stages)[number];
+const failures = new Map([
+  ['A short-lived Google Cloud access token is required.', 'TOKEN_REQUIRED'],
+  ['Unexpected production database.', 'DATABASE_MISMATCH'],
+  ['Unexpected production rules release.', 'RULES_RELEASE_MISMATCH'],
+  ['Unexpected production ruleset.', 'RULESET_SHAPE_MISMATCH'],
+  [
+    'Production rules differ; inspect drift before any deployment.',
+    'RULES_DRIFT',
+  ],
+  [
+    'Partial release exists; inspect before create-only installation.',
+    'PARTIAL_RELEASE',
+  ],
+  [
+    'Existing release conflicts with the approved immutable version.',
+    'RELEASE_CONFLICT',
+  ],
+  ['Cloud response exceeds limit.', 'RESPONSE_TOO_LARGE'],
+  ['Invalid cloud response.', 'INVALID_JSON'],
+]);
+const allowedReasons = new Set([
+  'SERVICE_DISABLED',
+  'IAM_PERMISSION_DENIED',
+  'ACCESS_TOKEN_SCOPE_INSUFFICIENT',
+  'CONSUMER_INVALID',
+  'RATE_LIMIT_EXCEEDED',
+]);
+
+class CloudHttpFailure extends Error {
+  constructor(
+    readonly status: number,
+    readonly reason?: string
+  ) {
+    super(`Cloud preflight request failed (${status}).`);
+  }
+}
+
+class CloudPreflightFailure extends Error {
+  readonly diagnostic: Record<string, string | number>;
+  constructor(stage: Stage, error: unknown) {
+    const message = error instanceof Error ? error.message : '';
+    const code = failures.get(message);
+    const http = error instanceof CloudHttpFailure;
+    // Never retain an unknown exception's message, stack or cause: fetch/SDK
+    // and schema errors can contain provider bodies or credential material.
+    super(code || http ? message : 'Unexpected cloud preflight failure.');
+    this.diagnostic = {
+      stage,
+      code: http ? 'HTTP_ERROR' : (code ?? 'REQUEST_OR_INTERNAL_FAILURE'),
+      ...(http ? { status: error.status } : {}),
+      ...(http && error.reason ? { reason: error.reason } : {}),
+      writesPerformed: 0,
+    };
+  }
+}
+
+/** Only locally assigned stages/codes and whitelisted Google reasons leave the job. */
+export function draftCloudFailureSummary(error: unknown) {
+  return error instanceof CloudPreflightFailure
+    ? error.diagnostic
+    : { code: 'UNCLASSIFIED_FAILURE', writesPerformed: 0 };
+}
+
 /** GET-only preflight. No writes, provider selection, raw output, or credential files. */
 export async function inspectDraftReviewCloud(
   accessToken: string,
   request: typeof fetch = fetch
+) {
+  let stage: Stage = 'credential';
+  try {
+    return await inspect(accessToken, request, (next) => {
+      stage = next;
+    });
+  } catch (error) {
+    throw new CloudPreflightFailure(stage, error);
+  }
+}
+
+async function inspect(
+  accessToken: string,
+  request: typeof fetch,
+  setStage: (stage: Stage) => void
 ) {
   if (!accessToken || /\s/.test(accessToken))
     throw new Error('A short-lived Google Cloud access token is required.');
@@ -35,8 +127,10 @@ export async function inspectDraftReviewCloud(
       await response.body?.cancel();
       return null;
     }
-    if (!response.ok || !response.body)
-      throw new Error(`Cloud preflight request failed (${response.status}).`);
+    if (!response.body) throw new CloudHttpFailure(response.status);
+    // An error body is read only to identify an allowlisted Google reason.
+    // It is never logged or attached to the thrown error.
+    if (!response.ok) maximum = Math.min(maximum, 16384);
     const reader = response.body.getReader();
     const chunks: Uint8Array[] = [];
     let size = 0;
@@ -52,6 +146,23 @@ export async function inspectDraftReviewCloud(
       await reader.cancel().catch(() => {});
       reader.releaseLock();
     }
+    if (!response.ok) {
+      let reason: string | undefined;
+      try {
+        const body = JSON.parse(Buffer.concat(chunks, size).toString('utf8'));
+        const details = body?.error?.details;
+        if (Array.isArray(details)) {
+          reason = details.find(
+            (item) =>
+              item?.['@type'] === 'type.googleapis.com/google.rpc.ErrorInfo' &&
+              allowedReasons.has(item.reason)
+          )?.reason;
+        }
+      } catch {
+        /* The HTTP status remains useful without a JSON body. */
+      }
+      throw new CloudHttpFailure(response.status, reason);
+    }
     // Do not allow JSON parse errors to echo source/rules/provider bodies.
     try {
       return JSON.parse(Buffer.concat(chunks, size).toString('utf8'));
@@ -60,12 +171,14 @@ export async function inspectDraftReviewCloud(
     }
   }
 
+  setStage('database');
   const db = await read(
     `https://firestore.googleapis.com/v1/${database}`,
     16384
   );
   if (db?.name !== database || db?.type !== 'FIRESTORE_NATIVE')
     throw new Error('Unexpected production database.');
+  setStage('rules-release');
   const release = await read(
     `https://firebaserules.googleapis.com/v1/${releaseName}`,
     16384
@@ -78,6 +191,7 @@ export async function inspectDraftReviewCloud(
     )
   )
     throw new Error('Unexpected production rules release.');
+  setStage('ruleset');
   const rules = await read(
     `https://firebaserules.googleapis.com/v1/${release.rulesetName}`,
     1000000
@@ -91,6 +205,7 @@ export async function inspectDraftReviewCloud(
     typeof files[0]?.content !== 'string'
   )
     throw new Error('Unexpected production ruleset.');
+  setStage('rules-compatibility');
   const rulesSha256 = sha(files[0].content);
   if (![BASE_RULES_SHA, APPROVED_RULES_SHA].includes(rulesSha256))
     throw new Error(
@@ -103,6 +218,9 @@ export async function inspectDraftReviewCloud(
   ];
   const docs = [];
   for (const [index, name] of names.entries()) {
+    setStage(
+      (['manifest', 'part-0', 'part-1', 'part-2', 'part-3'] as const)[index]
+    );
     docs.push(
       await read(
         `https://firestore.googleapis.com/v1/${name}`,
@@ -111,6 +229,7 @@ export async function inspectDraftReviewCloud(
       )
     );
   }
+  setStage('release-integrity');
   const present = docs.filter((doc) => doc !== null).length;
   if (present !== 0 && present !== 5)
     throw new Error(

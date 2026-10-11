@@ -1,4 +1,7 @@
-import { inspectDraftReviewCloud } from './draftReviewCloudPreflight.js';
+import {
+  inspectDraftReviewCloud,
+  draftCloudFailureSummary,
+} from './draftReviewCloudPreflight.js';
 
 // No default credentials, local token discovery, emulator fallback or writer.
 try {
@@ -6,11 +9,9 @@ try {
     process.env.SCOUTZERO_GCP_ACCESS_TOKEN ?? ''
   );
   console.log(JSON.stringify(result));
-} catch {
-  // Provider/SDK errors may include sensitive response details. Tests exercise
-  // exact internal failure categories; hosted logs get only this safe summary.
-  console.error(
-    'Read-only Google Cloud preflight failed. No writes performed.'
-  );
+} catch (error) {
+  // Fixed codes distinguish access, drift and integrity failures without raw
+  // provider bodies, credential material or exception messages/stacks.
+  console.error(JSON.stringify(draftCloudFailureSummary(error)));
   process.exitCode = 1;
 }
