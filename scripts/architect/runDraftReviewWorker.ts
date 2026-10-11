@@ -8,7 +8,9 @@ import {
   digest,
   readInstallation,
   publishInstallation,
+  cloudJson,
 } from './draftReviewInstallation.js';
+import { RELEASE_BUCKET } from './draftReviewDeploymentPlan.js';
 
 const mode = process.env.DRAFT_OPERATION;
 const token = process.env.SCOUTZERO_GCP_ACCESS_TOKEN ?? '';
@@ -35,6 +37,14 @@ try {
       snapshot.rulesetName !== second.rulesetName
     )
       throw new Error('RULES_CHANGED_DURING_INSPECTION');
+    const bucket = await cloudJson(token)(
+      `https://storage.googleapis.com/storage/v1/b/${RELEASE_BUCKET}?fields=name,iamConfiguration`
+    );
+    if (
+      bucket.value.name !== RELEASE_BUCKET ||
+      bucket.value.iamConfiguration?.uniformBucketLevelAccess?.enabled !== true
+    )
+      throw new Error('BUCKET_CONDITIONAL_ACCESS_UNAVAILABLE');
     console.log(
       JSON.stringify({
         ...first,

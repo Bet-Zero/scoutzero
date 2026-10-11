@@ -57,6 +57,8 @@ export function sustainableDraftConnectionPlan(workerSha: string) {
       account: DRAFT_CLOUD_ACCOUNT,
       member: member(INSPECTION_ENVIRONMENT),
       permissions: INSPECTION_PERMISSIONS,
+      bucketMetadataPermission: 'storage.buckets.get',
+      bucket: RELEASE_BUCKET,
     },
     publication: {
       account: PUBLICATION_ACCOUNT,

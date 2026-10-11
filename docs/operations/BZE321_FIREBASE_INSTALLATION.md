@@ -15,7 +15,7 @@ The owner authorized workflow implementation/review, not an automatic IAM upgrad
    below. Do not expand the existing inspection account's permissions.
 3. Run inspection without a per-run owner approval; the pinned read-only identity and branch restriction govern it. It performs two GET-only reads
    of database identity, live rules and the five document paths, checking stable
-   rules identity/content. Unknown rules are retained rather than discarded.
+   rules identity/content and the existing bucket’s support for conditional access. Unknown rules are retained rather than discarded.
    Only an OpenSSL CMS encrypted snapshot is uploaded to the public repository's
    Actions artifacts (seven-day retention). The snapshot includes the actual
    production rules and repository comparison input. Its plaintext digest is in
@@ -124,7 +124,7 @@ keys, IAM administration or project-wide Token Creator grants are required.
 | Point existing release to tested ruleset | `firebaserules.releases.update`   |
 | Fetch installation object                | `storage.objects.get`             |
 
-The first four form the existing inspection role. The publisher needs all eight
+The first four form the existing inspection role. Inspection additionally needs a bucket-only `storage.buckets.get` metadata binding to verify that the existing bucket supports conditional IAM. It does not read bucket objects. If uniform bucket-level access is disabled, stop; do not enable it and change existing ACL behavior as a workaround. The publisher needs all eight
 Firestore/Rules permissions in a separate custom project role, plus a separate
 bucket binding granting only `storage.objects.get`, conditioned on:
 
