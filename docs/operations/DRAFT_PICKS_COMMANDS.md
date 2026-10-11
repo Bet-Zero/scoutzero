@@ -109,9 +109,10 @@ product owner through a technical checklist:
 - The initial custom role allows database/document and Rules reads only. The
   plan separately lists publication permissions; add those only after publisher
   review and the corresponding exact-commit trust update. Even then the account
-  has no document update/delete, IAM administration,
-  key creation, index, source-pipeline or saved-world mutation privileges.
-  Firestore IAM cannot narrow entity permissions to five document paths:
+  has no document update/delete, IAM administration, key creation or index
+  management privileges. Document creation is not collection-scoped: IAM alone
+  cannot prevent creating a new source or world document. It cannot narrow
+  entity permissions to five document paths:
   the reviewed publisher must additionally enforce the fixed paths and
   create-only preconditions. Do not claim IAM itself supplies that path boundary.
 
