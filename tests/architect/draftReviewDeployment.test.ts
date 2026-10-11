@@ -256,6 +256,22 @@ describe('bounded immutable deployment', () => {
 });
 
 describe('protected workflow identity', () => {
+  it('invokes the exact worker approved by the proposed Google policy without automatic app-commit deployment', () => {
+    const caller = yaml.load(
+      readFileSync('.github/workflows/draft-review-cloud.yml', 'utf8')
+    ) as any;
+    const connection = JSON.parse(
+      readFileSync('.github/draft-review-connection.json', 'utf8')
+    );
+    expect(caller.on.push.paths).toEqual(['.github/draft-review-request.json']);
+    expect(caller.jobs.operation.uses).toBe(
+      `Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@${connection.workerSha}`
+    );
+    const { workerSha, ...plan } = connection;
+    expect(plan).toEqual(sustainableDraftConnectionPlan(workerSha));
+    expect(caller.jobs.request.permissions).toBeUndefined();
+    expect(caller.permissions).toEqual({ contents: 'read' });
+  });
   it('evaluates every trust claim, rejecting identity substitution while allowing later app commits', () => {
     const sha = 'a'.repeat(40);
     const plan = sustainableDraftConnectionPlan(sha);

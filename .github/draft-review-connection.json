@@ -1,0 +1,47 @@
+{
+  "workerSha": "5937082aa9153dd522a51319a1dc358e58d4c08f",
+  "provider": "projects/105500121903/locations/global/workloadIdentityPools/scoutzero-bze321/providers/github",
+  "attributeMapping": {
+    "google.subject": "assertion.sub",
+    "attribute.repository_id": "assertion.repository_id",
+    "attribute.environment": "assertion.environment"
+  },
+  "attributeCondition": "assertion.repository_id == '997820257' && assertion.repository_owner_id == '205859440' && assertion.repository == 'Bet-Zero/scoutzero' && assertion.event_name == 'push' && assertion.ref == 'refs/heads/feature/bze-321-hosted-draft-review' && assertion.job_workflow_ref == 'Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@5937082aa9153dd522a51319a1dc358e58d4c08f' && assertion.job_workflow_sha == '5937082aa9153dd522a51319a1dc358e58d4c08f' && ((assertion.environment == 'draft-review-inspection' && assertion.sub == 'repo:Bet-Zero/scoutzero:environment:draft-review-inspection') || (assertion.environment == 'draft-review-publication' && assertion.sub == 'repo:Bet-Zero/scoutzero:environment:draft-review-publication'))",
+  "inspection": {
+    "account": "scoutzero-draft-release@scoutzero-bf1ae.iam.gserviceaccount.com",
+    "member": "principalSet://iam.googleapis.com/projects/105500121903/locations/global/workloadIdentityPools/scoutzero-bze321/attribute.environment/draft-review-inspection",
+    "permissions": [
+      "datastore.databases.getMetadata",
+      "datastore.entities.get",
+      "firebaserules.releases.get",
+      "firebaserules.rulesets.get"
+    ],
+    "bucketMetadataPermission": "storage.buckets.get",
+    "bucket": "scoutzero-bf1ae.firebasestorage.app"
+  },
+  "publication": {
+    "account": "scoutzero-draft-publish@scoutzero-bf1ae.iam.gserviceaccount.com",
+    "member": "principalSet://iam.googleapis.com/projects/105500121903/locations/global/workloadIdentityPools/scoutzero-bze321/attribute.environment/draft-review-publication",
+    "permissions": [
+      "datastore.databases.getMetadata",
+      "datastore.entities.get",
+      "firebaserules.releases.get",
+      "firebaserules.rulesets.get",
+      "datastore.entities.create",
+      "firebaserules.releases.update",
+      "firebaserules.rulesets.create",
+      "firebaserules.rulesets.test"
+    ]
+  },
+  "storage": {
+    "permission": "storage.objects.get",
+    "condition": "resource.name == 'projects/_/buckets/scoutzero-bf1ae.firebasestorage.app/objects/bze321/approved-installation.json'"
+  },
+  "requiredGitHubProtection": {
+    "environments": ["draft-review-inspection", "draft-review-publication"],
+    "reviewerUserId": 205859440,
+    "preventSelfReview": false,
+    "canAdminsBypass": false,
+    "branch": "feature/bze-321-hosted-draft-review"
+  }
+}
