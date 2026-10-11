@@ -102,11 +102,17 @@ product owner through a technical checklist:
 - Apply the plan's account and project bindings by merging into current IAM
   policies with their etags. Never replace unrelated bindings. The bootstrap
   identity needs IAM setup authority; the runtime account does not receive it.
+  Re-read the installed provider and compare its complete attribute condition
+  with the generated plan for the accepted SHA before relying on authentication.
 - Provider trust requires the immutable repository and owner IDs, repository
   name, exact branch/workflow, Production environment subject, push event and
   accepted commit SHA together. Forks, PR merge refs, other workflows and later
   commits cannot reuse the grant. GitHub repository names alone are insufficient.
 - The initial custom role allows database/document and Rules reads only. The
+  document-read permission covers the whole database, including source and
+  saved-world documents; IAM does not restrict it to the five release paths.
+  The reviewed preflight itself requests only those five document paths.
+  The
   plan separately lists publication permissions; add those only after publisher
   review and the corresponding exact-commit trust update. Even then the account
   has no document update/delete, IAM administration, key creation or index
