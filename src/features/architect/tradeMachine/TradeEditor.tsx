@@ -66,6 +66,7 @@ import {
   describeTradeOpenAuthority,
 } from '@/features/architect/cockpit/tradeOpenRequest';
 import { useGovernedSignAndTradePreview } from '@/features/architect/tradeMachine/useGovernedSignAndTradePreview';
+import { RealDraftReviewPanel } from './RealDraftReviewPanel';
 
 export const TradeEditor = ({
   primaryTeam,
@@ -1150,6 +1151,7 @@ export const TradeEditor = ({
       </div>
 
       {/* Phase 16.3: Init error display */}
+      <RealDraftReviewPanel teams={teams} asOfDate={governedWorldAsOfDate} worldId={worldId} />
       {initError && teams.length === 0 && (
         <div className="bg-cockpit-danger/15 border border-cockpit-danger/50 rounded-lg p-4 text-cockpit-text-secondary">
           <div className="font-semibold text-cockpit-danger mb-1">

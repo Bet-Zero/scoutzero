@@ -17,6 +17,7 @@ import {
   collectGovernedScreenshotArtifacts,
   DRAFT_REVIEW_SCREENSHOTS,
   GOVERNED_TRADE_RECEIPT_SCREENSHOTS,
+  REAL_DRAFT_SCREENSHOTS,
   resolveProofIdentity,
   verifyGovernedScreenshotArtifacts,
 } from '../../scripts/review/runTradeReceiptProof.ts';
@@ -95,6 +96,48 @@ test('accepted Canon lookup returns exact leaves, scenarios, and provenance', ()
         result.scenarios.some((scenario) => scenario.id === scenarioId)
       );
     }
+  }
+});
+
+test('accepted Canon npm launcher works without IPC sockets and rejects unknown leaves', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'canon-no-ipc-'));
+  const preload = path.join(dir, 'deny-sockets.cjs');
+  fs.writeFileSync(
+    preload,
+    `require('node:net').Server.prototype.listen = function () { throw new Error('IPC socket unavailable'); };`
+  );
+  try {
+    // The CLI formerly opened an IPC server before entering the authority code.
+    // Run the actual npm interface with listen unavailable in every Node child.
+    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    for (const [leaf, expected] of [
+      ['CBA2-A12.1', 0],
+      ['CBA2-A99.999', 1],
+    ] as const) {
+      const result = spawnSync(
+        npm,
+        ['run', 'architect:canon:lookup', '--', leaf],
+        {
+          cwd: repoRoot,
+          encoding: 'utf8',
+          shell: process.platform === 'win32',
+          env: {
+            ...process.env,
+            NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --require="${preload}"`,
+          },
+        }
+      );
+      assert.equal(result.status, expected, result.stderr);
+      if (expected === 0) {
+        assert.match(result.stdout, /LEAF CBA2-A12.1/);
+        assert.match(result.stdout, new RegExp(ACCEPTED_CANON_PIN.fingerprint));
+      } else {
+        assert.match(result.stderr, /Unknown Canon leaf ID/);
+        assert.doesNotMatch(result.stdout, /PINNED ACCEPTED CANON AUTHORITY/);
+      }
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 });
 
@@ -442,6 +485,54 @@ test('draft review evidence requires History, Compare and reload for both teams'
       ).valid,
       false
     );
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('real retained review certificate requires all nine changed states', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'real-draft-proof-'));
+  try {
+    assert.equal(REAL_DRAFT_SCREENSHOTS.length, 9);
+    const png = await sharp({
+      create: { width: 1280, height: 720, channels: 4, background: '#123456' },
+    })
+      .png()
+      .toBuffer();
+    for (const { filename } of REAL_DRAFT_SCREENSHOTS)
+      fs.writeFileSync(path.join(root, filename), png);
+    const artifacts = collectGovernedScreenshotArtifacts(
+      root,
+      root,
+      REAL_DRAFT_SCREENSHOTS
+    );
+    assert.equal(
+      (
+        await verifyGovernedScreenshotArtifacts(
+          root,
+          root,
+          artifacts,
+          REAL_DRAFT_SCREENSHOTS
+        )
+      ).valid,
+      true
+    );
+    for (const { filename } of REAL_DRAFT_SCREENSHOTS) {
+      fs.unlinkSync(path.join(root, filename));
+      assert.equal(
+        (
+          await verifyGovernedScreenshotArtifacts(
+            root,
+            root,
+            artifacts,
+            REAL_DRAFT_SCREENSHOTS
+          )
+        ).valid,
+        false,
+        filename
+      );
+      fs.writeFileSync(path.join(root, filename), png);
+    }
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }

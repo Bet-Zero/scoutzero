@@ -262,6 +262,7 @@ tradeMachine/
   EntitlementPicksList.tsx
   FaExceptionTracker.tsx
   OutgoingPlayersList.tsx
+  RealDraftReviewPanel.tsx
   SelectTeamCard.tsx
   TradeApronRestrictionReceipt.tsx
   TradeCashConsiderationInput.tsx
@@ -287,6 +288,7 @@ tradeMachine/
   tradeMachineChrome.buttons.tsx
   tradePreviewExportTypes.ts
   useGovernedSignAndTradePreview.ts
+  useRealDraftReview.ts
   useTradeTeamCardSalaries.ts
   utils/
     computeTradeDraftKey.ts
@@ -364,11 +366,14 @@ utils/
   contractUtils.ts
   draftApronMechanisms.ts
   draftPenaltyOrder.ts
+  draftPickArchivalPoolView.ts
   draftPickCashSale.ts
   draftPickFoundation.ts
   draftPickInputResolver.ts
   draftPickLineage.ts
   draftPickOwnership.ts
+  draftPickRealReview.ts
+  draftPickRealReviewPin.ts
   draftPickRelease.ts
   draftPickReleaseComparison.ts
   draftPickReview.ts
@@ -681,5 +686,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-10-03T09:18:51.375Z*
+*Generated on: 2026-10-09T07:43:28.392Z*
 *Auto-updated by: npm run docs*

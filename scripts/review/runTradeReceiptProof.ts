@@ -10,6 +10,18 @@ import { startSeasonProofHarness } from './seasonProofHarness';
 const PROOF_SPEC = 'tests/e2e/architect-trade-receipt-proof.spec.ts';
 const PROOF_PORTS = [5173, 8082, 9099, 5001, 4001, 4400, 4500, 9150];
 
+export const REAL_DRAFT_SCREENSHOTS = [
+  'supported',
+  'wrong-holder',
+  'alias',
+  'apron',
+  'future',
+  'reload',
+  'loading',
+  'date-mismatch',
+  'unavailable',
+].map((key) => ({ key, filename: `${key}-1280x720.png` }));
+
 export const DRAFT_REVIEW_SCREENSHOTS = ['bos', 'mia'].flatMap((team) =>
   ['history', 'compare', 'reload'].map((state) => ({
     key: `${team}-${state}`,
@@ -263,22 +275,45 @@ async function openProofPorts(): Promise<number[]> {
 
 export async function runTradeReceiptProof(
   draftReview = false,
-  draftSeason = false
+  draftSeason = false,
+  realDraft = false
 ): Promise<number> {
+  if (realDraft && (draftReview || draftSeason))
+    throw new Error(
+      'Real retained review cannot use a synthetic mutation proof mode.'
+    );
+  if (
+    realDraft &&
+    (!process.env.SCOUTZERO_DRAFT_REVIEW_RELEASE ||
+      !process.env.SCOUTZERO_DRAFT_REVIEW_CASES)
+  )
+    throw new Error(
+      'Real retained proof requires private release and scenario paths.'
+    );
   draftReview = draftReview || draftSeason;
+  const privateInputHashes = realDraft
+    ? {
+        release: hashFile(process.env.SCOUTZERO_DRAFT_REVIEW_RELEASE!),
+        scenarios: hashFile(process.env.SCOUTZERO_DRAFT_REVIEW_CASES!),
+      }
+    : null;
   const identity = resolveProofIdentity();
-  const definitions = draftReview
-    ? DRAFT_REVIEW_SCREENSHOTS
-    : GOVERNED_TRADE_RECEIPT_SCREENSHOTS;
+  const definitions = realDraft
+    ? REAL_DRAFT_SCREENSHOTS
+    : draftReview
+      ? DRAFT_REVIEW_SCREENSHOTS
+      : GOVERNED_TRADE_RECEIPT_SCREENSHOTS;
   const artifactDir = path.join(
     identity.repoRoot,
     'tmp',
     'browser-proofs',
-    draftSeason
-      ? 'draft-season'
-      : draftReview
-        ? 'draft-review'
-        : 'trade-receipt',
+    realDraft
+      ? 'real-draft-review'
+      : draftSeason
+        ? 'draft-season'
+        : draftReview
+          ? 'draft-review'
+          : 'trade-receipt',
     `${identity.candidate}-${timestampSlug()}`
   );
   const testResultsDir = path.join(artifactDir, 'test-results');
@@ -348,11 +383,13 @@ export async function runTradeReceiptProof(
 
   const commandArgs = [
     'test',
-    draftSeason
-      ? 'tests/e2e/architect-draft-season-proof.spec.ts'
-      : draftReview
-        ? 'tests/e2e/architect-draft-review-proof.spec.ts'
-        : PROOF_SPEC,
+    realDraft
+      ? 'tests/e2e/architect-real-draft-review-proof.spec.ts'
+      : draftSeason
+        ? 'tests/e2e/architect-draft-season-proof.spec.ts'
+        : draftReview
+          ? 'tests/e2e/architect-draft-review-proof.spec.ts'
+          : PROOF_SPEC,
     '--workers=1',
     '--project=chromium',
     '--reporter=line,html',
@@ -413,6 +450,7 @@ export async function runTradeReceiptProof(
             : reportDir,
           PLAYWRIGHT_HTML_OPEN: 'never',
           VITE_SHOW_TRADE_RECEIPT: 'true',
+          ...(realDraft ? { ARCHITECT_REVIEW_WORLD_ONLY: 'true' } : {}),
           ...(draftReview
             ? {
                 ARCHITECT_REVIEW_WORLD_ONLY: 'true',
@@ -495,6 +533,13 @@ export async function runTradeReceiptProof(
     reportPaths.every((report) => fs.existsSync(report)) &&
     openPorts.length === 0 &&
     resolveProofIdentity(identity.repoRoot).candidate === identity.candidate &&
+    (!privateInputHashes ||
+      (privateInputHashes.release ===
+        hashFile(process.env.SCOUTZERO_DRAFT_REVIEW_RELEASE!) &&
+        privateInputHashes.scenarios ===
+          hashFile(process.env.SCOUTZERO_DRAFT_REVIEW_CASES!) &&
+        JSON.parse(fs.readFileSync(proofPath, 'utf8')).packageSha256 ===
+          privateInputHashes.release)) &&
     (!functionsBuild ||
       functionsBuild.artifacts.every(
         (file) =>
@@ -505,17 +550,20 @@ export async function runTradeReceiptProof(
 
   const manifest = {
     schemaVersion: 1,
-    proof: draftSeason
-      ? 'Synthetic freeze season record and subsequent first-round trade (production disabled)'
-      : draftReview
-        ? 'Synthetic first-round review mutation (production disabled)'
-        : 'Architect Trade Machine / Trade Receipt',
+    proof: realDraft
+      ? 'Real retained first-round evidence in Trade Machine (read-only; production Apply disabled)'
+      : draftSeason
+        ? 'Synthetic freeze season record and subsequent first-round trade (production disabled)'
+        : draftReview
+          ? 'Synthetic first-round review mutation (production disabled)'
+          : 'Architect Trade Machine / Trade Receipt',
     base: identity.originMain,
     candidate: identity.candidate,
     upstream: identity.upstream,
     mergeBase: identity.mergeBase,
     viewport: { width: 1280, height: 720 },
-    command: `npm run architect:proof:trade-receipt${draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
+    command: `npm run architect:proof:trade-receipt${realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
+    privateInputHashes,
     playwright: commandArgs,
     startedAt,
     completedAt: new Date().toISOString(),
@@ -595,7 +643,8 @@ function isMainModule(): boolean {
 if (isMainModule()) {
   runTradeReceiptProof(
     process.argv.includes('--draft-review'),
-    process.argv.includes('--draft-season')
+    process.argv.includes('--draft-season'),
+    process.argv.includes('--real-draft')
   )
     .then((code) => {
       process.exitCode = code;
