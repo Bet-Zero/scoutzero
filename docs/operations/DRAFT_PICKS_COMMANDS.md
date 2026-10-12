@@ -90,9 +90,11 @@ them privately, preserves legitimate production behavior, tests the exact additi
 candidate, and obtains independent acceptance before requesting publication
 approval. The old hash-only result is not a semantic diagnosis of production.
 
-Publication reads one approved, generation-pinned private installation object
-from the existing Firebase Storage bucket. The installed application continues
-to use only Firestore. The installer validates all five fixed document paths and
+Publication decrypts the approved installation file from the immutable reviewed
+GitHub checkout using the protected publication environment's secret and verifies
+its approved digest. No Storage bucket or billing change is required. The
+installed application continues to use only Firestore. The installer validates
+all five fixed document paths and
 the unchanged payload, preserves every byte of the existing rules, tests release
 permissions, rechecks the active ruleset, and commits all five absent records
 atomically with create-only preconditions. Matching completed installation is a
