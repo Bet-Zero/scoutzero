@@ -83,6 +83,31 @@ evidence under the existing policy.
 
 ## One bounded execution path
 
+### Protected secret handoff
+
+The first approved publication attempt authenticated to Google but stopped before
+any Firestore/Rules request because the passphrase was empty. The caller omitted
+the reusable-workflow secret handoff. GitHub requires that handoff even when the
+secret exists only in the called job's protected environment; see
+[GitHub's reusable workflow secret contract](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows#using-inputs-and-secrets-in-a-reusable-workflow).
+
+Publication now passes only `BZE321_INSTALLATION_PASSPHRASE` to a SHA-pinned,
+step-free reusable handoff. That handoff declares the one required secret and
+forwards its restricted secret context to the unchanged immutable worker. The
+existing worker does not declare named caller secrets, so this intermediate
+contract permits scoped forwarding without inheriting unrelated repository
+secrets or changing Google's trusted executor. Inspection receives no secrets.
+The worker still selects the protected environment, checks its approval settings,
+and performs the same digest, permission, baseline and create-only checks. Neither
+the secret nor a Google credential is exposed through outputs or artifacts.
+
+The earlier tests and review checked environment protection and local decryption
+but missed the caller-to-worker secret contract. The workflow regression now
+checks both handoff edges, the sole allowed secret, inspection isolation, pinned
+executor, and the absence of executable steps in the intermediate workflow.
+These checks do not claim live delivery: the next owner-approved run must prove
+decryption and installation on GitHub's runner.
+
 1. Finish exact-candidate CI and focused independent Claude acceptance of the
    changed transport and actual-rules reconciliation. Reuse unchanged app and
    release evidence. The candidate is not authorized by its tests alone.

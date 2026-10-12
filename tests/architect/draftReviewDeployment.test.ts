@@ -352,6 +352,54 @@ describe('protected workflow identity', () => {
     expect(caller.jobs.request.permissions).toBeUndefined();
     expect(caller.permissions).toEqual({ contents: 'read' });
   });
+  it('hands off only the publication secret through a pinned step-free relay, never through inspection', () => {
+    const readWorkflow = (name: string) =>
+      yaml.load(readFileSync(`.github/workflows/${name}.yml`, 'utf8')) as any;
+    const caller = readWorkflow('draft-review-cloud');
+    const relay = readWorkflow('draft-review-publication');
+    const worker = readWorkflow('draft-review-worker');
+    const name = 'BZE321_INSTALLATION_PASSPHRASE';
+    const workerSha = JSON.parse(
+      readFileSync('.github/draft-review-connection.json', 'utf8')
+    ).workerSha;
+    expect(caller.jobs.operation.if).toBe(
+      "needs.request.outputs.operation == 'inspect'"
+    );
+    expect(caller.jobs.operation.with).toEqual({ operation: 'inspect' });
+    expect(caller.jobs.operation.secrets).toBeUndefined();
+    expect(caller.jobs.publication.if).toBe(
+      "needs.request.outputs.operation == 'publish'"
+    );
+    expect(caller.jobs.publication.secrets).toEqual({
+      [name]: '${{ secrets.BZE321_INSTALLATION_PASSPHRASE }}',
+    });
+    expect(caller.jobs.publication.uses).toMatch(
+      /^Bet-Zero\/scoutzero\/\.github\/workflows\/draft-review-publication.yml@[a-f0-9]{40}$/
+    );
+    expect(relay.on).toEqual({
+      workflow_call: { secrets: { [name]: { required: true } } },
+    });
+    expect(relay.permissions).toEqual({ contents: 'read' });
+    expect(relay.jobs).toEqual({
+      install: {
+        permissions: { contents: 'read', actions: 'read', 'id-token': 'write' },
+        uses: `Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@${workerSha}`,
+        with: { operation: 'publish' },
+        secrets: 'inherit',
+      },
+    });
+    // Only the credentialed immutable job binds the protected environment.
+    // The relay cannot run code, emit secrets, or select a different operation.
+    expect(caller.jobs.publication.environment).toBeUndefined();
+    const credentialed = worker.jobs['bounded-operation'];
+    expect(credentialed.environment).toBe(
+      "${{ inputs.operation == 'inspect' && 'draft-review-inspection' || 'draft-review-publication' }}"
+    );
+    expect(JSON.stringify(worker).match(/secrets\.[A-Za-z0-9_]+/g)).toEqual([
+      `secrets.${name}`,
+    ]);
+  });
+
   it('evaluates every trust claim, rejecting identity substitution while allowing later app commits', () => {
     const sha = 'a'.repeat(40);
     const plan = sustainableDraftConnectionPlan(sha);

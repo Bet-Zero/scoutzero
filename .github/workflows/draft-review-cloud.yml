@@ -27,10 +27,23 @@ jobs:
           printf 'operation=%s\n' "$operation" >> "$GITHUB_OUTPUT"
   operation:
     needs: request
+    if: needs.request.outputs.operation == 'inspect'
     permissions:
       contents: read
       actions: read
       id-token: write
     uses: Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@2b9391ca0327630785a8b1d34c02506585680cf5
     with:
-      operation: ${{ needs.request.outputs.operation }}
+      operation: inspect
+  publication:
+    needs: request
+    if: needs.request.outputs.operation == 'publish'
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    uses: Bet-Zero/scoutzero/.github/workflows/draft-review-publication.yml@7f2b815ce9a5deb3d7b99546dd9ee3c699a66cb2
+    # Environment-only secrets still require an explicit caller handoff. Do not
+    # inherit repository secrets here (including the unrelated reviewer token).
+    secrets:
+      BZE321_INSTALLATION_PASSPHRASE: ${{ secrets.BZE321_INSTALLATION_PASSPHRASE }}
