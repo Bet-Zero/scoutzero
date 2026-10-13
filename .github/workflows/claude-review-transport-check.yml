@@ -1,0 +1,71 @@
+name: BZE-321 review transport diagnosis
+
+on:
+  push:
+    branches: ['feature/bze-321-hosted-draft-review']
+    paths: ['.github/workflows/claude-review-transport-check.yml']
+
+# Public synthetic text only: no Claude credential, checkout, report recovery,
+# artifacts, deployment, or repository write permission.
+permissions: {}
+
+jobs:
+  public-controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      plain: ${{ steps.controls.outputs.plain }}
+      schema: ${{ steps.controls.outputs.schema }}
+      headers: ${{ steps.controls.outputs.headers }}
+      variables: ${{ steps.controls.outputs.variables }}
+      claims: ${{ steps.controls.outputs.claims }}
+      paths: ${{ steps.controls.outputs.paths }}
+      identity: ${{ steps.controls.outputs.identity }}
+      protected: ${{ steps.controls.outputs.protected }}
+      sentinel: ${{ steps.controls.outputs.sentinel }}
+    steps:
+      - name: Exercise native job-output filtering with public controls
+        id: controls
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, uuid
+          controls = {
+              'plain': 'Independent review transport control; no verdict.',
+              'schema': json.dumps({'verdict':'REVISE', 'summary':'Synthetic control only.', 'review_report':'Not an independent review.', 'findings':[], 'validation':[], 'scope_limits':['No product acceptance.']}),
+              'headers': 'x-vercel-trusted-oidc-idp-token; x-vercel-protection-bypass; Authorization; Bearer; JWT; OIDC',
+              'variables': 'ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL GH_TOKEN GITHUB_TOKEN CLAUDE_CODE_OAUTH_TOKEN',
+              'claims': 'https://token.actions.githubusercontent.com https://github.com/Bet-Zero repo:Bet-Zero/scoutzero:environment:draft-review-publication',
+              'paths': '.github/workflows/bze321-hosted-review.yml scripts/architect/verifyHostedDraftReview.ts scripts/architect/hostedDraftReviewPolicy.ts',
+              'identity': '34aa0c119800b556356bdd3a14ff730d7a4d53b9 cee4ddf44149d216e36e12237eb8fdd4cbf9da2d',
+              'protected': 'draft-review-publication id-token: write Firebase authentication Vercel Authentication Preview only all 278 entitlements 29 unresolved facts',
+          }
+          # This random test marker is not a credential. Its suppression proves
+          # that the native security filter remains active in the control run.
+          sentinel = 'synthetic-not-a-credential-' + uuid.uuid4().hex
+          print('::add-mask::' + sentinel)
+          controls['sentinel'] = sentinel
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              for name, value in controls.items():
+                  f.write(name + '=' + value + '\n')
+          PY
+
+  observe:
+    needs: public-controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Report only which public control categories crossed the boundary
+        env:
+          CONTROLS: ${{ toJSON(needs.public-controls.outputs) }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os
+          controls = json.loads(os.environ['CONTROLS'])
+          expected = ['plain', 'schema', 'headers', 'variables', 'claims', 'paths', 'identity', 'protected']
+          print(json.dumps({name: bool(controls.get(name)) for name in expected}, sort_keys=True))
+          if controls.get('sentinel'):
+              raise SystemExit('Native secret-filter negative control failed.')
+          print('Native secret-filter negative control passed. This is diagnosis, not a review verdict.')
+          PY
