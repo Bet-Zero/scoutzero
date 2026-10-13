@@ -69,6 +69,10 @@ jobs:
       - name: Phase 3A workflow tooling
         run: npm run test:phase3a-workflow
 
+      - name: Install matching browser for the redirect proof
+        timeout-minutes: 3
+        run: npx --no-install playwright install --with-deps chromium
+
       - name: Hosted review browser redirect boundary
         timeout-minutes: 2
         run: npm run test:hosted-review-browser
@@ -117,6 +121,10 @@ jobs:
 
       - name: Phase 3A workflow tooling
         run: npm run test:phase3a-workflow
+
+      - name: Install matching browser for the redirect proof
+        timeout-minutes: 3
+        run: npx --no-install playwright install --with-deps chromium
 
       - name: Hosted review browser redirect boundary
         timeout-minutes: 2

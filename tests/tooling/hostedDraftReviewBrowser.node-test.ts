@@ -31,9 +31,13 @@ test('preview identity never follows a real browser cross-origin redirect', { ti
       res.end();
     }));
     browser = await chromium.launch({
-      executablePath: ['/usr/bin/chromium', '/usr/bin/google-chrome'].find(
-        (file) => fs.existsSync(file)
-      ),
+      // GitHub's unrelated system Chromium can stall during startup. CI installs
+      // the matching Playwright browser, as the protected hosted workflow does.
+      executablePath: process.env.GITHUB_ACTIONS === 'true'
+        ? undefined
+        : ['/usr/bin/chromium', '/usr/bin/google-chrome'].find(
+            (file) => fs.existsSync(file)
+          ),
       timeout: 10000,
     });
     const context = await browser.newContext();

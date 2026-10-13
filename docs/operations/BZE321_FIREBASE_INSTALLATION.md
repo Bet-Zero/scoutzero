@@ -184,10 +184,13 @@ cannot leave the pending browser proof bound to an older candidate. Protected
 approval remains mandatory.
 
 The localhost Chromium redirect probe runs separately with
-`npm run test:hosted-review-browser` in both PR and main CI. An earlier concurrent
-full-suite run timed out that browser test; its real redirect assertions remain
-mandatory, with explicit launch/navigation deadlines and complete fixture cleanup.
-The four pure request-policy checks remain in the ordinary Node/Vitest suite.
+`npm run test:hosted-review-browser` in both PR and main CI. Diagnostic run
+38406829889 isolated the timeout to startup of the runner's preinstalled
+`/usr/bin/chromium`, before any redirect. CI now installs the version-matched
+Playwright browser, reusing the protected hosted workflow's setup. Real redirect
+assertions remain mandatory, with explicit launch/navigation deadlines and
+complete fixture cleanup. The four pure request-policy checks remain in the
+ordinary Node/Vitest suite.
 
 Installation run `38195972300`, attempt 2, verified the rules, release and all
 five documents. Do not repeat publication. Vercel access works when the connector
