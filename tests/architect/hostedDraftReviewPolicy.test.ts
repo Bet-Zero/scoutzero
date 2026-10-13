@@ -3,12 +3,7 @@ import {
   hostedPreviewOrigin,
   hostedRequestPolicy,
   originScopedHeaders,
-  continueHostedRequest,
 } from '../../scripts/architect/hostedDraftReviewPolicy';
-import { createServer } from 'node:http';
-import { once } from 'node:events';
-import { chromium, type Browser } from 'playwright';
-import fs from 'node:fs';
 
 const origin =
   'https://scoutzero-i57k4xfum-brents-projects-686e97fc.vercel.app';
@@ -112,53 +107,4 @@ describe('hosted browser proof security boundary', () => {
       )
     ).toBe('deny');
   });
-  it('does not leak the preview identity through a real browser cross-origin redirect', async () => {
-    const seen: (string | string[] | undefined)[] = [];
-    const target = createServer((req, res) => {
-      seen.push(req.headers['x-vercel-trusted-oidc-idp-token']);
-      res.end('redirect completed');
-    });
-    target.listen(0, '127.0.0.1');
-    await once(target, 'listening');
-    const address = target.address();
-    if (!address || typeof address === 'string')
-      throw new Error('fixture unavailable');
-    const destination = `http://127.0.0.1:${address.port}`;
-    const source = createServer((req, res) => {
-      seen.push(req.headers['x-vercel-trusted-oidc-idp-token']);
-      res.writeHead(302, { Location: destination });
-      res.end();
-    });
-    source.listen(0, '127.0.0.1');
-    await once(source, 'listening');
-    const sourceAddress = source.address();
-    if (!sourceAddress || typeof sourceAddress === 'string')
-      throw new Error('fixture unavailable');
-    const sourceOrigin = `http://127.0.0.1:${sourceAddress.port}`;
-    let browser: Browser | undefined;
-    try {
-      browser = await chromium.launch({
-        executablePath: ['/usr/bin/chromium', '/usr/bin/google-chrome'].find(
-          (file) => fs.existsSync(file)
-        ),
-      });
-      const context = await browser.newContext();
-      await context.route('**/*', (route) =>
-        continueHostedRequest(route, sourceOrigin, 'fake-test-identity')
-      );
-      const page = await context.newPage();
-      await page.goto(sourceOrigin);
-      expect(await page.locator('body').innerText()).toBe('redirect completed');
-      expect(seen[0]).toBe('fake-test-identity');
-      expect(seen.slice(1).every((value) => value === undefined)).toBe(true);
-    } finally {
-      await browser?.close();
-      source.closeAllConnections();
-      target.closeAllConnections();
-      await Promise.all([
-        new Promise<void>((resolve) => source.close(() => resolve())),
-        new Promise<void>((resolve) => target.close(() => resolve())),
-      ]);
-    }
-  }, 20000);
 });

@@ -183,6 +183,12 @@ hosted workflow now schedules each candidate push, so a docs/review-only change
 cannot leave the pending browser proof bound to an older candidate. Protected
 approval remains mandatory.
 
+The localhost Chromium redirect probe runs separately with
+`npm run test:hosted-review-browser` in both PR and main CI. An earlier concurrent
+full-suite run timed out that browser test; its real redirect assertions remain
+mandatory, with explicit launch/navigation deadlines and complete fixture cleanup.
+The four pure request-policy checks remain in the ordinary Node/Vitest suite.
+
 Installation run `38195972300`, attempt 2, verified the rules, release and all
 five documents. Do not repeat publication. Vercel access works when the connector
 calls omit `teamId` and `slug`; the earlier reconnection recommendation was wrong.

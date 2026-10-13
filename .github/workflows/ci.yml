@@ -69,6 +69,10 @@ jobs:
       - name: Phase 3A workflow tooling
         run: npm run test:phase3a-workflow
 
+      - name: Hosted review browser redirect boundary
+        timeout-minutes: 2
+        run: npm run test:hosted-review-browser
+
       - name: Governed Offer Sheet creation emulator gate
         run: npm run ci:offer-sheet-creation-emulator-gate
 
@@ -113,6 +117,10 @@ jobs:
 
       - name: Phase 3A workflow tooling
         run: npm run test:phase3a-workflow
+
+      - name: Hosted review browser redirect boundary
+        timeout-minutes: 2
+        run: npm run test:hosted-review-browser
 
       - name: Governed Offer Sheet creation emulator gate
         run: npm run ci:offer-sheet-creation-emulator-gate
