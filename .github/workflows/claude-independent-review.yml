@@ -199,6 +199,8 @@ jobs:
             Keep scope limits explicit: synthetic or bounded proof never implies real-NBA readiness unless the handoff's claimed scope actually proves it.
 
             The complete report is public. Never copy credentials, authorization-header values, signed URLs, or private evidence into it. Cite public file paths and line numbers instead. Preserve every material finding and limitation; if evidence cannot safely be described publicly, return REVISE and identify the required private review without reproducing that evidence.
+
+            This also applies to deliberately invalid test-token fixtures: GitHub's native output filter rejects JWT-shaped and GitHub-token-shaped examples even when they are synthetic. Describe the test and cite its file/line; do not reproduce those fixture bytes. This changes report presentation only, never the findings, evidence standard, or verdict.
           claude_args: >-
             --add-dir pr-head
             --max-turns 40

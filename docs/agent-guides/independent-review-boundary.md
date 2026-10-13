@@ -121,6 +121,17 @@ were not recovered. The pinned action's OAuth/provided-GitHub-token path does no
 use its federation-token refresh or app-token exchange, so the late-federation-mask
 hypothesis in upstream issue 1883 is not established for ScoutZero.
 
+A second discriminating
+[control run 38402107657](https://github.com/Bet-Zero/scoutzero/actions/runs/38402107657)
+reproduced native withholding with deliberately invalid JWT-shaped and
+GitHub-token-shaped fixtures that were never registered as credentials. Ordinary
+controls still passed, and the masked negative control was still suppressed.
+The reviewer must describe such fixtures by public file and line rather than
+copying their bytes. This preserves full findings and native filtering; it does
+not establish which string matched in the historical reports. The additive check
+rejects token-shaped report content explicitly rather than silently losing the
+complete verdict at the later boundary.
+
 ## Usage-limit behavior
 
 Reviewer unavailability or rate limits do not authorize self-acceptance, weaker evidence standards, repeated relaunch loops, billing changes, provider/account switching, or rebuilding a frozen candidate. Preserve the exact checkpoint and continue only authorized author-side work that does not depend on the unfinished review. Resume the focused review when access returns.
