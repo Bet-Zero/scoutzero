@@ -94,6 +94,33 @@ Routine maker/checker handoffs through this route require no owner relay. Owner 
 
 Only the separate receipt jobs have `pull-requests: write` for PR comments. They have no checkout or Claude credential. The credentialed checker remains read-only; a completed Claude session without a successfully published receipt and green workflow does not satisfy the gate.
 
+### Withheld report handling
+
+The checker classifies its fresh local result before export without logging its
+content. A match against the checker's known credentials or credential-shaped
+material rejects the report. Only fixed failure categories may be logged or
+published. This is an additional rejection check, not a complete secret scanner
+or a replacement for GitHub's native job-output filter. A clear local check does
+not establish that a later native-filter rejection was a false positive.
+
+The original complete action output must still cross the native filter and pass
+the publisher's strict schema and live-identity checks. Never reconstruct a
+withheld report from fragments, encode it, recover it through an artifact, redact
+findings into acceptance, or move publication into the credentialed checker. An
+unavailable report remains an unsatisfied review gate. The fixed failure category
+and runner warning identify the next discriminating investigation; they do not
+authorize repeated unchanged review attempts.
+
+The BZE-321 public control run
+[38399923259](https://github.com/Bet-Zero/scoutzero/actions/runs/38399923259)
+passed JSON, header names, variable names, identity claims and public file paths
+through native job outputs while suppressing a deliberately masked synthetic
+marker. This rules out a general JSON/terminology transport failure. It does not
+identify the match in either previously withheld Claude report, whose contents
+were not recovered. The pinned action's OAuth/provided-GitHub-token path does not
+use its federation-token refresh or app-token exchange, so the late-federation-mask
+hypothesis in upstream issue 1883 is not established for ScoutZero.
+
 ## Usage-limit behavior
 
 Reviewer unavailability or rate limits do not authorize self-acceptance, weaker evidence standards, repeated relaunch loops, billing changes, provider/account switching, or rebuilding a frozen candidate. Preserve the exact checkpoint and continue only authorized author-side work that does not depend on the unfinished review. Resume the focused review when access returns.
