@@ -3,10 +3,8 @@ name: BZE-321 protected hosted GM verification
 on:
   push:
     branches: ['feature/bze-321-hosted-draft-review']
-    paths:
-      - '.github/workflows/bze321-hosted-review.yml'
-      - 'scripts/architect/hostedDraftReviewPolicy.ts'
-      - 'scripts/architect/verifyHostedDraftReview.ts'
+    # Every candidate needs its own proof, including a candidate changed only
+    # by review repairs or docs. Execution still requires protected approval.
 
 permissions:
   contents: read

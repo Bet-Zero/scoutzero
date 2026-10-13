@@ -168,6 +168,21 @@ unannounced permission expansion.
 
 ## Remaining hosted verification gate
 
+The report-publication prerequisite was repaired separately in
+[PR #548](https://github.com/Bet-Zero/scoutzero/pull/548), with green CI and a
+published independent ACCEPT. Public synthetic controls reproduced native
+withholding of invalid token-shaped examples. Review reports now cite fixtures
+by file/line and pass an additional fail-closed safety check before the unchanged
+GitHub filter. No historical withheld report was recovered. The first fresh
+PR #547 review must verify the new check against the real pinned action; #548's
+acceptance does not accept the hosted implementation or replace hosted proof.
+
+The temporary public control workflow has been removed after its two retained
+runs. It used no real credentials, private evidence, or production writes. The
+hosted workflow now schedules each candidate push, so a docs/review-only change
+cannot leave the pending browser proof bound to an older candidate. Protected
+approval remains mandatory.
+
 Installation run `38195972300`, attempt 2, verified the rules, release and all
 five documents. Do not repeat publication. Vercel access works when the connector
 calls omit `teamId` and `slug`; the earlier reconnection recommendation was wrong.
