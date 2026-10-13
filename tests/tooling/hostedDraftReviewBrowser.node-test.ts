@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import test from 'node:test';
 import { chromium, type Browser } from 'playwright';
-import { continueHostedRequest } from '../../scripts/architect/hostedDraftReviewPolicy.ts';
+import { continueHostedRequest } from '../../scripts/architect/hostedDraftReviewPolicy.js';
 
 // A real browser probe runs separately from the concurrent pure-logic suite.
 // Its only identity is a public test marker, and both origins are localhost.
