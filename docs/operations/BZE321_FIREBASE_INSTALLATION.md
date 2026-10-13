@@ -168,10 +168,48 @@ unannounced permission expansion.
 
 ## Remaining hosted verification gate
 
-The existing Vercel integration is authenticated as `bet-zero` with the correct
-default team but cannot access ScoutZero's team/project (403). Reauthorization
-for `brents-projects-686e97fc` is required; another account is not established as
-necessary. The coding environment also blocks the owned Vercel preview origin
-before TLS. Restore that exact origin's allowed network access; do not disable
-Vercel deployment protection. These gates are independent of Firestore inspection.
-No hosted GM improvement, release publication or merge is claimed yet.
+Installation run `38195972300`, attempt 2, verified the rules, release and all
+five documents. Do not repeat publication. Vercel access works when the connector
+calls omit `teamId` and `slug`; the earlier reconnection recommendation was wrong.
+The Codex network policy blocks the preview, and the owner reports that the
+environment editor is broken. An allowlist edit is not an actionable next step.
+
+The prepared `bze321-hosted-review.yml` runs the browser on GitHub Actions. It
+reuses the protected `draft-review-publication` approval environment but does not
+receive its secrets, call Google deployment APIs, or run publication code. It
+finds the Vercel Preview deployment for its exact commit and uses short-lived
+GitHub OIDC in an origin-scoped header. No public share URL or static bypass key
+is used. Vercel Authentication remains enabled.
+
+Before running, a separately approved, additive Vercel Trusted Sources entry is
+required. Target **preview only** and require all these exact claims:
+
+| Claim                 | Required value                                                                                                 |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Issuer                | `https://token.actions.githubusercontent.com`                                                                  |
+| `aud`                 | `https://github.com/Bet-Zero`                                                                                  |
+| `repository_id`       | `997820257`                                                                                                    |
+| `repository_owner_id` | `205859440`                                                                                                    |
+| `repository`          | `Bet-Zero/scoutzero`                                                                                           |
+| `ref`                 | `refs/heads/feature/bze-321-hosted-draft-review`                                                               |
+| `sub`                 | `repo:Bet-Zero/scoutzero:environment:draft-review-publication`                                                 |
+| `workflow_ref`        | `Bet-Zero/scoutzero/.github/workflows/bze321-hosted-review.yml@refs/heads/feature/bze-321-hosted-draft-review` |
+
+Use Vercel Settings → Deployment Protection → Trusted Sources → External
+Services → GitHub Actions, with **Edit raw claims** for the workflow constraint.
+Preserve all existing entries. The connector's project summary does not expose
+the existing trust list, so it cannot safely perform a replacement update.
+This is a pending access authorization, not an already-installed rule.
+See [Vercel Trusted Sources](https://vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/trusted-sources).
+
+The proof loads real picks without seeding a world, checks the immutable response
+digest and 278/29 accounting, the rendered review, missing/invalid application
+authentication, unavailable service, canceled selection and reload. Firestore
+writes and application POSTs are blocked. A missing live pick fails the proof;
+an emulator fixture cannot substitute for it. Only newly created anonymous Auth
+accounts are removed after testing. No screenshots, traces, session material or
+NBA response bodies are uploaded to public Actions artifacts or logs.
+
+Preparation is not hosted proof. Merge and the documented installation-access
+cleanup remain gated on the actual successful hosted run. Retire this temporary
+preview trust entry after verification; preserve the installed release and rules.
