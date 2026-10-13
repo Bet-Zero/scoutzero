@@ -57,6 +57,7 @@ async function main() {
   let failed = false;
   const accounts = new Map<string, { idToken: string; key: string }>();
   let forbiddenRequests = 0;
+  let blockedExternalReads = 0;
   let failedResponse = false;
   const reviewPath = '/api/architect/draft-review';
   const pendingAccounts: Promise<void>[] = [];
@@ -69,7 +70,14 @@ async function main() {
         origin
       );
       if (policy === 'deny') {
-        forbiddenRequests++;
+        // Preview toolbar/third-party assets are not GM data writes. They stay
+        // blocked, but must not be mislabeled as an attempted Firestore write.
+        if (
+          !['GET', 'HEAD', 'OPTIONS'].includes(request.method()) ||
+          new URL(request.url()).hostname === 'firestore.googleapis.com'
+        )
+          forbiddenRequests++;
+        else blockedExternalReads++;
         await route.abort();
         return;
       }
@@ -262,6 +270,7 @@ async function main() {
       selectionReset: true,
       applyUnavailable: true,
       firestoreWrites: 0,
+      blockedExternalReads,
       temporaryAuthAccountsDeleted: accounts.size,
     })
   );
