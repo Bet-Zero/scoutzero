@@ -120,7 +120,8 @@ jobs:
       issues: read
       actions: read
     outputs:
-      structured: ${{ steps.claude.outputs.structured_output }}
+      structured: ${{ steps.report-safety.outputs.status == 'clear' && steps.claude.outputs.structured_output || '' }}
+      report_safety: ${{ steps.report-safety.outputs.status }}
       session_id: ${{ steps.claude.outputs.session_id }}
     steps:
       - name: Checkout trusted preserved base at workspace root
@@ -196,11 +197,105 @@ jobs:
             Return ACCEPT only when there is no material unresolved finding for the exact claimed scope. Non-blocking observations may coexist with ACCEPT. Return REVISE when an objective repair or additional discriminating proof is required. If ACCEPT, there must be no blocking finding.
 
             Keep scope limits explicit: synthetic or bounded proof never implies real-NBA readiness unless the handoff's claimed scope actually proves it.
+
+            The complete report is public. Never copy credentials, authorization-header values, signed URLs, or private evidence into it. Cite public file paths and line numbers instead. Preserve every material finding and limitation; if evidence cannot safely be described publicly, return REVISE and identify the required private review without reproducing that evidence.
+
+            This also applies to deliberately invalid test-token fixtures: GitHub's native output filter rejects JWT-shaped and GitHub-token-shaped examples even when they are synthetic. Describe the test and cite its file/line; do not reproduce those fixture bytes. This changes report presentation only, never the findings, evidence standard, or verdict.
           claude_args: >-
             --add-dir pr-head
             --max-turns 40
             --allowedTools "Read,Glob,Grep"
             --json-schema '{"type":"object","properties":{"verdict":{"type":"string","enum":["ACCEPT","REVISE"]},"summary":{"type":"string"},"review_report":{"type":"string"},"findings":{"type":"array","items":{"type":"object","properties":{"severity":{"type":"string","enum":["blocking","non-blocking"]},"title":{"type":"string"},"detail":{"type":"string"},"evidence":{"type":"string"},"required_next_step":{"type":"string"}},"required":["severity","title","detail","evidence","required_next_step"],"additionalProperties":false}},"validation":{"type":"array","items":{"type":"string"}},"scope_limits":{"type":"array","items":{"type":"string"}}},"required":["verdict","summary","review_report","findings","validation","scope_limits"],"additionalProperties":false}'
+
+      - name: Classify report safety without disclosing report content
+        id: report-safety
+        env:
+          REVIEW_GITHUB_TOKEN: ${{ github.token }}
+          REVIEW_CLAUDE_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, html, json, os, pathlib, re, urllib.parse
+
+          # Read only the official pinned action's fresh local result. Never put
+          # the report in step env (which Actions logs), stdout, or an artifact.
+          # This is an additional rejection gate, NOT a replacement for GitHub's
+          # native job-output filter. The original action bytes still cross it.
+          def unique_object(pairs):
+              result = {}
+              for key, value in pairs:
+                  if key in result:
+                      raise ValueError('duplicate field')
+                  result[key] = value
+              return result
+
+          def reject_constant(value):
+              raise ValueError('non-JSON constant')
+
+          def leaves(value):
+              if isinstance(value, str):
+                  yield value
+              elif isinstance(value, dict):
+                  for key, item in value.items():
+                      yield key
+                      yield from leaves(item)
+              elif isinstance(value, list):
+                  for item in value:
+                      yield from leaves(item)
+
+          status = 'result-unavailable'
+          try:
+              result_path = pathlib.Path(os.environ['RUNNER_TEMP']) / 'claude-execution-output.json'
+              if result_path.is_symlink() or result_path.stat().st_size > 32 * 1024 * 1024:
+                  raise ValueError('invalid result file')
+              messages = json.loads(result_path.read_text(), object_pairs_hook=unique_object,
+                                    parse_constant=reject_constant)
+              if not isinstance(messages, list):
+                  raise ValueError('invalid result sequence')
+              results = [m for m in messages if isinstance(m, dict) and m.get('type') == 'result']
+              if len(results) != 1:
+                  raise ValueError('ambiguous result')
+              result = results[0]
+              if result.get('subtype') != 'success' or result.get('is_error') is not False:
+                  raise ValueError('unsuccessful result')
+              report = result['structured_output']
+              if not isinstance(report, dict):
+                  raise ValueError('invalid report')
+              texts = [json.dumps(report, ensure_ascii=False), *leaves(report)]
+              # Match the known credentials and common runner encodings without
+              # logging values, matched substrings, lengths, hashes, or fields.
+              variants = set()
+              for name in ('REVIEW_GITHUB_TOKEN', 'REVIEW_CLAUDE_TOKEN'):
+                  value = os.environ.get(name, '').strip()
+                  if not value:
+                      raise ValueError('required credential comparison unavailable')
+                  for secret in [value, *value.splitlines()]:
+                      secret = secret.strip()
+                      if not secret:
+                          continue
+                      variants.update((secret, json.dumps(secret)[1:-1],
+                                       urllib.parse.quote(secret, safe=''), html.escape(secret)))
+                      variants.add(base64.b64encode(secret.encode()).decode())
+                      variants.add(base64.b64encode(('x-access-token:' + secret).encode()).decode())
+              known_match = any(secret in text for secret in variants for text in texts)
+              # Credential-shaped literals are unsafe even when they are not
+              # one of this job's credentials. Reject; never redact findings or
+              # re-encode a rejected report into another transport.
+              patterns = (
+                  r'(?i)\b(?:gh[pousr]_[A-Za-z0-9_]{16,}|github_pat_[A-Za-z0-9_]{16,}|sk-ant-[A-Za-z0-9_-]{16,})',
+                  r'\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+',
+                  r'-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----',
+                  r'(?i)https?://[^\s<>"`]+[?&](?:signature|token|key|secret|x-amz-signature|x-goog-signature)=',
+              )
+              pattern_match = any(re.search(pattern, text) for pattern in patterns for text in texts)
+              status = 'credential-match' if known_match else 'credential-shaped-content' if pattern_match else 'clear'
+          except (OSError, ValueError, KeyError, TypeError, RecursionError):
+              # Exception text may contain arbitrary report/file content.
+              status = 'result-unavailable'
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('status=' + status + '\n')
+          print('Report safety classification: ' + status)
+          PY
 
   publish-verdict:
     needs: [validate-request, independent-review]
@@ -216,6 +311,7 @@ jobs:
           CANDIDATE_SHA: ${{ needs.validate-request.outputs.candidate_sha }}
           BASE_SHA: ${{ needs.validate-request.outputs.base_sha }}
           REVIEW_RESULT: ${{ needs.independent-review.result }}
+          REPORT_SAFETY: ${{ needs.independent-review.outputs.report_safety }}
           STRUCTURED_OUTPUT: ${{ needs.independent-review.outputs.structured }}
           SESSION_ID: ${{ needs.independent-review.outputs.session_id }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -223,13 +319,23 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "$REVIEW_RESULT" != "success" ]] || [[ -z "$STRUCTURED_OUTPUT" ]]; then
+          if [[ "$REVIEW_RESULT" != "success" ]] || [[ "${REPORT_SAFETY:-}" != "clear" ]] || [[ -z "$STRUCTURED_OUTPUT" ]]; then
+            # Fixed categories only; never interpolate an untrusted report or
+            # substitute a guessed verdict when GitHub withholds the output.
+            case "${REPORT_SAFETY:-}" in
+              clear) failure_reason='Claude completed and the local safety check passed, but the complete job output is unavailable. GitHub may have withheld it; a false positive is not established.' ;;
+              credential-match) failure_reason='The report matched a credential available to the checker and was rejected before export. No report content was published.' ;;
+              credential-shaped-content) failure_reason='The report contained credential-shaped material and was rejected before export. No report content was published.' ;;
+              *) failure_reason='The checker or its local report-safety check did not produce a usable result.' ;;
+            esac
             cat > /tmp/review-failure.md <<EOF
           ## Independent Claude review failed to produce a verdict
 
           Candidate: \`$CANDIDATE_SHA\`
           Base: \`$BASE_SHA\`
           Workflow: $RUN_URL
+
+          $failure_reason
 
           The independent-review gate remains unsatisfied. Do not self-accept, merge on this basis, or ask the owner to substitute a verdict.
           EOF

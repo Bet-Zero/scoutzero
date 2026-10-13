@@ -40,6 +40,7 @@ function runPublisher(
     change?: string;
     result?: string;
     apiFailure?: boolean;
+    safety?: string;
   } = {}
 ) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-publisher-'));
@@ -89,6 +90,7 @@ else:
         CANDIDATE_SHA: candidate,
         BASE_SHA: base,
         REVIEW_RESULT: options.result ?? 'success',
+        REPORT_SAFETY: options.safety ?? 'clear',
         SESSION_ID: 'session-proof',
         RUN_URL: 'https://example.invalid/run',
         STRUCTURED_OUTPUT: options.raw
@@ -229,6 +231,113 @@ test('Claude publisher keeps execution, missing output and GitHub identity failu
       result.receipts.every((r) => !r.includes('effective_verdict: ACCEPT'))
     );
   }
+});
+
+test('Claude publisher distinguishes safe failure categories without substituting a verdict', () => {
+  for (const [safety, expected] of [
+    ['clear', 'a false positive is not established'],
+    ['credential-match', 'matched a credential'],
+    ['credential-shaped-content', 'credential-shaped material'],
+    ['result-unavailable', 'did not produce a usable result'],
+    ['untrusted failure text', 'did not produce a usable result'],
+  ]) {
+    const result = runPublisher('', { raw: true, safety });
+    assert.notEqual(result.status, 0);
+    assert.equal(result.receipts.length, 1);
+    assert.ok(result.receipts[0].includes(expected));
+    assert.ok(!result.receipts[0].includes('untrusted failure text'));
+    assert.ok(!result.receipts[0].includes('effective_verdict: ACCEPT'));
+    if (safety !== 'clear') assert.notEqual(runPublisher(valid, { safety }).status, 0);
+  }
+});
+
+const safetyScript = workflow
+  .split('      - name: Classify report safety without disclosing report content')[1]
+  .split('        run: |\n')[1]
+  .split('\n  publish-verdict:')[0]
+  .split('\n')
+  .map((line) => (line.startsWith('          ') ? line.slice(10) : line))
+  .join('\n');
+const fakeCredential = 'synthetic-private-value-for-test-only';
+
+function runSafety(
+  report: unknown,
+  options: { messages?: unknown; missingCredential?: boolean; symlink?: boolean } = {}
+) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-report-safety-'));
+  try {
+    const resultFile = path.join(dir, 'claude-execution-output.json');
+    const outputFile = path.join(dir, 'outputs');
+    const messages = options.messages ?? [
+      { type: 'system', subtype: 'init' },
+      { type: 'result', subtype: 'success', is_error: false, structured_output: report },
+    ];
+    fs.writeFileSync(options.symlink ? path.join(dir, 'other') : resultFile, JSON.stringify(messages));
+    if (options.symlink) fs.symlinkSync(path.join(dir, 'other'), resultFile);
+    const result = spawnSync('bash', ['-c', safetyScript], {
+      cwd: dir,
+      encoding: 'utf8',
+      timeout: 10000,
+      env: {
+        ...process.env,
+        RUNNER_TEMP: dir,
+        GITHUB_OUTPUT: outputFile,
+        REVIEW_GITHUB_TOKEN: fakeCredential,
+        REVIEW_CLAUDE_TOKEN: options.missingCredential ? '' : 'another-test-only-credential',
+      },
+    });
+    const output = fs.existsSync(outputFile) ? fs.readFileSync(outputFile, 'utf8') : '';
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stderr, '');
+    assert.match(output, /^status=(clear|credential-match|credential-shaped-content|result-unavailable)\n$/);
+    assert.equal(result.stdout, `Report safety classification: ${output.slice(7)}`);
+    return output.trim().slice(7);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test('Claude report safety rejects credential matches without logging or redacting the report', () => {
+  assert.equal(runSafety(valid), 'clear');
+  for (const secret of [
+    fakeCredential,
+    Buffer.from(fakeCredential).toString('base64'),
+    Buffer.from(`x-access-token:${fakeCredential}`).toString('base64'),
+  ]) {
+    assert.equal(runSafety({ ...valid, findings: [{ ...finding, detail: secret }] }), 'credential-match');
+  }
+  assert.equal(runSafety({ ...valid, summary: 'Never print this summary. ' + fakeCredential }), 'credential-match');
+});
+
+test('Claude report safety rejects credential-shaped literals and signed links', () => {
+  for (const text of [
+    'ghp_' + 'X'.repeat(36),
+    'sk-ant-' + 'x'.repeat(32),
+    'eyJhbGciOiJub25lIn0.eyJzdWIiOiJ0ZXN0In0.signature',
+    '-----BEGIN PRIVATE KEY-----',
+    'https://example.invalid/file?signature=not-a-real-signature',
+  ]) assert.equal(runSafety({ ...valid, review_report: text }), 'credential-shaped-content');
+});
+
+test('Claude report safety rejects ambiguous, missing and unsuccessful results', () => {
+  for (const messages of [
+    [], {},
+    [{ type: 'result', subtype: 'success', is_error: true, structured_output: valid }],
+    [{ type: 'result', subtype: 'error', is_error: false, structured_output: valid }],
+    [{ type: 'result', subtype: 'success', is_error: false }],
+    ...[null, 'text', []].map((structured_output) => [{ type: 'result', subtype: 'success', is_error: false, structured_output }]),
+    Array.from({ length: 2 }, () => ({ type: 'result', subtype: 'success', is_error: false, structured_output: valid })),
+  ]) assert.equal(runSafety(valid, { messages }), 'result-unavailable');
+  assert.equal(runSafety(valid, { missingCredential: true }), 'result-unavailable');
+  assert.equal(runSafety(valid, { symlink: true }), 'result-unavailable');
+});
+
+test('Report safety is additive and cannot tunnel around native GitHub output filtering', () => {
+  assert.ok(workflow.includes("structured: ${{ steps.report-safety.outputs.status == 'clear' && steps.claude.outputs.structured_output || '' }}"));
+  const guard = workflow.split('      - name: Classify report safety without disclosing report content')[1].split('\n  publish-verdict:')[0];
+  assert.doesNotMatch(guard, /steps\.claude\.outputs\.structured_output/);
+  assert.doesNotMatch(workflow, /upload-artifact|download-artifact|show_full_output:\s*true|display_report:\s*true/);
+  assert.ok(workflow.includes('STRUCTURED_OUTPUT: ${{ needs.independent-review.outputs.structured }}'));
 });
 
 test('Claude checker retains trusted root, isolated candidate and read-only tools', () => {
