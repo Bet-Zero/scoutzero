@@ -126,11 +126,16 @@ or additive reads may be active without the source commit. Track that ruleset fo
 cleanup. Firestore rules releases have no compare-and-swap API, so the protected
 approval must reserve the short installation window against other rule deploys.
 
-Preparation adds `publish-source` only to the reusable worker. The existing
-caller, inspection request, Google trust, permissions and old five-record
-publication pin remain unchanged: nothing can invoke this source publisher yet.
+Preparation adds a separate `publish-source` mode to the reusable worker and a
+dormant caller job pinned to `85139f9f63afa8341b7bd599dc8d1b7bc7fac432`.
+The inspection request, Google trust, permissions, inspection worker and old
+five-record publication pin remain unchanged. No source request is submitted.
 Its fixed encrypted input path is `.github/bze321-source-installation.json.gpg`;
-no source bundle or key is committed. Public ciphertext upload requires explicit
+no source bundle or key is committed. The fixed worker downloads only that
+ciphertext from the exact triggering commit; it never executes caller code.
+The protected plaintext digest binds the input independently of application
+commits, so input changes do not require changing the trusted executor.
+Public ciphertext upload requires explicit
 authorization for this new package, and ciphertext remains in public Git history
 after removal. Reuse the existing protected secret handoff; never publish keys,
 plaintext source evidence or rules. No new service, bucket or billing is needed.

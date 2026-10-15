@@ -393,13 +393,24 @@ describe('bounded source publisher preparation', () => {
       expect(cloud.calls.filter((c) => c.method === 'PATCH')).toHaveLength(1);
     }
   );
-  it('keeps the new executor unreachable from the unchanged caller and inspection request', () => {
+  it('keeps source publication dormant and isolated from the installed publication and inspection paths', () => {
     const caller: any = yaml.load(
       readFileSync('.github/workflows/draft-review-cloud.yml', 'utf8')
     );
     expect(caller.jobs.publication.uses).toContain(
       '@7f2b815ce9a5deb3d7b99546dd9ee3c699a66cb2'
     );
+    expect(caller.jobs['source-publication']).toEqual({
+      needs: 'request',
+      if: "needs.request.outputs.operation == 'publish-source'",
+      permissions: { contents: 'read', actions: 'read', 'id-token': 'write' },
+      uses: 'Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@85139f9f63afa8341b7bd599dc8d1b7bc7fac432',
+      with: { operation: 'publish-source' },
+      secrets: {
+        BZE321_INSTALLATION_PASSPHRASE:
+          '${{ secrets.BZE321_INSTALLATION_PASSPHRASE }}',
+      },
+    });
     expect(
       JSON.parse(readFileSync('.github/draft-review-request.json', 'utf8'))
     ).toEqual({ operation: 'inspect' });

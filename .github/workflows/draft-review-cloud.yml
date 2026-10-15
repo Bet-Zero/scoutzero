@@ -23,7 +23,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          operation=$(jq -er 'select(keys == ["operation"]) | .operation | select(. == "inspect" or . == "publish")' .github/draft-review-request.json)
+          operation=$(jq -er 'select(keys == ["operation"]) | .operation | select(. == "inspect" or . == "publish" or . == "publish-source")' .github/draft-review-request.json)
           printf 'operation=%s\n' "$operation" >> "$GITHUB_OUTPUT"
   operation:
     needs: request
@@ -45,5 +45,19 @@ jobs:
     uses: Bet-Zero/scoutzero/.github/workflows/draft-review-publication.yml@7f2b815ce9a5deb3d7b99546dd9ee3c699a66cb2
     # Environment-only secrets still require an explicit caller handoff. Do not
     # inherit repository secrets here (including the unrelated reviewer token).
+    secrets:
+      BZE321_INSTALLATION_PASSPHRASE: ${{ secrets.BZE321_INSTALLATION_PASSPHRASE }}
+  # Prepared only. No request, source ciphertext, approved digest or Google trust
+  # has been installed. The owner must authorize these exact source changes first.
+  source-publication:
+    needs: request
+    if: needs.request.outputs.operation == 'publish-source'
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    uses: Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@85139f9f63afa8341b7bd599dc8d1b7bc7fac432
+    with:
+      operation: publish-source
     secrets:
       BZE321_INSTALLATION_PASSPHRASE: ${{ secrets.BZE321_INSTALLATION_PASSPHRASE }}
