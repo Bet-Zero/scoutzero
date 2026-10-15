@@ -11,6 +11,10 @@ import {
   readInstallation,
   publishInstallation,
 } from './draftReviewInstallation.js';
+import {
+  readSourceInstallation,
+  publishSourceInstallation,
+} from './draftSourceInstallation.js';
 
 const mode = process.env.DRAFT_OPERATION;
 const token = process.env.SCOUTZERO_GCP_ACCESS_TOKEN ?? '';
@@ -75,6 +79,17 @@ try {
       process.env.INSTALLATION_PASSPHRASE ?? ''
     );
     console.log(JSON.stringify(await publishInstallation(token, bundle)));
+  } else if (mode === 'publish-source') {
+    const approvedHash = process.env.APPROVED_SOURCE_SHA256 ?? '';
+    const bytes = readSourceInstallation(
+      approvedHash,
+      process.env.INSTALLATION_PASSPHRASE ?? ''
+    );
+    console.log(
+      JSON.stringify(
+        await publishSourceInstallation(token, bytes, approvedHash)
+      )
+    );
   } else throw new Error('OPERATION_REJECTED');
 } catch (error) {
   const message = error instanceof Error ? error.message : '';
@@ -82,7 +97,7 @@ try {
     JSON.stringify(
       /^[A-Z_]+(?:_[0-9]{3})?$/.test(message)
         ? { code: message }
-        : mode === 'publish'
+        : mode === 'publish' || mode === 'publish-source'
           ? { code: 'INSTALLATION_FAILED_INSPECT_BEFORE_RETRY' }
           : draftCloudFailureSummary(error)
     )

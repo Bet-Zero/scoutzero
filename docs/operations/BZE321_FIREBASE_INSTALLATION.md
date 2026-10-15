@@ -105,12 +105,43 @@ PR #547 remains unmerged until genuine hosted proof and landing gates pass.
 The offline `prepareDraftSourceCommit` builder produces one atomic body, with
 `exists: false` for the absent rule and exact `updateTime` guards for both existing
 records. Existing-document masks contain only `draftSourceRevisions`; no legacy
-holder, membership, roster, salary or evidence field is overwritten. There is no
-credentialed execution path. Publication still needs a reviewed immutable source
-executor, the separately approved `datastore.entities.update` permission
-(database-wide IAM, bounded to approved paths by the executor), fresh state checks
-and protected approval. The installed five-record executor is not a source writer.
-No new list/delete/IAM-admin/Storage permission is needed.
+holder, membership, roster, salary or evidence field is overwritten.
+
+The proposed `draftSourceInstallation.ts` executor accepts exactly one existing
+team, one existing entitlement and one absent rule, with matching membership,
+holder and underlying identity. It binds logical before-images to the retained
+Firestore fields and update times. The protected environment's separate
+`BZE321_APPROVED_SOURCE_SHA256` must match every byte of the private installation
+package. Source qualification and exact private query/emulator proof remain
+approval prerequisites; a matching digest is not factual qualification.
+
+Before any mutation, the executor checks all nine required permissions, database
+identity, the unchanged installed review release, exact live rules, all three
+before-images, and Google's compilation/read/denial tests. It checks source and
+rules state again before activating the additive rules, then submits one guarded
+atomic source commit and verifies all source fields, rules and review documents.
+It does not retry writes or roll back another publisher. A partial failure stops
+for inspection; an immutable ruleset may have been created without activation,
+or additive reads may be active without the source commit. Track that ruleset for
+cleanup. Firestore rules releases have no compare-and-swap API, so the protected
+approval must reserve the short installation window against other rule deploys.
+
+Preparation adds `publish-source` only to the reusable worker. The existing
+caller, inspection request, Google trust, permissions and old five-record
+publication pin remain unchanged: nothing can invoke this source publisher yet.
+Its fixed encrypted input path is `.github/bze321-source-installation.json.gpg`;
+no source bundle or key is committed. Public ciphertext upload requires explicit
+authorization for this new package, and ciphertext remains in public Git history
+after removal. Reuse the existing protected secret handoff; never publish keys,
+plaintext source evidence or rules. No new service, bucket or billing is needed.
+
+Activation requires separate approval of the exact package and rules, the frozen
+reviewed publication-worker identity, the existing protected approval gate, and
+`datastore.entities.update` for the publisher. That IAM permission is
+database-wide; the immutable executor limits use to the three approved paths.
+The inspection identity remains read-only. No new list/delete/IAM-admin/Storage
+permission is needed. Do not change caller pins or submit a publication request
+before this authorization. The installed five-record executor is not repurposed.
 
 The same record-version contract and existing 278-entry/29-dependency crosswalk
 govern the wider integration batch. This is not a per-pick approval process.

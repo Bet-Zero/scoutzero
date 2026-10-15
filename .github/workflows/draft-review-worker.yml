@@ -2,6 +2,9 @@ name: Immutable draft review worker
 
 on:
   workflow_call:
+    secrets:
+      BZE321_INSTALLATION_PASSPHRASE:
+        required: false
     inputs:
       operation:
         type: string
@@ -21,7 +24,7 @@ jobs:
       github.repository_owner_id == '205859440' &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/feature/bze-321-hosted-draft-review' &&
-      (inputs.operation == 'inspect' || inputs.operation == 'publish')
+      (inputs.operation == 'inspect' || inputs.operation == 'publish' || inputs.operation == 'publish-source')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: ${{ inputs.operation == 'inspect' && 'draft-review-inspection' || 'draft-review-publication' }}
@@ -63,6 +66,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           DRAFT_OPERATION: ${{ inputs.operation }}
           APPROVED_INSTALLATION_SHA256: ${{ vars.BZE321_APPROVED_INSTALLATION_SHA256 }}
+          APPROVED_SOURCE_SHA256: ${{ vars.BZE321_APPROVED_SOURCE_SHA256 }}
         run: |
           node --import tsx --input-type=module <<'NODE'
           import { verifyProtection } from './scripts/architect/checkDraftReviewProtection.ts';
@@ -76,8 +80,22 @@ jobs:
           };
           // Exact branch identity is independently enforced by the Google OIDC
           // condition and this immutable job's if guard, not a mutable list.
-          verifyProtection(await get(base), mode);
+          verifyProtection(await get(base), mode === 'inspect' ? 'inspect' : 'publish');
           if (mode === 'publish' && (!/^[a-f0-9]{64}$/.test(process.env.APPROVED_INSTALLATION_SHA256 ?? ''))) throw new Error('Reviewed installation approval required');
+          if (mode === 'publish-source' && (!/^[a-f0-9]{64}$/.test(process.env.APPROVED_SOURCE_SHA256 ?? ''))) throw new Error('Reviewed source approval required');
+          NODE
+      - name: Retrieve approved source ciphertext without executing caller code
+        if: inputs.operation == 'publish-source'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --import tsx --input-type=module <<'NODE'
+          import { writeFile } from 'node:fs/promises';
+          import { readSourceCiphertext } from './scripts/architect/draftSourceInstallation.ts';
+          try {
+            const bytes = await readSourceCiphertext(process.env.GH_TOKEN, process.env.GITHUB_SHA);
+            await writeFile('.github/bze321-source-installation.json.gpg', bytes, { mode: 0o600, flag: 'wx' });
+          } catch { console.error('SOURCE_CIPHERTEXT_TRANSFER_FAILED'); process.exitCode = 1; }
           NODE
       - name: Exchange bounded GitHub identity
         id: auth
@@ -95,8 +113,9 @@ jobs:
         env:
           DRAFT_OPERATION: ${{ inputs.operation }}
           SCOUTZERO_GCP_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
-          INSTALLATION_PASSPHRASE: ${{ inputs.operation == 'publish' && secrets.BZE321_INSTALLATION_PASSPHRASE || '' }}
+          INSTALLATION_PASSPHRASE: ${{ inputs.operation != 'inspect' && secrets.BZE321_INSTALLATION_PASSPHRASE || '' }}
           APPROVED_INSTALLATION_SHA256: ${{ vars.BZE321_APPROVED_INSTALLATION_SHA256 }}
+          APPROVED_SOURCE_SHA256: ${{ vars.BZE321_APPROVED_SOURCE_SHA256 }}
         run: node --import tsx scripts/architect/runDraftReviewWorker.ts
       - name: Retain encrypted rules evidence only
         if: always() && inputs.operation == 'inspect'

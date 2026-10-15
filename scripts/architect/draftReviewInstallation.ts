@@ -165,12 +165,27 @@ export function cloudJson(token: string, request: typeof fetch = fetch) {
 
 /** Offline transport: only ciphertext is committed; the protected environment holds its key. */
 export function readInstallation(approvedHash: string, passphrase: string) {
+  return decodeInstallation(
+    decryptInstallationFile(
+      '.github/bze321-installation.json.gpg',
+      approvedHash,
+      passphrase
+    ),
+    approvedHash
+  );
+}
+
+/** Shared bounded transport only; callers must validate the decoded format. */
+export function decryptInstallationFile(
+  file: string,
+  approvedHash: string,
+  passphrase: string
+) {
   if (
     !/^[a-f0-9]{64}$/.test(approvedHash) ||
     !/^[A-Za-z0-9_-]{64}$/.test(passphrase)
   )
     throw new Error('APPROVED_INSTALLATION_REQUIRED');
-  const file = '.github/bze321-installation.json.gpg';
   let home: string | undefined;
   let bytes: Buffer;
   try {
@@ -205,7 +220,9 @@ export function readInstallation(approvedHash: string, passphrase: string) {
   } finally {
     if (home) rmSync(home, { recursive: true, force: true });
   }
-  return decodeInstallation(bytes, approvedHash);
+  if (digest(bytes) !== approvedHash)
+    throw new Error('INSTALLATION_DIGEST_MISMATCH');
+  return bytes;
 }
 
 export function decodeInstallation(bytes: Buffer, approvedHash: string) {

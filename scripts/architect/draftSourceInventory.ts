@@ -14,7 +14,7 @@ import {
 import { readDraftSourceForWorld } from '../../src/features/architect/utils/entitlements/draftSourceBaseline.js';
 
 /** Decode only draft fields selected for reconciliation; raw snapshots stay intact. */
-function decodeDraftField(value: unknown): unknown {
+export function decodeDraftField(value: unknown): unknown {
   if (!value || typeof value !== 'object' || Array.isArray(value))
     throw new Error('SOURCE_DRAFT_FIELD_INVALID');
   const field = value as Record<string, unknown>;
