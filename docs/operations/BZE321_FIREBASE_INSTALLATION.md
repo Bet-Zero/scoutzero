@@ -1,7 +1,48 @@
 # BZE-321: bounded Firebase installation
 
-Status: revised no-Storage candidate; no production installation or merge readiness.
-Owner authorization covers preparation/review, not new production IAM grants.
+Status: five-record installation verified in run 38195972300; hosted GM proof
+and merge remain blocked. No broader source publication or IAM grant is authorized.
+
+## Hosted selection failure — October 15
+
+Owner-approved browser run 38407725779 reached the ScoutZero UI through Vercel
+Authentication, then failed inside the former combined pick-selection phase.
+Its redacted output does not identify the historical substep. Do not claim it
+proves an authentication failure or retry it unchanged.
+
+Read-only production inspection found 30 base team documents and **zero** with
+nonempty `entitlementIds`, including Miami. Legacy pick fields are present but
+are not entitlement membership. `useTradeMachineInit` only resolves base picks
+when those IDs exist; `entitlementResolver` likewise returns no base inventory
+without them. `EntitlementPicksList` therefore has no first-round row to select
+in a fresh, world-free GM session. A denied read of the base entitlement
+collection does not establish whether its documents exist.
+
+This is a real deployment/integration gap plus an incorrect browser-test
+precondition, not proof of broken pick-menu handling. The immutable release is
+the evidence layer for a selected existing entitlement, not the team inventory.
+Earlier emulator proof populated a governed emulator world; it did not prove
+production inventory availability. Preparation review checked the browser's
+security boundary but left this prerequisite to the live run.
+
+The repaired driver reports fixed selection substages and fails explicitly on
+the real empty-list state. It never substitutes legacy picks, edits local
+session inventory, seeds a world, or treats an endpoint-only check as GM proof.
+It also reports temporary anonymous-account deletion counts on ordinary failures.
+The unchanged authentication, digest, 278/29 accounting, failure/reset checks and
+read-only request policy still apply. A protected replacement run is prepared
+by a candidate push but should not be approved merely to rediscover this known
+missing prerequisite.
+
+Completing this path requires qualified entitlement membership and accessible
+definitions in the existing draft-pick architecture. The five-record grant did
+not authorize source-team updates, source publication, saved-world adoption or
+broader source permissions. Do not repurpose the review release as a competing
+inventory, infer identities from legacy fields, or run a bulk source push.
+Resolve the source-adoption authorization gate before a success attempt. All
+278 entitlements and 29 unresolved evidence requirements remain mandatory.
+Keep PR #547 open; mandatory post-hosted cleanup remains pending, with no
+installed data/rules or temporary access removed while blocked.
 
 ## Verified production state
 

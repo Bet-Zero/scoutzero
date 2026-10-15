@@ -10,6 +10,13 @@ import '@testing-library/jest-dom/vitest';
 import { EntitlementPicksList } from '@/features/architect/tradeMachine/EntitlementPicksList';
 
 describe('EntitlementPicksList display', () => {
+  it('does not manufacture a selectable row when no entitlements are loaded', () => {
+    render(<EntitlementPicksList teamId="MIA" entitlements={[]} />);
+    expect(screen.getByText('No draft picks to show.')).toBeInTheDocument();
+    expect(screen.queryByText(/^\d{4} - Round 1$/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '•••' })).not.toBeInTheDocument();
+  });
+
   it('renders protection ladder, swap, and conveyance details', () => {
     const entitlements = [
       {

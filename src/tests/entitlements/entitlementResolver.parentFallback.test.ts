@@ -116,6 +116,18 @@ describe('entitlementResolver parent-world fallback chain', () => {
     expect(result[0].notes).toBe('child override');
   });
 
+  it('does not infer entitlement inventory from legacy picks when base IDs are absent', async () => {
+    seedDoc('architect_baseTeams/MIA', {
+      draftPicks: [{ year: 2030, round: 1, originalTeam: 'MIA' }],
+      draftPicksInventory: [{ year: 2030, round: 1 }],
+    });
+    // Even an existing definition is not inventory membership authority.
+    seedCollectionDoc('architect_baseEntitlements', 'unassigned', {
+      holderTeam: 'MIA', seasonYear: 2030, round: 1, kind: 'pick_ownership',
+    });
+    expect(await resolveEntitlementsForTeamWithDb(db, null, 'MIA')).toEqual([]);
+  });
+
   it('stops fallback when child team explicitly sets entitlementIds', async () => {
     seedDoc('architect_worlds/world-child/teams/BOS', { entitlementIds: [] });
 

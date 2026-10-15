@@ -1,5 +1,6 @@
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
+import { selectHostedDraftReviewPick } from './hostedDraftReviewSelection.js';
 import { REAL_DRAFT_REVIEW_PIN } from '../../src/features/architect/utils/draftPickRealReviewPin.js';
 import {
   hostedPreviewOrigin,
@@ -55,6 +56,7 @@ async function main() {
     serviceWorkers: 'block',
   });
   let failed = false;
+  let authCaptureFailed = false;
   const accounts = new Map<string, { idToken: string; key: string }>();
   let forbiddenRequests = 0;
   let blockedExternalReads = 0;
@@ -113,6 +115,7 @@ async function main() {
             }
           })().catch(() => {
             failed = true;
+            authCaptureFailed = true;
             phase = 'temporary-auth-account-capture';
           })
         );
@@ -129,40 +132,20 @@ async function main() {
       'PREVIEW_AUTHENTICATION_REQUIRED'
     );
     await page.getByRole('tab', { name: /^Trade Machine$/i }).waitFor();
-    phase = 'hosted-gm-pick-selection';
-    await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
-    const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
-    const card = dialog.getByTestId('trade-team-card-MIA');
-    await card.waitFor();
-    const picker = dialog
-      .locator('label', { hasText: /^Select Team$/ })
-      .locator('xpath=following-sibling::select[1]');
-    if ((await picker.count()) === 0)
-      await dialog.getByRole('button', { name: /^Add Team$/ }).click();
-    await picker.first().selectOption('nuggets');
-    await dialog.getByTestId('trade-team-card-DEN').waitFor();
-    await card
-      .getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i })
-      .click();
-    const pick = card.getByText(/^\d{4} - Round 1$/, { exact: true }).first();
-    await pick.waitFor(); // No synthetic fixtures or source/world writes to manufacture a passing UI.
-    const row = pick.locator(
-      'xpath=ancestor::div[.//button[normalize-space()="•••"]][1]'
-    );
-    async function stage(cancel = false) {
-      await row.getByRole('button', { name: '•••' }).click();
-      await page
-        .getByRole('button', {
-          name: cancel ? /^Cancel Trade$/ : /^Trade to Denver Nuggets$/,
-        })
-        .click();
-    }
+    const stage = await selectHostedDraftReviewPick(page, (value) => {
+      phase = value;
+    });
     const responsePromise = page.waitForResponse(
       (r) =>
         new URL(r.url()).origin === origin &&
         new URL(r.url()).pathname === reviewPath
     );
-    const [response] = await Promise.all([responsePromise, stage()]);
+    const [response] = await Promise.all([
+      responsePromise,
+      stage().then(() => {
+        phase = 'await-authenticated-release-response';
+      }),
+    ]);
     phase = 'authenticated-release-integrity';
     requireProof(response.status() === 200, 'HOSTED_RELEASE_UNAVAILABLE');
     requireProof(
@@ -215,6 +198,7 @@ async function main() {
     await panel.waitFor({ state: 'detached' });
     failedResponse = true;
     await stage();
+    phase = 'render-unavailable-review';
     await panel.getByText(/retained pick review is unavailable/).waitFor();
     requireProof(
       (await panel.innerText()).includes('Apply unavailable'),
@@ -230,9 +214,11 @@ async function main() {
   } catch {
     failed = true;
   } finally {
+    let deletedAccounts = 0;
     const captured = await Promise.allSettled(pendingAccounts);
     if (captured.some((r) => r.status === 'rejected')) {
       failed = true;
+      authCaptureFailed = true;
       phase = 'temporary-auth-account-capture';
     }
     // Delete only the fresh anonymous Auth account made by this empty browser
@@ -251,11 +237,19 @@ async function main() {
       if (!result?.ok) {
         failed = true;
         phase = 'temporary-auth-account-cleanup';
-      }
+      } else deletedAccounts++;
     }
     await context.close();
     await browser.close();
     clearTimeout(watchdog);
+    console.log(
+      JSON.stringify({
+        temporaryAuthAccountsCreated: accounts.size,
+        temporaryAuthAccountsDeleted: deletedAccounts,
+        temporaryAuthCleanupComplete:
+          !authCaptureFailed && accounts.size === deletedAccounts,
+      })
+    );
   }
   if (failed) throw new Error('HOSTED_PROOF_INCOMPLETE');
   console.log(
