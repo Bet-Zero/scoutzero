@@ -3,6 +3,59 @@
 Status: five-record installation verified in run 38195972300; hosted GM proof
 and merge remain blocked. No broader source publication or IAM grant is authorized.
 
+## Source integration preparation — current owner direction
+
+Source-adoption investigation, implementation preparation and offline tests are
+authorized. Every production source write still requires a concrete, separately
+approved change list. Hosted browser execution is paused until real inventory
+exists. Do not restart Vercel setup or run old PST bulk imports.
+
+The exact inspection scope is 278 retained entitlement definitions, 240 distinct
+underlying pick-rule documents and 30 team membership documents (548 known
+document paths). The prepared inspector derives paths from the verified installed
+release; it does not infer holders from names, labels, legacy pick fields or
+archival aliases. It distinguishes HTTP 404 from denied reads, retains complete
+document fields and update times privately, and compares two reads before
+reporting stability. Production rules remain independently recoverable in the
+existing encrypted evidence even if inventory inspection fails. No new artifact
+transport, service, credential or collection-list permission is introduced.
+
+This is prepared code, not a completed authenticated source inspection. The
+currently trusted reusable worker is pinned to `2b9391ca0327630785a8b1d34c02506585680cf5`
+and does not contain these source reads. Do not run caller code with that worker's
+credential. Its existing `datastore.entities.get` permission suffices; executing
+the replacement requires independent acceptance and authorization of its exact
+**inspection-only** workflow identity. Publication trust remains unchanged.
+
+All 278 entries and the exact 29 unresolved dependency memberships remain in
+reconciliation, including the 12 generated aliases that are not established
+standalone transferable rights. The accepted 177 supported holder questions are
+not 177 complete trade certifications. The installed review projection maps one
+complete original-ownership fact; broader accepted facts still require exact
+field mappings, with date and component scope preserved. Never backdate a later
+observation or infer unprotected terms from an empty protection array.
+
+Before asking for source-write approval, produce a snapshot-backed change list:
+create only qualified missing definitions/rules; preserve or stop on existing
+conflicts; append only qualified membership with an `entitlementIds` field mask
+and exact update-time precondition. No roster, source history, saved-world or
+Apply writes. Existing saved worlds can inherit base membership through the
+resolver, so **no saved-world writes** alone does not prove unchanged world
+behavior; that inheritance must be accounted for before adoption. Current
+publisher permissions lack `datastore.entities.update` for team patches; do not
+grant it or claim the existing five-record permission covers source adoption.
+
+The projection now distinguishes unavailable protection terms from an explicit
+whole-value `Unprotected` description and does not classify that word as a
+protected conditional right. Conditional fallback years retain their protection.
+This is a display correction, not ownership, trade approval or Apply authority.
+
+Independent-review publication remains tracked at run 38719495587: the local
+report-safety result was clear, but GitHub withheld the structured job output.
+That run supplied no usable verdict. Do not recover its rejected report through
+another transport, self-accept, or retry that unchanged candidate. A new source
+inspection candidate still needs its own accepted review and CI before use.
+
 ## Hosted selection failure — October 15
 
 Owner-approved browser run 38407725779 reached the ScoutZero UI through Vercel

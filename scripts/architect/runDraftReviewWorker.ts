@@ -1,5 +1,7 @@
 import { readFile, writeFile, rm } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
+import type { DraftSourceSnapshot } from './draftSourceInventory.js';
+import { canonicalStringify } from '../../src/features/architect/utils/contractSource/deterministicDigest.js';
 import {
   inspectDraftReviewCloud,
   draftCloudFailureSummary,
@@ -15,17 +17,26 @@ const token = process.env.SCOUTZERO_GCP_ACCESS_TOKEN ?? '';
 let snapshot:
   | { rulesetName: string; content: string; sha256: string }
   | undefined;
+let sourceInventory: DraftSourceSnapshot | undefined;
+let stableSourceRead = false;
 try {
   if (mode === 'inspect') {
     const first = await inspectDraftReviewCloud(token, fetch, {
       retain: (value) => {
         snapshot = value;
       },
+      retainSourceInventory: (value) => {
+        sourceInventory = value;
+      },
     });
     let second: typeof snapshot;
+    let secondInventory: DraftSourceSnapshot | undefined;
     await inspectDraftReviewCloud(token, fetch, {
       retain: (value) => {
         second = value;
+      },
+      retainSourceInventory: (value) => {
+        secondInventory = value;
       },
     });
     if (
@@ -35,11 +46,27 @@ try {
       snapshot.rulesetName !== second.rulesetName
     )
       throw new Error('RULES_CHANGED_DURING_INSPECTION');
+    if (sourceInventory || secondInventory) {
+      if (
+        !sourceInventory ||
+        !secondInventory ||
+        canonicalStringify(sourceInventory.documents) !==
+          canonicalStringify(secondInventory.documents)
+      )
+        throw new Error('SOURCE_CHANGED_DURING_INSPECTION');
+      stableSourceRead = true;
+    }
     console.log(
       JSON.stringify({
         ...first,
         rulesetName: snapshot.rulesetName,
         stableDoubleRead: true,
+        sourceDocumentsInspected: Object.keys(sourceInventory?.documents ?? {})
+          .length,
+        sourceDocumentsPresent: Object.values(
+          sourceInventory?.documents ?? {}
+        ).filter(Boolean).length,
+        stableSourceRead,
       })
     );
   } else if (mode === 'publish') {
@@ -72,6 +99,8 @@ try {
         ...snapshot,
         repositoryRules: expected,
         capturedAt: new Date().toISOString(),
+        sourceInventory,
+        stableSourceRead,
       });
       await writeFile(path, bytes, { mode: 0o600, flag: 'wx' });
       execFileSync(

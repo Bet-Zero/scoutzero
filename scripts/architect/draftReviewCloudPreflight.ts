@@ -7,6 +7,10 @@ import {
   verifyDraftReviewBytes,
 } from '../../server/draftReviewFirestore.js';
 import { DRAFT_CLOUD_PROJECT } from './draftReviewCloudConnection.js';
+import {
+  inspectDraftSourceInventory,
+  type DraftSourceSnapshot,
+} from './draftSourceInventory.js';
 
 const BASE_RULES_SHA =
   '8356ad1b83fb4c7ddf25893928ba99b365cd02bee57554bfb940af84ee73cc59';
@@ -28,6 +32,7 @@ const stages = [
   'part-2',
   'part-3',
   'release-integrity',
+  'source-inventory',
 ] as const;
 type Stage = (typeof stages)[number];
 const failures = new Map([
@@ -103,6 +108,7 @@ export async function inspectDraftReviewCloud(
       content: string;
       sha256: string;
     }) => void;
+    retainSourceInventory?: (snapshot: DraftSourceSnapshot) => void;
   }
 ) {
   let stage: Stage = 'credential';
@@ -130,6 +136,7 @@ async function inspect(
       content: string;
       sha256: string;
     }) => void;
+    retainSourceInventory?: (snapshot: DraftSourceSnapshot) => void;
   }
 ) {
   if (!accessToken || /\s/.test(accessToken))
@@ -272,6 +279,17 @@ async function inspect(
         'Existing release conflicts with the approved immutable version.'
       );
     }
+  }
+  if (evidence?.retainSourceInventory && present === 5) {
+    setStage('source-inventory');
+    evidence.retainSourceInventory(
+      await inspectDraftSourceInventory(
+        Buffer.concat(
+          docs.slice(1).map((doc, index) => readDraftReviewPart(doc, index))
+        ),
+        read
+      )
+    );
   }
   return {
     project: DRAFT_CLOUD_PROJECT,
