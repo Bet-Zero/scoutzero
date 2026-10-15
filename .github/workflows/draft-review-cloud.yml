@@ -32,7 +32,7 @@ jobs:
       contents: read
       actions: read
       id-token: write
-    uses: Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@2b9391ca0327630785a8b1d34c02506585680cf5
+    uses: Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@ede0e2be620aabd5c2d90c42f62a2b3737acda72
     with:
       operation: inspect
   publication:
