@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readDraftSourceForWorld } from '@/features/architect/utils/entitlements/draftSourceBaseline';
 import {
+  draftSourceReadRuleAddition,
+  verifyDraftSourceReadRuleAddition,
   prepareDraftSourceCommit,
   preserveDraftSourceBaseline,
 } from '../../scripts/architect/draftSourcePreservation';
@@ -172,6 +174,52 @@ describe('draft source adoption preserves saved simulations', () => {
     ).toThrow();
     expect(() =>
       prepareDraftSourceCommit([{ ...change, after: { roster: ['changed'] } }])
+    ).toThrow();
+  });
+
+  it('allows only the exact authenticated source-read addition, preserving every existing rule byte', () => {
+    const baseline =
+      "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    // existing private rules retained\n  }\n}\n";
+    const addition = draftSourceReadRuleAddition(
+      'synthetic:entitlement',
+      'AAA_2030_1st'
+    );
+    const offset = baseline.indexOf('    // existing');
+    const proposed =
+      baseline.slice(0, offset) + addition + baseline.slice(offset);
+    expect(() =>
+      verifyDraftSourceReadRuleAddition(
+        baseline,
+        proposed,
+        'synthetic:entitlement',
+        'AAA_2030_1st'
+      )
+    ).not.toThrow();
+    for (const mutated of [
+      proposed.replace('request.auth != null', 'true'),
+      proposed.replace('allow write: if false', 'allow write: if true'),
+      proposed.replace('existing private', 'changed private'),
+      proposed + addition,
+    ]) {
+      expect(() =>
+        verifyDraftSourceReadRuleAddition(
+          baseline,
+          mutated,
+          'synthetic:entitlement',
+          'AAA_2030_1st'
+        )
+      ).toThrow();
+    }
+    expect(() =>
+      draftSourceReadRuleAddition("injected' || true", 'AAA_2030_1st')
+    ).toThrow();
+    expect(() =>
+      verifyDraftSourceReadRuleAddition(
+        proposed,
+        proposed + addition,
+        'synthetic:entitlement',
+        'AAA_2030_1st'
+      )
     ).toThrow();
   });
 

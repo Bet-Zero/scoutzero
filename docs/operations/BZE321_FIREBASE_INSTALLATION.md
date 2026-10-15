@@ -91,7 +91,9 @@ implicit enrollment. This does not deliver saved-world adoption or trade Apply.
 The private exact-rules probe now passes: base inventory 1, saved-world inventory
 0 before and after, unchanged world document, base rule 1, saved-world rule 0;
 four authenticated source read cases and twelve denials pass. Production calls:
-zero. Synthetic regression tests cover prior nonempty/empty/absent membership,
+zero. `verifyDraftSourceReadRuleAddition` also checks that the exact private
+proposal equals the original live bytes plus the code-reviewed ID-only addition;
+changes to existing rules, authentication, write denial or approved IDs reject. Synthetic regression tests cover prior nonempty/empty/absent membership,
 parent overrides, existing holder changes, team and league reads, branching,
 rule reads and baseline corruption. Source evidence and rules stay private.
 

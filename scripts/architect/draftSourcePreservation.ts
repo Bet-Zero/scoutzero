@@ -55,6 +55,47 @@ export type DraftSourcePreparedChange = {
   updateTime?: string;
 };
 
+/** Exact initial-proof addition. Existing production rules are never templated. */
+export function draftSourceReadRuleAddition(
+  entitlementId: string,
+  pickId: string
+): string {
+  if (![entitlementId, pickId].every((id) => /^[A-Za-z0-9:_-]+$/.test(id))) {
+    throw new Error('DRAFT_SOURCE_RULE_ID');
+  }
+  return `
+    // BZE-321 bounded source review: authenticated, approved IDs only.
+    match /${ARCHITECT_BASE_ENTITLEMENTS_PATH}/{sourceId} {
+      allow get, list: if request.auth != null && sourceId == '${entitlementId}';
+      allow write: if false;
+    }
+    match /${ARCHITECT_BASE_PICK_RULES_PATH}/{sourceId} {
+      allow get, list: if request.auth != null && sourceId == '${pickId}';
+      allow write: if false;
+    }
+`;
+}
+
+/** Compile and permission tests on the exact private bytes remain mandatory. */
+export function verifyDraftSourceReadRuleAddition(
+  baseline: string,
+  proposed: string,
+  entitlementId: string,
+  pickId: string
+): void {
+  const addition = draftSourceReadRuleAddition(entitlementId, pickId);
+  const index = proposed.indexOf(addition);
+  if (
+    index < 0 ||
+    proposed.indexOf(addition, index + 1) !== -1 ||
+    baseline.includes('BZE-321 bounded source review:') ||
+    proposed.slice(0, index) + proposed.slice(index + addition.length) !==
+      baseline
+  ) {
+    throw new Error('DRAFT_SOURCE_RULES_NOT_ADDITIVE');
+  }
+}
+
 /**
  * Produce one atomic commit BODY for later, separately authorized publication.
  * No endpoint/caller is provided. Existing records carry updateTime guards and
