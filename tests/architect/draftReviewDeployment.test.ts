@@ -345,10 +345,10 @@ describe('protected workflow identity', () => {
     );
     expect(caller.on.push.paths).toEqual(['.github/draft-review-request.json']);
     expect(caller.jobs.operation.uses).toBe(
-      `Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@${connection.workerSha}`
+      `Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@${connection.inspectionWorkerSha ?? connection.workerSha}`
     );
-    const { workerSha, ...plan } = connection;
-    expect(plan).toEqual(sustainableDraftConnectionPlan(workerSha));
+    const { workerSha, inspectionWorkerSha, ...plan } = connection;
+    expect(plan).toEqual(sustainableDraftConnectionPlan(workerSha, inspectionWorkerSha));
     expect(caller.jobs.request.permissions).toBeUndefined();
     expect(caller.permissions).toEqual({ contents: 'read' });
   });
@@ -450,6 +450,29 @@ describe('protected workflow identity', () => {
     expect(PUBLICATION_PERMISSIONS).not.toContain('datastore.entities.update');
     expect(PUBLICATION_PERMISSIONS).not.toContain('datastore.entities.delete');
     expect(() => sustainableDraftConnectionPlan('main')).toThrow();
+  });
+  it('adds only the approved inspection identity and preserves the old publication identity', () => {
+    const oldSha = 'a'.repeat(40);
+    const newSha = 'b'.repeat(40);
+    const plan = sustainableDraftConnectionPlan(oldSha, newSha);
+    const claims = (sha: string, environment: string) => ({
+      repository_id: '997820257', repository_owner_id: '205859440',
+      repository: 'Bet-Zero/scoutzero', event_name: 'push',
+      ref: 'refs/heads/feature/bze-321-hosted-draft-review',
+      job_workflow_ref: `Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@${sha}`,
+      job_workflow_sha: sha, environment,
+      sub: `repo:Bet-Zero/scoutzero:environment:${environment}`,
+    });
+    const accepts = (assertion: object) => runInNewContext(plan.attributeCondition, { assertion });
+    const inspection = claims(newSha, 'draft-review-inspection');
+    expect(accepts(inspection)).toBe(true);
+    expect(accepts(claims(newSha, 'draft-review-publication'))).toBe(false);
+    expect(accepts(claims(oldSha, 'draft-review-publication'))).toBe(true);
+    expect(accepts(claims(oldSha, 'draft-review-inspection'))).toBe(true);
+    for (const key of Object.keys(inspection))
+      expect(accepts({ ...inspection, [key]: 'untrusted' })).toBe(false);
+    expect(() => sustainableDraftConnectionPlan(oldSha, 'main')).toThrow();
+    expect(plan.publication).toEqual(sustainableDraftConnectionPlan(oldSha).publication);
   });
   it('fails if environment approvals, owner, non-bypass or branch protections are missing', () => {
     const environment = {

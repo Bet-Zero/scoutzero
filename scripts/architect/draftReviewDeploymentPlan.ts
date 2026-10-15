@@ -21,7 +21,10 @@ export const PUBLICATION_PERMISSIONS = Object.freeze([
 ]);
 
 /** Proposed configuration only. No IAM mutation or automatic privilege upgrade. */
-export function sustainableDraftConnectionPlan(workerSha: string) {
+export function sustainableDraftConnectionPlan(
+  workerSha: string,
+  inspectionWorkerSha?: string
+) {
   if (!/^[a-f0-9]{40}$/.test(workerSha))
     throw new Error('Immutable worker SHA required');
   const worker = `Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@${workerSha}`;
@@ -40,6 +43,19 @@ export function sustainableDraftConnectionPlan(workerSha: string) {
         `(assertion.environment == '${name}' && assertion.sub == 'repo:Bet-Zero/scoutzero:environment:${name}')`
     )
     .join(' || ');
+  if (inspectionWorkerSha && !/^[a-f0-9]{40}$/.test(inspectionWorkerSha))
+    throw new Error('Immutable inspection worker SHA required');
+  const baselineCondition = `${common.join(' && ')} && (${environmentCondition})`;
+  // This additive identity is inspection-only. It never moves publication trust.
+  const inspectionCondition = inspectionWorkerSha
+    ? [
+        ...common.slice(0, 5),
+        `assertion.job_workflow_ref == 'Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@${inspectionWorkerSha}'`,
+        `assertion.job_workflow_sha == '${inspectionWorkerSha}'`,
+        `assertion.environment == '${INSPECTION_ENVIRONMENT}'`,
+        `assertion.sub == 'repo:Bet-Zero/scoutzero:environment:${INSPECTION_ENVIRONMENT}'`,
+      ].join(' && ')
+    : null;
   const member = (environment: string) =>
     `principalSet://iam.googleapis.com/projects/105500121903/locations/global/workloadIdentityPools/scoutzero-bze321/attribute.environment/${environment}`;
   return {
@@ -57,7 +73,9 @@ export function sustainableDraftConnectionPlan(workerSha: string) {
       'attribute.repository_id': 'assertion.repository_id',
       'attribute.environment': 'assertion.environment',
     },
-    attributeCondition: `${common.join(' && ')} && (${environmentCondition})`,
+    attributeCondition: inspectionCondition
+      ? `(${baselineCondition}) || (${inspectionCondition})`
+      : baselineCondition,
     inspection: {
       account: DRAFT_CLOUD_ACCOUNT,
       member: member(INSPECTION_ENVIRONMENT),

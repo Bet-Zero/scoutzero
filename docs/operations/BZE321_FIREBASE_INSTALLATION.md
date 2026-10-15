@@ -20,12 +20,30 @@ reporting stability. Production rules remain independently recoverable in the
 existing encrypted evidence even if inventory inspection fails. No new artifact
 transport, service, credential or collection-list permission is introduced.
 
-This is prepared code, not a completed authenticated source inspection. The
-currently trusted reusable worker is pinned to `2b9391ca0327630785a8b1d34c02506585680cf5`
-and does not contain these source reads. Do not run caller code with that worker's
-credential. Its existing `datastore.entities.get` permission suffices; executing
-the replacement requires independent acceptance and authorization of its exact
-**inspection-only** workflow identity. Publication trust remains unchanged.
+Authenticated inspection completed in
+[run 38727353706](https://github.com/Bet-Zero/scoutzero/actions/runs/38727353706).
+The owner-approved inspection-only executor is
+`ede0e2be620aabd5c2d90c42f62a2b3737acda72`; publication remains pinned to its
+previous executor. All 548 known paths matched across two reads: **278 definitions
+present, 240 expected pick rules absent, 30 teams present with no entitlement
+membership links**. These are known-path results, not a claim that no unrelated
+documents exist. The live rules match the previously installed additive rules
+byte for byte; their digest is
+`502b9b657474a960dc8d32507cd4e410c7aae4e5610e86aa76b636ddc936976e`.
+No production writes occurred. The encrypted evidence was privately recovered
+and verified against the logged plaintext digest
+`ae94952dda732b106ec3c329eb99b40de54fa29c5a24f0097973e03b6e4f0ef3`.
+
+All retained definition IDs and kinds reconcile. Presence does not qualify the
+stored holder or terms: one fully mapped accepted ownership fact contradicts an
+existing holder field. Do not recreate the 278 definitions, adopt their holder
+labels wholesale, or silently overwrite the conflict. A private, snapshot-backed
+three-record proposal retains exact before/after fields and update times: one
+definition correction, one absent pick-rule creation, and one team membership
+append. It is **not executable or write-authorized**. Its digest is
+`2f11e754c74074b4d875a45ecee44c54da0ba718a8c1373cea41b510eaef9e90`.
+The other 277 entries remain required; this smallest mapped component is not a
+claim that broader accepted evidence is unavailable or that integration is done.
 
 All 278 entries and the exact 29 unresolved dependency memberships remain in
 reconciliation, including the 12 generated aliases that are not established
@@ -53,8 +71,10 @@ This is a display correction, not ownership, trade approval or Apply authority.
 Independent-review publication remains tracked at run 38719495587: the local
 report-safety result was clear, but GitHub withheld the structured job output.
 That run supplied no usable verdict. Do not recover its rejected report through
-another transport, self-accept, or retry that unchanged candidate. A new source
-inspection candidate still needs its own accepted review and CI before use.
+another transport, self-accept, or retry that unchanged candidate. The replacement
+inspector received a successfully published, exact-candidate Claude ACCEPT in
+run 38724875071 and green CI in run 38724787300 before use. This does not identify
+the historical secret-detector match or waive source-adoption review.
 
 ## Hosted selection failure — October 15
 
