@@ -7,7 +7,12 @@ import {
   preserveDraftSourceBaseline,
 } from '../../scripts/architect/draftSourcePreservation';
 import { resolvePickRuleWithDb } from '@/features/architect/utils/entitlements/pickRulesResolver';
-import { seedMockData } from '../helpers/architectTestHelpers';
+import {
+  loadTeamCapSheet,
+  getAllTeams,
+} from '@/features/architect/utils/firebaseTeamPlanHelpers';
+import { readArchitectTeam } from '@/features/architect/utils/architectFirestoreBoundary';
+import { createMockTeam, seedMockData } from '../helpers/architectTestHelpers';
 import { db } from '@/firebaseConfig';
 
 describe('draft source adoption preserves saved simulations', () => {
@@ -35,37 +40,85 @@ describe('draft source adoption preserves saved simulations', () => {
           'team'
         )?.roster
       ).toEqual(['later-player']);
-      expect(prepared.updateMask).toEqual([
-        'entitlementIds',
-        'draftSourceBaseline',
-      ]);
+      expect(prepared.updateMask).toEqual(['draftSourceRevisions']);
     }
   });
 
-  it('preserves the original baseline through successive corrections, without guessing a world cutoff', () => {
+  it('keeps legacy fields byte-equivalent and refuses to replace an immutable revision', () => {
     const original = {
       holderTeam: 'AAA',
       description: 'original',
       id: 'stable',
     };
-    const first = preserveDraftSourceBaseline(
-      original,
-      { ...original, holderTeam: 'BBB' },
-      'entitlement'
-    );
-    const next = preserveDraftSourceBaseline(
-      first.after,
-      { ...first.after, holderTeam: 'CCC', description: 'later' },
-      'entitlement'
-    );
+    const desired = { ...original, holderTeam: 'BBB' };
+    const first = preserveDraftSourceBaseline(original, desired, 'entitlement');
+    expect(first.after.holderTeam).toBe('AAA');
     expect(
-      readDraftSourceForWorld(next.after, 'any-world', 'entitlement')
+      readDraftSourceForWorld(first.after, 'any-world', 'entitlement')
     ).toEqual(original);
-    expect(readDraftSourceForWorld(next.after, null, 'entitlement')).toEqual({
-      ...original,
-      holderTeam: 'CCC',
-      description: 'later',
+    expect(readDraftSourceForWorld(first.after, null, 'entitlement')).toEqual(
+      desired
+    );
+    expect(() =>
+      preserveDraftSourceBaseline(
+        first.after,
+        { ...desired, holderTeam: 'CCC' },
+        'entitlement'
+      )
+    ).toThrow('IMMUTABLE_DRAFT_REVISION_CONFLICT');
+    expect(
+      preserveDraftSourceBaseline(first.after, desired, 'entitlement').after
+    ).toEqual(first.after);
+  });
+
+  it('never silently adopts a later revision and rejects mismatched rule identities', () => {
+    const source = {
+      holderTeam: 'AAA',
+      draftSourceRevisions: {
+        schemaVersion: 1,
+        legacyExists: true,
+        versions: {
+          '1': { holderTeam: 'BBB' },
+          '2': { holderTeam: 'CCC' },
+        },
+      },
+    };
+    expect(
+      readDraftSourceForWorld(source, null, 'entitlement')?.holderTeam
+    ).toBe('BBB');
+    expect(
+      readDraftSourceForWorld(source, 'saved', 'entitlement')?.holderTeam
+    ).toBe('AAA');
+    const futureOnly = {
+      holderTeam: 'AAA',
+      draftSourceRevisions: {
+        schemaVersion: 1,
+        legacyExists: true,
+        versions: { '2': { holderTeam: 'CCC' } },
+      },
+    };
+    expect(readDraftSourceForWorld(futureOnly, null, 'entitlement')).toEqual({
+      holderTeam: 'AAA',
     });
+    expect(() =>
+      preserveDraftSourceBaseline(
+        null,
+        { pickId: 'AAA_2030_1st', seasonYear: 2031, round: 1 },
+        'pickRule'
+      )
+    ).toThrow();
+    const prepared = preserveDraftSourceBaseline(
+      null,
+      { pickId: 'AAA_2030_1st', seasonYear: 2030, round: 1 },
+      'pickRule'
+    );
+    expect(() =>
+      readDraftSourceForWorld(
+        { pickId: 'BBB_2030_1st', ...prepared.after },
+        null,
+        'pickRule'
+      )
+    ).toThrow();
   });
 
   it('does not retroactively introduce a newly created pick rule (single reader)', async () => {
@@ -94,7 +147,7 @@ describe('draft source adoption preserves saved simulations', () => {
       preserveDraftSourceBaseline({ holderTeam: 'A' }, {}, 'entitlement')
     ).toThrow();
     expect(() =>
-      readDraftSourceForWorld({ draftSourceBaseline: {} }, null, 'team')
+      readDraftSourceForWorld({ draftSourceRevisions: {} }, null, 'team')
     ).toThrow();
     const first = preserveDraftSourceBaseline(
       { holderTeam: 'A' },
@@ -104,7 +157,7 @@ describe('draft source adoption preserves saved simulations', () => {
     expect(() =>
       preserveDraftSourceBaseline(
         first.after,
-        { ...first.after, draftSourceBaseline: {} },
+        { ...first.after, draftSourceRevisions: {} },
         'entitlement'
       )
     ).toThrow();
@@ -127,7 +180,12 @@ describe('draft source adoption preserves saved simulations', () => {
         kind: 'pickRule',
         path: 'architect_basePickRules/AAA_2030_1st',
         before: null,
-        after: { pickId: 'AAA_2030_1st', protections: [] },
+        after: {
+          pickId: 'AAA_2030_1st',
+          seasonYear: 2030,
+          round: 1,
+          protections: [],
+        },
       },
       {
         kind: 'team',
@@ -144,8 +202,7 @@ describe('draft source adoption preserves saved simulations', () => {
       { updateTime: timestamp },
     ]);
     expect(body.writes[2].updateMask?.fieldPaths).toEqual([
-      'entitlementIds',
-      'draftSourceBaseline',
+      'draftSourceRevisions',
     ]);
     expect(body.writes[2].update.fields).not.toHaveProperty('roster');
     expect(body.writes[0].update.fields).not.toHaveProperty('id');
@@ -221,6 +278,33 @@ describe('draft source adoption preserves saved simulations', () => {
         'AAA_2030_1st'
       )
     ).toThrow();
+  });
+
+  it('keeps base-only dashboard readers compatible while exposing the supported revision', async () => {
+    const before = createMockTeam({
+      teamCode: 'LAL',
+      roster: [],
+      entitlementIds: [],
+    });
+    seedMockData('architect_baseTeams/LAL', before);
+    const oldTeamList = await getAllTeams();
+    const prepared = preserveDraftSourceBaseline(
+      before,
+      { ...before, entitlementIds: ['synthetic-current'] },
+      'team'
+    );
+    seedMockData('architect_baseTeams/LAL', prepared.after);
+    const loaded = await loadTeamCapSheet('LAL');
+    expect(loaded).not.toBeNull();
+    expect(loaded?.entitlementIds).toEqual(['synthetic-current']);
+    expect(loaded?.baseline).not.toHaveProperty('draftSourceRevisions');
+    expect(() =>
+      readArchitectTeam(loaded, 'synthetic-base-reader', 'LAL')
+    ).not.toThrow();
+    expect(await getAllTeams()).toEqual(oldTeamList);
+    const { draftSourceRevisions: _revisions, ...legacyFields } =
+      prepared.after;
+    expect(legacyFields).toEqual(before);
   });
 
   it('leaves unadopted legacy source records unchanged', () => {

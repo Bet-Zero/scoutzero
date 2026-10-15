@@ -102,6 +102,54 @@ describe('source inventory reconciliation before adoption', () => {
     expect(JSON.stringify(snapshot)).toBe(before);
   });
 
+  it('reconciles the supported membership revision without changing the raw legacy snapshot', async () => {
+    const loaded = fixture();
+    const snapshot = await collectDraftSourceInventory(loaded, async (url) =>
+      present(url)
+    );
+    const team = snapshot.documents['architect_baseTeams/PHI']!;
+    team.fields.draftSourceRevisions = {
+      mapValue: {
+        fields: {
+          schemaVersion: { integerValue: '1' },
+          legacyExists: { booleanValue: true },
+          versions: {
+            mapValue: {
+              fields: {
+                '1': {
+                  mapValue: {
+                    fields: {
+                      entitlementIds: {
+                        arrayValue: {
+                          values: [{ stringValue: 'original:one' }],
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const before = JSON.stringify(snapshot);
+    const result = reconcileDraftSourceInventory(loaded, snapshot);
+    expect(
+      result.memberships.find((row) => row.team === 'PHI')?.entitlementIds
+    ).toEqual(['original:one']);
+    expect(
+      result.entitlements.find((row) => row.entitlementId === 'original:one')
+        ?.linkedTeams
+    ).toEqual(['PHI']);
+    expect(team.fields).not.toHaveProperty('entitlementIds');
+    expect(JSON.stringify(snapshot)).toBe(before);
+    team.fields.draftSourceRevisions = { mapValue: { fields: {} } };
+    expect(() => reconcileDraftSourceInventory(loaded, snapshot)).toThrow(
+      'SOURCE_TEAM_MEMBERSHIP_INVALID'
+    );
+  });
+
   it('does not produce a snapshot when any read is denied; denial is never absence', async () => {
     await expect(
       collectDraftSourceInventory(fixture(), async () => {

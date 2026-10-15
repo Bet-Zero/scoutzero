@@ -11,6 +11,55 @@ import {
   DRAFT_REVIEW_PROJECT_ID,
   verifyDraftReviewBytes,
 } from '../../server/draftReviewFirestore.js';
+import { readDraftSourceForWorld } from '../../src/features/architect/utils/entitlements/draftSourceBaseline.js';
+
+/** Decode only draft fields selected for reconciliation; raw snapshots stay intact. */
+function decodeDraftField(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new Error('SOURCE_DRAFT_FIELD_INVALID');
+  const field = value as Record<string, unknown>;
+  if (Object.keys(field).length !== 1)
+    throw new Error('SOURCE_DRAFT_FIELD_INVALID');
+  if (typeof field.stringValue === 'string') return field.stringValue;
+  if (typeof field.booleanValue === 'boolean') return field.booleanValue;
+  if (field.nullValue === null) return null;
+  if (
+    typeof field.integerValue === 'string' &&
+    /^-?[0-9]+$/.test(field.integerValue) &&
+    Number.isSafeInteger(Number(field.integerValue))
+  )
+    return Number(field.integerValue);
+  if (
+    typeof field.doubleValue === 'number' &&
+    Number.isFinite(field.doubleValue)
+  )
+    return field.doubleValue;
+  if (
+    field.arrayValue &&
+    typeof field.arrayValue === 'object' &&
+    !Array.isArray(field.arrayValue)
+  ) {
+    const values = (field.arrayValue as Record<string, unknown>).values ?? [];
+    if (!Array.isArray(values)) throw new Error('SOURCE_DRAFT_FIELD_INVALID');
+    return values.map(decodeDraftField);
+  }
+  if (
+    field.mapValue &&
+    typeof field.mapValue === 'object' &&
+    !Array.isArray(field.mapValue)
+  ) {
+    const fields = (field.mapValue as Record<string, unknown>).fields ?? {};
+    if (!fields || typeof fields !== 'object' || Array.isArray(fields))
+      throw new Error('SOURCE_DRAFT_FIELD_INVALID');
+    return Object.fromEntries(
+      Object.entries(fields).map(([key, nested]) => [
+        key,
+        decodeDraftField(nested),
+      ])
+    );
+  }
+  throw new Error('SOURCE_DRAFT_FIELD_INVALID');
+}
 
 type Loaded = Awaited<ReturnType<typeof verifyRealDraftReviewPackage>>;
 export type DraftSourceDocument = {
@@ -141,25 +190,29 @@ export function reconcileDraftSourceInventory(
   const memberships = TeamListFull.map(({ code }) => {
     const document = snapshot.documents[`${ARCHITECT_BASE_TEAMS_PATH}/${code}`];
     if (!document) throw new Error('SOURCE_TEAM_MISSING');
-    const field = document.fields.entitlementIds as
-      | { arrayValue?: { values?: { stringValue?: string }[] } }
-      | undefined;
-    if (
-      field &&
-      (!field.arrayValue ||
-        (field.arrayValue.values !== undefined &&
-          !Array.isArray(field.arrayValue.values)))
-    )
+    let values: unknown;
+    try {
+      const draftFields = Object.fromEntries(
+        ['entitlementIds', 'draftSourceRevisions']
+          .filter((key) => Object.hasOwn(document.fields, key))
+          .map((key) => [key, decodeDraftField(document.fields[key])])
+      );
+      const active = readDraftSourceForWorld(draftFields, null, 'team')!;
+      values = Object.hasOwn(active, 'entitlementIds')
+        ? active.entitlementIds
+        : [];
+    } catch {
       throw new Error('SOURCE_TEAM_MEMBERSHIP_INVALID');
-    const values = field?.arrayValue?.values ?? [];
+    }
     if (
-      values.some((v) => !v || typeof v.stringValue !== 'string') ||
-      new Set(values.map((v) => v.stringValue)).size !== values.length
+      !Array.isArray(values) ||
+      values.some((v) => typeof v !== 'string') ||
+      new Set(values).size !== values.length
     )
       throw new Error('SOURCE_TEAM_MEMBERSHIP_INVALID');
     return {
       team: code,
-      entitlementIds: values.map((v) => v.stringValue!),
+      entitlementIds: values as string[],
       updateTime: document.updateTime,
     };
   });

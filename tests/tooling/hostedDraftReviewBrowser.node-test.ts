@@ -7,6 +7,7 @@ import { chromium, type Browser } from 'playwright';
 import { continueHostedRequest } from '../../scripts/architect/hostedDraftReviewPolicy.js';
 import {
   selectHostedDraftReviewPick,
+  HOSTED_DRAFT_REVIEW_PRIMARY_TEAM,
   type HostedSelectionPhase,
 } from '../../scripts/architect/hostedDraftReviewSelection.js';
 
@@ -87,7 +88,7 @@ test(
       const fixture = (inventory: string) => `
       <button role="tab" onclick="document.querySelector('[role=dialog]').hidden=false">Trade Machine</button>
       <div role="dialog" aria-label="Trade Machine" hidden>
-        <div data-testid="trade-team-card-MIA">
+        <div data-testid="trade-team-card-${HOSTED_DRAFT_REVIEW_PRIMARY_TEAM}">
           <button onclick="document.querySelector('#inventory').hidden=false">Picks (1)</button>
           <div id="inventory" hidden>${inventory}</div>
         </div>

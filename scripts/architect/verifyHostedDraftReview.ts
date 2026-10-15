@@ -1,6 +1,9 @@
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
-import { selectHostedDraftReviewPick } from './hostedDraftReviewSelection.js';
+import {
+  selectHostedDraftReviewPick,
+  HOSTED_DRAFT_REVIEW_PRIMARY_TEAM,
+} from './hostedDraftReviewSelection.js';
 import { REAL_DRAFT_REVIEW_PIN } from '../../src/features/architect/utils/draftPickRealReviewPin.js';
 import {
   hostedPreviewOrigin,
@@ -124,9 +127,12 @@ async function main() {
     const page = await context.newPage();
     page.setDefaultTimeout(25000);
     phase = 'protected-preview-access';
-    await page.goto(`${origin}/gm/MIA?season=2027`, {
-      waitUntil: 'domcontentloaded',
-    });
+    await page.goto(
+      `${origin}/gm/${HOSTED_DRAFT_REVIEW_PRIMARY_TEAM}?season=2027`,
+      {
+        waitUntil: 'domcontentloaded',
+      }
+    );
     requireProof(
       new URL(page.url()).origin === origin,
       'PREVIEW_AUTHENTICATION_REQUIRED'

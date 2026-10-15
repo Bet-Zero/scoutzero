@@ -119,14 +119,13 @@ describe('Team Loader', () => {
     seedWorldMetadata(worldId, createMockWorld({ worldId }));
     const base = createMockTeam({
       teamCode: 'LAL',
-      entitlementIds: ['new-source-pick'],
     });
     seedMockData('architect_baseTeams/LAL', {
       ...base,
-      draftSourceBaseline: {
+      draftSourceRevisions: {
         schemaVersion: 1,
-        beforeExists: true,
-        fields: { entitlementIds: { present: false } },
+        legacyExists: true,
+        versions: { '1': { entitlementIds: ['new-source-pick'] } },
       },
     });
     expect((await getTeam(null, 'LAL')).entitlementIds).toEqual([

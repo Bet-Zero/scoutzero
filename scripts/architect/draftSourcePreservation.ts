@@ -1,8 +1,10 @@
 /** Offline preparation only. No Firestore client, credential or write capability. */
 import { isDeepStrictEqual } from 'node:util';
-import { DraftSourceBaselineZ } from '../../src/schemas/draftSourceBaseline.js';
+import { DraftSourceRevisionZ } from '../../src/schemas/draftSourceBaseline.js';
 import {
   readDraftSourceForWorld,
+  assertDraftRevisionFields,
+  DRAFT_SOURCE_VERSION,
   type DraftSourceKind,
 } from '../../src/features/architect/utils/entitlements/draftSourceBaseline.js';
 import {
@@ -127,6 +129,12 @@ export function prepareDraftSourceCommit(changes: DraftSourcePreparedChange[]) {
       throw new Error('DRAFT_SOURCE_COMMIT_PATH');
     }
     if (
+      (change.kind === 'entitlement' && change.before?.id !== id) ||
+      (change.kind === 'pickRule' && change.after.pickId !== id)
+    ) {
+      throw new Error('DRAFT_SOURCE_DOCUMENT_IDENTITY');
+    }
+    if (
       change.before &&
       (!change.updateTime ||
         !/^\d{4}-\d{2}-\d{2}T.*Z$/.test(change.updateTime) ||
@@ -162,52 +170,63 @@ export function prepareDraftSourceCommit(changes: DraftSourcePreparedChange[]) {
   return { writes };
 }
 
-/** Preserve the FIRST pre-adoption value, including absence, for every changed field. */
+/** Append a qualified immutable revision without replacing ANY legacy root field. */
 export function preserveDraftSourceBaseline(
   before: Record<string, unknown> | null,
-  after: Record<string, unknown>,
+  desired: Record<string, unknown>,
   kind: DraftSourceKind
 ): { after: Record<string, unknown>; updateMask: string[] } {
   if (
-    Object.hasOwn(after, 'draftSourceBaseline') &&
-    !isDeepStrictEqual(after.draftSourceBaseline, before?.draftSourceBaseline)
+    Object.hasOwn(desired, 'draftSourceRevisions') &&
+    !isDeepStrictEqual(
+      desired.draftSourceRevisions,
+      before?.draftSourceRevisions
+    )
   ) {
-    throw new Error('DRAFT_BASELINE_OVERWRITE_REJECTED');
+    throw new Error('DRAFT_REVISION_OVERWRITE_REJECTED');
   }
-  if (before && Object.keys(before).some((key) => !Object.hasOwn(after, key))) {
+  const legacy = { ...(before ?? {}) };
+  delete legacy.draftSourceRevisions;
+  const current = { ...desired };
+  delete current.draftSourceRevisions;
+  if (Object.keys(legacy).some((key) => !Object.hasOwn(current, key))) {
     throw new Error('DRAFT_SOURCE_FIELD_DELETION_REJECTED');
   }
-  const changed = Object.keys(after).filter(
-    (key) =>
-      key !== 'draftSourceBaseline' &&
-      !isDeepStrictEqual(before?.[key], after[key])
-  );
-  const baseline =
-    before && Object.hasOwn(before, 'draftSourceBaseline')
-      ? DraftSourceBaselineZ.parse(before.draftSourceBaseline)
+  const revisions =
+    before && Object.hasOwn(before, 'draftSourceRevisions')
+      ? DraftSourceRevisionZ.parse(before.draftSourceRevisions)
       : {
           schemaVersion: 1 as const,
-          beforeExists: before !== null,
-          fields: {},
+          legacyExists: before !== null,
+          versions: {},
         };
-  const fields = { ...baseline.fields };
-  if (baseline.beforeExists) {
-    for (const key of changed) {
-      if (!Object.hasOwn(fields, key)) {
-        fields[key] =
-          before && Object.hasOwn(before, key)
-            ? { present: true, value: before[key] }
-            : { present: false };
-      }
-    }
+  const fields = Object.fromEntries(
+    Object.entries(current).filter(
+      ([key, value]) => !isDeepStrictEqual(legacy[key], value)
+    )
+  );
+  assertDraftRevisionFields(fields, kind, revisions.legacyExists);
+  if (
+    revisions.versions[DRAFT_SOURCE_VERSION] &&
+    !isDeepStrictEqual(revisions.versions[DRAFT_SOURCE_VERSION], fields)
+  ) {
+    throw new Error('IMMUTABLE_DRAFT_REVISION_CONFLICT');
   }
-  const result = { ...after, draftSourceBaseline: { ...baseline, fields } };
-  const prior = readDraftSourceForWorld(result, 'saved-world', kind);
-  const expected = before
-    ? readDraftSourceForWorld(before, 'saved-world', kind)
-    : null;
-  if (!isDeepStrictEqual(prior, expected)) {
+  const result = {
+    ...legacy,
+    draftSourceRevisions: {
+      ...revisions,
+      versions: { ...revisions.versions, [DRAFT_SOURCE_VERSION]: fields },
+    },
+  };
+  if (
+    !isDeepStrictEqual(readDraftSourceForWorld(result, null, kind), current) ||
+    !isDeepStrictEqual(
+      readDraftSourceForWorld(result, 'saved-world', kind),
+      revisions.legacyExists ? legacy : null
+    )
+  ) {
     throw new Error('DRAFT_SOURCE_PRESERVATION_MISMATCH');
   }
-  return { after: result, updateMask: [...changed, 'draftSourceBaseline'] };
+  return { after: result, updateMask: ['draftSourceRevisions'] };
 }

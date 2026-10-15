@@ -356,21 +356,22 @@ See [PROJECT_SCHEMA.md](../reference/PROJECT_SCHEMA.md) for complete artifact fl
 _Current as of: ${new Date().toISOString()}_
 _🚧 = In Migration | ✅ = Migration Complete_
 
-## Proposed draft-source preservation metadata (BZE-321)
+## Proposed draft-source revisions (BZE-321)
 
 Not deployed or source-write authorized. Canonical contract:
-`src/schemas/draftSourceBaseline.ts`.
+`src/schemas/draftSourceBaseline.ts` (`DraftSourceRevisionZ`).
 
-The existing `architect_baseTeams`, `architect_baseEntitlements` and
-`architect_basePickRules` documents may carry `draftSourceBaseline` with
-`schemaVersion: 1`, `beforeExists`, and a `fields` map. Each prior field is either
-`{ present: false }` or `{ present: true, value }`. Only changed draft fields are
-retained; team metadata permits only `entitlementIds`. Identity, roster and
-salary fields are excluded. The first prior values are immutable across later
-corrections. New rules use `beforeExists: false` and an empty map.
+Existing `architect_baseTeams`, `architect_baseEntitlements` and
+`architect_basePickRules` records may carry `draftSourceRevisions` with
+`schemaVersion: 1`, `legacyExists`, and immutable `versions` keyed by positive
+version numbers. Every legacy root field remains unchanged. A version contains
+only the qualified draft-field patch relative to that root; team patches permit
+only `entitlementIds`, and existing identities/rosters/salaries cannot be changed.
+A newly created rule contains only the envelope, including its complete identity
+and terms inside the revision. Earlier clients see no newly active root terms.
 
-Saved-world readers project those prior fields before applying existing world
-and parent overrides. World-free readers use current source fields. There is no
-automatic saved-world enrollment, world migration or new collection. See the
-rollout prerequisite and unresolved adoption scope in
-[BZE-321 installation](../../operations/BZE321_FIREBASE_INSTALLATION.md).
+World-free readers explicitly select supported version 1. Saved-world fallback
+uses legacy root fields (or absence for a newly created rule), before existing
+world/parent overrides. Future versions do not silently become active. There is
+no automatic saved-world enrollment, migration, new collection or provider.
+See [BZE-321 installation](../../operations/BZE321_FIREBASE_INSTALLATION.md).

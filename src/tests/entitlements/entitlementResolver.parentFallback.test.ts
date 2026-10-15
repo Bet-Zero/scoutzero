@@ -150,11 +150,10 @@ describe('entitlementResolver parent-world fallback chain', () => {
   it('does not enroll existing child or parent worlds in newly linked source picks', async () => {
     seedDoc('architect_worlds/world-parent/teams/BOS', {});
     seedDoc('architect_baseTeams/BOS', {
-      entitlementIds: ['ent-1'],
-      draftSourceBaseline: {
+      draftSourceRevisions: {
         schemaVersion: 1,
-        beforeExists: true,
-        fields: { entitlementIds: { present: false } },
+        legacyExists: true,
+        versions: { '1': { entitlementIds: ['ent-1'] } },
       },
     });
     expect(
@@ -173,17 +172,16 @@ describe('entitlementResolver parent-world fallback chain', () => {
       {
         id: 'ent-1',
         data: {
-          holderTeam: 'PHI',
+          holderTeam: 'BOS',
           seasonYear: 2028,
           round: 1,
           kind: 'pick_ownership',
-          description: 'new source description',
-          draftSourceBaseline: {
+          description: 'old source description',
+          draftSourceRevisions: {
             schemaVersion: 1,
-            beforeExists: true,
-            fields: {
-              holderTeam: { present: true, value: 'BOS' },
-              description: { present: true, value: 'old source description' },
+            legacyExists: true,
+            versions: {
+              '1': { holderTeam: 'PHI', description: 'new source description' },
             },
           },
         },
@@ -199,17 +197,22 @@ describe('entitlementResolver parent-world fallback chain', () => {
       description: 'parent override',
       notes: 'child override',
     });
-    expect(result[0]).not.toHaveProperty('draftSourceBaseline');
+    expect(result[0]).not.toHaveProperty('draftSourceRevisions');
   });
 
   it('keeps newly introduced rules out of saved-world batch results', async () => {
     seedCollectionDoc('architect_basePickRules', 'AAA_2030_1st', {
-      pickId: 'AAA_2030_1st',
-      protections: [],
-      draftSourceBaseline: {
+      draftSourceRevisions: {
         schemaVersion: 1,
-        beforeExists: false,
-        fields: {},
+        legacyExists: false,
+        versions: {
+          '1': {
+            pickId: 'AAA_2030_1st',
+            seasonYear: 2030,
+            round: 1,
+            protections: [],
+          },
+        },
       },
     });
     expect((await resolvePickRulesByIdsWithDb(db, ['AAA_2030_1st'])).size).toBe(

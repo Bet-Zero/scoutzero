@@ -1,5 +1,7 @@
 import type { Page } from 'playwright';
 
+export const HOSTED_DRAFT_REVIEW_PRIMARY_TEAM = 'PHI';
+
 // Fixed labels only: never put UI text, pick IDs, URLs or exceptions in logs.
 export type HostedSelectionPhase =
   | 'open-trade-machine'
@@ -20,7 +22,9 @@ export async function selectHostedDraftReviewPick(
   setPhase('open-trade-machine');
   await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
   const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
-  const card = dialog.getByTestId('trade-team-card-MIA');
+  const card = dialog.getByTestId(
+    `trade-team-card-${HOSTED_DRAFT_REVIEW_PRIMARY_TEAM}`
+  );
   setPhase('load-primary-team');
   await card.waitFor();
   const picker = dialog

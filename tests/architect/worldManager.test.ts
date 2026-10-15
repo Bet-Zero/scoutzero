@@ -135,26 +135,21 @@ describe('World Manager', () => {
     seedMockData('architect_baseTeams/LAL', {
       teamCode: 'LAL',
       roster: ['retained-player'],
-      entitlementIds: ['new-pick'],
-      draftSourceBaseline: {
+      entitlementIds: ['old-pick'],
+      draftSourceRevisions: {
         schemaVersion: 1,
-        beforeExists: true,
-        fields: {
-          entitlementIds: { present: true, value: ['old-pick'] },
-        },
+        legacyExists: true,
+        versions: { '1': { entitlementIds: ['new-pick'] } },
       },
     });
     seedMockData('architect_baseEntitlements/old-pick', {
       id: 'old-pick',
-      holderTeam: 'PHI',
-      description: 'corrected',
-      draftSourceBaseline: {
+      holderTeam: 'LAL',
+      description: 'prior',
+      draftSourceRevisions: {
         schemaVersion: 1,
-        beforeExists: true,
-        fields: {
-          holderTeam: { present: true, value: 'LAL' },
-          description: { present: true, value: 'prior' },
-        },
+        legacyExists: true,
+        versions: { '1': { holderTeam: 'PHI', description: 'corrected' } },
       },
     });
     seedMockData(`architect_worlds/${parent.worldId}/entitlements/old-pick`, {
