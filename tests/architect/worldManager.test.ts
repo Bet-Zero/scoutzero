@@ -130,6 +130,51 @@ describe('World Manager', () => {
     vi.unstubAllEnvs();
   });
 
+  it('branches the prior draft baseline while preserving parent overrides', async () => {
+    const parent = await createWorld({ name: 'Existing', userId });
+    seedMockData('architect_baseTeams/LAL', {
+      teamCode: 'LAL',
+      roster: ['retained-player'],
+      entitlementIds: ['new-pick'],
+      draftSourceBaseline: {
+        schemaVersion: 1,
+        beforeExists: true,
+        fields: {
+          entitlementIds: { present: true, value: ['old-pick'] },
+        },
+      },
+    });
+    seedMockData('architect_baseEntitlements/old-pick', {
+      id: 'old-pick',
+      holderTeam: 'PHI',
+      description: 'corrected',
+      draftSourceBaseline: {
+        schemaVersion: 1,
+        beforeExists: true,
+        fields: {
+          holderTeam: { present: true, value: 'LAL' },
+          description: { present: true, value: 'prior' },
+        },
+      },
+    });
+    seedMockData(`architect_worlds/${parent.worldId}/entitlements/old-pick`, {
+      description: 'parent decision',
+    });
+    const child = await branchWorld(parent.worldId, 'Child', '', userId);
+    expect(
+      getMockData(`architect_worlds/${child.worldId}/teams/LAL`)
+    ).toMatchObject({
+      roster: ['retained-player'],
+      entitlementIds: ['old-pick'],
+    });
+    expect(
+      getMockData(`architect_worlds/${child.worldId}/entitlements/old-pick`)
+    ).toMatchObject({
+      holderTeam: 'LAL',
+      description: 'parent decision',
+    });
+  });
+
   describe('createWorld', () => {
     it('creates world with correct metadata structure', async () => {
       const result = await createWorld({

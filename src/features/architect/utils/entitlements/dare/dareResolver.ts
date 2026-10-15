@@ -264,7 +264,11 @@ export async function resolveAllDraftAssets(
     if (input.pickRulesById) {
       pickRulesById = input.pickRulesById;
     } else if (allPickIds.length > 0) {
-      const pickRulesMap = await resolvePickRulesByIdsWithDb(db, allPickIds);
+      const pickRulesMap = await resolvePickRulesByIdsWithDb(
+        db,
+        allPickIds,
+        worldId
+      );
       pickRulesById = pickRulesMapToObject(pickRulesMap);
     } else {
       pickRulesById = {};

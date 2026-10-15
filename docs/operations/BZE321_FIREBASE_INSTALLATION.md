@@ -41,7 +41,8 @@ labels wholesale, or silently overwrite the conflict. A private, snapshot-backed
 three-record proposal retains exact before/after fields and update times: one
 definition correction, one absent pick-rule creation, and one team membership
 append. It is **not executable or write-authorized**. Its digest is
-`2f11e754c74074b4d875a45ecee44c54da0ba718a8c1373cea41b510eaef9e90`.
+`5ae3a274c3428c35e9161e62f2f5fc2e3c3cebd029d24ad9b43f0d9543d22923`
+(after adding saved-world preservation metadata; the earlier proposal is superseded).
 The other 277 entries remain required; this smallest mapped component is not a
 claim that broader accepted evidence is unavailable or that integration is done.
 
@@ -56,12 +57,69 @@ observation or infer unprotected terms from an empty protection array.
 Before asking for source-write approval, produce a snapshot-backed change list:
 create only qualified missing definitions/rules; preserve or stop on existing
 conflicts; append only qualified membership with an `entitlementIds` field mask
-and exact update-time precondition. No roster, source history, saved-world or
-Apply writes. Existing saved worlds can inherit base membership through the
+and exact update-time precondition. The proposed mask also includes the immutable
+`draftSourceBaseline` described below. No roster, existing evidence-history,
+saved-world or Apply writes. Existing saved worlds can inherit base membership through the
 resolver, so **no saved-world writes** alone does not prove unchanged world
 behavior; that inheritance must be accounted for before adoption. Current
 publisher permissions lack `datastore.entities.update` for team patches; do not
 grant it or claim the existing five-record permission covers source adoption.
+
+### Saved-world preservation preparation
+
+The first emulator probe reproduced a real regression: a world with no explicit
+membership list inherited the newly added source membership, then encountered a
+permission denial querying world entitlement overrides. Catching that denial or
+expanding world permissions would conceal the defect.
+
+The candidate fixes the source fallback, without changing world documents or
+permissions. The proposed three records carry `draftSourceBaseline` (schema
+version 1) inside the existing source documents. Existing documents retain only
+the first prior value/absence of each changed draft field. A newly created rule
+records `beforeExists: false`. No roster or identity field may enter this map.
+Subsequent corrections retain the original baseline instead of overwriting it.
+
+World-free reads see current fields. Saved worlds see the prior draft fields;
+normal child/parent entitlement overrides still apply afterward. Team/league
+loading, single/batch entitlement reads, pick-rule reads, season processing,
+DARE and branch copying use this boundary. Unchanged documents preserve existing
+behavior. Malformed preservation metadata fails closed. The application never
+writes this metadata. Fresh saved worlds also retain the legacy baseline until
+a qualified draft-baseline initializer is implemented; creation time is not
+implicit enrollment. This does not deliver saved-world adoption or trade Apply.
+
+The private exact-rules probe now passes: base inventory 1, saved-world inventory
+0 before and after, unchanged world document, base rule 1, saved-world rule 0;
+four authenticated source read cases and twelve denials pass. Production calls:
+zero. Synthetic regression tests cover prior nonempty/empty/absent membership,
+parent overrides, existing holder changes, team and league reads, branching,
+rule reads and baseline corruption. Source evidence and rules stay private.
+
+**Rollout prerequisite:** deploy and verify the preservation readers before
+changing source data. Older deployed application code does not understand this
+metadata. Existing sessions must reload the preservation version; do not claim
+old clients are protected merely because new readers pass. PR #547 remains
+unmerged and hosted testing remains paused. A preservation-only prerequisite
+landing, if needed to satisfy this order without prematurely landing #547,
+requires the owner's separate final authorization and its own normal gates.
+No such landing, source write, rule deployment or IAM change is authorized now.
+
+The offline `prepareDraftSourceCommit` builder produces one atomic commit body,
+with `exists: false` for the absent rule, exact `updateTime` guards for both
+existing records, and masks containing only corrected draft fields plus their
+preservation metadata. No network or credentialed execution path is provided.
+Publication needs a separately approved immutable executor, the additional
+`datastore.entities.update` permission (database-wide IAM, constrained to the
+approved paths by that executor), fresh before-state comparison and the owner's
+protected approval. No list/delete/IAM-admin/Storage permission is required.
+The installed five-record executor cannot publish this source correction.
+
+The same field-preservation contract and the existing 278-entry/29-dependency
+crosswalk govern the wider integration batch. It is not a per-pick approval
+process. Accepted holder evidence (177 supported, 56 future pending, 7 unresolved)
+still needs exact component mapping; aliases and conditional rights are never
+promoted by this reader. The first three-record proof does not close the other
+277 entries or any of the 29 dependencies.
 
 The projection now distinguishes unavailable protection terms from an explicit
 whole-value `Unprotected` description and does not classify that word as a

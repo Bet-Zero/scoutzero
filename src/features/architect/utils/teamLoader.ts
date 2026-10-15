@@ -13,6 +13,7 @@
  * @module teamLoader
  */
 
+import { readDraftSourceForWorld } from '@/features/architect/utils/entitlements/draftSourceBaseline';
 import { getDoc, getDocs } from 'firebase/firestore';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager';
 import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
@@ -154,7 +155,7 @@ async function getTeamFromTrustedLineage(
   }
 
   // Fall back to base
-  return synchronizeLoadedTeam(await getBaseTeam(teamCode));
+  return synchronizeLoadedTeam(await getBaseTeam(teamCode, worldLineage[0]));
 }
 
 /**
@@ -166,7 +167,10 @@ async function getTeamFromTrustedLineage(
  * @param teamCode - Team code
  * @returns Base team data
  */
-async function getBaseTeam(teamCode: string): Promise<TeamLike> {
+async function getBaseTeam(
+  teamCode: string,
+  worldId: string | null = null
+): Promise<TeamLike> {
   const baseTeamSnap = await getDoc(baseTeamRef(teamCode));
 
   if (!baseTeamSnap.exists()) {
@@ -174,7 +178,7 @@ async function getBaseTeam(teamCode: string): Promise<TeamLike> {
   }
 
   const baseDoc = readTeamDoc(
-    baseTeamSnap.data(),
+    readDraftSourceForWorld(baseTeamSnap.data(), worldId, 'team'),
     teamCode,
     `architect_baseTeams/${teamCode}`
   );
@@ -301,7 +305,7 @@ export async function getLeague(worldId: string | null): Promise<TeamLike[]> {
 
       return worldLineage.length > 1
         ? getTeamFromTrustedLineage(worldLineage, code, 1)
-        : getBaseTeam(code);
+        : getBaseTeam(code, worldId);
     })
   );
 

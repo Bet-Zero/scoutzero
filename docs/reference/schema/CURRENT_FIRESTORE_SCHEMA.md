@@ -355,3 +355,22 @@ See [PROJECT_SCHEMA.md](../reference/PROJECT_SCHEMA.md) for complete artifact fl
 
 _Current as of: ${new Date().toISOString()}_
 _🚧 = In Migration | ✅ = Migration Complete_
+
+## Proposed draft-source preservation metadata (BZE-321)
+
+Not deployed or source-write authorized. Canonical contract:
+`src/schemas/draftSourceBaseline.ts`.
+
+The existing `architect_baseTeams`, `architect_baseEntitlements` and
+`architect_basePickRules` documents may carry `draftSourceBaseline` with
+`schemaVersion: 1`, `beforeExists`, and a `fields` map. Each prior field is either
+`{ present: false }` or `{ present: true, value }`. Only changed draft fields are
+retained; team metadata permits only `entitlementIds`. Identity, roster and
+salary fields are excluded. The first prior values are immutable across later
+corrections. New rules use `beforeExists: false` and an empty map.
+
+Saved-world readers project those prior fields before applying existing world
+and parent overrides. World-free readers use current source fields. There is no
+automatic saved-world enrollment, world migration or new collection. See the
+rollout prerequisite and unresolved adoption scope in
+[BZE-321 installation](../../operations/BZE321_FIREBASE_INSTALLATION.md).

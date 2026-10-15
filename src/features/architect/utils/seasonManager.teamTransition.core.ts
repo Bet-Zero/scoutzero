@@ -410,7 +410,10 @@ export async function processTeamSeasonTransitionWithOptions(
         let pickRulesById: ReturnType<typeof pickRulesMapToObject> = {};
         if (pickIds.length > 0) {
           try {
-            const rulesMap = await readers!.resolvePickRulesByIds(pickIds);
+            const rulesMap = await readers!.resolvePickRulesByIds(
+              pickIds,
+              worldId || null
+            );
             pickRulesById = readers!.pickRulesMapToObject(rulesMap);
           } catch {
             // Pick rules optional - continue without them

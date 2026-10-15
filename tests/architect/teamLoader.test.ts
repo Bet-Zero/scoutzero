@@ -82,6 +82,73 @@ describe('Team Loader', () => {
     seedBaseData(['LAL', 'GSW', 'BOS']);
   });
 
+  it('preserves draft fallback for team and league reads without freezing rosters', async () => {
+    seedBaseData([
+      'ATL',
+      'BOS',
+      'BKN',
+      'CHA',
+      'CHI',
+      'CLE',
+      'DAL',
+      'DEN',
+      'DET',
+      'GSW',
+      'HOU',
+      'IND',
+      'LAC',
+      'LAL',
+      'MEM',
+      'MIA',
+      'MIL',
+      'MIN',
+      'NOP',
+      'NYK',
+      'OKC',
+      'ORL',
+      'PHI',
+      'PHX',
+      'POR',
+      'SAC',
+      'SAS',
+      'TOR',
+      'UTA',
+      'WAS',
+    ]);
+    const worldId = 'pre-adoption';
+    seedWorldMetadata(worldId, createMockWorld({ worldId }));
+    const base = createMockTeam({
+      teamCode: 'LAL',
+      entitlementIds: ['new-source-pick'],
+    });
+    seedMockData('architect_baseTeams/LAL', {
+      ...base,
+      draftSourceBaseline: {
+        schemaVersion: 1,
+        beforeExists: true,
+        fields: { entitlementIds: { present: false } },
+      },
+    });
+    expect((await getTeam(null, 'LAL')).entitlementIds).toEqual([
+      'new-source-pick',
+    ]);
+    const saved = await getTeam(worldId, 'LAL');
+    expect(saved.entitlementIds).toEqual([]);
+    expect(saved.roster).toEqual(base.roster);
+    expect(
+      (await getLeague(worldId)).find((t) => t.teamCode === 'LAL')
+        ?.entitlementIds
+    ).toEqual([]);
+    seedTeamSnapshot(
+      worldId,
+      'LAL',
+      createMockTeam({ teamCode: 'LAL', entitlementIds: ['world-owned'] })
+    );
+    expect((await getTeam(worldId, 'LAL')).entitlementIds).toEqual([
+      'world-owned',
+    ]);
+  });
+
   describe('getTeam', () => {
     it('returns base team when worldId is null', async () => {
       const team = await getTeam(null, 'LAL');
