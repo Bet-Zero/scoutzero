@@ -34,6 +34,15 @@ executed. Inline reviewed transport code handles data only. Claude has Read,
 Glob and Grep, and both full-output and report-summary logging are disabled.
 Debug mode fails before materializing private inputs.
 
+Start the private reviewer with an actual `workflow_dispatch`, using its
+registered workflow ID and the frozen feature-branch ref. The pinned Claude
+action's `src/github/context.ts` accepts dispatch but rejects `push` before
+agent-mode preparation. Push validates/registers the request only; it cannot
+enter the credentialed review job. Do not override GitHub event variables or
+replace the pinned action/credential boundary to disguise an unsupported event.
+The dispatched run still requires the protected owner approval and exact-head
+CI/public ACCEPT before loading any private inputs.
+
 The extra private evidence input contains the complete retained source HTML,
 its digest, the accepted starting-position projection and author claim map.
 It is gzip/base64 solely to fit GitHub's protected-secret limit, not encryption

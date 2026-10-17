@@ -27,7 +27,7 @@ function fixture() {
   const encoded = gzipSync(evidence).toString('base64');
   const split = Math.ceil(encoded.length / 2);
   const env = { ...process.env, RUNNER_DEBUG: '', PATH: path.join(dir, 'bin') + ':' + process.env.PATH,
-    TEST_ROOT: dir, RUNNER_TEMP: dir, GITHUB_SHA: candidate, GITHUB_RUN_ID: '123', GITHUB_ACTOR: 'Bet-Zero',
+    TEST_ROOT: dir, RUNNER_TEMP: dir, GITHUB_SHA: candidate, GITHUB_RUN_ID: '123', GITHUB_ACTOR: 'Bet-Zero', GITHUB_EVENT_NAME: 'workflow_dispatch',
     APPROVED_SOURCE_SHA256: hash(source), APPROVED_EVIDENCE_SHA256: hash(evidence),
     INSTALLATION_PASSPHRASE: secret, PRIVATE_EVIDENCE: encoded.slice(0, split),
     PRIVATE_EVIDENCE_PART_2: encoded.slice(split) };
@@ -48,6 +48,10 @@ function fixture() {
 
 test('private reviewer stays read-only, protected, silent and distinct from the public review', () => {
   assert.equal(blocks.length, 3);
+  // The pinned upstream src/github/context.ts rejects push before agent mode.
+  // Push may register/validate the request, but only a real dispatch may review.
+  assert.match(workflow, /^  workflow_dispatch:$/m);
+  assert.match(workflow, /if: >-\n      github.event_name == 'workflow_dispatch' &&\n      needs.request.outputs.enabled/);
   assert.match(workflow, /environment: draft-review-publication/);
   assert.doesNotMatch(workflow, /^\s+(id-token|contents|pull-requests|issues|actions): write/m);
   assert.doesNotMatch(workflow, /google-github-actions|SCOUTZERO_GCP|npm ci|node --|show_full_output: 'true'/);
@@ -119,6 +123,7 @@ test('private credentials stay behind current code acceptance, CI, owner protect
       const r=f.run(0); assert.notEqual(r.status,0); assert.equal(r.stderr.trim(),'PRIVATE_REVIEW_PREREQUISITE_FAILED');
     }
     f.responses(valid); assert.notEqual(f.run(0,{RUNNER_DEBUG:'1'}).status,0);
+    assert.notEqual(f.run(0,{GITHUB_EVENT_NAME:'push'}).status,0);
   } finally { f.close(); }
 });
 

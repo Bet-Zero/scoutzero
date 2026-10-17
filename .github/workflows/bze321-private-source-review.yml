@@ -1,6 +1,7 @@
 name: BZE-321 private source qualification
 
 on:
+  workflow_dispatch:
   push:
     branches: ['feature/bze-321-hosted-draft-review']
     paths: ['.github/draft-private-review-request.json']
@@ -26,6 +27,7 @@ jobs:
   review:
     needs: request
     if: >-
+      github.event_name == 'workflow_dispatch' &&
       needs.request.outputs.enabled == 'true' &&
       github.repository_id == '997820257' &&
       github.repository_owner_id == '205859440' &&
@@ -60,6 +62,7 @@ jobs:
               return json.loads(subprocess.check_output(['gh','api','repos/Bet-Zero/scoutzero/'+path], stderr=subprocess.DEVNULL))
           try:
               assert os.environ.get('RUNNER_DEBUG')!='1'
+              assert os.environ['GITHUB_EVENT_NAME']=='workflow_dispatch'
               sha=os.environ['GITHUB_SHA']; base='8f08d6cb71511db3b4f97790d2426e16c556ddce'
               pr=api('pulls/547')
               assert pr['state']=='open' and pr['head']['sha']==sha and pr['base']['sha']==base
