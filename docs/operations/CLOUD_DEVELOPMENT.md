@@ -127,6 +127,8 @@ executor; it uses an existing short-lived Google login without saving its token
 or creating keys. A complete protected refresh still requires an observed,
 authorized reader. Do not interpret denied reads as empty collections or claim
 that the current managed workspace has Google IAM credentials configured.
+Denied root/child reads or empty required collections leave the existing
+snapshot untouched and retain a private failed-refresh coverage report.
 
 No source credential, writer role, Preview bypass, production rules deployment,
 or production import is part of ordinary development. BZE-321's installed

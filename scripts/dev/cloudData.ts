@@ -189,6 +189,21 @@ export async function saveSnapshot(snapshot: Snapshot, dir = DATA_DIR) {
   return report;
 }
 
+/** A failed or denied refresh must never displace the usable development copy. */
+export async function refreshSource(dir = DATA_DIR, get?: Getter) {
+  const snapshot = await captureSource(get);
+  const required = [PLAYERS_COLLECTION, BASE_PLAYERS_COLLECTION, BASE_TEAMS_COLLECTION];
+  const unavailable = required.some((root) => snapshot.collections[root]?.status !== 'read' ||
+    snapshot.collections[root].count === 0);
+  if (unavailable || Object.values(snapshot.collections).some((entry) => entry.status !== 'read')) {
+    await mkdir(dir, { recursive: true, mode: 0o700 });
+    await chmod(dir, 0o700);
+    await writeFile(path.join(dir, 'failed-refresh.json'), JSON.stringify(coverage(snapshot), null, 2), { mode: 0o600 });
+    throw new Error('Source refresh is incomplete or denied; the prior snapshot was preserved. See private failed-refresh.json.');
+  }
+  return saveSnapshot(snapshot, dir);
+}
+
 export async function loadSnapshot(dir = DATA_DIR) {
   const snapshot = JSON.parse(await readFile(path.join(dir, 'source.json'), 'utf8')) as Snapshot;
   const report = JSON.parse(await readFile(path.join(dir, 'coverage.json'), 'utf8'));
@@ -289,10 +304,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       : '';
     const report = command === 'import'
       ? await importProtectedSnapshot(process.argv[3])
-      : await saveSnapshot(await captureSource(token ? (url) => fetch(url, {
+      : await refreshSource(DATA_DIR, token ? (url) => fetch(url, {
         method: 'GET', redirect: 'error', headers: { Authorization: 'Bearer ' + token },
         signal: AbortSignal.timeout(30000),
-      }) : undefined));
+      }) : undefined);
     // Counts only; no source bodies, IDs or credentials in terminal logs.
     console.log(JSON.stringify({
       capturedAt: report.capturedAt, documents: report.documents,

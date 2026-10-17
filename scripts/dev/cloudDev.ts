@@ -24,10 +24,13 @@ async function unused(port: number) {
     server.listen(port, '127.0.0.1', () => server.close(() => resolve()));
   });
 }
-async function ready(url: string, child: ChildProcess) {
+async function ready(url: string, child: ChildProcess, check?: (response: Response) => Promise<boolean>) {
   for (let i = 0; i < 120; i++) {
     if (child.exitCode !== null) throw new Error('Development service exited before ready');
-    try { if ((await fetch(url, { signal: AbortSignal.timeout(1000) })).ok) return; } catch {}
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(1000) });
+      if (response.ok && (!check || await check(response))) return;
+    } catch {}
     await delay(500);
   }
   throw new Error('Timed out waiting for development service');
@@ -117,7 +120,12 @@ async function main() {
     if (chunk.toString().includes('Loaded functions definitions from source:')) functionsReady = true;
     if (chunk.toString().includes('Export complete')) exportConfirmed = true;
   });
-  await ready('http://127.0.0.1:8082/', emulator);
+  await ready('http://127.0.0.1:4400/emulators', emulator, async (response) => {
+    const services = await response.json();
+    return services.firestore?.host === '127.0.0.1' && services.firestore.port === 8082 &&
+      services.auth?.host === '127.0.0.1' && services.auth.port === 9099 &&
+      services.functions?.host === '127.0.0.1' && services.functions.port === 5001;
+  });
   for (let i = 0; !functionsReady && i < 180; i++) {
     if (emulator.exitCode !== null) throw new Error('Functions emulator exited before ready');
     await delay(500);

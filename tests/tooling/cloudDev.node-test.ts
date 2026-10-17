@@ -6,7 +6,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import {
   allowedDocument, assertEmulatorOrigin, captureSource, coverage, digest,
-  importProtectedSnapshot, loadSnapshot, saveSnapshot, validateSnapshot,
+  importProtectedSnapshot, loadSnapshot, refreshSource, saveSnapshot, validateSnapshot,
   SOURCE_PROJECT, type Snapshot,
 } from '../../scripts/dev/cloudData.js';
 
@@ -88,4 +88,33 @@ test('protected import verifies original bytes and refuses unknown paths', async
     sourceProject: SOURCE_PROJECT, sha256: createHash('sha256').update(bytes).digest('hex'), documents: 1,
   }));
   await assert.rejects(() => importProtectedSnapshot(dir), /Unapproved/);
+});
+
+test('denied and empty refreshes preserve the last snapshot; complete reads can replace it', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'scoutzero-cloud-refresh-'));
+  const existing = fixture();
+  const core = ['players_v2', 'architect_basePlayers', 'architect_baseTeams'];
+  for (const root of core) {
+    existing.collections[root] = { status: 'read', count: 1 };
+    existing.documents.push({ name: prefix + root + '/retained' });
+  }
+  await saveSnapshot(existing, dir);
+  const original = await readFile(path.join(dir, 'source.json'), 'utf8');
+  await assert.rejects(() => refreshSource(dir, async () => new Response('', { status: 403 })), /preserved/);
+  assert.equal(await readFile(path.join(dir, 'source.json'), 'utf8'), original);
+  await assert.rejects(() => refreshSource(dir, async () => Response.json({})), /preserved/);
+  assert.equal(await readFile(path.join(dir, 'source.json'), 'utf8'), original);
+  const completeRead = async (url: string, deny = '') => {
+    const root = new URL(url).pathname.split('/documents/')[1];
+    if (root === deny) return new Response('', { status: 403 });
+    return Response.json(core.includes(root)
+      ? { documents: [{ name: prefix + root + '/fresh' }] } : {});
+  };
+  await assert.rejects(() => refreshSource(dir, (url) => completeRead(url, 'architect_baseEntitlements')), /preserved/);
+  assert.equal(await readFile(path.join(dir, 'source.json'), 'utf8'), original);
+  await assert.rejects(() => refreshSource(dir, (url) => completeRead(url, 'players_v2/fresh/contracts')), /preserved/);
+  assert.equal(await readFile(path.join(dir, 'source.json'), 'utf8'), original);
+  await refreshSource(dir, completeRead);
+  assert.equal((await loadSnapshot(dir)).documents.length, 3);
+  assert.notEqual(await readFile(path.join(dir, 'source.json'), 'utf8'), original);
 });
