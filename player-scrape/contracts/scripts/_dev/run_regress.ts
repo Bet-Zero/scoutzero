@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { REGRESSION_FIXTURES, paths } from './config';
-import { parsePlayer } from './parse_player';
+import { REGRESSION_FIXTURES, paths } from '../config';
+import { parsePlayer } from '../parse_player';
 import { deepStableStringify } from './test_utils';
 
 async function runOne(playerId: string) {
@@ -21,6 +21,7 @@ async function runOne(playerId: string) {
   const e = deepStableStringify(expected);
 
   if (a !== e) {
+    await fs.mkdir(paths.outputDir, { recursive: true, mode: 0o700 });
     const outExpected = path.join(paths.outputDir, `${playerId}.expected.json`);
     const outActual = path.join(paths.outputDir, `${playerId}.actual.json`);
     await fs.writeFile(outExpected, e, 'utf8');

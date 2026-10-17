@@ -8,8 +8,13 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import net from 'node:net';
 import path from 'node:path';
 import { DATA_DIR, DEMO_PROJECT, loadSnapshot, seedSnapshot, coverage } from './cloudData.js';
+import { prepareRuntime } from './cloudRuntime.js';
+import { captureOwnedProcesses, stopOwnedProcesses } from './cloudProcesses.js';
+import { ensureFunctionsBuild } from './cloudFunctions.js';
+import { ensureCloudFirestoreEmulator } from './cloudEmulator.js';
 
-const dir = path.resolve(DATA_DIR);
+const sourceDir = process.argv.includes('--scope=core') ? path.join(DATA_DIR, 'core') : DATA_DIR;
+let dir: string;
 const ports = [5173, 8082, 9099, 5001, 4400, 4500, 9150];
 const children: ChildProcess[] = [];
 let stopping = false;
@@ -67,10 +72,12 @@ async function shutdown(code: number) {
   // Stop Vite before exporting the emulator; no writes while saving.
   for (const child of [...children].reverse()) {
     if (!child.pid || child.exitCode !== null) continue;
+    const owned = await captureOwnedProcesses(child.pid);
     // The Firebase CLI must orchestrate its own export before stopping Java.
     try { children.indexOf(child) === 0 ? child.kill('SIGTERM') : process.kill(-child.pid, 'SIGTERM'); } catch {}
     for (let i = 0; i < 80 && child.exitCode === null && child.signalCode === null; i++) await delay(250);
     if (child.exitCode === null && child.signalCode === null) {
+      await stopOwnedProcesses([...owned, ...await captureOwnedProcesses(child.pid)]);
       try { process.kill(-child.pid, 'SIGKILL'); } catch {}
       code = 1;
     }
@@ -82,7 +89,7 @@ async function shutdown(code: number) {
   process.exit(code);
 }
 async function main() {
-  const snapshot = await loadSnapshot();
+  const snapshot = await loadSnapshot(sourceDir);
   const report = coverage(snapshot);
   // Non-draft work can start even when production pick collections are denied.
   for (const root of ['players_v2', 'architect_basePlayers', 'architect_baseTeams']) {
@@ -91,6 +98,11 @@ async function main() {
     }
   }
   for (const port of ports) await unused(port);
+  // The CLI supports a binary override; keep its compatible export transport
+  // while using the official emulator that accepts governed atomic world saves.
+  env.FIRESTORE_EMULATOR_BINARY_PATH = await ensureCloudFirestoreEmulator();
+  await ensureFunctionsBuild(env);
+  dir = await prepareRuntime(sourceDir, report.sha256);
   await mkdir(dir, { recursive: true, mode: 0o700 });
   const config = path.resolve('.scoutzero-dev.firebase.json');
   await writeFile(config, JSON.stringify({
@@ -109,7 +121,7 @@ async function main() {
   if (restore && JSON.parse(await readFile(marker, 'utf8')).sha256 !== report.sha256) {
     throw new Error('Saved state uses another source snapshot. Preserve it and reset explicitly.');
   }
-  const cli = process.env.SCOUTZERO_FIREBASE_CLI || path.join(dir, 'tools/firebase/node_modules/.bin/firebase');
+  const cli = process.env.SCOUTZERO_FIREBASE_CLI || path.resolve(DATA_DIR, 'tools/firebase/node_modules/.bin/firebase');
   if (!existsSync(cli)) throw new Error('Firebase CLI missing. Run cloud:setup or set SCOUTZERO_FIREBASE_CLI.');
   const emulator = start(cli, ['emulators:start',
     '--config', config, '--only', 'firestore,auth,functions', '--project', DEMO_PROJECT,
@@ -135,6 +147,7 @@ async function main() {
   await writeFile(marker, JSON.stringify({ sha256: report.sha256 }), { mode: 0o600 });
   console.log('[cloud] Source captured ' + report.capturedAt + '; ' + report.documents + ' documents. ' +
     report.deniedCollections + ' denied collection reads; see private coverage.json.');
+  console.log('[cloud] Scope: ' + report.scope + '; database copy, not accepted current basketball facts. Runtime: ' + dir);
   console.log('[cloud] ' + (restore ? 'Restored isolated state; source refresh requires an explicit reset.' : 'Seeded isolated source copy.'));
   const vite = start('npm', ['run', 'dev', '--', '--host', '127.0.0.1', '--strictPort']);
   await ready('http://127.0.0.1:5173/', vite);

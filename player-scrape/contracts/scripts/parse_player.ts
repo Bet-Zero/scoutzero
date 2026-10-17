@@ -51,6 +51,7 @@
 //    - Enforced by: normalizeContractVoidedOptions()
 // ============================================================================
 
+import type { AnyNode } from 'domhandler';
 import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';
 import { dirname, join } from 'node:path';
@@ -423,7 +424,7 @@ function findBioContainer($: cheerio.CheerioAPI) {
 }
 
 /** Safely get the text of a node without script/style/ads noise (strip iframes/scripts) */
-function safeText($: cheerio.CheerioAPI, node: cheerio.Cheerio) {
+function safeText($: cheerio.CheerioAPI, node: cheerio.Cheerio<AnyNode>) {
   node.find('script,style,iframe,noscript').remove();
   return squeezeSpaces(node.text());
 }
@@ -451,7 +452,7 @@ function findFirstSalaryTable($: cheerio.CheerioAPI) {
 function findAllSalaryTables($: cheerio.CheerioAPI) {
   const tables = $('table');
   const salaryTables: Array<{
-    table: cheerio.Cheerio;
+    table: cheerio.Cheerio<AnyNode>;
     headers: string[];
     heading: string;
   }> = [];
@@ -533,7 +534,7 @@ const headerIndex = (headers: string[], ...cands: RegExp[]) => {
   }
   return -1;
 };
-function extractOptionFromCell($: cheerio.CheerioAPI, cell: cheerio.Cheerio) {
+function extractOptionFromCell($: cheerio.CheerioAPI, cell: cheerio.Cheerio<AnyNode>) {
   const txt = norm(cell.text()).toLowerCase();
   if (/player option|\bpo\b/.test(txt)) return 'PO';
   if (/team option|\bto\b/.test(txt)) return 'TO';
@@ -550,7 +551,7 @@ function extractOptionFromCell($: cheerio.CheerioAPI, cell: cheerio.Cheerio) {
 }
 function parseSalaryTable(
   $: cheerio.CheerioAPI,
-  table: cheerio.Cheerio,
+  table: cheerio.Cheerio<AnyNode>,
   headers: string[]
 ) {
   const idxSeason = headerIndex(headers, /season/i);
@@ -1185,13 +1186,13 @@ function parseCurrentContractMeta($: cheerio.CheerioAPI) {
 /** Parse contract metadata from a specific table's surrounding section */
 function parseContractMetaFromTable(
   $: cheerio.CheerioAPI,
-  table: cheerio.Cheerio
+  table: cheerio.Cheerio<AnyNode>
 ) {
   // Strategy: Get text from elements between this table and the previous h4/h5/h6 heading
   // or previous table (whichever comes first), PLUS elements after the table
 
   // Find all preceding siblings until we hit a heading or another table
-  const relevantElements: cheerio.Cheerio[] = [];
+  const relevantElements: cheerio.Cheerio<AnyNode>[] = [];
   let current = table.prev();
 
   while (current.length > 0) {
@@ -1461,7 +1462,7 @@ function detectMaxContractInfo(
   $: cheerio.CheerioAPI,
   salariesByYear: any[],
   contractType: string,
-  table?: cheerio.Cheerio
+  table?: cheerio.Cheerio<AnyNode>
 ) {
   if (!salariesByYear.length) {
     return {

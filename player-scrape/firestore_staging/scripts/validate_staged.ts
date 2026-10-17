@@ -10,6 +10,7 @@
 
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   PlayerMainDocZ,
   ContractDocZ,
@@ -31,13 +32,13 @@ async function loadJson(filepath: string) {
   return JSON.parse(raw);
 }
 
-async function validatePlayer(playerId: string): Promise<ValidationResult> {
+export async function validatePlayer(playerId: string, stageDir = STAGE_DIR): Promise<ValidationResult> {
   const errors: string[] = [];
 
   try {
     // Load staged files
-    const playersV2Path = path.join(STAGE_DIR, 'players_v2', `${playerId}.json`);
-    const basePlayerPath = path.join(STAGE_DIR, 'basePlayers', `${playerId}.json`);
+    const playersV2Path = path.join(stageDir, 'players_v2', `${playerId}.json`);
+    const basePlayerPath = path.join(stageDir, 'basePlayers', `${playerId}.json`);
 
     const playersV2 = await loadJson(playersV2Path);
     const basePlayer = await loadJson(basePlayerPath);
@@ -148,7 +149,7 @@ async function main() {
   }
 }
 
-main().catch((err) => {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch((err) => {
   console.error('Validation failed:', err);
   process.exit(1);
 });

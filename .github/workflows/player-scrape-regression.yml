@@ -32,5 +32,24 @@ jobs:
         run: npm run typecheck
         continue-on-error: true
       
+      - name: Run public contract and cloud safety cases
+        run: npm run test:cloud-dev
+
+      - name: Check retained regression input availability
+        id: fixtures
+        shell: bash
+        run: |
+          node --import tsx --input-type=module <<'JS'
+          import { existsSync, appendFileSync } from 'node:fs';
+          import path from 'node:path';
+          import { REGRESSION_FIXTURES, paths } from './player-scrape/contracts/scripts/config.ts';
+          const available = REGRESSION_FIXTURES.every((id) =>
+            existsSync(path.join(paths.snapshotsDir, id + '.html')) &&
+            existsSync(path.join(paths.fixturesDir, id + '.snapshot.json')));
+          appendFileSync(process.env.GITHUB_OUTPUT, 'available=' + available + '\n');
+          if (!available) console.log('::notice::Legacy contract source regressions unavailable: retained private HTML/expected inputs are absent. They were not run or accepted as passing. Do not upload private source inputs to public CI.');
+          JS
+
       - name: Run regression tests
+        if: steps.fixtures.outputs.available == 'true'
         run: npm run regress

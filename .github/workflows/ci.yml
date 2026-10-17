@@ -52,6 +52,9 @@ jobs:
       - name: Cloud development safety tests
         run: npm run test:cloud-dev
 
+      - name: Cloud tooling type check
+        run: npm run cloud:typecheck
+
       - name: Governed Offer Sheet creation emulator gate
         run: npm run ci:offer-sheet-creation-emulator-gate
 
@@ -96,6 +99,9 @@ jobs:
 
       - name: Cloud development safety tests
         run: npm run test:cloud-dev
+
+      - name: Cloud tooling type check
+        run: npm run cloud:typecheck
 
       - name: Governed Offer Sheet creation emulator gate
         run: npm run ci:offer-sheet-creation-emulator-gate

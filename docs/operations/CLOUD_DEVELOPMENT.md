@@ -1,152 +1,286 @@
-# ScoutZero cloud development
+# ScoutZero cloud development and NBA data operations
 
-Use this workflow for ordinary implementation, browser inspection, focused tests,
-and safe saves on any feature. It does not depend on draft-pick publication or
-BZE-321. No production-write credential is needed.
+Use the existing configured Codex cloud workspace. Ordinary development runs
+Vite, Firestore, Auth, Functions and Chromium locally inside that workspace.
+GitHub holds code and handoffs; protected cloud storage holds NBA inputs,
+baselines, isolated test state and evidence. Vercel and production publishers
+are not prerequisites. No local Mac is required.
 
-## Supported executor
+## Setup and normal development
 
-The managed ScoutZero cloud workspace has Node 24, Java 21, Chromium, application
-dependencies, compiled Functions, and a protected NBA snapshot. The repository
-and snapshot were recovered in a fresh cloud session on October 16, 2026
-(Detroit). Check live GitHub state at every handoff. Local `origin/main` can be
-stale in the environment image; fetch it before drawing ancestry conclusions.
-
-The repository is public; NBA snapshots, browser profiles, emulator exports,
-and detailed failure evidence must stay in private workspace storage. Never
-commit or upload `.scoutzero-dev/` to public Actions artifacts. This directory
-is ignored, including its tool installation and emulator-only authentication.
-
-For another trusted Linux cloud executor, install Node 24 and Java 21, clone
-the assignment's actual repository/ref, then run `npm run cloud:setup`. It
-installs the locked application dependencies, builds existing Functions, pins
-Firebase CLI 14.12.1 separately, and installs Chromium if needed. System package
-installation may need the executor's normal administrative capability. Existing
-Vercel deployment and Firebase production settings remain unchanged.
-
-## Start, inspect, change, test
-
-In the configured managed workspace:
+The supported Linux executor has Node 24, Java 21, Chromium, application
+packages, compiled Functions and a protected October 3 export. Fetch live main
+before an assignment; the image's local refs can be stale. On another trusted
+Linux cloud executor, clone the exact assignment ref and run:
 
 ```bash
-cd /workspace/scoutzero
-npm run cloud:data:import -- /workspace/.data/scoutzero-source/current
-npm run cloud:dev
+npm run cloud:setup
+npm run cloud:setup -- --check
 ```
 
-The default CLI lives under `.scoutzero-dev/tools/firebase/`. To reuse a known
-compatible installed CLI, set `SCOUTZERO_FIREBASE_CLI` to its absolute binary
-path. Use `npm run cloud:setup -- --check` to check installed prerequisites.
-Set `XDG_CONFIG_HOME` and `FIREBASE_EMULATORS_PATH` to writable workspace/cache
-directories if the managed executor restricts home-directory writes.
-
-The launcher starts Firestore, Auth, existing Functions and Vite at loopback
-ports 8082, 9099, 5001 and 5173. It waits for Functions definitions and the app,
-refuses occupied ports, and never kills another assignment's listeners. The
-application uses `demo-architect-review` and the real copied NBA data, without
-the tiny synthetic review seed or a production account. The existing review
-launcher remains useful for deterministic synthetic Architect diagnostics.
-
-Use Playwright or the executor's browser on `http://127.0.0.1:5173`. Edit actual
-application files normally; Vite reloads them. Choose scoped checks from
-AGENTS.md. The reusable non-draft demonstration is:
+Setup installs locked app dependencies, builds existing Functions and pins
+Firebase CLI 14.12.1 separately under `.scoutzero-dev/tools/firebase/`.
+CLI 15.32.1 ignored NO_PROXY and broke hub/export requests behind this proxy.
+Setup also pins official Firestore emulator 1.22.0, verifying its published
+size and SHA-256 before activation. The launcher's supported binary override
+keeps the compatible CLI. Emulator 1.19.8 rejects the existing roughly 8 MB
+atomic governed-world batch at its 4 MB inbound limit; 1.22.0 accepts it.
+Do not split that atomic write or trim the governed contract baseline.
+Startup also fingerprints the actual Functions sources, certified server bundle
+inputs and compiled bytes, rebuilding stale caches. The recovered cache initially
+omitted a current Function; file existence is not a valid build receipt. Stop
+`cloud:dev` before editing/building Functions, then start it again: rebuilding
+`lib/` in place while Firebase watches can leave a failed backend. UI editing
+still uses Vite reload normally.
+Use writable existing caches when home-directory writes are restricted:
 
 ```bash
+export FIREBASE_EMULATORS_PATH=/workspace/.cache/firebase/emulators
+export XDG_CONFIG_HOME=/workspace/.cache/config
+```
+
+For the historical full development copy:
+
+```bash
+npm run cloud:data:import -- /workspace/.data/scoutzero-source/current
+npm run cloud:dev
 npm run cloud:check
 ```
 
-It follows authenticated navigation to Players, searches for LeBron James,
-adds him to a new List, saves, reloads and screenshots the result at 1280×720.
-It rejects a tiny fixture dataset and blocks every browser request outside
-the declared loopback services. Evidence stays private in `.scoutzero-dev/`.
-For exploratory inspection, use the same existing application routes and
-emulator-only authentication; this check is one example, not a feature-specific
-environment.
+The launcher refuses occupied ports and owns only its own processes. It starts
+Firestore, Auth, existing Functions and Vite on loopback 8082, 9099, 5001 and
+5173; it waits for hub discovery and Functions definitions. Writes target only
+`demo-architect-review`. SIGTERM/Ctrl-C stops Vite first and requires an observed
+Firebase export. Never kill Java separately or another assignment's listeners.
+The app uses the real copied dataset, not the tiny synthetic Architect seed.
+Forced cleanup tracks only owned descendant PIDs and their start times, so a
+stalled Function cannot leave a detached emulator running or kill another job.
 
-## Stop and resume
+## Actual live refresh and scope
 
-Send SIGTERM or Ctrl-C to the launcher, not its Java process group. Vite stops
-first, then Firebase exports Firestore and emulator Auth into
-`.scoutzero-dev/state/`. The pinned CLI honors NO_PROXY; CLI 15.32.1's API client
-ignores it and fails localhost hub/export requests behind the managed proxy.
+A database capture is **not** independent qualification of current basketball
+facts. All live pages and player descendants use one Firestore `readTime`, and
+server update times are reported separately from collection time.
 
-Restart `npm run cloud:dev`, then run:
+The existing public Firebase client configuration was recovered in the configured
+workspace at `/workspace/.setup/firebase-public-config.json`. Bootstrap the
+ordinary application reader once:
 
 ```bash
-npm run cloud:check -- --resume
+npm run cloud:data:refresh -- --firebase-config=/workspace/.setup/firebase-public-config.json
 ```
 
-This restores the private emulator-only browser state and saved list, verifies the
-source fingerprint, and checks reload again. Saved state is tied to its source
-snapshot; importing another source requires preserving the old state and an
-explicit reset. Stop services first and move `state/`, `state-source.json`,
-`proof.json` and `browser-state.json` into private recovery storage.
-Restart to seed a clean copy. Never substitute production user content.
+This uses a safe anonymous Firebase identity and stores its refresh session
+privately. Later attempts reuse that identity and the retained public client
+configuration. It does not read production Auth accounts or user content, grant
+IAM permissions, create keys, change rules or acquire a writer role. Credentials
+are never printed or supplied to Vite/Functions/browser test children.
 
-Auth emulator imports expire pre-import login tokens. Recovery verifies that
-the saved UID still exists in the imported local accounts, then uses the Admin
-SDK's emulator signer to reauthenticate that same UID before mounting the app.
-It never creates a missing account or uses a real signing key. The browser
-helper rejects production builds, non-demo projects and nonlocal Auth/Firestore
-endpoints. Its transient emulator token is neither logged nor retained as an
-account credential. The refreshed browser state stays private. This is emulator
-session recovery, not a hosted Firebase authentication result.
+**Observed October 17:** authenticated reads of both draft roots still return
+PERMISSION_DENIED. A real full attempt retained detailed coverage privately and
+left the October 3 snapshot byte-for-byte unchanged. There is no completed full
+refresh claim. Explicitly capture the readable core separately:
 
-Before ending an assignment, commit/push authorized code, record the exact ref,
-validation and remaining issues in the assignment's GitHub/Linear record, stop
-the launcher cleanly, and retain the private workspace state. A new agent reads
-AGENTS.md and the assignment, fetches its ref, checks the snapshot coverage and
-starts the same command. GitHub holds code; the protected cloud environment
-holds source and isolated runtime state. A git clone alone does not recover
-untracked local files or a private snapshot.
+```bash
+npm run cloud:data:refresh -- --scope=core
+npm run cloud:data:status -- --scope=core
+npm run cloud:dev -- --scope=core
+npm run cloud:check -- --scope=core
+npm run cloud:check:architect -- --scope=core
+```
 
-## Source coverage and refresh
+Core never imports, overlays or relabels legacy entitlements. It has its own
+baseline and test sessions under `.scoutzero-dev/core/`; it cannot replace the
+full baseline. Its successful capture contained 4,070 documents: 677 player
+roots, 676 base players, 30 teams, 1,292 contracts, 718 seasons and 677 views.
+All 677 parents' three approved child collections were read. The capture's
+`readTime` is October 17, 2026 06:32 UTC; newest source server update was June 7,
+2026. Roster references still have 23 gaps and teams still have no entitlement
+membership. These are source gaps, not accepted current NBA readiness.
 
-`cloud:data:import` verifies the original export's project, SHA-256, document
-count and collection counts. It preserves Firestore typed values and the
-player/contract/season hierarchy. It excludes legacy root `teams`, source
-evaluations, personal overlays, accounts, lists, rosters and saved worlds.
-Coverage records source time, missing roster relationships, entitlement
-membership, denied reads and unobserved child collections. No data is repaired
-or invented during environment startup.
+An already-configured Google reader can instead use:
 
-The retained October 3 export contains 677 player roots, 676 base players,
-30 base teams, 658 entitlements, 1,292 contracts and 718 seasons. The reusable
-copy has 4,051 documents. It has **zero base pick rules**, **zero teams with
-entitlement membership**, 23 missing base-player roster references and no
-captured `views` hierarchy. The browser renders 673 of the 677 raw player roots
-through the existing loader. These are data gaps, not complete NBA or
-draft-pick correctness claims. Freshness remains October 3 until a verified
-refresh succeeds.
+```bash
+npm run cloud:data:refresh -- --google
+# Or an already-authorized short-lived gcloud login:
+npm run cloud:data:refresh -- --gcloud
+```
 
-`npm run cloud:data:refresh` reads only the fixed source collections and
-contracts/seasons/views descendants with GET requests. It does not acquire
-authentication or grant permissions. Where those collections need IAM access,
-run `npm run cloud:data:refresh -- --gcloud` in an already-authorized cloud
-executor; it uses an existing short-lived Google login without saving its token
-or creating keys. A complete protected refresh still requires an observed,
-authorized reader. Do not interpret denied reads as empty collections or claim
-that the current managed workspace has Google IAM credentials configured.
-Denied root/child reads or empty required collections leave the existing
-snapshot untouched and retain a private failed-refresh coverage report.
+The current managed executor reports no Google outbound identity, ADC binding
+or active gcloud reader. The separate BZE-321 inspector has entity GET permission
+for its pinned operation, not LIST, and is not a general export credential.
+A genuinely authorized Google identity needs `datastore.entities.get` and
+`datastore.entities.list` on the existing database. Prefer existing short-lived
+identity configuration; no service-account key, writer grant, rule relaxation,
+new project or billing change is needed. Follow the cloud runtime identity
+manifest selectors when a connection becomes available. Do not reuse the
+publisher or change its protected workflow/trust for development.
 
-No source credential, writer role, Preview bypass, production rules deployment,
-or production import is part of ordinary development. BZE-321's installed
-application data must be retained. Its one-use credentials and publication
-grants remain subject to its existing cleanup gates. Do not retire currently
-used Preview trust until its separate hosted workflow has a verified scoped
-replacement; the loopback workflow here does not need that trust.
+## Coverage and failure behavior
 
-## Known application limits
+| Feature/dependency | Copied source | Readiness boundary |
+| --- | --- | --- |
+| Players, profile, Lists and ranking input | `players_v2`, `contracts`, `seasons`, `views` | Lists writes use emulator-only accounts; profile validation can still expose old source/schema gaps |
+| Architect roster/cap/free-agency input | `architect_basePlayers`, `architect_baseTeams` | Relationships and money/source coverage remain independently checked; free-agent computation uses base players |
+| Entitlements and pick rules | `architect_baseEntitlements`, `architect_basePickRules` | Live anonymous reader is denied; legacy 658 definitions are not the accepted 278 inventory |
+| Governed new-world contracts | Existing Functions trusted release asset | Preserve its accepted pin; a database refresh does not migrate contract baselines or saved worlds |
+| Pending draft hosted review | PR #547's separately versioned release manifest and parts | Not read by current main's core workflow; retain its installed five-document release and separate access/publication gates |
+| Lists, tier lists, ranker sessions, worlds, roster projects, free-agent utility records, evaluations | Excluded production user content | Create safe emulator accounts/worlds; never mirror private user content |
 
-Cold-loading `/players` against the repository's authenticated source rules can
-race Auth initialization; use the existing authenticated Lists → Players
-navigation while working. The recovered LeBron profile also has pre-existing
-contract-schema failures. Neither has been silently repaired or counted as a
-passing workflow. Hosted Vercel behavior and production-data correctness remain
-distinct from the emulator demonstration.
+Collection/document membership, counts, parent coverage and duplicate paths are
+validated. Network/transient HTTP failures receive bounded retries; permission
+failures are never retried into success. Denied, partial, empty required roots
+and missing source relationships cannot promote a full baseline. Failure
+coverage and the failed capture remain private under `attempts/`; previous source
+and runtime state remain intact. Core coverage gaps are explicit diagnostics,
+not a silent full-sync fallback. Unknown source collections are never crawled.
 
-The shared anonymous sign-in request is now coalesced across mounted consumers.
-Previously, concurrent consumers could create competing sessions and cause
-owner-scoped list reads to fail during startup. Focused concurrency, failure
-settlement and retry tests cover the repair; Firebase remains the auth provider.
+Protected historical import verifies the original project, bytes, SHA-256 and
+counts, and excludes evaluations and legacy root teams. The historical allowed
+copy has 4,051 records with 658 legacy entitlements, zero pick rules, 23 missing
+base-player roster references and no captured views. Never substitute that
+inventory for the separately governed 278 first-round entitlements and 29
+unresolved evidence requirements.
+
+## Baseline versions and saved-session recovery
+
+Successful captures/imports retain immutable private `baselines/<sha256>/`
+generations containing a matched source/coverage pair. A single atomic directory
+pointer activates the pair. Private top-level aliases preserve the old paths.
+Restore a retained baseline explicitly:
+
+```bash
+node --import tsx scripts/dev/cloudData.ts use <sha256> --scope=core
+```
+
+Stop services before changing baselines. Each fingerprint has a separate
+`sessions/<sha256>/` directory with exported Firestore/Auth, browser state and
+proofs. A new baseline gets clean isolated state; previous accounts, Lists and
+worlds are retained rather than rewritten. Returning to an older baseline
+restores its own test session and still reports its actual capture time. BZE-322
+state is adopted only when its source fingerprint matches exactly.
+
+After a clean stop/start, use:
+
+```bash
+npm run cloud:check -- --scope=core --resume
+npm run cloud:check:architect -- --scope=core --resume
+```
+
+This restores the same exported emulator UID and saved List. Auth imports expire
+old login tokens, so the check first verifies the saved account exists, then
+uses only the SDK's emulator signer and DEV/demo/actual-loopback checks to
+reauthenticate it. It never recreates a missing account or uses a real signing
+key. Browser requests are limited to the declared local services. Screenshots
+are 1280×720 and stay private in the active session directory.
+
+Before handing off, commit/push authorized code; record exact ref, coverage,
+checks and remaining gates in GitHub/Linear; stop cleanly and retain private
+baseline/session/pipeline directories in the configured cloud workspace. For a
+fresh checkout, copy that private retained storage through the existing trusted
+cloud filesystem, check manifests and run setup/check/resume. Reused caches are
+not a new VM proof. Public Git alone cannot recover untracked private data, and
+these commands do not promise recovery after destruction of all private storage.
+
+## Source collection, staging and exact update preparation
+
+The existing player/team/stat/PST scripts remain the processing tools. New cloud
+entry points supply private explicit inputs, provenance and retained outputs;
+they are not a replacement parser or publisher.
+
+```bash
+npm run cloud:source -- --player=austin_reaves --team=LAL --url=https://salaryswish.com/players/austin-reaves
+npm run cloud:pipeline -- prepare --player=austin_reaves --inputs=<private-input-directory> --scope=core
+npm run pipeline:sync:plan -- --cloud-run=<private-run-directory>
+npm run cloud:pipeline -- verify --run=<private-run-directory>
+npm run cloud:pipeline -- emulator-check --run=<private-run-directory>
+```
+
+`cloud:source` forces a fresh GET rather than the regression-fixture fallback,
+retains both original retrieves privately, runs the existing contract parser and
+schema, and manifests the exact input bytes. Unequal originals remain unequal;
+no capture/parser success is independent qualification. The current managed
+network rejects SalarySwish at the proxy CONNECT boundary, before the site can
+be tested. Actual failure evidence is retained, and no fresh scrape is claimed.
+Source-domain access must be configured through the normal reviewed environment
+network workflow, not a proxy bypass. Site-session/challenge behavior remains
+unproven until that access works.
+
+The existing scripts require `salaryswish.com`, `www.salaryswish.com`,
+`stats.nba.com`, `www.nba.com`, `cdn.nba.com`, `basketball.realgm.com` and
+`www.prosportstransactions.com`. Header-only probes of all seven were rejected
+by this workspace's enforced CONNECT policy. Its current configuration also
+has no outbound Google identity, ADC binding or Google administration connector.
+An owner-reviewed environment access change is required for these capabilities;
+an agent cannot grant it with the available status-only environment tool.
+Use a renewable read-only Google identity with document GET/LIST, never the
+protected BZE-321 publisher, a service-account key or broader database rules.
+After access is attached, agents must repeat full capture and actual upstream
+collection, resolve source relationship gaps and qualify changes before claiming
+full operation. Access alone does not make the stored basketball facts current.
+
+To recover missing ignored staging inputs from the current database copy:
+
+```bash
+npm run cloud:pipeline -- recover --player=austin_reaves --scope=core
+```
+
+This is explicitly `firestore-recovery`, not a scrape or independent NBA source.
+Use its reported input directory with `prepare`. The cloud execution recovered
+Austin Reaves, ran the existing stage/validator and retained a four-record plan.
+Its before-images and update-time/absence preconditions come from the authenticated
+live capture. No production write or source acceptance followed. A conditional emulator-only
+rehearsal applied all four changes atomically, verified them and restored the
+original fields; it is not a production publication result.
+
+The legacy contract regression runner’s moved-file imports are repaired. Its
+private retained HTML/expected JSON pairs are absent in this workspace/public
+clone; public CI explicitly marks those cases unavailable, not passed, and runs
+the public tooling checks. Keep original source regressions private and run them
+in the trusted workspace when their inputs are recovered and qualified.
+
+Every run retains verified input files, schema results, staged outputs, exact
+before/after fields, changed field paths, hashes and a recovery manifest under
+`.scoutzero-dev/pipeline/`. Run verification detects changed bytes. Plans require
+an authenticated baseline less than 24 hours old and complete nested coverage;
+they preserve unknown typed fields, add no proposed deletes and never write
+production records. The emulator rehearsal has one literal loopback destination,
+rejects draft/user/team paths, checks exact before-images, verifies an atomic
+conditional commit and restores original fields with fresh preconditions.
+Lost raw inputs are not invented from remembered facts. Native Node/tsx imports
+avoid this executor's tsx CLI IPC EPERM; batch staging now exits nonzero on failure.
+
+| Existing operation | Inputs/recovery requirement | Publication boundary |
+| --- | --- | --- |
+| Player contracts / `contracts:run` | SalarySwish pages, player index; optional original raw captures | Existing parser/stager/validators; qualified inputs and reviewed record-level plan required |
+| NBA IDs/bios/stats builders and `stats:batch` | Existing NBA endpoint access and retained index/season outputs | Capture freshness and schema checks do not authorize a source write |
+| Team fetch/parse/merge/stage | SalarySwish team data, player index and explicit retained team artifacts | Do not manufacture missing draft inputs or overwrite draft membership in an ordinary team update |
+| RealGM and `pst:*` fetch/extract/build/validate | Authorized source pages/session and privately retained generated artifacts | Legacy seed/push commands are not an accepted first-round publisher; preserve 278/29 and BZE-321 gates |
+
+No production publication is executed here. Independently qualified original
+inputs, exact before/after review, change-specific production approval and fresh
+matching record preconditions remain mandatory. The old plan's generic production/PST push instructions are disabled. Legacy
+artifact inspection requires `--legacy-staging-report --verify-only` and is not
+publication authorization. Ordinary player
+plans exclude team/draft/user/world paths; BZE-321's protected publisher is untouched.
+After a separately approved publication, run a new authorized refresh and select
+that new baseline, keeping previous sessions available.
+
+## Focused validation
+
+```bash
+npm run test:cloud-dev
+npm run cloud:typecheck
+npm run typecheck
+npm run validate:project
+npm run docs:guardrails
+```
+
+Use feature-scoped tests from AGENTS.md for application changes. CI runs cloud
+safety and tooling type checks as well as the existing gates. Use the supported
+cloud execution permissions: the restricted shell can suppress Node children
+while reporting file-level success. Setup/build use an execution sentinel, and
+the safety command imports the actual cases directly and tests real descendants. Do not certify the
+full pipeline from synthetic tests, script presence, a stale emulator or a green
+partial capture. Live full sync and fresh external-source collection remain open
+until their actual access and data-quality gates pass.
