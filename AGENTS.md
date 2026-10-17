@@ -45,6 +45,10 @@ For normal work in the managed ScoutZero cloud workspace, use the reusable
 `npm run cloud:dev`, and `npm run cloud:check -- --resume` for saved-session
 recovery. Keep source copies and emulator/browser state private. Do not replace
 this with a draft-pick publisher, a production writer or the tiny synthetic seed.
+For NBA maintenance use `cloud:data:refresh`, `cloud:data:status`, `cloud:source`
+and `cloud:pipeline`. A core capture is separate from full sync; database recovery
+does not qualify source facts or authorize publication. Retain baseline versions
+and their separate test sessions; follow the runbook's explicit scope/recovery path.
 
 | Command                                    | Use                                                                       |
 | ------------------------------------------ | ------------------------------------------------------------------------- |

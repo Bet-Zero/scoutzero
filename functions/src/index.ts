@@ -38,6 +38,9 @@
  * @module functions
  */
 
+// Set only local demo transport before constructing any Admin SDK channel.
+import './emulatorTransport';
+
 // Export architect functions
 export { advanceCertifiedArchitectSeason } from './architect/certifiedSeason';
 export { initializeArchitectWorld } from './architect/initializeWorld';

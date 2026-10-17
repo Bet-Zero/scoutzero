@@ -12,6 +12,9 @@ interface CliArgs {
   playerId: string;
   outDir: string;
   validate: boolean;
+  indexPath?: string;
+  contractsDir?: string;
+  statsDir?: string;
 }
 
 type PlayerIndexEntry = {
@@ -871,9 +874,10 @@ async function loadJson<T>(filePath: string): Promise<T> {
   return JSON.parse(raw) as T;
 }
 
-async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
+export async function stagePlayer({ playerId, outDir, validate, indexPath = PLAYER_INDEX_PATH,
+  contractsDir = CONTRACTS_DIR, statsDir = STATS_DIR }: CliArgs) {
   const index: Record<string, PlayerIndexEntry> =
-    await loadJson(PLAYER_INDEX_PATH);
+    await loadJson(indexPath);
   const indexEntry = index[playerId];
   if (!indexEntry) {
     throw new Error(`Player ${playerId} not found in index`);
@@ -884,12 +888,12 @@ async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
   const contractTeamDir = teamCode || 'FREE';
 
   const contractPath = path.join(
-    CONTRACTS_DIR,
+    contractsDir,
     contractTeamDir,
     `${playerId}.json`
   );
   const statsPath = teamCode
-    ? path.join(STATS_DIR, teamCode, `${playerId}.json`)
+    ? path.join(statsDir, teamCode, `${playerId}.json`)
     : null;
 
   let contractData: ContractOutput | null = null;

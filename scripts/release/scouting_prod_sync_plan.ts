@@ -28,8 +28,8 @@ import path from 'node:path';
 const EXPECTED_PROJECT_ID = 'scoutzero-bf1ae';
 
 const ARTIFACT_PATHS = {
-  players_v2: path.resolve('firestore_staging/_artifacts/output/players_v2'),
-  basePlayers: path.resolve('firestore_staging/_artifacts/output/basePlayers'),
+  players_v2: path.resolve('player-scrape/firestore_staging/_artifacts/output/players_v2'),
+  basePlayers: path.resolve('player-scrape/firestore_staging/_artifacts/output/basePlayers'),
   baseTeams: path.resolve(
     'team-scrape/shared/firestore_staging/_artifacts/output/baseTeams'
   ),
@@ -424,8 +424,17 @@ const printStagingCommands = () => {
 // MAIN
 // =============================================================================
 
-const main = () => {
+const main = async () => {
   const args = process.argv.slice(2);
+  const cloudRun = args.find((arg) => arg.startsWith('--cloud-run='))?.slice('--cloud-run='.length);
+  if (cloudRun) {
+    const { verifyPipelineRun } = await import('../dev/cloudPipeline.js');
+    log(JSON.stringify(await verifyPipelineRun(path.resolve(cloudRun)), null, 2));
+    return;
+  }
+  if (!args.includes('--legacy-staging-report') || !args.includes('--verify-only')) {
+    throw new Error('Use --cloud-run=<verified-private-run>. Legacy artifacts may only be inspected with --legacy-staging-report --verify-only; generic production/PST push instructions are disabled.');
+  }
   const verifyOnly = args.includes('--verify-only');
   const printCommands = args.includes('--print-commands');
 
@@ -466,6 +475,7 @@ const main = () => {
       '──────────────────────────────────────────────────────────────────────────'
     );
     log('Verify-only mode. Exiting.');
+    if (!allPassed) process.exitCode = 1;
     return;
   }
 
@@ -495,4 +505,4 @@ const main = () => {
   log('📖 See: docs/scouting/PROD_SYNC_RUNBOOK.md');
 };
 
-main();
+main().catch(() => { console.error('Pipeline plan verification failed; inspect private retained evidence. No production write occurred.'); process.exitCode = 1; });

@@ -14,9 +14,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  */
 export async function getPlayerHtml(
   playerId: string,
-  sourceUrl: string
+  sourceUrl: string,
+  options: { fresh?: boolean } = {}
 ): Promise<string> {
-  if (isRegressionFixture(playerId)) {
+  if (!options.fresh && isRegressionFixture(playerId)) {
     const snapshotPath = path.join(paths.snapshotsDir, `${playerId}.html`);
     try {
       return await fs.readFile(snapshotPath, 'utf8');
@@ -24,7 +25,7 @@ export async function getPlayerHtml(
       // fall through to live fetch if snapshot missing
     }
   }
-  const res = await fetch(sourceUrl, { cache: 'no-store', mode: 'cors' });
+  const res = await fetch(sourceUrl, { cache: 'no-store', mode: 'cors', redirect: 'error', signal: AbortSignal.timeout(30000) });
   if (!res.ok) throw new Error(`Failed to fetch ${sourceUrl}: ${res.status}`);
   return await res.text();
 }

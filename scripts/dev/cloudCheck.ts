@@ -8,9 +8,11 @@ import { chromium } from 'playwright';
 import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { DATA_DIR, coverage, loadSnapshot } from './cloudData.js';
+import { runtimeDirectory } from './cloudRuntime.js';
 
-const dir = path.resolve(DATA_DIR);
-const report = coverage(await loadSnapshot());
+const sourceDir = process.argv.includes('--scope=core') ? path.join(DATA_DIR, 'core') : DATA_DIR;
+const report = coverage(await loadSnapshot(sourceDir));
+const dir = runtimeDirectory(sourceDir, report.sha256);
 await mkdir(dir, { recursive: true, mode: 0o700 });
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ||
   (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined);

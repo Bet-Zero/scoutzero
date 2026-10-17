@@ -1,6 +1,7 @@
 import { build } from 'esbuild';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writeFile } from 'node:fs/promises';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const result = await build({
   absWorkingDir: root,
@@ -27,3 +28,7 @@ if (
   throw new Error(
     'Certified server core must not include the client SDK or browser persistence.'
   );
+// Cloud cache validation follows the actual server bundle inputs, not the whole UI.
+await writeFile(path.join(root, 'functions/lib/certifiedSeason.inputs.json'), JSON.stringify(
+  Object.keys(result.metafile.inputs).filter((file) => file.startsWith('src/')).sort()
+));

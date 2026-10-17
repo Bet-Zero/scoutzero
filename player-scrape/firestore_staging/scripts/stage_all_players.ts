@@ -33,7 +33,7 @@ function parseArg(label: string, def?: number): number {
 
 async function stagePlayer(playerId: string): Promise<boolean> {
   return new Promise((resolve) => {
-    const proc = spawn('npx', ['tsx', STAGE_SCRIPT, '--player', playerId], {
+    const proc = spawn(process.execPath, ['--import', 'tsx', STAGE_SCRIPT, '--player', playerId], {
       stdio: 'pipe',
       cwd: PROJECT_ROOT,
     });
@@ -100,6 +100,7 @@ async function main() {
   console.log(`   ✅ Success: ${results.success}`);
   console.log(`   ❌ Failed: ${results.failed}`);
   console.log(`   📦 Total: ${playerIds.length}`);
+  if (results.failed > 0) process.exitCode = 1;
 }
 
 main().catch((err) => {
