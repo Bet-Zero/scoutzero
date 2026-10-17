@@ -16,6 +16,23 @@ permissions:
   contents: read
 
 jobs:
+  draft-worker-permission-probe:
+    name: Draft worker GitHub read-permission proof
+    if: github.event_name == 'pull_request' && github.head_ref == 'feature/bze-321-hosted-draft-review'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      # Same GITHUB_TOKEN permissions and REST endpoint families as the frozen
+      # worker, using an existing environment. No Google identity or writes.
+      - name: Prove environment protection reads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/Bet-Zero/scoutzero/environments/Production --jq '{name,protectionRuleCount:(.protection_rules|length)}'
+
   # PR validation - uses diff-based testing for speed
   pr-validation:
     name: PR Validation (Diff-based)
@@ -43,11 +60,25 @@ jobs:
       - name: Architect cast-ledger gate
         run: npm run lint:architect-gate
 
+      - name: Draft data architecture boundary
+        run: npm run test:node -- tests/architect/draftReviewArchitecture.guardrail.test.ts tests/architect/draftReviewCloudConnection.test.ts tests/architect/draftReviewDeployment.test.ts tests/architect/draftSourceInventory.test.ts --reporter=dot
+
       - name: Fetch accepted Canon authority ref
         run: git fetch --no-tags origin architect/cba-canon-v2:refs/remotes/origin/architect/cba-canon-v2
 
       - name: Phase 3A workflow tooling
         run: npm run test:phase3a-workflow
+
+      - name: Private source review transport boundary
+        run: npm run test:private-source-review
+
+      - name: Install matching browser for the redirect proof
+        timeout-minutes: 3
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Hosted review browser redirect boundary
+        timeout-minutes: 2
+        run: npm run test:hosted-review-browser
 
       - name: Governed Offer Sheet creation emulator gate
         run: npm run ci:offer-sheet-creation-emulator-gate
@@ -85,11 +116,25 @@ jobs:
       - name: Architect cast-ledger gate
         run: npm run lint:architect-gate
 
+      - name: Draft data architecture boundary
+        run: npm run test:node -- tests/architect/draftReviewArchitecture.guardrail.test.ts tests/architect/draftReviewCloudConnection.test.ts tests/architect/draftReviewDeployment.test.ts --reporter=dot
+
       - name: Fetch accepted Canon authority ref
         run: git fetch --no-tags origin architect/cba-canon-v2:refs/remotes/origin/architect/cba-canon-v2
 
       - name: Phase 3A workflow tooling
         run: npm run test:phase3a-workflow
+
+      - name: Private source review transport boundary
+        run: npm run test:private-source-review
+
+      - name: Install matching browser for the redirect proof
+        timeout-minutes: 3
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Hosted review browser redirect boundary
+        timeout-minutes: 2
+        run: npm run test:hosted-review-browser
 
       - name: Governed Offer Sheet creation emulator gate
         run: npm run ci:offer-sheet-creation-emulator-gate

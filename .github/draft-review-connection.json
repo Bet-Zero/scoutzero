@@ -1,0 +1,53 @@
+{
+  "workerSha": "2b9391ca0327630785a8b1d34c02506585680cf5",
+  "inspectionWorkerSha": "ede0e2be620aabd5c2d90c42f62a2b3737acda72",
+  "provider": "projects/105500121903/locations/global/workloadIdentityPools/scoutzero-bze321/providers/github",
+  "requiredApis": [
+    "iamcredentials.googleapis.com",
+    "sts.googleapis.com",
+    "firestore.googleapis.com",
+    "firebaserules.googleapis.com",
+    "cloudresourcemanager.googleapis.com"
+  ],
+  "attributeMapping": {
+    "google.subject": "assertion.sub",
+    "attribute.repository_id": "assertion.repository_id",
+    "attribute.environment": "assertion.environment"
+  },
+  "attributeCondition": "(assertion.repository_id == '997820257' && assertion.repository_owner_id == '205859440' && assertion.repository == 'Bet-Zero/scoutzero' && assertion.event_name == 'push' && assertion.ref == 'refs/heads/feature/bze-321-hosted-draft-review' && assertion.job_workflow_ref == 'Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@2b9391ca0327630785a8b1d34c02506585680cf5' && assertion.job_workflow_sha == '2b9391ca0327630785a8b1d34c02506585680cf5' && ((assertion.environment == 'draft-review-inspection' && assertion.sub == 'repo:Bet-Zero/scoutzero:environment:draft-review-inspection') || (assertion.environment == 'draft-review-publication' && assertion.sub == 'repo:Bet-Zero/scoutzero:environment:draft-review-publication'))) || (assertion.repository_id == '997820257' && assertion.repository_owner_id == '205859440' && assertion.repository == 'Bet-Zero/scoutzero' && assertion.event_name == 'push' && assertion.ref == 'refs/heads/feature/bze-321-hosted-draft-review' && assertion.job_workflow_ref == 'Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@ede0e2be620aabd5c2d90c42f62a2b3737acda72' && assertion.job_workflow_sha == 'ede0e2be620aabd5c2d90c42f62a2b3737acda72' && assertion.environment == 'draft-review-inspection' && assertion.sub == 'repo:Bet-Zero/scoutzero:environment:draft-review-inspection')",
+  "inspection": {
+    "account": "scoutzero-draft-release@scoutzero-bf1ae.iam.gserviceaccount.com",
+    "member": "principalSet://iam.googleapis.com/projects/105500121903/locations/global/workloadIdentityPools/scoutzero-bze321/attribute.environment/draft-review-inspection",
+    "permissions": [
+      "datastore.databases.getMetadata",
+      "datastore.entities.get",
+      "firebaserules.releases.get",
+      "firebaserules.rulesets.get"
+    ]
+  },
+  "publication": {
+    "account": "scoutzero-draft-publish@scoutzero-bf1ae.iam.gserviceaccount.com",
+    "member": "principalSet://iam.googleapis.com/projects/105500121903/locations/global/workloadIdentityPools/scoutzero-bze321/attribute.environment/draft-review-publication",
+    "permissions": [
+      "datastore.databases.getMetadata",
+      "datastore.entities.get",
+      "firebaserules.releases.get",
+      "firebaserules.rulesets.get",
+      "datastore.entities.create",
+      "firebaserules.releases.update",
+      "firebaserules.rulesets.create",
+      "firebaserules.rulesets.test"
+    ],
+    "projectRoleId": "scoutzeroDraftPublisher"
+  },
+  "requiredGitHubProtection": {
+    "environments": [
+      "draft-review-inspection",
+      "draft-review-publication"
+    ],
+    "reviewerUserId": 205859440,
+    "preventSelfReview": false,
+    "canAdminsBypass": false,
+    "branch": "feature/bze-321-hosted-draft-review"
+  }
+}

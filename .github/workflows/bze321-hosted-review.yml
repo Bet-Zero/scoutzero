@@ -1,0 +1,60 @@
+name: BZE-321 protected hosted GM verification
+
+on:
+  push:
+    branches: ['feature/bze-321-hosted-draft-review']
+    # Every candidate needs its own proof, including a candidate changed only
+    # by review repairs or docs. Execution still requires protected approval.
+
+permissions:
+  contents: read
+
+jobs:
+  browser:
+    if: github.repository == 'Bet-Zero/scoutzero'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    # Reuse the existing protected owner approval. No new environment, secret,
+    # Firebase permission, publication operation or release input is involved.
+    environment: draft-review-publication
+    permissions:
+      contents: read
+      deployments: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - run: npx --no-install playwright install --with-deps chromium
+      - name: Resolve the preview for this exact candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..18}; do
+            deployment=$(gh api "repos/Bet-Zero/scoutzero/deployments?sha=$GITHUB_SHA&environment=Preview&per_page=10" --jq '.[0].id // empty')
+            if [ -n "$deployment" ]; then
+              preview=$(gh api "repos/Bet-Zero/scoutzero/deployments/$deployment/statuses" --jq '.[0] | select(.state == "success") | .environment_url')
+              if [ -n "$preview" ]; then
+                PREVIEW="$preview" node --import tsx --input-type=module -e '
+                  import { hostedPreviewOrigin } from "./scripts/architect/hostedDraftReviewPolicy.ts";
+                  import { appendFileSync } from "node:fs";
+                  appendFileSync(process.env.GITHUB_ENV, `SCOUTZERO_HOSTED_PREVIEW=${hostedPreviewOrigin(process.env.PREVIEW)}\n`);
+                '
+                exit 0
+              fi
+            fi
+            sleep 10
+          done
+          echo 'Exact-candidate preview is not ready.' >&2
+          exit 1
+      - name: Verify real hosted GM review without app-data writes
+        timeout-minutes: 4
+        run: node --import tsx scripts/architect/verifyHostedDraftReview.ts
+      # No artifact upload: private NBA evidence and session material stay in
+      # memory and the disposable browser. Only fixed redacted results are logged.

@@ -1,10 +1,14 @@
+import { resolvePickRulesByIdsWithDb } from '@/features/architect/utils/entitlements/pickRulesResolver';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { Firestore } from 'firebase/firestore';
 
 type DocData = Record<string, unknown>;
 
 const mockDocsByPath = new Map<string, DocData | null>();
-const mockCollectionDocsByPath = new Map<string, Array<{ id: string; data: DocData }>>();
+const mockCollectionDocsByPath = new Map<
+  string,
+  Array<{ id: string; data: DocData }>
+>();
 
 function seedDoc(path: string, data: DocData | null): void {
   mockDocsByPath.set(path, data);
@@ -25,6 +29,7 @@ function makeMockFirestore(): Firestore {
 }
 
 vi.mock('@/constants/collections', () => ({
+  ARCHITECT_BASE_PICK_RULES_PATH: 'architect_basePickRules',
   ARCHITECT_BASE_ENTITLEMENTS_PATH: 'architect_baseEntitlements',
   ARCHITECT_BASE_TEAMS_PATH: 'architect_baseTeams',
   ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION: 'entitlements',
@@ -50,25 +55,32 @@ vi.mock('firebase/firestore', () => ({
   where: (_field: string, _op: string, value: unknown) => ({
     _value: value,
   }),
-  query: (collectionRef: { _path: string }, ...constraints: Array<{ _value?: unknown }>) => ({
+  query: (
+    collectionRef: { _path: string },
+    ...constraints: Array<{ _value?: unknown }>
+  ) => ({
     _collectionPath: collectionRef._path,
     _constraints: constraints,
   }),
-  getDocs: vi.fn(async (queryRef: {
-    _collectionPath: string;
-    _constraints: Array<{ _value?: unknown }>;
-  }) => {
-    const idsConstraint = queryRef._constraints.find((c) => Array.isArray(c._value));
-    const requestedIds = (idsConstraint?._value || []) as string[];
-    const all = mockCollectionDocsByPath.get(queryRef._collectionPath) || [];
-    const docs = all
-      .filter((entry) => requestedIds.includes(entry.id))
-      .map((entry) => ({
-        id: entry.id,
-        data: () => entry.data,
-      }));
-    return { docs };
-  }),
+  getDocs: vi.fn(
+    async (queryRef: {
+      _collectionPath: string;
+      _constraints: Array<{ _value?: unknown }>;
+    }) => {
+      const idsConstraint = queryRef._constraints.find((c) =>
+        Array.isArray(c._value)
+      );
+      const requestedIds = (idsConstraint?._value || []) as string[];
+      const all = mockCollectionDocsByPath.get(queryRef._collectionPath) || [];
+      const docs = all
+        .filter((entry) => requestedIds.includes(entry.id))
+        .map((entry) => ({
+          id: entry.id,
+          data: () => entry.data,
+        }));
+      return { docs };
+    }
+  ),
 }));
 
 import { resolveEntitlementsForTeamWithDb } from '@/features/architect/utils/entitlements/entitlementResolver';
@@ -107,7 +119,11 @@ describe('entitlementResolver parent-world fallback chain', () => {
   });
 
   it('uses world -> parent -> base for team entitlementIds', async () => {
-    const result = await resolveEntitlementsForTeamWithDb(db, 'world-child', 'BOS');
+    const result = await resolveEntitlementsForTeamWithDb(
+      db,
+      'world-child',
+      'BOS'
+    );
 
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('ent-1');
@@ -116,10 +132,106 @@ describe('entitlementResolver parent-world fallback chain', () => {
     expect(result[0].notes).toBe('child override');
   });
 
+  it('does not infer entitlement inventory from legacy picks when base IDs are absent', async () => {
+    seedDoc('architect_baseTeams/MIA', {
+      draftPicks: [{ year: 2030, round: 1, originalTeam: 'MIA' }],
+      draftPicksInventory: [{ year: 2030, round: 1 }],
+    });
+    // Even an existing definition is not inventory membership authority.
+    seedCollectionDoc('architect_baseEntitlements', 'unassigned', {
+      holderTeam: 'MIA',
+      seasonYear: 2030,
+      round: 1,
+      kind: 'pick_ownership',
+    });
+    expect(await resolveEntitlementsForTeamWithDb(db, null, 'MIA')).toEqual([]);
+  });
+
+  it('does not enroll existing child or parent worlds in newly linked source picks', async () => {
+    seedDoc('architect_worlds/world-parent/teams/BOS', {});
+    seedDoc('architect_baseTeams/BOS', {
+      draftSourceRevisions: {
+        schemaVersion: 1,
+        legacyExists: true,
+        versions: { '1': { entitlementIds: ['ent-1'] } },
+      },
+    });
+    expect(
+      await resolveEntitlementsForTeamWithDb(db, null, 'BOS')
+    ).toHaveLength(1);
+    expect(
+      await resolveEntitlementsForTeamWithDb(db, 'world-child', 'BOS')
+    ).toEqual([]);
+    expect(
+      await resolveEntitlementsForTeamWithDb(db, 'world-parent', 'BOS')
+    ).toEqual([]);
+  });
+
+  it('retains prior source holder and merges existing world overrides afterward', async () => {
+    mockCollectionDocsByPath.set('architect_baseEntitlements', [
+      {
+        id: 'ent-1',
+        data: {
+          holderTeam: 'BOS',
+          seasonYear: 2028,
+          round: 1,
+          kind: 'pick_ownership',
+          description: 'old source description',
+          draftSourceRevisions: {
+            schemaVersion: 1,
+            legacyExists: true,
+            versions: {
+              '1': { holderTeam: 'PHI', description: 'new source description' },
+            },
+          },
+        },
+      },
+    ]);
+    const result = await resolveEntitlementsForTeamWithDb(
+      db,
+      'world-child',
+      'BOS'
+    );
+    expect(result[0]).toMatchObject({
+      holderTeam: 'BOS',
+      description: 'parent override',
+      notes: 'child override',
+    });
+    expect(result[0]).not.toHaveProperty('draftSourceRevisions');
+  });
+
+  it('keeps newly introduced rules out of saved-world batch results', async () => {
+    seedCollectionDoc('architect_basePickRules', 'AAA_2030_1st', {
+      draftSourceRevisions: {
+        schemaVersion: 1,
+        legacyExists: false,
+        versions: {
+          '1': {
+            pickId: 'AAA_2030_1st',
+            seasonYear: 2030,
+            round: 1,
+            protections: [],
+          },
+        },
+      },
+    });
+    expect((await resolvePickRulesByIdsWithDb(db, ['AAA_2030_1st'])).size).toBe(
+      1
+    );
+    expect(
+      (await resolvePickRulesByIdsWithDb(db, ['AAA_2030_1st'], 'world-child'))
+        .size
+    ).toBe(0);
+  });
+
   it('stops fallback when child team explicitly sets entitlementIds', async () => {
     seedDoc('architect_worlds/world-child/teams/BOS', { entitlementIds: [] });
 
-    const result = await resolveEntitlementsForTeamWithDb(db, 'world-child', 'BOS');
+    const result = await resolveEntitlementsForTeamWithDb(
+      db,
+      'world-child',
+      'BOS'
+    );
     expect(result).toEqual([]);
   });
 });

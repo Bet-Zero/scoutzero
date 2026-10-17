@@ -1,0 +1,24 @@
+name: Scoped draft review publication handoff
+
+# Accept only the installation secret. The existing immutable worker does not
+# declare named workflow_call secrets; inherit here forwards only this allowlist
+# (plus GitHub's automatic token), never the caller's other repository secrets.
+on:
+  workflow_call:
+    secrets:
+      BZE321_INSTALLATION_PASSPHRASE:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    uses: Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@2b9391ca0327630785a8b1d34c02506585680cf5
+    with:
+      operation: publish
+    secrets: inherit

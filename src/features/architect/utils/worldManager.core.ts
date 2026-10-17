@@ -3,6 +3,7 @@
  * worldManager.ts (lines 386–861).
  */
 
+import { readDraftSourceForWorld } from '@/features/architect/utils/entitlements/draftSourceBaseline';
 import { db, functions } from '@/firebaseConfig';
 import {
   collection,
@@ -317,7 +318,7 @@ const readEffectiveTeamSnapshotForBranch = async (
   const baseTeamSnap = await getDoc(baseTeamRef(teamCode));
   if (baseTeamSnap.exists()) {
     return readSnapshotRecord(
-      baseTeamSnap.data(),
+      readDraftSourceForWorld(baseTeamSnap.data(), lineageIds[0], 'team'),
       `architect_baseTeams/${teamCode}`
     );
   }
@@ -393,13 +394,17 @@ const readEffectiveEntitlementForBranch = async (
 
   const baseEntitlementSnap = await getDoc(baseEntitlementRef(entitlementId));
   if (baseEntitlementSnap.exists()) {
-    resolved = {
-      id: baseEntitlementSnap.id,
-      ...readSnapshotRecord(
-        baseEntitlementSnap.data(),
-        `architect_baseEntitlements/${entitlementId}`
-      ),
-    };
+    const projected = readDraftSourceForWorld(
+      { id: baseEntitlementSnap.id, ...baseEntitlementSnap.data() },
+      lineageIds[0],
+      'entitlement'
+    );
+    resolved = projected
+      ? readSnapshotRecord(
+          projected,
+          `architect_baseEntitlements/${entitlementId}`
+        )
+      : null;
   }
 
   for (const lineageWorldId of [...lineageIds].reverse()) {

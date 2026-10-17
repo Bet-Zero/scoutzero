@@ -170,7 +170,8 @@ export function useTradeMachineEntitlementOps({
             const slot = updatedTeams[index];
             if (!slot?.team?.entitlements) return null;
             const pickRulesById = await resolvePickRulesForEntitlements(
-              slot.team.entitlements
+              slot.team.entitlements,
+              worldId
             );
             return { index, pickRulesById };
           })
@@ -193,7 +194,7 @@ export function useTradeMachineEntitlementOps({
 
       refreshPickRules();
     },
-    [teams]
+    [teams, worldId]
   );
 
   // TM-VACUUM-E1: Re-resolve entitlements for all active team slots.
@@ -211,7 +212,10 @@ export function useTradeMachineEntitlementOps({
           );
           let pickRulesById = slot.team.pickRulesById || {};
           if (ENABLE_PICK_RULES) {
-            pickRulesById = await resolvePickRulesForEntitlements(entitlements);
+            pickRulesById = await resolvePickRulesForEntitlements(
+              entitlements,
+              worldId
+            );
           }
           return {
             ...slot,

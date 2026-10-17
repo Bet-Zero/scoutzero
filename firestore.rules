@@ -398,6 +398,19 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Versioned derived draft-review data, never client-published or mutated.
+    match /architect_draftPickReleases/{releaseId} {
+      allow get: if isAuthenticated() && releaseId.matches('^[a-f0-9]{64}$');
+      allow list, write: if false;
+      match /parts/{partId} {
+        allow get: if isAuthenticated()
+          && releaseId.matches('^[a-f0-9]{64}$')
+          && partId.matches('^[0-3]$')
+          && exists(/databases/$(database)/documents/architect_draftPickReleases/$(releaseId));
+        allow list, write: if false;
+      }
+    }
+
     // Root teams remains read-only.
     match /teams/{teamCode} {
       allow read: if isAuthenticated();
