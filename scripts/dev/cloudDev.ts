@@ -60,6 +60,7 @@ function start(command: string, args: string[]) {
 async function shutdown(code: number) {
   if (stopping) return;
   stopping = true;
+  exportConfirmed = false;
   // Stop Vite before exporting the emulator; no writes while saving.
   for (const child of [...children].reverse()) {
     if (!child.pid || child.exitCode !== null) continue;
