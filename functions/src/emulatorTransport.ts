@@ -2,6 +2,11 @@
 export function configureCloudEmulatorTransport(env: NodeJS.ProcessEnv, configure: () => void) {
   if (env.FUNCTIONS_EMULATOR !== 'true' || env.GCLOUD_PROJECT !== 'demo-architect-review' ||
       env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:8082' || env.FIREBASE_AUTH_EMULATOR_HOST !== '127.0.0.1:9099') return;
+  // Firebase's worker reconstruction can omit lowercase proxy exceptions.
+  // Preserve all existing exceptions and exempt only the declared loopbacks.
+  for (const key of ['NO_PROXY', 'no_proxy', 'no_grpc_proxy']) {
+    env[key] = [env[key], '127.0.0.1', 'localhost', '::1'].filter(Boolean).join(',');
+  }
   configure();
 }
 

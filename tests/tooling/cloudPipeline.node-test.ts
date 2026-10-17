@@ -13,6 +13,7 @@ import { spawn } from 'node:child_process';
 import { functionsBuildCurrent, recordFunctionsBuild } from '../../scripts/dev/cloudFunctions.js';
 import { createRequire } from 'node:module';
 import { assertOrdinaryDocumentPath } from '../../scripts/dev/cloudPublishCheck.js';
+import { getPlayerHtml } from '../../player-scrape/contracts/scripts/fetch_player_page.js';
 const { configureCloudEmulatorTransport } = createRequire(import.meta.url)('../../functions/src/emulatorTransport.ts') as typeof import('../../functions/src/emulatorTransport.js');
 
 const prefix = 'projects/scoutzero-bf1ae/databases/(default)/documents/';
@@ -193,6 +194,24 @@ test('credential-free local transport is restricted to the exact demo and preser
   let configured = 0;
   configureCloudEmulatorTransport(valid, () => { configured++; });
   assert.equal(configured, 1);
-  assert.equal(valid.no_grpc_proxy, 'existing.internal');
+  assert.equal(valid.no_grpc_proxy, 'existing.internal,127.0.0.1,localhost,::1');
   assert.equal(valid.HTTP_PROXY, 'http://configured-proxy:8080');
+});
+
+test('a fresh source request never substitutes an existing cached regression page, even after denial', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'scoutzero-fresh-source-'));
+  const cwd = process.cwd(); const originalFetch = globalThis.fetch;
+  const snapshots = path.join(root, 'player-scrape/contracts/snapshots');
+  await mkdir(snapshots, { recursive: true }); await writeFile(path.join(snapshots, 'austin_reaves.html'), 'SYNTHETIC_CACHED_PAGE');
+  let requests = 0; let status = 200;
+  try {
+    process.chdir(root);
+    globalThis.fetch = async (_url, init) => { requests++; assert.equal(init?.redirect, 'error'); return new Response('SYNTHETIC_FRESH_PAGE', { status }); };
+    assert.equal(await getPlayerHtml('austin_reaves', 'https://salaryswish.com/players/austin-reaves'), 'SYNTHETIC_CACHED_PAGE');
+    assert.equal(requests, 0);
+    assert.equal(await getPlayerHtml('austin_reaves', 'https://salaryswish.com/players/austin-reaves', { fresh: true }), 'SYNTHETIC_FRESH_PAGE');
+    status = 403;
+    await assert.rejects(() => getPlayerHtml('austin_reaves', 'https://salaryswish.com/players/austin-reaves', { fresh: true }), /403/);
+    assert.equal(requests, 2);
+  } finally { process.chdir(cwd); globalThis.fetch = originalFetch; }
 });

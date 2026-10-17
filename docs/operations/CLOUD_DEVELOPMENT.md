@@ -23,7 +23,10 @@ Firebase CLI 14.12.1 separately under `.scoutzero-dev/tools/firebase/`.
 CLI 15.32.1 ignored NO_PROXY and broke hub/export requests behind this proxy.
 Startup also fingerprints the actual Functions sources, certified server bundle
 inputs and compiled bytes, rebuilding stale caches. The recovered cache initially
-omitted a current Function; file existence is not a valid build receipt.
+omitted a current Function; file existence is not a valid build receipt. Stop
+`cloud:dev` before editing/building Functions, then start it again: rebuilding
+`lib/` in place while Firebase watches can leave a failed backend. UI editing
+still uses Vite reload normally.
 Use writable existing caches when home-directory writes are restricted:
 
 ```bash
@@ -211,6 +214,12 @@ Its before-images and update-time/absence preconditions come from the authentica
 live capture. No production write or source acceptance followed. A conditional emulator-only
 rehearsal applied all four changes atomically, verified them and restored the
 original fields; it is not a production publication result.
+
+The legacy contract regression runner’s moved-file imports are repaired. Its
+private retained HTML/expected JSON pairs are absent in this workspace/public
+clone; public CI explicitly marks those cases unavailable, not passed, and runs
+the public tooling checks. Keep original source regressions private and run them
+in the trusted workspace when their inputs are recovered and qualified.
 
 Every run retains verified input files, schema results, staged outputs, exact
 before/after fields, changed field paths, hashes and a recovery manifest under

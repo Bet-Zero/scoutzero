@@ -14,7 +14,7 @@
     "admin:security:audit": "cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 tsx scripts/admin/architectSecurityBackfill.ts",
     "admin:security:apply": "cross-env FIRESTORE_EMULATOR_HOST=127.0.0.1:8082 tsx scripts/admin/architectSecurityBackfill.ts --apply",
     "scrape:one": "tsx player-scrape/contracts/scripts/run_contracts.ts",
-    "regress": "tsx player-scrape/contracts/scripts/_dev/run_regress.ts",
+    "regress": "node --import tsx player-scrape/contracts/scripts/_dev/run_regress.ts",
     "regress:stats": "tsx player-scrape/stats/scripts/_dev/run_regress.ts",
     "dev": "cross-env VITE_USE_FIREBASE_EMULATORS=true vite",
     "build": "vite build",
