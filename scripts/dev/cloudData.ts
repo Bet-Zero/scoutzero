@@ -3,7 +3,7 @@
  * Bodies stay in ignored private workspace files, never public CI artifacts.
  */
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -182,6 +182,7 @@ export function coverage(snapshot: Snapshot) {
 export async function saveSnapshot(snapshot: Snapshot, dir = DATA_DIR) {
   const report = coverage(snapshot);
   await mkdir(dir, { recursive: true, mode: 0o700 });
+  await chmod(dir, 0o700);
   await writeFile(path.join(dir, 'source.json.tmp'), JSON.stringify(snapshot), { mode: 0o600 });
   await rename(path.join(dir, 'source.json.tmp'), path.join(dir, 'source.json'));
   await writeFile(path.join(dir, 'coverage.json'), JSON.stringify(report, null, 2), { mode: 0o600 });

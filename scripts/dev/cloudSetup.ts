@@ -1,6 +1,6 @@
 /** Repeatable setup for a trusted Linux cloud workspace; no account login. */
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 
 function run(command: string, args: string[], env = process.env) {
@@ -8,6 +8,8 @@ function run(command: string, args: string[], env = process.env) {
   if (result.error || result.status !== 0) throw new Error('Setup failed: ' + command + ' ' + args[0]);
 }
 if (Number(process.versions.node.split('.')[0]) < 24) throw new Error('Use Node 24 for cloud setup and proxy-aware source refresh');
+mkdirSync('.scoutzero-dev', { recursive: true, mode: 0o700 });
+chmodSync('.scoutzero-dev', 0o700);
 run('java', ['-version']);
 if (process.argv.includes('--check')) {
   if (!existsSync('node_modules/tsx') || !existsSync('functions/lib/index.js')) {

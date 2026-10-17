@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -65,7 +65,9 @@ test('unexpected source paths and repeated pagination fail closed', async () => 
 
 test('private snapshot tampering is rejected before seeding', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'scoutzero-cloud-test-'));
+  await chmod(dir, 0o755);
   await saveSnapshot(fixture(), dir);
+  assert.equal((await stat(dir)).mode & 0o777, 0o700);
   assert.equal(digest(await loadSnapshot(dir)), digest(fixture()));
   const value = JSON.parse(await readFile(path.join(dir, 'source.json'), 'utf8'));
   value.capturedAt = 'changed';
