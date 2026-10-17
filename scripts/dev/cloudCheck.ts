@@ -39,18 +39,19 @@ try {
   await page.goto('http://127.0.0.1:5173/lists');
   console.log('[cloud-check] Lists loaded');
   await page.getByRole('button', { name: '+ New List', exact: true }).waitFor();
-  await page.waitForFunction(async () => {
-    // Vite serves this existing application module; never a production SDK.
+  const emulatorUserId = await page.evaluate(async () => {
+    // Await the actual user inside one evaluation. An async waitForFunction
+    // predicate can resolve a Promise containing null before sign-in finishes.
     const modulePath = '/src/firebaseConfig.ts';
     const { auth, db } = await import(/* @vite-ignore */ modulePath);
-    return auth.currentUser && db.app.options.projectId === 'demo-architect-review';
-  }, undefined, { timeout: 20000 });
-  console.log('[cloud-check] Isolated authentication ready');
-  const emulatorUserId = await page.evaluate(async () => {
-    const modulePath = '/src/firebaseConfig.ts';
-    const { auth } = await import(/* @vite-ignore */ modulePath);
-    return auth.currentUser.uid as string;
+    if (db.app.options.projectId !== 'demo-architect-review') throw new Error('Not an isolated project');
+    for (let attempt = 0; attempt < 80; attempt++) {
+      if (auth.currentUser) return auth.currentUser.uid as string;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    throw new Error('Isolated authentication did not become ready');
   });
+  console.log('[cloud-check] Isolated authentication ready');
   if (resume) assert.equal(emulatorUserId, prior.emulatorUserId, 'The saved emulator identity must be restored');
   // Use the existing navigation so the authenticated Firebase session remains
   // initialized. A cold /players load currently has a pre-existing auth race.
