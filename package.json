@@ -166,7 +166,13 @@
     "pipeline:verify:artifacts": "npm run verify:artifacts:players && npm run verify:artifacts:baseTeams",
     "pipeline:prod:push:players": "echo 'Run: npx tsx player-scrape/firestore_staging/scripts/push_staged_players.ts --confirmProject=scoutzero-bf1ae'",
     "pipeline:prod:push:teams": "echo 'Run: npx tsx team-scrape/shared/firestore_staging/scripts/push_staged_teams.ts --confirmProject=scoutzero-bf1ae'",
-    "pipeline:prod:push:pst": "echo 'Run entitlements, patch, and pick-rules scripts with emulator env UNSET. See: npm run pipeline:sync:plan'"
+    "pipeline:prod:push:pst": "echo 'Run entitlements, patch, and pick-rules scripts with emulator env UNSET. See: npm run pipeline:sync:plan'",
+    "cloud:data:import": "node --import tsx scripts/dev/cloudData.ts import",
+    "cloud:data:refresh": "node --use-env-proxy --import tsx scripts/dev/cloudData.ts refresh",
+    "cloud:dev": "node --import tsx scripts/dev/cloudDev.ts",
+    "cloud:check": "node --import tsx scripts/dev/cloudCheck.ts",
+    "test:cloud-dev": "node --import tsx --test --test-reporter=dot tests/tooling/cloudDev.node-test.ts",
+    "cloud:setup": "node scripts/dev/cloudSetup.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",

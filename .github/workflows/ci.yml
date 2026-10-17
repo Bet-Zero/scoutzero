@@ -49,6 +49,9 @@ jobs:
       - name: Phase 3A workflow tooling
         run: npm run test:phase3a-workflow
 
+      - name: Cloud development safety tests
+        run: npm run test:cloud-dev
+
       - name: Governed Offer Sheet creation emulator gate
         run: npm run ci:offer-sheet-creation-emulator-gate
 
@@ -90,6 +93,9 @@ jobs:
 
       - name: Phase 3A workflow tooling
         run: npm run test:phase3a-workflow
+
+      - name: Cloud development safety tests
+        run: npm run test:cloud-dev
 
       - name: Governed Offer Sheet creation emulator gate
         run: npm run ci:offer-sheet-creation-emulator-gate
