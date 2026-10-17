@@ -393,7 +393,7 @@ describe('bounded source publisher preparation', () => {
       expect(cloud.calls.filter((c) => c.method === 'PATCH')).toHaveLength(1);
     }
   );
-  it('keeps source publication dormant and isolated from the installed publication and inspection paths', () => {
+  it('queues only the authorized source operation while preserving isolated workers and approval gates', () => {
     const caller: any = yaml.load(
       readFileSync('.github/workflows/draft-review-cloud.yml', 'utf8')
     );
@@ -413,7 +413,13 @@ describe('bounded source publisher preparation', () => {
     });
     expect(
       JSON.parse(readFileSync('.github/draft-review-request.json', 'utf8'))
-    ).toEqual({ operation: 'inspect' });
+    ).toEqual({ operation: 'publish-source' });
+    expect(
+      JSON.parse(readFileSync('.github/draft-private-review-request.json', 'utf8'))
+    ).toEqual({ enabled: true });
+    expect(caller.jobs.operation.uses).toBe(
+      'Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@ede0e2be620aabd5c2d90c42f62a2b3737acda72'
+    );
     const worker: any = yaml.load(
       readFileSync('.github/workflows/draft-review-worker.yml', 'utf8')
     );
@@ -426,5 +432,8 @@ describe('bounded source publisher preparation', () => {
       "mode === 'inspect' ? 'inspect' : 'publish'"
     );
     expect(protection.run).toContain('APPROVED_SOURCE_SHA256');
+    expect(worker.jobs['bounded-operation'].environment).toBe(
+      "${{ inputs.operation == 'inspect' && 'draft-review-inspection' || 'draft-review-publication' }}"
+    );
   });
 });
