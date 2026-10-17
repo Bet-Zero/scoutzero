@@ -206,6 +206,19 @@ Source-domain access must be configured through the normal reviewed environment
 network workflow, not a proxy bypass. Site-session/challenge behavior remains
 unproven until that access works.
 
+The existing scripts require `salaryswish.com`, `www.salaryswish.com`,
+`stats.nba.com`, `www.nba.com`, `cdn.nba.com`, `basketball.realgm.com` and
+`www.prosportstransactions.com`. Header-only probes of all seven were rejected
+by this workspace's enforced CONNECT policy. Its current configuration also
+has no outbound Google identity, ADC binding or Google administration connector.
+An owner-reviewed environment access change is required for these capabilities;
+an agent cannot grant it with the available status-only environment tool.
+Use a renewable read-only Google identity with document GET/LIST, never the
+protected BZE-321 publisher, a service-account key or broader database rules.
+After access is attached, agents must repeat full capture and actual upstream
+collection, resolve source relationship gaps and qualify changes before claiming
+full operation. Access alone does not make the stored basketball facts current.
+
 To recover missing ignored staging inputs from the current database copy:
 
 ```bash

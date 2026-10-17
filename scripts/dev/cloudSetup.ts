@@ -2,7 +2,8 @@
 import { spawnSync } from 'node:child_process';
 import { chmodSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { ensureCloudFirestoreEmulator } from './cloudEmulator.js';
+// Setup runs with Node's native TypeScript before tsx is installed.
+import { ensureCloudFirestoreEmulator } from './cloudEmulator.ts';
 
 function run(command: string, args: string[], env = process.env) {
   const result = spawnSync(command, args, { stdio: 'inherit', env });

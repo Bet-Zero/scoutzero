@@ -72,12 +72,12 @@ try {
   await page.getByText('Bam Adebayo', { exact: true }).first().waitFor();
   await page.screenshot({ path: path.join(dir, 'architect-cap.png') });
   const capText = await page.locator('body').innerText();
-  const rosterLink = page.getByRole('link', { name: /Roster/ }).first();
-  await rosterLink.click();
-  await page.getByText('Bam Adebayo', { exact: true }).first().waitFor();
+  await page.getByRole('tab', { name: 'Roster', exact: true }).click();
+  await page.getByRole('img', { name: 'Bam Adebayo', exact: true }).first().waitFor();
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.getByTestId('cockpit-world-menu-trigger').filter({ hasText: worldName }).waitFor();
-  await page.getByText('Bam Adebayo', { exact: true }).first().waitFor();
+  await page.getByRole('tab', { name: 'Roster', exact: true }).click();
+  await page.getByRole('img', { name: 'Bam Adebayo', exact: true }).first().waitFor();
   await page.screenshot({ path: path.join(dir, 'architect-roster.png') });
   assert.deepEqual(errors, []);
   await context.storageState({ path: path.join(dir, 'browser-state.json'), indexedDB: true });
