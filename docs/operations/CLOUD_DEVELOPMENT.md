@@ -83,6 +83,15 @@ explicit reset. Stop services first and move `state/`, `state-source.json`,
 `proof.json` and `browser-state.json` into private recovery storage.
 Restart to seed a clean copy. Never substitute production user content.
 
+Auth emulator imports expire pre-import login tokens. Recovery verifies that
+the saved UID still exists in the imported local accounts, then uses the Admin
+SDK's emulator signer to reauthenticate that same UID before mounting the app.
+It never creates a missing account or uses a real signing key. The browser
+helper rejects production builds, non-demo projects and nonlocal Auth/Firestore
+endpoints. Its transient emulator token is neither logged nor retained as an
+account credential. The refreshed browser state stays private. This is emulator
+session recovery, not a hosted Firebase authentication result.
+
 Before ending an assignment, commit/push authorized code, record the exact ref,
 validation and remaining issues in the assignment's GitHub/Linear record, stop
 the launcher cleanly, and retain the private workspace state. A new agent reads

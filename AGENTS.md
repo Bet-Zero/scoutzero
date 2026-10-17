@@ -39,6 +39,13 @@ do not assume the graph includes uncommitted edits. Use
 
 Use these project commands unless the user explicitly asks for something else.
 
+For normal work in the managed ScoutZero cloud workspace, use the reusable
+[cloud development workflow](docs/operations/CLOUD_DEVELOPMENT.md):
+`npm run cloud:setup`, `npm run cloud:data:import -- <private-source-directory>`,
+`npm run cloud:dev`, and `npm run cloud:check -- --resume` for saved-session
+recovery. Keep source copies and emulator/browser state private. Do not replace
+this with a draft-pick publisher, a production writer or the tiny synthetic seed.
+
 | Command                                    | Use                                                                       |
 | ------------------------------------------ | ------------------------------------------------------------------------- |
 | `npm run dev`                              | Start the dev server at `http://localhost:5173` for UI/manual checks      |

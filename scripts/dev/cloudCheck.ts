@@ -5,6 +5,8 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright';
+import { initializeApp, deleteApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { DATA_DIR, coverage, loadSnapshot } from './cloudData.js';
 
 const dir = path.resolve(DATA_DIR);
@@ -22,6 +24,7 @@ const context = await browser.newContext({
 });
 const errors: string[] = [];
 const blocked: string[] = [];
+const failedRequests: { path: string; error: string | undefined }[] = [];
 context.setDefaultTimeout(30000);
 context.setDefaultNavigationTimeout(30000);
 try {
@@ -36,6 +39,38 @@ try {
   });
   const page = await context.newPage();
   page.on('pageerror', (error) => errors.push(error.message));
+  page.on('requestfailed', (request) => {
+    const url = new URL(request.url());
+    failedRequests.push({ path: url.origin + url.pathname, error: request.failure()?.errorText });
+  });
+  if (resume) {
+    // Import invalidates old emulator ID tokens. Reauthenticate the existing
+    // exported account; never recreate a missing one or use a production key.
+    if (process.env.FIREBASE_AUTH_EMULATOR_HOST &&
+        process.env.FIREBASE_AUTH_EMULATOR_HOST !== '127.0.0.1:9099') {
+      throw new Error('Unexpected Auth emulator target');
+    }
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
+    const app = initializeApp({ projectId: 'demo-architect-review' }, 'cloud-development-resume');
+    let token: string;
+    try {
+      const localAuth = getAuth(app);
+      await localAuth.getUser(prior.emulatorUserId);
+      token = await localAuth.createCustomToken(prior.emulatorUserId);
+    } finally { await deleteApp(app); }
+    // Load a real loopback document (a fulfilled document loses Chromium's
+    // loopback address-space classification). Defer React until SDK recovery
+    // so mounted hooks cannot create a replacement anonymous account first.
+    const entry = 'http://127.0.0.1:5173/src/main.tsx';
+    await page.route(entry, (route) => route.fulfill({ contentType: 'text/javascript', body: '' }));
+    await page.goto('http://127.0.0.1:5173/');
+    await page.evaluate(async ({ token, uid }) => {
+      const modulePath = '/scripts/dev/cloudSession.browser.ts';
+      const { resumeCloudSession } = await import(/* @vite-ignore */ modulePath);
+      await resumeCloudSession(token, uid);
+    }, { token, uid: prior.emulatorUserId });
+    await page.unroute(entry);
+  }
   await page.goto('http://127.0.0.1:5173/lists');
   console.log('[cloud-check] Lists loaded');
   await page.getByRole('button', { name: '+ New List', exact: true }).waitFor();
@@ -56,7 +91,14 @@ try {
   // Use the existing navigation so the authenticated Firebase session remains
   // initialized. A cold /players load currently has a pre-existing auth race.
   await page.getByRole('link', { name: 'Players', exact: true }).click();
-  await page.waitForFunction(() => /[1-9][0-9]* players/.test(document.body.innerText), undefined, { timeout: 20000 });
+  // The saved browser state includes the prior player search. Clear it and
+  // await the settled result rather than mistaking a one-player filter for data
+  // loss or clicking the old first row before the search debounce completes.
+  await page.getByPlaceholder('Search players...').fill('');
+  await page.waitForFunction(() => {
+    const count = document.body.innerText.match(/([0-9]+) players/);
+    return count && Number(count[1]) > 100;
+  }, undefined, { timeout: 20000 });
   const total = Number((await page.locator('body').innerText()).match(/([0-9]+) players/)?.[1]);
   assert(total > 100, 'Expected the real player dataset, not a tiny review fixture');
   console.log('[cloud-check] Player dataset rendered');
@@ -106,6 +148,7 @@ try {
   }, null, 2), { mode: 0o600 });
   console.log(JSON.stringify({ passed: true, visiblePlayers: total, savedAndReloaded: true, resumed: resume }));
 } catch (error) {
+  console.error(JSON.stringify({ failedRequests, blockedExternalOrigins: [...new Set(blocked)] }));
   const page = context.pages().find((p) => p.url().startsWith('http://127.0.0.1:5173'));
   if (page) {
     await page.screenshot({ path: path.join(dir, 'failure.png') }).catch(() => {});
