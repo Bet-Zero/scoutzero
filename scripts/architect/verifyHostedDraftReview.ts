@@ -184,6 +184,23 @@ async function main() {
       (await panel.locator('details').count()) > 0,
       'REVIEW_ROWS_REQUIRED'
     );
+    const qualified = release.records.filter(
+      (record: any) =>
+        record.ownership?.pick?.draftYear === 2028 &&
+        record.ownership?.claims?.some(
+          (claim: any) =>
+            claim.team === HOSTED_DRAFT_REVIEW_PRIMARY_TEAM &&
+            claim.status === 'owned-unconditionally'
+        )
+    );
+    requireProof(qualified.length === 1, 'QUALIFIED_PICK_REQUIRED');
+    const rendered = await panel.innerText();
+    requireProof(
+      (await panel.locator('details').count()) === 1 &&
+        rendered.includes(qualified[0].label) &&
+        rendered.includes('Recorded ownership: Supported for this team'),
+      'QUALIFIED_PICK_REVIEW_REQUIRED'
+    );
 
     phase = 'application-authentication';
     const statuses = await page.evaluate(async (path) => {

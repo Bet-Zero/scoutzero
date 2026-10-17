@@ -39,7 +39,9 @@ export async function selectHostedDraftReviewPick(
   setPhase('open-pick-inventory');
   await card.getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i }).click();
   setPhase('find-first-round-pick');
-  const pick = card.getByText(/^\d{4} - Round 1$/, { exact: true }).first();
+  // The approved source installation links this one year. A different first
+  // round must not make an incomplete installation appear to work.
+  const pick = card.getByText('2028 - Round 1', { exact: true });
   const empty = card.getByText('No draft picks to show.', { exact: false });
   await pick.or(empty).first().waitFor();
   if (!(await pick.isVisible()) && (await empty.isVisible())) {

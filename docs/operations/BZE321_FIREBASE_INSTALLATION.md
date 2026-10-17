@@ -1,13 +1,122 @@
 # BZE-321: bounded Firebase installation
 
 Status: five-record installation verified in run 38195972300; hosted GM proof
-and merge remain blocked. No broader source publication or IAM grant is authorized.
+and merge remain blocked. The exact three-record correction and narrowly required
+access were owner-approved on October 16. No broader adoption is authorized.
+
+## Complete execution boundary
+
+The controlling owner instruction is
+[PR comment 6227729160](https://github.com/Bet-Zero/scoutzero/pull/547#issuecomment-6227729160).
+Prepare the whole sequence before requesting account changes. A preparation
+ACCEPT, successful connection, installed evidence release, and working GM pick
+selection are separate claims.
+
+The private transfer uses the existing personal ChatGPT Page and its owner-only
+Files destination. Read sharing first: no direct shares, no inherited grants,
+and complete access metadata. Upload a harmless probe and compare its readback
+digest before a secret. Generate a fresh 384-bit random passphrase outside Git;
+encrypt the unchanged approved source package with AES256. Verify exact recovery
+and wrong-key rejection, upload the secret only to that verified private
+destination, compare the returned digest and authenticated readback, and retain
+only the attachment link in Page text. Never reuse the old package passphrase.
+This route was exercised successfully on October 17; browser rendering itself
+was not observed. The owner's previous installation used this same download route.
+
+The public Claude reviewer cannot independently qualify evidence it cannot read.
+`bze321-private-source-review.yml` supplies a separate protected, read-only check
+using the existing Claude credential and publication environment. It has no
+Google identity, database permission or repository write permission. Before
+private input use it requires current exact-head CI, a successfully published
+public code ACCEPT, the owner-only environment gate and an unchanged live PR.
+The root is the preserved main commit; the candidate is isolated and never
+executed. Inline reviewed transport code handles data only. Claude has Read,
+Glob and Grep, and both full-output and report-summary logging are disabled.
+Debug mode fails before materializing private inputs.
+
+The extra private evidence input contains the complete retained source HTML,
+its digest, the accepted starting-position projection and author claim map.
+It is gzip/base64 solely to fit GitHub's protected-secret limit, not encryption
+or permission to publish it. The actual prepared value is below 48 KiB. Transfer
+it through the same verified private Page, only into environment secret
+`BZE321_PRIVATE_SOURCE_REVIEW`; pin its decoded bytes with environment variable
+`BZE321_PRIVATE_SOURCE_REVIEW_SHA256`. Claude must challenge the claim map and
+return REVISE if the acceptance/context is insufficient. Do not treat the prior
+public preparation ACCEPT as factual acceptance.
+
+The complete original private result is encrypted to the existing inspection
+certificate and retained in a seven-day artifact; public output contains only
+fixed status and integrity metadata. Codex must recover and inspect the complete
+result privately and verify candidate/input identities before using it. A red
+run, missing report, mismatch or REVISE blocks publication. This is a new private
+source judgment, never a way to recover a withheld public report. The existing
+public review, native filtering and separate publisher remain unchanged.
+
+The coordinated owner session, after preparation checks and public review pass:
+
+1. Save the fresh passphrase and private evidence inputs in the existing protected
+   publication environment, with their two exact digest variables. These are
+   private file-to-secret transfers, never chat or repository text.
+2. Approve only the private-source review run first. Codex recovers the complete
+   judgment. Stop for objective repairs if it does not accept the exact mapping.
+3. Add only the previously approved publisher update permission and exact source
+   worker trust clause, preserving inspector and existing trust. Do not change
+   Google access before the private review succeeds. The source worker remains
+   pinned to `85139f9f63afa8341b7bd599dc8d1b7bc7fac432`; later application commits
+   do not alter that executor.
+4. Reserve an exclusive rules-update window and approve the source publication
+   run for the same frozen candidate/input. Its own preflight must verify all
+   nine permissions, source before-images, live rules, installed release and
+   permission probes before any write. It activates only the additive read rules
+   and commits all three records atomically with exact preconditions.
+5. Codex verifies all results, then the owner approves the separately protected
+   hosted browser run for that exact candidate. Existing Preview trust is reused.
+   The driver requires the qualified 2028 row and its supported ownership review,
+   not merely any first-round row or successful endpoint response. Authentication,
+   failure/reset, Apply and no-write checks remain required. Unchanged legacy
+   roots plus exact-main/candidate world-aware compatibility proofs must still
+   hold; no existing-world migration or temporary production world is allowed.
+6. Complete final exact-candidate review/CI and land only after genuine hosted
+   success. Verify merged CI and the production deployment identity/readiness.
+   A build/deployment status is not additional browser proof.
+7. In the same coordinated session when verification is complete, remove the
+   temporary Preview trust, both installation digest variables, private-review
+   digest and secrets, temporary publisher writer/WIF access and transfer files.
+   Preserve necessary inspection access, installed data and rules. Remove the
+   flagged duplicate publisher account only after its lack of use is verified.
+
+If rules activate but the atomic commit fails, cancel dependent browser/landing
+jobs and do not replay the write. Use the existing read-only inspector to retain
+the active rules and all known source paths. Compare the three paths with both
+the retained before-images and intended revisions; a lost response is not proof
+that the commit failed. Preserve the snapshot and identify any concurrent change.
+Leave additive reads in place pending exact diagnosis; do not roll back another
+publisher's rules. A new baseline, rollback or changed commit needs a separately
+reviewed recovery proposal. Track any unreferenced ruleset for safe cleanup.
+
+Cleanup is evidence-bearing: remove local temporary plaintext/key copies; remove
+private Page attachments from Library (deleting links alone is insufficient);
+delete encrypted transfer artifacts when recovery is complete; and remove
+ciphertext from the checkout. Ciphertext persists in public Git history, caches
+and clones. No history erasure is promised. The evidence-decryption private key
+must remain until required private reports are recovered into governed retention.
+Do not leave writer grants active indefinitely for unspecified later work.
+
+Broader adoption stays one coherent reconciliation: 239 remaining ownership
+definitions, 27 swap-right definitions and 11 conveyance-right definitions need
+component-qualified mapping, grouped by shared source/terms into reviewable
+batches. These are mapping groups, not blanket publication authorization or 277
+new approval cycles. Generated aliases stay linked, not minted as rights. The
+29 unresolved facts cut across these groups and remain exact tracked V1 inputs.
+The initial PHI proof does not complete saved-world adoption, full validation,
+278-entitlement integration or V1.
 
 ## Source integration preparation — current owner direction
 
-Source-adoption investigation, implementation preparation and offline tests are
-authorized. Every production source write still requires a concrete, separately
-approved change list. Hosted browser execution is paused until real inventory
+The exact three-record source correction, its additive read rules, fresh-key
+encrypted transfer and required publisher access are authorized. Protected
+publication approval and independent private source judgment remain mandatory.
+Every broader source change still requires a concrete approved change list. Hosted browser execution is paused until real inventory
 exists. Do not restart Vercel setup or run old PST bulk imports.
 
 The exact inspection scope is 278 retained entitlement definitions, 240 distinct
@@ -40,7 +149,8 @@ existing holder field. Do not recreate the 278 definitions, adopt their holder
 labels wholesale, or silently overwrite the conflict. A private, snapshot-backed
 three-record proposal retains exact before/after fields and update times: one
 definition correction, one absent pick-rule creation, and one team membership
-append. It is **not executable or write-authorized**. Its private before/after proposal is retained off-repository. The final proposed
+append. The exact bounded proposal is now owner-authorized but has not executed.
+Its private before/after proposal is retained off-repository. The final proposed
 storage shape is the immutable revision described below, not root-field replacement.
 The other 277 entries remain required; this smallest mapped component is not a
 claim that broader accepted evidence is unavailable or that integration is done.
@@ -59,9 +169,9 @@ conflicts; append only a qualified immutable revision with a `draftSourceRevisio
 mask and exact update-time precondition. The existing root fields are untouched. No roster, existing evidence-history,
 saved-world or Apply writes. Existing saved worlds can inherit base membership through the
 resolver, so **no saved-world writes** alone does not prove unchanged world
-behavior; that inheritance must be accounted for before adoption. Current
-publisher permissions lack `datastore.entities.update` for team patches; do not
-grant it or claim the existing five-record permission covers source adoption.
+behavior; that inheritance must be accounted for before adoption. The source publisher needs `datastore.entities.update` in addition to its existing
+eight permissions. That one addition is approved, not yet applied or live-proven;
+the old five-record grant alone does not cover source adoption.
 
 ### Saved-world preservation preparation
 
@@ -126,27 +236,31 @@ or additive reads may be active without the source commit. Track that ruleset fo
 cleanup. Firestore rules releases have no compare-and-swap API, so the protected
 approval must reserve the short installation window against other rule deploys.
 
-Preparation adds a separate `publish-source` mode to the reusable worker and a
-dormant caller job pinned to `85139f9f63afa8341b7bd599dc8d1b7bc7fac432`.
-The inspection request, Google trust, permissions, inspection worker and old
-five-record publication pin remain unchanged. No source request is submitted.
-Its fixed encrypted input path is `.github/bze321-source-installation.json.gpg`;
-no source bundle or key is committed. The fixed worker downloads only that
+The separate `publish-source` mode uses the reusable worker pinned to
+`85139f9f63afa8341b7bd599dc8d1b7bc7fac432`. The request now queues the protected
+job; it must not be approved until exact-candidate CI/public acceptance, private
+source acceptance and the complete access checks pass. The private review and
+browser jobs are separately protected: approve in that order, with source
+installation between them. Google trust/permissions, the inspection worker and
+old five-record publication pin remain unchanged by this preparation.
+Only authorized ciphertext is committed at
+`.github/bze321-source-installation.json.gpg`; no plaintext or key is committed.
+The fixed worker downloads only that
 ciphertext from the exact triggering commit; it never executes caller code.
 The protected plaintext digest binds the input independently of application
 commits, so input changes do not require changing the trusted executor.
-Public ciphertext upload requires explicit
-authorization for this new package, and ciphertext remains in public Git history
+Public ciphertext upload is explicitly authorized for this exact new package;
+ciphertext remains in public Git history
 after removal. Reuse the existing protected secret handoff; never publish keys,
 plaintext source evidence or rules. No new service, bucket or billing is needed.
 
-Activation requires separate approval of the exact package and rules, the frozen
-reviewed publication-worker identity, the existing protected approval gate, and
+Activation still requires the existing protected approval gate for the already
+authorized exact package/rules and frozen reviewed publication-worker identity, and
 `datastore.entities.update` for the publisher. That IAM permission is
 database-wide; the immutable executor limits use to the three approved paths.
 The inspection identity remains read-only. No new list/delete/IAM-admin/Storage
-permission is needed. Do not change caller pins or submit a publication request
-before this authorization. The installed five-record executor is not repurposed.
+permission is needed. Do not approve source publication before all prerequisites
+pass. The installed five-record executor is not repurposed.
 
 The same record-version contract and existing 278-entry/29-dependency crosswalk
 govern the wider integration batch. This is not a per-pick approval process.
@@ -413,8 +527,8 @@ finds the Vercel Preview deployment for its exact commit and uses short-lived
 GitHub OIDC in an origin-scoped header. No public share URL or static bypass key
 is used. Vercel Authentication remains enabled.
 
-Before running, a separately approved, additive Vercel Trusted Sources entry is
-required. Target **preview only** and require all these exact claims:
+The already-authorized temporary Vercel Trusted Source targets **preview only**.
+The recorded intended identity constraints are:
 
 | Claim                 | Required value                                                                                                 |
 | --------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -427,11 +541,12 @@ required. Target **preview only** and require all these exact claims:
 | `sub`                 | `repo:Bet-Zero/scoutzero:environment:draft-review-publication`                                                 |
 | `workflow_ref`        | `Bet-Zero/scoutzero/.github/workflows/bze321-hosted-review.yml@refs/heads/feature/bze-321-hosted-draft-review` |
 
-Use Vercel Settings → Deployment Protection → Trusted Sources → External
-Services → GitHub Actions, with **Edit raw claims** for the workflow constraint.
-Preserve all existing entries. The connector's project summary does not expose
-the existing trust list, so it cannot safely perform a replacement update.
-This is a pending access authorization, not an already-installed rule.
+The owner already configured the temporary Preview trust. Run 38407725779
+reached the real ScoutZero UI through it. Do not ask for a nonexistent “Edit raw
+claims” control or repeat setup. Preserve existing entries. The connector summary
+does not expose the trust list, so current exact configuration cannot be inferred
+from that summary and must not be replaced blindly. The next approved browser run
+checks the existing connection; no new trust is presumed necessary.
 See [Vercel Trusted Sources](https://vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/trusted-sources).
 
 The proof loads real picks without seeding a world, checks the immutable response

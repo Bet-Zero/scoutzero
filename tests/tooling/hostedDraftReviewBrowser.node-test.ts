@@ -119,9 +119,12 @@ test(
       );
       assert.equal(phase, 'find-first-round-pick');
 
+      await page.setContent(fixture('<div>2030 - Round 1</div>'));
+      await assert.rejects(selectHostedDraftReviewPick(page, () => {}));
+
       await page.setContent(
         fixture(`
-      <div><span>2030 - Round 1</span><button onclick="document.querySelector('#menu').hidden=false">•••</button>
+      <div><span>2028 - Round 1</span><button onclick="document.querySelector('#menu').hidden=false">•••</button>
         <div id="menu" hidden><button onclick="this.textContent=this.textContent==='Cancel Trade'?'Trade to Denver Nuggets':'Cancel Trade';this.parentElement.hidden=true">Trade to Denver Nuggets</button></div>
       </div>`)
       );
