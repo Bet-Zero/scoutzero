@@ -21,6 +21,11 @@ npm run cloud:setup -- --check
 Setup installs locked app dependencies, builds existing Functions and pins
 Firebase CLI 14.12.1 separately under `.scoutzero-dev/tools/firebase/`.
 CLI 15.32.1 ignored NO_PROXY and broke hub/export requests behind this proxy.
+Setup also pins official Firestore emulator 1.22.0, verifying its published
+size and SHA-256 before activation. The launcher's supported binary override
+keeps the compatible CLI. Emulator 1.19.8 rejects the existing roughly 8 MB
+atomic governed-world batch at its 4 MB inbound limit; 1.22.0 accepts it.
+Do not split that atomic write or trim the governed contract baseline.
 Startup also fingerprints the actual Functions sources, certified server bundle
 inputs and compiled bytes, rebuilding stale caches. The recovered cache initially
 omitted a current Function; file existence is not a valid build receipt. Stop

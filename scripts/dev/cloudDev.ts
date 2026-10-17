@@ -11,6 +11,7 @@ import { DATA_DIR, DEMO_PROJECT, loadSnapshot, seedSnapshot, coverage } from './
 import { prepareRuntime } from './cloudRuntime.js';
 import { captureOwnedProcesses, stopOwnedProcesses } from './cloudProcesses.js';
 import { ensureFunctionsBuild } from './cloudFunctions.js';
+import { ensureCloudFirestoreEmulator } from './cloudEmulator.js';
 
 const sourceDir = process.argv.includes('--scope=core') ? path.join(DATA_DIR, 'core') : DATA_DIR;
 let dir: string;
@@ -97,6 +98,9 @@ async function main() {
     }
   }
   for (const port of ports) await unused(port);
+  // The CLI supports a binary override; keep its compatible export transport
+  // while using the official emulator that accepts governed atomic world saves.
+  env.FIRESTORE_EMULATOR_BINARY_PATH = await ensureCloudFirestoreEmulator();
   await ensureFunctionsBuild(env);
   dir = await prepareRuntime(sourceDir, report.sha256);
   await mkdir(dir, { recursive: true, mode: 0o700 });
