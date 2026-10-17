@@ -107,7 +107,7 @@ try {
     record = prior;
     assert.equal(record.sourceSha256, report.sha256, 'Resume proof must use the same source');
   } else {
-    const name = 'Cloud Development ' + new Date().toISOString().replace(/[:.]/g, '-');
+    const name = 'Scouting Review ' + new Date().toISOString().slice(11, 19);
     await page.getByPlaceholder('Search players...').fill('LeBron James');
     await page.getByText(/^lebron$/i).first().waitFor();
     await page.getByText(/^james$/i).first().waitFor();
