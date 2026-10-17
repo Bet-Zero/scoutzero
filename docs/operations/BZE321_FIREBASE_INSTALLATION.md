@@ -43,6 +43,14 @@ replace the pinned action/credential boundary to disguise an unsupported event.
 The dispatched run still requires the protected owner approval and exact-head
 CI/public ACCEPT before loading any private inputs.
 
+Use the existing public review's bounded 40-turn allowance and keep the 20-minute
+job timeout. The private review reached 34 turns with a 30-turn cap in run
+38995013500; the action correctly failed, and no factual verdict was accepted.
+Exact original installation/evidence JSON and source HTML remain available.
+Additional formatted JSON views and a full HTML copy with line breaks between
+adjacent tags let the read-only tools navigate the evidence without shell parsing
+or changing any source facts. These are local runner views, not new data sources.
+
 The extra private evidence input contains the complete retained source HTML,
 its digest, the accepted starting-position projection and author claim map.
 It is gzip/base64 solely to fit GitHub's protected-secret limit, not encryption
@@ -61,7 +69,13 @@ public preparation ACCEPT as factual acceptance.
 The complete original private result is encrypted to the existing inspection
 certificate and retained in a seven-day artifact; public output contains only
 fixed status and integrity metadata. Codex must recover and inspect the complete
-result privately and verify candidate/input identities before using it. A red
+result privately and verify candidate/input identities and `executionOutcome`
+before using it. If the Claude action fails but leaves a result, retain that
+original result encrypted with `executionOutcome: failure`, emit only a fixed
+diagnostic status, and fail the retention step as well. Such a report is for
+diagnosis only and can never satisfy private ACCEPT, even if its internal verdict
+claims acceptance. It is not recovery of a native-filter-withheld public report.
+A red
 run, missing report, mismatch or REVISE blocks publication. This is a new private
 source judgment, never a way to recover a withheld public report. The existing
 public review, native filtering and separate publisher remain unchanged.

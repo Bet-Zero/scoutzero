@@ -22,13 +22,15 @@ function fixture() {
   const executable = (name: string, body: string) => fs.writeFileSync(path.join(dir, 'bin', name), '#!/usr/bin/python3\n' + body, { mode: 0o700 });
   executable('git', "import pathlib,os; print(pathlib.Path(os.environ['TEST_ROOT'],'cert.pem').read_text(),end='')");
   executable('gh', "import json,pathlib,os,sys\nr=json.loads(pathlib.Path(os.environ['TEST_ROOT'],'responses.json').read_text()); key=sys.argv[-1]; print(json.dumps(r.get(key,r.get('default'))))");
-  const packet = { format: 'bze321-private-source-review-v1', installationSha256: hash(source), sourceHtml: marker, sourceSha256: hash(marker) };
+  const sourceHtml = '<table><tr><td>' + marker + '</td></tr></table>';
+  const packet = { format: 'bze321-private-source-review-v1', installationSha256: hash(source), sourceHtml, sourceSha256: hash(sourceHtml) };
   const evidence = Buffer.from(JSON.stringify(packet));
   const encoded = gzipSync(evidence).toString('base64');
   const split = Math.ceil(encoded.length / 2);
   const env = { ...process.env, RUNNER_DEBUG: '', PATH: path.join(dir, 'bin') + ':' + process.env.PATH,
     TEST_ROOT: dir, RUNNER_TEMP: dir, GITHUB_SHA: candidate, GITHUB_RUN_ID: '123', GITHUB_ACTOR: 'Bet-Zero', GITHUB_EVENT_NAME: 'workflow_dispatch',
     APPROVED_SOURCE_SHA256: hash(source), APPROVED_EVIDENCE_SHA256: hash(evidence),
+    REVIEW_EXECUTION_OUTCOME: 'success',
     INSTALLATION_PASSPHRASE: secret, PRIVATE_EVIDENCE: encoded.slice(0, split),
     PRIVATE_EVIDENCE_PART_2: encoded.slice(split) };
   const command = (name: string, args: string[], input?: Buffer) => {
@@ -73,6 +75,17 @@ test('private input uses real encryption; rejects wrong key, hashes, oversized i
     const good = f.run(1);
     assert.equal(good.status, 0, good.stderr);
     assert.equal(fs.readFileSync(path.join(f.dir,'source-private-review/installation.json')).compare(source), 0);
+    const read = (name: string) => fs.readFileSync(path.join(f.dir,'source-private-review',name),'utf8');
+    const packet = JSON.parse(read('evidence.json'));
+    assert.deepEqual(JSON.parse(read('installation-readable.json')), JSON.parse(source.toString()));
+    assert.deepEqual(JSON.parse(read('qualification.json')), Object.fromEntries(Object.entries(packet).filter(([k]) => k !== 'sourceHtml')));
+    assert.equal(read('source.html'), packet.sourceHtml);
+    assert.equal(hash(read('source.html')), packet.sourceSha256);
+    assert.equal(read('source-readable.html'), packet.sourceHtml.replaceAll('><', '>\n<'));
+    assert.ok(read('source-readable.html').split('\n').length > 1);
+    for (const name of ['installation-readable.json','qualification.json','source.html','source-readable.html']) {
+      assert.equal(fs.statSync(path.join(f.dir,'source-private-review',name)).mode & 0o777, 0o600);
+    }
     assert.ok(!good.stdout.includes(marker) && !good.stdout.includes(secret));
     for (const bad of [
       { INSTALLATION_PASSPHRASE: 'z'.repeat(64) },
@@ -144,7 +157,22 @@ test('complete ACCEPT and REVISE judgments recover privately, while malformed or
       assert.ok(!run.stdout.includes(marker) && !run.stderr.includes(marker));
       const plaintext = f.command('openssl',['cms','-decrypt','-binary','-inform','DER','-in','source-private-review.cms','-recip','cert.pem','-inkey','key.pem']);
       assert.deepEqual(JSON.parse(plaintext).originalResult, result(original));
+      assert.equal(JSON.parse(plaintext).executionOutcome, 'success');
     }
+    // A successful-looking report from a failed action is diagnostic only.
+    // The action's turn-limit failure must never become private ACCEPT.
+    prepare(report());
+    const failed = f.run(2, { REVIEW_EXECUTION_OUTCOME: 'failure' });
+    assert.equal(failed.status, 1);
+    assert.match(failed.stdout, /PRIVATE_REVIEW_EXECUTION_FAILED_REPORT_RETAINED/);
+    assert.doesNotMatch(failed.stdout, /PRIVATE_SOURCE_REVIEW_ACCEPT/);
+    assert.ok(!failed.stdout.includes(marker) && !failed.stderr.includes(marker));
+    const diagnostic = JSON.parse(f.command('openssl',['cms','-decrypt','-binary','-inform','DER','-in','source-private-review.cms','-recip','cert.pem','-inkey','key.pem']));
+    assert.equal(diagnostic.executionOutcome, 'failure');
+    assert.deepEqual(diagnostic.originalResult, result(report()));
+    prepare(report());
+    assert.notEqual(f.run(2, { REVIEW_EXECUTION_OUTCOME: 'skipped' }).status, 0);
+    assert.ok(!fs.existsSync(path.join(f.dir,'source-private-review.cms')));
     for (const malformed of [report('ACCEPT',[{ severity:'blocking',detail:'must reject' }]),report('ACCEPT',[{severity:'critical',detail:'must reject'}]),{...report(),unexpected:true}]) {
       prepare(malformed); assert.notEqual(f.run(2).status, 0);
       assert.ok(!fs.existsSync(path.join(f.dir,'source-private-review.cms')));
