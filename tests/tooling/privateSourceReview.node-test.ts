@@ -24,10 +24,13 @@ function fixture() {
   executable('gh', "import json,pathlib,os,sys\nr=json.loads(pathlib.Path(os.environ['TEST_ROOT'],'responses.json').read_text()); key=sys.argv[-1]; print(json.dumps(r.get(key,r.get('default'))))");
   const packet = { format: 'bze321-private-source-review-v1', installationSha256: hash(source), sourceHtml: marker, sourceSha256: hash(marker) };
   const evidence = Buffer.from(JSON.stringify(packet));
+  const encoded = gzipSync(evidence).toString('base64');
+  const split = Math.ceil(encoded.length / 2);
   const env = { ...process.env, RUNNER_DEBUG: '', PATH: path.join(dir, 'bin') + ':' + process.env.PATH,
     TEST_ROOT: dir, RUNNER_TEMP: dir, GITHUB_SHA: candidate, GITHUB_RUN_ID: '123', GITHUB_ACTOR: 'Bet-Zero',
     APPROVED_SOURCE_SHA256: hash(source), APPROVED_EVIDENCE_SHA256: hash(evidence),
-    INSTALLATION_PASSPHRASE: secret, PRIVATE_EVIDENCE: gzipSync(evidence).toString('base64') };
+    INSTALLATION_PASSPHRASE: secret, PRIVATE_EVIDENCE: encoded.slice(0, split),
+    PRIVATE_EVIDENCE_PART_2: encoded.slice(split) };
   const command = (name: string, args: string[], input?: Buffer) => {
     const r = spawnSync(name, args, { cwd: dir, input, env, encoding: 'utf8' });
     assert.equal(r.status, 0, r.stderr); return r.stdout;
@@ -71,8 +74,13 @@ test('private input uses real encryption; rejects wrong key, hashes, oversized i
       { INSTALLATION_PASSPHRASE: 'z'.repeat(64) },
       { APPROVED_SOURCE_SHA256: '0'.repeat(64) },
       { APPROVED_EVIDENCE_SHA256: '0'.repeat(64) },
-      { PRIVATE_EVIDENCE: 'a'.repeat(49153) },
-      { PRIVATE_EVIDENCE: gzipSync(Buffer.alloc(524289)).toString('base64') },
+      { PRIVATE_EVIDENCE: '' },
+      { PRIVATE_EVIDENCE_PART_2: '' },
+      { PRIVATE_EVIDENCE: 'a'.repeat(24001) },
+      { PRIVATE_EVIDENCE_PART_2: 'a'.repeat(24001) },
+      { PRIVATE_EVIDENCE: f.env.PRIVATE_EVIDENCE_PART_2, PRIVATE_EVIDENCE_PART_2: f.env.PRIVATE_EVIDENCE },
+      { PRIVATE_EVIDENCE_PART_2: f.env.PRIVATE_EVIDENCE },
+      { PRIVATE_EVIDENCE: gzipSync(Buffer.alloc(524289)).toString('base64').slice(0, 16), PRIVATE_EVIDENCE_PART_2: gzipSync(Buffer.alloc(524289)).toString('base64').slice(16) },
       { RUNNER_DEBUG: '1' },
     ]) {
       f.reset(); const rejected = f.run(1, bad);

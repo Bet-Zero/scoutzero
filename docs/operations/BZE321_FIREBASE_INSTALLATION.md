@@ -37,9 +37,14 @@ Debug mode fails before materializing private inputs.
 The extra private evidence input contains the complete retained source HTML,
 its digest, the accepted starting-position projection and author claim map.
 It is gzip/base64 solely to fit GitHub's protected-secret limit, not encryption
-or permission to publish it. The actual prepared value is below 48 KiB. Transfer
-it through the same verified private Page, only into environment secret
-`BZE321_PRIVATE_SOURCE_REVIEW`; pin its decoded bytes with environment variable
+or permission to publish it. The browser rejected the original 47,996-byte value
+despite its being below the documented 48 KiB limit; the exact browser/server
+accounting was not observed. Split the unchanged encoded bytes into two parts of
+at most 24,000 ASCII bytes each. Even after sealed-box overhead and Base64, each
+submission stays below 33 KB. Transfer both through the same verified private
+Page, only into environment secrets `BZE321_PRIVATE_SOURCE_REVIEW` and
+`BZE321_PRIVATE_SOURCE_REVIEW_PART_2`, respectively. Both parts are required;
+ordered reconstruction must recover the exact original approved bytes. Pin its decoded bytes with environment variable
 `BZE321_PRIVATE_SOURCE_REVIEW_SHA256`. Claude must challenge the claim map and
 return REVISE if the acceptance/context is insufficient. Do not treat the prior
 public preparation ACCEPT as factual acceptance.

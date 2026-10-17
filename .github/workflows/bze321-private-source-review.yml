@@ -93,6 +93,7 @@ jobs:
         env:
           INSTALLATION_PASSPHRASE: ${{ secrets.BZE321_INSTALLATION_PASSPHRASE }}
           PRIVATE_EVIDENCE: ${{ secrets.BZE321_PRIVATE_SOURCE_REVIEW }}
+          PRIVATE_EVIDENCE_PART_2: ${{ secrets.BZE321_PRIVATE_SOURCE_REVIEW_PART_2 }}
           APPROVED_SOURCE_SHA256: ${{ vars.BZE321_APPROVED_SOURCE_SHA256 }}
           APPROVED_EVIDENCE_SHA256: ${{ vars.BZE321_PRIVATE_SOURCE_REVIEW_SHA256 }}
         run: |
@@ -105,8 +106,11 @@ jobs:
               root.mkdir(mode=0o700)
               source_hash=os.environ['APPROVED_SOURCE_SHA256']; evidence_hash=os.environ['APPROVED_EVIDENCE_SHA256']
               assert re.fullmatch('[a-f0-9]{64}',source_hash) and re.fullmatch('[a-f0-9]{64}',evidence_hash)
-              key=os.environ['INSTALLATION_PASSPHRASE']; encoded=os.environ['PRIVATE_EVIDENCE']
-              assert len(key)==64 and 0<len(encoded)<=49152
+              key=os.environ['INSTALLATION_PASSPHRASE']
+              parts=[os.environ['PRIVATE_EVIDENCE'],os.environ['PRIVATE_EVIDENCE_PART_2']]
+              # Leave ample headroom for the browser's encrypted secret submission.
+              assert len(key)==64 and all(0<len(part)<=24000 and part.isascii() for part in parts)
+              encoded=''.join(parts)
               packed=base64.b64decode(encoded,validate=True)
               import io
               with gzip.GzipFile(fileobj=io.BytesIO(packed)) as stream:
