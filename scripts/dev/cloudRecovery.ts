@@ -73,6 +73,27 @@ export async function retainLegacyArtifacts(repo: string, privateRoot: string) {
 function validateBrowser(value: any) {
   if (!Array.isArray(value.origins) || !Array.isArray(value.cookies) || value.cookies.length ||
       value.origins.some((o: any) => o.origin !== 'http://127.0.0.1:5173')) throw new Error('Only the isolated loopback browser state can be retained');
+  // A loopback origin alone does not prove its persisted Firebase login is a
+  // demo login. Playwright can encode IndexedDB objects as {o:[{k,v}]}.
+  const field = (object: any, key: string) => object?.o ? object.o.find((p: any) => p.k === key)?.v : object?.[key];
+  const safeAuth = (user: any) => field(user, 'apiKey') === 'demo-api-key-not-real';
+  for (const origin of value.origins) {
+    for (const item of origin.localStorage || []) if (item.name.startsWith('firebase:')) {
+      if (!item.name.startsWith('firebase:authUser:demo-api-key-not-real:') || !safeAuth(JSON.parse(item.value))) throw new Error('Recovery excludes non-demo browser authentication');
+    }
+    for (const database of origin.indexedDB || []) {
+      if (!['firebaseLocalStorageDb', 'firebase-heartbeat-database'].includes(database.name)) throw new Error('Recovery excludes unrecognized browser databases');
+      for (const store of database.stores || []) for (const record of store.records || []) {
+        if (database.name === 'firebase-heartbeat-database') {
+          if (record.key !== '[DEFAULT]!1:000000000000:web:demo000000000000') throw new Error('Recovery excludes non-demo Firebase browser metadata');
+        } else {
+          const object = record.valueEncoded || record.value;
+          const key = field(object, 'fbase_key');
+          if (typeof key !== 'string' || !key.startsWith('firebase:authUser:demo-api-key-not-real:') || !safeAuth(field(object, 'value'))) throw new Error('Recovery excludes non-demo browser authentication');
+        }
+      }
+    }
+  }
 }
 async function validatePrivateData(root: string, selections: Record<string, string>) {
   for (const prefix of ['', 'core']) {

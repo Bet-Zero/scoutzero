@@ -81,6 +81,20 @@ test('private GCS storage checks both IAM privacy and separation from Firebase, 
   assert(calls.every((c) => c.init.redirect === 'error' && ['storage.googleapis.com', 'firebasestorage.googleapis.com'].includes(new URL(c.url).hostname)));
   await assert.rejects(() => store.put('blobs/' + '0'.repeat(64), content), /identity/);
 });
+test('loopback browser origins cannot smuggle a production Firebase login into recovery', async () => {
+  const f = await fixture(); const session = path.join(f.root, 'core/sessions', f.report.sha256);
+  await mkdir(session, { recursive: true });
+  await writeFile(path.join(session, 'session.json'), JSON.stringify({ sourceSha256: f.report.sha256, isolatedProject: 'demo-architect-review' }));
+  const state = { cookies: [], origins: [{ origin: 'http://127.0.0.1:5173', localStorage: [], indexedDB: [{ name: 'firebaseLocalStorageDb', stores: [{ records: [{ valueEncoded: { o: [
+    { k: 'fbase_key', v: 'firebase:authUser:demo-api-key-not-real:[DEFAULT]' },
+    { k: 'value', v: { o: [{ k: 'apiKey', v: 'demo-api-key-not-real' }] } },
+  ] } }] }] }] }] };
+  const file = path.join(session, 'browser-state.json');
+  await writeFile(file, JSON.stringify(state)); await backupPrivateData(f.root, f.store, commit);
+  state.origins[0].indexedDB[0].stores[0].records[0].valueEncoded.o[1].v = { o: [{ k: 'apiKey', v: 'production-public-config' }] };
+  await writeFile(file, JSON.stringify(state));
+  await assert.rejects(() => backupPrivateData(f.root, f.store, commit), /non-demo browser/);
+});
 test('recovery refuses a running service and reader permits only approved collection or document GET paths', async () => {
   const server = net.createServer(); await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const port = (server.address() as net.AddressInfo).port;
