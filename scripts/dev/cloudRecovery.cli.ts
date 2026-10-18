@@ -8,15 +8,16 @@ import { assertChildExecution } from './cloudFunctions.js';
 
 try {
   assertChildExecution();
-  await assertRecoveryRuntimeStopped();
   const option = (name: string) => process.argv.find((arg) => arg.startsWith('--' + name + '='))?.slice(name.length + 3);
   const command = process.argv[2];
   if (!['backup', 'restore'].includes(command)) throw new Error('Use backup|restore with --bucket=<private-bucket> or --local-diagnostic=<private-directory>');
+  const root = path.resolve('.scoutzero-dev');
+  if (command === 'restore' && (!option('into') || path.resolve(option('into')!) !== root)) throw new Error('Restore destination must be this checkout\'s ignored .scoutzero-dev directory; use another checkout for isolated recovery');
+  await assertRecoveryRuntimeStopped();
   if (option('bucket') && option('local-diagnostic')) throw new Error('Choose one recovery destination');
   const store = option('local-diagnostic') ? await localRecoveryStore(path.resolve(option('local-diagnostic')!)) :
     option('bucket') ? await googleRecoveryStore(option('bucket')!) : null;
   if (!store) throw new Error('An explicitly configured private recovery store is required');
-  const root = path.resolve('.scoutzero-dev');
   if (command === 'backup') {
     await retainLegacyArtifacts(process.cwd(), root);
     const result = await backupPrivateData(root, store, execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim());

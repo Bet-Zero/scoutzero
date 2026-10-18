@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, readFile, writeFile, rm, symlink, lstat } from 'node:fs
 import path from 'node:path';
 import os from 'node:os';
 import net from 'node:net';
+import { spawnSync } from 'node:child_process';
 import { saveSnapshot, loadSnapshot, type Snapshot } from '../../scripts/dev/cloudData.js';
 import { backupPrivateData, restorePrivateData, assertRecoveryPath, assertRecoveryRuntimeStopped } from '../../scripts/dev/cloudRecovery.js';
 import { assertRecoveryBucket, googleRecoveryStore, localRecoveryStore, bytesHash, type RecoveryStore } from '../../scripts/dev/cloudRecoveryStore.js';
@@ -69,12 +70,12 @@ test('private GCS storage checks both IAM privacy and separation from Firebase, 
   const metadata = { name: bucket, projectNumber: '105500121903', iamConfiguration: { publicAccessPrevention: 'enforced', uniformBucketLevelAccess: { enabled: true } } };
   assertRecoveryBucket(metadata, bucket);
   for (const value of [{ ...metadata, projectNumber: 'other' }, { ...metadata, iamConfiguration: {} }, { ...metadata, name: 'scoutzero-bf1ae.firebasestorage.app' }]) assert.throws(() => assertRecoveryBucket(value, value.name));
-  let registered = true; const calls: { url: string; init: RequestInit }[] = []; const content = Buffer.from('SYNTHETIC PRIVATE DATA');
+  let registered = true; let conflict = false; const calls: { url: string; init: RequestInit }[] = []; const content = Buffer.from('SYNTHETIC PRIVATE DATA');
   const fake: typeof fetch = async (input, init) => {
     const url = String(input); calls.push({ url, init: init || {} });
     if (url.includes('firebasestorage.googleapis.com')) return registered ? Response.json({ name: bucket }) : Response.json({ error: { status: 'NOT_FOUND' } }, { status: 404 });
     if (url.includes('/upload/')) return Response.json({}, { status: 412 });
-    if (url.includes('?alt=media')) return new Response(content);
+    if (url.includes('?alt=media')) return new Response(conflict ? Buffer.from('CHANGED REMOTE BYTES') : content);
     return Response.json(metadata);
   };
   const store = await googleRecoveryStore(bucket, fake, async () => 'SYNTHETIC_TEST_AUTH');
@@ -83,6 +84,22 @@ test('private GCS storage checks both IAM privacy and separation from Firebase, 
   assert(calls.some((c) => c.url.includes('ifGenerationMatch=0') && c.init.method === 'POST'));
   assert(calls.every((c) => c.init.redirect === 'error' && ['storage.googleapis.com', 'firebasestorage.googleapis.com'].includes(new URL(c.url).hostname)));
   await assert.rejects(() => store.put('blobs/' + '0'.repeat(64), content), /identity/);
+  conflict = true;
+  await assert.rejects(() => store.put('blobs/' + bytesHash(content), content), /conflicting bytes/);
+});
+test('recovery CLI blocks publishable destinations and crash staging remains ignored', async () => {
+  const f = await fixture(); const receipt = await backupPrivateData(f.root, f.store, commit);
+  const cli = path.resolve('scripts/dev/cloudRecovery.cli.ts'); const loader = path.resolve('node_modules/tsx/dist/loader.mjs');
+  const run = (into: string) => spawnSync(process.execPath, ['--import', loader, cli, 'restore', '--local-diagnostic=' + f.store.location,
+    '--manifest=' + receipt.manifestSha256, '--into=' + into], { cwd: f.dir, encoding: 'utf8' });
+  const outside = path.join(f.dir, 'publishable'); const blocked = run(outside);
+  assert.equal(blocked.status, 1); assert.match(blocked.stderr, /Restore destination must be/);
+  await assert.rejects(() => lstat(outside), { code: 'ENOENT' });
+  const allowed = run(path.join(f.dir, '.scoutzero-dev'));
+  assert.equal(allowed.status, 0, allowed.stderr); assert.equal(JSON.parse(allowed.stdout).restored, true);
+  for (const name of ['.recovery-check-interrupted/private/source.json', '.recovery-stage-interrupted/private/source.json', '.scoutzero-dev/core/source.json']) {
+    assert.equal(spawnSync('git', ['check-ignore', '--no-index', '--quiet', name]).status, 0, name + ' must remain ignored after a crash');
+  }
 });
 test('loopback browser origins cannot smuggle a production Firebase login into recovery', async () => {
   const f = await fixture(); const session = path.join(f.root, 'core/sessions', f.report.sha256);

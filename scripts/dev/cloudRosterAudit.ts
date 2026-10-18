@@ -6,6 +6,7 @@ import { coverage, digest, loadSnapshot, SOURCE_PROJECT, type Getter, type Snaps
 import { firebaseReader, googleReader } from './cloudReader.js';
 import { decodeFields } from './cloudPipeline.js';
 import { privateJson } from './cloudStorage.js';
+import { PLAYERS_COLLECTION, ARCHITECT_BASE_PLAYERS_PATH as BASE_PLAYERS, ARCHITECT_BASE_TEAMS_PATH as BASE_TEAMS } from '../../src/constants/collections.js';
 
 const PREFIX = `projects/${SOURCE_PROJECT}/databases/(default)/documents/`;
 export async function privateRosterAuditDirectory(root: string, directory: string) {
@@ -30,12 +31,12 @@ const fields = (doc: SourceDocument) => decodeFields(doc.fields || {}) as any;
 export function rosterGaps(snapshot: Snapshot) {
   const report = coverage(snapshot); const byPath = new Map(snapshot.documents.map((d) => [d.name.slice(PREFIX.length), d]));
   const gaps: { teamId: string; playerId: string; candidates: string[] }[] = [];
-  for (const team of snapshot.documents.filter((d) => d.name.startsWith(PREFIX + 'architect_baseTeams/'))) {
+  for (const team of snapshot.documents.filter((d) => d.name.startsWith(PREFIX + BASE_TEAMS + '/'))) {
     const t = fields(team); const teamId = team.name.split('/').at(-1)!;
     for (const playerId of t.roster || []) {
-      if (typeof playerId !== 'string' || byPath.has('architect_basePlayers/' + playerId)) continue;
+      if (typeof playerId !== 'string' || byPath.has(BASE_PLAYERS + '/' + playerId)) continue;
       const labels = (t.capHolds || []).filter((h: any) => h.playerId === playerId).map((h: any) => nameKey(h.playerName)).filter(Boolean);
-      const candidates = snapshot.documents.filter((d) => d.name.startsWith(PREFIX + 'architect_basePlayers/')).filter((d) => {
+      const candidates = snapshot.documents.filter((d) => d.name.startsWith(PREFIX + BASE_PLAYERS + '/')).filter((d) => {
         const b = fields(d); return labels.includes(nameKey(b.displayName)) && b.teamCode === teamId;
       }).map((d) => d.name.split('/').at(-1)!);
       gaps.push({ teamId, playerId, candidates });
@@ -50,7 +51,7 @@ export function assessRosterGap(teamDoc: SourceDocument | null, missing: string,
   if (!t.roster?.includes(missing)) return { supported: false, reason: 'Reference no longer appears in current team data' };
   const label = (t.capHolds || []).filter((h: any) => h.playerId === missing).map((h: any) => h.playerName);
   if (!candidate || !scouting || !canonicalId || candidate.playerId !== canonicalId || scouting.bio?.playerId !== canonicalId ||
-      scoutingDoc?.name !== PREFIX + 'players_v2/' + canonicalId || candidate.teamCode !== teamId ||
+      scoutingDoc?.name !== PREFIX + PLAYERS_COLLECTION + '/' + canonicalId || candidate.teamCode !== teamId ||
       !nameKey(candidate.displayName) || !label.some((n: unknown) => nameKey(n) === nameKey(candidate.displayName)) ||
       nameKey(candidate.displayName) !== nameKey(scouting.bio?.displayName) || !scouting.bio?.nbaId ||
       !dob(candidate.bio?.birthdate) || dob(candidate.bio.birthdate) !== dob(scouting.bio?.dob) ||
@@ -75,10 +76,10 @@ export async function auditRosterSources(snapshot: Snapshot, get: Getter, direct
   };
   const rows = [];
   for (const gap of inventory.gaps) {
-    const [team, existing, scouting] = await Promise.all([read('architect_baseTeams/' + gap.teamId), read('architect_basePlayers/' + gap.playerId), read('players_v2/' + gap.playerId)]);
+    const [team, existing, scouting] = await Promise.all([read(BASE_TEAMS + '/' + gap.teamId), read(BASE_PLAYERS + '/' + gap.playerId), read(PLAYERS_COLLECTION + '/' + gap.playerId)]);
     const proposals = [];
     for (const candidate of gap.candidates) {
-      const [base, player] = await Promise.all([read('architect_basePlayers/' + candidate), read('players_v2/' + candidate)]);
+      const [base, player] = await Promise.all([read(BASE_PLAYERS + '/' + candidate), read(PLAYERS_COLLECTION + '/' + candidate)]);
       const finding = assessRosterGap(team, gap.playerId, base, player);
       if (finding.supported && team) {
         const before = team.fields || {}; const after = JSON.parse(JSON.stringify(before));
@@ -86,7 +87,7 @@ export async function auditRosterSources(snapshot: Snapshot, get: Getter, direct
         for (const hold of after.capHolds?.arrayValue?.values || []) {
           if (hold.mapValue?.fields?.playerId?.stringValue === gap.playerId) hold.mapValue.fields.playerId = { stringValue: finding.canonicalId };
         }
-        proposals.push({ ...finding, path: 'architect_baseTeams/' + gap.teamId, beforeFields: before, afterFields: after,
+        proposals.push({ ...finding, path: BASE_TEAMS + '/' + gap.teamId, beforeFields: before, afterFields: after,
           precondition: { updateTime: team.updateTime }, qualification: 'database-identity-evidence-only',
           allowedChangedFields: ['roster', 'capHolds[].playerId'], requiredGates: ['Independent evidence review', 'Change-specific production approval', 'Fresh exact preconditions'],
           productionWriteAuthorized: false, preservedOtherFields: true });

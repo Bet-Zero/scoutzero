@@ -229,8 +229,11 @@ npm run cloud:check:architect -- --scope=core --resume
 
 Restoration validates hashes, collection coverage, baseline/session bindings and
 safe accounts in a temporary private directory, then activates only a complete
-recovery into an absent destination. It never replaces existing data. Reinstall
-code/tools from their trusted sources; do not restore credentials from a backup.
+recovery into an absent destination. It never replaces existing data.
+The CLI accepts only this checkout's ignored `.scoutzero-dev` destination; use a
+separate checkout for an isolated recovery. Interrupted temporary recovery
+directories are also ignored so a later broad Git add cannot publish their data.
+Reinstall code/tools from their trusted sources; do not restore credentials from a backup.
 A local-only `--local-diagnostic=<private-directory>` backend exercises the same
 integrity path but reports `remoteCopyVerified: false` and is **not** proof of
 survival after workspace loss. Test actual Google upload/readback and recovery
@@ -442,6 +445,11 @@ prepared owner procedure, **not a claim that the connection or bucket exists**.
 The setup script has scoped failure tests; actual Google configuration remains
 unexecuted until the owner performs it. Account setup can still reveal a genuine
 upstream site challenge; collectors must report that rather than claim freshness.
+Setup is idempotent, not transactional: a late failed check may leave newly created
+empty resources. Access bindings are added last; existing conflicting trust is
+never rewritten. The pinned bootstrap is an ancestor of the reviewed candidate,
+with identical setup/policy files; use the required ordinary merge, not a squash,
+so the owner can fetch that pin from main after landing.
 
 After access is available the agent owns verification: inspect current enforced
 policy/identity; prove actual fresh source retrieval and processing; full GET/LIST
