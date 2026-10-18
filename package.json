@@ -175,9 +175,11 @@
     "cloud:dev": "node --import tsx scripts/dev/cloudDev.ts",
     "cloud:check": "node --import tsx scripts/dev/cloudCheck.ts",
     "cloud:check:architect": "node --import tsx scripts/dev/cloudArchitectCheck.ts",
-    "test:cloud-dev": "node --import tsx --test-reporter=dot --input-type=module -e \"await import('./tests/tooling/cloudDev.node-test.ts'); await import('./tests/tooling/cloudPipeline.node-test.ts')\"",
+    "test:cloud-dev": "node --import tsx --test-reporter=dot --input-type=module -e \"await import('./tests/tooling/cloudDev.node-test.ts'); await import('./tests/tooling/cloudPipeline.node-test.ts'); await import('./tests/tooling/cloudRecovery.node-test.ts'); await import('./tests/tooling/cloudOwnerAccess.node-test.ts')\"",
     "cloud:setup": "node scripts/dev/cloudSetup.ts",
-    "cloud:typecheck": "tsc --project tsconfig.cloud.json --noEmit"
+    "cloud:typecheck": "tsc --project tsconfig.cloud.json --noEmit",
+    "cloud:recovery": "node --use-env-proxy --import tsx scripts/dev/cloudRecovery.cli.ts",
+    "cloud:data:audit": "node --use-env-proxy --import tsx scripts/dev/cloudRosterAudit.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",

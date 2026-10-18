@@ -13,9 +13,9 @@ export function assertSourceRequest(url: string) {
       parsed.origin !== 'https://firestore.googleapis.com') throw new Error('Reader destination is not the fixed source');
   const bits = parsed.pathname.slice(new URL(SOURCE).pathname.length).split('/');
   const roots = ['players_v2', 'architect_basePlayers', 'architect_baseTeams', 'architect_baseEntitlements', 'architect_basePickRules'];
-  if (!(bits.length === 1 && roots.includes(bits[0])) &&
-      !(bits.length === 3 && bits[0] === 'players_v2' && bits[1] && !['.', '..'].includes(bits[1]) &&
-        ['contracts', 'seasons', 'views'].includes(bits[2]))) throw new Error('Reader collection is not approved');
+  if (bits.some((bit) => !bit || ['.', '..'].includes(bit) || /%2f|%5c|%2e/i.test(bit)) ||
+      !((bits.length <= 2 && roots.includes(bits[0])) ||
+        ([3, 4].includes(bits.length) && bits[0] === 'players_v2' && ['contracts', 'seasons', 'views'].includes(bits[2])))) throw new Error('Reader collection or document is not approved');
 }
 
 export async function retryRead(get: Getter, url: string, pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))) {
