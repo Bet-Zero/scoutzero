@@ -171,3 +171,164 @@ test('statistics-only planning never creates a player identity or publishes inco
   f.approval.planSha256 = digest(canonical(f.plan)); f.approval.review.planSha256 = f.approval.planSha256; f.approval.owner.planSha256 = f.approval.planSha256;
   await assert.rejects(() => publishMaintenance(f.plan, f.approval, f.store), /Incomplete required publication coverage/);
 });
+
+test('foundation aggregate forwards explicit context, reuses index builder and stops on failure', async () => {
+  const { buildFoundation } = await import('../../scripts/dev/maintenanceFoundation.js');
+  const { readFile } = await import('node:fs/promises');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'foundation-flow-'));
+  const args = ['--season=2027', '--as-of=2026-10-18T00:00:00Z', '--outputs-dir=' + path.join(root, 'outputs'), '--reports-dir=' + path.join(root, 'reports')];
+  const steps: string[] = [];
+  await buildFoundation(args, async (script, childArgs, env) => {
+    steps.push(path.basename(script));
+    assert.deepEqual(childArgs, ['--season=2027']);
+    assert.equal(env.SEASON, '2027'); assert.equal(env.SEASON_CODE, '2026-27');
+    assert.equal(env.MAINTENANCE_AS_OF, '2026-10-18T00:00:00.000Z');
+    if (steps.length === 1) await writeFile(path.join(env.OUTPUTS_DIR!, 'all_player_ids.json'), JSON.stringify({ alpha_example: 1 }));
+    else if (steps.length === 2) await writeFile(path.join(env.OUTPUTS_DIR!, 'players_bios_2027.json'), JSON.stringify({ alpha_example: { bio: { team: 'Lakers', position: 'G' } } }));
+    else {
+      const result = spawnSync(process.execPath, ['--import', 'tsx', script, ...childArgs], { env, encoding: 'utf8' });
+      assert.equal(result.status, 0, result.stderr);
+    }
+  });
+  assert.deepEqual(steps, ['build_all_player_ids.ts', 'build_players_bios.ts', 'build_player_index.ts']);
+  const index = JSON.parse(await readFile(path.join(root, 'outputs/player_index.json'), 'utf8'));
+  assert.equal(index.alpha_example.nbaId, 1); assert.equal(index.alpha_example.teamCode, 'LAL');
+  assert.equal(JSON.parse(await readFile(path.join(root, 'outputs/foundation-run.json'), 'utf8')).complete, true);
+  await assert.rejects(() => buildFoundation(args), /EEXIST/);
+  let called = 0;
+  const failed = args.map(v => v.replace('/outputs', '/failed-output').replace('/reports', '/failed-reports'));
+  await assert.rejects(() => buildFoundation(failed, () => { if (++called === 2) throw new Error('fixture failure'); }), /fixture failure/);
+  assert.equal(called, 2);
+  assert.equal(JSON.parse(await readFile(path.join(root, 'failed-output/foundation-run.json'), 'utf8')).complete, false);
+  await assert.rejects(() => buildFoundation(['--season=2026-27'], () => assert.fail('Invalid context must not start source collection')), /END_YEAR/);
+});
+
+test('advertised bulk staging CLI needs no hidden date environment and propagates failures', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'bulk-stage-'));
+  const index = path.join(root, 'index.json');
+  await writeFile(index, JSON.stringify({ alpha_example: { fullName: 'Alpha Example', teamCode: null, position: 'G' }, beta_example: { fullName: 'Beta Example', teamCode: null, position: 'F' } }));
+  const env = { ...process.env }; delete env.MAINTENANCE_SEASON; delete env.MAINTENANCE_AS_OF;
+  const args = ['--import', 'tsx', 'player-scrape/firestore_staging/scripts/stage_all_players.ts', '--season=2026-27', '--as-of=2026-10-18T00:00:00Z', '--index=' + index, '--contracts-dir=' + path.join(root, 'contracts'), '--stats-dir=' + path.join(root, 'stats'), '--outDir=' + path.join(root, 'out'), '--batchSize=1'];
+  const result = spawnSync(process.execPath, args, { env, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const { readFile } = await import('node:fs/promises');
+  for (const id of ['alpha_example', 'beta_example']) assert(JSON.parse(await readFile(path.join(root, 'out/players_v2', id + '.json'), 'utf8')).doc);
+  const missingContext = spawnSync(process.execPath, args.filter(v => !v.startsWith('--as-of=')), { env, encoding: 'utf8' });
+  assert.equal(missingContext.status, 1);
+  await writeFile(index, JSON.stringify({ missing_contract: { fullName: 'Missing Contract', teamCode: 'LAL' } }));
+  assert.equal(spawnSync(process.execPath, args, { env, encoding: 'utf8' }).status, 1);
+});
+
+test('executor integrity checks actual files hidden by index flags', async () => {
+  const { verifyTrackedExecutor } = await import('../../scripts/dev/maintenanceApprovals.js');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'executor-integrity-'));
+  const git = (...args: string[]) => {
+    const result = spawnSync('git', ['-C', root, ...args], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+  };
+  git('init', '--quiet'); await writeFile(path.join(root, 'executor.ts'), 'export const value = 1;\n');
+  git('add', '.'); git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', 'commit', '-qm', 'fixture');
+  await verifyTrackedExecutor(root);
+  for (const flag of ['skip-worktree', 'assume-unchanged']) {
+    git('update-index', '--' + flag, 'executor.ts');
+    await writeFile(path.join(root, 'executor.ts'), 'export const value = 2;\n');
+    await assert.rejects(() => verifyTrackedExecutor(root), /tracked bytes differ/);
+    await writeFile(path.join(root, 'executor.ts'), 'export const value = 1;\n');
+    git('update-index', '--no-' + flag, 'executor.ts');
+  }
+});
+
+test('maintenance access probe is non-mutating and rejects inadequate or excessive privileges', async () => {
+  const { probeMaintenancePermissions, REQUIRED_MAINTENANCE_PERMISSIONS } = await import('../../scripts/dev/maintenanceAccess.js');
+  let permissions = [...REQUIRED_MAINTENANCE_PERMISSIONS]; const calls: string[] = [];
+  const send = (async (input, init) => {
+    const url = String(input); calls.push(url);
+    assert.equal(init?.redirect, 'error');
+    if (url.endsWith(':testIamPermissions')) {
+      assert.equal(init?.method, 'POST');
+      return new Response(JSON.stringify({ permissions }));
+    }
+    assert.equal(init?.method, 'GET');
+    assert.equal(url, 'https://firestore.googleapis.com/v1/projects/scoutzero-bf1ae/databases/(default)/documents/architect_basePlayers/luka_doncic');
+    return new Response(JSON.stringify({ name: url.slice('https://firestore.googleapis.com/v1/'.length) }));
+  }) as typeof fetch;
+  assert.equal((await probeMaintenancePermissions('SYNTHETIC', send)).ordinaryReadVerified, true);
+  assert.equal(calls.length, 2); assert(!calls.some(v => v.includes(':commit')));
+  permissions = ['datastore.entities.get'];
+  await assert.rejects(() => probeMaintenancePermissions('SYNTHETIC', send), /lacks required/);
+  permissions = [...REQUIRED_MAINTENANCE_PERMISSIONS, 'datastore.entities.delete'];
+  await assert.rejects(() => probeMaintenancePermissions('SYNTHETIC', send), /excessive/);
+});
+
+test('staging rejects misspelled flags and missing operands rather than choosing old inputs', async () => {
+  const { parseArgs } = await import('../../player-scrape/firestore_staging/scripts/stage_player.js');
+  const args = ['--player=fixture', '--season=2026-27', '--as-of=2026-10-18T00:00:00Z'];
+  for (const invalid of [['--contracts_dir=/private'], ['--index', '--contracts-dir=/private'], ['--season'], ['--index='], ['--index=-bad'], ['--batchSize=1']]) {
+    assert.throws(() => parseArgs([...args, ...invalid]));
+  }
+  assert.equal(parseArgs(args).season, '2026-27');
+  assert.equal(parseArgs(args.slice(1).concat('--batchSize', '2'), true).batchSize, 2);
+});
+
+test('ordinary worker requires separate protected main and an exact reviewed registry', async () => {
+  const { verifyMaintenanceProtection, maintenanceRegistry, runMaintenanceWorker } = await import('../../scripts/dev/maintenanceWorker.js');
+  const environment = { name: 'nba-maintenance-publication', can_admins_bypass: false,
+    protection_rules: [{ type: 'required_reviewers', reviewers: [{ type: 'User', reviewer: { id: 205859440 } }] }],
+    deployment_branch_policy: { custom_branch_policies: true, protected_branches: false } };
+  const branches = { branch_policies: [{ name: 'main', type: 'branch' }] };
+  verifyMaintenanceProtection(environment, branches);
+  for (const bad of [{ ...environment, can_admins_bypass: true }, { ...environment, protection_rules: [] }, { ...environment, name: 'draft-review-publication' }]) {
+    assert.throws(() => verifyMaintenanceProtection(bad, branches), /Dedicated environment/);
+  }
+  assert.throws(() => verifyMaintenanceProtection(environment, { branch_policies: [{ name: '*', type: 'branch' }] }));
+  assert.throws(() => verifyMaintenanceProtection({ ...environment, protection_rules: [{ type: 'required_reviewers', reviewers: [...environment.protection_rules[0].reviewers, { type: 'User', reviewer: { id: 1 } }] }] }, branches));
+  assert.deepEqual(maintenanceRegistry({ version: 1, publications: {} }), {});
+  assert.throws(() => maintenanceRegistry({ version: 1, publications: { arbitrary: {} } }));
+  assert.throws(() => maintenanceRegistry({ version: 1, publications: { ['a'.repeat(64)]: { ciphertextSha256: 'b'.repeat(64), inputSha256: 'c'.repeat(64), qualificationReceipt: 'https://linear.app/fixture', reviewReceipt: 'https://github.com/fixture', ownerReceipt: 'https://linear.app/fixture', expiresAt: '2020-01-01T00:00:00Z' } } }), /expired/);
+  await assert.rejects(() => runMaintenanceWorker('execute'), /Protected main workflow context/);
+  const { maintenanceStore } = await import('../../scripts/dev/maintenanceTransport.js');
+  await assert.rejects(() => maintenanceStore(true), /protected keyless GitHub worker/);
+  const result = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/dev/maintenancePublish.cli.ts', '--production'], { encoding: 'utf8' });
+  assert.equal(result.status, 1); assert.match(result.stderr, /no local ADC or key is accepted/);
+});
+
+test('separate encrypted maintenance package round-trips using real GPG without retaining plaintext', async () => {
+  const { decryptMaintenancePackage } = await import('../../scripts/dev/maintenanceWorker.js');
+  const { readFile, rm } = await import('node:fs/promises');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'maintenance-crypto-'));
+  try {
+    const passphrase = 'ab'.repeat(48); // Deliberately public fixture; never used for an actual package.
+    const f = fixture(); const value = { plan: f.plan, approval: f.approval };
+    const plain = path.join(root, 'source.json'); const encrypted = path.join(root, 'package.gpg');
+    await writeFile(plain, JSON.stringify(value), { mode: 0o600 });
+    const result = spawnSync('gpg', ['--no-options', '--homedir', root, '--batch', '--no-symkey-cache', '--pinentry-mode', 'loopback', '--passphrase-fd', '0', '--symmetric', '--cipher-algo', 'AES256', '--output', encrypted, plain], {
+      input: passphrase + '\n', env: { PATH: process.env.PATH }, encoding: 'utf8', timeout: 15000,
+    });
+    assert.equal(result.status, 0, 'GPG encryption must succeed');
+    await rm(plain);
+    const bytes = await readFile(encrypted);
+    assert.deepEqual(decryptMaintenancePackage(bytes, passphrase, encrypted, root), value);
+    assert.throws(() => decryptMaintenancePackage(bytes, 'cd'.repeat(48), encrypted, root), /decryption failed/);
+    assert.throws(() => decryptMaintenancePackage(bytes, '', encrypted, root), /secret missing/);
+  } finally {
+    spawnSync('gpgconf', ['--homedir', root, '--kill', 'gpg-agent'], { stdio: 'ignore', timeout: 5000 });
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('publication packaging creates a separate private key file, verifies recovery and refuses overwrite', async () => {
+  const { packageMaintenance } = await import('../../scripts/dev/maintenancePackage.js');
+  const { readFile, rm, stat } = await import('node:fs/promises');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nba-package-proof-'));
+  try {
+    const f = fixture(); f.plan.project = 'scoutzero-bf1ae'; f.approval.project = f.plan.project;
+    const sha = digest(canonical(f.plan)); f.approval.planSha256 = sha; f.approval.owner.planSha256 = sha; f.approval.review.planSha256 = sha;
+    const out = path.join(root, 'payload.gpg'); const key = path.join(root, 'private-passphrase');
+    const receipt = await packageMaintenance(f.plan, f.approval, out, key);
+    assert.equal(receipt.privateReadbackVerified, true); assert.equal(receipt.productionWriteAuthorized, false);
+    assert.equal(receipt.planSha256, sha); assert.equal(receipt.ciphertextSha256, digest(await readFile(out)));
+    assert.match(await readFile(key, 'utf8'), /^[a-f0-9]{96}\n$/);
+    assert.equal((await stat(key)).mode & 0o777, 0o600);
+    await assert.rejects(() => packageMaintenance(f.plan, f.approval, out, key), /EEXIST/);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

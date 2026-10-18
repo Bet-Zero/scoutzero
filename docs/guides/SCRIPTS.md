@@ -2,6 +2,10 @@
 
 ScoutZero has 130+ npm scripts for development, data pipelines, testing, and deployment. This guide organizes them by category and explains their purpose.
 
+For current NBA collection, staging and controlled publication, use the
+[NBA maintenance operating card](../operations/NBA_MAINTENANCE.md). Its explicit
+season/as-of/private-generation commands supersede historical NBA shortcuts here.
+
 ---
 
 ## Table of Contents
@@ -136,10 +140,10 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 
 | Script | Description |
 |--------|-------------|
-| `npm run build:ids` | Build all player IDs mapping (season 2026) |
-| `npm run build:bios` | Build player bios (season 2026) |
+| `npm run build:ids` | Build player IDs with explicit `--season=END_YEAR` |
+| `npm run build:bios` | Build bios with explicit END_YEAR and `MAINTENANCE_AS_OF` |
 | `npm run build:index` | Build player index |
-| `npm run build:foundation` | **Run all foundation scripts** (ids → bios → index) |
+| `npm run build:foundation` | Run IDs → bios → index with explicit END_YEAR/as-of and new private output/report directories |
 | `npm run build-player-index` | Alternative player index build script |
 
 ### Player Utilities
@@ -372,7 +376,7 @@ These scripts run in continuous integration to verify code quality:
 
 | Script | Description |
 |--------|-------------|
-| `npm run pipeline:stage:players` | Stage all players for deployment |
+| `npm run pipeline:stage:players` | Stage the explicit private inventory with season/as-of/input/output options; no deployment |
 | `npm run pipeline:stage:teams:patch` | Patch base teams with entitlement IDs |
 | `npm run stage:patch:baseTeams:entitlementIds` | Preview entitlement ID patch (dry run) |
 | `npm run stage:patch:baseTeams:entitlementIds:write` | Write entitlement ID patch |
@@ -428,25 +432,11 @@ You must copy and run the command manually to confirm production write.
 
 ### Full Player Data Refresh
 
-```bash
-# 1. Build foundation (player IDs, bios, index)
-npm run build:foundation
-
-# 2. Scrape all contracts
-npm run contracts:run
-
-# 3. Scrape all stats
-npm run stats:batch
-
-# 4. Stage for Firestore
-npm run pipeline:stage:players
-
-# 5. Verify before push
-npm run verify:artifacts:players
-
-# 6. Push to production (manual confirmation required)
-npm run pipeline:prod:push:players
-```
+Use the [verified maintenance workflow](../operations/NBA_MAINTENANCE.md), which
+includes the current `build:foundation` and `pipeline:stage:players` interfaces.
+Declare the complete inventory, season and as-of; retain private originals and
+coverage; review/approve the exact publication separately. A staging result is
+not production authorization. Full-league collection starts only when authorized.
 
 ### Full Team Data Refresh
 

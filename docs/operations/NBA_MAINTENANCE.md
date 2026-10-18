@@ -109,6 +109,37 @@ fallback is labeled with its actual season, never copied into current-season
 table statistics. Multi-team seasons prefer an explicit aggregate and withhold
 ambiguous stints. Collection is not factual acceptance.
 
+The foundation aggregate now supports the same explicit generation:
+
+```bash
+npm run build:foundation -- --season=2027 --as-of="$AS_OF" \
+  --outputs-dir="$PRIVATE_RUN/foundation" --reports-dir="$PRIVATE_RUN/reports"
+```
+
+It runs the existing IDs → bios → index builders in order, supplies their
+END_YEAR and dated environment consistently, requires separate new private
+output/report directories, and records completed steps in `foundation-run.json`.
+A failed builder stops the aggregate and leaves `complete: false`. Do not run
+this full source-collection command until the refresh is authorized. For a
+failed generation, retain the evidence and start a new generation; the direct
+bios command's exact-run resume is a separate operation.
+
+For bulk staging of already acquired private player inputs:
+
+```bash
+npm run pipeline:stage:players -- --season=2026-27 --as-of="$AS_OF" \
+  --index="$PRIVATE_RUN/inputs/player_index.json" \
+  --contracts-dir="$PRIVATE_RUN/inputs/contracts" \
+  --stats-dir="$PRIVATE_RUN/inputs/stats" --outDir="$PRIVATE_RUN/staged" \
+  --batchSize=10 --validate
+```
+
+Single-player staging accepts the same context/path options plus `--player`.
+Bulk staging uses the same library and explicit options for every member;
+failed members yield nonzero status. Staging alone does not verify an input
+bundle, qualify facts, prepare baseline preconditions or authorize publication.
+Use the verified input/planning route above for those gates.
+
 For a contract-only update omit the stats run. Do not substitute old stats as
 new evidence. For statistics-only planning use `maintenance:plan --stats-run=<verified-run>`
 instead of a player run. It stages only season records and current statistics,
@@ -156,22 +187,79 @@ landing. The registry is initially empty. Caller-authored approval JSON or an
 explicit command flag cannot register an operation. Production requires clean
 exact live-main code; it rejects an author branch before credential use.
 
-The explicit production entry point is:
+Ordinary publication reuses BZE-321's protected, immutable GitHub Actions and
+Workload Identity Federation pattern, with a **separate** account:
+`scoutzero-nba-maintenance@scoutzero-bf1ae.iam.gserviceaccount.com`.
+It does not use the draft publisher, local ADC, personal Google identities or
+service-account keys. Both local and cloud operators dispatch the same worker.
+
+Before production registration, request the non-mutating access probe:
 
 ```bash
-npm run maintenance:publish -- --production \
-  --plan="$PRIVATE_RUN/publication-plan.json" --approval="$PRIVATE_APPROVAL" \
-  --approved-plan-sha256="$EXACT_OWNER_APPROVED_DIGEST"
+npm run maintenance:access
 ```
 
-It uses an already authorized short-lived Google application-default credential,
-fixed Firestore host/project/database, no redirects, exact preconditions, readback
-and completion records. This is **prepared/rehearsed implementation**, not a live
-publication receipt. This fresh environment has no configured Google writer;
-no new grant, key, protected environment or broader Rules change was made.
-The existing BZE-321 protected publisher must not be repurposed. A verified
-appropriately bounded authorized execution identity remains an access gate;
-do not disguise it as a completed deployment or use a broad owner credential.
+This dispatches `nba-maintenance.yml` on main; the dedicated
+`nba-maintenance-publication` environment requires owner approval. The pinned
+worker verifies live-main caller identity, all checked-out executor bytes, owner
+review protection, no admin bypass and a main-only branch policy **before**
+Google authentication. It checks `datastore.entities.get/create/update`, rejects
+tested unnecessary deletion/listing/admin/storage privileges, and reads one fixed
+ordinary base-player document. Access mode never fetches a private package or
+calls commit. The Google token lasts ten minutes and is confined to that job;
+no credential file, private artifact or token is exported.
+
+A passing probe proves permission/read behavior, not complete IAM-policy review
+or production approval. The three Firestore permissions are database-wide IAM;
+the immutable reviewed executor enforces the document/field boundary and keeps
+worlds, draft associations and unrelated records unchanged. No broad permanent
+role, draft privilege, Rules privilege or service-account key is allowed.
+Configuration and the actual read-only run must be verified before Gate A closes.
+See the [bounded setup and owner action](../../work/bze-324/PUBLISHER_ACCESS.md).
+
+For a qualified, independently reviewed and owner-approved production proposal:
+
+```bash
+npm run maintenance:package -- --plan="$PRIVATE_RUN/publication-plan.json" \
+  --approval="$PRIVATE_APPROVAL" --out="$PRIVATE_RUN/publication.json.gpg" \
+  --passphrase="$PRIVATE_MAINTENANCE_PASSPHRASE_FILE"
+```
+
+GnuPG is required for packaging and the Linux worker. Packaging generates a
+separate 384-bit random passphrase when the private file does not exist, verifies
+actual decryption, refuses output overwrite and prints only digest metadata.
+It does not establish factual acceptance. Retain the passphrase through an
+explicitly authorized private handoff; install it **once** as the dedicated
+environment secret `BZE324_MAINTENANCE_PASSPHRASE`. Never reuse a BZE-321 key.
+Never put plaintext or that secret in Git, workflow inputs, logs or artifacts.
+The 73-file rehearsal archive is **not** a publication input and must never enter CI.
+
+Public ciphertext retention needs explicit owner authorization for the exact
+new package, as in the BZE-321 handoff; an earlier exception does not extend.
+After that authorization, place only the ciphertext at
+`.github/nba-maintenance-publication.json.gpg` and add its exact metadata under
+the plan digest in `.github/nba-maintenance-approvals.json` through normal review
+and landing. Each record contains only `ciphertextSha256`, `inputSha256`,
+`qualificationReceipt`, `reviewReceipt`, `ownerReceipt` and `expiresAt`.
+The initial registry is empty and Gate A registers no production operation.
+
+Codex then dispatches:
+
+```bash
+gh workflow run nba-maintenance.yml --repo Bet-Zero/scoutzero --ref main \
+  -f operation=publish -f plan_sha256="$EXACT_OWNER_APPROVED_DIGEST"
+```
+
+The immutable worker fetches only fixed registry/ciphertext **data** from the
+exact live-main caller; it never executes caller code. Before Google access it
+checks the registered ciphertext, decrypted plan, qualified input digest,
+independent and owner receipts, expiry, scope and coverage. It repeats those
+checks and the access probe immediately before the shared conditional publisher.
+Plans and plaintext never become job artifacts. Packages are bounded to 35 MiB;
+prepare separately reviewed plans if necessary. Expired tokens or interrupted
+runs stop without a complete claim; rerun the same still-approved plan to verify
+atomic completion-ledger recovery. A local `maintenance:publish --production`
+invocation always refuses ADC/key use; its emulator entry point remains available.
 
 Emulator restoration uses only exact successful commit versions and refuses a
 concurrent edit. Production reversal is a new independently reviewed, approved

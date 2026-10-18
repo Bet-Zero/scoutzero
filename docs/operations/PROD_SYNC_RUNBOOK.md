@@ -1,8 +1,13 @@
 # SCOUTING DATA PROD SYNC RUNBOOK
 
+Historical command examples below are retained for context. Use
+[NBA maintenance](NBA_MAINTENANCE.md) for current explicit season/as-of/private
+paths, verified coverage and exact reviewed publication. Legacy push aliases
+are retired and do not authorize production changes.
+
 **DATE**: 2026-02-04  
 **VERSION**: 1.0.0  
-**STATUS**: ACTIVE
+**STATUS**: HISTORICAL — superseded for current NBA maintenance
 
 ---
 

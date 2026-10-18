@@ -154,3 +154,17 @@ Do not change pinned executors mid-operation in this maintenance assignment.
 Retire consumed transfer materials and unnecessary write privileges only after
 installation/hosted success, while preserving reusable cloud test access.
 BZE-309 and BZE-321 remain open; completing maintenance cannot close either.
+
+## Ordinary-maintenance rehearsal recovery
+
+BZE-324's separate ordinary-player/team rehearsal inputs are retained on private
+BZE-324 attachment `7cf1d57d-b025-4d86-99d9-1ecd2e7e9075`:
+`bze324-maintenance-rehearsal-inputs-20261018.tar.gz`, 490,742 bytes, SHA-256
+`28d176e6ecceb02b07a1df628d6922d480a95dbc20d184e4ab5f6fc08014658d`.
+Recover through authenticated Linear attachment access, verify the archive hash,
+and safely extract its 73 regular-file members. The included
+`retention-manifest.json` pins the other 72 members. It contains no credentials,
+token values, browser sessions, user records or saved worlds. This is historical
+rehearsal evidence; it is not a current qualified source release or approval.
+Do not redistribute its private source bodies. Retention and recovery results
+are recorded in [the execution receipt](../../work/bze-324/CLOSEOUT.md).
