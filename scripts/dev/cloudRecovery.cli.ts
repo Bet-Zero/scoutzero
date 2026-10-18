@@ -13,6 +13,11 @@ try {
   if (!['backup', 'restore'].includes(command)) throw new Error('Use backup|restore with --bucket=<private-bucket> or --local-diagnostic=<private-directory>');
   const root = path.resolve('.scoutzero-dev');
   if (command === 'restore' && (!option('into') || path.resolve(option('into')!) !== root)) throw new Error('Restore destination must be this checkout\'s ignored .scoutzero-dev directory; use another checkout for isolated recovery');
+  try {
+    for (const probe of ['.scoutzero-dev/__private_probe__', '.recovery-check-probe/__private_probe__', '.recovery-stage-probe/__private_probe__']) {
+      execFileSync('git', ['check-ignore', '--no-index', '--quiet', probe], { stdio: 'ignore' });
+    }
+  } catch { throw new Error('Recovery requires ignored private data and staging directories in this checkout'); }
   await assertRecoveryRuntimeStopped();
   if (option('bucket') && option('local-diagnostic')) throw new Error('Choose one recovery destination');
   const store = option('local-diagnostic') ? await localRecoveryStore(path.resolve(option('local-diagnostic')!)) :

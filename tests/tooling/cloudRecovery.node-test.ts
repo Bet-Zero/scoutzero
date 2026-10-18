@@ -95,6 +95,11 @@ test('recovery CLI blocks publishable destinations and crash staging remains ign
   const outside = path.join(f.dir, 'publishable'); const blocked = run(outside);
   assert.equal(blocked.status, 1); assert.match(blocked.stderr, /Restore destination must be/);
   await assert.rejects(() => lstat(outside), { code: 'ENOENT' });
+  assert.equal(spawnSync('git', ['init'], { cwd: f.dir, stdio: 'ignore' }).status, 0);
+  const unignored = run(path.join(f.dir, '.scoutzero-dev'));
+  assert.equal(unignored.status, 1); assert.match(unignored.stderr, /requires ignored private/);
+  await assert.rejects(() => lstat(path.join(f.dir, '.scoutzero-dev')), { code: 'ENOENT' });
+  await writeFile(path.join(f.dir, '.gitignore'), '.scoutzero-dev/\n.recovery-check-*/\n.recovery-stage-*/\n');
   const allowed = run(path.join(f.dir, '.scoutzero-dev'));
   assert.equal(allowed.status, 0, allowed.stderr); assert.equal(JSON.parse(allowed.stdout).restored, true);
   for (const name of ['.recovery-check-interrupted/private/source.json', '.recovery-stage-interrupted/private/source.json', '.scoutzero-dev/core/source.json']) {
