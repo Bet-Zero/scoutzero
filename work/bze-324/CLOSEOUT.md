@@ -109,3 +109,19 @@ private readback and output overwrite; direct ADC/key production invocation.
 The new worker changes execution/authentication only. Shared NBA transformations,
 conditional commit/recovery logic and actual prior emulator/browser proofs are
 unchanged and reused at their recorded scope. No new production access is claimed.
+
+## Independent review repair
+
+The first closeout review returned REVISE (run 39169463440, receipt 6255584525):
+static inspection found the protected-worker design sound but required retained
+proof that the immutable pin's executed tree matches the reviewed candidate.
+It did not review the late staging/foundation changes, which remain explicitly
+in the next independent review scope. Author checks are not that acceptance.
+
+The replacement preserves all data transformations. It removes the unused caller
+secret passthrough: only the called job's dedicated environment supplies the
+private input decryption secret. The owner Console block now checks existing
+account impersonation bindings before adding any data privilege, and checks the
+new account before granting the role. No setup has been executed.
+An exact pin-to-candidate static tree receipt will be posted with the frozen
+replacement SHA; changes after the pin must be limited to caller/docs/evidence.

@@ -10,9 +10,6 @@ on:
         type: string
         required: false
         default: ''
-    secrets:
-      BZE324_MAINTENANCE_PASSPHRASE:
-        required: false
 
 permissions:
   contents: read

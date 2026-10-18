@@ -26,5 +26,3 @@ jobs:
     with:
       operation: ${{ inputs.operation }}
       plan_sha256: ${{ inputs.plan_sha256 }}
-    secrets:
-      BZE324_MAINTENANCE_PASSPHRASE: ${{ secrets.BZE324_MAINTENANCE_PASSPHRASE }}

@@ -111,6 +111,7 @@ policy = run('projects', 'get-iam-policy', project)
 if any('serviceAccount:' + account in binding.get('members', []) and
        (binding['role'] != role or binding.get('condition')) for binding in policy.get('bindings', [])):
     raise SystemExit('Ordinary publisher has an unexpected direct role; inspect it')
+member = 'principalSet://iam.googleapis.com/projects/' + number + '/locations/global/workloadIdentityPools/scoutzero-bze321/attribute.environment/nba-maintenance-publication'
 service_account = run('iam', 'service-accounts', 'describe', account, optional=True)
 if service_account:
     if service_account.get('disabled'):
@@ -118,17 +119,20 @@ if service_account:
     keys = run('iam', 'service-accounts', 'keys', 'list', '--iam-account=' + account, '--managed-by=user')
     if keys:
         raise SystemExit('Ordinary publisher has user-managed keys; do not use it')
+    sa_policy = run('iam', 'service-accounts', 'get-iam-policy', account)
+    if any(binding.get('role') != 'roles/iam.workloadIdentityUser' or binding.get('condition') or
+           binding.get('members') != [member] for binding in sa_policy.get('bindings', [])):
+        raise SystemExit('Unexpected account impersonation binding; inspect before changing it')
 run('services', 'enable', 'iam.googleapis.com', 'iamcredentials.googleapis.com', 'sts.googleapis.com', 'cloudresourcemanager.googleapis.com')
 if not service_account:
     run('iam', 'service-accounts', 'create', 'scoutzero-nba-maintenance', '--display-name=Protected ordinary NBA maintenance')
 if not existing_role:
     run('iam', 'roles', 'create', role_id, '--title=Ordinary NBA maintenance publisher', '--stage=GA', '--permissions=' + ','.join(permissions))
-run('projects', 'add-iam-policy-binding', project, '--member=serviceAccount:' + account, '--role=' + role, '--condition=None')
-member = 'principalSet://iam.googleapis.com/projects/' + number + '/locations/global/workloadIdentityPools/scoutzero-bze321/attribute.environment/nba-maintenance-publication'
 sa_policy = run('iam', 'service-accounts', 'get-iam-policy', account)
 if any(binding.get('role') != 'roles/iam.workloadIdentityUser' or binding.get('condition') or
        binding.get('members') != [member] for binding in sa_policy.get('bindings', [])):
     raise SystemExit('Unexpected account impersonation binding; inspect before changing it')
+run('projects', 'add-iam-policy-binding', project, '--member=serviceAccount:' + account, '--role=' + role, '--condition=None')
 run('iam', 'service-accounts', 'add-iam-policy-binding', account, '--member=' + member, '--role=roles/iam.workloadIdentityUser', '--condition=None')
 if clause not in old_condition:
     latest = run('iam', 'workload-identity-pools', 'providers', 'describe', 'github', *provider_args)
@@ -152,7 +156,8 @@ publication, Codex uses `maintenance:package` to create and verify the exact pri
 plan package. Any public ciphertext retention and separate private key handoff
 need the package-specific approval described in the operating card. Install the
 separate passphrase once under **Environment secrets → Add environment secret →
-BZE324_MAINTENANCE_PASSPHRASE**. No Google credential goes in that secret.
+BZE324_MAINTENANCE_PASSPHRASE**. No Google credential goes in that secret. The called worker reads it directly from
+its own protected environment; the caller declares or passes no secret.
 The owner must not paste it into chat. Later plans use the same controlled
 packaging route and remain separately reviewed/approved; key rotation is explicit.
 
