@@ -109,6 +109,37 @@ fallback is labeled with its actual season, never copied into current-season
 table statistics. Multi-team seasons prefer an explicit aggregate and withhold
 ambiguous stints. Collection is not factual acceptance.
 
+The foundation aggregate now supports the same explicit generation:
+
+```bash
+npm run build:foundation -- --season=2027 --as-of="$AS_OF" \
+  --outputs-dir="$PRIVATE_RUN/foundation" --reports-dir="$PRIVATE_RUN/reports"
+```
+
+It runs the existing IDs → bios → index builders in order, supplies their
+END_YEAR and dated environment consistently, requires separate new private
+output/report directories, and records completed steps in `foundation-run.json`.
+A failed builder stops the aggregate and leaves `complete: false`. Do not run
+this full source-collection command until the refresh is authorized. For a
+failed generation, retain the evidence and start a new generation; the direct
+bios command's exact-run resume is a separate operation.
+
+For bulk staging of already acquired private player inputs:
+
+```bash
+npm run pipeline:stage:players -- --season=2026-27 --as-of="$AS_OF" \
+  --index="$PRIVATE_RUN/inputs/player_index.json" \
+  --contracts-dir="$PRIVATE_RUN/inputs/contracts" \
+  --stats-dir="$PRIVATE_RUN/inputs/stats" --outDir="$PRIVATE_RUN/staged" \
+  --batchSize=10 --validate
+```
+
+Single-player staging accepts the same context/path options plus `--player`.
+Bulk staging uses the same library and explicit options for every member;
+failed members yield nonzero status. Staging alone does not verify an input
+bundle, qualify facts, prepare baseline preconditions or authorize publication.
+Use the verified input/planning route above for those gates.
+
 For a contract-only update omit the stats run. Do not substitute old stats as
 new evidence. For statistics-only planning use `maintenance:plan --stats-run=<verified-run>`
 instead of a player run. It stages only season records and current statistics,
@@ -155,6 +186,28 @@ and register only that approved plan digest, input digest and expiry in
 landing. The registry is initially empty. Caller-authored approval JSON or an
 explicit command flag cannot register an operation. Production requires clean
 exact live-main code; it rejects an author branch before credential use.
+
+Before production registration, run the non-mutating access probe:
+
+```bash
+npm run maintenance:access
+```
+
+The existing environment must have an approved short-lived Google maintenance
+identity and network access to `cloudresourcemanager.googleapis.com` in addition
+to the already approved Firestore/authentication hosts. The command reports
+missing configuration together, checks required `datastore.entities.get`,
+`datastore.entities.create` and `datastore.entities.update`, rejects tested
+unneeded deletion/listing/admin/storage privileges, and reads one fixed ordinary
+base-player record. It never commits data or changes IAM/Rules. A passing probe
+is permission/read evidence, not complete IAM-policy review or production approval.
+Verify the actual identity, trust, role bindings and expiry separately; these
+Firestore permissions are database-wide IAM, with document/field scope enforced
+by the reviewed executor. Do not broaden a BZE-321 identity or use broad permanent
+roles or service-account keys. Missing access configuration keeps Gate A open.
+Production execution repeats the probe after exact registration and landed-code
+checks. Landed-code checks inspect every tracked file's actual bytes, including
+files hidden by git index flags.
 
 The explicit production entry point is:
 

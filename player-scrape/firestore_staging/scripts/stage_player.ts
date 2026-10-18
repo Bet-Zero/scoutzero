@@ -164,11 +164,11 @@ const PLAYER_INDEX_PATH = path.join(
   'player_index.json'
 );
 
-function parseArgs(): CliArgs {
-  const argv = process.argv.slice(2);
+export function parseArgs(argv = process.argv.slice(2)): CliArgs {
   let playerId: string | undefined;
   let outDir: string | undefined;
   let validate = false;
+  const context: Partial<CliArgs> = {};
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -182,6 +182,11 @@ function parseArgs(): CliArgs {
       [, outDir] = arg.split('=');
     } else if (arg === '--validate') {
       validate = true;
+    } else {
+      for (const [flag, key] of Object.entries({ season: 'season', 'as-of': 'asOf', index: 'indexPath', 'contracts-dir': 'contractsDir', 'stats-dir': 'statsDir' })) {
+        if (arg === '--' + flag) context[key as 'season' | 'asOf' | 'indexPath' | 'contractsDir' | 'statsDir'] = argv[++i];
+        else if (arg.startsWith('--' + flag + '=')) context[key as 'season' | 'asOf' | 'indexPath' | 'contractsDir' | 'statsDir'] = arg.slice(flag.length + 3);
+      }
     }
   }
 
@@ -189,7 +194,11 @@ function parseArgs(): CliArgs {
     throw new Error('Missing required --player argument');
   }
 
+  const dated = maintenanceContext(context.season || process.env.MAINTENANCE_SEASON || '', context.asOf || process.env.MAINTENANCE_AS_OF || '');
   return {
+    ...context,
+    season: dated.season,
+    asOf: dated.asOf,
     playerId,
     outDir: outDir
       ? path.resolve(process.cwd(), outDir)

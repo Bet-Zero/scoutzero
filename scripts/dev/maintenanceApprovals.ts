@@ -7,7 +7,9 @@
  */
 /** Production decisions are reviewed code pins, not caller-authored approval JSON. */
 import { execFileSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { readFile, readlink } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SOURCE_PROJECT } from './cloudData.js';
 import type { Publication, PublicationApproval } from './maintenancePublish.js';
@@ -26,6 +28,20 @@ export function requireRegisteredPublication(planSha256: string, plan: Publicati
       accepted.ownerReceipt !== approval.owner.receipt || accepted.expiresAt !== approval.expiresAt) throw new Error('Production plan is not registered by independently reviewed, owner-approved release code');
 }
 
+/** Inspect actual bytes, including files hidden by skip-worktree/assume-unchanged. */
+export async function verifyTrackedExecutor(root: string) {
+  const tree = execFileSync('git', ['ls-tree', '-rz', 'HEAD'], { cwd: root, encoding: 'utf8' });
+  for (const entry of tree.split('\0').filter(Boolean)) {
+    const split = entry.indexOf('\t');
+    const [mode, type, expected] = entry.slice(0, split).split(' ');
+    const name = entry.slice(split + 1);
+    if (type !== 'blob') throw new Error('Unsupported executor repository entry');
+    const bytes = mode === '120000' ? Buffer.from(await readlink(path.join(root, name))) : await readFile(path.join(root, name));
+    const actual = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
+    if (actual !== expected) throw new Error('Executor tracked bytes differ from landed code');
+  }
+}
+
 /** Production executes only the unmodified landed repository, never an author branch. */
 export async function requireLandedExecutor() {
   const git = (args: string[]) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
@@ -35,6 +51,7 @@ export async function requireLandedExecutor() {
     redirect: 'error', headers: { Accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(15000),
   });
   if (!response.ok || (await response.json()).sha !== head) throw new Error('Production executor is not exact live main');
+  await verifyTrackedExecutor(git(['rev-parse', '--show-toplevel']));
   // Check the actually loaded approval module as well as git status. No local
   // skip-worktree/assume-unchanged flag may hide a replacement approval registry.
   const actual = await readFile(fileURLToPath(import.meta.url), 'utf8');

@@ -13,6 +13,7 @@ import { canonical } from './cloudPipeline.js';
 import { publishMaintenance } from './maintenancePublish.js';
 import { maintenanceStore } from './maintenanceTransport.js';
 import { requireLandedExecutor, requireRegisteredPublication } from './maintenanceApprovals.js';
+import { checkMaintenanceAccess } from './maintenanceAccess.js';
 
 try {
   const option = (key: string) => process.argv.find(v => v.startsWith('--' + key + '='))?.slice(key.length + 3);
@@ -23,6 +24,7 @@ try {
   if (production) {
     requireRegisteredPublication(digest(canonical(plan)), plan, approval);
     await requireLandedExecutor();
+    await checkMaintenanceAccess();
   }
   console.log(JSON.stringify(await publishMaintenance(plan, approval, await maintenanceStore(production))));
 } catch (error) {
