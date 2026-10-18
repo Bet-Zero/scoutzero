@@ -1,3 +1,4 @@
+import { retainFoundationSource } from '../../../scripts/dev/foundationSource.js';
 import { createHash } from 'node:crypto';
 import { maintenanceContext } from '../../../scripts/dev/maintenanceContext.js';
 /* eslint-disable no-console */
@@ -115,6 +116,11 @@ let reqCtx: APIRequestContext | null = null;
 async function getRequestContext(): Promise<APIRequestContext> {
   if (reqCtx) return reqCtx;
   reqCtx = await request.newContext({
+    proxy: process.env.PROXY_URL ? {
+      server: process.env.PROXY_URL,
+      username: process.env.PROXY_USER,
+      password: process.env.PROXY_PASS,
+    } : undefined,
     baseURL: NBA_BASE,
     userAgent: UA, // <-- the actual UA
     extraHTTPHeaders: NBA_HEADERS, // <-- the rest of headers
@@ -154,7 +160,9 @@ async function fetchJson(
           `Non-JSON content-type: ${ct} (len=${txt?.length ?? 0})`
         );
       }
-      return await res.json();
+      const body = await res.text();
+      retainFoundationSource(OUTPUTS_DIR, url, body);
+      return JSON.parse(body);
     } catch (e) {
       lastErr = e;
       const msg = String((e as any)?.message || e);
@@ -343,7 +351,9 @@ async function fetchPlayerPageHtml(
     headers: { Referer: 'https://www.nba.com/stats/' },
   });
   if (!res.ok()) throw new Error(`HTML ${res.status()} for ${url}`);
-  return await res.text();
+  const body = await res.text();
+  retainFoundationSource(OUTPUTS_DIR, url, body);
+  return body;
 }
 
 function extractFromPlayerHtml(html: string): {

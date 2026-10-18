@@ -332,3 +332,46 @@ test('publication packaging creates a separate private key file, verifies recove
     await assert.rejects(() => packageMaintenance(f.plan, f.approval, out, key), /EEXIST/);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+test('a real source throttle stops the batch and retains failed/missing accounting for resume', async () => {
+  const { collectMaintenance } = await import('../../scripts/dev/maintenanceCollect.js');
+  const { readFile, rm } = await import('node:fs/promises');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nba-throttle-'));
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; return new Response('', { status: 429 }); };
+  try {
+    await assert.rejects(() => collectMaintenance(path.join(root, 'run'), {
+      operation: 'contracts', season: '2026-27', asOf: '2026-10-18T00:00:00Z',
+      inventory: { first: { teamCode: 'LAL', url: 'https://www.salaryswish.com/players/first' },
+        next: { teamCode: 'BOS', url: 'https://www.salaryswish.com/players/next' } },
+    }), /rate limit reached/);
+    assert.equal(calls, 1, 'A source-wide throttle must not become a request for every remaining player');
+    const coverage = JSON.parse(await readFile(path.join(root, 'run/coverage.json'), 'utf8'));
+    assert.equal(coverage.failed, 1); assert.equal(coverage.missing, 1); assert.equal(coverage.complete, false);
+  } finally { globalThis.fetch = originalFetch; await rm(root, { recursive: true, force: true }); }
+});
+
+test('foundation source receipts retain original UTF-8 bytes and independent capture identities', async () => {
+  const { retainFoundationSource } = await import('../../scripts/dev/foundationSource.js');
+  const { readFile, readdir, rm, stat } = await import('node:fs/promises');
+  const { createHash } = await import('node:crypto');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nba-foundation-source-'));
+  try {
+    const body = '{"name":"Dončić","number":1.00}\n';
+    const url = 'https://stats.nba.com/stats/commonplayerinfo?PlayerID=1629029';
+    const before = Date.now();
+    retainFoundationSource(root, url, body); retainFoundationSource(root, url, body);
+    const receipts = (await readdir(path.join(root, 'raw'))).filter(f => f.endsWith('.json'));
+    assert.equal(receipts.length, 2);
+    for (const file of receipts) {
+      const receipt = JSON.parse(await readFile(path.join(root, 'raw', file), 'utf8'));
+      const bytes = await readFile(path.join(root, 'raw', receipt.file));
+      assert.equal(bytes.toString('utf8'), body); assert.equal(receipt.url, url);
+      assert.equal(receipt.sha256, createHash('sha256').update(bytes).digest('hex'));
+      assert.equal(receipt.bytes, Buffer.byteLength(body));
+      assert(Date.parse(receipt.capturedAt) >= before && Date.parse(receipt.capturedAt) <= Date.now());
+      assert.equal((await stat(path.join(root, 'raw', receipt.file))).mode & 0o777, 0o600);
+    }
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

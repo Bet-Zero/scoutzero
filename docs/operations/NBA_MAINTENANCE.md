@@ -104,7 +104,10 @@ On ordinary local systems without a managed proxy, omit that environment setting
 Fresh collection fails if its run already exists. `--resume` accepts only the
 same operation, season, as-of and exact inventory, checking each completed
 output's hash and size. Missing, failed or withheld required members prevent
-complete success; coverage is private `coverage.json` and `run.json`. A successful
+complete success; coverage is private `coverage.json` and `run.json`. HTML
+collection paces both original requests and stops on the first HTTP 429. Retain
+the run, respect the source cooldown, then use exact-run `--resume`; do not loop
+through the remaining inventory while the source is throttled. A successful
 fallback is labeled with its actual season, never copied into current-season
 table statistics. Multi-team seasons prefer an explicit aggregate and withhold
 ambiguous stints. Collection is not factual acceptance.
@@ -119,6 +122,10 @@ npm run build:foundation -- --season=2027 --as-of="$AS_OF" \
 It runs the existing IDs → bios → index builders in order, supplies their
 END_YEAR and dated environment consistently, requires separate new private
 output/report directories, and records completed steps in `foundation-run.json`.
+The foundation builders retain original responses under the private output
+`raw/` directory with URL, actual capture time, byte size and SHA-256 receipts.
+In the managed cloud set `NODE_USE_ENV_PROXY=1` for native requests and
+`PROXY_URL="$HTTPS_PROXY"` for the bios Playwright request context.
 A failed builder stops the aggregate and leaves `complete: false`. Do not run
 this full source-collection command until the refresh is authorized. For a
 failed generation, retain the evidence and start a new generation; the direct

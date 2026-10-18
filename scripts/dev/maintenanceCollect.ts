@@ -61,9 +61,11 @@ export async function collectMaintenance(dir: string, request: RunRequest, resum
           if (url.protocol !== 'https:' || url.hostname !== 'www.salaryswish.com' || url.username || url.password || url.port || url.search || url.hash ||
               !(request.operation === 'contracts' ? /^\/players\/[a-z0-9-]+$/ : /^\/teams\/[a-z0-9-]+$/).test(url.pathname)) throw new Error('Exact source URL required');
           const fetchHtml = async () => {
+            // Two originals per member must not burst against the source's rate limit.
+            await new Promise(resolve => setTimeout(resolve, 1000));
             if (request.operation === 'contracts') return getPlayerHtml(id, url.href, { fresh: true });
             const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(45000) });
-            if (!response.ok) throw new Error('Team source fetch failed');
+            if (!response.ok) throw new Error('Team source fetch failed: HTTP ' + response.status);
             return response.text();
           };
           const first = await fetchHtml(); files.push(await raw(`raw/${attemptId}-first.html`, first));
@@ -82,6 +84,10 @@ export async function collectMaintenance(dir: string, request: RunRequest, resum
       } catch (error) {
         files.push(await save(`failures/${attemptId}.json`, { category: error instanceof Error ? error.name : 'UnknownError', message: error instanceof Error ? error.message.replace(/https?:\/\/\S+/g, '[source URL]') : 'Collection failed' }));
         await run.record(id, 'failed', files);
+        if (error instanceof Error && /\b429\b/.test(error.message)) {
+          await privateJson(path.join(dir, 'coverage.json'), { ...run.coverage(), qualified: false, productionWriteAuthorized: false });
+          throw new Error('Source rate limit reached; collection stopped. Retain this run and resume after the source cooldown.');
+        }
       }
     }
   } finally { await cleanupContext(); }
