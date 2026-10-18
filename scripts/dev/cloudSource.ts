@@ -25,7 +25,7 @@ try {
   await writeFile(path.join(runDir, 'raw/first.html'), html, { mode: 0o600 });
   const second = await getPlayerHtml(playerId, url.href, { fresh: true });
   await writeFile(path.join(runDir, 'raw/second.html'), second, { mode: 0o600 });
-  const parsed = basePlayerSchema.parse(await parsePlayer(html, { playerId, sourceUrl: url.href, teamCode, teamName: option('team-name') || undefined }));
+  const parsed = basePlayerSchema.parse(await parsePlayer(html, { playerId, sourceUrl: url.href, teamCode, teamName: option('team-name') || undefined, asOf: new Date(capturedAt) }));
   if (!parsed.contract.salariesByYear.length) throw new Error('A fresh page must supply actual contract salary rows');
   const contractPath = `contracts/${teamCode}/${playerId}.json`;
   await privateJson(path.join(runDir, contractPath), parsed);

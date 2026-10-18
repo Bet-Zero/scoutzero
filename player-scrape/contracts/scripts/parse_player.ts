@@ -56,6 +56,7 @@ import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getCurrentSeasonYear } from '../../../src/shared/utils/contracts/contractUtils.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEBUG = process.env.DEBUG === '1';
@@ -88,6 +89,9 @@ const seasonStartYear = (season?: string) => {
   const m = season?.match(/^(\d{4})\s*-\s*\d{2}$/);
   return m ? parseInt(m[1], 10) : undefined;
 };
+const remainingSalarySeasons = (rows: { season?: string; voidedByExtension?: boolean }[], currentSeason: number) =>
+  rows.filter((row) => !row.voidedByExtension &&
+    (seasonStartYear(row.season) ?? -1) >= currentSeason).length;
 const cleanLabelVal = (t: string) => norm(t.replace(/\s*[:\-–]\s*/g, ' '));
 /** Strip contract type tags from season strings (e.g., "2025-26 Max" -> "2025-26") */
 const cleanSeason = (s: string) => {
@@ -1678,7 +1682,8 @@ function validateOptionFieldPairing(salariesByYear: any[]): void {
 function normalizeContractVoidedOptions(
   currentContract: any,
   futureContract: any | undefined,
-  pageText: string
+  pageText: string,
+  currentSeason: number
 ): void {
   if (!futureContract || !currentContract.salariesByYear) return;
 
@@ -1748,16 +1753,7 @@ function normalizeContractVoidedOptions(
   ).length;
 
   // Recompute yearsRemaining (exclude voided season)
-  const CURRENT_SEASON_START = 2025;
-  const endSeason = activeYears.slice(-1)[0]?.season;
-
-  if (endSeason) {
-    const endYearNum = seasonStartYear(endSeason) ?? CURRENT_SEASON_START - 1;
-    currentContract.yearsRemaining = Math.max(
-      0,
-      endYearNum - CURRENT_SEASON_START + 1
-    );
-  }
+  currentContract.yearsRemaining = remainingSalarySeasons(activeYears, currentSeason);
 
   dbg('Contract after PO voiding', {
     guaranteedValue: currentContract.guaranteedValue,
@@ -1779,6 +1775,8 @@ type ParsePlayerOptions = {
   sourceUrl: string;
   teamCode?: string;
   teamName?: string;
+  /** Capture date for remaining-season counts; defaults to the current date. */
+  asOf?: Date;
 };
 
 export async function parsePlayer(
@@ -1787,6 +1785,9 @@ export async function parsePlayer(
 ): Promise<any> {
   const playerUrlEnv = options.sourceUrl;
   let playerId = options.playerId;
+  const asOf = options.asOf ?? new Date();
+  if (!Number.isFinite(asOf.getTime())) throw new Error('Invalid contract capture date');
+  const CURRENT_SEASON_START = getCurrentSeasonYear(asOf);
 
   const $ = cheerio.load(html);
 
@@ -1851,11 +1852,7 @@ export async function parsePlayer(
     (y) => (y.guaranteedAmount || 0) > 0
   ).length;
 
-  const CURRENT_SEASON_START = 2025;
-  const endYearNum = endSeason
-    ? (seasonStartYear(endSeason!) ?? CURRENT_SEASON_START - 1)
-    : CURRENT_SEASON_START - 1;
-  const yearsRemaining = Math.max(0, endYearNum - CURRENT_SEASON_START + 1);
+  const yearsRemaining = remainingSalarySeasons(salariesByYear, CURRENT_SEASON_START);
 
   const birdRights = parseBirdRights($);
   const freeAgency = parseFreeAgency($, endSeason, meta.capHold);
@@ -1935,14 +1932,8 @@ export async function parsePlayer(
         const futureGuaranteedYears = futureSalariesByYear.filter(
           (y) => (y.guaranteedAmount || 0) > 0
         ).length;
-        // For future contracts (extensions), yearsRemaining should only count the extension years
-        // not the current contract years before the extension kicks in
-        const futureYearsRemaining = Math.max(
-          0,
-          (seasonStartYear(futureEndSeason) ?? 0) -
-            (futureStartYear ?? CURRENT_SEASON_START) +
-            1
-        );
+        // Count the extension's own live rows, never the gap before it starts.
+        const futureYearsRemaining = remainingSalarySeasons(futureSalariesByYear, CURRENT_SEASON_START);
 
         // For future contracts, parse their metadata from the contract section
         // (they may have different signing details than current contract)
@@ -2044,7 +2035,7 @@ export async function parsePlayer(
   };
 
   // Apply post-parse normalizer to detect voided POs
-  normalizeContractVoidedOptions(contract, futureContract, $.root().text());
+  normalizeContractVoidedOptions(contract, futureContract, $.root().text(), CURRENT_SEASON_START);
 
   // --- begin: season backfill helpers ---
   function seasonFromDateISO(iso: string): string {
