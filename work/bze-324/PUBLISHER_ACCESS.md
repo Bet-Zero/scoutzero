@@ -62,7 +62,7 @@ python3 - <<'PY'
 import json, subprocess
 project = 'scoutzero-bf1ae'
 number = '105500121903'
-worker = '1436919fb20c8a5cc108e8eda9497874e54bd9c7'
+worker = 'df87a5598073f0f90a37d707bed4eac9fe6118fe'
 if len(worker) != 40 or any(c not in '0123456789abcdef' for c in worker):
     raise SystemExit('Use the final reviewed worker pin; setup is not ready yet')
 account = 'scoutzero-nba-maintenance@' + project + '.iam.gserviceaccount.com'
