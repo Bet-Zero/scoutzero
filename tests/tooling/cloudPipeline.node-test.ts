@@ -139,6 +139,27 @@ test('review plans retain exact update-time/absence preconditions and unknown fi
   assert.equal(existingEmpty.precondition.updateTime, empty.documents[0].updateTime);
 });
 
+test('later signings preserve historical deals, opaque values, creation metadata and salary-row annotations', () => {
+  const snapshot = baseline();
+  const created = { timestampValue: '2024-01-01T00:00:00Z' };
+  snapshot.documents[0].fields!.createdAt = created;
+  snapshot.collections['players_v2/player/contracts'].count = 1;
+  snapshot.documents.push({ name: prefix + 'players_v2/player/contracts/original', updateTime: snapshot.readTime,
+    fields: { startSeason: { stringValue: '2024-25' }, signingTeam: { stringValue: 'LAL' },
+      opaque: { doubleValue: 'NaN' }, metadata: { mapValue: { fields: { isCurrent: { booleanValue: true } } } },
+      salariesByYear: { arrayValue: { values: [{ mapValue: { fields: { season: { stringValue: '2024-25' }, salary: { integerValue: '1' }, annotation: { stringValue: 'retained' } } } }] } } } });
+  const staged = { doc: { createdAt: { _seconds: 123, _nanoseconds: 0 } }, contracts: {
+    contract_1: { startSeason: '2026-27', signingTeam: 'LAL', salariesByYear: [{ season: '2026-27', salary: 2 }] },
+  }, seasons: {}, views: {} };
+  const plan = planPlayerWrites(snapshot, 'player', staged, {});
+  assert(!plan.some(e => e.path === 'players_v2/player'), 'Creation-only changes must not rewrite the player');
+  const original = plan.find(e => e.path.endsWith('/original'))!;
+  assert.deepEqual(original.afterFields.opaque, { doubleValue: 'NaN' });
+  assert.equal((original.afterFields.metadata as any).mapValue.fields.isCurrent.booleanValue, false);
+  const updated = planPlayerWrites(snapshot, 'player', { ...staged, contracts: { contract_1: { startSeason: '2024-25', signingTeam: 'LAL', salariesByYear: [{ season: '2024-25', salary: 3 }] } } }, {});
+  assert.equal((updated.find(e => e.path.endsWith('/original'))!.afterFields.salariesByYear as any).arrayValue.values[0].mapValue.fields.annotation.stringValue, 'retained');
+});
+
 test('the emulator publish rehearsal rejects draft, user, cross-project and escaped paths before requests', () => {
   for (const value of ['players_v2/player', 'players_v2/player/contracts/standard', 'architect_basePlayers/nikola_jokić']) assertOrdinaryDocumentPath(value);
   for (const value of ['architect_baseEntitlements/pick', 'architect_baseTeams/MIA', 'architect_worlds/private', 'lists/private', 'players_v2/a/../b', 'players_v2/a?key=value', 'architect_basePlayers/a/contracts/b', 'projects/other/databases/default/documents/players_v2/a']) assert.throws(() => assertOrdinaryDocumentPath(value));
@@ -174,7 +195,7 @@ test('source bundles cannot smuggle credentials, unsafe paths, symlinks or chang
   await assert.rejects(() => verifyInputBundle(other), /regular file/);
 });
 
-test('forced cleanup reaches detached descendants while preserving unrelated processes', async () => {
+test('forced cleanup reaches detached descendants while preserving unrelated processes', { skip: process.platform !== 'linux' }, async () => {
   await assert.rejects(() => captureOwnedProcesses(1), /owned child PID/);
   const parent = spawn(process.execPath, ['--input-type=commonjs', '-e', "const c=require('node:child_process').spawn(process.execPath,['--input-type=commonjs','-e','setInterval(()=>{},1000)'],{detached:true,stdio:'ignore'});console.log(c.pid);setInterval(()=>{},1000)"], { stdio: ['ignore', 'pipe', 'pipe'] });
   const unrelated = spawn(process.execPath, ['--input-type=commonjs', '-e', 'setInterval(()=>{},1000)'], { stdio: 'ignore' });

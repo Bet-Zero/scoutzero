@@ -1,3 +1,10 @@
+/**
+ * FILE: scripts/dev/draftMaintenance.ts
+ * PURPOSE: Shared NBA maintenance mechanics with governed source and publication decisions.
+ * OWNERSHIP: Operations tooling.
+ * HISTORY: 2026-10-18 — BZE-324 Gate A implementation.
+ * LINKS: docs/operations/NBA_MAINTENANCE.md; docs/operations/DRAFT_UPDATE_PROCESS.md
+ */
 /** Mechanical offline successor comparison; pins must come from retained independent review. */
 import { readFile } from 'node:fs/promises';
 import { loadDraftPickRelease } from '../../src/features/architect/utils/draftPickRelease.js';

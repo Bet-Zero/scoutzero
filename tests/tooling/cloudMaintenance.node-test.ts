@@ -1,8 +1,10 @@
+import { requireRegisteredPublication } from '../../scripts/dev/maintenanceApprovals.js';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { mkdtemp, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import { spawnSync } from 'node:child_process';
 import { maintenanceContext } from '../../scripts/dev/maintenanceContext.js';
 import { openMaintenanceRun } from '../../scripts/dev/maintenanceRun.js';
 import { canonical } from '../../scripts/dev/cloudPipeline.js';
@@ -12,6 +14,8 @@ import { parseStats } from '../../player-scrape/stats/scripts/parse_stats.js';
 import { buildStatsOutput } from '../../player-scrape/stats/scripts/run_stats.js';
 import { firestoreFieldHash } from '../../scripts/dev/firestoreValue.js';
 import { buildMaintenanceTeam } from '../../team-scrape/shared/firestore_staging/scripts/stage_team.js';
+import { assembleMaintenanceInputs } from '../../scripts/dev/maintenanceInputs.js';
+import { planStatistics } from '../../scripts/dev/maintenanceStats.js';
 
 test('season and as-of reject ambiguous and impossible dates across July rollover', () => {
   assert.equal(maintenanceContext('2026-27', '2026-07-01T00:00:00Z').startYear, 2026);
@@ -122,4 +126,48 @@ test('ordinary team preparation refuses invented identities and leaves draft ado
   f.plan.groups[0].entries[0].beforeFields = { entitlementIds: { arrayValue: { values: [{ stringValue: 'retained' }] } } };
   f.approval.planSha256 = digest(canonical(f.plan)); f.approval.review.planSha256 = f.approval.planSha256; f.approval.owner.planSha256 = f.approval.planSha256;
   assert.throws(() => validatePublication(f.plan, f.approval, f.store), /draft associations/);
+  const ancillary = { ...raw, roster: [], capHolds: [{ displayName: 'Retired Player', capHoldAmount: 100, season: '2026-27' }] };
+  const retained = buildMaintenanceTeam(ancillary, {}, '2026-27', '2026-10-18T00:00:00Z', { capHolds: [{ playerId: 'retired_player', playerName: 'Retired Player' }] });
+  assert.equal(retained.capHolds?.[0].playerId, 'retired_player');
+  assert.throws(() => buildMaintenanceTeam(ancillary, {}, '2026-27', '2026-10-18T00:00:00Z'), /Unresolved/);
+});
+
+ test('caller-written approval JSON cannot arm a production operation', () => { const f = fixture(); f.plan.project = 'scoutzero-bf1ae'; assert.throws(() => requireRegisteredPublication(digest(canonical(f.plan)), f.plan, f.approval), /not registered/); });
+
+test('direct legacy writer invocations cannot bypass the shared publication gate', () => {
+  for (const file of [
+    'player-scrape/firestore_staging/scripts/push_staged_players.ts',
+    'team-scrape/shared/firestore_staging/scripts/push_staged_teams.ts',
+    'team-scrape/draft-picks/scripts/pst/pst_phase_10_push_base_entitlements.ts',
+    'team-scrape/draft-picks/scripts/pst/pst_phase_10_patch_base_teams_entitlements.ts',
+    'team-scrape/draft-picks/scripts/pst/pst_phase_12_3a_push_base_pick_rules.ts',
+  ]) {
+    const result = spawnSync(process.execPath, ['--import', 'tsx', file, '--confirmProject=scoutzero-bf1ae'], {
+      encoding: 'utf8', env: { PATH: process.env.PATH, FIRESTORE_EMULATOR_HOST: '127.0.0.1:8082' }, timeout: 15000,
+    });
+    assert.equal(result.status, 1, file);
+    assert.match(result.stderr, /Legacy bulk publication is retired/);
+  }
+});
+
+test('mixed contract/statistics inventories retain per-player no-games membership', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'maintenance-scope-'));
+  const context = { season: '2026-27', asOf: '2026-10-18T00:00:00Z' };
+  const contracts = await openMaintenanceRun(path.join(root, 'contracts'), { ...context, operation: 'contracts', inventory: { with_stats: { teamCode: 'LAL' }, without_stats: { teamCode: 'LAL' } } }, false);
+  await contracts.record('with_stats', 'processed', []); await contracts.record('without_stats', 'processed', []);
+  const stats = await openMaintenanceRun(path.join(root, 'stats'), { ...context, operation: 'stats', inventory: { with_stats: { teamCode: 'LAL' } } }, false);
+  await stats.record('with_stats', 'no-games', []);
+  const out = path.join(root, 'inputs');
+  await assembleMaintenanceInputs([path.join(root, 'contracts'), path.join(root, 'stats')], out);
+  const manifest = JSON.parse(await (await import('node:fs/promises')).readFile(path.join(out, 'manifest.json'), 'utf8'));
+  assert.deepEqual(manifest.statsInventory, ['with_stats']);
+  assert.equal(manifest.statsStatus.with_stats, 'no-games');
+  assert(!manifest.statsInventory.includes('without_stats'));
+});
+
+test('statistics-only planning never creates a player identity or publishes incomplete coverage', async () => {
+  assert.throws(() => planStatistics({ documents: [] } as any, 'new_player', null, '2026-27'), /existing player/);
+  const f = fixture(); f.plan.coverage = { expected: 3, processed: 2, unchanged: 0, withheld: ['LAL'], failed: 0, missing: 0 };
+  f.approval.planSha256 = digest(canonical(f.plan)); f.approval.review.planSha256 = f.approval.planSha256; f.approval.owner.planSha256 = f.approval.planSha256;
+  await assert.rejects(() => publishMaintenance(f.plan, f.approval, f.store), /Incomplete required publication coverage/);
 });

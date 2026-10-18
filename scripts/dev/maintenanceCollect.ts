@@ -1,3 +1,11 @@
+/**
+ * FILE: scripts/dev/maintenanceCollect.ts
+ * PURPOSE: Shared NBA maintenance mechanics with governed source and publication decisions.
+ * OWNERSHIP: Operations tooling.
+ * HISTORY: 2026-10-18 — BZE-324 Gate A implementation.
+ * LINKS: docs/operations/NBA_MAINTENANCE.md; docs/operations/DRAFT_UPDATE_PROCESS.md
+ */
+import { maintenanceErrorMessage } from './maintenanceErrors.js';
 import { randomUUID } from 'node:crypto';
 /** Same portable collectors and parsers on supported local/cloud runtimes. No publisher. */
 import { readFile, writeFile } from 'node:fs/promises';
@@ -91,5 +99,5 @@ if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
     const result = await collectMaintenance(path.resolve(option('run')), { operation: operation as RunRequest['operation'], inventory, season: option('season'), asOf: option('as-of') }, process.argv.includes('--resume'));
     console.log(JSON.stringify(result));
     if (!result.complete) process.exitCode = 1;
-  } catch { console.error('Maintenance collection failed; inspect private coverage. Fresh runs never reuse prior output.'); process.exitCode = 1; }
+  } catch (error) { console.error(maintenanceErrorMessage(error)); process.exitCode = 1; }
 }

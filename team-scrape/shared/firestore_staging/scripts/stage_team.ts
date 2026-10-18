@@ -1114,12 +1114,18 @@ export function buildBaseTeamDoc({
 }
 
 /** Ordinary maintenance reuses the stager without generating IDs or adopting draft fields. */
-export function buildMaintenanceTeam(rawTeam: RawTeamData, index: PlayerIndex, season: string, asOf: string) {
+export function buildMaintenanceTeam(rawTeam: RawTeamData, index: PlayerIndex, season: string, asOf: string, retained: { capHolds?: { playerId: string; playerName?: string }[]; deadCap?: { playerId: string; playerName?: string }[] } = {}) {
   const original = buildResolver(index);
   const resolver: PlayerIdResolver = { unresolved: original.unresolved,
     resolve(entry, context) {
       const result = original.resolve(entry, context);
-      if (result.resolvedVia === 'fallback' || !index[result.playerId]) throw new Error('Unresolved team player identity; no synthetic roster ID may publish');
+      if (result.resolvedVia === 'fallback' || !index[result.playerId]) {
+        const prior = context === 'capHold' ? retained.capHolds : context === 'deadCap' ? retained.deadCap : [];
+        const name = normalizeDisplayName(entry.displayName)?.toLocaleLowerCase();
+        const matches = name ? (prior || []).filter(row => normalizeDisplayName(row.playerName)?.toLocaleLowerCase() === name) : [];
+        if (context !== 'roster' && matches.length === 1 && matches[0].playerId) return { playerId: matches[0].playerId, playerName: matches[0].playerName || entry.displayName || '', resolvedVia: 'retained-ancillary-before-image' };
+        throw new Error('Unresolved team player identity in ' + context + '; no synthetic ID may publish');
+      }
       return result;
     },
   };

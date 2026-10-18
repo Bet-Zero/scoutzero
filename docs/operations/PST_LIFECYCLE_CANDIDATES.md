@@ -11,10 +11,11 @@ trade. The current first-round Needs input/no-write boundary remains in force.
 ## Inputs and recovery
 
 Recover and verify the accepted archive using [PST_SOURCE_RELEASES.md](PST_SOURCE_RELEASES.md).
-The parser requires release digest
+The historical release example uses digest
 `44a18a7c339906ab147cc026d0e598d6d7ee655a2427c767fdce1685cd30cb7a`.
-The 39 required RAW RESPONSE HTML pages are canonical. Three repeats verify
-stability; serialized DOM and screenshots remain secondary evidence.
+For that historical release, 39 required RAW RESPONSE HTML pages are canonical
+and three repeats verify stability. A registered successor uses its own declared
+coverage; serialized DOM and screenshots remain secondary evidence.
 
 The comparison pin is
 `docs/reference/sources/releases/pst/pst-exposure-comparison-bze306-v1.json`.

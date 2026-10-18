@@ -44,6 +44,7 @@ export function mergeTypedFields(before: Record<string, any>, patch: Record<stri
 }
 type Provenance = {
   version: 1; kind: 'scrape' | 'firestore-recovery'; acquiredAt: string;
+  statsInventory?: string[]; statsStatus?: Record<string, string>;
   baselineSha256?: string; sourceUrls: string[]; qualification: 'unreviewed';
   files: { path: string; sha256: string; bytes: number }[];
 };
@@ -105,6 +106,8 @@ export async function verifyInputBundle(dir: string) {
     const bytes = await readFile(file);
     if (bytes.length !== entry.bytes || hash(bytes) !== entry.sha256) throw new Error('Pipeline input integrity mismatch');
   }
+  if (provenance.statsInventory && (!Array.isArray(provenance.statsInventory) || new Set(provenance.statsInventory).size !== provenance.statsInventory.length ||
+      provenance.statsInventory.some(id => !idPattern.test(id) || !['processed', 'fallback', 'no-games'].includes(provenance.statsStatus?.[id] || '')))) throw new Error('Invalid per-player statistics scope');
   if (!seen.has('player_index.json')) throw new Error('Player index is required');
   return provenance;
 }
@@ -249,7 +252,7 @@ export async function preparePlayer(playerId: string, inputDir: string, sourceDi
   if (!validation.valid) throw new Error('Existing staged-player validation failed; private run evidence retained');
   const staged = JSON.parse(await readFile(path.join(stagedDir, 'players_v2', playerId + '.json'), 'utf8'));
   const base = JSON.parse(await readFile(path.join(stagedDir, 'basePlayers', playerId + '.json'), 'utf8'));
-  staged.statsProvided = provenance.files.some(file => file.path.startsWith('stats/'));
+  staged.statsProvided = provenance.statsInventory ? provenance.statsInventory.includes(playerId) : provenance.files.some(file => file.path.startsWith('stats/') && file.path.endsWith('/' + playerId + '.json'));
   const entries = planPlayerWrites(snapshot, playerId, staged, base);
   const plan = { version: 1, context: dated, createdAt: new Date().toISOString(), sourceProject: SOURCE_PROJECT, baselineSha256,
     baselineReadTime: snapshot.readTime, inputManifestSha256: digest(provenance), provenance, entries,

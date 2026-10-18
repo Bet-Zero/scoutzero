@@ -1,3 +1,10 @@
+/**
+ * FILE: scripts/dev/maintenancePublish.ts
+ * PURPOSE: Shared NBA maintenance mechanics with governed source and publication decisions.
+ * OWNERSHIP: Operations tooling.
+ * HISTORY: 2026-10-18 — BZE-324 Gate A implementation.
+ * LINKS: docs/operations/NBA_MAINTENANCE.md; docs/operations/DRAFT_UPDATE_PROCESS.md
+ */
 /** Exact reviewed conditional groups, shared by local rehearsal and approved publication. */
 import { firestoreFieldHash } from './firestoreValue.js';
 import { maintenanceContext } from './maintenanceContext.js';
@@ -12,6 +19,8 @@ export type Publication = {
   version: 1; project: typeof SOURCE_PROJECT | typeof DEMO_PROJECT; database: '(default)';
   inputSha256: string; season: string; asOf: string;
   groups: { id: string; entries: MaintenanceEntry[] }[];
+  coverage?: { expected: number; processed: number; unchanged: number; withheld: string[]; failed: number; missing: number };
+  withheldReasons?: Record<string, string>;
 };
 export type PublicationApproval = {
   planSha256: string; project: string; database: string; expiresAt: string;
@@ -45,6 +54,7 @@ export function validatePublication(plan: Publication, approval: PublicationAppr
       ![approval.qualification.receipt, approval.review.receipt, approval.owner.receipt].every(v => /^https:\/\/(linear.app|github.com)\//.test(v))) {
     throw new Error('Exact independent qualification, reviewed plan and unexpired change-specific owner approval required');
   }
+  if (plan.coverage && (plan.coverage.withheld.length || plan.coverage.failed || plan.coverage.missing || plan.coverage.processed !== plan.groups.length || plan.coverage.expected !== plan.coverage.processed + plan.coverage.unchanged)) throw new Error('Incomplete required publication coverage; withheld groups cannot be silently dropped');
   const seen = new Set<string>(); const groups = new Set<string>();
   for (const group of plan.groups) {
     if (!/^[a-zA-Z0-9_-]{1,80}$/.test(group.id) || groups.has(group.id) || !group.entries.length || group.entries.length > 450 ||

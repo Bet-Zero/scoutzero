@@ -48,12 +48,8 @@ The newer BZE-321 protected executors are unchanged.
 Follow [CLOUD_DEVELOPMENT.md](CLOUD_DEVELOPMENT.md) for setup, read-only refresh,
 emulator selection, save/restart and private session paths. A fresh task must
 fetch current code and run setup; image caches are not proof of current builds.
-This assignment used a genuinely fresh task, not another checkout of the prior
-task. It bootstrapped the existing renewable anonymous reader from
-`/workspace/.setup/firebase-public-config.json` and captured 4,070 core documents
-at `2026-10-18T19:20:36.511Z`. All 677 player parents' approved descendants were
-read; 23 source roster-reference gaps remained. No private users/worlds were read.
-The source's newest server update is still historical; this is no freshness claim.
+See the [implementation verification record](../../work/bze-324/VERIFICATION.md)
+for observed counts, timestamps and limitations.
 
 Use `npm run cloud:dev -- --scope=core`, then `cloud:check` and
 `cloud:check:architect` with the same scope. Stop the launcher cleanly; restart
@@ -132,7 +128,7 @@ npm run maintenance:plan -- --season=2026-27 --as-of="$AS_OF" \
   --source-dir=.scoutzero-dev/core --player-runs="$PLAYER_RUNS" \
   --team-run="$PRIVATE_RUN/teams" --index="$PLAYER_INVENTORY" \
   --out="$PRIVATE_RUN/publication-plan.json"
-npm run maintenance:rehearse -- --run="$ONE_VERIFIED_PLAYER_RUN"
+npm run maintenance:rehearse -- --run="$ONE_VERIFIED_PLAYER_RUN" --browser
 ```
 
 Groups are bounded to 450 changed records and 7 MB before the completion write.
@@ -152,6 +148,13 @@ contract is in `scripts/dev/maintenancePublish.ts`). An approval JSON is a
 transcription of those decisions, not a source of factual authority or permission
 for an agent to approve itself. Never create production approvals from the
 synthetic emulator approval fixture.
+
+Before production execution, retain exact qualification/review/owner receipts
+and register only that approved plan digest, input digest and expiry in
+`scripts/dev/maintenanceApprovals.ts` through normal independently reviewed
+landing. The registry is initially empty. Caller-authored approval JSON or an
+explicit command flag cannot register an operation. Production requires clean
+exact live-main code; it rejects an author branch before credential use.
 
 The explicit production entry point is:
 
@@ -176,21 +179,13 @@ conditional forward plan using retained before-images; automatic rollback never
 overwrites subsequent legitimate changes. After approved publication, verify
 actual consumers, then obtain a fresh read-only emulator copy.
 
-## Last observed proof and remaining readiness limits
+## Readiness and first refresh
 
-October 18 rehearsals used one real Austin Reaves contract/stat run, one real
-Lakers team page, actual retained PST originals and the real all-278 foundation.
-Players/List and Architect roster/cap/world save/reload passed in the fresh
-core emulator. The real five-record publisher rehearsal verified interrupted
-commit recovery and restored original values. These are tooling proofs only.
-The PR is the evidence hub for final exact-head checks and independent verdict.
-
-Unverified production identity, physical laptop collection, fresh full-league
-NBA collection, unreviewed future PST source facts, and BZE-321's source correction/hosted/cleanup gates are not passed by
-this record. Gate A closes only when its required implementation/review/access
-items are actually satisfied; do not close BZE-324 from this document alone.
+Use the [verification record](../../work/bze-324/VERIFICATION.md) and PR checks
+for actual results. Gate A requires implementation, independent review and
+verified appropriately bounded execution access. Documentation does not close it.
 
 The first Gate B action is to declare the full `2026-27` inventory and as-of date,
 run the read-only core refresh, and execute the three explicit collection
-commands above in a new private generation. Reconcile the 23 roster-reference
+commands above in a new private generation. Reconcile retained roster-reference and historical-contract
 findings from evidence before reviewing the exact publication proposal.

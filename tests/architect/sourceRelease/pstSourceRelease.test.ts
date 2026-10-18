@@ -198,13 +198,13 @@ describe('BZE-305 governed PST source release', () => {
     const predecessor = fixture.release;
     const selected = predecessor.pages.filter(p => p.sourcePageId === 'team-CHI' || (p.sourcePageId === 'team-HOU' && p.classification === 'canonical-required'));
     const manifestPath = path.join(fixture.evidenceDirectory, 'manifest.json');
-    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    const manifest: { results: { sequence: number }[]; files: { relativePath: string }[]; requiredPageCount: number; repeatPageCount: number } = JSON.parse(await readFile(manifestPath, 'utf8'));
     const sequences = selected.map(p => p.sequence);
-    manifest.results = manifest.results.filter((r: any) => sequences.includes(r.sequence));
+    manifest.results = manifest.results.filter((r) => sequences.includes(r.sequence));
     const keep = new Set(selected.flatMap(p => [p.rawResponse.relativePath, p.serializedDom.relativePath, p.screenshot.relativePath]));
     for (const file of manifest.files) if (!keep.has(file.relativePath)) await unlink(path.join(fixture.evidenceDirectory, file.relativePath));
-    manifest.files = manifest.files.filter((f: any) => keep.has(f.relativePath));
-    manifest.results.forEach((r: any, i: number) => { r.sequence = i + 1; });
+    manifest.files = manifest.files.filter((f) => keep.has(f.relativePath));
+    manifest.results.forEach((r, i) => { r.sequence = i + 1; });
     selected.forEach((p, i) => { p.sequence = i + 1; });
     manifest.requiredPageCount = 2; manifest.repeatPageCount = 1;
     const manifestBytes = JSON.stringify(manifest);
