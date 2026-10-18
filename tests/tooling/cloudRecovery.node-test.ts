@@ -102,7 +102,7 @@ test('recovery CLI blocks publishable destinations and crash staging remains ign
   await writeFile(path.join(f.dir, '.gitignore'), '.scoutzero-dev/\n.recovery-check-*/\n.recovery-stage-*/\n');
   const allowed = run(path.join(f.dir, '.scoutzero-dev'));
   assert.equal(allowed.status, 0, allowed.stderr); assert.equal(JSON.parse(allowed.stdout).restored, true);
-  for (const name of ['.recovery-check-interrupted/private/source.json', '.recovery-stage-interrupted/private/source.json', '.scoutzero-dev/core/source.json']) {
+  for (const name of ['.recovery-check-interrupted/private/source.json', '.recovery-stage-interrupted/private/source.json', '.scoutzero-dev/core/source.json', '.scoutzero-dev-tools/private/source.json']) {
     assert.equal(spawnSync('git', ['check-ignore', '--no-index', '--quiet', name]).status, 0, name + ' must remain ignored after a crash');
   }
 });
