@@ -104,7 +104,7 @@ baseline and test sessions under `.scoutzero-dev/core/`; it cannot replace the
 full baseline. Its successful capture contained 4,070 documents: 677 player
 roots, 676 base players, 30 teams, 1,292 contracts, 718 seasons and 677 views.
 All 677 parents' three approved child collections were read. The selected core
-capture's `readTime` is October 18, 2026 03:19 UTC; newest source server update
+capture's `readTime` is October 18, 2026 06:11 UTC; newest source server update
 was June 7, 2026. Roster references still have 23 gaps and teams still have no entitlement
 membership. These are source gaps, not accepted current NBA readiness.
 
@@ -116,7 +116,7 @@ npm run cloud:data:refresh -- --google
 npm run cloud:data:refresh -- --gcloud
 ```
 
-The current managed executor reports no Google outbound identity, ADC binding
+The October 18 fresh executor reports no Google outbound identity, ADC binding
 or active gcloud reader. The separate BZE-321 inspector has entity GET permission
 for its pinned operation, not LIST, and is not a general export credential.
 A genuinely authorized Google identity needs `datastore.entities.get` and
@@ -254,7 +254,7 @@ entry points supply private explicit inputs, provenance and retained outputs;
 they are not a replacement parser or publisher.
 
 ```bash
-npm run cloud:source -- --player=austin_reaves --team=LAL --url=https://salaryswish.com/players/austin-reaves
+npm run cloud:source -- --player=austin_reaves --team=LAL --url=https://www.salaryswish.com/players/austin-reaves
 npm run cloud:pipeline -- prepare --player=austin_reaves --inputs=<private-input-directory> --scope=core
 npm run pipeline:sync:plan -- --cloud-run=<private-run-directory>
 npm run cloud:pipeline -- verify --run=<private-run-directory>
@@ -263,27 +263,45 @@ npm run cloud:pipeline -- emulator-check --run=<private-run-directory>
 
 `cloud:source` forces a fresh GET rather than the regression-fixture fallback,
 retains both original retrieves privately, runs the existing contract parser and
-schema, and manifests the exact input bytes. Unequal originals remain unequal;
-no capture/parser success is independent qualification. The current managed
-network rejects SalarySwish at the proxy CONNECT boundary, before the site can
-be tested. Actual failure evidence is retained, and no fresh scrape is claimed.
-Source-domain access must be configured through the normal reviewed environment
-network workflow, not a proxy bypass. Site-session/challenge behavior remains
-unproven until that access works.
+schema, and manifests the exact input bytes. Use the canonical `www` URL above:
+the bare domain now returns a 301, which the collector deliberately rejects.
+The parser uses the capture date and the application's July 1 season boundary
+when counting remaining salary seasons, excluding expired and voided rows. Its
+optional `asOf` date makes those counts reproducible. Unequal originals remain
+unequal; capture/parser success is not independent qualification.
 
-The existing scripts require `salaryswish.com`, `www.salaryswish.com`,
+**Observed October 18, 06:12 UTC in a fresh task:** all seven source hosts are
+present in the published policy. Fresh Austin Reaves contract acquisition,
+parsing, staging, validation and a four-record conditional emulator rehearsal
+passed; original fields were restored. Original captures were byte-identical.
+NBA.com player HTML, RealGM draft HTML, the NBA CDN scoreboard JSON and the NBA
+stats `commonallplayers` JSON returned 200 with usable content. These are actual
+source responses, not fixtures or source-fact acceptance. The existing stats
+fetcher also returned Austin Reaves `playerprofilev2` result sets when configured
+with its supported `PROXY_URL` setting pointing at the inherited `HTTPS_PROXY`.
+For native Node collectors use `node --use-env-proxy --import tsx`; Playwright
+API-request collectors use `PROXY_URL="$HTTPS_PROXY"`. Keep TLS checks enabled
+and preserve the managed proxy. Do not fall back to a direct route.
+
+PST's Lakers future-picks page returned 403/Cloudflare both to an ordinary GET
+and normal Chromium navigation through that proxy. No challenge was bypassed,
+fixture substituted, or PST source accepted. That restriction prevents fresh PST
+collection in this environment; it does not block player-contract maintenance.
+An authorized site session or source-provider resolution remains necessary.
+Do not enlarge BZE-323 into adjudication of the separate 278/29 draft inventory.
+
+The existing scripts use `salaryswish.com`, `www.salaryswish.com`,
 `stats.nba.com`, `www.nba.com`, `cdn.nba.com`, `basketball.realgm.com` and
-`www.prosportstransactions.com`. Header-only probes of all seven were rejected
-by this workspace's enforced CONNECT policy. Its current configuration also
-has no outbound Google identity, ADC binding or Google administration connector.
-An owner-reviewed environment access change is required for these capabilities;
-an agent cannot grant it with the available status-only environment tool.
-Use a renewable read-only Google identity with document GET/LIST, never the
-protected BZE-321 publisher, a service-account key or broader database rules.
-After access is attached, agents must repeat full capture and actual upstream
-collection and qualify proposed changes before claiming full operation. Report
-source relationship gaps separately; roster repair is not a refresh prerequisite.
-Access alone does not make the stored basketball facts current.
+`www.prosportstransactions.com`. The domain setup below is retained for checking
+a future environment revision, not a request to repeat completed setup.
+A new full Firestore attempt still read 4,070 permitted records and every approved
+player descendant but both draft roots returned 403. The historical full baseline
+remained unchanged; a separate core refresh succeeded. No outbound Google
+identity, ADC or authorized Firebase CLI account was available. Use a renewable
+read-only Google identity with document GET/LIST, never the protected BZE-321
+publisher, a service-account key or broader database rules. Access alone does
+not make stored basketball facts current, and roster repair is not a refresh
+prerequisite.
 
 To recover missing ignored staging inputs from the current database copy:
 
@@ -335,8 +353,9 @@ that new baseline, keeping previous sessions available.
 ## Minimal source-domain setup
 
 The agent can inspect the applied environment policy but cannot edit it with the
-available status-only tool. Observed October 18: restricted/enforced policy still
-excludes the seven NBA hosts. Use the existing environment; do not recreate it.
+available status-only tool. The October 18 fresh task confirmed the seven hosts
+are already present and reachable through the proxy. Use the following steps
+only if a future published revision loses them; do not recreate the environment.
 
 1. Open **Settings → Codex Cloud → Environments**. Find the existing ScoutZero
    environment and choose **… → Edit**.

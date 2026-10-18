@@ -14,9 +14,30 @@ import { functionsBuildCurrent, recordFunctionsBuild } from '../../scripts/dev/c
 import { createRequire } from 'node:module';
 import { assertOrdinaryDocumentPath } from '../../scripts/dev/cloudPublishCheck.js';
 import { getPlayerHtml } from '../../player-scrape/contracts/scripts/fetch_player_page.js';
+import { parsePlayer } from '../../player-scrape/contracts/scripts/parse_player.js';
 const { configureCloudEmulatorTransport } = createRequire(import.meta.url)('../../functions/src/emulatorTransport.ts') as typeof import('../../functions/src/emulatorTransport.js');
 
 const prefix = 'projects/scoutzero-bf1ae/databases/(default)/documents/';
+const salaryTable = (seasons: string[], optionSeason = '') => `<table><thead><tr><th>Season</th><th>Salary</th><th>Guaranteed</th><th>Option</th></tr></thead><tbody>${seasons.map(season => `<tr><td>${season}</td><td>$1,000,000</td><td>$1,000,000</td><td>${season === optionSeason ? 'PO' : ''}</td></tr>`).join('')}</tbody></table>`;
+
+test('fresh contract parsing counts remaining salary seasons at the capture date', async () => {
+  const parse = (html: string, asOf: string) => parsePlayer(html, {
+    playerId: 'test_player', sourceUrl: 'https://www.salaryswish.com/players/test-player',
+    teamCode: 'LAL', asOf: new Date(asOf),
+  });
+  const html = salaryTable(['2025-26', '2026-27', '2027-28']);
+  assert.equal((await parse(html, '2026-06-30T23:59:59Z')).contract.yearsRemaining, 3);
+  assert.equal((await parse(html, '2026-07-01T00:00:00Z')).contract.yearsRemaining, 2);
+  assert.equal((await parse(html, '2028-07-01T00:00:00Z')).contract.yearsRemaining, 0);
+  // A future-start deal and a missing salary season must not invent extra years.
+  assert.equal((await parse(salaryTable(['2027-28', '2029-30']), '2026-10-18T00:00:00Z')).contract.yearsRemaining, 2);
+  const extended = await parse(salaryTable(['2025-26', '2026-27', '2027-28'], '2027-28') + salaryTable(['2027-28', '2028-29']), '2026-10-18T00:00:00Z');
+  assert.equal(extended.contract.yearsRemaining, 1);
+  assert.equal(extended.contract.salariesByYear[2].voidedByExtension, true);
+  assert.equal(extended.contract.totalValue, 3000000);
+  await assert.rejects(() => parse(html, 'invalid'), /capture date/i);
+});
+
 function baseline(): Snapshot {
   const now = new Date().toISOString();
   return { version: 1, sourceProject: 'scoutzero-bf1ae', capturedAt: now, completedAt: now,
