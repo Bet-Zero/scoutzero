@@ -13,7 +13,7 @@ try {
   else if (process.argv[2] === 'recover') console.log(JSON.stringify({ recoveredInputDir: await recoverPlayerInput(playerId, sourceDir), sourceKind: 'firestore-recovery', qualified: false }));
   else if (process.argv[2] === 'prepare') {
     if (!option('inputs')) throw new Error('A verified private input directory is required');
-    console.log(JSON.stringify(await preparePlayer(playerId, path.resolve(option('inputs')!), sourceDir)));
+    console.log(JSON.stringify(await preparePlayer(playerId, path.resolve(option('inputs')!), sourceDir, { season: option('season') || '', asOf: option('as-of') || '' })));
   } else throw new Error('Use recover|prepare|verify|emulator-check with the runbook arguments');
 } catch (error) {
   console.error(error instanceof SyntaxError ? 'Invalid private JSON input; do not publish its contents' : error instanceof Error ? error.message : 'Cloud pipeline failed');

@@ -72,7 +72,8 @@ function argBool(flag: string, fallback: boolean) {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const SEASON_LABEL = Number(process.env.SEASON ?? arg('season', '2026')); // 2026 → "2025-26"
+const SEASON_LABEL = Number(process.env.SEASON ?? arg('season', '')); // 2026 → "2025-26"
+if (!Number.isInteger(SEASON_LABEL) || SEASON_LABEL < 2000 || SEASON_LABEL > 2100) throw new Error('Explicit --season END_YEAR required (2027 means 2026-27)');
 const SEASON_CODE =
   process.env.SEASON_CODE ??
   arg('season-code') ??
@@ -379,6 +380,7 @@ function writePretty(path: string, obj: any) {
       faNames.push(...names);
       await sleep(150);
     } catch (e) {
+      process.exitCode = 1;
       console.warn(`⚠️  Failed FA page: ${u} — ${(e as Error).message}`);
     }
   }
@@ -467,6 +469,8 @@ function writePretty(path: string, obj: any) {
   writePretty(OUT_UNRES, unresolved);
   writePretty(OUT_DUPE, dupes);
   writePretty(OUT_FILT, filteredOut);
+
+  if (unresolved.length || dupes.length) process.exitCode = 1;
 
   // 10) Summary
   console.log('✔ IDs written:', OUT_IDS);

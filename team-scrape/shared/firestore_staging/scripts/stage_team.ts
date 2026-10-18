@@ -969,7 +969,7 @@ async function loadDraftAssets(
   }
 }
 
-function buildBaseTeamDoc({
+export function buildBaseTeamDoc({
   rawTeam,
   draftPicks,
   ledgerViews,
@@ -1111,6 +1111,21 @@ function buildBaseTeamDoc({
     draftPicksContested?: NormalizedDraftPick[];
     draftAssets?: { picks: DraftAsset[] };
   };
+}
+
+/** Ordinary maintenance reuses the stager without generating IDs or adopting draft fields. */
+export function buildMaintenanceTeam(rawTeam: RawTeamData, index: PlayerIndex, season: string, asOf: string) {
+  const original = buildResolver(index);
+  const resolver: PlayerIdResolver = { unresolved: original.unresolved,
+    resolve(entry, context) {
+      const result = original.resolve(entry, context);
+      if (result.resolvedVia === 'fallback' || !index[result.playerId]) throw new Error('Unresolved team player identity; no synthetic roster ID may publish');
+      return result;
+    },
+  };
+  const result = buildBaseTeamDoc({ rawTeam, draftPicks: [], resolver, seasonOverride: season });
+  const { draftPicks: _draft, ...ordinary } = result;
+  return { ...ordinary, source: { ...ordinary.source, generatedAt: asOf } };
 }
 
 async function stageTeam({ team, season, validate, outDir, ledgerDir, draftAssetsDir }: CliArgs) {

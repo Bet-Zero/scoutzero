@@ -1,0 +1,25 @@
+name: Maintenance portability
+on:
+  pull_request:
+    paths:
+      - 'scripts/dev/**'
+      - 'tests/tooling/cloudMaintenance.node-test.ts'
+      - 'player-scrape/**'
+      - 'team-scrape/**'
+      - 'package*.json'
+      - '.github/workflows/maintenance-portability.yml'
+permissions:
+  contents: read
+jobs:
+  supported-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: PUPPETEER_SKIP_DOWNLOAD=true npm ci --ignore-scripts --no-audit --no-fund
+      - name: Shared processing and conditional-publication logic (safe fixtures)
+        run: node --import tsx --test-reporter=dot --input-type=module -e "await import('./tests/tooling/cloudMaintenance.node-test.ts')"
+      - run: npm run cloud:typecheck

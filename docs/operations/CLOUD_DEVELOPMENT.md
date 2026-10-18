@@ -1,5 +1,9 @@
 # ScoutZero cloud development and NBA data operations
 
+For current shared NBA collection/publication commands and the owner operating
+card, start at [NBA_MAINTENANCE.md](NBA_MAINTENANCE.md). Historical preparation-only
+receipts below retain their original scope; BZE-324 adds the controlled operation.
+
 Use the existing configured Codex cloud workspace. Ordinary development runs
 Vite, Firestore, Auth, Functions and Chromium locally inside that workspace.
 GitHub holds code, commands, configuration and handoffs. NBA inputs and evidence
@@ -340,7 +344,7 @@ avoid this executor's tsx CLI IPC EPERM; batch staging now exits nonzero on fail
 | Existing operation | Inputs/recovery requirement | Publication boundary |
 | --- | --- | --- |
 | Player contracts / `contracts:run` | SalarySwish pages, player index; optional original raw captures | Existing parser/stager/validators; qualified inputs and reviewed record-level plan required |
-| NBA IDs/bios/stats builders and `stats:batch` | Existing NBA endpoint access and retained index/season outputs | Capture freshness and schema checks do not authorize a source write |
+| NBA IDs/bios builders and shared `maintenance:collect` | Existing NBA endpoint access and retained index/season outputs | Capture freshness and schema checks do not authorize a source write |
 | Team fetch/parse/merge/stage | SalarySwish team data, player index and explicit retained team artifacts | Do not manufacture missing draft inputs or overwrite draft membership in an ordinary team update |
 | RealGM and `pst:*` fetch/extract/build/validate | Authorized source pages/session and privately retained generated artifacts | Legacy seed/push commands are not an accepted first-round publisher; preserve 278/29 and BZE-321 gates |
 
@@ -429,8 +433,8 @@ After actual access is available, the agent owns a fresh full capture, honest
 source-quality diagnostics, emulator reload, Players → Lists and Architect
 save/reload checks, and source-qualified before/after preparation and emulator
 rehearsal. Preserve 278/29 governance and independent production-write gates.
-BZE-323 remains **In Progress** for genuinely unmet remote capabilities, not
-optional backup expansion or the 23 roster discrepancies.
+BZE-323 is **Done** for its accepted restoration scope. Gate A maintenance
+readiness is tracked in BZE-324; roster discrepancies remain data findings.
 
 References: [Codex environment settings](https://learn.chatgpt.com/docs/environments/cloud-environments),
 [Firestore authentication](https://docs.cloud.google.com/firestore/native/docs/authentication),

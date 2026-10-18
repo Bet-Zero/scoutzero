@@ -1,3 +1,9 @@
+> Current maintenance and installation handoff:
+> [Draft update process](../../docs/operations/DRAFT_UPDATE_PROCESS.md).
+> Legacy scrape/push directions below are historical diagnostics; direct bulk
+> writers are retired. Preserve accepted evidence, private source review and
+> separately approved installation; first-round Apply remains blocked.
+
 # Draft Picks Pipeline
 
 Collect NBA draft-pick data, build a league-wide ledger, reconcile ownership

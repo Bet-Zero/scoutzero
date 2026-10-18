@@ -38,7 +38,7 @@ const __dirname = path.dirname(__filename);
 // ---- paths (relative to shared/scripts/) ----
 // __dirname = player-scrape/shared/scripts
 const SHARED_DIR = path.resolve(__dirname, '..'); // player-scrape/shared
-const OUTPUTS_DIR = path.resolve(SHARED_DIR, 'outputs');
+const OUTPUTS_DIR = path.resolve(process.env.OUTPUTS_DIR || path.resolve(SHARED_DIR, 'outputs'));
 const OVERLAYS_DIR = path.resolve(SHARED_DIR, 'overlays');
 
 function arg(flag: string, fallback?: string) {
@@ -50,14 +50,15 @@ function arg(flag: string, fallback?: string) {
   return fallback;
 }
 
-const SEASON_LABEL = Number(process.env.SEASON ?? arg('season', '2026'));
+const SEASON_LABEL = Number(process.env.SEASON ?? arg('season', ''));
+if (!Number.isInteger(SEASON_LABEL) || SEASON_LABEL < 2000 || SEASON_LABEL > 2100) throw new Error('Explicit --season END_YEAR required (2027 means 2026-27)');
 const IDS_PATH = path.resolve(OUTPUTS_DIR, 'all_player_ids.json');
 const BIOS_PATH = path.resolve(
   OUTPUTS_DIR,
   `players_bios_${SEASON_LABEL}.json`
 );
 const OUTPUT_PATH = path.resolve(OUTPUTS_DIR, 'player_index.json');
-const REPORTS_DIR = path.resolve(SHARED_DIR, 'reports');
+const REPORTS_DIR = path.resolve(process.env.REPORTS_DIR || path.resolve(SHARED_DIR, 'reports'));
 const SLUG_OVERRIDES_PATH = path.resolve(
   OVERLAYS_DIR,
   'salaryswish_overrides.json'
@@ -348,6 +349,7 @@ function main() {
   );
   fs.writeFileSync(gapsPath, JSON.stringify(gaps, null, 2), 'utf8');
   if (missingBios.length) {
+    process.exitCode = 1;
     console.warn(
       `⚠️ ${missingBios.length} players missing bios; see ${gapsPath}`
     );

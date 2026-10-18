@@ -115,7 +115,7 @@ export const PstSourceReleasePinZ = z.strictObject({
   releaseDigestSha256: Sha256Z,
 });
 
-export const PstSourceReleaseZ = z.strictObject({
+export const PstSourceReleaseV1Z = z.strictObject({
   schemaVersion: z.literal('scoutzero-pst-source-release/v1'),
   releaseId: NonEmptyStringZ,
   releaseVersion: z.literal(1),
@@ -199,6 +199,35 @@ export const PstSourceReleaseZ = z.strictObject({
   }),
   limitations: z.array(NonEmptyStringZ).min(1),
 });
+
+/** Successor envelope: coverage is declared, hashed and independently accepted, never inferred from counts. */
+export const PstSourceReleaseV2Z = PstSourceReleaseV1Z.extend({
+  schemaVersion: z.literal('scoutzero-pst-source-release/v2'),
+  releaseVersion: z.number().int().min(2),
+  supersedes: PstSourceReleasePinZ,
+  package: PstSourceReleaseV1Z.shape.package.extend({
+    packageFileCount: z.number().int().positive(),
+    capturedFileCount: z.number().int().positive(),
+    remoteRetention: PstSourceReleaseV1Z.shape.package.shape.remoteRetention.extend({
+      issueIdentifier: z.string().regex(/^BZE-\d+$/),
+    }),
+  }),
+  canonicalPolicy: PstSourceReleaseV1Z.shape.canonicalPolicy.extend({
+    requiredPageCount: z.number().int().positive(),
+    repeatCaptureCount: z.number().int().min(1),
+  }),
+  counts: z.strictObject({
+    pageCaptures: z.number().int().positive(), canonicalRequiredPages: z.number().int().positive(),
+    repeatEvidenceCaptures: z.number().int().positive(), rawHtmlFiles: z.number().int().positive(),
+    serializedDomFiles: z.number().int().positive(), screenshotFiles: z.number().int().positive(),
+  }),
+  coverage: z.strictObject({
+    requiredPageIds: z.array(z.string().regex(/^(year-index|team-[A-Z]{3}|year-\d{4})$/)).min(1),
+    repeatPageIds: z.array(z.string().regex(/^(team-[A-Z]{3}|year-\d{4})$/)).min(1),
+  }),
+  pages: z.array(PstSourcePageCaptureZ.extend({ sequence: z.number().int().positive() })).min(2),
+});
+export const PstSourceReleaseZ = z.discriminatedUnion('schemaVersion', [PstSourceReleaseV1Z, PstSourceReleaseV2Z]);
 
 export type PstReleaseArtifact = z.infer<typeof PstReleaseArtifactZ>;
 export type PstSourcePageCapture = z.infer<typeof PstSourcePageCaptureZ>;

@@ -102,7 +102,11 @@ const CaptureManifestZ = z
   })
   .passthrough();
 
-type CaptureManifest = z.infer<typeof CaptureManifestZ>;
+const SuccessorCaptureManifestZ = CaptureManifestZ.extend({
+  requiredPageCount: z.number().int().positive(), repeatPageCount: z.number().int().positive(),
+  files: z.array(CaptureInventoryFileZ).min(1), results: z.array(CaptureResultZ).min(2),
+});
+type CaptureManifest = z.infer<typeof SuccessorCaptureManifestZ>;
 type CaptureResult = z.infer<typeof CaptureResultZ>;
 
 export type PstSourceReleaseVerificationInput = {
@@ -117,10 +121,10 @@ export type PstSourceReleaseVerificationReceipt = {
   releaseDigestSha256: string;
   archiveSha256: string | null;
   manifestSha256: string;
-  canonicalRequiredPages: 39;
-  repeatEvidenceCaptures: 3;
-  capturedFilesVerified: 126;
-  packageFilesVerified: 128;
+  canonicalRequiredPages: number;
+  repeatEvidenceCaptures: number;
+  capturedFilesVerified: number;
+  packageFilesVerified: number;
 };
 
 /** Identifies a closed verification failure suitable for CLI reporting. */
@@ -239,19 +243,27 @@ export function verifyPstSourceReleaseInvariants(
     fail('Release capture window is not increasing.');
   }
 
+  const declaredRequired = release.schemaVersion === 'scoutzero-pst-source-release/v2' ? release.coverage.requiredPageIds : EXPECTED_REQUIRED_PAGE_IDS;
+  const declaredRepeats = release.schemaVersion === 'scoutzero-pst-source-release/v2' ? release.coverage.repeatPageIds : EXPECTED_REPEAT_IDS;
+  const captures = declaredRequired.length + declaredRepeats.length;
+  if (new Set(declaredRequired).size !== declaredRequired.length || new Set(declaredRepeats).size !== declaredRepeats.length ||
+      release.canonicalPolicy.requiredPageCount !== declaredRequired.length || release.canonicalPolicy.repeatCaptureCount !== declaredRepeats.length ||
+      release.counts.canonicalRequiredPages !== declaredRequired.length || release.counts.repeatEvidenceCaptures !== declaredRepeats.length ||
+      release.counts.pageCaptures !== captures || release.counts.rawHtmlFiles !== captures || release.counts.serializedDomFiles !== captures ||
+      release.counts.screenshotFiles !== captures || release.package.capturedFileCount !== captures * 3 || release.package.packageFileCount !== captures * 3 + 2) fail('Declared coverage and package counts disagree');
   const required = release.pages.filter(
     (page) => page.classification === 'canonical-required'
   );
   const repeats = release.pages.filter(
     (page) => page.classification === 'repeat-evidence'
   );
-  if (required.length !== 39 || repeats.length !== 3) {
+  if (required.length !== declaredRequired.length || repeats.length !== declaredRepeats.length) {
     fail('Release must contain 39 canonical pages and 3 repeat captures.');
   }
   if (
     !sameStrings(
       required.map((page) => page.sourcePageId),
-      EXPECTED_REQUIRED_PAGE_IDS
+      declaredRequired
     )
   ) {
     fail('Canonical source-page set is missing, duplicated, or unexpected.');
@@ -259,7 +271,7 @@ export function verifyPstSourceReleaseInvariants(
   if (
     !sameStrings(
       repeats.map((page) => page.sourcePageId),
-      EXPECTED_REPEAT_IDS
+      declaredRepeats
     )
   ) {
     fail(
@@ -331,7 +343,7 @@ export function verifyPstSourceReleaseInvariants(
   const artifactPaths = release.pages
     .flatMap(pageArtifacts)
     .map((artifact) => artifact.relativePath);
-  if (new Set(artifactPaths).size !== 126) {
+  if (new Set(artifactPaths).size !== release.package.capturedFileCount) {
     fail('Release metadata has a duplicate evidence-file path.');
   }
 
@@ -380,7 +392,7 @@ async function parseRelease(releasePath: string): Promise<PstSourceRelease> {
 
 /** Reads and validates the retained capture manifest. */
 async function parseCaptureManifest(
-  manifestPath: string
+  manifestPath: string, successor: boolean
 ): Promise<{ bytes: Uint8Array; manifest: CaptureManifest }> {
   let bytes: Uint8Array;
   try {
@@ -394,7 +406,7 @@ async function parseCaptureManifest(
   } catch {
     fail('Malformed capture manifest JSON.');
   }
-  const parsed = CaptureManifestZ.safeParse(value);
+  const parsed = (successor ? SuccessorCaptureManifestZ : CaptureManifestZ).safeParse(value);
   if (!parsed.success) {
     fail(`Malformed capture manifest: ${z.prettifyError(parsed.error)}`);
   }
@@ -492,7 +504,8 @@ export async function verifyPstSourceRelease(
     release.sourceCaptureManifest.relativePath
   );
   const { bytes: manifestBytes, manifest } =
-    await parseCaptureManifest(manifestPath);
+    await parseCaptureManifest(manifestPath, release.schemaVersion === 'scoutzero-pst-source-release/v2');
+  if (manifest.requiredPageCount !== release.canonicalPolicy.requiredPageCount || manifest.repeatPageCount !== release.canonicalPolicy.repeatCaptureCount || manifest.files.length !== release.package.capturedFileCount || manifest.results.length !== release.counts.pageCaptures) fail('Capture manifest coverage differs from release');
   const manifestSha256 = sha256(manifestBytes);
   if (manifestSha256 !== release.sourceCaptureManifest.sha256) {
     fail('Capture manifest SHA-256 does not match release metadata.');
@@ -521,7 +534,7 @@ export async function verifyPstSourceRelease(
   }
 
   const manifestPaths = manifest.files.map((file) => file.relativePath);
-  if (new Set(manifestPaths).size !== 126) {
+  if (new Set(manifestPaths).size !== release.package.capturedFileCount) {
     fail('Capture manifest has a duplicate evidence-file path.');
   }
   manifest.files.forEach((file) =>
@@ -532,10 +545,10 @@ export async function verifyPstSourceRelease(
   );
   const resultSequences = manifest.results.map((result) => result.sequence);
   if (
-    new Set(resultSequences).size !== 42 ||
+    new Set(resultSequences).size !== release.counts.pageCaptures ||
     !sameStrings(
       resultSequences.map(String),
-      Array.from({ length: 42 }, (_, index) => String(index + 1))
+      Array.from({ length: release.counts.pageCaptures }, (_, index) => String(index + 1))
     )
   ) {
     fail('Capture manifest result sequences are missing or duplicated.');
@@ -642,10 +655,10 @@ export async function verifyPstSourceRelease(
     releaseDigestSha256: release.releaseDigestSha256,
     archiveSha256,
     manifestSha256,
-    canonicalRequiredPages: 39,
-    repeatEvidenceCaptures: 3,
-    capturedFilesVerified: 126,
-    packageFilesVerified: 128,
+    canonicalRequiredPages: release.counts.canonicalRequiredPages,
+    repeatEvidenceCaptures: release.counts.repeatEvidenceCaptures,
+    capturedFilesVerified: release.package.capturedFileCount,
+    packageFilesVerified: release.package.packageFileCount,
   };
 }
 

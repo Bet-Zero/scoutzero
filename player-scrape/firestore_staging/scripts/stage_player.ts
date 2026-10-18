@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { maintenanceContext } from '../../../scripts/dev/maintenanceContext.js';
 import { fileURLToPath } from 'node:url';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import {
@@ -15,6 +16,8 @@ interface CliArgs {
   indexPath?: string;
   contractsDir?: string;
   statsDir?: string;
+  season?: string;
+  asOf?: string;
 }
 
 type PlayerIndexEntry = {
@@ -433,12 +436,10 @@ function computeDisplay(
   rosterTeamCode: string,
   position: string | undefined,
   experience: number | undefined,
-  fallbackAav: number | undefined
+  fallbackAav: number | undefined,
+  currentSeasonStartYear: number
 ) {
   const seasons = listActiveSeasons(contracts);
-  const now = new Date();
-  const currentSeasonStartYear =
-    now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
 
   let totalSalary = 0;
   let latestSeason: string | undefined;
@@ -508,22 +509,19 @@ function buildPlayersV2Payload(
   playerId: string,
   indexEntry: PlayerIndexEntry,
   contractData: ContractOutput,
-  statsData: StatsOutput | null
+  statsData: StatsOutput | null,
+  currentSeasonYear: number,
+  asOf: string
 ) {
-  const nowTs = buildTimestamp();
+  const nowTs = buildTimestamp(new Date(asOf));
   const contractEntries = collectContracts(contractData);
   const contracts: Record<string, ContractRecord> = {};
 
-  const currentSeasonYear =
-    new Date().getMonth() >= 8
-      ? new Date().getFullYear()
-      : new Date().getFullYear() - 1;
 
   const currentEntry =
     [...contractEntries]
       .reverse()
       .find((entry) => isSeasonInRange(entry.contract, currentSeasonYear)) ??
-    contractEntries[contractEntries.length - 1] ??
     null;
 
   const nextEntry =
@@ -584,7 +582,8 @@ function buildPlayersV2Payload(
     indexEntry.teamCode ?? contractData.teamCode,
     contractData.bio.position,
     contractData.bio.experience,
-    contractData.contract.averageAnnualValue ?? undefined
+    contractData.contract.averageAnnualValue ?? undefined,
+    currentSeasonYear
   );
 
   const seasonMap = new Map<
@@ -763,7 +762,7 @@ function buildPlayersV2Payload(
 
   // Build denormalized currentSeasonStats from current season (prioritize current season over older seasons)
   let currentSeasonStats: any = undefined;
-  if (statsData && Object.keys(seasons).length > 0) {
+  if (statsData && seasons[seasonCodeFromStartYear(currentSeasonYear)] && !statsData.meta?.statsCarryOver) {
     const currentSeasonCode = seasonCodeFromStartYear(currentSeasonYear);
 
     // First, try to find the current season
@@ -839,7 +838,7 @@ function buildPlayersV2Payload(
         teamId: draftedBy,
       },
       display,
-      nbaId: indexEntry.nbaId,
+      nbaId: parseIntegerField(indexEntry.nbaId),
     },
     createdAt: nowTs,
     updatedAt: nowTs,
@@ -875,7 +874,8 @@ async function loadJson<T>(filePath: string): Promise<T> {
 }
 
 export async function stagePlayer({ playerId, outDir, validate, indexPath = PLAYER_INDEX_PATH,
-  contractsDir = CONTRACTS_DIR, statsDir = STATS_DIR }: CliArgs) {
+  contractsDir = CONTRACTS_DIR, statsDir = STATS_DIR, season, asOf }: CliArgs) {
+  const dated = maintenanceContext(season || process.env.MAINTENANCE_SEASON || '', asOf || process.env.MAINTENANCE_AS_OF || '');
   const index: Record<string, PlayerIndexEntry> =
     await loadJson(indexPath);
   const indexEntry = index[playerId];
@@ -999,8 +999,8 @@ export async function stagePlayer({ playerId, outDir, validate, indexPath = PLAY
           signingTeam: 'FREE',
           signingDate: undefined, // Optional field
           signedByCurrentTeam: false,
-          startSeason: '2025-26', // Required field - use current season as placeholder
-          endSeason: '2025-26', // Required field - use current season as placeholder
+          startSeason: dated.season, // Required field - use current season as placeholder
+          endSeason: dated.season, // Required field - use current season as placeholder
           contractLength: 0,
           yearsRemaining: 0,
           totalValue: 0,
@@ -1045,59 +1045,7 @@ export async function stagePlayer({ playerId, outDir, validate, indexPath = PLAY
         lastUpdated: new Date().toISOString(),
         version: '1.0',
       };
-    } else {
-      // Free agent with contract file - normalize structure
-      contractData = {
-        ...contractData,
-        teamCode: 'FREE', // Use 'FREE' as teamCode for free agents (BasePlayerDocZ requires a string)
-        teamName: 'Free Agent',
-        contract: {
-          ...contractData.contract,
-          contractType: 'FREE AGENT',
-          isExtension: false,
-          isRookieScale: false,
-          signingTeam: 'FREE',
-          signingDate: undefined, // Optional field
-          signedByCurrentTeam: false,
-          startSeason: '2025-26', // Required field - use current season as placeholder
-          endSeason: '2025-26', // Required field - use current season as placeholder
-          contractLength: 0,
-          yearsRemaining: 0,
-          totalValue: 0,
-          averageAnnualValue: 0, // Required field - use 0 for free agents
-          guaranteedValue: 0, // Required field - use 0 for free agents
-          guaranteedYears: 0, // Required field - use 0 for free agents
-          salariesByYear: [],
-          noTradeClause: false,
-          tradeKicker: null, // Required field - nullable, use null for free agents
-          tradeRestrictions: [],
-          birdRights: { status: 'Unknown' },
-          freeAgency: {
-            type: 'UFA',
-            year: undefined,
-            capHold: undefined,
-            qualifyingOffer: null,
-            earlyTerminationOption: null,
-            hasOption: undefined,
-            optionYear: null,
-            optionType: null,
-          },
-          tradeEligibility: {
-            canBeTradedNow: null,
-            restrictedUntil: null,
-            reason: null,
-            rules: {
-              baseYearCompensation: false,
-              poisonPill: false,
-              aggregation: false,
-            },
-          },
-          isMaxContract: false,
-          maxType: undefined, // Optional field
-          estimatedCapPercentage: undefined, // Optional field
-        },
-        futureContract: undefined,
-      };
+
     }
   }
 
@@ -1117,7 +1065,9 @@ export async function stagePlayer({ playerId, outDir, validate, indexPath = PLAY
     playerId,
     indexEntry,
     contractData,
-    statsData
+    statsData,
+    dated.startYear,
+    dated.asOf
   );
 
   if (validate) {

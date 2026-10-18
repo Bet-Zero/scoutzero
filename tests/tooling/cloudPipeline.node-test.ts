@@ -128,7 +128,7 @@ test('review plans retain exact update-time/absence preconditions and unknown fi
   assert.equal((root.after as any).bio.retained, true);
   assert.deepEqual((root.afterFields as any).retainedTimestamp, { timestampValue: '2025-01-01T00:00:00Z' });
   assert.equal(root.precondition.updateTime, snapshot.documents[0].updateTime);
-  assert.deepEqual(plan.find((entry) => entry.path.endsWith('/standard'))?.precondition, { exists: false });
+  assert.deepEqual(plan.find((entry) => entry.path.includes('/contracts/deal_'))?.precondition, { exists: false });
   assert(plan.every((entry) => /^(players_v2|architect_basePlayers)\//.test(entry.path)));
   assert.deepEqual(changedFields({}, { added: null }), ['added']);
   assert.deepEqual(changedFields({ same: 0 }, { same: 0 }), []);

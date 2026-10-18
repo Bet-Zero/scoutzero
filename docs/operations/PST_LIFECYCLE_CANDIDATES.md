@@ -1,7 +1,10 @@
 # Private PST lifecycle candidates
 
 The offline lifecycle tooling in `scripts/source-releases/pst-lifecycle/` reads
-only the accepted current PST source release. It produces a private evidence and
+only source releases in the reviewed acceptance registry. The existing historical
+release remains pinned; versioned successors require independent private-source
+acceptance and a reviewed registry addition under
+[DRAFT_UPDATE_PROCESS.md](DRAFT_UPDATE_PROCESS.md). It produces a private evidence and
 lifecycle candidate; no output is a runtime entitlement release or permission to
 trade. The current first-round Needs input/no-write boundary remains in force.
 
