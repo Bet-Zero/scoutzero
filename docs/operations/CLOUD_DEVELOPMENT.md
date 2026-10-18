@@ -407,13 +407,14 @@ private payload and the Firebase app bucket is not a verified recovery destinati
    the private bucket `scoutzero-bf1ae-cloud-recovery-105500121903`. It previews
    exact scope by default; the final command is the explicit owner approval for
    source reads and that private backup destination. No private payload uploads
-   during setup. Existing conflicting roles, trust or bucket privacy fail closed.
+   during setup. Existing conflicting project/bucket grants, impersonation/provider trust or bucket
+   privacy fail closed.
 
    ```bash
    scoutzero_setup=$(mktemp -d)
    git clone --filter=blob:none --no-checkout https://github.com/Bet-Zero/scoutzero.git "$scoutzero_setup"
    cd "$scoutzero_setup"
-   git checkout --detach 650fe0f9dcd147337ff55fa8d953182395a5c5d4
+   git checkout --detach ecb671daf40ab70716af78eb59d59ed94b0e9392
    read -r -p 'Connection Issuer: ' scoutzero_issuer
    read -r -p 'Connection Audience: ' scoutzero_audience
    read -r -p 'Connection Subject: ' scoutzero_subject
