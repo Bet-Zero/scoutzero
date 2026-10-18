@@ -237,6 +237,19 @@ survival after workspace loss. Test actual Google upload/readback and recovery
 in a new empty cloud session before claiming durability. Keep the original task
 and data until that proof passes.
 
+Observed local diagnostic (October 18 UTC): 75 retained files were backed up to
+an independent local store, then restored into an empty GitHub checkout of
+`c8977f0a12fb0145c04304b2eef3c8955a865281`. Both baseline hashes matched. Locked
+app/Functions dependencies were installed; the explicitly reused official emulator
+and CLI cache passed setup checks. Playwright resumed the same safe UID/List and
+existing governed Architect world, rendered roster/cap, and saved/reloaded state;
+1280×720 screenshots were visually inspected. Cap source gaps still show
+**Needs input**. This proves the restore path with real retained data, **not**
+remote durability or accepted current basketball facts. The diagnostic manifest is
+`c401d8dd29fd478b868bfc44031e4d5728fde1b5a737ba75c1fbf2c12253b177`.
+Google upload was not executed; its unverified/unapproved destination was rejected
+by automatic approval review. Owner approval and bucket verification remain gates.
+
 ### Fresh roster-reference investigation
 
 ```bash
@@ -256,7 +269,6 @@ player collections. No player was invented and no repair was published. These
 are identity-reference proposals, not independently accepted current NBA rosters.
 All proposals still require independent evidence review, change-specific approval
 and matching live update-time preconditions before any production write.
-
 
 ## Source collection, staging and exact update preparation
 
@@ -401,7 +413,7 @@ private payload and the Firebase app bucket is not a verified recovery destinati
    scoutzero_setup=$(mktemp -d)
    git clone --filter=blob:none --no-checkout https://github.com/Bet-Zero/scoutzero.git "$scoutzero_setup"
    cd "$scoutzero_setup"
-   git checkout --detach c8977f0a12fb0145c04304b2eef3c8955a865281
+   git checkout --detach 650fe0f9dcd147337ff55fa8d953182395a5c5d4
    read -r -p 'Connection Issuer: ' scoutzero_issuer
    read -r -p 'Connection Audience: ' scoutzero_audience
    read -r -p 'Connection Subject: ' scoutzero_subject
