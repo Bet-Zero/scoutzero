@@ -93,41 +93,11 @@ async function enrichDraftPickFromDetail(url: string) {
 
 /* ------------------------------------------------------------------------ */
 
-async function main() {
-  const TEAM_URL =
-    process.env.TEAM_URL || 'https://www.salaryswish.com/teams/lakers';
-  const TEAM_CODE = process.env.TEAM_CODE || 'LAL';
-  const SEASON = process.env.SEASON || '2025-26';
-  const ENRICH_DRAFT = process.env.ENRICH_DRAFT === '1';
-
-  const DEFAULT_HTML_PATH = path.join(
-    process.cwd(),
-    'team-scrape',
-    'team-data',
-    'working',
-    'page.html'
-  );
-  const localHtmlPath =
-    process.env.TEAM_HTML_PATH && process.env.TEAM_HTML_PATH.trim().length > 0
-      ? path.resolve(process.env.TEAM_HTML_PATH)
-      : DEFAULT_HTML_PATH;
-  let html: string | null = null;
-  if (
-    process.env.USE_LOCAL_HTML === '1' ||
-    (await fs
-      .access(localHtmlPath)
-      .then(() => true)
-      .catch(() => false))
-  ) {
-    html = await fs.readFile(localHtmlPath, 'utf8');
-    console.log(`📄 Loaded local HTML snapshot: ${localHtmlPath}`);
-  }
-  if (!html) {
-    console.log('📡 Fetching live data from:', TEAM_URL);
-    html = await got(TEAM_URL, { timeout: { request: 45000 } }).text();
-    console.log('✅ Successfully fetched team page');
-  }
-
+export async function parseTeamHtml(html: string, context: { url: string; team: string; season: string; asOf: string }) {
+  const TEAM_URL = context.url;
+  const TEAM_CODE = context.team;
+  const SEASON = context.season;
+  const ENRICH_DRAFT = false;
   const $ = cheerio.load(html);
 
   // --- Team identity ---
@@ -836,27 +806,24 @@ async function main() {
     source: {
       provider: 'SalarySwish',
       teamPageUrl: TEAM_URL,
-      scrapedAt: new Date().toISOString(),
+      scrapedAt: context.asOf,
     },
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: context.asOf,
     version: '1.0',
   };
 
-  const outputPath = path.join(
-    process.cwd(),
-    'team-scrape',
-    'team-data',
-    'output',
-    `team_${teamCode}.json`
-  );
-  await fs.writeFile(outputPath, JSON.stringify(teamDoc, null, 2), 'utf8');
-  console.log(`✅ Wrote ${outputPath}`);
-  console.log(
-    `  roster=${roster.length}  tpe=${tpe.length}  holds=${capHolds.length}  deadCap=${deadCap.length}  picks=${draftPicks.length}`
-  );
+  return teamDoc;
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
+  const season = process.env.SEASON || '';
+  const asOf = process.env.MAINTENANCE_AS_OF || '';
+  if (!season || !asOf || !process.env.TEAM_HTML_PATH || !process.env.TEAM_CODE || !process.env.TEAM_URL) {
+    throw new Error('Use maintenance:collect with explicit season/as-of/inventory; offline parsing requires TEAM_HTML_PATH, TEAM_CODE, TEAM_URL, SEASON and MAINTENANCE_AS_OF');
+  }
+  const parsed = await parseTeamHtml(await fs.readFile(process.env.TEAM_HTML_PATH, 'utf8'), { url: process.env.TEAM_URL, team: process.env.TEAM_CODE, season, asOf });
+  const out = process.env.TEAM_OUTPUT_PATH;
+  if (!out) throw new Error('Explicit private TEAM_OUTPUT_PATH required');
+  await fs.mkdir(path.dirname(out), { recursive: true, mode: 0o700 });
+  await fs.writeFile(out, JSON.stringify(parsed, null, 2), { mode: 0o600, flag: 'wx' });
+}

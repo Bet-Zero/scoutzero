@@ -1,4 +1,5 @@
 /** Exercise an ordinary plan atomically in the demo emulator, then restore exact fields. No production target. */
+import { firestoreFieldHash } from './firestoreValue.js';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { assertEmulatorOrigin, DEMO_PROJECT, digest } from './cloudData.js';
@@ -29,7 +30,7 @@ async function commit(writes: unknown[]) {
   const result = await response.json();
   if (result.writeResults?.length !== writes.length) throw new Error('Local commit result is incomplete');
 }
-const fieldHash = (fields: Record<string, unknown> | null) => digest(canonical(fields === null ? null : decodeFields(fields)));
+const fieldHash = (fields: Record<string, unknown> | null) => firestoreFieldHash(fields);
 
 export async function checkPlanInEmulator(runDir: string) {
   assertEmulatorOrigin(origin);

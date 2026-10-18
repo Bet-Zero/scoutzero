@@ -969,7 +969,7 @@ async function loadDraftAssets(
   }
 }
 
-function buildBaseTeamDoc({
+export function buildBaseTeamDoc({
   rawTeam,
   draftPicks,
   ledgerViews,
@@ -1111,6 +1111,27 @@ function buildBaseTeamDoc({
     draftPicksContested?: NormalizedDraftPick[];
     draftAssets?: { picks: DraftAsset[] };
   };
+}
+
+/** Ordinary maintenance reuses the stager without generating IDs or adopting draft fields. */
+export function buildMaintenanceTeam(rawTeam: RawTeamData, index: PlayerIndex, season: string, asOf: string, retained: { capHolds?: { playerId: string; playerName?: string }[]; deadCap?: { playerId: string; playerName?: string }[] } = {}) {
+  const original = buildResolver(index);
+  const resolver: PlayerIdResolver = { unresolved: original.unresolved,
+    resolve(entry, context) {
+      const result = original.resolve(entry, context);
+      if (result.resolvedVia === 'fallback' || !index[result.playerId]) {
+        const prior = context === 'capHold' ? retained.capHolds : context === 'deadCap' ? retained.deadCap : [];
+        const name = normalizeDisplayName(entry.displayName)?.toLocaleLowerCase();
+        const matches = name ? (prior || []).filter(row => normalizeDisplayName(row.playerName)?.toLocaleLowerCase() === name) : [];
+        if (context !== 'roster' && matches.length === 1 && matches[0].playerId) return { playerId: matches[0].playerId, playerName: matches[0].playerName || entry.displayName || '', resolvedVia: 'retained-ancillary-before-image' };
+        throw new Error('Unresolved team player identity in ' + context + '; no synthetic ID may publish');
+      }
+      return result;
+    },
+  };
+  const result = buildBaseTeamDoc({ rawTeam, draftPicks: [], resolver, seasonOverride: season });
+  const { draftPicks: _draft, ...ordinary } = result;
+  return { ...ordinary, source: { ...ordinary.source, generatedAt: asOf } };
 }
 
 async function stageTeam({ team, season, validate, outDir, ledgerDir, draftAssetsDir }: CliArgs) {

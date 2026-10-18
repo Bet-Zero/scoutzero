@@ -82,12 +82,17 @@ does not establish continuing freshness or product-ready fact coverage.
 
 ## Refresh and supersession
 
+The historical v1 envelope stays fixed. New declared coverage can use the v2
+envelope and shared verifier under [DRAFT_UPDATE_PROCESS.md](DRAFT_UPDATE_PROCESS.md).
+Source integrity does not register an accepted successor or authorize installation.
+
 Never overwrite this archive, attachment, metadata file, release ID, version,
 or digest. A refresh must use a new capture issue and temporary profile,
 reperform the complete capture/integrity gate, retain a new private archive,
 prove authenticated remote recovery, and create a new content-derived release
-ID and metadata file. The new release must pin this release in `supersedes`;
-both releases remain independently recoverable.
+ID and metadata file. The first successor must pin this historical release in `supersedes`; each later
+successor pins its actual accepted predecessor. Every release remains
+independently recoverable.
 
 A later parser or product lane must name an accepted release explicitly and
 prove its own coverage. Until that separate work is accepted, this release has

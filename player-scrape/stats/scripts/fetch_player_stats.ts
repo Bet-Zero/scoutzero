@@ -84,7 +84,7 @@ export async function cleanupContext() {
   }
 }
 
-function buildProfileUrl(nbaId: string, seasonDisplay: string) {
+export function buildProfileUrl(nbaId: string, seasonDisplay: string) {
   const p = new URLSearchParams({
     PlayerID: String(nbaId),
     Season: seasonDisplay,

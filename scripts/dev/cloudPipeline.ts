@@ -1,4 +1,7 @@
+import { canonical, firestoreFieldHash } from './firestoreValue.js';
+export { canonical } from './firestoreValue.js';
 /** Reuse the player stager/validator; retain inputs and exact review plans privately. No publisher. */
+import { maintenanceContext } from './maintenanceContext.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { lstat, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -11,11 +14,7 @@ import { privateDirectory, privateJson } from './cloudStorage.js';
 const PREFIX = `projects/${SOURCE_PROJECT}/databases/(default)/documents/`;
 const hash = (bytes: string | Buffer) => createHash('sha256').update(bytes).digest('hex');
 const idPattern = /^[\p{L}\p{N}][\p{L}\p{M}\p{N}_]{0,100}$/u;
-export function canonical(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonical);
-  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([key, item]) => [key, canonical(item)]));
-  return value;
-}
+
 function encode(value: unknown): unknown {
   if (value === null) return { nullValue: 'NULL_VALUE' };
   if (typeof value === 'string') return { stringValue: value };
@@ -25,11 +24,19 @@ function encode(value: unknown): unknown {
   if (value && typeof value === 'object') return { mapValue: { fields: Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined).map(([key, item]) => [key, encode(item)])) } };
   throw new Error('Unsupported staged value');
 }
-function mergeTypedFields(before: Record<string, any>, patch: Record<string, unknown>): Record<string, unknown> {
+export function mergeTypedFields(before: Record<string, any>, patch: Record<string, unknown>): Record<string, unknown> {
   const result = { ...before };
   for (const [key, value] of Object.entries(patch)) {
     if (value === undefined) continue;
-    if (value && typeof value === 'object' && !Array.isArray(value) && before[key]?.mapValue) {
+    if (key === 'salariesByYear' && Array.isArray(value) && before[key]?.arrayValue) {
+      const prior = before[key].arrayValue.values || [];
+      const bySeason = new Map(prior.map((row: any) => [row.mapValue?.fields?.season?.stringValue, row]));
+      const incoming = new Set(value.map((row: any) => row.season));
+      result[key] = { arrayValue: { values: [
+        ...prior.filter((row: any) => !incoming.has(row.mapValue?.fields?.season?.stringValue)),
+        ...value.map((row: any) => ({ mapValue: { fields: mergeTypedFields((bySeason.get(row.season) as any)?.mapValue?.fields || {}, row) } })),
+      ] } };
+    } else if (value && typeof value === 'object' && !Array.isArray(value) && before[key]?.mapValue) {
       result[key] = { mapValue: { fields: mergeTypedFields(before[key].mapValue.fields || {}, value as Record<string, unknown>) } };
     } else result[key] = encode(value);
   }
@@ -37,6 +44,7 @@ function mergeTypedFields(before: Record<string, any>, patch: Record<string, unk
 }
 type Provenance = {
   version: 1; kind: 'scrape' | 'firestore-recovery'; acquiredAt: string;
+  statsInventory?: string[]; statsStatus?: Record<string, string>;
   baselineSha256?: string; sourceUrls: string[]; qualification: 'unreviewed';
   files: { path: string; sha256: string; bytes: number }[];
 };
@@ -64,8 +72,16 @@ export function decodeFields(fields: Record<string, unknown>): Record<string, un
   return Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, decode(value)]));
 }
 
+/** Human review representation only; opaque Firestore values stay typed and untouched. */
+function reviewFields(fields: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(fields).map(([key, value]) => {
+    try { return [key, decodeFields({ value }).value]; }
+    catch { return [key, { retainedFirestoreValue: value }]; }
+  }));
+}
+
 export function assertInputPath(file: string) {
-  if (!/^(player_index\.json|contracts\/[A-Z]{3,4}\/[\p{L}\p{M}\p{N}_]+\.json|stats\/[A-Z]{3,4}\/[\p{L}\p{M}\p{N}_]+\.json|raw\/[a-z0-9_-]+\.html)$/u.test(file)) {
+  if (!/^(player_index\.json|contracts\/[A-Z]{3,4}\/[\p{L}\p{M}\p{N}_]+\.json|stats\/[A-Z]{3,4}\/[\p{L}\p{M}\p{N}_]+\.json|raw\/[\p{L}\p{M}\p{N}_-]+\.(html|json))$/u.test(file)) {
     throw new Error('Pipeline input is not an approved source artifact');
   }
 }
@@ -90,6 +106,8 @@ export async function verifyInputBundle(dir: string) {
     const bytes = await readFile(file);
     if (bytes.length !== entry.bytes || hash(bytes) !== entry.sha256) throw new Error('Pipeline input integrity mismatch');
   }
+  if (provenance.statsInventory && (!Array.isArray(provenance.statsInventory) || new Set(provenance.statsInventory).size !== provenance.statsInventory.length ||
+      provenance.statsInventory.some(id => !idPattern.test(id) || !['processed', 'fallback', 'no-games'].includes(provenance.statsStatus?.[id] || '')))) throw new Error('Invalid per-player statistics scope');
   if (!seen.has('player_index.json')) throw new Error('Player index is required');
   return provenance;
 }
@@ -147,7 +165,31 @@ export function planPlayerWrites(snapshot: Snapshot, playerId: string, staged: a
       !['google', 'firebase-anonymous'].includes(snapshot.authentication || '') || !Number.isFinite(Date.parse(snapshot.readTime)) ||
       Date.parse(snapshot.readTime) > Date.now() + 60000 || Date.now() - Date.parse(snapshot.readTime) > 86400000) throw new Error('Update plans require an authenticated live baseline less than 24 hours old');
   if (snapshot.collections.players_v2?.status !== 'read' || snapshot.collections.architect_basePlayers?.status !== 'read') throw new Error('Root coverage is missing');
-  const candidates: Record<string, unknown> = { [`players_v2/${playerId}`]: staged.doc, [`architect_basePlayers/${playerId}`]: base };
+  // Reuse historical contract keys only for the same deal identity; a later
+  // signing gets its own deterministic ID instead of overwriting contract_1.
+  const contractIdentity = (v: any) => digest([v.startSeason, v.signingDate ?? null, v.signingTeam, v.isExtension ?? false]);
+  const oldContracts = snapshot.documents.filter(d => d.name.startsWith(PREFIX + `players_v2/${playerId}/contracts/`));
+  const remapped: Record<string, any> = {}; const keyMap: Record<string, string> = {};
+  for (const [key, value] of Object.entries(staged.contracts || {})) {
+    const identity = contractIdentity(value);
+    const matches = oldContracts.filter(d => contractIdentity(decodeFields(Object.fromEntries(Object.entries(d.fields || {}).filter(([k]) => ['startSeason', 'signingDate', 'signingTeam', 'isExtension'].includes(k))))) === identity);
+    if (matches.length > 1) throw new Error('Ambiguous retained contract identity requires explicit evidence reconciliation');
+    const newKey = matches[0]?.name.split('/').at(-1) || 'deal_' + identity.slice(0, 24);
+    if (remapped[newKey]) throw new Error('Duplicate staged contract identity');
+    keyMap[key] = newKey; remapped[newKey] = value;
+  }
+  const replaceKeys = (v: any): any => Array.isArray(v) ? v.map(replaceKeys) : v && typeof v === 'object' ?
+    Object.fromEntries(Object.entries(v).map(([key, value]) => [key, key === 'sourceContractId' && typeof value === 'string' ? keyMap[value] || value : replaceKeys(value)])) : v;
+  for (const old of (base === undefined ? [] : oldContracts)) {
+    const key = old.name.split('/').at(-1)!;
+    const metadata = (old.fields?.metadata as any)?.mapValue?.fields;
+    if (!remapped[key] && metadata?.isCurrent?.booleanValue === true) {
+      const identityFields = decodeFields(Object.fromEntries(Object.entries(old.fields || {}).filter(([name]) => ['startSeason', 'signingDate', 'signingTeam', 'isExtension'].includes(name))));
+      remapped[key] = { ...identityFields, metadata: { isCurrent: false } };
+    }
+  }
+  staged = { ...staged, contracts: remapped, views: replaceKeys(staged.views) };
+  const candidates: Record<string, unknown> = { [`players_v2/${playerId}`]: staged.doc, ...(base === undefined ? {} : { [`architect_basePlayers/${playerId}`]: base }) };
   for (const child of ['contracts', 'seasons', 'views']) {
     const collection = `players_v2/${playerId}/${child}`;
     if (snapshot.collections[collection]?.status !== 'read') throw new Error('Cannot determine nested-record preconditions from missing coverage');
@@ -160,19 +202,32 @@ export function planPlayerWrites(snapshot: Snapshot, playerId: string, staged: a
     if (after === undefined || after === null) throw new Error('Staged document is missing');
     const old = snapshot.documents.find((d) => d.name === PREFIX + documentPath);
     if (old && !old.updateTime) throw new Error('Existing record lacks update-time precondition');
-    const before = old ? decodeFields(old.fields || {}) : null;
-    const afterFields = mergeTypedFields(old?.fields || {}, after as Record<string, unknown>);
-    const merged = decodeFields(afterFields);
+    const before = old ? reviewFields(old.fields || {}) : null;
+    const patch = { ...(after as Record<string, unknown>) };
+    if (old?.fields?.createdAt) delete patch.createdAt;
+    // Ordinal contract IDs are historical storage keys, not deal identities.
+    // Never merge a different deal into contract_1 after an expiry/extension.
+    if (old && documentPath.includes('/contracts/')) {
+      const prior = reviewFields(old.fields || {});
+      const identity = (v: any) => [v.startSeason, v.signingDate ?? null, v.signingTeam, v.isExtension ?? false];
+      if (digest(identity(prior)) !== digest(identity(patch))) throw new Error('Contract identity changed; preserve history and prepare an explicitly reviewed new contract ID');
+    }
+    const afterFields = mergeTypedFields(old?.fields || {}, patch);
+    if (documentPath === `players_v2/${playerId}` && staged.statsProvided && !staged.doc.currentSeasonStats) delete afterFields.currentSeasonStats;
+    const merged = reviewFields(afterFields);
     return { path: documentPath, beforeFields: old ? old.fields || {} : null,
-      precondition: old ? { updateTime: old.updateTime } : { exists: false },
-      after: merged, afterFields, beforeSha256: digest(canonical(before)), afterSha256: digest(canonical(merged)),
+      precondition: old ? { updateTime: old.updateTime! } : { exists: false as const },
+      after: merged, afterFields, beforeSha256: firestoreFieldHash(old ? old.fields || {} : null), afterSha256: firestoreFieldHash(afterFields),
       changedFields: changedFields(before, merged) };
   }).filter((entry) => entry.changedFields.length);
 }
 
-export async function preparePlayer(playerId: string, inputDir: string, sourceDir: string) {
+export async function preparePlayer(playerId: string, inputDir: string, sourceDir: string, context: { season: string; asOf: string }) {
+  const dated = maintenanceContext(context.season, context.asOf);
   if (!idPattern.test(playerId)) throw new Error('Invalid player ID');
   const provenance = await verifyInputBundle(inputDir);
+  const inputContext = provenance as typeof provenance & { season?: string; effectiveAt?: string };
+  if ((inputContext.season && inputContext.season !== dated.season) || (inputContext.effectiveAt && new Date(inputContext.effectiveAt).toISOString() !== dated.asOf)) throw new Error('Input and preparation season/as-of differ');
   const snapshot = await loadSnapshot(sourceDir);
   const baselineSha256 = digest(snapshot);
   const runDir = path.resolve(DATA_DIR, 'pipeline', 'runs', new Date().toISOString().replace(/[:.]/g, '-') + '-' + randomUUID().slice(0, 8));
@@ -189,6 +244,7 @@ export async function preparePlayer(playerId: string, inputDir: string, sourceDi
   await verifyInputBundle(path.join(runDir, 'inputs'));
   const stagedDir = path.join(runDir, 'staged');
   await stagePlayer({ playerId, outDir: stagedDir, validate: true,
+    season: dated.season, asOf: dated.asOf,
     indexPath: path.join(runDir, 'inputs/player_index.json'),
     contractsDir: path.join(runDir, 'inputs/contracts'), statsDir: path.join(runDir, 'inputs/stats') });
   const validation = await validatePlayer(playerId, stagedDir);
@@ -196,8 +252,9 @@ export async function preparePlayer(playerId: string, inputDir: string, sourceDi
   if (!validation.valid) throw new Error('Existing staged-player validation failed; private run evidence retained');
   const staged = JSON.parse(await readFile(path.join(stagedDir, 'players_v2', playerId + '.json'), 'utf8'));
   const base = JSON.parse(await readFile(path.join(stagedDir, 'basePlayers', playerId + '.json'), 'utf8'));
+  staged.statsProvided = provenance.statsInventory ? provenance.statsInventory.includes(playerId) : provenance.files.some(file => file.path.startsWith('stats/') && file.path.endsWith('/' + playerId + '.json'));
   const entries = planPlayerWrites(snapshot, playerId, staged, base);
-  const plan = { version: 1, createdAt: new Date().toISOString(), sourceProject: SOURCE_PROJECT, baselineSha256,
+  const plan = { version: 1, context: dated, createdAt: new Date().toISOString(), sourceProject: SOURCE_PROJECT, baselineSha256,
     baselineReadTime: snapshot.readTime, inputManifestSha256: digest(provenance), provenance, entries,
     productionWriteAuthorized: false,
     gates: ['Independent qualification of original source inputs', 'Review exact before/after changes',
