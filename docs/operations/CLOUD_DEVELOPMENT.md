@@ -2,8 +2,9 @@
 
 Use the existing configured Codex cloud workspace. Ordinary development runs
 Vite, Firestore, Auth, Functions and Chromium locally inside that workspace.
-GitHub holds code and handoffs; protected cloud storage holds NBA inputs,
-baselines, isolated test state and evidence. Vercel and production publishers
+GitHub holds code and handoffs. NBA inputs, baselines, isolated test state and
+evidence stay private; off-workspace storage must be configured and verified as
+described below. Vercel and production publishers
 are not prerequisites. No local Mac is required.
 
 ## Setup and normal development
@@ -19,7 +20,9 @@ npm run cloud:setup -- --check
 ```
 
 Setup installs locked app dependencies, builds existing Functions and pins
-Firebase CLI 14.12.1 separately under `.scoutzero-dev/tools/firebase/`.
+Firebase CLI 14.12.1 separately under `.scoutzero-dev/tools/firebase/`. The setup
+entry point uses Node’s managed environment proxy for an uncached emulator
+download; a direct native fetch is rejected in this executor.
 CLI 15.32.1 ignored NO_PROXY and broke hub/export requests behind this proxy.
 Setup also pins official Firestore emulator 1.22.0, verifying its published
 size and SHA-256 before activation. The launcher's supported binary override
@@ -182,6 +185,96 @@ cloud filesystem, check manifests and run setup/check/resume. Reused caches are
 not a new VM proof. Public Git alone cannot recover untracked private data, and
 these commands do not promise recovery after destruction of all private storage.
 
+### Private recovery independent of the workspace
+
+`cloud:recovery` stores immutable, hash-named blobs and a manifest in a verified
+private Google Cloud Storage bucket in the existing project. It requires bucket
+metadata access, object GET/CREATE, enforced public-access prevention, uniform
+IAM access, and a verified **non-Firebase** bucket. Firebase app storage has a
+separate Rules access path; its existing bucket is deliberately excluded. No
+private payload belongs in this public repository or public Actions artifacts.
+
+Stop services cleanly, then use the owner-approved private bucket:
+
+```bash
+npm run cloud:recovery -- backup --bucket=scoutzero-bf1ae-cloud-recovery-105500121903
+```
+
+The command includes retained full/core baseline generations, source-bound demo
+sessions, browser proofs, pipeline inputs/outputs, known untracked legacy scrape
+artifacts and public Firebase client configuration. It excludes reader refresh
+credentials, tools, code, personal/provider-linked Auth accounts and arbitrary
+files. Untracked legacy artifacts remain unqualified. Preserve original inputs
+in `pipeline/`; browser profiles and production users/worlds must not be added.
+
+A successful remote receipt requires private-bucket checks, immutable conditional
+uploads and actual remote readback. Record its manifest hash, bucket, repository
+commit and selected baseline hashes in GitHub/Linear, **without file contents**.
+No object listing or overwrite/delete privilege is needed. Keep older manifests;
+new captures never erase prior data. Run a new backup after cleanly saving work
+or acquiring important source artifacts; there is no automatic continuous backup.
+
+In a new cloud task with the renewable Google connection, clone the reviewed ref,
+run `cloud:setup`, and restore to the **absent** `.scoutzero-dev` directory. Setup
+creates a tools directory, so preserve it separately before restore:
+
+```bash
+mv .scoutzero-dev .scoutzero-dev-tools
+npm run cloud:recovery -- restore --bucket=scoutzero-bf1ae-cloud-recovery-105500121903 --manifest=<recorded-sha256> --into=.scoutzero-dev
+mv .scoutzero-dev-tools/tools .scoutzero-dev/tools
+npm run cloud:data:status -- --scope=core
+npm run cloud:dev -- --scope=core
+# In another terminal after Ready:
+npm run cloud:check -- --scope=core --resume
+npm run cloud:check:architect -- --scope=core --resume
+```
+
+Restoration validates hashes, collection coverage, baseline/session bindings and
+safe accounts in a temporary private directory, then activates only a complete
+recovery into an absent destination. It never replaces existing data.
+The CLI accepts only this checkout's ignored `.scoutzero-dev` destination; use a
+separate checkout for an isolated recovery. Interrupted temporary recovery
+directories are also ignored so a later broad Git add cannot publish their data.
+Reinstall code/tools from their trusted sources; do not restore credentials from a backup.
+A local-only `--local-diagnostic=<private-directory>` backend exercises the same
+integrity path but reports `remoteCopyVerified: false` and is **not** proof of
+survival after workspace loss. Test actual Google upload/readback and recovery
+in a new empty cloud session before claiming durability. Keep the original task
+and data until that proof passes.
+
+Observed local diagnostic (October 18 UTC): 75 retained files were backed up to
+an independent local store, then restored into an empty GitHub checkout of
+`c8977f0a12fb0145c04304b2eef3c8955a865281`. Both baseline hashes matched. Locked
+app/Functions dependencies were installed; the explicitly reused official emulator
+and CLI cache passed setup checks. Playwright resumed the same safe UID/List and
+existing governed Architect world, rendered roster/cap, and saved/reloaded state;
+1280×720 screenshots were visually inspected. Cap source gaps still show
+**Needs input**. This proves the restore path with real retained data, **not**
+remote durability or accepted current basketball facts. The diagnostic manifest is
+`c401d8dd29fd478b868bfc44031e4d5728fde1b5a737ba75c1fbf2c12253b177`.
+Google upload was not executed; its unverified/unapproved destination was rejected
+by automatic approval review. Owner approval and bucket verification remain gates.
+
+### Fresh roster-reference investigation
+
+```bash
+npm run cloud:data:audit
+# With the approved renewable Google reader:
+npm run cloud:data:audit -- --google
+```
+
+The audit uses the retained core inventory to select gaps, then retrieves current
+team/player evidence at one fixed readTime. It retains evidence and reviewable
+before/after proposals privately. October 18 UTC execution found 23 references:
+`robert_williams` → `robert_williams_iii` (POR) and `royce_o_neale` → `royce_oneale`
+(PHX) have matching names, birth dates, NBA IDs and team references in the two
+player collections. Their proposals replace only roster IDs and matching cap-hold
+IDs, preserving money and draft fields. The other 21 IDs remain absent in both
+player collections. No player was invented and no repair was published. These
+are identity-reference proposals, not independently accepted current NBA rosters.
+All proposals still require independent evidence review, change-specific approval
+and matching live update-time preconditions before any production write.
+
 ## Source collection, staging and exact update preparation
 
 The existing player/team/stat/PST scripts remain the processing tools. New cloud
@@ -265,6 +358,113 @@ publication authorization. Ordinary player
 plans exclude team/draft/user/world paths; BZE-321's protected publisher is untouched.
 After a separately approved publication, run a new authorized refresh and select
 that new baseline, keeping previous sessions available.
+
+## One owner access setup for the remaining blockers
+
+The agent can read the environment status but cannot edit its network policy,
+attach an outbound identity or grant Google permissions. Current observations
+show restricted/enforced networking, none of the seven NBA hosts, and no Google
+identity, ADC binding or administration connector. Installing Firebase MCP alone
+does not supply this access: it uses the same Firebase CLI/ADC authentication.
+
+This is one coordinated account action, using the existing Codex environment and
+Google project `scoutzero-bf1ae` (105500121903). It does not publish basketball
+changes, grant a database writer, change application Rules, create keys, touch
+BZE-321's trust/publisher, create a new project or change billing configuration.
+It establishes renewable source reads plus an independent private recovery store.
+The new bucket is necessary only because the public repository cannot hold this
+private payload and the Firebase app bucket is not a verified recovery destination.
+
+1. Open **Settings → Codex Cloud → Environments → the existing ScoutZero
+   environment → Edit**. In Internet access, retain existing hosts and the package
+   manager preset; append these exact hosts (including auth/privacy dependencies):
+
+   ```text
+   salaryswish.com
+   www.salaryswish.com
+   stats.nba.com
+   www.nba.com
+   cdn.nba.com
+   basketball.realgm.com
+   www.prosportstransactions.com
+   sts.googleapis.com
+   iamcredentials.googleapis.com
+   oauth2.googleapis.com
+   iam.googleapis.com
+   cloudresourcemanager.googleapis.com
+   firebasestorage.googleapis.com
+   ```
+
+   Permit the required Google authentication and private-storage POST requests;
+   the source reader itself remains GET-only. This enables actual collectors,
+   renewable tokens and private backup API calls; a host allowance is not login.
+2. In that environment's **Advanced → OIDC → Add**, create/attach a **Google**
+   connection. OIDC is documented as Enterprise/by-request: check availability
+   before provisioning anything. If the control is unavailable, request that
+   capability from the workspace/account administrator; do not create a key as a
+   workaround. Use alias `scoutzero-cloud-data`. Keep the displayed non-secret
+   **Issuer, Audience and Subject** for the next step. They must identify this
+   environment; do not invent values or substitute GitHub Actions claims.
+3. Open [Google Cloud Shell](https://shell.cloud.google.com/?project=scoutzero-bf1ae)
+   as the existing project's owner. Run this reviewed, pinned setup; it prompts
+   for only those three non-secret connection values. It uses the same project,
+   an isolated `scoutzero-cloud-data` account and `scoutzero-cloud-dev` pool, and
+   the private bucket `scoutzero-bf1ae-cloud-recovery-105500121903`. It previews
+   exact scope by default; the final command is the explicit owner approval for
+   source reads and that private backup destination. No private payload uploads
+   during setup. Existing conflicting project/bucket grants, impersonation/provider trust or bucket
+   privacy fail closed.
+
+   ```bash
+   scoutzero_setup=$(mktemp -d)
+   git clone --filter=blob:none --no-checkout https://github.com/Bet-Zero/scoutzero.git "$scoutzero_setup"
+   cd "$scoutzero_setup"
+   git checkout --detach ecb671daf40ab70716af78eb59d59ed94b0e9392
+   read -r -p 'Connection Issuer: ' scoutzero_issuer
+   read -r -p 'Connection Audience: ' scoutzero_audience
+   read -r -p 'Connection Subject: ' scoutzero_subject
+   npx --yes --package=tsx@4.20.6 tsx scripts/dev/cloudOwnerAccess.ts
+   npx --yes --package=tsx@4.20.6 tsx scripts/dev/cloudOwnerAccess.ts --apply --approve-source-read-and-private-recovery --issuer="$scoutzero_issuer" --audience="$scoutzero_audience" --subject="$scoutzero_subject"
+   ```
+
+   Project role permissions are `datastore.entities.get/list`,
+   `resourcemanager.projects.get` and `firebasestorage.buckets.get`. IAM source
+   reads are project scoped; the client restricts exports to the five approved
+   roots and three player descendants. Bucket-only permissions are
+   `storage.buckets.get`, `storage.objects.get/create`. The setup preserves other
+   principals and refuses unexpected existing grants on its dedicated account.
+4. Complete the Google connection using service account
+   `scoutzero-cloud-data@scoutzero-bf1ae.iam.gserviceaccount.com` and provider
+   `projects/105500121903/locations/global/workloadIdentityPools/scoutzero-cloud-dev/providers/codex`.
+   Use the connection's renewable ADC file binding (`GOOGLE_APPLICATION_CREDENTIALS`),
+   not a static access token or service-account key. Save/test the environment
+   and **Republish** it. Start a new task from the published version while keeping
+   the current task/data available until its first real remote backup is verified.
+
+The exact issuer/claims, connection availability, Google owner consent and reviewed
+network change cannot be completed by this status-only agent. These steps are a
+prepared owner procedure, **not a claim that the connection or bucket exists**.
+The setup script has scoped failure tests; actual Google configuration remains
+unexecuted until the owner performs it. Account setup can still reveal a genuine
+upstream site challenge; collectors must report that rather than claim freshness.
+Setup is idempotent, not transactional: a late failed check may leave newly created
+empty resources. Access bindings are added last; existing conflicting trust is
+never rewritten. The pinned bootstrap is an ancestor of the reviewed candidate,
+with identical setup/policy files; use the required ordinary merge, not a squash,
+so the owner can fetch that pin from main after landing.
+
+After access is available the agent owns verification: inspect current enforced
+policy/identity; prove actual fresh source retrieval and processing; full GET/LIST
+capture including draft roots; resolve relationship gaps only with evidence;
+rehearse exact verified changes in emulators; upload/read back private artifacts;
+recover from remote objects in an empty task; run both saved-state browser checks.
+Use IAM permission inspection to prove no database writer, never a test production
+write. BZE-323 remains **In Progress** until these live proofs pass. Independent
+review and change-specific publication approval remain separate from account setup.
+
+References: [Codex environment settings and OIDC](https://learn.chatgpt.com/docs/environments/cloud-environments),
+[Google federation](https://docs.cloud.google.com/iam/docs/workload-identity-federation-with-other-providers),
+[Firebase MCP authentication](https://firebase.google.com/docs/ai-assistance/mcp-server).
 
 ## Focused validation
 

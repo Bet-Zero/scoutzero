@@ -231,4 +231,7 @@ tmp/
 
 # Private cloud source copies, emulator state, browser sessions and evidence
 .scoutzero-dev/
+.scoutzero-dev-tools/
 .scoutzero-dev.firebase.json
+.recovery-check-*/
+.recovery-stage-*/

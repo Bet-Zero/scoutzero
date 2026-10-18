@@ -36,7 +36,7 @@ function baseline(): Snapshot {
 test('reader confines credential-bearing GETs and never retries permissions', async () => {
   const url = 'https://firestore.googleapis.com/v1/' + prefix + 'players_v2';
   assertSourceRequest(url);
-  for (const wrong of [url.replace('firestore.googleapis.com', 'evil.test'), url.replace('scoutzero-bf1ae', 'other'), url.replace('players_v2', 'architect_worlds'), url + '/player/evaluations', url + '/player/contracts/document']) assert.throws(() => assertSourceRequest(wrong));
+  for (const wrong of [url.replace('firestore.googleapis.com', 'evil.test'), url.replace('scoutzero-bf1ae', 'other'), url.replace('players_v2', 'architect_worlds'), url + '/player/evaluations', url + '/player/contracts/document/other']) assert.throws(() => assertSourceRequest(wrong));
   let calls = 0;
   const delays: number[] = [];
   const response = await retryRead(async () => new Response('', { status: ++calls === 1 ? 429 : 403 }), url, async (ms) => { delays.push(ms); });
