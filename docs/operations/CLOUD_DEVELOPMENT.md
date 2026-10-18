@@ -20,7 +20,9 @@ npm run cloud:setup -- --check
 ```
 
 Setup installs locked app dependencies, builds existing Functions and pins
-Firebase CLI 14.12.1 separately under `.scoutzero-dev/tools/firebase/`.
+Firebase CLI 14.12.1 separately under `.scoutzero-dev/tools/firebase/`. The setup
+entry point uses Node’s managed environment proxy for an uncached emulator
+download; a direct native fetch is rejected in this executor.
 CLI 15.32.1 ignored NO_PROXY and broke hub/export requests behind this proxy.
 Setup also pins official Firestore emulator 1.22.0, verifying its published
 size and SHA-256 before activation. The launcher's supported binary override
