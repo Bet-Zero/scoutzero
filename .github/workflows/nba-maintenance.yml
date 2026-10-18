@@ -1,0 +1,30 @@
+name: Controlled ordinary NBA maintenance
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Access probe never writes. Publish requires exact registered approval.
+        type: choice
+        options: [access, publish]
+        default: access
+        required: true
+      plan_sha256:
+        description: Exact reviewed owner-approved plan digest; empty for access.
+        type: string
+        required: false
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+jobs:
+  controlled:
+    # Replaced with the reviewed immutable worker commit before landing.
+    uses: Bet-Zero/scoutzero/.github/workflows/nba-maintenance-worker.yml@0000000000000000000000000000000000000000
+    with:
+      operation: ${{ inputs.operation }}
+      plan_sha256: ${{ inputs.plan_sha256 }}
+    secrets:
+      BZE324_MAINTENANCE_PASSPHRASE: ${{ secrets.BZE324_MAINTENANCE_PASSPHRASE }}

@@ -5,6 +5,7 @@
  */
 
 import { stagePlayer, parseArgs } from './stage_player.js';
+import { maintenanceErrorMessage } from '../../../scripts/dev/maintenanceErrors.js';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,21 +20,9 @@ const INDEX_PATH = path.join(
   'player_index.json'
 );
 
-function parseArg(label: string, def?: number): number {
-  const argv = process.argv.slice(2);
-  for (const arg of argv) {
-    if (arg.startsWith(`--${label}=`)) {
-      const val = Number(arg.split('=')[1]);
-      if (!Number.isInteger(val) || val < 1 || val > 50) throw new Error('batchSize must be an integer between 1 and 50');
-      return val;
-    }
-  }
-  return def ?? 10;
-}
-
 async function main() {
-  const batchSize = parseArg('batchSize', 10);
-  const options = parseArgs(['--player=batch', ...process.argv.slice(2)]);
+  const options = parseArgs(process.argv.slice(2), true);
+  const batchSize = options.batchSize!;
   const indexPath = options.indexPath || INDEX_PATH;
   const index = JSON.parse(await readFile(indexPath, 'utf8'));
   const playerIds = Object.keys(index).sort();
@@ -60,7 +49,7 @@ async function main() {
     // Stage players in parallel within batch
     const promises = batch.map(async (playerId) => {
       try { await stagePlayer({ ...options, indexPath, playerId }); return true; }
-      catch { console.error(`Failed to stage ${playerId}; inspect its private inputs`); return false; }
+      catch (error) { console.error(`Failed to stage ${playerId}: ${maintenanceErrorMessage(error)}`); return false; }
     });
     const batchResults = await Promise.all(promises);
 
@@ -84,7 +73,7 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('Staging failed:', err);
+  console.error('Staging failed:', maintenanceErrorMessage(err));
   process.exit(1);
 });
 

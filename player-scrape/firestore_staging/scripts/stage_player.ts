@@ -1,4 +1,6 @@
 import path from 'node:path';
+import { parseArgs as parseCliOptions } from 'node:util';
+import { maintenanceErrorMessage } from '../../../scripts/dev/maintenanceErrors.js';
 import { maintenanceContext } from '../../../scripts/dev/maintenanceContext.js';
 import { fileURLToPath } from 'node:url';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -18,6 +20,7 @@ interface CliArgs {
   statsDir?: string;
   season?: string;
   asOf?: string;
+  batchSize?: number;
 }
 
 type PlayerIndexEntry = {
@@ -164,46 +167,28 @@ const PLAYER_INDEX_PATH = path.join(
   'player_index.json'
 );
 
-export function parseArgs(argv = process.argv.slice(2)): CliArgs {
-  let playerId: string | undefined;
-  let outDir: string | undefined;
-  let validate = false;
-  const context: Partial<CliArgs> = {};
-
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === '--player' || arg === '-p') {
-      playerId = argv[++i];
-    } else if (arg.startsWith('--player=')) {
-      [, playerId] = arg.split('=');
-    } else if (arg === '--outDir') {
-      outDir = argv[++i];
-    } else if (arg.startsWith('--outDir=')) {
-      [, outDir] = arg.split('=');
-    } else if (arg === '--validate') {
-      validate = true;
-    } else {
-      for (const [flag, key] of Object.entries({ season: 'season', 'as-of': 'asOf', index: 'indexPath', 'contracts-dir': 'contractsDir', 'stats-dir': 'statsDir' })) {
-        if (arg === '--' + flag) context[key as 'season' | 'asOf' | 'indexPath' | 'contractsDir' | 'statsDir'] = argv[++i];
-        else if (arg.startsWith('--' + flag + '=')) context[key as 'season' | 'asOf' | 'indexPath' | 'contractsDir' | 'statsDir'] = arg.slice(flag.length + 3);
-      }
-    }
+export function parseArgs(argv = process.argv.slice(2), bulk = false): CliArgs {
+  const { values } = parseCliOptions({ args: argv, options: {
+    player: { type: 'string', short: 'p' }, outDir: { type: 'string' },
+    validate: { type: 'boolean' }, season: { type: 'string' }, 'as-of': { type: 'string' },
+    index: { type: 'string' }, 'contracts-dir': { type: 'string' }, 'stats-dir': { type: 'string' },
+    batchSize: { type: 'string' },
+  } });
+  for (const [flag, value] of Object.entries(values)) {
+    if (typeof value === 'string' && (!value || value.startsWith('-'))) throw new Error('Missing or invalid value for --' + flag);
   }
-
-  if (!playerId) {
-    throw new Error('Missing required --player argument');
-  }
-
-  const dated = maintenanceContext(context.season || process.env.MAINTENANCE_SEASON || '', context.asOf || process.env.MAINTENANCE_AS_OF || '');
+  if (bulk && values.player) throw new Error('Bulk staging takes its inventory from --index, not --player');
+  if (!bulk && values.batchSize !== undefined) throw new Error('--batchSize is supported only by bulk staging');
+  const playerId = bulk ? 'batch' : values.player;
+  if (!playerId) throw new Error('Missing required --player argument');
+  const batchSize = values.batchSize === undefined ? 10 : Number(values.batchSize);
+  if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 50) throw new Error('batchSize must be an integer between 1 and 50');
+  const dated = maintenanceContext(values.season || process.env.MAINTENANCE_SEASON || '', values['as-of'] || process.env.MAINTENANCE_AS_OF || '');
   return {
-    ...context,
-    season: dated.season,
-    asOf: dated.asOf,
-    playerId,
-    outDir: outDir
-      ? path.resolve(process.cwd(), outDir)
-      : path.join(__dirname, '..', '_artifacts', 'output'),
-    validate,
+    season: dated.season, asOf: dated.asOf, playerId, batchSize,
+    indexPath: values.index, contractsDir: values['contracts-dir'], statsDir: values['stats-dir'],
+    outDir: values.outDir ? path.resolve(process.cwd(), values.outDir) : path.join(__dirname, '..', '_artifacts', 'output'),
+    validate: values.validate || false,
   };
 }
 
@@ -1119,7 +1104,7 @@ if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
       console.log('Staged files created:', outPaths);
     })
     .catch((err) => {
-      console.error('Failed to stage player:', err);
+      console.error('Failed to stage player:', maintenanceErrorMessage(err));
       process.exit(1);
     });
 }

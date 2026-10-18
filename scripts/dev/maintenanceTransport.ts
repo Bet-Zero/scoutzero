@@ -5,18 +5,17 @@
  * HISTORY: 2026-10-18 — BZE-324 Gate A implementation.
  * LINKS: docs/operations/NBA_MAINTENANCE.md; docs/operations/DRAFT_UPDATE_PROCESS.md
  */
-import { applicationDefault } from 'firebase-admin/app';
 import { DEMO_PROJECT, SOURCE_PROJECT } from './cloudData.js';
 import type { PublicationStore } from './maintenancePublish.js';
 
 /** Fixed endpoints; never accepts a supplied URL or forwards credentials on redirects. */
-export async function maintenanceStore(production: boolean): Promise<PublicationStore> {
+export async function maintenanceStore(production: boolean, workerToken?: string): Promise<PublicationStore> {
   const project = production ? SOURCE_PROJECT : DEMO_PROJECT;
   const origin = production ? 'https://firestore.googleapis.com' : 'http://127.0.0.1:8082';
   if (production && process.env.FIRESTORE_EMULATOR_HOST) throw new Error('Production and emulator modes cannot be combined');
-  const credential = production ? applicationDefault() : undefined;
+  if (production && !workerToken) throw new Error('Production requires the protected keyless GitHub worker; local ADC and service-account keys are unsupported');
   async function request(suffix: string, method = 'GET', body?: unknown) {
-    const token = credential ? (await credential.getAccessToken()).access_token : 'owner';
+    const token = production ? workerToken : 'owner';
     const result = await fetch(`${origin}/v1/projects/${project}/databases/(default)/documents${suffix}`, {
       method, headers: { Authorization: 'Bearer ' + token, 'content-type': 'application/json' },
       redirect: 'error', signal: AbortSignal.timeout(30000), ...(body ? { body: JSON.stringify(body) } : {}),

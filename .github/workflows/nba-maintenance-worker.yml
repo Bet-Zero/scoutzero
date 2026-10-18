@@ -1,0 +1,96 @@
+name: Immutable ordinary NBA maintenance worker
+
+on:
+  workflow_call:
+    inputs:
+      operation:
+        type: string
+        required: true
+      plan_sha256:
+        type: string
+        required: false
+        default: ''
+    secrets:
+      BZE324_MAINTENANCE_PASSPHRASE:
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ordinary-nba-production-maintenance
+  cancel-in-progress: false
+
+jobs:
+  maintenance:
+    if: >-
+      github.repository_id == '997820257' &&
+      github.repository_owner_id == '205859440' &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      (inputs.operation == 'access' || inputs.operation == 'publish')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: nba-maintenance-publication
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - name: Resolve immutable called worker identity
+        id: executor
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync } from 'node:fs';
+          const response = await fetch(process.env.ACTIONS_ID_TOKEN_REQUEST_URL + '&audience=scoutzero-nba-worker-identity', {
+            headers: { Authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}` }, redirect: 'error'
+          });
+          if (!response.ok) throw new Error('GitHub identity unavailable');
+          const { value } = await response.json();
+          const claims = JSON.parse(Buffer.from(value.split('.')[1], 'base64url'));
+          const sha = claims.job_workflow_sha;
+          if (!/^[a-f0-9]{40}$/.test(sha) || claims.job_workflow_ref !== `Bet-Zero/scoutzero/.github/workflows/nba-maintenance-worker.yml@${sha}` ||
+              claims.environment !== 'nba-maintenance-publication' || claims.repository_id !== '997820257' ||
+              claims.repository_owner_id !== '205859440' || claims.ref !== 'refs/heads/main' || claims.event_name !== 'workflow_dispatch' ||
+              claims.workflow_ref !== 'Bet-Zero/scoutzero/.github/workflows/nba-maintenance.yml@refs/heads/main') throw new Error('Immutable protected main workflow required');
+          appendFileSync(process.env.GITHUB_OUTPUT, `sha=${sha}\n`);
+          NODE
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: Bet-Zero/scoutzero
+          ref: ${{ steps.executor.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - run: npm ci --ignore-scripts
+      - name: Verify protections and exact approval before Google authentication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAINTENANCE_WORKER_SHA: ${{ steps.executor.outputs.sha }}
+          MAINTENANCE_OPERATION: ${{ inputs.operation }}
+          MAINTENANCE_PLAN_SHA256: ${{ inputs.plan_sha256 }}
+          BZE324_MAINTENANCE_PASSPHRASE: ${{ inputs.operation == 'publish' && secrets.BZE324_MAINTENANCE_PASSPHRASE || '' }}
+        run: node --import tsx scripts/dev/maintenanceWorker.ts prepare
+      - name: Exchange dedicated bounded GitHub identity
+        id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          project_id: scoutzero-bf1ae
+          workload_identity_provider: projects/105500121903/locations/global/workloadIdentityPools/scoutzero-bze321/providers/github
+          service_account: scoutzero-nba-maintenance@scoutzero-bf1ae.iam.gserviceaccount.com
+          token_format: access_token
+          access_token_lifetime: 600s
+          access_token_scopes: https://www.googleapis.com/auth/cloud-platform
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Run non-mutating access probe or exact approved publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MAINTENANCE_WORKER_SHA: ${{ steps.executor.outputs.sha }}
+          MAINTENANCE_OPERATION: ${{ inputs.operation }}
+          MAINTENANCE_PLAN_SHA256: ${{ inputs.plan_sha256 }}
+          BZE324_MAINTENANCE_PASSPHRASE: ${{ inputs.operation == 'publish' && secrets.BZE324_MAINTENANCE_PASSPHRASE || '' }}
+          SCOUTZERO_MAINTENANCE_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: node --import tsx scripts/dev/maintenanceWorker.ts execute

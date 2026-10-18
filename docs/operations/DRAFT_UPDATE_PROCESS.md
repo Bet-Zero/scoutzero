@@ -166,5 +166,5 @@ and safely extract its 73 regular-file members. The included
 `retention-manifest.json` pins the other 72 members. It contains no credentials,
 token values, browser sessions, user records or saved worlds. This is historical
 rehearsal evidence; it is not a current qualified source release or approval.
-The archive was independently downloaded and all member checksums verified after
-owner-authorized private upload. Do not redistribute its private source bodies.
+Do not redistribute its private source bodies. Retention and recovery results
+are recorded in [the execution receipt](../../work/bze-324/CLOSEOUT.md).

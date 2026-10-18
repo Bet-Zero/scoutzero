@@ -14,15 +14,15 @@ import { fileURLToPath } from 'node:url';
 import { SOURCE_PROJECT } from './cloudData.js';
 import type { Publication, PublicationApproval } from './maintenancePublish.js';
 
-type AcceptedPublication = {
+export type AcceptedPublication = {
   inputSha256: string; qualificationReceipt: string; reviewReceipt: string; ownerReceipt: string; expiresAt: string;
 };
 // Intentionally empty: Gate A authorizes no production refresh. Add an exact
 // independently qualified/reviewed/owner-approved operation through normal PR review.
-const acceptedPublications: Readonly<Record<string, AcceptedPublication>> = Object.freeze({});
+export const acceptedPublications: Readonly<Record<string, AcceptedPublication>> = Object.freeze({});
 
-export function requireRegisteredPublication(planSha256: string, plan: Publication, approval: PublicationApproval) {
-  const accepted = Object.hasOwn(acceptedPublications, planSha256) ? acceptedPublications[planSha256] : undefined;
+export function requireRegisteredPublication(planSha256: string, plan: Publication, approval: PublicationApproval, registry: Readonly<Record<string, AcceptedPublication>> = acceptedPublications) {
+  const accepted = Object.hasOwn(registry, planSha256) ? registry[planSha256] : undefined;
   if (!accepted || plan.project !== SOURCE_PROJECT || accepted.inputSha256 !== plan.inputSha256 ||
       accepted.qualificationReceipt !== approval.qualification.receipt || accepted.reviewReceipt !== approval.review.receipt ||
       accepted.ownerReceipt !== approval.owner.receipt || accepted.expiresAt !== approval.expiresAt) throw new Error('Production plan is not registered by independently reviewed, owner-approved release code');
@@ -30,7 +30,7 @@ export function requireRegisteredPublication(planSha256: string, plan: Publicati
 
 /** Inspect actual bytes, including files hidden by skip-worktree/assume-unchanged. */
 export async function verifyTrackedExecutor(root: string) {
-  const tree = execFileSync('git', ['ls-tree', '-rz', 'HEAD'], { cwd: root, encoding: 'utf8' });
+  const tree = execFileSync('git', ['ls-tree', '-rz', 'HEAD'], { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
   for (const entry of tree.split('\0').filter(Boolean)) {
     const split = entry.indexOf('\t');
     const [mode, type, expected] = entry.slice(0, split).split(' ');

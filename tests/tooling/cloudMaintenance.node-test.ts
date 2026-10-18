@@ -259,3 +259,76 @@ test('maintenance access probe is non-mutating and rejects inadequate or excessi
   permissions = [...REQUIRED_MAINTENANCE_PERMISSIONS, 'datastore.entities.delete'];
   await assert.rejects(() => probeMaintenancePermissions('SYNTHETIC', send), /excessive/);
 });
+
+test('staging rejects misspelled flags and missing operands rather than choosing old inputs', async () => {
+  const { parseArgs } = await import('../../player-scrape/firestore_staging/scripts/stage_player.js');
+  const args = ['--player=fixture', '--season=2026-27', '--as-of=2026-10-18T00:00:00Z'];
+  for (const invalid of [['--contracts_dir=/private'], ['--index', '--contracts-dir=/private'], ['--season'], ['--index='], ['--index=-bad'], ['--batchSize=1']]) {
+    assert.throws(() => parseArgs([...args, ...invalid]));
+  }
+  assert.equal(parseArgs(args).season, '2026-27');
+  assert.equal(parseArgs(args.slice(1).concat('--batchSize', '2'), true).batchSize, 2);
+});
+
+test('ordinary worker requires separate protected main and an exact reviewed registry', async () => {
+  const { verifyMaintenanceProtection, maintenanceRegistry, runMaintenanceWorker } = await import('../../scripts/dev/maintenanceWorker.js');
+  const environment = { name: 'nba-maintenance-publication', can_admins_bypass: false,
+    protection_rules: [{ type: 'required_reviewers', reviewers: [{ type: 'User', reviewer: { id: 205859440 } }] }],
+    deployment_branch_policy: { custom_branch_policies: true, protected_branches: false } };
+  const branches = { branch_policies: [{ name: 'main', type: 'branch' }] };
+  verifyMaintenanceProtection(environment, branches);
+  for (const bad of [{ ...environment, can_admins_bypass: true }, { ...environment, protection_rules: [] }, { ...environment, name: 'draft-review-publication' }]) {
+    assert.throws(() => verifyMaintenanceProtection(bad, branches), /Dedicated environment/);
+  }
+  assert.throws(() => verifyMaintenanceProtection(environment, { branch_policies: [{ name: '*', type: 'branch' }] }));
+  assert.throws(() => verifyMaintenanceProtection({ ...environment, protection_rules: [{ type: 'required_reviewers', reviewers: [...environment.protection_rules[0].reviewers, { type: 'User', reviewer: { id: 1 } }] }] }, branches));
+  assert.deepEqual(maintenanceRegistry({ version: 1, publications: {} }), {});
+  assert.throws(() => maintenanceRegistry({ version: 1, publications: { arbitrary: {} } }));
+  assert.throws(() => maintenanceRegistry({ version: 1, publications: { ['a'.repeat(64)]: { ciphertextSha256: 'b'.repeat(64), inputSha256: 'c'.repeat(64), qualificationReceipt: 'https://linear.app/fixture', reviewReceipt: 'https://github.com/fixture', ownerReceipt: 'https://linear.app/fixture', expiresAt: '2020-01-01T00:00:00Z' } } }), /expired/);
+  await assert.rejects(() => runMaintenanceWorker('execute'), /Protected main workflow context/);
+  const { maintenanceStore } = await import('../../scripts/dev/maintenanceTransport.js');
+  await assert.rejects(() => maintenanceStore(true), /protected keyless GitHub worker/);
+  const result = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/dev/maintenancePublish.cli.ts', '--production'], { encoding: 'utf8' });
+  assert.equal(result.status, 1); assert.match(result.stderr, /no local ADC or key is accepted/);
+});
+
+test('separate encrypted maintenance package round-trips using real GPG without retaining plaintext', async () => {
+  const { decryptMaintenancePackage } = await import('../../scripts/dev/maintenanceWorker.js');
+  const { readFile, rm } = await import('node:fs/promises');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'maintenance-crypto-'));
+  try {
+    const passphrase = 'ab'.repeat(48); // Deliberately public fixture; never used for an actual package.
+    const f = fixture(); const value = { plan: f.plan, approval: f.approval };
+    const plain = path.join(root, 'source.json'); const encrypted = path.join(root, 'package.gpg');
+    await writeFile(plain, JSON.stringify(value), { mode: 0o600 });
+    const result = spawnSync('gpg', ['--no-options', '--homedir', root, '--batch', '--no-symkey-cache', '--pinentry-mode', 'loopback', '--passphrase-fd', '0', '--symmetric', '--cipher-algo', 'AES256', '--output', encrypted, plain], {
+      input: passphrase + '\n', env: { PATH: process.env.PATH }, encoding: 'utf8', timeout: 15000,
+    });
+    assert.equal(result.status, 0, 'GPG encryption must succeed');
+    await rm(plain);
+    const bytes = await readFile(encrypted);
+    assert.deepEqual(decryptMaintenancePackage(bytes, passphrase, encrypted, root), value);
+    assert.throws(() => decryptMaintenancePackage(bytes, 'cd'.repeat(48), encrypted, root), /decryption failed/);
+    assert.throws(() => decryptMaintenancePackage(bytes, '', encrypted, root), /secret missing/);
+  } finally {
+    spawnSync('gpgconf', ['--homedir', root, '--kill', 'gpg-agent'], { stdio: 'ignore', timeout: 5000 });
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('publication packaging creates a separate private key file, verifies recovery and refuses overwrite', async () => {
+  const { packageMaintenance } = await import('../../scripts/dev/maintenancePackage.js');
+  const { readFile, rm, stat } = await import('node:fs/promises');
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nba-package-proof-'));
+  try {
+    const f = fixture(); f.plan.project = 'scoutzero-bf1ae'; f.approval.project = f.plan.project;
+    const sha = digest(canonical(f.plan)); f.approval.planSha256 = sha; f.approval.owner.planSha256 = sha; f.approval.review.planSha256 = sha;
+    const out = path.join(root, 'payload.gpg'); const key = path.join(root, 'private-passphrase');
+    const receipt = await packageMaintenance(f.plan, f.approval, out, key);
+    assert.equal(receipt.privateReadbackVerified, true); assert.equal(receipt.productionWriteAuthorized, false);
+    assert.equal(receipt.planSha256, sha); assert.equal(receipt.ciphertextSha256, digest(await readFile(out)));
+    assert.match(await readFile(key, 'utf8'), /^[a-f0-9]{96}\n$/);
+    assert.equal((await stat(key)).mode & 0o777, 0o600);
+    await assert.rejects(() => packageMaintenance(f.plan, f.approval, out, key), /EEXIST/);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

@@ -184,6 +184,7 @@
     "maintenance:inputs": "node --import tsx scripts/dev/maintenanceInputs.ts",
     "maintenance:access": "node --use-env-proxy --import tsx scripts/dev/maintenanceAccess.ts",
     "maintenance:publish": "node --use-env-proxy --import tsx scripts/dev/maintenancePublish.cli.ts",
+    "maintenance:package": "node --import tsx scripts/dev/maintenancePackage.ts",
     "maintenance:plan": "node --import tsx scripts/dev/maintenancePlan.ts",
     "maintenance:rehearse": "node --import tsx scripts/dev/maintenanceRehearsal.ts",
     "draft:maintenance:compare": "node --import tsx scripts/dev/draftMaintenance.ts"

@@ -187,44 +187,79 @@ landing. The registry is initially empty. Caller-authored approval JSON or an
 explicit command flag cannot register an operation. Production requires clean
 exact live-main code; it rejects an author branch before credential use.
 
-Before production registration, run the non-mutating access probe:
+Ordinary publication reuses BZE-321's protected, immutable GitHub Actions and
+Workload Identity Federation pattern, with a **separate** account:
+`scoutzero-nba-maintenance@scoutzero-bf1ae.iam.gserviceaccount.com`.
+It does not use the draft publisher, local ADC, personal Google identities or
+service-account keys. Both local and cloud operators dispatch the same worker.
+
+Before production registration, request the non-mutating access probe:
 
 ```bash
 npm run maintenance:access
 ```
 
-The existing environment must have an approved short-lived Google maintenance
-identity and network access to `cloudresourcemanager.googleapis.com` in addition
-to the already approved Firestore/authentication hosts. The command reports
-missing configuration together, checks required `datastore.entities.get`,
-`datastore.entities.create` and `datastore.entities.update`, rejects tested
-unneeded deletion/listing/admin/storage privileges, and reads one fixed ordinary
-base-player record. It never commits data or changes IAM/Rules. A passing probe
-is permission/read evidence, not complete IAM-policy review or production approval.
-Verify the actual identity, trust, role bindings and expiry separately; these
-Firestore permissions are database-wide IAM, with document/field scope enforced
-by the reviewed executor. Do not broaden a BZE-321 identity or use broad permanent
-roles or service-account keys. Missing access configuration keeps Gate A open.
-Production execution repeats the probe after exact registration and landed-code
-checks. Landed-code checks inspect every tracked file's actual bytes, including
-files hidden by git index flags.
+This dispatches `nba-maintenance.yml` on main; the dedicated
+`nba-maintenance-publication` environment requires owner approval. The pinned
+worker verifies live-main caller identity, all checked-out executor bytes, owner
+review protection, no admin bypass and a main-only branch policy **before**
+Google authentication. It checks `datastore.entities.get/create/update`, rejects
+tested unnecessary deletion/listing/admin/storage privileges, and reads one fixed
+ordinary base-player document. Access mode never fetches a private package or
+calls commit. The Google token lasts ten minutes and is confined to that job;
+no credential file, private artifact or token is exported.
 
-The explicit production entry point is:
+A passing probe proves permission/read behavior, not complete IAM-policy review
+or production approval. The three Firestore permissions are database-wide IAM;
+the immutable reviewed executor enforces the document/field boundary and keeps
+worlds, draft associations and unrelated records unchanged. No broad permanent
+role, draft privilege, Rules privilege or service-account key is allowed.
+Configuration and the actual read-only run must be verified before Gate A closes.
+See the [bounded setup and owner action](../../work/bze-324/PUBLISHER_ACCESS.md).
+
+For a qualified, independently reviewed and owner-approved production proposal:
 
 ```bash
-npm run maintenance:publish -- --production \
-  --plan="$PRIVATE_RUN/publication-plan.json" --approval="$PRIVATE_APPROVAL" \
-  --approved-plan-sha256="$EXACT_OWNER_APPROVED_DIGEST"
+npm run maintenance:package -- --plan="$PRIVATE_RUN/publication-plan.json" \
+  --approval="$PRIVATE_APPROVAL" --out="$PRIVATE_RUN/publication.json.gpg" \
+  --passphrase="$PRIVATE_MAINTENANCE_PASSPHRASE_FILE"
 ```
 
-It uses an already authorized short-lived Google application-default credential,
-fixed Firestore host/project/database, no redirects, exact preconditions, readback
-and completion records. This is **prepared/rehearsed implementation**, not a live
-publication receipt. This fresh environment has no configured Google writer;
-no new grant, key, protected environment or broader Rules change was made.
-The existing BZE-321 protected publisher must not be repurposed. A verified
-appropriately bounded authorized execution identity remains an access gate;
-do not disguise it as a completed deployment or use a broad owner credential.
+GnuPG is required for packaging and the Linux worker. Packaging generates a
+separate 384-bit random passphrase when the private file does not exist, verifies
+actual decryption, refuses output overwrite and prints only digest metadata.
+It does not establish factual acceptance. Retain the passphrase through an
+explicitly authorized private handoff; install it **once** as the dedicated
+environment secret `BZE324_MAINTENANCE_PASSPHRASE`. Never reuse a BZE-321 key.
+Never put plaintext or that secret in Git, workflow inputs, logs or artifacts.
+The 73-file rehearsal archive is **not** a publication input and must never enter CI.
+
+Public ciphertext retention needs explicit owner authorization for the exact
+new package, as in the BZE-321 handoff; an earlier exception does not extend.
+After that authorization, place only the ciphertext at
+`.github/nba-maintenance-publication.json.gpg` and add its exact metadata under
+the plan digest in `.github/nba-maintenance-approvals.json` through normal review
+and landing. Each record contains only `ciphertextSha256`, `inputSha256`,
+`qualificationReceipt`, `reviewReceipt`, `ownerReceipt` and `expiresAt`.
+The initial registry is empty and Gate A registers no production operation.
+
+Codex then dispatches:
+
+```bash
+gh workflow run nba-maintenance.yml --repo Bet-Zero/scoutzero --ref main \
+  -f operation=publish -f plan_sha256="$EXACT_OWNER_APPROVED_DIGEST"
+```
+
+The immutable worker fetches only fixed registry/ciphertext **data** from the
+exact live-main caller; it never executes caller code. Before Google access it
+checks the registered ciphertext, decrypted plan, qualified input digest,
+independent and owner receipts, expiry, scope and coverage. It repeats those
+checks and the access probe immediately before the shared conditional publisher.
+Plans and plaintext never become job artifacts. Packages are bounded to 35 MiB;
+prepare separately reviewed plans if necessary. Expired tokens or interrupted
+runs stop without a complete claim; rerun the same still-approved plan to verify
+atomic completion-ledger recovery. A local `maintenance:publish --production`
+invocation always refuses ADC/key use; its emulator entry point remains available.
 
 Emulator restoration uses only exact successful commit versions and refuses a
 concurrent edit. Production reversal is a new independently reviewed, approved
