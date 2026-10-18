@@ -10,7 +10,7 @@ checking only maintenance modules. No executable file is excluded.
 - `.github/workflows/nba-maintenance.yml`: reviewed caller's literal pin update.
 - `work/bze-324/PUBLISHER_ACCESS.md`: owner trust pin and reviewed setup procedure.
 - `work/bze-324/CLOSEOUT.md`: author receipts.
-- `work/bze-324/EXECUTOR_df87a5598073f0f90a37d707bed4eac9fe6118fe_PROOF.md`: this static evidence.
+- `work/bze-324/EXECUTOR_PIN_PROOF.md`: this static evidence.
 
 The pin's filtered manifest has 2920 entries and SHA-256
 `166a639e5f8df6180fe928e6593e948286d0c5b4791ecba1cde19ad48667ecfb`.
