@@ -48,8 +48,12 @@ export async function configureCloudOwnerAccess(details: TrustDetails, run: Runn
   if (!serviceAccount) invoke(['iam', 'service-accounts', 'create', ACCOUNT_ID, '--display-name=ScoutZero cloud source reads and private recovery']);
   else if (serviceAccount.disabled) throw new Error('Existing cloud reader is disabled');
   const sourceRole = 'projects/' + PROJECT + '/roles/' + SOURCE_ROLE;
+  const principal = 'principal://iam.googleapis.com/projects/' + NUMBER + '/locations/global/workloadIdentityPools/' + POOL + '/subject/' + details.subject;
   const policy = invoke(['projects', 'get-iam-policy', PROJECT]);
   if ((policy.bindings || []).some((b: any) => b.members?.includes('serviceAccount:' + ACCOUNT) && b.role !== sourceRole)) throw new Error('Cloud reader already has an unexpected project role; owner review is required');
+  const accountPolicy = invoke(['iam', 'service-accounts', 'get-iam-policy', ACCOUNT]);
+  if ((accountPolicy.bindings || []).some((b: any) => b.role !== 'roles/iam.workloadIdentityUser' || b.condition ||
+      b.members?.some((member: string) => member !== principal))) throw new Error('Cloud reader has unexpected impersonation trust; no existing trust was changed');
   const database = invoke(['firestore', 'databases', 'describe', '--database=(default)']);
   const locationId = database.locationId;
   if (typeof locationId !== 'string' || !/^[a-z0-9-]+$/.test(locationId)) throw new Error('Could not determine the existing database location');
@@ -68,9 +72,13 @@ export async function configureCloudOwnerAccess(details: TrustDetails, run: Runn
   const firebase = await fetcher('https://firebasestorage.googleapis.com/v1beta/projects/' + NUMBER + '/buckets/' + BUCKET,
     { redirect: 'error', headers: { Authorization: 'Bearer ' + token }, signal: AbortSignal.timeout(30000) });
   if (firebase.status !== 404 || (await firebase.json()).error?.status !== 'NOT_FOUND') throw new Error('Recovery bucket must not be Firebase-registered; no app storage rules were changed');
-  if (!find(['iam', 'workload-identity-pools', 'describe', POOL, '--location=global'])) invoke(['iam', 'workload-identity-pools', 'create', POOL, '--location=global', '--display-name=ScoutZero Codex cloud data']);
+  const pool = find(['iam', 'workload-identity-pools', 'describe', POOL, '--location=global']);
+  if (pool?.disabled || (pool?.state && pool.state !== 'ACTIVE')) throw new Error('Existing cloud identity pool is unavailable');
+  if (!pool) invoke(['iam', 'workload-identity-pools', 'create', POOL, '--location=global', '--display-name=ScoutZero Codex cloud data']);
   const condition = 'assertion.sub == ' + JSON.stringify(details.subject);
   const providerArgs = ['--workload-identity-pool=' + POOL, '--location=global'];
+  const providers = invoke(['iam', 'workload-identity-pools', 'providers', 'list', ...providerArgs]);
+  if (!Array.isArray(providers) || providers.some((p: any) => p.name?.split('/').pop() !== PROVIDER)) throw new Error('Cloud pool contains other provider trust; no existing trust was changed');
   const provider = find(['iam', 'workload-identity-pools', 'providers', 'describe', PROVIDER, ...providerArgs]);
   if (provider) {
     if (provider.disabled || provider.oidc?.issuerUri !== details.issuer || !equalPermissions(provider.oidc?.allowedAudiences || [], [details.audience]) ||
@@ -81,7 +89,7 @@ export async function configureCloudOwnerAccess(details: TrustDetails, run: Runn
   invoke(['storage', 'buckets', 'add-iam-policy-binding', 'gs://' + BUCKET, '--member=serviceAccount:' + ACCOUNT,
     '--role=projects/' + PROJECT + '/roles/' + RECOVERY_ROLE, '--condition=None']);
   invoke(['iam', 'service-accounts', 'add-iam-policy-binding', ACCOUNT,
-    '--member=principal://iam.googleapis.com/projects/' + NUMBER + '/locations/global/workloadIdentityPools/' + POOL + '/subject/' + details.subject,
+    '--member=' + principal,
     '--role=roles/iam.workloadIdentityUser', '--condition=None']);
   return { ...cloudOwnerScope(details), configured: true, verificationStillRequired: ['Actual source GET/LIST and denied database write permission', 'Private remote backup/readback', 'Fresh-session restore without current workspace data'] };
 }

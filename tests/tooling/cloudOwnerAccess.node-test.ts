@@ -10,6 +10,8 @@ function fixture(overrides: Record<string, any> = {}) {
   const response: Record<string, any> = {
     'projects describe': { projectId: project, projectNumber: policy.CLOUD_DATA_PROJECT_NUMBER },
     'projects get-iam-policy': { bindings: [] },
+    'iam service-accounts get-iam-policy': { bindings: [] },
+    'iam workload-identity-pools providers list': [],
     'firestore databases describe': { locationId: 'nam5' },
     'storage buckets describe': { project_number: policy.CLOUD_DATA_PROJECT_NUMBER, public_access_prevention: 'enforced', uniform_bucket_level_access: true },
     'auth print-access-token': 'SYNTHETIC_TEST_AUTH',
@@ -49,6 +51,9 @@ test('owner setup rejects identity, private storage, existing broad grants and m
     { 'storage buckets describe': { project_number: policy.CLOUD_DATA_PROJECT_NUMBER, public_access_prevention: 'inherited', uniform_bucket_level_access: true } },
     { 'iam workload-identity-pools providers describe': { oidc: { issuerUri: 'https://wrong.example.invalid' } } },
     { 'iam roles describe': { includedPermissions: ['datastore.entities.update'] } },
+    { 'iam service-accounts get-iam-policy': { bindings: [{ role: 'roles/iam.serviceAccountTokenCreator', members: ['user:unexpected@example.invalid'] }] } },
+    { 'iam workload-identity-pools describe': { disabled: true } },
+    { 'iam workload-identity-pools providers list': [{ name: 'projects/105500121903/locations/global/workloadIdentityPools/scoutzero-cloud-dev/providers/other' }] },
   ]) {
     const f = fixture(overrides);
     await assert.rejects(() => configureCloudOwnerAccess(trust, f.run, f.fetcher));
