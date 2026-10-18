@@ -414,7 +414,7 @@ function buildResolver(index: PlayerIndex): PlayerIdResolver {
         normalizedName.replace(/[.,']/g, ''),
         normalizedName.replace(/[- ]/g, ' ').replace(/[.,']/g, ''),
       ].find((key) => MANUAL_OVERRIDES[key]);
-      if (overrideKey) {
+      if (overrideKey && index[MANUAL_OVERRIDES[overrideKey]]) {
         const overrideId = MANUAL_OVERRIDES[overrideKey];
         return {
           playerId: overrideId,

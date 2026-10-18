@@ -341,14 +341,19 @@ test('a real source throttle stops the batch and retains failed/missing accounti
   let calls = 0;
   globalThis.fetch = async () => { calls++; return new Response('', { status: 429 }); };
   try {
-    await assert.rejects(() => collectMaintenance(path.join(root, 'run'), {
-      operation: 'contracts', season: '2026-27', asOf: '2026-10-18T00:00:00Z',
-      inventory: { first: { teamCode: 'LAL', url: 'https://www.salaryswish.com/players/first' },
+    const request = {
+      operation: 'contracts' as const, season: '2026-27', asOf: '2026-10-18T00:00:00Z',
+      inventory: { retained: { teamCode: 'LAL', url: 'https://www.salaryswish.com/players/retained' },
+        first: { teamCode: 'LAL', url: 'https://www.salaryswish.com/players/first' },
         next: { teamCode: 'BOS', url: 'https://www.salaryswish.com/players/next' } },
-    }), /rate limit reached/);
+    };
+    const prior = await openMaintenanceRun(path.join(root, 'run'), request, false);
+    await writeFile(path.join(root, 'run/retained.html'), 'retained exact source input');
+    await prior.record('retained', 'processed', ['retained.html']);
+    await assert.rejects(() => collectMaintenance(path.join(root, 'run'), request, true), /rate limit reached/);
     assert.equal(calls, 1, 'A source-wide throttle must not become a request for every remaining player');
     const coverage = JSON.parse(await readFile(path.join(root, 'run/coverage.json'), 'utf8'));
-    assert.equal(coverage.failed, 1); assert.equal(coverage.missing, 1); assert.equal(coverage.complete, false);
+    assert.equal(coverage.failed, 1); assert.equal(coverage.missing, 1); assert.equal(coverage.complete, false); assert.equal(coverage.unchanged, 1);
   } finally { globalThis.fetch = originalFetch; await rm(root, { recursive: true, force: true }); }
 });
 
@@ -358,7 +363,7 @@ test('foundation source receipts retain original UTF-8 bytes and independent cap
   const { createHash } = await import('node:crypto');
   const root = await mkdtemp(path.join(os.tmpdir(), 'nba-foundation-source-'));
   try {
-    const body = '{"name":"Dončić","number":1.00}\n';
+    const body = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('{"name":"Dončić","number":1.00}\n'), Buffer.from([0xff, 0xfe])]);
     const url = 'https://stats.nba.com/stats/commonplayerinfo?PlayerID=1629029';
     const before = Date.now();
     retainFoundationSource(root, url, body); retainFoundationSource(root, url, body);
@@ -367,11 +372,113 @@ test('foundation source receipts retain original UTF-8 bytes and independent cap
     for (const file of receipts) {
       const receipt = JSON.parse(await readFile(path.join(root, 'raw', file), 'utf8'));
       const bytes = await readFile(path.join(root, 'raw', receipt.file));
-      assert.equal(bytes.toString('utf8'), body); assert.equal(receipt.url, url);
+      assert.deepEqual(bytes, body); assert.equal(receipt.url, url);
       assert.equal(receipt.sha256, createHash('sha256').update(bytes).digest('hex'));
       assert.equal(receipt.bytes, Buffer.byteLength(body));
       assert(Date.parse(receipt.capturedAt) >= before && Date.parse(receipt.capturedAt) <= Date.now());
       assert.equal((await stat(path.join(root, 'raw', receipt.file))).mode & 0o777, 0o600);
+    }
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test('team collection retains disabled and training-camp players without adopting holds or dead money', async () => {
+  const { parseTeamHtml } = await import('../../team-scrape/team-data/scripts/parse_team.js');
+  const table = (group: string, player: string) => `<table class="sw_teamProfileRosterSection__table"><thead><tr><th>${group}</th></tr></thead><tbody><tr><td><a href="/players/${player}">${player}</a></td></tr></tbody></table>`;
+  const html = '<h1>Example team</h1>' + [
+    table('Active (15)', 'active'), table('Two-way contracts (3)', 'two-way'),
+    table('Disabled List (1)', 'disabled'), table('Training Camp and Exhibit 10 (2)', 'camp'),
+    table('HOLDS', 'hold'), table('UFAs', 'ufa'), table('DEAD MONEY', 'dead'),
+  ].join('');
+  const result = await parseTeamHtml(html, { url: 'https://www.salaryswish.com/teams/example', team: 'LAL', season: '2026-27', asOf: '2026-10-18T00:00:00Z' });
+  assert.deepEqual(result.roster.map(p => p.displayName), ['active', 'two-way', 'disabled', 'camp']);
+});
+
+test('contract biography preserves both digits of inches beside metric text', async () => {
+  const { parsePlayer } = await import('../../player-scrape/contracts/scripts/parse_player.js');
+  for (const [height, expected] of [["6'11<span>211cm</span>", '6-11'], ["6'5<span>196cm</span>", '6-5'], ["6'11211cm", '6-11']] as const) {
+    const value = await parsePlayer(`<h1>Example Player</h1><div>HEIGHT: ${height}</div>`, {
+      playerId: 'example_player', teamCode: 'LAC', sourceUrl: 'https://www.salaryswish.com/players/example-player', asOf: new Date('2026-10-18T00:00:00Z'),
+    });
+    assert.equal(value.bio.height, expected);
+  }
+});
+
+test('stale legacy aliases cannot replace a verified current canonical roster ID', () => {
+  const raw: any = { teamCode: 'CHA', teamName: 'Example', season: '2026-27', roster: [
+    { displayName: 'Simpson, K. J.', sourceUrl: 'https://www.salaryswish.com/players/kj-simpson' },
+    { displayName: "O'Neale, Royce", sourceUrl: 'https://www.salaryswish.com/players/royce-oneale' },
+    { displayName: 'Williams III, Robert', sourceUrl: 'https://www.salaryswish.com/players/robert-williams-iii' },
+  ], totals: {}, source: {} };
+  const index: any = {
+    k_j_simpson: { fullName: 'KJ Simpson', salarySwishSlug: 'kj-simpson' },
+    royce_oneale: { fullName: "Royce O'Neale", salarySwishSlug: 'royce-oneale' },
+    robert_williams_iii: { fullName: 'Robert Williams III', salarySwishSlug: 'robert-williams-iii' },
+  };
+  const result = buildMaintenanceTeam(raw, index, '2026-27', '2026-10-18T00:00:00Z');
+  assert.deepEqual(result.roster, ['k_j_simpson', 'royce_oneale', 'robert_williams_iii']);
+});
+
+test('offline parsing retains source acquisition separately from the evaluation date', async () => {
+  const { parsePlayer } = await import('../../player-scrape/contracts/scripts/parse_player.js');
+  const { parseTeamHtml } = await import('../../team-scrape/team-data/scripts/parse_team.js');
+  const asOf = '2026-10-18T00:00:00.000Z'; const capturedAt = '2026-10-19T01:23:45.000Z';
+  const value = await parsePlayer('<h1>Example Player</h1>', { playerId: 'example_player', sourceUrl: 'https://www.salaryswish.com/players/example-player', asOf: new Date(asOf), capturedAt: new Date(capturedAt) });
+  assert.equal(value.source.scrapedAt, capturedAt); assert.equal(value.lastUpdated, asOf);
+  const team = await parseTeamHtml('<h1>Example</h1>', { team: 'LAL', url: 'https://www.salaryswish.com/teams/example', season: '2026-27', asOf, capturedAt });
+  assert.equal(team.source.scrapedAt, capturedAt); assert.equal(team.lastUpdated, asOf);
+});
+
+test('protected private factual review confines data recovery and has no publishing identity', async () => {
+  const { createRequire } = await import('node:module');
+  const { readFile, rm } = await import('node:fs/promises');
+  const workflow = createRequire(import.meta.url)('yaml').parse(await readFile('.github/workflows/nba-maintenance-source-review.yml', 'utf8'));
+  const job = workflow.jobs.qualification;
+  assert.equal(job.environment, 'nba-maintenance-publication'); assert.equal(job['timeout-minutes'], 20);
+  assert.deepEqual(job.permissions, { contents: 'read', 'pull-requests': 'read', issues: 'read', actions: 'read' });
+  const action = job.steps.find((s: any) => s.id === 'claude');
+  assert.equal(action.uses, 'anthropics/claude-code-action@cab360f6565aa35a51d6ce9e43f1f4287c0a32ea');
+  assert.equal(action.with.show_full_output, 'false'); assert.equal(action.with.display_report, 'false');
+  assert.match(action.with.claude_args, /--allowedTools "Read,Glob,Grep"/);
+  const script = job.steps.find((s: any) => s.name?.startsWith('Recover exact private')).run.split("python3 - <<'PY'\n")[1].split('\nPY')[0];
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nba-private-review-'));
+  const harness = `
+import io,json,os,tarfile,hashlib,urllib.request,pathlib
+scenario=os.environ['SCENARIO']
+content=b'private fixture marker - must never enter public output'
+name='review/CLAIMS.md'
+if scenario=='traversal': name='review/../../escape.md'
+if scenario=='unexpected-root': name='AGENTS.md'
+manifest={'format':'nba-maintenance-private-review-v1','planSha256':'a'*64,'inputSha256':'b'*64,'files':[{'path':name,'bytes':len(content),'sha256':hashlib.sha256(content).hexdigest()}]}
+packed=io.BytesIO()
+with tarfile.open(fileobj=packed,mode='w:gz') as archive:
+ for filename,data in [(name,content),('MANIFEST.json',json.dumps(manifest).encode())]:
+  item=tarfile.TarInfo(filename);item.size=len(data)
+  if scenario=='symlink' and filename==name: item.type=tarfile.SYMTYPE;item.linkname='/tmp/escape';item.size=0
+  archive.addfile(item,io.BytesIO(data) if item.isfile() else None)
+  if scenario=='duplicate' and filename==name: archive.addfile(item,io.BytesIO(data))
+value=packed.getvalue()
+connection={'format':'nba-maintenance-private-review-connection-v1','archiveSha256':hashlib.sha256(value).hexdigest(),'planSha256':'a'*64,'inputSha256':'b'*64,'url':'https://uploads.linear.app/fixture?signature=private-marker','archiveBytes':len(value),'recipientPem':'-----BEGIN CERTIFICATE-----\\nfixture'}
+if scenario=='wrong-host': connection['url']='https://example.invalid/fixture'
+if scenario=='wrong-digest': connection['archiveSha256']='c'*64
+os.environ['CONNECTION']=json.dumps(connection)
+os.environ['ARCHIVE_SHA256']=connection['archiveSha256'];os.environ['PLAN_SHA256']='a'*64;os.environ['INPUT_SHA256']='b'*64
+class Response:
+ status=200
+ def __enter__(self): return self
+ def __exit__(self,*args): pass
+ def read(self,n): return value[:n]
+class Opener:
+ def open(self,*args,**kwargs): return Response()
+urllib.request.build_opener=lambda *args: Opener()
+exec(compile(${JSON.stringify(script)},'<trusted-workflow>','exec'))
+`;
+  try {
+    for (const scenario of ['valid', 'traversal', 'unexpected-root', 'symlink', 'duplicate', 'wrong-host', 'wrong-digest']) {
+      const dir = path.join(root, scenario); await mkdir(dir);
+      const result = spawnSync('python3', ['-c', harness], { env: { ...process.env, RUNNER_TEMP: dir, SCENARIO: scenario }, encoding: 'utf8', timeout: 10000 });
+      assert.equal(result.status, scenario === 'valid' ? 0 : 1, result.stderr);
+      assert(!result.stdout.includes('private-marker')); assert(!result.stdout.includes('private fixture marker'));
+      if (scenario === 'valid') assert.equal(await readFile(path.join(dir, 'nba-source-private-review/review/CLAIMS.md'), 'utf8'), 'private fixture marker - must never enter public output');
     }
   } finally { await rm(root, { recursive: true, force: true }); }
 });

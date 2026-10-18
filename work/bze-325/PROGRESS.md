@@ -50,3 +50,13 @@ complete independent review with access to required private evidence; prepare
 exact changes; rehearse in the emulator and browser; request separate publication
 approval. Public code review cannot qualify private source bytes it cannot read.
 The production approval registry remains empty.
+
+## Later capture checkpoint
+
+The paced exact-run resume completed all 504 initially resolved roster contracts.
+The resolved biography generation completed all 645 players. Offline roster
+repair exposes all 526 official current identities plus one camp player; aliases
+are reconciled using official IDs and exact source links. A one-day birth-date
+conflict is retained explicitly, with official NBA biography taking precedence.
+Additional alias/camp/free-agent collection and exact-change processing continue.
+Current code and preparation findings are recorded in `REPAIR_VALIDATION.md`.

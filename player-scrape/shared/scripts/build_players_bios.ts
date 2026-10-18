@@ -160,9 +160,9 @@ async function fetchJson(
           `Non-JSON content-type: ${ct} (len=${txt?.length ?? 0})`
         );
       }
-      const body = await res.text();
-      retainFoundationSource(OUTPUTS_DIR, url, body);
-      return JSON.parse(body);
+      const bytes = await res.body();
+      retainFoundationSource(OUTPUTS_DIR, url, bytes);
+      return JSON.parse(new TextDecoder().decode(bytes));
     } catch (e) {
       lastErr = e;
       const msg = String((e as any)?.message || e);
@@ -351,9 +351,9 @@ async function fetchPlayerPageHtml(
     headers: { Referer: 'https://www.nba.com/stats/' },
   });
   if (!res.ok()) throw new Error(`HTML ${res.status()} for ${url}`);
-  const body = await res.text();
-  retainFoundationSource(OUTPUTS_DIR, url, body);
-  return body;
+  const bytes = await res.body();
+  retainFoundationSource(OUTPUTS_DIR, url, bytes);
+  return new TextDecoder().decode(bytes);
 }
 
 function extractFromPlayerHtml(html: string): {

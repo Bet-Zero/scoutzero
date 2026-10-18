@@ -124,6 +124,10 @@ END_YEAR and dated environment consistently, requires separate new private
 output/report directories, and records completed steps in `foundation-run.json`.
 The foundation builders retain original responses under the private output
 `raw/` directory with URL, actual capture time, byte size and SHA-256 receipts.
+Foundation response bytes are retained before decoding. HTML collection retains
+UTF-8 decoded HTML; NBA statistics retain parsed JSON. Capture metadata names the
+representation, and offline reprocessing must retain the original acquisition
+time rather than report processing time as a new source capture.
 In the managed cloud set `NODE_USE_ENV_PROXY=1` for native requests and
 `PROXY_URL="$HTTPS_PROXY"` for the bios Playwright request context.
 A failed builder stops the aggregate and leaves `complete: false`. Do not run
@@ -160,6 +164,10 @@ before/after values and live update-time/absence preconditions. New signings get
 new contract keys; unchanged historical deals retain their original keys and
 creation metadata. Unknown typed fields and all user/world paths are preserved.
 Team planning fails on unresolved roster IDs instead of manufacturing records.
+A new roster member can be supplied by an earlier verified player group in the
+same publication; an index entry alone never satisfies that requirement.
+Current roster collection includes disabled-list and training-camp/Exhibit 10
+contracts, with their source status retained for factual qualification.
 
 ```bash
 npm run maintenance:plan -- --season=2026-27 --as-of="$AS_OF" \
@@ -284,3 +292,33 @@ The first Gate B action is to declare the full `2026-27` inventory and as-of dat
 run the read-only core refresh, and execute the three explicit collection
 commands above in a new private generation. Reconcile retained roster-reference and historical-contract
 findings from evidence before reviewing the exact publication proposal.
+
+## Private factual checker on existing protected Actions
+
+`nba-maintenance-source-review.yml` reuses the existing protected GitHub Actions
+reviewer and pinned Claude action for ordinary NBA evidence. It runs only from
+main after the preparation PR has merged, exact candidate/main CI is green and
+the exact candidate has a published independent public code ACCEPT. The merged
+and accepted candidate trees must match. It uses the existing
+`nba-maintenance-publication` deployment gate, with read-only GitHub permissions,
+no `id-token`, no Google authentication and no publisher invocation.
+
+The owner supplies one private data connection through protected environment
+secret `NBA_MAINTENANCE_SOURCE_REVIEW_CONNECTION`. Its versioned JSON binds the
+private Linear archive URL, compressed size/hash, exact plan/input hashes and
+Codex's public result-encryption certificate. It contains no service-account key
+or publishing approval. Linear download signatures expire quickly: prepare a
+fresh connection for the coordinated owner session and approve the review run
+promptly. Never put the connection or signed URL in public Git, comments or logs.
+The GitHub integration cannot configure this protected secret in the existing
+cloud executor; the observed API result is HTTP 403.
+
+The checker verifies and privately extracts a bounded, fully inventoried data
+archive, rejects path traversal, links and duplicates, and inspects original
+inputs plus navigable views. Only fixed status/integrity metadata is public.
+The complete judgment is encrypted to the retained private inspection key and
+kept as a seven-day Actions artifact. Codex must recover it and verify original
+execution outcome and exact candidate/archive/plan/input identities. Failure,
+missing output, stale identity, REVISE or blocking findings cannot qualify data.
+The checked-in publication registry stays empty until separate exact production
+approval. The earlier 73-file rehearsal archive is never an input to this checker.

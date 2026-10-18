@@ -13,7 +13,7 @@ import path from 'node:path';
 import { getPlayerHtml } from '../../player-scrape/contracts/scripts/fetch_player_page.js';
 import { parsePlayer } from '../../player-scrape/contracts/scripts/parse_player.js';
 import { basePlayerSchema } from '../../player-scrape/shared/schema/player_scrape_schema.js';
-import { fetchPlayerStatsBase, fetchPlayerStatsAdvanced, fetchTeamStatsPerGame, cleanupContext } from '../../player-scrape/stats/scripts/fetch_player_stats.js';
+import { fetchPlayerStatsBase, fetchPlayerStatsAdvanced, fetchTeamStatsPerGame, cleanupContext, buildProfileUrl } from '../../player-scrape/stats/scripts/fetch_player_stats.js';
 import { parseStats } from '../../player-scrape/stats/scripts/parse_stats.js';
 import { buildStatsOutput } from '../../player-scrape/stats/scripts/run_stats.js';
 import { parseTeamHtml } from '../../team-scrape/team-data/scripts/parse_team.js';
@@ -40,8 +40,10 @@ export async function collectMaintenance(dir: string, request: RunRequest, resum
           const nbaId = entry.nbaId ?? entry.nbaStatsId;
           if (!/^\d+$/.test(String(nbaId || ''))) { await run.record(id, 'missing', []); continue; }
           const base = await fetchPlayerStatsBase(String(nbaId), dated.startYear);
+          const baseCapturedAt = new Date().toISOString();
           const advanced = await fetchPlayerStatsAdvanced(String(nbaId), dated.startYear);
-          files.push(await save(`raw/${attemptId}-base.json`, base), await save(`raw/${attemptId}-advanced.json`, advanced));
+          files.push(await save(`raw/${attemptId}-base.json`, base), await save(`raw/${attemptId}-advanced.json`, advanced),
+            await save(`raw/${attemptId}-base-capture.json`, { url: buildProfileUrl(String(nbaId), dated.season), capturedAt: baseCapturedAt, representation: 'Parsed NBA JSON', advancedCollected: advanced.__provenance !== 'none' }));
           if (base.parameters?.PlayerID != null && String(base.parameters.PlayerID) !== String(nbaId)) throw new Error('NBA response identity mismatch');
           if (!Array.isArray(base.resultSets)) throw new Error('Malformed NBA response');
           const seasonSet = base.resultSets.find((s: any) => /season.*totals.*regularseason/i.test(s.name));
@@ -68,14 +70,18 @@ export async function collectMaintenance(dir: string, request: RunRequest, resum
             if (!response.ok) throw new Error('Team source fetch failed: HTTP ' + response.status);
             return response.text();
           };
-          const first = await fetchHtml(); files.push(await raw(`raw/${attemptId}-first.html`, first));
-          const second = await fetchHtml(); files.push(await raw(`raw/${attemptId}-second.html`, second));
+          const first = await fetchHtml(); const firstCapturedAt = new Date().toISOString();
+          files.push(await raw(`raw/${attemptId}-first.html`, first),
+            await save(`raw/${attemptId}-first-capture.json`, { url: url.href, capturedAt: firstCapturedAt, representation: 'UTF-8 decoded HTML' }));
+          const second = await fetchHtml();
+          files.push(await raw(`raw/${attemptId}-second.html`, second),
+            await save(`raw/${attemptId}-second-capture.json`, { url: url.href, capturedAt: new Date().toISOString(), representation: 'UTF-8 decoded HTML' }));
           if (request.operation === 'contracts') {
-            const output = basePlayerSchema.parse(await parsePlayer(first, { playerId: id, teamCode: team, teamName: entry.teamName, sourceUrl: url.href, asOf: new Date(dated.asOf) }));
+            const output = basePlayerSchema.parse(await parsePlayer(first, { playerId: id, teamCode: team, teamName: entry.teamName, sourceUrl: url.href, asOf: new Date(dated.asOf), capturedAt: new Date(firstCapturedAt) }));
             if (!output.contract.salariesByYear.length) throw new Error('No supplied contract salary rows');
             files.push(await save(`contracts/${team}/${id}.json`, output));
           } else {
-            const output = await parseTeamHtml(first, { url: url.href, team, season: dated.season, asOf: dated.asOf });
+            const output = await parseTeamHtml(first, { url: url.href, team, season: dated.season, asOf: dated.asOf, capturedAt: firstCapturedAt });
             if (!output.roster.length || !output.teamName || !output.totals.salaryCap) throw new Error('Incomplete team page');
             files.push(await save(`teams/${team}.json`, output));
           }
@@ -85,7 +91,7 @@ export async function collectMaintenance(dir: string, request: RunRequest, resum
         files.push(await save(`failures/${attemptId}.json`, { category: error instanceof Error ? error.name : 'UnknownError', message: error instanceof Error ? error.message.replace(/https?:\/\/\S+/g, '[source URL]') : 'Collection failed' }));
         await run.record(id, 'failed', files);
         if (error instanceof Error && /\b429\b/.test(error.message)) {
-          await privateJson(path.join(dir, 'coverage.json'), { ...run.coverage(), qualified: false, productionWriteAuthorized: false });
+          await privateJson(path.join(dir, 'coverage.json'), { ...run.coverage(), unchanged, qualified: false, productionWriteAuthorized: false });
           throw new Error('Source rate limit reached; collection stopped. Retain this run and resume after the source cooldown.');
         }
       }

@@ -93,7 +93,7 @@ async function enrichDraftPickFromDetail(url: string) {
 
 /* ------------------------------------------------------------------------ */
 
-export async function parseTeamHtml(html: string, context: { url: string; team: string; season: string; asOf: string }) {
+export async function parseTeamHtml(html: string, context: { url: string; team: string; season: string; asOf: string; capturedAt?: string }) {
   const TEAM_URL = context.url;
   const TEAM_CODE = context.team;
   const SEASON = context.season;
@@ -663,7 +663,7 @@ export async function parseTeamHtml(html: string, context: { url: string; team: 
     }
   }
 
-  // --- Roster (Active only) — under h5 "Season Display" ---
+  // --- Current roster groups, including disabled and training-camp contracts ---
   const roster: Array<{
     playerId?: string;
     displayName?: string;
@@ -681,6 +681,9 @@ export async function parseTeamHtml(html: string, context: { url: string; team: 
         label.includes('two-way') ||
         label.includes('two way') ||
         label.includes('injured') ||
+        label.includes('disabled') ||
+        label.includes('training camp') ||
+        label.includes('exhibit 10') ||
         label.includes('minors') ||
         label.includes('g-league') ||
         label.includes('gleague')
@@ -806,7 +809,7 @@ export async function parseTeamHtml(html: string, context: { url: string; team: 
     source: {
       provider: 'SalarySwish',
       teamPageUrl: TEAM_URL,
-      scrapedAt: context.asOf,
+      scrapedAt: context.capturedAt,
     },
     lastUpdated: context.asOf,
     version: '1.0',
