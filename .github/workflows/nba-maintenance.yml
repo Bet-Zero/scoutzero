@@ -21,8 +21,8 @@ permissions:
 
 jobs:
   controlled:
-    # Replaced with the reviewed immutable worker commit before landing.
-    uses: Bet-Zero/scoutzero/.github/workflows/nba-maintenance-worker.yml@0000000000000000000000000000000000000000
+    # Immutable executor; Google trust pins this same called-workflow commit.
+    uses: Bet-Zero/scoutzero/.github/workflows/nba-maintenance-worker.yml@1436919fb20c8a5cc108e8eda9497874e54bd9c7
     with:
       operation: ${{ inputs.operation }}
       plan_sha256: ${{ inputs.plan_sha256 }}
