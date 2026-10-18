@@ -118,3 +118,31 @@ test('denied and empty refreshes preserve the last snapshot; complete reads can 
   assert.equal((await loadSnapshot(dir)).documents.length, 3);
   assert.notEqual(await readFile(path.join(dir, 'source.json'), 'utf8'), original);
 });
+
+test('a faithful full refresh preserves broken source relationships without qualifying or inventing records', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'scoutzero-cloud-source-gaps-'));
+  const team = { name: prefix + 'architect_baseTeams/LAL', fields: {
+    roster: { arrayValue: { values: [{ stringValue: 'missing_player' }] } },
+    entitlementIds: { arrayValue: { values: [{ stringValue: 'missing_right' }] } },
+  } };
+  const records = {
+    players_v2: [{ name: prefix + 'players_v2/present' }],
+    architect_basePlayers: [{ name: prefix + 'architect_basePlayers/present' }],
+    architect_baseTeams: [team],
+    architect_baseEntitlements: [{ name: prefix + 'architect_baseEntitlements/present_right' }],
+    architect_basePickRules: [],
+  };
+  const report = await refreshSource(dir, async (url) => {
+    const collection = new URL(url).pathname.split('/documents/')[1];
+    return Response.json({ documents: records[collection as keyof typeof records] || [] });
+  });
+  assert.equal(report.scope, 'all');
+  assert.equal(report.deniedCollections, 0);
+  assert.deepEqual(report.missingRosterPlayers, ['missing_player']);
+  assert.deepEqual(report.missingEntitlements, ['missing_right']);
+  assert.match(report.basketballAcceptance, /not independent qualification/);
+  const captured = await loadSnapshot(dir);
+  assert.equal(captured.documents.length, 4);
+  assert.deepEqual(captured.documents.find((doc) => doc.name === team.name), team);
+  assert(!captured.documents.some((doc) => /missing_player|missing_right/.test(doc.name)));
+});
