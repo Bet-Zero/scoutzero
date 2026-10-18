@@ -68,6 +68,9 @@ export async function configureCloudOwnerAccess(details: TrustDetails, run: Runn
   if (String(bucket.projectNumber || bucket.project_number) !== NUMBER ||
       (bucket.iamConfiguration?.publicAccessPrevention || bucket.public_access_prevention) !== 'enforced' ||
       !(bucket.iamConfiguration?.uniformBucketLevelAccess?.enabled === true || bucket.uniform_bucket_level_access === true)) throw new Error('Recovery bucket is not private in the expected project; app storage was not changed');
+  const bucketPolicy = invoke(['storage', 'buckets', 'get-iam-policy', 'gs://' + BUCKET]);
+  if ((bucketPolicy.bindings || []).some((b: any) => b.members?.includes('serviceAccount:' + ACCOUNT) &&
+      b.role !== 'projects/' + PROJECT + '/roles/' + RECOVERY_ROLE)) throw new Error('Cloud reader has unexpected bucket permissions; no existing grant was changed');
   const token = run(['auth', 'print-access-token']);
   const firebase = await fetcher('https://firebasestorage.googleapis.com/v1beta/projects/' + NUMBER + '/buckets/' + BUCKET,
     { redirect: 'error', headers: { Authorization: 'Bearer ' + token }, signal: AbortSignal.timeout(30000) });

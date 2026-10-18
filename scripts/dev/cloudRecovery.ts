@@ -112,7 +112,8 @@ async function validatePrivateData(root: string, selections: Record<string, stri
       const sessionDir = path.join(dir, 'sessions', sha);
       const session = JSON.parse(await readFile(path.join(sessionDir, 'session.json'), 'utf8'));
       if (session.isolatedProject !== DEMO_PROJECT || session.sourceSha256 !== sha) throw new Error('Only source-bound demo sessions can be recovered');
-      if (await exists(path.join(sessionDir, 'state/firebase-export-metadata.json'))) {
+      if (await exists(path.join(sessionDir, 'state'))) {
+        if (!await exists(path.join(sessionDir, 'state/firebase-export-metadata.json'))) throw new Error('Incomplete emulator export cannot be recovered or uploaded');
         const marker = JSON.parse(await readFile(path.join(sessionDir, 'state-source.json'), 'utf8'));
         if (marker.sha256 !== sha) throw new Error('Exported emulator state uses another source');
         const auth = JSON.parse(await readFile(path.join(sessionDir, 'state/auth_export/accounts.json'), 'utf8'));

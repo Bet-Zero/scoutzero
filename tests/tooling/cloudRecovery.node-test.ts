@@ -7,7 +7,7 @@ import net from 'node:net';
 import { saveSnapshot, loadSnapshot, type Snapshot } from '../../scripts/dev/cloudData.js';
 import { backupPrivateData, restorePrivateData, assertRecoveryPath, assertRecoveryRuntimeStopped } from '../../scripts/dev/cloudRecovery.js';
 import { assertRecoveryBucket, googleRecoveryStore, localRecoveryStore, bytesHash, type RecoveryStore } from '../../scripts/dev/cloudRecoveryStore.js';
-import { assessRosterGap, auditRosterSources } from '../../scripts/dev/cloudRosterAudit.js';
+import { assessRosterGap, auditRosterSources, privateRosterAuditDirectory } from '../../scripts/dev/cloudRosterAudit.js';
 import { assertSourceRequest } from '../../scripts/dev/cloudReader.js';
 
 const prefix = 'projects/scoutzero-bf1ae/databases/(default)/documents/';
@@ -56,7 +56,10 @@ test('symlinks, personal accounts and source changes fail before a successful ba
   await writeFile(path.join(session, 'state-source.json'), JSON.stringify({ sha256: f.report.sha256 }));
   await writeFile(path.join(session, 'state/firebase-export-metadata.json'), '{}');
   await writeFile(path.join(session, 'state/auth_export/accounts.json'), JSON.stringify({ users: [{ email: 'private@example.test' }] }));
-  await assert.rejects(() => backupPrivateData(f.root, f.store, commit), /personal/); await rm(path.join(f.root, 'core/sessions'), { recursive: true });
+  await assert.rejects(() => backupPrivateData(f.root, f.store, commit), /personal/);
+  await rm(path.join(session, 'state/firebase-export-metadata.json'));
+  await assert.rejects(() => backupPrivateData(f.root, f.store, commit), /Incomplete emulator export/);
+  await rm(path.join(f.root, 'core/sessions'), { recursive: true });
   let changed = false;
   const changing: RecoveryStore = { ...f.store, async put(key, bytes) { await f.store.put(key, bytes); if (!changed) { changed = true; await writeFile(path.join(f.root, 'pipeline/inputs/source.html'), 'NEW'); } } };
   await assert.rejects(() => backupPrivateData(f.root, changing, commit), /changed during backup/);
@@ -125,4 +128,16 @@ test('roster reference proposals require identity evidence and preserve all mone
   assert.deepEqual(proposal.beforeFields.capHolds.arrayValue.values[0].mapValue.fields.amount, proposal.afterFields.capHolds.arrayValue.values[0].mapValue.fields.amount);
   assert.equal(proposal.afterFields.capHolds.arrayValue.values[0].mapValue.fields.playerId.stringValue, 'canonical_id');
   assert.equal(proposal.precondition.updateTime, now);
+  const original = structuredClone(d.player); original.name = prefix + 'players_v2/missing_id'; docs.set(original.name, original);
+  const blocked = await auditRosterSources(snapshot, async (url) => { const doc = docs.get(new URL(url).pathname.slice(4)); return doc ? Response.json(doc) : new Response(null, { status: 404 }); }, out);
+  assert.equal(blocked.supportedProposals, 0); assert.equal(blocked.missingEvidence, 1);
+  assert.equal(JSON.parse(await readFile(path.join(out, 'roster-audit.json'), 'utf8')).rows[0].proposedRepair, null);
+});
+test('roster audit CLI destination stays beneath the ignored private root without traversing links', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'scoutzero-audit-destination-')); const root = path.join(dir, '.scoutzero-dev');
+  await mkdir(root); const inside = path.join(root, 'pipeline/audit');
+  assert.equal(await privateRosterAuditDirectory(root, inside), inside);
+  for (const outside of [dir, root, path.join(dir, 'publishable'), path.join(root, '../publishable')]) await assert.rejects(() => privateRosterAuditDirectory(root, outside), /private/);
+  await symlink(dir, path.join(root, 'escape'));
+  await assert.rejects(() => privateRosterAuditDirectory(root, path.join(root, 'escape/leak')), /links/);
 });

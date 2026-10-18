@@ -1,6 +1,6 @@
 /** Audit source relationships and prepare evidence-backed proposals, never source writes. */
 import path from 'node:path';
-import { readFile } from 'node:fs/promises';
+import { lstat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { coverage, digest, loadSnapshot, SOURCE_PROJECT, type Getter, type Snapshot, type SourceDocument } from './cloudData.js';
 import { firebaseReader, googleReader } from './cloudReader.js';
@@ -8,6 +8,19 @@ import { decodeFields } from './cloudPipeline.js';
 import { privateJson } from './cloudStorage.js';
 
 const PREFIX = `projects/${SOURCE_PROJECT}/databases/(default)/documents/`;
+export async function privateRosterAuditDirectory(root: string, directory: string) {
+  const base = path.resolve(root); const target = path.resolve(directory);
+  if (!target.startsWith(base + path.sep)) throw new Error('Roster evidence must stay beneath the ignored private root');
+  let current = base;
+  for (const part of ['', ...path.relative(base, target).split(path.sep)]) {
+    if (part) current = path.join(current, part);
+    try {
+      const stat = await lstat(current);
+      if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error('Private evidence destination cannot traverse links or files');
+    } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') break; throw error; }
+  }
+  return target;
+}
 const nameKey = (value: unknown) => typeof value === 'string' ? value.normalize('NFKD').replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]/gu, '').toLowerCase() : '';
 function dob(value: unknown) {
   if (typeof value !== 'string') return null;
@@ -80,8 +93,8 @@ export async function auditRosterSources(snapshot: Snapshot, get: Getter, direct
       }
     }
     rows.push({ ...gap, basePlayerPresentNow: !!existing, scoutingPlayerPresentNow: !!scouting,
-      proposedRepair: !existing && proposals.length === 1 ? proposals[0] : null,
-      status: existing ? 'present-upstream' : proposals.length === 1 ? 'supported-reference-proposal' : 'missing-evidence' });
+      proposedRepair: !existing && !scouting && proposals.length === 1 ? proposals[0] : null,
+      status: existing ? 'present-upstream' : !scouting && proposals.length === 1 ? 'supported-reference-proposal' : 'missing-evidence' });
   }
   const result = { version: 1, baselineSha256: inventory.baselineSha256, baselineCapturedAt: inventory.capturedAt, evidenceReadTime: readTime,
     checkedAt: new Date().toISOString(), rows, productionWriteAuthorized: false,
@@ -97,9 +110,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const option = (name: string) => process.argv.find((arg) => arg.startsWith('--' + name + '='))?.slice(name.length + 3);
   try {
     const root = path.resolve('.scoutzero-dev'); const config = path.join(root, 'reader/public-config.json');
+    const directory = path.join(root, 'pipeline/roster-audits', new Date().toISOString().replace(/[:.]/g, '-'));
+    const destination = await privateRosterAuditDirectory(root, option('output') || directory);
     const get = process.argv.includes('--google') ? await googleReader() : await firebaseReader(config);
     const snapshot = await loadSnapshot(path.join(root, 'core'));
-    const directory = path.join(root, 'pipeline/roster-audits', new Date().toISOString().replace(/[:.]/g, '-'));
-    console.log(JSON.stringify(await auditRosterSources(snapshot, get, option('output') || directory)));
+    console.log(JSON.stringify(await auditRosterSources(snapshot, get, destination)));
   } catch (error) { console.error(error instanceof SyntaxError ? 'Invalid private roster evidence JSON' : error instanceof Error ? error.message : 'Roster audit failed'); process.exitCode = 1; }
 }
