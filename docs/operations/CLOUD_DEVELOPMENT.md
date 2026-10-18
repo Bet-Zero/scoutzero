@@ -269,6 +269,9 @@ The parser uses the capture date and the application's July 1 season boundary
 when counting remaining salary seasons, excluding expired and voided rows. Its
 optional `asOf` date makes those counts reproducible. Unequal originals remain
 unequal; capture/parser success is not independent qualification.
+Historical contract regressions use the expected fixture's original
+`source.scrapedAt`; a missing/invalid capture date fails instead of borrowing
+the current season. Missing private fixtures are still reported unavailable.
 
 **Observed October 18, 06:12 UTC in a fresh task:** all seven source hosts are
 present in the published policy. Fresh Austin Reaves contract acquisition,

@@ -15,10 +15,18 @@ import { createRequire } from 'node:module';
 import { assertOrdinaryDocumentPath } from '../../scripts/dev/cloudPublishCheck.js';
 import { getPlayerHtml } from '../../player-scrape/contracts/scripts/fetch_player_page.js';
 import { parsePlayer } from '../../player-scrape/contracts/scripts/parse_player.js';
+import { fixtureCaptureDate } from '../../player-scrape/contracts/scripts/_dev/test_utils.js';
 const { configureCloudEmulatorTransport } = createRequire(import.meta.url)('../../functions/src/emulatorTransport.ts') as typeof import('../../functions/src/emulatorTransport.js');
 
 const prefix = 'projects/scoutzero-bf1ae/databases/(default)/documents/';
 const salaryTable = (seasons: string[], optionSeason = '') => `<table><thead><tr><th>Season</th><th>Salary</th><th>Guaranteed</th><th>Option</th></tr></thead><tbody>${seasons.map(season => `<tr><td>${season}</td><td>$1,000,000</td><td>$1,000,000</td><td>${season === optionSeason ? 'PO' : ''}</td></tr>`).join('')}</tbody></table>`;
+
+test('historical regression dates come from retained evidence with no clock fallback', () => {
+  assert.equal(fixtureCaptureDate('2025-06-30T23:59:59.000Z').toISOString(), '2025-06-30T23:59:59.000Z');
+  for (const value of [undefined, null, '', 'invalid', '2025', '2026-99-99T00:00:00Z', '2026-02-30T00:00:00Z', '2025-06-30T23:59:59']) {
+    assert.throws(() => fixtureCaptureDate(value), /capture date/);
+  }
+});
 
 test('fresh contract parsing counts remaining salary seasons at the capture date', async () => {
   const parse = (html: string, asOf: string) => parsePlayer(html, {

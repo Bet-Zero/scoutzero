@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { REGRESSION_FIXTURES, paths } from '../config';
 import { parsePlayer } from '../parse_player';
-import { deepStableStringify } from './test_utils';
+import { deepStableStringify, fixtureCaptureDate } from './test_utils';
 
 async function runOne(playerId: string) {
   const snapshotPath = path.join(paths.snapshotsDir, `${playerId}.html`);
@@ -15,6 +15,7 @@ async function runOne(playerId: string) {
     sourceUrl: 'snapshot',
     teamCode: expected.teamCode,
     teamName: expected.teamName,
+    asOf: fixtureCaptureDate(expected.source?.scrapedAt),
   });
 
   const a = deepStableStringify(actual);
