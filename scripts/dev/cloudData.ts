@@ -239,12 +239,13 @@ export async function refreshSource(dir = DATA_DIR, get?: Getter, options: Captu
   const entries = Object.entries(snapshot.collections).filter(([name]) =>
     options.scope !== 'core' || !(ROOTS.slice(3) as readonly string[]).includes(name));
   const report = coverage(snapshot);
-  const inconsistent = options.scope !== 'core' && (report.missingRosterPlayers.length > 0 || report.missingEntitlements.length > 0);
-  if (unavailable || inconsistent || entries.some(([, entry]) => entry.status !== 'read')) {
+  // Faithful capture preserves source defects as diagnostics. It neither repairs
+  // relationships nor qualifies NBA facts or authorizes an affected mutation.
+  if (unavailable || entries.some(([, entry]) => entry.status !== 'read')) {
     await mkdir(dir, { recursive: true, mode: 0o700 });
     await chmod(dir, 0o700);
     await saveSnapshot(snapshot, path.join(dir, 'attempts', report.sha256));
-    await writeFile(path.join(dir, 'failed-refresh.json'), JSON.stringify({ ...report, reason: inconsistent ? 'Missing source relationships' : 'Required source denied or incomplete' }, null, 2), { mode: 0o600 });
+    await writeFile(path.join(dir, 'failed-refresh.json'), JSON.stringify({ ...report, reason: 'Required source denied or incomplete' }, null, 2), { mode: 0o600 });
     throw new Error('Source refresh is incomplete or denied; the prior snapshot was preserved. See private failed-refresh.json.');
   }
   return saveSnapshot(snapshot, dir);
