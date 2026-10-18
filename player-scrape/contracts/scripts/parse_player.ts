@@ -1932,14 +1932,8 @@ export async function parsePlayer(
         const futureGuaranteedYears = futureSalariesByYear.filter(
           (y) => (y.guaranteedAmount || 0) > 0
         ).length;
-        // For future contracts (extensions), yearsRemaining should only count the extension years
-        // not the current contract years before the extension kicks in
-        const futureYearsRemaining = Math.max(
-          0,
-          (seasonStartYear(futureEndSeason) ?? 0) -
-            (futureStartYear ?? CURRENT_SEASON_START) +
-            1
-        );
+        // Count the extension's own live rows, never the gap before it starts.
+        const futureYearsRemaining = remainingSalarySeasons(futureSalariesByYear, CURRENT_SEASON_START);
 
         // For future contracts, parse their metadata from the contract section
         // (they may have different signing details than current contract)

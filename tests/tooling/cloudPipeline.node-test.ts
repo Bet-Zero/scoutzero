@@ -35,6 +35,10 @@ test('fresh contract parsing counts remaining salary seasons at the capture date
   assert.equal(extended.contract.yearsRemaining, 1);
   assert.equal(extended.contract.salariesByYear[2].voidedByExtension, true);
   assert.equal(extended.contract.totalValue, 3000000);
+  assert.equal(extended.futureContract.yearsRemaining, 2);
+  const extensionHtml = salaryTable(['2025-26', '2026-27'], '2026-27') + salaryTable(['2026-27', '2028-29']);
+  assert.equal((await parse(extensionHtml, '2027-10-18T00:00:00Z')).futureContract.yearsRemaining, 1);
+  assert.equal((await parse(extensionHtml, '2030-07-01T00:00:00Z')).futureContract.yearsRemaining, 0);
   await assert.rejects(() => parse(html, 'invalid'), /capture date/i);
 });
 
