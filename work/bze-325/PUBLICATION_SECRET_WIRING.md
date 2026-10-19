@@ -40,10 +40,12 @@ concern about the caller lacking its own environment.
 
 Actual retained ancestry/diff checks: `git merge-base --is-ancestor
 b4a5b98bd3fee009309d495b96980b557173cc26
-8803ac18bd8f12d13e299caa8d9412da6ff9ab35` exits zero; `git diff --stat` between
-those commits shows exactly `.github/workflows/nba-maintenance-worker.yml`,
-four insertions. Its full diff consists solely of the callable secret declaration
-shown above. All runtime and lockfile bytes are identical to that accepted base.
+655780bce4b6fb0ae20d5a723461ff6807887668` exits zero; `git diff --numstat` for
+the worker file between those commits shows ten insertions, zero deletions:
+four for the callable secret declaration and six for the preparation-only input
+and two skip conditions. All runtime and lockfile bytes are identical to that
+accepted base. This final-worker evidence supersedes the intermediate four-line
+worker account in the initial review.
 
 There is no successful delivery receipt yet. The existing **prepare** step is
 the non-mutating delivery canary: successful output is `protected: true`,
