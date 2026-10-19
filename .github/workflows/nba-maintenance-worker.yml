@@ -2,6 +2,10 @@ name: Immutable ordinary NBA maintenance worker
 
 on:
   workflow_call:
+    secrets:
+      BZE324_MAINTENANCE_PASSPHRASE:
+        description: Dedicated package secret; optional for the non-mutating access probe.
+        required: false
     inputs:
       operation:
         type: string
