@@ -109,3 +109,9 @@ The reader also clears a previous player before a new detail request, so a block
 current contract cannot leave the previous person's profile visible. The added
 hook transition check and existing profile/overlay checks passed (25 UI tests),
 and typecheck passed after that repair.
+
+The private courier also hashes the actual canonical production-plan bytes and
+checks their target/input digest before review, then generates plan/source
+navigation views from the authenticated originals. Negative transport probes now
+also reject mismatched plan bytes and a rehearsal/demo target. The focused cloud
+safety suite and cloud tooling typecheck passed after this binding repair.

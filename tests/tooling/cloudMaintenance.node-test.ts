@@ -448,20 +448,24 @@ content=b'private fixture marker - must never enter public output'
 name='review/CLAIMS.md'
 if scenario=='traversal': name='review/../../escape.md'
 if scenario=='unexpected-root': name='AGENTS.md'
-manifest={'format':'nba-maintenance-private-review-v1','planSha256':'a'*64,'inputSha256':'b'*64,'files':[{'path':name,'bytes':len(content),'sha256':hashlib.sha256(content).hexdigest()}]}
+plan={'version':1,'project':'scoutzero-bf1ae','database':'(default)','inputSha256':'b'*64,'groups':[{'id':'fixture','entries':[]}]}
+if scenario=='wrong-target': plan['project']='demo-architect-review'
+plan_bytes=json.dumps(plan,sort_keys=True,separators=(',',':')).encode()
+plan_sha=hashlib.sha256(plan_bytes).hexdigest() if scenario!='wrong-plan' else 'd'*64
+manifest={'format':'nba-maintenance-private-review-v1','planSha256':plan_sha,'inputSha256':'b'*64,'files':[{'path':name,'bytes':len(content),'sha256':hashlib.sha256(content).hexdigest()},{'path':'plans/publication-plan.json','bytes':len(plan_bytes),'sha256':hashlib.sha256(plan_bytes).hexdigest()}]}
 packed=io.BytesIO()
 with tarfile.open(fileobj=packed,mode='w:gz') as archive:
- for filename,data in [(name,content),('MANIFEST.json',json.dumps(manifest).encode())]:
+ for filename,data in [(name,content),('plans/publication-plan.json',plan_bytes),('MANIFEST.json',json.dumps(manifest).encode())]:
   item=tarfile.TarInfo(filename);item.size=len(data)
   if scenario=='symlink' and filename==name: item.type=tarfile.SYMTYPE;item.linkname='/tmp/escape';item.size=0
   archive.addfile(item,io.BytesIO(data) if item.isfile() else None)
   if scenario=='duplicate' and filename==name: archive.addfile(item,io.BytesIO(data))
 value=packed.getvalue()
-connection={'format':'nba-maintenance-private-review-connection-v1','archiveSha256':hashlib.sha256(value).hexdigest(),'planSha256':'a'*64,'inputSha256':'b'*64,'url':'https://uploads.linear.app/fixture?signature=private-marker','archiveBytes':len(value),'recipientPem':'-----BEGIN CERTIFICATE-----\\nfixture'}
+connection={'format':'nba-maintenance-private-review-connection-v1','archiveSha256':hashlib.sha256(value).hexdigest(),'planSha256':plan_sha,'inputSha256':'b'*64,'url':'https://uploads.linear.app/fixture?signature=private-marker','archiveBytes':len(value),'recipientPem':'-----BEGIN CERTIFICATE-----\\nfixture'}
 if scenario=='wrong-host': connection['url']='https://example.invalid/fixture'
 if scenario=='wrong-digest': connection['archiveSha256']='c'*64
 os.environ['CONNECTION']=json.dumps(connection)
-os.environ['ARCHIVE_SHA256']=connection['archiveSha256'];os.environ['PLAN_SHA256']='a'*64;os.environ['INPUT_SHA256']='b'*64
+os.environ['ARCHIVE_SHA256']=connection['archiveSha256'];os.environ['PLAN_SHA256']=plan_sha;os.environ['INPUT_SHA256']='b'*64
 class Response:
  status=200
  def __enter__(self): return self
@@ -473,7 +477,7 @@ urllib.request.build_opener=lambda *args: Opener()
 exec(compile(${JSON.stringify(script)},'<trusted-workflow>','exec'))
 `;
   try {
-    for (const scenario of ['valid', 'traversal', 'unexpected-root', 'symlink', 'duplicate', 'wrong-host', 'wrong-digest']) {
+    for (const scenario of ['valid', 'traversal', 'unexpected-root', 'symlink', 'duplicate', 'wrong-host', 'wrong-digest', 'wrong-plan', 'wrong-target']) {
       const dir = path.join(root, scenario); await mkdir(dir);
       const result = spawnSync('python3', ['-c', harness], { env: { ...process.env, RUNNER_TEMP: dir, SCENARIO: scenario }, encoding: 'utf8', timeout: 10000 });
       assert.equal(result.status, scenario === 'valid' ? 0 : 1, result.stderr);
