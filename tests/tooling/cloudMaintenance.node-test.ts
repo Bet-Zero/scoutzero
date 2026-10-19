@@ -488,6 +488,43 @@ exec(compile(${JSON.stringify(script)},'<trusted-workflow>','exec'))
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
+test('private factual receipt retains original but rejects denied tools and failed execution', async () => {
+  const { createRequire } = await import('node:module');
+  const { readFile, rm } = await import('node:fs/promises');
+  const workflow = createRequire(import.meta.url)('yaml').parse(await readFile('.github/workflows/nba-maintenance-source-review.yml', 'utf8'));
+  const script = workflow.jobs.qualification.steps.find((s: any) => s.name?.startsWith('Encrypt complete result')).run.split("python3 - <<'PY'\n")[1].split('\nPY')[0];
+  const root = await mkdtemp(path.join(os.tmpdir(), 'nba-review-result-'));
+  const harness = `
+import json,os,pathlib,subprocess
+fixture_root=pathlib.Path(os.environ['RUNNER_TEMP']); private=fixture_root/'nba-source-private-review'; private.mkdir()
+(private/'recipient.pem').write_text('fixture public certificate')
+scenario=os.environ['SCENARIO']
+report={'verdict':'REVISE' if scenario=='revise' else 'ACCEPT','review_report':'fixture judgment','findings':[],'validation':['Read fixture'],'scope_limits':[]}
+result={'type':'result','subtype':'success','is_error':False,'structured_output':report,'permission_denials':[{'tool_name':'Bash','tool_input':{'command':'private denied marker'}}] if scenario=='denied' else []}
+(fixture_root/'claude-execution-output.json').write_text(json.dumps([result]))
+os.environ.update(OUTCOME='failure' if scenario=='failed' else 'success',PR='1',CANDIDATE='a'*40,GITHUB_SHA='b'*40,GITHUB_RUN_ID='123',ARCHIVE_SHA256='c'*64,PLAN_SHA256='d'*64,INPUT_SHA256='e'*64)
+def check_output(args,**kwargs):
+ return json.dumps({'merged':True,'head':{'sha':'a'*40},'merge_commit_sha':'b'*40} if '/pulls/' in args[-1] else {'object':{'sha':'b'*40}}).encode()
+def encrypt(args,**kwargs):
+ (fixture_root/'nba-private-review.cms').write_bytes(b'fixture encryption transport')
+subprocess.check_output=check_output; subprocess.run=encrypt
+exec(compile(${JSON.stringify(script)},'<trusted-receipt>','exec'))
+`;
+  try {
+    for (const scenario of ['success', 'denied', 'failed', 'revise']) {
+      const dir = path.join(root, scenario); await mkdir(dir);
+      const result = spawnSync('python3', ['-c', harness], { env: { ...process.env, RUNNER_TEMP: dir, SCENARIO: scenario }, encoding: 'utf8', timeout: 10000 });
+      assert.equal(result.status, scenario === 'success' ? 0 : 1, result.stderr);
+      assert.equal(result.stdout.includes('NBA_PRIVATE_SOURCE_REVIEW_ACCEPT'), scenario === 'success');
+      assert(!result.stdout.includes('private denied marker'));
+      const receipt = JSON.parse(await readFile(path.join(dir, 'nba-source-private-review/report.json'), 'utf8'));
+      assert.equal(receipt.executionOutcome, scenario === 'failed' ? 'failure' : 'success');
+      assert.equal(receipt.originalResult.permission_denials.length, scenario === 'denied' ? 1 : 0);
+      assert.equal((await readFile(path.join(dir, 'nba-private-review.cms'))).length > 0, true);
+    }
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test('actual Vite server blocks private maintenance files across source URL forms', async () => {
   const { createServer } = await import('vite');
   const { randomUUID } = await import('node:crypto');

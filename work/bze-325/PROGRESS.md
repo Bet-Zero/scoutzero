@@ -94,3 +94,37 @@ meaningful changes since that baseline; do not rerun full PST/historical evidenc
 collection or adjudication. Do not retry the already blocked access. Draft
 product integration and unresolved evidence remain separate BZE-309/BZE-321 work
 and do not block current ordinary NBA refresh preparation.
+
+## Private checker execution repair
+
+The first actual protected run, 39185768740, recovered and verified the complete
+source archive and exact plan successfully. Its model result used 50 turns against
+a configured ceiling of 40, so the action failed. The complete encrypted original
+was recovered and its receipt SHA-256 verified:
+`541631d30c80e19344132f403193edf41fcbf56b458a162800aab7682df1609c`.
+Its claimed ACCEPT does not satisfy the failed execution gate. Five denied shell
+requests also prevent crediting its claim of executable payroll reconciliation.
+
+The bounded repair names existing evidence files, explicitly restricts checks to
+Read/Glob/Grep, prohibits claiming unavailable execution, and allows 60 turns
+within the unchanged 20-minute job limit. Any tool denial now prevents acceptance
+after retaining the complete encrypted report. Owner approval, pinned action,
+read-only permissions, privacy and exact-identity checks remain required. A new
+green private judgment is required; this is not retrospective acceptance.
+
+The nonblocking count discrepancy concerns different stages: foundation
+`foundation-reports/unresolved_names.json` contains 13 unmatched names and
+`foundation-reports/dupe_name_candidates.json` contains two name collisions with
+selected IDs. The later roster join in `review/identity-reconciliation.json`
+records 17 unmatched source-name aliases and zero duplicate canonical IDs.
+`review/alias-qualification.json` resolves those 17 roster aliases; these are not
+17 additional missing current players. Required current coverage remains 526.
+
+Statistics `meta.lastStatsUpdate` is the declared evaluation context,
+2026-10-18T23:16:27Z, not the NBA publication or actual acquisition time. Separate
+per-response capture receipts retain actual acquisition dates. All fallback rows
+retain their actual prior seasons; no 2026–27 results are proposed.
+
+No collection, factual preparation, archive or exact proposal bytes changed.
+The existing full-generation emulator, recovery and browser proofs remain valid
+for their unchanged dependencies. Production publication remains unapproved.
