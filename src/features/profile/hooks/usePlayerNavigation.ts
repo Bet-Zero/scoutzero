@@ -46,6 +46,7 @@ export type UsePlayerNavigationResult = {
   detailedPlayer: PlayerV2 | null;
   detailLoading: boolean;
   detailError: string | null;
+  detailWarnings?: string[];
   hasUnresolvedRouteTarget: boolean;
   canGoPrev: boolean;
   canGoNext: boolean;
@@ -125,6 +126,7 @@ export const usePlayerNavigation = (
     player: detailedPlayer,
     loading: detailLoading,
     error: detailError,
+    dataWarnings: detailWarnings,
   } = usePlayerDetail(selectedPlayer, profileOwnerUid);
 
   // Resolve player selection from canonical pid, legacy player, or unique slug.
@@ -274,6 +276,7 @@ export const usePlayerNavigation = (
     detailedPlayer,
     detailLoading,
     detailError,
+    detailWarnings,
     hasUnresolvedRouteTarget,
     canGoPrev,
     canGoNext,

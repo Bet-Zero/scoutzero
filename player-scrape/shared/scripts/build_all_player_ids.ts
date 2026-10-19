@@ -1,3 +1,4 @@
+import { retainFoundationSource } from '../../../scripts/dev/foundationSource.js';
 // =============================================================
 // SCSP™ FULL-FILE REPLACEMENT (v5)
 // File: player-scrape/shared/scripts/build_all_player_ids.ts
@@ -148,9 +149,11 @@ async function fetchJson(url: string, retries = 3): Promise<any> {
   let lastErr: any;
   for (let a = 0; a <= retries; a++) {
     try {
-      const res = await fetch(url, { headers: NBA_HEADERS });
+      const res = await fetch(url, { headers: NBA_HEADERS, signal: AbortSignal.timeout(45000) });
       if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-      return await res.json();
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      retainFoundationSource(OUTPUTS_DIR, url, bytes);
+      return JSON.parse(new TextDecoder().decode(bytes));
     } catch (e) {
       lastErr = e;
       await sleep(400 * (a + 1));
@@ -209,9 +212,11 @@ function defaultFaUrls(years: number[]): string[] {
 }
 
 async function fetchFaNames(url: string): Promise<string[]> {
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(45000) });
   if (!res.ok) throw new Error(`FA page HTTP ${res.status}: ${url}`);
-  const html = await res.text();
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  retainFoundationSource(OUTPUTS_DIR, url, bytes);
+  const html = new TextDecoder().decode(bytes);
   const $ = cheerio.load(html);
 
   const names = new Set<string>();

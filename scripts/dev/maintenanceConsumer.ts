@@ -22,6 +22,13 @@ export async function verifyPublishedPlayer(dir: string, playerId: string, sourc
     const context = await browser.newContext({ storageState: path.join(session, 'browser-state.json'), viewport: { width: 1280, height: 720 } });
     await context.route('**/*', route => ['http://127.0.0.1:5173', 'http://127.0.0.1:8082', 'http://127.0.0.1:9099', 'http://127.0.0.1:5001'].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort());
     const page = await context.newPage();
+    await page.goto('http://127.0.0.1:5173/profiles?pid=' + encodeURIComponent(playerId));
+    await page.waitForFunction(async () => {
+      const modulePath = '/src/firebaseConfig.ts';
+      const { auth } = await import(/* @vite-ignore */ modulePath);
+      await auth.authStateReady();
+      return !!auth.currentUser;
+    }, undefined, { timeout: 20000 });
     await page.goto('http://127.0.0.1:5173/lists');
     await page.getByRole('link', { name: 'Players', exact: true }).click();
     const stored = await page.evaluate(async id => {

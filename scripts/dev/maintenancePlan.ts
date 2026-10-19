@@ -26,6 +26,9 @@ export async function buildMaintenancePlan(options: { playerRuns: string[]; team
   const groups: Publication['groups'] = []; const inputs: string[] = [];
   const coverage = { expected: 0, processed: 0, unchanged: 0, withheld: [] as string[], failed: 0, missing: 0 };
   const withheldReasons: Record<string, string> = {};
+  const availableBasePlayers = new Set(snapshot.documents
+    .filter(d => /\/documents\/architect_basePlayers\/[^/]+$/.test(d.name))
+    .map(d => d.name.split('/documents/')[1]));
   for (const run of options.playerRuns) {
     await verifyPipelineRun(run);
     const plan = JSON.parse(await readFile(path.join(run, 'plan.json'), 'utf8'));
@@ -33,6 +36,11 @@ export async function buildMaintenancePlan(options: { playerRuns: string[]; team
     coverage.expected++;
     if (plan.entries.length) { groups.push({ id: 'player-' + groups.length, entries: plan.entries.map((entry: MaintenanceEntry) => ({ path: entry.path, beforeFields: entry.beforeFields, afterFields: entry.afterFields, precondition: entry.precondition })) }); coverage.processed++; }
     else coverage.unchanged++;
+    // Verified player groups precede teams, so a new roster member may be
+    // supplied by its exact prepared base-player write in this same publication.
+    for (const entry of plan.entries as MaintenanceEntry[]) {
+      if (/^architect_basePlayers\/[\p{L}\p{M}\p{N}_-]+$/u.test(entry.path) && entry.afterFields) availableBasePlayers.add(entry.path);
+    }
     inputs.push(digest(canonical(plan)));
   }
   if (options.statsRun) {
@@ -68,7 +76,7 @@ export async function buildMaintenancePlan(options: { playerRuns: string[]; team
         if (!before?.updateTime) throw new Error('Existing versioned team required');
         const priorFields = Object.fromEntries(Object.entries(before.fields || {}).filter(([name]) => ['capHolds', 'deadCap'].includes(name)));
         const patch = buildMaintenanceTeam(raw, index, context.season, context.asOf, decodeFields(priorFields));
-        for (const player of patch.roster || []) if (!snapshot.documents.some(d => d.name.endsWith('/architect_basePlayers/' + player))) throw new Error('Roster reference lacks a base player; reconcile evidence before publication');
+        for (const player of patch.roster || []) if (!availableBasePlayers.has('architect_basePlayers/' + player)) throw new Error('Roster reference lacks a base player; reconcile evidence before publication');
         const afterFields = mergeTypedFields(before.fields || {}, patch);
         if (firestoreFieldHash(before.fields || {}) !== firestoreFieldHash(afterFields)) {
           groups.push({ id: 'team-' + inventory.teamCode, entries: [{ path: documentPath, beforeFields: before.fields || {}, afterFields, precondition: { updateTime: before.updateTime } }] }); coverage.processed++;

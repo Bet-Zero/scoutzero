@@ -769,6 +769,8 @@ function parseBio($: cheerio.CheerioAPI) {
   // 1) Get full-page text, minus obvious noise
   const root = $.root().clone();
   root.find('script,style,iframe,noscript').remove();
+  // Preserve DOM text boundaries between imperial and metric measurements.
+  root.find('*').prepend(' ').append(' ');
 
   // 2) Normalize weird punctuation + whitespace
   let text = root
@@ -790,7 +792,7 @@ function parseBio($: cheerio.CheerioAPI) {
   // IMPORTANT: Only split when there are 4+ digits total after quote (e.g., "5195cm"), not valid heights like "6' 10" or "6' 11"
   // This prevents breaking up valid heights like "6' 10" into "6' 1 0" or "6' 11" into "6' 1 1"
   text = text.replace(
-    /(\d)\s*(['\u2019])\s*(\d)(\d{3,})(cm|in|ft|\s)/gi,
+    /(\d)\s*(['\u2019])\s*(\d{1,2})(\d{3})(cm\b)/gi,
     '$1$2 $3 $4 $5'
   );
   // Then normal unit separations
@@ -1775,8 +1777,10 @@ type ParsePlayerOptions = {
   sourceUrl: string;
   teamCode?: string;
   teamName?: string;
-  /** Capture date for remaining-season counts; defaults to the current date. */
+  /** Evaluation date for remaining-season counts; defaults to the current date. */
   asOf?: Date;
+  /** Actual source acquisition time, retained separately for offline reprocessing. */
+  capturedAt?: Date;
 };
 
 export async function parsePlayer(
@@ -1787,6 +1791,8 @@ export async function parsePlayer(
   let playerId = options.playerId;
   const asOf = options.asOf ?? new Date();
   if (!Number.isFinite(asOf.getTime())) throw new Error('Invalid contract capture date');
+  const capturedAt = options.capturedAt ?? new Date();
+  if (!Number.isFinite(capturedAt.getTime())) throw new Error('Invalid source acquisition timestamp');
   const CURRENT_SEASON_START = getCurrentSeasonYear(asOf);
 
   const $ = cheerio.load(html);
@@ -1950,7 +1956,7 @@ export async function parsePlayer(
 
         // Parse the cap hold from the future contract's cap hold value
         // The extension cap hold appears in the HTML as "Cap Hold YYYY-YY: $XX,XXX,XXX" after the future contract table
-        const futureCapHold = futureMeta.capHold ?? null;
+        const futureCapHold = futureMeta.capHold;
 
         // Detect max contract info for future contract
         const futureMaxContractInfo = detectMaxContractInfo(
@@ -2116,9 +2122,9 @@ export async function parsePlayer(
     source: {
       provider: 'SalarySwish',
       playerPageUrl: playerUrlEnv || 'snapshot',
-      scrapedAt: new Date().toISOString(),
+      scrapedAt: capturedAt.toISOString(),
     },
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: asOf.toISOString(),
     version: '1.0',
   };
 
