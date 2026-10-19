@@ -207,3 +207,23 @@ using the same inventory, size, path, hash and plan-binding checks. This retains
 the complete original file inventory rather than sampling or removing evidence.
 The focused transport harness checks gzip/XZ success and unsupported-format
 rejection. No new storage service, permissions or publication approval is added.
+
+## Private checker execution repair verification
+
+The uploaded original report is retained privately, not accepted. The focused
+workflow receipt harness executes the actual receipt script with fixture result
+and transport boundaries: clean success passes; denied tools, failed action and
+REVISE each fail closed while retaining the complete original encrypted-report
+input. Encryption is mocked in this harness; actual CMS encryption/decryption
+was verified by the recovered first protected run, whose receipt checksum matches.
+
+Actually run after the repair: `npm run test:cloud-dev` (passed on retry after
+correcting a test harness variable collision), `npm run cloud:typecheck`, targeted
+Markdown validation, `git diff --check`, and required `graphify update .`.
+Frozen source archive and canonical plan SHA-256 values remain unchanged.
+
+App build, UI and emulator rehearsals are intentionally not repeated for this
+checker-only change. The previously recorded exact proposal/browser/recovery
+proofs retain their unchanged scope. No full local suite was authorized or run.
+Fresh exact-head hosted checks, independent public code ACCEPT and actual private
+factual review are required separately; this harness does not satisfy those gates.

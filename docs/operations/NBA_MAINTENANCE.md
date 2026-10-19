@@ -331,3 +331,10 @@ execution outcome and exact candidate/archive/plan/input identities. Failure,
 missing output, stale identity, REVISE or blocking findings cannot qualify data.
 The checked-in publication registry stays empty until separate exact production
 approval. The earlier 73-file rehearsal archive is never an input to this checker.
+
+The factual checker has a bounded 60-turn ceiling within the 20-minute job limit.
+It may inspect evidence only with Read/Glob/Grep. Unavailable or denied commands
+are limitations, never executed validation; any tool denial prevents acceptance
+and retains the encrypted original report. An over-limit or otherwise failed
+execution cannot qualify data even if its model result claims ACCEPT. Repair the
+identified cause before a fresh protected run; preserve the failed receipt.
