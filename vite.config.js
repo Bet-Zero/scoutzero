@@ -5,6 +5,13 @@ import { realDraftReviewPlugin } from './scripts/review/realDraftReviewPlugin';
 
 export default defineConfig({
   plugins: [react(), realDraftReviewPlugin()],
+  server: {
+    watch: { ignored: ['**/.scoutzero-dev/**', '**/.scoutzero-dev-tools/**'] },
+    fs: {
+      deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**',
+        '**/.scoutzero-dev/**', '**/.scoutzero-dev-tools/**'],
+    },
+  },
   resolve: {
     alias: [
       {

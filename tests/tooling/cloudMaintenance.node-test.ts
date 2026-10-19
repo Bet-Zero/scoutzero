@@ -486,3 +486,24 @@ exec(compile(${JSON.stringify(script)},'<trusted-workflow>','exec'))
     }
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+test('actual Vite server blocks private maintenance files across source URL forms', async () => {
+  const { createServer } = await import('vite');
+  const { randomUUID } = await import('node:crypto');
+  const { rm } = await import('node:fs/promises');
+  const relative = '.scoutzero-dev/privacy-proof-' + randomUUID();
+  const dir = path.resolve(relative); await mkdir(dir, { recursive: true, mode: 0o700 });
+  const marker = 'private-maintenance-fixture-' + randomUUID();
+  await writeFile(path.join(dir, 'source.json'), JSON.stringify({ marker }), { mode: 0o600 });
+  const server = await createServer({ configFile: path.resolve('vite.config.js'), logLevel: 'silent', optimizeDeps: { disabled: true }, server: { host: '127.0.0.1', port: 0, strictPort: false } });
+  try {
+    await server.listen(); const address = server.httpServer!.address();
+    assert(address && typeof address === 'object'); const origin = 'http://127.0.0.1:' + address.port;
+    const url = '/' + relative + '/source.json';
+    for (const variant of [url, url + '?raw', '/@fs' + path.join(dir, 'source.json'), url.replace('/.scoutzero', '/%2escoutzero')]) {
+      const response = await fetch(origin + variant);
+      assert.equal(response.status, 403); assert(!(await response.text()).includes(marker));
+    }
+    assert.equal((await fetch(origin + '/players')).status, 200);
+  } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
+});

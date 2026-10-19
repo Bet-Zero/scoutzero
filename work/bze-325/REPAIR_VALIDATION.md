@@ -115,3 +115,42 @@ checks their target/input digest before review, then generates plan/source
 navigation views from the authenticated originals. Negative transport probes now
 also reject mismatched plan bytes and a rehearsal/demo target. The focused cloud
 safety suite and cloud tooling typecheck passed after this binding repair.
+
+## Final combined preparation proof
+
+Fresh statistics collection completed all 772 requested identities: 682 actual
+prior-season fallbacks and 90 without supplied regular-season history, with zero
+failures/missing members and zero 2026–27 game rows. The publication cohort is all
+526 current official players plus the retained catalog: 764 identities. Eight
+supplementary historical/free-agent candidates are retained without unqualified
+new catalog adoption. Thirty team pages contain 527 roster entries, including one
+camp-only member whose current deal is not supplied and is not invented.
+
+The exact combined proposal has 777 coherent groups / 3,098 changed records,
+652 creates, and 488 stale current-statistics summaries cleared. Coverage accounts
+for 794 required player/statistics/team members: 777 changed, 17 unchanged,
+zero withheld/failed/missing. No 2026–27 statistical result is created.
+Canonical plan: `2471596446a39e8674aecca041aea544373c63eaf833e2cde388aa080862ef5e`.
+Input identity: `5c31c5aa368a6cbe4c4b7f30f1d08b4e26b0805639c081aa55e4f1ac1013f9f6`.
+
+Actual full emulator apply/readback, lost-ack resume and exact restoration passed
+for all 777 groups; the saved local world root/team digest stayed unchanged.
+Luka/Austin Playwright profiles show actual 2025–26 results while both current
+summaries are absent. All 526 exact proposed profile models pass the same app
+schema/contract-reader rules; 409 unqualified retained contracts and 12 retained
+season placeholders remain preserved with explicit incomplete-history notices.
+An extra whole-browser SDK batch probe did not obtain its local test identity and
+is not counted as a pass; the all-player check is model validation, not 526 browser
+sessions. Actual browser coverage is the stated representative profiles.
+
+Arthur's explicit no-games run separately passed the shared browser rehearsal,
+actual conditional commit/lost-ack resume and exact restoration. Its profile shows
+`Latest` / unavailable statistics with no current results; no season is invented.
+Browser rehearsal now supports explicit no-games input and restores even if its
+representative-player/season checks reject the request.
+
+Vite previously served an ignored maintenance JSON over loopback. Private-source
+paths are now denied and ignored by watching. Actual direct, raw, absolute and
+encoded URL probes return 403 without private bytes; additional import/url/raw
+query forms are also blocked, and the normal app route still returns 200. A real
+Vite-server regression test covers the boundary. No production data was changed.

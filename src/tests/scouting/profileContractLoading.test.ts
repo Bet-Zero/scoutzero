@@ -1,3 +1,4 @@
+import { loadProfileSeasons } from '@/shared/utils/loadProfileSeasons';
 import { describe, expect, it } from 'vitest';
 import sample from '../../../player-scrape/shared/schema/sample_players_v2_format.json';
 import { ContractDocZ } from '@/schemas/players_v2';
@@ -20,5 +21,19 @@ describe('retained contract qualification boundary', () => {
   it('does not turn malformed-only or historical-only data into a usable current profile', () => {
     expect(() => loadProfileContracts([{ id: 'unknown', data: {} }], 'contracts')).toThrow();
     expect(() => loadProfileContracts([{ id: 'past', data: { ...current(), metadata: { ...current().metadata, isCurrent: false } } }, { id: 'unknown', data: {} }], 'contracts')).toThrow();
+  });
+});
+
+
+describe('unqualified season history', () => {
+  it('preserves original null placeholders without inventing statistics or blocking other profile data', () => {
+    const documents = [{ id: '2025-26', data: { age: 22, stats: { GP: 0 } } },
+      { id: '2024-25', data: { stats: { PTS: null }, contractView: { salary: null } } }];
+    const before = structuredClone(documents);
+    const result = loadProfileSeasons(documents);
+    expect(Object.keys(result.seasons)).toEqual(['2025-26']);
+    expect(result.withheldIds).toEqual(['2024-25']);
+    expect(result.warnings).toEqual(['1 season record needs review. Statistics history may be incomplete.']);
+    expect(documents).toEqual(before);
   });
 });

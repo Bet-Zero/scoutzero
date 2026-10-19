@@ -57,12 +57,15 @@ try {
   await assert.rejects(() => publishMaintenance(plan, { ...approval, planSha256: '0'.repeat(64) }, store), /approval/);
   let consumers;
   if (process.argv.includes('--browser')) {
-    const root = entries.find(entry => /^players_v2\/[^/]+$/.test(entry.path));
-    const season = entries.find(entry => entry.path.includes('/seasons/'));
-    if (!root || !season) throw new Error('Browser rehearsal requires a representative player and season');
     try {
-      consumers = await verifyPublishedPlayer(dir, root.path.split('/')[1], season.path.split('/').at(-1)!);
-      if (season.path.split('/').at(-1) !== input.context.season) assert.equal(consumers.currentSeasonStatsPresent, false);
+      const root = entries.find(entry => /^players_v2\/[^/]+$/.test(entry.path));
+      const season = entries.find(entry => entry.path.includes('/seasons/'));
+      if (!root) throw new Error('Browser rehearsal requires a representative player');
+      const playerId = root.path.split('/')[1];
+      const noGames = input.provenance?.statsStatus?.[playerId] === 'no-games';
+      if (!season && !noGames) throw new Error('Browser rehearsal requires supplied season evidence or explicit no-games coverage');
+      consumers = await verifyPublishedPlayer(dir, playerId, season?.path.split('/').at(-1) || 'Latest');
+      if (!season || season.path.split('/').at(-1) !== input.context.season) assert.equal(consumers.currentSeasonStatsPresent, false);
     } catch (error) {
       await restoreMaintenanceRehearsal(plan, store);
       throw error;

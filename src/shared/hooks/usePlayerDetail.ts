@@ -1,3 +1,4 @@
+import { loadProfileSeasons } from '@/shared/utils/loadProfileSeasons';
 import { loadProfileContracts } from '@/shared/utils/contracts/loadProfileContracts';
 import { useState, useEffect } from 'react';
 import { getDoc, getDocs } from 'firebase/firestore';
@@ -11,12 +12,10 @@ import {
 } from '@/data/firestorePaths';
 import {
   PlayerMainDocZ,
-  SeasonDocZ,
   EvaluationDocZ,
 } from '@/schemas/players_v2';
 import type {
   PlayerV2,
-  SeasonDoc,
   EvaluationDoc,
 } from '@/schemas/players_v2';
 
@@ -159,19 +158,14 @@ export const usePlayerDetail = (
         ]);
 
         // Step 3: Convert subcollections to records
-        const { contracts, warnings } = loadProfileContracts(
+        const { contracts, warnings: contractWarnings } = loadProfileContracts(
           contractsSnap.docs.map(doc => ({ id: doc.id, data: doc.data() })),
           `players_v2/${playerId}/contracts`
         );
 
-        const seasons: Record<string, SeasonDoc> = {};
-        seasonsSnap.docs.forEach((doc) => {
-          seasons[doc.id] = parseFirestoreDoc(
-            SeasonDocZ,
-            doc.data(),
-            `players_v2/${playerId}/seasons/${doc.id}`
-          );
-        });
+        const { seasons, warnings: seasonWarnings } = loadProfileSeasons(
+          seasonsSnap.docs.map(doc => ({ id: doc.id, data: doc.data() }))
+        );
 
         const evaluations: Record<string, EvaluationDoc> = {};
         evalsSnap.docs.forEach((doc) => {
@@ -206,7 +200,7 @@ export const usePlayerDetail = (
 
         if (isMounted) {
           setPlayer(playerV2);
-          setDataWarnings(warnings);
+          setDataWarnings([...contractWarnings, ...seasonWarnings]);
           setLoading(false);
         }
       } catch (err) {
