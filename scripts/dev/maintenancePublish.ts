@@ -32,6 +32,7 @@ type Document = { fields?: Fields; updateTime: string };
 export type PublicationStore = {
   project: Publication['project']; database: '(default)';
   read(path: string): Promise<Document | null>;
+  readMany?(paths: string[]): Promise<Map<string, Document | null>>;
   commit(writes: unknown[]): Promise<void>;
 };
 const hash = (value: unknown) => digest(canonical(value));
@@ -77,43 +78,79 @@ export function validatePublication(plan: Publication, approval: PublicationAppr
   return id;
 }
 
-/** Completion receipt and each coherent group are committed together. No league-wide atomic claim. */
-export async function publishMaintenance(plan: Publication, approval: PublicationApproval, store: PublicationStore) {
+/** Bulk reads retain exact per-document checks; no collection listing is required. */
+async function readDocuments(store: PublicationStore, paths: string[]) {
+  if (store.readMany) return store.readMany(paths);
+  const result = new Map<string, Document | null>();
+  for (const path of paths) result.set(path, await store.read(path));
+  return result;
+}
+function appliedReceipt(receipt: Document, id: string, group: Publication['groups'][number]) {
+  if (hash(receipt.fields?.planSha256) !== hash(textField(id)) ||
+      hash(receipt.fields?.state) !== hash(textField('applied')) ||
+      hash(receipt.fields?.groupSha256) !== hash(textField(hash(group)))) throw new Error('Conflicting or recovered completion record');
+}
+function verifyGroup(group: Publication['groups'][number], receipt: Document, documents: Map<string, Document | null>) {
+  for (const entry of group.entries) {
+    const live = documents.get(entry.path);
+    if (!live || firestoreFieldHash(live.fields || {}) !== firestoreFieldHash(entry.afterFields) || live.updateTime !== receipt.updateTime) {
+      throw new Error('Completed group changed; publication is no longer verified');
+    }
+  }
+}
+
+/** Partial runs skip completed data, never claim completion until a whole-plan readback. */
+export async function publishMaintenance(plan: Publication, approval: PublicationApproval, store: PublicationStore,
+  options: { deadline?: number; maxGroups?: number; now?: () => number } = {}) {
   const id = validatePublication(plan, approval, store);
-  let completed = 0; let resumed = 0;
+  const now = options.now || Date.now;
+  if (options.deadline !== undefined && !Number.isFinite(options.deadline) ||
+      options.maxGroups !== undefined && (!Number.isSafeInteger(options.maxGroups) || options.maxGroups < 1)) throw new Error('Invalid publication execution budget');
+  const expired = () => options.deadline !== undefined && now() >= options.deadline;
+  let applied = 0; let resumed = 0;
+  const partial = () => ({ planSha256: id, completedGroups: applied + resumed, resumedGroups: resumed,
+    appliedGroups: applied, totalGroups: plan.groups.length, state: 'partial' as const, complete: false });
+  if (expired()) return partial();
+  const receipts = await readDocuments(store, plan.groups.map(g => ledgerPath(id, g.id)));
+  // Authenticate the ledger only. Re-reading completed data on every partial run starves later groups.
+  for (const group of plan.groups) {
+    const receipt = receipts.get(ledgerPath(id, group.id));
+    if (receipt) { appliedReceipt(receipt, id, group); resumed++; }
+  }
   for (const group of plan.groups) {
     const receiptPath = ledgerPath(id, group.id);
-    const receipt = await store.read(receiptPath);
-    if (receipt) {
-      if (receipt.fields?.planSha256 && hash(receipt.fields.planSha256) === hash(textField(id)) &&
-          hash(receipt.fields.state) === hash(textField('applied')) && hash(receipt.fields.groupSha256) === hash(textField(hash(group)))) {
-        for (const entry of group.entries) {
-          const live = await store.read(entry.path);
-          if (!live || firestoreFieldHash(live.fields || {}) !== firestoreFieldHash(entry.afterFields) || live.updateTime !== receipt.updateTime) throw new Error('Completed group changed; publication is no longer verified');
-        }
-        completed++; resumed++; continue;
-      }
-      throw new Error('Conflicting or recovered completion record');
-    }
-    // Check the whole group before any write; Firestore rechecks at atomic commit.
+    if (receipts.get(receiptPath)) continue;
+    if (expired() || applied >= (options.maxGroups ?? Infinity)) return partial();
+    // Renew approval expiry checks before each new atomic group, including long local rehearsals.
+    if (Date.parse(approval.expiresAt) <= Date.now()) throw new Error('Publication approval expired');
+    const before = await readDocuments(store, group.entries.map(e => e.path));
     for (const entry of group.entries) {
-      const live = await store.read(entry.path);
+      const live = before.get(entry.path);
       if (firestoreFieldHash(live ? live.fields || {} : null) !== firestoreFieldHash(entry.beforeFields) ||
           (live ? !('updateTime' in entry.precondition) || entry.precondition.updateTime !== live.updateTime : entry.beforeFields !== null)) throw new Error('Live before-image/precondition changed; group withheld');
     }
+    if (expired()) return partial();
     await store.commit([
       ...group.entries.map(entry => ({ update: { name: fullName(plan, entry.path), fields: entry.afterFields }, currentDocument: entry.precondition })),
       { update: { name: fullName(plan, receiptPath), fields: { planSha256: textField(id), state: textField('applied'), groupSha256: textField(hash(group)) } }, currentDocument: { exists: false } },
     ]);
-    const proof = await store.read(receiptPath);
-    if (!proof) throw new Error('Completion record missing; inspect before retry');
-    for (const entry of group.entries) {
-      const live = await store.read(entry.path);
-      if (!live || firestoreFieldHash(live.fields || {}) !== firestoreFieldHash(entry.afterFields) || live.updateTime !== proof.updateTime) throw new Error('Readback failed; incomplete publication');
-    }
-    completed++;
+    const proof = await readDocuments(store, [receiptPath, ...group.entries.map(e => e.path)]);
+    const receipt = proof.get(receiptPath);
+    if (!receipt) throw new Error('Completion record missing; inspect before retry');
+    appliedReceipt(receipt, id, group); verifyGroup(group, receipt, proof); applied++;
   }
-  return { planSha256: id, completedGroups: completed, resumedGroups: resumed, complete: completed === plan.groups.length };
+  if (expired()) return partial();
+  // One coherent bulk snapshot includes every receipt and after-image, including all resumed groups.
+  const final = await readDocuments(store, plan.groups.flatMap(g => [ledgerPath(id, g.id), ...g.entries.map(e => e.path)]));
+  for (const group of plan.groups) {
+    const receipt = final.get(ledgerPath(id, group.id));
+    if (!receipt) throw new Error('Completion record missing; inspect before retry');
+    appliedReceipt(receipt, id, group); verifyGroup(group, receipt, final);
+  }
+  if (expired()) return partial();
+  if (Date.parse(approval.expiresAt) <= Date.now()) throw new Error('Publication approval expired');
+  return { planSha256: id, completedGroups: applied + resumed, resumedGroups: resumed,
+    appliedGroups: applied, totalGroups: plan.groups.length, state: 'complete' as const, complete: true };
 }
 
 /** Rehearsal recovery only. A production reversal requires its own newly reviewed plan. */

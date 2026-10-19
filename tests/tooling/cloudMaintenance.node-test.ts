@@ -99,6 +99,81 @@ test('subsequent edits prevent repeated success and automatic rehearsal recovery
   await assert.rejects(() => restoreMaintenanceRehearsal(f.plan, f.store), /Concurrent/);
 });
 
+test('777-group bounded retries advance past a large prefix, recover lost ack and verify every result', async () => {
+  const f = fixture(); const template = f.plan.groups[0].entries[0];
+  f.documents.clear();
+  f.plan.groups = Array.from({ length: 777 }, (_, i) => ({ id: `group_${i}`, entries: [{ ...template, path: `players_v2/player_${i}` }] }));
+  for (const group of f.plan.groups) f.documents.set(group.entries[0].path, { fields: template.beforeFields!, updateTime: '2026-10-18T00:00:00Z' });
+  f.approval.planSha256 = digest(canonical(f.plan)); f.approval.review.planSha256 = f.approval.planSha256; f.approval.owner.planSha256 = f.approval.planSha256;
+  let clock = 0; let commits = 0; let lost = false; const commit = f.store.commit;
+  const reads: string[][] = [];
+  f.store.readMany = async paths => { clock += Math.ceil(paths.length / 100) * 2500; reads.push(paths); return new Map(paths.map(p => [p, f.documents.get(p) || null])); };
+  f.store.commit = async writes => { clock += 2500; await commit(writes); commits++; if (commits === 390 && !lost) { lost = true; throw new Error('Lost acknowledgement'); } };
+  let previous = 0; let runs = 0; let complete = false;
+  while (!complete && runs++ < 40) {
+    const start = clock; reads.length = 0;
+    try {
+      const result = await publishMaintenance(f.plan, f.approval, f.store, { deadline: start + 300000, now: () => clock });
+      complete = result.complete;
+      assert.equal(result.state, complete ? 'complete' : 'partial');
+      assert(result.completedGroups > previous || complete);
+      if (!complete) {
+        // Only ledger is read from the completed prefix, never all completed player documents.
+        assert(!reads.slice(1).some(paths => paths.includes('players_v2/player_0')) || previous === 0);
+      } else assert(reads.at(-1)!.includes('players_v2/player_0') && reads.at(-1)!.includes('players_v2/player_776'));
+      previous = result.completedGroups;
+    } catch (error) { assert.match(String(error), /Lost acknowledgement/); }
+    assert(clock - start <= 315000, 'one bounded group/final bulk request may cross the cooperative deadline; transport enforces the hard deadline');
+  }
+  assert(complete && lost && runs > 1); assert.equal(commits, 777);
+  f.documents.get('players_v2/player_0')!.updateTime = '2026-10-18T00:03:00Z';
+  await assert.rejects(() => publishMaintenance(f.plan, f.approval, f.store), /changed/);
+});
+
+test('bounded partial is not completion, and final verification rejects a changed prefix', async () => {
+  const f = fixture();
+  assert.equal((await publishMaintenance(f.plan, f.approval, f.store, { maxGroups: 1 })).complete, false);
+  f.documents.get('players_v2/player_0')!.updateTime = '2026-10-18T00:04:00Z';
+  await assert.rejects(() => publishMaintenance(f.plan, f.approval, f.store), /changed/);
+  const g = fixture(); let commits = 0; g.store.commit = async () => { commits++; };
+  const result = await publishMaintenance(g.plan, g.approval, g.store, { deadline: 1, now: () => 1 });
+  assert.equal(result.state, 'partial'); assert.equal(commits, 0);
+});
+
+test('bounded bulk transport uses fixed get-only endpoints, pins snapshots and rejects incomplete responses', async () => {
+  const { maintenanceStore } = await import('../../scripts/dev/maintenanceTransport.js');
+  const originalFetch = globalThis.fetch;
+  try {
+    for (const scenario of ['valid', 'missing-row', 'duplicate', 'wrong-path', 'changed-time']) {
+      let calls = 0;
+      globalThis.fetch = async (input, init) => {
+        assert.equal(String(input), 'http://127.0.0.1:8082/v1/projects/demo-architect-review/databases/(default)/documents:batchGet');
+        assert.equal(init?.redirect, 'error'); assert.equal(init?.method, 'POST');
+        const body = JSON.parse(String(init?.body)); calls++;
+        assert.equal(body.readTime, calls === 1 ? undefined : '2026-10-18T00:00:00Z');
+        const rows = body.documents.map((name: string) => ({ missing: name, readTime: scenario === 'changed-time' && calls === 2 ? '2026-10-18T00:01:00Z' : '2026-10-18T00:00:00Z' }));
+        if (scenario === 'missing-row') rows.pop();
+        if (scenario === 'duplicate') rows.push(rows[0]);
+        if (scenario === 'wrong-path') rows[0].missing = 'projects/other/databases/(default)/documents/players_v2/private';
+        return new Response(JSON.stringify(rows));
+      };
+      const store = await maintenanceStore(false);
+      const paths = Array.from({ length: 101 }, (_, i) => `players_v2/player_${i}`);
+      if (scenario === 'valid') { const result = await store.readMany!(paths); assert.equal(result.size, 101); assert.equal(result.get(paths[0]), null); assert.equal(calls, 2); }
+      else await assert.rejects(() => store.readMany!(paths), /snapshot/);
+      await assert.rejects(() => store.readMany!(['architect_worlds/private']), /path rejected/);
+    }
+    const expired = await maintenanceStore(false, undefined, 0);
+    await assert.rejects(() => expired.read('players_v2/player'), /budget exhausted/);
+    globalThis.fetch = async (_input, init) => {
+      await new Promise(resolve => setTimeout(resolve, 40));
+      assert.equal(init?.signal?.aborted, true); throw init!.signal!.reason;
+    };
+    const bounded = await maintenanceStore(false, undefined, Date.now() + 20);
+    await assert.rejects(() => bounded.read('players_v2/player'), { name: 'TimeoutError' });
+  } finally { globalThis.fetch = originalFetch; }
+});
+
 test('equivalent Firestore null and empty representations compare without converting stored types', () => {
   assert.equal(firestoreFieldHash({ value: { nullValue: 0 }, map: { mapValue: {} }, array: { arrayValue: {} } }),
     firestoreFieldHash({ value: { nullValue: 'NULL_VALUE' }, map: { mapValue: { fields: {} } }, array: { arrayValue: { values: [] } } }));
@@ -248,12 +323,18 @@ test('maintenance access probe is non-mutating and rejects inadequate or excessi
       assert.equal(init?.method, 'POST');
       return new Response(JSON.stringify({ permissions }));
     }
+    if (url.endsWith(':batchGet')) {
+      assert.equal(init?.method, 'POST');
+      const body = JSON.parse(String(init?.body));
+      assert.deepEqual(body.documents, ['projects/scoutzero-bf1ae/databases/(default)/documents/architect_basePlayers/luka_doncic']);
+      return new Response(JSON.stringify([{ found: { name: body.documents[0] }, readTime: '2026-10-18T00:00:00Z' }]));
+    }
     assert.equal(init?.method, 'GET');
     assert.equal(url, 'https://firestore.googleapis.com/v1/projects/scoutzero-bf1ae/databases/(default)/documents/architect_basePlayers/luka_doncic');
     return new Response(JSON.stringify({ name: url.slice('https://firestore.googleapis.com/v1/'.length) }));
   }) as typeof fetch;
   assert.equal((await probeMaintenancePermissions('SYNTHETIC', send)).ordinaryReadVerified, true);
-  assert.equal(calls.length, 2); assert(!calls.some(v => v.includes(':commit')));
+  assert.equal(calls.length, 4); assert(!calls.some(v => v.includes(':commit')));
   permissions = ['datastore.entities.get'];
   await assert.rejects(() => probeMaintenancePermissions('SYNTHETIC', send), /lacks required/);
   permissions = [...REQUIRED_MAINTENANCE_PERMISSIONS, 'datastore.entities.delete'];

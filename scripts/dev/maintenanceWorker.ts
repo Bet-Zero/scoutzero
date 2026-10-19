@@ -101,6 +101,8 @@ export async function runMaintenanceWorker(stage: string) {
       process.env.GITHUB_EVENT_NAME !== 'workflow_dispatch' || process.env.GITHUB_REF !== 'refs/heads/main' ||
       process.env.GITHUB_WORKFLOW_REF !== REPO + '/.github/workflows/nba-maintenance.yml@refs/heads/main' ||
       !/^[a-f0-9]{40}$/.test(process.env.GITHUB_SHA || '') || !/^[a-f0-9]{40}$/.test(process.env.MAINTENANCE_WORKER_SHA || '')) throw new Error('Protected main workflow context required');
+  // Bound the entire authenticated execute phase below the unchanged 600-second token.
+  const deadline = stage === 'execute' ? Date.now() + 300_000 : undefined;
   const operation = process.env.MAINTENANCE_OPERATION;
   if (!['access', 'publish'].includes(operation || '')) throw new Error('Unsupported maintenance operation');
   const workerSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
@@ -115,10 +117,15 @@ export async function runMaintenanceWorker(stage: string) {
   const token = process.env.SCOUTZERO_MAINTENANCE_ACCESS_TOKEN || '';
   const access = await probeMaintenancePermissions(token);
   if (!input) return access;
-  return publishMaintenance(input.plan, input.approval, await maintenanceStore(true, token));
+  return publishMaintenance(input.plan, input.approval, await maintenanceStore(true, token, deadline), { deadline });
 }
 
 if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
-  try { console.log(JSON.stringify(await runMaintenanceWorker(process.argv[2]))); }
+  try {
+    const result = await runMaintenanceWorker(process.argv[2]);
+    console.log(JSON.stringify(result));
+    // Partial is recoverable work, never a successful completed-publication signal.
+    if ('complete' in result && !result.complete) process.exitCode = 2;
+  }
   catch (error) { console.error(maintenanceErrorMessage(error)); console.error('Protected maintenance operation stopped; no completion claim.'); process.exitCode = 1; }
 }
