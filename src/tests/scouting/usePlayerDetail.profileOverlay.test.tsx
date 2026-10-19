@@ -91,3 +91,18 @@ describe('usePlayerDetail profile evaluation overlay', () => {
     });
   });
 });
+
+
+describe('usePlayerDetail blocked-current transition', () => {
+  it('clears the previous profile when the next current contract is malformed', async () => {
+    seedMockData('players_v2/previous_valid', { bio: { displayName: 'Previous Player', playerId: 'previous_valid' } });
+    seedMockData('players_v2/next_blocked', { bio: { displayName: 'Blocked Player', playerId: 'next_blocked' } });
+    seedMockData('players_v2/next_blocked/contracts/current', { metadata: { isCurrent: true } });
+    const { result, rerender } = renderHook(({ id }) => usePlayerDetail(id), { initialProps: { id: 'previous_valid' } });
+    await waitFor(() => expect(result.current.player?.id).toBe('previous_valid'));
+    rerender({ id: 'next_blocked' });
+    await waitFor(() => expect(result.current.error).toContain('current failed schema validation'));
+    expect(result.current.player).toBeNull();
+    expect(result.current.dataWarnings).toEqual([]);
+  });
+});

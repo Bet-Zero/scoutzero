@@ -104,3 +104,8 @@ players. Their cap-hit sums match the reported active salary for all 30 teams.
 The 73 supplementary captures are retained but do not establish current contract
 or free-agent status; the current camp-only deal without terms is not invented.
 This explicitly supersedes the preliminary 599-player contract proposal's scope.
+
+The reader also clears a previous player before a new detail request, so a blocked
+current contract cannot leave the previous person's profile visible. The added
+hook transition check and existing profile/overlay checks passed (25 UI tests),
+and typecheck passed after that repair.

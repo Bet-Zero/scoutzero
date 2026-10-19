@@ -122,6 +122,7 @@ export const usePlayerDetail = (
 
     const fetchPlayerDetail = async () => {
       setLoading(true);
+      setPlayer(null);
       setError(null);
       setDataWarnings([]);
 
