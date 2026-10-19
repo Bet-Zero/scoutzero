@@ -165,3 +165,8 @@ The empty registry intentionally blocks all `publish` operations before Google
 access. Read-only `access` needs no passphrase. Full Gate A closure requires the
 landed code/review/CI plus actual bounded access verification; first data publication
 and its exact private package remain Gate B, not an invented Gate A production test.
+
+The original Gate A worker pin above is historical. For the BZE-325 bounded
+publisher repair, use the exact replacement procedure in
+[PUBLICATION_BUDGET.md](../bze-325/PUBLICATION_BUDGET.md); do not rerun the original
+provisioner to add another ordinary-worker trust alternative.

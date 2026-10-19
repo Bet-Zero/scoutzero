@@ -29,7 +29,24 @@ export async function probeMaintenancePermissions(token: string, send: typeof fe
     method: 'GET', redirect: 'error', signal: AbortSignal.timeout(15000), headers: { Authorization: 'Bearer ' + token },
   });
   if (!read.ok || (await read.json()).name !== name) throw new Error('Maintenance identity failed fixed-project ordinary-document read');
-  return { project: SOURCE_PROJECT, nonMutating: true, requiredPermissionsPresent: true, testedExcessPermissionsAbsent: true, ordinaryReadVerified: true,
+  const bulk = await send(`https://firestore.googleapis.com/v1/projects/${SOURCE_PROJECT}/databases/(default)/documents:batchGet`, {
+    method: 'POST', redirect: 'error', signal: AbortSignal.timeout(15000),
+    headers: { Authorization: 'Bearer ' + token, 'content-type': 'application/json' },
+    body: JSON.stringify({ documents: [name] }),
+  });
+  if (!bulk.ok) throw new Error('Maintenance identity failed non-mutating batchGet');
+  const rows = await bulk.json();
+  if (!Array.isArray(rows) || rows.length !== 1 || rows[0].found?.name !== name || !rows[0].readTime) throw new Error('Maintenance batchGet proof missing');
+  const pinned = await send(`https://firestore.googleapis.com/v1/projects/${SOURCE_PROJECT}/databases/(default)/documents:batchGet`, {
+    method: 'POST', redirect: 'error', signal: AbortSignal.timeout(15000),
+    headers: { Authorization: 'Bearer ' + token, 'content-type': 'application/json' },
+    body: JSON.stringify({ documents: [name], readTime: rows[0].readTime }),
+  });
+  if (!pinned.ok) throw new Error('Maintenance identity failed pinned readTime batchGet');
+  const snapshot = await pinned.json();
+  if (!Array.isArray(snapshot) || snapshot.length !== 1 || snapshot[0].found?.name !== name ||
+      snapshot[0].readTime !== rows[0].readTime || snapshot[0].found.updateTime !== rows[0].found.updateTime) throw new Error('Maintenance pinned snapshot mismatch');
+  return { project: SOURCE_PROJECT, nonMutating: true, requiredPermissionsPresent: true, testedExcessPermissionsAbsent: true, ordinaryReadVerified: true, ordinaryBatchReadVerified: true,
     configurationReviewStillRequired: true, productionWriteAuthorized: false };
 }
 

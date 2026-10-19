@@ -338,3 +338,21 @@ are limitations, never executed validation; any tool denial prevents acceptance
 and retains the encrypted original report. An over-limit or otherwise failed
 execution cannot qualify data even if its model result claims ACCEPT. Repair the
 identified cause before a fresh protected run; preserve the failed receipt.
+
+### Bounded production progress
+
+The protected worker retains its ten-minute job and 600-second Google token. Its
+execute phase has a five-minute deadline; each Firestore request is limited by
+that deadline. Known paths are read with get-only batchGet (100 per request),
+with a coherent readTime across pages. Completed receipts are authenticated
+without repeatedly reading all completed player data before new work.
+
+A budget stop returns `state: partial` / `complete: false` and a nonzero worker
+exit; a transport interruption can leave no result. Neither is a finished
+refresh. Re-dispatch the same still-approved plan through the existing owner gate
+and inspect its result. Do not change the digest, reset approval expiry, skip
+coverage or infer success from committed-group counts. Each pending group keeps
+its exact atomic preconditions and receipt. Only whole-plan coherent readback of
+all receipts, after-images and commit versions permits `complete: true`.
+Interruption during that final check resumes verification without further writes.
+See the [777-group proof and pin handoff](../../work/bze-325/PUBLICATION_BUDGET.md).
