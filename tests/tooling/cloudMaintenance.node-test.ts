@@ -454,7 +454,7 @@ plan_bytes=json.dumps(plan,sort_keys=True,separators=(',',':')).encode()
 plan_sha=hashlib.sha256(plan_bytes).hexdigest() if scenario!='wrong-plan' else 'd'*64
 manifest={'format':'nba-maintenance-private-review-v1','planSha256':plan_sha,'inputSha256':'b'*64,'files':[{'path':name,'bytes':len(content),'sha256':hashlib.sha256(content).hexdigest()},{'path':'plans/publication-plan.json','bytes':len(plan_bytes),'sha256':hashlib.sha256(plan_bytes).hexdigest()}]}
 packed=io.BytesIO()
-with tarfile.open(fileobj=packed,mode='w:gz') as archive:
+with tarfile.open(fileobj=packed,mode='w:xz' if scenario=='valid-xz' else 'w:bz2' if scenario=='unsupported-compression' else 'w:gz') as archive:
  for filename,data in [(name,content),('plans/publication-plan.json',plan_bytes),('MANIFEST.json',json.dumps(manifest).encode())]:
   item=tarfile.TarInfo(filename);item.size=len(data)
   if scenario=='symlink' and filename==name: item.type=tarfile.SYMTYPE;item.linkname='/tmp/escape';item.size=0
@@ -477,12 +477,13 @@ urllib.request.build_opener=lambda *args: Opener()
 exec(compile(${JSON.stringify(script)},'<trusted-workflow>','exec'))
 `;
   try {
-    for (const scenario of ['valid', 'traversal', 'unexpected-root', 'symlink', 'duplicate', 'wrong-host', 'wrong-digest', 'wrong-plan', 'wrong-target']) {
+    for (const scenario of ['valid', 'valid-xz', 'unsupported-compression', 'traversal', 'unexpected-root', 'symlink', 'duplicate', 'wrong-host', 'wrong-digest', 'wrong-plan', 'wrong-target']) {
       const dir = path.join(root, scenario); await mkdir(dir);
       const result = spawnSync('python3', ['-c', harness], { env: { ...process.env, RUNNER_TEMP: dir, SCENARIO: scenario }, encoding: 'utf8', timeout: 10000 });
-      assert.equal(result.status, scenario === 'valid' ? 0 : 1, result.stderr);
+      const valid = scenario === 'valid' || scenario === 'valid-xz';
+      assert.equal(result.status, valid ? 0 : 1, result.stderr);
       assert(!result.stdout.includes('private-marker')); assert(!result.stdout.includes('private fixture marker'));
-      if (scenario === 'valid') assert.equal(await readFile(path.join(dir, 'nba-source-private-review/review/CLAIMS.md'), 'utf8'), 'private fixture marker - must never enter public output');
+      if (valid) assert.equal(await readFile(path.join(dir, 'nba-source-private-review/review/CLAIMS.md'), 'utf8'), 'private fixture marker - must never enter public output');
     }
   } finally { await rm(root, { recursive: true, force: true }); }
 });

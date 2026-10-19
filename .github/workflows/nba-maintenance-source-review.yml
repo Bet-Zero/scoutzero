@@ -128,7 +128,10 @@ jobs:
               assert len(packed)==connection['archiveBytes'] and hashlib.sha256(packed).hexdigest()==connection['archiveSha256']
               root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nba-source-private-review'; root.mkdir(mode=0o700)
               seen=set(); total=0
-              with tarfile.open(fileobj=io.BytesIO(packed),mode='r:gz') as archive:
+              # XZ keeps the full source corpus within Linear's existing attachment limit.
+              assert packed.startswith(b'\x1f\x8b') or packed.startswith(b'\xfd7zXZ\x00')
+              mode='r:gz' if packed.startswith(b'\x1f\x8b') else 'r:xz'
+              with tarfile.open(fileobj=io.BytesIO(packed),mode=mode) as archive:
                   for member in archive:
                       name=member.name; path=pathlib.PurePosixPath(name)
                       assert member.isfile() and not path.is_absolute() and all(p not in ['', '.', '..'] for p in name.split('/')) and '\\' not in name and name not in seen

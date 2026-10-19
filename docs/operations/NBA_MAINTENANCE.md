@@ -318,11 +318,13 @@ promptly. Never put the connection or signed URL in public Git, comments or logs
 The GitHub integration cannot configure this protected secret in the existing
 cloud executor; the observed API result is HTTP 403.
 
-The checker verifies and privately extracts a bounded, fully inventoried data
-archive, rejects path traversal, links and duplicates, and independently binds
+The checker verifies and privately extracts a bounded, fully inventoried gzip or
+XZ tar archive, rejects path traversal, links and duplicates, and independently binds
 the canonical production-plan bytes and input digest. Trusted transport generates
 navigation views directly from the authenticated originals; the checker inspects
 those views alongside original inputs. Only fixed status/integrity metadata is public.
+Use XZ when the full originals exceed Linear's observed 10 MB attachment limit;
+compression changes neither the file inventory nor any source/plan checksum.
 The complete judgment is encrypted to the retained private inspection key and
 kept as a seven-day Actions artifact. Codex must recover it and verify original
 execution outcome and exact candidate/archive/plan/input identities. Failure,

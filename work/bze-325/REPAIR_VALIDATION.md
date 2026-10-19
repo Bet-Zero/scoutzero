@@ -200,3 +200,10 @@ only specific meaningful changes since that baseline are in scope. No full PST
 or historical adjudication rerun, no retry of the blocked requests. The exact
 ordinary team after-images also preserve every existing draft/pick/entitlement
 field. Draft product integration and unresolved evidence stay separate.
+
+The actual private evidence upload was rejected by Linear's existing 10 MB
+attachment limit before upload. The courier now also accepts XZ tar compression,
+using the same inventory, size, path, hash and plan-binding checks. This retains
+the complete original file inventory rather than sampling or removing evidence.
+The focused transport harness checks gzip/XZ success and unsupported-format
+rejection. No new storage service, permissions or publication approval is added.
