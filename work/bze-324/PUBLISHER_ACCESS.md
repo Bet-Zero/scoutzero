@@ -156,8 +156,13 @@ publication, Codex uses `maintenance:package` to create and verify the exact pri
 plan package. Any public ciphertext retention and separate private key handoff
 need the package-specific approval described in the operating card. Install the
 separate passphrase once under **Environment secrets → Add environment secret →
-BZE324_MAINTENANCE_PASSPHRASE**. No Google credential goes in that secret. The called worker reads it directly from
-its own protected environment; the caller declares or passes no secret.
+BZE324_MAINTENANCE_PASSPHRASE**. No Google credential goes in that secret. The caller
+must explicitly forward this named secret, and the reusable worker must declare
+it under `on.workflow_call.secrets`. The called job receives the value from its
+own protected environment. Passing no secret resolves empty; do not use broad
+`secrets: inherit`. Use the preparation-only delivery check in the operating card
+before Google trust changes or publication; it skips Google authentication and
+execute while actually validating the exact package.
 The owner must not paste it into chat. Later plans use the same controlled
 packaging route and remain separately reviewed/approved; key rotation is explicit.
 
@@ -167,6 +172,8 @@ landed code/review/CI plus actual bounded access verification; first data public
 and its exact private package remain Gate B, not an invented Gate A production test.
 
 The original Gate A worker pin above is historical. For the BZE-325 bounded
-publisher repair, use the exact replacement procedure in
-[PUBLICATION_BUDGET.md](../bze-325/PUBLICATION_BUDGET.md); do not rerun the original
+publisher repairs, the budget repair is recorded in
+[PUBLICATION_BUDGET.md](../bze-325/PUBLICATION_BUDGET.md). The latest exact trust-pin
+replacement and preparation-only gate are in
+[PUBLICATION_SECRET_WIRING.md](../bze-325/PUBLICATION_SECRET_WIRING.md); do not rerun the original
 provisioner to add another ordinary-worker trust alternative.
