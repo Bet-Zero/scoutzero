@@ -251,6 +251,10 @@ actual decryption, refuses output overwrite and prints only digest metadata.
 It does not establish factual acceptance. Retain the passphrase through an
 explicitly authorized private handoff; install it **once** as the dedicated
 environment secret `BZE324_MAINTENANCE_PASSPHRASE`. Never reuse a BZE-321 key.
+The calling job must explicitly forward this named secret, and the reusable
+worker declares it under `on.workflow_call.secrets` (optional for access-only).
+Setting the worker's environment alone does not forward the secret. Do not use
+`secrets: inherit`: only the dedicated package secret crosses this boundary.
 Never put plaintext or that secret in Git, workflow inputs, logs or artifacts.
 The 73-file rehearsal archive is **not** a publication input and must never enter CI.
 
