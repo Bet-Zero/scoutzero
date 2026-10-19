@@ -599,6 +599,21 @@ describe('Player profile edit control accessibility', () => {
 });
 
 describe('PlayerProfileView error states', () => {
+  it('shows the incomplete contract-history notice alongside an available profile', async () => {
+    mockedUsePlayerDetail.mockImplementation((playerId) => ({
+      player: playerId ? PLAYER_FIXTURES.find(player => player.id === playerId) ?? null : null,
+      loading: false,
+      error: null,
+      dataWarnings: ['1 contract record needs review. Contract history may be incomplete.'],
+    }));
+    render(<MemoryRouter initialEntries={['/profiles/lebron-james?pid=lebron_doc']}><Routes>
+      <Route path="/profiles/:slug" element={<PlayerProfileView />} />
+    </Routes></MemoryRouter>);
+    await waitFor(() => expect(screen.getByText('1 contract record needs review. Contract history may be incomplete.')).toBeInTheDocument());
+    expect(screen.queryByText('Unable to load player profile')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search players...')).toBeInTheDocument();
+  });
+
   it('keeps the empty profile route as a selector state without player navigation', async () => {
     render(
       <MemoryRouter initialEntries={['/profiles']}>

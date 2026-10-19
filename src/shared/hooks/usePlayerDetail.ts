@@ -1,3 +1,4 @@
+import { loadProfileContracts } from '@/shared/utils/contracts/loadProfileContracts';
 import { useState, useEffect } from 'react';
 import { getDoc, getDocs } from 'firebase/firestore';
 import type { z } from 'zod';
@@ -10,13 +11,11 @@ import {
 } from '@/data/firestorePaths';
 import {
   PlayerMainDocZ,
-  ContractDocZ,
   SeasonDocZ,
   EvaluationDocZ,
 } from '@/schemas/players_v2';
 import type {
   PlayerV2,
-  ContractDoc,
   SeasonDoc,
   EvaluationDoc,
 } from '@/schemas/players_v2';
@@ -25,6 +24,7 @@ interface UsePlayerDetailResult {
   player: PlayerV2 | null;
   loading: boolean;
   error: string | null;
+  dataWarnings?: string[];
 }
 
 const formatSchemaIssues = (error: z.ZodError): string =>
@@ -108,10 +108,12 @@ export const usePlayerDetail = (
   const [player, setPlayer] = useState<PlayerV2 | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [dataWarnings, setDataWarnings] = useState<string[]>([]);
 
   useEffect(() => {
     if (!playerId) {
       setPlayer(null);
+      setDataWarnings([]);
       setLoading(false);
       return;
     }
@@ -121,6 +123,7 @@ export const usePlayerDetail = (
     const fetchPlayerDetail = async () => {
       setLoading(true);
       setError(null);
+      setDataWarnings([]);
 
       try {
         // Step 1: Fetch main document
@@ -155,17 +158,10 @@ export const usePlayerDetail = (
         ]);
 
         // Step 3: Convert subcollections to records
-        const contracts: Record<string, ContractDoc> = {};
-        contractsSnap.docs.forEach((doc) => {
-          // Filter out metadata fields like last_updated
-          if (!doc.id.startsWith('last_')) {
-            contracts[doc.id] = parseFirestoreDoc(
-              ContractDocZ,
-              doc.data(),
-              `players_v2/${playerId}/contracts/${doc.id}`
-            );
-          }
-        });
+        const { contracts, warnings } = loadProfileContracts(
+          contractsSnap.docs.map(doc => ({ id: doc.id, data: doc.data() })),
+          `players_v2/${playerId}/contracts`
+        );
 
         const seasons: Record<string, SeasonDoc> = {};
         seasonsSnap.docs.forEach((doc) => {
@@ -209,6 +205,7 @@ export const usePlayerDetail = (
 
         if (isMounted) {
           setPlayer(playerV2);
+          setDataWarnings(warnings);
           setLoading(false);
         }
       } catch (err) {
@@ -227,5 +224,5 @@ export const usePlayerDetail = (
     };
   }, [playerId, profileOwnerUid]);
 
-  return { player, loading, error };
+  return { player, loading, error, dataWarnings };
 };

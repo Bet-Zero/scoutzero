@@ -81,3 +81,26 @@ owner browser configuration is required for that one private data connection.
 Baseline Players/List and Architect save/reload checks also passed after a clean
 export/restart with `--resume`. The exact prepared refresh still requires its own
 actual emulator/browser rehearsal and independent judgment.
+
+## Actual consumer repair
+
+Real full-preliminary rehearsal completed apply/readback, lost-ack recovery and
+exact restoration for all 629 groups. The stored local world's root/team digest
+remained unchanged. A second run after the consumer repair rendered both Luka
+and Austin table/profile views at 1280×720 and restored all groups again. These
+preliminary runs do not include final statistics clearing.
+
+The profile reader does not guess or rewrite malformed retained contracts. It
+requires validated current data before withholding an unqualified retained record,
+reports the incomplete history visibly, and still blocks any malformed explicitly
+current record. Original Firestore documents remain intact. Focused logic tests
+passed (3), profile/overlay UI tests passed (24), typecheck passed and the Vite
+production build passed. The changed notice was visually inspected at 1280×720.
+The probe now waits for the normal local profile session before reading through
+the exact app SDK; the emulator-only target/auth guards remain intact.
+
+Factual reconciliation narrows publication contracts to all 526 official current
+players. Their cap-hit sums match the reported active salary for all 30 teams.
+The 73 supplementary captures are retained but do not establish current contract
+or free-agent status; the current camp-only deal without terms is not invented.
+This explicitly supersedes the preliminary 599-player contract proposal's scope.

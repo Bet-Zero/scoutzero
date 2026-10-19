@@ -60,3 +60,29 @@ are reconciled using official IDs and exact source links. A one-day birth-date
 conflict is retained explicitly, with official NBA biography taking precedence.
 Additional alias/camp/free-agent collection and exact-change processing continue.
 Current code and preparation findings are recorded in `REPAIR_VALIDATION.md`.
+
+## Factual qualification scope correction
+
+The current-season official NBA roster has exactly 526 players. All 526 have
+matching exact SalarySwish identities and current-season salary evidence, and
+standard-contract cap hits reconcile exactly to the reported active salary for
+all 30 teams. One additional source camp player has no supplied current-season
+contract; his retained player page covers a waived 2024 deal. No current contract
+terms are inferred for him. Team camp membership is separate from contract support.
+
+The 73 supplemental contract captures (that camp player and 72 free-agent/history
+listing members) do not establish current NBA contract/free-agent status. They
+remain supplemental evidence; their historical contracts are preserved rather
+than promoted into the required current-season contract update. The preliminary
+599-player rehearsal is superseded for publication scope by the exact 526-player
+current-league cohort. Statistics collection covers 772 current/retained identities
+with explicit actual seasons; the final combined proposal is still in progress.
+
+An actual full preliminary emulator run applied and read back 629 groups, recovered
+a lost acknowledgement, and restored all before-images. Saved world root/team
+hashes stayed unchanged. Real profile verification exposed malformed retained
+contract records. The bounded reader repair keeps those originals, shows an
+explicit incomplete-history notice only alongside a validated current contract,
+and continues to block malformed explicitly current or wholly unqualified data.
+Both real player profiles now render; final current-statistic clearing is pending
+the combined statistics proposal. No production data was changed.
