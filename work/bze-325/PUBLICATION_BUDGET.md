@@ -91,3 +91,29 @@ The focused private operator ran the actual v2 proof described above.
 App/UI/browser/full-local-suite repeats were intentionally skipped because this
 change affects publication mechanics only and the exact NBA proposal is unchanged.
 Hosted exact-head gates and fresh independent review remain separate.
+
+## Exact owner-only trust-pin replacement
+
+Repaired immutable worker: `372c52e453a057fe1713d0e9d3e181829a381688`.
+The caller pins that exact commit. Do not modify it after independent review.
+
+After normal reviewed landing, open
+<https://console.cloud.google.com/iam-admin/workload-identity-pools?project=scoutzero-bf1ae>.
+Choose pool `scoutzero-bze321`, provider `github`, **Edit provider**, then
+**Attribute conditions**. In the existing condition replace only the two
+appearances of the old ordinary NBA worker SHA
+`df87a5598073f0f90a37d707bed4eac9fe6118fe` with
+`372c52e453a057fe1713d0e9d3e181829a381688`, and save. Those occurrences are the
+ordinary clause's `assertion.job_workflow_ref` and `assertion.job_workflow_sha`.
+Preserve every other character/clause, including draft trust and environment,
+repository, main and caller restrictions. If the two old occurrences are absent,
+do not add an alternate broad clause; inspect the current setting first.
+
+This replaces which exact reviewed executable may use the existing dedicated
+NBA publisher identity; it grants no new Firestore role/permission and keeps the
+600-second token. No personal administrator account is attached to Codex.
+Codex then dispatches only `operation=access`; the owner approves that existing
+protected deployment. The access probe reads a fixed ordinary document and its
+pinned batchGet snapshot, never calls commit or obtains a publication package.
+Actual Google access verification is required before reporting this gate finished
+or returning for final approval of the unchanged data plan.
