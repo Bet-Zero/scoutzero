@@ -255,6 +255,11 @@ The calling job must explicitly forward this named secret, and the reusable
 worker declares it under `on.workflow_call.secrets` (optional for access-only).
 Setting the worker's environment alone does not forward the secret. Do not use
 `secrets: inherit`: only the dedicated package secret crosses this boundary.
+For an actual non-mutating package-delivery check, dispatch the same registered
+plan with `operation=publish` and `prepare_only=true`. The protected preparation
+step decrypts and validates it; both Google authentication and execute are skipped.
+This is not publication or Google access verification. Normal publication uses
+the default `prepare_only=false` and retains all existing gates and checks.
 Never put plaintext or that secret in Git, workflow inputs, logs or artifacts.
 The 73-file rehearsal archive is **not** a publication input and must never enter CI.
 

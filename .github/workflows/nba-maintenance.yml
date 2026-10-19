@@ -13,6 +13,11 @@ on:
         description: Exact reviewed owner-approved plan digest; empty for access.
         type: string
         required: false
+      prepare_only:
+        description: Validate protected package delivery only; skip Google authentication and writes.
+        type: boolean
+        default: false
+        required: false
 
 permissions:
   contents: read
@@ -22,9 +27,10 @@ permissions:
 jobs:
   controlled:
     # Immutable executor; Google trust pins this same called-workflow commit.
-    uses: Bet-Zero/scoutzero/.github/workflows/nba-maintenance-worker.yml@8803ac18bd8f12d13e299caa8d9412da6ff9ab35
+    uses: Bet-Zero/scoutzero/.github/workflows/nba-maintenance-worker.yml@655780bce4b6fb0ae20d5a723461ff6807887668
     secrets:
       BZE324_MAINTENANCE_PASSPHRASE: ${{ secrets.BZE324_MAINTENANCE_PASSPHRASE }}
     with:
       operation: ${{ inputs.operation }}
       plan_sha256: ${{ inputs.plan_sha256 }}
+      prepare_only: ${{ inputs.prepare_only }}

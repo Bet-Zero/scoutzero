@@ -49,10 +49,15 @@ There is no successful delivery receipt yet. The existing **prepare** step is
 the non-mutating delivery canary: successful output is `protected: true`,
 `operation: publish`, `productionWriteAuthorized: false`, only after actual
 decryption and exact-plan/receipt validation. It runs before Google authentication
-and cannot write Firestore. After reviewed landing, first dispatch with the old
-Google trust still in place: prepare must succeed; Google must reject the new
-pin. Only after that actual delivery proof may the owner replace the Google trust
-pin and approve a publication retry. This explicitly separates review of the
+and cannot write Firestore. The repaired workflow adds `prepare_only: true` for
+this discriminating check: both Google authentication and execute have explicit
+false conditions, regardless of the provider's trust state. The default remains
+false for the existing normal access/publication path. After reviewed landing,
+first dispatch the exact plan with `operation=publish` and `prepare_only=true`.
+The owner approves the existing environment gate, and the run must finish green
+with actual package validation and both authenticated steps skipped. Only after
+that actual delivery proof may the owner replace the Google trust pin and approve
+a normal publication retry. This explicitly separates review of the
 documented wiring repair from actual delivery/readiness acceptance. No secret
 value, length or source content is logged. A canary failure stays a blocker.
 
@@ -62,16 +67,19 @@ operation needs no package secret. The existing worker steps still expose the
 value only to publish preparation/execution, with a fixed dedicated environment,
 owner-only deployment approval, no admin bypass and main-only execution.
 
-Immutable worker: `8803ac18bd8f12d13e299caa8d9412da6ff9ab35`.
-It differs from the current main base only by the four-line callable declaration.
-Publisher runtime and lockfile match the prior executor; other differences are
-the already reviewed caller pin, operational notes and release registration
-inherited from main. The caller pins the exact new commit. No source, proposal, ciphertext,
+Final immutable worker: `655780bce4b6fb0ae20d5a723461ff6807887668`.
+Its worker-file diff against accepted main is the four-line callable declaration
+plus six lines for the optional preparation-only input and two authentication/
+execute conditions. Runtime and lockfile are identical to accepted main; other
+differences are the bounded caller/test/doc repairs and previously accepted main
+registration. The caller pins the exact new commit. No source, proposal, ciphertext,
 approval/expiry, role, permission, draft trust or basketball fact changes.
 
 Actual focused checks: `npm run test:cloud-dev`, `npm run cloud:typecheck`,
 `git diff --check`; the new parsed-YAML check tests the singleton secret mapping,
 callable declaration, protected environment and publish-only consumption. These
+checks also require preparation to run unconditionally and both authenticated
+steps to be skipped for the preparation-only canary. These
 checks do not substitute for actual GitHub secret delivery. Exact-head independent
 review, hosted checks, normal landing and actual protected execution remain gates.
 Prior factual, full-plan emulator/recovery and browser evidence is reused.
@@ -82,7 +90,7 @@ Open <https://console.cloud.google.com/iam-admin/workload-identity-pools?project
 Choose pool `scoutzero-bze321`, provider `github`, **Edit provider**, then
 **Attribute conditions**. Replace only the two ordinary publisher occurrences of
 `372c52e453a057fe1713d0e9d3e181829a381688` with
-`8803ac18bd8f12d13e299caa8d9412da6ff9ab35`, then save.
+`655780bce4b6fb0ae20d5a723461ff6807887668`, then save.
 They are `assertion.job_workflow_ref` and `assertion.job_workflow_sha` in the
 ordinary NBA clause. Preserve every other character, including draft trust,
 repository/main/caller/environment restrictions. If the old value is not present
