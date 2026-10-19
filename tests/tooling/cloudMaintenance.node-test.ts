@@ -351,6 +351,34 @@ test('staging rejects misspelled flags and missing operands rather than choosing
   assert.equal(parseArgs(args.slice(1).concat('--batchSize', '2'), true).batchSize, 2);
 });
 
+test('ordinary caller forwards only its named package secret into the protected reusable worker', async () => {
+  const { createRequire } = await import('node:module');
+  const { readFile } = await import('node:fs/promises');
+  const yaml = createRequire(import.meta.url)('yaml');
+  const caller = yaml.parse(await readFile('.github/workflows/nba-maintenance.yml', 'utf8'));
+  const worker = yaml.parse(await readFile('.github/workflows/nba-maintenance-worker.yml', 'utf8'));
+  assert.deepEqual(caller.jobs.controlled.secrets, {
+    BZE324_MAINTENANCE_PASSPHRASE: '${{ secrets.BZE324_MAINTENANCE_PASSPHRASE }}',
+  });
+  assert.deepEqual(Object.keys(worker.on.workflow_call.secrets), ['BZE324_MAINTENANCE_PASSPHRASE']);
+  assert.equal(worker.on.workflow_call.secrets.BZE324_MAINTENANCE_PASSPHRASE.required, false);
+  assert.equal(caller.on.workflow_dispatch.inputs.prepare_only.default, false);
+  assert.equal(worker.on.workflow_call.inputs.prepare_only.default, false);
+  assert.equal(caller.jobs.controlled.with.prepare_only, '${{ inputs.prepare_only }}');
+  assert.equal(worker.jobs.maintenance.environment, 'nba-maintenance-publication');
+  const preparation = worker.jobs.maintenance.steps.find((s: any) => s.run?.endsWith('maintenanceWorker.ts prepare'));
+  assert(preparation && !preparation.if, 'The canary must run actual package preparation');
+  const authenticated = worker.jobs.maintenance.steps.filter((s: any) => s.id === 'auth' || s.run?.endsWith('maintenanceWorker.ts execute'));
+  assert.equal(authenticated.length, 2);
+  for (const step of authenticated) {
+    assert.equal(step.if, '${{ !inputs.prepare_only }}', 'Preparation-only must skip Google authentication and all writes');
+  }
+  const consumers = worker.jobs.maintenance.steps.filter((s: any) => s.env?.BZE324_MAINTENANCE_PASSPHRASE);
+  assert.equal(consumers.length, 2);
+  for (const step of consumers) assert.equal(step.env.BZE324_MAINTENANCE_PASSPHRASE,
+    "${{ inputs.operation == 'publish' && secrets.BZE324_MAINTENANCE_PASSPHRASE || '' }}");
+});
+
 test('ordinary worker requires separate protected main and an exact reviewed registry', async () => {
   const { verifyMaintenanceProtection, maintenanceRegistry, runMaintenanceWorker } = await import('../../scripts/dev/maintenanceWorker.js');
   const environment = { name: 'nba-maintenance-publication', can_admins_bypass: false,
