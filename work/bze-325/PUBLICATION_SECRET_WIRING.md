@@ -11,6 +11,51 @@ explicitly states that an unpassed environment secret resolves empty. The
 official source is `github/docs`,
 `content/actions/how-tos/reuse-automations/reuse-workflows.md`, lines 75–82.
 
+## Discriminating evidence for the first review
+
+Initial review `39315415159` returned REVISE because its read-only checker could
+not fetch the documentation and recalled the older, contrary secret behavior.
+The following is the actual passage at immutable official docs commit
+[`82606008906b649d65bdec014c1b6b0050e38fb8`](https://github.com/github/docs/blob/82606008906b649d65bdec014c1b6b0050e38fb8/content/actions/how-tos/reuse-automations/reuse-workflows.md#L75-L82),
+retrieved by the author through GitHub's contents API at that exact ref:
+
+> The caller workflow must still pass the secret. Use `secrets: inherit` or pass
+> the secret by name, for example `MY_SECRET: ${{ secrets.MY_SECRET }}`. You can
+> pass a secret by name even if it only exists in the environment.
+>
+> If an environment secret has the same name as a repository or organization
+> secret, the environment secret takes precedence. This applies when the caller
+> uses either `secrets: inherit` or `${{ secrets.MY_SECRET }}`. The job that sets
+> `environment` receives the environment secret's value.
+>
+> If the caller workflow doesn't pass an environment secret, the secret resolves
+> to an empty string in the reusable workflow.
+
+Intended storage is **environment-only**, in `nba-maintenance-publication`.
+The owner reported saving it after the environment-secret form instructions.
+The author cannot independently list that store (403), does not assert verified
+storage, and does not request a repository-secret copy. The quoted documented
+behavior explicitly covers environment-only storage and resolves the reviewer's
+concern about the caller lacking its own environment.
+
+Actual retained ancestry/diff checks: `git merge-base --is-ancestor
+b4a5b98bd3fee009309d495b96980b557173cc26
+8803ac18bd8f12d13e299caa8d9412da6ff9ab35` exits zero; `git diff --stat` between
+those commits shows exactly `.github/workflows/nba-maintenance-worker.yml`,
+four insertions. Its full diff consists solely of the callable secret declaration
+shown above. All runtime and lockfile bytes are identical to that accepted base.
+
+There is no successful delivery receipt yet. The existing **prepare** step is
+the non-mutating delivery canary: successful output is `protected: true`,
+`operation: publish`, `productionWriteAuthorized: false`, only after actual
+decryption and exact-plan/receipt validation. It runs before Google authentication
+and cannot write Firestore. After reviewed landing, first dispatch with the old
+Google trust still in place: prepare must succeed; Google must reject the new
+pin. Only after that actual delivery proof may the owner replace the Google trust
+pin and approve a publication retry. This explicitly separates review of the
+documented wiring repair from actual delivery/readiness acceptance. No secret
+value, length or source content is logged. A canary failure stays a blocker.
+
 The repair declares and forwards only `BZE324_MAINTENANCE_PASSPHRASE`, with no
 broad secret inheritance. The declaration is optional so the non-mutating access
 operation needs no package secret. The existing worker steps still expose the
