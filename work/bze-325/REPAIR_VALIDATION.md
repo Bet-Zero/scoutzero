@@ -116,7 +116,7 @@ navigation views from the authenticated originals. Negative transport probes now
 also reject mismatched plan bytes and a rehearsal/demo target. The focused cloud
 safety suite and cloud tooling typecheck passed after this binding repair.
 
-## Final combined preparation proof
+## Combined preparation proof (superseded payroll totals)
 
 Fresh statistics collection completed all 772 requested identities: 682 actual
 prior-season fallbacks and 90 without supplied regular-season history, with zero
@@ -154,3 +154,49 @@ paths are now denied and ignored by watching. Actual direct, raw, absolute and
 encoded URL probes return 403 without private bytes; additional import/url/raw
 query forms are also blocked, and the normal app route still returns 200. A real
 Vite-server regression test covers the boundary. No production data was changed.
+
+## Corrected payroll proposal and final author verification
+
+The earlier combined proposal above is superseded. Actual source replay exposed
+future-year cap holds being added into a missing current total despite an
+explicit reported `TEAM SALARY` row. The parser now reads that row, separates
+current from future holds and refuses a positive amount without a supplied
+season. Missing components cannot silently become zero. Reprocessing the same
+30 retained double captures (no new scrape) reconciles all four equations on
+all 30 teams: standard cap hits to active salary, active/current holds/dead to
+reported team salary, listed current holds to their total, and listed dead
+money to its total. For example, LAL's reported total is 202,442,622.
+
+The exact corrected proposal retains the same 777 groups / 3,098 changed records,
+652 creates and 488 stale current-summary removals. Canonical plan:
+`ac0016092079f5fc72f7fba83dbb9fbb2dfd9a753401e423d1e6f36058bfe0cf`.
+Input identity:
+`b05248c7ae8e9ee6246ff6b7a38ade7b11f982aadea3d2bc4f7fa67f4af474ef`.
+Private facts still require independent qualification; these hashes do not
+authorize production publication.
+
+Actual corrected-plan emulator conditional apply/readback, lost-ack recovery
+and exact restoration passed for every group. Representative Luka and Austin
+table/profile checks passed with actual 2025–26 history and no current-season
+summary. Existing saved-world root/team content stayed unchanged. Creating,
+saving and reloading a fresh world while the refreshed catalog was applied
+passed and still used `salaryswish-retained-2026-06-05`, release version 1,
+digest `sha256:46db3137308ff1c05e0066edf09ef08d45b92353bea7a2bcec93fd408adf5950`.
+The final model diagnostic passes all 526 proposed profiles with the same
+409 retained-contract / 12 retained-season warnings. Restoration completed and
+the owned development launcher exported its isolated session before shutdown.
+
+Final affected checks actually run: `npm run test:cloud-dev` (passed, including
+real Vite privacy boundary and future/current hold regression),
+`npm run typecheck`, `npm run cloud:typecheck`, `npm run validate:project`,
+`graphify update .`, and `git diff --check`. The first structure-check attempt
+was blocked by sandbox IPC; the same approved command passed with local IPC
+access. Prior profile UI/build and no-games browser evidence remains applicable;
+the last repair changes team parsing only. The unrelated full suite was not
+run because the owner did not authorize `RUN FULL SUITE`.
+
+Draft scope follows the owner's clarification: reuse accepted BZE-309 evidence;
+only specific meaningful changes since that baseline are in scope. No full PST
+or historical adjudication rerun, no retry of the blocked requests. The exact
+ordinary team after-images also preserve every existing draft/pick/entitlement
+field. Draft product integration and unresolved evidence stay separate.

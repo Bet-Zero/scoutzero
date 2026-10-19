@@ -101,6 +101,11 @@ later transaction into the June 5 scenario. Native collectors retain managed
 proxy/CA settings; the NBA Playwright request collector uses `PROXY_URL`.
 On ordinary local systems without a managed proxy, omit that environment setting.
 
+Team payroll uses the page's reported `TEAM SALARY` total. Reconcile it against
+active cap hits, current-season cap holds and dead money; future-year holds stay
+attached to their supplied seasons. A positive hold without an explicit season
+is unqualified, and missing payroll components must not be filled with zero.
+
 Fresh collection fails if its run already exists. `--resume` accepts only the
 same operation, season, as-of and exact inventory, checking each completed
 output's hash and size. Missing, failed or withheld required members prevent

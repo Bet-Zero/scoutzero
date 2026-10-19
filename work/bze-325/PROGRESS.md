@@ -86,3 +86,11 @@ explicit incomplete-history notice only alongside a validated current contract,
 and continues to block malformed explicitly current or wholly unqualified data.
 Both real player profiles now render; final current-statistic clearing is pending
 the combined statistics proposal. No production data was changed.
+
+## Owner scope clarification
+
+Reuse accepted BZE-309 draft evidence and the BZE-324 process. Check only specific
+meaningful changes since that baseline; do not rerun full PST/historical evidence
+collection or adjudication. Do not retry the already blocked access. Draft
+product integration and unresolved evidence remain separate BZE-309/BZE-321 work
+and do not block current ordinary NBA refresh preparation.

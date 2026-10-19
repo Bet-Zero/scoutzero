@@ -507,3 +507,14 @@ test('actual Vite server blocks private maintenance files across source URL form
     assert.equal((await fetch(origin + '/players')).status, 200);
   } finally { await server.close(); await rm(dir, { recursive: true, force: true }); }
 });
+
+test('current team salary uses reported totals and never sums future-year holds into this season', async () => {
+  const { parseTeamHtml } = await import('../../team-scrape/team-data/scripts/parse_team.js');
+  const row = (name: string, amount: string) => `<tr>${'<td></td>'.repeat(5)}<td class="sw_teamProfileStats__table_rowTitle">${name}</td><td>${amount}</td></tr>`;
+  const html = '<h1>Example</h1><table class="sw_teamProfileStats__table"><tbody>' + row('ROSTER CAP HIT', '$10') + row('TEAM SALARY', '$10') + row('HOLDS', '-') + '</tbody></table>' +
+    '<h3>HOLDS</h3><div><table><thead><tr><th>RFAs</th><th>2026-27</th><th>2027-28</th></tr></thead><tbody><tr><td><a href="/players/example">Example</a></td><td>-</td><td><span class="cap_hit team_salary_data">$100</span></td></tr></tbody></table></div>';
+  const result = await parseTeamHtml(html, { team: 'LAL', url: 'https://www.salaryswish.com/teams/example', season: '2026-27', asOf: '2026-10-18T00:00:00Z' });
+  assert.equal(result.totals.activeSalary, 10); assert.equal(result.totals.totalSalary, 10);
+  assert.equal(result.totals.capHoldsTotal, 0); assert.equal(result.capHolds[0].season, '2027-28');
+  assert.equal(result.capHolds[0].capHoldAmount, 100);
+});

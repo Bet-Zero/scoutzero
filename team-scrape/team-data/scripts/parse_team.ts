@@ -164,6 +164,8 @@ export async function parseTeamHtml(html: string, context: { url: string; team: 
         totalsBox.activeSalary = moneyNum(value);
       } else if (rowTitle.includes('DEAD CAP HIT')) {
         totalsBox.deadCapTotal = moneyNum(value);
+      } else if (rowTitle === 'TEAM SALARY') {
+        totalsBox.totalSalary = moneyNum(value);
       } else if (rowTitle === 'HOLDS') {
         totalsBox.capHoldsTotal = moneyNum(value);
       } else if (rowTitle.includes('INCOMPLETE ROSTER CHARGE')) {
@@ -312,6 +314,7 @@ export async function parseTeamHtml(html: string, context: { url: string; team: 
   }
 
   // --- Cap Holds (multiple tables under h3 HOLDS) ---
+  let hasCurrentCapHoldColumn = false;
   const capHolds: Array<{
     displayName: string;
     capHoldAmount: number;
@@ -346,6 +349,7 @@ export async function parseTeamHtml(html: string, context: { url: string; team: 
           .map((i, th) => norm($(th).text()))
           .get();
 
+        if (thTexts.includes(season)) hasCurrentCapHoldColumn = true;
         const firstSeasonIdx = thTexts.findIndex((text) =>
           /^\d{4}-\d{2}$/.test(text)
         );
@@ -386,32 +390,17 @@ export async function parseTeamHtml(html: string, context: { url: string; team: 
           }
 
           if (!chosenSeason || !amount) {
-            const defaultSeason = (() => {
-              const [start, end] = season.split('-');
-              const startYear = Number(start);
-              const endYear = Number(end);
-              if (
-                Number.isFinite(startYear) &&
-                Number.isFinite(endYear) &&
-                endYear >= 0 &&
-                endYear <= 99
-              ) {
-                const nextStart = startYear + 1;
-                const nextEnd = (endYear + 1) % 100;
-                return `${nextStart}-${String(nextEnd).padStart(2, '0')}`;
-              }
-              return season;
-            })();
-            chosenSeason = defaultSeason;
-            const fallbackAmount = moneyNum(
+            const unqualifiedAmount = moneyNum(
               norm($(tr).find('.cap_hit.team_salary_data').first().text())
             );
-            amount = fallbackAmount ?? 0;
+            if (unqualifiedAmount && unqualifiedAmount > 0) {
+              throw new Error('Cap-hold amount lacks an explicit supplied season');
+            }
           }
 
           const meta = norm($(tr).text()).toLowerCase();
 
-          if (amount && amount > 0) {
+          if (chosenSeason && amount && amount > 0) {
             capHolds.push({
               playerId: undefined,
               displayName: name,
@@ -626,16 +615,17 @@ export async function parseTeamHtml(html: string, context: { url: string; team: 
   }
 
   const capHoldSum = capHolds.reduce(
-    (acc, item) => acc + (item.capHoldAmount ?? 0),
+    (acc, item) => acc + (item.season === season ? item.capHoldAmount ?? 0 : 0),
     0
   );
-  if (!Number.isFinite(totalsBox.capHoldsTotal) && capHoldSum > 0) {
+  if (!Number.isFinite(totalsBox.capHoldsTotal) && hasCurrentCapHoldColumn) {
     totalsBox.capHoldsTotal = capHoldSum;
   }
   if (
     !Number.isFinite(totalsBox.totalSalary) &&
-    (Number.isFinite(totalsBox.activeSalary) ||
-      Number.isFinite(totalsBox.capHoldsTotal))
+    Number.isFinite(totalsBox.activeSalary) &&
+    Number.isFinite(totalsBox.capHoldsTotal) &&
+    Number.isFinite(totalsBox.deadCapTotal)
   ) {
     const active = Number(totalsBox.activeSalary) || 0;
     const holds = Number(totalsBox.capHoldsTotal) || 0;
