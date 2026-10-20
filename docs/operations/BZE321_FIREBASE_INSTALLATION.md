@@ -1,8 +1,41 @@
 # BZE-321: bounded Firebase installation
 
-Status: five-record installation verified in run 38195972300; hosted GM proof
-and merge remain blocked. The exact three-record correction and narrowly required
-access were owner-approved on October 16. No broader adoption is authorized.
+## October 20 resumption after the production NBA refresh
+
+The five-record release remains the recorded installed baseline. The old
+three-record source proposal is **stale**: a fresh authenticated GET found PHI's
+team version `2026-10-20T08:40:53.682051Z`, replacing its approved
+`2026-06-07T04:25:03.947709Z` before-image. The two draft paths are denied to the
+ordinary reader; their live values/absence remain unverified. Do not reuse the
+old package, its approval digest, or its source-publication request.
+The stale pending request was canceled; the checked-in request is `none`.
+
+Continue the same PR using the accepted 278-entry projection and 29-fact
+crosswalk. Preserve the exact source patch while rebuilding its team baseline
+from the refreshed data, then obtain fresh live draft/rules preconditions and
+the required private review and exact-package approval. No historical PST
+research, broader rights publication, saved-world migration or Apply activation
+is authorized. [Current evidence and risk contract](../../work/bze-321/RESUMPTION.md)
+records the recovery and remaining operational dependencies.
+
+The old inspection recipient key is unavailable in this fresh workspace.
+A replacement recipient is prepared locally for the same encrypted inspection
+mechanism. Only the public certificate belongs in Git. Independent review and an
+exact inspection-only trust-pin replacement are required before using it; the
+source publisher pin and its protected approval remain separate. Retain the
+new private key privately until the complete inspection and review reports
+have been recovered. An encrypted artifact without its key is not usable proof.
+
+Reuse [cloud development](CLOUD_DEVELOPMENT.md) and
+[draft maintenance](DRAFT_UPDATE_PROCESS.md) for local data and validation.
+Keep the shared source baselines, private emulator sessions and reusable read
+access. Retire consumed transfer material and unnecessary production-writing
+access only after verified installation and hosted acceptance. Any Google trust
+cleanup must preserve the subsequently installed ordinary NBA maintenance clauses;
+do not paste the historical draft-only provider conditions over current trust.
+
+The October 11–17 execution instructions below are historical scope and mechanics,
+not renewed authority for changed source data, old run links or old trust text.
 
 ## Complete execution boundary
 

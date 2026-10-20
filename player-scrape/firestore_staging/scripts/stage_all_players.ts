@@ -4,7 +4,8 @@
  * Stages all players from player_index.json
  */
 
-import { spawn } from 'node:child_process';
+import { stagePlayer, parseArgs } from './stage_player.js';
+import { maintenanceErrorMessage } from '../../../scripts/dev/maintenanceErrors.js';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,53 +19,18 @@ const INDEX_PATH = path.join(
   'outputs',
   'player_index.json'
 );
-const STAGE_SCRIPT = path.join(__dirname, 'stage_player.ts');
-
-function parseArg(label: string, def?: number): number {
-  const argv = process.argv.slice(2);
-  for (const arg of argv) {
-    if (arg.startsWith(`--${label}=`)) {
-      const val = Number(arg.split('=')[1]);
-      return Number.isFinite(val) && val > 0 ? val : (def ?? 10);
-    }
-  }
-  return def ?? 10;
-}
-
-async function stagePlayer(playerId: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const proc = spawn('npx', ['tsx', STAGE_SCRIPT, '--player', playerId], {
-      stdio: 'pipe',
-      cwd: PROJECT_ROOT,
-    });
-
-    let output = '';
-    proc.stdout.on('data', (data) => {
-      output += data.toString();
-    });
-    proc.stderr.on('data', (data) => {
-      output += data.toString();
-    });
-
-    proc.on('close', (code) => {
-      if (code === 0) {
-        resolve(true);
-      } else {
-        console.error(`❌ Failed to stage ${playerId}:`, output.slice(-200));
-        resolve(false);
-      }
-    });
-  });
-}
 
 async function main() {
-  const batchSize = parseArg('batchSize', 10);
-  const index = JSON.parse(await readFile(INDEX_PATH, 'utf8'));
+  const options = parseArgs(process.argv.slice(2), true);
+  const batchSize = options.batchSize!;
+  const indexPath = options.indexPath || INDEX_PATH;
+  const index = JSON.parse(await readFile(indexPath, 'utf8'));
   const playerIds = Object.keys(index).sort();
 
   console.log(`📦 Staging ${playerIds.length} players...`);
   console.log(`   Batch size: ${batchSize}`);
-  console.log(`   Output dir: player-scrape/firestore_staging/_artifacts/output\n`);
+  console.log(`   Season: ${options.season}; as-of: ${options.asOf}`);
+  console.log(`   Output dir: ${options.outDir}\n`);
 
   const results = { success: 0, failed: 0, skipped: 0 };
   const batches: string[][] = [];
@@ -81,7 +47,10 @@ async function main() {
     );
 
     // Stage players in parallel within batch
-    const promises = batch.map((playerId) => stagePlayer(playerId));
+    const promises = batch.map(async (playerId) => {
+      try { await stagePlayer({ ...options, indexPath, playerId }); return true; }
+      catch (error) { console.error(`Failed to stage ${playerId}: ${maintenanceErrorMessage(error)}`); return false; }
+    });
     const batchResults = await Promise.all(promises);
 
     for (let i = 0; i < batch.length; i++) {
@@ -100,10 +69,11 @@ async function main() {
   console.log(`   ✅ Success: ${results.success}`);
   console.log(`   ❌ Failed: ${results.failed}`);
   console.log(`   📦 Total: ${playerIds.length}`);
+  if (results.failed > 0) process.exitCode = 1;
 }
 
 main().catch((err) => {
-  console.error('Staging failed:', err);
+  console.error('Staging failed:', maintenanceErrorMessage(err));
   process.exit(1);
 });
 

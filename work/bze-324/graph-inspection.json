@@ -1,0 +1,26 @@
+{
+  "observedHead": "3230037b4cac1045872270fdac22bb666a6bcec9",
+  "built_at_commit": null,
+  "freshness": "unversioned graph; supplemented by direct import and consumer searches",
+  "inspectedNodes": 153,
+  "inspectedLinks": 535,
+  "selectedPaths": [
+    "scripts/source-releases/official-nba-html/assessment.ts",
+    "scripts/source-releases/official-nba-html/cli.ts",
+    "scripts/source-releases/official-nba-html/compare.ts",
+    "scripts/source-releases/official-nba-html/private-output.ts",
+    "scripts/source-releases/official-nba-html/qualify.ts",
+    "scripts/source-releases/official-nba-html/retained.ts",
+    "scripts/source-releases/pst-lifecycle/README.md",
+    "scripts/source-releases/pst-lifecycle/account.ts",
+    "scripts/source-releases/pst-lifecycle/branch-links.ts",
+    "scripts/source-releases/pst-lifecycle/candidate.ts",
+    "scripts/source-releases/pst-lifecycle/cli.ts",
+    "scripts/source-releases/pst-lifecycle/dependency-links.ts",
+    "scripts/source-releases/pst-lifecycle/observe.ts",
+    "scripts/source-releases/pst-lifecycle/reconstruct.ts",
+    "scripts/source-releases/pst-lifecycle/reference-gaps.ts",
+    "scripts/source-releases/pst-lifecycle/terms.ts",
+    "scripts/source-releases/verify-pst-source-release.ts"
+  ]
+}

@@ -393,7 +393,7 @@ describe('bounded source publisher preparation', () => {
       expect(cloud.calls.filter((c) => c.method === 'PATCH')).toHaveLength(1);
     }
   );
-  it('queues only the authorized source operation while preserving isolated workers and approval gates', () => {
+  it('keeps operations dormant during revalidation and preserves isolated workers and approval gates', () => {
     const caller: any = yaml.load(
       readFileSync('.github/workflows/draft-review-cloud.yml', 'utf8')
     );
@@ -413,7 +413,14 @@ describe('bounded source publisher preparation', () => {
     });
     expect(
       JSON.parse(readFileSync('.github/draft-review-request.json', 'utf8'))
-    ).toEqual({ operation: 'publish-source' });
+    ).toEqual({ operation: 'none' });
+    // A dormant request must not enter any credentialed worker.
+    for (const name of ['operation', 'publication', 'source-publication']) {
+      expect(caller.jobs[name].if).not.toContain("'none'");
+      expect(caller.jobs[name].if).toMatch(
+        /^needs\.request\.outputs\.operation == '(inspect|publish|publish-source)'$/
+      );
+    }
     expect(
       JSON.parse(readFileSync('.github/draft-private-review-request.json', 'utf8'))
     ).toEqual({ enabled: true });

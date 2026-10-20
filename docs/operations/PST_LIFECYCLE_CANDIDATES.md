@@ -1,17 +1,21 @@
 # Private PST lifecycle candidates
 
 The offline lifecycle tooling in `scripts/source-releases/pst-lifecycle/` reads
-only the accepted current PST source release. It produces a private evidence and
+only source releases in the reviewed acceptance registry. The existing historical
+release remains pinned; versioned successors require independent private-source
+acceptance and a reviewed registry addition under
+[DRAFT_UPDATE_PROCESS.md](DRAFT_UPDATE_PROCESS.md). It produces a private evidence and
 lifecycle candidate; no output is a runtime entitlement release or permission to
 trade. The current first-round Needs input/no-write boundary remains in force.
 
 ## Inputs and recovery
 
 Recover and verify the accepted archive using [PST_SOURCE_RELEASES.md](PST_SOURCE_RELEASES.md).
-The parser requires release digest
+The historical release example uses digest
 `44a18a7c339906ab147cc026d0e598d6d7ee655a2427c767fdce1685cd30cb7a`.
-The 39 required RAW RESPONSE HTML pages are canonical. Three repeats verify
-stability; serialized DOM and screenshots remain secondary evidence.
+For that historical release, 39 required RAW RESPONSE HTML pages are canonical
+and three repeats verify stability. A registered successor uses its own declared
+coverage; serialized DOM and screenshots remain secondary evidence.
 
 The comparison pin is
 `docs/reference/sources/releases/pst/pst-exposure-comparison-bze306-v1.json`.

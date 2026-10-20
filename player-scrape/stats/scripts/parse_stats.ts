@@ -31,7 +31,15 @@ function pickSeasonRow(set: ResultSet, seasonDisplay: string): Record<string, an
   const idxGroup = set.headers.indexOf('GROUP_VALUE');
   let row: any[] | undefined;
   if (idxSeason !== -1) {
-    row = set.rowSet.find((r) => String(r[idxSeason]) === seasonDisplay);
+    const matching = set.rowSet.filter((r) => String(r[idxSeason]) === seasonDisplay);
+    const idxTeam = set.headers.indexOf('TEAM_ABBREVIATION');
+    const idxTeamId = set.headers.indexOf('TEAM_ID');
+    row = matching.find(r => (idxTeam >= 0 && ['TOT', 'TOTAL'].includes(String(r[idxTeam]))) ||
+      (idxTeamId >= 0 && Number(r[idxTeamId]) === 0)) || matching[0];
+    if (matching.length > 1 && row === matching[0] && !matching.some(r =>
+      (idxTeam >= 0 && ['TOT', 'TOTAL'].includes(String(r[idxTeam]))) || (idxTeamId >= 0 && Number(r[idxTeamId]) === 0))) {
+      throw new Error('Multiple team stints without an aggregate row; do not silently select a partial season');
+    }
   }
   if (!row && idxGroup !== -1) {
     row = set.rowSet.find((r) => String(r[idxGroup]) === seasonDisplay);
@@ -40,14 +48,14 @@ function pickSeasonRow(set: ResultSet, seasonDisplay: string): Record<string, an
 }
 
 // Find the most recent season from the result set
-function findMostRecentSeason(set: ResultSet): { row: Record<string, any>; seasonId: string } | null {
+function findMostRecentSeason(set: ResultSet, requestedSeason: string): { row: Record<string, any>; seasonId: string } | null {
   if (!set || !set.rowSet || set.rowSet.length === 0) return null;
   
   const idxSeason = set.headers.indexOf('SEASON_ID');
   if (idxSeason === -1) return null;
   
   // Sort seasons by SEASON_ID (newest first) - season IDs are strings like "2024-25"
-  const sorted = [...set.rowSet].sort((a, b) => {
+  const sorted = set.rowSet.filter(row => String(row[idxSeason]) <= requestedSeason).sort((a, b) => {
     const seasonA = String(a[idxSeason] || '');
     const seasonB = String(b[idxSeason] || '');
     // Compare by extracting year (first 4 digits)
@@ -61,7 +69,7 @@ function findMostRecentSeason(set: ResultSet): { row: Record<string, any>; seaso
   const mostRecentRow = sorted[0];
   const seasonId = String(mostRecentRow[idxSeason]);
   return {
-    row: rowToObject(set.headers, mostRecentRow),
+    row: pickSeasonRow(set, seasonId)!,
     seasonId,
   };
 }
@@ -105,7 +113,7 @@ export function parseStats(
   if (!baseRow && allowFallback) {
     if (baseSet) {
       // Try most recent season
-      const mostRecent = findMostRecentSeason(baseSet);
+      const mostRecent = findMostRecentSeason(baseSet, requestedSeasonDisplay);
       if (mostRecent) {
         baseRow = mostRecent.row;
         seasonDisplay = mostRecent.seasonId;

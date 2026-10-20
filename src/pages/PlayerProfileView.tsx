@@ -152,6 +152,11 @@ const PlayerProfileView = () => {
 
         {evalState.player && !nav.detailLoading && (
           <>
+            {nav.detailWarnings?.map(warning => (
+              <div key={warning} role="status" className="w-full max-w-[750px] rounded border border-amber-300/30 bg-amber-300/5 px-4 py-2 text-sm text-amber-100">
+                {warning}
+              </div>
+            ))}
             <SaveStatusIndicator saveState={saveState} saveError={saveError} />
             <PlayerDetails
               player={evalState.player}

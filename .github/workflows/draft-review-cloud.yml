@@ -23,7 +23,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          operation=$(jq -er 'select(keys == ["operation"]) | .operation | select(. == "inspect" or . == "publish" or . == "publish-source")' .github/draft-review-request.json)
+          operation=$(jq -er 'select(keys == ["operation"]) | .operation | select(. == "none" or . == "inspect" or . == "publish" or . == "publish-source")' .github/draft-review-request.json)
           printf 'operation=%s\n' "$operation" >> "$GITHUB_OUTPUT"
   operation:
     needs: request
@@ -47,8 +47,8 @@ jobs:
     # inherit repository secrets here (including the unrelated reviewer token).
     secrets:
       BZE321_INSTALLATION_PASSPHRASE: ${{ secrets.BZE321_INSTALLATION_PASSPHRASE }}
-  # The exact three-record scope is authorized. This queued request still needs
-  # private source acceptance, the approved digest/trust and protected approval.
+  # Publication requires a current exact package, private source acceptance,
+  # approved digest/trust and protected approval. "none" queues no operation.
   source-publication:
     needs: request
     if: needs.request.outputs.operation == 'publish-source'

@@ -1,4 +1,7 @@
 import path from 'node:path';
+import { parseArgs as parseCliOptions } from 'node:util';
+import { maintenanceErrorMessage } from '../../../scripts/dev/maintenanceErrors.js';
+import { maintenanceContext } from '../../../scripts/dev/maintenanceContext.js';
 import { fileURLToPath } from 'node:url';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import {
@@ -12,6 +15,12 @@ interface CliArgs {
   playerId: string;
   outDir: string;
   validate: boolean;
+  indexPath?: string;
+  contractsDir?: string;
+  statsDir?: string;
+  season?: string;
+  asOf?: string;
+  batchSize?: number;
 }
 
 type PlayerIndexEntry = {
@@ -158,37 +167,28 @@ const PLAYER_INDEX_PATH = path.join(
   'player_index.json'
 );
 
-function parseArgs(): CliArgs {
-  const argv = process.argv.slice(2);
-  let playerId: string | undefined;
-  let outDir: string | undefined;
-  let validate = false;
-
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === '--player' || arg === '-p') {
-      playerId = argv[++i];
-    } else if (arg.startsWith('--player=')) {
-      [, playerId] = arg.split('=');
-    } else if (arg === '--outDir') {
-      outDir = argv[++i];
-    } else if (arg.startsWith('--outDir=')) {
-      [, outDir] = arg.split('=');
-    } else if (arg === '--validate') {
-      validate = true;
-    }
+export function parseArgs(argv = process.argv.slice(2), bulk = false): CliArgs {
+  const { values } = parseCliOptions({ args: argv, options: {
+    player: { type: 'string', short: 'p' }, outDir: { type: 'string' },
+    validate: { type: 'boolean' }, season: { type: 'string' }, 'as-of': { type: 'string' },
+    index: { type: 'string' }, 'contracts-dir': { type: 'string' }, 'stats-dir': { type: 'string' },
+    batchSize: { type: 'string' },
+  } });
+  for (const [flag, value] of Object.entries(values)) {
+    if (typeof value === 'string' && (!value || value.startsWith('-'))) throw new Error('Missing or invalid value for --' + flag);
   }
-
-  if (!playerId) {
-    throw new Error('Missing required --player argument');
-  }
-
+  if (bulk && values.player) throw new Error('Bulk staging takes its inventory from --index, not --player');
+  if (!bulk && values.batchSize !== undefined) throw new Error('--batchSize is supported only by bulk staging');
+  const playerId = bulk ? 'batch' : values.player;
+  if (!playerId) throw new Error('Missing required --player argument');
+  const batchSize = values.batchSize === undefined ? 10 : Number(values.batchSize);
+  if (!Number.isInteger(batchSize) || batchSize < 1 || batchSize > 50) throw new Error('batchSize must be an integer between 1 and 50');
+  const dated = maintenanceContext(values.season || process.env.MAINTENANCE_SEASON || '', values['as-of'] || process.env.MAINTENANCE_AS_OF || '');
   return {
-    playerId,
-    outDir: outDir
-      ? path.resolve(process.cwd(), outDir)
-      : path.join(__dirname, '..', '_artifacts', 'output'),
-    validate,
+    season: dated.season, asOf: dated.asOf, playerId, batchSize,
+    indexPath: values.index, contractsDir: values['contracts-dir'], statsDir: values['stats-dir'],
+    outDir: values.outDir ? path.resolve(process.cwd(), values.outDir) : path.join(__dirname, '..', '_artifacts', 'output'),
+    validate: values.validate || false,
   };
 }
 
@@ -430,12 +430,10 @@ function computeDisplay(
   rosterTeamCode: string,
   position: string | undefined,
   experience: number | undefined,
-  fallbackAav: number | undefined
+  fallbackAav: number | undefined,
+  currentSeasonStartYear: number
 ) {
   const seasons = listActiveSeasons(contracts);
-  const now = new Date();
-  const currentSeasonStartYear =
-    now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
 
   let totalSalary = 0;
   let latestSeason: string | undefined;
@@ -505,22 +503,19 @@ function buildPlayersV2Payload(
   playerId: string,
   indexEntry: PlayerIndexEntry,
   contractData: ContractOutput,
-  statsData: StatsOutput | null
+  statsData: StatsOutput | null,
+  currentSeasonYear: number,
+  asOf: string
 ) {
-  const nowTs = buildTimestamp();
+  const nowTs = buildTimestamp(new Date(asOf));
   const contractEntries = collectContracts(contractData);
   const contracts: Record<string, ContractRecord> = {};
 
-  const currentSeasonYear =
-    new Date().getMonth() >= 8
-      ? new Date().getFullYear()
-      : new Date().getFullYear() - 1;
 
   const currentEntry =
     [...contractEntries]
       .reverse()
       .find((entry) => isSeasonInRange(entry.contract, currentSeasonYear)) ??
-    contractEntries[contractEntries.length - 1] ??
     null;
 
   const nextEntry =
@@ -581,7 +576,8 @@ function buildPlayersV2Payload(
     indexEntry.teamCode ?? contractData.teamCode,
     contractData.bio.position,
     contractData.bio.experience,
-    contractData.contract.averageAnnualValue ?? undefined
+    contractData.contract.averageAnnualValue ?? undefined,
+    currentSeasonYear
   );
 
   const seasonMap = new Map<
@@ -760,7 +756,7 @@ function buildPlayersV2Payload(
 
   // Build denormalized currentSeasonStats from current season (prioritize current season over older seasons)
   let currentSeasonStats: any = undefined;
-  if (statsData && Object.keys(seasons).length > 0) {
+  if (statsData && seasons[seasonCodeFromStartYear(currentSeasonYear)] && !statsData.meta?.statsCarryOver) {
     const currentSeasonCode = seasonCodeFromStartYear(currentSeasonYear);
 
     // First, try to find the current season
@@ -836,7 +832,7 @@ function buildPlayersV2Payload(
         teamId: draftedBy,
       },
       display,
-      nbaId: indexEntry.nbaId,
+      nbaId: parseIntegerField(indexEntry.nbaId),
     },
     createdAt: nowTs,
     updatedAt: nowTs,
@@ -871,9 +867,11 @@ async function loadJson<T>(filePath: string): Promise<T> {
   return JSON.parse(raw) as T;
 }
 
-async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
+export async function stagePlayer({ playerId, outDir, validate, indexPath = PLAYER_INDEX_PATH,
+  contractsDir = CONTRACTS_DIR, statsDir = STATS_DIR, season, asOf }: CliArgs) {
+  const dated = maintenanceContext(season || process.env.MAINTENANCE_SEASON || '', asOf || process.env.MAINTENANCE_AS_OF || '');
   const index: Record<string, PlayerIndexEntry> =
-    await loadJson(PLAYER_INDEX_PATH);
+    await loadJson(indexPath);
   const indexEntry = index[playerId];
   if (!indexEntry) {
     throw new Error(`Player ${playerId} not found in index`);
@@ -884,12 +882,12 @@ async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
   const contractTeamDir = teamCode || 'FREE';
 
   const contractPath = path.join(
-    CONTRACTS_DIR,
+    contractsDir,
     contractTeamDir,
     `${playerId}.json`
   );
   const statsPath = teamCode
-    ? path.join(STATS_DIR, teamCode, `${playerId}.json`)
+    ? path.join(statsDir, teamCode, `${playerId}.json`)
     : null;
 
   let contractData: ContractOutput | null = null;
@@ -995,8 +993,8 @@ async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
           signingTeam: 'FREE',
           signingDate: undefined, // Optional field
           signedByCurrentTeam: false,
-          startSeason: '2025-26', // Required field - use current season as placeholder
-          endSeason: '2025-26', // Required field - use current season as placeholder
+          startSeason: dated.season, // Required field - use current season as placeholder
+          endSeason: dated.season, // Required field - use current season as placeholder
           contractLength: 0,
           yearsRemaining: 0,
           totalValue: 0,
@@ -1041,59 +1039,7 @@ async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
         lastUpdated: new Date().toISOString(),
         version: '1.0',
       };
-    } else {
-      // Free agent with contract file - normalize structure
-      contractData = {
-        ...contractData,
-        teamCode: 'FREE', // Use 'FREE' as teamCode for free agents (BasePlayerDocZ requires a string)
-        teamName: 'Free Agent',
-        contract: {
-          ...contractData.contract,
-          contractType: 'FREE AGENT',
-          isExtension: false,
-          isRookieScale: false,
-          signingTeam: 'FREE',
-          signingDate: undefined, // Optional field
-          signedByCurrentTeam: false,
-          startSeason: '2025-26', // Required field - use current season as placeholder
-          endSeason: '2025-26', // Required field - use current season as placeholder
-          contractLength: 0,
-          yearsRemaining: 0,
-          totalValue: 0,
-          averageAnnualValue: 0, // Required field - use 0 for free agents
-          guaranteedValue: 0, // Required field - use 0 for free agents
-          guaranteedYears: 0, // Required field - use 0 for free agents
-          salariesByYear: [],
-          noTradeClause: false,
-          tradeKicker: null, // Required field - nullable, use null for free agents
-          tradeRestrictions: [],
-          birdRights: { status: 'Unknown' },
-          freeAgency: {
-            type: 'UFA',
-            year: undefined,
-            capHold: undefined,
-            qualifyingOffer: null,
-            earlyTerminationOption: null,
-            hasOption: undefined,
-            optionYear: null,
-            optionType: null,
-          },
-          tradeEligibility: {
-            canBeTradedNow: null,
-            restrictedUntil: null,
-            reason: null,
-            rules: {
-              baseYearCompensation: false,
-              poisonPill: false,
-              aggregation: false,
-            },
-          },
-          isMaxContract: false,
-          maxType: undefined, // Optional field
-          estimatedCapPercentage: undefined, // Optional field
-        },
-        futureContract: undefined,
-      };
+
     }
   }
 
@@ -1113,7 +1059,9 @@ async function stagePlayer({ playerId, outDir, validate }: CliArgs) {
     playerId,
     indexEntry,
     contractData,
-    statsData
+    statsData,
+    dated.startYear,
+    dated.asOf
   );
 
   if (validate) {
@@ -1156,7 +1104,7 @@ if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
       console.log('Staged files created:', outPaths);
     })
     .catch((err) => {
-      console.error('Failed to stage player:', err);
+      console.error('Failed to stage player:', maintenanceErrorMessage(err));
       process.exit(1);
     });
 }

@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 
 if (
   process.env.SCOUTZERO_REVIEW_CANDIDATE !==
-  '8f08d6cb71511db3b4f97790d2426e16c556ddce'
+  '4e192a99b6219654bb3e1ea2aa69bffed9c2f6b2'
 ) {
   throw new Error(
     'This probe is qualified only for the inspected production-main source'

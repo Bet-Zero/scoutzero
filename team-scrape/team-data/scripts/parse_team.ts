@@ -93,41 +93,11 @@ async function enrichDraftPickFromDetail(url: string) {
 
 /* ------------------------------------------------------------------------ */
 
-async function main() {
-  const TEAM_URL =
-    process.env.TEAM_URL || 'https://www.salaryswish.com/teams/lakers';
-  const TEAM_CODE = process.env.TEAM_CODE || 'LAL';
-  const SEASON = process.env.SEASON || '2025-26';
-  const ENRICH_DRAFT = process.env.ENRICH_DRAFT === '1';
-
-  const DEFAULT_HTML_PATH = path.join(
-    process.cwd(),
-    'team-scrape',
-    'team-data',
-    'working',
-    'page.html'
-  );
-  const localHtmlPath =
-    process.env.TEAM_HTML_PATH && process.env.TEAM_HTML_PATH.trim().length > 0
-      ? path.resolve(process.env.TEAM_HTML_PATH)
-      : DEFAULT_HTML_PATH;
-  let html: string | null = null;
-  if (
-    process.env.USE_LOCAL_HTML === '1' ||
-    (await fs
-      .access(localHtmlPath)
-      .then(() => true)
-      .catch(() => false))
-  ) {
-    html = await fs.readFile(localHtmlPath, 'utf8');
-    console.log(`📄 Loaded local HTML snapshot: ${localHtmlPath}`);
-  }
-  if (!html) {
-    console.log('📡 Fetching live data from:', TEAM_URL);
-    html = await got(TEAM_URL, { timeout: { request: 45000 } }).text();
-    console.log('✅ Successfully fetched team page');
-  }
-
+export async function parseTeamHtml(html: string, context: { url: string; team: string; season: string; asOf: string; capturedAt?: string }) {
+  const TEAM_URL = context.url;
+  const TEAM_CODE = context.team;
+  const SEASON = context.season;
+  const ENRICH_DRAFT = false;
   const $ = cheerio.load(html);
 
   // --- Team identity ---
@@ -194,6 +164,8 @@ async function main() {
         totalsBox.activeSalary = moneyNum(value);
       } else if (rowTitle.includes('DEAD CAP HIT')) {
         totalsBox.deadCapTotal = moneyNum(value);
+      } else if (rowTitle === 'TEAM SALARY') {
+        totalsBox.totalSalary = moneyNum(value);
       } else if (rowTitle === 'HOLDS') {
         totalsBox.capHoldsTotal = moneyNum(value);
       } else if (rowTitle.includes('INCOMPLETE ROSTER CHARGE')) {
@@ -342,6 +314,7 @@ async function main() {
   }
 
   // --- Cap Holds (multiple tables under h3 HOLDS) ---
+  let hasCurrentCapHoldColumn = false;
   const capHolds: Array<{
     displayName: string;
     capHoldAmount: number;
@@ -376,6 +349,7 @@ async function main() {
           .map((i, th) => norm($(th).text()))
           .get();
 
+        if (thTexts.includes(season)) hasCurrentCapHoldColumn = true;
         const firstSeasonIdx = thTexts.findIndex((text) =>
           /^\d{4}-\d{2}$/.test(text)
         );
@@ -416,32 +390,17 @@ async function main() {
           }
 
           if (!chosenSeason || !amount) {
-            const defaultSeason = (() => {
-              const [start, end] = season.split('-');
-              const startYear = Number(start);
-              const endYear = Number(end);
-              if (
-                Number.isFinite(startYear) &&
-                Number.isFinite(endYear) &&
-                endYear >= 0 &&
-                endYear <= 99
-              ) {
-                const nextStart = startYear + 1;
-                const nextEnd = (endYear + 1) % 100;
-                return `${nextStart}-${String(nextEnd).padStart(2, '0')}`;
-              }
-              return season;
-            })();
-            chosenSeason = defaultSeason;
-            const fallbackAmount = moneyNum(
+            const unqualifiedAmount = moneyNum(
               norm($(tr).find('.cap_hit.team_salary_data').first().text())
             );
-            amount = fallbackAmount ?? 0;
+            if (unqualifiedAmount && unqualifiedAmount > 0) {
+              throw new Error('Cap-hold amount lacks an explicit supplied season');
+            }
           }
 
           const meta = norm($(tr).text()).toLowerCase();
 
-          if (amount && amount > 0) {
+          if (chosenSeason && amount && amount > 0) {
             capHolds.push({
               playerId: undefined,
               displayName: name,
@@ -656,16 +615,17 @@ async function main() {
   }
 
   const capHoldSum = capHolds.reduce(
-    (acc, item) => acc + (item.capHoldAmount ?? 0),
+    (acc, item) => acc + (item.season === season ? item.capHoldAmount ?? 0 : 0),
     0
   );
-  if (!Number.isFinite(totalsBox.capHoldsTotal) && capHoldSum > 0) {
+  if (!Number.isFinite(totalsBox.capHoldsTotal) && hasCurrentCapHoldColumn) {
     totalsBox.capHoldsTotal = capHoldSum;
   }
   if (
     !Number.isFinite(totalsBox.totalSalary) &&
-    (Number.isFinite(totalsBox.activeSalary) ||
-      Number.isFinite(totalsBox.capHoldsTotal))
+    Number.isFinite(totalsBox.activeSalary) &&
+    Number.isFinite(totalsBox.capHoldsTotal) &&
+    Number.isFinite(totalsBox.deadCapTotal)
   ) {
     const active = Number(totalsBox.activeSalary) || 0;
     const holds = Number(totalsBox.capHoldsTotal) || 0;
@@ -693,7 +653,7 @@ async function main() {
     }
   }
 
-  // --- Roster (Active only) — under h5 "Season Display" ---
+  // --- Current roster groups, including disabled and training-camp contracts ---
   const roster: Array<{
     playerId?: string;
     displayName?: string;
@@ -711,6 +671,9 @@ async function main() {
         label.includes('two-way') ||
         label.includes('two way') ||
         label.includes('injured') ||
+        label.includes('disabled') ||
+        label.includes('training camp') ||
+        label.includes('exhibit 10') ||
         label.includes('minors') ||
         label.includes('g-league') ||
         label.includes('gleague')
@@ -836,27 +799,24 @@ async function main() {
     source: {
       provider: 'SalarySwish',
       teamPageUrl: TEAM_URL,
-      scrapedAt: new Date().toISOString(),
+      scrapedAt: context.capturedAt,
     },
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: context.asOf,
     version: '1.0',
   };
 
-  const outputPath = path.join(
-    process.cwd(),
-    'team-scrape',
-    'team-data',
-    'output',
-    `team_${teamCode}.json`
-  );
-  await fs.writeFile(outputPath, JSON.stringify(teamDoc, null, 2), 'utf8');
-  console.log(`✅ Wrote ${outputPath}`);
-  console.log(
-    `  roster=${roster.length}  tpe=${tpe.length}  holds=${capHolds.length}  deadCap=${deadCap.length}  picks=${draftPicks.length}`
-  );
+  return teamDoc;
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (decodeURIComponent(import.meta.url) === `file://${process.argv[1]}`) {
+  const season = process.env.SEASON || '';
+  const asOf = process.env.MAINTENANCE_AS_OF || '';
+  if (!season || !asOf || !process.env.TEAM_HTML_PATH || !process.env.TEAM_CODE || !process.env.TEAM_URL) {
+    throw new Error('Use maintenance:collect with explicit season/as-of/inventory; offline parsing requires TEAM_HTML_PATH, TEAM_CODE, TEAM_URL, SEASON and MAINTENANCE_AS_OF');
+  }
+  const parsed = await parseTeamHtml(await fs.readFile(process.env.TEAM_HTML_PATH, 'utf8'), { url: process.env.TEAM_URL, team: process.env.TEAM_CODE, season, asOf });
+  const out = process.env.TEAM_OUTPUT_PATH;
+  if (!out) throw new Error('Explicit private TEAM_OUTPUT_PATH required');
+  await fs.mkdir(path.dirname(out), { recursive: true, mode: 0o700 });
+  await fs.writeFile(out, JSON.stringify(parsed, null, 2), { mode: 0o600, flag: 'wx' });
+}

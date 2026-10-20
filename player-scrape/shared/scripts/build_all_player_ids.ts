@@ -1,3 +1,4 @@
+import { retainFoundationSource } from '../../../scripts/dev/foundationSource.js';
 // =============================================================
 // SCSP™ FULL-FILE REPLACEMENT (v5)
 // File: player-scrape/shared/scripts/build_all_player_ids.ts
@@ -72,7 +73,8 @@ function argBool(flag: string, fallback: boolean) {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const SEASON_LABEL = Number(process.env.SEASON ?? arg('season', '2026')); // 2026 → "2025-26"
+const SEASON_LABEL = Number(process.env.SEASON ?? arg('season', '')); // 2026 → "2025-26"
+if (!Number.isInteger(SEASON_LABEL) || SEASON_LABEL < 2000 || SEASON_LABEL > 2100) throw new Error('Explicit --season END_YEAR required (2027 means 2026-27)');
 const SEASON_CODE =
   process.env.SEASON_CODE ??
   arg('season-code') ??
@@ -147,9 +149,11 @@ async function fetchJson(url: string, retries = 3): Promise<any> {
   let lastErr: any;
   for (let a = 0; a <= retries; a++) {
     try {
-      const res = await fetch(url, { headers: NBA_HEADERS });
+      const res = await fetch(url, { headers: NBA_HEADERS, signal: AbortSignal.timeout(45000) });
       if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-      return await res.json();
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      retainFoundationSource(OUTPUTS_DIR, url, bytes);
+      return JSON.parse(new TextDecoder().decode(bytes));
     } catch (e) {
       lastErr = e;
       await sleep(400 * (a + 1));
@@ -208,9 +212,11 @@ function defaultFaUrls(years: number[]): string[] {
 }
 
 async function fetchFaNames(url: string): Promise<string[]> {
-  const res = await fetch(url);
+  const res = await fetch(url, { signal: AbortSignal.timeout(45000) });
   if (!res.ok) throw new Error(`FA page HTTP ${res.status}: ${url}`);
-  const html = await res.text();
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  retainFoundationSource(OUTPUTS_DIR, url, bytes);
+  const html = new TextDecoder().decode(bytes);
   const $ = cheerio.load(html);
 
   const names = new Set<string>();
@@ -379,6 +385,7 @@ function writePretty(path: string, obj: any) {
       faNames.push(...names);
       await sleep(150);
     } catch (e) {
+      process.exitCode = 1;
       console.warn(`⚠️  Failed FA page: ${u} — ${(e as Error).message}`);
     }
   }
@@ -467,6 +474,8 @@ function writePretty(path: string, obj: any) {
   writePretty(OUT_UNRES, unresolved);
   writePretty(OUT_DUPE, dupes);
   writePretty(OUT_FILT, filteredOut);
+
+  if (unresolved.length || dupes.length) process.exitCode = 1;
 
   // 10) Summary
   console.log('✔ IDs written:', OUT_IDS);

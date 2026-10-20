@@ -24,6 +24,7 @@ import {
   verifyPstSourceRelease,
   verifyPstSourceReleaseInvariants,
 } from '../../../scripts/source-releases/verify-pst-source-release';
+import { HISTORICAL_PST_DIGEST, requireAcceptedPstSource } from '../../../scripts/source-releases/pst-lifecycle/acceptedSources';
 
 const CHECKED_IN_RELEASE = path.resolve(
   'docs/reference/sources/releases/pst/pst-current-bze-304-07daf7583c6c9ef5-v1.json'
@@ -170,6 +171,61 @@ afterEach(async () => {
 });
 
 describe('BZE-305 governed PST source release', () => {
+  it('verifies declared successor coverage without accepting an unknown release or changing the historical pin', async () => {
+    const fixture = await makeSyntheticFixture();
+    const previous = fixture.release;
+    const successor = { ...previous, schemaVersion: 'scoutzero-pst-source-release/v2' as const, releaseVersion: 2,
+      source: { ...previous.source, captureIssue: 'BZE-324' },
+      supersedes: { releaseId: previous.releaseId, releaseVersion: previous.releaseVersion, releaseDigestSha256: previous.releaseDigestSha256 },
+      coverage: { requiredPageIds: previous.pages.filter(p => p.classification === 'canonical-required').map(p => p.sourcePageId),
+        repeatPageIds: previous.pages.filter(p => p.classification === 'repeat-evidence').map(p => p.sourcePageId) },
+    };
+    successor.releaseId = `pst-current-bze-324-${successor.sourceCaptureManifest.sha256.slice(0, 16)}`;
+    fixture.release = PstSourceReleaseZ.parse(successor);
+    await writeRelease(fixture);
+    await expect(verifyPstSourceRelease(fixture)).resolves.toMatchObject({ canonicalRequiredPages: 39, packageFilesVerified: 128 });
+    expect(() => requireAcceptedPstSource(fixture.release.releaseDigestSha256, previous.releaseDigestSha256)).toThrow(/Unknown or unaccepted/);
+    expect(requireAcceptedPstSource(HISTORICAL_PST_DIGEST, null)).toBeTruthy();
+    expect(() => requireAcceptedPstSource(HISTORICAL_PST_DIGEST, '0'.repeat(64))).toThrow(/Unknown or unaccepted/);
+    if (fixture.release.schemaVersion !== 'scoutzero-pst-source-release/v2') throw new Error('Wrong test envelope');
+    fixture.release.coverage.requiredPageIds.pop();
+    fixture.release.releaseDigestSha256 = computePstSourceReleaseDigest(fixture.release);
+    expect(() => verifyPstSourceReleaseInvariants(fixture.release)).toThrow(/coverage/);
+  });
+
+  it('uses exact successor membership for a smaller capture rather than fixed historical counts', async () => {
+    const fixture = await makeSyntheticFixture();
+    const predecessor = fixture.release;
+    const selected = predecessor.pages.filter(p => p.sourcePageId === 'team-CHI' || (p.sourcePageId === 'team-HOU' && p.classification === 'canonical-required'));
+    const manifestPath = path.join(fixture.evidenceDirectory, 'manifest.json');
+    const manifest: { results: { sequence: number }[]; files: { relativePath: string }[]; requiredPageCount: number; repeatPageCount: number } = JSON.parse(await readFile(manifestPath, 'utf8'));
+    const sequences = selected.map(p => p.sequence);
+    manifest.results = manifest.results.filter((r) => sequences.includes(r.sequence));
+    const keep = new Set(selected.flatMap(p => [p.rawResponse.relativePath, p.serializedDom.relativePath, p.screenshot.relativePath]));
+    for (const file of manifest.files) if (!keep.has(file.relativePath)) await unlink(path.join(fixture.evidenceDirectory, file.relativePath));
+    manifest.files = manifest.files.filter((f) => keep.has(f.relativePath));
+    manifest.results.forEach((r, i) => { r.sequence = i + 1; });
+    selected.forEach((p, i) => { p.sequence = i + 1; });
+    manifest.requiredPageCount = 2; manifest.repeatPageCount = 1;
+    const manifestBytes = JSON.stringify(manifest);
+    await writeFile(manifestPath, manifestBytes);
+    await writeFile(path.join(fixture.evidenceDirectory, 'manifest.sha256'), `${sha256(manifestBytes)}  manifest.json\n`);
+    fixture.release = PstSourceReleaseZ.parse({ ...predecessor, schemaVersion: 'scoutzero-pst-source-release/v2', releaseVersion: 2,
+      source: { ...predecessor.source, captureIssue: 'BZE-324' },
+      sourceCaptureManifest: { ...predecessor.sourceCaptureManifest, sha256: sha256(manifestBytes) },
+      releaseId: `pst-current-bze-324-${sha256(manifestBytes).slice(0, 16)}`,
+      supersedes: { releaseId: predecessor.releaseId, releaseVersion: 1, releaseDigestSha256: predecessor.releaseDigestSha256 },
+      canonicalPolicy: { ...predecessor.canonicalPolicy, requiredPageCount: 2, repeatCaptureCount: 1 },
+      counts: { pageCaptures: 3, canonicalRequiredPages: 2, repeatEvidenceCaptures: 1, rawHtmlFiles: 3, serializedDomFiles: 3, screenshotFiles: 3 },
+      package: { ...predecessor.package, capturedFileCount: 9, packageFileCount: 11 }, pages: selected,
+      coverage: { requiredPageIds: ['team-CHI', 'team-HOU'], repeatPageIds: ['team-CHI'] },
+    });
+    await writeRelease(fixture);
+    await expect(verifyPstSourceRelease(fixture)).resolves.toMatchObject({ canonicalRequiredPages: 2, repeatEvidenceCaptures: 1, capturedFilesVerified: 9, packageFilesVerified: 11 });
+    await writeFile(path.join(fixture.evidenceDirectory, 'extra.html'), 'unexpected');
+    await expect(verifyPstSourceRelease(fixture)).rejects.toThrow(/inventory/);
+  });
+
   it('verifies a complete 39-page source set plus three stable repeats', async () => {
     const fixture = await makeSyntheticFixture();
 

@@ -1,3 +1,6 @@
+import { retainFoundationSource } from '../../../scripts/dev/foundationSource.js';
+import { createHash } from 'node:crypto';
+import { maintenanceContext } from '../../../scripts/dev/maintenanceContext.js';
 /* eslint-disable no-console */
 // =============================================================
 // SCSP™ FULL-FILE REPLACEMENT (v7)
@@ -42,8 +45,8 @@ type RosterEntry = {
 
 // ---------- Paths ----------
 const SHARED_DIR = resolve(__dirname, '..'); // player-scrape/shared
-const OUTPUTS_DIR = resolve(SHARED_DIR, 'outputs');
-const REPORTS_DIR = resolve(SHARED_DIR, 'reports');
+const OUTPUTS_DIR = resolve(process.env.OUTPUTS_DIR || resolve(SHARED_DIR, 'outputs'));
+const REPORTS_DIR = resolve(process.env.REPORTS_DIR || resolve(SHARED_DIR, 'reports'));
 
 function ensureDir(p: string) {
   mkdirSync(p, { recursive: true });
@@ -60,7 +63,8 @@ function arg(flag: string, fallback?: string) {
   return fallback;
 }
 
-const SEASON_LABEL = Number(process.env.SEASON ?? arg('season', '2026')); // ex: 2026 -> "2025-26"
+const SEASON_LABEL = Number(process.env.SEASON ?? arg('season', '')); // ex: 2026 -> "2025-26"
+if (!Number.isInteger(SEASON_LABEL) || SEASON_LABEL < 2000 || SEASON_LABEL > 2100) throw new Error('Explicit --season END_YEAR required (2027 means 2026-27)');
 function inferSeasonCode(seasonYear: number): string {
   const start = seasonYear - 1;
   const endShort = String(seasonYear).slice(-2);
@@ -70,6 +74,10 @@ const SEASON_CODE =
   process.env.SEASON_CODE ??
   arg('season-code') ??
   inferSeasonCode(SEASON_LABEL);
+const DATED_RUN = maintenanceContext(SEASON_CODE, process.env.MAINTENANCE_AS_OF || '');
+const BIOS_MANIFEST_PATH = resolve(OUTPUTS_DIR, 'bios-run.json');
+let biosRequestSha256 = '';
+
 
 const IDS_PATH = resolve(OUTPUTS_DIR, 'all_player_ids.json');
 // Write to outputs directory instead of shared root
@@ -108,6 +116,11 @@ let reqCtx: APIRequestContext | null = null;
 async function getRequestContext(): Promise<APIRequestContext> {
   if (reqCtx) return reqCtx;
   reqCtx = await request.newContext({
+    proxy: process.env.PROXY_URL ? {
+      server: process.env.PROXY_URL,
+      username: process.env.PROXY_USER,
+      password: process.env.PROXY_PASS,
+    } : undefined,
     baseURL: NBA_BASE,
     userAgent: UA, // <-- the actual UA
     extraHTTPHeaders: NBA_HEADERS, // <-- the rest of headers
@@ -147,7 +160,9 @@ async function fetchJson(
           `Non-JSON content-type: ${ct} (len=${txt?.length ?? 0})`
         );
       }
-      return await res.json();
+      const bytes = await res.body();
+      retainFoundationSource(OUTPUTS_DIR, url, bytes);
+      return JSON.parse(new TextDecoder().decode(bytes));
     } catch (e) {
       lastErr = e;
       const msg = String((e as any)?.message || e);
@@ -336,7 +351,9 @@ async function fetchPlayerPageHtml(
     headers: { Referer: 'https://www.nba.com/stats/' },
   });
   if (!res.ok()) throw new Error(`HTML ${res.status()} for ${url}`);
-  return await res.text();
+  const bytes = await res.body();
+  retainFoundationSource(OUTPUTS_DIR, url, bytes);
+  return new TextDecoder().decode(bytes);
 }
 
 function extractFromPlayerHtml(html: string): {
@@ -499,8 +516,11 @@ let total = 0;
 
 function writeCheckpoint() {
   try {
-    writeFileSync(BIOS_OUT_PATH, JSON.stringify(output, null, 2), 'utf8');
+    const bytes = JSON.stringify(output, null, 2);
+    writeFileSync(BIOS_OUT_PATH, bytes, { mode: 0o600 });
+    writeFileSync(BIOS_MANIFEST_PATH, JSON.stringify({ requestSha256: biosRequestSha256, outputSha256: createHash('sha256').update(bytes).digest('hex'), context: DATED_RUN, expected: total, processed: Object.keys(output).length, failed: failures.length, complete: Object.keys(output).length === total && !failures.length }), { mode: 0o600 });
     if (failures.length) {
+    process.exitCode = 1;
       writeFileSync(
         FAIL_REPORT_PATH,
         JSON.stringify(failures, null, 2),
@@ -525,7 +545,7 @@ async function main() {
     process.exit(1);
   }
 
-  const rosterMap = await fetchCurrentRosterMap(SEASON_CODE);
+
 
   // Load IDs
   const idMap: IdMap = JSON.parse(readFileSync(IDS_PATH, 'utf8'));
@@ -539,15 +559,15 @@ async function main() {
 
   total = entries.length;
 
-  // Resume
+  biosRequestSha256 = createHash('sha256').update(JSON.stringify({ context: DATED_RUN, entries })).digest('hex');
   if (existsSync(BIOS_OUT_PATH)) {
-    try {
-      output = JSON.parse(readFileSync(BIOS_OUT_PATH, 'utf8'));
-      console.log(
-        `  ↺ Resuming: found ${Object.keys(output).length} existing bios in ${BIOS_OUT_PATH}`
-      );
-    } catch {}
-  }
+    if (!process.argv.includes('--resume')) throw new Error('Fresh bios mode requires a new output generation; use --resume only for this exact run');
+    const saved = JSON.parse(readFileSync(BIOS_MANIFEST_PATH, 'utf8'));
+    const bytes = readFileSync(BIOS_OUT_PATH);
+    if (saved.requestSha256 !== biosRequestSha256 || saved.outputSha256 !== createHash('sha256').update(bytes).digest('hex')) throw new Error('Bios resume generation or output bytes changed');
+    output = JSON.parse(bytes.toString('utf8'));
+  } else if (process.argv.includes('--resume')) throw new Error('No bios run exists to resume');
+  const rosterMap = await fetchCurrentRosterMap(SEASON_CODE);
   const already = new Set(Object.keys(output));
 
   for (const [nameKey, personId] of entries) {
@@ -660,6 +680,7 @@ async function main() {
   );
 
   if (failures.length) {
+    process.exitCode = 1;
     console.warn(
       `⚠️  ${failures.length} failures written to ${FAIL_REPORT_PATH}`
     );

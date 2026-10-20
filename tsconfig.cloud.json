@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "types": [
+      "node",
+      "vite/client"
+    ]
+  },
+  "include": [
+    "scripts/dev/**/*.ts",
+    "tests/tooling/cloud*.node-test.ts",
+    "scripts/release/scouting_prod_sync_plan.ts",
+    "scripts/source-releases/pst-lifecycle/**/*.ts",
+    "scripts/source-releases/verify-pst-source-release.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "archive"
+  ]
+}

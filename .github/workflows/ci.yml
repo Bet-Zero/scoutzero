@@ -49,7 +49,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 24
 
       - name: Install dependencies
         run: PUPPETEER_SKIP_DOWNLOAD=true npm ci
@@ -79,6 +79,11 @@ jobs:
       - name: Hosted review browser redirect boundary
         timeout-minutes: 2
         run: npm run test:hosted-review-browser
+      - name: Cloud development safety tests
+        run: npm run test:cloud-dev
+
+      - name: Cloud tooling type check
+        run: npm run cloud:typecheck
 
       - name: Governed Offer Sheet creation emulator gate
         run: npm run ci:offer-sheet-creation-emulator-gate
@@ -105,7 +110,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 24
 
       - name: Install dependencies
         run: PUPPETEER_SKIP_DOWNLOAD=true npm ci
@@ -135,6 +140,11 @@ jobs:
       - name: Hosted review browser redirect boundary
         timeout-minutes: 2
         run: npm run test:hosted-review-browser
+      - name: Cloud development safety tests
+        run: npm run test:cloud-dev
+
+      - name: Cloud tooling type check
+        run: npm run cloud:typecheck
 
       - name: Governed Offer Sheet creation emulator gate
         run: npm run ci:offer-sheet-creation-emulator-gate

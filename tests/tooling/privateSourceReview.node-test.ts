@@ -12,7 +12,7 @@ const blocks = [...workflow.matchAll(/          python3 - <<'PY'\n([\s\S]*?)    
   .map((m) => m[1].split('\n').map((line) => line.slice(10)).join('\n'));
 const hash = (b: string | Buffer) => createHash('sha256').update(b).digest('hex');
 const candidate = 'a'.repeat(40);
-const base = '8f08d6cb71511db3b4f97790d2426e16c556ddce';
+const base = '4e192a99b6219654bb3e1ea2aa69bffed9c2f6b2';
 const secret = 'public-synthetic-key-'.padEnd(64, 'x');
 const source = Buffer.from(JSON.stringify({ format: 'bze321-source-proof-v1', changes: [{}, {}, {}] }));
 const marker = 'private-test-evidence-must-not-appear-in-output';
@@ -126,6 +126,7 @@ test('private credentials stay behind current code acceptance, CI, owner protect
     f.responses(valid); assert.equal(f.run(0).status,0);
     for (const [key,value] of [
       ['pulls/547',{state:'open',head:{sha:'b'.repeat(40)},base:{sha:base}}],
+      ['pulls/547',{state:'open',head:{sha:candidate},base:{sha:'8f08d6cb71511db3b4f97790d2426e16c556ddce'}}],
       ['environments/draft-review-publication',{...valid[prefix+'environments/draft-review-publication'],can_admins_bypass:true}],
       ['collaborators/Bet-Zero/permission',{permission:'read'}],
       ['actions/runs?head_sha='+candidate+'&per_page=100',{workflow_runs:[]}],
@@ -143,11 +144,11 @@ test('private credentials stay behind current code acceptance, CI, owner protect
 test('complete ACCEPT and REVISE judgments recover privately, while malformed or stale reports fail', () => {
   const f = fixture();
   const report = (verdict = 'ACCEPT', findings: object[] = []) => ({ verdict, review_report: marker, findings, validation: ['independent check'], scope_limits: ['one source proof only'] });
-  const result = (r: object) => ({ type: 'result', subtype: 'success', is_error: false, structured_output: r });
-  const prepare = (value: object) => {
+  const result = (r: object, extra: object = {}) => ({ type: 'result', subtype: 'success', is_error: false, structured_output: r, ...extra });
+  const prepare = (value: object, extra: object = {}) => {
     f.reset(); fs.mkdirSync(path.join(f.dir,'source-private-review'));
     fs.copyFileSync(path.join(f.dir,'cert.pem'), path.join(f.dir,'source-private-review/recipient.pem'));
-    fs.writeFileSync(path.join(f.dir,'claude-execution-output.json'),JSON.stringify([result(value)]));
+    fs.writeFileSync(path.join(f.dir,'claude-execution-output.json'),JSON.stringify([result(value, extra)]));
   };
   try {
     for (const verdict of ['ACCEPT','REVISE']) {
@@ -158,6 +159,26 @@ test('complete ACCEPT and REVISE judgments recover privately, while malformed or
       const plaintext = f.command('openssl',['cms','-decrypt','-binary','-inform','DER','-in','source-private-review.cms','-recip','cert.pem','-inkey','key.pem']);
       assert.deepEqual(JSON.parse(plaintext).originalResult, result(original));
       assert.equal(JSON.parse(plaintext).executionOutcome, 'success');
+    }
+    // Preserve the exact encrypted original for diagnosis, but a tool denial
+    // cannot become factual acceptance even when the action reports success.
+    for (const permission_denials of [
+      [],
+      [{ tool_name: 'Bash', tool_input: { command: marker } }],
+      { malformed: marker },
+    ]) {
+      const extra = { permission_denials };
+      prepare(report(), extra);
+      const denied = f.run(2);
+      const accepted = Array.isArray(permission_denials) && permission_denials.length === 0;
+      assert.equal(denied.status, accepted ? 0 : 1);
+      assert.equal(denied.stdout.includes('PRIVATE_SOURCE_REVIEW_ACCEPT'), accepted);
+      if (Array.isArray(permission_denials) && permission_denials.length > 0)
+        assert.match(denied.stdout, /PRIVATE_REVIEW_TOOL_DENIED_REPORT_RETAINED/);
+      assert.ok(!denied.stdout.includes(marker) && !denied.stderr.includes(marker));
+      const recovered = JSON.parse(f.command('openssl',['cms','-decrypt','-binary','-inform','DER','-in','source-private-review.cms','-recip','cert.pem','-inkey','key.pem']));
+      assert.equal(recovered.executionOutcome, 'success');
+      assert.deepEqual(recovered.originalResult, result(report(), extra));
     }
     // A successful-looking report from a failed action is diagnostic only.
     // The action's turn-limit failure must never become private ACCEPT.

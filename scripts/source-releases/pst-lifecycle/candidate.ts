@@ -1,3 +1,4 @@
+import { HISTORICAL_PST_DIGEST, requireAcceptedPstSource } from './acceptedSources';
 /** Reproducible private artifacts from the accepted source release only. */
 import { createHash } from 'node:crypto';
 import {
@@ -24,8 +25,7 @@ import { uncapturedHistoryReferences } from './reference-gaps';
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 export const PARSER_VERSION = 'pst-lifecycle-parser-v1';
 export const SCHEMA_VERSION = 'pst-lifecycle-candidate-v1';
-export const ACCEPTED_RELEASE_DIGEST =
-  '44a18a7c339906ab147cc026d0e598d6d7ee655a2427c767fdce1685cd30cb7a';
+export const ACCEPTED_RELEASE_DIGEST = HISTORICAL_PST_DIGEST;
 export const COMPARISON_PATH =
   'docs/reference/sources/releases/pst/pst-exposure-comparison-bze306-v1.json';
 const implementationPaths = [
@@ -40,6 +40,7 @@ const implementationPaths = [
   'scripts/source-releases/pst-lifecycle/account.ts',
   'scripts/source-releases/pst-lifecycle/reference-gaps.ts',
   'scripts/source-releases/pst-lifecycle/candidate.ts',
+  'scripts/source-releases/pst-lifecycle/acceptedSources.ts',
   'scripts/source-releases/pst-lifecycle/cli.ts',
   'team-scrape/draft-picks/scripts/pst/pst_team_slugs.ts',
   'package-lock.json',
@@ -71,11 +72,10 @@ export async function buildPstCandidate(
 ): Promise<Map<string, string | Buffer>> {
   const initialImplementation = await fingerprintImplementation();
   const sourceVerification = await verifyPstSourceRelease(inputs);
-  if (sourceVerification.releaseDigestSha256 !== ACCEPTED_RELEASE_DIGEST)
-    throw new Error('This parser requires the accepted BZE-304 release');
   const release = PstSourceReleaseZ.parse(
     JSON.parse(await readFile(inputs.releasePath, 'utf8'))
   );
+  requireAcceptedPstSource(sourceVerification.releaseDigestSha256, release.supersedes?.releaseDigestSha256 || null);
   const comparisonBytes = await readFile(path.join(ROOT, COMPARISON_PATH));
   const comparison = JSON.parse(comparisonBytes.toString('utf8'));
   const assets = validateComparison(comparison.entitlements);
@@ -150,7 +150,7 @@ export async function buildPstCandidate(
     'observations.json',
     serialize({
       schemaVersion: 'pst-source-observations-v1',
-      sourceReleaseDigest: ACCEPTED_RELEASE_DIGEST,
+      sourceReleaseDigest: sourceVerification.releaseDigestSha256,
       pages,
     })
   );
@@ -182,7 +182,7 @@ export async function buildPstCandidate(
   files.set(
     'external-facts.json',
     serialize({
-      sourceReleaseDigest: ACCEPTED_RELEASE_DIGEST,
+      sourceReleaseDigest: sourceVerification.releaseDigestSha256,
       facts: accounting.externalFacts,
       uncapturedReferences,
     })

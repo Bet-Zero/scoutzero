@@ -9,6 +9,18 @@ interface UseAuthResult {
   loading: boolean;
 }
 
+// A page can mount several consumers before Firebase initializes. Share the
+// pending request so they cannot create competing anonymous sessions and race
+// owner-scoped Firestore reads. A settled failure may be retried by a new mount.
+let pendingAnonymousUser: Promise<User> | null = null;
+const getAnonymousUser = (): Promise<User> => {
+  if (auth.currentUser) return Promise.resolve(auth.currentUser);
+  pendingAnonymousUser ??= signInAnonymously(auth)
+    .then((credential) => credential.user)
+    .finally(() => { pendingAnonymousUser = null; });
+  return pendingAnonymousUser;
+};
+
 const useAuth = (): UseAuthResult => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -22,12 +34,12 @@ const useAuth = (): UseAuthResult => {
       } else if (!hasAttemptedSignIn.current) {
         // E4: Auto sign-in anonymously in all environments (one attempt per mount)
         hasAttemptedSignIn.current = true;
-        signInAnonymously(auth)
-          .then((cred) => {
-            console.log('🔐 Anonymous sign-in successful:', cred.user.uid);
+        getAnonymousUser()
+          .then((signedInUser) => {
+            console.log('🔐 Anonymous sign-in successful:', signedInUser.uid);
             // onAuthStateChanged should fire again, but keep the UI from
             // staying in a loading state if the follow-up callback is delayed.
-            setUser(cred.user);
+            setUser(signedInUser);
             setLoading(false);
           })
           .catch((err: unknown) => {

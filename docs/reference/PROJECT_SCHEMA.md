@@ -145,6 +145,14 @@ Top-level directory structure and purposes:
 
 ## Script Interfaces
 
+### Cloud development and data maintenance
+
+`scripts/dev/` owns the reusable cloud setup, fixed-project source readers,
+versioned private baselines, isolated sessions, source collection and provenance-bound
+staging plans. It reuses the player stager/validator and production plan entry point;
+it does not publish production data. See [cloud operations](../operations/CLOUD_DEVELOPMENT.md)
+for commands, private artifact recovery, coverage and the independent publication gates.
+
 ### Private PST lifecycle candidates
 
 `scripts/source-releases/pst-lifecycle/cli.ts` builds or verifies private

@@ -51,10 +51,12 @@
 //    - Enforced by: normalizeContractVoidedOptions()
 // ============================================================================
 
+import type { AnyNode } from 'domhandler';
 import fs from 'node:fs/promises';
 import * as cheerio from 'cheerio';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getCurrentSeasonYear } from '../../../src/shared/utils/contracts/contractUtils.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEBUG = process.env.DEBUG === '1';
@@ -87,6 +89,9 @@ const seasonStartYear = (season?: string) => {
   const m = season?.match(/^(\d{4})\s*-\s*\d{2}$/);
   return m ? parseInt(m[1], 10) : undefined;
 };
+const remainingSalarySeasons = (rows: { season?: string; voidedByExtension?: boolean }[], currentSeason: number) =>
+  rows.filter((row) => !row.voidedByExtension &&
+    (seasonStartYear(row.season) ?? -1) >= currentSeason).length;
 const cleanLabelVal = (t: string) => norm(t.replace(/\s*[:\-–]\s*/g, ' '));
 /** Strip contract type tags from season strings (e.g., "2025-26 Max" -> "2025-26") */
 const cleanSeason = (s: string) => {
@@ -423,7 +428,7 @@ function findBioContainer($: cheerio.CheerioAPI) {
 }
 
 /** Safely get the text of a node without script/style/ads noise (strip iframes/scripts) */
-function safeText($: cheerio.CheerioAPI, node: cheerio.Cheerio) {
+function safeText($: cheerio.CheerioAPI, node: cheerio.Cheerio<AnyNode>) {
   node.find('script,style,iframe,noscript').remove();
   return squeezeSpaces(node.text());
 }
@@ -451,7 +456,7 @@ function findFirstSalaryTable($: cheerio.CheerioAPI) {
 function findAllSalaryTables($: cheerio.CheerioAPI) {
   const tables = $('table');
   const salaryTables: Array<{
-    table: cheerio.Cheerio;
+    table: cheerio.Cheerio<AnyNode>;
     headers: string[];
     heading: string;
   }> = [];
@@ -533,7 +538,7 @@ const headerIndex = (headers: string[], ...cands: RegExp[]) => {
   }
   return -1;
 };
-function extractOptionFromCell($: cheerio.CheerioAPI, cell: cheerio.Cheerio) {
+function extractOptionFromCell($: cheerio.CheerioAPI, cell: cheerio.Cheerio<AnyNode>) {
   const txt = norm(cell.text()).toLowerCase();
   if (/player option|\bpo\b/.test(txt)) return 'PO';
   if (/team option|\bto\b/.test(txt)) return 'TO';
@@ -550,7 +555,7 @@ function extractOptionFromCell($: cheerio.CheerioAPI, cell: cheerio.Cheerio) {
 }
 function parseSalaryTable(
   $: cheerio.CheerioAPI,
-  table: cheerio.Cheerio,
+  table: cheerio.Cheerio<AnyNode>,
   headers: string[]
 ) {
   const idxSeason = headerIndex(headers, /season/i);
@@ -764,6 +769,8 @@ function parseBio($: cheerio.CheerioAPI) {
   // 1) Get full-page text, minus obvious noise
   const root = $.root().clone();
   root.find('script,style,iframe,noscript').remove();
+  // Preserve DOM text boundaries between imperial and metric measurements.
+  root.find('*').prepend(' ').append(' ');
 
   // 2) Normalize weird punctuation + whitespace
   let text = root
@@ -785,7 +792,7 @@ function parseBio($: cheerio.CheerioAPI) {
   // IMPORTANT: Only split when there are 4+ digits total after quote (e.g., "5195cm"), not valid heights like "6' 10" or "6' 11"
   // This prevents breaking up valid heights like "6' 10" into "6' 1 0" or "6' 11" into "6' 1 1"
   text = text.replace(
-    /(\d)\s*(['\u2019])\s*(\d)(\d{3,})(cm|in|ft|\s)/gi,
+    /(\d)\s*(['\u2019])\s*(\d{1,2})(\d{3})(cm\b)/gi,
     '$1$2 $3 $4 $5'
   );
   // Then normal unit separations
@@ -1185,13 +1192,13 @@ function parseCurrentContractMeta($: cheerio.CheerioAPI) {
 /** Parse contract metadata from a specific table's surrounding section */
 function parseContractMetaFromTable(
   $: cheerio.CheerioAPI,
-  table: cheerio.Cheerio
+  table: cheerio.Cheerio<AnyNode>
 ) {
   // Strategy: Get text from elements between this table and the previous h4/h5/h6 heading
   // or previous table (whichever comes first), PLUS elements after the table
 
   // Find all preceding siblings until we hit a heading or another table
-  const relevantElements: cheerio.Cheerio[] = [];
+  const relevantElements: cheerio.Cheerio<AnyNode>[] = [];
   let current = table.prev();
 
   while (current.length > 0) {
@@ -1461,7 +1468,7 @@ function detectMaxContractInfo(
   $: cheerio.CheerioAPI,
   salariesByYear: any[],
   contractType: string,
-  table?: cheerio.Cheerio
+  table?: cheerio.Cheerio<AnyNode>
 ) {
   if (!salariesByYear.length) {
     return {
@@ -1677,7 +1684,8 @@ function validateOptionFieldPairing(salariesByYear: any[]): void {
 function normalizeContractVoidedOptions(
   currentContract: any,
   futureContract: any | undefined,
-  pageText: string
+  pageText: string,
+  currentSeason: number
 ): void {
   if (!futureContract || !currentContract.salariesByYear) return;
 
@@ -1747,16 +1755,7 @@ function normalizeContractVoidedOptions(
   ).length;
 
   // Recompute yearsRemaining (exclude voided season)
-  const CURRENT_SEASON_START = 2025;
-  const endSeason = activeYears.slice(-1)[0]?.season;
-
-  if (endSeason) {
-    const endYearNum = seasonStartYear(endSeason) ?? CURRENT_SEASON_START - 1;
-    currentContract.yearsRemaining = Math.max(
-      0,
-      endYearNum - CURRENT_SEASON_START + 1
-    );
-  }
+  currentContract.yearsRemaining = remainingSalarySeasons(activeYears, currentSeason);
 
   dbg('Contract after PO voiding', {
     guaranteedValue: currentContract.guaranteedValue,
@@ -1778,6 +1777,10 @@ type ParsePlayerOptions = {
   sourceUrl: string;
   teamCode?: string;
   teamName?: string;
+  /** Evaluation date for remaining-season counts; defaults to the current date. */
+  asOf?: Date;
+  /** Actual source acquisition time, retained separately for offline reprocessing. */
+  capturedAt?: Date;
 };
 
 export async function parsePlayer(
@@ -1786,6 +1789,11 @@ export async function parsePlayer(
 ): Promise<any> {
   const playerUrlEnv = options.sourceUrl;
   let playerId = options.playerId;
+  const asOf = options.asOf ?? new Date();
+  if (!Number.isFinite(asOf.getTime())) throw new Error('Invalid contract capture date');
+  const capturedAt = options.capturedAt ?? new Date();
+  if (!Number.isFinite(capturedAt.getTime())) throw new Error('Invalid source acquisition timestamp');
+  const CURRENT_SEASON_START = getCurrentSeasonYear(asOf);
 
   const $ = cheerio.load(html);
 
@@ -1850,11 +1858,7 @@ export async function parsePlayer(
     (y) => (y.guaranteedAmount || 0) > 0
   ).length;
 
-  const CURRENT_SEASON_START = 2025;
-  const endYearNum = endSeason
-    ? (seasonStartYear(endSeason!) ?? CURRENT_SEASON_START - 1)
-    : CURRENT_SEASON_START - 1;
-  const yearsRemaining = Math.max(0, endYearNum - CURRENT_SEASON_START + 1);
+  const yearsRemaining = remainingSalarySeasons(salariesByYear, CURRENT_SEASON_START);
 
   const birdRights = parseBirdRights($);
   const freeAgency = parseFreeAgency($, endSeason, meta.capHold);
@@ -1934,14 +1938,8 @@ export async function parsePlayer(
         const futureGuaranteedYears = futureSalariesByYear.filter(
           (y) => (y.guaranteedAmount || 0) > 0
         ).length;
-        // For future contracts (extensions), yearsRemaining should only count the extension years
-        // not the current contract years before the extension kicks in
-        const futureYearsRemaining = Math.max(
-          0,
-          (seasonStartYear(futureEndSeason) ?? 0) -
-            (futureStartYear ?? CURRENT_SEASON_START) +
-            1
-        );
+        // Count the extension's own live rows, never the gap before it starts.
+        const futureYearsRemaining = remainingSalarySeasons(futureSalariesByYear, CURRENT_SEASON_START);
 
         // For future contracts, parse their metadata from the contract section
         // (they may have different signing details than current contract)
@@ -1958,7 +1956,7 @@ export async function parsePlayer(
 
         // Parse the cap hold from the future contract's cap hold value
         // The extension cap hold appears in the HTML as "Cap Hold YYYY-YY: $XX,XXX,XXX" after the future contract table
-        const futureCapHold = futureMeta.capHold ?? null;
+        const futureCapHold = futureMeta.capHold;
 
         // Detect max contract info for future contract
         const futureMaxContractInfo = detectMaxContractInfo(
@@ -2043,7 +2041,7 @@ export async function parsePlayer(
   };
 
   // Apply post-parse normalizer to detect voided POs
-  normalizeContractVoidedOptions(contract, futureContract, $.root().text());
+  normalizeContractVoidedOptions(contract, futureContract, $.root().text(), CURRENT_SEASON_START);
 
   // --- begin: season backfill helpers ---
   function seasonFromDateISO(iso: string): string {
@@ -2124,9 +2122,9 @@ export async function parsePlayer(
     source: {
       provider: 'SalarySwish',
       playerPageUrl: playerUrlEnv || 'snapshot',
-      scrapedAt: new Date().toISOString(),
+      scrapedAt: capturedAt.toISOString(),
     },
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: asOf.toISOString(),
     version: '1.0',
   };
 

@@ -27,7 +27,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '22'
+          node-version: '24'
       - run: npm ci --ignore-scripts
       - run: npx --no-install playwright install --with-deps chromium
       - name: Resolve the preview for this exact candidate
