@@ -98,3 +98,10 @@ transport tests; two browser boundary tests; current-main compatibility probe
 (three tests); typecheck; cloud typecheck; project validation; production build;
 and targeted Markdown checks. The production build retained its existing
 bundle-size and browser-external warnings. No full local suite was run.
+
+The first resumed CI run caught a stale inspection SHA in the static draft
+connection plan. The plan now agrees with the immutable caller pin; its
+draft-only condition is still not a live-provider replacement. The focused
+architecture/cloud/deployment/inventory/source checks then passed together
+(66 tests, one existing skip). This metadata repair does not change either
+publisher or the application runtime.
