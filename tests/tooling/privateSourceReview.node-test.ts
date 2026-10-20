@@ -13,6 +13,7 @@ const blocks = [...workflow.matchAll(/          python3 - <<'PY'\n([\s\S]*?)    
 const hash = (b: string | Buffer) => createHash('sha256').update(b).digest('hex');
 const candidate = 'a'.repeat(40);
 const base = '4e192a99b6219654bb3e1ea2aa69bffed9c2f6b2';
+const inspectionExecutor = 'ee71a8bbfb334178c8bb147efec48f468b52ad38';
 const secret = 'public-synthetic-key-'.padEnd(64, 'x');
 const source = Buffer.from(JSON.stringify({ format: 'bze321-source-proof-v1', changes: [{}, {}, {}] }));
 const marker = 'private-test-evidence-must-not-appear-in-output';
@@ -20,7 +21,9 @@ function fixture() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'source-review-test-'));
   fs.mkdirSync(path.join(dir, 'bin'));
   const executable = (name: string, body: string) => fs.writeFileSync(path.join(dir, 'bin', name), '#!/usr/bin/python3\n' + body, { mode: 0o700 });
-  executable('git', "import pathlib,os; print(pathlib.Path(os.environ['TEST_ROOT'],'cert.pem').read_text(),end='')");
+  executable('git', `import pathlib,os,sys
+assert sys.argv[1:] == ['show','${inspectionExecutor}:scripts/architect/draftReviewInspectionCertificate.pem']
+print(pathlib.Path(os.environ['TEST_ROOT'],'cert.pem').read_text(),end='')`);
   executable('gh', "import json,pathlib,os,sys\nr=json.loads(pathlib.Path(os.environ['TEST_ROOT'],'responses.json').read_text()); key=sys.argv[-1]; print(json.dumps(r.get(key,r.get('default'))))");
   const sourceHtml = '<table><tr><td>' + marker + '</td></tr></table>';
   const packet = { format: 'bze321-private-source-review-v1', installationSha256: hash(source), sourceHtml, sourceSha256: hash(sourceHtml) };

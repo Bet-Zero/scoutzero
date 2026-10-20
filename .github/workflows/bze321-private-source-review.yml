@@ -142,8 +142,8 @@ jobs:
               for name,data in views:
                   fd=os.open(root/name,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
                   with os.fdopen(fd,'wb') as f: f.write(data)
-              # The certificate is the existing accepted inspector recipient.
-              cert=subprocess.check_output(['git','show','85139f9f63afa8341b7bd599dc8d1b7bc7fac432:scripts/architect/draftReviewInspectionCertificate.pem'],stderr=subprocess.DEVNULL)
+              # Use the renewed immutable inspection recipient, never caller data.
+              cert=subprocess.check_output(['git','show','ee71a8bbfb334178c8bb147efec48f468b52ad38:scripts/architect/draftReviewInspectionCertificate.pem'],stderr=subprocess.DEVNULL)
               (root/'recipient.pem').write_bytes(cert)
           except Exception:
               raise SystemExit('PRIVATE_REVIEW_INPUT_REJECTED')

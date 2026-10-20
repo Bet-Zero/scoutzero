@@ -425,7 +425,7 @@ describe('bounded source publisher preparation', () => {
       JSON.parse(readFileSync('.github/draft-private-review-request.json', 'utf8'))
     ).toEqual({ enabled: true });
     expect(caller.jobs.operation.uses).toBe(
-      'Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@ede0e2be620aabd5c2d90c42f62a2b3737acda72'
+      'Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@ee71a8bbfb334178c8bb147efec48f468b52ad38'
     );
     const worker: any = yaml.load(
       readFileSync('.github/workflows/draft-review-worker.yml', 'utf8')

@@ -55,3 +55,46 @@ Reuse the completed cloud tooling and unaffected accepted proof. Do not run
 the full local suite or migrate saved worlds. Landing still requires every
 applicable acceptance gate; a successful inspection is not publication or
 hosted product verification.
+
+The renewed immutable inspection executor is
+`ee71a8bbfb334178c8bb147efec48f468b52ad38`. The request remains `none`.
+Its public certificate has SHA-256 fingerprint
+`DE:3F:99:61:03:1C:41:88:5F:6A:3D:63:52:1A:E6:49:1B:92:A1:78:FF:BE:BB:69:0D:46:73:9E:D7:4D:80:DE`;
+a real CMS encryption/decryption roundtrip passed using the locally retained
+private key. Private review report encryption reads this same immutable public
+recipient. Neither publisher executor changes.
+The key was also retained in the existing owner-private completion Page after
+fresh complete sharing checks, a harmless transfer probe, and exact authenticated
+readback. [Inspection renewal](INSPECTION_RENEWAL.md) describes only the remaining
+protected setup change and artifact-access prerequisite.
+
+Author proof recovered the original inventory member with SHA-256
+`1630576795d6ae5c378f9d0c689c95b83f027ea2a8e42f0b468150a2665daf22`.
+Every original member identity and retained field reconciles across 278
+entitlements, 1,483 occurrences, 877 dependencies and five predecessors.
+The exact 29 unresolved requirements and their membership remain unchanged.
+The accepted audit/projection manifests also reconcile. These are recovery and
+preservation checks, not new source adjudication or independent acceptance.
+
+The existing Firestore emulator reproduced the five-document release and
+exercised the bounded three-record commit with emulator-specific versions.
+Successful atomic application, exact readback, stale-version rejection and
+`exists:false` replay rejection passed. Failure left every source document
+unchanged. Password and anonymous authenticated exact-ID GET, equality and
+`in` queries passed; unapproved IDs, mixed/unbounded queries, unsigned reads and
+client writes were denied. Original legacy roots, current PHI ordinary fields
+and disposable saved-world/history sentinels were preserved. Production saved
+worlds were neither read nor written. The owned emulator was stopped.
+
+The replacement preparation is explicitly incomplete: the current PHI
+before-image is known, but live draft before-images, current Rules and the
+exclusive publication window are not. It is not an approval package.
+Private author receipts and scripts remain outside Git.
+
+Completed local validation: pinned Canon lookup; 52 architecture/cloud/deployment/
+inventory tests (one existing skip); 59 source/preservation/server/policy/review
+tests (one existing skip); five review-session UI tests; four private-review
+transport tests; two browser boundary tests; current-main compatibility probe
+(three tests); typecheck; cloud typecheck; project validation; production build;
+and targeted Markdown checks. The production build retained its existing
+bundle-size and browser-external warnings. No full local suite was run.

@@ -25,6 +25,10 @@ exact inspection-only trust-pin replacement are required before using it; the
 source publisher pin and its protected approval remain separate. Retain the
 new private key privately until the complete inspection and review reports
 have been recovered. An encrypted artifact without its key is not usable proof.
+The replacement inspector is pinned at
+`ee71a8bbfb334178c8bb147efec48f468b52ad38`; the private reviewer reads its
+public recipient from that same immutable commit. The source publisher remains
+`85139f9f63afa8341b7bd599dc8d1b7bc7fac432`.
 
 Reuse [cloud development](CLOUD_DEVELOPMENT.md) and
 [draft maintenance](DRAFT_UPDATE_PROCESS.md) for local data and validation.
