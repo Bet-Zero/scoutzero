@@ -1,5 +1,10 @@
 # BZE-325: exact approved production release
 
+Historical first-registration receipt. Current package/expiry are in
+[PUBLICATION_RENEWAL.md](PUBLICATION_RENEWAL.md); the current immutable worker and
+protected delivery/trust gates are in
+[PUBLICATION_SECRET_WIRING.md](PUBLICATION_SECRET_WIRING.md).
+
 The owner approved production publication of the unchanged plan and explicitly
 approved both transfers: this exact prepared ciphertext's public GitHub retention
 and its dedicated passphrase's private BZE-325 handoff. These receipts transcribe
