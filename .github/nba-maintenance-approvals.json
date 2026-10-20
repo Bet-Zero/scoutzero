@@ -2,11 +2,11 @@
   "version": 1,
   "publications": {
     "ac0016092079f5fc72f7fba83dbb9fbb2dfd9a753401e423d1e6f36058bfe0cf": {
-      "ciphertextSha256": "70db8424485519aca960b81e478295028f101a379f46c4e0ff15ffeb3a323f1f",
+      "ciphertextSha256": "5642f67390353646fb77673771483a62556f29f139af91c4f83a0892879e0957",
       "inputSha256": "b05248c7ae8e9ee6246ff6b7a38ade7b11f982aadea3d2bc4f7fa67f4af474ef",
       "qualificationReceipt": "https://linear.app/bzero/issue/BZE-325#comment-a729fd48-83e0-4501-ae16-c3fcd53db8fc",
       "reviewReceipt": "https://linear.app/bzero/issue/BZE-325#comment-a729fd48-83e0-4501-ae16-c3fcd53db8fc",
-      "ownerReceipt": "https://linear.app/bzero/issue/BZE-325#comment-2c10e94b-467f-41a8-90f7-a128c6e09e5e",
+      "ownerReceipt": "https://linear.app/bzero/issue/BZE-325#comment-34bfe5c3-fe73-455b-9ae4-2580159ce653",
       "expiresAt": "2026-10-23T06:30:00Z"
     }
   }

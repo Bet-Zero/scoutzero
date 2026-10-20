@@ -11,17 +11,26 @@ private package verification are retained on BZE-325.
   `b05248c7ae8e9ee6246ff6b7a38ade7b11f982aadea3d2bc4f7fa67f4af474ef`.
 - Previous expiry: `2026-10-20T04:58:23Z`.
 - Explicitly approved replacement expiry: `2026-10-23T06:30:00Z`.
-- Exact prepared replacement ciphertext: 1,796,150 bytes.
+- Receipt-bound replacement ciphertext: 1,796,146 bytes.
 - Raw file SHA-256:
-  `fc6ce43709b7aacbef3a3ae08df939f3a29b32434274d75721485d5ec1712ad4`.
+  `348b93a9f24f3029f4d8eb3ce62a77d6bf11630e39bdb87f38944e1a092e0a60`.
 - Existing worker protocol `SHA256(JSON.stringify(Buffer))`:
-  `70db8424485519aca960b81e478295028f101a379f46c4e0ff15ffeb3a323f1f`.
+  `5642f67390353646fb77673771483a62556f29f139af91c4f83a0892879e0957`.
 
-The sole decrypted approval-envelope change is `expiresAt`. Plan bytes, qualified
-input, independent factual/exact-plan acceptance and original plan-owner receipt
-remain unchanged. The separate renewal consent explicitly authorizes this new
-window and this ciphertext's public retention. The original approval/expiry and
-failed attempts remain historical evidence. Existing dedicated secret is reused;
+The decrypted approval-envelope changes are `expiresAt` and `owner.receipt`.
+The latter now points to the owner's actual renewal decision, and the registry's
+`ownerReceipt` matches it. This repairs late review finding `4322609494`: prose
+alone cannot bind the renewed window to its authorizing decision. An approval
+that still carries the old receipt is rejected by the existing registered-binding
+check. No new field, runtime rule or permission is needed.
+
+Plan bytes, qualified input and independent factual/exact-plan acceptance remain
+unchanged. The original approval/expiry and failed attempts remain historical
+evidence; the active approval uses the explicit renewal decision. The earlier
+1,796,150-byte prepared wrapper is superseded by this receipt-bound repair and is
+never landed or executable as a registered release. The owner's renewal and
+replacement authorization covers this necessary approval-binding repair without
+altering its approved plan, window or data disclosure. Existing dedicated secret is reused;
 there is no new key, secret installation or private file transfer.
 
 The original publication attempt stopped before Google access on missing secret
@@ -42,6 +51,7 @@ environment protection, source scope or draft safeguard. The unchanged worker
 is `655780bce4b6fb0ae20d5a723461ff6807887668`. Existing emulator, interruption/
 recovery, browser and private factual evidence remain applicable. Current author
 checks verify actual decryption, exact plan/approval equality and registry binding,
+including rejection of the prior approval receipt,
 both ciphertext fingerprints, and absence of the dedicated secret from changed
 public files. Targeted Markdown, project validation and diff checks apply; no
 unrelated app/full-suite, collection or qualification reruns are needed.
