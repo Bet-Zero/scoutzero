@@ -1,5 +1,33 @@
 # Existing inspection connection renewal
 
+## Completed inspection and recovery — October 21
+
+Actual read-only inspection `39546758991`, immutable worker
+`ee71a8bbfb334178c8bb147efec48f468b52ad38`, passed protection verification,
+Google keyless authentication and the fixed read-only operation. Neither
+publication job ran. The existing inspection environment has branch protection
+and no administrator bypass; it requires no separate reviewer click. No approval
+was removed or self-approved.
+
+The owner's encrypted ZIP in comment `2061061a-0a81-417d-8e3d-3af58bae919a`
+was linked as resource `7297a30e-f061-4055-8123-c1f026961fa4` on this same private
+issue, without uploading or moving its bytes. That allows the existing
+`get_attachment(format="content")` route to read a comment-uploaded file too.
+Mechanical byte staging recovered all 3,114,605 bytes. Original ZIP SHA-256
+`ca78d152b0cb42f048821d2ba80f24fd3c43c924f5680b836d36a64fb4a1485a`
+matches GitHub artifact `12321534393`. The sole bounded regular-file member is
+`draft-rules.cms`. Decryption with the separate renewed key succeeded; complete
+plaintext SHA-256
+`b42ea7080427cdf697e0db0d76adfd3169ccd81d9007171f39e61689ccea5081`
+matches the immutable worker's original log receipt. Capture time is
+`2026-10-21T04:58:19.201Z`; stable source double-read passed. Rules and decrypted
+source bodies remain private. This proves the actual inspection return, not
+private factual acceptance or source publication.
+
+The request is dormant again while the renewed package advances through review.
+No additional Google/network setup is required. The historical renewal recipe
+below must not be repeated without a diagnosed new failure.
+
 This is the next protected prerequisite for PR #547, not source-publication
 approval. The October 20 production refresh invalidated the old PHI before-image.
 The ordinary reader cannot read the two draft records or production Rules.

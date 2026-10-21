@@ -1,5 +1,84 @@
 # BZE-321 continuation after the ordinary NBA refresh
 
+## October 21 recovered inspection and renewed review inputs
+
+The owner-provided original ZIP was recovered and decrypted through the verified
+private Linear handoff. [Inspection recovery](INSPECTION_RENEWAL.md#completed-inspection-and-recovery--october-21)
+records exact original-byte and plaintext receipts. Actual protected inspection,
+Google authentication and stable double-read succeeded; no Google/settings change
+is requested. Capture: `2026-10-21T04:58:19.201Z`. The snapshot contains the exact
+548 governed source paths (30 teams, all 278 entitlement definitions and 240
+underlying pick-rule paths); 308 are present. This is inventory and precondition
+evidence, not new qualification of all rights or resolution of the 29 facts.
+
+The existing entitlement before-image/version and absent rule are identical to
+the historical proposal. Live Rules and ruleset are also identical. Only PHI's
+ordinary before-image and update-time precondition changed with the completed NBA
+refresh. The renewed logical proposal retains all 17 current PHI root fields and
+the same sole draft membership change. The actual atomic commit masks only
+`draftSourceRevisions` for the two existing records and uses `exists:false` for
+the one absent rule. Legacy roots, saved-world reads and unrelated LAC fields
+remain unchanged. No production user/world data was read or copied.
+
+Renewed exact source package:
+`385b24b93dde1cd6081a949da5e025d48e03e94ed0194c93115a7b7cc7333b96`
+(201,167 bytes). Renewed private evidence:
+`4a993fbf94c2c421d77f606d5c498077d8e22489388feafdfa00821e4c3bff68`.
+Every parsed evidence field except `installationSha256` equals the retained
+prior evidence packet; original source HTML and its accepted June 5 ownership
+scope are unchanged. No new source collection, historical research or factual
+disposition was introduced. Current ordinary NBA fields do not make that retained
+draft starting-position evidence a claim of current October ownership.
+
+Baseline Rules SHA-256:
+`502b9b657474a960dc8d32507cd4e410c7aae4e5610e86aa76b636ddc936976e`.
+Proposed Rules SHA-256:
+`9cd7f6b25425f6a340b87d9f280f10d10d2ce2beb8db6e3e21ea1580f25d0e0d`.
+Both are byte-identical to the previously prepared private Rule inputs. The
+source, release and inspection executor pins are unchanged.
+
+Actual bounded emulator verification of this renewed package passed using the
+already-installed emulator binary, without rebuilding the cloud environment:
+atomic application; exact logical readback; stale-version rejection with no
+partial create; replay rejection without mutation; unchanged ordinary fields;
+legacy saved-world projections; four unchanged disposable source/world/history
+sentinels; exact private Rules compilation; 12 allowed authenticated/anonymous
+GET/equality/`in` reads and 12 denied unsigned/unapproved/mixed/unbounded/write
+cases; exact before-field restoration. Emulator-specific update times were used
+for local commits; production preconditions remain those in the exact package.
+The owned emulator was stopped and both ports were confirmed closed.
+
+A fresh 384-bit random package passphrase remains outside Git. Exact AES256 GPG
+recovery and wrong-key rejection passed. Raw ciphertext is 21,420 bytes, SHA-256
+`8ea77bc610455f410ee7b360913c1627c964f111358dcc0fc835a7ee5c0c474f`.
+The existing owner-only completion Page passed fresh complete sharing checks,
+harmless upload/readback, then exact readback of the password and two evidence
+parts (24,000 and 23,992 ASCII bytes). A rehearsal using those actual returned
+file contents reproduced the complete source/evidence/HTML bytes and all bindings.
+No plaintext source, Rules, passphrase or evidence part is committed.
+
+The integration receives HTTP 403 for both existing environment-secret public-key
+and environment-variable administration. The concrete replacement inputs are
+therefore retained on the existing private Page for the protected owner handoff.
+This is required input delivery at the existing gate, not a Google/network setup
+request. Preserve all protections and the existing reviewer credential. Do not
+dispatch against stale protected values or interpret a review of historical
+inputs as acceptance of this package.
+
+The request selects `none`; neither publisher can enter from it. Exact-head CI
+and fresh focused public independent acceptance precede native private-review
+dispatch. The protected private factual review must accept these exact inputs
+before any separately protected source approval or hosted GM verification.
+All 278 entries, all 29 unresolved requirements and first-round Apply boundaries
+remain intact. Landing and access/transfer cleanup remain later gates.
+
+Completed author validation: exact checksum/decryption recovery; real current
+before-image/rules/field-mask checks; bounded emulator proof; actual private
+uploaded-input reconstruction; GPG recovery/wrong-key rejection; focused source
+installation/preservation tests; targeted Markdown and diff checks. No local full
+suite, app build/typecheck, source research or environment rebuild was repeated;
+unchanged implementation evidence is reused and mandatory hosted checks remain.
+
 ## October 21 transport correction
 
 The operator escalation supersedes the historical host-configuration request
