@@ -10,8 +10,6 @@ type FilterProps = {
   setFilters: Dispatch<SetStateAction<AddPlayerFilters>>;
 };
 
-const FREE_AGENT_YEAR_OPTIONS = getUpcomingSeasonYears(7);
-
 export const ContractFilters = ({ filters, setFilters }: FilterProps) => (
   <div className="p-2 space-y-3">
     {/* First Section - Matches other tabs */}
@@ -26,7 +24,7 @@ export const ContractFilters = ({ filters, setFilters }: FilterProps) => (
           className="w-full bg-[#2a2a2a] text-white px-2 py-1 rounded text-xs"
         >
           <option value="">Any</option>
-          {FREE_AGENT_YEAR_OPTIONS.map((year) => (
+          {getUpcomingSeasonYears(7).map((year) => (
             <option key={year} value={year}>
               {year}
             </option>
