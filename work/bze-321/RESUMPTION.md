@@ -1,5 +1,36 @@
 # BZE-321 continuation after the ordinary NBA refresh
 
+## October 21 transport correction
+
+The operator escalation supersedes the historical host-configuration request
+below. The owner published the requested network setting and reports completing
+the guarded Google renewal. The listed Azure host still returns HTTP 403; this
+is not evidence of a Google failure. No more domain/settings changes are requested.
+
+The existing BZE-325 private Linear attachment returned exact original encrypted
+ZIP bytes, matching GitHub artifact metadata. Two separate harmless control
+reads/decryptions through the same attachment mechanism passed with the renewed
+inspection key; wrong-key rejection passed. The [verified return route](INSPECTION_RENEWAL.md#verified-private-return-route--october-21)
+records exact hashes, repeatability, limits and the one-file owner-browser fallback.
+No direct connector-file ingress is claimed. A signed File Service URL probe was
+rejected by automatic approval review and was not retried or routed around.
+
+This checkpoint changes the manual transport preflight only. Request remains
+`none`; existing inspector/publishers, protections, source data, all 278 original
+entitlements and all 29 requirements are unchanged. After required exact-head
+CI and focused independent review, queue only protected read-only inspection to
+verify actual Google trust and recover fresh PHI/LAC/Rules preconditions. Private
+factual acceptance, exact-package protected source approval, hosted GM proof,
+authorized landing and cleanup remain separate unsatisfied gates.
+
+No historical research, environment rebuild, app test suite or source write was
+repeated. Author checks for this docs-only checkpoint: original-byte recovery,
+two real CMS decryptions, wrong-key rejection, pinned Canon lookup, targeted
+Markdown lint and diff checks. Required hosted CI/review must be recorded before
+the operational inspection request.
+
+## October 20 preparation — historical receipt
+
 Current main is `4e192a99b6219654bb3e1ea2aa69bffed9c2f6b2`; required hosted
 CI `39389416462` passed. PR #547 resumes from
 `6667f45218a09df78729d80f4e9a18df79716ae4` on its existing branch.
