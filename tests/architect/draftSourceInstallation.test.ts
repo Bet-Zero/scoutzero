@@ -393,7 +393,7 @@ describe('bounded source publisher preparation', () => {
       expect(cloud.calls.filter((c) => c.method === 'PATCH')).toHaveLength(1);
     }
   );
-  it('keeps operations dormant during revalidation and preserves isolated workers and approval gates', () => {
+  it('allows only dormant or read-only inspection requests during source revalidation and preserves approval gates', () => {
     const caller: any = yaml.load(
       readFileSync('.github/workflows/draft-review-cloud.yml', 'utf8')
     );
@@ -411,9 +411,13 @@ describe('bounded source publisher preparation', () => {
           '${{ secrets.BZE321_INSTALLATION_PASSPHRASE }}',
       },
     });
-    expect(
-      JSON.parse(readFileSync('.github/draft-review-request.json', 'utf8'))
-    ).toEqual({ operation: 'none' });
+    const request = JSON.parse(
+      readFileSync('.github/draft-review-request.json', 'utf8')
+    );
+    expect(Object.keys(request)).toEqual(['operation']);
+    // Transport preflight and the protected owner gate precede inspection.
+    // Neither release nor source publication is allowed during revalidation.
+    expect(['none', 'inspect']).toContain(request.operation);
     // A dormant request must not enter any credentialed worker.
     for (const name of ['operation', 'publication', 'source-publication']) {
       expect(caller.jobs[name].if).not.toContain("'none'");

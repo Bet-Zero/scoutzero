@@ -15,7 +15,12 @@ records exact hashes, repeatability, limits and the one-file owner-browser fallb
 No direct connector-file ingress is claimed. A signed File Service URL probe was
 rejected by automatic approval review and was not retried or routed around.
 
-This checkpoint changes the manual transport preflight only. Request remains
+This checkpoint changes the manual transport preflight and the revalidation
+test's allowed request states (`none` or read-only `inspect`, never either
+publication operation). The former assertion pinned `none` even after successful
+preflight and would falsely fail CI for the required inspection request.
+The test retains exact worker, environment, secret and dormant-dispatch checks.
+Request remains
 `none`; existing inspector/publishers, protections, source data, all 278 original
 entitlements and all 29 requirements are unchanged. After required exact-head
 CI and focused independent review, queue only protected read-only inspection to
@@ -23,10 +28,10 @@ verify actual Google trust and recover fresh PHI/LAC/Rules preconditions. Privat
 factual acceptance, exact-package protected source approval, hosted GM proof,
 authorized landing and cleanup remain separate unsatisfied gates.
 
-No historical research, environment rebuild, app test suite or source write was
+No historical research, environment rebuild, broad app suite or source write was
 repeated. Author checks for this docs-only checkpoint: original-byte recovery,
 two real CMS decryptions, wrong-key rejection, pinned Canon lookup, targeted
-Markdown lint and diff checks. Required hosted CI/review must be recorded before
+Markdown lint, focused source-installation tests and diff checks. Required hosted CI/review must be recorded before
 the operational inspection request.
 
 ## October 20 preparation — historical receipt
