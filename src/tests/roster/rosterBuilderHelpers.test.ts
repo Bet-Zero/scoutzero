@@ -157,4 +157,15 @@ describe('Roster Builder Helpers', () => {
 
     expect(salary).toBe(12_000_000);
   });
+
+  it('skips empty contract entries when looking up salary', () => {
+    const salary = findSalaryForYear({
+      contracts: {
+        empty: null,
+        real: { salariesByYear: [{ year: DEFAULT_SALARY_YEAR, salary: 9_000_000 }] },
+      },
+    } as Parameters<typeof findSalaryForYear>[0]);
+
+    expect(salary).toBe(9_000_000);
+  });
 });

@@ -233,7 +233,7 @@ export const findSalaryForYear = (
   const contractData =
     player.primaryContract ||
     player.contract ||
-    (player.contracts ? Object.values(player.contracts)[0] : null) ||
+    (player.contracts ? Object.values(player.contracts).find(Boolean) : null) ||
     null;
 
   if (player.currentContractView?.salaryByYear?.[year] != null) {
