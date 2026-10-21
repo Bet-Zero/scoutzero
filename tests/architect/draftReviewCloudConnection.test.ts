@@ -16,6 +16,13 @@ const projectNumber = '123456789012'; // Synthetic project identity; never a run
 const db = 'projects/scoutzero-bf1ae/databases/(default)';
 const releaseName = 'projects/scoutzero-bf1ae/releases/cloud.firestore';
 const rulesetName = 'projects/scoutzero-bf1ae/rulesets/test-id';
+// This preflight recognizes an immutable reviewed Rules snapshot, not whatever
+// another initiative has since changed in the PR merge checkout's root file.
+// Exact public fixture: worker85139f9f:firestore.rules, SHA25640069e84...5b19cd.
+const approvedRules = readFileSync(
+  'tests/fixtures/architect/draftReviewApproved.rules',
+  'utf8'
+);
 
 function providerAccepts(claims: Record<string, string>) {
   // Evaluate every generated equality, rather than testing a separately coded
@@ -47,7 +54,7 @@ function fixture(overrides = new Map<string, Response>()) {
           files: [
             {
               name: 'firestore.rules',
-              content: readFileSync('firestore.rules', 'utf8'),
+              content: approvedRules,
             },
           ],
         },
@@ -246,7 +253,7 @@ describe('read-only production connection preflight', () => {
   });
 
   it('accepts the unchanged pre-release production rules without assuming installation', async () => {
-    const approved = readFileSync('firestore.rules', 'utf8');
+    const approved = approvedRules;
     const start = approved.indexOf(
       '    // Versioned derived draft-review data'
     );

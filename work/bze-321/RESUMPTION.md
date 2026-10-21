@@ -2,6 +2,17 @@
 
 ## October 21 passphrase compatibility repair — prepared for Work
 
+First repair candidate `51f094f0` passed its 25 focused tests; its PR-merge CI
+`39588300793` exposed a separate preflight fixture coupling after main advanced
+to `0367a72e`. The three failing tests read the mutable merge checkout's root
+`firestore.rules` while the preflight correctly accepts only its frozen Rules
+hashes. Isolate the test input as an exact public fixture copied from
+`85139f9f:firestore.rules`, SHA-256
+`40069e84f342f06e50da3e7ed15755935d3c41627751b2226cb73c6cde5b19cd`.
+Production Rules, preflight hash/logic and live-drift rejection stay unchanged;
+the explicit unapproved-drift rejection test remains. This does not accept new
+live Rules or alter any other agent's root Rules change.
+
 Source run `39561644055` attempt 2, job `119168559688`, passed actual Google
 authentication after the completed trust repair. It stopped with
 `APPROVED_INSTALLATION_REQUIRED` before decryption or any source/Rules write.
@@ -37,8 +48,9 @@ requested absent a concrete governing requirement. Existing publisher/inspector
 pins, runtime code, source facts, ordinary NBA fields/history, saved worlds and
 all 278/29/no-Apply boundaries are unchanged.
 
-Validation: 25 focused installation/preservation tests passed, including real GPG
-URL-safe recovery and incompatible-alphabet rejection. Actual private complete
+Validation: 50 focused connection/installation/preservation tests passed (one
+existing skip), including real GPG URL-safe recovery, incompatible-alphabet and
+unapproved-Rules drift rejection. Actual private complete
 plaintext/evidence/readback checks passed; required exact-candidate CI and delta
 review remain gates. No duplicate local full suite/app build/emulator replay or
 environment rebuild. The operation request is unchanged; no installation has
