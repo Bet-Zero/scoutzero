@@ -1,5 +1,43 @@
 # BZE-321 continuation after the ordinary NBA refresh
 
+## October 21 qualified source publication request
+
+Private run `39558428239` passed on candidate
+`96a44763c3f44dc8f75668d1d066688571687491`. Its complete original encrypted report
+was recovered through existing private attachment
+`35f63c06-da5f-4f8b-87a6-bc4ffc7fa23e`; ZIP SHA-256
+`6b2d8c288840fd8ac11b023d838ab02cab1573afe1d729a3cc7a39747fdec9bc` and complete
+plaintext SHA-256
+`36c5c5132c961bfd1ed9cda7f52479627a6533632b8411e3b2b102c1e95997df` match the worker.
+The full result was inspected: exact run/candidate/source/evidence identities,
+successful execution, no denials, ACCEPT without blocking findings.
+
+The `publish-source` request carries that qualification forward only while source
+`385b24b93dde1cd6081a949da5e025d48e03e94ed0194c93115a7b7cc7333b96`, evidence
+`4a993fbf94c2c421d77f606d5c498077d8e22489388feafdfa00821e4c3bff68`, ciphertext
+`8ea77bc610455f410ee7b360913c1627c964f111358dcc0fc835a7ee5c0c474f`, all reviewed
+implementation and immutable worker pins remain unchanged. It is not a private
+run of a later request-only head. Public review `39560811617` explicitly accepted
+this dependency-scoped reuse, conditional on green current CI and owner approval.
+
+CI `39560714307` correctly stopped on the former revalidation-only request lock:
+one failed phase assertion, 515 passed files, 6,380 passed tests. Update that
+assertion for the completed qualification phase, adding an exact qualified
+ciphertext check for source requests. All dormant routing, immutable pins,
+explicit-secret, protected-environment and approved-digest assertions remain.
+No publisher/runtime implementation changes. Request indentation alone retriggers
+the existing push-only worker for the replacement head; its semantic value stays
+`publish-source`. The stale publication run was canceled before any execution.
+
+Current exact-head CI and public review must pass before the source approval.
+The unchanged worker then proves access, all nine permissions, current exact
+before-images, Rules/release and permission probes before any write. Do not
+request Google changes without a real observed failure. The approval reserves
+the short exclusive Rules-update window. Actual hosted GM verification remains a
+separate protected step after source success. The June 5-only ownership scope,
+legacy roots/world preservation, all 278 entries/29 requirements and no-Apply
+boundaries remain unchanged. No source/world writes or hosted success are claimed.
+
 ## October 21 private report recovery and tool repair
 
 The owner saved all five protected values and approved private run `39554620116`.
