@@ -5,9 +5,13 @@ AdjustableRankings.tsx
 AnchorComparison.tsx
 ComparisonMatrix.tsx
 ComparisonMatrixDrawer.tsx
+FilterMatchPreview.tsx
+FilterPoolPanel.tsx
 LocalDraftBanner.tsx
 PlayerCompareCard.tsx
 PoolCard.tsx
+PoolGrid.tsx
+PoolSourceControls.tsx
 RankingBuilder.tsx
 RankingResults.tsx
 RankingSession.tsx
@@ -15,7 +19,11 @@ RankingSetup.tsx
 SaveSessionButton.tsx
 SavedSessionsPanel.tsx
 hooks/
+  useOwnerPlayerLists.ts
+  useRankerCandidates.ts
+  useRankerPool.ts
   useRankerSession.ts
+  useSeasonStatLines.ts
 index.ts
 ranker.css
 utils/
@@ -26,5 +34,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-05-10T10:14:03.872Z*
+*Generated on: 2026-10-21T07:57:41.197Z*
 *Auto-updated by: npm run docs*

@@ -1,4 +1,5 @@
 import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
+import { calculateAgeFromDOB } from './enrichPlayerData';
 import type { AddPlayerFilters } from '@/shared/utils/filtering';
 import {
   getPlayerFreeAgentType,
@@ -42,8 +43,11 @@ type FreeAgencyData = {
 export type RosterDrawerOriginalPlayer = {
   id?: string;
   team?: string | number | null;
+  // Age computed from bio.dob by enrichPlayerData (0 when unknown)
+  age?: number | null;
   bio?: {
     age?: number | null;
+    dob?: string | null;
     displayName?: string | null;
     height?: number | null;
     playerId?: string | null;
@@ -133,6 +137,61 @@ export type TeamLookupPlayer = {
 };
 
 type RosterDrawerFilters = Partial<AddPlayerFilters>;
+
+type SeasonStatLine = Partial<Record<SeasonStatField, number | string | null>>;
+
+export type RosterDrawerFilterOptions = {
+  // Stat lines to filter on, by player id. When omitted, each player's
+  // currentSeasonStats is used. A player missing from the map has no stats.
+  statsById?: ReadonlyMap<string, SeasonStatLine> | null;
+  // Minimum games played; only enforced while a stat filter is active
+  minGames?: number;
+};
+
+const STAT_FILTERS: ReadonlyArray<
+  [SeasonStatField, NumericFilterKey, NumericFilterKey]
+> = [
+  ['PTS', 'min_PPG', 'max_PPG'],
+  ['REB', 'min_RPG', 'max_RPG'],
+  ['AST', 'min_APG', 'max_APG'],
+  ['FG%', 'min_FGP', 'max_FGP'],
+  ['3PT%', 'min_TPP', 'max_TPP'],
+  ['FT%', 'min_FTP', 'max_FTP'],
+  ['eFG%', 'min_eFGP', 'max_eFGP'],
+  ['MIN', 'min_MIN', 'max_MIN'],
+  ['GP', 'min_G', 'max_G'],
+];
+
+export const hasActiveStatFilters = (filters: RosterDrawerFilters): boolean =>
+  STAT_FILTERS.some(
+    ([, minKey, maxKey]) =>
+      filters[minKey] !== undefined || filters[maxKey] !== undefined
+  );
+
+// Current age: prefer the value computed from date of birth so it never goes stale
+export const getDrawerPlayerAge = (
+  player: RosterDrawerOriginalPlayer | null | undefined
+): number | null => {
+  if (!player) return null;
+  if (typeof player.age === 'number' && player.age > 0) return player.age;
+  const fromDob = calculateAgeFromDOB(player.bio?.dob);
+  if (fromDob != null) return fromDob;
+  return typeof player.bio?.age === 'number' && player.bio.age > 0
+    ? player.bio.age
+    : null;
+};
+
+const readStat = (
+  line: SeasonStatLine | null | undefined,
+  field: SeasonStatField
+): number | null => {
+  const raw = line?.[field];
+  if (raw === null || raw === undefined || raw === '') return null;
+  const value = Number.parseFloat(String(raw));
+  if (!Number.isFinite(value)) return null;
+  // Percentages are stored as fractions (0.475); filters are entered as 47.5
+  return field.includes('%') ? value * 100 : value;
+};
 type NumericFilterKey =
   | 'min_PPG'
   | 'max_PPG'
@@ -251,8 +310,10 @@ export const filterRosterDrawerPlayers = <
 >(
   allPlayers: readonly RosterDrawerPlayer<TOriginal>[] = [],
   search = '',
-  filters: RosterDrawerFilters = {}
+  filters: RosterDrawerFilters = {},
+  { statsById = null, minGames = 0 }: RosterDrawerFilterOptions = {}
 ): TOriginal[] => {
+  const statFiltersActive = hasActiveStatFilters(filters);
   const searchTerm = search.toLowerCase();
   const {
     team,
@@ -386,7 +447,7 @@ export const filterRosterDrawerPlayers = <
 
       const heightVal = p.original?.bio?.height;
       const weightVal = p.original?.bio?.weight;
-      const ageVal = p.original?.bio?.age;
+      const ageVal = getDrawerPlayerAge(p.original);
       if (minHeight !== undefined && (heightVal == null || heightVal < minHeight)) {
         return false;
       }
@@ -406,33 +467,28 @@ export const filterRosterDrawerPlayers = <
         return false;
       }
 
-      const ss = p.original?.currentSeasonStats ?? {};
-      const passStatFilter = (
-        field: SeasonStatField,
-        minKey: NumericFilterKey,
-        maxKey: NumericFilterKey
-      ): boolean => {
-        const lo = filters[minKey];
-        const hi = filters[maxKey];
-        if (lo === undefined && hi === undefined) return true;
-        const rawValue = ss[field] ?? 0;
-        const val =
-          Number.parseFloat(String(rawValue)) *
-          (field.includes('%') ? 100 : 1);
-        if (lo !== undefined && val < lo) return false;
-        if (hi !== undefined && val > hi) return false;
-        return true;
-      };
+      if (statFiltersActive) {
+        const line = statsById
+          ? statsById.get(String(p.original?.id ?? p.id))
+          : p.original?.currentSeasonStats;
+        // No stat line means the player can't satisfy a stat filter
+        if (!line) return false;
 
-      if (!passStatFilter('PTS', 'min_PPG', 'max_PPG')) return false;
-      if (!passStatFilter('REB', 'min_RPG', 'max_RPG')) return false;
-      if (!passStatFilter('AST', 'min_APG', 'max_APG')) return false;
-      if (!passStatFilter('FG%', 'min_FGP', 'max_FGP')) return false;
-      if (!passStatFilter('3PT%', 'min_TPP', 'max_TPP')) return false;
-      if (!passStatFilter('FT%', 'min_FTP', 'max_FTP')) return false;
-      if (!passStatFilter('eFG%', 'min_eFGP', 'max_eFGP')) return false;
-      if (!passStatFilter('MIN', 'min_MIN', 'max_MIN')) return false;
-      if (!passStatFilter('GP', 'min_G', 'max_G')) return false;
+        if (minGames > 0) {
+          const games = readStat(line, 'GP');
+          if (games === null || games < minGames) return false;
+        }
+
+        for (const [field, minKey, maxKey] of STAT_FILTERS) {
+          const lo = filters[minKey];
+          const hi = filters[maxKey];
+          if (lo === undefined && hi === undefined) continue;
+          const value = readStat(line, field);
+          if (value === null) return false;
+          if (lo !== undefined && value < lo) return false;
+          if (hi !== undefined && value > hi) return false;
+        }
+      }
 
       return true;
     })

@@ -1,25 +1,20 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
-import { useFirebaseQuery } from '@/shared/hooks/useFirebaseQuery';
-import { where } from 'firebase/firestore';
-import { LISTS_COLLECTION } from '@/constants/collections';
-import { POSITION_MAP } from '@/shared/utils/roles';
-import { TeamListFull } from '@/constants/teamList';
 import { DrawerShell } from '@/shared/components/ui/drawers/DrawerShell';
 import { OpenDrawerButton } from '@/shared/components/ui/drawers/OpenDrawerButton';
 import { AddPlayerDrawer } from '@/features/roster/AddPlayerDrawer';
 import { RankingSession } from './RankingSession';
-import { PoolCard } from './PoolCard';
+import { PoolSourceControls } from './PoolSourceControls';
+import { PoolGrid } from './PoolGrid';
+import { FilterPoolPanel } from './FilterPoolPanel';
+import { useRankerCandidates } from './hooks/useRankerCandidates';
+import { useOwnerPlayerLists } from './hooks/useOwnerPlayerLists';
+import { useRankerPool } from './hooks/useRankerPool';
 import { LocalDraftBanner } from './LocalDraftBanner';
 import { SavedSessionsPanel } from './SavedSessionsPanel';
 import { useRankerSession } from './hooks/useRankerSession';
-import type { PlayerList } from '@/firebase/listHelpers';
-import { findSalaryForYear } from '@/features/roster/utils';
-import type { RosterDrawerPlayer } from '@/features/roster/utils';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
 import type { HydratedRankerDraft } from './hooks/useRankerSession';
-
-type RankerPoolPlayer = RosterManagerPlayer;
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -51,116 +46,25 @@ export const RankingBuilder = () => {
     deleteFirestoreSession,
   } = useRankerSession();
 
-  // Lists query (owner-scoped; skipped while signed out)
-  const ownerConstraints = useMemo(
-    () => (userId ? [where('ownerUid', '==', userId)] : []),
-    [userId]
-  );
-  const { data: listsData } = useFirebaseQuery<PlayerList>(
-    LISTS_COLLECTION,
-    ownerConstraints,
-    { enabled: Boolean(userId) }
-  );
-
   // Owner-only: sessions saved to Firestore
   useEffect(() => {
     if (isOwner) void fetchFirestoreSessions();
   }, [isOwner, fetchFirestoreSessions]);
 
-  const processedPlayers = useMemo<Array<RosterDrawerPlayer<RosterManagerPlayer>>>(
-    () =>
-      allPlayers.map((rawPlayer) => {
-        const player = rawPlayer as RosterManagerPlayer;
-        const contractValues = player.contracts
-          ? Object.values(player.contracts).filter(Boolean)
-          : [];
-        const contractData =
-          player.primaryContract ||
-          contractValues[0] ||
-          null;
+  const { processedPlayers, playersMap } = useRankerCandidates(allPlayers);
+  const lists = useOwnerPlayerLists(userId);
 
-        return {
-          id: player.id,
-          player_id: player.id,
-          name: (player.bio?.displayName || player.name || '').toLowerCase(),
-          team: String(player.bio?.display?.team || '').toLowerCase(),
-          position:
-            player.formattedPosition ||
-            POSITION_MAP[player.bio?.position || ''] ||
-            player.bio?.position ||
-            '',
-          offenseRoles: [
-            player.offenseRole?.toLowerCase() || '',
-            player.primaryEvaluation?.roles?.offense2?.toLowerCase() || '',
-          ],
-          defenseRoles: [
-            player.defenseRole?.toLowerCase() || '',
-            player.primaryEvaluation?.roles?.defense2?.toLowerCase() || '',
-          ],
-          offenseSubroles: player.subRoles?.offense || [],
-          defenseSubroles: player.subRoles?.defense || [],
-          shootingProfile: (player.shootingProfile || '').toLowerCase(),
-          badges: player.badges || [],
-          salary: findSalaryForYear(player) ?? undefined,
-          freeAgentYear:
-            player.bio?.display?.freeAgentYear?.toString() ||
-            contractData?.freeAgency?.freeAgentYear?.toString() ||
-            null,
-          freeAgentType: (
-            player.bio?.display?.freeAgentType ||
-            contractData?.freeAgency?.freeAgentType ||
-            ''
-          ).toLowerCase(),
-          contractType: (contractData?.contractType || '').toLowerCase(),
-          extension: (() => {
-            const extensionContract = contractValues.find(
-              (contract) => contract?.isExtension
-            );
-            return extensionContract
-              ? {
-                  freeAgentYear:
-                    extensionContract.freeAgency?.freeAgentYear ?? null,
-                }
-              : null;
-          })(),
-          options: contractData?.options || [],
-          original: player,
-        };
-      }),
-    [allPlayers]
-  );
-
-  const playersMap = useMemo(() => {
-    const map: Record<string, RosterManagerPlayer> = {};
-    allPlayers.forEach((rawPlayer) => {
-      const player = rawPlayer as RosterManagerPlayer;
-      map[player.id] = player;
-    });
-    return map;
-  }, [allPlayers]);
-
-  const lists = useMemo(
-    () =>
-      (listsData || []).map((l) => {
-        const orderIds = Array.isArray(l.playerOrder)
-          ? l.playerOrder.filter((id): id is string => typeof id === 'string')
-          : [];
-        const allIds = Array.isArray(l.playerIds)
-          ? l.playerIds.filter((id): id is string => typeof id === 'string')
-          : [];
-        const merged = [...orderIds];
-        allIds.forEach((id) => {
-          if (!merged.includes(id)) merged.push(id);
-        });
-        return { id: l.id, name: l.name, playerIds: merged };
-      }),
-    [listsData]
-  );
-
-  const [pool, setPool] = useState<RankerPoolPlayer[]>([]);
+  const {
+    pool,
+    setPool,
+    poolIds,
+    addPlayerToPool,
+    addPlayersToPool,
+    addTeamToPool,
+    addListToPool,
+    removePlayer,
+  } = useRankerPool(playersMap, lists);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedTeamId, setSelectedTeamId] = useState('');
-  const [selectedList, setSelectedList] = useState('');
   const [started, setStarted] = useState(false);
 
   // Session persistence state - now local-first
@@ -194,7 +98,7 @@ export const RankingBuilder = () => {
       setResumedSessionData(hydratedDraft);
       setStarted(true);
     },
-    [playersMap]
+    [playersMap, setPool]
   );
 
   const handleResumeLocalDraft = useCallback(() => {
@@ -253,47 +157,6 @@ export const RankingBuilder = () => {
     setShowLocalDraftBanner(true);
     if (isOwner) void fetchFirestoreSessions();
   }, [isOwner, fetchFirestoreSessions]);
-
-  const addPlayerToPool = (player: RosterManagerPlayer) => {
-    setPool((prev) => {
-      if (prev.some((p) => p.id === player.id)) return prev;
-      return [...prev, player];
-    });
-  };
-
-  const addPlayersToPool = (playersArr: RosterManagerPlayer[]) => {
-    setPool((prev) => {
-      const existingIds = new Set(prev.map((p) => p.id));
-      return [...prev, ...playersArr.filter((p) => !existingIds.has(p.id))];
-    });
-  };
-
-  const handleAddTeam = () => {
-    if (!selectedTeamId) return;
-    const team = TeamListFull.find((t) => t.id === selectedTeamId);
-    if (!team) return;
-    const teamCode = team.code.toUpperCase();
-    const teamPlayers = allPlayers
-      .filter((p) => String(p.bio?.display?.teamId || '').toUpperCase() === teamCode)
-      .map((player) => player as RosterManagerPlayer);
-    addPlayersToPool(teamPlayers);
-    setSelectedTeamId('');
-  };
-
-  const handleAddList = () => {
-    if (!selectedList) return;
-    const list = lists.find((l) => l.id === selectedList);
-    if (!list) return;
-    addPlayersToPool(
-      list.playerIds
-        .map((id) => playersMap[id])
-        .filter((player): player is RosterManagerPlayer => Boolean(player))
-    );
-    setSelectedList('');
-  };
-
-  const removePlayer = (id: string) =>
-    setPool((prev) => prev.filter((p) => p.id !== id));
 
   if (loading) {
     return (
@@ -386,104 +249,24 @@ export const RankingBuilder = () => {
           )}
 
           {/* ── Add to Pool ─────────────────────────────────────────────────── */}
-          <div className="p-5 rounded-xl bg-white/[0.03] border border-white/[0.07] mb-5">
-            <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-white/35 block mb-4">
-              Add to Pool
-            </span>
-            <div className="flex flex-col sm:flex-row gap-3">
-              {/* By Team */}
-              <div className="flex gap-2 flex-1 min-w-0">
-                <select
-                  value={selectedTeamId}
-                  onChange={(e) => setSelectedTeamId(e.target.value)}
-                  className="flex-1 min-w-0 appearance-none bg-white/[0.05] text-white text-sm px-3 py-2 rounded-lg border border-white/[0.1] focus:outline-none focus:border-white/25 transition-all cursor-pointer"
-                >
-                  <option value="" className="bg-[#1a1a1a] text-white/50">
-                    Team…
-                  </option>
-                  {TeamListFull.map((team) => (
-                    <option
-                      key={team.id}
-                      value={team.id}
-                      className="bg-[#1a1a1a] text-white"
-                    >
-                      {team.teamName}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleAddTeam}
-                  disabled={!selectedTeamId}
-                  className="px-3 py-2 text-sm rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-white/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all font-medium"
-                >
-                  Add
-                </button>
-              </div>
+          <PoolSourceControls
+            lists={lists}
+            onAddTeam={addTeamToPool}
+            onAddList={addListToPool}
+          />
 
-              {/* By List */}
-              <div className="flex gap-2 flex-1 min-w-0">
-                <select
-                  value={selectedList}
-                  onChange={(e) => setSelectedList(e.target.value)}
-                  className="flex-1 min-w-0 appearance-none bg-white/[0.05] text-white text-sm px-3 py-2 rounded-lg border border-white/[0.1] focus:outline-none focus:border-white/25 transition-all cursor-pointer"
-                >
-                  <option value="" className="bg-[#1a1a1a] text-white/50">
-                    List…
-                  </option>
-                  {lists.map((l) => (
-                    <option
-                      key={l.id}
-                      value={l.id}
-                      className="bg-[#1a1a1a] text-white"
-                    >
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleAddList}
-                  disabled={!selectedList}
-                  className="px-3 py-2 text-sm rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-white/70 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all font-medium"
-                >
-                  Import
-                </button>
-              </div>
-            </div>
-          </div>
+          <FilterPoolPanel
+            candidates={processedPlayers}
+            poolIds={poolIds}
+            onAdd={addPlayersToPool}
+          />
 
           {/* ── Player Pool ─────────────────────────────────────────────────── */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-white/35">
-                Pool
-              </span>
-              {pool.length > 0 && (
-                <button
-                  onClick={() => setPool([])}
-                  className="text-xs text-white/25 hover:text-red-400 transition-colors"
-                >
-                  Clear all
-                </button>
-              )}
-            </div>
-
-            {pool.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-dashed border-white/[0.08]">
-                <p className="text-white/20 text-sm mb-1">
-                  No players in the pool
-                </p>
-                <p className="text-white/12 text-xs">
-                  Add a team, import a list, or use the drawer on the left
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-3">
-                {pool.map((p) => (
-                  <PoolCard key={p.id} player={p} onRemove={removePlayer} />
-                ))}
-              </div>
-            )}
-          </div>
+          <PoolGrid
+            pool={pool}
+            onRemove={removePlayer}
+            onClear={() => setPool([])}
+          />
 
           {/* ── CTA ─────────────────────────────────────────────────────────── */}
           <div className="flex flex-col items-center gap-2.5">
