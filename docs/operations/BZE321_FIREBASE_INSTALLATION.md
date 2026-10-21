@@ -1,5 +1,18 @@
 # BZE-321: bounded Firebase installation
 
+## October 21 installed — hosted verification remains gated
+
+Protected source run `39590633749` succeeded on `fdb1feaf` using the unchanged
+immutable source worker. Its actual receipt verified all three source writes,
+Rules and the existing review release. The original log is retained privately.
+The current finalization removes encrypted input from the checkout and makes
+both installation/private-review requests dormant; do not replay publication.
+Ciphertext remains in public Git history. Exact-head CI, focused cleanup review
+and genuine protected hosted GM verification remain required before landing.
+See the [current checkpoint](../../work/bze-321/RESUMPTION.md) for dependency
+receipts, preservation limits and the remaining post-hosted cleanup. Older
+sections below are historical and do not supersede this installed checkpoint.
+
 ## October 20 resumption after the production NBA refresh
 
 The five-record release remains the recorded installed baseline. The old

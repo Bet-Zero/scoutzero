@@ -1,5 +1,44 @@
 # BZE-321 continuation after the ordinary NBA refresh
 
+## October 21 installed — final hosted candidate preparation
+
+Protected source run `39590633749`, job `119190520506`, succeeded on caller
+`fdb1feaf0071b6dfecb76a5ce0cc5a64ff5b73da` with immutable worker
+`85139f9f63afa8341b7bd599dc8d1b7bc7fac432`. GitHub job state and the original
+log confirm the 11:29:02Z receipt: `documentWrites: 3`, `sourceVerified: true`,
+`rulesVerified: true`, and `existingReviewReleaseVerified: true`.
+The log and receipt are retained privately. No write replay occurred.
+
+Finalization removes `.github/bze321-source-installation.json.gpg`, sets the
+operation request to `none`, and disables the private qualification request.
+The phase regression requires dormant requests and absent ciphertext, retaining
+immutable routing, secret-handoff and protection checks. Ciphertext remains in
+public Git history; checkout deletion is not history erasure.
+
+Unchanged dependency acceptance: private factual qualification `39558428239`,
+encryption `39588462884`, fixture `39589250853`, activation `39590706950`, and
+installed-caller CI `39590641550`. Retained plaintext/evidence digests still match.
+Prior preservation/emulator receipts cover legacy roots, ordinary NBA fields,
+saved-world projection/history sentinels, guarded atomic application, stale/replay
+rejection, and allowed/denied queries. These are retained proofs, not new reads
+of production worlds or repeated factual research. Runtime, source facts, Rules
+and all 278/29/no-first-round-Apply boundaries are unchanged by cleanup.
+
+Freeze this delta, obtain exact-head CI and focused dependency-scoped review,
+then hand Work the protected hosted run for that exact candidate. The existing
+driver must prove authenticated real GM review, the qualified 2028 ownership row,
+the pinned 278-entry/29-unresolved release, unsigned/invalid-token denials,
+unavailable/reset behavior, Apply unavailable, zero app-data writes and temporary
+Auth-account cleanup. Cancel superseded/premature hosted runs; never self-approve.
+Work coordinates browser prerequisites and the owner approval handoff.
+
+Actual hosted success, normal landing, merged CI/deployment verification and
+documented access/secret/Library/local-transfer cleanup remain required. Preserve
+installed data/Rules and ordinary NBA maintenance trust. No IAM edit, new data
+publication, hosted success, landing or V1 completion is claimed here. Retain
+recovery evidence until its required post-hosted cleanup. Historical sections
+below do not authorize another source run or secret save.
+
 ## October 21 passphrase compatibility repair — prepared for Work
 
 First repair candidate `51f094f0` passed its 25 focused tests; its PR-merge CI

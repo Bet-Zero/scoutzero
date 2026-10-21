@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -405,7 +406,7 @@ describe('bounded source publisher preparation', () => {
       expect(cloud.calls.filter((c) => c.method === 'PATCH')).toHaveLength(1);
     }
   );
-  it('allows the qualified exact source package request and preserves approval gates', () => {
+  it('keeps completed source installation dormant and preserves approval gates', () => {
     const caller: any = yaml.load(
       readFileSync('.github/workflows/draft-review-cloud.yml', 'utf8')
     );
@@ -427,18 +428,11 @@ describe('bounded source publisher preparation', () => {
       readFileSync('.github/draft-review-request.json', 'utf8')
     );
     expect(Object.keys(request)).toEqual(['operation']);
-    // Revalidation is complete: private run39558428239 passed and its complete
-    // original was recovered/verified. Its exact plaintext is now re-encrypted
-    // for the unchanged installer's URL-safe key contract. Pin the replacement
-    // ciphertext; delta acceptance, owner approval and live preflight still gate it.
-    expect(['none', 'inspect', 'publish-source']).toContain(request.operation);
-    if (request.operation === 'publish-source') {
-      expect(
-        digest(readFileSync('.github/bze321-source-installation.json.gpg'))
-      ).toBe(
-        '6c3a7e131fb0cc27c351520f65153c60a5f652602d7c5c2ed959bfc970f71451'
-      );
-    }
+    // Protected run39590633749 installed and verified the qualified package.
+    // Finalization removes the transfer input and cannot replay installation
+    // or repeat private qualification. Immutable routing remains checked above.
+    expect(request.operation).toBe('none');
+    expect(existsSync('.github/bze321-source-installation.json.gpg')).toBe(false);
     // A dormant request must not enter any credentialed worker.
     for (const name of ['operation', 'publication', 'source-publication']) {
       expect(caller.jobs[name].if).not.toContain("'none'");
@@ -450,7 +444,7 @@ describe('bounded source publisher preparation', () => {
       JSON.parse(
         readFileSync('.github/draft-private-review-request.json', 'utf8')
       )
-    ).toEqual({ enabled: true });
+    ).toEqual({ enabled: false });
     expect(caller.jobs.operation.uses).toBe(
       'Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@ee71a8bbfb334178c8bb147efec48f468b52ad38'
     );
