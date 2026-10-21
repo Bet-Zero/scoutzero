@@ -1,5 +1,53 @@
 # BZE-321 continuation after the ordinary NBA refresh
 
+## October 21 passphrase compatibility repair — prepared for Work
+
+Source run `39561644055` attempt 2, job `119168559688`, passed actual Google
+authentication after the completed trust repair. It stopped with
+`APPROVED_INSTALLATION_REQUIRED` before decryption or any source/Rules write.
+The frozen worker's shared decryptor requires a 64-character URL-safe passphrase;
+the prepared standard-Base64 value did not meet that alphabet. The source
+dispatcher uses `APPROVED_SOURCE_SHA256` correctly. An empty legacy
+`APPROVED_INSTALLATION_SHA256` is expected here and must not be recreated.
+
+Generated a fresh 384-bit URL-safe key privately and re-encrypted the **exact same
+201,167-byte approved source package**. New AES256 ciphertext: 21,422 bytes,
+SHA-256 `6c3a7e131fb0cc27c351520f65153c60a5f652602d7c5c2ed959bfc970f71451`.
+Complete plaintext SHA-256 remains
+`385b24b93dde1cd6081a949da5e025d48e03e94ed0194c93115a7b7cc7333b96`;
+complete evidence SHA-256 remains
+`4a993fbf94c2c421d77f606d5c498077d8e22489388feafdfa00821e4c3bff68`.
+The immutable source reader/decryptor files were compared byte-for-byte with
+worker `85139f9f63afa8341b7bd599dc8d1b7bc7fac432`. Actual decryption and source
+format validation passed with the generated key and again with the actual
+private attachment readback. Wrong compatible key, wrong digest, standard-Base64
+plus/slash, whitespace and wrong length were rejected. No guard was changed.
+
+Fresh owner-only sharing check and exact key attachment readback passed. Work
+replaces only existing **environment secret `BZE321_INSTALLATION_PASSPHRASE`**
+from the current private handoff. Do not rotate either evidence part, source or
+evidence digest variable, reviewer token, or any Google/IAM/provider setting.
+No passphrase value is stored in repository text, public receipts or logs.
+
+Private factual ACCEPT `39558428239` still binds the unchanged plaintext and
+evidence; it does **not** cover this new ciphertext by itself. Fresh focused
+independent delta review must judge the encryption-only change and carry-forward
+dependencies. No repeated historical research or private factual review is
+requested absent a concrete governing requirement. Existing publisher/inspector
+pins, runtime code, source facts, ordinary NBA fields/history, saved worlds and
+all 278/29/no-Apply boundaries are unchanged.
+
+Validation: 25 focused installation/preservation tests passed, including real GPG
+URL-safe recovery and incompatible-alphabet rejection. Actual private complete
+plaintext/evidence/readback checks passed; required exact-candidate CI and delta
+review remain gates. No duplicate local full suite/app build/emulator replay or
+environment rebuild. The operation request is unchanged; no installation has
+been dispatched for the repaired head. Do not rerun the old-cipher caller after
+replacing its key. Work coordinates the normal reviewed request activation and
+protected source approval only after key-save verification and current gates,
+then actual hosted GM proof/landing/cleanup. This is preparation, not installation
+or hosted/V1 completion.
+
 ## October 21 qualified source publication request
 
 Private run `39558428239` passed on candidate

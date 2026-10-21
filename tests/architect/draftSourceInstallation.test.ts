@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import yaml from 'js-yaml';
 vi.mock('../../src/features/architect/utils/draftPickRealReviewPin', () => ({
   REAL_DRAFT_REVIEW_PIN: {
@@ -10,7 +19,10 @@ vi.mock('../../src/features/architect/utils/draftPickRealReviewPin', () => ({
   },
 }));
 import { prepareDraftReviewDocuments } from '../../server/draftReviewFirestore';
-import { digest } from '../../scripts/architect/draftReviewInstallation';
+import {
+  decryptInstallationFile,
+  digest,
+} from '../../scripts/architect/draftReviewInstallation';
 import { draftSourceReadRuleAddition } from '../../scripts/architect/draftSourcePreservation';
 import {
   decodeSourceInstallation,
@@ -416,13 +428,16 @@ describe('bounded source publisher preparation', () => {
     );
     expect(Object.keys(request)).toEqual(['operation']);
     // Revalidation is complete: private run39558428239 passed and its complete
-    // original was recovered/verified. Permit source activation only for that
-    // exact qualified ciphertext; owner approval and live preflight still gate it.
+    // original was recovered/verified. Its exact plaintext is now re-encrypted
+    // for the unchanged installer's URL-safe key contract. Pin the replacement
+    // ciphertext; delta acceptance, owner approval and live preflight still gate it.
     expect(['none', 'inspect', 'publish-source']).toContain(request.operation);
     if (request.operation === 'publish-source') {
       expect(
         digest(readFileSync('.github/bze321-source-installation.json.gpg'))
-      ).toBe('8ea77bc610455f410ee7b360913c1627c964f111358dcc0fc835a7ee5c0c474f');
+      ).toBe(
+        '6c3a7e131fb0cc27c351520f65153c60a5f652602d7c5c2ed959bfc970f71451'
+      );
     }
     // A dormant request must not enter any credentialed worker.
     for (const name of ['operation', 'publication', 'source-publication']) {
@@ -432,7 +447,9 @@ describe('bounded source publisher preparation', () => {
       );
     }
     expect(
-      JSON.parse(readFileSync('.github/draft-private-review-request.json', 'utf8'))
+      JSON.parse(
+        readFileSync('.github/draft-private-review-request.json', 'utf8')
+      )
     ).toEqual({ enabled: true });
     expect(caller.jobs.operation.uses).toBe(
       'Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@ee71a8bbfb334178c8bb147efec48f468b52ad38'
@@ -452,5 +469,71 @@ describe('bounded source publisher preparation', () => {
     expect(worker.jobs['bounded-operation'].environment).toBe(
       "${{ inputs.operation == 'inspect' && 'draft-review-inspection' || 'draft-review-publication' }}"
     );
+  });
+});
+
+describe('immutable installer passphrase compatibility', () => {
+  it('decrypts a URL-safe 64-character key and rejects incompatible Base64 before decryption', () => {
+    const root = mkdtempSync(join(tmpdir(), 'source-url-safe-test-'));
+    const home = join(root, 'gpg');
+    const plaintext = Buffer.from(
+      'Public synthetic transport fixture; no source facts.'
+    );
+    const key = 'public-synthetic-url-safe-key'.padEnd(62, 'x') + '-_';
+    const input = join(root, 'input.json');
+    const cipher = join(root, 'fixture.gpg');
+    try {
+      mkdirSync(home, { mode: 0o700 });
+      writeFileSync(input, plaintext, { mode: 0o600 });
+      execFileSync(
+        'gpg',
+        [
+          '--homedir',
+          home,
+          '--batch',
+          '--no-tty',
+          '--no-symkey-cache',
+          '--pinentry-mode',
+          'loopback',
+          '--passphrase-fd',
+          '0',
+          '--symmetric',
+          '--cipher-algo',
+          'AES256',
+          '--output',
+          cipher,
+          input,
+        ],
+        { input: key, stdio: ['pipe', 'pipe', 'pipe'] }
+      );
+      expect(decryptInstallationFile(cipher, digest(plaintext), key)).toEqual(
+        plaintext
+      );
+      for (const invalid of [
+        'A'.repeat(63) + '+',
+        'A'.repeat(63) + '/',
+        key + '\n',
+        key.slice(1),
+      ]) {
+        expect(() =>
+          decryptInstallationFile(cipher, digest(plaintext), invalid)
+        ).toThrow('APPROVED_INSTALLATION_REQUIRED');
+      }
+      expect(() =>
+        decryptInstallationFile(cipher, digest(plaintext), 'Q'.repeat(64))
+      ).toThrow('INSTALLATION_DECRYPTION_FAILED');
+      expect(() =>
+        decryptInstallationFile(cipher, '0'.repeat(64), key)
+      ).toThrow('INSTALLATION_DIGEST_MISMATCH');
+    } finally {
+      try {
+        execFileSync('gpgconf', ['--homedir', home, '--kill', 'gpg-agent'], {
+          stdio: 'ignore',
+        });
+      } catch {
+        /* No agent after an early failure. */
+      }
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

@@ -52,7 +52,11 @@ selection are separate claims.
 The private transfer uses the existing personal ChatGPT Page and its owner-only
 Files destination. Read sharing first: no direct shares, no inherited grants,
 and complete access metadata. Upload a harmless probe and compare its readback
-digest before a secret. Generate a fresh 384-bit random passphrase outside Git;
+digest before a secret. Generate a fresh 384-bit random passphrase outside Git
+using URL-safe Base64 of 48 random bytes (`secrets.token_urlsafe(48)` in Python):
+exactly 64 ASCII characters matching `^[A-Za-z0-9_-]{64}$`, with no padding,
+whitespace or newline. Standard Base64 can contain `+` or `/` and is incompatible
+with the unchanged immutable installer's guard. Do not relax that guard;
 encrypt the unchanged approved source package with AES256. Verify exact recovery
 and wrong-key rejection, upload the secret only to that verified private
 destination, compare the returned digest and authenticated readback, and retain
