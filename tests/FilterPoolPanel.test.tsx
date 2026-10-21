@@ -35,7 +35,8 @@ const lastSeason = () => getRecentPastSeasonCodes(1)[0];
 const candidate = (
   id: string,
   stats: Record<string, number>,
-  dob?: string
+  dob?: string,
+  age?: number
 ): RosterDrawerPlayer<RosterManagerPlayer> => ({
   id,
   name: id.toLowerCase(),
@@ -57,6 +58,7 @@ const candidate = (
   original: {
     id,
     name: id,
+    age,
     bio: { displayName: id, dob },
     currentSeasonStats: stats,
   } as unknown as RosterManagerPlayer,
@@ -65,7 +67,8 @@ const candidate = (
 const candidates = [
   candidate('Scorer', { PTS: 26, GP: 20 }),
   candidate('Starter', { PTS: 21, GP: 18 }),
-  candidate('Bench', { PTS: 6, GP: 20 }),
+  // No date of birth; current age 30
+  candidate('Bench', { PTS: 6, GP: 20 }, undefined, 30),
   candidate('Tiny Sample', { PTS: 31, GP: 2 }),
   // Born Jan 15, 40 years before last season's Feb 1
   candidate('Vet', { PTS: 12, GP: 20 }, `${Number(lastSeason().slice(0, 4)) + 1 - 40}-01-15`),
@@ -164,5 +167,19 @@ describe('FilterPoolPanel', () => {
     expect(within(row).getByText('24.4')).toBeTruthy();
     // The season doc has no age; it comes from date of birth
     expect(within(row).getByText('40')).toBeTruthy();
+  });
+
+  it('prefers a stored season age over an estimate when there is no date of birth', async () => {
+    render(<FilterPoolPanel candidates={candidates} poolIds={new Set()} onAdd={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('Season'), { target: { value: lastSeason() } });
+    fireEvent.change(screen.getByLabelText('Search players by name'), {
+      target: { value: 'bench' },
+    });
+
+    // The season doc says 25; the estimate (30 minus one season) would be 29
+    await waitFor(() => expect(screen.getByText('Bench')).toBeTruthy());
+    const row = screen.getByText('Bench').closest('tr') as HTMLElement;
+    expect(within(row).getByText('25')).toBeTruthy();
   });
 });

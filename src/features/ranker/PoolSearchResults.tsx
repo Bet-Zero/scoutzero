@@ -4,9 +4,10 @@
  * OWNERSHIP: Feature: ranker
  *
  * HISTORY:
- *  - 2026-10-21: Created; replaces FilterMatchPreview (name chips with add-all only)
+ *  - 2026-10-21: Created; replaces FilterMatchPreview (name chips with add-all only) (PR #565)
  *
  * LINKS:
+ *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
  *  - Used in: src/features/ranker/FilterPoolPanel.tsx
  */
 import React, { useMemo, useState } from 'react';

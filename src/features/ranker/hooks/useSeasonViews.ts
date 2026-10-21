@@ -5,9 +5,10 @@
  *
  * HISTORY:
  *  - 2026-10-21: Created for the Player Ranker filter-based pool builder (stat lines only)
- *  - 2026-10-21: Renamed from useSeasonStatLines; adds the season's team, age and salary
+ *  - 2026-10-21: Renamed from useSeasonStatLines; adds the season's team, age and salary (PR #565)
  *
  * LINKS:
+ *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
  *  - Used in: src/features/ranker/FilterPoolPanel.tsx
  *  - Season docs written by: player-scrape/firestore_staging/scripts/stage_player.ts
  */

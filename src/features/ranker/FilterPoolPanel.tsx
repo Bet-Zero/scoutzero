@@ -9,6 +9,7 @@
  *  - 2026-10-21: Past-season age from date of birth (season docs rarely store one)
  *
  * LINKS:
+ *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
  *  - Filter engine: src/features/roster/utils/rosterBuilderHelpers.ts (filterRosterDrawerPlayers)
  *  - Used in: src/features/ranker/RankingBuilder.tsx
  */
@@ -81,8 +82,12 @@ export const FilterPoolPanel = ({
     const byId = new Map(candidates.map((c) => [c.id, c]));
     const views = new Map<string, SeasonView>();
     loadedViews.forEach((view, id) => {
-      const age = getDrawerPlayerAgeInSeason(byId.get(id)?.original, season);
-      views.set(id, { ...view, age: age ?? view.age });
+      const original = byId.get(id)?.original;
+      // Date of birth is exact; without it, a stored season age beats the
+      // current-age-minus-seasons estimate
+      const derived = getDrawerPlayerAgeInSeason(original, season);
+      const age = original?.bio?.dob ? (derived ?? view.age) : (view.age ?? derived);
+      views.set(id, { ...view, age });
     });
     return views;
   }, [loadedViews, candidates, season]);
