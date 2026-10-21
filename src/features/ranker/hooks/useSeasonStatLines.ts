@@ -97,7 +97,8 @@ export const useSeasonStatLines = (
     loading: false,
     error: null,
   });
-  const idsKey = playerIds.length;
+  // Re-load when the set of players changes, not just its size
+  const idsKey = playerIds.join('|');
 
   useEffect(() => {
     if (isCurrent) {
@@ -122,7 +123,7 @@ export const useSeasonStatLines = (
     return () => {
       cancelled = true;
     };
-    // playerIds is re-read when the player count changes
+    // playerIds is captured through idsKey
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seasonCode, isCurrent, idsKey]);
 
