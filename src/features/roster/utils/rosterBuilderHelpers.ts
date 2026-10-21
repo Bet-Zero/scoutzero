@@ -191,6 +191,28 @@ export const getDrawerPlayerAge = (
     : null;
 };
 
+// Age during a past season, using the NBA convention of age on February 1 of
+// the season ("2025-26" → Feb 1, 2026). Without a date of birth, the current
+// age is stepped back by the number of seasons.
+export const getDrawerPlayerAgeInSeason = (
+  player: RosterDrawerOriginalPlayer | null | undefined,
+  seasonCode: string,
+  currentSeasonStartYear: number = DEFAULT_SALARY_YEAR
+): number | null => {
+  const startYear = Number.parseInt(seasonCode.slice(0, 4), 10);
+  if (!player || !Number.isFinite(startYear)) return null;
+  const dob = player.bio?.dob ? new Date(player.bio.dob) : null;
+  if (dob && !Number.isNaN(dob.getTime())) {
+    const endYear = startYear + 1;
+    // Feb 1 is month index 1; birthdays after Feb 1 haven't happened yet
+    const hadBirthday =
+      dob.getUTCMonth() < 1 || (dob.getUTCMonth() === 1 && dob.getUTCDate() <= 1);
+    return endYear - dob.getUTCFullYear() - (hadBirthday ? 0 : 1);
+  }
+  const current = getDrawerPlayerAge(player);
+  return current == null ? null : current - (currentSeasonStartYear - startYear);
+};
+
 const readStat = (
   line: SeasonStatLine | null | undefined,
   field: SeasonStatField

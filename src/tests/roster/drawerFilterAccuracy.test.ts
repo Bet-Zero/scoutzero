@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   filterRosterDrawerPlayers,
   getDrawerPlayerAge,
+  getDrawerPlayerAgeInSeason,
 } from '@/features/roster/utils';
 import type { DrawerSeasonView, RosterDrawerPlayer } from '@/features/roster/utils';
 import { getDefaultAddPlayerFilters } from '@/shared/utils/filtering';
@@ -135,6 +136,18 @@ describe('add-player drawer filter accuracy', () => {
     expect(run({ maxAge: 30 })).toEqual(['mover']);
     // Without season views the current team applies
     expect(ids(filterRosterDrawerPlayers(all, '', { ...base, team: 'BOS' }))).toEqual([]);
+  });
+
+  it('works out age during a past season as of February 1', () => {
+    // Born Dec 30, 1984: 41 on Feb 1, 2026
+    expect(getDrawerPlayerAgeInSeason(player('a', { dob: '1984-12-30' }).original, '2025-26')).toBe(41);
+    // Born Mar 15, 2000: still 25 on Feb 1, 2026
+    expect(getDrawerPlayerAgeInSeason(player('b', { dob: '2000-03-15' }).original, '2025-26')).toBe(25);
+    // Born Feb 1, 2000: turns 26 that day
+    expect(getDrawerPlayerAgeInSeason(player('c', { dob: '2000-02-01' }).original, '2025-26')).toBe(26);
+    // No date of birth: current age stepped back by the seasons elapsed
+    expect(getDrawerPlayerAgeInSeason(player('d', { age: 30 }).original, '2024-25', 2026)).toBe(28);
+    expect(getDrawerPlayerAgeInSeason(player('e').original, '2024-25')).toBeNull();
   });
 
   it('reads stored percentage fractions as percentages', () => {

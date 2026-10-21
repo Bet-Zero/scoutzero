@@ -7,7 +7,7 @@ vi.mock('firebase/firestore', async (importOriginal) => ({
   getDoc: async ({ playerId }: { playerId: string }) => {
     const data =
       playerId === 'Vet'
-        ? { team: 'BOS', age: 40, stats: { PTS: 24.4, REB: 7.8, AST: 8.2, GP: 70 } }
+        ? { team: 'BOS', stats: { PTS: 24.4, REB: 7.8, AST: 8.2, GP: 70 } }
         : playerId === 'Scorer'
           ? undefined
           : { team: 'LAL', age: 25, stats: { PTS: 5, GP: 40 } };
@@ -34,7 +34,8 @@ const lastSeason = () => getRecentPastSeasonCodes(1)[0];
 
 const candidate = (
   id: string,
-  stats: Record<string, number>
+  stats: Record<string, number>,
+  dob?: string
 ): RosterDrawerPlayer<RosterManagerPlayer> => ({
   id,
   name: id.toLowerCase(),
@@ -56,7 +57,7 @@ const candidate = (
   original: {
     id,
     name: id,
-    bio: { displayName: id },
+    bio: { displayName: id, dob },
     currentSeasonStats: stats,
   } as unknown as RosterManagerPlayer,
 });
@@ -66,7 +67,8 @@ const candidates = [
   candidate('Starter', { PTS: 21, GP: 18 }),
   candidate('Bench', { PTS: 6, GP: 20 }),
   candidate('Tiny Sample', { PTS: 31, GP: 2 }),
-  candidate('Vet', { PTS: 12, GP: 20 }),
+  // Born Jan 15, 40 years before last season's Feb 1
+  candidate('Vet', { PTS: 12, GP: 20 }, `${Number(lastSeason().slice(0, 4)) + 1 - 40}-01-15`),
 ];
 
 // The PPG filter row (the results table also has a PPG column header)
@@ -160,6 +162,7 @@ describe('FilterPoolPanel', () => {
     expect(within(row).getByText('BOS')).toBeTruthy();
     expect(within(row).getByText('$52.6M')).toBeTruthy();
     expect(within(row).getByText('24.4')).toBeTruthy();
+    // The season doc has no age; it comes from date of birth
     expect(within(row).getByText('40')).toBeTruthy();
   });
 });

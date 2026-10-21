@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-10-21: Created for the Player Ranker filter-based pool builder
  *  - 2026-10-21: Name search, click/select to add, and past seasons apply to team, age and salary as well as stats
+ *  - 2026-10-21: Past-season age from date of birth (season docs rarely store one)
  *
  * LINKS:
  *  - Filter engine: src/features/roster/utils/rosterBuilderHelpers.ts (filterRosterDrawerPlayers)
@@ -18,6 +19,7 @@ import { getDefaultAddPlayerFilters, normalizeTeamCode } from '@/shared/utils/fi
 import {
   filterRosterDrawerPlayers,
   getDrawerPlayerAge,
+  getDrawerPlayerAgeInSeason,
   hasActiveAddPlayerFilters,
   hasActiveStatFilters,
   type RosterDrawerPlayer,
@@ -27,6 +29,7 @@ import {
   CURRENT_SEASON_CODE,
   getRecentPastSeasonCodes,
   useSeasonViews,
+  type SeasonView,
 } from './hooks/useSeasonViews';
 import { PoolSearchResults, type PoolSearchRow } from './PoolSearchResults';
 
@@ -71,7 +74,18 @@ export const FilterPoolPanel = ({
 
   const candidateIds = useMemo(() => candidates.map((p) => p.id), [candidates]);
   const isPastSeason = season !== CURRENT_SEASON_CODE;
-  const { viewsById, loading, error } = useSeasonViews(season, candidateIds);
+  const { viewsById: loadedViews, loading, error } = useSeasonViews(season, candidateIds);
+  // Season docs rarely carry an age, so it is worked out from date of birth
+  const viewsById = useMemo(() => {
+    if (!loadedViews) return null;
+    const byId = new Map(candidates.map((c) => [c.id, c]));
+    const views = new Map<string, SeasonView>();
+    loadedViews.forEach((view, id) => {
+      const age = getDrawerPlayerAgeInSeason(byId.get(id)?.original, season);
+      views.set(id, { ...view, age: age ?? view.age });
+    });
+    return views;
+  }, [loadedViews, candidates, season]);
   const waitingForSeason = isPastSeason && !viewsById;
 
   const statFiltersActive = hasActiveStatFilters(filters);
