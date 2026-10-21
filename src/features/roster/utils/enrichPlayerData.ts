@@ -228,7 +228,7 @@ function getHeadshotPath(playerId: string | null | undefined): string {
  * @param dob - Date of birth in ISO format (YYYY-MM-DD) or other parseable format
  * @returns Age in years, or null if DOB is invalid
  */
-function calculateAgeFromDOB(dob: string | null | undefined): number | null {
+export function calculateAgeFromDOB(dob: string | null | undefined): number | null {
   if (!dob) return null;
 
   try {

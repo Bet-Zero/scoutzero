@@ -45,9 +45,9 @@ const StatRow = ({ def, filters, setFilters }: FilterProps & { def: StatDef }) =
     setFilters({
       ...filters,
       [opKey]: newOp,
-      // Clear the value that doesn't apply to the new operator
-      [minKey]: newOp === 'lt' ? undefined : filters[minKey],
-      [maxKey]: newOp === 'gt' ? undefined : filters[maxKey],
+      // Clear the values that don't apply to the new operator ("Any" clears both)
+      [minKey]: newOp === 'lt' || newOp === '' ? undefined : filters[minKey],
+      [maxKey]: newOp === 'gt' || newOp === '' ? undefined : filters[maxKey],
     });
   };
 
