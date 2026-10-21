@@ -5,12 +5,12 @@ AdjustableRankings.tsx
 AnchorComparison.tsx
 ComparisonMatrix.tsx
 ComparisonMatrixDrawer.tsx
-FilterMatchPreview.tsx
 FilterPoolPanel.tsx
 LocalDraftBanner.tsx
 PlayerCompareCard.tsx
 PoolCard.tsx
 PoolGrid.tsx
+PoolSearchResults.tsx
 PoolSourceControls.tsx
 RankingBuilder.tsx
 RankingResults.tsx
@@ -23,7 +23,7 @@ hooks/
   useRankerCandidates.ts
   useRankerPool.ts
   useRankerSession.ts
-  useSeasonStatLines.ts
+  useSeasonViews.ts
 index.ts
 ranker.css
 utils/

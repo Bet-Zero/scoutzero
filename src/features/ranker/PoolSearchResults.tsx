@@ -1,0 +1,226 @@
+/**
+ * FILE: src/features/ranker/PoolSearchResults.tsx
+ * PURPOSE: Result list for the ranker's Find Players panel: each player's team, age, salary and stats for the chosen season, with add-one, add-selected and add-all actions
+ * OWNERSHIP: Feature: ranker
+ *
+ * HISTORY:
+ *  - 2026-10-21: Created; replaces FilterMatchPreview (name chips with add-all only)
+ *
+ * LINKS:
+ *  - Used in: src/features/ranker/FilterPoolPanel.tsx
+ */
+import React, { useMemo, useState } from 'react';
+import { Check, Plus } from 'lucide-react';
+import { formatSalary } from '@/shared/utils/formatting/basicFormatting';
+import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
+
+const PAGE_SIZE = 50;
+
+export type PoolSearchRow = {
+  player: RosterManagerPlayer;
+  team: string | null;
+  age: number | null;
+  salary: number | null;
+  stats: Record<string, number | string | null | undefined> | null;
+  inPool: boolean;
+};
+
+const playerName = (player: RosterManagerPlayer): string =>
+  player.bio?.displayName || player.name || 'Unknown';
+
+// Stat feeds mark a traded player's full-season line as TOT / 2TM / 3TM
+const teamLabel = (team: string | null): string => {
+  if (!team) return '—';
+  return /^(TOT|\dTM)$/i.test(team) ? 'Multiple' : team.toUpperCase();
+};
+
+const statLabel = (
+  stats: PoolSearchRow['stats'],
+  field: string
+): string => {
+  const value = Number(stats?.[field]);
+  return stats?.[field] != null && Number.isFinite(value) ? value.toFixed(1) : '—';
+};
+
+type PoolSearchResultsProps = {
+  active: boolean;
+  loading: boolean;
+  error: string | null;
+  season: string;
+  rows: PoolSearchRow[];
+  onAdd: (players: RosterManagerPlayer[]) => void;
+};
+
+export const PoolSearchResults = ({
+  active,
+  loading,
+  error,
+  season,
+  rows,
+  onAdd,
+}: PoolSearchResultsProps) => {
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const [limit, setLimit] = useState(PAGE_SIZE);
+
+  const addable = useMemo(() => rows.filter((r) => !r.inPool), [rows]);
+  // Only count selections that are still in the results and not yet added
+  const selectedRows = useMemo(
+    () => addable.filter((r) => selected.has(r.player.id)),
+    [addable, selected]
+  );
+
+  if (!active) {
+    return (
+      <p className="text-white/30 text-xs">
+        Search for a player or set a filter to see players.
+      </p>
+    );
+  }
+  if (error) {
+    return (
+      <p className="text-red-300 text-xs">
+        Couldn&apos;t load {season} data: {error}
+      </p>
+    );
+  }
+  if (loading) {
+    return <p className="text-white/40 text-xs">Loading {season} data…</p>;
+  }
+
+  const add = (players: RosterManagerPlayer[]) => {
+    if (players.length === 0) return;
+    onAdd(players);
+    setSelected(new Set());
+  };
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const allSelected = addable.length > 0 && selectedRows.length === addable.length;
+  const alreadyIn = rows.length - addable.length;
+  const shown = rows.slice(0, limit);
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+        <p className="text-sm text-white/70">
+          <span className="text-white font-semibold">{rows.length}</span> player
+          {rows.length === 1 ? '' : 's'}
+          {alreadyIn > 0 && (
+            <span className="text-white/40"> · {alreadyIn} already in pool</span>
+          )}
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => add(selectedRows.map((r) => r.player))}
+            disabled={selectedRows.length === 0}
+            className="px-3 py-1.5 text-sm rounded-lg border border-white/20 text-white hover:bg-white/10 disabled:opacity-25 disabled:cursor-not-allowed"
+          >
+            Add selected ({selectedRows.length})
+          </button>
+          <button
+            onClick={() => add(addable.map((r) => r.player))}
+            disabled={addable.length === 0}
+            className="px-3 py-1.5 text-sm rounded-lg bg-white text-black font-semibold hover:bg-white/90 disabled:opacity-25 disabled:cursor-not-allowed"
+          >
+            Add all {addable.length}
+          </button>
+        </div>
+      </div>
+
+      {rows.length === 0 ? (
+        <p className="text-white/30 text-xs">No players match.</p>
+      ) : (
+        <div className="rounded-lg border border-white/[0.07] overflow-x-auto">
+          <table className="w-full text-xs text-white/70">
+            <thead className="text-white/35 text-[10px] uppercase tracking-wider">
+              <tr className="border-b border-white/[0.07]">
+                <th className="w-8 px-2 py-2">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all"
+                    checked={allSelected}
+                    disabled={addable.length === 0}
+                    onChange={() =>
+                      setSelected(
+                        allSelected ? new Set() : new Set(addable.map((r) => r.player.id))
+                      )
+                    }
+                  />
+                </th>
+                <th className="text-left px-2 py-2">Player</th>
+                <th className="text-left px-2 py-2">Team</th>
+                <th className="text-right px-2 py-2">Age</th>
+                <th className="text-right px-2 py-2">Salary</th>
+                <th className="text-right px-2 py-2">PPG</th>
+                <th className="text-right px-2 py-2">RPG</th>
+                <th className="text-right px-2 py-2">APG</th>
+                <th className="text-right px-2 py-2">GP</th>
+                <th className="w-16 px-2 py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((row) => {
+                const id = row.player.id;
+                const name = playerName(row.player);
+                return (
+                  <tr
+                    key={id}
+                    className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.03]"
+                  >
+                    <td className="px-2 py-1.5 text-center">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${name}`}
+                        checked={!row.inPool && selected.has(id)}
+                        disabled={row.inPool}
+                        onChange={() => toggle(id)}
+                      />
+                    </td>
+                    <td className="px-2 py-1.5 text-white">{name}</td>
+                    <td className="px-2 py-1.5">{teamLabel(row.team)}</td>
+                    <td className="px-2 py-1.5 text-right">{row.age ?? '—'}</td>
+                    <td className="px-2 py-1.5 text-right">{formatSalary(row.salary)}</td>
+                    <td className="px-2 py-1.5 text-right">{statLabel(row.stats, 'PTS')}</td>
+                    <td className="px-2 py-1.5 text-right">{statLabel(row.stats, 'REB')}</td>
+                    <td className="px-2 py-1.5 text-right">{statLabel(row.stats, 'AST')}</td>
+                    <td className="px-2 py-1.5 text-right">
+                      {row.stats?.GP != null ? String(row.stats.GP) : '—'}
+                    </td>
+                    <td className="px-2 py-1.5 text-right">
+                      {row.inPool ? (
+                        <span className="inline-flex items-center gap-1 text-white/35">
+                          <Check className="w-3 h-3" /> In pool
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => add([row.player])}
+                          aria-label={`Add ${name}`}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/10 text-white hover:bg-white/20"
+                        >
+                          <Plus className="w-3 h-3" /> Add
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {rows.length > limit && (
+        <button
+          onClick={() => setLimit((n) => n + PAGE_SIZE)}
+          className="mt-2 text-xs text-white/50 hover:text-white"
+        >
+          Show {Math.min(PAGE_SIZE, rows.length - limit)} more of {rows.length - limit}
+        </button>
+      )}
+    </div>
+  );
+};

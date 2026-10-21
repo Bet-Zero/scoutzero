@@ -17,43 +17,47 @@ const getDocMock = vi.fn(
 vi.mock('firebase/firestore', async (importOriginal) => ({
   ...(await importOriginal<typeof import('firebase/firestore')>()),
   getDoc: (ref: { playerId: string }) => getDocMock(ref),
+  getDocs: async () => ({ docs: [] }),
 }));
 vi.mock('@/data/firestorePaths', () => ({
   seasonRef: (playerId: string, seasonId: string) => ({ playerId, seasonId }),
+  contractsCol: (playerId: string) => ({ playerId }),
 }));
 
 import {
   getRecentPastSeasonCodes,
-  useSeasonStatLines,
-} from '@/features/ranker/hooks/useSeasonStatLines';
+  useSeasonViews,
+} from '@/features/ranker/hooks/useSeasonViews';
 
-describe('useSeasonStatLines', () => {
-  it('loads stats for a player swapped in while the count stays the same', async () => {
+describe('useSeasonViews', () => {
+  it('loads a player swapped in while the count stays the same', async () => {
     const season = getRecentPastSeasonCodes(1)[0];
     const { result, rerender } = renderHook(
-      ({ ids }) => useSeasonStatLines(season, ids),
+      ({ ids }) => useSeasonViews(season, ids),
       { initialProps: { ids: ['a', 'old'] } }
     );
-    await waitFor(() => expect(result.current.statsById?.has('old')).toBe(true));
+    await waitFor(() => expect(result.current.viewsById?.has('old')).toBe(true));
 
     rerender({ ids: ['a', 'new'] });
-    await waitFor(() => expect(result.current.statsById?.get('new')).toEqual({ PTS: 22, GP: 60 }));
+    await waitFor(() =>
+      expect(result.current.viewsById?.get('new')?.stats).toEqual({ PTS: 22, GP: 60 })
+    );
   });
 
   it('never returns the previous season while a new season loads', async () => {
     const [olderSeason, oldestSeason] = getRecentPastSeasonCodes(3).slice(1);
     holdSeason = oldestSeason;
     const { result, rerender } = renderHook(
-      ({ season }) => useSeasonStatLines(season, ['p1']),
+      ({ season }) => useSeasonViews(season, ['p1']),
       { initialProps: { season: olderSeason } }
     );
-    await waitFor(() => expect(result.current.statsById?.get('p1')?.PTS).toBe(10));
+    await waitFor(() => expect(result.current.viewsById?.get('p1')?.stats?.PTS).toBe(10));
 
     rerender({ season: oldestSeason });
-    expect(result.current.statsById).toBeNull();
+    expect(result.current.viewsById).toBeNull();
     expect(result.current.loading).toBe(true);
 
     releaseHeld?.();
-    await waitFor(() => expect(result.current.statsById?.get('p1')?.PTS).toBe(15));
+    await waitFor(() => expect(result.current.viewsById?.get('p1')?.stats?.PTS).toBe(15));
   });
 });
