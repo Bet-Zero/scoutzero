@@ -1,6 +1,7 @@
 // src/components/filters/FilterPanelCondensed.tsx
 
 import React from 'react';
+import { getUpcomingSeasonYears } from '@/constants/yearDefaults';
 import { MultiSelectFilter } from '@/shared/components/ui/filters/MultiSelectFilter';
 import { TeamListFull } from '@/constants/teamList';
 import {
@@ -69,7 +70,7 @@ export const FilterPanelCondensed = ({ filters, setFilters }: PlayerFilterPanelP
 
         <MultiSelectFilter
           value={filters.freeAgentYear || ''}
-          options={[2024, 2025, 2026, 2027, 2028, 2029]}
+          options={getUpcomingSeasonYears(6)}
           onChange={(val) => update('freeAgentYear', String(val))}
           allLabel="FA Year"
           containerClass="shrink-0"

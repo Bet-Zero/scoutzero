@@ -12,3 +12,9 @@ export function getSalaryYearOptions(): number[] {
 }
 
 export const SALARY_YEAR_OPTIONS: number[] = getSalaryYearOptions();
+
+// Upcoming season start years (free-agent classes, option years), beginning
+// with the current season so dropdowns never offer a season that has passed
+export function getUpcomingSeasonYears(count = 8): number[] {
+  return Array.from({ length: count }, (_, i) => DEFAULT_SALARY_YEAR + i);
+}

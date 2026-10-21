@@ -1,5 +1,6 @@
 // src/features/roster/AddPlayerDrawer/addPlayer/ContractFilters.tsx
 import React from 'react';
+import { getUpcomingSeasonYears } from '@/constants/yearDefaults';
 import { normalizeFreeAgentType } from '@/shared/utils/filtering';
 import type { AddPlayerFilters } from '@/shared/utils/filtering';
 import type { Dispatch, SetStateAction } from 'react';
@@ -8,6 +9,8 @@ type FilterProps = {
   filters: AddPlayerFilters;
   setFilters: Dispatch<SetStateAction<AddPlayerFilters>>;
 };
+
+const FREE_AGENT_YEAR_OPTIONS = getUpcomingSeasonYears(7);
 
 export const ContractFilters = ({ filters, setFilters }: FilterProps) => (
   <div className="p-2 space-y-3">
@@ -23,7 +26,7 @@ export const ContractFilters = ({ filters, setFilters }: FilterProps) => (
           className="w-full bg-[#2a2a2a] text-white px-2 py-1 rounded text-xs"
         >
           <option value="">Any</option>
-          {[2025, 2026, 2027, 2028, 2029, 2030, 2031].map((year) => (
+          {FREE_AGENT_YEAR_OPTIONS.map((year) => (
             <option key={year} value={year}>
               {year}
             </option>

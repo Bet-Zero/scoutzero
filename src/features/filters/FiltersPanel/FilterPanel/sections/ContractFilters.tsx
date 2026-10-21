@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getUpcomingSeasonYears } from '@/constants/yearDefaults';
 import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
 import type { PlayerFilterPanelProps } from '../../../filterTypes';
 
@@ -93,7 +94,7 @@ export const ContractFilters = ({ filters, setFilters }: PlayerFilterPanelProps)
             className="bg-[#2a2a2a] p-1 rounded"
           >
             <option value="">All</option>
-            {[2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032].map((year) => (
+            {getUpcomingSeasonYears().map((year) => (
               <option key={year} value={year}>
                 {year}
               </option>
@@ -134,7 +135,7 @@ export const ContractFilters = ({ filters, setFilters }: PlayerFilterPanelProps)
             className="bg-[#2a2a2a] p-1 rounded"
           >
             <option value="">Use Season</option>
-            {[2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032].map((year) => (
+            {getUpcomingSeasonYears().map((year) => (
               <option key={year} value={year}>
                 {year}-{String(year + 1).slice(-2)}
               </option>
