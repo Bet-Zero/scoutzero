@@ -143,4 +143,18 @@ describe('Roster Builder Helpers', () => {
 
     expect(salary).toBe(24_500_000);
   });
+
+  it('picks the current season from salariesByYear, not a past season', () => {
+    const salary = findSalaryForYear({
+      primaryContract: {
+        salariesByYear: [
+          { year: DEFAULT_SALARY_YEAR - 1, salary: 10_000_000 },
+          { year: DEFAULT_SALARY_YEAR, salary: 12_000_000 },
+          { season: `${DEFAULT_SALARY_YEAR + 1}-${String((DEFAULT_SALARY_YEAR + 2) % 100).padStart(2, '0')}`, salary: 14_000_000 },
+        ],
+      },
+    });
+
+    expect(salary).toBe(12_000_000);
+  });
 });

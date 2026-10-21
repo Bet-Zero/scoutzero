@@ -23,6 +23,7 @@ import {
   saveTierAsList,
   generateDefaultListName,
 } from '@/features/tierMaker/utils/saveAsListBridge';
+import { findSalaryForYear } from '@/features/roster/utils';
 import type { RosterDrawerPlayer } from '@/features/roster/utils';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
 import type { DraftStandard } from '@/features/tierMaker/hooks/useTierDraft';
@@ -161,9 +162,7 @@ export const TierMakerBoard = ({
           defenseSubroles: player.subRoles?.defense || [],
           shootingProfile: (player.shootingProfile || '').toLowerCase(),
           badges: player.badges || [],
-          salary: contractData?.salariesByYear?.find(
-            (s) => s.year === 2025 || String(s.season ?? '').startsWith('2025')
-          )?.salary,
+          salary: findSalaryForYear(player) ?? undefined,
           freeAgentYear:
             player.bio?.display?.freeAgentYear?.toString() ||
             contractData?.freeAgency?.freeAgentYear?.toString() ||

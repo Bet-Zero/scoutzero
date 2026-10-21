@@ -14,6 +14,7 @@ import { LocalDraftBanner } from './LocalDraftBanner';
 import { SavedSessionsPanel } from './SavedSessionsPanel';
 import { useRankerSession } from './hooks/useRankerSession';
 import type { PlayerList } from '@/firebase/listHelpers';
+import { findSalaryForYear } from '@/features/roster/utils';
 import type { RosterDrawerPlayer } from '@/features/roster/utils';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
 import type { HydratedRankerDraft } from './hooks/useRankerSession';
@@ -100,9 +101,7 @@ export const RankingBuilder = () => {
           defenseSubroles: player.subRoles?.defense || [],
           shootingProfile: (player.shootingProfile || '').toLowerCase(),
           badges: player.badges || [],
-          salary: contractData?.salariesByYear?.find(
-            (s) => s.year === 2025 || String(s.season ?? '').startsWith('2025')
-          )?.salary,
+          salary: findSalaryForYear(player) ?? undefined,
           freeAgentYear:
             player.bio?.display?.freeAgentYear?.toString() ||
             contractData?.freeAgency?.freeAgentYear?.toString() ||

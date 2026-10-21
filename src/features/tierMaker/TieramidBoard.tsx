@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
+import { findSalaryForYear } from '@/features/roster/utils';
 import { useTieramidRowOps } from './useTieramidRowOps';
 import { TieramidPlayerTile } from '@/features/tierMaker/TieramidPlayerTile';
 import {
@@ -117,9 +118,7 @@ export const TieramidBoard = ({
           defenseSubroles: player.subRoles?.defense || [],
           shootingProfile: (player.shootingProfile || '').toLowerCase(),
           badges: player.badges || [],
-          salary: contractData?.salariesByYear?.find(
-            (s) => s.year === 2025 || String(s.season ?? '').startsWith('2025')
-          )?.salary,
+          salary: findSalaryForYear(player) ?? undefined,
           freeAgentYear:
             player.bio?.display?.freeAgentYear?.toString() ||
             contractData?.freeAgency?.freeAgentYear?.toString() ||
