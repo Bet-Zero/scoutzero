@@ -15,7 +15,11 @@ const candidate = 'a'.repeat(40);
 const base = '4e192a99b6219654bb3e1ea2aa69bffed9c2f6b2';
 const inspectionExecutor = 'ee71a8bbfb334178c8bb147efec48f468b52ad38';
 const secret = 'public-synthetic-key-'.padEnd(64, 'x');
-const source = Buffer.from(JSON.stringify({ format: 'bze321-source-proof-v1', changes: [{}, {}, {}] }));
+const source = Buffer.from(JSON.stringify({ format: 'bze321-source-proof-v1', changes: [
+  { path: 'synthetic/existing', before: { label: 'old', untouched: { x: 1 }, nullable: null, deleted: true }, after: { label: 'new', untouched: { x: 1 }, nullable: null, added: null } },
+  { path: 'synthetic/absent', before: null, after: { value: null } },
+  { path: 'synthetic/unchanged', before: { value: 1 }, after: { value: 1 } },
+] }));
 const marker = 'private-test-evidence-must-not-appear-in-output';
 function fixture() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'source-review-test-'));
@@ -61,6 +65,7 @@ test('private reviewer stays read-only, protected, silent and distinct from the 
   assert.doesNotMatch(workflow, /^\s+(id-token|contents|pull-requests|issues|actions): write/m);
   assert.doesNotMatch(workflow, /google-github-actions|SCOUTZERO_GCP|npm ci|node --|show_full_output: 'true'/);
   assert.match(workflow, /--allowedTools "Read,Glob,Grep"/);
+  assert.match(workflow, /--tools "Read,Glob,Grep"/);
   assert.match(workflow, /show_full_output: 'false'/);
   assert.match(workflow, /display_report: 'false'/);
   assert.match(workflow, /path: \$\{\{ runner.temp \}\}\/source-private-review.cms/);
@@ -81,12 +86,23 @@ test('private input uses real encryption; rejects wrong key, hashes, oversized i
     const read = (name: string) => fs.readFileSync(path.join(f.dir,'source-private-review',name),'utf8');
     const packet = JSON.parse(read('evidence.json'));
     assert.deepEqual(JSON.parse(read('installation-readable.json')), JSON.parse(source.toString()));
+    assert.deepEqual(JSON.parse(read('field-deltas.json')), [
+      { path: 'synthetic/existing', beforeExists: true, unchangedFields: ['nullable', 'untouched'], changedFields: {
+        added: { beforePresent: false, afterPresent: true, after: null },
+        deleted: { beforePresent: true, afterPresent: false, before: true },
+        label: { beforePresent: true, afterPresent: true, before: 'old', after: 'new' },
+      } },
+      { path: 'synthetic/absent', beforeExists: false, unchangedFields: [], changedFields: {
+        value: { beforePresent: false, afterPresent: true, after: null },
+      } },
+      { path: 'synthetic/unchanged', beforeExists: true, unchangedFields: ['value'], changedFields: {} },
+    ]);
     assert.deepEqual(JSON.parse(read('qualification.json')), Object.fromEntries(Object.entries(packet).filter(([k]) => k !== 'sourceHtml')));
     assert.equal(read('source.html'), packet.sourceHtml);
     assert.equal(hash(read('source.html')), packet.sourceSha256);
     assert.equal(read('source-readable.html'), packet.sourceHtml.replaceAll('><', '>\n<'));
     assert.ok(read('source-readable.html').split('\n').length > 1);
-    for (const name of ['installation-readable.json','qualification.json','source.html','source-readable.html']) {
+    for (const name of ['installation-readable.json','field-deltas.json','qualification.json','source.html','source-readable.html']) {
       assert.equal(fs.statSync(path.join(f.dir,'source-private-review',name)).mode & 0o777, 0o600);
     }
     assert.ok(!good.stdout.includes(marker) && !good.stdout.includes(secret));

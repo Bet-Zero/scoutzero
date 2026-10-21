@@ -71,6 +71,16 @@ executed. Inline reviewed transport code handles data only. Claude has Read,
 Glob and Grep, and both full-output and report-summary logging are disabled.
 Debug mode fails before materializing private inputs.
 
+Expose only those three built-ins with `--tools "Read,Glob,Grep"` in addition to
+`--allowedTools`. The allowlist alone did not remove Bash from the tool list:
+private run `39554620116` attempted six prohibited shell calls and correctly
+failed closed. Its complete original encrypted report was recovered, verified
+and decrypted through the existing private Linear route; its apparent ACCEPT
+is diagnostic only. The private `field-deltas.json` view now supplies exact
+changed values, presence flags and unchanged field names without shell parsing.
+Original inputs remain authoritative and the checker selects its own checks.
+See [the bounded repair and follow-ups](../../work/bze-321/PRIVATE_REVIEW_REPAIR.md).
+
 Start the private reviewer with an actual `workflow_dispatch`, using its
 registered workflow ID and the frozen feature-branch ref. The pinned Claude
 action's `src/github/context.ts` accepts dispatch but rejects `push` before

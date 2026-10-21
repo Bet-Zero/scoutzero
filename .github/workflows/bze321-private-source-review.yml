@@ -131,11 +131,25 @@ jobs:
               assert result.returncode==0 and len(result.stdout)<=4000000 and digest(result.stdout)==source_hash
               source=json.loads(result.stdout)
               assert source['format']=='bze321-source-proof-v1' and len(source['changes'])==3
+              # Navigation only: retain exact field values and presence, including
+              # null versus absent. Originals remain the authority for judgment.
+              deltas=[]
+              for change in source['changes']:
+                  before=change['before'] if change['before'] is not None else {}
+                  after=change['after']
+                  assert isinstance(before,dict) and isinstance(after,dict)
+                  changed=[k for k in sorted(set(before)|set(after)) if k not in before or k not in after or before[k]!=after[k]]
+                  deltas.append({'path':change['path'],'beforeExists':change['before'] is not None,
+                      'unchangedFields':sorted(k for k in before if k in after and before[k]==after[k]),
+                      'changedFields':{k:{'beforePresent':k in before,'afterPresent':k in after,
+                          **({'before':before[k]} if k in before else {}),
+                          **({'after':after[k]} if k in after else {})} for k in changed}})
               # These are data files for read-only judgment, never executable code.
               # Keep exact approved originals alongside lossless JSON views and
               # a whitespace-only HTML navigation copy for Read/Glob/Grep.
               views=[('installation.json',result.stdout),('evidence.json',evidence),
                      ('installation-readable.json',json.dumps(source,indent=2).encode()),
+                     ('field-deltas.json',json.dumps(deltas,indent=2).encode()),
                      ('qualification.json',json.dumps({k:v for k,v in packet.items() if k!='sourceHtml'},indent=2).encode()),
                      ('source.html',packet['sourceHtml'].encode()),
                      ('source-readable.html',packet['sourceHtml'].replace('><','>\n<').encode())]
@@ -171,6 +185,15 @@ jobs:
             line ranges and Grep for targeted underlying evidence; do not attempt shell commands to parse the
             single-line original JSON. Select your own probes, and report any material tool denial or evidence
             gap instead of repeatedly retrying denied tools. Return REVISE if that gap prevents qualification.
+            Only Read, Glob and Grep are exposed. No shell or other execution tool is available.
+            field-deltas.json is an author-generated exact top-level before/after navigation view, including
+            absent/null distinctions and unchanged field names. Challenge it with independently selected
+            reads of the originals; it is not independent proof. Hash/decryption checks are author transport
+            evidence already verified by the runner, not hashes you computed with read-only tools.
+            The previous private run 39554620116 failed closed on six prohibited Bash attempts; its apparent
+            ACCEPT is unusable. Do not repeat shell attempts or claim their unexecuted checks succeeded.
+            Judge the remaining source conclusions afresh. Check the two follow-ups and their bounded author
+            evidence in pr-head/work/bze-321/PRIVATE_REVIEW_REPAIR.md; widen only for a concrete concern.
             They bind the exact proposed three-record installation to the retained full original source HTML,
             accepted starting-position record and author claim map. Treat the claim map as claims to challenge.
             Judge identity, holder, explicit protection terms, effective date versus publication/capture date,
@@ -189,6 +212,7 @@ jobs:
             --add-dir pr-head
             --add-dir ${{ runner.temp }}/source-private-review
             --max-turns 40
+            --tools "Read,Glob,Grep"
             --allowedTools "Read,Glob,Grep"
             --json-schema '{"type":"object","properties":{"verdict":{"type":"string","enum":["ACCEPT","REVISE"]},"review_report":{"type":"string"},"findings":{"type":"array","items":{"type":"object","properties":{"severity":{"type":"string","enum":["blocking","non-blocking"]},"detail":{"type":"string"}},"required":["severity","detail"],"additionalProperties":false}},"validation":{"type":"array","items":{"type":"string"}},"scope_limits":{"type":"array","items":{"type":"string"}}},"required":["verdict","review_report","findings","validation","scope_limits"],"additionalProperties":false}'
       - name: Retain complete private judgment encrypted; publish no report text

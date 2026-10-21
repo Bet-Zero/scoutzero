@@ -1,5 +1,22 @@
 # BZE-321 continuation after the ordinary NBA refresh
 
+## October 21 private report recovery and tool repair
+
+The owner saved all five protected values and approved private run `39554620116`.
+Actual input reconstruction/decryption passed. The independent session completed,
+but six prohibited Bash attempts caused the result step to fail closed. The
+owner-returned encrypted original was recovered through private Linear; ZIP and
+complete plaintext digests match the worker, as do candidate and input bindings.
+The complete report was inspected. Its apparent ACCEPT is not usable acceptance.
+
+The [bounded repair](PRIVATE_REVIEW_REPAIR.md) exposes only Read/Glob/Grep and
+adds a private exact field-delta navigation view. Ciphertext, protected inputs,
+source facts, publisher/inspector pins and all approval/result checks stay
+unchanged. Author checks address the description consumer and absent LAC index;
+the reviewer still judges the factual conclusions afresh. No source/world writes
+or hosted GM acceptance occurred. Replacement exact-head CI/public review and
+protected private acceptance precede the separate source-publication gate.
+
 ## October 21 recovered inspection and renewed review inputs
 
 The owner-provided original ZIP was recovered and decrypted through the verified
