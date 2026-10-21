@@ -433,6 +433,7 @@ describe('bounded source publisher preparation', () => {
     // or repeat private qualification. Immutable routing remains checked above.
     expect(request.operation).toBe('none');
     expect(existsSync('.github/bze321-source-installation.json.gpg')).toBe(false);
+    expect(existsSync('.github/bze321-installation.json.gpg')).toBe(false);
     // A dormant request must not enter any credentialed worker.
     for (const name of ['operation', 'publication', 'source-publication']) {
       expect(caller.jobs[name].if).not.toContain("'none'");

@@ -9,11 +9,15 @@ log confirm the 11:29:02Z receipt: `documentWrites: 3`, `sourceVerified: true`,
 `rulesVerified: true`, and `existingReviewReleaseVerified: true`.
 The log and receipt are retained privately. No write replay occurred.
 
-Finalization removes `.github/bze321-source-installation.json.gpg`, sets the
-operation request to `none`, and disables the private qualification request.
+Finalization removes `.github/bze321-source-installation.json.gpg` and the retired
+`.github/bze321-installation.json.gpg`, sets the operation request to `none`, and
+disables the private qualification request. Ordinary NBA maintenance ciphertext
+and the public inspection certificate are unrelated and preserved.
 The phase regression requires dormant requests and absent ciphertext, retaining
 immutable routing, secret-handoff and protection checks. Ciphertext remains in
-public Git history; checkout deletion is not history erasure.
+public Git history; checkout deletion is not history erasure. Cleanup review
+`39592848093` accepted the initial source-input removal. Its inspection identified
+the older release input, now removed too before the replacement candidate freeze.
 
 Unchanged dependency acceptance: private factual qualification `39558428239`,
 encryption `39588462884`, fixture `39589250853`, activation `39590706950`, and

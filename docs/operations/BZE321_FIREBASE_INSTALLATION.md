@@ -5,7 +5,7 @@
 Protected source run `39590633749` succeeded on `fdb1feaf` using the unchanged
 immutable source worker. Its actual receipt verified all three source writes,
 Rules and the existing review release. The original log is retained privately.
-The current finalization removes encrypted input from the checkout and makes
+The current finalization removes both BZE-321 encrypted inputs from the checkout and makes
 both installation/private-review requests dormant; do not replay publication.
 Ciphertext remains in public Git history. Exact-head CI, focused cleanup review
 and genuine protected hosted GM verification remain required before landing.
