@@ -92,24 +92,25 @@ export const useSeasonStatLines = (
   playerIds: readonly string[]
 ): SeasonStatLinesState => {
   const isCurrent = seasonCode === CURRENT_SEASON_CODE;
-  const [state, setState] = useState<SeasonStatLinesState>({
-    statsById: null,
-    loading: false,
-    error: null,
-  });
   // Re-load when the set of players changes, not just its size
   const idsKey = playerIds.join('|');
+  const requestKey = `${seasonCode}\u0000${idsKey}`;
+  const [state, setState] = useState<
+    SeasonStatLinesState & { requestKey: string }
+  >({ statsById: null, loading: false, error: null, requestKey: '' });
 
   useEffect(() => {
     if (isCurrent) {
-      setState({ statsById: null, loading: false, error: null });
+      setState({ statsById: null, loading: false, error: null, requestKey });
       return;
     }
     let cancelled = false;
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+    setState({ statsById: null, loading: true, error: null, requestKey });
     loadSeasonStatLines(seasonCode, playerIds)
       .then((statsById) => {
-        if (!cancelled) setState({ statsById, loading: false, error: null });
+        if (!cancelled) {
+          setState({ statsById, loading: false, error: null, requestKey });
+        }
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -117,15 +118,22 @@ export const useSeasonStatLines = (
             statsById: null,
             loading: false,
             error: err instanceof Error ? err.message : String(err),
+            requestKey,
           });
         }
       });
     return () => {
       cancelled = true;
     };
-    // playerIds is captured through idsKey
+    // playerIds is captured through requestKey
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seasonCode, isCurrent, idsKey]);
+  }, [requestKey, isCurrent]);
 
-  return state;
+  // Until the effect catches up with a new season or player set, never hand
+  // back the previous request's stats
+  if (state.requestKey !== requestKey) {
+    return { statsById: null, loading: !isCurrent, error: null };
+  }
+  const { statsById, loading, error } = state;
+  return { statsById, loading, error };
 };

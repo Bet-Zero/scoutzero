@@ -36,6 +36,7 @@ export const PoolSourceControls = ({
         {/* By Team */}
         <div className="flex gap-2 flex-1 min-w-0">
           <select
+            aria-label="Team"
             value={selectedTeamId}
             onChange={(e) => setSelectedTeamId(e.target.value)}
             className="flex-1 min-w-0 appearance-none bg-white/[0.05] text-white text-sm px-3 py-2 rounded-lg border border-white/[0.1] focus:outline-none focus:border-white/25 transition-all cursor-pointer"
@@ -68,6 +69,7 @@ export const PoolSourceControls = ({
         {/* By List */}
         <div className="flex gap-2 flex-1 min-w-0">
           <select
+            aria-label="List"
             value={selectedList}
             onChange={(e) => setSelectedList(e.target.value)}
             className="flex-1 min-w-0 appearance-none bg-white/[0.05] text-white text-sm px-3 py-2 rounded-lg border border-white/[0.1] focus:outline-none focus:border-white/25 transition-all cursor-pointer"

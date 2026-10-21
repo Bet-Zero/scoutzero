@@ -1,10 +1,19 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-const getDocMock = vi.fn(async ({ playerId }: { playerId: string }) => ({
-  exists: () => true,
-  data: () => ({ stats: { PTS: playerId === 'new' ? 22 : 10, GP: 60 } }),
-}));
+let holdSeason: string | null = null;
+let releaseHeld: (() => void) | null = null;
+const getDocMock = vi.fn(
+  async ({ playerId, seasonId }: { playerId: string; seasonId: string }) => {
+    if (seasonId === holdSeason) {
+      await new Promise<void>((resolve) => {
+        releaseHeld = resolve;
+      });
+    }
+    const pts = playerId === 'new' ? 22 : seasonId === holdSeason ? 15 : 10;
+    return { exists: () => true, data: () => ({ stats: { PTS: pts, GP: 60 } }) };
+  }
+);
 vi.mock('firebase/firestore', async (importOriginal) => ({
   ...(await importOriginal<typeof import('firebase/firestore')>()),
   getDoc: (ref: { playerId: string }) => getDocMock(ref),
@@ -29,5 +38,22 @@ describe('useSeasonStatLines', () => {
 
     rerender({ ids: ['a', 'new'] });
     await waitFor(() => expect(result.current.statsById?.get('new')).toEqual({ PTS: 22, GP: 60 }));
+  });
+
+  it('never returns the previous season while a new season loads', async () => {
+    const [olderSeason, oldestSeason] = getRecentPastSeasonCodes(3).slice(1);
+    holdSeason = oldestSeason;
+    const { result, rerender } = renderHook(
+      ({ season }) => useSeasonStatLines(season, ['p1']),
+      { initialProps: { season: olderSeason } }
+    );
+    await waitFor(() => expect(result.current.statsById?.get('p1')?.PTS).toBe(10));
+
+    rerender({ season: oldestSeason });
+    expect(result.current.statsById).toBeNull();
+    expect(result.current.loading).toBe(true);
+
+    releaseHeld?.();
+    await waitFor(() => expect(result.current.statsById?.get('p1')?.PTS).toBe(15));
   });
 });
