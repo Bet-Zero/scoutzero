@@ -1,5 +1,6 @@
 import React from 'react';
 import type { RankerComparison, RankerPlayer } from './utils/rankingEngine';
+import { getPlayerName } from './utils/playerDisplay';
 
 type ComparisonResult = 'win' | 'loss';
 type ComparisonMatrixProps = {
@@ -22,6 +23,7 @@ export const ComparisonMatrix = ({
   });
 
   comparisons.forEach(({ winner, loser }: RankerComparison) => {
+    if (!comparisonMap[winner] || !comparisonMap[loser]) return;
     comparisonMap[winner][loser] = 'win';
     comparisonMap[loser][winner] = 'loss';
   });
@@ -37,7 +39,7 @@ export const ComparisonMatrix = ({
                 key={p.id}
                 className="border border-white/10 px-2 py-1 bg-black/40"
               >
-                {p.bio?.displayName || p.name}
+                {getPlayerName(p)}
               </th>
             ))}
           </tr>
@@ -46,7 +48,7 @@ export const ComparisonMatrix = ({
           {players.map((rowPlayer) => (
             <tr key={rowPlayer.id}>
               <td className="border border-white/10 px-2 py-1 bg-black/40 font-semibold">
-                {rowPlayer.bio?.displayName || rowPlayer.name}
+                {getPlayerName(rowPlayer)}
               </td>
               {players.map((colPlayer) => {
                 if (rowPlayer.id === colPlayer.id) {

@@ -11,8 +11,6 @@ import {
   doc,
   getDoc,
   getDocs,
-  limit,
-  orderBy,
   query,
   serverTimestamp,
   updateDoc,
@@ -32,6 +30,9 @@ const FirestoreTimestampLikeZ = z.union([
   z.object({ seconds: z.number(), nanoseconds: z.number() }),
   z.object({ _seconds: z.number(), _nanoseconds: z.number() }),
 ]);
+
+const SeedCountZ = z.number().int().nonnegative();
+const FinishedAtZ = z.number().nullable().optional();
 
 const RankerComparisonResultZ = z.object({
   winner: RankerPlayerIdZ,
@@ -61,6 +62,8 @@ const RankerSessionReadDocZ = z
     isFinished: z.boolean().default(false),
     skippedPairs: z.array(z.string().min(1)).default([]),
     adjustments: z.array(RankerPlayerIdZ).nullable().optional(),
+    seedCount: SeedCountZ.default(0),
+    finishedAt: FinishedAtZ,
     savedListId: z.string().min(1).nullable().optional(),
   });
 
@@ -74,6 +77,8 @@ const CreateRankerSessionInputZ = z.object({
   isFinished: z.boolean().default(false),
   skippedPairs: z.array(z.string().min(1)).default([]),
   adjustments: z.array(RankerPlayerIdZ).nullable().optional(),
+  seedCount: SeedCountZ.default(0),
+  finishedAt: FinishedAtZ,
   savedListId: z.string().min(1).nullable().optional(),
 });
 
@@ -86,6 +91,8 @@ const UpdateRankerSessionInputZ = z.object({
   isFinished: z.boolean().optional(),
   skippedPairs: z.array(z.string().min(1)).optional(),
   adjustments: z.array(RankerPlayerIdZ).nullable().optional(),
+  seedCount: SeedCountZ.optional(),
+  finishedAt: FinishedAtZ,
   savedListId: z.string().min(1).nullable().optional(),
 });
 
@@ -109,6 +116,8 @@ export type RankerSessionWriteDoc = {
   isFinished: boolean;
   skippedPairs: string[];
   adjustments: string[] | null;
+  seedCount: number;
+  finishedAt: number | null;
   savedListId?: string | null;
 };
 export type RankerSessionUpdatePayload = Partial<
@@ -139,6 +148,16 @@ const parseRankerSession = (id: string, data: unknown): RankerSession => {
     id,
     ...parsed.data,
   };
+};
+
+export const getTimestampMillis = (
+  value: RankerSessionTimestamp | undefined
+): number => {
+  if (!value) return 0;
+  if (typeof value === 'string') return Date.parse(value) || 0;
+  if (value instanceof Date) return value.getTime();
+  if ('seconds' in value) return value.seconds * 1000;
+  return value._seconds * 1000;
 };
 
 const assertOwnership = (ownerUid: string, userId: string): void => {
@@ -182,6 +201,8 @@ export const createRankerSession = async ({
   isFinished = false,
   skippedPairs = [],
   adjustments = null,
+  seedCount = 0,
+  finishedAt = null,
   savedListId,
 }: CreateRankerSessionInput): Promise<string> => {
   const parsedInput = CreateRankerSessionInputZ.parse({
@@ -194,6 +215,8 @@ export const createRankerSession = async ({
     isFinished,
     skippedPairs,
     adjustments,
+    seedCount,
+    finishedAt,
     savedListId,
   });
 
@@ -215,6 +238,8 @@ export const createRankerSession = async ({
     isFinished: parsedInput.isFinished,
     skippedPairs: parsedInput.skippedPairs,
     adjustments: parsedInput.adjustments ?? null,
+    seedCount: parsedInput.seedCount,
+    finishedAt: parsedInput.finishedAt ?? null,
   };
 
   if (parsedInput.savedListId !== undefined) {
@@ -260,6 +285,12 @@ export const updateRankerSession = async (
   if (parsedPatch.adjustments !== undefined) {
     sanitized.adjustments = parsedPatch.adjustments;
   }
+  if (parsedPatch.seedCount !== undefined) {
+    sanitized.seedCount = parsedPatch.seedCount;
+  }
+  if (parsedPatch.finishedAt !== undefined) {
+    sanitized.finishedAt = parsedPatch.finishedAt;
+  }
   if (parsedPatch.savedListId !== undefined) {
     sanitized.savedListId = parsedPatch.savedListId;
   }
@@ -275,28 +306,6 @@ export const getRankerSession = async (
   return session;
 };
 
-export const queryIncompleteRankerSessions = async (
-  userId: string | null | undefined,
-  maxResults = 5
-): Promise<RankerSession[]> => {
-  if (!userId) {
-    return [];
-  }
-
-  const q = query(
-    sessionsRef,
-    where('ownerUid', '==', userId),
-    where('isFinished', '==', false),
-    orderBy('updatedAt', 'desc'),
-    limit(maxResults)
-  );
-
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((rankerDoc) =>
-    parseRankerSession(rankerDoc.id, rankerDoc.data())
-  );
-};
-
 export const queryAllRankerSessions = async (
   userId: string | null | undefined,
   maxResults = 20
@@ -305,17 +314,14 @@ export const queryAllRankerSessions = async (
     return [];
   }
 
-  const q = query(
-    sessionsRef,
-    where('ownerUid', '==', userId),
-    orderBy('updatedAt', 'desc'),
-    limit(maxResults)
-  );
+  // Sorted in the app rather than with orderBy, so no composite index is needed
+  const q = query(sessionsRef, where('ownerUid', '==', userId));
 
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((rankerDoc) =>
-    parseRankerSession(rankerDoc.id, rankerDoc.data())
-  );
+  return snapshot.docs
+    .map((rankerDoc) => parseRankerSession(rankerDoc.id, rankerDoc.data()))
+    .sort((a, b) => getTimestampMillis(b.updatedAt) - getTimestampMillis(a.updatedAt))
+    .slice(0, maxResults);
 };
 
 export const deleteRankerSession = async (

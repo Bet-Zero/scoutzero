@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { RankerPlayer } from './utils/rankingEngine';
+import { getPlayerName } from './utils/playerDisplay';
 
 type PlayerButtonProps = {
   player: RankerPlayer;
@@ -15,7 +16,7 @@ const PlayerButton = ({ player, selected, onClick }: PlayerButtonProps) => (
       selected ? 'bg-blue-600 border-blue-400' : 'bg-white/10 border-white/20'
     }`}
   >
-    {player.bio?.displayName || player.name}
+    {getPlayerName(player)}
   </button>
 );
 
@@ -48,7 +49,7 @@ export const AnchorComparison = ({
     <div className="text-white p-4 max-w-[700px] mx-auto">
       <h2 className="text-2xl font-bold mb-4">Anchor Comparison</h2>
       <h3 className="font-semibold mb-2">
-        Select all players better than {anchor.bio?.displayName || anchor.name}
+        Select all players better than {getPlayerName(anchor)}
       </h3>
       <div className="flex flex-wrap gap-2 mb-4">
         {players.map((p) => (

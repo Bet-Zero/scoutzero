@@ -5,17 +5,21 @@ AdjustableRankings.tsx
 AnchorComparison.tsx
 ComparisonMatrix.tsx
 ComparisonMatrixDrawer.tsx
+LocalDraftBanner.tsx
 PlayerCompareCard.tsx
+PoolCard.tsx
 RankingBuilder.tsx
 RankingResults.tsx
 RankingSession.tsx
 RankingSetup.tsx
+SaveSessionButton.tsx
+SavedSessionsPanel.tsx
 hooks/
   useRankerSession.ts
 index.ts
 ranker.css
-tournamentRanker.ts
 utils/
+  playerDisplay.ts
   rankerLocalDraft.ts
   rankingEngine.ts
   saveAsListBridge.ts

@@ -31,26 +31,32 @@ describe('ranking engine', () => {
     expect(ids).toEqual(['1', '3']);
   });
 
-  it('segments players and adjusts boundary', () => {
-    const allPlayers = [
-      { id: '1', name: 'Top' },
-      { id: '2', name: 'Upper' },
-      { id: '3', name: 'Anchor' },
-      { id: '4', name: 'Lower' },
-      { id: '5', name: 'Bottom' },
+  it('lets players break out of a wrong tier cutoff and slide into place', () => {
+    // Truth: 1 > 3 > 2 > 4, but 2 was tagged top tier and 3 was not
+    const tiered = [
+      { id: '1', group: 'top' },
+      { id: '2', group: 'top' },
+      { id: '3', group: 'upper' },
+      { id: '4', group: 'upper' },
     ];
     const comps = [
-      { winner: '2', loser: '3' },
-      { winner: '3', loser: '4' },
       { winner: '1', loser: '2' },
-      { winner: '4', loser: '2' },
+      { winner: '3', loser: '4' },
     ];
-    const ranking = generateRankingFromComparisons(comps, allPlayers, {
-      topTier: ['1'],
-      bottomTier: ['5'],
-      anchor: '3',
-    });
-    expect(ranking.map((p) => p.id)).toEqual(['1', '4', '3', '2', '5']);
+
+    // Edge check: worst of top vs best of the tier below
+    expect(suggestNextPair(comps, tiered).map((p) => p.id)).toEqual(['2', '3']);
+    comps.push({ winner: '3', loser: '2' });
+
+    // 3 broke out, so it keeps climbing and 2 keeps sinking until both lose/win
+    const next = suggestNextPair(comps, tiered).map((p) => p.id).sort();
+    expect([['1', '3'], ['2', '4']]).toContainEqual(next);
+    comps.push({ winner: '1', loser: '3' }, { winner: '2', loser: '4' });
+
+    expect(suggestNextPair(comps, tiered)).toEqual([]);
+    expect(
+      generateRankingFromComparisons(comps, tiered).map((p) => p.id)
+    ).toEqual(['1', '3', '2', '4']);
   });
 
   it('enforces group isolation with boundary stitching', () => {
@@ -76,6 +82,11 @@ describe('ranking engine', () => {
       { winner: '3', loser: '4' },
       { winner: '6', loser: '7' },
       { winner: '8', loser: '9' },
+      // Anchor answers: upper players beat the anchor, lower players lose
+      { winner: '3', loser: '5' },
+      { winner: '4', loser: '5' },
+      { winner: '5', loser: '6' },
+      { winner: '5', loser: '7' },
     ];
 
     const boundary1 = suggestNextPair(comps, groupPlayers);

@@ -4,7 +4,6 @@ import {
   deleteRankerSession,
   getRankerSession,
   queryAllRankerSessions,
-  queryIncompleteRankerSessions,
   updateRankerSession,
 } from '@/firebase/rankerHelpers';
 import {
@@ -52,6 +51,8 @@ describe('rankerHelpers', () => {
       anchorDone: false,
       isFinished: false,
       adjustments: null,
+      seedCount: 0,
+      finishedAt: null,
     });
 
     const fetched = await getRankerSession(sessionId, 'owner-1');
@@ -62,9 +63,13 @@ describe('rankerHelpers', () => {
       playerPoolIds: ['p1', 'p2', 'p3'],
     });
 
-    const incomplete = await queryIncompleteRankerSessions('owner-1', 10);
-    expect(incomplete).toHaveLength(1);
-    expect(incomplete[0]?.id).toBe(sessionId);
+    const beforeFinish = await queryAllRankerSessions('owner-1', 10);
+    expect(beforeFinish).toHaveLength(1);
+    expect(beforeFinish[0]).toMatchObject({
+      id: sessionId,
+      isFinished: false,
+      seedCount: 0,
+    });
 
     await updateRankerSession(sessionId, 'owner-1', {
       isFinished: true,
@@ -85,9 +90,6 @@ describe('rankerHelpers', () => {
       isFinished: true,
       savedListId: 'list-9',
     });
-
-    const nowComplete = await queryIncompleteRankerSessions('owner-1', 10);
-    expect(nowComplete).toEqual([]);
 
     await deleteRankerSession(sessionId, 'owner-1');
     expect(getMockData(storedPath)).toBeUndefined();

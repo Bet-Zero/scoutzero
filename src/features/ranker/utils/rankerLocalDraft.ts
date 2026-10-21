@@ -23,6 +23,10 @@ type StoredRankerDraft = {
   anchorDone: boolean;
   isFinished: boolean;
   adjustments: string[] | null;
+  // Number of leading results that came from setup (lock-ins, anchor) rather
+  // than head-to-head picks; undo never goes below this.
+  seedCount: number;
+  finishedAt: number | null;
   draftUpdatedAt: number;
   firestoreSessionId: string | null;
   savedListId: string | null;
@@ -49,6 +53,9 @@ const DEBOUNCE_MS = 800;
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
+
+const isFiniteNumber = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
 
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
@@ -86,6 +93,8 @@ const normalizeStoredDraft = (value: unknown): StoredRankerDraft | null => {
     anchorDone: value.anchorDone === true,
     isFinished: value.isFinished === true,
     adjustments: isStringArray(value.adjustments) ? value.adjustments : null,
+    seedCount: isFiniteNumber(value.seedCount) ? value.seedCount : 0,
+    finishedAt: isFiniteNumber(value.finishedAt) ? value.finishedAt : null,
     draftUpdatedAt:
       typeof value.draftUpdatedAt === 'number' &&
       Number.isFinite(value.draftUpdatedAt)
@@ -107,25 +116,37 @@ const parseStoredDraft = (raw: string | null): StoredRankerDraft | null => {
   return normalizeStoredDraft(JSON.parse(raw));
 };
 
+// A patch field left `undefined` keeps the stored value; an explicit `null`
+// clears it.
+const pick = <T>(patchValue: T | undefined, existingValue: T | undefined, fallback: T): T =>
+  patchValue !== undefined ? patchValue : existingValue ?? fallback;
+
 const mergeDraftPatch = (
   existing: StoredRankerDraft | null,
   draftData: RankerDraftPatch
 ): StoredRankerDraft => ({
-  name: draftData.name ?? existing?.name ?? null,
-  playerPoolIds: draftData.playerPoolIds ?? existing?.playerPoolIds ?? [],
-  setupData: draftData.setupData ?? existing?.setupData ?? null,
-  results: draftData.results ?? existing?.results ?? [],
+  name: pick(draftData.name, existing?.name, null),
+  playerPoolIds: pick(draftData.playerPoolIds, existing?.playerPoolIds, []),
+  setupData: pick(draftData.setupData, existing?.setupData, null),
+  results: pick(draftData.results, existing?.results, []),
   skippedPairs: serializeSkippedPairs(
-    draftData.skippedPairs ?? existing?.skippedPairs
+    draftData.skippedPairs !== undefined
+      ? draftData.skippedPairs
+      : existing?.skippedPairs
   ),
-  anchorDone: draftData.anchorDone ?? existing?.anchorDone ?? false,
-  isFinished: draftData.isFinished ?? existing?.isFinished ?? false,
-  adjustments: draftData.adjustments ?? existing?.adjustments ?? null,
+  anchorDone: pick(draftData.anchorDone, existing?.anchorDone, false),
+  isFinished: pick(draftData.isFinished, existing?.isFinished, false),
+  adjustments: pick(draftData.adjustments, existing?.adjustments, null),
+  seedCount: pick(draftData.seedCount, existing?.seedCount, 0),
+  finishedAt: pick(draftData.finishedAt, existing?.finishedAt, null),
   draftUpdatedAt: Date.now(),
-  firestoreSessionId:
-    draftData.firestoreSessionId ?? existing?.firestoreSessionId ?? null,
-  savedListId: draftData.savedListId ?? existing?.savedListId ?? null,
-  savedListName: draftData.savedListName ?? existing?.savedListName ?? null,
+  firestoreSessionId: pick(
+    draftData.firestoreSessionId,
+    existing?.firestoreSessionId,
+    null
+  ),
+  savedListId: pick(draftData.savedListId, existing?.savedListId, null),
+  savedListName: pick(draftData.savedListName, existing?.savedListName, null),
 });
 
 const toLoadedDraft = (draft: StoredRankerDraft): LoadedRankerDraft => ({
@@ -163,9 +184,28 @@ export const loadLocalDraft = (): LoadedRankerDraft | null => {
 };
 
 /**
+ * Replace the stored draft outright (used when a new session starts, so
+ * nothing from a previous session can leak into it).
+ */
+export const replaceLocalDraft = (draft: RankerDraftPatch): void => {
+  cancelPendingDraftSave();
+  try {
+    sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(mergeDraftPatch(null, draft))
+    );
+  } catch (err) {
+    console.warn('[rankerLocalDraft] Failed to save draft:', err);
+  }
+};
+
+/**
  * Save draft to sessionStorage immediately, without debounce.
  */
 export const saveLocalDraftImmediate = (draftData: RankerDraftPatch): void => {
+  // Write any older debounced save first so it can't land later and
+  // overwrite this newer state
+  if (pendingDraft) flushPendingDraftSave();
   try {
     const existing = loadLocalDraftRaw();
     const merged = mergeDraftPatch(existing, draftData);
@@ -184,6 +224,7 @@ const loadLocalDraftRaw = (): StoredRankerDraft | null => {
 };
 
 export const clearLocalDraft = (): void => {
+  cancelPendingDraftSave();
   try {
     sessionStorage.removeItem(STORAGE_KEY);
   } catch (err) {
@@ -200,23 +241,37 @@ export const hasLocalDraft = (): boolean => {
 };
 
 let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
+let pendingDraft: RankerDraftPatch | null = null;
 
 export const saveLocalDraftDebounced = (draftData: RankerDraftPatch): void => {
   if (debounceTimeout) {
     clearTimeout(debounceTimeout);
   }
+  pendingDraft = draftData;
   debounceTimeout = setTimeout(() => {
-    saveLocalDraftImmediate(draftData);
     debounceTimeout = null;
+    flushPendingDraftSave();
   }, DEBOUNCE_MS);
 };
 
+/**
+ * Write any debounced save right now (e.g. before the page is hidden).
+ */
 export const flushPendingDraftSave = (): void => {
+  const draft = pendingDraft;
+  cancelPendingDraftSave();
+  if (draft) saveLocalDraftImmediate(draft);
+};
+
+/**
+ * Drop any debounced save without writing it.
+ */
+export const cancelPendingDraftSave = (): void => {
   if (debounceTimeout) {
     clearTimeout(debounceTimeout);
     debounceTimeout = null;
-    // Pending data is not retained here; callers still save immediately for critical writes.
   }
+  pendingDraft = null;
 };
 
 export const createInitialDraft = ({
@@ -232,6 +287,8 @@ export const createInitialDraft = ({
     anchorDone: false,
     isFinished: false,
     adjustments: null,
+    seedCount: 0,
+    finishedAt: null,
     draftUpdatedAt: Date.now(),
     firestoreSessionId: null,
     savedListId: null,

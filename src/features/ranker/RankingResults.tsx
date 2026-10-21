@@ -10,6 +10,12 @@ import {
 import { useImageDownload } from '@/shared/hooks/useImageDownload';
 import { AdjustableRankings } from './AdjustableRankings';
 import type { RankerPlayer } from './utils/rankingEngine';
+import {
+  getHeadshotSrc,
+  getLogoSrc,
+  getPlayerName,
+  getTeamLabel,
+} from './utils/playerDisplay';
 
 type SaveStatus = 'saving' | 'saved' | 'error' | null;
 type SavedListMeta = {
@@ -27,20 +33,6 @@ type RankingResultsProps = {
   onSaveAsList?: ((ranking: RankerPlayer[]) => void | Promise<unknown>) | null;
   saveAsListStatus?: SaveStatus;
   savedListMeta?: SavedListMeta | null;
-};
-
-const getPlayerName = (player: RankerPlayer) =>
-  player.bio?.displayName || player.display_name || player.name || '—';
-
-const getHeadshotSrc = (player: RankerPlayer) =>
-  player.headshot ||
-  player.headshotUrl ||
-  `/assets/headshots/${player.player_id || player.id}.png`;
-
-const getLogoSrc = (player: RankerPlayer) => {
-  const team = player.team;
-  if (!team) return null;
-  return `/assets/logos/${String(team).toLowerCase()}.png`;
 };
 
 // ─── Grid Card ────────────────────────────────────────────────────────────────
@@ -87,7 +79,7 @@ export const GridCard = ({ player, rank }: RankedColumnItem) => {
             />
           )}
           <span className="text-white/60 text-xs truncate">
-            {String(player.team || '—').toUpperCase()}
+            {getTeamLabel(player) ?? '—'}
           </span>
         </div>
       </div>
@@ -131,7 +123,7 @@ export const ListRow = ({ player, rank }: RankedColumnItem) => {
               }}
             />
           )}
-          <span>{String(player.team || '—').toUpperCase()}</span>
+          <span>{getTeamLabel(player) ?? '—'}</span>
         </div>
       </div>
     </div>
@@ -270,8 +262,10 @@ export const RankingResults = ({
             </>
           ) : (
             <>
-              <span className="hidden sm:inline">Save as List</span>
-              <span className="sm:hidden">Save</span>
+              <span className="hidden sm:inline">
+                {savedListMeta ? 'Update List' : 'Save as List'}
+              </span>
+              <span className="sm:hidden">{savedListMeta ? 'Update' : 'Save'}</span>
             </>
           )}
         </button>
