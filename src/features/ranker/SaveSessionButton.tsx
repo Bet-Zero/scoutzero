@@ -1,3 +1,15 @@
+/**
+ * FILE: src/features/ranker/SaveSessionButton.tsx
+ * PURPOSE: Owner-only button that saves a Player Ranker session to Firestore
+ * OWNERSHIP: Feature: ranker
+ *
+ * HISTORY:
+ *  - 2026-10-21: Created in the Player Ranker audit fix pass (PR #562)
+ *
+ * LINKS:
+ *  - PR: https://github.com/Bet-Zero/scoutzero/pull/562
+ *  - Used in: src/features/ranker/RankingSession.tsx
+ */
 import React from 'react';
 import { Save, CheckCircle, AlertCircle } from 'lucide-react';
 

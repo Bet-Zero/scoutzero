@@ -1,5 +1,15 @@
-// src/features/ranker/utils/playerDisplay.ts
-// Display helpers shared by the ranker screens.
+/**
+ * FILE: src/features/ranker/utils/playerDisplay.ts
+ * PURPOSE: Display helpers (name, headshot, team label, logo) shared by the ranker screens
+ * OWNERSHIP: Feature: ranker
+ *
+ * HISTORY:
+ *  - 2026-10-21: Created in the Player Ranker audit fix pass (PR #562)
+ *
+ * LINKS:
+ *  - PR: https://github.com/Bet-Zero/scoutzero/pull/562
+ *  - Used in: src/features/ranker/RankingResults.tsx, AdjustableRankings.tsx, RankingSetup.tsx, PlayerCompareCard.tsx
+ */
 import { getTeamLogoFilename } from '@/shared/utils/formatting/teamLogos';
 import type { RankerPlayer } from '@/features/ranker/utils/rankingEngine';
 

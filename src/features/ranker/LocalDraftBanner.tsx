@@ -1,3 +1,15 @@
+/**
+ * FILE: src/features/ranker/LocalDraftBanner.tsx
+ * PURPOSE: Resume/discard banner for the Player Ranker draft kept in this browser tab
+ * OWNERSHIP: Feature: ranker
+ *
+ * HISTORY:
+ *  - 2026-10-21: Created in the Player Ranker audit fix pass (PR #562)
+ *
+ * LINKS:
+ *  - PR: https://github.com/Bet-Zero/scoutzero/pull/562
+ *  - Used in: src/features/ranker/RankingBuilder.tsx
+ */
 import React from 'react';
 import { Play, Trash2, RotateCcw } from 'lucide-react';
 

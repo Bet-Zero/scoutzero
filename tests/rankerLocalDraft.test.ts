@@ -419,4 +419,27 @@ describe('draft replacement and clearing', () => {
       vi.useRealTimers();
     }
   });
+
+  it('an older debounced save cannot overwrite a newer immediate save', () => {
+    vi.useFakeTimers();
+    try {
+      saveLocalDraftImmediate({ playerPoolIds: ['p1', 'p2'], results: [] });
+      // Last pick autosaves the full (still unfinished) state...
+      saveLocalDraftDebounced({
+        results: [{ winner: 'p1', loser: 'p2' }],
+        isFinished: false,
+        finishedAt: null,
+      });
+      // ...then finishing writes immediately
+      saveLocalDraftImmediate({ isFinished: true, finishedAt: 123 });
+      vi.runAllTimers();
+
+      const loaded = loadLocalDraft();
+      expect(loaded.isFinished).toBe(true);
+      expect(loaded.finishedAt).toBe(123);
+      expect(loaded.results).toEqual([{ winner: 'p1', loser: 'p2' }]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

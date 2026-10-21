@@ -1,3 +1,15 @@
+/**
+ * FILE: src/features/ranker/SavedSessionsPanel.tsx
+ * PURPOSE: Owner-only list to reopen or delete Player Ranker sessions saved to Firestore
+ * OWNERSHIP: Feature: ranker
+ *
+ * HISTORY:
+ *  - 2026-10-21: Created in the Player Ranker audit fix pass (PR #562)
+ *
+ * LINKS:
+ *  - PR: https://github.com/Bet-Zero/scoutzero/pull/562
+ *  - Used in: src/features/ranker/RankingBuilder.tsx; data: src/firebase/rankerHelpers.ts
+ */
 import React from 'react';
 import { FolderOpen, Trash2 } from 'lucide-react';
 import { getTimestampMillis, type RankerSession } from '@/firebase/rankerHelpers';

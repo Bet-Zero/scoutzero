@@ -203,6 +203,9 @@ export const replaceLocalDraft = (draft: RankerDraftPatch): void => {
  * Save draft to sessionStorage immediately, without debounce.
  */
 export const saveLocalDraftImmediate = (draftData: RankerDraftPatch): void => {
+  // Write any older debounced save first so it can't land later and
+  // overwrite this newer state
+  if (pendingDraft) flushPendingDraftSave();
   try {
     const existing = loadLocalDraftRaw();
     const merged = mergeDraftPatch(existing, draftData);

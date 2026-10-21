@@ -372,6 +372,8 @@ export function useRankerSession(): UseRankerSessionResult {
         setLocalDraft(draft);
         setHasLocalSession(true);
         setFirestoreSessionId(sessionId);
+        setListSaveStatus(null);
+        setSavedListMeta(null);
 
         return {
           ...draft,
