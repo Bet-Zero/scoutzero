@@ -155,7 +155,7 @@ Read-only source collections: `players_v2`, `architect_basePlayers`,
 `architect_basePickRules`.
 
 Read-write user/app collections: `architect_worlds`, `lists`, `tierLists`,
-`rosterProjects`, and `freeAgents`.
+`rosterProjects`, `rankerSessions`, and `freeAgents`.
 
 Access `players_v2` hierarchically; do not flatten it:
 
