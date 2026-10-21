@@ -1,193 +1,70 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
 import { useFirebaseQuery } from '@/shared/hooks/useFirebaseQuery';
-import { useAuth } from '@/shared/hooks/useAuth';
 import { where } from 'firebase/firestore';
+import { LISTS_COLLECTION } from '@/constants/collections';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import { TeamListFull } from '@/constants/teamList';
 import { DrawerShell } from '@/shared/components/ui/drawers/DrawerShell';
 import { OpenDrawerButton } from '@/shared/components/ui/drawers/OpenDrawerButton';
 import { AddPlayerDrawer } from '@/features/roster/AddPlayerDrawer';
 import { RankingSession } from './RankingSession';
-import { TierPlayerTile } from '@/features/lists/TierPlayerTile';
+import { PoolCard } from './PoolCard';
+import { LocalDraftBanner } from './LocalDraftBanner';
+import { SavedSessionsPanel } from './SavedSessionsPanel';
 import { useRankerSession } from './hooks/useRankerSession';
-import { hasLocalDraft } from './utils/rankerLocalDraft';
-import { Clock, Play, Trash2, X, RotateCcw } from 'lucide-react';
 import type { PlayerList } from '@/firebase/listHelpers';
-import type { ListDisplayPlayer } from '@/features/lists/ListPreviewModal/ListExportWrapper';
 import type { RosterDrawerPlayer } from '@/features/roster/utils';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
 import type { HydratedRankerDraft } from './hooks/useRankerSession';
 
 type RankerPoolPlayer = RosterManagerPlayer;
-type RankerDraftBannerData = {
-  name?: string | null;
-  results?: unknown[] | null;
-  playerPoolIds?: string[] | null;
-  isFinished?: boolean | null;
-  draftUpdatedAt?: number | null;
-};
-
-// ─── Pool Card ────────────────────────────────────────────────────────────────
-
-export const PoolCard = ({
-  player,
-  onRemove,
-}: {
-  player: RankerPoolPlayer;
-  onRemove: (id: string) => void;
-}) => (
-  <div className="relative group">
-    <TierPlayerTile
-      player={
-        {
-          ...player,
-          team: String(player.team ?? player.bio?.display?.team ?? ''),
-          player_id: player.id,
-        } as ListDisplayPlayer
-      }
-    />
-    <button
-      onClick={() => onRemove(player.id)}
-      title="Remove player"
-      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-neutral-700 border border-white/20 text-white/50 hover:bg-red-600 hover:text-white hover:border-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 text-[10px] font-bold leading-none"
-    >
-      ✕
-    </button>
-  </div>
-);
-
-// ─── Local Draft Resume Banner ────────────────────────────────────────────────
-
-export const LocalDraftBanner = ({
-  draft,
-  onResume,
-  onStartNew,
-  onClear,
-  loading,
-}: {
-  draft: RankerDraftBannerData | null;
-  onResume: () => void;
-  onStartNew: () => void;
-  onClear: () => void;
-  loading: boolean;
-}) => {
-  if (!draft) return null;
-
-  const resultsCount = draft.results?.length || 0;
-  const playerCount = draft.playerPoolIds?.length || 0;
-  const isFinished = draft.isFinished || false;
-  const lastUpdated = draft.draftUpdatedAt
-    ? new Date(draft.draftUpdatedAt)
-    : null;
-
-  const formatDate = (date: Date | null) => {
-    if (!date) return 'unknown';
-    return date.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-  };
-
-  return (
-    <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-            <RotateCcw className="w-5 h-5 text-amber-400" />
-          </div>
-          <div>
-            <p className="text-white font-medium text-sm mb-0.5">
-              {isFinished
-                ? 'You have a completed ranking'
-                : 'You have an in-progress session'}
-            </p>
-            <p className="text-white/50 text-xs">
-              "{draft.name || 'Untitled'}" — {resultsCount} comparisons,{' '}
-              {playerCount} players
-            </p>
-            <p className="text-white/30 text-xs mt-0.5">
-              Last updated: {formatDate(lastUpdated)}
-            </p>
-          </div>
-        </div>
-      </div>
-      <div className="flex gap-2 mt-3 ml-13">
-        <button
-          onClick={onResume}
-          disabled={loading}
-          className="px-4 py-2 text-sm rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
-        >
-          <Play className="w-3.5 h-3.5" />
-          Resume
-        </button>
-        <button
-          onClick={onStartNew}
-          disabled={loading}
-          className="px-4 py-2 text-sm rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors disabled:opacity-50 flex items-center gap-1.5"
-        >
-          Start New
-        </button>
-        <button
-          onClick={() => {
-            if (
-              window.confirm(
-                'Clear this draft? You will lose all progress. This cannot be undone.'
-              )
-            ) {
-              onClear();
-            }
-          }}
-          disabled={loading}
-          className="px-4 py-2 text-sm rounded-lg bg-white/10 hover:bg-red-500/30 text-white/70 hover:text-red-300 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-          Clear
-        </button>
-      </div>
-    </div>
-  );
-};
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export const RankingBuilder = () => {
   const { players: allPlayers, loading } = useSimplePlayerData();
-  const { userId } = useAuth();
-  console.log('OWNER UID (from useAuth):', userId);
-
-  // Lists query (owner-scoped)
-  const ownerConstraints = useMemo(
-    () => (userId ? [where('ownerUid', '==', userId)] : []),
-    [userId]
-  );
-  const { data: listsData } = useFirebaseQuery<PlayerList>(
-    'lists',
-    ownerConstraints
-  );
 
   // Session hook - now local-first with optional Firestore for owners
   const {
+    userId,
     isOwner,
     localDraft,
     hasLocalSession,
     loadingFirestore,
+    firestoreSessions,
+    error: sessionError,
     saveStatus,
     listSaveStatus,
     savedListMeta,
     createLocalDraft,
     updateLocalDraft,
-    updateLocalDraftNow,
     loadAndHydrateLocalDraft,
     deleteLocalDraft,
     markFinished,
     saveAdjustments,
-    clearSession,
     saveToFirestore,
     saveAsList,
+    loadFromFirestore,
+    fetchFirestoreSessions,
+    deleteFirestoreSession,
   } = useRankerSession();
+
+  // Lists query (owner-scoped; skipped while signed out)
+  const ownerConstraints = useMemo(
+    () => (userId ? [where('ownerUid', '==', userId)] : []),
+    [userId]
+  );
+  const { data: listsData } = useFirebaseQuery<PlayerList>(
+    LISTS_COLLECTION,
+    ownerConstraints,
+    { enabled: Boolean(userId) }
+  );
+
+  // Owner-only: sessions saved to Firestore
+  useEffect(() => {
+    if (isOwner) void fetchFirestoreSessions();
+  }, [isOwner, fetchFirestoreSessions]);
 
   const processedPlayers = useMemo<Array<RosterDrawerPlayer<RosterManagerPlayer>>>(
     () =>
@@ -291,51 +168,92 @@ export const RankingBuilder = () => {
   const [resumedSessionData, setResumedSessionData] =
     useState<HydratedRankerDraft | null>(null);
   const [showLocalDraftBanner, setShowLocalDraftBanner] = useState(true);
+  const [resumeError, setResumeError] = useState<string | null>(null);
 
-  // Handle resuming from local draft
+  // Open a hydrated draft (from this tab or from Firestore) as the session
+  const startFromDraft = useCallback(
+    (hydratedDraft: HydratedRankerDraft | null) => {
+      if (!hydratedDraft) {
+        setResumeError('This ranking could not be loaded.');
+        return;
+      }
+
+      // Reconstruct pool from playerPoolIds using playersMap
+      const resumedPool = hydratedDraft.playerPoolIds
+        .map((id) => playersMap[id])
+        .filter((player): player is RosterManagerPlayer => Boolean(player));
+
+      if (resumedPool.length < 2) {
+        setResumeError(
+          'This ranking could not be loaded: fewer than 2 of its players are still available.'
+        );
+        return;
+      }
+
+      setResumeError(null);
+      setPool(resumedPool);
+      setResumedSessionData(hydratedDraft);
+      setStarted(true);
+    },
+    [playersMap]
+  );
+
   const handleResumeLocalDraft = useCallback(() => {
-    const hydratedDraft = loadAndHydrateLocalDraft();
-    if (!hydratedDraft) {
-      console.error('[RankingBuilder] Cannot resume: no valid local draft');
-      return;
-    }
+    startFromDraft(loadAndHydrateLocalDraft());
+  }, [loadAndHydrateLocalDraft, startFromDraft]);
 
-    // Reconstruct pool from playerPoolIds using playersMap
-    const resumedPool = hydratedDraft.playerPoolIds
-      .map((id) => playersMap[id])
-      .filter((player): player is RosterManagerPlayer => Boolean(player));
+  // Anything that replaces the tab's draft asks first
+  const confirmReplaceDraft = useCallback(
+    () =>
+      !hasLocalSession ||
+      !localDraft ||
+      window.confirm(
+        `This will replace your current ranking "${localDraft.name || 'Untitled'}" and its progress. Continue?`
+      ),
+    [hasLocalSession, localDraft]
+  );
 
-    if (resumedPool.length < 2) {
-      console.error('[RankingBuilder] Cannot resume: not enough players found');
-      return;
-    }
+  const handleOpenSavedSession = useCallback(
+    async (sessionId: string) => {
+      if (!confirmReplaceDraft()) return;
+      startFromDraft(await loadFromFirestore(sessionId));
+    },
+    [confirmReplaceDraft, loadFromFirestore, startFromDraft]
+  );
 
-    setPool(resumedPool);
-    setResumedSessionData(hydratedDraft);
-    setStarted(true);
-  }, [loadAndHydrateLocalDraft, playersMap]);
+  const handleDeleteSavedSession = useCallback(
+    (sessionId: string) => {
+      deleteFirestoreSession(sessionId).catch(() => {
+        // Error is surfaced through the hook's error state
+      });
+    },
+    [deleteFirestoreSession]
+  );
 
   // Handle starting a new session (creates local draft, NO Firestore)
   const handleStartNew = useCallback(() => {
     if (pool.length < 2) return;
+    if (!confirmReplaceDraft()) return;
 
     const playerPoolIds = pool.map((p) => p.id);
     createLocalDraft({ playerPoolIds });
     setResumedSessionData(null);
     setStarted(true);
-  }, [pool, createLocalDraft]);
+  }, [pool, createLocalDraft, confirmReplaceDraft]);
 
-  // Handle clearing local draft and starting fresh
-  const handleClearAndStartNew = useCallback(() => {
+  // Discard the tab's draft (the banner confirms first)
+  const handleDiscardDraft = useCallback(() => {
     deleteLocalDraft();
     setShowLocalDraftBanner(false);
   }, [deleteLocalDraft]);
 
-  // Handle just clearing the draft
-  const handleClearDraft = useCallback(() => {
-    deleteLocalDraft();
-    setShowLocalDraftBanner(false);
-  }, [deleteLocalDraft]);
+  // Leave the session; the draft stays available to resume from the banner
+  const handleExitSession = useCallback(() => {
+    setStarted(false);
+    setResumedSessionData(null);
+    setShowLocalDraftBanner(true);
+    if (isOwner) void fetchFirestoreSessions();
+  }, [isOwner, fetchFirestoreSessions]);
 
   const addPlayerToPool = (player: RosterManagerPlayer) => {
     setPool((prev) => {
@@ -392,9 +310,9 @@ export const RankingBuilder = () => {
         playerPool={pool}
         resumedSessionData={resumedSessionData}
         autosave={updateLocalDraft}
-        saveNow={updateLocalDraftNow}
         saveAdjustments={saveAdjustments}
         markFinished={markFinished}
+        onExit={handleExitSession}
         isOwner={isOwner}
         saveToFirestore={saveToFirestore}
         saveStatus={saveStatus}
@@ -448,9 +366,23 @@ export const RankingBuilder = () => {
             <LocalDraftBanner
               draft={localDraft}
               onResume={handleResumeLocalDraft}
-              onStartNew={handleClearAndStartNew}
-              onClear={handleClearDraft}
+              onDiscard={handleDiscardDraft}
               loading={loadingFirestore}
+            />
+          )}
+
+          {(resumeError || sessionError) && (
+            <p className="mb-5 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
+              {resumeError || sessionError}
+            </p>
+          )}
+
+          {isOwner && (
+            <SavedSessionsPanel
+              sessions={firestoreSessions}
+              loading={loadingFirestore}
+              onOpen={handleOpenSavedSession}
+              onDelete={handleDeleteSavedSession}
             />
           )}
 

@@ -2,15 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { InformationCircleIcon, ChevronDownIcon } from '@heroicons/react/20/solid';
 import type { RankerPlayer } from '@/features/ranker/utils/rankingEngine';
 import type { RankerSetupData } from './utils/rankerLocalDraft';
+import { getPlayerName } from './utils/playerDisplay';
 
-type RankerDisplayPlayer = RankerPlayer & {
-  bio?: { displayName?: string | null } | null;
-  display_name?: string | null;
-  name?: string | null;
-};
-
-const getPlayerName = (player: RankerDisplayPlayer) =>
-  player.bio?.displayName || player.display_name || player.name || '—';
+type RankerDisplayPlayer = RankerPlayer;
 
 // ─── Tooltip ──────────────────────────────────────────────────────────────────
 
@@ -61,6 +55,9 @@ type PlayerTileProps = {
   player: RankerDisplayPlayer;
   topSelected: boolean;
   bottomSelected: boolean;
+  // Reason the TOP / BOT button can't be pressed, or null when it can
+  topBlockedReason: string | null;
+  bottomBlockedReason: string | null;
   onToggleTop: () => void;
   onToggleBottom: () => void;
 };
@@ -69,6 +66,8 @@ const PlayerTile = ({
   player,
   topSelected,
   bottomSelected,
+  topBlockedReason,
+  bottomBlockedReason,
   onToggleTop,
   onToggleBottom,
 }: PlayerTileProps) => {
@@ -95,8 +94,9 @@ const PlayerTile = ({
         <button
           type="button"
           onClick={onToggleTop}
-          title="Mark as elite tier"
-          className={`px-1.5 h-5 rounded text-[10px] font-bold tracking-wide transition-all ${
+          disabled={Boolean(topBlockedReason)}
+          title={topBlockedReason ?? 'Mark as top tier'}
+          className={`px-1.5 h-5 rounded text-[10px] font-bold tracking-wide transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white/25 ${
             topSelected
               ? 'bg-emerald-500 text-white'
               : 'bg-transparent text-white/25 hover:bg-emerald-500/20 hover:text-emerald-400'
@@ -107,8 +107,9 @@ const PlayerTile = ({
         <button
           type="button"
           onClick={onToggleBottom}
-          title="Mark as bottom tier"
-          className={`px-1.5 h-5 rounded text-[10px] font-bold tracking-wide transition-all ${
+          disabled={Boolean(bottomBlockedReason)}
+          title={bottomBlockedReason ?? 'Mark as bottom tier'}
+          className={`px-1.5 h-5 rounded text-[10px] font-bold tracking-wide transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white/25 ${
             bottomSelected
               ? 'bg-red-500 text-white'
               : 'bg-transparent text-white/25 hover:bg-red-500/20 hover:text-red-400'
@@ -190,39 +191,68 @@ const SectionHeader = ({ label, hint, right = null }: SectionHeaderProps) => (
 export const RankingSetup = ({
   playerPool = [],
   onComplete,
-  existingSetupData = null,
 }: {
   playerPool?: RankerDisplayPlayer[];
   onComplete: (data: RankerSetupData) => void;
-  existingSetupData?: RankerSetupData | null;
 }) => {
-  const [topTier, setTopTier] = useState<string[]>(existingSetupData?.topTier || []);
-  const [bottomTier, setBottomTier] = useState<string[]>(existingSetupData?.bottomTier || []);
-  const [anchor, setAnchor] = useState<string | null>(existingSetupData?.anchor || null);
-  const [firstPlace, setFirstPlace] = useState<string | null>(
-    existingSetupData?.firstPlace || null
-  );
-  const [lastPlace, setLastPlace] = useState<string | null>(
-    existingSetupData?.lastPlace || null
-  );
+  const [topTier, setTopTier] = useState<string[]>([]);
+  const [bottomTier, setBottomTier] = useState<string[]>([]);
+  const [anchor, setAnchor] = useState<string | null>(null);
+  const [firstPlace, setFirstPlace] = useState<string | null>(null);
+  const [lastPlace, setLastPlace] = useState<string | null>(null);
 
   const tierCountEstimate = Math.max(1, Math.round(playerPool.length * 0.25));
 
+  // Players picked as anchor / #1 / last can't also be tier-tagged, and each
+  // of those roles needs a different player.
+  const roleOf = (id: string): string | null => {
+    if (id === anchor) return 'the anchor';
+    if (id === firstPlace) return 'locked in at #1';
+    if (id === lastPlace) return 'locked in at last place';
+    return null;
+  };
+
+  const getBlockedReason = (
+    id: string,
+    tier: string[],
+    label: 'Top' | 'Bottom'
+  ): string | null => {
+    if (tier.includes(id)) return null;
+    const role = roleOf(id);
+    if (role) return `This player is ${role}`;
+    if (tier.length >= tierCountEstimate) {
+      return `${label} tier is full (max ${tierCountEstimate})`;
+    }
+    return null;
+  };
+
   const handleToggleTop = (id: string) => {
-    // Moving from bottom → top: remove from bottom first
-    if (bottomTier.includes(id)) setBottomTier((prev) => prev.filter((p) => p !== id));
+    if (getBlockedReason(id, topTier, 'Top')) return;
+    setBottomTier((prev) => prev.filter((p) => p !== id));
     setTopTier((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id].slice(0, tierCountEstimate)
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );
   };
 
   const handleToggleBottom = (id: string) => {
-    // Moving from top → bottom: remove from top first
-    if (topTier.includes(id)) setTopTier((prev) => prev.filter((p) => p !== id));
+    if (getBlockedReason(id, bottomTier, 'Bottom')) return;
+    setTopTier((prev) => prev.filter((p) => p !== id));
     setBottomTier((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id].slice(0, tierCountEstimate)
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
     );
   };
+
+  // Giving a player a role removes any tier tag they had
+  const assignRole =
+    (setRole: (id: string | null) => void) => (id: string | null) => {
+      setRole(id);
+      if (!id) return;
+      setTopTier((prev) => prev.filter((p) => p !== id));
+      setBottomTier((prev) => prev.filter((p) => p !== id));
+    };
+
+  const optionsExcluding = (...ids: Array<string | null>) =>
+    playerPool.filter((p) => !ids.includes(p.id));
 
   const handleReady = () => {
     onComplete({ topTier, bottomTier, anchor, firstPlace, lastPlace });
@@ -241,21 +271,15 @@ export const RankingSetup = ({
         </h2>
         <p className="text-white/45 text-sm leading-relaxed">
           Give the engine a few hints before you start. Every section is optional — the more
-          you fill in, the fewer head-to-head comparisons you'll need to make.
+          you fill in, the fewer head-to-head comparisons you&apos;ll need to make.
         </p>
       </div>
-
-      {existingSetupData && (
-        <div className="mb-6 px-4 py-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-200/80 text-sm">
-          Previous setup loaded. Adjust anything or proceed as-is.
-        </div>
-      )}
 
       {/* ── Tier Tagging ─────────────────────────────────────────────────── */}
       <SectionCard className="mb-4" data-testid="tier-tagging">
         <SectionHeader
           label="Tier Tagging"
-          hint={`Tag players you're confident belong in the top or bottom 25% (~${tierCountEstimate}) of this pool. Tap ↑ for elite, ↓ for bottom. You can always change your mind.`}
+          hint={`Tag players you think belong in the top or bottom 25% (~${tierCountEstimate}) of this pool. Tap TOP or BOT. Tags don't need to be perfect: the engine checks each cutoff and moves anyone who was tagged wrong.`}
           right={
             <div className="flex gap-2 text-xs">
               <span
@@ -286,6 +310,8 @@ export const RankingSetup = ({
               player={p}
               topSelected={topTier.includes(p.id)}
               bottomSelected={bottomTier.includes(p.id)}
+              topBlockedReason={getBlockedReason(p.id, topTier, 'Top')}
+              bottomBlockedReason={getBlockedReason(p.id, bottomTier, 'Bottom')}
               onToggleTop={() => handleToggleTop(p.id)}
               onToggleBottom={() => handleToggleBottom(p.id)}
             />
@@ -301,8 +327,8 @@ export const RankingSetup = ({
         />
         <StyledSelect
           value={anchor}
-          onChange={setAnchor}
-          options={playerPool}
+          onChange={assignRole(setAnchor)}
+          options={optionsExcluding(firstPlace, lastPlace)}
           placeholder="No anchor selected"
         />
       </SectionCard>
@@ -320,8 +346,8 @@ export const RankingSetup = ({
             </p>
             <StyledSelect
               value={firstPlace}
-              onChange={setFirstPlace}
-              options={playerPool}
+              onChange={assignRole(setFirstPlace)}
+              options={optionsExcluding(anchor, lastPlace)}
               placeholder="None"
             />
           </div>
@@ -331,8 +357,8 @@ export const RankingSetup = ({
             </p>
             <StyledSelect
               value={lastPlace}
-              onChange={setLastPlace}
-              options={playerPool}
+              onChange={assignRole(setLastPlace)}
+              options={optionsExcluding(anchor, firstPlace)}
               placeholder="None"
             />
           </div>
@@ -345,12 +371,10 @@ export const RankingSetup = ({
           onClick={handleReady}
           className="w-full sm:w-auto px-10 py-3.5 rounded-xl bg-white text-black font-bold text-sm tracking-tight hover:bg-white/90 active:scale-[0.98] transition-all shadow-xl"
         >
-          {existingSetupData ? 'Update & Continue →' : 'Start Ranking →'}
+          Start Ranking →
         </button>
         <p className="text-white/25 text-xs text-center">
-          {existingSetupData
-            ? 'Changes apply immediately to your session.'
-            : 'All sections are optional — skip everything and dive straight in.'}
+          All sections are optional — skip everything and dive straight in.
         </p>
       </div>
 

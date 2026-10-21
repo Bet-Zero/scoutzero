@@ -314,6 +314,35 @@ const roster = await loadRosterProject(rosterId, userId);
 
 ---
 
+### `/rankerSessions/{sessionId}` - Saved Player Ranker Sessions
+
+**Status**: Active, owner-only in the app (`isOwnerUid`); rules are owner-scoped
+**Usage**: Head-to-head Player Ranker sessions saved with "Save to Firestore" and reopened from the builder's Saved Sessions panel. In-progress work otherwise lives only in the browser tab's `sessionStorage` draft (`ranker_draft_v1`).
+
+**Structure**:
+
+| Field           | Type                         | Default             | Notes                                                                                     |
+| --------------- | ---------------------------- | ------------------- | ----------------------------------------------------------------------------------------- |
+| `ownerUid`      | `string`                     | _(required)_        | Firebase Auth UID of the owner; cannot change on update                                   |
+| `schemaVersion` | `number`                     | `1`                 | Ranker session schema version                                                             |
+| `name`          | `string`                     | `Ranking YYYY-MM-DD`| Session display name                                                                      |
+| `playerPoolIds` | `string[]`                   | _(required, ≥ 2)_   | Players being ranked                                                                      |
+| `setupData`     | `object \| null`             | `null`              | `topTier`, `bottomTier`, `anchor`, `firstPlace`, `lastPlace` hints from setup             |
+| `results`       | `{ winner, loser }[]`        | `[]`                | All comparisons in order; the first `seedCount` came from setup (lock-ins / anchor)       |
+| `seedCount`     | `number`                     | `0`                 | Number of leading setup-generated results; undo never removes them                        |
+| `skippedPairs`  | `string[]`                   | `[]`                | Skipped matchups as `idA<>idB` keys                                                       |
+| `anchorDone`    | `boolean`                    | `false`             | Anchor step completed                                                                     |
+| `isFinished`    | `boolean`                    | `false`             | Ranking complete                                                                          |
+| `finishedAt`    | `number \| null`             | `null`              | Epoch ms when the ranking completed                                                       |
+| `adjustments`   | `string[] \| null`           | `null`              | Manually adjusted final order (player IDs)                                                |
+| `savedListId`   | `string \| null`             | _(optional)_        | List created from this ranking with "Save as List"; later saves update it                 |
+| `createdAt`     | `Timestamp`                  | `serverTimestamp()` | Set on creation                                                                           |
+| `updatedAt`     | `Timestamp`                  | `serverTimestamp()` | Updated on every write                                                                    |
+
+**Service Layer**: `src/firebase/rankerHelpers.ts` — `createRankerSession`, `getRankerSession`, `updateRankerSession`, `queryAllRankerSessions` (sorted client-side, no composite index), `deleteRankerSession`. All reads are Zod-validated and owner-checked.
+
+---
+
 ## Migration Context
 
 - **Completed**: `players` → `players_v2` (see `docs/migrations/players-v1-to-v2/`)

@@ -140,7 +140,10 @@ service cloud.firestore {
         && resource.data.ownerUid == request.auth.uid;
       allow create: if isAuthenticated()
         && request.resource.data.ownerUid == request.auth.uid;
-      allow update, delete: if isAuthenticated()
+      allow update: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if isAuthenticated()
         && resource.data.ownerUid == request.auth.uid;
     }
 

@@ -8,6 +8,9 @@ import {
   clearLocalDraft,
   hasLocalDraft,
   createInitialDraft,
+  replaceLocalDraft,
+  saveLocalDraftDebounced,
+  flushPendingDraftSave,
   __testing,
 } from '@/features/ranker/utils/rankerLocalDraft';
 import { isOwnerUid, getOwnerCount } from '@/config/ownerConfig';
@@ -357,5 +360,63 @@ describe('draft state transitions', () => {
 
     const secondLoad = loadLocalDraft();
     expect(secondLoad.draftUpdatedAt).toBeGreaterThan(firstTimestamp);
+  });
+});
+
+describe('draft replacement and clearing', () => {
+  const previousSession = () =>
+    saveLocalDraftImmediate({
+      ...createInitialDraft({ playerPoolIds: ['x1', 'x2', 'x3'] }),
+      firestoreSessionId: 'old-session',
+      savedListId: 'old-list',
+      savedListName: 'Old list',
+      adjustments: ['x3', 'x1', 'x2'],
+      setupData: { anchor: 'x2' },
+      seedCount: 2,
+    });
+
+  it('a new session does not inherit anything from the previous one', () => {
+    previousSession();
+    replaceLocalDraft(createInitialDraft({ playerPoolIds: ['n1', 'n2'] }));
+
+    const loaded = loadLocalDraft();
+    expect(loaded.playerPoolIds).toEqual(['n1', 'n2']);
+    expect(loaded.firestoreSessionId).toBeNull();
+    expect(loaded.savedListId).toBeNull();
+    expect(loaded.savedListName).toBeNull();
+    expect(loaded.adjustments).toBeNull();
+    expect(loaded.setupData).toBeNull();
+    expect(loaded.seedCount).toBe(0);
+  });
+
+  it('an explicit null clears a stored field, undefined keeps it', () => {
+    previousSession();
+    saveLocalDraftImmediate({ firestoreSessionId: null, adjustments: undefined });
+
+    const loaded = loadLocalDraft();
+    expect(loaded.firestoreSessionId).toBeNull();
+    expect(loaded.adjustments).toEqual(['x3', 'x1', 'x2']);
+  });
+
+  it('flushing writes a pending debounced save instead of dropping it', () => {
+    saveLocalDraftImmediate({ playerPoolIds: ['p1', 'p2'], results: [] });
+    saveLocalDraftDebounced({ results: [{ winner: 'p1', loser: 'p2' }] });
+    expect(loadLocalDraft().results).toEqual([]);
+
+    flushPendingDraftSave();
+    expect(loadLocalDraft().results).toEqual([{ winner: 'p1', loser: 'p2' }]);
+  });
+
+  it('clearing the draft cancels a pending debounced save', () => {
+    vi.useFakeTimers();
+    try {
+      saveLocalDraftImmediate({ playerPoolIds: ['p1', 'p2'], results: [] });
+      saveLocalDraftDebounced({ results: [{ winner: 'p1', loser: 'p2' }] });
+      clearLocalDraft();
+      vi.runAllTimers();
+      expect(loadLocalDraft()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

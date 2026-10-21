@@ -1,25 +1,17 @@
 import React, { useState, useCallback } from 'react';
 import { ChevronUp, ChevronDown, Save, X, Edit3 } from 'lucide-react';
 import type { RankerPlayer } from './utils/rankingEngine';
+import {
+  getHeadshotSrc,
+  getLogoSrc,
+  getPlayerName,
+  getTeamLabel,
+} from './utils/playerDisplay';
 
 type AdjustableRankingsProps = {
   initialRanking?: RankerPlayer[];
   onSave: (ranking: RankerPlayer[]) => void;
   onCancel: () => void;
-};
-
-const getPlayerName = (player: RankerPlayer) =>
-  player.bio?.displayName || player.display_name || player.name || '—';
-
-const getHeadshotSrc = (player: RankerPlayer) =>
-  player.headshot ||
-  player.headshotUrl ||
-  `/assets/headshots/${player.player_id || player.id}.png`;
-
-const getLogoSrc = (player: RankerPlayer) => {
-  const team = player.team;
-  if (!team) return null;
-  return `/assets/logos/${String(team).toLowerCase()}.png`;
 };
 
 export const AdjustableRankings = ({
@@ -173,7 +165,7 @@ export const AdjustableRankings = ({
                       }}
                     />
                   )}
-                  <span>{String(player.team || 'FA').toUpperCase()}</span>
+                  <span>{getTeamLabel(player) ?? 'FA'}</span>
                 </div>
               </div>
 

@@ -98,4 +98,54 @@ describe('ranker save as list bridge', () => {
     expect(payload.playerIds.every((id) => typeof id === 'string')).toBe(true);
     expect(payload.playerOrder.every((id) => typeof id === 'string')).toBe(true);
   });
+
+  it('updates the linked list instead of creating a duplicate', async () => {
+    const createListFn = vi.fn();
+    const saveListFn = vi.fn().mockResolvedValue(undefined);
+
+    const saved = await createRankerListFromRanking({
+      isOwner: true,
+      userId: 'owner_1',
+      sessionName: 'Top 10',
+      poolIds: ['p1', 'p2'],
+      existingListId: 'list_existing',
+      existingListName: 'Ranker — Top 10 — 2026-10-01',
+      currentRanking: ['p2', 'p1'],
+      createListFn,
+      saveListFn,
+    });
+
+    expect(createListFn).not.toHaveBeenCalled();
+    expect(saveListFn).toHaveBeenCalledWith(
+      'list_existing',
+      expect.objectContaining({ playerOrder: ['p2', 'p1'] }),
+      'owner_1'
+    );
+    expect(saved).toEqual({
+      listId: 'list_existing',
+      listName: 'Ranker — Top 10 — 2026-10-01',
+    });
+  });
+
+  it('creates a new list when the linked list was deleted', async () => {
+    const createListFn = vi.fn().mockResolvedValue('list_new');
+    const saveListFn = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Document not found.'))
+      .mockResolvedValue(undefined);
+
+    const saved = await createRankerListFromRanking({
+      isOwner: true,
+      userId: 'owner_1',
+      sessionName: 'Top 10',
+      poolIds: ['p1', 'p2'],
+      existingListId: 'list_gone',
+      currentRanking: ['p1', 'p2'],
+      createListFn,
+      saveListFn,
+    });
+
+    expect(createListFn).toHaveBeenCalledTimes(1);
+    expect(saved?.listId).toBe('list_new');
+  });
 });

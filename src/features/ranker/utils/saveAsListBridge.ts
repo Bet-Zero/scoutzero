@@ -24,6 +24,10 @@ type CreateRankerListFromRankingParams = ResolveFinalOrderParams & {
   userId?: string | null;
   sessionName?: string | null;
   poolIds?: RankerListItem[] | null;
+  // List already created from this session; it is updated instead of
+  // creating a duplicate.
+  existingListId?: string | null;
+  existingListName?: string | null;
   createListFn: CreateListFn;
   saveListFn: SaveListFn;
 };
@@ -70,6 +74,8 @@ export const createRankerListFromRanking = async ({
   userId,
   sessionName,
   poolIds,
+  existingListId,
+  existingListName,
   adjustments,
   currentRanking,
   createListFn,
@@ -79,6 +85,28 @@ export const createRankerListFromRanking = async ({
 
   const normalizedPoolIds = normalizePlayerIds(poolIds);
   const finalOrderIds = resolveFinalOrderIds({ adjustments, currentRanking });
+  const payload: RankerListPayload = {
+    playerOrder: finalOrderIds,
+    playerIds: normalizedPoolIds,
+    playerNotes: {},
+    description: 'Created from Ranker',
+  };
+
+  if (existingListId) {
+    try {
+      await saveListFn(existingListId, payload, userId);
+      return {
+        listId: existingListId,
+        listName: existingListName || buildRankerListName(sessionName),
+      };
+    } catch (err) {
+      // The linked list was deleted elsewhere; fall through and create a new one
+      if (getErrorMessage(err) !== 'Document not found.') {
+        throw new Error(`Failed to update list: ${getErrorMessage(err)}`);
+      }
+    }
+  }
+
   const listName = buildRankerListName(sessionName);
 
   let listId: string;
@@ -89,16 +117,7 @@ export const createRankerListFromRanking = async ({
   }
 
   try {
-    await saveListFn(
-      listId,
-      {
-        playerOrder: finalOrderIds,
-        playerIds: normalizedPoolIds,
-        playerNotes: {},
-        description: 'Created from Ranker',
-      },
-      userId
-    );
+    await saveListFn(listId, payload, userId);
   } catch (err) {
     throw new Error(`Failed to save list payload: ${getErrorMessage(err)}`);
   }
