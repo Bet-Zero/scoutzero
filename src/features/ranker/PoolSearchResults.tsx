@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-21: Created; replaces FilterMatchPreview (name chips with add-all only) (PR #565)
+ *  - 2026-10-22: Rank and score columns, and pre-ticked rows for the Top-N preset
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
@@ -24,6 +25,9 @@ export type PoolSearchRow = {
   salary: number | null;
   stats: Record<string, number | string | null | undefined> | null;
   inPool: boolean;
+  // Set by the Top-N preset: position by score, and the score itself
+  rank?: number;
+  score?: number;
 };
 
 const playerName = (player: RosterManagerPlayer): string =>
@@ -50,6 +54,8 @@ type PoolSearchResultsProps = {
   season: string;
   rows: PoolSearchRow[];
   onAdd: (players: RosterManagerPlayer[]) => void;
+  // Start with every row ticked (untick to leave a player out)
+  preselect?: boolean;
 };
 
 export const PoolSearchResults = ({
@@ -59,16 +65,25 @@ export const PoolSearchResults = ({
   season,
   rows,
   onAdd,
+  preselect = false,
 }: PoolSearchResultsProps) => {
-  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  // Ticked ids, or with `preselect` the unticked ones
+  const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set());
   const [limit, setLimit] = useState(PAGE_SIZE);
+  const [lastPreselect, setLastPreselect] = useState(preselect);
+  if (lastPreselect !== preselect) {
+    setLastPreselect(preselect);
+    setToggled(new Set());
+  }
+  const isSelected = (id: string) => toggled.has(id) !== preselect;
 
   const addable = useMemo(() => rows.filter((r) => !r.inPool), [rows]);
   // Only count selections that are still in the results and not yet added
   const selectedRows = useMemo(
-    () => addable.filter((r) => selected.has(r.player.id)),
-    [addable, selected]
+    () => addable.filter((r) => toggled.has(r.player.id) !== preselect),
+    [addable, toggled, preselect]
   );
+  const ranked = rows.some((r) => r.rank !== undefined);
 
   if (!active) {
     return (
@@ -91,10 +106,10 @@ export const PoolSearchResults = ({
   const add = (players: RosterManagerPlayer[]) => {
     if (players.length === 0) return;
     onAdd(players);
-    setSelected(new Set());
+    setToggled(new Set());
   };
   const toggle = (id: string) =>
-    setSelected((prev) => {
+    setToggled((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -145,13 +160,15 @@ export const PoolSearchResults = ({
                     aria-label="Select all"
                     checked={allSelected}
                     disabled={addable.length === 0}
-                    onChange={() =>
-                      setSelected(
-                        allSelected ? new Set() : new Set(addable.map((r) => r.player.id))
-                      )
-                    }
+                    onChange={() => {
+                      // Select all (or none): with preselect that's an empty
+                      // (or full) set of unticked ids
+                      const all = new Set(addable.map((r) => r.player.id));
+                      setToggled(allSelected === preselect ? all : new Set());
+                    }}
                   />
                 </th>
+                {ranked && <th className="text-right px-2 py-2">#</th>}
                 <th className="text-left px-2 py-2">Player</th>
                 <th className="text-left px-2 py-2">Team</th>
                 <th className="text-right px-2 py-2">Age</th>
@@ -160,6 +177,11 @@ export const PoolSearchResults = ({
                 <th className="text-right px-2 py-2">RPG</th>
                 <th className="text-right px-2 py-2">APG</th>
                 <th className="text-right px-2 py-2">GP</th>
+                {ranked && (
+                  <th className="text-right px-2 py-2" title="Game Score per game">
+                    Score
+                  </th>
+                )}
                 <th className="w-16 px-2 py-2" />
               </tr>
             </thead>
@@ -176,11 +198,14 @@ export const PoolSearchResults = ({
                       <input
                         type="checkbox"
                         aria-label={`Select ${name}`}
-                        checked={!row.inPool && selected.has(id)}
+                        checked={!row.inPool && isSelected(id)}
                         disabled={row.inPool}
                         onChange={() => toggle(id)}
                       />
                     </td>
+                    {ranked && (
+                      <td className="px-2 py-1.5 text-right text-white/40">{row.rank}</td>
+                    )}
                     <td className="px-2 py-1.5 text-white">{name}</td>
                     <td className="px-2 py-1.5">{teamLabel(row.team)}</td>
                     <td className="px-2 py-1.5 text-right">{row.age ?? '—'}</td>
@@ -191,6 +216,11 @@ export const PoolSearchResults = ({
                     <td className="px-2 py-1.5 text-right">
                       {row.stats?.GP != null ? String(row.stats.GP) : '—'}
                     </td>
+                    {ranked && (
+                      <td className="px-2 py-1.5 text-right">
+                        {row.score !== undefined ? row.score.toFixed(1) : '—'}
+                      </td>
+                    )}
                     <td className="px-2 py-1.5 text-right">
                       {row.inPool ? (
                         <span className="inline-flex items-center gap-1 text-white/35">
