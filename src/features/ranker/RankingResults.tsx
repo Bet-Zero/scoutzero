@@ -33,6 +33,9 @@ type RankingResultsProps = {
   onSaveAsList?: ((ranking: RankerPlayer[]) => void | Promise<unknown>) | null;
   saveAsListStatus?: SaveStatus;
   savedListMeta?: SavedListMeta | null;
+  // Top-N mode: the list size, and the players who didn't make it
+  topN?: number | null;
+  cutPlayers?: RankerPlayer[];
 };
 
 // ─── Grid Card ────────────────────────────────────────────────────────────────
@@ -139,6 +142,8 @@ export const RankingResults = ({
   onSaveAsList = null,
   saveAsListStatus = null,
   savedListMeta = null,
+  topN = null,
+  cutPlayers = [],
 }: RankingResultsProps) => {
   const [viewType, setViewType] = useState('list');
   const [isAdjustMode, setIsAdjustMode] = useState(false);
@@ -382,13 +387,36 @@ export const RankingResults = ({
 
       <div className="mt-6 mx-auto max-w-5xl px-4">
         <div className="flex flex-col items-center mb-4 mt-8 sm:mt-12 gap-3 sm:flex-row sm:justify-between sm:gap-4">
-          <h2 className="text-2xl font-bold text-white">Your Rankings</h2>
+          <h2 className="text-2xl font-bold text-white">
+            {topN ? `Your Top ${topN}` : 'Your Rankings'}
+          </h2>
           <div className="hidden sm:block">
             <ActionButtons />
           </div>
         </div>
 
         {viewType === 'grid' ? renderGrid() : renderList()}
+
+        {cutPlayers.length > 0 && (
+          <details className="mt-6 rounded-lg border border-white/[0.08] bg-white/[0.02] p-4">
+            <summary className="cursor-pointer text-sm text-white/60">
+              Didn&apos;t make your Top {topN} ({cutPlayers.length})
+            </summary>
+            <p className="mt-2 text-xs text-white/35">
+              Not ranked against each other; closest to making it first.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {cutPlayers.map((p) => (
+                <span
+                  key={p.id}
+                  className="px-2 py-0.5 rounded bg-white/[0.06] text-white/60 text-xs"
+                >
+                  {getPlayerName(p)}
+                </span>
+              ))}
+            </div>
+          </details>
+        )}
 
         {saveAsListStatus === 'saved' && savedListMeta?.listName && (
           <p className="mt-3 text-sm text-green-300 text-center">
