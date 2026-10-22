@@ -131,6 +131,20 @@ const loadSalaries = async (playerIds: readonly string[]) => {
   );
 };
 
+// Stat lines only (no contract reads), for players with a record that season
+export const loadSeasonStatLines = async (
+  seasonCode: string,
+  playerIds: readonly string[]
+): Promise<Map<string, SeasonStatLine>> => {
+  const docs = await loadSeasonDocs(seasonCode, playerIds);
+  const lines = new Map<string, SeasonStatLine>();
+  for (const id of playerIds) {
+    const stats = docs.get(id)?.stats;
+    if (stats) lines.set(id, stats);
+  }
+  return lines;
+};
+
 /**
  * Every player as of `seasonCode`. A player without a season record for it
  * (not in the league that season) is left out of the map.

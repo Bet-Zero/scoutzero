@@ -7,6 +7,7 @@
  *  - 2026-10-21: Created for the Player Ranker filter-based pool builder
  *  - 2026-10-21: Name search, click/select to add, and past seasons apply to team, age and salary as well as stats
  *  - 2026-10-21: Past-season age from date of birth (season docs rarely store one)
+ *  - 2026-10-22: Top-N preset: pull the N + buffer highest-scoring players (Game Score per game)
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
@@ -32,9 +33,12 @@ import {
   useSeasonViews,
   type SeasonView,
 } from './hooks/useSeasonViews';
+import { useImpactScores } from './hooks/useImpactScores';
+import { suggestedPoolSize } from './utils/playerImpact';
 import { PoolSearchResults, type PoolSearchRow } from './PoolSearchResults';
 
 export const DEFAULT_MIN_GAMES = 10;
+const TOP_N_PRESETS = [10, 20, 50, 100];
 const SEASON_OPTIONS = [CURRENT_SEASON_CODE, ...getRecentPastSeasonCodes(3)];
 
 type Candidate = RosterDrawerPlayer<RosterManagerPlayer>;
@@ -72,6 +76,13 @@ export const FilterPoolPanel = ({
   const [filters, setFilters] = useState(getDefaultAddPlayerFilters());
   const [season, setSeason] = useState(CURRENT_SEASON_CODE);
   const [minGames, setMinGames] = useState(DEFAULT_MIN_GAMES);
+  // Top-N preset: the list size, and how many candidates to pull for it
+  const [topN, setTopN] = useState<number | null>(null);
+  const [poolSize, setPoolSize] = useState(0);
+  const chooseTopN = (n: number | null) => {
+    setTopN(n);
+    if (n !== null) setPoolSize(suggestedPoolSize(n));
+  };
 
   const candidateIds = useMemo(() => candidates.map((p) => p.id), [candidates]);
   const isPastSeason = season !== CURRENT_SEASON_CODE;
@@ -96,12 +107,19 @@ export const FilterPoolPanel = ({
   const statFiltersActive = hasActiveStatFilters(filters);
   const anyFilter = hasActiveAddPlayerFilters(filters);
   const searchTerm = search.trim();
-  const active = anyFilter || searchTerm.length > 0;
+  const active = anyFilter || searchTerm.length > 0 || topN !== null;
+
+  const currentStatsById = useMemo(
+    () => new Map(candidates.map((c) => [c.id, c.original.currentSeasonStats])),
+    [candidates]
+  );
+  const impact = useImpactScores(season, candidateIds, currentStatsById, topN !== null);
+  const waitingForScores = topN !== null && !impact.scoresById;
 
   const rows = useMemo<PoolSearchRow[]>(() => {
-    if (!active || waitingForSeason) return [];
+    if (!active || waitingForSeason || waitingForScores) return [];
     const byId = new Map(candidates.map((c) => [c.id, c]));
-    return filterRosterDrawerPlayers(candidates, searchTerm, filters, {
+    const matches = filterRosterDrawerPlayers(candidates, searchTerm, filters, {
       seasonById: viewsById,
       minGames: statFiltersActive ? minGames : 0,
     }).flatMap((player) => {
@@ -111,7 +129,18 @@ export const FilterPoolPanel = ({
       const row = view ? { player, ...view } : currentRow(candidate);
       return [{ ...row, inPool: poolIds.has(player.id) }];
     });
-  }, [active, waitingForSeason, candidates, searchTerm, filters, viewsById, statFiltersActive, minGames, poolIds]);
+    const scores = impact.scoresById;
+    if (topN === null || !scores) return matches;
+    // Highest scorers first; players without enough games to score are left out
+    return matches
+      .flatMap((row) => {
+        const score = scores.get(row.player.id);
+        return score === undefined ? [] : [{ ...row, score }];
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, poolSize)
+      .map((row, index) => ({ ...row, rank: index + 1 }));
+  }, [active, waitingForSeason, waitingForScores, candidates, searchTerm, filters, viewsById, statFiltersActive, minGames, poolIds, topN, poolSize, impact.scoresById]);
 
   return (
     <div className="mb-5 p-5 rounded-xl bg-white/[0.03] border border-white/[0.07]">
@@ -166,6 +195,59 @@ export const FilterPoolPanel = ({
         </button>
       </div>
 
+      <div className="flex flex-wrap items-center gap-2 mb-3 text-xs text-white/60">
+        <span>Top-N pool</span>
+        {TOP_N_PRESETS.map((n) => (
+          <button
+            key={n}
+            onClick={() => chooseTopN(topN === n ? null : n)}
+            aria-pressed={topN === n}
+            className={`px-2.5 py-1 rounded-md border transition-colors ${
+              topN === n
+                ? 'border-white/60 bg-white/10 text-white'
+                : 'border-white/[0.1] hover:text-white'
+            }`}
+          >
+            Top {n}
+          </button>
+        ))}
+        {topN !== null && (
+          <>
+            <label className="flex items-center gap-1.5 ml-2">
+              Candidates
+              <input
+                type="number"
+                min={topN}
+                value={poolSize}
+                onChange={(e) =>
+                  setPoolSize(Math.max(topN, Number(e.target.value) || topN))
+                }
+                aria-label="Candidates to pull"
+                className="w-16 bg-[#2a2a2a] text-white px-2 py-1 rounded"
+              />
+            </label>
+            <button
+              onClick={() => chooseTopN(null)}
+              className="text-white/40 hover:text-white"
+            >
+              Clear
+            </button>
+          </>
+        )}
+      </div>
+
+      {topN !== null && (
+        <p className="text-white/40 text-xs mb-3">
+          The {poolSize} best by Game Score per game
+          {isPastSeason ? ` in ${season}` : ' (this season, leaning on last season until about 20 games are played)'}
+          , after any search or filters. A player&apos;s best of the three
+          seasons before counts too, so injured or down-year stars stay in.
+          Box scores still miss some players (defensive specialists,
+          rookies), so untick anyone who won&apos;t make your Top {topN} and
+          search to add anyone missing.
+        </p>
+      )}
+
       {isPastSeason && (
         <p className="text-white/40 text-xs mb-3">
           Team, age, salary and stats are as of {season}; players without a{' '}
@@ -199,8 +281,9 @@ export const FilterPoolPanel = ({
 
       <PoolSearchResults
         active={active}
-        loading={loading || waitingForSeason}
-        error={error}
+        loading={loading || waitingForSeason || impact.loading || waitingForScores}
+        error={error ?? impact.error}
+        preselect={topN !== null}
         season={season}
         rows={rows}
         onAdd={onAdd}

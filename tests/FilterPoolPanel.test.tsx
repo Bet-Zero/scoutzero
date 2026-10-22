@@ -182,4 +182,24 @@ describe('FilterPoolPanel', () => {
     const row = screen.getByText('Bench').closest('tr') as HTMLElement;
     expect(within(row).getByText('25')).toBeTruthy();
   });
+
+  it('Top-N preset pulls the best scorers, pre-ticked, to untick and add', async () => {
+    const onAdd = vi.fn();
+    render(<FilterPoolPanel candidates={candidates} poolIds={new Set()} onAdd={onAdd} />);
+
+    fireEvent.change(screen.getByLabelText('Season'), { target: { value: lastSeason() } });
+    fireEvent.click(screen.getByText('Top 10'));
+
+    // Scorer has no record that season; Vet's 24.4 PPG line scores highest
+    await waitFor(() => expect(screen.getByText('Add selected (4)')).toBeTruthy());
+    expect(screen.getByLabelText<HTMLInputElement>('Candidates to pull').value).toBe('26');
+    const firstRow = screen.getAllByRole('row')[1];
+    expect(within(firstRow).getByText('Vet')).toBeTruthy();
+    expect(within(firstRow).getByText('1')).toBeTruthy();
+    expect(screen.queryByText('Scorer')).toBeNull();
+
+    fireEvent.click(screen.getByLabelText('Select Bench'));
+    fireEvent.click(screen.getByText('Add selected (3)'));
+    expect(addedIds(onAdd)).toEqual(['Vet', 'Starter', 'Tiny Sample']);
+  });
 });
