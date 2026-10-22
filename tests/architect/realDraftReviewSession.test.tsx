@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useRealDraftReview } from '@/features/architect/tradeMachine/useRealDraftReview';
+import { reviewRealDraftSelection } from '@/features/architect/utils/draftPickRealReview';
 
 const session = vi.hoisted(() => ({
   user: null as null | { uid: string; getIdToken: () => Promise<string> },
@@ -10,6 +11,11 @@ vi.mock('@/shared/hooks/useAuth', () => ({ useAuth: () => session }));
 vi.mock('@/features/architect/utils/draftPickRealReview', () => ({
   loadRealDraftReview: vi.fn(async () => ({})),
   reviewRealDraftSelection: vi.fn(() => ({
+    apply: 'blocked',
+    tradingVerdict: 'not-evaluated',
+  })),
+  reviewRealDraftStartingPosition: vi.fn(() => ({
+    scope: 'retained-starting-position',
     apply: 'blocked',
     tradingVerdict: 'not-evaluated',
   })),
@@ -28,6 +34,24 @@ afterEach(() => {
 });
 
 describe('draft review session boundary', () => {
+  it('keeps missing world dates in the world review and exposes historical scope separately', async () => {
+    session.user = { uid: 'gm-a', getIdToken: async () => 'token-a' };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}')));
+    const view = renderHook(() =>
+      useRealDraftReview(teams, null, 'existing-world')
+    );
+    await waitFor(() =>
+      expect(view.result.current).toHaveProperty(
+        'startingPositionReview.scope',
+        'retained-starting-position'
+      )
+    );
+    expect(reviewRealDraftSelection).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ asOfDate: null })
+    );
+    expect(view.result.current).toHaveProperty('review.apply', 'blocked');
+  });
   it('waits for existing sign-in and sends its ID token only to the same-origin API', async () => {
     session.loading = true;
     const request = vi.fn().mockResolvedValue(new Response('{}'));

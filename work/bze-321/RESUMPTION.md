@@ -1,5 +1,64 @@
 # BZE-321 continuation after the ordinary NBA refresh
 
+## October 22 rendered-review and complete remaining-stage audit
+
+Owner-approved corrected run `39739153430`, job `119691902900`, passed staging
+and authenticated release integrity, then failed at `rendered-review` on
+`aa954156`. Temporary Auth cleanup succeeded (one created/deleted). The old
+phase-only receipt does not identify an individual failed assertion.
+
+The deterministic contract mismatch is reproduced by the actual derivation and
+panel tests: the fresh unsaved session has no world date; the world-date review
+correctly withholds ownership conclusions, while the old driver demanded a
+supported conclusion there. The missing/current-date guard is unchanged.
+The product now offers **Inspect retained starting position**, explicitly scoped
+to the verified release's own date. It never changes a world, current date,
+source fact or trade verdict. Historical inspection remains Apply-blocked and
+shows a historical-only warning. Returning restores the original date-limited
+review. New result objects/cancel-restage cannot reopen an old inspection.
+No synthetic world, session edit, production data write or source replay.
+
+The entire remaining proof is now exercised by one imported browser helper:
+
+| Surface | Retained or strengthened assertion |
+| --- | --- |
+| Release | Signed Firebase request, no-store, exact digest and 278/29 checks remain before the helper |
+| Initial panel | Starting-position label, Apply unavailable, exactly one qualified PHI 2028 row and exact label |
+| World date | Missing date stays withheld; no supported-current-world conclusion |
+| Historical inspection | Explicit action, historical-only warning, same qualified label, supported ownership, Apply unavailable |
+| Return | Original withheld world-date result restored |
+| Authentication | Both unsigned/invalid-token probes must be 401 |
+| Unavailable state | Cancel detaches panel, injected 503 renders the actual fixed error label and Apply safeguard |
+| Reload | Cancel again, reload, reopen Trade Machine, then require no stale panel |
+| Writes and cleanup | Zero forbidden operations; unchanged temporary Auth-account deletion/fail-closed cleanup |
+
+Every extracted assertion has a fixed non-sensitive failure code. Arbitrary
+exceptions/objects become `UNEXPECTED_HOSTED_FAILURE`; no UI, response body,
+credentials or claims are exported. Public real-browser tests exercise success
+and 18 broken contracts, including ownership/scope/auth/reset/write failures.
+Product tests exercise actual labels and explicit-view reset; derivation tests
+retain missing/later/earlier-date withholding, wrong-holder rejection, alias
+limits, verified-token binding and blocked Apply. These synthetic tests do not
+claim actual hosted success. No weaker pass or unchanged retry is requested.
+
+An automatic review rejected an unverified scripted rewrite. It was not applied;
+the extracted checks were validated first and integrated by an explicit patch.
+Independent delta review must judge assertion parity and the historical/current
+scope distinction. Existing source qualification/installation and retired-input
+cleanup are unchanged; all 278/29/world/history/NBA-data/no-Apply limits remain.
+Work may operate routine read-only verification approval as the owner's proxy
+under the new explicit delegation. Author/Codex still never self-approves;
+protection settings and publication/IAM/authentication authority are unchanged.
+Local validation passed: 17 derivation/policy tests, nine actual panel/session
+tests, and three real-browser tests (the remaining-stage case includes success
+plus 18 broken contracts). Typecheck, project validation, production build,
+targeted Markdown and diff checks pass. Existing bundle/externalization warnings
+remain; no full local suite or environment rebuild. Graph JSON was parsed;
+graphify CLI is unavailable, so no graph update/install was attempted.
+Freeze only after the comprehensive tests, then require exact-head CI/review and
+ready preview. Hand Work one corrected protected run; actual hosted success,
+normal landing, merged verification and authorized cleanup remain subsequent.
+
 ## October 22 hosted destination selector repair
 
 Owner-approved hosted run `39593277348`, job `119199277298`, failed on exact

@@ -5,6 +5,7 @@ import { mutationSnapshotText } from '@/features/architect/utils/mutationPipelin
 import {
   loadRealDraftReview,
   reviewRealDraftSelection,
+  reviewRealDraftStartingPosition,
   type RealDraftSelectionReview,
 } from '@/features/architect/utils/draftPickRealReview';
 
@@ -42,6 +43,7 @@ export function useRealDraftReview(
   const [result, setResult] = useState<{
     key: string;
     review?: RealDraftSelectionReview;
+    startingPositionReview?: ReturnType<typeof reviewRealDraftStartingPosition>;
     error?: string;
   } | null>(null);
   useEffect(() => {
@@ -70,7 +72,13 @@ export function useRealDraftReview(
           proposalSha256: digest,
           stateVersion: digest,
         });
-        if (!controller.signal.aborted) setResult({ key, review });
+        const startingPositionReview = reviewRealDraftStartingPosition(token, {
+          selections,
+          proposalSha256: digest,
+          stateVersion: digest,
+        });
+        if (!controller.signal.aborted)
+          setResult({ key, review, startingPositionReview });
       } catch (error) {
         if (!controller.signal.aborted)
           setResult({

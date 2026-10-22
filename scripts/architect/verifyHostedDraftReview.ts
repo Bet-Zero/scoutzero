@@ -10,13 +10,17 @@ import {
   hostedRequestPolicy,
   continueHostedRequest,
 } from './hostedDraftReviewPolicy.js';
+import {
+  requireHostedProof as requireProof,
+  hostedFailureCode,
+  verifyHostedReviewStages,
+  type HostedFailureCode,
+} from './hostedDraftReviewAssertions.js';
 
 // Only fixed, non-sensitive labels reach public Actions logs. Never retain
 // traces, HARs, cookies, screenshots, response bodies or raw exception messages.
 let phase = 'configuration';
-function requireProof(condition: unknown, code: string): asserts condition {
-  if (!condition) throw new Error(code);
-}
+let failureCode: HostedFailureCode = 'UNEXPECTED_HOSTED_FAILURE';
 async function main() {
   const origin = hostedPreviewOrigin(
     process.env.SCOUTZERO_HOSTED_PREVIEW || ''
@@ -120,6 +124,7 @@ async function main() {
             failed = true;
             authCaptureFailed = true;
             phase = 'temporary-auth-account-capture';
+            failureCode = 'TEMPORARY_AUTH_CAPTURE_FAILED';
           })
         );
       }
@@ -173,69 +178,22 @@ async function main() {
       release.records.length === 278 && release.unresolved.length === 29,
       'INVENTORY_MISMATCH'
     );
-    phase = 'rendered-review';
-    const panel = page.getByTestId('real-draft-review');
-    await panel.getByText(/Starting position:/).waitFor();
-    requireProof(
-      (await panel.innerText()).includes('Apply unavailable'),
-      'APPLY_SAFEGUARD_REQUIRED'
-    );
-    requireProof(
-      (await panel.locator('details').count()) > 0,
-      'REVIEW_ROWS_REQUIRED'
-    );
-    const qualified = release.records.filter(
-      (record: any) =>
-        record.ownership?.pick?.draftYear === 2028 &&
-        record.ownership?.claims?.some(
-          (claim: any) =>
-            claim.team === HOSTED_DRAFT_REVIEW_PRIMARY_TEAM &&
-            claim.status === 'owned-unconditionally'
-        )
-    );
-    requireProof(qualified.length === 1, 'QUALIFIED_PICK_REQUIRED');
-    const rendered = await panel.innerText();
-    requireProof(
-      (await panel.locator('details').count()) === 1 &&
-        rendered.includes(qualified[0].label) &&
-        rendered.includes('Recorded ownership: Supported for this team'),
-      'QUALIFIED_PICK_REVIEW_REQUIRED'
-    );
-
-    phase = 'application-authentication';
-    const statuses = await page.evaluate(async (path) => {
-      const a = await fetch(path, { cache: 'no-store' });
-      const b = await fetch(path, {
-        headers: { Authorization: 'Bearer invalid-verification-token' },
-        cache: 'no-store',
-      });
-      return [a.status, b.status];
-    }, reviewPath);
-    requireProof(
-      statuses.every((s) => s === 401),
-      'APP_AUTHENTICATION_NOT_ENFORCED'
-    );
-
-    phase = 'unavailable-and-selection-reset';
-    await stage(true);
-    await panel.waitFor({ state: 'detached' });
-    failedResponse = true;
-    await stage();
-    phase = 'render-unavailable-review';
-    await panel.getByText(/retained pick review is unavailable/).waitFor();
-    requireProof(
-      (await panel.innerText()).includes('Apply unavailable'),
-      'FAILURE_APPLY_SAFEGUARD_REQUIRED'
-    );
-    await stage(true);
-    await panel.waitFor({ state: 'detached' });
-    failedResponse = false;
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.getByRole('tab', { name: /^Trade Machine$/i }).waitFor();
-    requireProof((await panel.count()) === 0, 'STALE_REVIEW_AFTER_RELOAD');
-    requireProof(forbiddenRequests === 0, 'UNEXPECTED_NETWORK_OPERATION');
-  } catch {
+    await verifyHostedReviewStages({
+      page,
+      release,
+      primaryTeam: HOSTED_DRAFT_REVIEW_PRIMARY_TEAM,
+      stage,
+      setUnavailable: (value) => {
+        failedResponse = value;
+      },
+      setPhase: (value) => {
+        phase = value;
+      },
+      forbiddenRequests: () => forbiddenRequests,
+    });
+  } catch (error) {
     failed = true;
+    failureCode = hostedFailureCode(error);
   } finally {
     let deletedAccounts = 0;
     const captured = await Promise.allSettled(pendingAccounts);
@@ -243,6 +201,7 @@ async function main() {
       failed = true;
       authCaptureFailed = true;
       phase = 'temporary-auth-account-capture';
+      failureCode = 'TEMPORARY_AUTH_CAPTURE_FAILED';
     }
     // Delete only the fresh anonymous Auth account made by this empty browser
     // context. Never select, alter, or delete an existing user or saved world.
@@ -260,6 +219,7 @@ async function main() {
       if (!result?.ok) {
         failed = true;
         phase = 'temporary-auth-account-cleanup';
+        failureCode = 'TEMPORARY_AUTH_CLEANUP_FAILED';
       } else deletedAccounts++;
     }
     await context.close();
@@ -279,6 +239,8 @@ async function main() {
     JSON.stringify({
       candidate,
       hostedReview: true,
+      historicalStartingPosition: true,
+      worldDateFailClosed: true,
       releaseDigest: REAL_DRAFT_REVIEW_PIN.payloadSha256,
       entitlements: 278,
       unresolved: 29,
@@ -292,7 +254,11 @@ async function main() {
     })
   );
 }
-main().catch(() => {
-  console.error(JSON.stringify({ hostedReview: false, phase }));
+main().catch((error) => {
+  if (failureCode === 'UNEXPECTED_HOSTED_FAILURE')
+    failureCode = hostedFailureCode(error);
+  console.error(
+    JSON.stringify({ hostedReview: false, phase, code: failureCode })
+  );
   process.exitCode = 1;
 });
