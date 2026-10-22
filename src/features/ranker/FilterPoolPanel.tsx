@@ -8,6 +8,7 @@
  *  - 2026-10-21: Name search, click/select to add, and past seasons apply to team, age and salary as well as stats
  *  - 2026-10-21: Past-season age from date of birth (season docs rarely store one)
  *  - 2026-10-22: Top-N preset: pull the N + buffer highest-scoring players (Game Score per game)
+ *  - 2026-10-22: Top-N pool also takes the best paid, and lists the near misses to add by hand
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
@@ -34,7 +35,7 @@ import {
   type SeasonView,
 } from './hooks/useSeasonViews';
 import { useImpactScores } from './hooks/useImpactScores';
-import { suggestedPoolSize } from './utils/playerImpact';
+import { selectTopNCandidates, suggestedPoolSize } from './utils/playerImpact';
 import { PoolSearchResults, type PoolSearchRow } from './PoolSearchResults';
 
 export const DEFAULT_MIN_GAMES = 10;
@@ -116,8 +117,12 @@ export const FilterPoolPanel = ({
   const impact = useImpactScores(season, candidateIds, currentStatsById, topN !== null);
   const waitingForScores = topN !== null && !impact.scoresById;
 
-  const rows = useMemo<PoolSearchRow[]>(() => {
-    if (!active || waitingForSeason || waitingForScores) return [];
+  const { rows, nearMisses } = useMemo<{
+    rows: PoolSearchRow[];
+    nearMisses: PoolSearchRow[];
+  }>(() => {
+    const none = { rows: [], nearMisses: [] };
+    if (!active || waitingForSeason || waitingForScores) return none;
     const byId = new Map(candidates.map((c) => [c.id, c]));
     const matches = filterRosterDrawerPlayers(candidates, searchTerm, filters, {
       seasonById: viewsById,
@@ -130,16 +135,14 @@ export const FilterPoolPanel = ({
       return [{ ...row, inPool: poolIds.has(player.id) }];
     });
     const scores = impact.scoresById;
-    if (topN === null || !scores) return matches;
-    // Highest scorers first; players without enough games to score are left out
-    return matches
-      .flatMap((row) => {
-        const score = scores.get(row.player.id);
-        return score === undefined ? [] : [{ ...row, score }];
-      })
-      .sort((a, b) => b.score - a.score)
-      .slice(0, poolSize)
-      .map((row, index) => ({ ...row, rank: index + 1 }));
+    if (topN === null || !scores) return { rows: matches, nearMisses: [] };
+    // Best by stats plus best paid, so nobody who could make the list is missing
+    const { pool, nearMisses: next } = selectTopNCandidates(
+      matches.map((row) => ({ ...row, id: row.player.id })),
+      scores,
+      poolSize
+    );
+    return { rows: pool, nearMisses: next };
   }, [active, waitingForSeason, waitingForScores, candidates, searchTerm, filters, viewsById, statFiltersActive, minGames, poolIds, topN, poolSize, impact.scoresById]);
 
   return (
@@ -238,13 +241,13 @@ export const FilterPoolPanel = ({
 
       {topN !== null && (
         <p className="text-white/40 text-xs mb-3">
-          The {poolSize} best by Game Score per game
+          Everyone in the top {poolSize} by Game Score per game
           {isPastSeason ? ` in ${season}` : ' (this season, leaning on last season until about 20 games are played)'}
-          , after any search or filters. A player&apos;s best of the three
-          seasons before counts too, so injured or down-year stars stay in.
-          Box scores still miss some players (defensive specialists,
-          rookies), so untick anyone who won&apos;t make your Top {topN} and
-          search to add anyone missing.
+          , plus everyone in the top {poolSize} by salary, after any search or
+          filters. A player&apos;s best of the three seasons before counts too,
+          and pay catches stars box scores undervalue (defense, injuries).
+          Untick anyone who won&apos;t make your Top {topN}, and check the
+          &ldquo;just missed&rdquo; list underneath for anyone else.
         </p>
       )}
 
@@ -286,6 +289,7 @@ export const FilterPoolPanel = ({
         preselect={topN !== null}
         season={season}
         rows={rows}
+        nearMisses={nearMisses}
         onAdd={onAdd}
       />
     </div>

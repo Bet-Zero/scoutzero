@@ -14,6 +14,7 @@ import {
   blendedImpactScore,
   gameScorePerGame,
   recentPeakScore,
+  selectTopNCandidates,
   suggestedPoolSize,
 } from '@/features/ranker/utils/playerImpact';
 import { loadImpactScores } from '@/features/ranker/hooks/useImpactScores';
@@ -80,6 +81,44 @@ describe('suggestedPoolSize', () => {
   it('adds a buffer that grows with the list size', () => {
     expect([10, 20, 50, 100].map(suggestedPoolSize)).toEqual([26, 42, 85, 150]);
     expect(suggestedPoolSize(1)).toBe(11);
+  });
+});
+
+describe('selectTopNCandidates', () => {
+  // s1..s6 by stats; "big" has middling stats but the top salary
+  const rows = [
+    { id: 's1', salary: 30 },
+    { id: 's2', salary: 5 },
+    { id: 's3', salary: 4 },
+    { id: 's4', salary: 3 },
+    { id: 'big', salary: 54 },
+    { id: 's5', salary: 2 },
+    { id: 's6', salary: null },
+    { id: 'unscored', salary: 1 },
+  ];
+  const scores = new Map([
+    ['s1', 30], ['s2', 28], ['s3', 26], ['s4', 24], ['big', 12], ['s5', 20], ['s6', 18],
+  ]);
+
+  it('takes the best by stats and the best paid, ordered by the better rank', () => {
+    const { pool, nearMisses } = selectTopNCandidates(rows, scores, 2, 3);
+    // Stats top 2: s1, s2; pay top 2: big, s1
+    expect(pool.map((r) => r.id)).toEqual(['s1', 'big', 's2']);
+    expect(pool[1]).toMatchObject({ statsRank: 7, payRank: 1, rank: 2, score: 12 });
+    // Next by better rank: s3 (stats 3, pay 3), s4 (4/4), s5 (5/6)
+    expect(nearMisses.map((r) => r.id)).toEqual(['s3', 's4', 's5']);
+    expect(nearMisses[0].rank).toBe(4);
+  });
+
+  it('keeps a well-paid player with no stats to score', () => {
+    const { pool } = selectTopNCandidates(
+      [{ id: 'hurt', salary: 50 }, { id: 'a', salary: 1 }, { id: 'b', salary: 1 }],
+      new Map([['a', 20], ['b', 15]]),
+      1
+    );
+    // Both are first on one list; the better stats rank breaks the tie
+    expect(pool.map((r) => r.id)).toEqual(['a', 'hurt']);
+    expect(pool[1].score).toBeUndefined();
   });
 });
 
