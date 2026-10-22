@@ -100,13 +100,15 @@ describe('season views', () => {
       return { exists: () => false, data: () => undefined };
     });
     const ids = Array.from({ length: 400 }, (_, i) => `q${i}`);
-    // Two overlapping loads of the same players (e.g. preload and a click)
-    await Promise.all([
+    // Two overlapping loads of the same players (e.g. preload and a click),
+    // plus a third started while slots are being handed over
+    const first = Promise.all([
       loadSeasonStatLines('2017-18', ids),
       loadSeasonStatLines('2017-18', ids),
     ]);
-    expect(getDocMock).toHaveBeenCalledTimes(400);
-    expect(peak).toBeLessThanOrEqual(150);
-    expect(peak).toBeGreaterThan(40);
+    await new Promise((resolve) => setTimeout(resolve, 1));
+    await Promise.all([first, loadSeasonStatLines('2016-17', ids.slice(0, 50))]);
+    expect(getDocMock).toHaveBeenCalledTimes(450);
+    expect(peak).toBe(150);
   });
 });
