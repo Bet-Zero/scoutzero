@@ -19,6 +19,7 @@ RankingSetup.tsx
 SaveSessionButton.tsx
 SavedSessionsPanel.tsx
 hooks/
+  useImpactScores.ts
   useOwnerPlayerLists.ts
   useRankerCandidates.ts
   useRankerPool.ts
@@ -28,6 +29,7 @@ index.ts
 ranker.css
 utils/
   playerDisplay.ts
+  playerImpact.ts
   rankerLocalDraft.ts
   rankingEngine.ts
   saveAsListBridge.ts
@@ -35,5 +37,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-10-22T05:29:13.919Z*
+*Generated on: 2026-10-22T08:00:52.369Z*
 *Auto-updated by: npm run docs*
