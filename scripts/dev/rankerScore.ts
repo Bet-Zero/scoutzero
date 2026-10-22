@@ -14,8 +14,8 @@ import {
 import { RankerScoreZ, type RankerScore } from '../../src/schemas/players_v2.js';
 
 type StagedPlayer = {
-  doc?: { currentSeasonStats?: ImpactStatLine | null };
-  seasons?: Record<string, { stats?: ImpactStatLine | null } | undefined>;
+  doc?: { currentSeasonStats?: unknown };
+  seasons?: Record<string, unknown>;
   // The run brought this player's stats, so a stored current line it omits is being cleared
   statsProvided?: boolean;
 };
@@ -39,7 +39,7 @@ export function rankerScoreFromSnapshot(
   season: string
 ): RankerScore {
   const seasonLine = (code: string): ImpactStatLine | null => {
-    const fromRun = asStatLine(staged.seasons?.[code]?.stats);
+    const fromRun = asStatLine((staged.seasons?.[code] as { stats?: unknown } | undefined)?.stats);
     if (fromRun) return fromRun;
     return asStatLine(readDoc(`players_v2/${playerId}/seasons/${code}`)?.stats);
   };
