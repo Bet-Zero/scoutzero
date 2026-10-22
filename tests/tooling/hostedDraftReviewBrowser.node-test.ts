@@ -122,27 +122,31 @@ test(
       await page.setContent(fixture('<div>2030 - Round 1</div>'));
       await assert.rejects(selectHostedDraftReviewPick(page, () => {}));
 
-      await page.setContent(
-        fixture(`
+      const pickFixture = (destination: string) => fixture(`
       <div><span>2028 - Round 1</span><button onclick="document.querySelector('#menu').hidden=false">•••</button>
-        <div id="menu" hidden><button onclick="this.textContent=this.textContent==='Cancel Trade'?'Trade to Denver Nuggets':'Cancel Trade';this.parentElement.hidden=true">Trade to Denver Nuggets</button></div>
-      </div>`)
-      );
-      const stage = await selectHostedDraftReviewPick(page, (value) => {
-        phase = value;
-      });
-      await stage();
-      assert.equal(phase, 'stage-pick-destination');
-      assert.equal(
-        await page.locator('#menu button').textContent(),
-        'Cancel Trade'
-      );
-      await stage(true);
-      assert.equal(phase, 'cancel-pick-destination');
-      assert.equal(
-        await page.locator('#menu button').textContent(),
-        'Trade to Denver Nuggets'
-      );
+        <div id="menu" hidden><button onclick="this.textContent=this.textContent==='Cancel Trade'?'Trade to ${destination}':'Cancel Trade';this.parentElement.hidden=true">Trade to ${destination}</button></div>
+      </div>`);
+      // The real team loader passes the source teamName into this menu. The
+      // live DEN document uses uppercase; the old case-sensitive driver failed.
+      for (const destination of ['Denver Nuggets', 'DENVER NUGGETS', 'dEnVeR NuGgEtS']) {
+        await page.setContent(pickFixture(destination));
+        const stage = await selectHostedDraftReviewPick(page, (value) => {
+          phase = value;
+        });
+        await stage();
+        assert.equal(phase, 'stage-pick-destination');
+        assert.equal(await page.locator('#menu button').textContent(), 'Cancel Trade');
+        await stage(true);
+        assert.equal(phase, 'cancel-pick-destination');
+        assert.equal(await page.locator('#menu button').textContent(), `Trade to ${destination}`);
+      }
+      // Case tolerance must not permit a different or merely similar team.
+      for (const destination of ['Denver Nuggets II', 'Los Angeles Lakers']) {
+        await page.setContent(pickFixture(destination));
+        const stage = await selectHostedDraftReviewPick(page, () => {});
+        await assert.rejects(stage());
+        assert.equal(await page.locator('#menu button').textContent(), `Trade to ${destination}`);
+      }
     } finally {
       await browser.close();
     }

@@ -59,7 +59,9 @@ export async function selectHostedDraftReviewPick(
     setPhase(cancel ? 'cancel-pick-destination' : 'stage-pick-destination');
     await row
       .getByRole('button', {
-        name: cancel ? /^Cancel Trade$/ : /^Trade to Denver Nuggets$/,
+        // Loaded team names retain their source casing (e.g. DENVER NUGGETS).
+        // Match only casing variants of this exact counterparty, in this row.
+        name: cancel ? /^Cancel Trade$/ : /^Trade to Denver Nuggets$/i,
       })
       .click();
   };

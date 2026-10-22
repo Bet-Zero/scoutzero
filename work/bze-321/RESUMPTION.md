@@ -1,5 +1,42 @@
 # BZE-321 continuation after the ordinary NBA refresh
 
+## October 22 hosted destination selector repair
+
+Owner-approved hosted run `39593277348`, job `119199277298`, failed on exact
+candidate `fff91657a3c2d57b9350b31ae02c7dd837e32f26` at
+`stage-pick-destination`. The exact preview resolved and the temporary Auth
+account was deleted (one created, one deleted, cleanup complete). Source
+installation `39590633749` remains successful; no replay or access repair.
+
+Cause: the driver's anchored destination regex was case-sensitive. A read-only
+GET of the live DEN base-team document returned HTTP 200; bounded diagnostics
+confirmed its name equals the intended Denver full name ignoring case, is
+uppercase, and does not match the title-case selector. No document body, roster,
+credentials, identity claims or evidence was logged. `useTradeMachineTeamOps`
+merges loaded team data over base metadata; `TradeEditor` passes that team through
+`toEntitlementTeamOption`; `EntitlementPickRow` renders its `teamName` verbatim.
+Thus the real menu uses uppercase while the test fixture formerly used title case.
+
+Changing only the public browser fixture to uppercase reproduced the exact
+staging timeout with the old driver. The repair adds only the case-insensitive
+flag to the anchored, row-scoped **Denver Nuggets** selector. It does not choose
+any destination, a different year, another row, or a synthetic hosted pick.
+Browser regressions now stage and cancel title/upper/mixed-case names, and reject
+a similar suffixed name and a different team. Empty inventory and wrong-year/
+round rejection and cross-origin identity confinement remain covered. Both real
+browser tests pass. These are driver regressions, not actual hosted GM proof.
+
+No product, authentication, request-policy, workflow, source/Rules/IAM, release,
+qualified source facts, worlds/history or NBA-data changes. Both BZE-321 encrypted
+inputs remain retired and requests dormant. All 278/29, exact qualified PHI 2028
+row, auth/cache/digest, failure/reset, no-Apply, zero-app-write and temporary Auth
+cleanup assertions remain unchanged. Dependency-scoped qualification, encryption,
+cleanup and installation evidence carry forward; no factual research is repeated.
+Freeze the repair, require exact-head CI and independent delta ACCEPT plus ready
+preview, then hand Work the corrected protected hosted run. Cancel superseded
+runs; never self-approve. Actual hosted success, landing and post-hosted cleanup
+remain pending. No unchanged rerun, new setup or Google repair is requested.
+
 ## October 21 installed — final hosted candidate preparation
 
 Protected source run `39590633749`, job `119190520506`, succeeded on caller
