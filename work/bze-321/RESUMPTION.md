@@ -1,5 +1,43 @@
 # BZE-321 continuation after the ordinary NBA refresh
 
+## October 22 public reload/reopen delta
+
+Public review `39744597305` attempt 2 returned ACCEPT for `da4e4ea0`
+([receipt](https://github.com/Bet-Zero/scoutzero/pull/547#issuecomment-6336465491)).
+Protected hosted run `39744440643` attempt 2, job `119724778697`, then passed
+all stages before `reload-selection-reset` and failed with `RELOAD_FAILED`.
+Temporary test-account cleanup succeeded (one created/deleted). This checkpoint
+uses public GitHub code/log evidence only; no private material was accessed.
+
+Cause: `useArchitectDeskNavigation` writes `room=trade` when the overlay is open
+and restores it through `onOpenTradeFromUrl` on reload. `TradeOverlay` covers the
+viewport. The driver unconditionally clicked the launcher underneath that
+already-open overlay. A real-browser fixture reproducing the URL restoration
+and covering overlay passes the closed-route case but fails the auto-restored
+case with the old driver's exact `RELOAD_FAILED` code.
+
+Repair captures the settled route before reload. A `room=trade` route waits for
+its restored dialog; a closed route still clicks the launcher. Both paths must
+observe a visible dialog and loaded primary-team card before the unchanged
+no-stale-panel and zero-forbidden-operation assertions. The card is rendered
+only for a loaded team; initialization sets it and empty selections together.
+Fixed failure codes now distinguish navigation, launcher, dialog and team-card
+readiness without exposing URLs, UI text, responses or credentials.
+
+All three browser tests pass. The remaining-stage matrix now covers two success
+paths and 20 broken contracts, including delayed stale review appearing before
+team readiness and a missing team card. Auto-restoration must use zero launcher
+clicks after reload; the closed route must use one. Existing historical/current
+date, qualified PHI2028/278/29, auth, unavailable/reset, no-Apply, zero-write and
+cleanup checks remain. No product, source, release-pin, Rules, IAM, workflow or
+data change; retired inputs and dormant requests stay intact. Prior dependency
+acceptance carries forward within its existing scope. No unchanged hosted replay.
+
+Require exact-head CI, focused independent delta ACCEPT and ready preview before
+handing Work one valid protected run. Work may operate routine read-only approval
+as owner proxy; coding author never self-approves. Actual hosted success, normal
+landing, merged verification and authorized cleanup remain subsequent gates.
+
 ## October 22 rendered-review and complete remaining-stage audit
 
 Owner-approved corrected run `39739153430`, job `119691902900`, passed staging

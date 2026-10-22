@@ -34,7 +34,10 @@ const codes = [
   'DESTINATION_RESTAGE_FAILED',
   'UNAVAILABLE_REVIEW_NOT_RENDERED',
   'FAILURE_APPLY_SAFEGUARD_REQUIRED',
-  'RELOAD_FAILED',
+  'RELOAD_NAVIGATION_FAILED',
+  'RELOAD_LAUNCHER_FAILED',
+  'RELOAD_DIALOG_NOT_READY',
+  'RELOAD_PRIMARY_TEAM_NOT_READY',
   'STALE_REVIEW_AFTER_RELOAD',
   'UNEXPECTED_NETWORK_OPERATION',
   'TEMPORARY_AUTH_CAPTURE_FAILED',
@@ -231,12 +234,25 @@ export async function verifyHostedReviewStages({
   );
   setUnavailable(false);
   setPhase('reload-selection-reset');
-  await checked(async () => {
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    // Reopen the actual product surface; a closed dialog cannot prove reset.
-    await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
-    await page.getByRole('dialog', { name: /Trade Machine/i }).waitFor();
-  }, 'RELOAD_FAILED');
+  // Capture the settled route BEFORE reload. The product restores room=trade
+  // into a full-screen overlay, which legitimately blocks its launcher below.
+  const restoresTrade =
+    new URL(page.url()).searchParams.get('room') === 'trade';
+  await checked(
+    () => page.reload({ waitUntil: 'domcontentloaded' }),
+    'RELOAD_NAVIGATION_FAILED'
+  );
+  if (!restoresTrade)
+    await checked(
+      () => page.getByRole('tab', { name: /^Trade Machine$/i }).click(),
+      'RELOAD_LAUNCHER_FAILED'
+    );
+  const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
+  await checked(() => dialog.waitFor(), 'RELOAD_DIALOG_NOT_READY');
+  await checked(
+    () => dialog.getByTestId(`trade-team-card-${primaryTeam}`).waitFor(),
+    'RELOAD_PRIMARY_TEAM_NOT_READY'
+  );
   requireHostedProof((await panel.count()) === 0, 'STALE_REVIEW_AFTER_RELOAD');
   requireHostedProof(forbiddenRequests() === 0, 'UNEXPECTED_NETWORK_OPERATION');
 }

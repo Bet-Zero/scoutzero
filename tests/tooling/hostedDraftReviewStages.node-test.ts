@@ -35,9 +35,25 @@ test(
       '<span>Needs input · Apply unavailable</span><p>The retained pick review is unavailable. First-round trades still need a complete review.</p>';
     let scenario = '';
     const html =
-      () => `<!doctype html><meta charset="utf-8"><button role="tab" onclick="document.querySelector('[role=dialog]').hidden=false">Trade Machine</button>
-    <div role="dialog" aria-label="Trade Machine" hidden style="min-height:10px"><div id="mount">${scenario === 'stale-reload' ? '<section data-testid="real-draft-review">stale</section>' : ''}</div></div>
+      () => `<!doctype html><meta charset="utf-8"><button role="tab" onclick="openTrade()">Trade Machine</button>
+    <div role="dialog" aria-label="Trade Machine" hidden style="position:fixed;inset:0;z-index:10;background:white;min-height:10px">${scenario === 'no-card' ? '' : '<div data-testid="trade-team-card-PHI">Primary team ready</div>'}<div id="mount">${scenario === 'stale-reload' ? '<section data-testid="real-draft-review">stale</section>' : ''}</div></div>
     <script>
+      const restoreFromUrl=${JSON.stringify(['auto-restore', 'auto-stale-reload'].includes(scenario))};
+      window.launcherClicks=0;
+      function openTrade() {
+        window.launcherClicks++;
+        document.querySelector('[role=dialog]').hidden=false;
+        if (restoreFromUrl) {
+          const url=new URL(location.href);url.searchParams.set('room','trade');history.replaceState({},'',url);
+        }
+      }
+      if (restoreFromUrl && new URL(location.href).searchParams.get('room')==='trade')
+        document.querySelector('[role=dialog]').hidden=false;
+      if (${JSON.stringify(scenario === 'auto-stale-reload')} && new URL(location.href).searchParams.get('room')==='trade') {
+        const card=document.querySelector('[data-testid=trade-team-card-PHI]');card.hidden=true;
+        setTimeout(()=>document.querySelector('#mount').innerHTML='<section data-testid="real-draft-review">stale</section>',25);
+        setTimeout(()=>card.hidden=false,50);
+      }
       const world=${JSON.stringify(world)}, historical=${JSON.stringify(historical)};
       function show(value) { document.querySelector('#mount').innerHTML='<section data-testid="real-draft-review">'+value+'</section>'; }
       function showWorld() { show(world); }
@@ -73,9 +89,12 @@ test(
       });
     try {
       const page = await browser.newPage();
-      page.setDefaultTimeout(200);
+      page.setDefaultTimeout(1000);
       const cases = [
         ['', null],
+        ['auto-restore', null],
+        ['auto-stale-reload', 'STALE_REVIEW_AFTER_RELOAD'],
+        ['no-card', 'RELOAD_PRIMARY_TEAM_NOT_READY'],
         ['no-start', 'REVIEW_RENDER_TIMEOUT'],
         ['no-apply', 'APPLY_SAFEGUARD_REQUIRED'],
         ['no-rows', 'REVIEW_ROWS_REQUIRED'],
@@ -183,7 +202,19 @@ test(
             (error) => hostedFailureCode(error) === expected,
             name
           );
-        else await run();
+        else {
+          await assert.doesNotReject(run(), name || 'closed-on-reload');
+          assert.equal(
+            await page
+              .getByRole('dialog', { name: 'Trade Machine' })
+              .isVisible(),
+            true
+          );
+          assert.equal(
+            await page.evaluate(() => (window as any).launcherClicks),
+            name === 'auto-restore' ? 0 : 1
+          );
+        }
       }
       assert.equal(
         hostedFailureCode(new Error('private arbitrary exception')),
