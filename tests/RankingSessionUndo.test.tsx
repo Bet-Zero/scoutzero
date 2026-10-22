@@ -190,5 +190,7 @@ describe('RankingSession undo', () => {
     fireEvent.click(screen.getByText('↶ Undo last step'));
     expect(screen.queryByText('Your Top 2')).toBeNull();
     expect(screen.getByText('Cut Gamma')).toBeTruthy();
+    // A hand-adjusted order is dropped along with the undone step
+    expect(autosave).toHaveBeenLastCalledWith(expect.objectContaining({ adjustments: null }));
   });
 });

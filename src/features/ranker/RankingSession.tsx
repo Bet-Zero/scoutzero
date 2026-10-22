@@ -32,7 +32,7 @@ import {
   resolveTopN,
   suggestTopNPair,
 } from '@/features/ranker/utils/topNSelection';
-import { getPlayerName as getDisplayName } from './utils/playerDisplay';
+import { getPlayerName as getDisplayName } from '@/features/ranker/utils/playerDisplay';
 import type { HydratedRankerDraft } from './hooks/useRankerSession';
 import type { RankerDraftPatch, RankerSetupData } from './utils/rankerLocalDraft';
 
@@ -256,8 +256,14 @@ export const RankingSession = ({
       setSetupData(nextSetup);
       setIsFinished(false);
       setSkippedPairs(new Set());
+      setAdjustments(null);
       if (autosave) {
-        autosave({ setupData: nextSetup, isFinished: false, skippedPairs: new Set() });
+        autosave({
+          setupData: nextSetup,
+          isFinished: false,
+          skippedPairs: new Set(),
+          adjustments: null,
+        });
       }
       return;
     }
@@ -269,11 +275,14 @@ export const RankingSession = ({
     setResults(newResults);
     setIsFinished(false);
     setSkippedPairs(new Set());
+    // A hand-adjusted order no longer matches once the results change
+    setAdjustments(null);
     if (autosave) {
       autosave({
         results: newResults,
         isFinished: false,
         skippedPairs: new Set(),
+        adjustments: null,
       });
     }
   }, [results, seedCount, autosave, closureCache, undoesCut, setupData, cuts]);

@@ -26,7 +26,7 @@ import {
   type RankerGraph,
   type RankerPair,
   type RankerPlayer,
-} from './rankingEngine';
+} from '@/features/ranker/utils/rankingEngine';
 
 export type TopNResolution = {
   // Best-first, at most N; complete once nextPair is empty and nothing is pending
