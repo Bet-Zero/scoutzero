@@ -461,8 +461,17 @@ export const RankingSetup = ({
       <SectionCard className="mb-4" data-testid="anchor">
         <SectionHeader
           label="Anchor Player"
-          hint="Pick a player you'd expect to finish around the middle of the pool. The engine uses this to divide players into upper and lower sub-groups, reducing total comparisons."
+          hint={
+            listSize !== null
+              ? `Pick someone you think is just outside your Top ${listSize}. You'll then mark everyone better than them, and everyone else is cut right away. If the anchor turns out to be inside your Top ${listSize}, nothing is lost: each player below them just costs one matchup for the last spots.`
+              : "Pick a player you'd expect to finish around the middle of the pool. The engine uses this to divide players into upper and lower sub-groups, reducing total comparisons."
+          }
         />
+        {listSize !== null && (
+          <p className="text-white/40 text-xs mb-2">
+            Best pick for a Top {listSize}: someone just outside it (around #{listSize + 1}–#{listSize + 3}).
+          </p>
+        )}
         <StyledSelect
           value={anchor}
           onChange={assignRole(setAnchor)}
