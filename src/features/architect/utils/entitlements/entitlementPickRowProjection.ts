@@ -220,6 +220,12 @@ const deriveProtectionDetails = (
   const description = (entitlement.description || '') as string;
   const lower = description.toLowerCase();
 
+  // An explicit, whole-value assertion is different from absent terms or an
+  // unprotected fallback year inside a conditional description.
+  if (entitlement.kind === 'pick_ownership' && lower.trim() === 'unprotected') {
+    return { protectionText: 'Unprotected', protectionMeta: null };
+  }
+
   const hasProtectionMention =
     lower.includes('protected') ||
     lower.includes('protection') ||
@@ -228,7 +234,7 @@ const deriveProtectionDetails = (
 
   if (entitlement.kind === 'pick_ownership' && !hasProtectionMention) {
     return {
-      protectionText: 'Unprotected',
+      protectionText: 'Protection terms unavailable',
       protectionMeta: null,
     };
   }
@@ -521,7 +527,7 @@ const deriveAssetType = (
 
   const description = ((entitlement.description || '') as string).toLowerCase();
   const hasProtection =
-    description.includes('protected') ||
+    /\bprotected\b/.test(description) ||
     description.includes('conditional') ||
     description.includes('convey');
 

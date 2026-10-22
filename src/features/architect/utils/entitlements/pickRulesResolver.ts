@@ -10,6 +10,7 @@
  *  - Plan: docs/team-scrape/PST_PICK_LEDGER_MASTER_PLAN.md (Phase 12.3A)
  */
 
+import { readDraftSourceForWorld } from '@/features/architect/utils/entitlements/draftSourceBaseline';
 import {
   collection,
   doc,
@@ -80,17 +81,19 @@ const resolveDefaultDb = async (): Promise<Firestore> => {
  */
 export const resolvePickRuleWithDb = async (
   db: Firestore,
-  pickId: string
+  pickId: string,
+  worldId: string | null = null
 ): Promise<PickRuleDoc | null> => {
   const docRef = doc(db, ARCHITECT_BASE_PICK_RULES_PATH, pickId);
   const snapshot = await getDoc(docRef);
 
   if (!snapshot.exists()) return null;
 
-  return {
-    pickId: snapshot.id,
-    ...(snapshot.data() as Omit<PickRuleDoc, 'pickId'>),
-  };
+  return readDraftSourceForWorld(
+    { pickId: snapshot.id, ...snapshot.data() },
+    worldId,
+    'pickRule'
+  ) as PickRuleDoc | null;
 };
 
 /**
@@ -99,7 +102,8 @@ export const resolvePickRuleWithDb = async (
  */
 export const resolvePickRulesByIdsWithDb = async (
   db: Firestore,
-  pickIds: string[]
+  pickIds: string[],
+  worldId: string | null = null
 ): Promise<PickRulesMap> => {
   const map: PickRulesMap = new Map();
   if (!pickIds.length) return map;
@@ -114,8 +118,12 @@ export const resolvePickRulesByIdsWithDb = async (
     const snapshot = await getDocs(rulesQuery);
 
     snapshot.docs.forEach((docSnap) => {
-      const data = docSnap.data() as Omit<PickRuleDoc, 'pickId'>;
-      map.set(docSnap.id, { pickId: docSnap.id, ...data });
+      const data = readDraftSourceForWorld(
+        { pickId: docSnap.id, ...docSnap.data() },
+        worldId,
+        'pickRule'
+      ) as PickRuleDoc | null;
+      if (data) map.set(docSnap.id, data);
     });
   }
 
@@ -126,20 +134,22 @@ export const resolvePickRulesByIdsWithDb = async (
  * Convenience wrapper that uses default db.
  */
 export const resolvePickRule = async (
-  pickId: string
+  pickId: string,
+  worldId: string | null = null
 ): Promise<PickRuleDoc | null> => {
   const db = await resolveDefaultDb();
-  return resolvePickRuleWithDb(db, pickId);
+  return resolvePickRuleWithDb(db, pickId, worldId);
 };
 
 /**
  * Convenience wrapper that uses default db.
  */
 export const resolvePickRulesByIds = async (
-  pickIds: string[]
+  pickIds: string[],
+  worldId: string | null = null
 ): Promise<PickRulesMap> => {
   const db = await resolveDefaultDb();
-  return resolvePickRulesByIdsWithDb(db, pickIds);
+  return resolvePickRulesByIdsWithDb(db, pickIds, worldId);
 };
 
 /**

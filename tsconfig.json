@@ -19,6 +19,8 @@
     }
   },
   "include": [
+    "api/**/*.ts",
+    "server/**/*.ts",
     "src/**/*",
     "player-scrape/scripts/**/*",
     "player-scrape/firestore_staging/**/*",

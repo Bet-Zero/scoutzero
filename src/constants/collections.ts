@@ -46,6 +46,10 @@ export const ARCHITECT_BASE_ENTITLEMENTS_PATH =
 export const ARCHITECT_BASE_PICK_RULES_PATH =
   env.VITE_ARCHITECT_BASE_PICK_RULES_PATH || 'architect_basePickRules';
 
+/** Governed, immutable draft-review releases. No environment/provider override. */
+export const ARCHITECT_DRAFT_PICK_RELEASES_COLLECTION = 'architect_draftPickReleases';
+export const ARCHITECT_DRAFT_PICK_RELEASE_PARTS_SUBCOLLECTION = 'parts';
+
 /**
  * Architect worlds collection (for world metadata and team snapshots)
  * Path structure:

@@ -45,6 +45,23 @@
 
 - `entitlementIds[]` - Entitlement ownership for the team (resolved via base + world overrides)
 
+### `/architect_draftPickReleases/{payloadSha256}` - Governed Review Release
+
+Read-only derived application data in the existing ScoutZero Firebase project.
+The manifest binds format, payload/inventory hashes, retained acceptance
+reference, exact byte length, part size and count. Four `parts/{0..3}` documents
+carry at most 512 KiB of binary bytes each, plus payload identity and part index.
+This preserves the exact pinned projection without exceeding Firestore's 1 MiB
+document limit. The endpoint validates every field, reassembles the parts and
+verifies SHA-256 before returning data.
+
+Canonical wire schemas: `src/schemas/draftPickHostedRelease.ts`. Authenticated
+individual reads only; listing and client writes are denied. No raw evidence,
+mutable latest pointer, provider URL, or Linear runtime fetch. A prepared local
+bundle is not publication authorization. Production publication/rule deployment
+and hosted GM proof remain separate gates; existing base collections and saved
+worlds are unchanged. See [the operation contract](../../operations/DRAFT_PICKS_COMMANDS.md).
+
 ### `/architect_baseEntitlements/{entitlementId}` - Entitlement Definitions ✅ FINAL
 
 **Status**: ✅ Active (Phase 10)
@@ -367,3 +384,23 @@ See [PROJECT_SCHEMA.md](../reference/PROJECT_SCHEMA.md) for complete artifact fl
 
 _Current as of: ${new Date().toISOString()}_
 _🚧 = In Migration | ✅ = Migration Complete_
+
+## Proposed draft-source revisions (BZE-321)
+
+Not deployed or source-write authorized. Canonical contract:
+`src/schemas/draftSourceBaseline.ts` (`DraftSourceRevisionZ`).
+
+Existing `architect_baseTeams`, `architect_baseEntitlements` and
+`architect_basePickRules` records may carry `draftSourceRevisions` with
+`schemaVersion: 1`, `legacyExists`, and immutable `versions` keyed by positive
+version numbers. Every legacy root field remains unchanged. A version contains
+only the qualified draft-field patch relative to that root; team patches permit
+only `entitlementIds`, and existing identities/rosters/salaries cannot be changed.
+A newly created rule contains only the envelope, including its complete identity
+and terms inside the revision. Earlier clients see no newly active root terms.
+
+World-free readers explicitly select supported version 1. Saved-world fallback
+uses legacy root fields (or absence for a newly created rule), before existing
+world/parent overrides. Future versions do not silently become active. There is
+no automatic saved-world enrollment, migration, new collection or provider.
+See [BZE-321 installation](../../operations/BZE321_FIREBASE_INSTALLATION.md).

@@ -6,8 +6,10 @@ import { sha256Digest } from '@/features/architect/utils/contractSource/determin
 import {
   verifyRealDraftReviewPackage,
   deriveRealDraftSelection,
+  deriveRealDraftStartingPosition,
   loadRealDraftReview,
   reviewRealDraftSelection,
+  reviewRealDraftStartingPosition,
 } from '@/features/architect/utils/draftPickRealReview';
 import type { DraftPickRealReviewPackage } from '@/schemas/draftPickRealReview';
 
@@ -118,6 +120,40 @@ async function fixture() {
 }
 
 describe('retained real-data review boundary (synthetic public cases)', () => {
+  it('separates explicit historical inspection from missing or current world dates', async () => {
+    const f = await fixture();
+    const loaded = await f.load();
+    const historical = deriveRealDraftStartingPosition(loaded, f.args);
+    expect(historical).toMatchObject({
+      scope: 'retained-starting-position',
+      apply: 'blocked',
+      tradingVerdict: 'not-evaluated',
+    });
+    expect(historical.records[0].components?.ownership.status).toBe(
+      'component-permits'
+    );
+    for (const asOfDate of [null, '2030-06-06', '2029-06-05']) {
+      expect(
+        deriveRealDraftSelection(loaded, { ...f.args, asOfDate }).records[0]
+          .components
+      ).toBeNull();
+    }
+    expect(
+      deriveRealDraftStartingPosition(loaded, {
+        ...f.args,
+        selections: [{ entitlementId: 'legacy-own', team: 'AAA' }],
+      }).records[0].components?.ownership.status
+    ).toBe('component-prohibits');
+    expect(() => reviewRealDraftStartingPosition({}, f.args)).toThrow(
+      'No authenticated draft review is installed.'
+    );
+    expect(
+      deriveRealDraftStartingPosition(loaded, {
+        ...f.args,
+        selections: [{ entitlementId: 'legacy-projection', team: 'BBB' }],
+      }).records[0].components
+    ).toBeNull();
+  });
   it('establishes supported ownership independently of an unrelated unresolved allocation, without an overall pass', async () => {
     const f = await fixture();
     const result = deriveRealDraftSelection(await f.load(), f.args);
