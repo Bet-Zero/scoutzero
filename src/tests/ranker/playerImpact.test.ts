@@ -164,3 +164,44 @@ describe('loadImpactScores', () => {
     expect(Object.fromEntries(scores)).toEqual({ star: 30, vet: 15 });
   });
 });
+
+describe('impact score cache', () => {
+  const store = new Map<string, string>();
+  beforeEach(() => {
+    store.clear();
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    });
+    getDocMock.mockReset();
+    getDocMock.mockImplementation(async () => ({
+      exists: () => true,
+      data: () => ({ stats: { PTS: 20, GP: 60 } }),
+    }));
+  });
+
+  it('reads each player once, then serves scores from the browser cache', async () => {
+    // A season no other test has loaded, so nothing is cached in memory
+    const season = '2019-20';
+    const first = await loadImpactScores(season, ['c1', 'c2'], new Map());
+    expect(Object.fromEntries(first)).toEqual({ c1: 20, c2: 20 });
+    const reads = getDocMock.mock.calls.length;
+    expect(reads).toBeGreaterThan(0);
+
+    // Same players: nothing read again; one new player: only they are read
+    await loadImpactScores(season, ['c1', 'c2'], new Map());
+    expect(getDocMock.mock.calls.length).toBe(reads);
+    await loadImpactScores(season, ['c1', 'c2', 'c3'], new Map());
+    expect(getDocMock.mock.calls.length).toBe(reads + 4); // c3 x 4 seasons
+  });
+
+  it('ignores a cache entry older than 12 hours', async () => {
+    store.set(
+      'ranker_impact_v1:2018-19',
+      JSON.stringify({ savedAt: Date.now() - 13 * 60 * 60 * 1000, checked: ['d1'], scores: { d1: 99 } })
+    );
+    const scores = await loadImpactScores('2018-19', ['d1'], new Map());
+    expect(scores.get('d1')).toBe(20);
+  });
+});

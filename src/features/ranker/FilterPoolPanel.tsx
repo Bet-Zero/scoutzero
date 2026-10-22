@@ -9,13 +9,14 @@
  *  - 2026-10-21: Past-season age from date of birth (season docs rarely store one)
  *  - 2026-10-22: Top-N preset: pull the N + buffer highest-scoring players (Game Score per game)
  *  - 2026-10-22: Top-N pool also takes the best paid, and lists the near misses to add by hand
+ *  - 2026-10-22: Preload this season's scores in the background
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
  *  - Filter engine: src/features/roster/utils/rosterBuilderHelpers.ts (filterRosterDrawerPlayers)
  *  - Used in: src/features/ranker/RankingBuilder.tsx
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, Search, SlidersHorizontal } from 'lucide-react';
 import { FilterTabs } from '@/features/roster/AddPlayerDrawer/addPlayer/FilterTabs';
 import { getDefaultAddPlayerFilters, normalizeTeamCode } from '@/shared/utils/filtering';
@@ -34,7 +35,7 @@ import {
   useSeasonViews,
   type SeasonView,
 } from './hooks/useSeasonViews';
-import { useImpactScores } from './hooks/useImpactScores';
+import { loadImpactScores, useImpactScores } from './hooks/useImpactScores';
 import { selectTopNCandidates, suggestedPoolSize } from './utils/playerImpact';
 import { PoolSearchResults, type PoolSearchRow } from './PoolSearchResults';
 
@@ -115,6 +116,17 @@ export const FilterPoolPanel = ({
     [candidates]
   );
   const impact = useImpactScores(season, candidateIds, currentStatsById, topN !== null);
+
+  // Warm up this season's scores in the background so a Top-N click is quick
+  useEffect(() => {
+    if (candidateIds.length === 0) return;
+    const timer = setTimeout(() => {
+      loadImpactScores(CURRENT_SEASON_CODE, candidateIds, currentStatsById).catch(() => {
+        // The Top-N click loads (and reports errors) on its own
+      });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [candidateIds, currentStatsById]);
   const waitingForScores = topN !== null && !impact.scoresById;
 
   const { rows, nearMisses } = useMemo<{

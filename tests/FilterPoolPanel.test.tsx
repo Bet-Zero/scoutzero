@@ -94,7 +94,11 @@ const addedIds = (onAdd: ReturnType<typeof vi.fn>, call = 0) =>
   onAdd.mock.calls[call][0].map((p: RosterManagerPlayer) => p.id);
 
 describe('FilterPoolPanel', () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    // Top-N scores are cached in the browser; keep tests independent
+    localStorage.clear();
+  });
 
   it('adds every player matching the filters, honouring minimum games', () => {
     const onAdd = vi.fn();

@@ -15,6 +15,7 @@ vi.mock('@/data/firestorePaths', () => ({
 import {
   CURRENT_SEASON_CODE,
   getRecentPastSeasonCodes,
+  loadSeasonStatLines,
   loadSeasonViews,
 } from '@/features/ranker/hooks/useSeasonViews';
 import { DEFAULT_SALARY_YEAR } from '@/constants/yearDefaults';
@@ -86,5 +87,26 @@ describe('season views', () => {
     // Contracts are shared across seasons; only the new season's docs are read
     await loadSeasonViews('2022-23', ['x', 'y', 'z']);
     expect(getDocsMock.mock.calls.length).toBe(contractReads + 1);
+  });
+
+  it('shares a read already in flight and never has more than 150 at once', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    getDocMock.mockImplementation(async () => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      inFlight--;
+      return { exists: () => false, data: () => undefined };
+    });
+    const ids = Array.from({ length: 400 }, (_, i) => `q${i}`);
+    // Two overlapping loads of the same players (e.g. preload and a click)
+    await Promise.all([
+      loadSeasonStatLines('2017-18', ids),
+      loadSeasonStatLines('2017-18', ids),
+    ]);
+    expect(getDocMock).toHaveBeenCalledTimes(400);
+    expect(peak).toBeLessThanOrEqual(150);
+    expect(peak).toBeGreaterThan(40);
   });
 });
