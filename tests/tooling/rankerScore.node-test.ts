@@ -50,12 +50,27 @@ test('falls back to the main record current stats, and stores null when nothing 
 
 test("a run that clears the current stats doesn't score from the stale copy", () => {
   const score = rankerScoreFromSnapshot(
-    docs({ 'players_v2/p': { currentSeasonStats: { PTS: 12, GP: 10 } } }),
+    docs({
+      'players_v2/p': { currentSeasonStats: { PTS: 12, GP: 10 } },
+      'players_v2/p/seasons/2026-27': { stats: { PTS: 12, GP: 10 } },
+    }),
     'p',
     { doc: {}, seasons: {}, statsProvided: true },
     '2026-27'
   );
   assert.equal(score.value, null);
+  // Earlier seasons still come from the stored records
+  const earlier = rankerScoreFromSnapshot(
+    docs({ 'players_v2/p/seasons/2025-26': { stats: { PTS: 20, GP: 60 } } }),
+    'p',
+    { doc: {}, seasons: {}, statsProvided: true },
+    '2026-27'
+  );
+  assert.equal(
+    earlier.value,
+    rankerScoreFromSeasons(null, [{ PTS: 20, GP: 60 }, null, null], { isCurrentSeason: true })
+  );
+  assert.notEqual(earlier.value, null);
 });
 
 test('the stats-only refresh writes the score onto the main record', () => {

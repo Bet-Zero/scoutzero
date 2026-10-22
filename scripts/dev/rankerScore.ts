@@ -16,7 +16,7 @@ import { RankerScoreZ, type RankerScore } from '../../src/schemas/players_v2.js'
 type StagedPlayer = {
   doc?: { currentSeasonStats?: unknown };
   seasons?: Record<string, unknown>;
-  // The run brought this player's stats, so a stored current line it omits is being cleared
+  // The run brought this player's stats, so stored current-season lines it omits are stale
   statsProvided?: boolean;
 };
 
@@ -38,15 +38,17 @@ export function rankerScoreFromSnapshot(
   staged: StagedPlayer,
   season: string
 ): RankerScore {
-  const seasonLine = (code: string): ImpactStatLine | null => {
-    const fromRun = asStatLine((staged.seasons?.[code] as { stats?: unknown } | undefined)?.stats);
-    if (fromRun) return fromRun;
-    return asStatLine(readDoc(`players_v2/${playerId}/seasons/${code}`)?.stats);
-  };
-  const current =
-    seasonLine(season) ??
-    asStatLine(staged.doc?.currentSeasonStats) ??
-    (staged.statsProvided ? null : asStatLine(readDoc(`players_v2/${playerId}`)?.currentSeasonStats));
+  const stagedLine = (code: string): ImpactStatLine | null =>
+    asStatLine((staged.seasons?.[code] as { stats?: unknown } | undefined)?.stats);
+  const seasonLine = (code: string): ImpactStatLine | null =>
+    stagedLine(code) ?? asStatLine(readDoc(`players_v2/${playerId}/seasons/${code}`)?.stats);
+  // A run that brought this player's stats is the whole truth for the refreshed
+  // season: stored copies it leaves out are stale, so only earlier seasons fall back
+  const current = staged.statsProvided
+    ? (stagedLine(season) ?? asStatLine(staged.doc?.currentSeasonStats))
+    : (seasonLine(season) ??
+      asStatLine(staged.doc?.currentSeasonStats) ??
+      asStatLine(readDoc(`players_v2/${playerId}`)?.currentSeasonStats));
   const value = rankerScoreFromSeasons(current, earlierSeasonCodes(season).map(seasonLine), {
     isCurrentSeason: true,
   });
