@@ -122,11 +122,12 @@ export type RankedCandidate<T> = T & {
 
 const rankBy = <T extends TopNCandidate>(
   rows: readonly T[],
-  value: (row: T) => number | null | undefined
+  value: (row: T) => number | null | undefined,
+  counts: (v: number) => boolean
 ): Map<string, number> => {
   const ranked = rows
     .map((row) => ({ id: row.id, v: value(row) }))
-    .filter((r): r is { id: string; v: number } => typeof r.v === 'number' && r.v > 0)
+    .filter((r): r is { id: string; v: number } => typeof r.v === 'number' && counts(r.v))
     .sort((a, b) => b.v - a.v);
   return new Map(ranked.map((r, i) => [r.id, i + 1]));
 };
@@ -145,8 +146,9 @@ export const selectTopNCandidates = <T extends TopNCandidate>(
   poolSize: number,
   nearMissCount = 25
 ): { pool: Array<RankedCandidate<T>>; nearMisses: Array<RankedCandidate<T>> } => {
-  const statsRanks = rankBy(rows, (row) => scores.get(row.id));
-  const payRanks = rankBy(rows, (row) => row.salary);
+  // Any real score ranks (a poor one still beats no score); only actual pay ranks
+  const statsRanks = rankBy(rows, (row) => scores.get(row.id), Number.isFinite);
+  const payRanks = rankBy(rows, (row) => row.salary, (v) => v > 0);
   const ordered = rows
     .map((row) => {
       const statsRank = statsRanks.get(row.id) ?? null;
