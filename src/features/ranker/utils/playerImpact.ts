@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-22: Created for the Top-N pool preset
+ *  - 2026-10-22: Best recent season counts too, so injured or down-year stars aren't left out
  *
  * LINKS:
  *  - Used in: src/features/ranker/FilterPoolPanel.tsx
@@ -16,6 +17,10 @@ export type ImpactStatLine = Record<string, number | string | null | undefined>;
 export const MIN_SCORED_GAMES = 5;
 // Games of the current season it takes to count as much as last season
 const CURRENT_SEASON_RAMP_GAMES = 20;
+// An earlier season needs this many games to stand in for a player's level
+export const MIN_PEAK_GAMES = 20;
+// Each season further back counts for 5% less (age, decline)
+const PEAK_DECAY_PER_SEASON = 0.95;
 
 const num = (line: ImpactStatLine, key: string): number | null => {
   const raw = line[key];
@@ -75,6 +80,27 @@ export const blendedImpactScore = (
   const games = num(current as ImpactStatLine, 'GP') ?? 0;
   const weight = games / (games + CURRENT_SEASON_RAMP_GAMES);
   return weight * now + (1 - weight) * before;
+};
+
+/**
+ * Score that doesn't forget injured or down-year players: the higher of the
+ * recent score and the best of the earlier seasons (most recent first, each
+ * needing MIN_PEAK_GAMES games), discounted 5% per season back.
+ */
+export const recentPeakScore = (
+  recent: number | null,
+  earlierSeasons: ReadonlyArray<ImpactStatLine | null | undefined>
+): number | null => {
+  let best = recent;
+  earlierSeasons.forEach((line, index) => {
+    const games = line ? num(line, 'GP') : null;
+    if (!line || games === null || games < MIN_PEAK_GAMES) return;
+    const score = gameScorePerGame(line);
+    if (score === null) return;
+    const discounted = score * PEAK_DECAY_PER_SEASON ** (index + 1);
+    if (best === null || discounted > best) best = discounted;
+  });
+  return best;
 };
 
 // Candidates to pull for a Top-N list: N plus a buffer that grows with √N

@@ -240,9 +240,11 @@ export const FilterPoolPanel = ({
         <p className="text-white/40 text-xs mb-3">
           The {poolSize} best by Game Score per game
           {isPastSeason ? ` in ${season}` : ' (this season, leaning on last season until about 20 games are played)'}
-          , after any search or filters. Box-score stats miss some players
-          (defensive specialists, injured stars, rookies), so untick anyone
-          who won&apos;t make your Top {topN} and search to add anyone missing.
+          , after any search or filters. A player&apos;s best of the three
+          seasons before counts too, so injured or down-year stars stay in.
+          Box scores still miss some players (defensive specialists,
+          rookies), so untick anyone who won&apos;t make your Top {topN} and
+          search to add anyone missing.
         </p>
       )}
 

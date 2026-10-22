@@ -13,6 +13,7 @@ vi.mock('@/data/firestorePaths', () => ({
 import {
   blendedImpactScore,
   gameScorePerGame,
+  recentPeakScore,
   suggestedPoolSize,
 } from '@/features/ranker/utils/playerImpact';
 import { loadImpactScores } from '@/features/ranker/hooks/useImpactScores';
@@ -57,6 +58,24 @@ describe('blendedImpactScore', () => {
   });
 });
 
+describe('recentPeakScore', () => {
+  it('keeps the recent score unless an earlier season was better', () => {
+    expect(recentPeakScore(20, [{ PTS: 18, GP: 70 }])).toBe(20);
+    // A down year: last season's 26 (−5%) beats this year's 20
+    expect(recentPeakScore(20, [{ PTS: 26, GP: 70 }])).toBeCloseTo(24.7, 5);
+  });
+
+  it('scores a player who missed the recent seasons from an earlier one', () => {
+    // Out all of last season, healthy two seasons ago
+    expect(recentPeakScore(null, [null, { PTS: 25, GP: 60 }])).toBeCloseTo(22.5625, 5);
+  });
+
+  it('ignores short earlier seasons', () => {
+    expect(recentPeakScore(10, [{ PTS: 30, GP: 12 }])).toBe(10);
+    expect(recentPeakScore(null, [{ PTS: 30, GP: 12 }])).toBeNull();
+  });
+});
+
 describe('suggestedPoolSize', () => {
   it('adds a buffer that grows with the list size', () => {
     expect([10, 20, 50, 100].map(suggestedPoolSize)).toEqual([26, 42, 85, 150]);
@@ -65,12 +84,14 @@ describe('suggestedPoolSize', () => {
 });
 
 describe('loadImpactScores', () => {
-  const lastSeason = getRecentPastSeasonCodes(1)[0];
+  const [lastSeason, twoAgo] = getRecentPastSeasonCodes(2);
   const docs: Record<string, unknown> = {
     [`star|${lastSeason}`]: { stats: { PTS: 30, GP: 70 } },
     [`star|${CURRENT_SEASON_CODE}`]: { stats: { PTS: 20, GP: 20 } },
     [`rookie|${CURRENT_SEASON_CODE}`]: { stats: { PTS: 12, GP: 8 } },
     [`vet|${lastSeason}`]: { stats: { PTS: 15, GP: 50 } },
+    // Hurt all of last season and so far this season
+    [`hurt|${twoAgo}`]: { stats: { PTS: 26, GP: 65 } },
   };
 
   beforeEach(() => {
@@ -86,14 +107,16 @@ describe('loadImpactScores', () => {
   it('blends this season with last season, falling back to current stats', async () => {
     const scores = await loadImpactScores(
       CURRENT_SEASON_CODE,
-      ['star', 'rookie', 'vet', 'fallback', 'nobody'],
+      ['star', 'rookie', 'vet', 'fallback', 'hurt', 'nobody'],
       new Map([['fallback', { PTS: 9, GP: 10 }]])
     );
     expect(Object.fromEntries(scores)).toEqual({
-      star: 25, // half and half at 20 games
+      // Blend is 25 (half and half at 20 games), but last season's 30 (−5%) is higher
+      star: 28.5,
       rookie: 12,
       vet: 15,
       fallback: 9,
+      hurt: 26 * 0.95 * 0.95,
     });
   });
 
