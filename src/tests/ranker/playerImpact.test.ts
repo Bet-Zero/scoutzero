@@ -14,6 +14,7 @@ import {
   blendedImpactScore,
   gameScorePerGame,
   recentPeakScore,
+  selectTopNCandidates,
   suggestedPoolSize,
 } from '@/features/ranker/utils/playerImpact';
 import { loadImpactScores } from '@/features/ranker/hooks/useImpactScores';
@@ -83,6 +84,53 @@ describe('suggestedPoolSize', () => {
   });
 });
 
+describe('selectTopNCandidates', () => {
+  // s1..s6 by stats; "big" has middling stats but the top salary
+  const rows = [
+    { id: 's1', salary: 30 },
+    { id: 's2', salary: 5 },
+    { id: 's3', salary: 4 },
+    { id: 's4', salary: 3 },
+    { id: 'big', salary: 54 },
+    { id: 's5', salary: 2 },
+    { id: 's6', salary: null },
+    { id: 'unscored', salary: 1 },
+  ];
+  const scores = new Map([
+    ['s1', 30], ['s2', 28], ['s3', 26], ['s4', 24], ['big', 12], ['s5', 20], ['s6', 18],
+  ]);
+
+  it('takes the best by stats and the best paid, ordered by the better rank', () => {
+    const { pool, nearMisses } = selectTopNCandidates(rows, scores, 2, 3);
+    // Stats top 2: s1, s2; pay top 2: big, s1
+    expect(pool.map((r) => r.id)).toEqual(['s1', 'big', 's2']);
+    expect(pool[1]).toMatchObject({ statsRank: 7, payRank: 1, rank: 2, score: 12 });
+    // Next by better rank: s3 (stats 3, pay 3), s4 (4/4), s5 (5/6)
+    expect(nearMisses.map((r) => r.id)).toEqual(['s3', 's4', 's5']);
+    expect(nearMisses[0].rank).toBe(4);
+  });
+
+  it('ranks zero and negative scores rather than dropping them', () => {
+    const { pool } = selectTopNCandidates(
+      [{ id: 'good', salary: null }, { id: 'zero', salary: null }, { id: 'neg', salary: null }],
+      new Map([['good', 5], ['zero', 0], ['neg', -2]]),
+      3
+    );
+    expect(pool.map((r) => [r.id, r.statsRank])).toEqual([['good', 1], ['zero', 2], ['neg', 3]]);
+  });
+
+  it('keeps a well-paid player with no stats to score', () => {
+    const { pool } = selectTopNCandidates(
+      [{ id: 'hurt', salary: 50 }, { id: 'a', salary: 1 }, { id: 'b', salary: 1 }],
+      new Map([['a', 20], ['b', 15]]),
+      1
+    );
+    // Both are first on one list; the better stats rank breaks the tie
+    expect(pool.map((r) => r.id)).toEqual(['a', 'hurt']);
+    expect(pool[1].score).toBeUndefined();
+  });
+});
+
 describe('loadImpactScores', () => {
   const [lastSeason, twoAgo] = getRecentPastSeasonCodes(2);
   const docs: Record<string, unknown> = {
@@ -123,5 +171,46 @@ describe('loadImpactScores', () => {
   it('scores a past season on its own', async () => {
     const scores = await loadImpactScores(lastSeason, ['star', 'rookie', 'vet'], new Map());
     expect(Object.fromEntries(scores)).toEqual({ star: 30, vet: 15 });
+  });
+});
+
+describe('impact score cache', () => {
+  const store = new Map<string, string>();
+  beforeEach(() => {
+    store.clear();
+    vi.stubGlobal('localStorage', {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    });
+    getDocMock.mockReset();
+    getDocMock.mockImplementation(async () => ({
+      exists: () => true,
+      data: () => ({ stats: { PTS: 20, GP: 60 } }),
+    }));
+  });
+
+  it('reads each player once, then serves scores from the browser cache', async () => {
+    // A season no other test has loaded, so nothing is cached in memory
+    const season = '2019-20';
+    const first = await loadImpactScores(season, ['c1', 'c2'], new Map());
+    expect(Object.fromEntries(first)).toEqual({ c1: 20, c2: 20 });
+    const reads = getDocMock.mock.calls.length;
+    expect(reads).toBeGreaterThan(0);
+
+    // Same players: nothing read again; one new player: only they are read
+    await loadImpactScores(season, ['c1', 'c2'], new Map());
+    expect(getDocMock.mock.calls.length).toBe(reads);
+    await loadImpactScores(season, ['c1', 'c2', 'c3'], new Map());
+    expect(getDocMock.mock.calls.length).toBe(reads + 4); // c3 x 4 seasons
+  });
+
+  it('ignores a cache entry older than 12 hours', async () => {
+    store.set(
+      'ranker_impact_v1:2018-19',
+      JSON.stringify({ savedAt: Date.now() - 13 * 60 * 60 * 1000, checked: ['d1'], scores: { d1: 99 } })
+    );
+    const scores = await loadImpactScores('2018-19', ['d1'], new Map());
+    expect(scores.get('d1')).toBe(20);
   });
 });

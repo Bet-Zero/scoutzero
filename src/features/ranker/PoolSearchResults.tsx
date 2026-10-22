@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-10-21: Created; replaces FilterMatchPreview (name chips with add-all only) (PR #565)
  *  - 2026-10-22: Rank and score columns, and pre-ticked rows for the Top-N preset
+ *  - 2026-10-22: Stats and pay rank columns, and a tap-to-add near-miss list
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
@@ -28,6 +29,9 @@ export type PoolSearchRow = {
   // Set by the Top-N preset: position by score, and the score itself
   rank?: number;
   score?: number;
+  // Top-N preset: place by stats score and by salary among all matches
+  statsRank?: number | null;
+  payRank?: number | null;
 };
 
 const playerName = (player: RosterManagerPlayer): string =>
@@ -56,6 +60,8 @@ type PoolSearchResultsProps = {
   onAdd: (players: RosterManagerPlayer[]) => void;
   // Start with every row ticked (untick to leave a player out)
   preselect?: boolean;
+  // Top-N preset: the next players after the pool, to add by hand
+  nearMisses?: PoolSearchRow[];
 };
 
 export const PoolSearchResults = ({
@@ -66,6 +72,7 @@ export const PoolSearchResults = ({
   rows,
   onAdd,
   preselect = false,
+  nearMisses = [],
 }: PoolSearchResultsProps) => {
   // Ticked ids, or with `preselect` the unticked ones
   const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set());
@@ -178,9 +185,17 @@ export const PoolSearchResults = ({
                 <th className="text-right px-2 py-2">APG</th>
                 <th className="text-right px-2 py-2">GP</th>
                 {ranked && (
-                  <th className="text-right px-2 py-2" title="Game Score per game">
-                    Score
-                  </th>
+                  <>
+                    <th className="text-right px-2 py-2" title="Game Score per game">
+                      Score
+                    </th>
+                    <th className="text-right px-2 py-2" title="Place by Game Score among all matches">
+                      Stats #
+                    </th>
+                    <th className="text-right px-2 py-2" title="Place by salary among all matches">
+                      Pay #
+                    </th>
+                  </>
                 )}
                 <th className="w-16 px-2 py-2" />
               </tr>
@@ -217,9 +232,17 @@ export const PoolSearchResults = ({
                       {row.stats?.GP != null ? String(row.stats.GP) : '—'}
                     </td>
                     {ranked && (
-                      <td className="px-2 py-1.5 text-right">
-                        {row.score !== undefined ? row.score.toFixed(1) : '—'}
-                      </td>
+                      <>
+                        <td className="px-2 py-1.5 text-right">
+                          {row.score !== undefined ? row.score.toFixed(1) : '—'}
+                        </td>
+                        <td className="px-2 py-1.5 text-right text-white/50">
+                          {row.statsRank ?? '—'}
+                        </td>
+                        <td className="px-2 py-1.5 text-right text-white/50">
+                          {row.payRank ?? '—'}
+                        </td>
+                      </>
                     )}
                     <td className="px-2 py-1.5 text-right">
                       {row.inPool ? (
@@ -252,6 +275,36 @@ export const PoolSearchResults = ({
           Show {Math.min(PAGE_SIZE, rows.length - limit)} more of {rows.length - limit}
         </button>
       )}
+
+      {nearMisses.length > 0 && (
+        <div className="mt-5 pt-4 border-t border-dashed border-white/10">
+          <p className="text-xs text-white/50 mb-1.5">
+            Not in the pool · just missed the cut ({nearMisses.length}): tap anyone who could make your list
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {nearMisses.map((row) =>
+              row.inPool ? (
+                <span
+                  key={row.player.id}
+                  className="px-2 py-0.5 rounded text-xs text-white/30 border border-white/[0.06]"
+                >
+                  {playerName(row.player)} ✓
+                </span>
+              ) : (
+                <button
+                  key={row.player.id}
+                  onClick={() => onAdd([row.player])}
+                  aria-label={`Add ${playerName(row.player)} (near miss)`}
+                  className="px-2 py-0.5 rounded text-xs text-white/70 bg-white/[0.06] hover:bg-white/15"
+                >
+                  + {playerName(row.player)}
+                </button>
+              )
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

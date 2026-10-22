@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-10-22: Created for the Top-N pool preset
  *  - 2026-10-22: Best recent season counts too, so injured or down-year stars aren't left out
+ *  - 2026-10-22: Pool is the union of the best by stats and the best paid, plus a near-miss list
  *
  * LINKS:
  *  - Used in: src/features/ranker/FilterPoolPanel.tsx
@@ -107,3 +108,75 @@ export const recentPeakScore = (
 // (Top 10 → 26, Top 20 → 42, Top 50 → 85, Top 100 → 150)
 export const suggestedPoolSize = (topN: number): number =>
   Math.max(1, Math.round(topN)) + Math.max(10, Math.round(5 * Math.sqrt(Math.max(1, topN))));
+
+export type TopNCandidate = { id: string; salary: number | null };
+
+export type RankedCandidate<T> = T & {
+  // 1-based place by stats score / by salary (null when there's no score or salary)
+  statsRank: number | null;
+  payRank: number | null;
+  // Position in the pool or near-miss list
+  rank: number;
+  score?: number;
+};
+
+const rankBy = <T extends TopNCandidate>(
+  rows: readonly T[],
+  value: (row: T) => number | null | undefined,
+  counts: (v: number) => boolean
+): Map<string, number> => {
+  const ranked = rows
+    .map((row) => ({ id: row.id, v: value(row) }))
+    .filter((r): r is { id: string; v: number } => typeof r.v === 'number' && counts(r.v))
+    .sort((a, b) => b.v - a.v);
+  return new Map(ranked.map((r, i) => [r.id, i + 1]));
+};
+
+/**
+ * Candidates for a Top-N list, cast wide so no one who could make it is
+ * missing: everyone in the top `poolSize` by stats score AND everyone in the
+ * top `poolSize` by salary (pay catches stars box scores undervalue, like
+ * defenders or players coming back from injury). Ordered by their better
+ * rank of the two. The next `nearMissCount` players are returned separately
+ * so they can be scanned and added by hand.
+ */
+export const selectTopNCandidates = <T extends TopNCandidate>(
+  rows: readonly T[],
+  scores: ReadonlyMap<string, number>,
+  poolSize: number,
+  nearMissCount = 25
+): { pool: Array<RankedCandidate<T>>; nearMisses: Array<RankedCandidate<T>> } => {
+  // Any real score ranks (a poor one still beats no score); only actual pay ranks
+  const statsRanks = rankBy(rows, (row) => scores.get(row.id), Number.isFinite);
+  const payRanks = rankBy(rows, (row) => row.salary, (v) => v > 0);
+  const ordered = rows
+    .map((row) => {
+      const statsRank = statsRanks.get(row.id) ?? null;
+      const payRank = payRanks.get(row.id) ?? null;
+      const best = Math.min(statsRank ?? Infinity, payRank ?? Infinity);
+      return { row, statsRank, payRank, best };
+    })
+    .filter((r) => Number.isFinite(r.best))
+    .sort(
+      (a, b) =>
+        a.best - b.best ||
+        (a.statsRank ?? Infinity) - (b.statsRank ?? Infinity) ||
+        (a.payRank ?? Infinity) - (b.payRank ?? Infinity)
+    );
+  const toRanked = (r: (typeof ordered)[number], rank: number): RankedCandidate<T> => {
+    const score = scores.get(r.row.id);
+    return {
+      ...r.row,
+      statsRank: r.statsRank,
+      payRank: r.payRank,
+      rank,
+      ...(score !== undefined ? { score } : {}),
+    };
+  };
+  const inPool = ordered.filter((r) => r.best <= poolSize);
+  const rest = ordered.filter((r) => r.best > poolSize).slice(0, nearMissCount);
+  return {
+    pool: inPool.map((r, i) => toRanked(r, i + 1)),
+    nearMisses: rest.map((r, i) => toRanked(r, inPool.length + i + 1)),
+  };
+};

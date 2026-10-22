@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-10-21: Created for the Player Ranker filter-based pool builder (stat lines only)
  *  - 2026-10-21: Renamed from useSeasonStatLines; adds the season's team, age and salary (PR #565)
+ *  - 2026-10-22: Shared 150-read limiter and in-flight read sharing instead of sequential batches of 40
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
@@ -48,7 +49,8 @@ const ContractSalariesDocZ = z.object({
     .optional(),
 });
 
-const FETCH_CONCURRENCY = 40;
+// Firestore reads in flight at once, shared by every loader
+const MAX_IN_FLIGHT = 150;
 
 // "2026-27" style code for the season starting in `startYear`
 export const seasonCodeForStartYear = (startYear: number): string =>
@@ -67,68 +69,99 @@ const seasonStartYear = (seasonCode: string): number =>
 
 type SeasonDocEntry = { team: string | null; age: number | null; stats: SeasonStatLine | null };
 
-// Season docs and contracts don't change during a session, so each is read at most once
-const seasonDocCache = new Map<string, Map<string, SeasonDocEntry | null>>();
+// Season docs and contracts don't change during a session, so each is read
+// at most once; a read already in flight is shared rather than repeated
+const seasonDocCache = new Map<string, Map<string, Promise<SeasonDocEntry | null>>>();
 // Salary by season start year, from every contract the player has signed
-const salaryCache = new Map<string, Map<number, number>>();
+const salaryCache = new Map<string, Promise<Map<number, number>>>();
 
-const inBatches = async (
-  ids: readonly string[],
-  load: (id: string) => Promise<void>
-) => {
-  for (let i = 0; i < ids.length; i += FETCH_CONCURRENCY) {
-    await Promise.all(ids.slice(i, i + FETCH_CONCURRENCY).map(load));
+// Simple shared limiter: a steady stream of reads instead of waiting on
+// whole batches
+let inFlight = 0;
+const waiting: Array<() => void> = [];
+const limited = async <T>(read: () => Promise<T>): Promise<T> => {
+  if (inFlight < MAX_IN_FLIGHT) inFlight++;
+  // A finishing read hands its slot straight to the next waiter
+  else await new Promise<void>((resolve) => waiting.push(resolve));
+  try {
+    return await read();
+  } finally {
+    const next = waiting.shift();
+    if (next) next();
+    else inFlight--;
   }
 };
 
-const loadSeasonDocs = async (seasonCode: string, playerIds: readonly string[]) => {
+const readSeasonDoc = async (id: string, seasonCode: string): Promise<SeasonDocEntry | null> => {
+  const snap = await limited(() => getDoc(seasonRef(id, seasonCode)));
+  const parsed = snap.exists() ? SeasonViewDocZ.safeParse(snap.data()) : null;
+  return parsed?.success
+    ? {
+        team: parsed.data.team ?? null,
+        age: parsed.data.age ?? null,
+        stats: parsed.data.stats ?? null,
+      }
+    : null;
+};
+
+const loadSeasonDocs = async (
+  seasonCode: string,
+  playerIds: readonly string[]
+): Promise<Map<string, SeasonDocEntry | null>> => {
   let docs = seasonDocCache.get(seasonCode);
   if (!docs) {
     docs = new Map();
     seasonDocCache.set(seasonCode, docs);
   }
   const cache = docs;
-  await inBatches(
-    playerIds.filter((id) => !cache.has(id)),
-    async (id) => {
-      const snap = await getDoc(seasonRef(id, seasonCode));
-      const parsed = snap.exists() ? SeasonViewDocZ.safeParse(snap.data()) : null;
-      cache.set(
-        id,
-        parsed?.success
-          ? {
-              team: parsed.data.team ?? null,
-              age: parsed.data.age ?? null,
-              stats: parsed.data.stats ?? null,
-            }
-          : null
-      );
-    }
+  const entries = await Promise.all(
+    playerIds.map(async (id) => {
+      let pending = cache.get(id);
+      if (!pending) {
+        pending = readSeasonDoc(id, seasonCode);
+        cache.set(id, pending);
+        // A failed read is retried next time instead of being cached
+        pending.catch(() => cache.delete(id));
+      }
+      return [id, await pending] as const;
+    })
   );
-  return cache;
+  return new Map(entries);
 };
 
-const loadSalaries = async (playerIds: readonly string[]) => {
-  await inBatches(
-    playerIds.filter((id) => !salaryCache.has(id)),
-    async (id) => {
-      const snap = await getDocs(contractsCol(id));
-      const byYear = new Map<number, number>();
-      snap.docs.forEach((contractDoc) => {
-        const parsed = ContractSalariesDocZ.safeParse(contractDoc.data());
-        if (!parsed.success) return;
-        for (const row of parsed.data.salariesByYear ?? []) {
-          if (row.voidedByExtension || !row.season) continue;
-          const year = seasonStartYear(row.season);
-          const salary = Number(row.salary);
-          if (Number.isFinite(year) && Number.isFinite(salary) && salary > 0 && !byYear.has(year)) {
-            byYear.set(year, salary);
-          }
-        }
-      });
-      salaryCache.set(id, byYear);
+const readSalaries = async (id: string): Promise<Map<number, number>> => {
+  const snap = await limited(() => getDocs(contractsCol(id)));
+  const byYear = new Map<number, number>();
+  snap.docs.forEach((contractDoc) => {
+    const parsed = ContractSalariesDocZ.safeParse(contractDoc.data());
+    if (!parsed.success) return;
+    for (const row of parsed.data.salariesByYear ?? []) {
+      if (row.voidedByExtension || !row.season) continue;
+      const year = seasonStartYear(row.season);
+      const salary = Number(row.salary);
+      if (Number.isFinite(year) && Number.isFinite(salary) && salary > 0 && !byYear.has(year)) {
+        byYear.set(year, salary);
+      }
     }
+  });
+  return byYear;
+};
+
+const loadSalaries = async (
+  playerIds: readonly string[]
+): Promise<Map<string, Map<number, number>>> => {
+  const entries = await Promise.all(
+    playerIds.map(async (id) => {
+      let pending = salaryCache.get(id);
+      if (!pending) {
+        pending = readSalaries(id);
+        salaryCache.set(id, pending);
+        pending.catch(() => salaryCache.delete(id));
+      }
+      return [id, await pending] as const;
+    })
   );
+  return new Map(entries);
 };
 
 // Stat lines only (no contract reads), for players with a record that season
@@ -153,7 +186,7 @@ export const loadSeasonViews = async (
   seasonCode: string,
   playerIds: readonly string[]
 ): Promise<Map<string, SeasonView>> => {
-  const [docs] = await Promise.all([
+  const [docs, salaries] = await Promise.all([
     loadSeasonDocs(seasonCode, playerIds),
     loadSalaries(playerIds),
   ]);
@@ -162,7 +195,7 @@ export const loadSeasonViews = async (
   for (const id of playerIds) {
     const entry = docs.get(id);
     if (!entry) continue;
-    views.set(id, { ...entry, salary: salaryCache.get(id)?.get(year) ?? null });
+    views.set(id, { ...entry, salary: salaries.get(id)?.get(year) ?? null });
   }
   return views;
 };

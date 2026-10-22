@@ -10,7 +10,9 @@ vi.mock('firebase/firestore', async (importOriginal) => ({
         ? { team: 'BOS', stats: { PTS: 24.4, REB: 7.8, AST: 8.2, GP: 70 } }
         : playerId === 'Scorer'
           ? undefined
-          : { team: 'LAL', age: 25, stats: { PTS: 5, GP: 40 } };
+          : playerId === 'MaxGuy'
+            ? { team: 'DAL', stats: { PTS: 1, GP: 40 } }
+            : { team: 'LAL', age: 25, stats: { PTS: 5, GP: 40 } };
     return { exists: () => data !== undefined, data: () => data };
   },
   getDocs: async ({ playerId }: { playerId: string }) => ({
@@ -36,7 +38,8 @@ const candidate = (
   id: string,
   stats: Record<string, number>,
   dob?: string,
-  age?: number
+  age?: number,
+  salary = 10_000_000
 ): RosterDrawerPlayer<RosterManagerPlayer> => ({
   id,
   name: id.toLowerCase(),
@@ -49,7 +52,7 @@ const candidate = (
   defenseSubroles: [],
   shootingProfile: '',
   badges: [],
-  salary: 10_000_000,
+  salary,
   freeAgentYear: null,
   freeAgentType: '',
   contractType: '',
@@ -91,7 +94,11 @@ const addedIds = (onAdd: ReturnType<typeof vi.fn>, call = 0) =>
   onAdd.mock.calls[call][0].map((p: RosterManagerPlayer) => p.id);
 
 describe('FilterPoolPanel', () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    // Top-N scores are cached in the browser; keep tests independent
+    localStorage.clear();
+  });
 
   it('adds every player matching the filters, honouring minimum games', () => {
     const onAdd = vi.fn();
@@ -195,11 +202,35 @@ describe('FilterPoolPanel', () => {
     expect(screen.getByLabelText<HTMLInputElement>('Candidates to pull').value).toBe('26');
     const firstRow = screen.getAllByRole('row')[1];
     expect(within(firstRow).getByText('Vet')).toBeTruthy();
-    expect(within(firstRow).getByText('1')).toBeTruthy();
+    // Rank column (after the checkbox)
+    expect(firstRow.querySelectorAll('td')[1].textContent).toBe('1');
     expect(screen.queryByText('Scorer')).toBeNull();
 
     fireEvent.click(screen.getByLabelText('Select Bench'));
     fireEvent.click(screen.getByText('Add selected (3)'));
     expect(addedIds(onAdd)).toEqual(['Vet', 'Starter', 'Tiny Sample']);
+  });
+
+  it('Top-N pool takes the best paid too, and near misses can be added', async () => {
+    const onAdd = vi.fn();
+    const crowd = [
+      ...Array.from({ length: 34 }, (_, i) =>
+        candidate(`Filler ${i}`, { PTS: 5, GP: 40 }, undefined, undefined, 1_000_000)
+      ),
+      // Weak box score, top salary
+      candidate('MaxGuy', { PTS: 1, GP: 40 }, undefined, undefined, 60_000_000),
+    ];
+    render(<FilterPoolPanel candidates={crowd} poolIds={new Set()} onAdd={onAdd} />);
+    fireEvent.click(screen.getByText('Top 10'));
+
+    // 26 by stats plus MaxGuy by pay
+    await waitFor(() => expect(screen.getByText('Add selected (27)')).toBeTruthy());
+    const row = screen.getByText('MaxGuy').closest('tr') as HTMLElement;
+    expect(row.querySelectorAll('td')[1].textContent).toBe('2');
+
+    // The rest are listed as near misses, one tap to add
+    expect(screen.getByText(/just missed the cut \(8\)/)).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Add Filler 33 (near miss)'));
+    expect(addedIds(onAdd)).toEqual(['Filler 33']);
   });
 });

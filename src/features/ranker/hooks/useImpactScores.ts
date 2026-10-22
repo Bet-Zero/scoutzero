@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-10-22: Created for the Top-N pool preset
  *  - 2026-10-22: Also reads the three seasons before, so injured or down-year stars still score
+ *  - 2026-10-22: Scores cached in the browser for 12 hours, and preloadable before they're needed
  *
  * LINKS:
  *  - Score: src/features/ranker/utils/playerImpact.ts
@@ -38,15 +39,7 @@ const seasonsBefore = (seasonCode: string, count: number): string[] => {
   return Array.from({ length: count }, (_, i) => seasonCodeForStartYear(startYear - 1 - i));
 };
 
-/**
- * Scores for `seasonCode`. A past season is scored on its own stat line; the
- * current season blends in last season until enough games are played,
- * falling back to each player's denormalized current stats when the season
- * doc is missing. Either way, a player's best of the three seasons before
- * (slightly discounted) counts if it's higher, so a star who was hurt or had
- * a down year still makes the pool.
- */
-export const loadImpactScores = async (
+const computeImpactScores = async (
   seasonCode: string,
   playerIds: readonly string[],
   currentStatsById: ReadonlyMap<string, ImpactStatLine | null | undefined>
@@ -67,6 +60,89 @@ export const loadImpactScores = async (
       earlier.map((lines) => lines.get(id))
     );
     if (score !== null) scores.set(id, score);
+  }
+  return scores;
+};
+
+// Scores barely move within a day, so they're kept in the browser for 12
+// hours: after the first load a Top-N pool is instant. Bump the version when
+// the score formula changes.
+const SCORE_CACHE_VERSION = 1;
+const SCORE_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+
+type StoredScores = {
+  savedAt: number;
+  // Every player looked up, including those with no score
+  checked: string[];
+  scores: Record<string, number>;
+};
+
+const cacheKey = (seasonCode: string) =>
+  `ranker_impact_v${SCORE_CACHE_VERSION}:${seasonCode}`;
+
+const readStoredScores = (seasonCode: string): StoredScores | null => {
+  try {
+    const raw = localStorage.getItem(cacheKey(seasonCode));
+    if (!raw) return null;
+    const stored = JSON.parse(raw) as StoredScores;
+    if (
+      typeof stored?.savedAt !== 'number' ||
+      Date.now() - stored.savedAt > SCORE_CACHE_TTL_MS ||
+      !Array.isArray(stored.checked) ||
+      typeof stored.scores !== 'object'
+    ) {
+      return null;
+    }
+    return stored;
+  } catch {
+    return null;
+  }
+};
+
+const writeStoredScores = (seasonCode: string, stored: StoredScores) => {
+  try {
+    localStorage.setItem(cacheKey(seasonCode), JSON.stringify(stored));
+  } catch {
+    // Storage full or unavailable: scores are simply recomputed next time
+  }
+};
+
+/**
+ * Scores for `seasonCode`. A past season is scored on its own stat line; the
+ * current season blends in last season until enough games are played,
+ * falling back to each player's denormalized current stats when the season
+ * doc is missing. Either way, a player's best of the three seasons before
+ * (slightly discounted) counts if it's higher, so a star who was hurt or had
+ * a down year still makes the pool. Uses the browser cache, reading only
+ * players it hasn't seen.
+ */
+export const loadImpactScores = async (
+  seasonCode: string,
+  playerIds: readonly string[],
+  currentStatsById: ReadonlyMap<string, ImpactStatLine | null | undefined>
+): Promise<Map<string, number>> => {
+  const stored = readStoredScores(seasonCode);
+  const checked = new Set(stored?.checked ?? []);
+  const known: Record<string, number> = { ...(stored?.scores ?? {}) };
+  const missing = playerIds.filter((id) => !checked.has(id));
+
+  if (missing.length > 0) {
+    const fresh = await computeImpactScores(seasonCode, missing, currentStatsById);
+    missing.forEach((id) => checked.add(id));
+    fresh.forEach((score, id) => {
+      known[id] = score;
+    });
+    writeStoredScores(seasonCode, {
+      // Keep the original age so the whole entry still expires on time
+      savedAt: stored?.savedAt ?? Date.now(),
+      checked: [...checked],
+      scores: known,
+    });
+  }
+
+  const scores = new Map<string, number>();
+  for (const id of playerIds) {
+    if (known[id] !== undefined) scores.set(id, known[id]);
   }
   return scores;
 };
