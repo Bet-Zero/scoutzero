@@ -45,13 +45,17 @@ const groupIndex = (group: string | null | undefined): number => {
   return index === -1 ? RANKER_GROUP_ORDER.indexOf('upper') : index;
 };
 
-// Number of players known to be better than each player
+// Number of players known to be better than each player. Players cut by
+// hand don't count: cutting someone only removes them, so it can't push
+// anyone else out (or leave fewer than N in the running).
 export const countKnownAbove = (
   players: readonly RankerPlayer[],
-  closure: RankerGraph
+  closure: RankerGraph,
+  manualCuts: ReadonlySet<string> = new Set()
 ): Map<string, number> => {
   const above = new Map(players.map((p) => [p.id, 0]));
   for (const p of players) {
+    if (manualCuts.has(p.id)) continue;
     closure[p.id]?.forEach((loser) => {
       if (above.has(loser)) above.set(loser, (above.get(loser) ?? 0) + 1);
     });
@@ -69,7 +73,7 @@ export const resolveTopN = (
 ): TopNResolution => {
   const n = Math.max(1, Math.floor(topN));
   const beats = (a: string, b: string): boolean => Boolean(closure[a]?.has(b));
-  const above = countKnownAbove(players, closure);
+  const above = countKnownAbove(players, closure, manualCuts);
 
   const order = players
     .map((player, index) => ({ player, index }))

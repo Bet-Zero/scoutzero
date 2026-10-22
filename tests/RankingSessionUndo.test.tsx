@@ -161,4 +161,34 @@ describe('RankingSession undo', () => {
     expect(screen.getByText('Neither makes my Top 3').closest('button')?.disabled).toBe(true);
     expect(screen.getAllByText(/^Cut /)[0].closest('button')?.disabled).toBe(false);
   });
+
+  it('a cut that finishes the session can be undone from the results', () => {
+    const autosave = vi.fn();
+    const three = players.slice(0, 3);
+    // Top 2 of three players, with Alpha > Beta already known
+    const cache = createClosureCache();
+    cache.rebuild([{ winner: 'a', loser: 'b' }]);
+    render(
+      <RankingSession
+        playerPool={three}
+        resumedSessionData={{
+          ...resumed(),
+          playerPoolIds: ['a', 'b', 'c'],
+          setupData: { topTier: [], bottomTier: [], anchor: null, firstPlace: null, lastPlace: null, topN: 2 },
+          results: [{ winner: 'a', loser: 'b' }],
+          seedCount: 1,
+          closureCache: cache,
+        }}
+        autosave={autosave}
+      />
+    );
+
+    // Cutting Gamma leaves Alpha and Beta: the Top 2 is settled
+    fireEvent.click(screen.getByText('Cut Gamma'));
+    expect(screen.getByText('Your Top 2')).toBeTruthy();
+
+    fireEvent.click(screen.getByText('↶ Undo last step'));
+    expect(screen.queryByText('Your Top 2')).toBeNull();
+    expect(screen.getByText('Cut Gamma')).toBeTruthy();
+  });
 });

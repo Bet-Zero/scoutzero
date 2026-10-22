@@ -348,6 +348,17 @@ export const RankingSession = ({
     return (
       <>
         {exitBar}
+        {/* The last pick or cut finishes the session; it can still be taken back */}
+        {canUndo && (
+          <div className="max-w-5xl mx-auto px-4 pt-2">
+            <button
+              onClick={handleUndo}
+              className="text-sm text-white/50 hover:text-white transition-colors"
+            >
+              ↶ Undo last step
+            </button>
+          </div>
+        )}
         <RankingResults
           ranking={ranking}
           topN={topN}

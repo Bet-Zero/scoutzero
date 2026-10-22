@@ -199,4 +199,15 @@ describe('Top-N selection', () => {
     expect([...manualCutIds([{ ids: ['a'], at: -1 }, { ids: ['b', 'c'], at: 4 }])]).toEqual(['a', 'b', 'c']);
     expect(manualCutIds(undefined).size).toBe(0);
   });
+
+  it("a hand-cut player doesn't push anyone else out", () => {
+    // Top 2 of A, B, C with A > C and B > C known; the user cuts A
+    const players = ['a', 'b', 'c'].map((id) => ({ id }));
+    const cache = createClosureCache();
+    cache.addEdge('a', 'c');
+    cache.addEdge('b', 'c');
+    const resolution = resolveTopN(players, 2, cache.closure, new Set(), new Set(['a']));
+    expect(resolution.cut.map((p) => p.id)).toEqual(['a']);
+    expect(resolution.ranked.map((p) => p.id)).toEqual(['b', 'c']);
+  });
 });
