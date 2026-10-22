@@ -111,6 +111,15 @@ describe('selectTopNCandidates', () => {
     expect(nearMisses[0].rank).toBe(4);
   });
 
+  it('ranks zero and negative scores rather than dropping them', () => {
+    const { pool } = selectTopNCandidates(
+      [{ id: 'good', salary: null }, { id: 'zero', salary: null }, { id: 'neg', salary: null }],
+      new Map([['good', 5], ['zero', 0], ['neg', -2]]),
+      3
+    );
+    expect(pool.map((r) => [r.id, r.statsRank])).toEqual([['good', 1], ['zero', 2], ['neg', 3]]);
+  });
+
   it('keeps a well-paid player with no stats to score', () => {
     const { pool } = selectTopNCandidates(
       [{ id: 'hurt', salary: 50 }, { id: 'a', salary: 1 }, { id: 'b', salary: 1 }],
