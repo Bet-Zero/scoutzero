@@ -14,6 +14,7 @@ import {
 import {
   effectiveTopN,
   estimateTopNRemaining,
+  manualCutIds,
   resolveTopN,
   suggestTopNPair,
 } from '@/features/ranker/utils/topNSelection';
@@ -169,5 +170,33 @@ describe('Top-N selection', () => {
     expect(effectiveTopN(0, 26)).toBeNull();
     expect(effectiveTopN(null, 26)).toBeNull();
     expect(effectiveTopN(2.5, 26)).toBeNull();
+  });
+
+  it('cuts hand-picked players without any matchups and still finds the top N', () => {
+    const random = createRandom(5);
+    for (let trial = 0; trial < 100; trial++) {
+      const truth = Array.from({ length: 20 }, (_, i) => `p${i}`);
+      const players = shuffle(truth, random).map((id) => ({ id }));
+      // The user rules out a handful who really don't make a Top 5
+      const outs = new Set(shuffle(truth.slice(5), random).slice(0, 8));
+      const rank = (id: string) => truth.indexOf(id);
+      const cache = createClosureCache();
+      for (;;) {
+        const pair = suggestTopNPair(players, 5, cache.closure, new Set(), outs);
+        if (!pair.length) break;
+        const [a, b] = pair;
+        expect(outs.has(a.id) || outs.has(b.id)).toBe(false);
+        const [w, l] = rank(a.id) < rank(b.id) ? [a, b] : [b, a];
+        cache.addEdge(w.id, l.id);
+      }
+      const final = resolveTopN(players, 5, cache.closure, new Set(), outs);
+      expect(final.ranked.map((p) => p.id)).toEqual(truth.slice(0, 5));
+      expect(final.cut).toHaveLength(15);
+    }
+  });
+
+  it('collects hand cuts from every cut action', () => {
+    expect([...manualCutIds([{ ids: ['a'], at: -1 }, { ids: ['b', 'c'], at: 4 }])]).toEqual(['a', 'b', 'c']);
+    expect(manualCutIds(undefined).size).toBe(0);
   });
 });

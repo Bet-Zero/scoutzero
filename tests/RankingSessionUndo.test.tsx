@@ -110,4 +110,55 @@ describe('RankingSession undo', () => {
     expect(screen.getByText('Your Top 2')).toBeTruthy();
     expect(screen.getByText(/Didn't make your Top 2 \(2\)/)).toBeTruthy();
   });
+
+  it('Top-N mode can cut both players of a matchup, and undo brings them back', () => {
+    const autosave = vi.fn();
+    const pool = [...players, { id: 'e', name: 'Echo' }, { id: 'f', name: 'Foxtrot' }];
+    render(
+      <RankingSession
+        playerPool={pool}
+        resumedSessionData={{
+          ...resumed(),
+          playerPoolIds: pool.map((p) => p.id),
+          setupData: { topTier: [], bottomTier: [], anchor: null, firstPlace: null, lastPlace: null, topN: 2 },
+          results: [],
+          seedCount: 0,
+          closureCache: createClosureCache(),
+        }}
+        autosave={autosave}
+      />
+    );
+
+    const shown = () =>
+      [...document.querySelectorAll('.compare-button')].map((b) => b.textContent ?? '');
+    const before = shown();
+    fireEvent.click(screen.getByText('Neither makes my Top 2'));
+    const cut = autosave.mock.lastCall?.[0].setupData.cuts;
+    expect(cut).toEqual([{ ids: expect.any(Array), at: 0 }]);
+    expect(cut[0].ids).toHaveLength(2);
+    // Neither cut player is shown again
+    expect(shown().join('')).not.toBe(before.join(''));
+
+    fireEvent.click(screen.getByText('Undo'));
+    expect(autosave.mock.lastCall?.[0].setupData.cuts).toEqual([]);
+    expect(shown()).toEqual(before);
+  });
+
+  it('Top-N cut buttons never leave fewer than N players', () => {
+    render(
+      <RankingSession
+        playerPool={players}
+        resumedSessionData={{
+          ...resumed(),
+          setupData: { topTier: [], bottomTier: [], anchor: null, firstPlace: null, lastPlace: null, topN: 3 },
+          results: [],
+          seedCount: 0,
+          closureCache: createClosureCache(),
+        }}
+      />
+    );
+    // 4 players, Top 3: one can be cut, two can't
+    expect(screen.getByText('Neither makes my Top 3').closest('button')?.disabled).toBe(true);
+    expect(screen.getAllByText(/^Cut /)[0].closest('button')?.disabled).toBe(false);
+  });
 });

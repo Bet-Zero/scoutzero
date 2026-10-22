@@ -108,4 +108,25 @@ describe('RankingSetup', () => {
     fireEvent.click(screen.getByText(/Start Ranking/));
     expect(handle.mock.lastCall?.[0].topN).toBeNull();
   });
+
+  it('Top-N setup can rule players out before ranking', () => {
+    const players = Array.from({ length: 12 }, (_, i) => ({ id: String(i), name: `P${i}` }));
+    const handle = vi.fn();
+    render(<RankingSetup playerPool={players} onComplete={handle} />);
+
+    // Only shown for a Top-N list
+    expect(screen.queryByTestId('definitely-out')).toBeNull();
+    fireEvent.click(screen.getByText('Top 10'));
+    const out = screen.getByTestId('definitely-out');
+    fireEvent.click(within(out).getByText('P11'));
+    fireEvent.click(screen.getByText(/Start Ranking/));
+    expect(handle.mock.lastCall?.[0].cuts).toEqual([{ ids: ['11'], at: -1 }]);
+
+    // Cutting down below 10 left isn't applied
+    fireEvent.click(within(out).getByText('P10'));
+    fireEvent.click(within(out).getByText('P9'));
+    expect(screen.getByText(/won't be applied/)).toBeTruthy();
+    fireEvent.click(screen.getByText(/Start Ranking/));
+    expect(handle.mock.lastCall?.[0].cuts).toBeUndefined();
+  });
 });

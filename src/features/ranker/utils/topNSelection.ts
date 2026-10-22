@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-22: Created for the Top-N ranking mode
+ *  - 2026-10-22: Players the user cuts by hand are skipped
  *
  * LINKS:
  *  - Full-ranking engine: src/features/ranker/utils/rankingEngine.ts
@@ -62,7 +63,9 @@ export const resolveTopN = (
   players: readonly RankerPlayer[],
   topN: number,
   closure: RankerGraph,
-  skipSet: ReadonlySet<string> = new Set()
+  skipSet: ReadonlySet<string> = new Set(),
+  // Players the user ruled out themselves: cut without any matchups
+  manualCuts: ReadonlySet<string> = new Set()
 ): TopNResolution => {
   const n = Math.max(1, Math.floor(topN));
   const beats = (a: string, b: string): boolean => Boolean(closure[a]?.has(b));
@@ -82,7 +85,7 @@ export const resolveTopN = (
   let nextPair: RankerPair = [];
 
   for (const p of order) {
-    if ((above.get(p.id) ?? 0) >= n) {
+    if (manualCuts.has(p.id) || (above.get(p.id) ?? 0) >= n) {
       cut.push(p);
       continue;
     }
@@ -165,13 +168,21 @@ export const suggestTopNPair = (
   players: readonly RankerPlayer[],
   topN: number,
   closure: RankerGraph,
-  skipSet: ReadonlySet<string> = new Set()
+  skipSet: ReadonlySet<string> = new Set(),
+  manualCuts: ReadonlySet<string> = new Set()
 ): RankerPair => {
   if (players.length < 2) return [];
-  const first = resolveTopN(players, topN, closure, skipSet);
+  const first = resolveTopN(players, topN, closure, skipSet, manualCuts);
   if (first.nextPair.length || first.pending.length === 0) return first.nextPair;
-  return resolveTopN(players, topN, closure).nextPair;
+  return resolveTopN(players, topN, closure, new Set(), manualCuts).nextPair;
 };
+
+export type TopNCut = { ids: string[]; at: number };
+
+// Players cut by hand. `at` is the number of results when the cut was made
+// (-1 for cuts made in setup, which undo never removes).
+export const manualCutIds = (cuts: readonly TopNCut[] | null | undefined): Set<string> =>
+  new Set((cuts ?? []).flatMap((cut) => cut.ids));
 
 // A Top-N size that actually trims the pool, or null for a full ranking
 export const effectiveTopN = (

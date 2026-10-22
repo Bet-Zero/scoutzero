@@ -28,9 +28,11 @@ import {
 import {
   effectiveTopN,
   estimateTopNRemaining,
+  manualCutIds,
   resolveTopN,
   suggestTopNPair,
 } from '@/features/ranker/utils/topNSelection';
+import { getPlayerName as getDisplayName } from './utils/playerDisplay';
 import type { HydratedRankerDraft } from './hooks/useRankerSession';
 import type { RankerDraftPatch, RankerSetupData } from './utils/rankerLocalDraft';
 
@@ -130,12 +132,16 @@ export const RankingSession = ({
 
   // Top-N mode: only the best N are found and ordered
   const topN = effectiveTopN(setupData?.topN, players.length);
+  const cuts = useMemo(() => (topN === null ? [] : setupData?.cuts ?? []), [topN, setupData]);
+  const cutIds = useMemo(() => manualCutIds(cuts), [cuts]);
   const topNResolution = useMemo(
     () =>
-      topN === null ? null : resolveTopN(groupedPlayers, topN, closureCache.closure),
+      topN === null
+        ? null
+        : resolveTopN(groupedPlayers, topN, closureCache.closure, new Set(), cutIds),
     // results drive the closure cache's contents
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [topN, groupedPlayers, closureCache, results]
+    [topN, groupedPlayers, closureCache, results, cutIds]
   );
 
   // Comparisons involving players no longer in the pool (e.g. removed from
@@ -164,7 +170,7 @@ export const RankingSession = ({
 
     const next =
       topN !== null
-        ? suggestTopNPair(groupedPlayers, topN, closureCache.closure, skippedPairs)
+        ? suggestTopNPair(groupedPlayers, topN, closureCache.closure, skippedPairs, cutIds)
         : suggestNextPair(results, groupedPlayers, {
             skippedPairs,
             closureCache,
@@ -188,6 +194,7 @@ export const RankingSession = ({
     markFinished,
     closureCache,
     topN,
+    cutIds,
   ]);
 
   const handleSelect = useCallback(
@@ -222,9 +229,38 @@ export const RankingSession = ({
     if (autosave) autosave({ skippedPairs: newSkipped });
   }, [currentPair, skippedPairs, autosave]);
 
-  const canUndo = results.length > seedCount;
+  // Players still in the running; a cut may never leave fewer than N
+  const stillIn = topNResolution ? players.length - topNResolution.cut.length : players.length;
+  const canCut = (count: number) => topN !== null && stillIn - count >= topN;
+
+  // Top-N mode: rule players out by hand (undoable, newest first)
+  const handleCut = useCallback(
+    (ids: string[]) => {
+      if (!setupData || ids.length === 0 || topN === null || stillIn - ids.length < topN) return;
+      const nextSetup = { ...setupData, cuts: [...cuts, { ids, at: results.length }] };
+      setSetupData(nextSetup);
+      setSkippedPairs(new Set());
+      if (autosave) autosave({ setupData: nextSetup, skippedPairs: new Set() });
+    },
+    [setupData, topN, cuts, results.length, autosave, stillIn]
+  );
+
+  const lastCut = cuts.length ? cuts[cuts.length - 1] : null;
+  // A cut made after the latest pick is undone before that pick
+  const undoesCut = Boolean(lastCut && lastCut.at >= 0 && lastCut.at === results.length);
+  const canUndo = results.length > seedCount || undoesCut;
 
   const handleUndo = useCallback(() => {
+    if (undoesCut && setupData) {
+      const nextSetup = { ...setupData, cuts: cuts.slice(0, -1) };
+      setSetupData(nextSetup);
+      setIsFinished(false);
+      setSkippedPairs(new Set());
+      if (autosave) {
+        autosave({ setupData: nextSetup, isFinished: false, skippedPairs: new Set() });
+      }
+      return;
+    }
     // Only head-to-head picks can be undone, never the setup seeds
     if (results.length <= seedCount) return;
     const newResults = results.slice(0, -1);
@@ -240,7 +276,7 @@ export const RankingSession = ({
         skippedPairs: new Set(),
       });
     }
-  }, [results, seedCount, autosave, closureCache]);
+  }, [results, seedCount, autosave, closureCache, undoesCut, setupData, cuts]);
 
   // Handler for saving adjustments from RankingResults
   const handleRankingAdjusted = useCallback(
@@ -264,10 +300,15 @@ export const RankingSession = ({
       );
     });
     const byId = new Map(players.map((p) => [p.id, p]));
+    // Cut by the matchups (closest to making it first), then cut by hand
     return [...topNResolution.cut]
-      .sort((a, b) => (above.get(a.id) ?? 0) - (above.get(b.id) ?? 0))
+      .sort(
+        (a, b) =>
+          Number(cutIds.has(a.id)) - Number(cutIds.has(b.id)) ||
+          (above.get(a.id) ?? 0) - (above.get(b.id) ?? 0)
+      )
       .map((p) => byId.get(p.id) ?? p);
-  }, [isFinished, topNResolution, players, closureCache]);
+  }, [isFinished, topNResolution, players, closureCache, cutIds]);
 
   const ranking = useMemo(() => {
     if (!isFinished) return [];
@@ -378,6 +419,7 @@ export const RankingSession = ({
         ...(setupData.bottomTier || []),
         setupData.firstPlace,
         setupData.lastPlace,
+        ...cutIds,
       ].filter((id): id is string => typeof id === 'string' && id.length > 0)
     );
     const untagged = players.filter(
@@ -445,6 +487,31 @@ export const RankingSession = ({
           onSkip={handleSkip}
           onUndo={canUndo ? handleUndo : undefined}
         />
+        {topN !== null && (
+          <div className="flex flex-wrap justify-center gap-2 mt-4 text-xs">
+            <button
+              onClick={() => handleCut([leftPlayer.id])}
+              disabled={!canCut(1)}
+              className="px-3 py-1.5 rounded-lg border border-white/15 text-white/60 hover:text-white hover:border-white/30 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Cut {getDisplayName(leftPlayer)}
+            </button>
+            <button
+              onClick={() => handleCut([leftPlayer.id, rightPlayer.id])}
+              disabled={!canCut(2)}
+              className="px-3 py-1.5 rounded-lg border border-red-400/30 text-red-200/80 hover:text-red-100 hover:border-red-400/60 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Neither makes my Top {topN}
+            </button>
+            <button
+              onClick={() => handleCut([rightPlayer.id])}
+              disabled={!canCut(1)}
+              className="px-3 py-1.5 rounded-lg border border-white/15 text-white/60 hover:text-white hover:border-white/30 disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              Cut {getDisplayName(rightPlayer)}
+            </button>
+          </div>
+        )}
         <div className="w-full max-w-xs mt-4">
           <div className="w-full bg-white/20 h-3 rounded-full">
             <div

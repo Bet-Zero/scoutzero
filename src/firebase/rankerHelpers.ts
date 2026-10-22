@@ -48,6 +48,10 @@ const RankerSetupDataZ = z
     lastPlace: RankerPlayerIdZ.nullable().optional(),
     // Top-N mode: only the best N are found and ordered
     topN: z.number().int().positive().nullable().optional(),
+    // Top-N mode: players cut by hand; `at` is the result count when cut (-1 = setup)
+    cuts: z
+      .array(z.object({ ids: z.array(RankerPlayerIdZ), at: z.number().int().min(-1) }))
+      .optional(),
   });
 
 const RankerSessionReadDocZ = z

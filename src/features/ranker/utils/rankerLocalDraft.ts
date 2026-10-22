@@ -11,6 +11,8 @@ export type RankerSetupData = {
   lastPlace?: string | null;
   // Top-N mode: only the best N are found and ordered (null = rank everyone)
   topN?: number | null;
+  // Top-N mode: players cut by hand; `at` is the result count when cut (-1 = setup)
+  cuts?: Array<{ ids: string[]; at: number }>;
   [key: string]: unknown;
 };
 

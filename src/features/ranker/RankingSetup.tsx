@@ -205,6 +205,10 @@ export const RankingSetup = ({
   const [anchor, setAnchor] = useState<string | null>(null);
   const [firstPlace, setFirstPlace] = useState<string | null>(null);
   const [lastPlace, setLastPlace] = useState<string | null>(null);
+  // Top-N mode: players ruled out before ranking starts
+  const [outIds, setOutIds] = useState<string[]>([]);
+  const listSize =
+    topN !== null && topN >= 1 && topN < playerPool.length ? topN : null;
 
   const tierCountEstimate = Math.max(1, Math.round(playerPool.length * 0.25));
 
@@ -231,8 +235,18 @@ export const RankingSetup = ({
     return null;
   };
 
+  const handleToggleOut = (id: string) => {
+    if (roleOf(id)) return;
+    setTopTier((prev) => prev.filter((p) => p !== id));
+    setBottomTier((prev) => prev.filter((p) => p !== id));
+    setOutIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  };
+
   const handleToggleTop = (id: string) => {
     if (getBlockedReason(id, topTier, 'Top')) return;
+    setOutIds((prev) => prev.filter((p) => p !== id));
     setBottomTier((prev) => prev.filter((p) => p !== id));
     setTopTier((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
@@ -241,6 +255,7 @@ export const RankingSetup = ({
 
   const handleToggleBottom = (id: string) => {
     if (getBlockedReason(id, bottomTier, 'Bottom')) return;
+    setOutIds((prev) => prev.filter((p) => p !== id));
     setTopTier((prev) => prev.filter((p) => p !== id));
     setBottomTier((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
@@ -254,15 +269,27 @@ export const RankingSetup = ({
       if (!id) return;
       setTopTier((prev) => prev.filter((p) => p !== id));
       setBottomTier((prev) => prev.filter((p) => p !== id));
+      setOutIds((prev) => prev.filter((p) => p !== id));
     };
 
   const optionsExcluding = (...ids: Array<string | null>) =>
     playerPool.filter((p) => !ids.includes(p.id));
 
   const handleReady = () => {
-    const listSize =
-      topN !== null && topN >= 1 && topN < playerPool.length ? topN : null;
-    onComplete({ topTier, bottomTier, anchor, firstPlace, lastPlace, topN: listSize });
+    // Out tags only apply to a Top-N list, and must leave at least N players
+    const cuts =
+      listSize !== null && outIds.length > 0 && playerPool.length - outIds.length >= listSize
+        ? [{ ids: outIds, at: -1 }]
+        : [];
+    onComplete({
+      topTier,
+      bottomTier,
+      anchor,
+      firstPlace,
+      lastPlace,
+      topN: listSize,
+      ...(cuts.length ? { cuts } : {}),
+    });
   };
 
   const topCount = topTier.length;
@@ -338,6 +365,54 @@ export const RankingSetup = ({
         )}
       </SectionCard>
 
+      {/* ── Definitely Out (Top-N only) ──────────────────────────────────── */}
+      {listSize !== null && (
+        <SectionCard className="mb-4" data-testid="definitely-out">
+          <SectionHeader
+            label="Definitely Out"
+            hint={`Tap anyone you already know won't make your Top ${listSize}. They're cut before ranking starts, so you're never asked about them.`}
+            right={
+              <span
+                className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                  playerPool.length - outIds.length < listSize
+                    ? 'bg-red-500/20 text-red-300'
+                    : 'bg-white/[0.06] text-white/40'
+                }`}
+              >
+                {outIds.length} out · {playerPool.length - outIds.length} left
+              </span>
+            }
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {playerPool.map((p) => {
+              const out = outIds.includes(p.id);
+              const role = roleOf(p.id);
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => handleToggleOut(p.id)}
+                  disabled={Boolean(role)}
+                  aria-pressed={out}
+                  title={role ? `This player is ${role}` : undefined}
+                  className={`px-2.5 py-1 rounded-md text-xs border transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                    out
+                      ? 'border-red-400/50 bg-red-500/15 text-red-200 line-through'
+                      : 'border-white/[0.1] text-white/60 hover:text-white'
+                  }`}
+                >
+                  {getPlayerName(p)}
+                </button>
+              );
+            })}
+          </div>
+          {playerPool.length - outIds.length < listSize && (
+            <p className="text-red-300/80 text-xs mt-2">
+              That leaves fewer than {listSize} players, so these cuts won&apos;t be applied.
+            </p>
+          )}
+        </SectionCard>
+      )}
+
       {/* ── Tier Tagging ─────────────────────────────────────────────────── */}
       <SectionCard className="mb-4" data-testid="tier-tagging">
         <SectionHeader
@@ -367,7 +442,7 @@ export const RankingSetup = ({
           }
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-          {playerPool.map((p) => (
+          {playerPool.filter((p) => !outIds.includes(p.id)).map((p) => (
             <PlayerTile
               key={p.id}
               player={p}
