@@ -150,8 +150,10 @@ export function useTradeMachineTeamOps({
               // Phase 12.3B: Fetch pick rules for entitlements
               let pickRulesById: Record<string, PickRuleDoc> = {};
               if (ENABLE_PICK_RULES) {
-                pickRulesById =
-                  await resolvePickRulesForEntitlements(entitlements);
+                pickRulesById = await resolvePickRulesForEntitlements(
+                  entitlements,
+                  worldId
+                );
               }
               teamObj.pickRulesById = pickRulesById;
 

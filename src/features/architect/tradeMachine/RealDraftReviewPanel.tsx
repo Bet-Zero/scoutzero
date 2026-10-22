@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import type { RealDraftSelectionReview } from '@/features/architect/utils/draftPickRealReview';
 import { useRealDraftReview, type DraftReviewTeam } from './useRealDraftReview';
 
 export function RealDraftReviewPanel({
@@ -11,7 +12,19 @@ export function RealDraftReviewPanel({
   worldId: string | null;
 }) {
   const state = useRealDraftReview(teams, asOfDate, worldId);
+  // Bind the explicit inspection to this result object, not just a reusable
+  // selection key. Cancel/restage, sign-out and late responses cannot reopen it.
+  const [inspectedResult, setInspectedResult] =
+    useState<RealDraftSelectionReview | null>(null);
   if (!state) return null;
+  const inspecting =
+    'review' in state && !!state.review && state.review === inspectedResult;
+  const review =
+    'review' in state
+      ? inspecting
+        ? state.startingPositionReview
+        : state.review
+      : undefined;
   return (
     <section
       className="rounded-lg border border-cockpit-edge bg-cockpit-surface p-3 my-2 text-sm"
@@ -23,8 +36,7 @@ export function RealDraftReviewPanel({
           First-round pick review
         </h3>
         <span className="text-xs text-cockpit-watch">
-          {'review' in state &&
-          state.review?.records.some((r) => r.status === 'prohibited')
+          {review?.records.some((r) => r.status === 'prohibited')
             ? 'Blocked'
             : 'Needs input'}{' '}
           · Apply unavailable
@@ -38,18 +50,37 @@ export function RealDraftReviewPanel({
         <p className="text-cockpit-watch mt-2" role="status">
           {state.error}
         </p>
-      ) : state.review ? (
+      ) : review ? (
         <>
+          {state.startingPositionReview && (
+            <button
+              type="button"
+              className="text-xs underline mt-2"
+              onClick={() =>
+                setInspectedResult(inspecting ? null : (state.review ?? null))
+              }
+            >
+              {inspecting
+                ? 'Return to date-limited review'
+                : 'Inspect retained starting position'}
+            </button>
+          )}
+          {inspecting && (
+            <p role="status" className="text-xs text-cockpit-watch mt-2">
+              Historical starting position only. Missing or different world
+              dates remain unverified.
+            </p>
+          )}
           <p className="text-xs text-cockpit-text-muted mt-1">
-            Starting position: {state.review.asOf.slice(0, 10)}. This review
-            does not certify later changes in a saved world or approve a trade.
+            Starting position: {review.asOf.slice(0, 10)}. This review does not
+            certify later changes in a saved world or approve a trade.
           </p>
           <div className="divide-y divide-cockpit-edge">
-            {state.review.records.map((row, index) => (
+            {review.records.map((row, index) => (
               <details
                 key={`${row.entitlementId}:${index}`}
                 className="py-2"
-                open={state.review!.records.length === 1}
+                open={review.records.length === 1}
               >
                 <summary className="cursor-pointer text-cockpit-text-primary">
                   {row.label}{' '}

@@ -26,7 +26,7 @@ describe('entitlementPickRowProjection', () => {
           round: 1,
           underlyingPickId: 'BOS_2026_1st',
           underlyingStatus: 'clean',
-          description: "Boston's 2026 1st round pick",
+          description: 'Unprotected',
         };
 
         const result = projectEntitlementToPickRow(entitlement, {
@@ -103,7 +103,7 @@ describe('entitlementPickRowProjection', () => {
           round: 2,
           underlyingPickId: 'LAL_2026_2nd',
           underlyingStatus: 'clean',
-          description: "Lakers' 2026 2nd round pick",
+          description: 'Unprotected',
         };
 
         const result = projectEntitlementToPickRow(entitlement, {
@@ -207,7 +207,47 @@ describe('entitlementPickRowProjection', () => {
     });
 
     describe('protectionText fallback behavior', () => {
-      it('returns "Unprotected" for pick_ownership without protection mention', () => {
+      it.each([undefined, '', 'Original first-round selection'])(
+        'does not turn missing terms into unprotected rights: %s',
+        (description) => {
+          const row = projectEntitlementToPickRow(
+            {
+              id: 'synthetic-own',
+              kind: 'pick_ownership',
+              seasonYear: 2030,
+              round: 1,
+              underlyingPickId: 'AAA_2030_1st',
+              description,
+            },
+            {
+              teamCode: 'BBB',
+              pickRulesById: {
+                AAA_2030_1st: { pickId: 'AAA_2030_1st', protections: [] },
+              },
+            }
+          );
+          expect(row.protectionText).toBe('Protection terms unavailable');
+          expect(getPickRowSecondaryText(row)).toContain(
+            'Protection terms unavailable'
+          );
+        }
+      );
+
+      it('does not mistake an unprotected fallback year for the current protected pick', () => {
+        const row = projectEntitlementToPickRow(
+          {
+            id: 'synthetic-own',
+            kind: 'pick_ownership',
+            seasonYear: 2030,
+            round: 1,
+            description: 'Top 10 protected, then unprotected in 2031',
+          },
+          { teamCode: 'BBB' }
+        );
+        expect(row.protectionText).toBe('Top 10 protected');
+      });
+
+      it('does not infer unprotected terms from an ordinary ownership description', () => {
         const entitlement = {
           id: 'GSW_pick_ownership_2026_R1',
           kind: 'pick_ownership',
@@ -220,7 +260,7 @@ describe('entitlementPickRowProjection', () => {
           teamCode: 'GSW',
         });
 
-        expect(result.protectionText).toBe('Unprotected');
+        expect(result.protectionText).toBe('Protection terms unavailable');
         expect(result.protectionMeta).toBeNull();
       });
 

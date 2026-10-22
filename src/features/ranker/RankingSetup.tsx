@@ -188,6 +188,8 @@ const SectionHeader = ({ label, hint, right = null }: SectionHeaderProps) => (
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+const TOP_N_CHOICES = [10, 20, 50, 100];
+
 export const RankingSetup = ({
   playerPool = [],
   onComplete,
@@ -195,11 +197,18 @@ export const RankingSetup = ({
   playerPool?: RankerDisplayPlayer[];
   onComplete: (data: RankerSetupData) => void;
 }) => {
+  // null ranks everyone; a number finds and orders only the best N
+  const [topN, setTopN] = useState<number | null>(null);
+  const topNChoices = TOP_N_CHOICES.filter((n) => n < playerPool.length);
   const [topTier, setTopTier] = useState<string[]>([]);
   const [bottomTier, setBottomTier] = useState<string[]>([]);
   const [anchor, setAnchor] = useState<string | null>(null);
   const [firstPlace, setFirstPlace] = useState<string | null>(null);
   const [lastPlace, setLastPlace] = useState<string | null>(null);
+  // Top-N mode: players ruled out before ranking starts
+  const [outIds, setOutIds] = useState<string[]>([]);
+  const listSize =
+    topN !== null && topN >= 1 && topN < playerPool.length ? topN : null;
 
   const tierCountEstimate = Math.max(1, Math.round(playerPool.length * 0.25));
 
@@ -226,8 +235,18 @@ export const RankingSetup = ({
     return null;
   };
 
+  const handleToggleOut = (id: string) => {
+    if (roleOf(id)) return;
+    setTopTier((prev) => prev.filter((p) => p !== id));
+    setBottomTier((prev) => prev.filter((p) => p !== id));
+    setOutIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  };
+
   const handleToggleTop = (id: string) => {
     if (getBlockedReason(id, topTier, 'Top')) return;
+    setOutIds((prev) => prev.filter((p) => p !== id));
     setBottomTier((prev) => prev.filter((p) => p !== id));
     setTopTier((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
@@ -236,6 +255,7 @@ export const RankingSetup = ({
 
   const handleToggleBottom = (id: string) => {
     if (getBlockedReason(id, bottomTier, 'Bottom')) return;
+    setOutIds((prev) => prev.filter((p) => p !== id));
     setTopTier((prev) => prev.filter((p) => p !== id));
     setBottomTier((prev) =>
       prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
@@ -249,13 +269,27 @@ export const RankingSetup = ({
       if (!id) return;
       setTopTier((prev) => prev.filter((p) => p !== id));
       setBottomTier((prev) => prev.filter((p) => p !== id));
+      setOutIds((prev) => prev.filter((p) => p !== id));
     };
 
   const optionsExcluding = (...ids: Array<string | null>) =>
     playerPool.filter((p) => !ids.includes(p.id));
 
   const handleReady = () => {
-    onComplete({ topTier, bottomTier, anchor, firstPlace, lastPlace });
+    // Out tags only apply to a Top-N list, and must leave at least N players
+    const cuts =
+      listSize !== null && outIds.length > 0 && playerPool.length - outIds.length >= listSize
+        ? [{ ids: outIds, at: -1 }]
+        : [];
+    onComplete({
+      topTier,
+      bottomTier,
+      anchor,
+      firstPlace,
+      lastPlace,
+      topN: listSize,
+      ...(cuts.length ? { cuts } : {}),
+    });
   };
 
   const topCount = topTier.length;
@@ -274,6 +308,110 @@ export const RankingSetup = ({
           you fill in, the fewer head-to-head comparisons you&apos;ll need to make.
         </p>
       </div>
+
+      {/* ── List Length ──────────────────────────────────────────────────── */}
+      <SectionCard className="mb-4" data-testid="list-length">
+        <SectionHeader
+          label="List Length"
+          hint="Making a Top 10 or Top 20 out of a bigger pool? Only the best N get ranked. Anyone with N players known to be better is cut and never shown again, and players below the cut aren't ranked against each other."
+        />
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <button
+            onClick={() => setTopN(null)}
+            aria-pressed={topN === null}
+            className={`px-3 py-1.5 rounded-lg border transition-colors ${
+              topN === null
+                ? 'border-white/60 bg-white/10 text-white'
+                : 'border-white/[0.1] text-white/50 hover:text-white'
+            }`}
+          >
+            Rank everyone
+          </button>
+          {topNChoices.map((n) => (
+            <button
+              key={n}
+              onClick={() => setTopN(n)}
+              aria-pressed={topN === n}
+              className={`px-3 py-1.5 rounded-lg border transition-colors ${
+                topN === n
+                  ? 'border-white/60 bg-white/10 text-white'
+                  : 'border-white/[0.1] text-white/50 hover:text-white'
+              }`}
+            >
+              Top {n}
+            </button>
+          ))}
+          <label className="flex items-center gap-1.5 text-white/50">
+            Top
+            <input
+              type="number"
+              min={1}
+              max={Math.max(1, playerPool.length - 1)}
+              value={topN ?? ''}
+              placeholder="N"
+              onChange={(e) => {
+                const value = Number.parseInt(e.target.value, 10);
+                setTopN(Number.isFinite(value) && value >= 1 ? value : null);
+              }}
+              aria-label="Top N list length"
+              className="w-16 bg-white/[0.05] text-white px-2 py-1.5 rounded-lg border border-white/[0.1]"
+            />
+          </label>
+        </div>
+        {topN !== null && topN >= playerPool.length && (
+          <p className="text-white/40 text-xs mt-2">
+            The pool only has {playerPool.length} players, so everyone will be ranked.
+          </p>
+        )}
+      </SectionCard>
+
+      {/* ── Definitely Out (Top-N only) ──────────────────────────────────── */}
+      {listSize !== null && (
+        <SectionCard className="mb-4" data-testid="definitely-out">
+          <SectionHeader
+            label="Definitely Out"
+            hint={`Tap anyone you already know won't make your Top ${listSize}. They're cut before ranking starts, so you're never asked about them.`}
+            right={
+              <span
+                className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                  playerPool.length - outIds.length < listSize
+                    ? 'bg-red-500/20 text-red-300'
+                    : 'bg-white/[0.06] text-white/40'
+                }`}
+              >
+                {outIds.length} out · {playerPool.length - outIds.length} left
+              </span>
+            }
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {playerPool.map((p) => {
+              const out = outIds.includes(p.id);
+              const role = roleOf(p.id);
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => handleToggleOut(p.id)}
+                  disabled={Boolean(role)}
+                  aria-pressed={out}
+                  title={role ? `This player is ${role}` : undefined}
+                  className={`px-2.5 py-1 rounded-md text-xs border transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                    out
+                      ? 'border-red-400/50 bg-red-500/15 text-red-200 line-through'
+                      : 'border-white/[0.1] text-white/60 hover:text-white'
+                  }`}
+                >
+                  {getPlayerName(p)}
+                </button>
+              );
+            })}
+          </div>
+          {playerPool.length - outIds.length < listSize && (
+            <p className="text-red-300/80 text-xs mt-2">
+              That leaves fewer than {listSize} players, so these cuts won&apos;t be applied.
+            </p>
+          )}
+        </SectionCard>
+      )}
 
       {/* ── Tier Tagging ─────────────────────────────────────────────────── */}
       <SectionCard className="mb-4" data-testid="tier-tagging">
@@ -304,7 +442,10 @@ export const RankingSetup = ({
           }
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-          {playerPool.map((p) => (
+          {playerPool
+          // Players ruled out for a Top-N list aren't ranked, so they can't be tagged
+          .filter((p) => listSize === null || !outIds.includes(p.id))
+          .map((p) => (
             <PlayerTile
               key={p.id}
               player={p}
@@ -323,8 +464,17 @@ export const RankingSetup = ({
       <SectionCard className="mb-4" data-testid="anchor">
         <SectionHeader
           label="Anchor Player"
-          hint="Pick a player you'd expect to finish around the middle of the pool. The engine uses this to divide players into upper and lower sub-groups, reducing total comparisons."
+          hint={
+            listSize !== null
+              ? `Pick someone you think is just outside your Top ${listSize}. You'll then mark everyone better than them, and everyone else is cut right away. If the anchor turns out to be inside your Top ${listSize}, nothing is lost: each player below them just costs one matchup for the last spots.`
+              : "Pick a player you'd expect to finish around the middle of the pool. The engine uses this to divide players into upper and lower sub-groups, reducing total comparisons."
+          }
         />
+        {listSize !== null && (
+          <p className="text-white/40 text-xs mb-2">
+            Best pick for a Top {listSize}: someone just outside it (around #{listSize + 1}–#{listSize + 3}).
+          </p>
+        )}
         <StyledSelect
           value={anchor}
           onChange={assignRole(setAnchor)}

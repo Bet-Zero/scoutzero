@@ -1,0 +1,127 @@
+name: Immutable draft review worker
+
+on:
+  workflow_call:
+    secrets:
+      BZE321_INSTALLATION_PASSPHRASE:
+        required: false
+    inputs:
+      operation:
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bze321-production-installation
+  cancel-in-progress: false
+
+jobs:
+  bounded-operation:
+    if: >-
+      github.repository_id == '997820257' &&
+      github.repository_owner_id == '205859440' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/feature/bze-321-hosted-draft-review' &&
+      (inputs.operation == 'inspect' || inputs.operation == 'publish' || inputs.operation == 'publish-source')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ inputs.operation == 'inspect' && 'draft-review-inspection' || 'draft-review-publication' }}
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      # Resolve the CALLED workflow identity from GitHub itself. Never check out
+      # caller/app code in this credentialed job. The Google provider pins these
+      # same job_workflow claims, independently of the caller commit.
+      - name: Resolve immutable executor identity
+        id: executor
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync } from 'node:fs';
+          const response = await fetch(process.env.ACTIONS_ID_TOKEN_REQUEST_URL + '&audience=scoutzero-worker-identity', {
+            headers: { Authorization: `Bearer ${process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}` }, redirect: 'error'
+          });
+          if (!response.ok) throw new Error('GitHub identity unavailable');
+          const { value } = await response.json();
+          const claims = JSON.parse(Buffer.from(value.split('.')[1], 'base64url'));
+          const sha = claims.job_workflow_sha;
+          if (!/^[a-f0-9]{40}$/.test(sha) || claims.job_workflow_ref !== `Bet-Zero/scoutzero/.github/workflows/draft-review-worker.yml@${sha}`) throw new Error('Immutable reusable workflow required');
+          appendFileSync(process.env.GITHUB_OUTPUT, `sha=${sha}\n`);
+          NODE
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: Bet-Zero/scoutzero
+          ref: ${{ steps.executor.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - run: npm ci --ignore-scripts
+      - name: Verify production approval protection before Google authentication
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRAFT_OPERATION: ${{ inputs.operation }}
+          APPROVED_INSTALLATION_SHA256: ${{ vars.BZE321_APPROVED_INSTALLATION_SHA256 }}
+          APPROVED_SOURCE_SHA256: ${{ vars.BZE321_APPROVED_SOURCE_SHA256 }}
+        run: |
+          node --import tsx --input-type=module <<'NODE'
+          import { verifyProtection } from './scripts/architect/checkDraftReviewProtection.ts';
+          const mode = process.env.DRAFT_OPERATION;
+          const name = mode === 'inspect' ? 'draft-review-inspection' : 'draft-review-publication';
+          const base = 'https://api.github.com/repos/Bet-Zero/scoutzero/environments/' + encodeURIComponent(name);
+          const get = async url => {
+            const response = await fetch(url, { headers: { Authorization: `Bearer ${process.env.GH_TOKEN}`, Accept: 'application/vnd.github+json' }, redirect: 'error' });
+            if (!response.ok) throw new Error('Protection inspection unavailable');
+            return response.json();
+          };
+          // Exact branch identity is independently enforced by the Google OIDC
+          // condition and this immutable job's if guard, not a mutable list.
+          verifyProtection(await get(base), mode === 'inspect' ? 'inspect' : 'publish');
+          if (mode === 'publish' && (!/^[a-f0-9]{64}$/.test(process.env.APPROVED_INSTALLATION_SHA256 ?? ''))) throw new Error('Reviewed installation approval required');
+          if (mode === 'publish-source' && (!/^[a-f0-9]{64}$/.test(process.env.APPROVED_SOURCE_SHA256 ?? ''))) throw new Error('Reviewed source approval required');
+          NODE
+      - name: Retrieve approved source ciphertext without executing caller code
+        if: inputs.operation == 'publish-source'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node --import tsx --input-type=module <<'NODE'
+          import { writeFile } from 'node:fs/promises';
+          import { readSourceCiphertext } from './scripts/architect/draftSourceInstallation.ts';
+          try {
+            const bytes = await readSourceCiphertext(process.env.GH_TOKEN, process.env.GITHUB_SHA);
+            await writeFile('.github/bze321-source-installation.json.gpg', bytes, { mode: 0o600, flag: 'wx' });
+          } catch { console.error('SOURCE_CIPHERTEXT_TRANSFER_FAILED'); process.exitCode = 1; }
+          NODE
+      - name: Exchange bounded GitHub identity
+        id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          project_id: scoutzero-bf1ae
+          workload_identity_provider: projects/105500121903/locations/global/workloadIdentityPools/scoutzero-bze321/providers/github
+          service_account: ${{ inputs.operation == 'inspect' && 'scoutzero-draft-release@scoutzero-bf1ae.iam.gserviceaccount.com' || 'scoutzero-draft-publish@scoutzero-bf1ae.iam.gserviceaccount.com' }}
+          token_format: access_token
+          access_token_lifetime: 600s
+          access_token_scopes: https://www.googleapis.com/auth/cloud-platform
+          create_credentials_file: false
+          export_environment_variables: false
+      - name: Execute fixed inspection or approved installation
+        env:
+          DRAFT_OPERATION: ${{ inputs.operation }}
+          SCOUTZERO_GCP_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          INSTALLATION_PASSPHRASE: ${{ inputs.operation != 'inspect' && secrets.BZE321_INSTALLATION_PASSPHRASE || '' }}
+          APPROVED_INSTALLATION_SHA256: ${{ vars.BZE321_APPROVED_INSTALLATION_SHA256 }}
+          APPROVED_SOURCE_SHA256: ${{ vars.BZE321_APPROVED_SOURCE_SHA256 }}
+        run: node --import tsx scripts/architect/runDraftReviewWorker.ts
+      - name: Retain encrypted rules evidence only
+        if: always() && inputs.operation == 'inspect'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: draft-rules-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/draft-rules.cms
+          retention-days: 7
+          if-no-files-found: ignore

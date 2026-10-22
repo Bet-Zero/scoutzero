@@ -403,6 +403,7 @@ utils/
       swapGraph.ts
       swapResolutionAdapter.ts
       types.ts
+    draftSourceBaseline.ts
     entitlementExclusivityValidator.ts
     entitlementHealthReport.ts
     entitlementIdentity.ts
@@ -686,5 +687,5 @@ utils/
 ```
 
 ---
-*Generated on: 2026-10-09T07:43:28.392Z*
+*Generated on: 2026-10-15T12:13:36.608Z*
 *Auto-updated by: npm run docs*

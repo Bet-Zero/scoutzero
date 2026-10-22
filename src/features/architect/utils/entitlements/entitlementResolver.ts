@@ -11,6 +11,7 @@
  *  - Latest Chunk: n/a
  */
 
+import { readDraftSourceForWorld } from '@/features/architect/utils/entitlements/draftSourceBaseline';
 import {
   collection,
   doc,
@@ -119,14 +120,18 @@ const chunkIds = (ids: string[], size = DEFAULT_IN_QUERY_LIMIT) => {
   return chunks;
 };
 
-function resolveIdentityKeyForInvariant(entitlement: EntitlementRecord): string {
+function resolveIdentityKeyForInvariant(
+  entitlement: EntitlementRecord
+): string {
   return (
     resolveStoredOrComputedIdentityKey(entitlement) ??
     getEntitlementIdentityKey(entitlement)
   );
 }
 
-function throwInvariant(details: Omit<EntitlementInvariantViolationDetails, 'code'>): never {
+function throwInvariant(
+  details: Omit<EntitlementInvariantViolationDetails, 'code'>
+): never {
   throw new EntitlementInvariantError({
     code: 'ENTITLEMENT_INVARIANT_VIOLATION',
     ...details,
@@ -338,7 +343,11 @@ const resolveTeamEntitlementIds = async (
   const baseTeamSnap = await getDoc(baseTeamRef);
   if (!baseTeamSnap.exists()) return [];
 
-  const baseData = baseTeamSnap.data() as { entitlementIds?: string[] };
+  const baseData = readDraftSourceForWorld(
+    baseTeamSnap.data(),
+    worldId,
+    'team'
+  ) as { entitlementIds?: string[] };
   const entitlementIds = Array.isArray(baseData.entitlementIds)
     ? baseData.entitlementIds
     : [];
@@ -358,10 +367,11 @@ export const resolveEntitlementWithDb = async (
   const baseRef = doc(db, ARCHITECT_BASE_ENTITLEMENTS_PATH, entitlementId);
   const baseSnap = await getDoc(baseRef);
   const baseData = baseSnap.exists()
-    ? ({
-        id: baseSnap.id,
-        ...(baseSnap.data() as EntitlementRecord),
-      } as EntitlementRecord)
+    ? readDraftSourceForWorld(
+        { id: baseSnap.id, ...baseSnap.data() },
+        worldId,
+        'entitlement'
+      )
     : null;
 
   let resolvedData: EntitlementRecord | null = baseData || null;
@@ -420,7 +430,12 @@ export const resolveEntitlementsForTeamWithDb = async (
     entitlementIds
   );
 
-  const baseMap = toEntitlementMap(baseDocs);
+  const baseMap = toEntitlementMap(
+    baseDocs.flatMap((record) => {
+      const projected = readDraftSourceForWorld(record, worldId, 'entitlement');
+      return projected ? [projected] : [];
+    })
+  );
   const worldChain = await resolveWorldFallbackChain(db, worldId);
   const overrideLayers: Array<{
     layer: ResolverLayerLabel;
@@ -503,7 +518,7 @@ export const resolveEntitlementsForTeamWithDb = async (
         );
         for (const doc of incomingDocs) {
           resolved.push({
-            ...doc,
+            ...readDraftSourceForWorld(doc, null, 'entitlement'),
             holderTeam: teamCode, // Patch holderTeam to reflect new owner
           });
         }

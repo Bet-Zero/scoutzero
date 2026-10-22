@@ -130,6 +130,30 @@ export function reviewRealDraftSelection(
   return deriveRealDraftSelection(loaded, args);
 }
 
+/** Explicit historical inspection; never a conclusion about a world's date. */
+export function reviewRealDraftStartingPosition(
+  token: object,
+  args: Omit<Parameters<typeof reviewRealDraftSelection>[1], 'asOfDate'>
+) {
+  const loaded = verified.get(token);
+  if (!loaded) throw new Error('No authenticated draft review is installed.');
+  return deriveRealDraftStartingPosition(loaded, args);
+}
+
+/** Synthetic-testable derivation; production callers still need a verified token. */
+export function deriveRealDraftStartingPosition(
+  loaded: Awaited<ReturnType<typeof verifyRealDraftReviewPackage>>,
+  args: Omit<Parameters<typeof reviewRealDraftSelection>[1], 'asOfDate'>
+) {
+  return {
+    ...deriveRealDraftSelection(loaded, {
+      ...args,
+      asOfDate: loaded.release.foundation.release.asOf,
+    }),
+    scope: 'retained-starting-position' as const,
+  };
+}
+
 /** Pure derivation; exported for adversarial synthetic testing, never an Apply result. */
 export function deriveRealDraftSelection(
   { data, release }: Awaited<ReturnType<typeof verifyRealDraftReviewPackage>>,
@@ -207,8 +231,8 @@ export function deriveRealDraftSelection(
                 ? 'The retained starting position assigns this pick to another team.'
                 : components?.status === 'reviewed' &&
                     components.ownership.status === 'component-permits'
-                    ? 'Recorded ownership supports this team conveying the pick. Every possible outcome for its remaining first-round picks and the exchange terms still need review.'
-                    : 'The recorded right can be inspected. Ownership, every possible outcome for remaining picks, and exchange terms must be established before a trade can pass.',
+                  ? 'Recorded ownership supports this team conveying the pick. Every possible outcome for its remaining first-round picks and the exchange terms still need review.'
+                  : 'The recorded right can be inspected. Ownership, every possible outcome for remaining picks, and exchange terms must be established before a trade can pass.',
         evidence: (row?.evidence ?? []).map((e) => ({
           ...e,
           current:

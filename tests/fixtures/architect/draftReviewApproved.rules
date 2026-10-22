@@ -1,0 +1,436 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isWorldOwner(worldId) {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/architect_worlds/$(worldId))
+        && get(/databases/$(database)/documents/architect_worlds/$(worldId)).data.createdBy == request.auth.uid;
+    }
+
+    function isWorldMetadataOwner() {
+      return isAuthenticated()
+        && resource.data.createdBy == request.auth.uid;
+    }
+
+    function preservesGovernedContractMetadata() {
+      return ('contractBaselineVersion' in resource.data)
+        ? ('contractBaselineVersion' in request.resource.data
+          && request.resource.data.contractBaselineVersion == resource.data.contractBaselineVersion
+          && request.resource.data.contractSourceRelease == resource.data.contractSourceRelease
+          && request.resource.data.contractBaselineEffectiveAt == resource.data.contractBaselineEffectiveAt
+          && request.resource.data.contractBaselineSalaryCapYear == resource.data.contractBaselineSalaryCapYear
+          && request.resource.data.contractBaselineCoverage == resource.data.contractBaselineCoverage)
+        : !('contractBaselineVersion' in request.resource.data);
+    }
+
+    function isOpenForClientWorldWrites(worldId) {
+      return isWorldOwner(worldId)
+        && !('partialBranchCleanupClaim' in get(/databases/$(database)/documents/architect_worlds/$(worldId)).data);
+    }
+
+    // Opt-in only: existing worlds are never silently migrated. In a fenced
+    // world ALL team, entitlement and event writers must advance this shared
+    // revision in their own atomic commit, or rules deny the complete write.
+    // This includes creates/deletes at IDs the reviewing client has never seen.
+    function advancesDraftInventory(worldId) {
+      let worldPath = /databases/$(database)/documents/architect_worlds/$(worldId);
+      let before = get(worldPath).data;
+      let after = getAfter(worldPath).data;
+      return !('draftInventoryRevision' in before)
+        || (before.draftInventoryRevision is int
+          && before.draftInventoryRevision >= 0
+          && after.draftInventoryRevision is int
+          && after.draftInventoryRevision <= 9007199254740991
+          && after.draftInventoryRevision == before.draftInventoryRevision + 1);
+    }
+
+    function preservesDraftInventoryFence() {
+      return ('draftInventoryRevision' in resource.data)
+        ? ('draftInventoryRevision' in request.resource.data
+          && request.resource.data.draftInventoryRevision is int
+          && request.resource.data.draftInventoryRevision <= 9007199254740991
+          && (request.resource.data.draftInventoryRevision == resource.data.draftInventoryRevision
+            || request.resource.data.draftInventoryRevision == resource.data.draftInventoryRevision + 1))
+        : !('draftInventoryRevision' in request.resource.data);
+    }
+
+    function preservesPartialBranchCleanupClaim() {
+      return !('partialBranchCleanupClaim' in resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'partialBranchCleanupClaim'
+        ]);
+    }
+
+    function addsFinalizedUnclaimedChild(worldId) {
+      let previousChildren = resource.data.childWorlds;
+      let nextChildren = request.resource.data.childWorlds;
+      let childWorldId = nextChildren[nextChildren.size() - 1];
+      let childPath = /databases/$(database)/documents/architect_worlds/$(childWorldId);
+      return previousChildren is list
+        && nextChildren is list
+        && nextChildren.size() == previousChildren.size() + 1
+        && nextChildren.toSet().difference(previousChildren.toSet()).size() == 1
+        && previousChildren.toSet().difference(nextChildren.toSet()).size() == 0
+        && existsAfter(childPath)
+        && getAfter(childPath).data.createdBy == request.auth.uid
+        && getAfter(childPath).data.parentWorldId == worldId
+        && getAfter(childPath).data.isArchived == false
+        && !('partialBranchCleanupClaim' in getAfter(childPath).data);
+    }
+
+    function preservesFinalizedChildLineage(worldId) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'childWorlds'
+        ])
+        || addsFinalizedUnclaimedChild(worldId);
+    }
+
+    function publishesSeasonTransition(worldId, transitionId, fromSeason, toSeason) {
+      let worldPath = /databases/$(database)/documents/architect_worlds/$(worldId);
+      let eventPath = /databases/$(database)/documents/architect_worlds/$(worldId)/events/$(transitionId);
+      let worldBefore = get(worldPath);
+      let worldAfter = getAfter(worldPath);
+      let eventAfter = getAfter(eventPath);
+      return worldBefore.data.currentSeason == fromSeason
+        && worldAfter.data.currentSeason == toSeason
+        && eventAfter.data.eventId == transitionId
+        && eventAfter.data.metadata.seasonTransitionId == transitionId
+        && eventAfter.data.metadata.fromSeason == fromSeason
+        && eventAfter.data.metadata.toSeason == toSeason;
+    }
+
+    // Lists: strict owner-scoped access.
+    match /lists/{listId} {
+      allow read: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+
+      allow create: if isAuthenticated()
+        && request.resource.data.ownerUid == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+
+      allow delete: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Tier lists: strict owner-scoped access.
+    match /tierLists/{tierListId} {
+      allow read: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+
+      allow create: if isAuthenticated()
+        && request.resource.data.ownerUid == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+
+      allow delete: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Ranker sessions: strict owner-scoped access.
+    match /rankerSessions/{sessionId} {
+      allow read: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+      allow create: if isAuthenticated()
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Player profile evaluation overlays: user-owned editable scouting data.
+    match /playerProfileEvaluations/{ownerUid} {
+      allow read, write: if isAuthenticated()
+        && ownerUid == request.auth.uid;
+
+      match /players/{playerId} {
+        allow read: if isAuthenticated()
+          && ownerUid == request.auth.uid;
+        allow create: if isAuthenticated()
+          && ownerUid == request.auth.uid
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.playerId == playerId;
+        allow update: if isAuthenticated()
+          && ownerUid == request.auth.uid
+          && resource.data.ownerUid == request.auth.uid
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.playerId == playerId;
+        allow delete: if isAuthenticated()
+          && ownerUid == request.auth.uid
+          && resource.data.ownerUid == request.auth.uid;
+      }
+    }
+
+    // Architect worlds: owner-only access based on world.createdBy.
+    match /architect_worlds/{worldId} {
+      allow get, list: if isWorldMetadataOwner();
+      allow create: if false;
+      allow update: if isWorldMetadataOwner()
+        && request.resource.data.createdBy == resource.data.createdBy
+        && preservesDraftInventoryFence()
+        && preservesGovernedContractMetadata()
+        && preservesPartialBranchCleanupClaim()
+        && preservesFinalizedChildLineage(worldId);
+      allow delete: if false;
+
+      match /teams/{teamCode} {
+        allow read: if isWorldOwner(worldId);
+        allow write: if isOpenForClientWorldWrites(worldId)
+          && advancesDraftInventory(worldId);
+
+        match /players/{playerId} {
+          allow read: if isWorldOwner(worldId);
+          allow write: if isOpenForClientWorldWrites(worldId);
+        }
+
+        match /freeAgentPools/{seasonKey} {
+          allow read: if isWorldOwner(worldId);
+          allow write: if isOpenForClientWorldWrites(worldId);
+        }
+      }
+
+      match /events/{eventId} {
+        allow read: if isWorldOwner(worldId);
+        allow create: if isOpenForClientWorldWrites(worldId)
+          && advancesDraftInventory(worldId);
+        allow update, delete: if isOpenForClientWorldWrites(worldId)
+          && advancesDraftInventory(worldId)
+          && resource.data.get('mutationType', '') != 'seasonAdvance'
+          && resource.data.get('type', '') != 'seasonAdvance';
+      }
+
+      // Certification is separate from custom history. Only trusted server
+      // transitions may publish receipts/head; no owner claim can opt in.
+      match /transitionProvenance/{recordId} {
+        allow read: if isWorldOwner(worldId);
+        allow write: if false;
+      }
+
+      // Season-close snapshots and the league manifest are append-only. The
+      // transaction owns their deterministic identities; a client cannot edit
+      // or delete history after the 30-team transition commits.
+      match /seasonHistory/{historyId} {
+        allow read: if isWorldOwner(worldId);
+        allow create: if isOpenForClientWorldWrites(worldId)
+          && request.resource.data.keys().hasAll([
+            'schemaVersion',
+            'historyId',
+            'transitionId',
+            'worldId',
+            'teamCode',
+            'fromSeason',
+            'toSeason',
+            'seasonCloseDate',
+            'transitionEffectiveAt',
+            'preAdvanceState',
+            'preAdvanceStateDigest',
+            'finalRoster',
+            'finalRosterDigest',
+            'seasonCloseApronMeasurement',
+            'beforeTotals',
+            'afterTotals',
+            'contractEvents',
+            'entitlementStateDigest',
+            'authorityDigest'
+          ])
+          && request.resource.data.schemaVersion == 'season-history-v1'
+          && request.resource.data.historyId == historyId
+          && request.resource.data.worldId == worldId
+          && request.resource.data.transitionId is string
+          && publishesSeasonTransition(
+            worldId,
+            request.resource.data.transitionId,
+            request.resource.data.fromSeason,
+            request.resource.data.toSeason
+          )
+          && existsAfter(/databases/$(database)/documents/architect_worlds/$(worldId)/seasonTransitions/$(request.resource.data.transitionId))
+          && getAfter(/databases/$(database)/documents/architect_worlds/$(worldId)/seasonTransitions/$(request.resource.data.transitionId)).data.fromSeason == request.resource.data.fromSeason
+          && getAfter(/databases/$(database)/documents/architect_worlds/$(worldId)/seasonTransitions/$(request.resource.data.transitionId)).data.toSeason == request.resource.data.toSeason;
+        allow update, delete: if false;
+      }
+
+      match /seasonTransitions/{transitionId} {
+        allow read: if isWorldOwner(worldId);
+        allow create: if isOpenForClientWorldWrites(worldId)
+          && request.resource.data.keys().hasAll([
+            'schemaVersion',
+            'transitionId',
+            'operationId',
+            'eventId',
+            'worldId',
+            'fromSeason',
+            'toSeason',
+            'fromSalaryCapYear',
+            'toSalaryCapYear',
+            'seasonCloseDate',
+            'transitionEffectiveAt',
+            'committedAt',
+            'authority',
+            'authorityDigest',
+            'entitlementBoundary',
+            'preAdvanceMetadataDigest',
+            'teamRecords',
+            'reconciliation',
+            'canonLeafIds'
+          ])
+          && request.resource.data.schemaVersion == 'season-transition-manifest-v1'
+          && request.resource.data.transitionId == transitionId
+          && request.resource.data.eventId == transitionId
+          && request.resource.data.worldId == worldId
+          && request.resource.data.teamRecords is list
+          && request.resource.data.teamRecords.size() == 30
+          && request.resource.data.reconciliation.expectedTeamCount == 30
+          && request.resource.data.reconciliation.preparedTeamCount == 30
+          && request.resource.data.reconciliation.completeBookCount == 30
+          && request.resource.data.reconciliation.historyRecordCount == 30
+          && request.resource.data.reconciliation.entitlementPreservationCount == 30
+          && publishesSeasonTransition(
+            worldId,
+            transitionId,
+            request.resource.data.fromSeason,
+            request.resource.data.toSeason
+          );
+        allow update, delete: if false;
+      }
+
+      // A governed Offer Sheet is authored by the world owner, but its initial
+      // lifecycle identity becomes immutable once the atomic creation commits.
+      // Resolution compares the writable Team mirrors against this anchor.
+      match /offerSheetAuthorizations/{offerSheetId} {
+        allow read: if isWorldOwner(worldId);
+        allow create: if isOpenForClientWorldWrites(worldId)
+          && request.resource.data.keys().hasOnly([
+            'authorizationVersion',
+            'worldId',
+            'offerSheetId',
+            'dedupKey',
+            'playerId',
+            'homeTeamId',
+            'offeringTeamId',
+            'salaryCapYear',
+            'pendingLifecycleDigest',
+            'immutableEvidenceDigest'
+          ])
+          && request.resource.data.authorizationVersion == 1
+          && request.resource.data.worldId == worldId
+          && request.resource.data.offerSheetId == offerSheetId
+          && request.resource.data.dedupKey is string
+          && request.resource.data.dedupKey.size() > 0
+          && request.resource.data.playerId is string
+          && request.resource.data.playerId.size() > 0
+          && request.resource.data.homeTeamId is string
+          && request.resource.data.homeTeamId.size() > 0
+          && request.resource.data.offeringTeamId is string
+          && request.resource.data.offeringTeamId.size() > 0
+          && request.resource.data.salaryCapYear is int
+          && request.resource.data.pendingLifecycleDigest is string
+          && request.resource.data.pendingLifecycleDigest.matches('^fnv1a64:[0-9a-f]{16}$')
+          && request.resource.data.immutableEvidenceDigest is string
+          && request.resource.data.immutableEvidenceDigest.matches('^fnv1a64:[0-9a-f]{16}$');
+        allow update, delete: if false;
+      }
+
+      match /entitlements/{entitlementId} {
+        allow read: if isWorldOwner(worldId);
+        allow write: if isOpenForClientWorldWrites(worldId)
+          && advancesDraftInventory(worldId);
+      }
+
+      // Governed roots are created only by initializeArchitectWorld through the
+      // Admin SDK. Browsers can read their own shards but can never author them.
+      match /contractBaselines/{shardId} {
+        allow read: if isWorldOwner(worldId);
+        allow create, update, delete: if false;
+      }
+
+      // Unknown world subcollections fail closed; supported writable paths are
+      // declared above so immutable governed state cannot inherit a broad write.
+      match /{document=**} {
+        allow read: if isWorldOwner(worldId);
+        allow write: if false;
+      }
+    }
+
+    // Canonical source/base collections: read-only.
+    match /players_v2/{playerId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+
+      match /contracts/{contractId} {
+        allow read: if isAuthenticated();
+        allow write: if false;
+      }
+
+      match /seasons/{seasonId} {
+        allow read: if isAuthenticated();
+        allow write: if false;
+      }
+
+      match /evaluations/{evaluationId} {
+        allow read: if isAuthenticated();
+        allow write: if false;
+      }
+    }
+
+    match /architect_basePlayers/{playerId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /architect_baseTeams/{teamCode} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /architect_baseEntitlements/{entitlementId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    match /architect_basePickRules/{ruleId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // Versioned derived draft-review data, never client-published or mutated.
+    match /architect_draftPickReleases/{releaseId} {
+      allow get: if isAuthenticated() && releaseId.matches('^[a-f0-9]{64}$');
+      allow list, write: if false;
+      match /parts/{partId} {
+        allow get: if isAuthenticated()
+          && releaseId.matches('^[a-f0-9]{64}$')
+          && partId.matches('^[0-3]$')
+          && exists(/databases/$(database)/documents/architect_draftPickReleases/$(releaseId));
+        allow list, write: if false;
+      }
+    }
+
+    // Root teams remains read-only.
+    match /teams/{teamCode} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // Preserve existing non-architect utility collections without global-open writes.
+    match /rosterProjects/{projectId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /freeAgents/{agentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Explicit fail-closed fallback for all unmatched paths.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
