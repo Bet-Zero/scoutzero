@@ -80,15 +80,15 @@ const salaryCache = new Map<string, Promise<Map<number, number>>>();
 let inFlight = 0;
 const waiting: Array<() => void> = [];
 const limited = async <T>(read: () => Promise<T>): Promise<T> => {
-  if (inFlight >= MAX_IN_FLIGHT) {
-    await new Promise<void>((resolve) => waiting.push(resolve));
-  }
-  inFlight++;
+  if (inFlight < MAX_IN_FLIGHT) inFlight++;
+  // A finishing read hands its slot straight to the next waiter
+  else await new Promise<void>((resolve) => waiting.push(resolve));
   try {
     return await read();
   } finally {
-    inFlight--;
-    waiting.shift()?.();
+    const next = waiting.shift();
+    if (next) next();
+    else inFlight--;
   }
 };
 
