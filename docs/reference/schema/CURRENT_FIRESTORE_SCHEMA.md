@@ -28,6 +28,7 @@
 - `currentContractView` - Denormalized contract view for fast filtering (optional)
 - `currentEvaluationView` - Denormalized evaluation view for fast filtering (optional)
 - `currentSeasonStats` - Denormalized latest season stats for fast filtering (optional)
+- `rankerScore` - `{ value, season, formulaVersion }` Player Ranker Top-N score written by the stats refresh (`scripts/dev/rankerScore.ts`); `value` is null when nothing can be scored (optional)
 - `/contracts/{contractId}` - Contract subcollection
 - `/seasons/{seasonId}` - Season stats subcollection
 - `/evaluations/{evaluationId}` - Player grades subcollection

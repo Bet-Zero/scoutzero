@@ -10,6 +10,7 @@ import { validatePlayer } from '../../player-scrape/firestore_staging/scripts/va
 import { BasePlayerDocZ } from '../../src/schemas/architect.js';
 import { DATA_DIR, SOURCE_PROJECT, digest, loadSnapshot, validateSnapshot, type Snapshot } from './cloudData.js';
 import { privateDirectory, privateJson } from './cloudStorage.js';
+import { rankerScoreFromSnapshot } from './rankerScore.js';
 
 const PREFIX = `projects/${SOURCE_PROJECT}/databases/(default)/documents/`;
 const hash = (bytes: string | Buffer) => createHash('sha256').update(bytes).digest('hex');
@@ -159,6 +160,12 @@ export function changedFields(before: unknown, after: unknown, prefix = ''): str
   return [prefix || '(document)'];
 }
 
+// Decoded fields of a document in the snapshot, or null if it isn't there
+export const snapshotDocReader = (snapshot: Snapshot) => (docPath: string) => {
+  const found = snapshot.documents.find((d) => d.name === PREFIX + docPath);
+  return found ? decodeFields(found.fields || {}) : null;
+};
+
 export function planPlayerWrites(snapshot: Snapshot, playerId: string, staged: any, base: unknown) {
   validateSnapshot(snapshot);
   if (!idPattern.test(playerId) || !snapshot.readTime || snapshot.authentication === 'unauthenticated' ||
@@ -253,6 +260,8 @@ export async function preparePlayer(playerId: string, inputDir: string, sourceDi
   const staged = JSON.parse(await readFile(path.join(stagedDir, 'players_v2', playerId + '.json'), 'utf8'));
   const base = JSON.parse(await readFile(path.join(stagedDir, 'basePlayers', playerId + '.json'), 'utf8'));
   staged.statsProvided = provenance.statsInventory ? provenance.statsInventory.includes(playerId) : provenance.files.some(file => file.path.startsWith('stats/') && file.path.endsWith('/' + playerId + '.json'));
+  // Player Ranker Top-N score, stored on the main record so the app needn't read every past season
+  staged.doc.rankerScore = rankerScoreFromSnapshot(snapshotDocReader(snapshot), playerId, staged, dated.season);
   const entries = planPlayerWrites(snapshot, playerId, staged, base);
   const plan = { version: 1, context: dated, createdAt: new Date().toISOString(), sourceProject: SOURCE_PROJECT, baselineSha256,
     baselineReadTime: snapshot.readTime, inputManifestSha256: digest(provenance), provenance, entries,

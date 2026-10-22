@@ -7,21 +7,22 @@
  *  - 2026-10-22: Created for the Top-N pool preset
  *  - 2026-10-22: Also reads the three seasons before, so injured or down-year stars still score
  *  - 2026-10-22: Scores cached in the browser for 12 hours, and preloadable before they're needed
+ *  - 2026-10-22: Use the score the stats refresh stores on each player record; read seasons only for players without one
  *
  * LINKS:
  *  - Score: src/features/ranker/utils/playerImpact.ts
  *  - Used in: src/features/ranker/FilterPoolPanel.tsx
  */
 import { useEffect, useState } from 'react';
+import { RankerScoreZ } from '@/schemas/players_v2';
 import {
   CURRENT_SEASON_CODE,
   loadSeasonStatLines,
-  seasonCodeForStartYear,
 } from './useSeasonViews';
 import {
-  blendedImpactScore,
-  gameScorePerGame,
-  recentPeakScore,
+  earlierSeasonCodes,
+  RANKER_SCORE_FORMULA_VERSION,
+  rankerScoreFromSeasons,
   type ImpactStatLine,
 } from '../utils/playerImpact';
 
@@ -31,12 +32,21 @@ type ImpactScoresState = {
   error: string | null;
 };
 
-// Seasons before the chosen one that can stand in for a player's level
-const EARLIER_SEASONS = 3;
-
-const seasonsBefore = (seasonCode: string, count: number): string[] => {
-  const startYear = Number.parseInt(seasonCode.slice(0, 4), 10);
-  return Array.from({ length: count }, (_, i) => seasonCodeForStartYear(startYear - 1 - i));
+// Score the stats refresh stored on a player's main record, when it's for
+// the current season and today's formula: a number, null (nothing to
+// score), or undefined (not stored; compute it here)
+export const storedRankerScore = (player: unknown): number | null | undefined => {
+  const raw = (player as { rankerScore?: unknown } | null | undefined)?.rankerScore;
+  if (raw === undefined) return undefined;
+  const parsed = RankerScoreZ.safeParse(raw);
+  if (
+    !parsed.success ||
+    parsed.data.season !== CURRENT_SEASON_CODE ||
+    parsed.data.formulaVersion !== RANKER_SCORE_FORMULA_VERSION
+  ) {
+    return undefined;
+  }
+  return parsed.data.value;
 };
 
 const computeImpactScores = async (
@@ -46,18 +56,16 @@ const computeImpactScores = async (
 ): Promise<Map<string, number>> => {
   const isCurrent = seasonCode === CURRENT_SEASON_CODE;
   const [chosen, ...earlier] = await Promise.all(
-    [seasonCode, ...seasonsBefore(seasonCode, EARLIER_SEASONS)].map((code) =>
+    [seasonCode, ...earlierSeasonCodes(seasonCode)].map((code) =>
       loadSeasonStatLines(code, playerIds)
     )
   );
   const scores = new Map<string, number>();
   for (const id of playerIds) {
-    const recent = isCurrent
-      ? blendedImpactScore(chosen.get(id) ?? currentStatsById.get(id), earlier[0].get(id))
-      : gameScorePerGame(chosen.get(id));
-    const score = recentPeakScore(
-      recent,
-      earlier.map((lines) => lines.get(id))
+    const score = rankerScoreFromSeasons(
+      isCurrent ? (chosen.get(id) ?? currentStatsById.get(id)) : chosen.get(id),
+      earlier.map((lines) => lines.get(id)),
+      { isCurrentSeason: isCurrent }
     );
     if (score !== null) scores.set(id, score);
   }
@@ -67,7 +75,7 @@ const computeImpactScores = async (
 // Scores barely move within a day, so they're kept in the browser for 12
 // hours: after the first load a Top-N pool is instant. Bump the version when
 // the score formula changes.
-const SCORE_CACHE_VERSION = 1;
+const SCORE_CACHE_VERSION = RANKER_SCORE_FORMULA_VERSION;
 const SCORE_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 
 type StoredScores = {
@@ -119,8 +127,21 @@ const writeStoredScores = (seasonCode: string, stored: StoredScores) => {
 export const loadImpactScores = async (
   seasonCode: string,
   playerIds: readonly string[],
-  currentStatsById: ReadonlyMap<string, ImpactStatLine | null | undefined>
+  currentStatsById: ReadonlyMap<string, ImpactStatLine | null | undefined>,
+  // Scores the stats refresh stored on player records (current season only)
+  refreshedScoresById: ReadonlyMap<string, number | null> = new Map()
 ): Promise<Map<string, number>> => {
+  if (seasonCode === CURRENT_SEASON_CODE && refreshedScoresById.size > 0) {
+    const fromRefresh = new Map<string, number>();
+    refreshedScoresById.forEach((value, id) => {
+      if (value !== null) fromRefresh.set(id, value);
+    });
+    const rest = playerIds.filter((id) => !refreshedScoresById.has(id));
+    if (rest.length === 0) return fromRefresh;
+    const computed = await loadImpactScores(seasonCode, rest, currentStatsById);
+    computed.forEach((value, id) => fromRefresh.set(id, value));
+    return fromRefresh;
+  }
   const stored = readStoredScores(seasonCode);
   const checked = new Set(stored?.checked ?? []);
   const known: Record<string, number> = { ...(stored?.scores ?? {}) };
@@ -151,9 +172,15 @@ export const useImpactScores = (
   seasonCode: string,
   playerIds: readonly string[],
   currentStatsById: ReadonlyMap<string, ImpactStatLine | null | undefined>,
-  enabled: boolean
+  enabled: boolean,
+  refreshedScoresById: ReadonlyMap<string, number | null> = new Map()
 ): ImpactScoresState => {
-  const requestKey = enabled ? `${seasonCode}\u0000${playerIds.join('|')}` : '';
+  // Stored scores arrive through a live subscription; a refresh that changes
+  // them must re-run the load, not just a change of season or players
+  const refreshedKey = [...refreshedScoresById].map(([id, v]) => `${id}:${v}`).join('|');
+  const requestKey = enabled
+    ? `${seasonCode}\u0000${playerIds.join('|')}\u0000${refreshedKey}`
+    : '';
   const [state, setState] = useState<ImpactScoresState & { requestKey: string }>({
     scoresById: null,
     loading: false,
@@ -165,7 +192,7 @@ export const useImpactScores = (
     if (!requestKey) return;
     let cancelled = false;
     setState({ scoresById: null, loading: true, error: null, requestKey });
-    loadImpactScores(seasonCode, playerIds, currentStatsById)
+    loadImpactScores(seasonCode, playerIds, currentStatsById, refreshedScoresById)
       .then((scoresById) => {
         if (!cancelled) setState({ scoresById, loading: false, error: null, requestKey });
       })
@@ -182,8 +209,8 @@ export const useImpactScores = (
     return () => {
       cancelled = true;
     };
-    // playerIds and seasonCode are captured through requestKey; current stats
-    // only matter as a fallback and change with the same player set
+    // playerIds, seasonCode and stored scores are captured through requestKey;
+    // current stats only matter as a fallback and change with the same player set
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestKey]);
 
