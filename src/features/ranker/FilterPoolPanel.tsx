@@ -10,6 +10,7 @@
  *  - 2026-10-22: Top-N preset: pull the N + buffer highest-scoring players (Game Score per game)
  *  - 2026-10-22: Top-N pool also takes the best paid, and lists the near misses to add by hand
  *  - 2026-10-22: Preload this season's scores in the background
+ *  - 2026-10-22: Use scores stored by the stats refresh when present
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
@@ -35,7 +36,11 @@ import {
   useSeasonViews,
   type SeasonView,
 } from './hooks/useSeasonViews';
-import { loadImpactScores, useImpactScores } from './hooks/useImpactScores';
+import {
+  loadImpactScores,
+  storedRankerScore,
+  useImpactScores,
+} from './hooks/useImpactScores';
 import { selectTopNCandidates, suggestedPoolSize } from './utils/playerImpact';
 import { PoolSearchResults, type PoolSearchRow } from './PoolSearchResults';
 
@@ -115,18 +120,38 @@ export const FilterPoolPanel = ({
     () => new Map(candidates.map((c) => [c.id, c.original.currentSeasonStats])),
     [candidates]
   );
-  const impact = useImpactScores(season, candidateIds, currentStatsById, topN !== null);
+  // Scores stored on player records by the stats refresh (no reads needed)
+  const refreshedScoresById = useMemo(() => {
+    const scores = new Map<string, number | null>();
+    candidates.forEach((c) => {
+      const score = storedRankerScore(c.original);
+      if (score !== undefined) scores.set(c.id, score);
+    });
+    return scores;
+  }, [candidates]);
+  const impact = useImpactScores(
+    season,
+    candidateIds,
+    currentStatsById,
+    topN !== null,
+    refreshedScoresById
+  );
 
   // Warm up this season's scores in the background so a Top-N click is quick
   useEffect(() => {
     if (candidateIds.length === 0) return;
     const timer = setTimeout(() => {
-      loadImpactScores(CURRENT_SEASON_CODE, candidateIds, currentStatsById).catch(() => {
+      loadImpactScores(
+        CURRENT_SEASON_CODE,
+        candidateIds,
+        currentStatsById,
+        refreshedScoresById
+      ).catch(() => {
         // The Top-N click loads (and reports errors) on its own
       });
     }, 1000);
     return () => clearTimeout(timer);
-  }, [candidateIds, currentStatsById]);
+  }, [candidateIds, currentStatsById, refreshedScoresById]);
   const waitingForScores = topN !== null && !impact.scoresById;
 
   const { rows, nearMisses } = useMemo<{

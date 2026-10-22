@@ -13,11 +13,12 @@ vi.mock('@/data/firestorePaths', () => ({
 import {
   blendedImpactScore,
   gameScorePerGame,
+  RANKER_SCORE_FORMULA_VERSION,
   recentPeakScore,
   selectTopNCandidates,
   suggestedPoolSize,
 } from '@/features/ranker/utils/playerImpact';
-import { loadImpactScores } from '@/features/ranker/hooks/useImpactScores';
+import { loadImpactScores, storedRankerScore } from '@/features/ranker/hooks/useImpactScores';
 import {
   CURRENT_SEASON_CODE,
   getRecentPastSeasonCodes,
@@ -203,5 +204,49 @@ describe('impact score cache', () => {
     );
     const scores = await loadImpactScores('2018-19', ['d1'], new Map());
     expect(scores.get('d1')).toBe(20);
+  });
+});
+
+describe('scores stored by the stats refresh', () => {
+  beforeEach(() => {
+    getDocMock.mockReset();
+    getDocMock.mockImplementation(async () => ({
+      exists: () => true,
+      data: () => ({ stats: { PTS: 20, GP: 60 } }),
+    }));
+  });
+
+  it('uses stored scores without reading any seasons', async () => {
+    const scores = await loadImpactScores(
+      CURRENT_SEASON_CODE,
+      ['r1', 'r2', 'r3'],
+      new Map(),
+      new Map([['r1', 27.5], ['r2', 14], ['r3', null]])
+    );
+    expect(Object.fromEntries(scores)).toEqual({ r1: 27.5, r2: 14 });
+    expect(getDocMock).not.toHaveBeenCalled();
+  });
+
+  it('reads seasons only for players without a stored score', async () => {
+    const scores = await loadImpactScores(
+      CURRENT_SEASON_CODE,
+      ['s1', 'new1'],
+      new Map(),
+      new Map([['s1', 30]])
+    );
+    expect(Object.fromEntries(scores)).toEqual({ s1: 30, new1: 20 });
+    // new1 x (this season + 3 earlier)
+    expect(getDocMock).toHaveBeenCalledTimes(4);
+  });
+
+  it('ignores a stored score for another season or formula', () => {
+    const stored = (season: string, formulaVersion: number, value: number | null = 22) => ({
+      rankerScore: { value, season, formulaVersion },
+    });
+    expect(storedRankerScore(stored(CURRENT_SEASON_CODE, RANKER_SCORE_FORMULA_VERSION))).toBe(22);
+    expect(storedRankerScore(stored(CURRENT_SEASON_CODE, RANKER_SCORE_FORMULA_VERSION, null))).toBeNull();
+    expect(storedRankerScore(stored('2019-20', RANKER_SCORE_FORMULA_VERSION))).toBeUndefined();
+    expect(storedRankerScore(stored(CURRENT_SEASON_CODE, RANKER_SCORE_FORMULA_VERSION + 1))).toBeUndefined();
+    expect(storedRankerScore({})).toBeUndefined();
   });
 });

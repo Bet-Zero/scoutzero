@@ -7,9 +7,11 @@
  *  - 2026-10-22: Created for the Top-N pool preset
  *  - 2026-10-22: Best recent season counts too, so injured or down-year stars aren't left out
  *  - 2026-10-22: Pool is the union of the best by stats and the best paid, plus a near-miss list
+ *  - 2026-10-22: rankerScoreFromSeasons, shared with the stats refresh that stores each player's score
  *
  * LINKS:
- *  - Used in: src/features/ranker/FilterPoolPanel.tsx
+ *  - Used in: src/features/ranker/FilterPoolPanel.tsx, src/features/ranker/hooks/useImpactScores.ts
+ *  - Stored by: scripts/dev/rankerScore.ts (stats refresh)
  */
 
 export type ImpactStatLine = Record<string, number | string | null | undefined>;
@@ -102,6 +104,42 @@ export const recentPeakScore = (
     if (best === null || discounted > best) best = discounted;
   });
   return best;
+};
+
+// Bump whenever the score formula changes: stored scores from another
+// version are ignored and recomputed
+export const RANKER_SCORE_FORMULA_VERSION = 1;
+// Seasons before the chosen one that can stand in for a player's level
+export const RANKER_EARLIER_SEASONS = 3;
+
+// "2025-26", "2024-25", … for the seasons before `seasonCode`, most recent first
+export const earlierSeasonCodes = (
+  seasonCode: string,
+  count = RANKER_EARLIER_SEASONS
+): string[] => {
+  const startYear = Number.parseInt(seasonCode.slice(0, 4), 10);
+  return Array.from({ length: count }, (_, i) => {
+    const year = startYear - 1 - i;
+    return `${year}-${String(year + 1).slice(-2)}`;
+  });
+};
+
+/**
+ * The Top-N score for one player and season: the season's own Game Score
+ * (for the current season, blended with last season until about 20 games
+ * are played), or the best of the seasons before if that's higher. The one
+ * formula used both in the app and by the stats refresh that stores it.
+ */
+export const rankerScoreFromSeasons = (
+  chosen: ImpactStatLine | null | undefined,
+  // The seasons before the chosen one, most recent first
+  earlier: ReadonlyArray<ImpactStatLine | null | undefined>,
+  { isCurrentSeason }: { isCurrentSeason: boolean }
+): number | null => {
+  const recent = isCurrentSeason
+    ? blendedImpactScore(chosen, earlier[0])
+    : gameScorePerGame(chosen);
+  return recentPeakScore(recent, earlier);
 };
 
 // Candidates to pull for a Top-N list: N plus a buffer that grows with √N

@@ -175,7 +175,7 @@
     "cloud:dev": "node --import tsx scripts/dev/cloudDev.ts",
     "cloud:check": "node --import tsx scripts/dev/cloudCheck.ts",
     "cloud:check:architect": "node --import tsx scripts/dev/cloudArchitectCheck.ts",
-    "test:cloud-dev": "node --import tsx --test-reporter=dot --input-type=module -e \"await import('./tests/tooling/cloudDev.node-test.ts'); await import('./tests/tooling/cloudPipeline.node-test.ts'); await import('./tests/tooling/cloudRecovery.node-test.ts'); await import('./tests/tooling/cloudOwnerAccess.node-test.ts'); await import('./tests/tooling/cloudMaintenance.node-test.ts')\"",
+    "test:cloud-dev": "node --import tsx --test-reporter=dot --input-type=module -e \"await import('./tests/tooling/cloudDev.node-test.ts'); await import('./tests/tooling/cloudPipeline.node-test.ts'); await import('./tests/tooling/cloudRecovery.node-test.ts'); await import('./tests/tooling/cloudOwnerAccess.node-test.ts'); await import('./tests/tooling/cloudMaintenance.node-test.ts'); await import('./tests/tooling/rankerScore.node-test.ts')\"",
     "cloud:setup": "node --use-env-proxy scripts/dev/cloudSetup.ts",
     "cloud:typecheck": "tsc --project tsconfig.cloud.json --noEmit",
     "cloud:recovery": "node --use-env-proxy --import tsx scripts/dev/cloudRecovery.cli.ts",

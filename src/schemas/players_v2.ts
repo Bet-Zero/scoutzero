@@ -345,6 +345,15 @@ export const EvaluationDocZ = z.object({
     .optional(),
 });
 
+// Player Ranker Top-N score, written by the stats refresh so the app needn't
+// read every player's past seasons. `value` is null when the player has no
+// season that can be scored; `season` and `formulaVersion` say what it's for.
+export const RankerScoreZ = z.object({
+  value: z.number().nullable(),
+  season: SeasonCodeZ,
+  formulaVersion: z.number().int().positive(),
+});
+
 // Root player doc (main document only)
 export const PlayerMainDocZ = z.object({
   bio: PlayerBioZ,
@@ -353,6 +362,7 @@ export const PlayerMainDocZ = z.object({
   currentContractView: CurrentContractViewZ,
   currentEvaluationView: CurrentEvaluationViewZ,
   currentSeasonStats: CurrentSeasonStatsZ,
+  rankerScore: RankerScoreZ.optional(),
 });
 
 // Types
@@ -368,6 +378,7 @@ export type EvaluationTraits = z.infer<typeof EvaluationTraitsZ>;
 export type PlayerMainDoc = z.infer<typeof PlayerMainDocZ>;
 export type ContractDoc = z.infer<typeof ContractDocZ>;
 export type SeasonDoc = z.infer<typeof SeasonDocZ>;
+export type RankerScore = z.infer<typeof RankerScoreZ>;
 export type EvaluationDoc = z.infer<typeof EvaluationDocZ>;
 export type ContractViewSeason = z.infer<typeof ContractViewSeasonZ>;
 export type ContractsViewDoc = z.infer<typeof ContractsViewDocZ>;
