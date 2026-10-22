@@ -327,7 +327,7 @@ const roster = await loadRosterProject(rosterId, userId);
 | `schemaVersion` | `number`                     | `1`                 | Ranker session schema version                                                             |
 | `name`          | `string`                     | `Ranking YYYY-MM-DD`| Session display name                                                                      |
 | `playerPoolIds` | `string[]`                   | _(required, ≥ 2)_   | Players being ranked                                                                      |
-| `setupData`     | `object \| null`             | `null`              | `topTier`, `bottomTier`, `anchor`, `firstPlace`, `lastPlace` hints from setup             |
+| `setupData`     | `object \| null`             | `null`              | `topTier`, `bottomTier`, `anchor`, `firstPlace`, `lastPlace` hints from setup; `topN` (number \| null) ranks only the best N |
 | `results`       | `{ winner, loser }[]`        | `[]`                | All comparisons in order; the first `seedCount` came from setup (lock-ins / anchor)       |
 | `seedCount`     | `number`                     | `0`                 | Number of leading setup-generated results; undo never removes them                        |
 | `skippedPairs`  | `string[]`                   | `[]`                | Skipped matchups as `idA<>idB` keys                                                       |

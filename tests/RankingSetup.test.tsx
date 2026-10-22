@@ -24,6 +24,7 @@ describe('RankingSetup', () => {
       anchor: null,
       firstPlace: null,
       lastPlace: null,
+      topN: null,
     });
   });
 
@@ -66,6 +67,7 @@ describe('RankingSetup', () => {
       anchor: '1',
       firstPlace: '2',
       lastPlace: null,
+      topN: null,
     });
   });
 
@@ -88,5 +90,22 @@ describe('RankingSetup', () => {
     // Bottom is now full, so Alpha (top) can't be moved to bottom and keeps its tag
     expect((bottomButtons[0] as HTMLButtonElement).disabled).toBe(true);
     expect((topButtons[0] as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('sends a Top-N list length only when it trims the pool', () => {
+    const players = Array.from({ length: 12 }, (_, i) => ({ id: String(i), name: `P${i}` }));
+    const handle = vi.fn();
+    render(<RankingSetup playerPool={players} onComplete={handle} />);
+
+    // Only presets smaller than the pool are offered
+    expect(screen.queryByText('Top 20')).toBeNull();
+    fireEvent.click(screen.getByText('Top 10'));
+    fireEvent.click(screen.getByText(/Start Ranking/));
+    expect(handle.mock.lastCall?.[0].topN).toBe(10);
+
+    fireEvent.change(screen.getByLabelText('Top N list length'), { target: { value: '12' } });
+    expect(screen.getByText(/everyone will be ranked/)).toBeTruthy();
+    fireEvent.click(screen.getByText(/Start Ranking/));
+    expect(handle.mock.lastCall?.[0].topN).toBeNull();
   });
 });

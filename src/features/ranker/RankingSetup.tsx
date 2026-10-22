@@ -188,6 +188,8 @@ const SectionHeader = ({ label, hint, right = null }: SectionHeaderProps) => (
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+const TOP_N_CHOICES = [10, 20, 50, 100];
+
 export const RankingSetup = ({
   playerPool = [],
   onComplete,
@@ -195,6 +197,9 @@ export const RankingSetup = ({
   playerPool?: RankerDisplayPlayer[];
   onComplete: (data: RankerSetupData) => void;
 }) => {
+  // null ranks everyone; a number finds and orders only the best N
+  const [topN, setTopN] = useState<number | null>(null);
+  const topNChoices = TOP_N_CHOICES.filter((n) => n < playerPool.length);
   const [topTier, setTopTier] = useState<string[]>([]);
   const [bottomTier, setBottomTier] = useState<string[]>([]);
   const [anchor, setAnchor] = useState<string | null>(null);
@@ -255,7 +260,9 @@ export const RankingSetup = ({
     playerPool.filter((p) => !ids.includes(p.id));
 
   const handleReady = () => {
-    onComplete({ topTier, bottomTier, anchor, firstPlace, lastPlace });
+    const listSize =
+      topN !== null && topN >= 1 && topN < playerPool.length ? topN : null;
+    onComplete({ topTier, bottomTier, anchor, firstPlace, lastPlace, topN: listSize });
   };
 
   const topCount = topTier.length;
@@ -274,6 +281,62 @@ export const RankingSetup = ({
           you fill in, the fewer head-to-head comparisons you&apos;ll need to make.
         </p>
       </div>
+
+      {/* ── List Length ──────────────────────────────────────────────────── */}
+      <SectionCard className="mb-4" data-testid="list-length">
+        <SectionHeader
+          label="List Length"
+          hint="Making a Top 10 or Top 20 out of a bigger pool? Only the best N get ranked. Anyone with N players known to be better is cut and never shown again, and players below the cut aren't ranked against each other."
+        />
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <button
+            onClick={() => setTopN(null)}
+            aria-pressed={topN === null}
+            className={`px-3 py-1.5 rounded-lg border transition-colors ${
+              topN === null
+                ? 'border-white/60 bg-white/10 text-white'
+                : 'border-white/[0.1] text-white/50 hover:text-white'
+            }`}
+          >
+            Rank everyone
+          </button>
+          {topNChoices.map((n) => (
+            <button
+              key={n}
+              onClick={() => setTopN(n)}
+              aria-pressed={topN === n}
+              className={`px-3 py-1.5 rounded-lg border transition-colors ${
+                topN === n
+                  ? 'border-white/60 bg-white/10 text-white'
+                  : 'border-white/[0.1] text-white/50 hover:text-white'
+              }`}
+            >
+              Top {n}
+            </button>
+          ))}
+          <label className="flex items-center gap-1.5 text-white/50">
+            Top
+            <input
+              type="number"
+              min={1}
+              max={Math.max(1, playerPool.length - 1)}
+              value={topN ?? ''}
+              placeholder="N"
+              onChange={(e) => {
+                const value = Number.parseInt(e.target.value, 10);
+                setTopN(Number.isFinite(value) && value >= 1 ? value : null);
+              }}
+              aria-label="Top N list length"
+              className="w-16 bg-white/[0.05] text-white px-2 py-1.5 rounded-lg border border-white/[0.1]"
+            />
+          </label>
+        </div>
+        {topN !== null && topN >= playerPool.length && (
+          <p className="text-white/40 text-xs mt-2">
+            The pool only has {playerPool.length} players, so everyone will be ranked.
+          </p>
+        )}
+      </SectionCard>
 
       {/* ── Tier Tagging ─────────────────────────────────────────────────── */}
       <SectionCard className="mb-4" data-testid="tier-tagging">

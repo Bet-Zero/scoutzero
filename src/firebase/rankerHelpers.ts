@@ -46,6 +46,8 @@ const RankerSetupDataZ = z
     anchor: RankerPlayerIdZ.nullable().optional(),
     firstPlace: RankerPlayerIdZ.nullable().optional(),
     lastPlace: RankerPlayerIdZ.nullable().optional(),
+    // Top-N mode: only the best N are found and ordered
+    topN: z.number().int().positive().nullable().optional(),
   });
 
 const RankerSessionReadDocZ = z

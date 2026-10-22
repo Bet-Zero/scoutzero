@@ -79,4 +79,35 @@ describe('RankingSession undo', () => {
     fireEvent.click(screen.getByText('← Back to pool'));
     expect(onExit).toHaveBeenCalled();
   });
+
+  it('Top-N mode stops once the top N are known and lists the rest as cut', () => {
+    const closureCache = createClosureCache();
+    const markFinished = vi.fn();
+    render(
+      <RankingSession
+        playerPool={players}
+        resumedSessionData={{
+          ...resumed(),
+          setupData: { topTier: [], bottomTier: [], anchor: null, firstPlace: null, lastPlace: null, topN: 2 },
+          results: [],
+          seedCount: 0,
+          closureCache,
+        }}
+        markFinished={markFinished}
+      />
+    );
+
+    // Oracle: Alpha > Beta > Gamma > Delta
+    const order = ['Alpha', 'Beta', 'Gamma', 'Delta'];
+    for (let i = 0; i < 20 && !markFinished.mock.calls.length; i++) {
+      const buttons = document.querySelectorAll('.compare-button');
+      const names = [...buttons].map((b) => b.textContent ?? '');
+      const better = order.findIndex((n) => names[0].includes(n)) < order.findIndex((n) => names[1].includes(n)) ? 0 : 1;
+      fireEvent.click(buttons[better]);
+    }
+
+    expect(markFinished).toHaveBeenCalled();
+    expect(screen.getByText('Your Top 2')).toBeTruthy();
+    expect(screen.getByText(/Didn't make your Top 2 \(2\)/)).toBeTruthy();
+  });
 });

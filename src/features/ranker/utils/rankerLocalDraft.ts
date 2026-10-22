@@ -9,6 +9,8 @@ export type RankerSetupData = {
   anchor?: string | null;
   firstPlace?: string | null;
   lastPlace?: string | null;
+  // Top-N mode: only the best N are found and ordered (null = rank everyone)
+  topN?: number | null;
   [key: string]: unknown;
 };
 

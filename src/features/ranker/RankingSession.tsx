@@ -25,6 +25,12 @@ import {
   type RankerPair,
   type RankerPlayer,
 } from '@/features/ranker/utils/rankingEngine';
+import {
+  effectiveTopN,
+  estimateTopNRemaining,
+  resolveTopN,
+  suggestTopNPair,
+} from '@/features/ranker/utils/topNSelection';
 import type { HydratedRankerDraft } from './hooks/useRankerSession';
 import type { RankerDraftPatch, RankerSetupData } from './utils/rankerLocalDraft';
 
@@ -122,6 +128,16 @@ export const RankingSession = ({
     return assignRankerGroups(players, results, setupData);
   }, [players, setupData, results, anchorDone]);
 
+  // Top-N mode: only the best N are found and ordered
+  const topN = effectiveTopN(setupData?.topN, players.length);
+  const topNResolution = useMemo(
+    () =>
+      topN === null ? null : resolveTopN(groupedPlayers, topN, closureCache.closure),
+    // results drive the closure cache's contents
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [topN, groupedPlayers, closureCache, results]
+  );
+
   // Comparisons involving players no longer in the pool (e.g. removed from
   // the database since the session was saved) are left out of the matrix
   const matrixResults = useMemo(() => {
@@ -131,8 +147,10 @@ export const RankingSession = ({
 
   const remaining = useMemo(
     () =>
-      estimateRemainingComparisons(results, groupedPlayers, { closureCache }),
-    [results, groupedPlayers, closureCache]
+      topN !== null && topNResolution
+        ? estimateTopNRemaining(topNResolution, topN)
+        : estimateRemainingComparisons(results, groupedPlayers, { closureCache }),
+    [results, groupedPlayers, closureCache, topN, topNResolution]
   );
   const picksDone = Math.max(0, results.length - seedCount);
   const progressPercent =
@@ -144,10 +162,13 @@ export const RankingSession = ({
     if (setupData.anchor && !anchorDone) return;
     if (groupedPlayers.length < 2) return;
 
-    const next = suggestNextPair(results, groupedPlayers, {
-      skippedPairs,
-      closureCache,
-    });
+    const next =
+      topN !== null
+        ? suggestTopNPair(groupedPlayers, topN, closureCache.closure, skippedPairs)
+        : suggestNextPair(results, groupedPlayers, {
+            skippedPairs,
+            closureCache,
+          });
     if (next.length === 0 && !isFinished) {
       const now = Date.now();
       setIsFinished(true);
@@ -166,6 +187,7 @@ export const RankingSession = ({
     skippedPairs,
     markFinished,
     closureCache,
+    topN,
   ]);
 
   const handleSelect = useCallback(
@@ -231,13 +253,28 @@ export const RankingSession = ({
     [saveAdjustments]
   );
 
+  // Top-N mode: players who can't make the list, best-known first
+  const cutPlayers = useMemo(() => {
+    if (!isFinished || !topNResolution) return [];
+    const above = new Map<string, number>();
+    topNResolution.cut.forEach((p) => {
+      above.set(
+        p.id,
+        players.filter((q) => closureCache.closure[q.id]?.has(p.id)).length
+      );
+    });
+    const byId = new Map(players.map((p) => [p.id, p]));
+    return [...topNResolution.cut]
+      .sort((a, b) => (above.get(a.id) ?? 0) - (above.get(b.id) ?? 0))
+      .map((p) => byId.get(p.id) ?? p);
+  }, [isFinished, topNResolution, players, closureCache]);
+
   const ranking = useMemo(() => {
     if (!isFinished) return [];
-    const generated = generateRankingFromComparisons(
-      results,
-      players,
-      setupData ?? {}
-    );
+    const byId = new Map(players.map((p) => [p.id, p]));
+    const generated = topNResolution
+      ? topNResolution.ranked.map((p) => byId.get(p.id) ?? p)
+      : generateRankingFromComparisons(results, players, setupData ?? {});
     if (!adjustments?.length) return generated;
 
     // Persisted manual adjustments are the canonical order
@@ -247,8 +284,13 @@ export const RankingSession = ({
       .filter((player): player is RankerPlayer => Boolean(player));
     if (adjusted.length === 0) return generated;
     const adjustedIds = new Set(adjusted.map((p) => p.id));
-    return [...adjusted, ...generated.filter((p) => !adjustedIds.has(p.id))];
-  }, [isFinished, results, players, setupData, adjustments]);
+    const generatedIds = new Set(generated.map((p) => p.id));
+    // In Top-N mode only the listed players can be adjusted
+    return [
+      ...adjusted.filter((p) => !topNResolution || generatedIds.has(p.id)),
+      ...generated.filter((p) => !adjustedIds.has(p.id)),
+    ];
+  }, [isFinished, results, players, setupData, adjustments, topNResolution]);
 
   const exitBar = onExit ? (
     <div className="max-w-5xl mx-auto px-4 pt-4">
@@ -267,6 +309,8 @@ export const RankingSession = ({
         {exitBar}
         <RankingResults
           ranking={ranking}
+          topN={topN}
+          cutPlayers={cutPlayers}
           onRankingAdjusted={handleRankingAdjusted}
           isOwner={isOwner}
           onSaveAsList={saveAsList}
