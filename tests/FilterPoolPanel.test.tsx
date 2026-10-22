@@ -229,7 +229,7 @@ describe('FilterPoolPanel', () => {
     expect(row.querySelectorAll('td')[1].textContent).toBe('2');
 
     // The rest are listed as near misses, one tap to add
-    expect(screen.getByText(/Just missed the cut \(8\)/)).toBeTruthy();
+    expect(screen.getByText(/just missed the cut \(8\)/)).toBeTruthy();
     fireEvent.click(screen.getByLabelText('Add Filler 33 (near miss)'));
     expect(addedIds(onAdd)).toEqual(['Filler 33']);
   });

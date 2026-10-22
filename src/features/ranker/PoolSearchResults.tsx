@@ -267,10 +267,19 @@ export const PoolSearchResults = ({
         </div>
       )}
 
+      {rows.length > limit && (
+        <button
+          onClick={() => setLimit((n) => n + PAGE_SIZE)}
+          className="mt-2 text-xs text-white/50 hover:text-white"
+        >
+          Show {Math.min(PAGE_SIZE, rows.length - limit)} more of {rows.length - limit}
+        </button>
+      )}
+
       {nearMisses.length > 0 && (
-        <div className="mt-4">
+        <div className="mt-5 pt-4 border-t border-dashed border-white/10">
           <p className="text-xs text-white/50 mb-1.5">
-            Just missed the cut ({nearMisses.length}): tap anyone who could make your list
+            Not in the pool · just missed the cut ({nearMisses.length}): tap anyone who could make your list
           </p>
           <div className="flex flex-wrap gap-1.5">
             {nearMisses.map((row) =>
@@ -296,14 +305,6 @@ export const PoolSearchResults = ({
         </div>
       )}
 
-      {rows.length > limit && (
-        <button
-          onClick={() => setLimit((n) => n + PAGE_SIZE)}
-          className="mt-2 text-xs text-white/50 hover:text-white"
-        >
-          Show {Math.min(PAGE_SIZE, rows.length - limit)} more of {rows.length - limit}
-        </button>
-      )}
     </div>
   );
 };
