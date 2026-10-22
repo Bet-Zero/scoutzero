@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { rankerScoreFromSnapshot } from '../../scripts/dev/rankerScore.js';
+import { planStatistics } from '../../scripts/dev/maintenanceStats.js';
 import {
   earlierSeasonCodes,
   RANKER_SCORE_FORMULA_VERSION,
@@ -44,6 +45,30 @@ test('falls back to the main record current stats, and stores null when nothing 
   assert.equal(fromMain.value, 12);
   const none = rankerScoreFromSnapshot(docs({}), 'rookie', { doc: {}, seasons: {} }, '2026-27');
   assert.equal(none.value, null);
+});
+
+test("a run that clears the current stats doesn't score from the stale copy", () => {
+  const score = rankerScoreFromSnapshot(
+    docs({ 'players_v2/p': { currentSeasonStats: { PTS: 12, GP: 10 } } }),
+    'p',
+    { doc: {}, seasons: {}, statsProvided: true },
+    '2026-27'
+  );
+  assert.equal(score.value, null);
+});
+
+test('the stats-only refresh writes the score onto the main record', () => {
+  const prefix = 'projects/scoutzero-bf1ae/databases/(default)/documents/';
+  const now = new Date().toISOString();
+  const snapshot: any = {
+    version: 1, sourceProject: 'scoutzero-bf1ae', capturedAt: now, completedAt: now, readTime: now, authentication: 'google',
+    collections: Object.fromEntries(['players_v2', 'architect_basePlayers', 'players_v2/p/contracts', 'players_v2/p/seasons', 'players_v2/p/views']
+      .map((c) => [c, { status: 'read', count: c === 'players_v2' ? 1 : 0 }])),
+    documents: [{ name: prefix + 'players_v2/p', updateTime: now, fields: { name: { stringValue: 'P' } } }],
+  };
+  const output = { meta: {}, seasons: { '2026-27': { team: 'LAL', stats: { PTS: 25, GP: 40 } } } };
+  const main = planStatistics(snapshot, 'p', output, '2026-27').find((e) => e.path === 'players_v2/p');
+  assert.deepEqual((main?.after as any).rankerScore, { value: 25, season: '2026-27', formulaVersion: RANKER_SCORE_FORMULA_VERSION });
 });
 
 test('earlier season codes count back from the refreshed season', () => {

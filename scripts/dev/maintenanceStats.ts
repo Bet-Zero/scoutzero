@@ -7,7 +7,8 @@
  */
 /** Statistics-only staging preserves contract, roster and world fields. */
 import { SeasonDocZ } from '../../src/schemas/players_v2.js';
-import { planPlayerWrites } from './cloudPipeline.js';
+import { planPlayerWrites, snapshotDocReader } from './cloudPipeline.js';
+import { rankerScoreFromSnapshot } from './rankerScore.js';
 import type { Snapshot } from './cloudData.js';
 
 export function planStatistics(snapshot: Snapshot, playerId: string, output: any | null, season: string) {
@@ -18,8 +19,10 @@ export function planStatistics(snapshot: Snapshot, playerId: string, output: any
   }
   const current = output?.seasons?.[season];
   const currentSeasonStats = current && !output.meta?.statsCarryOver ? Object.fromEntries(Object.entries(current.stats).filter(([key]) => ['PTS', 'REB', 'AST', 'FG%', '3PT%', 'FT%', 'eFG%', 'MIN', 'GP'].includes(key))) : undefined;
-  const result = planPlayerWrites(snapshot, playerId, { doc: currentSeasonStats ? { currentSeasonStats } : {},
-    contracts: {}, views: {}, seasons, statsProvided: true }, undefined);
+  const staged = { doc: currentSeasonStats ? { currentSeasonStats } : {}, contracts: {}, views: {}, seasons, statsProvided: true };
+  // Player Ranker Top-N score rides along with every stats refresh
+  const rankerScore = rankerScoreFromSnapshot(snapshotDocReader(snapshot), playerId, staged, season);
+  const result = planPlayerWrites(snapshot, playerId, { ...staged, doc: { ...staged.doc, rankerScore } }, undefined);
   if (result.some(entry => entry.path.startsWith('architect_basePlayers/') || entry.path.includes('/contracts/'))) throw new Error('Statistics-only scope escaped');
   return result;
 }
