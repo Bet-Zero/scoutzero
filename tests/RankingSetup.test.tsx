@@ -129,4 +129,19 @@ describe('RankingSetup', () => {
     fireEvent.click(screen.getByText(/Start Ranking/));
     expect(handle.mock.lastCall?.[0].cuts).toBeUndefined();
   });
+
+  it('players marked out come back to tier tagging when switching to rank everyone', () => {
+    const players = Array.from({ length: 12 }, (_, i) => ({ id: String(i), name: `P${i}` }));
+    const handle = vi.fn();
+    render(<RankingSetup playerPool={players} onComplete={handle} />);
+
+    fireEvent.click(screen.getByText('Top 10'));
+    fireEvent.click(within(screen.getByTestId('definitely-out')).getByText('P11'));
+    expect(within(screen.getByTestId('tier-tagging')).queryByText('P11')).toBeNull();
+
+    fireEvent.click(screen.getByText('Rank everyone'));
+    expect(within(screen.getByTestId('tier-tagging')).getByText('P11')).toBeTruthy();
+    fireEvent.click(screen.getByText(/Start Ranking/));
+    expect(handle.mock.lastCall?.[0].cuts).toBeUndefined();
+  });
 });

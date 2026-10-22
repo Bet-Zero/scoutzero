@@ -442,7 +442,10 @@ export const RankingSetup = ({
           }
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-          {playerPool.filter((p) => !outIds.includes(p.id)).map((p) => (
+          {playerPool
+          // Players ruled out for a Top-N list aren't ranked, so they can't be tagged
+          .filter((p) => listSize === null || !outIds.includes(p.id))
+          .map((p) => (
             <PlayerTile
               key={p.id}
               player={p}
