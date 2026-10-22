@@ -16,8 +16,107 @@ the repository and start the existing development/review server with
 The Vite read service returns only that exact installed projection. It never
 bundles the package into public assets, retrieves raw source bodies, adopts a
 release into Firestore, or enables first-round Apply. An absent or changed
-installation shows a needs-input result. Static hosted builds do not install
-this private read service automatically.
+installation shows a needs-input result.
+
+The hosted application keeps the same Node endpoint at
+`/api/architect/draft-review`. Vercel hosts the app; **Firebase/Firestore is the
+only product data source**. Linear retains development evidence and is never
+queried by the product. The browser supplies its existing Firebase ID token.
+Google's project-keyed lookup validates that exact session; Firestore then
+applies its security rules to read requests using that same token. Existing
+anonymous GM sessions can read the derived projection. No admin/storage secret
+is needed, and production never consults emulator configuration.
+
+The endpoint reads one exact version from
+`architect_draftPickReleases/<payloadSha256>`, then its four `parts/0` through
+`parts/3` documents. The unchanged 1,608,904-byte projection exceeds Firestore's
+1 MiB document limit; 512 KiB binary parts fit safely within it. The manifest
+binds format, payload and inventory hashes, acceptance reference, byte length,
+part size and count. Parts bind index and payload identity. There is no `latest`
+pointer, external URL, provider selector, or source fallback. Full byte length
+and SHA-256 must match before a response is sent. A hash authenticates the
+retained artifact, not missing basketball facts or publication permission.
+
+Firestore rules permit authenticated individual reads and deny client listing,
+create, update and delete. Unknown paths and parts without a manifest fail
+closed. These rules are code only until separately authorized deployment.
+Nothing here modifies `architect_baseEntitlements`, other source collections,
+saved worlds, or first-round Apply.
+
+Release preparation and gated deployment:
+
+1. The agent may recover the unchanged derived projection from private evidence
+   for development and offline preparation. Never ship raw sources, claim maps,
+   cases or traces as product data. Prepare a private, non-overwriting document
+   bundle without network access:
+
+   ```bash
+   npm run architect:draft-review:prepare -- /private/real-draft-review.json /private/firestore-release.json
+   ```
+
+2. Production publication and rule deployment require separate owner authority.
+   The October 11 continuation grants that authority for this exact reviewed
+   release and its narrow read-only rules only. Access and live verification
+   remain unsatisfied; no broader release or source write is authorized.
+   The prepared bundle is reviewable input, not an installed release.
+   A qualified, authorized publisher must create the four parts and
+   manifest at their exact immutable IDs in one atomic create-only commit. Do not run production push/admin/source pipeline commands or
+   repurpose protected source collections. Later releases require their own
+   qualification, publication gate and code pin; never silently replace one.
+3. After that authorization and scoped Firebase access, deploy the narrow rules
+   and publish only the accepted derived version. Keep the app's existing
+   `VITE_FIREBASE_PROJECT_ID=scoutzero-bf1ae` and `VITE_FIREBASE_API_KEY`.
+   No new provider credentials or environment-based data endpoint is accepted.
+4. Use the existing GitHub/Vercel app deployment. Prove real hosted Firebase
+   authentication, exact release bytes, unsigned/invalid/foreign-session
+   rejection, and the Trade Machine GM review flow with no world/source writes.
+   A green preview build or emulator proof does not establish live delivery.
+   Keep the PR unmerged until authorized installation and hosted proof pass.
+
+### Bounded keyless installation workflow
+
+The sustainable connection and exact owner setup are described in
+[BZE-321 Firebase installation](BZE321_FIREBASE_INSTALLATION.md). Google trust
+pins the reusable worker, not each application commit. Inspection and publication
+use separate identities and protected GitHub environments. That configuration is
+proposed until explicitly authorized and installed; no new permissions were
+granted while preparing it.
+
+Inspection retains actual production rules in an encrypted evidence artifact,
+even when their bytes differ from the repository. The agent decrypts and compares
+them privately, preserves legitimate production behavior, tests the exact additive
+candidate, and obtains independent acceptance before requesting publication
+approval. The old hash-only result is not a semantic diagnosis of production.
+
+Publication decrypts the approved installation file from the immutable reviewed
+GitHub checkout using the protected publication environment's secret and verifies
+its approved digest. No Storage bucket or billing change is required. The
+installed application continues to use only Firestore. The installer validates
+all five fixed document paths and
+the unchanged payload, preserves every byte of the existing rules, tests release
+permissions, rechecks the active ruleset, and commits all five absent records
+atomically with create-only preconditions. Matching completed installation is a
+no-op; conflicting/partial data is never overwritten. No source collection or
+saved world is a publication target.
+
+CI/emulator success does not establish production access or hosted behavior.
+Keep PR #547 open until authenticated hosted GM review and denial/failure states
+are proven against real Firebase. All 278 entitlements and 29 unresolved V1
+evidence requirements remain mandatory; first-round Apply stays disabled.
+
+The endpoint makes GET requests for data only, rejects redirects, bounds each
+response and upstream time, and disables browser/CDN caching. Provider errors
+never reach the browser. Unavailable/invalid releases remain needs-input. Missing
+access must be reported precisely; it never permits another data provider,
+a static public copy, or an unapproved production publication.
+
+Architecture enforcement: the mandatory CI guard walks the actual endpoint
+import closure and network call sites, rejects new provider dependencies and
+non-Firebase release calls, and checks the client still uses the same-origin
+endpoint. Its negative cases include the rejected Blob approach and Linear
+runtime access. Transport tests separately inspect every effective request URL,
+method and credential. The governing Architect boundary requires independent
+review to trace this actual flow against both owner architecture comments.
 
 Select a first-round entitlement in the normal Trade Machine. Its June 5
 starting-position review distinguishes recorded grants, future exercise
@@ -42,6 +141,13 @@ authority. The proof uses emulator-only presentation worlds, the installed
 product loader, all nine changed states at 1280×720, reload/stale-response/date
 checks, and saved-state comparisons proving review creates no writes. Keep its
 source-bearing manifest, trace, cases, and projection in private Linear.
+The browser proof also checks that the existing session token accompanies API
+requests. It uses the local read service; the separate Node HTTP adapter test
+can load the real private file with `SCOUTZERO_DRAFT_REVIEW_RELEASE` and prove
+exact byte delivery with controlled Google/Firestore responses. The Firestore
+emulator gate checks authenticated reads and denied writes with the actual rules;
+its optional private-file case reconstructs all real bytes. None of these proofs
+substitutes for an actual hosted Firebase session and authorized release.
 This review does not complete the outstanding source closure or V1 gates.
 
 ---
@@ -73,16 +179,16 @@ npm run draft-picks:assets-manual-check  # Generate clean manual check output
 
 ## What Each Command Does
 
-| Command                     | Description                                                      |
-| --------------------------- | ---------------------------------------------------------------- |
-| `draft-picks:scrape`        | Scrape RealGM draft picks for all 30 teams                       |
-| `draft-picks:build`         | Build ledger from mentions + build draft assets (no audits)      |
-| `draft-picks:reports`       | Generate TSV counts and MD pick lists for manual verification    |
-| `draft-picks:audits`        | Run semantic, recipient inventory, and draft assets audits       |
-| `draft-picks:verify`        | Build + Reports + Audits (no scrape, uses existing mentions)     |
-| `draft-picks:scrape-verify` | Scrape + verify (full end-to-end)                                |
-| `draft-picks:assets-manual-check` | Generate clean one-line-per-pick manual check output       |
-| `team:publish`              | Stage and push all teams to Firestore (runs stage:team + push)   |
+| Command                           | Description                                                    |
+| --------------------------------- | -------------------------------------------------------------- |
+| `draft-picks:scrape`              | Scrape RealGM draft picks for all 30 teams                     |
+| `draft-picks:build`               | Build ledger from mentions + build draft assets (no audits)    |
+| `draft-picks:reports`             | Generate TSV counts and MD pick lists for manual verification  |
+| `draft-picks:audits`              | Run semantic, recipient inventory, and draft assets audits     |
+| `draft-picks:verify`              | Build + Reports + Audits (no scrape, uses existing mentions)   |
+| `draft-picks:scrape-verify`       | Scrape + verify (full end-to-end)                              |
+| `draft-picks:assets-manual-check` | Generate clean one-line-per-pick manual check output           |
+| `team:publish`                    | Stage and push all teams to Firestore (runs stage:team + push) |
 
 ---
 
@@ -90,27 +196,27 @@ npm run draft-picks:assets-manual-check  # Generate clean manual check output
 
 All audits write to: `team-scrape/draft-picks/_artifacts/audits/`
 
-| Audit                        | Report File                                    |
-| ---------------------------- | ---------------------------------------------- |
-| Semantic Assertions          | `semantic_assertions_report.json`              |
-| Recipient Inventory Invariant | `recipient_inventory_invariant_report.json`   |
-| Draft Assets Invariant       | `draft_assets_invariant_report.json`           |
+| Audit                         | Report File                                 |
+| ----------------------------- | ------------------------------------------- |
+| Semantic Assertions           | `semantic_assertions_report.json`           |
+| Recipient Inventory Invariant | `recipient_inventory_invariant_report.json` |
+| Draft Assets Invariant        | `draft_assets_invariant_report.json`        |
 
 ---
 
 ## Verification Outputs
 
-| Output Type      | Location                                                                            |
-| ---------------- | ----------------------------------------------------------------------------------- |
-| Mentions         | `team-scrape/draft-picks/_artifacts/output/mentions/`                               |
-| Structured picks | `team-scrape/draft-picks/_artifacts/output/structured/`                             |
-| Ledger (master)  | `team-scrape/shared/firestore_staging/_artifacts/output/ledger/pick_ledger.json`    |
-| Ledger (by team) | `team-scrape/shared/firestore_staging/_artifacts/output/ledger/by_team/{TEAM}.json` |
-| Draft assets     | `team-scrape/shared/firestore_staging/_artifacts/output/draft_assets/{TEAM}.json`   |
-| Staged baseTeams | `team-scrape/shared/firestore_staging/_artifacts/output/baseTeams/{TEAM}.json`      |
-| Audit reports    | `team-scrape/draft-picks/_artifacts/audits/`                                        |
-| Draft Asset Review | `team-scrape/draft-picks/_artifacts/audits/draft_assets_team_lists.md`            |
-| **Manual Check** | `team-scrape/draft-picks/_artifacts/audits/draft_assets_manual_check.md`            |
+| Output Type        | Location                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------- |
+| Mentions           | `team-scrape/draft-picks/_artifacts/output/mentions/`                               |
+| Structured picks   | `team-scrape/draft-picks/_artifacts/output/structured/`                             |
+| Ledger (master)    | `team-scrape/shared/firestore_staging/_artifacts/output/ledger/pick_ledger.json`    |
+| Ledger (by team)   | `team-scrape/shared/firestore_staging/_artifacts/output/ledger/by_team/{TEAM}.json` |
+| Draft assets       | `team-scrape/shared/firestore_staging/_artifacts/output/draft_assets/{TEAM}.json`   |
+| Staged baseTeams   | `team-scrape/shared/firestore_staging/_artifacts/output/baseTeams/{TEAM}.json`      |
+| Audit reports      | `team-scrape/draft-picks/_artifacts/audits/`                                        |
+| Draft Asset Review | `team-scrape/draft-picks/_artifacts/audits/draft_assets_team_lists.md`              |
+| **Manual Check**   | `team-scrape/draft-picks/_artifacts/audits/draft_assets_manual_check.md`            |
 
 ---
 

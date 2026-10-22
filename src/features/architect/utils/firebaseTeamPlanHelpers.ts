@@ -17,6 +17,7 @@
  *       This file only handles READ operations for base data and free agents.
  */
 
+import { readDraftSourceForWorld } from '@/features/architect/utils/entitlements/draftSourceBaseline';
 import {
   doc,
   getDoc,
@@ -251,7 +252,7 @@ export const loadTeamCapSheet = async (teamId: string | null | undefined) => {
       return null;
     }
     const baseDoc = readLooseBaseTeamDoc(
-      docSnap.data(),
+      readDraftSourceForWorld(docSnap.data(), null, 'team'),
       teamCode,
       `architect_baseTeams/${teamCode}`
     );

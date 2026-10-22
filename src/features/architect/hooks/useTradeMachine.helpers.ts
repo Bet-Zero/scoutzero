@@ -132,13 +132,14 @@ const extractPickIdsFromEntitlements = (
 };
 
 export const resolvePickRulesForEntitlements = async (
-  entitlements: TradeMachineEntitlement[]
+  entitlements: TradeMachineEntitlement[],
+  worldId: string | null = null
 ): Promise<Record<string, PickRuleDoc>> => {
   const pickIds = extractPickIdsFromEntitlements(entitlements);
   if (pickIds.length === 0) return {};
 
   try {
-    const rulesMap = await resolvePickRulesByIds(pickIds);
+    const rulesMap = await resolvePickRulesByIds(pickIds, worldId);
     return pickRulesMapToObject(rulesMap);
   } catch (err) {
     console.warn('[resolvePickRulesForEntitlements] Error:', err);
