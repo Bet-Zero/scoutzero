@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { rankerScoreFromSnapshot } from '../../scripts/dev/rankerScore.js';
 import { planStatistics } from '../../scripts/dev/maintenanceStats.js';
+import { SOURCE_PROJECT, type Snapshot } from '../../scripts/dev/cloudData.js';
 import {
   earlierSeasonCodes,
   RANKER_SCORE_FORMULA_VERSION,
@@ -58,17 +59,17 @@ test("a run that clears the current stats doesn't score from the stale copy", ()
 });
 
 test('the stats-only refresh writes the score onto the main record', () => {
-  const prefix = 'projects/scoutzero-bf1ae/databases/(default)/documents/';
+  const prefix = `projects/${SOURCE_PROJECT}/databases/(default)/documents/`;
   const now = new Date().toISOString();
-  const snapshot: any = {
-    version: 1, sourceProject: 'scoutzero-bf1ae', capturedAt: now, completedAt: now, readTime: now, authentication: 'google',
+  const snapshot: Snapshot = {
+    version: 1, sourceProject: SOURCE_PROJECT, capturedAt: now, completedAt: now, readTime: now, authentication: 'google',
     collections: Object.fromEntries(['players_v2', 'architect_basePlayers', 'players_v2/p/contracts', 'players_v2/p/seasons', 'players_v2/p/views']
-      .map((c) => [c, { status: 'read', count: c === 'players_v2' ? 1 : 0 }])),
+      .map((c) => [c, { status: 'read' as const, count: c === 'players_v2' ? 1 : 0 }])),
     documents: [{ name: prefix + 'players_v2/p', updateTime: now, fields: { name: { stringValue: 'P' } } }],
   };
   const output = { meta: {}, seasons: { '2026-27': { team: 'LAL', stats: { PTS: 25, GP: 40 } } } };
   const main = planStatistics(snapshot, 'p', output, '2026-27').find((e) => e.path === 'players_v2/p');
-  assert.deepEqual((main?.after as any).rankerScore, { value: 25, season: '2026-27', formulaVersion: RANKER_SCORE_FORMULA_VERSION });
+  assert.deepEqual((main?.after as { rankerScore?: unknown }).rankerScore, { value: 25, season: '2026-27', formulaVersion: RANKER_SCORE_FORMULA_VERSION });
 });
 
 test('earlier season codes count back from the refreshed season', () => {
