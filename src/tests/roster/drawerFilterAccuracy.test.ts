@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   filterRosterDrawerPlayers,
   getDrawerPlayerAge,
+  getDrawerPlayerAgeInSeason,
 } from '@/features/roster/utils';
-import type { RosterDrawerPlayer } from '@/features/roster/utils';
+import type { DrawerSeasonView, RosterDrawerPlayer } from '@/features/roster/utils';
 import { getDefaultAddPlayerFilters } from '@/shared/utils/filtering';
 
 type Stats = Record<string, number>;
@@ -96,18 +97,57 @@ describe('add-player drawer filter accuracy', () => {
   it('uses a supplied season stat line instead of current-season stats', () => {
     const a = player('a', { stats: { PTS: 25, GP: 5 } });
     const b = player('b', { stats: { PTS: 8, GP: 5 } });
-    const lastSeason = new Map<string, Stats>([
-      ['a', { PTS: 12, GP: 70 }],
-      ['b', { PTS: 21, GP: 70 }],
+    const lastSeason = new Map<string, DrawerSeasonView>([
+      ['a', { stats: { PTS: 12, GP: 70 } }],
+      ['b', { stats: { PTS: 21, GP: 70 } }],
     ]);
 
     expect(
       ids(
         filterRosterDrawerPlayers([a, b], '', { ...base, min_PPG: 20 }, {
-          statsById: lastSeason,
+          seasonById: lastSeason,
         })
       )
     ).toEqual(['b']);
+  });
+
+  it('filters team, salary and age as of the chosen season', () => {
+    // Everyone is currently on LAL, earning $10M
+    const mover = player('mover', { age: 30 });
+    const vet = player('vet', { age: 41 });
+    const rookie = player('rookie', { age: 20 });
+    const all = [mover, vet, rookie];
+    const lastSeason = new Map<string, DrawerSeasonView>([
+      ['mover', { team: 'BOS', age: 29, salary: 30_000_000 }],
+      ['vet', { team: 'LAL', age: 40, salary: 52_600_000 }],
+      // rookie has no season record: he wasn't in the league
+    ]);
+    const run = (filters: Partial<typeof base>) =>
+      ids(
+        filterRosterDrawerPlayers(all, '', { ...base, ...filters }, {
+          seasonById: lastSeason,
+        })
+      );
+
+    expect(run({ team: 'LAL' })).toEqual(['vet']);
+    expect(run({ team: 'BOS' })).toEqual(['mover']);
+    expect(run({ minSalary: 50 })).toEqual(['vet']);
+    expect(run({ minAge: 40 })).toEqual(['vet']);
+    expect(run({ maxAge: 30 })).toEqual(['mover']);
+    // Without season views the current team applies
+    expect(ids(filterRosterDrawerPlayers(all, '', { ...base, team: 'BOS' }))).toEqual([]);
+  });
+
+  it('works out age during a past season as of February 1', () => {
+    // Born Dec 30, 1984: 41 on Feb 1, 2026
+    expect(getDrawerPlayerAgeInSeason(player('a', { dob: '1984-12-30' }).original, '2025-26')).toBe(41);
+    // Born Mar 15, 2000: still 25 on Feb 1, 2026
+    expect(getDrawerPlayerAgeInSeason(player('b', { dob: '2000-03-15' }).original, '2025-26')).toBe(25);
+    // Born Feb 1, 2000: turns 26 that day
+    expect(getDrawerPlayerAgeInSeason(player('c', { dob: '2000-02-01' }).original, '2025-26')).toBe(26);
+    // No date of birth: current age stepped back by the seasons elapsed
+    expect(getDrawerPlayerAgeInSeason(player('d', { age: 30 }).original, '2024-25', 2026)).toBe(28);
+    expect(getDrawerPlayerAgeInSeason(player('e').original, '2024-25')).toBeNull();
   });
 
   it('reads stored percentage fractions as percentages', () => {

@@ -140,10 +140,20 @@ type RosterDrawerFilters = Partial<AddPlayerFilters>;
 
 type SeasonStatLine = Partial<Record<SeasonStatField, number | string | null>>;
 
+// One player as of a past season: who they played for, how old they were,
+// what they were paid and how they played. null/undefined means unknown.
+export type DrawerSeasonView = {
+  team?: string | null;
+  age?: number | null;
+  salary?: number | null;
+  stats?: SeasonStatLine | null;
+};
+
 export type RosterDrawerFilterOptions = {
-  // Stat lines to filter on, by player id. When omitted, each player's
-  // currentSeasonStats is used. A player missing from the map has no stats.
-  statsById?: ReadonlyMap<string, SeasonStatLine> | null;
+  // Past-season views by player id. When set, team, age, salary and stats
+  // filters read from it, and a player missing from the map (not in the
+  // league that season) never matches. When omitted, current data is used.
+  seasonById?: ReadonlyMap<string, DrawerSeasonView> | null;
   // Minimum games played; only enforced while a stat filter is active
   minGames?: number;
 };
@@ -179,6 +189,28 @@ export const getDrawerPlayerAge = (
   return typeof player.bio?.age === 'number' && player.bio.age > 0
     ? player.bio.age
     : null;
+};
+
+// Age during a past season, using the NBA convention of age on February 1 of
+// the season ("2025-26" → Feb 1, 2026). Without a date of birth, the current
+// age is stepped back by the number of seasons.
+export const getDrawerPlayerAgeInSeason = (
+  player: RosterDrawerOriginalPlayer | null | undefined,
+  seasonCode: string,
+  currentSeasonStartYear: number = DEFAULT_SALARY_YEAR
+): number | null => {
+  const startYear = Number.parseInt(seasonCode.slice(0, 4), 10);
+  if (!player || !Number.isFinite(startYear)) return null;
+  const dob = player.bio?.dob ? new Date(player.bio.dob) : null;
+  if (dob && !Number.isNaN(dob.getTime())) {
+    const endYear = startYear + 1;
+    // Feb 1 is month index 1; birthdays after Feb 1 haven't happened yet
+    const hadBirthday =
+      dob.getUTCMonth() < 1 || (dob.getUTCMonth() === 1 && dob.getUTCDate() <= 1);
+    return endYear - dob.getUTCFullYear() - (hadBirthday ? 0 : 1);
+  }
+  const current = getDrawerPlayerAge(player);
+  return current == null ? null : current - (currentSeasonStartYear - startYear);
 };
 
 const readStat = (
@@ -311,7 +343,7 @@ export const filterRosterDrawerPlayers = <
   allPlayers: readonly RosterDrawerPlayer<TOriginal>[] = [],
   search = '',
   filters: RosterDrawerFilters = {},
-  { statsById = null, minGames = 0 }: RosterDrawerFilterOptions = {}
+  { seasonById = null, minGames = 0 }: RosterDrawerFilterOptions = {}
 ): TOriginal[] => {
   const statFiltersActive = hasActiveStatFilters(filters);
   const searchTerm = search.toLowerCase();
@@ -348,14 +380,21 @@ export const filterRosterDrawerPlayers = <
     .filter((p) => {
       if (searchTerm && !p.name.includes(searchTerm)) return false;
 
-      const playerTeamCode =
-        p.teamCode ||
-        normalizeTeamCode(
-          p.team ||
-            p.original?.bio?.display?.teamId ||
-            p.original?.bio?.display?.team ||
-            ''
-        );
+      let seasonView: DrawerSeasonView | undefined;
+      if (seasonById) {
+        seasonView = seasonById.get(String(p.original?.id ?? p.id));
+        if (!seasonView) return false;
+      }
+
+      const playerTeamCode = seasonView
+        ? normalizeTeamCode(seasonView.team ?? '')
+        : p.teamCode ||
+          normalizeTeamCode(
+            p.team ||
+              p.original?.bio?.display?.teamId ||
+              p.original?.bio?.display?.team ||
+              ''
+          );
       if (normalizedTeam && playerTeamCode !== normalizedTeam) return false;
 
       if (positionOptions && !positionOptions.includes(p.position)) {
@@ -402,8 +441,9 @@ export const filterRosterDrawerPlayers = <
       }
 
       if (minSalary !== undefined || maxSalary !== undefined) {
-        const rawSalary =
-          typeof p.salary === 'string'
+        const rawSalary = seasonView
+          ? Number(seasonView.salary ?? 0)
+          : typeof p.salary === 'string'
             ? Number.parseFloat(p.salary.replace(/[^0-9.]/g, ''))
             : Number(p.salary ?? 0);
         const salaryValue = rawSalary / 1_000_000;
@@ -447,7 +487,9 @@ export const filterRosterDrawerPlayers = <
 
       const heightVal = p.original?.bio?.height;
       const weightVal = p.original?.bio?.weight;
-      const ageVal = getDrawerPlayerAge(p.original);
+      const ageVal = seasonView
+        ? (seasonView.age ?? null)
+        : getDrawerPlayerAge(p.original);
       if (minHeight !== undefined && (heightVal == null || heightVal < minHeight)) {
         return false;
       }
@@ -468,8 +510,8 @@ export const filterRosterDrawerPlayers = <
       }
 
       if (statFiltersActive) {
-        const line = statsById
-          ? statsById.get(String(p.original?.id ?? p.id))
+        const line = seasonView
+          ? seasonView.stats
           : p.original?.currentSeasonStats;
         // No stat line means the player can't satisfy a stat filter
         if (!line) return false;
