@@ -175,7 +175,12 @@ export const useImpactScores = (
   enabled: boolean,
   refreshedScoresById: ReadonlyMap<string, number | null> = new Map()
 ): ImpactScoresState => {
-  const requestKey = enabled ? `${seasonCode}\u0000${playerIds.join('|')}` : '';
+  // Stored scores arrive through a live subscription; a refresh that changes
+  // them must re-run the load, not just a change of season or players
+  const refreshedKey = [...refreshedScoresById].map(([id, v]) => `${id}:${v}`).join('|');
+  const requestKey = enabled
+    ? `${seasonCode}\u0000${playerIds.join('|')}\u0000${refreshedKey}`
+    : '';
   const [state, setState] = useState<ImpactScoresState & { requestKey: string }>({
     scoresById: null,
     loading: false,
@@ -204,8 +209,8 @@ export const useImpactScores = (
     return () => {
       cancelled = true;
     };
-    // playerIds and seasonCode are captured through requestKey; current stats
-    // only matter as a fallback and change with the same player set
+    // playerIds, seasonCode and stored scores are captured through requestKey;
+    // current stats only matter as a fallback and change with the same player set
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestKey]);
 
