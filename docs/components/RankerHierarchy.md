@@ -8,10 +8,10 @@ ComparisonMatrixDrawer.tsx
 FilterPoolPanel.tsx
 LocalDraftBanner.tsx
 PlayerCompareCard.tsx
-PoolCard.tsx
-PoolGrid.tsx
+PoolPanel.tsx
 PoolSearchResults.tsx
 PoolSourceControls.tsx
+RankerPanel.tsx
 RankingBuilder.tsx
 RankingResults.tsx
 RankingSession.tsx

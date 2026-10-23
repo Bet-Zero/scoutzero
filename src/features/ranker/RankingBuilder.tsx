@@ -5,7 +5,7 @@ import { OpenDrawerButton } from '@/shared/components/ui/drawers/OpenDrawerButto
 import { AddPlayerDrawer } from '@/features/roster/AddPlayerDrawer';
 import { RankingSession } from './RankingSession';
 import { PoolSourceControls } from './PoolSourceControls';
-import { PoolGrid } from './PoolGrid';
+import { PoolPanel } from './PoolPanel';
 import { FilterPoolPanel } from './FilterPoolPanel';
 import { useRankerCandidates } from './hooks/useRankerCandidates';
 import { useOwnerPlayerLists } from './hooks/useOwnerPlayerLists';
@@ -185,8 +185,6 @@ export const RankingBuilder = () => {
     );
   }
 
-  const canStart = pool.length >= 2;
-
   return (
     <div className="flex relative">
       {!drawerOpen && <OpenDrawerButton onClick={() => setDrawerOpen(true)} />}
@@ -201,26 +199,19 @@ export const RankingBuilder = () => {
       </DrawerShell>
 
       <div
-        className={`flex-1 transition-[margin] duration-300 ease-in-out ${
+        className={`flex-1 min-w-0 transition-[margin] duration-300 ease-in-out ${
           drawerOpen ? 'ml-[300px]' : 'ml-0'
         }`}
       >
-        <div className="px-6 py-8 text-white max-w-[900px] mx-auto">
+        <div className="px-6 sm:px-10 pt-8 pb-28 lg:pb-12 text-white max-w-[1200px] mx-auto">
           {/* ── Header ──────────────────────────────────────────────────────── */}
-          <div className="flex items-start justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight mb-1.5">
-                Player Ranker
-              </h1>
-              <p className="text-white/40 text-sm">
-                Build a pool, then rank players head-to-head.
-              </p>
-            </div>
-            {pool.length > 0 && (
-              <span className="mt-1 px-3 py-1 rounded-full bg-white/[0.07] border border-white/[0.1] text-white/45 text-sm font-medium flex-shrink-0">
-                {pool.length} player{pool.length !== 1 ? 's' : ''}
-              </span>
-            )}
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold tracking-tight mb-1.5">
+              Player Ranker
+            </h1>
+            <p className="text-white/40 text-sm">
+              Build a pool, then rank players head-to-head.
+            </p>
           </div>
 
           {/* ── Local Draft Banner (refresh/crash recovery) ───────────────── */}
@@ -248,40 +239,27 @@ export const RankingBuilder = () => {
             />
           )}
 
-          {/* ── Add to Pool ─────────────────────────────────────────────────── */}
-          <PoolSourceControls
-            lists={lists}
-            onAddTeam={addTeamToPool}
-            onAddList={addListToPool}
-          />
+          {/* ── Builder (left) and pool (right) ─────────────────────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-5 items-start">
+            <div className="flex flex-col gap-5 min-w-0">
+              <PoolSourceControls
+                lists={lists}
+                onAddTeam={addTeamToPool}
+                onAddList={addListToPool}
+              />
+              <FilterPoolPanel
+                candidates={processedPlayers}
+                poolIds={poolIds}
+                onAdd={addPlayersToPool}
+              />
+            </div>
 
-          <FilterPoolPanel
-            candidates={processedPlayers}
-            poolIds={poolIds}
-            onAdd={addPlayersToPool}
-          />
-
-          {/* ── Player Pool ─────────────────────────────────────────────────── */}
-          <PoolGrid
-            pool={pool}
-            onRemove={removePlayer}
-            onClear={() => setPool([])}
-          />
-
-          {/* ── CTA ─────────────────────────────────────────────────────────── */}
-          <div className="flex flex-col items-center gap-2.5">
-            <button
-              onClick={handleStartNew}
-              disabled={!canStart}
-              className="px-10 py-3.5 rounded-xl bg-white text-black font-bold text-sm tracking-tight hover:bg-white/90 active:scale-[0.98] transition-all shadow-xl disabled:opacity-25 disabled:cursor-not-allowed disabled:active:scale-100"
-            >
-              Start Ranking →
-            </button>
-            {!canStart && (
-              <p className="text-white/20 text-xs">
-                Add at least 2 players to begin
-              </p>
-            )}
+            <PoolPanel
+              pool={pool}
+              onRemove={removePlayer}
+              onClear={() => setPool([])}
+              onStart={handleStartNew}
+            />
           </div>
         </div>
       </div>

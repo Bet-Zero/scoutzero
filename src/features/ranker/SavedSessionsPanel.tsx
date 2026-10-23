@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-21: Created in the Player Ranker audit fix pass (PR #562)
+ *  - 2026-10-23: Shared panel style, two-column list on wide screens
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/562
@@ -13,6 +14,7 @@
 import React from 'react';
 import { FolderOpen, Trash2 } from 'lucide-react';
 import { getTimestampMillis, type RankerSession } from '@/firebase/rankerHelpers';
+import { RankerPanel } from './RankerPanel';
 
 // Owner-only list of ranker sessions saved to Firestore
 export const SavedSessionsPanel = ({
@@ -29,20 +31,21 @@ export const SavedSessionsPanel = ({
   if (!loading && sessions.length === 0) return null;
 
   return (
-    <div className="p-5 rounded-xl bg-white/[0.03] border border-white/[0.07] mb-5">
-      <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-white/35 block mb-3">
-        Saved Sessions
-      </span>
+    <RankerPanel
+      title="Saved sessions"
+      description="Rankings you saved to your account."
+      className="mb-5"
+    >
       {loading && sessions.length === 0 ? (
         <p className="text-white/30 text-sm">Loading…</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {sessions.map((session) => {
             const updated = getTimestampMillis(session.updatedAt);
             return (
               <li
                 key={session.id}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.04]"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.05]"
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white truncate">{session.name}</p>
@@ -85,6 +88,6 @@ export const SavedSessionsPanel = ({
           })}
         </ul>
       )}
-    </div>
+    </RankerPanel>
   );
 };

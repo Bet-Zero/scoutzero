@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-21: Created in the Player Ranker audit fix pass (PR #562)
+ *  - 2026-10-23: Single-row layout
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/562
@@ -63,29 +64,24 @@ export const LocalDraftBanner = ({
   };
 
   return (
-    <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-            <RotateCcw className="w-5 h-5 text-amber-400" />
-          </div>
-          <div>
-            <p className="text-white font-medium text-sm mb-0.5">
-              {isFinished
-                ? 'You have a completed ranking'
-                : 'You have an in-progress session'}
-            </p>
-            <p className="text-white/50 text-xs">
-              &quot;{draft.name || 'Untitled'}&quot; — {resultsCount} comparisons,{' '}
-              {playerCount} players
-            </p>
-            <p className="text-white/30 text-xs mt-0.5">
-              Last updated: {formatDate(lastUpdated)}
-            </p>
-          </div>
+    <div className="mb-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="w-9 h-9 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+          <RotateCcw className="w-4 h-4 text-amber-400" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-white font-medium text-sm">
+            {isFinished
+              ? 'You have a completed ranking'
+              : 'You have an in-progress session'}
+          </p>
+          <p className="text-white/50 text-xs truncate">
+            &quot;{draft.name || 'Untitled'}&quot; · {resultsCount} comparisons ·{' '}
+            {playerCount} players · Last updated {formatDate(lastUpdated)}
+          </p>
         </div>
       </div>
-      <div className="flex gap-2 mt-3 ml-13">
+      <div className="flex gap-2 flex-shrink-0">
         <button
           onClick={onResume}
           disabled={loading}
