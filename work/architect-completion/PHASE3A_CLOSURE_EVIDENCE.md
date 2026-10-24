@@ -5,6 +5,13 @@ description: BZE-265 source-derived W1-W15 closure evidence map and exact-head i
 
 # Phase 3A Closure Evidence (BZE-265)
 
+> Historical accepted Phase 3A evidence. Draft/pending labels and the first-round
+> exclusion below are superseded by the landed closure and the
+> [amended V1 contract](../../docs/agent-guides/architect-v1-completion-contract.md).
+> Safe-stop proof remains valid only for that behavior; Phase 3A stays complete.
+> Use [BZE-243](https://linear.app/bzero/issue/BZE-243) for current completion
+> requirements and the next authorized outcome.
+
 **Status:** source-derived discriminator, evidence matrix, and complete browser
 diagnostic reconciled on the landed BZE-297/BZE-298 repair chain. Immutable
 exact-head results are appended to the PR record after candidate freeze.
