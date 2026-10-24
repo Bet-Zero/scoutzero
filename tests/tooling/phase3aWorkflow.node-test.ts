@@ -384,7 +384,7 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
   );
   assert.match(profile, /npm run architect:proof:trade-receipt/);
   assert.match(profile, /Graphify queries may be used/);
-  assert.match(profile, /only after source topology is stable/);
+  assert.match(profile, /only when changed topology invalidates a relevant retained claim/);
   assert.match(profile, /Validation reruns follow the changed risk surface/);
   assert.match(profile, /test-only assertion or evidence edit/);
 
