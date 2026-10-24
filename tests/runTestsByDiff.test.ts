@@ -258,10 +258,7 @@ describe('bounded CI validation policy', () => {
     };
     for (const [name, flag] of Object.entries(gates))
       expect(conditions[name]).toBe(`steps.scope.outputs.${flag} == 'true'`);
-    for (const name of [
-      'Fetch accepted Canon authority ref',
-      'Phase 3A workflow tooling',
-    ]) {
+    for (const name of ['Fetch accepted Canon authority ref']) {
       expect(conditions[name]).toBe("steps.scope.outputs.authority == 'true'");
     }
     for (const name of [
@@ -271,6 +268,16 @@ describe('bounded CI validation policy', () => {
       expect(conditions).toHaveProperty(name);
       expect(conditions[name]).toBeUndefined();
     }
+    expect(conditions['Phase 3A workflow tooling']).toBe(
+      "steps.scope.outputs.authority == 'true' && steps.scope.outputs.app == 'true'"
+    );
+    expect(
+      ciSteps.findIndex(
+        (step) => step.name === 'Fetch accepted Canon authority ref'
+      )
+    ).toBeLessThan(
+      ciSteps.findIndex((step) => step.name === 'Policy implementation checks')
+    );
     expect(conditions['Documentation and routing checks']).toBe(
       "steps.scope.outputs.docs == 'true'"
     );

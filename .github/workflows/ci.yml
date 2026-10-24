@@ -68,10 +68,6 @@ jobs:
         if: steps.scope.outputs.docs == 'true'
         run: node scripts/run-tests-by-diff.mjs --docs
 
-      - name: Policy implementation checks
-        if: steps.scope.outputs.policy == 'true' && steps.scope.outputs.app != 'true'
-        run: npm run test:diff -- --reporter=dot
-
       - name: Verify isolated spacing diff
         if: steps.scope.outputs.level == 'cosmetic' && steps.scope.outputs.docs != 'true'
         run: npm run test:diff -- --reporter=dot
@@ -92,8 +88,12 @@ jobs:
         if: steps.scope.outputs.authority == 'true'
         run: git fetch --no-tags origin architect/cba-canon-v2:refs/remotes/origin/architect/cba-canon-v2
 
+      - name: Policy implementation checks
+        if: steps.scope.outputs.policy == 'true' && steps.scope.outputs.app != 'true'
+        run: npm run test:diff -- --reporter=dot
+
       - name: Phase 3A workflow tooling
-        if: steps.scope.outputs.authority == 'true'
+        if: steps.scope.outputs.authority == 'true' && steps.scope.outputs.app == 'true'
         run: npm run test:phase3a-workflow
 
       - name: Private source review transport boundary
