@@ -14,8 +14,8 @@ the linked docs.
 - Protect source data. Never write to Firestore source collections.
 - Do not run production push/admin/Firestore pipeline scripts unless the user
   explicitly requests that operation.
-- Keep validation scoped. Prefer targeted tests and never run the full suite
-  unless the prompt contains the exact phrase `RUN FULL SUITE`.
+- Keep validation proportionate to actual impact. The agent selects checks and
+  reviewers; the owner does not choose tests or supply a full-suite password.
 - Preserve existing behavior and visual layout when refactoring.
 - Keep the worktree clean when finishing.
 - Ask the user about product direction and requirements; decide technical
@@ -29,17 +29,16 @@ TypeScript, Tailwind CSS 3, Zod, Firebase, and Firestore.
 Player data is loaded from Firestore. Source data is read-only; user-created
 content is read-write.
 
-For code changes, audits, dependency-sensitive work, and architecture questions,
-parse `graphify-out/graph.json` before editing so module dependencies are clear.
-Check `built_at_commit` against `git rev-parse HEAD` when freshness matters, and
-do not assume the graph includes uncommitted edits. Use
-`graphify-out/GRAPH_REPORT.md` as the human-readable summary.
+Inspect changed behavior and affected consumers before selecting validation.
+Use focused source/import inspection for small changes. Consult the existing
+knowledge graph when it helps resolve cross-cutting dependencies; check freshness
+before relying on it. Graph generation is not a prerequisite for cosmetic work.
 
 ## Approved Commands
 
 Use these project commands unless the user explicitly asks for something else.
 
-For normal work in the managed ScoutZero cloud workspace, use the reusable
+When the assignment needs the running app, emulator data or browser proof, use the reusable
 [cloud development workflow](docs/operations/CLOUD_DEVELOPMENT.md):
 `npm run cloud:setup`, `npm run cloud:data:import -- <private-source-directory>`,
 `npm run cloud:dev`, and `npm run cloud:check -- --resume` for saved-session
@@ -68,32 +67,54 @@ and their separate test sessions; follow the runbook's explicit scope/recovery p
 
 ## Testing And Validation
 
-Default to the narrowest truthful validation.
+The agent independently selects one of three execution levels from the complete
+diff, actual behavior, dependencies and affected consumers. Labels, filenames,
+line counts and calling work "cosmetic" do not establish isolation. Uncertainty
+requires inspection and conservative protection until resolved. This section
+controls proportional scope over older generic checklists; it does not waive
+owner approvals or protected production/source boundaries.
 
-Before adding costly safeguards, name the concrete failure prevented, the
-smallest meaningful proof, and why an existing or simpler check is insufficient.
-Proportional proof never waives source qualification, privacy, independent review,
-or product requirements. After repairs, recheck affected risks and required
-exact-head gates; reuse unaffected evidence with its dependencies and scope stated.
+1. **Isolated cosmetic/content:** establish that only local presentation or
+   ordinary displayed copy changes. Inspect its consumers, responsive layout,
+   accessibility and functional meaning; use only the necessary focused static,
+   component or visual check. No routine independent Claude review, unrelated
+   specialist suites, browser installation, emulator startup, full application
+   suite, graph rebuild or elaborate evidence package. Shared tokens, contrast,
+   accessible names, functional promises or uncertain isolation require broader
+   relevant proof.
+2. **Ordinary behavior:** test changed behavior and affected consumers, including
+   failure cases where meaningful. Choose independent review when consequences,
+   complexity or uncertainty justify it, and briefly record why. No automatic
+   full-project or unrelated specialist review requirement.
+3. **Consequential/cross-cutting:** financial calculations, trade legality,
+   persistence, shared state, authorization, data integrity, source qualification
+   and validation/review mechanisms require strong relevant checks and independent
+   exact-candidate review. Retain applicable Canon, integration, emulator and
+   source gates. Full suites are appropriate for genuinely broad or unresolved
+   dependencies, not every consequential change.
 
-For documentation changes, `node scripts/run-tests-by-diff.mjs --docs` checks
-changed Markdown within the existing `lint:md` scope, plus repository routing,
-without relinting unrelated baseline
-failures. The PR job shares the diff runner's bounded policy: inspected prose
-gets documentation checks; governing instructions also get authority/workflow
-checks; the three mapped Ranker UI entry files get the whole Ranker test family,
-typecheck, project validation and build. Unknown documents, shared consumers,
-configuration, dependencies, tooling, mixed impact and missing comparison history
-keep conservative coverage. CI fails closed if comparison history or checked-out
-identity cannot be verified. This is a path/dependency policy, not a Markdown or
-change-size exemption. Main and scheduled full validation remain unchanged.
+Use `npm run test:diff -- --dry-run --verbose` to inspect automated selection.
+The bounded selector proves a narrow static local spacing case from actual
+before/after source, preserves complete Ranker coverage, maps local search
+behavior to its table/filter consumers, uses Vitest's existing import graph for
+other isolated presentation leaves with inspected imports, and separates application checks from
+unrelated source-transport/browser/cloud gates. Unmapped or uncertain changes
+remain conservative; automation is a floor, not a substitute for inspecting
+impact. Extend an existing mapping with consumer evidence and selection tests
+when necessary. A related-test run with no matching tests fails and needs a
+focused regression; it is not a pass. Never override CI with a label or a partial file list.
 
-A CI step marked unselected was not executed and is not a test pass. Required
-PR status and independent exact-candidate acceptance still apply. Complete PR
-comparison uses the explicit base and checked-out merge candidate; local explicit
-`--files` scopes are iteration evidence only and cannot narrow CI. When extending
-one of these mappings, establish its consumers and test mandatory execution as
-well as safe omission before relying on it.
+PR and post-merge push CI use the same selector against the complete comparison;
+nightly CI retains full integration health checks. Missing CI history or an
+incorrect checked-out identity fails closed. Skipped checks are not passes.
+Independent review selection is an agent obligation reported by the selector,
+not a new platform approval gate. Respect any platform-enforced requirements.
+
+For docs, `node scripts/run-tests-by-diff.mjs --docs` checks changed Markdown and
+routing without relinting unrelated baseline failures. Governing changes retain
+workflow and selection-policy checks. After repairs, rerun affected proof and
+required exact-candidate gates; reuse unaffected evidence with its scope stated.
+Stop adding checks once selected checks pass and no concrete concern remains.
 
 When the branch has existing unrelated diffs, validate the current task scope
 rather than the whole branch. Prefer the most specific suite, or pass explicit
@@ -126,20 +147,11 @@ npm run test:diff -- --reporter=dot
 Exception: `npm run test:phase3a-workflow` uses Node's built-in test runner and
 already selects its dot reporter; run it without an appended Vitest reporter.
 
-Do not run these unless the user prompt contains `RUN FULL SUITE`:
-
-- `npm run test`
-- `npm test`
-- `vitest`
-- `vitest run`
-- `npm run test:full`
-
-Do not invent test commands or run raw `vitest` directly. If `npm run test:diff`
-auto-selects a broad/full tier, that is still the approved diff runner; respect
-the 4-minute budget and report what happened.
-
-If any test run exceeds 4 minutes, stop it and switch to `npm run test:diff` or
-the closest scoped suite.
+Use approved npm scripts, not raw test-runner commands. The agent may select
+`npm run test:full` when broad dependencies or nightly health justify it; no
+owner test-selection decision is required. Prefer focused suites first. Treat
+four minutes as an investigation checkpoint: stop an unproductive run, diagnose
+and narrow when truthful; never silently drop a necessary gate to meet a budget.
 
 Every final handoff must list files changed, validation commands actually run,
 and commands intentionally skipped with the reason.
@@ -213,7 +225,7 @@ Full rules: `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md`,
 
 ## Agent Workflow
 
-- For Phase 3A Canon-correctness and execution-tooling lanes, follow
+- For consequential Phase 3A Canon-correctness and execution-tooling lanes, follow
   `docs/agent-guides/phase3a-execution.md` as the standing maker/checker
   execution profile.
 - Do not create new git branches unless the user explicitly asks.
@@ -304,6 +316,11 @@ Session-start checks, in order:
    authorization where needed, and batch review requests for one owner sitting.
 
 ## Owner Review Model (owner-set, 2026-07-08)
+
+The wave/artifact requirements below apply to owner-directed subjective design
+waves and existing approval-bound work. They do not impose an evidence package
+on an isolated requested cosmetic correction. Existing owner approval boundaries
+remain intact; this policy does not grant permission to land an unapproved wave.
 
 - Work in **waves as big as coherently reviewable** — a whole page/room per
   wave by default, larger when coherent. Do not slice subjective UI work into
@@ -425,8 +442,7 @@ When the user types `/graphify`, invoke the `skill` tool with `skill: "graphify"
 
 Rules:
 
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- Use graphify query/path/explain when dependency uncertainty warrants it and
+  the tool is available. Verify freshness; focused source inspection is valid.
+- Update the graph only when changed module topology makes a relevant retained
+  dependency claim stale, not after every source/text/style edit.

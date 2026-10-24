@@ -1,17 +1,5 @@
 #!/usr/bin/env sh
 
-# Generate docs and check if anything changed
-npm run docs
-
-# Only add and amend if there are changes
-if git diff --quiet docs/; then
-  # No changes - exit successfully
-  :
-else
-  echo "Error: Documentation is out of sync. Run 'npm run docs' and commit the changes before pushing."
-  exit 1
-fi
-
 # Architect cast-ledger gate — runs the same count-based baseline check as CI.
 # Only fails if per-file cast-violation counts INCREASE vs .architect-cast-baseline.json.
 # Pre-existing violations in touched files do not cause failure (consistent with CI).

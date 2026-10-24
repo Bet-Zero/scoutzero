@@ -337,23 +337,21 @@ test('Phase 3A policy settles automated review and exact-head CI before Claude',
     profile,
     /Draft PR checks may start automatically before freeze/
   );
-  assert.match(template, /Draft review and freeze record/);
   assert.match(
     template,
-    /failure-testing matrix derived from this tranche's risk contract/
+    /For consequential work, include focused failure proof/
   );
-  assertAppearsInOrder(
+  assert.match(
     template,
-    [
-      'Available automated reviewers started while the PR was draft',
-      'Every started automated review completed, or its unavailability/rate limit is recorded',
-      'Author review is complete and every available automated-review finding is settled',
-      'Candidate was frozen only after the preceding author and automated-review work',
-      'Required hosted CI is green on the final exact head',
-      'Immutable Claude prompt was generated only after that exact-head CI was green',
-      'No head change followed the Claude prompt, or every stale prompt was invalidated and replaced',
-    ],
-    'pull request freeze and Claude evidence order'
+    /exact frozen\ncandidate\/base, green CI and independent acceptance receipts/
+  );
+  assert.match(
+    template,
+    /Apply the Phase 3A\nrecord only when that lane governs the work/
+  );
+  assert.match(
+    template,
+    /not required with reason, or exact candidate\/verdict receipt/
   );
 });
 
@@ -416,24 +414,12 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
   assert.match(certificationHarness, /hashFile\(proofPath\)/);
   assert.match(certificationHarness, /manifest\.json/);
 
-  assertAppearsInOrder(
+  assert.match(
     template,
-    [
-      'Non-retained diagnostic command/result',
-      'Retained exact-candidate certification artifact link/path',
-      'Certification defect repair → diagnostic re-pass → replacement certification',
-    ],
-    'pull request browser evidence receipts'
+    /Browser\/emulator artifacts are\nrequired only for affected risks/
   );
-  for (const category of [
-    'Implementation',
-    'Local validation',
-    'Browser/emulator work',
-    'Hosted CI and review waits',
-    'Repeated failed attempts',
-  ]) {
-    assert.match(template, new RegExp(`- ${category}:`));
-  }
+  assert.match(template, /existing owner-approved design wave/);
+  assert.doesNotMatch(template, /Independent Claude returned `ACCEPT`/);
 });
 
 test('draft review evidence requires History, Compare and reload for both teams', async () => {
