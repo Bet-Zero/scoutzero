@@ -26,7 +26,7 @@ const isSensitive = (file) => {
     /^src\/(?:features\/[^/]+\/utils\/|shared\/utils\/|constants\/)/.test(
       file
     ) &&
-    /salary|salaries|cap|apron|contract|trade|legality|waiver|extension|exception|signing|offerSheet|rfa|birdRights|stepien|entitlement|governed/i.test(
+    /salary|salaries|cap|apron|contract|trade|legality|waiver|extension|exception|signing|offerSheet|rfa|rights|stepien|entitlement|governed|cba|rulesProfile|tpe|deadMoney|invariant|penalty/i.test(
       file
     );
   return (
