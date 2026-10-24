@@ -1,127 +1,251 @@
 #!/usr/bin/env node
 
-/**
- * FILE: scripts/run-tests-by-diff.mjs
- *
- * Diff-based test runner - automatically selects the appropriate validation
- * scope based on changed files from git.
- *
- * MAPPING RULES:
- * - Tier 3 (Full): Changes to shared code, schemas, config, build scripts
- * - Tier 2 (Targeted): Inferred related node/ui tests for a narrow slice
- * - Tier 2 (Feature): Feature-specific fallback when inference is weak
- * - Tier 1 (Fast): Default fallback for all other changes
- *
- * USAGE:
- *   npm run test:diff
- *   node scripts/run-tests-by-diff.mjs
- *   node scripts/run-tests-by-diff.mjs --verbose
- *   node scripts/run-tests-by-diff.mjs --dry-run --files src/features/architect/GMDashboard/hooks/useArchitectActions.ts,src/features/architect/GMDashboard/sections/FreeAgencySection.tsx
- */
-
-import { execSync, spawnSync } from 'child_process';
+// One bounded policy for local test selection and the existing PR validation job.
+// Unknown impact is conservative; filenames are not a dependency inference engine.
+import { execFileSync, spawnSync } from 'node:child_process';
+import { appendFileSync, existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { globSync } from 'glob';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const rawArgs = process.argv.slice(2);
-const VERBOSE = rawArgs.includes('--verbose');
-const DRY_RUN = rawArgs.includes('--dry-run');
+// Inspected prose/status surfaces, not a blanket Markdown exemption. Generated
+// schema, Canon/source evidence and unlisted documents remain conservative.
+const ORDINARY_DOCS = new Set([
+  'README.md',
+  'docs/INDEX.md',
+  'docs/guides/DEVELOPER_GUIDE.md',
+  'work/architect-completion/GAP_LEDGER.md',
+  'work/architect-completion/ACCEPTANCE_BATTERY.md',
+  'work/architect-completion/PHASE3A_CLOSURE_EVIDENCE.md',
+  'work/architect-completion/DRAFT_PICK_EXECUTION.md',
+]);
+const GOVERNING_DOCS = new Set([
+  'AGENTS.md',
+  'CLAUDE.md',
+  '.github/copilot-instructions.md',
+  '.github/pull_request_template.md',
+  'docs/agent-guides/phase3a-execution.md',
+  'docs/agent-guides/independent-review-boundary.md',
+  'docs/agent-guides/architect-boundary.md',
+  'docs/agent-guides/architect-v1-completion-contract.md',
+  'docs/standards/DOCUMENTATION_UPDATE_RULES.md',
+  'docs/standards/CREATING_PERMANENT_DOCS.md',
+  'docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md',
+  'docs/standards/WORKSPACE_GUARDRAILS.md',
+]);
+// Only these UI entry surfaces have the inspected, closed Ranker consumer set.
+// Ranker helpers (notably playerImpact, also consumed by cloud tooling), schema,
+// Firebase, configuration and all other source changes stay conservative.
+const RANKER_UI = new Set([
+  'src/features/ranker/RankingSetup.tsx',
+  'src/features/ranker/RankingSession.tsx',
+  'src/features/ranker/RankingResults.tsx',
+]);
+const RANKER_ROOT_TESTS = new Set([
+  'tests/RankingSessionUndo.test.tsx',
+  'tests/RankingSetup.test.tsx',
+  'tests/AnchorComparison.test.tsx',
+  'tests/FilterPoolPanel.test.tsx',
+  'tests/useSeasonViews.ui.test.tsx',
+  'tests/rankingEngine.test.ts',
+  'tests/rankerEngineSimulation.test.ts',
+  'tests/rankerSessionSerialization.test.ts',
+  'tests/rankerSaveAsList.test.ts',
+  'tests/rankerLocalDraft.test.ts',
+  'tests/topNSelection.test.ts',
+  'tests/buildAnchorComparisons.test.ts',
+]);
+const isKnownDoc = (file) =>
+  ORDINARY_DOCS.has(file) || GOVERNING_DOCS.has(file);
+const isTestFile = (file) =>
+  /^(?:tests|src\/tests)\/.*\.test\.(?:js|jsx|ts|tsx)$/.test(file) &&
+  !/\.emulator\.test\./.test(file) &&
+  file !== 'src/tests/security/firestoreRules.integration.test.ts';
+const isRankerTest = (file) =>
+  RANKER_ROOT_TESTS.has(file) ||
+  (file.startsWith('src/tests/ranker/') && isTestFile(file));
+const isNativeTest = (file) =>
+  /^(?:tests|src\/tests)\/.*\.node-test\.(?:js|ts)$/.test(file);
+const isUiTestFile = (file) =>
+  /\.(?:jsx|tsx)$/.test(file) ||
+  UI_TS_TEST_PATTERNS.some((pattern) => pattern.test(file));
+const isShared = (file) =>
+  /^(?:src\/(?:shared|components\/shared|lib|hooks|stores|context|schemas|types)\/|tests\/(?:helpers|__mocks__)\/|tests\/setup|scripts\/|\.github\/workflows\/)/.test(
+    file
+  ) || /\.d\.ts$/.test(file);
 
-const explicitChangedFiles = [];
-const FORWARDED_ARGS = [];
-
-for (let index = 0; index < rawArgs.length; index += 1) {
-  const arg = rawArgs[index];
-
-  if (arg === '--verbose' || arg === '--dry-run') {
-    continue;
+export function selectValidationProfile(
+  files,
+  { uncertain = false, structural = false } = {}
+) {
+  const docs = files.some((file) => file.endsWith('.md'));
+  const conservative = (reason) => ({
+    name: 'conservative',
+    app: true,
+    specialists: true,
+    authority: true,
+    docs,
+    reason,
+  });
+  if (uncertain || structural || files.length === 0) {
+    return conservative(
+      'Missing comparison, empty diff, or deleted/renamed/type-changed paths'
+    );
   }
-
-  if (arg === '--files') {
-    const value = rawArgs[index + 1] ?? '';
-    explicitChangedFiles.push(...splitFileList(value));
-    index += 1;
-    continue;
+  if (files.every(isKnownDoc)) {
+    const authority = files.some((file) => GOVERNING_DOCS.has(file));
+    return {
+      name: authority ? 'governing-docs' : 'ordinary-docs',
+      app: false,
+      specialists: false,
+      authority,
+      docs: true,
+      reason:
+        'Only inspected documentation surfaces; governing changes retain authority/workflow checks',
+    };
   }
-
-  if (arg.startsWith('--files=')) {
-    explicitChangedFiles.push(...splitFileList(arg.slice('--files='.length)));
-    continue;
+  const executable = files.filter((file) => !isKnownDoc(file));
+  if (executable.every((file) => RANKER_UI.has(file) || isRankerTest(file))) {
+    return {
+      name: 'ranker-ui',
+      app: true,
+      specialists: false,
+      authority: files.some((file) => GOVERNING_DOCS.has(file)),
+      docs,
+      reason:
+        'Isolated Ranker UI/behavior tests; validate the complete declared Ranker family',
+    };
   }
-
-  FORWARDED_ARGS.push(arg);
+  return conservative(
+    'Shared, tooling, dependency, configuration, mixed or unclassified impact'
+  );
 }
 
-// ANSI colors for output
-const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  yellow: '\x1b[33m',
-  green: '\x1b[32m',
-  blue: '\x1b[36m',
-  red: '\x1b[31m',
-};
+// A cwd-specific comparison must not follow repository redirects inherited from
+// a hook or another checkout. Keep all unrelated environment/credential settings.
+export function gitEnvironment(environment = process.env) {
+  const redirects = new Set([
+    'GIT_DIR',
+    'GIT_WORK_TREE',
+    'GIT_INDEX_FILE',
+    'GIT_COMMON_DIR',
+    'GIT_OBJECT_DIRECTORY',
+    'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+    'GIT_NAMESPACE',
+  ]);
+  return Object.fromEntries(
+    Object.entries(environment).filter(([key]) => !redirects.has(key))
+  );
+}
 
-const DIRECT_TEST_FILE_PATTERN =
-  /^(?:tests|src\/tests)\/.*\.test\.(?:js|jsx|ts|tsx)$/;
-const EMULATOR_TEST_FILE_PATTERN = /\.emulator\.test\.(?:js|jsx|ts|tsx)$/;
+function git(cwd, args) {
+  return execFileSync('git', args, {
+    cwd,
+    env: gitEnvironment(),
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
 
-const NON_EXECUTION_SUPPORT_PATTERNS = [/\.md$/, /^return_packages\/.+/];
+// --no-renames intentionally retains both the deleted and added path. NUL
+// parsing preserves spaces/newlines; the whole merge-base range covers all commits.
+export function collectChanges({
+  cwd = process.cwd(),
+  base,
+  head = 'HEAD',
+  ci = false,
+} = {}) {
+  const entries = new Map();
+  const addDiff = (args) => {
+    const parts = git(cwd, [
+      'diff',
+      '--name-status',
+      '--no-renames',
+      '-z',
+      ...args,
+      '--',
+    ]).split('\0');
+    for (let index = 0; index + 1 < parts.length; index += 2) {
+      const status = parts[index];
+      const file = parts[index + 1];
+      if (!status || !file || !/^[AMDTUXB]$/.test(status))
+        throw new Error('Unrecognized git diff status');
+      // Keep any deletion/type change even when another local layer modifies it.
+      entries.set(
+        file,
+        entries.get(file) === 'D' || entries.get(file) === 'T'
+          ? entries.get(file)
+          : status
+      );
+    }
+  };
+  try {
+    if (
+      ci &&
+      (!/^[a-f0-9]{40}$/.test(base ?? '') || !/^[a-f0-9]{40}$/.test(head))
+    ) {
+      throw new Error(
+        'CI requires explicit base and checked-out candidate SHAs'
+      );
+    }
+    if (!base) {
+      base = ['origin/main', 'main'].find((ref) => {
+        try {
+          git(cwd, ['rev-parse', '--verify', ref]);
+          return true;
+        } catch {
+          return false;
+        }
+      });
+      if (!base) throw new Error('No comparison history');
+    }
+    const mergeBase = git(cwd, ['merge-base', base, head]).trim();
+    addDiff([mergeBase, head]);
+    if (!ci) {
+      addDiff(['--cached']);
+      addDiff([]);
+      for (const file of git(cwd, [
+        'ls-files',
+        '--others',
+        '--exclude-standard',
+        '-z',
+      ])
+        .split('\0')
+        .filter(Boolean)) {
+        entries.set(file, 'A');
+      }
+    } else if (git(cwd, ['rev-parse', 'HEAD']).trim() !== head) {
+      throw new Error('Checked-out candidate differs from declared CI head');
+    }
+    return {
+      files: [...entries.keys()].sort(),
+      structural: [...entries.values()].some(
+        (status) => !['A', 'M'].includes(status)
+      ),
+      uncertain: false,
+      base: mergeBase,
+      head,
+    };
+  } catch (error) {
+    return {
+      files: [...entries.keys()].sort(),
+      uncertain: true,
+      structural: true,
+      reason: error.message,
+      base,
+      head,
+    };
+  }
+}
 
-const TIER_3_TRIGGERS = [
-  // Shared/global code
-  /^src\/shared\//,
-  /^src\/components\/shared\//,
-  /^src\/lib\//,
-  /^src\/hooks\//,
-  /^src\/stores\//,
-  /^src\/context\//,
-  /^tests\/helpers\//,
-  /^tests\/__mocks__\//,
-  /^tests\/setup[^/]+\.(?:js|ts)$/,
-
-  // Schemas and types
-  /^src\/schemas\//,
-  /^src\/types\//,
-  /\.d\.ts$/,
-
-  // Config files
-  /^vite\.config\./,
-  /^vitest(?:\.[^.]+)?\.config\./,
-  /^tsconfig\.json$/,
-  /^package\.json$/,
-  /^package-lock\.json$/,
-
-  // Build and CI
-  /^\.github\/workflows\//,
-  /^scripts\/.*\.(?:js|ts|mjs|cjs)$/,
-
-  // Root config
-  /^tailwind\.config\./,
-  /^postcss\.config\./,
-  /^jsconfig\.json$/,
-];
-
-const FEATURE_PATTERNS = {
-  architect: [
-    /^src\/features\/architect\//,
-    /^src\/tests\/architect\//,
-    /^tests\/architect\//,
-    /^src\/tests\/tradeMachine\//,
-  ],
-  trade: [/^src\/features\/trade\//, /^src\/tests\/trade\//, /^tests\/trade\//],
-  roster: [
-    /^src\/features\/roster\//,
-    /^src\/tests\/roster\//,
-    /^tests\/roster\//,
-  ],
-  scouting: [
-    /^src\/features\/scouting\//,
-    /^src\/tests\/scouting\//,
-    /^tests\/scouting\//,
-  ],
-};
+function getAllTestFiles() {
+  return globSync(
+    ['tests/**/*.test.{js,jsx,ts,tsx}', 'src/tests/**/*.test.{js,jsx,ts,tsx}'],
+    { nodir: true }
+  )
+    .filter(isTestFile)
+    .sort();
+}
 
 const EXPLICIT_TARGETS = [
   {
@@ -197,215 +321,6 @@ const UI_TS_TEST_PATTERNS = [
   /^tests\/entitlements\/vacuumTradeTransfer\.test\.ts$/,
 ];
 
-const STOP_WORDS = new Set([
-  'src',
-  'tests',
-  'test',
-  'features',
-  'feature',
-  'shared',
-  'components',
-  'component',
-  'hooks',
-  'hook',
-  'utils',
-  'util',
-  'pages',
-  'page',
-  'sections',
-  'section',
-  'modals',
-  'modal',
-  'constants',
-  'constant',
-  'types',
-  'type',
-  'data',
-  'index',
-  'architect',
-  'trade',
-  'roster',
-  'scouting',
-  'behavior',
-  'guardrail',
-  'closure',
-  'surface',
-  'smoke',
-  'integration',
-  'contract',
-  'contracts',
-  'rules',
-  'rule',
-]);
-
-const TARGETED_MATCH_THRESHOLD = 18;
-const MAX_TARGETED_TESTS = 12;
-const MAX_MATCHES_PER_FILE = 4;
-
-function splitFileList(value) {
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function log(message, color = colors.reset) {
-  console.log(`${color}${message}${colors.reset}`);
-}
-
-function logVerbose(message) {
-  if (VERBOSE) {
-    console.log(`  ${colors.blue}[DEBUG]${colors.reset} ${message}`);
-  }
-}
-
-function normalizePath(file) {
-  return file.split(path.sep).join('/');
-}
-
-function normalizeToken(value) {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-function splitWords(segment) {
-  return segment
-    .replace(/\.[^.]+$/u, '')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .split(/[^a-zA-Z0-9]+/u)
-    .map((word) => word.toLowerCase())
-    .filter(Boolean);
-}
-
-function countSetOverlap(left, right) {
-  let count = 0;
-  for (const value of left) {
-    if (right.has(value)) {
-      count += 1;
-    }
-  }
-  return count;
-}
-
-function isExecutionSupportFile(file) {
-  return NON_EXECUTION_SUPPORT_PATTERNS.some((pattern) => pattern.test(file));
-}
-
-function isTestFile(file) {
-  return (
-    DIRECT_TEST_FILE_PATTERN.test(file) &&
-    !EMULATOR_TEST_FILE_PATTERN.test(file)
-  );
-}
-
-function isUiTestFile(file) {
-  return (
-    /\.(?:jsx|tsx)$/u.test(file) ||
-    UI_TS_TEST_PATTERNS.some((pattern) => pattern.test(file))
-  );
-}
-
-function detectFeature(file) {
-  for (const [feature, patterns] of Object.entries(FEATURE_PATTERNS)) {
-    if (patterns.some((pattern) => pattern.test(file))) {
-      return feature;
-    }
-  }
-  return null;
-}
-
-function buildPathInfo(file) {
-  const normalizedFile = normalizePath(file);
-  const segments = normalizedFile.split('/').filter(Boolean);
-  const basename = path.posix.basename(
-    normalizedFile,
-    path.posix.extname(normalizedFile)
-  );
-
-  const compoundTokens = new Set();
-  const wordTokens = new Set();
-
-  for (const segment of segments) {
-    const withoutExtension = segment.replace(/\.[^.]+$/u, '');
-    const compound = normalizeToken(withoutExtension);
-    if (compound.length >= 3 && !STOP_WORDS.has(compound)) {
-      compoundTokens.add(compound);
-    }
-
-    for (const word of splitWords(segment)) {
-      if (word.length >= 2 && !STOP_WORDS.has(word)) {
-        wordTokens.add(word);
-      }
-    }
-  }
-
-  return {
-    file: normalizedFile,
-    feature: detectFeature(normalizedFile),
-    basenameNormalized: normalizeToken(basename),
-    pathNormalized: normalizeToken(normalizedFile),
-    compoundTokens,
-    wordTokens,
-  };
-}
-
-function getAllTestFiles() {
-  return globSync(
-    ['tests/**/*.test.{js,jsx,ts,tsx}', 'src/tests/**/*.test.{js,jsx,ts,tsx}'],
-    {
-      ignore: [
-        '**/*.emulator.test.{js,jsx,ts,tsx}',
-        // Requires @firebase/rules-unit-testing (not installed) + running emulator
-        'src/tests/security/firestoreRules.integration.test.ts',
-      ],
-      nodir: true,
-    }
-  )
-    .map(normalizePath)
-    .sort();
-}
-
-function scoreTestMatch(changedInfo, testInfo) {
-  let score = 0;
-
-  if (changedInfo.feature && changedInfo.feature === testInfo.feature) {
-    score += 10;
-  }
-
-  if (
-    changedInfo.basenameNormalized &&
-    changedInfo.basenameNormalized === testInfo.basenameNormalized
-  ) {
-    score += 30;
-  } else if (
-    changedInfo.basenameNormalized &&
-    testInfo.pathNormalized.includes(changedInfo.basenameNormalized)
-  ) {
-    score += 22;
-  }
-
-  const compoundOverlap = countSetOverlap(
-    changedInfo.compoundTokens,
-    testInfo.compoundTokens
-  );
-  const wordOverlap = countSetOverlap(
-    changedInfo.wordTokens,
-    testInfo.wordTokens
-  );
-
-  score += compoundOverlap * 8;
-  score += wordOverlap * 4;
-
-  if (wordOverlap >= 2) {
-    score += 6;
-  }
-
-  if (testInfo.file.includes('/smoke/')) {
-    score -= 2;
-  }
-
-  return score;
-}
-
 function buildTargetedPlan({
   tier = 'targeted',
   reason,
@@ -465,321 +380,219 @@ function selectExplicitTarget(executableFiles) {
   return null;
 }
 
-function inferTargetedPlan(executableFiles, availableTestFiles) {
-  const directTestFiles = executableFiles.filter(isTestFile);
-  const sourceFiles = executableFiles.filter((file) => !isTestFile(file));
-
-  if (sourceFiles.length === 0) {
-    const nodeTests = directTestFiles.filter((file) => !isUiTestFile(file));
-    const uiTests = directTestFiles.filter(isUiTestFile);
-
-    if (nodeTests.length === 0 && uiTests.length === 0) {
-      return null;
-    }
-
-    return buildTargetedPlan({
-      reason: 'Changed tests only',
-      files: executableFiles,
-      nodeTests,
-      uiTests,
-    });
-  }
-
-  const knownFeatures = new Set(sourceFiles.map(detectFeature).filter(Boolean));
-  if (knownFeatures.size > 1) {
-    return null;
-  }
-
-  const testInfos = availableTestFiles.map((file) => buildPathInfo(file));
-  const matchedTestFiles = new Set(directTestFiles);
-
-  for (const sourceFile of sourceFiles) {
-    const sourceInfo = buildPathInfo(sourceFile);
-    const scoredCandidates = testInfos
-      .map((testInfo) => ({
-        file: testInfo.file,
-        score: scoreTestMatch(sourceInfo, testInfo),
-      }))
-      .filter((candidate) => candidate.score >= TARGETED_MATCH_THRESHOLD)
-      .sort((left, right) => right.score - left.score);
-
-    if (scoredCandidates.length === 0) {
-      logVerbose(`No strong inferred tests for ${sourceFile}`);
-      return null;
-    }
-
-    const selectedCandidates = scoredCandidates.slice(0, MAX_MATCHES_PER_FILE);
-
-    for (const candidate of selectedCandidates) {
-      matchedTestFiles.add(candidate.file);
-    }
-  }
-
-  if (
-    matchedTestFiles.size === 0 ||
-    matchedTestFiles.size > MAX_TARGETED_TESTS
-  ) {
-    return null;
-  }
-
-  const nodeTests = Array.from(matchedTestFiles)
-    .filter((file) => !isUiTestFile(file))
-    .sort();
-  const uiTests = Array.from(matchedTestFiles).filter(isUiTestFile).sort();
-
-  if (nodeTests.length === 0 && uiTests.length === 0) {
-    return null;
-  }
-
-  return buildTargetedPlan({
-    reason: `Inferred ${matchedTestFiles.size} related test file${matchedTestFiles.size === 1 ? '' : 's'}`,
-    files: executableFiles,
-    nodeTests,
-    uiTests,
-  });
-}
-
-/**
- * Get changed files from git
- * Tries multiple strategies to find changes.
- */
-function getChangedFiles() {
-  if (explicitChangedFiles.length > 0) {
-    logVerbose('Using explicit changed-file list from --files');
-    return explicitChangedFiles.map(normalizePath);
-  }
-
-  const strategies = [
-    () => {
-      logVerbose('Trying: git diff --name-only origin/main...HEAD');
-      return execSync('git diff --name-only origin/main...HEAD', {
-        encoding: 'utf8',
-      });
-    },
-    () => {
-      logVerbose('Trying: git diff --name-only main...HEAD');
-      return execSync('git diff --name-only main...HEAD', { encoding: 'utf8' });
-    },
-    () => {
-      logVerbose('Trying: git diff --name-only --cached');
-      return execSync('git diff --name-only --cached', { encoding: 'utf8' });
-    },
-    () => {
-      logVerbose('Trying: git diff --name-only');
-      return execSync('git diff --name-only', { encoding: 'utf8' });
-    },
-  ];
-
-  for (const strategy of strategies) {
-    try {
-      const result = strategy();
-      if (result.trim()) {
-        return result.trim().split('\n').map(normalizePath).filter(Boolean);
-      }
-    } catch (error) {
-      logVerbose(`Strategy failed: ${error.message}`);
-    }
-  }
-
-  log('⚠️  No changed files detected', colors.yellow);
-  log('   Running fast tests as fallback', colors.yellow);
-  return [];
-}
-
-export function selectTestPlan(
-  changedFiles,
-  { availableTestFiles = getAllTestFiles() } = {}
-) {
-  const normalizedFiles = changedFiles.map(normalizePath).filter(Boolean);
-
-  if (normalizedFiles.length === 0) {
-    return {
-      tier: 'fast',
-      reason: 'No changes detected',
-      files: normalizedFiles,
-      commands: [{ script: 'test:fast', fileArgs: [] }],
-    };
-  }
-
-  const executableFiles = normalizedFiles.filter(
-    (file) => !isExecutionSupportFile(file)
+// Match the existing lint:md scope/exclusions; do not impose new rules on
+// historical receipts or hidden instruction files as part of selection.
+export function documentationCommands(files) {
+  const markdown = files.filter(
+    (file) =>
+      file.endsWith('.md') &&
+      existsSync(file) &&
+      (file.startsWith('docs/') || !file.includes('/')) &&
+      !file.startsWith('docs/return-packages/') &&
+      path.basename(file) !== 'copilot-instructions.md'
   );
+  return [
+    ...(markdown.length
+      ? [
+          {
+            executable: process.execPath,
+            args: [
+              'node_modules/markdownlint-cli/markdownlint.js',
+              ...markdown,
+            ],
+          },
+        ]
+      : []),
+    { script: 'docs:guardrails', fileArgs: [] },
+  ];
+}
 
-  if (executableFiles.length === 0) {
-    return {
-      tier: 'fast',
-      reason: 'Support-file changes only',
-      files: normalizedFiles,
-      commands: [{ script: 'test:fast', fileArgs: [] }],
+export function selectTestPlan(changedFiles, options = {}) {
+  const files = [...new Set(changedFiles)];
+  const profile = selectValidationProfile(files, options);
+  const available = options.availableTestFiles ?? getAllTestFiles();
+  let plan;
+  if (!profile.app) {
+    plan = {
+      tier: profile.name,
+      reason: profile.reason,
+      files,
+      commands: documentationCommands(files),
     };
+    if (profile.authority)
+      plan.commands.push({ script: 'test:phase3a-workflow', fileArgs: [] });
+    return plan;
   }
-
-  logVerbose(`Analyzing ${normalizedFiles.length} changed files...`);
-
-  const explicitTarget = selectExplicitTarget(executableFiles);
-  if (explicitTarget) {
-    return explicitTarget;
-  }
-
-  for (const file of executableFiles) {
-    for (const pattern of TIER_3_TRIGGERS) {
-      if (pattern.test(file)) {
-        logVerbose(`Tier 3 trigger: ${file} matches ${pattern}`);
-        return {
-          tier: 'full',
-          reason: `Shared/config change detected: ${file}`,
-          files: normalizedFiles,
-          commands: [{ script: 'test:full', fileArgs: [] }],
-        };
+  const executable = files.filter((file) => !isKnownDoc(file));
+  if (
+    !options.uncertain &&
+    !options.structural &&
+    executable.length &&
+    !executable.some(isShared)
+  ) {
+    if (profile.name === 'ranker-ui') {
+      const tests = [
+        ...new Set([
+          ...available.filter(isRankerTest),
+          ...executable.filter(isTestFile),
+        ]),
+      ].sort();
+      plan = buildTargetedPlan({
+        tier: 'ranker-ui',
+        reason: profile.reason,
+        files,
+        nodeTests: tests.filter((file) => !isUiTestFile(file)),
+        uiTests: tests.filter(isUiTestFile),
+      });
+    } else {
+      plan = selectExplicitTarget(executable);
+      if (!plan && executable.every(isTestFile)) {
+        plan = buildTargetedPlan({
+          reason: 'Changed tests only',
+          files,
+          nodeTests: executable.filter((file) => !isUiTestFile(file)),
+          uiTests: executable.filter(isUiTestFile),
+        });
       }
     }
   }
-
-  const inferredTarget = inferTargetedPlan(executableFiles, availableTestFiles);
-  if (inferredTarget) {
-    return inferredTarget;
-  }
-
-  const matchedFeatures = new Set();
-  for (const file of executableFiles) {
-    const feature = detectFeature(file);
-    if (feature) {
-      matchedFeatures.add(feature);
-      logVerbose(`Feature match: ${file} -> ${feature}`);
-    }
-  }
-
-  if (matchedFeatures.size > 2) {
-    return {
+  if (!plan || plan.commands.length === 0) {
+    plan = {
       tier: 'full',
-      reason: `Multiple features modified: ${Array.from(matchedFeatures).join(', ')}`,
-      files: normalizedFiles,
+      reason: profile.reason,
+      files,
       commands: [{ script: 'test:full', fileArgs: [] }],
     };
   }
-
-  if (matchedFeatures.size === 1) {
-    const feature = Array.from(matchedFeatures)[0];
-    return {
-      tier: feature,
-      reason: `${feature} feature modified`,
-      files: normalizedFiles,
-      commands: [{ script: `test:${feature}`, fileArgs: [] }],
-    };
-  }
-
-  if (matchedFeatures.size === 2 && matchedFeatures.has('architect')) {
-    return {
-      tier: 'architect',
-      reason: `Mixed features including architect: ${Array.from(matchedFeatures).join(', ')}`,
-      files: normalizedFiles,
-      commands: [{ script: 'test:architect', fileArgs: [] }],
-    };
-  }
-
-  return {
-    tier: 'fast',
-    reason: 'No specific triggers matched',
-    files: normalizedFiles,
-    commands: [{ script: 'test:fast', fileArgs: [] }],
-  };
-}
-
-function formatDisplayCommand(command) {
-  const forwarded = FORWARDED_ARGS.length > 0 ? [...FORWARDED_ARGS] : [];
-  const fileArgs = command.fileArgs ?? [];
-  const trailingArgs = [...forwarded, ...fileArgs];
-  return `npm run ${command.script}${
-    trailingArgs.length > 0 ? ` -- ${trailingArgs.join(' ')}` : ''
-  }`;
-}
-
-function runTests(plan) {
-  log('');
-  log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', colors.bright);
-  log('  Diff-Based Test Runner', colors.bright);
-  log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', colors.bright);
-  log('');
-  log(
-    `Selected Tier: ${colors.bright}${plan.tier.toUpperCase()}${colors.reset}`
+  // Native tests are not included by Vitest's .test.ts globs. Never silently
+  // omit a changed helper test, including a newly introduced native suite.
+  const nativeTests = files.filter(
+    (file) => isNativeTest(file) && existsSync(file)
   );
-  log(`Reason: ${plan.reason}`);
-
-  if (VERBOSE && plan.files.length > 0) {
-    log('');
-    log('Changed files:');
-    plan.files.forEach((file) => log(`  - ${file}`, colors.blue));
-  }
-
-  if (DRY_RUN) {
-    log('');
-    log('Dry run:', colors.yellow);
-    plan.commands.forEach((command) => {
-      log(`  ${formatDisplayCommand(command)}`, colors.green);
+  if (nativeTests.length)
+    plan.commands.push({
+      executable: process.execPath,
+      args: [
+        '--import',
+        'tsx',
+        '--test',
+        '--test-reporter=dot',
+        ...nativeTests,
+      ],
     });
-    return;
-  }
+  return plan;
+}
 
+export function executePlan(
+  plan,
+  { spawn = spawnSync, forwarded = [], dryRun = false } = {}
+) {
+  console.log(`Selected scope: ${plan.tier}\nReason: ${plan.reason}`);
   for (const command of plan.commands) {
-    const displayCommand = formatDisplayCommand(command);
-
-    log('');
-    log(`Running: ${colors.green}${displayCommand}${colors.reset}`);
-    log('');
-
-    const npmArgs = [
-      'run',
-      command.script,
-      ...(FORWARDED_ARGS.length > 0 || (command.fileArgs ?? []).length > 0
-        ? ['--', ...FORWARDED_ARGS, ...(command.fileArgs ?? [])]
-        : []),
-    ];
-
-    const result = spawnSync('npm', npmArgs, {
-      stdio: 'inherit',
-    });
-
-    if (result.status !== 0) {
-      log('');
-      log('❌ Tests failed', colors.red);
-      process.exit(result.status ?? 1);
+    // Vitest flags do not belong on Node test runners or documentation commands.
+    const extra = ['test:node', 'test:ui', 'test:full'].includes(command.script)
+      ? forwarded
+      : [];
+    const args = command.executable
+      ? command.args
+      : [
+          'run',
+          command.script,
+          ...(extra.length || command.fileArgs?.length
+            ? ['--', ...extra, ...(command.fileArgs ?? [])]
+            : []),
+        ];
+    const executable = command.executable ?? 'npm';
+    console.log(
+      `${dryRun ? 'Would run' : 'Running'}: ${executable} ${args.join(' ')}`
+    );
+    if (!dryRun) {
+      const result = spawn(executable, args, { stdio: 'inherit' });
+      if (result.status !== 0)
+        throw new Error(
+          `Selected check failed (${result.status ?? result.error?.message ?? 'signal'}): ${executable} ${args.join(' ')}`
+        );
     }
   }
-
-  log('');
-  log('✅ Tests passed', colors.green);
+  console.log(
+    dryRun
+      ? 'Selection only; no checks executed.'
+      : 'Selected checks passed; unselected checks were not executed.'
+  );
 }
 
 function main() {
-  try {
-    if (explicitChangedFiles.length === 0) {
-      try {
-        execSync('git rev-parse --git-dir', { stdio: 'ignore' });
-      } catch (error) {
-        log('❌ Not a git repository', colors.red);
-        log('   Falling back to fast tests');
-        runTests({
-          tier: 'fast',
-          reason: 'Not in git repo',
-          files: [],
-          commands: [{ script: 'test:fast', fileArgs: [] }],
+  const args = process.argv.slice(2);
+  const ci = process.env.GITHUB_ACTIONS === 'true';
+  const filesIndex = args.findIndex(
+    (arg) => arg === '--files' || arg.startsWith('--files=')
+  );
+  if (ci && filesIndex >= 0)
+    throw new Error('--files cannot replace complete-candidate CI detection');
+  const explicit =
+    filesIndex >= 0
+      ? args[filesIndex].includes('=')
+        ? args[filesIndex].slice(8)
+        : (args[filesIndex + 1] ?? '')
+      : null;
+  const changes =
+    explicit !== null
+      ? {
+          files: explicit
+            .split(',')
+            .map((file) => file.trim())
+            .filter(Boolean),
+        }
+      : collectChanges({
+          base: process.env.SCOUTZERO_DIFF_BASE,
+          head: process.env.SCOUTZERO_DIFF_HEAD ?? 'HEAD',
+          ci,
         });
-        return;
-      }
-    }
-
-    const changedFiles = getChangedFiles();
-    const plan = selectTestPlan(changedFiles);
-    runTests(plan);
-  } catch (error) {
-    log(`❌ Error: ${error.message}`, colors.red);
-    if (VERBOSE && error.stack) {
-      log(error.stack, colors.red);
-    }
-    process.exit(1);
+  const profile = selectValidationProfile(changes.files, changes);
+  if (changes.uncertain && (ci || args.includes('--docs')))
+    throw new Error(
+      `Cannot establish complete changed-file coverage: ${changes.reason}`
+    );
+  if (changes.uncertain)
+    console.warn(`Conservative comparison fallback: ${changes.reason}`);
+  if (args.includes('--verbose'))
+    console.log(JSON.stringify({ ...changes, profile }, null, 2));
+  if (args.includes('--ci-plan')) {
+    if (!ci || !process.env.GITHUB_OUTPUT)
+      throw new Error('--ci-plan requires GitHub Actions outputs');
+    for (const key of ['app', 'specialists', 'authority', 'docs'])
+      appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${profile[key]}\n`);
+    const summary = `Validation profile: ${profile.name}\n${profile.reason}\nBase: ${changes.base}; candidate: ${changes.head}\nChanged paths: ${changes.files.length}. Unselected steps are not executed passes.\n`;
+    console.log(summary);
+    if (process.env.GITHUB_STEP_SUMMARY)
+      appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+    return;
   }
+  const forwarded = args.filter(
+    (arg, index) =>
+      !['--verbose', '--dry-run', '--docs'].includes(arg) &&
+      index !== filesIndex &&
+      !(
+        filesIndex >= 0 &&
+        args[filesIndex] === '--files' &&
+        index === filesIndex + 1
+      )
+  );
+  const plan = args.includes('--docs')
+    ? {
+        tier: 'documentation',
+        reason: 'Changed Markdown plus repository routing guardrails',
+        commands: documentationCommands(changes.files),
+      }
+    : selectTestPlan(changes.files, changes);
+  executePlan(plan, { forwarded, dryRun: args.includes('--dry-run') });
 }
 
 if (fileURLToPath(import.meta.url) === path.resolve(process.argv[1] ?? '')) {
-  main();
+  try {
+    main();
+  } catch (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+  }
 }
