@@ -1,88 +1,38 @@
 #!/usr/bin/env node
-
-// One bounded policy for local test selection and the existing PR validation job.
-// Unknown impact is conservative; filenames are not a dependency inference engine.
+// Complete comparison + syntax proof + Vitest's existing consumer discovery.
+// Agents judge meaning and add relevant proof; declarations can never subtract checks.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { globSync } from 'glob';
 import ts from 'typescript';
 
-// Inspected prose/status surfaces, not a blanket Markdown exemption. Generated
-// schema, Canon/source evidence and unlisted documents remain conservative.
-const ORDINARY_DOCS = new Set([
-  'README.md',
-  'docs/INDEX.md',
-  'docs/guides/DEVELOPER_GUIDE.md',
-  'work/architect-completion/GAP_LEDGER.md',
-  'work/architect-completion/ACCEPTANCE_BATTERY.md',
-  'work/architect-completion/PHASE3A_CLOSURE_EVIDENCE.md',
-  'work/architect-completion/DRAFT_PICK_EXECUTION.md',
-]);
-const GOVERNING_DOCS = new Set([
-  'AGENTS.md',
-  'CLAUDE.md',
-  '.cursor/rules/graphify.mdc',
-  '.github/copilot-instructions.md',
-  '.github/pull_request_template.md',
-  'docs/agent-guides/phase3a-execution.md',
-  'docs/agent-guides/independent-review-boundary.md',
-  'docs/agent-guides/architect-boundary.md',
-  'docs/agent-guides/architect-v1-completion-contract.md',
-  'docs/standards/DOCUMENTATION_UPDATE_RULES.md',
-  'docs/standards/CREATING_PERMANENT_DOCS.md',
-  'docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md',
-  'docs/standards/WORKSPACE_GUARDRAILS.md',
-]);
-// Only these UI entry surfaces have the inspected, closed Ranker consumer set.
-// Ranker helpers (notably playerImpact, also consumed by cloud tooling), schema,
-// Firebase, configuration and all other source changes stay conservative.
-const RANKER_UI = new Set([
-  'src/features/ranker/RankingSetup.tsx',
-  'src/features/ranker/RankingSession.tsx',
-  'src/features/ranker/RankingResults.tsx',
-]);
-const RANKER_ROOT_TESTS = new Set([
-  'tests/RankingSessionUndo.test.tsx',
-  'tests/RankingSetup.test.tsx',
-  'tests/AnchorComparison.test.tsx',
-  'tests/FilterPoolPanel.test.tsx',
-  'tests/useSeasonViews.ui.test.tsx',
-  'tests/rankingEngine.test.ts',
-  'tests/rankerEngineSimulation.test.ts',
-  'tests/rankerSessionSerialization.test.ts',
-  'tests/rankerSaveAsList.test.ts',
-  'tests/rankerLocalDraft.test.ts',
-  'tests/topNSelection.test.ts',
-  'tests/buildAnchorComparisons.test.ts',
-]);
-const isKnownDoc = (file) =>
-  ORDINARY_DOCS.has(file) || GOVERNING_DOCS.has(file);
-const isTestFile = (file) =>
-  /^(?:tests|src\/tests)\/.*\.test\.(?:js|jsx|ts|tsx)$/.test(file) &&
-  !/\.emulator\.test\./.test(file) &&
-  file !== 'src/tests/security/firestoreRules.integration.test.ts';
-const isRankerTest = (file) =>
-  RANKER_ROOT_TESTS.has(file) ||
-  (file.startsWith('src/tests/ranker/') && isTestFile(file));
-const isNativeTest = (file) =>
-  /^(?:tests|src\/tests)\/.*\.node-test\.(?:js|ts)$/.test(file);
-const isUiTestFile = (file) =>
-  /\.(?:jsx|tsx)$/.test(file) ||
-  UI_TS_TEST_PATTERNS.some((pattern) => pattern.test(file));
-const isShared = (file) =>
-  /^(?:src\/(?:shared|components\/shared|lib|hooks|stores|context|schemas|types)\/|tests\/(?:helpers|__mocks__)\/|tests\/setup|scripts\/|\.github\/workflows\/)/.test(
+const isTest = (file) => /\.(?:test|node-test)\.[cm]?[jt]sx?$/.test(file);
+const isDoc = (file) => /\.(?:md|mdc)$/.test(file);
+const isPolicy = (file) =>
+  /^(?:AGENTS\.md|CLAUDE\.md|\.github\/|\.cursor\/rules\/|\.husky\/|docs\/(?:standards|agent-guides)\/|scripts\/run-tests-by-diff\.mjs|tests\/runTestsByDiff\.test\.ts)/.test(
     file
-  ) || /\.d\.ts$/.test(file);
+  );
+const isGlobal = (file) =>
+  /^(?:package(?:-lock)?\.json|(?:vite|vitest).*\.config\.[jt]s|tsconfig.*\.json|tests\/(?:setup|helpers\/|__mocks__\/))/.test(
+    file
+  );
+// These are responsibilities, not test-suite mappings. They set a minimum review
+// obligation for executable changes only; presentation proof is checked first.
+const isSensitive = (file) =>
+  /(?:capTotals|tradeMachine\/(?:engine|rules)|mutationPipeline|seasonManager|firebase|firestore|persist|world.*(?:Service|Store|Manager)|auth|src\/schemas\/|source-releases|scripts\/(?:dev|release|admin)\/|player-scrape|team-scrape)/i.test(
+    file
+  );
+const sourceFile = (file) => !isDoc(file) && !isTest(file);
 
-// Prove a deliberately small subset of cosmetic edits from source, not a label.
-// Only static spacing on a local non-interactive DOM wrapper is automated.
-// Color/contrast, responsive/conditional classes, shared tokens and text meaning
-// need agent inspection and the ordinary/consequential path when not proven here.
-export function isolatedSpacing(file, before, after) {
-  if (!/^src\/features\/.*\.tsx$/.test(file) || before === after) return false;
-  const mask = (text) => {
+// Deliberately syntactic, not an attempted semantic/financial classifier.
+// Preserve conditions, handlers, ARIA, hidden/display, imports and calculations.
+// Only palette/spacing literals and ordinary JSX text can differ. The agent must
+// inspect meaning, contrast, shared styles and consumers before calling it cosmetic.
+export function presentationOnly(file, before, after) {
+  if (!/\.[jt]sx$/.test(file) || !before || !after || before === after)
+    return false;
+  const normalize = (text) => {
     const source = ts.createSourceFile(
       file,
       text,
@@ -91,286 +41,84 @@ export function isolatedSpacing(file, before, after) {
       ts.ScriptKind.TSX
     );
     if (source.parseDiagnostics.length) return null;
-    const slots = [];
+    const edits = [];
     const visit = (node) => {
       if (
         ts.isJsxAttribute(node) &&
-        node.name.text === 'className' &&
+        node.name.getText(source) === 'className' &&
         node.initializer &&
         ts.isStringLiteral(node.initializer)
       ) {
-        const tag = node.parent.parent.tagName?.getText(source);
+        const value = node.initializer.text
+          .split(/\s+/)
+          .map((token) => {
+            // Keep variants (hover/disabled/etc.) and property identity intact.
+            const color =
+              /^(.*:)?(bg|text|border|border-[trblxy]|fill|stroke)-(?:red|blue|green|yellow|orange|amber|lime|emerald|teal|cyan|sky|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-(?:50|[1-9]00|950)(\/\d+)?$/;
+            if (color.test(token))
+              return token.replace(color, '$1$2-PALETTE$3');
+            return token.replace(
+              /^((?:.*:)?(?:p[trblxy]?|m[trblxy]?|gap(?:-[xy])?))-\d+(?:\.\d+)?$/,
+              '$1-SPACING'
+            );
+          })
+          .join(' ');
+        edits.push([
+          node.initializer.getStart(source),
+          node.initializer.end,
+          JSON.stringify(value),
+        ]);
+      } else if (ts.isJsxText(node) && node.text.trim()) {
+        // Status/error/disclosure copy is not an automatic content shortcut.
         if (
-          ['div', 'span', 'section'].includes(tag) &&
-          !node.parent.properties.some(
-            (attribute) =>
-              ts.isJsxSpreadAttribute(attribute) ||
-              /^(?:on[A-Z]|role$|tabIndex$|aria-)/.test(
-                attribute.name?.getText(source) ?? ''
-              )
+          !/error|fail|warn|block|success|approv|declin|denied|legal|guarantee|save|persist|delete|unauthor|unavailable/i.test(
+            node.text
           )
-        ) {
-          const value = node.initializer.text;
-          const spacing =
-            /^(?:gap|gap-x|gap-y|p|px|py|pt|pb|pl|pr|m|mx|my|mt|mb|ml|mr)-(?:0|0\.5|1|1\.5|2|2\.5|3|3\.5|4)$/;
-          if (
-            /\b(?:overflow-|fixed|absolute|sticky|h-|max-h-|min-h-)/.test(value)
-          )
-            return;
-          const tokens = value.split(/\s+/);
-          slots.push({
-            start: node.initializer.getStart(source),
-            end: node.initializer.end,
-            value,
-            masked: tokens
-              .map((t) =>
-                spacing.test(t) ? t.replace(/-[^-]+$/, '-SPACING') : t
-              )
-              .join(' '),
-          });
-        }
+        )
+          edits.push([node.getFullStart(), node.end, 'DISPLAY_TEXT']);
       }
       ts.forEachChild(node, visit);
     };
     visit(source);
-    let masked = text;
-    for (const slot of [...slots].reverse())
-      masked =
-        masked.slice(0, slot.start) +
-        JSON.stringify(slot.masked) +
-        masked.slice(slot.end);
-    return { masked, slots };
+    for (const [start, end, replacement] of edits.reverse())
+      text = text.slice(0, start) + replacement + text.slice(end);
+    return text;
   };
-  const left = mask(before),
-    right = mask(after);
-  return (
-    !!left &&
-    !!right &&
-    left.masked === right.masked &&
-    left.slots.length === right.slots.length &&
-    left.slots.filter((slot, i) => slot.value !== right.slots[i].value)
-      .length === 1
-  );
+  const left = normalize(before),
+    right = normalize(after);
+  return left !== null && right !== null && left === right;
 }
 
-// Closed, inspected view family: SearchBar has only React/lucide imports and
-// receives value/onChange; its parent and table/filter consumers are covered.
-const TABLE_VIEW =
-  'src/features/table/PlayerTable/PlayerTableHeader/SearchBar.tsx';
-const TABLE_TESTS = [
-  'src/tests/table/tableFiltersUi.smoke.test.tsx',
-  'src/tests/table/useFilteredPlayers.test.tsx',
-];
-const POLICY_FILES =
-  /^(?:scripts\/run-tests-by-diff\.mjs|tests\/runTestsByDiff\.test\.ts|tests\/tooling\/phase3aWorkflow\.node-test\.ts|\.github\/workflows\/ci\.yml|\.husky\/(?:pre-commit|pre-push))$/;
-const protectedContent =
-  /firebase|firestore|localStorage|sessionStorage|indexedDB|globalThis|navigator|XMLHttpRequest|WebSocket|fetch\s*\(|authorization|permission|persist|salary|tradeLegal|sourceQualif|onSave|onDelete|onSubmit|onCommit/i;
-
-function isPresentationLeaf(file, text) {
-  const source = ts.createSourceFile(
-    file,
-    text,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TSX
-  );
-  let indirectDependency = false;
-  const inspect = (node) => {
-    if (
-      (ts.isCallExpression(node) &&
-        (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
-          ['require', 'eval', 'Function'].includes(
-            node.expression.getText(source)
-          ))) ||
-      (ts.isExportDeclaration(node) && node.moduleSpecifier)
-    )
-      indirectDependency = true;
-    ts.forEachChild(node, inspect);
-  };
-  inspect(source);
-  return (
-    !source.parseDiagnostics.length &&
-    !indirectDependency &&
-    !protectedContent.test(text) &&
-    !/\b(?:window|document|Function)\b/.test(text) &&
-    source.statements.every(
-      (node) =>
-        !ts.isImportDeclaration(node) ||
-        [
-          'react',
-          'lucide-react',
-          '@heroicons/react/24/outline',
-          '@heroicons/react/24/solid',
-        ].includes(node.moduleSpecifier.text)
-    )
-  );
-}
-
-export function selectValidationProfile(files, options = {}) {
-  const { uncertain = false, structural = false, contents = {} } = options;
-  const docs = files.some((file) => file.endsWith('.md'));
-  const profile = (name, level, app, flags, reason) => ({
-    name,
-    level,
-    review:
-      level === 'consequential'
-        ? 'required'
-        : level === 'cosmetic'
-          ? 'not-required'
-          : 'agent-decides',
-    app,
-    specialists: false,
-    authority: false,
-    architect: false,
-    draft: false,
-    transport: false,
-    browser: false,
-    cloud: false,
-    emulator: false,
-    policy: false,
-    docs,
-    ...flags,
-    reason,
-  });
-  const conservative = (reason) =>
-    profile(
-      'conservative',
-      'consequential',
-      true,
-      {
-        specialists: true,
-        authority: true,
-        architect: true,
-        draft: true,
-        transport: true,
-        browser: true,
-        cloud: true,
-        emulator: true,
-        policy: true,
-      },
-      reason
-    );
-  if (uncertain || structural || !files.length)
-    return conservative(
-      'Missing comparison, empty diff, or deleted/renamed/type-changed paths'
-    );
-  if (files.every(isKnownDoc)) {
-    const authority = files.some((file) => GOVERNING_DOCS.has(file));
-    return profile(
-      authority ? 'governing-docs' : 'ordinary-docs',
-      authority ? 'consequential' : 'cosmetic',
-      false,
-      { authority, policy: authority },
-      'Inspected documentation surfaces; governing changes retain workflow checks'
-    );
-  }
-  if (
-    files.length === 1 &&
-    options.localConsumers === true &&
-    contents[files[0]] &&
-    isolatedSpacing(
-      files[0],
-      contents[files[0]].before,
-      contents[files[0]].after
-    )
-  )
-    return profile(
-      'isolated-spacing',
-      'cosmetic',
-      false,
-      {},
-      'One static local wrapper spacing value; all other source bytes unchanged. Agent must inspect layout isolation.'
-    );
-  const executable = files.filter((file) => !isKnownDoc(file));
-  const governing = files.some((file) => GOVERNING_DOCS.has(file));
-  if (
-    executable.some((file) => POLICY_FILES.test(file)) &&
-    executable.every((file) => POLICY_FILES.test(file) || isTestFile(file))
-  )
-    return profile(
-      'validation-policy',
-      'consequential',
-      false,
-      { policy: true, authority: true },
-      'Selection/workflow policy: adversarial selection and workflow tests, independent review; no product code changed'
-    );
-  if (executable.every((file) => RANKER_UI.has(file) || isRankerTest(file)))
-    return profile(
-      'ranker-ui',
-      'consequential',
-      true,
-      { authority: governing, policy: governing },
-      'Complete Ranker family includes saved state; independent review remains required for behavior changes'
-    );
-  if (
-    executable.every(
-      (file) => file === TABLE_VIEW || TABLE_TESTS.includes(file)
-    ) &&
-    executable.includes(TABLE_VIEW) &&
-    contents[TABLE_VIEW] &&
-    [contents[TABLE_VIEW].before, contents[TABLE_VIEW].after].every((text) =>
-      isPresentationLeaf(TABLE_VIEW, text)
-    )
-  )
-    return profile(
-      'table-view',
-      governing ? 'consequential' : 'ordinary',
-      true,
-      { authority: governing, policy: governing },
-      'Local search behavior and complete inspected table/filter consumer tests'
-    );
-  const localSources = executable.filter((file) => !isTestFile(file));
-  // Other isolated presentation leaves use Vitest's existing import graph,
-  // not a second dependency engine or a new per-file allowlist. New dependencies,
-  // shared consumers, imperative globals and sensitive callbacks stay conservative.
-  if (
-    localSources.length === 1 &&
-    options.localConsumers === true &&
-    contents[localSources[0]] &&
-    !/\/(?:architect|ranker)\//.test(localSources[0]) &&
-    [contents[localSources[0]].before, contents[localSources[0]].after].every(
-      (text) => isPresentationLeaf(localSources[0], text)
-    )
-  )
-    return profile(
-      'local-ui',
-      governing ? 'consequential' : 'ordinary',
-      true,
-      { authority: governing, policy: governing },
-      'Isolated presentation leaf with inspected imports; Vitest selects actual UI test consumers. Agent judges copy/accessibility and review need.'
-    );
-  // Known application domains retain strong relevant tests, without unrelated
-  // source transport/browser/cloud gates. Unknown code/config still fails broad.
-  if (executable.every((file) => /^(?:src\/|tests\/.*\.test\.)/.test(file))) {
-    const architect = executable.some((file) =>
-      /architect|trade|shared|schemas|firebase|stores|context|src\/data\//.test(
-        file
+export function readDeclarations(messages = '') {
+  const tests = new Set();
+  let review = false;
+  const broadReasons = [];
+  for (const line of messages.split(/\r?\n/)) {
+    if (line.startsWith('Validation-Tests: ')) {
+      const values = JSON.parse(line.slice(18));
+      if (
+        !Array.isArray(values) ||
+        values.some(
+          (file) =>
+            typeof file !== 'string' ||
+            !isTest(file) ||
+            file.includes('..') ||
+            path.isAbsolute(file)
+        )
       )
-    );
-    return profile(
-      'application',
-      'consequential',
-      true,
-      {
-        architect,
-        draft: architect,
-        emulator: architect,
-        authority: governing,
-        policy: governing,
-        cloud: executable.some((file) =>
-          /shared|schemas|ranker\/utils\/playerImpact/.test(file)
-        ),
-      },
-      'Application change: affected application suites and consumers; sensitive/uncertain impact requires independent review'
-    );
+        throw new Error('Validation-Tests must name repository test files');
+      values.forEach((file) => tests.add(file));
+    }
+    if (line === 'Validation-Review: required') review = true;
+    if (line.startsWith('Validation-Full: ')) {
+      const reason = line.slice(17).trim();
+      if (reason.length < 20)
+        throw new Error('Full validation needs a concrete broad-risk reason');
+      broadReasons.push(reason);
+    }
   }
-  return conservative(
-    'Unclassified tooling/configuration/source impact requires conservative checks'
-  );
+  return { tests: [...tests], review, broadReasons };
 }
-
-// A cwd-specific comparison must not follow repository redirects inherited from
-// a hook or another checkout. Keep all unrelated environment/credential settings.
 export function gitEnvironment(environment = process.env) {
   const redirects = new Set([
     'GIT_DIR',
@@ -465,74 +213,32 @@ export function collectChanges({
     } else if (git(cwd, ['rev-parse', 'HEAD']).trim() !== head) {
       throw new Error('Checked-out candidate differs from declared CI head');
     }
-    // Bounded isolation check for one leaf, not a dependency graph. A reused
-    // component, barrel, ambiguous index name, or cross-feature reference cannot
-    // use the cosmetic shortcut. Search both snapshots, including consumers that
-    // did not change. False positives deliberately keep the stronger path.
-    let localConsumers = false;
-    const sourceEntries = [...entries.keys()].filter(
-      (file) => !isTestFile(file) && !isKnownDoc(file)
+    const baseFiles = new Set(
+      git(cwd, ['ls-tree', '-r', '--name-only', '-z', mergeBase]).split('\0')
     );
-    if (sourceEntries.length === 1) {
-      const file = sourceEntries[0];
-      const stem = path.basename(file, path.extname(file));
-      const family = file.match(/^(src\/features\/[^/]+\/)/)?.[1];
-      if (
-        family &&
-        stem !== 'index' &&
-        /^[A-Za-z][A-Za-z0-9]*$/.test(stem) &&
-        /\.tsx$/.test(file)
-      ) {
-        localConsumers = [mergeBase, ci ? head : null].every((ref) => {
-          let matches;
-          try {
-            matches = git(cwd, [
-              'grep',
-              '-l',
-              '-z',
-              '-F',
-              '-e',
-              stem,
-              ...(ref ? [ref] : []),
-              '--',
-              'src',
-            ])
-              .split('\0')
-              .filter(Boolean);
-          } catch (error) {
-            if (error.status === 1) return true; // unused leaf
-            throw error;
-          }
-          const consumers = matches
-            .map((name) => (ref ? name.slice(ref.length + 1) : name))
-            .filter((name) => name !== file && !name.startsWith('src/tests/'));
-          return (
-            consumers.length <= 1 &&
-            consumers.every((name) => {
-              if (!name.startsWith(family)) return false;
-              const text = ref
-                ? git(cwd, ['show', `${ref}:${name}`])
-                : readFileSync(path.join(cwd, name), 'utf8');
-              return !new RegExp(
-                `export[\\s\\S]*?from\\s*['"][^'"]*${stem}['"]`
-              ).test(text);
-            })
-          );
-        });
-      }
-    }
+    const headFiles = ci
+      ? new Set(
+          git(cwd, ['ls-tree', '-r', '--name-only', '-z', head]).split('\0')
+        )
+      : null;
     return {
-      localConsumers,
       contents: Object.fromEntries(
         [...entries.keys()]
-          .filter((file) => /\.tsx$/.test(file) && entries.get(file) === 'M')
+          .filter((file) => /\.(?:[cm]?[jt]sx?|css)$/.test(file))
           .map((file) => {
-            const before = git(cwd, ['show', `${mergeBase}:${file}`]);
-            const after = ci
-              ? git(cwd, ['show', `${head}:${file}`])
-              : readFileSync(path.join(cwd, file), 'utf8');
+            let before = '',
+              after = '';
+            if (baseFiles.has(file))
+              before = git(cwd, ['show', `${mergeBase}:${file}`]);
+            if (ci ? headFiles.has(file) : existsSync(path.join(cwd, file)))
+              after = ci
+                ? git(cwd, ['show', `${head}:${file}`])
+                : readFileSync(path.join(cwd, file), 'utf8');
             return [file, { before, after }];
           })
+      ),
+      declarations: readDeclarations(
+        git(cwd, ['log', '--format=%B%x00', `${mergeBase}..${head}`])
       ),
       files: [...entries.keys()].sort(),
       structural: [...entries.values()].some(
@@ -554,150 +260,101 @@ export function collectChanges({
   }
 }
 
-function getAllTestFiles() {
-  return globSync(
-    ['tests/**/*.test.{js,jsx,ts,tsx}', 'src/tests/**/*.test.{js,jsx,ts,tsx}'],
-    { nodir: true }
-  )
-    .filter(isTestFile)
-    .sort();
-}
-
-const EXPLICIT_TARGETS = [
-  {
-    key: 'freeAgencyBoundary',
-    reason:
-      'Free Agency world/vacuum action-publication and gating slice modified',
-    matchPatterns: [
-      /^src\/features\/architect\/GMDashboard\/hooks\/useArchitectActions\.ts$/,
-      /^src\/features\/architect\/GMDashboard\/sections\/FreeAgencySection\.tsx$/,
-      /^src\/features\/architect\/freeAgency\/FreeAgentPool\/FreeAgentPool\.tsx$/,
-      /^src\/tests\/architect\/useArchitectActions\.freeAgency\.test\.tsx$/,
-      /^src\/tests\/architect\/freeAgentPool\.surface\.e86\.behavior\.test\.tsx$/,
-      /^src\/tests\/architect\/freeAgentPool\.offerSheetInitiation\.behavior\.test\.jsx$/,
-      /^src\/tests\/architect\/OfferSheetList\.freeAgency\.test\.jsx$/,
-      /^src\/tests\/architect\/freeAgency_closure\.gate\.test\.ts$/,
-      /^src\/tests\/architect\/offerSheets_closure\.gate\.test\.ts$/,
-      /^src\/tests\/architect\/dashboardWorldBoundary\.e109\.test\.tsx$/,
-    ],
-    anchorPatterns: [
-      /^src\/features\/architect\/GMDashboard\/sections\/FreeAgencySection\.tsx$/,
-      /^src\/features\/architect\/freeAgency\/FreeAgentPool\/FreeAgentPool\.tsx$/,
-      /^src\/tests\/architect\/OfferSheetList\.freeAgency\.test\.jsx$/,
-      /^src\/tests\/architect\/freeAgency_closure\.gate\.test\.ts$/,
-    ],
-    nodeTests: [
-      'src/tests/architect/freeAgency_closure.gate.test.ts',
-      'src/tests/architect/offerSheets_closure.gate.test.ts',
-    ],
-    uiTests: [
-      'src/tests/architect/OfferSheetList.freeAgency.test.jsx',
-      'src/tests/architect/freeAgentPool.offerSheetInitiation.behavior.test.jsx',
-      'src/tests/architect/freeAgentPool.surface.e86.behavior.test.tsx',
-      'src/tests/architect/useArchitectActions.freeAgency.test.tsx',
-      'src/tests/architect/dashboardWorldBoundary.e109.test.tsx',
-    ],
-  },
-  {
-    key: 'capSheetBoundary',
-    reason: 'Cap Sheet mutation-boundary/dashboard action slice modified',
-    matchPatterns: [
-      /^src\/features\/architect\/GMDashboard\/hooks\/useArchitectActions\.ts$/,
-      /^src\/features\/architect\/GMDashboard\/GMDashboard\.tsx$/,
-      /^src\/shared\/components\/EditContractModal\.tsx$/,
-      /^src\/tests\/architect\/capSheet_closure\.gate\.test\.ts$/,
-      /^src\/tests\/architect\/architectHardeningE4\.polish\.test\.ts$/,
-      /^src\/tests\/architect\/GMDashboard\.smoke\.test\.tsx$/,
-      /^src\/tests\/architect\/dashboardWorldBoundary\.e109\.test\.tsx$/,
-      /^src\/tests\/smoke\/architect\.uiSmoke\.e1\.test\.tsx$/,
-    ],
-    anchorPatterns: [
-      /^src\/shared\/components\/EditContractModal\.tsx$/,
-      /^src\/tests\/architect\/capSheet_closure\.gate\.test\.ts$/,
-      /^src\/tests\/architect\/architectHardeningE4\.polish\.test\.ts$/,
-    ],
-    nodeTests: [
-      'src/tests/architect/capSheet_closure.gate.test.ts',
-      'src/tests/architect/architectHardeningE4.polish.test.ts',
-    ],
-    uiTests: [
-      'src/tests/architect/GMDashboard.smoke.test.tsx',
-      'src/tests/architect/dashboardWorldBoundary.e109.test.tsx',
-      'src/tests/smoke/architect.uiSmoke.e1.test.tsx',
-    ],
-  },
-];
-
-const UI_TS_TEST_PATTERNS = [
-  /^src\/tests\/architect\/wizardTranslation\.test\.ts$/,
-  /^src\/tests\/architect\/pickRightWizardDraft\.test\.ts$/,
-  /^src\/tests\/architect\/utils\/freeAgencyFilterPersistence\.test\.ts$/,
-  /^src\/tests\/entitlements\/vacuumEntitlementOverlayStore\.test\.ts$/,
-  /^src\/tests\/entitlements\/entitlementResolver\.vacuumOverlay\.test\.ts$/,
-  /^tests\/entitlements\/vacuumTradeTransfer\.test\.ts$/,
-];
-
-function buildTargetedPlan({
-  tier = 'targeted',
-  reason,
-  files,
-  nodeTests = [],
-  uiTests = [],
-}) {
-  const commands = [];
-
-  if (nodeTests.length > 0) {
-    commands.push({ script: 'test:node', fileArgs: nodeTests });
-  }
-
-  if (uiTests.length > 0) {
-    commands.push({ script: 'test:ui', fileArgs: uiTests });
-  }
-
+export function selectValidationProfile(files, options = {}) {
+  if (options.uncertain || !files.length)
+    throw new Error(
+      `Cannot establish complete change coverage: ${options.reason ?? 'empty comparison'}`
+    );
+  const declarations = options.declarations ?? {
+    tests: [],
+    review: false,
+    broadReasons: [],
+  };
+  const sources = files.filter(sourceFile);
+  const presentation = sources.filter(
+    (file) =>
+      options.contents?.[file] &&
+      presentationOnly(
+        file,
+        options.contents[file].before,
+        options.contents[file].after
+      )
+  );
+  const behavior = sources.filter((file) => !presentation.includes(file));
+  const policy = files.some(isPolicy);
+  const broadReasons = [
+    ...declarations.broadReasons,
+    ...files
+      .filter(isGlobal)
+      .map((file) => `Shared build/test environment changed: ${file}`),
+  ];
+  const consequential =
+    policy ||
+    options.structural === true ||
+    behavior.some(isSensitive) ||
+    declarations.review ||
+    broadReasons.length > 0;
   return {
-    tier,
-    reason,
-    files,
-    commands,
+    level: consequential
+      ? 'consequential'
+      : behavior.length
+        ? 'ordinary'
+        : 'cosmetic',
+    review: consequential ? 'required' : 'agent-decides',
+    reason: consequential
+      ? 'Material executable/authority change: independent review and relevant proof'
+      : behavior.length
+        ? 'Relevant changed behavior and its consumers'
+        : 'Presentation/content syntax only: agent must verify meaning, accessibility and affected consumers',
+    presentation,
+    behavior,
+    policy,
+    broadReasons,
+    // A build validates and delivers actual UI changes, regardless of feature.
+    build: sources.some((file) => /^src\//.test(file)) || files.some(isGlobal),
+    typecheck:
+      behavior.some((file) => /^src\/.*\.tsx?$/.test(file)) ||
+      files.some(isGlobal),
+    structure: options.structural === true,
+    docs: files.some(isDoc),
+    declarations,
   };
 }
 
-function selectExplicitTarget(executableFiles) {
-  for (const target of EXPLICIT_TARGETS) {
-    const matchesOnlyTarget =
-      executableFiles.length > 0 &&
-      executableFiles.every((file) =>
-        target.matchPatterns.some((pattern) => pattern.test(file))
-      );
-
-    if (!matchesOnlyTarget) {
-      continue;
-    }
-
-    const hasAnchor =
-      target.anchorPatterns.length === 0 ||
-      executableFiles.some((file) =>
-        target.anchorPatterns.some((pattern) => pattern.test(file))
-      );
-
-    if (!hasAnchor) {
-      continue;
-    }
-
-    return buildTargetedPlan({
-      tier: target.key,
-      reason: target.reason,
-      files: executableFiles,
-      nodeTests: target.nodeTests,
-      uiTests: target.uiTests,
+// Use Vitest's own Vite import graph, including native and emulator test entries.
+// No candidate test is executed during discovery. String/file-read dependencies
+// are not inferred: agents retain them using additive Validation-Tests trailers.
+export async function discoverTests(files, { cwd = process.cwd() } = {}) {
+  const { createVitest } = await import('vitest/node');
+  const selected = { node: [], ui: [], native: [], emulator: [] };
+  const configs = {
+    node: 'vitest.node.config.js',
+    ui: 'vitest.ui.config.js',
+    native: 'vitest.node.config.js',
+    emulator: 'vitest.emulator.config.js',
+  };
+  for (const [kind, config] of Object.entries(configs)) {
+    const ctx = await createVitest('test', {
+      root: cwd,
+      config: path.join(cwd, config),
+      watch: false,
+      related: files.map((file) => path.resolve(cwd, file)),
+      ...(kind === 'native'
+        ? { include: ['tests/**/*.node-test.{ts,js}'], setupFiles: [] }
+        : {}),
     });
+    try {
+      const specs = await ctx.filterTestsBySource(await ctx.globTestFiles());
+      selected[kind] = specs
+        .map(([, file]) => path.relative(cwd, file).split(path.sep).join('/'))
+        .sort();
+    } finally {
+      await ctx.close();
+    }
   }
-
-  return null;
+  return selected;
 }
 
-// Match the existing lint:md scope/exclusions; do not impose new rules on
-// historical receipts or hidden instruction files as part of selection.
 export function documentationCommands(files) {
   const markdown = files.filter(
     (file) =>
@@ -719,167 +376,178 @@ export function documentationCommands(files) {
           },
         ]
       : []),
-    { script: 'docs:guardrails', fileArgs: [] },
+    ...(files.some(isPolicy)
+      ? [{ script: 'docs:guardrails', fileArgs: [] }]
+      : []),
   ];
 }
 
-export function selectTestPlan(changedFiles, options = {}) {
-  const files = [...new Set(changedFiles)];
+export async function selectTestPlan(files, options = {}) {
   const profile = selectValidationProfile(files, options);
-  const available = options.availableTestFiles ?? getAllTestFiles();
-  let plan;
-  if (profile.name === 'isolated-spacing')
-    return {
-      tier: profile.name,
-      reason: profile.reason,
-      files,
-      commands: [
-        {
-          executable: 'git',
-          args: ['diff', '--check', ...(options.base ? [options.base] : [])],
-        },
-      ],
-    };
-  if (profile.name === 'local-ui')
-    return {
-      tier: profile.name,
-      reason: profile.reason,
-      files,
-      commands: [
-        {
-          executable: process.execPath,
-          args: [
-            'node_modules/vitest/vitest.mjs',
-            'related',
-            ...files.filter((file) => !isTestFile(file) && !isKnownDoc(file)),
-            '--run',
-            '--config',
-            'vitest.ui.config.js',
-            '--reporter=dot',
-          ],
-        },
-        ...buildTargetedPlan({
-          files,
-          nodeTests: files.filter(
-            (file) => isTestFile(file) && !isUiTestFile(file)
-          ),
-          uiTests: files.filter(
-            (file) => isTestFile(file) && isUiTestFile(file)
-          ),
-        }).commands,
-      ],
-    };
-  if (profile.name === 'table-view')
-    return buildTargetedPlan({
-      tier: profile.name,
-      reason: profile.reason,
-      files,
-      uiTests: TABLE_TESTS,
-    });
-  if (!profile.app) {
-    plan = {
-      tier: profile.name,
-      reason: profile.reason,
-      files,
-      commands: documentationCommands(files),
-    };
-    if (profile.policy)
-      plan.commands.push({
-        script: 'test:node',
-        fileArgs: ['tests/runTestsByDiff.test.ts'],
-      });
-    const changedTests = files.filter(
-      (file) => isTestFile(file) && file !== 'tests/runTestsByDiff.test.ts'
-    );
-    if (profile.policy && changedTests.length)
-      plan.commands.push(
-        ...buildTargetedPlan({
-          files,
-          nodeTests: changedTests.filter((file) => !isUiTestFile(file)),
-          uiTests: changedTests.filter(isUiTestFile),
-        }).commands
+  const inputs = [
+    ...new Set([
+      ...profile.behavior,
+      ...files.filter(isTest),
+      ...profile.declarations.tests,
+    ]),
+  ];
+  for (const file of profile.declarations.tests)
+    if (!existsSync(path.resolve(options.cwd ?? process.cwd(), file)))
+      throw new Error(`Declared test is missing: ${file}`);
+  const selected = inputs.length
+    ? await (options.discover ?? discoverTests)(inputs, options)
+    : { node: [], ui: [], native: [], emulator: [] };
+  if (profile.policy) {
+    selected.node.push('tests/runTestsByDiff.test.ts');
+    selected.native.push('tests/tooling/phase3aWorkflow.node-test.ts');
+  }
+  for (const kind of Object.keys(selected))
+    selected[kind] = [...new Set(selected[kind])].sort();
+  const discovered = new Set(Object.values(selected).flat());
+  for (const file of [...files.filter(isTest), ...profile.declarations.tests]) {
+    if (
+      existsSync(path.resolve(options.cwd ?? process.cwd(), file)) &&
+      !discovered.has(file)
+    )
+      throw new Error(
+        `Changed/declared test not covered by a configured runner: ${file}`
       );
-    if (profile.authority)
-      plan.commands.push({ script: 'test:phase3a-workflow', fileArgs: [] });
-    return plan;
   }
-  const executable = files.filter((file) => !isKnownDoc(file));
+  const commands = [
+    {
+      executable: 'git',
+      args: ['diff', '--check', ...(options.base ? [options.base] : [])],
+    },
+  ];
+  if (profile.docs || profile.policy)
+    commands.push(...documentationCommands(files));
+  if (selected.native.includes('tests/tooling/phase3aWorkflow.node-test.ts'))
+    commands.push({
+      executable: 'git',
+      args: [
+        'fetch',
+        '--no-tags',
+        'origin',
+        'architect/cba-canon-v2:refs/remotes/origin/architect/cba-canon-v2',
+      ],
+    });
+  if (profile.typecheck) commands.push({ script: 'typecheck' });
   if (
-    !options.uncertain &&
-    !options.structural &&
-    executable.length &&
-    !executable.some(isShared)
-  ) {
-    if (profile.name === 'ranker-ui') {
-      const tests = [
-        ...new Set([
-          ...available.filter(isRankerTest),
-          ...executable.filter(isTestFile),
-        ]),
-      ].sort();
-      plan = buildTargetedPlan({
-        tier: 'ranker-ui',
-        reason: profile.reason,
-        files,
-        nodeTests: tests.filter((file) => !isUiTestFile(file)),
-        uiTests: tests.filter(isUiTestFile),
-      });
-    } else {
-      plan = selectExplicitTarget(executable);
-      if (!plan && executable.every(isTestFile)) {
-        plan = buildTargetedPlan({
-          reason: 'Changed tests only',
-          files,
-          nodeTests: executable.filter((file) => !isUiTestFile(file)),
-          uiTests: executable.filter(isUiTestFile),
-        });
-      }
-    }
-  }
-  if (!plan || plan.commands.length === 0) {
-    plan = {
-      tier: 'full',
-      reason: profile.reason,
-      files,
-      commands: [{ script: 'test:full', fileArgs: [] }],
-    };
-  }
-  // Native tests are not included by Vitest's .test.ts globs. Never silently
-  // omit a changed helper test, including a newly introduced native suite.
-  const nativeTests = files.filter(
-    (file) => isNativeTest(file) && existsSync(file)
-  );
-  if (nativeTests.length)
-    plan.commands.push({
+    profile.behavior.some((file) => /^scripts\/dev\/.*\.tsx?$/.test(file)) ||
+    files.includes('tsconfig.cloud.json')
+  )
+    commands.push({ script: 'cloud:typecheck' });
+  if (profile.behavior.some((file) => file.startsWith('src/schemas/')))
+    commands.push({ script: 'schema:check' });
+  if (
+    profile.behavior.some((file) =>
+      /^src\/features\/architect\/.*\.tsx?$/.test(file)
+    )
+  )
+    commands.push({ script: 'lint:architect-gate' });
+  if (profile.broadReasons.length) commands.push({ script: 'test:full' });
+  else
+    for (const kind of ['node', 'ui'])
+      if (selected[kind].length)
+        commands.push({ script: `test:${kind}`, fileArgs: selected[kind] });
+  if (
+    selected.native.some((file) =>
+      /hostedDraftReviewBrowser\.node-test/.test(file)
+    )
+  )
+    commands.push({
+      executable: 'npx',
+      args: [
+        '--no-install',
+        'playwright',
+        'install',
+        '--with-deps',
+        'chromium',
+      ],
+    });
+  if (selected.native.length)
+    commands.push({
       executable: process.execPath,
       args: [
         '--import',
         'tsx',
         '--test',
         '--test-reporter=dot',
-        ...nativeTests,
+        ...selected.native,
       ],
     });
-  return plan;
+  if (selected.emulator.length) {
+    // Reuse the established demo-only emulator launcher and pin. Test paths are
+    // quoted for the child command, never interpreted as shell instructions.
+    const quote = (value) => `'${value.replaceAll("'", "'\\''")}'`;
+    commands.push({
+      executable: 'npx',
+      args: [
+        '--yes',
+        'firebase-tools@13.35.1',
+        'emulators:exec',
+        '--only',
+        'firestore,auth',
+        '--project',
+        'demo-bze-283',
+        [
+          'node',
+          'node_modules/vitest/vitest.mjs',
+          'run',
+          '--config',
+          'vitest.emulator.config.js',
+          '--reporter=dot',
+          ...selected.emulator,
+        ]
+          .map(quote)
+          .join(' '),
+      ],
+    });
+  }
+  if (profile.structure) commands.push({ script: 'validate:project' });
+  if (profile.build) commands.push({ script: 'build' });
+  const gaps =
+    profile.behavior.length &&
+    discovered.size === 0 &&
+    !profile.broadReasons.length
+      ? [
+          'No related automated test was found. Agent must provide meaningful manual/static proof in the PR; this is not an automated test pass.',
+        ]
+      : [];
+  return {
+    tier: profile.level,
+    reason: profile.reason,
+    profile,
+    files,
+    selected,
+    gaps,
+    commands,
+  };
 }
 
-export function executePlan(
-  plan,
-  { spawn = spawnSync, forwarded = [], dryRun = false } = {}
-) {
-  console.log(`Selected scope: ${plan.tier}\nReason: ${plan.reason}`);
+export function executePlan(plan, { spawn = spawnSync, dryRun = false } = {}) {
+  console.log(
+    `Scope: ${plan.tier}; review: ${plan.profile?.review ?? 'see policy'}\n${plan.reason}`
+  );
+  for (const gap of plan.gaps ?? [])
+    console.log(`VERIFICATION LIMITATION: ${gap}`);
   for (const command of plan.commands) {
-    // Vitest flags do not belong on Node test runners or documentation commands.
-    const extra = ['test:node', 'test:ui', 'test:full'].includes(command.script)
-      ? forwarded
-      : [];
     const args = command.executable
       ? command.args
       : [
           'run',
           command.script,
-          ...(extra.length || command.fileArgs?.length
-            ? ['--', ...extra, ...(command.fileArgs ?? [])]
+          ...(command.fileArgs?.length ||
+          ['test:node', 'test:ui', 'test:full'].includes(command.script)
+            ? [
+                '--',
+                ...(command.fileArgs ?? []),
+                ...(['test:node', 'test:ui', 'test:full'].includes(
+                  command.script
+                )
+                  ? ['--reporter=dot']
+                  : []),
+              ]
             : []),
         ];
     const executable = command.executable ?? 'npm';
@@ -888,107 +556,63 @@ export function executePlan(
     );
     if (!dryRun) {
       const result = spawn(executable, args, { stdio: 'inherit' });
-      if (result.status !== 0)
+      if (result.error || result.status !== 0)
         throw new Error(
-          `Selected check failed (${result.status ?? result.error?.message ?? 'signal'}): ${executable} ${args.join(' ')}`
+          `Selected check failed (${result.status ?? result.error?.message ?? 'signal'}): ${executable}`
         );
     }
   }
   console.log(
     dryRun
       ? 'Selection only; no checks executed.'
-      : 'Selected checks passed; unselected checks were not executed.'
+      : 'Selected commands passed. Missing coverage and unselected checks are not test passes.'
   );
 }
 
-function main() {
+async function main() {
   const args = process.argv.slice(2);
   const ci = process.env.GITHUB_ACTIONS === 'true';
-  const filesIndex = args.findIndex(
-    (arg) => arg === '--files' || arg.startsWith('--files=')
-  );
-  if (ci && filesIndex >= 0)
-    throw new Error('--files cannot replace complete-candidate CI detection');
-  const explicit =
-    filesIndex >= 0
-      ? args[filesIndex].includes('=')
-        ? args[filesIndex].slice(8)
-        : (args[filesIndex + 1] ?? '')
-      : null;
-  const changes =
-    explicit !== null
-      ? {
-          files: explicit
-            .split(',')
-            .map((file) => file.trim())
-            .filter(Boolean),
-        }
-      : collectChanges({
-          base: process.env.SCOUTZERO_DIFF_BASE,
-          head: process.env.SCOUTZERO_DIFF_HEAD ?? 'HEAD',
-          ci,
-        });
-  const profile = selectValidationProfile(changes.files, changes);
-  if (changes.uncertain && (ci || args.includes('--docs')))
+  if (args.some((arg) => arg.startsWith('--files')))
     throw new Error(
-      `Cannot establish complete changed-file coverage: ${changes.reason}`
+      '--files cannot replace complete-candidate detection; use a focused test command for iteration'
     );
+  const changes = collectChanges({
+    base: process.env.SCOUTZERO_DIFF_BASE,
+    head: process.env.SCOUTZERO_DIFF_HEAD ?? 'HEAD',
+    ci,
+  });
   if (changes.uncertain)
-    console.warn(`Conservative comparison fallback: ${changes.reason}`);
-  if (args.includes('--verbose'))
-    console.log(
-      JSON.stringify({ ...changes, contents: undefined, profile }, null, 2)
+    throw new Error(
+      `Cannot establish complete change coverage: ${changes.reason}`
     );
-  if (args.includes('--ci-plan')) {
-    if (!ci || !process.env.GITHUB_OUTPUT)
-      throw new Error('--ci-plan requires GitHub Actions outputs');
-    for (const key of [
-      'app',
-      'specialists',
-      'authority',
-      'docs',
-      'architect',
-      'draft',
-      'transport',
-      'browser',
-      'cloud',
-      'emulator',
-      'policy',
-      'level',
-      'review',
-    ])
-      appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${profile[key]}\n`);
-    const summary = `Validation profile: ${profile.name}; level: ${profile.level}; independent review: ${profile.review}\n${profile.reason}\nBase: ${changes.base}; candidate: ${changes.head}\nChanged paths: ${changes.files.length}. Unselected steps are not executed passes.\n`;
-    console.log(summary);
-    if (process.env.GITHUB_STEP_SUMMARY)
-      appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
-    return;
-  }
-  const forwarded = args.filter(
-    (arg, index) =>
-      !['--verbose', '--dry-run', '--docs'].includes(arg) &&
-      index !== filesIndex &&
-      !(
-        filesIndex >= 0 &&
-        args[filesIndex] === '--files' &&
-        index === filesIndex + 1
-      )
-  );
   const plan = args.includes('--docs')
     ? {
         tier: 'documentation',
-        reason: 'Changed Markdown plus repository routing guardrails',
+        reason: 'Changed documentation only',
         commands: documentationCommands(changes.files),
       }
-    : selectTestPlan(changes.files, changes);
-  executePlan(plan, { forwarded, dryRun: args.includes('--dry-run') });
+    : await selectTestPlan(changes.files, changes);
+  if (args.includes('--verbose') || args.includes('--ci-plan'))
+    console.log(
+      JSON.stringify(
+        {
+          base: changes.base,
+          head: changes.head,
+          ...plan,
+          commands: plan.commands,
+        },
+        null,
+        2
+      )
+    );
+  const summary = `Validation: ${plan.tier}; review: ${plan.profile?.review ?? 'see policy'}\nBase: ${changes.base}; head: ${changes.head}\n${plan.reason}\n${(plan.gaps ?? []).join('\n')}\nUnselected checks are not executed passes.\n`;
+  if (process.env.GITHUB_STEP_SUMMARY)
+    appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);
+  if (args.includes('--ci-plan')) return;
+  executePlan(plan, { dryRun: args.includes('--dry-run') });
 }
-
-if (fileURLToPath(import.meta.url) === path.resolve(process.argv[1] ?? '')) {
-  try {
-    main();
-  } catch (error) {
+if (fileURLToPath(import.meta.url) === path.resolve(process.argv[1] ?? ''))
+  main().catch((error) => {
     console.error(error.message);
     process.exitCode = 1;
-  }
-}
+  });

@@ -4,6 +4,9 @@ Describe the outcome, actual affected behavior/consumers, and execution level:
 isolated cosmetic/content, ordinary behavior, or consequential/cross-cutting.
 Explain isolation or material uncertainty briefly. Labels do not select checks.
 Link an existing issue if applicable; a small change needs no new tracking issue.
+When inspection finds tests outside static imports, retain additive
+`Validation-Tests` commit trailers as described in AGENTS.md; labels cannot
+subtract checks.
 
 ## Verification
 

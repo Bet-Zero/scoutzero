@@ -20,6 +20,9 @@ authorization, integrity and source qualification) retain independent review.
 Mixed changes inherit the strongest relevant obligation. A label never waives it.
 These rules do not replace any existing owner approval or production boundary.
 The detailed invocation/freeze requirements below apply when review is required.
+Presentation syntax is not semantic proof: inspect status meaning, contrast and
+consumers. Optional automated suggestions do not require indefinite waiting or
+unrelated scope expansion; resolve genuine relevant defects.
 
 ## Author responsibilities
 

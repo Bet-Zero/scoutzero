@@ -50,10 +50,11 @@ split it into a separately flagged issue — never absorb it silently.
   saved-world adoption and first-round Apply keep their separate authorization
   gates. Hosted read/review proof is required before landing hosted delivery.
 
-- Nothing subjective (visual/layout/copy) ships without owner sign-off on
-  screenshots. Branch-mode UI work stays off main until approval.
-- Owner reviews at **1280×720**; screenshot every changed room at that size
-  before handing off.
+- Owner-directed subjective design waves and other approval-bound UI work need
+  owner sign-off on screenshots before landing. An explicitly requested isolated
+  correction follows the focused verification in AGENTS.md; it does not create
+  a new design-wave approval. Do not use this to land an unapproved design choice.
+- For those owner reviews, use **1280×720** screenshots of every changed room.
 - Draft-night experience is parked by owner decision.
 
 ## Design laws (locked owner decisions)
@@ -73,5 +74,7 @@ split it into a separately flagged issue — never absorb it silently.
 
 - Scoped suites per AGENTS.md; note `test:architect` skips `.tsx`/`.jsx` —
   component-level checks need `test:ui`.
-- Landing gates run the scoped engine + UI suites and report pre-existing
-  failures explicitly by name.
+- Select checks from actual changed behavior and consumers. A presentation-only
+  change does not require engine, draft or emulator suites merely because it is
+  in Architect. Preserve the owner screenshot/approval gates above and report
+  affected pre-existing failures honestly.

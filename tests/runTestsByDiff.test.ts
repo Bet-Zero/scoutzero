@@ -11,384 +11,15 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parse } from 'yaml';
-
 import {
   collectChanges,
-  isolatedSpacing,
-  documentationCommands,
   gitEnvironment,
-  executePlan,
-  selectTestPlan,
+  presentationOnly,
+  readDeclarations,
   selectValidationProfile,
+  selectTestPlan,
+  executePlan,
 } from '../scripts/run-tests-by-diff.mjs';
-
-const AVAILABLE_TEST_FILES = [
-  'src/tests/architect/useArchitectActions.freeAgency.test.tsx',
-  'src/tests/architect/freeAgency_closure.gate.test.ts',
-  'src/tests/architect/offerSheets_closure.gate.test.ts',
-  'src/tests/architect/OfferSheetList.freeAgency.test.jsx',
-  'src/tests/architect/freeAgentPool.surface.e86.behavior.test.tsx',
-  'src/tests/architect/freeAgentPool.offerSheetInitiation.behavior.test.jsx',
-  'src/tests/architect/dashboardWorldBoundary.e109.test.tsx',
-  'src/tests/architect/capSheet_closure.gate.test.ts',
-  'src/tests/architect/architectHardeningE4.polish.test.ts',
-  'src/tests/architect/GMDashboard.smoke.test.tsx',
-  'src/tests/smoke/architect.uiSmoke.e1.test.tsx',
-];
-
-function getPlan(changedFiles: string[]) {
-  return selectTestPlan(changedFiles, {
-    availableTestFiles: AVAILABLE_TEST_FILES,
-  });
-}
-
-describe('run-tests-by-diff', () => {
-  it('does not infer safety from Markdown extensions or historical receipt directories', () => {
-    const plan = getPlan([
-      'docs/_working/architect/free-agency/ARCHITECT_FREE_AGENCY_ACTION_BREAKDOWN.md',
-      'return_packages/architect/ARCHITECT_FREE_AGENCY_7A_7B_EXECUTION_RETURN_PACKAGE.md',
-    ]);
-
-    expect(plan.tier).toBe('full');
-    expect(plan.commands).toEqual([{ script: 'test:full', fileArgs: [] }]);
-  });
-
-  it('tests validation policy without unrelated application suites', () => {
-    const plan = getPlan(['scripts/run-tests-by-diff.mjs']);
-
-    expect(plan.tier).toBe('validation-policy');
-    expect(plan.commands).toContainEqual({
-      script: 'test:node',
-      fileArgs: ['tests/runTestsByDiff.test.ts'],
-    });
-    expect(plan.commands).toContainEqual({
-      script: 'test:phase3a-workflow',
-      fileArgs: [],
-    });
-  });
-
-  it('does not narrow shared consumers to a named boundary', () => {
-    const plan = getPlan([
-      'src/shared/components/EditContractModal.tsx',
-      'src/tests/architect/capSheet_closure.gate.test.ts',
-    ]);
-    expect(plan.tier).toBe('full');
-  });
-
-  it('infers targeted free-agency tests instead of broad architect fallback', () => {
-    const plan = getPlan([
-      'src/features/architect/GMDashboard/hooks/useArchitectActions.ts',
-      'src/features/architect/GMDashboard/sections/FreeAgencySection.tsx',
-      'src/features/architect/freeAgency/FreeAgentPool/FreeAgentPool.tsx',
-    ]);
-
-    expect(plan.tier).toBe('freeAgencyBoundary');
-    expect(plan.commands).toEqual([
-      {
-        script: 'test:node',
-        fileArgs: [
-          'src/tests/architect/freeAgency_closure.gate.test.ts',
-          'src/tests/architect/offerSheets_closure.gate.test.ts',
-        ],
-      },
-      {
-        script: 'test:ui',
-        fileArgs: [
-          'src/tests/architect/OfferSheetList.freeAgency.test.jsx',
-          'src/tests/architect/freeAgentPool.offerSheetInitiation.behavior.test.jsx',
-          'src/tests/architect/freeAgentPool.surface.e86.behavior.test.tsx',
-          'src/tests/architect/useArchitectActions.freeAgency.test.tsx',
-          'src/tests/architect/dashboardWorldBoundary.e109.test.tsx',
-        ],
-      },
-    ]);
-  });
-
-  it('uses full coverage when impact is unknown', () => {
-    const plan = getPlan([
-      'src/features/architect/offseason/DraftPickTracker/UnknownSurface.tsx',
-    ]);
-
-    expect(plan.tier).toBe('full');
-    expect(plan.commands).toEqual([{ script: 'test:full', fileArgs: [] }]);
-  });
-});
-
-const rankerUi = 'src/features/ranker/RankingSetup.tsx';
-const workflow = parse(readFileSync('.github/workflows/ci.yml', 'utf8'));
-const ciSteps = workflow.jobs['pr-validation'].steps;
-
-describe('bounded CI validation policy', () => {
-  it.each([
-    [['docs/INDEX.md'], 'ordinary-docs', false, false, false],
-    [
-      ['AGENTS.md', 'docs/agent-guides/independent-review-boundary.md'],
-      'governing-docs',
-      false,
-      false,
-      true,
-    ],
-    [
-      [rankerUi, 'tests/RankingSetup.test.tsx'],
-      'ranker-ui',
-      true,
-      false,
-      false,
-    ],
-    [['src/schemas/players.ts'], 'application', true, false, false],
-    [['package-lock.json'], 'conservative', true, true, true],
-    [['tsconfig.cloud.json'], 'conservative', true, true, true],
-    [
-      ['.github/workflows/ci.yml', 'scripts/run-tests-by-diff.mjs'],
-      'validation-policy',
-      false,
-      false,
-      true,
-    ],
-    [
-      [rankerUi, 'src/features/roster/utils/rosterBuilderHelpers.ts'],
-      'application',
-      true,
-      false,
-      false,
-    ],
-    [
-      ['src/features/ranker/utils/playerImpact.ts'],
-      'application',
-      true,
-      false,
-      false,
-    ],
-    [
-      ['docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md'],
-      'conservative',
-      true,
-      true,
-      true,
-    ],
-    [['tests/tooling/cloudDev.node-test.ts'], 'conservative', true, true, true],
-    [[], 'conservative', true, true, true],
-  ])(
-    'classifies %j without guessing dependencies',
-    (files, name, app, specialists, authority) => {
-      expect(selectValidationProfile(files)).toMatchObject({
-        name,
-        app,
-        specialists,
-        authority,
-      });
-    }
-  );
-
-  it('uses conservative coverage for missing history and structural changes even on known docs', () => {
-    for (const options of [{ uncertain: true }, { structural: true }]) {
-      expect(selectValidationProfile(['docs/INDEX.md'], options)).toMatchObject(
-        { app: true, specialists: true, authority: true }
-      );
-      expect(
-        selectTestPlan(['docs/INDEX.md'], {
-          ...options,
-          availableTestFiles: [],
-        }).tier
-      ).toBe('full');
-    }
-  });
-
-  it('preserves authority checks when governing docs accompany Ranker UI', () => {
-    expect(selectValidationProfile([rankerUi, 'AGENTS.md'])).toMatchObject({
-      name: 'ranker-ui',
-      app: true,
-      authority: true,
-    });
-  });
-
-  it('runs the complete Ranker family, including persistence and cross-component consumers', () => {
-    const plan = selectTestPlan([rankerUi]);
-    expect(plan.tier).toBe('ranker-ui');
-    const tests = plan.commands.flatMap((command) => command.fileArgs);
-    expect(tests).toEqual(
-      expect.arrayContaining([
-        'tests/RankingSetup.test.tsx',
-        'tests/RankingSessionUndo.test.tsx',
-        'tests/rankerLocalDraft.test.ts',
-        'tests/rankerSessionSerialization.test.ts',
-        'src/tests/ranker/useRankerSession.test.tsx',
-        'tests/rankerSaveAsList.test.ts',
-        'src/tests/ranker/playerImpact.test.ts',
-      ])
-    );
-    expect(tests).not.toContain(
-      'src/tests/architect/capSheet_closure.gate.test.ts'
-    );
-  });
-
-  it('keeps changed tests and native suites executable', () => {
-    expect(getPlan(['tests/rankingEngine.test.ts']).commands).toContainEqual({
-      script: 'test:node',
-      fileArgs: ['tests/rankingEngine.test.ts'],
-    });
-    const native = selectTestPlan(['tests/tooling/cloudDev.node-test.ts']);
-    expect(native.commands[0].script).toBe('test:full');
-    expect(native.commands[1].args).toContain(
-      'tests/tooling/cloudDev.node-test.ts'
-    );
-  });
-
-  it('guards the surrounding CI steps, not just the diff runner', () => {
-    const conditions = Object.fromEntries(
-      ciSteps.map((step) => [step.name, step.if])
-    );
-    for (const name of [
-      'Type check',
-      'Run diff-based tests',
-      'Validate project schema',
-      'Build',
-    ]) {
-      expect(conditions[name]).toBe("steps.scope.outputs.app == 'true'");
-    }
-    const gates = {
-      'Architect cast-ledger gate': 'architect',
-      'Draft data architecture boundary': 'draft',
-      'Private source review transport boundary': 'transport',
-      'Install matching browser for the redirect proof': 'browser',
-      'Hosted review browser redirect boundary': 'browser',
-      'Cloud development safety tests': 'cloud',
-      'Cloud tooling type check': 'cloud',
-      'Governed Offer Sheet creation emulator gate': 'emulator',
-    };
-    for (const [name, flag] of Object.entries(gates))
-      expect(conditions[name]).toBe(`steps.scope.outputs.${flag} == 'true'`);
-    for (const name of ['Fetch accepted Canon authority ref']) {
-      expect(conditions[name]).toBe("steps.scope.outputs.authority == 'true'");
-    }
-    for (const name of [
-      'Validate selection policy',
-      'Select candidate validation',
-    ]) {
-      expect(conditions).toHaveProperty(name);
-      expect(conditions[name]).toBeUndefined();
-    }
-    expect(conditions['Phase 3A workflow tooling']).toBe(
-      "steps.scope.outputs.authority == 'true' && steps.scope.outputs.app == 'true'"
-    );
-    expect(
-      ciSteps.findIndex(
-        (step) => step.name === 'Fetch accepted Canon authority ref'
-      )
-    ).toBeLessThan(
-      ciSteps.findIndex((step) => step.name === 'Policy implementation checks')
-    );
-    expect(conditions['Documentation and routing checks']).toBe(
-      "steps.scope.outputs.docs == 'true'"
-    );
-    expect(workflow.jobs['pr-validation'].if).toContain(
-      "github.event_name == 'push'"
-    );
-    expect(workflow.jobs['full-validation'].if).toBe(
-      "github.event_name == 'schedule'"
-    );
-    expect(workflow.jobs['pr-validation'].env.SCOUTZERO_DIFF_BASE).toBe(
-      '${{ github.event.pull_request.base.sha || github.event.before }}'
-    );
-    expect(workflow.jobs['pr-validation'].name).toBe(
-      'PR Validation (Diff-based)'
-    );
-    expect(workflow.on.pull_request.paths).toBeUndefined();
-    expect(workflow.jobs['pr-validation'].env.SCOUTZERO_DIFF_HEAD).toBe(
-      '${{ github.sha }}'
-    );
-    expect(
-      workflow.jobs['full-validation'].steps.every(
-        (step) => step.if === undefined
-      )
-    ).toBe(true);
-    expect(
-      workflow.jobs['full-validation'].steps.some(
-        (step) => step.run === 'npm run test:full'
-      )
-    ).toBe(true);
-    expect(workflow.on.schedule).toEqual([{ cron: '0 2 * * *' }]);
-  });
-
-  it('keeps changed Markdown within the existing lint scope and exclusions', () => {
-    const commands = documentationCommands([
-      'README.md',
-      'AGENTS.md',
-      'docs/INDEX.md',
-      '.github/pull_request_template.md',
-      '.github/copilot-instructions.md',
-      'work/architect-completion/GAP_LEDGER.md',
-    ]);
-    expect(commands[0].args.slice(1)).toEqual([
-      'README.md',
-      'AGENTS.md',
-      'docs/INDEX.md',
-    ]);
-    expect(commands[1].script).toBe('docs:guardrails');
-  });
-
-  it('does not turn an executed failure or missing executable into success', () => {
-    const plan = {
-      tier: 'test',
-      reason: 'controlled assertion failure',
-      commands: [{ script: 'test:node', fileArgs: ['tests/example.test.ts'] }],
-    };
-    for (const result of [
-      { status: 23 },
-      { status: null, error: new Error('missing executable') },
-    ]) {
-      expect(() => executePlan(plan, { spawn: () => result })).toThrow(
-        'Selected check failed'
-      );
-    }
-    expect(() =>
-      executePlan(plan, { spawn: () => ({ status: 0 }) })
-    ).not.toThrow();
-  });
-
-  it('propagates a real failing assertion from a selected command', () => {
-    const plan = {
-      tier: 'counterfactual',
-      reason: 'synthetic assertion, no product mutation',
-      commands: [
-        {
-          executable: process.execPath,
-          args: ['-e', "require('node:assert/strict').equal(1, 2)"],
-        },
-      ],
-    };
-    expect(() =>
-      executePlan(plan, {
-        spawn: (file, args) => spawnSync(file, args, { stdio: 'pipe' }),
-      })
-    ).toThrow('Selected check failed (1)');
-  });
-
-  it('never forwards Vitest flags to native or documentation commands', () => {
-    const calls: string[][] = [];
-    executePlan(
-      {
-        tier: 'docs',
-        reason: 'controlled invocation',
-        commands: [
-          { script: 'docs:guardrails', fileArgs: [] },
-          { script: 'test:phase3a-workflow', fileArgs: [] },
-        ],
-      },
-      {
-        forwarded: ['--reporter=dot'],
-        spawn: (_file, args) => {
-          calls.push(args);
-          return { status: 0 };
-        },
-      }
-    );
-    expect(calls).toEqual([
-      ['run', 'docs:guardrails'],
-      ['run', 'test:phase3a-workflow'],
-    ]);
-  });
-});
 
 const temporary: string[] = [];
 afterEach(() => {
@@ -397,7 +28,7 @@ afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
 });
 function fixture() {
-  const cwd = mkdtempSync(path.join(tmpdir(), 'scoutzero-diff-'));
+  const cwd = mkdtempSync(path.join(tmpdir(), 'scoutzero-scope-'));
   temporary.push(cwd);
   const git = (...args: string[]) =>
     execFileSync('git', args, {
@@ -406,447 +37,399 @@ function fixture() {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     }).trim();
-  git('init', '-b', 'main');
-  git('config', 'user.email', 'selector-test@example.invalid');
-  git('config', 'user.name', 'Selector fixture');
   const write = (file: string, content = file) => {
     mkdirSync(path.dirname(path.join(cwd, file)), { recursive: true });
     writeFileSync(path.join(cwd, file), content);
   };
-  write('README.md', '# Initial\n');
-  write('original file.ts', 'export const original = true;\n');
+  git('init', '-b', 'main');
+  git('config', 'user.email', 'fixture@example.invalid');
+  git('config', 'user.name', 'Fixture');
+  write('README.md', '# Base');
   git('add', '.');
   git('commit', '-m', 'base');
-  const base = git('rev-parse', 'HEAD');
-  git('switch', '-c', 'candidate');
-  return { cwd, git, write, base };
+  return { cwd, git, write, base: git('rev-parse', 'HEAD') };
 }
+const empty = () => ({ node: [], ui: [], native: [], emulator: [] });
+const room = 'src/features/architect/cockpit/RoomFrame.tsx';
+const before = readFileSync(room, 'utf8').replace(
+  'border-b border-cockpit-edge',
+  'border-b border-red-500'
+);
+const after = before.replace('border-red-500', 'border-blue-500');
+const opts = { contents: { [room]: { before, after } } };
+const hook = 'src/features/filters/hooks/useActiveFilterCount.ts';
+const regression = 'src/tests/filters/useActiveFilterCount.test.tsx';
 
-describe('complete-candidate detection', () => {
-  it('unions every commit, staged, unstaged and untracked changes locally', () => {
+describe('actual change rather than feature responsibility', () => {
+  it('proves red-to-blue presentation in real Architect code without erasing behavior', async () => {
+    expect(presentationOnly(room, before, after)).toBe(true);
+    const plan = await selectTestPlan([room], {
+      ...opts,
+      discover: async () => {
+        throw new Error('presentation should not discover financial suites');
+      },
+    });
+    expect(plan.profile).toMatchObject({
+      level: 'cosmetic',
+      review: 'agent-decides',
+      build: true,
+      typecheck: false,
+    });
+    expect(plan.commands.map((c) => c.script).filter(Boolean)).toEqual([
+      'build',
+    ]);
+  });
+  it('supports multiple presentation files and harmless docs/test changes across areas', async () => {
+    const ranker = 'src/features/ranker/PoolWorkbench.tsx';
+    const text = readFileSync(ranker, 'utf8');
+    const contents = {
+      ...opts.contents,
+      [ranker]: {
+        before: text,
+        after: text.replace('gap-2 px-4 py-3', 'gap-3 px-4 py-3'),
+      },
+    };
+    const plan = await selectTestPlan([room, ranker, 'README.md', regression], {
+      contents,
+      discover: async () => ({ ...empty(), ui: [regression] }),
+    });
+    expect(plan.profile.level).toBe('cosmetic');
+    expect(plan.selected.ui).toEqual([regression]);
+    expect(plan.commands.some((c) => c.script === 'test:full')).toBe(false);
+  });
+  it.each([
+    after.replace('hideHeader = false', 'hideHeader = true'),
+    after.replace('aria-label={title}', 'aria-label="Other"'),
+    after.replace('flex h-full', 'hidden h-full'),
+    after + '\nimport "@/firebase/write";',
+    after + '\ninvalid {',
+  ])(
+    'rejects hidden behavior, accessibility, visibility and dependency changes',
+    (candidate) => {
+      expect(presentationOnly(room, before, candidate)).toBe(false);
+    }
+  );
+  it('does not mask status/error text or shared CSS tokens', () => {
+    expect(
+      presentationOnly('x.tsx', '<p>Trade blocked</p>', '<p>Trade approved</p>')
+    ).toBe(false);
+    expect(
+      presentationOnly(
+        'src/index.css',
+        '.danger{color:red}',
+        '.danger{color:blue}'
+      )
+    ).toBe(false);
+  });
+  it('does not make ordinary behavior plus a regression and second file consequential', async () => {
+    const inputs: string[][] = [];
+    const plan = await selectTestPlan(
+      [hook, 'src/features/filters/filterTypes.ts', regression],
+      {
+        discover: async (files) => {
+          inputs.push(files);
+          return { ...empty(), ui: [regression] };
+        },
+      }
+    );
+    expect(plan.profile).toMatchObject({
+      level: 'ordinary',
+      review: 'agent-decides',
+    });
+    expect(inputs[0]).toEqual([
+      hook,
+      'src/features/filters/filterTypes.ts',
+      regression,
+    ]);
+    expect(plan.commands.filter((c) => c.script === 'test:ui')).toEqual([
+      { script: 'test:ui', fileArgs: [regression] },
+    ]);
+    expect(plan.commands.some((c) => c.script === 'test:full')).toBe(false);
+  });
+  it('selects consequences and consumers, not an Architect emulator switch', async () => {
+    const plan = await selectTestPlan(
+      ['src/features/architect/cockpit/RoomFrame.tsx'],
+      {
+        discover: async () => ({
+          ...empty(),
+          ui: ['src/tests/architect/cockpit/CockpitShell.smoke.test.tsx'],
+        }),
+      }
+    );
+    expect(plan.profile.level).toBe('ordinary');
+    expect(plan.selected.emulator).toEqual([]);
+    expect(plan.commands.some((c) => c.args?.includes('emulators:exec'))).toBe(
+      false
+    );
+  });
+  it.each([
+    'src/features/architect/utils/capTotals/computeTeamCapTotals.ts',
+    'src/features/architect/utils/mutationPipeline.ts',
+    'src/firebase/firebaseHelpers.ts',
+    'firestore.rules',
+  ])('requires review for executable sensitive work: %s', (file) => {
+    expect(selectValidationProfile([file]).review).toBe('required');
+  });
+  it('mixed financial work cannot hide behind presentation or an unchecked label', async () => {
+    const file =
+      'src/features/architect/utils/capTotals/computeTeamCapTotals.ts';
+    const plan = await selectTestPlan([room, file], {
+      ...opts,
+      label: 'cosmetic',
+      discover: async (inputs) => {
+        expect(inputs).toEqual([file]);
+        return { ...empty(), node: ['tests/computeTeamCapTotals.test.ts'] };
+      },
+    });
+    expect(plan.profile).toMatchObject({
+      level: 'consequential',
+      review: 'required',
+    });
+    expect(plan.commands.some((c) => c.script === 'test:full')).toBe(false);
+    expect(plan.selected.node).toEqual(['tests/computeTeamCapTotals.test.ts']);
+  });
+  it('policy changes select their safeguards exactly once without the application suite', async () => {
+    const plan = await selectTestPlan(
+      ['scripts/run-tests-by-diff.mjs', 'AGENTS.md'],
+      {
+        discover: async () => ({
+          ...empty(),
+          node: ['tests/runTestsByDiff.test.ts'],
+          native: ['tests/tooling/phase3aWorkflow.node-test.ts'],
+        }),
+      }
+    );
+    expect(plan.profile.review).toBe('required');
+    expect(plan.selected.node).toEqual(['tests/runTestsByDiff.test.ts']);
+    expect(plan.selected.native).toEqual([
+      'tests/tooling/phase3aWorkflow.node-test.ts',
+    ]);
+    expect(plan.commands.some((c) => c.script === 'test:full')).toBe(false);
+  });
+  it('only starts specialists when their tests are selected', async () => {
+    const plan = await selectTestPlan([hook], {
+      discover: async () => ({
+        ...empty(),
+        emulator: ['tests/example.emulator.test.ts'],
+        native: ['tests/tooling/hostedDraftReviewBrowser.node-test.ts'],
+      }),
+    });
+    expect(
+      plan.commands.filter((c) => c.args?.includes('emulators:exec'))
+    ).toHaveLength(1);
+    expect(
+      plan.commands.filter((c) => c.args?.includes('chromium'))
+    ).toHaveLength(1);
+  });
+  it('reports absent test coverage without inventing a ceremonial test or a pass', async () => {
+    const plan = await selectTestPlan([hook], {
+      discover: async () => empty(),
+    });
+    expect(plan.gaps[0]).toContain('not an automated test pass');
+    expect(plan.commands.some((c) => c.script === 'test:full')).toBe(false);
+    expect(plan.commands.some((c) => c.script === 'build')).toBe(true);
+  });
+  it('requires complete execution coverage for changed and declared tests', async () => {
+    await expect(
+      selectTestPlan([regression], { discover: async () => empty() })
+    ).rejects.toThrow('not covered');
+    const { cwd, write } = fixture();
+    write(
+      'src/feature.test.ts',
+      'throw new Error(\"unconfigured regression\");'
+    );
+    await expect(
+      selectTestPlan(['src/feature.test.ts'], {
+        cwd,
+        discover: async () => empty(),
+      })
+    ).rejects.toThrow('not covered');
+  });
+  it('requires a concrete broad reason; no directory alone requests a full suite', async () => {
+    expect(() => readDeclarations('Validation-Full: because')).toThrow(
+      'concrete'
+    );
+    const declarations = readDeclarations(
+      'Validation-Full: Vite plugin changes module resolution for every consumer'
+    );
+    const plan = await selectTestPlan([hook], {
+      declarations,
+      discover: async () => empty(),
+    });
+    expect(plan.commands.filter((c) => c.script === 'test:full')).toHaveLength(
+      1
+    );
+  });
+  it('additive declarations cannot remove automatic tests or downgrade required review', async () => {
+    const declarations = readDeclarations(
+      `Validation-Tests: ["${regression}"]\nValidation-Review: required\nValidation-Level: cosmetic`
+    );
+    const plan = await selectTestPlan([hook], {
+      declarations,
+      discover: async (inputs) => {
+        expect(inputs).toContain(regression);
+        return { ...empty(), ui: [regression] };
+      },
+    });
+    expect(plan.profile.review).toBe('required');
+    expect(() =>
+      readDeclarations('Validation-Tests: ["../escape.test.ts"]')
+    ).toThrow();
+  });
+  it('never turns command failures or missing executables into passes', () => {
+    for (const result of [
+      { status: 1 },
+      { status: null },
+      { status: 0, error: new Error('spawn failed') },
+    ])
+      expect(() =>
+        executePlan(
+          {
+            tier: 'ordinary',
+            reason: 'probe',
+            commands: [{ script: 'test:ui', fileArgs: [regression] }],
+          },
+          { spawn: () => result }
+        )
+      ).toThrow('Selected check failed');
+    expect(() =>
+      executePlan(
+        {
+          tier: 'ordinary',
+          reason: 'real assertion',
+          commands: [
+            {
+              executable: process.execPath,
+              args: ['-e', 'require("node:assert/strict").equal(1,2)'],
+            },
+          ],
+        },
+        { spawn: (file, args) => spawnSync(file, args, { stdio: 'pipe' }) }
+      )
+    ).toThrow('Selected check failed (1)');
+  });
+});
+
+describe('complete comparison and delivery path', () => {
+  it('preserves every commit, staged, unstaged, untracked and both rename paths', () => {
     const { cwd, git, write, base } = fixture();
-    write('docs/INDEX.md');
+    write(hook, 'export const count=0;');
     git('add', '.');
     git('commit', '-m', 'first');
-    write('package.json');
+    write('other.ts', 'export const other=1;');
     git('add', '.');
-    git('commit', '-m', 'second');
-    write('AGENTS.md');
+    git('commit', '-m', `second\n\nValidation-Review: required`);
+    renameSync(path.join(cwd, 'other.ts'), path.join(cwd, 'renamed.ts'));
     git('add', '.');
-    write('README.md', '# Modified\n');
-    write('untracked\nfile.ts');
-    expect(collectChanges({ cwd, base })).toMatchObject({
-      uncertain: false,
-      files: [
-        'AGENTS.md',
-        'README.md',
-        'docs/INDEX.md',
-        'package.json',
-        'untracked\nfile.ts',
-      ],
-    });
-    const candidate = collectChanges({
-      cwd,
-      base,
-      head: git('rev-parse', 'HEAD'),
-      ci: true,
-    });
-    expect(candidate.files).toEqual(['docs/INDEX.md', 'package.json']);
-    expect(selectValidationProfile(candidate.files, candidate).name).toBe(
-      'conservative'
+    write('README.md', '# Changed');
+    write('untracked\nfile.ts', 'x');
+    const changes = collectChanges({ cwd, base });
+    expect(changes).toMatchObject({ uncertain: false, structural: true });
+    expect(changes.files).toEqual(
+      ['README.md', 'other.ts', 'renamed.ts', hook, 'untracked\nfile.ts'].sort()
     );
+    expect(changes.declarations.review).toBe(true);
   });
-
-  it('retains both rename paths and deleted files instead of hiding their previous impact', () => {
+  it('does not follow inherited git repository redirects', () => {
+    const intended = fixture(),
+      other = fixture();
+    intended.write(hook, 'export const x=1;');
+    vi.stubEnv('GIT_DIR', path.join(other.cwd, '.git'));
+    vi.stubEnv('GIT_WORK_TREE', other.cwd);
+    vi.stubEnv('GIT_INDEX_FILE', path.join(other.cwd, '.git/index'));
+    expect(
+      collectChanges({ cwd: intended.cwd, base: intended.base }).files
+    ).toEqual([hook]);
+  });
+  it('fails closed on absent history, empty CI comparisons and wrong checked-out identity', () => {
     const { cwd, git, write, base } = fixture();
-    renameSync(
-      path.join(cwd, 'original file.ts'),
-      path.join(cwd, 'renamed file.ts')
+    expect(collectChanges({ cwd, base: 'missing' }).uncertain).toBe(true);
+    expect(collectChanges({ cwd, ci: true }).uncertain).toBe(true);
+    expect(() => selectValidationProfile([], {})).toThrow(
+      'complete change coverage'
     );
-    rmSync(path.join(cwd, 'README.md'));
-    write('docs/INDEX.md');
-    git('add', '.');
-    git('commit', '-m', 'rename and delete');
-    const changes = collectChanges({
-      cwd,
-      base,
-      head: git('rev-parse', 'HEAD'),
-      ci: true,
-    });
-    expect(changes).toMatchObject({
-      structural: true,
-      uncertain: false,
-      files: [
-        'README.md',
-        'docs/INDEX.md',
-        'original file.ts',
-        'renamed file.ts',
-      ],
-    });
-    expect(selectValidationProfile(changes.files, changes).name).toBe(
-      'conservative'
-    );
-  });
-
-  it('does not let inherited Git repository variables redirect candidate detection', () => {
-    const intended = fixture();
-    const unrelated = fixture();
-    intended.write('package.json');
-    intended.git('add', '.');
-    intended.git('commit', '-m', 'candidate configuration');
-    vi.stubEnv('GIT_DIR', path.join(unrelated.cwd, '.git'));
-    vi.stubEnv('GIT_WORK_TREE', unrelated.cwd);
-    vi.stubEnv('GIT_INDEX_FILE', path.join(unrelated.cwd, '.git/index'));
-    const changes = collectChanges({ cwd: intended.cwd, base: intended.base });
-    expect(changes.uncertain).toBe(false);
-    expect(changes.files).toEqual(['package.json']);
-    expect(selectValidationProfile(changes.files, changes).name).toBe(
-      'conservative'
-    );
-  });
-
-  it('fails conservatively on absent history, empty ranges and an incorrect checked-out head', () => {
-    const { cwd, git, write, base } = fixture();
-    expect(collectChanges({ cwd, base: 'missing-ref' }).uncertain).toBe(true);
-    expect(collectChanges({ cwd, base: undefined, ci: true }).uncertain).toBe(
-      true
-    );
-    const empty = collectChanges({ cwd, base, head: base, ci: true });
-    expect(selectValidationProfile(empty.files, empty).name).toBe(
-      'conservative'
-    );
-    write('docs/INDEX.md');
+    write('other.ts', 'x');
     git('add', '.');
     git('commit', '-m', 'advance');
     expect(collectChanges({ cwd, base, head: base, ci: true }).uncertain).toBe(
       true
     );
   });
-
-  it('publishes truthful CI selection and forbids an explicit partial file list in CI', () => {
-    const { cwd, git, write, base } = fixture();
-    write('docs/INDEX.md');
+  it('uses identical source proof locally, on a PR candidate and after merge', async () => {
+    const { cwd, git, write } = fixture();
+    write(room, before);
     git('add', '.');
-    git('commit', '-m', 'docs');
-    const output = path.join(cwd, 'outputs');
-    const summary = path.join(cwd, 'summary');
-    const script = path.resolve('scripts/run-tests-by-diff.mjs');
-    const env = {
-      ...process.env,
-      GITHUB_ACTIONS: 'true',
-      GITHUB_OUTPUT: output,
-      GITHUB_STEP_SUMMARY: summary,
-      SCOUTZERO_DIFF_BASE: base,
-      SCOUTZERO_DIFF_HEAD: git('rev-parse', 'HEAD'),
-    };
-    const selected = spawnSync(process.execPath, [script, '--ci-plan'], {
-      cwd,
-      env,
-      encoding: 'utf8',
-    });
-    expect(selected.status).toBe(0);
-    expect(readFileSync(output, 'utf8')).toContain(
-      'app=false\nspecialists=false\nauthority=false'
-    );
-    expect(readFileSync(summary, 'utf8')).toContain(
-      'Unselected steps are not executed passes'
-    );
-    const partial = spawnSync(
-      process.execPath,
-      [script, '--ci-plan', '--files', 'README.md'],
-      { cwd, env, encoding: 'utf8' }
-    );
-    expect(partial.status).toBe(1);
-    expect(readFileSync(output, 'utf8').split('app=').length).toBe(2);
-    const missingHistory = spawnSync(process.execPath, [script, '--ci-plan'], {
-      cwd,
-      env: { ...env, SCOUTZERO_DIFF_BASE: '0'.repeat(40) },
-      encoding: 'utf8',
-    });
-    expect(missingHistory.status).toBe(1);
-    expect(readFileSync(output, 'utf8').split('app=').length).toBe(2);
-  });
-});
-
-// Controlled candidates use temporary git repositories, never product writes or
-// dummy PRs. Exercise the actual CLI outputs consumed by both PR and push CI.
-describe('proportionate end-to-end selection', () => {
-  const local =
-    'src/features/table/PlayerTable/PlayerTableHeader/DensityToggle.tsx';
-  const search =
-    'src/features/table/PlayerTable/PlayerTableHeader/SearchBar.tsx';
-  const shared = 'src/shared/utils/contracts/calculateSalary.ts';
-  const spacingBefore = readFileSync(local, 'utf8');
-  const spacingAfter = spacingBefore.replace('gap-1.5', 'gap-2');
-  const searchAfter = readFileSync(search, 'utf8');
-  const searchBefore = searchAfter.replace(
-    'onChange={onChange}',
-    'onChange={() => {}}'
-  );
-
-  it.each([
-    [
-      'isolated visual outside Ranker',
-      [[local, spacingBefore, spacingAfter]],
-      'cosmetic',
-      'not-required',
-      false,
-    ],
-    [
-      'localized search behavior',
-      [[search, searchBefore, searchAfter]],
-      'ordinary',
-      'agent-decides',
-      true,
-    ],
-    [
-      'shared financial logic',
-      [[shared, 'export const salary = 1;', 'export const salary = 2;']],
-      'consequential',
-      'required',
-      true,
-    ],
-    [
-      'cosmetic label hiding financial change',
-      [
-        [local, spacingBefore, spacingAfter],
-        [shared, 'export const salary = 1;', 'export const salary = 2;'],
-      ],
-      'consequential',
-      'required',
-      true,
-    ],
-  ])(
-    '%s selects the same obligations locally, in PR and after merge',
-    (_name, edits, level, review, app) => {
-      const { cwd, git, write } = fixture();
-      for (const [file, before] of edits) write(file, before);
-      git('add', '.');
-      git('commit', '-m', 'controlled baseline');
-      const base = git('rev-parse', 'HEAD');
-      for (const [file, , after] of edits) write(file, after);
-      const localChanges = collectChanges({ cwd, base });
-      const localProfile = selectValidationProfile(
-        localChanges.files,
-        localChanges
+    git('commit', '-m', 'red decorative baseline');
+    const base = git('rev-parse', 'HEAD');
+    write(room, after);
+    write('README.md', '# Harmless accompanying explanation');
+    const local = collectChanges({ cwd, base });
+    const localProfile = selectValidationProfile(local.files, local);
+    git('add', '.');
+    git('commit', '-m', 'red to blue');
+    const head = git('rev-parse', 'HEAD');
+    for (const event of ['pull_request', 'push']) {
+      const changes = collectChanges({ cwd, base, head, ci: true });
+      expect(selectValidationProfile(changes.files, changes), event).toEqual(
+        localProfile
       );
-      expect(localProfile).toMatchObject({ level, review, app });
-      git('add', '.');
-      git('commit', '-m', 'cosmetic'); // title is deliberately untrusted
-      const head = git('rev-parse', 'HEAD');
-      for (const event of ['pull_request', 'push']) {
-        const output = path.join(cwd, `output-${event}`);
-        const result = spawnSync(
-          process.execPath,
-          [path.resolve('scripts/run-tests-by-diff.mjs'), '--ci-plan'],
-          {
-            cwd,
-            encoding: 'utf8',
-            env: {
-              ...process.env,
-              GITHUB_ACTIONS: 'true',
-              GITHUB_EVENT_NAME: event,
-              SCOUTZERO_DIFF_BASE: base,
-              SCOUTZERO_DIFF_HEAD: head,
-              GITHUB_OUTPUT: output,
-              GITHUB_STEP_SUMMARY: path.join(cwd, 'fixture-summary'),
-            },
-          }
-        );
-        expect(result.status, result.stderr).toBe(0);
-        const flags = Object.fromEntries(
-          readFileSync(output, 'utf8')
-            .trim()
-            .split('\n')
-            .map((line) => line.split('='))
-        );
-        expect(flags).toMatchObject({
-          level,
-          review,
-          app: String(app),
-          browser: 'false',
-          transport: 'false',
-        });
-        const selected = ciSteps
-          .filter(
-            (step) =>
-              !step.if ||
-              step.if
-                .replace(/steps.scope.outputs.(\w+)/g, (_, key) =>
-                  JSON.stringify(flags[key])
-                )
-                .split(' && ')
-                .every((expr) => {
-                  const match = expr.match(/^"([^"\n]*)" (==|!=) '([^']*)'$/);
-                  if (!match)
-                    throw new Error(`Unexpected CI condition: ${expr}`);
-                  return match[2] === '=='
-                    ? match[1] === match[3]
-                    : match[1] !== match[3];
-                })
-          )
-          .map((step) => step.name);
-        expect(selected).not.toContain(
-          'Install matching browser for the redirect proof'
-        );
-        expect(selected.includes('Type check')).toBe(app);
-        expect(
-          selected.includes('Governed Offer Sheet creation emulator gate')
-        ).toBe(level === 'consequential');
-        const changes = collectChanges({ cwd, base, head, ci: true });
-        expect(selectValidationProfile(changes.files, changes)).toEqual(
-          localProfile
-        );
-        const plan = selectTestPlan(changes.files, changes);
-        if (level === 'cosmetic')
-          expect(plan.commands.map((command) => command.executable)).toEqual([
-            'git',
-          ]);
-        if (level === 'ordinary') {
-          expect(plan.commands).toHaveLength(1);
-          expect(plan.commands[0].script).toBe('test:ui');
-          expect(plan.commands[0].fileArgs).toContain(
-            'src/tests/table/tableFiltersUi.smoke.test.tsx'
-          );
+      const result = spawnSync(
+        process.execPath,
+        [path.resolve('scripts/run-tests-by-diff.mjs'), '--ci-plan'],
+        {
+          cwd,
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            GITHUB_ACTIONS: 'true',
+            GITHUB_EVENT_NAME: event,
+            SCOUTZERO_DIFF_BASE: base,
+            SCOUTZERO_DIFF_HEAD: head,
+            GITHUB_STEP_SUMMARY: path.join(cwd, 'summary'),
+          },
         }
-        if (level === 'consequential')
-          expect(plan.commands[0].script).toBe('test:full');
-      }
+      );
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stdout, JSON.stringify(result)).toContain('cosmetic');
+      expect(result.stdout).not.toContain('test:full');
     }
-  );
-
-  it('does not mask behavior, accessible names, color, shared tokens, or conditional classes', () => {
-    for (const after of [
-      spacingAfter.replace(
-        'setMode(DENSITY_MODES.COMPACT)',
-        'setMode(DENSITY_MODES.COMFORTABLE)'
-      ),
-      spacingBefore.replace(
-        'aria-label="Compact density"',
-        'aria-label="Other"'
-      ),
-      spacingBefore.replace('text-neutral-500', 'text-neutral-400'),
-      spacingBefore.replace('gap-1.5', 'gap-1.5 hidden'),
-    ])
-      expect(isolatedSpacing(local, spacingBefore, after)).toBe(false);
-    expect(
-      isolatedSpacing('src/shared/Token.tsx', spacingBefore, spacingAfter)
-    ).toBe(false);
-    expect(
-      isolatedSpacing(local, spacingBefore, spacingAfter + '\ninvalid {')
-    ).toBe(false);
-    expect(selectValidationProfile([local], { contents: {} }).level).toBe(
-      'consequential'
+  });
+  it('forbids partial file declarations in CI', () => {
+    const result = spawnSync(
+      process.execPath,
+      ['scripts/run-tests-by-diff.mjs', '--files', 'README.md'],
+      { encoding: 'utf8', env: { ...process.env, GITHUB_ACTIONS: 'true' } }
+    );
+    expect(result.status).toBe(1);
+    expect(result.stderr, JSON.stringify(result)).toContain(
+      'complete-candidate'
     );
   });
-
-  it.each([
-    'src/features/table/OtherConsumer.tsx',
-    'src/features/roster/OtherConsumer.tsx',
-  ])('rejects reused or cross-feature cosmetic consumers: %s', (consumer) => {
-    const { cwd, git, write } = fixture();
-    write(local, spacingBefore);
-    write(
-      'src/features/table/Parent.tsx',
-      "import { DensityToggle } from './PlayerTable/PlayerTableHeader/DensityToggle';"
+  it('runs one shared command in PR and push and retains nightly health and publication boundaries', () => {
+    const workflow = parse(readFileSync('.github/workflows/ci.yml', 'utf8'));
+    const job = workflow.jobs['pr-validation'];
+    expect(job.if).toBe(
+      "github.event_name == 'pull_request' || github.event_name == 'push'"
     );
-    write(
-      consumer,
-      "import { DensityToggle } from '@/features/table/PlayerTable/PlayerTableHeader/DensityToggle';"
+    expect(job.env.SCOUTZERO_DIFF_BASE).toBe(
+      '${{ github.event.pull_request.base.sha || github.event.before }}'
     );
-    git('add', '.');
-    git('commit', '-m', 'consumers');
-    const base = git('rev-parse', 'HEAD');
-    write(local, spacingAfter);
-    const changes = collectChanges({ cwd, base });
-    expect(changes.localConsumers).toBe(false);
-    expect(selectValidationProfile(changes.files, changes).level).toBe(
-      'consequential'
-    );
-  });
-
-  it('uses existing related-test infrastructure for an unmapped local UI leaf', () => {
-    const file = 'src/features/filters/LocalHeading.tsx';
-    const { cwd, git, write } = fixture();
-    write(
-      file,
-      'import React from "react"; export const LocalHeading = () => <h2>Filters</h2>;'
-    );
-    git('add', '.');
-    git('commit', '-m', 'local leaf');
-    const base = git('rev-parse', 'HEAD');
-    write(
-      file,
-      'import React from "react"; export const LocalHeading = () => <h2>Player filters</h2>;'
-    );
-    const changes = collectChanges({ cwd, base });
-    expect(selectValidationProfile(changes.files, changes)).toMatchObject({
-      name: 'local-ui',
-      level: 'ordinary',
-      review: 'agent-decides',
-      browser: false,
-      emulator: false,
-    });
-    expect(selectTestPlan(changes.files, changes).commands[0].args).toContain(
-      'related'
-    );
-    const regression = 'src/tests/filters/LocalHeading.test.tsx';
-    write(
-      regression,
-      'import { LocalHeading } from "../../features/filters/LocalHeading";'
-    );
-    const withTest = collectChanges({ cwd, base });
-    expect(selectValidationProfile(withTest.files, withTest)).toMatchObject({
-      name: 'local-ui',
-      level: 'ordinary',
-      review: 'agent-decides',
-    });
-    const withTestPlan = selectTestPlan(withTest.files, withTest);
-    expect(withTestPlan.commands[0].args).not.toContain(regression);
-    expect(withTestPlan.commands).toContainEqual({
-      script: 'test:ui',
-      fileArgs: [regression],
-    });
-    git('add', '.');
-    git('commit', '-m', 'behavior and regression');
-    const committed = collectChanges({
-      cwd,
-      base,
-      head: git('rev-parse', 'HEAD'),
-      ci: true,
-    });
-    expect(selectValidationProfile(committed.files, committed)).toEqual(
-      selectValidationProfile(withTest.files, withTest)
-    );
-
-    write(
-      file,
-      'import "@/firebase/write"; export const LocalHeading = () => <h2>Filters</h2>;'
-    );
-    const sensitive = collectChanges({ cwd, base });
-    expect(selectValidationProfile(sensitive.files, sensitive).level).toBe(
-      'consequential'
-    );
-    write(
-      file,
-      'import React from "react"; export const LocalHeading = () => { import /* indirect */ ("./other"); return <h2>Filters</h2>; };'
-    );
-    const dynamic = collectChanges({ cwd, base });
-    expect(selectValidationProfile(dynamic.files, dynamic).level).toBe(
-      'consequential'
-    );
-  });
-
-  it('keeps review/validation edits consequential even when paired with cosmetics', () => {
-    const files = [local, 'AGENTS.md'];
+    expect(job.env.SCOUTZERO_DIFF_HEAD).toBe('${{ github.sha }}');
     expect(
-      selectValidationProfile(files, {
-        contents: { [local]: { before: spacingBefore, after: spacingAfter } },
-      })
-    ).toMatchObject({
-      level: 'consequential',
-      review: 'required',
-      authority: true,
-    });
+      job.steps.filter((step) => step.run?.includes('test:diff'))
+    ).toHaveLength(1);
+    expect(job.steps.some((step) => step.run?.includes('test:full'))).toBe(
+      false
+    );
+    expect(workflow.jobs['full-validation'].if).toBe(
+      "github.event_name == 'schedule'"
+    );
+    expect(
+      workflow.jobs['full-validation'].steps.some(
+        (step) => step.run === 'npm run test:full'
+      )
+    ).toBe(true);
+    expect(workflow.on.pull_request.paths).toBeUndefined();
+    expect(workflow.permissions).toEqual({ contents: 'read' });
   });
 });

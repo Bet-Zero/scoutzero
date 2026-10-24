@@ -62,19 +62,19 @@ candidate is not ready for freeze or independent review.
 Apply the live-state refresh boundaries in `AGENTS.md`; never inherit SHAs or
 statuses from a prior conversation as current authority.
 
-1. Verify clean `main`, `origin/main`, their equality or explained divergence,
-   and the proposed branch ancestry.
+1. Verify the relevant live base and branch ancestry. Preserve active work and
+   isolate it when needed rather than requiring unrelated worktree cleanup.
 2. Hosted required CI passing on the exact clean synchronized `origin/main` SHA
    satisfies ordinary green-main preflight. Run a local main check only when a
    concrete known risk, unavailable hosted receipt, or stale signal justifies it.
-3. Read BZE-267, the currently authorized issue, relevant parent/foundation
-   issues, their PR evidence, and the accepted Canon/audit authority for the
-   selected scope.
+3. Read the currently authorized issue and only the governing sources, prior
+   evidence and accepted Canon leaves needed for this scope. Do not reconstruct
+   BZE-267 or unrelated history on every entry.
 4. Before implementation, record a risk class and the intended author, hosted
    CI, independent-review, browser/emulator, and landing checks. Expand the
    contract only when a newly discovered risk explains why.
-5. Use the currently authorized issue and parent, one BZE-numbered branch, and
-   one PR. BZE-267 is completed Phase 3A context, not a default parent for new work.
+5. For issue-backed work, use the authorized issue and parent, a BZE-numbered
+   branch and one PR. Small directly authorized work needs no new issue. BZE-267 is completed Phase 3A context, not a default parent for new work.
    Keep one lead per shared change and follow `AGENTS.md` for already-authorized
    independent work; do not create extra assignments or change priorities for
    parallelism, or reopen completed foundations.
@@ -135,8 +135,8 @@ remain independent blockers.
 | Actor                       | Distinct responsibility                                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Author                      | Risk-contract-specific failure matrix, focused implementation tests, and discriminating positive/fail-closed proof before freeze. |
-| Automated review            | Review the draft early. Finish each started review and settle its findings before freeze; record optional-reviewer unavailability without waiting indefinitely. |
-| Hosted CI                   | Applicable checks from the shared diff/CI policy on the complete candidate; unselected checks are explicitly not executed. Main/scheduled full backstops remain.                                       |
+| Automated review            | Use optional review when useful; triage relevant findings. Optional pending or unavailable review is not a mandatory wait. |
+| Hosted CI                   | Applicable checks from the shared diff/CI policy on the complete candidate; unselected checks are explicitly not executed. Pushes use the same selection; scheduled full health remains.                                       |
 | Independent Claude reviewer | Canon judgment, adversarial probes, test non-vacuity, limitations, and exact base/head scope. The reviewer chooses the probes. |
 | Browser/emulator            | Only rendered, persistence, or cross-room risks. Use deterministic governed fixtures and retain exact-candidate evidence.      |
 | Landing                     | Exact candidate, ancestry, synchronization, unresolved threads, records, and limitations. Do not repeat implementation suites. |
@@ -146,11 +146,10 @@ Claude checks use the automated exact-candidate route defined in
 `docs/agent-guides/independent-review-boundary.md`. Routine reviewer handoff
 and verdict collection are author responsibilities, not owner relay steps.
 
-Automated reviewers are useful best-effort signals, not evidence of Canon
-correctness. An optional reviewer being unavailable or rate-limited does not
-block the lane indefinitely, but the PR must record that fact. Every finding
-that an available reviewer does produce must be resolved or disproved before
-candidate freeze. A review that has started but remains pending is not settled.
+Automated reviewers are best-effort signals, not evidence of Canon correctness.
+Record optional unavailability/pending status honestly. Resolve genuine relevant
+findings before freeze; suggestions outside the assignment do not expand scope.
+Required independent acceptance remains a separate exact-candidate gate.
 
 ## Browser diagnostics and certification
 
@@ -188,16 +187,15 @@ development loop or reusable evidence. Repair the defect, re-pass the complete
 workflow diagnostically, freeze and push the replacement head, then certify
 that replacement exactly once it satisfies the certification preconditions.
 
-Graphify queries may be used when they materially inform a decision. Ordinarily
-run `graphify update .` only after source topology is stable and graph inputs
-have changed. Do not repeat it after test-only, documentation-only,
-evidence-only, or presentation-only edits unless those edits actually change
-graph inputs.
+Graphify queries may be used when they materially inform a decision. Refresh
+the graph only when changed topology invalidates a relevant retained claim.
+Source, test, documentation or presentation edits do not by themselves require
+a graph rebuild. Focused source/import inspection is sufficient for isolated work.
 
 ## Candidate freeze and evidence reuse
 
-Open the draft PR as soon as it has a reviewable diff. Start available automated
-review while author work and self-review are still underway. Account for review
+Open a PR when it has a coherent reviewable diff. Optional automated review may
+run during author work when useful; its availability alone does not require it. Account for review
 triggers, including pushes and marking a draft ready, before freeze so pending
 review is not mistaken for completion. Batch author work, scoped checks, and
 in-scope repairs without extra owner relays; preserve separately required Claude
@@ -206,13 +204,14 @@ Before candidate freeze:
 
 1. Complete the focused author failure-testing matrix and resolve every
    author-known concern with discriminating evidence.
-2. Let every started available automated review complete, then resolve or
-   disprove every finding it produced.
+2. Triage available automated findings for relevance and correctness. Repair
+   genuine defects affecting this assignment; optional suggestions do not expand
+   scope. Optional pending review is not a mandatory wait.
 3. Record any optional reviewer that was unavailable or rate-limited instead of
    waiting indefinitely.
-4. Declare the candidate frozen only when author review is complete, every
-   started automated review has completed or is recorded unavailable, and all
-   available automated-review findings are settled.
+4. Declare the candidate frozen when author review and required checks are
+   complete and material in-scope findings are settled. Record optional pending
+   or unavailable review honestly; do not report it as acceptance.
 
 Draft PR checks may start automatically before freeze, but only the green hosted
 CI receipt for the frozen final head counts as required evidence. After freeze,
@@ -237,7 +236,7 @@ untouched accepted evidence without a concrete reason. If the repair changes the
 candidate, any evidence that depends on the changed surface is stale; unaffected
 evidence remains usable when its scope is stated.
 
-Never dismiss a real late finding to finish faster. Resolve it before handoff or
+Never dismiss a genuine relevant late defect to finish faster. Resolve it before
 landing; if it changes the head, apply the replacement-candidate gates above.
 
 Reviewers can run a temporary, independently authored TypeScript probe without
@@ -312,7 +311,7 @@ when all of these remain true:
 - candidate unchanged since the accepted review;
 - required exact-head hosted CI green;
 - independent Claude verdict `ACCEPT`;
-- no unresolved review thread;
+- no unresolved material in-scope review finding; obey platform-enforced thread-resolution protections;
 - no product decision or limitation requires owner judgment; and
 - base/head, clean state, and ancestry checks pass.
 
@@ -322,7 +321,9 @@ Do not recast those concerns as tooling limitations to bypass the stop.
 
 ## Fresh-session reconstruction
 
-A fresh session reads `AGENTS.md`, this profile, and the Architect boundary;
-verifies live git state; reads BZE-267 and the currently authorized issue plus
-linked PR evidence; uses the pinned Canon lookup for selected leaves; then declares the lane's risk
-contract before making changes. Conversation memory is never an authority.
+Read current `AGENTS.md` and the governing boundaries needed for the selected
+consequential lane. Verify the relevant live git/evidence identity and read the
+existing issue/PR when applicable. Consult pinned Canon leaves only when the
+change depends on them. Do not reconstruct all foundation history or repeat
+unchanged evidence merely because a session is new. Conversation memory cannot
+replace a controlling authority when its identity matters.
