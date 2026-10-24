@@ -14,6 +14,7 @@ import React, { useState } from 'react';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
 import { PoolRow, PoolTile } from './PoolPlayerItems';
 import { Pane, PaneHeader } from './RankerPanel';
+import { ListSizePicker } from './ListSizePicker';
 
 type PoolView = 'list' | 'tiles';
 const VIEW_KEY = 'ranker.poolView';
@@ -39,6 +40,8 @@ type PoolPanelProps = {
   onRemove: (id: string) => void;
   onClear: () => void;
   onStart: () => void;
+  listSize: number | null;
+  onListSizeChange: (listSize: number | null) => void;
 };
 
 export const PoolPanel = ({
@@ -46,6 +49,8 @@ export const PoolPanel = ({
   onRemove,
   onClear,
   onStart,
+  listSize,
+  onListSizeChange,
 }: PoolPanelProps) => {
   const [view, setView] = useState<PoolView>(readView);
   const chooseView = (next: PoolView) => {
@@ -122,6 +127,13 @@ export const PoolPanel = ({
       )}
 
       <div className="flex-shrink-0 px-4 py-3 border-t border-white/[0.06]">
+        {canStart && (
+          <ListSizePicker
+            poolCount={pool.length}
+            listSize={listSize}
+            onChange={onListSizeChange}
+          />
+        )}
         <button
           onClick={onStart}
           disabled={!canStart}

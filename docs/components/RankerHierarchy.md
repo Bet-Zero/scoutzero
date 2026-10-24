@@ -6,11 +6,18 @@ AnchorComparison.tsx
 ComparisonMatrix.tsx
 ComparisonMatrixDrawer.tsx
 ExportDownloadMenu.tsx
+FieldBuilder.tsx
+FieldCutRound.tsx
+FieldLocks.tsx
+FieldPlayoff.tsx
+FieldRoundSummary.tsx
+ListSizePicker.tsx
 LocalDraftBanner.tsx
 NearMissStrip.tsx
 PlayerCompareCard.tsx
 PoolPanel.tsx
 PoolPlayerItems.tsx
+PoolResultsHeader.tsx
 PoolResultsTable.tsx
 PoolSearchResults.tsx
 PoolSourceMenus.tsx
@@ -39,6 +46,7 @@ index.ts
 ranker.css
 utils/
   exportImages.ts
+  fieldBuilder.ts
   playerDisplay.ts
   playerImpact.ts
   rankerLocalDraft.ts

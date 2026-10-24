@@ -1,3 +1,5 @@
+import type { FieldState } from './fieldBuilder';
+
 type RankerComparison = {
   winner: string;
   loser: string;
@@ -13,6 +15,10 @@ export type RankerSetupData = {
   topN?: number | null;
   // Top-N mode: players cut by hand; `at` is the result count when cut (-1 = setup)
   cuts?: Array<{ ids: string[]; at: number }>;
+  // Top-N list: the field being built before the ranking (see utils/fieldBuilder)
+  field?: FieldState;
+  // The ranking setup screen has been completed (only meaningful with `field`)
+  configured?: boolean;
   [key: string]: unknown;
 };
 

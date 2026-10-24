@@ -24,7 +24,6 @@ describe('RankingSetup', () => {
       anchor: null,
       firstPlace: null,
       lastPlace: null,
-      topN: null,
     });
   });
 
@@ -67,7 +66,6 @@ describe('RankingSetup', () => {
       anchor: '1',
       firstPlace: '2',
       lastPlace: null,
-      topN: null,
     });
   });
 
@@ -92,62 +90,12 @@ describe('RankingSetup', () => {
     expect((topButtons[0] as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('sends a Top-N list length only when it trims the pool', () => {
+  it('titles the setup for a Top-N field and no longer asks for list length or outs', () => {
     const players = Array.from({ length: 12 }, (_, i) => ({ id: String(i), name: `P${i}` }));
-    const handle = vi.fn();
-    render(<RankingSetup playerPool={players} onComplete={handle} />);
-
-    // Only presets smaller than the pool are offered
-    expect(screen.queryByText('Top 20')).toBeNull();
-    fireEvent.click(screen.getByText('Top 10'));
-    fireEvent.click(screen.getByText(/Start Ranking/));
-    expect(handle.mock.lastCall?.[0].topN).toBe(10);
-
-    fireEvent.change(screen.getByLabelText('Top N list length'), { target: { value: '12' } });
-    expect(screen.getByText(/everyone will be ranked/)).toBeTruthy();
-    fireEvent.click(screen.getByText(/Start Ranking/));
-    expect(handle.mock.lastCall?.[0].topN).toBeNull();
-  });
-
-  it('Top-N setup can rule players out before ranking', () => {
-    const players = Array.from({ length: 12 }, (_, i) => ({ id: String(i), name: `P${i}` }));
-    const handle = vi.fn();
-    render(<RankingSetup playerPool={players} onComplete={handle} />);
-
-    // Only shown for a Top-N list
+    render(<RankingSetup playerPool={players} onComplete={vi.fn()} listTitle="your Top 10" />);
+    expect(screen.getByRole('heading', { name: 'Ranking setup for your Top 10' })).toBeTruthy();
+    // The field is built before setup, so these moved out of it
+    expect(screen.queryByText('Top 10')).toBeNull();
     expect(screen.queryByTestId('definitely-out')).toBeNull();
-    fireEvent.click(screen.getByText('Top 10'));
-    const out = screen.getByTestId('definitely-out');
-    fireEvent.click(within(out).getByText('P11'));
-    fireEvent.click(screen.getByText(/Start Ranking/));
-    expect(handle.mock.lastCall?.[0].cuts).toEqual([{ ids: ['11'], at: -1 }]);
-
-    // A player ruled out isn't offered as the anchor or a lock-in
-    const anchorOptions = within(screen.getByTestId('anchor')).getAllByRole('option');
-    expect(anchorOptions.map((o) => o.textContent)).not.toContain('P11');
-    const lockOptions = within(screen.getByTestId('locks')).getAllByRole('option');
-    expect(lockOptions.map((o) => o.textContent)).not.toContain('P11');
-
-    // Cutting down below 10 left isn't applied
-    fireEvent.click(within(out).getByText('P10'));
-    fireEvent.click(within(out).getByText('P9'));
-    expect(screen.getByText(/won't be applied/)).toBeTruthy();
-    fireEvent.click(screen.getByText(/Start Ranking/));
-    expect(handle.mock.lastCall?.[0].cuts).toBeUndefined();
-  });
-
-  it('players marked out come back to tier tagging when switching to rank everyone', () => {
-    const players = Array.from({ length: 12 }, (_, i) => ({ id: String(i), name: `P${i}` }));
-    const handle = vi.fn();
-    render(<RankingSetup playerPool={players} onComplete={handle} />);
-
-    fireEvent.click(screen.getByText('Top 10'));
-    fireEvent.click(within(screen.getByTestId('definitely-out')).getByText('P11'));
-    expect(within(screen.getByTestId('tier-tagging')).queryByText('P11')).toBeNull();
-
-    fireEvent.click(screen.getByText('Rank everyone'));
-    expect(within(screen.getByTestId('tier-tagging')).getByText('P11')).toBeTruthy();
-    fireEvent.click(screen.getByText(/Start Ranking/));
-    expect(handle.mock.lastCall?.[0].cuts).toBeUndefined();
   });
 });
