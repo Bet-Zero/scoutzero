@@ -162,9 +162,49 @@ const TABLE_TESTS = [
   'src/tests/table/useFilteredPlayers.test.tsx',
 ];
 const POLICY_FILES =
-  /^(?:scripts\/run-tests-by-diff\.mjs|tests\/runTestsByDiff\.test\.ts|tests\/tooling\/phase3aWorkflow\.node-test\.ts|\.github\/workflows\/ci\.yml|\.husky\/)/;
+  /^(?:scripts\/run-tests-by-diff\.mjs|tests\/runTestsByDiff\.test\.ts|tests\/tooling\/phase3aWorkflow\.node-test\.ts|\.github\/workflows\/ci\.yml|\.husky\/(?:pre-commit|pre-push))$/;
 const protectedContent =
   /firebase|firestore|localStorage|sessionStorage|indexedDB|globalThis|navigator|XMLHttpRequest|WebSocket|fetch\s*\(|authorization|permission|persist|salary|tradeLegal|sourceQualif|onSave|onDelete|onSubmit|onCommit/i;
+
+function isPresentationLeaf(file, text) {
+  const source = ts.createSourceFile(
+    file,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX
+  );
+  let indirectDependency = false;
+  const inspect = (node) => {
+    if (
+      (ts.isCallExpression(node) &&
+        (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+          ['require', 'eval', 'Function'].includes(
+            node.expression.getText(source)
+          ))) ||
+      (ts.isExportDeclaration(node) && node.moduleSpecifier)
+    )
+      indirectDependency = true;
+    ts.forEachChild(node, inspect);
+  };
+  inspect(source);
+  return (
+    !source.parseDiagnostics.length &&
+    !indirectDependency &&
+    !protectedContent.test(text) &&
+    !/\b(?:window|document|Function)\b/.test(text) &&
+    source.statements.every(
+      (node) =>
+        !ts.isImportDeclaration(node) ||
+        [
+          'react',
+          'lucide-react',
+          '@heroicons/react/24/outline',
+          '@heroicons/react/24/solid',
+        ].includes(node.moduleSpecifier.text)
+    )
+  );
+}
 
 export function selectValidationProfile(files, options = {}) {
   const { uncertain = false, structural = false, contents = {} } = options;
@@ -268,14 +308,8 @@ export function selectValidationProfile(files, options = {}) {
     ) &&
     executable.includes(TABLE_VIEW) &&
     contents[TABLE_VIEW] &&
-    [contents[TABLE_VIEW].before, contents[TABLE_VIEW].after].every(
-      (text) =>
-        !protectedContent.test(text) &&
-        !/\bimport\s*['"]/.test(text) &&
-        [...text.matchAll(/from\s+['"]([^'"]+)['"]/g)].every((match) =>
-          ['react', 'lucide-react'].includes(match[1])
-        ) &&
-        !/\b(?:import\s*\(|require\s*\(|export\s+\*)/.test(text)
+    [contents[TABLE_VIEW].before, contents[TABLE_VIEW].after].every((text) =>
+      isPresentationLeaf(TABLE_VIEW, text)
     )
   )
     return profile(
@@ -293,32 +327,9 @@ export function selectValidationProfile(files, options = {}) {
     options.localConsumers === true &&
     contents[files[0]] &&
     !/\/(?:architect|ranker)\//.test(files[0]) &&
-    [contents[files[0]].before, contents[files[0]].after].every((text) => {
-      const source = ts.createSourceFile(
-        files[0],
-        text,
-        ts.ScriptTarget.Latest,
-        true,
-        ts.ScriptKind.TSX
-      );
-      return (
-        !source.parseDiagnostics.length &&
-        !protectedContent.test(text) &&
-        !/\b(?:import\s*\(|require\s*\(|eval\s*\(|window|document|Function)\b/.test(
-          text
-        ) &&
-        source.statements.every(
-          (node) =>
-            !ts.isImportDeclaration(node) ||
-            [
-              'react',
-              'lucide-react',
-              '@heroicons/react/24/outline',
-              '@heroicons/react/24/solid',
-            ].includes(node.moduleSpecifier.text)
-        )
-      );
-    })
+    [contents[files[0]].before, contents[files[0]].after].every((text) =>
+      isPresentationLeaf(files[0], text)
+    )
   )
     return profile(
       'local-ui',
@@ -462,7 +473,12 @@ export function collectChanges({
       const file = [...entries.keys()][0];
       const stem = path.basename(file, path.extname(file));
       const family = file.match(/^(src\/features\/[^/]+\/)/)?.[1];
-      if (family && stem !== 'index' && /\.tsx$/.test(file)) {
+      if (
+        family &&
+        stem !== 'index' &&
+        /^[A-Za-z][A-Za-z0-9]*$/.test(stem) &&
+        /\.tsx$/.test(file)
+      ) {
         localConsumers = [mergeBase, ci ? head : null].every((ref) => {
           let matches;
           try {

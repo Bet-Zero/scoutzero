@@ -797,6 +797,14 @@ describe('proportionate end-to-end selection', () => {
     expect(selectValidationProfile(sensitive.files, sensitive).level).toBe(
       'consequential'
     );
+    write(
+      file,
+      'import React from "react"; export const LocalHeading = () => { import /* indirect */ ("./other"); return <h2>Filters</h2>; };'
+    );
+    const dynamic = collectChanges({ cwd, base });
+    expect(selectValidationProfile(dynamic.files, dynamic).level).toBe(
+      'consequential'
+    );
   });
 
   it('keeps review/validation edits consequential even when paired with cosmetics', () => {
