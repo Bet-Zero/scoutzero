@@ -11,7 +11,7 @@ HoopZero/ScoutZero is a React + Vite + Firebase NBA scouting and GM toolkit. It 
 
 ### System Requirements
 
-- **Node.js**: `>=18.17` (from `package.json` engines)
+- **Node.js**: `>=24.5` (from `package.json` engines)
 - **npm**: bundled with Node
 - **OS**: macOS, Linux, Windows
 
@@ -24,7 +24,7 @@ HoopZero/ScoutZero is a React + Vite + Firebase NBA scouting and GM toolkit. It 
 
 ### Environment Variables
 
-Create `.env` in project root:
+Only when the running app needs configuration, use the existing authorized environment. Do not create or change credentials for an unrelated task. Expected variable names:
 
 ```
 VITE_FIREBASE_API_KEY=<your key>
@@ -70,12 +70,12 @@ Default to **targeted** test runs and append `--reporter=dot`:
 
 ## Validation Workflow
 
-After code changes, run the smallest valid check first:
+These are available checks, not a per-edit checklist. Follow the single `test:diff` execution path in AGENTS.md and choose additional proof from actual impact:
 
 1. Relevant scoped tests (or `npm run test:diff -- --reporter=dot`)
 2. `npm run build` for meaningful UI/route/component changes
-3. `npm run typecheck` for TS/TSX or logic changes
-4. `npm run validate:project` for structural changes
+3. `npm run typecheck` when executable types/contracts change
+4. `npm run validate:project` when repository layout/contracts change
 
 At four minutes, investigate an unproductive run and narrow when truthful; do not silently omit a necessary gate.
 

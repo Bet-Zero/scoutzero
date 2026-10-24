@@ -17,7 +17,7 @@ the linked docs.
 - Keep validation proportionate to actual impact. The agent selects checks and
   reviewers; the owner does not choose tests or supply a full-suite password.
 - Preserve existing behavior and visual layout when refactoring.
-- Keep the worktree clean when finishing.
+- Finish with this task committed and delivered; preserve unrelated active work.
 - Ask the user about product direction and requirements; decide technical
   implementation details independently.
 
@@ -38,7 +38,9 @@ before relying on it. Graph generation is not a prerequisite for cosmetic work.
 
 Use these project commands unless the user explicitly asks for something else.
 
-When the assignment needs the running app, emulator data or browser proof, use the reusable
+For isolated presentation proof, an existing component render or focused harness
+is sufficient; do not start emulators or import data that it does not need.
+When the assignment needs the full app and its data environment, use the reusable
 [cloud development workflow](docs/operations/CLOUD_DEVELOPMENT.md):
 `npm run cloud:setup`, `npm run cloud:data:import -- <private-source-directory>`,
 `npm run cloud:dev`, and `npm run cloud:check -- --resume` for saved-session
@@ -52,9 +54,9 @@ and their separate test sessions; follow the runbook's explicit scope/recovery p
 | Command                                    | Use                                                                       |
 | ------------------------------------------ | ------------------------------------------------------------------------- |
 | `npm run dev`                              | Start the dev server at `http://localhost:5173` for UI/manual checks      |
-| `npm run build`                            | Production build after meaningful UI, route, or component changes         |
-| `npm run typecheck`                        | TypeScript check after TS/TSX, hook, or utility changes                   |
-| `npm run validate:project`                 | Project-structure validation after new folders/files/exports              |
+| `npm run build`                            | Build when application output changes or delivery requires it         |
+| `npm run typecheck`                        | Type-check when executable types/contracts change                   |
+| `npm run validate:project`                 | Validate structure when repository layout/contracts change              |
 | `npm run lint`                             | ESLint only if asked; repo has many pre-existing errors                   |
 | `npm run lint:md`                          | Markdown lint for heavy docs edits or docs-routing changes                |
 | `npm run docs:guardrails`                  | Workspace/docs routing guardrails after docs-routing or standards changes |
@@ -93,44 +95,81 @@ owner approvals or protected production/source boundaries.
    source gates. Full suites are appropriate for genuinely broad or unresolved
    dependencies, not every consequential change.
 
-Use `npm run test:diff -- --dry-run --verbose` to inspect automated selection.
-The bounded selector proves a narrow static local spacing case from actual
-before/after source, preserves complete Ranker coverage, maps local search
-behavior to its table/filter consumers, uses Vitest's existing import graph for
-other isolated presentation leaves with inspected imports, and separates application checks from
-unrelated source-transport/browser/cloud gates. Unmapped or uncertain changes
-remain conservative; automation is a floor, not a substitute for inspecting
-impact. Extend an existing mapping with consumer evidence and selection tests
-when necessary. A related-test run with no matching tests fails and needs a
-focused regression; it is not a pass. Never override CI with a label or a partial file list.
+Normal path: understand the authorized outcome, inspect the affected code and
+consumers, implement, verify, deliver, and stop. No new issue, plan, README,
+header, graph refresh, emulator or browser installation is implied by starting a
+task. Use existing infrastructure and evidence where applicable.
 
-PR and post-merge push CI use the same selector against the complete comparison;
-nightly CI retains full integration health checks. Missing CI history or an
-incorrect checked-out identity fails closed. Skipped checks are not passes.
-Independent review selection is an agent obligation reported by the selector,
-not a new platform approval gate. Respect any platform-enforced requirements.
+`npm run test:diff -- --dry-run --verbose` shows the complete comparison and
+selected commands. `npm run test:diff -- --reporter=dot` executes that same path
+locally, in PR CI and after merge. The runner compares all commits and local
+layers; CI requires explicit base/head and fails on incomplete history. It
+recognizes presentation-only syntax across application areas, including Architect
+and Ranker, while preserving imports, conditions, handlers, ARIA, visibility and
+calculations. This is not proof that a color or phrase is semantically harmless:
+the agent must inspect status/error meaning, accessibility, consumers and shared
+styles and record the relevant visual/content proof in the PR. A small change
+may still need a build to validate or deliver the result.
 
-For docs, `node scripts/run-tests-by-diff.mjs --docs` checks changed Markdown and
-routing without relinting unrelated baseline failures. Governing changes retain
-workflow and selection-policy checks. After repairs, rerun affected proof and
-required exact-candidate gates; reuse unaffected evidence with its scope stated.
-Stop adding checks once selected checks pass and no concrete concern remains.
+The minimum review guard also checks direct protected runtime imports on both
+sides of a behavior change; it does not promote type-only imports or unchanged
+logic inside a proven presentation edit. Inspect indirect/dynamic effects too.
 
-When the branch has existing unrelated diffs, validate the current task scope
-rather than the whole branch. Prefer the most specific suite, or pass explicit
-files to the diff runner:
+Financial, draft-pick, offseason, transaction-history and trusted server/cloud
+responsibilities retain a review minimum for behavior edits; directory names
+do not make their proven presentation-only edits consequential.
 
-```bash
-npm run test:diff -- --files AGENTS.md --reporter=dot
-```
+For executable changes, Vitest's existing import graph selects affected node,
+UI, native, Functions and emulator test consumers. Adding regressions or related files does
+not force full-project validation. Native/browser/emulator prerequisites run
+only when the selected tests need them. No related test means missing automated
+coverage, not a pass: choose meaningful manual/static/visual verification for the
+actual risk and record it in the PR. Do not invent a ceremonial test to qualify
+for a lighter route. Dynamic and file-read dependencies need agent inspection.
+Server/API TypeScript uses the existing root type check. Functions changes use
+their own dependency installation, build and related colocated tests; neither
+requires an unrelated UI build or emulator solely because it is server code.
+
+When inspection identifies checks outside that graph, record them in the normal
+commit message using an additive `Validation-Tests: ["tests/path.test.ts"]`
+trailer. `Validation-Review: required` records an elevated review decision;
+`Validation-Full: <concrete broad-risk reason>` requests full application checks.
+These are agent-owned execution notes, not an owner form or approval layer.
+They can only add checks/review, never remove automatic safeguards, alter the
+comparison or waive independent acceptance. Local selection reads committed
+trailers; use the scoped npm command while iterating before commit. PR and push
+selection read all commits in the complete range. Preserve these messages during
+normal merge; do not squash away declared checks. The PR remains the detailed
+record of inspection, proof, limitations and review decisions.
+
+Full-project checks require broad build/test-environment impact or a recorded
+broad-risk reason. Unknown impact calls for dependency inspection and relevant
+subsystem proof, not every specialist by default. Independent review remains
+required for consequential work, including changed validation/review mechanisms;
+for ordinary work the agent judges consequences, complexity and uncertainty.
+Optional reviewer suggestions are triaged: relevant defects get repaired;
+unrelated improvements do not expand scope or create indefinite waits.
+
+Nightly CI retains full integration health checks. PR and push use one execution
+path without repeating the same applicable command. A successful build is not a
+unit-test pass, and unselected or unavailable checks are never reported as
+executed. Respect platform-enforced requirements and existing owner approvals.
+After repairs, rerun affected proof; reuse unaffected evidence with its actual
+scope, dependencies and date. Stop when the authorized outcome and applicable
+checks are complete and no material concern remains.
+
+When the worktree contains active work, preserve it. Use an isolated branch or
+worktree when necessary; do not reset, clean, stash or repair unrelated changes.
+Local scoped commands are iteration evidence, not permission to hide paths from
+CI's complete comparison.
 
 | Command                           | Use                                                        |
 | --------------------------------- | ---------------------------------------------------------- |
 | `npm run test:diff`               | Preferred default when unsure; selects scope from git diff |
-| `npm run test:fast`               | Tiny/local changes or quick smoke validation               |
+| `npm run test:fast`               | Smoke behavior actually affected by the change            |
 | `npm run test:cap-sheet-boundary` | Cap Sheet action-layer or mutation-boundary changes        |
 | `npm run test:trade`              | Trade Machine changes                                      |
-| `npm run test:architect`          | Architect feature changes                                  |
+| `npm run test:architect`          | Changes affecting the broader Architect subsystem          |
 | `npm run test:roster`             | Roster Builder changes                                     |
 | `npm run test:scouting`           | Scouting/Profile changes                                   |
 | `npm run test:node`               | Logic-heavy or non-UI changes                              |
@@ -147,14 +186,16 @@ npm run test:diff -- --reporter=dot
 Exception: `npm run test:phase3a-workflow` uses Node's built-in test runner and
 already selects its dot reporter; run it without an appended Vitest reporter.
 
-Use approved npm scripts, not raw test-runner commands. The agent may select
+Use existing npm scripts for iteration and the selected runner for delivery.
+The runner may invoke configured native/emulator tools directly. The agent may select
 `npm run test:full` when broad dependencies or nightly health justify it; no
 owner test-selection decision is required. Prefer focused suites first. Treat
 four minutes as an investigation checkpoint: stop an unproductive run, diagnose
 and narrow when truthful; never silently drop a necessary gate to meet a budget.
 
-Every final handoff must list files changed, validation commands actually run,
-and commands intentionally skipped with the reason.
+Keep changed files, executed commands, results and justified skips in the PR.
+The owner response is a concise outcome and limitation summary with one evidence
+link; an existing issue needs only a status pointer, not a duplicate narrative.
 
 ## Code Rules
 
@@ -165,7 +206,8 @@ and commands intentionally skipped with the reason.
   regresses.
 - Use the `@/` import alias for `src/`.
 - Use named exports. Default exports are allowed only for top-level page views.
-- Keep components under 200 lines; split larger components.
+- Around 200 lines is component-design guidance, not a mandatory split. Do not
+  refactor an unrelated component to satisfy size during a small change.
 - Use Zod schemas in `src/schemas/` as canonical contracts. Do not declare
   duplicate `Player*` or `Contract*` interfaces outside `src/schemas/`.
 - Do not leave temporary or scratch files in `src/`, `data/`, or `tests/`.
@@ -208,12 +250,13 @@ Canonical schema reference:
 - Active plans, preflights, and notes belong in `work/<initiative>/`.
 - Completed initiatives move as a whole to `archive/work/<initiative>/`.
 - Update docs for significant behavior, structure, schema, or workflow changes.
-- For docs-routing or standards changes, run `npm run lint:md` and
-  `npm run docs:guardrails`.
-- Run `npm run validate:project` after structural changes.
+- For changed documentation, lint the changed files and run routing guardrails
+  when routing or standards change; do not relint unrelated historical failures.
+- Use `npm run validate:project` when repository layout/contracts change, not
+  merely because an existing component or its regression test was edited.
 
-Do not create return packages by default. Use the final response plus the git
-commit as the normal evidence trail. Create a return package only when the user
+Do not create return packages by default. Keep detailed evidence in the PR,
+with a concise link in the final response and an existing issue when applicable. Create a return package only when the user
 explicitly asks for one, an active long-running plan requires one, multiple
 agents/sessions need durable coordination, or the work involves production data,
 release operations, or audit/fix-plan evidence.
@@ -302,18 +345,18 @@ applicable tracking requirements and issue closure gates still apply.
 
 ## Linear And Git Workflow
 
-Session-start checks, in order:
+At entry, inspect the current worktree and the relevant live base. Preserve
+active work and explain divergence that affects this task. Use an isolated
+worktree when needed rather than demanding that unrelated work be cleaned up.
+Reuse a relevant hosted green-main receipt; a local baseline run is justified
+only by a concrete affected risk or missing evidence. An unrelated existing
+failure must be reported honestly, but does not authorize repair or block an
+isolated task unless it prevents trustworthy implementation, verification or
+landing. Read history, issues and governing sources only as needed for the
+current outcome and its protected boundaries; do not reconstruct the project.
 
-1. Verify clean local main and live origin/main, explaining any divergence.
-   A passing run of the required hosted CI on that exact synchronized SHA
-   satisfies the ordinary green-main check. Run a local main check only for a concrete known
-   risk, unavailable hosted receipt, or stale signal; use the narrowest relevant
-   scope (`npm run test:diff -- --reporter=dot` when unsure). If main is red,
-   resolve the failure before new branch-mode UI work; distinguish pre-existing
-   local/environment failures from regressions.
-2. Work awaiting owner review does not block the next already-authorized,
-   independent wave. Follow the dependency/isolation rule above, obtain branch
-   authorization where needed, and batch review requests for one owner sitting.
+Work awaiting owner review does not block separately authorized independent
+work. Preserve the owner-review and production gates below.
 
 ## Owner Review Model (owner-set, 2026-07-08)
 
@@ -361,7 +404,8 @@ Issue rules:
 
 - Before filing a bug, search Linear for the failing test name, file path, or
   error string. If a match exists, comment there instead of filing a new issue.
-- Priority: `Urgent` = main broken / validation untrustworthy (stop the line).
+- Priority: `Urgent` = an affected defect prevents trustworthy implementation or landing.
+  Unrelated failures are reported, not automatically repaired by this assignment.
   `High` = the one active lane. Everything else = no priority.
 - New lanes are issues (or a parent issue with sub-issues), not new Linear
   projects. Projects are reserved for durable product areas or real
@@ -381,7 +425,7 @@ Done rules:
 
 Git↔Linear linking (verified against the live integration on 2026-07-07):
 
-- BZE issue numbers must appear in branch names for code work
+- For issue-backed work, BZE issue numbers appear in branch names
   (e.g. `feature/bze-224-trade-machine-visual-pass`; a slug without the number
   does not link).
 - PR descriptions are the source of truth for Linear automation.
@@ -394,7 +438,7 @@ Git↔Linear linking (verified against the live integration on 2026-07-07):
   `docs/agent-guides/phase3a-execution.md`.
 - Do not rely on commit messages alone for Linear linking/closing —
   commit-only linking did not fire in the integration test.
-- For any direct-to-main work (no PR), manually comment on the Linear issue
+- For issue-backed direct-to-main work (no PR), comment on the existing issue
   with the commit hash, validation actually run, and merged-to-main status.
 
 ## Communication
@@ -409,8 +453,9 @@ Decide technical implementation details independently: file structure, naming,
 code patterns, architecture, library/API usage within the existing stack, and
 validation scope.
 
-Build plans with enough detail that execution can match expectations exactly.
-If a requirement is unclear, ask before guessing.
+Use a plan only when coordination or complexity needs one; a small task needs
+no planning document. Resolve technical details independently. Ask only for a
+material unresolved product decision or an owner-reserved approval.
 
 Lead with what was built, researched, checked, or blocked, its practical effect,
 and the recommended next move. Distinguish reusable tooling, established facts,
@@ -420,8 +465,9 @@ of repeating them. Use plain language and explain tradeoffs that need a decision
 For ordinary explanations of already-verified facts in the same conversation,
 reuse that evidence without claiming a new live check. Refresh live state at
 fresh-session, changed-evidence, implementation, handoff, review/landing, and
-authority-dependent decisions. Mandatory governing-source reads at those
-boundaries still apply; conversation memory cannot replace them.
+authority-dependent decisions only for the identities and governing sources
+material to the current task. Do not reconstruct unrelated history. Conversation
+memory cannot replace a controlling source when its identity matters.
 
 ## Reference Docs
 

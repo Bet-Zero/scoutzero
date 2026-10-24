@@ -178,7 +178,7 @@ The `docs/` folder is organized into specialized subdirectories:
 
 1. Install dependencies with `npm install`.
 2. Start the dev server via `npm run dev`.
-3. Add components within feature folders and split files over ~200 lines.
+3. Add components within feature folders. About 200 lines is design guidance; do not split unrelated components during a small task.
 4. Run the most relevant scoped validation (`npm run test:diff -- --reporter=dot`, `npm run test:roster -- --reporter=dot`, or targeted `npm run test:ui -- --reporter=dot ...`) plus `npm run build` when UI changes are involved.
 
 ## Validation & CI
