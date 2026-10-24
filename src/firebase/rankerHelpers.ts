@@ -39,7 +39,29 @@ const RankerComparisonResultZ = z.object({
   loser: RankerPlayerIdZ,
 });
 
-const RankerSetupDataZ = z
+const RankerFieldZ = z.object({
+  topN: z.number().int().positive(),
+  stage: z.enum(['locks', 'cut', 'playoff', 'done']),
+  locks: z.array(RankerPlayerIdZ),
+  round: z.number().int().nonnegative(),
+  cutLine: RankerPlayerIdZ.nullable(),
+  bubble: z.array(RankerPlayerIdZ),
+  roundStart: z.number().int().nonnegative(),
+  inIds: z.array(RankerPlayerIdZ),
+  cutIds: z.array(RankerPlayerIdZ),
+  playoff: z
+    .object({
+      mode: z.enum(['drop', 'add']),
+      set: z.array(RankerPlayerIdZ),
+      count: z.number().int().nonnegative(),
+      keep: z.array(RankerPlayerIdZ),
+      start: z.number().int().nonnegative(),
+    })
+    .nullable(),
+  fieldIds: z.array(RankerPlayerIdZ).nullable(),
+});
+
+export const RankerSetupDataZ = z
   .object({
     topTier: z.array(RankerPlayerIdZ).optional(),
     bottomTier: z.array(RankerPlayerIdZ).optional(),
@@ -52,6 +74,10 @@ const RankerSetupDataZ = z
     cuts: z
       .array(z.object({ ids: z.array(RankerPlayerIdZ), at: z.number().int().min(-1) }))
       .optional(),
+    // Top-N list: the field built before the ranking (src/features/ranker/utils/fieldBuilder.ts)
+    field: RankerFieldZ.optional(),
+    // The ranking setup screen has been completed (only meaningful with `field`)
+    configured: z.boolean().optional(),
   });
 
 const RankerSessionReadDocZ = z

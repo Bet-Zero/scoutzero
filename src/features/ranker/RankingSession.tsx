@@ -33,6 +33,9 @@ import {
   suggestTopNPair,
 } from '@/features/ranker/utils/topNSelection';
 import { getPlayerName as getDisplayName } from '@/features/ranker/utils/playerDisplay';
+import { createFieldState, undoFloor, type FieldState } from './utils/fieldBuilder';
+import { storedRankerScore } from './hooks/useImpactScores';
+import { FieldBuilder } from './FieldBuilder';
 import type { HydratedRankerDraft } from './hooks/useRankerSession';
 import type { RankerDraftPatch, RankerSetupData } from './utils/rankerLocalDraft';
 
@@ -58,6 +61,8 @@ type RankingSessionProps = {
   saveAsList?: ((ranking: RankerPlayer[]) => void | Promise<unknown>) | null;
   listSaveStatus?: SaveStatus;
   savedListMeta?: SavedListMeta | null;
+  // New sessions: the list size picked with the pool (a Top-N list builds its field first)
+  listSize?: number | null;
 };
 
 const createInitialClosureCache = (
@@ -83,8 +88,9 @@ export const RankingSession = ({
   saveAsList = null,
   listSaveStatus = null,
   savedListMeta = null,
+  listSize = null,
 }: RankingSessionProps) => {
-  const players = useMemo<RankerPlayer[]>(
+  const poolPlayers = useMemo<RankerPlayer[]>(
     () => playerPool.map((p) => p.original || p),
     [playerPool]
   );
@@ -104,9 +110,31 @@ export const RankingSession = ({
   const [finishedAt, setFinishedAt] = useState<number | null>(
     () => resumedSessionData?.finishedAt ?? null
   );
-  const [setupData, setSetupData] = useState<RankerSetupData | null>(
-    () => resumedSessionData?.setupData || null
-  );
+  const [setupData, setSetupData] = useState<RankerSetupData | null>(() => {
+    if (resumedSessionData) return resumedSessionData.setupData || null;
+    // A list shorter than the pool builds its field first
+    return listSize && listSize >= 1 && listSize < poolPlayers.length
+      ? { field: createFieldState(listSize) }
+      : null;
+  });
+  const field = (setupData?.field as FieldState | undefined) ?? null;
+  // Ranking hints are set (older sessions have no field step)
+  const configured = Boolean(setupData) && (!field || setupData?.configured === true);
+  // Once the field is settled, only its players are ranked
+  const players = useMemo<RankerPlayer[]>(() => {
+    if (!field?.fieldIds) return poolPlayers;
+    const inField = new Set(field.fieldIds);
+    return poolPlayers.filter((p) => inField.has(p.id));
+  }, [poolPlayers, field]);
+  // Pool order by stats (stored score), best first; pool order breaks ties
+  const bestFirst = useMemo(() => {
+    const score = (p: RankerPlayer) => storedRankerScore(p) ?? -Infinity;
+    return poolPlayers
+      .map((p, i) => ({ id: p.id, s: score(p), i }))
+      .sort((a, b) => b.s - a.s || a.i - b.i)
+      .map(({ id }) => id);
+  }, [poolPlayers]);
+  const playersById = useMemo(() => new Map(poolPlayers.map((p) => [p.id, p])), [poolPlayers]);
   const [anchorDone, setAnchorDone] = useState(
     () => resumedSessionData?.anchorDone || false
   );
@@ -117,6 +145,14 @@ export const RankingSession = ({
   const [adjustments, setAdjustments] = useState<string[] | null>(
     () => resumedSessionData?.adjustments || null
   );
+
+  // Save a field created for a new session
+  const savedInitialField = useRef(false);
+  useEffect(() => {
+    if (savedInitialField.current || resumedSessionData || !field || !autosave) return;
+    savedInitialField.current = true;
+    autosave({ setupData });
+  }, [resumedSessionData, field, autosave, setupData]);
 
   // Incremental closure cache — lives for the session, rebuilt on undo
   const closureCacheRef = useRef<ClosureCache | null>(null);
@@ -164,7 +200,7 @@ export const RankingSession = ({
 
   // Evaluate next pair every time results change
   useEffect(() => {
-    if (!setupData) return;
+    if (!setupData || !configured) return;
     if (setupData.anchor && !anchorDone) return;
     if (groupedPlayers.length < 2) return;
 
@@ -188,6 +224,7 @@ export const RankingSession = ({
     results,
     groupedPlayers,
     setupData,
+    configured,
     anchorDone,
     isFinished,
     skippedPairs,
@@ -248,7 +285,9 @@ export const RankingSession = ({
   const lastCut = cuts.length ? cuts[cuts.length - 1] : null;
   // A cut made after the latest pick is undone before that pick
   const undoesCut = Boolean(lastCut && lastCut.at >= 0 && lastCut.at === results.length);
-  const canUndo = results.length > seedCount || undoesCut;
+  // While the field is built, only the current step's answers can be undone
+  const undoMin = configured || !field ? seedCount : undoFloor(field);
+  const canUndo = results.length > undoMin || undoesCut;
 
   const handleUndo = useCallback(() => {
     if (undoesCut && setupData) {
@@ -268,7 +307,7 @@ export const RankingSession = ({
       return;
     }
     // Only head-to-head picks can be undone, never the setup seeds
-    if (results.length <= seedCount) return;
+    if (results.length <= undoMin) return;
     const newResults = results.slice(0, -1);
     // Rebuild closure cache from scratch after undo (one edge removed = full rebuild needed)
     closureCache.rebuild(newResults);
@@ -285,7 +324,7 @@ export const RankingSession = ({
         adjustments: null,
       });
     }
-  }, [results, seedCount, autosave, closureCache, undoesCut, setupData, cuts]);
+  }, [results, undoMin, autosave, closureCache, undoesCut, setupData, cuts]);
 
   // Handler for saving adjustments from RankingResults
   const handleRankingAdjusted = useCallback(
@@ -318,6 +357,18 @@ export const RankingSession = ({
       )
       .map((p) => byId.get(p.id) ?? p);
   }, [isFinished, topNResolution, players, closureCache, cutIds]);
+
+  // Field mode: players cut while building the field, closest to making it first
+  const fieldCutPlayers = useMemo(
+    () =>
+      field
+        ? [...field.cutIds]
+            .reverse()
+            .map((id) => playersById.get(id))
+            .filter((p): p is RankerPlayer => Boolean(p))
+        : [],
+    [field, playersById]
+  );
 
   const ranking = useMemo(() => {
     if (!isFinished) return [];
@@ -370,8 +421,8 @@ export const RankingSession = ({
         )}
         <RankingResults
           ranking={ranking}
-          topN={topN}
-          cutPlayers={cutPlayers}
+          topN={field ? field.topN : topN}
+          cutPlayers={field ? fieldCutPlayers : cutPlayers}
           onRankingAdjusted={handleRankingAdjusted}
           isOwner={isOwner}
           onSaveAsList={saveAsList}
@@ -401,23 +452,49 @@ export const RankingSession = ({
     );
   }
 
-  if (!setupData) {
+  if (field && field.stage !== 'done') {
+    const handleFieldChange = (next: FieldState) => {
+      const nextSetup = { ...(setupData ?? {}), field: next };
+      setSetupData(nextSetup);
+      if (autosave) autosave({ setupData: nextSetup });
+    };
+    return (
+      <>
+        {exitBar}
+        <FieldBuilder
+          playersById={playersById}
+          bestFirst={bestFirst}
+          state={field}
+          closure={closureCache.closure}
+          comparisonCount={results.length}
+          onChange={handleFieldChange}
+          onAnswer={handleSelect}
+          onUndo={canUndo ? handleUndo : undefined}
+        />
+      </>
+    );
+  }
+
+  if (!setupData || !configured) {
     const handleComplete = (data: RankerSetupData) => {
       // Lock-ins become seed comparisons; only ones the engine accepts are kept
       const seeds = buildLockInComparisons(players, data).filter(
         ({ winner, loser }) => closureCache.addEdge(winner, loser)
       );
-      setSetupData(data);
+      // Field answers stay: the ranking reuses them, and they can't be undone
+      const nextSetup: RankerSetupData = field ? { ...data, field, configured: true } : data;
+      const allResults = [...results, ...seeds];
+      setSetupData(nextSetup);
       setAnchorDone(!data.anchor);
-      setResults(seeds);
-      setSeedCount(seeds.length);
+      setResults(allResults);
+      setSeedCount(allResults.length);
 
       if (autosave) {
         autosave({
-          setupData: data,
+          setupData: nextSetup,
           anchorDone: !data.anchor,
-          results: seeds,
-          seedCount: seeds.length,
+          results: allResults,
+          seedCount: allResults.length,
         });
       }
     };
@@ -425,7 +502,11 @@ export const RankingSession = ({
     return (
       <>
         {exitBar}
-        <RankingSetup playerPool={players} onComplete={handleComplete} />
+        <RankingSetup
+          playerPool={players}
+          onComplete={handleComplete}
+          listTitle={field ? `your Top ${field.topN}` : null}
+        />
       </>
     );
   }
@@ -442,12 +523,26 @@ export const RankingSession = ({
         ...cutIds,
       ].filter((id): id is string => typeof id === 'string' && id.length > 0)
     );
+    // Players already settled against the anchor (e.g. while building the field) aren't asked
+    const settled = (id: string) =>
+      Boolean(closureCache.closure[id]?.has(anchorId) || closureCache.closure[anchorId]?.has(id));
     const untagged = players.filter(
-      (p) => p.id !== anchorId && !tagged.has(p.id)
+      (p) => p.id !== anchorId && !tagged.has(p.id) && !settled(p.id)
     );
     const handleAnchorComplete = (betterIds: string[]) => {
+      // Already-settled players get their result recorded directly, so the
+      // upper/lower split (which reads direct results) places them correctly
+      const settledSeeds = anchorPlayer
+        ? players
+            .filter((p) => p.id !== anchorId && !tagged.has(p.id) && settled(p.id))
+            .map((p) =>
+              closureCache.closure[p.id]?.has(anchorId)
+                ? { winner: p.id, loser: anchorId }
+                : { winner: anchorId, loser: p.id }
+            )
+        : [];
       const accepted = anchorPlayer
-        ? buildAnchorComparisons(anchorId, untagged, betterIds).filter(
+        ? [...settledSeeds, ...buildAnchorComparisons(anchorId, untagged, betterIds)].filter(
             ({ winner, loser }) => closureCache.addEdge(winner, loser)
           )
         : [];
