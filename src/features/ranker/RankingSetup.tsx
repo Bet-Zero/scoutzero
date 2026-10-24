@@ -272,8 +272,11 @@ export const RankingSetup = ({
       setOutIds((prev) => prev.filter((p) => p !== id));
     };
 
+  // Players ruled out of a Top-N list can't be the anchor or locked in
   const optionsExcluding = (...ids: Array<string | null>) =>
-    playerPool.filter((p) => !ids.includes(p.id));
+    playerPool.filter(
+      (p) => !ids.includes(p.id) && !(listSize !== null && outIds.includes(p.id))
+    );
 
   const handleReady = () => {
     // Out tags only apply to a Top-N list, and must leave at least N players

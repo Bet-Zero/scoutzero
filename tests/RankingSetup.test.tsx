@@ -122,6 +122,12 @@ describe('RankingSetup', () => {
     fireEvent.click(screen.getByText(/Start Ranking/));
     expect(handle.mock.lastCall?.[0].cuts).toEqual([{ ids: ['11'], at: -1 }]);
 
+    // A player ruled out isn't offered as the anchor or a lock-in
+    const anchorOptions = within(screen.getByTestId('anchor')).getAllByRole('option');
+    expect(anchorOptions.map((o) => o.textContent)).not.toContain('P11');
+    const lockOptions = within(screen.getByTestId('locks')).getAllByRole('option');
+    expect(lockOptions.map((o) => o.textContent)).not.toContain('P11');
+
     // Cutting down below 10 left isn't applied
     fireEvent.click(within(out).getByText('P10'));
     fireEvent.click(within(out).getByText('P9'));

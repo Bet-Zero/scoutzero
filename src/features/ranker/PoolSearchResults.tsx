@@ -178,20 +178,28 @@ export const PoolSearchResults = ({
             )}
           </p>
           <div className="flex gap-2">
+            {/* Top-N lists start fully ticked, so "add all" would quietly
+                bring back players the user unticked: only offer the ticked */}
             <button
               onClick={() => add(selectedRows.map((r) => r.player))}
               disabled={selectedRows.length === 0}
-              className="h-8 px-3 text-sm rounded-lg border border-white/20 text-white hover:bg-white/10 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+              className={`h-8 px-3 text-sm rounded-lg disabled:opacity-25 disabled:cursor-not-allowed transition-colors ${
+                preselect
+                  ? 'bg-white text-black font-semibold hover:bg-white/90'
+                  : 'border border-white/20 text-white hover:bg-white/10'
+              }`}
             >
               Add selected ({selectedRows.length})
             </button>
-            <button
-              onClick={() => add(addable.map((r) => r.player))}
-              disabled={addable.length === 0}
-              className="h-8 px-3 text-sm rounded-lg bg-white text-black font-semibold hover:bg-white/90 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-            >
-              Add all {addable.length}
-            </button>
+            {!preselect && (
+              <button
+                onClick={() => add(addable.map((r) => r.player))}
+                disabled={addable.length === 0}
+                className="h-8 px-3 text-sm rounded-lg bg-white text-black font-semibold hover:bg-white/90 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+              >
+                Add all {addable.length}
+              </button>
+            )}
           </div>
         </div>
       )}
