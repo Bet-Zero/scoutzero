@@ -212,6 +212,8 @@ describe('PoolWorkbench', () => {
 
     // Scorer has no record that season; Vet's 24.4 PPG line scores highest
     await waitFor(() => expect(screen.getByText('Add selected (4)')).toBeTruthy());
+    // Everyone starts ticked, so only the ticked can be added (no "Add all")
+    expect(screen.queryByText(/^Add all/)).toBeNull();
     expect(screen.getByLabelText<HTMLInputElement>('Candidates to pull').value).toBe('26');
     const firstRow = screen.getAllByRole('row')[1];
     expect(within(firstRow).getByText('Vet')).toBeTruthy();
