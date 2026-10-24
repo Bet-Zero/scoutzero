@@ -1,55 +1,26 @@
 /**
  * FILE: src/features/ranker/PoolSearchResults.tsx
- * PURPOSE: Result list for the ranker's Find Players panel: each player's team, age, salary and stats for the chosen season, with add-one, add-selected and add-all actions
+ * PURPOSE: Results pane of the ranker workbench: the results table, near misses for the Top-N preset, and add-selected / add-all actions
  * OWNERSHIP: Feature: ranker
  *
  * HISTORY:
  *  - 2026-10-21: Created; replaces FilterMatchPreview (name chips with add-all only) (PR #565)
  *  - 2026-10-22: Rank and score columns, and pre-ticked rows for the Top-N preset
  *  - 2026-10-22: Stats and pay rank columns, and a tap-to-add near-miss list
+ *  - 2026-10-24: Fills a fixed-height pane: table scrolls, near misses and actions stay pinned below
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
- *  - Used in: src/features/ranker/FilterPoolPanel.tsx
+ *  - Used in: src/features/ranker/PoolWorkbench.tsx
  */
 import React, { useMemo, useState } from 'react';
-import { Check, Plus } from 'lucide-react';
-import { formatSalary } from '@/shared/utils/formatting/basicFormatting';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
+import { PoolResultsTable, type PoolSearchRow } from './PoolResultsTable';
+import { NearMissStrip } from './NearMissStrip';
 
 const PAGE_SIZE = 50;
 
-export type PoolSearchRow = {
-  player: RosterManagerPlayer;
-  team: string | null;
-  age: number | null;
-  salary: number | null;
-  stats: Record<string, number | string | null | undefined> | null;
-  inPool: boolean;
-  // Set by the Top-N preset: position by score, and the score itself
-  rank?: number;
-  score?: number;
-  // Top-N preset: place by stats score and by salary among all matches
-  statsRank?: number | null;
-  payRank?: number | null;
-};
-
-const playerName = (player: RosterManagerPlayer): string =>
-  player.bio?.displayName || player.name || 'Unknown';
-
-// Stat feeds mark a traded player's full-season line as TOT / 2TM / 3TM
-const teamLabel = (team: string | null): string => {
-  if (!team) return '—';
-  return /^(TOT|\dTM)$/i.test(team) ? 'Multiple' : team.toUpperCase();
-};
-
-const statLabel = (
-  stats: PoolSearchRow['stats'],
-  field: string
-): string => {
-  const value = Number(stats?.[field]);
-  return stats?.[field] != null && Number.isFinite(value) ? value.toFixed(1) : '—';
-};
+export type { PoolSearchRow } from './PoolResultsTable';
 
 type PoolSearchResultsProps = {
   active: boolean;
@@ -62,7 +33,25 @@ type PoolSearchResultsProps = {
   preselect?: boolean;
   // Top-N preset: the next players after the pool, to add by hand
   nearMisses?: PoolSearchRow[];
+  // Notes and controls shown above the table
+  header?: React.ReactNode;
 };
+
+const Message = ({
+  children,
+  tone = 'muted',
+}: {
+  children: React.ReactNode;
+  tone?: 'muted' | 'error';
+}) => (
+  <div className="flex flex-1 items-center justify-center px-6 py-10 text-center">
+    <p
+      className={`max-w-sm text-sm leading-relaxed ${tone === 'error' ? 'text-red-300' : 'text-white/35'}`}
+    >
+      {children}
+    </p>
+  </div>
+);
 
 export const PoolSearchResults = ({
   active,
@@ -73,6 +62,7 @@ export const PoolSearchResults = ({
   onAdd,
   preselect = false,
   nearMisses = [],
+  header = null,
 }: PoolSearchResultsProps) => {
   // Ticked ids, or with `preselect` the unticked ones
   const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set());
@@ -90,25 +80,6 @@ export const PoolSearchResults = ({
     () => addable.filter((r) => toggled.has(r.player.id) !== preselect),
     [addable, toggled, preselect]
   );
-  const ranked = rows.some((r) => r.rank !== undefined);
-
-  if (!active) {
-    return (
-      <p className="text-white/30 text-xs">
-        Search for a player or set a filter to see players.
-      </p>
-    );
-  }
-  if (error) {
-    return (
-      <p className="text-red-300 text-xs">
-        Couldn&apos;t load {season} data: {error}
-      </p>
-    );
-  }
-  if (loading) {
-    return <p className="text-white/40 text-xs">Loading {season} data…</p>;
-  }
 
   const add = (players: RosterManagerPlayer[]) => {
     if (players.length === 0) return;
@@ -122,189 +93,108 @@ export const PoolSearchResults = ({
       else next.add(id);
       return next;
     });
-  const allSelected = addable.length > 0 && selectedRows.length === addable.length;
+  const allSelected =
+    addable.length > 0 && selectedRows.length === addable.length;
   const alreadyIn = rows.length - addable.length;
-  const shown = rows.slice(0, limit);
+  const remaining = rows.length - limit;
+
+  let body: React.ReactNode;
+  if (!active) {
+    body = (
+      <Message>
+        <span className="block">
+          Search for a player or set a filter to see players.
+        </span>
+        <span className="block mt-1 text-white/25">
+          You can also pull a Top-N pool, or add a whole team or one of your
+          lists from the top bar.
+        </span>
+      </Message>
+    );
+  } else if (error) {
+    body = (
+      <Message tone="error">
+        Couldn&apos;t load {season} data: {error}
+      </Message>
+    );
+  } else if (loading) {
+    body = <Message>Loading {season} data…</Message>;
+  } else if (rows.length === 0) {
+    body = (
+      <Message>No players match. Loosen a filter or clear the search.</Message>
+    );
+  } else {
+    body = (
+      <div className="relative flex-1 min-h-0 overflow-auto">
+        <PoolResultsTable
+          rows={rows.slice(0, limit)}
+          ranked={rows.some((r) => r.rank !== undefined)}
+          isSelected={isSelected}
+          allSelected={allSelected}
+          canSelectAll={addable.length > 0}
+          onToggle={toggle}
+          onToggleAll={() => {
+            // Select all (or none): with preselect that's an empty
+            // (or full) set of unticked ids
+            const all = new Set(addable.map((r) => r.player.id));
+            setToggled(allSelected === preselect ? all : new Set());
+          }}
+          onAdd={(player) => add([player])}
+        />
+        {remaining > 0 && (
+          <button
+            onClick={() => setLimit((n) => n + PAGE_SIZE)}
+            className="w-full py-2.5 text-xs text-white/50 hover:text-white hover:bg-white/[0.03]"
+          >
+            {remaining > PAGE_SIZE
+              ? `Show ${PAGE_SIZE} more of ${remaining}`
+              : `Show the last ${remaining}`}
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const showResults = active && !error && !loading;
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-        <p className="text-sm text-white/70">
-          <span className="text-white font-semibold">{rows.length}</span> player
-          {rows.length === 1 ? '' : 's'}
-          {alreadyIn > 0 && (
-            <span className="text-white/40"> · {alreadyIn} already in pool</span>
-          )}
-        </p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => add(selectedRows.map((r) => r.player))}
-            disabled={selectedRows.length === 0}
-            className="px-3 py-1.5 text-sm rounded-lg border border-white/20 text-white hover:bg-white/10 disabled:opacity-25 disabled:cursor-not-allowed"
-          >
-            Add selected ({selectedRows.length})
-          </button>
-          <button
-            onClick={() => add(addable.map((r) => r.player))}
-            disabled={addable.length === 0}
-            className="px-3 py-1.5 text-sm rounded-lg bg-white text-black font-semibold hover:bg-white/90 disabled:opacity-25 disabled:cursor-not-allowed"
-          >
-            Add all {addable.length}
-          </button>
-        </div>
-      </div>
+    <div className="flex flex-col flex-1 min-h-0">
+      {header}
+      {body}
 
-      {rows.length === 0 ? (
-        <p className="text-white/30 text-xs">No players match.</p>
-      ) : (
-        <div className="rounded-lg border border-white/[0.07] overflow-x-auto">
-          <table className="w-full text-xs text-white/70">
-            <thead className="text-white/35 text-[10px] uppercase tracking-wider">
-              <tr className="border-b border-white/[0.07]">
-                <th className="w-8 px-2 py-2">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all"
-                    checked={allSelected}
-                    disabled={addable.length === 0}
-                    onChange={() => {
-                      // Select all (or none): with preselect that's an empty
-                      // (or full) set of unticked ids
-                      const all = new Set(addable.map((r) => r.player.id));
-                      setToggled(allSelected === preselect ? all : new Set());
-                    }}
-                  />
-                </th>
-                {ranked && <th className="text-right px-2 py-2">#</th>}
-                <th className="text-left px-2 py-2">Player</th>
-                <th className="text-left px-2 py-2">Team</th>
-                <th className="text-right px-2 py-2">Age</th>
-                <th className="text-right px-2 py-2">Salary</th>
-                <th className="text-right px-2 py-2">PPG</th>
-                <th className="text-right px-2 py-2">RPG</th>
-                <th className="text-right px-2 py-2">APG</th>
-                <th className="text-right px-2 py-2">GP</th>
-                {ranked && (
-                  <>
-                    <th className="text-right px-2 py-2" title="Game Score per game">
-                      Score
-                    </th>
-                    <th className="text-right px-2 py-2" title="Place by Game Score among all matches">
-                      Stats #
-                    </th>
-                    <th className="text-right px-2 py-2" title="Place by salary among all matches">
-                      Pay #
-                    </th>
-                  </>
-                )}
-                <th className="w-16 px-2 py-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((row) => {
-                const id = row.player.id;
-                const name = playerName(row.player);
-                return (
-                  <tr
-                    key={id}
-                    className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.03]"
-                  >
-                    <td className="px-2 py-1.5 text-center">
-                      <input
-                        type="checkbox"
-                        aria-label={`Select ${name}`}
-                        checked={!row.inPool && isSelected(id)}
-                        disabled={row.inPool}
-                        onChange={() => toggle(id)}
-                      />
-                    </td>
-                    {ranked && (
-                      <td className="px-2 py-1.5 text-right text-white/40">{row.rank}</td>
-                    )}
-                    <td className="px-2 py-1.5 text-white">{name}</td>
-                    <td className="px-2 py-1.5">{teamLabel(row.team)}</td>
-                    <td className="px-2 py-1.5 text-right">{row.age ?? '—'}</td>
-                    <td className="px-2 py-1.5 text-right">{formatSalary(row.salary)}</td>
-                    <td className="px-2 py-1.5 text-right">{statLabel(row.stats, 'PTS')}</td>
-                    <td className="px-2 py-1.5 text-right">{statLabel(row.stats, 'REB')}</td>
-                    <td className="px-2 py-1.5 text-right">{statLabel(row.stats, 'AST')}</td>
-                    <td className="px-2 py-1.5 text-right">
-                      {row.stats?.GP != null ? String(row.stats.GP) : '—'}
-                    </td>
-                    {ranked && (
-                      <>
-                        <td className="px-2 py-1.5 text-right">
-                          {row.score !== undefined ? row.score.toFixed(1) : '—'}
-                        </td>
-                        <td className="px-2 py-1.5 text-right text-white/50">
-                          {row.statsRank ?? '—'}
-                        </td>
-                        <td className="px-2 py-1.5 text-right text-white/50">
-                          {row.payRank ?? '—'}
-                        </td>
-                      </>
-                    )}
-                    <td className="px-2 py-1.5 text-right">
-                      {row.inPool ? (
-                        <span className="inline-flex items-center gap-1 text-white/35">
-                          <Check className="w-3 h-3" /> In pool
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => add([row.player])}
-                          aria-label={`Add ${name}`}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/10 text-white hover:bg-white/20"
-                        >
-                          <Plus className="w-3 h-3" /> Add
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {showResults && <NearMissStrip nearMisses={nearMisses} onAdd={onAdd} />}
 
-      {rows.length > limit && (
-        <button
-          onClick={() => setLimit((n) => n + PAGE_SIZE)}
-          className="mt-2 text-xs text-white/50 hover:text-white"
-        >
-          Show {Math.min(PAGE_SIZE, rows.length - limit)} more of {rows.length - limit}
-        </button>
-      )}
-
-      {nearMisses.length > 0 && (
-        <div className="mt-5 pt-4 border-t border-dashed border-white/10">
-          <p className="text-xs text-white/50 mb-1.5">
-            Not in the pool · just missed the cut ({nearMisses.length}): tap anyone who could make your list
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {nearMisses.map((row) =>
-              row.inPool ? (
-                <span
-                  key={row.player.id}
-                  className="px-2 py-0.5 rounded text-xs text-white/30 border border-white/[0.06]"
-                >
-                  {playerName(row.player)} ✓
-                </span>
-              ) : (
-                <button
-                  key={row.player.id}
-                  onClick={() => onAdd([row.player])}
-                  aria-label={`Add ${playerName(row.player)} (near miss)`}
-                  className="px-2 py-0.5 rounded text-xs text-white/70 bg-white/[0.06] hover:bg-white/15"
-                >
-                  + {playerName(row.player)}
-                </button>
-              )
+      {showResults && rows.length > 0 && (
+        <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-t border-white/[0.06]">
+          <p className="text-sm text-white/65">
+            <span className="text-white font-semibold">{rows.length}</span>{' '}
+            player
+            {rows.length === 1 ? '' : 's'}
+            {alreadyIn > 0 && (
+              <span className="text-white/40">
+                {' '}
+                · {alreadyIn} already in pool
+              </span>
             )}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => add(selectedRows.map((r) => r.player))}
+              disabled={selectedRows.length === 0}
+              className="h-8 px-3 text-sm rounded-lg border border-white/20 text-white hover:bg-white/10 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+            >
+              Add selected ({selectedRows.length})
+            </button>
+            <button
+              onClick={() => add(addable.map((r) => r.player))}
+              disabled={addable.length === 0}
+              className="h-8 px-3 text-sm rounded-lg bg-white text-black font-semibold hover:bg-white/90 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+            >
+              Add all {addable.length}
+            </button>
           </div>
         </div>
       )}
-
     </div>
   );
 };

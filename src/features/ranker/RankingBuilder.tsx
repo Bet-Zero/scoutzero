@@ -1,17 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
-import { DrawerShell } from '@/shared/components/ui/drawers/DrawerShell';
-import { OpenDrawerButton } from '@/shared/components/ui/drawers/OpenDrawerButton';
-import { AddPlayerDrawer } from '@/features/roster/AddPlayerDrawer';
 import { RankingSession } from './RankingSession';
-import { PoolSourceControls } from './PoolSourceControls';
-import { PoolGrid } from './PoolGrid';
-import { FilterPoolPanel } from './FilterPoolPanel';
+import { PoolWorkbench } from './PoolWorkbench';
+import { PoolPanel } from './PoolPanel';
+import { PoolSourceMenus } from './PoolSourceMenus';
 import { useRankerCandidates } from './hooks/useRankerCandidates';
 import { useOwnerPlayerLists } from './hooks/useOwnerPlayerLists';
 import { useRankerPool } from './hooks/useRankerPool';
 import { LocalDraftBanner } from './LocalDraftBanner';
-import { SavedSessionsPanel } from './SavedSessionsPanel';
 import { useRankerSession } from './hooks/useRankerSession';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
 import type { HydratedRankerDraft } from './hooks/useRankerSession';
@@ -58,13 +54,11 @@ export const RankingBuilder = () => {
     pool,
     setPool,
     poolIds,
-    addPlayerToPool,
     addPlayersToPool,
     addTeamToPool,
     addListToPool,
     removePlayer,
   } = useRankerPool(playersMap, lists);
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [started, setStarted] = useState(false);
 
   // Session persistence state - now local-first
@@ -185,107 +179,64 @@ export const RankingBuilder = () => {
     );
   }
 
-  const canStart = pool.length >= 2;
-
   return (
-    <div className="flex relative">
-      {!drawerOpen && <OpenDrawerButton onClick={() => setDrawerOpen(true)} />}
+    <div className="flex flex-col gap-3 px-4 sm:px-5 pt-4 pb-5 text-white lg:flex-1 lg:min-h-0">
+      {/* ── Title ──────────────────────────────────────────────────────────── */}
+      <div className="flex flex-shrink-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h1 className="text-xl font-bold tracking-tight">Player Ranker</h1>
+        <p className="text-white/40 text-sm">
+          Build a pool, then rank players head-to-head.
+        </p>
+      </div>
 
-      <DrawerShell isOpen={drawerOpen} onClose={() => setDrawerOpen(false)}>
-        <AddPlayerDrawer
-          onClose={() => setDrawerOpen(false)}
-          allPlayers={processedPlayers}
-          onSelect={addPlayerToPool}
-          onSelectAll={addPlayersToPool}
+      {/* ── Local draft (refresh/crash recovery) ───────────────────────────── */}
+      {showLocalDraftBanner && hasLocalSession && localDraft && (
+        <LocalDraftBanner
+          draft={localDraft}
+          onResume={handleResumeLocalDraft}
+          onDiscard={handleDiscardDraft}
+          loading={loadingFirestore}
         />
-      </DrawerShell>
+      )}
 
-      <div
-        className={`flex-1 transition-[margin] duration-300 ease-in-out ${
-          drawerOpen ? 'ml-[300px]' : 'ml-0'
-        }`}
-      >
-        <div className="px-6 py-8 text-white max-w-[900px] mx-auto">
-          {/* ── Header ──────────────────────────────────────────────────────── */}
-          <div className="flex items-start justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight mb-1.5">
-                Player Ranker
-              </h1>
-              <p className="text-white/40 text-sm">
-                Build a pool, then rank players head-to-head.
-              </p>
-            </div>
-            {pool.length > 0 && (
-              <span className="mt-1 px-3 py-1 rounded-full bg-white/[0.07] border border-white/[0.1] text-white/45 text-sm font-medium flex-shrink-0">
-                {pool.length} player{pool.length !== 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
+      {(resumeError || sessionError) && (
+        <p className="flex-shrink-0 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
+          {resumeError || sessionError}
+        </p>
+      )}
 
-          {/* ── Local Draft Banner (refresh/crash recovery) ───────────────── */}
-          {showLocalDraftBanner && hasLocalSession && localDraft && (
-            <LocalDraftBanner
-              draft={localDraft}
-              onResume={handleResumeLocalDraft}
-              onDiscard={handleDiscardDraft}
-              loading={loadingFirestore}
-            />
-          )}
-
-          {(resumeError || sessionError) && (
-            <p className="mb-5 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
-              {resumeError || sessionError}
-            </p>
-          )}
-
-          {isOwner && (
-            <SavedSessionsPanel
-              sessions={firestoreSessions}
-              loading={loadingFirestore}
-              onOpen={handleOpenSavedSession}
-              onDelete={handleDeleteSavedSession}
-            />
-          )}
-
-          {/* ── Add to Pool ─────────────────────────────────────────────────── */}
-          <PoolSourceControls
+      {/* ── Workbench: toolbar, then filters | results | pool ─────────────── */}
+      <PoolWorkbench
+        candidates={processedPlayers}
+        poolIds={poolIds}
+        onAdd={addPlayersToPool}
+        menus={
+          <PoolSourceMenus
             lists={lists}
+            signedIn={Boolean(userId)}
             onAddTeam={addTeamToPool}
             onAddList={addListToPool}
+            saved={
+              isOwner
+                ? {
+                    sessions: firestoreSessions,
+                    loading: loadingFirestore,
+                    onOpen: handleOpenSavedSession,
+                    onDelete: handleDeleteSavedSession,
+                  }
+                : undefined
+            }
           />
-
-          <FilterPoolPanel
-            candidates={processedPlayers}
-            poolIds={poolIds}
-            onAdd={addPlayersToPool}
-          />
-
-          {/* ── Player Pool ─────────────────────────────────────────────────── */}
-          <PoolGrid
+        }
+        pool={
+          <PoolPanel
             pool={pool}
             onRemove={removePlayer}
             onClear={() => setPool([])}
+            onStart={handleStartNew}
           />
-
-          {/* ── CTA ─────────────────────────────────────────────────────────── */}
-          <div className="flex flex-col items-center gap-2.5">
-            <button
-              onClick={handleStartNew}
-              disabled={!canStart}
-              className="px-10 py-3.5 rounded-xl bg-white text-black font-bold text-sm tracking-tight hover:bg-white/90 active:scale-[0.98] transition-all shadow-xl disabled:opacity-25 disabled:cursor-not-allowed disabled:active:scale-100"
-            >
-              Start Ranking →
-            </button>
-            {!canStart && (
-              <p className="text-white/20 text-xs">
-                Add at least 2 players to begin
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
+        }
+      />
     </div>
   );
 };
-

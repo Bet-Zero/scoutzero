@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-21: Created in the Player Ranker audit fix pass (PR #562)
+ *  - 2026-10-24: Slim one-line strip above the pool workbench
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/562
@@ -63,33 +64,24 @@ export const LocalDraftBanner = ({
   };
 
   return (
-    <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-            <RotateCcw className="w-5 h-5 text-amber-400" />
-          </div>
-          <div>
-            <p className="text-white font-medium text-sm mb-0.5">
-              {isFinished
-                ? 'You have a completed ranking'
-                : 'You have an in-progress session'}
-            </p>
-            <p className="text-white/50 text-xs">
-              &quot;{draft.name || 'Untitled'}&quot; — {resultsCount} comparisons,{' '}
-              {playerCount} players
-            </p>
-            <p className="text-white/30 text-xs mt-0.5">
-              Last updated: {formatDate(lastUpdated)}
-            </p>
-          </div>
-        </div>
-      </div>
-      <div className="flex gap-2 mt-3 ml-13">
+    <div className="flex flex-shrink-0 flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+      <RotateCcw className="w-4 h-4 text-amber-400 flex-shrink-0" />
+      <p className="flex-1 min-w-0 text-sm text-white truncate">
+        {isFinished ? 'Completed ranking' : 'In-progress ranking'}{' '}
+        <span className="font-medium">
+          &quot;{draft.name || 'Untitled'}&quot;
+        </span>
+        <span className="text-white/45">
+          {' '}
+          · {resultsCount} comparisons · {playerCount} players · last updated{' '}
+          {formatDate(lastUpdated)}
+        </span>
+      </p>
+      <div className="flex gap-2 flex-shrink-0">
         <button
           onClick={onResume}
           disabled={loading}
-          className="px-4 py-2 text-sm rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          className="h-8 px-3 text-sm rounded-md bg-amber-500 hover:bg-amber-400 text-black font-medium transition-colors disabled:opacity-50 flex items-center gap-1.5"
         >
           <Play className="w-3.5 h-3.5" />
           Resume
@@ -97,7 +89,7 @@ export const LocalDraftBanner = ({
         <button
           onClick={confirmDiscard}
           disabled={loading}
-          className="px-4 py-2 text-sm rounded-lg bg-white/10 hover:bg-red-500/30 text-white/70 hover:text-red-300 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+          className="h-8 px-3 text-sm rounded-md bg-white/10 hover:bg-red-500/30 text-white/70 hover:text-red-300 transition-colors disabled:opacity-50 flex items-center gap-1.5"
         >
           <Trash2 className="w-3.5 h-3.5" />
           Discard

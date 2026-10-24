@@ -20,15 +20,18 @@ const TABS = [
 type FilterTabsProps = {
   filters: AddPlayerFilters;
   setFilters: Dispatch<SetStateAction<AddPlayerFilters>>;
-  onCloseFilters: () => void;
+  onCloseFilters?: () => void;
+  // 'column' fills its container's height and has no Close button (Player Ranker workbench)
+  variant?: 'drawer' | 'column';
 };
 
-export const FilterTabs = ({ filters, setFilters, onCloseFilters }: FilterTabsProps) => {
+export const FilterTabs = ({ filters, setFilters, onCloseFilters, variant = 'drawer' }: FilterTabsProps) => {
   const [activeTab, setActiveTab] = useState('basic');
+  const isColumn = variant === 'column';
 
   return (
-    <div className="border-b border-white/10">
-      <div className="flex border-b border-white/10 text-xs">
+    <div className={isColumn ? 'flex flex-col h-full min-h-0' : 'border-b border-white/10'}>
+      <div className="flex flex-shrink-0 border-b border-white/10 text-xs">
         {TABS.map(({ id, label, accent }) => (
           <button
             key={id}
@@ -44,7 +47,7 @@ export const FilterTabs = ({ filters, setFilters, onCloseFilters }: FilterTabsPr
         ))}
       </div>
 
-      <div className="h-[180px] overflow-y-auto">
+      <div className={isColumn ? 'flex-1 min-h-0 overflow-y-auto' : 'h-[180px] overflow-y-auto'}>
         {activeTab === 'basic'    && <BasicFilters    filters={filters} setFilters={setFilters} />}
         {activeTab === 'roles'    && <RolesFilters    filters={filters} setFilters={setFilters} />}
         {activeTab === 'contract' && <ContractFilters filters={filters} setFilters={setFilters} />}
@@ -52,19 +55,21 @@ export const FilterTabs = ({ filters, setFilters, onCloseFilters }: FilterTabsPr
         {activeTab === 'stats'    && <StatsFilters    filters={filters} setFilters={setFilters} />}
       </div>
 
-      <div className="p-2 border-t border-white/10 flex gap-2">
+      <div className="p-2 border-t border-white/10 flex flex-shrink-0 gap-2">
         <button
           onClick={() => setFilters(getDefaultAddPlayerFilters())}
           className="flex-1 py-1 bg-[#222] text-white/70 hover:text-white rounded text-xs"
         >
           Clear All Filters
         </button>
-        <button
-          onClick={onCloseFilters}
-          className="flex-1 py-1 bg-[#333] text-white/70 hover:text-white rounded text-xs flex items-center justify-center gap-1"
-        >
-          <X size={14} /> Close
-        </button>
+        {!isColumn && (
+          <button
+            onClick={onCloseFilters}
+            className="flex-1 py-1 bg-[#333] text-white/70 hover:text-white rounded text-xs flex items-center justify-center gap-1"
+          >
+            <X size={14} /> Close
+          </button>
+        )}
       </div>
     </div>
   );
