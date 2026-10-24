@@ -9,7 +9,7 @@
  * LINKS:
  *  - Used in: src/features/ranker/PoolPanel.tsx
  */
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const PRESETS = [10, 20, 50, 100];
 
@@ -20,12 +20,12 @@ type ListSizePickerProps = {
   onChange: (listSize: number | null) => void;
 };
 
-// A list size only counts when it's shorter than the pool
+// A list size only counts from 2 up, and when it's shorter than the pool
 export const effectiveListSize = (
   listSize: number | null,
   poolCount: number
 ): number | null =>
-  listSize !== null && listSize >= 1 && listSize < poolCount ? listSize : null;
+  listSize !== null && listSize >= 2 && listSize < poolCount ? listSize : null;
 
 export const ListSizePicker = ({
   poolCount,
@@ -35,6 +35,20 @@ export const ListSizePicker = ({
   const size = effectiveListSize(listSize, poolCount);
   const presets = PRESETS.filter((n) => n < poolCount);
   const [custom, setCustom] = useState(false);
+  // What's typed, so a first digit like the 1 of 15 isn't wiped out
+  const [typed, setTyped] = useState('');
+  // A size set from outside (a Top-N pull) leaves custom entry
+  const emitted = useRef(listSize);
+  const emit = (next: number | null) => {
+    emitted.current = next;
+    onChange(next);
+  };
+  useEffect(() => {
+    if (listSize !== emitted.current) {
+      emitted.current = listSize;
+      setCustom(false);
+    }
+  }, [listSize]);
   const value =
     custom || (size !== null && !presets.includes(size))
       ? 'custom'
@@ -57,8 +71,9 @@ export const ListSizePicker = ({
           onChange={(e) => {
             const next = e.target.value;
             setCustom(next === 'custom');
-            if (next === 'all') onChange(null);
-            else if (next !== 'custom') onChange(Number(next));
+            setTyped(size === null ? '' : String(size));
+            if (next === 'all') emit(null);
+            else if (next !== 'custom') emit(Number(next));
           }}
           className="flex-1 min-w-0 h-8 bg-white/[0.05] text-white text-sm rounded-lg border border-white/[0.1] px-2"
         >
@@ -79,15 +94,16 @@ export const ListSizePicker = ({
         {value === 'custom' && (
           <input
             type="number"
-            min={1}
-            max={Math.max(1, poolCount - 1)}
-            value={size ?? ''}
+            min={2}
+            max={Math.max(2, poolCount - 1)}
+            value={typed}
             placeholder="N"
             aria-label="Custom list size"
             onChange={(e) => {
+              setTyped(e.target.value);
               const n = Number.parseInt(e.target.value, 10);
-              onChange(
-                Number.isFinite(n) && n >= 1 ? Math.min(n, poolCount - 1) : null
+              emit(
+                Number.isFinite(n) && n >= 2 ? Math.min(n, poolCount - 1) : null
               );
             }}
             className="w-16 h-8 bg-white/[0.05] text-white text-sm rounded-lg border border-white/[0.1] px-2"

@@ -113,7 +113,8 @@ export const RankingSession = ({
   const [setupData, setSetupData] = useState<RankerSetupData | null>(() => {
     if (resumedSessionData) return resumedSessionData.setupData || null;
     // A list shorter than the pool builds its field first
-    return listSize && listSize >= 1 && listSize < poolPlayers.length
+    // A one-player list has nothing to rank, so a field needs 2 or more
+    return listSize && listSize >= 2 && listSize < poolPlayers.length
       ? { field: createFieldState(listSize) }
       : null;
   });

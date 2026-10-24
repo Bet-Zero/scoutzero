@@ -77,6 +77,15 @@ describe('PoolPanel', () => {
     fireEvent.change(select, { target: { value: 'custom' } });
     fireEvent.change(screen.getByLabelText('Custom list size'), { target: { value: '45' } });
     expect(onListSizeChange).toHaveBeenLastCalledWith(29);
+    // A one-player list isn't offered: typing 1 (on the way to 15) keeps the digit but sets nothing
+    fireEvent.change(screen.getByLabelText('Custom list size'), { target: { value: '1' } });
+    expect(onListSizeChange).toHaveBeenLastCalledWith(null);
+    expect((screen.getByLabelText('Custom list size') as HTMLInputElement).value).toBe('1');
+
+    // A Top-N pull from outside leaves custom entry for its preset
+    rerender(panel(10));
+    expect(select.value).toBe('10');
+    expect(screen.queryByLabelText('Custom list size')).toBeNull();
 
     // A Top-N pull bigger than the pool ranks everyone
     rerender(panel(50));
