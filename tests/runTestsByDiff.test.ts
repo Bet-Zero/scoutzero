@@ -49,7 +49,13 @@ function fixture() {
   git('commit', '-m', 'base');
   return { cwd, git, write, base: git('rev-parse', 'HEAD') };
 }
-const empty = () => ({ node: [], ui: [], native: [], emulator: [] });
+const empty = () => ({
+  node: [],
+  ui: [],
+  native: [],
+  emulator: [],
+  functions: [],
+});
 const room = 'src/features/architect/cockpit/RoomFrame.tsx';
 const before = readFileSync(room, 'utf8').replace(
   /border-b border-[^\s\"]+/,
@@ -191,6 +197,26 @@ describe('actual change rather than feature responsibility', () => {
     'src/features/architect/utils/leagueInvariants.ts',
     'src/features/architect/utils/freeAgentRights.ts',
     'src/features/architect/utils/draftPenaltyOrder.ts',
+    'src/features/architect/utils/draftPickRelease.ts',
+    'src/features/architect/utils/draftPickCashSale.ts',
+    'src/features/architect/utils/draftPickOwnership.ts',
+    'src/features/architect/utils/draftPickLineage.ts',
+    'src/features/architect/utils/draftPickFoundation.ts',
+    'src/features/architect/utils/draftReview/consumption.ts',
+    'src/features/architect/utils/draftReview/seasonTotals.ts',
+    'src/features/architect/utils/draftReview/seasonPrerequisite.ts',
+    'src/features/architect/utils/draftReview/inventoryFence.ts',
+    'src/features/architect/utils/draftReview/fixturePins.ts',
+    'src/features/architect/utils/offseason/resolveOffseasonTransition.optionDecisions.ts',
+    'src/features/architect/utils/offseason/resolveOffseasonTransition.validation.ts',
+    'src/features/architect/utils/transactionHistory/transactionEventSerialization.ts',
+    'src/features/architect/utils/transactionHistory/transactionCommitManifest.ts',
+    'functions/src/architect/trustedContractBaseline.ts',
+    'functions/src/architect/initializeWorld.ts',
+    'functions/src/architect/purgeWorld.ts',
+    'server/draftReview.ts',
+    'api/architect/draft-review.ts',
+    'scripts/buildCertifiedSeason.mjs',
     'src/shared/utils/contracts/contractUtils.ts',
     'src/features/architect/utils/mutationPipeline.ts',
     'src/firebase/firebaseHelpers.ts',
@@ -330,6 +356,62 @@ describe('actual change rather than feature responsibility', () => {
     });
     expect(plan.commands.filter((c) => c.script).map((c) => c.script)).toEqual([
       'cloud:typecheck',
+    ]);
+  });
+  it.each(['server/draftReview.ts', 'api/architect/draft-review.ts'])(
+    'uses the existing server/API type contract without an unrelated UI build: %s',
+    async (file) => {
+      const plan = await selectTestPlan([file], {
+        discover: async () => empty(),
+      });
+      expect(plan.profile).toMatchObject({
+        review: 'required',
+        broadReasons: [],
+      });
+      expect(
+        plan.commands.filter((c) => c.script).map((c) => c.script)
+      ).toEqual(['typecheck']);
+    }
+  );
+  it('builds Functions and runs their discovered tests once, without app suites or emulators', async () => {
+    const plan = await selectTestPlan(
+      ['functions/src/architect/trustedContractBaseline.ts'],
+      {
+        discover: async () => ({
+          ...empty(),
+          functions: [
+            'functions/src/architect/trustedContractBaseline.test.ts',
+            'functions/src/architect/trustedContractBaseline.test.ts',
+          ],
+        }),
+      }
+    );
+    expect(plan.profile).toMatchObject({
+      review: 'required',
+      broadReasons: [],
+    });
+    expect(plan.commands.filter((c) => c.script)).toEqual([]);
+    expect(plan.commands.map((c) => c.args)).toEqual([
+      ['diff', '--check'],
+      [
+        '--prefix',
+        'functions',
+        'ci',
+        '--include=dev',
+        '--no-audit',
+        '--no-fund',
+      ],
+      ['--prefix', 'functions', 'run', 'build'],
+      [
+        'node_modules/vitest/vitest.mjs',
+        'run',
+        '--root',
+        'functions',
+        '--config',
+        '../vitest.config.js',
+        '--reporter=dot',
+        'src/architect/trustedContractBaseline.test.ts',
+      ],
     ]);
   });
   it('only starts specialists when their tests are selected', async () => {

@@ -20,15 +20,16 @@ const isGlobal = (file) =>
 // Minimum review obligations for executable responsibility changes, not suite
 // mappings. Presentation proof is checked first. Financial logic lives across
 // salary, cap, contract, trade and governed-lifecycle code and source tables,
-// including hooks/components/data; responsibility has no utility-directory gate. Actual consequences can require review beyond this floor.
+// including server/cloud code. Actual consequences can require review beyond
+// these responsibility signals; no signal requests a full-project suite.
 const isSensitive = (file) => {
   const financialLogic =
-    file.startsWith('src/') &&
-    /salary|salaries|cap|apron|contract|trade|legality|waiver|extension|exception|signing|offerSheet|rfa|rights|stepien|entitlement|governed|cba|rulesProfile|tpe|deadMoney|invariant|penalty|rookie/i.test(
+    /salary|salaries|cap|apron|contract|trade|legality|waiver|extension|exception|signing|offerSheet|rfa|rights|stepien|entitlement|governed|cba|rulesProfile|tpe|deadMoney|invariant|penalty|rookie|draft[-_]?pick|draft[-_]?review|transaction|offseason|commit|manifest|fence|ledger|evidence|certified/i.test(
       file
     );
   return (
     financialLogic ||
+    /^(?:functions\/|server\/|api\/)/.test(file) ||
     /^tsconfig\..*\.json$/.test(file) ||
     /(?:mutationPipeline|seasonManager|firebase|firestore|persist|world.*(?:Service|Store|Manager)|auth|src\/schemas\/|source-releases|scripts\/(?:dev|release|admin)\/|player-scrape|team-scrape)/i.test(
       file
@@ -376,7 +377,7 @@ export function selectValidationProfile(files, options = {}) {
     // A build validates and delivers actual UI changes, regardless of feature.
     build: sources.some((file) => /^src\//.test(file)) || files.some(isGlobal),
     typecheck:
-      behavior.some((file) => /^src\/.*\.tsx?$/.test(file)) ||
+      behavior.some((file) => /^(?:src|server|api)\/.*\.tsx?$/.test(file)) ||
       files.some(isGlobal),
     structure: options.structural === true,
     docs: files.some(isDoc),
@@ -389,19 +390,35 @@ export function selectValidationProfile(files, options = {}) {
 // are not inferred: agents retain them using additive Validation-Tests trailers.
 export async function discoverTests(files, { cwd = process.cwd() } = {}) {
   const { createVitest } = await import('vitest/node');
-  const selected = { node: [], ui: [], native: [], emulator: [] };
+  const selected = {
+    node: [],
+    ui: [],
+    native: [],
+    emulator: [],
+    functions: [],
+  };
   const configs = {
     node: 'vitest.node.config.js',
     ui: 'vitest.ui.config.js',
     native: 'vitest.node.config.js',
     emulator: 'vitest.emulator.config.js',
+    functions: 'vitest.config.js',
   };
   for (const [kind, config] of Object.entries(configs)) {
+    const functionsEnvironment = files.some(
+      (file) =>
+        /^functions\/(?:package(?:-lock)?\.json|tsconfig\.json)$/.test(file) ||
+        file === 'scripts/buildCertifiedSeason.mjs' ||
+        isGlobal(file)
+    );
     const ctx = await createVitest('test', {
-      root: cwd,
+      root: kind === 'functions' ? path.join(cwd, 'functions') : cwd,
       config: path.join(cwd, config),
       watch: false,
-      related: files.map((file) => path.resolve(cwd, file)),
+      related:
+        kind === 'functions' && functionsEnvironment
+          ? undefined
+          : files.map((file) => path.resolve(cwd, file)),
       ...(kind === 'native'
         ? { include: ['tests/**/*.node-test.{ts,js}'], setupFiles: [] }
         : {}),
@@ -495,6 +512,45 @@ export async function selectTestPlan(files, options = {}) {
       ],
     });
   if (profile.typecheck) commands.push({ script: 'typecheck' });
+  const functionsBuild = profile.behavior.some(
+    (file) =>
+      file.startsWith('functions/') ||
+      file === 'scripts/buildCertifiedSeason.mjs'
+  );
+  if (functionsBuild || selected.functions?.length) {
+    commands.push({
+      executable: 'npm',
+      args: [
+        '--prefix',
+        'functions',
+        'ci',
+        '--include=dev',
+        '--no-audit',
+        '--no-fund',
+      ],
+    });
+    if (functionsBuild)
+      commands.push({
+        executable: 'npm',
+        args: ['--prefix', 'functions', 'run', 'build'],
+      });
+    if (selected.functions?.length)
+      commands.push({
+        executable: process.execPath,
+        args: [
+          'node_modules/vitest/vitest.mjs',
+          'run',
+          '--root',
+          'functions',
+          '--config',
+          '../vitest.config.js',
+          '--reporter=dot',
+          ...selected.functions.map((file) =>
+            path.posix.relative('functions', file)
+          ),
+        ],
+      });
+  }
   if (
     profile.behavior.some((file) => /^scripts\/dev\/.*\.tsx?$/.test(file)) ||
     files.includes('tsconfig.cloud.json')

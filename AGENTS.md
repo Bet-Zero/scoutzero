@@ -115,13 +115,20 @@ The minimum review guard also checks direct protected runtime imports on both
 sides of a behavior change; it does not promote type-only imports or unchanged
 logic inside a proven presentation edit. Inspect indirect/dynamic effects too.
 
+Financial, draft-pick, offseason, transaction-history and trusted server/cloud
+responsibilities retain a review minimum for behavior edits; directory names
+do not make their proven presentation-only edits consequential.
+
 For executable changes, Vitest's existing import graph selects affected node,
-UI, native and emulator test consumers. Adding regressions or related files does
+UI, native, Functions and emulator test consumers. Adding regressions or related files does
 not force full-project validation. Native/browser/emulator prerequisites run
 only when the selected tests need them. No related test means missing automated
 coverage, not a pass: choose meaningful manual/static/visual verification for the
 actual risk and record it in the PR. Do not invent a ceremonial test to qualify
 for a lighter route. Dynamic and file-read dependencies need agent inspection.
+Server/API TypeScript uses the existing root type check. Functions changes use
+their own dependency installation, build and related colocated tests; neither
+requires an unrelated UI build or emulator solely because it is server code.
 
 When inspection identifies checks outside that graph, record them in the normal
 commit message using an additive `Validation-Tests: ["tests/path.test.ts"]`
