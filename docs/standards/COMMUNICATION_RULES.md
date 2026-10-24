@@ -8,8 +8,8 @@
 
 - **No coding experience** - User does not know code or technical terms
 - **Cannot make technical decisions** - User has no opinion on code patterns, types, frameworks, architecture
-- **Wants clarity on direction** - User expects many questions to clarify project direction and exact requirements
-- **Wants detailed plans** - Build plans with extreme detail before execution so confidence is high it will build exactly what's wanted
+- **Wants clarity on direction** - Ask only about material unresolved product requirements or owner-reserved decisions.
+- **Delegates technical judgment** - Use planning detail proportionate to coordination needs; small tasks need no planning artifact.
 
 ## Agent Responsibilities
 
@@ -81,7 +81,8 @@
 - Missing context ("update the thing", "change how it works")
 - Conflicting information (user says X but code suggests Y)
 
-**When in doubt, ask. It's better to ask too many questions than to build the wrong thing.**
+Investigate technical uncertainty independently. Ask only when a genuine
+product preference, missing authority or owner-reserved decision remains.
 
 ## Balance
 

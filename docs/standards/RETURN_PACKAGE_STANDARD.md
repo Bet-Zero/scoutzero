@@ -33,7 +33,7 @@ work/<initiative>/
   notes/                    # Scratch notes (optional)
 ```
 
-Only create files that are needed — a small initiative may only need plan.md and a return package.
+Create a return package only when explicitly requested or an existing coordinated/production workflow genuinely needs one. Ordinary tasks use the PR; they need neither a plan nor a return package.
 
 ## Required Contents
 
@@ -45,7 +45,7 @@ Every return package must include, at minimum:
 - commands skipped, with reasons
 - validation performed and outcome
 - acceptance criteria check when the phase/request defines one
-- follow-up work or next recommended phase
+- any genuine unresolved blocker; do not invent follow-up phases
 
 When applicable, also include:
 

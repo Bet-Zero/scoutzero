@@ -14,7 +14,8 @@ Use this doc as the quick reference. Use the linked standards when a change need
 
 ## Do
 
-- Put return packages and execution evidence under `work/<initiative>/`.
+- Keep detailed task evidence in the PR. When a file-based return package is
+  explicitly needed, put it under `work/<initiative>/`.
 - Put temporary planning, review, and draft docs under `work/<initiative>/`.
 - Move or graduate completed working docs after review; do not let `_working` become a permanent evidence store.
 - Keep evergreen feature docs in feature roots such as `docs/reference/architect/`, `archive/docs/team-scrape/`, `archive/docs/tradeMachine/`, and `archive/docs/scouting/`.
@@ -27,21 +28,20 @@ Use this doc as the quick reference. Use the linked standards when a change need
 - Do not add `*RETURN_PACKAGE*.md` files directly under feature-doc roots.
 - Do not put active working docs in `docs/` — `docs/` is a permanent reference library, not a workspace.
 
-## Human Review Required
+## Agent Judgment and Owner Boundaries
 
-- A doc looks partly evergreen and partly historical.
-- A stale link has no clear replacement.
-- A change would move, rename, or delete historical files.
-- A working-doc cluster needs archive vs permanent-doc judgment.
+- Resolve mixed evergreen/historical content from its intended use; prefer the existing home.
+- Inspect a stale link when it affects the task; record an unresolved reference without unrelated cleanup.
+- Do not move, rename or delete historical files outside the authorized scope.
+- Agents decide routine archive/permanent placement; ask only for a genuine owner-reserved decision.
 
 ## Validation
 
-Before and after docs-routing or workspace-rule changes, run:
+For docs-routing or workspace-rule changes, run the applicable checks once; reuse unaffected evidence:
 
 ```bash
 git status --short
-npm run lint:md
-npm run docs:guardrails
+node scripts/run-tests-by-diff.mjs --docs
 ```
 
 ## Related Standards

@@ -272,9 +272,9 @@ test('Phase 3A policy binds freeze to tranche-specific author review', () => {
     profile,
     [
       'Complete the focused author failure-testing matrix',
-      'Let every started available automated review complete',
-      'resolve or disprove every finding it produced',
-      'Declare the candidate frozen only when author review is complete',
+      'Triage available automated findings for relevance and correctness',
+      'genuine defects affecting this assignment',
+      'Declare the candidate frozen when author review and required checks are complete',
     ],
     'pre-freeze author and automated review policy'
   );
@@ -316,22 +316,19 @@ test('Phase 3A policy settles automated review and exact-head CI before Claude',
   assertAppearsInOrder(
     profile,
     [
-      'Open the draft PR as soon as it has a reviewable diff',
-      'Start available automated review while author work and self-review are still underway',
-      'Declare the candidate frozen only when author review is complete',
+      'Open a PR when it has a coherent reviewable diff',
+      'Optional automated review may run during author work when useful',
+      'Declare the candidate frozen when author review and required checks are complete',
       'only the green hosted CI receipt for the frozen final head counts as required evidence',
       'Only then generate the immutable independent-Claude prompt',
       'Any subsequent head change invalidates that prompt',
     ],
     'automated-review, freeze, CI, and Claude policy'
   );
+  assert.match(profile, /Optional pending review is not a mandatory wait/);
   assert.match(
     profile,
-    /unavailable or rate-limited does not\nblock the lane indefinitely/
-  );
-  assert.match(
-    profile,
-    /A review that has started but remains pending is not settled/
+    /Required independent acceptance remains a separate exact-candidate gate/
   );
   assert.match(
     profile,
@@ -387,7 +384,7 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
   );
   assert.match(profile, /npm run architect:proof:trade-receipt/);
   assert.match(profile, /Graphify queries may be used/);
-  assert.match(profile, /only after source topology is stable/);
+  assert.match(profile, /only when changed topology invalidates a relevant retained claim/);
   assert.match(profile, /Validation reruns follow the changed risk surface/);
   assert.match(profile, /test-only assertion or evidence edit/);
 

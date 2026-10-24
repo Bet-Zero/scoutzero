@@ -20,6 +20,9 @@ authorization, integrity and source qualification) retain independent review.
 Mixed changes inherit the strongest relevant obligation. A label never waives it.
 These rules do not replace any existing owner approval or production boundary.
 The detailed invocation/freeze requirements below apply when review is required.
+Presentation syntax is not semantic proof: inspect status meaning, contrast and
+consumers. Optional automated suggestions do not require indefinite waiting or
+unrelated scope expansion; resolve genuine relevant defects.
 
 ## Author responsibilities
 
@@ -154,7 +157,8 @@ The September BZE-309 June 5 holder correction illustrated a focused
 semantic/adversarial delta review: judge the proposed closures and accounting,
 inspect targeted evidence, and challenge continuity assumptions without
 repeating the full v12/v13 author reconstruction absent a concrete concern.
-That example is not a pending assignment. Read
-[BZE-309](https://linear.app/bzero/issue/BZE-309) for current evidence obligations
-and [BZE-243](https://linear.app/bzero/issue/BZE-243) for the current product
-completion position and next authorized outcome.
+That example is not a pending assignment or a startup-reading requirement.
+For work on that source package, use
+[BZE-309](https://linear.app/bzero/issue/BZE-309) for its evidence obligations
+and [BZE-243](https://linear.app/bzero/issue/BZE-243) for its product completion
+position. Those links do not authorize a new task.

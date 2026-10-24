@@ -65,20 +65,22 @@ Four pillars. Every document in `docs/` belongs in exactly one of them.
 Only three things belong at `docs/` root:
 
 - `docs/INDEX.md` — the navigation entry point
-- `docs/COMPONENT_INDEX.md` and `docs/FILE_MAP.md` — auto-generated on every commit, do not edit manually
+- `docs/COMPONENT_INDEX.md` and `docs/FILE_MAP.md` — generated when relevant topology/doc-sync changes require it, do not edit manually
 
 ---
 
 ## work/ — Active In-Progress Material
 
-`work/` lives at the repo root (not inside `docs/`).
+`work/` lives at the repo root (not inside `docs/`). These are placement rules
+when a working document is needed, not requirements to create one. Ordinary
+task evidence stays in the PR; update an existing issue with a concise pointer.
 
 ```
 work/
 └── <initiative-slug>/
     ├── plan.md              # Main planning/tracking doc
     ├── preflight.md         # Pre-execution assessment (optional)
-    ├── return_package.md    # Delivery evidence (created on completion)
+    ├── return_package.md    # Optional delivery evidence when explicitly needed
     └── notes/               # Any other working docs (optional)
 ```
 

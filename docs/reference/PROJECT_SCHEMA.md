@@ -985,10 +985,10 @@ When making structural changes, also update:
 
 Before committing:
 
-1. Run `npm run validate:project` - Schema validation must pass
-2. Run `npm run typecheck` - Type checking must pass (or only show pre-existing errors)
-3. Run `npm run test -- --run` - Tests should pass (or only show pre-existing failures)
-4. Run `npm run lint` - Check for new linting errors (1888 existing errors are known technical debt)
+1. When repository layout/schema contracts change, run `npm run validate:project`.
+2. When executable types/contracts change, run `npm run typecheck`; distinguish existing failures.
+3. Run the relevant checks selected by `npm run test:diff -- --reporter=dot`; full suites need broad-risk justification.
+4. Use focused lint only when it helps the changed risk. Do not repair unrelated baseline lint debt.
 
 ---
 

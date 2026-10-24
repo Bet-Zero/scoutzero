@@ -1,415 +1,55 @@
 # Creating Permanent Documentation
 
-**CRITICAL**: When adding new features, scripts, or tools, you MUST create permanent documentation files. Temporary docs go in workspace, but permanent docs belong in `docs/`, feature directories, or script directories.
-
-## When to Create Permanent Documentation
-
-### Always Create Documentation For
-
-1. **New Major Features** → `src/features/<feature>/README.md`
-2. **New Scripts/Tools** → `<scriptDir>/README.md`
-3. **New Public APIs** → Feature README or `docs/api/<feature>.md`
-4. **Complex User Workflows** → `docs/guides/<feature>.md`
-
-### Documentation Types
-
-## 1. Feature README (`src/features/<feature>/README.md`)
-
-**When to create:**
-
-- **ALL** new feature directories (mandatory)
-- New major feature directory
-- Significant feature refactor that changes architecture
-- Feature with complex logic or multiple components
-
-**Path rules:**
-
-- For features: `src/features/<featureSlug>/README.md`
-- For Architect-specific features: `src/architect/<featureSlug>/README.md` (if using separate architect folder)
-
-**What to include:**
-
-```markdown
-# Feature Name
-
-## Purpose
-What this folder is responsible for and why it exists.
-
-## Entry Points
-Main components or scripts that serve as entry points:
-- `index.tsx` - Main component export
-- `FeatureView.tsx` - Primary view component
-- `hooks/useFeature.ts` - Main hook
-
-## Structure
-Subfolders and what they contain:
-- `components/` - UI components specific to this feature
-- `hooks/` - Custom hooks for this feature
-- `utils/` - Utility functions
-- `types.ts` - TypeScript types/interfaces
-
-## Key Components
-- ComponentName - What it does
-- AnotherComponent - What it does
-
-## Usage
-How to use this feature in the app.
-
-## Public APIs
-If the feature exports hooks, utilities, or functions:
-- `useFeatureHook()` - Description
-- `featureUtility()` - Description
-
-## Related Documentation
-- Links to relevant working docs: `work/<initiative>/`
-- Links to docs under `docs/`
-- Links to related schemas or guides
-```
-
-**Example**: See `src/features/architect/ARCHITECT_FEATURE_README.md`
-
-## 2. Script/Tool README (`<scriptDir>/README.md`)
-
-**When to create:**
-
-- **ALL** new scripts or tools (mandatory)
-- Even simple scripts should have basic README
-
-**Path rules:**
-
-- For standalone tools/fixtures: `scripts/<toolName>/README.md`
-- For scripts: `<scriptDir>/README.md` (e.g., `player-scrape/contracts/README.md`)
-
-**What to include:**
-
-```markdown
-# Script/Tool Name
-
-## Purpose
-What this folder is responsible for and what the script/tool does.
-
-## Entry Points
-Main scripts that serve as entry points:
-- `scripts/main.ts` - Primary CLI script
-- `scripts/helper.ts` - Supporting script
-
-## Structure
-Subfolders and what they contain:
-- `scripts/` - Executable scripts
-- `output/` - Generated output files
-- `docs/` - Script-specific documentation
-
-## Usage
-```bash
-npm run script-name [options]
-# or
-npx tsx scripts/main.ts [options]
-```
-
-## Parameters
-
-- `--param` - Description
-- `--flag` - Description
-
-## Output
-
-Where output goes and what format it's in.
-
-## Examples
-
-```bash
-# Example 1
-npm run script-name --param value
-
-# Example 2
-npm run script-name --flag
-```
-
-## Related Documentation
-
-- Links to relevant working docs: `work/<initiative>/`
-- Links to docs under `docs/`
-
-## 3. API Documentation (`docs/api/<feature>.md` or in feature README)
-
-**When to create:**
-
-- Feature exports hooks, utilities, or functions used by other features
-- Complex APIs that need detailed documentation
-- Public APIs that other developers will use
-
-**What to include:**
-
-- Function signatures
-- Parameter descriptions
-- Return value descriptions
-- Usage examples
-- Error handling
-
-## 4. User Guides (`docs/guides/<feature>.md`)
-
-**When to create:**
-
-- Features with complex user workflows
-- Features with non-obvious functionality
-- Features that need step-by-step instructions
-
-**What to include:**
-
-- Step-by-step usage instructions
-- Common workflows
-- Examples and use cases
-- Troubleshooting tips
-
-## 3. Data Module README (`data/<area>/README.md`)
-
-**When to create:**
-
-- **ALL** new data modules (mandatory)
-- New data processing areas
-- Data modules with complex structure
-
-**Path rules:**
-
-- For data modules: `data/<area>/README.md`
-
-**What to include:**
-
-```markdown
-# Data Module Name
-
-## Purpose
-What this folder is responsible for and what data it manages.
-
-## Entry Points
-Main scripts or utilities:
-- `scripts/process.ts` - Data processing script
-- `utils/transform.ts` - Data transformation utilities
-
-## Structure
-Subfolders and what they contain:
-- `scripts/` - Data processing scripts
-- `output/` - Processed data files
-- `schemas/` - Data schemas/validators
-
-## Data Format
-Description of data structure and format.
-
-## Related Documentation
-- Links to relevant working docs: `work/<initiative>/`
-- Links to schemas under `src/schemas/`
-```
-
-## 6. Index-Based Structure for Composed Components
-
-**CRITICAL**: When creating a folder that owns subcomponents (feature root or complex component), you MUST:
-
-1. **Create an index file** in that folder (`index.ts`, `index.tsx`, or `index.jsx`) that exports the main component
-2. **Place subcomponents** in subfolders or sibling files as appropriate
-3. **Keep hierarchy consistent** with visual/logic composition (parent components live above their children in folder depth)
-
-**Example structure:**
-
-```text
-src/architect/tradeMachine/autoSuggest/
-├── index.tsx                    # Exports main AutoSuggest entry
-├── AutoSuggestModal/
-│   ├── index.tsx               # Modal root component
-│   ├── AutoSuggestPlayerRow.tsx
-│   └── AutoSuggestFit.tsx
-├── hooks/
-│   └── useAutoSuggest.ts
-└── utils/
-    └── autoSuggestFilters.ts
-```
-
-**Rules:**
-
-- Parent components export from `index.tsx` at their level
-- Child components live in subfolders with their own `index.tsx`
-- Keep folder depth aligned with component hierarchy
-
-## 7. File Headers for New/Modified Files
-
-**CRITICAL**: For all new or significantly modified files in `src/`, `data/`, and `scripts/`, you MUST:
-
-1. **Insert a file header** using the fields below and the file's language-appropriate comment syntax.
-2. **Fill in all required fields:**
-    - `FILE`: Relative path from repo root (e.g., `src/features/tradeMachine/AutoSuggest.tsx`)
-    - `PURPOSE`: Short description of what this file does
-    - `OWNERSHIP`: Feature or domain (e.g., `Feature: architect/tradeMachine` or `Tool: player-scrape/contracts`)
-    - `HISTORY`: A concise change entry referencing the actual issue, PR or applicable existing plan
-    - `LINKS`: Relevant existing contracts, docs and implementation records; plan/chunk links only when those files exist
-
-**When to add headers:**
-
-- ✅ **All new files** in `src/`, `data/`, `scripts/`
-- ✅ **Significantly modified files** (architecture changes, major refactors)
-- ❌ **Minor changes** (bug fixes, small tweaks) - update HISTORY only if header exists
-
-**If unsure about PURPOSE or OWNERSHIP:**
-
-- Resolve technical purpose/ownership from the existing code and assignment; ask only for genuinely unclear product requirements.
-- See `docs/standards/COMMUNICATION_RULES.md` for when to ask vs. decide
-
-The fields above are the header specification; the former
-`docs/templates/file_header.template.txt` reference is obsolete. Do not invent
-plan/chunk references or create tracking documents to populate a header.
-
-## File Placement Rules
-
-### Permanent Documentation Locations
-
-- **Feature docs**: `src/features/<feature>/README.md` or `src/architect/<feature>/README.md`
-- **Script docs**: `<scriptDir>/README.md` (e.g., `scripts/<toolName>/README.md`)
-- **Data module docs**: `data/<area>/README.md`
-- **API docs**: `docs/api/<feature>.md` or in feature README
-- **User guides**: `docs/guides/<feature>.md`
-- **Schema docs**: Auto-generated via `npm run schema:generate` → `docs/reference/schema/`
-- **Component docs**: Auto-generated via `npm run docs` → `docs/components/`
-
-### Temporary Documentation (Workspace)
-
-- **Interim notes**: `work/<initiative>/`
-- **Process notes**: `work/<initiative>/`
-- **"How I updated X"**: `work/<initiative>/`
-
-**Key difference**: Permanent docs are for users/developers to reference long-term. Temporary docs are for your own notes during development.
-
-## Checklist for New Features
-
-When creating a new feature, ensure you:
-
-- [ ] **Create feature README** (`src/features/<feature>/README.md` or `src/architect/<feature>/README.md`)
-  - Document PURPOSE (what folder is responsible for)
-  - Document ENTRY POINTS (main components/scripts)
-  - Document STRUCTURE (subfolders and contents)
-  - Document key components, usage, public APIs
-  - Link to relevant existing contracts, docs and assignment records
-
-- [ ] **Use index-based structure** (if feature has composed components)
-  - Create `index.tsx` at feature root that exports main component
-  - Place subcomponents in subfolders with their own `index.tsx`
-  - Keep hierarchy consistent with visual/logic composition
-
-- [ ] **Add file headers** to all new files
-  - Use the file-header fields above
-  - Fill in FILE, PURPOSE, OWNERSHIP, HISTORY, LINKS
-  - Resolve technical PURPOSE/OWNERSHIP; ask only for unclear product requirements
-
-- [ ] **Update `DEVELOPER_GUIDE.md`**
-  - Add feature to folder structure
-  - Document key patterns
-
-- [ ] **Create API docs** (if feature has public APIs)
-  - Either in feature README or `docs/api/<feature>.md`
-
-- [ ] **Create user guide** (if feature has complex workflows)
-  - `docs/guides/<feature>.md`
-
-- [ ] **Run `npm run docs` only if requested/doc-sync requires it** (per `AGENTS.md`)
-
-## Checklist for New Scripts/Tools
-
-When creating a new script or tool:
-
-- [ ] **Create script README** (`scripts/<toolName>/README.md` or `<scriptDir>/README.md`)
-  - Document PURPOSE (what folder is responsible for)
-  - Document ENTRY POINTS (main scripts)
-  - Document STRUCTURE (subfolders and contents)
-  - Document usage, parameters, examples, output format
-  - Link to relevant existing contracts, docs and assignment records
-
-- [ ] **Add file headers** to all new files
-  - Use the file-header fields above
-  - Fill in FILE, PURPOSE, OWNERSHIP, HISTORY, LINKS
-  - Resolve technical PURPOSE/OWNERSHIP; ask only for unclear product requirements
-
-- [ ] **Update `PROJECT_SCHEMA.md`**
-  - Add script to "Script Interfaces" section
-
-## Feature and Script Examples
-
-### Example 1: New Feature
-
-**What**: Created `src/features/tradeMachine/` with multiple components
-
-**Documentation created:**
-
-- ✅ `src/features/tradeMachine/README.md` (feature overview, components, APIs)
-- ✅ Updated `DEVELOPER_GUIDE.md` (added to folder structure)
-- ✅ `docs/guides/tradeMachine.md` (user guide for complex workflows)
-- ✅ Ran `npm run docs` if requested/doc-sync required it (component hierarchies)
-
-**Temporary docs** (in workspace):
-
-- ❌ `work/trade-machine/temp/docs/implementation_notes.md` (deleted when done)
-
-### Example 2: New Script
-
-**What**: Created `scripts/data-processor/process_players.ts`
-
-**Documentation created:**
-
-- ✅ `scripts/data-processor/README.md` (usage, parameters, examples)
-- ✅ Updated `PROJECT_SCHEMA.md` (added to script interfaces)
-
-**Temporary docs** (in workspace):
-
-- ❌ `work/data-processor/temp/docs/test_results.md` (deleted when done)
-
-## Checklist for New Data Modules
-
-When creating a new data module:
-
-- [ ] **Create data module README** (`data/<area>/README.md`)
-  - Document PURPOSE (what folder is responsible for)
-  - Document ENTRY POINTS (main scripts/utilities)
-  - Document STRUCTURE (subfolders and contents)
-  - Document data format and structure
-  - Link to relevant existing contracts, schemas and assignment records
-
-- [ ] **Add file headers** to all new files
-  - Use the file-header fields above
-  - Fill in FILE, PURPOSE, OWNERSHIP, HISTORY, LINKS
-  - Resolve technical PURPOSE/OWNERSHIP; ask only for unclear product requirements
-
-- [ ] **Update `PROJECT_SCHEMA.md`**
-  - Add data module to structure documentation
-
-## Summary
-
-**Permanent documentation** = Files that users/developers will reference long-term
-
-- Feature READMEs (with PURPOSE, ENTRY POINTS, STRUCTURE)
-- Script/Tool READMEs (with PURPOSE, ENTRY POINTS, STRUCTURE)
-- Data module READMEs (with PURPOSE, ENTRY POINTS, STRUCTURE)
-- API docs
-- User guides
-- File headers (for all new/significantly modified files)
-
-**Temporary documentation** = Files for your own notes during development
-
-- Implementation notes
-- Process notes
-- Test results
-
-**Structure requirements:**
-
-- Index-based structure for composed components
-- Folder-level READMEs for all features, scripts, and data modules
-- File headers for all new files in `src/`, `data/`, `scripts/`
-
-**Rule**: If someone else (or future you) will need to reference it, it's permanent. If it's just notes for yourself during development, it's temporary.
-
-### Before creating any file, ask: "Is this permanent or temporary?"
-
-```text
-Is this file meant to be permanent?
-├─ YES → Is it production-ready?
-│   ├─ YES → Save to permanent location (src/, data/, docs/, scripts/, tests/)
-│   └─ NO → Save to workspace drafts/ (will be moved or deleted)
-└─ NO → Save to workspace temp/ (will be deleted)
-```
-
-### Design Principle: Design for Cleanup
+Document durable knowledge where future users or developers will look for it.
+Prefer updating the existing authoritative guide, README, contract or inline
+explanation. A new file, component, feature directory or script does not by
+itself require a new README, header, plan or evidence document.
+
+Create a new document only when it has a distinct long-lived audience or purpose
+that an existing home cannot serve clearly. Use the placement rules in
+`DOCUMENTATION_STRUCTURE_STANDARD.md`. Technical placement is the agent's
+judgment, not an owner approval request.
+
+## Choosing a home
+
+| Knowledge | Preferred home |
+| --- | --- |
+| Feature behavior and entry points | Existing feature README or `docs/reference/<feature>/` |
+| Script usage, parameters and prerequisites | Existing tool README or operational guide |
+| Public API contracts | Existing API/feature documentation |
+| Complex user workflow | Existing guide; a new guide only for a distinct need |
+| Schema contract | Canonical schemas and their generated reference |
+| Implementation/review evidence | PR; an existing issue receives a concise status link |
+| Active coordinated plan | Update the existing applicable plan, without duplicating the PR |
+
+Do not create a folder README solely because a folder was created. Do not
+restructure components into index files to satisfy a documentation template.
+Keep source qualification, privacy, generated schema correctness and existing
+product contracts intact.
+
+## Useful content, when needed
+
+A README or guide may explain purpose, entry points, non-obvious structure,
+usage, public contracts, failure behavior and relevant links. Include only what
+helps its audience. Do not populate empty headings or invent plan/issue links.
+
+A short source comment may capture non-obvious intent, ownership or a critical
+invariant. File headers are optional design aids, not a requirement for every
+new or modified file. Git already records filename and history; do not duplicate
+those mechanically or touch unrelated headers during a small task.
+
+## Existing knowledge and evidence
+
+Update a durable contract when its meaning changes. A local styling correction
+usually needs no permanent documentation. For a new small script, usage in an
+existing tooling guide or a clear CLI help message can be sufficient.
+
+Generated docs are updated through their source command only when the relevant
+schema/topology changes or an explicit doc-sync task requires it. Never manually
+edit generated outputs. Do not regenerate the entire documentation tree for a
+text, color or local behavior edit.
+
+Ordinary tasks need no return package or planning file. Follow `AGENTS.md` for
+explicitly requested packages, active coordinated work, evidence reuse, and
+owner-reserved production approvals. Do not rewrite historical receipts to make
+them match current process wording.
