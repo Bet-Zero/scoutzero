@@ -535,6 +535,7 @@ describe('complete-candidate detection', () => {
       ...process.env,
       GITHUB_ACTIONS: 'true',
       GITHUB_OUTPUT: output,
+      GITHUB_STEP_SUMMARY: path.join(cwd, 'fixture-summary'),
       GITHUB_STEP_SUMMARY: summary,
       SCOUTZERO_DIFF_BASE: base,
       SCOUTZERO_DIFF_HEAD: git('rev-parse', 'HEAD'),
@@ -649,6 +650,7 @@ describe('proportionate end-to-end selection', () => {
               SCOUTZERO_DIFF_BASE: base,
               SCOUTZERO_DIFF_HEAD: head,
               GITHUB_OUTPUT: output,
+              GITHUB_STEP_SUMMARY: path.join(cwd, 'fixture-summary'),
             },
           }
         );
@@ -789,6 +791,35 @@ describe('proportionate end-to-end selection', () => {
     expect(selectTestPlan(changes.files, changes).commands[0].args).toContain(
       'related'
     );
+    const regression = 'src/tests/filters/LocalHeading.test.tsx';
+    write(
+      regression,
+      'import { LocalHeading } from "../../features/filters/LocalHeading";'
+    );
+    const withTest = collectChanges({ cwd, base });
+    expect(selectValidationProfile(withTest.files, withTest)).toMatchObject({
+      name: 'local-ui',
+      level: 'ordinary',
+      review: 'agent-decides',
+    });
+    const withTestPlan = selectTestPlan(withTest.files, withTest);
+    expect(withTestPlan.commands[0].args).not.toContain(regression);
+    expect(withTestPlan.commands).toContainEqual({
+      script: 'test:ui',
+      fileArgs: [regression],
+    });
+    git('add', '.');
+    git('commit', '-m', 'behavior and regression');
+    const committed = collectChanges({
+      cwd,
+      base,
+      head: git('rev-parse', 'HEAD'),
+      ci: true,
+    });
+    expect(selectValidationProfile(committed.files, committed)).toEqual(
+      selectValidationProfile(withTest.files, withTest)
+    );
+
     write(
       file,
       'import "@/firebase/write"; export const LocalHeading = () => <h2>Filters</h2>;'

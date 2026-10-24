@@ -319,23 +319,24 @@ export function selectValidationProfile(files, options = {}) {
       { authority: governing, policy: governing },
       'Local search behavior and complete inspected table/filter consumer tests'
     );
+  const localSources = executable.filter((file) => !isTestFile(file));
   // Other isolated presentation leaves use Vitest's existing import graph,
   // not a second dependency engine or a new per-file allowlist. New dependencies,
   // shared consumers, imperative globals and sensitive callbacks stay conservative.
   if (
-    files.length === 1 &&
+    localSources.length === 1 &&
     options.localConsumers === true &&
-    contents[files[0]] &&
-    !/\/(?:architect|ranker)\//.test(files[0]) &&
-    [contents[files[0]].before, contents[files[0]].after].every((text) =>
-      isPresentationLeaf(files[0], text)
+    contents[localSources[0]] &&
+    !/\/(?:architect|ranker)\//.test(localSources[0]) &&
+    [contents[localSources[0]].before, contents[localSources[0]].after].every(
+      (text) => isPresentationLeaf(localSources[0], text)
     )
   )
     return profile(
       'local-ui',
-      'ordinary',
+      governing ? 'consequential' : 'ordinary',
       true,
-      {},
+      { authority: governing, policy: governing },
       'Isolated presentation leaf with inspected imports; Vitest selects actual UI test consumers. Agent judges copy/accessibility and review need.'
     );
   // Known application domains retain strong relevant tests, without unrelated
@@ -469,8 +470,11 @@ export function collectChanges({
     // use the cosmetic shortcut. Search both snapshots, including consumers that
     // did not change. False positives deliberately keep the stronger path.
     let localConsumers = false;
-    if (entries.size === 1) {
-      const file = [...entries.keys()][0];
+    const sourceEntries = [...entries.keys()].filter(
+      (file) => !isTestFile(file) && !isKnownDoc(file)
+    );
+    if (sourceEntries.length === 1) {
+      const file = sourceEntries[0];
       const stem = path.basename(file, path.extname(file));
       const family = file.match(/^(src\/features\/[^/]+\/)/)?.[1];
       if (
@@ -747,13 +751,22 @@ export function selectTestPlan(changedFiles, options = {}) {
           args: [
             'node_modules/vitest/vitest.mjs',
             'related',
-            ...files,
+            ...files.filter((file) => !isTestFile(file) && !isKnownDoc(file)),
             '--run',
             '--config',
             'vitest.ui.config.js',
             '--reporter=dot',
           ],
         },
+        ...buildTargetedPlan({
+          files,
+          nodeTests: files.filter(
+            (file) => isTestFile(file) && !isUiTestFile(file)
+          ),
+          uiTests: files.filter(
+            (file) => isTestFile(file) && isUiTestFile(file)
+          ),
+        }).commands,
       ],
     };
   if (profile.name === 'table-view')
