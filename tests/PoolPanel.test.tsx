@@ -59,10 +59,26 @@ describe('PoolSourceMenus', () => {
       <PoolSourceMenus lists={[]} signedIn={false} onAddTeam={onAddTeam} onAddList={vi.fn()} />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Team' }));
+    const teamButton = screen.getByRole('button', { name: 'Team' });
+    fireEvent.click(teamButton);
     fireEvent.click(screen.getByLabelText('Add the Boston Celtics roster'));
     expect(onAddTeam).toHaveBeenCalledWith('celtics');
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Add a whole roster' })).toBeNull();
+    expect(document.activeElement).toBe(teamButton);
+  });
+
+  it('moves focus into an opened menu and back to its button on Escape', () => {
+    render(
+      <PoolSourceMenus lists={[]} signedIn={false} onAddTeam={vi.fn()} onAddList={vi.fn()} />
+    );
+    const teamButton = screen.getByRole('button', { name: 'Team' });
+    fireEvent.click(teamButton);
+    expect(teamButton.getAttribute('aria-expanded')).toBe('true');
+    expect(document.activeElement).toBe(screen.getByLabelText('Add the Atlanta Hawks roster'));
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('region', { name: 'Add a whole roster' })).toBeNull();
+    expect(document.activeElement).toBe(teamButton);
   });
 
   it('asks signed-out users to sign in before importing lists', () => {

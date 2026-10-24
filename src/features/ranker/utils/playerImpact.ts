@@ -10,7 +10,7 @@
  *  - 2026-10-22: rankerScoreFromSeasons, shared with the stats refresh that stores each player's score
  *
  * LINKS:
- *  - Used in: src/features/ranker/FilterPoolPanel.tsx, src/features/ranker/hooks/useImpactScores.ts
+ *  - Used in: src/features/ranker/hooks/usePoolFinder.ts, src/features/ranker/hooks/useImpactScores.ts
  *  - Stored by: scripts/dev/rankerScore.ts (stats refresh)
  */
 

@@ -1,15 +1,16 @@
 /**
  * FILE: src/features/ranker/ToolbarMenu.tsx
- * PURPOSE: Button plus dropdown panel for the ranker workbench toolbar (closes on outside click and Escape)
+ * PURPOSE: Button plus show/hide panel for the ranker workbench toolbar, with keyboard focus handling
  * OWNERSHIP: Feature: ranker
  *
  * HISTORY:
  *  - 2026-10-24: Created for the pool workbench layout
+ *  - 2026-10-24: Disclosure pattern with focus moved in on open and back on Escape/pick (review follow-up, PR #573)
  *
  * LINKS:
  *  - Used in: src/features/ranker/PoolSourceMenus.tsx
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { toolbarButtonClass } from './RankerPanel';
 
 type ToolbarMenuProps = {
@@ -20,12 +21,26 @@ type ToolbarMenuProps = {
   children: (close: () => void) => React.ReactNode;
 };
 
+// Disclosure: the button shows or hides a panel of ordinary buttons. Opening
+// moves focus into the panel; Escape or picking an item returns it to the
+// button; clicking or tabbing away just closes it.
 export const ToolbarMenu = ({ label, title, children }: ToolbarMenuProps) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const panelId = useId();
+
+  const closeAndRefocus = useCallback(() => {
+    setOpen(false);
+    buttonRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     if (!open) return;
+    panelRef.current
+      ?.querySelector<HTMLElement>('button, [href], input, select')
+      ?.focus();
     const onPointer = (e: MouseEvent | TouchEvent) => {
       if (
         ref.current &&
@@ -36,7 +51,7 @@ export const ToolbarMenu = ({ label, title, children }: ToolbarMenuProps) => {
       }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') closeAndRefocus();
     };
     document.addEventListener('mousedown', onPointer);
     document.addEventListener('touchstart', onPointer);
@@ -46,28 +61,46 @@ export const ToolbarMenu = ({ label, title, children }: ToolbarMenuProps) => {
       document.removeEventListener('touchstart', onPointer);
       document.removeEventListener('keydown', onKey);
     };
-  }, [open]);
+  }, [open, closeAndRefocus]);
 
   return (
-    <div className="relative" ref={ref}>
+    <div
+      className="relative"
+      ref={ref}
+      onBlur={(e) => {
+        // Tabbing out of the button and panel closes the menu
+        if (
+          open &&
+          !(
+            e.relatedTarget instanceof Node &&
+            ref.current?.contains(e.relatedTarget)
+          )
+        ) {
+          setOpen(false);
+        }
+      }}
+    >
       <button
+        ref={buttonRef}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        aria-haspopup="dialog"
+        aria-controls={panelId}
         className={toolbarButtonClass(open)}
       >
         {label}
       </button>
       {open && (
         <div
-          role="dialog"
+          ref={panelRef}
+          id={panelId}
+          role="region"
           aria-label={title}
           className="absolute right-0 top-full mt-1.5 z-40 w-[340px] max-w-[calc(100vw-2rem)] max-h-[380px] overflow-y-auto rounded-xl bg-[#202020] border border-white/15 shadow-2xl p-2.5"
         >
           <p className="px-1 pt-0.5 pb-2 text-[10px] font-semibold tracking-[0.1em] uppercase text-white/35">
             {title}
           </p>
-          {children(() => setOpen(false))}
+          {children(closeAndRefocus)}
         </div>
       )}
     </div>
