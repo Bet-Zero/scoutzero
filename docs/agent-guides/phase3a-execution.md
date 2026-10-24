@@ -12,6 +12,12 @@ requirements and exclusions governed by the
 [V1 completion contract](architect-v1-completion-contract.md). Efficiency rules
 do not change those requirements, source qualification, privacy, or owner gates.
 
+This profile applies to consequential Canon/execution work, not to every file
+under Architect. An isolated presentation correction follows the three levels in
+`AGENTS.md`; it does not inherit a Canon matrix, browser certification or Claude
+gate solely from its directory. Actual financial, legality, persistence, source
+or review impact retains the requirements below.
+
 ## Authorities
 
 - Accepted Canon candidate:

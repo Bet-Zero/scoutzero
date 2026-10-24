@@ -9,6 +9,18 @@ Owner decision: 2026-09-10.
 
 This guide clarifies the ScoutZero maker/checker model. Independent review is required where the governing workflow requires it, but the reviewer is a checker, not a second author. This guidance narrows reviewer scope without weakening source qualification, Canon correctness, privacy, candidate freeze, owner gates, or required verdicts.
 
+## When review is required
+
+Use the three execution levels in [AGENTS.md](../../AGENTS.md). Isolated local
+cosmetic or ordinary content changes have no routine independent Claude gate.
+For ordinary behavior, the agent decides from consequences, complexity and
+uncertainty; record the reason briefly. Consequential changes (including this
+validation policy, financial/legality logic, persistence, shared state,
+authorization, integrity and source qualification) retain independent review.
+Mixed changes inherit the strongest relevant obligation. A label never waives it.
+These rules do not replace any existing owner approval or production boundary.
+The detailed invocation/freeze requirements below apply when review is required.
+
 ## Author responsibilities
 
 The authoring agent (normally Codex) owns the complete deterministic execution path for the assignment, including:

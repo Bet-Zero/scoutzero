@@ -1,91 +1,23 @@
-## Scope
+## Change and impact
 
-Fixes BZE-XXX
+Describe the outcome, actual affected behavior/consumers, and execution level:
+isolated cosmetic/content, ordinary behavior, or consequential/cross-cutting.
+Explain isolation or material uncertainty briefly. Labels do not select checks.
+Link an existing issue if applicable; a small change needs no new tracking issue.
 
-<!-- Link completed foundations descriptively here. Do not use Refs for Done issues. -->
+## Verification
 
-Foundation context: [descriptive foundation name](https://linear.app/...)
+- Relevant checks actually run and results:
+- Skipped checks and why; known limitations:
+- Independent review: not required with reason, or exact candidate/verdict receipt:
 
-## Draft review and freeze record
+For consequential work, include focused failure proof and the exact frozen
+candidate/base, green CI and independent acceptance receipts. Apply the Phase 3A
+record only when that lane governs the work. Browser/emulator artifacts are
+required only for affected risks or an existing owner-approved design wave.
 
-- Focused failure-testing matrix derived from this tranche's risk contract:
-- Available automated reviewers started while the PR was draft:
-- Automated-review completion or recorded unavailability/rate limit:
-- Findings resolved or disproved:
-- Optional reviewers unavailable or rate-limited (record; do not wait indefinitely):
-- [ ] Every started automated review completed, or its unavailability/rate limit is recorded
-- [ ] Author review is complete and every available automated-review finding is settled
-- [ ] Candidate was frozen only after the preceding author and automated-review work
-- [ ] Required hosted CI is green on the final exact head
-- [ ] Immutable Claude prompt was generated only after that exact-head CI was green
-- [ ] No head change followed the Claude prompt, or every stale prompt was invalidated and replaced
+## Landing
 
-## Exact candidate record
-
-| Field               | Receipt                            |
-| ------------------- | ---------------------------------- |
-| Base SHA            | `...`                              |
-| Candidate SHA       | `...`                              |
-| Risk class          | `...`                              |
-| Declared checks     | `...`                              |
-| Canon family/leaves | `...` or `none — workflow/tooling` |
-
-## Evidence
-
-### Author
-
-- Risk-contract-specific failure matrix:
-- Focused positive proof:
-- Fail-closed counterfactual:
-- Other declared checks:
-
-### Hosted exact-head CI
-
-- Required checks and candidate:
-
-### Independent review
-
-- Immutable prompt generated after final-head CI, with prompt link:
-- Reviewer, exact base/head, verdict, and request/receipt link:
-- Adversarial probes and test non-vacuity:
-
-### Browser/emulator
-
-- Non-retained diagnostic command/result, or risk-based skip:
-- Retained exact-candidate certification artifact link/path, or risk-based skip:
-- Certification defect repair → diagnostic re-pass → replacement certification,
-  if applicable:
-
-### Skipped checks and limitations
-
-- Intentionally skipped:
-- Known limitations:
-- Source-blocked record (field, authority, last check, unblock event), if any:
-
-### Repair and evidence reuse
-
-- Candidate repairs, discriminating checks, affected evidence rerun, and
-  unaffected evidence reused:
-
-### Approximate execution time
-
-- Implementation:
-- Local validation:
-- Browser/emulator work:
-- Hosted CI and review waits:
-- Repeated failed attempts:
-
-## Merge eligibility
-
-- [ ] Candidate is frozen and unchanged since required evidence/review
-- [ ] Base/head are clean, synchronized, and ancestry is verified
-- [ ] Every started automated review completed, or its unavailability/rate limit is recorded
-- [ ] Every available automated-review finding was resolved or disproved before freeze
-- [ ] Optional automated-review unavailability/rate limiting is recorded without indefinite waiting
-- [ ] Required hosted CI is green on the exact candidate
-- [ ] Independent-Claude prompt was generated after that exact-head CI and still names the current head
-- [ ] Independent Claude returned `ACCEPT` on the exact candidate
-- [ ] Required browser workflow passed diagnostically before retained certification
-- [ ] Required browser/emulator proof passed, or the declared risk contract justifies a skip
-- [ ] No unresolved thread, product decision, authority ambiguity, failed QA, scope expansion, or material architecture/data concern remains
-- [ ] Linear receipt will link here instead of duplicating this report
+- [ ] Selected checks passed; skipped checks are not reported as passes
+- [ ] Required review is accepted for the unchanged candidate; findings resolved
+- [ ] Applicable owner approvals and protected production boundaries are preserved
