@@ -83,7 +83,8 @@ gets documentation checks; governing instructions also get authority/workflow
 checks; the three mapped Ranker UI entry files get the whole Ranker test family,
 typecheck, project validation and build. Unknown documents, shared consumers,
 configuration, dependencies, tooling, mixed impact and missing comparison history
-keep conservative coverage. This is a path/dependency policy, not a Markdown or
+keep conservative coverage. CI fails closed if comparison history or checked-out
+identity cannot be verified. This is a path/dependency policy, not a Markdown or
 change-size exemption. Main and scheduled full validation remain unchanged.
 
 A CI step marked unselected was not executed and is not a test pass. Required

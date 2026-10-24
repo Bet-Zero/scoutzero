@@ -496,5 +496,12 @@ describe('complete-candidate detection', () => {
     );
     expect(partial.status).toBe(1);
     expect(readFileSync(output, 'utf8').split('app=').length).toBe(2);
+    const missingHistory = spawnSync(process.execPath, [script, '--ci-plan'], {
+      cwd,
+      env: { ...env, SCOUTZERO_DIFF_BASE: '0'.repeat(40) },
+      encoding: 'utf8',
+    });
+    expect(missingHistory.status).toBe(1);
+    expect(readFileSync(output, 'utf8').split('app=').length).toBe(2);
   });
 });

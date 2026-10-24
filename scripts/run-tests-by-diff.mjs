@@ -524,6 +524,10 @@ function main() {
           ci,
         });
   const profile = selectValidationProfile(changes.files, changes);
+  if (changes.uncertain && (ci || args.includes('--docs')))
+    throw new Error(
+      `Cannot establish complete changed-file coverage: ${changes.reason}`
+    );
   if (changes.uncertain)
     console.warn(`Conservative comparison fallback: ${changes.reason}`);
   if (args.includes('--verbose'))
