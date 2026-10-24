@@ -10,11 +10,11 @@ import ts from 'typescript';
 const isTest = (file) => /\.(?:test|node-test)\.[cm]?[jt]sx?$/.test(file);
 const isDoc = (file) => /\.(?:md|mdc)$/.test(file);
 const isPolicy = (file) =>
-  /^(?:AGENTS\.md|CLAUDE\.md|\.github\/|\.cursor\/rules\/|\.husky\/|docs\/(?:standards|agent-guides)\/|scripts\/run-tests-by-diff\.mjs|tests\/runTestsByDiff\.test\.ts)/.test(
+  /^(?:AGENTS\.md|CLAUDE\.md|\.github\/|\.cursor\/rules\/|\.husky\/|docs\/(?:standards|agent-guides)\/|scripts\/(?:run-tests-by-diff\.mjs|review\/|ci\/|docs\/checkWorkspaceGuardrails\.mjs)|tests\/(?:runTestsByDiff\.test\.ts|tooling\/phase3aWorkflow\.node-test\.ts))/.test(
     file
   );
 const isGlobal = (file) =>
-  /^(?:package(?:-lock)?\.json|(?:vite|vitest).*\.config\.[jt]s|tsconfig.*\.json|tests\/(?:setup|helpers\/|__mocks__\/))/.test(
+  /^(?:package(?:-lock)?\.json|(?:vite|vitest).*\.config\.[jt]s|tsconfig(?:\.node)?\.json|tests\/(?:setup|helpers\/|__mocks__\/))/.test(
     file
   );
 // Minimum review obligations for executable responsibility changes, not suite
@@ -31,6 +31,7 @@ const isSensitive = (file) => {
     );
   return (
     financialLogic ||
+    /^tsconfig\..*\.json$/.test(file) ||
     /(?:mutationPipeline|seasonManager|firebase|firestore|persist|world.*(?:Service|Store|Manager)|auth|src\/schemas\/|source-releases|scripts\/(?:dev|release|admin)\/|player-scrape|team-scrape)/i.test(
       file
     )

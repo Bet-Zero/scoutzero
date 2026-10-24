@@ -240,6 +240,37 @@ describe('actual change rather than feature responsibility', () => {
     ]);
     expect(plan.commands.some((c) => c.script === 'test:full')).toBe(false);
   });
+  it.each([
+    'scripts/review/runExactHeadProbe.ts',
+    'scripts/ci/run_architect_ship_gates.mjs',
+    'scripts/docs/checkWorkspaceGuardrails.mjs',
+    'tests/tooling/phase3aWorkflow.node-test.ts',
+  ])(
+    'protects validation/review mechanisms beyond the selector: %s',
+    (file) => {
+      expect(selectValidationProfile([file])).toMatchObject({
+        level: 'consequential',
+        review: 'required',
+        policy: true,
+        broadReasons: [],
+      });
+    }
+  );
+  it('keeps a scoped tooling type configuration out of full application validation', async () => {
+    const plan = await selectTestPlan(['tsconfig.cloud.json'], {
+      discover: async () => empty(),
+    });
+    expect(plan.profile).toMatchObject({
+      level: 'consequential',
+      review: 'required',
+      build: false,
+      typecheck: false,
+      broadReasons: [],
+    });
+    expect(plan.commands.filter((c) => c.script).map((c) => c.script)).toEqual([
+      'cloud:typecheck',
+    ]);
+  });
   it('only starts specialists when their tests are selected', async () => {
     const plan = await selectTestPlan([hook], {
       discover: async () => ({
