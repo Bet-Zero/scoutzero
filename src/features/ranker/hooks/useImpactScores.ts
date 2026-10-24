@@ -11,7 +11,7 @@
  *
  * LINKS:
  *  - Score: src/features/ranker/utils/playerImpact.ts
- *  - Used in: src/features/ranker/FilterPoolPanel.tsx
+ *  - Used in: src/features/ranker/hooks/usePoolFinder.ts
  */
 import { useEffect, useState } from 'react';
 import { RankerScoreZ } from '@/schemas/players_v2';

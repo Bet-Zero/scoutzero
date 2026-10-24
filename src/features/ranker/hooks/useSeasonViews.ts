@@ -10,7 +10,7 @@
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
- *  - Used in: src/features/ranker/FilterPoolPanel.tsx
+ *  - Used in: src/features/ranker/hooks/usePoolFinder.ts, src/features/ranker/PoolToolbar.tsx
  *  - Season docs written by: player-scrape/firestore_staging/scripts/stage_player.ts
  */
 import { useEffect, useState } from 'react';
