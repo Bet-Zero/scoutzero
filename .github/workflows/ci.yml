@@ -37,9 +37,9 @@ jobs:
   pr-validation:
     name: PR Validation (Diff-based)
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     env:
-      SCOUTZERO_DIFF_BASE: ${{ github.event.pull_request.base.sha }}
+      SCOUTZERO_DIFF_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
       SCOUTZERO_DIFF_HEAD: ${{ github.sha }}
 
     steps:
@@ -65,18 +65,27 @@ jobs:
         run: node scripts/run-tests-by-diff.mjs --ci-plan --verbose
 
       - name: Documentation and routing checks
+        if: steps.scope.outputs.docs == 'true'
         run: node scripts/run-tests-by-diff.mjs --docs
+
+      - name: Policy implementation checks
+        if: steps.scope.outputs.policy == 'true' && steps.scope.outputs.app != 'true'
+        run: npm run test:diff -- --reporter=dot
+
+      - name: Verify isolated spacing diff
+        if: steps.scope.outputs.level == 'cosmetic' && steps.scope.outputs.docs != 'true'
+        run: npm run test:diff -- --reporter=dot
 
       - name: Type check
         if: steps.scope.outputs.app == 'true'
         run: npm run typecheck
 
       - name: Architect cast-ledger gate
-        if: steps.scope.outputs.specialists == 'true'
+        if: steps.scope.outputs.architect == 'true'
         run: npm run lint:architect-gate
 
       - name: Draft data architecture boundary
-        if: steps.scope.outputs.specialists == 'true'
+        if: steps.scope.outputs.draft == 'true'
         run: npm run test:node -- tests/architect/draftReviewArchitecture.guardrail.test.ts tests/architect/draftReviewCloudConnection.test.ts tests/architect/draftReviewDeployment.test.ts tests/architect/draftSourceInventory.test.ts --reporter=dot
 
       - name: Fetch accepted Canon authority ref
@@ -88,28 +97,28 @@ jobs:
         run: npm run test:phase3a-workflow
 
       - name: Private source review transport boundary
-        if: steps.scope.outputs.specialists == 'true'
+        if: steps.scope.outputs.transport == 'true'
         run: npm run test:private-source-review
 
       - name: Install matching browser for the redirect proof
-        if: steps.scope.outputs.specialists == 'true'
+        if: steps.scope.outputs.browser == 'true'
         timeout-minutes: 3
         run: npx --no-install playwright install --with-deps chromium
 
       - name: Hosted review browser redirect boundary
-        if: steps.scope.outputs.specialists == 'true'
+        if: steps.scope.outputs.browser == 'true'
         timeout-minutes: 2
         run: npm run test:hosted-review-browser
       - name: Cloud development safety tests
-        if: steps.scope.outputs.specialists == 'true'
+        if: steps.scope.outputs.cloud == 'true'
         run: npm run test:cloud-dev
 
       - name: Cloud tooling type check
-        if: steps.scope.outputs.specialists == 'true'
+        if: steps.scope.outputs.cloud == 'true'
         run: npm run cloud:typecheck
 
       - name: Governed Offer Sheet creation emulator gate
-        if: steps.scope.outputs.specialists == 'true'
+        if: steps.scope.outputs.emulator == 'true'
         run: npm run ci:offer-sheet-creation-emulator-gate
 
       - name: Run diff-based tests
@@ -124,11 +133,11 @@ jobs:
         if: steps.scope.outputs.app == 'true'
         run: npm run build
 
-  # Full validation - for main branch and scheduled runs
+  # Full integration health remains nightly; pushes use the same bounded policy as PRs
   full-validation:
     name: Full Build, Test & Validate
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'schedule'
+    if: github.event_name == 'schedule'
 
     steps:
       - name: Checkout code

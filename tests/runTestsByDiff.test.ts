@@ -14,6 +14,7 @@ import { parse } from 'yaml';
 
 import {
   collectChanges,
+  isolatedSpacing,
   documentationCommands,
   gitEnvironment,
   executePlan,
@@ -52,11 +53,18 @@ describe('run-tests-by-diff', () => {
     expect(plan.commands).toEqual([{ script: 'test:full', fileArgs: [] }]);
   });
 
-  it('runs full validation for shared tooling changes', () => {
+  it('tests validation policy without unrelated application suites', () => {
     const plan = getPlan(['scripts/run-tests-by-diff.mjs']);
 
-    expect(plan.tier).toBe('full');
-    expect(plan.commands).toEqual([{ script: 'test:full', fileArgs: [] }]);
+    expect(plan.tier).toBe('validation-policy');
+    expect(plan.commands).toContainEqual({
+      script: 'test:node',
+      fileArgs: ['tests/runTestsByDiff.test.ts'],
+    });
+    expect(plan.commands).toContainEqual({
+      script: 'test:phase3a-workflow',
+      fileArgs: [],
+    });
   });
 
   it('does not narrow shared consumers to a named boundary', () => {
@@ -127,29 +135,29 @@ describe('bounded CI validation policy', () => {
       false,
       false,
     ],
-    [['src/schemas/players.ts'], 'conservative', true, true, true],
+    [['src/schemas/players.ts'], 'application', true, false, false],
     [['package-lock.json'], 'conservative', true, true, true],
     [['tsconfig.cloud.json'], 'conservative', true, true, true],
     [
       ['.github/workflows/ci.yml', 'scripts/run-tests-by-diff.mjs'],
-      'conservative',
-      true,
-      true,
+      'validation-policy',
+      false,
+      false,
       true,
     ],
     [
       [rankerUi, 'src/features/roster/utils/rosterBuilderHelpers.ts'],
-      'conservative',
+      'application',
       true,
-      true,
-      true,
+      false,
+      false,
     ],
     [
       ['src/features/ranker/utils/playerImpact.ts'],
-      'conservative',
+      'application',
       true,
-      true,
-      true,
+      false,
+      false,
     ],
     [
       ['docs/reference/schema/CURRENT_FIRESTORE_SCHEMA.md'],
@@ -238,20 +246,18 @@ describe('bounded CI validation policy', () => {
     ]) {
       expect(conditions[name]).toBe("steps.scope.outputs.app == 'true'");
     }
-    for (const name of [
-      'Architect cast-ledger gate',
-      'Draft data architecture boundary',
-      'Private source review transport boundary',
-      'Install matching browser for the redirect proof',
-      'Hosted review browser redirect boundary',
-      'Cloud development safety tests',
-      'Cloud tooling type check',
-      'Governed Offer Sheet creation emulator gate',
-    ]) {
-      expect(conditions[name]).toBe(
-        "steps.scope.outputs.specialists == 'true'"
-      );
-    }
+    const gates = {
+      'Architect cast-ledger gate': 'architect',
+      'Draft data architecture boundary': 'draft',
+      'Private source review transport boundary': 'transport',
+      'Install matching browser for the redirect proof': 'browser',
+      'Hosted review browser redirect boundary': 'browser',
+      'Cloud development safety tests': 'cloud',
+      'Cloud tooling type check': 'cloud',
+      'Governed Offer Sheet creation emulator gate': 'emulator',
+    };
+    for (const [name, flag] of Object.entries(gates))
+      expect(conditions[name]).toBe(`steps.scope.outputs.${flag} == 'true'`);
     for (const name of [
       'Fetch accepted Canon authority ref',
       'Phase 3A workflow tooling',
@@ -261,11 +267,22 @@ describe('bounded CI validation policy', () => {
     for (const name of [
       'Validate selection policy',
       'Select candidate validation',
-      'Documentation and routing checks',
     ]) {
       expect(conditions).toHaveProperty(name);
       expect(conditions[name]).toBeUndefined();
     }
+    expect(conditions['Documentation and routing checks']).toBe(
+      "steps.scope.outputs.docs == 'true'"
+    );
+    expect(workflow.jobs['pr-validation'].if).toContain(
+      "github.event_name == 'push'"
+    );
+    expect(workflow.jobs['full-validation'].if).toBe(
+      "github.event_name == 'schedule'"
+    );
+    expect(workflow.jobs['pr-validation'].env.SCOUTZERO_DIFF_BASE).toBe(
+      '${{ github.event.pull_request.base.sha || github.event.before }}'
+    );
     expect(workflow.jobs['pr-validation'].name).toBe(
       'PR Validation (Diff-based)'
     );
@@ -541,5 +558,215 @@ describe('complete-candidate detection', () => {
     });
     expect(missingHistory.status).toBe(1);
     expect(readFileSync(output, 'utf8').split('app=').length).toBe(2);
+  });
+});
+
+// Controlled candidates use temporary git repositories, never product writes or
+// dummy PRs. Exercise the actual CLI outputs consumed by both PR and push CI.
+describe('proportionate end-to-end selection', () => {
+  const local =
+    'src/features/table/PlayerTable/PlayerTableHeader/DensityToggle.tsx';
+  const search =
+    'src/features/table/PlayerTable/PlayerTableHeader/SearchBar.tsx';
+  const shared = 'src/shared/utils/contracts/calculateSalary.ts';
+  const spacingBefore = readFileSync(local, 'utf8');
+  const spacingAfter = spacingBefore.replace('gap-1.5', 'gap-2');
+  const searchAfter = readFileSync(search, 'utf8');
+  const searchBefore = searchAfter.replace(
+    'onChange={onChange}',
+    'onChange={() => {}}'
+  );
+
+  it.each([
+    [
+      'isolated visual outside Ranker',
+      [[local, spacingBefore, spacingAfter]],
+      'cosmetic',
+      'not-required',
+      false,
+    ],
+    [
+      'localized search behavior',
+      [[search, searchBefore, searchAfter]],
+      'ordinary',
+      'agent-decides',
+      true,
+    ],
+    [
+      'shared financial logic',
+      [[shared, 'export const salary = 1;', 'export const salary = 2;']],
+      'consequential',
+      'required',
+      true,
+    ],
+    [
+      'cosmetic label hiding financial change',
+      [
+        [local, spacingBefore, spacingAfter],
+        [shared, 'export const salary = 1;', 'export const salary = 2;'],
+      ],
+      'consequential',
+      'required',
+      true,
+    ],
+  ])(
+    '%s selects the same obligations locally, in PR and after merge',
+    (_name, edits, level, review, app) => {
+      const { cwd, git, write } = fixture();
+      for (const [file, before] of edits) write(file, before);
+      git('add', '.');
+      git('commit', '-m', 'controlled baseline');
+      const base = git('rev-parse', 'HEAD');
+      for (const [file, , after] of edits) write(file, after);
+      const localChanges = collectChanges({ cwd, base });
+      const localProfile = selectValidationProfile(
+        localChanges.files,
+        localChanges
+      );
+      expect(localProfile).toMatchObject({ level, review, app });
+      git('add', '.');
+      git('commit', '-m', 'cosmetic'); // title is deliberately untrusted
+      const head = git('rev-parse', 'HEAD');
+      for (const event of ['pull_request', 'push']) {
+        const output = path.join(cwd, `output-${event}`);
+        const result = spawnSync(
+          process.execPath,
+          [path.resolve('scripts/run-tests-by-diff.mjs'), '--ci-plan'],
+          {
+            cwd,
+            encoding: 'utf8',
+            env: {
+              ...process.env,
+              GITHUB_ACTIONS: 'true',
+              GITHUB_EVENT_NAME: event,
+              SCOUTZERO_DIFF_BASE: base,
+              SCOUTZERO_DIFF_HEAD: head,
+              GITHUB_OUTPUT: output,
+            },
+          }
+        );
+        expect(result.status, result.stderr).toBe(0);
+        const flags = Object.fromEntries(
+          readFileSync(output, 'utf8')
+            .trim()
+            .split('\n')
+            .map((line) => line.split('='))
+        );
+        expect(flags).toMatchObject({
+          level,
+          review,
+          app: String(app),
+          browser: 'false',
+          transport: 'false',
+        });
+        const selected = ciSteps
+          .filter(
+            (step) =>
+              !step.if ||
+              step.if
+                .replace(/steps.scope.outputs.(\w+)/g, (_, key) =>
+                  JSON.stringify(flags[key])
+                )
+                .split(' && ')
+                .every((expr) => {
+                  const match = expr.match(/^"([^"\n]*)" (==|!=) '([^']*)'$/);
+                  if (!match)
+                    throw new Error(`Unexpected CI condition: ${expr}`);
+                  return match[2] === '=='
+                    ? match[1] === match[3]
+                    : match[1] !== match[3];
+                })
+          )
+          .map((step) => step.name);
+        expect(selected).not.toContain(
+          'Install matching browser for the redirect proof'
+        );
+        expect(selected.includes('Type check')).toBe(app);
+        expect(
+          selected.includes('Governed Offer Sheet creation emulator gate')
+        ).toBe(level === 'consequential');
+        const changes = collectChanges({ cwd, base, head, ci: true });
+        expect(selectValidationProfile(changes.files, changes)).toEqual(
+          localProfile
+        );
+        const plan = selectTestPlan(changes.files, changes);
+        if (level === 'cosmetic')
+          expect(plan.commands.map((command) => command.executable)).toEqual([
+            'git',
+          ]);
+        if (level === 'ordinary') {
+          expect(plan.commands).toHaveLength(1);
+          expect(plan.commands[0].script).toBe('test:ui');
+          expect(plan.commands[0].fileArgs).toContain(
+            'src/tests/table/tableFiltersUi.smoke.test.tsx'
+          );
+        }
+        if (level === 'consequential')
+          expect(plan.commands[0].script).toBe('test:full');
+      }
+    }
+  );
+
+  it('does not mask behavior, accessible names, color, shared tokens, or conditional classes', () => {
+    for (const after of [
+      spacingAfter.replace(
+        'setMode(DENSITY_MODES.COMPACT)',
+        'setMode(DENSITY_MODES.COMFORTABLE)'
+      ),
+      spacingBefore.replace(
+        'aria-label="Compact density"',
+        'aria-label="Other"'
+      ),
+      spacingBefore.replace('text-neutral-500', 'text-neutral-400'),
+      spacingBefore.replace('gap-1.5', 'gap-1.5 hidden'),
+    ])
+      expect(isolatedSpacing(local, spacingBefore, after)).toBe(false);
+    expect(
+      isolatedSpacing('src/shared/Token.tsx', spacingBefore, spacingAfter)
+    ).toBe(false);
+    expect(
+      isolatedSpacing(local, spacingBefore, spacingAfter + '\ninvalid {')
+    ).toBe(false);
+    expect(selectValidationProfile([local], { contents: {} }).level).toBe(
+      'consequential'
+    );
+  });
+
+  it.each([
+    'src/features/table/OtherConsumer.tsx',
+    'src/features/roster/OtherConsumer.tsx',
+  ])('rejects reused or cross-feature cosmetic consumers: %s', (consumer) => {
+    const { cwd, git, write } = fixture();
+    write(local, spacingBefore);
+    write(
+      'src/features/table/Parent.tsx',
+      "import { DensityToggle } from './PlayerTable/PlayerTableHeader/DensityToggle';"
+    );
+    write(
+      consumer,
+      "import { DensityToggle } from '@/features/table/PlayerTable/PlayerTableHeader/DensityToggle';"
+    );
+    git('add', '.');
+    git('commit', '-m', 'consumers');
+    const base = git('rev-parse', 'HEAD');
+    write(local, spacingAfter);
+    const changes = collectChanges({ cwd, base });
+    expect(changes.localConsumers).toBe(false);
+    expect(selectValidationProfile(changes.files, changes).level).toBe(
+      'consequential'
+    );
+  });
+
+  it('keeps review/validation edits consequential even when paired with cosmetics', () => {
+    const files = [local, 'AGENTS.md'];
+    expect(
+      selectValidationProfile(files, {
+        contents: { [local]: { before: spacingBefore, after: spacingAfter } },
+      })
+    ).toMatchObject({
+      level: 'consequential',
+      review: 'required',
+      authority: true,
+    });
   });
 });

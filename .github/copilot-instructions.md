@@ -66,7 +66,7 @@ Default to **targeted** test runs and append `--reporter=dot`:
 - `npm run test:node -- --reporter=dot`
 - `npm run test:ui -- --reporter=dot`
 
-**Full suite rule:** only run `npm run test:full` (or equivalent full test commands) when the user explicitly includes: `RUN FULL SUITE`.
+**Proportional scope:** follow the three execution levels in `AGENTS.md`. The agent selects relevant tests and reviewers. Full suites require broad impact or unresolved dependencies, not an owner password. Cosmetic work has no routine independent review or environment-startup requirement.
 
 ## Validation Workflow
 
@@ -77,7 +77,7 @@ After code changes, run the smallest valid check first:
 3. `npm run typecheck` for TS/TSX or logic changes
 4. `npm run validate:project` for structural changes
 
-If a test run exceeds ~4 minutes, stop and switch to a cheaper scoped command.
+At four minutes, investigate an unproductive run and narrow when truthful; do not silently omit a necessary gate.
 
 ## Project Structure (Current)
 
