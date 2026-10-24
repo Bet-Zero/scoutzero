@@ -8,6 +8,10 @@ const worldTeamDataMocks = vi.hoisted(() => ({
   loadWorldTeamData: vi.fn(),
 }));
 
+vi.mock('@/shared/hooks/useAuth', () => ({
+  useAuth: () => ({ user: null, userId: null, loading: false }),
+}));
+
 vi.mock('@/features/architect/utils/worldTeamData', () => ({
   loadWorldTeamData: worldTeamDataMocks.loadWorldTeamData,
 }));
@@ -260,5 +264,51 @@ describe('useTradeMachine validator trust contract', () => {
     expect(result.current.snapshotValidationDetails).toBeNull();
     expect(result.current.previewAuthority).toBeNull();
     expect(result.current.forceTrade).toBe(true);
+  });
+
+  it('returns an honest first-round verdict when money inputs are missing, without supplying replacement books', async () => {
+    const first = {
+      id: 'test-owned-first',
+      entitlementId: 'test-owned-first',
+      round: 1,
+      kind: 'pick_ownership',
+      holderTeam: 'LAL',
+      originalTeam: 'LAL',
+      seasonYear: 2028,
+      underlyingPickId: 'LAL_2028_1st',
+      toTeamId: 'BOS',
+    };
+    const primaryWithFirst = { ...primaryTeamData, entitlementIds: [first.id] };
+    const { result } = renderHook(() =>
+      useTradeMachine(
+        'lakers',
+        capProjections,
+        CURRENT_YEAR,
+        primaryWithFirst,
+        null,
+        '2026-06-05'
+      )
+    );
+    await waitFor(() =>
+      expect(result.current.teams[0]?.team?.players?.length).toBe(14)
+    );
+    await act(async () => {
+      await result.current.selectTeam(1, 'celtics');
+    });
+    act(() => result.current.toggleEntitlement(0, first));
+    act(() => {
+      expect(result.current.handleValidate()).toBe('started');
+    });
+    await waitFor(() => expect(result.current.previewAuthority).not.toBeNull());
+    expect(result.current.previewAuthority?.legal).toBe(false);
+    expect(result.current.hasCurrentValidation).toBe(true);
+    expect(result.current.previewAuthority?.reason).toMatch(
+      /unavailable|missing|requires|input|could not|salary|contract/i
+    );
+    expect(result.current.teams[0]?.team?.apronTeamSalary).not.toEqual(
+      expect.any(Number)
+    );
+    act(() => result.current.setCashConsideration(0, 1000, 'BOS'));
+    expect(result.current.hasCurrentValidation).toBe(false);
   });
 });

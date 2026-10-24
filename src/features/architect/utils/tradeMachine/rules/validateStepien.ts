@@ -7,6 +7,7 @@ import {
 } from '../utils/stepienEntitlementUtils';
 import type { TradeTeam } from '../constants/types';
 import { reviewedFirstsPermit } from '@/features/architect/utils/draftReview/capability';
+import { realDraftTradeBlock } from '@/features/architect/utils/draftPickRealReview';
 
 type StepienYearLike = number | string | null | undefined;
 type StepienRoundLike = number | string | null | undefined;
@@ -50,6 +51,8 @@ interface StepienEntitlementLike {
 }
 
 interface StepienTradeContext {
+  realDraftReview?: object;
+  realDraftReviewAsOfDate?: string | null;
   draftReviewAuthority?: object;
   year?: number | string;
   yearKey?: number | string;
@@ -369,15 +372,28 @@ export function validateStepien(
       .filter(Number.isFinite);
     const farthestYear =
       firstRoundYears.length > 0 ? Math.max(...firstRoundYears) : fallbackYear;
+    const retainedBlock = realDraftTradeBlock(
+      tradeCtx.realDraftReview,
+      String(team.teamId ?? team.team?.teamId ?? team.team?.id ?? ''),
+      firstRoundEntitlements.map((e) => String(e.entitlementId ?? e.id ?? '')),
+      tradeCtx.realDraftReviewAsOfDate ?? null
+    );
 
     return {
       passed: false,
       status: 'NEEDS_INPUT',
       evaluated: false,
-      missingInputs: FIRST_ROUND_GOVERNED_HISTORY_MISSING_INPUTS,
-      violations: [FIRST_ROUND_GOVERNED_HISTORY_MESSAGE],
+      missingInputs: [
+        ...FIRST_ROUND_GOVERNED_HISTORY_MISSING_INPUTS,
+        ...(retainedBlock?.missingInputs ?? []),
+      ],
+      violations: retainedBlock?.messages ?? [
+        FIRST_ROUND_GOVERNED_HISTORY_MESSAGE,
+      ],
       warnings: [],
-      message: FIRST_ROUND_GOVERNED_HISTORY_MESSAGE,
+      message:
+        retainedBlock?.messages.join(' ') ??
+        FIRST_ROUND_GOVERNED_HISTORY_MESSAGE,
       details:
         'This first-round asset was not evaluated. Apply is blocked until complete pick ownership, protection and conveyance terms, trading restrictions and their release, and penalty history are available.',
       currentYear,

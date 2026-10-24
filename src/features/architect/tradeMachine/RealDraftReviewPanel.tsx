@@ -1,17 +1,12 @@
 import React, { useState } from 'react';
 import type { RealDraftSelectionReview } from '@/features/architect/utils/draftPickRealReview';
-import { useRealDraftReview, type DraftReviewTeam } from './useRealDraftReview';
+import type { useRealDraftReview } from './useRealDraftReview';
 
 export function RealDraftReviewPanel({
-  teams,
-  asOfDate,
-  worldId,
+  state,
 }: {
-  teams: DraftReviewTeam[];
-  asOfDate: string | null;
-  worldId: string | null;
+  state: ReturnType<typeof useRealDraftReview>;
 }) {
-  const state = useRealDraftReview(teams, asOfDate, worldId);
   // Bind the explicit inspection to this result object, not just a reusable
   // selection key. Cancel/restage, sign-out and late responses cannot reopen it.
   const [inspectedResult, setInspectedResult] =

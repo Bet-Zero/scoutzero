@@ -707,6 +707,9 @@ export interface TradeFaExceptionBucket {
 }
 
 export interface TradeValidatorContext extends TeamContext {
+  /** Authenticated read-only evidence; cannot authorize first-round Apply. */
+  realDraftReview?: object;
+  realDraftReviewAsOfDate?: string | null;
   /** Private object identity; serialized metadata cannot authorize review consumption. */
   draftReviewAuthority?: object;
   capProjections?: TradeValidatorCapProjections;

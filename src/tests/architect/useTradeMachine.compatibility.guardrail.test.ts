@@ -11,6 +11,10 @@ const worldTeamDataMocks = vi.hoisted(() => ({
   loadWorldTeamData: vi.fn(),
 }));
 
+vi.mock('@/shared/hooks/useAuth', () => ({
+  useAuth: () => ({ user: null, userId: null, loading: false }),
+}));
+
 const entitlementResolverMocks = vi.hoisted(() => ({
   resolveEntitlementsForTeam: vi.fn(),
 }));
@@ -87,6 +91,7 @@ const expectedReturnKeys = [
   'setCashConsideration',
   'getValidatedAt',
   'initError',
+  'realDraftReview',
 ] as const;
 
 const expectedExportKeys = [

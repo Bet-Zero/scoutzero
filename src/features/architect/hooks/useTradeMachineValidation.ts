@@ -39,6 +39,7 @@ export type UseTradeMachineValidationParams = {
   worldId: string | null;
   worldLineage?: readonly string[];
   worldAsOfDate: string | null;
+  realDraftReview?: object;
   forceTrade: boolean;
   currentDraftKey: string;
   setSnapshotValidationDetails: (
@@ -66,6 +67,7 @@ export function useTradeMachineValidation({
   worldId,
   worldLineage = [],
   worldAsOfDate,
+  realDraftReview,
   forceTrade,
   currentDraftKey,
   setSnapshotValidationDetails,
@@ -133,6 +135,11 @@ export function useTradeMachineValidation({
         return null;
       }
       if (
+        !activeTeams.some((slot) =>
+          (slot.entitlementsOut ?? []).some(
+            (asset) => Number(asset.round) === 1
+          )
+        ) &&
         activeTeams.some(
           (slot) =>
             !Number.isFinite(slot.team.teamTotalSalary) ||
@@ -142,6 +149,10 @@ export function useTradeMachineValidation({
       ) {
         return null;
       }
+
+      // A first-round proposal must still receive the validator's fail-closed
+      // verdict when salary books are missing. Do not turn that into a dead-end
+      // "select two teams" response or substitute a payroll amount.
 
       const seasonId = toSeasonKey(yearKey) ?? String(yearKey);
       const payload: TradeContextPayload = {
@@ -175,6 +186,7 @@ export function useTradeMachineValidation({
         currentState,
         seasonId,
         preparation: buildTradeApplyPreparation({
+          realDraftReview,
           payload,
           currentState,
           seasonId,
@@ -183,7 +195,15 @@ export function useTradeMachineValidation({
         }),
       };
     },
-    [teams, capProjections, yearKey, worldId, worldLineage, worldAsOfDate]
+    [
+      teams,
+      capProjections,
+      yearKey,
+      worldId,
+      worldLineage,
+      worldAsOfDate,
+      realDraftReview,
+    ]
   );
 
   // Core validation compute. Runs the (synchronous) validation for a prepared

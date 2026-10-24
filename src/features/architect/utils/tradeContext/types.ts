@@ -201,6 +201,7 @@ export interface BuildPostTradeTeamsSnapshotParams {
 }
 
 export interface ValidatePostTradeSnapshotForContextParams {
+  realDraftReview?: object;
   draftReviewAuthority?: object;
   snapshot: PostTradeSnapshot;
   payload: TradeContextPayload;
@@ -209,6 +210,7 @@ export interface ValidatePostTradeSnapshotForContextParams {
 }
 
 export interface BuildTradeApplyPreparationParams {
+  realDraftReview?: object;
   draftReviewAuthority?: object;
   payload: TradeContextPayload;
   currentState: TradeContextCurrentState;

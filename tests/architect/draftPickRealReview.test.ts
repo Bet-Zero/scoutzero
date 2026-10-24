@@ -10,6 +10,8 @@ import {
   loadRealDraftReview,
   reviewRealDraftSelection,
   reviewRealDraftStartingPosition,
+  realDraftTradeBlock,
+  deriveRealDraftTradeBlock,
 } from '@/features/architect/utils/draftPickRealReview';
 import type { DraftPickRealReviewPackage } from '@/schemas/draftPickRealReview';
 
@@ -120,6 +122,61 @@ async function fixture() {
 }
 
 describe('retained real-data review boundary (synthetic public cases)', () => {
+  it('turns scoped facts into useful blocked trade reasons without granting current-world ownership', async () => {
+    const f = await fixture();
+    const loaded = await f.load();
+    const result = deriveRealDraftSelection(loaded, f.args);
+    const block = deriveRealDraftTradeBlock(result, f.args.selections);
+    expect(block.messages.join(' ')).toContain('Recorded ownership supports');
+    expect(block.messages.join(' ')).toContain(
+      'holdings and dated changes have not been verified'
+    );
+    expect(block.missingInputs).toContain('governedDraftHistory.worldAdoption');
+    expect(block.missingInputs).toContain(
+      'governedDraftHistory.postTradeStepienBranches'
+    );
+    // This allocation-only dependency does not control this outright transfer.
+    expect(block.messages.join(' ')).not.toContain('Unestablished allocation');
+    expect(block.missingInputs).not.toContain(
+      'governedDraftHistory.dependency:d3'
+    );
+
+    f.data.unresolved[0].actions.push('stepien');
+    const affected = deriveRealDraftSelection(await f.load(), f.args);
+    const relevant = deriveRealDraftTradeBlock(affected, f.args.selections);
+    expect(relevant.missingInputs).toContain(
+      'governedDraftHistory.dependency:d3'
+    );
+    expect(relevant.messages.join(' ')).toContain('Unestablished allocation');
+    expect(f.data.unresolved[0].actions).toEqual(['allocate', 'stepien']);
+  });
+  it('withholds dated component conclusions and rejects unbranded or historical results at the validator boundary', async () => {
+    const f = await fixture();
+    const loaded = await f.load();
+    for (const date of [null, '2030-06-06']) {
+      const result = deriveRealDraftSelection(loaded, {
+        ...f.args,
+        asOfDate: date,
+      });
+      const block = deriveRealDraftTradeBlock(result, f.args.selections);
+      expect(block.messages.join(' ')).toContain(
+        'does not establish this world’s date'
+      );
+      expect(block.messages.join(' ')).not.toContain(
+        'Recorded ownership supports'
+      );
+    }
+    for (const untrusted of [
+      {},
+      deriveRealDraftSelection(loaded, f.args),
+      deriveRealDraftStartingPosition(loaded, f.args),
+      JSON.parse(JSON.stringify(deriveRealDraftSelection(loaded, f.args))),
+    ]) {
+      expect(
+        realDraftTradeBlock(untrusted, 'BBB', ['legacy-own'], f.args.asOfDate)
+      ).toBeNull();
+    }
+  });
   it('separates explicit historical inspection from missing or current world dates', async () => {
     const f = await fixture();
     const loaded = await f.load();

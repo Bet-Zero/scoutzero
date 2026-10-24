@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 
@@ -64,8 +64,9 @@ describe('useTradeMachine DEV S&T injector lifecycle', () => {
       'Expected injected primary team'
     );
     expect(
-      assertDefined(injectedTeam.players, 'Expected injected players').some((p) =>
-        (p as Record<string, unknown>).name?.toString().includes('TM DEV S&T')
+      assertDefined(injectedTeam.players, 'Expected injected players').some(
+        (p) =>
+          (p as Record<string, unknown>).name?.toString().includes('TM DEV S&T')
       )
     ).toBe(true);
 
@@ -87,3 +88,6 @@ describe('useTradeMachine DEV S&T injector lifecycle', () => {
     ).toBe(false);
   });
 });
+vi.mock('@/shared/hooks/useAuth', () => ({
+  useAuth: () => ({ user: null, userId: null, loading: false }),
+}));

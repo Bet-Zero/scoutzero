@@ -177,6 +177,9 @@ export function validateTrade({
   const baseContext: TradeValidatorContext = {
     capProjections: capProjections || {},
     ...rawTradeCtx,
+    // Preserve missing dates before the legacy validator's date fallback.
+    realDraftReviewAsOfDate:
+      typeof rawTradeCtx.asOfDate === 'string' ? rawTradeCtx.asOfDate : null,
     currentYear: resolvedCurrentYear,
     yearKey: resolvedCurrentYear,
     asOfDate: canonicalAsOfDate,
