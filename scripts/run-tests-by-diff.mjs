@@ -164,7 +164,7 @@ const TABLE_TESTS = [
 const POLICY_FILES =
   /^(?:scripts\/run-tests-by-diff\.mjs|tests\/runTestsByDiff\.test\.ts|tests\/tooling\/phase3aWorkflow\.node-test\.ts|\.github\/workflows\/ci\.yml|\.husky\/)/;
 const protectedContent =
-  /firebase|firestore|localStorage|sessionStorage|fetch\s*\(|authorization|permission|persist|salary|tradeLegal|sourceQualif/i;
+  /firebase|firestore|localStorage|sessionStorage|indexedDB|globalThis|navigator|XMLHttpRequest|WebSocket|fetch\s*\(|authorization|permission|persist|salary|tradeLegal|sourceQualif|onSave|onDelete|onSubmit|onCommit/i;
 
 export function selectValidationProfile(files, options = {}) {
   const { uncertain = false, structural = false, contents = {} } = options;
@@ -284,6 +284,48 @@ export function selectValidationProfile(files, options = {}) {
       true,
       { authority: governing, policy: governing },
       'Local search behavior and complete inspected table/filter consumer tests'
+    );
+  // Other isolated presentation leaves use Vitest's existing import graph,
+  // not a second dependency engine or a new per-file allowlist. New dependencies,
+  // shared consumers, imperative globals and sensitive callbacks stay conservative.
+  if (
+    files.length === 1 &&
+    options.localConsumers === true &&
+    contents[files[0]] &&
+    !/\/(?:architect|ranker)\//.test(files[0]) &&
+    [contents[files[0]].before, contents[files[0]].after].every((text) => {
+      const source = ts.createSourceFile(
+        files[0],
+        text,
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TSX
+      );
+      return (
+        !source.parseDiagnostics.length &&
+        !protectedContent.test(text) &&
+        !/\b(?:import\s*\(|require\s*\(|eval\s*\(|window|document|Function)\b/.test(
+          text
+        ) &&
+        source.statements.every(
+          (node) =>
+            !ts.isImportDeclaration(node) ||
+            [
+              'react',
+              'lucide-react',
+              '@heroicons/react/24/outline',
+              '@heroicons/react/24/solid',
+            ].includes(node.moduleSpecifier.text)
+        )
+      );
+    })
+  )
+    return profile(
+      'local-ui',
+      'ordinary',
+      true,
+      {},
+      'Isolated presentation leaf with inspected imports; Vitest selects actual UI test consumers. Agent judges copy/accessibility and review need.'
     );
   // Known application domains retain strong relevant tests, without unrelated
   // source transport/browser/cloud gates. Unknown code/config still fails broad.
@@ -675,6 +717,26 @@ export function selectTestPlan(changedFiles, options = {}) {
         {
           executable: 'git',
           args: ['diff', '--check', ...(options.base ? [options.base] : [])],
+        },
+      ],
+    };
+  if (profile.name === 'local-ui')
+    return {
+      tier: profile.name,
+      reason: profile.reason,
+      files,
+      commands: [
+        {
+          executable: process.execPath,
+          args: [
+            'node_modules/vitest/vitest.mjs',
+            'related',
+            ...files,
+            '--run',
+            '--config',
+            'vitest.ui.config.js',
+            '--reporter=dot',
+          ],
         },
       ],
     };

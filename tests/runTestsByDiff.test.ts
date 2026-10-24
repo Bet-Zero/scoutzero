@@ -764,6 +764,41 @@ describe('proportionate end-to-end selection', () => {
     );
   });
 
+  it('uses existing related-test infrastructure for an unmapped local UI leaf', () => {
+    const file = 'src/features/filters/LocalHeading.tsx';
+    const { cwd, git, write } = fixture();
+    write(
+      file,
+      'import React from "react"; export const LocalHeading = () => <h2>Filters</h2>;'
+    );
+    git('add', '.');
+    git('commit', '-m', 'local leaf');
+    const base = git('rev-parse', 'HEAD');
+    write(
+      file,
+      'import React from "react"; export const LocalHeading = () => <h2>Player filters</h2>;'
+    );
+    const changes = collectChanges({ cwd, base });
+    expect(selectValidationProfile(changes.files, changes)).toMatchObject({
+      name: 'local-ui',
+      level: 'ordinary',
+      review: 'agent-decides',
+      browser: false,
+      emulator: false,
+    });
+    expect(selectTestPlan(changes.files, changes).commands[0].args).toContain(
+      'related'
+    );
+    write(
+      file,
+      'import "@/firebase/write"; export const LocalHeading = () => <h2>Filters</h2>;'
+    );
+    const sensitive = collectChanges({ cwd, base });
+    expect(selectValidationProfile(sensitive.files, sensitive).level).toBe(
+      'consequential'
+    );
+  });
+
   it('keeps review/validation edits consequential even when paired with cosmetics', () => {
     const files = [local, 'AGENTS.md'];
     expect(

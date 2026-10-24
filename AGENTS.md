@@ -96,11 +96,13 @@ owner approvals or protected production/source boundaries.
 Use `npm run test:diff -- --dry-run --verbose` to inspect automated selection.
 The bounded selector proves a narrow static local spacing case from actual
 before/after source, preserves complete Ranker coverage, maps local search
-behavior to its table/filter consumers, and separates application checks from
+behavior to its table/filter consumers, uses Vitest's existing import graph for
+other isolated presentation leaves with inspected imports, and separates application checks from
 unrelated source-transport/browser/cloud gates. Unmapped or uncertain changes
 remain conservative; automation is a floor, not a substitute for inspecting
 impact. Extend an existing mapping with consumer evidence and selection tests
-when necessary; never override CI with a label or a partial file list.
+when necessary. A related-test run with no matching tests fails and needs a
+focused regression; it is not a pass. Never override CI with a label or a partial file list.
 
 PR and post-merge push CI use the same selector against the complete comparison;
 nightly CI retains full integration health checks. Missing CI history or an
