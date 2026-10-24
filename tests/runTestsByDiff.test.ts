@@ -535,7 +535,6 @@ describe('complete-candidate detection', () => {
       ...process.env,
       GITHUB_ACTIONS: 'true',
       GITHUB_OUTPUT: output,
-      GITHUB_STEP_SUMMARY: path.join(cwd, 'fixture-summary'),
       GITHUB_STEP_SUMMARY: summary,
       SCOUTZERO_DIFF_BASE: base,
       SCOUTZERO_DIFF_HEAD: git('rev-parse', 'HEAD'),
