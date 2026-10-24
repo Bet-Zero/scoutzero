@@ -35,6 +35,53 @@ const isSensitive = (file) => {
     )
   );
 };
+// A direct import guard reuses the parser already used for presentation proof.
+// It does not build a dependency graph or execute candidate modules. Keep both
+// sides: removing a protected dependency can remove a safeguard too.
+function usesSensitiveRuntimeDependency(file, contents = {}) {
+  return [contents.before, contents.after].filter(Boolean).some((text) => {
+    const source = ts.createSourceFile(
+      file,
+      text,
+      ts.ScriptTarget.Latest,
+      true
+    );
+    return source.statements.some((statement) => {
+      if (
+        !ts.isImportDeclaration(statement) &&
+        !ts.isExportDeclaration(statement)
+      )
+        return false;
+      if (statement.isTypeOnly || statement.importClause?.isTypeOnly)
+        return false;
+      const clause = statement.importClause;
+      if (
+        clause &&
+        !clause.name &&
+        clause.namedBindings &&
+        ts.isNamedImports(clause.namedBindings) &&
+        clause.namedBindings.elements.length &&
+        clause.namedBindings.elements.every((item) => item.isTypeOnly)
+      )
+        return false;
+      if (
+        statement.exportClause &&
+        ts.isNamedExports(statement.exportClause) &&
+        statement.exportClause.elements.length &&
+        statement.exportClause.elements.every((item) => item.isTypeOnly)
+      )
+        return false;
+      const specifier = statement.moduleSpecifier;
+      if (!specifier || !ts.isStringLiteral(specifier)) return false;
+      const module = specifier.text.startsWith('.')
+        ? path.posix.normalize(
+            path.posix.join(path.posix.dirname(file), specifier.text)
+          )
+        : specifier.text.replace(/^@\//, 'src/');
+      return isSensitive(module) || isPolicy(module);
+    });
+  });
+}
 const sourceFile = (file) => !isDoc(file) && !isTest(file);
 
 // Deliberately syntactic, not an attempted semantic/financial classifier.
@@ -303,7 +350,11 @@ export function selectValidationProfile(files, options = {}) {
   const consequential =
     policy ||
     options.structural === true ||
-    behavior.some(isSensitive) ||
+    behavior.some(
+      (file) =>
+        isSensitive(file) ||
+        usesSensitiveRuntimeDependency(file, options.contents?.[file])
+    ) ||
     declarations.review ||
     broadReasons.length > 0;
   return {

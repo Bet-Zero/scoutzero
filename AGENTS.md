@@ -111,6 +111,10 @@ the agent must inspect status/error meaning, accessibility, consumers and shared
 styles and record the relevant visual/content proof in the PR. A small change
 may still need a build to validate or deliver the result.
 
+The minimum review guard also checks direct protected runtime imports on both
+sides of a behavior change; it does not promote type-only imports or unchanged
+logic inside a proven presentation edit. Inspect indirect/dynamic effects too.
+
 For executable changes, Vitest's existing import graph selects affected node,
 UI, native and emulator test consumers. Adding regressions or related files does
 not force full-project validation. Native/browser/emulator prerequisites run

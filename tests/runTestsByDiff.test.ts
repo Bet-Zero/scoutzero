@@ -215,6 +215,53 @@ describe('actual change rather than feature responsibility', () => {
       });
     }
   });
+  it.each([
+    "import {db} from '@/firebaseConfig';",
+    "import {getSalaryProfile} from '@/features/architect/utils/salaryEngine/salaryEngine';",
+    "export {getApronStatus} from '../utils/capUtils';",
+  ])(
+    'requires review for a direct protected runtime dependency: %s',
+    (dependency) => {
+      const contents = { [room]: { before, after: dependency + '\n' + after } };
+      expect(selectValidationProfile([room], { contents })).toMatchObject({
+        level: 'consequential',
+        review: 'required',
+        broadReasons: [],
+      });
+      const removed = { [room]: { before: dependency + '\n' + before, after } };
+      expect(
+        selectValidationProfile([room], { contents: removed }).review
+      ).toBe('required');
+    }
+  );
+  it('does not turn type-only imports or unchanged sensitive logic into a cosmetic review gate', () => {
+    const typeOnly =
+      "import type {SalaryProfile} from '@/features/architect/utils/salaryEngine/salaryEngine';\n";
+    expect(
+      selectValidationProfile([room], {
+        contents: { [room]: { before, after: typeOnly + after } },
+      })
+    ).toMatchObject({ level: 'ordinary', review: 'agent-decides' });
+    const dependency = "import {db} from '@/firebaseConfig';\n";
+    expect(
+      selectValidationProfile([room], {
+        contents: {
+          [room]: { before: dependency + before, after: dependency + after },
+        },
+      })
+    ).toMatchObject({ level: 'cosmetic', review: 'agent-decides' });
+    const source = readFileSync(hook, 'utf8');
+    expect(
+      selectValidationProfile([hook], {
+        contents: {
+          [hook]: {
+            before: source,
+            after: source.replace('count += value.length', 'count += 1'),
+          },
+        },
+      })
+    ).toMatchObject({ level: 'ordinary', review: 'agent-decides' });
+  });
   it('mixed financial work cannot hide behind presentation or an unchecked label', async () => {
     const file =
       'src/features/architect/utils/capTotals/computeTeamCapTotals.ts';
