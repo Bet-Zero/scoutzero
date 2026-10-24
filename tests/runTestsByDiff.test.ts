@@ -164,11 +164,39 @@ describe('actual change rather than feature responsibility', () => {
   });
   it.each([
     'src/features/architect/utils/capTotals/computeTeamCapTotals.ts',
+    'src/features/architect/utils/salaryEngine/salaryEngine.ts',
+    'src/features/architect/utils/capLegalityValidation.ts',
+    'src/features/architect/utils/capLegality/postStateCapValidator.ts',
+    'src/features/architect/utils/tradeMachine/utils/salaryMatchingRules.ts',
+    'src/features/architect/utils/tradeMachine/utils/salaryMargin.ts',
+    'src/features/architect/utils/capUtils.ts',
+    'src/features/architect/utils/hardCapUtils.ts',
+    'src/features/architect/utils/contractSalaryUtils.ts',
+    'src/features/architect/utils/playerRulesProfile/extensionRules.eligibility.ts',
+    'src/shared/utils/contracts/contractUtils.ts',
     'src/features/architect/utils/mutationPipeline.ts',
     'src/firebase/firebaseHelpers.ts',
     'firestore.rules',
   ])('requires review for executable sensitive work: %s', (file) => {
-    expect(selectValidationProfile([file]).review).toBe('required');
+    const profile = selectValidationProfile([file]);
+    expect(profile).toMatchObject({
+      level: 'consequential',
+      review: 'required',
+    });
+    expect(profile.broadReasons).toEqual([]);
+  });
+  it('keeps non-financial utilities and the independent ordinary holdout ordinary', () => {
+    for (const file of [
+      hook,
+      'src/shared/utils/routing/playerRouteUtils.ts',
+      'src/features/architect/utils/seasonFormat.ts',
+    ]) {
+      expect(selectValidationProfile([file])).toMatchObject({
+        level: 'ordinary',
+        review: 'agent-decides',
+        broadReasons: [],
+      });
+    }
   });
   it('mixed financial work cannot hide behind presentation or an unchecked label', async () => {
     const file =

@@ -17,12 +17,25 @@ const isGlobal = (file) =>
   /^(?:package(?:-lock)?\.json|(?:vite|vitest).*\.config\.[jt]s|tsconfig.*\.json|tests\/(?:setup|helpers\/|__mocks__\/))/.test(
     file
   );
-// These are responsibilities, not test-suite mappings. They set a minimum review
-// obligation for executable changes only; presentation proof is checked first.
-const isSensitive = (file) =>
-  /(?:capTotals|tradeMachine\/(?:engine|rules)|mutationPipeline|seasonManager|firebase|firestore|persist|world.*(?:Service|Store|Manager)|auth|src\/schemas\/|source-releases|scripts\/(?:dev|release|admin)\/|player-scrape|team-scrape)/i.test(
-    file
+// Minimum review obligations for executable responsibility changes, not suite
+// mappings. Presentation proof is checked first. Financial logic lives across
+// salary, cap, contract, trade and governed-lifecycle utilities, not just the
+// capTotals directory. Actual consequences can require review beyond this floor.
+const isSensitive = (file) => {
+  const financialLogic =
+    /^src\/(?:features\/[^/]+\/utils\/|shared\/utils\/|constants\/)/.test(
+      file
+    ) &&
+    /salary|salaries|cap|apron|contract|trade|legality|waiver|extension|exception|signing|offerSheet|rfa|birdRights|stepien|entitlement|governed/i.test(
+      file
+    );
+  return (
+    financialLogic ||
+    /(?:mutationPipeline|seasonManager|firebase|firestore|persist|world.*(?:Service|Store|Manager)|auth|src\/schemas\/|source-releases|scripts\/(?:dev|release|admin)\/|player-scrape|team-scrape)/i.test(
+      file
+    )
   );
+};
 const sourceFile = (file) => !isDoc(file) && !isTest(file);
 
 // Deliberately syntactic, not an attempted semantic/financial classifier.
