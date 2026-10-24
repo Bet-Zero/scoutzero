@@ -240,7 +240,7 @@ npm run docs
 4. **If significant changes**: Update existing documentation (this checklist)
 5. Run verification commands (if documentation updated)
 6. Update the existing assignment record; distinguish partial delivery from completion
-7. Update applicable existing plan/chunk state or link to the current status home
+7. Update any applicable existing plan/chunk state and link it to the current status home; if none exists, the existing assignment record suffices
 
 **For significant changes**: Never mark a chunk as "completed" without updating documentation.
 
@@ -259,7 +259,7 @@ npm run docs
 - [x] Run `npm run docs` only if requested/doc-sync requires it (component hierarchies)
 - [x] Update `DEVELOPER_GUIDE.md` (add feature to structure)
 - [x] Create `src/features/newFeature/README.md` (feature docs)
-- [x] Update applicable existing plan/chunk files or the current assignment record
+- [x] Update applicable existing plan/chunk state; use the existing assignment record if none exists
 
 ### Example 2: Modified Schema
 
@@ -268,7 +268,7 @@ npm run docs
 **Documentation updates:**
 
 - [x] Run `npm run schema:generate` (update schema docs)
-- [x] Update applicable existing plan/chunk files or the current assignment record
+- [x] Update applicable existing plan/chunk state; use the existing assignment record if none exists
 
 ### Example 3: Added New Script
 
@@ -278,7 +278,7 @@ npm run docs
 
 - [x] Update `PROJECT_SCHEMA.md` (add script to structure)
 - [x] Create `scripts/newTool/README.md` (usage docs)
-- [x] Update applicable existing plan/chunk files or the current assignment record
+- [x] Update applicable existing plan/chunk state; use the existing assignment record if none exists
 
 ---
 
