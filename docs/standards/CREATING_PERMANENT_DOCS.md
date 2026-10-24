@@ -233,13 +233,13 @@ src/architect/tradeMachine/autoSuggest/
 
 **CRITICAL**: For all new or significantly modified files in `src/`, `data/`, and `scripts/`, you MUST:
 
-1. **Insert the standard file header** using `docs/templates/file_header.template.txt`
+1. **Insert a file header** using the fields below and the file's language-appropriate comment syntax.
 2. **Fill in all required fields:**
     - `FILE`: Relative path from repo root (e.g., `src/features/tradeMachine/AutoSuggest.tsx`)
     - `PURPOSE`: Short description of what this file does
     - `OWNERSHIP`: Feature or domain (e.g., `Feature: architect/tradeMachine` or `Tool: player-scrape/contracts`)
-    - `HISTORY`: At least one entry referencing the plan and chunk
-    - `LINKS`: Paths to the plan and latest chunk
+    - `HISTORY`: A concise change entry referencing the actual issue, PR or applicable existing plan
+    - `LINKS`: Relevant existing contracts, docs and implementation records; plan/chunk links only when those files exist
 
 **When to add headers:**
 
@@ -249,10 +249,12 @@ src/architect/tradeMachine/autoSuggest/
 
 **If unsure about PURPOSE or OWNERSHIP:**
 
-- **ASK the user** instead of guessing
+- Resolve technical purpose/ownership from the existing code and assignment; ask only for genuinely unclear product requirements.
 - See `docs/standards/COMMUNICATION_RULES.md` for when to ask vs. decide
 
-**Template location**: `docs/templates/file_header.template.txt`
+The fields above are the header specification; the former
+`docs/templates/file_header.template.txt` reference is obsolete. Do not invent
+plan/chunk references or create tracking documents to populate a header.
 
 ## File Placement Rules
 
@@ -283,7 +285,7 @@ When creating a new feature, ensure you:
   - Document ENTRY POINTS (main components/scripts)
   - Document STRUCTURE (subfolders and contents)
   - Document key components, usage, public APIs
-  - Link to relevant plan/chunk files and docs
+  - Link to relevant existing contracts, docs and assignment records
 
 - [ ] **Use index-based structure** (if feature has composed components)
   - Create `index.tsx` at feature root that exports main component
@@ -291,9 +293,9 @@ When creating a new feature, ensure you:
   - Keep hierarchy consistent with visual/logic composition
 
 - [ ] **Add file headers** to all new files
-  - Use `docs/templates/file_header.template.txt`
+  - Use the file-header fields above
   - Fill in FILE, PURPOSE, OWNERSHIP, HISTORY, LINKS
-  - Ask user if unsure about PURPOSE or OWNERSHIP
+  - Resolve technical PURPOSE/OWNERSHIP; ask only for unclear product requirements
 
 - [ ] **Update `DEVELOPER_GUIDE.md`**
   - Add feature to folder structure
@@ -305,7 +307,7 @@ When creating a new feature, ensure you:
 - [ ] **Create user guide** (if feature has complex workflows)
   - `docs/guides/<feature>.md`
 
-- [ ] **Run `npm run docs`** (for component hierarchies)
+- [ ] **Run `npm run docs` only if requested/doc-sync requires it** (per `AGENTS.md`)
 
 ## Checklist for New Scripts/Tools
 
@@ -316,12 +318,12 @@ When creating a new script or tool:
   - Document ENTRY POINTS (main scripts)
   - Document STRUCTURE (subfolders and contents)
   - Document usage, parameters, examples, output format
-  - Link to relevant plan/chunk files and docs
+  - Link to relevant existing contracts, docs and assignment records
 
 - [ ] **Add file headers** to all new files
-  - Use `docs/templates/file_header.template.txt`
+  - Use the file-header fields above
   - Fill in FILE, PURPOSE, OWNERSHIP, HISTORY, LINKS
-  - Ask user if unsure about PURPOSE or OWNERSHIP
+  - Resolve technical PURPOSE/OWNERSHIP; ask only for unclear product requirements
 
 - [ ] **Update `PROJECT_SCHEMA.md`**
   - Add script to "Script Interfaces" section
@@ -337,7 +339,7 @@ When creating a new script or tool:
 - ✅ `src/features/tradeMachine/README.md` (feature overview, components, APIs)
 - ✅ Updated `DEVELOPER_GUIDE.md` (added to folder structure)
 - ✅ `docs/guides/tradeMachine.md` (user guide for complex workflows)
-- ✅ Ran `npm run docs` (component hierarchies)
+- ✅ Ran `npm run docs` if requested/doc-sync required it (component hierarchies)
 
 **Temporary docs** (in workspace):
 
@@ -365,12 +367,12 @@ When creating a new data module:
   - Document ENTRY POINTS (main scripts/utilities)
   - Document STRUCTURE (subfolders and contents)
   - Document data format and structure
-  - Link to relevant plan/chunk files and schemas
+  - Link to relevant existing contracts, schemas and assignment records
 
 - [ ] **Add file headers** to all new files
-  - Use `docs/templates/file_header.template.txt`
+  - Use the file-header fields above
   - Fill in FILE, PURPOSE, OWNERSHIP, HISTORY, LINKS
-  - Ask user if unsure about PURPOSE or OWNERSHIP
+  - Resolve technical PURPOSE/OWNERSHIP; ask only for unclear product requirements
 
 - [ ] **Update `PROJECT_SCHEMA.md`**
   - Add data module to structure documentation

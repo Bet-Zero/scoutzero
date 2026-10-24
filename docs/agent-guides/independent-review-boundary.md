@@ -136,6 +136,13 @@ complete verdict at the later boundary.
 
 Reviewer unavailability or rate limits do not authorize self-acceptance, weaker evidence standards, repeated relaunch loops, billing changes, provider/account switching, or rebuilding a frozen candidate. Preserve the exact checkpoint and continue only authorized author-side work that does not depend on the unfinished review. Resume the focused review when access returns.
 
-## Current application
+## Historical application
 
-For BZE-309, the pending June 5 holder correction is a focused semantic/adversarial delta review. Claude should judge whether the proposed holder closures and resulting accounting are justified, inspect targeted underlying evidence, and challenge continuity assumptions. It should not repeat the full v12/v13 author reconstruction unless it finds a concrete reason that targeted review is insufficient.
+The September BZE-309 June 5 holder correction illustrated a focused
+semantic/adversarial delta review: judge the proposed closures and accounting,
+inspect targeted evidence, and challenge continuity assumptions without
+repeating the full v12/v13 author reconstruction absent a concrete concern.
+That example is not a pending assignment. Read
+[BZE-309](https://linear.app/bzero/issue/BZE-309) for current evidence obligations
+and [BZE-243](https://linear.app/bzero/issue/BZE-243) for the current product
+completion position and next authorized outcome.

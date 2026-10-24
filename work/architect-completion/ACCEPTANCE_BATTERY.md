@@ -1,5 +1,12 @@
 # Architect V1 — Real-Product Acceptance Battery (BZE-246)
 
+> Historical acceptance evidence for the July 12 candidate and then-agreed scope.
+> "Current main" and green/remaining statuses below refer to that run, not today's
+> expanded V1 gate. Reuse its valid evidence within that boundary; it does not
+> certify the later all-278 first-round requirement. Current completion status
+> and next outcome live in [BZE-243](https://linear.app/bzero/issue/BZE-243);
+> scope remains in the [V1 contract](../../docs/agent-guides/architect-v1-completion-contract.md).
+
 Durable record of the acceptance battery for the Architect V1 completion contract
 (BZE-243). Run against **merged `main` `3185b915`** with every confirmed gap-ledger
 blocker closed (BZE-245, 247–252 all Done + merged). The battery is the architect

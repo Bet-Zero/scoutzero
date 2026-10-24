@@ -226,6 +226,54 @@ Full rules: `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md`,
 - If validation fails, first determine whether the current change caused it.
   Fix in-scope failures; document pre-existing or unrelated failures.
 
+## Completion And Next Assignment
+
+At a meaningful assignment boundary, state the agreed user outcome, what is
+usable and accepted within its actual boundary, what required behavior remains
+unavailable or unverified, and the concrete blocker or next authorized outcome.
+Distinguish implementation, integration/verification, factual-evidence, and owner
+acceptance requirements. An accepted intermediate milestone or evidence-accounting
+total is not product completion or a completion percentage.
+
+Classify newly discovered work before extending an assignment:
+
+- required work to finish the agreed outcome;
+- a confirmed defect or necessary dependency, with its affected outcome and proof;
+- a useful additional capability that can wait, outside the current assignment.
+
+Resolve required in-scope work; record a genuine blocker precisely. Do not
+automatically turn optional refinements into follow-up issues or keep deepening
+a completed task. "Continue" or "what's next?" selects the next authorized,
+unfinished product outcome using current owner decisions, value, risk, and
+dependencies. Preserve explicit owner priority changes. Do not invent a
+whole-ScoutZero finish line or a priority order between independent objectives.
+
+For a changed user workflow, plan the existing completion proof before
+implementation: affected entry points, consumers, saved state/reload and
+agreement between screens/teams where relevant, plus honest blocked/error states.
+Expose integration gaps before declaring the outcome complete. Keep this scoped
+to the affected journey; reuse valid evidence and do not audit the entire app for
+a small change. Agents own technical decisions and proportionate verification;
+this rule creates no additional owner approval step.
+
+Keep one current status home per objective:
+
+- Architect: [BZE-243](https://linear.app/bzero/issue/BZE-243) for accepted
+  capability boundaries, remaining requirements and the next authorized outcome;
+  the [V1 completion contract](docs/agent-guides/architect-v1-completion-contract.md)
+  remains scope authority. Children retain their specific blockers.
+- Non-Architect: the
+  [existing project summary](https://linear.app/bzero/project/scoutzero-non-architect-stabilization-a97cde4908e0)
+  routes current owner-authorized work to its existing issues/PRs.
+- Repository docs retain durable contracts and operating knowledge; PRs retain
+  detailed implementation/review evidence. Older plans keep historical evidence
+  and link to the current status home rather than copying its changing summary.
+
+Use existing records when they preserve intent, authorization, status and
+continuity. A small owner-requested change with an adequate PR record does not
+need a new Linear issue merely for bookkeeping. Existing issue-backed lanes,
+applicable tracking requirements and issue closure gates still apply.
+
 ## Linear And Git Workflow
 
 Session-start checks, in order:

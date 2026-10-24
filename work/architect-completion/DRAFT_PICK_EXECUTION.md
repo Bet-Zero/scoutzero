@@ -1,5 +1,12 @@
 # Draft-pick sustained execution
 
+> Historical September execution/receipt record, not the current queue or source
+> accounting. Do not restart its completed assignments. Current product status
+> and the next authorized outcome live in [BZE-243](https://linear.app/bzero/issue/BZE-243);
+> current factual blockers live in [BZE-309](https://linear.app/bzero/issue/BZE-309).
+> The [V1 contract](../../docs/agent-guides/architect-v1-completion-contract.md)
+> governs scope. Later owner decisions supersede dated sequencing below.
+
 September 12, 2026 owner authorization covers the existing implementation queue,
 then a supported review/emulator-only first-round saved-world vertical slice.
 The [completion plan](https://linear.app/bzero/document/draft-picks-completion-plan-and-execution-gates-82f1eea7abb1)

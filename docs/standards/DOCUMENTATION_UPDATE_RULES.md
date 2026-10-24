@@ -15,7 +15,7 @@
 - ✅ **Component/feature changes** - New features, new components, changed component relationships
 - ✅ **API/contract changes** - Changed function signatures, data structures, Firestore paths
 - ✅ **Script/tool changes** - New CLI tools, changed script interfaces
-- ✅ **Plan/chunk work** - Always update plan and chunk files (tracking)
+- ✅ **Existing plan/chunk work** - Update applicable existing plans when their execution state changes; do not create plan/chunk files solely for tracking.
 
 **Documentation updates can be SKIPPED for:**
 
@@ -24,7 +24,10 @@
 - ❌ **Minor tweaks** - Small UI adjustments, text changes, styling updates
 - ❌ **Configuration** - Changing environment variables, updating dependencies (unless it affects structure)
 
-**When in doubt, update documentation.** It's better to have slightly over-documented than under-documented.
+Update the existing authoritative location for the changed knowledge. Follow
+`AGENTS.md` for current status homes, evidence reuse and documentation commands.
+Do not duplicate changing status across plans, issues and PRs, or create documents
+merely to satisfy a template. Durable knowledge still needs appropriate documentation.
 
 ## Documentation Update Checklist
 
@@ -67,7 +70,7 @@ When completing a chunk, check what changed and update accordingly:
 
 **If you added/modified React components or features:**
 
-- [ ] **Run `npm run docs`**
+- [ ] **Run `npm run docs` only when explicitly requested or an applicable doc-sync requirement calls for it**
   - Auto-generates component hierarchy docs in `docs/components/`
   - Updates component maps and relationships
   - **DO NOT manually edit generated component docs** - they are auto-generated
@@ -118,12 +121,12 @@ When completing a chunk, check what changed and update accordingly:
 
 ### 5. Working Doc Updates
 
-**Always (part of initiative completion):**
+**When the initiative has applicable working docs:**
 
 - [ ] **Update working docs** under `work/<initiative>/`
   - Mark tasks complete
-  - Update status
-  - Document any decisions
+  - Link to the current status home instead of repeating its summary
+  - Preserve decisions and historical evidence
 
 - [ ] **Archive when done** — move `work/<initiative>/` to `archive/work/<initiative>/`
 
@@ -169,15 +172,15 @@ When completing a chunk, check what changed and update accordingly:
 | ---------------------------- | ------------------------------------------------------------------- |
 | Directory structure          | `PROJECT_SCHEMA.md`                                                 |
 | Zod schemas (`src/schemas/`) | Run `npm run schema:generate`                                       |
-| React components             | Run `npm run docs`, update `DEVELOPER_GUIDE.md`                     |
+| React components             | Update affected durable docs; `npm run docs` only if requested/doc-sync requires it |
 | New major feature            | `DEVELOPER_GUIDE.md`, **CREATE** `src/features/<feature>/README.md` (with PURPOSE, ENTRY POINTS, STRUCTURE), **ADD** file headers to all new files |
 | Feature with public APIs     | Feature README + **CREATE** API docs if needed                      |
 | Feature with user workflows  | Feature README + **CREATE** `docs/guides/<feature>.md` if needed    |
 | Scripts/tools                | `PROJECT_SCHEMA.md`, **CREATE** `<scriptDir>/README.md` (with PURPOSE, ENTRY POINTS, STRUCTURE), **ADD** file headers to all new files |
 | Data modules                 | `PROJECT_SCHEMA.md`, **CREATE** `data/<area>/README.md` (with PURPOSE, ENTRY POINTS, STRUCTURE), **ADD** file headers to all new files |
 | Data contracts               | `PROJECT_SCHEMA.md`, schema docs                                    |
-| Plan/chunk work              | Plan file, chunk file                                               |
-| New/significantly modified files | **ADD** file headers using `docs/templates/file_header.template.txt` |
+| Plan/chunk work              | Applicable existing plan/chunk files; no mandatory new tracking files |
+| New/significantly modified source/tool files | Follow the file-header fields in `CREATING_PERMANENT_DOCS.md`; link actual records |
 
 ## Auto-Generated Documentation
 
@@ -196,16 +199,16 @@ When completing a chunk, check what changed and update accordingly:
 
 ## Verification Commands
 
-After updating documentation:
+Run only checks applicable to what changed, as governed by `AGENTS.md`:
 
 ```bash
-# Verify PROJECT_SCHEMA.md is valid
+# After structural changes: verify PROJECT_SCHEMA.md
 npm run validate:project
 
-# Verify schema docs are up to date
+# After schema changes: verify generated schema docs
 npm run schema:check
 
-# Regenerate component docs (if components changed)
+# Regenerate component docs only if requested/doc-sync requires it
 npm run docs
 ```
 
@@ -236,8 +239,8 @@ npm run docs
 3. **Create new permanent documentation** (if adding features/scripts - see `CREATING_PERMANENT_DOCS.md`)
 4. **If significant changes**: Update existing documentation (this checklist)
 5. Run verification commands (if documentation updated)
-6. Mark chunk as completed
-7. Update plan state
+6. Update the existing assignment record; distinguish partial delivery from completion
+7. Update applicable existing plan/chunk state or link to the current status home
 
 **For significant changes**: Never mark a chunk as "completed" without updating documentation.
 
@@ -253,10 +256,10 @@ npm run docs
 
 **Documentation updates:**
 
-- [x] Run `npm run docs` (component hierarchies)
+- [x] Run `npm run docs` only if requested/doc-sync requires it (component hierarchies)
 - [x] Update `DEVELOPER_GUIDE.md` (add feature to structure)
 - [x] Create `src/features/newFeature/README.md` (feature docs)
-- [x] Update plan/chunk files (mark complete)
+- [x] Update applicable existing plan/chunk files or the current assignment record
 
 ### Example 2: Modified Schema
 
@@ -265,7 +268,7 @@ npm run docs
 **Documentation updates:**
 
 - [x] Run `npm run schema:generate` (update schema docs)
-- [x] Update plan/chunk files (mark complete)
+- [x] Update applicable existing plan/chunk files or the current assignment record
 
 ### Example 3: Added New Script
 
@@ -275,7 +278,7 @@ npm run docs
 
 - [x] Update `PROJECT_SCHEMA.md` (add script to structure)
 - [x] Create `scripts/newTool/README.md` (usage docs)
-- [x] Update plan/chunk files (mark complete)
+- [x] Update applicable existing plan/chunk files or the current assignment record
 
 ---
 

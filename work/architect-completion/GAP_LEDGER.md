@@ -5,6 +5,12 @@ description: BZE-245 reuse-first verified gap ledger — evidence decision for e
 
 # Architect V1 Verified Gap Ledger (BZE-245)
 
+> Historical evidence from the July 11 contract boundary. The gaps and queue below
+> are not the current assignment list. Read [BZE-243](https://linear.app/bzero/issue/BZE-243)
+> for current completion status and the next authorized outcome, and the
+> [current V1 contract](../../docs/agent-guides/architect-v1-completion-contract.md)
+> for scope. Preserve valid proof; do not reopen completed assignments from this ledger.
+
 **Built:** 2026-07-11, against main `5c56d2ee` (contract commit).
 **Contract:** `docs/agent-guides/architect-v1-completion-contract.md`
 (owner-approved 2026-07-11).
