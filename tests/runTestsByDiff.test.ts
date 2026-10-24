@@ -164,6 +164,15 @@ describe('actual change rather than feature responsibility', () => {
   });
   it.each([
     'src/features/architect/utils/capTotals/computeTeamCapTotals.ts',
+    'src/features/architect/data/capYearData.ts',
+    'src/features/architect/data/minimumSalaryScales.ts',
+    'src/features/architect/data/rookieScale.ts',
+    'src/features/architect/hooks/useCapValidation.ts',
+    'src/features/architect/hooks/useTradeMachineValidation.ts',
+    'src/features/architect/tradeMachine/useGovernedSignAndTradePreview.ts',
+    'src/features/architect/cockpit/tradeOpenRequest.ts',
+    'src/features/architect/GMDashboard/hooks/useArchitectActions.contractActions.ts',
+    'src/features/architect/GMDashboard/hooks/useArchitectActions.tradeActions.ts',
     'src/features/architect/utils/salaryEngine/salaryEngine.ts',
     'src/features/architect/utils/capLegalityValidation.ts',
     'src/features/architect/utils/capLegality/postStateCapValidator.ts',
@@ -196,6 +205,8 @@ describe('actual change rather than feature responsibility', () => {
       hook,
       'src/shared/utils/routing/playerRouteUtils.ts',
       'src/features/architect/utils/seasonFormat.ts',
+      'src/features/architect/GMDashboard/hooks/useArchitectModals.ts',
+      room,
     ]) {
       expect(selectValidationProfile([file])).toMatchObject({
         level: 'ordinary',
