@@ -1,30 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  LayoutGrid,
-  ListOrdered,
-  Download,
-  Edit3,
-  CheckCircle,
-  AlertCircle,
-} from 'lucide-react';
 import { useImageDownload } from '@/shared/hooks/useImageDownload';
 import { AdjustableRankings } from './AdjustableRankings';
 import type { RankerPlayer } from './utils/rankingEngine';
+import { getPlayerName } from './utils/playerDisplay';
+import { GridCard, ListRow, type RankedColumnItem } from './RankedPlayerCards';
 import {
-  getHeadshotSrc,
-  getLogoSrc,
-  getPlayerName,
-  getTeamLabel,
-} from './utils/playerDisplay';
+  RankingExport,
+  recommendedExportLayout,
+  type ExportLayout,
+} from './RankingExport';
+import { ResultsActionButtons } from './ResultsActionButtons';
+import { waitForImages } from './utils/exportImages';
 
 type SaveStatus = 'saving' | 'saved' | 'error' | null;
 type SavedListMeta = {
   listId: string;
   listName: string;
-};
-type RankedColumnItem = {
-  player: RankerPlayer;
-  rank: number;
 };
 type RankingResultsProps = {
   ranking?: RankerPlayer[];
@@ -36,101 +27,6 @@ type RankingResultsProps = {
   // Top-N mode: the list size, and the players who didn't make it
   topN?: number | null;
   cutPlayers?: RankerPlayer[];
-};
-
-// ─── Grid Card ────────────────────────────────────────────────────────────────
-
-export const GridCard = ({ player, rank }: RankedColumnItem) => {
-  const headshot = getHeadshotSrc(player);
-  const logoSrc = getLogoSrc(player);
-
-  return (
-    <div className="bg-gradient-to-b from-[#2a2a2a] to-[#1f1f1f] rounded-lg overflow-hidden border border-white/25 shadow-xl">
-      {/* Headshot with rank overlay */}
-      <div className="aspect-square w-full overflow-hidden bg-[#0a0a0a] relative border-b border-white/15">
-        <img
-          src={headshot}
-          alt={getPlayerName(player)}
-          className="w-full h-full object-cover"
-          loading="eager"
-          decoding="async"
-          onError={(e) => {
-            e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
-          }}
-        />
-        <div className="absolute top-2 left-2 bg-neutral-900/80 backdrop-blur-sm text-white font-bold text-lg px-1.5 py-0.5 rounded shadow-xl border border-white/20">
-          {rank}
-        </div>
-      </div>
-
-      {/* Info */}
-      <div className="p-3 bg-gradient-to-b from-[#1f1f1f] to-[#1a1a1a] border-t border-white/20">
-        <div className="text-white font-medium truncate text-sm mb-1">
-          {getPlayerName(player)}
-        </div>
-        <div className="flex items-center gap-1.5">
-          {logoSrc && (
-            <img
-              src={logoSrc}
-              alt=""
-              className="w-4 h-4 object-contain flex-shrink-0"
-              loading="eager"
-              decoding="async"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          )}
-          <span className="text-white/60 text-xs truncate">
-            {getTeamLabel(player) ?? '—'}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ─── List Row ─────────────────────────────────────────────────────────────────
-
-export const ListRow = ({ player, rank }: RankedColumnItem) => {
-  const headshot = getHeadshotSrc(player);
-  const logoSrc = getLogoSrc(player);
-
-  return (
-    <div className="bg-white/5 rounded p-2 flex items-center gap-2">
-      <div className="w-8 h-8 flex items-center justify-center bg-white/10 rounded-full font-bold text-white/80 text-sm flex-shrink-0">
-        {rank}
-      </div>
-      <img
-        src={headshot}
-        alt=""
-        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-        loading="eager"
-        decoding="async"
-        onError={(e) => {
-          e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
-        }}
-      />
-      <div className="flex-1 min-w-0">
-        <div className="font-medium text-white truncate text-sm">
-          {getPlayerName(player)}
-        </div>
-        <div className="flex items-center gap-1 text-white/60 text-xs">
-          {logoSrc && (
-            <img
-              src={logoSrc}
-              alt=""
-              className="w-3.5 h-3.5 object-contain flex-shrink-0"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          )}
-          <span>{getTeamLabel(player) ?? '—'}</span>
-        </div>
-      </div>
-    </div>
-  );
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -148,15 +44,44 @@ export const RankingResults = ({
   const [viewType, setViewType] = useState('list');
   const [isAdjustMode, setIsAdjustMode] = useState(false);
   const [currentRanking, setCurrentRanking] = useState<RankerPlayer[]>(ranking);
-  const [isDownloading, setIsDownloading] = useState(false);
+  // Layout of the offscreen export, and whether a download is waiting on it
+  const [exportLayout, setExportLayout] = useState<ExportLayout>(() =>
+    recommendedExportLayout(ranking.length)
+  );
+  const [pendingDownload, setPendingDownload] = useState(false);
 
   const exportViewRef = useRef<HTMLDivElement | null>(null);
   const downloadImage = useImageDownload(exportViewRef);
+  // A new function each render; read through a ref so the capture effect runs once
+  const downloadImageRef = useRef(downloadImage);
+  downloadImageRef.current = downloadImage;
 
   // Sync if parent ranking changes
   useEffect(() => {
     setCurrentRanking(ranking);
   }, [ranking]);
+
+  // Capture once the chosen layout has rendered and its headshots have loaded
+  useEffect(() => {
+    if (!pendingDownload) return;
+    let cancelled = false;
+    const run = async () => {
+      if (exportViewRef.current) await waitForImages(exportViewRef.current);
+      const date = new Date()
+        .toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        })
+        .replace(/,/g, '');
+      if (!cancelled) await downloadImageRef.current(`rankings-${date}.png`);
+      if (!cancelled) setPendingDownload(false);
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingDownload, exportLayout]);
 
   const handleSaveAdjustments = (adjusted: RankerPlayer[]) => {
     setCurrentRanking(adjusted);
@@ -185,16 +110,9 @@ export const RankingResults = ({
     URL.revokeObjectURL(url);
   };
 
-  const handleDownloadImage = async () => {
-    setIsDownloading(true);
-    const date = new Date()
-      .toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-      .replace(/,/g, '');
-    try {
-      await downloadImage(`rankings-${date}.png`);
-    } finally {
-      setIsDownloading(false);
-    }
+  const handleDownloadImage = (layout: ExportLayout) => {
+    setExportLayout(layout);
+    setPendingDownload(true);
   };
 
   const handleSaveAsList = () => {
@@ -216,94 +134,16 @@ export const RankingResults = ({
   // ── Columns helper for list view ─────────────────────────────────────────────
   const createColumns = (cols: number) => {
     const itemsPerCol = Math.ceil(currentRanking.length / cols);
-    const columns: RankedColumnItem[][] = Array.from({ length: cols }, () => []);
+    const columns: RankedColumnItem[][] = Array.from(
+      { length: cols },
+      () => []
+    );
     currentRanking.forEach((player, idx) => {
       const colIndex = Math.floor(idx / itemsPerCol);
       if (colIndex < cols) columns[colIndex].push({ player, rank: idx + 1 });
     });
     return columns;
   };
-
-  // ── Action buttons ────────────────────────────────────────────────────────────
-  const ActionButtons = () => (
-    <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-      <button
-        onClick={() => setIsAdjustMode(true)}
-        className="px-3 py-2 text-sm text-white bg-orange-600/80 hover:bg-orange-700 rounded flex items-center transition-colors"
-      >
-        <Edit3 size={16} className="mr-1" />
-        <span className="hidden sm:inline">Adjust Rankings</span>
-        <span className="sm:hidden">Adjust</span>
-      </button>
-      {isOwner && onSaveAsList && (
-        <button
-          onClick={handleSaveAsList}
-          disabled={saveAsListStatus === 'saving'}
-          className={`
-            px-3 py-2 text-sm rounded flex items-center transition-colors disabled:opacity-50
-            ${
-              saveAsListStatus === 'saved'
-                ? 'text-green-300 bg-green-500/20 border border-green-500/30'
-                : saveAsListStatus === 'error'
-                  ? 'text-red-300 bg-red-500/20 border border-red-500/30'
-                  : 'text-white bg-blue-600/80 hover:bg-blue-700'
-            }
-          `}
-        >
-          {saveAsListStatus === 'saving' ? (
-            <>
-              <div className="w-3.5 h-3.5 mr-1 border-2 border-blue-100/30 border-t-blue-100 rounded-full animate-spin" />
-              <span className="hidden sm:inline">Saving...</span>
-            </>
-          ) : saveAsListStatus === 'saved' ? (
-            <>
-              <CheckCircle size={16} className="mr-1" />
-              <span className="hidden sm:inline">Saved as List</span>
-            </>
-          ) : saveAsListStatus === 'error' ? (
-            <>
-              <AlertCircle size={16} className="mr-1" />
-              <span className="hidden sm:inline">Save Failed</span>
-            </>
-          ) : (
-            <>
-              <span className="hidden sm:inline">
-                {savedListMeta ? 'Update List' : 'Save as List'}
-              </span>
-              <span className="sm:hidden">{savedListMeta ? 'Update' : 'Save'}</span>
-            </>
-          )}
-        </button>
-      )}
-      <button
-        onClick={() => setViewType(viewType === 'grid' ? 'list' : 'grid')}
-        className="px-3 py-2 text-sm text-white bg-white/10 rounded hover:bg-white/20 flex items-center transition-colors"
-      >
-        {viewType === 'grid' ? (
-          <><ListOrdered size={16} className="mr-1" /><span className="hidden sm:inline">List View</span></>
-        ) : (
-          <><LayoutGrid size={16} className="mr-1" /><span className="hidden sm:inline">Grid View</span></>
-        )}
-      </button>
-      <button
-        onClick={handleDownloadImage}
-        disabled={isDownloading}
-        className="px-3 py-2 text-sm text-white bg-white/10 rounded hover:bg-white/20 flex items-center transition-colors disabled:opacity-50"
-      >
-        <Download size={16} className="mr-1" />
-        <span className="hidden sm:inline">{isDownloading ? 'Downloading…' : 'Download'}</span>
-      </button>
-      <button
-        onClick={handleCopy}
-        className="px-3 py-2 text-sm text-white bg-white/10 rounded hover:bg-white/20 flex items-center transition-colors"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="mr-1">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2z" />
-        </svg>
-        <span className="hidden sm:inline">Copy</span>
-      </button>
-    </div>
-  );
 
   // ── Grid view ─────────────────────────────────────────────────────────────────
   const renderGrid = () => (
@@ -356,28 +196,18 @@ export const RankingResults = ({
   const renderExportContainer = () => (
     <div
       className="fixed top-0 left-0 pointer-events-none -z-50"
-      style={{ transform: 'scale(0.001)', transformOrigin: 'top left', opacity: 0.01 }}
+      style={{
+        transform: 'scale(0.001)',
+        transformOrigin: 'top left',
+        opacity: 0.01,
+      }}
     >
-      <div ref={exportViewRef} className="bg-neutral-950 p-12 w-[1200px]">
-        <div className="mb-6">
-          <h1 className="text-5xl font-black uppercase tracking-wide text-white">
-            My Rankings
-          </h1>
-          <div className="mt-3 h-0.5 w-1/4 bg-white/20" />
-          <div className="mt-3 text-base text-white/60">
-            {new Date().toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-            })}
-          </div>
-        </div>
-        <div className="grid grid-cols-6 gap-4 mt-6">
-          {currentRanking.slice(0, 42).map((p, idx) => (
-            <GridCard key={p.id} player={p} rank={idx + 1} />
-          ))}
-        </div>
-      </div>
+      <RankingExport
+        ref={exportViewRef}
+        ranking={currentRanking}
+        layout={exportLayout}
+        title={topN ? `My Top ${topN}` : 'My Rankings'}
+      />
     </div>
   );
 
@@ -391,7 +221,22 @@ export const RankingResults = ({
             {topN ? `Your Top ${topN}` : 'Your Rankings'}
           </h2>
           <div className="hidden sm:block">
-            <ActionButtons />
+            <ResultsActionButtons
+              viewType={viewType}
+              onAdjust={() => setIsAdjustMode(true)}
+              onSaveAsList={
+                isOwner && onSaveAsList ? handleSaveAsList : undefined
+              }
+              saveAsListStatus={saveAsListStatus}
+              savedListMeta={savedListMeta}
+              onToggleView={() =>
+                setViewType(viewType === 'grid' ? 'list' : 'grid')
+              }
+              recommendedLayout={recommendedExportLayout(currentRanking.length)}
+              downloading={pendingDownload}
+              onDownload={handleDownloadImage}
+              onCopy={handleCopy}
+            />
           </div>
         </div>
 
@@ -425,7 +270,22 @@ export const RankingResults = ({
         )}
 
         <div className="mt-6 sm:hidden">
-          <ActionButtons />
+          <ResultsActionButtons
+            viewType={viewType}
+            onAdjust={() => setIsAdjustMode(true)}
+            onSaveAsList={
+              isOwner && onSaveAsList ? handleSaveAsList : undefined
+            }
+            saveAsListStatus={saveAsListStatus}
+            savedListMeta={savedListMeta}
+            onToggleView={() =>
+              setViewType(viewType === 'grid' ? 'list' : 'grid')
+            }
+            recommendedLayout={recommendedExportLayout(currentRanking.length)}
+            downloading={pendingDownload}
+            onDownload={handleDownloadImage}
+            onCopy={handleCopy}
+          />
         </div>
 
         <div className="flex justify-center mt-6 mb-6">
@@ -433,8 +293,21 @@ export const RankingResults = ({
             onClick={handleExportCSV}
             className="px-4 py-2 text-sm text-white bg-white/10 rounded hover:bg-white/20 flex items-center transition-colors"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="mr-2">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2z" />
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              className="mr-2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2z"
+              />
             </svg>
             Export to CSV
           </button>
@@ -443,4 +316,3 @@ export const RankingResults = ({
     </>
   );
 };
-
