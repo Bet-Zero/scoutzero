@@ -106,3 +106,7 @@ try {
 // ============================================================================
 
 export { db, auth, functions };
+
+// Generic emulator integration tests retain the default Apply boundary.
+// Only the separately governed review harness can enable synthetic consumption.
+export const isSyntheticDraftReviewEnvironment = (): boolean => false;

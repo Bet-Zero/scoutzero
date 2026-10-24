@@ -5,6 +5,7 @@ import {
   getReviewAdminDb,
 } from './architectReviewWorld';
 import { withDerivedGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import {
   ARCHITECT_WORLDS_COLLECTION,
   ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
@@ -26,6 +27,10 @@ export async function seedRealDraftReviewWorld(
   asOfDate: string
 ) {
   const db = getReviewAdminDb(); // Always the demo emulator, never a source writer.
+  // The original fixture only inspected picks. Actual trade validation also
+  // requires books for the selected season to match this explicit test date.
+  const seasonEndYear = asOfDate < '2026-07-01' ? 2026 : 2027;
+  const season = seasonEndYear === 2026 ? '2025-26' : '2026-27';
   const world = db
     .collection(ARCHITECT_WORLDS_COLLECTION)
     .doc(REAL_DRAFT_WORLD);
@@ -36,8 +41,8 @@ export async function seedRealDraftReviewWorld(
     createdBy: uid,
     createdAt: new Date(),
     lastModifiedAt: new Date(),
-    currentSeason: '2026-27',
-    baselineSeason: '2026-27',
+    currentSeason: season,
+    baselineSeason: '2025-26',
     asOfDate,
     parentWorldId: null,
     isArchived: false,
@@ -48,7 +53,7 @@ export async function seedRealDraftReviewWorld(
       releaseDigest: `sha256:${'3'.repeat(64)}`,
     },
     contractBaselineEffectiveAt: `${asOfDate}T00:00:00Z`,
-    contractBaselineSalaryCapYear: 2027,
+    contractBaselineSalaryCapYear: seasonEndYear,
     contractBaselineCoverage: { total: 0, complete: 0, needsInput: 0 },
   });
   const batch = db.batch();
@@ -60,9 +65,24 @@ export async function seedRealDraftReviewWorld(
           ? 'Denver Nuggets'
           : teamCode;
     const players = [scenario.team, 'DEN'].includes(teamCode)
-      ? Array.from({ length: 18 }, (_, i) =>
-          buildReviewDepthPlayer(teamCode, teamName, i + 1)
-        )
+      ? Array.from({ length: 18 }, (_, i) => {
+          const player = buildReviewDepthPlayer(teamCode, teamName, i + 1);
+          const isTwoWay = i >= 15;
+          return {
+            ...player,
+            isTwoWay,
+            contract: {
+              ...player.contract,
+              isTwoWay,
+              contractType: isTwoWay ? 'TWO-WAY' : 'MINIMUM CONTRACT',
+              salariesByYear: player.contract.salariesByYear.map((row) => ({
+                ...row,
+                salary: isTwoWay ? 578577 : 2000000,
+                capHit: isTwoWay ? 578577 : 2000000,
+              })),
+            },
+          };
+        })
       : [];
     const team = withDerivedGovernedSalaryBooks(
       {
@@ -71,7 +91,7 @@ export async function seedRealDraftReviewWorld(
         teamCode,
         abbreviation: teamCode,
         teamName,
-        season: '2026-27',
+        season,
         players,
         roster: players.map((p) => p.id),
         entitlementIds:
@@ -83,11 +103,44 @@ export async function seedRealDraftReviewWorld(
         incomingOfferSheets: [],
         draftPicks: [],
       },
-      { salaryCapYear: 2027, asOfDate: `${asOfDate}T00:00:00Z` }
+      { salaryCapYear: seasonEndYear, asOfDate: `${asOfDate}T00:00:00Z` }
     );
+    // Reuse the accepted salary-book fixture contract; this is stipulated
+    // roster/book support for blocked validation, never real pick authority.
+    const salaryBookInputs = { ...team.salaryBookInputs };
+    delete salaryBookInputs.incompleteRosterCharge;
+    const ready = {
+      ...team,
+      salaryBookInputs: {
+        ...salaryBookInputs,
+        unsignedFirstRoundPickState: {
+          version: 1,
+          status: 'ready',
+          teamCode,
+          salaryCapYear: seasonEndYear,
+          entries: [],
+          source: {
+            evidenceId: `presentation:${teamCode}:unsigned-firsts`,
+            evidenceVersion: 1,
+            authority: 'external-determination',
+            reference:
+              'Presentation fixture only: no unsigned current-draft firsts',
+            authenticatedAt: `${asOfDate}T00:00:00Z`,
+            recordStatus: 'current',
+            canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'],
+          },
+        },
+      },
+    };
+    const totals = createCanonicalTeamTotalsSnapshot(ready, seasonEndYear, {
+      asOfDate,
+    });
+    // June 5 predates the installed season registry's complete money/calendar
+    // authority. Preserve that real missing-input stop while testing the
+    // independent first-round verdict; never fill it with another season.
     batch.set(
       world.collection(ARCHITECT_WORLD_TEAMS_SUBCOLLECTION).doc(teamCode),
-      team
+      { ...ready, totals }
     );
   }
   batch.set(

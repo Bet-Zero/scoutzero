@@ -17,6 +17,16 @@ const verified = new WeakMap<
   object,
   { data: DraftPickRealReviewPackage; release: LoadedDraftPickRelease }
 >();
+// Only date-limited product reads may inform the trade's blocked verdict.
+// Historical inspection, caller JSON and cloned results never cross this boundary.
+const tradeReviews = new WeakMap<
+  object,
+  {
+    review: RealDraftSelectionReview;
+    selections: RealDraftReviewSelection[];
+    asOfDate: string | null;
+  }
+>();
 type Pin = typeof REAL_DRAFT_REVIEW_PIN;
 
 /** Integrity plus a separately installed trust pin; caller JSON alone is never authority. */
@@ -127,7 +137,13 @@ export function reviewRealDraftSelection(
 ) {
   const loaded = verified.get(token);
   if (!loaded) throw new Error('No authenticated draft review is installed.');
-  return deriveRealDraftSelection(loaded, args);
+  const result = deriveRealDraftSelection(loaded, args);
+  tradeReviews.set(result, {
+    review: structuredClone(result),
+    selections: structuredClone(args.selections),
+    asOfDate: args.asOfDate,
+  });
+  return result;
 }
 
 /** Explicit historical inspection; never a conclusion about a world's date. */
@@ -251,3 +267,68 @@ export function deriveRealDraftSelection(
 export type RealDraftSelectionReview = ReturnType<
   typeof deriveRealDraftSelection
 >;
+
+/** Additional reasons for the existing no-Apply gate, never permission to trade. */
+export function realDraftTradeBlock(
+  value: unknown,
+  team: string,
+  entitlementIds: string[],
+  asOfDate: string | null
+): { messages: string[]; missingInputs: string[] } | null {
+  const retained =
+    value && typeof value === 'object' ? tradeReviews.get(value) : undefined;
+  if (!retained || retained.asOfDate !== asOfDate) return null;
+  const selected = retained.selections.filter((s) => s.team === team);
+  if (
+    !selected.length ||
+    canonicalStringify(selected.map((s) => s.entitlementId).sort()) !==
+      canonicalStringify([...entitlementIds].sort())
+  )
+    return null;
+  return deriveRealDraftTradeBlock(
+    {
+      ...retained.review,
+      // The same entitlement can be staged by two teams in an invalid proposal.
+      // Preserve positional team attribution rather than matching IDs alone.
+      records: retained.review.records.filter(
+        (_, index) => retained.selections[index]?.team === team
+      ),
+    },
+    selected
+  );
+}
+
+/** Pure presentation derivation; only realDraftTradeBlock authenticates its input. */
+export function deriveRealDraftTradeBlock(
+  review: RealDraftSelectionReview,
+  selections: RealDraftReviewSelection[]
+) {
+  const ids = new Set(selections.map((s) => s.entitlementId));
+  const rows = review.records.filter((r) => ids.has(r.entitlementId));
+  const dependencies = rows
+    .flatMap((r) => r.relatedDependencies)
+    .filter((d) =>
+      d.actions.some((action) =>
+        ['transfer', 'stepien', 'apron'].includes(action)
+      )
+    );
+  return {
+    messages: [
+      ...new Set([
+        'This world’s first-round holdings and dated changes have not been verified against the retained starting position. Apply remains unavailable.',
+        ...rows.map((r) => `${r.label}: ${r.reason}`),
+        ...dependencies.map((d) => `Retained pick terms: ${d.reason}`),
+      ]),
+    ],
+    missingInputs: [
+      ...new Set([
+        'governedDraftHistory.worldAdoption',
+        'governedDraftHistory.postTradeStepienBranches',
+        'governedDraftHistory.exchangeTerms',
+        ...dependencies.map(
+          (d) => `governedDraftHistory.dependency:${d.dependencyId}`
+        ),
+      ]),
+    ],
+  };
+}

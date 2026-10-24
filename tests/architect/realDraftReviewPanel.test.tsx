@@ -47,7 +47,7 @@ function fixture() {
   };
 }
 const panel = () => (
-  <RealDraftReviewPanel teams={[]} asOfDate={null} worldId="existing-world" />
+  <RealDraftReviewPanel state={mock.state} />
 );
 afterEach(cleanup);
 describe('explicit starting-position inspection preserves the dated-world boundary', () => {

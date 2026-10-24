@@ -91,6 +91,7 @@ export const TradeEditor = ({
   const governedWorldAsOfDate =
     typeof worldAsOfDate === 'string' ? worldAsOfDate : null;
   const {
+    realDraftReview,
     teams,
     previewAuthority,
     snapshotValidationDetails,
@@ -1151,7 +1152,7 @@ export const TradeEditor = ({
       </div>
 
       {/* Phase 16.3: Init error display */}
-      <RealDraftReviewPanel teams={teams} asOfDate={governedWorldAsOfDate} worldId={worldId} />
+      <RealDraftReviewPanel state={realDraftReview ?? null} />
       {initError && teams.length === 0 && (
         <div className="bg-cockpit-danger/15 border border-cockpit-danger/50 rounded-lg p-4 text-cockpit-text-secondary">
           <div className="font-semibold text-cockpit-danger mb-1">

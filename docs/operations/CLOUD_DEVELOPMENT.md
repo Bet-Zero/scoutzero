@@ -141,6 +141,16 @@ publisher or change its protected workflow/trust for development.
 | Pending draft hosted review | PR #547's separately versioned release manifest and parts | Not read by current main's core workflow; retain its installed five-document release and separate access/publication gates |
 | Lists, tier lists, ranker sessions, worlds, roster projects, free-agent utility records, evaluations | Excluded production user content | Create safe emulator accounts/worlds; never mirror private user content |
 
+Use `npm run architect:proof:trade-receipt -- --real-draft` for retained
+first-round validation proof, with the existing private release and scenario
+inputs. Its isolated world-only fixture does not establish NBA roster facts or
+saved-world source adoption. The ordinary validator can report first-round
+missing inputs even when salary books are unavailable; no substitute payroll
+is supplied. Only the authenticated, date-limited review informs its pick
+reasons. Historical inspection or copied review metadata cannot authorize a
+trade. Preserve legacy/source identity conflicts rather than altering source
+records to make a saved-world fixture load.
+
 Collection/document membership, counts, parent coverage and duplicate paths are
 validated. Network/transient HTTP failures receive bounded retries; permission
 failures are never retried into success. Denied, partial or empty required core

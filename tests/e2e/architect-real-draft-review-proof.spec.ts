@@ -28,8 +28,8 @@ async function capture(page: Page, name: string) {
     fullPage: false,
   });
 }
-async function open(page: Page, team: string) {
-  await page.goto(`/gm/${team}?season=2027`);
+async function open(page: Page, team: string, season = 2026) {
+  await page.goto(`/gm/${team}?season=${season}`);
   await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
   const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
   await expect(dialog.getByTestId(`trade-team-card-${team}`)).toBeVisible({
@@ -86,7 +86,7 @@ test('real retained picks render scoped results without writes or stale review',
   await page.evaluate(
     ({ uid, worldId }) => {
       localStorage.setItem(`architect.activeWorldId.${uid}`, worldId);
-      localStorage.setItem('hz.currentSeasonEndYear', '2027');
+      localStorage.setItem('hz.currentSeasonEndYear', '2026');
     },
     { uid, worldId: REAL_DRAFT_WORLD }
   );
@@ -101,12 +101,33 @@ test('real retained picks render scoped results without writes or stale review',
   for (const scenario of cases.cases) {
     await seedRealDraftReviewWorld(uid, scenario, cases.asOfDate);
     const before = await savedRealDraftState();
-    const { card } = await open(page, scenario.team);
+    const { card, dialog } = await open(page, scenario.team);
     await route(page, card, scenario.entitlement.seasonYear);
     const panel = page.getByTestId('real-draft-review');
     for (const expected of scenario.expected)
       await expect(panel).toContainText(expected);
     await expect(panel).toContainText('Apply unavailable');
+    // The installed real evidence now informs the actual proposal's verdict,
+    // rather than being confined to the historical inspection panel.
+    await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+    await expect(dialog.getByTestId('trade-readiness-summary')).toContainText(
+      'Needs input'
+    );
+    const verdict = dialog.getByTestId('trade-verdict-strip');
+    await expect(verdict).toContainText(
+      'holdings and dated changes have not been verified'
+    );
+    const expectedVerdict: Record<string, string> = {
+      supported: 'Recorded ownership supports',
+      'wrong-holder': 'assigns this pick to another team',
+      alias: 'separately transferable right has not been established',
+      apron: '2025–26 measurement event',
+      future: 'Hunter swap needs',
+    };
+    await expect(verdict).toContainText(expectedVerdict[scenario.name]);
+    await expect(
+      dialog.getByRole('button', { name: /^Apply Trade$/i })
+    ).toBeDisabled();
     await capture(page, scenario.name);
     expect(await savedRealDraftState()).toEqual(before);
     results.push({
@@ -116,6 +137,15 @@ test('real retained picks render scoped results without writes or stale review',
       noWrites: true,
     });
     if (scenario.name === 'supported') {
+      await dialog.getByRole('button', { name: 'Close Trade Machine' }).click();
+      await expect(dialog).toBeHidden();
+      await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
+      await expect(dialog).toBeVisible();
+      await expect(verdict).toContainText('Recorded ownership supports');
+      await expect(
+        dialog.getByRole('button', { name: /^Apply Trade$/i })
+      ).toBeDisabled();
+      expect(await savedRealDraftState()).toEqual(before);
       const reload = await open(page, scenario.team);
       await expect(panel).toHaveCount(0);
       await route(page, reload.card, scenario.entitlement.seasonYear);
@@ -140,7 +170,7 @@ test('real retained picks render scoped results without writes or stale review',
       expect(await savedRealDraftState()).toEqual(before);
       await seedRealDraftReviewWorld(uid, scenario, '2026-07-01');
       const laterBefore = await savedRealDraftState();
-      const later = await open(page, scenario.team);
+      const later = await open(page, scenario.team, 2027);
       await route(page, later.card, scenario.entitlement.seasonYear);
       await expect(panel).toContainText('does not establish this world’s date');
       await expect(panel).not.toContainText('Supported for this team');

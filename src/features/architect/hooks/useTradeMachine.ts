@@ -33,6 +33,7 @@ import type {
   TradeMachineSnapshotValidationDetails,
 } from './useTradeMachine.types';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
+import { useRealDraftReview } from '@/features/architect/tradeMachine/useRealDraftReview';
 
 export const useTradeMachine = (
   primaryTeam: string | null | undefined,
@@ -114,6 +115,7 @@ export const useTradeMachine = (
     return computeTradeDraftKey({ yearKey, teams });
   }, [yearKey, teams]);
   const lastObservedDraftKeyRef = useRef(currentDraftKey);
+  const realDraftReview = useRealDraftReview(teams, worldAsOfDate, worldId);
 
   // Wave 29 Step 4: validation sub-hook
   const { handleValidate } = useTradeMachineValidation({
@@ -123,6 +125,10 @@ export const useTradeMachine = (
     worldId,
     worldLineage,
     worldAsOfDate,
+    realDraftReview:
+      realDraftReview && 'review' in realDraftReview
+        ? realDraftReview.review
+        : undefined,
     forceTrade,
     currentDraftKey,
     setSnapshotValidationDetails,
@@ -366,5 +372,6 @@ export const useTradeMachine = (
     getValidatedAt: () => validatedAtRef.current,
     // Phase 16.3: Expose init error for UI error surfacing
     initError,
+    realDraftReview,
   };
 };

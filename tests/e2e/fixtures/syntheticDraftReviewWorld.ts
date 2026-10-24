@@ -8,6 +8,7 @@ import {
 } from '../helpers/architectReviewWorld';
 import { withDerivedGovernedSalaryBooks } from '@/tests/fixtures/governedSalaryBookInputs';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
+import type admin from 'firebase-admin';
 import {
   ARCHITECT_WORLDS_COLLECTION,
   ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
@@ -17,9 +18,19 @@ import {
 export async function seedSyntheticDraftReviewWorld(
   uid: string,
   worldId: string,
-  variant: keyof typeof SYNTHETIC_DRAFT_RELEASES = 'legal'
+  variant: keyof typeof SYNTHETIC_DRAFT_RELEASES = 'legal',
+  targetApp?: admin.app.App
 ) {
-  const db = getReviewAdminDb();
+  const db = targetApp ? targetApp.firestore() : getReviewAdminDb();
+  if (
+    !/^127\.0\.0\.1:\d+$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? '') ||
+    !(targetApp?.options.projectId ?? 'demo-architect-review').startsWith(
+      'demo-'
+    )
+  )
+    throw new Error(
+      'Synthetic world fixtures require a loopback demo emulator.'
+    );
   const serialized = SYNTHETIC_DRAFT_RELEASES[variant];
   const retained = JSON.parse(serialized);
   const source = SyntheticDraftMutationSourceZ.parse(

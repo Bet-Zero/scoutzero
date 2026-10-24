@@ -1,4 +1,4 @@
-import { expect, it, vi } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { seedSyntheticDraftReviewWorld } from '../e2e/fixtures/syntheticDraftReviewWorld';
 
 const writes = vi.hoisted(() => new Map<string, Record<string, unknown>>());
@@ -28,7 +28,10 @@ vi.mock('../e2e/helpers/architectReviewWorld', async (importOriginal) => {
     }),
   };
 });
+afterEach(() => vi.unstubAllEnvs());
 it('supplies complete independent salary books and 15+3 rosters without writing source paths', async () => {
+  // The mocked database replaces getReviewAdminDb's loopback setup as well.
+  vi.stubEnv('FIRESTORE_EMULATOR_HOST', '127.0.0.1:8082');
   await seedSyntheticDraftReviewWorld('synthetic-owner', 'fixture-check');
   expect(
     [...writes.keys()].every((p) =>
