@@ -246,7 +246,8 @@
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vite": "^4.4.0",
-    "vitest": "^1.6.1"
+    "vitest": "^1.6.1",
+    "yaml": "^2.8.1"
   },
   "repository": {
     "type": "git",

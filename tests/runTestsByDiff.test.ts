@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
   mkdtempSync,
@@ -14,6 +14,8 @@ import { parse } from 'yaml';
 
 import {
   collectChanges,
+  documentationCommands,
+  gitEnvironment,
   executePlan,
   selectTestPlan,
   selectValidationProfile,
@@ -284,6 +286,23 @@ describe('bounded CI validation policy', () => {
     expect(workflow.on.schedule).toEqual([{ cron: '0 2 * * *' }]);
   });
 
+  it('keeps changed Markdown within the existing lint scope and exclusions', () => {
+    const commands = documentationCommands([
+      'README.md',
+      'AGENTS.md',
+      'docs/INDEX.md',
+      '.github/pull_request_template.md',
+      '.github/copilot-instructions.md',
+      'work/architect-completion/GAP_LEDGER.md',
+    ]);
+    expect(commands[0].args.slice(1)).toEqual([
+      'README.md',
+      'AGENTS.md',
+      'docs/INDEX.md',
+    ]);
+    expect(commands[1].script).toBe('docs:guardrails');
+  });
+
   it('does not turn an executed failure or missing executable into success', () => {
     const plan = {
       tier: 'test',
@@ -349,6 +368,7 @@ describe('bounded CI validation policy', () => {
 
 const temporary: string[] = [];
 afterEach(() => {
+  vi.unstubAllEnvs();
   for (const dir of temporary.splice(0))
     rmSync(dir, { recursive: true, force: true });
 });
@@ -358,6 +378,7 @@ function fixture() {
   const git = (...args: string[]) =>
     execFileSync('git', args, {
       cwd,
+      env: gitEnvironment(),
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     }).trim();
@@ -438,6 +459,23 @@ describe('complete-candidate detection', () => {
         'renamed file.ts',
       ],
     });
+    expect(selectValidationProfile(changes.files, changes).name).toBe(
+      'conservative'
+    );
+  });
+
+  it('does not let inherited Git repository variables redirect candidate detection', () => {
+    const intended = fixture();
+    const unrelated = fixture();
+    intended.write('package.json');
+    intended.git('add', '.');
+    intended.git('commit', '-m', 'candidate configuration');
+    vi.stubEnv('GIT_DIR', path.join(unrelated.cwd, '.git'));
+    vi.stubEnv('GIT_WORK_TREE', unrelated.cwd);
+    vi.stubEnv('GIT_INDEX_FILE', path.join(unrelated.cwd, '.git/index'));
+    const changes = collectChanges({ cwd: intended.cwd, base: intended.base });
+    expect(changes.uncertain).toBe(false);
+    expect(changes.files).toEqual(['package.json']);
     expect(selectValidationProfile(changes.files, changes).name).toBe(
       'conservative'
     );

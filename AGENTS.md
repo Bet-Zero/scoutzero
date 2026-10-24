@@ -77,7 +77,8 @@ or product requirements. After repairs, recheck affected risks and required
 exact-head gates; reuse unaffected evidence with its dependencies and scope stated.
 
 For documentation changes, `node scripts/run-tests-by-diff.mjs --docs` checks
-changed Markdown and repository routing without relinting unrelated baseline
+changed Markdown within the existing `lint:md` scope, plus repository routing,
+without relinting unrelated baseline
 failures. The PR job shares the diff runner's bounded policy: inspected prose
 gets documentation checks; governing instructions also get authority/workflow
 checks; the three mapped Ranker UI entry files get the whole Ranker test family,

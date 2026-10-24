@@ -121,9 +121,27 @@ export function selectValidationProfile(
   );
 }
 
+// A cwd-specific comparison must not follow repository redirects inherited from
+// a hook or another checkout. Keep all unrelated environment/credential settings.
+export function gitEnvironment(environment = process.env) {
+  const redirects = new Set([
+    'GIT_DIR',
+    'GIT_WORK_TREE',
+    'GIT_INDEX_FILE',
+    'GIT_COMMON_DIR',
+    'GIT_OBJECT_DIRECTORY',
+    'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+    'GIT_NAMESPACE',
+  ]);
+  return Object.fromEntries(
+    Object.entries(environment).filter(([key]) => !redirects.has(key))
+  );
+}
+
 function git(cwd, args) {
   return execFileSync('git', args, {
     cwd,
+    env: gitEnvironment(),
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -362,9 +380,16 @@ function selectExplicitTarget(executableFiles) {
   return null;
 }
 
-function documentationCommands(files) {
+// Match the existing lint:md scope/exclusions; do not impose new rules on
+// historical receipts or hidden instruction files as part of selection.
+export function documentationCommands(files) {
   const markdown = files.filter(
-    (file) => file.endsWith('.md') && existsSync(file)
+    (file) =>
+      file.endsWith('.md') &&
+      existsSync(file) &&
+      (file.startsWith('docs/') || !file.includes('/')) &&
+      !file.startsWith('docs/return-packages/') &&
+      path.basename(file) !== 'copilot-instructions.md'
   );
   return [
     ...(markdown.length
