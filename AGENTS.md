@@ -38,7 +38,9 @@ before relying on it. Graph generation is not a prerequisite for cosmetic work.
 
 Use these project commands unless the user explicitly asks for something else.
 
-When the assignment needs the running app, emulator data or browser proof, use the reusable
+For isolated presentation proof, an existing component render or focused harness
+is sufficient; do not start emulators or import data that it does not need.
+When the assignment needs the full app and its data environment, use the reusable
 [cloud development workflow](docs/operations/CLOUD_DEVELOPMENT.md):
 `npm run cloud:setup`, `npm run cloud:data:import -- <private-source-directory>`,
 `npm run cloud:dev`, and `npm run cloud:check -- --resume` for saved-session
@@ -242,8 +244,8 @@ Canonical schema reference:
 - Use `npm run validate:project` when repository layout/contracts change, not
   merely because an existing component or its regression test was edited.
 
-Do not create return packages by default. Use the final response plus the git
-commit as the normal evidence trail. Create a return package only when the user
+Do not create return packages by default. Keep detailed evidence in the PR,
+with a concise link in the final response and an existing issue when applicable. Create a return package only when the user
 explicitly asks for one, an active long-running plan requires one, multiple
 agents/sessions need durable coordination, or the work involves production data,
 release operations, or audit/fix-plan evidence.
@@ -452,8 +454,9 @@ of repeating them. Use plain language and explain tradeoffs that need a decision
 For ordinary explanations of already-verified facts in the same conversation,
 reuse that evidence without claiming a new live check. Refresh live state at
 fresh-session, changed-evidence, implementation, handoff, review/landing, and
-authority-dependent decisions. Mandatory governing-source reads at those
-boundaries still apply; conversation memory cannot replace them.
+authority-dependent decisions only for the identities and governing sources
+material to the current task. Do not reconstruct unrelated history. Conversation
+memory cannot replace a controlling source when its identity matters.
 
 ## Reference Docs
 
