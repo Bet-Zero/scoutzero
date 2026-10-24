@@ -68,13 +68,13 @@ export const ToolbarMenu = ({ label, title, children }: ToolbarMenuProps) => {
       className="relative"
       ref={ref}
       onBlur={(e) => {
-        // Tabbing out of the button and panel closes the menu
+        // Tabbing out of the button and panel closes the menu. Only a known
+        // focus target outside counts: Safari doesn't focus clicked buttons
+        // (no target), and outside clicks are handled by the mousedown listener.
         if (
           open &&
-          !(
-            e.relatedTarget instanceof Node &&
-            ref.current?.contains(e.relatedTarget)
-          )
+          e.relatedTarget instanceof Node &&
+          !ref.current?.contains(e.relatedTarget)
         ) {
           setOpen(false);
         }

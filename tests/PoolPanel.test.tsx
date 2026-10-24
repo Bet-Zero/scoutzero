@@ -76,9 +76,27 @@ describe('PoolSourceMenus', () => {
     expect(teamButton.getAttribute('aria-expanded')).toBe('true');
     expect(document.activeElement).toBe(screen.getByLabelText('Add the Atlanta Hawks roster'));
 
+    // Focus leaving to nowhere (Safari doesn't focus clicked buttons) keeps it open
+    fireEvent.blur(screen.getByLabelText('Add the Atlanta Hawks roster'), { relatedTarget: null });
+    expect(screen.getByRole('region', { name: 'Add a whole roster' })).toBeTruthy();
+
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('region', { name: 'Add a whole roster' })).toBeNull();
     expect(document.activeElement).toBe(teamButton);
+  });
+
+  it('closes when focus tabs out to another control', () => {
+    render(
+      <>
+        <PoolSourceMenus lists={[]} signedIn={false} onAddTeam={vi.fn()} onAddList={vi.fn()} />
+        <button>Elsewhere</button>
+      </>
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Team' }));
+    fireEvent.blur(screen.getByLabelText('Add the Atlanta Hawks roster'), {
+      relatedTarget: screen.getByRole('button', { name: 'Elsewhere' }),
+    });
+    expect(screen.queryByRole('region', { name: 'Add a whole roster' })).toBeNull();
   });
 
   it('asks signed-out users to sign in before importing lists', () => {
