@@ -27,7 +27,7 @@ vi.mock('@/data/firestorePaths', () => ({
   contractsCol: (playerId: string) => ({ playerId }),
 }));
 
-import { FilterPoolPanel } from '@/features/ranker/FilterPoolPanel';
+import { PoolWorkbench } from '@/features/ranker/PoolWorkbench';
 import { getRecentPastSeasonCodes } from '@/features/ranker/hooks/useSeasonViews';
 import type { RosterDrawerPlayer } from '@/features/roster/utils';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
@@ -83,7 +83,7 @@ const ppgFilterRow = () =>
     ?.parentElement as HTMLElement;
 
 const setMinPpg = (value: string) => {
-  fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
+  // The filters column starts open
   fireEvent.click(screen.getByText('Stats'));
   const ppgRow = ppgFilterRow();
   fireEvent.change(within(ppgRow).getByRole('combobox'), { target: { value: 'gt' } });
@@ -93,16 +93,29 @@ const setMinPpg = (value: string) => {
 const addedIds = (onAdd: ReturnType<typeof vi.fn>, call = 0) =>
   onAdd.mock.calls[call][0].map((p: RosterManagerPlayer) => p.id);
 
-describe('FilterPoolPanel', () => {
+describe('PoolWorkbench', () => {
   afterEach(() => {
     cleanup();
     // Top-N scores are cached in the browser; keep tests independent
     localStorage.clear();
   });
 
+  it('hides the filters column without dropping active filters', () => {
+    const onAdd = vi.fn();
+    render(<PoolWorkbench candidates={candidates} poolIds={new Set()} onAdd={onAdd} />);
+
+    setMinPpg('20');
+    fireEvent.click(screen.getByRole('button', { name: 'Hide filters' }));
+
+    expect(screen.queryByText('Stats')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Show filters (on)' })).toBeTruthy();
+    fireEvent.click(screen.getByText('Add all 2'));
+    expect(addedIds(onAdd)).toEqual(['Scorer', 'Starter']);
+  });
+
   it('adds every player matching the filters, honouring minimum games', () => {
     const onAdd = vi.fn();
-    render(<FilterPoolPanel candidates={candidates} poolIds={new Set()} onAdd={onAdd} />);
+    render(<PoolWorkbench candidates={candidates} poolIds={new Set()} onAdd={onAdd} />);
 
     setMinPpg('20');
 
@@ -113,7 +126,7 @@ describe('FilterPoolPanel', () => {
 
   it('finds a player by name search and adds just that player', () => {
     const onAdd = vi.fn();
-    render(<FilterPoolPanel candidates={candidates} poolIds={new Set()} onAdd={onAdd} />);
+    render(<PoolWorkbench candidates={candidates} poolIds={new Set()} onAdd={onAdd} />);
 
     fireEvent.change(screen.getByLabelText('Search players by name'), {
       target: { value: 'star' },
@@ -126,7 +139,7 @@ describe('FilterPoolPanel', () => {
 
   it('adds only the selected players', () => {
     const onAdd = vi.fn();
-    render(<FilterPoolPanel candidates={candidates} poolIds={new Set()} onAdd={onAdd} />);
+    render(<PoolWorkbench candidates={candidates} poolIds={new Set()} onAdd={onAdd} />);
 
     setMinPpg('5');
     fireEvent.click(screen.getByLabelText('Select Bench'));
@@ -138,7 +151,7 @@ describe('FilterPoolPanel', () => {
   it('marks players already in the pool and leaves them out of add all', () => {
     const onAdd = vi.fn();
     render(
-      <FilterPoolPanel candidates={candidates} poolIds={new Set(['Scorer'])} onAdd={onAdd} />
+      <PoolWorkbench candidates={candidates} poolIds={new Set(['Scorer'])} onAdd={onAdd} />
     );
 
     setMinPpg('20');
@@ -150,7 +163,7 @@ describe('FilterPoolPanel', () => {
   });
 
   it('switching a stat back to "Any" removes that filter', () => {
-    render(<FilterPoolPanel candidates={candidates} poolIds={new Set()} onAdd={vi.fn()} />);
+    render(<PoolWorkbench candidates={candidates} poolIds={new Set()} onAdd={vi.fn()} />);
 
     setMinPpg('20');
     const ppgRow = ppgFilterRow();
@@ -161,7 +174,7 @@ describe('FilterPoolPanel', () => {
 
   it("shows and filters on a past season's team, salary and stats", async () => {
     const onAdd = vi.fn();
-    render(<FilterPoolPanel candidates={candidates} poolIds={new Set()} onAdd={onAdd} />);
+    render(<PoolWorkbench candidates={candidates} poolIds={new Set()} onAdd={onAdd} />);
 
     fireEvent.change(screen.getByLabelText('Season'), { target: { value: lastSeason() } });
     setMinPpg('20');
@@ -177,7 +190,7 @@ describe('FilterPoolPanel', () => {
   });
 
   it('prefers a stored season age over an estimate when there is no date of birth', async () => {
-    render(<FilterPoolPanel candidates={candidates} poolIds={new Set()} onAdd={vi.fn()} />);
+    render(<PoolWorkbench candidates={candidates} poolIds={new Set()} onAdd={vi.fn()} />);
 
     fireEvent.change(screen.getByLabelText('Season'), { target: { value: lastSeason() } });
     fireEvent.change(screen.getByLabelText('Search players by name'), {
@@ -192,7 +205,7 @@ describe('FilterPoolPanel', () => {
 
   it('Top-N preset pulls the best scorers, pre-ticked, to untick and add', async () => {
     const onAdd = vi.fn();
-    render(<FilterPoolPanel candidates={candidates} poolIds={new Set()} onAdd={onAdd} />);
+    render(<PoolWorkbench candidates={candidates} poolIds={new Set()} onAdd={onAdd} />);
 
     fireEvent.change(screen.getByLabelText('Season'), { target: { value: lastSeason() } });
     fireEvent.click(screen.getByText('Top 10'));
@@ -220,7 +233,7 @@ describe('FilterPoolPanel', () => {
       // Weak box score, top salary
       candidate('MaxGuy', { PTS: 1, GP: 40 }, undefined, undefined, 60_000_000),
     ];
-    render(<FilterPoolPanel candidates={crowd} poolIds={new Set()} onAdd={onAdd} />);
+    render(<PoolWorkbench candidates={crowd} poolIds={new Set()} onAdd={onAdd} />);
     fireEvent.click(screen.getByText('Top 10'));
 
     // 26 by stats plus MaxGuy by pay
