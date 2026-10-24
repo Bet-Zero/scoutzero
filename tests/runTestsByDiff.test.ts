@@ -52,7 +52,7 @@ function fixture() {
 const empty = () => ({ node: [], ui: [], native: [], emulator: [] });
 const room = 'src/features/architect/cockpit/RoomFrame.tsx';
 const before = readFileSync(room, 'utf8').replace(
-  'border-b border-cockpit-edge',
+  /border-b border-[^\s\"]+/,
   'border-b border-red-500'
 );
 const after = before.replace('border-red-500', 'border-blue-500');
@@ -81,12 +81,15 @@ describe('actual change rather than feature responsibility', () => {
   });
   it('supports multiple presentation files and harmless docs/test changes across areas', async () => {
     const ranker = 'src/features/ranker/PoolWorkbench.tsx';
-    const text = readFileSync(ranker, 'utf8');
+    const text = readFileSync(ranker, 'utf8').replace(
+      /\bgap-\d+(?:\.\d+)?\b/,
+      'gap-2'
+    );
     const contents = {
       ...opts.contents,
       [ranker]: {
         before: text,
-        after: text.replace('gap-2 px-4 py-3', 'gap-3 px-4 py-3'),
+        after: text.replace(/\bgap-2\b/, 'gap-3'),
       },
     };
     const plan = await selectTestPlan([room, ranker, 'README.md', regression], {
