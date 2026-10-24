@@ -38,12 +38,15 @@ jobs:
     name: PR Validation (Diff-based)
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    env:
+      SCOUTZERO_DIFF_BASE: ${{ github.event.pull_request.base.sha }}
+      SCOUTZERO_DIFF_HEAD: ${{ github.sha }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          # Fetch more history for better diff detection
+          # Complete candidate range, including every commit and both rename paths
           fetch-depth: 0
 
       - name: Setup Node.js
@@ -54,47 +57,71 @@ jobs:
       - name: Install dependencies
         run: PUPPETEER_SKIP_DOWNLOAD=true npm ci
 
+      - name: Validate selection policy
+        run: npm run test:node -- tests/runTestsByDiff.test.ts --reporter=dot
+
+      - name: Select candidate validation
+        id: scope
+        run: node scripts/run-tests-by-diff.mjs --ci-plan --verbose
+
+      - name: Documentation and routing checks
+        run: node scripts/run-tests-by-diff.mjs --docs
+
       - name: Type check
+        if: steps.scope.outputs.app == 'true'
         run: npm run typecheck
 
       - name: Architect cast-ledger gate
+        if: steps.scope.outputs.specialists == 'true'
         run: npm run lint:architect-gate
 
       - name: Draft data architecture boundary
+        if: steps.scope.outputs.specialists == 'true'
         run: npm run test:node -- tests/architect/draftReviewArchitecture.guardrail.test.ts tests/architect/draftReviewCloudConnection.test.ts tests/architect/draftReviewDeployment.test.ts tests/architect/draftSourceInventory.test.ts --reporter=dot
 
       - name: Fetch accepted Canon authority ref
+        if: steps.scope.outputs.authority == 'true'
         run: git fetch --no-tags origin architect/cba-canon-v2:refs/remotes/origin/architect/cba-canon-v2
 
       - name: Phase 3A workflow tooling
+        if: steps.scope.outputs.authority == 'true'
         run: npm run test:phase3a-workflow
 
       - name: Private source review transport boundary
+        if: steps.scope.outputs.specialists == 'true'
         run: npm run test:private-source-review
 
       - name: Install matching browser for the redirect proof
+        if: steps.scope.outputs.specialists == 'true'
         timeout-minutes: 3
         run: npx --no-install playwright install --with-deps chromium
 
       - name: Hosted review browser redirect boundary
+        if: steps.scope.outputs.specialists == 'true'
         timeout-minutes: 2
         run: npm run test:hosted-review-browser
       - name: Cloud development safety tests
+        if: steps.scope.outputs.specialists == 'true'
         run: npm run test:cloud-dev
 
       - name: Cloud tooling type check
+        if: steps.scope.outputs.specialists == 'true'
         run: npm run cloud:typecheck
 
       - name: Governed Offer Sheet creation emulator gate
+        if: steps.scope.outputs.specialists == 'true'
         run: npm run ci:offer-sheet-creation-emulator-gate
 
       - name: Run diff-based tests
-        run: npm run test:diff -- --verbose
+        if: steps.scope.outputs.app == 'true'
+        run: npm run test:diff -- --verbose --reporter=dot
 
       - name: Validate project schema
+        if: steps.scope.outputs.app == 'true'
         run: npm run validate:project
 
       - name: Build
+        if: steps.scope.outputs.app == 'true'
         run: npm run build
 
   # Full validation - for main branch and scheduled runs

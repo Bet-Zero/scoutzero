@@ -130,7 +130,7 @@ remain independent blockers.
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Author                      | Risk-contract-specific failure matrix, focused implementation tests, and discriminating positive/fail-closed proof before freeze. |
 | Automated review            | Review the draft early. Finish each started review and settle its findings before freeze; record optional-reviewer unavailability without waiting indefinitely. |
-| Hosted CI                   | Established domain, static, project-validation, and build checks on the exact candidate.                                       |
+| Hosted CI                   | Applicable checks from the shared diff/CI policy on the complete candidate; unselected checks are explicitly not executed. Main/scheduled full backstops remain.                                       |
 | Independent Claude reviewer | Canon judgment, adversarial probes, test non-vacuity, limitations, and exact base/head scope. The reviewer chooses the probes. |
 | Browser/emulator            | Only rendered, persistence, or cross-room risks. Use deterministic governed fixtures and retain exact-candidate evidence.      |
 | Landing                     | Exact candidate, ancestry, synchronization, unresolved threads, records, and limitations. Do not repeat implementation suites. |

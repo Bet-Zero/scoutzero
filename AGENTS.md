@@ -76,10 +76,22 @@ Proportional proof never waives source qualification, privacy, independent revie
 or product requirements. After repairs, recheck affected risks and required
 exact-head gates; reuse unaffected evidence with its dependencies and scope stated.
 
-For docs-only changes, run docs validation (`npm run lint:md` when applicable
-and `npm run docs:guardrails` for docs-routing/standards changes). Do not run
-app tests unless the docs change affects commands, schemas, generated outputs,
-or code behavior.
+For documentation changes, `node scripts/run-tests-by-diff.mjs --docs` checks
+changed Markdown and repository routing without relinting unrelated baseline
+failures. The PR job shares the diff runner's bounded policy: inspected prose
+gets documentation checks; governing instructions also get authority/workflow
+checks; the three mapped Ranker UI entry files get the whole Ranker test family,
+typecheck, project validation and build. Unknown documents, shared consumers,
+configuration, dependencies, tooling, mixed impact and missing comparison history
+keep conservative coverage. This is a path/dependency policy, not a Markdown or
+change-size exemption. Main and scheduled full validation remain unchanged.
+
+A CI step marked unselected was not executed and is not a test pass. Required
+PR status and independent exact-candidate acceptance still apply. Complete PR
+comparison uses the explicit base and checked-out merge candidate; local explicit
+`--files` scopes are iteration evidence only and cannot narrow CI. When extending
+one of these mappings, establish its consumers and test mandatory execution as
+well as safe omission before relying on it.
 
 When the branch has existing unrelated diffs, validate the current task scope
 rather than the whole branch. Prefer the most specific suite, or pass explicit
