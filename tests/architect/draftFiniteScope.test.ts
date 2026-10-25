@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { syntheticDraftReview } from './fixtures/draftPickReview';
 import { evaluateSuppliedDraftStepien } from '@/features/architect/utils/draftStepien';
+import { assessDraftReviewConsumption } from '@/features/architect/utils/draftReview/consumption';
 import {
   QUALIFIED_JUNE5_DRAFT_HORIZON as h,
   reviewJune5DraftTradingWindow,
@@ -49,7 +50,15 @@ function input() {
       })),
     },
   ];
-  return { request: r.request, fact };
+  for (const f of r.facts as any[]) {
+    f.context = context;
+    f.effectiveAt = h.asOf;
+  }
+  for (const row of r.apron as any[]) {
+    row.context = context;
+    row.input.asOf = h.asOf;
+  }
+  return { request: r.request, fact, review: r };
 }
 describe('qualified date scope preserves Stepien coverage (software tests, not real proof)', () => {
   it('counts the upcoming draft, rejects another date and keeps availability separate', () => {
@@ -64,9 +73,39 @@ describe('qualified date scope preserves Stepien coverage (software tests, not r
     ).toBe('needs-input');
   });
   it('permits a finite complete cover without pretending to own an infinite tail', () => {
-    const { request, fact } = input();
+    const { request, fact, review } = input();
     expect(evaluateSuppliedDraftStepien(request, [fact]).status).toBe(
       'component-permits'
+    );
+    expect(assessDraftReviewConsumption(review).eligible).toBe(true);
+  });
+  it('does not consume an outside-window pick even when its Stepien pairs are covered', () => {
+    const { request, fact, review } = input();
+    const pick = {
+      ...request.outgoing[0],
+      id: 'BOS_2034_1st',
+      draftYear: 2034,
+    };
+    request.outgoing = [pick];
+    fact.outgoing = [pick];
+    fact.throughDraftYear = 2035;
+    fact.finiteScope.knownObligationDraftYears.push(2035);
+    for (const year of [2033, 2034, 2035])
+      fact.branches[0].drafts.push({
+        draftYear: year,
+        inventoryComplete: true,
+        retained:
+          year === 2034
+            ? []
+            : [{ ...pick, id: `BOS_${year}_1st`, draftYear: year }],
+      });
+    expect(evaluateSuppliedDraftStepien(request, [fact]).status).toBe(
+      'component-permits'
+    );
+    const consumed = assessDraftReviewConsumption(review);
+    expect(consumed.eligible).toBe(false);
+    expect(consumed.reasons).toContain(
+      'trading-window:prohibits:outside-seven-upcoming-draft-window:2034'
     );
   });
   it.each([
