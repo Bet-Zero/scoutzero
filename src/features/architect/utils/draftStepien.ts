@@ -10,7 +10,7 @@ import {
   selectDraftOperationFact,
   type DraftRuleDecision,
 } from '@/features/architect/utils/draftPickInputResolver';
-import { QUALIFIED_JUNE5_DRAFT_HORIZON } from './draftReview/horizon';
+import { QUALIFIED_JUNE5_DRAFT_HORIZON } from '@/features/architect/utils/draftReview/horizon';
 
 type Pair = {
   branchId: string;
