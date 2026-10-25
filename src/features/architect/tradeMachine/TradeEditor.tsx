@@ -11,7 +11,10 @@ import {
   SubtleButton,
   IconButton,
 } from './tradeMachineChrome.buttons';
-import { CapConfidenceBadge } from '@/features/architect/capSheet/CapConfidenceBadge';
+import {
+  CapConfidenceBadge,
+  capFigureConfidence,
+} from '@/features/architect/capSheet/CapConfidenceBadge';
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
 import TradePreviewModal from './TradePreviewModal';
 import {
@@ -919,8 +922,12 @@ export const TradeEditor = ({
       return null;
     }
   }, [yearKey]);
-  const capSourceSummary =
-    (capRulesForYear?._meta?.sourcesSummary as string | undefined) ?? null;
+  const capSourceSummary = capFigureConfidence(
+    yearKey,
+    capRulesForYear?.cap ?? {},
+    capRulesForYear?._meta?.sources,
+    (capRulesForYear?._meta?.sourcesSummary as string | undefined) ?? null
+  );
   const capSeasonLabel = capRulesForYear?.seasonKey ?? null;
 
   // BZE-190: label for the parked sign-and-trade free agent.

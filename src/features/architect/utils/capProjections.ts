@@ -36,7 +36,7 @@ export const capProjections: Record<string, CapProjectionLike> = {
   },
   '2025-26': {
     cap: 154647000,
-    floor: 139182100,
+    floor: 139182000, // Exact owner-approved NBA release (BZE-329), not 90% arithmetic.
     tax: 187895000,
     firstApron: 195945000,
     secondApron: 207824000,

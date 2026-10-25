@@ -102,6 +102,24 @@ test('real retained picks render scoped results without writes or stale review',
     await seedRealDraftReviewWorld(uid, scenario, cases.asOfDate);
     const before = await savedRealDraftState();
     const { card, dialog } = await open(page, scenario.team);
+    await expect(dialog.getByTestId('cap-confidence-badge')).toContainText(
+      'Official'
+    );
+    // These 15+3 rosters are stipulated software inputs. The annual cap comes
+    // from the exact approved real release: $154.647m - $30m = $124.647m.
+    for (const team of [scenario.team, 'DEN']) {
+      const teamCard = dialog.getByTestId(`trade-team-card-${team}`);
+      await expect(
+        teamCard.locator('[data-apron-team-salary]')
+      ).toHaveAttribute('data-apron-team-salary', '30000000');
+      await expect(teamCard.locator('[data-tax-salary]')).toHaveAttribute(
+        'data-tax-salary',
+        '30000000'
+      );
+      await expect(
+        teamCard.getByText('CAP SPACE', { exact: true }).locator('..')
+      ).toContainText('$124.6M');
+    }
     await route(page, card, scenario.entitlement.seasonYear);
     const panel = page.getByTestId('real-draft-review');
     for (const expected of scenario.expected)
@@ -135,10 +153,15 @@ test('real retained picks render scoped results without writes or stale review',
       id: scenario.entitlement.id,
       expected: scenario.expected,
       noWrites: true,
+      officialSalaryCap: 154647000,
+      stipulatedTeamSalary: 30000000,
+      expectedCapSpace: 124647000,
     });
     if (scenario.name === 'supported') {
       await dialog.getByRole('button', { name: 'Close Trade Machine' }).click();
       await expect(dialog).toBeHidden();
+      await page.getByRole('tab', { name: /^Cap Sheet$/i }).click();
+      await expect(page.getByText('Official', { exact: true })).toBeVisible();
       await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
       await expect(dialog).toBeVisible();
       await expect(verdict).toContainText('Recorded ownership supports');

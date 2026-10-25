@@ -43,7 +43,7 @@ current.
 
 The accepted Canon remains the sole normative authority for CBA rule meaning.
 The separately named `POSTCANON-SRC-*` lane can certify only retained,
-first-party, time-varying factual inputs published after the Canon freeze. Its
+first-party, time-varying factual inputs outside the frozen Canon. Its
 records carry `canonLocator: null`; any `canonLeafIds` on a value sourced there
 trace the rule that governs the value and do not claim the source was in or
 certified by the Canon.
@@ -78,6 +78,9 @@ certified by the Canon.
    resolve to the certified first-party host, retain exact bytes and matching
    fingerprint metadata, and name the exact fields it can authorize. It cannot
    carry a Canon locator, use weaker provenance, or authorize an unlisted field.
+   The BZE-329 owner exception admits only the exact NBA.com 2025–26 release,
+   retained fingerprint and five annual fields below; it does not whitelist
+   NBA.com. Other sources retain the existing NBA Communications host boundary.
 10. A complete manifest retains the unchanged accepted Canon candidate and
     fingerprint plus every post-Canon source record, version, certification,
     official URL, and retained artifact fingerprint actually used.
@@ -95,7 +98,7 @@ The frozen Canon-certified records remain unchanged:
 | `SRC2-004`    | 2027 (2026-27)  | Salary Cap, Minimum Team Salary, Tax Level, First Apron, Second Apron — all five   |
 | `SRC2-005`    | 2026 (2025-26)  | Regular Season opening 2025-10-21 and closing 2026-04-12 — no transaction deadline |
 
-One separately certified post-Canon factual source is appended:
+Separately certified post-Canon factual sources are appended:
 
 - Record: `POSTCANON-SRC-0001@1` /
   `POSTCANON-CERT-0001@1`.
@@ -118,11 +121,36 @@ The earlier authority-gate fingerprint
 superseded it before implementation, its bytes were not retained, and it has no
 runtime authority or usable source version.
 
+BZE-329 adds `POSTCANON-SRC-0002@1` / `POSTCANON-CERT-0002@1`, under the
+owner's explicit exact-release approval on October 25, 2026:
+
+- Official NBA.com announcement, published June 30, 2025:
+  <https://www.nba.com/news/nba-salary-cap-set-2025-26-season>.
+- The retained original is 299,783 bytes, SHA-256
+  `b7c042f32d78fa11174e19800c014c56d6a77e6ee9668c64787d064caa5a042c`.
+  Two complete identical first-party responses and a separate recovery from
+  private Linear attachment `0d5fdf0f-2647-417e-be61-cab13eed4705` were verified.
+- Certified 2025–26 fields, in whole dollars: Salary Cap 154,647,000;
+  Minimum Team Salary 139,182,000; Tax Level 187,895,000;
+  First Apron 195,945,000; Second Apron 207,824,000.
+- The exception checks the exact URL, source/certificate identities, artifact
+  hash/size/path, field set/text/values and Salary Cap Year. Query variants,
+  other pages, additional fields, changed bytes and other seasons fail closed.
+- The source states the cap/tax start at 12:01 a.m. ET on July 1. These records
+  conservatively assert no annual-level availability in the preceding minute.
+- The approval supplies no transaction deadline, draft ownership, Stepien
+  branch, consideration, saved-world adoption or first-round Apply permission.
+- Cap Sheet and Trade Machine label these exact annual figures Official even
+  when a separate player minimum remains projected. This presentation exception
+  requires the matching four displayed figures and real source tags, applies
+  only to 2025–26, and does not relabel player minimums or custom projections.
+
 Current shipped behavior:
 
 - 2026-27 resolves complete: its unchanged five `SRC2-004` levels combine with
   the `POSTCANON-SRC-0001` calendar.
-- 2025-26 resolves the calendar and has no level records.
+- 2025-26 resolves its unchanged `SRC2-005` calendar plus the five exact
+  `POSTCANON-SRC-0002` levels. Other required transaction inputs remain separate.
 - 2023-24 resolves the Salary Cap and has neither the other four levels nor a
   calendar.
 
@@ -145,8 +173,10 @@ it. Both paths exist on purpose.
 - **Governed side:** `src/features/architect/utils/governedSeason/**` and
   `capTotals/governedDatedSalaryLedgers.ts`.
 - **Legacy side:** `capProjections`, `capRulesProfile`, `capSettingsProvider`,
-  `minimumSalaryScales`, and `mutationPipeline.read.utils` — all unchanged,
-  including the runtime-clock fallback in `resolveWorldAsOfDate`.
+  `minimumSalaryScales`, and `mutationPipeline.read.utils`. BZE-329 corrects
+  the legacy 2025–26 minimum team salary to the approved 139,182,000; it adds
+  no governed import or fallback. The existing runtime-clock fallback in
+  `resolveWorldAsOfDate` is unchanged.
 
 Fence rules, enforced by `tests/architect/governedSeason/compatibilityFence.test.ts`:
 

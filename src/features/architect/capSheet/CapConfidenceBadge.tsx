@@ -1,4 +1,5 @@
 import React from 'react';
+import { APPROVED_2025_SYSTEM_LEVEL_FIELDS } from '@/features/architect/utils/governedSeason/approved2025SystemLevels';
 
 /**
  * Confidence badge for league cap/apron/tax figures.
@@ -19,6 +20,40 @@ export type CapConfidenceSummary =
   | 'projected'
   | 'unknown'
   | string;
+
+/** The approved annual figures do not certify projected player minimums. */
+export function capFigureConfidence(
+  year: number | string,
+  figures: {
+    salaryCap?: unknown;
+    luxuryTax?: unknown;
+    firstApron?: unknown;
+    secondApron?: unknown;
+  },
+  sources: unknown,
+  fallback: string | null | undefined
+) {
+  if (Number(year) !== 2026 || !sources || typeof sources !== 'object')
+    return fallback;
+  const capSources = (sources as { cap?: Record<string, unknown> }).cap;
+  const fields = [
+    ['salaryCap', 'salary-cap'],
+    ['luxuryTax', 'tax-level'],
+    ['firstApron', 'first-apron'],
+    ['secondApron', 'second-apron'],
+  ] as const;
+  return fields.every(
+    ([key, id]) =>
+      capSources?.[key] === 'real' &&
+      figures[key] ===
+        Number(
+          APPROVED_2025_SYSTEM_LEVEL_FIELDS.find((f) => f.fieldId === id)
+            ?.normalizedValue
+        )
+  )
+    ? 'real'
+    : fallback;
+}
 
 interface CapConfidenceLabel {
   text: string;

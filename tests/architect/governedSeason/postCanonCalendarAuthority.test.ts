@@ -369,7 +369,7 @@ describe('BZE-280 governed Salary Cap Year 2027 activation', () => {
     );
   });
 
-  it('does not change the prior 2025-26 or 2023-24 behavior', () => {
+  it('keeps prior calendars and 2023-24 gaps while BZE-329 supplies 2025-26 levels', () => {
     const season2026 = resolveGovernedSeasonEnvelope({
       asOfDate: '2025-12-01T12:00:00-05:00',
       salaryCapYear: 2026,
@@ -383,7 +383,7 @@ describe('BZE-280 governed Salary Cap Year 2027 activation', () => {
       team: { teamId: 'TEAM-001' },
     });
 
-    expect(season2026.status).toBe('unavailable');
+    expect(season2026.status).toBe('complete');
     expect(season2026.calendar.record?.sourceRecordId).toBe('SRC2-005');
     expect(season2024.status).toBe('unavailable');
     expect(season2024.systemLevels['salary-cap'].amount).toBe(136_021_000);
@@ -573,9 +573,7 @@ describe('BZE-280 post-Canon authority fail-closed boundary', () => {
     expect(verification.state).toBe('content-mismatch');
     expect(
       verification.driftedInputs.flatMap((entry) => entry.changedFields)
-    ).toEqual(
-      expect.arrayContaining(['sourceDateBasis', 'publicationDate'])
-    );
+    ).toEqual(expect.arrayContaining(['sourceDateBasis', 'publicationDate']));
   });
 
   it.each(CERTIFICATION_CONTENT_MUTATIONS)(

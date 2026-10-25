@@ -8,7 +8,7 @@
  * `6cf8aaf358c158a88e630e8a7336f7e9c3febc17` (Canon SHA-256
  * `23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76`),
  * §15.12.1 and §15.12.3. `POSTCANON-SRC-*` records are separately certified,
- * retained first-party factual inputs published after the Canon freeze. They
+ * retained first-party factual inputs outside the frozen Canon. They
  * cannot introduce or reinterpret a CBA rule, and their Canon leaf mappings
  * are rule traceability only.
  *
@@ -26,8 +26,11 @@
  *   `POSTCANON-SRC-0001`  retained 2026-27 NBA Communications schedule release;
  *                         2026-10-20 opening and 2027-04-11 closing only.
  *
- * The post-Canon calendar combines with unchanged `SRC2-004` levels so Salary
- * Cap Year 2027 resolves complete. No other season gains coverage.
+ *   `POSTCANON-SRC-0002` owner-approved exact NBA.com release and five annual
+ *                         2025-26 system levels only (BZE-329).
+ *
+ * Salary Cap Years 2026 and 2027 have complete core levels and regular-season
+ * endpoints. Transaction deadlines and draft/world facts remain separate.
  */
 
 import {
@@ -38,6 +41,10 @@ import {
   type GovernedSystemLevelRecord,
 } from './governedSeasonRecords';
 import { GOVERNING_TIME_ZONE } from './governedTime';
+import {
+  APPROVED_2025_SYSTEM_LEVEL_FIELDS,
+  APPROVED_2025_SYSTEM_LEVEL_SOURCE,
+} from './approved2025SystemLevels';
 
 /** Accepted Canon candidate this registry is transcribed from. */
 export const ACCEPTED_CANON_CANDIDATE_COMMIT =
@@ -179,6 +186,44 @@ const SOURCE_RECORDS: readonly GovernedSourceRecord[] = [
       ],
     },
   },
+  {
+    sourceRecordId: APPROVED_2025_SYSTEM_LEVEL_SOURCE.sourceRecordId,
+    sourceRecordVersion: 1,
+    provenanceType: 'official-mutable',
+    identity:
+      'NBA.com official release: NBA salary cap for 2025-26 season set at $154.647 million',
+    sourceDateBasis: 'publication:2025-06-30',
+    officialUrl: APPROVED_2025_SYSTEM_LEVEL_SOURCE.officialUrl,
+    artifactSha256: APPROVED_2025_SYSTEM_LEVEL_SOURCE.artifactSha256,
+    artifactByteSize: APPROVED_2025_SYSTEM_LEVEL_SOURCE.artifactByteSize,
+    retrievalTimestamp: '2026-10-25T04:32:25.282Z',
+    authenticationTimestamp: null,
+    verifierIdentity: 'agent:codex',
+    verificationSessionId: 'session:bze-329-retained-source-gate',
+    verificationDate: '2026-10-25',
+    recordLimitations:
+      'Owner-approved exact URL, retained bytes and five 2025-26 annual values only. No other NBA.com release, CBA rule, deadline, draft right, exchange term or saved-world adoption is certified.',
+    recordStatus: 'current',
+    canonLocator: null,
+    postCanonCertification: {
+      certificationRecordId:
+        APPROVED_2025_SYSTEM_LEVEL_SOURCE.certificationRecordId,
+      certificationRecordVersion: 1,
+      authorityScope: 'time-varying-factual-input-only',
+      publicationDate: APPROVED_2025_SYSTEM_LEVEL_SOURCE.publicationDate,
+      firstPartyHost: 'www.nba.com',
+      retainedArtifactPath:
+        APPROVED_2025_SYSTEM_LEVEL_SOURCE.retainedArtifactPath,
+      retainedArtifactSha256: APPROVED_2025_SYSTEM_LEVEL_SOURCE.artifactSha256,
+      retainedArtifactByteSize:
+        APPROVED_2025_SYSTEM_LEVEL_SOURCE.artifactByteSize,
+      matchingFirstPartyRetrievalCount: 2,
+      matchingRetrievalDate: '2026-10-25',
+      exactFields: APPROVED_2025_SYSTEM_LEVEL_FIELDS,
+      supersedesCertificationRecordVersion: null,
+      gateHistory: [],
+    },
+  },
 ];
 
 const SYSTEM_LEVEL_CANON_LEAF_IDS = [
@@ -190,8 +235,7 @@ const SYSTEM_LEVEL_CANON_LEAF_IDS = [
 
 /**
  * 2026-27 (Salary Cap Year 2027). `SRC2-004` states all five core levels in one
- * official release, so this is the only Salary Cap Year with a complete core
- * level set.
+ * official release.
  */
 const SALARY_CAP_YEAR_2027_LEVELS: readonly GovernedSystemLevelRecord[] = (
   [
@@ -263,6 +307,26 @@ const SALARY_CAP_YEAR_2024_LEVELS: readonly GovernedSystemLevelRecord[] = [
   },
 ];
 
+const SALARY_CAP_YEAR_2026_LEVELS: readonly GovernedSystemLevelRecord[] =
+  APPROVED_2025_SYSTEM_LEVEL_FIELDS.map((field, index) => ({
+    recordId: `GOV-LVL-${String(index + 7).padStart(4, '0')}`,
+    recordVersion: 1,
+    levelId: field.fieldId as GovernedSystemLevelRecord['levelId'],
+    salaryCapYear: 2026,
+    authority: 'official',
+    amount: Number(field.normalizedValue),
+    sourceRecordId: APPROVED_2025_SYSTEM_LEVEL_SOURCE.sourceRecordId,
+    sourceRecordVersion: 1,
+    sourceField: `${APPROVED_2025_SYSTEM_LEVEL_SOURCE.sourceRecordId}: ${field.sourceText}`,
+    // The announcement explicitly starts the cap/tax at 12:01 a.m. ET.
+    // Do not assert availability in the preceding minute.
+    effectiveFrom: '2025-07-01T00:01:00-04:00',
+    effectiveUntil: '2026-07-01T00:00:00-04:00',
+    canonLeafIds: SYSTEM_LEVEL_CANON_LEAF_IDS,
+    recordStatus: 'current',
+    supersedesRecordVersion: null,
+  }));
+
 /**
  * 2025-26 (Salary Cap Year 2026). `SRC2-005` certifies the two Regular Season
  * endpoints and explicitly no transaction deadline.
@@ -330,12 +394,13 @@ const SEASON_CALENDARS: readonly GovernedSeasonCalendarRecord[] = [
 export const CANON_GOVERNED_SEASON_REGISTRY: GovernedSeasonRegistry =
   createGovernedSeasonRegistry({
     registryId: 'architect-governed-season-registry',
-    registryVersion: 2,
+    registryVersion: 3,
     canonCandidateCommit: ACCEPTED_CANON_CANDIDATE_COMMIT,
     canonSha256: ACCEPTED_CANON_SHA256,
     sourceRecords: SOURCE_RECORDS,
     systemLevels: [
       ...SALARY_CAP_YEAR_2024_LEVELS,
+      ...SALARY_CAP_YEAR_2026_LEVELS,
       ...SALARY_CAP_YEAR_2027_LEVELS,
     ],
     calendars: SEASON_CALENDARS,
