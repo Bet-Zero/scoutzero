@@ -31,6 +31,7 @@ export async function seedRealDraftReviewWorld(
   // requires books for the selected season to match this explicit test date.
   const seasonEndYear = asOfDate < '2026-07-01' ? 2026 : 2027;
   const season = seasonEndYear === 2026 ? '2025-26' : '2026-27';
+  const nextSeason = `${seasonEndYear}-${String((seasonEndYear + 1) % 100).padStart(2, '0')}`;
   const world = db
     .collection(ARCHITECT_WORLDS_COLLECTION)
     .doc(REAL_DRAFT_WORLD);
@@ -73,13 +74,25 @@ export async function seedRealDraftReviewWorld(
             isTwoWay,
             contract: {
               ...player.contract,
+              totalValue: (isTwoWay ? 578577 : 2000000) * 2,
+              averageAnnualValue: isTwoWay ? 578577 : 2000000,
+              guaranteedValue: (isTwoWay ? 578577 : 2000000) * 2,
+              startSeason: season,
+              endSeason: nextSeason,
               isTwoWay,
               contractType: isTwoWay ? 'TWO-WAY' : 'MINIMUM CONTRACT',
-              salariesByYear: player.contract.salariesByYear.map((row) => ({
-                ...row,
-                salary: isTwoWay ? 578577 : 2000000,
-                capHit: isTwoWay ? 578577 : 2000000,
-              })),
+              salariesByYear: player.contract.salariesByYear.map(
+                (row, index) => ({
+                  ...row,
+                  season: index === 0 ? season : nextSeason,
+                  salary: isTwoWay ? 578577 : 2000000,
+                  capHit: isTwoWay ? 578577 : 2000000,
+                })
+              ),
+              freeAgency: {
+                ...player.contract.freeAgency,
+                year: seasonEndYear + 1,
+              },
             },
           };
         })
@@ -105,9 +118,11 @@ export async function seedRealDraftReviewWorld(
       },
       { salaryCapYear: seasonEndYear, asOfDate: `${asOfDate}T00:00:00Z` }
     );
-    // Reuse the accepted salary-book fixture contract; this is stipulated
-    // roster/book support for blocked validation, never real pick authority.
+    // Roster/book facts are stipulated software inputs, never NBA pick facts.
+    // BZE-329 supplies only the date-correct official annual money levels.
     const salaryBookInputs = { ...team.salaryBookInputs };
+    // The explicit unsigned-pick state selects governed roster counting;
+    // its existing contract rejects the legacy editable charge field.
     delete salaryBookInputs.incompleteRosterCharge;
     const ready = {
       ...team,
@@ -135,9 +150,7 @@ export async function seedRealDraftReviewWorld(
     const totals = createCanonicalTeamTotalsSnapshot(ready, seasonEndYear, {
       asOfDate,
     });
-    // June 5 predates the installed season registry's complete money/calendar
-    // authority. Preserve that real missing-input stop while testing the
-    // independent first-round verdict; never fill it with another season.
+    // A complete money envelope supplies no current pick rights or branches.
     batch.set(
       world.collection(ARCHITECT_WORLD_TEAMS_SUBCOLLECTION).doc(teamCode),
       { ...ready, totals }

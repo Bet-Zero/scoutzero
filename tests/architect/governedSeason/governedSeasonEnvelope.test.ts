@@ -47,12 +47,18 @@ describe('BZE-270 governed season registry seeded from accepted Canon', () => {
   it('keeps accepted Canon records and post-Canon sources visibly separate', () => {
     expect(
       CANON_GOVERNED_SEASON_REGISTRY.sourceRecords.map((r) => r.sourceRecordId)
-    ).toEqual(['SRC2-003', 'SRC2-004', 'SRC2-005', 'POSTCANON-SRC-0001']);
+    ).toEqual([
+      'SRC2-003',
+      'SRC2-004',
+      'SRC2-005',
+      'POSTCANON-SRC-0001',
+      'POSTCANON-SRC-0002',
+    ]);
     expect(
       CANON_GOVERNED_SEASON_REGISTRY.postCanonSourceRecords.map(
         (record) => record.sourceRecordId
       )
-    ).toEqual(['POSTCANON-SRC-0001']);
+    ).toEqual(['POSTCANON-SRC-0001', 'POSTCANON-SRC-0002']);
     expect(CANON_GOVERNED_SEASON_REGISTRY.supportedSalaryCapYears).toEqual([
       2024, 2026, 2027,
     ]);
@@ -120,7 +126,7 @@ describe('BZE-270/BZE-280 shipped registry coverage', () => {
     expect(envelope.inputManifest?.postCanonSources).toHaveLength(1);
   });
 
-  it('resolves the 2025-26 calendar but stays unavailable with no level records', () => {
+  it('combines the 2025-26 calendar with the exact owner-approved annual levels', () => {
     const envelope = resolveGovernedSeasonEnvelope({
       asOfDate: '2025-12-01T12:00:00-05:00',
       salaryCapYear: 2026,
@@ -133,10 +139,12 @@ describe('BZE-270/BZE-280 shipped registry coverage', () => {
     expect(envelope.calendar.seasonKey).toBe('2025-26');
 
     GOVERNED_SYSTEM_LEVEL_IDS.forEach((levelId) => {
-      expect(envelope.systemLevels[levelId].state).toBe('unavailable');
-      expect(envelope.systemLevels[levelId].amount).toBeNull();
+      expect(envelope.systemLevels[levelId].state).toBe('available');
+      expect(envelope.systemLevels[levelId].record?.sourceRecordId).toBe(
+        'POSTCANON-SRC-0002'
+      );
     });
-    expect(envelope.status).toBe('unavailable');
+    expect(envelope.status).toBe('complete');
   });
 
   it('never borrows the 2026-27 levels for the 2025-26 season', () => {
@@ -148,8 +156,10 @@ describe('BZE-270/BZE-280 shipped registry coverage', () => {
     });
 
     expect(envelope.systemLevels['salary-cap'].amount).not.toBe(164_961_000);
-    expect(envelope.systemLevels['salary-cap'].amount).toBeNull();
-    expect(envelope.systemLevels['salary-cap'].record).toBeNull();
+    expect(envelope.systemLevels['salary-cap'].amount).toBe(154_647_000);
+    expect(envelope.systemLevels['salary-cap'].record?.sourceRecordId).toBe(
+      'POSTCANON-SRC-0002'
+    );
   });
 
   it('leaves 2023-24 levels other than the Salary Cap unavailable', () => {

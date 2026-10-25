@@ -18,7 +18,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { capConfidenceLabel } from '../CapConfidenceBadge';
+import { capConfidenceLabel, capFigureConfidence } from '../CapConfidenceBadge';
 import type {
   PlayerRulesProfile,
   PlayerRulesProfileInput,
@@ -520,9 +520,14 @@ export const CapSheet = ({
   const confidenceLabel = React.useMemo(
     () =>
       capConfidenceLabel(
-        canonicalTotals?._meta?.rulesSourcesSummary as string | undefined
+        capFigureConfidence(
+          selectedYear,
+          canonicalTotals ?? {},
+          canonicalTotals?._meta?.rulesSources,
+          canonicalTotals?._meta?.rulesSourcesSummary as string | undefined
+        )
       ),
-    [canonicalTotals]
+    [canonicalTotals, selectedYear]
   );
 
   const handleSaveDeadCapEdit = React.useCallback(

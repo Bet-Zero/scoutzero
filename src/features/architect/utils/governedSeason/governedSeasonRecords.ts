@@ -20,6 +20,10 @@ import {
   isZonedDateTime,
   salaryCapYearWindow,
 } from './governedTime';
+import {
+  APPROVED_2025_SYSTEM_LEVEL_FIELDS,
+  APPROVED_2025_SYSTEM_LEVEL_SOURCE,
+} from './approved2025SystemLevels';
 
 /** The five core annual system levels governed by BZE-270. */
 export const GOVERNED_SYSTEM_LEVEL_IDS = [
@@ -70,15 +74,15 @@ export interface GovernedPostCanonGateHistoryEntry {
 }
 
 /**
- * Certification metadata for a first-party factual input published after the
- * accepted Canon froze. This lane cannot carry or reinterpret a CBA rule.
+ * Certification metadata for a first-party factual input outside the frozen
+ * Canon. This lane cannot carry or reinterpret a CBA rule.
  */
 export interface GovernedPostCanonOfficialCertification {
   readonly certificationRecordId: string;
   readonly certificationRecordVersion: number;
   readonly authorityScope: 'time-varying-factual-input-only';
   readonly publicationDate: string;
-  readonly firstPartyHost: 'pr.nba.com';
+  readonly firstPartyHost: 'pr.nba.com' | 'www.nba.com';
   readonly retainedArtifactPath: string;
   readonly retainedArtifactSha256: string;
   readonly retainedArtifactByteSize: number;
@@ -343,7 +347,40 @@ function validateSourceRecord(
   ) {
     problems.push(`${at}.postCanonCertification.publicationDate`);
   }
-  if (certification.firstPartyHost !== 'pr.nba.com') {
+  const approved = APPROVED_2025_SYSTEM_LEVEL_SOURCE;
+  // This is an exact-release exception, not another permitted website. A copy
+  // with another URL, payload, certificate, field, value or source ID fails.
+  if (
+    (certification.firstPartyHost !== 'pr.nba.com' ||
+      record.sourceRecordId === approved.sourceRecordId) &&
+    !(
+      certification.firstPartyHost === 'www.nba.com' &&
+      record.sourceRecordId === approved.sourceRecordId &&
+      record.sourceRecordVersion === 1 &&
+      record.officialUrl === approved.officialUrl &&
+      record.provenanceType === 'official-mutable' &&
+      record.artifactSha256 === approved.artifactSha256 &&
+      record.artifactByteSize === approved.artifactByteSize &&
+      record.sourceDateBasis === `publication:${approved.publicationDate}` &&
+      certification.certificationRecordId === approved.certificationRecordId &&
+      certification.certificationRecordVersion === 1 &&
+      certification.publicationDate === approved.publicationDate &&
+      certification.retainedArtifactPath === approved.retainedArtifactPath &&
+      certification.retainedArtifactSha256 === approved.artifactSha256 &&
+      certification.retainedArtifactByteSize === approved.artifactByteSize &&
+      Array.isArray(certification.exactFields) &&
+      certification.exactFields.length ===
+        APPROVED_2025_SYSTEM_LEVEL_FIELDS.length &&
+      APPROVED_2025_SYSTEM_LEVEL_FIELDS.every((expected) =>
+        certification.exactFields.some(
+          (actual) =>
+            actual?.fieldId === expected.fieldId &&
+            actual.sourceText === expected.sourceText &&
+            actual.normalizedValue === expected.normalizedValue
+        )
+      )
+    )
+  ) {
     problems.push(`${at}.postCanonCertification.firstPartyHost`);
   }
   if (!isNonEmptyString(certification.retainedArtifactPath)) {
@@ -495,6 +532,16 @@ function validateSystemLevelRecord(
       !record.sourceField.includes(exactField.sourceText)
     ) {
       problems.push(`${at}.postCanonCertification.exactFields`);
+    }
+    if (
+      sourceRecord.sourceRecordId ===
+        APPROVED_2025_SYSTEM_LEVEL_SOURCE.sourceRecordId &&
+      (record.salaryCapYear !==
+        APPROVED_2025_SYSTEM_LEVEL_SOURCE.salaryCapYear ||
+        Date.parse(record.effectiveFrom) <
+          Date.parse('2025-07-01T00:01:00-04:00'))
+    ) {
+      problems.push(`${at}.approvedAnnualLevelScope`);
     }
   }
   if (

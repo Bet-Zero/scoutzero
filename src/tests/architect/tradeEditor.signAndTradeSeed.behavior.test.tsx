@@ -32,9 +32,15 @@ vi.mock('@/shared/hooks/useContainerDimensions', () => ({
   useContainerDimensions: () => ({ width: 1200, height: 600 }),
 }));
 
-vi.mock('@/features/architect/capSheet/CapConfidenceBadge', () => ({
-  CapConfidenceBadge: () => null,
-}));
+vi.mock(
+  '@/features/architect/capSheet/CapConfidenceBadge',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@/features/architect/capSheet/CapConfidenceBadge')
+    >()),
+    CapConfidenceBadge: () => null,
+  })
+);
 
 vi.mock('@/features/architect/tradeMachine/ValidationStateHeader', () => ({
   ValidationStateHeader: () => <div data-testid="mock-validation-state-header" />,
