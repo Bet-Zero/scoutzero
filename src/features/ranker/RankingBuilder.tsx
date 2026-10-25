@@ -3,6 +3,7 @@ import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
 import { RankingSession } from './RankingSession';
 import { PoolWorkbench } from './PoolWorkbench';
 import { PoolPanel } from './PoolPanel';
+import { effectiveListSize } from './ListSizePicker';
 import { PoolSourceMenus } from './PoolSourceMenus';
 import { useRankerCandidates } from './hooks/useRankerCandidates';
 import { useOwnerPlayerLists } from './hooks/useOwnerPlayerLists';
@@ -60,6 +61,8 @@ export const RankingBuilder = () => {
     removePlayer,
   } = useRankerPool(playersMap, lists);
   const [started, setStarted] = useState(false);
+  // Top-N length for a new ranking (null ranks everyone); a Top-N pull pre-fills it
+  const [listSize, setListSize] = useState<number | null>(null);
 
   // Session persistence state - now local-first
   const [resumedSessionData, setResumedSessionData] =
@@ -164,6 +167,7 @@ export const RankingBuilder = () => {
     return (
       <RankingSession
         playerPool={pool}
+        listSize={effectiveListSize(listSize, pool.length)}
         resumedSessionData={resumedSessionData}
         autosave={updateLocalDraft}
         saveAdjustments={saveAdjustments}
@@ -210,6 +214,7 @@ export const RankingBuilder = () => {
         candidates={processedPlayers}
         poolIds={poolIds}
         onAdd={addPlayersToPool}
+        onTopNChange={setListSize}
         menus={
           <PoolSourceMenus
             lists={lists}
@@ -234,6 +239,8 @@ export const RankingBuilder = () => {
             onRemove={removePlayer}
             onClear={() => setPool([])}
             onStart={handleStartNew}
+            listSize={listSize}
+            onListSizeChange={setListSize}
           />
         }
       />

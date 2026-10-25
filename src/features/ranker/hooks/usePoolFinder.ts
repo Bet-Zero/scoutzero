@@ -17,6 +17,7 @@ import {
   getDefaultAddPlayerFilters,
   normalizeTeamCode,
 } from '@/shared/utils/filtering';
+import { TeamListFull } from '@/constants/teamList';
 import {
   filterRosterDrawerPlayers,
   getDrawerPlayerAge,
@@ -40,6 +41,11 @@ import { selectTopNCandidates, suggestedPoolSize } from '../utils/playerImpact';
 import type { PoolSearchRow } from '../PoolSearchResults';
 
 export const DEFAULT_MIN_GAMES = 10;
+
+const TEAM_CODES = new Set(TeamListFull.map((t) => t.code.toUpperCase()));
+// Retired and unsigned players carry no current team
+const hasCurrentTeam = (row: Pick<PoolSearchRow, 'team'>): boolean =>
+  Boolean(row.team && TEAM_CODES.has(row.team.toUpperCase()));
 
 type Candidate = RosterDrawerPlayer<RosterManagerPlayer>;
 
@@ -72,6 +78,8 @@ export const usePoolFinder = (
   // Top-N preset: the list size, and how many candidates to pull for it
   const [topN, setTopN] = useState<number | null>(null);
   const [poolSize, setPoolSize] = useState(0);
+  // Top-N pulls leave out players without a current team unless asked
+  const [includeTeamless, setIncludeTeamless] = useState(false);
   const chooseTopN = (n: number | null) => {
     setTopN(n);
     if (n !== null) setPoolSize(suggestedPoolSize(n));
@@ -146,11 +154,12 @@ export const usePoolFinder = (
   }, [candidateIds, currentStatsById, refreshedScoresById]);
   const waitingForScores = topN !== null && !impact.scoresById;
 
-  const { rows, nearMisses } = useMemo<{
+  const { rows, nearMisses, hiddenTeamless } = useMemo<{
     rows: PoolSearchRow[];
     nearMisses: PoolSearchRow[];
+    hiddenTeamless: number;
   }>(() => {
-    const none = { rows: [], nearMisses: [] };
+    const none = { rows: [], nearMisses: [], hiddenTeamless: 0 };
     if (!active || waitingForSeason || waitingForScores) return none;
     const byId = new Map(candidates.map((c) => [c.id, c]));
     const matches = filterRosterDrawerPlayers(candidates, searchTerm, filters, {
@@ -164,15 +173,27 @@ export const usePoolFinder = (
       return [{ ...row, inPool: poolIds.has(player.id) }];
     });
     const scores = impact.scoresById;
-    if (topN === null || !scores) return { rows: matches, nearMisses: [] };
+    if (topN === null || !scores)
+      return { rows: matches, nearMisses: [], hiddenTeamless: 0 };
+    // This season, retired and unsigned players don't take candidate spots
+    const eligible =
+      isPastSeason || includeTeamless
+        ? matches
+        : matches.filter(hasCurrentTeam);
     // Best by stats plus best paid, so nobody who could make the list is missing
     const { pool, nearMisses: next } = selectTopNCandidates(
-      matches.map((row) => ({ ...row, id: row.player.id })),
+      eligible.map((row) => ({ ...row, id: row.player.id })),
       scores,
       poolSize
     );
-    return { rows: pool, nearMisses: next };
+    return {
+      rows: pool,
+      nearMisses: next,
+      hiddenTeamless: matches.length - eligible.length,
+    };
   }, [
+    isPastSeason,
+    includeTeamless,
     active,
     waitingForSeason,
     waitingForScores,
@@ -206,6 +227,9 @@ export const usePoolFinder = (
     active,
     rows,
     nearMisses,
+    includeTeamless,
+    setIncludeTeamless,
+    hiddenTeamless,
     loading: loading || waitingForSeason || impact.loading || waitingForScores,
     error: error ?? impact.error,
   };

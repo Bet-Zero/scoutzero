@@ -248,4 +248,24 @@ describe('PoolWorkbench', () => {
     fireEvent.click(screen.getByLabelText('Add Filler 33 (near miss)'));
     expect(addedIds(onAdd)).toEqual(['Filler 33']);
   });
+
+  it('Top-N pulls leave out players without a team unless asked, and set the list size', async () => {
+    const onTopNChange = vi.fn();
+    const unsigned = { ...candidate('Unsigned', { PTS: 30, GP: 20 }), team: '', teamCode: '' };
+    render(
+      <PoolWorkbench
+        candidates={[...candidates, unsigned]}
+        poolIds={new Set()}
+        onAdd={vi.fn()}
+        onTopNChange={onTopNChange}
+      />
+    );
+    fireEvent.click(screen.getByText('Top 10'));
+    expect(onTopNChange).toHaveBeenLastCalledWith(10);
+
+    const toggle = await screen.findByLabelText(/Include players without a team \(1\)/);
+    expect(screen.queryByText('Unsigned')).toBeNull();
+    fireEvent.click(toggle);
+    await waitFor(() => expect(screen.getByText('Unsigned')).toBeTruthy());
+  });
 });
