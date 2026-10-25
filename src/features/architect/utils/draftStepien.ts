@@ -10,6 +10,7 @@ import {
   selectDraftOperationFact,
   type DraftRuleDecision,
 } from '@/features/architect/utils/draftPickInputResolver';
+import { QUALIFIED_JUNE5_DRAFT_HORIZON } from './draftReview/horizon';
 
 type Pair = {
   branchId: string;
@@ -58,14 +59,40 @@ export function evaluateSuppliedDraftStepien(
       `unresolved-common-branch-dependencies:${fact.unresolvedDependencyIds.join(',')}`
     );
   const at = Date.parse(request.context.asOf);
+  const scope = fact.finiteScope;
+  const authority = QUALIFIED_JUNE5_DRAFT_HORIZON;
+  const finite = fact.laterDrafts === 'outside-qualified-scope';
   if (
-    fact.previousDraft.draftYear + 1 !== fact.firstFutureDraftYear ||
-    Number(fact.previousDraft.completedAt.slice(0, 4)) !==
-      fact.previousDraft.draftYear ||
-    Number(fact.firstFutureDraftStartsAt.slice(0, 4)) !==
-      fact.firstFutureDraftYear ||
-    Date.parse(fact.previousDraft.completedAt) > at ||
-    Date.parse(fact.firstFutureDraftStartsAt) <= at
+    finite &&
+    (!scope ||
+      scope.authorityId !== authority.id ||
+      scope.explanationSha256 !== authority.explanationSha256 ||
+      scope.calendarSha256 !== authority.calendarSha256 ||
+      request.context.asOf !== authority.asOf ||
+      fact.firstFutureDraftYear !== authority.firstFutureDraftYear ||
+      fact.previousDraft !== undefined ||
+      fact.firstFutureDraftStartsAt !== undefined ||
+      !scope.completeRelevantObligationCoverage ||
+      scope.unresolvedDependencyIds.length ||
+      fact.throughDraftYear <
+        Math.max(
+          authority.lastTradableDraftYear,
+          ...scope.knownObligationDraftYears
+        ))
+  )
+    return blocked('complete-qualified-dated-obligation-scope-required');
+  if (!finite && scope) return blocked('conflicting-future-draft-scope');
+  if (
+    !finite &&
+    (!fact.previousDraft ||
+      !fact.firstFutureDraftStartsAt ||
+      fact.previousDraft.draftYear + 1 !== fact.firstFutureDraftYear ||
+      Number(fact.previousDraft.completedAt.slice(0, 4)) !==
+        fact.previousDraft.draftYear ||
+      Number(fact.firstFutureDraftStartsAt.slice(0, 4)) !==
+        fact.firstFutureDraftYear ||
+      Date.parse(fact.previousDraft.completedAt) > at ||
+      Date.parse(fact.firstFutureDraftStartsAt) <= at)
   )
     return blocked('governed-between-drafts-calendar-required');
   const requestedIds = request.outgoing.map((p) => p.id).sort();
@@ -107,7 +134,8 @@ export function evaluateSuppliedDraftStepien(
           ? 'empty'
           : 'unknown';
     };
-    // Include the boundary pair; all later pairs require the established tail.
+    // Include the boundary pair. Finite closure does not assert a clean tail;
+    // its last pair still needs an actual retained-right witness.
     for (
       let year = fact.firstFutureDraftYear;
       year <= fact.throughDraftYear;
@@ -142,7 +170,7 @@ export function evaluateSuppliedDraftStepien(
     ...(!fact.branchesComplete || !fact.branches.length
       ? ['complete-possible-branch-set-required']
       : []),
-    ...(fact.laterDrafts !== 'guaranteed-first-every-draft'
+    ...(!finite && fact.laterDrafts !== 'guaranteed-first-every-draft'
       ? ['future-draft-tail-not-established']
       : []),
     ...fact.unresolvedDependencyIds.map(

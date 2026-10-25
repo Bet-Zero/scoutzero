@@ -1,6 +1,6 @@
 # BZE-329: dated draft-trading horizon authority
 
-Status: owner-authorized exception; independent qualification pending. This
+Status: owner-authorized exception; independently qualified in [PR #582](https://github.com/Bet-Zero/scoutzero/pull/582#issuecomment-6404582411). This
 receipt grants no runtime permission. BZE-329 remains open for the actual
 real-data saved-world transaction, not completion of this source dependency.
 
@@ -17,11 +17,11 @@ remains material; it does not independently establish OPS authority. The officia
 April 2026 release establishes the factual draft calendar, not a trading rule.
 No other rule or financial value on these pages is admitted by this exception.
 
-| Source | Exact URL | Publication | Retained SHA-256 | Bytes |
-| --- | --- | --- | --- | ---: |
-| Raptors team explanation | <https://www.nba.com/raptors/raptors-trade-deadline-primer> | 2018-02-06 | `3a937d68aaeffc633c25f3e4fb5e09a3c74dcb577046ff01fc27923224cc14a6` | 175081 |
-| NBA.com analysis, corroboration | <https://www.nba.com/news/how-much-are-teams-willing-to-give-up-in-trades-these-days> | 2022-07-23 | `e28897c61f1cadaa772950953ab09e3397a659c2c01c8f6a047891d17be40796` | 341356 |
-| Official NBA calendar announcement | <https://www.nba.com/news/2026-nba-draft-early-entry-candidates> | 2026-04-27 | `fe7355ff1e8f3000977369bf9d540e8b0978aad35a5b072f4af53c7e11b05d5c` | 361434 |
+| Source                             | Exact URL                                                                             | Publication | Retained SHA-256                                                   |  Bytes |
+| ---------------------------------- | ------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------ | -----: |
+| Raptors team explanation           | <https://www.nba.com/raptors/raptors-trade-deadline-primer>                           | 2018-02-06  | `3a937d68aaeffc633c25f3e4fb5e09a3c74dcb577046ff01fc27923224cc14a6` | 175081 |
+| NBA.com analysis, corroboration    | <https://www.nba.com/news/how-much-are-teams-willing-to-give-up-in-trades-these-days> | 2022-07-23  | `e28897c61f1cadaa772950953ab09e3397a659c2c01c8f6a047891d17be40796` | 341356 |
+| Official NBA calendar announcement | <https://www.nba.com/news/2026-nba-draft-early-entry-candidates>                      | 2026-04-27  | `fe7355ff1e8f3000977369bf9d540e8b0978aad35a5b072f4af53c7e11b05d5c` | 361434 |
 
 The unmodified bodies are in `draft-source-artifacts/`, named by source and
 fingerprint. Each has a matching complete-response pair retained separately in
@@ -31,7 +31,7 @@ A separate Linear recovery verified the archive, all six response hashes and
 all three pairs. Earlier unequal attempts remain unqualified and were not used
 to authorize a normalization or preservation exception.
 
-## Scope to qualify
+## Qualified scope
 
 The relevant calendar places the 2026 Draft after June 5. Counting the seven
 upcoming drafts gives 2026 through 2032 inclusive. The 2033 draft is eighth in
@@ -47,7 +47,7 @@ a genuine later branch must extend the scope or fail closed. No automatic
 ownership guarantee follows from the horizon.
 
 The previous claim that 2034/2035 records were independently necessary is
-withdrawn. The current evaluator requires an established infinite tail; that
+withdrawn. The prior evaluator required an established infinite tail; that
 implementation contract does not itself establish the legal scope. For the
 TOR2029/MEM2028 candidate, retained 2032 firsts can cover the 2032/2033 boundary
 without assuming the availability of a 2033 first. This is a candidate witness,
@@ -63,12 +63,21 @@ Pinned sections 13.3 and 15.9.6 leave the horizon unsupported until qualificatio
 the owner exception is the explicitly recorded additional source authority,
 not a rewrite of those frozen sections.
 
-Independent review must judge the exact exception, publisher identity, dates,
-retained source passages and derivation; challenge both unsupported promotion
-and unjustified withholding. The reviewer chooses its targeted source probes.
-No candidate commands need execution. A source ACCEPT would qualify only this
-dated horizon; later validation/persistence code requires its own exact-candidate
-review and applicable tests before landing this same implementation lane.
+The source-only review independently checked the exact exception, publisher
+identity, retained passages, dates and derivation. Source ACCEPT applies only
+to the dated horizon: candidate `31d64ca005182ae3327f8cf0498db864cdb7df79`,
+workflow [40242480660](https://github.com/Bet-Zero/scoutzero/actions/runs/40242480660),
+session `40c3d190-a03d-4294-8f0e-b86186dd2020`. Runtime changes require their
+own exact-candidate review and applicable checks.
+
+The existing supplied-branch evaluator now accepts a separately qualified finite
+scope at the retained June 5 instant. It still requires complete relevant
+obligation coverage, every possible branch, and a retained-right witness for
+the final boundary pair. A known later obligation extends the required scope;
+its pick does not thereby become tradable. Unqualified, incomplete, conflicting
+or differently dated inputs remain blocked. The legacy path retains its
+calendar and tail requirements. No real transaction permission is issued by
+this scope correction.
 
 All 278 entitlements, BZE-309's exact 29 unresolved dependencies/action mappings,
 existing worlds, source identities, production first-round Apply prohibition

@@ -83,12 +83,29 @@ export const DraftStepienFactZ = z
     outgoing: z.array(DraftOriginalFirstZ).min(1),
     // These are governed state facts, not inferred from the Gregorian year.
     firstFutureDraftYear: year,
-    firstFutureDraftStartsAt: DraftEvidenceInstantZ,
+    firstFutureDraftStartsAt: DraftEvidenceInstantZ.optional(),
     previousDraft: z
       .object({ draftYear: year, completedAt: DraftEvidenceInstantZ })
-      .strict(),
+      .strict()
+      .optional(),
     throughDraftYear: year,
-    laterDrafts: z.enum(['guaranteed-first-every-draft', 'unestablished']),
+    laterDrafts: z.enum([
+      'guaranteed-first-every-draft',
+      'unestablished',
+      'outside-qualified-scope',
+    ]),
+    // This is scope closure, never a guarantee that later picks are owned.
+    finiteScope: z
+      .object({
+        authorityId: DraftEvidenceIdZ,
+        explanationSha256: DraftEvidenceHashZ,
+        calendarSha256: DraftEvidenceHashZ,
+        completeRelevantObligationCoverage: z.boolean(),
+        knownObligationDraftYears: z.array(year),
+        unresolvedDependencyIds: z.array(DraftEvidenceIdZ),
+      })
+      .strict()
+      .optional(),
     branchesComplete: z.boolean(),
     branches: z.array(
       z
