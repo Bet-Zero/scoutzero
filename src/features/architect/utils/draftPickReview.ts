@@ -17,7 +17,10 @@ import {
   selectDraftOperationFact,
 } from '@/features/architect/utils/draftPickInputResolver';
 import { canonicalStringify } from '@/features/architect/utils/contractSource/deterministicDigest';
-import { reviewJune5DraftTradingWindow } from '@/features/architect/utils/draftReview/horizon';
+import {
+  QUALIFIED_JUNE5_DRAFT_HORIZON,
+  reviewJune5DraftTradingWindow,
+} from '@/features/architect/utils/draftReview/horizon';
 
 function freeze<T>(value: T): T {
   if (value && typeof value === 'object') {
@@ -96,7 +99,8 @@ export function reviewDraftPickComponents(input: unknown) {
     request: structuredClone(request),
     ownership: evaluateOriginalDraftPickOwnership(request, data.facts),
     stepien: evaluateSuppliedDraftStepien(request, data.facts),
-    ...(scope?.laterDrafts === 'outside-qualified-scope'
+    ...(request.context.asOf === QUALIFIED_JUNE5_DRAFT_HORIZON.asOf ||
+    scope?.laterDrafts === 'outside-qualified-scope'
       ? {
           tradingWindow: reviewJune5DraftTradingWindow(
             request.context.asOf,

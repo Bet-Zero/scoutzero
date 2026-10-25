@@ -107,6 +107,19 @@ describe('qualified date scope preserves Stepien coverage (software tests, not r
     expect(consumed.reasons).toContain(
       'trading-window:prohibits:outside-seven-upcoming-draft-window:2034'
     );
+    delete fact.finiteScope;
+    fact.laterDrafts = 'guaranteed-first-every-draft';
+    fact.previousDraft = {
+      draftYear: 2025,
+      completedAt: '2025-06-26T23:00:00Z',
+    };
+    fact.firstFutureDraftStartsAt = '2026-06-23T23:00:00Z';
+    expect(evaluateSuppliedDraftStepien(request, [fact]).status).toBe(
+      'component-permits'
+    );
+    expect(assessDraftReviewConsumption(review).reasons).toContain(
+      'trading-window:prohibits:outside-seven-upcoming-draft-window:2034'
+    );
   });
   it.each([
     'source',
