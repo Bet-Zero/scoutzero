@@ -24,7 +24,8 @@ export const REAL_DRAFT_WORLD = 'world_retained_draft_read_only';
 export async function seedRealDraftReviewWorld(
   uid: string,
   scenario: RealDraftBrowserCase,
-  asOfDate: string
+  asOfDate: string,
+  options: { worldId?: string; otherTeam?: string; createOnly?: boolean } = {}
 ) {
   const db = getReviewAdminDb(); // Always the demo emulator, never a source writer.
   // The original fixture only inspected picks. Actual trade validation also
@@ -34,9 +35,12 @@ export async function seedRealDraftReviewWorld(
   const nextSeason = `${seasonEndYear}-${String((seasonEndYear + 1) % 100).padStart(2, '0')}`;
   const world = db
     .collection(ARCHITECT_WORLDS_COLLECTION)
-    .doc(REAL_DRAFT_WORLD);
-  await db.recursiveDelete(world);
-  await world.set({
+    .doc(options.worldId ?? REAL_DRAFT_WORLD);
+  if (!options.createOnly) await db.recursiveDelete(world);
+  const writeWorld = options.createOnly
+    ? world.create.bind(world)
+    : world.set.bind(world);
+  await writeWorld({
     worldId: REAL_DRAFT_WORLD,
     worldName: 'Retained Pick Review',
     createdBy: uid,
@@ -62,10 +66,14 @@ export async function seedRealDraftReviewWorld(
     const teamName =
       teamCode === scenario.team
         ? scenario.teamName
-        : teamCode === 'DEN'
-          ? 'Denver Nuggets'
+        : teamCode === (options.otherTeam ?? 'DEN')
+          ? options.otherTeam === 'TOR'
+            ? 'Toronto Raptors'
+            : 'Denver Nuggets'
           : teamCode;
-    const players = [scenario.team, 'DEN'].includes(teamCode)
+    const players = [scenario.team, options.otherTeam ?? 'DEN'].includes(
+      teamCode
+    )
       ? Array.from({ length: 18 }, (_, i) => {
           const player = buildReviewDepthPlayer(teamCode, teamName, i + 1);
           const isTwoWay = i >= 15;

@@ -699,6 +699,8 @@ export function usePersistenceHelpers({
       options: {
         worldRequiredMessage?: string;
         seasonIdOverride?: string;
+        draftReviewAuthority?: object;
+        operationId?: string;
       } = {}
     ): Promise<PersistMutationResult> => {
       if (!worldId) {
@@ -723,6 +725,10 @@ export function usePersistenceHelpers({
           seasonId: options.seasonIdOverride || seasonId,
           mutationType,
           payload,
+          ...(options.draftReviewAuthority
+            ? { draftReviewAuthority: options.draftReviewAuthority }
+            : {}),
+          ...(options.operationId ? { operationId: options.operationId } : {}),
         })) as PersistMutationResult;
 
         const truth = evaluateMutationTruth(mutationType, rawResult, {
@@ -803,6 +809,8 @@ export function usePersistenceHelpers({
       options: {
         worldRequiredMessage?: string;
         seasonIdOverride?: string;
+        draftReviewAuthority?: object;
+        operationId?: string;
       } = {}
     ): Promise<PersistMutationResult> =>
       runAuthoritativeFAMutation(mutationType, payload, options),

@@ -1,0 +1,230 @@
+PINNED ACCEPTED CANON AUTHORITY — working-tree copies are not consulted
+Candidate: 6cf8aaf358c158a88e630e8a7336f7e9c3febc17
+Authority ref: refs/remotes/origin/architect/cba-canon-v2
+SHA-256:  23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76
+Artifact: docs/reference/cba/ARCHITECT_CBA_CANON.md (pinned git object)
+
+LEAF CBA2-A12.1
+Rule: Pick ownership: a trade may convey only a draft choice or selection right the conveying Member then owns, including a conditionally owned right; an expected future acquisition is not an owned right
+Authority: INFERRED
+Methods: primary=SCEN; secondary=LIFECYCLE
+Lifecycle inputs: Pick-ownership state at the Trade Call
+Lineage: XW2-0094
+Notes: Ownership inference only; Trade Call/Memorandum disclosure and enforceability are CBA2-A12.6.
+
+APPLICABLE SCENARIOS
+
+CBA2-SC-019(a)
+Inputs: R7-FIX-2026; dependencies=[none]; P+ record: TradeCall=2026-07-15T12:00:00-04:00; conveyingMember=TEAM-A; conveyedRight=TEAM-A 2029 first-round selection; ownershipLedger status=OWNED_UNCONDITIONALLY since 2025-07-01; P− record: P+ byte-identical except ownershipLedger status=EXPECTED_FROM_PENDING_TX-OTHER closing 2026-07-16
+Boundary: Pick ownership: a trade may convey only a draft choice or selection right the conveying Member then owns, including a conditionally owned right; an expected future acquisition is not an owned right
+Expected: P+ exact output: TEAM-A may convey its owned 2029 first-round right (CBA2-A12.1:PASS); P− exact output: expected future acquisition is not current ownership; conveyance prohibited (CBA2-A12.1:FAIL).
+Evidence chain: CBA2-A12.1 → EV2-0084 → INFERRED
+Exercises: CBA2-A12.1
+
+CBA2-SC-019(h45)
+Inputs: R7-FIX-2026; exact pinned published interaction input: Protected firsts with multiple fallback years that create a possible Stepien violation.
+Boundary: Paired retained-history discriminators for CBA2-A12.1, CBA2-A12.3; H+ preserves the published facts with the named obligation satisfied, and H− changes only that obligation's threshold, date, state, or required external-record predicate.
+Expected: CBA2-A12.1=PASS exactly when Pick ownership: a trade may convey only a draft choice or selection right the conveying Member then owns, including a conditionally owned right; an expected future acquisition is not an owned right; its paired single-predicate adverse variant is FAIL, or NEEDS-INPUT only when the registered contract requires an authenticated external/season-keyed input; CBA2-A12.3=PASS exactly when Stepien test: no Member may trade or exchange its right to select in the first round of any NBA Draft if the result MAY leave it without first-round picks in any two consecutive future NBA Drafts; because the test is 'may', every possible protection and conveyance branch must be evaluated, and another team's owned first-round pick can satisfy possession for a covered draft; its paired single-predicate adverse variant is FAIL, or NEEDS-INPUT only when the registered contract requires an authenticated external/season-keyed input.
+Evidence chain: CBA2-A12.1 → EV2-0084 → INFERRED; CBA2-A12.3 → EV2-0086, EV2-0087 → BYL, INFERRED; direct dependency results CBA2-A12.1, CBA2-A12.4
+Exercises: CBA2-A12.1, CBA2-A12.3
+
+PROVENANCE CLOSURE
+
+EV2-0084 (INFERRED) owner=CBA2-A12.1
+Source roots: SRC2-002; dependencies: —
+Citation: BYL 4.01(a), pp. 62-63; BYL 4.02(a)-(b), pp. 63-64
+Source text: Members may assign draft choices in accordance with the By-Laws, and the parties must identify all draft-choice terms and details in the Trade Call and Trade Memorandum
+Result: Supports the ownership inference without treating disclosure/enforceability as part of this LEAF's result
+Reasoning: Inference chain: assignment of an identified draft choice under 4.01(a) + complete identification under 4.02(a)-(b) → the conveying Member must hold the identified choice it assigns
+Limitations: The ownership condition is inferred; disclosure/enforceability is separately owned by CBA2-A12.6
+
+SRC2-002 `official-immutable` — NBA Constitution and By-Laws, June 2024 edition
+Source date: edition:2024-06; URL: <https://official.nba.com/wp-content/uploads/sites/4/2024/06/NBA-Consitution-By-Laws-June-2024.pdf>
+Artifact: `be4d2781fe8fddfc5bc9028214298f742789a949dade4ead26368a4336d32ccf`; bytes=422247; retrieved=2026-07-23T11:23:46Z
+Verified by `agent:codex` in `session:r31-20260723-maker` on 2026-07-23
+Status/version: current/1; limitations: edition identified by the source to month precision only
+
+PINNED ACCEPTED CANON AUTHORITY — working-tree copies are not consulted
+Candidate: 6cf8aaf358c158a88e630e8a7336f7e9c3febc17
+Authority ref: refs/remotes/origin/architect/cba-canon-v2
+SHA-256:  23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76
+Artifact: docs/reference/cba/ARCHITECT_CBA_CANON.md (pinned git object)
+
+LEAF CBA2-A12.2
+Rule: No cash sale of a first: no Member may sell its rights to select a player in the first round of any NBA Draft for cash or its equivalent (BYL 7.03)
+Authority: BYL
+Methods: primary=SCEN; secondary=—
+Lifecycle inputs: —
+Lineage: XW2-0097
+Notes: —
+
+APPLICABLE SCENARIOS
+
+CBA2-SC-019(b)
+Inputs: R7-FIX-2026; dependencies=[none]; P+ record: seller=TEAM-A; buyer=TEAM-B; asset=TEAM-A 2029 first-round selection right; consideration=cash $1,000,000.00; TradeCall=2026-07-15T12:00:00-04:00; P− record: P+ byte-identical except asset=TEAM-A 2029 second-round selection right
+Boundary: No cash sale of a first: no Member may sell its rights to select a player in the first round of any NBA Draft for cash or its equivalent (BYL 7.03)
+Expected: P+ exact output: prohibit the cash sale of the first-round right (CBA2-A12.2:PASS); P− exact output: the first-round cash-sale prohibition does not govern the second-round asset; continue separate trade review (summary: CBA2-A12.2 first-round predicate FAIL).
+Evidence chain: CBA2-A12.2 → EV2-0085 → BYL
+Exercises: CBA2-A12.2
+
+PROVENANCE CLOSURE
+
+EV2-0085 (BYL) owner=CBA2-A12.2
+Source roots: SRC2-002; dependencies: —
+Citation: BYL 7.03, p. 78
+Source text: No Member may sell its rights to select a player in the first round of any NBA Draft for cash or its equivalent…
+Result: States the cash-sale prohibition for first-round selection rights
+Reasoning: —
+Limitations: —
+
+SRC2-002 `official-immutable` — NBA Constitution and By-Laws, June 2024 edition
+Source date: edition:2024-06; URL: <https://official.nba.com/wp-content/uploads/sites/4/2024/06/NBA-Consitution-By-Laws-June-2024.pdf>
+Artifact: `be4d2781fe8fddfc5bc9028214298f742789a949dade4ead26368a4336d32ccf`; bytes=422247; retrieved=2026-07-23T11:23:46Z
+Verified by `agent:codex` in `session:r31-20260723-maker` on 2026-07-23
+Status/version: current/1; limitations: edition identified by the source to month precision only
+
+PINNED ACCEPTED CANON AUTHORITY — working-tree copies are not consulted
+Candidate: 6cf8aaf358c158a88e630e8a7336f7e9c3febc17
+Authority ref: refs/remotes/origin/architect/cba-canon-v2
+SHA-256:  23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76
+Artifact: docs/reference/cba/ARCHITECT_CBA_CANON.md (pinned git object)
+
+LEAF CBA2-A12.3
+Rule: Stepien test: no Member may trade or exchange its right to select in the first round of any NBA Draft if the result MAY leave it without first-round picks in any two consecutive future NBA Drafts; because the test is 'may', every possible protection and conveyance branch must be evaluated, and another team's owned first-round pick can satisfy possession for a covered draft
+Authority: BYL, INFERRED
+Methods: primary=SCEN; secondary=—
+Lifecycle inputs: Future-draft pick ownership and protection branches
+Lineage: XW2-0092, XW2-0098, XW2-0099
+Notes: Two evidence components: the express BYL 7.03 prohibition and the INFERRED all-branch evaluation semantics of 'may'.
+
+APPLICABLE SCENARIOS
+
+CBA2-SC-019(c)
+Inputs: R7-FIX-2026; dependencies=[CBA2-A12.1:PASS@v1, CBA2-A12.4:PASS@v1]; P+ record: proposedConveyance=TEAM-A 2028 first; future-rights branches after trade: branch P1 retains firsts in 2027 and 2030 but none in 2028 or 2029; branch P2 retains TEAM-B 2029 first; every protection branch enumerated=[P1,P2]; P− record: P+ byte-identical except branch P1 also retains TEAM-C 2029 first
+Boundary: Stepien test: no Member may trade or exchange its right to select in the first round of any NBA Draft if the result MAY leave it without first-round picks in any two consecutive future NBA Drafts; because the test is 'may', every possible protection and conveyance branch must be evaluated, and another team's owned first-round pick can satisfy possession for a covered draft
+Expected: P+ exact output: branch P1 may leave TEAM-A without a first in consecutive 2028/2029 Drafts; prohibit conveyance despite P2 (CBA2-A12.3:PASS); P− exact output: each branch retains at least one 2029 first, so no adjacent future pair is empty; Stepien test permits conveyance (summary: CBA2-A12.3 prohibition predicate FAIL).
+Evidence chain: CBA2-A12.3 → EV2-0086, EV2-0087 → BYL, INFERRED; direct dependency results CBA2-A12.1, CBA2-A12.4
+Exercises: CBA2-A12.3
+
+CBA2-SC-019(h45)
+Inputs: R7-FIX-2026; exact pinned published interaction input: Protected firsts with multiple fallback years that create a possible Stepien violation.
+Boundary: Paired retained-history discriminators for CBA2-A12.1, CBA2-A12.3; H+ preserves the published facts with the named obligation satisfied, and H− changes only that obligation's threshold, date, state, or required external-record predicate.
+Expected: CBA2-A12.1=PASS exactly when Pick ownership: a trade may convey only a draft choice or selection right the conveying Member then owns, including a conditionally owned right; an expected future acquisition is not an owned right; its paired single-predicate adverse variant is FAIL, or NEEDS-INPUT only when the registered contract requires an authenticated external/season-keyed input; CBA2-A12.3=PASS exactly when Stepien test: no Member may trade or exchange its right to select in the first round of any NBA Draft if the result MAY leave it without first-round picks in any two consecutive future NBA Drafts; because the test is 'may', every possible protection and conveyance branch must be evaluated, and another team's owned first-round pick can satisfy possession for a covered draft; its paired single-predicate adverse variant is FAIL, or NEEDS-INPUT only when the registered contract requires an authenticated external/season-keyed input.
+Evidence chain: CBA2-A12.1 → EV2-0084 → INFERRED; CBA2-A12.3 → EV2-0086, EV2-0087 → BYL, INFERRED; direct dependency results CBA2-A12.1, CBA2-A12.4
+Exercises: CBA2-A12.1, CBA2-A12.3
+
+PROVENANCE CLOSURE
+
+EV2-0086 (BYL) owner=CBA2-A12.3
+Source roots: SRC2-002; dependencies: —
+Citation: BYL 7.03, p. 78
+Source text: …or trade or exchange its right to select a player in the first round of any NBA Draft if the result of such trade or exchange may be to leave the Member without first-round picks in any two (2) consecutive future NBA Drafts
+Result: States the Stepien prohibition keyed to the word 'may'
+Reasoning: —
+Limitations: —
+
+EV2-0087 (INFERRED) owner=CBA2-A12.3
+Source roots: SRC2-002; dependencies: EV2-0086
+Citation: BYL 7.03, p. 78
+Source text: the result of such trade or exchange MAY be to leave the Member without first-round picks…
+Result: 'May' is a possibility test: legality must hold on every possible protection/conveyance branch, and a first-round pick owned from another team satisfies possession for a covered draft (the rule tests being 'without first-round picks', not 'without its own pick')
+Reasoning: Inference chain: the modal 'may' (EV2-0086) → all-branch evaluation; 'first-round picks' unqualified → another team's owned first counts
+Limitations: —
+
+SRC2-002 `official-immutable` — NBA Constitution and By-Laws, June 2024 edition
+Source date: edition:2024-06; URL: <https://official.nba.com/wp-content/uploads/sites/4/2024/06/NBA-Consitution-By-Laws-June-2024.pdf>
+Artifact: `be4d2781fe8fddfc5bc9028214298f742789a949dade4ead26368a4336d32ccf`; bytes=422247; retrieved=2026-07-23T11:23:46Z
+Verified by `agent:codex` in `session:r31-20260723-maker` on 2026-07-23
+Status/version: current/1; limitations: edition identified by the source to month precision only
+
+PINNED ACCEPTED CANON AUTHORITY — working-tree copies are not consulted
+Candidate: 6cf8aaf358c158a88e630e8a7336f7e9c3febc17
+Authority ref: refs/remotes/origin/architect/cba-canon-v2
+SHA-256:  23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76
+Artifact: docs/reference/cba/ARCHITECT_CBA_CANON.md (pinned git object)
+
+LEAF CBA2-L09.6
+Rule: A Member may not trade or exchange a first-round selection right when the result may leave it without first-round picks in any two consecutive future NBA Drafts
+Authority: BYL
+Methods: primary=SCEN; secondary=—
+Lifecycle inputs: Inputs/window: proposed trade/exchange date; selection right conveyed; complete set of first-round selection rights the Member would retain in each future NBA Draft; test every adjacent pair of future Drafts for at least one retained first-round pick, without applying any unsupported protection or conveyance algorithm.
+Lineage: new (DR2-0130)
+Notes: Direct By-Laws §7.03 Stepien owner; no CBA VII §8(a) authority is asserted.
+
+APPLICABLE SCENARIOS
+
+CBA2-SC-081(b)
+Inputs: R7-FIX-2026; dependencies=[none]; P+ record: proposedTrade=TEAM-A 2028 first at 2026-07-15; retainedFirstRoundRightsByFutureDraft=[2027:yes,2028:no,2029:yes,2030:yes]; P− record: P+ byte-identical except retainedFirstRoundRightsByFutureDraft=[2027:yes,2028:no,2029:no,2030:yes].
+Boundary: A Member may not trade or exchange a first-round selection right when the result may leave it without first-round picks in any two consecutive future NBA Drafts
+Expected: P+ exact output: adjacent pairs 2027/2028, 2028/2029, and 2029/2030 each retain at least one first-round right (CBA2-L09.6:PASS). P− exact output: the 2028/2029 pair retains none, so the proposed trade is prohibited (CBA2-L09.6:FAIL).
+Evidence chain: CBA2-L09.6 → EV2-0780 → BYL
+Exercises: CBA2-L09.6
+
+CBA2-SC-081(h55)
+Inputs: R7-FIX-2026; exact pinned published interaction input: Pick mechanics: a conveyance combining protection and deferral; a "two years after prior conveyance" condition that would reach past the seventh future draft; and pick swaps and deferral rights represented in the pick ledger.
+Boundary: Simultaneous interaction of CBA2-L09.3, CBA2-L09.6; change only the historical case’s stated threshold, date, state, or exception predicate.
+Expected: CBA2-L09.3=PASS exactly when A dated first-round-pick availability result may enforce only the direct Article VII §2(f) frozen-pick state and the By-Laws §7.03 consecutive-future-Drafts prohibition; any unresolved protection or deferral branch is reported unavailable, not guessed; CBA2-L09.6=PASS exactly when A Member may not trade or exchange a first-round selection right when the result may leave it without first-round picks in any two consecutive future NBA Drafts; otherwise the affected LEAF is FAIL, or NEEDS-INPUT only where its registered input contract requires authenticated external data.
+Evidence chain: CBA2-L09.3 → EV2-0777 → INFERRED; direct dependency results CBA2-L09.1, CBA2-L09.6; CBA2-L09.6 → EV2-0780 → BYL
+Exercises: CBA2-L09.3, CBA2-L09.6
+
+PROVENANCE CLOSURE
+
+EV2-0780 (BYL) owner=CBA2-L09.6
+Source roots: SRC2-002; dependencies: —
+Citation: NBA By-Laws §7.03, printed p. 78
+Source text: No Member may trade or exchange a first-round selection right if the result may leave it without first-round picks in any two consecutive future NBA Drafts.
+Result: Supplies the direct consecutive-future-Drafts prohibition exactly; the transaction-date pick-rights facts are inputs, not a separate CBA rule.
+Reasoning: —
+Limitations: No detailed protection, deferral, or alternative-asset processing is certified.
+
+SRC2-002 `official-immutable` — NBA Constitution and By-Laws, June 2024 edition
+Source date: edition:2024-06; URL: <https://official.nba.com/wp-content/uploads/sites/4/2024/06/NBA-Consitution-By-Laws-June-2024.pdf>
+Artifact: `be4d2781fe8fddfc5bc9028214298f742789a949dade4ead26368a4336d32ccf`; bytes=422247; retrieved=2026-07-23T11:23:46Z
+Verified by `agent:codex` in `session:r31-20260723-maker` on 2026-07-23
+Status/version: current/1; limitations: edition identified by the source to month precision only
+
+PINNED ACCEPTED CANON AUTHORITY — working-tree copies are not consulted
+Candidate: 6cf8aaf358c158a88e630e8a7336f7e9c3febc17
+Authority ref: refs/remotes/origin/architect/cba-canon-v2
+SHA-256:  23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76
+Artifact: docs/reference/cba/ARCHITECT_CBA_CANON.md (pinned git object)
+
+LEAF CBA2-A12.4
+Rule: Frozen-pick trading bar: if a Team is a Second Apron Team for a Salary Cap Year (Apron Team Salary above the Second Apron Level as of the start of its last Regular Season game in that year), the Team is prohibited from trading, conditionally or unconditionally, its first-round pick in the first NBA Draft following the seventh Season after the Season in that Salary Cap Year
+Authority: CBA
+Methods: primary=LIFECYCLE; secondary=SCEN
+Lifecycle inputs: Season-end Apron Team Salary history; seven-Season projection
+Lineage: XW2-0093
+Notes: Applies beginning with the 2024-25 Salary Cap Year; the Draft Pick Penalty (end-of-round slide) and its representation are L-family (R6).
+
+APPLICABLE SCENARIOS
+
+CBA2-SC-019(d)
+Inputs: R7-FIX-2026; dependencies=[none]; P+ record: SalaryCapYear=2026-27; lastRegularSeasonGameStart=2027-04-11T19:00:00-04:00; ApronTeamSalary=$221,686,000.01; SecondApron=$221,686,000.00; seventhFollowingSeason=2033-34; firstDraftAfterSeventhFollowingSeason=2034; frozenSelection=TEAM-A 2034 first; proposedTrade includes that selection; P− record: P+ byte-identical except ApronTeamSalary=$221,686,000.00.
+Boundary: Frozen-pick trading bar: if a Team is a Second Apron Team for a Salary Cap Year (Apron Team Salary above the Second Apron Level as of the start of its last Regular Season game in that year), the Team is prohibited from trading, conditionally or unconditionally, its first-round pick in the first NBA Draft following the seventh Season after the Season in that Salary Cap Year
+Expected: P+ exact output: freeze TEAM-A's 2034 first and prohibit conditional or unconditional trade (CBA2-A12.4:PASS); P− exact output: TEAM-A is not above the Second Apron at equality; this freeze does not attach (summary: CBA2-A12.4 trigger FAIL).
+Evidence chain: CBA2-A12.4 → EV2-0088 → CBA
+Exercises: CBA2-A12.4
+
+CBA2-SC-019(h20)
+Inputs: R7-FIX-2026; exact pinned published interaction input: Team above Second Apron at the start of its final regular-season game; future pick freezes, then slides after two of four years or unfreezes after three qualifying at/below seasons.
+Boundary: Paired retained-history discriminators for CBA2-A12.4, CBA2-A12.5, CBA2-A12.7; H+ preserves the published facts with the named obligation satisfied, and H− changes only that obligation's threshold, date, state, or required external-record predicate.
+Expected: CBA2-A12.4=PASS exactly when Frozen-pick trading bar: if a Team is a Second Apron Team for a Salary Cap Year (Apron Team Salary above the Second Apron Level as of the start of its last Regular Season game in that year), the Team is prohibited from trading, conditionally or unconditionally, its first-round pick in the first NBA Draft following the seventh Season after the Season in that Salary Cap Year; its paired single-predicate adverse variant is FAIL, or NEEDS-INPUT only when the registered contract requires an authenticated external/season-keyed input; CBA2-A12.5=PASS exactly when Frozen-pick unfreeze timing: when a Team is a Second Apron Team in fewer than two of the four following Salary Cap Years, the frozen first-round pick becomes tradable on the day after the Regular Season ends in the third of those years in which it is not a Second Apron Team; its paired single-predicate adverse variant is FAIL, or NEEDS-INPUT only when the registered contract requires an authenticated external/season-keyed input; CBA2-A12.7=PASS exactly when No Draft Pick Penalty after unfreeze: a frozen first-round pick released under VII §2(f)(2)(ii)(B) is not subject to a Draft Pick Penalty; its paired single-predicate adverse variant is FAIL, or NEEDS-INPUT only when the registered contract requires an authenticated external/season-keyed input.
+Evidence chain: CBA2-A12.4 → EV2-0088 → CBA; CBA2-A12.5 → EV2-0089 → CBA; direct dependency results CBA2-A12.4; CBA2-A12.7 → EV2-0112 → CBA; direct dependency results CBA2-A12.5
+Exercises: CBA2-A12.4, CBA2-A12.5, CBA2-A12.7
+
+PROVENANCE CLOSURE
+
+EV2-0088 (CBA) owner=CBA2-A12.4
+Source roots: SRC2-001; dependencies: —
+Citation: CBA VII §2(f)(1)(i), p. 195; §2(f)(2)(i), p. 196
+Source text: 'Second Apron Team' means… a Team that, as of the start of the Team's last Regular Season game occurring within such Salary Cap Year, has an Apron Team Salary… that exceeds the Second Apron Level…; Beginning with the 2024-25 Salary Cap Year, if a Team is a Second Apron Team for a Salary Cap Year, then the Team shall be prohibited from trading (either conditionally or unconditionally) its first round draft pick in the first NBA Draft that occurs following the seventh Season that follows the Season occurring within such Salary Cap Year
+Result: Defines the measurement event and states the frozen-pick trading prohibition
+Reasoning: —
+Limitations: —
+
+SRC2-001 `official-immutable` — 2023 NBA-NBPA Collective Bargaining Agreement (signed agreement, 2023 edition)
+Source date: agreement-as-of:2023-06-28; URL: <https://ak-static.cms.nba.com/wp-content/uploads/sites/4/2023/06/2023-NBA-Collective-Bargaining-Agreement.pdf>
+Artifact: `bf178ca0f2d64f9dfe6fde095d3ae43d576b12e19ce7a679618d632584f7ab32`; bytes=2850534; retrieved=2026-07-23T11:23:46Z
+Verified by `agent:codex` in `session:r31-20260723-maker` on 2026-07-23
+Status/version: current/1; limitations: none

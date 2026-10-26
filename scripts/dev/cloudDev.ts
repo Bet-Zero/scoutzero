@@ -48,7 +48,8 @@ const env: NodeJS.ProcessEnv = {
   FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099',
   VITE_ARCHITECT_REVIEW_MODE: 'true', VITE_USE_FIREBASE_EMULATORS: 'true',
   VITE_FIREBASE_PROJECT_ID: DEMO_PROJECT, VITE_FIREBASE_API_KEY: 'demo-api-key-not-real',
-  VITE_ARCHITECT_DRAFT_REVIEW: 'false',
+  // Explicit software simulation; the existing fixed demo/loopback gates remain.
+  VITE_ARCHITECT_DRAFT_REVIEW: process.argv.includes('--draft-simulation') ? 'true' : 'false',
   FIREBASE_CLI_DISABLE_UPDATE_CHECK: 'true',
   NO_PROXY: [process.env.NO_PROXY, '127.0.0.1', 'localhost', '::1'].filter(Boolean).join(','),
   no_proxy: [process.env.no_proxy, '127.0.0.1', 'localhost', '::1'].filter(Boolean).join(','),

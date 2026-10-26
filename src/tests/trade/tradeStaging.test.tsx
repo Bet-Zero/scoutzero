@@ -36,6 +36,7 @@ vi.mock('@/firebaseConfig', () => ({
   auth: {},
   FIREBASE_TARGET_MODE: 'EMULATOR',
   isLikelyEmulatorConnectionError: () => false,
+  isSyntheticDraftReviewEnvironment: () => false,
 }));
 // Stub heavy children — irrelevant to the staging effect under test.
 vi.mock('@/features/architect/tradeMachine/TradeTeamCard', () => ({

@@ -109,7 +109,12 @@ export type UseTradeActionsParams = {
   runAuthoritativeWorldMutationWithDashboardSync: (
     mutationType: string,
     payload: ArchitectMutationPayload,
-    options?: { worldRequiredMessage?: string; seasonIdOverride?: string }
+    options?: {
+      worldRequiredMessage?: string;
+      seasonIdOverride?: string;
+      draftReviewAuthority?: object;
+      operationId?: string;
+    }
   ) => Promise<PersistMutationResult>;
   evaluateMutationTruth: (
     mutationType: string,
@@ -298,11 +303,23 @@ export function useTradeActions({
   );
 
   const commitTradeExecutionHandoff = useCallback(
-    async (tradeExecutionHandoff: TradeExecutionHandoff): Promise<void> => {
-      const result = await runAuthoritativeWorldMutationWithDashboardSync(
-        'executeTrade',
-        tradeExecutionHandoff.payload
-      );
+    async (
+      tradeExecutionHandoff: TradeExecutionHandoff,
+      review?: import('../../utils/draftReview/simulationPreview').DraftSimulationHandoff
+    ): Promise<void> => {
+      const result = review
+        ? await runAuthoritativeWorldMutationWithDashboardSync(
+            'executeTrade',
+            tradeExecutionHandoff.payload,
+            {
+              draftReviewAuthority: review.authority,
+              operationId: review.operationId,
+            }
+          )
+        : await runAuthoritativeWorldMutationWithDashboardSync(
+            'executeTrade',
+            tradeExecutionHandoff.payload
+          );
       if (!result.success) {
         const message =
           result.error instanceof Error
@@ -474,7 +491,10 @@ export function useTradeActions({
   );
 
   const applyTradeToCapSheet = useCallback(
-    async (tradeData: TradeDataItem[]): Promise<void> => {
+    async (
+      tradeData: TradeDataItem[],
+      review?: import('../../utils/draftReview/simulationPreview').DraftSimulationHandoff
+    ): Promise<void> => {
       if (!tradeData || !Array.isArray(tradeData)) {
         return;
       }
@@ -486,7 +506,7 @@ export function useTradeActions({
       const tradeExecutionHandoff = buildTradeExecutionHandoff(tradeData);
 
       if (worldId) {
-        await commitTradeExecutionHandoff(tradeExecutionHandoff);
+        await commitTradeExecutionHandoff(tradeExecutionHandoff, review);
         return;
       }
 

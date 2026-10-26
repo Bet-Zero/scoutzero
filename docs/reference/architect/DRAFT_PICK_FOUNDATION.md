@@ -423,3 +423,34 @@ user created a legitimate simulation. Certification establishes the second from
 an accepted baseline, not the third. NBA source qualification, the June 5 baseline,
 all 278 entitlements, unresolved BZE-309 identities/procedures and activation gates
 remain unchanged. No production rule/function deployment occurs in this lane.
+
+## Retained picks in protected simulator worlds (BZE-329)
+
+The protected review/emulator path can adopt the complete pinned 278-record
+catalogue into a **new test world**, retaining source IDs, terms, the original
+identity keys and all 29 unresolved dependency/action mappings. Adoption uses
+read-only copies of the existing source documents; it neither migrates existing
+worlds nor publishes source data. The existing BZE-315 capability, one-use seal,
+atomic writer, receipt, History and Compare paths perform the transaction.
+
+The initial software scenario uses CHI/TOR original-first identities, stipulated
+ownership and protection branches, and explicitly governed test salary books
+($30m Team/Apron/Tax Salary with a First Apron hard cap). Every proposal is
+reviewed against current saved-world holdings and its actual exchange terms.
+The conditional scenario can withhold a Chicago 2027 witness in one possible
+conveyance branch. Unresolved alternative holdings remain unknown, never empty;
+a missing witness blocks approval until the proposal or relevant inputs change.
+Other retained rights remain inspectable and fail closed when their required
+ownership, protection, conveyance, Apron or action evidence is unavailable.
+
+This proves simulator behavior, **not real NBA starting-state compliance or
+tradability**. The world and receipt identify that scope. Production/default
+first-round Apply remains prohibited. Genuine production trading still requires
+authenticated starting facts, complete applicable branches and financial inputs,
+all-278 completion and the existing owner acceptance gates.
+
+Use the existing cloud workflow with `--draft-simulation` for this isolated
+scenario. The existing exact-head receipt wrapper accepts `--retained-simulation`
+with private `SCOUTZERO_DRAFT_REVIEW_RELEASE` and
+`SCOUTZERO_DRAFT_SIMULATION_BASELINE` paths. Its certificate binds the candidate,
+input hashes, positive/negative journey, screenshots and clean port teardown.

@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import {
   DraftEvidenceIdZ,
+  DraftEvidenceHashZ,
   DraftEvidenceInstantZ,
 } from '@/schemas/draftPickEvidence';
 import { DraftPickReviewInputZ } from '@/schemas/draftPickReview';
@@ -36,9 +37,27 @@ export type SyntheticDraftMutationSource = z.infer<
   typeof SyntheticDraftMutationSourceZ
 >;
 
+export const DraftSimulationAssumptionsZ = z
+  .object({
+    kind: z.literal('governed-test-assumptions-v1'),
+    catalogueSha256: DraftEvidenceHashZ,
+    proposalSha256: DraftEvidenceHashZ,
+    stateDigest: DraftEvidenceIdZ,
+    asOf: DraftEvidenceInstantZ,
+    branchMode: z.enum(['unconditional', 'conditional-2027']),
+    ownership: z.literal('stipulated-for-software-tests'),
+    otherHoldings: z.literal('unknown-not-empty'),
+  })
+  .strict();
+export type DraftSimulationAssumptions = z.infer<
+  typeof DraftSimulationAssumptionsZ
+>;
+
 export const DraftReviewMutationReceiptZ = z
   .object({
-    scope: z.literal('synthetic-review-only'),
+    scope: z.enum(['synthetic-review-only', 'governed-simulation-only']),
+    assumptionSha256: DraftEvidenceHashZ.optional(),
+    assumptions: DraftSimulationAssumptionsZ.optional(),
     operationId: DraftEvidenceIdZ,
     worldId: DraftEvidenceIdZ,
     releaseId: DraftEvidenceIdZ,
@@ -59,7 +78,18 @@ export const DraftReviewMutationReceiptZ = z
       )
       .min(1),
   })
-  .strict();
+  .strict()
+  .superRefine((receipt, ctx) => {
+    if (
+      receipt.scope === 'governed-simulation-only' &&
+      (!receipt.assumptionSha256 || !receipt.assumptions)
+    )
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'Governed simulation receipts require their separate test assumptions.',
+      });
+  });
 export type DraftReviewMutationReceipt = z.infer<
   typeof DraftReviewMutationReceiptZ
 >;

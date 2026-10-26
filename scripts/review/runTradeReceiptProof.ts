@@ -10,6 +10,13 @@ import { startSeasonProofHarness } from './seasonProofHarness';
 const PROOF_SPEC = 'tests/e2e/architect-trade-receipt-proof.spec.ts';
 const PROOF_PORTS = [5173, 8082, 9099, 5001, 4001, 4400, 4500, 9150];
 
+export const RETAINED_SIMULATION_SCREENSHOTS = [
+  'permitted-proposal',
+  ...['CHI', 'TOR'].flatMap((team) =>
+    ['history', 'compare', 'reload'].map((state) => `${team}-${state}`)
+  ),
+].map((key) => ({ key, filename: `${key}-1280x720.png` }));
+
 export const REAL_DRAFT_SCREENSHOTS = [
   'supported',
   'wrong-holder',
@@ -276,8 +283,25 @@ async function openProofPorts(): Promise<number[]> {
 export async function runTradeReceiptProof(
   draftReview = false,
   draftSeason = false,
-  realDraft = false
+  realDraft = false,
+  retainedSimulation = false
 ): Promise<number> {
+  if (retainedSimulation && (realDraft || draftReview || draftSeason))
+    throw new Error('Governed retained simulation is a separate proof scope.');
+  if (
+    retainedSimulation &&
+    (!process.env.SCOUTZERO_DRAFT_REVIEW_RELEASE ||
+      !process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE)
+  )
+    throw new Error(
+      'Retained simulation requires the private catalogue and actual cloud baseline paths.'
+    );
+  const simulationInputHashes = retainedSimulation
+    ? {
+        release: hashFile(process.env.SCOUTZERO_DRAFT_REVIEW_RELEASE!),
+        baseline: hashFile(process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE!),
+      }
+    : null;
   if (realDraft && (draftReview || draftSeason))
     throw new Error(
       'Real retained review cannot use a synthetic mutation proof mode.'
@@ -298,22 +322,26 @@ export async function runTradeReceiptProof(
       }
     : null;
   const identity = resolveProofIdentity();
-  const definitions = realDraft
-    ? REAL_DRAFT_SCREENSHOTS
-    : draftReview
-      ? DRAFT_REVIEW_SCREENSHOTS
-      : GOVERNED_TRADE_RECEIPT_SCREENSHOTS;
+  const definitions = retainedSimulation
+    ? RETAINED_SIMULATION_SCREENSHOTS
+    : realDraft
+      ? REAL_DRAFT_SCREENSHOTS
+      : draftReview
+        ? DRAFT_REVIEW_SCREENSHOTS
+        : GOVERNED_TRADE_RECEIPT_SCREENSHOTS;
   const artifactDir = path.join(
     identity.repoRoot,
     'tmp',
     'browser-proofs',
-    realDraft
-      ? 'real-draft-review'
-      : draftSeason
-        ? 'draft-season'
-        : draftReview
-          ? 'draft-review'
-          : 'trade-receipt',
+    retainedSimulation
+      ? 'retained-draft-simulation'
+      : realDraft
+        ? 'real-draft-review'
+        : draftSeason
+          ? 'draft-season'
+          : draftReview
+            ? 'draft-review'
+            : 'trade-receipt',
     `${identity.candidate}-${timestampSlug()}`
   );
   const testResultsDir = path.join(artifactDir, 'test-results');
@@ -383,13 +411,15 @@ export async function runTradeReceiptProof(
 
   const commandArgs = [
     'test',
-    realDraft
-      ? 'tests/e2e/architect-real-draft-review-proof.spec.ts'
-      : draftSeason
-        ? 'tests/e2e/architect-draft-season-proof.spec.ts'
-        : draftReview
-          ? 'tests/e2e/architect-draft-review-proof.spec.ts'
-          : PROOF_SPEC,
+    retainedSimulation
+      ? 'tests/e2e/architect-retained-draft-simulation.spec.ts'
+      : realDraft
+        ? 'tests/e2e/architect-real-draft-review-proof.spec.ts'
+        : draftSeason
+          ? 'tests/e2e/architect-draft-season-proof.spec.ts'
+          : draftReview
+            ? 'tests/e2e/architect-draft-review-proof.spec.ts'
+            : PROOF_SPEC,
     '--workers=1',
     '--project=chromium',
     '--reporter=line,html',
@@ -445,6 +475,9 @@ export async function runTradeReceiptProof(
         env: {
           ...process.env,
           PLAYWRIGHT_ARCHITECT_REVIEW_MODE: 'true',
+          ...(retainedSimulation
+            ? { PLAYWRIGHT_DRAFT_SIMULATION: 'true' }
+            : {}),
           PLAYWRIGHT_HTML_OUTPUT_DIR: draftReview
             ? path.join(reportDir, String(index))
             : reportDir,
@@ -467,7 +500,7 @@ export async function runTradeReceiptProof(
           SCOUTZERO_BROWSER_PROOF_DIR: artifactDir,
         },
         stdio: 'inherit',
-        ...(draftReview ? { timeout: 240000 } : {}),
+        ...(draftReview || retainedSimulation ? { timeout: 240000 } : {}),
       });
       const remainingPorts = draftSeason ? [] : await waitForCleanTeardown();
       runs.push({
@@ -501,25 +534,27 @@ export async function runTradeReceiptProof(
         path.join(reportDir, String(index), 'index.html')
       )
     : [path.join(reportDir, 'index.html')];
-  const additionalProofPaths = draftReview
-    ? [
-        ...(draftSeason
-          ? [
-              'season-proof.json',
-              'history-trust-counterexample.json',
-              'certified-lineage-proof.json',
-            ]
-          : [
-              'membership-unfenced-proof.json',
-              'membership-changes-proof.json',
-              'membership-commit-race-proof.json',
-              'membership-competing-proof.json',
-              'membership-admin-purge-proof.json',
-            ]),
-        'negative-proof.json',
-        'atomic-proof.json',
-      ].map((name) => path.join(artifactDir, name))
-    : [];
+  const additionalProofPaths = retainedSimulation
+    ? [path.join(artifactDir, 'negative-proof.json')]
+    : draftReview
+      ? [
+          ...(draftSeason
+            ? [
+                'season-proof.json',
+                'history-trust-counterexample.json',
+                'certified-lineage-proof.json',
+              ]
+            : [
+                'membership-unfenced-proof.json',
+                'membership-changes-proof.json',
+                'membership-commit-race-proof.json',
+                'membership-competing-proof.json',
+                'membership-admin-purge-proof.json',
+              ]),
+          'negative-proof.json',
+          'atomic-proof.json',
+        ].map((name) => path.join(artifactDir, name))
+      : [];
   const passed =
     runs.length === groups.length &&
     runs.every(
@@ -540,6 +575,20 @@ export async function runTradeReceiptProof(
           hashFile(process.env.SCOUTZERO_DRAFT_REVIEW_CASES!) &&
         JSON.parse(fs.readFileSync(proofPath, 'utf8')).packageSha256 ===
           privateInputHashes.release)) &&
+    (!simulationInputHashes ||
+      (simulationInputHashes.release ===
+        hashFile(process.env.SCOUTZERO_DRAFT_REVIEW_RELEASE!) &&
+        simulationInputHashes.baseline ===
+          hashFile(process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE!) &&
+        JSON.parse(fs.readFileSync(proofPath, 'utf8')).packageSha256 ===
+          simulationInputHashes.release &&
+        JSON.parse(fs.readFileSync(proofPath, 'utf8')).candidate ===
+          identity.candidate &&
+        JSON.parse(fs.readFileSync(proofPath, 'utf8')).scope ===
+          'governed-simulation-only' &&
+        JSON.parse(
+          fs.readFileSync(path.join(artifactDir, 'negative-proof.json'), 'utf8')
+        ).candidate === identity.candidate)) &&
     (!functionsBuild ||
       functionsBuild.artifacts.every(
         (file) =>
@@ -550,20 +599,23 @@ export async function runTradeReceiptProof(
 
   const manifest = {
     schemaVersion: 1,
-    proof: realDraft
-      ? 'Real retained first-round evidence in Trade Machine (read-only; production Apply disabled)'
-      : draftSeason
-        ? 'Synthetic freeze season record and subsequent first-round trade (production disabled)'
-        : draftReview
-          ? 'Synthetic first-round review mutation (production disabled)'
-          : 'Architect Trade Machine / Trade Receipt',
+    proof: retainedSimulation
+      ? 'Retained pick identities with governed test assumptions (not verified NBA legality; production disabled)'
+      : realDraft
+        ? 'Real retained first-round evidence in Trade Machine (read-only; production Apply disabled)'
+        : draftSeason
+          ? 'Synthetic freeze season record and subsequent first-round trade (production disabled)'
+          : draftReview
+            ? 'Synthetic first-round review mutation (production disabled)'
+            : 'Architect Trade Machine / Trade Receipt',
     base: identity.originMain,
     candidate: identity.candidate,
     upstream: identity.upstream,
     mergeBase: identity.mergeBase,
     viewport: { width: 1280, height: 720 },
-    command: `npm run architect:proof:trade-receipt${realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
+    command: `npm run architect:proof:trade-receipt${retainedSimulation ? ' -- --retained-simulation' : realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
     privateInputHashes,
+    simulationInputHashes,
     playwright: commandArgs,
     startedAt,
     completedAt: new Date().toISOString(),
@@ -644,7 +696,8 @@ if (isMainModule()) {
   runTradeReceiptProof(
     process.argv.includes('--draft-review'),
     process.argv.includes('--draft-season'),
-    process.argv.includes('--real-draft')
+    process.argv.includes('--real-draft'),
+    process.argv.includes('--retained-simulation')
   )
     .then((code) => {
       process.exitCode = code;

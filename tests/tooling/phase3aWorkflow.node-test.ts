@@ -18,7 +18,9 @@ import {
   DRAFT_REVIEW_SCREENSHOTS,
   GOVERNED_TRADE_RECEIPT_SCREENSHOTS,
   REAL_DRAFT_SCREENSHOTS,
+  RETAINED_SIMULATION_SCREENSHOTS,
   resolveProofIdentity,
+  runTradeReceiptProof,
   verifyGovernedScreenshotArtifacts,
 } from '../../scripts/review/runTradeReceiptProof.ts';
 
@@ -470,6 +472,40 @@ test('draft review evidence requires History, Compare and reload for both teams'
     );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('retained simulation rejects mixed or incomplete proof inputs before launch', async () => {
+  for (const mode of [[true, false, false], [false, true, false], [false, false, true]]) {
+    await assert.rejects(runTradeReceiptProof(...mode as [boolean, boolean, boolean], true), /separate proof scope/);
+  }
+  const previous = process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE;
+  delete process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE;
+  try {
+    await assert.rejects(runTradeReceiptProof(false, false, false, true), /private catalogue and actual cloud baseline/);
+  } finally {
+    if (previous !== undefined) process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE = previous;
+  }
+});
+
+test('retained simulation certificate requires proposal and both teams across all three saved views', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'retained-simulation-proof-'));
+  try {
+    assert.deepEqual(RETAINED_SIMULATION_SCREENSHOTS.map(s => s.key), [
+      'permitted-proposal', 'CHI-history', 'CHI-compare', 'CHI-reload',
+      'TOR-history', 'TOR-compare', 'TOR-reload',
+    ]);
+    const png = await sharp({create: {width: 1280, height: 720, channels: 4, background: '#123456'}}).png().toBuffer();
+    for (const {filename} of RETAINED_SIMULATION_SCREENSHOTS) fs.writeFileSync(path.join(root, filename), png);
+    const artifacts = collectGovernedScreenshotArtifacts(root, root, RETAINED_SIMULATION_SCREENSHOTS);
+    assert.equal((await verifyGovernedScreenshotArtifacts(root, root, artifacts, RETAINED_SIMULATION_SCREENSHOTS)).valid, true);
+    for (const {filename} of RETAINED_SIMULATION_SCREENSHOTS) {
+      fs.unlinkSync(path.join(root, filename));
+      assert.equal((await verifyGovernedScreenshotArtifacts(root, root, artifacts, RETAINED_SIMULATION_SCREENSHOTS)).valid, false, filename);
+      fs.writeFileSync(path.join(root, filename), png);
+    }
+  } finally {
+    fs.rmSync(root, {recursive: true, force: true});
   }
 });
 

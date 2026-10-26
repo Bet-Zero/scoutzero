@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const useArchitectReviewMode =
   process.env.PLAYWRIGHT_ARCHITECT_REVIEW_MODE === 'true';
+const useDraftSimulation = process.env.PLAYWRIGHT_DRAFT_SIMULATION === 'true';
 const playwrightBaseUrl = 'http://127.0.0.1:5173';
 
 /**
@@ -59,17 +60,21 @@ export default defineConfig({
 
   /* Auto-start dev server before tests */
   webServer: {
-    command: useArchitectReviewMode
-      ? 'npm run architect:review:up'
-      : 'npm run dev',
+    command: useDraftSimulation
+      ? 'npm run cloud:dev -- --draft-simulation'
+      : useArchitectReviewMode
+        ? 'npm run architect:review:up'
+        : 'npm run dev',
     url: playwrightBaseUrl,
-    reuseExistingServer: useArchitectReviewMode ? false : !process.env.CI,
-    gracefulShutdown: useArchitectReviewMode
-      ? {
-          signal: 'SIGTERM',
-          timeout: 10_000,
-        }
-      : undefined,
-    timeout: useArchitectReviewMode ? 240_000 : 120_000,
+    reuseExistingServer:
+      useArchitectReviewMode || useDraftSimulation ? false : !process.env.CI,
+    gracefulShutdown:
+      useArchitectReviewMode || useDraftSimulation
+        ? {
+            signal: 'SIGTERM',
+            timeout: 10_000,
+          }
+        : undefined,
+    timeout: useArchitectReviewMode || useDraftSimulation ? 240_000 : 120_000,
   },
 });
