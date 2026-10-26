@@ -6,6 +6,10 @@ export function assessDraftReviewConsumption(input: unknown) {
   const reasons: string[] = [];
   if (review.status !== 'reviewed')
     return { eligible: false, review, reasons: ['invalid-review-input'] };
+  if (review.tradingWindow && review.tradingWindow.status !== 'permits')
+    reasons.push(
+      `trading-window:${review.tradingWindow.status}:${review.tradingWindow.reason}`
+    );
   for (const [name, component] of [
     ['ownership', review.ownership],
     ['stepien', review.stepien],

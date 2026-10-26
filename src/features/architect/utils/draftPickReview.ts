@@ -1,6 +1,9 @@
 /** Review composition only; no aggregate legality or mutation authority. */
 import { z } from 'zod';
-import { DraftOriginalFirstZ } from '@/schemas/draftPickOperation';
+import {
+  DraftOriginalFirstZ,
+  DraftStepienFactZ,
+} from '@/schemas/draftPickOperation';
 import {
   DraftPickReviewInputZ,
   DraftPickApronContextZ,
@@ -9,8 +12,15 @@ import { evaluateOriginalDraftPickOwnership } from '@/features/architect/utils/d
 import { evaluateDraftPickCashSale } from '@/features/architect/utils/draftPickCashSale';
 import { evaluateSuppliedDraftStepien } from '@/features/architect/utils/draftStepien';
 import { evaluateDraftApronLifecycle } from '@/features/architect/utils/draftApronMechanisms';
-import { parseDraftOperationRequest } from '@/features/architect/utils/draftPickInputResolver';
+import {
+  parseDraftOperationRequest,
+  selectDraftOperationFact,
+} from '@/features/architect/utils/draftPickInputResolver';
 import { canonicalStringify } from '@/features/architect/utils/contractSource/deterministicDigest';
+import {
+  QUALIFIED_JUNE5_DRAFT_HORIZON,
+  reviewJune5DraftTradingWindow,
+} from '@/features/architect/utils/draftReview/horizon';
 
 function freeze<T>(value: T): T {
   if (value && typeof value === 'object') {
@@ -31,6 +41,9 @@ export function reviewDraftPickComponents(input: unknown) {
     return freeze({ ...boundary, status: 'invalid-input' as const });
   const data = parsed.data;
   const request = data.request;
+  const scope = selectDraftOperationFact(data.facts, DraftStepienFactZ, {
+    scope: 'stepien-post-trade-branches',
+  }).fact;
   const locator = z.object({
     input: z.object({
       originalPick: DraftPickApronContextZ.shape.input.shape.originalPick,
@@ -86,6 +99,15 @@ export function reviewDraftPickComponents(input: unknown) {
     request: structuredClone(request),
     ownership: evaluateOriginalDraftPickOwnership(request, data.facts),
     stepien: evaluateSuppliedDraftStepien(request, data.facts),
+    ...(request.context.asOf === QUALIFIED_JUNE5_DRAFT_HORIZON.asOf ||
+    scope?.laterDrafts === 'outside-qualified-scope'
+      ? {
+          tradingWindow: reviewJune5DraftTradingWindow(
+            request.context.asOf,
+            request.outgoing.map((p) => p.draftYear)
+          ),
+        }
+      : {}),
     cashSale: evaluateDraftPickCashSale(request, data.facts),
     apron,
   });
