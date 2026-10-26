@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-24: Created; trimming the pool no longer borrows the ranking's tools
+ *  - 2026-10-26: Undo also takes back step buttons (next round, playoff, continue)
  *
  * LINKS:
  *  - Logic: src/features/ranker/utils/fieldBuilder.ts
@@ -26,7 +27,9 @@ export type FieldStepProps = {
   comparisonCount: number;
   onChange: (state: FieldState) => void;
   onAnswer: (winner: RankerPlayer, loser: RankerPlayer) => void;
+  // Takes back the last answer, or the last step button once the step has none
   onUndo?: () => void;
+  undoLabel?: string;
 };
 
 const STEPS: Array<{ stage: FieldState['stage']; label: string }> = [

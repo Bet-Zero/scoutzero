@@ -34,6 +34,7 @@ export const FieldRoundSummary = ({
   comparisonCount,
   onChange,
   onUndo,
+  undoLabel = 'Undo last answer',
   status,
 }: FieldStepProps & { status: RoundStatus }) => {
   const cutLine = playersById.get(state.cutLine ?? '') as RankerPlayer;
@@ -123,7 +124,7 @@ export const FieldRoundSummary = ({
           onClick={onUndo}
           className="text-xs text-white/40 hover:text-white"
         >
-          Undo last answer
+          {undoLabel}
         </button>
       )}
     </div>

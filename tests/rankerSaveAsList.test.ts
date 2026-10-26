@@ -13,7 +13,6 @@ describe('ranker save as list bridge', () => {
       isOwner: true,
       userId: 'owner_1',
       sessionName: 'Top 10',
-      poolIds: ['p1', 'p2', 'p3'],
       adjustments: ['p3', 'p2', 'p1'],
       currentRanking: ['p1', 'p2', 'p3'],
       createListFn,
@@ -41,7 +40,6 @@ describe('ranker save as list bridge', () => {
       isOwner: true,
       userId: 'owner_2',
       sessionName: 'Ranking',
-      poolIds: ['p1', 'p2', 'p4'],
       adjustments: null,
       currentRanking,
       createListFn,
@@ -65,7 +63,6 @@ describe('ranker save as list bridge', () => {
       isOwner: false,
       userId: 'not_owner',
       sessionName: 'Ranking',
-      poolIds: ['p1', 'p2'],
       adjustments: ['p1', 'p2'],
       currentRanking: ['p1', 'p2'],
       createListFn,
@@ -85,7 +82,6 @@ describe('ranker save as list bridge', () => {
       isOwner: true,
       userId: 'owner_3',
       sessionName: 'Objects Input',
-      poolIds: [{ id: 'p1', name: 'A' }, { id: 'p2', name: 'B' }],
       adjustments: null,
       currentRanking: [{ id: 'p2', name: 'B' }, { id: 'p1', name: 'A' }],
       createListFn,
@@ -93,10 +89,29 @@ describe('ranker save as list bridge', () => {
     });
 
     const payload = saveListFn.mock.calls[0][1];
-    expect(payload.playerIds).toEqual(['p1', 'p2']);
+    expect(payload.playerIds).toEqual(['p2', 'p1']);
     expect(payload.playerOrder).toEqual(['p2', 'p1']);
     expect(payload.playerIds.every((id) => typeof id === 'string')).toBe(true);
     expect(payload.playerOrder.every((id) => typeof id === 'string')).toBe(true);
+  });
+
+  it('saves only the ranked players of a Top-N list, not the whole pool', async () => {
+    const createListFn = vi.fn().mockResolvedValue('list_top');
+    const saveListFn = vi.fn().mockResolvedValue(undefined);
+
+    // The pool had p1-p5; the Top 3 is p2, p1, p4
+    await createRankerListFromRanking({
+      isOwner: true,
+      userId: 'owner_1',
+      sessionName: 'My Top 3',
+      currentRanking: ['p2', 'p1', 'p4'],
+      createListFn,
+      saveListFn,
+    });
+
+    const payload = saveListFn.mock.calls[0][1];
+    expect(payload.playerOrder).toEqual(['p2', 'p1', 'p4']);
+    expect(payload.playerIds).toEqual(['p2', 'p1', 'p4']);
   });
 
   it('updates the linked list instead of creating a duplicate', async () => {
@@ -107,7 +122,6 @@ describe('ranker save as list bridge', () => {
       isOwner: true,
       userId: 'owner_1',
       sessionName: 'Top 10',
-      poolIds: ['p1', 'p2'],
       existingListId: 'list_existing',
       existingListName: 'Ranker — Top 10 — 2026-10-01',
       currentRanking: ['p2', 'p1'],
@@ -138,7 +152,6 @@ describe('ranker save as list bridge', () => {
       isOwner: true,
       userId: 'owner_1',
       sessionName: 'Top 10',
-      poolIds: ['p1', 'p2'],
       existingListId: 'list_gone',
       currentRanking: ['p1', 'p2'],
       createListFn,

@@ -194,17 +194,38 @@ export const RankingSetup = ({
   playerPool = [],
   onComplete,
   listTitle = null,
+  initial = null,
+  onBack,
+  backLabel = '← Back',
 }: {
   playerPool?: RankerDisplayPlayer[];
   onComplete: (data: RankerSetupData) => void;
   // e.g. "your Top 100", when the field was built for a Top-N list
   listTitle?: string | null;
+  // Choices made before undo came back to this screen
+  initial?: Pick<
+    RankerSetupData,
+    'topTier' | 'bottomTier' | 'anchor' | 'firstPlace' | 'lastPlace'
+  > | null;
+  // Takes back the step before this screen (e.g. finishing the field)
+  onBack?: () => void;
+  backLabel?: string;
 }) => {
-  const [topTier, setTopTier] = useState<string[]>([]);
-  const [bottomTier, setBottomTier] = useState<string[]>([]);
-  const [anchor, setAnchor] = useState<string | null>(null);
-  const [firstPlace, setFirstPlace] = useState<string | null>(null);
-  const [lastPlace, setLastPlace] = useState<string | null>(null);
+  const inPool = new Set(playerPool.map((p) => p.id));
+  const known = (id: string | null | undefined) => (id && inPool.has(id) ? id : null);
+  const [topTier, setTopTier] = useState<string[]>(() =>
+    (initial?.topTier ?? []).filter((id) => inPool.has(id))
+  );
+  const [bottomTier, setBottomTier] = useState<string[]>(() =>
+    (initial?.bottomTier ?? []).filter((id) => inPool.has(id))
+  );
+  const [anchor, setAnchor] = useState<string | null>(() => known(initial?.anchor));
+  const [firstPlace, setFirstPlace] = useState<string | null>(() =>
+    known(initial?.firstPlace)
+  );
+  const [lastPlace, setLastPlace] = useState<string | null>(() =>
+    known(initial?.lastPlace)
+  );
 
   const tierCountEstimate = Math.max(1, Math.round(playerPool.length * 0.25));
 
@@ -311,9 +332,7 @@ export const RankingSetup = ({
           }
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-          {playerPool
-          // Players ruled out for a Top-N list aren't ranked, so they can't be tagged
-          .map((p) => (
+          {playerPool.map((p) => (
             <PlayerTile
               key={p.id}
               player={p}
@@ -385,6 +404,14 @@ export const RankingSetup = ({
         <p className="text-white/25 text-xs text-center">
           All sections are optional — skip everything and dive straight in.
         </p>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="text-sm text-white/45 hover:text-white transition-colors"
+          >
+            {backLabel}
+          </button>
+        )}
       </div>
 
     </div>

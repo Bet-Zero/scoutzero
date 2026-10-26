@@ -24,14 +24,20 @@ type AnchorComparisonProps = {
   anchor: RankerPlayer | undefined;
   players?: RankerPlayer[];
   onComplete: (betterIds: string[]) => void;
+  // Picks made before undo came back to this screen
+  initialBetter?: string[] | null;
+  // Back to the ranking setup
+  onBack?: () => void;
 };
 
 export const AnchorComparison = ({
   anchor,
   players = [],
   onComplete,
+  initialBetter = null,
+  onBack,
 }: AnchorComparisonProps) => {
-  const [better, setBetter] = useState<string[]>([]);
+  const [better, setBetter] = useState<string[]>(() => initialBetter ?? []);
 
   if (!anchor) return null;
 
@@ -61,12 +67,22 @@ export const AnchorComparison = ({
           />
         ))}
       </div>
-      <button
-        onClick={handleConfirm}
-        className="px-4 py-2 rounded bg-green-600 hover:bg-green-700"
-      >
-        Confirm
-      </button>
+      <div className="flex items-center gap-4">
+        <button
+          onClick={handleConfirm}
+          className="px-4 py-2 rounded bg-green-600 hover:bg-green-700"
+        >
+          Confirm
+        </button>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="text-sm text-white/50 hover:text-white transition-colors"
+          >
+            ← Back to ranking setup
+          </button>
+        )}
+      </div>
     </div>
   );
 };

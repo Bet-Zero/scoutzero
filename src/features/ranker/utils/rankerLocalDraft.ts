@@ -19,7 +19,18 @@ export type RankerSetupData = {
   field?: FieldState;
   // The ranking setup screen has been completed (only meaningful with `field`)
   configured?: boolean;
+  // Steps taken with a button (not matchup answers), newest last, so undo can take them back
+  steps?: RankerSessionStep[];
   [key: string]: unknown;
+};
+
+// The session just before a step button was pressed
+export type RankerSessionStep = {
+  setupData: Omit<RankerSetupData, 'steps'> | null;
+  // Number of results then; undoing the step drops any added since (setup seeds)
+  results: number;
+  seedCount: number;
+  anchorDone: boolean;
 };
 
 type SkippedPairsInput = Set<string> | string[] | null | undefined;
@@ -58,8 +69,42 @@ type CreateInitialDraftParams = {
   name?: string | null;
 };
 
+// This tab's draft (sessionStorage), plus a copy in localStorage so a
+// ranking survives closing the tab or browser. While a tab is open its own
+// copy wins, so two tabs ranking at once don't swap drafts on refresh; a new
+// tab picks up the most recently saved ranking.
 const STORAGE_KEY = 'ranker_draft_v1';
+const RECOVERY_KEY = 'ranker_draft_recovery_v1';
 const DEBOUNCE_MS = 800;
+
+const readStoredDraft = (): StoredRankerDraft | null => {
+  for (const read of [
+    () => sessionStorage.getItem(STORAGE_KEY),
+    () => localStorage.getItem(RECOVERY_KEY),
+  ]) {
+    try {
+      const draft = parseStoredDraft(read());
+      if (draft) return draft;
+    } catch {
+      // Unavailable storage or an unreadable copy: try the next one
+    }
+  }
+  return null;
+};
+
+const writeStoredDraft = (draft: StoredRankerDraft): void => {
+  const value = JSON.stringify(draft);
+  try {
+    sessionStorage.setItem(STORAGE_KEY, value);
+  } catch (err) {
+    console.warn('[rankerLocalDraft] Failed to save draft:', err);
+  }
+  try {
+    localStorage.setItem(RECOVERY_KEY, value);
+  } catch {
+    // The copy that outlives the tab is best-effort (private mode, storage full)
+  }
+};
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -181,16 +226,11 @@ const deserializeSkippedPairs = (
 };
 
 /**
- * Load draft from sessionStorage.
+ * Load this tab's draft, or the last ranking saved in this browser.
  */
 export const loadLocalDraft = (): LoadedRankerDraft | null => {
-  try {
-    const draft = parseStoredDraft(sessionStorage.getItem(STORAGE_KEY));
-    return draft ? toLoadedDraft(draft) : null;
-  } catch (err) {
-    console.warn('[rankerLocalDraft] Failed to load draft:', err);
-    return null;
-  }
+  const draft = readStoredDraft();
+  return draft ? toLoadedDraft(draft) : null;
 };
 
 /**
@@ -199,14 +239,7 @@ export const loadLocalDraft = (): LoadedRankerDraft | null => {
  */
 export const replaceLocalDraft = (draft: RankerDraftPatch): void => {
   cancelPendingDraftSave();
-  try {
-    sessionStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(mergeDraftPatch(null, draft))
-    );
-  } catch (err) {
-    console.warn('[rankerLocalDraft] Failed to save draft:', err);
-  }
+  writeStoredDraft(mergeDraftPatch(null, draft));
 };
 
 /**
@@ -216,21 +249,7 @@ export const saveLocalDraftImmediate = (draftData: RankerDraftPatch): void => {
   // Write any older debounced save first so it can't land later and
   // overwrite this newer state
   if (pendingDraft) flushPendingDraftSave();
-  try {
-    const existing = loadLocalDraftRaw();
-    const merged = mergeDraftPatch(existing, draftData);
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-  } catch (err) {
-    console.warn('[rankerLocalDraft] Failed to save draft:', err);
-  }
-};
-
-const loadLocalDraftRaw = (): StoredRankerDraft | null => {
-  try {
-    return parseStoredDraft(sessionStorage.getItem(STORAGE_KEY));
-  } catch {
-    return null;
-  }
+  writeStoredDraft(mergeDraftPatch(readStoredDraft(), draftData));
 };
 
 export const clearLocalDraft = (): void => {
@@ -240,15 +259,14 @@ export const clearLocalDraft = (): void => {
   } catch (err) {
     console.warn('[rankerLocalDraft] Failed to clear draft:', err);
   }
-};
-
-export const hasLocalDraft = (): boolean => {
   try {
-    return parseStoredDraft(sessionStorage.getItem(STORAGE_KEY)) !== null;
+    localStorage.removeItem(RECOVERY_KEY);
   } catch {
-    return false;
+    // Nothing kept outside the tab
   }
 };
+
+export const hasLocalDraft = (): boolean => readStoredDraft() !== null;
 
 let debounceTimeout: ReturnType<typeof setTimeout> | null = null;
 let pendingDraft: RankerDraftPatch | null = null;
@@ -310,6 +328,7 @@ export const __testing = {
   serializeSkippedPairs,
   deserializeSkippedPairs,
   STORAGE_KEY,
+  RECOVERY_KEY,
   DEBOUNCE_MS,
 };
 

@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-24: Created; replaces trimming the pool with ranking tools (Top-N mode, "Definitely Out", anchor)
+ *  - 2026-10-26: Knockout pairing in the playoff (a Top 100 playoff could take 1,000+ answers)
  *
  * LINKS:
  *  - Used in: src/features/ranker/FieldBuilder.tsx, src/features/ranker/RankingSession.tsx
@@ -52,9 +53,12 @@ export type FieldState = {
   playoff: FieldPlayoff | null;
   // The settled field (stage 'done')
   fieldIds: string[] | null;
+  // Pool ids by stats, best first, fixed when the list was started (scored
+  // for the season the pool was pulled for). Older sessions don't have it.
+  order?: string[];
 };
 
-export const createFieldState = (topN: number): FieldState => ({
+export const createFieldState = (topN: number, order?: string[]): FieldState => ({
   topN,
   stage: 'locks',
   locks: [],
@@ -66,7 +70,22 @@ export const createFieldState = (topN: number): FieldState => ({
   cutIds: [],
   playoff: null,
   fieldIds: null,
+  ...(order ? { order } : {}),
 });
+
+// Pool ids best-first: by `saved` order where it covers them, then by
+// score (higher first), then pool order
+export const poolBestFirst = (
+  ids: readonly string[],
+  score: (id: string) => number,
+  saved?: readonly string[]
+): string[] => {
+  const savedAt = new Map((saved ?? []).map((id, i) => [id, i]));
+  return ids
+    .map((id, i) => ({ id, at: savedAt.get(id) ?? Infinity, s: score(id), i }))
+    .sort((a, b) => a.at - b.at || b.s - a.s || a.i - b.i)
+    .map(({ id }) => id);
+};
 
 const knownBetter = (closure: RankerGraph, a: string, b: string): boolean =>
   Boolean(closure[a]?.has(b));
@@ -344,10 +363,24 @@ export const playoffStatus = (
       decided.push(candidates[0]);
       continue;
     }
-    // Ask about the likeliest answers first: weakest by stats when dropping, strongest when adding
-    const sorted = order(candidates);
-    const pair =
-      playoff.mode === 'drop' ? sorted.slice(-2).reverse() : sorted.slice(0, 2);
+    // Knockout: pair the candidates who've lost the fewest matchups so far
+    // (dropping: fewest known better; adding: fewest known worse). Always
+    // pitting one player against everyone means each later drop starts
+    // almost from scratch; a bracket leaves the runners-up already sorted.
+    const losses = (x: string) =>
+      rest.filter((y) =>
+        y !== x &&
+        (playoff.mode === 'drop' ? knownBetter(closure, y, x) : knownBetter(closure, x, y))
+      ).length;
+    const byStats = order(candidates);
+    // Ties go to the likeliest answers: weakest by stats when dropping, strongest when adding
+    const likely = playoff.mode === 'drop' ? byStats.reverse() : byStats;
+    const lost = new Map(likely.map((id) => [id, losses(id)]));
+    const pair = likely
+      .map((id, i) => ({ id, i }))
+      .sort((a, b) => (lost.get(a.id) ?? 0) - (lost.get(b.id) ?? 0) || a.i - b.i)
+      .slice(0, 2)
+      .map(({ id }) => id);
     return { decided, pair: [pair[0], pair[1]] };
   }
   return { decided, pair: null };

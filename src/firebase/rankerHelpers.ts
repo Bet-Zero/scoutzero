@@ -59,9 +59,10 @@ const RankerFieldZ = z.object({
     })
     .nullable(),
   fieldIds: z.array(RankerPlayerIdZ).nullable(),
+  order: z.array(RankerPlayerIdZ).optional(),
 });
 
-export const RankerSetupDataZ = z
+const RankerSetupBaseZ = z
   .object({
     topTier: z.array(RankerPlayerIdZ).optional(),
     bottomTier: z.array(RankerPlayerIdZ).optional(),
@@ -79,6 +80,18 @@ export const RankerSetupDataZ = z
     // The ranking setup screen has been completed (only meaningful with `field`)
     configured: z.boolean().optional(),
   });
+
+// The session just before a step button was pressed (undo takes it back)
+const RankerSessionStepZ = z.object({
+  setupData: RankerSetupBaseZ.nullable(),
+  results: z.number().int().nonnegative(),
+  seedCount: z.number().int().nonnegative(),
+  anchorDone: z.boolean(),
+});
+
+export const RankerSetupDataZ = RankerSetupBaseZ.extend({
+  steps: z.array(RankerSessionStepZ).optional(),
+});
 
 const RankerSessionReadDocZ = z
   .object({
@@ -351,7 +364,15 @@ export const queryAllRankerSessions = async (
 
   const snapshot = await getDocs(q);
   return snapshot.docs
-    .map((rankerDoc) => parseRankerSession(rankerDoc.id, rankerDoc.data()))
+    .flatMap((rankerDoc) => {
+      // One unreadable session is left out rather than hiding all of them
+      try {
+        return [parseRankerSession(rankerDoc.id, rankerDoc.data())];
+      } catch (err) {
+        console.warn('[rankerHelpers] Skipping unreadable ranker session:', err);
+        return [];
+      }
+    })
     .sort((a, b) => getTimestampMillis(b.updatedAt) - getTimestampMillis(a.updatedAt))
     .slice(0, maxResults);
 };

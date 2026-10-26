@@ -23,7 +23,6 @@ type CreateRankerListFromRankingParams = ResolveFinalOrderParams & {
   isOwner: boolean;
   userId?: string | null;
   sessionName?: string | null;
-  poolIds?: RankerListItem[] | null;
   // List already created from this session; it is updated instead of
   // creating a duplicate.
   existingListId?: string | null;
@@ -73,7 +72,6 @@ export const createRankerListFromRanking = async ({
   isOwner,
   userId,
   sessionName,
-  poolIds,
   existingListId,
   existingListName,
   adjustments,
@@ -83,11 +81,11 @@ export const createRankerListFromRanking = async ({
 }: CreateRankerListFromRankingParams): Promise<CreateRankerListResult | null> => {
   if (!isOwner || !userId) return null;
 
-  const normalizedPoolIds = normalizePlayerIds(poolIds);
   const finalOrderIds = resolveFinalOrderIds({ adjustments, currentRanking });
+  // Only the ranked players: a Top-N list leaves out the players who were cut
   const payload: RankerListPayload = {
     playerOrder: finalOrderIds,
-    playerIds: normalizedPoolIds,
+    playerIds: finalOrderIds,
     playerNotes: {},
     description: 'Created from Ranker',
   };

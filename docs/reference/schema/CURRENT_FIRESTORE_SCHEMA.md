@@ -335,7 +335,7 @@ const roster = await loadRosterProject(rosterId, userId);
 ### `/rankerSessions/{sessionId}` - Saved Player Ranker Sessions
 
 **Status**: Active, owner-only in the app (`isOwnerUid`); rules are owner-scoped
-**Usage**: Head-to-head Player Ranker sessions saved with "Save to Firestore" and reopened from the builder's Saved Sessions panel. In-progress work otherwise lives only in the browser tab's `sessionStorage` draft (`ranker_draft_v1`).
+**Usage**: Head-to-head Player Ranker sessions the owner saves (at any point, finished or not) and reopens from the builder's Saved Sessions panel. Otherwise work lives in the browser: the tab's `sessionStorage` draft (`ranker_draft_v1`) plus a `localStorage` copy (`ranker_draft_recovery_v1`) so a ranking survives closing the tab; an open tab's own copy wins.
 
 **Structure**:
 
@@ -343,11 +343,11 @@ const roster = await loadRosterProject(rosterId, userId);
 | --------------- | ---------------------------- | ------------------- | ----------------------------------------------------------------------------------------- |
 | `ownerUid`      | `string`                     | _(required)_        | Firebase Auth UID of the owner; cannot change on update                                   |
 | `schemaVersion` | `number`                     | `1`                 | Ranker session schema version                                                             |
-| `name`          | `string`                     | `Ranking YYYY-MM-DD`| Session display name                                                                      |
+| `name`          | `string`                     | `Ranking YYYY-MM-DD`| Session display name; new sessions are named `My Top N` or `My Rankings`                  |
 | `playerPoolIds` | `string[]`                   | _(required, ≥ 2)_   | Players being ranked                                                                      |
-| `setupData`     | `object \| null`             | `null`              | `topTier`, `bottomTier`, `anchor`, `firstPlace`, `lastPlace` hints from setup; `topN` (number \| null) ranks only the best N; `cuts` (`{ ids, at }[]`) players cut by hand in Top-N mode (`at` = result count when cut, -1 = in setup), from older sessions only; `field` (object, Top-N lists since 2026-10-24) the field builder's state: `topN`, `stage` (`locks` \| `cut` \| `playoff` \| `done`), `locks`, `round`, `cutLine`, `bubble`, `roundStart`, `inIds` (players the answers settled in), `cutIds`, `playoff` (`{ mode, set, count, keep, start }` \| null), `fieldIds` (the final N, null until done); `configured` (boolean) the ranking setup was completed after the field was built |
+| `setupData`     | `object \| null`             | `null`              | `topTier`, `bottomTier`, `anchor`, `firstPlace`, `lastPlace` hints from setup; `topN` (number \| null) ranks only the best N; `cuts` (`{ ids, at }[]`) players cut by hand in Top-N mode (`at` = result count when cut, -1 = in setup), from older sessions only; `field` (object, Top-N lists since 2026-10-24) the field builder's state: `topN`, `stage` (`locks` \| `cut` \| `playoff` \| `done`), `locks`, `round`, `cutLine`, `bubble`, `roundStart`, `inIds` (players the answers settled in), `cutIds`, `playoff` (`{ mode, set, count, keep, start }` \| null), `fieldIds` (the final N, null until done), `order` (pool ids by stats for the pulled season, best first, fixed at start; optional, since 2026-10-26); `configured` (boolean) the ranking setup was completed after the field was built; `steps` (optional, since 2026-10-26) the step buttons pressed, newest last, so undo can take them back: each `{ setupData, results, seedCount, anchorDone }` is the session just before the button (`setupData` without `steps`; `results` = result count then) |
 | `results`       | `{ winner, loser }[]`        | `[]`                | All comparisons in order; the first `seedCount` came from setup (lock-ins / anchor)       |
-| `seedCount`     | `number`                     | `0`                 | Number of leading setup-generated results; undo never removes them                        |
+| `seedCount`     | `number`                     | `0`                 | Number of leading setup-generated results; undoing a pick never removes them (taking back Start Ranking via `steps` does) |
 | `skippedPairs`  | `string[]`                   | `[]`                | Skipped matchups as `idA<>idB` keys                                                       |
 | `anchorDone`    | `boolean`                    | `false`             | Anchor step completed                                                                     |
 | `isFinished`    | `boolean`                    | `false`             | Ranking complete                                                                          |
@@ -357,7 +357,7 @@ const roster = await loadRosterProject(rosterId, userId);
 | `createdAt`     | `Timestamp`                  | `serverTimestamp()` | Set on creation                                                                           |
 | `updatedAt`     | `Timestamp`                  | `serverTimestamp()` | Updated on every write                                                                    |
 
-**Service Layer**: `src/firebase/rankerHelpers.ts` — `createRankerSession`, `getRankerSession`, `updateRankerSession`, `queryAllRankerSessions` (sorted client-side, no composite index), `deleteRankerSession`. All reads are Zod-validated and owner-checked.
+**Service Layer**: `src/firebase/rankerHelpers.ts` — `createRankerSession`, `getRankerSession`, `updateRankerSession`, `queryAllRankerSessions` (sorted client-side, no composite index; an unreadable session is skipped, not fatal), `deleteRankerSession`. All reads are Zod-validated and owner-checked.
 
 ---
 

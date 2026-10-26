@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-24: Created
+ *  - 2026-10-26: "Back to locks" takes back the step through undo
  *
  * LINKS:
  *  - Used in: src/features/ranker/FieldBuilder.tsx
@@ -119,14 +120,17 @@ export const FieldCutRound = (props: FieldStepProps) => {
       </div>
       {untouched && state.round === 1 && (
         <button
-          onClick={() =>
-            onChange({
-              ...state,
-              stage: 'locks',
-              round: 0,
-              cutLine: null,
-              bubble: [],
-            })
+          onClick={
+            // Undo returns to the locks step; sessions from before step undo reset by hand
+            onUndo ??
+            (() =>
+              onChange({
+                ...state,
+                stage: 'locks',
+                round: 0,
+                cutLine: null,
+                bubble: [],
+              }))
           }
           className="self-start text-sm text-white/45 hover:text-white"
         >

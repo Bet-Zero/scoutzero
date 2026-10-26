@@ -10,6 +10,8 @@ import { useOwnerPlayerLists } from './hooks/useOwnerPlayerLists';
 import { useRankerPool } from './hooks/useRankerPool';
 import { LocalDraftBanner } from './LocalDraftBanner';
 import { useRankerSession } from './hooks/useRankerSession';
+import { storedRankerScore } from './hooks/useImpactScores';
+import { poolBestFirst } from './utils/fieldBuilder';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
 import type { HydratedRankerDraft } from './hooks/useRankerSession';
 
@@ -53,16 +55,22 @@ export const RankingBuilder = () => {
 
   const {
     pool,
-    setPool,
     poolIds,
+    scores: pullScores,
     addPlayersToPool,
     addTeamToPool,
     addListToPool,
     removePlayer,
+    clearPool,
+    undoRemoval,
+    lastRemoval,
+    replacePool,
   } = useRankerPool(playersMap, lists);
   const [started, setStarted] = useState(false);
   // Top-N length for a new ranking (null ranks everyone); a Top-N pull pre-fills it
   const [listSize, setListSize] = useState<number | null>(null);
+  // A new ranking's pool by stats, best first, fixed at Start
+  const [poolOrder, setPoolOrder] = useState<string[] | null>(null);
 
   // Session persistence state - now local-first
   const [resumedSessionData, setResumedSessionData] =
@@ -91,11 +99,13 @@ export const RankingBuilder = () => {
       }
 
       setResumeError(null);
-      setPool(resumedPool);
+      replacePool(resumedPool);
       setResumedSessionData(hydratedDraft);
       setStarted(true);
     },
-    [playersMap, setPool]
+    // replacePool only sets state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [playersMap]
   );
 
   const handleResumeLocalDraft = useCallback(() => {
@@ -136,10 +146,20 @@ export const RankingBuilder = () => {
     if (!confirmReplaceDraft()) return;
 
     const playerPoolIds = pool.map((p) => p.id);
-    createLocalDraft({ playerPoolIds });
+    const size = effectiveListSize(listSize, pool.length);
+    // Scored for the season each player was pulled for; anyone added another
+    // way uses the stored current-season score
+    const byId = new Map(pool.map((p) => [p.id, p]));
+    setPoolOrder(
+      poolBestFirst(
+        playerPoolIds,
+        (id) => pullScores.get(id) ?? storedRankerScore(byId.get(id)) ?? -Infinity
+      )
+    );
+    createLocalDraft({ playerPoolIds, name: size ? `My Top ${size}` : 'My Rankings' });
     setResumedSessionData(null);
     setStarted(true);
-  }, [pool, createLocalDraft, confirmReplaceDraft]);
+  }, [pool, listSize, pullScores, createLocalDraft, confirmReplaceDraft]);
 
   // Discard the tab's draft (the banner confirms first)
   const handleDiscardDraft = useCallback(() => {
@@ -168,6 +188,7 @@ export const RankingBuilder = () => {
       <RankingSession
         playerPool={pool}
         listSize={effectiveListSize(listSize, pool.length)}
+        poolOrder={poolOrder}
         resumedSessionData={resumedSessionData}
         autosave={updateLocalDraft}
         saveAdjustments={saveAdjustments}
@@ -237,10 +258,12 @@ export const RankingBuilder = () => {
           <PoolPanel
             pool={pool}
             onRemove={removePlayer}
-            onClear={() => setPool([])}
+            onClear={clearPool}
             onStart={handleStartNew}
             listSize={listSize}
             onListSizeChange={setListSize}
+            lastRemoval={lastRemoval}
+            onUndoRemoval={undoRemoval}
           />
         }
       />

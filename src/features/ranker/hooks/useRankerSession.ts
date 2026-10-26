@@ -1,9 +1,9 @@
 // src/features/ranker/hooks/useRankerSession.ts
 // Hook for managing ranker session persistence with local-first architecture.
-// - All users: Local draft in sessionStorage (survives refreshes in this tab;
-//   closing the tab discards it)
-// - Owner only: Explicit "Save to Firestore" action, reopened from the
-//   builder's Saved Sessions panel
+// - All users: Local draft kept in this tab, with a browser copy so it
+//   survives refreshes and closing the tab (see utils/rankerLocalDraft)
+// - Owner only: Explicit save to Firestore (any time during the ranking),
+//   reopened from the builder's Saved Sessions panel
 // Does NOT write to Firestore during ranking for any user.
 
 import { useState, useCallback, useEffect } from 'react';
@@ -460,7 +460,6 @@ export function useRankerSession(): UseRankerSessionResult {
           isOwner,
           userId,
           sessionName: localDraft.name,
-          poolIds: localDraft.playerPoolIds,
           existingListId: localDraft.savedListId,
           existingListName: localDraft.savedListName,
           adjustments: localDraft.adjustments,

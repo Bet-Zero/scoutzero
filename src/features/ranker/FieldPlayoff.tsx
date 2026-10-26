@@ -24,6 +24,7 @@ export const FieldPlayoff = ({
   onChange,
   onAnswer,
   onUndo,
+  undoLabel = 'Undo last answer',
 }: FieldStepProps) => {
   const playoff = state.playoff;
   if (!playoff) return null;
@@ -84,7 +85,7 @@ export const FieldPlayoff = ({
                 onClick={onUndo}
                 className="text-xs text-white/40 hover:text-white"
               >
-                Undo last answer
+                {undoLabel}
               </button>
             )}
           </div>

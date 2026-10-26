@@ -8,6 +8,7 @@ import {
   nextRound,
   planCut,
   playoffStatus,
+  poolBestFirst,
   roundStatus,
   startBubble,
   undoFloor,
@@ -29,6 +30,7 @@ const build = (
 ) => {
   const cache = createClosureCache();
   let comparisons = 0;
+  let playoffAnswers = 0;
   const answer = (a: string, b: string) => {
     const [w, l] = truth(a) < truth(b) ? [a, b] : [b, a];
     expect(cache.addEdge(w, l)).toBe(true);
@@ -59,11 +61,31 @@ const build = (
     let status = playoffStatus(state.playoff, cache.closure, statsOrder);
     while (status.pair) {
       answer(status.pair[0], status.pair[1]);
+      playoffAnswers += 1;
       status = playoffStatus(state.playoff, cache.closure, statsOrder);
     }
     state = finishPlayoff(state, status.decided);
   }
-  return { state, comparisons, rounds };
+  return { state, comparisons, rounds, playoffAnswers };
+};
+
+// Small deterministic PRNG so failures are reproducible
+const createRandom = (seed: number) => () => {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+
+// A realistically noisy stats order: each player is typically `spread` places off
+const noisyOrder = (pool: string[], spread: number, seed: number) => {
+  const random = createRandom(seed);
+  const noise = () =>
+    Math.sqrt(-2 * Math.log(random() || 1e-9)) * Math.cos(2 * Math.PI * random());
+  return pool
+    .map((id) => ({ id, s: truth(id) + noise() * spread }))
+    .sort((a, b) => a.s - b.s)
+    .map(({ id }) => id);
 };
 
 // A slightly shuffled stats order: neighbours swapped
@@ -88,6 +110,17 @@ describe('fieldBuilder', () => {
     expect(state.cutIds).toHaveLength(80);
     // Far fewer answers than ranking 180 players for 100 spots
     expect(comparisons).toBeLessThan(200);
+  });
+
+  it('keeps the playoff short when a big bubble lands just over the open spots', () => {
+    // 110 survivors for 100 spots: the playoff must drop 10. Pitting one
+    // player against everyone used to cost over 1,000 answers here.
+    const pool = ids(150);
+    const { state, playoffAnswers } = build(pool, 100, [], noisyOrder(pool, 8, 39695));
+    expect(state.stage).toBe('done');
+    expect(new Set(state.fieldIds)).toEqual(new Set(ids(100)));
+    expect(playoffAnswers).toBeGreaterThan(0);
+    expect(playoffAnswers).toBeLessThan(250);
   });
 
   it('drops the weakest survivors in the playoff when too many beat the cut line', () => {
@@ -138,6 +171,13 @@ describe('fieldBuilder', () => {
     state = finishPlayoff(state, po.decided);
     expect(new Set(state.fieldIds)).toEqual(new Set(ids(10)));
     expect(state.cutIds).not.toContain('p7');
+  });
+
+  it('orders the pool by the saved order, then by score, then pool order', () => {
+    const score = (id: string) => ({ b: 5, c: 9 })[id] ?? -Infinity;
+    expect(poolBestFirst(['a', 'b', 'c', 'd'], score)).toEqual(['c', 'b', 'a', 'd']);
+    // A saved order wins; players it doesn't cover follow by score
+    expect(poolBestFirst(['a', 'b', 'c', 'd'], score, ['d', 'a'])).toEqual(['d', 'a', 'c', 'b']);
   });
 
   it('settles at once when the locks fill the list or everyone fits', () => {

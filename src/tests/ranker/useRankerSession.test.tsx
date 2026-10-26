@@ -16,6 +16,7 @@ const mockedUseAuth = vi.mocked(useAuth);
 
 beforeEach(() => {
   sessionStorage.clear();
+  localStorage.clear();
   mockedUseAuth.mockReturnValue({
     user: null,
     userId: 'owner-1',
@@ -25,6 +26,7 @@ beforeEach(() => {
 
 afterEach(() => {
   sessionStorage.clear();
+  localStorage.clear();
   vi.useRealTimers();
   vi.restoreAllMocks();
   vi.clearAllMocks();
