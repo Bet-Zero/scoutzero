@@ -352,11 +352,20 @@ test('proposal branches and actual mutation reject forged, changed, stale, missi
   expect(
     (await getWorldTeamDocument(worldId, 'CHI'))?.entitlementIds
   ).toContain('ent:CHI:2030:1:own:382a238d');
+  // A fresh, unused capability must reject a changed world independently of replay protection.
+  expect(
+    await prepare(page, uid, worldId, [
+      'ent:CHI:2030:1:own:382a238d',
+      tor,
+    ])
+  ).toMatchObject({ status: 'prepared', legal: true });
   await getReviewAdminDb()
     .doc(`architect_worlds/${worldId}/teams/CHI`)
     .update({ salaryBookInputs: null });
   const changed = await state(worldId);
-  expect((await apply(page)).success).toBe(false);
+  const stale = await apply(page);
+  expect(stale.success).toBe(false);
+  expect(JSON.stringify(stale)).toMatch(/changed|stale/i);
   expect(await state(worldId)).toEqual(changed);
   const missing = await prepare(page, uid, worldId, [
     'ent:CHI:2030:1:own:382a238d',

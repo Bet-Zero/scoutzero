@@ -34,6 +34,7 @@ export function useDraftSimulation(args: {
     world: args.worldId,
     user: args.userId,
     date: args.asOfDate,
+    yearKey: args.yearKey,
   });
   const identity = useRef({ key, epoch: 0 });
   if (identity.current.key !== key)

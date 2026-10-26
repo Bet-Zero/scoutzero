@@ -87,11 +87,18 @@ describe('protected draft review UI handoff', () => {
     expect(result.current.preview?.legal).toBe(true);
     expect(result.current.handoff?.authority).toBeDefined();
   });
-  it('invalidates a completed review on world, date or user changes', async () => {
+  it('invalidates a completed review on world, date, season or user changes', async () => {
     const { result, rerender } = renderHook((p) => useDraftSimulation(p), {
       initialProps: args,
     });
     await waitFor(() => expect(result.current.enabled).toBe(true));
+    await act(async () => {
+      await result.current.validate();
+    });
+    expect(result.current.handoff).toBeDefined();
+    rerender({ ...args, yearKey: 2027 });
+    expect(result.current.handoff).toBeUndefined();
+    rerender(args);
     await act(async () => {
       await result.current.validate();
     });
