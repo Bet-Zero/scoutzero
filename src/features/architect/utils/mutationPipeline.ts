@@ -498,7 +498,13 @@ export async function applyWorldMutation({
       computeResult.metadata = {
         ...computeResult.metadata,
         draftReviewReceipt: DraftReviewMutationReceiptZ.parse({
-          scope: 'synthetic-review-only',
+          scope: review.scope ?? 'synthetic-review-only',
+          ...(review.assumptions
+            ? {
+                assumptions: review.assumptions,
+                assumptionSha256: review.assumptionSha256,
+              }
+            : {}),
           operationId,
           worldId,
           releaseId: review.releaseId,

@@ -70,6 +70,11 @@ import {
 } from '@/features/architect/cockpit/tradeOpenRequest';
 import { useGovernedSignAndTradePreview } from '@/features/architect/tradeMachine/useGovernedSignAndTradePreview';
 import { RealDraftReviewPanel } from './RealDraftReviewPanel';
+import { useDraftSimulation } from './useDraftSimulation';
+import {
+  DRAFT_SIMULATION_NOTICE,
+  describeSimulationReason,
+} from '../utils/draftReview/simulationInventory';
 
 export const TradeEditor = ({
   primaryTeam,
@@ -120,7 +125,7 @@ export const TradeEditor = ({
     // P2: Expose salaryOut for TradeSalaryCalculator
     salaryOut,
     // Stale validation fix: Use hasCurrentValidation instead of stale detail payload checks
-    hasCurrentValidation,
+    hasCurrentValidation: hasNormalValidation,
     getValidatedAt,
     hasInjectedDevSntPlayers,
     injectDevSntPlayers,
@@ -145,16 +150,32 @@ export const TradeEditor = ({
     worldLineage
   );
 
+  const simulation = useDraftSimulation({
+    teams,
+    worldId,
+    userId,
+    asOfDate: governedWorldAsOfDate,
+    yearKey,
+    exportTrade: exportCurrentTrade,
+  });
+  const hasCurrentValidation = simulation.enabled
+    ? simulation.current
+    : hasNormalValidation;
   const [previewOpen, setPreviewOpen] = useState(false);
-  const { handleValidateTrade, isPreparingGovernedPreview } =
-    useGovernedSignAndTradePreview({
-      teams,
-      worldId,
-      userId,
-      worldAsOfDate: governedWorldAsOfDate,
-      yearKey,
-      validate: handleValidate,
-    });
+  const {
+    handleValidateTrade: handleNormalValidateTrade,
+    isPreparingGovernedPreview,
+  } = useGovernedSignAndTradePreview({
+    teams,
+    worldId,
+    userId,
+    worldAsOfDate: governedWorldAsOfDate,
+    yearKey,
+    validate: handleValidate,
+  });
+  const handleValidateTrade = simulation.enabled
+    ? simulation.validate
+    : handleNormalValidateTrade;
   // TMAPPLY-02: in-flight lock so Apply can't double-submit
   const [isApplying, setIsApplying] = useState(false);
   const [tradeMachineSatModal, setTradeMachineSatModal] =
@@ -418,10 +439,14 @@ export const TradeEditor = ({
   const compact = layoutMode !== 'normal';
 
   const currentPreviewAuthority = hasCurrentValidation
-    ? previewAuthority
+    ? simulation.enabled
+      ? simulation.preview
+      : previewAuthority
     : null;
   const currentSnapshotValidationDetails = hasCurrentValidation
-    ? snapshotValidationDetails
+    ? simulation.enabled
+      ? simulation.details
+      : snapshotValidationDetails
     : null;
   const previewAuthorityReason =
     currentPreviewAuthority?.reason ||
@@ -855,7 +880,8 @@ export const TradeEditor = ({
 
     setIsApplying(true);
     try {
-      await onApplyTrade(tradeData);
+      if (simulation.handoff) await onApplyTrade(tradeData, simulation.handoff);
+      else await onApplyTrade(tradeData);
 
       // TMAPPLY-01: In vacuum/sandbox mode, persist entitlement transfers
       // to localStorage ONLY after the trade actually applied — so a
@@ -1044,7 +1070,7 @@ export const TradeEditor = ({
           )}
           <PrimaryButton
             onClick={() => void handleValidateTrade()}
-            disabled={isPreparingGovernedPreview}
+            disabled={isPreparingGovernedPreview || simulation.busy}
           >
             {isPreparingGovernedPreview
               ? 'Loading authority…'
@@ -1159,7 +1185,31 @@ export const TradeEditor = ({
       </div>
 
       {/* Phase 16.3: Init error display */}
-      <RealDraftReviewPanel state={realDraftReview ?? null} />
+      {simulation.enabled ? (
+        <section
+          aria-label="Draft simulation assumptions"
+          className="p-3 text-sm border border-cockpit-edge rounded-lg my-2"
+        >
+          <p>{DRAFT_SIMULATION_NOTICE}</p>
+          {simulation.busy && (
+            <p role="status">Reviewing the saved-world proposal…</p>
+          )}
+          {simulation.reasons && <p role="status">{simulation.reasons}</p>}
+          {simulation.reviews.map((r, i) => (
+            <p key={i}>
+              {r.review.status === 'reviewed'
+                ? r.review.request.context.team
+                : 'Team'}
+              :{' '}
+              {r.eligible
+                ? 'Pick rules permit this proposal'
+                : r.reasons.map(describeSimulationReason).join(' ')}
+            </p>
+          ))}
+        </section>
+      ) : (
+        <RealDraftReviewPanel state={realDraftReview ?? null} />
+      )}
       {initError && teams.length === 0 && (
         <div className="bg-cockpit-danger/15 border border-cockpit-danger/50 rounded-lg p-4 text-cockpit-text-secondary">
           <div className="font-semibold text-cockpit-danger mb-1">

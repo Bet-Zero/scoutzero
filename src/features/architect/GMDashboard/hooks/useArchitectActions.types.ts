@@ -912,7 +912,10 @@ export interface UseArchitectActionsReturn {
   handleFinalizeOfferSheet: (offerSheet: OfferSheet | null | undefined) => void;
 
   // Trade actions
-  applyTradeToCapSheet: (tradeData: TradeDataItem[]) => Promise<void>;
+  applyTradeToCapSheet: (
+    tradeData: TradeDataItem[],
+    review?: import('@/features/architect/utils/draftReview/simulationPreview').DraftSimulationHandoff
+  ) => Promise<void>;
 
   // Manual Dead Money (Phase 24)
   handleSetDeadCap: (deadCap: DeadCapEntry[]) => Promise<boolean>;

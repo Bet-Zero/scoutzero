@@ -32,6 +32,7 @@ vi.mock('@/firebaseConfig', () => ({
   auth: {},
   FIREBASE_TARGET_MODE: 'EMULATOR',
   isLikelyEmulatorConnectionError: () => false,
+  isSyntheticDraftReviewEnvironment: () => false,
 }));
 vi.mock('@/features/architect/tradeMachine/TradeTeamCard', () => ({
   TradeTeamCard: () => null,
