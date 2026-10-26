@@ -79,6 +79,38 @@ or differently dated inputs remain blocked. The legacy path retains its
 calendar and tail requirements. No real transaction permission is issued by
 this scope correction.
 
+## Separate remaining financial predicate
+
+The trading window does not establish an initialized world's financial state.
+A no-player, no-cash, no-exception exchange creates neither salary matching nor
+a new Transaction Restrictions Table trigger. An early missing-salary error
+alone therefore does not establish a real external prerequisite.
+
+The separate existing-hard-cap question is governed by pinned CBA2-A05.2,
+including CBA2-SC-009(b), and CBA2-L07.1, read with the required lookup command.
+The accepted scenario permits the later transaction at the existing ceiling
+and rejects it above that ceiling. Its test is an existing cap's later balance,
+not a new trigger or an increase caused by the later transaction. The lifecycle
+record retains the prior trigger, level, effective event and governing year end.
+No salary-free exemption from that existing-state predicate is qualified here.
+
+The required alternatives are evidence establishing no applicable hard cap, or
+sufficient governed Apron evidence within every applicable ceiling. Full Apron
+books are not universally required when an affirmative inactive-cap record makes
+that gate non-applicable. Zero salary change proves the predicate is unchanged;
+it cannot prove an unestablished initial predicate was satisfied. Nor does a
+contract-only baseline certify that a newly adopted saved world starts in full
+financial compliance.
+
+The retained June 5 contract release supplies player contracts, not the team
+hard-cap history or Apron adjustment ledgers needed to establish either
+alternative for the candidate teams. Later June 7 legacy totals/labels lack that
+dated qualification and cannot be backdated. This is a conditional applicability
+and evidence gap, not a claim that the validator's blanket prerequisite is law
+or that every possible public/private source route has been exhausted. The
+actual transaction, whole-operation fact qualification and successful
+saved-world persistence remain unfinished in BZE-329.
+
 All 278 entitlements, BZE-309's exact 29 unresolved dependencies/action mappings,
 existing worlds, source identities, production first-round Apply prohibition
 and owner-reserved publication/permission boundaries remain unchanged.
