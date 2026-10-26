@@ -14,6 +14,12 @@ import {
 
 test.use({ viewport: { width: 1280, height: 720 }, trace: 'on' });
 test.setTimeout(220000);
+test.skip(
+  process.env.PLAYWRIGHT_DRAFT_SIMULATION !== 'true' ||
+    !process.env.SCOUTZERO_DRAFT_REVIEW_RELEASE ||
+    !process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE,
+  'Requires the opted-in protected simulation, private catalogue and source baseline.'
+);
 const chi = 'ent:CHI:2028:1:own:2afbfb42';
 const tor = 'ent:TOR:2029:1:own:d3e27549';
 const proofDir =
@@ -365,7 +371,9 @@ test('proposal branches and actual mutation reject forged, changed, stale, missi
   const changed = await state(worldId);
   const stale = await apply(page);
   expect(stale.success).toBe(false);
-  expect(JSON.stringify(stale)).toMatch(/changed|stale/i);
+  expect(JSON.stringify(stale)).toContain(
+    'Draft review proposal, state, date or operation changed. Prepare a new review.'
+  );
   expect(await state(worldId)).toEqual(changed);
   const missing = await prepare(page, uid, worldId, [
     'ent:CHI:2030:1:own:382a238d',
