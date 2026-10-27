@@ -352,8 +352,8 @@ export const PlayerTable = () => {
   return (
     <div className="flex flex-col bg-neutral-900 flex-1 min-h-0 w-full overflow-hidden">
       {/* Phase 2O: Sticky Header Section - simplified with always-on TopControlsBar */}
-      <div className="sticky top-0 z-[60] bg-neutral-900 shrink-0 border-b border-neutral-700/50 shadow-sm pt-2">
-        <div className="w-full max-w-[1100px] mx-auto px-3 md:px-4 xl:px-0 flex flex-col gap-2 pb-2">
+      <div className="sticky top-0 z-[60] bg-neutral-900 shrink-0 border-b border-neutral-700/50 shadow-sm pt-5 md:pt-2">
+        <div className="w-full max-w-[1100px] mx-auto px-3 md:px-4 xl:px-0 flex flex-col gap-3 md:gap-2 pb-3 md:pb-2">
           {isPhone ? (
             /* Phones: title + search/Filters button; filters and sort live in a sheet */
             <MobileTableControls
