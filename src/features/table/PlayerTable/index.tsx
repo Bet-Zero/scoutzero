@@ -361,7 +361,9 @@ export const PlayerTable = () => {
               searchValue={searchText}
               onSearchChange={handleSearchChange}
               filters={filters}
-              setFilters={debouncedSetFilters}
+              // Undebounced: the debounced setter keeps only the last call, so a quick
+              // Sort-then-Order change in the sheet would drop the sort.
+              setFilters={setFilters}
               activeFilterCount={activeFilterCount}
               onOpenAdvancedFilters={() => setShowAdvancedFilters(true)}
               onOpenActiveFilters={() => setShowActiveFiltersDrawer(true)}
