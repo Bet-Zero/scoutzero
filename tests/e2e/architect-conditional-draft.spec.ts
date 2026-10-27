@@ -168,6 +168,7 @@ for (const position of [10, 11])
       dialog.getByRole('button', { name: /^Apply Trade$/i })
     ).toBeEnabled({ timeout: 30000 });
     await capture(page, `${position}-proposal`);
+    const documentStartedAt = await page.evaluate(() => performance.timeOrigin);
     await dialog.getByRole('button', { name: /^Apply Trade$/i }).click();
     await expect
       .poll(async () => (await root.collection('events').get()).size, {
@@ -175,8 +176,14 @@ for (const position of [10, 11])
       })
       .toBe(1);
     expect(await contractIdentities()).toEqual(initialContractIdentities);
-    await page.reload();
+    await expect(dialog).toBeHidden({ timeout: 30000 });
     let room = await tradeRoom(page);
+    await expect(
+      room.getByRole('region', { name: 'Conditional draft obligations' })
+    ).toContainText('2026 first — top 10 protected; held by MIA');
+    expect(await page.evaluate(() => performance.timeOrigin)).toBe(
+      documentStartedAt
+    );
     await room.getByLabel('TOR draft position').fill(String(position));
     await Promise.all([
       page.waitForEvent('load', { timeout: 120000 }),
