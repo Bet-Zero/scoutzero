@@ -6,7 +6,8 @@ import { PlayerStatsMini } from '@/features/table/PlayerTable/PlayerRow/PlayerDr
 import { PlayerContractMini } from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer/PlayerContractMini';
 import type { FilterablePlayer } from '@/shared/utils/filtering/playerFilterUtils';
 
-const Divider = () => <div className="w-px h-auto bg-white/10 mx-3 my-1" />;
+// Vertical dividers only make sense in the single-row desktop layout.
+const Divider = () => <div className="hidden md:block w-px h-auto bg-white/10 mx-3 my-1" />;
 
 type PlayerDrawerProps = {
   player: FilterablePlayer;
@@ -23,9 +24,10 @@ export const PlayerDrawer = ({ player }: PlayerDrawerProps) => {
 
   return (
     <div className="w-full bg-[#111] border-t border-white/10 py-3">
-      <div className="flex w-full gap-2">
+      {/* Phones: badges above, sections wrap instead of running off-screen */}
+      <div className="flex flex-col md:flex-row w-full gap-2">
         {/* LEFT SIDE: Full left column container */}
-        <div className="flex flex-col gap-2 ml-0 pr-2 items-start">
+        <div className="flex flex-col gap-2 ml-0 pl-2 md:pl-0 pr-2 items-start">
           <div className="-mt-3">
             <BadgeMini badges={player.badges || []} />
           </div>
@@ -37,7 +39,7 @@ export const PlayerDrawer = ({ player }: PlayerDrawerProps) => {
         </div>
 
         {/* RIGHT SIDE: Drawer content */}
-        <div className="flex flex-nowrap -mr-[2px] gap-0 w-full justify-end overflow-x-auto">
+        <div className="flex flex-wrap md:flex-nowrap -mr-[2px] gap-3 md:gap-0 w-full justify-center md:justify-end overflow-x-auto">
           <PlayerSubRolesMini subRoles={subRoles} />
           <Divider />
           <PlayerContractMini

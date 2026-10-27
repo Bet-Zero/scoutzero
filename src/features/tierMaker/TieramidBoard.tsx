@@ -23,6 +23,7 @@ import { TeamListFull } from '@/constants/teamList';
 import { POSITION_MAP } from '@/shared/utils/roles';
 import { DrawerShell } from '@/shared/components/ui/drawers/DrawerShell';
 import { OpenDrawerButton } from '@/shared/components/ui/drawers/OpenDrawerButton';
+import { ScaleToFit } from '@/shared/components/ui/ScaleToFit';
 import { AddPlayerDrawer } from '@/features/roster/AddPlayerDrawer';
 import { toast } from 'react-hot-toast';
 import {
@@ -456,209 +457,211 @@ export const TieramidBoard = ({
         />
       </DrawerShell>
       <div
-        className={`flex-1 transition-[margin] duration-300 ease-in-out ${drawerOpen ? 'ml-[300px]' : 'ml-0'}`}
+        className={`flex-1 min-w-0 transition-[margin] duration-300 ease-in-out ${drawerOpen ? 'sm:ml-[300px]' : 'ml-0'}`}
       >
-        <div className="flex flex-col gap-1.5 w-full max-w-[1000px] mx-auto pt-6 pb-12">
-          {/* Pyramid center wrapper with backdrop and spotlight */}
-          <div
-            className="relative mx-auto mt-6 mb-6"
-            style={{ width: `${PYRAMID_MAX_PX + LABEL_GUTTER + 80}px` }}
-          >
+        <div className="flex flex-col gap-1.5 w-full max-w-[1000px] mx-auto pl-9 pr-3 min-[1072px]:px-0 pt-6 pb-24 sm:pb-12">
+          {/* Pyramid center wrapper with backdrop and spotlight; fixed-width, so shrink it to fit narrow screens */}
+          <ScaleToFit>
             <div
-              className={`relative rounded-xl border border-white/10 bg-[#0b0b0b]/40 shadow-[0_12px_36px_rgba(0,0,0,0.35)]`}
-              style={{ width: `${PYRAMID_MAX_PX + LABEL_GUTTER + 24}px` }}
+              className="relative mx-auto mt-6 mb-6"
+              style={{ width: `${PYRAMID_MAX_PX + LABEL_GUTTER + 80}px` }}
             >
               <div
-                className="pointer-events-none absolute inset-0 rounded-xl"
-                style={{
-                  background:
-                    'radial-gradient(ellipse at 50% 35%, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 45%, rgba(255,255,255,0) 70%)',
-                }}
-              />
-              <div
-                className={`py-3`}
-                style={{
-                  paddingLeft: `${LABEL_GUTTER}px`,
-                  paddingRight: '12px',
-                }}
+                className={`relative rounded-xl border border-white/10 bg-[#0b0b0b]/40 shadow-[0_12px_36px_rgba(0,0,0,0.35)]`}
+                style={{ width: `${PYRAMID_MAX_PX + LABEL_GUTTER + 24}px` }}
               >
-                {/* Pyramid center wrapper with fixed max width so rows center visually */}
                 <div
-                  className="mx-auto"
-                  style={{ width: `${PYRAMID_MAX_PX}px` }}
+                  className="pointer-events-none absolute inset-0 rounded-xl"
+                  style={{
+                    background:
+                      'radial-gradient(ellipse at 50% 35%, rgba(255,255,255,0.07), rgba(255,255,255,0.02) 45%, rgba(255,255,255,0) 70%)',
+                  }}
+                />
+                <div
+                  className={`py-3`}
+                  style={{
+                    paddingLeft: `${LABEL_GUTTER}px`,
+                    paddingRight: '12px',
+                  }}
                 >
-                  {(rowOrder.filter((r) => r !== 'Pool').length > 0
-                    ? rowOrder
-                    : [
-                        ...Array.from(
-                          { length: INITIAL_ROWS },
-                          (_, i) => `Row${i + 1}`
-                        ),
-                        'Pool',
-                      ]
-                  )
-                    .filter((r) => r !== 'Pool')
-                    .map((row, i) => {
-                      const spots = getSpotsInRow(i);
-                      const nonPoolCount = rowOrder.filter((r) => r !== 'Pool').length;
-                      const occupiedCount = (rows[row] || []).filter(Boolean).length;
-                      return (
-                        <div
-                          key={row}
-                          className="relative mx-auto flex justify-center items-center mb-1"
-                          style={{ width: `${ROW_WIDTH * spots}px` }}
-                        >
-                          {/* Absolute left label so it doesn't affect centering */}
+                  {/* Pyramid center wrapper with fixed max width so rows center visually */}
+                  <div
+                    className="mx-auto"
+                    style={{ width: `${PYRAMID_MAX_PX}px` }}
+                  >
+                    {(rowOrder.filter((r) => r !== 'Pool').length > 0
+                      ? rowOrder
+                      : [
+                          ...Array.from(
+                            { length: INITIAL_ROWS },
+                            (_, i) => `Row${i + 1}`
+                          ),
+                          'Pool',
+                        ]
+                    )
+                      .filter((r) => r !== 'Pool')
+                      .map((row, i) => {
+                        const spots = getSpotsInRow(i);
+                        const nonPoolCount = rowOrder.filter((r) => r !== 'Pool').length;
+                        const occupiedCount = (rows[row] || []).filter(Boolean).length;
+                        return (
                           <div
-                            className="absolute flex flex-col items-center gap-0.5"
-                            style={{
-                              left: `-${LABEL_GUTTER - 6}px`,
-                              width: `${LABEL_GUTTER - 10}px`,
-                              top: '50%',
-                              transform: 'translateY(-50%)',
-                            }}
+                            key={row}
+                            className="relative mx-auto flex justify-center items-center mb-1"
+                            style={{ width: `${ROW_WIDTH * spots}px` }}
                           >
-                            <div className="flex items-center gap-1">
-                              {!screenshotMode && (
-                                <button
-                                  onClick={() => renameRow(row)}
-                                  className="text-[10px] text-white bg-black/40 px-[4px] rounded hover:bg-white/10 flex-shrink-0"
-                                  title="Rename Row"
-                                >
-                                  ✎
-                                </button>
-                              )}
-                              <span className="text-white text-sm font-semibold whitespace-nowrap">
-                                {row}
-                              </span>
-                            </div>
-                            {!screenshotMode && (
-                              <div className="flex gap-0.5">
-                                <button
-                                  onClick={() => moveRowUp(row)}
-                                  disabled={i === 0}
-                                  className="text-[10px] text-white bg-black/40 px-[3px] rounded hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed"
-                                  title="Move row up"
-                                >
-                                  ▲
-                                </button>
-                                <button
-                                  onClick={() => moveRowDown(row)}
-                                  disabled={
-                                    i >=
-                                    rowOrder.filter((r) => r !== 'Pool')
-                                      .length -
-                                      1
-                                  }
-                                  className="text-[10px] text-white bg-black/40 px-[3px] rounded hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed"
-                                  title="Move row down"
-                                >
-                                  ▼
-                                </button>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex gap-2 justify-center">
-                            {Array.from({ length: spots }).map((_, j) => {
-                              const player = rows[row][j];
-                              if (!player) {
-                                return (
-                                  <div
-                                    key={j}
-                                    className="w-[80px] h-[80px] bg-slate-800/30 border border-dashed border-white/20 rounded-md flex items-center justify-center text-white/30 text-[10px]"
+                            {/* Absolute left label so it doesn't affect centering */}
+                            <div
+                              className="absolute flex flex-col items-center gap-0.5"
+                              style={{
+                                left: `-${LABEL_GUTTER - 6}px`,
+                                width: `${LABEL_GUTTER - 10}px`,
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                              }}
+                            >
+                              <div className="flex items-center gap-1">
+                                {!screenshotMode && (
+                                  <button
+                                    onClick={() => renameRow(row)}
+                                    className="text-[10px] text-white bg-black/40 px-[4px] rounded hover:bg-white/10 flex-shrink-0"
+                                    title="Rename Row"
                                   >
-                                    Empty
+                                    ✎
+                                  </button>
+                                )}
+                                <span className="text-white text-sm font-semibold whitespace-nowrap">
+                                  {row}
+                                </span>
+                              </div>
+                              {!screenshotMode && (
+                                <div className="flex gap-0.5">
+                                  <button
+                                    onClick={() => moveRowUp(row)}
+                                    disabled={i === 0}
+                                    className="text-[10px] text-white bg-black/40 px-[3px] rounded hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed"
+                                    title="Move row up"
+                                  >
+                                    ▲
+                                  </button>
+                                  <button
+                                    onClick={() => moveRowDown(row)}
+                                    disabled={
+                                      i >=
+                                      rowOrder.filter((r) => r !== 'Pool')
+                                        .length -
+                                        1
+                                    }
+                                    className="text-[10px] text-white bg-black/40 px-[3px] rounded hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed"
+                                    title="Move row down"
+                                  >
+                                    ▼
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex gap-2 justify-center">
+                              {Array.from({ length: spots }).map((_, j) => {
+                                const player = rows[row][j];
+                                if (!player) {
+                                  return (
+                                    <div
+                                      key={j}
+                                      className="w-[80px] h-[80px] bg-slate-800/30 border border-dashed border-white/20 rounded-md flex items-center justify-center text-white/30 text-[10px]"
+                                    >
+                                      Empty
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <div key={j} className="relative">
+                                    <TieramidPlayerTile player={player} />
+                                    {!screenshotMode && (
+                                      <div className="absolute top-1 right-1 flex flex-col gap-1 bg-transparent z-10">
+                                        <button
+                                          onClick={() => movePlayer(i, j, 'up')}
+                                          title="Move Up"
+                                          disabled={i === 0}
+                                          className="text-xs text-white bg-black/40 px-[4px] rounded disabled:opacity-20 disabled:cursor-not-allowed"
+                                        >
+                                          ↑
+                                        </button>
+                                        <button
+                                          onClick={() => movePlayer(i, j, 'down')}
+                                          title="Move Down"
+                                          disabled={i >= nonPoolCount - 1}
+                                          className="text-xs text-white bg-black/40 px-[4px] rounded disabled:opacity-20 disabled:cursor-not-allowed"
+                                        >
+                                          ↓
+                                        </button>
+                                        <button
+                                          onClick={() => movePlayer(i, j, 'left')}
+                                          title="Move Left"
+                                          disabled={j === 0}
+                                          className="text-xs text-white bg-black/40 px-[4px] rounded disabled:opacity-20 disabled:cursor-not-allowed"
+                                        >
+                                          ←
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            movePlayer(i, j, 'right')
+                                          }
+                                          title="Move Right"
+                                          disabled={j >= occupiedCount - 1}
+                                          className="text-xs text-white bg-black/40 px-[4px] rounded disabled:opacity-20 disabled:cursor-not-allowed"
+                                        >
+                                          →
+                                        </button>
+                                        <button
+                                          onClick={() =>
+                                            removePlayerToPool(
+                                              row,
+                                              getTieramidPlayerId(player)
+                                            )
+                                          }
+                                          title="Remove to Pool"
+                                          className="text-xs text-white bg-black/40 px-[4px] rounded"
+                                        >
+                                          ↩
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
                                 );
-                              }
-                              return (
-                                <div key={j} className="relative">
-                                  <TieramidPlayerTile player={player} />
-                                  {!screenshotMode && (
-                                    <div className="absolute top-1 right-1 flex flex-col gap-1 bg-transparent z-10">
-                                      <button
-                                        onClick={() => movePlayer(i, j, 'up')}
-                                        title="Move Up"
-                                        disabled={i === 0}
-                                        className="text-xs text-white bg-black/40 px-[4px] rounded disabled:opacity-20 disabled:cursor-not-allowed"
-                                      >
-                                        ↑
-                                      </button>
-                                      <button
-                                        onClick={() => movePlayer(i, j, 'down')}
-                                        title="Move Down"
-                                        disabled={i >= nonPoolCount - 1}
-                                        className="text-xs text-white bg-black/40 px-[4px] rounded disabled:opacity-20 disabled:cursor-not-allowed"
-                                      >
-                                        ↓
-                                      </button>
-                                      <button
-                                        onClick={() => movePlayer(i, j, 'left')}
-                                        title="Move Left"
-                                        disabled={j === 0}
-                                        className="text-xs text-white bg-black/40 px-[4px] rounded disabled:opacity-20 disabled:cursor-not-allowed"
-                                      >
-                                        ←
-                                      </button>
-                                      <button
-                                        onClick={() =>
-                                          movePlayer(i, j, 'right')
-                                        }
-                                        title="Move Right"
-                                        disabled={j >= occupiedCount - 1}
-                                        className="text-xs text-white bg-black/40 px-[4px] rounded disabled:opacity-20 disabled:cursor-not-allowed"
-                                      >
-                                        →
-                                      </button>
-                                      <button
-                                        onClick={() =>
-                                          removePlayerToPool(
-                                            row,
-                                            getTieramidPlayerId(player)
-                                          )
-                                        }
-                                        title="Remove to Pool"
-                                        className="text-xs text-white bg-black/40 px-[4px] rounded"
-                                      >
-                                        ↩
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                  </div>
                 </div>
               </div>
+              {/* Add/Remove row buttons outside backdrop */}
+              {!screenshotMode && (
+                <div className="absolute right-0 bottom-0 flex flex-col gap-2">
+                  <button
+                    onClick={addRow}
+                    className="w-8 h-8 rounded bg-white/10 text-white hover:bg-white/20 transition-all flex items-center justify-center text-lg leading-none disabled:opacity-30 disabled:cursor-not-allowed"
+                    disabled={
+                      rowOrder.filter((r) => r !== 'Pool').length >= MAX_ROWS
+                    }
+                    title="Add Row"
+                  >
+                    +
+                  </button>
+                  <button
+                    onClick={deleteLastRow}
+                    className="w-8 h-8 rounded bg-white/10 text-white hover:bg-white/20 transition-all flex items-center justify-center text-lg leading-none disabled:opacity-30 disabled:cursor-not-allowed"
+                    disabled={rowOrder.filter((r) => r !== 'Pool').length <= 1}
+                    title="Delete Last Row"
+                  >
+                    −
+                  </button>
+                </div>
+              )}
             </div>
-            {/* Add/Remove row buttons outside backdrop */}
-            {!screenshotMode && (
-              <div className="absolute right-0 bottom-0 flex flex-col gap-2">
-                <button
-                  onClick={addRow}
-                  className="w-8 h-8 rounded bg-white/10 text-white hover:bg-white/20 transition-all flex items-center justify-center text-lg leading-none disabled:opacity-30 disabled:cursor-not-allowed"
-                  disabled={
-                    rowOrder.filter((r) => r !== 'Pool').length >= MAX_ROWS
-                  }
-                  title="Add Row"
-                >
-                  +
-                </button>
-                <button
-                  onClick={deleteLastRow}
-                  className="w-8 h-8 rounded bg-white/10 text-white hover:bg-white/20 transition-all flex items-center justify-center text-lg leading-none disabled:opacity-30 disabled:cursor-not-allowed"
-                  disabled={rowOrder.filter((r) => r !== 'Pool').length <= 1}
-                  title="Delete Last Row"
-                >
-                  −
-                </button>
-              </div>
-            )}
-          </div>
+          </ScaleToFit>
 
           {/* Pool row (directly under pyramid) */}
           {!screenshotMode && (
@@ -766,7 +769,7 @@ export const TieramidBoard = ({
         </div>
       </div>
       {!screenshotMode && (
-        <div className="fixed bottom-6 left-6 z-50">
+        <div className="fixed bottom-6 left-3 sm:left-6 z-50">
           <button
             onClick={() => {
               setScreenshotMode(true);
@@ -779,7 +782,7 @@ export const TieramidBoard = ({
         </div>
       )}
       {screenshotMode && (
-        <div className="fixed bottom-6 left-6 z-50 group w-[160px] h-9">
+        <div className="fixed bottom-6 left-3 sm:left-6 z-50 group w-[160px] h-9">
           <button
             onClick={() => {
               setScreenshotMode(false);

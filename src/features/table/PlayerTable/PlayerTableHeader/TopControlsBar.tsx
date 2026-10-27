@@ -23,6 +23,18 @@ import { SALARY_YEAR_OPTIONS } from '@/constants/yearDefaults';
 import { Filter, ListFilter } from 'lucide-react';
 import type { PlayerFilters } from '@/shared/utils/filtering/playerFilterDefaults';
 
+export const SORT_OPTIONS = [
+  { value: 'name', label: 'Name' },
+  { value: 'height', label: 'Height' },
+  { value: 'weight', label: 'Weight' },
+  { value: 'age', label: 'Age' },
+  { value: 'salary', label: 'Salary' },
+  { value: 'PTS', label: 'PTS' },
+  { value: 'REB', label: 'REB' },
+  { value: 'AST', label: 'AST' },
+  { value: 'overall', label: 'Overall' },
+] as const;
+
 type FilterSetter = (value: React.SetStateAction<PlayerFilters>) => void;
 
 type TopControlsBarProps = {
@@ -150,15 +162,11 @@ export const TopControlsBar = ({
           className={sortSelectClass}
           title="Sort By"
         >
-          <option value="name">Name</option>
-          <option value="height">Height</option>
-          <option value="weight">Weight</option>
-          <option value="age">Age</option>
-          <option value="salary">Salary</option>
-          <option value="PTS">PTS</option>
-          <option value="REB">REB</option>
-          <option value="AST">AST</option>
-          <option value="overall">Overall</option>
+          {SORT_OPTIONS.map(({ value, label }) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
         </select>
 
         {/* Sort Order */}

@@ -34,6 +34,8 @@ import { FiltersPanel } from '@/features/filters/FiltersPanel';
 import { ActiveFiltersDrawer } from '@/features/filters/ActiveFiltersDrawer';
 import { PlayerTableHeader } from '@/features/table/PlayerTable/PlayerTableHeader';
 import { TopControlsBar } from '@/features/table/PlayerTable/PlayerTableHeader/TopControlsBar';
+import { MobileTableControls } from '@/features/table/PlayerTable/PlayerTableHeader/MobileTableControls';
+import { useMediaQuery, PHONE_MEDIA_QUERY } from '@/shared/hooks/useMediaQuery';
 import { PlayerDrawer } from '@/features/table/PlayerTable/PlayerRow/PlayerDrawer';
 import debounce from 'lodash.debounce';
 import { getDefaultPlayerFilters } from '@/shared/utils/filtering';
@@ -61,6 +63,7 @@ type TableRowData = {
   expandedPlayerId: string | null;
   players: TablePlayer[];
   toggleExpand: (id: string) => void;
+  sortBy?: string;
 };
 
 type InnerElementProps = HTMLAttributes<HTMLDivElement> & {
@@ -69,7 +72,7 @@ type InnerElementProps = HTMLAttributes<HTMLDivElement> & {
 
 // Row Component for react-window
 const Row = ({ index, style, data }: ListChildComponentProps<TableRowData>) => {
-  const { players, expandedPlayerId, toggleExpand } = data;
+  const { players, expandedPlayerId, toggleExpand, sortBy } = data;
   const player = players[index];
   if (!player) return null;
   const playerId = getPlayerId(player);
@@ -85,6 +88,7 @@ const Row = ({ index, style, data }: ListChildComponentProps<TableRowData>) => {
         player={player}
         isExpanded={isExpanded}
         onToggleExpand={() => toggleExpand(playerId)}
+        sortBy={sortBy}
       />
     </div>
   );
@@ -193,8 +197,11 @@ const DrawerOverlay = () => {
         zIndex: 50, // Above subsequent rows
       }}
     >
-      <div className="w-full max-w-[1100px] mx-auto bg-[#111] border-x border-b border-black shadow-xl">
-        <PlayerDrawer player={player} />
+      {/* Phones: same side inset as the rows */}
+      <div className="px-3 md:px-0">
+        <div className="w-full max-w-[1100px] mx-auto bg-[#111] border-x border-b border-black shadow-xl">
+          <PlayerDrawer player={player} />
+        </div>
       </div>
     </div>
   );
@@ -223,8 +230,11 @@ export const PlayerTable = () => {
   const {
     mode: densityMode,
     setMode: setDensityMode,
-    scale,
+    scale: densityScale,
   } = usePlayerTableDensity();
+  // Phones hide the density toggle: Compact would shrink the phone row's text too far.
+  const isPhone = useMediaQuery(PHONE_MEDIA_QUERY);
+  const scale = isPhone ? 1 : densityScale;
 
   const { width, height, ready } = useContainerDimensions(listContainerRef);
 
@@ -316,8 +326,9 @@ export const PlayerTable = () => {
       players: filteredPlayers,
       expandedPlayerId,
       toggleExpand,
+      sortBy: filters.sortBy,
     }),
-    [filteredPlayers, expandedPlayerId, toggleExpand]
+    [filteredPlayers, expandedPlayerId, toggleExpand, filters.sortBy]
   );
 
   // Phase 2E: Reset drawer height when expansion changes
@@ -341,25 +352,44 @@ export const PlayerTable = () => {
   return (
     <div className="flex flex-col bg-neutral-900 flex-1 min-h-0 w-full overflow-hidden">
       {/* Phase 2O: Sticky Header Section - simplified with always-on TopControlsBar */}
-      <div className="sticky top-0 z-[60] bg-neutral-900 shrink-0 border-b border-neutral-700/50 shadow-sm pt-2">
-        <div className="w-full max-w-[1100px] mx-auto px-4 xl:px-0 flex flex-col gap-2 pb-2">
-          {/* Title row with search and density */}
-          <PlayerTableHeader
-            filteredCount={filteredPlayers.length}
-            searchValue={searchText}
-            onSearchChange={handleSearchChange}
-            densityMode={densityMode}
-            onDensityChange={setDensityMode}
-          />
+      <div className="sticky top-0 z-[60] bg-neutral-900 shrink-0 border-b border-neutral-700/50 shadow-sm pt-5 md:pt-2">
+        <div className="w-full max-w-[1100px] mx-auto px-3 md:px-4 xl:px-0 flex flex-col gap-3 md:gap-2 pb-3 md:pb-2">
+          {isPhone ? (
+            /* Phones: title + search/Filters button; filters and sort live in a sheet */
+            <MobileTableControls
+              filteredCount={filteredPlayers.length}
+              searchValue={searchText}
+              onSearchChange={handleSearchChange}
+              filters={filters}
+              // Undebounced: the debounced setter keeps only the last call, so a quick
+              // Sort-then-Order change in the sheet would drop the sort.
+              setFilters={setFilters}
+              activeFilterCount={activeFilterCount}
+              onOpenAdvancedFilters={() => setShowAdvancedFilters(true)}
+              onOpenActiveFilters={() => setShowActiveFiltersDrawer(true)}
+              onClearFilters={handleClearAllFilters}
+            />
+          ) : (
+            <>
+              {/* Title row with search and density */}
+              <PlayerTableHeader
+                filteredCount={filteredPlayers.length}
+                searchValue={searchText}
+                onSearchChange={handleSearchChange}
+                densityMode={densityMode}
+                onDensityChange={setDensityMode}
+              />
 
-          {/* Phase 2O: Always-visible controls bar - filters left, sort right */}
-          <TopControlsBar
-            filters={filters}
-            setFilters={debouncedSetFilters}
-            activeFilterCount={activeFilterCount}
-            onOpenAdvancedFilters={() => setShowAdvancedFilters(true)}
-            onOpenActiveFilters={() => setShowActiveFiltersDrawer(true)}
-          />
+              {/* Phase 2O: Always-visible controls bar - filters left, sort right */}
+              <TopControlsBar
+                filters={filters}
+                setFilters={debouncedSetFilters}
+                activeFilterCount={activeFilterCount}
+                onOpenAdvancedFilters={() => setShowAdvancedFilters(true)}
+                onOpenActiveFilters={() => setShowActiveFiltersDrawer(true)}
+              />
+            </>
+          )}
         </div>
       </div>
 

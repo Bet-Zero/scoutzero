@@ -41,14 +41,15 @@ export const FilterPanel = ({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-black/50 backdrop-blur-sm">
+    // Phones: sit above the sticky table header and use less padding
+    <div className="fixed inset-0 z-50 max-md:z-[80] flex items-start justify-center p-4 max-md:p-2 bg-black/50 backdrop-blur-sm">
       <div
         ref={panelRef}
-        className="w-full max-w-[1100px] mt-12 max-h-[80vh] overflow-y-auto"
+        className="w-full max-w-[1100px] mt-12 max-h-[80vh] max-md:max-h-[calc(100dvh-4rem)] overflow-y-auto"
       >
-        <div className="p-4 bg-[#1a1a1a] border border-white/10 rounded-md space-y-6">
+        <div className="p-4 max-md:p-3 bg-[#1a1a1a] border border-white/10 rounded-md space-y-6">
           {/* Top Section – Subtle Box */}
-          <div className="bg-[#1f1f1f] border border-white/5 rounded-md p-4 space-y-6">
+          <div className="bg-[#1f1f1f] border border-white/5 rounded-md p-4 max-md:p-2 space-y-6">
             <MetadataFilters filters={filters} setFilters={setFilters} />
             <RoleFilters filters={filters} setFilters={setFilters} />
             <ContractFilters filters={filters} setFilters={setFilters} />
@@ -66,7 +67,7 @@ export const FilterPanel = ({
               </span>
             </summary>
 
-            <div className="mt-4 p-4 rounded-md bg-[#121212] border border-white/10 space-y-6">
+            <div className="mt-4 p-4 max-md:p-2 rounded-md bg-[#121212] border border-white/10 space-y-6">
               <PhysicalFilters filters={filters} setFilters={setFilters} />
               <OverallGradeFilter filters={filters} setFilters={setFilters} />
               <TraitFilters filters={filters} setFilters={setFilters} />

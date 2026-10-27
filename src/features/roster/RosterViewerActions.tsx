@@ -104,24 +104,27 @@ export const RosterViewerActions = ({
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+      {/* Phones: sit above the bottom-left Screenshot Mode button instead of overlapping it */}
+      <div className="fixed bottom-20 right-3 sm:bottom-6 sm:right-6 z-50 flex items-center gap-2 sm:gap-3">
         <button
           onClick={() => setPreviewOpen(true)}
-          className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20 flex items-center gap-2"
+          className="whitespace-nowrap bg-black/20 text-white px-3 sm:px-4 py-2 rounded hover:bg-white/20 flex items-center gap-2"
         >
           <Download size={16} />
-          Download Image
+          <span className="sm:hidden">Image</span>
+          <span className="hidden sm:inline">Download Image</span>
         </button>
         <button
           onClick={() => setExportOpen(true)}
-          className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20 flex items-center gap-2"
+          className="whitespace-nowrap bg-black/20 text-white px-3 sm:px-4 py-2 rounded hover:bg-white/20 flex items-center gap-2"
         >
           <FileJson size={16} />
-          Export JSON
+          <span className="sm:hidden">JSON</span>
+          <span className="hidden sm:inline">Export JSON</span>
         </button>
         <button
           onClick={() => setSaveModalOpen(true)}
-          className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20"
+          className="whitespace-nowrap bg-black/20 text-white px-3 sm:px-4 py-2 rounded hover:bg-white/20"
         >
           Save Roster
         </button>

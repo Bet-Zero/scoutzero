@@ -11,7 +11,7 @@
  * LINKS:
  *  - Return Package: docs/return_packages/scouting/SCOUTING_PLAYER_TABLE_HOTFIX_AUTOSIZER_MEASUREMENT_RP.md
  */
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ChevronDown } from 'lucide-react';
@@ -23,24 +23,66 @@ type NavGroupProps = {
 };
 
 const NavGroup = ({ label, children, align = 'left' }: NavGroupProps) => {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const location = useLocation();
+
+  // Close after navigating so a tapped link doesn't leave the menu open.
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+
+  // Tap-opened menus close on an outside tap or Escape.
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!wrapperRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
+
   let alignmentClass = 'left-0';
   if (align === 'center') alignmentClass = 'left-1/2 -translate-x-1/2';
   if (align === 'right') alignmentClass = 'right-0';
 
   return (
-    <div className="relative group">
-      <div className="inline-flex items-center gap-1 cursor-pointer hover:text-white text-white/60">
+    <div
+      className="relative group"
+      ref={wrapperRef}
+      // With a mouse, hover drives the menu; a click must not pin it open after leaving.
+      onPointerLeave={(event) => {
+        if (event.pointerType === 'mouse') setOpen(false);
+      }}
+    >
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 cursor-pointer hover:text-white text-white/60"
+        aria-haspopup="true"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+      >
         <span>{label}</span>
         <ChevronDown
           size={14}
           className="mt-[1px] text-white/60 group-hover:text-white"
         />
-      </div>
+      </button>
 
       <div className="absolute top-full h-4 w-full" />
 
+      {/* Hover opens the menu only on devices that can hover; touch uses the tap toggle. */}
       <div
-        className={`absolute hidden group-hover:flex flex-col mt-2 bg-[#1c1c1c] border border-white/10 rounded shadow-lg text-sm text-white/80 min-w-[160px] p-2 z-[10000] ${alignmentClass}`}
+        // Also close on any link tap, including one to the page already open.
+        onClick={() => setOpen(false)}
+        className={`absolute ${open ? 'flex' : 'hidden'} [@media(hover:hover)]:group-hover:flex flex-col mt-2 bg-[#1c1c1c] border border-white/10 rounded shadow-lg text-sm text-white/80 min-w-[160px] p-2 z-[10000] ${alignmentClass}`}
       >
         {children}
       </div>
@@ -78,14 +120,15 @@ export const SiteLayout = () => {
 
   return (
     <div className="h-screen bg-neutral-900 text-white flex flex-col">
-      <header className="bg-[#121212] border-b border-white/10 px-3 sm:px-6 py-2 flex items-center justify-between shrink-0 z-[9999] relative">
-        <div className="text-2xl font-bold tracking-tight text-white">
-          🏀 HoopZero
+      <header className="bg-[#121212] border-b border-white/10 px-3 max-[359px]:px-2 sm:px-6 py-2 flex items-center justify-between shrink-0 z-[9999] relative">
+        <div className="shrink-0 whitespace-nowrap text-base sm:text-2xl font-bold tracking-tight text-white">
+          <span className="max-[359px]:hidden">🏀 </span>HoopZero
         </div>
 
-        <nav className="flex gap-3 sm:gap-6 text-sm text-white/60 items-center">
+        <nav className="flex gap-2 sm:gap-6 whitespace-nowrap text-sm text-white/60 items-center">
           <Link to="/profiles" className="hover:text-white">
-            Player Profiles
+            <span className="sm:hidden">Profiles</span>
+            <span className="hidden sm:inline">Player Profiles</span>
           </Link>
           <Link to="/players" className="hover:text-white">
             Players

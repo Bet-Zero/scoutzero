@@ -96,17 +96,18 @@ const ListsHome = () => {
 
   return (
     <>
-      <div className="max-w-[800px] py-4 mx-auto">
-        <div className="flex items-center justify-between mb-6">
+      <div className="max-w-[800px] px-4 min-[832px]:px-0 py-4 mx-auto">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <h1 className="text-3xl font-bold text-white">Lists</h1>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full sm:w-auto items-center gap-3">
             <ListSearchBar
+              className="flex-1 min-w-0 sm:flex-none sm:w-56"
               listsData={listsMap}
               playersData={playersMap}
               onSelect={(id) => navigate(`/lists/${id}`)}
             />
             <button
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+              className="shrink-0 whitespace-nowrap bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
               onClick={() => setShowCreateModal(true)}
             >
               + New List

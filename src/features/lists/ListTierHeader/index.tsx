@@ -43,9 +43,13 @@ export const RankedListTier = ({
   return (
     <div className="w-full">
       {headerIndex !== null && (
-        <div className="relative w-full max-w-[1100px] mx-auto mb-6">
+        <div
+          className={`relative w-full max-w-[1100px] mx-auto mb-6 ${
+            showReorder ? 'pl-6 min-[1150px]:pl-0' : ''
+          }`}
+        >
           {showReorder && (
-            <div className="absolute -left-6 top-1/2 -translate-y-1/2 flex flex-col items-center justify-center z-10">
+            <div className="absolute left-0 min-[1150px]:-left-6 top-1/2 -translate-y-1/2 flex flex-col items-center justify-center z-10">
               <button
                 onClick={() => onMoveUp(headerIndex)}
                 disabled={headerIndex === 0}

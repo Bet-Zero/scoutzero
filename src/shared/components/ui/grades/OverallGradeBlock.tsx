@@ -11,6 +11,8 @@ export type OverallGradeBlockProps = {
   grade?: number | null;
   onGradeChange?: (grade: number) => void;
   readOnly?: boolean;
+  /** Read-only display size; compact fits the phone table row. */
+  size?: 'default' | 'compact';
 };
 
 const getTraitColor = (rating: number): string => {
@@ -34,6 +36,7 @@ export const OverallGradeBlock = ({
   grade,
   onGradeChange,
   readOnly = false,
+  size = 'default',
 }: OverallGradeBlockProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(
@@ -59,11 +62,17 @@ export const OverallGradeBlock = ({
   if (readOnly) {
     return (
       <div
-        className="w-[84px] h-[60px] rounded-md border-2 border-black flex items-center justify-center"
+        className={`${
+          size === 'compact' ? 'w-[46px] h-[32px]' : 'w-[84px] h-[60px]'
+        } rounded-md border-2 border-black flex items-center justify-center`}
         style={{ backgroundColor: color }}
         title="Overall Grade"
       >
-        <span className="text-black text-lg font-bold leading-none">
+        <span
+          className={`text-black ${
+            size === 'compact' ? 'text-base' : 'text-lg'
+          } font-bold leading-none`}
+        >
           {rounded}
         </span>
       </div>
