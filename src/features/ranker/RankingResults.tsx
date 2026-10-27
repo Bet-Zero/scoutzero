@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { useImageDownload } from '@/shared/hooks/useImageDownload';
+import {
+  showPreparingImage,
+  useImageDownload,
+} from '@/shared/hooks/useImageDownload';
 import { AdjustableRankings } from './AdjustableRankings';
 import type { RankerPlayer } from './utils/rankingEngine';
 import { getPlayerName } from './utils/playerDisplay';
@@ -118,6 +121,7 @@ export const RankingResults = ({
   };
 
   const handleDownloadImage = (layout: ExportLayout) => {
+    showPreparingImage();
     setExportLayout(layout);
     setPendingDownload(true);
   };

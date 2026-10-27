@@ -289,4 +289,25 @@ describe('PoolWorkbench', () => {
     fireEvent.blur(box);
     expect(box.value).toBe('10');
   });
+
+  it('a Top-N list shows every ticked candidate, so nobody is added unseen', async () => {
+    const onAdd = vi.fn();
+    const crowd = Array.from({ length: 80 }, (_, i) =>
+      candidate(`Player ${i}`, { PTS: 30 - i * 0.1, GP: 40 })
+    );
+    render(<PoolWorkbench candidates={crowd} poolIds={new Set()} onAdd={onAdd} />);
+    fireEvent.click(screen.getByText('Top 50'));
+
+    await waitFor(() => expect(screen.getByText('Add selected (80)')).toBeTruthy());
+    // All 80 rows are on screen (plus the header row), with no "show more"
+    expect(screen.getAllByRole('row')).toHaveLength(81);
+    expect(screen.queryByText(/^Show /)).toBeNull();
+    expect(screen.getByText(/80 ticked/)).toBeTruthy();
+
+    // Unticking one far down the list leaves exactly the rest
+    fireEvent.click(screen.getByLabelText('Select Player 79'));
+    fireEvent.click(screen.getByText('Add selected (79)'));
+    expect(addedIds(onAdd)).toHaveLength(79);
+    expect(addedIds(onAdd)).not.toContain('Player 79');
+  });
 });
