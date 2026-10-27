@@ -95,6 +95,48 @@ describe('rankerHelpers', () => {
     expect(getMockData(storedPath)).toBeUndefined();
   });
 
+  it('lists the readable sessions when one saved session is unreadable, keeping field steps', async () => {
+    const field = {
+      topN: 2,
+      stage: 'cut' as const,
+      locks: [],
+      round: 1,
+      cutLine: 'p3',
+      bubble: ['p1', 'p2', 'p3'],
+      roundStart: 0,
+      inIds: [],
+      cutIds: [],
+      playoff: null,
+      fieldIds: null,
+      order: ['p1', 'p2', 'p3'],
+    };
+    const sessionId = await createRankerSession({
+      userId: 'owner-1',
+      name: 'My Top 2',
+      playerPoolIds: ['p1', 'p2', 'p3'],
+      setupData: {
+        field,
+        steps: [
+          {
+            setupData: { field: { ...field, stage: 'locks', round: 0, cutLine: null, bubble: [] } },
+            results: 0,
+            seedCount: 0,
+            anchorDone: false,
+          },
+        ],
+      },
+    });
+    seedMockData('rankerSessions/broken', {
+      ownerUid: 'owner-1',
+      playerPoolIds: ['p1'],
+    });
+
+    const sessions = await queryAllRankerSessions('owner-1', 10);
+    expect(sessions.map((s) => s.id)).toEqual([sessionId]);
+    expect(sessions[0].setupData?.field?.order).toEqual(['p1', 'p2', 'p3']);
+    expect(sessions[0].setupData?.steps?.[0].setupData?.field?.stage).toBe('locks');
+  });
+
   it('rejects malformed or foreign ranker sessions during reads and writes', async () => {
     seedMockData('rankerSessions/orphaned', {
       name: 'Broken Session',

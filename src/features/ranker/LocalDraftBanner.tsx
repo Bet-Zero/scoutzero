@@ -1,6 +1,6 @@
 /**
  * FILE: src/features/ranker/LocalDraftBanner.tsx
- * PURPOSE: Resume/discard banner for the Player Ranker draft kept in this browser tab
+ * PURPOSE: Resume/discard banner for the Player Ranker draft kept in this browser
  * OWNERSHIP: Feature: ranker
  *
  * HISTORY:
@@ -32,7 +32,7 @@ const formatDate = (date: Date | null) => {
   });
 };
 
-// Refresh/crash recovery banner for the draft kept in this browser tab
+// Refresh/crash recovery banner for the draft kept in this browser
 export const LocalDraftBanner = ({
   draft,
   onResume,

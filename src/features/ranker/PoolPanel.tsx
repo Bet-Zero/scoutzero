@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-10-21: Pool grid and tile extracted from RankingBuilder.tsx (PoolGrid.tsx, PoolCard.tsx)
  *  - 2026-10-24: Workbench pool column with a remembered list / tiles switch
+ *  - 2026-10-26: Undo for a removed player or Clear all
  *
  * LINKS:
  *  - Used in: src/features/ranker/RankingBuilder.tsx
@@ -15,6 +16,7 @@ import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManag
 import { PoolRow, PoolTile } from './PoolPlayerItems';
 import { Pane, PaneHeader } from './RankerPanel';
 import { ListSizePicker } from './ListSizePicker';
+import { getPlayerName } from './utils/playerDisplay';
 
 type PoolView = 'list' | 'tiles';
 const VIEW_KEY = 'ranker.poolView';
@@ -42,7 +44,15 @@ type PoolPanelProps = {
   onStart: () => void;
   listSize: number | null;
   onListSizeChange: (listSize: number | null) => void;
+  // Players the next undo brings back, and the undo itself
+  lastRemoval?: RosterManagerPlayer[] | null;
+  onUndoRemoval?: () => void;
 };
+
+const removalLabel = (players: RosterManagerPlayer[]): string =>
+  players.length === 1
+    ? `Bring back ${getPlayerName(players[0])}`
+    : `Bring back the ${players.length} cleared players`;
 
 export const PoolPanel = ({
   pool,
@@ -51,6 +61,8 @@ export const PoolPanel = ({
   onStart,
   listSize,
   onListSizeChange,
+  lastRemoval = null,
+  onUndoRemoval,
 }: PoolPanelProps) => {
   const [view, setView] = useState<PoolView>(readView);
   const chooseView = (next: PoolView) => {
@@ -89,6 +101,16 @@ export const PoolPanel = ({
                 </button>
               ))}
             </div>
+            {lastRemoval && onUndoRemoval && (
+              <button
+                onClick={onUndoRemoval}
+                title={removalLabel(lastRemoval)}
+                aria-label={removalLabel(lastRemoval)}
+                className="text-xs text-white/55 hover:text-white transition-colors whitespace-nowrap"
+              >
+                ↶ Undo
+              </button>
+            )}
             {pool.length > 0 && (
               <button
                 onClick={onClear}

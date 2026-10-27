@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-10-21: Find Players panel created as FilterPoolPanel.tsx (PR #565)
  *  - 2026-10-24: Replaced by this workbench layout; finder state lives in hooks/usePoolFinder.ts
+ *  - 2026-10-26: Added players carry their Top-N score for the chosen season
  *
  * LINKS:
  *  - Used in: src/features/ranker/RankingBuilder.tsx
@@ -23,7 +24,11 @@ import { Pane, PaneHeader, fieldClass } from './RankerPanel';
 type PoolWorkbenchProps = {
   candidates: Array<RosterDrawerPlayer<RosterManagerPlayer>>;
   poolIds: ReadonlySet<string>;
-  onAdd: (players: RosterManagerPlayer[]) => void;
+  // Top-N pulls pass each player's stats score for the chosen season
+  onAdd: (
+    players: RosterManagerPlayer[],
+    scores?: ReadonlyMap<string, number>
+  ) => void;
   // Add-team / add-list / saved menus for the toolbar
   menus?: React.ReactNode;
   // The pool column
@@ -41,6 +46,13 @@ export const PoolWorkbench = ({
   onTopNChange,
 }: PoolWorkbenchProps) => {
   const finder = usePoolFinder(candidates, poolIds);
+  const addWithScores = (players: RosterManagerPlayer[]) => {
+    const scores = new Map<string, number>();
+    [...finder.rows, ...finder.nearMisses].forEach((row) => {
+      if (typeof row.score === 'number') scores.set(row.player.id, row.score);
+    });
+    onAdd(players, scores);
+  };
   useEffect(() => {
     if (finder.topN !== null) onTopNChange?.(finder.topN);
   }, [finder.topN, onTopNChange]);
@@ -115,7 +127,7 @@ export const PoolWorkbench = ({
             season={finder.season}
             rows={finder.rows}
             nearMisses={finder.nearMisses}
-            onAdd={onAdd}
+            onAdd={addWithScores}
             header={<ResultsHeader finder={finder} />}
           />
         </Pane>

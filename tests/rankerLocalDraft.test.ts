@@ -1,5 +1,6 @@
 // tests/rankerLocalDraft.test.js
-// Tests for local draft persistence (sessionStorage) and owner gating.
+// Tests for local draft persistence (tab sessionStorage plus a localStorage
+// copy that outlives the tab) and owner gating.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
@@ -19,7 +20,7 @@ import {
   suggestNextPair,
 } from '@/features/ranker/utils/rankingEngine';
 
-const { serializeSkippedPairs, deserializeSkippedPairs, STORAGE_KEY } =
+const { serializeSkippedPairs, deserializeSkippedPairs, STORAGE_KEY, RECOVERY_KEY } =
   __testing;
 
 // Mock sessionStorage for node environment
@@ -39,13 +40,67 @@ const createMockSessionStorage = () => {
   };
 };
 
-// Simple mock for sessionStorage
+// Simple mock for sessionStorage (this tab) and localStorage (the browser)
 let mockStorage;
+let mockLocalStorage;
 
 beforeEach(() => {
   mockStorage = createMockSessionStorage();
+  mockLocalStorage = createMockSessionStorage();
   // Replace global sessionStorage
   vi.stubGlobal('sessionStorage', mockStorage);
+  vi.stubGlobal('localStorage', mockLocalStorage);
+});
+
+describe('rankerLocalDraft survives closing the tab', () => {
+  const draft = (name, ids = ['p1', 'p2']) => ({ name, playerPoolIds: ids, results: [] });
+  // A new tab starts with an empty sessionStorage but the same localStorage
+  const openNewTab = () => {
+    const tab = createMockSessionStorage();
+    vi.stubGlobal('sessionStorage', tab);
+    return tab;
+  };
+
+  it('a new tab picks up the ranking after the old tab is closed', () => {
+    saveLocalDraftImmediate(draft('My Top 20'));
+    openNewTab();
+    expect(hasLocalDraft()).toBe(true);
+    expect(loadLocalDraft().name).toBe('My Top 20');
+  });
+
+  it("an open tab keeps its own ranking when another tab saves one", () => {
+    const tabA = mockStorage;
+    replaceLocalDraft(draft('Tab A'));
+    openNewTab();
+    replaceLocalDraft(draft('Tab B', ['p3', 'p4']));
+    vi.stubGlobal('sessionStorage', tabA);
+    expect(loadLocalDraft().name).toBe('Tab A');
+    // The browser copy is the most recently saved ranking
+    expect(JSON.parse(mockLocalStorage.getItem(RECOVERY_KEY)).name).toBe('Tab B');
+  });
+
+  it('discarding a ranking removes the browser copy too', () => {
+    saveLocalDraftImmediate(draft('Gone'));
+    clearLocalDraft();
+    openNewTab();
+    expect(hasLocalDraft()).toBe(false);
+  });
+
+  it('still works in this tab when localStorage is unavailable', () => {
+    vi.stubGlobal('localStorage', {
+      getItem: () => {
+        throw new Error('blocked');
+      },
+      setItem: () => {
+        throw new Error('blocked');
+      },
+      removeItem: () => {
+        throw new Error('blocked');
+      },
+    });
+    saveLocalDraftImmediate(draft('Tab only'));
+    expect(loadLocalDraft().name).toBe('Tab only');
+  });
 });
 
 afterEach(() => {

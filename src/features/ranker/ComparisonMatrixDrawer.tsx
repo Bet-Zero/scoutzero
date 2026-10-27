@@ -59,11 +59,14 @@ export const ComparisonMatrixDrawer = ({
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
-          <ComparisonMatrix
-            players={players}
-            comparisons={comparisons}
-            className="mt-0"
-          />
+          {/* Built only while open: a 100-player matrix is 10,000 cells per pick */}
+          {open && (
+            <ComparisonMatrix
+              players={players}
+              comparisons={comparisons}
+              className="mt-0"
+            />
+          )}
         </div>
       </div>
     </>

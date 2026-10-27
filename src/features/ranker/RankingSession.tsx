@@ -33,11 +33,20 @@ import {
   suggestTopNPair,
 } from '@/features/ranker/utils/topNSelection';
 import { getPlayerName as getDisplayName } from '@/features/ranker/utils/playerDisplay';
-import { createFieldState, undoFloor, type FieldState } from './utils/fieldBuilder';
+import {
+  createFieldState,
+  poolBestFirst,
+  undoFloor,
+  type FieldState,
+} from './utils/fieldBuilder';
 import { storedRankerScore } from './hooks/useImpactScores';
 import { FieldBuilder } from './FieldBuilder';
 import type { HydratedRankerDraft } from './hooks/useRankerSession';
-import type { RankerDraftPatch, RankerSetupData } from './utils/rankerLocalDraft';
+import type {
+  RankerDraftPatch,
+  RankerSessionStep,
+  RankerSetupData,
+} from './utils/rankerLocalDraft';
 
 type RankingSessionPlayer = RankerPlayer & {
   original?: RankerPlayer;
@@ -63,6 +72,22 @@ type RankingSessionProps = {
   savedListMeta?: SavedListMeta | null;
   // New sessions: the list size picked with the pool (a Top-N list builds its field first)
   listSize?: number | null;
+  // New sessions: pool ids by stats for the pulled season, best first (orders the field)
+  poolOrder?: string[] | null;
+};
+
+type RankingHints = Pick<
+  RankerSetupData,
+  'topTier' | 'bottomTier' | 'anchor' | 'firstPlace' | 'lastPlace'
+>;
+
+const withoutSteps = (
+  data: RankerSetupData | null
+): RankerSessionStep['setupData'] => {
+  if (!data) return null;
+  const rest = { ...data };
+  delete rest.steps;
+  return rest;
 };
 
 const createInitialClosureCache = (
@@ -89,6 +114,7 @@ export const RankingSession = ({
   listSaveStatus = null,
   savedListMeta = null,
   listSize = null,
+  poolOrder = null,
 }: RankingSessionProps) => {
   const poolPlayers = useMemo<RankerPlayer[]>(
     () => playerPool.map((p) => p.original || p),
@@ -115,10 +141,14 @@ export const RankingSession = ({
     // A list shorter than the pool builds its field first
     // A one-player list has nothing to rank, so a field needs 2 or more
     return listSize && listSize >= 2 && listSize < poolPlayers.length
-      ? { field: createFieldState(listSize) }
+      ? { field: createFieldState(listSize, poolOrder ?? undefined) }
       : null;
   });
   const field = (setupData?.field as FieldState | undefined) ?? null;
+  const steps = useMemo(
+    () => (setupData?.steps as RankerSessionStep[] | undefined) ?? [],
+    [setupData]
+  );
   // Ranking hints are set (older sessions have no field step)
   const configured = Boolean(setupData) && (!field || setupData?.configured === true);
   // Once the field is settled, only its players are ranked
@@ -127,15 +157,19 @@ export const RankingSession = ({
     const inField = new Set(field.fieldIds);
     return poolPlayers.filter((p) => inField.has(p.id));
   }, [poolPlayers, field]);
-  // Pool order by stats (stored score), best first; pool order breaks ties
-  const bestFirst = useMemo(() => {
-    const score = (p: RankerPlayer) => storedRankerScore(p) ?? -Infinity;
-    return poolPlayers
-      .map((p, i) => ({ id: p.id, s: score(p), i }))
-      .sort((a, b) => b.s - a.s || a.i - b.i)
-      .map(({ id }) => id);
-  }, [poolPlayers]);
   const playersById = useMemo(() => new Map(poolPlayers.map((p) => [p.id, p])), [poolPlayers]);
+  // Pool by stats, best first: the order saved when the list was started
+  // (older sessions: the stored current-season score); pool order breaks ties
+  const savedOrder = field?.order;
+  const bestFirst = useMemo(
+    () =>
+      poolBestFirst(
+        poolPlayers.map((p) => p.id),
+        (id) => storedRankerScore(playersById.get(id)) ?? -Infinity,
+        savedOrder
+      ),
+    [poolPlayers, playersById, savedOrder]
+  );
   const [anchorDone, setAnchorDone] = useState(
     () => resumedSessionData?.anchorDone || false
   );
@@ -146,6 +180,9 @@ export const RankingSession = ({
   const [adjustments, setAdjustments] = useState<string[] | null>(
     () => resumedSessionData?.adjustments || null
   );
+  // Choices to show again after undo returns to the setup or anchor screen
+  const [setupPrefill, setSetupPrefill] = useState<RankingHints | null>(null);
+  const [anchorPrefill, setAnchorPrefill] = useState<string[] | null>(null);
 
   // Save a field created for a new session
   const savedInitialField = useRef(false);
@@ -286,9 +323,28 @@ export const RankingSession = ({
   const lastCut = cuts.length ? cuts[cuts.length - 1] : null;
   // A cut made after the latest pick is undone before that pick
   const undoesCut = Boolean(lastCut && lastCut.at >= 0 && lastCut.at === results.length);
-  // While the field is built, only the current step's answers can be undone
-  const undoMin = configured || !field ? seedCount : undoFloor(field);
-  const canUndo = results.length > undoMin || undoesCut;
+  const onAnchorStep = configured && Boolean(setupData?.anchor) && !anchorDone;
+  // Answers below this belong to earlier steps; undo reaches them by first
+  // taking back the step buttons pressed since (see `steps`)
+  const undoMin = (() => {
+    if (configured && !onAnchorStep) return seedCount;
+    if (!configured && field && field.stage !== 'done') {
+      const floor = undoFloor(field);
+      return Number.isFinite(floor) ? floor : results.length;
+    }
+    // The setup and anchor screens have no answers of their own
+    return results.length;
+  })();
+  const canUndoAnswer = results.length > undoMin;
+  const canUndo = canUndoAnswer || undoesCut || steps.length > 0;
+
+  // The state just before a step button is pressed, so undo can return to it
+  const stepFrom = (): RankerSessionStep => ({
+    setupData: withoutSteps(setupData),
+    results: results.length,
+    seedCount,
+    anchorDone,
+  });
 
   const handleUndo = useCallback(() => {
     if (undoesCut && setupData) {
@@ -307,25 +363,64 @@ export const RankingSession = ({
       }
       return;
     }
-    // Only head-to-head picks can be undone, never the setup seeds
-    if (results.length <= undoMin) return;
-    const newResults = results.slice(0, -1);
-    // Rebuild closure cache from scratch after undo (one edge removed = full rebuild needed)
-    closureCache.rebuild(newResults);
+    if (results.length > undoMin) {
+      const newResults = results.slice(0, -1);
+      // Rebuild closure cache from scratch after undo (one edge removed = full rebuild needed)
+      closureCache.rebuild(newResults);
+      setResults(newResults);
+      setIsFinished(false);
+      setSkippedPairs(new Set());
+      // A hand-adjusted order no longer matches once the results change
+      setAdjustments(null);
+      if (autosave) {
+        autosave({
+          results: newResults,
+          isFinished: false,
+          skippedPairs: new Set(),
+          adjustments: null,
+        });
+      }
+      return;
+    }
+
+    // No answers left in this step: take back the last step button
+    const last = steps[steps.length - 1];
+    if (!last) return;
+    const removed = results.slice(last.results);
+    const newResults = results.slice(0, last.results);
+    // Going back to the setup or anchor screen shows the earlier choices again
+    if (setupData && 'topTier' in setupData) {
+      const { topTier, bottomTier, anchor, firstPlace, lastPlace } = setupData;
+      setSetupPrefill({ topTier, bottomTier, anchor, firstPlace, lastPlace });
+    }
+    const anchorId = setupData?.anchor;
+    if (anchorId && anchorDone && !last.anchorDone) {
+      setAnchorPrefill(removed.filter((c) => c.loser === anchorId).map((c) => c.winner));
+    }
+    const restored: RankerSetupData | null = last.setupData
+      ? { ...last.setupData, ...(steps.length > 1 ? { steps: steps.slice(0, -1) } : {}) }
+      : null;
+    if (removed.length) closureCache.rebuild(newResults);
+    setSetupData(restored);
     setResults(newResults);
+    setSeedCount(last.seedCount);
+    setAnchorDone(last.anchorDone);
     setIsFinished(false);
+    setCurrentPair([]);
     setSkippedPairs(new Set());
-    // A hand-adjusted order no longer matches once the results change
     setAdjustments(null);
     if (autosave) {
       autosave({
+        setupData: restored,
         results: newResults,
+        seedCount: last.seedCount,
+        anchorDone: last.anchorDone,
         isFinished: false,
         skippedPairs: new Set(),
         adjustments: null,
       });
     }
-  }, [results, undoMin, autosave, closureCache, undoesCut, setupData, cuts]);
+  }, [results, undoMin, autosave, closureCache, undoesCut, setupData, cuts, steps, anchorDone]);
 
   // Handler for saving adjustments from RankingResults
   const handleRankingAdjusted = useCallback(
@@ -359,17 +454,22 @@ export const RankingSession = ({
       .map((p) => byId.get(p.id) ?? p);
   }, [isFinished, topNResolution, players, closureCache, cutIds]);
 
-  // Field mode: players cut while building the field, closest to making it first
-  const fieldCutPlayers = useMemo(
-    () =>
-      field
-        ? [...field.cutIds]
-            .reverse()
-            .map((id) => playersById.get(id))
-            .filter((p): p is RankerPlayer => Boolean(p))
-        : [],
-    [field, playersById]
-  );
+  // Field mode: players cut while building the field, closest to making it
+  // first (fewest players known to be better), then by stats
+  const fieldCutPlayers = useMemo(() => {
+    if (!field || !isFinished) return [];
+    const statsAt = new Map(bestFirst.map((id, i) => [id, i]));
+    const above = (id: string) =>
+      poolPlayers.filter((q) => closureCache.closure[q.id]?.has(id)).length;
+    return field.cutIds
+      .map((id) => playersById.get(id))
+      .filter((p): p is RankerPlayer => Boolean(p))
+      .map((p) => ({ p, above: above(p.id), at: statsAt.get(p.id) ?? Infinity }))
+      .sort((a, b) => a.above - b.above || a.at - b.at)
+      .map(({ p }) => p);
+    // results drive the closure cache's contents
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [field, isFinished, playersById, bestFirst, poolPlayers, closureCache, results]);
 
   const ranking = useMemo(() => {
     if (!isFinished) return [];
@@ -394,16 +494,27 @@ export const RankingSession = ({
     ];
   }, [isFinished, results, players, setupData, adjustments, topNResolution]);
 
-  const exitBar = onExit ? (
-    <div className="max-w-5xl mx-auto px-4 pt-4">
-      <button
-        onClick={onExit}
-        className="text-sm text-white/50 hover:text-white transition-colors"
-      >
-        ← Back to pool
-      </button>
-    </div>
-  ) : null;
+  // Owners can save an unfinished ranking too (the finished screen has its own button)
+  const saveInProgress = isOwner && saveToFirestore && !isFinished;
+  const exitBar =
+    onExit || saveInProgress ? (
+      <div className="max-w-5xl mx-auto px-4 pt-4 flex items-center justify-between gap-3">
+        {onExit ? (
+          <button
+            onClick={onExit}
+            className="text-sm text-white/50 hover:text-white transition-colors"
+          >
+            ← Back to pool
+          </button>
+        ) : (
+          <span />
+        )}
+        {saveInProgress && (
+          <SaveSessionButton onSave={saveToFirestore} saveStatus={saveStatus} compact />
+        )}
+      </div>
+    ) : null;
+  const undoLabel = canUndoAnswer ? 'Undo last answer' : 'Go back a step';
 
   if (isFinished) {
     return (
@@ -455,7 +566,16 @@ export const RankingSession = ({
 
   if (field && field.stage !== 'done') {
     const handleFieldChange = (next: FieldState) => {
-      const nextSetup = { ...(setupData ?? {}), field: next };
+      // Moving to another step is recorded so undo can take it back; locks
+      // and cut-line choices are changed back by hand
+      const isStep =
+        next.stage !== 'locks' &&
+        (next.stage !== field.stage || next.round !== field.round);
+      const nextSetup = {
+        ...(setupData ?? {}),
+        field: next,
+        ...(isStep ? { steps: [...steps, stepFrom()] } : {}),
+      };
       setSetupData(nextSetup);
       if (autosave) autosave({ setupData: nextSetup });
     };
@@ -471,6 +591,7 @@ export const RankingSession = ({
           onChange={handleFieldChange}
           onAnswer={handleSelect}
           onUndo={canUndo ? handleUndo : undefined}
+          undoLabel={undoLabel}
         />
       </>
     );
@@ -482,8 +603,12 @@ export const RankingSession = ({
       const seeds = buildLockInComparisons(players, data).filter(
         ({ winner, loser }) => closureCache.addEdge(winner, loser)
       );
-      // Field answers stay: the ranking reuses them, and they can't be undone
-      const nextSetup: RankerSetupData = field ? { ...data, field, configured: true } : data;
+      // Field answers stay: the ranking reuses them. Undo can take this step
+      // back (dropping only the lock-in seeds) to return to setup.
+      const nextSetup: RankerSetupData = {
+        ...(field ? { ...data, field, configured: true } : data),
+        steps: [...steps, stepFrom()],
+      };
       const allResults = [...results, ...seeds];
       setSetupData(nextSetup);
       setAnchorDone(!data.anchor);
@@ -507,6 +632,9 @@ export const RankingSession = ({
           playerPool={players}
           onComplete={handleComplete}
           listTitle={field ? `your Top ${field.topN}` : null}
+          initial={setupPrefill}
+          onBack={steps.length > 0 ? handleUndo : undefined}
+          backLabel={field ? '← Back to building the field' : '← Back'}
         />
       </>
     );
@@ -548,12 +676,15 @@ export const RankingSession = ({
           )
         : [];
       const allResults = [...results, ...accepted];
+      const nextSetup = { ...setupData, steps: [...steps, stepFrom()] };
+      setSetupData(nextSetup);
       setResults(allResults);
       setSeedCount(allResults.length);
       setAnchorDone(true);
 
       if (autosave) {
         autosave({
+          setupData: nextSetup,
           results: allResults,
           anchorDone: true,
           seedCount: allResults.length,
@@ -569,6 +700,8 @@ export const RankingSession = ({
             anchor={anchorPlayer}
             players={untagged}
             onComplete={handleAnchorComplete}
+            initialBetter={anchorPrefill}
+            onBack={canUndo ? handleUndo : undefined}
           />
         ) : (
           <div className="text-white text-center p-8">
