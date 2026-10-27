@@ -13,6 +13,7 @@ import React, { forwardRef } from 'react';
 import type { RankerPlayer } from './utils/rankingEngine';
 import {
   getHeadshotSrc,
+  getLogoSrc,
   getPlayerName,
   getTeamLabel,
 } from './utils/playerDisplay';
@@ -52,6 +53,30 @@ const fallbackHeadshot = (e: React.SyntheticEvent<HTMLImageElement>) => {
   e.currentTarget.src = '/assets/headshots/default.png';
 };
 
+const hideBrokenLogo = (e: React.SyntheticEvent<HTMLImageElement>) => {
+  e.currentTarget.style.display = 'none';
+};
+
+const TeamLogo = ({
+  player,
+  className,
+}: {
+  player: RankerPlayer;
+  className: string;
+}) => {
+  const src = getLogoSrc(player);
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt=""
+      loading="eager"
+      onError={hideBrokenLogo}
+      className={`object-contain flex-shrink-0 ${className}`}
+    />
+  );
+};
+
 const splitName = (player: RankerPlayer) => {
   const [first = '', ...rest] = getPlayerName(player).split(' ');
   return { first, last: rest.join(' ') || first };
@@ -79,6 +104,7 @@ const CompactCard = ({
         <span className="absolute top-1 left-1 px-1 rounded bg-neutral-900/85 border border-white/20 text-white text-xs font-bold leading-5">
           {rank}
         </span>
+        <TeamLogo player={player} className="absolute top-1 right-1 w-5 h-5" />
       </div>
       <div className="px-1.5 pt-1 pb-1.5 border-t border-white/15 leading-tight">
         <div className="text-[10px] text-white/55 truncate">{first}</div>
@@ -110,6 +136,7 @@ const ExportRow = ({
     <span className="flex-1 min-w-0 text-sm text-white truncate">
       {getPlayerName(player)}
     </span>
+    <TeamLogo player={player} className="w-4 h-4" />
     <span className="text-xs text-white/45">{getTeamLabel(player) ?? ''}</span>
   </div>
 );

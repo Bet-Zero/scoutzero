@@ -13,6 +13,13 @@ type DownloadFn = (
   options?: DownloadOptions
 ) => Promise<void>;
 
+// Every iOS browser runs on WebKit; desktop Chrome/Edge also say AppleWebKit
+const isWebKit = () =>
+  /AppleWebKit/.test(navigator.userAgent) &&
+  !/Chrome\/|Chromium|Android/.test(navigator.userAgent);
+
+const capturePasses = () => (isWebKit() ? 3 : 1);
+
 // Phones save pictures through the share sheet ("Save Image" puts it in Photos);
 // a link download there is dropped once the tap is a few seconds old
 const shouldShare = (file: File) =>
@@ -94,13 +101,20 @@ export const useImageDownload = (
       );
       await new Promise<void>((r) => setTimeout(r, 100));
 
-      const blob = await toBlob(ref.current, {
-        cacheBust: true,
-        // Fonts already loaded via Base64; skip html-to-image font inlining to avoid parsing bugs
-        skipFonts: true,
-        pixelRatio: options.pixelRatio ?? 2,
-        backgroundColor: options.backgroundColor ?? '#111',
-      });
+      const capture = (el: HTMLElement) =>
+        toBlob(el, {
+          cacheBust: true,
+          // Fonts already loaded via Base64; skip html-to-image font inlining to avoid parsing bugs
+          skipFonts: true,
+          pixelRatio: options.pixelRatio ?? 2,
+          backgroundColor: options.backgroundColor ?? '#111',
+        });
+      // Safari draws the picture before its images have decoded, leaving them
+      // blank; repeat captures fill them in, so keep the last one
+      let blob = await capture(ref.current);
+      for (let pass = 1; pass < capturePasses(); pass++) {
+        blob = await capture(ref.current);
+      }
 
       if (!blob) throw new Error('Image capture returned nothing');
 
