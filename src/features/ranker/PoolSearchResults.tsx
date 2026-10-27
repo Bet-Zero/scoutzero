@@ -8,6 +8,7 @@
  *  - 2026-10-22: Rank and score columns, and pre-ticked rows for the Top-N preset
  *  - 2026-10-22: Stats and pay rank columns, and a tap-to-add near-miss list
  *  - 2026-10-24: Fills a fixed-height pane: table scrolls, near misses and actions stay pinned below
+ *  - 2026-10-27: Top-N lists show every candidate (no paging), so nobody ticked is out of sight
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
@@ -96,7 +97,10 @@ export const PoolSearchResults = ({
   const allSelected =
     addable.length > 0 && selectedRows.length === addable.length;
   const alreadyIn = rows.length - addable.length;
-  const remaining = rows.length - limit;
+  // Pre-ticked lists show everyone: a ticked player below a "show more"
+  // button would be added without ever being seen
+  const shown = preselect ? rows : rows.slice(0, limit);
+  const remaining = rows.length - shown.length;
 
   let body: React.ReactNode;
   if (!active) {
@@ -127,7 +131,7 @@ export const PoolSearchResults = ({
     body = (
       <div className="relative flex-1 min-h-0 overflow-auto">
         <PoolResultsTable
-          rows={rows.slice(0, limit)}
+          rows={shown}
           ranked={rows.some((r) => r.rank !== undefined)}
           isSelected={isSelected}
           allSelected={allSelected}
@@ -170,6 +174,12 @@ export const PoolSearchResults = ({
             <span className="text-white font-semibold">{rows.length}</span>{' '}
             player
             {rows.length === 1 ? '' : 's'}
+            {preselect && (
+              <span className="text-white/40">
+                {' '}
+                · {selectedRows.length} ticked
+              </span>
+            )}
             {alreadyIn > 0 && (
               <span className="text-white/40">
                 {' '}
