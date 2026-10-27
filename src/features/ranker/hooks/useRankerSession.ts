@@ -6,7 +6,13 @@
 //   reopened from the builder's Saved Sessions panel
 // Does NOT write to Firestore during ranking for any user.
 
-import { useState, useCallback, useEffect } from 'react';
+import {
+  useState,
+  useCallback,
+  useEffect,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { isOwnerUid } from '@/config/ownerConfig';
 import {
@@ -107,6 +113,20 @@ const serializeDraftSkippedPairs = (
   if (Array.isArray(skippedPairs)) return skippedPairs;
   if (skippedPairs instanceof Set) return Array.from(skippedPairs);
   return [];
+};
+
+// Merge fields into the latest draft (never the one captured before an
+// await, which would drop answers made while a save was in flight)
+const patchLatestDraft = (
+  setLocalDraft: Dispatch<SetStateAction<RankerDraftState | null>>,
+  patch: Partial<RankerDraftState>
+): void => {
+  setLocalDraft((prev) => {
+    if (!prev) return prev;
+    const updated: RankerDraftState = { ...prev, ...patch };
+    saveLocalDraftImmediate(updated);
+    return updated;
+  });
 };
 
 const buildFirestoreData = (
@@ -307,9 +327,7 @@ export function useRankerSession(): UseRankerSessionResult {
         setFirestoreSessionId(savedId);
 
         // Store the Firestore ID in local draft for association
-        const updatedDraft = { ...localDraft, firestoreSessionId: savedId };
-        saveLocalDraftImmediate(updatedDraft);
-        setLocalDraft(updatedDraft);
+        patchLatestDraft(setLocalDraft, { firestoreSessionId: savedId });
       }
 
       setSaveStatus('saved');
@@ -401,11 +419,7 @@ export function useRankerSession(): UseRankerSessionResult {
         if (sessionId === firestoreSessionId) {
           setFirestoreSessionId(null);
           // Update local draft to remove association
-          if (localDraft) {
-            const updatedDraft = { ...localDraft, firestoreSessionId: null };
-            saveLocalDraftImmediate(updatedDraft);
-            setLocalDraft(updatedDraft);
-          }
+          patchLatestDraft(setLocalDraft, { firestoreSessionId: null });
         }
 
         // Refresh sessions list
@@ -416,7 +430,7 @@ export function useRankerSession(): UseRankerSessionResult {
         throw err;
       }
     },
-    [userId, isOwner, firestoreSessionId, localDraft, fetchFirestoreSessions]
+    [userId, isOwner, firestoreSessionId, fetchFirestoreSessions]
   );
 
   // Convenience Actions
@@ -473,13 +487,10 @@ export function useRankerSession(): UseRankerSessionResult {
           return null;
         }
 
-        const draftPatch = {
+        patchLatestDraft(setLocalDraft, {
           savedListId: saved.listId,
           savedListName: saved.listName,
-        };
-        const updatedDraft = { ...localDraft, ...draftPatch };
-        saveLocalDraftImmediate(updatedDraft);
-        setLocalDraft(updatedDraft);
+        });
 
         if (firestoreSessionId) {
           try {

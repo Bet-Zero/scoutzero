@@ -105,4 +105,36 @@ describe('useRankerSession', () => {
       adjustments: null,
     });
   });
+
+  it('keeps answers made while the first save is still in flight', async () => {
+    const { result } = renderHook(() => useRankerSession());
+    act(() => {
+      result.current.createLocalDraft({ playerPoolIds: ['a', 'b', 'c'], name: 'Mid-save' });
+      result.current.updateLocalDraftNow({ results: [{ winner: 'a', loser: 'b' }] });
+    });
+
+    let saving: Promise<string | null> = Promise.resolve(null);
+    act(() => {
+      saving = result.current.saveToFirestore();
+    });
+    // An answer lands before Firestore replies
+    const newer = [
+      { winner: 'a', loser: 'b' },
+      { winner: 'b', loser: 'c' },
+    ];
+    act(() => {
+      result.current.updateLocalDraftNow({ results: newer });
+    });
+    let savedId: string | null = null;
+    await act(async () => {
+      savedId = await saving;
+    });
+
+    expect(savedId).toEqual(expect.any(String));
+    expect(result.current.localDraft?.results).toEqual(newer);
+    expect(result.current.localDraft?.firestoreSessionId).toBe(savedId);
+    const stored = JSON.parse(sessionStorage.getItem('ranker_draft_v1') || '{}');
+    expect(stored.results).toEqual(newer);
+    expect(stored.firestoreSessionId).toBe(savedId);
+  });
 });
