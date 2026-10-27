@@ -155,7 +155,8 @@ const PlayerRow = ({
   );
 
   return (
-    <div className="w-full max-w-[1100px] mx-auto">
+    // Phones: inset from the screen edge, lined up with the search bar above
+    <div className={`w-full max-w-[1100px] mx-auto ${isPhone ? 'px-3' : ''}`}>
       <div className="relative w-full border border-black h-[90px]">
         {/* Add Button - fixed small circle in top-right corner (overlay) */}
         <div className="absolute top-0.5 right-0 z-10">

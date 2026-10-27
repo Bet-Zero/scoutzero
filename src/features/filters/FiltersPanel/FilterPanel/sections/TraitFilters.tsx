@@ -113,7 +113,7 @@ export const TraitFilters = ({ filters, setFilters }: PlayerFilterPanelProps) =>
 
       {showAddForm && (
         <div className="bg-[#333] p-3 rounded mb-3">
-          <div className="grid grid-cols-4 gap-2 text-xs">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
             <div>
               <label className="text-white mb-1 block">Trait</label>
               <select

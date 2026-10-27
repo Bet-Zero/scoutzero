@@ -42,9 +42,9 @@ export const ContractFilters = ({ filters, setFilters }: PlayerFilterPanelProps)
       <h2 className="text-white text-sm font-bold border-b border-white/20 pb-1 mb-3">
         Contract
       </h2>
-      <div className="grid grid-cols-4 gap-x-4 gap-y-1 text-white text-sm">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3 md:gap-y-1 text-white text-sm">
         {/* Salary Range */}
-        <div className="flex flex-col">
+        <div className="flex flex-col col-span-2 md:col-span-1">
           <label className="mb-1 text-white/50 text-[11px] uppercase tracking-wide">
             Salary ($M)
           </label>

@@ -125,7 +125,7 @@ const SubroleMenu = ({
       </span>
     </button>
     {show && (
-      <div className="mt-3 grid grid-cols-2 gap-6 bg-[#1f1f1f] p-4 rounded-md border border-white/10 max-h-[400px] overflow-y-auto">
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-6 bg-[#1f1f1f] p-4 rounded-md border border-white/10 max-h-[400px] overflow-y-auto">
         {(['offense', 'defense'] as SubRoleType[]).map((type) => (
           <div key={type} className="space-y-4">
             <h3 className="text-xs font-semibold text-white/80 uppercase tracking-wider border-b border-white/10 pb-1">
@@ -225,7 +225,7 @@ export const RoleFilters = ({ filters, setFilters }: PlayerFilterPanelProps) => 
         Roles
       </h2>
 
-      <div className="grid grid-cols-3 gap-4 text-white text-sm mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-white text-sm mb-4">
         <RoleSelect
           label="Offensive Role"
           value={filters.offenseRole}
