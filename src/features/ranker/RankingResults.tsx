@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { useImageDownload } from '@/shared/hooks/useImageDownload';
 import { AdjustableRankings } from './AdjustableRankings';
 import type { RankerPlayer } from './utils/rankingEngine';
@@ -93,7 +94,13 @@ export const RankingResults = ({
     const text = currentRanking
       .map((p, idx) => `#${idx + 1} ${getPlayerName(p)}`)
       .join('\n');
-    navigator.clipboard.writeText(text).catch(() => {});
+    // The clipboard can be missing or blocked (e.g. outside https)
+    Promise.resolve()
+      .then(() => navigator.clipboard.writeText(text))
+      .then(
+        () => toast.success('Ranking copied'),
+        () => toast.error("Couldn't copy the ranking")
+      );
   };
 
   const handleExportCSV = () => {

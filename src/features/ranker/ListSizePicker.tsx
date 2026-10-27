@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-24: Created; list length moved here from the ranking setup screen
+ *  - 2026-10-27: A custom size past the pool shows the size used once you leave the box
  *
  * LINKS:
  *  - Used in: src/features/ranker/PoolPanel.tsx
@@ -106,6 +107,8 @@ export const ListSizePicker = ({
                 Number.isFinite(n) && n >= 2 ? Math.min(n, poolCount - 1) : null
               );
             }}
+            // Show the size actually used (e.g. 500 in a pool of 120 is 119)
+            onBlur={() => setTyped(size === null ? '' : String(size))}
             className="w-16 h-8 bg-white/[0.05] text-white text-sm rounded-lg border border-white/[0.1] px-2"
           />
         )}

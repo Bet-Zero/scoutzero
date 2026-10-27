@@ -268,4 +268,25 @@ describe('PoolWorkbench', () => {
     fireEvent.click(toggle);
     await waitFor(() => expect(screen.getByText('Unsigned')).toBeTruthy());
   });
+
+  it('the Candidates box keeps what is typed instead of snapping to the minimum', async () => {
+    render(<PoolWorkbench candidates={candidates} poolIds={new Set()} onAdd={vi.fn()} />);
+    fireEvent.click(screen.getByText('Top 10'));
+    const box = await screen.findByLabelText<HTMLInputElement>('Candidates to pull');
+    expect(box.value).toBe('26');
+
+    // Typing 120 over it: the first digit alone is below 10 and isn't forced up
+    fireEvent.change(box, { target: { value: '1' } });
+    expect(box.value).toBe('1');
+    fireEvent.change(box, { target: { value: '12' } });
+    fireEvent.change(box, { target: { value: '120' } });
+    expect(box.value).toBe('120');
+    fireEvent.blur(box);
+    expect(box.value).toBe('120');
+
+    // Leaving it below the list size settles on the list size
+    fireEvent.change(box, { target: { value: '3' } });
+    fireEvent.blur(box);
+    expect(box.value).toBe('10');
+  });
 });

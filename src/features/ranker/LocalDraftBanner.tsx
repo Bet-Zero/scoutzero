@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-10-21: Created in the Player Ranker audit fix pass (PR #562)
  *  - 2026-10-24: Slim one-line strip above the pool workbench
+ *  - 2026-10-27: Counts the user's answers, not results added by lock-ins/anchor; wraps on phones
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/562
@@ -13,10 +14,13 @@
  */
 import React from 'react';
 import { Play, Trash2, RotateCcw } from 'lucide-react';
+import { countAnswers } from './utils/rankerLocalDraft';
 
 type RankerDraftBannerData = {
   name?: string | null;
   results?: unknown[] | null;
+  seedCount?: number | null;
+  setupData?: Parameters<typeof countAnswers>[0]['setupData'];
   playerPoolIds?: string[] | null;
   isFinished?: boolean | null;
   draftUpdatedAt?: number | null;
@@ -46,7 +50,11 @@ export const LocalDraftBanner = ({
 }) => {
   if (!draft) return null;
 
-  const resultsCount = draft.results?.length || 0;
+  const answers = countAnswers({
+    results: draft.results ?? [],
+    seedCount: draft.seedCount,
+    setupData: draft.setupData,
+  });
   const playerCount = draft.playerPoolIds?.length || 0;
   const isFinished = draft.isFinished || false;
   const lastUpdated = draft.draftUpdatedAt
@@ -66,14 +74,16 @@ export const LocalDraftBanner = ({
   return (
     <div className="flex flex-shrink-0 flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
       <RotateCcw className="w-4 h-4 text-amber-400 flex-shrink-0" />
-      <p className="flex-1 min-w-0 text-sm text-white truncate">
+      {/* On phones the text wraps and the buttons drop to their own row */}
+      <p className="flex-1 min-w-[12rem] text-sm text-white sm:truncate">
         {isFinished ? 'Completed ranking' : 'In-progress ranking'}{' '}
         <span className="font-medium">
           &quot;{draft.name || 'Untitled'}&quot;
         </span>
         <span className="text-white/45">
           {' '}
-          · {resultsCount} comparisons · {playerCount} players · last updated{' '}
+          · {answers} {answers === 1 ? 'answer' : 'answers'} · {playerCount}{' '}
+          players · last updated{' '}
           {formatDate(lastUpdated)}
         </span>
       </p>

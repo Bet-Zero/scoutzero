@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-10-21: Created in the Player Ranker audit fix pass (PR #562)
  *  - 2026-10-24: Rows only; shown in the workbench toolbar's Saved menu
+ *  - 2026-10-27: Counts the user's answers, not results added by lock-ins/anchor
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/562
@@ -17,6 +18,7 @@ import {
   getTimestampMillis,
   type RankerSession,
 } from '@/firebase/rankerHelpers';
+import { countAnswers } from './utils/rankerLocalDraft';
 
 // Owner-only list of ranker sessions saved to Firestore
 export const SavedSessionsPanel = ({
@@ -43,6 +45,7 @@ export const SavedSessionsPanel = ({
     <ul className="flex flex-col gap-1">
       {sessions.map((session) => {
         const updated = getTimestampMillis(session.updatedAt);
+        const answers = countAnswers(session);
         return (
           <li
             key={session.id}
@@ -53,7 +56,7 @@ export const SavedSessionsPanel = ({
               <p className="text-xs text-white/40">
                 {session.isFinished ? 'Finished' : 'In progress'} ·{' '}
                 {session.playerPoolIds.length} players ·{' '}
-                {session.results.length} comparisons
+                {answers} {answers === 1 ? 'answer' : 'answers'}
                 {updated ? ` · ${new Date(updated).toLocaleDateString()}` : ''}
               </p>
             </div>

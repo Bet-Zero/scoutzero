@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-24: Extracted from RankingResults.tsx; download offers the size-aware image layouts
+ *  - 2026-10-27: Every button keeps a text label on phones
  *
  * LINKS:
  *  - Used in: src/features/ranker/RankingResults.tsx
@@ -73,17 +74,18 @@ export const ResultsActionButtons = ({
         {saveAsListStatus === 'saving' ? (
           <>
             <div className="w-3.5 h-3.5 mr-1 border-2 border-blue-100/30 border-t-blue-100 rounded-full animate-spin" />
-            <span className="hidden sm:inline">Saving...</span>
+            <span>Saving...</span>
           </>
         ) : saveAsListStatus === 'saved' ? (
           <>
             <CheckCircle size={16} className="mr-1" />
             <span className="hidden sm:inline">Saved as List</span>
+            <span className="sm:hidden">Saved</span>
           </>
         ) : saveAsListStatus === 'error' ? (
           <>
             <AlertCircle size={16} className="mr-1" />
-            <span className="hidden sm:inline">Save Failed</span>
+            <span>Save Failed</span>
           </>
         ) : (
           <>
@@ -105,11 +107,13 @@ export const ResultsActionButtons = ({
         <>
           <ListOrdered size={16} className="mr-1" />
           <span className="hidden sm:inline">List View</span>
+          <span className="sm:hidden">List</span>
         </>
       ) : (
         <>
           <LayoutGrid size={16} className="mr-1" />
           <span className="hidden sm:inline">Grid View</span>
+          <span className="sm:hidden">Grid</span>
         </>
       )}
     </button>
@@ -138,7 +142,7 @@ export const ResultsActionButtons = ({
           d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2z"
         />
       </svg>
-      <span className="hidden sm:inline">Copy</span>
+      <span>Copy</span>
     </button>
   </div>
 );

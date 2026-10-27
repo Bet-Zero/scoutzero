@@ -96,7 +96,7 @@ const PlayerTile = ({
           onClick={onToggleTop}
           disabled={Boolean(topBlockedReason)}
           title={topBlockedReason ?? 'Mark as top tier'}
-          className={`px-1.5 h-5 rounded text-[10px] font-bold tracking-wide transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white/25 ${
+          className={`px-2.5 h-8 sm:px-1.5 sm:h-5 rounded text-[11px] sm:text-[10px] font-bold tracking-wide transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white/25 ${
             topSelected
               ? 'bg-emerald-500 text-white'
               : 'bg-transparent text-white/25 hover:bg-emerald-500/20 hover:text-emerald-400'
@@ -109,7 +109,7 @@ const PlayerTile = ({
           onClick={onToggleBottom}
           disabled={Boolean(bottomBlockedReason)}
           title={bottomBlockedReason ?? 'Mark as bottom tier'}
-          className={`px-1.5 h-5 rounded text-[10px] font-bold tracking-wide transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white/25 ${
+          className={`px-2.5 h-8 sm:px-1.5 sm:h-5 rounded text-[11px] sm:text-[10px] font-bold tracking-wide transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white/25 ${
             bottomSelected
               ? 'bg-red-500 text-white'
               : 'bg-transparent text-white/25 hover:bg-red-500/20 hover:text-red-400'
@@ -188,6 +188,8 @@ const SectionHeader = ({ label, hint, right = null }: SectionHeaderProps) => (
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+const NO_PLAYERS: ReadonlySet<string> = new Set();
+
 // List length and trimming live in the pool screen and the field builder;
 // this screen only gives the ranking hints for the players it's handed
 export const RankingSetup = ({
@@ -197,6 +199,8 @@ export const RankingSetup = ({
   initial = null,
   onBack,
   backLabel = '← Back',
+  notFirst = NO_PLAYERS,
+  notLast = NO_PLAYERS,
 }: {
   playerPool?: RankerDisplayPlayer[];
   onComplete: (data: RankerSetupData) => void;
@@ -210,6 +214,10 @@ export const RankingSetup = ({
   // Takes back the step before this screen (e.g. finishing the field)
   onBack?: () => void;
   backLabel?: string;
+  // Players earlier answers (building a Top-N field) already rank below /
+  // above someone here: locking them in at #1 / last would contradict that
+  notFirst?: ReadonlySet<string>;
+  notLast?: ReadonlySet<string>;
 }) => {
   const inPool = new Set(playerPool.map((p) => p.id));
   const known = (id: string | null | undefined) => (id && inPool.has(id) ? id : null);
@@ -220,12 +228,14 @@ export const RankingSetup = ({
     (initial?.bottomTier ?? []).filter((id) => inPool.has(id))
   );
   const [anchor, setAnchor] = useState<string | null>(() => known(initial?.anchor));
-  const [firstPlace, setFirstPlace] = useState<string | null>(() =>
-    known(initial?.firstPlace)
-  );
-  const [lastPlace, setLastPlace] = useState<string | null>(() =>
-    known(initial?.lastPlace)
-  );
+  const [firstPlace, setFirstPlace] = useState<string | null>(() => {
+    const id = known(initial?.firstPlace);
+    return id && !notFirst.has(id) ? id : null;
+  });
+  const [lastPlace, setLastPlace] = useState<string | null>(() => {
+    const id = known(initial?.lastPlace);
+    return id && !notLast.has(id) ? id : null;
+  });
 
   const tierCountEstimate = Math.max(1, Math.round(playerPool.length * 0.25));
 
@@ -375,7 +385,9 @@ export const RankingSetup = ({
             <StyledSelect
               value={firstPlace}
               onChange={assignRole(setFirstPlace)}
-              options={optionsExcluding(anchor, lastPlace)}
+              options={optionsExcluding(anchor, lastPlace).filter(
+                (p) => !notFirst.has(p.id)
+              )}
               placeholder="None"
             />
           </div>
@@ -386,11 +398,20 @@ export const RankingSetup = ({
             <StyledSelect
               value={lastPlace}
               onChange={assignRole(setLastPlace)}
-              options={optionsExcluding(anchor, firstPlace)}
+              options={optionsExcluding(anchor, firstPlace).filter(
+                (p) => !notLast.has(p.id)
+              )}
               placeholder="None"
             />
           </div>
         </div>
+        {(notFirst.size > 0 || notLast.size > 0) && (
+          <p className="mt-3 text-xs leading-relaxed text-white/40">
+            Only players your answers so far haven&apos;t put below anyone can
+            be #1, and only players they haven&apos;t put above anyone can be
+            last.
+          </p>
+        )}
       </SectionCard>
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}

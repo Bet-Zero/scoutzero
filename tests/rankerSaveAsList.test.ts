@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   createRankerListFromRanking,
   resolveFinalOrderIds,
+  resolveLinkedList,
 } from '@/features/ranker/utils/saveAsListBridge';
 
 describe('ranker save as list bridge', () => {
@@ -160,5 +161,29 @@ describe('ranker save as list bridge', () => {
 
     expect(createListFn).toHaveBeenCalledTimes(1);
     expect(saved?.listId).toBe('list_new');
+  });
+
+  describe('the list a ranking was saved as', () => {
+    const lists = [{ id: 'list_1', name: 'My best players (renamed)' }];
+
+    it('still counts after a reload, under its current name', () => {
+      expect(resolveLinkedList(null, 'list_1', lists)).toEqual({
+        listId: 'list_1',
+        listName: 'My best players (renamed)',
+      });
+    });
+
+    it("doesn't count once deleted on the Lists page", () => {
+      expect(resolveLinkedList(null, 'list_gone', lists)).toBeNull();
+    });
+
+    it('a list just saved counts before the lists catch up', () => {
+      const justSaved = { listId: 'list_new', listName: 'Ranker — Top 10 — 2026-10-27' };
+      expect(resolveLinkedList(justSaved, 'list_new', lists)).toEqual(justSaved);
+    });
+
+    it('nothing saved yet', () => {
+      expect(resolveLinkedList(null, null, lists)).toBeNull();
+    });
   });
 });

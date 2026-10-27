@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-24: Created with the size-aware export layouts
+ *  - 2026-10-27: Labelled on phones too
  *
  * LINKS:
  *  - Used in: src/features/ranker/RankingResults.tsx
@@ -60,9 +61,7 @@ export const ExportDownloadMenu = ({
         className="px-3 py-2 text-sm text-white bg-white/10 rounded hover:bg-white/20 flex items-center transition-colors disabled:opacity-50"
       >
         <Download size={16} className="mr-1" />
-        <span className="hidden sm:inline">
-          {busy ? 'Downloading…' : 'Download'}
-        </span>
+        <span>{busy ? 'Downloading…' : 'Download'}</span>
         <ChevronDown size={14} className="ml-1 opacity-60" />
       </button>
       {open && (

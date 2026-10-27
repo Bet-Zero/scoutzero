@@ -7,6 +7,7 @@
  *  - 2026-10-21: Pool grid and tile extracted from RankingBuilder.tsx (PoolGrid.tsx, PoolCard.tsx)
  *  - 2026-10-24: Workbench pool column with a remembered list / tiles switch
  *  - 2026-10-26: Undo for a removed player or Clear all
+ *  - 2026-10-27: Takes an id, so the phone layout's pool bar can jump to it
  *
  * LINKS:
  *  - Used in: src/features/ranker/RankingBuilder.tsx
@@ -38,6 +39,7 @@ const saveView = (view: PoolView) => {
 };
 
 type PoolPanelProps = {
+  id?: string;
   pool: RosterManagerPlayer[];
   onRemove: (id: string) => void;
   onClear: () => void;
@@ -55,6 +57,7 @@ const removalLabel = (players: RosterManagerPlayer[]): string =>
     : `Bring back the ${players.length} cleared players`;
 
 export const PoolPanel = ({
+  id,
   pool,
   onRemove,
   onClear,
@@ -73,6 +76,7 @@ export const PoolPanel = ({
 
   return (
     <Pane
+      id={id}
       aria-label="Your pool"
       className="lg:h-full max-h-[70vh] lg:max-h-none"
     >
