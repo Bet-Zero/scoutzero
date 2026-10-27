@@ -197,6 +197,7 @@ export const EntitlementPickRow = ({
 
   return (
     <div
+      data-entitlement-id={entitlementId}
       className={`flex flex-col px-3 py-2 rounded-md text-xs border transition-colors ${
         isSelected
           ? 'bg-cockpit-safe/40 border-cockpit-safe/50'
@@ -213,7 +214,10 @@ export const EntitlementPickRow = ({
 
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="text-cockpit-text-primary truncate" title={label}>
+              <span
+                className="text-cockpit-text-primary truncate"
+                title={label}
+              >
                 {pickRow.year} - Round {pickRow.round}
               </span>
 
@@ -405,4 +409,3 @@ export const EntitlementPickRow = ({
     </div>
   );
 };
-

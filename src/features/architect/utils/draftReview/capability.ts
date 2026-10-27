@@ -28,6 +28,9 @@ export type DraftReviewConsumption = ReturnType<
   typeof assessDraftReviewConsumption
 >;
 export type DraftReviewCapabilityRecord = Readonly<{
+  scope?: 'synthetic-review-only' | 'governed-simulation-only';
+  assumptionSha256?: string;
+  assumptions?: import('@/schemas/draftPickReviewMutation').DraftSimulationAssumptions;
   userId: string;
   worldId: string;
   seasonId: string;
@@ -77,6 +80,24 @@ function createDraftReviewCapability(
   const capability = Object.freeze({});
   records.set(capability, freeze(structuredClone(record)));
   return capability;
+}
+
+/** Retained identities with explicit test-world assumptions; never NBA authority. */
+export async function prepareRetainedDraftSimulation(
+  args: ApplyWorldMutationArgs
+) {
+  if (!isSyntheticDraftReviewEnvironment())
+    throw new Error(
+      'Draft simulation requires the protected review environment.'
+    );
+  const { prepareSimulationRecord } = await import('./simulationReview');
+  const result = await prepareSimulationRecord(args);
+  if (result.status === 'blocked') return result;
+  return {
+    status: 'prepared' as const,
+    authority: createDraftReviewCapability(result.record),
+    reviews: result.record.reviews,
+  };
 }
 export function requireDraftReviewCapability(
   value: unknown

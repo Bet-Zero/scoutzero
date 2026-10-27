@@ -106,7 +106,10 @@ export interface TradeEditorProps {
   currentYear?: number | null;
   playersMap?: TradeTeamCardProps['playersMap'];
   onApplyTrade?:
-    | ((tradeData: TradeDataEntryLike[]) => Promise<unknown> | unknown)
+    | ((
+        tradeData: TradeDataEntryLike[],
+        review?: import('../utils/draftReview/simulationPreview').DraftSimulationHandoff
+      ) => Promise<unknown> | unknown)
     | null;
   onAfterTradeApplied?: (() => void) | null;
   primaryTeamData?: PrimaryTeamDataLike;
