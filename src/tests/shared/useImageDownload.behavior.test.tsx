@@ -24,14 +24,24 @@ vi.mock('html-to-image', () => ({
 }));
 vi.mock('@/fonts/antonBase64', () => ({ antonBase64CSS: '' }));
 
+import { toBlob } from 'html-to-image';
 import { useImageDownload } from '@/shared/hooks/useImageDownload';
 
+const setUserAgent = (ua: string) =>
+  Object.defineProperty(navigator, 'userAgent', {
+    value: ua,
+    configurable: true,
+  });
+
+const IPHONE_SAFARI =
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+const DESKTOP_CHROME =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+
 const setPhone = (isPhone: boolean) => {
-  window.matchMedia = vi
-    .fn()
-    .mockReturnValue({
-      matches: isPhone,
-    }) as unknown as typeof window.matchMedia;
+  window.matchMedia = vi.fn().mockReturnValue({
+    matches: isPhone,
+  }) as unknown as typeof window.matchMedia;
 };
 
 const renderDownload = () => {
@@ -57,6 +67,21 @@ describe('useImageDownload', () => {
 
   afterEach(() => {
     click.mockRestore();
+    setUserAgent(DESKTOP_CHROME);
+  });
+
+  it('captures repeatedly on Safari so headshots are filled in', async () => {
+    setPhone(true);
+    setUserAgent(IPHONE_SAFARI);
+    await renderDownload()('rankings.png');
+    expect(toBlob).toHaveBeenCalledTimes(3);
+  });
+
+  it('captures once on Chrome', async () => {
+    setPhone(false);
+    setUserAgent(DESKTOP_CHROME);
+    await renderDownload()('rankings.png');
+    expect(toBlob).toHaveBeenCalledTimes(1);
   });
 
   it('opens the share sheet with the image file on a phone', async () => {
