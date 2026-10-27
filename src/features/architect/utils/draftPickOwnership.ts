@@ -1,3 +1,4 @@
+import { activeConditionalStage } from './draftReview/conditionalProgram';
 /** CBA2-A12.1 ownership component for authenticated, full original picks only. */
 import { DraftOriginalOwnershipFactZ } from '@/schemas/draftPickOperation';
 import { computeEntitlementClaims } from '@/features/architect/utils/entitlements/computeEntitlementClaims';
@@ -40,8 +41,23 @@ export function evaluateOriginalDraftPickOwnership(
     }
     evidence.push(fact.id);
     const current = fact.claims.filter(
-      (c) => c.status === 'owned-unconditionally'
+      (c) =>
+        c.status === 'owned-unconditionally' ||
+        c.status === 'owned-conditional-selection-right'
     );
+    if (current.some((c) => c.status === 'owned-conditional-selection-right')) {
+      const stage =
+        fact.conditionalProgram &&
+        activeConditionalStage(fact.conditionalProgram);
+      if (
+        !stage ||
+        stage.year !== pick.draftYear ||
+        fact.conditionalProgram?.originalTeam !== pick.originalTeam
+      ) {
+        missing.push(`${pick.id}:incomplete-conditional-selection-right`);
+        continue;
+      }
+    }
     const normalized = current.flatMap(
       (c) =>
         computeEntitlementClaims({

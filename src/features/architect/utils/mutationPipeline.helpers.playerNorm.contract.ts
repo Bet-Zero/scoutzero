@@ -82,6 +82,10 @@ export function projectCurrentStatePlayerContractIngress(
   >;
 
   const projected: MutationCurrentStatePlayerContractIngress = {};
+  // A pick-only trade still normalizes every roster contract. Preserve its
+  // existing identity for subsequent season/contract history; never invent one.
+  const contractId = toOptionalTrimmedStringOrNull(contractRecord.contractId);
+  if (contractId !== undefined) projected.contractId = contractId;
   const salariesByYear = normalizeCurrentStatePlayerContractSalaryRows(
     contractRecord.salariesByYear
   );

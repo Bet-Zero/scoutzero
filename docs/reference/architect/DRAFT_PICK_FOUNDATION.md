@@ -454,3 +454,48 @@ scenario. The existing exact-head receipt wrapper accepts `--retained-simulation
 with private `SCOUTZERO_DRAFT_REVIEW_RELEASE` and
 `SCOUTZERO_DRAFT_SIMULATION_BASELINE` paths. Its certificate binds the candidate,
 input hashes, positive/negative journey, screenshots and clean port teardown.
+
+### Conditional first-round saved-world journey
+
+The same protected Trade Machine now accepts complete conditional programs tied
+by entitlement ID to retained original firsts. Team scope and top-N terms are
+explicit test-world inputs, not team-specific runtime exceptions. Every possible
+conveyance year is evaluated for both teams before the existing one-use trade
+capability can authorize Apply. Reserved fallback firsts cannot be traded
+independently; incomplete ladders, overlapping claims, unresolved dependencies
+and contradictory branch holdings fail closed. Unknown holdings remain unknown.
+
+A GM can enter a governed test draft position in Trade Machine. A protected
+result returns the current original first to its origin and moves the next
+obligation to the beneficiary atomically. An unprotected result ends the program.
+The saved world retains all 278 entitlement records and the exact 29 unresolved
+evidence dependencies, while inventories, History, Compare and reload reflect
+both sides. Strict outcome receipts reject inconsistent result/movement pairs.
+Revision and complete snapshot checks reject stale or concurrent transactions;
+a deterministic draft event prevents retry or double application.
+
+The verified lifecycle boundary is the 2026 draft, the existing 2025–26 to
+2026–27 Season Advance, and final 2027 conveyance. The protected coordinator uses
+the accepted season-close authority and explicit target-year test salary books;
+all existing season-close measurement, roster, contract, financial and atomic
+history checks still run. The draft positions, June 30 test dates, ownership,
+protection terms and financial books are separately labeled software assumptions.
+The retained source identities and accepted Canon are real evidence. None of the
+test outcomes qualifies NBA legality. Unsupported later season transitions remain
+unavailable, even though the conditional contract can represent longer ladders.
+
+The mutation normalizer also preserves an existing roster contract's ID across
+the pick-only trade, so subsequent season history can identify that same
+contract. Missing IDs remain missing and still block complete contract history.
+
+This extends PR #583's capability without repeating its original-pick scenario.
+Swap resolution, freeze/unfreeze/penalty journeys and broader entitlement action
+coverage remain separate unfinished product work. Authenticated real-NBA
+starting ownership, obligations, outcomes and applicable financial history are
+still required before production first-round trading can be considered. No
+production Apply, source publication or user-world migration is enabled.
+
+The exact-head wrapper's `--conditional-lifecycle` mode retains both threshold
+outcomes, both-team inventories/History/Compare/reload, negative cases, source
+preservation, private input hashes, traces and clean teardown using the same
+protected cloud environment and private inputs as the retained simulation mode.

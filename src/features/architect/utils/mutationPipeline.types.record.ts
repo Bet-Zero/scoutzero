@@ -237,6 +237,7 @@ export type ArchitectMutationFreeAgency = {
 };
 
 export type ArchitectMutationContract = {
+  contractId?: string | null;
   salariesByYear?: NormalizedMutationSalaryRow[];
   years?: number | null;
   startYear?: number | null;

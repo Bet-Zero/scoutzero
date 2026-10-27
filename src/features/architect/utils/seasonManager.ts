@@ -1,3 +1,8 @@
+import { isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
+import { loadConditionalWorld } from './draftReview/conditionalWorld';
+import { activeConditionalStage } from './draftReview/conditionalProgram';
+import { mutationSnapshotText } from './mutationPipeline.snapshotDigest';
+export { advanceConditionalDraftInWorld } from './seasonManager.conditionalDraft';
 /**
  * Season Manager
  *
@@ -148,10 +153,27 @@ export async function advanceSeasonInWorld(
       };
     }
 
+    const conditional =
+      isSyntheticDraftReviewEnvironment() &&
+      worldMeta.draftSimulationBranches === 'protection-programs'
+        ? await loadConditionalWorld(worldId)
+        : null;
+    if (
+      conditional &&
+      (worldCurrentSeason !== '2025-26' ||
+        worldAsOfDate < '2026-06-05' ||
+        worldAsOfDate > '2026-06-30' ||
+        conditional.programs.some(
+          (p) => (activeConditionalStage(p)?.year ?? Infinity) <= 2026
+        ))
+    )
+      throw new Error(
+        'Resolve all due conditional drafts before advancing this test season.'
+      );
     const authorityResult = resolveSeasonAdvanceAuthority({
       worldId,
       worldSeason: worldCurrentSeason,
-      worldAsOfDate,
+      worldAsOfDate: conditional ? '2026-04-12' : worldAsOfDate,
     });
     if (authorityResult.status !== 'complete') {
       throw new Error(
@@ -250,6 +272,13 @@ export async function advanceSeasonInWorld(
         getWorldMetadata
       ),
       draftReview,
+      ...(conditional
+        ? {
+            conditionalSeasonBooks:
+              conditional.metadata.draftSimulationSeasonBooks,
+            conditionalEnvironmentCheck: isSyntheticDraftReviewEnvironment,
+          }
+        : {}),
     });
     if (!prepared.success) return prepared;
     const {
@@ -289,6 +318,18 @@ export async function advanceSeasonInWorld(
       const snapshots = await Promise.all(
         refs.map((reference) => transaction.get(reference))
       );
+      const conditionalEntries = Object.entries(conditional?.snapshots ?? {});
+      const conditionalReads = await Promise.all(
+        conditionalEntries.map(([path]) => transaction.get(doc(db, path)))
+      );
+      if (
+        conditionalReads.some(
+          (s, i) =>
+            !s.exists() ||
+            mutationSnapshotText(s.data()) !== conditionalEntries[i][1]
+        )
+      )
+        throw new Error('Conditional season inputs changed before commit.');
       const currentMetadata = snapshots[0];
       if (
         !currentMetadata.exists() ||
@@ -354,6 +395,9 @@ export async function advanceSeasonInWorld(
         lastModifiedAt: serverTimestamp(),
         lastModifiedTeams: teamCodes,
         actionCount: actionCount + 1,
+        ...(conditional
+          ? { draftInventoryRevision: conditional.revision + 1 }
+          : {}),
       });
     });
 

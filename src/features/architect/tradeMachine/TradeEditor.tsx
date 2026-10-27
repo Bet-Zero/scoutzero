@@ -1,3 +1,4 @@
+import { ConditionalDraftJourney } from './ConditionalDraftJourney';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -178,6 +179,7 @@ export const TradeEditor = ({
     : handleNormalValidateTrade;
   // TMAPPLY-02: in-flight lock so Apply can't double-submit
   const [isApplying, setIsApplying] = useState(false);
+  const [conditionalWorldVersion, setConditionalWorldVersion] = useState(0);
   const [tradeMachineSatModal, setTradeMachineSatModal] =
     useState<TradeMachineSatModalState>(null);
   // BZE-190: a free agent handed in from Free Agency, parked as a pending
@@ -914,6 +916,9 @@ export const TradeEditor = ({
 
       // TM-PICKS-E1: Re-resolve entitlements so UI reflects new ownership
       refreshEntitlements();
+      // The overlay stays mounted when closed. Reload the conditional holder
+      // and inventory revision after Apply before the next draft action.
+      setConditionalWorldVersion((version) => version + 1);
       onAfterTradeApplied?.();
     } catch (error: unknown) {
       console.error('[TradeEditor] Trade application failed:', error);
@@ -1191,6 +1196,10 @@ export const TradeEditor = ({
           className="p-3 text-sm border border-cockpit-edge rounded-lg my-2"
         >
           <p>{DRAFT_SIMULATION_NOTICE}</p>
+          <ConditionalDraftJourney
+            key={conditionalWorldVersion}
+            worldId={worldId}
+          />
           {simulation.busy && (
             <p role="status">Reviewing the saved-world proposal…</p>
           )}

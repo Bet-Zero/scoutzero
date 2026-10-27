@@ -382,6 +382,7 @@ export function toTeamHistoryEventDisplay(
       : null;
 
   switch (mutationType) {
+    case 'draftConveyance':
     case 'executeTrade': {
       const governedSignAndTradeReceipt =
         GovernedSignAndTradeReceiptZ.safeParse(
@@ -401,7 +402,11 @@ export function toTeamHistoryEventDisplay(
               : null);
 
       pushSection(detailSections, 'Players', tradePlayerLines);
-      pushSection(detailSections, 'Picks', tradePickLines);
+      pushSection(
+        detailSections,
+        mutationType === 'draftConveyance' ? 'Draft outcome' : 'Picks',
+        tradePickLines
+      );
       pushSection(detailSections, 'Teams', [primaryTeamsLine]);
       pushSection(detailSections, 'Salary Books', capDeltaLines);
       if (governedSignAndTradeReceipt.success) {

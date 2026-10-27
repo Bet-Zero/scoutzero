@@ -1,3 +1,7 @@
+import {
+  DraftConditionalProgramZ,
+  DraftConditionalProgramsZ,
+} from './draftConditionalProgram';
 /** Supplied operation facts only; parsing does not authenticate their sources. */
 import { z } from 'zod';
 import {
@@ -59,6 +63,7 @@ export const DraftOriginalOwnershipFactZ = z
     ...evidence,
     scope: z.literal('original-pick-ownership'),
     pick: DraftOriginalFirstZ,
+    conditionalProgram: DraftConditionalProgramZ.optional(),
     claimCoverage: z.enum(['complete', 'incomplete']),
     claims: z.array(
       z
@@ -67,6 +72,7 @@ export const DraftOriginalOwnershipFactZ = z
           team: z.string().regex(/^[A-Z]{3}$/),
           status: z.enum([
             'owned-unconditionally',
+            'owned-conditional-selection-right',
             'expected-acquisition',
             'conditional-right-unimplemented',
           ]),
@@ -106,6 +112,7 @@ export const DraftStepienFactZ = z
       })
       .strict()
       .optional(),
+    conditionalPrograms: DraftConditionalProgramsZ.optional(),
     branchesComplete: z.boolean(),
     branches: z.array(
       z
@@ -113,6 +120,9 @@ export const DraftStepienFactZ = z
           id: DraftEvidenceIdZ,
           // Each supplied branch is established as possible under the actual program.
           possible: z.literal(true),
+          conditionalOutcomes: z
+            .record(z.string(), z.number().int())
+            .optional(),
           unresolvedDependencyIds: z.array(DraftEvidenceIdZ),
           drafts: z.array(
             z

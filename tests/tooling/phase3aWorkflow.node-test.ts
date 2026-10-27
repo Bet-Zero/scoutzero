@@ -19,6 +19,7 @@ import {
   GOVERNED_TRADE_RECEIPT_SCREENSHOTS,
   REAL_DRAFT_SCREENSHOTS,
   RETAINED_SIMULATION_SCREENSHOTS,
+  CONDITIONAL_LIFECYCLE_SCREENSHOTS,
   resolveProofIdentity,
   runTradeReceiptProof,
   verifyGovernedScreenshotArtifacts,
@@ -483,9 +484,18 @@ test('retained simulation rejects mixed or incomplete proof inputs before launch
   delete process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE;
   try {
     await assert.rejects(runTradeReceiptProof(false, false, false, true), /private catalogue and actual cloud baseline/);
+    await assert.rejects(runTradeReceiptProof(false, false, false, false, true), /private catalogue and actual cloud baseline/);
+    await assert.rejects(runTradeReceiptProof(true, false, false, false, true), /separate proof scope/);
   } finally {
     if (previous !== undefined) process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE = previous;
   }
+});
+
+test('conditional lifecycle certification requires both outcomes and both teams after reload', () => {
+  assert.deepEqual(CONDITIONAL_LIFECYCLE_SCREENSHOTS.map((s) => s.key), [10,11].flatMap((position) => [
+    `${position}-proposal`, `${position}-draft`, `${position}-season`,
+    ...['TOR','MIA'].flatMap((team) => ['history','compare','reload'].map((state) => `${position}-${team}-${state}`)),
+  ]));
 });
 
 test('retained simulation certificate requires proposal and both teams across all three saved views', async () => {

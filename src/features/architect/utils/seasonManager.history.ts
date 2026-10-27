@@ -486,9 +486,11 @@ export function buildPreparedSeasonAdvanceTeam(args: {
   optionDecisions: OffseasonOptionDecisionMap;
   optionReferences: Map<string, OptionEventReference>;
   draftReviewFreezeEvent?: import('@/schemas/draftReviewSeason').DraftReviewFreezeEvent;
+  /** Explicit target-year books supplied only by protected conditional preparation. */
+  measurementTeam?: UnknownRecord;
 }): PreparedSeasonAdvanceTeam {
   const measurement = requireSeasonCloseApronMeasurement(
-    args.beforeTeam,
+    args.measurementTeam ?? args.beforeTeam,
     args.authority,
     args.teamCode
   );

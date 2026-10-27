@@ -3,6 +3,7 @@ import { deriveComparisonViewModel } from '@/features/architect/comparison/deriv
 import { deriveDraftAssetDelta } from '@/features/architect/comparison/deriveDraftAssetDelta';
 import type { ComparisonEventRow } from '@/features/architect/comparison/deriveComparisonViewModel';
 import type { DraftReviewMutationReceipt } from '@/schemas/draftPickReviewMutation';
+import { REAL_DRAFT_REVIEW_PIN } from '@/features/architect/utils/draftPickRealReviewPin';
 
 const environment = vi.hoisted(() => ({ allowed: false }));
 vi.mock('@/firebaseConfig', () => ({
@@ -45,6 +46,106 @@ function event(
     raw: { operationId, metadata: { draftReviewReceipt: receipt } },
   };
 }
+
+describe('conditional receipt chain in Compare', () => {
+  function journey() {
+    const program = {
+      id: 'p',
+      originalTeam: 'BOS',
+      stages: [
+        { entitlementId: 'original', year: 2028, protectedThrough: 10 },
+        { entitlementId: 'fallback', year: 2029, protectedThrough: 0 },
+      ],
+      results: [],
+    };
+    const trade = event();
+    const tradeReceipt = trade.raw!.metadata!
+      .draftReviewReceipt as DraftReviewMutationReceipt;
+    tradeReceipt.scope = 'governed-simulation-only';
+    tradeReceipt.assumptionSha256 = 'b'.repeat(64);
+    tradeReceipt.assumptions = {
+      kind: 'governed-test-assumptions-v1',
+      catalogueSha256: REAL_DRAFT_REVIEW_PIN.payloadSha256,
+      proposalSha256: 'c'.repeat(64),
+      stateDigest: 'test',
+      asOf: '2026-07-15T00:00:00Z',
+      branchMode: 'protection-programs',
+      programs: [program],
+      ownership: 'stipulated-for-software-tests',
+      otherHoldings: 'unknown-not-empty',
+    };
+    const receipt = {
+      scope: 'governed-simulation-only',
+      worldId: 'world',
+      operationId: 'draft',
+      catalogueSha256: REAL_DRAFT_REVIEW_PIN.payloadSha256,
+      before: [program],
+      after: [
+        {
+          ...program,
+          results: [{ year: 2028, position: 10, outcome: 'deferred' }],
+        },
+      ],
+      positions: { BOS: 10 },
+      draftYear: 2028,
+      date: '2028-06-30',
+      movements: [
+        {
+          entitlementId: 'original',
+          originalTeam: 'BOS',
+          year: 2028,
+          round: 1,
+          fromTeam: 'MIA',
+          toTeam: 'BOS',
+        },
+        {
+          entitlementId: 'fallback',
+          originalTeam: 'BOS',
+          year: 2029,
+          round: 1,
+          fromTeam: 'BOS',
+          toTeam: 'MIA',
+        },
+      ],
+    };
+    const draft = {
+      ...event('draft'),
+      mutationType: 'draftConveyance',
+      raw: {
+        operationId: 'draft',
+        metadata: { conditionalDraftReceipt: receipt },
+      },
+    };
+    return { trade, draft, receipt };
+  }
+  it('nets the returned protected first and reports the next obligation on both teams', () => {
+    const { trade, draft } = journey();
+    expect(deriveDraftAssetDelta([trade, draft], 'world', 'BOS')).toEqual({
+      additions: [],
+      removals: [
+        { entitlementId: 'fallback', displayName: 'BOS 2029 first-round pick' },
+      ],
+    });
+    expect(deriveDraftAssetDelta([trade, draft], 'world', 'MIA')).toEqual({
+      removals: [],
+      additions: [
+        { entitlementId: 'fallback', displayName: 'BOS 2029 first-round pick' },
+      ],
+    });
+  });
+  it('rejects a valid-looking result with terms different from the committed trade', () => {
+    const { trade, draft, receipt } = journey();
+    receipt.before[0] = {
+      ...receipt.before[0],
+      stages: receipt.before[0].stages.map((s, i) =>
+        i ? s : { ...s, protectedThrough: 12 }
+      ),
+    };
+    receipt.after[0].stages = receipt.before[0].stages;
+    expect(deriveDraftAssetDelta([trade, draft], 'world', 'BOS')).toBeNull();
+    expect(deriveDraftAssetDelta([draft], 'world', 'BOS')).toBeNull();
+  });
+});
 describe('committed original-pick comparison', () => {
   it('does not promote a schema-shaped user event into a production draft delta', () => {
     const input = {
