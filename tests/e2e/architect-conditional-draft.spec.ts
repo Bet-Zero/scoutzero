@@ -177,6 +177,9 @@ for (const position of [10, 11])
       .toBe(1);
     expect(await contractIdentities()).toEqual(initialContractIdentities);
     await expect(dialog).toBeHidden({ timeout: 30000 });
+    // Closing the mounted overlay and clearing its route settle separately.
+    // Reopen only once the preceding close has finished updating the URL.
+    await expect(page).not.toHaveURL(/[?&]room=trade(?:&|$)/);
     let room = await tradeRoom(page);
     await expect(
       room.getByRole('region', { name: 'Conditional draft obligations' })
