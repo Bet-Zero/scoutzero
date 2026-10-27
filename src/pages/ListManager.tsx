@@ -304,7 +304,7 @@ const ListManager = () => {
       {/* Header */}
       {!isExport && (
         <div className="w-full max-w-[1100px] mx-auto px-4 mt-10 mb-6 relative z-10">
-          <div className="absolute top-0 right-0 flex flex-col items-end gap-2 z-20">
+          <div className="relative mb-4 flex flex-wrap items-center gap-2 z-20 sm:absolute sm:top-0 sm:right-0 sm:mb-0 sm:flex-col sm:flex-nowrap sm:items-end">
             <ListSearchBar
               listsData={listsMap}
               playersData={playersMap}
@@ -323,7 +323,7 @@ const ListManager = () => {
             </select>
           </div>
           <div className="h-[5px] w-24 bg-gradient-to-r from-neutral-500 to-neutral-900 rounded-full mb-4 shadow-lg"></div>
-          <h1 className="text-5xl font-extrabold tracking-tight text-neutral-100 mb-3">
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-neutral-100 mb-3 break-words">
             {listTitle}
           </h1>
           {listDescription && (

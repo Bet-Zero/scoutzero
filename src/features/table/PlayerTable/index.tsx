@@ -61,6 +61,7 @@ type TableRowData = {
   expandedPlayerId: string | null;
   players: TablePlayer[];
   toggleExpand: (id: string) => void;
+  sortBy?: string;
 };
 
 type InnerElementProps = HTMLAttributes<HTMLDivElement> & {
@@ -69,7 +70,7 @@ type InnerElementProps = HTMLAttributes<HTMLDivElement> & {
 
 // Row Component for react-window
 const Row = ({ index, style, data }: ListChildComponentProps<TableRowData>) => {
-  const { players, expandedPlayerId, toggleExpand } = data;
+  const { players, expandedPlayerId, toggleExpand, sortBy } = data;
   const player = players[index];
   if (!player) return null;
   const playerId = getPlayerId(player);
@@ -85,6 +86,7 @@ const Row = ({ index, style, data }: ListChildComponentProps<TableRowData>) => {
         player={player}
         isExpanded={isExpanded}
         onToggleExpand={() => toggleExpand(playerId)}
+        sortBy={sortBy}
       />
     </div>
   );
@@ -316,8 +318,9 @@ export const PlayerTable = () => {
       players: filteredPlayers,
       expandedPlayerId,
       toggleExpand,
+      sortBy: filters.sortBy,
     }),
-    [filteredPlayers, expandedPlayerId, toggleExpand]
+    [filteredPlayers, expandedPlayerId, toggleExpand, filters.sortBy]
   );
 
   // Phase 2E: Reset drawer height when expansion changes

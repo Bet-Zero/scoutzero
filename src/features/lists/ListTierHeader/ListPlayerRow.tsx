@@ -52,10 +52,14 @@ export const ListPlayerRow = ({
   };
 
   return (
-    <div className="relative w-full max-w-[1100px] mx-auto mb-6">
-      {/* Arrows & Rank */}
+    <div
+      className={`relative w-full max-w-[1100px] mx-auto mb-6 ${
+        showReorder || showRank ? 'pl-6 min-[1150px]:pl-0' : ''
+      }`}
+    >
+      {/* Arrows & Rank: sit outside the row on wide screens, in a gutter on narrow ones */}
       {(showReorder || showRank) && (
-        <div className="absolute -left-5 top-[45px] -translate-y-1/2 flex flex-col items-center justify-center z-10">
+        <div className="absolute left-0 min-[1150px]:-left-5 top-[45px] -translate-y-1/2 flex flex-col items-center justify-center z-10">
           {showReorder && (
             <button
               onClick={() => onMoveUp(index)}

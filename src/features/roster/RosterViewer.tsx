@@ -4,6 +4,7 @@ import { useSimplePlayerData } from '@/shared/hooks/useSimplePlayerData';
 import { AddPlayerDrawer } from './AddPlayerDrawer';
 import { DrawerShell } from '@/shared/components/ui/drawers/DrawerShell';
 import { OpenDrawerButton } from '@/shared/components/ui/drawers/OpenDrawerButton';
+import { ScaleToFit } from '@/shared/components/ui/ScaleToFit';
 import { RosterControls } from './RosterControls';
 import { RosterSection } from './RosterSection';
 import { getTeamColors } from '@/shared/utils/formatting/teamColors';
@@ -122,12 +123,12 @@ export const RosterViewer = ({ isExport = false, initialRosterId }: RosterViewer
       )}
 
       <div
-        className={`flex-1 transition-[margin] duration-300 ease-in-out ${
-          drawerOpen ? 'ml-[300px]' : 'ml-0'
+        className={`flex-1 min-w-0 transition-[margin] duration-300 ease-in-out ${
+          drawerOpen ? 'sm:ml-[300px]' : 'ml-0'
         }`}
       >
         <div
-          className={`relative max-w-[1300px] mx-auto text-white p-6 pb-20 flex flex-col items-center overflow-hidden ${
+          className={`relative max-w-[1300px] mx-auto text-white p-3 sm:p-6 pb-36 sm:pb-20 flex flex-col items-center overflow-hidden ${
             isExport ? 'scale-[0.9]' : ''
           }`}
         >
@@ -177,7 +178,7 @@ export const RosterViewer = ({ isExport = false, initialRosterId }: RosterViewer
           {selectedTeam && (
             <div className="w-full flex justify-center relative z-10 mb-2">
               <h2
-                className="text-5xl font-black tracking-wide uppercase relative"
+                className="text-4xl sm:text-5xl font-black tracking-wide uppercase relative"
                 style={{
                   color: '#1e1e1e',
                   textShadow: `0 0 10px ${primary}, 0 0 18px ${secondary}`,
@@ -192,29 +193,32 @@ export const RosterViewer = ({ isExport = false, initialRosterId }: RosterViewer
           <h3 className="text-xl text-neutral-500 font-semibold z-10 mb-8 opacity-90 tracking-wide">
             Team Roster
           </h3>
-          <RosterSection
-            players={roster.starters}
-            section="starters"
-            onRemove={handleRemovePlayer}
-            onAdd={handleOpenDrawer}
-            isExport={isExport}
-          />
-          <RosterSection
-            players={roster.rotation}
-            section="rotation"
-            onRemove={handleRemovePlayer}
-            onAdd={handleOpenDrawer}
-            isExport={isExport}
-          />
-          <RosterSection
-            players={roster.bench}
-            section="bench"
-            onRemove={handleRemovePlayer}
-            onAdd={handleOpenDrawer}
-            isExport={isExport}
-          />
+          {/* Card rows are fixed-width; shrink them to fit narrow screens */}
+          <ScaleToFit>
+            <RosterSection
+              players={roster.starters}
+              section="starters"
+              onRemove={handleRemovePlayer}
+              onAdd={handleOpenDrawer}
+              isExport={isExport}
+            />
+            <RosterSection
+              players={roster.rotation}
+              section="rotation"
+              onRemove={handleRemovePlayer}
+              onAdd={handleOpenDrawer}
+              isExport={isExport}
+            />
+            <RosterSection
+              players={roster.bench}
+              section="bench"
+              onRemove={handleRemovePlayer}
+              onAdd={handleOpenDrawer}
+              isExport={isExport}
+            />
+          </ScaleToFit>
           {!isExport && !drawerOpen && (
-            <div className="fixed bottom-6 left-6 z-50">
+            <div className="fixed bottom-6 left-3 sm:left-6 z-50">
               <button
                 onClick={() => setScreenshotMode(!screenshotMode)}
                 className={`

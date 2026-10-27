@@ -18,6 +18,8 @@ type ListSearchBarProps = {
   playersData?: Record<string, SimplePlayer>;
   onSelect?: (id: string) => void;
   placeholder?: string;
+  /** Width classes for the wrapper; the input fills it. */
+  className?: string;
 };
 
 export const ListSearchBar = ({
@@ -25,6 +27,7 @@ export const ListSearchBar = ({
   playersData = {},
   onSelect,
   placeholder = 'Search lists...',
+  className = 'w-56',
 }: ListSearchBarProps) => {
   const [search, setSearch] = useState('');
   const [listResults, setListResults] = useState<string[]>([]);
@@ -107,7 +110,7 @@ export const ListSearchBar = ({
   };
 
   return (
-    <div className="relative z-50" ref={wrapperRef}>
+    <div className={`relative z-50 ${className}`} ref={wrapperRef}>
       <Search
         className="absolute left-3 top-1/2 -translate-y-1/2 text-white/60"
         size={16}
@@ -120,7 +123,7 @@ export const ListSearchBar = ({
           setSearch(e.target.value);
           setShowSuggestions(true);
         }}
-        className="pl-8 pr-3 py-1 text-sm bg-neutral-800 border border-white/20 rounded-md text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
+        className="pl-8 pr-3 py-1 text-sm bg-neutral-800 border border-white/20 rounded-md text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
       />
       {showSuggestions &&
         (listResults.length > 0 || playerResults.length > 0) && (

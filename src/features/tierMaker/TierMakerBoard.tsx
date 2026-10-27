@@ -617,11 +617,12 @@ export const TierMakerBoard = ({
       </DrawerShell>
 
       <div
-        className={`flex-1 transition-[margin] duration-300 ease-in-out ${
-          drawerOpen ? 'ml-[300px]' : 'ml-0'
+        className={`flex-1 min-w-0 transition-[margin] duration-300 ease-in-out ${
+          drawerOpen ? 'sm:ml-[300px]' : 'ml-0'
         }`}
       >
-        <div className="flex flex-col gap-2 w-full max-w-[1000px] mx-auto pt-6 pb-12">
+        {/* Narrow screens: left gutter keeps the drawer tab off the tier controls; bottom room for the fixed buttons */}
+        <div className="flex flex-col gap-2 w-full max-w-[1000px] mx-auto pl-9 pr-3 min-[1072px]:px-0 pt-6 pb-36 sm:pb-12">
           {!screenshotMode && (
             <div className="flex justify-between items-center mb-1">
               <button
@@ -738,7 +739,7 @@ export const TierMakerBoard = ({
         </div>
       </div>
       {!drawerOpen && (
-        <div className="fixed bottom-6 left-6 z-50">
+        <div className="fixed bottom-6 left-3 sm:left-6 z-50">
           <button
             onClick={() => {
               const next = !screenshotMode;
@@ -762,12 +763,13 @@ export const TierMakerBoard = ({
         </div>
       )}
 
+      {/* Phones: sit above the bottom-left Screenshot View button instead of overlapping it */}
       {!screenshotMode && (
-        <div className="fixed bottom-6 right-6 z-50 flex gap-2">
+        <div className="fixed bottom-20 right-3 sm:bottom-6 sm:right-6 z-50 flex gap-2">
           <button
             onClick={handleSaveAsList}
             disabled={!canPersist || isSavingAsList}
-            className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20 disabled:opacity-50"
+            className="whitespace-nowrap bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20 disabled:opacity-50"
             title={canPersist ? 'Save board as a list' : 'Session required to save'}
           >
             {isSavingAsList ? 'Saving...' : 'Save as List'}
@@ -775,7 +777,7 @@ export const TierMakerBoard = ({
           <button
             onClick={() => handleSaveTierList()}
             disabled={!canPersist || isSaving}
-            className="bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20 disabled:opacity-50"
+            className="whitespace-nowrap bg-black/20 text-white px-4 py-2 rounded hover:bg-white/20 disabled:opacity-50"
             title={canPersist ? 'Save tier list' : 'Session required to save'}
           >
             {isSaving ? 'Saving...' : 'Save'}
