@@ -54,7 +54,14 @@ const NavGroup = ({ label, children, align = 'left' }: NavGroupProps) => {
   if (align === 'right') alignmentClass = 'right-0';
 
   return (
-    <div className="relative group" ref={wrapperRef}>
+    <div
+      className="relative group"
+      ref={wrapperRef}
+      // With a mouse, hover drives the menu; a click must not pin it open after leaving.
+      onPointerLeave={(event) => {
+        if (event.pointerType === 'mouse') setOpen(false);
+      }}
+    >
       <button
         type="button"
         className="inline-flex items-center gap-1 cursor-pointer hover:text-white text-white/60"
@@ -73,6 +80,8 @@ const NavGroup = ({ label, children, align = 'left' }: NavGroupProps) => {
 
       {/* Hover opens the menu only on devices that can hover; touch uses the tap toggle. */}
       <div
+        // Also close on any link tap, including one to the page already open.
+        onClick={() => setOpen(false)}
         className={`absolute ${open ? 'flex' : 'hidden'} [@media(hover:hover)]:group-hover:flex flex-col mt-2 bg-[#1c1c1c] border border-white/10 rounded shadow-lg text-sm text-white/80 min-w-[160px] p-2 z-[10000] ${alignmentClass}`}
       >
         {children}
