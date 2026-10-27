@@ -6,12 +6,13 @@
  * HISTORY:
  *  - 2026-10-24: Created with the size-aware export layouts
  *  - 2026-10-27: Labelled on phones too
+ *  - 2026-10-27: Spinner and "Preparing…" while the image is built
  *
  * LINKS:
  *  - Used in: src/features/ranker/RankingResults.tsx
  */
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Download } from 'lucide-react';
+import { ChevronDown, Download, Loader2 } from 'lucide-react';
 import { EXPORT_LAYOUTS, type ExportLayout } from './RankingExport';
 
 type ExportDownloadMenuProps = {
@@ -57,12 +58,21 @@ export const ExportDownloadMenu = ({
       <button
         onClick={() => setOpen((v) => !v)}
         disabled={busy}
+        aria-busy={busy}
         aria-expanded={open}
-        className="px-3 py-2 text-sm text-white bg-white/10 rounded hover:bg-white/20 flex items-center transition-colors disabled:opacity-50"
+        className="px-3 py-2 text-sm text-white bg-white/10 rounded hover:bg-white/20 flex items-center transition-colors disabled:opacity-80 disabled:cursor-wait"
       >
-        <Download size={16} className="mr-1" />
-        <span>{busy ? 'Downloading…' : 'Download'}</span>
-        <ChevronDown size={14} className="ml-1 opacity-60" />
+        {busy ? (
+          <Loader2
+            size={16}
+            className="mr-1.5 animate-spin"
+            aria-hidden="true"
+          />
+        ) : (
+          <Download size={16} className="mr-1" />
+        )}
+        <span>{busy ? 'Preparing…' : 'Download'}</span>
+        {!busy && <ChevronDown size={14} className="ml-1 opacity-60" />}
       </button>
       {open && (
         <div

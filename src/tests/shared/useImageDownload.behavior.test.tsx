@@ -3,7 +3,8 @@
  * useImageDownload: phones get the share sheet (Save Image), desktops a file
  * download, and a share blocked for lack of a fresh tap offers a Save button.
  */
-import { renderHook } from '@testing-library/react';
+import { fireEvent, render, renderHook, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import {
   afterEach,
   beforeEach,
@@ -15,7 +16,12 @@ import {
 } from 'vitest';
 
 const toastFn = vi.hoisted(() =>
-  Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), dismiss: vi.fn() })
+  Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+    loading: vi.fn(),
+  })
 );
 
 vi.mock('react-hot-toast', () => ({ toast: toastFn }));
@@ -77,6 +83,17 @@ describe('useImageDownload', () => {
     expect(toBlob).toHaveBeenCalledTimes(3);
   });
 
+  it('shows that the image is being prepared, then replaces it with the result', async () => {
+    setPhone(false);
+    await renderDownload()('rankings.png');
+    expect(toastFn.loading).toHaveBeenCalledWith('Preparing image…', {
+      id: 'image-export',
+    });
+    expect(toastFn.success).toHaveBeenCalledWith('Image downloaded', {
+      id: 'image-export',
+    });
+  });
+
   it('captures once on Chrome', async () => {
     setPhone(false);
     setUserAgent(DESKTOP_CHROME);
@@ -104,13 +121,11 @@ describe('useImageDownload', () => {
     await renderDownload()('rankings.png');
 
     expect(toastFn).toHaveBeenCalledTimes(1);
-    const render = toastFn.mock.calls[0][0] as (t: { id: string }) => {
-      props: { children: unknown[] };
-    };
-    const button = render({ id: 't1' }).props.children[1] as {
-      props: { onClick: () => void };
-    };
-    button.props.onClick();
+    const content = toastFn.mock.calls[0][0] as (t: {
+      id: string;
+    }) => ReactElement;
+    render(content({ id: 't1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save image' }));
     expect(share).toHaveBeenCalledTimes(2);
     expect(toastFn.dismiss).toHaveBeenCalledWith('t1');
   });
@@ -130,6 +145,8 @@ describe('useImageDownload', () => {
 
     expect(share).not.toHaveBeenCalled();
     expect(click).toHaveBeenCalledTimes(1);
-    expect(toastFn.success).toHaveBeenCalledWith('Image downloaded');
+    expect(toastFn.success).toHaveBeenCalledWith('Image downloaded', {
+      id: 'image-export',
+    });
   });
 });

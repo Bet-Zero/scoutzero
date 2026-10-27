@@ -1,4 +1,5 @@
-import { createElement, RefObject } from 'react';
+import { RefObject } from 'react';
+import { Download } from 'lucide-react';
 import { toBlob } from 'html-to-image';
 import { toast } from 'react-hot-toast';
 import { antonBase64CSS } from '@/fonts/antonBase64';
@@ -32,30 +33,44 @@ const shareFile = (file: File) => navigator.share({ files: [file] });
 const isCancel = (err: unknown) =>
   err instanceof DOMException && err.name === 'AbortError';
 
+// One toast per export: "Preparing image…" turns into the result in place
+const TOAST_ID = 'image-export';
+
+// Shown from the tap, so the wait before the capture starts is covered too
+export const showPreparingImage = () =>
+  toast.loading('Preparing image…', { id: TOAST_ID });
+
 // The share sheet needs a fresh tap when building the image took too long
 const offerSaveButton = (file: File) => {
   toast(
-    (t) =>
-      createElement(
-        'span',
-        { className: 'flex items-center gap-3' },
-        'Your image is ready',
-        createElement(
-          'button',
-          {
-            type: 'button',
-            className: 'rounded bg-white/10 px-3 py-1 font-semibold',
-            onClick: () => {
-              toast.dismiss(t.id);
-              shareFile(file).catch((err) => {
-                if (!isCancel(err)) toast.error("Couldn't save the image");
-              });
-            },
-          },
-          'Save image'
-        )
-      ),
-    { duration: 30000 }
+    (t) => (
+      <div className="flex items-center gap-4">
+        <span className="text-sm">Your image is ready</span>
+        <button
+          type="button"
+          onClick={() => {
+            toast.dismiss(t.id);
+            shareFile(file).catch((err) => {
+              if (!isCancel(err)) toast.error("Couldn't save the image");
+            });
+          }}
+          className="flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-semibold text-black shadow active:scale-95"
+        >
+          <Download size={16} aria-hidden="true" />
+          Save image
+        </button>
+      </div>
+    ),
+    {
+      id: TOAST_ID,
+      duration: 30000,
+      icon: null,
+      style: {
+        background: '#1f1f1f',
+        color: '#fff',
+        border: '1px solid rgba(255,255,255,0.15)',
+      },
+    }
   );
 };
 
@@ -76,6 +91,7 @@ export const useImageDownload = (
 ): DownloadFn => {
   const download: DownloadFn = async (filename, options = {}) => {
     if (!ref.current) return;
+    showPreparingImage();
     let styleEl: HTMLStyleElement | undefined;
     try {
       const match = antonBase64CSS.match(/base64,([^)]+)\)/);
@@ -120,6 +136,7 @@ export const useImageDownload = (
 
       const file = new File([blob], filename, { type: 'image/png' });
       if (shouldShare(file)) {
+        toast.dismiss(TOAST_ID);
         try {
           await shareFile(file);
         } catch (err) {
@@ -130,10 +147,10 @@ export const useImageDownload = (
       }
 
       linkDownload(blob, filename);
-      toast.success('Image downloaded');
+      toast.success('Image downloaded', { id: TOAST_ID });
     } catch (err) {
       console.error('Failed to download image', err);
-      toast.error('Failed to download image');
+      toast.error('Failed to download image', { id: TOAST_ID });
     } finally {
       styleEl?.remove();
     }
