@@ -1,3 +1,4 @@
+import { DraftConditionalProgramsZ } from './draftConditionalProgram';
 /** Synthetic review fixture authority. Never a production asset contract. */
 import { z } from 'zod';
 import {
@@ -44,7 +45,12 @@ export const DraftSimulationAssumptionsZ = z
     proposalSha256: DraftEvidenceHashZ,
     stateDigest: DraftEvidenceIdZ,
     asOf: DraftEvidenceInstantZ,
-    branchMode: z.enum(['unconditional', 'conditional-2027']),
+    branchMode: z.enum([
+      'unconditional',
+      'conditional-2027',
+      'protection-programs',
+    ]),
+    programs: DraftConditionalProgramsZ.optional(),
     ownership: z.literal('stipulated-for-software-tests'),
     otherHoldings: z.literal('unknown-not-empty'),
   })

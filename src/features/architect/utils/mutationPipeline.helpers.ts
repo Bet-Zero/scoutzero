@@ -56,6 +56,7 @@ export const CURRENT_STATE_BASE_TEAM_ENTITLEMENT_IDS_FIELD_KEY = `${CURRENT_STAT
 export { AUTHORITATIVE_WORLD_TEAM_CODES } from './leagueTeams';
 
 export const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
+  'contractId',
   'salariesByYear',
   'years',
   'startYear',
@@ -97,6 +98,7 @@ export const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
 // world persistence. Dropping one here would silently strip that persisted
 // contract state on the next committed player mutation.
 export const CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS = [
+  'contractId',
   'salariesByYear',
   'contractType',
   'isExtension',

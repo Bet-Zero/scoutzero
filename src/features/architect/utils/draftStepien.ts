@@ -1,3 +1,5 @@
+import { activeConditionalStage } from './draftReview/conditionalProgram';
+import { canonicalStringify } from './contractSource/deterministicDigest';
 /** CBA2-A12.3 / L09.6: supplied possible branches, never inferred clause meaning. */
 import {
   DraftStepienFactZ,
@@ -112,9 +114,74 @@ export function evaluateSuppliedDraftStepien(
     return blocked('incomplete-or-wrong-future-draft-window');
   if (invalidBranchStructure(fact))
     return blocked('conflicting-or-wrong-year-branch-inventory');
+  const programs = fact.conditionalPrograms ?? [];
+  let expectedOutcomes: Record<string, number>[] = [{}];
+  for (const program of programs) {
+    if (!activeConditionalStage(program))
+      return blocked('resolved-conditional-program');
+    expectedOutcomes = expectedOutcomes.flatMap((outcome) =>
+      program.stages
+        .slice(program.results.length)
+        .filter((stage) => stage.protectedThrough < 30)
+        .map((stage) => ({ ...outcome, [program.id]: stage.year }))
+    );
+  }
   if (
-    fact.branches.some((b) =>
-      b.drafts.some((d) => d.retained.some((p) => requestedIds.includes(p.id)))
+    programs.length &&
+    canonicalStringify(
+      fact.branches
+        .map((b) => canonicalStringify(b.conditionalOutcomes ?? null))
+        .sort()
+    ) !==
+      canonicalStringify(
+        expectedOutcomes.map((o) => canonicalStringify(o)).sort()
+      )
+  )
+    return blocked('complete-conditional-outcomes-required');
+  if (
+    !programs.length &&
+    fact.branches.some((b) => b.conditionalOutcomes !== undefined)
+  )
+    return blocked('conditional-outcomes-without-program');
+  if (
+    fact.branches.some((branch) =>
+      programs.some((program) =>
+        branch.drafts.some((draft) =>
+          draft.retained.some((pick) => {
+            if (
+              pick.originalTeam !== program.originalTeam ||
+              !program.stages
+                .slice(program.results.length)
+                .some((s) => s.year === pick.draftYear)
+            )
+              return false;
+            const conveys =
+              branch.conditionalOutcomes?.[program.id] === pick.draftYear;
+            return request.context.team === program.originalTeam
+              ? conveys
+              : !conveys;
+          })
+        )
+      )
+    )
+  )
+    return blocked('conditional-outcome-inventory-conflict');
+  if (
+    fact.branches.some((branch) =>
+      branch.drafts.some((d) =>
+        d.retained.some((p) => {
+          if (!requestedIds.includes(p.id)) return false;
+          return !programs.some((program) => {
+            const stage = activeConditionalStage(program);
+            return (
+              program.originalTeam === request.context.team &&
+              p.originalTeam === program.originalTeam &&
+              stage?.year === p.draftYear &&
+              (branch.conditionalOutcomes?.[program.id] ?? 0) > p.draftYear
+            );
+          });
+        })
+      )
     )
   )
     return blocked('outgoing-original-pick-still-retained');

@@ -16,6 +16,7 @@ type MutationDisplayConfig = {
 };
 
 export const MUTATION_DISPLAY_CONFIG: Record<string, MutationDisplayConfig> = {
+  draftConveyance: { category: 'trade', type: 'Draft Obligation Resolved' },
   executeTrade: { category: 'trade', type: 'Trade Executed' },
   signFreeAgent: { category: 'free-agency', type: 'Signed Free Agent' },
   signAndTrade: { category: 'trade', type: 'Sign-and-Trade Executed' },

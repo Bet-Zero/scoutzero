@@ -1,3 +1,8 @@
+import {
+  activeConditionalStage,
+  conditionalPrograms,
+  conditionalPostTradeBranches,
+} from './conditionalProgram';
 /** Protected simulator integration. Financial validators and writer are unchanged. */
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { db, auth, isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
@@ -27,6 +32,7 @@ import {
   simulationPostTradeBranches,
 } from '@/features/architect/utils/draftReview/simulationInventory';
 import { normalizeEntitlementTerms } from '@/features/architect/utils/entitlements/entitlementTerms';
+import { validateEntitlementExclusivity } from '@/features/architect/utils/entitlements/entitlementExclusivityValidator';
 import type { ApplyWorldMutationArgs } from '@/features/architect/utils/mutationPipeline.types.ingress';
 import { DraftSimulationAssumptionsZ } from '@/schemas/draftPickReviewMutation';
 import { REAL_DRAFT_REVIEW_PIN } from '@/features/architect/utils/draftPickRealReviewPin';
@@ -89,17 +95,20 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
   assertSimulationInventory(catalogue, metadata, teams, entitlements, sources);
   if (
     metadata.draftSimulationBranches !== 'unconditional' &&
-    metadata.draftSimulationBranches !== 'conditional-2027'
+    metadata.draftSimulationBranches !== 'conditional-2027' &&
+    metadata.draftSimulationBranches !== 'protection-programs'
   )
     throw new Error('Simulation branch terms are unavailable.');
   const slots = args.payload.teams ?? [];
   if (
     slots.length !== 2 ||
     canonicalStringify(slots.map((s) => s.teamCode).sort()) !==
-      canonicalStringify(['CHI', 'TOR'])
+      canonicalStringify(
+        [...(metadata.draftSimulationTeams ?? ['CHI', 'TOR'])].sort()
+      )
   )
     throw new Error(
-      'This simulation supports Chicago and Toronto original-first exchanges.'
+      'Select the two teams covered by this governed test world.'
     );
   for (const slot of slots) {
     if (
@@ -108,8 +117,8 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
       slot.cashSent ||
       slot.cashToTeamId ||
       slot.salaryMatchingElection ||
-      canonicalStringify(slot.outgoingEntitlements ?? []) !==
-        canonicalStringify(slot.entitlementsOut ?? [])
+      mutationSnapshotText(slot.outgoingEntitlements ?? []) !==
+        mutationSnapshotText(slot.entitlementsOut ?? [])
     )
       throw new Error(
         'This simulation requires complete pick-only exchange terms.'
@@ -138,7 +147,23 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
       })
     )
   );
-  const originals = simulationOriginals(catalogue);
+  const originals = simulationOriginals(
+    catalogue,
+    metadata.draftSimulationTeams ?? ['CHI', 'TOR']
+  );
+  const programs =
+    metadata.draftSimulationBranches === 'protection-programs'
+      ? conditionalPrograms(
+          metadata.draftConditionalPrograms,
+          originals,
+          entitlements
+        )
+      : [];
+  if (
+    metadata.draftSimulationBranches === 'protection-programs' &&
+    !programs.length
+  )
+    throw new Error('Complete protection programs are required.');
   const movements: DraftReviewCapabilityRecord['movements'][number][] = [];
   const firstsByTeam: Record<string, string[]> = {};
   for (const slot of slots) {
@@ -158,6 +183,18 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
       )
         throw new Error(
           'Selected right needs ownership or complete protection/conveyance evidence.'
+        );
+      if (
+        programs.some((p) => {
+          const active = activeConditionalStage(p);
+          return (
+            p.stages.some((s) => s.entitlementId === id) &&
+            active?.entitlementId !== id
+          );
+        })
+      )
+        throw new Error(
+          'This first is reserved by a conditional obligation or its draft has resolved.'
         );
       const outgoingPick = row.originalPick;
       const unresolved = catalogue.data.unresolved.filter(
@@ -190,16 +227,16 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
       ])
         if (
           key in out &&
-          canonicalStringify(Reflect.get(out, key)) !==
-            canonicalStringify(current[key])
+          mutationSnapshotText(Reflect.get(out, key)) !==
+            mutationSnapshotText(current[key])
         )
           throw new Error(
             'Caller-supplied pick terms differ from the saved world.'
           );
       if (
         out.terms != null &&
-        canonicalStringify(out.terms) !==
-          canonicalStringify(normalizeEntitlementTerms(current))
+        mutationSnapshotText(out.terms) !==
+          mutationSnapshotText(normalizeEntitlementTerms(current))
       )
         throw new Error(
           'Caller-supplied protection terms differ from the saved world.'
@@ -216,8 +253,26 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     }
   }
   if (!movements.length) throw new Error('Select a first-round pick.');
+  if (programs.length) {
+    for (const slot of slots) {
+      const post = Object.entries(entitlements)
+        .filter(
+          ([id, entitlement]) =>
+            (movements.find((m) => m.entitlementId === id)?.toTeam ??
+              entitlement.holderTeam) === slot.teamCode
+        )
+        .map(([, entitlement]) => entitlement);
+      const exclusivity = validateEntitlementExclusivity({
+        entitlements: post,
+      });
+      if (!exclusivity.valid)
+        throw new Error(
+          `Competing retained claims: ${exclusivity.violations.map((v) => v.type).join(', ')}`
+        );
+    }
+  }
   const proposalSha256 = (
-    await sha256Digest(canonicalStringify(args.payload))
+    await sha256Digest(mutationSnapshotText(args.payload))
   ).slice(7);
   const assumptions = DraftSimulationAssumptionsZ.parse({
     kind: 'governed-test-assumptions-v1',
@@ -226,6 +281,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     stateDigest,
     asOf,
     branchMode: metadata.draftSimulationBranches,
+    ...(programs.length ? { programs } : {}),
     ownership: 'stipulated-for-software-tests',
     otherHoldings: 'unknown-not-empty',
   });
@@ -282,10 +338,25 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
         );
       })
       .map((r) => r.originalPick!);
-    const branches = simulationPostTradeBranches(
-      retained,
-      metadata.draftSimulationBranches === 'conditional-2027'
-    );
+    const branches = programs.length
+      ? conditionalPostTradeBranches({
+          programs,
+          originals,
+          team,
+          firstYear: 2026,
+          throughYear: 2032,
+          holders: Object.fromEntries(
+            originals.map((r) => [
+              r.entitlementId,
+              movements.find((m) => m.entitlementId === r.entitlementId)
+                ?.toTeam ?? String(entitlements[r.entitlementId].holderTeam),
+            ])
+          ),
+        })
+      : simulationPostTradeBranches(
+          retained,
+          metadata.draftSimulationBranches === 'conditional-2027'
+        );
     return assessDraftReviewConsumption({
       request: { context, outgoing },
       facts: [
@@ -295,7 +366,35 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
           scope: 'original-pick-ownership',
           pick,
           claimCoverage: 'complete',
-          claims: [{ id: pick.id, team, status: 'owned-unconditionally' }],
+          claims: [
+            {
+              id: pick.id,
+              team,
+              status: programs.some(
+                (p) =>
+                  activeConditionalStage(p)?.entitlementId ===
+                  originals.find((r) => r.originalPick?.id === pick.id)
+                    ?.entitlementId
+              )
+                ? 'owned-conditional-selection-right'
+                : 'owned-unconditionally',
+            },
+          ],
+          ...(programs.some(
+            (p) =>
+              activeConditionalStage(p)?.entitlementId ===
+              originals.find((r) => r.originalPick?.id === pick.id)
+                ?.entitlementId
+          )
+            ? {
+                conditionalProgram: programs.find(
+                  (p) =>
+                    activeConditionalStage(p)?.entitlementId ===
+                    originals.find((r) => r.originalPick?.id === pick.id)
+                      ?.entitlementId
+                ),
+              }
+            : {}),
         })),
         {
           ...scopedEvidence('stepien-post-trade-branches'),
@@ -310,12 +409,14 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
             explanationSha256: QUALIFIED_JUNE5_DRAFT_HORIZON.explanationSha256,
             calendarSha256: QUALIFIED_JUNE5_DRAFT_HORIZON.calendarSha256,
             completeRelevantObligationCoverage: true,
-            knownObligationDraftYears:
-              metadata.draftSimulationBranches === 'conditional-2027'
+            knownObligationDraftYears: programs.length
+              ? programs.flatMap((p) => p.stages.map((s) => s.year))
+              : metadata.draftSimulationBranches === 'conditional-2027'
                 ? [2027]
                 : [],
             unresolvedDependencyIds: [],
           },
+          ...(programs.length ? { conditionalPrograms: programs } : {}),
           branchesComplete: true,
           branches,
         },

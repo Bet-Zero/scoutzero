@@ -1,3 +1,4 @@
+import { ConditionalDraftJourney } from './ConditionalDraftJourney';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -1191,6 +1192,7 @@ export const TradeEditor = ({
           className="p-3 text-sm border border-cockpit-edge rounded-lg my-2"
         >
           <p>{DRAFT_SIMULATION_NOTICE}</p>
+          <ConditionalDraftJourney worldId={worldId} />
           {simulation.busy && (
             <p role="status">Reviewing the saved-world proposal…</p>
           )}

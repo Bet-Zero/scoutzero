@@ -1,3 +1,5 @@
+import { ConditionalSeasonReceiptZ } from '@/schemas/draftConditionalReceipt';
+import { TeamSalaryBookInputsZ } from '@/schemas/salaryBooks';
 /** Shared deterministic season preparation. No database reads, authority promotion or publication. */
 import { DraftReviewSeasonReceiptZ } from '@/schemas/draftReviewSeason';
 import {
@@ -55,6 +57,9 @@ export async function prepareSeasonAdvance(args: {
   optionDecisions: NonNullable<SeasonAdvanceRequest['optionDecisions']>;
   focusTeamCode: string | null;
   worldLineage: string[];
+  conditionalSeasonBooks?: unknown;
+  /** Client coordinator supplies the live guard; server callers have no test permission. */
+  conditionalEnvironmentCheck?: () => boolean;
   draftReview: {
     freezeEvents: ReturnType<typeof buildSyntheticFreezeEvents>;
   } | null;
@@ -118,8 +123,35 @@ export async function prepareSeasonAdvance(args: {
   };
   const preparedTeams: PreparedSeasonAdvanceTeam[] = [];
 
+  if (
+    args.conditionalSeasonBooks !== undefined &&
+    (args.conditionalEnvironmentCheck?.() !== true ||
+      worldMeta.draftSimulationBranches !== 'protection-programs' ||
+      !args.conditionalSeasonBooks ||
+      typeof args.conditionalSeasonBooks !== 'object' ||
+      Object.keys(args.conditionalSeasonBooks).sort().join(',') !==
+        teams
+          .map((t) => t.teamCode)
+          .sort()
+          .join(','))
+  )
+    throw new Error('Complete protected test season books are required.');
   for (const team of teams) {
-    const transitionTeam = toSeasonTransitionTeam(team);
+    const testBooks =
+      args.conditionalSeasonBooks === undefined
+        ? null
+        : TeamSalaryBookInputsZ.parse(
+            Reflect.get(
+              args.conditionalSeasonBooks as object,
+              String(team.teamCode)
+            )
+          );
+    if (testBooks && testBooks.salaryCapYear !== toYear)
+      throw new Error('Test season books identify the wrong year.');
+    const targetTeam = testBooks
+      ? { ...team, salaryBookInputs: testBooks }
+      : team;
+    const transitionTeam = toSeasonTransitionTeam(targetTeam);
     const teamCode = transitionTeam.teamCode;
     if (!isNonEmptyString(teamCode)) {
       throw new Error(
@@ -184,7 +216,7 @@ export async function prepareSeasonAdvance(args: {
     const provisionalCommitted = safeCloneForAudit(
       committedTeam
     ) as SeasonAdvanceCommittedTeamSnapshot & Record<string, unknown>;
-    const beforeTotals = createCanonicalTeamTotalsSnapshot(team, toYear, {
+    const beforeTotals = createCanonicalTeamTotalsSnapshot(targetTeam, toYear, {
       asOfDate: authority.transitionEffectiveAt,
       capProjections: authority.targetCapProjections,
     });
@@ -229,6 +261,7 @@ export async function prepareSeasonAdvance(args: {
         transitionId,
         teamCode,
         beforeTeam,
+        ...(testBooks ? { measurementTeam: targetTeam } : {}),
         committedTeam: safeCommittedTeam,
         beforeTotals,
         afterTotals,
@@ -326,6 +359,18 @@ export async function prepareSeasonAdvance(args: {
       transitionEffectiveAt: authority.transitionEffectiveAt,
       governedSeasonInputManifest: authority.targetInputManifest,
       entitlementBoundary: authority.entitlementBoundary,
+      ...(args.conditionalSeasonBooks
+        ? {
+            conditionalSeasonReceipt: ConditionalSeasonReceiptZ.parse({
+              scope: 'governed-simulation-only',
+              worldId,
+              operationId,
+              catalogueSha256: worldMeta.draftSimulationCatalogue,
+              programs: worldMeta.draftConditionalPrograms,
+              entitlementState: 'preserved-exactly',
+            }),
+          }
+        : {}),
       contractEventIds: preparedTeams.flatMap(
         (team) => team.teamRecord.contractEventIds
       ),
@@ -379,12 +424,14 @@ export async function prepareSeasonAdvance(args: {
     // The full books remain in each immutable history record in this same
     // transaction, with exact digests above. Avoid duplicating all30 detailed
     // ledgers inside the single synthetic event's Firestore document.
-    beforeTotalsByTeam: draftReview
-      ? compactSyntheticSeasonEventTotals(beforeTotalsByTeam)
-      : beforeTotalsByTeam,
-    afterTotalsByTeam: draftReview
-      ? compactSyntheticSeasonEventTotals(afterTotalsByTeam)
-      : afterTotalsByTeam,
+    beforeTotalsByTeam:
+      draftReview || args.conditionalSeasonBooks
+        ? compactSyntheticSeasonEventTotals(beforeTotalsByTeam)
+        : beforeTotalsByTeam,
+    afterTotalsByTeam:
+      draftReview || args.conditionalSeasonBooks
+        ? compactSyntheticSeasonEventTotals(afterTotalsByTeam)
+        : afterTotalsByTeam,
     valid: postStateValidation.valid,
     violations: postStateValidation.violations,
     warnings: postStateValidation.warnings,

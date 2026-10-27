@@ -5,6 +5,8 @@ import {
   retainedSimulationEntitlement,
 } from '@/features/architect/utils/draftReview/simulationInventory';
 import { prepareSimulationRecord } from '@/features/architect/utils/draftReview/simulationReview';
+import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
+import { advanceConditionalDraftInWorld } from '@/features/architect/utils/seasonManager.conditionalDraft';
 import {
   prepareRetainedDraftSimulation,
   requireDraftReviewCapability,
@@ -319,6 +321,107 @@ describe('retained simulation proposal integration (stipulated inputs, no NBA fa
     await expect(prepareRetainedDraftSimulation(args())).rejects.toThrow(
       'protected review'
     );
+    await expect(
+      advanceConditionalDraftInWorld('w', {
+        operationId: 'draft',
+        expectedRevision: 0,
+        draftYear: 2026,
+        positions: { CHI: 10 },
+      })
+    ).rejects.toThrow('protected draft');
     expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('complete protected-selection proposal review', () => {
+  function installProgram() {
+    const program = {
+      id: 'conditional-test',
+      originalTeam: 'CHI',
+      stages: [
+        { entitlementId: id('CHI', 2026), year: 2026, protectedThrough: 10 },
+        { entitlementId: id('CHI', 2027), year: 2027, protectedThrough: 0 },
+      ],
+      results: [],
+    };
+    Object.assign(mock.docs.get('architect_worlds/w'), {
+      draftSimulationBranches: 'protection-programs',
+      draftConditionalPrograms: [program],
+    });
+    mock.docs.get(
+      `architect_worlds/w/entitlements/${id('CHI', 2026)}`
+    ).protectionLadder = [
+      {
+        year: 2026,
+        condition: 'Top 10',
+        ifTriggered: 'roll',
+        rollToYear: 2027,
+      },
+      { year: 2027, condition: 'Unprotected', ifTriggered: 'roll' },
+    ];
+    return program;
+  }
+  it('permits trading the owned conditional selection right through the existing components', async () => {
+    installProgram();
+    const proposal = args(2026, 2029);
+    Object.assign(
+      proposal.payload.teams[0].entitlementsOut[0],
+      decorateEntitlementForTrade(
+        mock.docs.get(`architect_worlds/w/entitlements/${id('CHI', 2026)}`)
+      )
+    );
+    const result = await prepareRetainedDraftSimulation(proposal);
+    expect(result.status).toBe('prepared');
+    if (result.status !== 'prepared') throw new Error('expected prepared');
+    expect(
+      requireDraftReviewCapability(result.authority).assumptions?.programs
+    ).toHaveLength(1);
+  });
+  it('rejects a proposal with one invalid deferral branch despite its valid immediate-conveyance branch', async () => {
+    installProgram();
+    const proposal = args(2026, 2029);
+    const extra = args(2028, 2029).payload.teams[0].entitlementsOut[0];
+    proposal.payload.teams[0].entitlementsOut.push(extra);
+    const result = await prepareSimulationRecord(proposal);
+    expect(result.status).toBe('blocked');
+    if (result.status === 'blocked')
+      expect(result.reasons.join(' ')).toContain('unknown-2027/2028');
+  });
+  it('refuses a separately selected reserved fallback entitlement', async () => {
+    installProgram();
+    await expect(prepareSimulationRecord(args(2027, 2029))).rejects.toThrow(
+      /reserved/
+    );
+  });
+  it('refuses missing or inconsistent protection terms', async () => {
+    const program = installProgram();
+    program.stages[1].protectedThrough = 3;
+    await expect(prepareSimulationRecord(args(2026, 2029))).rejects.toThrow(
+      /unprotected/
+    );
+  });
+  it('cannot review conditional terms as an unconditional inventory', async () => {
+    installProgram();
+    mock.docs.get('architect_worlds/w').draftSimulationBranches =
+      'unconditional';
+    await expect(prepareSimulationRecord(args(2026, 2029))).rejects.toThrow(
+      'explicit governed review mode'
+    );
+  });
+  it('keeps unresolved fallback evidence blocked', async () => {
+    installProgram();
+    const dependency = {
+      dependencyId: 'fallback-evidence',
+      entitlementIds: [id('CHI', 2027)],
+      actions: ['conveyance'],
+      reason: 'Missing fallback terms',
+    };
+    mock.catalogue.data.unresolved = [dependency];
+    mock.docs.get('architect_worlds/w').draftSimulationUnresolved = [
+      dependency,
+    ];
+    await expect(prepareSimulationRecord(args(2026, 2029))).rejects.toThrow(
+      'unresolved evidence dependency'
+    );
   });
 });

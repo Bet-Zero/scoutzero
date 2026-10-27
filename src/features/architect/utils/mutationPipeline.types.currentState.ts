@@ -27,6 +27,7 @@ import type {
 } from './mutationPipeline.types.record';
 
 const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
+  'contractId',
   'salariesByYear',
   'years',
   'startYear',
@@ -68,6 +69,7 @@ const CURRENT_STATE_PLAYER_CONTRACT_KEYS = [
 // world persistence. Dropping one here would silently strip that persisted
 // contract state on the next committed player mutation.
 const CURRENT_STATE_PLAYER_FUTURE_CONTRACT_KEYS = [
+  'contractId',
   'salariesByYear',
   'contractType',
   'isExtension',
@@ -119,6 +121,7 @@ export type MutationCurrentStatePlayerContractSalaryRowIngress = {
 };
 export type CurrentStatePlayerContractSalaryRow = NormalizedMutationSalaryRow;
 export type MutationCurrentStatePlayerContractIngress = {
+  contractId?: string | null;
   salariesByYear?: MutationCurrentStatePlayerContractSalaryRowIngress[] | null;
   years?: MutationCurrentStateContractNumberish;
   startYear?: MutationCurrentStateContractNumberish;
@@ -159,6 +162,7 @@ export type MutationCurrentStatePlayerContractIngress = {
   offerSheetMatchRestriction?: unknown;
 };
 export type MutationCurrentStatePlayerFutureContractIngress = {
+  contractId?: string | null;
   salariesByYear?: MutationCurrentStatePlayerContractSalaryRowIngress[] | null;
   contractType?: string | null;
   isExtension?: boolean | null;

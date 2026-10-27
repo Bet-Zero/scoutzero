@@ -1,4 +1,9 @@
 /** Retained source identity and software assumptions stay separate. No writes. */
+import {
+  activeConditionalStage,
+  conditionalPrograms,
+  conditionalProtectionLadder,
+} from './conditionalProgram';
 import { verifyRealDraftReviewPackage } from '@/features/architect/utils/draftPickRealReview';
 import { REAL_DRAFT_REVIEW_PIN } from '@/features/architect/utils/draftPickRealReviewPin';
 import { canonicalStringify } from '@/features/architect/utils/contractSource/deterministicDigest';
@@ -14,11 +19,14 @@ export async function loadSimulationCatalogue(text: string) {
 export type SimulationCatalogue = Awaited<
   ReturnType<typeof loadSimulationCatalogue>
 >;
-export function simulationOriginals(catalogue: SimulationCatalogue) {
+export function simulationOriginals(
+  catalogue: SimulationCatalogue,
+  teams = ['CHI', 'TOR']
+) {
   return catalogue.data.records.filter(
     (r) =>
       r.originalPick &&
-      ['CHI', 'TOR'].includes(r.originalPick.originalTeam) &&
+      teams.includes(r.originalPick.originalTeam) &&
       r.originalPick.draftYear >= 2026 &&
       r.originalPick.draftYear <= 2032
   );
@@ -67,6 +75,74 @@ export function assertSimulationInventory(
       canonicalStringify(catalogue.data.unresolved)
   )
     throw new Error('Simulation catalogue or unresolved dependencies changed.');
+  const testTeams = metadata.draftSimulationTeams;
+  const teamsInScope = testTeams === undefined ? ['CHI', 'TOR'] : testTeams;
+  if (
+    !Array.isArray(teamsInScope) ||
+    teamsInScope.length !== 2 ||
+    new Set(teamsInScope).size !== 2 ||
+    teamsInScope.some((t) => typeof t !== 'string' || !teams[t])
+  )
+    throw new Error('The simulation needs two distinct league teams.');
+  const programs =
+    metadata.draftConditionalPrograms === undefined
+      ? []
+      : conditionalPrograms(
+          metadata.draftConditionalPrograms,
+          catalogue.data.records,
+          entitlements
+        );
+  if (
+    programs.length > 0 !==
+    (metadata.draftSimulationBranches === 'protection-programs')
+  )
+    throw new Error(
+      'Conditional programs require their explicit governed review mode.'
+    );
+  for (const program of programs) {
+    if (!teamsInScope.includes(program.originalTeam))
+      throw new Error('Conditional terms exceed the governed team scope.');
+    const seasonYear = Number(String(metadata.currentSeason).slice(0, 4)) + 1;
+    if (
+      !Number.isInteger(seasonYear) ||
+      (activeConditionalStage(program)?.year ?? Infinity) < seasonYear
+    )
+      throw new Error('An unresolved conditional draft was skipped.');
+    for (const result of program.results) {
+      const dates = Array.isArray(metadata.draftSimulationCalendar)
+        ? metadata.draftSimulationCalendar.filter(
+            (d) => d?.year === result.year
+          )
+        : [];
+      if (
+        dates.length !== 1 ||
+        typeof dates[0].date !== 'string' ||
+        !new RegExp(`^${result.year}-06-(0[1-9]|[12][0-9]|30)$`).test(
+          dates[0].date
+        ) ||
+        typeof metadata.asOfDate !== 'string' ||
+        dates[0].date > metadata.asOfDate ||
+        result.year > seasonYear
+      )
+        throw new Error(
+          'A recorded conditional outcome is inconsistent with the world date.'
+        );
+    }
+    for (const stage of program.stages) {
+      if (
+        catalogue.data.unresolved.some(
+          (dependency) =>
+            dependency.entitlementIds.includes(stage.entitlementId) &&
+            dependency.actions.some((action) =>
+              ['transfer', 'stepien', 'conveyance', 'apron'].includes(action)
+            )
+        )
+      )
+        throw new Error(
+          'A conditional stage has an unresolved evidence dependency.'
+        );
+    }
+  }
   const expected = catalogue.data.records.map((r) => r.entitlementId).sort();
   if (
     canonicalStringify(Object.keys(entitlements).sort()) !==
@@ -97,7 +173,13 @@ export function assertSimulationInventory(
       id,
       sources[id] ?? {}
     );
-    const { holderTeam: initialHolder, ...initialTerms } = baseline;
+    const program = programs.find(
+      (p) => activeConditionalStage(p)?.entitlementId === id
+    );
+    const expectedTerms = program
+      ? { ...baseline, protectionLadder: conditionalProtectionLadder(program) }
+      : baseline;
+    const { holderTeam: initialHolder, ...initialTerms } = expectedTerms;
     const { holderTeam: holder, ...terms } = actual;
     if (
       canonicalStringify(terms) !== canonicalStringify(initialTerms) ||
@@ -108,7 +190,9 @@ export function assertSimulationInventory(
       );
     if (
       holder !== initialHolder &&
-      !simulationOriginals(catalogue).some((r) => r.entitlementId === id)
+      !simulationOriginals(catalogue, teamsInScope).some(
+        (r) => r.entitlementId === id
+      )
     )
       throw new Error('An unsupported retained right changed holders.');
   }
