@@ -471,6 +471,26 @@ export const RankingSession = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [field, isFinished, playersById, bestFirst, poolPlayers, closureCache, results]);
 
+  // Lock-ins answers already rule out (building a Top-N field): anyone known
+  // to be worse than another player here can't be #1, anyone known to be
+  // better can't be last. Only the setup screen needs it.
+  const lockInConflicts = useMemo(() => {
+    const notFirst = new Set<string>();
+    const notLast = new Set<string>();
+    if (configured) return { notFirst, notLast };
+    const here = new Set(players.map((p) => p.id));
+    players.forEach((p) => {
+      closureCache.closure[p.id]?.forEach((loser) => {
+        if (loser === p.id || !here.has(loser)) return;
+        notFirst.add(loser);
+        notLast.add(p.id);
+      });
+    });
+    return { notFirst, notLast };
+    // results drive the closure cache's contents
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [configured, players, closureCache, results]);
+
   const ranking = useMemo(() => {
     if (!isFinished) return [];
     const byId = new Map(players.map((p) => [p.id, p]));
@@ -635,6 +655,8 @@ export const RankingSession = ({
           initial={setupPrefill}
           onBack={steps.length > 0 ? handleUndo : undefined}
           backLabel={field ? '← Back to building the field' : '← Back'}
+          notFirst={lockInConflicts.notFirst}
+          notLast={lockInConflicts.notLast}
         />
       </>
     );
@@ -728,7 +750,7 @@ export const RankingSession = ({
   return (
     <>
       {exitBar}
-      <div className="flex flex-col items-center pt-12">
+      <div className="flex flex-col items-center pt-6 sm:pt-12">
         <PlayerCompareCard
           left={leftPlayer}
           right={rightPlayer}
@@ -737,7 +759,7 @@ export const RankingSession = ({
           onUndo={canUndo ? handleUndo : undefined}
         />
         {topN !== null && (
-          <div className="flex flex-wrap justify-center gap-2 mt-4 text-xs">
+          <div className="flex flex-wrap justify-center gap-2 mt-4 px-4 text-xs">
             <button
               onClick={() => handleCut([leftPlayer.id])}
               disabled={!canCut(1)}

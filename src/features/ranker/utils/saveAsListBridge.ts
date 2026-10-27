@@ -52,6 +52,21 @@ const normalizePlayerIds = (
 const getErrorMessage = (err: unknown): string =>
   err instanceof Error ? err.message : String(err);
 
+type LinkedList = { listId: string; listName: string };
+
+// The list this ranking was saved as, named as it is now on the Lists page.
+// A list saved before a reload (or with a reopened ranking) still counts;
+// one deleted on the Lists page doesn't, so the next save makes a new list.
+export const resolveLinkedList = (
+  justSaved: LinkedList | null,
+  linkedListId: string | null | undefined,
+  lists: ReadonlyArray<{ id: string; name: string }>
+): LinkedList | null => {
+  const id = justSaved?.listId ?? linkedListId ?? null;
+  const list = id ? lists.find((l) => l.id === id) : undefined;
+  return list ? { listId: list.id, listName: list.name } : justSaved;
+};
+
 export const buildRankerListName = (
   sessionName: string | null | undefined
 ): string => {

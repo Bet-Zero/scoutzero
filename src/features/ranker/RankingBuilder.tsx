@@ -12,8 +12,12 @@ import { LocalDraftBanner } from './LocalDraftBanner';
 import { useRankerSession } from './hooks/useRankerSession';
 import { storedRankerScore } from './hooks/useImpactScores';
 import { poolBestFirst } from './utils/fieldBuilder';
+import { resolveLinkedList } from './utils/saveAsListBridge';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
 import type { HydratedRankerDraft } from './hooks/useRankerSession';
+
+// The pool column; on phones it sits below the results, so a bar jumps to it
+const POOL_PANEL_ID = 'ranker-pool';
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -175,6 +179,9 @@ export const RankingBuilder = () => {
     if (isOwner) void fetchFirestoreSessions();
   }, [isOwner, fetchFirestoreSessions]);
 
+  // "Update List" and the saved list's name, also after a reload
+  const linkedList = resolveLinkedList(savedListMeta, localDraft?.savedListId, lists);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64 text-white/30 text-sm">
@@ -199,7 +206,7 @@ export const RankingBuilder = () => {
         saveStatus={saveStatus}
         saveAsList={saveAsList}
         listSaveStatus={listSaveStatus}
-        savedListMeta={savedListMeta}
+        savedListMeta={linkedList}
       />
     );
   }
@@ -256,6 +263,7 @@ export const RankingBuilder = () => {
         }
         pool={
           <PoolPanel
+            id={POOL_PANEL_ID}
             pool={pool}
             onRemove={removePlayer}
             onClear={clearPool}
@@ -267,6 +275,26 @@ export const RankingBuilder = () => {
           />
         }
       />
+
+      {/* Phones: the pool and Start Ranking are below the results */}
+      {pool.length > 0 && (
+        <div className="lg:hidden sticky bottom-0 z-20 -mx-4 sm:-mx-5 -mb-5 px-4 sm:px-5 py-3 flex items-center justify-between gap-3 bg-neutral-900/95 backdrop-blur border-t border-white/10">
+          <p className="text-sm text-white/65">
+            <span className="text-white font-semibold">{pool.length}</span>{' '}
+            {pool.length === 1 ? 'player' : 'players'} in your pool
+          </p>
+          <button
+            onClick={() =>
+              document
+                .getElementById(POOL_PANEL_ID)
+                ?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+            }
+            className="h-9 px-4 rounded-lg bg-white text-black text-sm font-semibold hover:bg-white/90"
+          >
+            Review &amp; start ↓
+          </button>
+        </div>
+      )}
     </div>
   );
 };

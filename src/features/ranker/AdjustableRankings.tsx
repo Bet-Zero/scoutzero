@@ -75,7 +75,8 @@ export const AdjustableRankings = ({
     JSON.stringify(initialRanking.map((p) => p.id));
 
   return (
-    <div className="mt-6 mx-auto max-w-4xl px-4">
+    // Full width on phones; wider screens keep the content-sized column
+    <div className="mt-6 mx-auto max-w-4xl px-4 max-sm:w-full">
       {/* Header */}
       <div className="mb-6">
         <div className="text-center mb-4">
@@ -84,22 +85,27 @@ export const AdjustableRankings = ({
             Adjust Your Rankings
           </h2>
           <p className="text-white/60 text-sm">
-            Drag players or use the arrow buttons to fine-tune your results
+            <span className="sm:hidden">
+              Use the arrow buttons to move players up or down
+            </span>
+            <span className="hidden sm:inline">
+              Drag players or use the arrow buttons to fine-tune your results
+            </span>
           </p>
         </div>
 
-        <div className="flex justify-center gap-3 mb-4">
+        <div className="flex flex-wrap justify-center gap-3 mb-4">
           <button
             onClick={() => onSave(adjustedRanking)}
             disabled={!hasChanges}
-            className="flex items-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium text-white transition-all"
+            className="flex items-center gap-2 px-4 sm:px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg font-medium text-white transition-all"
           >
             <Save size={16} />
             Save Adjustments
           </button>
           <button
             onClick={onCancel}
-            className="flex items-center gap-2 px-6 py-2 bg-white/10 hover:bg-white/20 rounded-lg font-medium text-white transition-all"
+            className="flex items-center gap-2 px-4 sm:px-6 py-2 bg-white/10 hover:bg-white/20 rounded-lg font-medium text-white transition-all"
           >
             <X size={16} />
             Cancel
@@ -129,13 +135,13 @@ export const AdjustableRankings = ({
               onDragOver={(e) => handleDragOver(e, index)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, index)}
-              className={`relative flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 border rounded-lg transition-all cursor-move
+              className={`relative flex items-center gap-2.5 p-2.5 sm:gap-4 sm:p-4 bg-white/5 hover:bg-white/10 border rounded-lg transition-all cursor-move
                 ${draggedIndex === index ? 'opacity-50' : ''}
                 ${dragOverIndex === index && draggedIndex !== index ? 'border-orange-400 bg-orange-400/10' : 'border-white/10'}
               `}
             >
               {/* Rank */}
-              <div className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full font-bold text-white text-base flex-shrink-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-white/10 rounded-full font-bold text-white text-sm sm:text-base flex-shrink-0">
                 {index + 1}
               </div>
 
@@ -143,7 +149,7 @@ export const AdjustableRankings = ({
               <img
                 src={headshot}
                 alt={getPlayerName(player)}
-                className="w-12 h-12 rounded-lg object-cover bg-neutral-800 flex-shrink-0"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg object-cover bg-neutral-800 flex-shrink-0"
                 onError={(e) => {
                   e.currentTarget.onerror = null; e.currentTarget.src = '/assets/headshots/default.png';
                 }}
@@ -169,12 +175,12 @@ export const AdjustableRankings = ({
                 </div>
               </div>
 
-              {/* Arrow Buttons */}
-              <div className="flex flex-col gap-1 flex-shrink-0">
+              {/* Arrow Buttons (side by side, finger-sized, on phones) */}
+              <div className="flex sm:flex-col gap-1 flex-shrink-0">
                 <button
                   onClick={() => moveUp(index)}
                   disabled={index === 0}
-                  className="p-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-all"
+                  className="p-2.5 sm:p-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-all"
                   title="Move up"
                 >
                   <ChevronUp size={16} />
@@ -182,15 +188,15 @@ export const AdjustableRankings = ({
                 <button
                   onClick={() => moveDown(index)}
                   disabled={index === adjustedRanking.length - 1}
-                  className="p-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-all"
+                  className="p-2.5 sm:p-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed rounded transition-all"
                   title="Move down"
                 >
                   <ChevronDown size={16} />
                 </button>
               </div>
 
-              {/* Drag Handle */}
-              <div className="flex flex-col justify-center gap-0.5 text-white/30 flex-shrink-0">
+              {/* Drag Handle (touch screens can't drag rows) */}
+              <div className="hidden sm:flex flex-col justify-center gap-0.5 text-white/30 flex-shrink-0">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="w-4 h-px bg-current" />
                 ))}
@@ -202,7 +208,10 @@ export const AdjustableRankings = ({
 
       <div className="mt-8 p-4 bg-white/5 rounded-lg text-center text-white/50 text-sm">
         <strong className="text-white/70">How to adjust:</strong>
-        <span className="ml-1">
+        <span className="ml-1 sm:hidden">
+          Use ↑ ↓ to move a player · Save when done
+        </span>
+        <span className="ml-1 hidden sm:inline">
           Drag rows to reorder · Use ↑ ↓ buttons to nudge · Save when done
         </span>
       </div>

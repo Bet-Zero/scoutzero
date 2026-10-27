@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-10-21: Created in the Player Ranker audit fix pass (PR #562)
  *  - 2026-10-26: Compact "Save progress" variant for unfinished rankings
+ *  - 2026-10-27: Plain labels ("Save ranking") instead of the database's name
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/562
@@ -88,17 +89,17 @@ export const SaveSessionButton = ({
       ) : saveStatus === 'saved' ? (
         <>
           <CheckCircle className="w-4 h-4" />
-          Saved to Firestore
+          Ranking saved
         </>
       ) : saveStatus === 'error' ? (
         <>
           <AlertCircle className="w-4 h-4" />
-          Save Failed (Retry)
+          Save failed (retry)
         </>
       ) : (
         <>
           <Save className="w-4 h-4" />
-          Save to Firestore
+          Save ranking
         </>
       )}
     </button>

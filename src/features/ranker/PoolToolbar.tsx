@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-24: Created for the pool workbench layout (controls moved from FilterPoolPanel.tsx)
+ *  - 2026-10-27: Positioned, so the add/saved menus can open under it when it wraps (phones, tablets)
  *
  * LINKS:
  *  - Used in: src/features/ranker/PoolWorkbench.tsx
@@ -35,7 +36,7 @@ export const PoolToolbar = ({
   onToggleFilters,
   children = null,
 }: PoolToolbarProps) => (
-  <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+  <div className="relative flex flex-shrink-0 flex-wrap items-center gap-2">
     <label className="relative flex-1 min-w-[200px]">
       <Search className="w-4 h-4 text-white/30 absolute left-3 top-1/2 -translate-y-1/2" />
       <input

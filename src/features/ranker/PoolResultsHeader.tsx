@@ -5,6 +5,7 @@
  *
  * HISTORY:
  *  - 2026-10-24: Split out of PoolWorkbench.tsx
+ *  - 2026-10-27: Candidates box keeps what's typed (a first digit no longer snaps to the minimum)
  *
  * LINKS:
  *  - Used in: src/features/ranker/PoolWorkbench.tsx
@@ -25,6 +26,9 @@ const Note = ({ children }: { children: React.ReactNode }) => (
 export const ResultsHeader = ({ finder }: { finder: PoolFinder }) => {
   const { topN, poolSize, setPoolSize, isPastSeason, season } = finder;
   const [explained, setExplained] = useState(false);
+  // What's being typed in the candidates box, so typing 120 over 42 isn't
+  // cut short at the first digit; null shows the current size
+  const [typed, setTyped] = useState<string | null>(null);
   if (topN === null && !isPastSeason) return null;
   return (
     <div className="flex flex-shrink-0 flex-col gap-2 px-4 py-3 border-b border-white/[0.06] bg-white/[0.015]">
@@ -38,10 +42,18 @@ export const ResultsHeader = ({ finder }: { finder: PoolFinder }) => {
             <input
               type="number"
               min={topN}
-              value={poolSize}
-              onChange={(e) =>
-                setPoolSize(Math.max(topN, Number(e.target.value) || topN))
-              }
+              value={typed ?? poolSize}
+              onChange={(e) => {
+                setTyped(e.target.value);
+                const n = Number.parseInt(e.target.value, 10);
+                if (Number.isFinite(n) && n >= topN) setPoolSize(n);
+              }}
+              // Anything too small (or nothing) settles on the smallest pool
+              onBlur={() => {
+                const n = Number.parseInt(typed ?? '', 10);
+                if (typed !== null && !(n >= topN)) setPoolSize(topN);
+                setTyped(null);
+              }}
               aria-label="Candidates to pull"
               className={`${fieldClass} !h-8 w-20 px-2.5`}
             />

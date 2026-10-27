@@ -324,6 +324,41 @@ export const createInitialDraft = ({
   };
 };
 
+// Just what counting needs, so local drafts and saved sessions both fit
+type AnswerCountInput = {
+  results: readonly unknown[];
+  seedCount?: number | null;
+  setupData?: { steps?: ReadonlyArray<{ results: number; setupData: unknown }> | null } | null;
+};
+
+// The step taken from the setup screen: before setup, or with a Top-N
+// field built but not yet set up
+const isStartRankingStep = (stepSetup: unknown): boolean => {
+  if (stepSetup === null) return true;
+  if (typeof stepSetup !== 'object') return false;
+  const { field, configured } = stepSetup as {
+    field?: { stage?: unknown } | null;
+    configured?: unknown;
+  };
+  return field?.stage === 'done' && configured !== true;
+};
+
+/**
+ * Matchups the user actually answered. Start Ranking (#1 / last lock-ins)
+ * and the anchor screen add results on their own: they're the results from
+ * Start Ranking up to `seedCount`. Results before Start Ranking (building a
+ * Top-N field) are answers. Sessions saved before step undo have no record
+ * of Start Ranking and count everything up to `seedCount` as added.
+ */
+export const countAnswers = ({ results, seedCount, setupData }: AnswerCountInput): number => {
+  const seeds = seedCount ?? 0;
+  if (seeds === 0) return results.length;
+  const steps = Array.isArray(setupData?.steps) ? setupData.steps : [];
+  const start = steps.find((step) => Boolean(step) && isStartRankingStep(step.setupData));
+  const before = typeof start?.results === 'number' ? start.results : 0;
+  return Math.max(0, results.length - (seeds - before));
+};
+
 export const __testing = {
   serializeSkippedPairs,
   deserializeSkippedPairs,

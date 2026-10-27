@@ -2,6 +2,8 @@ import { cleanup, render, screen, fireEvent, within } from '@testing-library/rea
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { RankingSession } from '@/features/ranker/RankingSession';
 import { RankerSetupDataZ } from '@/firebase/rankerHelpers';
+import { createClosureCache } from '@/features/ranker/utils/rankingEngine';
+import { createFieldState } from '@/features/ranker/utils/fieldBuilder';
 
 const names = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Echo', 'Foxtrot', 'Golf', 'Hotel'];
 const pool = names.map((name) => ({ id: name.toLowerCase(), name }));
@@ -70,5 +72,53 @@ describe('RankingSession Top-N field', () => {
     for (let i = 0; i < 20 && pickBetter(); i++);
     expect(screen.getByText('Your Top 3')).toBeTruthy();
     expect(screen.getByText(/Didn't make your Top 3 \(5\)/)).toBeTruthy();
+  });
+
+  it("doesn't offer #1 or last-place lock-ins that the field answers already rule out", () => {
+    // Field: Alpha, Beta, Gamma (Delta was cut). Beta beat Alpha; Gamma beat Delta.
+    const results = [
+      { winner: 'beta', loser: 'alpha' },
+      { winner: 'gamma', loser: 'delta' },
+    ];
+    const closureCache = createClosureCache();
+    closureCache.rebuild(results);
+    const field = {
+      ...createFieldState(3),
+      stage: 'done' as const,
+      fieldIds: ['alpha', 'beta', 'gamma'],
+      cutIds: ['delta'],
+    };
+    render(
+      <RankingSession
+        playerPool={pool.slice(0, 4)}
+        resumedSessionData={{
+          name: 'My Top 3',
+          playerPoolIds: ['alpha', 'beta', 'gamma', 'delta'],
+          setupData: { field },
+          results,
+          skippedPairs: new Set(),
+          anchorDone: false,
+          isFinished: false,
+          adjustments: null,
+          seedCount: 0,
+          finishedAt: null,
+          draftUpdatedAt: Date.now(),
+          firestoreSessionId: null,
+          savedListId: null,
+          savedListName: null,
+          closureCache,
+        }}
+        autosave={vi.fn()}
+      />
+    );
+
+    const [first, last] = within(screen.getByTestId('locks')).getAllByRole('combobox');
+    const choices = (select: HTMLElement) =>
+      [...(select as HTMLSelectElement).options].map((o) => o.value).filter(Boolean);
+    // Alpha already lost to Beta, so can't be #1
+    expect(choices(first)).toEqual(['beta', 'gamma']);
+    // Beta already beat Alpha, so can't be last; beating a cut player doesn't count
+    expect(choices(last)).toEqual(['alpha', 'gamma']);
+    expect(screen.getByText(/haven.t put below anyone can be #1/)).toBeTruthy();
   });
 });

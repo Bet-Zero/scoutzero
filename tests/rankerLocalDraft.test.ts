@@ -12,6 +12,7 @@ import {
   replaceLocalDraft,
   saveLocalDraftDebounced,
   flushPendingDraftSave,
+  countAnswers,
   __testing,
 } from '@/features/ranker/utils/rankerLocalDraft';
 import { isOwnerUid, getOwnerCount } from '@/config/ownerConfig';
@@ -496,5 +497,41 @@ describe('draft replacement and clearing', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('countAnswers: matchups the user answered', () => {
+  const results = (n) => Array.from({ length: n }, (_, i) => ({ winner: `w${i}`, loser: `l${i}` }));
+
+  it('counts every result before Start Ranking', () => {
+    expect(countAnswers({ results: results(7), seedCount: 0, setupData: null })).toBe(7);
+  });
+
+  it('leaves out the results #1 / last lock-ins and the anchor add', () => {
+    // Start Ranking from setup added 9 lock-in results, then 4 picks
+    const setupData = { steps: [{ setupData: null, results: 0, seedCount: 0, anchorDone: false }] };
+    expect(countAnswers({ results: results(13), seedCount: 9, setupData })).toBe(4);
+  });
+
+  it('keeps the answers that built a Top-N field', () => {
+    // 20 field answers, then Start Ranking added 5 lock-in results, then 3 picks
+    const field = { stage: 'done' };
+    const setupData = {
+      steps: [
+        { setupData: { field: { stage: 'locks' } }, results: 0, seedCount: 0, anchorDone: false },
+        { setupData: { field }, results: 20, seedCount: 0, anchorDone: true },
+        { setupData: { field, configured: true, anchor: 'a' }, results: 25, seedCount: 25, anchorDone: false },
+      ],
+    };
+    expect(countAnswers({ results: results(28), seedCount: 25, setupData })).toBe(23);
+  });
+
+  it('sessions saved before step undo count results after the setup ones', () => {
+    expect(countAnswers({ results: results(12), seedCount: 10 })).toBe(2);
+  });
+
+  it('copes with malformed saved steps', () => {
+    const setupData = { steps: [null, { setupData: 'x', results: 'y' }] };
+    expect(countAnswers({ results: results(5), seedCount: 3, setupData })).toBe(2);
   });
 });
