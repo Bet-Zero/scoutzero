@@ -1,3 +1,5 @@
+import { DraftApronPlanReferenceZ } from '@/schemas/draftApronSimulation';
+import { unpackApronPlan } from './apronPlanStorage';
 import { readApronSimulation, apronInputFromHistory } from './apronSimulation';
 import { DraftApronSeasonReceiptZ } from '@/schemas/draftApronSimulation';
 import { swapProgram } from './swapProgram';
@@ -10,6 +12,7 @@ import {
   ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
   ARCHITECT_WORLD_ENTITLEMENTS_SUBCOLLECTION,
   ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
+  ARCHITECT_WORLD_DRAFT_SEASON_INPUTS_SUBCOLLECTION,
 } from '@/constants/collections';
 import {
   loadSimulationCatalogue,
@@ -70,22 +73,59 @@ export async function loadConditionalWorld(worldId: string) {
     metadata.draftSimulationBranches === 'swap-program'
       ? swapProgram(metadata.draftSwapProgram, catalogue, entitlements)
       : null;
+  const reference = DraftApronPlanReferenceZ.safeParse(metadata.draftApronPlan);
+  const seasonDocs = reference.success
+    ? await Promise.all(
+        reference.data.stepSeasons.map((year) =>
+          getDoc(
+            doc(
+              root,
+              ARCHITECT_WORLD_DRAFT_SEASON_INPUTS_SUBCOLLECTION,
+              String(year)
+            )
+          )
+        )
+      )
+    : [];
+  const plan = reference.success
+    ? unpackApronPlan(
+        reference.data,
+        Object.fromEntries(seasonDocs.map((d) => [d.id, d.data()]))
+      )
+    : metadata.draftApronPlan;
   const apron =
     metadata.draftSimulationBranches === 'apron-lifecycle'
-      ? readApronSimulation(metadata)
+      ? readApronSimulation({ ...metadata, draftApronPlan: plan })
       : null;
   if (!programs.length && !swap && !apron)
     throw new Error('Complete protection programs are required.');
   const snapshots = {
     [root.path]: mutationSnapshotText(metadata),
     ...Object.fromEntries(
-      [...teamDocs.docs, ...entitlementDocs.docs, ...sourceDocs].map((d) => [
-        d.ref.path,
-        mutationSnapshotText(d.data()),
-      ])
+      [
+        ...teamDocs.docs,
+        ...entitlementDocs.docs,
+        ...sourceDocs,
+        ...seasonDocs,
+      ].map((d) => [d.ref.path, mutationSnapshotText(d.data())])
     ),
   };
   if (apron) {
+    if (apron.plan.kind === 'governed-apron-lifecycle-v2') {
+      const expected = apron.plan.seasons![apron.history.length];
+      if (
+        Object.values(teams).some(
+          (team) =>
+            team.salaryBookInputs?.salaryCapYear !== expected.salaryCapYear ||
+            mutationSnapshotText(
+              team.salaryBookInputs?.softwareSeasonContext
+            ) !== mutationSnapshotText(expected)
+        )
+      )
+        throw new Error(
+          'Saved team financial contexts differ from their governed season.'
+        );
+    }
     for (let i = 0; i < apron.history.length; i++) {
       const entry = apron.history[i];
       const event = await getDoc(
@@ -107,7 +147,7 @@ export async function loadConditionalWorld(worldId: string) {
               .map((team) =>
                 apronInputFromHistory(
                   team,
-                  2033,
+                  Number(apron.plan.startingSeason.slice(0, 4)) + 8,
                   apron.history.slice(0, i + 1),
                   apron.plan.steps[i].tradingWindow.asOf,
                   apron.plan

@@ -1,3 +1,4 @@
+import { isSoftwareSeasonEnvironment } from './softwareSeasonEnvironment';
 /**
  * FILE: src/features/architect/utils/governedSeason/governedSeasonEnvelope.ts
  * PURPOSE: Fail-closed resolver for governed season inputs.
@@ -385,14 +386,13 @@ function coversInstant(
 
 function describeOtherAuthority(
   requested: GovernedAuthority,
-  otherAuthorityRecordIds: readonly string[]
+  records: readonly { recordId: string; recordVersion: number; authority: GovernedAuthority }[]
 ): string {
-  if (otherAuthorityRecordIds.length === 0) return '';
-  const other: GovernedAuthority =
-    requested === 'official' ? 'projected' : 'official';
-  return ` A ${other} record exists (${otherAuthorityRecordIds.join(
-    ', '
-  )}) but ${other} and ${requested} values may not substitute for each other.`;
+  return [...new Set(records.map(record => record.authority))].map(other => {
+    const ids = records.filter(record => record.authority === other)
+      .map(record => `${record.recordId}@v${record.recordVersion}`);
+    return ` A ${other} record exists (${ids.join(', ')}) but ${other} and ${requested} values may not substitute for each other.`;
+  }).join('');
 }
 
 function resolveSystemLevel(
@@ -426,9 +426,7 @@ function resolveSystemLevel(
   }
 
   if (matching.length === 0) {
-    const otherAuthority = current
-      .filter((record) => record.authority !== requiredAuthority)
-      .map((record) => `${record.recordId}@v${record.recordVersion}`);
+    const otherAuthority = current.filter((record) => record.authority !== requiredAuthority);
     const supersededOnly =
       current.length === 0 && forYear.length > 0
         ? ' Only superseded record versions exist for this value.'
@@ -493,9 +491,7 @@ function resolveCalendar(
   }
 
   if (matching.length === 0) {
-    const otherAuthority = current
-      .filter((record) => record.authority !== requiredAuthority)
-      .map((record) => `${record.recordId}@v${record.recordVersion}`);
+    const otherAuthority = current.filter((record) => record.authority !== requiredAuthority);
     const supersededOnly =
       current.length === 0 && forYear.length > 0
         ? ' Only superseded calendar versions exist for this Salary Cap Year.'
@@ -596,6 +592,11 @@ export function resolveGovernedSeasonEnvelope(
   const registry = request.registry ?? CANON_GOVERNED_SEASON_REGISTRY;
 
   const missingInputs: string[] = [];
+  if (
+    request.requiredAuthority === 'software-test' &&
+    !isSoftwareSeasonEnvironment()
+  )
+    missingInputs.push('protectedSoftwareEnvironment');
   if (!isZonedDateTime(request.asOfDate)) missingInputs.push('asOfDate');
   if (!Number.isInteger(request.salaryCapYear)) {
     missingInputs.push('salaryCapYear');

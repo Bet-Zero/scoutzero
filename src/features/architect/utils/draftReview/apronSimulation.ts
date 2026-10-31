@@ -1,3 +1,8 @@
+import { softwareSeasonRegistry } from '../governedSeason/softwareSeasonContext';
+import {
+  CANON_GOVERNED_SEASON_REGISTRY,
+  resolveGovernedSeasonEnvelope,
+} from '../governedSeason';
 /** Committed, consecutive software chronology composed with accepted Apron rules. */
 import {
   DraftApronSimulationPlanZ,
@@ -12,7 +17,6 @@ import {
   evaluateDraftApronObservation,
 } from '../draftApronMechanisms';
 import { AUTHORITATIVE_WORLD_TEAM_CODES } from '../leagueTeams';
-import { APPROVED_2025_SYSTEM_LEVEL_FIELDS } from '../governedSeason/approved2025SystemLevels';
 import { canonicalStringify } from '../contractSource/deterministicDigest';
 import { mutationSnapshotDigest } from '../mutationPipeline.snapshotDigest';
 import { reviewSimulationDraftWindow } from './horizon';
@@ -30,15 +34,51 @@ export function readApronSimulation(metadata: Record<string, unknown>) {
     throw new Error('This world has no governed apron lifecycle.');
   const plan = DraftApronSimulationPlanZ.parse(metadata.draftApronPlan);
   const history = DraftApronHistoryZ.parse(metadata.draftApronHistory);
+  const start = Number(plan.startingSeason.slice(0, 4));
+  const software = plan.kind === 'governed-apron-lifecycle-v2';
+  if (
+    plan.startingSeason !== apronSeason(start) ||
+    (!software &&
+      (start !== 2025 ||
+        plan.steps.length !== 1 ||
+        plan.seasons ||
+        plan.softwareRetainedFirsts)) ||
+    (software &&
+      (!plan.seasons ||
+        plan.seasons.length !== plan.steps.length + 1 ||
+        plan.seasons.some((c, i) => c.salaryCapYear !== start + 1 + i)))
+  )
+    throw new Error(
+      'Complete consecutive software financial seasons are required.'
+    );
+  const witnesses = plan.softwareRetainedFirsts ?? [];
+  if (
+    new Set(witnesses.map((w) => `${w.team}:${w.draftYear}`)).size !==
+      witnesses.length ||
+    witnesses.some(
+      (w) =>
+        !codes.some((code) => code === w.team) ||
+        w.draftYear <= start + 8 ||
+        w.draftYear > start + 7 + plan.steps.length
+    )
+  )
+    throw new Error(
+      'Software retained witnesses require unique teams and bounded future years.'
+    );
+  const registry = software
+    ? softwareSeasonRegistry(plan.seasons!)
+    : CANON_GOVERNED_SEASON_REGISTRY;
   if (
     history.length > plan.steps.length ||
-    metadata.currentSeason !== apronSeason(2025 + history.length) ||
+    metadata.currentSeason !== apronSeason(start + history.length) ||
     metadata.asOfDate !==
-      (history.length ? `${2025 + history.length}-07-01` : '2026-04-12')
+      (history.length
+        ? `${start + history.length}-07-01`
+        : plan.steps[0].regularSeasonEnd.date)
   )
     throw new Error('The saved season and consecutive apron history disagree.');
   for (const [index, step] of plan.steps.entries()) {
-    const year = 2025 + index;
+    const year = start + index;
     const effectiveAt = `${year + 1}-07-01T00:00:00-04:00`;
     if (
       step.seasonStartYear !== year ||
@@ -53,6 +93,20 @@ export function readApronSimulation(metadata: Record<string, unknown>) {
       throw new Error(
         'Complete consecutive test seasons and dated draft windows are required.'
       );
+    const sourceSeason = registry.calendars.find(
+      (c) => c.salaryCapYear === year + 1
+    );
+    const envelope = resolveGovernedSeasonEnvelope({
+      salaryCapYear: year + 1,
+      asOfDate: `${step.regularSeasonEnd.date}T19:00:00-04:00`,
+      team: { teamId: 'league' },
+      registry,
+      requiredAuthority: software ? 'software-test' : 'official',
+    });
+    if (envelope.status !== 'complete' || !sourceSeason)
+      throw new Error(
+        'The observed season requires complete governed financial inputs.'
+      );
     const close = step.regularSeasonEnd;
     const nextDate = new Date(Date.parse(`${close.date}T12:00:00Z`) + 86400000)
       .toISOString()
@@ -61,7 +115,7 @@ export function readApronSimulation(metadata: Record<string, unknown>) {
       !close.date.startsWith(`${year + 1}-`) ||
       close.dayAfterStartsAt !== `${nextDate}T00:00:00-04:00` ||
       Date.parse(close.dayAfterStartsAt) >= Date.parse(effectiveAt) ||
-      close.date !== '2026-04-12'
+      close.date !== sourceSeason.regularSeasonClosing.value
     )
       throw new Error('The consecutive regular-season calendars disagree.');
     for (const observation of step.observations) {
@@ -70,6 +124,8 @@ export function readApronSimulation(metadata: Record<string, unknown>) {
       if (
         observation.seasonStartYear !== year ||
         books.salaryCapYear !== year + 2 ||
+        (software &&
+          !same(books.softwareSeasonContext, plan.seasons![index + 1])) ||
         !measurement ||
         measurement.teamCode !== observation.team ||
         measurement.seasonKey !== apronSeason(year) ||
@@ -92,11 +148,7 @@ export function readApronSimulation(metadata: Record<string, unknown>) {
         throw new Error(
           'Complete matching last-game financial observations are required.'
         );
-      const threshold = Number(
-        APPROVED_2025_SYSTEM_LEVEL_FIELDS.find(
-          (f) => f.fieldId === 'second-apron'
-        )!.normalizedValue
-      );
+      const threshold = envelope.systemLevels['second-apron'].amount!;
       if (observation.value.secondApronCents !== Math.round(threshold * 100))
         throw new Error(
           'The observation and governed annual Second Apron disagree.'
@@ -110,7 +162,7 @@ export function readApronSimulation(metadata: Record<string, unknown>) {
         'Saved apron history differs from its consumed season inputs.'
       );
   }
-  for (let year = 2026; year <= 2029; year++) {
+  for (let year = start + 1; year <= start + 4; year++) {
     const future = plan.futureObservations.filter(
       (o) => o.seasonStartYear === year
     );
@@ -121,7 +173,7 @@ export function readApronSimulation(metadata: Record<string, unknown>) {
           o.state !== 'future-pending' ||
           o.sourceResultId !== null ||
           o.value !== null ||
-          evaluateDraftApronObservation(o, '2026-07-01T00:00:00-04:00')
+          evaluateDraftApronObservation(o, plan.steps[0].tradingWindow.asOf)
             .status !== 'future-pending'
       )
     )
@@ -131,6 +183,7 @@ export function readApronSimulation(metadata: Record<string, unknown>) {
   }
   return {
     plan,
+    registry,
     history,
     planDigest: mutationSnapshotDigest(plan),
     next: plan.steps[history.length] ?? null,
@@ -219,25 +272,27 @@ export function readApronSeasonReceipt(value: unknown) {
     return null;
   for (const [index, entry] of r.after.entries()) {
     if (
-      entry.seasonStartYear !== 2025 + index ||
-      entry.transitionId !== apronTransitionId(2025 + index) ||
+      entry.seasonStartYear !== r.after[0].seasonStartYear + index ||
+      entry.transitionId !==
+        apronTransitionId(r.after[0].seasonStartYear + index) ||
       entry.regularSeasonEnd.seasonStartYear !== entry.seasonStartYear ||
       !same(entry.observations.map((o) => o.team).sort(), codes)
     )
       return null;
   }
-  const asOf = `${2025 + r.after.length}-07-01T00:00:00-04:00`;
+  const start = r.after[0].seasonStartYear;
+  const asOf = `${start + r.after.length}-07-01T00:00:00-04:00`;
   for (const input of r.restrictions) {
     const observed = r.after.flatMap((h) =>
       h.observations.filter((o) => o.team === input.team)
     );
     if (
-      input.triggerSeasonStartYear !== 2025 ||
+      input.triggerSeasonStartYear !== start ||
       input.asOf !== asOf ||
       !same(input.originalPick, {
-        id: `${input.team}_2033_1st`,
+        id: `${input.team}_${start + 8}_1st`,
         originalTeam: input.team,
-        draftYear: 2033,
+        draftYear: start + 8,
         round: 1,
       }) ||
       !same(
@@ -247,8 +302,8 @@ export function readApronSeasonReceipt(value: unknown) {
       !same(input.observations.slice(0, observed.length), observed) ||
       observed.some(
         (o) =>
-          o.seasonStartYear < 2025 ||
-          o.seasonStartYear >= 2025 + r.after.length ||
+          o.seasonStartYear < start ||
+          o.seasonStartYear >= start + r.after.length ||
           evaluateDraftApronObservation(o, asOf).status !== 'known'
       ) ||
       input.observations
@@ -256,7 +311,7 @@ export function readApronSeasonReceipt(value: unknown) {
         .some(
           (o) =>
             o.team !== input.team ||
-            o.seasonStartYear < 2025 + r.after.length ||
+            o.seasonStartYear < start + r.after.length ||
             o.state !== 'future-pending' ||
             o.value !== null ||
             !o.pendingUntil ||

@@ -177,13 +177,23 @@ export async function advanceSeasonInWorld(
       );
     if (conditional?.apron && !conditional.apron.next)
       throw new Error(
-        'Later Apron observations require complete governed season financial inputs. This milestone supports only 2025–26 to 2026–27; release and penalty remain pending.'
+        'The configured consecutive season plan is complete. Further advancement requires another complete governed season context.'
       );
     const authorityResult = resolveSeasonAdvanceAuthority({
       worldId,
       worldSeason: worldCurrentSeason,
       worldAsOfDate:
-        conditional && !conditional.apron ? '2026-04-12' : worldAsOfDate,
+        conditional?.apron?.next?.regularSeasonEnd.date ??
+        (conditional ? '2026-04-12' : worldAsOfDate),
+      ...(conditional?.apron
+        ? {
+            registry: conditional.apron.registry,
+            requiredAuthority:
+              conditional.apron.plan.kind === 'governed-apron-lifecycle-v2'
+                ? ('software-test' as const)
+                : ('official' as const),
+          }
+        : {}),
     });
     if (authorityResult.status !== 'complete') {
       throw new Error(

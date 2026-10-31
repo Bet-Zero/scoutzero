@@ -21,6 +21,7 @@ import {
   RETAINED_SIMULATION_SCREENSHOTS,
   CONDITIONAL_LIFECYCLE_SCREENSHOTS,
   APRON_FREEZE_SCREENSHOTS,
+  APRON_MULTISEASON_SCREENSHOTS,
   resolveProofIdentity,
   runTradeReceiptProof,
   verifyGovernedScreenshotArtifacts,
@@ -478,16 +479,61 @@ test('draft review evidence requires History, Compare and reload for both teams'
 });
 
 test('retained simulation rejects mixed or incomplete proof inputs before launch', async () => {
-  for (const mode of [[true, false, false], [false, true, false], [false, false, true]]) {
-    await assert.rejects(runTradeReceiptProof(...mode as [boolean, boolean, boolean], true), /separate proof scope/);
+  for (const mode of [
+    [true, false, false],
+    [false, true, false],
+    [false, false, true],
+  ]) {
+    await assert.rejects(
+      runTradeReceiptProof(...(mode as [boolean, boolean, boolean]), true),
+      /separate proof scope/
+    );
   }
   const previous = process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE;
   delete process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE;
   try {
-    await assert.rejects(runTradeReceiptProof(false, false, false, true), /private catalogue and actual cloud baseline/);
-    await assert.rejects(runTradeReceiptProof(false, false, false, false, true), /private catalogue and actual cloud baseline/);
-    await assert.rejects(runTradeReceiptProof(true, false, false, false, true), /separate proof scope/);
-    await assert.rejects(runTradeReceiptProof(false, false, false, false, false, false, true), /private catalogue and actual cloud baseline/);
+    await assert.rejects(
+      runTradeReceiptProof(false, false, false, true),
+      /private catalogue and actual cloud baseline/
+    );
+    await assert.rejects(
+      runTradeReceiptProof(false, false, false, false, true),
+      /private catalogue and actual cloud baseline/
+    );
+    await assert.rejects(
+      runTradeReceiptProof(true, false, false, false, true),
+      /separate proof scope/
+    );
+    await assert.rejects(
+      runTradeReceiptProof(false, false, false, false, false, false, true),
+      /private catalogue and actual cloud baseline/
+    );
+    await assert.rejects(
+      runTradeReceiptProof(
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ),
+      /private catalogue and actual cloud baseline/
+    );
+    await assert.rejects(
+      runTradeReceiptProof(
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true
+      ),
+      /Select one lifecycle proof/
+    );
   } finally {
     if (previous !== undefined) process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE = previous;
   }
@@ -522,15 +568,42 @@ test('conditional lifecycle certification requires both outcomes and both teams 
 test('retained simulation certificate requires proposal and both teams across all three saved views', async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'retained-simulation-proof-'));
   try {
-    assert.deepEqual(RETAINED_SIMULATION_SCREENSHOTS.map(s => s.key), [
-      'permitted-proposal', 'CHI-history', 'CHI-compare', 'CHI-reload',
-      'TOR-history', 'TOR-compare', 'TOR-reload',
-    ]);
-    const png = await sharp({create: {width: 1280, height: 720, channels: 4, background: '#123456'}}).png().toBuffer();
-    for (const {filename} of RETAINED_SIMULATION_SCREENSHOTS) fs.writeFileSync(path.join(root, filename), png);
-    const artifacts = collectGovernedScreenshotArtifacts(root, root, RETAINED_SIMULATION_SCREENSHOTS);
-    assert.equal((await verifyGovernedScreenshotArtifacts(root, root, artifacts, RETAINED_SIMULATION_SCREENSHOTS)).valid, true);
-    for (const {filename} of RETAINED_SIMULATION_SCREENSHOTS) {
+    assert.deepEqual(
+      RETAINED_SIMULATION_SCREENSHOTS.map((s) => s.key),
+      [
+        'permitted-proposal',
+        'CHI-history',
+        'CHI-compare',
+        'CHI-reload',
+        'TOR-history',
+        'TOR-compare',
+        'TOR-reload',
+      ]
+    );
+    const png = await sharp({
+      create: { width: 1280, height: 720, channels: 4, background: '#123456' },
+    })
+      .png()
+      .toBuffer();
+    for (const { filename } of RETAINED_SIMULATION_SCREENSHOTS)
+      fs.writeFileSync(path.join(root, filename), png);
+    const artifacts = collectGovernedScreenshotArtifacts(
+      root,
+      root,
+      RETAINED_SIMULATION_SCREENSHOTS
+    );
+    assert.equal(
+      (
+        await verifyGovernedScreenshotArtifacts(
+          root,
+          root,
+          artifacts,
+          RETAINED_SIMULATION_SCREENSHOTS
+        )
+      ).valid,
+      true
+    );
+    for (const { filename } of RETAINED_SIMULATION_SCREENSHOTS) {
       fs.unlinkSync(path.join(root, filename));
       assert.equal((await verifyGovernedScreenshotArtifacts(root, root, artifacts, RETAINED_SIMULATION_SCREENSHOTS)).valid, false, filename);
       fs.writeFileSync(path.join(root, filename), png);
@@ -967,3 +1040,21 @@ test('review probe runs in an exact temporary snapshot and cleans it', () => {
 
 // Execute the actual workflow publisher with isolated GitHub/Claude-output doubles.
 import './claudeIndependentReview.node-test.ts';
+
+test('multi-season certificate covers all consecutive years and both financial/history views for each result', () => {
+  for (const mode of ['penalty', 'earliest-release', 'latest-release']) {
+    for (const year of [2027, 2028, 2029, 2030, 2031])
+      assert.ok(
+        APRON_MULTISEASON_SCREENSHOTS.some(
+          (s) => s.key === `${mode}-season-${year}`
+        )
+      );
+    for (const team of ['TOR', 'MIA'])
+      for (const state of ['cap', 'fullcap', 'history', 'compare', 'assets'])
+        assert.ok(
+          APRON_MULTISEASON_SCREENSHOTS.some(
+            (s) => s.key === `${mode}-${team}-${state}`
+          )
+        );
+  }
+});

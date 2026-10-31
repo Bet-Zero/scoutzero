@@ -1,4 +1,8 @@
 import {
+  teamSoftwareSeason,
+  softwareSeasonRegistry,
+} from '../../governedSeason/softwareSeasonContext';
+import {
   ContractEventLedgerPayloadZ,
   type ContractEventLedgerPayload,
 } from '@/schemas/contractEventLedger';
@@ -537,10 +541,18 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
   ]);
   const compatibility = resolveContractBaselineWorldCompatibility(metadata);
   if (!compatibility.compatible) throw new Error(compatibility.message);
+  const software = teamSoftwareSeason(
+    resolvedWorldTeams.find((value) => {
+      const team = value as { teamCode?: string; id?: string };
+      return (team.teamCode ?? team.id) === teamId;
+    }),
+    salaryCapYear
+  );
   const seasonEnvelope = resolveGovernedSeasonEnvelope({
     asOfDate: `${worldAsOfDate}T23:59:59Z`,
     salaryCapYear,
-    requiredAuthority: 'official',
+    requiredAuthority: software ? 'software-test' : 'official',
+    ...(software ? { registry: softwareSeasonRegistry([software]) } : {}),
     team: { teamId, teamCode: teamId, worldId },
   });
   if (seasonEnvelope.calendar.state !== 'available') {

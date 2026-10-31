@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SoftwareSeasonContextZ } from './softwareSeasonContext';
 import { JsonValueZ } from './common';
 import { GovernedUnsignedFirstRoundPickStateZ } from './governedIncompleteRosterCharge';
 
@@ -153,6 +154,7 @@ export const TeamSalaryBookInputsZ = z
   .object({
     version: z.literal(1),
     salaryCapYear: z.number().int(),
+    softwareSeasonContext: SoftwareSeasonContextZ.optional(),
     seasonCloseApronMeasurement: SeasonCloseApronMeasurementZ.optional(),
     unsignedFirstRoundPickState:
       GovernedUnsignedFirstRoundPickStateZ.optional(),

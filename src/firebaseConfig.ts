@@ -1,3 +1,4 @@
+import { registerSoftwareSeasonEnvironment } from './features/architect/utils/governedSeason/softwareSeasonEnvironment';
 // src/firebaseConfig.ts
 /**
  * Firebase initialization with review mode fallback.
@@ -308,3 +309,5 @@ export function isSyntheticDraftReviewEnvironment(): boolean {
     ['127.0.0.1', 'localhost', '::1'].includes(connectedFirestoreEndpoint.host)
   );
 }
+
+registerSoftwareSeasonEnvironment(isSyntheticDraftReviewEnvironment);
