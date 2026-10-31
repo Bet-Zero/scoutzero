@@ -47,6 +47,7 @@ const RankerFieldZ = z.object({
   cutLine: RankerPlayerIdZ.nullable(),
   bubble: z.array(RankerPlayerIdZ),
   roundStart: z.number().int().nonnegative(),
+  sortedAt: z.number().int().nonnegative().optional(),
   inIds: z.array(RankerPlayerIdZ),
   cutIds: z.array(RankerPlayerIdZ),
   playoff: z

@@ -1,11 +1,12 @@
 /**
  * FILE: src/features/ranker/FieldCutRound.tsx
- * PURPOSE: Field builder step 2: each bubble player faces the cut-line player once; winners stay, losers are cut. Repeats with a stronger (or lower) cut line until the bubble fits.
+ * PURPOSE: Field builder step 2: each bubble player is placed against the cut-line player once (clear calls in a quick sort, close calls head to head); better stays, not better is cut. Repeats with a stronger (or lower) cut line until the bubble fits.
  * OWNERSHIP: Feature: ranker
  *
  * HISTORY:
  *  - 2026-10-24: Created
  *  - 2026-10-26: "Back to locks" takes back the step through undo
+ *  - 2026-10-31: Quick sort for the clear calls before the head-to-head close calls
  *
  * LINKS:
  *  - Used in: src/features/ranker/FieldBuilder.tsx
@@ -13,11 +14,12 @@
 import React from 'react';
 import { PlayerCompareCard } from './PlayerCompareCard';
 import type { RankerPlayer } from './utils/rankingEngine';
-import { changeCutLine, roundStatus } from './utils/fieldBuilder';
+import { changeCutLine, quickSort, roundStatus } from './utils/fieldBuilder';
 import { getPlayerName } from './utils/playerDisplay';
 import type { FieldStepProps } from './FieldBuilder';
 import { PlayerChip } from './FieldLocks';
 import { FieldRoundSummary } from './FieldRoundSummary';
+import { FieldQuickSort } from './FieldQuickSort';
 
 export const FieldCutRound = (props: FieldStepProps) => {
   const {
@@ -28,6 +30,7 @@ export const FieldCutRound = (props: FieldStepProps) => {
     comparisonCount,
     onChange,
     onAnswer,
+    onQuickSort,
     onUndo,
   } = props;
   const status = roundStatus(state, closure, bestFirst);
@@ -37,16 +40,31 @@ export const FieldCutRound = (props: FieldStepProps) => {
   if (!cutLine) return null;
 
   const answered = status.stayed.length + status.out.length;
-  const untouched = comparisonCount === state.roundStart;
+  const untouched =
+    comparisonCount === state.roundStart && state.sortedAt === undefined;
+  const sort = onQuickSort ? quickSort(state, status, bestFirst) : null;
 
   const next = status.next ? playersById.get(status.next) : null;
 
   let body: React.ReactNode;
-  if (next) {
+  if (sort && onQuickSort && state.cutLine) {
+    body = (
+      <FieldQuickSort
+        // A new cut line starts the sort over
+        key={state.cutLine}
+        playersById={playersById}
+        bestFirst={bestFirst}
+        cutLine={state.cutLine}
+        sort={sort}
+        onConfirm={onQuickSort}
+      />
+    );
+  } else if (next) {
     body = (
       <div className="flex flex-col items-center gap-4 py-4">
         <p className="text-sm text-white/50">
-          Who&apos;s better?{' '}
+          {state.sortedAt !== undefined ? 'Close call: who' : 'Who'}&apos;s
+          better?{' '}
           <span className="text-white/30">
             (left: bubble player · right: cut line)
           </span>
@@ -66,8 +84,8 @@ export const FieldCutRound = (props: FieldStepProps) => {
           />
         </div>
         <p className="text-xs text-white/40 tabular-nums">
-          {answered} of {status.queue.length} · {status.stayed.length} stayed ·{' '}
-          {status.out.length} out
+          {status.queue.length - answered} to go this round ·{' '}
+          {status.stayed.length} stayed · {status.out.length} out
         </p>
       </div>
     );
@@ -82,8 +100,9 @@ export const FieldCutRound = (props: FieldStepProps) => {
           Cut the bubble against a cut-line player
         </h1>
         <p className="text-sm text-white/45 mt-1 max-w-2xl">
-          Each bubble player faces the cut-line player once. Win and he stays;
-          lose and he&apos;s cut. Every answer is kept for the ranking.
+          Each bubble player is placed against the cut-line player once: the
+          clear calls in a quick sort, the close ones head to head. Better
+          stays; not better is cut. Every answer is kept for the ranking.
         </p>
       </div>
       <div className="rounded-xl border border-white/[0.07] bg-white/[0.02]">

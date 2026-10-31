@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-10-24: Created; trimming the pool no longer borrows the ranking's tools
  *  - 2026-10-26: Undo also takes back step buttons (next round, playoff, continue)
+ *  - 2026-10-31: Trim meter: how many players are left to cut at every step
  *
  * LINKS:
  *  - Logic: src/features/ranker/utils/fieldBuilder.ts
@@ -13,7 +14,12 @@
  */
 import React from 'react';
 import type { RankerGraph, RankerPlayer } from './utils/rankingEngine';
-import { spotsLeft, type FieldState } from './utils/fieldBuilder';
+import {
+  spotsLeft,
+  trimCount,
+  type FieldAnswer,
+  type FieldState,
+} from './utils/fieldBuilder';
 import { FieldLocks } from './FieldLocks';
 import { FieldCutRound } from './FieldCutRound';
 import { FieldPlayoff } from './FieldPlayoff';
@@ -27,6 +33,8 @@ export type FieldStepProps = {
   comparisonCount: number;
   onChange: (state: FieldState) => void;
   onAnswer: (winner: RankerPlayer, loser: RankerPlayer) => void;
+  // Records a cut round's quick sort (many answers, undone as one step)
+  onQuickSort?: (answers: FieldAnswer[]) => void;
   // Takes back the last answer, or the last step button once the step has none
   onUndo?: () => void;
   undoLabel?: string;
@@ -95,12 +103,52 @@ export const FieldCount = ({
   );
 };
 
+// How far the pool is from the list size: the one number to watch while trimming
+const TrimMeter = ({ state, closure, bestFirst }: FieldStepProps) => {
+  const { total, cut, left } = trimCount(state, closure, bestFirst);
+  const stillIn = bestFirst.length - cut;
+  const share = total > 0 ? Math.min(1, Math.max(0, cut / total)) : 1;
+  const [value, label, tone] =
+    left > 0
+      ? [left, left === 1 ? 'player left to trim' : 'players left to trim', 'text-white']
+      : left < 0
+        ? [-left, 'cut too many: to bring back', 'text-amber-300']
+        : [state.topN, 'players: trimmed to your list size', 'text-emerald-300'];
+  return (
+    <div
+      role="status"
+      aria-label="Trim progress"
+      className="rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 flex flex-col gap-2"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <p className="flex items-baseline gap-2">
+          <span className={`text-3xl font-bold tabular-nums ${tone}`}>
+            {value}
+          </span>
+          <span className="text-sm text-white/70">{label}</span>
+        </p>
+        <p className="text-xs text-white/45 tabular-nums">
+          {Math.max(0, cut)} of {total} cut · {stillIn} still in for{' '}
+          {state.topN} spots
+        </p>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+        <div
+          className="h-full bg-red-400/80 transition-[width]"
+          style={{ width: `${share * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
 export const FieldBuilder = (props: FieldStepProps) => {
   const { state } = props;
   return (
     <div className="text-white max-w-5xl mx-auto px-4 py-6 flex flex-col gap-5">
       <div className="flex flex-col gap-3">
         <Stepper stage={state.stage} />
+        <TrimMeter {...props} />
         <div className="flex flex-wrap items-center gap-2">
           <FieldCount value={state.topN} label="spots on your list" />
           <FieldCount value={state.locks.length} label="locked" tone="lock" />
@@ -112,9 +160,6 @@ export const FieldBuilder = (props: FieldStepProps) => {
             />
           )}
           <FieldCount value={spotsLeft(state)} label="spots left" />
-          {state.cutIds.length > 0 && (
-            <FieldCount value={state.cutIds.length} label="cut" tone="out" />
-          )}
         </div>
       </div>
       {state.stage === 'locks' && <FieldLocks {...props} />}

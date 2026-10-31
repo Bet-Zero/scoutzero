@@ -9,8 +9,11 @@ import {
   planCut,
   playoffStatus,
   poolBestFirst,
+  quickSort,
+  quickSortAnswers,
   roundStatus,
   startBubble,
+  trimCount,
   undoFloor,
   type FieldState,
 } from '@/features/ranker/utils/fieldBuilder';
@@ -20,17 +23,22 @@ import {
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `p${i + 1}`);
 const truth = (id: string) => Number(id.slice(1));
 
-// Run the field builder to the end, answering every matchup truthfully
+// Run the field builder to the end, answering every matchup truthfully.
+// With `quick`, each round starts with the quick sort, where the user moves
+// exactly the players stats put on the wrong side; `taps` counts what the
+// user does (answers, moves and confirms).
 const build = (
   pool: string[],
   topN: number,
   locks: string[],
   statsOrder: string[] = pool,
-  chooseCutLine?: (state: FieldState) => string | undefined
+  chooseCutLine?: (state: FieldState) => string | undefined,
+  quick = false
 ) => {
   const cache = createClosureCache();
   let comparisons = 0;
   let playoffAnswers = 0;
+  let taps = 0;
   const answer = (a: string, b: string) => {
     const [w, l] = truth(a) < truth(b) ? [a, b] : [b, a];
     expect(cache.addEdge(w, l)).toBe(true);
@@ -43,8 +51,26 @@ const build = (
   let rounds = 0;
   while (state.stage === 'cut') {
     let status = roundStatus(state, cache.closure, statsOrder);
+    const sort = quick ? quickSort(state, status, statsOrder) : null;
+    if (sort) {
+      const cutLine = state.cutLine as string;
+      const wrongSide = (id: string, above: boolean) =>
+        truth(id) < truth(cutLine) !== above;
+      const moved = new Set([
+        ...sort.above.filter((id) => wrongSide(id, true)),
+        ...sort.below.filter((id) => wrongSide(id, false)),
+      ]);
+      taps += moved.size + 1;
+      for (const a of quickSortAnswers(cutLine, sort, moved))
+        if (cache.addEdge(a.winner, a.loser)) comparisons += 1;
+      state = { ...state, sortedAt: comparisons };
+      status = roundStatus(state, cache.closure, statsOrder);
+      // Every clear call is placed: only close calls are left to ask
+      if (status.next) expect(sort.close).toContain(status.next);
+    }
     while (status.next) {
       answer(status.next, state.cutLine as string);
+      taps += 1;
       status = roundStatus(state, cache.closure, statsOrder);
     }
     rounds += 1;
@@ -62,11 +88,12 @@ const build = (
     while (status.pair) {
       answer(status.pair[0], status.pair[1]);
       playoffAnswers += 1;
+      taps += 1;
       status = playoffStatus(state.playoff, cache.closure, statsOrder);
     }
     state = finishPlayoff(state, status.decided);
   }
-  return { state, comparisons, rounds, playoffAnswers };
+  return { state, comparisons, rounds, playoffAnswers, taps };
 };
 
 // Small deterministic PRNG so failures are reproducible
@@ -261,5 +288,112 @@ describe('fieldBuilder', () => {
       state = nextRound(state, status, plan, comparisons);
       expect(state.bubble).toEqual(plan.open);
     }
+  });
+
+  it('quick sort settles the same exact field with far fewer taps', () => {
+    for (const [topN, poolSize, locks, spread] of [
+      [25, 55, 8, 4],
+      [50, 95, 15, 8],
+      [100, 170, 40, 15],
+    ]) {
+      let plainTaps = 0;
+      let quickTaps = 0;
+      for (const seed of [11, 22, 33, 44, 55]) {
+        const pool = ids(poolSize);
+        const order = noisyOrder(pool, spread, seed * topN);
+        const plain = build(pool, topN, ids(locks), order);
+        const quick = build(pool, topN, ids(locks), order, undefined, true);
+        expect(new Set(quick.state.fieldIds)).toEqual(new Set(ids(topN)));
+        plainTaps += plain.comparisons;
+        quickTaps += quick.taps;
+      }
+      // Simulation: roughly half the taps; pin a clear margin
+      expect(quickTaps).toBeLessThan(plainTaps * 0.7);
+    }
+  });
+
+  it('quick sort places only players far from the cut line, once per round', () => {
+    const cache = createClosureCache();
+    const pool = ids(20);
+    // p6 is the cut line for 5 spots; the window is 4 places either side
+    let state = startBubble(createFieldState(5), pool, 0);
+    expect(state.cutLine).toBe('p6');
+    const status = roundStatus(state, cache.closure, pool);
+    const sort = quickSort(state, status, pool);
+    expect(sort).toEqual({
+      above: ['p1'],
+      below: ids(20).slice(10),
+      close: ['p2', 'p3', 'p4', 'p5', 'p7', 'p8', 'p9', 'p10'],
+    });
+    // Done for this round: not offered again, and undo stops after it
+    state = { ...state, sortedAt: 11 };
+    expect(quickSort(state, status, pool)).toBeNull();
+    expect(undoFloor(state)).toBe(11);
+    // Too few clear calls for a list: everyone is asked head to head
+    const small = startBubble(createFieldState(4), ids(10), 0);
+    expect(quickSort(small, roundStatus(small, cache.closure, ids(10)), ids(10))).toBeNull();
+  });
+
+  it("quick sort answers put the user's moves first, so a clash keeps the user's call", () => {
+    const sort = { above: ['a', 'b'], below: ['y', 'z'], close: [] };
+    expect(quickSortAnswers('c', sort, new Set(['b', 'y']))).toEqual([
+      { winner: 'c', loser: 'b' },
+      { winner: 'y', loser: 'c' },
+      { winner: 'a', loser: 'c' },
+      { winner: 'c', loser: 'z' },
+    ]);
+    // An earlier answer says z beat y. Moving z up while y stays below by
+    // stats can't both hold: z's move is kept and y follows from it.
+    const cache = createClosureCache();
+    cache.addEdge('y', 'z');
+    const added = quickSortAnswers('c', { above: [], below: ['y', 'z'], close: [] }, new Set(['z']))
+      .filter((a) => cache.addEdge(a.winner, a.loser));
+    expect(added).toEqual([{ winner: 'z', loser: 'c' }]);
+    expect(cache.closure.y?.has('c')).toBe(true);
+  });
+
+  it('a new round or the playoff starts without the quick sort mark', () => {
+    const cache = createClosureCache();
+    const pool = ids(40);
+    let state = startBubble(createFieldState(10), pool, 0, 'p30');
+    let status = roundStatus(state, cache.closure, pool);
+    while (status.next) {
+      cache.addEdge(status.next, 'p30');
+      status = roundStatus(state, cache.closure, pool);
+    }
+    state = { ...state, sortedAt: 5 };
+    const plan = planCut(state, status, cache.closure, pool);
+    expect('sortedAt' in nextRound(state, status, plan, 39)).toBe(false);
+    expect('sortedAt' in lowerCutLine(state, status, pool, 39)).toBe(false);
+    expect('sortedAt' in finishCut(state, status, plan, 39)).toBe(false);
+  });
+
+  it('counts the players left to trim at every step', () => {
+    const cache = createClosureCache();
+    const pool = ids(30);
+    let state: FieldState = { ...createFieldState(10), locks: ids(2) };
+    expect(trimCount(state, cache.closure, pool)).toEqual({ total: 20, cut: 0, left: 20 });
+    // A high cut line: p6 beats p7-p30, so 24 are out mid-round, 4 too many
+    state = startBubble(state, pool, 0, 'p6');
+    let status = roundStatus(state, cache.closure, pool);
+    while (status.next) {
+      const [w, l] = truth(status.next) < 6 ? [status.next, 'p6'] : ['p6', status.next];
+      cache.addEdge(w, l);
+      status = roundStatus(state, cache.closure, pool);
+    }
+    expect(trimCount(state, cache.closure, pool)).toEqual({ total: 20, cut: 24, left: -4 });
+    // The playoff brings 4 back; each one decided counts down
+    state = finishCut(state, status, planCut(state, status, cache.closure, pool), 28);
+    expect(state.playoff).toMatchObject({ mode: 'add', count: 4 });
+    expect(trimCount(state, cache.closure, pool).left).toBe(-4);
+    let po = playoffStatus(state.playoff!, cache.closure, pool);
+    while (po.pair) {
+      const [a, b] = po.pair;
+      cache.addEdge(truth(a) < truth(b) ? a : b, truth(a) < truth(b) ? b : a);
+      po = playoffStatus(state.playoff!, cache.closure, pool);
+    }
+    expect(trimCount(state, cache.closure, pool).left).toBe(0);
+    state = finishPlayoff(state, po.decided);
+    expect(trimCount(state, cache.closure, pool)).toEqual({ total: 20, cut: 20, left: 0 });
   });
 });

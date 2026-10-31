@@ -37,6 +37,7 @@ import {
   createFieldState,
   poolBestFirst,
   undoFloor,
+  type FieldAnswer,
   type FieldState,
 } from './utils/fieldBuilder';
 import { storedRankerScore } from './hooks/useImpactScores';
@@ -599,6 +600,32 @@ export const RankingSession = ({
       setSetupData(nextSetup);
       if (autosave) autosave({ setupData: nextSetup });
     };
+    // A quick sort records many answers at once. It is a step, so one undo
+    // takes all of them back; the answers after it are undone one by one.
+    const handleQuickSort = (answers: FieldAnswer[]) => {
+      // An answer that clashes with earlier ones is already settled the
+      // other way by them, so it's skipped
+      const accepted = answers.filter(
+        ({ winner, loser }) =>
+          !closureCache.closure[loser]?.has(winner) &&
+          closureCache.addEdge(winner, loser)
+      );
+      const newResults = [...results, ...accepted];
+      const nextSetup = {
+        ...(setupData ?? {}),
+        field: { ...field, sortedAt: newResults.length },
+        steps: [...steps, stepFrom()],
+      };
+      setSetupData(nextSetup);
+      setResults(newResults);
+      setSkippedPairs(new Set());
+      if (autosave)
+        autosave({
+          setupData: nextSetup,
+          results: newResults,
+          skippedPairs: new Set(),
+        });
+    };
     return (
       <>
         {exitBar}
@@ -610,6 +637,7 @@ export const RankingSession = ({
           comparisonCount={results.length}
           onChange={handleFieldChange}
           onAnswer={handleSelect}
+          onQuickSort={handleQuickSort}
           onUndo={canUndo ? handleUndo : undefined}
           undoLabel={undoLabel}
         />

@@ -10,6 +10,7 @@ FieldBuilder.tsx
 FieldCutRound.tsx
 FieldLocks.tsx
 FieldPlayoff.tsx
+FieldQuickSort.tsx
 FieldRoundSummary.tsx
 ListSizePicker.tsx
 LocalDraftBanner.tsx
