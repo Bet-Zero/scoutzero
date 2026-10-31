@@ -14,6 +14,7 @@ import {
   openDashboardTab,
 } from './helpers/architectReviewWorld';
 import { loadSnapshot, coverage } from '../../scripts/dev/cloudData';
+import { TeamListFull } from '@/constants/teamList';
 
 registerSoftwareSeasonEnvironment(() => true);
 test.use({
@@ -273,6 +274,8 @@ for (const multiple of [false, true])
     expect(await conditionalState(worldId)).toEqual(final);
 
     // Every original/holding team sees the same saved positions after full navigation/reload.
+    const teamName = (code: string) =>
+      TeamListFull.find((t) => t.code === code)!.teamName;
     for (const team of [...penaltyBaseOrder].sort()) {
       await page.goto(`/gm/${team}?season=2033`);
       const relevant = receipt.positions.filter(
@@ -292,7 +295,7 @@ for (const multiple of [false, true])
       const detail = page.getByTestId('team-history-detail-sections');
       for (const p of relevant)
         await expect(detail).toContainText(
-          `${p.originalTeam} 2033 first: pick ${p.beforePosition} → ${p.position} · held by ${p.holderTeam}`
+          `${teamName(p.originalTeam)} 2033 first: pick ${p.beforePosition} → ${p.position} · held by ${teamName(p.holderTeam)}`
         );
       await capture(page, `${mode}-${team}-history`);
       await page.getByTestId('team-history-detail-close').click();
