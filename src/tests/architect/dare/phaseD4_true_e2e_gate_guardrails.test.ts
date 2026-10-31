@@ -16,7 +16,7 @@
  *   - D4 test imports applyWorldMutation
  *   - D4 test imports advanceSeasonInWorld
  *   - D4 test contains FIRESTORE_EMULATOR_HOST check
- *   - D4 test reloads data from emulator (not just writes)
+ *   - D4 compares the complete persisted world after rejected default actions
  *   - Package.json has ci:phaseD4-dare-emulator-gate script
  *   - vitest.emulator.config.js exists and aliases firebaseConfig
  */
@@ -131,31 +131,45 @@ describe('Phase D4: TRUE E2E Emulator Gate Guardrails', () => {
     });
   });
 
-  describe("E) Persistence Verification (What D4 Proves That D3 Didn't)", () => {
-    it('TEST 12: D4 test reloads teams after trade (not just writes)', () => {
-      expect(d4TestContent).toMatch(/reloadTeam/);
-      // Must reload AFTER applyWorldMutation to verify persistence
-      const applyIndex = d4TestContent.indexOf('applyWorldMutation');
-      const reloadIndex = d4TestContent.lastIndexOf('reloadTeam');
-      expect(reloadIndex).toBeGreaterThan(applyIndex);
-    });
-
-    it('TEST 13: D4 test reloads entitlements after DARE (not just writes)', () => {
-      expect(d4TestContent).toMatch(/reloadWorldEntitlement/);
-      // Must reload AFTER advanceSeasonInWorld to verify DARE persistence
-      const advanceIndex = d4TestContent.indexOf('advanceSeasonInWorld');
-      const reloadEntIndex = d4TestContent.lastIndexOf(
-        'reloadWorldEntitlement'
+  describe('E) Default first-round no-write verification', () => {
+    it('TEST 12: compares the complete persisted world after the real trade call', () => {
+      expect(d4TestContent).toContain('async function savedWorld()');
+      expect(d4TestContent).toContain('ref.listCollections()');
+      expect(d4TestContent).toContain('await visit(child.ref)');
+      expect(d4TestContent).toContain('const before = await savedWorld()');
+      expect(d4TestContent).toContain('expect(await savedWorld()).toEqual(before)');
+      expect(d4TestContent.lastIndexOf('await savedWorld()')).toBeGreaterThan(
+        d4TestContent.indexOf('await applyWorldMutation(')
       );
-      expect(reloadEntIndex).toBeGreaterThan(advanceIndex);
     });
 
-    it('TEST 14: D4 test verifies resolved=true via reload', () => {
-      expect(d4TestContent).toMatch(/resolved.*===.*true|resolved.*toBe.*true/);
+    it('TEST 13: rejects an unqualified season transition and verifies no writes', () => {
+      const start = d4TestContent.indexOf("it('does not infer a season transition");
+      const end = d4TestContent.indexOf("it('keeps direct client", start);
+      expect(start).toBeGreaterThan(-1);
+      expect(end).toBeGreaterThan(start);
+      const transition = d4TestContent.slice(start, end);
+      expect(transition).toContain('await advanceSeasonInWorld(');
+      expect(transition).toContain('expect(result.success).toBe(false)');
+      expect(transition).toContain('expect(await savedWorld()).toEqual(before)');
     });
 
-    it('TEST 15: D4 test verifies resolvedAt timestamp exists', () => {
-      expect(d4TestContent).toMatch(/resolvedAt/);
+    it('TEST 14: distinguishes the default first-round rejection and repeats it', () => {
+      expect(d4TestContent).toContain("['d4-first', 'd4-retry']");
+      expect(d4TestContent).toContain('expect(result.success).toBe(false)');
+      expect(d4TestContent).toContain('JSON.stringify(result.violations)');
+      expect(d4TestContent).toContain('/Stepien|governedDraftHistory/');
+    });
+
+    it('TEST 15: rejects copied metadata as permission with unchanged persisted state', () => {
+      const start = d4TestContent.indexOf("it('rejects copied review metadata");
+      const end = d4TestContent.indexOf("it('does not infer", start);
+      expect(start).toBeGreaterThan(-1);
+      expect(end).toBeGreaterThan(start);
+      const forged = d4TestContent.slice(start, end);
+      expect(forged).toContain('draftReviewAuthority: { ...source.reviews[0], eligible: true }');
+      expect(forged).toContain('Unrecognized or unavailable draft review permission');
+      expect(forged).toContain('expect(await savedWorld()).toEqual(before)');
     });
   });
 
