@@ -282,9 +282,6 @@ for (const multiple of [false, true])
         (r: { originalTeam: string; holderTeam: string }) =>
           r.originalTeam === team || r.holderTeam === team
       );
-      const own = relevant.find(
-        (r: { originalTeam: string }) => r.originalTeam === team
-      );
       await openDashboardTab(page, 'Team History');
       const timeline = page.getByTestId('team-history-section-timeline');
       await timeline
@@ -300,12 +297,13 @@ for (const multiple of [false, true])
       await capture(page, `${mode}-${team}-history`);
       await page.getByTestId('team-history-detail-close').click();
       await openDashboardTab(page, 'Compare');
-      await expect(
-        page.getByText(
-          `${team} 2033 first: pick ${own.beforePosition} → ${own.position} · held by ${own.holderTeam}${own.penalized ? ' · draft-pick penalty' : ''}`,
-          { exact: true }
-        )
-      ).toBeVisible();
+      for (const p of relevant)
+        await expect(
+          page.getByText(
+            `${p.originalTeam} 2033 first: pick ${p.beforePosition} → ${p.position} · held by ${p.holderTeam}${p.penalized ? ' · draft-pick penalty' : ''}`,
+            { exact: true }
+          )
+        ).toBeVisible();
       await capture(page, `${mode}-${team}-compare`);
       const expand = page.getByRole('button', { name: 'Expand activity rail' });
       if (await expand.isVisible()) await expand.click();
