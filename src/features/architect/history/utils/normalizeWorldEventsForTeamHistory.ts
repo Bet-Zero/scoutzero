@@ -179,6 +179,22 @@ export function toTeamHistoryEventDisplay(
   const operationId = firstNonEmptyString(raw.operationId) || null;
 
   const detailSections: DisplaySection[] = [];
+  if (
+    rawMutationType === 'draftConveyance' &&
+    isSyntheticDraftReviewEnvironment()
+  ) {
+    const r = readPenaltyPlacementReceipt(metadata.penaltyDraftReceipt);
+    if (r && r.worldId === raw.worldId && r.operationId === operationId) {
+      pushSection(detailSections, 'Final draft positions', [
+        ...r.positions
+          .filter(
+            (p) => p.originalTeam === teamCode || p.holderTeam === teamCode
+          )
+          .map(placementLine),
+        'Governed software scenario; not authenticated NBA results.',
+      ]);
+    }
+  }
   let hasDraftSeasonRecord = false;
   if (
     rawMutationType === 'seasonAdvance' &&
@@ -774,3 +790,7 @@ export function normalizeWorldEventsForTeamHistory(
     return safeB - safeA;
   });
 }
+import {
+  readPenaltyPlacementReceipt,
+  placementLine,
+} from '../../utils/draftReview/penaltyPlacement';

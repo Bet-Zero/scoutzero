@@ -7,6 +7,7 @@
  */
 
 import { getWorldMetadata } from '@/features/architect/utils/worldManager';
+import { teamSoftwareSeason } from '@/features/architect/utils/governedSeason/softwareSeasonContext';
 import { resolveContractBaselineWorldCompatibility } from '@/features/architect/utils/contractSource/contractSourceRelease';
 import type { CapProjectionMap } from './useArchitectState.types';
 
@@ -59,9 +60,7 @@ export const isUsableActiveWorldMetadata = (
   Boolean(metadata) &&
   metadata?.isArchived !== true &&
   resolveContractBaselineWorldCompatibility(metadata).compatible &&
-  !(
-    typeof metadata?.createdBy === 'string' && metadata.createdBy !== userId
-  );
+  !(typeof metadata?.createdBy === 'string' && metadata.createdBy !== userId);
 
 export const resolveUsableActiveWorldId = async (
   candidateWorldId: string | null | undefined,
@@ -112,11 +111,32 @@ export const seasonEndYearsFromCaps = (
   return Array.from(new Set(years)).sort((a, b) => a - b);
 };
 
+/** Adds only the saved world's explicit protected financial context to viewing. */
+export function seasonEndYearsForWorld(
+  caps: CapProjectionMap | null | undefined,
+  team: unknown,
+  worldSeason: string | null
+) {
+  const years = seasonEndYearsFromCaps(caps);
+  if (!worldSeason) return years;
+  const year = Number(worldSeason.slice(0, 4)) + 1;
+  try {
+    if (teamSoftwareSeason(team, year))
+      return [...new Set([...years, year])].sort((a, b) => a - b);
+  } catch {
+    // Malformed or production-denied software inputs establish no extra year.
+  }
+  return years;
+}
+
 /**
  * Find the closest year in availableYears to the target year.
  * Returns the target if availableYears is empty, or the closest match by absolute difference.
  */
-export const findClosestYear = (target: number, availableYears: number[]): number => {
+export const findClosestYear = (
+  target: number,
+  availableYears: number[]
+): number => {
   if (!availableYears || availableYears.length === 0) return target;
   if (availableYears.includes(target)) return target;
 

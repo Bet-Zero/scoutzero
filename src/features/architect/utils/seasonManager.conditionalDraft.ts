@@ -1,4 +1,8 @@
 import { prepareSwapDraft } from './draftReview/swapDraft';
+import { preparePenaltyDraft } from './draftReview/penaltyDraft';
+import { placementLine } from './draftReview/penaltyPlacement';
+import { DraftPenaltyPlacementReceiptZ } from '@/schemas/draftPenaltyPlacement';
+import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
 import { DraftSwapReceiptZ } from '@/schemas/draftSwapReceipt';
 import { DraftConditionalReceiptZ } from '@/schemas/draftConditionalReceipt';
 /** Draft transition owned by Season Manager; no source writes or production authority. */
@@ -33,6 +37,7 @@ export async function advanceConditionalDraftInWorld(
     draftYear: number;
     positions: Record<string, number>;
     elections?: Record<string, boolean>;
+    expectedDraftStateDigest?: string;
   }
 ) {
   if (
@@ -73,11 +78,24 @@ export async function advanceConditionalDraftInWorld(
         request.draftYear
       )
     : null;
+  const penalty = state.apron ? preparePenaltyDraft(state) : null;
+  if (
+    penalty &&
+    (metadata.draftPenaltyReceipt !== undefined ||
+      request.expectedDraftStateDigest !==
+        mutationSnapshotDigest(state.snapshots) ||
+      Object.keys(request.positions).length ||
+      Object.keys(request.elections ?? {}).length)
+  )
+    throw new Error(
+      'The draft is already finalized or its reviewed inputs changed. Reload the draft.'
+    );
   const due = programs.filter(
     (p) => activeConditionalStage(p)?.year === request.draftYear
   );
   if (
     !swap &&
+    !penalty &&
     (!due.length ||
       programs.some(
         (p) => (activeConditionalStage(p)?.year ?? Infinity) < request.draftYear
@@ -98,8 +116,11 @@ export async function advanceConditionalDraftInWorld(
       : p
   );
   const nextEntitlements = swap?.entitlements ?? structuredClone(entitlements);
-  const lines: string[] = swap?.lines ?? [];
-  const affected = swap?.affected ?? new Set<string>();
+  const lines: string[] =
+    penalty?.positions.map(placementLine) ?? swap?.lines ?? [];
+  const affected = penalty
+    ? new Set(Object.keys(teams))
+    : (swap?.affected ?? new Set<string>());
   for (const program of due) {
     const stage = activeConditionalStage(program)!;
     const beneficiary = String(entitlements[stage.entitlementId].holderTeam);
@@ -142,9 +163,20 @@ export async function advanceConditionalDraftInWorld(
       },
     ])
   );
-  const programMetadata = swap
-    ? { draftSwapProgram: swap.updated }
-    : { draftConditionalPrograms: updated };
+  const penaltyReceipt = penalty
+    ? DraftPenaltyPlacementReceiptZ.parse({
+        scope: 'governed-simulation-only',
+        worldId,
+        operationId: request.operationId,
+        catalogueSha256: metadata.draftSimulationCatalogue,
+        ...penalty,
+      })
+    : null;
+  const programMetadata = penaltyReceipt
+    ? { draftPenaltyReceipt: penaltyReceipt }
+    : swap
+      ? { draftSwapProgram: swap.updated }
+      : { draftConditionalPrograms: updated };
   assertSimulationInventory(
     state.catalogue,
     { ...metadata, asOfDate: date, ...programMetadata },
@@ -168,7 +200,7 @@ export async function advanceConditionalDraftInWorld(
       },
     ];
   });
-  const eventId = `${swap ? 'swapDraft' : 'conditionalDraft'}__${request.draftYear}`;
+  const eventId = `${penalty ? 'penaltyDraft' : swap ? 'swapDraft' : 'conditionalDraft'}__${request.draftYear}`;
   const eventRef = doc(
     state.root,
     ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
@@ -188,38 +220,42 @@ export async function advanceConditionalDraftInWorld(
     teamCodes: [...affected],
     metadata: {
       type: 'draftConveyance',
-      summary: swap
-        ? `${request.draftYear} swap pool resolved; selections allocated to every participant`
-        : lines.filter((_, index) => index % 2 === 0).join(' · '),
+      summary: penalty
+        ? `${request.draftYear} final first-round positions saved after draft-pick penalties`
+        : swap
+          ? `${request.draftYear} swap pool resolved; selections allocated to every participant`
+          : lines.filter((_, index) => index % 2 === 0).join(' · '),
       picksTraded: lines,
-      ...(swap
-        ? {
-            swapDraftReceipt: DraftSwapReceiptZ.parse({
-              worldId,
-              operationId: request.operationId,
-              scope: 'governed-simulation-only',
-              catalogueSha256: metadata.draftSimulationCatalogue,
-              before: state.swap,
-              after: swap.updated,
-              movements: swap.movements,
-              draftYear: request.draftYear,
-              date,
+      ...(penaltyReceipt
+        ? { penaltyDraftReceipt: penaltyReceipt }
+        : swap
+          ? {
+              swapDraftReceipt: DraftSwapReceiptZ.parse({
+                worldId,
+                operationId: request.operationId,
+                scope: 'governed-simulation-only',
+                catalogueSha256: metadata.draftSimulationCatalogue,
+                before: state.swap,
+                after: swap.updated,
+                movements: swap.movements,
+                draftYear: request.draftYear,
+                date,
+              }),
+            }
+          : {
+              conditionalDraftReceipt: DraftConditionalReceiptZ.parse({
+                worldId,
+                operationId: request.operationId,
+                movements,
+                scope: 'governed-simulation-only',
+                catalogueSha256: metadata.draftSimulationCatalogue,
+                before: programs,
+                after: updated,
+                positions: request.positions,
+                draftYear: request.draftYear,
+                date,
+              }),
             }),
-          }
-        : {
-            conditionalDraftReceipt: DraftConditionalReceiptZ.parse({
-              worldId,
-              operationId: request.operationId,
-              movements,
-              scope: 'governed-simulation-only',
-              catalogueSha256: metadata.draftSimulationCatalogue,
-              before: programs,
-              after: updated,
-              positions: request.positions,
-              draftYear: request.draftYear,
-              date,
-            }),
-          }),
     },
   };
   assertPersistableOrThrow({
@@ -267,5 +303,10 @@ export async function advanceConditionalDraftInWorld(
       lastModifiedTeams: [...affected],
     });
   });
-  return { eventId, programs: updated, swap: swap?.updated };
+  return {
+    eventId,
+    programs: updated,
+    swap: swap?.updated,
+    penalty: penaltyReceipt,
+  };
 }

@@ -56,6 +56,7 @@ import {
   readPersistedActiveWorldId,
   resolveUsableActiveWorldId,
   seasonEndYearsFromCaps,
+  seasonEndYearsForWorld,
   writePersistedActiveWorldId,
 } from './useArchitectState.helpers';
 import { readRoomFromUrl } from './useArchitectDeskNavigation';
@@ -127,6 +128,12 @@ export function useArchitectState({
   }, [worldId]);
 
   // === Selection state ===
+  const requestedSeasonRef = useRef(
+    Number(
+      new URLSearchParams(window.location.search).get('season') ??
+        localStorage.getItem(LOCAL_SEASON_KEY)
+    )
+  );
   const [currentYear, setCurrentYear] = useState<number>(() => {
     const availableYears = seasonEndYearsFromCaps(capProjections);
 
@@ -148,6 +155,23 @@ export function useArchitectState({
 
   const [selectedRulesYear, setSelectedRulesYear] =
     useState<number>(currentYear);
+  useEffect(() => {
+    const requested = requestedSeasonRef.current;
+    if (
+      worldId &&
+      !seasonEndYearsFromCaps(capProjections).includes(requested) &&
+      seasonEndYearsForWorld(
+        capProjections,
+        teamCapSheet,
+        worldCurrentSeason
+      ).includes(requested)
+    ) {
+      // Restore a deep link only after the saved software context establishes
+      // that viewing year. This does not add a projected financial authority.
+      requestedSeasonRef.current = 0;
+      setCurrentYear(requested);
+    }
+  }, [worldId, teamCapSheet, worldCurrentSeason]);
   const [selectedPlayer, setSelectedPlayer] = useState<ArchitectPlayer | null>(
     null
   );

@@ -499,3 +499,48 @@ The exact-head wrapper's `--conditional-lifecycle` mode retains both threshold
 outcomes, both-team inventories/History/Compare/reload, negative cases, source
 preservation, private input hashes, traces and clean teardown using the same
 protected cloud environment and private inputs as the retained simulation mode.
+
+### Final first-round penalty placement in a governed world
+
+The protected apron journey can consume seven consecutive season transitions,
+from 2025–26 through entry into 2032–33. Final 2033 positions remain unavailable
+at the earlier 2030–31 eligibility checkpoint. The separately governed draft
+event requires the draft season's completed regular season and its June date.
+These later calendars, finances and outcomes are explicit software assumptions;
+they do not supply official NBA facts or extend production authority.
+
+`draftPenaltyInput` supplies all 30 original selections in complete pre-penalty
+order (including established lottery and ordinary tie outcomes), original-team
+winning percentages, complete penalized membership, current holders, uncontested
+claim coverage and every retained non-ownership right. The coordinator checks
+these against the retained catalogue, saved inventories, calendar and consumed
+apron history. An applicable unresolved allocation dependency or competing right
+blocks placement. The retained factual apron gaps remain unresolved; only their
+separate software status is derived from this world's completed observations.
+
+The shared `draftPenaltyOrder` arithmetic implements accepted CBA2-L08.8:
+nonpenalized selections keep their relative order; penalized selections occupy
+the final positions, with lower original-team winning percentages earlier.
+Ownership transfers do not change the original team's percentage. A tied
+penalty group remains blocked because no governing tie procedure is established
+by the accepted leaf. Missing or contradictory inputs never produce a final slot.
+
+The GM's **Save final 2033 draft positions** action atomically saves all 30
+positions in `draftPenaltyReceipt` and one draft event. History, Compare, the
+draft-order table and Team Plan assets display the saved result after reload.
+The original 278 entitlement documents, ownership, rights and exact 29 unresolved
+mappings remain intact; placement is separate world state. The complete snapshot
+fence rejects stale operations, and the deterministic event prevents duplicate
+application. Loading recomputes and reconciles the receipt with its inputs,
+season history and committed event.
+
+The existing exact-head wrapper accepts `--penalty-placement`. Its two complete
+journeys cover a single penalty and multiple penalties with transferred picks,
+every team's History/Compare/assets/reload, premature attempts, incomplete order
+or membership, conflicting claims, missing right coverage, wrong ownership,
+unsupported ties, stale inputs and duplicate application. It retains 186
+screenshots, private proof records, traces, input hashes and clean teardown.
+Private archives remain local unless their separate export gate is authorized.
+Drafts requiring unresolved claims, forfeited/missing selections or a new tie
+procedure, later seasons, factual source closure and production admission remain
+outside this supported outcome.

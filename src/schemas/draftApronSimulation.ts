@@ -34,8 +34,8 @@ export const DraftApronSimulationPlanZ = z
     ]),
     startingSeason: z.string().regex(/^\d{4}-\d{2}$/),
     softwareRetainedFirsts: SoftwareRetainedFirstsZ.optional(),
-    seasons: z.array(SoftwareSeasonContextZ).min(2).max(6).optional(),
-    steps: z.array(DraftApronSeasonStepZ).min(1).max(5),
+    seasons: z.array(SoftwareSeasonContextZ).min(2).max(8).optional(),
+    steps: z.array(DraftApronSeasonStepZ).min(1).max(7),
     futureObservations: z.array(DraftApronObservationZ).length(120),
   })
   .strict();
@@ -46,7 +46,7 @@ export const DraftApronSeasonObservationZ = DraftApronSeasonStepZ.pick({
 })
   .extend({ transitionId: z.string().min(1) })
   .strict();
-export const DraftApronHistoryZ = z.array(DraftApronSeasonObservationZ).max(5);
+export const DraftApronHistoryZ = z.array(DraftApronSeasonObservationZ).max(7);
 export const DraftApronSeasonReceiptZ = z
   .object({
     scope: z.literal('governed-simulation-only'),
@@ -70,7 +70,7 @@ export const DraftApronPlanReferenceZ = z
   .object({
     kind: z.literal('governed-apron-plan-reference-v1'),
     header: DraftApronSimulationPlanZ.omit({ steps: true }),
-    stepSeasons: z.array(z.number().int()).min(1).max(5),
+    stepSeasons: z.array(z.number().int()).min(1).max(7),
     planDigest: z.string().min(1),
   })
   .strict();
