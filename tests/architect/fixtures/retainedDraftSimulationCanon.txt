@@ -228,3 +228,167 @@ Source date: agreement-as-of:2023-06-28; URL: <https://ak-static.cms.nba.com/wp-
 Artifact: `bf178ca0f2d64f9dfe6fde095d3ae43d576b12e19ce7a679618d632584f7ab32`; bytes=2850534; retrieved=2026-07-23T11:23:46Z
 Verified by `agent:codex` in `session:r31-20260723-maker` on 2026-07-23
 Status/version: current/1; limitations: none
+
+PINNED ACCEPTED CANON AUTHORITY — working-tree copies are not consulted
+Candidate: 6cf8aaf358c158a88e630e8a7336f7e9c3febc17
+Authority ref: refs/remotes/origin/architect/cba-canon-v2
+SHA-256:  23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76
+Artifact: docs/reference/cba/ARCHITECT_CBA_CANON.md (pinned git object)
+
+LEAF CBA2-A12.5
+Rule: Frozen-pick unfreeze timing: when a Team is a Second Apron Team in fewer than two of the four following Salary Cap Years, the frozen first-round pick becomes tradable on the day after the Regular Season ends in the third of those years in which it is not a Second Apron Team
+Authority: CBA
+Methods: primary=LIFECYCLE; secondary=SCEN
+Lifecycle inputs: Four-year Second Apron history
+Lineage: XW2-0160
+Notes: Owns unfreeze timing only; the express no-penalty result is CBA2-A12.7.
+
+APPLICABLE SCENARIOS
+
+CBA2-SC-019(e)
+Inputs: R7-FIX-2026; dependencies=[CBA2-A12.4:PASS@v1]; P+ record: frozenSelection=TEAM-A 2034 first; four following Season results=[2027-28 ABOVE,2028-29 BELOW,2029-30 BELOW,2030-31 BELOW]; aboveCount=1; thirdBelowRegularSeasonEnd=2031-04-13T23:59:59-04:00; requestedAsOf=2031-04-14T00:00:00-04:00; P− record: P+ byte-identical except requestedAsOf=2031-04-13T23:59:59-04:00
+Boundary: Frozen-pick unfreeze timing: when a Team is a Second Apron Team in fewer than two of the four following Salary Cap Years, the frozen first-round pick becomes tradable on the day after the Regular Season ends in the third of those years in which it is not a Second Apron Team
+Expected: P+ exact output: unfreeze selection at 2031-04-14T00:00:00-04:00 and mark tradable (CBA2-A12.5:PASS); P− exact output: one second before the third-below Season ends, selection remains frozen (CBA2-A12.5:FAIL).
+Evidence chain: CBA2-A12.5 → EV2-0089 → CBA; direct dependency results CBA2-A12.4
+Exercises: CBA2-A12.5
+
+CBA2-SC-019(h20)
+Inputs: R7-FIX-2026; exact pinned published interaction input: Team above Second Apron at the start of its final regular-season game; future pick freezes, then slides after two of four years or unfreezes after three qualifying at/below seasons.
+Boundary: Paired retained-history discriminators for CBA2-A12.4, CBA2-A12.5, CBA2-A12.7; H+ preserves the published facts with the named obligation satisfied, and H− changes only that obligation's threshold, date, state, or required external-record predicate.
+Expected: CBA2-A12.4=PASS exactly when Frozen-pick trading bar: if a Team is a Second Apron Team for a Salary Cap Year (Apron Team Salary above the Second Apron Level as of the start of its last Regular Season game in that year), the Team is prohibited from trading, conditionally or unconditionally, its first-round pick in the first NBA Draft following the seventh Season after the Season in that Salary Cap Year; its paired single-predicate adverse variant is FAIL, or NEEDS-INPUT only when the registered contract requires an authenticated external/season-keyed input; CBA2-A12.5=PASS exactly when Frozen-pick unfreeze timing: when a Team is a Second Apron Team in fewer than two of the four following Salary Cap Years, the frozen first-round pick becomes tradable on the day after the Regular Season ends in the third of those years in which it is not a Second Apron Team; its paired single-predicate adverse variant is FAIL, or NEEDS-INPUT only when the registered contract requires an authenticated external/season-keyed input; CBA2-A12.7=PASS exactly when No Draft Pick Penalty after unfreeze: a frozen first-round pick released under VII §2(f)(2)(ii)(B) is not subject to a Draft Pick Penalty; its paired single-predicate adverse variant is FAIL, or NEEDS-INPUT only when the registered contract requires an authenticated external/season-keyed input.
+Evidence chain: CBA2-A12.4 → EV2-0088 → CBA; CBA2-A12.5 → EV2-0089 → CBA; direct dependency results CBA2-A12.4; CBA2-A12.7 → EV2-0112 → CBA; direct dependency results CBA2-A12.5
+Exercises: CBA2-A12.4, CBA2-A12.5, CBA2-A12.7
+
+PROVENANCE CLOSURE
+
+EV2-0089 (CBA) owner=CBA2-A12.5
+Source roots: SRC2-001; dependencies: —
+Citation: CBA VII §2(f)(2)(ii)(B), pp. 196-97
+Source text: After the specified third non-Second-Apron Regular Season in the four-year window, the Team is permitted to trade the frozen pick
+Result: Supports unfreeze timing only
+Reasoning: —
+Limitations: —
+
+SRC2-001 `official-immutable` — 2023 NBA-NBPA Collective Bargaining Agreement (signed agreement, 2023 edition)
+Source date: agreement-as-of:2023-06-28; URL: <https://ak-static.cms.nba.com/wp-content/uploads/sites/4/2023/06/2023-NBA-Collective-Bargaining-Agreement.pdf>
+Artifact: `bf178ca0f2d64f9dfe6fde095d3ae43d576b12e19ce7a679618d632584f7ab32`; bytes=2850534; retrieved=2026-07-23T11:23:46Z
+Verified by `agent:codex` in `session:r31-20260723-maker` on 2026-07-23
+Status/version: current/1; limitations: none
+
+PINNED ACCEPTED CANON AUTHORITY — working-tree copies are not consulted
+Candidate: 6cf8aaf358c158a88e630e8a7336f7e9c3febc17
+Authority ref: refs/remotes/origin/architect/cba-canon-v2
+SHA-256:  23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76
+Artifact: docs/reference/cba/ARCHITECT_CBA_CANON.md (pinned git object)
+
+LEAF CBA2-A12.7
+Rule: No Draft Pick Penalty after unfreeze: a frozen first-round pick released under VII §2(f)(2)(ii)(B) is not subject to a Draft Pick Penalty
+Authority: CBA
+Methods: primary=LIFECYCLE; secondary=SCEN
+Lifecycle inputs: Four-year Second Apron history; unfreeze event
+Lineage: XW2-0161
+Notes: Express no-penalty result; distinct from unfreeze timing.
+
+APPLICABLE SCENARIOS
+
+CBA2-SC-019(g)
+Inputs: R7-FIX-2026; P+ record: selection=TEAM-A 2034 first; unfreezeEvent=VII_2_f_2_ii_B at 2031-04-14T00:00:00-04:00; four-year aboveCount=1; CBA2-A12.5 result=PASS@v1; DraftPickPenaltyLedger=none; P− record: P+ byte-identical except four-year aboveCount=2, unfreezeEvent=none, and CBA2-A12.5 result=FAIL@v1.
+Boundary: No Draft Pick Penalty after unfreeze: a frozen first-round pick released under VII §2(f)(2)(ii)(B) is not subject to a Draft Pick Penalty
+Expected: P+ exact output: released selection is tradable at its natural position with no Draft Pick Penalty (CBA2-A12.7:PASS); P− exact output: selection is not released under the no-penalty branch; this rule emits no no-penalty result (CBA2-A12.7:FAIL).
+Evidence chain: CBA2-A12.7 → EV2-0112 → CBA; direct dependency results CBA2-A12.5
+Exercises: CBA2-A12.7
+
+CBA2-SC-019(h20)
+Inputs: R7-FIX-2026; exact pinned published interaction input: Team above Second Apron at the start of its final regular-season game; future pick freezes, then slides after two of four years or unfreezes after three qualifying at/below seasons.
+Boundary: Paired retained-history discriminators for CBA2-A12.4, CBA2-A12.5, CBA2-A12.7; H+ preserves the published facts with the named obligation satisfied, and H− changes only that obligation's threshold, date, state, or required external-record predicate.
+Expected: CBA2-A12.4=PASS exactly when Frozen-pick trading bar: if a Team is a Second Apron Team for a Salary Cap Year (Apron Team Salary above the Second Apron Level as of the start of its last Regular Season game in that year), the Team is prohibited from trading, conditionally or unconditionally, its first-round pick in the first NBA Draft following the seventh Season after the Season in that Salary Cap Year; its paired single-predicate adverse variant is FAIL, or NEEDS-INPUT only when the registered contract requires an authenticated external/season-keyed input; CBA2-A12.5=PASS exactly when Frozen-pick unfreeze timing: when a Team is a Second Apron Team in fewer than two of the four following Salary Cap Years, the frozen first-round pick becomes tradable on the day after the Regular Season ends in the third of those years in which it is not a Second Apron Team; its paired single-predicate adverse variant is FAIL, or NEEDS-INPUT only when the registered contract requires an authenticated external/season-keyed input; CBA2-A12.7=PASS exactly when No Draft Pick Penalty after unfreeze: a frozen first-round pick released under VII §2(f)(2)(ii)(B) is not subject to a Draft Pick Penalty; its paired single-predicate adverse variant is FAIL, or NEEDS-INPUT only when the registered contract requires an authenticated external/season-keyed input.
+Evidence chain: CBA2-A12.4 → EV2-0088 → CBA; CBA2-A12.5 → EV2-0089 → CBA; direct dependency results CBA2-A12.4; CBA2-A12.7 → EV2-0112 → CBA; direct dependency results CBA2-A12.5
+Exercises: CBA2-A12.4, CBA2-A12.5, CBA2-A12.7
+
+PROVENANCE CLOSURE
+
+EV2-0112 (CBA) owner=CBA2-A12.7
+Source roots: SRC2-001; dependencies: —
+Citation: CBA VII §2(f)(2)(ii)(B), pp. 196-97
+Source text: For clarity, the released first-round pick shall not be subject to a Draft Pick Penalty
+Result: Supports only the no-penalty consequence
+Reasoning: —
+Limitations: —
+
+SRC2-001 `official-immutable` — 2023 NBA-NBPA Collective Bargaining Agreement (signed agreement, 2023 edition)
+Source date: agreement-as-of:2023-06-28; URL: <https://ak-static.cms.nba.com/wp-content/uploads/sites/4/2023/06/2023-NBA-Collective-Bargaining-Agreement.pdf>
+Artifact: `bf178ca0f2d64f9dfe6fde095d3ae43d576b12e19ce7a679618d632584f7ab32`; bytes=2850534; retrieved=2026-07-23T11:23:46Z
+Verified by `agent:codex` in `session:r31-20260723-maker` on 2026-07-23
+Status/version: current/1; limitations: none
+
+PINNED ACCEPTED CANON AUTHORITY — working-tree copies are not consulted
+Candidate: 6cf8aaf358c158a88e630e8a7336f7e9c3febc17
+Authority ref: refs/remotes/origin/architect/cba-canon-v2
+SHA-256:  23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76
+Artifact: docs/reference/cba/ARCHITECT_CBA_CANON.md (pinned git object)
+
+LEAF CBA2-L08.7
+Rule: A Team above the Second Apron in at least two of the four measurement Seasons receives the Draft Pick Penalty on its final first-round pick
+Authority: CBA
+Methods: primary=LIFECYCLE; secondary=—
+Lifecycle inputs: —
+Lineage: new (DR2-0130)
+Notes: Direct source component minted in R6.
+
+APPLICABLE SCENARIOS
+None registered for this non-SCEN leaf.
+
+PROVENANCE CLOSURE
+
+EV2-0772 (CBA) owner=CBA2-L08.7
+Source roots: SRC2-001; dependencies: —
+Citation: CBA VII §2(f), printed pp. 195–197
+Source text: The two-of-four result creates the Draft Pick Penalty and identifies the penalized pick.
+Result: Supplies the independently auditable trigger and result stated by this active obligation.
+Reasoning: —
+Limitations: —
+
+SRC2-001 `official-immutable` — 2023 NBA-NBPA Collective Bargaining Agreement (signed agreement, 2023 edition)
+Source date: agreement-as-of:2023-06-28; URL: <https://ak-static.cms.nba.com/wp-content/uploads/sites/4/2023/06/2023-NBA-Collective-Bargaining-Agreement.pdf>
+Artifact: `bf178ca0f2d64f9dfe6fde095d3ae43d576b12e19ce7a679618d632584f7ab32`; bytes=2850534; retrieved=2026-07-23T11:23:46Z
+Verified by `agent:codex` in `session:r31-20260723-maker` on 2026-07-23
+Status/version: current/1; limitations: none
+
+PINNED ACCEPTED CANON AUTHORITY — working-tree copies are not consulted
+Candidate: 6cf8aaf358c158a88e630e8a7336f7e9c3febc17
+Authority ref: refs/remotes/origin/architect/cba-canon-v2
+SHA-256:  23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76
+Artifact: docs/reference/cba/ARCHITECT_CBA_CANON.md (pinned git object)
+
+LEAF CBA2-L08.8
+Rule: When multiple first-round picks carry the Draft Pick Penalty, their end-of-round order is inverse winning percentage under the signed rule
+Authority: CBA
+Methods: primary=SCEN; secondary=—
+Lifecycle inputs: Inputs/window: every first-round pick with a Draft Pick Penalty in the same Draft; each Team’s official winning percentage and tie result; inverse-order comparison; Draft/year.
+Lineage: new (DR2-0130)
+Notes: Direct source component minted in R6.
+
+APPLICABLE SCENARIOS
+
+CBA2-SC-080(a)
+Inputs: R7-FIX-2026; dependencies=[none]; P+ record: Draft=2027; penalizedFirstRoundPicks=[TEAM-A winPct .600,TEAM-B .500,TEAM-C .400]; proposedEndRoundOrderEarlierToLater=[TEAM-C,TEAM-B,TEAM-A]; ties=none; P− record: P+ byte-identical except proposedEndRoundOrderEarlierToLater=[TEAM-A,TEAM-B,TEAM-C].
+Boundary: When multiple first-round picks carry the Draft Pick Penalty, their end-of-round order is inverse winning percentage under the signed rule
+Expected: P+ exact output: inverse winning-percentage order places .400 TEAM-C first among the penalized picks, then .500 TEAM-B, with .600 TEAM-A making the final selection (CBA2-L08.8:PASS). P− exact output: placing the highest-winning-percentage Team first reverses the signed order (CBA2-L08.8:FAIL).
+Evidence chain: CBA2-L08.8 → EV2-0773 → CBA
+Exercises: CBA2-L08.8
+
+PROVENANCE CLOSURE
+
+EV2-0773 (CBA) owner=CBA2-L08.8
+Source roots: SRC2-001; dependencies: —
+Citation: CBA VII §2(f), printed pp. 195–197
+Source text: The agreement supplies ordering among multiple penalized picks.
+Result: Supplies the independently auditable trigger and result stated by this active obligation.
+Reasoning: —
+Limitations: —
+
+SRC2-001 `official-immutable` — 2023 NBA-NBPA Collective Bargaining Agreement (signed agreement, 2023 edition)
+Source date: agreement-as-of:2023-06-28; URL: <https://ak-static.cms.nba.com/wp-content/uploads/sites/4/2023/06/2023-NBA-Collective-Bargaining-Agreement.pdf>
+Artifact: `bf178ca0f2d64f9dfe6fde095d3ae43d576b12e19ce7a679618d632584f7ab32`; bytes=2850534; retrieved=2026-07-23T11:23:46Z
+Verified by `agent:codex` in `session:r31-20260723-maker` on 2026-07-23
+Status/version: current/1; limitations: none

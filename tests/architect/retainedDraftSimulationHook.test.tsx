@@ -48,14 +48,36 @@ const prepared = () => ({
 });
 beforeEach(() => {
   mock.enabled = true;
-  mock.read
-    .mockReset()
-    .mockResolvedValue({
-      data: () => ({ draftSimulationKind: 'retained-picks-governed-test-v1' }),
-    });
+  mock.read.mockReset().mockResolvedValue({
+    data: () => ({ draftSimulationKind: 'retained-picks-governed-test-v1' }),
+  });
   mock.preview.mockReset().mockResolvedValue(prepared());
 });
 describe('protected draft review UI handoff', () => {
+  it('uses the saved season and the same slug normalization as Apply after a season transition', async () => {
+    const { result } = renderHook(() =>
+      useDraftSimulation({
+        ...args,
+        yearKey: 2027,
+        asOfDate: '2026-07-01',
+        exportTrade: () => [
+          { ...args.exportTrade()[0], teamId: 'raptors' },
+          { ...args.exportTrade()[0], teamId: 'heat' },
+        ],
+      })
+    );
+    await waitFor(() => expect(result.current.enabled).toBe(true));
+    await act(async () => {
+      await result.current.validate();
+    });
+    expect(mock.preview.mock.calls[0][0]).toMatchObject({
+      seasonId: '2026-27',
+      payload: {
+        asOfDate: '2026-07-01',
+        teams: [{ teamCode: 'TOR' }, { teamCode: 'MIA' }],
+      },
+    });
+  });
   it('discards a late response even after selection A -> B -> A', async () => {
     let finish!: (value: unknown) => void;
     mock.preview.mockImplementationOnce(

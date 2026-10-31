@@ -1,3 +1,4 @@
+import { observationForStep } from './draftReview/apronSimulation';
 import { isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
 import { loadConditionalWorld } from './draftReview/conditionalWorld';
 import { activeConditionalStage } from './draftReview/conditionalProgram';
@@ -155,11 +156,14 @@ export async function advanceSeasonInWorld(
 
     const conditional =
       isSyntheticDraftReviewEnvironment() &&
-      ['protection-programs', 'swap-program'].includes(String(worldMeta.draftSimulationBranches))
+      ['protection-programs', 'swap-program', 'apron-lifecycle'].includes(
+        String(worldMeta.draftSimulationBranches)
+      )
         ? await loadConditionalWorld(worldId)
         : null;
     if (
       conditional &&
+      !conditional.apron &&
       (worldCurrentSeason !== '2025-26' ||
         worldAsOfDate < '2026-06-05' ||
         worldAsOfDate > '2026-06-30' ||
@@ -171,10 +175,15 @@ export async function advanceSeasonInWorld(
       throw new Error(
         'Resolve all due conditional drafts before advancing this test season.'
       );
+    if (conditional?.apron && !conditional.apron.next)
+      throw new Error(
+        'Later Apron observations require complete governed season financial inputs. This milestone supports only 2025–26 to 2026–27; release and penalty remain pending.'
+      );
     const authorityResult = resolveSeasonAdvanceAuthority({
       worldId,
       worldSeason: worldCurrentSeason,
-      worldAsOfDate: conditional ? '2026-04-12' : worldAsOfDate,
+      worldAsOfDate:
+        conditional && !conditional.apron ? '2026-04-12' : worldAsOfDate,
     });
     if (authorityResult.status !== 'complete') {
       throw new Error(
@@ -276,7 +285,9 @@ export async function advanceSeasonInWorld(
       ...(conditional
         ? {
             conditionalSeasonBooks:
+              conditional.apron?.next?.targetBooks ??
               conditional.metadata.draftSimulationSeasonBooks,
+            apronSeason: conditional.apron,
             conditionalEnvironmentCheck: isSyntheticDraftReviewEnvironment,
           }
         : {}),
@@ -397,7 +408,17 @@ export async function advanceSeasonInWorld(
         lastModifiedTeams: teamCodes,
         actionCount: actionCount + 1,
         ...(conditional
-          ? { draftInventoryRevision: conditional.revision + 1 }
+          ? {
+              draftInventoryRevision: conditional.revision + 1,
+              ...(conditional.apron?.next
+                ? {
+                    draftApronHistory: [
+                      ...conditional.apron.history,
+                      observationForStep(conditional.apron.next),
+                    ],
+                  }
+                : {}),
+            }
           : {}),
       });
     });

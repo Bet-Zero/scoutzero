@@ -24,7 +24,8 @@ export async function prepareConditionalTrade(
   uid: string,
   worldId: string,
   outgoingIds: string[],
-  teamCodes = ['TOR', 'MIA']
+  teamCodes = ['TOR', 'MIA'],
+  date = { seasonId: '2025-26', asOfDate: '2026-06-05', yearKey: 2026 }
 ) {
   const docs = await Promise.all(
     outgoingIds.map(async (id) => ({
@@ -37,7 +38,7 @@ export async function prepareConditionalTrade(
     }))
   );
   return page.evaluate(
-    async ({ uid, worldId, docs, teamCodes }) => {
+    async ({ uid, worldId, docs, teamCodes, date }) => {
       const previewPath =
         '/src/features/architect/utils/draftReview/simulationPreview.ts';
       const termsPath =
@@ -68,16 +69,16 @@ export async function prepareConditionalTrade(
         userId: uid,
         worldId,
         mutationType: 'executeTrade',
-        seasonId: '2025-26',
+        seasonId: date.seasonId,
         operationId: `conditional_${crypto.randomUUID()}`,
         payload: {
           teams,
-          asOfDate: '2026-06-05',
+          asOfDate: date.asOfDate,
           tradeCtx: {
             source: 'tradeMachine',
             worldId,
-            yearKey: 2026,
-            asOfDate: '2026-06-05',
+            yearKey: date.yearKey,
+            asOfDate: date.asOfDate,
           },
         },
       };
@@ -98,7 +99,7 @@ export async function prepareConditionalTrade(
         };
       }
     },
-    { uid, worldId, docs, teamCodes }
+    { uid, worldId, docs, teamCodes, date }
   );
 }
 

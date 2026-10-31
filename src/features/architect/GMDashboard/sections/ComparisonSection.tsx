@@ -463,6 +463,16 @@ export const ComparisonSection = ({
       )}
 
       {/* Roster changes */}
+      {!!viewModel.draftAssetDelta?.restrictions?.length && (
+        <SectionCard testId="comparison-apron-restrictions">
+          <SectionHeading>First-round restrictions</SectionHeading>
+          {viewModel.draftAssetDelta.restrictions.map((line) => (
+            <p key={line} className="text-sm">
+              {line}
+            </p>
+          ))}
+        </SectionCard>
+      )}
       {hasEvents && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <SectionCard testId="comparison-roster-additions">

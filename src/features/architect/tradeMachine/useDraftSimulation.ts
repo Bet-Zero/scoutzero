@@ -8,6 +8,7 @@ import {
 } from '@/features/architect/utils/draftReview/simulationInventory';
 import type { previewRetainedDraftSimulation } from '@/features/architect/utils/draftReview/simulationPreview';
 import { mutationSnapshotText } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
+import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 import type { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import type { ArchitectMutationPayload } from '@/features/architect/utils/mutationPipeline';
 
@@ -85,14 +86,17 @@ export function useDraftSimulation(args: {
         throw new Error('This simulation supports pick-only exchanges.');
       const payload: ArchitectMutationPayload = {
         teams: data.map((t) => ({
-          teamCode: String(t.teamId ?? ''),
+          teamCode:
+            resolveTeamCode(String(t.teamId ?? '')) || String(t.teamId ?? ''),
           sends: [],
           picksOut: [],
           outgoingEntitlements: t.outgoingEntitlements ?? [],
           entitlementsOut: t.outgoingEntitlements ?? [],
           salaryMatchingElection: t.salaryMatchingElection ?? null,
           cashSent: t.cashSent ?? 0,
-          cashToTeamId: t.cashToTeamId ?? null,
+          cashToTeamId: t.cashToTeamId
+            ? resolveTeamCode(t.cashToTeamId) || t.cashToTeamId
+            : null,
         })),
         ...(args.asOfDate ? { asOfDate: args.asOfDate } : {}),
         tradeCtx: {
@@ -108,7 +112,7 @@ export function useDraftSimulation(args: {
       const result = await previewRetainedDraftSimulation({
         userId: args.userId,
         worldId: args.worldId,
-        seasonId: '2025-26',
+        seasonId: `${args.yearKey - 1}-${String(args.yearKey).slice(-2)}`,
         mutationType: 'executeTrade',
         operationId,
         payload,

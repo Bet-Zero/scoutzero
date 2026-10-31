@@ -29,7 +29,11 @@ export function useSwapAssets(
           await getDoc(doc(db, ARCHITECT_WORLDS_COLLECTION, worldId))
         ).data();
         if (cancelled) return;
-        if (metadata?.draftSimulationBranches !== 'swap-program') {
+        if (
+          !['swap-program', 'apron-lifecycle'].includes(
+            String(metadata?.draftSimulationBranches)
+          )
+        ) {
           setValue({ key, summary: null });
           return;
         }
@@ -43,7 +47,7 @@ export function useSwapAssets(
             summary: {
               status: 'unavailable',
               deferralHint: 'see-trade-history',
-              reason: 'Saved swap inventory could not be verified.',
+              reason: 'Saved draft inventory could not be verified.',
             },
           });
       }

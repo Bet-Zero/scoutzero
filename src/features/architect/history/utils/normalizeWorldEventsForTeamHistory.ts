@@ -1,3 +1,7 @@
+import {
+  apronRestrictionText,
+  readApronSeasonReceipt,
+} from '../../utils/draftReview/apronSimulation';
 // Wave 25 Step 1: private types, constants, and utilities extracted to submodule
 export * from './normalizeWorldEventsForTeamHistory.utils';
 import {
@@ -180,6 +184,22 @@ export function toTeamHistoryEventDisplay(
     rawMutationType === 'seasonAdvance' &&
     isSyntheticDraftReviewEnvironment()
   ) {
+    const apron = readApronSeasonReceipt(metadata.apronSeasonReceipt);
+    if (
+      apron &&
+      apron.worldId === raw.worldId &&
+      apron.operationId === operationId
+    ) {
+      const input = apron.restrictions.find((r) => r.team === teamCode);
+      if (input) {
+        hasDraftSeasonRecord = true;
+        pushSection(detailSections, 'First-round restriction', [
+          `${teamCode} 2033 first: ${apronRestrictionText(input)}`,
+          `${apron.after.length} consecutive season observations recorded.`,
+          'Governed software scenario; not authenticated NBA facts. Final draft placement is not determined.',
+        ]);
+      }
+    }
     const receipt = DraftReviewSeasonReceiptZ.safeParse(
       metadata.draftReviewSeasonReceipt
     );

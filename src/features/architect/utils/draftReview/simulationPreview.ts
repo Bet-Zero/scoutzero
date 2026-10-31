@@ -25,7 +25,7 @@ export async function previewRetainedDraftSimulation(
     ...args,
     state,
     operationId: args.operationId!,
-    asOfDate: '2026-06-05',
+    asOfDate: String(args.payload.asOfDate),
   });
   const payload = { ...args.payload, teams: args.payload.teams ?? [] };
   const currentState = {
