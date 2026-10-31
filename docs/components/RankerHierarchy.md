@@ -13,7 +13,6 @@ FieldRefs.tsx
 FieldSelect.tsx
 ListSizePicker.tsx
 LocalDraftBanner.tsx
-NearMissStrip.tsx
 PlayerCompareCard.tsx
 PoolPanel.tsx
 PoolPlayerItems.tsx

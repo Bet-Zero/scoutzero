@@ -15,9 +15,12 @@ import {
   gameScorePerGame,
   RANKER_SCORE_FORMULA_VERSION,
   recentPeakScore,
+  defaultTickCount,
+  rankTopNPool,
   selectTopNCandidates,
   suggestedPoolSize,
 } from '@/features/ranker/utils/playerImpact';
+import { seasonInLeague } from '@/features/ranker/utils/seasonInLeague';
 import { loadImpactScores, storedRankerScore } from '@/features/ranker/hooks/useImpactScores';
 import {
   CURRENT_SEASON_CODE,
@@ -257,5 +260,51 @@ describe('scores stored by the stats refresh', () => {
     expect(storedRankerScore(stored('2019-20', RANKER_SCORE_FORMULA_VERSION))).toBeUndefined();
     expect(storedRankerScore(stored(CURRENT_SEASON_CODE, RANKER_SCORE_FORMULA_VERSION + 1))).toBeUndefined();
     expect(storedRankerScore({})).toBeUndefined();
+  });
+});
+
+describe('rankTopNPool', () => {
+  it('lists everyone with a score or salary by their better rank; the top N by either start ticked', () => {
+    const rows = [
+      { id: 'a', salary: 5 },
+      { id: 'b', salary: 50 },
+      { id: 'c', salary: 1 },
+      { id: 'd', salary: null },
+      { id: 'none', salary: null },
+    ];
+    const scores = new Map([['a', 20], ['b', 3], ['c', 15], ['d', 10]]);
+    const ranked = rankTopNPool(rows, scores);
+    // a: stats 1; b: pay 1; c: stats 2; d: stats 3 ("none" has neither)
+    expect(ranked.map((r) => [r.id, r.best, r.rank])).toEqual([
+      ['a', 1, 1],
+      ['b', 1, 2],
+      ['c', 2, 3],
+      ['d', 3, 4],
+    ]);
+    // Top 2 by either: a, b, c
+    expect(defaultTickCount(ranked, 2)).toBe(3);
+    // The same players selectTopNCandidates puts in the pool
+    expect(selectTopNCandidates(rows, scores, 2).pool.map((r) => r.id)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('seasonInLeague', () => {
+  const player = (draftYear: number | null, yearsPro: number | null) => ({
+    bio: {
+      ...(draftYear !== null ? { draft: { year: String(draftYear) } } : {}),
+      ...(yearsPro !== null ? { display: { yearsPro } } : {}),
+    },
+  });
+  it('counts seasons from years pro, or the draft year when years pro is missing or far off', () => {
+    // Current season 2026-27
+    expect(seasonInLeague(player(null, 0), '2026-27', 2026)).toBe(1);
+    expect(seasonInLeague(player(2025, 1), '2026-27', 2026)).toBe(2);
+    expect(seasonInLeague(player(2026, null), '2026-27', 2026)).toBe(1);
+    // Stale years pro (more than one off): the draft year wins
+    expect(seasonInLeague(player(2020, 1), '2026-27', 2026)).toBe(7);
+    // A past season counts back; before he arrived there's nothing
+    expect(seasonInLeague(player(2024, 2), '2024-25', 2026)).toBe(1);
+    expect(seasonInLeague(player(2025, 1), '2023-24', 2026)).toBeNull();
+    expect(seasonInLeague(player(null, null), '2026-27', 2026)).toBeNull();
   });
 });

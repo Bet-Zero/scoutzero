@@ -1,6 +1,6 @@
 /**
  * FILE: src/features/ranker/PoolSearchResults.tsx
- * PURPOSE: Results pane of the ranker workbench: the results table, near misses for the Top-N preset, and add-selected / add-all actions
+ * PURPOSE: Results pane of the ranker workbench: the results table, bulk ticking (shift-click or drag a run, tick or untick everyone shown, tick the top N) and add-selected / add-all actions
  * OWNERSHIP: Feature: ranker
  *
  * HISTORY:
@@ -9,15 +9,22 @@
  *  - 2026-10-22: Stats and pay rank columns, and a tap-to-add near-miss list
  *  - 2026-10-24: Fills a fixed-height pane: table scrolls, near misses and actions stay pinned below
  *  - 2026-10-27: Top-N lists show every candidate (no paging), so nobody ticked is out of sight
+ *  - 2026-10-31: Top-N lists show everyone (near-miss list gone); bulk ticking; sortable columns; ticks survive a search
  *
  * LINKS:
  *  - PR: https://github.com/Bet-Zero/scoutzero/pull/565
  *  - Used in: src/features/ranker/PoolWorkbench.tsx
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { RosterManagerPlayer } from '@/features/roster/hooks/useRosterManager';
-import { PoolResultsTable, type PoolSearchRow } from './PoolResultsTable';
-import { NearMissStrip } from './NearMissStrip';
+import {
+  nextSort,
+  PoolResultsTable,
+  sortRows,
+  type PoolSearchRow,
+  type PoolSort,
+} from './PoolResultsTable';
+import { fieldClass } from './RankerPanel';
 
 const PAGE_SIZE = 50;
 
@@ -28,12 +35,15 @@ type PoolSearchResultsProps = {
   loading: boolean;
   error: string | null;
   season: string;
+  // What's shown
   rows: PoolSearchRow[];
+  // Everyone the list is about (a Top-N list's whole ranking, which a search
+  // only narrows); defaults to `rows`
+  universe?: PoolSearchRow[];
   onAdd: (players: RosterManagerPlayer[]) => void;
-  // Start with every row ticked (untick to leave a player out)
+  // Top-N list: everyone is shown, ranked, and these start ticked
   preselect?: boolean;
-  // Top-N preset: the next players after the pool, to add by hand
-  nearMisses?: PoolSearchRow[];
+  defaultTicked?: readonly string[];
   // Notes and controls shown above the table
   header?: React.ReactNode;
 };
@@ -54,53 +64,121 @@ const Message = ({
   </div>
 );
 
+const smallButton =
+  'h-7 px-2.5 text-xs rounded-md border border-white/15 text-white/80 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed';
+
 export const PoolSearchResults = ({
   active,
   loading,
   error,
   season,
   rows,
+  universe = rows,
   onAdd,
   preselect = false,
-  nearMisses = [],
+  defaultTicked = [],
   header = null,
 }: PoolSearchResultsProps) => {
-  // Ticked ids, or with `preselect` the unticked ones
-  const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set());
-  const [limit, setLimit] = useState(PAGE_SIZE);
-  const [lastPreselect, setLastPreselect] = useState(preselect);
-  if (lastPreselect !== preselect) {
-    setLastPreselect(preselect);
-    setToggled(new Set());
-  }
-  const isSelected = (id: string) => toggled.has(id) !== preselect;
-
-  const addable = useMemo(() => rows.filter((r) => !r.inPool), [rows]);
-  // Only count selections that are still in the results and not yet added
-  const selectedRows = useMemo(
-    () => addable.filter((r) => toggled.has(r.player.id) !== preselect),
-    [addable, toggled, preselect]
+  const [ticked, setTicked] = useState<ReadonlySet<string>>(
+    () => new Set(defaultTicked)
   );
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  const [sort, setSort] = useState<PoolSort | null>(
+    preselect ? { key: 'rank', dir: 'asc' } : null
+  );
+  // "Tick the top N": what's typed, or null for the usual candidates
+  const [topTyped, setTopTyped] = useState<string | null>(null);
+  // The last box clicked, for shift-click runs
+  const anchor = useRef<string | null>(null);
+  // A drag down the boxes: the value it paints and the last box it reached
+  const drag = useRef<{ value: boolean; start: string; last: string; moved: boolean } | null>(null);
+
+  const sorted = useMemo(() => sortRows(rows, sort), [rows, sort]);
+  // Top-N lists show everyone: a ticked player below a "show more" button
+  // would be added without ever being seen
+  const shown = preselect ? sorted : sorted.slice(0, limit);
+  const remaining = sorted.length - shown.length;
+  const inPool = useMemo(
+    () => new Set(universe.filter((r) => r.inPool).map((r) => r.player.id)),
+    [universe]
+  );
+  const addable = useMemo(() => universe.filter((r) => !r.inPool), [universe]);
+  const selectedRows = useMemo(
+    () => addable.filter((r) => ticked.has(r.player.id)),
+    [addable, ticked]
+  );
+  const shownIds = new Set(shown.map((r) => r.player.id));
+  const shownAddable = shown.filter((r) => !r.inPool);
+  const allShownTicked =
+    shownAddable.length > 0 && shownAddable.every((r) => ticked.has(r.player.id));
+  const tickedOutOfView = selectedRows.filter((r) => !shownIds.has(r.player.id)).length;
+
+  const setMany = (ids: Iterable<string>, value: boolean) =>
+    setTicked((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (inPool.has(id)) continue;
+        if (value) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  // The shown players from one box to another, in the order on screen
+  const run = (from: string, to: string): string[] => {
+    const ids = shown.map((r) => r.player.id);
+    const a = ids.indexOf(from);
+    const b = ids.indexOf(to);
+    if (a === -1 || b === -1) return [to];
+    return ids.slice(Math.min(a, b), Math.max(a, b) + 1);
+  };
+
+  const toggle = (id: string, shiftKey: boolean) => {
+    // The click that ends a drag was already painted
+    if (drag.current?.moved) {
+      drag.current = null;
+      return;
+    }
+    drag.current = null;
+    const value = !ticked.has(id);
+    setMany(shiftKey && anchor.current ? run(anchor.current, id) : [id], value);
+    anchor.current = id;
+  };
+  const paintStart = (id: string) => {
+    drag.current = { value: !ticked.has(id), start: id, last: id, moved: false };
+  };
+  const paintOver = (id: string) => {
+    const d = drag.current;
+    if (!d || id === d.last) return;
+    // Everything between the last box reached and this one, so a fast drag
+    // doesn't skip rows
+    setMany(run(d.last, id), d.value);
+    if (!d.moved) setMany([d.start], d.value);
+    d.moved = true;
+    d.last = id;
+    anchor.current = id;
+  };
+  useEffect(() => {
+    // Let the click that ends the drag see it, then forget it
+    const end = () =>
+      setTimeout(() => {
+        drag.current = null;
+      }, 0);
+    window.addEventListener('pointerup', end);
+    return () => window.removeEventListener('pointerup', end);
+  }, []);
+
+  const tickTop = (n: number) => {
+    const top = universe.slice(0, Math.max(0, n)).map((r) => r.player.id);
+    setTicked(new Set(top.filter((id) => !inPool.has(id))));
+  };
+  const topValue = topTyped ?? String(defaultTicked.length);
+  const topN = Number.parseInt(topValue, 10);
 
   const add = (players: RosterManagerPlayer[]) => {
     if (players.length === 0) return;
     onAdd(players);
-    setToggled(new Set());
+    setTicked(new Set());
   };
-  const toggle = (id: string) =>
-    setToggled((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  const allSelected =
-    addable.length > 0 && selectedRows.length === addable.length;
-  const alreadyIn = rows.length - addable.length;
-  // Pre-ticked lists show everyone: a ticked player below a "show more"
-  // button would be added without ever being seen
-  const shown = preselect ? rows : rows.slice(0, limit);
-  const remaining = rows.length - shown.length;
 
   let body: React.ReactNode;
   if (!active) {
@@ -125,7 +203,11 @@ export const PoolSearchResults = ({
     body = <Message>Loading {season} data…</Message>;
   } else if (rows.length === 0) {
     body = (
-      <Message>No players match. Loosen a filter or clear the search.</Message>
+      <Message>
+        {universe.length > 0
+          ? 'Nobody in this list matches the search.'
+          : 'No players match. Loosen a filter or clear the search.'}
+      </Message>
     );
   } else {
     body = (
@@ -133,17 +215,18 @@ export const PoolSearchResults = ({
         <PoolResultsTable
           rows={shown}
           ranked={rows.some((r) => r.rank !== undefined)}
-          isSelected={isSelected}
-          allSelected={allSelected}
-          canSelectAll={addable.length > 0}
+          isSelected={(id) => ticked.has(id)}
+          allSelected={allShownTicked}
+          canSelectAll={shownAddable.length > 0}
           onToggle={toggle}
-          onToggleAll={() => {
-            // Select all (or none): with preselect that's an empty
-            // (or full) set of unticked ids
-            const all = new Set(addable.map((r) => r.player.id));
-            setToggled(allSelected === preselect ? all : new Set());
-          }}
+          onToggleAll={() =>
+            setMany(shownAddable.map((r) => r.player.id), !allShownTicked)
+          }
+          onPaintStart={paintStart}
+          onPaintOver={paintOver}
           onAdd={(player) => add([player])}
+          sort={sort}
+          onSort={(key) => setSort((s) => nextSort(s, key))}
         />
         {remaining > 0 && (
           <button
@@ -160,24 +243,75 @@ export const PoolSearchResults = ({
   }
 
   const showResults = active && !error && !loading;
+  const alreadyIn = universe.length - addable.length;
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {header}
+      {showResults && rows.length > 0 && (
+        <div className="flex flex-shrink-0 flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 border-b border-white/[0.06]">
+          <button
+            type="button"
+            className={smallButton}
+            disabled={shownAddable.length === 0 || allShownTicked}
+            onClick={() => setMany(shownAddable.map((r) => r.player.id), true)}
+          >
+            Tick all shown
+          </button>
+          <button
+            type="button"
+            className={smallButton}
+            disabled={!shownAddable.some((r) => ticked.has(r.player.id))}
+            onClick={() => setMany(shownAddable.map((r) => r.player.id), false)}
+          >
+            Untick all shown
+          </button>
+          {preselect && (
+            <span className="flex items-center gap-1.5">
+              <button
+                type="button"
+                className={smallButton}
+                disabled={!(topN >= 0)}
+                onClick={() => tickTop(topN)}
+              >
+                Tick only the top
+              </button>
+              <input
+                type="number"
+                min={0}
+                max={universe.length}
+                value={topValue}
+                onChange={(e) => setTopTyped(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && topN >= 0) tickTop(topN);
+                }}
+                aria-label="How many of the top to tick"
+                className={`${fieldClass} !h-7 w-16 px-2 text-xs`}
+              />
+            </span>
+          )}
+          {/* Mouse only: touch has the buttons above, sorting and search */}
+          <span className="hidden md:inline text-[11px] text-white/35">
+            Shift-click, or drag down the boxes, to tick or untick a run.
+          </span>
+        </div>
+      )}
       {body}
-
-      {showResults && <NearMissStrip nearMisses={nearMisses} onAdd={onAdd} />}
 
       {showResults && rows.length > 0 && (
         <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-t border-white/[0.06]">
           <p className="text-sm text-white/65">
-            <span className="text-white font-semibold">{rows.length}</span>{' '}
+            <span className="text-white font-semibold">{universe.length}</span>{' '}
             player
-            {rows.length === 1 ? '' : 's'}
-            {preselect && (
+            {universe.length === 1 ? '' : 's'}
+            <span className="text-white/40">
+              {' '}
+              · <span className="text-white/80 font-semibold">{selectedRows.length}</span> ticked
+            </span>
+            {tickedOutOfView > 0 && (
               <span className="text-white/40">
                 {' '}
-                · {selectedRows.length} ticked
+                ({tickedOutOfView} not shown)
               </span>
             )}
             {alreadyIn > 0 && (
@@ -188,8 +322,6 @@ export const PoolSearchResults = ({
             )}
           </p>
           <div className="flex gap-2">
-            {/* Top-N lists start fully ticked, so "add all" would quietly
-                bring back players the user unticked: only offer the ticked */}
             <button
               onClick={() => add(selectedRows.map((r) => r.player))}
               disabled={selectedRows.length === 0}
@@ -201,6 +333,8 @@ export const PoolSearchResults = ({
             >
               Add selected ({selectedRows.length})
             </button>
+            {/* Top-N lists start ticked, so "add all" would quietly bring
+                back players the user unticked: only offer the ticked */}
             {!preselect && (
               <button
                 onClick={() => add(addable.map((r) => r.player))}

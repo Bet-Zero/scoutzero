@@ -1,11 +1,12 @@
 /**
  * FILE: src/features/ranker/PoolResultsHeader.tsx
- * PURPOSE: Above the pool builder results: Top-N candidate count, the players-without-a-team toggle and the past-season caveat
+ * PURPOSE: Above the pool builder results: the Top-N list's title and how it's picked, the players-without-a-team toggle and the past-season caveat
  * OWNERSHIP: Feature: ranker
  *
  * HISTORY:
  *  - 2026-10-24: Split out of PoolWorkbench.tsx
  *  - 2026-10-27: Candidates box keeps what's typed (a first digit no longer snaps to the minimum)
+ *  - 2026-10-31: The list shows everyone; the candidates box moved below as "Tick the top N"
  *
  * LINKS:
  *  - Used in: src/features/ranker/PoolWorkbench.tsx
@@ -13,7 +14,6 @@
 import React, { useState } from 'react';
 import { Info } from 'lucide-react';
 import type { PoolFinder } from './hooks/usePoolFinder';
-import { fieldClass } from './RankerPanel';
 
 const Note = ({ children }: { children: React.ReactNode }) => (
   <div className="flex gap-2 text-xs leading-relaxed text-white/45">
@@ -24,11 +24,8 @@ const Note = ({ children }: { children: React.ReactNode }) => (
 
 // Top-N size and explanation, and the past-season caveat, above the results
 export const ResultsHeader = ({ finder }: { finder: PoolFinder }) => {
-  const { topN, poolSize, setPoolSize, isPastSeason, season } = finder;
+  const { topN, poolSize, isPastSeason, season } = finder;
   const [explained, setExplained] = useState(false);
-  // What's being typed in the candidates box, so typing 120 over 42 isn't
-  // cut short at the first digit; null shows the current size
-  const [typed, setTyped] = useState<string | null>(null);
   if (topN === null && !isPastSeason) return null;
   return (
     <div className="flex flex-shrink-0 flex-col gap-2 px-4 py-3 border-b border-white/[0.06] bg-white/[0.015]">
@@ -37,29 +34,9 @@ export const ResultsHeader = ({ finder }: { finder: PoolFinder }) => {
           <span className="text-sm font-semibold text-white">
             Top {topN} pool
           </span>
-          <label className="flex items-center gap-2 text-xs text-white/55">
-            Candidates
-            <input
-              type="number"
-              min={topN}
-              value={typed ?? poolSize}
-              onChange={(e) => {
-                setTyped(e.target.value);
-                const n = Number.parseInt(e.target.value, 10);
-                if (Number.isFinite(n) && n >= topN) setPoolSize(n);
-              }}
-              // Anything too small (or nothing) settles on the smallest pool
-              onBlur={() => {
-                const n = Number.parseInt(typed ?? '', 10);
-                if (typed !== null && !(n >= topN)) setPoolSize(topN);
-                setTyped(null);
-              }}
-              aria-label="Candidates to pull"
-              className={`${fieldClass} !h-8 w-20 px-2.5`}
-            />
-          </label>
           <span className="text-xs text-white/45">
-            Untick anyone who won&apos;t make it.
+            Everyone is listed; the usual candidates start ticked. Untick
+            anyone who won&apos;t make it, tick anyone missing.
           </span>
           {!isPastSeason &&
             (finder.hiddenTeamless > 0 || finder.includeTeamless) && (
@@ -93,14 +70,15 @@ export const ResultsHeader = ({ finder }: { finder: PoolFinder }) => {
       )}
       {topN !== null && explained && (
         <Note>
-          Everyone in the top {poolSize} by Game Score per game
+          Players are listed by their better place by Game Score per game
           {isPastSeason
             ? ` in ${season}`
-            : ' (this season, leaning on last season until about 20 games are played)'}
-          , plus everyone in the top {poolSize} by salary, after any search or
-          filters. A player&apos;s best of the three seasons before counts too,
-          and pay catches stars box scores undervalue (defense, injuries). Check
-          the &ldquo;just missed&rdquo; list under the table for anyone else.
+            : ' (this season, leaning on last season until about 20 games are played)'}{' '}
+          or by salary, after any filters. Everyone in the top {poolSize} by
+          either starts ticked. A player&apos;s best of the three seasons
+          before counts too, and pay catches stars box scores undervalue
+          (defense, injuries). Rookies and second-year players often sit lower
+          on both: sort by Yr to find them together.
         </Note>
       )}
       {isPastSeason && (
