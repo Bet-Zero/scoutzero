@@ -21,23 +21,36 @@ const pickBetter = () => {
 const lastSaved = (autosave: ReturnType<typeof vi.fn>, key: string) =>
   [...autosave.mock.calls].reverse().find(([patch]) => key in patch)?.[0][key];
 
-const roundSummary = () => screen.queryByRole('heading', { name: /beat .* · \d+ cut/ });
+const refsDone = () => screen.queryByRole('heading', { name: 'Your order' });
 const undoButton = () => screen.getByRole('button', { name: /^(Undo|Go back a step)$/ });
+const selectHeading = () => screen.queryByRole('heading', { name: /everyone better than/ });
 
-// Lock Alpha and answer round one of a Top 3 field
+// Lock Alpha: 7 candidates for 2 spots, so the line is set from Delta-Hotel
 const startField = (autosave = vi.fn(), extra: Record<string, unknown> = {}) => {
   render(<RankingSession playerPool={pool} listSize={3} autosave={autosave} {...extra} />);
   fireEvent.click(screen.getByLabelText('Lock Alpha'));
-  fireEvent.click(screen.getByText('Next: cut the bubble →'));
+  fireEvent.click(screen.getByText('Next: set the line →'));
   return autosave;
+};
+
+// The selection screen, answered truthfully
+const selectTruthfully = () => {
+  const heading = selectHeading();
+  if (!heading) return false;
+  const line = (heading.textContent ?? '').replace(/.*better than /, '');
+  const rank = (n: string) => truth.findIndex((t) => n.includes(t));
+  for (const button of screen.getAllByRole('button', { pressed: false }))
+    if (rank(button.getAttribute('aria-label') ?? '') < rank(line)) fireEvent.click(button);
+  fireEvent.click(screen.getByText('Confirm selection →'));
+  return true;
 };
 
 // Answer everything up to the ranking setup screen
 const finishField = () => {
   for (let i = 0; i < 40; i++) {
-    if (pickBetter()) continue;
+    if (pickBetter() || selectTruthfully()) continue;
     const next = screen.queryByRole('button', {
-      name: /Run round|Continue to the last spots|Try a lower cut line|Continue to ranking setup/,
+      name: /Next: select everyone|Continue to ranking setup/,
     });
     if (!next) break;
     fireEvent.click(next);
@@ -47,28 +60,40 @@ const finishField = () => {
 describe('RankingSession: undo takes back step buttons', () => {
   afterEach(cleanup);
 
-  it('undo after moving on from a round returns to that round, answers intact', () => {
+  it('undo after moving on from the line returns to it, answers intact', () => {
     const autosave = startField();
     for (let i = 0; i < 30 && pickBetter(); i++);
-    expect(roundSummary()).toBeTruthy();
+    expect(refsDone()).toBeTruthy();
     const answers = lastSaved(autosave, 'results').length;
+    expect(answers).toBeGreaterThan(0);
 
-    // Press whichever step button the round offers, then take it back
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: /Run round|Continue to the last spots|Try a lower cut line|Continue to ranking setup/,
-      })
-    );
-    expect(roundSummary()).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Next: select everyone better than/ }));
+    expect(selectHeading()).toBeTruthy();
     fireEvent.click(undoButton());
-    expect(roundSummary()).toBeTruthy();
+    expect(refsDone()).toBeTruthy();
     expect(lastSaved(autosave, 'results')).toHaveLength(answers);
     expect(lastSaved(autosave, 'setupData').steps).toHaveLength(1);
 
-    // Then the round's own answers can be taken back one at a time
+    // Then the line's own answers can be taken back one at a time
     fireEvent.click(screen.getByText('Undo last answer'));
     expect(compareButtons()).toHaveLength(2);
     expect(lastSaved(autosave, 'results')).toHaveLength(answers - 1);
+  });
+
+  it('one undo takes back a whole selection', () => {
+    const autosave = startField();
+    for (let i = 0; i < 30 && pickBetter(); i++);
+    fireEvent.click(screen.getByRole('button', { name: /Next: select everyone better than/ }));
+    const before = lastSaved(autosave, 'results').length;
+    expect(selectTruthfully()).toBe(true);
+    // Every player on the screen became an answer against the line
+    expect(lastSaved(autosave, 'results').length).toBeGreaterThan(before);
+    expect(screen.getByRole('heading', { name: /Last spots/ })).toBeTruthy();
+    fireEvent.click(undoButton());
+    expect(selectHeading()).toBeTruthy();
+    expect(lastSaved(autosave, 'results')).toHaveLength(before);
+    // A new screen starts with nobody selected
+    expect(screen.queryAllByRole('button', { pressed: true })).toHaveLength(0);
   });
 
   it('back to locks takes back the step instead of adding one', () => {
@@ -77,7 +102,7 @@ describe('RankingSession: undo takes back step buttons', () => {
     expect(screen.getByRole('heading', { name: /definitely in/ })).toBeTruthy();
     expect(lastSaved(autosave, 'setupData').steps).toBeUndefined();
     // Alpha is still locked
-    expect(screen.getByText('7 players in the bubble for 2 spots.')).toBeTruthy();
+    expect(screen.getByText('7 candidates for 2 open spots.')).toBeTruthy();
   });
 
   it('from the ranking: undo returns to setup with the choices kept, then back to the field', () => {
@@ -102,7 +127,7 @@ describe('RankingSession: undo takes back step buttons', () => {
 
     // And from setup back into building the field
     fireEvent.click(screen.getByText('← Back to building the field'));
-    expect(screen.getByRole('heading', { name: /Playoff for the last spots|Cut the bubble/ })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /Last spots|everyone better than|Set the line/ })).toBeTruthy();
   });
 
   it('the anchor screen can go back to setup, keeping the anchor', () => {
@@ -122,11 +147,7 @@ describe('RankingSession: undo takes back step buttons', () => {
   it('the saved session keeps its steps', () => {
     const autosave = startField();
     for (let i = 0; i < 30 && pickBetter(); i++);
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: /Run round|Continue to the last spots|Try a lower cut line|Continue to ranking setup/,
-      })
-    );
+    fireEvent.click(screen.getByRole('button', { name: /Next: select everyone better than/ }));
     const parsed = RankerSetupDataZ.parse(lastSaved(autosave, 'setupData'));
     expect(parsed.steps).toHaveLength(2);
     expect(parsed.steps?.[0].setupData?.field?.stage).toBe('locks');

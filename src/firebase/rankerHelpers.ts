@@ -41,14 +41,18 @@ const RankerComparisonResultZ = z.object({
 
 const RankerFieldZ = z.object({
   topN: z.number().int().positive(),
-  stage: z.enum(['locks', 'cut', 'playoff', 'done']),
+  // 'cut' and 'playoff' are the cut-line rounds of sessions saved before
+  // 2026-10-31; they reopen at 'refs'
+  stage: z.enum(['locks', 'refs', 'select', 'pick', 'done', 'cut', 'playoff']),
   locks: z.array(RankerPlayerIdZ),
   round: z.number().int().nonnegative(),
+  roundStart: z.number().int().nonnegative(),
+  refs: z.array(RankerPlayerIdZ).optional(),
   cutLine: RankerPlayerIdZ.nullable(),
   bubble: z.array(RankerPlayerIdZ),
-  roundStart: z.number().int().nonnegative(),
   inIds: z.array(RankerPlayerIdZ),
   cutIds: z.array(RankerPlayerIdZ),
+  // Older sessions' playoff, read but no longer used
   playoff: z
     .object({
       mode: z.enum(['drop', 'add']),
@@ -57,7 +61,8 @@ const RankerFieldZ = z.object({
       keep: z.array(RankerPlayerIdZ),
       start: z.number().int().nonnegative(),
     })
-    .nullable(),
+    .nullable()
+    .optional(),
   fieldIds: z.array(RankerPlayerIdZ).nullable(),
   order: z.array(RankerPlayerIdZ).optional(),
 });

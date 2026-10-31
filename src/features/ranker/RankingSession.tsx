@@ -22,6 +22,7 @@ import {
   suggestNextPair,
   type ClosureCache,
   type RankerComparison,
+  type RankerGraph,
   type RankerPair,
   type RankerPlayer,
 } from '@/features/ranker/utils/rankingEngine';
@@ -36,8 +37,12 @@ import { getPlayerName as getDisplayName } from '@/features/ranker/utils/playerD
 import {
   createFieldState,
   poolBestFirst,
+  isLegacyField,
+  normalizeField,
   undoFloor,
+  type FieldAnswer,
   type FieldState,
+  type StoredFieldState,
 } from './utils/fieldBuilder';
 import { storedRankerScore } from './hooks/useImpactScores';
 import { FieldBuilder } from './FieldBuilder';
@@ -144,23 +149,24 @@ export const RankingSession = ({
       ? { field: createFieldState(listSize, poolOrder ?? undefined) }
       : null;
   });
-  const field = (setupData?.field as FieldState | undefined) ?? null;
+  // As saved; a field from before 2026-10-31 may be in the old cut-line rounds
+  const savedField = (setupData?.field as StoredFieldState | undefined) ?? null;
   const steps = useMemo(
     () => (setupData?.steps as RankerSessionStep[] | undefined) ?? [],
     [setupData]
   );
   // Ranking hints are set (older sessions have no field step)
-  const configured = Boolean(setupData) && (!field || setupData?.configured === true);
+  const configured = Boolean(setupData) && (!savedField || setupData?.configured === true);
   // Once the field is settled, only its players are ranked
   const players = useMemo<RankerPlayer[]>(() => {
-    if (!field?.fieldIds) return poolPlayers;
-    const inField = new Set(field.fieldIds);
+    if (!savedField?.fieldIds) return poolPlayers;
+    const inField = new Set(savedField.fieldIds);
     return poolPlayers.filter((p) => inField.has(p.id));
-  }, [poolPlayers, field]);
+  }, [poolPlayers, savedField]);
   const playersById = useMemo(() => new Map(poolPlayers.map((p) => [p.id, p])), [poolPlayers]);
   // Pool by stats, best first: the order saved when the list was started
   // (older sessions: the stored current-season score); pool order breaks ties
-  const savedOrder = field?.order;
+  const savedOrder = savedField?.order;
   const bestFirst = useMemo(
     () =>
       poolBestFirst(
@@ -169,6 +175,11 @@ export const RankingSession = ({
         savedOrder
       ),
     [poolPlayers, playersById, savedOrder]
+  );
+  // The field in today's shape (an old cut-line field moves on to setting the line)
+  const field = useMemo(
+    () => (savedField ? normalizeField(savedField, bestFirst, results.length) : null),
+    [savedField, bestFirst, results.length]
   );
   const [anchorDone, setAnchorDone] = useState(
     () => resumedSessionData?.anchorDone || false
@@ -186,6 +197,14 @@ export const RankingSession = ({
 
   // Save a field created for a new session
   const savedInitialField = useRef(false);
+  // Save an old cut-line field moved on to the new steps, so its step start
+  // (and undo floor) stay put from here
+  useEffect(() => {
+    if (!savedField || !field || !isLegacyField(savedField)) return;
+    const nextSetup = { ...(setupData ?? {}), field };
+    setSetupData(nextSetup);
+    if (autosave) autosave({ setupData: nextSetup });
+  }, [savedField, field, setupData, autosave]);
   useEffect(() => {
     if (savedInitialField.current || resumedSessionData || !field || !autosave) return;
     savedInitialField.current = true;
@@ -599,6 +618,31 @@ export const RankingSession = ({
       setSetupData(nextSetup);
       if (autosave) autosave({ setupData: nextSetup });
     };
+    // A screen of answers (the selection) is one step: one undo takes all of
+    // them back. An answer that clashes with earlier ones is already settled
+    // the other way by them, so it's skipped.
+    const handleFieldAnswers = (
+      answers: FieldAnswer[],
+      next: (closure: RankerGraph, comparisonCount: number) => FieldState
+    ) => {
+      const accepted = answers.filter(
+        ({ winner, loser }) =>
+          !closureCache.closure[loser]?.has(winner) &&
+          !closureCache.closure[winner]?.has(loser) &&
+          closureCache.addEdge(winner, loser)
+      );
+      const newResults = [...results, ...accepted];
+      const nextSetup = {
+        ...(setupData ?? {}),
+        field: next(closureCache.closure, newResults.length),
+        steps: [...steps, stepFrom()],
+      };
+      setSetupData(nextSetup);
+      setResults(newResults);
+      setSkippedPairs(new Set());
+      if (autosave)
+        autosave({ setupData: nextSetup, results: newResults, skippedPairs: new Set() });
+    };
     return (
       <>
         {exitBar}
@@ -610,6 +654,7 @@ export const RankingSession = ({
           comparisonCount={results.length}
           onChange={handleFieldChange}
           onAnswer={handleSelect}
+          onAnswers={handleFieldAnswers}
           onUndo={canUndo ? handleUndo : undefined}
           undoLabel={undoLabel}
         />

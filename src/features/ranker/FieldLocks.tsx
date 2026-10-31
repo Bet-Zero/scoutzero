@@ -5,13 +5,14 @@
  *
  * HISTORY:
  *  - 2026-10-24: Created
+ *  - 2026-10-31: Leads into setting the line instead of the cut-line rounds
  *
  * LINKS:
  *  - Used in: src/features/ranker/FieldBuilder.tsx
  */
 import React from 'react';
 import type { RankerPlayer } from './utils/rankingEngine';
-import { spotsLeft, startBubble } from './utils/fieldBuilder';
+import { pickReferences, spotsLeft, startRefs } from './utils/fieldBuilder';
 import {
   getHeadshotSrc,
   getPlayerName,
@@ -68,7 +69,7 @@ export const FieldLocks = ({
         </h1>
         <p className="text-sm text-white/45 mt-1 max-w-2xl">
           Locks take a guaranteed spot on your Top {state.topN} and step aside,
-          so the next step only deals with the bubble. They come back for the
+          so the next steps only deal with the other candidates. They come back for the
           ranking.
         </p>
       </div>
@@ -119,17 +120,19 @@ export const FieldLocks = ({
         <p className="text-sm text-white/55">
           {full
             ? `Your locks fill all ${state.topN} spots.`
-            : `${rest.length} players in the bubble for ${spotsLeft(state)} spots.`}
+            : `${rest.length} candidates for ${spotsLeft(state)} open spots.`}
         </p>
         <button
           onClick={() =>
-            onChange(startBubble(state, bestFirst, comparisonCount))
+            onChange(startRefs(state, bestFirst, comparisonCount))
           }
           className="px-5 py-2.5 rounded-xl bg-white text-black font-bold text-sm hover:bg-white/90"
         >
           {full || rest.length <= spotsLeft(state)
             ? 'Continue to ranking setup →'
-            : 'Next: cut the bubble →'}
+            : pickReferences(rest, spotsLeft(state)).length
+              ? 'Next: set the line →'
+              : 'Next: last spots →'}
         </button>
       </div>
     </section>
