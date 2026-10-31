@@ -271,7 +271,9 @@ export function describeSimulationReason(reason: string) {
   if (reason.startsWith('cash-sale:'))
     return 'The exchange needs complete, permitted return consideration.';
   if (reason.startsWith('apron:'))
-    return 'The pick needs its applicable apron restriction history.';
+    return reason.endsWith(':component-prohibits')
+      ? 'This original first-round pick is frozen by the Second Apron rule.'
+      : 'The pick needs its applicable apron restriction history.';
   if (reason.startsWith('trading-window:'))
     return 'The pick is outside the supported draft-trading window.';
   return reason;

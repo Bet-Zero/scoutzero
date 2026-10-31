@@ -138,12 +138,14 @@ for (const excess of [1, 0])
         page,
         uid,
         worldId,
-        [original('TOR', 2033), original('MIA', 2031)],
+        [original('TOR', 2033), original('MIA', 2033)],
         ['TOR', 'MIA'],
         date
       );
       expect(blocked.status).toBe('blocked');
-      expect(JSON.stringify(blocked)).toMatch(/frozen|apron/i);
+      expect('reasons' in blocked ? blocked.reasons : null).toEqual([
+        'apron:TOR_2033_1st:component-prohibits',
+      ]);
       expect((await applyConditionalTrade(page)).success).toBe(false);
       expect(await conditionalState(worldId)).toEqual(saved);
       const picker = dialog
@@ -161,14 +163,19 @@ for (const excess of [1, 0])
       await select(
         page,
         dialog.getByTestId('trade-team-card-MIA'),
-        original('MIA', 2031),
+        original('MIA', 2033),
         'Toronto Raptors'
       );
       await dialog.getByRole('button', { name: /^Validate Trade$/ }).click();
       await expect(
+        dialog.getByRole('status').filter({
+          hasText:
+            'This original first-round pick is frozen by the Second Apron rule.',
+        })
+      ).toBeVisible({ timeout: 120000 });
+      await expect(
         dialog.getByRole('button', { name: /^Apply Trade$/ })
       ).toBeDisabled();
-      await expect(dialog).toContainText(/frozen|apron/i);
       await shot('blocked');
     }
     await page.reload();
