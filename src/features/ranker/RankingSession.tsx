@@ -218,10 +218,28 @@ export const RankingSession = ({
   }
   const closureCache = closureCacheRef.current;
 
+  // Top-N field: setup hints and the anchor are for the locks only. The
+  // players who won the open spots are already ranked from building the
+  // field, so they stay a section of their own below the locks; the ranking
+  // checks the boundary (worst lock vs best of them) and merges from there.
+  const fieldBubble = useMemo(() => {
+    if (!field?.fieldIds) return [];
+    const locks = new Set(field.locks);
+    return field.fieldIds.filter((id) => !locks.has(id));
+  }, [field]);
+  const setupPlayers = useMemo(() => {
+    if (!field?.fieldIds) return players;
+    const locks = new Set(field.locks);
+    return players.filter((p) => locks.has(p.id));
+  }, [players, field]);
+  const rankOptions = useMemo(
+    () => ({ ...(setupData ?? {}), bubble: fieldBubble }),
+    [setupData, fieldBubble]
+  );
   const groupedPlayers = useMemo(() => {
     if (!setupData || (setupData.anchor && !anchorDone)) return players;
-    return assignRankerGroups(players, results, setupData);
-  }, [players, setupData, results, anchorDone]);
+    return assignRankerGroups(players, results, rankOptions);
+  }, [players, setupData, rankOptions, results, anchorDone]);
 
   // Top-N mode: only the best N are found and ordered
   const topN = effectiveTopN(setupData?.topN, players.length);
@@ -515,7 +533,7 @@ export const RankingSession = ({
     const byId = new Map(players.map((p) => [p.id, p]));
     const generated = topNResolution
       ? topNResolution.ranked.map((p) => byId.get(p.id) ?? p)
-      : generateRankingFromComparisons(results, players, setupData ?? {});
+      : generateRankingFromComparisons(results, players, rankOptions);
     if (!adjustments?.length) return generated;
 
     // Persisted manual adjustments are the canonical order
@@ -694,7 +712,7 @@ export const RankingSession = ({
       <>
         {exitBar}
         <RankingSetup
-          playerPool={players}
+          playerPool={setupPlayers}
           onComplete={handleComplete}
           listTitle={field ? `your Top ${field.topN}` : null}
           initial={setupPrefill}
@@ -702,6 +720,14 @@ export const RankingSession = ({
           backLabel={field ? '← Back to building the field' : '← Back'}
           notFirst={lockInConflicts.notFirst}
           notLast={lockInConflicts.notLast}
+          allowLastPlace={!field}
+          note={
+            field
+              ? `Hints here are for your ${setupPlayers.length} ${
+                  setupPlayers.length === 1 ? 'lock' : 'locks'
+                } only. Your other ${fieldBubble.length} players are already ranked by your answers while building the field; once your locks are ranked, they're checked against your lowest locks and move up past any they beat.`
+              : null
+          }
         />
       </>
     );
@@ -722,14 +748,14 @@ export const RankingSession = ({
     // Players already settled against the anchor (e.g. while building the field) aren't asked
     const settled = (id: string) =>
       Boolean(closureCache.closure[id]?.has(anchorId) || closureCache.closure[anchorId]?.has(id));
-    const untagged = players.filter(
+    const untagged = setupPlayers.filter(
       (p) => p.id !== anchorId && !tagged.has(p.id) && !settled(p.id)
     );
     const handleAnchorComplete = (betterIds: string[]) => {
       // Already-settled players get their result recorded directly, so the
       // upper/lower split (which reads direct results) places them correctly
       const settledSeeds = anchorPlayer
-        ? players
+        ? setupPlayers
             .filter((p) => p.id !== anchorId && !tagged.has(p.id) && settled(p.id))
             .map((p) =>
               closureCache.closure[p.id]?.has(anchorId)

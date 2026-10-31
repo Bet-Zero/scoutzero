@@ -46,6 +46,10 @@ export type RankingGenerationOptions = {
   anchor?: string | null;
   firstPlace?: string | null;
   lastPlace?: string | null;
+  // Top-N field: players who won the open spots. Their order comes from
+  // building the field, so they form their own section below the locks;
+  // the boundary check then merges them upward where they beat a lock.
+  bubble?: readonly string[];
 };
 
 type UsageCounts = Record<string, number>;
@@ -75,6 +79,7 @@ export const RANKER_GROUP_ORDER = [
   'lower',
   'bottom',
   'last',
+  'bubble',
 ] as const;
 
 const DEFAULT_GROUP_INDEX = RANKER_GROUP_ORDER.indexOf('upper');
@@ -221,7 +226,9 @@ export function assignRankerGroups<T extends RankerPlayer>(
     anchor = null,
     firstPlace = null,
     lastPlace = null,
+    bubble: bubbleIds = [],
   } = setup;
+  const bubble = new Set(bubbleIds);
   const top = new Set(topTier);
   const bottom = new Set(bottomTier);
   const beatAnchor = new Set<string>();
@@ -233,7 +240,8 @@ export function assignRankerGroups<T extends RankerPlayer>(
 
   return players.map((p) => {
     let group: string;
-    if (p.id === firstPlace) group = 'first';
+    if (bubble.has(p.id) && p.id !== firstPlace) group = 'bubble';
+    else if (p.id === firstPlace) group = 'first';
     else if (p.id === lastPlace) group = 'last';
     else if (p.id === anchor) group = 'anchor';
     else if (top.has(p.id)) group = 'top';
@@ -250,7 +258,8 @@ const hasSetupOptions = (options: RankingGenerationOptions): boolean =>
       options.firstPlace ||
       options.lastPlace ||
       options.topTier?.length ||
-      options.bottomTier?.length
+      options.bottomTier?.length ||
+      options.bubble?.length
   );
 
 // Order a block best-first by how many block-mates each player is known to beat

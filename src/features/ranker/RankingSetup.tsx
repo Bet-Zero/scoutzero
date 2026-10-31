@@ -201,6 +201,8 @@ export const RankingSetup = ({
   backLabel = '← Back',
   notFirst = NO_PLAYERS,
   notLast = NO_PLAYERS,
+  allowLastPlace = true,
+  note = null,
 }: {
   playerPool?: RankerDisplayPlayer[];
   onComplete: (data: RankerSetupData) => void;
@@ -218,6 +220,11 @@ export const RankingSetup = ({
   // above someone here: locking them in at #1 / last would contradict that
   notFirst?: ReadonlySet<string>;
   notLast?: ReadonlySet<string>;
+  // Top-N field: the bottom of the list belongs to the players who won the
+  // open spots, so a last-place lock-in among the locks doesn't apply
+  allowLastPlace?: boolean;
+  // Explains who these hints are for (a Top-N field: the locks only)
+  note?: string | null;
 }) => {
   const inPool = new Set(playerPool.map((p) => p.id));
   const known = (id: string | null | undefined) => (id && inPool.has(id) ? id : null);
@@ -311,7 +318,22 @@ export const RankingSetup = ({
           Give the engine a few hints before you start. Every section is optional — the more
           you fill in, the fewer head-to-head comparisons you&apos;ll need to make.
         </p>
+        {note && (
+          <p className="mt-3 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm leading-relaxed text-white/60">
+            {note}
+          </p>
+        )}
       </div>
+
+      {playerPool.length < 2 ? (
+        <SectionCard className="mb-8">
+          <p className="text-sm text-white/55">
+            Nothing to set up: your answers while building the field already
+            rank everyone here.
+          </p>
+        </SectionCard>
+      ) : (
+      <>
 
       {/* ── Tier Tagging ─────────────────────────────────────────────────── */}
       <SectionCard className="mb-4" data-testid="tier-tagging">
@@ -375,9 +397,13 @@ export const RankingSetup = ({
       <SectionCard className="mb-8" data-testid="locks">
         <SectionHeader
           label="Position Lock-Ins"
-          hint="Already know who's #1 or who's last? Lock them in to skip all their comparisons automatically."
+          hint={
+            allowLastPlace
+              ? "Already know who's #1 or who's last? Lock them in to skip all their comparisons automatically."
+              : "Already know who's #1? Lock him in to skip all his comparisons automatically."
+          }
         />
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid ${allowLastPlace ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
           <div>
             <p className="text-[10px] font-bold tracking-[0.1em] uppercase text-white/30 mb-1.5">
               #1 Overall
@@ -391,28 +417,34 @@ export const RankingSetup = ({
               placeholder="None"
             />
           </div>
-          <div>
-            <p className="text-[10px] font-bold tracking-[0.1em] uppercase text-white/30 mb-1.5">
-              Last Place
-            </p>
-            <StyledSelect
-              value={lastPlace}
-              onChange={assignRole(setLastPlace)}
-              options={optionsExcluding(anchor, firstPlace).filter(
-                (p) => !notLast.has(p.id)
-              )}
-              placeholder="None"
-            />
-          </div>
+          {allowLastPlace && (
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.1em] uppercase text-white/30 mb-1.5">
+                Last Place
+              </p>
+              <StyledSelect
+                value={lastPlace}
+                onChange={assignRole(setLastPlace)}
+                options={optionsExcluding(anchor, firstPlace).filter(
+                  (p) => !notLast.has(p.id)
+                )}
+                placeholder="None"
+              />
+            </div>
+          )}
         </div>
-        {(notFirst.size > 0 || notLast.size > 0) && (
+        {(notFirst.size > 0 || (allowLastPlace && notLast.size > 0)) && (
           <p className="mt-3 text-xs leading-relaxed text-white/40">
             Only players your answers so far haven&apos;t put below anyone can
-            be #1, and only players they haven&apos;t put above anyone can be
-            last.
+            be #1{allowLastPlace
+              ? ", and only players they haven't put above anyone can be last"
+              : ''}
+            .
           </p>
         )}
       </SectionCard>
+      </>
+      )}
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
       <div className="flex flex-col items-center gap-3">

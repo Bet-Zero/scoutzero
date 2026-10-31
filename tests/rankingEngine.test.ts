@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
+  assignRankerGroups,
   generateRankingFromComparisons,
   suggestNextPair,
   createClosureCache,
+  type RankerComparison,
 } from '@/features/ranker/utils/rankingEngine';
 
 const players = [
@@ -186,5 +188,61 @@ describe('closure cache safety belts', () => {
     expect(cache.closure['B'].has('C')).toBe(true);
     expect(cache.closure['B'].has('D')).toBe(true);
     expect(cache.closure['B']?.has('A')).toBeFalsy();
+  });
+
+  describe('a Top-N field: locks above, the open-spot winners as their own section', () => {
+    // Rank to the end with truthful answers; `rank` maps id to true place
+    const rankAll = (ids: string[], bubble: string[], known: RankerComparison[], rank: Record<string, number>) => {
+      const cache = createClosureCache();
+      const results = [...known];
+      cache.rebuild(results);
+      const asked: Array<[string, string]> = [];
+      for (let i = 0; i < 200; i++) {
+        const players = assignRankerGroups(ids.map((id) => ({ id })), results, { bubble });
+        const pair = suggestNextPair(results, players, { closureCache: cache });
+        if (!pair.length) break;
+        const [a, b] = [pair[0].id, pair[1].id];
+        asked.push([a, b]);
+        const [w, l] = rank[a] < rank[b] ? [a, b] : [b, a];
+        cache.addEdge(w, l);
+        results.push({ winner: w, loser: l });
+      }
+      const order = generateRankingFromComparisons(results, ids.map((id) => ({ id })), { bubble }).map((p) => p.id);
+      return { asked, order };
+    };
+    const locks = ['L1', 'L2', 'L3', 'L4', 'L5'];
+    const bubble = ['B1', 'B2', 'B3'];
+    // The open spots come ranked: B1 > B2 > B3
+    const bubbleOrder = [
+      { winner: 'B1', loser: 'B2' },
+      { winner: 'B2', loser: 'B3' },
+    ];
+    const crossings = (asked: Array<[string, string]>) =>
+      asked.filter(([a, b]) => a.startsWith('L') !== b.startsWith('L'));
+
+    it('ranks the locks, then needs one boundary check when every lock is better', () => {
+      const rank = { L1: 1, L2: 2, L3: 3, L4: 4, L5: 5, B1: 6, B2: 7, B3: 8 };
+      const { asked, order } = rankAll([...locks, ...bubble], bubble, bubbleOrder, rank);
+      expect(order).toEqual(['L1', 'L2', 'L3', 'L4', 'L5', 'B1', 'B2', 'B3']);
+      // The worst lock against the best of the open spots, once
+      expect(crossings(asked)).toEqual([['L5', 'B1']]);
+      // The open spots' own order is never asked again
+      expect(asked.some(([a, b]) => a.startsWith('B') && b.startsWith('B'))).toBe(false);
+    });
+
+    it('moves open-spot winners up past the locks they beat', () => {
+      const rank = { L1: 1, L2: 2, B1: 3, L3: 4, L4: 5, B2: 6, L5: 7, B3: 8 };
+      const { order } = rankAll([...locks, ...bubble], bubble, bubbleOrder, rank);
+      expect(order).toEqual(['L1', 'L2', 'B1', 'L3', 'L4', 'B2', 'L5', 'B3']);
+    });
+
+    it('setup tags apply to the locks; open-spot winners stay in their own section', () => {
+      const grouped = assignRankerGroups(
+        [{ id: 'L1' }, { id: 'L2' }, { id: 'B1' }],
+        [],
+        { topTier: ['L1'], bottomTier: ['B1'], bubble: ['B1'] }
+      );
+      expect(grouped.map((p) => p.group)).toEqual(['top', 'upper', 'bubble']);
+    });
   });
 });

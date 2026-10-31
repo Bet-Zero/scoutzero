@@ -26,9 +26,13 @@ const undoButton = () => screen.getByRole('button', { name: /^(Undo|Go back a st
 const selectHeading = () => screen.queryByRole('heading', { name: /everyone better than/ });
 
 // Lock Alpha: 7 candidates for 2 spots, so the line is set from Delta-Hotel
-const startField = (autosave = vi.fn(), extra: Record<string, unknown> = {}) => {
+const startField = (
+  autosave = vi.fn(),
+  extra: Record<string, unknown> = {},
+  locks = ['Alpha']
+) => {
   render(<RankingSession playerPool={pool} listSize={3} autosave={autosave} {...extra} />);
-  fireEvent.click(screen.getByLabelText('Lock Alpha'));
+  for (const name of locks) fireEvent.click(screen.getByLabelText(`Lock ${name}`));
   fireEvent.click(screen.getByText('Next: set the line →'));
   return autosave;
 };
@@ -106,7 +110,8 @@ describe('RankingSession: undo takes back step buttons', () => {
   });
 
   it('from the ranking: undo returns to setup with the choices kept, then back to the field', () => {
-    const autosave = startField();
+    // Two locks, so setup has a #1 to choose from
+    const autosave = startField(vi.fn(), {}, ['Alpha', 'Echo']);
     finishField();
     expect(screen.getByRole('heading', { name: 'Ranking setup for your Top 3' })).toBeTruthy();
     const fieldAnswers = lastSaved(autosave, 'results').length;
