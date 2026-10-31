@@ -1,56 +1,56 @@
 /**
  * FILE: src/features/ranker/utils/fieldBuilder.ts
- * PURPOSE: "Build the field" for a Top-N list: locks, cut-line rounds and a last-spots playoff that settle exactly N players with either/or answers, before the normal ranking
+ * PURPOSE: "Build the field" for a Top-N list: locks, a line set from five ranked reference players, one "select everyone better" screen, and head-to-heads for the last spots, before the normal ranking
  * OWNERSHIP: Feature: ranker
  *
  * HISTORY:
  *  - 2026-10-24: Created; replaces trimming the pool with ranking tools (Top-N mode, "Definitely Out", anchor)
  *  - 2026-10-26: Knockout pairing in the playoff (a Top 100 playoff could take 1,000+ answers)
+ *  - 2026-10-31: Reference line and one selection screen replace the cut-line rounds and the playoff
  *
  * LINKS:
  *  - Used in: src/features/ranker/FieldBuilder.tsx, src/features/ranker/RankingSession.tsx
+ *  - Last spots: src/features/ranker/utils/topNSelection.ts (resolveTopN)
  *
  * HOW IT WORKS
- * Locks take guaranteed spots. Every other player is in the bubble, which is
- * trimmed in rounds: each bubble player faces the round's cut-line player
- * once, winners stay and losers are cut. After a round, survivors whose
- * answers already settle them (enough players known below, or above) step
- * aside, so the next round only deals with the open ones. Once those are
- * close to the open spots, a playoff among only the closest players drops the
- * weakest (or brings back the best of the cut) until exactly N remain. Every answer is a
- * normal comparison, so the ranking reuses it. Progress is worked out from the
- * comparison history (the transitive closure), which makes undo just work.
+ * Locks take guaranteed spots; everyone else is a candidate for the open
+ * spots. The user ranks five reference players: the candidates around the
+ * open spots plus a buffer (about a third more) by Game Score. The middle one
+ * of the user's order is the line, so a Game Score outlier lands first or
+ * last and never becomes it. One screen asks for everyone better than the
+ * line; the rest are cut. If fewer than the open spots were selected, the
+ * line was inside the list: he and everyone selected are in, and one more
+ * screen asks about the rest against the next reference down. The players
+ * left (open spots plus about the buffer) then face each other head to head
+ * until exactly the open spots are settled (a newcomer first meets whoever is
+ * last so far). Every answer is a normal comparison, so the ranking reuses
+ * it, and progress is worked out from the comparison history.
  */
-import type { RankerGraph } from '@/features/ranker/utils/rankingEngine';
+import type { RankerGraph, RankerPlayer } from '@/features/ranker/utils/rankingEngine';
+import { resolveTopN } from '@/features/ranker/utils/topNSelection';
 
-export type FieldStage = 'locks' | 'cut' | 'playoff' | 'done';
-
-export type FieldPlayoff = {
-  // Drop the weakest of an oversized bubble, or add the best of the cut
-  mode: 'drop' | 'add';
-  set: string[];
-  count: number;
-  // Add mode: the survivors, who are already in
-  keep: string[];
-  // Comparison count when the playoff began; undo can't go below it
-  start: number;
-};
+export type FieldStage = 'locks' | 'refs' | 'select' | 'pick' | 'done';
+// Stages of the cut-line rounds before 2026-10-31; saved lists move on to 'refs'
+type LegacyStage = 'cut' | 'playoff';
 
 export type FieldState = {
   topN: number;
   stage: FieldStage;
   locks: string[];
+  // Goes up with every step, so undo takes each one back
   round: number;
-  cutLine: string | null;
-  // This round's players, cut line included
-  bubble: string[];
-  // Comparison count when the round began; undo can't go below it
+  // Comparison count when the step began; undo can't go below it
   roundStart: number;
-  // Bubble players the answers settled in, set aside like locks
+  // The five reference players, by Game Score (the user's order comes from answers)
+  refs: string[];
+  // Select step: the "better than" player
+  cutLine: string | null;
+  // Players still competing: the selection's candidates, then the last-spots pool
+  bubble: string[];
+  // Players settled in because a line came out inside the list
   inIds: string[];
-  // Players cut so far, in the order they were cut
+  // Players cut so far
   cutIds: string[];
-  playoff: FieldPlayoff | null;
   // The settled field (stage 'done')
   fieldIds: string[] | null;
   // Pool ids by stats, best first, fixed when the list was started (scored
@@ -58,17 +58,25 @@ export type FieldState = {
   order?: string[];
 };
 
+// A field as saved: older sessions may be mid-way through the cut-line rounds
+export type StoredFieldState = Omit<FieldState, 'stage' | 'refs'> & {
+  stage: FieldStage | LegacyStage;
+  refs?: string[];
+};
+
+export type FieldAnswer = { winner: string; loser: string };
+
 export const createFieldState = (topN: number, order?: string[]): FieldState => ({
   topN,
   stage: 'locks',
   locks: [],
   round: 0,
+  roundStart: 0,
+  refs: [],
   cutLine: null,
   bubble: [],
-  roundStart: 0,
   inIds: [],
   cutIds: [],
-  playoff: null,
   fieldIds: null,
   ...(order ? { order } : {}),
 });
@@ -90,20 +98,46 @@ export const poolBestFirst = (
 const knownBetter = (closure: RankerGraph, a: string, b: string): boolean =>
   Boolean(closure[a]?.has(b));
 
-export const spotsLeft = (state: FieldState): number =>
+const known = (closure: RankerGraph, a: string, b: string): boolean =>
+  knownBetter(closure, a, b) || knownBetter(closure, b, a);
+
+// The top-N engine only reads ids (and groups, which field players don't have)
+const asPlayers = (ids: readonly string[]): RankerPlayer[] =>
+  ids.map((id) => ({ id }) as RankerPlayer);
+
+const inOrder = (ids: Iterable<string>, bestFirst: readonly string[]): string[] => {
+  const set = new Set(ids);
+  return bestFirst.filter((id) => set.has(id));
+};
+
+export const spotsLeft = (state: Pick<FieldState, 'topN' | 'locks' | 'inIds'>): number =>
   Math.max(0, state.topN - state.locks.length - state.inIds.length);
 
-// The survivors are near enough to the open spots for the playoff to finish
-export const isCloseEnough = (survivors: number, spots: number): boolean =>
-  survivors >= spots &&
-  survivors <= spots + Math.max(4, Math.round(spots * 0.12));
+export const REFERENCE_COUNT = 5;
 
-// Cut-line suggestion: the player just past the open spots, by stats order
-export const suggestCutLine = (
-  bestFirst: readonly string[],
+// How far past the open spots the line aims: about a third more, at least 3.
+// Simulated on 100 candidates for 29 spots, a buffer of 10 leaves about 40
+// for the last spots, and the line lands inside the list 3-30% of the time
+// (the backup screen covers that).
+export const lineBuffer = (spots: number): number =>
+  Math.max(3, Math.round(spots / 3));
+
+// The candidates (best-first) to rank for the line: centred on the open
+// spots plus the buffer, all past the open spots. None when there are too
+// few candidates for that; the last spots then take everyone.
+export const pickReferences = (
+  candidates: readonly string[],
   spots: number
-): string | null =>
-  bestFirst.length ? bestFirst[Math.min(bestFirst.length - 1, spots)] : null;
+): string[] => {
+  if (candidates.length < spots + REFERENCE_COUNT) return [];
+  const half = Math.floor(REFERENCE_COUNT / 2);
+  const centre = spots + lineBuffer(spots) - 1;
+  const start = Math.max(
+    spots,
+    Math.min(centre - half, candidates.length - REFERENCE_COUNT)
+  );
+  return candidates.slice(start, start + REFERENCE_COUNT);
+};
 
 // Finish with the locks, the players settled in, and `members`
 const settle = (
@@ -113,303 +147,251 @@ const settle = (
 ): FieldState => ({
   ...state,
   stage: 'done',
+  round: state.round + 1,
   cutLine: null,
   bubble: [],
-  playoff: null,
   cutIds,
   fieldIds: [...state.locks, ...state.inIds, ...members],
 });
 
-// Leave the locks step: start round one, or settle at once if the locks fill the list
-export const startBubble = (
+// The last spots among `pool`, or settle at once when the pool fits
+const toPick = (
   state: FieldState,
-  poolBestFirst: readonly string[],
-  comparisonCount: number,
-  cutLine?: string | null
-): FieldState => {
-  const locks = new Set(state.locks);
-  const bubble = poolBestFirst.filter((id) => !locks.has(id));
-  const spots = spotsLeft(state);
-  // The locks fill the list: everyone else is cut
-  if (spots === 0) return settle(state, [], bubble);
-  // Everyone left fits: nothing to trim
-  if (bubble.length <= spots) return settle(state, bubble, []);
-  return {
-    ...state,
-    stage: 'cut',
-    round: 1,
-    bubble,
-    cutLine: cutLine ?? suggestCutLine(bubble, spots),
-    roundStart: comparisonCount,
-  };
-};
-
-export type RoundStatus = {
-  // Bubble players facing the cut line, best-first
-  queue: string[];
-  stayed: string[];
-  out: string[];
-  // Next player to face the cut line, or null once the round is answered
-  next: string | null;
-};
-
-export const roundStatus = (
-  state: FieldState,
-  closure: RankerGraph,
-  bestFirst: readonly string[]
-): RoundStatus => {
-  const cutLine = state.cutLine;
-  const inRound = new Set(state.bubble);
-  const queue = bestFirst.filter((id) => inRound.has(id) && id !== cutLine);
-  if (!cutLine) return { queue, stayed: [], out: [], next: null };
-  const stayed = queue.filter((id) => knownBetter(closure, id, cutLine));
-  const out = queue.filter((id) => knownBetter(closure, cutLine, id));
-  const next =
-    queue.find((id) => !stayed.includes(id) && !out.includes(id)) ?? null;
-  return { queue, stayed, out, next };
-};
-
-// Swap the cut-line player before the round's first answer
-export const changeCutLine = (
-  state: FieldState,
-  cutLine: string
-): FieldState =>
-  state.bubble.includes(cutLine) ? { ...state, cutLine } : state;
-
-export type CutPlan = {
-  // What to offer next: the field is set, a lower cut line (too few
-  // survived), the playoff (close enough), or another round
-  next: 'done' | 'lower' | 'playoff' | 'round';
-  // Survivors the answers already settle: enough players known below them
-  // to be in for sure, or enough known above them to be out
-  sureIn: string[];
-  sureOut: string[];
-  // Everyone else still competes for `spots`, best-first
-  open: string[];
-  spots: number;
-  // Cut line for another round: an open player with a matchup still unanswered
-  cutLine: string | null;
-};
-
-const unanswered = (closure: RankerGraph, a: string, b: string): boolean =>
-  !knownBetter(closure, a, b) && !knownBetter(closure, b, a);
-
-// Nearest to `spots` in the open players' stats order, among players who'd
-// still face someone new (so a round always learns something)
-const pickCutLine = (
-  open: readonly string[],
-  spots: number,
-  closure: RankerGraph
-): string | null => {
-  const useful = (x: string) =>
-    open.some((y) => y !== x && unanswered(closure, x, y));
-  for (let d = 0; d < open.length; d++) {
-    for (const i of d === 0 ? [spots] : [spots - d, spots + d]) {
-      if (i >= 0 && i < open.length && useful(open[i])) return open[i];
-    }
-  }
-  return null;
-};
-
-// The round is answered: work out who's settled and what comes next
-export const planCut = (
-  state: FieldState,
-  status: RoundStatus,
-  closure: RankerGraph,
-  bestFirst: readonly string[]
-): CutPlan => {
-  const total = spotsLeft(state);
-  const alive = new Set([...status.stayed, state.cutLine as string]);
-  const survivors = bestFirst.filter((id) => alive.has(id));
-  if (survivors.length < total)
-    return {
-      next: 'lower',
-      sureIn: [],
-      sureOut: [],
-      open: survivors,
-      spots: total,
-      cutLine: null,
-    };
-  const extra = survivors.length - total;
-  const count = (pred: (y: string) => boolean) => survivors.filter(pred).length;
-  const sureIn = survivors.filter(
-    (x) => count((y) => knownBetter(closure, x, y)) >= extra
-  );
-  const sureOut = survivors.filter(
-    (x) => count((y) => knownBetter(closure, y, x)) >= total
-  );
-  const settled = new Set([...sureIn, ...sureOut]);
-  const open = survivors.filter((id) => !settled.has(id));
-  const spots = total - sureIn.length;
-  const base = { sureIn, sureOut, open, spots };
-  if (open.length === spots) return { ...base, next: 'done', cutLine: null };
-  if (isCloseEnough(open.length, spots))
-    return { ...base, next: 'playoff', cutLine: null };
-  const cutLine = pickCutLine(open, spots, closure);
-  return { ...base, next: cutLine ? 'round' : 'playoff', cutLine };
-};
-
-// Another round among the open survivors, with a stronger cut line
-export const nextRound = (
-  state: FieldState,
-  status: RoundStatus,
-  plan: CutPlan,
-  comparisonCount: number,
-  cutLine?: string | null
-): FieldState => ({
-  ...state,
-  round: state.round + 1,
-  inIds: [...state.inIds, ...plan.sureIn],
-  cutIds: [...state.cutIds, ...status.out, ...plan.sureOut],
-  bubble: plan.open,
-  cutLine: cutLine ?? plan.cutLine,
-  roundStart: comparisonCount,
-});
-
-// Too few survived: run the round again with a lower cut line. Answers that
-// already settle a player against the new cut line aren't asked again.
-export const lowerCutLine = (
-  state: FieldState,
-  status: RoundStatus,
-  bestFirst: readonly string[],
-  comparisonCount: number,
-  cutLine?: string | null
-): FieldState => {
-  const bubble = bestFirst.filter((id) => state.bubble.includes(id));
-  const below = bubble.filter((id) => status.out.includes(id));
-  const suggested =
-    cutLine ??
-    below[
-      Math.min(
-        below.length - 1,
-        Math.max(0, spotsLeft(state) - status.stayed.length - 1)
-      )
-    ] ??
-    state.cutLine;
-  return {
-    ...state,
-    round: state.round + 1,
-    bubble,
-    cutLine: suggested,
-    roundStart: comparisonCount,
-  };
-};
-
-// Settle the field, or hand the closest players to the playoff
-export const finishCut = (
-  state: FieldState,
-  status: RoundStatus,
-  plan: CutPlan,
+  pool: string[],
+  cutIds: string[],
   comparisonCount: number
 ): FieldState => {
-  const cutIds = [...state.cutIds, ...status.out, ...plan.sureOut];
-  const next = { ...state, inIds: [...state.inIds, ...plan.sureIn], cutIds };
-  if (plan.open.length === plan.spots) return settle(next, plan.open, cutIds);
-  const playoff: FieldPlayoff =
-    plan.open.length > plan.spots
-      ? {
-          mode: 'drop',
-          set: plan.open,
-          count: plan.open.length - plan.spots,
-          keep: [],
-          start: comparisonCount,
-        }
-      : {
-          mode: 'add',
-          set: cutIds,
-          count: plan.spots - plan.open.length,
-          keep: plan.open,
-          start: comparisonCount,
-        };
+  if (pool.length <= spotsLeft(state)) return settle(state, pool, cutIds);
   return {
-    ...next,
-    stage: 'playoff',
-    playoff,
+    ...state,
+    stage: 'pick',
+    round: state.round + 1,
+    roundStart: comparisonCount,
     cutLine: null,
-    bubble: [],
+    bubble: pool,
+    cutIds,
   };
 };
 
-export type PlayoffStatus = {
-  // Players the answers have settled so far (dropped, or brought back)
-  decided: string[];
+// Leave the locks step: rank the references, or settle / go to the last
+// spots when there's nothing to draw a line through
+export const startRefs = (
+  state: FieldState,
+  bestFirst: readonly string[],
+  comparisonCount: number
+): FieldState => {
+  const locks = new Set(state.locks);
+  const candidates = bestFirst.filter((id) => !locks.has(id));
+  const spots = spotsLeft(state);
+  // The locks fill the list: everyone else is cut
+  if (spots === 0) return settle(state, [], candidates);
+  const refs = pickReferences(candidates, spots);
+  if (!refs.length) return toPick(state, candidates, [], comparisonCount);
+  return {
+    ...state,
+    stage: 'refs',
+    round: state.round + 1,
+    roundStart: comparisonCount,
+    refs,
+    cutLine: null,
+    bubble: candidates,
+  };
+};
+
+export type RefsStatus = {
+  // The references in the user's order, best first (complete once pair is null)
+  ranked: string[];
   pair: [string, string] | null;
 };
 
-export const playoffStatus = (
-  playoff: FieldPlayoff,
-  closure: RankerGraph,
-  bestFirst: readonly string[]
-): PlayoffStatus => {
-  const rank = new Map(bestFirst.map((id, i) => [id, i]));
-  const order = (ids: string[]) =>
-    [...ids].sort(
-      (a, b) => (rank.get(a) ?? Infinity) - (rank.get(b) ?? Infinity)
-    );
-  const decided: string[] = [];
-  while (decided.length < playoff.count) {
-    const rest = playoff.set.filter((id) => !decided.includes(id));
-    // Drop: nobody left is known worse. Add: nobody left is known better.
-    const candidates =
-      playoff.mode === 'drop'
-        ? rest.filter(
-            (x) => !rest.some((y) => y !== x && knownBetter(closure, x, y))
-          )
-        : rest.filter(
-            (x) => !rest.some((y) => y !== x && knownBetter(closure, y, x))
-          );
-    if (candidates.length === 0) break;
-    if (candidates.length === 1) {
-      decided.push(candidates[0]);
-      continue;
-    }
-    // Knockout: pair the candidates who've lost the fewest matchups so far
-    // (dropping: fewest known better; adding: fewest known worse). Always
-    // pitting one player against everyone means each later drop starts
-    // almost from scratch; a bracket leaves the runners-up already sorted.
-    const losses = (x: string) =>
-      rest.filter((y) =>
-        y !== x &&
-        (playoff.mode === 'drop' ? knownBetter(closure, y, x) : knownBetter(closure, x, y))
-      ).length;
-    const byStats = order(candidates);
-    // Ties go to the likeliest answers: weakest by stats when dropping, strongest when adding
-    const likely = playoff.mode === 'drop' ? byStats.reverse() : byStats;
-    const lost = new Map(likely.map((id) => [id, losses(id)]));
-    const pair = likely
-      .map((id, i) => ({ id, i }))
-      .sort((a, b) => (lost.get(a.id) ?? 0) - (lost.get(b.id) ?? 0) || a.i - b.i)
-      .slice(0, 2)
-      .map(({ id }) => id);
-    return { decided, pair: [pair[0], pair[1]] };
-  }
-  return { decided, pair: null };
+export const refsStatus = (
+  state: FieldState,
+  closure: RankerGraph
+): RefsStatus => {
+  const res = resolveTopN(asPlayers(state.refs), state.refs.length, closure);
+  const pair = res.nextPair.length
+    ? ([res.nextPair[0].id, res.nextPair[1].id] as [string, string])
+    : null;
+  return { ranked: res.ranked.map((p) => p.id), pair };
 };
 
-export const finishPlayoff = (
+// The middle of the user's order
+export const lineOf = (ranked: readonly string[]): string | null =>
+  ranked.length ? ranked[Math.floor(ranked.length / 2)] : null;
+
+// The references are ranked: open the selection screen with the middle one
+export const startSelect = (
   state: FieldState,
-  decided: readonly string[]
-): FieldState => {
-  const playoff = state.playoff;
-  if (!playoff) return state;
-  const settled = new Set(decided);
-  if (playoff.mode === 'drop') {
-    return settle(
-      state,
-      playoff.set.filter((id) => !settled.has(id)),
-      [...state.cutIds, ...decided]
-    );
-  }
-  return settle(
-    state,
-    [...playoff.keep, ...decided],
-    state.cutIds.filter((id) => !settled.has(id))
+  ranked: readonly string[],
+  comparisonCount: number
+): FieldState => ({
+  ...state,
+  stage: 'select',
+  round: state.round + 1,
+  roundStart: comparisonCount,
+  cutLine: lineOf(ranked),
+});
+
+export type SelectStatus = {
+  // Players to choose from, best by Game Score first
+  open: string[];
+  // Already settled against the line by earlier answers (the references)
+  better: string[];
+  worse: string[];
+};
+
+export const selectStatus = (
+  state: FieldState,
+  closure: RankerGraph,
+  bestFirst: readonly string[]
+): SelectStatus => {
+  const line = state.cutLine;
+  const others = inOrder(state.bubble, bestFirst).filter((id) => id !== line);
+  if (!line) return { open: others, better: [], worse: [] };
+  return {
+    open: others.filter((id) => !known(closure, id, line)),
+    better: others.filter((id) => knownBetter(closure, id, line)),
+    worse: others.filter((id) => knownBetter(closure, line, id)),
+  };
+};
+
+// The next line down if this one comes out inside the list: the next
+// reference in the user's order, among the players below it
+export const backupLine = (
+  state: FieldState,
+  closure: RankerGraph
+): string | null => {
+  const line = state.cutLine;
+  if (!line) return null;
+  const { ranked } = refsStatus(state, closure);
+  const remaining = new Set(state.bubble);
+  return (
+    ranked
+      .slice(ranked.indexOf(line) + 1)
+      .find((id) => remaining.has(id)) ?? null
   );
 };
 
+// The selection's answers: everyone selected beat the line, and the line
+// beat everyone else on the screen
+export const selectionAnswers = (
+  line: string,
+  open: readonly string[],
+  selected: ReadonlySet<string>
+): FieldAnswer[] =>
+  open.map((id) =>
+    selected.has(id)
+      ? { winner: id, loser: line }
+      : { winner: line, loser: id }
+  );
+
+// After the selection's answers are in: cut the rest and go to the last
+// spots, or (line inside the list) settle the line and everyone above it,
+// then one more screen for the rest against the next reference down
+export const afterSelect = (
+  state: FieldState,
+  closure: RankerGraph,
+  bestFirst: readonly string[],
+  comparisonCount: number
+): FieldState => {
+  const line = state.cutLine;
+  if (!line) return state;
+  const others = inOrder(state.bubble, bestFirst).filter((id) => id !== line);
+  // Anyone not settled against the line stays in the running, to be safe
+  const above = others.filter((id) => !knownBetter(closure, line, id));
+  const below = others.filter((id) => knownBetter(closure, line, id));
+  const spots = spotsLeft(state);
+  if (above.length >= spots)
+    return toPick(state, above, [...state.cutIds, line, ...below], comparisonCount);
+
+  // Fewer than the open spots beat the line: they and the line are in
+  const settledIn = { ...state, inIds: [...state.inIds, ...above, line] };
+  const rest = { ...settledIn, bubble: below };
+  const left = spotsLeft(rest);
+  if (left === 0) return settle(rest, [], [...state.cutIds, ...below]);
+  if (below.length <= left) return settle(rest, below, state.cutIds);
+  const next = backupLine({ ...state, bubble: below }, closure);
+  if (!next) return toPick(rest, below, state.cutIds, comparisonCount);
+  return {
+    ...rest,
+    stage: 'select',
+    round: state.round + 1,
+    roundStart: comparisonCount,
+    cutLine: next,
+  };
+};
+
+export type PickStatus = {
+  // The open spots so far, best first (final once pair is null)
+  ranked: string[];
+  // Players who can't make it
+  cut: string[];
+  pair: [string, string] | null;
+};
+
+// Last spots: head to head until the open spots are settled; a newcomer
+// first meets whoever is last so far
+export const pickStatus = (
+  state: FieldState,
+  closure: RankerGraph,
+  bestFirst: readonly string[]
+): PickStatus => {
+  const pool = inOrder(state.bubble, bestFirst);
+  const res = resolveTopN(asPlayers(pool), Math.max(1, spotsLeft(state)), closure);
+  const pair = res.nextPair.length
+    ? ([res.nextPair[0].id, res.nextPair[1].id] as [string, string])
+    : null;
+  return {
+    ranked: res.ranked.map((p) => p.id),
+    cut: res.cut.map((p) => p.id),
+    pair,
+  };
+};
+
+export const finishPick = (state: FieldState, status: PickStatus): FieldState =>
+  settle(state, status.ranked, [...state.cutIds, ...status.cut]);
+
 // Comparisons below this count belong to finished steps and can't be undone
-export const undoFloor = (state: FieldState): number => {
-  if (state.stage === 'cut') return state.roundStart;
-  if (state.stage === 'playoff' && state.playoff) return state.playoff.start;
-  return Infinity;
+export const undoFloor = (state: FieldState): number =>
+  state.stage === 'refs' || state.stage === 'select' || state.stage === 'pick'
+    ? state.roundStart
+    : Infinity;
+
+export const isLegacyField = (field: StoredFieldState): boolean =>
+  field.stage === 'cut' || field.stage === 'playoff';
+
+// A saved field in today's shape. One saved part-way through the old
+// cut-line rounds keeps its locks and answers and moves on to the references.
+export const normalizeField = (
+  field: StoredFieldState,
+  bestFirst: readonly string[],
+  comparisonCount: number
+): FieldState => {
+  if (!isLegacyField(field)) return { ...(field as FieldState), refs: field.refs ?? [] };
+  const base = {
+    ...createFieldState(field.topN, field.order),
+    locks: field.locks,
+    round: field.round,
+  };
+  return startRefs(base, bestFirst, comparisonCount);
+};
+
+export type TrimCount = {
+  // Players the pool must lose to reach the list size
+  total: number;
+  // Cut so far, counting the last spots' answers
+  cut: number;
+  // Still to trim
+  left: number;
+};
+
+export const trimCount = (
+  state: FieldState,
+  closure: RankerGraph,
+  bestFirst: readonly string[]
+): TrimCount => {
+  const total = Math.max(0, bestFirst.length - state.topN);
+  let cut = state.cutIds.length;
+  if (state.stage === 'pick') cut += pickStatus(state, closure, bestFirst).cut.length;
+  return { total, cut, left: total - cut };
 };

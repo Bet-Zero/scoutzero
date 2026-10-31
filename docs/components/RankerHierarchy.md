@@ -7,10 +7,10 @@ ComparisonMatrix.tsx
 ComparisonMatrixDrawer.tsx
 ExportDownloadMenu.tsx
 FieldBuilder.tsx
-FieldCutRound.tsx
 FieldLocks.tsx
-FieldPlayoff.tsx
-FieldRoundSummary.tsx
+FieldPick.tsx
+FieldRefs.tsx
+FieldSelect.tsx
 ListSizePicker.tsx
 LocalDraftBanner.tsx
 NearMissStrip.tsx

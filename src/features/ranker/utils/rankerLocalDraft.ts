@@ -1,4 +1,4 @@
-import type { FieldState } from './fieldBuilder';
+import type { StoredFieldState } from './fieldBuilder';
 
 type RankerComparison = {
   winner: string;
@@ -16,7 +16,7 @@ export type RankerSetupData = {
   // Top-N mode: players cut by hand; `at` is the result count when cut (-1 = setup)
   cuts?: Array<{ ids: string[]; at: number }>;
   // Top-N list: the field being built before the ranking (see utils/fieldBuilder)
-  field?: FieldState;
+  field?: StoredFieldState;
   // The ranking setup screen has been completed (only meaningful with `field`)
   configured?: boolean;
   // Steps taken with a button (not matchup answers), newest last, so undo can take them back
