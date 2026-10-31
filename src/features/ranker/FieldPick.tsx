@@ -1,22 +1,22 @@
 /**
- * FILE: src/features/ranker/FieldPlayoff.tsx
- * PURPOSE: Field builder step 3: a short either/or playoff among only the closest players until exactly the open spots are filled
+ * FILE: src/features/ranker/FieldPick.tsx
+ * PURPOSE: Field builder step 4: head-to-heads among the players left after the selection until exactly the open spots are settled (a newcomer first meets whoever is last so far)
  * OWNERSHIP: Feature: ranker
  *
  * HISTORY:
- *  - 2026-10-24: Created
+ *  - 2026-10-31: Created; replaces the last-spots playoff
  *
  * LINKS:
+ *  - Logic: src/features/ranker/utils/fieldBuilder.ts (pickStatus, finishPick)
  *  - Used in: src/features/ranker/FieldBuilder.tsx
  */
 import React from 'react';
 import { PlayerCompareCard } from './PlayerCompareCard';
 import type { RankerPlayer } from './utils/rankingEngine';
-import { finishPlayoff, playoffStatus, spotsLeft } from './utils/fieldBuilder';
-import { getPlayerName } from './utils/playerDisplay';
+import { finishPick, pickStatus, spotsLeft } from './utils/fieldBuilder';
 import type { FieldStepProps } from './FieldBuilder';
 
-export const FieldPlayoff = ({
+export const FieldPick = ({
   playersById,
   bestFirst,
   state,
@@ -26,29 +26,24 @@ export const FieldPlayoff = ({
   onUndo,
   undoLabel = 'Undo last answer',
 }: FieldStepProps) => {
-  const playoff = state.playoff;
-  if (!playoff) return null;
-  const status = playoffStatus(playoff, closure, bestFirst);
-  const names = (ids: string[]) =>
-    ids
-      .map((id) => getPlayerName(playersById.get(id) as RankerPlayer))
-      .join(', ');
+  const status = pickStatus(state, closure, bestFirst);
+  const spots = spotsLeft(state);
+  const running = state.bubble.length - status.cut.length;
   const [a, b] = status.pair
-    ? status.pair.map((id) => playersById.get(id))
+    ? status.pair.map((id) => playersById.get(id) as RankerPlayer)
     : [];
 
   return (
     <section aria-label="Last spots" className="flex flex-col gap-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          Playoff for the last spots
+          Last spots: {state.bubble.length} players for {spots}
         </h1>
         <p className="text-sm text-white/45 mt-1 max-w-2xl">
-          {playoff.mode === 'drop'
-            ? `${playoff.set.length} players for ${spotsLeft(state)} spots: ${playoff.count} more must drop out.`
-            : `${playoff.keep.length} players for ${spotsLeft(state)} spots: ${playoff.count} more come back from the cut.`}{' '}
-          Only the closest players face each other, and answers you already gave
-          count.
+          Head to head until exactly {spots} are left. A new player first
+          faces whoever is last so far: lose and he&apos;s out, win and he
+          takes a spot. Answers you already gave count, and every answer is
+          kept for the ranking.
         </p>
       </div>
       <div className="rounded-xl border border-white/[0.07] bg-white/[0.02]">
@@ -62,7 +57,7 @@ export const FieldPlayoff = ({
               onUndo={onUndo}
             />
             <p className="text-xs text-white/40 tabular-nums">
-              {status.decided.length} of {playoff.count} settled
+              {running} still in the running for {spots} spots
             </p>
           </div>
         ) : (
@@ -71,11 +66,11 @@ export const FieldPlayoff = ({
               Your field is set: {state.topN} players
             </h2>
             <p className="text-white/60">
-              {names(status.decided)}{' '}
-              {playoff.mode === 'drop' ? 'drop out.' : 'come back.'}
+              {status.cut.length} of the last {state.bubble.length} didn&apos;t
+              make it.
             </p>
             <button
-              onClick={() => onChange(finishPlayoff(state, status.decided))}
+              onClick={() => onChange(finishPick(state, status))}
               className="px-4 py-2.5 rounded-xl text-sm font-semibold bg-white text-black hover:bg-white/90"
             >
               Continue to ranking setup →
