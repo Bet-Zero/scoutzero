@@ -5,6 +5,7 @@
  */
 
 import { useMemo } from 'react';
+import { useSwapAssets } from './useSwapAssets';
 import type {
   ArchitectWorldModeBoundary,
   CapSheet,
@@ -173,6 +174,7 @@ export interface ArchitectWorkspaceDraftYearGroup {
   year: number;
   firstRound: ArchitectWorkspaceDraftPickView[];
   secondRound: ArchitectWorkspaceDraftPickView[];
+  rights?: { key: string; label: string }[];
 }
 
 export type ArchitectWorkspaceDraftAssetsSummary =
@@ -181,6 +183,7 @@ export type ArchitectWorkspaceDraftAssetsSummary =
       years: ArchitectWorkspaceDraftYearGroup[];
       firstRoundCount: number;
       secondRoundCount: number;
+      rightCount?: number;
       /** Own picks now owed to other teams ("to MIL"). Not counted above. */
       outgoing: ArchitectWorkspaceDraftPickView[];
     }
@@ -785,9 +788,17 @@ export function deriveArchitectWorkspaceContext({
 export function useArchitectWorkspaceContext(
   input: ArchitectWorkspaceContextInput
 ): ArchitectWorkspaceContext {
+  const savedSwapAssets = useSwapAssets(
+    input.worldId, input.teamId, input.currentYear,
+    JSON.stringify(input.teamCapSheet?.entitlementIds ?? [])
+  );
   return useMemo(
-    () => deriveArchitectWorkspaceContext(input),
+    () => ({
+      ...deriveArchitectWorkspaceContext(input),
+      ...(savedSwapAssets ? {draftAssets: savedSwapAssets} : {}),
+    }),
     [
+      savedSwapAssets,
       input.activeWorldLabel,
       input.currentYear,
       input.error,

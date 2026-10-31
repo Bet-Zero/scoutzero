@@ -1208,7 +1208,7 @@ export const TradeEditor = ({
             <p key={i}>
               {r.review.status === 'reviewed'
                 ? r.review.request.context.team
-                : 'Team'}
+                : r.review.status === 'swap-reviewed' ? r.review.team : 'Team'}
               :{' '}
               {r.eligible
                 ? 'Pick rules permit this proposal'
@@ -1263,6 +1263,7 @@ export const TradeEditor = ({
               }
             >
               <TradeTeamCard
+                showPooledEntitlements={simulation.enabled}
                 compact={compact}
                 validationResult={
                   (currentSnapshotValidationDetails ??
@@ -1386,6 +1387,8 @@ export const TradeEditor = ({
       />
 
       <TradePreviewModal
+        simulationNotice={simulation.enabled ? DRAFT_SIMULATION_NOTICE : undefined}
+        swapProgram={simulation.reviews.flatMap(r => r.review.status === 'swap-reviewed' ? [r.review.swapProgram] : [])[0]}
         open={
           previewOpen &&
           currentPreviewAuthority?.legal === true &&

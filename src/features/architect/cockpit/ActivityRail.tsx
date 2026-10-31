@@ -422,7 +422,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
         : '—';
     const pickSummaryValue =
       draftAssets.status === 'available'
-        ? `${draftAssets.firstRoundCount} firsts · ${draftAssets.secondRoundCount} seconds`
+        ? `${draftAssets.firstRoundCount} firsts · ${draftAssets.secondRoundCount} seconds${draftAssets.rightCount ? ` · ${draftAssets.rightCount} rights` : ''}`
         : draftAssets.status === 'loading'
           ? 'Loading'
           : 'Not available yet';

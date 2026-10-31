@@ -155,7 +155,7 @@ export async function advanceSeasonInWorld(
 
     const conditional =
       isSyntheticDraftReviewEnvironment() &&
-      worldMeta.draftSimulationBranches === 'protection-programs'
+      ['protection-programs', 'swap-program'].includes(String(worldMeta.draftSimulationBranches))
         ? await loadConditionalWorld(worldId)
         : null;
     if (
@@ -163,6 +163,7 @@ export async function advanceSeasonInWorld(
       (worldCurrentSeason !== '2025-26' ||
         worldAsOfDate < '2026-06-05' ||
         worldAsOfDate > '2026-06-30' ||
+        (conditional.swap && !conditional.swap.result) ||
         conditional.programs.some(
           (p) => (activeConditionalStage(p)?.year ?? Infinity) <= 2026
         ))

@@ -1,3 +1,5 @@
+import { DraftSwapReceiptZ } from '@/schemas/draftSwapReceipt';
+import { resolveSwapProgram } from '../utils/draftReview/swapProgram';
 import {
   DraftConditionalReceiptZ,
   ConditionalSeasonReceiptZ,
@@ -38,7 +40,9 @@ export function deriveDraftAssetDelta(
           conditional.data.operationId !== row.raw?.operationId ||
           conditional.data.catalogueSha256 !==
             REAL_DRAFT_REVIEW_PIN.payloadSha256 ||
-          canonicalStringify(conditional.data.programs) !== conditionalState ||
+          canonicalStringify(
+            conditional.data.swapProgram ?? conditional.data.programs
+          ) !== conditionalState ||
           seen.has(conditional.data.operationId)
         )
           return null;
@@ -77,9 +81,13 @@ export function deriveDraftAssetDelta(
     const metadata = row.raw?.metadata;
     const receipt =
       row.mutationType === 'draftConveyance'
-        ? DraftConditionalReceiptZ.safeParse(
-            Reflect.get(metadata ?? {}, 'conditionalDraftReceipt')
-          )
+        ? Reflect.get(metadata ?? {}, 'swapDraftReceipt') !== undefined
+          ? DraftSwapReceiptZ.safeParse(
+              Reflect.get(metadata ?? {}, 'swapDraftReceipt')
+            )
+          : DraftConditionalReceiptZ.safeParse(
+              Reflect.get(metadata ?? {}, 'conditionalDraftReceipt')
+            )
         : DraftReviewMutationReceiptZ.safeParse(
             metadata && typeof metadata === 'object'
               ? Reflect.get(metadata, 'draftReviewReceipt')
@@ -108,18 +116,50 @@ export function deriveDraftAssetDelta(
       return null;
     seen.add(receipt.data.operationId);
     if ('before' in receipt.data) {
+      if (
+        !Array.isArray(receipt.data.before) &&
+        !Array.isArray(receipt.data.after)
+      ) {
+        try {
+          const result = receipt.data.after.result!;
+          if (
+            canonicalStringify(
+              resolveSwapProgram(
+                receipt.data.before,
+                result.positions,
+                result.elections
+              )
+            ) !== canonicalStringify(receipt.data.after)
+          )
+            return null;
+        } catch {
+          return null;
+        }
+      }
+      if (
+        conditionalState === null &&
+        !Array.isArray(receipt.data.before) &&
+        receipt.data.before.slots.some((s) => s.holderTeam === teamCode)
+      )
+        conditionalState = canonicalStringify(receipt.data.before);
       if (canonicalStringify(receipt.data.before) !== conditionalState)
         return null;
       conditionalState = canonicalStringify(receipt.data.after);
-    } else if (receipt.data.assumptions?.programs) {
-      const programs = canonicalStringify(receipt.data.assumptions.programs);
+    } else if (
+      receipt.data.assumptions?.programs ||
+      receipt.data.assumptions?.swapProgram
+    ) {
+      const programs = canonicalStringify(
+        receipt.data.assumptions.swapProgram ??
+          receipt.data.assumptions.programs
+      );
       if (conditionalState !== null && programs !== conditionalState)
         return null;
       conditionalState = programs;
     }
     count++;
     for (const p of receipt.data.movements) {
-      const identity = `${p.originalTeam}:${p.year}:${p.round}`;
+      const identity = `${p.originalTeam}:${p.year}:${p.round}:${p.assetKind ?? 'pick_ownership'}`;
       const previous = movements.get(p.entitlementId);
       if (
         p.fromTeam === p.toTeam ||
@@ -131,7 +171,7 @@ export function deriveDraftAssetDelta(
         identity,
         from: previous?.from ?? p.fromTeam,
         to: p.toTeam,
-        displayName: `${p.originalTeam} ${p.year} ${p.round === 1 ? 'first' : 'second'}-round pick`,
+        displayName: `${p.originalTeam} ${p.year} ${p.round === 1 ? 'first' : 'second'}-round ${p.assetKind === 'swap_right' ? 'swap right' : 'pick'}`,
       });
     }
   }

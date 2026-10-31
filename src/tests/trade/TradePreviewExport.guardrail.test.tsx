@@ -1,13 +1,6 @@
 // @vitest-environment jsdom
 import React, { createRef } from 'react';
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cleanup,
   fireEvent,
@@ -77,20 +70,14 @@ vi.mock('@/features/architect/utils/tradeHelpers', () => ({
   formatCurrency: formatCurrencyMock,
 }));
 
-vi.mock(
-  '@/features/architect/tradeMachine/utils/entitlementWarnings',
-  () => ({
-    getEntitlementKindBadge: getEntitlementKindBadgeMock,
-  })
-);
+vi.mock('@/features/architect/tradeMachine/utils/entitlementWarnings', () => ({
+  getEntitlementKindBadge: getEntitlementKindBadgeMock,
+}));
 
-vi.mock(
-  '@/features/architect/utils/entitlements/entitlementTerms',
-  () => ({
-    formatEntitlementTermsShort: formatEntitlementTermsShortMock,
-    normalizeEntitlementTerms: normalizeEntitlementTermsMock,
-  })
-);
+vi.mock('@/features/architect/utils/entitlements/entitlementTerms', () => ({
+  formatEntitlementTermsShort: formatEntitlementTermsShortMock,
+  normalizeEntitlementTerms: normalizeEntitlementTermsMock,
+}));
 
 vi.mock(
   '@/features/architect/utils/entitlements/sanitizeVacuumMetadata',
@@ -371,6 +358,58 @@ describe('E99 TradeExportCapture guardrails', () => {
 
   afterEach(() => {
     cleanup();
+  });
+
+  it('exports explicit governed swap priority and comparator without a default best-of label', () => {
+    const teams = buildTeams();
+    teams[1].entitlementsOut[0].kind = 'swap_right';
+    render(
+      <TradeExportCapture
+        teams={teams}
+        simulationNotice="Governed software assumptions only"
+        swapProgram={{
+          kind: 'ordered-swap-pool-v1',
+          year: 2028,
+          tradedRightId: 'e1',
+          grantorTeam: 'LAL',
+          slots: [
+            {
+              entitlementId: 'a',
+              originalTeam: 'AAA',
+              holderTeam: 'BOS',
+              protectedThrough: 0,
+            },
+            {
+              entitlementId: 'b',
+              originalTeam: 'BBB',
+              holderTeam: 'BBB',
+              protectedThrough: 0,
+            },
+          ],
+          steps: [
+            {
+              rightId: 'e1',
+              controllerId: 'a',
+              poolIds: ['a', 'b'],
+              comparator: 'worst_of',
+              election: 'exercise-or-waive',
+            },
+          ],
+          inactiveClaimIds: [],
+          result: null,
+        }}
+      />
+    );
+    expect(
+      screen.getByTestId('trade-export-simulation-notice')
+    ).toHaveTextContent('Governed software assumptions only');
+    expect(screen.getByTestId('trade-export-swap-terms')).toHaveTextContent(
+      '1. AAA slot: less favorable of AAA / BBB slots after prior claims'
+    );
+    expect(
+      screen.getByText('Swap option — governed terms and priority listed above')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('formatted terms')).not.toBeInTheDocument();
   });
 
   it('preserves forwardRef behavior, ordering, exact labels, empty states, disclaimer text, and legal footer semantics', () => {

@@ -96,6 +96,12 @@ const DraftPicksSection = ({
                     {formatRoundLine(group.secondRound)}
                   </div>
                 ) : null}
+                {group.rights?.length ? (
+                  <div data-testid={`cockpit-assets-panel-rights-${group.year}`}>
+                    <span className="text-cockpit-text-muted">Rights: </span>
+                    {group.rights.map(r => r.label).join(', ')}
+                  </div>
+                ) : null}
               </div>
             </li>
           ))}

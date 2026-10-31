@@ -1,3 +1,4 @@
+import { DraftSwapProgramZ } from './draftSwapProgram';
 import { z } from 'zod';
 import { DraftConditionalProgramsZ } from './draftConditionalProgram';
 import { DraftReviewMutationReceiptZ } from './draftPickReviewMutation';
@@ -108,6 +109,7 @@ export const ConditionalSeasonReceiptZ = z
     operationId: z.string().min(1),
     catalogueSha256: z.string().regex(/^[a-f0-9]{64}$/),
     programs: DraftConditionalProgramsZ,
+    swapProgram: DraftSwapProgramZ.optional(),
     entitlementState: z.literal('preserved-exactly'),
   })
   .strict();

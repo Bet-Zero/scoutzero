@@ -126,7 +126,9 @@ export async function prepareSeasonAdvance(args: {
   if (
     args.conditionalSeasonBooks !== undefined &&
     (args.conditionalEnvironmentCheck?.() !== true ||
-      worldMeta.draftSimulationBranches !== 'protection-programs' ||
+      !['protection-programs', 'swap-program'].includes(
+        String(worldMeta.draftSimulationBranches)
+      ) ||
       !args.conditionalSeasonBooks ||
       typeof args.conditionalSeasonBooks !== 'object' ||
       Object.keys(args.conditionalSeasonBooks).sort().join(',') !==
@@ -366,7 +368,8 @@ export async function prepareSeasonAdvance(args: {
               worldId,
               operationId,
               catalogueSha256: worldMeta.draftSimulationCatalogue,
-              programs: worldMeta.draftConditionalPrograms,
+              programs: worldMeta.draftConditionalPrograms ?? [],
+              ...(worldMeta.draftSwapProgram ? {swapProgram: worldMeta.draftSwapProgram} : {}),
               entitlementState: 'preserved-exactly',
             }),
           }

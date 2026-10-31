@@ -44,6 +44,8 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
       previewAuthority,
       snapshotValidationDetails,
       yearKey,
+      simulationNotice,
+      swapProgram,
       label = 'Trade Summary',
       date = new Date(),
     },
@@ -132,6 +134,24 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
           <div className="text-sm text-neutral-400">{formattedDate}</div>
         </div>
 
+        {simulationNotice && (
+          <p className="px-6 py-2 text-sm text-amber-200" data-testid="trade-export-simulation-notice">
+            {simulationNotice}
+          </p>
+        )}
+        {swapProgram && (
+          <div className="px-6 py-2 text-sm" data-testid="trade-export-swap-terms">
+            <p>The swap option transfers separately. Underlying pool picks stay with their holders until resolution.</p>
+            {swapProgram.steps.map((step, index) => (
+              <p key={step.rightId}>
+                {index + 1}. {swapProgram.slots.find(s => s.entitlementId === step.controllerId)!.originalTeam} slot:{' '}
+                {step.comparator === 'best_of' ? 'more' : 'less'} favorable of{' '}
+                {step.poolIds.map(id => swapProgram.slots.find(s => s.entitlementId === id)!.originalTeam).join(' / ')}{' '}
+                slots after prior claims; explicit exercise or waiver.
+              </p>
+            ))}
+          </div>
+        )}
         {/* 🧱 Team Cards */}
         <div className="flex flex-wrap justify-center gap-6 p-6">
           {teams.map((tm, idx) => {
@@ -263,8 +283,9 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
                           {entitlements.length ? (
                             entitlements.map((e, i) => {
                               const badge = getEntitlementKindBadge(e.kind);
-                              const termsShort =
-                                typeof e.termsShort === 'string'
+                              const termsShort = swapProgram?.tradedRightId === (e.entitlementId ?? e.id)
+                                ? 'Swap option — governed terms and priority listed above'
+                                : typeof e.termsShort === 'string'
                                   ? e.termsShort
                                   : formatEntitlementTermsShort(
                                       normalizeEntitlementTerms({ ...e })

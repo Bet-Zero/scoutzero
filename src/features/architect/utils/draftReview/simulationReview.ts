@@ -1,3 +1,4 @@
+import { prepareSwapTradeRecord } from './swapTradeReview';
 import {
   activeConditionalStage,
   conditionalPrograms,
@@ -96,7 +97,8 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
   if (
     metadata.draftSimulationBranches !== 'unconditional' &&
     metadata.draftSimulationBranches !== 'conditional-2027' &&
-    metadata.draftSimulationBranches !== 'protection-programs'
+    metadata.draftSimulationBranches !== 'protection-programs' &&
+    metadata.draftSimulationBranches !== 'swap-program'
   )
     throw new Error('Simulation branch terms are unavailable.');
   const slots = args.payload.teams ?? [];
@@ -147,6 +149,20 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
       })
     )
   );
+  if (metadata.draftSimulationBranches === 'swap-program') {
+    for (const [id, source] of Object.entries(sources))
+      documentSnapshots[`${ARCHITECT_BASE_ENTITLEMENTS_PATH}/${id}`] =
+        mutationSnapshotText(source);
+    return prepareSwapTradeRecord({
+      args,
+      catalogue,
+      metadata,
+      entitlements,
+      documentSnapshots,
+      state,
+      stateDigest,
+    });
+  }
   const originals = simulationOriginals(
     catalogue,
     metadata.draftSimulationTeams ?? ['CHI', 'TOR']

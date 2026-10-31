@@ -2,6 +2,7 @@ import {
   DraftConditionalProgramZ,
   DraftConditionalProgramsZ,
 } from './draftConditionalProgram';
+import { DraftSwapProgramZ } from './draftSwapProgram';
 /** Supplied operation facts only; parsing does not authenticate their sources. */
 import { z } from 'zod';
 import {
@@ -113,6 +114,9 @@ export const DraftStepienFactZ = z
       .strict()
       .optional(),
     conditionalPrograms: DraftConditionalProgramsZ.optional(),
+    // Conservative same-draft allocation coverage. Referenced pool originals
+    // can remain held because only the option is transferred.
+    swapProgram: DraftSwapProgramZ.optional(),
     branchesComplete: z.boolean(),
     branches: z.array(
       z

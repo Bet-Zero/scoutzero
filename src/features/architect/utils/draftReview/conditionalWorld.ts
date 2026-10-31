@@ -1,3 +1,4 @@
+import { swapProgram } from './swapProgram';
 /** Read-only preparation for an explicitly governed simulation world. */
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { db, auth, isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
@@ -26,7 +27,9 @@ export async function loadConditionalWorld(worldId: string) {
     !metadata ||
     metadata.createdBy !== auth.currentUser.uid ||
     metadata.parentWorldId != null ||
-    metadata.draftSimulationBranches !== 'protection-programs'
+    !['protection-programs', 'swap-program'].includes(
+      metadata.draftSimulationBranches
+    )
   )
     throw new Error('An owned conditional test world is required.');
   const revision = requireDraftInventoryRevision(metadata);
@@ -56,11 +59,15 @@ export async function loadConditionalWorld(worldId: string) {
   );
   assertSimulationInventory(catalogue, metadata, teams, entitlements, sources);
   const programs = conditionalPrograms(
-    metadata.draftConditionalPrograms,
+    metadata.draftConditionalPrograms ?? [],
     catalogue.data.records,
     entitlements
   );
-  if (!programs.length)
+  const swap =
+    metadata.draftSimulationBranches === 'swap-program'
+      ? swapProgram(metadata.draftSwapProgram, catalogue, entitlements)
+      : null;
+  if (!programs.length && !swap)
     throw new Error('Complete protection programs are required.');
   const snapshots = {
     [root.path]: mutationSnapshotText(metadata),
@@ -77,6 +84,7 @@ export async function loadConditionalWorld(worldId: string) {
     revision,
     catalogue,
     programs,
+    swap,
     teams,
     entitlements,
     sources,

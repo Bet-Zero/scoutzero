@@ -43,11 +43,16 @@ describe('Base-state trade apply authoritative gate guardrail', () => {
       'const tradeExecutionHandoff = buildTradeExecutionHandoff(tradeData);'
     );
     expect(region).toContain(
-      'await commitTradeExecutionHandoff(tradeExecutionHandoff);'
+      'await commitTradeExecutionHandoff(tradeExecutionHandoff, review);'
     );
     expect(region).toContain(
       'await applyTradeExecutionHandoffToBaseState(tradeExecutionHandoff);'
     );
+
+    // The optional capability is carried only through the authoritative writer;
+    // base-state preview still requires its own validated compute result.
+    expect(region).toContain('draftReviewAuthority: review.authority');
+    expect(region).toContain('operationId: review.operationId');
 
     // Ensure we no longer use the old direct-local mutation path.
     expect(region).not.toContain('const targetTrade = tradeData.find');

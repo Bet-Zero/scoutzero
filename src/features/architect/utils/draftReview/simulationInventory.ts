@@ -1,3 +1,4 @@
+import { swapProgram } from './swapProgram';
 /** Retained source identity and software assumptions stay separate. No writes. */
 import {
   activeConditionalStage,
@@ -99,6 +100,37 @@ export function assertSimulationInventory(
     throw new Error(
       'Conditional programs require their explicit governed review mode.'
     );
+  const swap =
+    metadata.draftSimulationBranches === 'swap-program'
+      ? swapProgram(metadata.draftSwapProgram, catalogue, entitlements)
+      : null;
+  if (!swap && metadata.draftSwapProgram !== undefined)
+    throw new Error('Swap terms require their explicit governed review mode.');
+  const originalTeams = swap
+    ? [...new Set([...teamsInScope, ...swap.slots.map((s) => s.originalTeam)])]
+    : teamsInScope;
+  if (
+    swap &&
+    !swap.result &&
+    Number(String(metadata.currentSeason).slice(0, 4)) + 1 > swap.year
+  )
+    throw new Error('An unresolved swap draft was skipped.');
+  if (swap?.result) {
+    const date = Array.isArray(metadata.draftSimulationCalendar)
+      ? metadata.draftSimulationCalendar.filter((d) => d?.year === swap.year)
+      : [];
+    if (
+      date.length !== 1 ||
+      typeof date[0].date !== 'string' ||
+      !new RegExp(`^${swap.year}-06-(0[1-9]|[12][0-9]|30)$`).test(
+        date[0].date
+      ) ||
+      typeof metadata.asOfDate !== 'string' ||
+      date[0].date > metadata.asOfDate ||
+      swap.year > Number(String(metadata.currentSeason).slice(0, 4)) + 1
+    )
+      throw new Error('The resolved swap and saved date disagree.');
+  }
   for (const program of programs) {
     if (!teamsInScope.includes(program.originalTeam))
       throw new Error('Conditional terms exceed the governed team scope.');
@@ -190,7 +222,8 @@ export function assertSimulationInventory(
       );
     if (
       holder !== initialHolder &&
-      !simulationOriginals(catalogue, teamsInScope).some(
+      id !== swap?.tradedRightId &&
+      !simulationOriginals(catalogue, originalTeams).some(
         (r) => r.entitlementId === id
       )
     )

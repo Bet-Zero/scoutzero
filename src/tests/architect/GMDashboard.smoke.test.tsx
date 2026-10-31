@@ -179,6 +179,7 @@ vi.mock('@/features/architect/freeAgency/freeAgentPoolPersistence', () => ({
 }));
 
 vi.mock('@/firebaseConfig', () => ({
+  isSyntheticDraftReviewEnvironment: () => false,
   db: {},
   FIREBASE_TARGET_MODE: 'EMULATOR',
   ARCHITECT_REVIEW_MODE: false,

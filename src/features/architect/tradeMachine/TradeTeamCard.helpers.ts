@@ -117,6 +117,7 @@ export const toEntitlementTeamOption = (
 });
 
 export interface TradeTeamCardProps {
+  showPooledEntitlements?: boolean;
   team?: TeamLike | null;
   sends: PlayerLike[];
   yearKey: string | number;

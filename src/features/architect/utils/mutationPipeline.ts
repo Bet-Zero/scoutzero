@@ -513,7 +513,7 @@ export async function applyWorldMutation({
           movements: review.movements,
         }),
         picksTraded: review.movements.flatMap((p) => {
-          const name = `${p.originalTeam} ${p.year} ${p.round === 1 ? 'first' : 'second'}-round pick`;
+          const name = `${p.originalTeam} ${p.year} ${p.round === 1 ? 'first' : 'second'}-round ${p.assetKind === 'swap_right' ? 'swap right' : 'pick'}`;
           return [`${p.fromTeam}: out ${name}`, `${p.toTeam}: in ${name}`];
         }),
       };
