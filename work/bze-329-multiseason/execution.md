@@ -1,6 +1,6 @@
 # BZE-329 governed multi-season continuation
 
-Base: 60a10c78e4529eaa5ffd5d58bca215830b4484e1 (accepted PR #593). Consequential financial, chronology, persistence and trade-permission change under BZE-243. Reuse the accepted initial freeze and earlier conditional/swap evidence within their unchanged scope.
+Accepted predecessor: 60a10c78e4529eaa5ffd5d58bca215830b4484e1 (PR #593). Current base: 399f62ed47c879afef9476e76b0930e1f039c026 (unrelated Ranker PR #594, post-merge CI 41192507731 passed). Consequential financial, chronology, persistence and trade-permission change under BZE-243. Reuse the accepted initial freeze and earlier conditional/swap evidence within their unchanged scope.
 
 Implement explicit protected software financial/calendar contexts, beginning with salary-cap-year 2028, across preparation, independent financial validation and saved views. Keep software assumptions distinct from official/projected NBA authority; no global future official values. Extend consecutive 2025–26 observations through 2029–30 and resulting saved seasons through 2030–31. No skipped or invented history. Two above follow-ups establish penalty eligibility; three at-or-below establish release at the governed next-day boundary. Placement remains unavailable without L08.8 draft-wide inputs.
 

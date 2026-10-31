@@ -215,7 +215,8 @@ for (const scenario of scenarios)
           status: 'prepared',
           legal: true,
         });
-        expect((await applyConditionalTrade(page)).success).toBe(true);
+        const applied = await applyConditionalTrade(page);
+        expect(applied.success, JSON.stringify(applied)).toBe(true);
         await page.reload();
         expect(
           (
