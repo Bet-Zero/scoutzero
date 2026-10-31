@@ -228,8 +228,11 @@ for (const excess of [1, 0])
       await expect(
         page.getByTestId('team-history-detail-sections')
       ).toContainText(
-        `${team} 2033 first: ${team === 'TOR' && excess ? 'Frozen' : 'No freeze triggered'}`
+        `${team === 'TOR' ? 'Toronto Raptors' : 'Miami Heat'} 2033 first: ${team === 'TOR' && excess ? 'Frozen' : 'No freeze triggered'}`
       );
+      await page
+        .getByTestId('team-history-detail-sections')
+        .scrollIntoViewIfNeeded();
       await shot(`${team}-history`);
       await page.getByTestId('team-history-detail-close').click();
       await openDashboardTab(page, 'Compare');
@@ -252,15 +255,16 @@ for (const excess of [1, 0])
       const expand = page.getByRole('button', { name: 'Expand activity rail' });
       if (await expand.isVisible()) await expand.click();
       await page.getByTestId('cockpit-activity-rail-assets-open').click();
-      if (team === 'TOR') {
-        await expect(
-          page.getByTestId('cockpit-assets-panel-picks-2033-first')
-        ).toContainText(excess ? 'Frozen' : 'No freeze triggered');
-        if (!excess)
-          await expect(
-            page.getByTestId('cockpit-assets-panel-picks-2033-first')
-          ).toContainText('via MIA');
-      }
+      const assets = page.getByTestId('cockpit-assets-panel-picks-2033-first');
+      await expect(assets).toContainText(
+        team === 'TOR' && excess ? 'Frozen' : 'No freeze triggered',
+        { timeout: 60000 }
+      );
+      if (!excess)
+        await expect(assets).toContainText(
+          team === 'TOR' ? 'via MIA' : 'via TOR'
+        );
+      await assets.scrollIntoViewIfNeeded();
       await shot(`${team}-assets`);
       await page.keyboard.press('Escape');
       dialog = await room(page);
@@ -371,7 +375,10 @@ test('missing/conflicting observations, receipt drift, repeat and later transiti
     ['TOR', 'MIA'],
     date
   );
-  expect(preview.status, JSON.stringify(preview)).toBe('prepared');
+  expect(preview, JSON.stringify(preview)).toMatchObject({
+    status: 'prepared',
+    legal: true,
+  });
   const event = (await root.collection('events').get()).docs[0];
   await event.ref.update({
     'metadata.apronSeasonReceipt.planDigest': 'changed-after-validation',
