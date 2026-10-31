@@ -10,6 +10,24 @@ import { startSeasonProofHarness } from './seasonProofHarness';
 const PROOF_SPEC = 'tests/e2e/architect-trade-receipt-proof.spec.ts';
 const PROOF_PORTS = [5173, 8082, 9099, 5001, 4001, 4400, 4500, 9150];
 
+export const APRON_MULTISEASON_SCREENSHOTS = [
+  'penalty',
+  'earliest-release',
+  'latest-release',
+]
+  .flatMap((mode) => [
+    ...[2027, 2028, 2029, 2030, 2031].map((year) => `${mode}-season-${year}`),
+    `${mode}-trade`,
+    `${mode}-2028-cap`,
+    `${mode}-2028-fullcap`,
+    ...['TOR', 'MIA'].flatMap((team) =>
+      ['cap', 'fullcap', 'history', 'compare', 'assets'].map(
+        (state) => `${mode}-${team}-${state}`
+      )
+    ),
+  ])
+  .map((key) => ({ key, filename: `${key}-1280x720.png` }));
+
 export const APRON_FREEZE_SCREENSHOTS = ['frozen', 'equality']
   .flatMap((mode) => [
     ...[
@@ -306,15 +324,19 @@ function portIsOpen(port: number): Promise<boolean> {
   });
 }
 
-async function waitForCleanTeardown(): Promise<number[]> {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    const states = await Promise.all(PROOF_PORTS.map(portIsOpen));
-    const open = PROOF_PORTS.filter((_, index) => states[index]);
+export async function waitForCleanTeardown(
+  readOpenPorts: () => Promise<number[]> = openProofPorts,
+  pause: (ms: number) => Promise<void> = (ms) =>
+    new Promise((resolve) => setTimeout(resolve, ms))
+): Promise<number[]> {
+  // Cloud shutdown can finish its isolated emulator export after Playwright exits.
+  // Bound the grace period while still rejecting every listener left open.
+  for (let attempt = 0; attempt < 75; attempt += 1) {
+    const open = await readOpenPorts();
     if (open.length === 0) return [];
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    await pause(400);
   }
-  const states = await Promise.all(PROOF_PORTS.map(portIsOpen));
-  return PROOF_PORTS.filter((_, index) => states[index]);
+  return readOpenPorts();
 }
 
 async function openProofPorts(): Promise<number[]> {
@@ -329,15 +351,21 @@ export async function runTradeReceiptProof(
   retainedSimulation = false,
   conditionalLifecycle = false,
   swapLifecycle = false,
-  apronFreeze = false
+  apronFreeze = false,
+  apronMultiseason = false
 ): Promise<number> {
   if (
-    [swapLifecycle, conditionalLifecycle, apronFreeze].filter(Boolean).length >
-    1
+    [swapLifecycle, conditionalLifecycle, apronFreeze, apronMultiseason].filter(
+      Boolean
+    ).length > 1
   )
     throw new Error('Select one lifecycle proof.');
   retainedSimulation =
-    retainedSimulation || conditionalLifecycle || swapLifecycle || apronFreeze;
+    retainedSimulation ||
+    conditionalLifecycle ||
+    swapLifecycle ||
+    apronFreeze ||
+    apronMultiseason;
   if (retainedSimulation && (realDraft || draftReview || draftSeason))
     throw new Error('Governed retained simulation is a separate proof scope.');
   if (
@@ -374,38 +402,42 @@ export async function runTradeReceiptProof(
       }
     : null;
   const identity = resolveProofIdentity();
-  const definitions = apronFreeze
-    ? APRON_FREEZE_SCREENSHOTS
-    : swapLifecycle
-      ? SWAP_LIFECYCLE_SCREENSHOTS
-      : conditionalLifecycle
-        ? CONDITIONAL_LIFECYCLE_SCREENSHOTS
-        : retainedSimulation
-          ? RETAINED_SIMULATION_SCREENSHOTS
-          : realDraft
-            ? REAL_DRAFT_SCREENSHOTS
-            : draftReview
-              ? DRAFT_REVIEW_SCREENSHOTS
-              : GOVERNED_TRADE_RECEIPT_SCREENSHOTS;
+  const definitions = apronMultiseason
+    ? APRON_MULTISEASON_SCREENSHOTS
+    : apronFreeze
+      ? APRON_FREEZE_SCREENSHOTS
+      : swapLifecycle
+        ? SWAP_LIFECYCLE_SCREENSHOTS
+        : conditionalLifecycle
+          ? CONDITIONAL_LIFECYCLE_SCREENSHOTS
+          : retainedSimulation
+            ? RETAINED_SIMULATION_SCREENSHOTS
+            : realDraft
+              ? REAL_DRAFT_SCREENSHOTS
+              : draftReview
+                ? DRAFT_REVIEW_SCREENSHOTS
+                : GOVERNED_TRADE_RECEIPT_SCREENSHOTS;
   const artifactDir = path.join(
     identity.repoRoot,
     'tmp',
     'browser-proofs',
-    apronFreeze
-      ? 'apron-freeze'
-      : swapLifecycle
-        ? 'swap-draft-lifecycle'
-        : conditionalLifecycle
-          ? 'conditional-draft-lifecycle'
-          : retainedSimulation
-            ? 'retained-draft-simulation'
-            : realDraft
-              ? 'real-draft-review'
-              : draftSeason
-                ? 'draft-season'
-                : draftReview
-                  ? 'draft-review'
-                  : 'trade-receipt',
+    apronMultiseason
+      ? 'apron-multiseason'
+      : apronFreeze
+        ? 'apron-freeze'
+        : swapLifecycle
+          ? 'swap-draft-lifecycle'
+          : conditionalLifecycle
+            ? 'conditional-draft-lifecycle'
+            : retainedSimulation
+              ? 'retained-draft-simulation'
+              : realDraft
+                ? 'real-draft-review'
+                : draftSeason
+                  ? 'draft-season'
+                  : draftReview
+                    ? 'draft-review'
+                    : 'trade-receipt',
     `${identity.candidate}-${timestampSlug()}`
   );
   const testResultsDir = path.join(artifactDir, 'test-results');
@@ -475,21 +507,23 @@ export async function runTradeReceiptProof(
 
   const commandArgs = [
     'test',
-    apronFreeze
-      ? 'tests/e2e/architect-apron-freeze.spec.ts'
-      : swapLifecycle
-        ? 'tests/e2e/architect-swap-draft.spec.ts'
-        : conditionalLifecycle
-          ? 'tests/e2e/architect-conditional-draft.spec.ts'
-          : retainedSimulation
-            ? 'tests/e2e/architect-retained-draft-simulation.spec.ts'
-            : realDraft
-              ? 'tests/e2e/architect-real-draft-review-proof.spec.ts'
-              : draftSeason
-                ? 'tests/e2e/architect-draft-season-proof.spec.ts'
-                : draftReview
-                  ? 'tests/e2e/architect-draft-review-proof.spec.ts'
-                  : PROOF_SPEC,
+    apronMultiseason
+      ? 'tests/e2e/architect-apron-multiseason.spec.ts'
+      : apronFreeze
+        ? 'tests/e2e/architect-apron-freeze.spec.ts'
+        : swapLifecycle
+          ? 'tests/e2e/architect-swap-draft.spec.ts'
+          : conditionalLifecycle
+            ? 'tests/e2e/architect-conditional-draft.spec.ts'
+            : retainedSimulation
+              ? 'tests/e2e/architect-retained-draft-simulation.spec.ts'
+              : realDraft
+                ? 'tests/e2e/architect-real-draft-review-proof.spec.ts'
+                : draftSeason
+                  ? 'tests/e2e/architect-draft-season-proof.spec.ts'
+                  : draftReview
+                    ? 'tests/e2e/architect-draft-review-proof.spec.ts'
+                    : PROOF_SPEC,
     '--workers=1',
     '--project=chromium',
     '--reporter=line,html',
@@ -526,6 +560,7 @@ export async function runTradeReceiptProof(
     status: number | null;
     signal: string | null;
     clean: boolean | null;
+    openPorts: number[] | null;
   }[] = [];
   const stopHarness = draftSeason
     ? await startSeasonProofHarness(identity.repoRoot, artifactDir)
@@ -572,8 +607,9 @@ export async function runTradeReceiptProof(
         stdio: 'inherit',
         ...(draftReview || retainedSimulation
           ? {
-              timeout:
-                conditionalLifecycle || swapLifecycle || apronFreeze
+              timeout: apronMultiseason
+                ? 3600000
+                : conditionalLifecycle || swapLifecycle || apronFreeze
                   ? 1200000
                   : 240000,
             }
@@ -585,7 +621,12 @@ export async function runTradeReceiptProof(
         status: result.status,
         signal: result.signal,
         clean: draftSeason ? null : remainingPorts.length === 0,
+        openPorts: draftSeason ? null : remainingPorts,
       });
+      if (remainingPorts.length > 0)
+        process.stderr.write(
+          `Proof run teardown left listeners on ports: ${remainingPorts.join(', ')}\n`
+        );
       if (result.status !== 0 || remainingPorts.length > 0) break;
     }
   } finally {
@@ -676,27 +717,29 @@ export async function runTradeReceiptProof(
 
   const manifest = {
     schemaVersion: 1,
-    proof: apronFreeze
-      ? 'governed-apron-freeze'
-      : swapLifecycle
-        ? 'Ordered swap-right trade and saved-world allocation (governed test assumptions; production disabled)'
-        : conditionalLifecycle
-          ? 'Conditional first-round trade and saved-world lifecycle (governed test assumptions; production disabled)'
-          : retainedSimulation
-            ? 'Retained pick identities with governed test assumptions (not verified NBA legality; production disabled)'
-            : realDraft
-              ? 'Real retained first-round evidence in Trade Machine (read-only; production Apply disabled)'
-              : draftSeason
-                ? 'Synthetic freeze season record and subsequent first-round trade (production disabled)'
-                : draftReview
-                  ? 'Synthetic first-round review mutation (production disabled)'
-                  : 'Architect Trade Machine / Trade Receipt',
+    proof: apronMultiseason
+      ? 'governed-apron-multiseason'
+      : apronFreeze
+        ? 'governed-apron-freeze'
+        : swapLifecycle
+          ? 'Ordered swap-right trade and saved-world allocation (governed test assumptions; production disabled)'
+          : conditionalLifecycle
+            ? 'Conditional first-round trade and saved-world lifecycle (governed test assumptions; production disabled)'
+            : retainedSimulation
+              ? 'Retained pick identities with governed test assumptions (not verified NBA legality; production disabled)'
+              : realDraft
+                ? 'Real retained first-round evidence in Trade Machine (read-only; production Apply disabled)'
+                : draftSeason
+                  ? 'Synthetic freeze season record and subsequent first-round trade (production disabled)'
+                  : draftReview
+                    ? 'Synthetic first-round review mutation (production disabled)'
+                    : 'Architect Trade Machine / Trade Receipt',
     base: identity.originMain,
     candidate: identity.candidate,
     upstream: identity.upstream,
     mergeBase: identity.mergeBase,
     viewport: { width: 1280, height: 720 },
-    command: `npm run architect:proof:trade-receipt${apronFreeze ? ' -- --apron-freeze' : swapLifecycle ? ' -- --swap-lifecycle' : conditionalLifecycle ? ' -- --conditional-lifecycle' : retainedSimulation ? ' -- --retained-simulation' : realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
+    command: `npm run architect:proof:trade-receipt${apronMultiseason ? ' -- --apron-multiseason' : apronFreeze ? ' -- --apron-freeze' : swapLifecycle ? ' -- --swap-lifecycle' : conditionalLifecycle ? ' -- --conditional-lifecycle' : retainedSimulation ? ' -- --retained-simulation' : realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
     privateInputHashes,
     simulationInputHashes,
     playwright: commandArgs,
@@ -783,7 +826,8 @@ if (isMainModule()) {
     process.argv.includes('--retained-simulation'),
     process.argv.includes('--conditional-lifecycle'),
     process.argv.includes('--swap-lifecycle'),
-    process.argv.includes('--apron-freeze')
+    process.argv.includes('--apron-freeze'),
+    process.argv.includes('--apron-multiseason')
   )
     .then((code) => {
       process.exitCode = code;

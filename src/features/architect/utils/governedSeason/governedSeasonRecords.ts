@@ -40,7 +40,11 @@ export type GovernedSystemLevelId = (typeof GOVERNED_SYSTEM_LEVEL_IDS)[number];
  * Authority class. Official and projected are separate populations; neither
  * substitutes for the other (`CBA2-S01.9`).
  */
-export const GOVERNED_AUTHORITIES = ['official', 'projected'] as const;
+export const GOVERNED_AUTHORITIES = [
+  'official',
+  'projected',
+  'software-test',
+] as const;
 export type GovernedAuthority = (typeof GOVERNED_AUTHORITIES)[number];
 
 export type GovernedRecordStatus = 'current' | 'superseded';
@@ -49,11 +53,13 @@ export const GOVERNED_SOURCE_PROVENANCE_TYPES = [
   'official-immutable',
   'official-mutable',
   'ext-contract',
+  'software-test',
 ] as const;
 export type GovernedSourceProvenanceType =
   (typeof GOVERNED_SOURCE_PROVENANCE_TYPES)[number];
 
 export type GovernedSourceAuthorityClass =
+  | 'software-test'
   | 'accepted-canon'
   | 'post-canon-official';
 
@@ -144,6 +150,7 @@ export function isGovernedPostCanonOfficialSourceRecord(
 export function governedSourceAuthorityClass(
   record: GovernedSourceRecord
 ): GovernedSourceAuthorityClass {
+  if (record.provenanceType === 'software-test') return 'software-test';
   return isGovernedPostCanonOfficialSourceRecord(record)
     ? 'post-canon-official'
     : 'accepted-canon';
@@ -521,6 +528,13 @@ function validateSystemLevelRecord(
   if (!sourceRecord) {
     problems.push(`${at}.sourceRecordId`);
   }
+  if (
+    sourceRecord &&
+    (record.authority === 'software-test') !==
+      (sourceRecord.provenanceType === 'software-test')
+  ) {
+    problems.push(`${at}.softwareAuthoritySeparation`);
+  }
   if (sourceRecord && isGovernedPostCanonOfficialSourceRecord(sourceRecord)) {
     const exactField = sourceRecord.postCanonCertification.exactFields.find(
       (field) => field.fieldId === record.levelId
@@ -617,6 +631,13 @@ function validateCalendarRecord(
   );
   if (!sourceRecord) {
     problems.push(`${at}.sourceRecordId`);
+  }
+  if (
+    sourceRecord &&
+    (record.authority === 'software-test') !==
+      (sourceRecord.provenanceType === 'software-test')
+  ) {
+    problems.push(`${at}.softwareAuthoritySeparation`);
   }
   if (sourceRecord && isGovernedPostCanonOfficialSourceRecord(sourceRecord)) {
     const openingField = sourceRecord.postCanonCertification.exactFields.find(

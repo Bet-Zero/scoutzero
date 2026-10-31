@@ -173,3 +173,27 @@ describe('Firebase draft release permission boundary', () => {
     }
   );
 });
+
+describe('governed multi-season input document boundary', () => {
+  it('allows owner reads but denies every client mutation and cross-owner read', async () => {
+    const root = 'architect_worlds/multiseason-read-only';
+    const target = `${root}/draftSeasonInputs/2026`;
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), root), {
+        createdBy: 'season-owner',
+      });
+      await setDoc(doc(context.firestore(), target), { seasonStartYear: 2026 });
+    });
+    const owner = env.authenticatedContext('season-owner').firestore();
+    await assertSucceeds(getDoc(doc(owner, target)));
+    await assertFails(setDoc(doc(owner, target), { seasonStartYear: 2027 }));
+    await assertFails(updateDoc(doc(owner, target), { seasonStartYear: 2027 }));
+    await assertFails(deleteDoc(doc(owner, target)));
+    await assertFails(
+      getDoc(doc(env.authenticatedContext('stranger').firestore(), target))
+    );
+    await assertFails(
+      getDoc(doc(env.unauthenticatedContext().firestore(), target))
+    );
+  });
+});

@@ -1,4 +1,11 @@
-import { getPlayerCapHitForYear, isTwoWayContract } from '@/features/architect/utils/contractUtils';
+import {
+  teamSoftwareSeason,
+  softwareSeasonRegistry,
+} from '../governedSeason/softwareSeasonContext';
+import {
+  getPlayerCapHitForYear,
+  isTwoWayContract,
+} from '@/features/architect/utils/contractUtils';
 import { getActiveUnsignedCapHoldsByEndYear } from '@/features/architect/utils/capHolds';
 import type { CapHold } from '@/features/architect/utils/capHolds';
 import {
@@ -99,7 +106,7 @@ export function resolveGovernedIncompleteRosterCharge(args: {
   salaryCapYear: number;
   asOfDate: string | null;
   zeroYosMinimum: number;
-  zeroYosMinimumSource: 'real' | 'projected';
+  zeroYosMinimumSource: 'real' | 'projected' | 'software-test';
 }): GovernedIncompleteRosterResolution {
   const { team, salaryCapYear, asOfDate } = args;
   const teamId = stringValue(team?.teamId ?? team?.id ?? team?.teamCode);
@@ -158,10 +165,12 @@ export function resolveGovernedIncompleteRosterCharge(args: {
     };
   }
 
+  const software = teamSoftwareSeason(team, salaryCapYear);
   const envelope = resolveGovernedSeasonEnvelope({
     asOfDate: governedInstant,
     salaryCapYear,
-    requiredAuthority: 'official',
+    requiredAuthority: software ? 'software-test' : 'official',
+    ...(software ? { registry: softwareSeasonRegistry([software]) } : {}),
     team: {
       teamId,
       teamCode,
@@ -212,7 +221,10 @@ export function resolveGovernedIncompleteRosterCharge(args: {
   if (
     !isGovernedMoney(args.zeroYosMinimum) ||
     args.zeroYosMinimum <= 0 ||
-    args.zeroYosMinimumSource !== 'real'
+    (software
+      ? args.zeroYosMinimumSource !== 'software-test' ||
+        args.zeroYosMinimum !== software.zeroYosMinimum
+      : args.zeroYosMinimumSource !== 'real')
   ) {
     return unavailable(
       'The official zero-years-of-service Minimum Salary is unavailable.',

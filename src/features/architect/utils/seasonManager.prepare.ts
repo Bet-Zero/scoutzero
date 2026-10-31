@@ -387,7 +387,8 @@ export async function prepareSeasonAdvance(args: {
                 .map((team) =>
                   apronInputFromHistory(
                     team,
-                    2033,
+                    Number(args.apronSeason!.plan.startingSeason.slice(0, 4)) +
+                      8,
                     [
                       ...args.apronSeason!.history,
                       observationForStep(args.apronSeason!.next!),

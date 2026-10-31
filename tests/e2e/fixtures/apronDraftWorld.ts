@@ -1,3 +1,5 @@
+import { packApronPlan } from '@/features/architect/utils/draftReview/apronPlanStorage';
+import { ARCHITECT_WORLD_DRAFT_SEASON_INPUTS_SUBCOLLECTION } from '@/constants/collections';
 /** Complete stipulated books/calendars; none of these observations are NBA facts. */
 import { syntheticDraftSeasonFixture } from './syntheticDraftSeasonWorld';
 import { seedRetainedDraftSimulation } from './retainedDraftSimulationWorld';
@@ -180,10 +182,10 @@ export function apronDraftFixture(excessCents = 1) {
 export async function seedApronDraftWorld(
   uid: string,
   worldId: string,
-  excessCents = 1
+  excessCents = 1,
+  fixture = apronDraftFixture(excessCents)
 ) {
   const catalogue = await seedRetainedDraftSimulation(uid, worldId);
-  const fixture = apronDraftFixture(excessCents);
   const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
   const entitlements = (await root.collection('entitlements').get()).docs.map(
     (d) => ({ id: d.id, data: d.data() })
@@ -212,8 +214,21 @@ export async function seedApronDraftWorld(
       }),
     });
   }
+  const packed =
+    fixture.plan.kind === 'governed-apron-lifecycle-v2'
+      ? packApronPlan(fixture.plan)
+      : null;
+  if (packed)
+    for (const [id, value] of Object.entries(packed.documents))
+      batch.set(
+        root
+          .collection(ARCHITECT_WORLD_DRAFT_SEASON_INPUTS_SUBCOLLECTION)
+          .doc(id),
+        value
+      );
   batch.update(root, {
     ...fixture.metadata,
+    ...(packed ? { draftApronPlan: packed.reference } : {}),
     draftSimulationTeams: ['TOR', 'MIA'],
     worldName: 'Apron lifecycle — governed software scenario',
   });

@@ -6,15 +6,19 @@ export async function conditionalState(worldId: string) {
   return {
     metadata: (await root.get()).data(),
     children: await Promise.all(
-      ['teams', 'entitlements', 'events', 'seasonHistory'].map(
-        async (name) => ({
-          name,
-          docs: (await root.collection(name).get()).docs.map((d) => ({
-            id: d.id,
-            data: d.data(),
-          })),
-        })
-      )
+      [
+        'teams',
+        'entitlements',
+        'events',
+        'seasonHistory',
+        'draftSeasonInputs',
+      ].map(async (name) => ({
+        name,
+        docs: (await root.collection(name).get()).docs.map((d) => ({
+          id: d.id,
+          data: d.data(),
+        })),
+      }))
     ),
   };
 }

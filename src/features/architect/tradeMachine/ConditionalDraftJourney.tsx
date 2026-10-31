@@ -123,7 +123,7 @@ export function ConditionalDraftJourney({
           {(state.metadata.draftSimulationTeams as string[]).map((team) => {
             const input = apronInputFromHistory(
               team,
-              2033,
+              Number(state.apron!.plan.startingSeason.slice(0, 4)) + 8,
               state.apron!.history,
               `${String(state.metadata.asOfDate)}T12:00:00-04:00`,
               state.apron!.plan
@@ -133,16 +133,18 @@ export function ConditionalDraftJourney({
             );
             return (
               <p key={team}>
-                {team} 2033 first · held by{' '}
+                {team} {input.originalPick.draftYear} first · held by{' '}
                 {String(held?.holderTeam ?? 'unknown')}:{' '}
                 {apronRestrictionText(input)}
               </p>
             );
           })}
           <p>
-            Only the 2025–26 observation can currently be saved. The four
-            following seasons remain pending; release and penalty eligibility
-            are unfinished. Final draft placement requires separate governing
+            {state.apron.history.length} consecutive season observations saved.
+            {state.apron.next
+              ? ` Next: ${state.apron.next.seasonStartYear}–${String(state.apron.next.seasonStartYear + 1).slice(-2)}.`
+              : ' Configured season journey complete.'}{' '}
+            Final draft placement remains unavailable without draft-wide order
             information.
           </p>
           <p>
@@ -286,13 +288,14 @@ export function ConditionalDraftJourney({
         >
           Resolve {draftYear} draft
         </button>
-      ) : state.metadata.currentSeason === '2025-26' ? (
+      ) : state.apron?.next ||
+        (!state.apron && state.metadata.currentSeason === '2025-26') ? (
         <button
           className="px-3 py-1 rounded border border-cockpit-edge disabled:opacity-50"
           disabled={busy}
           onClick={() => void advance(false)}
         >
-          Advance to 2026–27
+          Advance to {draftYear}–{String(draftYear + 1).slice(-2)}
         </button>
       ) : null}
       {error && <p role="alert">{error}</p>}

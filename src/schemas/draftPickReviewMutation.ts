@@ -1,3 +1,4 @@
+import { SoftwareRetainedFirstsZ } from './draftApronSimulation';
 import { DraftSimulationWindowZ } from './draftSimulationWindow';
 import { DraftApronHistoryZ } from './draftApronSimulation';
 import { DraftSwapProgramZ } from './draftSwapProgram';
@@ -57,6 +58,7 @@ export const DraftSimulationAssumptionsZ = z
     ]),
     programs: DraftConditionalProgramsZ.optional(),
     apronHistory: DraftApronHistoryZ.optional(),
+    softwareRetainedFirsts: SoftwareRetainedFirstsZ.optional(),
     tradingWindow: DraftSimulationWindowZ.optional(),
     swapProgram: DraftSwapProgramZ.optional(),
     ownership: z.literal('stipulated-for-software-tests'),

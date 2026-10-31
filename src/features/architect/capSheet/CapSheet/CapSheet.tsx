@@ -593,7 +593,9 @@ export const CapSheet = ({
                 <span
                   className={`rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${confidenceLabel.className}`}
                 >
-                  {confidenceLabel.text}
+                  {canonicalTotals._meta?.capSettingsSource === 'software-test'
+                    ? 'Software assumptions'
+                    : confidenceLabel.text}
                 </span>
               ) : null}
               <span className="sr-only">

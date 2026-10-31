@@ -1,3 +1,7 @@
+import {
+  teamSoftwareSeason,
+  softwareCapSettings,
+} from '../governedSeason/softwareSeasonContext';
 /**
  * FILE: src/features/architect/utils/capTotals/computeTeamCapTotals.ts
  * PURPOSE: Temporary compatibility owner for the legacy shared cap-allocation total.
@@ -70,7 +74,7 @@ interface TeamCapTotalsMeta {
   rulesSource: unknown;
   rulesSourcesSummary: unknown;
   rulesSources: unknown;
-  capSettingsSource: 'via_facade';
+  capSettingsSource: 'via_facade' | 'software-test';
   seasonKey: string;
   incompleteRosterCharge:
     | GovernedIncompleteRosterResolution
@@ -312,10 +316,12 @@ export function computeTeamCapTotals(
   }
   const rules = getCapRulesForYear(yearKey, options.capProjections);
 
-  const salaryCap = rules.cap.salaryCap || 0;
-  const luxuryTax = rules.cap.luxuryTax || 0;
-  const firstApron = rules.cap.firstApron || 0;
-  const secondApron = rules.cap.secondApron || 0;
+  const software = teamSoftwareSeason(teamCapSheet, yearKey);
+  const cap = software ? softwareCapSettings(software) : rules.cap;
+  const salaryCap = cap.salaryCap || 0;
+  const luxuryTax = cap.luxuryTax || 0;
+  const firstApron = cap.firstApron || 0;
+  const secondApron = cap.secondApron || 0;
 
   const playersTotal = computePlayersTotal(teamCapSheet?.players, yearKey);
   const capHoldsTotal = getActiveUnsignedCapHoldsTotalByEndYear(
@@ -344,8 +350,10 @@ export function computeTeamCapTotals(
         team: teamCapSheet,
         salaryCapYear: yearKey,
         asOfDate: normalizeSalaryBookAsOfDate(options.asOfDate),
-        zeroYosMinimum: rules.salaries.rookieMin,
-        zeroYosMinimumSource: rules.salaries.rookieMinSource,
+        zeroYosMinimum: software?.zeroYosMinimum ?? rules.salaries.rookieMin,
+        zeroYosMinimumSource: software
+          ? 'software-test'
+          : rules.salaries.rookieMinSource,
       })
     : {
         mode: 'legacy-compatibility',
@@ -419,7 +427,7 @@ export function computeTeamCapTotals(
       rulesSource: rules._meta?.source,
       rulesSourcesSummary: rules._meta?.sourcesSummary,
       rulesSources: rules._meta?.sources,
-      capSettingsSource: 'via_facade',
+      capSettingsSource: software ? 'software-test' : 'via_facade',
       seasonKey: toSeasonKey(yearKey),
       incompleteRosterCharge:
         incompleteRosterResolution.mode === 'governed'

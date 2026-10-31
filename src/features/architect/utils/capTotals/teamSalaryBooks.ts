@@ -1,3 +1,7 @@
+import {
+  teamSoftwareSeason,
+  softwareSeasonRegistry,
+} from '../governedSeason/softwareSeasonContext';
 import { governingDayStartInstant } from '@/features/architect/utils/governedSeason';
 import {
   SalaryBooksSnapshotZ,
@@ -467,11 +471,13 @@ export function computeTeamSalaryBooks(
           'Tax Salary requires its governed last-game baseline and dated adjustments.',
       } satisfies SalaryLedgerInput<'tax-salary'>);
 
+  const software = teamSoftwareSeason(team, salaryCapYear);
   const evaluation = evaluateGovernedDatedSalaryLedgers({
+    ...(software ? { registry: softwareSeasonRegistry([software]) } : {}),
     context: {
       asOfDate,
       salaryCapYear,
-      requiredAuthority: 'official',
+      requiredAuthority: software ? 'software-test' : 'official',
       team: {
         teamId: teamId ?? undefined,
         ...(teamCode ? { teamCode } : {}),

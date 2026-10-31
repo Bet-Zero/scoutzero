@@ -186,8 +186,16 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
   const originals = simulationOriginals(
     catalogue,
     metadata.draftSimulationTeams ?? ['CHI', 'TOR'],
-    apron ? 2033 : 2032
+    apron ? Number(apron.plan.startingSeason.slice(0, 4)) + 8 : 2032
   );
+  const softwareRetainedFirsts = apron?.plan.softwareRetainedFirsts ?? [];
+  const catalogueThrough = Math.max(
+    ...catalogue.data.records.map((r) => r.originalPick?.draftYear ?? 0)
+  );
+  if (softwareRetainedFirsts.some((w) => w.draftYear <= catalogueThrough))
+    throw new Error(
+      'Software future witnesses cannot replace retained catalogue evidence.'
+    );
   const programs =
     metadata.draftSimulationBranches === 'protection-programs'
       ? conditionalPrograms(
@@ -320,7 +328,11 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     branchMode: metadata.draftSimulationBranches,
     ...(programs.length ? { programs } : {}),
     ...(apron && window
-      ? { apronHistory: apron.history, tradingWindow: window }
+      ? {
+          apronHistory: apron.history,
+          tradingWindow: window,
+          ...(softwareRetainedFirsts.length ? { softwareRetainedFirsts } : {}),
+        }
       : {}),
     ownership: 'stipulated-for-software-tests',
     otherHoldings: 'unknown-not-empty',
@@ -389,7 +401,20 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
               (_, i) => ({
                 draftYear: firstYear + i,
                 inventoryComplete: false,
-                retained: retained.filter((p) => p.draftYear === firstYear + i),
+                retained: [
+                  ...retained.filter((p) => p.draftYear === firstYear + i),
+                  ...softwareRetainedFirsts
+                    .filter(
+                      (w) => w.team === team && w.draftYear === firstYear + i
+                    )
+                    .map((w) => ({
+                      kind: 'authenticated-original-pick' as const,
+                      id: `${w.team}_${w.draftYear}_1st`,
+                      originalTeam: w.team,
+                      draftYear: w.draftYear,
+                      round: 1 as const,
+                    })),
+                ],
               })
             ),
           },

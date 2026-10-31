@@ -1,3 +1,7 @@
+import {
+  teamSoftwareSeason,
+  softwareCapSettings,
+} from '../../governedSeason/softwareSeasonContext';
 // tradeValidator.ts - Fixed to match test expectations
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 
@@ -157,9 +161,19 @@ export function validateTrade({
       ? rawTradeCtx.offseason
       : seasonState.offseason;
 
+  const softwareContexts = (teams ?? []).map((t) =>
+    teamSoftwareSeason(t?.team, resolvedCurrentYear)
+  );
+  const software = softwareContexts.find(Boolean);
+  if (
+    software &&
+    softwareContexts.some((c) => JSON.stringify(c) !== JSON.stringify(software))
+  )
+    throw new Error('Trade teams have conflicting software financial seasons.');
   const capSettingsResult = getCapSettings({
     year: resolvedCurrentYear,
     capProjections,
+    ...(software ? { providedCapSettings: softwareCapSettings(software) } : {}),
   });
   const capSettings = capSettingsResult.settings as TradeValidatorCapSettings;
 
@@ -187,7 +201,9 @@ export function validateTrade({
     offseason: canonicalOffseason,
     seasonState: rawTradeCtx.seasonState || seasonState.seasonState,
     capSettings,
-    capSettingsSource: capSettingsResult.source,
+    capSettingsSource: software
+      ? `software-test:${software.id}`
+      : capSettingsResult.source,
     capSettingsWarnings: capSettingsResult.warnings,
     normalizedYear: normalizedYear || {
       endYear: resolvedCurrentYear,

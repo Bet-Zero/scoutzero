@@ -1,3 +1,4 @@
+import { isSoftwareSeasonEnvironment } from './governedSeason/softwareSeasonEnvironment';
 /** Governed authority gate for the one atomic league-wide Season Advance. */
 
 import {
@@ -90,8 +91,11 @@ export type SeasonAdvanceCalendarManifest = {
   sourceRecordVersion: number;
   sourceIdentity: string;
   sourceField: string;
-  sourceArtifactSha256: string;
-  sourceAuthorityClass: 'accepted-canon' | 'post-canon-official';
+  sourceArtifactSha256: string | null;
+  sourceAuthorityClass:
+    | 'accepted-canon'
+    | 'post-canon-official'
+    | 'software-test';
   canonLeafIds: readonly string[];
 };
 
@@ -119,6 +123,7 @@ export type SeasonAdvanceAuthorityRequest = {
   worldSeason?: string | null;
   worldAsOfDate?: string | null;
   registry?: GovernedSeasonRegistry;
+  requiredAuthority?: 'official' | 'software-test';
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -213,12 +218,13 @@ export function interpretSeasonAdvanceEntitlementBoundary(
 
 function currentOfficialCalendarForSeason(
   registry: GovernedSeasonRegistry,
-  seasonKey: string
+  seasonKey: string,
+  requiredAuthority: 'official' | 'software-test'
 ): GovernedSeasonCalendarRecord[] {
   return registry.calendars.filter(
     (record) =>
       record.seasonKey === seasonKey &&
-      record.authority === 'official' &&
+      record.authority === requiredAuthority &&
       record.recordStatus === 'current'
   );
 }
@@ -241,7 +247,10 @@ function sourceCalendarManifest(
   calendar: GovernedSeasonCalendarRecord,
   source: GovernedSourceRecord
 ): SeasonAdvanceCalendarManifest | null {
-  if (!source.artifactSha256 || !/^[0-9a-f]{64}$/.test(source.artifactSha256)) {
+  if (
+    source.provenanceType !== 'software-test' &&
+    (!source.artifactSha256 || !/^[0-9a-f]{64}$/.test(source.artifactSha256))
+  ) {
     return null;
   }
   return Object.freeze({
@@ -281,10 +290,17 @@ export function resolveSeasonAdvanceAuthority(
     };
   }
 
+  const requiredAuthority = request.requiredAuthority ?? 'official';
+  if (requiredAuthority === 'software-test' && !isSoftwareSeasonEnvironment())
+    return {
+      status: 'unavailable',
+      reason: 'Protected software seasons are unavailable.',
+    };
   const registry = request.registry ?? CANON_GOVERNED_SEASON_REGISTRY;
   const sourceCalendars = currentOfficialCalendarForSeason(
     registry,
-    worldSeason
+    worldSeason,
+    requiredAuthority
   );
   if (sourceCalendars.length !== 1) {
     return {
@@ -337,7 +353,7 @@ export function resolveSeasonAdvanceAuthority(
   const targetEnvelope = resolveGovernedSeasonEnvelope({
     asOfDate: targetWindow.from,
     salaryCapYear: toSalaryCapYear,
-    requiredAuthority: 'official',
+    requiredAuthority,
     team: { teamId: `league:${worldId}`, worldId },
     registry,
   });

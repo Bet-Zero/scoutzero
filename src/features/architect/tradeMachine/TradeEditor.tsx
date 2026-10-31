@@ -1,3 +1,4 @@
+import { teamSoftwareSeason } from '../utils/governedSeason/softwareSeasonContext';
 import { ConditionalDraftJourney } from './ConditionalDraftJourney';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { RotateCcw } from 'lucide-react';
@@ -960,6 +961,9 @@ export const TradeEditor = ({
     (capRulesForYear?._meta?.sourcesSummary as string | undefined) ?? null
   );
   const capSeasonLabel = capRulesForYear?.seasonKey ?? null;
+  const softwareCap = teams.some(
+    (slot) => teamSoftwareSeason(slot.team, Number(yearKey)) !== null
+  );
 
   // BZE-190: label for the parked sign-and-trade free agent.
   const pendingSignAndTradePlayerName = useMemo(() => {
@@ -1054,7 +1058,11 @@ export const TradeEditor = ({
           <h2 className="text-lg font-black uppercase leading-tight tracking-wide">
             Trade Machine
           </h2>
-          {capSourceSummary ? (
+          {softwareCap ? (
+            <span className="text-xs text-cockpit-text-secondary">
+              {capSeasonLabel} · software assumptions
+            </span>
+          ) : capSourceSummary ? (
             <CapConfidenceBadge
               summary={capSourceSummary}
               prefix={capSeasonLabel ? `${capSeasonLabel} cap ·` : 'Cap ·'}
@@ -1387,8 +1395,14 @@ export const TradeEditor = ({
       />
 
       <TradePreviewModal
-        simulationNotice={simulation.enabled ? DRAFT_SIMULATION_NOTICE : undefined}
-        swapProgram={simulation.reviews.flatMap(r => r.review.status === 'swap-reviewed' ? [r.review.swapProgram] : [])[0]}
+        simulationNotice={
+          simulation.enabled ? DRAFT_SIMULATION_NOTICE : undefined
+        }
+        swapProgram={
+          simulation.reviews.flatMap((r) =>
+            r.review.status === 'swap-reviewed' ? [r.review.swapProgram] : []
+          )[0]
+        }
         open={
           previewOpen &&
           currentPreviewAuthority?.legal === true &&

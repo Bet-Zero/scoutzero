@@ -1,3 +1,7 @@
+import {
+  teamSoftwareSeason,
+  softwareCapSettings,
+} from '@/features/architect/utils/governedSeason/softwareSeasonContext';
 import { useMemo } from 'react';
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 import { getTeamColors } from '@/shared/utils/formatting';
@@ -194,7 +198,12 @@ export const useTradeTeamCardSalaries = ({
     [team, entitlementsOut, incomingEntitlements]
   );
 
-  const capSettings = useMemo(() => getCapSettingsForYear(yearKey), [yearKey]);
+  const capSettings = useMemo(() => {
+    const software = teamSoftwareSeason(team, Number(yearKey));
+    return software
+      ? { ...getCapSettingsForYear(yearKey), ...softwareCapSettings(software) }
+      : getCapSettingsForYear(yearKey);
+  }, [team, yearKey]);
 
   const faBuckets = useMemo(
     () => getTeamFaExceptionBuckets(team || {}),
