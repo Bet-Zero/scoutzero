@@ -25,9 +25,30 @@ import {
   resolveProofIdentity,
   runTradeReceiptProof,
   verifyGovernedScreenshotArtifacts,
+  waitForCleanTeardown,
 } from '../../scripts/review/runTradeReceiptProof.ts';
 
 const repoRoot = process.cwd();
+
+test('proof teardown tolerates delayed export but fails closed on a persistent listener', async () => {
+  let elapsed = 0;
+  const pause = async (ms: number) => {
+    elapsed += ms;
+  };
+  assert.deepEqual(
+    await waitForCleanTeardown(
+      async () => (elapsed < 12_000 ? [8082] : []),
+      pause
+    ),
+    []
+  );
+  assert.equal(elapsed, 12_000);
+  elapsed = 0;
+  assert.deepEqual(await waitForCleanTeardown(async () => [8082], pause), [
+    8082,
+  ]);
+  assert.equal(elapsed, 30_000);
+});
 
 function runGit(cwd: string, args: string[]) {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
@@ -389,7 +410,10 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
   );
   assert.match(profile, /npm run architect:proof:trade-receipt/);
   assert.match(profile, /Graphify queries may be used/);
-  assert.match(profile, /only when changed topology invalidates a relevant retained claim/);
+  assert.match(
+    profile,
+    /only when changed topology invalidates a relevant retained claim/
+  );
   assert.match(profile, /Validation reruns follow the changed risk surface/);
   assert.match(profile, /test-only assertion or evidence edit/);
 
@@ -535,7 +559,8 @@ test('retained simulation rejects mixed or incomplete proof inputs before launch
       /Select one lifecycle proof/
     );
   } finally {
-    if (previous !== undefined) process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE = previous;
+    if (previous !== undefined)
+      process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE = previous;
   }
 });
 
@@ -559,14 +584,25 @@ test('Apron freeze certification requires saved restriction, refused and permitt
 });
 
 test('conditional lifecycle certification requires both outcomes and both teams after reload', () => {
-  assert.deepEqual(CONDITIONAL_LIFECYCLE_SCREENSHOTS.map((s) => s.key), [10,11].flatMap((position) => [
-    `${position}-proposal`, `${position}-draft`, `${position}-season`,
-    ...['TOR','MIA'].flatMap((team) => ['history','compare','reload'].map((state) => `${position}-${team}-${state}`)),
-  ]));
+  assert.deepEqual(
+    CONDITIONAL_LIFECYCLE_SCREENSHOTS.map((s) => s.key),
+    [10, 11].flatMap((position) => [
+      `${position}-proposal`,
+      `${position}-draft`,
+      `${position}-season`,
+      ...['TOR', 'MIA'].flatMap((team) =>
+        ['history', 'compare', 'reload'].map(
+          (state) => `${position}-${team}-${state}`
+        )
+      ),
+    ])
+  );
 });
 
 test('retained simulation certificate requires proposal and both teams across all three saved views', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'retained-simulation-proof-'));
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'retained-simulation-proof-')
+  );
   try {
     assert.deepEqual(
       RETAINED_SIMULATION_SCREENSHOTS.map((s) => s.key),
@@ -605,11 +641,22 @@ test('retained simulation certificate requires proposal and both teams across al
     );
     for (const { filename } of RETAINED_SIMULATION_SCREENSHOTS) {
       fs.unlinkSync(path.join(root, filename));
-      assert.equal((await verifyGovernedScreenshotArtifacts(root, root, artifacts, RETAINED_SIMULATION_SCREENSHOTS)).valid, false, filename);
+      assert.equal(
+        (
+          await verifyGovernedScreenshotArtifacts(
+            root,
+            root,
+            artifacts,
+            RETAINED_SIMULATION_SCREENSHOTS
+          )
+        ).valid,
+        false,
+        filename
+      );
       fs.writeFileSync(path.join(root, filename), png);
     }
   } finally {
-    fs.rmSync(root, {recursive: true, force: true});
+    fs.rmSync(root, { recursive: true, force: true });
   }
 });
 

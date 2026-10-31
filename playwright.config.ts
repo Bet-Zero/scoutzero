@@ -72,7 +72,8 @@ export default defineConfig({
       useArchitectReviewMode || useDraftSimulation
         ? {
             signal: 'SIGTERM',
-            timeout: 10_000,
+            // cloud:dev gives each of its two owned children 20s to stop/export.
+            timeout: useDraftSimulation ? 45_000 : 10_000,
           }
         : undefined,
     timeout: useArchitectReviewMode || useDraftSimulation ? 240_000 : 120_000,

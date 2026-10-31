@@ -324,15 +324,19 @@ function portIsOpen(port: number): Promise<boolean> {
   });
 }
 
-async function waitForCleanTeardown(): Promise<number[]> {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    const states = await Promise.all(PROOF_PORTS.map(portIsOpen));
-    const open = PROOF_PORTS.filter((_, index) => states[index]);
+export async function waitForCleanTeardown(
+  readOpenPorts: () => Promise<number[]> = openProofPorts,
+  pause: (ms: number) => Promise<void> = (ms) =>
+    new Promise((resolve) => setTimeout(resolve, ms))
+): Promise<number[]> {
+  // Cloud shutdown can finish its isolated emulator export after Playwright exits.
+  // Bound the grace period while still rejecting every listener left open.
+  for (let attempt = 0; attempt < 75; attempt += 1) {
+    const open = await readOpenPorts();
     if (open.length === 0) return [];
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    await pause(400);
   }
-  const states = await Promise.all(PROOF_PORTS.map(portIsOpen));
-  return PROOF_PORTS.filter((_, index) => states[index]);
+  return readOpenPorts();
 }
 
 async function openProofPorts(): Promise<number[]> {
@@ -556,6 +560,7 @@ export async function runTradeReceiptProof(
     status: number | null;
     signal: string | null;
     clean: boolean | null;
+    openPorts: number[] | null;
   }[] = [];
   const stopHarness = draftSeason
     ? await startSeasonProofHarness(identity.repoRoot, artifactDir)
@@ -616,7 +621,12 @@ export async function runTradeReceiptProof(
         status: result.status,
         signal: result.signal,
         clean: draftSeason ? null : remainingPorts.length === 0,
+        openPorts: draftSeason ? null : remainingPorts,
       });
+      if (remainingPorts.length > 0)
+        process.stderr.write(
+          `Proof run teardown left listeners on ports: ${remainingPorts.join(', ')}\n`
+        );
       if (result.status !== 0 || remainingPorts.length > 0) break;
     }
   } finally {
