@@ -7,6 +7,7 @@
  *  - 2026-10-21: Find Players panel created as FilterPoolPanel.tsx (PR #565)
  *  - 2026-10-24: Replaced by this workbench layout; finder state lives in hooks/usePoolFinder.ts
  *  - 2026-10-26: Added players carry their Top-N score for the chosen season
+ *  - 2026-10-31: Top-N lists show everyone with the usual candidates ticked; ticks start over when the list changes
  *
  * LINKS:
  *  - Used in: src/features/ranker/RankingBuilder.tsx
@@ -48,7 +49,7 @@ export const PoolWorkbench = ({
   const finder = usePoolFinder(candidates, poolIds);
   const addWithScores = (players: RosterManagerPlayer[]) => {
     const scores = new Map<string, number>();
-    [...finder.rows, ...finder.nearMisses].forEach((row) => {
+    finder.universe.forEach((row) => {
       if (typeof row.score === 'number') scores.set(row.player.id, row.score);
     });
     onAdd(players, scores);
@@ -120,13 +121,16 @@ export const PoolWorkbench = ({
           className="min-h-[360px] max-h-[75vh] lg:max-h-none"
         >
           <PoolSearchResults
+            // Ticks start over when the list itself changes, not on a search
+            key={finder.universeKey}
             active={finder.active}
             loading={finder.loading}
             error={finder.error}
             preselect={finder.topN !== null}
             season={finder.season}
             rows={finder.rows}
-            nearMisses={finder.nearMisses}
+            universe={finder.universe}
+            defaultTicked={finder.defaultTicked}
             onAdd={addWithScores}
             header={<ResultsHeader finder={finder} />}
           />

@@ -7,6 +7,7 @@
  *  - 2026-10-21: Created as part of FilterPoolPanel.tsx (PR #565)
  *  - 2026-10-22: Top-N preset, best-paid candidates, near misses, preloaded and stored scores
  *  - 2026-10-24: Extracted from FilterPoolPanel.tsx for the workbench layout
+ *  - 2026-10-31: Top-N lists everyone (the usual candidates start ticked); search only narrows what's shown; experience per row
  *
  * LINKS:
  *  - Filter engine: src/features/roster/utils/rosterBuilderHelpers.ts (filterRosterDrawerPlayers)
@@ -37,7 +38,8 @@ import {
   storedRankerScore,
   useImpactScores,
 } from './useImpactScores';
-import { selectTopNCandidates, suggestedPoolSize } from '../utils/playerImpact';
+import { defaultTickCount, rankTopNPool, suggestedPoolSize } from '../utils/playerImpact';
+import { seasonInLeague } from '../utils/seasonInLeague';
 import type { PoolSearchRow } from '../PoolSearchResults';
 
 export const DEFAULT_MIN_GAMES = 10;
@@ -154,41 +156,69 @@ export const usePoolFinder = (
   }, [candidateIds, currentStatsById, refreshedScoresById]);
   const waitingForScores = topN !== null && !impact.scoresById;
 
-  const { rows, nearMisses, hiddenTeamless } = useMemo<{
+  const { rows, universe, defaultTicked, hiddenTeamless } = useMemo<{
+    // What's shown (a Top-N list narrowed by any search)
     rows: PoolSearchRow[];
-    nearMisses: PoolSearchRow[];
+    // Everyone the list is about: a Top-N list's whole ranking, or the matches
+    universe: PoolSearchRow[];
+    // Top-N: the usual candidates, ticked to start with
+    defaultTicked: string[];
     hiddenTeamless: number;
   }>(() => {
-    const none = { rows: [], nearMisses: [], hiddenTeamless: 0 };
+    const none = { rows: [], universe: [], defaultTicked: [], hiddenTeamless: 0 };
     if (!active || waitingForSeason || waitingForScores) return none;
     const byId = new Map(candidates.map((c) => [c.id, c]));
-    const matches = filterRosterDrawerPlayers(candidates, searchTerm, filters, {
+    const scores = impact.scoresById;
+    const ranking = topN !== null && Boolean(scores);
+    const options = {
       seasonById: viewsById,
       minGames: statFiltersActive ? minGames : 0,
-    }).flatMap((player) => {
+    };
+    // A Top-N list ranks everyone the filters allow; search only narrows the view
+    const matches = filterRosterDrawerPlayers(
+      candidates,
+      ranking ? '' : searchTerm,
+      filters,
+      options
+    ).flatMap((player) => {
       const candidate = byId.get(player.id);
       if (!candidate) return [];
       const view = viewsById?.get(player.id);
       const row = view ? { player, ...view } : currentRow(candidate);
-      return [{ ...row, inPool: poolIds.has(player.id) }];
+      return [
+        {
+          ...row,
+          inPool: poolIds.has(player.id),
+          exp: seasonInLeague(candidate.original, season),
+        },
+      ];
     });
-    const scores = impact.scoresById;
-    if (topN === null || !scores)
-      return { rows: matches, nearMisses: [], hiddenTeamless: 0 };
+    if (!ranking || !scores)
+      return { rows: matches, universe: matches, defaultTicked: [], hiddenTeamless: 0 };
     // This season, retired and unsigned players don't take candidate spots
     const eligible =
       isPastSeason || includeTeamless
         ? matches
         : matches.filter(hasCurrentTeam);
-    // Best by stats plus best paid, so nobody who could make the list is missing
-    const { pool, nearMisses: next } = selectTopNCandidates(
+    // Everyone, ordered by their better place by stats or by pay; the top
+    // `poolSize` by either start ticked
+    const ranked = rankTopNPool(
       eligible.map((row) => ({ ...row, id: row.player.id })),
-      scores,
-      poolSize
+      scores
     );
+    const shownIds = searchTerm
+      ? new Set(
+          filterRosterDrawerPlayers(candidates, searchTerm, filters, options).map(
+            (p) => p.id
+          )
+        )
+      : null;
     return {
-      rows: pool,
-      nearMisses: next,
+      rows: shownIds ? ranked.filter((r) => shownIds.has(r.player.id)) : ranked,
+      universe: ranked,
+      defaultTicked: ranked
+        .slice(0, defaultTickCount(ranked, poolSize))
+        .map((r) => r.player.id),
       hiddenTeamless: matches.length - eligible.length,
     };
   }, [
@@ -206,8 +236,17 @@ export const usePoolFinder = (
     poolIds,
     topN,
     poolSize,
+    season,
     impact.scoresById,
   ]);
+  // Ticks start over when the list itself changes (not when searching it)
+  const universeKey = useMemo(
+    () =>
+      topN === null
+        ? 'matches'
+        : `top ${topN}: ${universe.map((r) => r.player.id).join(',')}`,
+    [topN, universe]
+  );
 
   return {
     search,
@@ -223,10 +262,11 @@ export const usePoolFinder = (
     topN,
     chooseTopN,
     poolSize,
-    setPoolSize,
     active,
     rows,
-    nearMisses,
+    universe,
+    defaultTicked,
+    universeKey,
     includeTeamless,
     setIncludeTeamless,
     hiddenTeamless,

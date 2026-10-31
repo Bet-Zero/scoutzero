@@ -155,6 +155,9 @@ export type RankedCandidate<T> = T & {
   payRank: number | null;
   // Position in the pool or near-miss list
   rank: number;
+  // The better of statsRank and payRank: everyone within the top `poolSize`
+  // by either has best <= poolSize
+  best: number;
   score?: number;
 };
 
@@ -171,6 +174,52 @@ const rankBy = <T extends TopNCandidate>(
 };
 
 /**
+ * Everyone with a stats score or a salary, ordered by their better rank of
+ * the two (stats rank breaks ties, then pay rank). A Top-N list shows them
+ * all; the top `poolSize` by either (a prefix of this order) start ticked.
+ */
+export const rankTopNPool = <T extends TopNCandidate>(
+  rows: readonly T[],
+  scores: ReadonlyMap<string, number>
+): Array<RankedCandidate<T>> => {
+  // Any real score ranks (a poor one still beats no score); only actual pay ranks
+  const statsRanks = rankBy(rows, (row) => scores.get(row.id), Number.isFinite);
+  const payRanks = rankBy(rows, (row) => row.salary, (v) => v > 0);
+  return rows
+    .map((row) => {
+      const statsRank = statsRanks.get(row.id) ?? null;
+      const payRank = payRanks.get(row.id) ?? null;
+      const best = Math.min(statsRank ?? Infinity, payRank ?? Infinity);
+      return { row, statsRank, payRank, best };
+    })
+    .filter((r) => Number.isFinite(r.best))
+    .sort(
+      (a, b) =>
+        a.best - b.best ||
+        (a.statsRank ?? Infinity) - (b.statsRank ?? Infinity) ||
+        (a.payRank ?? Infinity) - (b.payRank ?? Infinity)
+    )
+    .map((r, i) => {
+      const score = scores.get(r.row.id);
+      return {
+        ...r.row,
+        statsRank: r.statsRank,
+        payRank: r.payRank,
+        best: r.best,
+        rank: i + 1,
+        ...(score !== undefined ? { score } : {}),
+      };
+    });
+};
+
+// How many of a ranked Top-N list start ticked: everyone in the top
+// `poolSize` by stats or by salary
+export const defaultTickCount = (
+  ranked: ReadonlyArray<{ best: number }>,
+  poolSize: number
+): number => ranked.filter((r) => r.best <= poolSize).length;
+
+/**
  * Candidates for a Top-N list, cast wide so no one who could make it is
  * missing: everyone in the top `poolSize` by stats score AND everyone in the
  * top `poolSize` by salary (pay catches stars box scores undervalue, like
@@ -184,37 +233,8 @@ export const selectTopNCandidates = <T extends TopNCandidate>(
   poolSize: number,
   nearMissCount = 25
 ): { pool: Array<RankedCandidate<T>>; nearMisses: Array<RankedCandidate<T>> } => {
-  // Any real score ranks (a poor one still beats no score); only actual pay ranks
-  const statsRanks = rankBy(rows, (row) => scores.get(row.id), Number.isFinite);
-  const payRanks = rankBy(rows, (row) => row.salary, (v) => v > 0);
-  const ordered = rows
-    .map((row) => {
-      const statsRank = statsRanks.get(row.id) ?? null;
-      const payRank = payRanks.get(row.id) ?? null;
-      const best = Math.min(statsRank ?? Infinity, payRank ?? Infinity);
-      return { row, statsRank, payRank, best };
-    })
-    .filter((r) => Number.isFinite(r.best))
-    .sort(
-      (a, b) =>
-        a.best - b.best ||
-        (a.statsRank ?? Infinity) - (b.statsRank ?? Infinity) ||
-        (a.payRank ?? Infinity) - (b.payRank ?? Infinity)
-    );
-  const toRanked = (r: (typeof ordered)[number], rank: number): RankedCandidate<T> => {
-    const score = scores.get(r.row.id);
-    return {
-      ...r.row,
-      statsRank: r.statsRank,
-      payRank: r.payRank,
-      rank,
-      ...(score !== undefined ? { score } : {}),
-    };
-  };
-  const inPool = ordered.filter((r) => r.best <= poolSize);
-  const rest = ordered.filter((r) => r.best > poolSize).slice(0, nearMissCount);
-  return {
-    pool: inPool.map((r, i) => toRanked(r, i + 1)),
-    nearMisses: rest.map((r, i) => toRanked(r, inPool.length + i + 1)),
-  };
+  const ranked = rankTopNPool(rows, scores);
+  const inPool = ranked.filter((r) => r.best <= poolSize);
+  const rest = ranked.filter((r) => r.best > poolSize).slice(0, nearMissCount);
+  return { pool: inPool, nearMisses: rest };
 };

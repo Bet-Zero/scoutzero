@@ -214,7 +214,8 @@ describe('PoolWorkbench', () => {
     await waitFor(() => expect(screen.getByText('Add selected (4)')).toBeTruthy());
     // Everyone starts ticked, so only the ticked can be added (no "Add all")
     expect(screen.queryByText(/^Add all/)).toBeNull();
-    expect(screen.getByLabelText<HTMLInputElement>('Candidates to pull').value).toBe('26');
+    // The usual candidates are ticked, and the count says so
+    expect(screen.getByLabelText<HTMLInputElement>('How many of the top to tick').value).toBe('4');
     const firstRow = screen.getAllByRole('row')[1];
     expect(within(firstRow).getByText('Vet')).toBeTruthy();
     // Rank column (after the checkbox)
@@ -226,7 +227,7 @@ describe('PoolWorkbench', () => {
     expect(addedIds(onAdd)).toEqual(['Vet', 'Starter', 'Tiny Sample']);
   });
 
-  it('Top-N pool takes the best paid too, and near misses can be added', async () => {
+  it('Top-N lists everyone: the best paid are ticked too, and the rest can be ticked by hand', async () => {
     const onAdd = vi.fn();
     const crowd = [
       ...Array.from({ length: 34 }, (_, i) =>
@@ -238,15 +239,16 @@ describe('PoolWorkbench', () => {
     render(<PoolWorkbench candidates={crowd} poolIds={new Set()} onAdd={onAdd} />);
     fireEvent.click(screen.getByText('Top 10'));
 
-    // 26 by stats plus MaxGuy by pay
+    // 26 by stats plus MaxGuy by pay start ticked; all 35 are listed
     await waitFor(() => expect(screen.getByText('Add selected (27)')).toBeTruthy());
+    expect(screen.getAllByRole('row')).toHaveLength(36);
     const row = screen.getByText('MaxGuy').closest('tr') as HTMLElement;
     expect(row.querySelectorAll('td')[1].textContent).toBe('2');
-
-    // The rest are listed as near misses, one tap to add
-    expect(screen.getByText(/just missed the cut \(8\)/)).toBeTruthy();
-    fireEvent.click(screen.getByLabelText('Add Filler 33 (near miss)'));
-    expect(addedIds(onAdd)).toEqual(['Filler 33']);
+    expect(screen.getByLabelText<HTMLInputElement>('Select Filler 33').checked).toBe(false);
+    fireEvent.click(screen.getByLabelText('Select Filler 33'));
+    fireEvent.click(screen.getByText('Add selected (28)'));
+    expect(addedIds(onAdd)).toContain('Filler 33');
+    expect(addedIds(onAdd)).toHaveLength(28);
   });
 
   it('Top-N pulls leave out players without a team unless asked, and set the list size', async () => {
@@ -269,25 +271,135 @@ describe('PoolWorkbench', () => {
     await waitFor(() => expect(screen.getByText('Unsigned')).toBeTruthy());
   });
 
-  it('the Candidates box keeps what is typed instead of snapping to the minimum', async () => {
-    render(<PoolWorkbench candidates={candidates} poolIds={new Set()} onAdd={vi.fn()} />);
+  it('ticks exactly the top N on request, and the count matches the ticks', async () => {
+    const crowd = Array.from({ length: 40 }, (_, i) =>
+      candidate(`Player ${i}`, { PTS: 30 - i * 0.5, GP: 40 })
+    );
+    render(<PoolWorkbench candidates={crowd} poolIds={new Set()} onAdd={vi.fn()} />);
     fireEvent.click(screen.getByText('Top 10'));
-    const box = await screen.findByLabelText<HTMLInputElement>('Candidates to pull');
+    const box = await screen.findByLabelText<HTMLInputElement>('How many of the top to tick');
     expect(box.value).toBe('26');
+    expect(screen.getByText('Add selected (26)')).toBeTruthy();
 
-    // Typing 120 over it: the first digit alone is below 10 and isn't forced up
-    fireEvent.change(box, { target: { value: '1' } });
-    expect(box.value).toBe('1');
-    fireEvent.change(box, { target: { value: '12' } });
-    fireEvent.change(box, { target: { value: '120' } });
-    expect(box.value).toBe('120');
-    fireEvent.blur(box);
-    expect(box.value).toBe('120');
+    fireEvent.change(box, { target: { value: '15' } });
+    // Typing alone changes nothing; the button (or Enter) applies it
+    expect(screen.getByText('Add selected (26)')).toBeTruthy();
+    fireEvent.click(screen.getByText('Tick only the top'));
+    expect(screen.getByText('Add selected (15)')).toBeTruthy();
+    expect(screen.getByLabelText<HTMLInputElement>('Select Player 14').checked).toBe(true);
+    expect(screen.getByLabelText<HTMLInputElement>('Select Player 15').checked).toBe(false);
+  });
 
-    // Leaving it below the list size settles on the list size
-    fireEvent.change(box, { target: { value: '3' } });
-    fireEvent.blur(box);
-    expect(box.value).toBe('10');
+  it('adding one player with + keeps everyone else ticked', async () => {
+    const onAdd = vi.fn();
+    const crowd = Array.from({ length: 40 }, (_, i) =>
+      candidate(`Player ${i}`, { PTS: 30 - i * 0.5, GP: 40 })
+    );
+    render(<PoolWorkbench candidates={crowd} poolIds={new Set()} onAdd={onAdd} />);
+    fireEvent.click(screen.getByText('Top 10'));
+    await screen.findByText('Add selected (26)');
+    // An unticked player, then a ticked one
+    fireEvent.click(screen.getByLabelText('Add Player 30'));
+    expect(addedIds(onAdd)).toEqual(['Player 30']);
+    expect(screen.getByText('Add selected (26)')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Add Player 3'));
+    expect(screen.getByText('Add selected (25)')).toBeTruthy();
+    expect(screen.getByLabelText<HTMLInputElement>('Select Player 4').checked).toBe(true);
+  });
+
+  it('shift-click ticks or unticks a whole run', async () => {
+    const crowd = Array.from({ length: 40 }, (_, i) =>
+      candidate(`Player ${i}`, { PTS: 30 - i * 0.5, GP: 40 })
+    );
+    render(<PoolWorkbench candidates={crowd} poolIds={new Set()} onAdd={vi.fn()} />);
+    fireEvent.click(screen.getByText('Top 10'));
+    await screen.findByText('Add selected (26)');
+    // Untick Player 10, then shift-click Player 19: 10-19 are unticked
+    fireEvent.click(screen.getByLabelText('Select Player 10'));
+    fireEvent.click(screen.getByLabelText('Select Player 19'), { shiftKey: true });
+    expect(screen.getByText('Add selected (16)')).toBeTruthy();
+    for (const i of [10, 15, 19])
+      expect(screen.getByLabelText<HTMLInputElement>(`Select Player ${i}`).checked).toBe(false);
+    expect(screen.getByLabelText<HTMLInputElement>('Select Player 20').checked).toBe(true);
+    // And back on: tick 30, shift-click 34
+    fireEvent.click(screen.getByLabelText('Select Player 30'));
+    fireEvent.click(screen.getByLabelText('Select Player 34'), { shiftKey: true });
+    expect(screen.getByText('Add selected (21)')).toBeTruthy();
+  });
+
+  it('dragging down the boxes paints a run', async () => {
+    const crowd = Array.from({ length: 40 }, (_, i) =>
+      candidate(`Player ${i}`, { PTS: 30 - i * 0.5, GP: 40 })
+    );
+    render(<PoolWorkbench candidates={crowd} poolIds={new Set()} onAdd={vi.fn()} />);
+    fireEvent.click(screen.getByText('Top 10'));
+    await screen.findByText('Add selected (26)');
+    const cell = (i: number) =>
+      screen.getByLabelText(`Select Player ${i}`).closest('td') as HTMLElement;
+    // Press on 30 (unticked), move over 31 and jump to 35: 30-35 are ticked
+    fireEvent.pointerDown(cell(30), { button: 0, pointerType: 'mouse' });
+    fireEvent.pointerOver(cell(31));
+    fireEvent.pointerOver(cell(35));
+    fireEvent.pointerUp(window);
+    expect(screen.getByText('Add selected (32)')).toBeTruthy();
+    for (const i of [30, 33, 35])
+      expect(screen.getByLabelText<HTMLInputElement>(`Select Player ${i}`).checked).toBe(true);
+    expect(screen.getByLabelText<HTMLInputElement>('Select Player 36').checked).toBe(false);
+  });
+
+  it('a search narrows the list without losing ticks; tick or untick everyone shown', async () => {
+    const onAdd = vi.fn();
+    const crowd = Array.from({ length: 40 }, (_, i) =>
+      candidate(`Player ${i}`, { PTS: 30 - i * 0.5, GP: 40 })
+    );
+    render(<PoolWorkbench candidates={crowd} poolIds={new Set()} onAdd={onAdd} />);
+    fireEvent.click(screen.getByText('Top 10'));
+    await screen.findByText('Add selected (26)');
+    fireEvent.change(screen.getByPlaceholderText(/search/i), { target: { value: 'Player 1' } });
+    // Player 1 and 10-19 are shown; the other ticks are kept but out of view
+    await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(12));
+    expect(screen.getByText(/\(15 not shown\)/)).toBeTruthy();
+    fireEvent.click(screen.getByText('Untick all shown'));
+    expect(screen.getByText('Add selected (15)')).toBeTruthy();
+    fireEvent.change(screen.getByPlaceholderText(/search/i), { target: { value: '' } });
+    await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(41));
+    expect(screen.getByLabelText<HTMLInputElement>('Select Player 12').checked).toBe(false);
+    expect(screen.getByLabelText<HTMLInputElement>('Select Player 2').checked).toBe(true);
+    fireEvent.click(screen.getByText('Add selected (15)'));
+    expect(addedIds(onAdd)).not.toContain('Player 12');
+  });
+
+  it('sorting by Yr brings rookies and second-year players together', async () => {
+    const withYears = (id: string, pts: number, yearsPro: number) => {
+      const c = candidate(id, { PTS: pts, GP: 40 });
+      return {
+        ...c,
+        original: {
+          ...c.original,
+          bio: { ...c.original.bio, display: { yearsPro } },
+        } as unknown as RosterManagerPlayer,
+      };
+    };
+    render(
+      <PoolWorkbench
+        candidates={[
+          withYears('Veteran', 25, 9),
+          withYears('Rookie', 8, 0),
+          withYears('Sophomore', 10, 1),
+          withYears('Middle', 15, 5),
+        ]}
+        poolIds={new Set()}
+        onAdd={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByText('Top 10'));
+    await screen.findByText('Add selected (4)');
+    const names = () =>
+      screen.getAllByRole('row').slice(1).map((r) => r.querySelectorAll('td')[2].textContent);
+    fireEvent.click(screen.getByRole('button', { name: 'Yr' }));
+    expect(names()).toEqual(['Rookie', 'Sophomore', 'Middle', 'Veteran']);
+    const rookie = screen.getByText('Rookie').closest('tr') as HTMLElement;
+    expect(rookie.querySelectorAll('td')[4].textContent).toBe('R');
   });
 
   it('a Top-N list shows every ticked candidate, so nobody is added unseen', async () => {
@@ -302,7 +414,9 @@ describe('PoolWorkbench', () => {
     // All 80 rows are on screen (plus the header row), with no "show more"
     expect(screen.getAllByRole('row')).toHaveLength(81);
     expect(screen.queryByText(/^Show /)).toBeNull();
-    expect(screen.getByText(/80 ticked/)).toBeTruthy();
+    expect(
+      screen.getByText((_, el) => el?.tagName === 'P' && /^80 players · 80 ticked/.test(el.textContent ?? ''))
+    ).toBeTruthy();
 
     // Unticking one far down the list leaves exactly the rest
     fireEvent.click(screen.getByLabelText('Select Player 79'));
