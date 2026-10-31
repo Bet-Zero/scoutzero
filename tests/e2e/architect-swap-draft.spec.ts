@@ -311,6 +311,10 @@ for (const choice of ['exercise', 'waive'] as const)
       .toBe('2026-27');
     expect((await root.collection('seasonHistory').get()).size).toBe(30);
     await expect(page).toHaveURL(/season=2027/);
+    dialog = await room(page);
+    await expect(dialog.getByRole('region', { name: 'Swap pool' })).toContainText(
+      'Swap rights resolved'
+    );
     await capture(page, `${choice}-season`);
     for (const team of affected) {
       await page.goto(`/gm/${team}?season=2027`);
