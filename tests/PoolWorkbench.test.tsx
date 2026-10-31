@@ -290,6 +290,23 @@ describe('PoolWorkbench', () => {
     expect(screen.getByLabelText<HTMLInputElement>('Select Player 15').checked).toBe(false);
   });
 
+  it('adding one player with + keeps everyone else ticked', async () => {
+    const onAdd = vi.fn();
+    const crowd = Array.from({ length: 40 }, (_, i) =>
+      candidate(`Player ${i}`, { PTS: 30 - i * 0.5, GP: 40 })
+    );
+    render(<PoolWorkbench candidates={crowd} poolIds={new Set()} onAdd={onAdd} />);
+    fireEvent.click(screen.getByText('Top 10'));
+    await screen.findByText('Add selected (26)');
+    // An unticked player, then a ticked one
+    fireEvent.click(screen.getByLabelText('Add Player 30'));
+    expect(addedIds(onAdd)).toEqual(['Player 30']);
+    expect(screen.getByText('Add selected (26)')).toBeTruthy();
+    fireEvent.click(screen.getByLabelText('Add Player 3'));
+    expect(screen.getByText('Add selected (25)')).toBeTruthy();
+    expect(screen.getByLabelText<HTMLInputElement>('Select Player 4').checked).toBe(true);
+  });
+
   it('shift-click ticks or unticks a whole run', async () => {
     const crowd = Array.from({ length: 40 }, (_, i) =>
       candidate(`Player ${i}`, { PTS: 30 - i * 0.5, GP: 40 })

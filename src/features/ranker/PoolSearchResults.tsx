@@ -174,10 +174,15 @@ export const PoolSearchResults = ({
   const topValue = topTyped ?? String(defaultTicked.length);
   const topN = Number.parseInt(topValue, 10);
 
+  // Added players drop their ticks; everyone else keeps theirs (adding one
+  // player with "+" mustn't lose the rest of the selection)
   const add = (players: RosterManagerPlayer[]) => {
     if (players.length === 0) return;
     onAdd(players);
-    setTicked(new Set());
+    setMany(
+      players.map((p) => p.id),
+      false
+    );
   };
 
   let body: React.ReactNode;
