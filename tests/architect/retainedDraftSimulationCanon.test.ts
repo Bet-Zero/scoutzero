@@ -14,6 +14,10 @@ describe('retained simulation review authority', () => {
       'CBA2-A12.3',
       'CBA2-L09.6',
       'CBA2-A12.4',
+      'CBA2-A12.5',
+      'CBA2-A12.7',
+      'CBA2-L08.7',
+      'CBA2-L08.8',
     ]
       .map((leaf) => formatCanonLookup(lookupAcceptedCanonLeaf(leaf)))
       .join('\n');

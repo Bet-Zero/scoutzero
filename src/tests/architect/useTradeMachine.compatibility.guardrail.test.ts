@@ -637,6 +637,12 @@ describe('E78 useTradeMachine compatibility guardrails', () => {
       id: primaryEntitlement.id,
       toTeamId: secondaryTeamId,
     });
+    // The UI's lower-case primary ID must reach the saved-world writer as a
+    // canonical destination, just like the action-layer team identities.
+    expect(definedSecondaryExport.outgoingEntitlements[0]).toMatchObject({
+      id: secondaryEntitlement.id,
+      toTeamId: 'LAL',
+    });
     expect(definedPrimaryExport.incomingEntitlements[0]).toMatchObject({
       id: secondaryEntitlement.id,
       fromTeamId: secondaryTeamId,

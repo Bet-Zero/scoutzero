@@ -1,3 +1,5 @@
+import { DraftSimulationWindowZ } from './draftSimulationWindow';
+import { DraftApronHistoryZ } from './draftApronSimulation';
 import { DraftSwapProgramZ } from './draftSwapProgram';
 import { DraftConditionalProgramsZ } from './draftConditionalProgram';
 /** Synthetic review fixture authority. Never a production asset contract. */
@@ -51,8 +53,11 @@ export const DraftSimulationAssumptionsZ = z
       'conditional-2027',
       'protection-programs',
       'swap-program',
+      'apron-lifecycle',
     ]),
     programs: DraftConditionalProgramsZ.optional(),
+    apronHistory: DraftApronHistoryZ.optional(),
+    tradingWindow: DraftSimulationWindowZ.optional(),
     swapProgram: DraftSwapProgramZ.optional(),
     ownership: z.literal('stipulated-for-software-tests'),
     otherHoldings: z.literal('unknown-not-empty'),

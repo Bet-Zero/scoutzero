@@ -20,6 +20,7 @@ import { canonicalStringify } from '@/features/architect/utils/contractSource/de
 import {
   QUALIFIED_JUNE5_DRAFT_HORIZON,
   reviewJune5DraftTradingWindow,
+  reviewSimulationDraftWindow,
 } from '@/features/architect/utils/draftReview/horizon';
 
 function freeze<T>(value: T): T {
@@ -102,10 +103,16 @@ export function reviewDraftPickComponents(input: unknown) {
     ...(request.context.asOf === QUALIFIED_JUNE5_DRAFT_HORIZON.asOf ||
     scope?.laterDrafts === 'outside-qualified-scope'
       ? {
-          tradingWindow: reviewJune5DraftTradingWindow(
-            request.context.asOf,
-            request.outgoing.map((p) => p.draftYear)
-          ),
+          tradingWindow: scope?.finiteScope?.simulationWindow
+            ? reviewSimulationDraftWindow(
+                scope.finiteScope.simulationWindow,
+                request.context.asOf,
+                request.outgoing.map((p) => p.draftYear)
+              )
+            : reviewJune5DraftTradingWindow(
+                request.context.asOf,
+                request.outgoing.map((p) => p.draftYear)
+              ),
         }
       : {}),
     cashSale: evaluateDraftPickCashSale(request, data.facts),

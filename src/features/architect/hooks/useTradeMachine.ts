@@ -18,6 +18,7 @@ import { useTradeMachineValidation } from './useTradeMachineValidation';
 import { isUnknownRecord, hasTeamSlot } from './useTradeMachine.helpers';
 // TM_DATAWARN_UI_E1: Data validation utilities
 import { extractUsedTpeIds } from '@/features/architect/utils/tradeMachine/utils/tradeExportUtils';
+import { canonicalizeTradeCashTeamId } from '@/features/architect/utils/tradeMachine/utils/tradeCashRouting';
 import {
   injectSyntheticSntPlayersIntoTeams,
   clearSyntheticSntPlayersFromTeams,
@@ -287,7 +288,16 @@ export const useTradeMachine = (
         outgoingPlayers: t.sends,
         // Phase 14.2: Removed outgoingPicks - draft assets are entitlements-only
         outgoingEntitlements: (t.entitlementsOut || [])
-          .map((ent) => decorateEntitlementForTrade(ent))
+          .map((ent) =>
+            decorateEntitlementForTrade({
+              ...ent,
+              // The same team alias map used by cash routing keeps exported pick
+              // destinations consistent with the action-layer team codes.
+              ...(typeof ent.toTeamId === 'string'
+                ? { toTeamId: canonicalizeTradeCashTeamId(ent.toTeamId) }
+                : {}),
+            })
+          )
           .filter(isUnknownRecord),
         incomingPlayers: incomingTeamAssets?.players || [],
         // Phase 14.2: Incoming entitlements derived from entitlementsOut routing

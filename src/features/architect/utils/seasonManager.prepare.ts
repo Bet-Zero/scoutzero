@@ -1,3 +1,9 @@
+import { DraftApronSeasonReceiptZ } from '@/schemas/draftApronSimulation';
+import {
+  observationForStep,
+  apronInputFromHistory,
+  type readApronSimulation,
+} from './draftReview/apronSimulation';
 import { ConditionalSeasonReceiptZ } from '@/schemas/draftConditionalReceipt';
 import { TeamSalaryBookInputsZ } from '@/schemas/salaryBooks';
 /** Shared deterministic season preparation. No database reads, authority promotion or publication. */
@@ -58,6 +64,7 @@ export async function prepareSeasonAdvance(args: {
   focusTeamCode: string | null;
   worldLineage: string[];
   conditionalSeasonBooks?: unknown;
+  apronSeason?: ReturnType<typeof readApronSimulation> | null;
   /** Client coordinator supplies the live guard; server callers have no test permission. */
   conditionalEnvironmentCheck?: () => boolean;
   draftReview: {
@@ -126,7 +133,7 @@ export async function prepareSeasonAdvance(args: {
   if (
     args.conditionalSeasonBooks !== undefined &&
     (args.conditionalEnvironmentCheck?.() !== true ||
-      !['protection-programs', 'swap-program'].includes(
+      !['protection-programs', 'swap-program', 'apron-lifecycle'].includes(
         String(worldMeta.draftSimulationBranches)
       ) ||
       !args.conditionalSeasonBooks ||
@@ -361,19 +368,51 @@ export async function prepareSeasonAdvance(args: {
       transitionEffectiveAt: authority.transitionEffectiveAt,
       governedSeasonInputManifest: authority.targetInputManifest,
       entitlementBoundary: authority.entitlementBoundary,
-      ...(args.conditionalSeasonBooks
+      ...(args.apronSeason?.next
         ? {
-            conditionalSeasonReceipt: ConditionalSeasonReceiptZ.parse({
+            apronSeasonReceipt: DraftApronSeasonReceiptZ.parse({
               scope: 'governed-simulation-only',
               worldId,
               operationId,
               catalogueSha256: worldMeta.draftSimulationCatalogue,
-              programs: worldMeta.draftConditionalPrograms ?? [],
-              ...(worldMeta.draftSwapProgram ? {swapProgram: worldMeta.draftSwapProgram} : {}),
+              planDigest: args.apronSeason.planDigest,
+              before: args.apronSeason.history,
+              after: [
+                ...args.apronSeason.history,
+                observationForStep(args.apronSeason.next),
+              ],
               entitlementState: 'preserved-exactly',
+              restrictions: [...teamCodes]
+                .sort()
+                .map((team) =>
+                  apronInputFromHistory(
+                    team,
+                    2033,
+                    [
+                      ...args.apronSeason!.history,
+                      observationForStep(args.apronSeason!.next!),
+                    ],
+                    authority.transitionEffectiveAt,
+                    args.apronSeason!.plan
+                  )
+                ),
             }),
           }
-        : {}),
+        : args.conditionalSeasonBooks
+          ? {
+              conditionalSeasonReceipt: ConditionalSeasonReceiptZ.parse({
+                scope: 'governed-simulation-only',
+                worldId,
+                operationId,
+                catalogueSha256: worldMeta.draftSimulationCatalogue,
+                programs: worldMeta.draftConditionalPrograms ?? [],
+                ...(worldMeta.draftSwapProgram
+                  ? { swapProgram: worldMeta.draftSwapProgram }
+                  : {}),
+                entitlementState: 'preserved-exactly',
+              }),
+            }
+          : {}),
       contractEventIds: preparedTeams.flatMap(
         (team) => team.teamRecord.contractEventIds
       ),

@@ -22,14 +22,15 @@ export type SimulationCatalogue = Awaited<
 >;
 export function simulationOriginals(
   catalogue: SimulationCatalogue,
-  teams = ['CHI', 'TOR']
+  teams = ['CHI', 'TOR'],
+  throughYear = 2032
 ) {
   return catalogue.data.records.filter(
     (r) =>
       r.originalPick &&
       teams.includes(r.originalPick.originalTeam) &&
       r.originalPick.draftYear >= 2026 &&
-      r.originalPick.draftYear <= 2032
+      r.originalPick.draftYear <= throughYear
   );
 }
 export function retainedSimulationEntitlement(
@@ -223,9 +224,11 @@ export function assertSimulationInventory(
     if (
       holder !== initialHolder &&
       id !== swap?.tradedRightId &&
-      !simulationOriginals(catalogue, originalTeams).some(
-        (r) => r.entitlementId === id
-      )
+      !simulationOriginals(
+        catalogue,
+        originalTeams,
+        metadata.draftSimulationBranches === 'apron-lifecycle' ? 2033 : 2032
+      ).some((r) => r.entitlementId === id)
     )
       throw new Error('An unsupported retained right changed holders.');
   }

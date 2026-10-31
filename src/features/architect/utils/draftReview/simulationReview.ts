@@ -1,3 +1,5 @@
+import { loadConditionalWorld } from './conditionalWorld';
+import { apronInputFromHistory } from './apronSimulation';
 import { prepareSwapTradeRecord } from './swapTradeReview';
 import {
   activeConditionalStage,
@@ -53,9 +55,10 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     !metadata ||
     metadata.createdBy !== args.userId ||
     metadata.parentWorldId != null ||
-    metadata.currentSeason !== '2025-26' ||
-    args.seasonId !== '2025-26' ||
-    metadata.asOfDate !== '2026-06-05'
+    args.seasonId !== metadata.currentSeason ||
+    (metadata.draftSimulationBranches !== 'apron-lifecycle' &&
+      (metadata.currentSeason !== '2025-26' ||
+        metadata.asOfDate !== '2026-06-05'))
   )
     throw new Error('Review requires its own dated governed test world.');
   requireDraftInventoryRevision(metadata);
@@ -63,7 +66,8 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     args.payload.asOfDate !== metadata.asOfDate ||
     args.payload.tradeCtx?.asOfDate !== metadata.asOfDate ||
     args.payload.tradeCtx?.worldId !== args.worldId ||
-    args.payload.tradeCtx?.yearKey !== 2026
+    args.payload.tradeCtx?.yearKey !==
+      Number(String(metadata.currentSeason).slice(0, 4)) + 1
   )
     throw new Error('The proposal date, season and saved world must agree.');
   const bearer = await auth.currentUser?.getIdToken();
@@ -98,9 +102,24 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     metadata.draftSimulationBranches !== 'unconditional' &&
     metadata.draftSimulationBranches !== 'conditional-2027' &&
     metadata.draftSimulationBranches !== 'protection-programs' &&
-    metadata.draftSimulationBranches !== 'swap-program'
+    metadata.draftSimulationBranches !== 'swap-program' &&
+    metadata.draftSimulationBranches !== 'apron-lifecycle'
   )
     throw new Error('Simulation branch terms are unavailable.');
+  const apronWorld =
+    metadata.draftSimulationBranches === 'apron-lifecycle'
+      ? await loadConditionalWorld(args.worldId)
+      : null;
+  const apron = apronWorld?.apron;
+  if (apron && !apron.history.length)
+    throw new Error(
+      'Advance the season to record its last-game observations before trading this family.'
+    );
+  const window = apron
+    ? apron.plan.steps[apron.history.length - 1].tradingWindow
+    : null;
+  const firstYear = window?.firstYear ?? 2026;
+  const throughYear = window?.lastYear ?? 2032;
   const slots = args.payload.teams ?? [];
   if (
     slots.length !== 2 ||
@@ -132,8 +151,9 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     args.payload
   );
   const stateDigest = mutationSnapshotDigest(state);
-  const asOf = QUALIFIED_JUNE5_DRAFT_HORIZON.asOf;
+  const asOf = window?.asOf ?? QUALIFIED_JUNE5_DRAFT_HORIZON.asOf;
   const documentSnapshots: Record<string, string | null> = {
+    ...apronWorld?.snapshots,
     [world.path]: mutationSnapshotText(metadata),
   };
   for (const d of [...teamSnaps.docs, ...entSnaps.docs])
@@ -165,7 +185,8 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
   }
   const originals = simulationOriginals(
     catalogue,
-    metadata.draftSimulationTeams ?? ['CHI', 'TOR']
+    metadata.draftSimulationTeams ?? ['CHI', 'TOR'],
+    apron ? 2033 : 2032
   );
   const programs =
     metadata.draftSimulationBranches === 'protection-programs'
@@ -269,7 +290,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     }
   }
   if (!movements.length) throw new Error('Select a first-round pick.');
-  if (programs.length) {
+  if (programs.length || apron) {
     for (const slot of slots) {
       const post = Object.entries(entitlements)
         .filter(
@@ -298,6 +319,9 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     asOf,
     branchMode: metadata.draftSimulationBranches,
     ...(programs.length ? { programs } : {}),
+    ...(apron && window
+      ? { apronHistory: apron.history, tradingWindow: window }
+      : {}),
     ownership: 'stipulated-for-software-tests',
     otherHoldings: 'unknown-not-empty',
   });
@@ -354,25 +378,41 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
         );
       })
       .map((r) => r.originalPick!);
-    const branches = programs.length
-      ? conditionalPostTradeBranches({
-          programs,
-          originals,
-          team,
-          firstYear: 2026,
-          throughYear: 2032,
-          holders: Object.fromEntries(
-            originals.map((r) => [
-              r.entitlementId,
-              movements.find((m) => m.entitlementId === r.entitlementId)
-                ?.toTeam ?? String(entitlements[r.entitlementId].holderTeam),
-            ])
-          ),
-        })
-      : simulationPostTradeBranches(
-          retained,
-          metadata.draftSimulationBranches === 'conditional-2027'
-        );
+    const branches = apron
+      ? [
+          {
+            id: 'governed-originals',
+            possible: true,
+            unresolvedDependencyIds: [],
+            drafts: Array.from(
+              { length: throughYear - firstYear + 1 },
+              (_, i) => ({
+                draftYear: firstYear + i,
+                inventoryComplete: false,
+                retained: retained.filter((p) => p.draftYear === firstYear + i),
+              })
+            ),
+          },
+        ]
+      : programs.length
+        ? conditionalPostTradeBranches({
+            programs,
+            originals,
+            team,
+            firstYear: 2026,
+            throughYear: 2032,
+            holders: Object.fromEntries(
+              originals.map((r) => [
+                r.entitlementId,
+                movements.find((m) => m.entitlementId === r.entitlementId)
+                  ?.toTeam ?? String(entitlements[r.entitlementId].holderTeam),
+              ])
+            ),
+          })
+        : simulationPostTradeBranches(
+            retained,
+            metadata.draftSimulationBranches === 'conditional-2027'
+          );
     return assessDraftReviewConsumption({
       request: { context, outgoing },
       facts: [
@@ -417,11 +457,14 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
           id: `test-stepien:${team}`,
           scope: 'stepien-post-trade-branches',
           outgoing,
-          firstFutureDraftYear: 2026,
-          throughDraftYear: 2032,
+          firstFutureDraftYear: firstYear,
+          throughDraftYear: throughYear,
           laterDrafts: 'outside-qualified-scope',
           finiteScope: {
-            authorityId: QUALIFIED_JUNE5_DRAFT_HORIZON.id,
+            authorityId: window
+              ? 'governed-software-season'
+              : QUALIFIED_JUNE5_DRAFT_HORIZON.id,
+            ...(window ? { simulationWindow: window } : {}),
             explanationSha256: QUALIFIED_JUNE5_DRAFT_HORIZON.explanationSha256,
             calendarSha256: QUALIFIED_JUNE5_DRAFT_HORIZON.calendarSha256,
             completeRelevantObligationCoverage: true,
@@ -456,19 +499,27 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
       ],
       apron: outgoing.map((p) => ({
         context,
-        input: {
-          team: p.originalTeam,
-          triggerSeasonStartYear: p.draftYear - 8,
-          asOf,
-          originalPick: {
-            id: p.id,
-            originalTeam: p.originalTeam,
-            draftYear: p.draftYear,
-            round: 1,
-          },
-          observations: [],
-          regularSeasonEnds: [],
-        },
+        input: apron
+          ? apronInputFromHistory(
+              p.originalTeam,
+              p.draftYear,
+              apron.history,
+              asOf,
+              apron.plan
+            )
+          : {
+              team: p.originalTeam,
+              triggerSeasonStartYear: p.draftYear - 8,
+              asOf,
+              originalPick: {
+                id: p.id,
+                originalTeam: p.originalTeam,
+                draftYear: p.draftYear,
+                round: 1,
+              },
+              observations: [],
+              regularSeasonEnds: [],
+            },
       })),
     });
   });
@@ -485,7 +536,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     payloadSnapshot: mutationSnapshotText(args.payload),
     stateDigest,
     stateSnapshot: mutationSnapshotText(state),
-    asOfDate: '2026-06-05',
+    asOfDate: String(metadata.asOfDate),
     releaseId: catalogue.release.foundation.release.id,
     releaseSha256: catalogue.release.payloadSha256,
     documentSnapshots,

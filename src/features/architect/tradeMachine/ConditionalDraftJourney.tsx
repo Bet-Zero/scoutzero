@@ -3,6 +3,10 @@ import { doc, getDoc } from 'firebase/firestore';
 import { ARCHITECT_WORLDS_COLLECTION } from '@/constants/collections';
 import { loadConditionalWorld } from '../utils/draftReview/conditionalWorld';
 import { activeConditionalStage } from '../utils/draftReview/conditionalProgram';
+import {
+  apronInputFromHistory,
+  apronRestrictionText,
+} from '../utils/draftReview/apronSimulation';
 import { db, isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
 
 /** Existing Trade Machine, protected saved-world scope only. */
@@ -27,7 +31,7 @@ export function ConditionalDraftJourney({
     let cancelled = false;
     void getDoc(doc(db, ARCHITECT_WORLDS_COLLECTION, worldId))
       .then((metadata) =>
-        ['protection-programs', 'swap-program'].includes(
+        ['protection-programs', 'swap-program', 'apron-lifecycle'].includes(
           metadata.data()?.draftSimulationBranches
         )
           ? loadConditionalWorld(worldId)
@@ -98,18 +102,62 @@ export function ConditionalDraftJourney({
   }
   return (
     <section
-      aria-label={state.swap ? 'Swap pool' : 'Conditional draft obligations'}
+      aria-label={
+        state.apron
+          ? 'Second-apron freeze'
+          : state.swap
+            ? 'Swap pool'
+            : 'Conditional draft obligations'
+      }
       className="p-3 border border-cockpit-edge rounded-lg text-sm my-2"
     >
       <h3>
-        {state.swap
-          ? 'First-round swap pool'
-          : 'Conditional first-round obligations'}
+        {state.apron
+          ? 'Second-apron first-round restriction'
+          : state.swap
+            ? 'First-round swap pool'
+            : 'Conditional first-round obligations'}
       </h3>
-      <p>
-        Draft positions entered here are governed test assumptions, not NBA
-        results.
-      </p>
+      {state.apron && (
+        <div data-testid="apron-lifecycle-summary">
+          {(state.metadata.draftSimulationTeams as string[]).map((team) => {
+            const input = apronInputFromHistory(
+              team,
+              2033,
+              state.apron!.history,
+              `${String(state.metadata.asOfDate)}T12:00:00-04:00`,
+              state.apron!.plan
+            );
+            const held = Object.values(state.entitlements).find(
+              (e) => e.underlyingPickId === input.originalPick.id
+            );
+            return (
+              <p key={team}>
+                {team} 2033 first · held by{' '}
+                {String(held?.holderTeam ?? 'unknown')}:{' '}
+                {apronRestrictionText(input)}
+              </p>
+            );
+          })}
+          <p>
+            Only the 2025–26 observation can currently be saved. The four
+            following seasons remain pending; release and penalty eligibility
+            are unfinished. Final draft placement requires separate governing
+            information.
+          </p>
+          <p>
+            Governed software scenario, not authenticated NBA facts. Trading
+            still requires ownership, a dated trading window, Stepien and
+            financial checks.
+          </p>
+        </div>
+      )}
+      {!state.apron && (
+        <p>
+          Draft positions entered here are governed test assumptions, not NBA
+          results.
+        </p>
+      )}
       {state.swap && (
         <>
           <p>

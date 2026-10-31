@@ -82,6 +82,7 @@ export interface Stage3ComparisonScope {
 
 export interface Stage3ComparisonViewModel {
   draftAssetDelta?: {
+    restrictions?: string[];
     additions: import('./deriveDraftAssetDelta').DraftAssetDeltaEntry[];
     removals: import('./deriveDraftAssetDelta').DraftAssetDeltaEntry[];
   } | null;

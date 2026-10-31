@@ -20,6 +20,7 @@ import {
   REAL_DRAFT_SCREENSHOTS,
   RETAINED_SIMULATION_SCREENSHOTS,
   CONDITIONAL_LIFECYCLE_SCREENSHOTS,
+  APRON_FREEZE_SCREENSHOTS,
   resolveProofIdentity,
   runTradeReceiptProof,
   verifyGovernedScreenshotArtifacts,
@@ -486,9 +487,29 @@ test('retained simulation rejects mixed or incomplete proof inputs before launch
     await assert.rejects(runTradeReceiptProof(false, false, false, true), /private catalogue and actual cloud baseline/);
     await assert.rejects(runTradeReceiptProof(false, false, false, false, true), /private catalogue and actual cloud baseline/);
     await assert.rejects(runTradeReceiptProof(true, false, false, false, true), /separate proof scope/);
+    await assert.rejects(runTradeReceiptProof(false, false, false, false, false, false, true), /private catalogue and actual cloud baseline/);
   } finally {
     if (previous !== undefined) process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE = previous;
   }
+});
+
+test('Apron freeze certification requires saved restriction, refused and permitted trades and both teams after reload', () => {
+  assert.deepEqual(
+    APRON_FREEZE_SCREENSHOTS.map((s) => s.key),
+    ['frozen', 'equality'].flatMap((mode) => [
+      ...[
+        'before',
+        'frozen',
+        'permitted',
+        ...(mode === 'frozen' ? ['blocked'] : []),
+      ].map((state) => `${mode}-${state}`),
+      ...['TOR', 'MIA'].flatMap((team) =>
+        ['history', 'compare', 'reload', 'assets'].map(
+          (state) => `${mode}-${team}-${state}`
+        )
+      ),
+    ])
+  );
 });
 
 test('conditional lifecycle certification requires both outcomes and both teams after reload', () => {

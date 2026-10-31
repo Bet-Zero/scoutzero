@@ -1,3 +1,7 @@
+import {
+  apronRestrictionText,
+  readApronSeasonReceipt,
+} from '../utils/draftReview/apronSimulation';
 import { DraftSwapReceiptZ } from '@/schemas/draftSwapReceipt';
 import { resolveSwapProgram } from '../utils/draftReview/swapProgram';
 import {
@@ -27,10 +31,40 @@ export function deriveDraftAssetDelta(
   >();
   const seen = new Set<string>();
   let count = 0;
+  const restrictions: string[] = [];
+  let apronHistory: string | null = null;
   let seasonSeen = false;
   let conditionalState: string | null = null;
   for (const row of rows) {
     if (row.mutationType === 'seasonAdvance') {
+      const apron = readApronSeasonReceipt(
+        Reflect.get(row.raw?.metadata ?? {}, 'apronSeasonReceipt')
+      );
+      if (apron) {
+        const r = apron;
+        if (
+          r.worldId !== worldId ||
+          r.operationId !== row.raw?.operationId ||
+          r.catalogueSha256 !== REAL_DRAFT_REVIEW_PIN.payloadSha256 ||
+          seen.has(r.operationId) ||
+          (apronHistory !== null &&
+            apronHistory !== canonicalStringify(r.before)) ||
+          r.after.length !== r.before.length + 1 ||
+          canonicalStringify(r.after.slice(0, -1)) !==
+            canonicalStringify(r.before)
+        )
+          return null;
+        apronHistory = canonicalStringify(r.after);
+        seen.add(r.operationId);
+        const input = r.restrictions.find((r) => r.team === teamCode);
+        if (!input) return null;
+        restrictions.splice(
+          0,
+          restrictions.length,
+          `${teamCode} 2033 first: ${apronRestrictionText(input)}`
+        );
+        continue;
+      }
       const conditional = ConditionalSeasonReceiptZ.safeParse(
         Reflect.get(row.raw?.metadata ?? {}, 'conditionalSeasonReceipt')
       );
@@ -175,7 +209,7 @@ export function deriveDraftAssetDelta(
       });
     }
   }
-  if (!count) return null;
+  if (!count && !restrictions.length) return null;
   const additions: DraftAssetDeltaEntry[] = [],
     removals: DraftAssetDeltaEntry[] = [];
   for (const [entitlementId, p] of movements) {
@@ -183,5 +217,9 @@ export function deriveDraftAssetDelta(
     if (p.to === teamCode && p.from !== teamCode) additions.push(entry);
     if (p.from === teamCode && p.to !== teamCode) removals.push(entry);
   }
-  return { additions, removals };
+  return {
+    additions,
+    removals,
+    ...(restrictions.length ? { restrictions } : {}),
+  };
 }

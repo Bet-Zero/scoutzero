@@ -1,3 +1,4 @@
+import { DraftSimulationWindowZ } from './draftSimulationWindow';
 import {
   DraftConditionalProgramZ,
   DraftConditionalProgramsZ,
@@ -105,6 +106,7 @@ export const DraftStepienFactZ = z
     finiteScope: z
       .object({
         authorityId: DraftEvidenceIdZ,
+        simulationWindow: DraftSimulationWindowZ.optional(),
         explanationSha256: DraftEvidenceHashZ,
         calendarSha256: DraftEvidenceHashZ,
         completeRelevantObligationCoverage: z.boolean(),

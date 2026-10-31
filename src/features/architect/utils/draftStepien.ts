@@ -12,7 +12,10 @@ import {
   selectDraftOperationFact,
   type DraftRuleDecision,
 } from '@/features/architect/utils/draftPickInputResolver';
-import { QUALIFIED_JUNE5_DRAFT_HORIZON } from '@/features/architect/utils/draftReview/horizon';
+import {
+  QUALIFIED_JUNE5_DRAFT_HORIZON,
+  reviewSimulationDraftWindow,
+} from '@/features/architect/utils/draftReview/horizon';
 
 type Pair = {
   branchId: string;
@@ -62,7 +65,25 @@ export function evaluateSuppliedDraftStepien(
     );
   const at = Date.parse(request.context.asOf);
   const scope = fact.finiteScope;
-  const authority = QUALIFIED_JUNE5_DRAFT_HORIZON;
+  const simulated = scope?.simulationWindow;
+  const authority = simulated
+    ? {
+        ...QUALIFIED_JUNE5_DRAFT_HORIZON,
+        id: 'governed-software-season',
+        asOf: simulated.asOf,
+        firstFutureDraftYear: simulated.firstYear,
+        lastTradableDraftYear: simulated.lastYear,
+      }
+    : QUALIFIED_JUNE5_DRAFT_HORIZON;
+  if (
+    simulated &&
+    reviewSimulationDraftWindow(
+      simulated,
+      request.context.asOf,
+      request.outgoing.map((p) => p.draftYear)
+    ).status === 'needs-input'
+  )
+    return blocked('complete-governed-software-calendar-required');
   const finite = fact.laterDrafts === 'outside-qualified-scope';
   if (
     finite &&
