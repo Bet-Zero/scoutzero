@@ -10,6 +10,19 @@ import { startSeasonProofHarness } from './seasonProofHarness';
 const PROOF_SPEC = 'tests/e2e/architect-trade-receipt-proof.spec.ts';
 const PROOF_PORTS = [5173, 8082, 9099, 5001, 4001, 4400, 4500, 9150];
 
+export const SWAP_LIFECYCLE_SCREENSHOTS = ['exercise', 'waive']
+  .flatMap((choice) => [
+    ...['proposal', 'export', 'draft', 'season'].map(
+      (state) => `${choice}-${state}`
+    ),
+    ...['WAS', 'MIA', 'PHX', 'ORL'].flatMap((team) =>
+      ['history', 'compare', 'reload', 'assets'].map(
+        (state) => `${choice}-${team}-${state}`
+      )
+    ),
+  ])
+  .map((key) => ({ key, filename: `${key}-1280x720.png` }));
+
 export const CONDITIONAL_LIFECYCLE_SCREENSHOTS = [
   ...[10, 11].flatMap((position) => [
     `${position}-proposal`,
@@ -298,9 +311,13 @@ export async function runTradeReceiptProof(
   draftSeason = false,
   realDraft = false,
   retainedSimulation = false,
-  conditionalLifecycle = false
+  conditionalLifecycle = false,
+  swapLifecycle = false
 ): Promise<number> {
-  retainedSimulation = retainedSimulation || conditionalLifecycle;
+  if (swapLifecycle && conditionalLifecycle)
+    throw new Error('Select one lifecycle proof.');
+  retainedSimulation =
+    retainedSimulation || conditionalLifecycle || swapLifecycle;
   if (retainedSimulation && (realDraft || draftReview || draftSeason))
     throw new Error('Governed retained simulation is a separate proof scope.');
   if (
@@ -337,30 +354,34 @@ export async function runTradeReceiptProof(
       }
     : null;
   const identity = resolveProofIdentity();
-  const definitions = conditionalLifecycle
-    ? CONDITIONAL_LIFECYCLE_SCREENSHOTS
-    : retainedSimulation
-      ? RETAINED_SIMULATION_SCREENSHOTS
-      : realDraft
-        ? REAL_DRAFT_SCREENSHOTS
-        : draftReview
-          ? DRAFT_REVIEW_SCREENSHOTS
-          : GOVERNED_TRADE_RECEIPT_SCREENSHOTS;
+  const definitions = swapLifecycle
+    ? SWAP_LIFECYCLE_SCREENSHOTS
+    : conditionalLifecycle
+      ? CONDITIONAL_LIFECYCLE_SCREENSHOTS
+      : retainedSimulation
+        ? RETAINED_SIMULATION_SCREENSHOTS
+        : realDraft
+          ? REAL_DRAFT_SCREENSHOTS
+          : draftReview
+            ? DRAFT_REVIEW_SCREENSHOTS
+            : GOVERNED_TRADE_RECEIPT_SCREENSHOTS;
   const artifactDir = path.join(
     identity.repoRoot,
     'tmp',
     'browser-proofs',
-    conditionalLifecycle
-      ? 'conditional-draft-lifecycle'
-      : retainedSimulation
-        ? 'retained-draft-simulation'
-        : realDraft
-          ? 'real-draft-review'
-          : draftSeason
-            ? 'draft-season'
-            : draftReview
-              ? 'draft-review'
-              : 'trade-receipt',
+    swapLifecycle
+      ? 'swap-draft-lifecycle'
+      : conditionalLifecycle
+        ? 'conditional-draft-lifecycle'
+        : retainedSimulation
+          ? 'retained-draft-simulation'
+          : realDraft
+            ? 'real-draft-review'
+            : draftSeason
+              ? 'draft-season'
+              : draftReview
+                ? 'draft-review'
+                : 'trade-receipt',
     `${identity.candidate}-${timestampSlug()}`
   );
   const testResultsDir = path.join(artifactDir, 'test-results');
@@ -430,17 +451,19 @@ export async function runTradeReceiptProof(
 
   const commandArgs = [
     'test',
-    conditionalLifecycle
-      ? 'tests/e2e/architect-conditional-draft.spec.ts'
-      : retainedSimulation
-        ? 'tests/e2e/architect-retained-draft-simulation.spec.ts'
-        : realDraft
-          ? 'tests/e2e/architect-real-draft-review-proof.spec.ts'
-          : draftSeason
-            ? 'tests/e2e/architect-draft-season-proof.spec.ts'
-            : draftReview
-              ? 'tests/e2e/architect-draft-review-proof.spec.ts'
-              : PROOF_SPEC,
+    swapLifecycle
+      ? 'tests/e2e/architect-swap-draft.spec.ts'
+      : conditionalLifecycle
+        ? 'tests/e2e/architect-conditional-draft.spec.ts'
+        : retainedSimulation
+          ? 'tests/e2e/architect-retained-draft-simulation.spec.ts'
+          : realDraft
+            ? 'tests/e2e/architect-real-draft-review-proof.spec.ts'
+            : draftSeason
+              ? 'tests/e2e/architect-draft-season-proof.spec.ts'
+              : draftReview
+                ? 'tests/e2e/architect-draft-review-proof.spec.ts'
+                : PROOF_SPEC,
     '--workers=1',
     '--project=chromium',
     '--reporter=line,html',
@@ -522,7 +545,9 @@ export async function runTradeReceiptProof(
         },
         stdio: 'inherit',
         ...(draftReview || retainedSimulation
-          ? { timeout: conditionalLifecycle ? 1200000 : 240000 }
+          ? {
+              timeout: conditionalLifecycle || swapLifecycle ? 1200000 : 240000,
+            }
           : {}),
       });
       const remainingPorts = draftSeason ? [] : await waitForCleanTeardown();
@@ -622,23 +647,25 @@ export async function runTradeReceiptProof(
 
   const manifest = {
     schemaVersion: 1,
-    proof: conditionalLifecycle
-      ? 'Conditional first-round trade and saved-world lifecycle (governed test assumptions; production disabled)'
-      : retainedSimulation
-        ? 'Retained pick identities with governed test assumptions (not verified NBA legality; production disabled)'
-        : realDraft
-          ? 'Real retained first-round evidence in Trade Machine (read-only; production Apply disabled)'
-          : draftSeason
-            ? 'Synthetic freeze season record and subsequent first-round trade (production disabled)'
-            : draftReview
-              ? 'Synthetic first-round review mutation (production disabled)'
-              : 'Architect Trade Machine / Trade Receipt',
+    proof: swapLifecycle
+      ? 'Ordered swap-right trade and saved-world allocation (governed test assumptions; production disabled)'
+      : conditionalLifecycle
+        ? 'Conditional first-round trade and saved-world lifecycle (governed test assumptions; production disabled)'
+        : retainedSimulation
+          ? 'Retained pick identities with governed test assumptions (not verified NBA legality; production disabled)'
+          : realDraft
+            ? 'Real retained first-round evidence in Trade Machine (read-only; production Apply disabled)'
+            : draftSeason
+              ? 'Synthetic freeze season record and subsequent first-round trade (production disabled)'
+              : draftReview
+                ? 'Synthetic first-round review mutation (production disabled)'
+                : 'Architect Trade Machine / Trade Receipt',
     base: identity.originMain,
     candidate: identity.candidate,
     upstream: identity.upstream,
     mergeBase: identity.mergeBase,
     viewport: { width: 1280, height: 720 },
-    command: `npm run architect:proof:trade-receipt${conditionalLifecycle ? ' -- --conditional-lifecycle' : retainedSimulation ? ' -- --retained-simulation' : realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
+    command: `npm run architect:proof:trade-receipt${swapLifecycle ? ' -- --swap-lifecycle' : conditionalLifecycle ? ' -- --conditional-lifecycle' : retainedSimulation ? ' -- --retained-simulation' : realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
     privateInputHashes,
     simulationInputHashes,
     playwright: commandArgs,
@@ -723,7 +750,8 @@ if (isMainModule()) {
     process.argv.includes('--draft-season'),
     process.argv.includes('--real-draft'),
     process.argv.includes('--retained-simulation'),
-    process.argv.includes('--conditional-lifecycle')
+    process.argv.includes('--conditional-lifecycle'),
+    process.argv.includes('--swap-lifecycle')
   )
     .then((code) => {
       process.exitCode = code;

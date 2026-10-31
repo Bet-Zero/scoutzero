@@ -11,6 +11,8 @@ const TradePreviewModal = ({
   previewAuthority,
   snapshotValidationDetails,
   yearKey,
+  simulationNotice,
+  swapProgram,
 }: TradePreviewModalProps) => {
   const exportRef = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0.6);
@@ -56,6 +58,8 @@ const TradePreviewModal = ({
           previewAuthority={previewAuthority}
           snapshotValidationDetails={snapshotValidationDetails}
           yearKey={yearKey}
+          simulationNotice={simulationNotice}
+          swapProgram={swapProgram}
         />
       </div>
       <div
@@ -86,6 +90,8 @@ const TradePreviewModal = ({
               previewAuthority={previewAuthority}
               snapshotValidationDetails={snapshotValidationDetails}
               yearKey={yearKey}
+              simulationNotice={simulationNotice}
+              swapProgram={swapProgram}
             />
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-30">
               <button

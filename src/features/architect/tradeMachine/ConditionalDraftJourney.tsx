@@ -15,17 +15,21 @@ export function ConditionalDraftJourney({
     ReturnType<typeof loadConditionalWorld>
   > | null>(null);
   const [positions, setPositions] = useState<Record<string, number>>({});
+  const [elections, setElections] = useState<Record<string, boolean>>({});
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     setState(null);
     setPositions({});
+    setElections({});
     setError('');
     if (!worldId || !isSyntheticDraftReviewEnvironment()) return;
     let cancelled = false;
     void getDoc(doc(db, ARCHITECT_WORLDS_COLLECTION, worldId))
       .then((metadata) =>
-        metadata.data()?.draftSimulationBranches === 'protection-programs'
+        ['protection-programs', 'swap-program'].includes(
+          metadata.data()?.draftSimulationBranches
+        )
           ? loadConditionalWorld(worldId)
           : null
       )
@@ -54,6 +58,11 @@ export function ConditionalDraftJourney({
   const due = state.programs.filter(
     (p) => activeConditionalStage(p)?.year === draftYear
   );
+  const swapDue =
+    state.swap && !state.swap.result && state.swap.year === draftYear;
+  const dueTeams = swapDue
+    ? state.swap!.slots.map((s) => s.originalTeam)
+    : [...new Set(due.map((p) => p.originalTeam))];
   async function advance(draft: boolean) {
     if (!worldId || !state || busy) return;
     setBusy(true);
@@ -66,6 +75,7 @@ export function ConditionalDraftJourney({
           expectedRevision: state.revision,
           draftYear,
           positions,
+          elections,
         });
       else {
         const result = await manager.advanceSeasonInWorld(worldId, {
@@ -88,14 +98,88 @@ export function ConditionalDraftJourney({
   }
   return (
     <section
-      aria-label="Conditional draft obligations"
+      aria-label={state.swap ? 'Swap pool' : 'Conditional draft obligations'}
       className="p-3 border border-cockpit-edge rounded-lg text-sm my-2"
     >
-      <h3>Conditional first-round obligations</h3>
+      <h3>
+        {state.swap
+          ? 'First-round swap pool'
+          : 'Conditional first-round obligations'}
+      </h3>
       <p>
         Draft positions entered here are governed test assumptions, not NBA
         results.
       </p>
+      {state.swap && (
+        <>
+          <p>
+            {state.swap.result
+              ? 'Swap rights resolved — underlying selections allocated below.'
+              : 'The option is separate from its return selection. Claims resolve in the listed order.'}
+          </p>
+          {state.swap.steps.map((step, index) => {
+            const slot = state.swap!.slots.find(
+              (s) => s.entitlementId === step.controllerId
+            )!;
+            const holder = String(state.entitlements[step.rightId].holderTeam);
+            return (
+              <div key={step.rightId}>
+                <p>
+                  {index + 1}. {holder}:{' '}
+                  {step.comparator === 'best_of' ? 'More' : 'Less'} favorable
+                  selection from{' '}
+                  {step.poolIds
+                    .map(
+                      (id) =>
+                        state.swap!.slots.find((s) => s.entitlementId === id)!
+                          .originalTeam
+                    )
+                    .join(' / ')}
+                  ; return {slot.originalTeam} {state.swap!.year} first
+                </p>
+                {swapDue && (
+                  <label>
+                    {holder} {slot.originalTeam} swap choice
+                    <select
+                      aria-label={`${holder} ${slot.originalTeam} swap choice`}
+                      value={
+                        elections[step.rightId] === undefined
+                          ? ''
+                          : elections[step.rightId]
+                            ? 'exercise'
+                            : 'waive'
+                      }
+                      onChange={(e) =>
+                        setElections((previous) => {
+                          const next = { ...previous };
+                          if (!e.target.value) delete next[step.rightId];
+                          else
+                            next[step.rightId] = e.target.value === 'exercise';
+                          return next;
+                        })
+                      }
+                      className="ml-2 bg-cockpit-raised border border-cockpit-edge rounded"
+                    >
+                      <option value="">Choose…</option>
+                      <option value="exercise">Exercise</option>
+                      <option value="waive">Waive</option>
+                    </select>
+                  </label>
+                )}
+              </div>
+            );
+          })}
+          {state.swap.slots.map((slot) => (
+            <p key={slot.entitlementId}>
+              {slot.originalTeam} {state.swap!.year} first: held by{' '}
+              {String(state.entitlements[slot.entitlementId].holderTeam)}
+              {state.swap!.result
+                ? ` at pick ${state.swap!.result.positions[slot.originalTeam]}`
+                : ''}
+            </p>
+          ))}
+        </>
+      )}
       {state.programs.map((program) => {
         const active = activeConditionalStage(program);
         return (
@@ -127,7 +211,7 @@ export function ConditionalDraftJourney({
           </div>
         );
       })}
-      {[...new Set(due.map((p) => p.originalTeam))].map((team) => (
+      {dueTeams.map((team) => (
         <label key={team} className="mr-3">
           {team} draft position
           <input
@@ -146,7 +230,7 @@ export function ConditionalDraftJourney({
           />
         </label>
       ))}
-      {due.length > 0 ? (
+      {due.length > 0 || swapDue ? (
         <button
           className="px-3 py-1 ml-2 rounded border border-cockpit-edge disabled:opacity-50"
           disabled={busy}

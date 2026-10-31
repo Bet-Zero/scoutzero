@@ -122,6 +122,7 @@ export async function conditionalDraft(
     expectedRevision: number;
     draftYear: number;
     positions: Record<string, number>;
+    elections?: Record<string, boolean>;
   }
 ) {
   return page.evaluate(

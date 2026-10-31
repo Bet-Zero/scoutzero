@@ -1,3 +1,4 @@
+import { DraftSwapProgramZ } from './draftSwapProgram';
 import { DraftConditionalProgramsZ } from './draftConditionalProgram';
 /** Synthetic review fixture authority. Never a production asset contract. */
 import { z } from 'zod';
@@ -49,8 +50,10 @@ export const DraftSimulationAssumptionsZ = z
       'unconditional',
       'conditional-2027',
       'protection-programs',
+      'swap-program',
     ]),
     programs: DraftConditionalProgramsZ.optional(),
+    swapProgram: DraftSwapProgramZ.optional(),
     ownership: z.literal('stipulated-for-software-tests'),
     otherHoldings: z.literal('unknown-not-empty'),
   })
@@ -74,6 +77,7 @@ export const DraftReviewMutationReceiptZ = z
         z
           .object({
             entitlementId: DraftEvidenceIdZ,
+            assetKind: z.enum(['swap_right', 'pick_ownership']).optional(),
             originalTeam: z.string().regex(/^[A-Z]{3}$/),
             year: z.number().int(),
             round: z.union([z.literal(1), z.literal(2)]),
@@ -86,6 +90,46 @@ export const DraftReviewMutationReceiptZ = z
   })
   .strict()
   .superRefine((receipt, ctx) => {
+    const swap = receipt.assumptions?.swapProgram;
+    const options = receipt.movements.filter(
+      (m) => m.assetKind === 'swap_right'
+    );
+    if (
+      swap ||
+      options.length ||
+      receipt.assumptions?.branchMode === 'swap-program'
+    ) {
+      const controller = swap?.slots.find(
+        (s) =>
+          s.entitlementId ===
+          swap.steps.find((s) => s.rightId === swap.tradedRightId)?.controllerId
+      );
+      const move = options[0];
+      if (
+        !swap ||
+        !controller ||
+        swap.result ||
+        receipt.scope !== 'governed-simulation-only' ||
+        receipt.assumptions?.branchMode !== 'swap-program' ||
+        receipt.assumptions.programs?.length ||
+        options.length !== 1 ||
+        !move ||
+        move.entitlementId !== swap.tradedRightId ||
+        move.originalTeam !== controller.originalTeam ||
+        move.year !== swap.year ||
+        move.round !== 1 ||
+        move.fromTeam !== swap.grantorTeam ||
+        move.toTeam !== controller.holderTeam ||
+        receipt.movements.some((m) =>
+          swap.slots.some((s) => s.entitlementId === m.entitlementId)
+        )
+      )
+        ctx.addIssue({
+          code: 'custom',
+          message:
+            'The traded swap option must match its separate governed program; underlying selections do not move with it.',
+        });
+    }
     if (
       receipt.scope === 'governed-simulation-only' &&
       (!receipt.assumptionSha256 || !receipt.assumptions)

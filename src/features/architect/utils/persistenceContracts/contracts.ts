@@ -421,6 +421,7 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist =
     'entitlementsTraded', // Object with team-keyed entitlement changes
     'draftReviewReceipt', // Committed synthetic review movement, never permission
     'conditionalSeasonReceipt',
+    'swapDraftReceipt', // Complete protected ordered-pool outcome
     'conditionalDraftReceipt', // Explicit test-world protection outcomes
     'draftReviewSeasonReceipt', // Local synthetic historical result, never permission
     'salaryMatchingPaths', // Exact elected salary-path evaluations by team

@@ -1,3 +1,5 @@
+import { prepareSwapDraft } from './draftReview/swapDraft';
+import { DraftSwapReceiptZ } from '@/schemas/draftSwapReceipt';
 import { DraftConditionalReceiptZ } from '@/schemas/draftConditionalReceipt';
 /** Draft transition owned by Season Manager; no source writes or production authority. */
 import { doc, runTransaction, serverTimestamp } from 'firebase/firestore';
@@ -30,6 +32,7 @@ export async function advanceConditionalDraftInWorld(
     expectedRevision: number;
     draftYear: number;
     positions: Record<string, number>;
+    elections?: Record<string, boolean>;
   }
 ) {
   if (
@@ -62,20 +65,29 @@ export async function advanceConditionalDraftInWorld(
     throw new Error(
       'The draft date must advance this test world without changing seasons.'
     );
+  const swap = state.swap
+    ? prepareSwapDraft(
+        state,
+        request.positions,
+        request.elections ?? {},
+        request.draftYear
+      )
+    : null;
   const due = programs.filter(
     (p) => activeConditionalStage(p)?.year === request.draftYear
   );
   if (
-    !due.length ||
-    programs.some(
-      (p) => (activeConditionalStage(p)?.year ?? Infinity) < request.draftYear
-    ) ||
-    mutationSnapshotText(Object.keys(request.positions).sort()) !==
-      mutationSnapshotText(
-        [...new Set(due.map((p) => p.originalTeam))].sort()
+    !swap &&
+    (!due.length ||
+      programs.some(
+        (p) => (activeConditionalStage(p)?.year ?? Infinity) < request.draftYear
       ) ||
-    new Set(Object.values(request.positions)).size !==
-      Object.values(request.positions).length
+      mutationSnapshotText(Object.keys(request.positions).sort()) !==
+        mutationSnapshotText(
+          [...new Set(due.map((p) => p.originalTeam))].sort()
+        ) ||
+      new Set(Object.values(request.positions)).size !==
+        Object.values(request.positions).length)
   )
     throw new Error(
       'Supply exactly the due draft positions without duplicates or skipped obligations.'
@@ -85,9 +97,9 @@ export async function advanceConditionalDraftInWorld(
       ? resolveConditionalDraft(p, request.positions[p.originalTeam])
       : p
   );
-  const nextEntitlements = structuredClone(entitlements);
-  const lines: string[] = [];
-  const affected = new Set<string>();
+  const nextEntitlements = swap?.entitlements ?? structuredClone(entitlements);
+  const lines: string[] = swap?.lines ?? [];
+  const affected = swap?.affected ?? new Set<string>();
   for (const program of due) {
     const stage = activeConditionalStage(program)!;
     const beneficiary = String(entitlements[stage.entitlementId].holderTeam);
@@ -130,9 +142,12 @@ export async function advanceConditionalDraftInWorld(
       },
     ])
   );
+  const programMetadata = swap
+    ? { draftSwapProgram: swap.updated }
+    : { draftConditionalPrograms: updated };
   assertSimulationInventory(
     state.catalogue,
-    { ...metadata, asOfDate: date, draftConditionalPrograms: updated },
+    { ...metadata, asOfDate: date, ...programMetadata },
     nextTeams,
     nextEntitlements,
     state.sources
@@ -153,7 +168,7 @@ export async function advanceConditionalDraftInWorld(
       },
     ];
   });
-  const eventId = `conditionalDraft__${request.draftYear}`;
+  const eventId = `${swap ? 'swapDraft' : 'conditionalDraft'}__${request.draftYear}`;
   const eventRef = doc(
     state.root,
     ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
@@ -173,20 +188,38 @@ export async function advanceConditionalDraftInWorld(
     teamCodes: [...affected],
     metadata: {
       type: 'draftConveyance',
-      summary: lines.filter((_, index) => index % 2 === 0).join(' · '),
+      summary: swap
+        ? `${request.draftYear} swap pool resolved; selections allocated to every participant`
+        : lines.filter((_, index) => index % 2 === 0).join(' · '),
       picksTraded: lines,
-      conditionalDraftReceipt: DraftConditionalReceiptZ.parse({
-        worldId,
-        operationId: request.operationId,
-        movements,
-        scope: 'governed-simulation-only',
-        catalogueSha256: metadata.draftSimulationCatalogue,
-        before: programs,
-        after: updated,
-        positions: request.positions,
-        draftYear: request.draftYear,
-        date,
-      }),
+      ...(swap
+        ? {
+            swapDraftReceipt: DraftSwapReceiptZ.parse({
+              worldId,
+              operationId: request.operationId,
+              scope: 'governed-simulation-only',
+              catalogueSha256: metadata.draftSimulationCatalogue,
+              before: state.swap,
+              after: swap.updated,
+              movements: swap.movements,
+              draftYear: request.draftYear,
+              date,
+            }),
+          }
+        : {
+            conditionalDraftReceipt: DraftConditionalReceiptZ.parse({
+              worldId,
+              operationId: request.operationId,
+              movements,
+              scope: 'governed-simulation-only',
+              catalogueSha256: metadata.draftSimulationCatalogue,
+              before: programs,
+              after: updated,
+              positions: request.positions,
+              draftYear: request.draftYear,
+              date,
+            }),
+          }),
     },
   };
   assertPersistableOrThrow({
@@ -226,7 +259,7 @@ export async function advanceConditionalDraftInWorld(
         );
     transaction.set(eventRef, event);
     transaction.update(state.root, {
-      draftConditionalPrograms: updated,
+      ...programMetadata,
       draftInventoryRevision: state.revision + 1,
       actionCount: Number(metadata.actionCount ?? 0) + 1,
       asOfDate: date,
@@ -234,5 +267,5 @@ export async function advanceConditionalDraftInWorld(
       lastModifiedTeams: [...affected],
     });
   });
-  return { eventId, programs: updated };
+  return { eventId, programs: updated, swap: swap?.updated };
 }

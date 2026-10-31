@@ -43,9 +43,13 @@ export type DraftReviewCapabilityRecord = Readonly<{
   releaseSha256: string;
   documentSnapshots: Readonly<Record<string, string | null>>;
   firstsByTeam: Readonly<Record<string, readonly string[]>>;
-  reviews: readonly DraftReviewConsumption[];
+  reviews: readonly (
+    | DraftReviewConsumption
+    | import('./swapTradeReview').SwapTradeReview
+  )[];
   movements: readonly Readonly<{
     entitlementId: string;
+    assetKind?: 'swap_right' | 'pick_ownership';
     originalTeam: string;
     year: number;
     round: number;
@@ -378,6 +382,7 @@ export async function prepareSyntheticDraftReview(
   const firstsByTeam: Record<string, string[]> = {};
   const movements: {
     entitlementId: string;
+    assetKind?: 'swap_right' | 'pick_ownership';
     originalTeam: string;
     year: number;
     round: number;

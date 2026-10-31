@@ -115,6 +115,40 @@ export function evaluateSuppliedDraftStepien(
   if (invalidBranchStructure(fact))
     return blocked('conflicting-or-wrong-year-branch-inventory');
   const programs = fact.conditionalPrograms ?? [];
+  const swap = fact.swapProgram;
+  if (swap) {
+    if (
+      programs.length ||
+      swap.result ||
+      swap.year < fact.firstFutureDraftYear ||
+      swap.year > fact.throughDraftYear
+    )
+      return blocked('unsupported-swap-stepien-scope');
+    const poolIds = new Set(
+      swap.slots.map((s) => `${s.originalTeam}_${swap.year}_1st`)
+    );
+    const heldCount = swap.slots.filter(
+      (s) => s.holderTeam === request.context.team
+    ).length;
+    const allocations = fact.branches.map((branch) =>
+      (branch.drafts.find((d) => d.draftYear === swap.year)?.retained ?? [])
+        .filter((p) => poolIds.has(p.id))
+        .map((p) => p.id)
+        .sort()
+    );
+    // All k-of-n allocations are a conservative superset of the permitted
+    // priority/election results. Each has exactly the owner's slot count.
+    let combinations = 1;
+    for (let i = 0; i < heldCount; i++)
+      combinations = (combinations * (poolIds.size - i)) / (i + 1);
+    if (
+      allocations.some((ids) => ids.length !== heldCount) ||
+      new Set(allocations.map((ids) => JSON.stringify(ids))).size !==
+        Math.round(combinations) ||
+      allocations.length !== Math.round(combinations)
+    )
+      return blocked('complete-swap-allocation-coverage-required');
+  }
   let expectedOutcomes: Record<string, number>[] = [{}];
   for (const program of programs) {
     if (!activeConditionalStage(program))
@@ -171,6 +205,15 @@ export function evaluateSuppliedDraftStepien(
       branch.drafts.some((d) =>
         d.retained.some((p) => {
           if (!requestedIds.includes(p.id)) return false;
+          if (
+            swap?.slots.some(
+              (s) =>
+                s.holderTeam === request.context.team &&
+                s.originalTeam === p.originalTeam &&
+                p.draftYear === swap.year
+            )
+          )
+            return false;
           return !programs.some((program) => {
             const stage = activeConditionalStage(program);
             return (

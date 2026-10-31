@@ -65,6 +65,8 @@ export interface TradePreviewSummaryLike {
 }
 
 export interface TradePreviewModalProps {
+  swapProgram?: import('@/schemas/draftSwapProgram').DraftSwapProgram;
+  simulationNotice?: string;
   open?: boolean;
   onClose?: () => void;
   teams?: TradePreviewTeamLike[];
@@ -74,6 +76,8 @@ export interface TradePreviewModalProps {
 }
 
 export interface TradeExportCaptureProps {
+  swapProgram?: import('@/schemas/draftSwapProgram').DraftSwapProgram;
+  simulationNotice?: string;
   teams?: TradePreviewTeamLike[];
   previewAuthority?: PreviewAuthorityLike | null;
   snapshotValidationDetails?: SnapshotValidationDetailsLike | null;

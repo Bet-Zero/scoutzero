@@ -366,7 +366,8 @@ export async function prepareSeasonAdvance(args: {
               worldId,
               operationId,
               catalogueSha256: worldMeta.draftSimulationCatalogue,
-              programs: worldMeta.draftConditionalPrograms,
+              programs: worldMeta.draftConditionalPrograms ?? [],
+              ...(worldMeta.draftSwapProgram ? {swapProgram: worldMeta.draftSwapProgram} : {}),
               entitlementState: 'preserved-exactly',
             }),
           }

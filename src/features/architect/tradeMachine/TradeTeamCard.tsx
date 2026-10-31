@@ -49,6 +49,7 @@ import {
 } from './TradeTeamCard.helpers';
 
 export const TradeTeamCard = ({
+  showPooledEntitlements = false,
   team,
   sends,
   // Phase 14.2: Removed picks prop - draft assets are entitlements-only
@@ -717,7 +718,7 @@ export const TradeTeamCard = ({
         <EntitlementPicksList
           entitlements={team.entitlements || []}
           teamId={team.id || team.teamCode || ''}
-          showPooled={false}
+          showPooled={showPooledEntitlements}
           // Phase 11.1: Pass toggle handler and selected entitlement IDs
           onToggleEntitlement={
             onToggleEntitlement
