@@ -436,13 +436,19 @@ test('swap review and resolution reject incomplete, competing, ownership, Stepie
     priorPoolTeam = (await poolTeam.get()).data()!;
   await poolTeam.update({ testConcurrentChange: 'pool-participant' });
   const changedPool = await conditionalState(worldId);
-  expect((await applyConditionalTrade(page)).success).toBe(false);
+  expect(await applyConditionalTrade(page)).toMatchObject({
+    success: false,
+    error: expect.stringMatching(/state.*changed|stale|concurrent/i),
+  });
   expect(await conditionalState(worldId)).toEqual(changedPool);
   await poolTeam.set(priorPoolTeam);
   expect(await prepare()).toMatchObject({ status: 'prepared', legal: true });
   await root.update({ draftInventoryRevision: 1 });
   const stale = await conditionalState(worldId);
-  expect((await applyConditionalTrade(page)).success).toBe(false);
+  expect(await applyConditionalTrade(page)).toMatchObject({
+    success: false,
+    error: expect.stringMatching(/state.*changed|stale|concurrent/i),
+  });
   expect(await conditionalState(worldId)).toEqual(stale);
   expect(await prepare()).toMatchObject({ status: 'prepared', legal: true });
   expect((await applyConditionalTrade(page)).success).toBe(true);
