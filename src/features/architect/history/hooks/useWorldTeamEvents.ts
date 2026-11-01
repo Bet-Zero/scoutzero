@@ -12,6 +12,7 @@ import {
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
+import { requireAdmittedOverlappingEvent } from '@/features/architect/utils/draftReview/overlappingTerms';
 import {
   ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
   ARCHITECT_WORLDS_COLLECTION,
@@ -485,6 +486,7 @@ export async function fetchWorldTeamEvents({
     paginationState: paginationState || buildInitialPaginationState(),
   });
   const page = materializeNextPage(nextState, pageSize);
+  await Promise.all(page.events.map(requireAdmittedOverlappingEvent));
 
   return {
     events: page.events,

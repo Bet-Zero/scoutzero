@@ -468,6 +468,23 @@ test('overlapping draft fails closed and commits once under stale/concurrent/rep
     /matching committed receipt/
   );
   await event.set(eventData);
+  const unsupported = {
+    ...program,
+    conveyance: { ...program.conveyance, protectedThrough: 1 },
+  };
+  await event.update({ 'metadata.swapDraftReceipt.before': unsupported });
+  await expect(
+    page.evaluate(
+      async ({ worldId, teamCode }) => {
+        const module =
+          '/src/features/architect/history/hooks/useWorldTeamEvents.ts';
+        const { fetchWorldTeamEvents } = await import(module);
+        return fetchWorldTeamEvents({ worldId, teamCode, limit: 50 });
+      },
+      { worldId, teamCode: program.slots[0].originalTeam }
+    )
+  ).rejects.toThrow(/reviewed source-linked program/);
+  await event.set(eventData);
   expect((await root.collection('events').get()).size).toBe(1);
   expect(await sourceState()).toEqual(sourceBefore);
   receipt('negative-proof', {
@@ -481,6 +498,7 @@ test('overlapping draft fails closed and commits once under stale/concurrent/rep
     duplicateNoWrite: true,
     concurrentOnce: true,
     missingReceiptRejected: true,
+    unadmittedHistoryCompareRejected: true,
     sourceUnchanged: true,
   });
 });

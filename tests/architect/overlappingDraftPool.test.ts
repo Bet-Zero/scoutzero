@@ -14,7 +14,10 @@ import { deriveDraftAssetDelta } from '@/features/architect/comparison/deriveDra
 import { REAL_DRAFT_REVIEW_PIN } from '@/features/architect/utils/draftPickRealReviewPin';
 import type { SimulationCatalogue } from '@/features/architect/utils/draftReview/simulationInventory';
 import type { ComparisonEventRow } from '@/features/architect/comparison/deriveComparisonViewModel';
-import { requireAdmittedOverlappingTerms } from '@/features/architect/utils/draftReview/overlappingTerms';
+import {
+  requireAdmittedOverlappingTerms,
+  requireAdmittedOverlappingEvent,
+} from '@/features/architect/utils/draftReview/overlappingTerms';
 
 // Independent software analogue: A receives C conditionally, then B and D
 // options, E consumes B's residual, F has priority over G, then E takes G's residual.
@@ -190,6 +193,14 @@ describe('overlapping native claims', () => {
     await expect(requireAdmittedOverlappingTerms(program)).rejects.toThrow(
       /reviewed source-linked program/
     );
+    await expect(
+      requireAdmittedOverlappingEvent({
+        metadata: { swapDraftReceipt: { before: program, after: program } },
+      })
+    ).rejects.toThrow(/reviewed source-linked program/);
+    await expect(
+      requireAdmittedOverlappingEvent({ metadata: { summary: 'Other event' } })
+    ).resolves.toBeUndefined();
   });
   it('matches an independent aggregate oracle for 720 protected and 5040 conveyed orders', () => {
     let count = 0;

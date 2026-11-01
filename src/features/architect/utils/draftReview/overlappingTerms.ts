@@ -22,3 +22,21 @@ export async function requireAdmittedOverlappingTerms(input: unknown) {
     );
   return program;
 }
+
+/** Stored events are not source authority by themselves. History and Compare
+ * must authenticate this family's terms before displaying an allocation.
+ */
+export async function requireAdmittedOverlappingEvent(
+  event: Record<string, unknown>
+) {
+  const metadata = event.metadata;
+  if (!metadata || typeof metadata !== 'object') return;
+  const receipt = Reflect.get(metadata, 'swapDraftReceipt');
+  if (!receipt || typeof receipt !== 'object') return;
+  const before = Reflect.get(receipt, 'before');
+  const after = Reflect.get(receipt, 'after');
+  if ([before, after].some((p) => p?.kind === 'native-overlapping-pool-v1')) {
+    await requireAdmittedOverlappingTerms(before);
+    await requireAdmittedOverlappingTerms(after);
+  }
+}
