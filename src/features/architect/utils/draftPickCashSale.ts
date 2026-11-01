@@ -33,10 +33,16 @@ export function evaluateDraftPickCashSale(
   )
     return blocked('wrong-exchange-parties-or-outgoing-rights');
   if (
-    !fact.onlyListedFirstsOutgoing ||
     !fact.allReturnConsiderationListed ||
     !fact.unconditionalDirectExchange ||
     fact.unresolvedDependencyIds.length
+  )
+    return blocked('complete-established-direct-exchange-required');
+  const players = fact.outgoingPlayerContracts ?? [];
+  if (
+    fact.onlyListedFirstsOutgoing === players.length > 0 ||
+    new Set(players.map((p) => p.playerId)).size !== players.length ||
+    new Set(players.map((p) => p.contractId)).size !== players.length
   )
     return blocked('complete-established-direct-exchange-required');
   const items = fact.consideration;
@@ -47,6 +53,8 @@ export function evaluateDraftPickCashSale(
   const cash = items.filter(
     (i) => i.kind === 'cash' || i.kind === 'cash-equivalent'
   );
+  if (players.length && cash.length)
+    return blocked('mixed-consideration-sale-characterization-unimplemented');
   if (!cash.length)
     return draftRuleDecision(
       leaf,

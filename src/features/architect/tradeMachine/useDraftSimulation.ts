@@ -8,9 +8,8 @@ import {
 } from '@/features/architect/utils/draftReview/simulationInventory';
 import type { previewRetainedDraftSimulation } from '@/features/architect/utils/draftReview/simulationPreview';
 import { mutationSnapshotText } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
-import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
+import { buildTradeExecutionHandoff } from '@/features/architect/GMDashboard/hooks/useArchitectActions.tradeHandoff';
 import type { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
-import type { ArchitectMutationPayload } from '@/features/architect/utils/mutationPipeline';
 
 type Result = Awaited<ReturnType<typeof previewRetainedDraftSimulation>>;
 export function useDraftSimulation(args: {
@@ -80,32 +79,11 @@ export function useDraftSimulation(args: {
     setState(null);
     try {
       const data = args.exportTrade();
-      // Exact pick-only action-layer handoff, including all listed consideration.
-      // Any player selection is rejected, never silently dropped.
-      if (data.some((t) => (Reflect.get(t, 'outgoingPlayers') ?? []).length))
-        throw new Error('This simulation supports pick-only exchanges.');
-      const payload: ArchitectMutationPayload = {
-        teams: data.map((t) => ({
-          teamCode:
-            resolveTeamCode(String(t.teamId ?? '')) || String(t.teamId ?? ''),
-          sends: [],
-          picksOut: [],
-          outgoingEntitlements: t.outgoingEntitlements ?? [],
-          entitlementsOut: t.outgoingEntitlements ?? [],
-          salaryMatchingElection: t.salaryMatchingElection ?? null,
-          cashSent: t.cashSent ?? 0,
-          cashToTeamId: t.cashToTeamId
-            ? resolveTeamCode(t.cashToTeamId) || t.cashToTeamId
-            : null,
-        })),
-        ...(args.asOfDate ? { asOfDate: args.asOfDate } : {}),
-        tradeCtx: {
-          source: 'tradeMachine',
-          worldId: args.worldId,
-          yearKey: args.yearKey,
-          ...(args.asOfDate ? { asOfDate: args.asOfDate } : {}),
-        },
-      };
+      const { payload } = buildTradeExecutionHandoff(data, {
+        currentYear: args.yearKey,
+        worldId: args.worldId,
+        worldAsOfDate: args.asOfDate,
+      });
       const { previewRetainedDraftSimulation } = await import(
         '@/features/architect/utils/draftReview/simulationPreview'
       );

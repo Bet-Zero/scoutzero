@@ -30,14 +30,17 @@ export function useSwapAssets(
         ).data();
         if (cancelled) return;
         if (
-          !['swap-program', 'apron-lifecycle'].includes(
+          !['unconditional', 'swap-program', 'apron-lifecycle'].includes(
             String(metadata?.draftSimulationBranches)
           )
         ) {
           setValue({ key, summary: null });
           return;
         }
-        const state = await loadConditionalWorld(worldId);
+        const state = await loadConditionalWorld(worldId, {
+          allowUnconditionalInventory:
+            metadata?.draftSimulationBranches === 'unconditional',
+        });
         if (!cancelled)
           setValue({ key, summary: swapAssets(state, team, year) });
       } catch {

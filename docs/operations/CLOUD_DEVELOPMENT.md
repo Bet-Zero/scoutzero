@@ -151,6 +151,24 @@ reasons. Historical inspection or copied review metadata cannot authorize a
 trade. Preserve legacy/source identity conflicts rather than altering source
 records to make a saved-world fixture load.
 
+Use `npm run architect:proof:trade-receipt -- --mixed-trades` for a protected
+bilateral exchange combining ordinary players and unconditional original firsts.
+Supply the same retained catalogue and full cloud baseline variables below; this
+mode does not use the missing overlapping-pool input. It copies existing roster
+and pinned Contract-release data into new isolated worlds, adds explicitly
+governed software financial assumptions, and drives Validate/Apply, both teams'
+reloaded Roster/Full Cap/History/Compare/Team Plan/Assets, and a subsequent pick
+exchange. It preserves all retained identities and unresolved mappings.
+
+This bounded lane accepts at most one unchanged ordinary standard Contract per
+team with exact governed Standard TPE salaries. Existing whole-trade legality,
+including advisory standard-roster size and blocking two-way limits, remains in
+force. Cash, aggregation, sign-and-trade, unqualified rights, bonus-dependent
+salaries and other matching paths remain outside this milestone. These software
+scenarios do not establish NBA transaction legality or production permission.
+Run the diagnostic spec before freezing; the wrapper then certifies the clean,
+pushed candidate and retains private evidence locally.
+
 Use `npm run architect:proof:trade-receipt -- --native-pool` for the governed
 2029 three-original ranked-claim journey. Supply the retained catalogue in
 `SCOUTZERO_DRAFT_REVIEW_RELEASE`, the active full cloud snapshot in

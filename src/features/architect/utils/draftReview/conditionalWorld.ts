@@ -29,20 +29,29 @@ import { conditionalPrograms } from './conditionalProgram';
 import { requireDraftInventoryRevision } from './inventoryFence';
 import { mutationSnapshotText } from '../mutationPipeline.snapshotDigest';
 
-export async function loadConditionalWorld(worldId: string) {
+export async function loadConditionalWorld(
+  worldId: string,
+  options: { allowUnconditionalInventory?: boolean } = {}
+) {
   if (!isSyntheticDraftReviewEnvironment() || !auth.currentUser)
     throw new Error(
       'Conditional lifecycle requires the protected test environment.'
     );
   const root = doc(db, ARCHITECT_WORLDS_COLLECTION, worldId);
   const metadata = (await getDoc(root)).data();
+  // Only the read-only assets projection opts in. Lifecycle callers retain
+  // their existing conditional-program admission requirement.
+  const inventoryOnly =
+    options.allowUnconditionalInventory === true &&
+    metadata?.draftSimulationBranches === 'unconditional';
   if (
     !metadata ||
     metadata.createdBy !== auth.currentUser.uid ||
     metadata.parentWorldId != null ||
-    !['protection-programs', 'swap-program', 'apron-lifecycle'].includes(
-      metadata.draftSimulationBranches
-    )
+    (!inventoryOnly &&
+      !['protection-programs', 'swap-program', 'apron-lifecycle'].includes(
+        metadata.draftSimulationBranches
+      ))
   )
     throw new Error('An owned conditional test world is required.');
   const revision = requireDraftInventoryRevision(metadata);
@@ -111,7 +120,7 @@ export async function loadConditionalWorld(worldId: string) {
     metadata.draftSimulationBranches === 'apron-lifecycle'
       ? readApronSimulation({ ...metadata, draftApronPlan: plan })
       : null;
-  if (!programs.length && !swap && !apron)
+  if (!inventoryOnly && !programs.length && !swap && !apron)
     throw new Error('Complete protection programs are required.');
   const snapshots = {
     [root.path]: mutationSnapshotText(metadata),

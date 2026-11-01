@@ -78,6 +78,43 @@ describe('protected draft review UI handoff', () => {
       },
     });
   });
+  it('keeps ordinary players and pick routing together, then invalidates on a player change', async () => {
+    const contract = {
+      salariesByYear: [{ season: '2025-26', salary: 8_000_000 }],
+    };
+    const exportTrade = () => [
+      {
+        ...args.exportTrade()[0],
+        teamId: 'bulls',
+        outgoingPlayers: [{ id: 'tre_jones', tradeTo: 'magic', contract }],
+        outgoingEntitlements: [{ id: 'original-first', toTeamId: 'ORL' }],
+      },
+      { ...args.exportTrade()[0], teamId: 'magic' },
+    ];
+    const props = { ...args, exportTrade };
+    const { result, rerender } = renderHook((p) => useDraftSimulation(p), {
+      initialProps: props,
+    });
+    await waitFor(() => expect(result.current.enabled).toBe(true));
+    await act(async () => {
+      await result.current.validate();
+    });
+    expect(mock.preview.mock.calls[0][0].payload.teams[0]).toMatchObject({
+      teamCode: 'CHI',
+      sends: [
+        {
+          playerId: 'tre_jones',
+          receivingTeamId: 'ORL',
+          receivingTeamIndex: 1,
+          contract,
+        },
+      ],
+      outgoingEntitlements: [{ id: 'original-first', toTeamId: 'ORL' }],
+    });
+    expect(result.current.handoff).toBeDefined();
+    rerender({ ...props, teams: [{ selection: 'different-player' }] });
+    expect(result.current.handoff).toBeUndefined();
+  });
   it('discards a late response even after selection A -> B -> A', async () => {
     let finish!: (value: unknown) => void;
     mock.preview.mockImplementationOnce(
