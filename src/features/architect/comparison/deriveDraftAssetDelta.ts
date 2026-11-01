@@ -2,6 +2,8 @@ import {
   nativeSelectionHolders,
   requireSameNativeValue,
 } from '../utils/draftReview/nativeTrading';
+import { conditionalRightSuffix } from '../utils/draftReview/conditionalProgram';
+import { DraftConditionalProgramsZ } from '@/schemas/draftConditionalProgram';
 import type { DraftClaimProgram } from '@/schemas/draftSwapProgram';
 import type { NativeSelectionTransfer } from '@/schemas/draftNativeTrading';
 import {
@@ -338,8 +340,19 @@ export function deriveDraftAssetDelta(
   if (!count && !restrictions.length) return null;
   const additions: DraftAssetDeltaEntry[] = [],
     removals: DraftAssetDeltaEntry[] = [];
+  const programs =
+    conditionalState === null
+      ? null
+      : DraftConditionalProgramsZ.safeParse(JSON.parse(conditionalState));
   for (const [entitlementId, p] of movements) {
-    const entry = { entitlementId, displayName: p.displayName };
+    const entry = {
+      entitlementId,
+      displayName:
+        p.displayName +
+        (programs?.success
+          ? conditionalRightSuffix(programs.data, entitlementId)
+          : ''),
+    };
     if (p.to === teamCode && p.from !== teamCode) additions.push(entry);
     if (p.from === teamCode && p.to !== teamCode) removals.push(entry);
   }

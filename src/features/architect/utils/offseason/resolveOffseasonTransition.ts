@@ -16,7 +16,7 @@ import {
   toSeasonCode,
 } from '@/features/architect/utils/seasonFormat';
 import { getContractYearSlice } from '@/features/architect/utils/contractUtils';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
+import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
 import {
   getCapRulesForYear,
   type CapProjectionOverrides,
@@ -550,8 +550,9 @@ export function resolveOffseasonTransition({
   // =========================================================================
   // 8) Recompute totals
   // =========================================================================
-  nextTeam.totals = computeTeamCapTotals(nextTeam, toYear, {
+  nextTeam.totals = createCanonicalTeamTotalsSnapshot(nextTeam, toYear, {
     capProjections: context?.capProjections,
+    asOfDate: context?.effectiveAt,
   });
 
   // =========================================================================

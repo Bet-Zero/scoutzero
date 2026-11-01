@@ -1,0 +1,249 @@
+import { expect, type Page } from '@playwright/test';
+import { createHash } from 'node:crypto';
+import { getReviewAdminDb, readReviewUserId } from './architectReviewWorld';
+import { CONDITIONAL_PLAYERS } from '../fixtures/mixedConditionalWorld';
+
+export async function completeConditionalState(worldId: string) {
+  const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
+  const children = await Promise.all(
+    [
+      'teams',
+      'entitlements',
+      'events',
+      'seasonHistory',
+      'seasonTransitions',
+      'draftSeasonInputs',
+      'contractBaselines',
+    ].map(async (name) => ({
+      name,
+      docs: (await root.collection(name).get()).docs.map((d) => ({
+        id: d.id,
+        data: d.data(),
+      })),
+    }))
+  );
+  const players = await Promise.all(
+    children
+      .find((c) => c.name === 'teams')!
+      .docs.map(async (t) => ({
+        team: t.id,
+        docs: (
+          await root.collection('teams').doc(t.id).collection('players').get()
+        ).docs.map((d) => ({ id: d.id, data: d.data() })),
+      }))
+  );
+  return { metadata: (await root.get()).data()!, children, players };
+}
+export async function conditionalStateDigest(worldId: string) {
+  const canonical = (value: unknown): unknown =>
+    Array.isArray(value)
+      ? value.map(canonical)
+      : value !== null && typeof value === 'object'
+        ? Object.fromEntries(
+            Object.entries(value)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([key, entry]) => [key, canonical(entry)])
+          )
+        : value;
+  return createHash('sha256')
+    .update(JSON.stringify(canonical(await completeConditionalState(worldId))))
+    .digest('hex');
+}
+export async function conditionalLogin(page: Page) {
+  await page.goto('/gm/CHI?season=2026');
+  await expect
+    .poll(() => readReviewUserId(page), { timeout: 30000 })
+    .not.toBe('');
+  return readReviewUserId(page);
+}
+export async function openConditionalTrade(page: Page) {
+  if (new URL(page.url()).searchParams.get('room') !== 'trade')
+    await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
+  const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
+  await expect(
+    dialog.getByRole('region', { name: 'Conditional draft obligations' })
+  ).toBeVisible({ timeout: 30000 });
+  return dialog;
+}
+export async function selectMixedConditionalTrade(
+  page: Page,
+  worldId: string,
+  pickId: string
+) {
+  const dialog = await openConditionalTrade(page);
+  const picker = dialog
+    .locator('label', { hasText: /^Select Team$/ })
+    .locator('xpath=following-sibling::select[1]');
+  if (!(await picker.count()))
+    await dialog.getByRole('button', { name: /^Add Team$/ }).click();
+  await picker.first().selectOption('hornets');
+  for (const [i, team] of (['CHI', 'CHA'] as const).entries()) {
+    const card = dialog.getByTestId(`trade-team-card-${team}`);
+    const p = CONDITIONAL_PLAYERS[team];
+    const row = card
+      .getByAltText(new RegExp(`^${p.name}$`, 'i'))
+      .first()
+      .locator('xpath=ancestor::div[.//button[normalize-space()="•••"]][1]');
+    await row.getByRole('button', { name: '•••' }).click();
+    await page
+      .getByRole('button', {
+        name: new RegExp(
+          `^Trade to ${i ? 'Chicago Bulls' : 'Charlotte Hornets'}$`,
+          'i'
+        ),
+      })
+      .click();
+    await card
+      .getByLabel('Elected path', { exact: true })
+      .selectOption('STANDARD_TPE');
+    const total = (
+      await getReviewAdminDb()
+        .doc(`architect_worlds/${worldId}/teams/${team}`)
+        .get()
+    ).data()!.totals.apronTeamSalary;
+    await card
+      .getByLabel('Post-assignment Apron Team Salary', { exact: true })
+      .fill(String(total + 0));
+    await card
+      .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
+      .fill(String(p.matching));
+  }
+  const card = dialog.getByTestId('trade-team-card-CHI');
+  await card.getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i }).click();
+  await card
+    .locator(`[data-entitlement-id="${pickId}"]`)
+    .getByRole('button', { name: '•••' })
+    .click();
+  await page
+    .getByRole('button', { name: /^Trade to Charlotte Hornets$/i })
+    .click();
+  await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+  await expect(
+    dialog.getByRole('button', { name: /^Apply Trade$/i })
+  ).toBeEnabled({ timeout: 30000 });
+  return dialog;
+}
+
+export async function prepareMixedConditional(
+  page: Page,
+  uid: string,
+  worldId: string,
+  ids: string[],
+  mode = ''
+) {
+  const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
+  const teams = await Promise.all(
+    ['CHI', 'CHA'].map(
+      async (t) => (await root.collection('teams').doc(t).get()).data()!
+    )
+  );
+  const picks = await Promise.all(
+    ids.map(async (id) => ({
+      id,
+      ...(await root.collection('entitlements').doc(id).get()).data(),
+    }))
+  );
+  return page.evaluate(
+    async ({ uid, worldId, picks, teams, mode, ordinary }) => {
+      const termsPath =
+        '/src/features/architect/utils/entitlements/entitlementTerms.ts';
+      const previewPath =
+        '/src/features/architect/utils/draftReview/simulationPreview.ts';
+      const { decorateEntitlementForTrade } = await import(termsPath);
+      const { previewRetainedDraftSimulation } = await import(previewPath);
+      const args: any = {
+        userId: uid,
+        worldId,
+        mutationType: 'executeTrade',
+        seasonId: '2025-26',
+        operationId: `mixed_conditional_${crypto.randomUUID()}`,
+        payload: {
+          asOfDate: '2026-06-05',
+          tradeCtx: {
+            source: 'tradeMachine',
+            worldId,
+            yearKey: 2026,
+            asOfDate: '2026-06-05',
+          },
+          teams: ['CHI', 'CHA'].map((teamCode, i) => {
+            const p = ordinary[i];
+            const outgoing = picks
+              .filter((p: any) => p.holderTeam === teamCode)
+              .map((p) => ({
+                ...decorateEntitlementForTrade(p),
+                id: p.id,
+                entitlementId: p.id,
+                toTeamId: i ? 'CHI' : 'CHA',
+              }));
+            return {
+              teamCode,
+              sends: [{ id: p.id, playerId: p.id, tradeTo: i ? 'CHI' : 'CHA' }],
+              picksOut: [],
+              outgoingEntitlements: outgoing,
+              entitlementsOut: outgoing,
+              cashSent: 0,
+              cashToTeamId: null,
+              salaryMatchingElection: {
+                version: 1,
+                path: 'STANDARD_TPE',
+                postAssignmentApronTeamSalary:
+                  teams[i].totals.apronTeamSalary + 0,
+                tradedPlayerPreTradeSalaries: { [p.id]: p.matching },
+              },
+            };
+          }),
+        },
+      };
+      if (mode === 'incomplete')
+        args.payload.teams[0].salaryMatchingElection = null;
+      if (mode === 'cash') args.payload.teams[0].cashSent = 1;
+      if (mode === 'forged-terms')
+        args.payload.teams[0].entitlementsOut[0].protectionLadder = [];
+      if (mode === 'forged-contract')
+        args.payload.teams[0].sends[0].contract = { salariesByYear: [] };
+      if (mode === 'incoming')
+        args.payload.teams[1].receives = [{ id: 'unlisted' }];
+      let result;
+      try {
+        result = await previewRetainedDraftSimulation(args);
+      } catch (e) {
+        result = {
+          status: 'error',
+          reason: e instanceof Error ? e.message : String(e),
+        };
+      }
+      Reflect.set(window, '__mixedConditional', { args, result });
+      return result.status === 'prepared'
+        ? {
+            status: result.status,
+            legal: result.preview.legal,
+            details: result.details,
+            reason: result.preview.reason,
+          }
+        : result;
+    },
+    {
+      uid,
+      worldId,
+      picks,
+      teams,
+      mode,
+      ordinary: Object.values(CONDITIONAL_PLAYERS),
+    }
+  );
+}
+export async function applyMixedConditional(page: Page, mode = '') {
+  return page.evaluate(async (mode) => {
+    const modulePath = '/src/features/architect/utils/mutationPipeline.ts';
+    const { applyWorldMutation } = await import(modulePath);
+    const { args, result } = Reflect.get(window, '__mixedConditional');
+    return applyWorldMutation({
+      ...args,
+      ...(mode === 'changed'
+        ? { payload: { ...args.payload, asOfDate: '2026-06-06' } }
+        : {}),
+      draftReviewAuthority:
+        mode === 'forged' ? { ...result.authority } : result.authority,
+    });
+  }, mode);
+}

@@ -1,4 +1,5 @@
 import { DraftReviewMutationReceiptZ } from '@/schemas/draftPickReviewMutation';
+import { DraftConditionalReceiptZ } from '@/schemas/draftConditionalReceipt';
 import { NativeSelectionTransfersZ } from '@/schemas/draftNativeTrading';
 import { nativeTradeDate, requireSameNativeValue } from './nativeTrading';
 import { DraftSwapReceiptZ } from '@/schemas/draftSwapReceipt';
@@ -133,6 +134,48 @@ export async function loadConditionalWorld(
       ].map((d) => [d.ref.path, mutationSnapshotText(d.data())])
     ),
   };
+  // A saved outcome must descend from its committed draft receipt. Merely
+  // inserting a plausible result into world metadata cannot close an obligation.
+  for (const year of [
+    ...new Set(programs.flatMap((p) => p.results.map((r) => r.year))),
+  ].sort()) {
+    const event = await getDoc(
+      doc(
+        root,
+        ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
+        `conditionalDraft__${year}`
+      )
+    );
+    const receipt = DraftConditionalReceiptZ.safeParse(
+      event.data()?.metadata?.conditionalDraftReceipt
+    );
+    const at = (inclusive: boolean) =>
+      programs.map((p) => ({
+        ...p,
+        results: p.results.filter((r) =>
+          inclusive ? r.year <= year : r.year < year
+        ),
+      }));
+    if (
+      !receipt.success ||
+      receipt.data.worldId !== worldId ||
+      receipt.data.operationId !== event.data()?.operationId ||
+      receipt.data.catalogueSha256 !== metadata.draftSimulationCatalogue ||
+      receipt.data.draftYear !== year ||
+      receipt.data.date !==
+        metadata.draftSimulationCalendar?.find(
+          (c: { year: number }) => c.year === year
+        )?.date ||
+      mutationSnapshotText(receipt.data.before) !==
+        mutationSnapshotText(at(false)) ||
+      mutationSnapshotText(receipt.data.after) !==
+        mutationSnapshotText(at(true))
+    )
+      throw new Error(
+        'Saved conditional outcomes require their matching committed draft receipts.'
+      );
+    snapshots[event.ref.path] = mutationSnapshotText(event.data());
+  }
   if (apron) {
     if (apron.plan.kind === 'governed-apron-lifecycle-v2') {
       const expected = apron.plan.seasons![apron.history.length];

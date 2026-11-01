@@ -183,7 +183,7 @@ for (const position of [10, 11])
     let room = await tradeRoom(page);
     await expect(
       room.getByRole('region', { name: 'Conditional draft obligations' })
-    ).toContainText('2026 first — top 10 protected; held by MIA');
+    ).toContainText('2026 first — top 10 protected; conditional right held by MIA');
     expect(await page.evaluate(() => performance.timeOrigin)).toBe(
       documentStartedAt
     );

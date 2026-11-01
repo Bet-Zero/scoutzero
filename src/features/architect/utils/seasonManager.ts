@@ -48,6 +48,12 @@ import {
 } from '@/features/architect/utils/worldManager';
 import { resolveWorldLineageIdsFromMetadata } from '@/features/architect/utils/worldManager.readUtils';
 import { prepareSeasonAdvance } from './seasonManager.prepare';
+import {
+  prepareSeasonPlayerOverrides,
+  assertSeasonPlayerOverridesCurrent,
+  writeSeasonPlayerOverrides,
+  confirmSeasonPlayerOverrides,
+} from './seasonManager.playerOverrides';
 import { db, functions } from '@/firebaseConfig';
 import {
   doc,
@@ -326,6 +332,9 @@ export async function advanceSeasonInWorld(
       team,
       ref: worldSeasonHistoryRef(worldId, team.historyRecord.historyId),
     }));
+    const playerOverrides = conditional
+      ? await prepareSeasonPlayerOverrides(worldId, preparedTeams)
+      : [];
 
     await runTransaction(db, async (transaction) => {
       // These consumed source/roster/entitlement documents join the existing
@@ -344,6 +353,7 @@ export async function advanceSeasonInWorld(
       const conditionalReads = await Promise.all(
         conditionalEntries.map(([path]) => transaction.get(doc(db, path)))
       );
+      await assertSeasonPlayerOverridesCurrent(transaction, playerOverrides);
       if (
         conditionalReads.some(
           (s, i) =>
@@ -405,6 +415,7 @@ export async function advanceSeasonInWorld(
           prepared.committedTeam
         );
       }
+      writeSeasonPlayerOverrides(transaction, playerOverrides);
       for (const { team, ref } of historyRefs) {
         transaction.set(ref, team.historyRecord);
       }
@@ -489,6 +500,7 @@ export async function advanceSeasonInWorld(
           );
         }
       });
+      await confirmSeasonPlayerOverrides(playerOverrides);
     } catch (confirmationError) {
       return {
         success: true,

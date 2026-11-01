@@ -169,6 +169,19 @@ scenarios do not establish NBA transaction legality or production permission.
 Run the diagnostic spec before freezing; the wrapper then certifies the clean,
 pushed candidate and retains private evidence locally.
 
+Use `--mixed-conditional` for ordinary players combined with the accepted 2026
+top-10 protection and 2027 unprotected fallback program. The same private
+catalogue and full-baseline variables are required; the missing 2028 input is
+not used. The two threshold journeys use unchanged retained Tre Jones and Tre
+Mann Contracts in the existing 15+3 governed software rosters, with explicitly
+stipulated financial books. They verify both teams after trade, resolution,
+season advancement and reload, including the final fallback conveyance.
+Conditional rights, protected retention and reserved fallback selections are
+shown separately. Every possible supported branch still enters Stepien review.
+Prepared draft inputs and committed resolution receipts are required; forged,
+stale, conflicting, incomplete and duplicate actions remain no-write cases.
+These scenarios establish no NBA starting facts or production permission.
+
 Use `npm run architect:proof:trade-receipt -- --native-pool` for the governed
 2029 three-original ranked-claim journey. Supply the retained catalogue in
 `SCOUTZERO_DRAFT_REVIEW_RELEASE`, the active full cloud snapshot in

@@ -528,4 +528,52 @@ describe('complete protected-selection proposal review', () => {
       'unresolved evidence dependency'
     );
   });
+  it.each(['valid', 'missing', 'operation', 'terms', 'date', 'catalogue'])(
+    'requires matching committed conditional receipts: %s',
+    async (kind) => {
+      const program = installProgram();
+      const after = {
+        ...program,
+        results: [{ year: 2026, position: 11, outcome: 'conveyed' }],
+      };
+      Object.assign(mock.docs.get('architect_worlds/w'), {
+        asOfDate: '2026-06-30',
+        draftSimulationCalendar: [{ year: 2026, date: '2026-06-30' }],
+        draftConditionalPrograms: [after],
+      });
+      const entitlement = mock.docs.get(
+        `architect_worlds/w/entitlements/${id('CHI', 2026)}`
+      );
+      delete entitlement.protectionLadder;
+      const receipt = {
+        scope: 'governed-simulation-only',
+        worldId: 'w',
+        operationId: 'resolved',
+        catalogueSha256: REAL_DRAFT_REVIEW_PIN.payloadSha256,
+        before: [structuredClone(program)],
+        after: [structuredClone(after)],
+        movements: [],
+        positions: { CHI: 11 },
+        draftYear: 2026,
+        date: '2026-06-30',
+      };
+      if (kind === 'operation') receipt.operationId = 'forged';
+      if (kind === 'terms') receipt.before[0].stages[0].protectedThrough = 9;
+      if (kind === 'date') receipt.date = '2026-06-29';
+      if (kind === 'catalogue') receipt.catalogueSha256 = 'a'.repeat(64);
+      if (kind !== 'missing')
+        mock.docs.set('architect_worlds/w/events/conditionalDraft__2026', {
+          operationId: 'resolved',
+          metadata: { conditionalDraftReceipt: receipt },
+        });
+      if (kind === 'valid')
+        expect((await loadConditionalWorld('w')).snapshots).toHaveProperty(
+          'architect_worlds/w/events/conditionalDraft__2026'
+        );
+      else
+        await expect(loadConditionalWorld('w')).rejects.toThrow(
+          /committed draft receipts/
+        );
+    }
+  );
 });

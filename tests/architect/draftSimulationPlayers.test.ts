@@ -92,15 +92,18 @@ function fixture() {
   };
 }
 describe('bounded ordinary player consideration', () => {
-  it('derives the outgoing Contract identity from live saved-world authority', () => {
-    const f = fixture();
-    f.args.payload.teams[0].sends[0].governedTradeSalaryBasis = {
-      contractId: 'caller-forgery',
-    };
-    expect(simulationPlayerMovements(f.args, 'unconditional', f.state)).toEqual(
-      [{ playerId: 'p', contractId: 'c', fromTeam: 'CHI', toTeam: 'TOR' }]
-    );
-  });
+  it.each(['unconditional', 'protection-programs'])(
+    'derives the outgoing Contract identity from live saved-world authority in %s',
+    (branch) => {
+      const f = fixture();
+      f.args.payload.teams[0].sends[0].governedTradeSalaryBasis = {
+        contractId: 'caller-forgery',
+      };
+      expect(simulationPlayerMovements(f.args, branch, f.state)).toEqual([
+        { playerId: 'p', contractId: 'c', fromTeam: 'CHI', toTeam: 'TOR' },
+      ]);
+    }
+  );
   it.each([
     'alias',
     'owner',
@@ -174,15 +177,13 @@ describe('bounded ordinary player consideration', () => {
       simulationPlayerMovements(f.args, 'unconditional', f.state)
     ).toThrow();
   });
-  it.each([
-    'conditional-2027',
-    'protection-programs',
-    'swap-program',
-    'apron-lifecycle',
-  ])('preserves the %s player restriction', (branch) => {
-    const f = fixture();
-    expect(() => simulationPlayerMovements(f.args, branch, f.state)).toThrow(
-      /unconditional/
-    );
-  });
+  it.each(['conditional-2027', 'swap-program', 'apron-lifecycle'])(
+    'preserves the %s player restriction',
+    (branch) => {
+      const f = fixture();
+      expect(() => simulationPlayerMovements(f.args, branch, f.state)).toThrow(
+        /complete protection programs/
+      );
+    }
+  );
 });

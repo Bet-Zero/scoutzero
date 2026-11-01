@@ -136,9 +136,20 @@ export async function conditionalDraft(
       const modulePath = '/src/features/architect/utils/seasonManager.ts';
       const { advanceConditionalDraftInWorld } = await import(modulePath);
       try {
+        const worldPath =
+          '/src/features/architect/utils/draftReview/conditionalWorld.ts';
+        const digestPath =
+          '/src/features/architect/utils/mutationPipeline.snapshotDigest.ts';
+        const { loadConditionalWorld } = await import(worldPath);
+        const { mutationSnapshotDigest } = await import(digestPath);
         return {
           success: true,
-          result: await advanceConditionalDraftInWorld(worldId, request),
+          result: await advanceConditionalDraftInWorld(worldId, {
+            expectedDraftStateDigest: mutationSnapshotDigest(
+              (await loadConditionalWorld(worldId)).snapshots
+            ),
+            ...request,
+          }),
         };
       } catch (e) {
         return {

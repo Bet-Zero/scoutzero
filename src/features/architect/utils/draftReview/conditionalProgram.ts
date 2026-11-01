@@ -12,6 +12,20 @@ export function activeConditionalStage(program: DraftConditionalProgram) {
     : (program.stages[program.results.length] ?? null);
 }
 
+/** Describe the traded right without calling it an already conveyed selection. */
+export function conditionalRightSuffix(
+  programs: DraftConditionalProgram[],
+  id: string
+) {
+  const program = programs.find(
+    (p) => activeConditionalStage(p)?.entitlementId === id
+  );
+  if (!program) return '';
+  const active = activeConditionalStage(program)!;
+  const later = program.stages.slice(program.results.length + 1);
+  return ` — conditional right (${active.protectedThrough ? `top ${active.protectedThrough} protected` : 'unprotected'}${later.length ? `; ${later.map((s) => `${s.year} ${s.protectedThrough ? `top ${s.protectedThrough} protected` : 'unprotected'} fallback`).join(' → ')}` : ''})`;
+}
+
 export function conditionalPrograms(
   input: unknown,
   originals: {

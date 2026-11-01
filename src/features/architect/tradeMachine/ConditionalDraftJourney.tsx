@@ -389,7 +389,7 @@ export function ConditionalDraftJourney({
             <p>
               {program.originalTeam}:{' '}
               {active
-                ? `${active.year} first — ${active.protectedThrough ? `top ${active.protectedThrough} protected` : 'unprotected'}; held by ${state.entitlements[active.entitlementId].holderTeam}`
+                ? `${active.year} first — ${active.protectedThrough ? `top ${active.protectedThrough} protected` : 'unprotected'}; conditional right held by ${state.entitlements[active.entitlementId].holderTeam}`
                 : 'Obligation conveyed'}
             </p>
             {active &&
