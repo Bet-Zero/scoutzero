@@ -1,5 +1,6 @@
 import { resolveDraftClaimProgram } from './swapProgram';
 import { nativePoolLines } from './nativePool';
+import { overlappingPoolLines } from './overlappingPool';
 import type { loadConditionalWorld } from './conditionalWorld';
 export function prepareSwapDraft(
   state: Awaited<ReturnType<typeof loadConditionalWorld>>,
@@ -10,15 +11,16 @@ export function prepareSwapDraft(
   const program = state.swap;
   if (!program || program.year !== year || program.result)
     throw new Error('No unresolved swap pool is due in this draft.');
-  if (program.kind === 'native-ranked-pool-v1') {
+  if (program.kind !== 'ordered-swap-pool-v1') {
     const updated = resolveDraftClaimProgram(program, positions, elections);
-    if (updated.kind !== 'native-ranked-pool-v1')
+    if (updated.kind === 'ordered-swap-pool-v1')
       throw new Error('Native claim kind changed.');
     const entitlements = structuredClone(state.entitlements);
     const affected = new Set([
       ...program.slots.flatMap((s) => [s.originalTeam, s.holderTeam]),
-      program.nativePool.beneficiaryTeam,
-      program.nativePool.residualTeam,
+      ...(program.kind === 'native-ranked-pool-v1'
+        ? [program.nativePool.beneficiaryTeam, program.nativePool.residualTeam]
+        : program.claims.flatMap((c) => [c.holderTeam, c.targetTeam])),
     ]);
     const movements = program.slots.flatMap((s) => {
       const toTeam = updated.result!.allocation[s.entitlementId];
@@ -41,7 +43,10 @@ export function prepareSwapDraft(
       updated,
       entitlements,
       affected,
-      lines: nativePoolLines(updated),
+      lines:
+        updated.kind === 'native-ranked-pool-v1'
+          ? nativePoolLines(updated)
+          : overlappingPoolLines(updated),
       movements,
     };
   }

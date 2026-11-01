@@ -24,6 +24,7 @@ import {
   APRON_MULTISEASON_SCREENSHOTS,
   PENALTY_PLACEMENT_SCREENSHOTS,
   NATIVE_POOL_SCREENSHOTS,
+  OVERLAPPING_POOL_SCREENSHOTS,
   resolveProofIdentity,
   runTradeReceiptProof,
   verifyGovernedScreenshotArtifacts,
@@ -603,6 +604,18 @@ test('native pool proof covers both ownership outcomes and all affected team vie
       for (const view of ['history', 'compare', 'reload', 'assets'])
         assert(
           NATIVE_POOL_SCREENSHOTS.some(
+            (s) => s.key === `${mode}-${index}-${view}`
+          )
+        );
+});
+
+test('overlapping proof requires both protection branches, the exception and all seven teams', () => {
+  assert.equal(OVERLAPPING_POOL_SCREENSHOTS.length, 90);
+  for (const mode of ['protected', 'conveyed', 'exception'])
+    for (const index of [0, 1, 2, 3, 4, 5, 6])
+      for (const view of ['history', 'compare', 'reload', 'assets'])
+        assert(
+          OVERLAPPING_POOL_SCREENSHOTS.some(
             (s) => s.key === `${mode}-${index}-${view}`
           )
         );
