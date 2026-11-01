@@ -1,3 +1,12 @@
+import {
+  NativeDraftLifecycleZ,
+  NativeSelectionTransfersZ,
+} from './draftNativeTrading';
+import { DraftClaimProgramZ } from './draftSwapProgram';
+import {
+  nativeSelectionHolders,
+  nativeTradeDate,
+} from '@/features/architect/utils/draftReview/nativeTrading';
 import { SoftwareRetainedFirstsZ } from './draftApronSimulation';
 import { DraftSimulationWindowZ } from './draftSimulationWindow';
 import { DraftApronHistoryZ } from './draftApronSimulation';
@@ -55,12 +64,22 @@ export const DraftSimulationAssumptionsZ = z
       'protection-programs',
       'swap-program',
       'apron-lifecycle',
+      'native-selections',
     ]),
     programs: DraftConditionalProgramsZ.optional(),
     apronHistory: DraftApronHistoryZ.optional(),
     softwareRetainedFirsts: SoftwareRetainedFirstsZ.optional(),
     tradingWindow: DraftSimulationWindowZ.optional(),
     swapProgram: DraftSwapProgramZ.optional(),
+    nativeTrade: z
+      .object({
+        program: DraftClaimProgramZ,
+        lifecycle: NativeDraftLifecycleZ,
+        resolutionOperationId: DraftEvidenceIdZ,
+        transfers: NativeSelectionTransfersZ,
+      })
+      .strict()
+      .optional(),
     ownership: z.literal('stipulated-for-software-tests'),
     otherHoldings: z.literal('unknown-not-empty'),
   })
@@ -97,6 +116,45 @@ export const DraftReviewMutationReceiptZ = z
   })
   .strict()
   .superRefine((receipt, ctx) => {
+    const native = receipt.assumptions?.nativeTrade;
+    if (native || receipt.assumptions?.branchMode === 'native-selections') {
+      try {
+        if (
+          !native ||
+          receipt.scope !== 'governed-simulation-only' ||
+          receipt.assumptions?.branchMode !== 'native-selections' ||
+          receipt.assumptions.swapProgram ||
+          receipt.assumptions.programs?.length ||
+          native.resolutionOperationId === receipt.operationId ||
+          native.transfers.some(
+            (t) => t.operationId === native.resolutionOperationId
+          )
+        )
+          throw new Error(
+            'Native receipt needs its separate resolved selection lineage.'
+          );
+        nativeTradeDate(
+          native.program,
+          native.lifecycle,
+          native.transfers,
+          receipt.asOfDate
+        );
+        nativeSelectionHolders(native.program, [
+          ...native.transfers,
+          {
+            operationId: receipt.operationId,
+            asOfDate: receipt.asOfDate,
+            movements: receipt.movements,
+          },
+        ]);
+      } catch {
+        ctx.addIssue({
+          code: 'custom',
+          message:
+            'Native selection receipt has invalid chronology, lineage or ownership.',
+        });
+      }
+    }
     const swap = receipt.assumptions?.swapProgram;
     const options = receipt.movements.filter(
       (m) => m.assetKind === 'swap_right'

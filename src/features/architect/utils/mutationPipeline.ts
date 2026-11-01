@@ -579,6 +579,7 @@ export async function applyWorldMutation({
       // collapsed: prepared context -> execution authority -> persist boundary.
       const tradeExecutionAuthorityResult =
         await validateTradeExecutionAuthority({
+          draftReviewAuthority,
           worldId,
           operationId,
           mutationType,

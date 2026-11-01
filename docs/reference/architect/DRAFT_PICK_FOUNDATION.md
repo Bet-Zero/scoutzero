@@ -544,3 +544,51 @@ Private archives remain local unless their separate export gate is authorized.
 Drafts requiring unresolved claims, forfeited/missing selections or a new tie
 procedure, later seasons, factual source closure and production admission remain
 outside this supported outcome.
+
+## Subsequent resolved native-selection trades
+
+The admitted transfer family is the 2029 DAL/HOU/PHX ranked pool. Its governed
+world may bind an explicit pre-draft lifecycle into the original native
+resolution receipt. It supplies the claim-effective date, previous-draft
+completion, next-draft start and retained Stepien witnesses. The configured
+claim-effective date must precede the draft-start date. The whole draft-start
+date is closed: this path cannot trade a consumed selection or turn an old
+at-draft resolution into a retrospective trade. These dates, positions,
+elections and beyond-catalogue witnesses are software assumptions, not qualified
+NBA facts or production first-round Apply authority.
+
+A subsequent bilateral, noncash exchange uses the ordinary Trade Machine
+preview, opaque operation capability, execution authority and atomic saved-world
+writer. Only resolved original selections in the same admitted native family
+are consideration. Original identity and selection position remain fixed. The
+original claim program and allocation receipt remain immutable; subsequent
+trade receipts append the current holder's trajectory. Loading verifies every
+predecessor against the original receipt. No archival representation, unresolved
+right, unrelated future pick, player, cash or new election is made executable.
+
+Financial, roster, ownership, dated Stepien and other applicable trade checks
+remain in the existing path. Complete thirty-team inventory validation checks
+every retained identity and the exact computed team membership. Existing team
+and league claim validators run on complete before/after inventories. Only
+explicitly resolved native representations leave those temporary claim maps.
+An unchanged nonownership representation conflict may remain only when every
+involved record and underlier is unrelated to the native family and retained
+Stepien witnesses. Ownership/protection conflicts, relevant competing claims,
+unavailable checks, new conflicts or changed conflicts always block. The
+original documents remain unchanged, and the commit fence covers the complete
+world inventory, sources, lifecycle, revision and prior receipts.
+
+History retains the original allocation separately from later transactions.
+Compare and Team Plan use current holders while retaining original positions
+and unresolved fallback caveats. Original-team views receive later asset events
+even when that team was not a party to the exchange. The private
+`--native-trades` proof uses the accepted 2029 DAL/HOU/PHX ranked pool, with HOU
+and BKN as the trading teams, and verifies two successive transactions plus
+all four affected teams after full reload. Production admission, draft
+consumption/player draft rights, arbitrary consideration and new claim branches
+remain separate work.
+
+The accepted 2028 overlapping resolver remains unchanged. Its subsequent trades
+and pre-draft resolution admission stay closed pending complete transfer proof
+using the original admitted terms input from the accepted resolution delivery.
+The existing canonical terms pin is not replaced by a reconstruction.

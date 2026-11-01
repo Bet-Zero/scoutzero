@@ -1,3 +1,4 @@
+import { nativeSelectionHolders } from './nativeTrading';
 import {
   DraftClaimProgramZ,
   type DraftClaimProgram,
@@ -101,9 +102,35 @@ export function resolveSwapProgram(
 export function swapProgram(
   input: unknown,
   catalogue: SimulationCatalogue,
-  entitlements: Record<string, Record<string, unknown>>
+  entitlements: Record<string, Record<string, unknown>>,
+  nativeTransfers?: unknown
 ) {
   const parsed = DraftClaimProgramZ.parse(input);
+  if (nativeTransfers !== undefined) {
+    if (parsed.kind === 'ordered-swap-pool-v1' || !parsed.result) {
+      if (!Array.isArray(nativeTransfers) || nativeTransfers.length)
+        throw new Error('Native transfers require a resolved native family.');
+    } else {
+      const holders = nativeSelectionHolders(parsed, nativeTransfers);
+      if (
+        parsed.slots.some(
+          (s) =>
+            entitlements[s.entitlementId]?.holderTeam !==
+            holders[s.entitlementId]
+        )
+      )
+        throw new Error(
+          'Current native ownership differs from its committed transfer history.'
+        );
+      // Existing validation still checks the immutable original allocation.
+      entitlements = { ...entitlements };
+      for (const s of parsed.slots)
+        entitlements[s.entitlementId] = {
+          ...entitlements[s.entitlementId],
+          holderTeam: parsed.result.allocation[s.entitlementId],
+        };
+    }
+  }
   if (parsed.kind === 'native-overlapping-pool-v1') {
     const p = overlappingPoolProgram(parsed, catalogue, entitlements);
     if (

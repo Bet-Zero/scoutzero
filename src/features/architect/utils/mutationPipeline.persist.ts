@@ -1,3 +1,4 @@
+import { nativeFamilyTeams } from './draftReview/nativeTrading';
 /**
  * FILE: src/features/architect/utils/mutationPipeline.persist.ts
  * PURPOSE: PHASE 4 persist function — the only place that writes to Firestore for mutations.
@@ -868,6 +869,19 @@ export async function persistWorldMutation(
       auditContext,
     });
 
+    if (draftReview?.assumptions?.nativeTrade) {
+      // Original/family views must see later ownership changes even if they
+      // were not financial parties. Team update counts remain the actual two.
+      const visibility = [
+        ...new Set([
+          ...nativeFamilyTeams(draftReview.assumptions.nativeTrade.program),
+          ...draftReview.movements.flatMap((m) => [m.fromTeam, m.toTeam]),
+        ]),
+      ];
+      // teamCodes remains the actual counterparties; teamsAffected also feeds original-team views.
+      event.teamsAffected = visibility;
+    }
+
     // Phase 60: Sanitize entire event (defense-in-depth)
     const afterEventSanitize = sanitizeTransientFieldsForPersistence(event);
     // Phase 61: Validate event against persistence contract (test-only enforcement)
@@ -900,6 +914,17 @@ export async function persistWorldMutation(
       const exactMetadata = draftReview.documentSnapshots[metadataRef.path];
       if (!exactMetadata)
         throw new Error('Draft review is missing its world metadata snapshot.');
+      if (draftReview.assumptions?.nativeTrade)
+        Object.assign(worldPatch, {
+          draftNativeTransfers: [
+            ...draftReview.assumptions.nativeTrade.transfers,
+            {
+              operationId: draftReview.operationId,
+              asOfDate: draftReview.asOfDate,
+              movements: draftReview.movements,
+            },
+          ],
+        });
       Object.assign(
         worldPatch,
         {

@@ -1,3 +1,5 @@
+import { NativeDraftLifecycleZ } from './draftNativeTrading';
+import { nativeLifecycle } from '@/features/architect/utils/draftReview/nativeTrading';
 import { z } from 'zod';
 import { DraftClaimProgramZ } from './draftSwapProgram';
 import { DraftReviewMutationReceiptZ } from './draftPickReviewMutation';
@@ -12,6 +14,7 @@ export const DraftSwapReceiptZ = z
     movements: DraftReviewMutationReceiptZ.shape.movements.element.array(),
     draftYear: z.number().int(),
     date: z.string(),
+    nativeLifecycle: NativeDraftLifecycleZ.optional(),
   })
   .strict()
   .superRefine((r, ctx) => {
@@ -29,6 +32,18 @@ export const DraftSwapReceiptZ = z
         JSON.stringify({ ...r.after, result: null })
     )
       return fail();
+    if (r.nativeLifecycle) {
+      try {
+        if (
+          r.before.kind === 'ordered-swap-pool-v1' ||
+          r.nativeLifecycle.claimsEffectiveDate !== r.date
+        )
+          throw new Error('Wrong lifecycle');
+        nativeLifecycle(r.nativeLifecycle, r.draftYear);
+      } catch {
+        return fail();
+      }
+    }
     const expected = r.before.slots.filter(
       (s) => r.after.result!.allocation[s.entitlementId] !== s.holderTeam
     );

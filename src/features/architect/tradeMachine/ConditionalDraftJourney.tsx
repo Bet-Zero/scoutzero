@@ -1,3 +1,4 @@
+import { isNativeSelectionTradeAdmitted } from '../utils/draftReview/nativeTrading';
 import { useEffect, useState } from 'react';
 import { OverlappingDraftChoices } from './OverlappingDraftChoices';
 import { preparePenaltyDraft } from '../utils/draftReview/penaltyDraft';
@@ -353,6 +354,22 @@ export function ConditionalDraftJourney({
                 })
               }
             />
+          )}
+          {state.swap.kind !== 'ordered-swap-pool-v1' && state.swap.result && (
+            <p>
+              {!isNativeSelectionTradeAdmitted(state.swap)
+                ? 'Subsequent trading is not yet available for this native family.'
+                : state.metadata.draftNativeLifecycle &&
+                    state.metadata.asOfDate >=
+                      state.metadata.draftNativeLifecycle.tradingWindow.firstFutureDraftStartsAt.slice(
+                        0,
+                        10
+                      )
+                  ? 'The draft has begun. These selections are no longer available for pre-draft trades.'
+                  : state.metadata.draftNativeLifecycle
+                    ? `Resolved selections may be exchanged before ${state.metadata.draftNativeLifecycle.tradingWindow.firstFutureDraftStartsAt.slice(0, 10)}, subject to trade validation. The original claim result stays in History.`
+                    : 'This draft resolution has no pre-draft trading window. These selections cannot be traded retrospectively.'}
+            </p>
           )}
           {state.swap.slots.map((slot) => (
             <p key={slot.entitlementId}>

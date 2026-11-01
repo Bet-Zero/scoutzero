@@ -7,7 +7,11 @@ import { DraftNativePoolProgramZ } from '@/schemas/draftNativePool';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
 import { registerSoftwareSeasonEnvironment } from '@/features/architect/utils/governedSeason/softwareSeasonEnvironment';
 
-export async function seedNativeDraftPoolWorld(uid: string, worldId: string) {
+export async function seedNativeDraftPoolWorld(
+  uid: string,
+  worldId: string,
+  preDraft = false
+) {
   registerSoftwareSeasonEnvironment(
     () =>
       process.env.PLAYWRIGHT_DRAFT_SIMULATION === 'true' &&
@@ -66,6 +70,35 @@ export async function seedNativeDraftPoolWorld(uid: string, worldId: string) {
     draftConditionalPrograms: [],
     draftSwapProgram: program,
     draftSimulationCalendar: [{ year: 2029, date: '2029-06-30' }],
+    ...(preDraft
+      ? {
+          draftNativeLifecycle: {
+            kind: 'governed-pre-draft-native-selections-v1',
+            claimsEffectiveDate: '2029-06-20',
+            selections: 'unconsumed-before-draft',
+            tradingWindow: {
+              kind: 'governed-test-seven-draft-window',
+              asOf: '2029-06-20T12:00:00Z',
+              previousDraftCompletedAt: '2028-06-30T23:59:59Z',
+              firstFutureDraftStartsAt: '2029-06-30T00:00:00Z',
+              firstYear: 2029,
+              lastYear: 2035,
+            },
+            retainedFirstIds: catalogue.data.records
+              .filter(
+                (r) =>
+                  r.originalPick &&
+                  ['HOU', 'BKN'].includes(r.originalPick.originalTeam) &&
+                  r.originalPick.draftYear >= 2030
+              )
+              .map((r) => r.entitlementId),
+            softwareRetainedFirsts: ['HOU', 'BKN'].flatMap((team) =>
+              [2034, 2035].map((draftYear) => ({ team, draftYear }))
+            ),
+          },
+          draftNativeTransfers: [],
+        }
+      : {}),
   });
   await batch.commit();
   return { catalogue, program };

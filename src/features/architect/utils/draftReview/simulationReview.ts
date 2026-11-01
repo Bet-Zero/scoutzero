@@ -1,3 +1,15 @@
+import { requireNativeSelectionTradeAdmission } from './nativeTrading';
+import { validateNativeTradeInventory } from './nativeTradeInventory';
+import {
+  NativeSelectionTransferZ,
+  NativeSelectionTransfersZ,
+} from '@/schemas/draftNativeTrading';
+import {
+  nativeLifecycle,
+  nativeTradeDate,
+  nativeSelectionHolders,
+  nativeRetainedWitnesses,
+} from './nativeTrading';
 import { loadConditionalWorld } from './conditionalWorld';
 import { apronInputFromHistory } from './apronSimulation';
 import { prepareSwapTradeRecord } from './swapTradeReview';
@@ -51,12 +63,18 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     throw new Error('An exact protected simulation operation is required.');
   const world = doc(db, ARCHITECT_WORLDS_COLLECTION, args.worldId);
   const metadata = (await getDoc(world)).data();
+  const nativeMode =
+    metadata?.draftSimulationBranches === 'swap-program' &&
+    ['native-ranked-pool-v1', 'native-overlapping-pool-v1'].includes(
+      metadata?.draftSwapProgram?.kind
+    );
   if (
     !metadata ||
     metadata.createdBy !== args.userId ||
     metadata.parentWorldId != null ||
     args.seasonId !== metadata.currentSeason ||
-    (metadata.draftSimulationBranches !== 'apron-lifecycle' &&
+    (!nativeMode &&
+      metadata.draftSimulationBranches !== 'apron-lifecycle' &&
       (metadata.currentSeason !== '2025-26' ||
         metadata.asOfDate !== '2026-06-05'))
   )
@@ -110,14 +128,46 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     metadata.draftSimulationBranches === 'apron-lifecycle'
       ? await loadConditionalWorld(args.worldId)
       : null;
+  const nativeWorld = nativeMode
+    ? await loadConditionalWorld(args.worldId)
+    : null;
+  const native = nativeWorld?.swap ?? null;
+  if (native) requireNativeSelectionTradeAdmission(native);
+  const lifecycle = native
+    ? nativeLifecycle(metadata.draftNativeLifecycle, native.year)
+    : null;
+  if (nativeWorld) {
+    for (const [actual, expected, label] of [
+      [nativeWorld.metadata, metadata, 'world'],
+      [nativeWorld.entitlements, entitlements, 'ownership'],
+      [nativeWorld.teams, teams, 'team inventory'],
+    ]) {
+      if (mutationSnapshotText(actual) !== mutationSnapshotText(expected))
+        throw new Error(`Native ${label} changed during preparation.`);
+    }
+    const resolution =
+      nativeWorld.snapshots[`${world.path}/events/swapDraft__${native!.year}`];
+    if (!resolution || JSON.parse(resolution).operationId === args.operationId)
+      throw new Error(
+        'The next trade requires a distinct operation from the original resolution.'
+      );
+  }
   const apron = apronWorld?.apron;
   if (apron && !apron.history.length)
     throw new Error(
       'Advance the season to record its last-game observations before trading this family.'
     );
-  const window = apron
-    ? apron.plan.steps[apron.history.length - 1].tradingWindow
-    : null;
+  const window =
+    native && lifecycle
+      ? nativeTradeDate(
+          native,
+          lifecycle,
+          metadata.draftNativeTransfers ?? [],
+          metadata.asOfDate
+        )
+      : apron
+        ? apron.plan.steps[apron.history.length - 1].tradingWindow
+        : null;
   const firstYear = window?.firstYear ?? 2026;
   const throughYear = window?.lastYear ?? 2032;
   const slots = args.payload.teams ?? [];
@@ -154,6 +204,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
   const asOf = window?.asOf ?? QUALIFIED_JUNE5_DRAFT_HORIZON.asOf;
   const documentSnapshots: Record<string, string | null> = {
     ...apronWorld?.snapshots,
+    ...nativeWorld?.snapshots,
     [world.path]: mutationSnapshotText(metadata),
   };
   for (const d of [...teamSnaps.docs, ...entSnaps.docs])
@@ -169,7 +220,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
       })
     )
   );
-  if (metadata.draftSimulationBranches === 'swap-program') {
+  if (metadata.draftSimulationBranches === 'swap-program' && !nativeMode) {
     for (const [id, source] of Object.entries(sources))
       documentSnapshots[`${ARCHITECT_BASE_ENTITLEMENTS_PATH}/${id}`] =
         mutationSnapshotText(source);
@@ -183,12 +234,18 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
       stateDigest,
     });
   }
-  const originals = simulationOriginals(
-    catalogue,
-    metadata.draftSimulationTeams ?? ['CHI', 'TOR'],
-    apron ? Number(apron.plan.startingSeason.slice(0, 4)) + 8 : 2032
-  );
-  const softwareRetainedFirsts = apron?.plan.softwareRetainedFirsts ?? [];
+  const originals =
+    native && lifecycle
+      ? nativeRetainedWitnesses(native, lifecycle, catalogue, entitlements)
+      : simulationOriginals(
+          catalogue,
+          metadata.draftSimulationTeams ?? ['CHI', 'TOR'],
+          apron ? Number(apron.plan.startingSeason.slice(0, 4)) + 8 : 2032
+        );
+  const softwareRetainedFirsts =
+    lifecycle?.softwareRetainedFirsts ??
+    apron?.plan.softwareRetainedFirsts ??
+    [];
   const catalogueThrough = Math.max(
     ...catalogue.data.records.map((r) => r.originalPick?.draftYear ?? 0)
   );
@@ -216,6 +273,10 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     for (const out of slot.entitlementsOut ?? []) {
       const id = String(out.entitlementId ?? out.id ?? '');
       const row = originals.find((r) => r.entitlementId === id);
+      if (native && !native.slots.some((s) => s.entitlementId === id))
+        throw new Error(
+          'This exchange supports only resolved original selections from the native family.'
+        );
       if (
         !row?.originalPick ||
         (metadata.draftSimulationBranches === 'conditional-2027' &&
@@ -294,10 +355,20 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
         round: 1,
         fromTeam: team,
         toTeam: String(out.toTeamId),
+        ...(native ? { assetKind: 'pick_ownership' as const } : {}),
       });
     }
   }
   if (!movements.length) throw new Error('Select a first-round pick.');
+  if (native)
+    nativeSelectionHolders(native, [
+      ...(metadata.draftNativeTransfers ?? []),
+      {
+        operationId: args.operationId,
+        asOfDate: metadata.asOfDate,
+        movements,
+      },
+    ]);
   if (programs.length || apron) {
     for (const slot of slots) {
       const post = Object.entries(entitlements)
@@ -316,6 +387,21 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
         );
     }
   }
+  if (native && lifecycle && nativeWorld)
+    validateNativeTradeInventory({
+      program: native,
+      lifecycle,
+      history: NativeSelectionTransfersZ.parse(
+        metadata.draftNativeTransfers ?? []
+      ),
+      next: NativeSelectionTransferZ.parse({
+        operationId: args.operationId,
+        asOfDate: metadata.asOfDate,
+        movements,
+      }),
+      teams: nativeWorld.teams,
+      entitlements: nativeWorld.entitlements,
+    });
   const proposalSha256 = (
     await sha256Digest(mutationSnapshotText(args.payload))
   ).slice(7);
@@ -325,7 +411,22 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     proposalSha256,
     stateDigest,
     asOf,
-    branchMode: metadata.draftSimulationBranches,
+    branchMode: native ? 'native-selections' : metadata.draftSimulationBranches,
+    ...(native && lifecycle && nativeWorld
+      ? {
+          nativeTrade: {
+            program: native,
+            lifecycle,
+            transfers: metadata.draftNativeTransfers ?? [],
+            resolutionOperationId: JSON.parse(
+              nativeWorld.snapshots[
+                `${world.path}/events/swapDraft__${native.year}`
+              ]
+            ).operationId,
+          },
+          tradingWindow: window,
+        }
+      : {}),
     ...(programs.length ? { programs } : {}),
     ...(apron && window
       ? {
@@ -390,54 +491,56 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
         );
       })
       .map((r) => r.originalPick!);
-    const branches = apron
-      ? [
-          {
-            id: 'governed-originals',
-            possible: true,
-            unresolvedDependencyIds: [],
-            drafts: Array.from(
-              { length: throughYear - firstYear + 1 },
-              (_, i) => ({
-                draftYear: firstYear + i,
-                inventoryComplete: false,
-                retained: [
-                  ...retained.filter((p) => p.draftYear === firstYear + i),
-                  ...softwareRetainedFirsts
-                    .filter(
-                      (w) => w.team === team && w.draftYear === firstYear + i
-                    )
-                    .map((w) => ({
-                      kind: 'authenticated-original-pick' as const,
-                      id: `${w.team}_${w.draftYear}_1st`,
-                      originalTeam: w.team,
-                      draftYear: w.draftYear,
-                      round: 1 as const,
-                    })),
-                ],
-              })
-            ),
-          },
-        ]
-      : programs.length
-        ? conditionalPostTradeBranches({
-            programs,
-            originals,
-            team,
-            firstYear: 2026,
-            throughYear: 2032,
-            holders: Object.fromEntries(
-              originals.map((r) => [
-                r.entitlementId,
-                movements.find((m) => m.entitlementId === r.entitlementId)
-                  ?.toTeam ?? String(entitlements[r.entitlementId].holderTeam),
-              ])
-            ),
-          })
-        : simulationPostTradeBranches(
-            retained,
-            metadata.draftSimulationBranches === 'conditional-2027'
-          );
+    const branches =
+      apron || native
+        ? [
+            {
+              id: 'governed-originals',
+              possible: true,
+              unresolvedDependencyIds: [],
+              drafts: Array.from(
+                { length: throughYear - firstYear + 1 },
+                (_, i) => ({
+                  draftYear: firstYear + i,
+                  inventoryComplete: false,
+                  retained: [
+                    ...retained.filter((p) => p.draftYear === firstYear + i),
+                    ...softwareRetainedFirsts
+                      .filter(
+                        (w) => w.team === team && w.draftYear === firstYear + i
+                      )
+                      .map((w) => ({
+                        kind: 'authenticated-original-pick' as const,
+                        id: `${w.team}_${w.draftYear}_1st`,
+                        originalTeam: w.team,
+                        draftYear: w.draftYear,
+                        round: 1 as const,
+                      })),
+                  ],
+                })
+              ),
+            },
+          ]
+        : programs.length
+          ? conditionalPostTradeBranches({
+              programs,
+              originals,
+              team,
+              firstYear: 2026,
+              throughYear: 2032,
+              holders: Object.fromEntries(
+                originals.map((r) => [
+                  r.entitlementId,
+                  movements.find((m) => m.entitlementId === r.entitlementId)
+                    ?.toTeam ??
+                    String(entitlements[r.entitlementId].holderTeam),
+                ])
+              ),
+            })
+          : simulationPostTradeBranches(
+              retained,
+              metadata.draftSimulationBranches === 'conditional-2027'
+            );
     return assessDraftReviewConsumption({
       request: { context, outgoing },
       facts: [
@@ -493,11 +596,13 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
             explanationSha256: QUALIFIED_JUNE5_DRAFT_HORIZON.explanationSha256,
             calendarSha256: QUALIFIED_JUNE5_DRAFT_HORIZON.calendarSha256,
             completeRelevantObligationCoverage: true,
-            knownObligationDraftYears: programs.length
-              ? programs.flatMap((p) => p.stages.map((s) => s.year))
-              : metadata.draftSimulationBranches === 'conditional-2027'
-                ? [2027]
-                : [],
+            knownObligationDraftYears: native
+              ? [native.year]
+              : programs.length
+                ? programs.flatMap((p) => p.stages.map((s) => s.year))
+                : metadata.draftSimulationBranches === 'conditional-2027'
+                  ? [2027]
+                  : [],
             unresolvedDependencyIds: [],
           },
           ...(programs.length ? { conditionalPrograms: programs } : {}),
