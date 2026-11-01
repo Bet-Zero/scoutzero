@@ -502,7 +502,9 @@ export const HistoryDetailModal = ({
       assetTeamName && assetTeamCode !== teamCode?.toUpperCase()
         ? ` · ${assetTeamName}`
         : '';
-    const pickLabel = `${year} ${roundLabel} ${assetKindLabel}${assetTeamQualifier}`;
+    const conditionalTerms =
+      assetIdentity.match(/ — conditional right \([^\n]+\)$/)?.[0] || '';
+    const pickLabel = `${year} ${roundLabel} ${assetKindLabel}${assetTeamQualifier}${conditionalTerms}`;
     if (/\bout\b/i.test(rawLine)) {
       return `Sent by ${teamName}: ${pickLabel}`;
     }

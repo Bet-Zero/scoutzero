@@ -52,6 +52,15 @@ export async function advanceConditionalDraftInWorld(
   const state = await loadConditionalWorld(worldId);
   const { metadata, programs, entitlements, teams } = state;
   if (
+    programs.length &&
+    (request.expectedDraftStateDigest !==
+      mutationSnapshotDigest(state.snapshots) ||
+      Object.keys(request.elections ?? {}).length > 0)
+  )
+    throw new Error(
+      'Conditional draft inputs changed; reload the draft before resolving it.'
+    );
+  if (
     state.revision !== request.expectedRevision ||
     metadata.currentSeason !==
       `${request.draftYear - 1}-${String(request.draftYear % 100).padStart(2, '0')}`

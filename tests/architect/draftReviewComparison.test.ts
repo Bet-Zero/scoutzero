@@ -123,13 +123,21 @@ describe('conditional receipt chain in Compare', () => {
     expect(deriveDraftAssetDelta([trade, draft], 'world', 'BOS')).toEqual({
       additions: [],
       removals: [
-        { entitlementId: 'fallback', displayName: 'BOS 2029 first-round pick' },
+        {
+          entitlementId: 'fallback',
+          displayName:
+            'BOS 2029 first-round pick — conditional right (unprotected)',
+        },
       ],
     });
     expect(deriveDraftAssetDelta([trade, draft], 'world', 'MIA')).toEqual({
       removals: [],
       additions: [
-        { entitlementId: 'fallback', displayName: 'BOS 2029 first-round pick' },
+        {
+          entitlementId: 'fallback',
+          displayName:
+            'BOS 2029 first-round pick — conditional right (unprotected)',
+        },
       ],
     });
   });
@@ -144,6 +152,23 @@ describe('conditional receipt chain in Compare', () => {
     receipt.after[0].stages = receipt.before[0].stages;
     expect(deriveDraftAssetDelta([trade, draft], 'world', 'BOS')).toBeNull();
     expect(deriveDraftAssetDelta([draft], 'world', 'BOS')).toBeNull();
+  });
+  it('distinguishes the pre-resolution conditional right from the conveyed selection', () => {
+    const { trade, draft, receipt } = journey();
+    expect(
+      deriveDraftAssetDelta([trade], 'world', 'MIA')?.additions[0].displayName
+    ).toBe(
+      'BOS 2028 first-round pick — conditional right (top 10 protected; 2029 unprotected fallback)'
+    );
+    receipt.positions.BOS = 11;
+    receipt.after[0].results = [
+      { year: 2028, position: 11, outcome: 'conveyed' },
+    ];
+    receipt.movements = [];
+    expect(
+      deriveDraftAssetDelta([trade, draft], 'world', 'MIA')?.additions[0]
+        .displayName
+    ).toBe('BOS 2028 first-round pick');
   });
 });
 describe('committed original-pick comparison', () => {

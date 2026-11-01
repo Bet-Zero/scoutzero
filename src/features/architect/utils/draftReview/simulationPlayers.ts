@@ -56,12 +56,12 @@ export function simulationPlayerMovements(
       );
     if (!slot.sends?.length) continue;
     if (
-      branch !== 'unconditional' ||
+      !['unconditional', 'protection-programs'].includes(branch) ||
       slot.sends.length !== 1 ||
       args.payload.tradeCtx?.source !== 'tradeMachine'
     )
       throw new Error(
-        'Mixed trades support one ordinary player per team with unconditional original firsts.'
+        'Mixed trades support one ordinary player per team with original firsts or complete protection programs.'
       );
     const team = state.teams?.find((t) => t.teamCode === slot.teamCode)
       ?.team as RecordLike | undefined;

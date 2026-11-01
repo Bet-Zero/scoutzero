@@ -30,9 +30,12 @@ export function useSwapAssets(
         ).data();
         if (cancelled) return;
         if (
-          !['unconditional', 'swap-program', 'apron-lifecycle'].includes(
-            String(metadata?.draftSimulationBranches)
-          )
+          ![
+            'unconditional',
+            'protection-programs',
+            'swap-program',
+            'apron-lifecycle',
+          ].includes(String(metadata?.draftSimulationBranches))
         ) {
           setValue({ key, summary: null });
           return;

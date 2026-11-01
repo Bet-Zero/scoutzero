@@ -45,6 +45,7 @@
  */
 
 import { db } from '@/firebaseConfig';
+import { conditionalRightSuffix } from '@/features/architect/utils/draftReview/conditionalProgram';
 import { createDraftReviewCommitGate } from '@/features/architect/utils/draftReview/commitGate';
 import type { PersistWorldMutationArgs } from './mutationPipeline.persist';
 import {
@@ -513,7 +514,7 @@ export async function applyWorldMutation({
           movements: review.movements,
         }),
         picksTraded: review.movements.flatMap((p) => {
-          const name = `${p.originalTeam} ${p.year} ${p.round === 1 ? 'first' : 'second'}-round ${p.assetKind === 'swap_right' ? 'swap right' : 'pick'}`;
+          const name = `${p.originalTeam} ${p.year} ${p.round === 1 ? 'first' : 'second'}-round ${p.assetKind === 'swap_right' ? 'swap right' : 'pick'}${conditionalRightSuffix(review.assumptions?.programs ?? [], p.entitlementId)}`;
           return [`${p.fromTeam}: out ${name}`, `${p.toTeam}: in ${name}`];
         }),
       };

@@ -387,6 +387,36 @@ describe('HistoryDetailModal — outbound links + player menus (Slice 4b)', () =
     ).not.toHaveTextContent('Jun 30');
   });
 
+  it('keeps the conditional right and fallback terms in the saved trade', () => {
+    render(
+      <HistoryDetailModal
+        selectedEntry={{
+          ...tradeEntry,
+          entry: {
+            ...tradeEntry.entry,
+            detailSections: [
+              {
+                title: 'Picks',
+                lines: [
+                  'LAL: out LAL 2026 first-round pick — conditional right (top 10 protected; 2027 unprotected fallback)',
+                  'BOS: in LAL 2026 first-round pick — conditional right (top 10 protected; 2027 unprotected fallback)',
+                ],
+              },
+            ],
+          },
+        }}
+        onClose={vi.fn()}
+      />
+    );
+    const modal = screen.getByTestId('team-history-detail-modal');
+    expect(modal).toHaveTextContent(
+      'Sent by Los Angeles Lakers: 2026 first-round pick — conditional right (top 10 protected; 2027 unprotected fallback)'
+    );
+    expect(modal).toHaveTextContent(
+      'Received by Boston Celtics: 2026 first-round pick · Los Angeles Lakers — conditional right (top 10 protected; 2027 unprotected fallback)'
+    );
+  });
+
   it('preserves year and round for canonical retained pick identifiers', () => {
     render(
       <HistoryDetailModal
