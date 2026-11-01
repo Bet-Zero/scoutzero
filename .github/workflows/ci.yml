@@ -11,6 +11,8 @@ on:
   schedule:
     # Run full test suite nightly at 2 AM UTC
     - cron: '0 2 * * *'
+  # Run the identical nightly checks on demand after infrastructure repairs.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -65,8 +67,10 @@ jobs:
   # Full integration health remains nightly; pushes use the same bounded policy as PRs
   full-validation:
     name: Full Build, Test & Validate
-    runs-on: ubuntu-latest
-    if: github.event_name == 'schedule'
+    # Playwright 1.58's browser dependencies support Ubuntu 24.04. Keep the
+    # browser lane stable when ubuntu-latest advances to a newer distribution.
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
