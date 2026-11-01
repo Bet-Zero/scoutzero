@@ -1,4 +1,6 @@
 import { DraftApronPlanReferenceZ } from '@/schemas/draftApronSimulation';
+import { preparePenaltyDraft } from './penaltyDraft';
+import { readPenaltyPlacementReceipt } from './penaltyPlacement';
 import { unpackApronPlan } from './apronPlanStorage';
 import { readApronSimulation, apronInputFromHistory } from './apronSimulation';
 import { DraftApronSeasonReceiptZ } from '@/schemas/draftApronSimulation';
@@ -166,7 +168,7 @@ export async function loadConditionalWorld(worldId: string) {
       snapshots[event.ref.path] = mutationSnapshotText(event.data());
     }
   }
-  return {
+  const state = {
     apron,
     root,
     metadata,
@@ -179,4 +181,40 @@ export async function loadConditionalWorld(worldId: string) {
     sources,
     snapshots,
   };
+  if (metadata.draftPenaltyReceipt !== undefined) {
+    const receipt = readPenaltyPlacementReceipt(metadata.draftPenaltyReceipt);
+    const expected = preparePenaltyDraft(state);
+    if (
+      !receipt ||
+      receipt.worldId !== worldId ||
+      receipt.catalogueSha256 !== metadata.draftSimulationCatalogue ||
+      mutationSnapshotText({
+        input: receipt.input,
+        restrictions: receipt.restrictions,
+        positions: receipt.positions,
+        planDigest: receipt.planDigest,
+      }) !== mutationSnapshotText(expected)
+    )
+      throw new Error(
+        'Saved final positions disagree with draft inputs and consumed history.'
+      );
+    const event = await getDoc(
+      doc(
+        root,
+        ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
+        `penaltyDraft__${receipt.input.draftYear}`
+      )
+    );
+    if (
+      !event.exists() ||
+      event.data()?.operationId !== receipt.operationId ||
+      mutationSnapshotText(event.data()?.metadata?.penaltyDraftReceipt) !==
+        mutationSnapshotText(receipt)
+    )
+      throw new Error(
+        'Saved final positions require their committed draft receipt.'
+      );
+    snapshots[event.ref.path] = mutationSnapshotText(event.data());
+  }
+  return state;
 }

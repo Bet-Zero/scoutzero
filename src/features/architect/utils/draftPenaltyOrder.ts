@@ -2,6 +2,7 @@
 import {
   DraftPenaltyOrderFactZ,
   DraftPenaltyOrderRequestZ,
+  type DraftPenaltyOrderFact,
 } from '@/schemas/draftPenaltyOrder';
 import {
   draftFactProblem,
@@ -18,6 +19,33 @@ function comparePercentage(a: string, b: string): number {
   const left = ai + af.padEnd(width, '0');
   const right = bi + bf.padEnd(width, '0');
   return left < right ? -1 : left > right ? 1 : 0;
+}
+
+/** Shared arithmetic only. Callers must establish membership, chronology and authority. */
+export function orderDraftPenaltyMembers(
+  members: DraftPenaltyOrderFact['members']
+) {
+  const parsed = DraftPenaltyOrderFactZ.shape.members.parse(members);
+  if (
+    parsed.length < 2 ||
+    new Set(parsed.map((m) => m.pick.id)).size !== parsed.length
+  )
+    throw new Error('Complete distinct penalized selections are required.');
+  const ordered = [...parsed].sort((a, b) =>
+    comparePercentage(a.officialWinningPercentage, b.officialWinningPercentage)
+  );
+  if (
+    ordered.some(
+      (m, i) =>
+        i > 0 &&
+        comparePercentage(
+          ordered[i - 1].officialWinningPercentage,
+          m.officialWinningPercentage
+        ) === 0
+    )
+  )
+    return null;
+  return ordered.map((m) => m.pick.id);
 }
 
 export function evaluateSuppliedDraftPenaltyOrder(
@@ -68,21 +96,8 @@ export function evaluateSuppliedDraftPenaltyOrder(
     request.proposedEarlierToLater.some((id) => !memberIds.includes(id))
   )
     return blocked('proposal-must-name-every-penalized-first-exactly-once');
-  const ordered = [...fact.members].sort((a, b) =>
-    comparePercentage(a.officialWinningPercentage, b.officialWinningPercentage)
-  );
-  if (
-    ordered.some(
-      (m, i) =>
-        i > 0 &&
-        comparePercentage(
-          ordered[i - 1].officialWinningPercentage,
-          m.officialWinningPercentage
-        ) === 0
-    )
-  )
-    return blocked('governing-tie-procedure-not-established');
-  const orderedIds = ordered.map((m) => m.pick.id);
+  const orderedIds = orderDraftPenaltyMembers(fact.members);
+  if (!orderedIds) return blocked('governing-tie-procedure-not-established');
   const matches = orderedIds.every(
     (id, i) => request.proposedEarlierToLater[i] === id
   );

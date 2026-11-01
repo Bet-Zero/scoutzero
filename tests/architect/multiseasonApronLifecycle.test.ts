@@ -23,6 +23,13 @@ afterEach(() => registerSoftwareSeasonEnvironment(() => false));
 describe('governed multi-season software chronology', () => {
   it.each([
     {
+      name: 'penalty draft chronology',
+      followups: [1, 1, 0, 0],
+      released: false,
+      release: null,
+      seasonCount: 8,
+    },
+    {
       name: 'penalty',
       followups: [1, 1, 0, 0],
       released: false,
@@ -42,8 +49,8 @@ describe('governed multi-season software chronology', () => {
     },
   ])(
     'prepares and reloads every consecutive season: $name',
-    async ({ followups, released, release }) => {
-      const f = multiseasonApronFixture(followups);
+    async ({ followups, released, release, seasonCount = 6 }) => {
+      const f = multiseasonApronFixture(followups, seasonCount);
       let metadata: Record<string, unknown> = {
         ...f.metadata,
         draftSimulationCatalogue: 'a'.repeat(64),
@@ -56,7 +63,7 @@ describe('governed multi-season software chronology', () => {
       );
       for (const doc of [packed.reference, ...Object.values(packed.documents)])
         expect(Buffer.byteLength(JSON.stringify(doc))).toBeLessThan(950000);
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < seasonCount - 1; i++) {
         const apron = readApronSimulation(metadata);
         const authority = resolveSeasonAdvanceAuthority({
           worldId: 'w',

@@ -1,4 +1,5 @@
 import { apronInputFromHistory, apronRestrictionText } from './apronSimulation';
+import { readPenaltyPlacementReceipt } from './penaltyPlacement';
 /** Display-only projection of validated saved-world picks and separate rights. */
 import type { loadConditionalWorld } from './conditionalWorld';
 import type {
@@ -11,6 +12,9 @@ export function swapAssets(
   year: number
 ): ArchitectWorkspaceDraftAssetsSummary {
   const groups = new Map<number, ArchitectWorkspaceDraftYearGroup>();
+  const placement = readPenaltyPlacementReceipt(
+    state.metadata.draftPenaltyReceipt
+  );
   let firstRoundCount = 0,
     rightCount = 0;
   for (const [id, e] of Object.entries(state.entitlements)) {
@@ -34,8 +38,11 @@ export function swapAssets(
           original.originalTeam === team
             ? 'Own'
             : `via ${original.originalTeam}`,
-        protectionLabel:
-          state.apron && original.draftYear === 2033
+        protectionLabel: placement?.positions.some(
+          (p) => p.entitlementId === id
+        )
+          ? `Final pick ${placement.positions.find((p) => p.entitlementId === id)!.position}${placement.positions.find((p) => p.entitlementId === id)!.penalized ? ' · draft-pick penalty' : ''}`
+          : state.apron && original.draftYear === 2033
             ? apronRestrictionText(
                 apronInputFromHistory(
                   original.originalTeam,

@@ -69,6 +69,7 @@ import { useArchitectPostActionReceipt } from './hooks/useArchitectPostActionRec
 import { useHistoryEventDetailRequest } from './hooks/useHistoryEventDetailRequest';
 import { deriveSeasonAdvanceReceipt } from './postActionHandoff/types';
 import { useArchitectState } from './hooks/useArchitectState';
+import { seasonEndYearsForWorld } from './hooks/useArchitectState.helpers';
 import {
   buildArchitectTeamPlanContextExitMessage,
   confirmArchitectTeamPlanContextExit,
@@ -175,24 +176,6 @@ function isCockpitCapAuditEnabled(): boolean {
     return false;
   }
 }
-
-const seasonEndYearsFromCaps = (
-  caps: Record<string, unknown> | null | undefined
-) => {
-  const keys = Object.keys(caps || {});
-  const years = keys
-    .map((key) => {
-      if (/^\d{4}-\d{2}$/.test(key)) {
-        const tail = parseInt(key.split('-')[1], 10);
-        return 2000 + tail;
-      }
-      const numericValue = parseInt(key, 10);
-      return Number.isFinite(numericValue) ? numericValue : null;
-    })
-    .filter((value): value is number => Boolean(value));
-
-  return Array.from(new Set(years)).sort((a, b) => a - b);
-};
 
 export const GMDashboard = () => {
   // League View enters here with team identity only; this dashboard owns selected season state.
@@ -1348,7 +1331,11 @@ export const GMDashboard = () => {
         aria-label="Viewing season"
         className="rounded border border-cockpit-edge bg-cockpit-inlay px-2 py-1 text-[11px] text-cockpit-text-primary focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
       >
-        {seasonEndYearsFromCaps(capProjections).map((year) => (
+        {seasonEndYearsForWorld(
+          capProjections,
+          teamCapSheet,
+          worldCurrentSeason
+        ).map((year) => (
           <option key={year} value={year}>
             {toSeasonKey(year)}
           </option>

@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { preparePenaltyDraft } from '../utils/draftReview/penaltyDraft';
+import { readPenaltyPlacementReceipt } from '../utils/draftReview/penaltyPlacement';
+import { mutationSnapshotDigest } from '../utils/mutationPipeline.snapshotDigest';
 import { doc, getDoc } from 'firebase/firestore';
 import { ARCHITECT_WORLDS_COLLECTION } from '@/constants/collections';
 import { loadConditionalWorld } from '../utils/draftReview/conditionalWorld';
@@ -67,6 +70,19 @@ export function ConditionalDraftJourney({
   const dueTeams = swapDue
     ? state.swap!.slots.map((s) => s.originalTeam)
     : [...new Set(due.map((p) => p.originalTeam))];
+  const finalPlacement = readPenaltyPlacementReceipt(
+    state.metadata.draftPenaltyReceipt
+  );
+  let placementPreview: ReturnType<typeof preparePenaltyDraft> | null = null;
+  let placementProblem = '';
+  if (state.apron && state.metadata.draftPenaltyInput && !finalPlacement) {
+    try {
+      placementPreview = preparePenaltyDraft(state);
+    } catch (e) {
+      placementProblem =
+        e instanceof Error ? e.message : 'Draft inputs are incomplete.';
+    }
+  }
   async function advance(draft: boolean) {
     if (!worldId || !state || busy) return;
     setBusy(true);
@@ -80,6 +96,7 @@ export function ConditionalDraftJourney({
           draftYear,
           positions,
           elections,
+          expectedDraftStateDigest: mutationSnapshotDigest(state.snapshots),
         });
       else {
         const result = await manager.advanceSeasonInWorld(worldId, {
@@ -135,7 +152,9 @@ export function ConditionalDraftJourney({
               <p key={team}>
                 {team} {input.originalPick.draftYear} first · held by{' '}
                 {String(held?.holderTeam ?? 'unknown')}:{' '}
-                {apronRestrictionText(input)}
+                {finalPlacement
+                  ? `Final pick ${finalPlacement.positions.find((p) => p.originalTeam === team)!.position}${finalPlacement.positions.find((p) => p.originalTeam === team)!.penalized ? ' · draft-pick penalty' : ''}`
+                  : apronRestrictionText(input)}
               </p>
             );
           })}
@@ -144,9 +163,63 @@ export function ConditionalDraftJourney({
             {state.apron.next
               ? ` Next: ${state.apron.next.seasonStartYear}–${String(state.apron.next.seasonStartYear + 1).slice(-2)}.`
               : ' Configured season journey complete.'}{' '}
-            Final draft placement remains unavailable without draft-wide order
-            information.
+            {finalPlacement
+              ? 'Final draft positions saved.'
+              : 'Final draft placement requires the draft season and complete draft-wide inputs.'}
           </p>
+          {(finalPlacement || placementPreview) && (
+            <details open data-testid="penalty-draft-order">
+              <summary>
+                {finalPlacement ? 'Saved' : 'Proposed'} {draftYear} first-round
+                positions
+              </summary>
+              <p>
+                Software results for this world. Picks keep their current
+                owners.
+              </p>
+              <div className="max-h-60 overflow-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr>
+                      <th>Pick</th>
+                      <th>Original team</th>
+                      <th>Held by</th>
+                      <th>Before</th>
+                      <th>Penalty</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(finalPlacement ?? placementPreview)!.positions.map(
+                      (p) => (
+                        <tr
+                          key={p.entitlementId}
+                          data-testid={`final-pick-${p.originalTeam}`}
+                        >
+                          <td>{p.position}</td>
+                          <td>{p.originalTeam}</td>
+                          <td>{p.holderTeam}</td>
+                          <td>{p.beforePosition}</td>
+                          <td>{p.penalized ? 'Yes' : 'No'}</td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          )}
+          {placementProblem && (
+            <p role="status">Final positions unavailable: {placementProblem}</p>
+          )}
+          {placementPreview && !finalPlacement && (
+            <button
+              className="px-3 py-1 rounded border border-cockpit-edge disabled:opacity-50"
+              disabled={busy}
+              onClick={() => void advance(true)}
+            >
+              Save final {draftYear} draft positions
+            </button>
+          )}
           <p>
             Governed software scenario, not authenticated NBA facts. Trading
             still requires ownership, a dated trading window, Stepien and

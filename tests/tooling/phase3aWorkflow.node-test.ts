@@ -22,6 +22,7 @@ import {
   CONDITIONAL_LIFECYCLE_SCREENSHOTS,
   APRON_FREEZE_SCREENSHOTS,
   APRON_MULTISEASON_SCREENSHOTS,
+  PENALTY_PLACEMENT_SCREENSHOTS,
   resolveProofIdentity,
   runTradeReceiptProof,
   verifyGovernedScreenshotArtifacts,
@@ -1100,6 +1101,55 @@ test('multi-season certificate covers all consecutive years and both financial/h
       for (const state of ['cap', 'fullcap', 'history', 'compare', 'assets'])
         assert.ok(
           APRON_MULTISEASON_SCREENSHOTS.some(
+            (s) => s.key === `${mode}-${team}-${state}`
+          )
+        );
+  }
+});
+
+test('final placement certificate requires every team and both complete draft outcomes', () => {
+  const codes = [
+    'ATL',
+    'BOS',
+    'BKN',
+    'CHA',
+    'CHI',
+    'CLE',
+    'DAL',
+    'DEN',
+    'DET',
+    'GSW',
+    'HOU',
+    'IND',
+    'LAC',
+    'LAL',
+    'MEM',
+    'MIA',
+    'MIL',
+    'MIN',
+    'NOP',
+    'NYK',
+    'OKC',
+    'ORL',
+    'PHI',
+    'PHX',
+    'POR',
+    'SAC',
+    'SAS',
+    'TOR',
+    'UTA',
+    'WAS',
+  ];
+  assert.equal(PENALTY_PLACEMENT_SCREENSHOTS.length, 186);
+  for (const mode of ['single', 'multiple']) {
+    for (const state of ['season-2032', 'season-2033', 'final-order'])
+      assert.ok(
+        PENALTY_PLACEMENT_SCREENSHOTS.some((s) => s.key === `${mode}-${state}`)
+      );
+    for (const team of codes)
+      for (const state of ['history', 'compare', 'assets'])
+        assert.ok(
+          PENALTY_PLACEMENT_SCREENSHOTS.some(
             (s) => s.key === `${mode}-${team}-${state}`
           )
         );

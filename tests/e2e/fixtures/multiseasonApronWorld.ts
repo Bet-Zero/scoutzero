@@ -4,7 +4,11 @@ import { SoftwareSeasonContextZ } from '@/schemas/softwareSeasonContext';
 import { DraftApronSimulationPlanZ } from '@/schemas/draftApronSimulation';
 
 /** All values after the initial season are stipulated software inputs, not forecasts. */
-export function multiseasonApronFixture(followups: number[] = [1, 1, 0, 0]) {
+export function multiseasonApronFixture(
+  followups: number[] = [1, 1, 0, 0],
+  seasonCount = 6,
+  penaltyTeams = ['TOR']
+) {
   const f = apronDraftFixture(1);
   const source = f.plan.steps[0].observations[0].sources;
   const closings = [
@@ -14,8 +18,10 @@ export function multiseasonApronFixture(followups: number[] = [1, 1, 0, 0]) {
     '2029-04-15',
     '2030-04-14',
     '2031-04-13',
+    '2032-04-11',
+    '2033-04-10',
   ];
-  const seasons = Array.from({ length: 6 }, (_, i) =>
+  const seasons = Array.from({ length: seasonCount }, (_, i) =>
     SoftwareSeasonContextZ.parse({
       kind: 'governed-software-season-v1',
       id: `software-season-${2026 + i}`,
@@ -36,10 +42,11 @@ export function multiseasonApronFixture(followups: number[] = [1, 1, 0, 0]) {
       ...p,
       contract: {
         ...p.contract,
-        endSeason: '2030-31',
+        endSeason: `${2024 + seasonCount}-${String(2025 + seasonCount).slice(-2)}`,
         salariesByYear: seasons.map((c, i) => {
-          const total = ['TOR', 'MIA'].includes(code)
-            ? c.secondApron * 100 + (code === 'TOR' ? excess[i] : 0)
+          const total = ['TOR', 'MIA', ...penaltyTeams].includes(code)
+            ? c.secondApron * 100 +
+              (penaltyTeams.includes(code) ? (excess[i] ?? 0) : 0)
             : 3000000000;
           const cents =
             index === 14
@@ -153,22 +160,22 @@ export function multiseasonApronFixture(followups: number[] = [1, 1, 0, 0]) {
   f.plan = DraftApronSimulationPlanZ.parse({
     ...f.plan,
     softwareRetainedFirsts: ['TOR', 'MIA'].flatMap((team) =>
-      [2034, 2035, 2036, 2037].map((draftYear) => ({ team, draftYear }))
+      Array.from({ length: seasonCount - 2 }, (_, i) => 2034 + i).map(
+        (draftYear) => ({ team, draftYear })
+      )
     ),
     kind: 'governed-apron-lifecycle-v2',
     seasons,
     steps,
-    futureObservations: steps
-      .slice(1)
-      .flatMap((s) =>
-        s.observations.map((o) => ({
-          ...o,
-          state: 'future-pending',
-          value: null,
-          sourceResultId: null,
-          pendingUntil: o.value.measuredAt,
-        }))
-      ),
+    futureObservations: steps.slice(1, 5).flatMap((s) =>
+      s.observations.map((o) => ({
+        ...o,
+        state: 'future-pending',
+        value: null,
+        sourceResultId: null,
+        pendingUntil: o.value.measuredAt,
+      }))
+    ),
   });
   f.metadata.draftApronPlan = f.plan;
   return f;

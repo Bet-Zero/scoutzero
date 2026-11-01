@@ -1,4 +1,5 @@
 import { softwareSeasonRegistry } from '../governedSeason/softwareSeasonContext';
+import { readPenaltyPlacementReceipt } from './penaltyPlacement';
 import {
   CANON_GOVERNED_SEASON_REGISTRY,
   resolveGovernedSeasonEnvelope,
@@ -68,13 +69,22 @@ export function readApronSimulation(metadata: Record<string, unknown>) {
   const registry = software
     ? softwareSeasonRegistry(plan.seasons!)
     : CANON_GOVERNED_SEASON_REGISTRY;
+  const placement = readPenaltyPlacementReceipt(metadata.draftPenaltyReceipt);
+  const placedDate =
+    placement &&
+    history.length === 7 &&
+    placement.input.draftYear === start + 8 &&
+    placement.planDigest === mutationSnapshotDigest(plan)
+      ? placement.input.date
+      : null;
   if (
     history.length > plan.steps.length ||
     metadata.currentSeason !== apronSeason(start + history.length) ||
     metadata.asOfDate !==
-      (history.length
-        ? `${start + history.length}-07-01`
-        : plan.steps[0].regularSeasonEnd.date)
+      (placedDate ??
+        (history.length
+          ? `${start + history.length}-07-01`
+          : plan.steps[0].regularSeasonEnd.date))
   )
     throw new Error('The saved season and consecutive apron history disagree.');
   for (const [index, step] of plan.steps.entries()) {
@@ -283,7 +293,8 @@ export function readApronSeasonReceipt(value: unknown) {
   const start = r.after[0].seasonStartYear;
   const asOf = `${start + r.after.length}-07-01T00:00:00-04:00`;
   for (const input of r.restrictions) {
-    const observed = r.after.flatMap((h) =>
+    const relevant = r.after.filter((h) => h.seasonStartYear <= start + 4);
+    const observed = relevant.flatMap((h) =>
       h.observations.filter((o) => o.team === input.team)
     );
     if (
@@ -297,7 +308,7 @@ export function readApronSeasonReceipt(value: unknown) {
       }) ||
       !same(
         input.regularSeasonEnds,
-        r.after.map((h) => h.regularSeasonEnd)
+        relevant.map((h) => h.regularSeasonEnd)
       ) ||
       !same(input.observations.slice(0, observed.length), observed) ||
       observed.some(

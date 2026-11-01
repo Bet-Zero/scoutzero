@@ -331,6 +331,7 @@ describe('saved receipt and display agreement', () => {
     const f = fixture();
     f.entitlements['right-a'].holderTeam = 'AAA';
     const state = {
+      metadata: {},
       swap: f.program,
       entitlements: f.entitlements,
       catalogue: f.catalogue,

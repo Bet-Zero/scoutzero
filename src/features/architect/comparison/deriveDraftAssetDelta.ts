@@ -2,6 +2,10 @@ import {
   apronRestrictionText,
   readApronSeasonReceipt,
 } from '../utils/draftReview/apronSimulation';
+import {
+  readPenaltyPlacementReceipt,
+  placementLine,
+} from '../utils/draftReview/penaltyPlacement';
 import { DraftSwapReceiptZ } from '@/schemas/draftSwapReceipt';
 import { resolveSwapProgram } from '../utils/draftReview/swapProgram';
 import {
@@ -36,6 +40,33 @@ export function deriveDraftAssetDelta(
   let seasonSeen = false;
   let conditionalState: string | null = null;
   for (const row of rows) {
+    if (
+      row.mutationType === 'draftConveyance' &&
+      Reflect.get(row.raw?.metadata ?? {}, 'penaltyDraftReceipt') !== undefined
+    ) {
+      const r = readPenaltyPlacementReceipt(
+        Reflect.get(row.raw?.metadata ?? {}, 'penaltyDraftReceipt')
+      );
+      if (
+        !r ||
+        r.worldId !== worldId ||
+        r.operationId !== row.raw?.operationId ||
+        r.catalogueSha256 !== REAL_DRAFT_REVIEW_PIN.payloadSha256 ||
+        seen.has(r.operationId)
+      )
+        return null;
+      seen.add(r.operationId);
+      restrictions.splice(
+        0,
+        restrictions.length,
+        ...r.positions
+          .filter(
+            (p) => p.originalTeam === teamCode || p.holderTeam === teamCode
+          )
+          .map(placementLine)
+      );
+      continue;
+    }
     if (row.mutationType === 'seasonAdvance') {
       const apron = readApronSeasonReceipt(
         Reflect.get(row.raw?.metadata ?? {}, 'apronSeasonReceipt')
