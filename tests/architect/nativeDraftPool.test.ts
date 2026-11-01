@@ -313,3 +313,289 @@ describe('native mixed rank claims', () => {
     expect(deriveDraftAssetDelta([forged], 'world', 'DDD')).toBeNull();
   });
 });
+
+// Subsequent transactions retain the original resolution, while ownership advances.
+import {
+  nativeSelectionHolders,
+  nativeTradeDate,
+  nativeRetainedWitnesses,
+} from '@/features/architect/utils/draftReview/nativeTrading';
+import type {
+  NativeDraftLifecycle,
+  NativeSelectionTransfer,
+} from '@/schemas/draftNativeTrading';
+import { DraftReviewMutationReceiptZ } from '@/schemas/draftPickReviewMutation';
+const lifecycle: NativeDraftLifecycle = {
+  kind: 'governed-pre-draft-native-selections-v1',
+  claimsEffectiveDate: '2029-06-20',
+  selections: 'unconsumed-before-draft',
+  tradingWindow: {
+    kind: 'governed-test-seven-draft-window',
+    asOf: '2029-06-20T12:00:00Z',
+    previousDraftCompletedAt: '2028-06-30T23:59:59Z',
+    firstFutureDraftStartsAt: '2029-06-30T00:00:00Z',
+    firstYear: 2029,
+    lastYear: 2035,
+  },
+  retainedFirstIds: [],
+  softwareRetainedFirsts: [],
+};
+function resolved() {
+  return resolveDraftClaimProgram(
+    program,
+    { AAA: 3, BBB: 14, CCC: 27 },
+    { exercisePool: true }
+  );
+}
+function transfer(operationId = 'trade-one'): NativeSelectionTransfer {
+  return {
+    operationId,
+    asOfDate: '2029-06-21',
+    movements: [
+      {
+        entitlementId: 'AAA',
+        assetKind: 'pick_ownership',
+        originalTeam: 'AAA',
+        year: 2029,
+        round: 1,
+        fromTeam: 'DDD',
+        toTeam: 'EEE',
+      },
+      {
+        entitlementId: 'CCC',
+        assetKind: 'pick_ownership',
+        originalTeam: 'CCC',
+        year: 2029,
+        round: 1,
+        fromTeam: 'EEE',
+        toTeam: 'DDD',
+      },
+    ],
+  };
+}
+function tradeReceipt(
+  p = resolved(),
+  history: NativeSelectionTransfer[] = [],
+  move = transfer()
+) {
+  return DraftReviewMutationReceiptZ.parse({
+    scope: 'governed-simulation-only',
+    worldId: 'world',
+    operationId: move.operationId,
+    releaseId: 'software-release',
+    releaseSha256: REAL_DRAFT_REVIEW_PIN.payloadSha256,
+    asOfDate: move.asOfDate,
+    movements: move.movements,
+    assumptionSha256: 'a'.repeat(64),
+    assumptions: {
+      kind: 'governed-test-assumptions-v1',
+      catalogueSha256: REAL_DRAFT_REVIEW_PIN.payloadSha256,
+      proposalSha256: 'b'.repeat(64),
+      stateDigest: 'digest',
+      asOf: `${move.asOfDate}T12:00:00Z`,
+      branchMode: 'native-selections',
+      nativeTrade: {
+        program: p,
+        lifecycle,
+        resolutionOperationId: 'resolve',
+        transfers: history,
+      },
+      tradingWindow: nativeTradeDate(p, lifecycle, history, move.asOfDate),
+      ownership: 'stipulated-for-software-tests',
+      otherHoldings: 'unknown-not-empty',
+    },
+  });
+}
+describe('resolved native selections remain distinct from their claim history', () => {
+  it('replays multiple transfers, including a slot absent from the later trade, without changing the claim', () => {
+    const p = resolved(),
+      before = structuredClone(p),
+      first = transfer();
+    const next = transfer('trade-two');
+    next.movements = next.movements.map((m) => ({
+      ...m,
+      fromTeam: m.toTeam,
+      toTeam: m.fromTeam,
+    }));
+    const holders = nativeSelectionHolders(p, [first, next]);
+    expect(holders).toEqual(p.result!.allocation);
+    expect(p).toEqual(before);
+    const { catalogue, entitlements } = input();
+    for (const [id, owner] of Object.entries(
+      nativeSelectionHolders(p, [first])
+    ))
+      entitlements[id].holderTeam = owner;
+    expect(swapProgram(p, catalogue, entitlements, [first])).toEqual(p);
+    expect(() => swapProgram(p, catalogue, entitlements, [])).toThrow(
+      /owner|ownership/
+    );
+  });
+  it.each(['2029-06-19', '2029-06-30', '2029-07-01', '2028-06-21'])(
+    'rejects ineligible date %s',
+    (date) => {
+      expect(() => nativeTradeDate(resolved(), lifecycle, [], date)).toThrow(
+        /before|after/
+      );
+    }
+  );
+  it('accepts only the pre-draft interval and rejects retrospective replay or old at-draft resolution', () => {
+    expect(
+      nativeTradeDate(resolved(), lifecycle, [], '2029-06-20').firstYear
+    ).toBe(2029);
+    expect(
+      nativeTradeDate(resolved(), lifecycle, [], '2029-06-29').lastYear
+    ).toBe(2035);
+    expect(() =>
+      nativeTradeDate(resolved(), lifecycle, [transfer()], '2029-06-20')
+    ).toThrow();
+    expect(() =>
+      nativeTradeDate(resolved(), undefined, [], '2029-06-20')
+    ).toThrow();
+    expect(() =>
+      nativeTradeDate(
+        resolved(),
+        { ...lifecycle, claimsEffectiveDate: '2029-06-30' },
+        [],
+        '2029-06-30'
+      )
+    ).toThrow();
+  });
+  it('rejects stale ownership, archival rights, identity substitution, duplicate writes and one-sided transfers', () => {
+    const p = resolved(),
+      first = transfer();
+    expect(() => nativeSelectionHolders(p, [first, first])).toThrow(
+      /duplicated/
+    );
+    expect(() =>
+      nativeSelectionHolders(p, [first, transfer('second')])
+    ).toThrow(/owner/);
+    for (const patch of [
+      { entitlementId: 'archival' },
+      { originalTeam: 'CCC' },
+      { year: 2028 },
+      { fromTeam: 'AAA' },
+      { assetKind: 'swap_right' },
+    ]) {
+      const t = transfer();
+      Object.assign(t.movements[0], patch);
+      expect(() => nativeSelectionHolders(p, [t])).toThrow();
+    }
+    expect(() =>
+      nativeSelectionHolders(p, [{ ...first, movements: [first.movements[0]] }])
+    ).toThrow();
+    expect(() => nativeSelectionHolders(program, [])).toThrow(/Resolve/);
+  });
+  it('rejects operation identity reuse across resolution and trade receipts', () => {
+    expect(() => tradeReceipt(resolved(), [], transfer('resolve'))).toThrow(
+      /lineage/
+    );
+  });
+  it('keeps beyond-catalogue witnesses nontradable and refuses unavailable retained inputs', () => {
+    const { catalogue, entitlements } = input();
+    expect(() =>
+      nativeRetainedWitnesses(
+        resolved(),
+        { ...lifecycle, retainedFirstIds: ['missing'] },
+        catalogue,
+        entitlements
+      )
+    ).toThrow(/witness/);
+    expect(() =>
+      nativeRetainedWitnesses(
+        resolved(),
+        {
+          ...lifecycle,
+          softwareRetainedFirsts: [{ team: 'DDD', draftYear: 2029 }],
+        },
+        catalogue,
+        entitlements
+      )
+    ).toThrow(/software/);
+  });
+  it('Compare shows the current holder for original and receiving teams, preserving the original resolution', () => {
+    const after = resolved();
+    const resolution = DraftSwapReceiptZ.parse({
+      scope: 'governed-simulation-only',
+      worldId: 'world',
+      operationId: 'resolve',
+      catalogueSha256: REAL_DRAFT_REVIEW_PIN.payloadSha256,
+      before: program,
+      after,
+      movements: program.slots.map((s) => ({
+        entitlementId: s.entitlementId,
+        originalTeam: s.originalTeam,
+        year: 2029,
+        round: 1,
+        fromTeam: s.holderTeam,
+        toTeam: after.result!.allocation[s.entitlementId],
+        assetKind: 'pick_ownership',
+      })),
+      draftYear: 2029,
+      date: lifecycle.claimsEffectiveDate,
+      nativeLifecycle: lifecycle,
+    });
+    const trade = tradeReceipt();
+    const rows = [
+      {
+        mutationType: 'draftConveyance',
+        raw: {
+          operationId: 'resolve',
+          metadata: { swapDraftReceipt: resolution },
+        },
+      },
+      {
+        mutationType: 'executeTrade',
+        raw: {
+          operationId: trade.operationId,
+          metadata: { draftReviewReceipt: trade },
+        },
+      },
+    ] as ComparisonEventRow[];
+    expect(deriveDraftAssetDelta(rows, 'world', 'AAA')?.restrictions).toContain(
+      'AAA 2029 first: final pick 3 · held by EEE'
+    );
+    expect(deriveDraftAssetDelta(rows, 'world', 'DDD')?.restrictions).toEqual([
+      'DDD: exercised the native 2029 two-most-favorable claim; EEE receives the remaining selection',
+      'BBB 2029 first: final pick 14 · held by DDD',
+      'CCC 2029 first: final pick 27 · held by DDD',
+    ]);
+    const broken = structuredClone(rows);
+    Reflect.get(
+      broken[1].raw!.metadata!,
+      'draftReviewReceipt'
+    ).assumptions.nativeTrade.resolutionOperationId = 'other';
+    expect(deriveDraftAssetDelta(broken, 'world', 'AAA')).toBeNull();
+    expect(deriveDraftAssetDelta([rows[1]], 'world', 'AAA')).toBeNull();
+    expect(
+      deriveDraftAssetDelta([...rows, rows[1]], 'world', 'AAA')
+    ).toBeNull();
+  });
+});
+
+it('can subsequently transfer a native original retained by its original team at resolution', () => {
+  const retained = resolveDraftClaimProgram(
+    {
+      ...program,
+      nativePool: { ...program.nativePool, beneficiaryTeam: 'AAA' },
+    },
+    { AAA: 3, BBB: 14, CCC: 27 },
+    { exercisePool: true }
+  );
+  expect(retained.result!.allocation.AAA).toBe('AAA');
+  const next = transfer();
+  next.movements = next.movements.map((m) => ({
+    ...m,
+    fromTeam: m.fromTeam === 'DDD' ? 'AAA' : m.fromTeam,
+    toTeam: m.toTeam === 'DDD' ? 'AAA' : m.toTeam,
+  }));
+  const { catalogue, entitlements } = input();
+  for (const [id, holder] of Object.entries(
+    nativeSelectionHolders(retained, [next])
+  ))
+    entitlements[id].holderTeam = holder;
+  expect(swapProgram(retained, catalogue, entitlements, [next])).toEqual(
+    retained
+  );
+  expect(entitlements.AAA.holderTeam).toBe('EEE');
+  expect(retained.result!.allocation.AAA).toBe('AAA');
+});

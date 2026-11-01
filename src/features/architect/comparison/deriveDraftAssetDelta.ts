@@ -1,4 +1,10 @@
 import {
+  nativeSelectionHolders,
+  requireSameNativeValue,
+} from '../utils/draftReview/nativeTrading';
+import type { DraftClaimProgram } from '@/schemas/draftSwapProgram';
+import type { NativeSelectionTransfer } from '@/schemas/draftNativeTrading';
+import {
   apronRestrictionText,
   readApronSeasonReceipt,
 } from '../utils/draftReview/apronSimulation';
@@ -41,6 +47,10 @@ export function deriveDraftAssetDelta(
   let apronHistory: string | null = null;
   let seasonSeen = false;
   let conditionalState: string | null = null;
+  let nativeProgram: DraftClaimProgram | null = null;
+  let nativeResolution: { operationId: string; lifecycle: unknown } | null =
+    null;
+  const nativeTransfers: NativeSelectionTransfer[] = [];
   for (const row of rows) {
     if (
       row.mutationType === 'draftConveyance' &&
@@ -220,7 +230,15 @@ export function deriveDraftAssetDelta(
         return null;
       conditionalState = canonicalStringify(receipt.data.after);
       const after = receipt.data.after;
-      if (!Array.isArray(after) && after.kind !== 'ordered-swap-pool-v1')
+      if (!Array.isArray(after) && after.kind !== 'ordered-swap-pool-v1') {
+        nativeProgram = after;
+        nativeResolution = {
+          operationId: receipt.data.operationId,
+          lifecycle:
+            'nativeLifecycle' in receipt.data
+              ? receipt.data.nativeLifecycle
+              : null,
+        };
         restrictions.push(
           ...(after.kind === 'native-ranked-pool-v1'
             ? nativePoolLines(after)
@@ -236,6 +254,57 @@ export function deriveDraftAssetDelta(
               )
           )
         );
+      }
+    } else if (receipt.data.assumptions?.nativeTrade) {
+      const n = receipt.data.assumptions.nativeTrade;
+      try {
+        if (!nativeProgram || !nativeResolution) return null;
+        requireSameNativeValue(
+          n,
+          {
+            program: nativeProgram,
+            lifecycle: nativeResolution.lifecycle,
+            resolutionOperationId: nativeResolution.operationId,
+            transfers: nativeTransfers,
+          },
+          'Broken native receipt chain'
+        );
+        const entry = {
+          operationId: receipt.data.operationId,
+          asOfDate: receipt.data.asOfDate,
+          movements: receipt.data.movements,
+        };
+        const holders = nativeSelectionHolders(nativeProgram, [
+          ...nativeTransfers,
+          entry,
+        ]);
+        nativeTransfers.push(entry as NativeSelectionTransfer);
+        const claimNotes = restrictions.filter(
+          (line) =>
+            !nativeProgram!.slots.some((slot) =>
+              line.startsWith(
+                `${slot.originalTeam} ${nativeProgram!.year} first:`
+              )
+            )
+        );
+        restrictions.splice(
+          0,
+          restrictions.length,
+          ...claimNotes,
+          ...nativeProgram.slots
+            .filter(
+              (slot) =>
+                slot.originalTeam === teamCode ||
+                holders[slot.entitlementId] === teamCode
+            )
+            .map(
+              (slot) =>
+                `${slot.originalTeam} ${nativeProgram!.year} first: final pick ${nativeProgram!.result!.positions[slot.originalTeam]} · held by ${holders[slot.entitlementId]}`
+            )
+        );
+      } catch {
+        return null;
+      }
     } else if (
       receipt.data.assumptions?.programs ||
       receipt.data.assumptions?.swapProgram

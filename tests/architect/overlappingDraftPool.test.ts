@@ -399,3 +399,138 @@ describe('overlapping native claims', () => {
     ).toThrow();
   });
 });
+
+import { nativeSelectionHolders } from '@/features/architect/utils/draftReview/nativeTrading';
+import { DraftReviewMutationReceiptZ } from '@/schemas/draftPickReviewMutation';
+import type {
+  NativeDraftLifecycle,
+  NativeSelectionTransfer,
+} from '@/schemas/draftNativeTrading';
+it('trades resolved 2028 originals while retaining the protected first and separate fallback caveat', () => {
+  const positions = {
+    AAA: 20,
+    BBB: 4,
+    CCC: 8,
+    DDD: 10,
+    EEE: 25,
+    FFF: 30,
+    GGG: 15,
+  };
+  const after = resolveDraftClaimProgram(program, positions, elections);
+  const lifecycle: NativeDraftLifecycle = {
+    kind: 'governed-pre-draft-native-selections-v1',
+    claimsEffectiveDate: '2028-06-20',
+    selections: 'unconsumed-before-draft',
+    tradingWindow: {
+      kind: 'governed-test-seven-draft-window',
+      asOf: '2028-06-20T12:00:00Z',
+      previousDraftCompletedAt: '2027-06-30T23:59:59Z',
+      firstFutureDraftStartsAt: '2028-06-30T00:00:00Z',
+      firstYear: 2028,
+      lastYear: 2034,
+    },
+    retainedFirstIds: [],
+    softwareRetainedFirsts: [],
+  };
+  const ownedByA = Object.entries(after.result!.allocation).find(
+    ([, holder]) => holder === 'AAA'
+  )![0];
+  const ownedByE = Object.entries(after.result!.allocation).find(
+    ([, holder]) => holder === 'EEE'
+  )![0];
+  const transfer: NativeSelectionTransfer = {
+    operationId: 'trade',
+    asOfDate: '2028-06-20',
+    movements: [
+      [ownedByA, 'AAA', 'EEE'],
+      [ownedByE, 'EEE', 'AAA'],
+    ].map(([id, fromTeam, toTeam]) => ({
+      entitlementId: id,
+      originalTeam: id,
+      year: 2028,
+      round: 1,
+      assetKind: 'pick_ownership',
+      fromTeam,
+      toTeam,
+    })),
+  };
+  const claimBefore = structuredClone(after);
+  expect(nativeSelectionHolders(after, [transfer])[ownedByA]).toBe('EEE');
+  expect(nativeSelectionHolders(after, [transfer]).CCC).toBe('CCC');
+  const { catalogue, entitlements } = input();
+  for (const [id, holder] of Object.entries(
+    nativeSelectionHolders(after, [transfer])
+  ))
+    entitlements[id].holderTeam = holder;
+  expect(swapProgram(after, catalogue, entitlements, [transfer])).toEqual(
+    claimBefore
+  );
+  const resolution = DraftSwapReceiptZ.parse({
+    scope: 'governed-simulation-only',
+    worldId: 'world',
+    operationId: 'resolve',
+    catalogueSha256: REAL_DRAFT_REVIEW_PIN.payloadSha256,
+    before: program,
+    after,
+    draftYear: 2028,
+    date: lifecycle.claimsEffectiveDate,
+    nativeLifecycle: lifecycle,
+    movements: program.slots
+      .filter((s) => s.holderTeam !== after.result!.allocation[s.entitlementId])
+      .map((s) => ({
+        entitlementId: s.entitlementId,
+        originalTeam: s.originalTeam,
+        year: 2028,
+        round: 1,
+        assetKind: 'pick_ownership',
+        fromTeam: s.holderTeam,
+        toTeam: after.result!.allocation[s.entitlementId],
+      })),
+  });
+  const trade = DraftReviewMutationReceiptZ.parse({
+    assumptionSha256: 'c'.repeat(64),
+    scope: 'governed-simulation-only',
+    worldId: 'world',
+    operationId: 'trade',
+    releaseId: 'software',
+    releaseSha256: 'a'.repeat(64),
+    asOfDate: transfer.asOfDate,
+    movements: transfer.movements,
+    assumptions: {
+      kind: 'governed-test-assumptions-v1',
+      catalogueSha256: REAL_DRAFT_REVIEW_PIN.payloadSha256,
+      proposalSha256: 'b'.repeat(64),
+      stateDigest: 'digest',
+      asOf: lifecycle.tradingWindow.asOf,
+      branchMode: 'native-selections',
+      ownership: 'stipulated-for-software-tests',
+      otherHoldings: 'unknown-not-empty',
+      nativeTrade: {
+        program: after,
+        lifecycle,
+        resolutionOperationId: 'resolve',
+        transfers: [],
+      },
+    },
+  });
+  const rows = [
+    {
+      mutationType: 'draftConveyance',
+      raw: {
+        operationId: 'resolve',
+        metadata: { swapDraftReceipt: resolution },
+      },
+    },
+    {
+      mutationType: 'executeTrade',
+      raw: { operationId: 'trade', metadata: { draftReviewReceipt: trade } },
+    },
+  ] as ComparisonEventRow[];
+  expect(deriveDraftAssetDelta(rows, 'world', 'CCC')?.restrictions).toContain(
+    'CCC: protected first retained; separate second-round/cash obligation not resolved here'
+  );
+  expect(deriveDraftAssetDelta(rows, 'world', 'AAA')?.restrictions).toContain(
+    `${ownedByE} 2028 first: final pick ${positions[ownedByE as keyof typeof positions]} · held by AAA`
+  );
+  expect(after).toEqual(claimBefore);
+});

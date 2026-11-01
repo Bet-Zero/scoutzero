@@ -112,6 +112,7 @@ export interface TradeExecutionAuthorityResult {
 
 /** Input for the trade execution authority validation. */
 export interface TradeExecutionAuthorityInput {
+  draftReviewAuthority?: unknown;
   worldId: string;
   operationId: string;
   mutationType: string;
@@ -598,13 +599,20 @@ function buildFailure(
  * surface.
  */
 async function validateTradeWorldStateAuthorityGates({
+  operationId,
   worldId,
   mutationType,
   payload,
   computeResult,
+  draftReviewAuthority,
 }: Pick<
   TradeExecutionAuthorityInput,
-  'worldId' | 'mutationType' | 'payload' | 'computeResult'
+  | 'operationId'
+  | 'worldId'
+  | 'mutationType'
+  | 'payload'
+  | 'computeResult'
+  | 'draftReviewAuthority'
 >): Promise<TradeExecutionAuthorityResult | null> {
   // STAGE 2: LEAGUE_INVARIANTS
   // Prevents players from appearing on multiple teams after the trade.
@@ -658,11 +666,19 @@ async function validateTradeWorldStateAuthorityGates({
 
   // STAGE 4: ENTITLEMENT_EXCLUSIVITY
   // Validates per-team and league-wide entitlement exclusivity constraints.
-  const exclusivityResult = await validateTradeApplyExclusivity(
-    worldId,
-    mutationType,
-    computeResult
+  const { validateNativeTradeApply } = await import(
+    '../draftReview/nativeTradeApply'
   );
+  const nativeInventory =
+    draftReviewAuthority !== undefined
+      ? validateNativeTradeApply(draftReviewAuthority, computeResult, {
+          worldId,
+          operationId,
+        })
+      : null;
+  const exclusivityResult =
+    nativeInventory ??
+    (await validateTradeApplyExclusivity(worldId, mutationType, computeResult));
 
   if (!exclusivityResult.valid) {
     return buildFailure(
@@ -744,10 +760,12 @@ export async function validateTradeExecutionAuthority(
 
   const worldStateAuthorityFailure =
     await validateTradeWorldStateAuthorityGates({
+      operationId,
       worldId,
       mutationType,
       payload,
       computeResult,
+      draftReviewAuthority: input.draftReviewAuthority,
     });
 
   if (worldStateAuthorityFailure) {

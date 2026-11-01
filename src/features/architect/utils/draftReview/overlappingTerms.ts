@@ -31,6 +31,14 @@ export async function requireAdmittedOverlappingEvent(
 ) {
   const metadata = event.metadata;
   if (!metadata || typeof metadata !== 'object') return;
+  const trade = Reflect.get(metadata, 'draftReviewReceipt');
+  if (
+    trade?.assumptions?.nativeTrade?.program?.kind ===
+    'native-overlapping-pool-v1'
+  )
+    await requireAdmittedOverlappingTerms(
+      trade.assumptions.nativeTrade.program
+    );
   const receipt = Reflect.get(metadata, 'swapDraftReceipt');
   if (!receipt || typeof receipt !== 'object') return;
   const before = Reflect.get(receipt, 'before');

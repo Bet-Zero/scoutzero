@@ -1,3 +1,7 @@
+import {
+  nativeLifecycle,
+  requireNativeSelectionTradeAdmission,
+} from './draftReview/nativeTrading';
 import { prepareSwapDraft } from './draftReview/swapDraft';
 import { preparePenaltyDraft } from './draftReview/penaltyDraft';
 import { placementLine } from './draftReview/penaltyPlacement';
@@ -61,7 +65,24 @@ export async function advanceConditionalDraftInWorld(
     calendar.filter((c) => c.year === request.draftYear).length !== 1
   )
     throw new Error('The governed test draft date is missing or conflicting.');
-  const date = calendar.find((c) => c.year === request.draftYear)?.date;
+  const draftDate = calendar.find((c) => c.year === request.draftYear)?.date;
+  const lifecycle =
+    metadata.draftNativeLifecycle === undefined
+      ? null
+      : nativeLifecycle(metadata.draftNativeLifecycle, request.draftYear);
+  if (
+    lifecycle &&
+    (!state.swap ||
+      state.swap.kind === 'ordered-swap-pool-v1' ||
+      lifecycle.tradingWindow.firstFutureDraftStartsAt.slice(0, 10) !==
+        draftDate ||
+      (metadata.draftNativeTransfers?.length ?? 0))
+  )
+    throw new Error(
+      'The pre-draft lifecycle must precede all selection transfers and match the draft calendar.'
+    );
+  if (lifecycle && state.swap) requireNativeSelectionTradeAdmission(state.swap);
+  const date = lifecycle?.claimsEffectiveDate ?? draftDate;
   if (
     typeof date !== 'string' ||
     !new RegExp(`^${request.draftYear}-06-(0[1-9]|[12][0-9]|30)$`).test(date) ||
@@ -246,6 +267,7 @@ export async function advanceConditionalDraftInWorld(
                 movements: swap.movements,
                 draftYear: request.draftYear,
                 date,
+                ...(lifecycle ? { nativeLifecycle: lifecycle } : {}),
               }),
             }
           : {
@@ -260,6 +282,7 @@ export async function advanceConditionalDraftInWorld(
                 positions: request.positions,
                 draftYear: request.draftYear,
                 date,
+                ...(lifecycle ? { nativeLifecycle: lifecycle } : {}),
               }),
             }),
     },

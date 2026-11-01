@@ -1,3 +1,6 @@
+import { DraftReviewMutationReceiptZ } from '@/schemas/draftPickReviewMutation';
+import { NativeSelectionTransfersZ } from '@/schemas/draftNativeTrading';
+import { nativeTradeDate, requireSameNativeValue } from './nativeTrading';
 import { DraftSwapReceiptZ } from '@/schemas/draftSwapReceipt';
 import { DraftApronPlanReferenceZ } from '@/schemas/draftApronSimulation';
 import { preparePenaltyDraft } from './penaltyDraft';
@@ -75,7 +78,12 @@ export async function loadConditionalWorld(worldId: string) {
   );
   const swap =
     metadata.draftSimulationBranches === 'swap-program'
-      ? swapProgram(metadata.draftSwapProgram, catalogue, entitlements)
+      ? swapProgram(
+          metadata.draftSwapProgram,
+          catalogue,
+          entitlements,
+          metadata.draftNativeTransfers
+        )
       : null;
   if (swap?.kind === 'native-overlapping-pool-v1')
     await requireAdmittedOverlappingTerms(swap);
@@ -185,15 +193,73 @@ export async function loadConditionalWorld(worldId: string) {
       receipt.data.operationId !== event.data()?.operationId ||
       receipt.data.catalogueSha256 !== metadata.draftSimulationCatalogue ||
       receipt.data.date !==
-        metadata.draftSimulationCalendar?.find(
-          (entry: { year: number }) => entry.year === swap.year
-        )?.date ||
+        (metadata.draftNativeLifecycle?.claimsEffectiveDate ??
+          metadata.draftSimulationCalendar?.find(
+            (entry: { year: number }) => entry.year === swap.year
+          )?.date) ||
+      mutationSnapshotText(receipt.data.nativeLifecycle ?? null) !==
+        mutationSnapshotText(metadata.draftNativeLifecycle ?? null) ||
       mutationSnapshotText(receipt.data.after) !== mutationSnapshotText(swap)
     )
       throw new Error(
         'Saved native allocation requires its matching committed receipt.'
       );
     snapshots[event.ref.path] = mutationSnapshotText(event.data());
+    const history = NativeSelectionTransfersZ.parse(
+      metadata.draftNativeTransfers ?? []
+    );
+    for (let i = 0; i < history.length; i++) {
+      const entry = history[i];
+      nativeTradeDate(
+        swap,
+        metadata.draftNativeLifecycle,
+        history.slice(0, i),
+        entry.asOfDate
+      );
+      if (entry.asOfDate > metadata.asOfDate)
+        throw new Error('A saved transfer is later than the world clock.');
+      const trade = await getDoc(
+        doc(
+          root,
+          ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
+          `draft_review_${entry.operationId}`
+        )
+      );
+      const parsed = DraftReviewMutationReceiptZ.safeParse(
+        trade.data()?.metadata?.draftReviewReceipt
+      );
+      if (
+        !parsed.success ||
+        parsed.data.worldId !== worldId ||
+        parsed.data.operationId !== entry.operationId ||
+        trade.data()?.operationId !== entry.operationId ||
+        parsed.data.releaseId !== catalogue.release.foundation.release.id ||
+        parsed.data.releaseSha256 !== catalogue.release.payloadSha256
+      )
+        throw new Error(
+          'Every native selection transfer needs its committed trade receipt.'
+        );
+      requireSameNativeValue(
+        parsed.data.assumptions?.nativeTrade,
+        {
+          program: swap,
+          lifecycle: metadata.draftNativeLifecycle,
+          resolutionOperationId: receipt.data.operationId,
+          transfers: history.slice(0, i),
+        },
+        'Native selection receipt does not follow its original resolution and predecessor.'
+      );
+      requireSameNativeValue(
+        {
+          operationId: parsed.data.operationId,
+          asOfDate: parsed.data.asOfDate,
+          movements: parsed.data.movements,
+        },
+        entry,
+        'Native selection history differs from its committed trade.'
+      );
+      snapshots[trade.ref.path] = mutationSnapshotText(trade.data());
+    }
   }
   const state = {
     apron,

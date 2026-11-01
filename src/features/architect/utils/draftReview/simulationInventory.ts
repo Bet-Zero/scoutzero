@@ -1,3 +1,4 @@
+import { nativeLifecycle } from './nativeTrading';
 import { swapProgram } from './swapProgram';
 /** Retained source identity and software assumptions stay separate. No writes. */
 import {
@@ -103,7 +104,12 @@ export function assertSimulationInventory(
     );
   const swap =
     metadata.draftSimulationBranches === 'swap-program'
-      ? swapProgram(metadata.draftSwapProgram, catalogue, entitlements)
+      ? swapProgram(
+          metadata.draftSwapProgram,
+          catalogue,
+          entitlements,
+          metadata.draftNativeTransfers
+        )
       : null;
   if (!swap && metadata.draftSwapProgram !== undefined)
     throw new Error('Swap terms require their explicit governed review mode.');
@@ -116,6 +122,12 @@ export function assertSimulationInventory(
     Number(String(metadata.currentSeason).slice(0, 4)) + 1 > swap.year
   )
     throw new Error('An unresolved swap draft was skipped.');
+  const lifecycle =
+    metadata.draftNativeLifecycle === undefined
+      ? null
+      : nativeLifecycle(metadata.draftNativeLifecycle, swap?.year ?? 0);
+  if (lifecycle && (!swap || swap.kind === 'ordered-swap-pool-v1'))
+    throw new Error('Pre-draft selections require a native family.');
   if (swap?.result) {
     const date = Array.isArray(metadata.draftSimulationCalendar)
       ? metadata.draftSimulationCalendar.filter((d) => d?.year === swap.year)
@@ -127,10 +139,16 @@ export function assertSimulationInventory(
         date[0].date
       ) ||
       typeof metadata.asOfDate !== 'string' ||
-      date[0].date > metadata.asOfDate ||
+      (lifecycle?.claimsEffectiveDate ?? date[0].date) > metadata.asOfDate ||
       swap.year > Number(String(metadata.currentSeason).slice(0, 4)) + 1
     )
       throw new Error('The resolved swap and saved date disagree.');
+    if (
+      lifecycle &&
+      date[0].date !==
+        lifecycle.tradingWindow.firstFutureDraftStartsAt.slice(0, 10)
+    )
+      throw new Error('Native lifecycle and draft calendar disagree.');
   }
   for (const program of programs) {
     if (!teamsInScope.includes(program.originalTeam))
