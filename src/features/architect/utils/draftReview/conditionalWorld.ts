@@ -1,3 +1,4 @@
+import { DraftSwapReceiptZ } from '@/schemas/draftSwapReceipt';
 import { DraftApronPlanReferenceZ } from '@/schemas/draftApronSimulation';
 import { preparePenaltyDraft } from './penaltyDraft';
 import { readPenaltyPlacementReceipt } from './penaltyPlacement';
@@ -167,6 +168,29 @@ export async function loadConditionalWorld(worldId: string) {
         );
       snapshots[event.ref.path] = mutationSnapshotText(event.data());
     }
+  }
+  if (swap?.kind === 'native-ranked-pool-v1' && swap.result) {
+    const event = await getDoc(
+      doc(root, ARCHITECT_WORLD_EVENTS_SUBCOLLECTION, `swapDraft__${swap.year}`)
+    );
+    const receipt = DraftSwapReceiptZ.safeParse(
+      event.data()?.metadata?.swapDraftReceipt
+    );
+    if (
+      !receipt.success ||
+      receipt.data.worldId !== worldId ||
+      receipt.data.operationId !== event.data()?.operationId ||
+      receipt.data.catalogueSha256 !== metadata.draftSimulationCatalogue ||
+      receipt.data.date !==
+        metadata.draftSimulationCalendar?.find(
+          (entry: { year: number }) => entry.year === swap.year
+        )?.date ||
+      mutationSnapshotText(receipt.data.after) !== mutationSnapshotText(swap)
+    )
+      throw new Error(
+        'Saved native allocation requires its matching committed receipt.'
+      );
+    snapshots[event.ref.path] = mutationSnapshotText(event.data());
   }
   const state = {
     apron,

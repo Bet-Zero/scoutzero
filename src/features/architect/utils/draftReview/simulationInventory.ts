@@ -223,7 +223,10 @@ export function assertSimulationInventory(
       );
     if (
       holder !== initialHolder &&
-      id !== swap?.tradedRightId &&
+      id !==
+        (swap?.kind === 'ordered-swap-pool-v1'
+          ? swap.tradedRightId
+          : undefined) &&
       !simulationOriginals(
         catalogue,
         originalTeams,

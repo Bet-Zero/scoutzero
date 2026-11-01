@@ -23,6 +23,7 @@ import {
   APRON_FREEZE_SCREENSHOTS,
   APRON_MULTISEASON_SCREENSHOTS,
   PENALTY_PLACEMENT_SCREENSHOTS,
+  NATIVE_POOL_SCREENSHOTS,
   resolveProofIdentity,
   runTradeReceiptProof,
   verifyGovernedScreenshotArtifacts,
@@ -504,6 +505,21 @@ test('draft review evidence requires History, Compare and reload for both teams'
 });
 
 test('retained simulation rejects mixed or incomplete proof inputs before launch', async () => {
+  await assert.rejects(
+    runTradeReceiptProof(
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true
+    ),
+    /Select one lifecycle proof/
+  );
   for (const mode of [
     [true, false, false],
     [false, true, false],
@@ -517,6 +533,21 @@ test('retained simulation rejects mixed or incomplete proof inputs before launch
   const previous = process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE;
   delete process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE;
   try {
+    await assert.rejects(
+      runTradeReceiptProof(
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ),
+      /private catalogue and actual cloud baseline/
+    );
     await assert.rejects(
       runTradeReceiptProof(false, false, false, true),
       /private catalogue and actual cloud baseline/
@@ -563,6 +594,18 @@ test('retained simulation rejects mixed or incomplete proof inputs before launch
     if (previous !== undefined)
       process.env.SCOUTZERO_DRAFT_SIMULATION_BASELINE = previous;
   }
+});
+
+test('native pool proof covers both ownership outcomes and all affected team views', () => {
+  assert.equal(NATIVE_POOL_SCREENSHOTS.length, 36);
+  for (const mode of ['retain', 'exchange'])
+    for (const index of [0, 1, 2, 3])
+      for (const view of ['history', 'compare', 'reload', 'assets'])
+        assert(
+          NATIVE_POOL_SCREENSHOTS.some(
+            (s) => s.key === `${mode}-${index}-${view}`
+          )
+        );
 });
 
 test('Apron freeze certification requires saved restriction, refused and permitted trades and both teams after reload', () => {

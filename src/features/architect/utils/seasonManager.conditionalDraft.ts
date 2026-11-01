@@ -70,6 +70,11 @@ export async function advanceConditionalDraftInWorld(
     throw new Error(
       'The draft date must advance this test world without changing seasons.'
     );
+  if (
+    state.swap?.kind === 'native-ranked-pool-v1' &&
+    request.expectedDraftStateDigest !== mutationSnapshotDigest(state.snapshots)
+  )
+    throw new Error('Native claim inputs changed; prepare the draft again.');
   const swap = state.swap
     ? prepareSwapDraft(
         state,

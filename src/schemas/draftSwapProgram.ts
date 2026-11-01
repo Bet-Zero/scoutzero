@@ -1,3 +1,4 @@
+import { DraftNativePoolProgramZ } from './draftNativePool';
 /** Explicit ordered simulator terms. These are not qualified NBA facts. */
 import { z } from 'zod';
 const id = z.string().min(1);
@@ -83,3 +84,10 @@ export const DraftSwapProgramZ = z
       fail('Every participant must belong to an explicit pool.');
   });
 export type DraftSwapProgram = z.infer<typeof DraftSwapProgramZ>;
+
+/** Both programs use the same saved draft resolver and receipt path. */
+export const DraftClaimProgramZ = z.union([
+  DraftSwapProgramZ,
+  DraftNativePoolProgramZ,
+]);
+export type DraftClaimProgram = z.infer<typeof DraftClaimProgramZ>;

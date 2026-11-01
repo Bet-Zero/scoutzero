@@ -42,31 +42,39 @@ export function swapAssets(
           (p) => p.entitlementId === id
         )
           ? `Final pick ${placement.positions.find((p) => p.entitlementId === id)!.position}${placement.positions.find((p) => p.entitlementId === id)!.penalized ? ' · draft-pick penalty' : ''}`
-          : state.apron && original.draftYear === 2033
-            ? apronRestrictionText(
-                apronInputFromHistory(
-                  original.originalTeam,
-                  2033,
-                  state.apron.history,
-                  `${String(state.metadata.asOfDate)}T12:00:00-04:00`,
-                  state.apron.plan
+          : state.swap?.result &&
+              state.swap.slots.some((s) => s.entitlementId === id)
+            ? `Final pick ${state.swap.result.positions[original.originalTeam]}`
+            : state.apron && original.draftYear === 2033
+              ? apronRestrictionText(
+                  apronInputFromHistory(
+                    original.originalTeam,
+                    2033,
+                    state.apron.history,
+                    `${String(state.metadata.asOfDate)}T12:00:00-04:00`,
+                    state.apron.plan
+                  )
                 )
-              )
-            : null,
+              : null,
         isSwap: false,
       });
       firstRoundCount++;
     } else {
-      const step = state.swap?.steps.find((s) => s.rightId === id);
+      const legacy =
+        state.swap?.kind === 'ordered-swap-pool-v1' ? state.swap : null;
+      const step = legacy?.steps.find((s) => s.rightId === id);
       const origin = step
-        ? state.swap!.slots.find((s) => s.entitlementId === step.controllerId)!
+        ? legacy!.slots.find((s) => s.entitlementId === step.controllerId)!
             .originalTeam
         : null;
+      const archival =
+        state.catalogue.data.records.find((r) => r.entitlementId === id)
+          ?.role === 'generated-alias';
       group.rights!.push({
         key: id,
-        label: `${origin ?? String(e.holderTeam)} ${e.kind === 'swap_right' ? 'swap right' : 'conditional right'}${step && state.swap?.result ? ' — resolved' : ''}`,
+        label: `${state.catalogue.data.records.find((r) => r.entitlementId === id)?.role === 'generated-alias' ? 'Archival record — not an executable right · ' : ''}${origin ?? String(e.holderTeam)} ${e.kind === 'swap_right' ? 'swap right' : 'conditional right'}${step && state.swap?.result ? ' — resolved' : ''}`,
       });
-      rightCount++;
+      if (!archival) rightCount++;
     }
     groups.set(group.year, group);
   }

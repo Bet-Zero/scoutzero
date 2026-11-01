@@ -1,4 +1,5 @@
-import { resolveSwapProgram } from './swapProgram';
+import { resolveDraftClaimProgram } from './swapProgram';
+import { nativePoolLines } from './nativePool';
 import type { loadConditionalWorld } from './conditionalWorld';
 export function prepareSwapDraft(
   state: Awaited<ReturnType<typeof loadConditionalWorld>>,
@@ -9,6 +10,41 @@ export function prepareSwapDraft(
   const program = state.swap;
   if (!program || program.year !== year || program.result)
     throw new Error('No unresolved swap pool is due in this draft.');
+  if (program.kind === 'native-ranked-pool-v1') {
+    const updated = resolveDraftClaimProgram(program, positions, elections);
+    if (updated.kind !== 'native-ranked-pool-v1')
+      throw new Error('Native claim kind changed.');
+    const entitlements = structuredClone(state.entitlements);
+    const affected = new Set([
+      ...program.slots.flatMap((s) => [s.originalTeam, s.holderTeam]),
+      program.nativePool.beneficiaryTeam,
+      program.nativePool.residualTeam,
+    ]);
+    const movements = program.slots.flatMap((s) => {
+      const toTeam = updated.result!.allocation[s.entitlementId];
+      entitlements[s.entitlementId].holderTeam = toTeam;
+      return toTeam === s.holderTeam
+        ? []
+        : [
+            {
+              entitlementId: s.entitlementId,
+              originalTeam: s.originalTeam,
+              year,
+              round: 1 as const,
+              fromTeam: s.holderTeam,
+              toTeam,
+              assetKind: 'pick_ownership' as const,
+            },
+          ];
+    });
+    return {
+      updated,
+      entitlements,
+      affected,
+      lines: nativePoolLines(updated),
+      movements,
+    };
+  }
   const controller = program.slots.find(
     (s) =>
       s.entitlementId ===
@@ -22,7 +58,7 @@ export function prepareSwapDraft(
     throw new Error(
       'Transfer the swap right to the return-selection owner before resolving it.'
     );
-  const updated = resolveSwapProgram(program, positions, elections);
+  const updated = resolveDraftClaimProgram(program, positions, elections);
   const entitlements = structuredClone(state.entitlements);
   const affected = new Set([
     program.grantorTeam,

@@ -11,6 +11,18 @@ import { AUTHORITATIVE_WORLD_TEAM_CODES } from '../../src/features/architect/uti
 const PROOF_SPEC = 'tests/e2e/architect-trade-receipt-proof.spec.ts';
 const PROOF_PORTS = [5173, 8082, 9099, 5001, 4001, 4400, 4500, 9150];
 
+export const NATIVE_POOL_SCREENSHOTS = ['retain', 'exchange']
+  .flatMap((mode) => [
+    `${mode}-prepared`,
+    `${mode}-resolved`,
+    ...[0, 1, 2, 3].flatMap((index) =>
+      ['history', 'compare', 'reload', 'assets'].map(
+        (state) => `${mode}-${index}-${state}`
+      )
+    ),
+  ])
+  .map((key) => ({ key, filename: `${key}-1280x720.png` }));
+
 export const PENALTY_PLACEMENT_SCREENSHOTS = ['single', 'multiple']
   .flatMap((mode) => [
     `${mode}-season-2032`,
@@ -369,7 +381,8 @@ export async function runTradeReceiptProof(
   swapLifecycle = false,
   apronFreeze = false,
   apronMultiseason = false,
-  penaltyPlacement = false
+  penaltyPlacement = false,
+  nativePool = false
 ): Promise<number> {
   if (
     [
@@ -378,6 +391,7 @@ export async function runTradeReceiptProof(
       apronFreeze,
       apronMultiseason,
       penaltyPlacement,
+      nativePool,
     ].filter(Boolean).length > 1
   )
     throw new Error('Select one lifecycle proof.');
@@ -387,7 +401,8 @@ export async function runTradeReceiptProof(
     swapLifecycle ||
     apronFreeze ||
     apronMultiseason ||
-    penaltyPlacement;
+    penaltyPlacement ||
+    nativePool;
   if (retainedSimulation && (realDraft || draftReview || draftSeason))
     throw new Error('Governed retained simulation is a separate proof scope.');
   if (
@@ -398,6 +413,11 @@ export async function runTradeReceiptProof(
     throw new Error(
       'Retained simulation requires the private catalogue and actual cloud baseline paths.'
     );
+  if (nativePool && !process.env.SCOUTZERO_DRAFT_NATIVE_POOL)
+    throw new Error('Private source-linked native terms required.');
+  const nativeTermsSha256 = nativePool
+    ? hashFile(process.env.SCOUTZERO_DRAFT_NATIVE_POOL!)
+    : null;
   const simulationInputHashes = retainedSimulation
     ? {
         release: hashFile(process.env.SCOUTZERO_DRAFT_REVIEW_RELEASE!),
@@ -424,46 +444,50 @@ export async function runTradeReceiptProof(
       }
     : null;
   const identity = resolveProofIdentity();
-  const definitions = penaltyPlacement
-    ? PENALTY_PLACEMENT_SCREENSHOTS
-    : apronMultiseason
-      ? APRON_MULTISEASON_SCREENSHOTS
-      : apronFreeze
-        ? APRON_FREEZE_SCREENSHOTS
-        : swapLifecycle
-          ? SWAP_LIFECYCLE_SCREENSHOTS
-          : conditionalLifecycle
-            ? CONDITIONAL_LIFECYCLE_SCREENSHOTS
-            : retainedSimulation
-              ? RETAINED_SIMULATION_SCREENSHOTS
-              : realDraft
-                ? REAL_DRAFT_SCREENSHOTS
-                : draftReview
-                  ? DRAFT_REVIEW_SCREENSHOTS
-                  : GOVERNED_TRADE_RECEIPT_SCREENSHOTS;
+  const definitions = nativePool
+    ? NATIVE_POOL_SCREENSHOTS
+    : penaltyPlacement
+      ? PENALTY_PLACEMENT_SCREENSHOTS
+      : apronMultiseason
+        ? APRON_MULTISEASON_SCREENSHOTS
+        : apronFreeze
+          ? APRON_FREEZE_SCREENSHOTS
+          : swapLifecycle
+            ? SWAP_LIFECYCLE_SCREENSHOTS
+            : conditionalLifecycle
+              ? CONDITIONAL_LIFECYCLE_SCREENSHOTS
+              : retainedSimulation
+                ? RETAINED_SIMULATION_SCREENSHOTS
+                : realDraft
+                  ? REAL_DRAFT_SCREENSHOTS
+                  : draftReview
+                    ? DRAFT_REVIEW_SCREENSHOTS
+                    : GOVERNED_TRADE_RECEIPT_SCREENSHOTS;
   const artifactDir = path.join(
     identity.repoRoot,
     'tmp',
     'browser-proofs',
-    penaltyPlacement
-      ? 'penalty-placement'
-      : apronMultiseason
-        ? 'apron-multiseason'
-        : apronFreeze
-          ? 'apron-freeze'
-          : swapLifecycle
-            ? 'swap-draft-lifecycle'
-            : conditionalLifecycle
-              ? 'conditional-draft-lifecycle'
-              : retainedSimulation
-                ? 'retained-draft-simulation'
-                : realDraft
-                  ? 'real-draft-review'
-                  : draftSeason
-                    ? 'draft-season'
-                    : draftReview
-                      ? 'draft-review'
-                      : 'trade-receipt',
+    nativePool
+      ? 'native-draft-pool'
+      : penaltyPlacement
+        ? 'penalty-placement'
+        : apronMultiseason
+          ? 'apron-multiseason'
+          : apronFreeze
+            ? 'apron-freeze'
+            : swapLifecycle
+              ? 'swap-draft-lifecycle'
+              : conditionalLifecycle
+                ? 'conditional-draft-lifecycle'
+                : retainedSimulation
+                  ? 'retained-draft-simulation'
+                  : realDraft
+                    ? 'real-draft-review'
+                    : draftSeason
+                      ? 'draft-season'
+                      : draftReview
+                        ? 'draft-review'
+                        : 'trade-receipt',
     `${identity.candidate}-${timestampSlug()}`
   );
   const testResultsDir = path.join(artifactDir, 'test-results');
@@ -533,25 +557,27 @@ export async function runTradeReceiptProof(
 
   const commandArgs = [
     'test',
-    penaltyPlacement
-      ? 'tests/e2e/architect-penalty-placement.spec.ts'
-      : apronMultiseason
-        ? 'tests/e2e/architect-apron-multiseason.spec.ts'
-        : apronFreeze
-          ? 'tests/e2e/architect-apron-freeze.spec.ts'
-          : swapLifecycle
-            ? 'tests/e2e/architect-swap-draft.spec.ts'
-            : conditionalLifecycle
-              ? 'tests/e2e/architect-conditional-draft.spec.ts'
-              : retainedSimulation
-                ? 'tests/e2e/architect-retained-draft-simulation.spec.ts'
-                : realDraft
-                  ? 'tests/e2e/architect-real-draft-review-proof.spec.ts'
-                  : draftSeason
-                    ? 'tests/e2e/architect-draft-season-proof.spec.ts'
-                    : draftReview
-                      ? 'tests/e2e/architect-draft-review-proof.spec.ts'
-                      : PROOF_SPEC,
+    nativePool
+      ? 'tests/e2e/architect-native-draft-pool.spec.ts'
+      : penaltyPlacement
+        ? 'tests/e2e/architect-penalty-placement.spec.ts'
+        : apronMultiseason
+          ? 'tests/e2e/architect-apron-multiseason.spec.ts'
+          : apronFreeze
+            ? 'tests/e2e/architect-apron-freeze.spec.ts'
+            : swapLifecycle
+              ? 'tests/e2e/architect-swap-draft.spec.ts'
+              : conditionalLifecycle
+                ? 'tests/e2e/architect-conditional-draft.spec.ts'
+                : retainedSimulation
+                  ? 'tests/e2e/architect-retained-draft-simulation.spec.ts'
+                  : realDraft
+                    ? 'tests/e2e/architect-real-draft-review-proof.spec.ts'
+                    : draftSeason
+                      ? 'tests/e2e/architect-draft-season-proof.spec.ts'
+                      : draftReview
+                        ? 'tests/e2e/architect-draft-review-proof.spec.ts'
+                        : PROOF_SPEC,
     '--workers=1',
     '--project=chromium',
     '--reporter=line,html',
@@ -638,7 +664,10 @@ export async function runTradeReceiptProof(
               timeout:
                 penaltyPlacement || apronMultiseason
                   ? 3600000
-                  : conditionalLifecycle || swapLifecycle || apronFreeze
+                  : conditionalLifecycle ||
+                      swapLifecycle ||
+                      apronFreeze ||
+                      nativePool
                     ? 1200000
                     : 240000,
             }
@@ -743,6 +772,11 @@ export async function runTradeReceiptProof(
         JSON.parse(
           fs.readFileSync(path.join(artifactDir, 'negative-proof.json'), 'utf8')
         ).candidate === identity.candidate)) &&
+    (!nativeTermsSha256 ||
+      (nativeTermsSha256 ===
+        hashFile(process.env.SCOUTZERO_DRAFT_NATIVE_POOL!) &&
+        JSON.parse(fs.readFileSync(proofPath, 'utf8')).nativeTermsSha256 ===
+          nativeTermsSha256)) &&
     (!functionsBuild ||
       functionsBuild.artifacts.every(
         (file) =>
@@ -753,33 +787,36 @@ export async function runTradeReceiptProof(
 
   const manifest = {
     schemaVersion: 1,
-    proof: penaltyPlacement
-      ? 'governed-final-draft-penalty-placement'
-      : apronMultiseason
-        ? 'governed-apron-multiseason'
-        : apronFreeze
-          ? 'governed-apron-freeze'
-          : swapLifecycle
-            ? 'Ordered swap-right trade and saved-world allocation (governed test assumptions; production disabled)'
-            : conditionalLifecycle
-              ? 'Conditional first-round trade and saved-world lifecycle (governed test assumptions; production disabled)'
-              : retainedSimulation
-                ? 'Retained pick identities with governed test assumptions (not verified NBA legality; production disabled)'
-                : realDraft
-                  ? 'Real retained first-round evidence in Trade Machine (read-only; production Apply disabled)'
-                  : draftSeason
-                    ? 'Synthetic freeze season record and subsequent first-round trade (production disabled)'
-                    : draftReview
-                      ? 'Synthetic first-round review mutation (production disabled)'
-                      : 'Architect Trade Machine / Trade Receipt',
+    proof: nativePool
+      ? 'Source-native ranked pool in a governed saved world'
+      : penaltyPlacement
+        ? 'governed-final-draft-penalty-placement'
+        : apronMultiseason
+          ? 'governed-apron-multiseason'
+          : apronFreeze
+            ? 'governed-apron-freeze'
+            : swapLifecycle
+              ? 'Ordered swap-right trade and saved-world allocation (governed test assumptions; production disabled)'
+              : conditionalLifecycle
+                ? 'Conditional first-round trade and saved-world lifecycle (governed test assumptions; production disabled)'
+                : retainedSimulation
+                  ? 'Retained pick identities with governed test assumptions (not verified NBA legality; production disabled)'
+                  : realDraft
+                    ? 'Real retained first-round evidence in Trade Machine (read-only; production Apply disabled)'
+                    : draftSeason
+                      ? 'Synthetic freeze season record and subsequent first-round trade (production disabled)'
+                      : draftReview
+                        ? 'Synthetic first-round review mutation (production disabled)'
+                        : 'Architect Trade Machine / Trade Receipt',
     base: identity.originMain,
     candidate: identity.candidate,
     upstream: identity.upstream,
     mergeBase: identity.mergeBase,
     viewport: { width: 1280, height: 720 },
-    command: `npm run architect:proof:trade-receipt${penaltyPlacement ? ' -- --penalty-placement' : apronMultiseason ? ' -- --apron-multiseason' : apronFreeze ? ' -- --apron-freeze' : swapLifecycle ? ' -- --swap-lifecycle' : conditionalLifecycle ? ' -- --conditional-lifecycle' : retainedSimulation ? ' -- --retained-simulation' : realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
+    command: `npm run architect:proof:trade-receipt${nativePool ? ' -- --native-pool' : penaltyPlacement ? ' -- --penalty-placement' : apronMultiseason ? ' -- --apron-multiseason' : apronFreeze ? ' -- --apron-freeze' : swapLifecycle ? ' -- --swap-lifecycle' : conditionalLifecycle ? ' -- --conditional-lifecycle' : retainedSimulation ? ' -- --retained-simulation' : realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
     privateInputHashes,
     simulationInputHashes,
+    nativeTermsSha256,
     playwright: commandArgs,
     startedAt,
     completedAt: new Date().toISOString(),
@@ -866,7 +903,8 @@ if (isMainModule()) {
     process.argv.includes('--swap-lifecycle'),
     process.argv.includes('--apron-freeze'),
     process.argv.includes('--apron-multiseason'),
-    process.argv.includes('--penalty-placement')
+    process.argv.includes('--penalty-placement'),
+    process.argv.includes('--native-pool')
   )
     .then((code) => {
       process.exitCode = code;
