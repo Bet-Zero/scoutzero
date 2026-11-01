@@ -6,6 +6,7 @@
  * HISTORY:
  *  - 2026-10-24: Created
  *  - 2026-10-31: Leads into setting the line instead of the cut-line rounds
+ *  - 2026-11-01: Fixed-height lock tray so locking never shifts the page
  *
  * LINKS:
  *  - Used in: src/features/ranker/FieldBuilder.tsx
@@ -55,11 +56,35 @@ export const FieldLocks = ({
   const rest = bestFirst.filter((id) => !locked.has(id));
   const full = spotsLeft(state) === 0;
 
+  const trayRef = React.useRef<HTMLDivElement>(null);
+  const lastLocked = React.useRef<string | null>(null);
+
   const toggle = (id: string) => {
     if (locked.has(id))
       onChange({ ...state, locks: state.locks.filter((l) => l !== id) });
-    else if (!full) onChange({ ...state, locks: [...state.locks, id] });
+    else if (!full) {
+      lastLocked.current = id;
+      onChange({ ...state, locks: [...state.locks, id] });
+    }
   };
+
+  // Bring a newly locked chip into view inside the tray (it may land on a
+  // scrolled-off row). Scrolls only the tray, never the page.
+  React.useEffect(() => {
+    const id = lastLocked.current;
+    const tray = trayRef.current;
+    lastLocked.current = null;
+    if (!id || !tray) return;
+    const chip = Array.from(tray.children).find(
+      (el): el is HTMLElement =>
+        el instanceof HTMLElement && el.dataset.lockId === id
+    );
+    if (!chip) return;
+    const top = chip.offsetTop;
+    if (top < tray.scrollTop) tray.scrollTop = top;
+    else if (top + chip.offsetHeight > tray.scrollTop + tray.clientHeight)
+      tray.scrollTop = top + chip.offsetHeight - tray.clientHeight;
+  }, [state.locks]);
 
   return (
     <section aria-label="Locks" className="flex flex-col gap-4">
@@ -74,26 +99,42 @@ export const FieldLocks = ({
         </p>
       </div>
 
-      {state.locks.length > 0 && (
-        <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
-          <p className="text-xs text-white/40 mb-2">
-            Locked ({state.locks.length}): tap to unlock
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {bestFirst
+      {/* Fixed-height tray: always rendered and never grows, so locking a
+          player never pushes the candidate grid down. Overflow scrolls inside. */}
+      <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
+        <p className="text-xs text-white/40 mb-2">
+          {state.locks.length > 0
+            ? `Locked (${state.locks.length}): tap to unlock`
+            : 'Locked (0)'}
+        </p>
+        <div
+          ref={trayRef}
+          className="relative h-14 overflow-y-auto overscroll-contain flex flex-wrap content-start gap-1.5"
+        >
+          {state.locks.length === 0 ? (
+            <p className="text-xs text-white/25 self-center">
+              Tap a player below to lock them in.
+            </p>
+          ) : (
+            bestFirst
               .filter((id) => locked.has(id))
-              .map((id) => (
-                <button
-                  key={id}
-                  onClick={() => toggle(id)}
-                  className="px-2 py-1 rounded-md bg-emerald-500/15 text-emerald-300 text-xs hover:bg-emerald-500/25"
-                >
-                  {getPlayerName(playersById.get(id) as RankerPlayer)}
-                </button>
-              ))}
-          </div>
+              .map((id) => {
+                const name = getPlayerName(playersById.get(id) as RankerPlayer);
+                return (
+                  <button
+                    key={id}
+                    data-lock-id={id}
+                    onClick={() => toggle(id)}
+                    aria-label={`Unlock ${name}`}
+                    className="h-6 px-2 rounded-md bg-emerald-500/15 text-emerald-300 text-xs hover:bg-emerald-500/25"
+                  >
+                    {name}
+                  </button>
+                );
+              })
+          )}
         </div>
-      )}
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
         {rest.map((id) => {
