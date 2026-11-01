@@ -1,3 +1,8 @@
+import {
+  DraftClaimProgramZ,
+  type DraftClaimProgram,
+} from '@/schemas/draftSwapProgram';
+import { nativePoolProgram } from './nativePool';
 /** Ordered exchange of selections within fully specified governed pools. */
 import {
   DraftSwapProgramZ,
@@ -94,7 +99,25 @@ export function swapProgram(
   catalogue: SimulationCatalogue,
   entitlements: Record<string, Record<string, unknown>>
 ) {
-  const p = DraftSwapProgramZ.parse(input);
+  const parsed = DraftClaimProgramZ.parse(input);
+  if (parsed.kind === 'native-ranked-pool-v1') {
+    const p = nativePoolProgram(parsed, catalogue, entitlements);
+    if (
+      p.result &&
+      canonicalStringify(
+        resolveDraftClaimProgram(
+          { ...p, result: null },
+          p.result.positions,
+          p.result.elections
+        ).result
+      ) !== canonicalStringify(p.result)
+    )
+      throw new Error(
+        'Recorded native allocation contradicts its complete inputs.'
+      );
+    return p;
+  }
+  const p = parsed;
   const originals = catalogue.data.records.filter((r) => r.originalPick);
   for (const slot of p.slots) {
     const original = originals.find(
@@ -246,4 +269,72 @@ export function swapProgram(
         'Underlying selection ownership conflicts with the governed pool.'
       );
   return p;
+}
+
+/** Native rank claims and retained swap rights share the same selection adapter. */
+export function resolveDraftClaimProgram(
+  input: DraftClaimProgram,
+  positions: Record<string, number>,
+  elections: Record<string, boolean>
+): DraftClaimProgram {
+  if (input.kind === 'ordered-swap-pool-v1')
+    return resolveSwapProgram(input, positions, elections);
+  const p = DraftClaimProgramZ.parse(input);
+  if (p.kind !== 'native-ranked-pool-v1' || p.result)
+    throw new Error('This pool was already resolved.');
+  if (
+    canonicalStringify(Object.keys(positions).sort()) !==
+      canonicalStringify(p.slots.map((s) => s.originalTeam).sort()) ||
+    Object.values(positions).some(
+      (n) => !Number.isInteger(n) || n < 1 || n > 30
+    ) ||
+    new Set(Object.values(positions)).size !== 3
+  )
+    throw new Error(
+      'Every original needs a distinct final draft position; incomplete positions and ties are unsupported.'
+    );
+  if (
+    canonicalStringify(elections) !== canonicalStringify({ exercisePool: true })
+  )
+    throw new Error(
+      'Explicit exercise is required; this native pool has no supported waiver terms.'
+    );
+  const remaining = [...p.slots];
+  const allocation: Record<string, string> = {};
+  // Resolve each priority rank against remaining originals, not against current
+  // holders or slot numbers. No alias participates and no new asset is created.
+  while (remaining.length > 1) {
+    const selected = resolveSwapForEntitlement(
+      {
+        id: p.nativePool.clauseIds[0],
+        kind: 'swap_right',
+        seasonYear: p.year,
+        round: 1,
+        holderTeam: remaining[0].originalTeam,
+        swapType: 'best_of',
+        swapControllerPickId: `${remaining[0].originalTeam}_${p.year}_1st`,
+        poolUnderlyingPickIds: remaining.map(
+          (s) => `${s.originalTeam}_${p.year}_1st`
+        ),
+      },
+      positions,
+      {
+        draftYear: p.year,
+        method: 'governed-native-pool',
+        nowIso: `${p.year}-06-30T00:00:00Z`,
+      }
+    );
+    const index = remaining.findIndex(
+      (s) => s.originalTeam === selected.swapWinner
+    );
+    if (selected.outcome !== 'swap_resolved' || index < 0)
+      throw new Error('Native rank selection is unavailable.');
+    const [slot] = remaining.splice(index, 1);
+    allocation[slot.entitlementId] = p.nativePool.beneficiaryTeam;
+  }
+  allocation[remaining[0].entitlementId] = p.nativePool.residualTeam;
+  return DraftClaimProgramZ.parse({
+    ...p,
+    result: { positions, elections, allocation },
+  });
 }

@@ -238,60 +238,105 @@ export function ConditionalDraftJourney({
           <p>
             {state.swap.result
               ? 'Swap rights resolved — underlying selections allocated below.'
-              : 'The option is separate from its return selection. Claims resolve in the listed order.'}
+              : state.swap.kind === 'native-ranked-pool-v1'
+                ? 'Resolve the complete ranked claim before allocating the remaining selection.'
+                : 'The option is separate from its return selection. Claims resolve in the listed order.'}
           </p>
-          {state.swap.steps.map((step, index) => {
-            const slot = state.swap!.slots.find(
-              (s) => s.entitlementId === step.controllerId
-            )!;
-            const holder = String(state.entitlements[step.rightId].holderTeam);
-            return (
-              <div key={step.rightId}>
-                <p>
-                  {index + 1}. {holder}:{' '}
-                  {step.comparator === 'best_of' ? 'More' : 'Less'} favorable
-                  selection from{' '}
-                  {step.poolIds
-                    .map(
-                      (id) =>
-                        state.swap!.slots.find((s) => s.entitlementId === id)!
-                          .originalTeam
-                    )
-                    .join(' / ')}
-                  ; return {slot.originalTeam} {state.swap!.year} first
-                </p>
-                {swapDue && (
-                  <label>
-                    {holder} {slot.originalTeam} swap choice
-                    <select
-                      aria-label={`${holder} ${slot.originalTeam} swap choice`}
-                      value={
-                        elections[step.rightId] === undefined
-                          ? ''
-                          : elections[step.rightId]
-                            ? 'exercise'
-                            : 'waive'
-                      }
-                      onChange={(e) =>
-                        setElections((previous) => {
-                          const next = { ...previous };
-                          if (!e.target.value) delete next[step.rightId];
-                          else
-                            next[step.rightId] = e.target.value === 'exercise';
-                          return next;
-                        })
-                      }
-                      className="ml-2 bg-cockpit-raised border border-cockpit-edge rounded"
-                    >
-                      <option value="">Choose…</option>
-                      <option value="exercise">Exercise</option>
-                      <option value="waive">Waive</option>
-                    </select>
-                  </label>
-                )}
-              </div>
-            );
-          })}
+          {state.swap.kind === 'native-ranked-pool-v1' && (
+            <div>
+              <p>
+                Unprotected {state.swap.year} originals only. First and second
+                most favorable to {state.swap.nativePool.beneficiaryTeam}; third
+                to {state.swap.nativePool.residualTeam}. The ranked claim takes
+                priority over the residual selection.
+              </p>
+              <p>
+                Final draft positions belong to the original selections and do
+                not change when ownership changes. Archival representations
+                remain non-executable.
+              </p>
+              {swapDue && (
+                <label>
+                  Pool election
+                  <select
+                    aria-label="Pool election"
+                    value={elections.exercisePool ? 'exercise' : ''}
+                    onChange={(e) =>
+                      setElections(
+                        e.target.value === 'exercise'
+                          ? { exercisePool: true }
+                          : {}
+                      )
+                    }
+                    className="ml-2 bg-cockpit-raised border border-cockpit-edge rounded"
+                  >
+                    <option value="">Choose…</option>
+                    <option value="exercise">Exercise native claim</option>
+                  </select>
+                </label>
+              )}
+              <p>
+                A waiver that changes this allocation needs additional governing
+                terms.
+              </p>
+            </div>
+          )}
+          {state.swap.kind === 'ordered-swap-pool-v1' &&
+            state.swap.steps.map((step, index) => {
+              const slot = state.swap!.slots.find(
+                (s) => s.entitlementId === step.controllerId
+              )!;
+              const holder = String(
+                state.entitlements[step.rightId].holderTeam
+              );
+              return (
+                <div key={step.rightId}>
+                  <p>
+                    {index + 1}. {holder}:{' '}
+                    {step.comparator === 'best_of' ? 'More' : 'Less'} favorable
+                    selection from{' '}
+                    {step.poolIds
+                      .map(
+                        (id) =>
+                          state.swap!.slots.find((s) => s.entitlementId === id)!
+                            .originalTeam
+                      )
+                      .join(' / ')}
+                    ; return {slot.originalTeam} {state.swap!.year} first
+                  </p>
+                  {swapDue && (
+                    <label>
+                      {holder} {slot.originalTeam} swap choice
+                      <select
+                        aria-label={`${holder} ${slot.originalTeam} swap choice`}
+                        value={
+                          elections[step.rightId] === undefined
+                            ? ''
+                            : elections[step.rightId]
+                              ? 'exercise'
+                              : 'waive'
+                        }
+                        onChange={(e) =>
+                          setElections((previous) => {
+                            const next = { ...previous };
+                            if (!e.target.value) delete next[step.rightId];
+                            else
+                              next[step.rightId] =
+                                e.target.value === 'exercise';
+                            return next;
+                          })
+                        }
+                        className="ml-2 bg-cockpit-raised border border-cockpit-edge rounded"
+                      >
+                        <option value="">Choose…</option>
+                        <option value="exercise">Exercise</option>
+                        <option value="waive">Waive</option>
+                      </select>
+                    </label>
+                  )}
+                </div>
+              );
+            })}
           {state.swap.slots.map((slot) => (
             <p key={slot.entitlementId}>
               {slot.originalTeam} {state.swap!.year} first: held by{' '}

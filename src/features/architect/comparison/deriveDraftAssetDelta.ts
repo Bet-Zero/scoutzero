@@ -6,8 +6,9 @@ import {
   readPenaltyPlacementReceipt,
   placementLine,
 } from '../utils/draftReview/penaltyPlacement';
+import { nativePoolLines } from '../utils/draftReview/nativePool';
 import { DraftSwapReceiptZ } from '@/schemas/draftSwapReceipt';
-import { resolveSwapProgram } from '../utils/draftReview/swapProgram';
+import { resolveDraftClaimProgram } from '../utils/draftReview/swapProgram';
 import {
   DraftConditionalReceiptZ,
   ConditionalSeasonReceiptZ,
@@ -189,7 +190,7 @@ export function deriveDraftAssetDelta(
           const result = receipt.data.after.result!;
           if (
             canonicalStringify(
-              resolveSwapProgram(
+              resolveDraftClaimProgram(
                 receipt.data.before,
                 result.positions,
                 result.elections
@@ -204,12 +205,33 @@ export function deriveDraftAssetDelta(
       if (
         conditionalState === null &&
         !Array.isArray(receipt.data.before) &&
-        receipt.data.before.slots.some((s) => s.holderTeam === teamCode)
+        (receipt.data.before.slots.some(
+          (s) => s.holderTeam === teamCode || s.originalTeam === teamCode
+        ) ||
+          (receipt.data.before.kind === 'native-ranked-pool-v1' &&
+            [
+              receipt.data.before.nativePool.beneficiaryTeam,
+              receipt.data.before.nativePool.residualTeam,
+            ].includes(teamCode)))
       )
         conditionalState = canonicalStringify(receipt.data.before);
       if (canonicalStringify(receipt.data.before) !== conditionalState)
         return null;
       conditionalState = canonicalStringify(receipt.data.after);
+      const after = receipt.data.after;
+      if (!Array.isArray(after) && after.kind === 'native-ranked-pool-v1')
+        restrictions.push(
+          ...nativePoolLines(after).filter(
+            (line) =>
+              line.startsWith(`${teamCode}:`) ||
+              after.slots.some(
+                (s) =>
+                  line.startsWith(`${s.originalTeam} `) &&
+                  (s.originalTeam === teamCode ||
+                    after.result?.allocation[s.entitlementId] === teamCode)
+              )
+          )
+        );
     } else if (
       receipt.data.assumptions?.programs ||
       receipt.data.assumptions?.swapProgram

@@ -151,6 +151,19 @@ reasons. Historical inspection or copied review metadata cannot authorize a
 trade. Preserve legacy/source identity conflicts rather than altering source
 records to make a saved-world fixture load.
 
+Use `npm run architect:proof:trade-receipt -- --native-pool` for the governed
+2029 three-original ranked-claim journey. Supply the retained catalogue in
+`SCOUTZERO_DRAFT_REVIEW_RELEASE`, the active full cloud snapshot in
+`SCOUTZERO_DRAFT_SIMULATION_BASELINE`, and separate source-linked software terms
+in `SCOUTZERO_DRAFT_NATIVE_POOL`. The terms must satisfy `DraftNativePoolProgramZ`;
+they describe an unprotected pool, an explicit exercise, two favorable selections
+for one recipient and the remaining selection for another. This does not certify
+NBA ownership or authorize separate trading of the native claim. Unsupported
+waiver, protection, competing claims and ties remain unavailable. Archival
+representations keep their identities and never become executable claims.
+The wrapper binds the private inputs and all affected-team evidence to the clean,
+pushed candidate. Run the same spec diagnostically before freezing that candidate.
+
 Collection/document membership, counts, parent coverage and duplicate paths are
 validated. Network/transient HTTP failures receive bounded retries; permission
 failures are never retried into success. Denied, partial or empty required core

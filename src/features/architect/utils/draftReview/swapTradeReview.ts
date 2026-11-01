@@ -41,6 +41,10 @@ export async function prepareSwapTradeRecord(input: {
     catalogue,
     entitlements
   );
+  if (program.kind !== 'ordered-swap-pool-v1')
+    throw new Error(
+      'Native pooled claims are resolved at the draft; separate transfers are unsupported.'
+    );
   if (program.result) throw new Error('This swap right has already resolved.');
   if (program.year !== 2026)
     throw new Error(

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DraftSwapProgramZ } from './draftSwapProgram';
+import { DraftClaimProgramZ } from './draftSwapProgram';
 import { DraftReviewMutationReceiptZ } from './draftPickReviewMutation';
 export const DraftSwapReceiptZ = z
   .object({
@@ -7,8 +7,8 @@ export const DraftSwapReceiptZ = z
     worldId: z.string().min(1),
     operationId: z.string().min(1),
     catalogueSha256: z.string().regex(/^[a-f0-9]{64}$/),
-    before: DraftSwapProgramZ,
-    after: DraftSwapProgramZ,
+    before: DraftClaimProgramZ,
+    after: DraftClaimProgramZ,
     movements: DraftReviewMutationReceiptZ.shape.movements.element.array(),
     draftYear: z.number().int(),
     date: z.string(),
