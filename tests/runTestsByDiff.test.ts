@@ -630,8 +630,18 @@ describe('complete comparison and delivery path', () => {
       false
     );
     expect(workflow.jobs['full-validation'].if).toBe(
-      "github.event_name == 'schedule'"
+      "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'"
     );
+    expect(workflow.jobs['full-validation']['runs-on']).toBe('ubuntu-24.04');
+    expect(workflow.on).toHaveProperty('workflow_dispatch');
+    expect(workflow.on.schedule).toEqual([{ cron: '0 2 * * *' }]);
+    expect(
+      workflow.jobs['full-validation'].steps.some(
+        (step) =>
+          step.run ===
+          'npx --no-install playwright install --with-deps chromium'
+      )
+    ).toBe(true);
     expect(
       workflow.jobs['full-validation'].steps.some(
         (step) => step.run === 'npm run test:full'
