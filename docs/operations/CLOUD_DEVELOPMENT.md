@@ -164,6 +164,29 @@ representations keep their identities and never become executable claims.
 The wrapper binds the private inputs and all affected-team evidence to the clean,
 pushed candidate. Run the same spec diagnostically before freezing that candidate.
 
+Use `--overlapping-pool` with `SCOUTZERO_DRAFT_OVERLAPPING_POOL` for the
+2028 seven-original workflow. Its `DraftOverlappingPoolProgramZ` terms declare
+the protected conveyance and five ordered native options: the beneficiary's
+two upstream options, the first residual option, the other pool's priority
+option, then the cross-pool residual option. Eligibility follows currently held
+originals after each claim; original draft positions never become holder ranks.
+The supported favorable-election branches include the protected first, ordinary
+conveyance and first-plus-third exception. All five exercises and seven distinct
+positions are required. Separate second-round/cash settlement, waivers, ties,
+notice deadlines, later transfers and combined conditional programs are outside
+this first-round operation. An active-year/prior-obligation condition must be
+explicitly supplied. Source-linked software terms do not certify current NBA
+ownership or widen production authority. Duplicate legacy representations count
+as one native option; a native option without a legacy record is displayed
+without creating a new asset. The private catalogue, baseline and terms are
+hashed by the same proof wrapper. The affected seven-team journey verifies
+inventory, History, Compare, Team Plan, reload and atomic rejection.
+Saved-world loading authenticates the separately reviewed governing-terms
+fingerprint before mutation; changing a protection threshold, source binding or
+native clause fails closed even if the generic schema accepts its shape. The
+fingerprint excludes draft positions, elections and computed outcomes, so every
+supported branch still uses the shared resolver rather than a pinned result.
+
 Collection/document membership, counts, parent coverage and duplicate paths are
 validated. Network/transient HTTP failures receive bounded retries; permission
 failures are never retried into success. Denied, partial or empty required core

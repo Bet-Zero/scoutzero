@@ -70,13 +70,41 @@ export function swapAssets(
       const archival =
         state.catalogue.data.records.find((r) => r.entitlementId === id)
           ?.role === 'generated-alias';
+      const native =
+        state.swap?.kind === 'native-overlapping-pool-v1'
+          ? state.swap.claims.find((c) => c.representationIds.includes(id))
+          : null;
+      const duplicate = native && native.representationIds[0] !== id;
       group.rights!.push({
         key: id,
-        label: `${state.catalogue.data.records.find((r) => r.entitlementId === id)?.role === 'generated-alias' ? 'Archival record — not an executable right · ' : ''}${origin ?? String(e.holderTeam)} ${e.kind === 'swap_right' ? 'swap right' : 'conditional right'}${step && state.swap?.result ? ' — resolved' : ''}`,
+        label: `${archival ? 'Archival record — not an executable right · ' : duplicate ? 'Archival record — not an additional executable right · ' : ''}${origin ?? String(e.holderTeam)} ${e.kind === 'swap_right' ? 'swap right' : 'conditional right'}${(step || native) && state.swap?.result ? ' — resolved' : ''}`,
       });
-      if (!archival) rightCount++;
+      if (!archival && !duplicate) rightCount++;
     }
     groups.set(group.year, group);
+  }
+  // A qualified native option need not have a separate legacy asset record.
+  // Project it as a right here; never mint an entitlement or a tradeable pick.
+  if (
+    state.swap?.kind === 'native-overlapping-pool-v1' &&
+    state.swap.year >= year
+  ) {
+    for (const claim of state.swap.claims.filter(
+      (c) => c.holderTeam === team && !c.representationIds.length
+    )) {
+      const group = groups.get(state.swap.year) ?? {
+        year: state.swap.year,
+        firstRound: [],
+        secondRound: [],
+        rights: [],
+      };
+      group.rights!.push({
+        key: claim.clauseId,
+        label: `${team} residual swap option against ${claim.targetTeam}${state.swap.result ? ' — resolved' : ''}`,
+      });
+      groups.set(group.year, group);
+      rightCount++;
+    }
   }
   return {
     status: 'available',

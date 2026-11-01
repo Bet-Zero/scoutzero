@@ -3,6 +3,10 @@ import {
   type DraftClaimProgram,
 } from '@/schemas/draftSwapProgram';
 import { nativePoolProgram } from './nativePool';
+import {
+  overlappingPoolProgram,
+  resolveOverlappingPool,
+} from './overlappingPool';
 /** Ordered exchange of selections within fully specified governed pools. */
 import {
   DraftSwapProgramZ,
@@ -100,6 +104,23 @@ export function swapProgram(
   entitlements: Record<string, Record<string, unknown>>
 ) {
   const parsed = DraftClaimProgramZ.parse(input);
+  if (parsed.kind === 'native-overlapping-pool-v1') {
+    const p = overlappingPoolProgram(parsed, catalogue, entitlements);
+    if (
+      p.result &&
+      canonicalStringify(
+        resolveOverlappingPool(
+          { ...p, result: null },
+          p.result.positions,
+          p.result.elections
+        ).result
+      ) !== canonicalStringify(p.result)
+    )
+      throw new Error(
+        'Recorded overlapping allocation contradicts its complete inputs.'
+      );
+    return p;
+  }
   if (parsed.kind === 'native-ranked-pool-v1') {
     const p = nativePoolProgram(parsed, catalogue, entitlements);
     if (
@@ -277,6 +298,8 @@ export function resolveDraftClaimProgram(
   positions: Record<string, number>,
   elections: Record<string, boolean>
 ): DraftClaimProgram {
+  if (input.kind === 'native-overlapping-pool-v1')
+    return resolveOverlappingPool(input, positions, elections);
   if (input.kind === 'ordered-swap-pool-v1')
     return resolveSwapProgram(input, positions, elections);
   const p = DraftClaimProgramZ.parse(input);

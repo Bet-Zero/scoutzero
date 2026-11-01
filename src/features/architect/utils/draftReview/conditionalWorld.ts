@@ -6,6 +6,7 @@ import { unpackApronPlan } from './apronPlanStorage';
 import { readApronSimulation, apronInputFromHistory } from './apronSimulation';
 import { DraftApronSeasonReceiptZ } from '@/schemas/draftApronSimulation';
 import { swapProgram } from './swapProgram';
+import { requireAdmittedOverlappingTerms } from './overlappingTerms';
 /** Read-only preparation for an explicitly governed simulation world. */
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { db, auth, isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
@@ -76,6 +77,8 @@ export async function loadConditionalWorld(worldId: string) {
     metadata.draftSimulationBranches === 'swap-program'
       ? swapProgram(metadata.draftSwapProgram, catalogue, entitlements)
       : null;
+  if (swap?.kind === 'native-overlapping-pool-v1')
+    await requireAdmittedOverlappingTerms(swap);
   const reference = DraftApronPlanReferenceZ.safeParse(metadata.draftApronPlan);
   const seasonDocs = reference.success
     ? await Promise.all(
@@ -169,7 +172,7 @@ export async function loadConditionalWorld(worldId: string) {
       snapshots[event.ref.path] = mutationSnapshotText(event.data());
     }
   }
-  if (swap?.kind === 'native-ranked-pool-v1' && swap.result) {
+  if (swap && swap.kind !== 'ordered-swap-pool-v1' && swap.result) {
     const event = await getDoc(
       doc(root, ARCHITECT_WORLD_EVENTS_SUBCOLLECTION, `swapDraft__${swap.year}`)
     );

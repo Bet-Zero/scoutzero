@@ -7,6 +7,7 @@ import {
   placementLine,
 } from '../utils/draftReview/penaltyPlacement';
 import { nativePoolLines } from '../utils/draftReview/nativePool';
+import { overlappingPoolLines } from '../utils/draftReview/overlappingPool';
 import { DraftSwapReceiptZ } from '@/schemas/draftSwapReceipt';
 import { resolveDraftClaimProgram } from '../utils/draftReview/swapProgram';
 import {
@@ -219,9 +220,12 @@ export function deriveDraftAssetDelta(
         return null;
       conditionalState = canonicalStringify(receipt.data.after);
       const after = receipt.data.after;
-      if (!Array.isArray(after) && after.kind === 'native-ranked-pool-v1')
+      if (!Array.isArray(after) && after.kind !== 'ordered-swap-pool-v1')
         restrictions.push(
-          ...nativePoolLines(after).filter(
+          ...(after.kind === 'native-ranked-pool-v1'
+            ? nativePoolLines(after)
+            : overlappingPoolLines(after)
+          ).filter(
             (line) =>
               line.startsWith(`${teamCode}:`) ||
               after.slots.some(

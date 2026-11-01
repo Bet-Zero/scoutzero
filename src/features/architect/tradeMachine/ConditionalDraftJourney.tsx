@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { OverlappingDraftChoices } from './OverlappingDraftChoices';
 import { preparePenaltyDraft } from '../utils/draftReview/penaltyDraft';
 import { readPenaltyPlacementReceipt } from '../utils/draftReview/penaltyPlacement';
 import { mutationSnapshotDigest } from '../utils/mutationPipeline.snapshotDigest';
@@ -337,6 +338,22 @@ export function ConditionalDraftJourney({
                 </div>
               );
             })}
+          {state.swap.kind === 'native-overlapping-pool-v1' && (
+            <OverlappingDraftChoices
+              program={state.swap}
+              positions={state.swap.result?.positions ?? positions}
+              elections={elections}
+              due={Boolean(swapDue)}
+              onElection={(id, selected) =>
+                setElections((previous) => {
+                  const next = { ...previous };
+                  if (selected) next[id] = true;
+                  else delete next[id];
+                  return next;
+                })
+              }
+            />
+          )}
           {state.swap.slots.map((slot) => (
             <p key={slot.entitlementId}>
               {slot.originalTeam} {state.swap!.year} first: held by{' '}
