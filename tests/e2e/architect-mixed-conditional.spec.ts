@@ -7,6 +7,7 @@ import {
   CONDITIONAL_PLAYERS,
 } from './fixtures/mixedConditionalWorld';
 import { conditionalDraft } from './helpers/conditionalDraftJourney';
+import { combineMixedConditionalReceipts } from './helpers/mixedConditionalReceipt';
 import {
   completeConditionalState,
   conditionalStateDigest,
@@ -63,11 +64,13 @@ async function sources() {
 test.afterAll(() => {
   const files = [10, 11].map((p) => path.join(proofDir, `proof-${p}.json`));
   if (files.every((f) => fs.existsSync(f)))
-    receipt('proof', {
-      candidate: process.env.SCOUTZERO_PROOF_CANDIDATE,
-      scope: 'governed-simulation-only',
-      journeys: files.map((f) => JSON.parse(fs.readFileSync(f, 'utf8'))),
-    });
+    receipt(
+      'proof',
+      combineMixedConditionalReceipts(
+        process.env.SCOUTZERO_PROOF_CANDIDATE,
+        files.map((f) => JSON.parse(fs.readFileSync(f, 'utf8')))
+      )
+    );
 });
 
 for (const position of [10, 11])
