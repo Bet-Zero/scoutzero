@@ -59,6 +59,46 @@ describe('synthetic CBA2-A12.2 direct selection sale component', () => {
       tradingVerdict: 'not-evaluated',
     });
   });
+  it('accounts for a complete player-plus-first bundle without interpreting a cash allocation', () => {
+    const f = fixture();
+    f.fact.onlyListedFirstsOutgoing = false;
+    f.fact.outgoingPlayerContracts = [
+      { playerId: 'outgoing-player', contractId: 'contract-a' },
+    ];
+    f.fact.consideration = [
+      {
+        id: 'incoming-contract',
+        kind: 'established-noncash',
+        amountCents: null,
+      },
+    ];
+    expect(evaluate(f.request, [f.fact]).status).toBe('component-permits');
+    f.fact.consideration.push({ id: 'cash', kind: 'cash', amountCents: 100 });
+    expect(evaluate(f.request, [f.fact]).status).toBe('needs-input');
+  });
+  it.each(['contradictory', 'duplicate-player', 'duplicate-contract', 'empty'])(
+    'rejects %s outgoing player accounting',
+    (mode) => {
+      const f = fixture();
+      f.fact.onlyListedFirstsOutgoing = mode === 'contradictory';
+      f.fact.outgoingPlayerContracts = [{ playerId: 'p', contractId: 'c' }];
+      f.fact.consideration = [
+        { id: 'incoming', kind: 'established-noncash', amountCents: null },
+      ];
+      if (mode === 'duplicate-player')
+        f.fact.outgoingPlayerContracts.push({
+          playerId: 'p',
+          contractId: 'c2',
+        });
+      if (mode === 'duplicate-contract')
+        f.fact.outgoingPlayerContracts.push({
+          playerId: 'p2',
+          contractId: 'c',
+        });
+      if (mode === 'empty') f.fact.outgoingPlayerContracts = [];
+      expect(evaluate(f.request, [f.fact]).status).toBe('needs-input');
+    }
+  );
   it('does not require irrelevant other cash amounts or future lottery/Apron observations', () => {
     const f = fixture();
     f.fact.consideration.push({

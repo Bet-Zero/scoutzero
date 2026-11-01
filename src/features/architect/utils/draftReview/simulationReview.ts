@@ -1,4 +1,5 @@
 import { requireNativeSelectionTradeAdmission } from './nativeTrading';
+import { simulationPlayerMovements } from './simulationPlayers';
 import { validateNativeTradeInventory } from './nativeTradeInventory';
 import {
   NativeSelectionTransferZ,
@@ -183,16 +184,16 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     );
   for (const slot of slots) {
     if (
-      (slot.sends?.length ?? 0) ||
       (slot.picksOut?.length ?? 0) ||
       slot.cashSent ||
+      slot.cashReceived ||
       slot.cashToTeamId ||
-      slot.salaryMatchingElection ||
+      (slot.salaryMatchingElection && !slots.some((s) => s.sends?.length)) ||
       mutationSnapshotText(slot.outgoingEntitlements ?? []) !==
         mutationSnapshotText(slot.entitlementsOut ?? [])
     )
       throw new Error(
-        'This simulation requires complete pick-only exchange terms.'
+        'This simulation requires complete noncash entitlement exchange terms.'
       );
   }
   const state = await loadStateForMutation(
@@ -201,6 +202,11 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     args.payload
   );
   const stateDigest = mutationSnapshotDigest(state);
+  const playerMovements = simulationPlayerMovements(
+    args,
+    metadata.draftSimulationBranches,
+    state
+  );
   const asOf = window?.asOf ?? QUALIFIED_JUNE5_DRAFT_HORIZON.asOf;
   const documentSnapshots: Record<string, string | null> = {
     ...apronWorld?.snapshots,
@@ -219,6 +225,23 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
           : null;
       })
     )
+  );
+  // A destination override is usually absent before the first trade. Its
+  // absence is part of the reviewed state too: never overwrite a raced write.
+  await Promise.all(
+    playerMovements.map(async ({ playerId, toTeam }) => {
+      const ref = doc(
+        world,
+        ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
+        toTeam,
+        ARCHITECT_WORLD_PLAYERS_SUBCOLLECTION,
+        playerId
+      );
+      const snapshot = await getDoc(ref);
+      documentSnapshots[ref.path] = snapshot.exists()
+        ? mutationSnapshotText(snapshot.data())
+        : null;
+    })
   );
   if (metadata.draftSimulationBranches === 'swap-program' && !nativeMode) {
     for (const [id, source] of Object.entries(sources))
@@ -615,16 +638,37 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
           scope: 'first-round-consideration',
           outgoing /* schema below controls actual complete non-cash exchange */,
           recipientTeam: slots.find((s) => s.teamCode !== team)!.teamCode,
-          onlyListedFirstsOutgoing: true,
+          onlyListedFirstsOutgoing: !playerMovements.some(
+            (m) => m.fromTeam === team
+          ),
+          ...(playerMovements.some((m) => m.fromTeam === team)
+            ? {
+                outgoingPlayerContracts: playerMovements
+                  .filter((m) => m.fromTeam === team)
+                  .map(({ playerId, contractId }) => ({
+                    playerId,
+                    contractId,
+                  })),
+              }
+            : {}),
           allReturnConsiderationListed: true,
           unconditionalDirectExchange: true,
-          consideration: movements
-            .filter((m) => m.toTeam === team)
-            .map((m) => ({
-              id: m.entitlementId,
-              kind: 'established-noncash',
-              amountCents: null,
-            })),
+          consideration: [
+            ...movements
+              .filter((m) => m.toTeam === team)
+              .map((m) => ({
+                id: m.entitlementId,
+                kind: 'established-noncash',
+                amountCents: null,
+              })),
+            ...playerMovements
+              .filter((m) => m.toTeam === team)
+              .map((m) => ({
+                id: `player-contract:${m.playerId}:${m.contractId}`,
+                kind: 'established-noncash',
+                amountCents: null,
+              })),
+          ],
         },
       ],
       apron: outgoing.map((p) => ({

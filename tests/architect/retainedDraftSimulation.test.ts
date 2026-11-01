@@ -1,3 +1,5 @@
+import { loadConditionalWorld } from '@/features/architect/utils/draftReview/conditionalWorld';
+import { swapAssets } from '@/features/architect/utils/draftReview/swapAssets';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { REAL_DRAFT_REVIEW_PIN } from '@/features/architect/utils/draftPickRealReviewPin';
 import {
@@ -12,6 +14,7 @@ import {
   requireDraftReviewCapability,
 } from '@/features/architect/utils/draftReview/capability';
 import { QUALIFIED_JUNE5_DRAFT_HORIZON as horizon } from '@/features/architect/utils/draftReview/horizon';
+import { LIVE_GOVERNED_TRADE_SALARY_AUTHORITY } from '@/features/architect/utils/tradeContext/tradeContext.payloadNormalization';
 
 const mock = vi.hoisted(() => ({
   docs: new Map<string, any>(),
@@ -20,7 +23,7 @@ const mock = vi.hoisted(() => ({
 }));
 vi.mock('@/firebaseConfig', () => ({
   db: {},
-  auth: { currentUser: { getIdToken: async () => 'test' } },
+  auth: { currentUser: { uid: 'u', getIdToken: async () => 'test' } },
   isSyntheticDraftReviewEnvironment: () => mock.enabled,
 }));
 vi.mock(
@@ -49,6 +52,8 @@ vi.mock('firebase/firestore', () => ({
     path: [...(base.path ? [base.path] : []), ...parts].join('/'),
   }),
   getDoc: async (ref: any) => ({
+    id: ref.path.split('/').at(-1),
+    ref,
     data: () => structuredClone(mock.docs.get(ref.path)),
     exists: () => mock.docs.has(ref.path),
   }),
@@ -225,6 +230,105 @@ beforeEach(() => {
   );
 });
 describe('retained simulation proposal integration (stipulated inputs, no NBA factual acceptance)', () => {
+  it('projects original holdings only with explicit read-only admission and still rejects corrupt inventories', async () => {
+    await expect(loadConditionalWorld('w')).rejects.toThrow(
+      /owned conditional/
+    );
+    const state = await loadConditionalWorld('w', {
+      allowUnconditionalInventory: true,
+    });
+    expect(swapAssets(state, 'CHI', 2026)).toMatchObject({
+      status: 'available',
+      firstRoundCount: 7,
+    });
+    mock.docs.get(
+      `architect_worlds/w/entitlements/${id('CHI', 2028)}`
+    ).holderTeam = 'TOR';
+    await expect(
+      loadConditionalWorld('w', { allowUnconditionalInventory: true })
+    ).rejects.toThrow();
+    mock.enabled = false;
+    await expect(
+      loadConditionalWorld('w', { allowUnconditionalInventory: true })
+    ).rejects.toThrow(/protected/);
+  });
+  it('accounts for a player and first together, fencing both player document destinations', async () => {
+    const a: any = args();
+    const team = mock.docs.get('architect_worlds/w/teams/CHI');
+    team.roster = ['player'];
+    team.players = [
+      {
+        id: 'player',
+        playerId: 'player',
+        contract: {},
+        governedTradeSalaryBasis: {
+          authorityVersion: 1,
+          status: 'ready',
+          worldId: 'w',
+          teamId: 'CHI',
+          playerId: 'player',
+          contractId: 'contract',
+          asOfDate: '2026-06-05',
+          salaryCapYear: 2026,
+          method: 'postseason-lesser-of',
+          currentSalary: 5_000_000,
+          outgoingSalary: 5_000_000,
+          incomingSalary: 5_000_000,
+          poisonPillIncomingSalary: null,
+          canonLeafIds: ['CBA2-A03.3'],
+          reasons: [],
+          proof: {
+            ledgerId: 'l',
+            ledgerVersion: 1,
+            contractVersion: 1,
+            stateDigest: 'fnv1a64:aaaaaaaaaaaaaaaa',
+            calendarRecordId: 'calendar',
+            calendarRecordVersion: 1,
+            calendarSourceRecordId: 'source',
+            calendarSourceRecordVersion: 1,
+          },
+        },
+      },
+    ];
+    Object.defineProperty(team, LIVE_GOVERNED_TRADE_SALARY_AUTHORITY, {
+      value: true,
+    });
+    a.payload.teams[0].sends = [{ id: 'player', tradeTo: 'TOR' }];
+    a.payload.teams[0].salaryMatchingElection = {
+      version: 1,
+      path: 'STANDARD_TPE',
+      postAssignmentApronTeamSalary: 170000000,
+      tradedPlayerPreTradeSalaries: { player: 5000000 },
+    };
+    a.payload.teams[1].salaryMatchingElection = {
+      version: 1,
+      path: 'STANDARD_TPE',
+      postAssignmentApronTeamSalary: 170000000,
+      tradedPlayerPreTradeSalaries: {},
+    };
+    const result = await prepareRetainedDraftSimulation(a);
+    expect(result.status).toBe('prepared');
+    if (result.status !== 'prepared') throw new Error('expected prepared');
+    const record = requireDraftReviewCapability(result.authority);
+    expect(record.reviews.every((r) => r.eligible)).toBe(true);
+    expect(record.payloadSnapshot).toContain('player');
+    expect(
+      record.documentSnapshots['architect_worlds/w/teams/CHI/players/player']
+    ).toBeNull();
+    expect(
+      record.documentSnapshots['architect_worlds/w/teams/TOR/players/player']
+    ).toBeNull();
+    mock.docs.set('architect_worlds/w/teams/TOR/players/player', {
+      conflicting: 'destination',
+    });
+    const again = await prepareRetainedDraftSimulation(a);
+    if (again.status !== 'prepared') throw new Error('expected prepared');
+    expect(
+      requireDraftReviewCapability(again.authority).documentSnapshots[
+        'architect_worlds/w/teams/TOR/players/player'
+      ]
+    ).toContain('destination');
+  });
   it('uses the existing independent components and an exact current-state capability', async () => {
     const result = await prepareRetainedDraftSimulation(args());
     expect(result.status).toBe('prepared');

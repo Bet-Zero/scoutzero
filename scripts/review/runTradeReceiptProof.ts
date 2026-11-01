@@ -27,6 +27,16 @@ export const OVERLAPPING_POOL_SCREENSHOTS = [
   ])
   .map((key) => ({ key, filename: `${key}-1280x720.png` }));
 
+export const MIXED_TRADES_SCREENSHOTS = [
+  'permitted-proposal',
+  'repeat-trade',
+  ...['CHI', 'ORL'].flatMap((team) =>
+    ['roster', 'cap', 'history', 'compare', 'assets', 'plan'].map(
+      (view) => `${team}-${view}`
+    )
+  ),
+].map((key) => ({ key, filename: `${key}-1280x720.png` }));
+
 export const NATIVE_TRADES_SCREENSHOTS = [
   'trade-0-legal',
   'trade-1-legal',
@@ -410,7 +420,8 @@ export async function runTradeReceiptProof(
   penaltyPlacement = false,
   nativePool = false,
   overlappingPool = false,
-  nativeTrades = false
+  nativeTrades = false,
+  mixedTrades = false
 ): Promise<number> {
   if (
     [
@@ -422,6 +433,7 @@ export async function runTradeReceiptProof(
       nativePool,
       overlappingPool,
       nativeTrades,
+      mixedTrades,
     ].filter(Boolean).length > 1
   )
     throw new Error('Select one lifecycle proof.');
@@ -434,7 +446,8 @@ export async function runTradeReceiptProof(
     penaltyPlacement ||
     nativePool ||
     overlappingPool ||
-    nativeTrades;
+    nativeTrades ||
+    mixedTrades;
   if (retainedSimulation && (realDraft || draftReview || draftSeason))
     throw new Error('Governed retained simulation is a separate proof scope.');
   if (
@@ -481,58 +494,62 @@ export async function runTradeReceiptProof(
       }
     : null;
   const identity = resolveProofIdentity();
-  const definitions = nativeTrades
-    ? NATIVE_TRADES_SCREENSHOTS
-    : overlappingPool
-      ? OVERLAPPING_POOL_SCREENSHOTS
-      : nativePool
-        ? NATIVE_POOL_SCREENSHOTS
-        : penaltyPlacement
-          ? PENALTY_PLACEMENT_SCREENSHOTS
-          : apronMultiseason
-            ? APRON_MULTISEASON_SCREENSHOTS
-            : apronFreeze
-              ? APRON_FREEZE_SCREENSHOTS
-              : swapLifecycle
-                ? SWAP_LIFECYCLE_SCREENSHOTS
-                : conditionalLifecycle
-                  ? CONDITIONAL_LIFECYCLE_SCREENSHOTS
-                  : retainedSimulation
-                    ? RETAINED_SIMULATION_SCREENSHOTS
-                    : realDraft
-                      ? REAL_DRAFT_SCREENSHOTS
-                      : draftReview
-                        ? DRAFT_REVIEW_SCREENSHOTS
-                        : GOVERNED_TRADE_RECEIPT_SCREENSHOTS;
+  const definitions = mixedTrades
+    ? MIXED_TRADES_SCREENSHOTS
+    : nativeTrades
+      ? NATIVE_TRADES_SCREENSHOTS
+      : overlappingPool
+        ? OVERLAPPING_POOL_SCREENSHOTS
+        : nativePool
+          ? NATIVE_POOL_SCREENSHOTS
+          : penaltyPlacement
+            ? PENALTY_PLACEMENT_SCREENSHOTS
+            : apronMultiseason
+              ? APRON_MULTISEASON_SCREENSHOTS
+              : apronFreeze
+                ? APRON_FREEZE_SCREENSHOTS
+                : swapLifecycle
+                  ? SWAP_LIFECYCLE_SCREENSHOTS
+                  : conditionalLifecycle
+                    ? CONDITIONAL_LIFECYCLE_SCREENSHOTS
+                    : retainedSimulation
+                      ? RETAINED_SIMULATION_SCREENSHOTS
+                      : realDraft
+                        ? REAL_DRAFT_SCREENSHOTS
+                        : draftReview
+                          ? DRAFT_REVIEW_SCREENSHOTS
+                          : GOVERNED_TRADE_RECEIPT_SCREENSHOTS;
   const artifactDir = path.join(
     identity.repoRoot,
     'tmp',
     'browser-proofs',
-    nativeTrades
-      ? 'native-selection-trade'
-      : overlappingPool
-        ? 'overlapping-draft-pool'
-        : nativePool
-          ? 'native-draft-pool'
-          : penaltyPlacement
-            ? 'penalty-placement'
-            : apronMultiseason
-              ? 'apron-multiseason'
-              : apronFreeze
-                ? 'apron-freeze'
-                : swapLifecycle
-                  ? 'swap-draft-lifecycle'
-                  : conditionalLifecycle
-                    ? 'conditional-draft-lifecycle'
-                    : retainedSimulation
-                      ? 'retained-draft-simulation'
-                      : realDraft
-                        ? 'real-draft-review'
-                        : draftSeason
-                          ? 'draft-season'
-                          : draftReview
-                            ? 'draft-review'
-                            : 'trade-receipt',
+    mixedTrades
+      ? 'mixed-draft-trade'
+      : nativeTrades
+        ? 'native-selection-trade'
+        : overlappingPool
+          ? 'overlapping-draft-pool'
+          : nativePool
+            ? 'native-draft-pool'
+            : penaltyPlacement
+              ? 'penalty-placement'
+              : apronMultiseason
+                ? 'apron-multiseason'
+                : apronFreeze
+                  ? 'apron-freeze'
+                  : swapLifecycle
+                    ? 'swap-draft-lifecycle'
+                    : conditionalLifecycle
+                      ? 'conditional-draft-lifecycle'
+                      : retainedSimulation
+                        ? 'retained-draft-simulation'
+                        : realDraft
+                          ? 'real-draft-review'
+                          : draftSeason
+                            ? 'draft-season'
+                            : draftReview
+                              ? 'draft-review'
+                              : 'trade-receipt',
     `${identity.candidate}-${timestampSlug()}`
   );
   const testResultsDir = path.join(artifactDir, 'test-results');
@@ -602,31 +619,33 @@ export async function runTradeReceiptProof(
 
   const commandArgs = [
     'test',
-    nativeTrades
-      ? 'tests/e2e/architect-native-selection-trade.spec.ts'
-      : overlappingPool
-        ? 'tests/e2e/architect-overlapping-draft-pool.spec.ts'
-        : nativePool
-          ? 'tests/e2e/architect-native-draft-pool.spec.ts'
-          : penaltyPlacement
-            ? 'tests/e2e/architect-penalty-placement.spec.ts'
-            : apronMultiseason
-              ? 'tests/e2e/architect-apron-multiseason.spec.ts'
-              : apronFreeze
-                ? 'tests/e2e/architect-apron-freeze.spec.ts'
-                : swapLifecycle
-                  ? 'tests/e2e/architect-swap-draft.spec.ts'
-                  : conditionalLifecycle
-                    ? 'tests/e2e/architect-conditional-draft.spec.ts'
-                    : retainedSimulation
-                      ? 'tests/e2e/architect-retained-draft-simulation.spec.ts'
-                      : realDraft
-                        ? 'tests/e2e/architect-real-draft-review-proof.spec.ts'
-                        : draftSeason
-                          ? 'tests/e2e/architect-draft-season-proof.spec.ts'
-                          : draftReview
-                            ? 'tests/e2e/architect-draft-review-proof.spec.ts'
-                            : PROOF_SPEC,
+    mixedTrades
+      ? 'tests/e2e/architect-mixed-draft-trade.spec.ts'
+      : nativeTrades
+        ? 'tests/e2e/architect-native-selection-trade.spec.ts'
+        : overlappingPool
+          ? 'tests/e2e/architect-overlapping-draft-pool.spec.ts'
+          : nativePool
+            ? 'tests/e2e/architect-native-draft-pool.spec.ts'
+            : penaltyPlacement
+              ? 'tests/e2e/architect-penalty-placement.spec.ts'
+              : apronMultiseason
+                ? 'tests/e2e/architect-apron-multiseason.spec.ts'
+                : apronFreeze
+                  ? 'tests/e2e/architect-apron-freeze.spec.ts'
+                  : swapLifecycle
+                    ? 'tests/e2e/architect-swap-draft.spec.ts'
+                    : conditionalLifecycle
+                      ? 'tests/e2e/architect-conditional-draft.spec.ts'
+                      : retainedSimulation
+                        ? 'tests/e2e/architect-retained-draft-simulation.spec.ts'
+                        : realDraft
+                          ? 'tests/e2e/architect-real-draft-review-proof.spec.ts'
+                          : draftSeason
+                            ? 'tests/e2e/architect-draft-season-proof.spec.ts'
+                            : draftReview
+                              ? 'tests/e2e/architect-draft-review-proof.spec.ts'
+                              : PROOF_SPEC,
     '--workers=1',
     '--project=chromium',
     '--reporter=line,html',
@@ -711,16 +730,20 @@ export async function runTradeReceiptProof(
         ...(draftReview || retainedSimulation
           ? {
               timeout:
-                penaltyPlacement || apronMultiseason
-                  ? 3600000
-                  : conditionalLifecycle ||
-                      swapLifecycle ||
-                      apronFreeze ||
-                      nativePool ||
-                      overlappingPool ||
-                      nativeTrades
-                    ? 1200000
-                    : 240000,
+                // Two independently bounded 220-second cases, plus startup and
+                // graceful emulator export, exceed the pick-only four minutes.
+                mixedTrades
+                  ? 600000
+                  : penaltyPlacement || apronMultiseason
+                    ? 3600000
+                    : conditionalLifecycle ||
+                        swapLifecycle ||
+                        apronFreeze ||
+                        nativePool ||
+                        overlappingPool ||
+                        nativeTrades
+                      ? 1200000
+                      : 240000,
             }
           : {}),
       });
@@ -838,37 +861,39 @@ export async function runTradeReceiptProof(
 
   const manifest = {
     schemaVersion: 1,
-    proof: nativeTrades
-      ? 'Resolved native selections through saved-world Trade Machine'
-      : overlappingPool
-        ? 'Source-native overlapping claims in a governed saved world'
-        : nativePool
-          ? 'Source-native ranked pool in a governed saved world'
-          : penaltyPlacement
-            ? 'governed-final-draft-penalty-placement'
-            : apronMultiseason
-              ? 'governed-apron-multiseason'
-              : apronFreeze
-                ? 'governed-apron-freeze'
-                : swapLifecycle
-                  ? 'Ordered swap-right trade and saved-world allocation (governed test assumptions; production disabled)'
-                  : conditionalLifecycle
-                    ? 'Conditional first-round trade and saved-world lifecycle (governed test assumptions; production disabled)'
-                    : retainedSimulation
-                      ? 'Retained pick identities with governed test assumptions (not verified NBA legality; production disabled)'
-                      : realDraft
-                        ? 'Real retained first-round evidence in Trade Machine (read-only; production Apply disabled)'
-                        : draftSeason
-                          ? 'Synthetic freeze season record and subsequent first-round trade (production disabled)'
-                          : draftReview
-                            ? 'Synthetic first-round review mutation (production disabled)'
-                            : 'Architect Trade Machine / Trade Receipt',
+    proof: mixedTrades
+      ? 'Ordinary players and retained original firsts in one governed saved-world trade'
+      : nativeTrades
+        ? 'Resolved native selections through saved-world Trade Machine'
+        : overlappingPool
+          ? 'Source-native overlapping claims in a governed saved world'
+          : nativePool
+            ? 'Source-native ranked pool in a governed saved world'
+            : penaltyPlacement
+              ? 'governed-final-draft-penalty-placement'
+              : apronMultiseason
+                ? 'governed-apron-multiseason'
+                : apronFreeze
+                  ? 'governed-apron-freeze'
+                  : swapLifecycle
+                    ? 'Ordered swap-right trade and saved-world allocation (governed test assumptions; production disabled)'
+                    : conditionalLifecycle
+                      ? 'Conditional first-round trade and saved-world lifecycle (governed test assumptions; production disabled)'
+                      : retainedSimulation
+                        ? 'Retained pick identities with governed test assumptions (not verified NBA legality; production disabled)'
+                        : realDraft
+                          ? 'Real retained first-round evidence in Trade Machine (read-only; production Apply disabled)'
+                          : draftSeason
+                            ? 'Synthetic freeze season record and subsequent first-round trade (production disabled)'
+                            : draftReview
+                              ? 'Synthetic first-round review mutation (production disabled)'
+                              : 'Architect Trade Machine / Trade Receipt',
     base: identity.originMain,
     candidate: identity.candidate,
     upstream: identity.upstream,
     mergeBase: identity.mergeBase,
     viewport: { width: 1280, height: 720 },
-    command: `npm run architect:proof:trade-receipt${nativeTrades ? ' -- --native-trades' : overlappingPool ? ' -- --overlapping-pool' : nativePool ? ' -- --native-pool' : penaltyPlacement ? ' -- --penalty-placement' : apronMultiseason ? ' -- --apron-multiseason' : apronFreeze ? ' -- --apron-freeze' : swapLifecycle ? ' -- --swap-lifecycle' : conditionalLifecycle ? ' -- --conditional-lifecycle' : retainedSimulation ? ' -- --retained-simulation' : realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
+    command: `npm run architect:proof:trade-receipt${mixedTrades ? ' -- --mixed-trades' : nativeTrades ? ' -- --native-trades' : overlappingPool ? ' -- --overlapping-pool' : nativePool ? ' -- --native-pool' : penaltyPlacement ? ' -- --penalty-placement' : apronMultiseason ? ' -- --apron-multiseason' : apronFreeze ? ' -- --apron-freeze' : swapLifecycle ? ' -- --swap-lifecycle' : conditionalLifecycle ? ' -- --conditional-lifecycle' : retainedSimulation ? ' -- --retained-simulation' : realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
     privateInputHashes,
     simulationInputHashes,
     nativeTermsSha256,
@@ -961,7 +986,8 @@ if (isMainModule()) {
     process.argv.includes('--penalty-placement'),
     process.argv.includes('--native-pool'),
     process.argv.includes('--overlapping-pool'),
-    process.argv.includes('--native-trades')
+    process.argv.includes('--native-trades'),
+    process.argv.includes('--mixed-trades')
   )
     .then((code) => {
       process.exitCode = code;
