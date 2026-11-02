@@ -38,6 +38,7 @@ export const useFirebaseQuery = <T = Record<string, unknown>>(
   // Serialize constraints to detect changes without causing infinite re-renders
   const constraintsKey = useRef<string>('');
   const newKey = JSON.stringify(queryConstraints.map(getConstraintKeyPart));
+  const lastKey = useRef<string | null>(key);
 
   useEffect(() => {
     constraintsKey.current = newKey;
@@ -48,7 +49,13 @@ export const useFirebaseQuery = <T = Record<string, unknown>>(
       return;
     }
 
-    // Ignore a slower response from the previous key (e.g. the previous account)
+    // Never show the previous key's (e.g. previous account's) data, even
+    // briefly or after a failed fetch; ignore its slower responses too.
+    if (lastKey.current !== key) {
+      lastKey.current = key;
+      setData([]);
+      setError(null);
+    }
     let stale = false;
     const fetchData = async () => {
       setLoading(true);

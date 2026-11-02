@@ -60,6 +60,8 @@ describe('useFirebaseQuery', () => {
       expect(result.current.data.map((d) => (d as { label: string }).label)).toEqual(['Guest list'])
     );
     rerender({ uid: 'google-uid' });
+    // The previous account's data is cleared immediately, not left on screen
+    expect(result.current.data.map((d) => (d as { label: string }).label)).not.toContain('Guest list');
     await waitFor(() =>
       expect(result.current.data.map((d) => (d as { label: string }).label)).toEqual(['Google list'])
     );
