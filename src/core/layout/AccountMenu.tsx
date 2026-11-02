@@ -59,9 +59,7 @@ export const AccountMenu = () => {
     });
     setBusy(false);
     rerender();
-    if (result.kind === 'linked' || result.kind === 'signedIn') {
-      toast.success('Signed in with Google');
-    } else if (result.kind === 'switched') {
+    if (result.kind === 'linked' || result.kind === 'signedIn' || result.kind === 'switched') {
       toast.success('Signed in with Google');
     } else if (result.kind === 'error') {
       toast.error(result.message, { duration: 7000 });
