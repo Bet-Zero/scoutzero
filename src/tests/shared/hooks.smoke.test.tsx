@@ -9,6 +9,7 @@
  */
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from 'vitest';
+import { where } from 'firebase/firestore';
 import { useFirebaseQuery } from '@/shared/hooks/useFirebaseQuery';
 
 // seedMockData / resetMockDataStore are re-exported through firebase/firestore mock
@@ -45,6 +46,23 @@ describe('useFirebaseQuery', () => {
 
     expect(result.current.data).toHaveLength(0);
     expect(result.current.error).toBeNull();
+  });
+
+  it('refetches when the owner changes (same constraint types, new key)', async () => {
+    seedMockData('owned_col/a1', { ownerUid: 'guest-uid', label: 'Guest list' });
+    seedMockData('owned_col/b1', { ownerUid: 'google-uid', label: 'Google list' });
+    const { result, rerender } = renderHook(
+      ({ uid }: { uid: string }) =>
+        useFirebaseQuery('owned_col', [where('ownerUid', '==', uid)], { key: uid }),
+      { initialProps: { uid: 'guest-uid' } }
+    );
+    await waitFor(() =>
+      expect(result.current.data.map((d) => (d as { label: string }).label)).toEqual(['Guest list'])
+    );
+    rerender({ uid: 'google-uid' });
+    await waitFor(() =>
+      expect(result.current.data.map((d) => (d as { label: string }).label)).toEqual(['Google list'])
+    );
   });
 
   it('returns empty data for an empty collection', async () => {
