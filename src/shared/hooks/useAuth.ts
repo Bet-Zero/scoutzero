@@ -13,7 +13,7 @@ interface UseAuthResult {
 // pending request so they cannot create competing anonymous sessions and race
 // owner-scoped Firestore reads. A settled failure may be retried by a new mount.
 let pendingAnonymousUser: Promise<User> | null = null;
-const getAnonymousUser = (): Promise<User> => {
+export const getAnonymousUser = (): Promise<User> => {
   if (auth.currentUser) return Promise.resolve(auth.currentUser);
   pendingAnonymousUser ??= signInAnonymously(auth)
     .then((credential) => credential.user)

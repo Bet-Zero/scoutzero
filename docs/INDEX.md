@@ -92,6 +92,7 @@ Generated files (`COMPONENT_INDEX.md`, `FILE_MAP.md`, `components/`) live at `do
 - [Scouting Prod Sync](operations/PROD_SYNC_RUNBOOK.md) — sync scouting data to production
 - [Fix Player Not Found](operations/FIX_PLAYER_NOT_FOUND.md) — SalarySwish slug mismatch fixes
 - [Manual Smoke Test](operations/MANUAL_SMOKE_TEST_CHECKLIST.md) — post-push verification checklist
+- [Google Sign-In](operations/GOOGLE_SIGN_IN.md) — optional Google sign-in, Firebase setup, owner ID
 
 ---
 

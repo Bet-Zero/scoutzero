@@ -5,6 +5,7 @@
  * OWNERSHIP: Core: layout
  *
  * HISTORY:
+ *  - 2026-11-02: Optional Google sign-in (AccountMenu) at the end of the header nav
  *  - 2026-01-28: Fixed scroll handling - main element no longer uses overflow-hidden globally
  *  - Previous: Had overflow-hidden on main which prevented scrolling on non-virtualized pages
  *
@@ -15,6 +16,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { ChevronDown } from 'lucide-react';
+import { AccountMenu } from './AccountMenu';
 
 type NavGroupProps = {
   align?: 'left' | 'center' | 'right';
@@ -72,7 +74,8 @@ const NavGroup = ({ label, children, align = 'left' }: NavGroupProps) => {
         <span>{label}</span>
         <ChevronDown
           size={14}
-          className="mt-[1px] text-white/60 group-hover:text-white"
+          // Hidden on the narrowest phones so the account control fits
+          className="mt-[1px] text-white/60 group-hover:text-white max-[359px]:hidden"
         />
       </button>
 
@@ -120,12 +123,12 @@ export const SiteLayout = () => {
 
   return (
     <div className="h-screen bg-neutral-900 text-white flex flex-col">
-      <header className="bg-[#121212] border-b border-white/10 px-3 max-[359px]:px-2 sm:px-6 py-2 flex items-center justify-between shrink-0 z-[9999] relative">
+      <header className="bg-[#121212] border-b border-white/10 px-3 max-[359px]:px-2 sm:px-6 py-2 flex items-center justify-between gap-2 shrink-0 z-[9999] relative">
         <div className="shrink-0 whitespace-nowrap text-base sm:text-2xl font-bold tracking-tight text-white">
           <span className="max-[359px]:hidden">🏀 </span>HoopZero
         </div>
 
-        <nav className="flex gap-2 sm:gap-6 whitespace-nowrap text-sm text-white/60 items-center">
+        <nav className="flex gap-1.5 sm:gap-6 whitespace-nowrap text-sm text-white/60 items-center">
           <Link to="/profiles" className="hover:text-white">
             <span className="sm:hidden">Profiles</span>
             <span className="hidden sm:inline">Player Profiles</span>
@@ -160,6 +163,8 @@ export const SiteLayout = () => {
               Tiers
             </Link>
           </NavGroup>
+
+          <AccountMenu />
         </nav>
       </header>
 
