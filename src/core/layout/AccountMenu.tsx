@@ -26,6 +26,7 @@ export const AccountMenu = () => {
   // Linking upgrades the same user object without an auth-state event
   const [, rerender] = useReducer((n: number) => n + 1, 0);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const toggleRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -33,7 +34,10 @@ export const AccountMenu = () => {
       if (!wrapperRef.current?.contains(event.target as Node)) setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape') {
+        setOpen(false);
+        toggleRef.current?.focus();
+      }
     };
     document.addEventListener('pointerdown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
@@ -43,20 +47,22 @@ export const AccountMenu = () => {
     };
   }, [open]);
 
-  if (loading || !user) return null;
+  if (loading) return null;
 
   const handleSignIn = async () => {
     setBusy(true);
-    const result = await signInWithGoogle();
+    const result = await signInWithGoogle({
+      confirmSwitch: () =>
+        window.confirm(
+          'This Google account is already in use on another device. Switch to it? Anything you saved on this browser before signing in will not carry over.'
+        ),
+    });
     setBusy(false);
     rerender();
     if (result.kind === 'linked' || result.kind === 'signedIn') {
       toast.success('Signed in with Google');
     } else if (result.kind === 'switched') {
-      toast.success(
-        'Signed in. Anything saved on this device before signing in stays with the old guest session.',
-        { duration: 7000 }
-      );
+      toast.success('Signed in with Google');
     } else if (result.kind === 'error') {
       toast.error(result.message, { duration: 7000 });
     }
@@ -75,6 +81,7 @@ export const AccountMenu = () => {
   };
 
   const copyId = async () => {
+    if (!user) return;
     try {
       await navigator.clipboard.writeText(user.uid);
       toast.success('Account ID copied');
@@ -104,11 +111,12 @@ export const AccountMenu = () => {
   return (
     <div className="relative" ref={wrapperRef}>
       <button
+        ref={toggleRef}
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         disabled={busy}
-        aria-haspopup="true"
         aria-expanded={open}
+        aria-controls="account-menu-panel"
         aria-label={`Account: ${label}`}
         className="flex items-center rounded-full ring-1 ring-white/15 hover:ring-white/40 disabled:opacity-50"
       >
@@ -127,7 +135,7 @@ export const AccountMenu = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-[#1c1c1c] border border-white/10 rounded shadow-lg text-sm text-white/80 p-2 z-[10000] whitespace-normal">
+        <div id="account-menu-panel" className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-[#1c1c1c] border border-white/10 rounded shadow-lg text-sm text-white/80 p-2 z-[10000] whitespace-normal">
           <div className="px-2 pb-2 mb-1 border-b border-white/10">
             <p className="text-white truncate">{user.displayName || 'Signed in'}</p>
             {user.email && <p className="text-xs text-white/45 truncate">{user.email}</p>}

@@ -62,15 +62,19 @@ const googleProvider = () => {
   return provider;
 };
 
-export const signInWithGoogle = async (): Promise<GoogleSignInResult> => {
+export const signInWithGoogle = async ({
+  confirmSwitch = () => true,
+}: {
+  // Asked before leaving a guest session whose saves won't carry over
+  confirmSwitch?: () => boolean;
+} = {}): Promise<GoogleSignInResult> => {
   const current = auth.currentUser;
   try {
     if (current?.isAnonymous) {
       try {
+        // Firebase refreshes this same user object (isAnonymous, profile);
+        // no auth-state event fires because the ID does not change.
         await linkWithPopup(current, googleProvider());
-        // Linking keeps the same user, so onAuthStateChanged does not fire;
-        // refresh the token so the profile is current for readers.
-        await current.reload();
         return { kind: 'linked' };
       } catch (error) {
         if (errorCode(error) !== 'auth/credential-already-in-use') throw error;
@@ -78,6 +82,7 @@ export const signInWithGoogle = async (): Promise<GoogleSignInResult> => {
           error as Parameters<typeof GoogleAuthProvider.credentialFromError>[0]
         );
         if (!credential) throw error;
+        if (!confirmSwitch()) return { kind: 'cancelled' };
         await signInWithCredential(auth, credential);
         return { kind: 'switched' };
       }
@@ -92,15 +97,23 @@ export const signInWithGoogle = async (): Promise<GoogleSignInResult> => {
   }
 };
 
-// Back to a fresh guest session, so the site keeps working signed out
+// Back to a fresh guest session, so the site keeps working signed out.
+// Only a failed sign-out throws; a failed guest session leaves the visitor
+// signed out with the sign-in control still available.
 export const signOutOfGoogle = async (): Promise<void> => {
   await signOut(auth);
-  await getAnonymousUser();
+  try {
+    await getAnonymousUser();
+  } catch (error) {
+    console.warn('🔐 Guest session after sign-out failed:', error);
+  }
 };
 
-export const isGoogleUser = (
-  user: { isAnonymous: boolean; providerData: { providerId: string }[] } | null
-): boolean =>
+export const isGoogleUser = <
+  T extends { isAnonymous: boolean; providerData: { providerId: string }[] },
+>(
+  user: T | null
+): user is T =>
   !!user &&
   !user.isAnonymous &&
   user.providerData.some((p) => p.providerId === GoogleAuthProvider.PROVIDER_ID);

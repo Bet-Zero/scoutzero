@@ -96,6 +96,22 @@ describe('signInWithGoogle', () => {
     expect(mocks.signInWithCredential).toHaveBeenCalledWith(expect.anything(), credential);
   });
 
+  it('stays a guest when the user declines switching to an account used elsewhere', async () => {
+    mocks.auth.currentUser = guest();
+    mocks.linkWithPopup.mockRejectedValue(authError('auth/credential-already-in-use'));
+    mocks.credentialFromError.mockReturnValue({ providerId: 'google.com' });
+    await expect(signInWithGoogle({ confirmSwitch: () => false })).resolves.toEqual({ kind: 'cancelled' });
+    expect(mocks.signInWithCredential).not.toHaveBeenCalled();
+  });
+
+  it('reports success when linking succeeded, without extra calls that could fail', async () => {
+    const user = guest();
+    mocks.auth.currentUser = user;
+    mocks.linkWithPopup.mockResolvedValue({ user });
+    (user.reload as ReturnType<typeof vi.fn>).mockRejectedValue(authError('auth/network-request-failed'));
+    await expect(signInWithGoogle()).resolves.toEqual({ kind: 'linked' });
+  });
+
   it('signs in directly when there is no guest session', async () => {
     mocks.signInWithPopup.mockResolvedValue({});
     await expect(signInWithGoogle()).resolves.toEqual({ kind: 'signedIn' });
@@ -130,6 +146,14 @@ describe('signOutOfGoogle', () => {
     });
     await signOutOfGoogle();
     expect(order).toEqual(['signOut', 'anonymous']);
+  });
+});
+
+describe('signOutOfGoogle when the new guest session fails', () => {
+  it('still resolves, since the sign-out itself worked', async () => {
+    mocks.signOut.mockImplementation(async () => { mocks.auth.currentUser = null; });
+    mocks.signInAnonymously.mockRejectedValue(new Error('offline'));
+    await expect(signOutOfGoogle()).resolves.toBeUndefined();
   });
 });
 
@@ -175,6 +199,16 @@ describe('AccountMenu', () => {
     await waitFor(() => expect(mocks.toastError).toHaveBeenCalled());
     expect(mocks.toastError.mock.calls[0][0]).toMatch(/turned on in Firebase/);
     expect(screen.getByRole('button', { name: 'Sign in with Google' })).toBeTruthy();
+  });
+
+  it('still offers sign-in when there is no guest session at all', async () => {
+    mocks.signInWithPopup.mockResolvedValue({});
+    mocks.signInAnonymously.mockRejectedValue(new Error('anonymous auth unavailable'));
+    render(<AccountMenu />);
+    act(() => mocks.listeners.forEach((listener) => listener(null)));
+    await act(async () => {});
+    fireEvent.click(await screen.findByRole('button', { name: 'Sign in with Google' }));
+    await waitFor(() => expect(mocks.signInWithPopup).toHaveBeenCalledTimes(1));
   });
 
   it('signs out from the avatar menu', async () => {
