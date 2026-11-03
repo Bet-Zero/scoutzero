@@ -6,6 +6,7 @@
 export type GenericRecord = Record<string, unknown>;
 
 export type DisplaySection = {
+  presentation?: 'trade-summary';
   title: string;
   lines: string[];
 };

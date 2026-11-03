@@ -1,6 +1,7 @@
 import {
   NativeDraftLifecycleZ,
   NativeSelectionTransfersZ,
+  NativePlayerMovementZ,
 } from './draftNativeTrading';
 import { DraftClaimProgramZ } from './draftSwapProgram';
 import {
@@ -98,6 +99,7 @@ export const DraftReviewMutationReceiptZ = z
     releaseId: DraftEvidenceIdZ,
     releaseSha256: z.string().regex(/^[a-f0-9]{64}$/),
     asOfDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    playerMovements: z.array(NativePlayerMovementZ).min(1).max(2).optional(),
     movements: z
       .array(
         z
@@ -117,6 +119,12 @@ export const DraftReviewMutationReceiptZ = z
   .strict()
   .superRefine((receipt, ctx) => {
     const native = receipt.assumptions?.nativeTrade;
+    if (receipt.playerMovements && !native)
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'Native player consideration requires its native selection lineage.',
+      });
     if (native || receipt.assumptions?.branchMode === 'native-selections') {
       try {
         if (
@@ -145,6 +153,9 @@ export const DraftReviewMutationReceiptZ = z
             operationId: receipt.operationId,
             asOfDate: receipt.asOfDate,
             movements: receipt.movements,
+            ...(receipt.playerMovements
+              ? { playerMovements: receipt.playerMovements }
+              : {}),
           },
         ]);
       } catch {

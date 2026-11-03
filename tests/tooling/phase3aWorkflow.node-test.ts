@@ -26,6 +26,7 @@ import {
   NATIVE_POOL_SCREENSHOTS,
   OVERLAPPING_POOL_SCREENSHOTS,
   OVERLAPPING_TRADES_SCREENSHOTS,
+  MIXED_NATIVE_SCREENSHOTS,
   resolveProofIdentity,
   runTradeReceiptProof,
   verifyGovernedScreenshotArtifacts,
@@ -1224,4 +1225,30 @@ test('final placement certificate requires every team and both complete draft ou
           )
         );
   }
+});
+
+test('mixed native certificate requires both proposals and both teams after each saved trade', () => {
+  assert.equal(MIXED_NATIVE_SCREENSHOTS.length, 28);
+  for (const stage of ['first', 'return'])
+    for (const team of ['PHI', 'BKN'])
+      for (const view of [
+        'roster',
+        'cap',
+        'history',
+        'compare',
+        'assets',
+        'plan',
+      ])
+        assert(
+          MIXED_NATIVE_SCREENSHOTS.some(
+            (s) => s.key === `${stage}-${team}-${view}`
+          )
+        );
+  for (const key of [
+    'resolved',
+    'invalid-proposal',
+    'first-proposal',
+    'return-proposal',
+  ])
+    assert(MIXED_NATIVE_SCREENSHOTS.some((s) => s.key === key));
 });

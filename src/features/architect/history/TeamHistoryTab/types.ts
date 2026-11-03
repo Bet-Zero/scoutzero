@@ -20,6 +20,7 @@ export type HistoryOutboundCallbacks = {
 };
 
 export type TeamHistoryDetailSectionLike = {
+  presentation?: 'trade-summary';
   title?: string | null;
   lines?: Array<string | number | null | undefined> | null;
 };

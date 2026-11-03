@@ -316,10 +316,24 @@ export async function loadConditionalWorld(
           operationId: parsed.data.operationId,
           asOfDate: parsed.data.asOfDate,
           movements: parsed.data.movements,
+          ...(parsed.data.playerMovements
+            ? { playerMovements: parsed.data.playerMovements }
+            : {}),
         },
         entry,
         'Native selection history differs from its committed trade.'
       );
+      if (entry.playerMovements) {
+        requireSameNativeValue(
+          [...(trade.data()?.playerIds ?? [])].sort(),
+          entry.playerMovements.map((p) => p.playerId).sort(),
+          'Native player consideration differs from the committed player transaction.'
+        );
+        if (trade.data()?.valid !== true)
+          throw new Error(
+            'Mixed native consideration requires a valid committed trade.'
+          );
+      }
       snapshots[trade.ref.path] = mutationSnapshotText(trade.data());
     }
   }

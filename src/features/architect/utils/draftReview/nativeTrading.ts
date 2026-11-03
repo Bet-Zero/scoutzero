@@ -63,19 +63,35 @@ export function nativeSelectionHolders(
     seen.add(transfer.operationId);
     lastDate = transfer.asOfDate;
     const ids = new Set<string>();
+    const players = transfer.playerMovements ?? [];
+    if (
+      players.length &&
+      (program.kind !== 'native-overlapping-pool-v1' || program.year !== 2028)
+    )
+      throw new Error('Mixed native trades require the admitted 2028 family.');
+    if (
+      new Set(players.map((p) => p.playerId)).size !== players.length ||
+      new Set(players.map((p) => p.contractId)).size !== players.length ||
+      new Set(players.map((p) => p.fromTeam)).size !== players.length ||
+      players.some((p) => p.fromTeam === p.toTeam)
+    )
+      throw new Error(
+        'Mixed native trades require distinct ordinary Contracts and one player per team.'
+      );
+    const consideration = [...transfer.movements, ...players];
     const parties = new Set(
-      transfer.movements.flatMap((m) => [m.fromTeam, m.toTeam])
+      consideration.flatMap((m) => [m.fromTeam, m.toTeam])
     );
     if (
       parties.size !== 2 ||
       [...parties].some(
         (t) =>
-          !transfer.movements.some((m) => m.fromTeam === t) ||
-          !transfer.movements.some((m) => m.toTeam === t)
+          !consideration.some((m) => m.fromTeam === t) ||
+          !consideration.some((m) => m.toTeam === t)
       )
     )
       throw new Error(
-        'Both teams need distinct noncash selection consideration.'
+        'Both teams need distinct noncash selection or Contract consideration.'
       );
     for (const move of transfer.movements) {
       const slot = program.slots.find(

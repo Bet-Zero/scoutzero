@@ -512,6 +512,9 @@ export async function applyWorldMutation({
           releaseSha256: review.releaseSha256,
           asOfDate: review.asOfDate,
           movements: review.movements,
+          ...(review.playerMovements
+            ? { playerMovements: review.playerMovements }
+            : {}),
         }),
         picksTraded: review.movements.flatMap((p) => {
           const name = `${p.originalTeam} ${p.year} ${p.round === 1 ? 'first' : 'second'}-round ${p.assetKind === 'swap_right' ? 'swap right' : 'pick'}${conditionalRightSuffix(review.assumptions?.programs ?? [], p.entitlementId)}`;
