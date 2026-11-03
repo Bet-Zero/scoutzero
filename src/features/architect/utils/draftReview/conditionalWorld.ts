@@ -10,7 +10,10 @@ import { unpackApronPlan } from './apronPlanStorage';
 import { readApronSimulation, apronInputFromHistory } from './apronSimulation';
 import { DraftApronSeasonReceiptZ } from '@/schemas/draftApronSimulation';
 import { swapProgram } from './swapProgram';
-import { requireAdmittedOverlappingTerms } from './overlappingTerms';
+import {
+  requireAdmittedOverlappingTerms,
+  verifyStoredOverlappingTerms,
+} from './overlappingTerms';
 /** Read-only preparation for an explicitly governed simulation world. */
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { db, auth, isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
@@ -32,7 +35,10 @@ import { mutationSnapshotText } from '../mutationPipeline.snapshotDigest';
 
 export async function loadConditionalWorld(
   worldId: string,
-  options: { allowUnconditionalInventory?: boolean } = {}
+  options: {
+    allowUnconditionalInventory?: boolean;
+    readOnly?: boolean;
+  } = {}
 ) {
   if (!isSyntheticDraftReviewEnvironment() || !auth.currentUser)
     throw new Error(
@@ -95,8 +101,12 @@ export async function loadConditionalWorld(
           metadata.draftNativeTransfers
         )
       : null;
-  if (swap?.kind === 'native-overlapping-pool-v1')
-    await requireAdmittedOverlappingTerms(swap);
+  let historicalTerms = false;
+  if (swap?.kind === 'native-overlapping-pool-v1') {
+    if (options.readOnly)
+      historicalTerms = (await verifyStoredOverlappingTerms(swap)).historical;
+    else await requireAdmittedOverlappingTerms(swap);
+  }
   const reference = DraftApronPlanReferenceZ.safeParse(metadata.draftApronPlan);
   const seasonDocs = reference.success
     ? await Promise.all(
@@ -314,6 +324,7 @@ export async function loadConditionalWorld(
     }
   }
   const state = {
+    historicalTerms,
     apron,
     root,
     metadata,

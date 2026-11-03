@@ -63,6 +63,16 @@ export const NATIVE_TRADES_SCREENSHOTS = [
   ),
 ].map((key) => ({ key, filename: `${key}-1280x720.png` }));
 
+export const OVERLAPPING_TRADES_SCREENSHOTS = [
+  'trade-0-legal',
+  'trade-1-legal',
+  ...['BKN', 'PHX', 'PHI', 'NYK', 'WAS', 'POR', 'MIL'].flatMap((team) =>
+    ['compare', 'reload', 'history', 'assets', 'plan'].map(
+      (view) => `${team}-${view}`
+    )
+  ),
+].map((key) => ({ key, filename: `${key}-1280x720.png` }));
+
 export const NATIVE_POOL_SCREENSHOTS = ['retain', 'exchange']
   .flatMap((mode) => [
     `${mode}-prepared`,
@@ -438,8 +448,12 @@ export async function runTradeReceiptProof(
   overlappingPool = false,
   nativeTrades = false,
   mixedTrades = false,
-  mixedConditional = false
+  mixedConditional = false,
+  overlappingTrades = false
 ): Promise<number> {
+  if (overlappingTrades && nativeTrades)
+    throw new Error('Select one native trade family.');
+  nativeTrades = nativeTrades || overlappingTrades;
   if (
     [
       swapLifecycle,
@@ -477,15 +491,22 @@ export async function runTradeReceiptProof(
     throw new Error(
       'Retained simulation requires the private catalogue and actual cloud baseline paths.'
     );
-  if ((nativePool || nativeTrades) && !process.env.SCOUTZERO_DRAFT_NATIVE_POOL)
+  if (
+    (nativePool || (nativeTrades && !overlappingTrades)) &&
+    !process.env.SCOUTZERO_DRAFT_NATIVE_POOL
+  )
     throw new Error('Private source-linked native terms required.');
-  if (overlappingPool && !process.env.SCOUTZERO_DRAFT_OVERLAPPING_POOL)
+  if (
+    (overlappingPool || overlappingTrades) &&
+    !process.env.SCOUTZERO_DRAFT_OVERLAPPING_POOL
+  )
     throw new Error('Private source-linked overlapping terms required.');
-  const nativeTermsPath = overlappingPool
-    ? process.env.SCOUTZERO_DRAFT_OVERLAPPING_POOL
-    : nativePool || nativeTrades
-      ? process.env.SCOUTZERO_DRAFT_NATIVE_POOL
-      : null;
+  const nativeTermsPath =
+    overlappingPool || overlappingTrades
+      ? process.env.SCOUTZERO_DRAFT_OVERLAPPING_POOL
+      : nativePool || nativeTrades
+        ? process.env.SCOUTZERO_DRAFT_NATIVE_POOL
+        : null;
   const nativeTermsSha256 = nativeTermsPath ? hashFile(nativeTermsPath) : null;
   const simulationInputHashes = retainedSimulation
     ? {
@@ -518,7 +539,9 @@ export async function runTradeReceiptProof(
     : mixedTrades
       ? MIXED_TRADES_SCREENSHOTS
       : nativeTrades
-        ? NATIVE_TRADES_SCREENSHOTS
+        ? overlappingTrades
+          ? OVERLAPPING_TRADES_SCREENSHOTS
+          : NATIVE_TRADES_SCREENSHOTS
         : overlappingPool
           ? OVERLAPPING_POOL_SCREENSHOTS
           : nativePool
@@ -549,7 +572,9 @@ export async function runTradeReceiptProof(
       : mixedTrades
         ? 'mixed-draft-trade'
         : nativeTrades
-          ? 'native-selection-trade'
+          ? overlappingTrades
+            ? 'overlapping-selection-trade'
+            : 'native-selection-trade'
           : overlappingPool
             ? 'overlapping-draft-pool'
             : nativePool
@@ -726,6 +751,9 @@ export async function runTradeReceiptProof(
         cwd: identity.repoRoot,
         env: {
           ...process.env,
+          SCOUTZERO_NATIVE_TRADE_FAMILY: overlappingTrades
+            ? 'overlapping-2028'
+            : 'ranked-2029',
           PLAYWRIGHT_ARCHITECT_REVIEW_MODE: 'true',
           ...(retainedSimulation
             ? { PLAYWRIGHT_DRAFT_SIMULATION: 'true' }
@@ -922,7 +950,7 @@ export async function runTradeReceiptProof(
     upstream: identity.upstream,
     mergeBase: identity.mergeBase,
     viewport: { width: 1280, height: 720 },
-    command: `npm run architect:proof:trade-receipt${mixedConditional ? ' -- --mixed-conditional' : mixedTrades ? ' -- --mixed-trades' : nativeTrades ? ' -- --native-trades' : overlappingPool ? ' -- --overlapping-pool' : nativePool ? ' -- --native-pool' : penaltyPlacement ? ' -- --penalty-placement' : apronMultiseason ? ' -- --apron-multiseason' : apronFreeze ? ' -- --apron-freeze' : swapLifecycle ? ' -- --swap-lifecycle' : conditionalLifecycle ? ' -- --conditional-lifecycle' : retainedSimulation ? ' -- --retained-simulation' : realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
+    command: `npm run architect:proof:trade-receipt${mixedConditional ? ' -- --mixed-conditional' : mixedTrades ? ' -- --mixed-trades' : overlappingTrades ? ' -- --overlapping-trades' : nativeTrades ? ' -- --native-trades' : overlappingPool ? ' -- --overlapping-pool' : nativePool ? ' -- --native-pool' : penaltyPlacement ? ' -- --penalty-placement' : apronMultiseason ? ' -- --apron-multiseason' : apronFreeze ? ' -- --apron-freeze' : swapLifecycle ? ' -- --swap-lifecycle' : conditionalLifecycle ? ' -- --conditional-lifecycle' : retainedSimulation ? ' -- --retained-simulation' : realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
     privateInputHashes,
     simulationInputHashes,
     nativeTermsSha256,
@@ -1017,7 +1045,8 @@ if (isMainModule()) {
     process.argv.includes('--overlapping-pool'),
     process.argv.includes('--native-trades'),
     process.argv.includes('--mixed-trades'),
-    process.argv.includes('--mixed-conditional')
+    process.argv.includes('--mixed-conditional'),
+    process.argv.includes('--overlapping-trades')
   )
     .then((code) => {
       process.exitCode = code;

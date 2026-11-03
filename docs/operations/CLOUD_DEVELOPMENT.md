@@ -154,7 +154,7 @@ records to make a saved-world fixture load.
 Use `npm run architect:proof:trade-receipt -- --mixed-trades` for a protected
 bilateral exchange combining ordinary players and unconditional original firsts.
 Supply the same retained catalogue and full cloud baseline variables below; this
-mode does not use the missing overlapping-pool input. It copies existing roster
+mode does not use the overlapping-pool input. It copies existing roster
 and pinned Contract-release data into new isolated worlds, adds explicitly
 governed software financial assumptions, and drives Validate/Apply, both teams'
 reloaded Roster/Full Cap/History/Compare/Team Plan/Assets, and a subsequent pick
@@ -171,7 +171,7 @@ pushed candidate and retains private evidence locally.
 
 Use `--mixed-conditional` for ordinary players combined with the accepted 2026
 top-10 protection and 2027 unprotected fallback program. The same private
-catalogue and full-baseline variables are required; the missing 2028 input is
+catalogue and full-baseline variables are required; the 2028 input is
 not used. The two threshold journeys use unchanged retained Tre Jones and Tre
 Mann Contracts in the existing 15+3 governed software rosters, with explicitly
 stipulated financial books. They verify both teams after trade, resolution,
@@ -217,6 +217,23 @@ fingerprint before mutation; changing a protection threshold, source binding or
 native clause fails closed even if the generic schema accepts its shape. The
 fingerprint excludes draft positions, elections and computed outcomes, so every
 supported branch still uses the shared resolver rather than a pinned result.
+
+The owner-admitted BZE-309 replacement v2 is the active 2028 input. Supply the
+exact privately retained candidate; raw sources and the binding map remain in
+private Linear storage. The original fingerprint remains valid for historical
+receipt verification and read-only saved views. Old worlds are not migrated;
+their terms cannot authorize new draft operations. Unknown fingerprints and
+receipts that change governing versions fail closed.
+
+Use `--overlapping-trades` for two successive pre-draft selection exchanges
+following v2 resolution, including return ownership, all seven teams' saved
+views and no-write failures. It uses the same three private input variables as
+`--overlapping-pool`. Claims must first resolve under explicit software dates,
+positions and exercises; subsequent trades still require current ownership,
+complete financial and Stepien inputs and a governed pre-draft window. Historical
+draft-day resolutions cannot acquire a trading window retrospectively. This does
+not certify actual NBA exercises, ownership, deadlines, waivers, ties, cash or
+second-round settlement, historical continuity, or production permission.
 
 Collection/document membership, counts, parent coverage and duplicate paths are
 validated. Network/transient HTTP failures receive bounded retries; permission

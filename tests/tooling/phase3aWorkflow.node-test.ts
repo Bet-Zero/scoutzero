@@ -25,6 +25,7 @@ import {
   PENALTY_PLACEMENT_SCREENSHOTS,
   NATIVE_POOL_SCREENSHOTS,
   OVERLAPPING_POOL_SCREENSHOTS,
+  OVERLAPPING_TRADES_SCREENSHOTS,
   resolveProofIdentity,
   runTradeReceiptProof,
   verifyGovernedScreenshotArtifacts,
@@ -619,6 +620,19 @@ test('overlapping proof requires both protection branches, the exception and all
             (s) => s.key === `${mode}-${index}-${view}`
           )
         );
+});
+
+test('overlapping transfer proof covers both exchanges and all seven saved team views', () => {
+  assert.equal(OVERLAPPING_TRADES_SCREENSHOTS.length, 37);
+  for (const team of ['BKN', 'PHX', 'PHI', 'NYK', 'WAS', 'POR', 'MIL'])
+    for (const view of ['compare', 'reload', 'history', 'assets', 'plan'])
+      assert(
+        OVERLAPPING_TRADES_SCREENSHOTS.some((s) => s.key === `${team}-${view}`)
+      );
+  for (const i of [0, 1])
+    assert(
+      OVERLAPPING_TRADES_SCREENSHOTS.some((s) => s.key === `trade-${i}-legal`)
+    );
 });
 
 test('Apron freeze certification requires saved restriction, refused and permitted trades and both teams after reload', () => {
