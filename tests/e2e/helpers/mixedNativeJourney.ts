@@ -208,15 +208,17 @@ export async function prepareMixedNative(
               entitlementsOut: outgoing,
               cashSent: 0,
               cashToTeamId: null,
-              salaryMatchingElection: {
-                version: 1,
-                path: 'ROOM',
-                postAssignmentApronTeamSalary:
-                  teams[i].totals.apronTeamSalary -
-                  (p?.salary ?? 0) +
-                  (selected[1 - i]?.salary ?? 0),
-                tradedPlayerPreTradeSalaries: p ? { [p.id]: p.salary } : {},
-              },
+              salaryMatchingElection: selected.some(Boolean)
+                ? {
+                    version: 1,
+                    path: 'ROOM',
+                    postAssignmentApronTeamSalary:
+                      teams[i].totals.apronTeamSalary -
+                      (p?.salary ?? 0) +
+                      (selected[1 - i]?.salary ?? 0),
+                    tradedPlayerPreTradeSalaries: p ? { [p.id]: p.salary } : {},
+                  }
+                : null,
             };
           }),
         },

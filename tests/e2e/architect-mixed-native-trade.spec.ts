@@ -154,7 +154,11 @@ test('mixed native rejected operations leave the complete saved world unchanged'
       .doc(`draft_review_${transfer.operationId}`),
     event = (await eventRef.get()).data()!;
   await eventRef.delete();
-  await reject('missing committed receipt');
+  await reject(
+    'missing committed receipt',
+    /needs its committed trade receipt/i,
+    'selections-only'
+  );
   await eventRef.set(event);
   await root.update({
     draftNativeTransfers: [
@@ -167,7 +171,11 @@ test('mixed native rejected operations leave the complete saved world unchanged'
       },
     ],
   });
-  await reject('conflicting committed consideration');
+  await reject(
+    'conflicting committed consideration',
+    /history differs from its committed trade/i,
+    'selections-only'
+  );
   await root.set(after);
   expect(await prepare('selections-only')).toMatchObject({ legal: true });
   expect(await sources()).toEqual(sourceBefore);
