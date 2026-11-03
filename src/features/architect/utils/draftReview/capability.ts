@@ -47,6 +47,7 @@ export type DraftReviewCapabilityRecord = Readonly<{
     | DraftReviewConsumption
     | import('./swapTradeReview').SwapTradeReview
   )[];
+  playerMovements?: readonly import('@/schemas/draftNativeTrading').NativePlayerMovement[];
   movements: readonly Readonly<{
     entitlementId: string;
     assetKind?: 'swap_right' | 'pick_ownership';

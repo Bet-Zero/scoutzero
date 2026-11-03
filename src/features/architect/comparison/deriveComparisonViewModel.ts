@@ -21,6 +21,7 @@ import { deriveCapDelta } from './capDelta';
 import { detectSeasonMismatch } from './seasonMismatch';
 import { deriveDraftAssetDelta } from './deriveDraftAssetDelta';
 import { isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
+import { DraftSwapReceiptZ } from '@/schemas/draftSwapReceipt';
 
 type GenericRecord = Record<string, unknown>;
 
@@ -171,12 +172,40 @@ export function deriveComparisonViewModel(
     rosterDelta.rosterChangedPlayers
   );
 
-  // Cap delta: earliest event before-totals vs most recent event after-totals
+  const draftAssetDelta = isSyntheticDraftReviewEnvironment()
+    ? deriveDraftAssetDelta(sorted, worldId, teamCode)
+    : null;
+
+  // A validated 2028 allocation changes selections, not financial books.
+  // Its receipt predates the first trade but intentionally has no cap snapshot.
+  // Only that known leading event may be skipped; missing financial history
+  // from any other event still leaves the baseline unavailable.
+  let financialStart = 0;
+  while (draftAssetDelta && financialStart < sorted.length - 1) {
+    const row = sorted[financialStart];
+    const allocation = DraftSwapReceiptZ.safeParse(
+      Reflect.get(row.raw?.metadata ?? {}, 'swapDraftReceipt')
+    );
+    if (
+      row.mutationType !== 'draftConveyance' ||
+      row.playerIds.length > 0 ||
+      Object.keys(row.beforeTotalsByTeam).length > 0 ||
+      Object.keys(row.afterTotalsByTeam).length > 0 ||
+      !allocation.success ||
+      allocation.data.before.kind !== 'native-overlapping-pool-v1' ||
+      allocation.data.draftYear !== 2028 ||
+      !allocation.data.nativeLifecycle
+    )
+      break;
+    financialStart++;
+  }
+
+  // Compare recorded financial snapshots; never recalculate a missing book.
   let capTotalDelta = null;
   let taxApronPostureDelta = null;
 
   if (sorted.length > 0) {
-    const earliestEvent = sorted[0];
+    const earliestEvent = sorted[financialStart];
     const mostRecentEvent = sorted[sorted.length - 1];
 
     const capResult = deriveCapDelta(
@@ -210,9 +239,6 @@ export function deriveComparisonViewModel(
     });
   }
 
-  const draftAssetDelta = isSyntheticDraftReviewEnvironment()
-    ? deriveDraftAssetDelta(sorted, worldId, teamCode)
-    : null;
   if (!draftAssetDelta) unavailableSummary.push(DRAFT_UNAVAILABLE);
 
   return {

@@ -271,10 +271,23 @@ export function deriveDraftAssetDelta(
           },
           'Broken native receipt chain'
         );
+        if (receipt.data.playerMovements) {
+          if (row.raw?.valid !== true) return null;
+          requireSameNativeValue(
+            Array.isArray(row.raw.playerIds)
+              ? [...row.raw.playerIds].sort()
+              : [],
+            receipt.data.playerMovements.map((p) => p.playerId).sort(),
+            'Mixed native receipt differs from the committed player transaction'
+          );
+        }
         const entry = {
           operationId: receipt.data.operationId,
           asOfDate: receipt.data.asOfDate,
           movements: receipt.data.movements,
+          ...(receipt.data.playerMovements
+            ? { playerMovements: receipt.data.playerMovements }
+            : {}),
         };
         const holders = nativeSelectionHolders(nativeProgram, [
           ...nativeTransfers,

@@ -37,6 +37,7 @@ import {
 import { GovernedSignAndTradeReceiptZ } from '@/schemas/governedSignAndTrade';
 import { GovernedCashReceiptZ } from '@/schemas/governedCashConsideration';
 import { DraftReviewSeasonReceiptZ } from '@/schemas/draftReviewSeason';
+import { DraftReviewMutationReceiptZ } from '@/schemas/draftPickReviewMutation';
 import { isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
 
 function formatCashCents(value: number): string {
@@ -445,6 +446,47 @@ export function toTeamHistoryEventDisplay(
       );
       pushSection(detailSections, 'Teams', [primaryTeamsLine]);
       pushSection(detailSections, 'Salary Books', capDeltaLines);
+      if (
+        mutationType === 'executeTrade' &&
+        isSyntheticDraftReviewEnvironment()
+      ) {
+        const parsed = DraftReviewMutationReceiptZ.safeParse(
+          metadata.draftReviewReceipt
+        );
+        if (
+          parsed.success &&
+          parsed.data.worldId === raw.worldId &&
+          parsed.data.operationId === operationId &&
+          raw.valid === true
+        ) {
+          const receipt = parsed.data,
+            native = receipt.assumptions?.nativeTrade;
+          const players = receipt.playerMovements;
+          if (
+            native &&
+            players?.length &&
+            players.length === rawPlayerIds.length &&
+            players.every((p) => rawPlayerIds.includes(p.playerId))
+          ) {
+            detailSections.push({
+              title: 'Trade Receipt',
+              presentation: 'trade-summary',
+              lines: [
+                `Trade date: ${receipt.asOfDate}`,
+                ...players.map(
+                  (p) =>
+                    `${formatEventPlayerLabel(p.playerId)} Contract: ${p.fromTeam} → ${p.toTeam}`
+                ),
+                ...receipt.movements.map(
+                  (m) =>
+                    `${m.originalTeam} ${m.year} first: final pick ${native.program.result?.positions[m.originalTeam]} · ${m.fromTeam} → ${m.toTeam}`
+                ),
+                'Original claim results preserved; selection holders reflect this trade.',
+              ],
+            });
+          }
+        }
+      }
       if (governedSignAndTradeReceipt.success) {
         const receipt = governedSignAndTradeReceipt.data;
         const receiptBody = asObject(receipt.tradeReceipt);

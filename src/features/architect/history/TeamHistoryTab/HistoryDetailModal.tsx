@@ -578,7 +578,13 @@ export const HistoryDetailModal = ({
             ? [{ ...section, title: 'Cash', lines: cashLines }]
             : [];
         }
-        if (TECHNICAL_DETAIL_SECTIONS.test(section.title || '')) {
+        const isTradeSummary =
+          section.title === 'Trade Receipt' &&
+          section.presentation === 'trade-summary';
+        if (
+          !isTradeSummary &&
+          TECHNICAL_DETAIL_SECTIONS.test(section.title || '')
+        ) {
           return [];
         }
         return [

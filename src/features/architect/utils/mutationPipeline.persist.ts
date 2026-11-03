@@ -922,6 +922,9 @@ export async function persistWorldMutation(
               operationId: draftReview.operationId,
               asOfDate: draftReview.asOfDate,
               movements: draftReview.movements,
+              ...(draftReview.playerMovements
+                ? { playerMovements: draftReview.playerMovements }
+                : {}),
             },
           ],
         });

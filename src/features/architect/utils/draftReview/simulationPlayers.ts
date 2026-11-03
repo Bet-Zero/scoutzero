@@ -1,4 +1,4 @@
-/** Accounts for ordinary Contracts in the bounded bilateral original-pick lane.
+/** Accounts for ordinary Contracts in the bounded bilateral mixed-pick lanes.
  * This establishes consideration identity, never whole-trade legality.
  */
 import { isTwoWayTradePlayer } from '../tradeMachine/utils/twoWayTradeSalary';
@@ -23,6 +23,9 @@ export function simulationPlayerMovements(
     toTeam: string;
   }[] = [];
   const hasPlayers = slots.some((s) => s.sends?.length);
+  const supportedPath = (path: string) =>
+    path === 'STANDARD_TPE' ||
+    (branch === 'native-selections' && path === 'ROOM');
   if (
     hasPlayers &&
     (args.payload.capProjections != null ||
@@ -47,21 +50,23 @@ export function simulationPlayerMovements(
     if (
       hasPlayers &&
       (!election.success ||
-        election.data.path !== 'STANDARD_TPE' ||
+        !supportedPath(election.data.path) ||
         Object.keys(election.data.tradedPlayerPreTradeSalaries).length !==
           (slot.sends?.length ?? 0))
     )
       throw new Error(
-        'Each team in a mixed trade must use Standard TPE matching with its exact outgoing player salaries.'
+        'Each team in a mixed trade needs a supported explicit matching path and exact outgoing player salaries.'
       );
     if (!slot.sends?.length) continue;
     if (
-      !['unconditional', 'protection-programs'].includes(branch) ||
+      !['unconditional', 'protection-programs', 'native-selections'].includes(
+        branch
+      ) ||
       slot.sends.length !== 1 ||
       args.payload.tradeCtx?.source !== 'tradeMachine'
     )
       throw new Error(
-        'Mixed trades support one ordinary player per team with original firsts or complete protection programs.'
+        'Mixed trades support one ordinary player per team with original firsts, complete protection programs or admitted resolved 2028 selections.'
       );
     const team = state.teams?.find((t) => t.teamCode === slot.teamCode)
       ?.team as RecordLike | undefined;
@@ -146,12 +151,12 @@ export function simulationPlayerMovements(
       );
     if (
       !election.success ||
-      election.data.path !== 'STANDARD_TPE' ||
+      !supportedPath(election.data.path) ||
       Object.keys(election.data.tradedPlayerPreTradeSalaries).length !== 1 ||
       election.data.tradedPlayerPreTradeSalaries[id] !== basis.outgoingSalary
     )
       throw new Error(
-        'Mixed trades require Standard TPE matching with the exact governed outgoing Salary for each player.'
+        'Mixed trades require a supported matching path with the exact governed outgoing Salary for each player.'
       );
     movements.push({
       playerId: id,

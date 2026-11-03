@@ -204,9 +204,13 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
   const stateDigest = mutationSnapshotDigest(state);
   const playerMovements = simulationPlayerMovements(
     args,
-    metadata.draftSimulationBranches,
+    native?.kind === 'native-overlapping-pool-v1' && native.year === 2028
+      ? 'native-selections'
+      : metadata.draftSimulationBranches,
     state
   );
+  const nativePlayers =
+    native && playerMovements.length ? { playerMovements } : {};
   const asOf = window?.asOf ?? QUALIFIED_JUNE5_DRAFT_HORIZON.asOf;
   const documentSnapshots: Record<string, string | null> = {
     ...apronWorld?.snapshots,
@@ -390,6 +394,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
         operationId: args.operationId,
         asOfDate: metadata.asOfDate,
         movements,
+        ...nativePlayers,
       },
     ]);
   if (programs.length || apron) {
@@ -421,6 +426,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
         operationId: args.operationId,
         asOfDate: metadata.asOfDate,
         movements,
+        ...nativePlayers,
       }),
       teams: nativeWorld.teams,
       entitlements: nativeWorld.entitlements,
@@ -717,6 +723,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     firstsByTeam,
     reviews,
     movements,
+    ...nativePlayers,
   };
   return { status: 'ready' as const, record };
 }
