@@ -9,7 +9,8 @@ import { registerSoftwareSeasonEnvironment } from '@/features/architect/utils/go
 
 export async function seedOverlappingDraftPoolWorld(
   uid: string,
-  worldId: string
+  worldId: string,
+  preDraft = false
 ) {
   registerSoftwareSeasonEnvironment(
     () =>
@@ -71,6 +72,42 @@ export async function seedOverlappingDraftPoolWorld(
     draftConditionalPrograms: [],
     draftSwapProgram: program,
     draftSimulationCalendar: [{ year: 2028, date: '2028-06-30' }],
+    ...(preDraft
+      ? {
+          draftNativeLifecycle: {
+            kind: 'governed-pre-draft-native-selections-v1',
+            claimsEffectiveDate: '2028-06-20',
+            selections: 'unconsumed-before-draft',
+            tradingWindow: {
+              kind: 'governed-test-seven-draft-window',
+              asOf: '2028-06-20T12:00:00Z',
+              previousDraftCompletedAt: '2027-06-30T23:59:59Z',
+              firstFutureDraftStartsAt: '2028-06-30T00:00:00Z',
+              firstYear: 2028,
+              lastYear: 2034,
+            },
+            retainedFirstIds: catalogue.data.records
+              .filter(
+                (r) =>
+                  r.originalPick &&
+                  // WAS's own 2030 original has a competing claim. Use the
+                  // unencumbered GSW original already held in its test inventory.
+                  [
+                    'BKN_2030_1st',
+                    'BKN_2032_1st',
+                    'GSW_2030_1st',
+                    'WAS_2032_1st',
+                  ].includes(r.originalPick.id)
+              )
+              .map((r) => r.entitlementId),
+            softwareRetainedFirsts: ['BKN', 'WAS'].map((team) => ({
+              team,
+              draftYear: 2034,
+            })),
+          },
+          draftNativeTransfers: [],
+        }
+      : {}),
   });
   await batch.commit();
   return { catalogue, program };

@@ -39,7 +39,7 @@ export function ConditionalDraftJourney({
         ['protection-programs', 'swap-program', 'apron-lifecycle'].includes(
           metadata.data()?.draftSimulationBranches
         )
-          ? loadConditionalWorld(worldId)
+          ? loadConditionalWorld(worldId, { readOnly: true })
           : null
       )
       .then((value) => {
@@ -68,7 +68,10 @@ export function ConditionalDraftJourney({
     (p) => activeConditionalStage(p)?.year === draftYear
   );
   const swapDue =
-    state.swap && !state.swap.result && state.swap.year === draftYear;
+    !state.historicalTerms &&
+    state.swap &&
+    !state.swap.result &&
+    state.swap.year === draftYear;
   const dueTeams = swapDue
     ? state.swap!.slots.map((s) => s.originalTeam)
     : [...new Set(due.map((p) => p.originalTeam))];
@@ -86,7 +89,7 @@ export function ConditionalDraftJourney({
     }
   }
   async function advance(draft: boolean) {
-    if (!worldId || !state || busy) return;
+    if (!worldId || !state || busy || state.historicalTerms) return;
     setBusy(true);
     setError('');
     try {
@@ -137,6 +140,13 @@ export function ConditionalDraftJourney({
             ? 'First-round swap pool'
             : 'Conditional first-round obligations'}
       </h3>
+      {state.historicalTerms && (
+        <p role="status">
+          Historical governing terms: saved allocations and receipts remain
+          readable. New operations require the replacement program in a separate
+          world; this world has not been migrated.
+        </p>
+      )}
       {state.apron && (
         <div data-testid="apron-lifecycle-summary">
           {(state.metadata.draftSimulationTeams as string[]).map((team) => {
@@ -357,18 +367,20 @@ export function ConditionalDraftJourney({
           )}
           {state.swap.kind !== 'ordered-swap-pool-v1' && state.swap.result && (
             <p>
-              {!isNativeSelectionTradeAdmitted(state.swap)
-                ? 'Subsequent trading is not yet available for this native family.'
-                : state.metadata.draftNativeLifecycle &&
-                    state.metadata.asOfDate >=
-                      state.metadata.draftNativeLifecycle.tradingWindow.firstFutureDraftStartsAt.slice(
-                        0,
-                        10
-                      )
-                  ? 'The draft has begun. These selections are no longer available for pre-draft trades.'
-                  : state.metadata.draftNativeLifecycle
-                    ? `Resolved selections may be exchanged before ${state.metadata.draftNativeLifecycle.tradingWindow.firstFutureDraftStartsAt.slice(0, 10)}, subject to trade validation. The original claim result stays in History.`
-                    : 'This draft resolution has no pre-draft trading window. These selections cannot be traded retrospectively.'}
+              {state.historicalTerms
+                ? 'This historical world is read-only for draft operations.'
+                : !isNativeSelectionTradeAdmitted(state.swap)
+                  ? 'Subsequent trading is not yet available for this native family.'
+                  : state.metadata.draftNativeLifecycle &&
+                      state.metadata.asOfDate >=
+                        state.metadata.draftNativeLifecycle.tradingWindow.firstFutureDraftStartsAt.slice(
+                          0,
+                          10
+                        )
+                    ? 'The draft has begun. These selections are no longer available for pre-draft trades.'
+                    : state.metadata.draftNativeLifecycle
+                      ? `Resolved selections may be exchanged before ${state.metadata.draftNativeLifecycle.tradingWindow.firstFutureDraftStartsAt.slice(0, 10)}, subject to trade validation. The original claim result stays in History.`
+                      : 'This draft resolution has no pre-draft trading window. These selections cannot be traded retrospectively.'}
             </p>
           )}
           {state.swap.slots.map((slot) => (
@@ -435,7 +447,7 @@ export function ConditionalDraftJourney({
       {due.length > 0 || swapDue ? (
         <button
           className="px-3 py-1 ml-2 rounded border border-cockpit-edge disabled:opacity-50"
-          disabled={busy}
+          disabled={busy || state.historicalTerms}
           onClick={() => void advance(true)}
         >
           Resolve {draftYear} draft

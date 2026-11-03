@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { coverage, loadSnapshot } from '../../scripts/dev/cloudData';
+import { seedOverlappingDraftPoolWorld } from './fixtures/overlappingDraftPoolWorld';
 import { seedNativeDraftPoolWorld } from './fixtures/nativeDraftPoolWorld';
 import {
   conditionalState,
@@ -15,6 +16,18 @@ import {
   openDashboardTab,
 } from './helpers/architectReviewWorld';
 
+const overlapping =
+  process.env.SCOUTZERO_NATIVE_TRADE_FAMILY === 'overlapping-2028';
+const year = overlapping ? 2028 : 2029;
+const home = overlapping ? 'BKN' : 'HOU';
+const away = overlapping ? 'WAS' : 'BKN';
+const termsPath = overlapping
+  ? process.env.SCOUTZERO_DRAFT_OVERLAPPING_POOL
+  : process.env.SCOUTZERO_DRAFT_NATIVE_POOL;
+const teams = overlapping
+  ? ['BKN', 'PHX', 'PHI', 'NYK', 'WAS', 'POR', 'MIL']
+  : ['HOU', 'BKN', 'DAL', 'PHX'];
+
 test.use({
   viewport: { width: 1280, height: 720 },
   actionTimeout: 15000,
@@ -22,13 +35,16 @@ test.use({
 });
 test.setTimeout(600000);
 test.skip(
-  process.env.PLAYWRIGHT_DRAFT_SIMULATION !== 'true' ||
-    !process.env.SCOUTZERO_DRAFT_NATIVE_POOL,
+  process.env.PLAYWRIGHT_DRAFT_SIMULATION !== 'true' || !termsPath,
   'Protected catalogue and native terms required.'
 );
 const proofDir =
   process.env.SCOUTZERO_BROWSER_PROOF_DIR ?? 'tmp/native-selection-trade';
-const date = { seasonId: '2028-29', asOfDate: '2029-06-20', yearKey: 2029 };
+const date = {
+  seasonId: `${year - 1}-${String(year).slice(-2)}`,
+  asOfDate: `${year}-06-20`,
+  yearKey: year,
+};
 function receipt(name: string, value: unknown) {
   fs.mkdirSync(proofDir, { recursive: true });
   fs.writeFileSync(
@@ -70,32 +86,39 @@ async function start(
   preDraft = true,
   completeStepien = true
 ) {
-  await page.goto('/gm/HOU?season=2029');
+  await page.goto(`/gm/${home}?season=${year}`);
   await expect
     .poll(() => readReviewUserId(page), { timeout: 30000 })
     .not.toBe('');
   const uid = await readReviewUserId(page),
     worldId = `native_trade_${name}_${Date.now()}`;
-  const fixture = await seedNativeDraftPoolWorld(uid, worldId, preDraft);
+  const fixture = await (
+    overlapping ? seedOverlappingDraftPoolWorld : seedNativeDraftPoolWorld
+  )(uid, worldId, preDraft);
   const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
   if (!completeStepien)
     await root.update({ 'draftNativeLifecycle.softwareRetainedFirsts': [] });
   await page.evaluate(
-    ({ uid, worldId }) => {
+    ({ uid, worldId, year }) => {
       localStorage.setItem(`architect.activeWorldId.${uid}`, worldId);
-      localStorage.setItem('hz.currentSeasonEndYear', '2029');
+      localStorage.setItem('hz.currentSeasonEndYear', String(year));
     },
-    { uid, worldId }
+    { uid, worldId, year }
   );
   await page.reload();
   let dialog = await room(page);
-  const positions = { DAL: 3, PHX: 14, HOU: 27 };
+  const positions: Record<string, number> = overlapping
+    ? { BKN: 20, PHX: 3, PHI: 9, NYK: 6, WAS: 14, POR: 27, MIL: 25 }
+    : { DAL: 3, PHX: 14, HOU: 27 };
   for (const [team, position] of Object.entries(positions))
     await dialog.getByLabel(`${team} draft position`).fill(String(position));
-  await dialog.getByLabel('Pool election').selectOption('exercise');
+  if (overlapping) {
+    for (let i = 1; i <= 5; i++)
+      await dialog.getByLabel(`Claim ${i} election`).selectOption('exercise');
+  } else await dialog.getByLabel('Pool election').selectOption('exercise');
   await Promise.all([
     page.waitForEvent('load', { timeout: 120000 }),
-    dialog.getByRole('button', { name: 'Resolve 2029 draft' }).click(),
+    dialog.getByRole('button', { name: `Resolve ${year} draft` }).click(),
   ]);
   await expect
     .poll(async () => (await root.collection('events').get()).size, {
@@ -128,32 +151,43 @@ test('resolved selections can be traded twice through Trade Machine and recovere
     ).sha256
   );
   const resolution = (
-    await root.collection('events').doc('swapDraft__2029').get()
+    await root.collection('events').doc(`swapDraft__${year}`).get()
   ).data();
   expect(before.metadata!.asOfDate).toBe(date.asOfDate);
   for (const [index, pair] of [
-    [ids.DAL, ids.HOU],
-    [ids.PHX, ids.DAL],
+    ...(overlapping
+      ? [
+          [ids.PHX, ids.WAS],
+          [ids.PHI, ids.PHX],
+        ]
+      : [
+          [ids.DAL, ids.HOU],
+          [ids.PHX, ids.DAL],
+        ]),
   ].entries()) {
-    await page.goto('/gm/HOU?season=2029');
+    await page.goto(`/gm/${home}?season=${year}`);
     const dialog = await room(page);
+    // The draft summary and team cards hydrate independently. Wait for the
+    // home card before choosing the empty slot, or a slow load can replace it.
+    await expect(dialog.getByTestId(`trade-team-card-${home}`)).toBeVisible();
     const picker = dialog
       .locator('label', { hasText: /^Select Team$/ })
       .locator('xpath=following-sibling::select[1]');
     if (!(await picker.count()))
       await dialog.getByRole('button', { name: /^Add Team$/ }).click();
-    await picker.first().selectOption('nets');
+    await picker.first().selectOption(overlapping ? 'wizards' : 'nets');
+    await expect(dialog.getByTestId(`trade-team-card-${away}`)).toBeVisible();
     await select(
       page,
-      dialog.getByTestId('trade-team-card-HOU'),
+      dialog.getByTestId(`trade-team-card-${home}`),
       pair[0],
-      'Brooklyn Nets'
+      overlapping ? 'Washington Wizards' : 'Brooklyn Nets'
     );
     await select(
       page,
-      dialog.getByTestId('trade-team-card-BKN'),
+      dialog.getByTestId(`trade-team-card-${away}`),
       pair[1],
-      'Houston Rockets'
+      overlapping ? 'Brooklyn Nets' : 'Houston Rockets'
     );
     await dialog.getByRole('button', { name: /^Validate Trade$/ }).click();
     await expect(
@@ -169,9 +203,19 @@ test('resolved selections can be traded twice through Trade Machine and recovere
     await expect(dialog).toBeHidden({ timeout: 30000 });
     await page.reload();
   }
-  const holders = { DAL: 'HOU', HOU: 'HOU', PHX: 'BKN' };
-  for (const team of ['HOU', 'BKN', 'DAL', 'PHX']) {
-    await page.goto(`/gm/${team}?season=2029`);
+  const holders: Record<string, string> = overlapping
+    ? {
+        BKN: 'PHX',
+        PHX: 'BKN',
+        PHI: 'WAS',
+        NYK: 'NYK',
+        WAS: 'BKN',
+        POR: 'MIL',
+        MIL: 'POR',
+      }
+    : { DAL: 'HOU', HOU: 'HOU', PHX: 'BKN' };
+  for (const team of teams) {
+    await page.goto(`/gm/${team}?season=${year}`);
     for (const phase of ['compare', 'reload']) {
       if (phase === 'reload') await page.reload();
       await openDashboardTab(page, 'Compare');
@@ -180,7 +224,7 @@ test('resolved selections can be traded twice through Trade Machine and recovere
       ))
         await expect(
           page.getByText(
-            `${original} 2029 first: final pick ${positions[original as keyof typeof positions]} · held by ${holders[original as keyof typeof holders]}`,
+            `${original} ${year} first: final pick ${positions[original as keyof typeof positions]} · held by ${holders[original as keyof typeof holders]}`,
             { exact: true }
           )
         ).toBeVisible();
@@ -201,7 +245,7 @@ test('resolved selections can be traded twice through Trade Machine and recovere
       (t) => holders[t as keyof typeof holders] === team
     ))
       await expect(
-        page.getByTestId('cockpit-assets-panel-picks-2029-first')
+        page.getByTestId(`cockpit-assets-panel-picks-${year}-first`)
       ).toContainText(
         `Final pick ${positions[original as keyof typeof positions]}`
       );
@@ -212,7 +256,9 @@ test('resolved selections can be traded twice through Trade Machine and recovere
     );
     await expect(
       page.getByTestId('cockpit-activity-rail-identity')
-    ).toContainText('Native pooled selections');
+    ).toContainText(
+      overlapping ? 'Overlapping draft claims' : 'Native pooled selections'
+    );
     await expect(
       page.getByTestId('cockpit-activity-rail-assets-picks')
     ).toBeVisible();
@@ -221,7 +267,7 @@ test('resolved selections can be traded twice through Trade Machine and recovere
   const after = await conditionalState(worldId);
   expect(await sourceState()).toEqual(sourceBefore);
   expect(
-    (await root.collection('events').doc('swapDraft__2029').get()).data()
+    (await root.collection('events').doc(`swapDraft__${year}`).get()).data()
   ).toEqual(resolution);
   expect(after.metadata!.draftSwapProgram).toEqual(
     before.metadata!.draftSwapProgram
@@ -253,12 +299,12 @@ test('resolved selections can be traded twice through Trade Machine and recovere
       .update(fs.readFileSync(process.env.SCOUTZERO_DRAFT_REVIEW_RELEASE!))
       .digest('hex'),
     nativeTermsSha256: createHash('sha256')
-      .update(fs.readFileSync(process.env.SCOUTZERO_DRAFT_NATIVE_POOL!))
+      .update(fs.readFileSync(termsPath!))
       .digest('hex'),
     worldId,
     trades: 2,
-    teams: ['HOU', 'BKN', 'DAL', 'PHX'],
-    views: 20,
+    teams,
+    views: teams.length * 5,
     preservedIdentities: 278,
     unresolved: 29,
   });
@@ -273,14 +319,16 @@ test('native trades reject stale state, missing inputs, conflict, duplicate writ
       page,
       uid,
       worldId,
-      [ids.DAL, ids.HOU],
-      ['HOU', 'BKN'],
+      overlapping ? [ids.PHX, ids.WAS] : [ids.DAL, ids.HOU],
+      [home, away],
       { ...date, asOfDate }
     );
   expect(await prepare()).toMatchObject({ status: 'prepared', legal: true });
-  const selected = root.collection('entitlements').doc(ids.DAL),
+  const selected = root
+      .collection('entitlements')
+      .doc(overlapping ? ids.PHX : ids.DAL),
     original = (await selected.get()).data()!;
-  await selected.update({ holderTeam: 'PHX' });
+  await selected.update({ holderTeam: overlapping ? 'NYK' : 'PHX' });
   const stale = await conditionalState(worldId);
   expect(await applyConditionalTrade(page)).toMatchObject({ success: false });
   expect(await conditionalState(worldId)).toEqual(stale);
@@ -291,13 +339,13 @@ test('native trades reject stale state, missing inputs, conflict, duplicate writ
   await selected.set(original);
   const metadata = (await root.get()).data()!;
   for (const patch of [
-    { asOfDate: '2029-06-30' },
-    { asOfDate: '2029-06-19' },
+    { asOfDate: `${year}-06-30` },
+    { asOfDate: `${year}-06-19` },
     { draftNativeLifecycle: null },
     {
       draftNativeLifecycle: {
         ...metadata.draftNativeLifecycle,
-        claimsEffectiveDate: '2029-06-19',
+        claimsEffectiveDate: `${year}-06-19`,
       },
     },
     {
@@ -307,7 +355,7 @@ test('native trades reject stale state, missing inputs, conflict, duplicate writ
           ...metadata.draftSwapProgram.result,
           allocation: {
             ...metadata.draftSwapProgram.result.allocation,
-            [ids.DAL]: 'BKN',
+            [overlapping ? ids.PHX : ids.DAL]: away,
           },
         },
       },
@@ -331,7 +379,7 @@ test('native trades reject stale state, missing inputs, conflict, duplicate writ
   });
   expect(await conditionalState(worldId)).toEqual(beforeUnavailable);
   await page.unroute('**/api/architect/draft-review');
-  const hou = root.collection('teams').doc('HOU'),
+  const hou = root.collection('teams').doc(home),
     houBefore = (await hou.get()).data()!;
   await hou.update({ salaryBookInputs: null });
   expect(await prepare()).not.toMatchObject({
@@ -385,8 +433,8 @@ test('missing future retained holdings cannot supply a Stepien verdict or commit
     page,
     uid,
     worldId,
-    [ids.DAL, ids.HOU],
-    ['HOU', 'BKN'],
+    overlapping ? [ids.PHX, ids.WAS] : [ids.DAL, ids.HOU],
+    [home, away],
     date
   );
   expect(verdict).not.toMatchObject({ status: 'prepared', legal: true });

@@ -41,6 +41,7 @@ export function useSwapAssets(
           return;
         }
         const state = await loadConditionalWorld(worldId, {
+          readOnly: true,
           allowUnconditionalInventory:
             metadata?.draftSimulationBranches === 'unconditional',
         });

@@ -6,9 +6,12 @@ import type { DraftClaimProgram } from '@/schemas/draftSwapProgram';
 import { reviewSimulationDraftWindow } from './horizon';
 import { canonicalStringify } from '../contractSource/deterministicDigest';
 
-/** Expanded families require their own complete saved-world transfer certification. */
+/** Family scope only. The world loader separately authenticates active terms. */
 export function isNativeSelectionTradeAdmitted(program: DraftClaimProgram) {
-  return program.kind === 'native-ranked-pool-v1' && program.year === 2029;
+  return (
+    (program.kind === 'native-ranked-pool-v1' && program.year === 2029) ||
+    (program.kind === 'native-overlapping-pool-v1' && program.year === 2028)
+  );
 }
 export function requireNativeSelectionTradeAdmission(
   program: DraftClaimProgram
