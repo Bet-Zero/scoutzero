@@ -197,8 +197,11 @@ for (const choice of ['exercise', 'waive'] as const)
               .sort()
           );
           expect(player.contract.contractId).toBe(original.contract.contractId);
+          // A trade preserves historical Contract rows too; only Season
+          // Advance trims expired rows from the current-state Contract.
           const rows = original.contract.salariesByYear.filter(
-            (r: any) => Number(r.season.slice(0, 4)) + 1 >= year
+            (r: any) =>
+              year === 2026 || Number(r.season.slice(0, 4)) + 1 >= year
           );
           expect(player.contract.salariesByYear).toHaveLength(rows.length);
           for (const row of rows)
@@ -370,7 +373,7 @@ for (const choice of ['exercise', 'waive'] as const)
         .getByRole('button', { name: /^(Players|Plyr)( \(\d+\))?$/i })
         .click();
       const row = card
-        .getByAltText(new RegExp(`^${p.name}$`, 'i'))
+        .getByText(new RegExp(`^${p.name}$`, 'i'))
         .first()
         .locator('xpath=ancestor::div[.//button[normalize-space()="•••"]][1]');
       await row.getByRole('button', { name: '•••' }).click();
@@ -389,15 +392,26 @@ for (const choice of ['exercise', 'waive'] as const)
         .fill(String(p.matching));
     }
     if (threeTeam && choice === 'exercise') {
-      await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+      await dialog
+        .getByRole('button', { name: 'Close Trade Machine', exact: true })
+        .click();
       dialog = await room(page);
       for (const { from: team } of routes) {
         const p = SWAP_PLAYERS[team];
-        await expect(
-          dialog
-            .getByTestId(`trade-team-card-${team}`)
-            .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
-        ).toHaveValue(String(p.matching));
+        await expect
+          .poll(async () =>
+            Number(
+              (
+                await dialog
+                  .getByTestId(`trade-team-card-${team}`)
+                  .getByLabel(
+                    new RegExp(`^${p.name} exact pre-trade Salary$`, 'i')
+                  )
+                  .inputValue()
+              ).replace(/[^0-9.-]/g, '')
+            )
+          )
+          .toBe(p.matching);
       }
     }
     if (choice === 'exercise') {
@@ -690,6 +704,9 @@ for (const choice of ['exercise', 'waive'] as const)
 test('mixed swap failures and stale operations leave the complete world unchanged', async ({
   page,
 }) => {
+  // The three-team matrix re-authenticates the full catalogue for additional
+  // routing and stale-third-team cases (about 19 minutes in diagnostics).
+  if (threeTeam) test.setTimeout(1500000);
   await page.goto('/gm/WAS?season=2026');
   await expect
     .poll(() => readReviewUserId(page), { timeout: 30000 })
@@ -757,16 +774,57 @@ test('mixed swap failures and stale operations leave the complete world unchange
     expect(await conditionalStateDigest(worldId)).toBe(pristine);
     rejected[mode] = result;
   }
-  const stepien = await prepare([
-    rightId,
-    original(threeTeam ? 'PHX' : 'MIA', 2028),
-    original(threeTeam ? 'PHX' : 'MIA', 2029),
-  ]);
+  // PHX's 2029 original is encumbered and cannot itself be traded in this
+  // family. Remove its software first-round coverage instead, leaving
+  // source terms intact, so the proposal reaches the third team's Stepien gate.
+  const missingFirsts = threeTeam
+    ? [original('PHX', 2028), original('PHX', 2029)]
+    : [];
+  const priorHoldings = await Promise.all(
+    (threeTeam ? ['PHX', 'ORL'] : []).map(async (team) => {
+      const ref = root.collection('teams').doc(team);
+      return { ref, ids: (await ref.get()).data()!.entitlementIds as string[] };
+    })
+  );
+  if (threeTeam) {
+    const batch = getReviewAdminDb().batch();
+    for (const id of missingFirsts)
+      batch.update(root.collection('entitlements').doc(id), {
+        holderTeam: 'ORL',
+      });
+    for (const { ref, ids } of priorHoldings)
+      batch.update(ref, {
+        entitlementIds:
+          ref.id === 'PHX'
+            ? ids.filter((id) => !missingFirsts.includes(id))
+            : [...ids, ...missingFirsts],
+      });
+    await batch.commit();
+  }
+  const beforeStepien = await conditionalStateDigest(worldId);
+  const stepien = await prepare(
+    threeTeam
+      ? [rightId]
+      : [rightId, original('MIA', 2028), original('MIA', 2029)]
+  );
   expect(stepien.status).toBe('blocked');
-  expect(JSON.stringify(stepien)).toMatch(/stepien/i);
+  expect(JSON.stringify(stepien)).toMatch(
+    threeTeam ? /PHX: stepien:/i : /stepien/i
+  );
   expect((await applyMixedSwap(page)).success).toBe(false);
-  expect(await conditionalStateDigest(worldId)).toBe(pristine);
+  expect(await conditionalStateDigest(worldId)).toBe(beforeStepien);
   rejected.stepien = stepien;
+  if (threeTeam) {
+    const batch = getReviewAdminDb().batch();
+    for (const id of missingFirsts)
+      batch.update(root.collection('entitlements').doc(id), {
+        holderTeam: 'PHX',
+      });
+    for (const { ref, ids } of priorHoldings)
+      batch.update(ref, { entitlementIds: ids });
+    await batch.commit();
+    expect(await conditionalStateDigest(worldId)).toBe(pristine);
+  }
   expect((await prepare([rightId, original('WAS')])).status).toBe('error');
   expect((await applyMixedSwap(page)).success).toBe(false);
   expect(await conditionalStateDigest(worldId)).toBe(pristine);
