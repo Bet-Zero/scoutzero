@@ -414,8 +414,8 @@ test('three-team mixed rejected operations leave the complete saved world unchan
   async function reject(name: string, pattern?: RegExp, mode = '') {
     const before = await conditionalStateDigest(worldId);
     const preview = await prepare(mode);
-    expect(preview).not.toMatchObject({ status: 'prepared', legal: true });
-    if (pattern) expect(JSON.stringify(preview)).toMatch(pattern);
+    expect(preview, name).not.toMatchObject({ status: 'prepared', legal: true });
+    if (pattern) expect(JSON.stringify(preview), name).toMatch(pattern);
     const applied = await applyThreeTeamMixed(page);
     expect(applied.success).toBe(false);
     expect(await conditionalStateDigest(worldId)).toBe(before);
@@ -477,8 +477,9 @@ test('three-team mixed rejected operations leave the complete saved world unchan
         const row = depth.contract.salariesByYear.find(
           (s: any) => s.season === '2027-28'
         );
-        row.salary += 30000000;
-        row.capHit += 30000000;
+        // Exceed Room even for BKN's smaller $25m incoming Contract.
+        row.salary += 50000000;
+        row.capHit += 50000000;
       }
       if (mode === 'roster') {
         const twoWay = changed.players.find((p: any) => p.isTwoWay);
