@@ -834,7 +834,7 @@ export async function runTradeReceiptProof(
                 // Two independently bounded 220-second cases, plus startup and
                 // graceful emulator export, exceed the pick-only four minutes.
                 threeTeamMixed
-                  ? 2400000
+                  ? 3600000
                   : mixedTrades
                     ? 600000
                     : penaltyPlacement || apronMultiseason

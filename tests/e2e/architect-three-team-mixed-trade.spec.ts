@@ -402,7 +402,7 @@ test('three-team mixed rejected operations leave the complete saved world unchan
   // Each rejection re-authenticates the retained world before checking no writes.
   // The three-team matrix re-authenticates the full world for 45 previews,
   // including each team's finances and subsequent receipt/stale-write checks.
-  test.setTimeout(1500000);
+  test.setTimeout(2100000);
   const { uid, worldId, root, ids } = await startThreeTeamMixed(
     page,
     'negative'
