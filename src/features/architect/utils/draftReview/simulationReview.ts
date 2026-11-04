@@ -495,6 +495,16 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     await sha256Digest(canonicalStringify(assumptions))
   ).slice(7);
   const reviews = Object.keys(firstsByTeam).map((team) => {
+    const recipients = new Set(
+      movements.filter((m) => m.fromTeam === team).map((m) => m.toTeam)
+    );
+    // The consideration fact describes one recipient for the listed firsts.
+    // Never infer that recipient from the ordering of a three-team proposal.
+    if (recipients.size !== 1)
+      throw new Error(
+        'The listed first-round selections require one explicit recipient per sending team.'
+      );
+    const recipientTeam = [...recipients][0];
     const context = {
       proposalSha256,
       stateVersion: stateDigest,
@@ -667,7 +677,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
           id: `test-consideration:${team}`,
           scope: 'first-round-consideration',
           outgoing /* schema below controls actual complete non-cash exchange */,
-          recipientTeam: slots.find((s) => s.teamCode !== team)!.teamCode,
+          recipientTeam,
           onlyListedFirstsOutgoing: !playerMovements.some(
             (m) => m.fromTeam === team
           ),

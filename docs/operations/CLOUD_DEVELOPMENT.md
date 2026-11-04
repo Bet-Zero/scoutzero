@@ -169,6 +169,17 @@ scenarios do not establish NBA transaction legality or production permission.
 Run the diagnostic spec before freezing; the wrapper then certifies the clean,
 pushed candidate and retains private evidence locally.
 
+Use `--three-team-mixed` with the private catalogue, full baseline and admitted
+`SCOUTZERO_DRAFT_OVERLAPPING_POOL` input for the bounded three-team mixed
+journey. PHI, SAS and BKN give and receive explicit Contract/selection
+consideration in one atomic transaction. All three teams' books, Contracts,
+inventories and saved views are checked after reload. A later bilateral selection
+exchange uses the updated holders. Invalid routes, missing salary, financial
+and roster restrictions, stale state and conflicting writes remain no-write
+failures. Only the admitted 2028 mixed family permits three teams;
+selection-only exchanges remain bilateral. This is protected software proof,
+not production activation or actual NBA legality.
+
 Use `--mixed-conditional` for ordinary players combined with the accepted 2026
 top-10 protection and 2027 unprotected fallback program. The same private
 catalogue and full-baseline variables are required; the 2028 input is

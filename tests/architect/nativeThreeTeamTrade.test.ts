@@ -78,6 +78,25 @@ it('replays real three-party consideration then a bilateral selection return usi
     nativeSelectionHolders(resolved, [next, { ...next, operationId: 'stale' }])
   ).toThrow(/current owner/);
 });
+it('preserves three distinct ordinary Contract routes without changing selection replay', () => {
+  const { resolved, next } = fixture();
+  const three = NativeSelectionTransferZ.parse({
+    ...next,
+    playerMovements: [
+      ...next.playerMovements!,
+      {
+        playerId: 'three',
+        contractId: 'c-three',
+        fromTeam: 'BKN',
+        toTeam: 'PHI',
+      },
+    ],
+  });
+  expect(three.playerMovements).toHaveLength(3);
+  expect(nativeSelectionHolders(resolved, [three])).toEqual(
+    nativeSelectionHolders(resolved, [next])
+  );
+});
 it.each([
   'missing-give',
   'missing-receive',
@@ -90,13 +109,15 @@ it.each([
   const { resolved, next } = fixture();
   if (mode === 'missing-give') next.playerMovements!.pop();
   if (mode === 'missing-receive') next.playerMovements![0].toTeam = 'BKN';
-  if (mode === 'fourth-team')
+  if (mode === 'fourth-team') {
+    next.playerMovements![1].toTeam = 'LAL';
     next.playerMovements!.push({
       playerId: 'three',
       contractId: 'c-three',
       fromTeam: 'LAL',
       toTeam: 'PHI',
     });
+  }
   if (mode === 'duplicate-player') next.playerMovements![1].playerId = 'one';
   if (mode === 'duplicate-contract')
     next.playerMovements![1].contractId = 'c-one';

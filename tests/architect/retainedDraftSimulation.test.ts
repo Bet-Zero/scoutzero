@@ -230,6 +230,19 @@ beforeEach(() => {
   );
 });
 describe('retained simulation proposal integration (stipulated inputs, no NBA factual acceptance)', () => {
+  it('keeps other governed families limited to two distinct teams', async () => {
+    const metadata = mock.docs.get('architect_worlds/w');
+    for (const scope of [
+      ['CHI', 'TOR', 'SAS'],
+      ['CHI', 'CHI'],
+      ['CHI', 'TOR', 'SAS', 'BKN'],
+    ]) {
+      metadata.draftSimulationTeams = scope;
+      await expect(
+        loadConditionalWorld('w', { allowUnconditionalInventory: true })
+      ).rejects.toThrow(/distinct league teams/);
+    }
+  });
   it('projects original holdings only with explicit read-only admission and still rejects corrupt inventories', async () => {
     await expect(loadConditionalWorld('w')).rejects.toThrow(
       /owned conditional/
