@@ -833,20 +833,22 @@ export async function runTradeReceiptProof(
               timeout:
                 // Two independently bounded 220-second cases, plus startup and
                 // graceful emulator export, exceed the pick-only four minutes.
-                mixedTrades
-                  ? 600000
-                  : penaltyPlacement || apronMultiseason
-                    ? 3600000
-                    : mixedConditional || mixedNative
-                      ? 1800000
-                      : conditionalLifecycle ||
-                          swapLifecycle ||
-                          apronFreeze ||
-                          nativePool ||
-                          overlappingPool ||
-                          nativeTrades
-                        ? 1200000
-                        : 240000,
+                threeTeamMixed
+                  ? 2400000
+                  : mixedTrades
+                    ? 600000
+                    : penaltyPlacement || apronMultiseason
+                      ? 3600000
+                      : mixedConditional || mixedNative
+                        ? 1800000
+                        : conditionalLifecycle ||
+                            swapLifecycle ||
+                            apronFreeze ||
+                            nativePool ||
+                            overlappingPool ||
+                            nativeTrades
+                          ? 1200000
+                          : 240000,
             }
           : {}),
       });

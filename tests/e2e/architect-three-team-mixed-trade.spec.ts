@@ -400,7 +400,9 @@ test('three-team mixed rejected operations leave the complete saved world unchan
   page,
 }) => {
   // Each rejection re-authenticates the retained world before checking no writes.
-  test.setTimeout(900000);
+  // The three-team matrix re-authenticates the full world for 45 previews,
+  // including each team's finances and subsequent receipt/stale-write checks.
+  test.setTimeout(1200000);
   const { uid, worldId, root, ids } = await startThreeTeamMixed(
     page,
     'negative'
@@ -414,7 +416,10 @@ test('three-team mixed rejected operations leave the complete saved world unchan
   async function reject(name: string, pattern?: RegExp, mode = '') {
     const before = await conditionalStateDigest(worldId);
     const preview = await prepare(mode);
-    expect(preview, name).not.toMatchObject({ status: 'prepared', legal: true });
+    expect(preview, name).not.toMatchObject({
+      status: 'prepared',
+      legal: true,
+    });
     if (pattern) expect(JSON.stringify(preview), name).toMatch(pattern);
     const applied = await applyThreeTeamMixed(page);
     expect(applied.success).toBe(false);
