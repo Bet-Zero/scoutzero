@@ -1,4 +1,9 @@
-import { test, expect, type Page, type Locator } from '@playwright/test';
+import {
+  test,
+  expect as baseExpect,
+  type Page,
+  type Locator,
+} from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -17,9 +22,12 @@ import {
   openDashboardTab,
 } from './helpers/architectReviewWorld';
 
+// Reloaded protected inventory and History verify the complete catalogue asynchronously.
+const expect = baseExpect.configure({ timeout: 60000 });
+
 test.use({
   viewport: { width: 1280, height: 720 },
-  actionTimeout: 15000,
+  actionTimeout: 60000,
   trace: 'on',
 });
 test.setTimeout(1200000);
@@ -514,7 +522,8 @@ for (const choice of ['exercise', 'waive'] as const)
         await expect(
           page.getByTestId('cockpit-assets-panel-picks-2026-first')
         ).toContainText(
-          slot.originalTeam === team ? 'Own' : `via ${slot.originalTeam}`
+          slot.originalTeam === team ? 'Own' : `via ${slot.originalTeam}`,
+          { timeout: 60000 }
         );
       if (team === 'MIA')
         await expect(

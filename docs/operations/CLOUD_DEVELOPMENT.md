@@ -170,8 +170,6 @@ Run the diagnostic spec before freezing; the wrapper then certifies the clean,
 pushed candidate and retains private evidence locally.
 
 Use `--three-team-mixed` with the private catalogue, full baseline and admitted
-
-Use `npm run architect:proof:trade-receipt -- --mixed-swap` for the bounded ordinary-Contract and unresolved 2026 ordered-swap-right trade, both exercise/waiver outcomes, supported season transition, and all affected saved views.
 `SCOUTZERO_DRAFT_OVERLAPPING_POOL` input for the bounded three-team mixed
 journey. PHI, CHI and BKN give and receive explicit Contract/selection
 consideration in one atomic transaction. All three teams' books, Contracts,
@@ -181,6 +179,13 @@ and roster restrictions, stale state and conflicting writes remain no-write
 failures. Only the admitted 2028 mixed family permits three teams;
 selection-only exchanges remain bilateral. This is protected software proof,
 not production activation or actual NBA legality.
+
+Use `--mixed-swap` with the private catalogue and full baseline for ordinary
+Contracts combined with the accepted unresolved 2026 ordered swap right. The
+proof follows both exercise and waiver, the supported season transition, and
+all four affected teams' reloaded books, holdings and saved views. It uses the
+existing Room path with explicit below-cap software books and unchanged
+release-selected Contracts; no swap terms or production permissions change.
 
 Use `--mixed-conditional` for ordinary players combined with the accepted 2026
 top-10 protection and 2027 unprotected fallback program. The same private
