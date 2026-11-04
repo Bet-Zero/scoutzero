@@ -215,7 +215,12 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     args,
     native?.kind === 'native-overlapping-pool-v1' && native.year === 2028
       ? 'native-selections'
-      : metadata.draftSimulationBranches,
+      : metadata.draftSimulationBranches === 'swap-program' &&
+          metadata.draftSwapProgram?.kind === 'ordered-swap-pool-v1' &&
+          metadata.draftSwapProgram.year === 2026 &&
+          metadata.draftSwapProgram.result === null
+        ? 'ordered-swap-rights'
+        : metadata.draftSimulationBranches,
     state
   );
   const nativePlayers =
@@ -268,6 +273,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
       documentSnapshots,
       state,
       stateDigest,
+      playerMovements,
     });
   }
   const originals =

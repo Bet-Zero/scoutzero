@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { toTeamHistoryEventDisplay } from '@/features/architect/history/utils/normalizeWorldEventsForTeamHistory';
 import { prepareSwapTradeRecord } from '@/features/architect/utils/draftReview/swapTradeReview';
 import { swapProgram } from '@/features/architect/utils/draftReview/swapProgram';
 import type { SimulationCatalogue } from '@/features/architect/utils/draftReview/simulationInventory';
@@ -14,6 +15,13 @@ import {
 import { QUALIFIED_JUNE5_DRAFT_HORIZON as horizon } from '@/features/architect/utils/draftReview/horizon';
 import { evaluateSuppliedDraftStepien } from '@/features/architect/utils/draftStepien';
 import { DraftReviewMutationReceiptZ } from '@/schemas/draftPickReviewMutation';
+
+vi.mock('@/firebaseConfig', () => ({
+  db: {},
+  functions: {},
+  auth: {},
+  isSyntheticDraftReviewEnvironment: () => true,
+}));
 
 function fixture() {
   const records = ['AAA', 'BBB', 'CCC', 'DDD'].flatMap((team) =>
@@ -142,6 +150,128 @@ function fixture() {
   };
 }
 describe('proposal-specific ordered option review', () => {
+  async function mixed() {
+    const f = fixture();
+    f.args.payload.teams![1].entitlementsOut = [];
+    const playerMovements = [
+      {
+        playerId: 'one',
+        contractId: 'contract-one',
+        fromTeam: 'DDD',
+        toTeam: 'AAA',
+      },
+      {
+        playerId: 'two',
+        contractId: 'contract-two',
+        fromTeam: 'AAA',
+        toTeam: 'DDD',
+      },
+    ];
+    const r = await prepareSwapTradeRecord({ ...f, playerMovements });
+    if (r.status !== 'ready') throw new Error('expected mixed swap');
+    const receipt = {
+      scope: r.record.scope,
+      assumptions: r.record.assumptions!,
+      assumptionSha256: r.record.assumptionSha256,
+      operationId: 'op',
+      worldId: 'w',
+      releaseId: r.record.releaseId,
+      releaseSha256: r.record.releaseSha256,
+      asOfDate: r.record.asOfDate,
+      movements: [...r.record.movements],
+      playerMovements,
+    };
+    return { f, r, receipt };
+  }
+  it('binds ordinary Contracts as noncash return consideration without transferring a pool original', async () => {
+    const { f, r, receipt } = await mixed();
+    expect(r.record.playerMovements).toEqual(receipt.playerMovements);
+    expect(r.record.movements).toHaveLength(1);
+    expect(r.record.movements[0].assetKind).toBe('swap_right');
+    expect(f.entitlements['AAA-2026'].holderTeam).toBe('AAA');
+    expect(DraftReviewMutationReceiptZ.parse(receipt).playerMovements).toEqual(
+      receipt.playerMovements
+    );
+    await expect(prepareSwapTradeRecord(f)).rejects.toThrow(/noncash return/);
+  });
+  it.each([
+    'duplicate-player',
+    'duplicate-contract',
+    'third-party',
+    'self',
+    'same-sender',
+    'future-year',
+    'late-date',
+    'resolved',
+    'pool-original',
+  ])('rejects mixed swap receipt corruption: %s', async (mode) => {
+    const { receipt } = await mixed();
+    if (mode === 'duplicate-player')
+      receipt.playerMovements[1].playerId = 'one';
+    if (mode === 'duplicate-contract')
+      receipt.playerMovements[1].contractId = 'contract-one';
+    if (mode === 'third-party') receipt.playerMovements[1].fromTeam = 'BBB';
+    if (mode === 'self') receipt.playerMovements[1].toTeam = 'AAA';
+    if (mode === 'same-sender') receipt.playerMovements[1].fromTeam = 'DDD';
+    if (mode === 'future-year') receipt.assumptions.swapProgram!.year = 2027;
+    if (mode === 'late-date') receipt.asOfDate = '2026-07-01';
+    if (mode === 'resolved')
+      receipt.assumptions.swapProgram!.result = {
+        positions: { AAA: 20, BBB: 5, CCC: 10 },
+        elections: { 'right-a': true, 'right-c': true },
+        allocation: { 'AAA-2026': 'AAA', 'BBB-2026': 'BBB', 'CCC-2026': 'CCC' },
+      };
+    if (mode === 'pool-original')
+      receipt.movements[0] = {
+        ...receipt.movements[0],
+        entitlementId: 'AAA-2026',
+        assetKind: 'pick_ownership',
+      };
+    expect(DraftReviewMutationReceiptZ.safeParse(receipt).success).toBe(false);
+  });
+  it('reloads separate Contract and unresolved-right receipt lines and rejects mismatched saved player identity', async () => {
+    const { receipt } = await mixed();
+    const event = {
+      mutationType: 'executeTrade',
+      worldId: 'w',
+      operationId: 'op',
+      valid: true,
+      playerIds: ['one', 'two'],
+      teamCodes: ['DDD', 'AAA'],
+      metadata: { draftReviewReceipt: receipt },
+    };
+    const display = () =>
+      toTeamHistoryEventDisplay(event, {
+        playerNameLookup: { one: 'First Player', two: 'Second Player' },
+      });
+    expect(JSON.stringify(display())).toContain('unresolved swap right');
+    expect(JSON.stringify(display())).toContain(
+      'Underlying pool selections remain'
+    );
+    expect(
+      deriveDraftAssetDelta(
+        [{ mutationType: 'executeTrade', raw: event }],
+        'w',
+        'AAA'
+      )?.additions
+    ).toEqual([
+      {
+        entitlementId: 'right-a',
+        displayName: 'AAA 2026 first-round swap right',
+      },
+    ]);
+    event.playerIds = ['one'];
+    expect(JSON.stringify(display())).not.toContain(
+      'Underlying pool selections remain'
+    );
+    expect(
+      deriveDraftAssetDelta(
+        [{ mutationType: 'executeTrade', raw: event }],
+        'w',
+        'AAA'
+      )
+    ).toBeNull();
+  });
   it('permits the separately owned option and covers all four affected teams', async () => {
     const f = fixture(),
       r = await prepareSwapTradeRecord(f);

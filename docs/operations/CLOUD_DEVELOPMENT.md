@@ -170,6 +170,8 @@ Run the diagnostic spec before freezing; the wrapper then certifies the clean,
 pushed candidate and retains private evidence locally.
 
 Use `--three-team-mixed` with the private catalogue, full baseline and admitted
+
+Use `npm run architect:proof:trade-receipt -- --mixed-swap` for the bounded ordinary-Contract and unresolved 2026 ordered-swap-right trade, both exercise/waiver outcomes, supported season transition, and all affected saved views.
 `SCOUTZERO_DRAFT_OVERLAPPING_POOL` input for the bounded three-team mixed
 journey. PHI, CHI and BKN give and receive explicit Contract/selection
 consideration in one atomic transaction. All three teams' books, Contracts,

@@ -460,10 +460,12 @@ export function toTeamHistoryEventDisplay(
           raw.valid === true
         ) {
           const receipt = parsed.data,
-            native = receipt.assumptions?.nativeTrade;
+            native = receipt.assumptions?.nativeTrade,
+            swap = receipt.assumptions?.swapProgram;
           const players = receipt.playerMovements;
           if (
-            native &&
+            (native ||
+              (swap?.kind === 'ordered-swap-pool-v1' && !swap.result)) &&
             players?.length &&
             players.length === rawPlayerIds.length &&
             players.every((p) => rawPlayerIds.includes(p.playerId))
@@ -477,11 +479,14 @@ export function toTeamHistoryEventDisplay(
                   (p) =>
                     `${formatEventPlayerLabel(p.playerId)} Contract: ${p.fromTeam} → ${p.toTeam}`
                 ),
-                ...receipt.movements.map(
-                  (m) =>
-                    `${m.originalTeam} ${m.year} first: final pick ${native.program.result?.positions[m.originalTeam]} · ${m.fromTeam} → ${m.toTeam}`
+                ...receipt.movements.map((m) =>
+                  native
+                    ? `${m.originalTeam} ${m.year} first: final pick ${native.program.result?.positions[m.originalTeam]} · ${m.fromTeam} → ${m.toTeam}`
+                    : `${m.originalTeam} ${m.year} ${m.assetKind === 'swap_right' ? 'unresolved swap right' : 'first-round pick'} · ${m.fromTeam} → ${m.toTeam}`
                 ),
-                'Original claim results preserved; selection holders reflect this trade.',
+                native
+                  ? 'Original claim results preserved; selection holders reflect this trade.'
+                  : 'Underlying pool selections remain with their owners until the governed swap resolves.',
               ],
             });
           }
