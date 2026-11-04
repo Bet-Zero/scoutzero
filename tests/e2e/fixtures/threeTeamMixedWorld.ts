@@ -19,13 +19,13 @@ export const THREE_TEAM_PLAYERS = [
     name: 'Tyrese Maxey',
     salary: 43582280,
     from: 'PHI',
-    to: 'SAS',
+    to: 'CHI',
   },
   {
-    id: 'devin_vassell',
-    name: 'Devin Vassell',
-    salary: 24652174,
-    from: 'SAS',
+    id: 'josh_giddey',
+    name: 'Josh Giddey',
+    salary: 25000000,
+    from: 'CHI',
     to: 'BKN',
   },
 ] as const;
@@ -55,7 +55,7 @@ export async function seedThreeTeamMixedWorld(uid: string, worldId: string) {
       root.collection('contractBaselines').doc(document.shardId),
       document
     );
-  for (const code of ['PHI', 'BKN', 'SAS'] as const) {
+  for (const code of ['PHI', 'BKN', 'CHI'] as const) {
     const ref = root.collection('teams').doc(code),
       before = (await ref.get()).data()!;
     const ordinary =
@@ -80,7 +80,7 @@ export async function seedThreeTeamMixedWorld(uid: string, worldId: string) {
       teamId: code,
     };
     // Reuse 14 software depth Contracts and 3 Two-Ways per team;
-    // PHI and SAS start with their separate unchanged retained Contracts.
+    // PHI and CHI start with their separate unchanged retained Contracts.
     // Explicit $8m depth salaries provide Room, not a claim about NBA finances.
     const players = before.players
       .filter((_: any, i: number) => code !== 'BKN' || i !== 0)
@@ -149,7 +149,7 @@ export async function seedThreeTeamMixedWorld(uid: string, worldId: string) {
   batch.update(root, {
     ...contractBaselineMetadata(release),
     worldName: 'Three-Team Players and Resolved 2028 Selections',
-    draftSimulationTeams: ['PHI', 'BKN', 'SAS'],
+    draftSimulationTeams: ['PHI', 'BKN', 'CHI'],
     draftNativeLifecycle: {
       ...metadata.draftNativeLifecycle,
       retainedFirstIds,

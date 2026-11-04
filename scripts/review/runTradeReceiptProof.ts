@@ -33,7 +33,7 @@ export const THREE_TEAM_MIXED_SCREENSHOTS = [
   'first-proposal',
   'return-proposal',
   ...['first', 'return'].flatMap((stage) =>
-    ['PHI', 'BKN', 'SAS'].flatMap((team) =>
+    ['PHI', 'BKN', 'CHI'].flatMap((team) =>
       ['roster', 'cap', 'history', 'compare', 'assets', 'plan'].map(
         (view) => `${stage}-${team}-${view}`
       )

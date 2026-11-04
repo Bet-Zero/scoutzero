@@ -1257,7 +1257,7 @@ test('mixed native certificate requires both proposals and both teams after each
 test('three-team mixed proof binds every affected team after both transfers', () => {
   assert.equal(THREE_TEAM_MIXED_SCREENSHOTS.length, 40);
   for (const stage of ['first', 'return'])
-    for (const team of ['PHI', 'BKN', 'SAS'])
+    for (const team of ['PHI', 'BKN', 'CHI'])
       for (const view of [
         'roster',
         'cap',

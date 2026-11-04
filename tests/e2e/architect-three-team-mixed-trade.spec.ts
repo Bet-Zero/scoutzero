@@ -25,251 +25,6 @@ test.use({
   trace: 'on',
 });
 
-test('three-team mixed rejected operations leave the complete saved world unchanged', async ({
-  page,
-}) => {
-  // Each rejection re-authenticates the retained world before checking no writes.
-  test.setTimeout(900000);
-  const { uid, worldId, root, ids } = await startThreeTeamMixed(
-    page,
-    'negative'
-  );
-  const prepare = (mode = '') =>
-    prepareThreeTeamMixed(page, uid, worldId, [ids.PHI, ids.PHX], mode);
-  const rejected: Record<string, unknown> = {};
-  const sourceBefore = await sources();
-  async function reject(name: string, pattern?: RegExp, mode = '') {
-    const before = await conditionalStateDigest(worldId);
-    const preview = await prepare(mode);
-    expect(preview).not.toMatchObject({ status: 'prepared', legal: true });
-    if (pattern) expect(JSON.stringify(preview)).toMatch(pattern);
-    const applied = await applyThreeTeamMixed(page);
-    expect(applied.success).toBe(false);
-    expect(await conditionalStateDigest(worldId)).toBe(before);
-    rejected[name] = { preview, applied, unchanged: true };
-  }
-  for (const mode of [
-    'incomplete',
-    'cash',
-    'contract',
-    'incoming',
-    'missing-return',
-    'third-salary',
-    'no-destination',
-    'self-route',
-    'outside-route',
-    'idle-third',
-    'duplicate-team',
-    'duplicate-player',
-    'duplicate-selection',
-  ])
-    await reject(mode, undefined, mode);
-  const metadata = (await root.get()).data()!;
-  for (const asOfDate of ['2028-06-19', '2028-06-30']) {
-    await root.update({ asOfDate });
-    await reject(asOfDate, /date|timing|before|after|window|canonical/i);
-    await root.set(metadata);
-  }
-  for (const patch of [
-    { createdBy: 'different-owner' },
-    { draftSimulationTeams: ['PHI', 'BKN', 'PHI'] },
-    { draftSimulationTeams: ['PHI', 'BKN', 'SAS', 'LAL'] },
-    { draftNativeLifecycle: null },
-    { draftSwapProgram: { ...metadata.draftSwapProgram, sources: [] } },
-    { contractSourceRelease: null },
-  ]) {
-    await root.update(patch);
-    await reject(Object.keys(patch)[0]);
-    await root.set(metadata);
-  }
-  await page.route('**/api/architect/draft-review', (route) =>
-    route.fulfill({ status: 503, body: 'Unavailable' })
-  );
-  await reject('unavailable catalogue');
-  await page.unroute('**/api/architect/draft-review');
-  for (const team of ['PHI', 'BKN', 'SAS'])
-    for (const mode of ['missing-finance', 'hard-cap', 'room', 'roster']) {
-      const ref = root.collection('teams').doc(team),
-        prior = (await ref.get()).data()!;
-      const changed = structuredClone(prior);
-      if (mode === 'missing-finance') delete changed.salaryBookInputs;
-      if (mode === 'hard-cap')
-        changed.salaryBookInputs.apronAdjustments.lineItems[0].amount += 150000000;
-      if (mode === 'room') {
-        const depth = changed.players.find(
-          (p: any) =>
-            !p.isTwoWay &&
-            !THREE_TEAM_PLAYERS.some((ordinary) => ordinary.id === p.playerId)
-        );
-        const row = depth.contract.salariesByYear.find(
-          (s: any) => s.season === '2027-28'
-        );
-        row.salary += 30000000;
-        row.capHit += 30000000;
-      }
-      if (mode === 'roster') {
-        const twoWay = changed.players.find((p: any) => p.isTwoWay);
-        changed.players.push({
-          ...twoWay,
-          id: 'extra-two-way',
-          playerId: 'extra-two-way',
-          player_id: 'extra-two-way',
-        });
-        changed.roster.push('extra-two-way');
-      }
-      if (mode !== 'missing-finance')
-        changed.totals = createCanonicalTeamTotalsSnapshot(changed, 2028, {
-          asOfDate: '2028-06-20',
-        });
-      await ref.set(changed);
-      await reject(
-        `${team}-${mode}`,
-        mode === 'hard-cap'
-          ? /hard cap violation/i
-          : mode === 'room'
-            ? /room.*exceeds|room.*below/i
-            : mode === 'roster'
-              ? /two-way.*exceeded|two-way.*cannot exceed/i
-              : /needs governed input|2028 is not a supported season/i
-      );
-      await ref.set(prior);
-    }
-  for (const target of [
-    `entitlements/${ids.PHI}`,
-    'teams/PHI',
-    'teams/SAS',
-    'teams/SAS/players/tyrese_maxey',
-    'teams/BKN/players/devin_vassell',
-  ]) {
-    expect(await prepare()).toMatchObject({ status: 'prepared', legal: true });
-    const ref = root.firestore.doc(`${root.path}/${target}`),
-      prior = await ref.get();
-    await ref.set({
-      ...(prior.data() ?? {}),
-      ...(target.startsWith('entitlements')
-        ? { holderTeam: 'BKN' }
-        : { changedAfterValidation: true }),
-    });
-    const changed = await conditionalStateDigest(worldId);
-    const applied = await applyThreeTeamMixed(page);
-    expect(applied.success).toBe(false);
-    expect(await conditionalStateDigest(worldId)).toBe(changed);
-    rejected[target] = { applied, unchanged: true };
-    if (prior.exists) await ref.set(prior.data()!);
-    else await ref.delete();
-  }
-  expect(await prepare()).toMatchObject({ legal: true });
-  const pristine = await conditionalStateDigest(worldId);
-  expect((await applyThreeTeamMixed(page, 'forged')).success).toBe(false);
-  expect(await conditionalStateDigest(worldId)).toBe(pristine);
-  expect(await prepare()).toMatchObject({ legal: true });
-  const applied = await applyThreeTeamMixed(page);
-  expect(applied, applied.error).toMatchObject({ success: true });
-  const committed = await conditionalStateDigest(worldId);
-  expect((await applyThreeTeamMixed(page)).success).toBe(false);
-  expect(await conditionalStateDigest(worldId)).toBe(committed);
-  rejected.duplicateApply = { unchanged: true };
-  const after = (await root.get()).data()!,
-    transfer = after.draftNativeTransfers[0];
-  const eventRef = root
-      .collection('events')
-      .doc(`draft_review_${transfer.operationId}`),
-    event = (await eventRef.get()).data()!;
-  await eventRef.delete();
-  await reject(
-    'missing committed receipt',
-    /needs its committed trade receipt/i,
-    'selections-only'
-  );
-  await eventRef.set(event);
-  await root.update({
-    draftNativeTransfers: [
-      {
-        ...transfer,
-        playerMovements: transfer.playerMovements.map((p: any) => ({
-          ...p,
-          contractId: 'forged',
-        })),
-      },
-    ],
-  });
-  await reject(
-    'conflicting committed consideration',
-    /history differs from its committed trade/i,
-    'selections-only'
-  );
-  await root.set(after);
-  expect(await prepare('selections-only')).toMatchObject({ legal: true });
-  expect(await sources()).toEqual(sourceBefore);
-  receipt('negative-proof', {
-    candidate: process.env.SCOUTZERO_PROOF_CANDIDATE,
-    worldId,
-    rejected,
-  });
-});
-
-test('three-team mixed Stepien and unresolved claims reject without writes', async ({
-  page,
-}) => {
-  const unready = await startThreeTeamMixed(page, 'unresolved', false);
-  const unreadyBefore = await conditionalStateDigest(unready.worldId);
-  const premature = await prepareThreeTeamMixed(
-    page,
-    unready.uid,
-    unready.worldId,
-    [unready.ids.PHI, unready.ids.PHX]
-  );
-  expect(premature).not.toMatchObject({ status: 'prepared', legal: true });
-  expect((await applyThreeTeamMixed(page)).success).toBe(false);
-  expect(await conditionalStateDigest(unready.worldId)).toBe(unreadyBefore);
-  const { uid, worldId, ids } = await startThreeTeamMixed(
-    page,
-    'stepien',
-    true,
-    false
-  );
-  const before = await conditionalStateDigest(worldId);
-  const verdict = await prepareThreeTeamMixed(page, uid, worldId, [
-    ids.PHI,
-    ids.PHX,
-  ]);
-  expect(verdict).not.toMatchObject({ status: 'prepared', legal: true });
-  expect(JSON.stringify(verdict)).toMatch(/Stepien|consecutive|future first/i);
-  expect((await applyThreeTeamMixed(page)).success).toBe(false);
-  expect(await conditionalStateDigest(worldId)).toBe(before);
-  receipt('stepien-proof', {
-    candidate: process.env.SCOUTZERO_PROOF_CANDIDATE,
-    worldId,
-    verdict,
-    premature,
-    unchanged: true,
-  });
-});
-test.setTimeout(600000);
-test.skip(
-  process.env.PLAYWRIGHT_DRAFT_SIMULATION !== 'true' ||
-    !process.env.SCOUTZERO_DRAFT_OVERLAPPING_POOL,
-  'Protected retained catalogue and admitted 2028 terms required.'
-);
-const proofDir =
-  process.env.SCOUTZERO_BROWSER_PROOF_DIR ?? 'tmp/three-team-mixed';
-function receipt(name: string, value: unknown) {
-  fs.mkdirSync(proofDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(proofDir, `${name}.json`),
-    JSON.stringify(value, null, 2)
-  );
-}
-async function capture(page: Page, key: string) {
-  fs.mkdirSync(proofDir, { recursive: true });
-  await page.screenshot({ path: path.join(proofDir, `${key}-1280x720.png`) });
-}
-async function sources() {
-  return (
-    await getReviewAdminDb().collection('architect_baseEntitlements').get()
-  ).docs.map((d) => ({ id: d.id, data: d.data() }));
-}
-
 test('three-team resolved 2028 selection and Contracts: ready, apply, reload and legal selection retrade', async ({
   page,
 }) => {
@@ -412,7 +167,7 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
       ).toEqual([row.data.holderTeam]);
     }
     for (const team of teams.filter(
-      (t) => !['PHI', 'BKN', 'SAS'].includes(t.id)
+      (t) => !['PHI', 'BKN', 'CHI'].includes(t.id)
     ))
       expect(team).toEqual(teamBefore.find((t) => t.id === team.id));
     const transfer = saved.metadata.draftNativeTransfers.at(-1);
@@ -445,11 +200,11 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
       .find((c) => c.name === 'events')!
       .docs.find((e) => e.id === `draft_review_${transfer.operationId}`)!.data;
     expect(event.valid).toBe(true);
-    expect(event.playerIds.sort()).toEqual(
+    expect([...event.playerIds].sort()).toEqual(
       returned ? [] : THREE_TEAM_PLAYERS.map((p) => p.id).sort()
     );
     expect([...event.teamCodes].sort()).toEqual(
-      returned ? ['BKN', 'PHI'] : ['BKN', 'PHI', 'SAS']
+      returned ? ['BKN', 'PHI'] : ['BKN', 'CHI', 'PHI']
     );
     expect(event.metadata.draftReviewReceipt.playerMovements).toEqual(
       transfer.playerMovements
@@ -458,7 +213,7 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
       transfer.movements
     );
     if (!returned) expect(JSON.stringify(event)).toContain('ROOM');
-    for (const team of ['PHI', 'BKN', 'SAS'] as const) {
+    for (const team of ['PHI', 'BKN', 'CHI'] as const) {
       const current = teams.find((t) => t.id === team)!.data,
         original = teamBefore.find((t) => t.id === team)!.data;
       const expectedRoster = original.roster
@@ -472,11 +227,7 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
         112000000 + incoming.reduce((n, p) => n + p.salary, 0)
       );
       expect(current.totals.apronTeamSalary).toBe(
-        112000000 +
-          incoming.reduce(
-            (n, p) => n + p.salary + (p.id === 'devin_vassell' ? 2008697 : 0),
-            0
-          )
+        112000000 + incoming.reduce((n, p) => n + p.salary, 0)
       );
       expect(current.totals.taxSalary).toBe(original.totals.taxSalary);
       const overrides = saved.players.find((v) => v.team === team)!.docs;
@@ -540,21 +291,21 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
       const timeline = page.getByTestId('team-history-section-timeline');
       await expect(
         timeline.getByRole('button', { name: /^Trade Executed:/ })
-      ).toHaveCount(team === 'SAS' ? 1 : count - 1);
+      ).toHaveCount(team === 'CHI' ? 1 : count - 1);
       await timeline
         .getByRole('button', { name: /^Trade Executed:/ })
         .last()
         .click();
       const detail = page.getByTestId('team-history-detail-modal');
       await expect(detail).toContainText(/Tyrese Maxey/i);
-      await expect(detail).toContainText(/Devin Vassell/i);
+      await expect(detail).toContainText(/Josh Giddey/i);
       await expect(detail).toContainText('2028 first-round pick');
       await expect(detail).toContainText('Trade Receipt');
       await capture(page, `${stage}-${team}-history`);
       await detail.getByRole('button', { name: /close/i }).click();
       await openDashboardTab(page, 'Compare');
       await expect(page.getByTestId('comparison-event-count')).toContainText(
-        new RegExp(`${team === 'SAS' ? 1 : count}\\s+saved move`)
+        new RegExp(`${team === 'CHI' ? 1 : count}\\s+saved move`)
       );
       const comparisonBooks = page.getByTestId('comparison-cap-delta');
       for (const label of ['Team Salary', 'Apron Team Salary'])
@@ -567,11 +318,11 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
             ? '−$43.6M'
             : team === 'BKN'
               ? label === 'Team Salary'
-                ? '+$24.7M'
-                : '+$26.7M'
+                ? '+$25.0M'
+                : '+$25.0M'
               : label === 'Team Salary'
-                ? '+$18.9M'
-                : '+$16.9M'
+                ? '+$18.6M'
+                : '+$18.6M'
         );
       await expect(
         comparisonBooks
@@ -588,7 +339,7 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
             )
           ).toContainText(new RegExp(p.name, 'i'));
       }
-      if (team !== 'SAS' && (!returned || team === 'PHI'))
+      if (team !== 'CHI' && (!returned || team === 'PHI'))
         await expect(
           page.getByText(
             `PHI 2028 first: final pick 5 · held by ${returned ? 'PHI' : 'BKN'}`,
@@ -638,9 +389,256 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
       .digest('hex'),
     worldId,
     trades: 2,
-    teams: ['PHI', 'BKN', 'SAS'],
+    teams: ['PHI', 'BKN', 'CHI'],
     views: 36,
     preservedIdentities: 278,
     unresolved: 29,
   });
 });
+
+test('three-team mixed rejected operations leave the complete saved world unchanged', async ({
+  page,
+}) => {
+  // Each rejection re-authenticates the retained world before checking no writes.
+  test.setTimeout(900000);
+  const { uid, worldId, root, ids } = await startThreeTeamMixed(
+    page,
+    'negative'
+  );
+  const prepare = (mode = '') =>
+    prepareThreeTeamMixed(page, uid, worldId, [ids.PHI, ids.PHX], mode);
+  const rejected: Record<string, unknown> = {};
+  const sourceBefore = await sources();
+  // Establish the same fixture's positive control before mutating one condition.
+  expect(await prepare()).toMatchObject({ status: 'prepared', legal: true });
+  async function reject(name: string, pattern?: RegExp, mode = '') {
+    const before = await conditionalStateDigest(worldId);
+    const preview = await prepare(mode);
+    expect(preview).not.toMatchObject({ status: 'prepared', legal: true });
+    if (pattern) expect(JSON.stringify(preview)).toMatch(pattern);
+    const applied = await applyThreeTeamMixed(page);
+    expect(applied.success).toBe(false);
+    expect(await conditionalStateDigest(worldId)).toBe(before);
+    rejected[name] = { preview, applied, unchanged: true };
+  }
+  for (const mode of [
+    'incomplete',
+    'cash',
+    'contract',
+    'incoming',
+    'missing-return',
+    'third-salary',
+    'no-destination',
+    'self-route',
+    'outside-route',
+    'idle-third',
+    'duplicate-team',
+    'duplicate-player',
+    'duplicate-selection',
+  ])
+    await reject(mode, undefined, mode);
+  const metadata = (await root.get()).data()!;
+  for (const asOfDate of ['2028-06-19', '2028-06-30']) {
+    await root.update({ asOfDate });
+    await reject(asOfDate, /date|timing|before|after|window|canonical/i);
+    await root.set(metadata);
+  }
+  for (const patch of [
+    { createdBy: 'different-owner' },
+    { draftSimulationTeams: ['PHI', 'BKN', 'PHI'] },
+    { draftSimulationTeams: ['PHI', 'BKN', 'CHI', 'LAL'] },
+    { draftNativeLifecycle: null },
+    { draftSwapProgram: { ...metadata.draftSwapProgram, sources: [] } },
+    { contractSourceRelease: null },
+  ]) {
+    await root.update(patch);
+    await reject(Object.keys(patch)[0]);
+    await root.set(metadata);
+  }
+  await page.route('**/api/architect/draft-review', (route) =>
+    route.fulfill({ status: 503, body: 'Unavailable' })
+  );
+  await reject('unavailable catalogue');
+  await page.unroute('**/api/architect/draft-review');
+  for (const team of ['PHI', 'BKN', 'CHI'])
+    for (const mode of ['missing-finance', 'hard-cap', 'room', 'roster']) {
+      const ref = root.collection('teams').doc(team),
+        prior = (await ref.get()).data()!;
+      const changed = structuredClone(prior);
+      if (mode === 'missing-finance') delete changed.salaryBookInputs;
+      if (mode === 'hard-cap')
+        changed.salaryBookInputs.apronAdjustments.lineItems[0].amount += 150000000;
+      if (mode === 'room') {
+        const depth = changed.players.find(
+          (p: any) =>
+            !p.isTwoWay &&
+            !THREE_TEAM_PLAYERS.some((ordinary) => ordinary.id === p.playerId)
+        );
+        const row = depth.contract.salariesByYear.find(
+          (s: any) => s.season === '2027-28'
+        );
+        row.salary += 30000000;
+        row.capHit += 30000000;
+      }
+      if (mode === 'roster') {
+        const twoWay = changed.players.find((p: any) => p.isTwoWay);
+        changed.players.push({
+          ...twoWay,
+          id: 'extra-two-way',
+          playerId: 'extra-two-way',
+          player_id: 'extra-two-way',
+        });
+        changed.roster.push('extra-two-way');
+      }
+      if (mode !== 'missing-finance')
+        changed.totals = createCanonicalTeamTotalsSnapshot(changed, 2028, {
+          asOfDate: '2028-06-20',
+        });
+      await ref.set(changed);
+      await reject(
+        `${team}-${mode}`,
+        mode === 'hard-cap'
+          ? /hard cap violation/i
+          : mode === 'room'
+            ? /room.*exceeds|room.*below/i
+            : mode === 'roster'
+              ? /two-way.*exceeded|two-way.*cannot exceed/i
+              : /needs governed input|2028 is not a supported season/i
+      );
+      await ref.set(prior);
+    }
+  for (const target of [
+    `entitlements/${ids.PHI}`,
+    'teams/PHI',
+    'teams/CHI',
+    'teams/CHI/players/tyrese_maxey',
+    'teams/BKN/players/josh_giddey',
+  ]) {
+    expect(await prepare()).toMatchObject({ status: 'prepared', legal: true });
+    const ref = root.firestore.doc(`${root.path}/${target}`),
+      prior = await ref.get();
+    await ref.set({
+      ...(prior.data() ?? {}),
+      ...(target.startsWith('entitlements')
+        ? { holderTeam: 'BKN' }
+        : { changedAfterValidation: true }),
+    });
+    const changed = await conditionalStateDigest(worldId);
+    const applied = await applyThreeTeamMixed(page);
+    expect(applied.success).toBe(false);
+    expect(await conditionalStateDigest(worldId)).toBe(changed);
+    rejected[target] = { applied, unchanged: true };
+    if (prior.exists) await ref.set(prior.data()!);
+    else await ref.delete();
+  }
+  expect(await prepare()).toMatchObject({ legal: true });
+  const pristine = await conditionalStateDigest(worldId);
+  expect((await applyThreeTeamMixed(page, 'forged')).success).toBe(false);
+  expect(await conditionalStateDigest(worldId)).toBe(pristine);
+  expect(await prepare()).toMatchObject({ legal: true });
+  const applied = await applyThreeTeamMixed(page);
+  expect(applied, applied.error).toMatchObject({ success: true });
+  const committed = await conditionalStateDigest(worldId);
+  expect((await applyThreeTeamMixed(page)).success).toBe(false);
+  expect(await conditionalStateDigest(worldId)).toBe(committed);
+  rejected.duplicateApply = { unchanged: true };
+  const after = (await root.get()).data()!,
+    transfer = after.draftNativeTransfers[0];
+  const eventRef = root
+      .collection('events')
+      .doc(`draft_review_${transfer.operationId}`),
+    event = (await eventRef.get()).data()!;
+  await eventRef.delete();
+  await reject(
+    'missing committed receipt',
+    /needs its committed trade receipt/i,
+    'selections-only'
+  );
+  await eventRef.set(event);
+  await root.update({
+    draftNativeTransfers: [
+      {
+        ...transfer,
+        playerMovements: transfer.playerMovements.map((p: any) => ({
+          ...p,
+          contractId: 'forged',
+        })),
+      },
+    ],
+  });
+  await reject(
+    'conflicting committed consideration',
+    /history differs from its committed trade/i,
+    'selections-only'
+  );
+  await root.set(after);
+  expect(await prepare('selections-only')).toMatchObject({ legal: true });
+  expect(await sources()).toEqual(sourceBefore);
+  receipt('negative-proof', {
+    candidate: process.env.SCOUTZERO_PROOF_CANDIDATE,
+    worldId,
+    rejected,
+  });
+});
+
+test('three-team mixed Stepien and unresolved claims reject without writes', async ({
+  page,
+}) => {
+  const unready = await startThreeTeamMixed(page, 'unresolved', false);
+  const unreadyBefore = await conditionalStateDigest(unready.worldId);
+  const premature = await prepareThreeTeamMixed(
+    page,
+    unready.uid,
+    unready.worldId,
+    [unready.ids.PHI, unready.ids.PHX]
+  );
+  expect(premature).not.toMatchObject({ status: 'prepared', legal: true });
+  expect((await applyThreeTeamMixed(page)).success).toBe(false);
+  expect(await conditionalStateDigest(unready.worldId)).toBe(unreadyBefore);
+  const { uid, worldId, ids } = await startThreeTeamMixed(
+    page,
+    'stepien',
+    true,
+    false
+  );
+  const before = await conditionalStateDigest(worldId);
+  const verdict = await prepareThreeTeamMixed(page, uid, worldId, [
+    ids.PHI,
+    ids.PHX,
+  ]);
+  expect(verdict).not.toMatchObject({ status: 'prepared', legal: true });
+  expect(JSON.stringify(verdict)).toMatch(/Stepien|consecutive|future first/i);
+  expect((await applyThreeTeamMixed(page)).success).toBe(false);
+  expect(await conditionalStateDigest(worldId)).toBe(before);
+  receipt('stepien-proof', {
+    candidate: process.env.SCOUTZERO_PROOF_CANDIDATE,
+    worldId,
+    verdict,
+    premature,
+    unchanged: true,
+  });
+});
+test.setTimeout(600000);
+test.skip(
+  process.env.PLAYWRIGHT_DRAFT_SIMULATION !== 'true' ||
+    !process.env.SCOUTZERO_DRAFT_OVERLAPPING_POOL,
+  'Protected retained catalogue and admitted 2028 terms required.'
+);
+const proofDir =
+  process.env.SCOUTZERO_BROWSER_PROOF_DIR ?? 'tmp/three-team-mixed';
+function receipt(name: string, value: unknown) {
+  fs.mkdirSync(proofDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(proofDir, `${name}.json`),
+    JSON.stringify(value, null, 2)
+  );
+}
+async function capture(page: Page, key: string) {
+  fs.mkdirSync(proofDir, { recursive: true });
+  await page.screenshot({ path: path.join(proofDir, `${key}-1280x720.png`) });
+}
+async function sources() {
+  return (
+    await getReviewAdminDb().collection('architect_baseEntitlements').get()
+  ).docs.map((d) => ({ id: d.id, data: d.data() }));
+}

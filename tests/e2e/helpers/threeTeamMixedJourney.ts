@@ -87,23 +87,23 @@ export async function selectThreeTeamMixed(
   await expect(dialog.getByTestId('trade-team-card-BKN')).toBeVisible();
   if (!returned) {
     await dialog.getByRole('button', { name: /^Add Team$/ }).click();
-    await picker.first().selectOption('spurs');
-    await expect(dialog.getByTestId('trade-team-card-SAS')).toBeVisible();
+    await picker.first().selectOption('bulls');
+    await expect(dialog.getByTestId('trade-team-card-CHI')).toBeVisible();
     for (const p of THREE_TEAM_PLAYERS) {
       const card = dialog.getByTestId(`trade-team-card-${p.from}`);
       const row = card
-        .getByAltText(new RegExp(`^${p.name}$`, 'i'))
+        .getByText(new RegExp(`^${p.name}$`, 'i'))
         .first()
         .locator('xpath=ancestor::div[.//button[normalize-space()="•••"]][1]');
       await row.getByRole('button', { name: '•••' }).click();
       await page
         .getByRole('button', {
-          name: `Trade to ${p.to === 'SAS' ? 'San Antonio Spurs' : 'Brooklyn Nets'}`,
+          name: `Trade to ${p.to === 'CHI' ? 'Chicago Bulls' : 'Brooklyn Nets'}`,
           exact: true,
         })
         .click();
     }
-    for (const team of ['PHI', 'BKN', 'SAS']) {
+    for (const team of ['PHI', 'BKN', 'CHI']) {
       const card = dialog.getByTestId(`trade-team-card-${team}`);
       await card
         .getByLabel('Elected path', { exact: true })
@@ -113,12 +113,10 @@ export async function selectThreeTeamMixed(
           .doc(`architect_worlds/${worldId}/teams/${team}`)
           .get()
       ).data()!;
-      // Apron books retain Vassell's $2,008,697 unlikely incentives.
+      // Both unchanged ordinary Contracts have no nonzero bonus compensation.
       const apronDelta = THREE_TEAM_PLAYERS.reduce(
         (sum, p) =>
-          sum +
-          (p.to === team ? 1 : p.from === team ? -1 : 0) *
-            (p.salary + (p.id === 'devin_vassell' ? 2008697 : 0)),
+          sum + (p.to === team ? 1 : p.from === team ? -1 : 0) * p.salary,
         0
       );
       await card
@@ -163,7 +161,7 @@ export async function prepareThreeTeamMixed(
   const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
   const metadata = (await root.get()).data()!;
   const teams = await Promise.all(
-    (mode === 'selections-only' ? ['PHI', 'BKN'] : ['PHI', 'BKN', 'SAS']).map(
+    (mode === 'selections-only' ? ['PHI', 'BKN'] : ['PHI', 'BKN', 'CHI']).map(
       async (t) => (await root.collection('teams').doc(t).get()).data()!
     )
   );
@@ -204,7 +202,7 @@ export async function prepareThreeTeamMixed(
           },
           teams: (mode === 'selections-only'
             ? ['PHI', 'BKN']
-            : ['PHI', 'BKN', 'SAS']
+            : ['PHI', 'BKN', 'CHI']
           ).map((teamCode, i) => {
             const p = selected[i],
               target = teamCode === 'PHI' ? 'BKN' : 'PHI';
@@ -238,8 +236,7 @@ export async function prepareThreeTeamMixed(
                             : q.from === teamCode
                               ? -1
                               : 0) *
-                            (q.salary +
-                              (q.id === 'devin_vassell' ? 2008697 : 0)),
+                            q.salary,
                         0
                       ),
                     tradedPlayerPreTradeSalaries: p ? { [p.id]: p.salary } : {},
@@ -266,10 +263,10 @@ export async function prepareThreeTeamMixed(
       }
       if (mode === 'third-salary')
         args.payload.teams[2].salaryMatchingElection
-          .tradedPlayerPreTradeSalaries.devin_vassell++;
+          .tradedPlayerPreTradeSalaries.josh_giddey++;
       if (mode === 'no-destination')
         delete args.payload.teams[2].sends[0].tradeTo;
-      if (mode === 'self-route') args.payload.teams[2].sends[0].tradeTo = 'SAS';
+      if (mode === 'self-route') args.payload.teams[2].sends[0].tradeTo = 'CHI';
       if (mode === 'outside-route')
         args.payload.teams[2].sends[0].tradeTo = 'LAL';
       if (mode === 'idle-third') {

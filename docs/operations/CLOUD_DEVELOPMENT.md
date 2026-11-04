@@ -171,7 +171,7 @@ pushed candidate and retains private evidence locally.
 
 Use `--three-team-mixed` with the private catalogue, full baseline and admitted
 `SCOUTZERO_DRAFT_OVERLAPPING_POOL` input for the bounded three-team mixed
-journey. PHI, SAS and BKN give and receive explicit Contract/selection
+journey. PHI, CHI and BKN give and receive explicit Contract/selection
 consideration in one atomic transaction. All three teams' books, Contracts,
 inventories and saved views are checked after reload. A later bilateral selection
 exchange uses the updated holders. Invalid routes, missing salary, financial
