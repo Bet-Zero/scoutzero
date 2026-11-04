@@ -1,4 +1,4 @@
-/** Accounts for ordinary Contracts in the bounded bilateral mixed-pick lanes.
+/** Accounts for ordinary Contracts in the bounded mixed-pick lanes.
  * This establishes consideration identity, never whole-trade legality.
  */
 import { isTwoWayTradePlayer } from '../tradeMachine/utils/twoWayTradeSalary';
@@ -70,9 +70,6 @@ export function simulationPlayerMovements(
       );
     const team = state.teams?.find((t) => t.teamCode === slot.teamCode)
       ?.team as RecordLike | undefined;
-    const toTeam = String(
-      slots.find((s) => s.teamCode !== slot.teamCode)!.teamCode
-    );
     const player = slot.sends[0];
     const aliases = [player.playerId, player.id, player.player_id].filter(
       (id) => id != null
@@ -106,14 +103,17 @@ export function simulationPlayerMovements(
       player.toTeamId,
       player.destTeamId,
     ].filter((route) => route != null);
+    const toTeam = routes[0];
     if (
-      !routes.length ||
+      typeof toTeam !== 'string' ||
+      toTeam === slot.teamCode ||
+      !slots.some((s) => s.teamCode === toTeam) ||
       routes.some((route) => route !== toTeam) ||
       (player.receivingTeamIndex != null &&
         slots[Number(player.receivingTeamIndex)]?.teamCode !== toTeam)
     )
       throw new Error(
-        'Each outgoing player must be assigned to the other team.'
+        'Each outgoing player must have one explicit destination among the other participating teams.'
       );
     const contract = Reflect.get(player, 'contract') as Parameters<
       typeof normalizeCurrentStatePlayerContract

@@ -80,13 +80,26 @@ export function assertSimulationInventory(
     throw new Error('Simulation catalogue or unresolved dependencies changed.');
   const testTeams = metadata.draftSimulationTeams;
   const teamsInScope = testTeams === undefined ? ['CHI', 'TOR'] : testTeams;
+  // Only the admitted overlapping 2028 family can host a third participant.
+  // Its complete terms and source admission are still verified below/by the loader.
+  const teamCount =
+    metadata.draftSimulationBranches === 'swap-program' &&
+    (metadata.draftSwapProgram as { kind?: string; year?: number })?.kind ===
+      'native-overlapping-pool-v1' &&
+    (metadata.draftSwapProgram as { year?: number })?.year === 2028 &&
+    Array.isArray(teamsInScope) &&
+    teamsInScope.length === 3
+      ? 3
+      : 2;
   if (
     !Array.isArray(teamsInScope) ||
-    teamsInScope.length !== 2 ||
-    new Set(teamsInScope).size !== 2 ||
+    teamsInScope.length !== teamCount ||
+    new Set(teamsInScope).size !== teamCount ||
     teamsInScope.some((t) => typeof t !== 'string' || !teams[t])
   )
-    throw new Error('The simulation needs two distinct league teams.');
+    throw new Error(
+      'The simulation needs distinct league teams within its admitted scope.'
+    );
   const programs =
     metadata.draftConditionalPrograms === undefined
       ? []

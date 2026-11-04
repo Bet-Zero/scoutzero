@@ -172,15 +172,24 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
   const firstYear = window?.firstYear ?? 2026;
   const throughYear = window?.lastYear ?? 2032;
   const slots = args.payload.teams ?? [];
+  const scopedTeams = metadata.draftSimulationTeams ?? ['CHI', 'TOR'];
+  const threeTeamScope =
+    native?.kind === 'native-overlapping-pool-v1' &&
+    native.year === 2028 &&
+    scopedTeams.length === 3;
   if (
-    slots.length !== 2 ||
-    canonicalStringify(slots.map((s) => s.teamCode).sort()) !==
-      canonicalStringify(
-        [...(metadata.draftSimulationTeams ?? ['CHI', 'TOR'])].sort()
-      )
+    new Set(slots.map((s) => s.teamCode)).size !== slots.length ||
+    (threeTeamScope
+      ? (slots.length !== 2 && slots.length !== 3) ||
+        slots.some((s) => !scopedTeams.includes(s.teamCode)) ||
+        new Set(scopedTeams).size !== 3 ||
+        (slots.length === 3 && !slots.some((s) => s.sends?.length))
+      : slots.length !== 2 ||
+        canonicalStringify(slots.map((s) => s.teamCode).sort()) !==
+          canonicalStringify([...scopedTeams].sort()))
   )
     throw new Error(
-      'Select the two teams covered by this governed test world.'
+      'Select distinct participating teams covered by this governed test world; three-team trades require admitted 2028 mixed consideration.'
     );
   for (const slot of slots) {
     if (
@@ -387,6 +396,21 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     }
   }
   if (!movements.length) throw new Error('Select a first-round pick.');
+  if (
+    native &&
+    slots.some(
+      (slot) =>
+        ![...movements, ...playerMovements].some(
+          (m) => m.fromTeam === slot.teamCode
+        ) ||
+        ![...movements, ...playerMovements].some(
+          (m) => m.toTeam === slot.teamCode
+        )
+    )
+  )
+    throw new Error(
+      'Every selected team must give and receive selection or Contract consideration.'
+    );
   if (native)
     nativeSelectionHolders(native, [
       ...(metadata.draftNativeTransfers ?? []),
@@ -471,6 +495,16 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     await sha256Digest(canonicalStringify(assumptions))
   ).slice(7);
   const reviews = Object.keys(firstsByTeam).map((team) => {
+    const recipients = new Set(
+      movements.filter((m) => m.fromTeam === team).map((m) => m.toTeam)
+    );
+    // The consideration fact describes one recipient for the listed firsts.
+    // Never infer that recipient from the ordering of a three-team proposal.
+    if (recipients.size !== 1)
+      throw new Error(
+        'The listed first-round selections require one explicit recipient per sending team.'
+      );
+    const recipientTeam = [...recipients][0];
     const context = {
       proposalSha256,
       stateVersion: stateDigest,
@@ -643,7 +677,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
           id: `test-consideration:${team}`,
           scope: 'first-round-consideration',
           outgoing /* schema below controls actual complete non-cash exchange */,
-          recipientTeam: slots.find((s) => s.teamCode !== team)!.teamCode,
+          recipientTeam,
           onlyListedFirstsOutgoing: !playerMovements.some(
             (m) => m.fromTeam === team
           ),

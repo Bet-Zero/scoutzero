@@ -204,3 +204,35 @@ describe('bounded ordinary player consideration', () => {
     }
   );
 });
+
+describe('three-team explicit player routing', () => {
+  it('routes to the selected third team instead of the first counterparty', () => {
+    const f = fixture();
+    f.args.payload.teams.push({ ...f.args.payload.teams[1], teamCode: 'SAS' });
+    f.args.payload.teams[0].sends[0].tradeTo = 'SAS';
+    f.args.payload.teams[0].sends[0].receivingTeamIndex = 2;
+    expect(
+      simulationPlayerMovements(f.args, 'native-selections', f.state)
+    ).toEqual([
+      { playerId: 'p', contractId: 'c', fromTeam: 'CHI', toTeam: 'SAS' },
+    ]);
+  });
+  it.each(['self', 'outside', 'conflicting-alias', 'index'])(
+    'rejects %s routes',
+    (mode) => {
+      const f = fixture();
+      f.args.payload.teams.push({
+        ...f.args.payload.teams[1],
+        teamCode: 'SAS',
+      });
+      const p = f.args.payload.teams[0].sends[0];
+      if (mode === 'self') p.tradeTo = 'CHI';
+      if (mode === 'outside') p.tradeTo = 'BOS';
+      if (mode === 'conflicting-alias') p.toTeamId = 'SAS';
+      if (mode === 'index') p.receivingTeamIndex = 2;
+      expect(() =>
+        simulationPlayerMovements(f.args, 'native-selections', f.state)
+      ).toThrow(/destination/);
+    }
+  );
+});

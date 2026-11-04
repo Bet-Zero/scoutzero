@@ -83,7 +83,9 @@ export function nativeSelectionHolders(
       consideration.flatMap((m) => [m.fromTeam, m.toTeam])
     );
     if (
-      parties.size !== 2 ||
+      (players.length
+        ? parties.size < 2 || parties.size > 3
+        : parties.size !== 2) ||
       [...parties].some(
         (t) =>
           !consideration.some((m) => m.fromTeam === t) ||
@@ -91,7 +93,7 @@ export function nativeSelectionHolders(
       )
     )
       throw new Error(
-        'Both teams need distinct noncash selection or Contract consideration.'
+        'Every participating team needs distinct noncash selection or Contract consideration; mixed trades support two or three teams.'
       );
     for (const move of transfer.movements) {
       const slot = program.slots.find(

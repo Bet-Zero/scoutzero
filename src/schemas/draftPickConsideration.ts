@@ -17,7 +17,7 @@ export const DraftPickConsiderationFactZ = DraftOriginalOwnershipFactZ.omit({
     recipientTeam: z.string().regex(/^[A-Z]{3}$/),
     // No unlisted outgoing assets or allocation across another exchange.
     onlyListedFirstsOutgoing: z.boolean(),
-    // A complete bilateral noncash bundle may also assign these Contracts.
+    // A complete noncash bundle may also assign these Contracts.
     // Their ownership and ordinary salary authority are established upstream.
     outgoingPlayerContracts: z
       .array(
