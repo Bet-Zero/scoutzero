@@ -29,7 +29,7 @@ export const NativeSelectionTransferZ = z
     asOfDate: z.string().date(),
     movements: z.array(NativeSelectionMovementZ).min(1),
     // Omitted on historical selection-only receipts; never synthesize it.
-    playerMovements: z.array(NativePlayerMovementZ).min(1).max(2).optional(),
+    playerMovements: z.array(NativePlayerMovementZ).min(1).max(3).optional(),
   })
   .strict();
 export const NativeSelectionTransfersZ = z.array(NativeSelectionTransferZ);

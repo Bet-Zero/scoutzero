@@ -92,7 +92,12 @@ export function validateNativeTradeInventory(input: {
     ])
   );
   const participants = sorted([
-    ...new Set(next.movements.flatMap((m) => [m.fromTeam, m.toTeam])),
+    ...new Set(
+      [...next.movements, ...(next.playerMovements ?? [])].flatMap((m) => [
+        m.fromTeam,
+        m.toTeam,
+      ])
+    ),
   ]);
   if (computed) {
     if (
@@ -115,7 +120,7 @@ export function validateNativeTradeInventory(input: {
       )
     )
       throw new Error(
-        'Computed native trade must update exactly its two teams.'
+        'Computed native trade must update exactly its participating teams.'
       );
     for (const update of computed.teamUpdates ?? []) {
       const expected = sorted(
