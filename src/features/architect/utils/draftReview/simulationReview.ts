@@ -173,9 +173,14 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
   const throughYear = window?.lastYear ?? 2032;
   const slots = args.payload.teams ?? [];
   const scopedTeams = metadata.draftSimulationTeams ?? ['CHI', 'TOR'];
+  const orderedMixed =
+    metadata.draftSimulationBranches === 'swap-program' &&
+    metadata.draftSwapProgram?.kind === 'ordered-swap-pool-v1' &&
+    metadata.draftSwapProgram.year === 2026 &&
+    metadata.draftSwapProgram.result === null;
   const threeTeamScope =
-    native?.kind === 'native-overlapping-pool-v1' &&
-    native.year === 2028 &&
+    ((native?.kind === 'native-overlapping-pool-v1' && native.year === 2028) ||
+      orderedMixed) &&
     scopedTeams.length === 3;
   if (
     new Set(slots.map((s) => s.teamCode)).size !== slots.length ||
@@ -189,7 +194,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
           canonicalStringify([...scopedTeams].sort()))
   )
     throw new Error(
-      'Select distinct participating teams covered by this governed test world; three-team trades require admitted 2028 mixed consideration.'
+      'Select distinct participating teams covered by this governed test world; three-team trades require admitted 2026 swap-right or 2028 selection mixed consideration.'
     );
   for (const slot of slots) {
     if (
@@ -215,10 +220,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     args,
     native?.kind === 'native-overlapping-pool-v1' && native.year === 2028
       ? 'native-selections'
-      : metadata.draftSimulationBranches === 'swap-program' &&
-          metadata.draftSwapProgram?.kind === 'ordered-swap-pool-v1' &&
-          metadata.draftSwapProgram.year === 2026 &&
-          metadata.draftSwapProgram.result === null
+      : orderedMixed
         ? 'ordered-swap-rights'
         : metadata.draftSimulationBranches,
     state

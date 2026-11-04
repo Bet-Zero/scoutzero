@@ -150,7 +150,7 @@ function fixture() {
   };
 }
 describe('proposal-specific ordered option review', () => {
-  async function mixed() {
+  async function mixed(threeTeam = false) {
     const f = fixture();
     f.args.payload.teams![1].entitlementsOut = [];
     const playerMovements = [
@@ -167,6 +167,20 @@ describe('proposal-specific ordered option review', () => {
         toTeam: 'DDD',
       },
     ];
+    if (threeTeam) {
+      f.args.payload.teams!.push({
+        teamCode: 'BBB',
+        sends: [],
+        entitlementsOut: [],
+      });
+      playerMovements[1].toTeam = 'BBB';
+      playerMovements.push({
+        playerId: 'three',
+        contractId: 'contract-three',
+        fromTeam: 'BBB',
+        toTeam: 'DDD',
+      });
+    }
     const r = await prepareSwapTradeRecord({ ...f, playerMovements });
     if (r.status !== 'ready') throw new Error('expected mixed swap');
     const receipt = {
@@ -183,6 +197,90 @@ describe('proposal-specific ordered option review', () => {
     };
     return { f, r, receipt };
   }
+  it('binds a genuine three-team Contract cycle and reviews every affected pool owner', async () => {
+    const { f, r, receipt } = await mixed(true);
+    expect(r.record.playerMovements).toEqual([
+      {
+        playerId: 'one',
+        contractId: 'contract-one',
+        fromTeam: 'DDD',
+        toTeam: 'AAA',
+      },
+      {
+        playerId: 'two',
+        contractId: 'contract-two',
+        fromTeam: 'AAA',
+        toTeam: 'BBB',
+      },
+      {
+        playerId: 'three',
+        contractId: 'contract-three',
+        fromTeam: 'BBB',
+        toTeam: 'DDD',
+      },
+    ]);
+    expect(
+      r.record.reviews.map(
+        (r) => r.review.status === 'swap-reviewed' && r.review.team
+      )
+    ).toEqual(['DDD', 'AAA', 'BBB', 'CCC']);
+    expect(r.record.movements).toHaveLength(1);
+    expect(f.entitlements['AAA-2026'].holderTeam).toBe('AAA');
+    expect(
+      DraftReviewMutationReceiptZ.parse(receipt).playerMovements
+    ).toHaveLength(3);
+    const event = {
+      mutationType: 'executeTrade',
+      worldId: 'w',
+      operationId: 'op',
+      valid: true,
+      playerIds: ['one', 'two', 'three'],
+      teamCodes: ['DDD', 'AAA', 'BBB'],
+      metadata: { draftReviewReceipt: receipt },
+    };
+    expect(JSON.stringify(toTeamHistoryEventDisplay(event))).toContain(
+      'unresolved swap right'
+    );
+    expect(
+      deriveDraftAssetDelta(
+        [{ mutationType: 'executeTrade', raw: event }],
+        'w',
+        'AAA'
+      )?.additions
+    ).toHaveLength(1);
+  });
+  it.each([
+    'fourth-team',
+    'neutral',
+    'duplicate-contract',
+    'self',
+    'missing-return',
+  ])('rejects three-team receipt corruption: %s', async (mode) => {
+    const { receipt } = await mixed(true);
+    if (mode === 'fourth-team') receipt.playerMovements[2].fromTeam = 'CCC';
+    if (mode === 'neutral') receipt.playerMovements.pop();
+    if (mode === 'duplicate-contract')
+      receipt.playerMovements[2].contractId = 'contract-one';
+    if (mode === 'self') receipt.playerMovements[2].toTeam = 'BBB';
+    if (mode === 'missing-return') receipt.playerMovements[2].toTeam = 'AAA';
+    expect(DraftReviewMutationReceiptZ.safeParse(receipt).success).toBe(false);
+  });
+  it('rejects an empty third team, a wrong right receiver and a pick-only three-team proposal', async () => {
+    const { f, receipt } = await mixed(true);
+    await expect(
+      prepareSwapTradeRecord({
+        ...f,
+        playerMovements: receipt.playerMovements.slice(0, 2),
+      })
+    ).rejects.toThrow(/noncash return/);
+    await expect(prepareSwapTradeRecord(f)).rejects.toThrow(
+      /Contract consideration/
+    );
+    f.args.payload.teams![0].entitlementsOut![0].toTeamId = 'BBB';
+    await expect(
+      prepareSwapTradeRecord({ ...f, playerMovements: receipt.playerMovements })
+    ).rejects.toThrow(/return selection/);
+  });
   it('binds ordinary Contracts as noncash return consideration without transferring a pool original', async () => {
     const { f, r, receipt } = await mixed();
     expect(r.record.playerMovements).toEqual(receipt.playerMovements);

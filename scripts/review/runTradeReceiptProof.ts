@@ -493,8 +493,12 @@ export async function runTradeReceiptProof(
   overlappingTrades = false,
   mixedNative = false,
   threeTeamMixed = false,
-  mixedSwap = false
+  mixedSwap = false,
+  threeTeamSwap = false
 ): Promise<number> {
+  if (threeTeamSwap && mixedSwap)
+    throw new Error('Select one mixed swap proof.');
+  mixedSwap = mixedSwap || threeTeamSwap;
   if (threeTeamMixed && mixedNative)
     throw new Error('Select one mixed trade family.');
   mixedNative = mixedNative || threeTeamMixed;
@@ -625,7 +629,9 @@ export async function runTradeReceiptProof(
     'tmp',
     'browser-proofs',
     mixedSwap
-      ? 'mixed-swap-trade'
+      ? threeTeamSwap
+        ? 'three-team-swap-trade'
+        : 'mixed-swap-trade'
       : threeTeamMixed
         ? 'three-team-mixed-trade'
         : mixedNative
@@ -825,6 +831,7 @@ export async function runTradeReceiptProof(
               ? 'overlapping-2028'
               : 'ranked-2029',
           PLAYWRIGHT_ARCHITECT_REVIEW_MODE: 'true',
+          PLAYWRIGHT_THREE_TEAM_SWAP: threeTeamSwap ? 'true' : 'false',
           ...(retainedSimulation
             ? { PLAYWRIGHT_DRAFT_SIMULATION: 'true' }
             : {}),
@@ -991,7 +998,7 @@ export async function runTradeReceiptProof(
   const manifest = {
     schemaVersion: 1,
     proof: mixedSwap
-      ? 'Ordinary Contracts and an unresolved 2026 swap right through exercise, waiver, season transition and all-team reload'
+      ? `${threeTeamSwap ? 'Three-team ordinary' : 'Ordinary'} Contracts and an unresolved 2026 swap right through exercise, waiver, season transition and all-team reload`
       : threeTeamMixed
         ? 'Atomic three-team Contracts and resolved selections with all-team reload and later bilateral transfer'
         : mixedNative
@@ -1030,7 +1037,7 @@ export async function runTradeReceiptProof(
     upstream: identity.upstream,
     mergeBase: identity.mergeBase,
     viewport: { width: 1280, height: 720 },
-    command: `npm run architect:proof:trade-receipt${mixedSwap ? ' -- --mixed-swap' : threeTeamMixed ? ' -- --three-team-mixed' : mixedNative ? ' -- --mixed-native' : mixedConditional ? ' -- --mixed-conditional' : mixedTrades ? ' -- --mixed-trades' : overlappingTrades ? ' -- --overlapping-trades' : nativeTrades ? ' -- --native-trades' : overlappingPool ? ' -- --overlapping-pool' : nativePool ? ' -- --native-pool' : penaltyPlacement ? ' -- --penalty-placement' : apronMultiseason ? ' -- --apron-multiseason' : apronFreeze ? ' -- --apron-freeze' : swapLifecycle ? ' -- --swap-lifecycle' : conditionalLifecycle ? ' -- --conditional-lifecycle' : retainedSimulation ? ' -- --retained-simulation' : realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
+    command: `npm run architect:proof:trade-receipt${threeTeamSwap ? ' -- --three-team-swap' : mixedSwap ? ' -- --mixed-swap' : threeTeamMixed ? ' -- --three-team-mixed' : mixedNative ? ' -- --mixed-native' : mixedConditional ? ' -- --mixed-conditional' : mixedTrades ? ' -- --mixed-trades' : overlappingTrades ? ' -- --overlapping-trades' : nativeTrades ? ' -- --native-trades' : overlappingPool ? ' -- --overlapping-pool' : nativePool ? ' -- --native-pool' : penaltyPlacement ? ' -- --penalty-placement' : apronMultiseason ? ' -- --apron-multiseason' : apronFreeze ? ' -- --apron-freeze' : swapLifecycle ? ' -- --swap-lifecycle' : conditionalLifecycle ? ' -- --conditional-lifecycle' : retainedSimulation ? ' -- --retained-simulation' : realDraft ? ' -- --real-draft' : draftSeason ? ' -- --draft-season' : draftReview ? ' -- --draft-review' : ''}`,
     privateInputHashes,
     simulationInputHashes,
     nativeTermsSha256,
@@ -1129,7 +1136,8 @@ if (isMainModule()) {
     process.argv.includes('--overlapping-trades'),
     process.argv.includes('--mixed-native'),
     process.argv.includes('--three-team-mixed'),
-    process.argv.includes('--mixed-swap')
+    process.argv.includes('--mixed-swap'),
+    process.argv.includes('--three-team-swap')
   )
     .then((code) => {
       process.exitCode = code;

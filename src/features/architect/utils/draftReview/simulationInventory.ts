@@ -80,13 +80,20 @@ export function assertSimulationInventory(
     throw new Error('Simulation catalogue or unresolved dependencies changed.');
   const testTeams = metadata.draftSimulationTeams;
   const teamsInScope = testTeams === undefined ? ['CHI', 'TOR'] : testTeams;
-  // Only the admitted overlapping 2028 family can host a third participant.
-  // Its complete terms and source admission are still verified below/by the loader.
+  // Mixed trades may use three teams in these admitted families. Keep their
+  // saved inventory readable after resolution; complete terms are verified below.
+  const swapScope = metadata.draftSwapProgram as
+    | {
+        kind?: string;
+        year?: number;
+      }
+    | undefined;
   const teamCount =
     metadata.draftSimulationBranches === 'swap-program' &&
-    (metadata.draftSwapProgram as { kind?: string; year?: number })?.kind ===
-      'native-overlapping-pool-v1' &&
-    (metadata.draftSwapProgram as { year?: number })?.year === 2028 &&
+    ((swapScope?.kind === 'native-overlapping-pool-v1' &&
+      swapScope.year === 2028) ||
+      (swapScope?.kind === 'ordered-swap-pool-v1' &&
+        swapScope.year === 2026)) &&
     Array.isArray(teamsInScope) &&
     teamsInScope.length === 3
       ? 3

@@ -9,7 +9,11 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
 import { loadSnapshot, coverage } from '../../scripts/dev/cloudData';
-import { seedMixedSwapWorld, SWAP_PLAYERS } from './fixtures/mixedSwapWorld';
+import {
+  seedMixedSwapWorld,
+  SWAP_PLAYERS,
+  mixedSwapRoutes,
+} from './fixtures/mixedSwapWorld';
 import {
   completeConditionalState,
   conditionalStateDigest,
@@ -38,6 +42,16 @@ test.skip(
 );
 const proofDir = process.env.SCOUTZERO_BROWSER_PROOF_DIR ?? 'tmp/mixed-swap';
 const affected = ['WAS', 'MIA', 'PHX', 'ORL'];
+const threeTeam = process.env.PLAYWRIGHT_THREE_TEAM_SWAP === 'true';
+const routes = mixedSwapRoutes(threeTeam);
+const participant = (team: string) => routes.find((r) => r.from === team);
+const incomingFrom = (team: string) => routes.find((r) => r.to === team)!.from;
+const incomingPlayer = (team: string) => SWAP_PLAYERS[incomingFrom(team)];
+const teamNames = {
+  WAS: 'Washington Wizards',
+  MIA: 'Miami Heat',
+  PHX: 'Phoenix Suns',
+};
 async function capture(page: Page, key: string) {
   fs.mkdirSync(proofDir, { recursive: true });
   await page.screenshot({ path: path.join(proofDir, `${key}-1280x720.png`) });
@@ -104,7 +118,7 @@ for (const choice of ['exercise', 'waive'] as const)
     const uid = await readReviewUserId(page),
       worldId = `mixed_swap_${choice}_${Date.now()}`;
     const { program, catalogue, considerationId, rightId, laterId, original } =
-      await seedMixedSwapWorld(uid, worldId);
+      await seedMixedSwapWorld(uid, worldId, threeTeam);
     const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
     const initial = await completeConditionalState(worldId);
     const sourceBefore = await sourceState();
@@ -140,18 +154,13 @@ for (const choice of ['exercise', 'waive'] as const)
         .find((c) => c.name === 'events')!
         .docs.find((e) => e.data.mutationType === 'executeTrade')!.data;
       expect(trade.metadata.draftReviewReceipt.playerMovements).toEqual(
-        expect.arrayContaining([
+        routes.map(({ from, to }) =>
           expect.objectContaining({
-            playerId: 'jaden_hardy',
-            fromTeam: 'WAS',
-            toTeam: 'MIA',
-          }),
-          expect.objectContaining({
-            playerId: 'davion_mitchell',
-            fromTeam: 'MIA',
-            toTeam: 'WAS',
-          }),
-        ])
+            playerId: SWAP_PLAYERS[from].id,
+            fromTeam: from,
+            toTeam: to,
+          })
+        )
       );
       expect(trade.metadata.draftReviewReceipt.movements).toHaveLength(1);
       expect(trade.metadata.draftReviewReceipt.movements[0]).toMatchObject({
@@ -172,11 +181,11 @@ for (const choice of ['exercise', 'waive'] as const)
             .sort()
         );
         let money = 30000000;
-        if (team === 'WAS' || team === 'MIA') {
-          const outgoing = SWAP_PLAYERS[team],
-            incoming = SWAP_PLAYERS[team === 'WAS' ? 'MIA' : 'WAS'];
+        if (participant(team)) {
+          const outgoing = SWAP_PLAYERS[participant(team)!.from],
+            incoming = incomingPlayer(team);
           const original = initialTeams
-            .find((t) => t.id === (team === 'WAS' ? 'MIA' : 'WAS'))!
+            .find((t) => t.id === incomingFrom(team))!
             .data.players.find((p: any) => p.playerId === incoming.id);
           const player = current.players.find(
             (p: any) => p.playerId === incoming.id
@@ -188,8 +197,11 @@ for (const choice of ['exercise', 'waive'] as const)
               .sort()
           );
           expect(player.contract.contractId).toBe(original.contract.contractId);
+          // A trade preserves historical Contract rows too; only Season
+          // Advance trims expired rows from the current-state Contract.
           const rows = original.contract.salariesByYear.filter(
-            (r: any) => Number(r.season.slice(0, 4)) + 1 >= year
+            (r: any) =>
+              year === 2026 || Number(r.season.slice(0, 4)) + 1 >= year
           );
           expect(player.contract.salariesByYear).toHaveLength(rows.length);
           for (const row of rows)
@@ -231,9 +243,9 @@ for (const choice of ['exercise', 'waive'] as const)
         await page.goto(`/gm/${team}?season=${year}`);
         await page.reload();
         await openDashboardTab(page, 'Roster');
-        if (team === 'WAS' || team === 'MIA') {
-          const outgoing = SWAP_PLAYERS[team],
-            incoming = SWAP_PLAYERS[team === 'WAS' ? 'MIA' : 'WAS'];
+        if (participant(team)) {
+          const outgoing = SWAP_PLAYERS[participant(team)!.from],
+            incoming = incomingPlayer(team);
           await expect(
             page.getByAltText(new RegExp(`^${incoming.name}$`, 'i')).first()
           ).toBeVisible();
@@ -285,7 +297,7 @@ for (const choice of ['exercise', 'waive'] as const)
         await expect(
           page.getByTestId('cockpit-activity-rail-strip-two-way')
         ).toContainText('3 / 3');
-        if (team === 'WAS' || team === 'MIA') {
+        if (participant(team)) {
           await openDashboardTab(page, 'Team History');
           await page
             .getByTestId('team-history-section-timeline')
@@ -295,6 +307,7 @@ for (const choice of ['exercise', 'waive'] as const)
           for (const text of [
             'Jaden Hardy',
             'Davion Mitchell',
+            ...(threeTeam ? ['Grayson Allen'] : []),
             'unresolved swap right',
             'Underlying pool selections remain',
           ])
@@ -303,15 +316,16 @@ for (const choice of ['exercise', 'waive'] as const)
           await openDashboardTab(page, 'Compare');
           await expect(
             page.getByTestId('comparison-roster-additions')
-          ).toContainText(
-            new RegExp(SWAP_PLAYERS[team === 'WAS' ? 'MIA' : 'WAS'].name, 'i')
-          );
+          ).toContainText(new RegExp(incomingPlayer(team).name, 'i'));
           await expect(
             page.getByTestId('comparison-roster-removals')
-          ).toContainText(new RegExp(SWAP_PLAYERS[team].name, 'i'));
-          await expect(
-            page.getByText('WAS 2026 first-round swap right', { exact: true })
-          ).toBeVisible();
+          ).toContainText(
+            new RegExp(SWAP_PLAYERS[participant(team)!.from].name, 'i')
+          );
+          if (team === 'WAS' || team === 'MIA')
+            await expect(
+              page.getByText('WAS 2026 first-round swap right', { exact: true })
+            ).toBeVisible();
         }
       }
       receipt(`${choice}-${stage}-state`, saved);
@@ -338,23 +352,28 @@ for (const choice of ['exercise', 'waive'] as const)
     await expect(dialog.getByTestId('trade-team-card-MIA')).toContainText(
       'Miami Heat'
     );
+    if (threeTeam) {
+      await dialog.getByRole('button', { name: /^Add Team$/ }).click();
+      await picker.first().selectOption('suns');
+      await expect(dialog.getByTestId('trade-team-card-PHX')).toContainText(
+        'Phoenix Suns'
+      );
+    }
     await select(
       page,
       dialog.getByTestId('trade-team-card-WAS'),
       rightId,
       'Miami Heat'
     );
-    for (const [team, destination] of [
-      ['WAS', 'Miami Heat'],
-      ['MIA', 'Washington Wizards'],
-    ] as const) {
+    for (const { from: team, to } of routes) {
+      const destination = teamNames[to];
       const card = dialog.getByTestId(`trade-team-card-${team}`),
-        p = SWAP_PLAYERS[team];
+        p = SWAP_PLAYERS[participant(team)!.from];
       await card
         .getByRole('button', { name: /^(Players|Plyr)( \(\d+\))?$/i })
         .click();
       const row = card
-        .getByAltText(new RegExp(`^${p.name}$`, 'i'))
+        .getByText(new RegExp(`^${p.name}$`, 'i'))
         .first()
         .locator('xpath=ancestor::div[.//button[normalize-space()="•••"]][1]');
       await row.getByRole('button', { name: '•••' }).click();
@@ -364,13 +383,36 @@ for (const choice of ['exercise', 'waive'] as const)
       await card
         .getByLabel('Elected path', { exact: true })
         .selectOption('STANDARD_TPE');
-      const incoming = SWAP_PLAYERS[team === 'WAS' ? 'MIA' : 'WAS'];
+      const incoming = incomingPlayer(team);
       await card
         .getByLabel('Post-assignment Apron Team Salary', { exact: true })
         .fill(String(112000000 + incoming.salary));
       await card
         .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
         .fill(String(p.matching));
+    }
+    if (threeTeam && choice === 'exercise') {
+      await dialog
+        .getByRole('button', { name: 'Close Trade Machine', exact: true })
+        .click();
+      dialog = await room(page);
+      for (const { from: team } of routes) {
+        const p = SWAP_PLAYERS[team];
+        await expect
+          .poll(async () =>
+            Number(
+              (
+                await dialog
+                  .getByTestId(`trade-team-card-${team}`)
+                  .getByLabel(
+                    new RegExp(`^${p.name} exact pre-trade Salary$`, 'i')
+                  )
+                  .inputValue()
+              ).replace(/[^0-9.-]/g, '')
+            )
+          )
+          .toBe(p.matching);
+      }
     }
     if (choice === 'exercise') {
       const beforeRejected = await conditionalStateDigest(worldId);
@@ -385,10 +427,10 @@ for (const choice of ['exercise', 'waive'] as const)
       expect(await conditionalStateDigest(worldId)).toBe(beforeRejected);
       await capture(page, 'invalid-proposal');
     }
-    for (const team of ['WAS', 'MIA'] as const) {
+    for (const { from: team } of routes) {
       const card = dialog.getByTestId(`trade-team-card-${team}`),
-        p = SWAP_PLAYERS[team],
-        incoming = SWAP_PLAYERS[team === 'WAS' ? 'MIA' : 'WAS'];
+        p = SWAP_PLAYERS[participant(team)!.from],
+        incoming = incomingPlayer(team);
       await card
         .getByLabel('Elected path', { exact: true })
         .selectOption('ROOM');
@@ -648,6 +690,9 @@ for (const choice of ['exercise', 'waive'] as const)
       events: final.children.find((c) => c.name === 'events')!.docs,
       sourceUnchanged: true,
       allAffectedTeams: affected,
+      participants: routes.map((r) => r.from),
+      playerRoutes: routes,
+      stagedCloseReopen: threeTeam && choice === 'exercise',
       teamPlan: true,
       export: true,
       reload: true,
@@ -659,6 +704,9 @@ for (const choice of ['exercise', 'waive'] as const)
 test('mixed swap failures and stale operations leave the complete world unchanged', async ({
   page,
 }) => {
+  // The three-team matrix re-authenticates the full catalogue for additional
+  // routing and stale-third-team cases (about 19 minutes in diagnostics).
+  if (threeTeam) test.setTimeout(1500000);
   await page.goto('/gm/WAS?season=2026');
   await expect
     .poll(() => readReviewUserId(page), { timeout: 30000 })
@@ -667,19 +715,52 @@ test('mixed swap failures and stale operations leave the complete world unchange
     worldId = `mixed_swap_negative_${Date.now()}`;
   const { program, rightId, laterId, original } = await seedMixedSwapWorld(
     uid,
-    worldId
+    worldId,
+    threeTeam
   );
   const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`),
     sourceBefore = await sourceState();
   const rejected: Record<string, unknown> = {};
   const prepare = (ids = [rightId], mode = '') =>
-    prepareMixedSwap(page, uid, worldId, ids, mode);
+    prepareMixedSwap(page, uid, worldId, ids, mode, threeTeam);
   const pristine = await conditionalStateDigest(worldId);
+  expect(await prepare()).toMatchObject({ status: 'prepared', legal: true });
+  expect(await conditionalStateDigest(worldId)).toBe(pristine);
+  const expectedReasons: Record<string, RegExp> = {
+    'duplicate-team': /distinct participating teams/i,
+    'fourth-team': /distinct participating teams/i,
+    'missing-destination': /explicit destination/i,
+    'conflicting-destination': /explicit destination/i,
+    'self-destination': /explicit destination/i,
+    'outside-destination': /explicit destination/i,
+    'neutral-third': /noncash return consideration/i,
+    'incomplete-third': /matching path/i,
+    'forged-third-contract': /unchanged ordinary/i,
+    'wrong-receiver': /return selection/i,
+    cash: /noncash entitlement/i,
+    incoming: /Incoming players must be derived/i,
+  };
   for (const mode of [
     'incomplete',
     'wrong-salary',
     'forged-terms',
     'forged-contract',
+    ...(threeTeam
+      ? [
+          'duplicate-team',
+          'fourth-team',
+          'missing-destination',
+          'conflicting-destination',
+          'self-destination',
+          'outside-destination',
+          'neutral-third',
+          'incomplete-third',
+          'forged-third-contract',
+          'wrong-receiver',
+          'cash',
+          'incoming',
+        ]
+      : []),
   ]) {
     const result = await prepare([rightId], mode);
     expect(
@@ -687,20 +768,63 @@ test('mixed swap failures and stale operations leave the complete world unchange
         result.status === 'blocked' ||
         result.legal === false
     ).toBe(true);
+    if (expectedReasons[mode])
+      expect(JSON.stringify(result)).toMatch(expectedReasons[mode]);
     expect((await applyMixedSwap(page)).success).toBe(false);
     expect(await conditionalStateDigest(worldId)).toBe(pristine);
     rejected[mode] = result;
   }
-  const stepien = await prepare([
-    rightId,
-    original('MIA', 2028),
-    original('MIA', 2029),
-  ]);
+  // PHX's 2029 original is encumbered and cannot itself be traded in this
+  // family. Remove its software first-round coverage instead, leaving
+  // source terms intact, so the proposal reaches the third team's Stepien gate.
+  const missingFirsts = threeTeam
+    ? [original('PHX', 2028), original('PHX', 2029)]
+    : [];
+  const priorHoldings = await Promise.all(
+    (threeTeam ? ['PHX', 'ORL'] : []).map(async (team) => {
+      const ref = root.collection('teams').doc(team);
+      return { ref, ids: (await ref.get()).data()!.entitlementIds as string[] };
+    })
+  );
+  if (threeTeam) {
+    const batch = getReviewAdminDb().batch();
+    for (const id of missingFirsts)
+      batch.update(root.collection('entitlements').doc(id), {
+        holderTeam: 'ORL',
+      });
+    for (const { ref, ids } of priorHoldings)
+      batch.update(ref, {
+        entitlementIds:
+          ref.id === 'PHX'
+            ? ids.filter((id) => !missingFirsts.includes(id))
+            : [...ids, ...missingFirsts],
+      });
+    await batch.commit();
+  }
+  const beforeStepien = await conditionalStateDigest(worldId);
+  const stepien = await prepare(
+    threeTeam
+      ? [rightId]
+      : [rightId, original('MIA', 2028), original('MIA', 2029)]
+  );
   expect(stepien.status).toBe('blocked');
-  expect(JSON.stringify(stepien)).toMatch(/stepien/i);
+  expect(JSON.stringify(stepien)).toMatch(
+    threeTeam ? /PHX: stepien:/i : /stepien/i
+  );
   expect((await applyMixedSwap(page)).success).toBe(false);
-  expect(await conditionalStateDigest(worldId)).toBe(pristine);
+  expect(await conditionalStateDigest(worldId)).toBe(beforeStepien);
   rejected.stepien = stepien;
+  if (threeTeam) {
+    const batch = getReviewAdminDb().batch();
+    for (const id of missingFirsts)
+      batch.update(root.collection('entitlements').doc(id), {
+        holderTeam: 'PHX',
+      });
+    for (const { ref, ids } of priorHoldings)
+      batch.update(ref, { entitlementIds: ids });
+    await batch.commit();
+    expect(await conditionalStateDigest(worldId)).toBe(pristine);
+  }
   expect((await prepare([rightId, original('WAS')])).status).toBe('error');
   expect((await applyMixedSwap(page)).success).toBe(false);
   expect(await conditionalStateDigest(worldId)).toBe(pristine);
@@ -713,7 +837,7 @@ test('mixed swap failures and stale operations leave the complete world unchange
   expect(await conditionalStateDigest(worldId)).toBe(incomplete);
   await root.update({ draftSwapProgram: program });
   for (const mode of ['hard-cap', 'roster']) {
-    const ref = root.collection('teams').doc('WAS'),
+    const ref = root.collection('teams').doc(threeTeam ? 'PHX' : 'WAS'),
       prior = (await ref.get()).data()!;
     const changed = structuredClone(prior);
     if (mode === 'hard-cap')
@@ -747,7 +871,9 @@ test('mixed swap failures and stale operations leave the complete world unchange
   }
   for (const target of [
     'teams/ORL',
-    'teams/MIA/players/jaden_hardy',
+    ...(threeTeam
+      ? ['teams/PHX', 'teams/PHX/players/davion_mitchell']
+      : ['teams/MIA/players/jaden_hardy']),
     `entitlements/${rightId}`,
   ]) {
     expect(await prepare()).toMatchObject({ status: 'prepared', legal: true });
@@ -808,6 +934,13 @@ test('mixed swap failures and stale operations leave the complete world unchange
     incompleteProgramNoWrite: true,
     underlyingSelectionNoWrite: true,
     stalePoolParticipantNoWrite: true,
+    ...(threeTeam
+      ? {
+          staleThirdTeamNoWrite: true,
+          explicitRoutingNoWrite: true,
+          threeGenuineParticipants: true,
+        }
+      : {}),
     staleDestinationContractNoWrite: true,
     staleRightNoWrite: true,
     forgedAuthorityNoWrite: true,

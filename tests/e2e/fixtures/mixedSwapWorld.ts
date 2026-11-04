@@ -1,4 +1,4 @@
-/** Accepted ordered-swap software world, full 15+3 rosters and two unchanged
+/** Accepted ordered-swap software world, full 15+3 rosters and unchanged
  * retained ordinary Contracts. No simulated option decisions or NBA authority.
  */
 import fs from 'node:fs';
@@ -28,9 +28,33 @@ export const SWAP_PLAYERS = {
     matching: 11600000,
     nextSalary: 12400000,
   },
+  PHX: {
+    id: 'grayson_allen',
+    name: 'Grayson Allen',
+    salary: 16875000,
+    matching: 16875000,
+    nextSalary: 18125000,
+  },
 } as const;
 
-export async function seedMixedSwapWorld(uid: string, worldId: string) {
+export function mixedSwapRoutes(threeTeam = false) {
+  return threeTeam
+    ? ([
+        { from: 'WAS', to: 'MIA' },
+        { from: 'MIA', to: 'PHX' },
+        { from: 'PHX', to: 'WAS' },
+      ] as const)
+    : ([
+        { from: 'WAS', to: 'MIA' },
+        { from: 'MIA', to: 'WAS' },
+      ] as const);
+}
+
+export async function seedMixedSwapWorld(
+  uid: string,
+  worldId: string,
+  threeTeam = false
+) {
   const seeded = await seedSwapDraftWorld(uid, worldId);
   const release = await verifyContractSourceRelease(
     JSON.parse(
@@ -45,12 +69,13 @@ export async function seedMixedSwapWorld(uid: string, worldId: string) {
   const batch = getReviewAdminDb().batch();
   const metadata = (await root.get()).data()!;
   const nextBooks = metadata.draftSimulationSeasonBooks;
+  const routes = mixedSwapRoutes(threeTeam);
   for (const document of buildContractBaselineTeamDocuments(release, worldId))
     batch.set(
       root.collection('contractBaselines').doc(document.shardId),
       document
     );
-  for (const team of ['WAS', 'MIA'] as const) {
+  for (const { from: team } of routes) {
     const ref = root.collection('teams').doc(team);
     const before = (await ref.get()).data()!;
     const record = release.records.find(
@@ -122,7 +147,8 @@ export async function seedMixedSwapWorld(uid: string, worldId: string) {
     // Team and Apron Salary remain derived from the actual committed Contracts.
     nextBooks[team] = books(2027);
     nextBooks[team].taxSalary.lineItems[0].amount =
-      112000000 + SWAP_PLAYERS[team === 'WAS' ? 'MIA' : 'WAS'].nextSalary;
+      112000000 +
+      SWAP_PLAYERS[routes.find((r) => r.to === team)!.from].nextSalary;
     const ready = { ...bare, salaryBookInputs: books(2026) };
     batch.set(ref, {
       ...ready,
@@ -134,6 +160,7 @@ export async function seedMixedSwapWorld(uid: string, worldId: string) {
   batch.update(root, {
     ...contractBaselineMetadata(release),
     worldName: 'Players and Unresolved Swap Right — Governed Test',
+    ...(threeTeam ? { draftSimulationTeams: routes.map((r) => r.from) } : {}),
     draftSimulationSeasonBooks: nextBooks,
   });
   await batch.commit();
