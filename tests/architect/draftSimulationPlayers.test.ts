@@ -92,12 +92,15 @@ function fixture() {
   };
 }
 describe('bounded ordinary player consideration', () => {
-  it('permits the existing Room path only for admitted native selections and keeps exact salary authority', () => {
+  it('permits the existing Room path only for admitted native selections or ordered swap rights and keeps exact salary authority', () => {
     const f = fixture();
     for (const slot of f.args.payload.teams)
       slot.salaryMatchingElection.path = 'ROOM';
     expect(
       simulationPlayerMovements(f.args, 'native-selections', f.state)
+    ).toHaveLength(1);
+    expect(
+      simulationPlayerMovements(f.args, 'ordered-swap-rights', f.state)
     ).toHaveLength(1);
     for (const branch of ['unconditional', 'protection-programs'])
       expect(() => simulationPlayerMovements(f.args, branch, f.state)).toThrow(
@@ -109,7 +112,12 @@ describe('bounded ordinary player consideration', () => {
       simulationPlayerMovements(f.args, 'native-selections', f.state)
     ).toThrow(/exact governed outgoing Salary/);
   });
-  it.each(['unconditional', 'protection-programs', 'native-selections'])(
+  it.each([
+    'unconditional',
+    'protection-programs',
+    'native-selections',
+    'ordered-swap-rights',
+  ])(
     'derives the outgoing Contract identity from live saved-world authority in %s',
     (branch) => {
       const f = fixture();
@@ -190,9 +198,14 @@ describe('bounded ordinary player consideration', () => {
     if (mode === 'recipient-path')
       f.args.payload.teams[1].salaryMatchingElection.path = 'ROOM';
     if (mode === 'context') f.args.payload.tradeCtx.source = 'caller';
-    expect(() =>
-      simulationPlayerMovements(f.args, 'unconditional', f.state)
-    ).toThrow();
+    for (const branch of ['unconditional', 'ordered-swap-rights'])
+      if (
+        !['wrong-path', 'recipient-path'].includes(mode) ||
+        branch !== 'ordered-swap-rights'
+      )
+        expect(() =>
+          simulationPlayerMovements(f.args, branch, f.state)
+        ).toThrow();
   });
   it.each(['conditional-2027', 'swap-program', 'apron-lifecycle'])(
     'preserves the %s player restriction',

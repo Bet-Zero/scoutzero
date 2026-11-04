@@ -180,6 +180,18 @@ export function deriveDraftAssetDelta(
     )
       return null;
     if (
+      'playerMovements' in receipt.data &&
+      receipt.data.playerMovements &&
+      (row.raw?.valid !== true ||
+        canonicalStringify(
+          Array.isArray(row.raw.playerIds) ? [...row.raw.playerIds].sort() : []
+        ) !==
+          canonicalStringify(
+            receipt.data.playerMovements.map((p) => p.playerId).sort()
+          ))
+    )
+      return null;
+    if (
       seasonSeen &&
       'releaseId' in receipt.data &&
       (receipt.data.releaseId !== SYNTHETIC_DRAFT_SEASON_PIN.release.id ||

@@ -34,6 +34,7 @@ export async function prepareSwapTradeRecord(input: {
   documentSnapshots: Record<string, string | null>;
   stateDigest: string;
   state: unknown;
+  playerMovements?: DraftReviewCapabilityRecord['playerMovements'];
 }) {
   const { args, catalogue, metadata, entitlements } = input;
   const program = swapProgram(
@@ -171,11 +172,12 @@ export async function prepareSwapTradeRecord(input: {
     throw new Error(
       'The receiving team must own the specified return selection; the option alone never transfers that pick.'
     );
+  const consideration = [...movements, ...(input.playerMovements ?? [])];
   if (
     teamCodes.some(
       (team) =>
-        !movements.some((m) => m.fromTeam === team) ||
-        !movements.some((m) => m.toTeam === team)
+        !consideration.some((m) => m.fromTeam === team) ||
+        !consideration.some((m) => m.toTeam === team)
     )
   )
     throw new Error(
@@ -338,6 +340,9 @@ export async function prepareSwapTradeRecord(input: {
     firstsByTeam,
     reviews,
     movements,
+    ...(input.playerMovements?.length
+      ? { playerMovements: input.playerMovements }
+      : {}),
   };
   return { status: 'ready' as const, record };
 }

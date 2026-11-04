@@ -119,11 +119,12 @@ export const DraftReviewMutationReceiptZ = z
   .strict()
   .superRefine((receipt, ctx) => {
     const native = receipt.assumptions?.nativeTrade;
-    if (receipt.playerMovements && !native)
+    const swap = receipt.assumptions?.swapProgram;
+    if (receipt.playerMovements && !native && !swap)
       ctx.addIssue({
         code: 'custom',
         message:
-          'Native player consideration requires its native selection lineage.',
+          'Player consideration requires its admitted selection or swap-right lineage.',
       });
     if (native || receipt.assumptions?.branchMode === 'native-selections') {
       try {
@@ -166,7 +167,6 @@ export const DraftReviewMutationReceiptZ = z
         });
       }
     }
-    const swap = receipt.assumptions?.swapProgram;
     const options = receipt.movements.filter(
       (m) => m.assetKind === 'swap_right'
     );
@@ -181,6 +181,37 @@ export const DraftReviewMutationReceiptZ = z
           swap.steps.find((s) => s.rightId === swap.tradedRightId)?.controllerId
       );
       const move = options[0];
+      if (receipt.playerMovements && swap) {
+        const players = receipt.playerMovements;
+        const parties = [swap.grantorTeam, controller?.holderTeam];
+        if (
+          swap.kind !== 'ordered-swap-pool-v1' ||
+          swap.year !== 2026 ||
+          receipt.asOfDate !== '2026-06-05' ||
+          players.length > 2 ||
+          new Set(players.map((p) => p.playerId)).size !== players.length ||
+          new Set(players.map((p) => p.contractId)).size !== players.length ||
+          new Set(players.map((p) => p.fromTeam)).size !== players.length ||
+          [...players, ...receipt.movements].some(
+            (m) =>
+              !parties.includes(m.fromTeam) ||
+              !parties.includes(m.toTeam) ||
+              m.fromTeam === m.toTeam
+          ) ||
+          parties.some(
+            (team) =>
+              ![...players, ...receipt.movements].some(
+                (m) => m.fromTeam === team
+              ) ||
+              ![...players, ...receipt.movements].some((m) => m.toTeam === team)
+          )
+        )
+          ctx.addIssue({
+            code: 'custom',
+            message:
+              'Mixed swap receipts require the bounded bilateral 2026 Contract and unresolved-right exchange.',
+          });
+      }
       if (
         !swap ||
         !controller ||

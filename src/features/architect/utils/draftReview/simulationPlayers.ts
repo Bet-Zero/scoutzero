@@ -25,7 +25,8 @@ export function simulationPlayerMovements(
   const hasPlayers = slots.some((s) => s.sends?.length);
   const supportedPath = (path: string) =>
     path === 'STANDARD_TPE' ||
-    (branch === 'native-selections' && path === 'ROOM');
+    (['native-selections', 'ordered-swap-rights'].includes(branch) &&
+      path === 'ROOM');
   if (
     hasPlayers &&
     (args.payload.capProjections != null ||
@@ -59,14 +60,17 @@ export function simulationPlayerMovements(
       );
     if (!slot.sends?.length) continue;
     if (
-      !['unconditional', 'protection-programs', 'native-selections'].includes(
-        branch
-      ) ||
+      ![
+        'unconditional',
+        'protection-programs',
+        'native-selections',
+        'ordered-swap-rights',
+      ].includes(branch) ||
       slot.sends.length !== 1 ||
       args.payload.tradeCtx?.source !== 'tradeMachine'
     )
       throw new Error(
-        'Mixed trades support one ordinary player per team with original firsts, complete protection programs or admitted resolved 2028 selections.'
+        'Mixed trades support one ordinary player per team with original firsts, complete protection programs, admitted unresolved 2026 swap rights or resolved 2028 selections.'
       );
     const team = state.teams?.find((t) => t.teamCode === slot.teamCode)
       ?.team as RecordLike | undefined;

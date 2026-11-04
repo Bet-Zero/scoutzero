@@ -180,6 +180,13 @@ failures. Only the admitted 2028 mixed family permits three teams;
 selection-only exchanges remain bilateral. This is protected software proof,
 not production activation or actual NBA legality.
 
+Use `--mixed-swap` with the private catalogue and full baseline for ordinary
+Contracts combined with the accepted unresolved 2026 ordered swap right. The
+proof follows both exercise and waiver, the supported season transition, and
+all four affected teams' reloaded books, holdings and saved views. It uses the
+existing Room path with explicit below-cap software books and unchanged
+release-selected Contracts; no swap terms or production permissions change.
+
 Use `--mixed-conditional` for ordinary players combined with the accepted 2026
 top-10 protection and 2027 unprotected fallback program. The same private
 catalogue and full-baseline variables are required; the 2028 input is
