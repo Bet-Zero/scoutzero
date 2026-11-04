@@ -25,7 +25,8 @@ export function simulationPlayerMovements(
   const hasPlayers = slots.some((s) => s.sends?.length);
   const supportedPath = (path: string) =>
     path === 'STANDARD_TPE' ||
-    (branch === 'native-selections' && path === 'ROOM');
+    (['native-selections', 'ordered-swap-rights'].includes(branch) &&
+      path === 'ROOM');
   if (
     hasPlayers &&
     (args.payload.capProjections != null ||

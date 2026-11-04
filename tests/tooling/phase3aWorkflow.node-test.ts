@@ -1277,8 +1277,8 @@ test('mixed swap proof retains both decisions and every affected financial reloa
   const { MIXED_SWAP_SCREENSHOTS } = await import(
     '../../scripts/review/runTradeReceiptProof'
   );
-  assert.equal(MIXED_SWAP_SCREENSHOTS.length, 64);
-  assert.equal(new Set(MIXED_SWAP_SCREENSHOTS.map((s) => s.key)).size, 64);
+  assert.equal(MIXED_SWAP_SCREENSHOTS.length, 65);
+  assert.equal(new Set(MIXED_SWAP_SCREENSHOTS.map((s) => s.key)).size, 65);
   for (const choice of ['exercise', 'waive'])
     for (const stage of ['committed', 'resolved', 'season'])
       for (const team of ['WAS', 'MIA', 'PHX', 'ORL'])

@@ -15,11 +15,11 @@ import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/ca
 
 export const SWAP_PLAYERS = {
   WAS: {
-    id: 'corey_kispert',
-    name: 'Corey Kispert',
-    salary: 13975000,
-    matching: 13975000,
-    nextSalary: 13975000,
+    id: 'jaden_hardy',
+    name: 'Jaden Hardy',
+    salary: 6000000,
+    matching: 6000000,
+    nextSalary: 6000000,
   },
   MIA: {
     id: 'davion_mitchell',
@@ -53,22 +53,27 @@ export async function seedMixedSwapWorld(uid: string, worldId: string) {
   for (const team of ['WAS', 'MIA'] as const) {
     const ref = root.collection('teams').doc(team);
     const before = (await ref.get()).data()!;
-    const observation = release.observations.filter(
-      (o) => o.teamId === team && o.playerId === SWAP_PLAYERS[team].id
-    );
-    if (observation.length !== 1)
-      throw new Error('Exactly one retained ordinary Contract is required.');
-    const source = JSON.parse(observation[0].artifactContent);
     const record = release.records.find(
-      (r) => r.playerId === observation[0].playerId && r.teamId === team
+      (r) =>
+        r.playerId === SWAP_PLAYERS[team].id &&
+        r.teamId === team &&
+        r.sourceContractPath === 'contract'
     );
     if (!record) throw new Error('Retained Contract identity is required.');
+    const observation = release.observations.find(
+      (o) => o.observationId === record.sourceObservationId
+    );
+    if (!observation || observation.teamId !== team)
+      throw new Error(
+        'The selected retained Contract observation is required.'
+      );
+    const source = JSON.parse(observation.artifactContent);
     const real = {
       ...source,
       contract: { ...source.contract, contractId: record.contractId },
-      id: observation[0].playerId,
-      playerId: observation[0].playerId,
-      player_id: observation[0].playerId,
+      id: observation.playerId,
+      playerId: observation.playerId,
+      player_id: observation.playerId,
       name: source.displayName,
       teamCode: team,
       teamId: team,
@@ -82,8 +87,8 @@ export async function seedMixedSwapWorld(uid: string, worldId: string) {
               ...p.contract,
               salariesByYear: p.contract.salariesByYear.map((s: any) => ({
                 ...s,
-                salary: p.isTwoWay ? 578577 : 11000000,
-                capHit: p.isTwoWay ? 578577 : 11000000,
+                salary: p.isTwoWay ? 578577 : 8000000,
+                capHit: p.isTwoWay ? 578577 : 8000000,
               })),
             },
           }
@@ -117,7 +122,7 @@ export async function seedMixedSwapWorld(uid: string, worldId: string) {
     // Team and Apron Salary remain derived from the actual committed Contracts.
     nextBooks[team] = books(2027);
     nextBooks[team].taxSalary.lineItems[0].amount =
-      154000000 + SWAP_PLAYERS[team === 'WAS' ? 'MIA' : 'WAS'].nextSalary;
+      112000000 + SWAP_PLAYERS[team === 'WAS' ? 'MIA' : 'WAS'].nextSalary;
     const ready = { ...bare, salaryBookInputs: books(2026) };
     batch.set(ref, {
       ...ready,

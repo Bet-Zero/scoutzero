@@ -134,7 +134,7 @@ for (const choice of ['exercise', 'waive'] as const)
       expect(trade.metadata.draftReviewReceipt.playerMovements).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            playerId: 'corey_kispert',
+            playerId: 'jaden_hardy',
             fromTeam: 'WAS',
             toTeam: 'MIA',
           }),
@@ -209,9 +209,9 @@ for (const choice of ['exercise', 'waive'] as const)
           ).toEqual(player.contract);
           expect(overrides.some((p) => p.id === outgoing.id)).toBe(false);
           money =
-            154000000 + (year === 2026 ? incoming.salary : incoming.nextSalary);
+            112000000 + (year === 2026 ? incoming.salary : incoming.nextSalary);
           expect(current.totals.taxSalary).toBe(
-            year === 2026 ? 154000000 + outgoing.salary : money
+            year === 2026 ? 112000000 + outgoing.salary : money
           );
           expect(current.hardCapped).toBe(year === 2026);
         } else {
@@ -285,7 +285,7 @@ for (const choice of ['exercise', 'waive'] as const)
             .click();
           const detail = page.getByTestId('team-history-detail-modal');
           for (const text of [
-            'Corey Kispert',
+            'Jaden Hardy',
             'Davion Mitchell',
             'unresolved swap right',
             'Underlying pool selections remain',
@@ -317,6 +317,10 @@ for (const choice of ['exercise', 'waive'] as const)
     );
     await page.reload();
     let dialog = await room(page);
+    await expect(dialog.getByTestId('trade-team-card-WAS')).toContainText(
+      'Washington Wizards',
+      { timeout: 30000 }
+    );
     const picker = dialog
       .locator('label', { hasText: /^Select Team$/ })
       .locator('xpath=following-sibling::select[1]');
@@ -339,7 +343,7 @@ for (const choice of ['exercise', 'waive'] as const)
       const card = dialog.getByTestId(`trade-team-card-${team}`),
         p = SWAP_PLAYERS[team];
       await card
-        .getByRole('button', { name: /^(Players|Ply)( \(\d+\))?$/i })
+        .getByRole('button', { name: /^(Players|Plyr)( \(\d+\))?$/i })
         .click();
       const row = card
         .getByAltText(new RegExp(`^${p.name}$`, 'i'))
@@ -355,7 +359,34 @@ for (const choice of ['exercise', 'waive'] as const)
       const incoming = SWAP_PLAYERS[team === 'WAS' ? 'MIA' : 'WAS'];
       await card
         .getByLabel('Post-assignment Apron Team Salary', { exact: true })
-        .fill(String(154000000 + incoming.salary));
+        .fill(String(112000000 + incoming.salary));
+      await card
+        .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
+        .fill(String(p.matching));
+    }
+    if (choice === 'exercise') {
+      const beforeRejected = await conditionalStateDigest(worldId);
+      await dialog.getByRole('button', { name: /^Validate Trade$/ }).click();
+      await expect(dialog).toContainText(
+        'Standard and Aggregated Standard TPE paths are unavailable below the Salary Cap',
+        { timeout: 120000 }
+      );
+      await expect(
+        dialog.getByRole('button', { name: /^Apply Trade$/ })
+      ).toBeDisabled();
+      expect(await conditionalStateDigest(worldId)).toBe(beforeRejected);
+      await capture(page, 'invalid-proposal');
+    }
+    for (const team of ['WAS', 'MIA'] as const) {
+      const card = dialog.getByTestId(`trade-team-card-${team}`),
+        p = SWAP_PLAYERS[team],
+        incoming = SWAP_PLAYERS[team === 'WAS' ? 'MIA' : 'WAS'];
+      await card
+        .getByLabel('Elected path', { exact: true })
+        .selectOption('ROOM');
+      await card
+        .getByLabel('Post-assignment Apron Team Salary', { exact: true })
+        .fill(String(112000000 + incoming.salary));
       await card
         .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
         .fill(String(p.matching));
@@ -521,7 +552,7 @@ for (const choice of ['exercise', 'waive'] as const)
           .collection('teams')
           .doc('MIA')
           .collection('players')
-          .doc('corey_kispert'),
+          .doc('jaden_hardy'),
         prior = (await ref.get()).data()!;
       await ref.set({
         ...prior,
@@ -677,7 +708,7 @@ test('mixed swap failures and stale operations leave the complete world unchange
       prior = (await ref.get()).data()!;
     const changed = structuredClone(prior);
     if (mode === 'hard-cap')
-      changed.salaryBookInputs.apronAdjustments.lineItems[0].amount += 50000000;
+      changed.salaryBookInputs.apronAdjustments.lineItems[0].amount += 100000000;
     else {
       const twoWay = changed.players.find((p: any) => p.isTwoWay);
       changed.players.push({
@@ -707,7 +738,7 @@ test('mixed swap failures and stale operations leave the complete world unchange
   }
   for (const target of [
     'teams/ORL',
-    'teams/MIA/players/corey_kispert',
+    'teams/MIA/players/jaden_hardy',
     `entitlements/${rightId}`,
   ]) {
     expect(await prepare()).toMatchObject({ status: 'prepared', legal: true });
@@ -719,7 +750,11 @@ test('mixed swap failures and stale operations leave the complete world unchange
       .collection(target.split('/')[0])
       .doc(target.split('/').slice(1).join('/'));
     const prior = await ref.get();
-    await ref.set({ ...(prior.data() ?? {}), concurrentMutation: true });
+    await ref.set({
+      ...(prior.data() ?? {}),
+      concurrentMutation: true,
+      ...(target.startsWith('entitlements/') ? { holderTeam: 'ORL' } : {}),
+    });
     const changed = await conditionalStateDigest(worldId);
     expect((await applyMixedSwap(page)).success).toBe(false);
     expect(await conditionalStateDigest(worldId)).toBe(changed);

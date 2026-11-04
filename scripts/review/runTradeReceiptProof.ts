@@ -176,6 +176,7 @@ export const SWAP_LIFECYCLE_SCREENSHOTS = ['exercise', 'waive']
   .map((key) => ({ key, filename: `${key}-1280x720.png` }));
 
 export const MIXED_SWAP_SCREENSHOTS = [
+  { key: 'invalid-proposal', filename: 'invalid-proposal-1280x720.png' },
   ...SWAP_LIFECYCLE_SCREENSHOTS,
   ...['exercise', 'waive'].flatMap((choice) =>
     ['committed', 'resolved', 'season'].flatMap((stage) =>

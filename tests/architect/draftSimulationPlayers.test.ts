@@ -92,18 +92,17 @@ function fixture() {
   };
 }
 describe('bounded ordinary player consideration', () => {
-  it('permits the existing Room path only for admitted native selections and keeps exact salary authority', () => {
+  it('permits the existing Room path only for admitted native selections or ordered swap rights and keeps exact salary authority', () => {
     const f = fixture();
     for (const slot of f.args.payload.teams)
       slot.salaryMatchingElection.path = 'ROOM';
     expect(
       simulationPlayerMovements(f.args, 'native-selections', f.state)
     ).toHaveLength(1);
-    for (const branch of [
-      'unconditional',
-      'protection-programs',
-      'ordered-swap-rights',
-    ])
+    expect(
+      simulationPlayerMovements(f.args, 'ordered-swap-rights', f.state)
+    ).toHaveLength(1);
+    for (const branch of ['unconditional', 'protection-programs'])
       expect(() => simulationPlayerMovements(f.args, branch, f.state)).toThrow(
         /matching path/
       );
@@ -200,9 +199,13 @@ describe('bounded ordinary player consideration', () => {
       f.args.payload.teams[1].salaryMatchingElection.path = 'ROOM';
     if (mode === 'context') f.args.payload.tradeCtx.source = 'caller';
     for (const branch of ['unconditional', 'ordered-swap-rights'])
-      expect(() =>
-        simulationPlayerMovements(f.args, branch, f.state)
-      ).toThrow();
+      if (
+        !['wrong-path', 'recipient-path'].includes(mode) ||
+        branch !== 'ordered-swap-rights'
+      )
+        expect(() =>
+          simulationPlayerMovements(f.args, branch, f.state)
+        ).toThrow();
   });
   it.each(['conditional-2027', 'swap-program', 'apron-lifecycle'])(
     'preserves the %s player restriction',

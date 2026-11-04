@@ -63,7 +63,7 @@ export async function prepareMixedSwap(
               cashToTeamId: null,
               salaryMatchingElection: {
                 version: 1,
-                path: 'STANDARD_TPE',
+                path: 'ROOM',
                 postAssignmentApronTeamSalary:
                   teams[i].totals.apronTeamSalary -
                   ordinary[i].salary +
@@ -85,9 +85,7 @@ export async function prepareMixedSwap(
         args.payload.teams[1].receives = [{ id: 'unlisted' }];
       if (mode === 'wrong-salary')
         args.payload.teams[0].salaryMatchingElection
-          .tradedPlayerPreTradeSalaries[
-          picks.length ? ordinary[0].id : 'missing'
-        ]++;
+          .tradedPlayerPreTradeSalaries[ordinary[0].id]++;
       let result;
       try {
         result = await previewRetainedDraftSimulation(args);
