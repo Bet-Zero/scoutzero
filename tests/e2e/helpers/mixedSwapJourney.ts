@@ -1,18 +1,20 @@
 import { type Page } from '@playwright/test';
 import { getReviewAdminDb } from './architectReviewWorld';
-import { SWAP_PLAYERS } from '../fixtures/mixedSwapWorld';
+import { SWAP_PLAYERS, mixedSwapRoutes } from '../fixtures/mixedSwapWorld';
 
 export async function prepareMixedSwap(
   page: Page,
   uid: string,
   worldId: string,
   ids: string[],
-  mode = ''
+  mode = '',
+  threeTeam = false
 ) {
   const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
+  const routes = mixedSwapRoutes(threeTeam);
   const teams = await Promise.all(
-    ['WAS', 'MIA'].map(
-      async (t) => (await root.collection('teams').doc(t).get()).data()!
+    routes.map(
+      async (r) => (await root.collection('teams').doc(r.from).get()).data()!
     )
   );
   const picks = await Promise.all(
@@ -22,7 +24,7 @@ export async function prepareMixedSwap(
     }))
   );
   return page.evaluate(
-    async ({ uid, worldId, picks, teams, mode, ordinary }) => {
+    async ({ uid, worldId, picks, teams, mode, ordinary, routes }) => {
       const termsPath =
         '/src/features/architect/utils/entitlements/entitlementTerms.ts';
       const previewPath =
@@ -43,7 +45,7 @@ export async function prepareMixedSwap(
             yearKey: 2026,
             asOfDate: '2026-06-05',
           },
-          teams: ['WAS', 'MIA'].map((teamCode, i) => {
+          teams: routes.map(({ from: teamCode, to }, i) => {
             const p = ordinary[i];
             const outgoing = picks
               .filter((p: any) => p.holderTeam === teamCode)
@@ -55,7 +57,7 @@ export async function prepareMixedSwap(
               }));
             return {
               teamCode,
-              sends: [{ id: p.id, playerId: p.id, tradeTo: i ? 'WAS' : 'MIA' }],
+              sends: [{ id: p.id, playerId: p.id, tradeTo: to }],
               picksOut: [],
               outgoingEntitlements: outgoing,
               entitlementsOut: outgoing,
@@ -67,7 +69,7 @@ export async function prepareMixedSwap(
                 postAssignmentApronTeamSalary:
                   teams[i].totals.apronTeamSalary -
                   ordinary[i].salary +
-                  ordinary[1 - i].salary,
+                  ordinary[routes.findIndex((r) => r.to === teamCode)].salary,
                 tradedPlayerPreTradeSalaries: { [p.id]: p.matching },
               },
             };
@@ -86,6 +88,24 @@ export async function prepareMixedSwap(
       if (mode === 'wrong-salary')
         args.payload.teams[0].salaryMatchingElection
           .tradedPlayerPreTradeSalaries[ordinary[0].id]++;
+      const third = args.payload.teams[2];
+      if (mode === 'duplicate-team') third.teamCode = 'WAS';
+      if (mode === 'fourth-team')
+        args.payload.teams.push({ ...third, teamCode: 'ORL' });
+      if (mode === 'missing-destination') delete third.sends[0].tradeTo;
+      if (mode === 'conflicting-destination') third.sends[0].toTeamId = 'MIA';
+      if (mode === 'self-destination') third.sends[0].tradeTo = 'PHX';
+      if (mode === 'outside-destination') third.sends[0].tradeTo = 'ORL';
+      if (mode === 'neutral-third') {
+        third.sends = [];
+        third.salaryMatchingElection.tradedPlayerPreTradeSalaries = {};
+        args.payload.teams[1].sends[0].tradeTo = 'WAS';
+      }
+      if (mode === 'incomplete-third') third.salaryMatchingElection = null;
+      if (mode === 'forged-third-contract')
+        third.sends[0].contract = { salariesByYear: [] };
+      if (mode === 'wrong-receiver')
+        args.payload.teams[0].entitlementsOut[0].toTeamId = 'PHX';
       let result;
       try {
         result = await previewRetainedDraftSimulation(args);
@@ -111,7 +131,8 @@ export async function prepareMixedSwap(
       picks,
       teams,
       mode,
-      ordinary: Object.values(SWAP_PLAYERS),
+      ordinary: routes.map((r) => SWAP_PLAYERS[r.from]),
+      routes,
     }
   );
 }

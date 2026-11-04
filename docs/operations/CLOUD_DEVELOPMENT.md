@@ -187,6 +187,13 @@ all four affected teams' reloaded books, holdings and saved views. It uses the
 existing Room path with explicit below-cap software books and unchanged
 release-selected Contracts; no swap terms or production permissions change.
 
+Use `--three-team-swap` for the same lifecycle with a genuine three-team
+Contract cycle (WAS → MIA → PHX → WAS) and the unresolved right still sent to
+its required MIA receiver. The shared proof also checks staged close/reopen,
+third-team financial/roster/Stepien failures, explicit routing and all four
+affected teams after resolution and season advance. The bilateral certificate
+remains available through `--mixed-swap`.
+
 Use `--mixed-conditional` for ordinary players combined with the accepted 2026
 top-10 protection and 2027 unprotected fallback program. The same private
 catalogue and full-baseline variables are required; the 2028 input is

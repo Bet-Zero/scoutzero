@@ -53,6 +53,14 @@ export async function prepareSwapTradeRecord(input: {
     );
   const slots = args.payload.teams!;
   const teamCodes = slots.map((s) => String(s.teamCode));
+  if (
+    ![2, 3].includes(teamCodes.length) ||
+    new Set(teamCodes).size !== teamCodes.length ||
+    (teamCodes.length === 3 && !input.playerMovements?.length)
+  )
+    throw new Error(
+      'Select two or three distinct teams; three-team swap trades require ordinary Contract consideration.'
+    );
   const participants = [
     ...new Set([...teamCodes, ...program.slots.map((s) => s.holderTeam)]),
   ];
@@ -174,6 +182,12 @@ export async function prepareSwapTradeRecord(input: {
     );
   const consideration = [...movements, ...(input.playerMovements ?? [])];
   if (
+    consideration.some(
+      (m) =>
+        !teamCodes.includes(m.fromTeam) ||
+        !teamCodes.includes(m.toTeam) ||
+        m.fromTeam === m.toTeam
+    ) ||
     teamCodes.some(
       (team) =>
         !consideration.some((m) => m.fromTeam === team) ||
@@ -181,7 +195,7 @@ export async function prepareSwapTradeRecord(input: {
     )
   )
     throw new Error(
-      'Both sides require explicit noncash return consideration.'
+      'Every participating team requires explicit noncash return consideration.'
     );
   const proposalSha256 = (
     await sha256Digest(mutationSnapshotText(args.payload))
