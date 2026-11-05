@@ -352,7 +352,9 @@ for (const choice of ['exercise', 'waive'] as const)
         ).toHaveAttribute('data-save-status', 'saved');
         await expect(
           page.getByTestId('cockpit-activity-rail-strip-roster')
-        ).toContainText('15 / 15');
+        ).toContainText(
+          `${participant(team) ? 13 + SWAP_COLLECTIONS[incomingFrom(team)].length : 15} / 15`
+        );
         await expect(
           page.getByTestId('cockpit-activity-rail-strip-two-way')
         ).toContainText('3 / 3');

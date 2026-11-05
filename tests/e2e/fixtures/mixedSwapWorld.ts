@@ -1,4 +1,4 @@
-/** Accepted ordered-swap software world, full 15+3 rosters and unchanged
+/** Accepted ordered-swap software world, legal 14/15+3 rosters and unchanged
  * retained ordinary Contracts. No simulated option decisions or NBA authority.
  */
 import fs from 'node:fs';
@@ -48,16 +48,7 @@ export const SWAP_COLLECTIONS = {
       nextSalary: 3000000,
     },
   ],
-  MIA: [
-    SWAP_PLAYERS.MIA,
-    {
-      id: 'myron_gardner',
-      name: 'Myron Gardner',
-      salary: 395029,
-      matching: 395029,
-      nextSalary: 2150917,
-    },
-  ],
+  MIA: [SWAP_PLAYERS.MIA],
   PHX: [
     SWAP_PLAYERS.PHX,
     {
@@ -138,21 +129,23 @@ export async function seedMixedSwapWorld(
         teamId: team,
       };
     });
-    const players = before.players.map((p: any, i: number) =>
-      i < retained.length
-        ? retained[i]
-        : {
-            ...p,
-            contract: {
-              ...p.contract,
-              salariesByYear: p.contract.salariesByYear.map((s: any) => ({
-                ...s,
-                salary: p.isTwoWay ? 578577 : 8000000,
-                capHit: p.isTwoWay ? 578577 : 8000000,
-              })),
-            },
-          }
-    );
+    // Keep thirteen ordinary depth Contracts plus three Two-Ways. Miami starts
+    // with fourteen standard Contracts and receives two for its one outgoing;
+    // the additional candidates tested lacked the admitted ordinary salary basis.
+    const players = [
+      ...retained,
+      ...before.players.slice(2).map((p: any) => ({
+        ...p,
+        contract: {
+          ...p.contract,
+          salariesByYear: p.contract.salariesByYear.map((s: any) => ({
+            ...s,
+            salary: p.isTwoWay ? 578577 : 8000000,
+            capHit: p.isTwoWay ? 578577 : 8000000,
+          })),
+        },
+      })),
+    ];
     const bare = {
       ...before,
       roster: players.map((p: any) => p.playerId ?? p.id),
