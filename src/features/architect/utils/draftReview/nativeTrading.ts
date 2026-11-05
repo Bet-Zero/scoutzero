@@ -72,11 +72,10 @@ export function nativeSelectionHolders(
     if (
       new Set(players.map((p) => p.playerId)).size !== players.length ||
       new Set(players.map((p) => p.contractId)).size !== players.length ||
-      new Set(players.map((p) => p.fromTeam)).size !== players.length ||
       players.some((p) => p.fromTeam === p.toTeam)
     )
       throw new Error(
-        'Mixed native trades require distinct ordinary Contracts and one player per team.'
+        'Mixed native trades require distinct ordinary Contracts and explicit destinations.'
       );
     const consideration = [...transfer.movements, ...players];
     const parties = new Set(

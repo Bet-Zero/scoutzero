@@ -1,6 +1,6 @@
 import { type Page } from '@playwright/test';
 import { getReviewAdminDb } from './architectReviewWorld';
-import { SWAP_PLAYERS, mixedSwapRoutes } from '../fixtures/mixedSwapWorld';
+import { SWAP_COLLECTIONS, mixedSwapRoutes } from '../fixtures/mixedSwapWorld';
 
 export async function prepareMixedSwap(
   page: Page,
@@ -57,7 +57,7 @@ export async function prepareMixedSwap(
               }));
             return {
               teamCode,
-              sends: [{ id: p.id, playerId: p.id, tradeTo: to }],
+              sends: p.map((q) => ({ id: q.id, playerId: q.id, tradeTo: to })),
               picksOut: [],
               outgoingEntitlements: outgoing,
               entitlementsOut: outgoing,
@@ -68,9 +68,14 @@ export async function prepareMixedSwap(
                 path: 'ROOM',
                 postAssignmentApronTeamSalary:
                   teams[i].totals.apronTeamSalary -
-                  ordinary[i].salary +
-                  ordinary[routes.findIndex((r) => r.to === teamCode)].salary,
-                tradedPlayerPreTradeSalaries: { [p.id]: p.matching },
+                  ordinary[i].reduce((n, p) => n + p.salary, 0) +
+                  ordinary[routes.findIndex((r) => r.to === teamCode)].reduce(
+                    (n, p) => n + p.salary,
+                    0
+                  ),
+                tradedPlayerPreTradeSalaries: Object.fromEntries(
+                  p.map((q) => [q.id, q.matching])
+                ),
               },
             };
           }),
@@ -87,7 +92,7 @@ export async function prepareMixedSwap(
         args.payload.teams[1].receives = [{ id: 'unlisted' }];
       if (mode === 'wrong-salary')
         args.payload.teams[0].salaryMatchingElection
-          .tradedPlayerPreTradeSalaries[ordinary[0].id]++;
+          .tradedPlayerPreTradeSalaries[ordinary[0].at(-1)!.id]++;
       const third = args.payload.teams[2];
       if (mode === 'duplicate-team') third.teamCode = 'WAS';
       if (mode === 'fourth-team')
@@ -99,7 +104,7 @@ export async function prepareMixedSwap(
       if (mode === 'neutral-third') {
         third.sends = [];
         third.salaryMatchingElection.tradedPlayerPreTradeSalaries = {};
-        args.payload.teams[1].sends[0].tradeTo = 'WAS';
+        for (const p of args.payload.teams[1].sends) p.tradeTo = 'WAS';
       }
       if (mode === 'incomplete-third') third.salaryMatchingElection = null;
       if (mode === 'forged-third-contract')
@@ -131,7 +136,7 @@ export async function prepareMixedSwap(
       picks,
       teams,
       mode,
-      ordinary: routes.map((r) => SWAP_PLAYERS[r.from]),
+      ordinary: routes.map((r) => SWAP_COLLECTIONS[r.from]),
       routes,
     }
   );

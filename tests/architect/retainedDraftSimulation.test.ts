@@ -265,83 +265,108 @@ describe('retained simulation proposal integration (stipulated inputs, no NBA fa
       loadConditionalWorld('w', { allowUnconditionalInventory: true })
     ).rejects.toThrow(/protected/);
   });
-  it('accounts for a player and first together, fencing both player document destinations', async () => {
-    const a: any = args();
-    const team = mock.docs.get('architect_worlds/w/teams/CHI');
-    team.roster = ['player'];
-    team.players = [
-      {
-        id: 'player',
-        playerId: 'player',
-        contract: {},
-        governedTradeSalaryBasis: {
-          authorityVersion: 1,
-          status: 'ready',
-          worldId: 'w',
-          teamId: 'CHI',
+  it.each([1, 2, 3, 5])(
+    'accounts for %i players and a first together, fencing every player document destination',
+    async (count) => {
+      const a: any = args();
+      const team = mock.docs.get('architect_worlds/w/teams/CHI');
+      team.roster = ['player'];
+      team.players = [
+        {
+          id: 'player',
           playerId: 'player',
-          contractId: 'contract',
-          asOfDate: '2026-06-05',
-          salaryCapYear: 2026,
-          method: 'postseason-lesser-of',
-          currentSalary: 5_000_000,
-          outgoingSalary: 5_000_000,
-          incomingSalary: 5_000_000,
-          poisonPillIncomingSalary: null,
-          canonLeafIds: ['CBA2-A03.3'],
-          reasons: [],
-          proof: {
-            ledgerId: 'l',
-            ledgerVersion: 1,
-            contractVersion: 1,
-            stateDigest: 'fnv1a64:aaaaaaaaaaaaaaaa',
-            calendarRecordId: 'calendar',
-            calendarRecordVersion: 1,
-            calendarSourceRecordId: 'source',
-            calendarSourceRecordVersion: 1,
+          contract: {},
+          governedTradeSalaryBasis: {
+            authorityVersion: 1,
+            status: 'ready',
+            worldId: 'w',
+            teamId: 'CHI',
+            playerId: 'player',
+            contractId: 'contract',
+            asOfDate: '2026-06-05',
+            salaryCapYear: 2026,
+            method: 'postseason-lesser-of',
+            currentSalary: 5_000_000,
+            outgoingSalary: 5_000_000,
+            incomingSalary: 5_000_000,
+            poisonPillIncomingSalary: null,
+            canonLeafIds: ['CBA2-A03.3'],
+            reasons: [],
+            proof: {
+              ledgerId: 'l',
+              ledgerVersion: 1,
+              contractVersion: 1,
+              stateDigest: 'fnv1a64:aaaaaaaaaaaaaaaa',
+              calendarRecordId: 'calendar',
+              calendarRecordVersion: 1,
+              calendarSourceRecordId: 'source',
+              calendarSourceRecordVersion: 1,
+            },
           },
         },
-      },
-    ];
-    Object.defineProperty(team, LIVE_GOVERNED_TRADE_SALARY_AUTHORITY, {
-      value: true,
-    });
-    a.payload.teams[0].sends = [{ id: 'player', tradeTo: 'TOR' }];
-    a.payload.teams[0].salaryMatchingElection = {
-      version: 1,
-      path: 'STANDARD_TPE',
-      postAssignmentApronTeamSalary: 170000000,
-      tradedPlayerPreTradeSalaries: { player: 5000000 },
-    };
-    a.payload.teams[1].salaryMatchingElection = {
-      version: 1,
-      path: 'STANDARD_TPE',
-      postAssignmentApronTeamSalary: 170000000,
-      tradedPlayerPreTradeSalaries: {},
-    };
-    const result = await prepareRetainedDraftSimulation(a);
-    expect(result.status).toBe('prepared');
-    if (result.status !== 'prepared') throw new Error('expected prepared');
-    const record = requireDraftReviewCapability(result.authority);
-    expect(record.reviews.every((r) => r.eligible)).toBe(true);
-    expect(record.payloadSnapshot).toContain('player');
-    expect(
-      record.documentSnapshots['architect_worlds/w/teams/CHI/players/player']
-    ).toBeNull();
-    expect(
-      record.documentSnapshots['architect_worlds/w/teams/TOR/players/player']
-    ).toBeNull();
-    mock.docs.set('architect_worlds/w/teams/TOR/players/player', {
-      conflicting: 'destination',
-    });
-    const again = await prepareRetainedDraftSimulation(a);
-    if (again.status !== 'prepared') throw new Error('expected prepared');
-    expect(
-      requireDraftReviewCapability(again.authority).documentSnapshots[
-        'architect_worlds/w/teams/TOR/players/player'
-      ]
-    ).toContain('destination');
-  });
+      ];
+      for (let i = 1; i < count; i++) {
+        const p = structuredClone(team.players[0]);
+        p.id = p.playerId = `player-${i}`;
+        p.governedTradeSalaryBasis.playerId = p.id;
+        p.governedTradeSalaryBasis.contractId = `contract-${i}`;
+        team.players.push(p);
+        team.roster.push(p.id);
+      }
+      Object.defineProperty(team, LIVE_GOVERNED_TRADE_SALARY_AUTHORITY, {
+        value: true,
+      });
+      a.payload.teams[0].sends = team.players.map((p: any) => ({
+        id: p.id,
+        tradeTo: 'TOR',
+      }));
+      a.payload.teams[0].salaryMatchingElection = {
+        version: 1,
+        path: count > 1 ? 'AGGREGATED_STANDARD_TPE' : 'STANDARD_TPE',
+        postAssignmentApronTeamSalary: 170000000,
+        tradedPlayerPreTradeSalaries: Object.fromEntries(
+          team.players.map((p: any) => [p.id, 5000000])
+        ),
+      };
+      a.payload.teams[1].salaryMatchingElection = {
+        version: 1,
+        path: 'STANDARD_TPE',
+        postAssignmentApronTeamSalary: 170000000,
+        tradedPlayerPreTradeSalaries: {},
+      };
+      const result = await prepareRetainedDraftSimulation(a);
+      expect(result.status).toBe('prepared');
+      if (result.status !== 'prepared') throw new Error('expected prepared');
+      const record = requireDraftReviewCapability(result.authority);
+      expect(record.reviews.every((r) => r.eligible)).toBe(true);
+      expect(record.payloadSnapshot).toContain('player');
+      expect(
+        record.documentSnapshots['architect_worlds/w/teams/CHI/players/player']
+      ).toBeNull();
+      expect(
+        record.documentSnapshots['architect_worlds/w/teams/TOR/players/player']
+      ).toBeNull();
+      for (const p of team.players) {
+        expect(record.payloadSnapshot).toContain(p.id);
+        for (const code of ['CHI', 'TOR'])
+          expect(
+            record.documentSnapshots[
+              `architect_worlds/w/teams/${code}/players/${p.id}`
+            ]
+          ).toBeNull();
+      }
+      mock.docs.set('architect_worlds/w/teams/TOR/players/player', {
+        conflicting: 'destination',
+      });
+      const again = await prepareRetainedDraftSimulation(a);
+      if (again.status !== 'prepared') throw new Error('expected prepared');
+      expect(
+        requireDraftReviewCapability(again.authority).documentSnapshots[
+          'architect_worlds/w/teams/TOR/players/player'
+        ]
+      ).toContain('destination');
+    }
+  );
   it('uses the existing independent components and an exact current-state capability', async () => {
     const result = await prepareRetainedDraftSimulation(args());
     expect(result.status).toBe('prepared');

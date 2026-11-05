@@ -98,7 +98,7 @@ export async function selectThreeTeamMixed(
       await row.getByRole('button', { name: '•••' }).click();
       await page
         .getByRole('button', {
-          name: `Trade to ${p.to === 'CHI' ? 'Chicago Bulls' : 'Brooklyn Nets'}`,
+          name: `Trade to ${{ CHI: 'Chicago Bulls', BKN: 'Brooklyn Nets', PHI: 'Philadelphia 76ers' }[p.to]}`,
           exact: true,
         })
         .click();
@@ -113,7 +113,7 @@ export async function selectThreeTeamMixed(
           .doc(`architect_worlds/${worldId}/teams/${team}`)
           .get()
       ).data()!;
-      // Both unchanged ordinary Contracts have no nonzero bonus compensation.
+      // The unchanged ordinary Contracts have no nonzero bonus compensation.
       const apronDelta = THREE_TEAM_PLAYERS.reduce(
         (sum, p) =>
           sum + (p.to === team ? 1 : p.from === team ? -1 : 0) * p.salary,
@@ -181,8 +181,8 @@ export async function prepareThreeTeamMixed(
       const { decorateEntitlementForTrade } = await import(termsPath);
       const selected = teams.map((t) =>
         mode === 'selections-only'
-          ? undefined
-          : ordinary.find(
+          ? []
+          : ordinary.filter(
               (p) => p.from === t.teamCode && t.roster.includes(p.id)
             )
       );
@@ -216,13 +216,17 @@ export async function prepareThreeTeamMixed(
               }));
             return {
               teamCode,
-              sends: p ? [{ id: p.id, playerId: p.id, tradeTo: p.to }] : [],
+              sends: p.map((q) => ({
+                id: q.id,
+                playerId: q.id,
+                tradeTo: q.to,
+              })),
               picksOut: [],
               outgoingEntitlements: outgoing,
               entitlementsOut: outgoing,
               cashSent: 0,
               cashToTeamId: null,
-              salaryMatchingElection: selected.some(Boolean)
+              salaryMatchingElection: selected.some((ps) => ps.length)
                 ? {
                     version: 1,
                     path: 'ROOM',
@@ -239,7 +243,9 @@ export async function prepareThreeTeamMixed(
                             q.salary,
                         0
                       ),
-                    tradedPlayerPreTradeSalaries: p ? { [p.id]: p.salary } : {},
+                    tradedPlayerPreTradeSalaries: Object.fromEntries(
+                      p.map((q) => [q.id, q.salary])
+                    ),
                   }
                 : null,
             };
@@ -273,7 +279,8 @@ export async function prepareThreeTeamMixed(
         args.payload.teams[2].sends = [];
         args.payload.teams[2].salaryMatchingElection.tradedPlayerPreTradeSalaries =
           {};
-        args.payload.teams[0].sends[0].tradeTo = 'BKN';
+        for (const t of args.payload.teams)
+          for (const p of t.sends) if (p.tradeTo === 'CHI') p.tradeTo = 'BKN';
       }
       if (mode === 'duplicate-team') args.payload.teams[2].teamCode = 'PHI';
       if (mode === 'duplicate-player')

@@ -224,10 +224,12 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
       expect([...current.roster].sort()).toEqual([...expectedRoster].sort());
       const incoming = THREE_TEAM_PLAYERS.filter((p) => p.to === team);
       expect(current.totals.teamSalary).toBe(
-        112000000 + incoming.reduce((n, p) => n + p.salary, 0)
+        (team === 'PHI' ? 104000000 : 112000000) +
+          incoming.reduce((n, p) => n + p.salary, 0)
       );
       expect(current.totals.apronTeamSalary).toBe(
-        112000000 + incoming.reduce((n, p) => n + p.salary, 0)
+        (team === 'PHI' ? 104000000 : 112000000) +
+          incoming.reduce((n, p) => n + p.salary, 0)
       );
       expect(current.totals.taxSalary).toBe(original.totals.taxSalary);
       const overrides = saved.players.find((v) => v.team === team)!.docs;

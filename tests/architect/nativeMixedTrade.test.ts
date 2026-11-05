@@ -368,3 +368,66 @@ it('Compare preserves mixed consideration through a later selection-only retrade
     'forged';
   expect(deriveDraftAssetDelta(broken, 'world', 'CCC')).toBeNull();
 });
+
+it.each([2, 3, 5])(
+  'replays %i Contracts from one sender through saved schema, History and a later return',
+  (count) => {
+    const { resolved, next, receipt } = fixture();
+    const additional = Array.from({ length: count - 1 }, (_, i) => ({
+      playerId: `extra-${i}`,
+      contractId: `extra-contract-${i}`,
+      fromTeam: 'CCC',
+      toTeam: i % 2 ? 'III' : 'HHH',
+    }));
+    next.playerMovements!.push(...additional);
+    if (additional.some((p) => p.toTeam === 'III'))
+      next.playerMovements!.push({
+        playerId: 'third-return',
+        contractId: 'third-contract',
+        fromTeam: 'III',
+        toTeam: 'CCC',
+      });
+    const complete = { ...receipt, playerMovements: next.playerMovements };
+    const read = DraftReviewMutationReceiptZ.parse(
+      JSON.parse(JSON.stringify(complete))
+    );
+    expect(read.playerMovements).toEqual(next.playerMovements);
+    expect(nativeSelectionHolders(resolved, [next]).CCC).toBe('HHH');
+    const returned = {
+      ...next,
+      operationId: 'return',
+      movements: next.movements.map((m) => ({
+        ...m,
+        fromTeam: m.toTeam,
+        toTeam: m.fromTeam,
+      })),
+      playerMovements: next.playerMovements!.map((m) => ({
+        ...m,
+        fromTeam: m.toTeam,
+        toTeam: m.fromTeam,
+      })),
+    };
+    expect(nativeSelectionHolders(resolved, [next, returned])).toEqual(
+      resolved.result!.allocation
+    );
+    const event = {
+      mutationType: 'executeTrade',
+      operationId: read.operationId,
+      worldId: read.worldId,
+      valid: true,
+      playerIds: read.playerMovements!.map((p) => p.playerId),
+      teamCodes: ['CCC', 'HHH', 'III'],
+      metadata: { draftReviewReceipt: read },
+    };
+    const summary = toTeamHistoryEventDisplay(event).detailSections.find(
+      (s) => s.title === 'Trade Receipt'
+    );
+    expect(
+      summary?.lines?.filter((line) => line.includes(' Contract:'))
+    ).toHaveLength(next.playerMovements!.length);
+    next.playerMovements!.reverse();
+    expect(nativeSelectionHolders(resolved, [next]).CCC).toBe('HHH');
+    next.playerMovements![0].contractId = next.playerMovements![1].contractId;
+    expect(() => nativeSelectionHolders(resolved, [next])).toThrow(/distinct/);
+  }
+);

@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import { createHash } from 'node:crypto';
 import { getReviewAdminDb, readReviewUserId } from './architectReviewWorld';
-import { CONDITIONAL_PLAYERS } from '../fixtures/mixedConditionalWorld';
+import { CONDITIONAL_COLLECTIONS } from '../fixtures/mixedConditionalWorld';
 
 export async function completeConditionalState(worldId: string) {
   const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
@@ -79,23 +79,24 @@ export async function selectMixedConditionalTrade(
   await picker.first().selectOption('hornets');
   for (const [i, team] of (['CHI', 'CHA'] as const).entries()) {
     const card = dialog.getByTestId(`trade-team-card-${team}`);
-    const p = CONDITIONAL_PLAYERS[team];
-    const row = card
-      .getByAltText(new RegExp(`^${p.name}$`, 'i'))
-      .first()
-      .locator('xpath=ancestor::div[.//button[normalize-space()="•••"]][1]');
-    await row.getByRole('button', { name: '•••' }).click();
-    await page
-      .getByRole('button', {
-        name: new RegExp(
-          `^Trade to ${i ? 'Chicago Bulls' : 'Charlotte Hornets'}$`,
-          'i'
-        ),
-      })
-      .click();
+    for (const p of CONDITIONAL_COLLECTIONS[team]) {
+      const row = card
+        .getByAltText(new RegExp(`^${p.name}$`, 'i'))
+        .first()
+        .locator('xpath=ancestor::div[.//button[normalize-space()="•••"]][1]');
+      await row.getByRole('button', { name: '•••' }).click();
+      await page
+        .getByRole('button', {
+          name: new RegExp(
+            `^Trade to ${i ? 'Chicago Bulls' : 'Charlotte Hornets'}$`,
+            'i'
+          ),
+        })
+        .click();
+    }
     await card
       .getByLabel('Elected path', { exact: true })
-      .selectOption('STANDARD_TPE');
+      .selectOption('AGGREGATED_STANDARD_TPE');
     const total = (
       await getReviewAdminDb()
         .doc(`architect_worlds/${worldId}/teams/${team}`)
@@ -104,9 +105,10 @@ export async function selectMixedConditionalTrade(
     await card
       .getByLabel('Post-assignment Apron Team Salary', { exact: true })
       .fill(String(total + 0));
-    await card
-      .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
-      .fill(String(p.matching));
+    for (const p of CONDITIONAL_COLLECTIONS[team])
+      await card
+        .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
+        .fill(String(p.matching));
   }
   const card = dialog.getByTestId('trade-team-card-CHI');
   await card.getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i }).click();
@@ -177,7 +179,11 @@ export async function prepareMixedConditional(
               }));
             return {
               teamCode,
-              sends: [{ id: p.id, playerId: p.id, tradeTo: i ? 'CHI' : 'CHA' }],
+              sends: p.map((q) => ({
+                id: q.id,
+                playerId: q.id,
+                tradeTo: i ? 'CHI' : 'CHA',
+              })),
               picksOut: [],
               outgoingEntitlements: outgoing,
               entitlementsOut: outgoing,
@@ -185,10 +191,12 @@ export async function prepareMixedConditional(
               cashToTeamId: null,
               salaryMatchingElection: {
                 version: 1,
-                path: 'STANDARD_TPE',
+                path: 'AGGREGATED_STANDARD_TPE',
                 postAssignmentApronTeamSalary:
                   teams[i].totals.apronTeamSalary + 0,
-                tradedPlayerPreTradeSalaries: { [p.id]: p.matching },
+                tradedPlayerPreTradeSalaries: Object.fromEntries(
+                  p.map((q) => [q.id, q.matching])
+                ),
               },
             };
           }),
@@ -228,7 +236,7 @@ export async function prepareMixedConditional(
       picks,
       teams,
       mode,
-      ordinary: Object.values(CONDITIONAL_PLAYERS),
+      ordinary: Object.values(CONDITIONAL_COLLECTIONS),
     }
   );
 }
