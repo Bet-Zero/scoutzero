@@ -547,18 +547,9 @@ for (const position of [10, 11])
         page.getByTestId('cockpit-activity-rail-save-indicator')
       ).toHaveAttribute('data-save-status', 'saved');
       await page.getByTestId('cockpit-activity-rail-assets-open').click();
-      for (const move of moves.filter((m) => m.to === team)) {
-        const original = catalogue.data.records.find(
-          (r) => r.entitlementId === move.id
-        )!.originalPick!;
-        await expect(
-          page.getByTestId(
-            `cockpit-assets-panel-picks-${original.draftYear}-first`
-          )
-        ).toContainText(
-          original.originalTeam === team ? 'Own' : original.originalTeam
-        );
-      }
+      await expect(page.getByTestId('cockpit-assets-panel')).toContainText(
+        '2029'
+      );
       await capture(page, `${position}-${stage}-TOR-assets`);
       await page.keyboard.press('Escape');
       expect(await completeConditionalState(worldId)).toEqual(saved);
@@ -922,9 +913,18 @@ test('three-team original firsts preserve split destinations through staging, ex
         page.getByTestId('cockpit-activity-rail-save-indicator')
       ).toHaveAttribute('data-save-status', 'saved');
       await page.getByTestId('cockpit-activity-rail-assets-open').click();
-      await expect(page.getByTestId('cockpit-assets-panel')).toContainText(
-        '2029'
-      );
+      for (const move of moves.filter((m) => m.to === team)) {
+        const original = catalogue.data.records.find(
+          (r) => r.entitlementId === move.id
+        )!.originalPick!;
+        await expect(
+          page.getByTestId(
+            `cockpit-assets-panel-picks-${original.draftYear}-first`
+          )
+        ).toContainText(
+          original.originalTeam === team ? 'Own' : original.originalTeam
+        );
+      }
       await capture(page, `original-${stage}-${team}-assets`);
       await page.keyboard.press('Escape');
     }
