@@ -31,8 +31,11 @@ the implementation PR will retain actual checks, review and landing evidence.
   historical single-recipient representation and whole-package evaluation.
 - **Separate remaining coverage:** 2029 native mixed-player admission requires
   its financial/lifecycle integration and remains outside this routing change.
-  Apron/legacy conditional-mode expansion remains with its mechanism proof;
-  source qualification, cross-program combinations and new player mechanisms
+  Apron-mode expansion remains with its mechanism proof. The historical
+  `conditional-2027` mode retains its fixed branch example and bilateral admission
+  for compatibility; supported general protection/fallback routing now uses the
+  existing `protection-programs` mechanism with two or three participants.
+  Source qualification, cross-program combinations and new player mechanisms
   are not inferred from a more expressive route record.
   The ranked 2029 pool allocates its three selections to two holders. Shared
   routing does not supply a third team with return consideration it does not
@@ -91,7 +94,7 @@ the unchanged 600-second case budget. Trace inspection measured approximately
 before its single UI validation and checks the entire world remains unchanged
 after that actual UI preparation. API failure/no-write checks remain separate.
 No assertion of final state, participant consistency or failure behavior was
-dropped and no overall case or wrapper timeout was increased. The original-first
+dropped and the individual case limits remain unchanged. The original-first
 entry uses the existing 30-second initial-card hydration wait after observing the
 modal's loaded shell with its roster still pending at ten seconds. A subsequent
 environment restart detached job control; the surviving diagnostic was stopped
@@ -103,7 +106,24 @@ snapshot, restore each altered document exactly, and require a specific stale
 state rejection. Each still compares the complete world; no failure case was
 removed. The original-only picker setup now explicitly adds a third card after
 observing that selecting twice in the same picker replaces the second team.
-These diagnostic repairs do not change runtime permission or source admission.
+The complete negative/no-write diagnostic then passed within its unchanged
+900-second case bound. These diagnostic repairs do not change runtime permission
+or source admission. The original-only journey validated, exported correct
+destinations and saved, then caught an assertion comparing raw roster display
+keys against the writer's established normalized projection. It now compares
+player membership, Contract terms and all three financial books, plus exact
+unchanged player overrides and authoritative Contract baseline records. Its
+asset-panel checks follow each actual incoming route's year/original team rather
+than assuming every participant retains a 2029 first. Its complete
+save/reload/retrade journey is rerunning separately.
+
+The certification wrapper's aggregate mixed-conditional budget now matches the
+existing one-hour budget for other complete multi-team suites. This suite grew
+from three to four cases and adds every third-team lifecycle view; their existing
+individual bounds total 45 minutes before harness startup/teardown. The measured
+negative matrix plus two outcome lifecycles already approaches the former
+30-minute wrapper budget before the new original/retrade/export journey. Individual
+case bounds and all state/no-write assertions remain unchanged.
 
 Optional CodeRabbit review was unavailable under its repository eligibility
 policy. Marking the draft ready triggered the separate optional Codex review,

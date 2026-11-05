@@ -547,9 +547,18 @@ for (const position of [10, 11])
         page.getByTestId('cockpit-activity-rail-save-indicator')
       ).toHaveAttribute('data-save-status', 'saved');
       await page.getByTestId('cockpit-activity-rail-assets-open').click();
-      await expect(page.getByTestId('cockpit-assets-panel')).toContainText(
-        '2029'
-      );
+      for (const move of moves.filter((m) => m.to === team)) {
+        const original = catalogue.data.records.find(
+          (r) => r.entitlementId === move.id
+        )!.originalPick!;
+        await expect(
+          page.getByTestId(
+            `cockpit-assets-panel-picks-${original.draftYear}-first`
+          )
+        ).toContainText(
+          original.originalTeam === team ? 'Own' : original.originalTeam
+        );
+      }
       await capture(page, `${position}-${stage}-TOR-assets`);
       await page.keyboard.press('Escape');
       expect(await completeConditionalState(worldId)).toEqual(saved);
@@ -805,6 +814,10 @@ test('three-team original firsts preserve split destinations through staging, ex
       .toBe(returned ? 2 : 1);
     await expect(dialog).toBeHidden();
     const saved = await completeConditionalState(worldId);
+    expect(saved.players).toEqual(before.players);
+    expect(saved.children.find((c) => c.name === 'contractBaselines')).toEqual(
+      before.children.find((c) => c.name === 'contractBaselines')
+    );
     const ents = saved.children.find((c) => c.name === 'entitlements')!.docs;
     expect(ents.map((e) => e.id)).toEqual(originals.map((e) => e.id));
     expect(ents).toHaveLength(278);
@@ -840,8 +853,25 @@ test('three-team original firsts preserve split destinations through staging, ex
         .find((c) => c.name === 'teams')!
         .docs.find((t) => t.id === team)!.data;
       expect(current.roster).toEqual(prior.roster);
-      expect(current.players).toEqual(prior.players);
-      expect(current.totals.teamSalary).toBe(prior.totals.teamSalary);
+      // The shared writer normalizes roster projections and attaches reviewed
+      // salary metadata. Compare actual membership/terms, not raw display keys.
+      const playerTerms = (players: any[]) =>
+        players.map((p) => ({
+          id: p.playerId,
+          teamCode: p.teamCode,
+          isTwoWay: !!p.isTwoWay,
+          contractId: p.contract?.contractId,
+          salaries: p.contract?.salariesByYear,
+          startSeason: p.contract?.startSeason,
+          endSeason: p.contract?.endSeason,
+          freeAgency: p.contract?.freeAgency,
+          birdRights: p.contract?.birdRights,
+          tradeKicker: p.contract?.tradeKicker,
+          noTradeClause: p.contract?.noTradeClause,
+        }));
+      expect(playerTerms(current.players)).toEqual(playerTerms(prior.players));
+      for (const book of ['teamSalary', 'taxSalary', 'apronTeamSalary'])
+        expect(current.totals[book]).toBe(prior.totals[book]);
       expect([...current.entitlementIds].sort()).toEqual(
         ents
           .filter((e) => e.data.holderTeam === team)
