@@ -243,6 +243,25 @@ for (const position of [10, 11])
             : money
         );
         expect(current.hardCapped).toBe(year === 2026);
+        if (year === 2026) {
+          expect(current.hardCapLevel).toBe('firstApron');
+          const aggregation = current.hardCapLedger.find(
+            (entry: any) => entry.restrictionRow === 'H'
+          );
+          expect(aggregation).toMatchObject({
+            salaryMatchingPath: 'AGGREGATED_STANDARD_TPE',
+            apronLevel: 'SECOND_APRON',
+            salaryCapYear: 2026,
+          });
+          expect(
+            aggregation.triggers
+              .flatMap((trigger: any) =>
+                trigger.incomingPlayers.map((p: any) => p.playerId)
+              )
+              .sort()
+          ).toEqual(allIncoming.map((p) => p.id).sort());
+        }
+
         const overrides = saved.players.find((p) => p.team === team)!.docs;
         expect(
           overrides.find((p) => p.id === incoming.id)!.data.contract
@@ -551,6 +570,10 @@ for (const position of [10, 11])
         .update(fs.readFileSync(process.env.SCOUTZERO_DRAFT_REVIEW_RELEASE!))
         .digest('hex'),
       position,
+      playerIds: Object.values(CONDITIONAL_COLLECTIONS)
+        .flat()
+        .map((p) => p.id),
+      matching: 'AGGREGATED_STANDARD_TPE',
       catalogue: 278,
       unresolved: 29,
       bothTeamsReloadedAtEveryStage: true,

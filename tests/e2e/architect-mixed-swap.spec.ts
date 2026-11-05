@@ -785,7 +785,13 @@ for (const choice of ['exercise', 'waive'] as const)
       sourceUnchanged: true,
       allAffectedTeams: affected,
       participants: routes.map((r) => r.from),
-      playerRoutes: routes,
+      playerRoutes: routes.flatMap(({ from, to }) =>
+        SWAP_COLLECTIONS[from].map((p) => ({
+          playerId: p.id,
+          fromTeam: from,
+          toTeam: to,
+        }))
+      ),
       stagedCloseReopen: threeTeam && choice === 'exercise',
       teamPlan: true,
       export: true,

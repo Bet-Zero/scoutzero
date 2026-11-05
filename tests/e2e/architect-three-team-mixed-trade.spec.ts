@@ -392,6 +392,11 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
     worldId,
     trades: 2,
     teams: ['PHI', 'BKN', 'CHI'],
+    playerRoutes: THREE_TEAM_PLAYERS.map((p) => ({
+      playerId: p.id,
+      fromTeam: p.from,
+      toTeam: p.to,
+    })),
     views: 36,
     preservedIdentities: 278,
     unresolved: 29,
