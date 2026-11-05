@@ -53,3 +53,24 @@ Preservation scope is the admitted catalogue's exact original 278 IDs and exact
 Capture membership from the authenticated original input before browser seeding;
 compare the same set after operations and disclose private review limitations.
 No private source bytes or test assumptions become production authority.
+
+## Author checkpoints
+
+Implementation PR: [#614](https://github.com/Bet-Zero/scoutzero/pull/614), under
+[BZE-341](https://linear.app/bzero/issue/BZE-341). Verification is in progress;
+this checkpoint is not independent acceptance or delivery.
+
+The first focused run passes 270 tests across 10 relevant suites. Two additional
+integration regressions cover conditional-resolution history routing for a third
+participant under both outcomes. The browser exposed that missing history index:
+custody and season saving were correct, but the third team's Compare receipt
+chain lacked the intervening conditional result. Resolution events now carry the
+governed participants as history dependencies; actual custody writes remain
+limited to changed holders. Existing historical receipts are not rewritten.
+
+Diagnostic iteration also caught a receiving-team Stepien request incorrectly
+listing other teams' outgoing firsts, and a compact-card selector using a hidden
+player image. The first is repaired with a separate empty-outgoing affected-team
+entry into the same branch engine; ordinary outgoing ownership/transfer requests
+still require actual assets. The second reuses the established compact name
+selector. Failed diagnostics are not certification evidence.

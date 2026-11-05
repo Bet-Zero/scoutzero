@@ -9,6 +9,7 @@ import {
 import { prepareSimulationRecord } from '@/features/architect/utils/draftReview/simulationReview';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
 import { advanceConditionalDraftInWorld } from '@/features/architect/utils/seasonManager.conditionalDraft';
+import { mutationSnapshotDigest } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
 import {
   prepareRetainedDraftSimulation,
   requireDraftReviewCapability,
@@ -49,6 +50,24 @@ vi.mock('@/features/architect/utils/mutationPipeline.read.stateLoader', () => ({
   }),
 }));
 vi.mock('firebase/firestore', () => ({
+  serverTimestamp: () => 'test-server-time',
+  runTransaction: async (_db: unknown, callback: any) => {
+    const writes: (() => void)[] = [];
+    const result = await callback({
+      get: async (ref: any) => ({
+        exists: () => mock.docs.has(ref.path),
+        data: () => structuredClone(mock.docs.get(ref.path)),
+      }),
+      update: (ref: any, value: any) =>
+        writes.push(() =>
+          mock.docs.set(ref.path, { ...mock.docs.get(ref.path), ...value })
+        ),
+      set: (ref: any, value: any) =>
+        writes.push(() => mock.docs.set(ref.path, structuredClone(value))),
+    });
+    writes.forEach((write) => write());
+    return result;
+  },
   doc: (base: any, ...parts: string[]) => ({
     path: [...(base.path ? [base.path] : []), ...parts].join('/'),
   }),
@@ -641,6 +660,50 @@ describe('complete protected-selection proposal review', () => {
       requireDraftReviewCapability(result.authority).assumptions?.programs
     ).toHaveLength(1);
   });
+  it.each([10, 11])(
+    'indexes draft outcome %i for a third participant without changing its holdings',
+    async (position) => {
+      installProgram();
+      const meta = mock.docs.get('architect_worlds/w');
+      meta.draftSimulationTeams = ['CHI', 'TOR', 'SAS'];
+      meta.draftSimulationCalendar = [{ year: 2026, date: '2026-06-30' }];
+      const key = id('CHI', 2026);
+      mock.docs.get(`architect_worlds/w/entitlements/${key}`).holderTeam =
+        'TOR';
+      const chi = mock.docs.get('architect_worlds/w/teams/CHI');
+      chi.entitlementIds = chi.entitlementIds.filter(
+        (id: string) => id !== key
+      );
+      mock.docs.get('architect_worlds/w/teams/TOR').entitlementIds.push(key);
+      const third = structuredClone(
+        mock.docs.get('architect_worlds/w/teams/SAS')
+      );
+      const state = await loadConditionalWorld('w');
+      await advanceConditionalDraftInWorld('w', {
+        operationId: 'draft',
+        expectedRevision: 0,
+        draftYear: 2026,
+        positions: { CHI: position },
+        expectedDraftStateDigest: mutationSnapshotDigest(state.snapshots),
+      });
+      const event = mock.docs.get(
+        'architect_worlds/w/events/conditionalDraft__2026'
+      );
+      expect(event.teamCodes).toEqual(['CHI', 'TOR', 'SAS']);
+      expect(
+        event.metadata.conditionalDraftReceipt.after[0].results[0]
+      ).toEqual({
+        year: 2026,
+        position,
+        outcome: position === 10 ? 'deferred' : 'conveyed',
+      });
+      expect(mock.docs.get('architect_worlds/w/teams/SAS')).toEqual(third);
+      expect(mock.docs.get('architect_worlds/w').lastModifiedTeams).toEqual([
+        'CHI',
+        'TOR',
+      ]);
+    }
+  );
   it('rejects a proposal with one invalid deferral branch despite its valid immediate-conveyance branch', async () => {
     installProgram();
     const proposal = args(2026, 2029);

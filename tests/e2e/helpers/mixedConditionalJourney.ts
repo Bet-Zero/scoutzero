@@ -77,11 +77,17 @@ export async function selectMixedConditionalTrade(
   if (!(await picker.count()))
     await dialog.getByRole('button', { name: /^Add Team$/ }).click();
   await picker.first().selectOption('hornets');
+  const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
+  const routing = (await root.get()).data()!.draftSimulationTeams.length === 3;
+  if (routing) {
+    await dialog.getByRole('button', { name: /^Add Team$/ }).click();
+    await picker.last().selectOption('raptors');
+  }
   for (const [i, team] of (['CHI', 'CHA'] as const).entries()) {
     const card = dialog.getByTestId(`trade-team-card-${team}`);
     for (const p of CONDITIONAL_COLLECTIONS[team]) {
       const row = card
-        .getByAltText(new RegExp(`^${p.name}$`, 'i'))
+        .getByText(new RegExp(`^${p.name}$`, 'i'))
         .first()
         .locator('xpath=ancestor::div[.//button[normalize-space()="•••"]][1]');
       await row.getByRole('button', { name: '•••' }).click();
@@ -128,6 +134,37 @@ export async function selectMixedConditionalTrade(
   await page
     .getByRole('button', { name: /^Trade to Charlotte Hornets$/i })
     .click();
+  if (routing) {
+    const all = (await root.collection('entitlements').get()).docs;
+    for (const [key, from, destination] of [
+      ['CHI_2029_1st', 'CHI', 'Toronto Raptors'],
+      ['TOR_2028_1st', 'TOR', 'Chicago Bulls'],
+    ]) {
+      const id = all.find(
+        (d) =>
+          d.data().underlyingPickId === key &&
+          d.data().kind === 'pick_ownership'
+      )!.id;
+      const card = dialog.getByTestId(`trade-team-card-${from}`);
+      await card
+        .getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i })
+        .click();
+      await card
+        .locator(`[data-entitlement-id="${id}"]`)
+        .getByRole('button', { name: '•••' })
+        .click();
+      await page
+        .getByRole('button', { name: `Trade to ${destination}`, exact: true })
+        .click();
+    }
+    const card = dialog.getByTestId('trade-team-card-TOR');
+    await card
+      .getByLabel('Elected path', { exact: true })
+      .selectOption('STANDARD_TPE');
+    await card
+      .getByLabel('Post-assignment Apron Team Salary', { exact: true })
+      .fill('30000000');
+  }
   for (const p of Object.values(CONDITIONAL_COLLECTIONS).flat())
     await dialog
       .getByLabel(new RegExp(`^${p.name} absorption mode$`, 'i'))
@@ -147,11 +184,28 @@ export async function prepareMixedConditional(
   mode = ''
 ) {
   const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
+  const teamCodes: string[] = (await root.get()).data()!.draftSimulationTeams;
   const teams = await Promise.all(
-    ['CHI', 'CHA'].map(
+    teamCodes.map(
       async (t) => (await root.collection('teams').doc(t).get()).data()!
     )
   );
+  if (teamCodes.length === 3) {
+    const all = (await root.collection('entitlements').get()).docs;
+    ids = [
+      ...new Set([
+        ...ids,
+        ...['CHI_2029_1st', 'TOR_2028_1st'].map(
+          (key) =>
+            all.find(
+              (d) =>
+                d.data().underlyingPickId === key &&
+                d.data().kind === 'pick_ownership'
+            )!.id
+        ),
+      ]),
+    ];
+  }
   const picks = await Promise.all(
     ids.map(async (id) => ({
       id,
@@ -159,7 +213,7 @@ export async function prepareMixedConditional(
     }))
   );
   return page.evaluate(
-    async ({ uid, worldId, picks, teams, mode, ordinary }) => {
+    async ({ uid, worldId, picks, teams, teamCodes, mode, ordinary }) => {
       const termsPath =
         '/src/features/architect/utils/entitlements/entitlementTerms.ts';
       const previewPath =
@@ -180,15 +234,21 @@ export async function prepareMixedConditional(
             yearKey: 2026,
             asOfDate: '2026-06-05',
           },
-          teams: ['CHI', 'CHA'].map((teamCode, i) => {
-            const p = ordinary[i];
+          teams: teamCodes.map((teamCode, i) => {
+            const p = ordinary[i] ?? [];
             const outgoing = picks
               .filter((p: any) => p.holderTeam === teamCode)
               .map((p) => ({
                 ...decorateEntitlementForTrade(p),
                 id: p.id,
                 entitlementId: p.id,
-                toTeamId: i ? 'CHI' : 'CHA',
+                toTeamId:
+                  teamCodes.length === 3 &&
+                  p.underlyingPickId === 'CHI_2029_1st'
+                    ? 'TOR'
+                    : i
+                      ? 'CHI'
+                      : 'CHA',
               }));
             return {
               teamCode,
@@ -204,11 +264,11 @@ export async function prepareMixedConditional(
               cashToTeamId: null,
               salaryMatchingElection: {
                 version: 1,
-                path: 'AGGREGATED_STANDARD_TPE',
+                path: i === 2 ? 'STANDARD_TPE' : 'AGGREGATED_STANDARD_TPE',
                 postAssignmentApronTeamSalary:
                   teams[i].totals.apronTeamSalary +
-                  ordinary[1 - i].reduce((n, p) => n + p.salary, 0) -
-                  ordinary[i].reduce((n, p) => n + p.salary, 0),
+                  (ordinary[1 - i] ?? []).reduce((n, p) => n + p.salary, 0) -
+                  (ordinary[i] ?? []).reduce((n, p) => n + p.salary, 0),
                 tradedPlayerPreTradeSalaries: Object.fromEntries(
                   p.map((q) => [q.id, q.matching])
                 ),
@@ -226,6 +286,12 @@ export async function prepareMixedConditional(
         args.payload.teams[0].sends.at(-1).contract = { salariesByYear: [] };
       if (mode === 'incoming')
         args.payload.teams[1].receives = [{ id: 'unlisted' }];
+      if (mode === 'adverse-fallback') {
+        // Keep TOR's genuine return, but do not supply the 2028 witness that
+        // would legitimately cure CHI's 2027/2028 protection branch.
+        for (const p of args.payload.teams[2].entitlementsOut)
+          p.toTeamId = 'CHA';
+      }
       let result;
       try {
         result = await previewRetainedDraftSimulation(args);
@@ -250,6 +316,7 @@ export async function prepareMixedConditional(
       worldId,
       picks,
       teams,
+      teamCodes,
       mode,
       ordinary: Object.values(CONDITIONAL_COLLECTIONS),
     }
