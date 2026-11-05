@@ -3,8 +3,9 @@
 Implementation: [PR #613](https://github.com/Bet-Zero/scoutzero/pull/613).
 The live PR is the authority for final candidate, certification, CI, independent
 Claude verdict and landing; this record does not pre-claim those gates.
-At this checkpoint the complete swap diagnostic is still running; it must pass
-before final freeze and certification.
+Complete author browser diagnostics passed before final freeze: native resolved
+selection, both conditional outcomes, and all three swap cases (exercise, waiver
+and the full failure/concurrency matrix).
 Base: `1e446835ccf13f484abd287b2fa31808c090a3b0`; its hosted CI passed.
 The current completion plan and unchanged V1 contract govern this assignment.
 
@@ -65,7 +66,9 @@ fixtures correctly failed on unsupported bonus/option/protected-salary inputs;
 the fixtures were corrected to eligible existing Contracts. No source facts or
 eligibility rule were changed to admit them. The conditional Apply wait now uses
 the existing native/swap 120-second bound for complete validation, preserving the
-same enabled-state and result assertions.
+same enabled-state and result assertions. The swap roster display assertion now
+follows each actual incoming collection instead of assuming every exchange leaves
+every team at fifteen standard players. Its complete rerun passed all three cases.
 
 All 278 identities and the exact 29 unresolved mappings remain intact. The
 authenticated catalogue, Contract-source pins, V1 completion contract, production

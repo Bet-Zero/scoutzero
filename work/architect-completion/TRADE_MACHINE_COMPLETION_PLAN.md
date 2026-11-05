@@ -305,9 +305,9 @@ product availability. Preserve all existing source, history and production gates
 
 ## Scope of the original planning delivery (PR #611)
 
-Only planning, routing and Linear coordination are changed. No application code,
-CBA authority, admitted source program, CI/reviewer policy, production setting,
-world data or permission was changed by that planning PR. Its next implementation
+PR #611 changed only planning, routing and Linear coordination. It changed no
+application code, CBA authority, admitted source program, CI/reviewer policy,
+production setting, world data or permission. Its next implementation
 was BZE-340; C1 above records the subsequent implementation. Vercel
 connector deployment inspection returned 403 during planning; no deployment or
 configuration change was attempted, and hosted product behavior is not newly
