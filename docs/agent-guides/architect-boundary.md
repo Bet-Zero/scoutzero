@@ -88,7 +88,7 @@ independent-review requirement, source qualification or owner/production gate.
 
 ## Validation
 
-- Scoped suites per AGENTS.md; note `test:architect` skips `.tsx` —
+- Scoped suites per AGENTS.md; note `test:architect` skips `.tsx`/`.jsx` —
   component-level checks need `test:ui`.
 - Select checks from actual changed behavior and consumers. A presentation-only
   change does not require engine, draft or emulator suites merely because it is
