@@ -407,6 +407,38 @@ function tradeReceipt(
   });
 }
 describe('resolved native selections remain distinct from their claim history', () => {
+  it('does not invent a third holder or admit Contracts for the ranked 2029 pool', () => {
+    const p = resolved();
+    expect([...new Set(Object.values(p.result!.allocation))].sort()).toEqual([
+      'DDD',
+      'EEE',
+    ]);
+    const proposed = transfer();
+    proposed.movements[1].toTeam = 'FFF';
+    proposed.movements.push({
+      ...proposed.movements[0],
+      entitlementId: 'BBB',
+      originalTeam: 'BBB',
+      fromTeam: 'FFF',
+      toTeam: 'DDD',
+    });
+    // All three give/receive, but FFF does not own the selection it promises.
+    expect(() => nativeSelectionHolders(p, [proposed])).toThrow(
+      /current owner/
+    );
+    const mixed = transfer();
+    mixed.playerMovements = [
+      {
+        playerId: 'ordinary',
+        contractId: 'contract',
+        fromTeam: 'FFF',
+        toTeam: 'DDD',
+      },
+    ];
+    expect(() => nativeSelectionHolders(p, [mixed])).toThrow(
+      /admitted 2028 family/
+    );
+  });
   it('replays multiple transfers, including a slot absent from the later trade, without changing the claim', () => {
     const p = resolved(),
       before = structuredClone(p),

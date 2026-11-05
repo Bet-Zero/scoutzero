@@ -101,12 +101,6 @@ for (const position of [10, 11])
       CHI: playerBefore('CHA').contract,
       CHA: playerBefore('CHI').contract,
     };
-    const preview = await prepareMixedConditional(page, uid, worldId, [
-      program.stages[0].entitlementId,
-    ]);
-    receipt(`preview-${position}`, preview);
-    expect(preview).toMatchObject({ status: 'prepared', legal: true });
-    expect(await completeConditionalState(worldId)).toEqual(before);
     await page.evaluate(
       ({ uid, worldId }) => {
         localStorage.setItem(`architect.activeWorldId.${uid}`, worldId);
@@ -118,9 +112,9 @@ for (const position of [10, 11])
     const dialog = await selectMixedConditionalTrade(
       page,
       worldId,
-      program.stages[0].entitlementId
+      program.stages[0].entitlementId,
+      false
     );
-    await capture(page, `${position}-proposal`);
     await dialog
       .getByRole('button', { name: 'Close Trade Machine', exact: true })
       .click();
@@ -130,6 +124,9 @@ for (const position of [10, 11])
     await expect(
       dialog.getByRole('button', { name: /^Apply Trade$/i })
     ).toBeEnabled({ timeout: 120000 });
+    // Verify the actual staged UI preparation is read-only, once, before apply.
+    expect(await completeConditionalState(worldId)).toEqual(before);
+    await capture(page, `${position}-proposal`);
     await dialog.getByRole('button', { name: /^Apply Trade$/i }).click();
     await expect
       .poll(async () => (await root.collection('events').get()).size, {
@@ -721,6 +718,7 @@ test('three-team original firsts preserve split destinations through staging, ex
   );
   for (const returned of [false, true]) {
     const stage = returned ? 'return' : 'first';
+    const beforePreparation = await completeConditionalState(worldId);
     const moves = returned
       ? routes.map((r) => ({ ...r, from: r.to, to: r.from }))
       : routes;
@@ -753,10 +751,6 @@ test('three-team original firsts preserve split destinations through staging, ex
         })
         .click();
     }
-    await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
-    await expect(
-      dialog.getByRole('button', { name: /^Apply Trade$/i })
-    ).toBeEnabled({ timeout: 120000 });
     await dialog
       .getByRole('button', { name: 'Close Trade Machine', exact: true })
       .click();
@@ -767,12 +761,27 @@ test('three-team original firsts preserve split destinations through staging, ex
     await expect(
       dialog.getByRole('button', { name: /^Apply Trade$/i })
     ).toBeEnabled({ timeout: 120000 });
+    expect(await completeConditionalState(worldId)).toEqual(beforePreparation);
     await capture(page, `original-${stage}-proposal`);
     if (!returned) {
       await dialog.getByTestId('trade-summary-button').click();
       await expect(
         page.getByTestId('trade-export-simulation-notice').last()
       ).toContainText('not verified NBA');
+      for (const [team, years] of [
+        ['CHI', [2029]],
+        ['CHA', [2028, 2029]],
+        ['TOR', [2030]],
+      ] as const) {
+        const exported = page
+          .getByRole('heading', { name: names[team], exact: true })
+          .last()
+          .locator('xpath=ancestor::div[contains(@class,"shrink-0")][1]');
+        for (const year of [2028, 2029, 2030])
+          await expect(
+            exported.getByText(`${year} R1`, { exact: true })
+          ).toHaveCount((years as readonly number[]).includes(year) ? 1 : 0);
+      }
       const [download] = await Promise.all([
         page.waitForEvent('download'),
         page.getByRole('button', { name: 'Download', exact: true }).click(),

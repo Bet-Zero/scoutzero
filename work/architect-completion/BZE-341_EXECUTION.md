@@ -32,6 +32,10 @@ the implementation PR will retain actual checks, review and landing evidence.
   Apron/legacy conditional-mode expansion remains with its mechanism proof;
   source qualification, cross-program combinations and new player mechanisms
   are not inferred from a more expressive route record.
+  The ranked 2029 pool allocates its three selections to two holders. Shared
+  routing does not supply a third team with return consideration it does not
+  own; its mixed-player boundary still applies. The newly usable three-party
+  native selection-only exchange is demonstrated with admitted 2028 holdings.
 
 ## Consumers and intended proof
 
@@ -74,3 +78,12 @@ player image. The first is repaired with a separate empty-outgoing affected-team
 entry into the same branch engine; ordinary outgoing ownership/transfer requests
 still require actual assets. The second reuses the established compact name
 selector. Failed diagnostics are not certification evidence.
+
+The expanded fallback diagnostic reached the final lifecycle checks but exceeded
+the unchanged 600-second case budget. Trace inspection measured approximately
+80 seconds in duplicate preparation of the same proposal. The journey now stages
+before its single UI validation and checks the entire world remains unchanged
+after that actual UI preparation. API failure/no-write checks remain separate.
+No assertion of final state, participant consistency or failure behavior was
+dropped and no timeout was increased. A subsequent environment restart interrupted
+the remaining run; it is not counted as passing evidence.

@@ -68,7 +68,8 @@ export async function openConditionalTrade(page: Page) {
 export async function selectMixedConditionalTrade(
   page: Page,
   worldId: string,
-  pickId: string
+  pickId: string,
+  validate = true
 ) {
   const dialog = await openConditionalTrade(page);
   const picker = dialog
@@ -169,10 +170,12 @@ export async function selectMixedConditionalTrade(
     await dialog
       .getByLabel(new RegExp(`^${p.name} absorption mode$`, 'i'))
       .selectOption('MATCH');
-  await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
-  await expect(
-    dialog.getByRole('button', { name: /^Apply Trade$/i })
-  ).toBeEnabled({ timeout: 120000 });
+  if (validate) {
+    await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+    await expect(
+      dialog.getByRole('button', { name: /^Apply Trade$/i })
+    ).toBeEnabled({ timeout: 120000 });
+  }
   return dialog;
 }
 
