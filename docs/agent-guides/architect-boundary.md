@@ -18,6 +18,18 @@ proven work is not reopened without evidence it is stale, incomplete, or
 contradicted. If a UI task turns out to require functional/engine changes,
 split it into a separately flagged issue — never absorb it silently.
 
+## Trade Machine completion approach
+
+Owner direction 2026-11-05: finish shared rule-driven capabilities, not a
+separate implementation for each trade example. Use the active
+[Trade Machine completion plan](../../work/architect-completion/TRADE_MACHINE_COMPLETION_PLAN.md)
+and BZE-243's current outcome/issue. Keep judging a proposal, committing it and
+advancing the world distinct while sharing rule and asset meanings. Preserve
+accepted foundations; repair demonstrated integration limits without a rewrite.
+A tranche's temporary limitation is not a new V1 exclusion. Source qualification,
+the full 278-identity requirement, existing verification and production/owner
+gates remain unchanged. The plan does not replace the V1 completion contract.
+
 ## Trusted surfaces
 
 - **Full Cap Table** is the trusted money/books surface.
