@@ -153,3 +153,9 @@ export type DraftOriginalOwnershipFact = z.infer<
   typeof DraftOriginalOwnershipFactZ
 >;
 export type DraftStepienFact = z.infer<typeof DraftStepienFactZ>;
+
+/** Affected participants/obligors sending no first still need complete branches.
+ * This is not an ownership, transfer or cash-sale request. */
+export const DraftAffectedTeamStepienFactZ = DraftStepienFactZ.extend({
+  outgoing: z.array(DraftOriginalFirstZ).length(0),
+}).strict();

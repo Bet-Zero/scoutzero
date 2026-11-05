@@ -244,3 +244,45 @@ describe('synthetic CBA2-A12.2 direct selection sale component', () => {
     }
   );
 });
+
+describe('complete explicitly routed noncash exchange', () => {
+  function routed() {
+    const f = fixture();
+    f.request.outgoing.push(syntheticOriginal(2030));
+    f.fact.outgoing.push(syntheticOriginal(2030));
+    delete f.fact.recipientTeam;
+    f.fact.outgoingDestinations = f.fact.outgoing.map((p, i) => ({
+      pickId: p.id,
+      toTeam: i ? 'TOR' : 'MIA',
+    }));
+    f.fact.consideration = [
+      { id: 'incoming', kind: 'established-noncash', amountCents: null },
+    ];
+    return f;
+  }
+  it('keeps the whole outgoing bundle and survives serialization/reordering', () => {
+    const f = routed();
+    expect(evaluate(f.request, [f.fact]).status).toBe('component-permits');
+    f.fact.outgoingDestinations!.reverse();
+    const saved = JSON.parse(JSON.stringify(f));
+    expect(evaluate(saved.request, [saved.fact]).status).toBe(
+      'component-permits'
+    );
+    f.fact.consideration = [{ id: 'cash', kind: 'cash', amountCents: 100 }];
+    expect(evaluate(f.request, [f.fact]).status).toBe('component-prohibits');
+  });
+  it.each(['missing', 'duplicate', 'unlisted', 'self', 'ambiguous', 'empty'])(
+    'rejects %s per-selection routing',
+    (mode) => {
+      const f = routed(),
+        routes = f.fact.outgoingDestinations!;
+      if (mode === 'missing') routes.pop();
+      if (mode === 'duplicate') routes[1].pickId = routes[0].pickId;
+      if (mode === 'unlisted') routes[1].pickId = 'unlisted';
+      if (mode === 'self') routes[1].toTeam = f.request.context.team;
+      if (mode === 'ambiguous') f.fact.recipientTeam = 'MIA';
+      if (mode === 'empty') delete f.fact.outgoingDestinations;
+      expect(evaluate(f.request, [f.fact]).status).toBe('needs-input');
+    }
+  );
+});

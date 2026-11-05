@@ -1,3 +1,9 @@
+import { evaluateAffectedTeamDraftStepien } from '../draftStepien';
+import {
+  simulationParticipantLimit,
+  requireTradeParticipants,
+  requireNoncashTradeRoutes,
+} from './transactionRouting';
 import { requireNativeSelectionTradeAdmission } from './nativeTrading';
 import { simulationPlayerMovements } from './simulationPlayers';
 import { validateNativeTradeInventory } from './nativeTradeInventory';
@@ -178,23 +184,13 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     metadata.draftSwapProgram?.kind === 'ordered-swap-pool-v1' &&
     metadata.draftSwapProgram.year === 2026 &&
     metadata.draftSwapProgram.result === null;
-  const threeTeamScope =
-    ((native?.kind === 'native-overlapping-pool-v1' && native.year === 2028) ||
-      orderedMixed) &&
-    scopedTeams.length === 3;
-  if (
-    new Set(slots.map((s) => s.teamCode)).size !== slots.length ||
-    (threeTeamScope
-      ? (slots.length !== 2 && slots.length !== 3) ||
-        slots.some((s) => !scopedTeams.includes(s.teamCode)) ||
-        new Set(scopedTeams).size !== 3 ||
-        (slots.length === 3 && !slots.some((s) => s.sends?.length))
-      : slots.length !== 2 ||
-        canonicalStringify(slots.map((s) => s.teamCode).sort()) !==
-          canonicalStringify([...scopedTeams].sort()))
-  )
+  requireTradeParticipants(
+    slots.map((s) => String(s.teamCode)),
+    scopedTeams
+  );
+  if (slots.length > simulationParticipantLimit(metadata))
     throw new Error(
-      'Select distinct participating teams covered by this governed test world; three-team trades require admitted 2026 swap-right or 2028 selection mixed consideration.'
+      'This lifecycle requires its existing bilateral admission.'
     );
   for (const slot of slots) {
     if (
@@ -404,21 +400,10 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     }
   }
   if (!movements.length) throw new Error('Select a first-round pick.');
-  if (
-    native &&
-    slots.some(
-      (slot) =>
-        ![...movements, ...playerMovements].some(
-          (m) => m.fromTeam === slot.teamCode
-        ) ||
-        ![...movements, ...playerMovements].some(
-          (m) => m.toTeam === slot.teamCode
-        )
-    )
-  )
-    throw new Error(
-      'Every selected team must give and receive selection or Contract consideration.'
-    );
+  requireNoncashTradeRoutes(
+    slots.map((s) => String(s.teamCode)),
+    [...movements, ...playerMovements]
+  );
   if (native)
     nativeSelectionHolders(native, [
       ...(metadata.draftNativeTransfers ?? []),
@@ -502,17 +487,13 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
   const assumptionSha256 = (
     await sha256Digest(canonicalStringify(assumptions))
   ).slice(7);
-  const reviews = Object.keys(firstsByTeam).map((team) => {
-    const recipients = new Set(
-      movements.filter((m) => m.fromTeam === team).map((m) => m.toTeam)
-    );
-    // The consideration fact describes one recipient for the listed firsts.
-    // Never infer that recipient from the ordering of a three-team proposal.
-    if (recipients.size !== 1)
-      throw new Error(
-        'The listed first-round selections require one explicit recipient per sending team.'
-      );
-    const recipientTeam = [...recipients][0];
+  const reviewTeams = [
+    ...new Set([
+      ...slots.map((s) => String(s.teamCode)),
+      ...programs.map((p) => p.originalTeam),
+    ]),
+  ];
+  const reviews = reviewTeams.map((team) => {
     const context = {
       proposalSha256,
       stateVersion: stateDigest,
@@ -520,7 +501,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
       asOf,
       team,
     };
-    const outgoing = firstsByTeam[team].map(
+    const outgoing = (firstsByTeam[team] ?? []).map(
       (id) => originals.find((r) => r.entitlementId === id)!.originalPick!
     );
     const evidence = {
@@ -612,7 +593,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
               retained,
               metadata.draftSimulationBranches === 'conditional-2027'
             );
-    return assessDraftReviewConsumption({
+    const input = {
       request: { context, outgoing },
       facts: [
         ...outgoing.map((pick) => ({
@@ -685,7 +666,14 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
           id: `test-consideration:${team}`,
           scope: 'first-round-consideration',
           outgoing /* schema below controls actual complete non-cash exchange */,
-          recipientTeam,
+          outgoingDestinations: movements
+            .filter((m) => m.fromTeam === team)
+            .map((m) => ({
+              pickId: originals.find(
+                (r) => r.entitlementId === m.entitlementId
+              )!.originalPick!.id,
+              toTeam: m.toTeam,
+            })),
           onlyListedFirstsOutgoing: !playerMovements.some(
             (m) => m.fromTeam === team
           ),
@@ -743,7 +731,23 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
               regularSeasonEnds: [],
             },
       })),
-    });
+    };
+    if (!outgoing.length) {
+      const stepien = evaluateAffectedTeamDraftStepien(
+        context,
+        input.facts.filter((f) => f.scope === 'stepien-post-trade-branches')
+      );
+      const reasons =
+        stepien.status === 'component-permits'
+          ? []
+          : stepien.reasons.map((r) => `${team}: stepien:${r}`);
+      return {
+        eligible: !reasons.length,
+        reasons,
+        review: { status: 'stepien-reviewed' as const, team, stepien },
+      };
+    }
+    return assessDraftReviewConsumption(input);
   });
   const reasons = reviews.flatMap((r) => r.reasons);
   if (reasons.length) return { status: 'blocked' as const, reasons, reviews };

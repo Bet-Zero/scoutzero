@@ -1216,7 +1216,10 @@ export const TradeEditor = ({
             <p key={i}>
               {r.review.status === 'reviewed'
                 ? r.review.request.context.team
-                : r.review.status === 'swap-reviewed' ? r.review.team : 'Team'}
+                : r.review.status === 'swap-reviewed' ||
+                    r.review.status === 'stepien-reviewed'
+                  ? r.review.team
+                  : 'Team'}
               :{' '}
               {r.eligible
                 ? 'Pick rules permit this proposal'

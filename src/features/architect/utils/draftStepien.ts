@@ -3,6 +3,8 @@ import { canonicalStringify } from './contractSource/deterministicDigest';
 /** CBA2-A12.3 / L09.6: supplied possible branches, never inferred clause meaning. */
 import {
   DraftStepienFactZ,
+  DraftAffectedTeamStepienFactZ,
+  DraftOperationContextZ,
   type DraftStepienFact,
 } from '@/schemas/draftPickOperation';
 import {
@@ -45,16 +47,44 @@ export function evaluateSuppliedDraftStepien(
   requestInput: unknown,
   facts: unknown[]
 ): DraftStepienDecision {
+  return evaluateStepien(
+    parseDraftOperationRequest(requestInput),
+    facts,
+    false
+  );
+}
+
+/** Same branch engine, without fabricating an outgoing right for a receiver. */
+export function evaluateAffectedTeamDraftStepien(
+  contextInput: unknown,
+  facts: unknown[]
+): DraftStepienDecision {
+  const parsed = DraftOperationContextZ.safeParse(contextInput);
+  return evaluateStepien(
+    parsed.success ? { context: parsed.data, outgoing: [] } : null,
+    facts,
+    true
+  );
+}
+
+function evaluateStepien(
+  request: ReturnType<typeof parseDraftOperationRequest>,
+  facts: unknown[],
+  affectedOnly: boolean
+): DraftStepienDecision {
   const leaf = 'CBA2-L09.6';
   const blocked = (reason: string): DraftStepienDecision => ({
     ...draftRuleDecision(leaf, 'needs-input', [reason]),
     pairs: [],
   });
-  const request = parseDraftOperationRequest(requestInput);
   if (!request) return blocked('invalid-or-unsupported-request');
-  const selected = selectDraftOperationFact(facts, DraftStepienFactZ, {
-    scope: 'stepien-post-trade-branches',
-  });
+  const selected = selectDraftOperationFact(
+    facts,
+    affectedOnly ? DraftAffectedTeamStepienFactZ : DraftStepienFactZ,
+    {
+      scope: 'stepien-post-trade-branches',
+    }
+  );
   if (!selected.fact) return blocked(selected.reason);
   const fact = selected.fact;
   const problem = draftFactProblem(fact, request.context);

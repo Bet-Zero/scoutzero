@@ -1,3 +1,4 @@
+import { requireNoncashTradeRoutes } from './transactionRouting';
 import {
   NativeDraftLifecycleZ,
   NativeSelectionTransfersZ,
@@ -81,19 +82,7 @@ export function nativeSelectionHolders(
     const parties = new Set(
       consideration.flatMap((m) => [m.fromTeam, m.toTeam])
     );
-    if (
-      (players.length
-        ? parties.size < 2 || parties.size > 3
-        : parties.size !== 2) ||
-      [...parties].some(
-        (t) =>
-          !consideration.some((m) => m.fromTeam === t) ||
-          !consideration.some((m) => m.toTeam === t)
-      )
-    )
-      throw new Error(
-        'Every participating team needs distinct noncash selection or Contract consideration; mixed trades support two or three teams.'
-      );
+    requireNoncashTradeRoutes([...parties], consideration);
     for (const move of transfer.movements) {
       const slot = program.slots.find(
         (s) => s.entitlementId === move.entitlementId

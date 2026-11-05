@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { evaluateOriginalDraftPickOwnership as own } from '@/features/architect/utils/draftPickOwnership';
-import { evaluateSuppliedDraftStepien as step } from '@/features/architect/utils/draftStepien';
+import {
+  evaluateSuppliedDraftStepien as step,
+  evaluateAffectedTeamDraftStepien as affectedStep,
+} from '@/features/architect/utils/draftStepien';
 import {
   syntheticDraftOperation as fixture,
   syntheticOriginal as pick,
@@ -9,6 +12,51 @@ import {
 const permit = 'component-permits',
   prohibit = 'component-prohibits',
   missing = 'needs-input';
+
+describe('affected-team post-trade Stepien review', () => {
+  it('reviews a receiver with no outgoing first without fabricating a right', () => {
+    const f = fixture();
+    f.stepien.outgoing = [];
+    f.stepien.branches[0].drafts[1].retained = [pick(2028, 'MIA')];
+    expect(affectedStep(f.request.context, [f.stepien]).status).toBe(permit);
+    expect(step({ ...f.request, outgoing: [] }, [f.stepien]).status).toBe(
+      missing
+    );
+    expect(own({ ...f.request, outgoing: [] }, [f.ownership]).status).toBe(
+      missing
+    );
+  });
+  it('checks every possible branch for a nontrading conditional obligor', () => {
+    const f = fixture();
+    f.stepien.outgoing = [];
+    f.stepien.branches.push(structuredClone(f.stepien.branches[0]));
+    f.stepien.branches[1].id = 'adverse';
+    f.stepien.branches[1].drafts[0].retained = [];
+    expect(affectedStep(f.request.context, [f.stepien])).toMatchObject({
+      status: prohibit,
+      pairs: expect.arrayContaining([
+        expect.objectContaining({
+          branchId: 'adverse',
+          years: [2027, 2028],
+          possession: 'empty',
+        }),
+      ]),
+    });
+  });
+  it.each(['stale', 'incomplete', 'unqualified', 'outgoing'])(
+    'retains %s evidence checks',
+    (mode) => {
+      const f = fixture();
+      f.stepien.outgoing = [];
+      if (mode === 'stale') f.stepien.context.stateVersion = 'old';
+      if (mode === 'incomplete') f.stepien.branchesComplete = false;
+      if (mode === 'unqualified')
+        f.stepien.sources[0].qualification = 'unqualified';
+      if (mode === 'outgoing') f.stepien.outgoing = [pick(2028)];
+      expect(affectedStep(f.request.context, [f.stepien]).status).toBe(missing);
+    }
+  );
+});
 
 describe('synthetic original-pick ownership component', () => {
   it('permits a current authenticated owner, without a whole-trade verdict', () => {
