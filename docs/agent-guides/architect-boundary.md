@@ -35,6 +35,22 @@ split it into a separately flagged issue — never absorb it silently.
   action-loop QA as a side effect of another lane.
 - No broadening of action-family semantics when adding entry points.
 
+## Trade Machine completion direction
+
+Owner direction recorded 2026-11-05: complete shared, rules-driven capabilities,
+not a new implementation for every example trade. Follow the
+[system-level completion plan](../../work/architect-completion/TRADE_MACHINE_COMPLETION_PLAN.md)
+for remaining W9/W10 work and BZE-243 for the current authorized assignment.
+Reuse the accepted CBA foundation, trade rules, atomic writer and season manager.
+Keep evaluating a proposal, saving the whole deal and advancing its world distinct
+but consistent; do not build parallel engines or a speculative general framework.
+Known ordinary transaction shapes must not acquire artificial player/routing
+limits solely from an example's size. Actual source, eligibility and NBA-rule
+limits still apply. Classify implementation, proof, factual-evidence and release
+gaps separately. Examples verify mechanisms; they do not define the product's
+complete supported universe. This direction changes no completion scope,
+independent-review requirement, source qualification or owner/production gate.
+
 ## Owner gates
 
 - Draft-pick application data uses ScoutZero's existing Firebase/Firestore
