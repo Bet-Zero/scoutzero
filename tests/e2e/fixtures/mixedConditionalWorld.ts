@@ -30,6 +30,43 @@ export const CONDITIONAL_PLAYERS = {
   },
 } as const;
 
+export const CONDITIONAL_COLLECTIONS = {
+  CHI: [
+    CONDITIONAL_PLAYERS.CHI,
+    {
+      id: 'noa_essengue',
+      name: 'Noa Essengue',
+      salary: 5429520,
+      matching: 5429520,
+      nextSalary: 5701200,
+    },
+    {
+      id: 'patrick_williams',
+      name: 'Patrick Williams',
+      salary: 18000000,
+      matching: 18000000,
+      nextSalary: 18000000,
+    },
+  ],
+  CHA: [
+    CONDITIONAL_PLAYERS.CHA,
+    {
+      id: 'grant_williams',
+      name: 'Grant Williams',
+      salary: 13645500,
+      matching: 13645500,
+      nextSalary: 14265750,
+    },
+    {
+      id: 'kon_knueppel',
+      name: 'Kon Knueppel',
+      salary: 10015680,
+      matching: 10015680,
+      nextSalary: 10516560,
+    },
+  ],
+} as const;
+
 export async function seedMixedConditionalWorld(uid: string, worldId: string) {
   const seeded = await seedConditionalDraftWorld(uid, worldId, 'CHI', 'CHA');
   const release = await verifyContractSourceRelease(
@@ -53,29 +90,31 @@ export async function seedMixedConditionalWorld(uid: string, worldId: string) {
   for (const team of ['CHI', 'CHA'] as const) {
     const ref = root.collection('teams').doc(team);
     const before = (await ref.get()).data()!;
-    const observation = release.observations.filter(
-      (o) => o.teamId === team && o.playerId === CONDITIONAL_PLAYERS[team].id
-    );
-    if (observation.length !== 1)
-      throw new Error('Exactly one retained ordinary Contract is required.');
-    const source = JSON.parse(observation[0].artifactContent);
-    const record = release.records.find(
-      (r) => r.playerId === observation[0].playerId && r.teamId === team
-    );
-    if (!record) throw new Error('Retained Contract identity is required.');
-    const real = {
-      ...source,
-      contract: { ...source.contract, contractId: record.contractId },
-      id: observation[0].playerId,
-      playerId: observation[0].playerId,
-      player_id: observation[0].playerId,
-      name: source.displayName,
-      teamCode: team,
-      teamId: team,
-    };
+    const retained = CONDITIONAL_COLLECTIONS[team].map((ordinary) => {
+      const observation = release.observations.filter(
+        (o) => o.teamId === team && o.playerId === ordinary.id
+      );
+      if (observation.length !== 1)
+        throw new Error('Exactly one retained ordinary Contract is required.');
+      const source = JSON.parse(observation[0].artifactContent);
+      const record = release.records.find(
+        (r) => r.playerId === observation[0].playerId && r.teamId === team
+      );
+      if (!record) throw new Error('Retained Contract identity is required.');
+      return {
+        ...source,
+        contract: { ...source.contract, contractId: record.contractId },
+        id: observation[0].playerId,
+        playerId: observation[0].playerId,
+        player_id: observation[0].playerId,
+        name: source.displayName,
+        teamCode: team,
+        teamId: team,
+      };
+    });
     const players = before.players.map((p: any, i: number) =>
-      i === 0
-        ? real
+      i < retained.length
+        ? retained[i]
         : {
             ...p,
             contract: {
@@ -117,8 +156,11 @@ export async function seedMixedConditionalWorld(uid: string, worldId: string) {
     // Team and Apron Salary remain derived from the actual committed Contracts.
     nextBooks[team] = books(2027);
     nextBooks[team].taxSalary.lineItems[0].amount =
-      154000000 +
-      CONDITIONAL_PLAYERS[team === 'CHI' ? 'CHA' : 'CHI'].nextSalary;
+      132000000 +
+      CONDITIONAL_COLLECTIONS[team === 'CHI' ? 'CHA' : 'CHI'].reduce(
+        (n, p) => n + p.nextSalary,
+        0
+      );
     const ready = { ...bare, salaryBookInputs: books(2026) };
     batch.set(ref, {
       ...ready,

@@ -1,4 +1,4 @@
-/** Accepted ordered-swap software world, full 15+3 rosters and unchanged
+/** Accepted ordered-swap software world, legal 14/15+3 rosters and unchanged
  * retained ordinary Contracts. No simulated option decisions or NBA authority.
  */
 import fs from 'node:fs';
@@ -35,6 +35,30 @@ export const SWAP_PLAYERS = {
     matching: 16875000,
     nextSalary: 18125000,
   },
+} as const;
+
+export const SWAP_COLLECTIONS = {
+  WAS: [
+    SWAP_PLAYERS.WAS,
+    {
+      id: 'tristan_vukcevic',
+      name: 'Tristan Vukcevic',
+      salary: 2857143,
+      matching: 2857143,
+      nextSalary: 3000000,
+    },
+  ],
+  MIA: [SWAP_PLAYERS.MIA],
+  PHX: [
+    SWAP_PLAYERS.PHX,
+    {
+      id: 'rasheer_fleming',
+      name: 'Rasheer Fleming',
+      salary: 1272870,
+      matching: 1272870,
+      nextSalary: 2150917,
+    },
+  ],
 } as const;
 
 export function mixedSwapRoutes(threeTeam = false) {
@@ -78,46 +102,50 @@ export async function seedMixedSwapWorld(
   for (const { from: team } of routes) {
     const ref = root.collection('teams').doc(team);
     const before = (await ref.get()).data()!;
-    const record = release.records.find(
-      (r) =>
-        r.playerId === SWAP_PLAYERS[team].id &&
-        r.teamId === team &&
-        r.sourceContractPath === 'contract'
-    );
-    if (!record) throw new Error('Retained Contract identity is required.');
-    const observation = release.observations.find(
-      (o) => o.observationId === record.sourceObservationId
-    );
-    if (!observation || observation.teamId !== team)
-      throw new Error(
-        'The selected retained Contract observation is required.'
+    const retained = SWAP_COLLECTIONS[team].map((ordinary) => {
+      const record = release.records.find(
+        (r) =>
+          r.playerId === ordinary.id &&
+          r.teamId === team &&
+          r.sourceContractPath === 'contract'
       );
-    const source = JSON.parse(observation.artifactContent);
-    const real = {
-      ...source,
-      contract: { ...source.contract, contractId: record.contractId },
-      id: observation.playerId,
-      playerId: observation.playerId,
-      player_id: observation.playerId,
-      name: source.displayName,
-      teamCode: team,
-      teamId: team,
-    };
-    const players = before.players.map((p: any, i: number) =>
-      i === 0
-        ? real
-        : {
-            ...p,
-            contract: {
-              ...p.contract,
-              salariesByYear: p.contract.salariesByYear.map((s: any) => ({
-                ...s,
-                salary: p.isTwoWay ? 578577 : 8000000,
-                capHit: p.isTwoWay ? 578577 : 8000000,
-              })),
-            },
-          }
-    );
+      if (!record) throw new Error('Retained Contract identity is required.');
+      const observation = release.observations.find(
+        (o) => o.observationId === record.sourceObservationId
+      );
+      if (!observation || observation.teamId !== team)
+        throw new Error(
+          'The selected retained Contract observation is required.'
+        );
+      const source = JSON.parse(observation.artifactContent);
+      return {
+        ...source,
+        contract: { ...source.contract, contractId: record.contractId },
+        id: observation.playerId,
+        playerId: observation.playerId,
+        player_id: observation.playerId,
+        name: source.displayName,
+        teamCode: team,
+        teamId: team,
+      };
+    });
+    // Keep thirteen ordinary depth Contracts plus three Two-Ways. Miami starts
+    // with fourteen standard Contracts and receives two for its one outgoing;
+    // the additional candidates tested lacked the admitted ordinary salary basis.
+    const players = [
+      ...retained,
+      ...before.players.slice(2).map((p: any) => ({
+        ...p,
+        contract: {
+          ...p.contract,
+          salariesByYear: p.contract.salariesByYear.map((s: any) => ({
+            ...s,
+            salary: p.isTwoWay ? 578577 : 8000000,
+            capHit: p.isTwoWay ? 578577 : 8000000,
+          })),
+        },
+      })),
+    ];
     const bare = {
       ...before,
       roster: players.map((p: any) => p.playerId ?? p.id),
@@ -147,8 +175,11 @@ export async function seedMixedSwapWorld(
     // Team and Apron Salary remain derived from the actual committed Contracts.
     nextBooks[team] = books(2027);
     nextBooks[team].taxSalary.lineItems[0].amount =
-      112000000 +
-      SWAP_PLAYERS[routes.find((r) => r.to === team)!.from].nextSalary;
+      104000000 +
+      SWAP_COLLECTIONS[routes.find((r) => r.to === team)!.from].reduce(
+        (n, p) => n + p.nextSalary,
+        0
+      );
     const ready = { ...bare, salaryBookInputs: books(2026) };
     batch.set(ref, {
       ...ready,

@@ -18,6 +18,7 @@ export const THREE_TEAM_PLAYERS = [
     id: 'tyrese_maxey',
     name: 'Tyrese Maxey',
     salary: 43582280,
+    matching: 43582280,
     from: 'PHI',
     to: 'CHI',
   },
@@ -25,6 +26,15 @@ export const THREE_TEAM_PLAYERS = [
     id: 'josh_giddey',
     name: 'Josh Giddey',
     salary: 25000000,
+    matching: 25000000,
+    from: 'CHI',
+    to: 'PHI',
+  },
+  {
+    id: 'patrick_williams',
+    name: 'Patrick Williams',
+    salary: 18000000,
+    matching: 18000000,
     from: 'CHI',
     to: 'BKN',
   },
@@ -58,35 +68,38 @@ export async function seedThreeTeamMixedWorld(uid: string, worldId: string) {
   for (const code of ['PHI', 'BKN', 'CHI'] as const) {
     const ref = root.collection('teams').doc(code),
       before = (await ref.get()).data()!;
-    const ordinary =
-      THREE_TEAM_PLAYERS.find((p) => p.from === code) ?? THREE_TEAM_PLAYERS[0];
-    const observed = release.observations.filter(
-      (o) => o.teamId === ordinary.from && o.playerId === ordinary.id
+    const retained = THREE_TEAM_PLAYERS.filter((p) => p.from === code).map(
+      (ordinary) => {
+        const observed = release.observations.filter(
+          (o) => o.teamId === ordinary.from && o.playerId === ordinary.id
+        );
+        const record = release.records.find(
+          (r) => r.teamId === ordinary.from && r.playerId === ordinary.id
+        );
+        if (observed.length !== 1 || !record)
+          throw new Error('Exact retained ordinary Contract required.');
+        const source = JSON.parse(observed[0].artifactContent);
+        return {
+          ...source,
+          contract: { ...source.contract, contractId: record.contractId },
+          id: record.playerId,
+          playerId: record.playerId,
+          player_id: record.playerId,
+          name: source.displayName,
+          teamCode: code,
+          teamId: code,
+        };
+      }
     );
-    const record = release.records.find(
-      (r) => r.teamId === ordinary.from && r.playerId === ordinary.id
-    );
-    if (observed.length !== 1 || !record)
-      throw new Error('Exact retained ordinary Contract required.');
-    const source = JSON.parse(observed[0].artifactContent);
-    const real = {
-      ...source,
-      contract: { ...source.contract, contractId: record.contractId },
-      id: record.playerId,
-      playerId: record.playerId,
-      player_id: record.playerId,
-      name: source.displayName,
-      teamCode: code,
-      teamId: code,
-    };
-    // Reuse 14 software depth Contracts and 3 Two-Ways per team;
-    // PHI and CHI start with their separate unchanged retained Contracts.
-    // Explicit $8m depth salaries provide Room, not a claim about NBA finances.
+    // Reuse the accepted full software rosters, with BKN at fourteen standard
+    // Contracts before receiving one. CHI sends two unchanged retained Contracts
+    // to different teams and finishes with fourteen. Depth salaries are explicit
+    // $8m software assumptions, never NBA salary authority.
     const players = before.players
       .filter((_: any, i: number) => code !== 'BKN' || i !== 0)
       .map((p: any, i: number) =>
-        code !== 'BKN' && i === 0
-          ? real
+        i < retained.length
+          ? retained[i]
           : {
               ...p,
               contract: {

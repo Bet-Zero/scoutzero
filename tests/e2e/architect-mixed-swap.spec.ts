@@ -12,6 +12,7 @@ import { loadSnapshot, coverage } from '../../scripts/dev/cloudData';
 import {
   seedMixedSwapWorld,
   SWAP_PLAYERS,
+  SWAP_COLLECTIONS,
   mixedSwapRoutes,
 } from './fixtures/mixedSwapWorld';
 import {
@@ -154,13 +155,18 @@ for (const choice of ['exercise', 'waive'] as const)
         .find((c) => c.name === 'events')!
         .docs.find((e) => e.data.mutationType === 'executeTrade')!.data;
       expect(trade.metadata.draftReviewReceipt.playerMovements).toEqual(
-        routes.map(({ from, to }) =>
-          expect.objectContaining({
-            playerId: SWAP_PLAYERS[from].id,
-            fromTeam: from,
-            toTeam: to,
-          })
+        routes.flatMap(({ from, to }) =>
+          SWAP_COLLECTIONS[from].map((p) =>
+            expect.objectContaining({
+              playerId: p.id,
+              fromTeam: from,
+              toTeam: to,
+            })
+          )
         )
+      );
+      expect([...trade.playerIds].sort()).toEqual(
+        routes.flatMap((r) => SWAP_COLLECTIONS[r.from].map((p) => p.id)).sort()
       );
       expect(trade.metadata.draftReviewReceipt.movements).toHaveLength(1);
       expect(trade.metadata.draftReviewReceipt.movements[0]).toMatchObject({
@@ -182,6 +188,8 @@ for (const choice of ['exercise', 'waive'] as const)
         );
         let money = 30000000;
         if (participant(team)) {
+          const allIncoming = SWAP_COLLECTIONS[incomingFrom(team)];
+          const allOutgoing = SWAP_COLLECTIONS[participant(team)!.from];
           const outgoing = SWAP_PLAYERS[participant(team)!.from],
             incoming = incomingPlayer(team);
           const original = initialTeams
@@ -192,8 +200,8 @@ for (const choice of ['exercise', 'waive'] as const)
           );
           expect([...current.roster].sort()).toEqual(
             prior.roster
-              .filter((id: string) => id !== outgoing.id)
-              .concat(incoming.id)
+              .filter((id: string) => !allOutgoing.some((p) => p.id === id))
+              .concat(allIncoming.map((p) => p.id))
               .sort()
           );
           expect(player.contract.contractId).toBe(original.contract.contractId);
@@ -228,10 +236,49 @@ for (const choice of ['exercise', 'waive'] as const)
             overrides.find((p) => p.id === incoming.id)!.data.contract
           ).toEqual(player.contract);
           expect(overrides.some((p) => p.id === outgoing.id)).toBe(false);
+          for (const p of allIncoming) {
+            const source = initialTeams
+              .find((t) => t.id === incomingFrom(team))!
+              .data.players.find((q: any) => q.playerId === p.id);
+            const actual = current.players.find(
+              (q: any) => q.playerId === p.id
+            );
+            expect(actual.contract.contractId).toBe(source.contract.contractId);
+            const retainedRows = source.contract.salariesByYear.filter(
+              (r: any) =>
+                year === 2026 || Number(r.season.slice(0, 4)) + 1 >= year
+            );
+            expect(actual.contract.salariesByYear).toEqual(
+              expect.arrayContaining(
+                retainedRows.map((r: any) => expect.objectContaining(r))
+              )
+            );
+            expect(overrides.find((q) => q.id === p.id)!.data.contract).toEqual(
+              actual.contract
+            );
+            if (year === 2027) {
+              const archive = saved.children
+                .find((c) => c.name === 'seasonHistory')!
+                .docs.find((d) => d.data.teamCode === team)!.data;
+              expect(
+                archive.preAdvanceState.players.find(
+                  (q: any) => q.playerId === p.id
+                ).contract.contractId
+              ).toBe(source.contract.contractId);
+            }
+          }
+          for (const p of allOutgoing)
+            expect(overrides.some((q) => q.id === p.id)).toBe(false);
           money =
-            112000000 + (year === 2026 ? incoming.salary : incoming.nextSalary);
+            104000000 +
+            allIncoming.reduce(
+              (n, p) => n + (year === 2026 ? p.salary : p.nextSalary),
+              0
+            );
           expect(current.totals.taxSalary).toBe(
-            year === 2026 ? 112000000 + outgoing.salary : money
+            year === 2026
+              ? 104000000 + allOutgoing.reduce((n, p) => n + p.salary, 0)
+              : money
           );
           expect(current.hardCapped).toBe(year === 2026);
         } else {
@@ -244,6 +291,8 @@ for (const choice of ['exercise', 'waive'] as const)
         await page.reload();
         await openDashboardTab(page, 'Roster');
         if (participant(team)) {
+          const allIncoming = SWAP_COLLECTIONS[incomingFrom(team)];
+          const allOutgoing = SWAP_COLLECTIONS[participant(team)!.from];
           const outgoing = SWAP_PLAYERS[participant(team)!.from],
             incoming = incomingPlayer(team);
           await expect(
@@ -252,6 +301,16 @@ for (const choice of ['exercise', 'waive'] as const)
           await expect(
             page.getByAltText(new RegExp(`^${outgoing.name}$`, 'i'))
           ).toHaveCount(0);
+        }
+        if (participant(team)) {
+          for (const p of SWAP_COLLECTIONS[incomingFrom(team)])
+            await expect(
+              page.getByAltText(new RegExp(`^${p.name}$`, 'i')).first()
+            ).toBeVisible();
+          for (const p of SWAP_COLLECTIONS[participant(team)!.from])
+            await expect(
+              page.getByAltText(new RegExp(`^${p.name}$`, 'i'))
+            ).toHaveCount(0);
         }
         await openDashboardTab(page, 'Full Cap Table');
         for (const [attr, key] of [
@@ -293,7 +352,9 @@ for (const choice of ['exercise', 'waive'] as const)
         ).toHaveAttribute('data-save-status', 'saved');
         await expect(
           page.getByTestId('cockpit-activity-rail-strip-roster')
-        ).toContainText('15 / 15');
+        ).toContainText(
+          `${participant(team) ? 13 + SWAP_COLLECTIONS[incomingFrom(team)].length : 15} / 15`
+        );
         await expect(
           page.getByTestId('cockpit-activity-rail-strip-two-way')
         ).toContainText('3 / 3');
@@ -305,9 +366,9 @@ for (const choice of ['exercise', 'waive'] as const)
             .click();
           const detail = page.getByTestId('team-history-detail-modal');
           for (const text of [
-            'Jaden Hardy',
-            'Davion Mitchell',
-            ...(threeTeam ? ['Grayson Allen'] : []),
+            ...routes.flatMap((r) =>
+              SWAP_COLLECTIONS[r.from].map((p) => p.name)
+            ),
             'unresolved swap right',
             'Underlying pool selections remain',
           ])
@@ -322,6 +383,14 @@ for (const choice of ['exercise', 'waive'] as const)
           ).toContainText(
             new RegExp(SWAP_PLAYERS[participant(team)!.from].name, 'i')
           );
+          for (const p of SWAP_COLLECTIONS[incomingFrom(team)])
+            await expect(
+              page.getByTestId('comparison-roster-additions')
+            ).toContainText(new RegExp(p.name, 'i'));
+          for (const p of SWAP_COLLECTIONS[participant(team)!.from])
+            await expect(
+              page.getByTestId('comparison-roster-removals')
+            ).toContainText(new RegExp(p.name, 'i'));
           if (team === 'WAS' || team === 'MIA')
             await expect(
               page.getByText('WAS 2026 first-round swap right', { exact: true })
@@ -372,25 +441,43 @@ for (const choice of ['exercise', 'waive'] as const)
       await card
         .getByRole('button', { name: /^(Players|Plyr)( \(\d+\))?$/i })
         .click();
-      const row = card
-        .getByText(new RegExp(`^${p.name}$`, 'i'))
-        .first()
-        .locator('xpath=ancestor::div[.//button[normalize-space()="•••"]][1]');
-      await row.getByRole('button', { name: '•••' }).click();
-      await page
-        .getByRole('button', { name: `Trade to ${destination}`, exact: true })
-        .click();
+      for (const p of SWAP_COLLECTIONS[team]) {
+        const row = card
+          .getByText(new RegExp(`^${p.name}$`, 'i'))
+          .first()
+          .locator(
+            'xpath=ancestor::div[.//button[normalize-space()="•••"]][1]'
+          );
+        await row.getByRole('button', { name: '•••' }).click();
+        await page
+          .getByRole('button', { name: `Trade to ${destination}`, exact: true })
+          .click();
+      }
       await card
         .getByLabel('Elected path', { exact: true })
-        .selectOption('STANDARD_TPE');
+        .selectOption('AGGREGATED_STANDARD_TPE');
       const incoming = incomingPlayer(team);
       await card
         .getByLabel('Post-assignment Apron Team Salary', { exact: true })
-        .fill(String(112000000 + incoming.salary));
-      await card
-        .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
-        .fill(String(p.matching));
+        .fill(
+          String(
+            104000000 +
+              SWAP_COLLECTIONS[incomingFrom(team)].reduce(
+                (n, p) => n + p.salary,
+                0
+              )
+          )
+        );
+      for (const p of SWAP_COLLECTIONS[team])
+        await card
+          .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
+          .fill(String(p.matching));
     }
+    for (const { from } of routes)
+      for (const p of SWAP_COLLECTIONS[from])
+        await dialog
+          .getByLabel(new RegExp(`^${p.name} absorption mode$`, 'i'))
+          .selectOption('MATCH');
     if (threeTeam && choice === 'exercise') {
       await dialog
         .getByRole('button', { name: 'Close Trade Machine', exact: true })
@@ -436,10 +523,19 @@ for (const choice of ['exercise', 'waive'] as const)
         .selectOption('ROOM');
       await card
         .getByLabel('Post-assignment Apron Team Salary', { exact: true })
-        .fill(String(112000000 + incoming.salary));
-      await card
-        .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
-        .fill(String(p.matching));
+        .fill(
+          String(
+            104000000 +
+              SWAP_COLLECTIONS[incomingFrom(team)].reduce(
+                (n, p) => n + p.salary,
+                0
+              )
+          )
+        );
+      for (const p of SWAP_COLLECTIONS[team])
+        await card
+          .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
+          .fill(String(p.matching));
     }
     await dialog.getByRole('button', { name: /^Validate Trade$/ }).click();
     await expect(
@@ -691,7 +787,13 @@ for (const choice of ['exercise', 'waive'] as const)
       sourceUnchanged: true,
       allAffectedTeams: affected,
       participants: routes.map((r) => r.from),
-      playerRoutes: routes,
+      playerRoutes: routes.flatMap(({ from, to }) =>
+        SWAP_COLLECTIONS[from].map((p) => ({
+          playerId: p.id,
+          fromTeam: from,
+          toTeam: to,
+        }))
+      ),
       stagedCloseReopen: threeTeam && choice === 'exercise',
       teamPlan: true,
       export: true,

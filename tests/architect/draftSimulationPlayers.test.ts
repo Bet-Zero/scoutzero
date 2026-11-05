@@ -147,7 +147,7 @@ describe('bounded ordinary player consideration', () => {
     'year',
     'poison-pill',
     'incoming-override',
-    'aggregation',
+    'duplicate-proposal',
     'cap-override',
     'date-override',
     'season-override',
@@ -183,7 +183,7 @@ describe('bounded ordinary player consideration', () => {
     if (mode === 'poison-pill')
       f.player.governedTradeSalaryBasis.poisonPillIncomingSalary = 10_000_000;
     if (mode === 'incoming-override') f.args.payload.teams[1].receives = [p];
-    if (mode === 'aggregation') slot.sends.push({ ...p });
+    if (mode === 'duplicate-proposal') slot.sends.push({ ...p });
     if (mode === 'cap-override') f.args.payload.capProjections = {};
     if (mode === 'date-override')
       f.args.payload.tradeCtx.tradeDate = '2028-01-01';
@@ -251,5 +251,117 @@ describe.each(['native-selections', 'ordered-swap-rights'])(
         ).toThrow(/destination/);
       }
     );
+  }
+);
+
+// Distinct salaries/Contracts make dropping or substituting a later player observable.
+function collectionFixture(count: number, split = false) {
+  const f = fixture();
+  const slot = f.args.payload.teams[0];
+  if (split)
+    f.args.payload.teams.push({
+      ...structuredClone(f.args.payload.teams[1]),
+      teamCode: 'SAS',
+    });
+  for (let i = 1; i < count; i++) {
+    const id = `p${i}`;
+    const salary = 5_000_000 + i * 100_000;
+    const current = structuredClone(f.player);
+    Object.assign(current, { id, playerId: id });
+    current.contract.salariesByYear[0].salary = salary;
+    Object.assign(current.governedTradeSalaryBasis, {
+      playerId: id,
+      contractId: `c${i}`,
+      currentSalary: salary,
+      outgoingSalary: salary,
+      incomingSalary: salary,
+    });
+    f.team.roster.push(id);
+    f.team.players.push(current);
+    slot.sends.push({
+      id,
+      playerId: id,
+      contract: structuredClone(current.contract),
+      tradeTo: split && i % 2 ? 'SAS' : 'TOR',
+      receivingTeamIndex: split && i % 2 ? 2 : 1,
+    });
+    slot.salaryMatchingElection.tradedPlayerPreTradeSalaries[id] = salary;
+  }
+  slot.salaryMatchingElection.path = 'AGGREGATED_STANDARD_TPE';
+  return f;
+}
+
+describe.each([
+  'unconditional',
+  'protection-programs',
+  'native-selections',
+  'ordered-swap-rights',
+])('shared Contract collection: %s', (branch) => {
+  it.each([2, 3, 5])(
+    'carries every one of %i outgoing Contracts and is order independent',
+    (count) => {
+      const f = collectionFixture(count);
+      const expected = f.team.players.map((p: any) => ({
+        playerId: p.playerId,
+        contractId: p.governedTradeSalaryBasis.contractId,
+        fromTeam: 'CHI',
+        toTeam: 'TOR',
+      }));
+      expect(simulationPlayerMovements(f.args, branch, f.state)).toEqual(
+        expected
+      );
+      f.args.payload.teams[0].sends.reverse();
+      // Index aliases are not a substitute for explicit destinations.
+      for (const p of f.args.payload.teams[0].sends)
+        delete p.receivingTeamIndex;
+      f.args.payload.teams.reverse();
+      expect(simulationPlayerMovements(f.args, branch, f.state)).toEqual(
+        expected.reverse()
+      );
+    }
+  );
+
+  it.each([
+    'salary',
+    'missing-salary',
+    'contract',
+    'duplicate-contract',
+    'duplicate-player',
+    'route',
+    'authority',
+    'poison-pill',
+  ])('rejects %s on a later collection member', (mode) => {
+    const f = collectionFixture(3),
+      slot = f.args.payload.teams[0];
+    const last = slot.sends[2],
+      current = f.team.players[2];
+    if (mode === 'salary')
+      slot.salaryMatchingElection.tradedPlayerPreTradeSalaries.p2++;
+    if (mode === 'missing-salary')
+      delete slot.salaryMatchingElection.tradedPlayerPreTradeSalaries.p2;
+    if (mode === 'contract') last.contract.salariesByYear[0].salary++;
+    if (mode === 'duplicate-contract')
+      current.governedTradeSalaryBasis.contractId = 'c';
+    if (mode === 'duplicate-player') slot.sends[2] = { ...slot.sends[0] };
+    if (mode === 'route') last.tradeTo = 'BOS';
+    if (mode === 'authority')
+      current.governedTradeSalaryBasis.status = 'needs-input';
+    if (mode === 'poison-pill')
+      current.governedTradeSalaryBasis.poisonPillIncomingSalary = 8_000_000;
+    expect(() => simulationPlayerMovements(f.args, branch, f.state)).toThrow();
+  });
+});
+
+it.each(['native-selections', 'ordered-swap-rights'])(
+  'preserves split per-player destinations and Room collections in %s',
+  (branch) => {
+    const f = collectionFixture(5, true);
+    expect(
+      simulationPlayerMovements(f.args, branch, f.state).map((p) => p.toTeam)
+    ).toEqual(['TOR', 'SAS', 'TOR', 'SAS', 'TOR']);
+    f.args.payload.teams.forEach(
+      (s: any) => (s.salaryMatchingElection.path = 'ROOM')
+    );
+    expect(simulationPlayerMovements(f.args, branch, f.state)).toHaveLength(5);
   }
 );

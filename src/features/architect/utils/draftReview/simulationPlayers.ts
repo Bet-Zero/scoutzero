@@ -25,6 +25,7 @@ export function simulationPlayerMovements(
   const hasPlayers = slots.some((s) => s.sends?.length);
   const supportedPath = (path: string) =>
     path === 'STANDARD_TPE' ||
+    path === 'AGGREGATED_STANDARD_TPE' ||
     (['native-selections', 'ordered-swap-rights'].includes(branch) &&
       path === 'ROOM');
   if (
@@ -66,108 +67,109 @@ export function simulationPlayerMovements(
         'native-selections',
         'ordered-swap-rights',
       ].includes(branch) ||
-      slot.sends.length !== 1 ||
       args.payload.tradeCtx?.source !== 'tradeMachine'
     )
       throw new Error(
-        'Mixed trades support one ordinary player per team with original firsts, complete protection programs, admitted unresolved 2026 swap rights or resolved 2028 selections.'
+        'Mixed trades support ordinary player Contracts with original firsts, complete protection programs, admitted unresolved 2026 swap rights or resolved 2028 selections.'
       );
     const team = state.teams?.find((t) => t.teamCode === slot.teamCode)
       ?.team as RecordLike | undefined;
-    const player = slot.sends[0];
-    const aliases = [player.playerId, player.id, player.player_id].filter(
-      (id) => id != null
-    );
-    const id = aliases[0];
-    const stored = (Array.isArray(team?.players) ? team.players : []).filter(
-      (p): p is RecordLike =>
-        !!p &&
-        typeof p === 'object' &&
-        (p.playerId ?? p.id ?? p.player_id) === id
-    );
-    const roster = Array.isArray(team?.roster) ? team.roster : [];
-    if (
-      typeof id !== 'string' ||
-      !id ||
-      aliases.some((alias) => alias !== id) ||
-      movements.some((m) => m.playerId === id) ||
-      stored.length !== 1 ||
-      !roster.includes(id) ||
-      !(team as Record<PropertyKey, unknown>)[
-        LIVE_GOVERNED_TRADE_SALARY_AUTHORITY
-      ]
-    )
-      throw new Error(
-        'Each outgoing player requires unique current roster ownership and live governed Contract authority.'
+    for (const player of slot.sends) {
+      const aliases = [player.playerId, player.id, player.player_id].filter(
+        (id) => id != null
       );
-    const authoritative = stored[0];
-    const routes = [
-      player.tradeTo,
-      player.receivingTeamId,
-      player.toTeamId,
-      player.destTeamId,
-    ].filter((route) => route != null);
-    const toTeam = routes[0];
-    if (
-      typeof toTeam !== 'string' ||
-      toTeam === slot.teamCode ||
-      !slots.some((s) => s.teamCode === toTeam) ||
-      routes.some((route) => route !== toTeam) ||
-      (player.receivingTeamIndex != null &&
-        slots[Number(player.receivingTeamIndex)]?.teamCode !== toTeam)
-    )
-      throw new Error(
-        'Each outgoing player must have one explicit destination among the other participating teams.'
+      const id = aliases[0];
+      const stored = (Array.isArray(team?.players) ? team.players : []).filter(
+        (p): p is RecordLike =>
+          !!p &&
+          typeof p === 'object' &&
+          (p.playerId ?? p.id ?? p.player_id) === id
       );
-    const contract = Reflect.get(player, 'contract') as Parameters<
-      typeof normalizeCurrentStatePlayerContract
-    >[0];
-    if (
-      player.signAndTrade ||
-      player.signAndTradeContract ||
-      isTwoWayTradePlayer(player) ||
-      isTwoWayTradePlayer(authoritative) ||
-      (player.absorptionMode && player.absorptionMode !== 'MATCH') ||
-      player.tpeId ||
-      (contract != null &&
-        mutationSnapshotText(normalizeCurrentStatePlayerContract(contract)) !==
-          mutationSnapshotText(authoritative.contract))
-    )
-      throw new Error(
-        'Mixed trades require unchanged ordinary standard Contracts.'
+      const roster = Array.isArray(team?.roster) ? team.roster : [];
+      if (
+        typeof id !== 'string' ||
+        !id ||
+        aliases.some((alias) => alias !== id) ||
+        movements.some((m) => m.playerId === id) ||
+        stored.length !== 1 ||
+        !roster.includes(id) ||
+        !(team as Record<PropertyKey, unknown>)[
+          LIVE_GOVERNED_TRADE_SALARY_AUTHORITY
+        ]
+      )
+        throw new Error(
+          'Each outgoing player requires unique current roster ownership and live governed Contract authority.'
+        );
+      const authoritative = stored[0];
+      const routes = [
+        player.tradeTo,
+        player.receivingTeamId,
+        player.toTeamId,
+        player.destTeamId,
+      ].filter((route) => route != null);
+      const toTeam = routes[0];
+      if (
+        typeof toTeam !== 'string' ||
+        toTeam === slot.teamCode ||
+        !slots.some((s) => s.teamCode === toTeam) ||
+        routes.some((route) => route !== toTeam) ||
+        (player.receivingTeamIndex != null &&
+          slots[Number(player.receivingTeamIndex)]?.teamCode !== toTeam)
+      )
+        throw new Error(
+          'Each outgoing player must have one explicit destination among the other participating teams.'
+        );
+      const contract = Reflect.get(player, 'contract') as Parameters<
+        typeof normalizeCurrentStatePlayerContract
+      >[0];
+      if (
+        player.signAndTrade ||
+        player.signAndTradeContract ||
+        isTwoWayTradePlayer(player) ||
+        isTwoWayTradePlayer(authoritative) ||
+        (player.absorptionMode && player.absorptionMode !== 'MATCH') ||
+        player.tpeId ||
+        (contract != null &&
+          mutationSnapshotText(
+            normalizeCurrentStatePlayerContract(contract)
+          ) !== mutationSnapshotText(authoritative.contract))
+      )
+        throw new Error(
+          'Mixed trades require unchanged ordinary standard Contracts.'
+        );
+      const parsed = GovernedTradeSalaryBasisZ.safeParse(
+        authoritative.governedTradeSalaryBasis
       );
-    const parsed = GovernedTradeSalaryBasisZ.safeParse(
-      authoritative.governedTradeSalaryBasis
-    );
-    const basis = parsed.success ? parsed.data : null;
-    if (
-      !basis ||
-      basis.status !== 'ready' ||
-      basis.worldId !== args.worldId ||
-      basis.teamId !== slot.teamCode ||
-      basis.playerId !== id ||
-      basis.asOfDate !== args.payload.asOfDate ||
-      basis.salaryCapYear !== args.payload.tradeCtx?.yearKey ||
-      basis.poisonPillIncomingSalary != null
-    )
-      throw new Error(
-        'The outgoing player needs a complete ordinary governed salary basis; unsupported bonuses remain blocked.'
-      );
-    if (
-      !election.success ||
-      !supportedPath(election.data.path) ||
-      Object.keys(election.data.tradedPlayerPreTradeSalaries).length !== 1 ||
-      election.data.tradedPlayerPreTradeSalaries[id] !== basis.outgoingSalary
-    )
-      throw new Error(
-        'Mixed trades require a supported matching path with the exact governed outgoing Salary for each player.'
-      );
-    movements.push({
-      playerId: id,
-      contractId: basis.contractId!,
-      fromTeam: String(slot.teamCode),
-      toTeam,
-    });
+      const basis = parsed.success ? parsed.data : null;
+      if (
+        !basis ||
+        basis.status !== 'ready' ||
+        basis.worldId !== args.worldId ||
+        basis.teamId !== slot.teamCode ||
+        basis.playerId !== id ||
+        basis.asOfDate !== args.payload.asOfDate ||
+        basis.salaryCapYear !== args.payload.tradeCtx?.yearKey ||
+        basis.poisonPillIncomingSalary != null ||
+        movements.some((m) => m.contractId === basis.contractId)
+      )
+        throw new Error(
+          'The outgoing player needs a complete ordinary governed salary basis; unsupported bonuses remain blocked.'
+        );
+      if (
+        !election.success ||
+        !supportedPath(election.data.path) ||
+        election.data.tradedPlayerPreTradeSalaries[id] !== basis.outgoingSalary
+      )
+        throw new Error(
+          'Mixed trades require a supported matching path with the exact governed outgoing Salary for each player.'
+        );
+      movements.push({
+        playerId: id,
+        contractId: basis.contractId!,
+        fromTeam: String(slot.teamCode),
+        toTeam,
+      });
+    }
   }
   return movements;
 }

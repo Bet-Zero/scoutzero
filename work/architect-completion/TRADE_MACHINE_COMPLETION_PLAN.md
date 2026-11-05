@@ -9,7 +9,9 @@ production permissions, or the Architect V1 completion boundary.
 - [BZE-243](https://linear.app/bzero/issue/BZE-243) is the current status and
   sequencing home. Its latest owner direction overrides historical next steps.
 - [BZE-340](https://linear.app/bzero/issue/BZE-340) is the first implementation:
-  shared multi-Contract support across already-admitted mixed trades.
+  shared multi-Contract support across already-admitted mixed trades, implemented
+  in [PR #613](https://github.com/Bet-Zero/scoutzero/pull/613). Its live PR retains
+  the exact candidate, proof, independent review and landing status.
 - The [V1 completion contract](../../docs/agent-guides/architect-v1-completion-contract.md)
   defines what must be finished. This plan does not replace or reduce it.
 - [AGENTS.md](../../AGENTS.md),
@@ -94,7 +96,7 @@ permission to remove it or proof that every combination behind it is NBA-legal.
 
 | ID | Current finding and evidence | Disposition |
 | --- | --- | --- |
-| C1 | `draftReview/simulationPlayers.ts` allows one outgoing Contract and limited matching paths; `tests/trade/tradeSalaryMatchingPaths.test.ts` already covers governed aggregation. `nativeTrading.ts`, `src/schemas/draftNativeTrading.ts` and `draftPickReviewMutation.ts` repeat cardinality assumptions. | Confirmed shared implementation gap. BZE-340 completes collection/aggregation support end to end across current admitted mixed paths. |
+| C1 | BZE-340 / [PR #613](https://github.com/Bet-Zero/scoutzero/pull/613) carries complete ordinary Contract collections through the shared adapter, existing matching/aggregation, explicit routes, atomic saving, receipts and replay. Native/swap records no longer impose a three-player total or one player per sender. Original/protection receipts already retain collections in their existing financial/Contract format. | Implemented across the four currently admitted mixed paths, with several outgoing counts and failure/replay tests. Protected browser journeys cover split destinations, six-player packages and affected lifecycles; the PR records exact-head certification, CI, independent review and landing gates. No normal-product activation, new source/term admission or V1 closure. See [execution evidence](BZE-340_EXECUTION.md). |
 | C2 | `draftReview/simulationReview.ts` admits three participants for resolved 2028 selections and ordered 2026 swaps, but not the original/protection paths. `nativeTrading.ts` restricts mixed players to the 2028 native family. | Existing family/team restrictions. Classify exact source/admission versus reusable implementation limits; group confirmed structural repairs, not one issue per year or team permutation. |
 | C3 | `simulationReview.ts` requires one first-round recipient per sender; native selection-only transfers remain bilateral. | Routing/consideration representation boundary. Trace the existing rule and its evidence before changing it. Do not declare unsupported routing illegal merely because of this format. |
 | C4 | `draftPickReviewMutation.ts` separates native, protection and unresolved-swap programs. | Cross-program composition is not established by testing each alone. Identify actual required combinations and interacting claims from retained rights; never infer compatibility or invent hypothetical pools. |
@@ -111,6 +113,12 @@ evidence-blocked; deliberate owner exclusion; or release/owner gate. Unknown is 
 implemented, legal, illegal, or out of scope.
 
 ## Stage 1: shared multi-Contract support
+
+Implementation is in PR #613. The requirements below remain its acceptance
+boundary; they are not an instruction to restart completed work. C2–C5 are the
+next structural requirements to classify by their shared cause, with C6–C7
+retaining real-data and required-transition dependencies. Do not automatically
+start another transaction variation after BZE-340.
 
 Execute BZE-340 rather than create a competing issue. Its bounded target is the
 currently admitted original-first, protection/fallback, resolved-2028-selection
@@ -295,11 +303,12 @@ owner authorization. Explain the practical next outcome before technical detail.
 Do not equate merged code, simulated NBA behavior, source qualification and normal
 product availability. Preserve all existing source, history and production gates.
 
-## Scope of this planning delivery
+## Scope of the original planning delivery (PR #611)
 
-Only planning, routing and Linear coordination are changed. No application code,
-CBA authority, admitted source program, CI/reviewer policy, production setting,
-world data or permission is changed. The next implementation is BZE-340. Vercel
+PR #611 changed only planning, routing and Linear coordination. It changed no
+application code, CBA authority, admitted source program, CI/reviewer policy,
+production setting, world data or permission. Its next implementation
+was BZE-340; C1 above records the subsequent implementation. Vercel
 connector deployment inspection returned 403 during planning; no deployment or
 configuration change was attempted, and hosted product behavior is not newly
 verified by this update. That access limitation does not become a new setup lane.

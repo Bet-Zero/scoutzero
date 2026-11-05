@@ -99,7 +99,7 @@ export const DraftReviewMutationReceiptZ = z
     releaseId: DraftEvidenceIdZ,
     releaseSha256: z.string().regex(/^[a-f0-9]{64}$/),
     asOfDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    playerMovements: z.array(NativePlayerMovementZ).min(1).max(3).optional(),
+    playerMovements: z.array(NativePlayerMovementZ).min(1).optional(),
     movements: z
       .array(
         z
@@ -198,7 +198,6 @@ export const DraftReviewMutationReceiptZ = z
           !parties.includes(controller.holderTeam) ||
           new Set(players.map((p) => p.playerId)).size !== players.length ||
           new Set(players.map((p) => p.contractId)).size !== players.length ||
-          new Set(players.map((p) => p.fromTeam)).size !== players.length ||
           consideration.some((m) => m.fromTeam === m.toTeam) ||
           parties.some(
             (team) =>

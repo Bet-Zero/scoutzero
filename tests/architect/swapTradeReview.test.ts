@@ -150,7 +150,7 @@ function fixture() {
   };
 }
 describe('proposal-specific ordered option review', () => {
-  async function mixed(threeTeam = false) {
+  async function mixed(threeTeam = false, count = 1) {
     const f = fixture();
     f.args.payload.teams![1].entitlementsOut = [];
     const playerMovements = [
@@ -181,6 +181,13 @@ describe('proposal-specific ordered option review', () => {
         toTeam: 'DDD',
       });
     }
+    for (let i = 1; i < count; i++)
+      playerMovements.push({
+        playerId: `extra-${i}`,
+        contractId: `contract-extra-${i}`,
+        fromTeam: 'DDD',
+        toTeam: threeTeam && i % 2 ? 'BBB' : 'AAA',
+      });
     const r = await prepareSwapTradeRecord({ ...f, playerMovements });
     if (r.status !== 'ready') throw new Error('expected mixed swap');
     const receipt = {
@@ -197,6 +204,50 @@ describe('proposal-specific ordered option review', () => {
     };
     return { f, r, receipt };
   }
+  it.each([2, 3, 5])(
+    'replays %i outgoing Contracts without a sender or record cap',
+    async (count) => {
+      for (const threeTeam of [false, true]) {
+        const { f, r, receipt } = await mixed(threeTeam, count);
+        const saved = DraftReviewMutationReceiptZ.parse(
+          JSON.parse(JSON.stringify(receipt))
+        );
+        expect(saved.playerMovements).toEqual(r.record.playerMovements);
+        expect(
+          saved.playerMovements!.filter((p) => p.fromTeam === 'DDD')
+        ).toHaveLength(count);
+        const event = {
+          mutationType: 'executeTrade',
+          worldId: 'w',
+          operationId: 'op',
+          valid: true,
+          playerIds: saved.playerMovements!.map((p) => p.playerId),
+          teamCodes: threeTeam ? ['DDD', 'AAA', 'BBB'] : ['DDD', 'AAA'],
+          metadata: { draftReviewReceipt: saved },
+        };
+        expect(JSON.stringify(toTeamHistoryEventDisplay(event))).toContain(
+          `extra-${count - 1}`
+        );
+        expect(
+          deriveDraftAssetDelta(
+            [{ mutationType: 'executeTrade', raw: event }],
+            'w',
+            'AAA'
+          )?.additions
+        ).toHaveLength(1);
+        const reordered = await prepareSwapTradeRecord({
+          ...f,
+          playerMovements: [...saved.playerMovements!].reverse(),
+        });
+        expect(reordered.status).toBe('ready');
+        saved.playerMovements!.at(-1)!.contractId =
+          saved.playerMovements![0].contractId;
+        expect(DraftReviewMutationReceiptZ.safeParse(saved).success).toBe(
+          false
+        );
+      }
+    }
+  );
   it('binds a genuine three-team Contract cycle and reviews every affected pool owner', async () => {
     const { f, r, receipt } = await mixed(true);
     expect(r.record.playerMovements).toEqual([
@@ -297,7 +348,7 @@ describe('proposal-specific ordered option review', () => {
     'duplicate-contract',
     'third-party',
     'self',
-    'same-sender',
+    'forged-sender-self-route',
     'future-year',
     'late-date',
     'resolved',
@@ -310,7 +361,8 @@ describe('proposal-specific ordered option review', () => {
       receipt.playerMovements[1].contractId = 'contract-one';
     if (mode === 'third-party') receipt.playerMovements[1].fromTeam = 'BBB';
     if (mode === 'self') receipt.playerMovements[1].toTeam = 'AAA';
-    if (mode === 'same-sender') receipt.playerMovements[1].fromTeam = 'DDD';
+    if (mode === 'forged-sender-self-route')
+      receipt.playerMovements[1].fromTeam = 'DDD';
     if (mode === 'future-year') receipt.assumptions.swapProgram!.year = 2027;
     if (mode === 'late-date') receipt.asOfDate = '2026-07-01';
     if (mode === 'resolved')

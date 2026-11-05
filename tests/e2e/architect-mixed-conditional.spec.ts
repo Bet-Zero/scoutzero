@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import {
   seedMixedConditionalWorld,
   CONDITIONAL_PLAYERS,
+  CONDITIONAL_COLLECTIONS,
 } from './fixtures/mixedConditionalWorld';
 import { conditionalDraft } from './helpers/conditionalDraftJourney';
 import { combineMixedConditionalReceipts } from './helpers/mixedConditionalReceipt';
@@ -131,10 +132,20 @@ for (const position of [10, 11])
       'tre_jones',
       'tre_mann',
       program.stages[0].entitlementId,
-      'STANDARD_TPE',
+      ...Object.values(CONDITIONAL_COLLECTIONS)
+        .flat()
+        .map((p) => p.id),
+      'AGGREGATED_STANDARD_TPE',
       'governed-simulation-only',
     ])
       expect(JSON.stringify(initialEvent)).toContain(id);
+
+    expect([...initialEvent.playerIds].sort()).toEqual(
+      Object.values(CONDITIONAL_COLLECTIONS)
+        .flat()
+        .map((p) => p.id)
+        .sort()
+    );
 
     const committedContracts: Record<string, any> = {};
     async function verifyViews(
@@ -172,12 +183,14 @@ for (const position of [10, 11])
       for (const [i, team] of (['CHI', 'CHA'] as const).entries()) {
         const incoming = CONDITIONAL_PLAYERS[i ? 'CHI' : 'CHA'];
         const outgoing = CONDITIONAL_PLAYERS[team];
+        const allIncoming = CONDITIONAL_COLLECTIONS[i ? 'CHI' : 'CHA'];
+        const allOutgoing = CONDITIONAL_COLLECTIONS[team];
         const current = teams.find((t) => t.id === team)!.data;
         const prior = teamBefore.find((t) => t.id === team)!.data;
         expect([...current.roster].sort()).toEqual(
           prior.roster
-            .filter((id: string) => id !== outgoing.id)
-            .concat(incoming.id)
+            .filter((id: string) => !allOutgoing.some((p) => p.id === id))
+            .concat(allIncoming.map((p) => p.id))
             .sort()
         );
         const player = current.players.find(
@@ -215,20 +228,78 @@ for (const position of [10, 11])
             salariesByYear: committedContracts[team].salariesByYear,
           });
         }
-        // Expected figures are independent arithmetic from the 14 governed depth Contracts + retained incoming Contract.
+        // Independent arithmetic: twelve governed depth Contracts plus every unchanged retained incoming Contract.
         const money =
-          154000000 + (year === 2026 ? incoming.salary : incoming.nextSalary);
+          132000000 +
+          allIncoming.reduce(
+            (n, p) => n + (year === 2026 ? p.salary : p.nextSalary),
+            0
+          );
         expect(current.totals.teamSalary).toBe(money);
         expect(current.totals.apronTeamSalary).toBe(money);
         expect(current.totals.taxSalary).toBe(
-          year === 2026 ? 154000000 + outgoing.salary : money
+          year === 2026
+            ? 132000000 + allOutgoing.reduce((n, p) => n + p.salary, 0)
+            : money
         );
         expect(current.hardCapped).toBe(year === 2026);
+        if (year === 2026) {
+          expect(current.hardCapLevel).toBe('firstApron');
+          const aggregation = current.hardCapLedger.find(
+            (entry: any) => entry.restrictionRow === 'H'
+          );
+          expect(aggregation).toMatchObject({
+            salaryMatchingPath: 'AGGREGATED_STANDARD_TPE',
+            apronLevel: 'SECOND_APRON',
+            salaryCapYear: 2026,
+          });
+          expect(
+            aggregation.triggers
+              .flatMap((trigger: any) =>
+                trigger.incomingPlayers.map((p: any) => p.playerId)
+              )
+              .sort()
+          ).toEqual(allIncoming.map((p) => p.id).sort());
+        }
+
         const overrides = saved.players.find((p) => p.team === team)!.docs;
         expect(
           overrides.find((p) => p.id === incoming.id)!.data.contract
         ).toEqual(player.contract);
         expect(overrides.some((p) => p.id === outgoing.id)).toBe(false);
+        for (const p of allIncoming) {
+          const source = teamBefore
+            .find((t) => t.id === (i ? 'CHI' : 'CHA'))!
+            .data.players.find((q: any) => q.playerId === p.id);
+          const savedPlayer = current.players.find(
+            (q: any) => q.playerId === p.id
+          );
+          expect(savedPlayer.contract.contractId).toBe(
+            source.contract.contractId
+          );
+          expect(savedPlayer.contract.salariesByYear).toEqual(
+            expect.arrayContaining(
+              source.contract.salariesByYear
+                .filter((r: any) => Number(r.season.slice(0, 4)) + 1 >= year)
+                .map((r: any) => expect.objectContaining(r))
+            )
+          );
+          expect(overrides.find((q) => q.id === p.id)!.data.contract).toEqual(
+            savedPlayer.contract
+          );
+          if (year === 2027) {
+            const archive = saved.children
+              .find((c) => c.name === 'seasonHistory')!
+              .docs.find((d) => d.data.teamCode === team)!.data;
+            expect(
+              archive.preAdvanceState.players.find(
+                (q: any) => q.playerId === p.id
+              ).contract.contractId
+            ).toBe(source.contract.contractId);
+          }
+        }
+        for (const p of allOutgoing)
+          expect(overrides.some((q) => q.id === p.id)).toBe(false);
         expect([...current.entitlementIds].sort()).toEqual(
           entitlements
             .filter((e) => e.data.holderTeam === team)
@@ -239,6 +310,14 @@ for (const position of [10, 11])
         await page.goto(`/gm/${team}?season=${year}`);
         await page.reload();
         await openDashboardTab(page, 'Roster');
+        for (const p of allIncoming)
+          await expect(
+            page.getByAltText(new RegExp(`^${p.name}$`, 'i')).first()
+          ).toBeVisible();
+        for (const p of allOutgoing)
+          await expect(
+            page.getByAltText(new RegExp(`^${p.name}$`, 'i'))
+          ).toHaveCount(0);
         await expect(
           page.getByAltText(new RegExp(`^${incoming.name}$`, 'i')).first()
         ).toBeVisible();
@@ -288,6 +367,8 @@ for (const position of [10, 11])
         const detail = page.getByTestId('team-history-detail-modal');
         await expect(detail).toContainText(/Tre Jones/i);
         await expect(detail).toContainText(/Tre Mann/i);
+        for (const p of Object.values(CONDITIONAL_COLLECTIONS).flat())
+          await expect(detail).toContainText(new RegExp(p.name, 'i'));
         await expect(detail).toContainText('2026 first-round pick');
         await expect(detail).toContainText(
           'conditional right (top 10 protected; 2027 unprotected fallback)'
@@ -332,6 +413,14 @@ for (const position of [10, 11])
         await expect(
           page.getByTestId('comparison-roster-removals')
         ).toContainText(new RegExp(outgoing.name, 'i'));
+        for (const p of allIncoming)
+          await expect(
+            page.getByTestId('comparison-roster-additions')
+          ).toContainText(new RegExp(p.name, 'i'));
+        for (const p of allOutgoing)
+          await expect(
+            page.getByTestId('comparison-roster-removals')
+          ).toContainText(new RegExp(p.name, 'i'));
         await expect(
           page.getByText(
             `CHI ${deferred ? 2027 : 2026} first-round pick${stage === 'committed' ? ' — conditional right (top 10 protected; 2027 unprotected fallback)' : deferred && stage !== 'fallback' ? ' — conditional right (unprotected)' : ''}`,
@@ -418,7 +507,7 @@ for (const position of [10, 11])
       .collection('teams')
       .doc('CHA')
       .collection('players')
-      .doc('tre_jones');
+      .doc('noa_essengue');
     const savedPlayer = (await playerRef.get()).data()!;
     await playerRef.set({
       ...savedPlayer,
@@ -481,6 +570,10 @@ for (const position of [10, 11])
         .update(fs.readFileSync(process.env.SCOUTZERO_DRAFT_REVIEW_RELEASE!))
         .digest('hex'),
       position,
+      playerIds: Object.values(CONDITIONAL_COLLECTIONS)
+        .flat()
+        .map((p) => p.id),
+      matching: 'AGGREGATED_STANDARD_TPE',
       catalogue: 278,
       unresolved: 29,
       bothTeamsReloadedAtEveryStage: true,
