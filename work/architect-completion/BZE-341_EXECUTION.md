@@ -11,6 +11,8 @@ the implementation PR will retain actual checks, review and landing evidence.
   sale, A12.3 every possible post-trade Stepien outcome, and A12.4 frozen picks.
   Local accepted-pin lookups passed. Existing salary/aggregation/apron/timing
   engines remain the authority for the complete player package.
+  Authority pin: `6cf8aaf358c158a88e630e8a7336f7e9c3febc17`, artifact SHA-256
+  `23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76`.
 - **Source admission:** exact catalogue, dates, family terms and unresolved
   dependencies remain. An ordered swap receiver must hold its specified return
   selection; underlying pool selections cannot be traded with that option.
@@ -64,8 +66,12 @@ Implementation PR: [#614](https://github.com/Bet-Zero/scoutzero/pull/614), under
 [BZE-341](https://linear.app/bzero/issue/BZE-341). Verification is in progress;
 this checkpoint is not independent acceptance or delivery.
 
-The first focused run passes 270 tests across 10 relevant suites. Two additional
-integration regressions cover conditional-resolution history routing for a third
+Focused checks pass 341 tests across 16 relevant suites: consideration schemas,
+original/conditional whole-deal preparation, native/swap routing and replay,
+finite scope, affected-team Stepien, history and contract continuity. Typecheck
+and generated-schema checks pass; the hosted selected CI is green at checkpoint
+`9ce9776e39b20240829e16c541cca0a7a4ab0a1b`. The final head will require its own CI.
+Two integration regressions cover conditional-resolution history routing for a third
 participant under both outcomes. The browser exposed that missing history index:
 custody and season saving were correct, but the third team's Compare receipt
 chain lacked the intervening conditional result. Resolution events now carry the
@@ -85,5 +91,25 @@ the unchanged 600-second case budget. Trace inspection measured approximately
 before its single UI validation and checks the entire world remains unchanged
 after that actual UI preparation. API failure/no-write checks remain separate.
 No assertion of final state, participant consistency or failure behavior was
-dropped and no timeout was increased. A subsequent environment restart interrupted
-the remaining run; it is not counted as passing evidence.
+dropped and no overall case or wrapper timeout was increased. The original-first
+entry uses the existing 30-second initial-card hydration wait after observing the
+modal's loaded shell with its roster still pending at ten seconds. A subsequent
+environment restart detached job control; the surviving diagnostic was stopped
+and its temporary artifacts discarded. That run is not counted as passing evidence.
+
+The expanded negative diagnostic also reached its late draft-input checks before
+the existing 900-second limit. Stale-state probes now reuse the same prepared
+snapshot, restore each altered document exactly, and require a specific stale
+state rejection. Each still compares the complete world; no failure case was
+removed. The original-only picker setup now explicitly adds a third card after
+observing that selecting twice in the same picker replaces the second team.
+These diagnostic repairs do not change runtime permission or source admission.
+
+Optional CodeRabbit review was unavailable under its repository eligibility
+policy. Marking the draft ready triggered the separate optional Codex review,
+which completed without findings on `9ce9776e`. Automated independent Claude
+review remains required and has not been substituted by those checks.
+
+The preserved original input comparison passes exact 278-ID membership, exact
+29-record unresolved equality and the unchanged complete catalogue hash. Source
+pins, the V1 contract, production settings and access rules have no diff.

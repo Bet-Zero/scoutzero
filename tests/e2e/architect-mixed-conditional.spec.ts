@@ -726,15 +726,23 @@ test('three-team original firsts preserve split destinations through staging, ex
     await page.reload();
     await openDashboardTab(page, 'Trade Machine');
     const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
-    await expect(dialog.getByTestId('trade-team-card-CHI')).toBeVisible();
+    await expect(dialog.getByTestId('trade-team-card-CHI')).toBeVisible({
+      timeout: 30000,
+    });
     const picker = dialog
       .locator('label', { hasText: /^Select Team$/ })
       .locator('xpath=following-sibling::select[1]');
-    for (const slug of ['hornets', 'raptors']) {
-      if (!(await picker.count()))
-        await dialog.getByRole('button', { name: /^Add Team$/ }).click();
-      await picker.first().selectOption(slug);
-    }
+    if (!(await picker.count()))
+      await dialog.getByRole('button', { name: /^Add Team$/ }).click();
+    await picker.first().selectOption('hornets');
+    await expect(dialog.getByTestId('trade-team-card-CHA')).toBeVisible({
+      timeout: 30000,
+    });
+    await dialog.getByRole('button', { name: /^Add Team$/ }).click();
+    await picker.last().selectOption('raptors');
+    await expect(dialog.getByTestId('trade-team-card-TOR')).toBeVisible({
+      timeout: 30000,
+    });
     for (const move of moves) {
       const card = dialog.getByTestId(`trade-team-card-${move.from}`);
       await card
@@ -1009,16 +1017,21 @@ test('mixed conditional operations fail closed with complete world no-write chec
     'teams/CHA/players/tre_jones',
     `entitlements/${ids[0]}`,
   ]) {
-    expect(
-      await prepareMixedConditional(page, uid, worldId, ids)
-    ).toMatchObject({ legal: true });
+    // Each failed apply leaves the same reviewed snapshot unused. Restore it
+    // exactly between probes, and require the stale-state reason so a consumed
+    // permission or duplicate-operation error cannot make later probes vacuous.
+    expect(await conditionalStateDigest(worldId)).toBe(pristine);
     const ref = root
       .collection(targetPath.split('/')[0])
       .doc(targetPath.split('/').slice(1).join('/'));
     const prior = await ref.get();
     await ref.set({ ...(prior.data() ?? {}), changedAfterValidation: true });
     const changed = await conditionalStateDigest(worldId);
-    expect((await applyMixedConditional(page)).success).toBe(false);
+    const staleResult = await applyMixedConditional(page);
+    expect(staleResult.success).toBe(false);
+    expect(JSON.stringify(staleResult)).toMatch(
+      /state.*changed|snapshot|stale/i
+    );
     expect(await conditionalStateDigest(worldId)).toBe(changed);
     if (prior.exists) await ref.set(prior.data()!);
     else await ref.delete();
