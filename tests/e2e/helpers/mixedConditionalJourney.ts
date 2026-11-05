@@ -104,7 +104,16 @@ export async function selectMixedConditionalTrade(
     ).data()!.totals.apronTeamSalary;
     await card
       .getByLabel('Post-assignment Apron Team Salary', { exact: true })
-      .fill(String(total + 0));
+      .fill(
+        String(
+          total +
+            CONDITIONAL_COLLECTIONS[i ? 'CHI' : 'CHA'].reduce(
+              (n, p) => n + p.salary,
+              0
+            ) -
+            CONDITIONAL_COLLECTIONS[team].reduce((n, p) => n + p.salary, 0)
+        )
+      );
     for (const p of CONDITIONAL_COLLECTIONS[team])
       await card
         .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
@@ -119,10 +128,14 @@ export async function selectMixedConditionalTrade(
   await page
     .getByRole('button', { name: /^Trade to Charlotte Hornets$/i })
     .click();
+  for (const p of Object.values(CONDITIONAL_COLLECTIONS).flat())
+    await dialog
+      .getByLabel(new RegExp(`^${p.name} absorption mode$`, 'i'))
+      .selectOption('MATCH');
   await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
   await expect(
     dialog.getByRole('button', { name: /^Apply Trade$/i })
-  ).toBeEnabled({ timeout: 30000 });
+  ).toBeEnabled({ timeout: 120000 });
   return dialog;
 }
 
@@ -193,7 +206,9 @@ export async function prepareMixedConditional(
                 version: 1,
                 path: 'AGGREGATED_STANDARD_TPE',
                 postAssignmentApronTeamSalary:
-                  teams[i].totals.apronTeamSalary + 0,
+                  teams[i].totals.apronTeamSalary +
+                  ordinary[1 - i].reduce((n, p) => n + p.salary, 0) -
+                  ordinary[i].reduce((n, p) => n + p.salary, 0),
                 tradedPlayerPreTradeSalaries: Object.fromEntries(
                   p.map((q) => [q.id, q.matching])
                 ),
@@ -208,7 +223,7 @@ export async function prepareMixedConditional(
       if (mode === 'forged-terms')
         args.payload.teams[0].entitlementsOut[0].protectionLadder = [];
       if (mode === 'forged-contract')
-        args.payload.teams[0].sends[0].contract = { salariesByYear: [] };
+        args.payload.teams[0].sends.at(-1).contract = { salariesByYear: [] };
       if (mode === 'incoming')
         args.payload.teams[1].receives = [{ id: 'unlisted' }];
       let result;

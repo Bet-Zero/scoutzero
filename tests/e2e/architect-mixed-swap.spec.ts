@@ -165,6 +165,9 @@ for (const choice of ['exercise', 'waive'] as const)
           )
         )
       );
+      expect([...trade.playerIds].sort()).toEqual(
+        routes.flatMap((r) => SWAP_COLLECTIONS[r.from].map((p) => p.id)).sort()
+      );
       expect(trade.metadata.draftReviewReceipt.movements).toHaveLength(1);
       expect(trade.metadata.draftReviewReceipt.movements[0]).toMatchObject({
         entitlementId: rightId,
@@ -361,9 +364,9 @@ for (const choice of ['exercise', 'waive'] as const)
             .click();
           const detail = page.getByTestId('team-history-detail-modal');
           for (const text of [
-            'Jaden Hardy',
-            'Davion Mitchell',
-            ...(threeTeam ? ['Grayson Allen'] : []),
+            ...routes.flatMap((r) =>
+              SWAP_COLLECTIONS[r.from].map((p) => p.name)
+            ),
             'unresolved swap right',
             'Underlying pool selections remain',
           ])
@@ -378,6 +381,14 @@ for (const choice of ['exercise', 'waive'] as const)
           ).toContainText(
             new RegExp(SWAP_PLAYERS[participant(team)!.from].name, 'i')
           );
+          for (const p of SWAP_COLLECTIONS[incomingFrom(team)])
+            await expect(
+              page.getByTestId('comparison-roster-additions')
+            ).toContainText(new RegExp(p.name, 'i'));
+          for (const p of SWAP_COLLECTIONS[participant(team)!.from])
+            await expect(
+              page.getByTestId('comparison-roster-removals')
+            ).toContainText(new RegExp(p.name, 'i'));
           if (team === 'WAS' || team === 'MIA')
             await expect(
               page.getByText('WAS 2026 first-round swap right', { exact: true })
@@ -460,6 +471,11 @@ for (const choice of ['exercise', 'waive'] as const)
           .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
           .fill(String(p.matching));
     }
+    for (const { from } of routes)
+      for (const p of SWAP_COLLECTIONS[from])
+        await dialog
+          .getByLabel(new RegExp(`^${p.name} absorption mode$`, 'i'))
+          .selectOption('MATCH');
     if (threeTeam && choice === 'exercise') {
       await dialog
         .getByRole('button', { name: 'Close Trade Machine', exact: true })

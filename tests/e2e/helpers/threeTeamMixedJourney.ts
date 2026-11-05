@@ -103,6 +103,10 @@ export async function selectThreeTeamMixed(
         })
         .click();
     }
+    for (const p of THREE_TEAM_PLAYERS)
+      await dialog
+        .getByLabel(new RegExp(`^${p.name} absorption mode$`, 'i'))
+        .selectOption('MATCH');
     for (const team of ['PHI', 'BKN', 'CHI']) {
       const card = dialog.getByTestId(`trade-team-card-${team}`);
       await card
@@ -125,7 +129,7 @@ export async function selectThreeTeamMixed(
       for (const p of THREE_TEAM_PLAYERS.filter((p) => p.from === team))
         await card
           .getByLabel(new RegExp(`^${p.name} exact pre-trade Salary$`, 'i'))
-          .fill(String(p.salary));
+          .fill(String(p.matching));
     }
   }
   for (const [i, pickId] of pickIds.entries()) {
@@ -244,7 +248,7 @@ export async function prepareThreeTeamMixed(
                         0
                       ),
                     tradedPlayerPreTradeSalaries: Object.fromEntries(
-                      p.map((q) => [q.id, q.salary])
+                      p.map((q) => [q.id, q.matching])
                     ),
                   }
                 : null,
@@ -269,7 +273,7 @@ export async function prepareThreeTeamMixed(
       }
       if (mode === 'third-salary')
         args.payload.teams[2].salaryMatchingElection
-          .tradedPlayerPreTradeSalaries.josh_giddey++;
+          .tradedPlayerPreTradeSalaries.patrick_williams++;
       if (mode === 'no-destination')
         delete args.payload.teams[2].sends[0].tradeTo;
       if (mode === 'self-route') args.payload.teams[2].sends[0].tradeTo = 'CHI';

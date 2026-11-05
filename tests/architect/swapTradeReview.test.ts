@@ -348,7 +348,7 @@ describe('proposal-specific ordered option review', () => {
     'duplicate-contract',
     'third-party',
     'self',
-    'same-sender',
+    'forged-sender-self-route',
     'future-year',
     'late-date',
     'resolved',
@@ -361,7 +361,8 @@ describe('proposal-specific ordered option review', () => {
       receipt.playerMovements[1].contractId = 'contract-one';
     if (mode === 'third-party') receipt.playerMovements[1].fromTeam = 'BBB';
     if (mode === 'self') receipt.playerMovements[1].toTeam = 'AAA';
-    if (mode === 'same-sender') receipt.playerMovements[1].fromTeam = 'DDD';
+    if (mode === 'forged-sender-self-route')
+      receipt.playerMovements[1].fromTeam = 'DDD';
     if (mode === 'future-year') receipt.assumptions.swapProgram!.year = 2027;
     if (mode === 'late-date') receipt.asOfDate = '2026-07-01';
     if (mode === 'resolved')

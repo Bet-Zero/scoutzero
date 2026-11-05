@@ -18,6 +18,7 @@ export const THREE_TEAM_PLAYERS = [
     id: 'tyrese_maxey',
     name: 'Tyrese Maxey',
     salary: 43582280,
+    matching: 43582280,
     from: 'PHI',
     to: 'CHI',
   },
@@ -25,22 +26,17 @@ export const THREE_TEAM_PLAYERS = [
     id: 'josh_giddey',
     name: 'Josh Giddey',
     salary: 25000000,
+    matching: 25000000,
     from: 'CHI',
     to: 'PHI',
   },
   {
-    id: 'johni_broome',
-    name: 'Johni Broome',
-    salary: 2525901,
-    from: 'PHI',
+    id: 'patrick_williams',
+    name: 'Patrick Williams',
+    salary: 18000000,
+    matching: 18000000,
+    from: 'CHI',
     to: 'BKN',
-  },
-  {
-    id: 'terance_mann',
-    name: 'Terance Mann',
-    salary: 16000000,
-    from: 'BKN',
-    to: 'PHI',
   },
 ] as const;
 export const NATIVE_MIXED_DATE = {
@@ -95,23 +91,27 @@ export async function seedThreeTeamMixedWorld(uid: string, worldId: string) {
         };
       }
     );
-    // Each full 15+3 software roster contains unchanged retained Contracts
-    // and explicit $8m depth Contracts. This is not NBA salary authority.
-    const players = before.players.map((p: any, i: number) =>
-      i < retained.length
-        ? retained[i]
-        : {
-            ...p,
-            contract: {
-              ...p.contract,
-              salariesByYear: p.contract.salariesByYear.map((s: any) => ({
-                ...s,
-                salary: p.isTwoWay ? 578577 : 8000000,
-                capHit: p.isTwoWay ? 578577 : 8000000,
-              })),
-            },
-          }
-    );
+    // Reuse the accepted full software rosters, with BKN at fourteen standard
+    // Contracts before receiving one. CHI sends two unchanged retained Contracts
+    // to different teams and finishes with fourteen. Depth salaries are explicit
+    // $8m software assumptions, never NBA salary authority.
+    const players = before.players
+      .filter((_: any, i: number) => code !== 'BKN' || i !== 0)
+      .map((p: any, i: number) =>
+        i < retained.length
+          ? retained[i]
+          : {
+              ...p,
+              contract: {
+                ...p.contract,
+                salariesByYear: p.contract.salariesByYear.map((s: any) => ({
+                  ...s,
+                  salary: p.isTwoWay ? 578577 : 8000000,
+                  capHit: p.isTwoWay ? 578577 : 8000000,
+                })),
+              },
+            }
+      );
     const bare = {
       ...before,
       players,

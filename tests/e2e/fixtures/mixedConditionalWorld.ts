@@ -34,21 +34,35 @@ export const CONDITIONAL_COLLECTIONS = {
   CHI: [
     CONDITIONAL_PLAYERS.CHI,
     {
-      id: 'josh_giddey',
-      name: 'Josh Giddey',
-      salary: 25000000,
-      matching: 25000000,
-      nextSalary: 25000000,
+      id: 'noa_essengue',
+      name: 'Noa Essengue',
+      salary: 5429520,
+      matching: 5429520,
+      nextSalary: 5701200,
+    },
+    {
+      id: 'patrick_williams',
+      name: 'Patrick Williams',
+      salary: 18000000,
+      matching: 18000000,
+      nextSalary: 18000000,
     },
   ],
   CHA: [
     CONDITIONAL_PLAYERS.CHA,
     {
-      id: 'miles_bridges',
-      name: 'Miles Bridges',
-      salary: 25000000,
-      matching: 25000000,
-      nextSalary: 22826087,
+      id: 'grant_williams',
+      name: 'Grant Williams',
+      salary: 13645500,
+      matching: 13645500,
+      nextSalary: 14265750,
+    },
+    {
+      id: 'kon_knueppel',
+      name: 'Kon Knueppel',
+      salary: 10015680,
+      matching: 10015680,
+      nextSalary: 10516560,
     },
   ],
 } as const;
@@ -142,7 +156,7 @@ export async function seedMixedConditionalWorld(uid: string, worldId: string) {
     // Team and Apron Salary remain derived from the actual committed Contracts.
     nextBooks[team] = books(2027);
     nextBooks[team].taxSalary.lineItems[0].amount =
-      143000000 +
+      132000000 +
       CONDITIONAL_COLLECTIONS[team === 'CHI' ? 'CHA' : 'CHI'].reduce(
         (n, p) => n + p.nextSalary,
         0

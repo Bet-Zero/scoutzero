@@ -122,7 +122,7 @@ it.each([
   'third-team',
   'duplicate-player',
   'duplicate-contract',
-  'two-from-one',
+  'forged-sender-self-route',
   'self',
   'unknown-pick',
   'stale',
@@ -135,7 +135,8 @@ it.each([
   if (mode === 'duplicate-player') receipt.playerMovements![1].playerId = 'one';
   if (mode === 'duplicate-contract')
     receipt.playerMovements![1].contractId = 'contract-one';
-  if (mode === 'two-from-one') receipt.playerMovements![1].fromTeam = 'CCC';
+  if (mode === 'forged-sender-self-route')
+    receipt.playerMovements![1].fromTeam = 'CCC';
   if (mode === 'self') receipt.playerMovements![1].toTeam = 'HHH';
   if (mode === 'unknown-pick') receipt.movements[0].entitlementId = 'other';
   if (mode === 'stale') receipt.movements[0].fromTeam = 'HHH';

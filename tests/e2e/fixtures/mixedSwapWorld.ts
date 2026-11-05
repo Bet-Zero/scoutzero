@@ -51,21 +51,21 @@ export const SWAP_COLLECTIONS = {
   MIA: [
     SWAP_PLAYERS.MIA,
     {
-      id: 'dru_smith',
-      name: 'Dru Smith',
-      salary: 2378870,
-      matching: 2378870,
-      nextSalary: 2584539,
+      id: 'myron_gardner',
+      name: 'Myron Gardner',
+      salary: 395029,
+      matching: 395029,
+      nextSalary: 2150917,
     },
   ],
   PHX: [
     SWAP_PLAYERS.PHX,
     {
-      id: 'oso_ighodaro',
-      name: 'Oso Ighodaro',
-      salary: 1955377,
-      matching: 1955377,
-      nextSalary: 2296271,
+      id: 'rasheer_fleming',
+      name: 'Rasheer Fleming',
+      salary: 1272870,
+      matching: 1272870,
+      nextSalary: 2150917,
     },
   ],
 } as const;

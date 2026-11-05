@@ -132,12 +132,20 @@ for (const position of [10, 11])
       'tre_jones',
       'tre_mann',
       program.stages[0].entitlementId,
-      'josh_giddey',
-      'miles_bridges',
+      ...Object.values(CONDITIONAL_COLLECTIONS)
+        .flat()
+        .map((p) => p.id),
       'AGGREGATED_STANDARD_TPE',
       'governed-simulation-only',
     ])
       expect(JSON.stringify(initialEvent)).toContain(id);
+
+    expect([...initialEvent.playerIds].sort()).toEqual(
+      Object.values(CONDITIONAL_COLLECTIONS)
+        .flat()
+        .map((p) => p.id)
+        .sort()
+    );
 
     const committedContracts: Record<string, any> = {};
     async function verifyViews(
@@ -220,9 +228,9 @@ for (const position of [10, 11])
             salariesByYear: committedContracts[team].salariesByYear,
           });
         }
-        // Independent arithmetic: thirteen governed depth Contracts plus every unchanged retained incoming Contract.
+        // Independent arithmetic: twelve governed depth Contracts plus every unchanged retained incoming Contract.
         const money =
-          143000000 +
+          132000000 +
           allIncoming.reduce(
             (n, p) => n + (year === 2026 ? p.salary : p.nextSalary),
             0
@@ -231,7 +239,7 @@ for (const position of [10, 11])
         expect(current.totals.apronTeamSalary).toBe(money);
         expect(current.totals.taxSalary).toBe(
           year === 2026
-            ? 143000000 + allOutgoing.reduce((n, p) => n + p.salary, 0)
+            ? 132000000 + allOutgoing.reduce((n, p) => n + p.salary, 0)
             : money
         );
         expect(current.hardCapped).toBe(year === 2026);
@@ -340,8 +348,8 @@ for (const position of [10, 11])
         const detail = page.getByTestId('team-history-detail-modal');
         await expect(detail).toContainText(/Tre Jones/i);
         await expect(detail).toContainText(/Tre Mann/i);
-        await expect(detail).toContainText(/Josh Giddey/i);
-        await expect(detail).toContainText(/Miles Bridges/i);
+        for (const p of Object.values(CONDITIONAL_COLLECTIONS).flat())
+          await expect(detail).toContainText(new RegExp(p.name, 'i'));
         await expect(detail).toContainText('2026 first-round pick');
         await expect(detail).toContainText(
           'conditional right (top 10 protected; 2027 unprotected fallback)'
@@ -386,6 +394,14 @@ for (const position of [10, 11])
         await expect(
           page.getByTestId('comparison-roster-removals')
         ).toContainText(new RegExp(outgoing.name, 'i'));
+        for (const p of allIncoming)
+          await expect(
+            page.getByTestId('comparison-roster-additions')
+          ).toContainText(new RegExp(p.name, 'i'));
+        for (const p of allOutgoing)
+          await expect(
+            page.getByTestId('comparison-roster-removals')
+          ).toContainText(new RegExp(p.name, 'i'));
         await expect(
           page.getByText(
             `CHI ${deferred ? 2027 : 2026} first-round pick${stage === 'committed' ? ' — conditional right (top 10 protected; 2027 unprotected fallback)' : deferred && stage !== 'fallback' ? ' — conditional right (unprotected)' : ''}`,
@@ -472,7 +488,7 @@ for (const position of [10, 11])
       .collection('teams')
       .doc('CHA')
       .collection('players')
-      .doc('tre_jones');
+      .doc('noa_essengue');
     const savedPlayer = (await playerRef.get()).data()!;
     await playerRef.set({
       ...savedPlayer,

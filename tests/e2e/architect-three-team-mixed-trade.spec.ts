@@ -173,14 +173,20 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
     const transfer = saved.metadata.draftNativeTransfers.at(-1);
     if (returned) expect(transfer.playerMovements).toBeUndefined();
     else
-      expect(transfer.playerMovements).toEqual(
-        THREE_TEAM_PLAYERS.map((p) =>
-          expect.objectContaining({
-            playerId: p.id,
-            fromTeam: p.from,
-            toTeam: p.to,
-          })
+      expect(
+        [...transfer.playerMovements].sort((a, b) =>
+          a.playerId.localeCompare(b.playerId)
         )
+      ).toEqual(
+        [...THREE_TEAM_PLAYERS]
+          .sort((a, b) => a.id.localeCompare(b.id))
+          .map((p) =>
+            expect.objectContaining({
+              playerId: p.id,
+              fromTeam: p.from,
+              toTeam: p.to,
+            })
+          )
       );
     expect(transfer.movements).toHaveLength(2);
     for (const [original, initial] of [
@@ -224,11 +230,11 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
       expect([...current.roster].sort()).toEqual([...expectedRoster].sort());
       const incoming = THREE_TEAM_PLAYERS.filter((p) => p.to === team);
       expect(current.totals.teamSalary).toBe(
-        (team === 'PHI' ? 104000000 : 112000000) +
+        (team === 'CHI' ? 104000000 : 112000000) +
           incoming.reduce((n, p) => n + p.salary, 0)
       );
       expect(current.totals.apronTeamSalary).toBe(
-        (team === 'PHI' ? 104000000 : 112000000) +
+        (team === 'CHI' ? 104000000 : 112000000) +
           incoming.reduce((n, p) => n + p.salary, 0)
       );
       expect(current.totals.taxSalary).toBe(original.totals.taxSalary);
@@ -301,6 +307,8 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
       const detail = page.getByTestId('team-history-detail-modal');
       await expect(detail).toContainText(/Tyrese Maxey/i);
       await expect(detail).toContainText(/Josh Giddey/i);
+      for (const p of THREE_TEAM_PLAYERS)
+        await expect(detail).toContainText(new RegExp(p.name, 'i'));
       await expect(detail).toContainText('2028 first-round pick');
       await expect(detail).toContainText('Trade Receipt');
       await capture(page, `${stage}-${team}-history`);
@@ -316,15 +324,7 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
             .locator('dt', { hasText: new RegExp(`^${label}$`) })
             .locator('xpath=following-sibling::dd[1]')
         ).toHaveText(
-          team === 'PHI'
-            ? '−$43.6M'
-            : team === 'BKN'
-              ? label === 'Team Salary'
-                ? '+$25.0M'
-                : '+$25.0M'
-              : label === 'Team Salary'
-                ? '+$18.6M'
-                : '+$18.6M'
+          team === 'PHI' ? '−$18.6M' : team === 'CHI' ? '+$0.6M' : '+$18.0M'
         );
       await expect(
         comparisonBooks
@@ -359,7 +359,7 @@ test('three-team resolved 2028 selection and Contracts: ready, apply, reload and
       ).toHaveAttribute('data-save-status', 'saved');
       await expect(
         page.getByTestId('cockpit-activity-rail-strip-roster')
-      ).toContainText(`${team === 'PHI' ? 14 : 15} / 15`);
+      ).toContainText(`${team === 'CHI' ? 14 : 15} / 15`);
       await expect(
         page.getByTestId('cockpit-activity-rail-strip-two-way')
       ).toContainText('3 / 3');
