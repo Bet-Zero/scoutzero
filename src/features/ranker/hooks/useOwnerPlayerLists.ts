@@ -28,7 +28,7 @@ export const useOwnerPlayerLists = (
   const { data: listsData } = useFirebaseQuery<PlayerList>(
     LISTS_COLLECTION,
     ownerConstraints,
-    { enabled: Boolean(userId) }
+    { enabled: Boolean(userId), key: userId }
   );
 
   const lists = useMemo(
