@@ -150,6 +150,55 @@ function fixture() {
   };
 }
 describe('proposal-specific ordered option review', () => {
+  it('routes pick-only consideration through three teams while retaining the source-mandated right receiver', async () => {
+    const f = fixture();
+    f.args.payload.teams![1].entitlementsOut![0].toTeamId = 'BBB';
+    f.args.payload.teams!.push({
+      teamCode: 'BBB',
+      entitlementsOut: [
+        {
+          ...f.entitlements['BBB-2029'],
+          entitlementId: 'BBB-2029',
+          toTeamId: 'DDD',
+        },
+      ],
+    });
+    const r = await prepareSwapTradeRecord(f);
+    expect(r.status).toBe('ready');
+    if (r.status !== 'ready') return;
+    expect(r.record.movements.map((m) => [m.fromTeam, m.toTeam])).toEqual([
+      ['DDD', 'AAA'],
+      ['AAA', 'BBB'],
+      ['BBB', 'DDD'],
+    ]);
+    const saved = DraftReviewMutationReceiptZ.parse(
+      JSON.parse(
+        JSON.stringify({
+          scope: r.record.scope,
+          assumptions: r.record.assumptions!,
+          assumptionSha256: r.record.assumptionSha256,
+          operationId: 'op',
+          worldId: 'w',
+          releaseId: r.record.releaseId,
+          releaseSha256: r.record.releaseSha256,
+          asOfDate: r.record.asOfDate,
+          movements: r.record.movements,
+        })
+      )
+    );
+    expect(saved.movements).toHaveLength(3);
+    expect(
+      r.record.reviews
+        .map((r) => r.review.status === 'swap-reviewed' && r.review.team)
+        .sort()
+    ).toEqual(['AAA', 'BBB', 'CCC', 'DDD']);
+    f.args.payload.teams!.reverse();
+    expect((await prepareSwapTradeRecord(f)).status).toBe('ready');
+    f.args.payload.teams!.find(
+      (t) => t.teamCode === 'DDD'
+    )!.entitlementsOut![0].toTeamId = 'BBB';
+    await expect(prepareSwapTradeRecord(f)).rejects.toThrow(/return selection/);
+  });
   async function mixed(threeTeam = false, count = 1) {
     const f = fixture();
     f.args.payload.teams![1].entitlementsOut = [];
@@ -316,16 +365,16 @@ describe('proposal-specific ordered option review', () => {
     if (mode === 'missing-return') receipt.playerMovements[2].toTeam = 'AAA';
     expect(DraftReviewMutationReceiptZ.safeParse(receipt).success).toBe(false);
   });
-  it('rejects an empty third team, a wrong right receiver and a pick-only three-team proposal', async () => {
+  it('rejects an empty third team, a wrong right receiver and incomplete pick-only participation', async () => {
     const { f, receipt } = await mixed(true);
     await expect(
       prepareSwapTradeRecord({
         ...f,
         playerMovements: receipt.playerMovements.slice(0, 2),
       })
-    ).rejects.toThrow(/noncash return/);
+    ).rejects.toThrow(/give and receive.*noncash/);
     await expect(prepareSwapTradeRecord(f)).rejects.toThrow(
-      /Contract consideration/
+      /give and receive.*noncash/
     );
     f.args.payload.teams![0].entitlementsOut![0].toTeamId = 'BBB';
     await expect(
@@ -341,7 +390,9 @@ describe('proposal-specific ordered option review', () => {
     expect(DraftReviewMutationReceiptZ.parse(receipt).playerMovements).toEqual(
       receipt.playerMovements
     );
-    await expect(prepareSwapTradeRecord(f)).rejects.toThrow(/noncash return/);
+    await expect(prepareSwapTradeRecord(f)).rejects.toThrow(
+      /give and receive.*noncash/
+    );
   });
   it.each([
     'duplicate-player',

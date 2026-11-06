@@ -1,3 +1,4 @@
+import { simulationParticipantLimit } from './transactionRouting';
 import { nativeLifecycle } from './nativeTrading';
 import { swapProgram } from './swapProgram';
 /** Retained source identity and software assumptions stay separate. No writes. */
@@ -80,28 +81,12 @@ export function assertSimulationInventory(
     throw new Error('Simulation catalogue or unresolved dependencies changed.');
   const testTeams = metadata.draftSimulationTeams;
   const teamsInScope = testTeams === undefined ? ['CHI', 'TOR'] : testTeams;
-  // Mixed trades may use three teams in these admitted families. Keep their
-  // saved inventory readable after resolution; complete terms are verified below.
-  const swapScope = metadata.draftSwapProgram as
-    | {
-        kind?: string;
-        year?: number;
-      }
-    | undefined;
-  const teamCount =
-    metadata.draftSimulationBranches === 'swap-program' &&
-    ((swapScope?.kind === 'native-overlapping-pool-v1' &&
-      swapScope.year === 2028) ||
-      (swapScope?.kind === 'ordered-swap-pool-v1' &&
-        swapScope.year === 2026)) &&
-    Array.isArray(teamsInScope) &&
-    teamsInScope.length === 3
-      ? 3
-      : 2;
+  const teamLimit = simulationParticipantLimit(metadata);
   if (
     !Array.isArray(teamsInScope) ||
-    teamsInScope.length !== teamCount ||
-    new Set(teamsInScope).size !== teamCount ||
+    teamsInScope.length < 2 ||
+    teamsInScope.length > teamLimit ||
+    new Set(teamsInScope).size !== teamsInScope.length ||
     teamsInScope.some((t) => typeof t !== 'string' || !teams[t])
   )
     throw new Error(

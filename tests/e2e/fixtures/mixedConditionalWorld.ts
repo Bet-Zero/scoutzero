@@ -67,7 +67,11 @@ export const CONDITIONAL_COLLECTIONS = {
   ],
 } as const;
 
-export async function seedMixedConditionalWorld(uid: string, worldId: string) {
+export async function seedMixedConditionalWorld(
+  uid: string,
+  worldId: string,
+  routing = false
+) {
   const seeded = await seedConditionalDraftWorld(uid, worldId, 'CHI', 'CHA');
   const release = await verifyContractSourceRelease(
     JSON.parse(
@@ -174,6 +178,28 @@ export async function seedMixedConditionalWorld(uid: string, worldId: string) {
     worldName: 'Players and Protected First — Governed Test',
     draftSimulationSeasonBooks: nextBooks,
   });
+  if (routing) {
+    // A pick-only third participant and split first-round destinations. All
+    // identities/terms remain retained; only test-world holdings are stipulated.
+    const entitlements = (await root.collection('entitlements').get()).docs;
+    const holders = new Map(
+      entitlements.map((d) => [d.id, d.data().holderTeam])
+    );
+    for (const row of seeded.catalogue.data.records) {
+      if (row.originalPick?.originalTeam !== 'TOR') continue;
+      holders.set(row.entitlementId, 'TOR');
+      batch.update(root.collection('entitlements').doc(row.entitlementId), {
+        holderTeam: 'TOR',
+      });
+    }
+    for (const team of (await root.collection('teams').get()).docs)
+      batch.update(team.ref, {
+        entitlementIds: [...holders]
+          .filter(([, t]) => t === team.id)
+          .map(([id]) => id),
+      });
+    batch.update(root, { draftSimulationTeams: ['CHI', 'CHA', 'TOR'] });
+  }
   await batch.commit();
   return seeded;
 }

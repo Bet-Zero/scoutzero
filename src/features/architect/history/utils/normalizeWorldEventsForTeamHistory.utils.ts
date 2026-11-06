@@ -66,7 +66,7 @@ export type TeamHistoryWorldEventRow = {
     playerId: string;
     sourceTeamCode: string;
     destinationTeamCode: string;
-  }>;
+  }> | null;
   primaryDeltas: string;
   capDelta: number | null;
   summary: string;

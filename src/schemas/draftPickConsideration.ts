@@ -14,7 +14,22 @@ export const DraftPickConsiderationFactZ = DraftOriginalOwnershipFactZ.omit({
   .extend({
     scope: z.literal('first-round-consideration'),
     outgoing: z.array(DraftOriginalFirstZ).min(1),
-    recipientTeam: z.string().regex(/^[A-Z]{3}$/),
+    // Historical facts retain their single recipient. New facts route each first.
+    recipientTeam: z
+      .string()
+      .regex(/^[A-Z]{3}$/)
+      .optional(),
+    outgoingDestinations: z
+      .array(
+        z
+          .object({
+            pickId: z.string().min(1),
+            toTeam: z.string().regex(/^[A-Z]{3}$/),
+          })
+          .strict()
+      )
+      .min(1)
+      .optional(),
     // No unlisted outgoing assets or allocation across another exchange.
     onlyListedFirstsOutgoing: z.boolean(),
     // A complete noncash bundle may also assign these Contracts.
@@ -47,7 +62,26 @@ export const DraftPickConsiderationFactZ = DraftOriginalOwnershipFactZ.omit({
         .strict()
     ),
   })
-  .strict();
+  .strict()
+  .superRefine((fact, ctx) => {
+    const routes = fact.outgoingDestinations;
+    if (
+      (fact.recipientTeam === undefined) === (routes === undefined) ||
+      (routes &&
+        (routes.length !== fact.outgoing.length ||
+          new Set(routes.map((r) => r.pickId)).size !== routes.length ||
+          routes.some(
+            (r) =>
+              r.toTeam === fact.context.team ||
+              !fact.outgoing.some((p) => p.id === r.pickId)
+          )))
+    )
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'Exactly one complete explicit outgoing destination representation is required.',
+      });
+  });
 
 export type DraftPickConsiderationFact = z.infer<
   typeof DraftPickConsiderationFactZ

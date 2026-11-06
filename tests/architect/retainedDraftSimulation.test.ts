@@ -9,6 +9,7 @@ import {
 import { prepareSimulationRecord } from '@/features/architect/utils/draftReview/simulationReview';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
 import { advanceConditionalDraftInWorld } from '@/features/architect/utils/seasonManager.conditionalDraft';
+import { mutationSnapshotDigest } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
 import {
   prepareRetainedDraftSimulation,
   requireDraftReviewCapability,
@@ -37,14 +38,36 @@ vi.mock(
   }
 );
 vi.mock('@/features/architect/utils/mutationPipeline.read.stateLoader', () => ({
-  loadStateForMutation: async () => ({
-    teams: ['CHI', 'TOR'].map((teamCode) => ({
+  loadStateForMutation: async (
+    _world: string,
+    _kind: string,
+    payload: any
+  ) => ({
+    teams: payload.teams.map(({ teamCode }: any) => ({
       teamCode,
       team: mock.docs.get(`architect_worlds/w/teams/${teamCode}`),
     })),
   }),
 }));
 vi.mock('firebase/firestore', () => ({
+  serverTimestamp: () => 'test-server-time',
+  runTransaction: async (_db: unknown, callback: any) => {
+    const writes: (() => void)[] = [];
+    const result = await callback({
+      get: async (ref: any) => ({
+        exists: () => mock.docs.has(ref.path),
+        data: () => structuredClone(mock.docs.get(ref.path)),
+      }),
+      update: (ref: any, value: any) =>
+        writes.push(() =>
+          mock.docs.set(ref.path, { ...mock.docs.get(ref.path), ...value })
+        ),
+      set: (ref: any, value: any) =>
+        writes.push(() => mock.docs.set(ref.path, structuredClone(value))),
+    });
+    writes.forEach((write) => write());
+    return result;
+  },
   doc: (base: any, ...parts: string[]) => ({
     path: [...(base.path ? [base.path] : []), ...parts].join('/'),
   }),
@@ -148,10 +171,42 @@ function args(chiYear = 2028, torYear = 2029) {
     },
   };
 }
+function routingArgs() {
+  mock.docs.get('architect_worlds/w').draftSimulationTeams = [
+    'CHI',
+    'TOR',
+    'SAS',
+  ];
+  const a = args();
+  const extra = {
+    ...a.payload.teams[0].entitlementsOut[0],
+    id: id('CHI', 2030),
+    underlyingPickId: 'CHI_2030_1st',
+    seasonYear: 2030,
+    toTeamId: 'SAS',
+  };
+  a.payload.teams[0].entitlementsOut.push(extra);
+  const outgoing = [
+    {
+      ...extra,
+      id: id('SAS', 2029),
+      underlyingPickId: 'SAS_2029_1st',
+      seasonYear: 2029,
+      toTeamId: 'TOR',
+    },
+  ];
+  a.payload.teams.push({
+    ...a.payload.teams[1],
+    teamCode: 'SAS',
+    entitlementsOut: outgoing,
+    outgoingEntitlements: outgoing,
+  });
+  return a;
+}
 beforeEach(() => {
   mock.docs.clear();
   mock.enabled = true;
-  const rows = ['CHI', 'TOR'].flatMap((team) =>
+  const rows = ['CHI', 'TOR', 'SAS'].flatMap((team) =>
     Array.from({ length: 7 }, (_, i) => {
       const year = 2026 + i;
       return {
@@ -230,10 +285,9 @@ beforeEach(() => {
   );
 });
 describe('retained simulation proposal integration (stipulated inputs, no NBA factual acceptance)', () => {
-  it('keeps other governed families limited to two distinct teams', async () => {
+  it('rejects duplicate or out-of-contract team counts', async () => {
     const metadata = mock.docs.get('architect_worlds/w');
     for (const scope of [
-      ['CHI', 'TOR', 'SAS'],
       ['CHI', 'CHI'],
       ['CHI', 'TOR', 'SAS', 'BKN'],
     ]) {
@@ -242,6 +296,93 @@ describe('retained simulation proposal integration (stipulated inputs, no NBA fa
         loadConditionalWorld('w', { allowUnconditionalInventory: true })
       ).rejects.toThrow(/distinct league teams/);
     }
+  });
+  it('admits a three-team inventory without requiring players', async () => {
+    mock.docs.get('architect_worlds/w').draftSimulationTeams = [
+      'CHI',
+      'TOR',
+      'SAS',
+    ];
+    expect(
+      (await loadConditionalWorld('w', { allowUnconditionalInventory: true }))
+        .teams.SAS
+    ).toBeDefined();
+  });
+  it('evaluates split destinations as one complete trade, independent of participant order', async () => {
+    const a = routingArgs();
+    const result = await prepareSimulationRecord(a);
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') throw new Error(JSON.stringify(result));
+    expect(
+      result.record.movements
+        .filter((m) => m.fromTeam === 'CHI')
+        .map((m) => m.toTeam)
+    ).toEqual(['TOR', 'SAS']);
+    expect(result.record.reviews).toHaveLength(3);
+    for (const review of result.record.reviews)
+      expect(review.eligible).toBe(true);
+    const before = JSON.stringify([...mock.docs]);
+    a.payload.teams.reverse();
+    a.payload.teams.forEach((s) => s.entitlementsOut.reverse());
+    const reordered = await prepareSimulationRecord(a);
+    expect(reordered.status).toBe('ready');
+    if (reordered.status !== 'ready') throw new Error('expected ready');
+    expect(
+      [...reordered.record.movements].sort((a, b) =>
+        a.entitlementId.localeCompare(b.entitlementId)
+      )
+    ).toEqual(
+      [...result.record.movements].sort((a, b) =>
+        a.entitlementId.localeCompare(b.entitlementId)
+      )
+    );
+    expect(JSON.stringify([...mock.docs])).toBe(before);
+  });
+  it.each([
+    'self',
+    'missing-route',
+    'outside',
+    'duplicate',
+    'neutral',
+    'fourth',
+    'third-stepien',
+  ])('rejects the complete routing proposal for %s', async (mode) => {
+    const a = routingArgs();
+    if (mode === 'self') a.payload.teams[0].entitlementsOut[1].toTeamId = 'CHI';
+    if (mode === 'missing-route')
+      delete (a.payload.teams[0].entitlementsOut[1] as any).toTeamId;
+    if (mode === 'outside')
+      a.payload.teams[0].entitlementsOut[1].toTeamId = 'BOS';
+    if (mode === 'duplicate')
+      a.payload.teams[0].entitlementsOut.push(
+        a.payload.teams[0].entitlementsOut[0]
+      );
+    if (mode === 'neutral') a.payload.teams[2].entitlementsOut.splice(0);
+    if (mode === 'fourth')
+      a.payload.teams.push({ ...a.payload.teams[2], teamCode: 'BOS' });
+    if (mode === 'third-stepien') {
+      const pick = {
+        ...a.payload.teams[2].entitlementsOut[0],
+        id: id('SAS', 2028),
+        underlyingPickId: 'SAS_2028_1st',
+        seasonYear: 2028,
+      };
+      a.payload.teams[2].entitlementsOut.push(pick);
+      // Sending 2028 and 2029 leaves a missing 2027/2028 witness only if 2027 also leaves.
+      a.payload.teams[2].entitlementsOut.push({
+        ...pick,
+        id: id('SAS', 2027),
+        underlyingPickId: 'SAS_2027_1st',
+        seasonYear: 2027,
+      });
+    }
+    const before = JSON.stringify([...mock.docs]);
+    const result = await prepareSimulationRecord(a).catch((e) => ({
+      status: 'error',
+      reason: e.message,
+    }));
+    expect(result.status).not.toBe('ready');
+    expect(JSON.stringify([...mock.docs])).toBe(before);
   });
   it('projects original holdings only with explicit read-only admission and still rejects corrupt inventories', async () => {
     await expect(loadConditionalWorld('w')).rejects.toThrow(
@@ -519,6 +660,50 @@ describe('complete protected-selection proposal review', () => {
       requireDraftReviewCapability(result.authority).assumptions?.programs
     ).toHaveLength(1);
   });
+  it.each([10, 11])(
+    'indexes draft outcome %i for a third participant without changing its holdings',
+    async (position) => {
+      installProgram();
+      const meta = mock.docs.get('architect_worlds/w');
+      meta.draftSimulationTeams = ['CHI', 'TOR', 'SAS'];
+      meta.draftSimulationCalendar = [{ year: 2026, date: '2026-06-30' }];
+      const key = id('CHI', 2026);
+      mock.docs.get(`architect_worlds/w/entitlements/${key}`).holderTeam =
+        'TOR';
+      const chi = mock.docs.get('architect_worlds/w/teams/CHI');
+      chi.entitlementIds = chi.entitlementIds.filter(
+        (id: string) => id !== key
+      );
+      mock.docs.get('architect_worlds/w/teams/TOR').entitlementIds.push(key);
+      const third = structuredClone(
+        mock.docs.get('architect_worlds/w/teams/SAS')
+      );
+      const state = await loadConditionalWorld('w');
+      await advanceConditionalDraftInWorld('w', {
+        operationId: 'draft',
+        expectedRevision: 0,
+        draftYear: 2026,
+        positions: { CHI: position },
+        expectedDraftStateDigest: mutationSnapshotDigest(state.snapshots),
+      });
+      const event = mock.docs.get(
+        'architect_worlds/w/events/conditionalDraft__2026'
+      );
+      expect(event.teamCodes).toEqual(['CHI', 'TOR', 'SAS']);
+      expect(
+        event.metadata.conditionalDraftReceipt.after[0].results[0]
+      ).toEqual({
+        year: 2026,
+        position,
+        outcome: position === 10 ? 'deferred' : 'conveyed',
+      });
+      expect(mock.docs.get('architect_worlds/w/teams/SAS')).toEqual(third);
+      expect(mock.docs.get('architect_worlds/w').lastModifiedTeams).toEqual([
+        'CHI',
+        'TOR',
+      ]);
+    }
+  );
   it('rejects a proposal with one invalid deferral branch despite its valid immediate-conveyance branch', async () => {
     installProgram();
     const proposal = args(2026, 2029);
@@ -528,6 +713,60 @@ describe('complete protected-selection proposal review', () => {
     expect(result.status).toBe('blocked');
     if (result.status === 'blocked')
       expect(result.reasons.join(' ')).toContain('unknown-2027/2028');
+  });
+  it('checks both split destinations together against all conditional outcomes', async () => {
+    installProgram();
+    const a = routingArgs();
+    const first = a.payload.teams[0].entitlementsOut[0];
+    Object.assign(first, {
+      id: id('CHI', 2026),
+      underlyingPickId: 'CHI_2026_1st',
+      seasonYear: 2026,
+    });
+    Object.assign(a.payload.teams[0].entitlementsOut[1], {
+      id: id('CHI', 2028),
+      underlyingPickId: 'CHI_2028_1st',
+      seasonYear: 2028,
+    });
+    const blocked = await prepareSimulationRecord(a);
+    expect(blocked.status).toBe('blocked');
+    expect(JSON.stringify(blocked)).toContain('unknown-2027/2028');
+    a.payload.teams[1].entitlementsOut.push({
+      ...args(2026, 2027).payload.teams[1].entitlementsOut[0],
+    });
+    // TOR's incoming 2027 first protects CHI in the adverse fallback outcome.
+    expect((await prepareSimulationRecord(a)).status).toBe('ready');
+  });
+  it('checks the original obligor when a held conditional right is retraded by other teams', async () => {
+    installProgram();
+    mock.docs.get('architect_worlds/w').draftSimulationTeams = [
+      'CHI',
+      'TOR',
+      'SAS',
+    ];
+    for (const year of [2026, 2028]) {
+      const key = id('CHI', year);
+      mock.docs.get(`architect_worlds/w/entitlements/${key}`).holderTeam =
+        'TOR';
+      const chi = mock.docs.get('architect_worlds/w/teams/CHI');
+      chi.entitlementIds = chi.entitlementIds.filter(
+        (id: string) => id !== key
+      );
+      mock.docs.get('architect_worlds/w/teams/TOR').entitlementIds.push(key);
+    }
+    const a = args(2026, 2029);
+    a.payload.teams[0].teamCode = 'TOR';
+    a.payload.teams[0].entitlementsOut[0].toTeamId = 'SAS';
+    a.payload.teams[1].teamCode = 'SAS';
+    Object.assign(a.payload.teams[1].entitlementsOut[0], {
+      id: id('SAS', 2029),
+      underlyingPickId: 'SAS_2029_1st',
+      toTeamId: 'TOR',
+    });
+    const result = await prepareSimulationRecord(a);
+    expect(result.status).toBe('blocked');
+    expect(JSON.stringify(result)).toContain('CHI: stepien:');
+    expect(JSON.stringify(result)).toContain('unknown-2027/2028');
   });
   it('refuses a separately selected reserved fallback entitlement', async () => {
     installProgram();

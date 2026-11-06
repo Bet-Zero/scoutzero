@@ -1,3 +1,7 @@
+import {
+  requireTradeParticipants,
+  requireNoncashTradeRoutes,
+} from './transactionRouting';
 /** Proposal-specific review of a separately transferred ordered-pool option. */
 import type { DraftReviewCapabilityRecord } from './capability';
 import type { SimulationCatalogue } from './simulationInventory';
@@ -53,14 +57,7 @@ export async function prepareSwapTradeRecord(input: {
     );
   const slots = args.payload.teams!;
   const teamCodes = slots.map((s) => String(s.teamCode));
-  if (
-    ![2, 3].includes(teamCodes.length) ||
-    new Set(teamCodes).size !== teamCodes.length ||
-    (teamCodes.length === 3 && !input.playerMovements?.length)
-  )
-    throw new Error(
-      'Select two or three distinct teams; three-team swap trades require ordinary Contract consideration.'
-    );
+  requireTradeParticipants(teamCodes);
   const participants = [
     ...new Set([...teamCodes, ...program.slots.map((s) => s.holderTeam)]),
   ];
@@ -181,22 +178,7 @@ export async function prepareSwapTradeRecord(input: {
       'The receiving team must own the specified return selection; the option alone never transfers that pick.'
     );
   const consideration = [...movements, ...(input.playerMovements ?? [])];
-  if (
-    consideration.some(
-      (m) =>
-        !teamCodes.includes(m.fromTeam) ||
-        !teamCodes.includes(m.toTeam) ||
-        m.fromTeam === m.toTeam
-    ) ||
-    teamCodes.some(
-      (team) =>
-        !consideration.some((m) => m.fromTeam === team) ||
-        !consideration.some((m) => m.toTeam === team)
-    )
-  )
-    throw new Error(
-      'Every participating team requires explicit noncash return consideration.'
-    );
+  requireNoncashTradeRoutes(teamCodes, consideration);
   const proposalSha256 = (
     await sha256Digest(mutationSnapshotText(args.payload))
   ).slice(7);

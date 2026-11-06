@@ -941,6 +941,7 @@ export function computeTradeResult({
 
   const metadata: TradeMutationMetadata = {
     type: 'trade',
+    playerMovements: tradePlayerManifest.playerMovements,
     teamsInvolved: teamUpdates.map((teamUpdate) => teamUpdate.teamCode),
     playersTraded: tradeTeams.flatMap((teamTrade) =>
       (teamTrade.sends || []).map(

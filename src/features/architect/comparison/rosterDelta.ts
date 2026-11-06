@@ -3,7 +3,8 @@
  * PURPOSE: Pure helpers for classifying roster changes from the committed event stream.
  * OWNERSHIP: Feature: architect/comparison
  *
- * Classification is anchored to current-roster presence and event mutation type.
+ * Recorded trade routes establish the active team's movements; historical
+ * events without routes retain their current-roster/event-type classification.
  * All outputs are labeled 'committed-world / event-derived'. Does not claim
  * exhaustive roster diff — only reports what committed events record.
  * No Firestore reads, no React, no state, no mutation authority.
@@ -14,6 +15,11 @@ import type { Stage3RosterEntry } from './types';
 export type EventRowForRoster = {
   playerIds: string[];
   mutationType: string | null;
+  playerMovements?: Array<{
+    playerId: string;
+    sourceTeamCode: string;
+    destinationTeamCode: string;
+  }> | null;
 };
 
 // Mutations that indicate a player was added to the active team.
@@ -31,11 +37,8 @@ const REMOVING_MUTATION_TYPES = new Set([
 ]);
 
 // Trade mutations: players can move TO or FROM the active team.
-// Current-roster presence disambiguates direction.
-const TRADE_MUTATION_TYPES = new Set([
-  'executeTrade',
-  'signAndTrade',
-]);
+// Explicit routes identify the parties; current-roster presence handles later moves.
+const TRADE_MUTATION_TYPES = new Set(['executeTrade', 'signAndTrade']);
 
 // Mutations that modify existing roster members' contracts without changing membership.
 const CONTRACT_MUTATION_TYPES = new Set([
@@ -77,10 +80,13 @@ export interface RosterDeltaResult {
  */
 export function deriveRosterDelta(
   events: EventRowForRoster[],
-  currentRosterPlayerIds: string[]
+  currentRosterPlayerIds: string[],
+  teamCode?: string
 ): RosterDeltaResult {
   const currentRosterSet = new Set(
-    currentRosterPlayerIds.filter((id) => typeof id === 'string' && id.trim() !== '')
+    currentRosterPlayerIds.filter(
+      (id) => typeof id === 'string' && id.trim() !== ''
+    )
   );
 
   const addingIds: string[] = [];
@@ -99,6 +105,14 @@ export function deriveRosterDelta(
     } else if (REMOVING_MUTATION_TYPES.has(mutationType)) {
       removingIds.push(...validIds);
     } else if (TRADE_MUTATION_TYPES.has(mutationType)) {
+      if (teamCode && event.playerMovements !== undefined) {
+        for (const move of event.playerMovements ?? []) {
+          if (move.destinationTeamCode === teamCode)
+            addingIds.push(move.playerId);
+          if (move.sourceTeamCode === teamCode) removingIds.push(move.playerId);
+        }
+        continue;
+      }
       // Trade players are in both buckets; roster presence disambiguates direction.
       addingIds.push(...validIds);
       removingIds.push(...validIds);

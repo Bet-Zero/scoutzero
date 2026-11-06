@@ -664,6 +664,32 @@ describe('mutationPipeline trade persistence truth', () => {
     const movedPlayer = await getPlayer(worldId, 'BOS', 'lal_out_18m');
     expect(movedPlayer.teamCode).toBe('BOS');
     expect(movedPlayer.contract?.salariesByYear?.[0]?.salary).toBe(18_000_000);
+    const savedTrades = [...getAllMockData().values()].filter(
+      (value) =>
+        value !== null &&
+        typeof value === 'object' &&
+        'worldId' in value &&
+        'mutationType' in value &&
+        value.worldId === worldId &&
+        value.mutationType === 'executeTrade'
+    );
+    expect(savedTrades).toHaveLength(1);
+    expect(savedTrades[0]).toMatchObject({
+      metadata: {
+        playerMovements: [
+          {
+            playerId: 'lal_out_18m',
+            sourceTeamCode: 'LAL',
+            destinationTeamCode: 'BOS',
+          },
+          {
+            playerId: 'bos_out_10m',
+            sourceTeamCode: 'BOS',
+            destinationTeamCode: 'LAL',
+          },
+        ],
+      },
+    });
   });
 
   it('atomically persists paired cash ledgers, the uninvolved Team snapshot, Row I, and one receipt while rejecting a stale replay', async () => {

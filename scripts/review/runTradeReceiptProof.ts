@@ -55,21 +55,32 @@ export const MIXED_NATIVE_SCREENSHOTS = [
   ),
 ].map((key) => ({ key, filename: `${key}-1280x720.png` }));
 
-export const MIXED_CONDITIONAL_SCREENSHOTS = [10, 11]
-  .flatMap((position) => [
+export const MIXED_CONDITIONAL_SCREENSHOTS = [
+  ...[10, 11].flatMap((position) => [
     `${position}-proposal`,
     ...[
       'committed',
       'resolved',
       'season',
       ...(position === 10 ? ['fallback'] : []),
-    ].flatMap((stage) =>
-      ['CHI', 'CHA'].flatMap((team) =>
+    ].flatMap((stage) => [
+      ...['CHI', 'CHA'].flatMap((team) =>
         ['cap', 'assets'].map((view) => `${position}-${stage}-${team}-${view}`)
+      ),
+      ...['roster', 'cap', 'history', 'compare', 'assets'].map(
+        (view) => `${position}-${stage}-TOR-${view}`
+      ),
+    ]),
+  ]),
+  ...['first', 'return'].flatMap((stage) => [
+    `original-${stage}-proposal`,
+    ...['CHI', 'CHA', 'TOR'].flatMap((team) =>
+      ['history', 'compare', 'assets'].map(
+        (view) => `original-${stage}-${team}-${view}`
       )
     ),
-  ])
-  .map((key) => ({ key, filename: `${key}-1280x720.png` }));
+  ]),
+].map((key) => ({ key, filename: `${key}-1280x720.png` }));
 
 export const MIXED_TRADES_SCREENSHOTS = [
   'permitted-proposal',
@@ -860,15 +871,19 @@ export async function runTradeReceiptProof(
         ...(draftReview || retainedSimulation
           ? {
               timeout:
-                // Two independently bounded 220-second cases, plus startup and
-                // graceful emulator export, exceed the pick-only four minutes.
-                threeTeamMixed || mixedSwap
+                // Cover the complete separately bounded cases, startup and
+                // graceful teardown; retain the individual Playwright limits.
+                // Mixed conditional now includes four complete cases: both
+                // outcomes with third-team lifecycle views, original routing
+                // and retrade/export, and the full negative matrix. Preserve
+                // each case's bound and allow their aggregate plus teardown.
+                threeTeamMixed || mixedSwap || mixedConditional
                   ? 3600000
                   : mixedTrades
                     ? 600000
                     : penaltyPlacement || apronMultiseason
                       ? 3600000
-                      : mixedConditional || mixedNative
+                      : mixedNative
                         ? 1800000
                         : conditionalLifecycle ||
                             swapLifecycle ||
@@ -921,6 +936,11 @@ export async function runTradeReceiptProof(
   const additionalProofPaths = retainedSimulation
     ? [
         path.join(artifactDir, 'negative-proof.json'),
+        ...(mixedConditional
+          ? ['original-proof.json', 'original-export.png'].map((name) =>
+              path.join(artifactDir, name)
+            )
+          : []),
         ...(nativeTrades || mixedNative
           ? [path.join(artifactDir, 'stepien-proof.json')]
           : []),
@@ -1004,7 +1024,7 @@ export async function runTradeReceiptProof(
         : mixedNative
           ? 'Ordinary Contracts and a resolved 2028 selection through two saved-world trades and reload'
           : mixedConditional
-            ? 'Ordinary player and conditional first trade through both governed draft outcomes and season advance'
+            ? 'Three-team original and mixed conditional routing, return trade, both governed draft outcomes and season advance'
             : mixedTrades
               ? 'Ordinary players and retained original firsts in one governed saved-world trade'
               : nativeTrades

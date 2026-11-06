@@ -226,3 +226,49 @@ it('requires the atomic computation to retain the player-only participant and al
     /untouched inventory/
   );
 });
+
+it('replays a three-team selection-only cycle without inventing player consideration', () => {
+  const { resolved } = fixture();
+  const allocation = resolved.result!.allocation;
+  const teams = [...new Set(Object.values(allocation))].slice(0, 3);
+  const movements = teams.map((fromTeam, i) => {
+    const slot = resolved.slots.find(
+      (s) => allocation[s.entitlementId] === fromTeam
+    )!;
+    return {
+      entitlementId: slot.entitlementId,
+      originalTeam: slot.originalTeam,
+      year: resolved.year,
+      round: 1,
+      assetKind: 'pick_ownership',
+      fromTeam,
+      toTeam: teams[(i + 1) % 3],
+    };
+  });
+  const next = {
+    operationId: 'selection-cycle',
+    asOfDate: '2028-06-20',
+    movements,
+  };
+  const holders = nativeSelectionHolders(resolved, [
+    JSON.parse(JSON.stringify(next)),
+  ]);
+  for (const m of movements) expect(holders[m.entitlementId]).toBe(m.toTeam);
+  const returned = {
+    ...next,
+    operationId: 'return',
+    movements: movements.map((m) => ({
+      ...m,
+      fromTeam: m.toTeam,
+      toTeam: m.fromTeam,
+    })),
+  };
+  expect(nativeSelectionHolders(resolved, [next, returned])).toEqual(
+    allocation
+  );
+  expect(
+    nativeSelectionHolders(resolved, [
+      { ...next, movements: [...movements].reverse() },
+    ])
+  ).toEqual(holders);
+});

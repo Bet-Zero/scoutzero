@@ -46,6 +46,17 @@ export type DraftReviewCapabilityRecord = Readonly<{
   reviews: readonly (
     | DraftReviewConsumption
     | import('./swapTradeReview').SwapTradeReview
+    | {
+        eligible: boolean;
+        reasons: string[];
+        review: {
+          status: 'stepien-reviewed';
+          team: string;
+          stepien: ReturnType<
+            typeof import('../draftStepien').evaluateSuppliedDraftStepien
+          >;
+        };
+      }
   )[];
   playerMovements?: readonly import('@/schemas/draftNativeTrading').NativePlayerMovement[];
   movements: readonly Readonly<{

@@ -243,6 +243,15 @@ export async function advanceConditionalDraftInWorld(
     eventId
   );
   const occurredAt = new Date().toISOString();
+  // Every governed participant's trade receipt carries the complete program.
+  // Its history needs the transition even when this outcome moves no asset for
+  // that team. Custody writes below remain limited to actually affected holders.
+  const historyTeams = [
+    ...new Set([
+      ...affected,
+      ...(programs.length || swap ? (metadata.draftSimulationTeams ?? []) : []),
+    ]),
+  ];
   const event = {
     eventId,
     type: 'draftConveyance',
@@ -252,8 +261,8 @@ export async function advanceConditionalDraftInWorld(
     seasonId: metadata.currentSeason,
     timestamp: occurredAt,
     occurredAt,
-    teamsAffected: [...affected],
-    teamCodes: [...affected],
+    teamsAffected: historyTeams,
+    teamCodes: historyTeams,
     metadata: {
       type: 'draftConveyance',
       summary: penalty

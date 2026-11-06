@@ -23,10 +23,13 @@ import {
   openDashboardTab,
 } from './helpers/architectReviewWorld';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
+import { retainedSimulationEntitlement } from '@/features/architect/utils/draftReview/simulationInventory';
 
 test.use({
   viewport: { width: 1280, height: 720 },
-  actionTimeout: 15000,
+  // Retained tracing can consume most of a 15-second navigation budget before
+  // delivering input. Keep bounded actions and every resulting-state check.
+  actionTimeout: 30000,
   trace: 'on',
 });
 test.setTimeout(600000);
@@ -82,7 +85,8 @@ for (const position of [10, 11])
     const worldId = `mixed_conditional_${position}_${Date.now()}`;
     const { catalogue, program } = await seedMixedConditionalWorld(
       uid,
-      worldId
+      worldId,
+      true
     );
     const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
     const before = await completeConditionalState(worldId);
@@ -99,12 +103,6 @@ for (const position of [10, 11])
       CHI: playerBefore('CHA').contract,
       CHA: playerBefore('CHI').contract,
     };
-    const preview = await prepareMixedConditional(page, uid, worldId, [
-      program.stages[0].entitlementId,
-    ]);
-    receipt(`preview-${position}`, preview);
-    expect(preview).toMatchObject({ status: 'prepared', legal: true });
-    expect(await completeConditionalState(worldId)).toEqual(before);
     await page.evaluate(
       ({ uid, worldId }) => {
         localStorage.setItem(`architect.activeWorldId.${uid}`, worldId);
@@ -116,13 +114,27 @@ for (const position of [10, 11])
     const dialog = await selectMixedConditionalTrade(
       page,
       worldId,
-      program.stages[0].entitlementId
+      program.stages[0].entitlementId,
+      false
     );
+    await dialog
+      .getByRole('button', { name: 'Close Trade Machine', exact: true })
+      .click();
+    await openConditionalTrade(page);
+    await expect(dialog).toContainText('Toronto Raptors');
+    await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+    await expect(
+      dialog.getByRole('button', { name: /^Apply Trade$/i })
+    ).toBeEnabled({ timeout: 120000 });
+    // Verify the actual staged UI preparation is read-only, once, before apply.
+    expect(await completeConditionalState(worldId)).toEqual(before);
     await capture(page, `${position}-proposal`);
     await dialog.getByRole('button', { name: /^Apply Trade$/i }).click();
     await expect
       .poll(async () => (await root.collection('events').get()).size, {
-        timeout: 60000,
+        // Complete shared Apply can outlast a minute in the retained emulator;
+        // observe its atomic receipt within the same budget as UI validation.
+        timeout: 120000,
       })
       .toBe(1);
     await expect(dialog).toBeHidden({ timeout: 30000 });
@@ -337,16 +349,9 @@ for (const position of [10, 11])
           ['data-apron-team-salary', 'apronTeamSalary'],
           ['data-tax-salary', 'taxSalary'],
         ])
-          await expect
-            .poll(() =>
-              page
-                .locator(`[${attr}]`)
-                .evaluateAll(
-                  (els, attr) => els.map((e) => Number(e.getAttribute(attr))),
-                  attr
-                )
-            )
-            .toContain(current.totals[key]);
+          await expect(
+            page.locator(`[${attr}="${current.totals[key]}"]`).first()
+          ).toBeVisible();
         expect(
           Number(
             (
@@ -478,12 +483,77 @@ for (const position of [10, 11])
             card.locator(`[data-entitlement-id="${id}"]`)
           ).toHaveCount(i ? 1 : 0);
       }
+      // The third participant keeps its complete roster/books but exchanges
+      // explicitly routed firsts. Verify all its affected views after reload.
+      const third = teams.find((t) => t.id === 'TOR')!.data;
+      const priorThird = teamBefore.find((t) => t.id === 'TOR')!.data;
+      expect([...third.roster].sort()).toEqual([...priorThird.roster].sort());
+      expect(third.totals.teamSalary).toBe(30000000);
+      for (const [key, holder] of [
+        ['CHI_2029_1st', 'TOR'],
+        ['TOR_2028_1st', 'CHI'],
+      ])
+        expect(
+          entitlements.find(
+            (e) =>
+              e.data.underlyingPickId === key &&
+              e.data.kind === 'pick_ownership'
+          )!.data.holderTeam
+        ).toBe(holder);
+      expect([...third.entitlementIds].sort()).toEqual(
+        entitlements
+          .filter((e) => e.data.holderTeam === 'TOR')
+          .map((e) => e.id)
+          .sort()
+      );
+      await page.goto(`/gm/TOR?season=${year}`);
+      await page.reload();
+      await openDashboardTab(page, 'Roster');
+      await capture(page, `${position}-${stage}-TOR-roster`);
+      await openDashboardTab(page, 'Full Cap Table');
+      await expect(
+        page.locator('[data-team-salary="30000000"]').first()
+      ).toBeVisible();
+      await capture(page, `${position}-${stage}-TOR-cap`);
+      await openDashboardTab(page, 'Team History');
+      await page
+        .getByTestId('team-history-section-timeline')
+        .getByRole('button', { name: /Trade Executed:/ })
+        .click();
+      const thirdDetail = page.getByTestId('team-history-detail-modal');
+      await expect(thirdDetail).toContainText('2029 first-round pick');
+      await expect(thirdDetail).toContainText('2028 first-round pick');
+      await thirdDetail.getByRole('button', { name: /close/i }).click();
+      await capture(page, `${position}-${stage}-TOR-history`);
+      await openDashboardTab(page, 'Compare');
+      for (const p of Object.values(CONDITIONAL_COLLECTIONS).flat())
+        for (const kind of ['additions', 'removals', 'changed'])
+          await expect(
+            page.getByTestId(`comparison-roster-${kind}`)
+          ).not.toContainText(new RegExp(p.name, 'i'));
+      await expect(
+        page.getByText('CHI 2029 first-round pick', { exact: true })
+      ).toBeVisible();
+      await capture(page, `${position}-${stage}-TOR-compare`);
+      const expandThird = page.getByRole('button', {
+        name: 'Expand activity rail',
+      });
+      if (await expandThird.isVisible()) await expandThird.click();
+      await expect(
+        page.getByTestId('cockpit-activity-rail-save-indicator')
+      ).toHaveAttribute('data-save-status', 'saved');
+      await page.getByTestId('cockpit-activity-rail-assets-open').click();
+      await expect(page.getByTestId('cockpit-assets-panel')).toContainText(
+        '2029'
+      );
+      await capture(page, `${position}-${stage}-TOR-assets`);
+      await page.keyboard.press('Escape');
       expect(await completeConditionalState(worldId)).toEqual(saved);
       receipt(`${position}-${stage}`, {
         metadata: saved.metadata,
-        teams: teams.filter((t) => ['CHI', 'CHA'].includes(t.id)),
+        teams: teams.filter((t) => ['CHI', 'CHA', 'TOR'].includes(t.id)),
         events: saved.children.find((c) => c.name === 'events'),
-        bothTeamsReloaded: true,
+        allThreeTeamsReloaded: true,
       });
     }
     await verifyViews('committed', 2026, 1);
@@ -576,12 +646,298 @@ for (const position of [10, 11])
       matching: 'AGGREGATED_STANDARD_TPE',
       catalogue: 278,
       unresolved: 29,
-      bothTeamsReloadedAtEveryStage: true,
+      allThreeTeamsReloadedAtEveryStage: true,
       contractsAndBooks: true,
       sourceUnchanged: true,
       metadata: final.metadata,
     });
   });
+
+test('three-team original firsts preserve split destinations through staging, export, save, reload and a return trade', async ({
+  page,
+}) => {
+  const uid = await conditionalLogin(page);
+  const worldId = `shared_original_routing_${Date.now()}`;
+  const { catalogue, program } = await seedMixedConditionalWorld(
+    uid,
+    worldId,
+    true
+  );
+  const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
+  // This separate original-only scenario restores the unchanged retained terms;
+  // it neither composes right programs nor creates new selection identities.
+  const protectedId = program.stages[0].entitlementId;
+  const source = (
+    await getReviewAdminDb()
+      .doc(`architect_baseEntitlements/${protectedId}`)
+      .get()
+  ).data()!;
+  await root
+    .collection('entitlements')
+    .doc(protectedId)
+    .set({
+      ...retainedSimulationEntitlement(catalogue, protectedId, source),
+      holderTeam: 'CHI',
+    });
+  await root.update({
+    draftSimulationBranches: 'unconditional',
+    draftConditionalPrograms: [],
+  });
+  const before = await completeConditionalState(worldId);
+  const sourceBefore = await sources();
+  const originals = before.children.find(
+    (c) => c.name === 'entitlements'
+  )!.docs;
+  const routes = [
+    ['CHI_2028_1st', 'CHI', 'CHA'],
+    ['CHI_2030_1st', 'CHI', 'TOR'],
+    ['CHA_2029_1st', 'CHA', 'CHI'],
+    ['TOR_2029_1st', 'TOR', 'CHA'],
+  ].map(([key, from, to]) => ({
+    id: originals.find(
+      (e) => e.data.underlyingPickId === key && e.data.kind === 'pick_ownership'
+    )!.id,
+    from,
+    to,
+  }));
+  const names: Record<string, string> = {
+    CHI: 'Chicago Bulls',
+    CHA: 'Charlotte Hornets',
+    TOR: 'Toronto Raptors',
+  };
+  await page.evaluate(
+    ({ uid, worldId }) => {
+      localStorage.setItem(`architect.activeWorldId.${uid}`, worldId);
+      localStorage.setItem('hz.currentSeasonEndYear', '2026');
+    },
+    { uid, worldId }
+  );
+  for (const returned of [false, true]) {
+    const stage = returned ? 'return' : 'first';
+    const beforePreparation = await completeConditionalState(worldId);
+    const moves = returned
+      ? routes.map((r) => ({ ...r, from: r.to, to: r.from }))
+      : routes;
+    await page.goto('/gm/CHI?season=2026');
+    await page.reload();
+    await openDashboardTab(page, 'Trade Machine');
+    const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
+    await expect(dialog.getByTestId('trade-team-card-CHI')).toBeVisible({
+      timeout: 30000,
+    });
+    const picker = dialog
+      .locator('label', { hasText: /^Select Team$/ })
+      .locator('xpath=following-sibling::select[1]');
+    if (!(await picker.count()))
+      await dialog.getByRole('button', { name: /^Add Team$/ }).click();
+    await picker.first().selectOption('hornets');
+    await expect(dialog.getByTestId('trade-team-card-CHA')).toBeVisible({
+      timeout: 30000,
+    });
+    await dialog.getByRole('button', { name: /^Add Team$/ }).click();
+    await picker.last().selectOption('raptors');
+    await expect(dialog.getByTestId('trade-team-card-TOR')).toBeVisible({
+      timeout: 30000,
+    });
+    for (const move of moves) {
+      const card = dialog.getByTestId(`trade-team-card-${move.from}`);
+      await card
+        .getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i })
+        .click();
+      await card
+        .locator(`[data-entitlement-id="${move.id}"]`)
+        .getByRole('button', { name: '•••' })
+        .click();
+      await page
+        .getByRole('button', {
+          name: `Trade to ${names[move.to]}`,
+          exact: true,
+        })
+        .click();
+    }
+    await dialog
+      .getByRole('button', { name: 'Close Trade Machine', exact: true })
+      .click();
+    await openDashboardTab(page, 'Trade Machine');
+    for (const team of Object.keys(names))
+      await expect(dialog.getByTestId(`trade-team-card-${team}`)).toBeVisible();
+    await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+    await expect(
+      dialog.getByRole('button', { name: /^Apply Trade$/i })
+    ).toBeEnabled({ timeout: 120000 });
+    expect(await completeConditionalState(worldId)).toEqual(beforePreparation);
+    await capture(page, `original-${stage}-proposal`);
+    if (!returned) {
+      await dialog.getByTestId('trade-summary-button').click();
+      await expect(
+        page.getByTestId('trade-export-simulation-notice').last()
+      ).toContainText('not verified NBA');
+      for (const [team, years] of [
+        ['CHI', [2029]],
+        ['CHA', [2028, 2029]],
+        ['TOR', [2030]],
+      ] as const) {
+        const exported = page
+          .getByRole('heading', { name: names[team], exact: true })
+          .last()
+          .locator('xpath=ancestor::div[contains(@class,"shrink-0")][1]');
+        for (const year of [2028, 2029, 2030])
+          await expect(
+            exported.getByText(`${year} R1`, { exact: true })
+          ).toHaveCount((years as readonly number[]).includes(year) ? 1 : 0);
+      }
+      const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        page.getByRole('button', { name: 'Download', exact: true }).click(),
+      ]);
+      await download.saveAs(path.join(proofDir, 'original-export.png'));
+      await page.getByTitle('Close', { exact: true }).click();
+    }
+    await dialog.getByRole('button', { name: /^Apply Trade$/i }).click();
+    await expect
+      .poll(async () => (await root.collection('events').get()).size, {
+        timeout: 120000,
+      })
+      .toBe(returned ? 2 : 1);
+    await expect(dialog).toBeHidden();
+    const saved = await completeConditionalState(worldId);
+    expect(saved.players).toEqual(before.players);
+    expect(saved.children.find((c) => c.name === 'contractBaselines')).toEqual(
+      before.children.find((c) => c.name === 'contractBaselines')
+    );
+    const ents = saved.children.find((c) => c.name === 'entitlements')!.docs;
+    expect(ents.map((e) => e.id)).toEqual(originals.map((e) => e.id));
+    expect(ents).toHaveLength(278);
+    expect(saved.metadata.draftSimulationUnresolved).toEqual(
+      catalogue.data.unresolved
+    );
+    expect(catalogue.data.unresolved).toHaveLength(29);
+    for (const e of ents) {
+      const prior = originals.find((p) => p.id === e.id)!;
+      const move = moves.find((m) => m.id === e.id);
+      expect(e.data).toEqual({
+        ...prior.data,
+        holderTeam: move?.to ?? prior.data.holderTeam,
+      });
+    }
+    const events = saved.children.find((c) => c.name === 'events')!.docs;
+    const latest = events.find((e) =>
+      e.data.metadata?.draftReviewReceipt?.movements.every((m: any) =>
+        moves.some(
+          (r) =>
+            r.id === m.entitlementId &&
+            r.from === m.fromTeam &&
+            r.to === m.toTeam
+        )
+      )
+    );
+    expect(latest?.data.metadata.draftReviewReceipt.movements).toHaveLength(4);
+    for (const team of Object.keys(names)) {
+      const current = saved.children
+        .find((c) => c.name === 'teams')!
+        .docs.find((t) => t.id === team)!.data;
+      const prior = before.children
+        .find((c) => c.name === 'teams')!
+        .docs.find((t) => t.id === team)!.data;
+      expect(current.roster).toEqual(prior.roster);
+      // The shared writer normalizes roster projections and attaches reviewed
+      // salary metadata. Compare actual membership/terms, not raw display keys.
+      const playerTerms = (players: any[]) =>
+        players.map((p) => ({
+          id: p.playerId,
+          teamCode: p.teamCode,
+          isTwoWay: !!p.isTwoWay,
+          contractId: p.contract?.contractId,
+          salaries: p.contract?.salariesByYear,
+          startSeason: p.contract?.startSeason,
+          endSeason: p.contract?.endSeason,
+          freeAgency: p.contract?.freeAgency,
+          birdRights: p.contract?.birdRights,
+          tradeKicker: p.contract?.tradeKicker,
+          noTradeClause: p.contract?.noTradeClause,
+        }));
+      expect(playerTerms(current.players)).toEqual(playerTerms(prior.players));
+      for (const book of ['teamSalary', 'taxSalary', 'apronTeamSalary'])
+        expect(current.totals[book]).toBe(prior.totals[book]);
+      expect([...current.entitlementIds].sort()).toEqual(
+        ents
+          .filter((e) => e.data.holderTeam === team)
+          .map((e) => e.id)
+          .sort()
+      );
+      await page.goto(`/gm/${team}?season=2026`);
+      await page.reload();
+      await openDashboardTab(page, 'Roster');
+      await openDashboardTab(page, 'Full Cap Table');
+      await expect(
+        page
+          .locator(`[data-team-salary="${prior.totals.teamSalary}"]`)
+          .first()
+      ).toBeVisible();
+      await openDashboardTab(page, 'Team History');
+      const rows = page
+        .getByTestId('team-history-section-timeline')
+        .getByRole('button', { name: /Trade Executed:/ });
+      await expect(rows).toHaveCount(returned ? 2 : 1);
+      await rows.first().click();
+      await expect(page.getByTestId('team-history-detail-modal')).toContainText(
+        'first-round pick'
+      );
+      await capture(page, `original-${stage}-${team}-history`);
+      await page.getByTestId('team-history-detail-close').click();
+      await openDashboardTab(page, 'Compare');
+      await expect(page.getByTestId('comparison-event-count')).toContainText(
+        new RegExp(`${returned ? 2 : 1}\\s+saved move`)
+      );
+      if (!returned)
+        await expect(
+          page.getByText(
+            team === 'TOR'
+              ? 'CHI 2030 first-round pick'
+              : 'CHI 2028 first-round pick',
+            { exact: true }
+          )
+        ).toBeVisible();
+      await capture(page, `original-${stage}-${team}-compare`);
+      const expand = page.getByRole('button', { name: 'Expand activity rail' });
+      if (await expand.isVisible()) await expand.click();
+      await expect(
+        page.getByTestId('cockpit-activity-rail-save-indicator')
+      ).toHaveAttribute('data-save-status', 'saved');
+      await page.getByTestId('cockpit-activity-rail-assets-open').click();
+      for (const move of moves.filter((m) => m.to === team)) {
+        const original = catalogue.data.records.find(
+          (r) => r.entitlementId === move.id
+        )!.originalPick!;
+        await expect(
+          page.getByTestId(
+            `cockpit-assets-panel-picks-${original.draftYear}-first`
+          )
+        ).toContainText(
+          original.originalTeam === team ? 'Own' : original.originalTeam
+        );
+      }
+      await capture(page, `original-${stage}-${team}-assets`);
+      await page.keyboard.press('Escape');
+    }
+    expect(await completeConditionalState(worldId)).toEqual(saved);
+  }
+  expect(await sources()).toBe(sourceBefore);
+  receipt('original-proof', {
+    candidate: process.env.SCOUTZERO_PROOF_CANDIDATE,
+    scope: 'governed-simulation-only',
+    packageSha256: createHash('sha256')
+      .update(fs.readFileSync(process.env.SCOUTZERO_DRAFT_REVIEW_RELEASE!))
+      .digest('hex'),
+    explicitRoutes: routes,
+    splitDestinations: true,
+    returnTrade: true,
+    allThreeTeamsReloaded: true,
+    catalogue: 278,
+    unresolved: 29,
+    sourceUnchanged: true,
+  });
+});
 
 test('mixed conditional operations fail closed with complete world no-write checks', async ({
   page,
@@ -590,7 +946,11 @@ test('mixed conditional operations fail closed with complete world no-write chec
   test.setTimeout(900000);
   const uid = await conditionalLogin(page);
   const worldId = `mixed_conditional_negative_${Date.now()}`;
-  const { program, catalogue } = await seedMixedConditionalWorld(uid, worldId);
+  const { program, catalogue } = await seedMixedConditionalWorld(
+    uid,
+    worldId,
+    true
+  );
   const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
   const original = await completeConditionalState(worldId);
   const sourceBefore = await sources();
@@ -623,10 +983,13 @@ test('mixed conditional operations fail closed with complete world no-write chec
   const adverse = catalogue.data.records.find(
     (r) => r.originalPick?.id === 'CHI_2028_1st'
   )!.entitlementId;
-  const branchFailure = await prepareMixedConditional(page, uid, worldId, [
-    ...ids,
-    adverse,
-  ]);
+  const branchFailure = await prepareMixedConditional(
+    page,
+    uid,
+    worldId,
+    [...ids, adverse],
+    'adverse-fallback'
+  );
   expect(branchFailure.status).toBe('blocked');
   expect(JSON.stringify(branchFailure)).toMatch(
     /stepien|consecutive|future first/i
@@ -672,28 +1035,41 @@ test('mixed conditional operations fail closed with complete world no-write chec
   }
   for (const targetPath of [
     'teams/CHI',
+    'teams/TOR',
     'teams/CHA/players/tre_jones',
     `entitlements/${ids[0]}`,
   ]) {
-    expect(
-      await prepareMixedConditional(page, uid, worldId, ids)
-    ).toMatchObject({ legal: true });
+    // Each failed apply leaves the same reviewed snapshot unused. Restore it
+    // exactly between probes, and require the stale-state reason so a consumed
+    // permission or duplicate-operation error cannot make later probes vacuous.
+    expect(await conditionalStateDigest(worldId)).toBe(pristine);
     const ref = root
       .collection(targetPath.split('/')[0])
       .doc(targetPath.split('/').slice(1).join('/'));
     const prior = await ref.get();
     await ref.set({ ...(prior.data() ?? {}), changedAfterValidation: true });
     const changed = await conditionalStateDigest(worldId);
-    expect((await applyMixedConditional(page)).success).toBe(false);
+    const staleResult = await applyMixedConditional(page);
+    expect(staleResult.success).toBe(false);
+    expect(JSON.stringify(staleResult)).toMatch(
+      /state.*changed|snapshot|stale/i
+    );
     expect(await conditionalStateDigest(worldId)).toBe(changed);
     if (prior.exists) await ref.set(prior.data()!);
     else await ref.delete();
   }
-  for (const mode of ['missing-finance', 'hard-cap', 'roster']) {
-    const ref = root.collection('teams').doc('CHI');
+  for (const mode of [
+    'missing-finance',
+    'missing-third-finance',
+    'hard-cap',
+    'roster',
+  ]) {
+    const ref = root
+      .collection('teams')
+      .doc(mode === 'missing-third-finance' ? 'TOR' : 'CHI');
     const prior = (await ref.get()).data()!;
     const changed = structuredClone(prior);
-    if (mode === 'missing-finance') delete changed.salaryBookInputs;
+    if (mode.includes('finance')) delete changed.salaryBookInputs;
     if (mode === 'hard-cap')
       changed.salaryBookInputs.apronAdjustments.lineItems[0].amount += 50000000;
     if (mode === 'roster') {
@@ -706,7 +1082,7 @@ test('mixed conditional operations fail closed with complete world no-write chec
       });
       changed.roster.push('extra-two-way');
     }
-    if (mode !== 'missing-finance')
+    if (!mode.includes('finance'))
       changed.totals = createCanonicalTeamTotalsSnapshot(changed, 2026, {
         asOfDate: '2026-06-05',
       });

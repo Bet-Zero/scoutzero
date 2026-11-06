@@ -12,6 +12,10 @@ production permissions, or the Architect V1 completion boundary.
   shared multi-Contract support across already-admitted mixed trades, implemented
   in [PR #613](https://github.com/Bet-Zero/scoutzero/pull/613). Its live PR retains
   the exact candidate, proof, independent review and landing status.
+- [BZE-341](https://linear.app/bzero/issue/BZE-341) / [PR #614](https://github.com/Bet-Zero/scoutzero/pull/614)
+  addresses shared participants and explicit first-round destinations (C2/C3).
+  Its live PR records verification and landing status; C4/C5 and activation stay
+  separate. No further trade variation starts automatically after this delivery.
 - The [V1 completion contract](../../docs/agent-guides/architect-v1-completion-contract.md)
   defines what must be finished. This plan does not replace or reduce it.
 - [AGENTS.md](../../AGENTS.md),
@@ -97,8 +101,8 @@ permission to remove it or proof that every combination behind it is NBA-legal.
 | ID | Current finding and evidence | Disposition |
 | --- | --- | --- |
 | C1 | BZE-340 / [PR #613](https://github.com/Bet-Zero/scoutzero/pull/613) carries complete ordinary Contract collections through the shared adapter, existing matching/aggregation, explicit routes, atomic saving, receipts and replay. Native/swap records no longer impose a three-player total or one player per sender. Original/protection receipts already retain collections in their existing financial/Contract format. | Implemented across the four currently admitted mixed paths, with several outgoing counts and failure/replay tests. Protected browser journeys cover split destinations, six-player packages and affected lifecycles; the PR records exact-head certification, CI, independent review and landing gates. No normal-product activation, new source/term admission or V1 closure. See [execution evidence](BZE-340_EXECUTION.md). |
-| C2 | `draftReview/simulationReview.ts` admits three participants for resolved 2028 selections and ordered 2026 swaps, but not the original/protection paths. `nativeTrading.ts` restricts mixed players to the 2028 native family. | Existing family/team restrictions. Classify exact source/admission versus reusable implementation limits; group confirmed structural repairs, not one issue per year or team permutation. |
-| C3 | `simulationReview.ts` requires one first-round recipient per sender; native selection-only transfers remain bilateral. | Routing/consideration representation boundary. Trace the existing rule and its evidence before changing it. Do not declare unsupported routing illegal merely because of this format. |
+| C2 | BZE-341 / [PR #614](https://github.com/Bet-Zero/scoutzero/pull/614) uses `draftReview/transactionRouting.ts` across original/protection, admitted native selection and ordered-swap preparation/replay. Original/protection transactions admit two or three genuine participants; a third participant need not send a player. Complete financial, ownership and post-trade Stepien evaluation includes conditional original obligors. | Shared implementation completed in the PR; its verification/landing record is authoritative. V1 stays at two/three teams. Ordered-swap return ownership, reserved fallback/pool selections, exact source/date admission and native chronology remain. Ranked 2029 has two actual holders and still excludes mixed players; legacy 2027/apron mechanism admission stays bilateral. Those remaining mechanism/proof dependencies are not NBA team-count rules. See [classification and proof](BZE-341_EXECUTION.md). |
+| C3 | BZE-341 adds explicit per-first destinations to consideration facts while retaining historical single-recipient facts. The shared writer and receipts preserve each route; native and ordered-swap pick-only exchanges can have three genuine participants when admitted holdings supply the consideration. | The one-first-recipient-per-sender format limit is removed. Whole-deal review replaces independent bilateral decomposition; staged/exported routes, atomic saving, replay and affected-team history use the same destinations. New shared event player routes keep a pick-only participant’s Compare roster accurate; historical records remain readable. Cash sales, invented ownership, self/duplicate/out-of-scope routes and neutral participants remain blocked. Normal-product activation and compatible-right composition are separate. |
 | C4 | `draftPickReviewMutation.ts` separates native, protection and unresolved-swap programs. | Cross-program composition is not established by testing each alone. Identify actual required combinations and interacting claims from retained rights; never infer compatibility or invent hypothetical pools. |
 | C5 | The mixed adapter excludes several ordinary-player mechanisms or bases that exist elsewhere, including sign-and-trade, Two-Way, held-exception and poison-pill cases. | Classify against the accepted workflow contract and existing proof. These are not blanket new V1 exclusions and are not all added to BZE-340. Do not reopen completed player-only work without a demonstrated defect. |
 | C6 | `draftReview/capability.ts`, `draftPickRealReview.ts` and `tradeMachine/rules/validateStepien.ts` separate protected software execution from normal first-round permission. | Real-data adoption/integration and release remain separate work. Do not enable the product by deleting the environment check or treating test assumptions as NBA facts. |
@@ -115,10 +119,10 @@ implemented, legal, illegal, or out of scope.
 ## Stage 1: shared multi-Contract support
 
 Implementation is in PR #613. The requirements below remain its acceptance
-boundary; they are not an instruction to restart completed work. C2–C5 are the
-next structural requirements to classify by their shared cause, with C6–C7
-retaining real-data and required-transition dependencies. Do not automatically
-start another transaction variation after BZE-340.
+boundary; they are not an instruction to restart completed work. BZE-341 addresses
+C2/C3. C4 compatible-right composition is the next shared requirement to establish
+from retained terms; C5 remains separate. C6–C7 retain real-data and required
+transition dependencies. Do not automatically start another transaction variation.
 
 Execute BZE-340 rather than create a competing issue. Its bounded target is the
 currently admitted original-first, protection/fallback, resolved-2028-selection

@@ -649,6 +649,11 @@ export type EntitlementUpdateLike = {
 };
 export type TradeMutationMetadata = {
   type: 'trade';
+  playerMovements?: Array<{
+    playerId: string;
+    sourceTeamCode: string;
+    destinationTeamCode: string;
+  }>;
   teamsInvolved: Array<string | null | undefined>;
   playersTraded: Array<string | null | undefined>;
   entitlementsTraded?: TradeEntitlementsMovedByTeam;

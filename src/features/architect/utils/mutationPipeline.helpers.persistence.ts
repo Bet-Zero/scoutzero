@@ -258,7 +258,12 @@ export function buildTradePlayerPersistenceManifest({
   currentState: TradeContextCurrentState;
   teamUpdates: ArchitectMutationTeamUpdate[];
 }):
-  | { success: true; playerUpdates: PlayerUpdateLike[]; playerDeletes: PlayerDeleteLike[] }
+  | {
+      success: true;
+      playerUpdates: PlayerUpdateLike[];
+      playerDeletes: PlayerDeleteLike[];
+      playerMovements: TradePlayerMoveCandidate[];
+    }
   | { success: false; error: string } {
   const tradeTeams = Array.isArray(payload.teams) ? payload.teams : [];
   const payloadTeamCodes: string[] = [];
@@ -273,7 +278,8 @@ export function buildTradePlayerPersistenceManifest({
   if (payloadTeamCodes.length !== tradeTeams.length) {
     return {
       success: false,
-      error: 'Trade player persistence manifest could not resolve all source team codes.',
+      error:
+        'Trade player persistence manifest could not resolve all source team codes.',
     };
   }
 
@@ -320,12 +326,16 @@ export function buildTradePlayerPersistenceManifest({
       }
 
       if (!existing) {
-        moveCandidates.set(playerId, { playerId, sourceTeamCode, destinationTeamCode });
+        moveCandidates.set(playerId, {
+          playerId,
+          sourceTeamCode,
+          destinationTeamCode,
+        });
       }
     }
   }
 
-  return buildCanonicalPlayerPersistenceManifest({
+  const manifest = buildCanonicalPlayerPersistenceManifest({
     teamUpdates,
     candidates: Array.from(moveCandidates.values()).map((move) => ({
       ...move,
@@ -333,4 +343,7 @@ export function buildTradePlayerPersistenceManifest({
     })),
     manifestLabel: 'Trade player persistence manifest',
   });
+  return manifest.success
+    ? { ...manifest, playerMovements: [...moveCandidates.values()] }
+    : manifest;
 }

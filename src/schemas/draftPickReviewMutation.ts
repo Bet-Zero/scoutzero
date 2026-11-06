@@ -1,3 +1,4 @@
+import { requireNoncashTradeRoutes } from '@/features/architect/utils/draftReview/transactionRouting';
 import {
   NativeDraftLifecycleZ,
   NativeSelectionTransfersZ,
@@ -181,6 +182,20 @@ export const DraftReviewMutationReceiptZ = z
           swap.steps.find((s) => s.rightId === swap.tradedRightId)?.controllerId
       );
       const move = options[0];
+      const routes = [...receipt.movements, ...(receipt.playerMovements ?? [])];
+      try {
+        requireNoncashTradeRoutes(
+          [...new Set(routes.flatMap((m) => [m.fromTeam, m.toTeam]))],
+          routes
+        );
+      } catch {
+        ctx.addIssue({
+          code: 'custom',
+          message:
+            'Swap receipt requires complete explicit noncash participation.',
+        });
+      }
+
       if (receipt.playerMovements && swap) {
         const players = receipt.playerMovements;
         const consideration = [...players, ...receipt.movements];
