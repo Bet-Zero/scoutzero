@@ -124,6 +124,16 @@ the former 30-minute aggregate budget. Individual 600/900-second limits and all
 state/no-write assertions remain unchanged. Lightweight diagnostics precede
 clean, pushed, exact-head retained certification; failed runs are not acceptance.
 
+The first retained run at `6b39a2fc` failed a 15-second Full Cap Table navigation
+action after about 14 seconds elapsed between locating the tab and attempting
+the click. Its retained page snapshot already showed the selected table and
+correct saved team. That failed run was stopped and retained with clean teardown;
+it is not certification evidence. This journey now gives that navigation action
+30 seconds through the existing dashboard helper's optional click budget. The
+whole-case limits and subsequent view/state assertions remain unchanged. Both
+affected complete outcome diagnostics must pass again before replacement freeze
+and certification; untouched runtime checks remain scoped to the same code.
+
 Optional CodeRabbit review was unavailable under its repository eligibility
 policy. Optional Codex review completed without findings at `9ce9776e`; later
 changes are not represented as covered by that review. Automated independent

@@ -332,7 +332,10 @@ for (const position of [10, 11])
         await expect(
           page.getByAltText(new RegExp(`^${outgoing.name}$`, 'i'))
         ).toHaveCount(0);
-        await openDashboardTab(page, 'Full Cap Table');
+        // Retained tracing can spend most of the default 15-second action
+        // budget before delivering this navigation. Keep the complete case
+        // bound and every resulting-view assertion; allow the click to finish.
+        await openDashboardTab(page, 'Full Cap Table', { timeout: 30000 });
         await expect(
           page
             .getByRole('button', {

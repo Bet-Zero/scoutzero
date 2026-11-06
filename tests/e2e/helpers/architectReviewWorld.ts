@@ -747,10 +747,14 @@ export const prepareSeasonAdvanceReviewWorld = async (page: Page) => {
   return worldId;
 };
 
-export const openDashboardTab = async (page: Page, label: string) => {
+export const openDashboardTab = async (
+  page: Page,
+  label: string,
+  options: { timeout?: number } = {}
+) => {
   const tab = page.getByRole('tab', {
     name: new RegExp(`^${label}$`, 'i'),
   });
   await expect(tab).toBeVisible();
-  await tab.click();
+  await tab.click(options);
 };
