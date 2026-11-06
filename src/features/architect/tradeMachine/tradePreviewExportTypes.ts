@@ -47,6 +47,7 @@ export interface TradePreviewEntitlementLike {
   round?: string | number | null;
   kind?: string;
   termsShort?: string | null;
+  underlyingPickId?: string | number;
   originalTeam?: string | number;
   originTeamId?: string | number;
   fromTeamId?: string | number;

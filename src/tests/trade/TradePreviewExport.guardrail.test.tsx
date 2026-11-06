@@ -203,6 +203,38 @@ function findBackdrop(container: HTMLElement) {
 }
 
 describe('E99 TradePreviewModal guardrails', () => {
+  it('exports a retained original owned by another team with its original identity, not its sender', () => {
+    render(
+      <TradeExportCapture
+        teams={[
+          {
+            team: { id: 'BKN', teamName: 'Brooklyn Nets' },
+            sends: [],
+            entitlementsOut: [],
+          },
+          {
+            team: { id: 'WAS', teamName: 'Washington Wizards' },
+            sends: [],
+            entitlementsOut: [
+              {
+                id: 'retained-gsw',
+                kind: 'pick_ownership',
+                seasonYear: 2030,
+                round: 1,
+                underlyingPickId: 'GSW_2030_1st',
+                toTeamId: 'BKN',
+              },
+            ],
+          },
+        ]}
+        yearKey={2028}
+      />
+    );
+    const row = screen.getByText('2030 R1').closest('div.flex-col')!;
+    expect(row).toHaveTextContent('GSW original');
+    expect(row).toHaveTextContent('logo:GSW');
+    expect(row).not.toHaveTextContent('logo:WAS');
+  });
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();

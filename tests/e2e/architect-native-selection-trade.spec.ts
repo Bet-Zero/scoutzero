@@ -235,6 +235,12 @@ test('resolved selections can be traded twice through Trade Machine and recovere
           await expect(
             exported.getByText(`${pickYear} R1`, { exact: true })
           ).toHaveCount(1);
+        for (const original of name === 'Brooklyn Nets'
+          ? ['WAS', 'GSW']
+          : ['PHX', 'BKN'])
+          await expect(
+            exported.getByText(`${original} original`, { exact: true })
+          ).toBeVisible();
       }
       const [download] = await Promise.all([
         page.waitForEvent('download'),

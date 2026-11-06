@@ -14,6 +14,7 @@ import {
   normalizeEntitlementTerms,
 } from '@/features/architect/utils/entitlements/entitlementTerms';
 import { sanitizeEntitlement } from '@/features/architect/utils/entitlements/sanitizeVacuumMetadata';
+import { projectEntitlementToPickRow } from '@/features/architect/utils/entitlements/entitlementPickRowProjection';
 import type {
   IncomingTradeAssets,
   TradeExportCaptureProps,
@@ -283,6 +284,13 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
                           {entitlements.length ? (
                             entitlements.map((e, i) => {
                               const badge = getEntitlementKindBadge(e.kind);
+                              // Use the same original identity as the pick rows.
+                              // A pick's current sender need not be its original team.
+                              const originalTeam = projectEntitlementToPickRow({
+                                id: e.id,
+                                originalTeam: e.originalTeam ?? e.originTeamId,
+                                underlyingPickId: e.underlyingPickId,
+                              }).originalTeam;
                               const termsShort = swapProgram?.tradedRightId === (e.entitlementId ?? e.id)
                                 ? 'Swap option — governed terms and priority listed above'
                                 : typeof e.termsShort === 'string'
@@ -301,6 +309,11 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
                                       <span>
                                         {e.seasonYear} R{e.round}
                                       </span>
+                                      {originalTeam !== 'UNK' && (
+                                        <span className="text-[10px] text-neutral-400">
+                                          {originalTeam} original
+                                        </span>
+                                      )}
                                       <span
                                         className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${badge.colorClass}`}
                                       >
@@ -309,6 +322,7 @@ const TradeExportCapture = React.forwardRef<HTMLDivElement, TradeExportCapturePr
                                     </div>
                                     <TeamLogo
                                       teamId={
+                                        (originalTeam !== 'UNK' ? originalTeam : undefined) ||
                                         e.originalTeam ||
                                         e.originTeamId ||
                                         e.fromTeamId
