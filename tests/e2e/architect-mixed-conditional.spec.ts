@@ -27,7 +27,9 @@ import { retainedSimulationEntitlement } from '@/features/architect/utils/draftR
 
 test.use({
   viewport: { width: 1280, height: 720 },
-  actionTimeout: 15000,
+  // Retained tracing can consume most of a 15-second navigation budget before
+  // delivering input. Keep bounded actions and every resulting-state check.
+  actionTimeout: 30000,
   trace: 'on',
 });
 test.setTimeout(600000);
@@ -334,10 +336,7 @@ for (const position of [10, 11])
         await expect(
           page.getByAltText(new RegExp(`^${outgoing.name}$`, 'i'))
         ).toHaveCount(0);
-        // Retained tracing can spend most of the default 15-second action
-        // budget before delivering this navigation. Keep the complete case
-        // bound and every resulting-view assertion; allow the click to finish.
-        await openDashboardTab(page, 'Full Cap Table', { timeout: 30000 });
+        await openDashboardTab(page, 'Full Cap Table');
         await expect(
           page
             .getByRole('button', {
@@ -511,7 +510,7 @@ for (const position of [10, 11])
       await page.reload();
       await openDashboardTab(page, 'Roster');
       await capture(page, `${position}-${stage}-TOR-roster`);
-      await openDashboardTab(page, 'Full Cap Table', { timeout: 30000 });
+      await openDashboardTab(page, 'Full Cap Table');
       await expect(
         page.locator('[data-team-salary="30000000"]').first()
       ).toBeVisible();
@@ -797,7 +796,7 @@ test('three-team original firsts preserve split destinations through staging, ex
     await dialog.getByRole('button', { name: /^Apply Trade$/i }).click();
     await expect
       .poll(async () => (await root.collection('events').get()).size, {
-        timeout: 60000,
+        timeout: 120000,
       })
       .toBe(returned ? 2 : 1);
     await expect(dialog).toBeHidden();
@@ -870,15 +869,11 @@ test('three-team original firsts preserve split destinations through staging, ex
       await page.reload();
       await openDashboardTab(page, 'Roster');
       await openDashboardTab(page, 'Full Cap Table');
-      await expect
-        .poll(() =>
-          page
-            .locator('[data-team-salary]')
-            .evaluateAll((els) =>
-              els.map((e) => Number(e.getAttribute('data-team-salary')))
-            )
-        )
-        .toContain(prior.totals.teamSalary);
+      await expect(
+        page
+          .locator(`[data-team-salary="${prior.totals.teamSalary}"]`)
+          .first()
+      ).toBeVisible();
       await openDashboardTab(page, 'Team History');
       const rows = page
         .getByTestId('team-history-section-timeline')

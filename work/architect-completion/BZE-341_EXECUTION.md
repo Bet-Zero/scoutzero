@@ -128,8 +128,8 @@ The first retained run at `6b39a2fc` failed a 15-second Full Cap Table navigatio
 action after about 14 seconds elapsed between locating the tab and attempting
 the click. Its retained page snapshot already showed the selected table and
 correct saved team. That failed run was stopped and retained with clean teardown;
-it is not certification evidence. This journey now gives that navigation action
-30 seconds through the existing dashboard helper's optional click budget. The
+it is not certification evidence. The shared browser suite now gives actions
+30 seconds through its existing Playwright configuration. The
 whole-case limits and subsequent view/state assertions remain unchanged. Both
 affected complete outcome diagnostics must pass again before replacement freeze
 and certification; untouched runtime checks remain scoped to the same code.
@@ -147,6 +147,16 @@ the native salary assertions. Save observation now uses the existing 120-second
 UI-validation budget; it still requires exactly one event, all saved state and
 the unchanged whole-case limit. The earlier successful observation within 60
 seconds remains stronger iteration evidence for that unchanged operation.
+The replacement certificate at `4c4365e7` passed both complete conditional cases,
+then exposed the same 60-second observation limit in the original-only case.
+Its retained snapshot showed Apply still in progress; the saved world later
+contained one receipt with no player routes and all four intended pick holders.
+That incomplete certificate was also stopped and retained as failed with clean
+teardown. The original/return journey now uses the same 120-second observation
+window and native visible-salary assertions. These settings are common to the
+shared browser workflows, not team-specific runtime changes. Its complete
+diagnostic must pass before replacement freeze; unaffected conditional and
+negative evidence is reused within its actual scope.
 
 Optional CodeRabbit review was unavailable under its repository eligibility
 policy. Optional Codex review completed without findings at `9ce9776e`; later
