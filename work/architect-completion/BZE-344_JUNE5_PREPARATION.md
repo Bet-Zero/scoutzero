@@ -125,7 +125,7 @@ access is a real prerequisite; no owner relay is needed for routine code review.
 ## Exact private delivery and recovery
 
 Local candidate directory:
-`/workspace/work/scoutzero-c6-implementation/candidate-r6/`.
+`/workspace/work/scoutzero-c6-implementation/candidate-r7/`.
 Local archive: `/workspace/output/june5-draft-starting-state-candidate.tar.gz`.
 These are working/task files, **not verified durable storage**.
 
@@ -134,7 +134,7 @@ These are working/task files, **not verified durable storage**.
 | `candidate.json` (14,295,235 bytes) | `c6493e5aa1554abcd85fa3ac2922e030104c223186028fc8f45beb5613fa3108` |
 | `world-preparation.json` (22,366,065 bytes) | `e01fd2c6cbb9566b98c4caeb1d6ccc89332f395dc20961cf270ff486b5b834ae` |
 | `ownership-anchor-preview.json` (4,355 bytes) | `40305e8a60c7baea7644f9a2cd804c99015a6f821312b9cedef307d8e07087cf` |
-| Candidate archive (6,654,660 bytes) | `8c1853b407de6a42a0070671ac6a2d8a318b782bcfc962e7dc7303a1a198fd72` |
+| Candidate archive (6,654,967 bytes) | `4751d71f04b7834bf5d264bd49e3322b16afba4ae0663e1b4d9cbd235c9aea5a` |
 
 The archive includes `RECOVERY.md`, exact member/source manifests, compiler,
 private value bindings, four retained acceptance comments and local source/failure verification receipts.
@@ -161,3 +161,23 @@ financial and branch inputs above; those factual gaps cannot be approved away.
 The prior automatic-review denial of private archive export to Linear remains
 in force. This delivery exports no private package and requests no production
 activation. Stop here; no next investigation or implementation starts automatically.
+
+## Output-alias repair in the same delivery
+
+After PR #618 landed, a focused author check found that the CLI checked the
+spelled destination for `public` but could lose that component when its parent
+was a symlink. The accepted parent was shown to reach the deliberately missing
+evidence read through a symlink to a temporary public directory; no source data
+was used or written. The guard now checks both the canonical parent and spelled
+destination before evidence access. Two focused CLI regressions cover that alias,
+a public destination name and an alias into the repository.
+
+Candidate, world-preparation and ownership-preview bytes remain identical to
+PR #618. Only the bundled compiler and repair receipt change the archive hash.
+The prior archive is retained at
+`/workspace/work/scoutzero-c6-implementation/candidate-r6.tar.gz`, SHA-256
+`8c1853b407de6a42a0070671ac6a2d8a318b782bcfc962e7dc7303a1a198fd72`.
+The original 12 preparation tests, source checks and bounded independent review
+remain applicable to unchanged behavior; the follow-up PR records the focused
+repair checks and fresh exact-candidate independent review. No new source claim,
+adoption or activation is introduced by this repair.
