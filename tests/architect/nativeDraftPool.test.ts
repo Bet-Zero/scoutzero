@@ -376,7 +376,8 @@ function transfer(operationId = 'trade-one'): NativeSelectionTransfer {
 function tradeReceipt(
   p = resolved(),
   history: NativeSelectionTransfer[] = [],
-  move = transfer()
+  move = transfer(),
+  admittedLifecycle = lifecycle
 ) {
   return DraftReviewMutationReceiptZ.parse({
     scope: 'governed-simulation-only',
@@ -396,17 +397,99 @@ function tradeReceipt(
       branchMode: 'native-selections',
       nativeTrade: {
         program: p,
-        lifecycle,
+        lifecycle: admittedLifecycle,
         resolutionOperationId: 'resolve',
         transfers: history,
       },
-      tradingWindow: nativeTradeDate(p, lifecycle, history, move.asOfDate),
+      tradingWindow: nativeTradeDate(
+        p,
+        admittedLifecycle,
+        history,
+        move.asOfDate
+      ),
       ownership: 'stipulated-for-software-tests',
       otherHoldings: 'unknown-not-empty',
     },
   });
 }
 describe('resolved native selections remain distinct from their claim history', () => {
+  it('authenticates composed-original receipt history and reports the outside-pool original team without inventing a final position', () => {
+    const p = resolved();
+    const composed = {
+      ...lifecycle,
+      retainedFirstIds: ['independent'],
+      originalSelections: [
+        {
+          entitlementId: 'independent',
+          originalTeam: 'FFF',
+          year: 2031,
+          holderTeam: 'EEE',
+        },
+      ],
+    };
+    const next = transfer();
+    next.movements[1] = {
+      ...next.movements[1],
+      entitlementId: 'independent',
+      originalTeam: 'FFF',
+      year: 2031,
+    };
+    const r = tradeReceipt(p, [], next, composed);
+    const resolution = DraftSwapReceiptZ.parse({
+      scope: 'governed-simulation-only',
+      worldId: 'world',
+      operationId: 'resolve',
+      catalogueSha256: REAL_DRAFT_REVIEW_PIN.payloadSha256,
+      before: program,
+      after: p,
+      movements: program.slots.map((s) => ({
+        entitlementId: s.entitlementId,
+        originalTeam: s.originalTeam,
+        year: 2029,
+        round: 1,
+        assetKind: 'pick_ownership',
+        fromTeam: s.holderTeam,
+        toTeam: p.result!.allocation[s.entitlementId],
+      })),
+      draftYear: 2029,
+      date: '2029-06-20',
+      nativeLifecycle: composed,
+    });
+    const rows = [
+      {
+        mutationType: 'draftConveyance',
+        raw: {
+          operationId: 'resolve',
+          metadata: { swapDraftReceipt: resolution },
+        },
+      },
+      {
+        mutationType: 'executeTrade',
+        raw: {
+          operationId: next.operationId,
+          metadata: { draftReviewReceipt: r },
+        },
+      },
+    ] as ComparisonEventRow[];
+    expect(deriveDraftAssetDelta(rows, 'world', 'FFF')?.restrictions).toContain(
+      'FFF 2031 first: held by DDD'
+    );
+    expect(
+      deriveDraftAssetDelta(rows, 'world', 'DDD')?.additions.map(
+        (a) => a.entitlementId
+      )
+    ).toContain('independent');
+    const forged = structuredClone(rows);
+    Reflect.get(
+      forged[0].raw!.metadata!,
+      'swapDraftReceipt'
+    ).nativeLifecycle.originalSelections[0].holderTeam = 'DDD';
+    expect(deriveDraftAssetDelta(forged, 'world', 'FFF')).toBeNull();
+    expect(() => tradeReceipt(p, [], next)).toThrow();
+    const altered = structuredClone(r);
+    altered.movements[1].year = 2032;
+    expect(DraftReviewMutationReceiptZ.safeParse(altered).success).toBe(false);
+  });
   it('does not invent a third holder or admit Contracts for the ranked 2029 pool', () => {
     const p = resolved();
     expect([...new Set(Object.values(p.result!.allocation))].sort()).toEqual([

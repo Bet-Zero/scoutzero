@@ -2,6 +2,8 @@ import { requireNoncashTradeRoutes } from './transactionRouting';
 import {
   NativeDraftLifecycleZ,
   NativeSelectionTransfersZ,
+  NativeOriginalSelectionsZ,
+  type NativeOriginalSelection,
 } from '@/schemas/draftNativeTrading';
 import type { DraftClaimProgram } from '@/schemas/draftSwapProgram';
 import { reviewSimulationDraftWindow } from './horizon';
@@ -37,7 +39,13 @@ export function nativeLifecycle(input: unknown, year: number) {
       lifecycle.retainedFirstIds.length ||
     new Set(
       lifecycle.softwareRetainedFirsts.map((w) => `${w.team}:${w.draftYear}`)
-    ).size !== lifecycle.softwareRetainedFirsts.length
+    ).size !== lifecycle.softwareRetainedFirsts.length ||
+    (lifecycle.originalSelections ?? []).some(
+      (s) =>
+        !lifecycle.retainedFirstIds.includes(s.entitlementId) ||
+        s.year < window.firstYear ||
+        s.year > window.lastYear
+    )
   )
     throw new Error(
       'Complete pre-draft claim-effective dates and distinct retained witnesses are required.'
@@ -48,14 +56,21 @@ export function nativeLifecycle(input: unknown, year: number) {
 /** Replay ownership only; never change the initial claim result or its positions. */
 export function nativeSelectionHolders(
   program: DraftClaimProgram,
-  history: unknown = []
+  history: unknown = [],
+  originalSelections?: NativeOriginalSelection[]
 ) {
   if (program.kind === 'ordered-swap-pool-v1' || !program.result)
     throw new Error(
       'Resolve the complete native claim before trading its selections.'
     );
   const transfers = NativeSelectionTransfersZ.parse(history);
-  const holders = { ...program.result.allocation };
+  const originals = nativeOriginalSelections(program, originalSelections);
+  const holders = {
+    ...program.result.allocation,
+    ...Object.fromEntries(
+      originals.map((s) => [s.entitlementId, s.holderTeam])
+    ),
+  };
   const seen = new Set<string>();
   let lastDate = '';
   for (const transfer of transfers) {
@@ -84,13 +99,14 @@ export function nativeSelectionHolders(
     );
     requireNoncashTradeRoutes([...parties], consideration);
     for (const move of transfer.movements) {
-      const slot = program.slots.find(
-        (s) => s.entitlementId === move.entitlementId
-      );
+      const slot = [
+        ...program.slots.map((s) => ({ ...s, year: program.year })),
+        ...originals,
+      ].find((s) => s.entitlementId === move.entitlementId);
       if (
         !slot ||
         move.originalTeam !== slot.originalTeam ||
-        move.year !== program.year ||
+        move.year !== slot.year ||
         ids.has(move.entitlementId) ||
         move.fromTeam === move.toTeam ||
         holders[move.entitlementId] !== move.fromTeam
@@ -103,6 +119,32 @@ export function nativeSelectionHolders(
     }
   }
   return holders;
+}
+
+/** This adds no claims to the native pool and never alters its allocation. */
+export function nativeOriginalSelections(
+  program: DraftClaimProgram,
+  input?: NativeOriginalSelection[]
+) {
+  const originals =
+    input === undefined ? [] : NativeOriginalSelectionsZ.parse(input);
+  const ids = originals.map((s) => s.entitlementId);
+  const picks = originals.map((s) => `${s.originalTeam}_${s.year}_1st`);
+  if (
+    new Set(ids).size !== ids.length ||
+    new Set(picks).size !== picks.length ||
+    originals.some((s) =>
+      program.slots.some(
+        (p) =>
+          p.entitlementId === s.entitlementId ||
+          (p.originalTeam === s.originalTeam && program.year === s.year)
+      )
+    )
+  )
+    throw new Error(
+      'Independent original selections must be distinct from every native pool claim.'
+    );
+  return originals;
 }
 
 export function nativeTradeDate(
@@ -154,6 +196,10 @@ export function nativeRetainedWitnesses(
   catalogue: import('./simulationInventory').SimulationCatalogue,
   entitlements: Record<string, Record<string, unknown>>
 ) {
+  const independent = nativeOriginalSelections(
+    program,
+    lifecycle.originalSelections
+  );
   const ids = new Set([
     ...lifecycle.retainedFirstIds,
     ...program.slots.map((s) => s.entitlementId),
@@ -166,6 +212,9 @@ export function nativeRetainedWitnesses(
   );
   if (
     originals.length !== ids.size ||
+    independent.some(
+      (s) => !lifecycle.retainedFirstIds.includes(s.entitlementId)
+    ) ||
     originals.some((r) => !r.originalPick || r.role !== 'original') ||
     lifecycle.softwareRetainedFirsts.some(
       (w) =>
@@ -180,6 +229,17 @@ export function nativeRetainedWitnesses(
       continue;
     const e = entitlements[row.entitlementId];
     const pick = row.originalPick!;
+    const admitted = independent.find(
+      (s) => s.entitlementId === row.entitlementId
+    );
+    if (
+      admitted &&
+      (admitted.originalTeam !== pick.originalTeam ||
+        admitted.year !== pick.draftYear)
+    )
+      throw new Error(
+        'Independent selection differs from its retained original identity.'
+      );
     if (
       !e ||
       e.kind !== 'pick_ownership' ||

@@ -250,9 +250,10 @@ receipt verification and read-only saved views. Old worlds are not migrated;
 their terms cannot authorize new draft operations. Unknown fingerprints and
 receipts that change governing versions fail closed.
 
-Use `--overlapping-trades` for two successive pre-draft selection exchanges
-following v2 resolution, including return ownership, all seven teams' saved
-views and no-write failures. It uses the same three private input variables as
+Use `--overlapping-trades` for two successive pre-draft exchanges combining
+resolved selections with separate unobligated originals, including staged
+close/reopen, export, return ownership, all eight affected teams' saved views
+and no-write failures. It uses the same three private input variables as
 `--overlapping-pool`. Claims must first resolve under explicit software dates,
 positions and exercises; subsequent trades still require current ownership,
 complete financial and Stepien inputs and a governed pre-draft window. Historical

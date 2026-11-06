@@ -1,4 +1,9 @@
 import { requireNativeSelectionTradeAdmission } from '@/features/architect/utils/draftReview/nativeTrading';
+import {
+  nativeSelectionHolders,
+  nativeRetainedWitnesses,
+  nativeLifecycle,
+} from '@/features/architect/utils/draftReview/nativeTrading';
 import { it, expect } from 'vitest';
 import { validateNativeTradeInventory } from '@/features/architect/utils/draftReview/nativeTradeInventory';
 import { validateNativeTradeApply } from '@/features/architect/utils/draftReview/nativeTradeApply';
@@ -217,4 +222,161 @@ it('requires separate admission for an unverified native transfer family', () =>
   expect(() =>
     requireNativeSelectionTradeAdmission({ ...fixture().program, year: 2028 })
   ).toThrow(/not yet admitted/);
+});
+
+function composedFixture() {
+  const f = fixture();
+  f.lifecycle.originalSelections = [
+    {
+      entitlementId: 'witness',
+      originalTeam: 'BKN',
+      year: 2031,
+      holderTeam: 'BKN',
+    },
+  ];
+  f.next.movements[1] = {
+    ...f.next.movements[1],
+    entitlementId: 'witness',
+    originalTeam: 'BKN',
+    year: 2031,
+  };
+  return f;
+}
+it('uses one current-owner ledger for resolved and independent originals, including a return', () => {
+  const f = composedFixture(),
+    original = structuredClone(f.program);
+  expect(validateNativeTradeInventory({ ...f, computed: computed(f) })).toEqual(
+    { valid: true }
+  );
+  const current = nativeSelectionHolders(
+    f.program,
+    [f.next],
+    f.lifecycle.originalSelections
+  );
+  expect(current).toMatchObject({ DAL: 'BKN', witness: 'HOU' });
+  const returned = {
+    ...f.next,
+    operationId: 'return',
+    movements: f.next.movements.map((m) => ({
+      ...m,
+      fromTeam: m.toTeam,
+      toTeam: m.fromTeam,
+    })),
+  };
+  expect(
+    nativeSelectionHolders(
+      f.program,
+      [f.next, returned],
+      f.lifecycle.originalSelections
+    )
+  ).toEqual({ ...f.program.result!.allocation, witness: 'BKN' });
+  expect(f.program).toEqual(original);
+  expect(() => nativeSelectionHolders(f.program, [f.next])).toThrow(
+    /original identity/
+  );
+  expect(() =>
+    nativeSelectionHolders(
+      f.program,
+      [returned],
+      f.lifecycle.originalSelections
+    )
+  ).toThrow(/current owner/);
+  expect(() =>
+    nativeSelectionHolders(
+      f.program,
+      [f.next, f.next],
+      f.lifecycle.originalSelections
+    )
+  ).toThrow(/duplicated/);
+});
+it.each([
+  'duplicate-id',
+  'duplicate-pick',
+  'pool-id',
+  'pool-pick',
+  'wrong-year',
+  'wrong-owner',
+  'not-retained',
+  'outside-window',
+])('rejects invalid composition admission: %s', (mode) => {
+  const f = composedFixture(),
+    originals = f.lifecycle.originalSelections!;
+  if (mode === 'duplicate-id')
+    originals.push({ ...originals[0], originalTeam: 'LAL' });
+  if (mode === 'duplicate-pick')
+    originals.push({ ...originals[0], entitlementId: 'other' });
+  if (mode === 'pool-id') originals[0].entitlementId = 'DAL';
+  if (mode === 'pool-pick')
+    Object.assign(originals[0], { originalTeam: 'DAL', year: 2029 });
+  if (mode === 'wrong-year') originals[0].year = 2030;
+  if (mode === 'wrong-owner') originals[0].holderTeam = 'HOU';
+  if (mode === 'not-retained') f.lifecycle.retainedFirstIds = [];
+  if (mode === 'outside-window') originals[0].year = 2036;
+  expect(() => {
+    nativeLifecycle(f.lifecycle, 2029);
+    validateNativeTradeInventory(f);
+  }).toThrow();
+});
+it.each([
+  'protection',
+  'encumbered',
+  'claim',
+  'unresolved',
+  'wrong-identity',
+  'not-retained',
+])('keeps independent original source admission closed for %s', (mode) => {
+  const f = composedFixture();
+  const records = Object.entries(f.entitlements)
+    .filter(([, e]) => e.kind === 'pick_ownership')
+    .map(([entitlementId, e]) => ({
+      entitlementId,
+      role: 'original',
+      originalPick: {
+        kind: 'authenticated-original-pick',
+        id: e.underlyingPickId,
+        originalTeam: String(e.underlyingPickId).slice(0, 3),
+        draftYear: e.seasonYear,
+        round: 1,
+      },
+    }));
+  const catalogue = {
+    data: { records, unresolved: [] as { entitlementIds: string[] }[] },
+  };
+  if (mode === 'protection')
+    f.entitlements.witness.protectionLadder = [
+      { year: 2031, condition: 'Top 10' },
+    ];
+  if (mode === 'encumbered')
+    f.entitlements.witness.underlyingStatus = 'encumbered';
+  if (mode === 'claim')
+    f.entitlements['archival-one'].swapControllerPickId = 'BKN_2031_1st';
+  if (mode === 'unresolved')
+    catalogue.data.unresolved.push({ entitlementIds: ['witness'] });
+  if (mode === 'wrong-identity')
+    f.lifecycle.originalSelections![0].originalTeam = 'LAL';
+  if (mode === 'not-retained') f.lifecycle.retainedFirstIds = [];
+  expect(() =>
+    nativeRetainedWitnesses(
+      f.program,
+      f.lifecycle,
+      catalogue as never,
+      f.entitlements
+    )
+  ).toThrow();
+});
+it('rejects partial computed composition and stale independent custody', () => {
+  const f = composedFixture(),
+    c = computed(f);
+  c.entitlementUpdates.pop();
+  expect(() => validateNativeTradeInventory({ ...f, computed: c })).toThrow(
+    /movements/
+  );
+  f.entitlements.witness.holderTeam = 'HOU';
+  f.teams.BKN.entitlementIds = f.teams.BKN.entitlementIds.filter(
+    (id) => id !== 'witness'
+  );
+  f.teams.HOU.entitlementIds.push('witness');
+  expect(() => validateNativeTradeInventory(f)).toThrow(
+    /Stale native ownership/
+  );
 });

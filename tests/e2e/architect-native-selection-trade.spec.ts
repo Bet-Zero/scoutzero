@@ -25,7 +25,7 @@ const termsPath = overlapping
   ? process.env.SCOUTZERO_DRAFT_OVERLAPPING_POOL
   : process.env.SCOUTZERO_DRAFT_NATIVE_POOL;
 const teams = overlapping
-  ? ['BKN', 'PHX', 'PHI', 'NYK', 'WAS', 'POR', 'MIL']
+  ? ['BKN', 'PHX', 'PHI', 'NYK', 'WAS', 'POR', 'MIL', 'GSW']
   : ['HOU', 'BKN', 'DAL', 'PHX'];
 
 test.use({
@@ -92,9 +92,9 @@ async function start(
     .not.toBe('');
   const uid = await readReviewUserId(page),
     worldId = `native_trade_${name}_${Date.now()}`;
-  const fixture = await (
-    overlapping ? seedOverlappingDraftPoolWorld : seedNativeDraftPoolWorld
-  )(uid, worldId, preDraft);
+  const fixture = overlapping
+    ? await seedOverlappingDraftPoolWorld(uid, worldId, preDraft, true)
+    : await seedNativeDraftPoolWorld(uid, worldId, preDraft);
   const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
   if (!completeStepien)
     await root.update({ 'draftNativeLifecycle.softwareRetainedFirsts': [] });
@@ -128,13 +128,20 @@ async function start(
   const ids = Object.fromEntries(
     fixture.program.slots.map((s) => [s.originalTeam, s.entitlementId])
   );
-  return { ...fixture, uid, worldId, root, ids, positions };
+  const originals = overlapping
+    ? ['BKN_2030_1st', 'GSW_2030_1st'].map(
+        (id) =>
+          fixture.catalogue.data.records.find((r) => r.originalPick?.id === id)!
+            .entitlementId
+      )
+    : [];
+  return { ...fixture, uid, worldId, root, ids, positions, originals };
 }
 
 test('resolved selections can be traded twice through Trade Machine and recovered in every affected view', async ({
   page,
 }) => {
-  const { worldId, root, ids, positions, catalogue } = await start(
+  const { worldId, root, ids, positions, catalogue, originals } = await start(
     page,
     'journey'
   );
@@ -189,11 +196,59 @@ test('resolved selections can be traded twice through Trade Machine and recovere
       pair[1],
       overlapping ? 'Brooklyn Nets' : 'Houston Rockets'
     );
+    if (overlapping) {
+      await select(
+        page,
+        dialog.getByTestId(`trade-team-card-${home}`),
+        originals[index],
+        'Washington Wizards'
+      );
+      await select(
+        page,
+        dialog.getByTestId(`trade-team-card-${away}`),
+        originals[1 - index],
+        'Brooklyn Nets'
+      );
+    }
+    if (overlapping) {
+      await dialog
+        .getByRole('button', { name: 'Close Trade Machine', exact: true })
+        .click();
+      await openDashboardTab(page, 'Trade Machine');
+    }
     await dialog.getByRole('button', { name: /^Validate Trade$/ }).click();
     await expect(
       dialog.getByRole('button', { name: /^Apply Trade$/ })
     ).toBeEnabled({ timeout: 120000 });
     await capture(page, `trade-${index}-legal`);
+    if (overlapping && index === 0) {
+      await dialog.getByTestId('trade-summary-button').click();
+      await expect(
+        page.getByTestId('trade-export-simulation-notice').last()
+      ).toContainText('not verified NBA');
+      for (const name of ['Brooklyn Nets', 'Washington Wizards']) {
+        const exported = page
+          .getByRole('heading', { name, exact: true })
+          .last()
+          .locator('xpath=ancestor::div[contains(@class,"shrink-0")][1]');
+        for (const pickYear of [2028, 2030])
+          await expect(
+            exported.getByText(`${pickYear} R1`, { exact: true })
+          ).toHaveCount(1);
+        for (const original of name === 'Brooklyn Nets'
+          ? ['WAS', 'GSW']
+          : ['PHX', 'BKN'])
+          await expect(
+            exported.getByText(`${original} original`, { exact: true })
+          ).toBeVisible();
+      }
+      const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        page.getByRole('button', { name: 'Download', exact: true }).click(),
+      ]);
+      await download.saveAs(path.join(proofDir, 'composed-export.png'));
+      await page.getByTitle('Close', { exact: true }).click();
+    }
     await dialog.getByRole('button', { name: /^Apply Trade$/ }).click();
     await expect
       .poll(async () => (await root.collection('events').get()).size, {
@@ -202,6 +257,21 @@ test('resolved selections can be traded twice through Trade Machine and recovere
       .toBe(index + 2);
     await expect(dialog).toBeHidden({ timeout: 30000 });
     await page.reload();
+    if (overlapping) {
+      expect(
+        (
+          await root.collection('entitlements').doc(originals[index]).get()
+        ).data()!.holderTeam
+      ).toBe(away);
+      expect(
+        (
+          await root
+            .collection('entitlements')
+            .doc(originals[1 - index])
+            .get()
+        ).data()!.holderTeam
+      ).toBe(home);
+    }
   }
   const holders: Record<string, string> = overlapping
     ? {
@@ -228,6 +298,16 @@ test('resolved selections can be traded twice through Trade Machine and recovere
             { exact: true }
           )
         ).toBeVisible();
+      if (overlapping) {
+        if (team === 'BKN')
+          await expect(
+            page.getByText('BKN 2030 first: held by BKN', { exact: true })
+          ).toBeVisible();
+        if (team === 'GSW' || team === 'WAS')
+          await expect(
+            page.getByText('GSW 2030 first: held by WAS', { exact: true })
+          ).toBeVisible();
+      }
       await capture(page, `${team}-${phase}`);
     }
     await openDashboardTab(page, 'Team History');
@@ -287,6 +367,8 @@ test('resolved selections can be traded twice through Trade Machine and recovere
       expect(row.data.holderTeam).toBe(
         holders[original as keyof typeof holders]
       );
+    if (originals.includes(row.id))
+      expect(row.data.holderTeam).toBe(old.data.holderTeam);
     const owner = after.children
       .find((c) => c.name === 'teams')!
       .docs.filter((t) => t.data.entitlementIds.includes(row.id));
@@ -307,19 +389,21 @@ test('resolved selections can be traded twice through Trade Machine and recovere
     views: teams.length * 5,
     preservedIdentities: 278,
     unresolved: 29,
+    independentOriginals: originals,
+    stagedCloseReopenAndExport: overlapping,
   });
 });
 
 test('native trades reject stale state, missing inputs, conflict, duplicate writes and closed timing atomically', async ({
   page,
 }) => {
-  const { uid, worldId, root, ids } = await start(page, 'negative');
+  const { uid, worldId, root, ids, originals } = await start(page, 'negative');
   const prepare = (asOfDate = date.asOfDate) =>
     prepareConditionalTrade(
       page,
       uid,
       worldId,
-      overlapping ? [ids.PHX, ids.WAS] : [ids.DAL, ids.HOU],
+      overlapping ? [ids.PHX, ids.WAS, ...originals] : [ids.DAL, ids.HOU],
       [home, away],
       { ...date, asOfDate }
     );
@@ -338,6 +422,34 @@ test('native trades reject stale state, missing inputs, conflict, duplicate writ
   });
   await selected.set(original);
   const metadata = (await root.get()).data()!;
+  if (overlapping) {
+    // Sending the retained 2030 first without a replacement fails Stepien.
+    const before = await conditionalState(worldId);
+    expect(
+      await prepareConditionalTrade(
+        page,
+        uid,
+        worldId,
+        [ids.PHX, ids.WAS, originals[0]],
+        [home, away],
+        date
+      )
+    ).not.toMatchObject({ status: 'prepared', legal: true });
+    expect(await conditionalState(worldId)).toEqual(before);
+    // Admission cannot be retrofitted after the resolution receipt is frozen.
+    await root.update({
+      'draftNativeLifecycle.originalSelections': [
+        metadata.draftNativeLifecycle.originalSelections[1],
+      ],
+    });
+    const altered = await conditionalState(worldId);
+    expect(await prepare()).not.toMatchObject({
+      status: 'prepared',
+      legal: true,
+    });
+    expect(await conditionalState(worldId)).toEqual(altered);
+    await root.set(metadata);
+  }
   for (const patch of [
     { asOfDate: `${year}-06-30` },
     { asOfDate: `${year}-06-19` },

@@ -33,6 +33,20 @@ export const NativeSelectionTransferZ = z
   })
   .strict();
 export const NativeSelectionTransfersZ = z.array(NativeSelectionTransferZ);
+/** Independent retained originals, frozen with the resolution receipt. These
+ * stipulated starting holders are not new NBA ownership evidence. */
+export const NativeOriginalSelectionsZ = z
+  .array(
+    z
+      .object({
+        entitlementId: id,
+        originalTeam: team,
+        year: z.number().int(),
+        holderTeam: team,
+      })
+      .strict()
+  )
+  .min(1);
 export const NativeDraftLifecycleZ = z
   .object({
     kind: z.literal('governed-pre-draft-native-selections-v1'),
@@ -41,9 +55,14 @@ export const NativeDraftLifecycleZ = z
     selections: z.literal('unconsumed-before-draft'),
     tradingWindow: DraftSimulationWindowZ,
     retainedFirstIds: z.array(id),
+    // Historical worlds omit this and retain native-only trade admission.
+    originalSelections: NativeOriginalSelectionsZ.optional(),
     softwareRetainedFirsts: SoftwareRetainedFirstsZ,
   })
   .strict();
 export type NativeDraftLifecycle = z.infer<typeof NativeDraftLifecycleZ>;
 export type NativeSelectionTransfer = z.infer<typeof NativeSelectionTransferZ>;
 export type NativePlayerMovement = z.infer<typeof NativePlayerMovementZ>;
+export type NativeOriginalSelection = z.infer<
+  typeof NativeOriginalSelectionsZ
+>[number];

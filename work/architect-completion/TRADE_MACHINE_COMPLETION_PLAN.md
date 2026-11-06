@@ -18,6 +18,12 @@ production permissions, or the Architect V1 completion boundary.
   separate. No further trade variation starts automatically after this delivery.
 - The [V1 completion contract](../../docs/agent-guides/architect-v1-completion-contract.md)
   defines what must be finished. This plan does not replace or reduce it.
+- [BZE-342](https://linear.app/bzero/issue/BZE-342) addresses the established C4
+  gap: resolved native selections and separately admitted unobligated originals
+  in one transaction. Its [composition assessment](BZE-342_C4_COMPOSITION.md)
+  distinguishes existing behavior, incompatible claims/dates and precise missing
+  evidence. The live PR records its checks and landing status; broader C4 closure
+  is not inferred from this delivery.
 - [AGENTS.md](../../AGENTS.md),
   [Architect boundary](../../docs/agent-guides/architect-boundary.md),
   [Phase 3A execution](../../docs/agent-guides/phase3a-execution.md), and
@@ -103,7 +109,7 @@ permission to remove it or proof that every combination behind it is NBA-legal.
 | C1 | BZE-340 / [PR #613](https://github.com/Bet-Zero/scoutzero/pull/613) carries complete ordinary Contract collections through the shared adapter, existing matching/aggregation, explicit routes, atomic saving, receipts and replay. Native/swap records no longer impose a three-player total or one player per sender. Original/protection receipts already retain collections in their existing financial/Contract format. | Implemented across the four currently admitted mixed paths, with several outgoing counts and failure/replay tests. Protected browser journeys cover split destinations, six-player packages and affected lifecycles; the PR records exact-head certification, CI, independent review and landing gates. No normal-product activation, new source/term admission or V1 closure. See [execution evidence](BZE-340_EXECUTION.md). |
 | C2 | BZE-341 / [PR #614](https://github.com/Bet-Zero/scoutzero/pull/614) uses `draftReview/transactionRouting.ts` across original/protection, admitted native selection and ordered-swap preparation/replay. Original/protection transactions admit two or three genuine participants; a third participant need not send a player. Complete financial, ownership and post-trade Stepien evaluation includes conditional original obligors. | Shared implementation completed in the PR; its verification/landing record is authoritative. V1 stays at two/three teams. Ordered-swap return ownership, reserved fallback/pool selections, exact source/date admission and native chronology remain. Ranked 2029 has two actual holders and still excludes mixed players; legacy 2027/apron mechanism admission stays bilateral. Those remaining mechanism/proof dependencies are not NBA team-count rules. See [classification and proof](BZE-341_EXECUTION.md). |
 | C3 | BZE-341 adds explicit per-first destinations to consideration facts while retaining historical single-recipient facts. The shared writer and receipts preserve each route; native and ordered-swap pick-only exchanges can have three genuine participants when admitted holdings supply the consideration. | The one-first-recipient-per-sender format limit is removed. Whole-deal review replaces independent bilateral decomposition; staged/exported routes, atomic saving, replay and affected-team history use the same destinations. New shared event player routes keep a pick-only participant’s Compare roster accurate; historical records remain readable. Cash sales, invented ownership, self/duplicate/out-of-scope routes and neutral participants remain blocked. Normal-product activation and compatible-right composition are separate. |
-| C4 | `draftPickReviewMutation.ts` separates native, protection and unresolved-swap programs. | Cross-program composition is not established by testing each alone. Identify actual required combinations and interacting claims from retained rights; never infer compatibility or invent hypothetical pools. |
+| C4 | BZE-342 recovered the retained catalogue, BZE-309 accepted audit and admitted 2028 v2 terms. Existing conditional collections, 2026 options with independent originals, and the internally composed 2028 protection/conveyance/native options remain supported. The confirmed gap is resolved 2028/2029 selections with separately admitted unobligated originals already available as retained Stepien witnesses. | Shared ownership replay now carries those originals with native selections through existing rules, atomic saving and historical views. Admission is frozen before resolution; native terms and allocations do not change. The [assessment and risk contract](BZE-342_C4_COMPOSITION.md) records required combinations and checks. Other unresolved cross-program combinations still need exact current rights, a common date and authoritative overlap/priority/activation terms before implementation; no example queue or complete-C4 claim. |
 | C5 | The mixed adapter excludes several ordinary-player mechanisms or bases that exist elsewhere, including sign-and-trade, Two-Way, held-exception and poison-pill cases. | Classify against the accepted workflow contract and existing proof. These are not blanket new V1 exclusions and are not all added to BZE-340. Do not reopen completed player-only work without a demonstrated defect. |
 | C6 | `draftReview/capability.ts`, `draftPickRealReview.ts` and `tradeMachine/rules/validateStepien.ts` separate protected software execution from normal first-round permission. | Real-data adoption/integration and release remain separate work. Do not enable the product by deleting the environment check or treating test assumptions as NBA facts. |
 | C7 | BZE-309 retains exact unresolved dependencies; BZE-329 retains remaining apron/lifecycle boundaries. | Factual and mechanism coverage must be resolved by affected action across all 278, not by more transaction examples. |
@@ -120,8 +126,10 @@ implemented, legal, illegal, or out of scope.
 
 Implementation is in PR #613. The requirements below remain its acceptance
 boundary; they are not an instruction to restart completed work. BZE-341 addresses
-C2/C3. C4 compatible-right composition is the next shared requirement to establish
-from retained terms; C5 remains separate. C6–C7 retain real-data and required
+C2/C3. BZE-342 implements the established C4 resolved-selection/original gap;
+the remaining C4 question is evidence of actual unresolved cross-program
+combinations, not another automatically commissioned variation. C5 remains
+separate. C6–C7 retain real-data and required
 transition dependencies. Do not automatically start another transaction variation.
 
 Execute BZE-340 rather than create a competing issue. Its bounded target is the

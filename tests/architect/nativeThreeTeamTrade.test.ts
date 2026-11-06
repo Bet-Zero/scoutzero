@@ -97,6 +97,43 @@ it('preserves three distinct ordinary Contract routes without changing selection
     nativeSelectionHolders(resolved, [next])
   );
 });
+it('composes an outside-pool original with native selections and ordinary Contracts through the same three-party ledger', () => {
+  const { resolved, next } = fixture();
+  const originals = [
+    {
+      entitlementId: 'independent',
+      originalTeam: 'SAS',
+      year: 2030,
+      holderTeam: 'SAS',
+    },
+  ];
+  next.movements.push({
+    entitlementId: 'independent',
+    originalTeam: 'SAS',
+    year: 2030,
+    round: 1,
+    assetKind: 'pick_ownership',
+    fromTeam: 'SAS',
+    toTeam: 'PHI',
+  });
+  expect(nativeSelectionHolders(resolved, [next], originals)).toMatchObject({
+    PHI: 'BKN',
+    PHX: 'PHI',
+    independent: 'PHI',
+  });
+  const pickOnly = structuredClone(next);
+  pickOnly.playerMovements = undefined;
+  pickOnly.movements[1].toTeam = 'SAS';
+  expect(nativeSelectionHolders(resolved, [pickOnly], originals)).toMatchObject(
+    {
+      PHI: 'BKN',
+      PHX: 'SAS',
+      independent: 'PHI',
+    }
+  );
+  expect(() => nativeSelectionHolders(resolved, [pickOnly])).toThrow();
+  expect(resolved.result!.allocation).not.toHaveProperty('independent');
+});
 it.each([
   'missing-give',
   'missing-receive',

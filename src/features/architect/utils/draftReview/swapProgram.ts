@@ -1,4 +1,8 @@
-import { nativeSelectionHolders } from './nativeTrading';
+import {
+  nativeSelectionHolders,
+  nativeOriginalSelections,
+} from './nativeTrading';
+import type { NativeOriginalSelection } from '@/schemas/draftNativeTrading';
 import {
   DraftClaimProgramZ,
   type DraftClaimProgram,
@@ -103,15 +107,48 @@ export function swapProgram(
   input: unknown,
   catalogue: SimulationCatalogue,
   entitlements: Record<string, Record<string, unknown>>,
-  nativeTransfers?: unknown
+  nativeTransfers?: unknown,
+  originalSelections?: NativeOriginalSelection[]
 ) {
   const parsed = DraftClaimProgramZ.parse(input);
+  const independentOriginals = nativeOriginalSelections(
+    parsed,
+    originalSelections
+  );
+  if (independentOriginals.length && parsed.kind === 'ordered-swap-pool-v1')
+    throw new Error(
+      'Independent selection composition requires a native lifecycle.'
+    );
+  const currentHolders =
+    parsed.result && parsed.kind !== 'ordered-swap-pool-v1'
+      ? nativeSelectionHolders(
+          parsed,
+          nativeTransfers ?? [],
+          originalSelections
+        )
+      : Object.fromEntries(
+          independentOriginals.map((s) => [s.entitlementId, s.holderTeam])
+        );
+  if (
+    independentOriginals.some(
+      (s) =>
+        entitlements[s.entitlementId]?.holderTeam !==
+        currentHolders[s.entitlementId]
+    )
+  )
+    throw new Error(
+      'Independent original ownership differs from its committed lineage.'
+    );
   if (nativeTransfers !== undefined) {
     if (parsed.kind === 'ordered-swap-pool-v1' || !parsed.result) {
       if (!Array.isArray(nativeTransfers) || nativeTransfers.length)
         throw new Error('Native transfers require a resolved native family.');
     } else {
-      const holders = nativeSelectionHolders(parsed, nativeTransfers);
+      const holders = nativeSelectionHolders(
+        parsed,
+        nativeTransfers,
+        originalSelections
+      );
       if (
         parsed.slots.some(
           (s) =>

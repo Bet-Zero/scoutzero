@@ -624,9 +624,9 @@ test('overlapping proof requires both protection branches, the exception and all
         );
 });
 
-test('overlapping transfer proof covers both exchanges and all seven saved team views', () => {
-  assert.equal(OVERLAPPING_TRADES_SCREENSHOTS.length, 37);
-  for (const team of ['BKN', 'PHX', 'PHI', 'NYK', 'WAS', 'POR', 'MIL'])
+test('composed overlapping transfer proof covers both exchanges and all eight saved team views', () => {
+  assert.equal(OVERLAPPING_TRADES_SCREENSHOTS.length, 42);
+  for (const team of ['BKN', 'PHX', 'PHI', 'NYK', 'WAS', 'POR', 'MIL', 'GSW'])
     for (const view of ['compare', 'reload', 'history', 'assets', 'plan'])
       assert(
         OVERLAPPING_TRADES_SCREENSHOTS.some((s) => s.key === `${team}-${view}`)

@@ -1,5 +1,8 @@
 import { NativeDraftLifecycleZ } from './draftNativeTrading';
-import { nativeLifecycle } from '@/features/architect/utils/draftReview/nativeTrading';
+import {
+  nativeLifecycle,
+  nativeOriginalSelections,
+} from '@/features/architect/utils/draftReview/nativeTrading';
 import { z } from 'zod';
 import { DraftClaimProgramZ } from './draftSwapProgram';
 import { DraftReviewMutationReceiptZ } from './draftPickReviewMutation';
@@ -40,6 +43,10 @@ export const DraftSwapReceiptZ = z
         )
           throw new Error('Wrong lifecycle');
         nativeLifecycle(r.nativeLifecycle, r.draftYear);
+        nativeOriginalSelections(
+          r.before,
+          r.nativeLifecycle.originalSelections
+        );
       } catch {
         return fail();
       }

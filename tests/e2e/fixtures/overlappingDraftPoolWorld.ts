@@ -10,7 +10,8 @@ import { registerSoftwareSeasonEnvironment } from '@/features/architect/utils/go
 export async function seedOverlappingDraftPoolWorld(
   uid: string,
   worldId: string,
-  preDraft = false
+  preDraft = false,
+  composeOriginals = false
 ) {
   registerSoftwareSeasonEnvironment(
     () =>
@@ -100,6 +101,22 @@ export async function seedOverlappingDraftPoolWorld(
                   ].includes(r.originalPick.id)
               )
               .map((r) => r.entitlementId),
+            ...(composeOriginals
+              ? {
+                  originalSelections: catalogue.data.records
+                    .filter((r) =>
+                      ['BKN_2030_1st', 'GSW_2030_1st'].includes(
+                        r.originalPick?.id ?? ''
+                      )
+                    )
+                    .map((r) => ({
+                      entitlementId: r.entitlementId,
+                      originalTeam: r.originalPick!.originalTeam,
+                      year: r.originalPick!.draftYear,
+                      holderTeam: entitlements[r.entitlementId].holderTeam,
+                    })),
+                }
+              : {}),
             softwareRetainedFirsts: ['BKN', 'WAS'].map((team) => ({
               team,
               draftYear: 2034,
