@@ -69,7 +69,7 @@ Implementation PR: [#614](https://github.com/Bet-Zero/scoutzero/pull/614), under
 [BZE-341](https://linear.app/bzero/issue/BZE-341). Verification is in progress;
 this checkpoint is not independent acceptance or delivery.
 
-Focused checks pass 341 tests across 16 relevant suites: consideration schemas,
+Focused checks pass 492 tests across 22 relevant suites: consideration schemas,
 original/conditional whole-deal preparation, native/swap routing and replay,
 finite scope, affected-team Stepien, history and contract continuity. Typecheck
 and generated-schema checks pass; the hosted selected CI is green at checkpoint
@@ -87,6 +87,16 @@ player image. The first is repaired with a separate empty-outgoing affected-team
 entry into the same branch engine; ordinary outgoing ownership/transfer requests
 still require actual assets. The second reuses the established compact name
 selector. Failed diagnostics are not certification evidence.
+
+Visual inspection also caught Compare classifying every player on a shared
+trade event as outgoing for the pick-only third participant. The shared player
+persistence manifest now supplies its exact routes to new event metadata;
+normalization and Compare use those routes for the active team. Historical
+records without the field retain their existing interpretation without rewriting.
+Malformed modern routes produce an explicit unavailable comparison instead of
+fabricated roster changes. New route/normalization/receipt tests and existing
+history/persistence guardrails pass (151 checks); typecheck and focused source
+lint pass. Fresh complete browser diagnostics and final-head CI cover this repair.
 
 The expanded fallback diagnostic reached the final lifecycle checks but exceeded
 the unchanged 600-second case budget. Trace inspection measured approximately
@@ -114,8 +124,10 @@ keys against the writer's established normalized projection. It now compares
 player membership, Contract terms and all three financial books, plus exact
 unchanged player overrides and authoritative Contract baseline records. Its
 asset-panel checks follow each actual incoming route's year/original team rather
-than assuming every participant retains a 2029 first. Its complete
-save/reload/retrade journey is rerunning separately.
+than assuming every participant retains a 2029 first. The complete original-only
+staging/export/save/reload/retrade diagnostic passed (6.2-minute case, 6.8-minute
+harness). Every participant's roster, three financial books, History, Compare,
+Team Plan and incoming asset origins agreed after both trades.
 
 The certification wrapper's aggregate mixed-conditional budget now matches the
 existing one-hour budget for other complete multi-team suites. This suite grew

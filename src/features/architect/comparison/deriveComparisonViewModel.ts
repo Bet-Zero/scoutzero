@@ -16,7 +16,7 @@ import type {
   Stage3ComparisonViewModel,
   Stage3UnavailableSummaryEntry,
 } from './types';
-import { deriveRosterDelta } from './rosterDelta';
+import { deriveRosterDelta, type EventRowForRoster } from './rosterDelta';
 import { deriveCapDelta } from './capDelta';
 import { detectSeasonMismatch } from './seasonMismatch';
 import { deriveDraftAssetDelta } from './deriveDraftAssetDelta';
@@ -33,6 +33,7 @@ export type ComparisonEventRow = {
   mutationType: string | null;
   category?: string | null;
   playerIds: string[];
+  playerMovements?: EventRowForRoster['playerMovements'];
   teamCodes: string[];
   teamsInvolved: string[];
   beforeTotalsByTeam: GenericRecord;
@@ -151,7 +152,17 @@ export function deriveComparisonViewModel(
   }
 
   // Roster delta
-  const rosterDelta = deriveRosterDelta(sorted, currentRosterPlayerIds);
+  const rosterDelta = deriveRosterDelta(
+    sorted,
+    currentRosterPlayerIds,
+    teamCode
+  );
+  if (sorted.some((row) => row.playerMovements === null))
+    unavailableSummary.push({
+      field: 'rosterDelta',
+      reason:
+        'Some saved player routes are incomplete; those trades are omitted from the roster comparison.',
+    });
 
   // Populate display names so the UI never prints raw player ids (BZE-218).
   const withDisplayNames = (entries: typeof rosterDelta.rosterAdditions) =>

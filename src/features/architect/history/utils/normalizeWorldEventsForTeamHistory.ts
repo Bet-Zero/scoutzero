@@ -47,6 +47,38 @@ function formatCashCents(value: number): string {
   })}`;
 }
 
+/** Absent historical routes stay absent; malformed modern routes are unknown. */
+function readRecordedPlayerMovements(
+  metadata: GenericRecord,
+  playerIds: string[],
+  teams: string[]
+): TeamHistoryWorldEventRow['playerMovements'] {
+  if (!Object.prototype.hasOwnProperty.call(metadata, 'playerMovements'))
+    return undefined;
+  if (!Array.isArray(metadata.playerMovements)) return null;
+  const moves = metadata.playerMovements.map(asObject);
+  if (
+    moves.length !== playerIds.length ||
+    new Set(moves.map((m) => m.playerId)).size !== moves.length ||
+    moves.some(
+      (m) =>
+        typeof m.playerId !== 'string' ||
+        !playerIds.includes(m.playerId) ||
+        typeof m.sourceTeamCode !== 'string' ||
+        typeof m.destinationTeamCode !== 'string' ||
+        !teams.includes(m.sourceTeamCode) ||
+        !teams.includes(m.destinationTeamCode) ||
+        m.sourceTeamCode === m.destinationTeamCode
+    )
+  )
+    return null;
+  return moves.map((m) => ({
+    playerId: String(m.playerId),
+    sourceTeamCode: String(m.sourceTeamCode),
+    destinationTeamCode: String(m.destinationTeamCode),
+  }));
+}
+
 function sanitizePlayerTokensInSummary(
   summary: string,
   playerTokens: string[],
@@ -796,6 +828,15 @@ export function toTeamHistoryEventDisplay(
     teamCodes: teamsInvolved,
     teamsInvolved,
     playerIds,
+    ...(Object.prototype.hasOwnProperty.call(metadata, 'playerMovements')
+      ? {
+          playerMovements: readRecordedPlayerMovements(
+            metadata,
+            playerIds,
+            teamsInvolved
+          ),
+        }
+      : {}),
     primaryDeltas: summaryCandidate || displayType,
     capDelta,
     summary,

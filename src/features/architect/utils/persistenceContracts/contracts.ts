@@ -418,6 +418,7 @@ export const EVENT_METADATA_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist =
     // Trade events
     'teamsInvolved', // Array of team codes
     'playersTraded', // Array of player info objects
+    'playerMovements', // Exact routes from the shared player persistence manifest
     'entitlementsTraded', // Object with team-keyed entitlement changes
     'draftReviewReceipt', // Committed synthetic review movement, never permission
     'conditionalSeasonReceipt',

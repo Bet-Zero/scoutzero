@@ -535,6 +535,11 @@ for (const position of [10, 11])
       await thirdDetail.getByRole('button', { name: /close/i }).click();
       await capture(page, `${position}-${stage}-TOR-history`);
       await openDashboardTab(page, 'Compare');
+      for (const p of Object.values(CONDITIONAL_COLLECTIONS).flat())
+        for (const kind of ['additions', 'removals', 'changed'])
+          await expect(
+            page.getByTestId(`comparison-roster-${kind}`)
+          ).not.toContainText(new RegExp(p.name, 'i'));
       await expect(
         page.getByText('CHI 2029 first-round pick', { exact: true })
       ).toBeVisible();

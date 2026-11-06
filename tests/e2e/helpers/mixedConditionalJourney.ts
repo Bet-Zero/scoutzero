@@ -86,11 +86,16 @@ export async function selectMixedConditionalTrade(
   }
   for (const [i, team] of (['CHI', 'CHA'] as const).entries()) {
     const card = dialog.getByTestId(`trade-team-card-${team}`);
+    await expect(card).toBeVisible({ timeout: 30000 });
+    await card
+      .getByRole('button', { name: /^(Players|Plyr) \(\d+\)$/i })
+      .click();
     for (const p of CONDITIONAL_COLLECTIONS[team]) {
       const row = card
         .getByText(new RegExp(`^${p.name}$`, 'i'))
         .first()
         .locator('xpath=ancestor::div[.//button[normalize-space()="•••"]][1]');
+      await expect(row).toBeVisible({ timeout: 30000 });
       await row.getByRole('button', { name: '•••' }).click();
       await page
         .getByRole('button', {
