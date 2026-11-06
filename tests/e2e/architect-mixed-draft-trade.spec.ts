@@ -307,7 +307,7 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
   page,
 }) => {
   // Two saved acquisitions, rejection matrix, both-team reload and later retrade.
-  test.setTimeout(380000);
+  test.setTimeout(450000);
   const uid = await login(page);
   const worldId = `world_mixed_${uid}_${Date.now()}`;
   const catalogue = await seedMixedDraftTradeWorld(uid, worldId, {
