@@ -41,7 +41,11 @@ query gets a bounded 30-second assertion wait (the captured timeout screen had
 already loaded both expected moves). The complete updated positive diagnostic
 passed in 6.1 minutes; its bounded test limit is 7.5 minutes to accommodate
 emulator variation without removing assertions. Unchanged no-write author proof
-is reused; final certification still runs both browser tests.
+is reused; final certification still runs both browser tests. Final per-team
+Trade Machine reload checks also await the primary card for up to 30 seconds;
+the retained timeout snapshot showed the correct card arriving after the old
+15-second click deadline. This readiness-only harness correction preserves the
+complete passing diagnostic workflow and every holdings assertion.
 
 ## Restriction disposition
 

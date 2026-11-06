@@ -735,6 +735,7 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
     const card = page
       .getByRole('dialog', { name: /Trade Machine/i })
       .getByTestId(`trade-team-card-${team}`);
+    await expect(card).toBeVisible({ timeout: 30000 });
     await card
       .getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i })
       .click();
@@ -792,6 +793,7 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
     const card = page
       .getByRole('dialog', { name: /Trade Machine/i })
       .getByTestId(`trade-team-card-${code}`);
+    await expect(card).toBeVisible({ timeout: 30000 });
     await card
       .getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i })
       .click();
