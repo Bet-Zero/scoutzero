@@ -133,6 +133,20 @@ it is not certification evidence. This journey now gives that navigation action
 whole-case limits and subsequent view/state assertions remain unchanged. Both
 affected complete outcome diagnostics must pass again before replacement freeze
 and certification; untouched runtime checks remain scoped to the same code.
+The follow-up diagnostic also exposed a custom salary polling deadline: the
+browser returned the correct `164782310` value in 381 ms, but the test-worker
+callback resumed after 13.7 seconds, beyond its outer 10-second poll deadline.
+Conditional salary checks now use native locator assertions for the same exact
+displayed amounts (and require visibility), avoiding that extra worker timer.
+This does not alter expected finances, application behavior or case limits.
+The same diagnostic's immediate-conveyance case timed out observing its saved
+event at 60 seconds. The preserved emulator world subsequently contained one
+successful trade, revision 1 and the six explicit player routes: Apply completed
+after that observation deadline. Its complete isolated journey then passed with
+the native salary assertions. Save observation now uses the existing 120-second
+UI-validation budget; it still requires exactly one event, all saved state and
+the unchanged whole-case limit. The earlier successful observation within 60
+seconds remains stronger iteration evidence for that unchanged operation.
 
 Optional CodeRabbit review was unavailable under its repository eligibility
 policy. Optional Codex review completed without findings at `9ce9776e`; later

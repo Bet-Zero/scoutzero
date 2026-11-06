@@ -130,7 +130,9 @@ for (const position of [10, 11])
     await dialog.getByRole('button', { name: /^Apply Trade$/i }).click();
     await expect
       .poll(async () => (await root.collection('events').get()).size, {
-        timeout: 60000,
+        // Complete shared Apply can outlast a minute in the retained emulator;
+        // observe its atomic receipt within the same budget as UI validation.
+        timeout: 120000,
       })
       .toBe(1);
     await expect(dialog).toBeHidden({ timeout: 30000 });
@@ -348,16 +350,9 @@ for (const position of [10, 11])
           ['data-apron-team-salary', 'apronTeamSalary'],
           ['data-tax-salary', 'taxSalary'],
         ])
-          await expect
-            .poll(() =>
-              page
-                .locator(`[${attr}]`)
-                .evaluateAll(
-                  (els, attr) => els.map((e) => Number(e.getAttribute(attr))),
-                  attr
-                )
-            )
-            .toContain(current.totals[key]);
+          await expect(
+            page.locator(`[${attr}="${current.totals[key]}"]`).first()
+          ).toBeVisible();
         expect(
           Number(
             (
@@ -516,16 +511,10 @@ for (const position of [10, 11])
       await page.reload();
       await openDashboardTab(page, 'Roster');
       await capture(page, `${position}-${stage}-TOR-roster`);
-      await openDashboardTab(page, 'Full Cap Table');
-      await expect
-        .poll(() =>
-          page
-            .locator('[data-team-salary]')
-            .evaluateAll((els) =>
-              els.map((e) => Number(e.getAttribute('data-team-salary')))
-            )
-        )
-        .toContain(30000000);
+      await openDashboardTab(page, 'Full Cap Table', { timeout: 30000 });
+      await expect(
+        page.locator('[data-team-salary="30000000"]').first()
+      ).toBeVisible();
       await capture(page, `${position}-${stage}-TOR-cap`);
       await openDashboardTab(page, 'Team History');
       await page
