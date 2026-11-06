@@ -521,9 +521,8 @@ if (
   const fromRepo = relative(repo, parent);
   assert(
     (fromRepo === '..' || fromRepo.startsWith('../')) &&
-      !join(parent, relative(parent, destination))
-        .split('/')
-        .includes('public'),
+      !parent.split('/').includes('public') &&
+      !destination.split('/').includes('public'),
     'Private output must be outside repository/public directories.'
   );
   const result = await compileJune5DraftState({
