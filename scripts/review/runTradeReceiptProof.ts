@@ -105,7 +105,7 @@ export const NATIVE_TRADES_SCREENSHOTS = [
 export const OVERLAPPING_TRADES_SCREENSHOTS = [
   'trade-0-legal',
   'trade-1-legal',
-  ...['BKN', 'PHX', 'PHI', 'NYK', 'WAS', 'POR', 'MIL'].flatMap((team) =>
+  ...['BKN', 'PHX', 'PHI', 'NYK', 'WAS', 'POR', 'MIL', 'GSW'].flatMap((team) =>
     ['compare', 'reload', 'history', 'assets', 'plan'].map(
       (view) => `${team}-${view}`
     )

@@ -249,6 +249,10 @@ export async function advanceConditionalDraftInWorld(
   const historyTeams = [
     ...new Set([
       ...affected,
+      ...(lifecycle?.originalSelections ?? []).flatMap((s) => [
+        s.holderTeam,
+        s.originalTeam,
+      ]),
       ...(programs.length || swap ? (metadata.draftSimulationTeams ?? []) : []),
     ]),
   ];

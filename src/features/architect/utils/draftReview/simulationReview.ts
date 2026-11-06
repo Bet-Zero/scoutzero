@@ -313,9 +313,14 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     for (const out of slot.entitlementsOut ?? []) {
       const id = String(out.entitlementId ?? out.id ?? '');
       const row = originals.find((r) => r.entitlementId === id);
-      if (native && !native.slots.some((s) => s.entitlementId === id))
+      if (
+        native &&
+        ![...native.slots, ...(lifecycle?.originalSelections ?? [])].some(
+          (s) => s.entitlementId === id
+        )
+      )
         throw new Error(
-          'This exchange supports only resolved original selections from the native family.'
+          'This exchange requires a resolved native selection or an admitted independent original.'
         );
       if (
         !row?.originalPick ||
@@ -405,15 +410,19 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     [...movements, ...playerMovements]
   );
   if (native)
-    nativeSelectionHolders(native, [
-      ...(metadata.draftNativeTransfers ?? []),
-      {
-        operationId: args.operationId,
-        asOfDate: metadata.asOfDate,
-        movements,
-        ...nativePlayers,
-      },
-    ]);
+    nativeSelectionHolders(
+      native,
+      [
+        ...(metadata.draftNativeTransfers ?? []),
+        {
+          operationId: args.operationId,
+          asOfDate: metadata.asOfDate,
+          movements,
+          ...nativePlayers,
+        },
+      ],
+      lifecycle?.originalSelections
+    );
   if (programs.length || apron) {
     for (const slot of slots) {
       const post = Object.entries(entitlements)

@@ -80,11 +80,22 @@ export function validateNativeTradeInventory(input: {
   }
   if (membership.size !== Object.keys(before).length)
     throw new Error('A retained identity is absent from team inventory.');
-  const current = nativeSelectionHolders(program, history);
-  for (const slot of program.slots)
+  const current = nativeSelectionHolders(
+    program,
+    history,
+    lifecycle.originalSelections
+  );
+  for (const slot of [
+    ...program.slots,
+    ...(lifecycle.originalSelections ?? []),
+  ])
     if (before[slot.entitlementId]?.holderTeam !== current[slot.entitlementId])
       throw new Error('Stale native ownership.');
-  const holders = nativeSelectionHolders(program, [...history, next]);
+  const holders = nativeSelectionHolders(
+    program,
+    [...history, next],
+    lifecycle.originalSelections
+  );
   const post = Object.fromEntries(
     Object.entries(before).map(([id, e]) => [
       id,

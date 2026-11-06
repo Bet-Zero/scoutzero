@@ -1,7 +1,11 @@
 import { DraftReviewMutationReceiptZ } from '@/schemas/draftPickReviewMutation';
 import { DraftConditionalReceiptZ } from '@/schemas/draftConditionalReceipt';
 import { NativeSelectionTransfersZ } from '@/schemas/draftNativeTrading';
-import { nativeTradeDate, requireSameNativeValue } from './nativeTrading';
+import {
+  nativeTradeDate,
+  nativeLifecycle,
+  requireSameNativeValue,
+} from './nativeTrading';
 import { DraftSwapReceiptZ } from '@/schemas/draftSwapReceipt';
 import { DraftApronPlanReferenceZ } from '@/schemas/draftApronSimulation';
 import { preparePenaltyDraft } from './penaltyDraft';
@@ -98,7 +102,13 @@ export async function loadConditionalWorld(
           metadata.draftSwapProgram,
           catalogue,
           entitlements,
-          metadata.draftNativeTransfers
+          metadata.draftNativeTransfers,
+          metadata.draftNativeLifecycle === undefined
+            ? undefined
+            : nativeLifecycle(
+                metadata.draftNativeLifecycle,
+                metadata.draftSwapProgram.year
+              ).originalSelections
         )
       : null;
   let historicalTerms = false;

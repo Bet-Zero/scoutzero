@@ -149,17 +149,21 @@ export const DraftReviewMutationReceiptZ = z
           native.transfers,
           receipt.asOfDate
         );
-        nativeSelectionHolders(native.program, [
-          ...native.transfers,
-          {
-            operationId: receipt.operationId,
-            asOfDate: receipt.asOfDate,
-            movements: receipt.movements,
-            ...(receipt.playerMovements
-              ? { playerMovements: receipt.playerMovements }
-              : {}),
-          },
-        ]);
+        nativeSelectionHolders(
+          native.program,
+          [
+            ...native.transfers,
+            {
+              operationId: receipt.operationId,
+              asOfDate: receipt.asOfDate,
+              movements: receipt.movements,
+              ...(receipt.playerMovements
+                ? { playerMovements: receipt.playerMovements }
+                : {}),
+            },
+          ],
+          native.lifecycle.originalSelections
+        );
       } catch {
         ctx.addIssue({
           code: 'custom',

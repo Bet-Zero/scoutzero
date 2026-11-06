@@ -1,5 +1,5 @@
 import { simulationParticipantLimit } from './transactionRouting';
-import { nativeLifecycle } from './nativeTrading';
+import { nativeLifecycle, nativeRetainedWitnesses } from './nativeTrading';
 import { swapProgram } from './swapProgram';
 /** Retained source identity and software assumptions stay separate. No writes. */
 import {
@@ -113,14 +113,17 @@ export function assertSimulationInventory(
           metadata.draftSwapProgram,
           catalogue,
           entitlements,
-          metadata.draftNativeTransfers
+          metadata.draftNativeTransfers,
+          metadata.draftNativeLifecycle === undefined
+            ? undefined
+            : nativeLifecycle(
+                metadata.draftNativeLifecycle,
+                Number((metadata.draftSwapProgram as { year?: unknown })?.year)
+              ).originalSelections
         )
       : null;
   if (!swap && metadata.draftSwapProgram !== undefined)
     throw new Error('Swap terms require their explicit governed review mode.');
-  const originalTeams = swap
-    ? [...new Set([...teamsInScope, ...swap.slots.map((s) => s.originalTeam)])]
-    : teamsInScope;
   if (
     swap &&
     !swap.result &&
@@ -133,6 +136,11 @@ export function assertSimulationInventory(
       : nativeLifecycle(metadata.draftNativeLifecycle, swap?.year ?? 0);
   if (lifecycle && (!swap || swap.kind === 'ordered-swap-pool-v1'))
     throw new Error('Pre-draft selections require a native family.');
+  if (swap && lifecycle?.originalSelections)
+    nativeRetainedWitnesses(swap, lifecycle, catalogue, entitlements);
+  const originalTeams = swap
+    ? [...new Set([...teamsInScope, ...swap.slots.map((s) => s.originalTeam)])]
+    : teamsInScope;
   if (swap?.result) {
     const date = Array.isArray(metadata.draftSimulationCalendar)
       ? metadata.draftSimulationCalendar.filter((d) => d?.year === swap.year)
@@ -250,6 +258,7 @@ export function assertSimulationInventory(
         (swap?.kind === 'ordered-swap-pool-v1'
           ? swap.tradedRightId
           : undefined) &&
+      !lifecycle?.originalSelections?.some((s) => s.entitlementId === id) &&
       !simulationOriginals(
         catalogue,
         originalTeams,

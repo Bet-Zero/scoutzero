@@ -875,6 +875,10 @@ export async function persistWorldMutation(
       const visibility = [
         ...new Set([
           ...nativeFamilyTeams(draftReview.assumptions.nativeTrade.program),
+          ...(
+            draftReview.assumptions.nativeTrade.lifecycle.originalSelections ??
+            []
+          ).flatMap((s) => [s.originalTeam, s.holderTeam]),
           ...draftReview.movements.flatMap((m) => [m.fromTeam, m.toTeam]),
         ]),
       ];

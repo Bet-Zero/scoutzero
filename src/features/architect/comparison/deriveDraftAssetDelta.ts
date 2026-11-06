@@ -230,9 +230,13 @@ export function deriveDraftAssetDelta(
       if (
         conditionalState === null &&
         !Array.isArray(receipt.data.before) &&
-        (receipt.data.before.slots.some(
-          (s) => s.holderTeam === teamCode || s.originalTeam === teamCode
-        ) ||
+        (('nativeLifecycle' in receipt.data &&
+          receipt.data.nativeLifecycle?.originalSelections?.some(
+            (s) => s.holderTeam === teamCode || s.originalTeam === teamCode
+          )) ||
+          receipt.data.before.slots.some(
+            (s) => s.holderTeam === teamCode || s.originalTeam === teamCode
+          ) ||
           (receipt.data.before.kind === 'native-ranked-pool-v1' &&
             [
               receipt.data.before.nativePool.beneficiaryTeam,
@@ -301,17 +305,22 @@ export function deriveDraftAssetDelta(
             ? { playerMovements: receipt.data.playerMovements }
             : {}),
         };
-        const holders = nativeSelectionHolders(nativeProgram, [
-          ...nativeTransfers,
-          entry,
-        ]);
+        const holders = nativeSelectionHolders(
+          nativeProgram,
+          [...nativeTransfers, entry],
+          n.lifecycle.originalSelections
+        );
         nativeTransfers.push(entry as NativeSelectionTransfer);
         const claimNotes = restrictions.filter(
           (line) =>
-            !nativeProgram!.slots.some((slot) =>
-              line.startsWith(
-                `${slot.originalTeam} ${nativeProgram!.year} first:`
-              )
+            ![
+              ...nativeProgram!.slots.map((s) => ({
+                ...s,
+                year: nativeProgram!.year,
+              })),
+              ...(n.lifecycle.originalSelections ?? []),
+            ].some((slot) =>
+              line.startsWith(`${slot.originalTeam} ${slot.year} first:`)
             )
         );
         restrictions.splice(
@@ -327,6 +336,16 @@ export function deriveDraftAssetDelta(
             .map(
               (slot) =>
                 `${slot.originalTeam} ${nativeProgram!.year} first: final pick ${nativeProgram!.result!.positions[slot.originalTeam]} · held by ${holders[slot.entitlementId]}`
+            ),
+          ...(n.lifecycle.originalSelections ?? [])
+            .filter(
+              (s) =>
+                s.originalTeam === teamCode ||
+                holders[s.entitlementId] === teamCode
+            )
+            .map(
+              (s) =>
+                `${s.originalTeam} ${s.year} first: held by ${holders[s.entitlementId]}`
             )
         );
       } catch {
