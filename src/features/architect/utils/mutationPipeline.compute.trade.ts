@@ -14,6 +14,10 @@ import {
 } from './mutationPipeline.helpers';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { applyTradeExceptionLifecycle } from '@/features/architect/utils/tradeMachine/utils/tradeExceptionLifecycle';
+import {
+  getTeamTpeList,
+  normalizeTeamTpeSchema,
+} from '@/features/architect/utils/persistenceContracts';
 import { appendExceptionHistory } from '@/features/architect/utils/exceptionHistory/historyHelpers';
 import { assertTradeComputeInputs } from '@/features/architect/utils/tradeContext';
 import { createTradeHardCapLedgerEntry } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
@@ -176,7 +180,9 @@ export function computeTradeResult({
     const updatedTeam = teamUpdate.team;
     if (!updatedTeam) return;
     const lifecycleResult = applyTradeExceptionLifecycle({
-      currentTradeExceptions: updatedTeam.tradeExceptions || [],
+      currentTradeExceptions: getTeamTpeList(normalizeTeamTpeSchema(updatedTeam), {
+        includeUiAliases: false,
+      }),
       hasTradeExceptionsValidation: Boolean(teamResult.rules?.tradeExceptions),
       createdTPE: teamResult.createdTPE,
       incomingPlayers: validationTeams[idx]?.receives || [],
@@ -212,6 +218,12 @@ export function computeTradeResult({
     }
 
     updatedTeam.tradeExceptions = lifecycleResult.updatedTradeExceptions;
+    // Persistence prefers the canonical list. Keep the compute compatibility
+    // field synchronized so a stale canonical balance cannot undo consumption.
+    updatedTeam.exceptions = {
+      ...updatedTeam.exceptions,
+      tpe: lifecycleResult.updatedTradeExceptions,
+    };
 
     if (lifecycleResult.historyEntries.length > 0) {
       appendExceptionHistory(updatedTeam, lifecycleResult.historyEntries);

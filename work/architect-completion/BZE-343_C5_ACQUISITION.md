@@ -1,6 +1,6 @@
 # C5 — existing-Contract acquisition in mixed trades
 
-Parent: BZE-243. Base: `ab10f530d839899d34457e34810176e51a5898a2`
+Parent: BZE-243. Delivery: [PR #616](https://github.com/Bet-Zero/scoutzero/pull/616). Base: `ab10f530d839899d34457e34810176e51a5898a2`
 (delivered C4, PR #615); hosted main validation run `42184203314` passed.
 The unchanged V1 completion contract and system-level completion plan govern.
 
@@ -19,8 +19,20 @@ explicit recipients, absent/foreign/duplicate exception identity, invalid modes,
 Room/TPE incompatibility, capacity/expiry/apron constraints, full atomic save,
 stale/duplicate no-write, receipts/reload and subsequent exception use. Reuse
 accepted unchanged draft lifecycle proof; check affected consumers explicitly.
-Complete diagnostic precedes freeze; exact-pushed browser certification,
+The existing certificate now also requires the Room screenshot and both downloadable exports; its bounded runtime covers the two acquisitions and rejection matrix. Complete diagnostic precedes freeze; exact-pushed browser certification,
 selected CI, independent Claude ACCEPT and normal landing remain required.
+
+The complete diagnostic exposed a shared save defect: canonical held exceptions
+validated successfully, but compute read/wrote only the legacy list, so the
+canonical balance survived unchanged. The fix uses the existing persistence merge and canonical accessor without
+adding display-only aliases, then synchronizes both compute lists;
+persistence still writes only `exceptions.tpe`. Consumption updates existing
+balance aliases consistently and normalizes numeric legacy IDs for lookup/history,
+without changing their stored identity. Regression checks cover legacy-only,
+canonical-only and duplicate storage through the real persistence canonicalizer,
+including canonical precedence and preservation of unrelated legacy exceptions,
+plus ordinary trade and sign-and-trade persistence. This repair is part of the
+selected capability, not a parallel exception engine.
 
 ## Restriction disposition
 

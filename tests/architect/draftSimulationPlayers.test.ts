@@ -250,6 +250,10 @@ describe.each([
     expect(() => simulationPlayerMovements(f.args, branch, f.state)).toThrow(
       /receiving team/
     );
+    f.state.teams[2].team.exceptions = structuredClone(f.receiver.exceptions);
+    expect(simulationPlayerMovements(f.args, branch, f.state)).toEqual([
+      { playerId: 'p', contractId: 'c', fromTeam: 'CHI', toTeam: 'SAS' },
+    ]);
   });
   it('uses the existing legacy accessor and normalized exception identity', () => {
     const f = heldFixture();

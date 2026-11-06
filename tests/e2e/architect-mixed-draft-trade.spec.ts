@@ -79,9 +79,8 @@ async function pick(
   destination: string
 ) {
   await card.getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i }).click();
-  const row = card
-    .getByText(`${year} - Round 1`, { exact: true })
-    .locator('xpath=ancestor::div[.//button[normalize-space()="•••"]][1]');
+  const identity = year === 2028 ? chi : 'ent:CHI:2030:1:own:382a238d';
+  const row = card.locator(`[data-entitlement-id="${identity}"]`);
   await row.getByRole('button', { name: '•••' }).click();
   await page
     .getByRole('button', { name: new RegExp(`^Trade to ${destination}$`, 'i') })
@@ -350,7 +349,11 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
   for (const step of [0, 1]) {
     if (step) {
       await page.reload();
-      await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
+      await expect(
+        page.getByTestId('cockpit-activity-rail-identity')
+      ).toContainText('Players and Original Firsts');
+      if (!(await dialog.isVisible()))
+        await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
     }
     await expect(dialog.getByTestId('trade-team-card-CHI')).toBeVisible({
       timeout: 30000,
@@ -416,6 +419,10 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
       const validHeld = await prepare(page, uid, worldId, heldIds, {
         heldTpeId: String(held.id),
       });
+      fs.writeFileSync(
+        path.join(proofDir, 'diagnostic-held-preview.json'),
+        JSON.stringify(validHeld, null, 2)
+      );
       expect(validHeld).toMatchObject({ status: 'prepared', legal: true });
       for (const mode of ['room-tpe', 'foreign-tpe']) {
         const preview = await prepare(page, uid, worldId, heldIds, {
@@ -474,10 +481,10 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
 
       const incoming = dialog.getByTestId('trade-team-card-ORL');
       await incoming
-        .getByLabel('Tre Jones absorption mode', { exact: true })
+        .getByLabel(/^Tre Jones absorption mode$/i)
         .selectOption('TPE');
       await incoming
-        .getByLabel('Tre Jones held TPE', { exact: true })
+        .getByLabel(/^Tre Jones held TPE$/i)
         .selectOption(String(held.id));
     }
     await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
@@ -490,9 +497,9 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
         .getByRole('button', { name: /^Close Trade Machine$/i })
         .click();
       await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
-      await expect(
-        dialog.getByLabel('Tre Jones held TPE', { exact: true })
-      ).not.toHaveValue('');
+      await expect(dialog.getByLabel(/^Tre Jones held TPE$/i)).not.toHaveValue(
+        ''
+      );
       await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
       await expect(
         dialog.getByRole('button', { name: /^Apply Trade$/i })
@@ -530,7 +537,11 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
         timeout: 60000,
       })
       .toBe(step + 1);
-    acquisitionEvents.push((await getWorldEventDocuments(worldId)).at(-1));
+    await expect(dialog).toBeHidden({ timeout: 30000 });
+    acquisitionEvents.push({
+      step,
+      events: await getWorldEventDocuments(worldId),
+    });
   }
   const after = await state(worldId);
   const events = await getWorldEventDocuments(worldId);

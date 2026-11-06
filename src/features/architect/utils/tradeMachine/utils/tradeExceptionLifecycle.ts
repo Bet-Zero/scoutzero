@@ -74,7 +74,10 @@ function toFiniteAmount(value: unknown, fallback = 0): number {
 }
 
 function getTpeRemaining(tpe: TradeExceptionRecord): number {
-  return toFiniteAmount(tpe?.remainingAmount ?? tpe?.amount, 0);
+  return toFiniteAmount(
+    tpe?.remainingAmount ?? tpe?.remaining ?? tpe?.amount ?? tpe?.totalAmount,
+    0
+  );
 }
 
 function buildCreatedFrom(
@@ -185,7 +188,7 @@ function buildTpeConsumptionState({
 
   return {
     updatedTradeExceptions: currentTradeExceptions.map((tpe) => {
-      const currentTpeId = typeof tpe.id === 'string' ? tpe.id : null;
+      const currentTpeId = String(tpe.id ?? '');
       const consumed = currentTpeId ? tpeUsageMap.get(currentTpeId) || 0 : 0;
       if (consumed === 0) return tpe;
 
@@ -197,6 +200,7 @@ function buildTpeConsumptionState({
       return {
         ...tpe,
         remainingAmount: newRemaining,
+        ...(tpe.remaining != null ? { remaining: newRemaining } : {}),
         usedAmount: newUsed,
         isUsed: newRemaining === 0,
       };
@@ -233,15 +237,14 @@ function buildTpeConsumptionHistoryEntries({
   const historyEntries: TradeExceptionHistoryEntry[] = [];
 
   currentTradeExceptions.forEach((previousTpe) => {
-    const previousTpeId =
-      typeof previousTpe.id === 'string' ? previousTpe.id : null;
+    const previousTpeId = String(previousTpe.id ?? '');
     if (!previousTpeId) {
       return;
     }
 
     const nextTpe =
       updatedTradeExceptions.find(
-        (candidate) => candidate.id === previousTpeId
+        (candidate) => String(candidate.id ?? '') === previousTpeId
       ) || previousTpe;
     const previousRemaining = getTpeRemaining(previousTpe);
     const nextRemaining = getTpeRemaining(nextTpe);

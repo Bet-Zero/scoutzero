@@ -10,90 +10,96 @@ describe('tradeExceptionLifecycle', () => {
     vi.setSystemTime(FIXED_TIMESTAMP);
   });
 
-  it('keeps consumption, creation, and history generation owned by one helper', () => {
-    const result = applyTradeExceptionLifecycle({
-      currentTradeExceptions: [
-        {
-          id: 'existing-tpe',
-          amount: 5_000_000,
-          totalAmount: 5_000_000,
-          remainingAmount: 5_000_000,
-          usedAmount: 0,
-          createdSeason: 2025,
-          expiresOn: '2026-07-01T00:00:00.000Z',
-          createdFrom: 'Earlier Trade',
-          isUsed: false,
-        },
-      ],
-      hasTradeExceptionsValidation: true,
-      createdTPE: {
-        id: 'created-tpe',
-        amount: 2_000_000,
-        totalAmount: 2_000_000,
-        remainingAmount: 2_000_000,
-        createdSeason: 2026,
-        expiresOn: '2027-07-01T00:00:00.000Z',
-      },
-      incomingPlayers: [
-        {
-          player_id: 'incoming-player',
-          name: 'Incoming Player',
-          absorptionMode: 'TPE',
-          tpeId: 'existing-tpe',
-          matchIncoming: 3_000_000,
-        },
-      ],
-      outgoingPlayers: [{ name: 'Outgoing Veteran' }],
-      teamCode: 'BOS',
-      seasonId: '2025-26',
-      seasonYear: 2026,
-      timestampISO: FIXED_TIMESTAMP_ISO,
-      worldId: 'world_tm5a',
-      mutationType: 'executeTrade',
-      mutationId: 'mutation_tm5a',
-    });
-
-    expect(result.blockingIssues).toEqual([]);
-    expect(result.warnings).toEqual([]);
-    expect(result.updatedTradeExceptions).toHaveLength(2);
-    expect(result.updatedTradeExceptions).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: 'existing-tpe',
-          remainingAmount: 2_000_000,
-          usedAmount: 3_000_000,
-          isUsed: false,
-        }),
-        expect.objectContaining({
+  it.each(['existing-tpe', 123])(
+    'keeps consumption, creation, and history synchronized for TPE %s',
+    (existingId) => {
+      const result = applyTradeExceptionLifecycle({
+        currentTradeExceptions: [
+          {
+            // Legacy persisted records can predate the current string-ID type.
+            id: JSON.parse(JSON.stringify(existingId)),
+            amount: 5_000_000,
+            totalAmount: 5_000_000,
+            remainingAmount: 5_000_000,
+            remaining: 5_000_000,
+            usedAmount: 0,
+            createdSeason: 2025,
+            expiresOn: '2026-07-01T00:00:00.000Z',
+            createdFrom: 'Earlier Trade',
+            isUsed: false,
+          },
+        ],
+        hasTradeExceptionsValidation: true,
+        createdTPE: {
           id: 'created-tpe',
           amount: 2_000_000,
           totalAmount: 2_000_000,
           remainingAmount: 2_000_000,
-          usedAmount: 0,
-          createdFrom: 'Outgoing Veteran',
-          isUsed: false,
-        }),
-      ])
-    );
+          createdSeason: 2026,
+          expiresOn: '2027-07-01T00:00:00.000Z',
+        },
+        incomingPlayers: [
+          {
+            player_id: 'incoming-player',
+            name: 'Incoming Player',
+            absorptionMode: 'TPE',
+            tpeId: String(existingId),
+            matchIncoming: 3_000_000,
+          },
+        ],
+        outgoingPlayers: [{ name: 'Outgoing Veteran' }],
+        teamCode: 'BOS',
+        seasonId: '2025-26',
+        seasonYear: 2026,
+        timestampISO: FIXED_TIMESTAMP_ISO,
+        worldId: 'world_tm5a',
+        mutationType: 'executeTrade',
+        mutationId: 'mutation_tm5a',
+      });
 
-    expect(result.historyEntries).toHaveLength(2);
-    expect(result.historyEntries).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          type: 'TPE_CONSUMED',
-          tpeId: 'existing-tpe',
-          amountConsumed: 3_000_000,
-          remainingAmountAfter: 2_000_000,
-        }),
-        expect.objectContaining({
-          type: 'TPE_CREATED',
-          tpeId: 'created-tpe',
-          amountCreated: 2_000_000,
-          createdFrom: 'Outgoing Veteran',
-        }),
-      ])
-    );
-  });
+      expect(result.blockingIssues).toEqual([]);
+      expect(result.warnings).toEqual([]);
+      expect(result.updatedTradeExceptions).toHaveLength(2);
+      expect(result.updatedTradeExceptions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: existingId,
+            remainingAmount: 2_000_000,
+            remaining: 2_000_000,
+            usedAmount: 3_000_000,
+            isUsed: false,
+          }),
+          expect.objectContaining({
+            id: 'created-tpe',
+            amount: 2_000_000,
+            totalAmount: 2_000_000,
+            remainingAmount: 2_000_000,
+            usedAmount: 0,
+            createdFrom: 'Outgoing Veteran',
+            isUsed: false,
+          }),
+        ])
+      );
+
+      expect(result.historyEntries).toHaveLength(2);
+      expect(result.historyEntries).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'TPE_CONSUMED',
+            tpeId: String(existingId),
+            amountConsumed: 3_000_000,
+            remainingAmountAfter: 2_000_000,
+          }),
+          expect.objectContaining({
+            type: 'TPE_CREATED',
+            tpeId: 'created-tpe',
+            amountCreated: 2_000_000,
+            createdFrom: 'Outgoing Veteran',
+          }),
+        ])
+      );
+    }
+  );
 
   it('CBA2-SC-050(h72): ignores Two-Way TPE assignments and attributes creation only to matching-salary players', () => {
     const result = applyTradeExceptionLifecycle({
@@ -168,9 +174,7 @@ describe('tradeExceptionLifecycle', () => {
         createdSeason: 2026,
         expiresOn: '2027-07-01T00:00:00.000Z',
       },
-      outgoingPlayers: [
-        { name: 'Outgoing Two-Way', contractType: 'two-way' },
-      ],
+      outgoingPlayers: [{ name: 'Outgoing Two-Way', contractType: 'two-way' }],
       teamCode: 'LAL',
       seasonId: '2025-26',
       seasonYear: 2026,
