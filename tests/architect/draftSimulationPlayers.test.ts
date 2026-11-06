@@ -92,7 +92,7 @@ function fixture() {
   };
 }
 describe('bounded ordinary player consideration', () => {
-  it('permits the existing Room path only for admitted native selections or ordered swap rights and keeps exact salary authority', () => {
+  it('permits the existing Room path across admitted mixed assets and keeps exact salary authority', () => {
     const f = fixture();
     for (const slot of f.args.payload.teams)
       slot.salaryMatchingElection.path = 'ROOM';
@@ -103,8 +103,8 @@ describe('bounded ordinary player consideration', () => {
       simulationPlayerMovements(f.args, 'ordered-swap-rights', f.state)
     ).toHaveLength(1);
     for (const branch of ['unconditional', 'protection-programs'])
-      expect(() => simulationPlayerMovements(f.args, branch, f.state)).toThrow(
-        /matching path/
+      expect(simulationPlayerMovements(f.args, branch, f.state)).toHaveLength(
+        1
       );
     f.args.payload.teams[0].salaryMatchingElection.tradedPlayerPreTradeSalaries
       .p++;
@@ -194,18 +194,14 @@ describe('bounded ordinary player consideration', () => {
       slot.salaryMatchingElection.tradedPlayerPreTradeSalaries.p++;
     if (mode === 'extra-salary')
       slot.salaryMatchingElection.tradedPlayerPreTradeSalaries.other = 5000000;
-    if (mode === 'wrong-path') slot.salaryMatchingElection.path = 'ROOM';
+    if (mode === 'wrong-path') slot.salaryMatchingElection.path = 'unknown';
     if (mode === 'recipient-path')
-      f.args.payload.teams[1].salaryMatchingElection.path = 'ROOM';
+      f.args.payload.teams[1].salaryMatchingElection.path = 'unknown';
     if (mode === 'context') f.args.payload.tradeCtx.source = 'caller';
     for (const branch of ['unconditional', 'ordered-swap-rights'])
-      if (
-        !['wrong-path', 'recipient-path'].includes(mode) ||
-        branch !== 'ordered-swap-rights'
-      )
-        expect(() =>
-          simulationPlayerMovements(f.args, branch, f.state)
-        ).toThrow();
+      expect(() =>
+        simulationPlayerMovements(f.args, branch, f.state)
+      ).toThrow();
   });
   it.each(['conditional-2027', 'swap-program', 'apron-lifecycle'])(
     'preserves the %s player restriction',
@@ -214,6 +210,96 @@ describe('bounded ordinary player consideration', () => {
       expect(() => simulationPlayerMovements(f.args, branch, f.state)).toThrow(
         /complete protection programs/
       );
+    }
+  );
+});
+
+describe.each([
+  'unconditional',
+  'protection-programs',
+  'native-selections',
+  'ordered-swap-rights',
+])('held Standard TPE consideration: %s', (branch) => {
+  function heldFixture() {
+    const f = fixture();
+    const receiver: any = f.state.teams[1].team;
+    receiver.exceptions = {
+      tpe: [
+        {
+          id: 'held-tpe',
+          amount: 6_000_000,
+          remainingAmount: 6_000_000,
+          expiresOn: '2027-06-05',
+        },
+      ],
+    };
+    const outgoing = f.args.payload.teams[0].sends[0];
+    outgoing.absorptionMode = 'TPE';
+    outgoing.tpeId = 'held-tpe';
+    return { ...f, receiver, outgoing };
+  }
+  it('binds acquisition to the explicitly routed recipient without changing Contract consideration', () => {
+    const f = heldFixture();
+    expect(simulationPlayerMovements(f.args, branch, f.state)).toEqual([
+      { playerId: 'p', contractId: 'c', fromTeam: 'CHI', toTeam: 'TOR' },
+    ]);
+    f.args.payload.teams.push({ ...f.args.payload.teams[1], teamCode: 'SAS' });
+    f.state.teams.push({ teamCode: 'SAS', team: { roster: [], players: [] } });
+    f.outgoing.tradeTo = 'SAS';
+    f.outgoing.receivingTeamIndex = 2;
+    expect(() => simulationPlayerMovements(f.args, branch, f.state)).toThrow(
+      /receiving team/
+    );
+    f.state.teams[2].team.exceptions = structuredClone(f.receiver.exceptions);
+    expect(simulationPlayerMovements(f.args, branch, f.state)).toEqual([
+      { playerId: 'p', contractId: 'c', fromTeam: 'CHI', toTeam: 'SAS' },
+    ]);
+  });
+  it('uses the existing legacy accessor and normalized exception identity', () => {
+    const f = heldFixture();
+    f.receiver.tradeExceptions = [{ ...f.receiver.exceptions.tpe[0], id: 123 }];
+    delete f.receiver.exceptions;
+    f.outgoing.tpeId = '123';
+    expect(simulationPlayerMovements(f.args, branch, f.state)).toHaveLength(1);
+    f.receiver.tradeExceptions.push({
+      ...f.receiver.tradeExceptions[0],
+      id: '123',
+    });
+    expect(() => simulationPlayerMovements(f.args, branch, f.state)).toThrow(
+      /receiving team/
+    );
+  });
+  it.each([
+    'absent',
+    'foreign',
+    'duplicate',
+    'missing-id',
+    'empty-id',
+    'wrong-mode',
+    'unknown-mode',
+    'caller-exception',
+  ])(
+    'rejects %s exception identity before preparing the complete trade',
+    (mode) => {
+      const f = heldFixture();
+      if (mode === 'absent') f.receiver.exceptions.tpe = [];
+      if (mode === 'foreign') {
+        f.team.exceptions = f.receiver.exceptions;
+        f.receiver.exceptions = {};
+      }
+      if (mode === 'duplicate')
+        f.receiver.exceptions.tpe.push({ ...f.receiver.exceptions.tpe[0] });
+      if (mode === 'missing-id') delete f.outgoing.tpeId;
+      if (mode === 'empty-id') f.outgoing.tpeId = ' ';
+      if (mode === 'wrong-mode') f.outgoing.absorptionMode = 'MATCH';
+      if (mode === 'unknown-mode') f.outgoing.absorptionMode = 'FA_EXCEPTION';
+      if (mode === 'caller-exception') {
+        f.args.payload.teams[1].appliedTPEs = f.receiver.exceptions.tpe;
+        f.receiver.exceptions = {};
+      }
+      expect(() =>
+        simulationPlayerMovements(f.args, branch, f.state)
+      ).toThrow();
     }
   );
 });
@@ -352,7 +438,12 @@ describe.each([
   });
 });
 
-it.each(['native-selections', 'ordered-swap-rights'])(
+it.each([
+  'unconditional',
+  'protection-programs',
+  'native-selections',
+  'ordered-swap-rights',
+])(
   'preserves split per-player destinations and Room collections in %s',
   (branch) => {
     const f = collectionFixture(5, true);

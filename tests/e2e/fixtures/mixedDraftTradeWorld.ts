@@ -21,7 +21,11 @@ export const MIXED_FIRSTS = {
   CHI: 'ent:CHI:2028:1:own:2afbfb42',
   ORL: '',
 } as const;
-export async function seedMixedDraftTradeWorld(uid: string, worldId: string) {
+export async function seedMixedDraftTradeWorld(
+  uid: string,
+  worldId: string,
+  options: { roomAcquisition?: boolean } = {}
+) {
   const catalogue = await seedRetainedDraftSimulation(uid, worldId);
   const release = await verifyContractSourceRelease(
     JSON.parse(
@@ -53,7 +57,16 @@ export async function seedMixedDraftTradeWorld(uid: string, worldId: string) {
     const source = (
       await db.doc(`architect_baseTeams/${teamCode}`).get()
     ).data()!;
-    const roster = source.roster as string[];
+    // Explicit software-only roster premise for the Room acquisition proof.
+    // Keep retained Contract terms intact; this is not a claimed NBA roster.
+    const roster = (source.roster as string[]).filter(
+      (id) =>
+        !(
+          options.roomAcquisition &&
+          teamCode === 'CHI' &&
+          id === 'anfernee_simons'
+        )
+    );
     const players = roster.map((playerId) => {
       const observations = release.observations.filter(
         (o) => o.playerId === playerId && o.teamId === teamCode

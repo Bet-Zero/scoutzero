@@ -27,6 +27,9 @@ import {
   type ArchitectMutationTeamRecord,
 } from '@/features/architect/utils/mutationPipeline';
 
+import { buildGeneralMutationCommittedTeamSnapshot } from '@/features/architect/utils/mutationPipeline.read.persistence.snapshots';
+import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
+
 type TpeCreationHistoryEntryLike = {
   type: 'TPE_CREATED';
   teamCode: string;
@@ -459,129 +462,180 @@ describe('Phase 50: ExecuteTrade Integration Persistence Tests', () => {
   // TEST 2: TPE Consumed & Logged
   // ==========================================================================
   describe('Test 2: TPE Consumed & Logged', () => {
-    test('absorbing player using TPE updates remainingAmount and logs TPE_CONSUMED entry', () => {
-      // SCENARIO: Team A has an existing TPE of 15M.
-      // Team A acquires a player worth 12M using the TPE.
-      // TPE should be updated: remainingAmount = 3M, usedAmount = 12M
+    test.each(['legacy', 'canonical', 'both'] as const)(
+      'absorbing player using %s TPE storage persists consumption and history',
+      (storage) => {
+        // SCENARIO: Team A has an existing TPE of 15M.
+        // Team A acquires a player worth 12M using the TPE.
+        // TPE should be updated: remainingAmount = 3M, usedAmount = 12M
 
-      const existingTPE = makeTPE('tpe_existing_consume', 15_000_000);
-      const playerToAbsorb = makePlayer(
-        'player_absorb',
-        'Absorbed Player',
-        12_000_000,
-        'TMB'
-      );
+        const existingTPE = makeTPE('tpe_existing_consume', 15_000_000);
+        const playerToAbsorb = makePlayer(
+          'player_absorb',
+          'Absorbed Player',
+          12_000_000,
+          'TMB'
+        );
 
-      const teamA = makeTeam('TMA', 175_000_000, [], {
-        tradeExceptions: [existingTPE],
-      });
-      const teamB = makeTeam('TMB', 100_000_000, [playerToAbsorb]);
-
-      const currentState = buildTradeCurrentState([
-        { teamCode: 'TMA', team: teamA },
-        { teamCode: 'TMB', team: teamB },
-      ]);
-
-      // Trade: TMB sends playerToAbsorb to TMA using TPE (no outgoing from TMA)
-      const payload = {
-        teams: [
-          {
-            team: teamA,
-            teamCode: 'TMA',
-            sends: [], // TMA sends nothing (using TPE to absorb)
-            receives: [
-              {
-                player_id: 'player_absorb',
-                name: 'Absorbed Player',
-                salary: 12_000_000,
-                matchIncoming: 12_000_000,
-                tpeId: 'tpe_existing_consume', // Using TPE
-                absorptionMode: 'TPE',
-              },
-            ],
-            picksOut: [],
-            picksIn: [],
-            cashSent: 0,
-            cashReceived: 0,
+        const teamA = makeTeam('TMA', 175_000_000, [], {
+          tradeExceptions:
+            storage === 'canonical'
+              ? []
+              : storage === 'both'
+                ? [
+                    makeTPE('tpe_existing_consume', 20_000_000),
+                    makeTPE('tpe_legacy_only', 1_000_000),
+                  ]
+                : [existingTPE],
+          exceptions: {
+            mle: null,
+            bae: null,
+            tpe: storage === 'legacy' ? [] : [existingTPE],
           },
-          {
-            team: teamB,
-            teamCode: 'TMB',
-            sends: [
-              {
-                player_id: 'player_absorb',
-                name: 'Absorbed Player',
-                salary: 12_000_000,
-                matchOutgoing: 12_000_000,
-              },
-            ],
-            receives: [], // TMB receives nothing (sending for nothing/picks/cash)
-            picksOut: [],
-            picksIn: [],
-            cashSent: 0,
-            cashReceived: 0,
-          },
-        ],
-        capProjections: makeCapProjections(),
-        tradeCtx: { worldId: 'world_test_50_consume', seasonId: '2025-26' },
-      };
+        });
+        const teamB = makeTeam('TMB', 100_000_000, [playerToAbsorb]);
 
-      // Execute the mutation
-      const result = computeWorldMutation({
-        mutationType: 'executeTrade',
-        payload,
-        currentState,
-        seasonId: '2025-26',
-        timestamp: FIXED_TIMESTAMP,
-        worldId: 'world_test_50_consume',
-      });
+        const currentState = buildTradeCurrentState([
+          { teamCode: 'TMA', team: teamA },
+          { teamCode: 'TMB', team: teamB },
+        ]);
 
-      // ASSERTIONS
-      expect(result.success).toBe(true);
+        // Trade: TMB sends playerToAbsorb to TMA using TPE (no outgoing from TMA)
+        const payload = {
+          teams: [
+            {
+              team: teamA,
+              teamCode: 'TMA',
+              sends: [], // TMA sends nothing (using TPE to absorb)
+              receives: [
+                {
+                  player_id: 'player_absorb',
+                  name: 'Absorbed Player',
+                  salary: 12_000_000,
+                  matchIncoming: 12_000_000,
+                  tpeId: 'tpe_existing_consume', // Using TPE
+                  absorptionMode: 'TPE',
+                },
+              ],
+              picksOut: [],
+              picksIn: [],
+              cashSent: 0,
+              cashReceived: 0,
+            },
+            {
+              team: teamB,
+              teamCode: 'TMB',
+              sends: [
+                {
+                  player_id: 'player_absorb',
+                  name: 'Absorbed Player',
+                  salary: 12_000_000,
+                  matchOutgoing: 12_000_000,
+                },
+              ],
+              receives: [], // TMB receives nothing (sending for nothing/picks/cash)
+              picksOut: [],
+              picksIn: [],
+              cashSent: 0,
+              cashReceived: 0,
+            },
+          ],
+          capProjections: makeCapProjections(),
+          tradeCtx: { worldId: 'world_test_50_consume', seasonId: '2025-26' },
+        };
 
-      // Find Team A's update
-      const updatedTeamA = getUpdatedTeam(result, 'TMA');
-      const tradeExceptions = getTradeExceptions(updatedTeamA, 'TMA');
+        // Execute the mutation
+        const result = computeWorldMutation({
+          mutationType: 'executeTrade',
+          payload,
+          currentState,
+          seasonId: '2025-26',
+          timestamp: FIXED_TIMESTAMP,
+          worldId: 'world_test_50_consume',
+        });
 
-      // Find the consumed TPE
-      const consumedTPE = requireValue(
-        tradeExceptions.find((tpe) => tpe.id === 'tpe_existing_consume'),
-        'Expected consumed TPE'
-      );
-      expect(consumedTPE.remainingAmount).toBe(3_000_000); // 15M - 12M
-      expect(consumedTPE.usedAmount).toBe(12_000_000);
-      expect(consumedTPE.isUsed).toBe(false); // Not fully consumed
+        // ASSERTIONS
+        expect(result.success).toBe(true);
 
-      // Exception history should contain exactly one TPE_CONSUMED entry
-      const consumptionEntries = getExceptionHistory(
-        updatedTeamA,
-        'TMA'
-      ).filter(isTpeConsumptionHistoryEntry);
-      expect(consumptionEntries.length).toBe(1);
+        // Find Team A's update
+        const updatedTeamA = getUpdatedTeam(result, 'TMA');
+        const tradeExceptions = getTradeExceptions(updatedTeamA, 'TMA');
 
-      const consumptionEntry = requireValue(
-        consumptionEntries[0],
-        'Expected a TPE_CONSUMED history entry'
-      );
-      expect(consumptionEntry.teamCode).toBe('TMA');
-      expect(consumptionEntry.tpeId).toBe('tpe_existing_consume');
-      expect(consumptionEntry.amountConsumed).toBe(12_000_000);
-      expect(consumptionEntry.remainingAmountAfter).toBe(3_000_000);
-      expect(consumptionEntry.fullyConsumed).toBe(false);
-      expect(consumptionEntry.historyKey).toBeDefined();
-      expect(consumptionEntry.historyKey).toContain('consumed');
+        // Find the consumed TPE
+        const consumedTPE = requireValue(
+          tradeExceptions.find((tpe) => tpe.id === 'tpe_existing_consume'),
+          'Expected consumed TPE'
+        );
+        expect(consumedTPE.remainingAmount).toBe(3_000_000); // 15M - 12M
+        expect(consumedTPE.usedAmount).toBe(12_000_000);
+        expect(consumedTPE.isUsed).toBe(false); // Not fully consumed
 
-      // Verify absorbedPlayers list
-      expect(consumptionEntry.absorbedPlayers).toBeDefined();
-      expect(Array.isArray(consumptionEntry.absorbedPlayers)).toBe(true);
-      expect(consumptionEntry.absorbedPlayers.length).toBe(1);
-      const absorbedPlayer = requireValue(
-        consumptionEntry.absorbedPlayers[0],
-        'Expected absorbed player history entry'
-      );
-      expect(absorbedPlayer.name).toBe('Absorbed Player');
-      expect(absorbedPlayer.amountAbsorbed).toBe(12_000_000);
-    });
+        // Exercise the real persistence canonicalizer and a serialized reload.
+        // Previously canonical storage kept the old 15M balance despite a legal
+        // apply, because compute updated only the discarded legacy field.
+        const reloaded = JSON.parse(
+          JSON.stringify(
+            buildGeneralMutationCommittedTeamSnapshot(updatedTeamA, '2025-26')
+          )
+        );
+        expect(reloaded.tradeExceptions).toBeUndefined();
+        expect(getTeamTpeList(reloaded)).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: 'tpe_existing_consume',
+              remainingAmount: 3_000_000,
+              remaining: 3_000_000,
+              usedAmount: 12_000_000,
+            }),
+          ])
+        );
+        expect(getTeamTpeList(reloaded)).toHaveLength(
+          storage === 'both' ? 2 : 1
+        );
+        if (storage === 'both') {
+          expect(getTeamTpeList(reloaded)).toContainEqual(
+            expect.objectContaining({
+              id: 'tpe_legacy_only',
+              remainingAmount: 1_000_000,
+              usedAmount: 0,
+            })
+          );
+        }
+        expect(reloaded.exceptionHistory).toEqual(
+          updatedTeamA.exceptionHistory
+        );
+
+        // Exception history should contain exactly one TPE_CONSUMED entry
+        const consumptionEntries = getExceptionHistory(
+          updatedTeamA,
+          'TMA'
+        ).filter(isTpeConsumptionHistoryEntry);
+        expect(consumptionEntries.length).toBe(1);
+
+        const consumptionEntry = requireValue(
+          consumptionEntries[0],
+          'Expected a TPE_CONSUMED history entry'
+        );
+        expect(consumptionEntry.teamCode).toBe('TMA');
+        expect(consumptionEntry.tpeId).toBe('tpe_existing_consume');
+        expect(consumptionEntry.amountConsumed).toBe(12_000_000);
+        expect(consumptionEntry.remainingAmountAfter).toBe(3_000_000);
+        expect(consumptionEntry.fullyConsumed).toBe(false);
+        expect(consumptionEntry.historyKey).toBeDefined();
+        expect(consumptionEntry.historyKey).toContain('consumed');
+
+        // Verify absorbedPlayers list
+        expect(consumptionEntry.absorbedPlayers).toBeDefined();
+        expect(Array.isArray(consumptionEntry.absorbedPlayers)).toBe(true);
+        expect(consumptionEntry.absorbedPlayers.length).toBe(1);
+        const absorbedPlayer = requireValue(
+          consumptionEntry.absorbedPlayers[0],
+          'Expected absorbed player history entry'
+        );
+        expect(absorbedPlayer.name).toBe('Absorbed Player');
+        expect(absorbedPlayer.amountAbsorbed).toBe(12_000_000);
+      }
+    );
 
     test('fully consuming TPE sets isUsed=true and fullyConsumed=true', () => {
       // SCENARIO: Team A has TPE of 10M, absorbs player worth exactly 10M

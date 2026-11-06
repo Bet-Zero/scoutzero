@@ -345,11 +345,20 @@ function resolveTeamTpeRead(
  * @param team - Team object
  * @returns Array of TPE objects with normalized fields (may be empty)
  */
-export function getTeamTpeList(team: TeamTpeLike | null | undefined): TradeExceptionLike[] {
+export function getTeamTpeList(
+  team: TeamTpeLike | null | undefined,
+  { includeUiAliases = true }: { includeUiAliases?: boolean } = {}
+): TradeExceptionLike[] {
   const resolvedRead = resolveTeamTpeRead(team);
 
   if (resolvedRead.source === 'none') {
     return [];
+  }
+
+  // Writers share the same source precedence without adding display-only
+  // fields that are intentionally absent from the persistence contract.
+  if (!includeUiAliases) {
+    return resolvedRead.rawList as TradeExceptionLike[];
   }
 
   // Phase 68: Normalize field names for all consumers

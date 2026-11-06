@@ -6,6 +6,10 @@ type ExceptionHistoryEntry = {
   amountRemaining?: number | null;
   amountCreated?: number | null;
   amountConsumed?: number | null;
+  remainingAmountAfter?: number | null;
+  createdFrom?: string | null;
+  absorbedPlayers?: Array<{ name?: string | null }> | null;
+  expiresOn?: string | null;
   expires?: string | null;
   expiresAt?: string | null;
   source?: string | null;
@@ -40,19 +44,24 @@ type ExceptionHistoryTrackerProps = {
 const formatAmount = (entry: ExceptionHistoryEntry) => {
   if (typeof entry.amount === 'number') return entry.amount;
   if (typeof entry.amountRemaining === 'number') return entry.amountRemaining;
-
-  const created = Number(entry.amountCreated || 0);
-  const consumed = Number(entry.amountConsumed || 0);
-  if (Number.isFinite(created) || Number.isFinite(consumed)) {
-    return Math.max(0, created - consumed);
-  }
-
+  if (typeof entry.amountConsumed === 'number') return entry.amountConsumed;
+  if (typeof entry.amountCreated === 'number') return entry.amountCreated;
   return null;
 };
 
-const mapExceptionRow = (entry: ExceptionHistoryEntry = {}): ExceptionHistoryRow => {
-  const expires = entry.expires || entry.expiresAt || '—';
-  const source = entry.source || entry.sourcePlayerName || '—';
+const mapExceptionRow = (
+  entry: ExceptionHistoryEntry = {}
+): ExceptionHistoryRow => {
+  const expires = entry.expiresOn || entry.expires || entry.expiresAt || '—';
+  const source =
+    entry.createdFrom ||
+    entry.absorbedPlayers
+      ?.map((player) => player.name)
+      .filter(Boolean)
+      .join(', ') ||
+    entry.source ||
+    entry.sourcePlayerName ||
+    '—';
   const date = entry.date || entry.timestamp || '—';
   const action = entry.action || entry.type || '—';
   const amount = formatAmount(entry);
@@ -84,7 +93,7 @@ export const ExceptionHistoryTracker = ({
             <th className="p-2 text-left">Date</th>
             <th className="p-2 text-left">Action</th>
             <th className="p-2 text-left">Amount</th>
-            <th className="p-2 text-left">Source Player</th>
+            <th className="p-2 text-left">Player</th>
             <th className="p-2 text-left">Expires</th>
           </tr>
         </thead>
@@ -97,7 +106,16 @@ export const ExceptionHistoryTracker = ({
             >
               <td className="p-2">{entry.date}</td>
               <td className="p-2">{entry.action}</td>
-              <td className="p-2">${entry.amount?.toLocaleString() ?? '—'}</td>
+              <td className="p-2">
+                {entry.amount == null
+                  ? '—'
+                  : `$${entry.amount.toLocaleString()}`}
+                {typeof entry.remainingAmountAfter === 'number' && (
+                  <div className="text-xs text-cockpit-text-muted">
+                    ${entry.remainingAmountAfter.toLocaleString()} remaining
+                  </div>
+                )}
+              </td>
               <td className="p-2">{entry.source || '—'}</td>
               <td className="p-2">{entry.expires || '—'}</td>
             </tr>
@@ -154,4 +172,3 @@ export const ExceptionHistoryTracker = ({
     </div>
   );
 };
-

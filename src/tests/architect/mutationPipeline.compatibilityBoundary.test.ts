@@ -155,11 +155,15 @@ vi.mock('@/features/architect/utils/capLegality/postStateCapValidator', () => ({
   })),
 }));
 
-vi.mock('@/features/architect/utils/persistenceContracts', () => ({
-  assertPersistableOrThrow: vi.fn(),
-  normalizeTeamTpeSchema: vi.fn((team: unknown) => team),
-  PERSISTENCE_CONTRACTS: {},
-}));
+vi.mock('@/features/architect/utils/persistenceContracts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/architect/utils/persistenceContracts')>();
+  return {
+    ...actual,
+    assertPersistableOrThrow: vi.fn(),
+    normalizeTeamTpeSchema: vi.fn((team: unknown) => team),
+    PERSISTENCE_CONTRACTS: {},
+  };
+});
 
 vi.mock('@/features/architect/utils/leagueInvariants', () => ({
   validateMutationLeagueInvariants: vi.fn(async () => ({

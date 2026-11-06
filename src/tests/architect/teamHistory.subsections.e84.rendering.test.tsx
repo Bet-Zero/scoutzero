@@ -66,6 +66,48 @@ describe('Team History E84 subsection rendering', () => {
     expect(screen.getByText('No MLE activity logged.')).toBeInTheDocument();
   });
 
+  it('displays canonical TPE creation, consumption and remaining balance without inventing zero', () => {
+    render(
+      <ExceptionHistoryTracker
+        exceptionHistory={[
+          {
+            type: 'TPE_CREATED',
+            amountCreated: 8_220_280,
+            createdFrom: 'Anthony Black',
+            expiresOn: '2027-06-05',
+          },
+          {
+            type: 'TPE_CONSUMED',
+            amountConsumed: 8_000_000,
+            remainingAmountAfter: 220_280,
+            absorbedPlayers: [{ name: 'Tre Jones' }],
+          },
+          {
+            type: 'TPE_CONSUMED',
+            amountConsumed: 220_280,
+            remainingAmountAfter: 0,
+            absorbedPlayers: [{ name: 'Final Player' }],
+          },
+          { type: 'Unspecified legacy activity' },
+        ]}
+      />
+    );
+    const created = screen.getByTestId('team-history-tpe-row-0');
+    expect(created).toHaveTextContent('$8,220,280');
+    expect(created).toHaveTextContent('Anthony Black');
+    expect(created).toHaveTextContent('2027-06-05');
+    const consumed = screen.getByTestId('team-history-tpe-row-1');
+    expect(consumed).toHaveTextContent('$8,000,000');
+    expect(consumed).toHaveTextContent('$220,280 remaining');
+    expect(consumed).toHaveTextContent('Tre Jones');
+    expect(screen.getByTestId('team-history-tpe-row-2')).toHaveTextContent(
+      '$0 remaining'
+    );
+    expect(screen.getByTestId('team-history-tpe-row-3')).not.toHaveTextContent(
+      '$0'
+    );
+  });
+
   it('preserves draft pick log and current pick inventory ordering plus empty states', () => {
     const { rerender } = render(
       <DraftPickTracker

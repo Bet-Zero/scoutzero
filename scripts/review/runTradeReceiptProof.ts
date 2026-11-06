@@ -83,6 +83,7 @@ export const MIXED_CONDITIONAL_SCREENSHOTS = [
 ].map((key) => ({ key, filename: `${key}-1280x720.png` }));
 
 export const MIXED_TRADES_SCREENSHOTS = [
+  'room-proposal',
   'permitted-proposal',
   'repeat-trade',
   ...['CHI', 'ORL'].flatMap((team) =>
@@ -880,7 +881,9 @@ export async function runTradeReceiptProof(
                 threeTeamMixed || mixedSwap || mixedConditional
                   ? 3600000
                   : mixedTrades
-                    ? 600000
+                    ? // Two acquisitions, held-exception rejection matrix and
+                      // later retrade plus the separately bounded negative case.
+                      900000
                     : penaltyPlacement || apronMultiseason
                       ? 3600000
                       : mixedNative
@@ -936,6 +939,11 @@ export async function runTradeReceiptProof(
   const additionalProofPaths = retainedSimulation
     ? [
         path.join(artifactDir, 'negative-proof.json'),
+        ...(mixedTrades
+          ? ['room-export.png', 'held-tpe-export.png'].map((name) =>
+              path.join(artifactDir, name)
+            )
+          : []),
         ...(mixedConditional
           ? ['original-proof.json', 'original-export.png'].map((name) =>
               path.join(artifactDir, name)
@@ -1026,7 +1034,7 @@ export async function runTradeReceiptProof(
           : mixedConditional
             ? 'Three-team original and mixed conditional routing, return trade, both governed draft outcomes and season advance'
             : mixedTrades
-              ? 'Ordinary players and retained original firsts in one governed saved-world trade'
+              ? 'Room acquisition and subsequent use of its saved Standard TPE in mixed trades, all-team reload and later retrade'
               : nativeTrades
                 ? 'Resolved native selections through saved-world Trade Machine'
                 : overlappingPool

@@ -4,6 +4,7 @@
 import { isTwoWayTradePlayer } from '../tradeMachine/utils/twoWayTradeSalary';
 import { GovernedTradeSalaryBasisZ } from '@/schemas/governedTradeSalaryBasis';
 import { TradeSalaryMatchingElectionZ } from '@/schemas/tradeSalaryMatchingPath';
+import { getTeamTpeList } from '../persistenceContracts';
 import { normalizeCurrentStatePlayerContract } from '../mutationPipeline.helpers';
 import { mutationSnapshotText } from '../mutationPipeline.snapshotDigest';
 import { LIVE_GOVERNED_TRADE_SALARY_AUTHORITY } from '../tradeContext/tradeContext.payloadNormalization';
@@ -26,8 +27,7 @@ export function simulationPlayerMovements(
   const supportedPath = (path: string) =>
     path === 'STANDARD_TPE' ||
     path === 'AGGREGATED_STANDARD_TPE' ||
-    (['native-selections', 'ordered-swap-rights'].includes(branch) &&
-      path === 'ROOM');
+    path === 'ROOM';
   if (
     hasPlayers &&
     (args.payload.capProjections != null ||
@@ -127,8 +127,8 @@ export function simulationPlayerMovements(
         player.signAndTradeContract ||
         isTwoWayTradePlayer(player) ||
         isTwoWayTradePlayer(authoritative) ||
-        (player.absorptionMode && player.absorptionMode !== 'MATCH') ||
-        player.tpeId ||
+        (player.absorptionMode &&
+          !['MATCH', 'TPE'].includes(player.absorptionMode)) ||
         (contract != null &&
           mutationSnapshotText(
             normalizeCurrentStatePlayerContract(contract)
@@ -137,6 +137,23 @@ export function simulationPlayerMovements(
         throw new Error(
           'Mixed trades require unchanged ordinary standard Contracts.'
         );
+      if (player.absorptionMode === 'TPE' || player.tpeId != null) {
+        const recipient = state.teams?.find((t) => t.teamCode === toTeam)
+          ?.team as Parameters<typeof getTeamTpeList>[0];
+        if (
+          player.absorptionMode !== 'TPE' ||
+          typeof player.tpeId !== 'string' ||
+          !player.tpeId.trim() ||
+          getTeamTpeList(recipient).filter(
+            (tpe) => String(tpe?.id ?? '') === player.tpeId
+          ).length !== 1
+        )
+          throw new Error(
+            'Assign the player to one exact trade exception held by the receiving team.'
+          );
+        // The existing salary/exception engines own capacity, expiry, apron,
+        // aggregation and Room exclusivity. This adapter establishes identity.
+      }
       const parsed = GovernedTradeSalaryBasisZ.safeParse(
         authoritative.governedTradeSalaryBasis
       );
