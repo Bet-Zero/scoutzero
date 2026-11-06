@@ -1,0 +1,69 @@
+{
+  "purpose": "Offline recovery integrity only; not a runtime source trust pin or admission.",
+  "files": [
+    {
+      "locator": "1ca449af:output/june5-readiness.json",
+      "sha256": "1630576795d6ae5c378f9d0c689c95b83f027ea2a8e42f0b468150a2665daf22"
+    },
+    {
+      "locator": "1ca449af:output/may26-holder-transcription.json",
+      "sha256": "2613149aeaa709fb1c8d9f7568ff0a05f5fed13deeda8dfade999ae17d6ee191"
+    },
+    {
+      "locator": "1ca449af:output/june2-ledger-transcription.json",
+      "sha256": "b6bb8c362b1970fc4c3efbcf737687a499382fc614d1fa9c7a6368578c938545"
+    },
+    {
+      "locator": "1ca449af:output/starting-asset-mapping.json",
+      "sha256": "a4bb36000aa4dd2c72b0304fa5775b8a4409abb14db700427ac0c4722481235e"
+    },
+    {
+      "locator": "1ca449af:output/starting-right-mapping.json",
+      "sha256": "a55311e29ebba3b3fba14e2e589db7548e1e7e390c7fd78a897f28c2f17abc33"
+    },
+    {
+      "locator": "71a9a97e:family-f/candidate.json",
+      "sha256": "daca39e581719c82d074912a5e82d874920e04625fa54af9928ace0e2d0b8f86"
+    },
+    {
+      "locator": "71a9a97e:family-f/claims-and-membership.json",
+      "sha256": "c81339df456a6c81bcd852f4b08496de987e39743d9ccb0f36f47a0c9d15ea1a"
+    },
+    {
+      "locator": "50901231:repair/replacement-records.json",
+      "sha256": "dcc8b53d329936735583df7f3e620c88a56489b6efb7e780758ffb048c48c87d"
+    },
+    {
+      "locator": "ca3fbacf:family-d-candidate/candidate.json",
+      "sha256": "6b1a9bb2081bc9b6b9b5c9438e31872c932cdb87c3339b18847cb70195bacf2d"
+    },
+    {
+      "locator": "9f56d9ac:author-checkpoint/holder-delta-staging.json",
+      "sha256": "72b7779a592c07ecb876f5b2c433068268a3a9686b9d7e0702bc5827d1de7601"
+    },
+    {
+      "locator": "d5ce47ad:current/od-n2-1-delta.json",
+      "sha256": "8a63310d4dac3f4e62a9111743f964f947ee50faabc32400ca7cf71e6bcae9bc"
+    },
+    {
+      "locator": "d5ce47ad:current/followup-delta.json",
+      "sha256": "44859dcdcad2c3faeded9536dbc77b2604d01fa438f8db805e7a9dd1aa3304e4"
+    },
+    {
+      "locator": "d5ce47ad:current/next-delta.json",
+      "sha256": "8d87e0bd4254f0b46c224a27e8ce665ac236b0b3c73221bc6a719b4d93d7fbf5"
+    },
+    {
+      "locator": "d5ce47ad:current/final-delta.json",
+      "sha256": "4f3570378173a3a987b7a05752fea061be4906ab85b344fc40ec86cb6760ffbd"
+    },
+    {
+      "locator": "BZE-309:accepted-comments",
+      "sha256": "ea32a0a05fcab5393afb067db7c8353b3b3e1908a339c6144a7cabdb7192c95f"
+    },
+    {
+      "locator": "BZE344:accepted-value-bindings.json",
+      "sha256": "7c2d079aef27bc2e9a655cf98f4efcee2163662db5b1811196e7cdc19c182a72"
+    }
+  ]
+}
