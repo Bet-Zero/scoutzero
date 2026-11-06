@@ -655,7 +655,14 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
     const history = page
       .getByTestId('team-history-section-timeline')
       .getByRole('button', { name: /Trade Executed:/ });
-    await expect(history).toHaveCount(2);
+    await expect(history).toHaveCount(2, { timeout: 30000 });
+    if (team === 'ORL') {
+      const consumption = page.getByTestId('team-history-tpe-table')
+        .getByRole('row').filter({ hasText: 'TPE_CONSUMED' });
+      await expect(consumption).toContainText('$8,000,000');
+      await expect(consumption).toContainText('$220,280 remaining');
+      await expect(consumption).toContainText(/Tre Jones/i);
+    }
     const historyText: string[] = [];
     for (const eventIndex of [0, 1]) {
       await history.nth(eventIndex).click();

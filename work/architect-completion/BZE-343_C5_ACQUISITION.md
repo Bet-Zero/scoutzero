@@ -32,7 +32,13 @@ without changing their stored identity. Regression checks cover legacy-only,
 canonical-only and duplicate storage through the real persistence canonicalizer,
 including canonical precedence and preservation of unrelated legacy exceptions,
 plus ordinary trade and sign-and-trade persistence. This repair is part of the
-selected capability, not a parallel exception engine.
+selected capability, not a parallel exception engine. Rendered history also
+exposed a legacy display calculation that showed consumed amounts as zero.
+The existing activity table now reads canonical consumption, remaining balance,
+player and expiry fields, retaining legacy fallbacks and unknown amounts. The
+browser explicitly checks the saved consumption row; its asynchronous history
+query gets a bounded 30-second assertion wait (the captured timeout screen had
+already loaded both expected moves).
 
 ## Restriction disposition
 
