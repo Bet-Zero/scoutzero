@@ -72,17 +72,28 @@ export async function selectMixedConditionalTrade(
   validate = true
 ) {
   const dialog = await openConditionalTrade(page);
+  // The shell/obligation panel can precede the asynchronously loaded slots.
+  // Selecting an empty slot before Chicago arrives can replace slot zero.
+  await expect(dialog.getByTestId('trade-team-card-CHI')).toBeVisible({
+    timeout: 30000,
+  });
   const picker = dialog
     .locator('label', { hasText: /^Select Team$/ })
     .locator('xpath=following-sibling::select[1]');
   if (!(await picker.count()))
     await dialog.getByRole('button', { name: /^Add Team$/ }).click();
   await picker.first().selectOption('hornets');
+  await expect(dialog.getByTestId('trade-team-card-CHA')).toBeVisible({
+    timeout: 30000,
+  });
   const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
   const routing = (await root.get()).data()!.draftSimulationTeams.length === 3;
   if (routing) {
     await dialog.getByRole('button', { name: /^Add Team$/ }).click();
     await picker.last().selectOption('raptors');
+    await expect(dialog.getByTestId('trade-team-card-TOR')).toBeVisible({
+      timeout: 30000,
+    });
   }
   for (const [i, team] of (['CHI', 'CHA'] as const).entries()) {
     const card = dialog.getByTestId(`trade-team-card-${team}`);

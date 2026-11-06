@@ -63,85 +63,83 @@ Capture membership from the authenticated original input before browser seeding;
 compare the same set after operations and disclose private review limitations.
 No private source bytes or test assumptions become production authority.
 
-## Author checkpoints
+## Implementation and verification record
 
 Implementation PR: [#614](https://github.com/Bet-Zero/scoutzero/pull/614), under
-[BZE-341](https://linear.app/bzero/issue/BZE-341). Verification is in progress;
-this checkpoint is not independent acceptance or delivery.
+[BZE-341](https://linear.app/bzero/issue/BZE-341). The PR retains final candidate,
+certification, CI, independent review and landing receipts; this document does
+not substitute for those gates.
 
-Focused checks pass 492 tests across 22 relevant suites: consideration schemas,
-original/conditional whole-deal preparation, native/swap routing and replay,
-finite scope, affected-team Stepien, history and contract continuity. Typecheck
-and generated-schema checks pass; the hosted selected CI is green at checkpoint
-`9ce9776e39b20240829e16c541cca0a7a4ab0a1b`. The final head will require its own CI.
-Two integration regressions cover conditional-resolution history routing for a third
-participant under both outcomes. The browser exposed that missing history index:
-custody and season saving were correct, but the third team's Compare receipt
-chain lacked the intervening conditional result. Resolution events now carry the
-governed participants as history dependencies; actual custody writes remain
-limited to changed holders. Existing historical receipts are not rewritten.
+The shared routing checks replace the artificial shape restrictions. Preparation
+uses the whole resulting ownership/obligation state and the existing financial
+engine. Consideration facts carry one destination per outgoing first, while
+historical single-recipient facts remain readable. Native and ordered-swap replay
+use the same participant/route checks; source-family admission stays explicit.
 
-Diagnostic iteration also caught a receiving-team Stepien request incorrectly
-listing other teams' outgoing firsts, and a compact-card selector using a hidden
-player image. The first is repaired with a separate empty-outgoing affected-team
-entry into the same branch engine; ordinary outgoing ownership/transfer requests
-still require actual assets. The second reuses the established compact name
-selector. Failed diagnostics are not certification evidence.
+Two affected-team consistency defects were repaired within this boundary:
 
-Visual inspection also caught Compare classifying every player on a shared
-trade event as outgoing for the pick-only third participant. The shared player
-persistence manifest now supplies its exact routes to new event metadata;
-normalization and Compare use those routes for the active team. Historical
-records without the field retain their existing interpretation without rewriting.
-Malformed modern routes produce an explicit unavailable comparison instead of
-fabricated roster changes. New route/normalization/receipt tests and existing
-history/persistence guardrails pass (151 checks); typecheck and focused source
-lint pass. Fresh complete browser diagnostics and final-head CI cover this repair.
+- Conditional resolution events include governed participants in their history
+  index, so a pick-only third team's Compare chain includes the intervening
+  outcome. Custody writes remain limited to changed holders.
+- The existing player persistence manifest supplies exact routes to new shared
+  trade event metadata. History normalization and Compare classify only the
+  active team's player movements. A pick-only participant no longer shows the
+  other teams' players as removals. Historical events without routes retain their
+  prior interpretation; malformed modern routes produce unavailable comparison
+  data rather than fabricated movements. No historical record is rewritten.
 
-The expanded fallback diagnostic reached the final lifecycle checks but exceeded
-the unchanged 600-second case budget. Trace inspection measured approximately
-80 seconds in duplicate preparation of the same proposal. The journey now stages
-before its single UI validation and checks the entire world remains unchanged
-after that actual UI preparation. API failure/no-write checks remain separate.
-No assertion of final state, participant consistency or failure behavior was
-dropped and the individual case limits remain unchanged. The original-first
-entry uses the existing 30-second initial-card hydration wait after observing the
-modal's loaded shell with its roster still pending at ten seconds. A subsequent
-environment restart detached job control; the surviving diagnostic was stopped
-and its temporary artifacts discarded. That run is not counted as passing evidence.
+Focused author checks pass 492 tests in 22 suites across consideration schemas,
+whole-deal preparation/Stepien, native/swap routing and replay, finite scope,
+conditional history/Contract continuity, player-route receipts and comparison.
+The existing workflow-tooling suite passes 50 tests. Typecheck, generated-schema
+checks, focused source lint and documentation checks pass. Final-head hosted CI
+is independently recorded in the PR; checkpoint checks are not represented as
+checks of a later head.
 
-The expanded negative diagnostic also reached its late draft-input checks before
-the existing 900-second limit. Stale-state probes now reuse the same prepared
-snapshot, restore each altered document exactly, and require a specific stale
-state rejection. Each still compares the complete world; no failure case was
-removed. The original-only picker setup now explicitly adds a third card after
-observing that selecting twice in the same picker replaces the second team.
-The complete negative/no-write diagnostic then passed within its unchanged
-900-second case bound. These diagnostic repairs do not change runtime permission
-or source admission. The original-only journey validated, exported correct
-destinations and saved, then caught an assertion comparing raw roster display
-keys against the writer's established normalized projection. It now compares
-player membership, Contract terms and all three financial books, plus exact
-unchanged player overrides and authoritative Contract baseline records. Its
-asset-panel checks follow each actual incoming route's year/original team rather
-than assuming every participant retains a 2029 first. The complete original-only
-staging/export/save/reload/retrade diagnostic passed (6.2-minute case, 6.8-minute
-harness). Every participant's roster, three financial books, History, Compare,
-Team Plan and incoming asset origins agreed after both trades.
+The complete browser suite exercises:
 
-The certification wrapper's aggregate mixed-conditional budget now matches the
-existing one-hour budget for other complete multi-team suites. This suite grew
-from three to four cases and adds every third-team lifecycle view; their existing
-individual bounds total 45 minutes before harness startup/teardown. The measured
-negative matrix plus two outcome lifecycles already approaches the former
-30-minute wrapper budget before the new original/retrade/export journey. Individual
-case bounds and all state/no-write assertions remain unchanged.
+1. Three-team original-first split destinations without players: staging,
+   validation, export, atomic save, all-team views/reload, and a return trade.
+2. Three-team protection with six ordinary Contracts, split first destinations,
+   and a pick-only participant: immediate conveyance and protection/fallback,
+   saved rosters/books/rights, resolution, season advancement and reload.
+3. The complete failure/no-write matrix, including third-team financial/stale
+   state, an adverse conditional branch despite incoming consideration,
+   ownership/term/Contract forgery, invalid outcomes and concurrent operations.
+
+Diagnostic failures were used to repair the affected behavior before freeze.
+Browser setup waits for each selected team to finish loading before selecting
+another. Duplicate preparation of the same proposal was removed: staging is
+followed by one UI validation and a complete no-write assertion. Stale-state
+probes reuse an unused prepared snapshot, restore each document exactly and
+require the stale-state reason; none of the failure cases was removed. The
+original-only journey compares stable player membership/Contract terms, all
+three financial books, exact player overrides and authoritative Contract
+baselines, rather than incidental normalized display keys.
+
+The mixed-conditional certification wrapper now has the existing one-hour budget
+used by other complete multi-team suites. The four existing case bounds total
+45 minutes before harness startup/teardown; measured complete workflows exceed
+the former 30-minute aggregate budget. Individual 600/900-second limits and all
+state/no-write assertions remain unchanged. Lightweight diagnostics precede
+clean, pushed, exact-head retained certification; failed runs are not acceptance.
 
 Optional CodeRabbit review was unavailable under its repository eligibility
-policy. Marking the draft ready triggered the separate optional Codex review,
-which completed without findings on `9ce9776e`. Automated independent Claude
-review remains required and has not been substituted by those checks.
+policy. Optional Codex review completed without findings at `9ce9776e`; later
+changes are not represented as covered by that review. Automated independent
+Claude review remains required, with its exact candidate and limitations in the
+PR. Private emulator artifacts are author evidence, not public source authority
+or independently hosted proof.
 
-The preserved original input comparison passes exact 278-ID membership, exact
-29-record unresolved equality and the unchanged complete catalogue hash. Source
+The captured original input comparison passes exact 278-ID membership, exact
+29-record unresolved equality and the unchanged complete catalogue hash. The
+browser cases also check unchanged source documents and retained terms. Source
 pins, the V1 contract, production settings and access rules have no diff.
+
+## Remaining shared requirement
+
+C4 compatible-right composition is next: establish which retained programs can
+coexist in one complete transaction and how their actual claims interact, then
+connect supported combinations through this shared machinery. Separate C5 player
+mechanisms, remaining source/lifecycle evidence and normal-product activation
+stay open. This delivery does not start another variation or follow-on issue.
