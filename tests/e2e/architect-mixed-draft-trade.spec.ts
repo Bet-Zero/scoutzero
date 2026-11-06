@@ -96,7 +96,7 @@ async function prepare(
   uid: string,
   worldId: string,
   ids = [chi, tor],
-  options: { mixed?: boolean; mode?: string } = {}
+  options: { mixed?: boolean; mode?: string; heldTpeId?: string } = {}
 ) {
   const stepien = (
     await getReviewAdminDb()
@@ -158,7 +158,7 @@ async function prepare(
           return {
             teamCode,
             sends:
-              options.mixed === false
+              options.mixed === false || (options.heldTpeId && i === 1)
                 ? []
                 : [
                     {
@@ -166,6 +166,9 @@ async function prepare(
                       id: players[i].playerId,
                       tradeTo: i ? 'CHI' : 'ORL',
                       receivingTeamId: i ? 'CHI' : 'ORL',
+                      ...(options.heldTpeId
+                        ? { absorptionMode: 'TPE', tpeId: options.heldTpeId }
+                        : {}),
                     },
                   ],
             picksOut: [],
@@ -176,12 +179,30 @@ async function prepare(
                 ? null
                 : {
                     version: 1,
-                    path: 'STANDARD_TPE',
+                    path:
+                      i === 0 &&
+                      (options.heldTpeId || options.mode === 'room-sender')
+                        ? 'ROOM'
+                        : 'STANDARD_TPE',
                     postAssignmentApronTeamSalary:
-                      totals[i] + (i ? 29720 : -29720),
-                    tradedPlayerPreTradeSalaries: {
-                      [players[i].playerId]: i ? 7970280 : 8000000,
-                    },
+                      totals[i] +
+                      (options.heldTpeId
+                        ? i
+                          ? 8000000
+                          : -8000000
+                        : i
+                          ? 29720
+                          : -29720),
+                    tradedPlayerPreTradeSalaries:
+                      options.heldTpeId && i === 1
+                        ? {}
+                        : {
+                            [players[i].playerId]: options.heldTpeId
+                              ? 8000000
+                              : i
+                                ? 7970280
+                                : 8000000,
+                          },
                   },
             cashSent: 0,
             cashToTeamId: null,
@@ -206,6 +227,8 @@ async function prepare(
         },
       };
       const mode = options.mode;
+      if (mode === 'room-tpe')
+        args.payload.teams[1].salaryMatchingElection.path = 'ROOM';
       if (mode === 'incomplete')
         args.payload.teams[0].salaryMatchingElection = null;
       if (mode === 'inflated')
@@ -284,15 +307,21 @@ async function apply(
 test('mixed ordinary players and originals use actual Trade Machine', async ({
   page,
 }) => {
+  // Two saved acquisitions, rejection matrix, both-team reload and later retrade.
+  test.setTimeout(380000);
   const uid = await login(page);
   const worldId = `world_mixed_${uid}_${Date.now()}`;
-  const catalogue = await seedMixedDraftTradeWorld(uid, worldId);
+  const catalogue = await seedMixedDraftTradeWorld(uid, worldId, {
+    roomAcquisition: true,
+  });
   const before = await state(worldId);
   const baselineBefore = await baselineDigest(worldId);
   const sourceBefore = (
     await getReviewAdminDb().collection('architect_baseEntitlements').get()
   ).docs.map((d) => ({ id: d.id, data: d.data() }));
-  const preview = await prepare(page, uid, worldId);
+  const preview = await prepare(page, uid, worldId, [chi, tor], {
+    mode: 'room-sender',
+  });
   fs.mkdirSync(proofDir, { recursive: true });
   fs.writeFileSync(
     path.join(proofDir, 'diagnostic-preview.json'),
@@ -312,76 +341,215 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
   await expect(dialog.getByTestId('trade-team-card-CHI')).toBeVisible({
     timeout: 30000,
   });
-  const picker = dialog
-    .locator('label', { hasText: /^Select Team$/ })
-    .locator('xpath=following-sibling::select[1]');
-  if ((await picker.count()) === 0)
-    await dialog.getByRole('button', { name: /^Add Team$/ }).click();
-  await picker.first().selectOption('magic');
-  for (const [code, name, destination] of [
-    ['CHI', 'Tre Jones', 'Orlando Magic'],
-    ['ORL', 'Anthony Black', 'Chicago Bulls'],
-  ]) {
-    const card = dialog.getByTestId(`trade-team-card-${code}`);
+  // First acquire Black with Room and two governed originals. This creates
+  // Orlando's actual saved Standard TPE; the second trade consumes that exact
+  // exception for Jones while returning one first. No invented held exception.
+  const acquisitionEvents: unknown[] = [];
+  const acquisitionExports: Record<string, string> = {};
+  const acquisitionFailures: Record<string, unknown> = {};
+  for (const step of [0, 1]) {
+    if (step) {
+      await page.reload();
+      await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
+    }
+    await expect(dialog.getByTestId('trade-team-card-CHI')).toBeVisible({
+      timeout: 30000,
+    });
+    const picker = dialog
+      .locator('label', { hasText: /^Select Team$/ })
+      .locator('xpath=following-sibling::select[1]');
+    if ((await picker.count()) === 0)
+      await dialog.getByRole('button', { name: /^Add Team$/ }).click();
+    await picker.first().selectOption('magic');
+    const sender = step ? 'CHI' : 'ORL';
+    const name = step ? 'Tre Jones' : 'Anthony Black';
+    const destination = step ? 'Orlando Magic' : 'Chicago Bulls';
+    const card = dialog.getByTestId(`trade-team-card-${sender}`);
+    await card
+      .getByRole('button', { name: /^(Players|Plr)( \(\d+\))?$/i })
+      .click();
     const row = card
       .getByAltText(new RegExp(`^${name}$`, 'i'))
       .or(card.getByText(name, { exact: true }))
       .first()
       .locator('xpath=ancestor::div[.//button[normalize-space()="•••"]][1]');
-    if (!(await row.getByRole('button', { name: '•••' }).isVisible()))
-      await card
-        .getByRole('button', { name: /^(Players|Plr)( \(\d+\))?$/i })
-        .click();
     await row.getByRole('button', { name: '•••' }).click();
     await page
       .getByRole('button', {
         name: new RegExp(`^Trade to ${destination}$`, 'i'),
       })
       .click();
+    for (const year of step ? [2030] : [2028, 2030])
+      await pick(
+        page,
+        dialog.getByTestId(`trade-team-card-${step ? 'ORL' : 'CHI'}`),
+        year,
+        step ? 'Chicago Bulls' : 'Orlando Magic'
+      );
+    for (const [i, code] of ['CHI', 'ORL'].entries()) {
+      const teamCard = dialog.getByTestId(`trade-team-card-${code}`);
+      await teamCard
+        .getByLabel('Elected path', { exact: true })
+        .selectOption(!i ? 'ROOM' : 'STANDARD_TPE');
+      const total = (await getWorldTeamDocument(worldId, code))!.totals as any;
+      const salary = step ? 8000000 : 7970280;
+      const delta = step ? (i ? salary : -salary) : i ? -salary : salary;
+      await teamCard
+        .getByLabel('Post-assignment Apron Team Salary', { exact: true })
+        .fill(String(total.apronTeamSalary + delta));
+      if (code === sender)
+        await teamCard
+          .getByLabel(new RegExp(`^${name} exact pre-trade Salary$`, 'i'))
+          .fill(String(salary));
+    }
+    if (step) {
+      const receiver = (await getWorldTeamDocument(worldId, 'ORL'))!;
+      const tpes = receiver.exceptions?.tpe ?? receiver.tradeExceptions;
+      expect(tpes).toHaveLength(1);
+      const held = tpes[0];
+      expect(held.remainingAmount).toBe(8220280); // 7,970,280 + 250,000.
+      const orlRef = getReviewAdminDb().doc(
+        `architect_worlds/${worldId}/teams/ORL`
+      );
+      const heldIds = ['', 'ent:CHI:2030:1:own:382a238d'];
+      const cleanState = await state(worldId);
+      const validHeld = await prepare(page, uid, worldId, heldIds, {
+        heldTpeId: String(held.id),
+      });
+      expect(validHeld).toMatchObject({ status: 'prepared', legal: true });
+      for (const mode of ['room-tpe', 'foreign-tpe']) {
+        const preview = await prepare(page, uid, worldId, heldIds, {
+          heldTpeId: mode === 'foreign-tpe' ? 'not-owned' : String(held.id),
+          mode,
+        });
+        expect(preview.status !== 'prepared' || !preview.legal).toBe(true);
+        expect((await apply(page)).success).toBe(false);
+        expect(await state(worldId)).toEqual(cleanState);
+        acquisitionFailures[mode] = preview;
+      }
+      for (const mode of ['capacity', 'expired', 'stale']) {
+        if (mode === 'stale')
+          expect(
+            await prepare(page, uid, worldId, heldIds, {
+              heldTpeId: String(held.id),
+            })
+          ).toMatchObject({ status: 'prepared', legal: true });
+        const changed = structuredClone(receiver);
+        const changeTpes = (items: any[]) =>
+          items?.map((tpe: any) =>
+            tpe.id !== held.id
+              ? tpe
+              : {
+                  ...tpe,
+                  ...(mode === 'expired'
+                    ? { expiresOn: '2026-06-04', expirationDate: '2026-06-04' }
+                    : {
+                        amount: 1,
+                        totalAmount: 1,
+                        remainingAmount: 1,
+                        remaining: 1,
+                      }),
+                }
+          );
+        if (changed.exceptions?.tpe)
+          changed.exceptions.tpe = changeTpes(changed.exceptions.tpe);
+        if (changed.tradeExceptions)
+          changed.tradeExceptions = changeTpes(changed.tradeExceptions);
+        await orlRef.set(changed);
+        const beforeRejection = await state(worldId);
+        if (mode !== 'stale') {
+          const preview = await prepare(page, uid, worldId, heldIds, {
+            heldTpeId: String(held.id),
+          });
+          expect(preview.status !== 'prepared' || !preview.legal).toBe(true);
+          acquisitionFailures[mode] = preview;
+        }
+        const rejected = await apply(page);
+        expect(rejected.success).toBe(false);
+        expect(await state(worldId)).toEqual(beforeRejection);
+        acquisitionFailures[`${mode}-apply`] = rejected;
+        await orlRef.set(receiver);
+      }
+      expect(await state(worldId)).toEqual(cleanState);
+
+      const incoming = dialog.getByTestId('trade-team-card-ORL');
+      await incoming
+        .getByLabel('Tre Jones absorption mode', { exact: true })
+        .selectOption('TPE');
+      await incoming
+        .getByLabel('Tre Jones held TPE', { exact: true })
+        .selectOption(String(held.id));
+    }
+    await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+    await expect(
+      dialog.getByRole('button', { name: /^Apply Trade$/i })
+    ).toBeEnabled({ timeout: 60000 });
+    await capture(page, step ? 'permitted-proposal' : 'room-proposal');
+    if (step) {
+      await dialog
+        .getByRole('button', { name: /^Close Trade Machine$/i })
+        .click();
+      await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
+      await expect(
+        dialog.getByLabel('Tre Jones held TPE', { exact: true })
+      ).not.toHaveValue('');
+      await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+      await expect(
+        dialog.getByRole('button', { name: /^Apply Trade$/i })
+      ).toBeEnabled({ timeout: 60000 });
+    }
+    await dialog.getByTestId('trade-summary-button').click();
+    await expect(
+      page.getByTestId('trade-export-simulation-notice').last()
+    ).toContainText('not verified NBA');
+    const recipient = page
+      .getByRole('heading', {
+        name: new RegExp(`^${destination}$`, 'i'),
+      })
+      .last()
+      .locator('xpath=ancestor::div[contains(@class,"shrink-0")][1]');
+    await expect(recipient).toContainText(new RegExp(name, 'i'));
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: 'Download', exact: true }).click(),
+    ]);
+    const exportPath = path.join(
+      proofDir,
+      `${step ? 'held-tpe' : 'room'}-export.png`
+    );
+    await download.saveAs(exportPath);
+    const exportedBytes = fs.readFileSync(exportPath);
+    expect(exportedBytes.subarray(1, 4).toString()).toBe('PNG');
+    acquisitionExports[path.basename(exportPath)] = createHash('sha256')
+      .update(exportedBytes)
+      .digest('hex');
+    await page.getByTitle('Close', { exact: true }).click();
+    await dialog.getByRole('button', { name: /^Apply Trade$/i }).click();
+    await expect
+      .poll(async () => (await getWorldEventDocuments(worldId)).length, {
+        timeout: 60000,
+      })
+      .toBe(step + 1);
+    acquisitionEvents.push((await getWorldEventDocuments(worldId)).at(-1));
   }
-  await pick(
-    page,
-    dialog.getByTestId('trade-team-card-CHI'),
-    2028,
-    'Orlando Magic'
-  );
-  for (const [i, code] of ['CHI', 'ORL'].entries()) {
-    const card = dialog.getByTestId(`trade-team-card-${code}`);
-    await card
-      .getByLabel('Elected path', { exact: true })
-      .selectOption('STANDARD_TPE');
-    const total = (await getWorldTeamDocument(worldId, code))!.totals as any;
-    await card
-      .getByLabel('Post-assignment Apron Team Salary', { exact: true })
-      .fill(String(total.apronTeamSalary + (i ? 29720 : -29720)));
-    await card
-      .getByLabel(
-        new RegExp(
-          `^${i ? 'Anthony Black' : 'Tre Jones'} exact pre-trade Salary$`,
-          'i'
-        )
-      )
-      .fill(String(i ? 7970280 : 8000000));
-  }
-  await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
-  await expect(
-    dialog.getByRole('button', { name: /^Apply Trade$/i })
-  ).toBeEnabled({ timeout: 30000 });
-  await capture(page, 'permitted-proposal');
-  await dialog.getByRole('button', { name: /^Apply Trade$/i }).click();
-  await expect
-    .poll(async () => (await getWorldEventDocuments(worldId)).length, {
-      timeout: 30000,
-    })
-    .toBe(1);
   const after = await state(worldId);
   const events = await getWorldEventDocuments(worldId);
-  const eventText = JSON.stringify(events[0]);
+  const eventText = JSON.stringify(events);
+  const acquiredOrl = (await getWorldTeamDocument(worldId, 'ORL'))!;
+  const residualTpes =
+    acquiredOrl.exceptions?.tpe ?? acquiredOrl.tradeExceptions;
+  expect(residualTpes).toHaveLength(1);
+  expect(residualTpes[0].remainingAmount).toBe(220280); // 8,220,280 - 8,000,000.
+  expect(residualTpes[0].usedAmount).toBe(8000000);
+  expect(JSON.stringify(acquiredOrl.exceptionHistory)).toContain('8000000');
+
   for (const identity of [
     'tre_jones',
     'anthony_black',
     chi,
     'STANDARD_TPE',
+    'ROOM',
+    'HELD_STANDARD_TPE',
     'governed-simulation-only',
   ])
     expect(eventText).toContain(identity);
@@ -473,19 +641,24 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
     );
     await capture(page, `${team}-cap`);
     await openDashboardTab(page, 'Team History');
-    await page
+    const history = page
       .getByTestId('team-history-section-timeline')
-      .getByRole('button', { name: /Trade Executed:/ })
-      .click();
-    const detail = page.getByTestId('team-history-detail-modal');
-    await expect(detail).toContainText(/Tre Jones/i);
-    await expect(detail).toContainText(/Anthony Black/i);
-    await expect(detail).toContainText('2028 first-round pick');
-    await capture(page, `${team}-history`);
-    await detail.getByRole('button', { name: /close/i }).click();
+      .getByRole('button', { name: /Trade Executed:/ });
+    await expect(history).toHaveCount(2);
+    const historyText: string[] = [];
+    for (const eventIndex of [0, 1]) {
+      await history.nth(eventIndex).click();
+      const detail = page.getByTestId('team-history-detail-modal');
+      historyText.push(await detail.innerText());
+      await expect(detail).toContainText(/2028|2030/);
+      if (!eventIndex) await capture(page, `${team}-history`);
+      await detail.getByRole('button', { name: /close/i }).click();
+    }
+    expect(historyText.join(' ')).toMatch(/Tre Jones/i);
+    expect(historyText.join(' ')).toMatch(/Anthony Black/i);
     await openDashboardTab(page, 'Compare');
     await expect(page.getByTestId('comparison-event-count')).toContainText(
-      /1\s+saved move/i
+      /2\s+saved moves/i
     );
     await expect(
       page.getByText('CHI 2028 first-round pick', { exact: true })
@@ -572,7 +745,7 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
   expect(returnPreview).toMatchObject({ status: 'prepared', legal: true });
   expect(await apply(page)).toMatchObject({ success: true });
   const repeated = await state(worldId);
-  expect(await getWorldEventDocuments(worldId)).toHaveLength(2);
+  expect(await getWorldEventDocuments(worldId)).toHaveLength(3);
   expect(
     repeated.children
       .find((c) => c.name === 'entitlements')!
@@ -594,7 +767,7 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
     await page.reload();
     await openDashboardTab(page, 'Compare');
     await expect(page.getByTestId('comparison-event-count')).toContainText(
-      /2\s+saved moves/i
+      /3\s+saved moves/i
     );
     if (!i) await capture(page, 'repeat-trade');
     await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
@@ -622,6 +795,9 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
           .digest('hex'),
         catalogue: 278,
         unresolved: 29,
+        acquisitionEvents,
+        acquisitionExports,
+        acquisitionFailures,
         bothTeams: true,
         reload: true,
         events: await getWorldEventDocuments(worldId),

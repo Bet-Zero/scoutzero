@@ -19,6 +19,7 @@ import { toSeasonKey } from '@/features/architect/utils/seasonUtils';
 import { getTeamFaExceptionBuckets } from '@/features/architect/utils/faExceptionUtils';
 import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import {
+  isAvailableTradeException,
   toPlayerTeamOption,
   toEntitlementTeamOption,
 } from './TradeTeamCard.helpers';
@@ -257,16 +258,12 @@ export const useTradeTeamCardSalaries = ({
         getCapHitForSeason(player as UnknownRecord, seasonKey) || 0;
       return (teamTradeExceptions || []).some(
         (tpe) =>
-          !tpe?.isUsed &&
+          isAvailableTradeException(tpe, worldAsOfDate) &&
           playerSalary <=
-            Number(
-              tpe?.remainingAmount ?? tpe?.remaining ?? tpe?.amount ?? 0
-            ) &&
-          (!tpe?.expirationDate ||
-            new Date(String(tpe.expirationDate)) > new Date())
+            Number(tpe?.remainingAmount ?? tpe?.remaining ?? tpe?.amount ?? 0)
       );
     });
-  }, [hasTeam, incomingPlayers, teamTradeExceptions, yearKey]);
+  }, [hasTeam, incomingPlayers, teamTradeExceptions, yearKey, worldAsOfDate]);
 
   return {
     filteredIncomingPlayers,

@@ -520,3 +520,52 @@ describe('BZE-284 governed Trade Machine date forwarding', () => {
     expect(result.current.teamTotalSalary).toBe(TERMINATED_TEAM_SALARY);
   });
 });
+
+describe('held TPE availability at the saved world date', () => {
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
+  it.each(['expirationDate', 'expiresOn', 'expiryISO', 'expiryDate'])(
+    'uses the engine expiry aliases (%s), not the wall clock',
+    (expiryKey) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2030-01-01T00:00:00Z'));
+      const player = {
+        player_id: 'incoming',
+        name: 'Incoming',
+        contract: {
+          salariesByYear: [
+            { season: '2026-27', salary: 1_000_000, capHit: 1_000_000 },
+          ],
+        },
+      };
+      const tpe = { id: 'saved', amount: 2_000_000, [expiryKey]: EXACT_EXPIRY };
+      const { result, rerender } = renderHook(
+        ({ date, used }) =>
+          useTradeTeamCardSalaries({
+            team: buildGovernedTeam('LAL'),
+            sends: [],
+            incomingPlayers: [player],
+            incomingEntitlements: [],
+            entitlementsOut: [],
+            otherTeams: [],
+            yearKey: 2027,
+            validationResult: null,
+            selectedTeamId: 'LAL',
+            teamTradeExceptions: [{ ...tpe, isUsed: used }],
+            hasTeam: true,
+            worldAsOfDate: date,
+          }),
+        { initialProps: { date: BEFORE_EXPIRY, used: false } }
+      );
+      expect(result.current.tpeEligiblePlayers).toEqual([player]);
+      rerender({ date: EXACT_EXPIRY, used: false });
+      expect(result.current.tpeEligiblePlayers).toEqual([player]);
+      rerender({ date: '2026-07-01T12:00:00.001-04:00', used: false });
+      expect(result.current.tpeEligiblePlayers).toEqual([]);
+      rerender({ date: BEFORE_EXPIRY, used: true });
+      expect(result.current.tpeEligiblePlayers).toEqual([]);
+    }
+  );
+});

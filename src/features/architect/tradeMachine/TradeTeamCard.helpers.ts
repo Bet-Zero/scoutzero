@@ -1,3 +1,7 @@
+import {
+  isExpiredTPE,
+  normalizeTpeForValidation,
+} from '@/features/architect/utils/tradeMachine/utils/tpeValidation';
 import type { useTradeMachine } from '@/features/architect/hooks/useTradeMachine';
 import type { OutgoingPlayersList } from './OutgoingPlayersList';
 import type { EntitlementPicksList } from './EntitlementPicksList';
@@ -84,6 +88,17 @@ export type TeamTradeException = TradeExceptionLike & {
   expirationDate?: string | null;
   expiresOn?: string | null;
 };
+
+// Display the same expiry decision as the validator, at the saved world's date.
+export const isAvailableTradeException = (
+  tpe: TeamTradeException,
+  worldAsOfDate: string | null
+) =>
+  !tpe.isUsed &&
+  !isExpiredTPE(
+    normalizeTpeForValidation({ ...tpe, id: String(tpe.id ?? '') }),
+    worldAsOfDate ?? new Date().toISOString()
+  );
 
 export const getPlayerKey = (player: PlayerLike) =>
   player.player_id ?? player.id ?? player.name ?? 'player';

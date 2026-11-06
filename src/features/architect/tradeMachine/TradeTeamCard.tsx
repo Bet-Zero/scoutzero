@@ -42,6 +42,7 @@ import type {
 const formatTradeSectionSalary = (salary: number, hasPlayers: boolean) =>
   hasPlayers && salary === 0 ? '$0' : formatSalary(salary);
 import {
+  isAvailableTradeException,
   getPlayerKey,
   getPlayerLabel,
   getEntitlementKey,
@@ -113,10 +114,8 @@ export const TradeTeamCard = ({
   const teamTradeExceptions = getTeamTpeList(
     (team as TeamTpeLike | null) ?? null
   ) as TeamTradeException[];
-  const activeTradeExceptions = teamTradeExceptions.filter(
-    (tpe) =>
-      !tpe.isUsed &&
-      (!tpe.expirationDate || new Date(tpe.expirationDate) > new Date())
+  const activeTradeExceptions = teamTradeExceptions.filter((tpe) =>
+    isAvailableTradeException(tpe, worldAsOfDate)
   );
   useEffect(() => {
     if (editingTeam && selectRef.current) {
@@ -853,47 +852,37 @@ export const TradeTeamCard = ({
                           }
                         >
                           <option value="">Select TPE...</option>
-                          {(teamTradeExceptions || [])
-                            .filter(
-                              (tpe) =>
-                                !tpe.isUsed &&
-                                (!tpe.expirationDate ||
-                                  new Date(tpe.expirationDate) > new Date())
-                            )
-                            .map((tpe) => {
-                              const amount = formatMillions(
-                                Number(
-                                  tpe.remainingAmount ??
-                                    tpe.remaining ??
-                                    tpe.amount ??
-                                    0
-                                ),
-                                1
-                              );
-                              const tpeName = tpe.name || tpe.createdFrom;
-                              const playerSalary = getSalaryForYear(
-                                [p],
-                                yearKey
-                              );
-                              const fits =
-                                Number(
-                                  tpe.remainingAmount ??
-                                    tpe.remaining ??
-                                    tpe.amount ??
-                                    0
-                                ) >= playerSalary;
-                              return (
-                                <option
-                                  key={String(tpe.id ?? amount)}
-                                  value={String(tpe.id ?? '')}
-                                  disabled={!fits}
-                                >
-                                  {amount}
-                                  {tpeName ? ` (${tpeName})` : ''}{' '}
-                                  {!fits ? '(too small)' : ''}
-                                </option>
-                              );
-                            })}
+                          {activeTradeExceptions.map((tpe) => {
+                            const amount = formatMillions(
+                              Number(
+                                tpe.remainingAmount ??
+                                  tpe.remaining ??
+                                  tpe.amount ??
+                                  0
+                              ),
+                              1
+                            );
+                            const tpeName = tpe.name || tpe.createdFrom;
+                            const playerSalary = getSalaryForYear([p], yearKey);
+                            const fits =
+                              Number(
+                                tpe.remainingAmount ??
+                                  tpe.remaining ??
+                                  tpe.amount ??
+                                  0
+                              ) >= playerSalary;
+                            return (
+                              <option
+                                key={String(tpe.id ?? amount)}
+                                value={String(tpe.id ?? '')}
+                                disabled={!fits}
+                              >
+                                {amount}
+                                {tpeName ? ` (${tpeName})` : ''}{' '}
+                                {!fits ? '(too small)' : ''}
+                              </option>
+                            );
+                          })}
                         </select>
                       )}
                       {effectiveMode === 'FA_EXCEPTION' && (
