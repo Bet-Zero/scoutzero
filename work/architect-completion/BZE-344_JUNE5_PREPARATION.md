@@ -48,7 +48,7 @@ through the actual adapter, using a local reader and the existing public result
 certificate. It used no network, credentials or archived code and made no new
 source judgment. The live PR retains exact candidate CI and independent review.
 
-### Completed private review and remaining scope gate
+### Completed private review and authorized two-finding repair
 
 Protected run `42333340411` used the accepted PR #621 diagnostic adapter and
 successfully validated both unchanged archives before Claude ran. Independent
@@ -65,11 +65,29 @@ remains open: two transfer-holder bindings need reviewer-visible retained
 originals and accepted-review references. A bounded supplement has been
 prepared from existing authenticated records; no new source research or
 evidence disposition was performed. The two original archives, all 278
-identities and the exact 29 mappings are unchanged. The supplement is not yet
-uploaded or available to the reviewer. The owner's earlier access authorization
-named only the two exact archives, so including additional review evidence
-requires an explicit scope extension. BZE-344 holds its exact private inventory,
-hashes, recovery details and the proposed focused delta review.
+identities and the exact 29 mappings are unchanged. The owner subsequently
+authorized this exact supplement's retention and protected read-only review.
+BZE-309 attachment `d420d526-babb-48bc-93a8-b14c0368a1db` retains
+`june5-two-transfer-review-supplement.tar.gz` (328,372 bytes), SHA-256
+`6366511b2ba93da116c77ae392165a61838336476f187a3f057109c16cd1b203`.
+Complete independent readback matched the original and all 23 flat regular
+members / 22 manifest payload sizes and hashes. The original two archives and
+original REVISE remain immutable. BZE-344 holds the private inventory and
+recovery references; no private source contents are published here.
+
+The existing adapter accepts the original two-archive v1 connection unchanged.
+An explicit v2 connection requires those same archives plus exactly this
+`supplement`, with fixed identity, size and hash. Full manifest/member checks
+also bind the two original archives, exact repair scope and original REVISE
+digest. No connection setting overrides these identities. The encrypted receipt
+includes the exact supplement identity. Claude must independently resolve the
+two original ownership findings from readable evidence and retained judgments;
+recovering records is not acceptance. Unaffected prior review and its scope
+limits remain in force. This is not a broader source audit or source-status
+change. The maintenance path, encryption, owner approval and read-only controls
+are unchanged. Controlled nonprivate tests cover both connection versions,
+supplement substitution/omission/corruption, changed scope and original verdict,
+and encrypted three-archive ACCEPT/REVISE receipt recovery.
 
 After that binding review, the next coherent C6 capability is the dated,
 action-local team-books and first-round-obligation input integration described
@@ -103,12 +121,14 @@ expired connection or call this diagnostic change private source acceptance.
    current main still has that accepted tree and green main CI. If it moved,
    do not substitute a different head or relax the existing identity gate.
 2. **Prepare the connection privately when the administrator is ready:** obtain
-   fresh signed URLs by the two attachment IDs above using authenticated Linear.
+   fresh signed URLs by the retained attachment IDs using authenticated Linear.
    Their signatures are short-lived (the connector uses five minutes). Never put
    them in public issues, workflow arguments, shell history or logs. In a private
    directory, write a mode-0600 JSON file with exactly `format`, `archives` and
-   `recipientPem`. The format is `scoutzero-june5-private-review-connection-v1`.
-   `archives` has exactly `candidate` and `assessment`; each object has
+   `recipientPem`. For the authorized two-finding repair, the format is
+   `scoutzero-june5-private-review-connection-v2`; `archives` has exactly
+   `candidate`, `assessment` and `supplement`. The original two-archive review
+   still uses v1 with only `candidate` and `assessment`. Each object has
    `attachmentId`, `filename`, `bytes`, `sha256` from the table and its fresh
    `url`. Use the existing private-result recipient certificate whose separate
    retained private key is recoverable; first prove a local encrypt/decrypt
