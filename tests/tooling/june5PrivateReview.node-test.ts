@@ -19,6 +19,7 @@ const fixed = {
   candidate: { attachmentId: '347f0b68-662b-47b5-ac8f-6a1203c07d62', filename: 'june5-draft-starting-state-candidate.tar.gz', bytes: 6654967, sha256: '4751d71f04b7834bf5d264bd49e3322b16afba4ae0663e1b4d9cbd235c9aea5a' },
   assessment: { attachmentId: '28ead6a9-dcec-49fc-b0e9-ec31a390ab3e', filename: 'c6-admission-assessment.tar.gz', bytes: 73931, sha256: '43a129a009af323d0bd369f4bd173cb9cd00fd5995326651159aaa7b09d12ee9' },
 };
+const supplement = { attachmentId: 'd420d526-babb-48bc-93a8-b14c0368a1db', filename: 'june5-two-transfer-review-supplement.tar.gz', bytes: 328372, sha256: '6366511b2ba93da116c77ae392165a61838336476f187a3f057109c16cd1b203' };
 
 function fixture() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'june5-private-review-'));
@@ -46,12 +47,15 @@ test('June 5 mode keeps the existing protected identity, independent gates and m
   assert.match(action.with.claude_args, /--allowedTools "Read,Glob,Grep"/);
   assert.match(action.with.prompt, /original absent from these archives/);
   assert.match(action.with.prompt, /Do not repeat the entire/);
+  assert.match(action.with.prompt, /ONLY the two-finding delta review/);
+  assert.match(action.with.prompt, /Finding records, matching hashes or an author checkpoint is not factual acceptance/);
   assert.doesNotMatch(text, /^\s+(id-token|contents|pull-requests|issues|actions): write/m);
   assert.doesNotMatch(text, /google-github-actions|npm ci|outputs\.structured_output|outputs\.execution_file/);
   assert.equal(steps.find((s: any) => s.name?.startsWith('Retain encrypted')).with['retention-days'], 7);
   for (const value of Object.values(fixed)) {
     for (const pin of [value.attachmentId, value.sha256, value.filename]) assert(input.includes(pin));
   }
+  for (const pin of [supplement.attachmentId, supplement.sha256, supplement.filename]) assert(input.includes(pin) && result.includes(pin));
 });
 
 test('both modes retain exact merged-code, CI, independent acceptance and owner-environment gates', () => {
@@ -99,6 +103,8 @@ source=${JSON.stringify(input)}
 prefix,body=source.split('\\ntry:\\n',1)
 exec(prefix)
 original_expected=copy.deepcopy(EXPECTED)
+with_supplement=scenario.startswith('supplement-')
+if with_supplement: EXPECTED['supplement']=SUPPLEMENT
 def encoded(value): return json.dumps(value,separators=(',',':')).encode()
 rows=[{'entitlementId':'fixture-'+str(i),'text':'${marker}'} for i in range(278)]
 unresolved=[{'dependencyId':'unknown-'+str(i)} for i in range(29)]
@@ -115,6 +121,11 @@ payloads={
  'candidate':{'candidate.json':encoded(record),'accepted-comments.json':b'[]','accepted-value-bindings.json':b'{}','inert.py':b'raise RuntimeError("MUST NOT EXECUTE")'},
  'assessment':{'admission-map.json':assessment_bytes},
 }
+if with_supplement:
+ original=encoded({'run':'42333340411','sourcePackage':'june5-draft','originalResult':{'structured_output':{'verdict':'REVISE'}}})
+ ORIGINAL_REVISE_SHA256=hashlib.sha256(original).hexdigest()
+ payloads['supplement']={'private-review-original.json':original,**{'source-'+str(i)+'.txt':b'${marker}' for i in range(21)}}
+ if scenario=='supplement-altered-verdict':payloads['supplement']['private-review-original.json']=original+b' '
 fixtures={}
 for role,files in payloads.items():
  files=copy.deepcopy(files)
@@ -126,6 +137,18 @@ for role,files in payloads.items():
   if scenario=='missing-manifest-entry': entries.pop()
   if scenario=='duplicate-manifest-entry': entries[-1]=entries[0]
   manifest={'version':1,'runtimeAuthority':False,'members':entries}
+ elif role=='supplement':
+  manifest={'format':'scoutzero-june5-two-transfer-review-supplement-v1','runtimeAuthority':False,'sourceStatusChanges':0,'scope':['ownership-state:IND_2029_1st','ownership-state:LAC_2028_1st'],'unchangedCandidateArchiveSha256':EXPECTED['candidate']['sha256'],'unchangedAssessmentArchiveSha256':EXPECTED['assessment']['sha256'],'members':entries}
+  if scenario=='supplement-wrong-format':manifest['format']='other'
+  if scenario=='supplement-runtime-authority':manifest['runtimeAuthority']=True
+  if scenario=='supplement-status-change':manifest['sourceStatusChanges']=1
+  if scenario=='supplement-changed-scope':manifest['scope']=['anything']
+  if scenario=='supplement-changed-candidate':manifest['unchangedCandidateArchiveSha256']='0'*64
+  if scenario=='supplement-changed-assessment':manifest['unchangedAssessmentArchiveSha256']='0'*64
+  if scenario=='supplement-member-hash':entries[0]['sha256']='0'*64
+  if scenario=='supplement-missing-member':del files['source-0.txt']
+  if scenario=='supplement-extra-member':files['extra.txt']=b'extra'
+  if scenario=='supplement-duplicate-manifest':entries[-1]=entries[0]
  else: manifest={'revision':2,'files':{e['name']:{k:v for k,v in e.items() if k!='name'} for e in entries}}
  files['manifest.json']=encoded(manifest)
  if role=='candidate' and scenario=='duplicate-json-key': files['manifest.json']=b'{"version":1,"version":1}'
@@ -133,7 +156,7 @@ for role,files in payloads.items():
  with tarfile.open(fileobj=buffer,mode='w:gz') as archive:
   for name,data in files.items():
    member=tarfile.TarInfo(name);member.size=len(data)
-   if role=='candidate' and name=='inert.py' and scenario=='symlink': member.type=tarfile.SYMTYPE;member.linkname='/tmp/escape';member.size=0
+   if (role=='candidate' and name=='inert.py' and scenario=='symlink') or (role=='supplement' and name=='source-0.txt' and scenario=='supplement-symlink'): member.type=tarfile.SYMTYPE;member.linkname='/tmp/escape';member.size=0
    archive.addfile(member,io.BytesIO(data) if member.isfile() else None)
    if role=='candidate' and name=='inert.py' and scenario=='duplicate-member':archive.addfile(member,io.BytesIO(data))
  fixtures[role]=buffer.getvalue()
@@ -141,6 +164,16 @@ for role,files in payloads.items():
  if role=='candidate' and scenario=='oversized-decompression':fixtures[role]=gzip.compress(bytes(67108865))
  EXPECTED[role]['bytes']=len(fixtures[role]);EXPECTED[role]['sha256']=hashlib.sha256(fixtures[role]).hexdigest()
 connection={'format':'scoutzero-june5-private-review-connection-v1','archives':{role:dict(expected,url='https://uploads.linear.app/48c72032-d53f-4e3b-8d40-57d875b69126/'+role+'?signature=${marker}') for role,expected in EXPECTED.items()},'recipientPem':(fixture_root/'cert.pem').read_text()}
+if with_supplement:
+ connection['format']='scoutzero-june5-private-review-connection-v2'
+ del EXPECTED['supplement']
+ if scenario=='supplement-v1':connection['format']='scoutzero-june5-private-review-connection-v1'
+ if scenario=='supplement-missing-archive':del connection['archives']['supplement']
+ if scenario=='supplement-wrong-id':connection['archives']['supplement']['attachmentId']='unapproved'
+ if scenario=='supplement-wrong-name':connection['archives']['supplement']['filename']='other.tar.gz'
+ if scenario=='supplement-wrong-hash':connection['archives']['supplement']['sha256']='0'*64
+ if scenario=='supplement-wrong-size':connection['archives']['supplement']['bytes']+=1
+ if scenario=='supplement-production-pin':SUPPLEMENT=${JSON.stringify(supplement)}
 if scenario=='wrong-id':connection['archives']['candidate']['attachmentId']='unapproved'
 if scenario=='wrong-filename':connection['archives']['candidate']['filename']='other.tar.gz'
 if scenario=='wrong-hash':connection['archives']['candidate']['sha256']='0'*64
@@ -171,10 +204,12 @@ class Response:
   data=fixtures[self.role]
   if self.role=='candidate' and scenario=='truncated':data=data[:-1]
   if self.role=='candidate' and scenario=='extra-byte':data+=b'x'
+  if self.role=='supplement' and scenario=='supplement-truncated':data=data[:-1]
+  if self.role=='supplement' and scenario=='supplement-extra-byte':data+=b'x'
   return data
 class Opener:
  def open(self,url,timeout):
-  role='candidate' if '/candidate?' in url else 'assessment'
+  role=url.split('?')[0].rsplit('/',1)[1]
   if scenario.startswith('http-error-') and role=='candidate':
    raise urllib.error.HTTPError(url,int(scenario.split('-')[-1]),'${marker}',{'Location':'${marker}'},None)
   if scenario=='assessment-forbidden' and role=='assessment':
@@ -191,10 +226,33 @@ if scenario=='valid':body=body.replace("raise SystemExit('JUNE5_PRIVATE_REVIEW_I
 exec(compile('try:\\n'+body,'<trusted-inline-adapter>','exec'))
 assert (fixture_root/'nba-source-private-review/originals'/EXPECTED['candidate']['filename']).read_bytes()==fixtures['candidate']
 assert (fixture_root/'nba-source-private-review/originals'/EXPECTED['assessment']['filename']).read_bytes()==fixtures['assessment']
+if with_supplement:
+ assert (fixture_root/'nba-source-private-review/originals'/SUPPLEMENT['filename']).read_bytes()==fixtures['supplement']
+ assert (fixture_root/'nba-source-private-review/supplement/private-review-original.json').read_bytes()==original
 assert len(list((fixture_root/'nba-source-private-review/views/records').glob('*.json')))==278
 for file in (fixture_root/'nba-source-private-review').rglob('*'):
  if file.is_file():assert file.stat().st_mode & 0o777==0o600
 `;
+
+test('only the exact authorized supplement can extend the two-archive connection; original verdict and source members remain intact', () => {
+  const f = fixture();
+  try {
+    const valid = f.run(inputHarness, 'supplement-valid');
+    assert.equal(valid.status, 0, valid.stderr);
+    const inputs = JSON.parse(fs.readFileSync(path.join(f.dir, 'nba-source-private-review/review-inputs.json'), 'utf8'));
+    assert.deepEqual(Object.keys(inputs.archives), ['candidate', 'assessment', 'supplement']);
+    assert.equal(inputs.archives.supplement.attachmentId, supplement.attachmentId);
+    fs.rmSync(path.join(f.dir, 'nba-source-private-review'), { recursive: true });
+    for (const suffix of ['v1', 'missing-archive', 'wrong-id', 'wrong-name', 'wrong-hash', 'wrong-size', 'production-pin', 'wrong-format', 'runtime-authority', 'status-change', 'changed-scope', 'changed-candidate', 'changed-assessment', 'altered-verdict', 'member-hash', 'missing-member', 'extra-member', 'duplicate-manifest', 'symlink', 'truncated', 'extra-byte']) {
+      const r = f.run(inputHarness, 'supplement-' + suffix);
+      assert.equal(r.status, 1, suffix + ': ' + r.stderr);
+      assert.equal(r.stderr.trim(), 'JUNE5_PRIVATE_REVIEW_INPUT_REJECTED', suffix);
+      assert.match(r.stdout, /^JUNE5_PRIVATE_REVIEW_INPUT_FAILURE (CONNECTION_SCHEMA|SUPPLEMENT_(?:METADATA|BYTES|MANIFEST)) INVALID\n$/u, suffix);
+      assert(!r.stdout.includes(marker));
+      assert(!fs.existsSync(path.join(f.dir, 'nba-source-private-review')), suffix);
+    }
+  } finally { f.close(); }
+});
 
 test('controlled archives pass complete validation and remain inert; production identities cannot be overridden', () => {
   const f = fixture();
@@ -267,9 +325,11 @@ root=pathlib.Path(os.environ['RUNNER_TEMP']); private=root/'nba-source-private-r
 scenario=os.environ['SCENARIO']
 (private/'recipient.pem').write_bytes((root/'cert.pem').read_bytes())
 inputs={'sourcePackage':'june5-draft','archives':${JSON.stringify(fixed)}}
+if scenario.startswith('supplement-'):inputs['archives']['supplement']=${JSON.stringify(supplement)}
+if scenario=='supplement-wrong-binding':inputs['archives']['supplement']['sha256']='0'*64
 if scenario=='wrong-binding':inputs['archives']['assessment']['sha256']='0'*64
 (private/'review-inputs.json').write_text(json.dumps(inputs))
-report={'verdict':'REVISE' if scenario=='revise' else 'ACCEPT','review_report':'${marker}','findings':[],'validation':['targeted fixture'],'scope_limits':['nonprivate test only']}
+report={'verdict':'REVISE' if scenario in ['revise','supplement-revise'] else 'ACCEPT','review_report':'${marker}','findings':[],'validation':['targeted fixture'],'scope_limits':['nonprivate test only']}
 if scenario=='blocking':report['findings']=[{'severity':'blocking','detail':'fixture'}]
 if scenario=='malformed':del report['validation']
 original={'type':'result','subtype':'success','is_error':False,'structured_output':report,'permission_denials':[{'tool_name':'Bash'}] if scenario=='denied' else []}
@@ -284,18 +344,19 @@ subprocess.check_output=api
 exec(compile(${JSON.stringify(result)},'<trusted-private-result>','exec'))
 `;
   try {
-    for (const scenario of ['success', 'revise', 'denied', 'failed', 'wrong-binding', 'blocking', 'malformed', 'stale']) {
+    for (const scenario of ['success', 'revise', 'denied', 'failed', 'wrong-binding', 'blocking', 'malformed', 'stale', 'supplement-success', 'supplement-revise', 'supplement-wrong-binding']) {
       fs.rmSync(path.join(f.dir, 'nba-source-private-review'), { recursive: true, force: true });
       fs.rmSync(path.join(f.dir, 'nba-private-review.cms'), { force: true });
       const r = f.run(harness, scenario);
-      assert.equal(r.status, scenario === 'success' ? 0 : 1, scenario + ': ' + r.stderr);
+      const accepted = ['success', 'supplement-success'].includes(scenario);
+      assert.equal(r.status, accepted ? 0 : 1, scenario + ': ' + r.stderr);
       assert(!r.stdout.includes(marker) && !r.stderr.includes(marker));
-      assert.equal(r.stdout.includes('NBA_PRIVATE_SOURCE_REVIEW_ACCEPT'), scenario === 'success');
-      if (['success', 'revise', 'denied', 'failed'].includes(scenario)) {
+      assert.equal(r.stdout.includes('NBA_PRIVATE_SOURCE_REVIEW_ACCEPT'), accepted);
+      if (['success', 'revise', 'denied', 'failed', 'supplement-success', 'supplement-revise'].includes(scenario)) {
         const decrypted = spawnSync('openssl', ['cms', '-decrypt', '-binary', '-inform', 'DER', '-in', path.join(f.dir, 'nba-private-review.cms'), '-recip', f.cert, '-inkey', f.key], { encoding: 'utf8' });
         assert.equal(decrypted.status, 0, decrypted.stderr);
         const receipt = JSON.parse(decrypted.stdout);
-        assert.deepEqual(receipt.archives, fixed);
+        assert.deepEqual(receipt.archives, scenario.startsWith('supplement-') ? { ...fixed, supplement } : fixed);
         assert.equal(receipt.sourcePackage, 'june5-draft');
         assert.equal(receipt.originalResult.structured_output.review_report, marker);
         assert.equal(receipt.candidate, candidate);
