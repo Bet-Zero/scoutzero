@@ -153,6 +153,7 @@ if scenario=='userinfo':connection['archives']['candidate']['url']='https://user
 if scenario=='fragment':connection['archives']['candidate']['url']+='#fragment'
 if scenario=='unsigned':connection['archives']['candidate']['url']=connection['archives']['candidate']['url'].split('?')[0]
 if scenario=='invalid-certificate':connection['recipientPem']='-----BEGIN CERTIFICATE-----\\nbad'
+if scenario=='certificate-trailing-data':connection['recipientPem']+='unexpected trailing data'
 if scenario=='production-pins':EXPECTED=original_expected
 if scenario=='debug':os.environ['RUNNER_DEBUG']='1'
 os.environ['CONNECTION']=json.dumps(connection)
@@ -204,7 +205,7 @@ test('controlled archives pass complete validation and remain inert; production 
 test('hostile, changed, incomplete and date-incompatible inputs fail before Claude with no sensitive output', () => {
   const f = fixture();
   try {
-    for (const scenario of ['wrong-date', 'lost-identity', 'duplicate-identity', 'changed-mapping', 'changed-assessment', 'wrong-assessment-hash', 'traversal', 'symlink', 'duplicate-member', 'wrong-member-hash', 'boolean-member-size', 'missing-manifest-entry', 'duplicate-manifest-entry', 'duplicate-json-key', 'bad-gzip', 'oversized-decompression', 'wrong-id', 'wrong-filename', 'wrong-hash', 'wrong-size', 'missing-archive', 'extra-archive', 'wrong-host', 'wrong-workspace', 'userinfo', 'fragment', 'unsigned', 'invalid-certificate', 'debug', 'http-failure', 'redirect', 'truncated', 'extra-byte']) {
+    for (const scenario of ['wrong-date', 'lost-identity', 'duplicate-identity', 'changed-mapping', 'changed-assessment', 'wrong-assessment-hash', 'traversal', 'symlink', 'duplicate-member', 'wrong-member-hash', 'boolean-member-size', 'missing-manifest-entry', 'duplicate-manifest-entry', 'duplicate-json-key', 'bad-gzip', 'oversized-decompression', 'wrong-id', 'wrong-filename', 'wrong-hash', 'wrong-size', 'missing-archive', 'extra-archive', 'wrong-host', 'wrong-workspace', 'userinfo', 'fragment', 'unsigned', 'invalid-certificate', 'certificate-trailing-data', 'debug', 'http-failure', 'redirect', 'truncated', 'extra-byte']) {
       const r = f.run(inputHarness, scenario);
       assert.equal(r.status, 1, scenario + ': ' + r.stderr);
       assert.equal(r.stderr.trim(), 'JUNE5_PRIVATE_REVIEW_INPUT_REJECTED', scenario);

@@ -293,6 +293,7 @@ jobs:
               assert all(r['retainedAssessment']==prior[r['entitlementId']] for r in candidate['records'])
               certificate=connection['recipientPem']
               assert isinstance(certificate,str) and len(certificate)<=10000 and certificate.startswith('-----BEGIN CERTIFICATE-----\n')
+              assert re.fullmatch(r'-----BEGIN CERTIFICATE-----\n[A-Za-z0-9+/=\r\n]+\n-----END CERTIFICATE-----\n?',certificate)
               checked=subprocess.run(['openssl','x509','-noout','-checkend','0'],input=certificate.encode(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
               assert checked.returncode==0
               root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nba-source-private-review'
