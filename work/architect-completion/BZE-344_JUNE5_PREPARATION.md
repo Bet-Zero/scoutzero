@@ -6,6 +6,99 @@ BZE-309, governing instructions, V1 contract and the C6 assessment were verified
 on November 6, 2026. They were unchanged at implementation entry. This delivery
 does not close C6 normal-product admission, W9 or W10.
 
+## Retained archives and two-archive private reviewer
+
+Both original archives are now retained under the existing BZE-309 workspace
+protections and independently retrieved with their complete hashes verified.
+BZE-243 records ChatGPT's completed candidate retrieval; the old download blocker
+and browser-download request are superseded. No repeat upload or source audit is
+required. Creation-time local-only wording inside the immutable archives remains
+historical; this external receipt updates retention without changing their bytes.
+
+| Archive | Durable BZE-309 attachment ID | Bytes | SHA-256 |
+| --- | --- | --- | --- |
+| `june5-draft-starting-state-candidate.tar.gz` | `347f0b68-662b-47b5-ac8f-6a1203c07d62` | 6,654,967 | `4751d71f04b7834bf5d264bd49e3322b16afba4ae0663e1b4d9cbd235c9aea5a` |
+| `c6-admission-assessment.tar.gz` | `28ead6a9-dcec-49fc-b0e9-ec31a390ab3e` | 73,931 | `43a129a009af323d0bd369f4bd173cb9cd00fd5995326651159aaa7b09d12ee9` |
+
+The existing `nba-maintenance-source-review.yml` now has an explicit
+`source_package: june5-draft` mode. `maintenance` remains the default and keeps
+its existing input recovery, source judgment and receipt behavior. Both modes
+use the same protected environment, Claude credential/action, exact accepted
+code/main checks, owner approval and encrypted result route. No secret was read,
+replaced or modified during adapter implementation. No private review was run.
+
+June 5 mode accepts only the two identities above. Trusted inline transport
+checks complete compressed sizes/digests, bounds decompression, rejects links,
+paths and duplicate members, and verifies complete manifest membership, sizes
+and hashes. It cross-checks the historical date, all 278 identities, exact 29
+mappings and unchanged retained assessments. All original bytes remain available
+to the checker; readable record views are navigation only. Archived Python/TS
+files are inert evidence and are never executed. Only Read, Glob and Grep are
+exposed to Claude. A material source locator whose underlying evidence is absent
+must be reported as a limitation/REVISE, never treated as read or authenticated.
+
+Tests use controlled nonprivate archives and temporary synthetic encryption
+keys; production pins have no configurable override. Cases cover wrong identity,
+size/hash, manifest, date, mappings, hostile archives/URLs, debug logging, missing
+approval/CI/acceptance, encrypted original verdict recovery, stale results and
+tool denials. Existing maintenance input/receipt tests remain required. Public
+code acceptance qualifies the adapter only, not the private source bindings.
+An offline format check also passed with the two unchanged local archive bytes
+through the actual adapter, using a local reader and the existing public result
+certificate. It used no network, credentials or archived code and made no new
+source judgment. The live PR retains exact candidate CI and independent review.
+
+### Administrative gate: exact handoff
+
+1. **Codex preparation after accepted landing:** use the exact adapter head,
+   preserved base and merged PR from BZE-344's live delivery receipt. Confirm
+   current main still has that accepted tree and green main CI. If it moved,
+   do not substitute a different head or relax the existing identity gate.
+2. **Prepare the connection privately when the administrator is ready:** obtain
+   fresh signed URLs by the two attachment IDs above using authenticated Linear.
+   Their signatures are short-lived (the connector uses five minutes). Never put
+   them in public issues, workflow arguments, shell history or logs. In a private
+   directory, write a mode-0600 JSON file with exactly `format`, `archives` and
+   `recipientPem`. The format is `scoutzero-june5-private-review-connection-v1`.
+   `archives` has exactly `candidate` and `assessment`; each object has
+   `attachmentId`, `filename`, `bytes`, `sha256` from the table and its fresh
+   `url`. Use the existing private-result recipient certificate whose separate
+   retained private key is recoverable; first prove a local encrypt/decrypt
+   control. Do not create a new credential or substitute an unverified recipient.
+   This file is the exact private value to paste, not a public workflow input.
+3. **Authenticated administrator browser action:** in `Bet-Zero/scoutzero` →
+   Settings → Environments → `nba-maintenance-publication` → Environment secrets,
+   update the existing `NBA_MAINTENANCE_SOURCE_REVIEW_CONNECTION` with that private
+   JSON. Preserve its existing maintenance configuration privately if needed for
+   a later maintenance run; this is a run-specific connection, not a new secret.
+   Change no environment, permission, credential, reviewer or branch setting.
+   This Codex integration cannot manage that protected setting (HTTP 403).
+4. **Exact workflow:** dispatch `nba-maintenance-source-review.yml` from `main`
+   with `source_package=june5-draft`, `candidate` = the accepted adapter head,
+   `base` = its preserved review base, `pull_request` = its merged PR number,
+   and `archive_sha256` = the candidate archive digest in the table.
+   Leave `plan_sha256` and `input_sha256` empty: no publication plan is involved.
+   Only nonsecret identities are workflow arguments. The `Bet-Zero` owner must
+   approve this exact private-review run at the existing environment gate; the
+   author must not self-approve it. Coordinate prompt approval within URL expiry.
+   Expiry means failed input access, never permission to bypass authentication.
+5. **Recover the private judgment:** retain the exact run/attempt and download
+   artifact `nba-private-review-<run_id>-<run_attempt>` within its existing
+   seven-day retention. Only `nba-private-review.cms` is uploaded by the worker;
+   no plaintext verdict or source is published. Use the existing private recovery
+   route and retained key to decrypt locally. Compare the complete plaintext
+   SHA-256 with the worker's integrity receipt, then verify candidate/executor,
+   run, `sourcePackage=june5-draft`, both archive identities, original successful
+   execution, complete structured verdict, no tool denials and no blocking
+   findings on ACCEPT. Failed/malformed/stale/missing output or REVISE is not
+   acceptance. Retain the private original result; report only appropriate status
+   metadata publicly. The original author and transport checks remain distinct
+   from independently performed source checks.
+
+Stop at this administrative gate. Retention and accepted adapter code do not
+activate normal trading, qualify missing financial/obligation facts, publish
+source data, install runtime trust, adopt/migrate worlds or complete C4/C5/V1.
+
 ## Built
 
 - `scripts/architect/prepareJune5DraftState.ts` compiles the recovered private
@@ -119,15 +212,17 @@ The live PR records final exact-head CI and independent Claude code review.
 The private source-binding candidate is **pending independent source admission**.
 GitHub code review cannot independently inspect local private bytes. Reusing
 accepted source judgments is not a claim that the newly compiled package has
-already received that separate acceptance. Authorized durable private reviewer
-access is a real prerequisite; no owner relay is needed for routine code review.
+already received that separate acceptance. Protected private reviewer access
+remains a prerequisite; durable archive retention is now established above.
+No owner relay is needed for routine code review.
 
 ## Exact private delivery and recovery
 
 Local candidate directory:
 `/workspace/work/scoutzero-c6-implementation/candidate-r7/`.
 Local archive: `/workspace/output/june5-draft-starting-state-candidate.tar.gz`.
-These are working/task files, **not verified durable storage**.
+These local paths are working/task files. The verified durable attachment IDs
+are recorded above; local paths alone are not durable storage.
 
 | Artifact | SHA-256 |
 | --- | --- |
@@ -144,7 +239,8 @@ The original C6 map SHA remains
 original archive SHA remains
 `43a129a009af323d0bd369f4bd173cb9cd00fd5995326651159aaa7b09d12ee9`.
 Their original `/workspace/output/` and `/workspace/work/scoutzero-c6/` copies
-remain present. They were never uploaded to Linear.
+remain present. The exact assessment archive is now retained in Linear as
+recorded above; its embedded original map remains unchanged.
 
 The [C6 assessment](C6_NORMAL_WORLD_ADMISSION.md) retains all six original
 private attachment locators. Newly recovered existing inputs are BZE-309
@@ -154,13 +250,12 @@ and `9f56d9ac-2ba2-4ab1-9774-b82dd851b41c` (holder archive SHA
 `c4a2c7952294482a1f359eaed5c518ec864f4ec8ba399118f0203606bb88d708`).
 No fresh NBA source acquisition or exhausted C4 research was performed.
 
-**Exact next action:** obtain authorization for a named durable private storage
-and reviewer-access destination for this frozen package, then independently
-review its new source bindings. Separately complete the dated affected-team
-financial and branch inputs above; those factual gaps cannot be approved away.
-The prior automatic-review denial of private archive export to Linear remains
-in force. This delivery exports no private package and requests no production
-activation. Stop here; no next investigation or implementation starts automatically.
+**Exact next action:** use the administrative handoff above to configure and
+approve the protected private source-binding review after adapter acceptance.
+The owner's later explicit authorization resolved the original export boundary;
+both unchanged archives are retained and remotely verified. Separately complete
+the dated affected-team financial and branch inputs; factual gaps cannot be
+approved away. No production activation or next implementation starts automatically.
 
 ## Output-alias repair in the same delivery
 
