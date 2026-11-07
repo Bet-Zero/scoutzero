@@ -20,6 +20,7 @@ const fixed = {
   assessment: { attachmentId: '28ead6a9-dcec-49fc-b0e9-ec31a390ab3e', filename: 'c6-admission-assessment.tar.gz', bytes: 73931, sha256: '43a129a009af323d0bd369f4bd173cb9cd00fd5995326651159aaa7b09d12ee9' },
 };
 const supplement = { attachmentId: 'd420d526-babb-48bc-93a8-b14c0368a1db', filename: 'june5-two-transfer-review-supplement.tar.gz', bytes: 328372, sha256: '6366511b2ba93da116c77ae392165a61838336476f187a3f057109c16cd1b203' };
+const operation = { attachmentId: 'c7666be3-64d6-4d87-b4b3-bfb43a2837a5', filename: 'bze345-pick-only-private-review.tar.gz', bytes: 304111, sha256: '587d485bd845689879ebc9eea684117859605fa8a891577eefb338e736a47c63' };
 
 function fixture() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'june5-private-review-'));
@@ -56,6 +57,9 @@ test('June 5 mode keeps the existing protected identity, independent gates and m
     for (const pin of [value.attachmentId, value.sha256, value.filename]) assert(input.includes(pin));
   }
   for (const pin of [supplement.attachmentId, supplement.sha256, supplement.filename]) assert(input.includes(pin) && result.includes(pin));
+  for (const pin of [operation.attachmentId, operation.sha256, operation.filename]) assert(input.includes(pin) && result.includes(pin));
+  assert.match(action.with.prompt, /Unknown or violated hard-cap compliance and required missing inputs MUST/);
+  assert.match(action.with.prompt, /do not accept these operation bindings/);
 });
 
 test('both modes retain exact merged-code, CI, independent acceptance and owner-environment gates', () => {
@@ -104,7 +108,9 @@ prefix,body=source.split('\\ntry:\\n',1)
 exec(prefix)
 original_expected=copy.deepcopy(EXPECTED)
 with_supplement=scenario.startswith('supplement-')
+with_operation=scenario.startswith('operation-')
 if with_supplement: EXPECTED['supplement']=SUPPLEMENT
+if with_operation: EXPECTED['operation']=OPERATION
 def encoded(value): return json.dumps(value,separators=(',',':')).encode()
 rows=[{'entitlementId':'fixture-'+str(i),'text':'${marker}'} for i in range(278)]
 unresolved=[{'dependencyId':'unknown-'+str(i)} for i in range(29)]
@@ -126,8 +132,29 @@ if with_supplement:
  ORIGINAL_REVISE_SHA256=hashlib.sha256(original).hexdigest()
  payloads['supplement']={'private-review-original.json':original,**{'source-'+str(i)+'.txt':b'${marker}' for i in range(21)}}
  if scenario=='supplement-altered-verdict':payloads['supplement']['private-review-original.json']=original+b' '
+if with_operation:payloads['operation']={}
 fixtures={}
 for role,files in payloads.items():
+ if role=='operation':
+  proposed={'format':'bze345-private-action-binding-candidate-v1','asOf':record['asOf'],'apply':'blocked','acceptedStartingArchiveSha256':EXPECTED['candidate']['sha256'],'acceptedAssessmentArchiveSha256':EXPECTED['assessment']['sha256'],'all278IdentityMembership':[r['entitlementId'] for r in rows],'exact29UnresolvedMappings':copy.deepcopy(unresolved),'bindings':[{'originalPick':{'id':p}} for p in OPERATION_SCOPE],'proposal':{'fixture':True}}
+  if scenario=='operation-wrong-date':proposed['asOf']='2026-07-01T00:00:00Z'
+  if scenario=='operation-apply':proposed['apply']='ready'
+  if scenario=='operation-lost-identity':proposed['all278IdentityMembership'].pop()
+  if scenario=='operation-changed-identity':proposed['all278IdentityMembership'][0]='changed'
+  if scenario=='operation-changed-mapping':proposed['exact29UnresolvedMappings'][0]['dependencyId']='changed'
+  if scenario=='operation-changed-binding':proposed['bindings'][0]['originalPick']['id']='other'
+  if scenario=='operation-changed-starting':proposed['acceptedStartingArchiveSha256']='0'*64
+  contract={'format':'bze345-financial-preservation-contract-v1','asOf':record['asOf'],'scope':proposed['proposal'],'currentCandidate':{'CHI':'needs-input','TOR':'needs-input','apply':'blocked','reason':'Starting teamInputs retain qualified-june5-apron-adjustments and hard-cap-trigger-history-and-remaining-capacity dependencies. No baseline compliance certificate is present.'}}
+  if scenario=='operation-finance-ready':contract['currentCandidate']['apply']='ready'
+  if scenario=='operation-finance-date':contract['asOf']='2026-07-01T00:00:00Z'
+  if scenario=='operation-finance-scope':contract['scope']={'changed':True}
+  proposed_bytes=encoded(proposed);OPERATION_CANDIDATE_SHA256=hashlib.sha256(proposed_bytes).hexdigest()
+  contract['candidateFileSha256']=OPERATION_CANDIDATE_SHA256
+  if scenario=='operation-finance-candidate':contract['candidateFileSha256']='0'*64
+  original_operation=b'original-nonprivate-fixture';PREPARED_OPERATION_SHA256=hashlib.sha256(original_operation).hexdigest()
+  files={'candidate.json':proposed_bytes,'financial-preservation-contract.json':encoded(contract),'prepared-candidate-original.tar.gz':original_operation,**{'source-'+str(i)+'.txt':b'${marker}' for i in range(25)}}
+  if scenario=='operation-altered-original':files['prepared-candidate-original.tar.gz']+=b'changed'
+  if scenario=='operation-altered-candidate':files['candidate.json']+=b' '
  files=copy.deepcopy(files)
  if role=='candidate' and scenario=='traversal': files['../escape.json']=b'{}'
  entries=[{'name':n,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()} for n,b in files.items()]
@@ -137,6 +164,15 @@ for role,files in payloads.items():
   if scenario=='missing-manifest-entry': entries.pop()
   if scenario=='duplicate-manifest-entry': entries[-1]=entries[0]
   manifest={'version':1,'runtimeAuthority':False,'members':entries}
+ elif role=='operation':
+  manifest={'format':'scoutzero-bze345-pick-only-private-review-v1','runtimeAuthority':False,'sourceStatusChanges':0,'scope':OPERATION_SCOPE,'unchangedCandidateArchiveSha256':EXPECTED['candidate']['sha256'],'unchangedAssessmentArchiveSha256':EXPECTED['assessment']['sha256'],'candidateFileSha256':OPERATION_CANDIDATE_SHA256,'preparedCandidateArchiveSha256':PREPARED_OPERATION_SHA256,'members':entries}
+  if scenario=='operation-runtime-authority':manifest['runtimeAuthority']=True
+  if scenario=='operation-status-change':manifest['sourceStatusChanges']=1
+  if scenario=='operation-wrong-scope':manifest['scope']=['other']
+  if scenario=='operation-wrong-member-hash':entries[0]['sha256']='0'*64
+  if scenario=='operation-missing-member':del files['source-0.txt']
+  if scenario=='operation-extra-member':files['extra.txt']=b'extra'
+  if scenario=='operation-duplicate-manifest':entries[-1]=entries[0]
  elif role=='supplement':
   manifest={'format':'scoutzero-june5-two-transfer-review-supplement-v1','runtimeAuthority':False,'sourceStatusChanges':0,'scope':['ownership-state:IND_2029_1st','ownership-state:LAC_2028_1st'],'unchangedCandidateArchiveSha256':EXPECTED['candidate']['sha256'],'unchangedAssessmentArchiveSha256':EXPECTED['assessment']['sha256'],'members':entries}
   if scenario=='supplement-wrong-format':manifest['format']='other'
@@ -156,7 +192,7 @@ for role,files in payloads.items():
  with tarfile.open(fileobj=buffer,mode='w:gz') as archive:
   for name,data in files.items():
    member=tarfile.TarInfo(name);member.size=len(data)
-   if (role=='candidate' and name=='inert.py' and scenario=='symlink') or (role=='supplement' and name=='source-0.txt' and scenario=='supplement-symlink'): member.type=tarfile.SYMTYPE;member.linkname='/tmp/escape';member.size=0
+   if (role=='candidate' and name=='inert.py' and scenario=='symlink') or (role=='supplement' and name=='source-0.txt' and scenario=='supplement-symlink') or (role=='operation' and name=='source-0.txt' and scenario=='operation-symlink'): member.type=tarfile.SYMTYPE;member.linkname='/tmp/escape';member.size=0
    archive.addfile(member,io.BytesIO(data) if member.isfile() else None)
    if role=='candidate' and name=='inert.py' and scenario=='duplicate-member':archive.addfile(member,io.BytesIO(data))
  fixtures[role]=buffer.getvalue()
@@ -164,6 +200,15 @@ for role,files in payloads.items():
  if role=='candidate' and scenario=='oversized-decompression':fixtures[role]=gzip.compress(bytes(67108865))
  EXPECTED[role]['bytes']=len(fixtures[role]);EXPECTED[role]['sha256']=hashlib.sha256(fixtures[role]).hexdigest()
 connection={'format':'scoutzero-june5-private-review-connection-v1','archives':{role:dict(expected,url='https://uploads.linear.app/48c72032-d53f-4e3b-8d40-57d875b69126/'+role+'?signature=${marker}') for role,expected in EXPECTED.items()},'recipientPem':(fixture_root/'cert.pem').read_text()}
+if with_operation:
+ connection['format']='scoutzero-june5-private-review-connection-v3'
+ del EXPECTED['operation']
+ if scenario=='operation-v2':connection['format']='scoutzero-june5-private-review-connection-v2'
+ if scenario=='operation-missing-archive':del connection['archives']['operation']
+ if scenario=='operation-mixed-supplement':connection['archives']['supplement']={}
+ if scenario=='operation-wrong-id':connection['archives']['operation']['attachmentId']='unapproved'
+ if scenario=='operation-wrong-hash':connection['archives']['operation']['sha256']='0'*64
+ if scenario=='operation-production-pin':OPERATION=${JSON.stringify(operation)}
 if with_supplement:
  connection['format']='scoutzero-june5-private-review-connection-v2'
  del EXPECTED['supplement']
@@ -206,6 +251,8 @@ class Response:
   if self.role=='candidate' and scenario=='extra-byte':data+=b'x'
   if self.role=='supplement' and scenario=='supplement-truncated':data=data[:-1]
   if self.role=='supplement' and scenario=='supplement-extra-byte':data+=b'x'
+  if self.role=='operation' and scenario=='operation-truncated':data=data[:-1]
+  if self.role=='operation' and scenario=='operation-extra-byte':data+=b'x'
   return data
 class Opener:
  def open(self,url,timeout):
@@ -229,10 +276,31 @@ assert (fixture_root/'nba-source-private-review/originals'/EXPECTED['assessment'
 if with_supplement:
  assert (fixture_root/'nba-source-private-review/originals'/SUPPLEMENT['filename']).read_bytes()==fixtures['supplement']
  assert (fixture_root/'nba-source-private-review/supplement/private-review-original.json').read_bytes()==original
+if with_operation:
+ assert (fixture_root/'nba-source-private-review/originals'/OPERATION['filename']).read_bytes()==fixtures['operation']
+ assert (fixture_root/'nba-source-private-review/operation/candidate.json').read_bytes()==proposed_bytes
 assert len(list((fixture_root/'nba-source-private-review/views/records').glob('*.json')))==278
 for file in (fixture_root/'nba-source-private-review').rglob('*'):
  if file.is_file():assert file.stat().st_mode & 0o777==0o600
 `;
+
+test('pick-only review binds the unchanged operation, exact membership and blocking financial state without accepting caller substitutions', () => {
+  const f = fixture();
+  try {
+    const valid = f.run(inputHarness, 'operation-valid');
+    assert.equal(valid.status, 0, valid.stderr + valid.stdout);
+    const inputs = JSON.parse(fs.readFileSync(path.join(f.dir, 'nba-source-private-review/review-inputs.json'), 'utf8'));
+    assert.deepEqual(Object.keys(inputs.archives), ['candidate', 'assessment', 'operation']);
+    fs.rmSync(path.join(f.dir, 'nba-source-private-review'), { recursive: true });
+    for (const suffix of ['v2', 'missing-archive', 'mixed-supplement', 'wrong-id', 'wrong-hash', 'production-pin', 'runtime-authority', 'status-change', 'wrong-scope', 'wrong-member-hash', 'missing-member', 'extra-member', 'duplicate-manifest', 'symlink', 'truncated', 'extra-byte', 'altered-original', 'altered-candidate', 'wrong-date', 'apply', 'lost-identity', 'changed-identity', 'changed-mapping', 'changed-binding', 'changed-starting', 'finance-ready', 'finance-date', 'finance-scope', 'finance-candidate']) {
+      const r = f.run(inputHarness, 'operation-' + suffix);
+      assert.equal(r.status, 1, suffix + ': ' + r.stderr + r.stdout);
+      assert.equal(r.stderr.trim(), 'JUNE5_PRIVATE_REVIEW_INPUT_REJECTED', suffix);
+      assert(!r.stdout.includes(marker) && !r.stderr.includes(marker), suffix);
+      assert(!fs.existsSync(path.join(f.dir, 'nba-source-private-review')), suffix);
+    }
+  } finally { f.close(); }
+});
 
 test('only the exact authorized supplement can extend the two-archive connection; original verdict and source members remain intact', () => {
   const f = fixture();
@@ -326,10 +394,13 @@ scenario=os.environ['SCENARIO']
 (private/'recipient.pem').write_bytes((root/'cert.pem').read_bytes())
 inputs={'sourcePackage':'june5-draft','archives':${JSON.stringify(fixed)}}
 if scenario.startswith('supplement-'):inputs['archives']['supplement']=${JSON.stringify(supplement)}
+if scenario.startswith('operation-'):inputs['archives']['operation']=${JSON.stringify(operation)}
+if scenario=='operation-wrong-binding':inputs['archives']['operation']['sha256']='0'*64
+if scenario=='operation-mixed-supplement':inputs['archives']['supplement']=${JSON.stringify(supplement)}
 if scenario=='supplement-wrong-binding':inputs['archives']['supplement']['sha256']='0'*64
 if scenario=='wrong-binding':inputs['archives']['assessment']['sha256']='0'*64
 (private/'review-inputs.json').write_text(json.dumps(inputs))
-report={'verdict':'REVISE' if scenario in ['revise','supplement-revise'] else 'ACCEPT','review_report':'${marker}','findings':[],'validation':['targeted fixture'],'scope_limits':['nonprivate test only']}
+report={'verdict':'REVISE' if scenario in ['revise','supplement-revise','operation-revise'] else 'ACCEPT','review_report':'${marker}','findings':[],'validation':['targeted fixture'],'scope_limits':['nonprivate test only']}
 if scenario=='blocking':report['findings']=[{'severity':'blocking','detail':'fixture'}]
 if scenario=='malformed':del report['validation']
 original={'type':'result','subtype':'success','is_error':False,'structured_output':report,'permission_denials':[{'tool_name':'Bash'}] if scenario=='denied' else []}
@@ -344,19 +415,19 @@ subprocess.check_output=api
 exec(compile(${JSON.stringify(result)},'<trusted-private-result>','exec'))
 `;
   try {
-    for (const scenario of ['success', 'revise', 'denied', 'failed', 'wrong-binding', 'blocking', 'malformed', 'stale', 'supplement-success', 'supplement-revise', 'supplement-wrong-binding']) {
+    for (const scenario of ['success', 'revise', 'denied', 'failed', 'wrong-binding', 'blocking', 'malformed', 'stale', 'supplement-success', 'supplement-revise', 'supplement-wrong-binding', 'operation-success', 'operation-revise', 'operation-wrong-binding', 'operation-mixed-supplement']) {
       fs.rmSync(path.join(f.dir, 'nba-source-private-review'), { recursive: true, force: true });
       fs.rmSync(path.join(f.dir, 'nba-private-review.cms'), { force: true });
       const r = f.run(harness, scenario);
-      const accepted = ['success', 'supplement-success'].includes(scenario);
+      const accepted = ['success', 'supplement-success', 'operation-success'].includes(scenario);
       assert.equal(r.status, accepted ? 0 : 1, scenario + ': ' + r.stderr);
       assert(!r.stdout.includes(marker) && !r.stderr.includes(marker));
       assert.equal(r.stdout.includes('NBA_PRIVATE_SOURCE_REVIEW_ACCEPT'), accepted);
-      if (['success', 'revise', 'denied', 'failed', 'supplement-success', 'supplement-revise'].includes(scenario)) {
+      if (['success', 'revise', 'denied', 'failed', 'supplement-success', 'supplement-revise', 'operation-success', 'operation-revise'].includes(scenario)) {
         const decrypted = spawnSync('openssl', ['cms', '-decrypt', '-binary', '-inform', 'DER', '-in', path.join(f.dir, 'nba-private-review.cms'), '-recip', f.cert, '-inkey', f.key], { encoding: 'utf8' });
         assert.equal(decrypted.status, 0, decrypted.stderr);
         const receipt = JSON.parse(decrypted.stdout);
-        assert.deepEqual(receipt.archives, scenario.startsWith('supplement-') ? { ...fixed, supplement } : fixed);
+        assert.deepEqual(receipt.archives, scenario.startsWith('supplement-') ? { ...fixed, supplement } : scenario.startsWith('operation-') ? { ...fixed, operation } : fixed);
         assert.equal(receipt.sourcePackage, 'june5-draft');
         assert.equal(receipt.originalResult.structured_output.review_report, marker);
         assert.equal(receipt.candidate, candidate);
