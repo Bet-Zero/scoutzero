@@ -484,6 +484,20 @@ describe('actual change rather than feature responsibility', () => {
       readDeclarations('Validation-Tests: ["../escape.test.ts"]')
     ).toThrow();
   });
+  it('reads NUL-separated commit bodies without requiring a final newline', () => {
+    expect(
+      readDeclarations(
+        `Validation-Tests: ["${regression}"]\0\nValidation-Review: required\0`
+      )
+    ).toEqual({ tests: [regression], review: true, broadReasons: [] });
+    // Separators do not relax malformed JSON or repository-path checks.
+    expect(() =>
+      readDeclarations('Validation-Tests: ["test.ts"]junk\0')
+    ).toThrow();
+    expect(() =>
+      readDeclarations('Validation-Tests: ["../escape.test.ts"]\0')
+    ).toThrow();
+  });
   it('never turns command failures or missing executables into passes', () => {
     for (const result of [
       { status: 1 },

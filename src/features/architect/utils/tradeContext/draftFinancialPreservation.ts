@@ -260,8 +260,24 @@ export function assertDraftFinancialInputsWellFormed(
 // state/proposal changes. Atomic persistence still performs its existing reads.
 const prepared = new WeakMap<
   object,
-  { before: string; proposal: string; season: string }
+  { before: string; proposal: string; season: string; asOf: string }
 >();
+
+function datedPreservationPayload(
+  payload: TradeContextPayload,
+  fallbackDate?: string
+): TradeContextPayload {
+  const asOfDate =
+    payload.asOfDate ?? payload.tradeCtx?.asOfDate ?? fallbackDate;
+  return {
+    ...payload,
+    asOfDate,
+    tradeCtx: {
+      ...payload.tradeCtx,
+      asOfDate: payload.tradeCtx?.asOfDate ?? asOfDate,
+    },
+  };
+}
 export function retainDraftFinancialPreservation(
   snapshot: object,
   payload: TradeContextPayload,
@@ -271,8 +287,11 @@ export function retainDraftFinancialPreservation(
   if (canPreserveDraftTradeFinances(payload, state, season))
     prepared.set(snapshot, {
       before: mutationSnapshotText(state),
-      proposal: mutationSnapshotText(normalizeTradeContextPayload(payload)),
+      proposal: mutationSnapshotText(
+        normalizeTradeContextPayload(datedPreservationPayload(payload))
+      ),
       season,
+      asOf: String(payload.asOfDate ?? payload.tradeCtx?.asOfDate),
     });
 }
 
@@ -284,11 +303,15 @@ export function hasDraftFinancialPreservation(
 ): boolean {
   const retained = prepared.get(snapshot);
   if (!retained) return false;
+  // Preparation accepts the governed world date separately. Use that same
+  // retained date when compute receives the original payload; a supplied date
+  // still has to agree. Raw fields remain visible to the classifier.
+  const datedPayload = datedPreservationPayload(payload, retained.asOf);
   if (
-    !canPreserveDraftTradeFinances(payload, state, season) ||
+    !canPreserveDraftTradeFinances(datedPayload, state, season) ||
     retained.before !== mutationSnapshotText(state) ||
     retained.proposal !==
-      mutationSnapshotText(normalizeTradeContextPayload(payload)) ||
+      mutationSnapshotText(normalizeTradeContextPayload(datedPayload)) ||
     retained.season !== season
   ) {
     throw new Error(

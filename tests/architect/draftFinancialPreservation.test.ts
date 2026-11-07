@@ -262,6 +262,29 @@ describe('future original-pick financial preservation in the shared trade path',
     expect(() => computeTradeResult({ ...args, ...prepared })).toThrow(/stale/);
   });
 
+  it.each([true, false])(
+    'keeps a separately supplied world date consistent (payload date: %s)',
+    (hasPayloadDate) => {
+      const args = fixture();
+      if (!hasPayloadDate)
+        delete (args.payload.tradeCtx as Record<string, unknown>).asOfDate;
+      const prepared = buildTradeApplyPreparation({
+        ...args,
+        asOfDate: '2026-06-05',
+      });
+      const computed = computeTradeResult({ ...args, ...prepared });
+      expect(computed.success).toBe(true);
+      expect(computed._validatedTradeContext?.legal).toBe(false);
+      expect(draftFinancialState(computed.teamUpdates![0].team!)).toEqual(
+        draftFinancialState(args.currentState.teams[0].team)
+      );
+      args.payload.tradeCtx.asOfDate = '2026-06-06';
+      expect(() => computeTradeResult({ ...args, ...prepared })).toThrow(
+        /stale/
+      );
+    }
+  );
+
   it('rejects post-state financial drift, including a newly invented zero ledger', () => {
     const args = fixture();
     const prepared = buildTradeApplyPreparation(args);
