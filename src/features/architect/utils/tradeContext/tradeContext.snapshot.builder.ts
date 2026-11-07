@@ -10,7 +10,10 @@ import {
   resolveSignAndTradeContractPayload,
   validateSignAndTradeContractPayload,
 } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
-import { computeTeamCapTotals } from '@/features/architect/utils/capTotals';
+import {
+  computeTeamCapTotals,
+  createCanonicalTeamTotalsSnapshot,
+} from '@/features/architect/utils/capTotals';
 import {
   buildSnapshotTradeExceptions,
   buildTradeIncomingPlayerSnapshot,
@@ -24,6 +27,12 @@ import {
   toSignAndTradePlayerLike,
 } from './tradeContext.payloadNormalization';
 import { normalizeTradeContextPayload } from './tradeContext.snapshot.payloadNorm';
+import {
+  canPreserveDraftTradeFinances,
+  assertDraftFinancialInputsWellFormed,
+  preserveDraftFinancialState,
+  retainDraftFinancialPreservation,
+} from './draftFinancialPreservation';
 import type { NormalizedTeamPick } from '@/features/architect/utils/tradeMachine/constants/types';
 import type {
   AnyRecord,
@@ -41,6 +50,13 @@ export function buildPostTradeTeamsSnapshot({
   timestamp,
 }: BuildPostTradeTeamsSnapshotParams): PostTradeSnapshot {
   const normalizedPayload = normalizeTradeContextPayload(payload);
+  const preserveFinances = canPreserveDraftTradeFinances(
+    payload,
+    currentState,
+    seasonId
+  );
+  if (preserveFinances)
+    assertDraftFinancialInputsWellFormed(currentState, seasonId);
   const payloadTeams = normalizedPayload.teams;
   const teamUpdates: TeamUpdate[] = [];
   const timestampISO = new Date(timestamp).toISOString();
@@ -426,11 +442,14 @@ export function buildPostTradeTeamsSnapshot({
       updatedTeam.entitlementIds = [...new Set(newEntitlementIds)];
     }
 
-    updatedTeam.tradeExceptions = buildSnapshotTradeExceptions({
-      team,
-      teamCode,
-      timestamp,
-    });
+    if (!preserveFinances) {
+      updatedTeam.tradeExceptions = buildSnapshotTradeExceptions({
+        team,
+        teamCode,
+        timestamp,
+      });
+      updatedTeam.totals = computeTeamCapTotals(updatedTeam, currentEndYear);
+    }
 
     updatedTeam.source = {
       ...(updatedTeam.source as AnyRecord),
@@ -438,9 +457,12 @@ export function buildPostTradeTeamsSnapshot({
       lastModifiedAt: timestampISO,
     };
 
-    updatedTeam.totals = computeTeamCapTotals(updatedTeam, currentEndYear);
-
-    teamUpdates.push({ teamCode, team: updatedTeam });
+    teamUpdates.push({
+      teamCode,
+      team: preserveFinances
+        ? preserveDraftFinancialState(team, updatedTeam)
+        : updatedTeam,
+    });
   }
 
   const entitlementOwnership = new Map<string, string>();
@@ -467,6 +489,22 @@ export function buildPostTradeTeamsSnapshot({
         teamUpdate.team,
         teamUpdate.teamCode
       );
+      if (preserveFinances) {
+        // A preserved legacy total is not governed Apron authority. Evaluate
+        // the dated books for validation only; never persist these derived
+        // values over the unchanged source financial records.
+        const totals = createCanonicalTeamTotalsSnapshot(
+          teamUpdate.team,
+          currentEndYear,
+          {
+            asOfDate: String(payload.asOfDate ?? payload.tradeCtx?.asOfDate),
+          }
+        );
+        validationTeam.teamTotalSalary = totals.apronTeamSalary ?? undefined;
+        validationTeam.apronTeamSalary = totals.apronTeamSalary;
+        validationTeam.taxSalary = totals.taxSalary;
+        validationTeam.totals = totals;
+      }
       const preTradeEntitlementIds = Array.isArray(
         currentState.teams[idx]?.team?.entitlementIds
       )
@@ -501,10 +539,12 @@ export function buildPostTradeTeamsSnapshot({
     }
   );
 
-  return {
+  const snapshot = {
     teamUpdates,
     validationTeams,
     payloadTeams: payloadTeams,
     _isPostTradeSnapshot: true,
   };
+  retainDraftFinancialPreservation(snapshot, payload, currentState, seasonId);
+  return snapshot;
 }
