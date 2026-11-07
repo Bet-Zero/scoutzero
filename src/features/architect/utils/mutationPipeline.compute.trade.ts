@@ -37,6 +37,10 @@ import {
   type GovernedCashLedgerEntry,
 } from '@/schemas/governedCashConsideration';
 import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
+import {
+  assertDraftFinancialStateUnchanged,
+  hasDraftFinancialPreservation,
+} from './tradeContext/draftFinancialPreservation';
 import { normalizeTradeTeamCodeLike } from '@/features/architect/utils/tradeContext/tradeContext';
 import { resolveGovernedSeasonEnvelope } from '@/features/architect/utils/governedSeason';
 import type { TradeContextCurrentState } from '@/features/architect/utils/tradeContext/types';
@@ -120,6 +124,12 @@ export function computeTradeResult({
     validatedContext,
     callSite: 'computeTradeResult',
   });
+  const preserveFinances = hasDraftFinancialPreservation(
+    postTradeSnapshot,
+    payload,
+    currentState,
+    seasonId
+  );
 
   const playerUpdates: PlayerUpdateLike[] = [];
   const playerDeletes: PlayerDeleteLike[] = [];
@@ -141,7 +151,8 @@ export function computeTradeResult({
     return {
       teamCode: entry.teamCode ?? null,
       team:
-        materializeCurrentStateBaseTeamPreservedFields(clonedTeam) ||
+        (!preserveFinances &&
+          materializeCurrentStateBaseTeamPreservedFields(clonedTeam)) ||
         clonedTeam,
     };
   });
@@ -180,9 +191,12 @@ export function computeTradeResult({
     const updatedTeam = teamUpdate.team;
     if (!updatedTeam) return;
     const lifecycleResult = applyTradeExceptionLifecycle({
-      currentTradeExceptions: getTeamTpeList(normalizeTeamTpeSchema(updatedTeam), {
-        includeUiAliases: false,
-      }),
+      currentTradeExceptions: getTeamTpeList(
+        normalizeTeamTpeSchema(updatedTeam),
+        {
+          includeUiAliases: false,
+        }
+      ),
       hasTradeExceptionsValidation: Boolean(teamResult.rules?.tradeExceptions),
       createdTPE: teamResult.createdTPE,
       incomingPlayers: validationTeams[idx]?.receives || [],
@@ -217,16 +231,28 @@ export function computeTradeResult({
       teamResult._tpeConsumptionWarnings = lifecycleResult.warnings;
     }
 
-    updatedTeam.tradeExceptions = lifecycleResult.updatedTradeExceptions;
-    // Persistence prefers the canonical list. Keep the compute compatibility
-    // field synchronized so a stale canonical balance cannot undo consumption.
-    updatedTeam.exceptions = {
-      ...updatedTeam.exceptions,
-      tpe: lifecycleResult.updatedTradeExceptions,
-    };
+    // Continue evaluating exception failures; a no-player/no-election transfer
+    // must not rewrite balances/history merely to normalize their shape.
+    if (
+      preserveFinances &&
+      (teamResult.createdTPE || lifecycleResult.historyEntries.length > 0)
+    ) {
+      throw new Error(
+        'A draft-only trade produced an exception mutation. Apply is blocked.'
+      );
+    }
+    if (!preserveFinances) {
+      updatedTeam.tradeExceptions = lifecycleResult.updatedTradeExceptions;
+      // Persistence prefers the canonical list. Keep the compute compatibility
+      // field synchronized so a stale canonical balance cannot undo consumption.
+      updatedTeam.exceptions = {
+        ...updatedTeam.exceptions,
+        tpe: lifecycleResult.updatedTradeExceptions,
+      };
 
-    if (lifecycleResult.historyEntries.length > 0) {
-      appendExceptionHistory(updatedTeam, lifecycleResult.historyEntries);
+      if (lifecycleResult.historyEntries.length > 0) {
+        appendExceptionHistory(updatedTeam, lifecycleResult.historyEntries);
+      }
     }
 
     const transactionId =
@@ -940,6 +966,17 @@ export function computeTradeResult({
     currentState,
     teamUpdates,
   });
+
+  if (preserveFinances) {
+    for (const update of teamUpdates) {
+      const before = currentState.teams.find(
+        (entry) => entry.teamCode === update.teamCode
+      );
+      if (!before || !update.team)
+        throw new Error('Draft financial state is incomplete.');
+      assertDraftFinancialStateUnchanged(before.team, update.team);
+    }
+  }
 
   if ('error' in tradePlayerManifest) {
     return {

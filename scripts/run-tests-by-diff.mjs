@@ -153,7 +153,10 @@ export function readDeclarations(messages = '') {
   const tests = new Set();
   let review = false;
   const broadReasons = [];
-  for (const line of messages.split(/\r?\n/)) {
+  // collectChanges separates commit bodies with NUL. Git's API accepts a body
+  // without a final newline, so that separator can immediately follow a JSON
+  // trailer. It is a record boundary, not part of the declaration value.
+  for (const line of messages.split(/\r?\n|\0/)) {
     if (line.startsWith('Validation-Tests: ')) {
       const values = JSON.parse(line.slice(18));
       if (

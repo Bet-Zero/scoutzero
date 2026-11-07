@@ -332,7 +332,15 @@ export function buildTradeApplyPreparation({
   });
 
   const postTradeSnapshot = buildPostTradeTeamsSnapshot({
-    payload: validationPayload,
+    // Preserve raw ingress for bounded draft-only classification. Normalizing
+    // first would erase unknown economic terms before that rejection check.
+    payload: asOfDate
+      ? {
+          ...payload,
+          asOfDate,
+          tradeCtx: { ...payload.tradeCtx, asOfDate },
+        }
+      : payload,
     currentState,
     seasonId,
     timestamp,
