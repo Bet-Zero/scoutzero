@@ -157,6 +157,9 @@ if scenario=='certificate-trailing-data':connection['recipientPem']+='unexpected
 if scenario=='production-pins':EXPECTED=original_expected
 if scenario=='debug':os.environ['RUNNER_DEBUG']='1'
 os.environ['CONNECTION']=json.dumps(connection)
+if scenario=='malformed-connection':os.environ['CONNECTION']='${marker}'
+if scenario=='wrong-connection-shape':os.environ['CONNECTION']=json.dumps('${marker}')
+if scenario=='missing-connection':del os.environ['CONNECTION']
 os.environ['ARCHIVE_SHA256']=EXPECTED['candidate']['sha256']
 class Response:
  status=200 if scenario!='http-failure' else 403
@@ -171,8 +174,15 @@ class Response:
   return data
 class Opener:
  def open(self,url,timeout):
+  role='candidate' if '/candidate?' in url else 'assessment'
+  if scenario.startswith('http-error-') and role=='candidate':
+   raise urllib.error.HTTPError(url,int(scenario.split('-')[-1]),'${marker}',{'Location':'${marker}'},None)
+  if scenario=='assessment-forbidden' and role=='assessment':
+   raise urllib.error.HTTPError(url,403,'${marker}',{},None)
+  if scenario=='network-error':raise urllib.error.URLError('${marker}')
+  if scenario=='timeout-error':raise TimeoutError('${marker}')
   if scenario=='redirect': raise RuntimeError('redirect must not be followed')
-  return Response('candidate' if '/candidate?' in url else 'assessment')
+  return Response(role)
 def opener(*handlers):
  assert len(handlers)==1 and handlers[0].redirect_request(None,None,302,'',{},'https://example.invalid') is None
  return Opener()
@@ -209,7 +219,41 @@ test('hostile, changed, incomplete and date-incompatible inputs fail before Clau
       const r = f.run(inputHarness, scenario);
       assert.equal(r.status, 1, scenario + ': ' + r.stderr);
       assert.equal(r.stderr.trim(), 'JUNE5_PRIVATE_REVIEW_INPUT_REJECTED', scenario);
-      assert.equal(r.stdout, '', scenario);
+      assert.match(r.stdout.trim(), /^JUNE5_PRIVATE_REVIEW_INPUT_FAILURE (CONFIGURATION|CONNECTION_JSON|CONNECTION_SCHEMA|(?:CANDIDATE|ASSESSMENT)_(?:METADATA|DOWNLOAD|BYTES|MANIFEST)|CROSS_ARCHIVE_BINDINGS|RECIPIENT_CERTIFICATE|PRIVATE_VIEWS) (INVALID|INVALID_JSON)$/u, scenario);
+      assert(!r.stdout.includes(marker), scenario);
+      assert(!fs.existsSync(path.join(f.dir, 'nba-source-private-review')), scenario);
+    }
+  } finally { f.close(); }
+});
+
+test('private input diagnostics distinguish configuration and download failures without logging their values', () => {
+  const f = fixture();
+  const expected: Record<string, string> = {
+    'malformed-connection': 'CONNECTION_JSON INVALID_JSON',
+    'missing-connection': 'CONNECTION_JSON INVALID',
+    'wrong-connection-shape': 'CONNECTION_SCHEMA INVALID',
+    'http-error-302': 'CANDIDATE_DOWNLOAD HTTP_REDIRECT',
+    'http-error-401': 'CANDIDATE_DOWNLOAD HTTP_UNAUTHORIZED',
+    'http-error-403': 'CANDIDATE_DOWNLOAD HTTP_FORBIDDEN',
+    'http-error-404': 'CANDIDATE_DOWNLOAD HTTP_NOT_FOUND',
+    'http-error-410': 'CANDIDATE_DOWNLOAD HTTP_GONE',
+    'http-error-429': 'CANDIDATE_DOWNLOAD HTTP_RATE_LIMIT',
+    'http-error-503': 'CANDIDATE_DOWNLOAD HTTP_OTHER',
+    'assessment-forbidden': 'ASSESSMENT_DOWNLOAD HTTP_FORBIDDEN',
+    'network-error': 'CANDIDATE_DOWNLOAD NETWORK',
+    'timeout-error': 'CANDIDATE_DOWNLOAD TIMEOUT',
+    'truncated': 'CANDIDATE_BYTES INVALID',
+    'wrong-member-hash': 'CANDIDATE_MANIFEST INVALID',
+    'changed-mapping': 'CROSS_ARCHIVE_BINDINGS INVALID',
+    'invalid-certificate': 'RECIPIENT_CERTIFICATE INVALID',
+  };
+  try {
+    for (const [scenario, diagnostic] of Object.entries(expected)) {
+      const r = f.run(inputHarness, scenario);
+      assert.equal(r.status, 1, scenario);
+      assert.equal(r.stderr.trim(), 'JUNE5_PRIVATE_REVIEW_INPUT_REJECTED', scenario);
+      assert.equal(r.stdout.trim(), 'JUNE5_PRIVATE_REVIEW_INPUT_FAILURE ' + diagnostic, scenario);
+      assert(!r.stdout.includes(marker) && !r.stderr.includes(marker), scenario);
       assert(!fs.existsSync(path.join(f.dir, 'nba-source-private-review')), scenario);
     }
   } finally { f.close(); }
