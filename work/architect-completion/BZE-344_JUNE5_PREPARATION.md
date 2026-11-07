@@ -48,6 +48,34 @@ through the actual adapter, using a local reader and the existing public result
 certificate. It used no network, credentials or archived code and made no new
 source judgment. The live PR retains exact candidate CI and independent review.
 
+### Completed private review and remaining scope gate
+
+Protected run `42333340411` used the accepted PR #621 diagnostic adapter and
+successfully validated both unchanged archives before Claude ran. Independent
+private source-binding judgment returned **REVISE**, with successful execution
+and zero permission denials. The complete encrypted artifact was recovered,
+decrypted with the existing retained key and verified against both the GitHub
+ZIP digest and the worker's complete plaintext digest. Its durable private
+BZE-344 attachment is `1111c0a9-582f-4ea0-99d9-f98cafc5a713`; an independent full
+readback matched the original 21,045-byte ZIP, SHA-256
+`527807399da18c39302ab38aef41498e4ea937581207fbf9fd46ac133d5937ef`.
+
+Private access and verdict recovery are now proven. Source-binding acceptance
+remains open: two transfer-holder bindings need reviewer-visible retained
+originals and accepted-review references. A bounded supplement has been
+prepared from existing authenticated records; no new source research or
+evidence disposition was performed. The two original archives, all 278
+identities and the exact 29 mappings are unchanged. The supplement is not yet
+uploaded or available to the reviewer. The owner's earlier access authorization
+named only the two exact archives, so including additional review evidence
+requires an explicit scope extension. BZE-344 holds its exact private inventory,
+hashes, recovery details and the proposed focused delta review.
+
+After that binding review, the next coherent C6 capability is the dated,
+action-local team-books and first-round-obligation input integration described
+below. No normal transaction is certified by this review; source publication,
+runtime trust, world adoption/migration and activation remain separate gates.
+
 ### Private input failure diagnosis
 
 The first protected June 5 run, `42330220425`, passed its reviewed-code and
