@@ -6,7 +6,7 @@ BZE-309, governing instructions, V1 contract and the C6 assessment were verified
 on November 6, 2026. They were unchanged at implementation entry. This delivery
 does not close C6 normal-product admission, W9 or W10.
 
-## Retained archives and two-archive private reviewer
+## Retained archives and protected private reviewer
 
 Both original archives are now retained under the existing BZE-309 workspace
 protections and independently retrieved with their complete hashes verified.
@@ -25,9 +25,10 @@ The existing `nba-maintenance-source-review.yml` now has an explicit
 its existing input recovery, source judgment and receipt behavior. Both modes
 use the same protected environment, Claude credential/action, exact accepted
 code/main checks, owner approval and encrypted result route. No secret was read,
-replaced or modified during adapter implementation. No private review was run.
+replaced or modified during adapter implementation. The owner subsequently
+configured the existing connection and approved the private runs recorded below.
 
-June 5 mode accepts only the two identities above. Trusted inline transport
+The original June 5 v1 connection accepts only the two identities above. Trusted inline transport
 checks complete compressed sizes/digests, bounds decompression, rejects links,
 paths and duplicate members, and verifies complete manifest membership, sizes
 and hashes. It cross-checks the historical date, all 278 identities, exact 29
@@ -48,7 +49,42 @@ through the actual adapter, using a local reader and the existing public result
 certificate. It used no network, credentials or archived code and made no new
 source judgment. The live PR retains exact candidate CI and independent review.
 
-### Completed private review and authorized two-finding repair
+### Private review result: two-finding ACCEPT with retained limits
+
+The minimal supplement adapter landed in [PR #623](https://github.com/Bet-Zero/scoutzero/pull/623)
+with exact-candidate independent code ACCEPT and green PR/main CI. Protected
+[run 42338571315](https://github.com/Bet-Zero/scoutzero/actions/runs/42338571315)
+then validated all three frozen archives and returned independent **ACCEPT**
+for the two original ownership findings: zero blocking findings, four
+non-blocking provenance caveats and zero permission denials. This resolves both
+findings on the reviewer's own underlying-source comparisons, not by treating
+record recovery or an earlier author checkpoint as acceptance. Unaffected prior
+review is reused within its original scope; no full-record audit is claimed.
+
+The complete encrypted result is retained as BZE-344 attachment
+`224ea5ef-affb-44f4-8085-02f582d74567`: 21,989-byte ZIP, SHA-256
+`240fc77f324d04830aee513668a6e6ec785c3d8ca01f70df54d2ef8a5c201e14`.
+Independent complete Linear readback, decryption and strict receipt verification
+matched the original artifact, candidate/executor/run, all three archive
+identities and complete plaintext digest
+`af4d15d21dae17091c698a2e5bad5eb7fa49e611ff8b937ba4340e255358b028`.
+The original REVISE below remains unchanged and separately recoverable.
+
+Carry the recorded qualifications into later consumers: a sampled earlier audit
+is not explicit acceptance of these two bindings; attributed protection language
+keeps its original source authority; a reported holder is not an installed
+ownership fact; and accepted historical continuity limits remain explicit.
+The four detailed caveats and private evidence locators are recorded in BZE-344.
+Frozen archive metadata is not rewritten to erase those limitations. Neither
+this delta ACCEPT nor transport validation grants normal-world admission,
+complete trade certification, C4/C5 closure or production authority.
+
+The preceding supplemental attempt `42337932382` reached its first download
+after link expiry and stopped before Claude with `HTTP_UNAUTHORIZED`; it has no
+source verdict. The successful replacement run completed input validation before
+expiry. No further administrator action or access blocker remains for this review.
+
+### Preserved original review and authorized supplement
 
 Protected run `42333340411` used the accepted PR #621 diagnostic adapter and
 successfully validated both unchanged archives before Claude ran. Independent
@@ -60,9 +96,9 @@ BZE-344 attachment is `1111c0a9-582f-4ea0-99d9-f98cafc5a713`; an independent ful
 readback matched the original 21,045-byte ZIP, SHA-256
 `527807399da18c39302ab38aef41498e4ea937581207fbf9fd46ac133d5937ef`.
 
-Private access and verdict recovery are now proven. Source-binding acceptance
-remains open: two transfer-holder bindings need reviewer-visible retained
-originals and accepted-review references. A bounded supplement has been
+Private access and verdict recovery were proven by that first completed run.
+Its two transfer-holder findings required reviewer-visible retained originals
+and independent assessment. A bounded supplement was
 prepared from existing authenticated records; no new source research or
 evidence disposition was performed. The two original archives, all 278
 identities and the exact 29 mappings are unchanged. The owner subsequently
@@ -277,12 +313,12 @@ rejected before output. Original C6 deliverables remained byte-identical.
 No browser/emulator/production proof is claimed: no user flow or writer changed.
 The live PR records final exact-head CI and independent Claude code review.
 
-The private source-binding candidate is **pending independent source admission**.
-GitHub code review cannot independently inspect local private bytes. Reusing
-accepted source judgments is not a claim that the newly compiled package has
-already received that separate acceptance. Protected private reviewer access
-remains a prerequisite; durable archive retention is now established above.
-No owner relay is needed for routine code review.
+The protected private source-binding review is complete in the scopes above;
+the original blocking findings are resolved and non-blocking qualifications
+remain explicit. Public code acceptance is separate from that private judgment.
+Source designation/admission and normal-world activation remain unperformed
+approval gates. Durable archive retention and private reviewer access/recovery
+are established. No owner relay is needed for routine code review.
 
 ## Exact private delivery and recovery
 
@@ -318,12 +354,15 @@ and `9f56d9ac-2ba2-4ab1-9774-b82dd851b41c` (holder archive SHA
 `c4a2c7952294482a1f359eaed5c518ec864f4ec8ba399118f0203606bb88d708`).
 No fresh NBA source acquisition or exhausted C4 research was performed.
 
-**Exact next action:** use the administrative handoff above to configure and
-approve the protected private source-binding review after adapter acceptance.
-The owner's later explicit authorization resolved the original export boundary;
-both unchanged archives are retained and remotely verified. Separately complete
-the dated affected-team financial and branch inputs; factual gaps cannot be
-approved away. No production activation or next implementation starts automatically.
+**Exact next product implementation:** integrate qualified June 5 affected-team
+financial books and complete 2026–2032 possession/obligation branches with the
+existing normal-world initialization, rules, atomic writer, receipts, reload and
+lifecycle path. Carry the review's provenance limits, select actual eligible
+consideration and supply the exact financial/branch inputs listed above.
+Unrelated unresolved rights are not a blanket veto; full V1 scope is unchanged.
+The administrative review handoff is complete. Missing facts cannot be approved
+away, and later source designation/adoption/activation retain separate gates.
+No next implementation or production action starts automatically.
 
 ## Output-alias repair in the same delivery
 
