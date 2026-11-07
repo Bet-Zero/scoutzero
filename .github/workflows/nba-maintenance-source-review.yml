@@ -210,7 +210,7 @@ jobs:
           ARCHIVE_SHA256: ${{ inputs.archive_sha256 }}
         run: |
           python3 - <<'PY'
-          import gzip, hashlib, io, json, os, pathlib, re, subprocess, tarfile, urllib.parse, urllib.request
+          import gzip, hashlib, io, json, os, pathlib, re, subprocess, tarfile, urllib.error, urllib.parse, urllib.request
           # These are review-input identities, never runtime source trust pins.
           EXPECTED={
               'candidate': {'attachmentId':'347f0b68-662b-47b5-ac8f-6a1203c07d62','filename':'june5-draft-starting-state-candidate.tar.gz','bytes':6654967,'sha256':'4751d71f04b7834bf5d264bd49e3322b16afba4ae0663e1b4d9cbd235c9aea5a'},
@@ -254,10 +254,13 @@ jobs:
                   assert type(item['bytes']) is int and len(data)==item['bytes']
                   assert hashlib.sha256(data).hexdigest()==item['sha256']
               return files
+          stage='CONFIGURATION'
           try:
               assert os.environ.get('RUNNER_DEBUG')!='1'
               assert os.environ['ARCHIVE_SHA256']==EXPECTED['candidate']['sha256']
+              stage='CONNECTION_JSON'
               connection=decode(os.environ['CONNECTION'])
+              stage='CONNECTION_SCHEMA'
               assert set(connection)=={'format','archives','recipientPem'}
               assert connection['format']=='scoutzero-june5-private-review-connection-v1'
               assert set(connection['archives'])==set(EXPECTED)
@@ -266,6 +269,7 @@ jobs:
               opener=urllib.request.build_opener(NoRedirect)
               originals={}; archives={}
               for role,expected in EXPECTED.items():
+                  stage=role.upper()+'_METADATA'
                   item=connection['archives'][role]
                   assert set(item)==set(expected)|{'url'}
                   assert {k:item[k] for k in expected}==expected and type(item['bytes']) is int
@@ -275,12 +279,16 @@ jobs:
                   assert url.path.startswith('/48c72032-d53f-4e3b-8d40-57d875b69126/')
                   query=urllib.parse.parse_qs(url.query)
                   assert len(query.get('signature',[]))==1 and query['signature'][0]
+                  stage=role.upper()+'_DOWNLOAD'
                   with opener.open(item['url'],timeout=60) as response:
                       assert response.status==200
                       packed=response.read(expected['bytes']+1)
+                  stage=role.upper()+'_BYTES'
                   assert len(packed)==expected['bytes'] and hashlib.sha256(packed).hexdigest()==expected['sha256']
                   originals[role]=packed
+                  stage=role.upper()+'_MANIFEST'
                   archives[role]=unpack(packed,role)
+              stage='CROSS_ARCHIVE_BINDINGS'
               candidate=decode(archives['candidate']['candidate.json'])
               assessment=decode(archives['assessment']['admission-map.json'])
               assert candidate['assessmentSha256']==hashlib.sha256(archives['assessment']['admission-map.json']).hexdigest()
@@ -291,11 +299,13 @@ jobs:
               assert len(set(ids))==278 and len(prior)==278 and set(ids)==set(prior)
               assert len(candidate['unresolved'])==29 and candidate['unresolved']==assessment['exactUnresolvedMappings']
               assert all(r['retainedAssessment']==prior[r['entitlementId']] for r in candidate['records'])
+              stage='RECIPIENT_CERTIFICATE'
               certificate=connection['recipientPem']
               assert isinstance(certificate,str) and len(certificate)<=10000 and certificate.startswith('-----BEGIN CERTIFICATE-----\n')
               assert re.fullmatch(r'-----BEGIN CERTIFICATE-----\n[A-Za-z0-9+/=\r\n]+\n-----END CERTIFICATE-----\n?',certificate)
               checked=subprocess.run(['openssl','x509','-noout','-checkend','0'],input=certificate.encode(),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
               assert checked.returncode==0
+              stage='PRIVATE_VIEWS'
               root=pathlib.Path(os.environ['RUNNER_TEMP'])/'nba-source-private-review'
               root.mkdir(mode=0o700)
               def write(name,data):
@@ -319,7 +329,15 @@ jobs:
               view('views/accepted-value-bindings.json',decode(archives['candidate']['accepted-value-bindings.json']))
               view('review-inputs.json',{'sourcePackage':'june5-draft','archives':EXPECTED})
               write('recipient.pem',certificate.encode())
-          except Exception:
+          except Exception as error:
+              # Only constants enter public logs, never exception text, URLs or private values.
+              category='INVALID'
+              if isinstance(error,json.JSONDecodeError): category='INVALID_JSON'
+              elif isinstance(error,urllib.error.HTTPError):
+                  category={301:'HTTP_REDIRECT',302:'HTTP_REDIRECT',303:'HTTP_REDIRECT',307:'HTTP_REDIRECT',308:'HTTP_REDIRECT',401:'HTTP_UNAUTHORIZED',403:'HTTP_FORBIDDEN',404:'HTTP_NOT_FOUND',410:'HTTP_GONE',429:'HTTP_RATE_LIMIT'}.get(error.code,'HTTP_OTHER')
+              elif isinstance(error,TimeoutError): category='TIMEOUT'
+              elif isinstance(error,urllib.error.URLError): category='NETWORK'
+              print('JUNE5_PRIVATE_REVIEW_INPUT_FAILURE '+stage+' '+category)
               raise SystemExit('JUNE5_PRIVATE_REVIEW_INPUT_REJECTED')
           print('JUNE5_PRIVATE_REVIEW_INPUT_VERIFIED')
           PY

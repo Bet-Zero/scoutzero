@@ -48,6 +48,26 @@ through the actual adapter, using a local reader and the existing public result
 certificate. It used no network, credentials or archived code and made no new
 source judgment. The live PR retains exact candidate CI and independent review.
 
+### Private input failure diagnosis
+
+The first protected June 5 run, `42330220425`, passed its reviewed-code and
+protected-access prerequisites but rejected private input before Claude at
+`2026-11-07T03:05:25Z`. Both issued URLs expired later, at `03:06:20Z`. The exact
+prepared connection and unchanged local archives passed the accepted loader
+offline; this does not establish what GitHub received or remote download success.
+No source judgment or encrypted verdict exists for that attempt.
+
+The June 5 input step now reports only a fixed rejection stage and category,
+followed by its existing failure. Stages distinguish connection JSON/schema,
+each archive's metadata/download/bytes/manifest, cross-archive bindings,
+recipient certificate and private view creation. Network/HTTP categories never
+include exception messages, response bodies, URLs, headers or private values.
+This enables a discriminating next attempt without enabling runner debug,
+changing accepted inputs or weakening any gate. Maintenance remains unchanged.
+Use the latest accepted diagnostic candidate/base/merge receipt for the next
+protected run, with the same frozen archive identities below. Do not rerun an
+expired connection or call this diagnostic change private source acceptance.
+
 ### Administrative gate: exact handoff
 
 1. **Codex preparation after accepted landing:** use the exact adapter head,
