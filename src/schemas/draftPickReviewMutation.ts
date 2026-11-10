@@ -92,7 +92,11 @@ export type DraftSimulationAssumptions = z.infer<
 
 export const DraftReviewMutationReceiptZ = z
   .object({
-    scope: z.enum(['synthetic-review-only', 'governed-simulation-only']),
+    scope: z.enum([
+      'synthetic-review-only',
+      'governed-simulation-only',
+      'governed-world-fixture',
+    ]),
     assumptionSha256: DraftEvidenceHashZ.optional(),
     assumptions: DraftSimulationAssumptionsZ.optional(),
     operationId: DraftEvidenceIdZ,

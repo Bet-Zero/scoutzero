@@ -51,6 +51,7 @@ import type { PersistWorldMutationArgs } from './mutationPipeline.persist';
 import {
   verifyDraftReviewApply,
   requireDraftReviewApply,
+  prepareGovernedDraftWorldCapability,
 } from '@/features/architect/utils/draftReview/capability';
 import { DraftReviewMutationReceiptZ } from '@/schemas/draftPickReviewMutation';
 import { getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
@@ -445,6 +446,17 @@ export async function applyWorldMutation({
       );
     }
 
+    if (mutationType === 'executeTrade' && draftReviewAuthority === undefined) {
+      draftReviewAuthority = await prepareGovernedDraftWorldCapability({
+        userId,
+        worldId,
+        seasonId,
+        operationId,
+        payload: { ...sanitizedPayload, teams: sanitizedPayload.teams ?? [] },
+        state: toTradeStateSlice(currentState),
+        asOfDate,
+      });
+    }
     if (draftReviewAuthority !== undefined) {
       if (
         mutationType !== 'executeTrade' ||

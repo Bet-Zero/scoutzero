@@ -597,9 +597,16 @@ describe('Gate 8: Persistence writes teamUpdates (E1)', () => {
   });
 
   it('stages team updates for the atomic Firestore writer', () => {
+    const persistStart = content.indexOf('async function persistWorldMutation');
+    const teamWriteRegion = content.slice(
+      persistStart,
+      content.indexOf('// 2. Write player overrides', persistStart)
+    );
+    // Ordinary mutations still set the complete team. Only the privately
+    // preserved draft result uses an entitlement-membership update.
     const writesToFirestore =
-      /persistWorldMutation[\s\S]{0,4000}writes\.push\(\{\s*kind:\s*'set',\s*ref:\s*teamRef,\s*data:\s*sanitizedTeam\s*\}\)/.test(
-        content
+      /writes\.push\(\{\s*kind:\s*preserveTeamFinances\s*\?\s*'update'\s*:\s*'set',\s*ref:\s*teamRef,\s*data:\s*sanitizedTeam,?\s*\}\)/.test(
+        teamWriteRegion
       );
     expect(writesToFirestore).toBe(true);
   });

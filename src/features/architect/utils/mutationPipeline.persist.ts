@@ -12,6 +12,7 @@ import { consumeDraftReviewCommit } from './mutationPipeline';
 import { requireDraftReviewApply } from '@/features/architect/utils/draftReview/capability';
 import { requireDraftInventoryRevision } from './draftReview/inventoryFence';
 import { mutationSnapshotText } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
+import { hasPreservedDraftUpdates } from './tradeContext/draftFinancialPersistence';
 import { buildWorldStatsUpdate } from '@/features/architect/utils/worldManager.stats';
 import { readWorldMetadataDoc } from '@/features/architect/utils/worldManager.readUtils';
 import {
@@ -699,9 +700,13 @@ export async function persistWorldMutation(
       draftReviewCommit: commit,
       ...result
     } = args;
+    const preserveTeamFinances = hasPreservedDraftUpdates(
+      computeResult.teamUpdates ?? []
+    );
     if (
       authority === undefined &&
-      (commit !== undefined ||
+      (preserveTeamFinances ||
+        commit !== undefined ||
         computeResult.metadata?.draftReviewReceipt !== undefined)
     )
       throw new Error(
@@ -731,12 +736,20 @@ export async function persistWorldMutation(
         label: 'TEAM',
       });
       // Then remove undefined values
-      const sanitizedTeam = removeUndefinedDeep(persistenceReadyTeam);
+      const sanitizedTeam = removeUndefinedDeep(
+        preserveTeamFinances
+          ? { entitlementIds: persistenceReadyTeam.entitlementIds }
+          : persistenceReadyTeam
+      );
       if (!teamCode) {
         continue;
       }
       const teamRef = worldTeamRef(worldId, teamCode);
-      writes.push({ kind: 'set', ref: teamRef, data: sanitizedTeam });
+      writes.push({
+        kind: preserveTeamFinances ? 'update' : 'set',
+        ref: teamRef,
+        data: sanitizedTeam,
+      });
       teamCodesPatched.push(String(teamCode));
     }
 
@@ -834,7 +847,7 @@ export async function persistWorldMutation(
     )
       throw new Error('Draft review persistence context changed.');
     eventId = draftReview
-      ? `draft_review_${draftReview.operationId}`
+      ? `${draftReview.scope === 'governed-world-fixture' ? 'draft_world' : 'draft_review'}_${draftReview.operationId}`
       : `${mutationType}_${timestamp}_${randomSuffix}`;
     const eventsCol = collection(
       db,
@@ -918,6 +931,27 @@ export async function persistWorldMutation(
       const exactMetadata = draftReview.documentSnapshots[metadataRef.path];
       if (!exactMetadata)
         throw new Error('Draft review is missing its world metadata snapshot.');
+      if (draftReview.scope === 'governed-world-fixture') {
+        const previous = JSON.parse(exactMetadata).draftWorldTransfers;
+        if (!Array.isArray(previous))
+          throw new Error('Governed draft custody history is missing.');
+        Object.assign(worldPatch, {
+          draftWorldTransfers: [
+            ...previous,
+            {
+              operationId: draftReview.operationId,
+              asOfDate: draftReview.asOfDate,
+              movements: draftReview.movements.map(
+                ({ entitlementId, fromTeam, toTeam }) => ({
+                  entitlementId,
+                  fromTeam,
+                  toTeam,
+                })
+              ),
+            },
+          ],
+        });
+      }
       if (draftReview.assumptions?.nativeTrade)
         Object.assign(worldPatch, {
           draftNativeTransfers: [

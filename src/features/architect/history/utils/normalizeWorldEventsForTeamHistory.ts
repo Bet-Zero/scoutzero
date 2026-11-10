@@ -38,7 +38,10 @@ import { GovernedSignAndTradeReceiptZ } from '@/schemas/governedSignAndTrade';
 import { GovernedCashReceiptZ } from '@/schemas/governedCashConsideration';
 import { DraftReviewSeasonReceiptZ } from '@/schemas/draftReviewSeason';
 import { DraftReviewMutationReceiptZ } from '@/schemas/draftPickReviewMutation';
-import { isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
+import {
+  isSyntheticDraftReviewEnvironment,
+  isGovernedDraftFixtureEnvironment,
+} from '@/firebaseConfig';
 
 function formatCashCents(value: number): string {
   return `$${(value / 100).toLocaleString('en-US', {
@@ -478,6 +481,37 @@ export function toTeamHistoryEventDisplay(
       );
       pushSection(detailSections, 'Teams', [primaryTeamsLine]);
       pushSection(detailSections, 'Salary Books', capDeltaLines);
+      if (
+        mutationType === 'executeTrade' &&
+        asObject(metadata.draftReviewReceipt).scope ===
+          'governed-world-fixture' &&
+        isGovernedDraftFixtureEnvironment()
+      ) {
+        const parsed = DraftReviewMutationReceiptZ.safeParse(
+          metadata.draftReviewReceipt
+        );
+        if (
+          parsed.success &&
+          parsed.data.scope === 'governed-world-fixture' &&
+          parsed.data.worldId === raw.worldId &&
+          parsed.data.operationId === operationId &&
+          raw.valid === true
+        ) {
+          detailSections.push({
+            title: 'Trade Receipt',
+            presentation: 'trade-summary',
+            lines: [
+              'Software fixture — not authenticated NBA data.',
+              `Trade date: ${parsed.data.asOfDate}`,
+              ...parsed.data.movements.map(
+                (m) =>
+                  `${m.originalTeam} ${m.year} first-round pick · ${m.fromTeam} → ${m.toTeam}`
+              ),
+              'Existing financial state preserved. Required financial and draft checks passed for these fixture inputs.',
+            ],
+          });
+        }
+      }
       if (
         mutationType === 'executeTrade' &&
         isSyntheticDraftReviewEnvironment()

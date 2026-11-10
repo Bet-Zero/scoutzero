@@ -38,6 +38,7 @@ vi.mock('@/firebaseConfig', () => {
   return {
     // Ordinary test callers run with the same closed review boundary as production.
     isSyntheticDraftReviewEnvironment: () => false,
+    isGovernedDraftFixtureEnvironment: () => false,
     db: {
       // Mock db object for Firestore operations
     },

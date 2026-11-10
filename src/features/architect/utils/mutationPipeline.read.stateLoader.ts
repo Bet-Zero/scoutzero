@@ -56,6 +56,12 @@ import { SeasonTransitionManifestZ } from '@/schemas/seasonTransition';
 import type { GovernedSignAndTradeEvidenceBundle } from '@/features/architect/utils/tradeMachine/signAndTrade/governedSignAndTrade';
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
+import {
+  loadGovernedDraftWorld,
+  attachGovernedDraftWorldTeams,
+} from './governedDraftWorld.load';
+import { retainDraftPersistenceSource } from './tradeContext/draftFinancialPersistence';
+import { toTradeStateSlice } from './mutationPipeline.helpers';
 
 // Wave 48 Step 1: lineage helpers extracted to submodule
 export * from './mutationPipeline.read.stateLoader.lineage';
@@ -792,11 +798,26 @@ export async function loadStateForMutation(
             digest: mutationSnapshotDigest(snapshot.data()),
           })
       );
+      const hasDraftConsideration = (payload.teams ?? []).some(
+        (t) => (t.entitlementsOut ?? t.outgoingEntitlements ?? []).length > 0
+      );
+      const draftWorld = hasDraftConsideration
+        ? await loadGovernedDraftWorld(worldId, teamCodes)
+        : null;
+      // Validate the same complete local documents fenced by the final atomic
+      // write. A second independent read could otherwise certify old finances
+      // while preserving a newer unvalidated financial snapshot.
       const [teamStates, worldTeams] = await Promise.all([
-        Promise.all(teamCodes.map((code) => getTeam(worldId, code))),
-        requiresGovernedSalaryBasis && worldAsOfDate && salaryCapYear !== null
-          ? getLeague(worldId)
-          : Promise.resolve([]),
+        draftWorld
+          ? Promise.resolve(teamCodes.map((code) => draftWorld.teams[code]))
+          : Promise.all(teamCodes.map((code) => getTeam(worldId, code))),
+        draftWorld
+          ? Promise.resolve(Object.values(draftWorld.teams))
+          : requiresGovernedSalaryBasis &&
+              worldAsOfDate &&
+              salaryCapYear !== null
+            ? getLeague(worldId)
+            : Promise.resolve([]),
       ]);
       const normalizedTeams = teamCodes.map((code, i) => ({
         teamCode: code,
@@ -807,6 +828,21 @@ export async function loadStateForMutation(
           { containingTeamCode: code, worldLineage }
         ),
       }));
+      if (hasDraftConsideration) {
+        if (draftWorld)
+          attachGovernedDraftWorldTeams(
+            toTradeStateSlice({ teams: normalizedTeams }),
+            draftWorld
+          );
+        else
+          await Promise.all(
+            normalizedTeams.map(async ({ teamCode, team }) => {
+              const raw = await getDoc(worldTeamRef(worldId, String(teamCode)));
+              if (raw.exists() && team)
+                retainDraftPersistenceSource(team, raw.data());
+            })
+          );
+      }
       let governedSignAndTradeEvidence: GovernedSignAndTradeEvidenceBundle | null =
         null;
       if (signAndTradeSends.length === 1 && localTeamSnapshots) {

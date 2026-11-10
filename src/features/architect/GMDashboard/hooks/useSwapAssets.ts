@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db, isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
+import { loadGovernedDraftWorld } from '../../utils/governedDraftWorld.load';
+import { governedDraftWorldAssets } from '../../utils/governedDraftWorld.assets';
 import { ARCHITECT_WORLDS_COLLECTION } from '@/constants/collections';
 import { loadConditionalWorld } from '../../utils/draftReview/conditionalWorld';
 import { swapAssets } from '../../utils/draftReview/swapAssets';
 import type { ArchitectWorkspaceDraftAssetsSummary } from './useArchitectWorkspaceContext';
-/** Protected read projection; never writes legacy draftPicks or source records. */
+/** Saved draft read projection; never writes legacy draftPicks or source records. */
 export function useSwapAssets(
   worldId: string | null | undefined,
   team: string | null | undefined,
@@ -17,8 +19,7 @@ export function useSwapAssets(
     key: string;
     summary: ArchitectWorkspaceDraftAssetsSummary | null;
   } | null>(null);
-  const enabled =
-    !!worldId && !!team && !!year && isSyntheticDraftReviewEnvironment();
+  const enabled = !!worldId && !!team && !!year;
   useEffect(() => {
     setValue(null);
     if (!worldId || !team || !year || !enabled) return;
@@ -29,7 +30,18 @@ export function useSwapAssets(
           await getDoc(doc(db, ARCHITECT_WORLDS_COLLECTION, worldId))
         ).data();
         if (cancelled) return;
+        if (metadata?.draftBaseline) {
+          const state = await loadGovernedDraftWorld(worldId);
+          if (!state) throw new Error('Saved draft source disappeared.');
+          if (!cancelled)
+            setValue({
+              key,
+              summary: governedDraftWorldAssets(state, team, year),
+            });
+          return;
+        }
         if (
+          !isSyntheticDraftReviewEnvironment() ||
           ![
             'unconditional',
             'protection-programs',

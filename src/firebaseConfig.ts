@@ -310,4 +310,15 @@ export function isSyntheticDraftReviewEnvironment(): boolean {
   );
 }
 
+/** Ordinary application tests; actual loopback connection, never a metadata flag. */
+export function isGovernedDraftFixtureEnvironment(): boolean {
+  return (
+    import.meta.env.DEV === true &&
+    FIREBASE_TARGET_MODE === 'EMULATOR' &&
+    db.app.options.projectId === 'demo-architect-review' &&
+    connectedFirestoreEndpoint !== null &&
+    ['127.0.0.1', 'localhost', '::1'].includes(connectedFirestoreEndpoint.host)
+  );
+}
+
 registerSoftwareSeasonEnvironment(isSyntheticDraftReviewEnvironment);

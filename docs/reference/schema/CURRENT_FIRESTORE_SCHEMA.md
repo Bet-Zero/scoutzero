@@ -75,6 +75,17 @@ worlds are unchanged. See [the operation contract](../../operations/DRAFT_PICKS_
 **Status**: ✅ Active (Phase 10)
 **Usage**: World overrides or world-created entitlements
 
+### `/architect_worlds/{worldId}/draftBaselines/root` - Governed Draft Inputs (local software fixture only)
+
+The existing trusted world initializer can atomically install this immutable
+document alongside the world, contracts, local teams and every retained entitlement.
+`release` follows `GovernedDraftWorldBaselineZ`; the world carries an exact
+`draftBaseline` digest pin, `draftInventoryRevision` and `draftWorldTransfers`.
+Client creation, updates and deletion of the baseline are denied. Each custody
+transfer must match its committed `draft_world_{operationId}` event receipt.
+The ordinary trade pipeline validates the exact current source and financial
+read set before its existing atomic save. No production draft source is active.
+
 ### `/architect_worlds/{worldId}/contractBaselines/{shardId}` - Governed Baseline Contracts ✅ ACTIVE
 
 **Status**: ✅ Active for newly created governed worlds (BZE-274)

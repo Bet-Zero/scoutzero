@@ -1,5 +1,14 @@
 /** Non-serializable, exact-operation handoff. No metadata field is permission. */
-import { isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
+import {
+  isSyntheticDraftReviewEnvironment,
+  isGovernedDraftFixtureEnvironment,
+} from '@/firebaseConfig';
+import { getLoadedGovernedDraftWorld } from '../governedDraftWorld.load';
+import { reviewGovernedDraftWorldTrade } from '../governedDraftWorld.baseline';
+import type {
+  TradeContextCurrentState,
+  TradeContextPayload,
+} from '../tradeContext/types';
 import {
   mutationSnapshotDigest,
   mutationSnapshotText,
@@ -28,7 +37,10 @@ export type DraftReviewConsumption = ReturnType<
   typeof assessDraftReviewConsumption
 >;
 export type DraftReviewCapabilityRecord = Readonly<{
-  scope?: 'synthetic-review-only' | 'governed-simulation-only';
+  scope?:
+    | 'synthetic-review-only'
+    | 'governed-simulation-only'
+    | 'governed-world-fixture';
   assumptionSha256?: string;
   assumptions?: import('@/schemas/draftPickReviewMutation').DraftSimulationAssumptions;
   userId: string;
@@ -89,7 +101,9 @@ function createDraftReviewCapability(
   record: DraftReviewCapabilityRecord
 ): object {
   if (
-    !isSyntheticDraftReviewEnvironment() ||
+    !(record.scope === 'governed-world-fixture'
+      ? isGovernedDraftFixtureEnvironment()
+      : isSyntheticDraftReviewEnvironment()) ||
     record.reviews.some((r) => !r.eligible)
   )
     throw new Error('Draft review has no supported consumption authority.');
@@ -120,9 +134,72 @@ export function requireDraftReviewCapability(
 ): DraftReviewCapabilityRecord {
   const record =
     value && typeof value === 'object' ? records.get(value) : undefined;
-  if (!isSyntheticDraftReviewEnvironment() || !record)
+  if (
+    !record ||
+    !(record.scope === 'governed-world-fixture'
+      ? isGovernedDraftFixtureEnvironment()
+      : isSyntheticDraftReviewEnvironment())
+  )
     throw new Error('Unrecognized or unavailable draft review permission.');
   return record;
+}
+
+/** Ordinary saved-world admission, prepared internally on every exact proposal. */
+export async function prepareGovernedDraftWorldCapability(args: {
+  userId: string;
+  worldId: string;
+  seasonId: string;
+  operationId: string;
+  payload: TradeContextPayload;
+  state: TradeContextCurrentState;
+  asOfDate: string;
+}) {
+  const loaded = getLoadedGovernedDraftWorld(args.state);
+  if (!loaded) return undefined;
+  if (
+    loaded.metadata.createdBy !== args.userId ||
+    args.seasonId !== loaded.baseline.seasonId ||
+    args.asOfDate !== loaded.metadata.asOfDate ||
+    !/^[A-Za-z0-9_-]{1,100}$/.test(args.operationId) ||
+    loaded.transfers.some((t) => t.operationId === args.operationId)
+  )
+    throw new Error(
+      'Governed draft owner, operation, season or date is invalid.'
+    );
+  const stateDigest = mutationSnapshotDigest(args.state);
+  const review = await reviewGovernedDraftWorldTrade({
+    baseline: loaded.baseline,
+    holders: loaded.holders,
+    payload: {
+      ...args.payload,
+      asOfDate: args.payload.asOfDate ?? args.asOfDate,
+      tradeCtx: {
+        ...args.payload.tradeCtx,
+        asOfDate: args.payload.tradeCtx?.asOfDate ?? args.asOfDate,
+      },
+    },
+    state: args.state,
+    stateVersion: stateDigest,
+  });
+  if (review.reviews.some((r) => !r.eligible))
+    throw new Error(
+      `Draft rules block this proposal: ${review.reviews.flatMap((r) => r.reasons).join('; ')}`
+    );
+  return createDraftReviewCapability({
+    scope: 'governed-world-fixture',
+    userId: args.userId,
+    worldId: args.worldId,
+    seasonId: args.seasonId,
+    operationId: args.operationId,
+    payloadSnapshot: mutationSnapshotText(args.payload),
+    stateDigest,
+    stateSnapshot: mutationSnapshotText(args.state),
+    asOfDate: args.asOfDate,
+    releaseId: loaded.baseline.releaseId,
+    releaseSha256: loaded.digest,
+    documentSnapshots: loaded.documentSnapshots,
+    ...review,
+  });
 }
 export function verifyDraftReviewApply(
   value: object,

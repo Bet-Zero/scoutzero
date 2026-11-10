@@ -1,5 +1,6 @@
 /** Shared exact Trade Machine proposal for validation and Apply. */
 import { resolveTeamCode } from '@/features/architect/utils/worldTeamData';
+import { normalizeDraftSelectionTeamAliases } from '@/features/architect/utils/tradeContext/tradeContext.payloadNormalization';
 import { validateSignAndTradeContractPayload } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import { toSignAndTradeValidationContract } from './useArchitectActions.types';
 import type {
@@ -118,8 +119,12 @@ export function buildTradeExecutionHandoff(
       ),
       picksOut: [],
       // TM-PICKS-E1: Include outgoing entitlements in persistence payload
-      outgoingEntitlements: t.outgoingEntitlements || [],
-      entitlementsOut: t.outgoingEntitlements || [],
+      outgoingEntitlements: (t.outgoingEntitlements || []).map(
+        normalizeDraftSelectionTeamAliases
+      ),
+      entitlementsOut: (t.outgoingEntitlements || []).map(
+        normalizeDraftSelectionTeamAliases
+      ),
       salaryMatchingElection: t.salaryMatchingElection ?? null,
       cashSent: t.cashSent ?? 0,
       cashToTeamId: t.cashToTeamId

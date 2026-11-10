@@ -27,6 +27,10 @@ import {
 import { normalizeTeamTpeSchema } from '@/features/architect/utils/persistenceContracts';
 import { sanitizeTransientFieldsForPersistence } from '@/features/architect/utils/persistenceContracts/enforcement';
 import { getCapSettings } from '@/features/architect/utils/tradeMachine/utils/capSettingsProvider';
+import {
+  hasPreservedDraftUpdates,
+  committedPreservedDraftUpdates,
+} from './tradeContext/draftFinancialPersistence';
 import type { PostStateCapValidationInput } from '@/features/architect/utils/capLegality/postStateCapValidator';
 import type {
   ArchitectGeneralMutationCommittedTeamUpdate,
@@ -145,11 +149,18 @@ export function buildGeneralMutationCommittedTeamUpdates(
   if (!Array.isArray(teamUpdates)) {
     return [];
   }
+  const preserved = committedPreservedDraftUpdates(teamUpdates);
+  if (preserved)
+    return preserved as ArchitectGeneralMutationCommittedTeamUpdate[];
 
   return teamUpdates.map((update) => ({
     teamCode: update.teamCode,
     team: update?.team
-      ? buildGeneralMutationCommittedTeamSnapshot(update.team, seasonId, asOfDate)
+      ? buildGeneralMutationCommittedTeamSnapshot(
+          update.team,
+          seasonId,
+          asOfDate
+        )
       : null,
   }));
 }
@@ -164,6 +175,7 @@ export function canonicalizeTeamUpdatesWithCanonicalTotals(
   if (!Array.isArray(teamUpdates) || !Number.isFinite(canonicalYear)) {
     return Array.isArray(teamUpdates) ? teamUpdates : [];
   }
+  if (hasPreservedDraftUpdates(teamUpdates)) return teamUpdates;
 
   return teamUpdates.map((update) => ({
     ...update,

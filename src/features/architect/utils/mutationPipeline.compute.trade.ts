@@ -37,6 +37,7 @@ import {
   type GovernedCashLedgerEntry,
 } from '@/schemas/governedCashConsideration';
 import { mutationSnapshotDigest } from './mutationPipeline.snapshotDigest';
+import { retainPreservedDraftUpdates } from './tradeContext/draftFinancialPersistence';
 import {
   assertDraftFinancialStateUnchanged,
   hasDraftFinancialPreservation,
@@ -976,6 +977,7 @@ export function computeTradeResult({
         throw new Error('Draft financial state is incomplete.');
       assertDraftFinancialStateUnchanged(before.team, update.team);
     }
+    retainPreservedDraftUpdates(teamUpdates, currentState.teams);
   }
 
   if ('error' in tradePlayerManifest) {

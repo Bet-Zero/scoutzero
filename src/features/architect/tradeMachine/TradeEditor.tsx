@@ -1399,7 +1399,10 @@ export const TradeEditor = ({
 
       <TradePreviewModal
         simulationNotice={
-          simulation.enabled ? DRAFT_SIMULATION_NOTICE : undefined
+          simulation.enabled ||
+          previewAuthority?.dataClassification === 'software-fixture'
+            ? DRAFT_SIMULATION_NOTICE
+            : undefined
         }
         swapProgram={
           simulation.reviews.flatMap((r) =>

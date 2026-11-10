@@ -570,6 +570,7 @@ export type TradePayloadEntitlementLike = {
     round?: number | string | null;
   } | null;
   toTeamId?: MutationScalarId;
+  fromTeamId?: MutationScalarId;
 };
 
 export type ArchitectTradePayloadTeamRef = {
