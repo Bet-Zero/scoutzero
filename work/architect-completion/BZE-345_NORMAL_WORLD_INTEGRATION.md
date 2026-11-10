@@ -225,9 +225,10 @@ No production financial package or draft capability is installed by default.
 
 Draft rights (checklist A1, simulation standard): `npm run architect:simulation-draft --
 <candidate.json> <output.json>` compiles the retained June 5 `candidate.json` and the
-private snapshot's base entitlements into a SIMULATION draft baseline with three named
+private snapshot's base entitlements into a SIMULATION draft baseline with four named
 assumptions. Every retained identity is kept with its accepted holder; only outright
-2026-2031 original firsts are tradeable, and every other right shows why it is not.
+original firsts are admitted, and every other right shows why it is not. Admitted
+2032 firsts are Stepien witnesses but fail closed on missing Apron history (A4).
 The local demo initializer accepts it with `SCOUTZERO_SIMULATION_DRAFT_FILE` and
 `SCOUTZERO_SIMULATION_DRAFT_SHA256`, only together with the simulation financial input.
 
