@@ -55,6 +55,10 @@ route, another trade engine, production source pin, activation or migration.
   formatting assertion and null UI selections); both were repaired and focused
   reruns pass. The remaining 7,083 tests passed in that run. Exact-head CI remains
   the landing receipt for the complete combined selection.
+- Initial PR CI passed 7,084 Node tests and found two additional source-text
+  assertions tied to full-document team writes. Their repairs retain the contract
+  validation ordering and ordinary `set` fallback, while recognizing the reviewed
+  membership-only `update` branch. No runtime behavior changed in this repair.
 - `tests/e2e/architect-normal-draft-world.spec.ts` exercises actual ordinary
   callable creation, Validate, Apply, export provenance, receipt details, both
   affected teams' Assets and reload in Chromium; the complete browser case passed

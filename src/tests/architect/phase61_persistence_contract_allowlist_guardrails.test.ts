@@ -448,7 +448,7 @@ describe('Phase 61: persistWorldMutation source-scan for contract enforcement', 
       persistRegion.indexOf('contract: PERSISTENCE_CONTRACTS.TEAM')
     ).toBeLessThan(
       persistRegion.indexOf(
-        'const sanitizedTeam = removeUndefinedDeep(persistenceReadyTeam);'
+        'const sanitizedTeam = removeUndefinedDeep('
       )
     );
   });
