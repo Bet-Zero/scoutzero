@@ -27,7 +27,9 @@ async function entitlementDocs(
 ): Promise<Record<string, unknown>[]> {
   if (exportFlag) {
     const raw = JSON.parse(await readFile(exportFlag.slice(15), 'utf8'));
-    return Array.isArray(raw) ? raw : Object.values(raw);
+    return (Array.isArray(raw) ? raw : Object.values(raw)).filter(
+      (d: Record<string, unknown>) => wanted.has(String(d.id))
+    );
   }
   const snapshot = await loadSnapshot(DATA_DIR).catch(() => {
     throw new Error(
@@ -44,21 +46,35 @@ async function entitlementDocs(
     .map((d) => ({
       id: d.name.split('/').at(-1),
       ...decodeFields(d.fields ?? {}),
-    }));
+    }))
+    .filter((d) => wanted.has(String(d.id)));
 }
 
 const candidateBytes = await readFile(candidatePath);
 const candidate = JSON.parse(candidateBytes.toString('utf8'));
+const records: { entitlementId: string; group: string }[] =
+  candidate.records ?? [];
+const wanted = new Set(records.map((r) => r.entitlementId));
+const entitlements = await entitlementDocs(wanted);
+const found = new Set(entitlements.map((d) => String(d.id)));
+const missing = records.filter((r) => !found.has(r.entitlementId));
+if (missing.length) {
+  // Counts by candidate group only; no identities or pick details.
+  const byGroup: Record<string, number> = {};
+  for (const r of missing) byGroup[r.group] = (byGroup[r.group] ?? 0) + 1;
+  console.error(
+    JSON.stringify({
+      candidateIdentities: wanted.size,
+      foundInSource: found.size,
+      missing: missing.length,
+      missingByGroup: byGroup,
+    })
+  );
+}
 const baseline = compileSimulationDraftBaseline({
   candidate,
   candidateSha256: createHash('sha256').update(candidateBytes).digest('hex'),
-  entitlements: await entitlementDocs(
-    new Set(
-      (candidate.records ?? []).map(
-        (r: { entitlementId: string }) => r.entitlementId
-      )
-    )
-  ),
+  entitlements,
   seasonId: '2025-26',
   releaseId: 'simulation-june5-draft-v1',
 });
