@@ -4,6 +4,9 @@ import { db } from '@/firebaseConfig';
 
 interface FirebaseQueryOptions {
   enabled?: boolean;
+  // Constraint values are not part of the change key (only their types), so
+  // pass what they depend on (e.g. the owner's uid) to refetch when it changes.
+  key?: string | null;
 }
 
 export interface UseFirebaseQueryResult<T> {
@@ -31,10 +34,11 @@ export const useFirebaseQuery = <T = Record<string, unknown>>(
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
-  const { enabled = true } = options;
+  const { enabled = true, key = null } = options;
   // Serialize constraints to detect changes without causing infinite re-renders
   const constraintsKey = useRef<string>('');
   const newKey = JSON.stringify(queryConstraints.map(getConstraintKeyPart));
+  const lastKey = useRef<string | null>(key);
 
   useEffect(() => {
     constraintsKey.current = newKey;
@@ -45,6 +49,14 @@ export const useFirebaseQuery = <T = Record<string, unknown>>(
       return;
     }
 
+    // Never show the previous key's (e.g. previous account's) data, even
+    // briefly or after a failed fetch; ignore its slower responses too.
+    if (lastKey.current !== key) {
+      lastKey.current = key;
+      setData([]);
+      setError(null);
+    }
+    let stale = false;
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -53,16 +65,19 @@ export const useFirebaseQuery = <T = Record<string, unknown>>(
           queryConstraints.length > 0 ? query(ref, ...queryConstraints) : ref;
         const snap = await getDocs(q);
         const items = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() } as T));
-        setData(items);
+        if (!stale) setData(items);
       } catch (err) {
         console.error('Error fetching from Firebase:', err);
-        setError(err instanceof Error ? err : new Error(String(err)));
+        if (!stale) setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
-        setLoading(false);
+        if (!stale) setLoading(false);
       }
     };
     fetchData();
-  }, [collectionName, newKey, enabled]);
+    return () => {
+      stale = true;
+    };
+  }, [collectionName, newKey, enabled, key]);
 
   return { data, loading, error };
 };

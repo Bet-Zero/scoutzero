@@ -79,11 +79,12 @@ export const TieramidBoard = ({
   );
   const { data: listsData } = useFirebaseQuery<PlayerList>('lists', ownerConstraints, {
     enabled: canPersist,
+    key: userId,
   });
   const { data: tierListsData } = useFirebaseQuery<TierList>(
     'tierLists',
     ownerConstraints,
-    { enabled: canPersist }
+    { enabled: canPersist, key: userId }
   );
 
   const processedPlayers = useMemo<Array<RosterDrawerPlayer<RosterManagerPlayer>>>(
