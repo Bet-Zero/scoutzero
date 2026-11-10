@@ -1,4 +1,4 @@
-/** Accounts for ordinary Contracts in the bounded mixed-pick lanes.
+/** Accounts for unchanged standard and Two-Way Contracts in mixed-pick lanes.
  * This establishes consideration identity, never whole-trade legality.
  */
 import { isTwoWayTradePlayer } from '../tradeMachine/utils/twoWayTradeSalary';
@@ -9,12 +9,16 @@ import { normalizeCurrentStatePlayerContract } from '../mutationPipeline.helpers
 import { mutationSnapshotText } from '../mutationPipeline.snapshotDigest';
 import { LIVE_GOVERNED_TRADE_SALARY_AUTHORITY } from '../tradeContext/tradeContext.payloadNormalization';
 import type { ApplyWorldMutationArgs } from '../mutationPipeline.types.ingress';
+import { requireTwoWayAssignmentHistory } from './twoWayHistory';
 
 type RecordLike = Record<string, unknown>;
 export function simulationPlayerMovements(
   args: ApplyWorldMutationArgs,
   branch: string,
-  state: { teams?: readonly { teamCode?: string | null; team?: unknown }[] }
+  state: {
+    teams?: readonly { teamCode?: string | null; team?: unknown }[];
+    twoWayHistory?: unknown;
+  }
 ) {
   const slots = args.payload.teams ?? [];
   const movements: {
@@ -24,6 +28,23 @@ export function simulationPlayerMovements(
     toTeam: string;
   }[] = [];
   const hasPlayers = slots.some((s) => s.sends?.length);
+  const currentTeam = (teamCode: unknown) =>
+    state.teams?.find((entry) => entry.teamCode === teamCode)?.team as
+      | RecordLike
+      | undefined;
+  const currentPlayer = (teamCode: unknown, player: RecordLike) => {
+    const team = currentTeam(teamCode);
+    return (Array.isArray(team?.players) ? team.players : []).find(
+      (entry) =>
+        (entry.playerId ?? entry.id ?? entry.player_id) ===
+        (player.playerId ?? player.id ?? player.player_id)
+    );
+  };
+  const hasMatchingPlayers = slots.some((slot) =>
+    slot.sends?.some(
+      (player) => !isTwoWayTradePlayer(currentPlayer(slot.teamCode, player))
+    )
+  );
   const supportedPath = (path: string) =>
     path === 'STANDARD_TPE' ||
     path === 'AGGREGATED_STANDARD_TPE' ||
@@ -49,15 +70,30 @@ export function simulationPlayerMovements(
     const election = TradeSalaryMatchingElectionZ.safeParse(
       slot.salaryMatchingElection
     );
+    if (slot.salaryMatchingElection != null && !election.success)
+      throw new Error('Mixed-trade salary election is malformed.');
     if (
-      hasPlayers &&
-      (!election.success ||
-        !supportedPath(election.data.path) ||
-        Object.keys(election.data.tradedPlayerPreTradeSalaries).length !==
-          (slot.sends?.length ?? 0))
+      hasMatchingPlayers &&
+      (!election.success || !supportedPath(election.data.path))
     )
       throw new Error(
         'Each team in a mixed trade needs a supported explicit matching path and exact outgoing player salaries.'
+      );
+    const matchingIds = (slot.sends ?? [])
+      .filter(
+        (player) => !isTwoWayTradePlayer(currentPlayer(slot.teamCode, player))
+      )
+      .map((player) => player.playerId ?? player.id ?? player.player_id);
+    if (
+      election.success &&
+      (Object.keys(election.data.tradedPlayerPreTradeSalaries).length !==
+        matchingIds.length ||
+        Object.keys(election.data.tradedPlayerPreTradeSalaries).some(
+          (id) => !matchingIds.includes(id)
+        ))
+    )
+      throw new Error(
+        'Mixed-trade salary elections must contain exactly the standard Contracts; Two-Ways have no matching salary.'
       );
     if (!slot.sends?.length) continue;
     if (
@@ -70,7 +106,7 @@ export function simulationPlayerMovements(
       args.payload.tradeCtx?.source !== 'tradeMachine'
     )
       throw new Error(
-        'Mixed trades support ordinary player Contracts with original firsts, complete protection programs, admitted unresolved 2026 swap rights or resolved 2028 selections.'
+        'Mixed trades support unchanged standard and Two-Way Contracts with original firsts, complete protection programs, admitted unresolved 2026 swap rights or resolved 2028 selections.'
       );
     const team = state.teams?.find((t) => t.teamCode === slot.teamCode)
       ?.team as RecordLike | undefined;
@@ -125,8 +161,7 @@ export function simulationPlayerMovements(
       if (
         player.signAndTrade ||
         player.signAndTradeContract ||
-        isTwoWayTradePlayer(player) ||
-        isTwoWayTradePlayer(authoritative) ||
+        (isTwoWayTradePlayer(player) && !isTwoWayTradePlayer(authoritative)) ||
         (player.absorptionMode &&
           !['MATCH', 'TPE'].includes(player.absorptionMode)) ||
         (contract != null &&
@@ -135,8 +170,11 @@ export function simulationPlayerMovements(
           ) !== mutationSnapshotText(authoritative.contract))
       )
         throw new Error(
-          'Mixed trades require unchanged ordinary standard Contracts.'
+          'Mixed trades require unchanged governed Contracts and Contract types.'
         );
+      const twoWay = isTwoWayTradePlayer(authoritative);
+      if (twoWay && (player.absorptionMode === 'TPE' || player.tpeId != null))
+        throw new Error('A Two-Way Contract cannot use a trade exception.');
       if (player.absorptionMode === 'TPE' || player.tpeId != null) {
         const recipient = state.teams?.find((t) => t.teamCode === toTeam)
           ?.team as Parameters<typeof getTeamTpeList>[0];
@@ -167,19 +205,26 @@ export function simulationPlayerMovements(
         basis.asOfDate !== args.payload.asOfDate ||
         basis.salaryCapYear !== args.payload.tradeCtx?.yearKey ||
         basis.poisonPillIncomingSalary != null ||
+        (basis.method === 'two-way-exclusion') !== twoWay ||
         movements.some((m) => m.contractId === basis.contractId)
       )
         throw new Error(
-          'The outgoing player needs a complete ordinary governed salary basis; unsupported bonuses remain blocked.'
+          basis?.reasons.length
+            ? basis.reasons.join(' ')
+            : 'The outgoing player needs a complete governed salary basis matching its Contract type; unsupported bonuses remain blocked.'
         );
       if (
-        !election.success ||
-        !supportedPath(election.data.path) ||
-        election.data.tradedPlayerPreTradeSalaries[id] !== basis.outgoingSalary
+        !twoWay &&
+        (!election.success ||
+          !supportedPath(election.data.path) ||
+          election.data.tradedPlayerPreTradeSalaries[id] !==
+            basis.outgoingSalary)
       )
         throw new Error(
           'Mixed trades require a supported matching path with the exact governed outgoing Salary for each player.'
         );
+      if (twoWay)
+        requireTwoWayAssignmentHistory(state.twoWayHistory, basis, toTeam);
       movements.push({
         playerId: id,
         contractId: basis.contractId!,

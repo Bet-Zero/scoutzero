@@ -219,7 +219,7 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
       : orderedMixed
         ? 'ordered-swap-rights'
         : metadata.draftSimulationBranches,
-    state
+    { ...state, twoWayHistory: metadata.draftSimulationTwoWayHistory }
   );
   const nativePlayers =
     native && playerMovements.length ? { playerMovements } : {};
@@ -466,6 +466,9 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
     proposalSha256,
     stateDigest,
     asOf,
+    ...(metadata.draftSimulationTwoWayHistory
+      ? { twoWayHistory: metadata.draftSimulationTwoWayHistory }
+      : {}),
     branchMode: native ? 'native-selections' : metadata.draftSimulationBranches,
     ...(native && lifecycle && nativeWorld
       ? {

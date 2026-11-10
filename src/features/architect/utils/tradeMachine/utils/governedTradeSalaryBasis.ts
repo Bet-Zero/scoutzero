@@ -29,9 +29,10 @@ import {
   resolveGovernedSeasonEnvelope,
   type GovernedCalendarResolution,
 } from '@/features/architect/utils/governedSeason';
-import { toSeasonCode } from '@/features/architect/utils/seasonFormat';
+import { toSeasonCode, toEndYear } from '@/features/architect/utils/seasonFormat';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager.core';
 import { getLeague } from '@/features/architect/utils/teamLoader';
+import { isTwoWayTradePlayer } from './twoWayTradeSalary';
 
 const SALARY_BASIS_LEAVES = Object.freeze([
   'CBA2-A03.1',
@@ -42,6 +43,11 @@ const SALARY_BASIS_LEAVES = Object.freeze([
   'CBA2-A03.10',
   'CBA2-A03.12',
   'CBA2-A03.14',
+  'CBA2-A02.14',
+  'CBA2-L03.13',
+  'CBA2-L03.14',
+  'CBA2-C20.12',
+  'CBA2-C20.11',
 ]);
 
 /** CBA2-A03.14: ordinary Rookie Scale Extension percentage ceiling. */
@@ -333,7 +339,9 @@ function computeReadyBasis({
       contractId: state.contractId,
       asOfDate,
       salaryCapYear,
-      reasons: ['Current Contract Salary or governed Regular Season calendar is unavailable.'],
+      reasons: [
+        'Current Contract Salary or governed Regular Season calendar is unavailable.',
+      ],
     });
   }
   const currentSalary = exactMoney(
@@ -347,14 +355,69 @@ function computeReadyBasis({
     );
   }
   if (Number(state.terms.bonuses.tradeKickerPercent ?? 0) !== 0) {
-    reasons.push('This Contract has a trade bonus whose allocation is outside this governed tranche.');
+    reasons.push(
+      'This Contract has a trade bonus whose allocation is outside this governed tranche.'
+    );
   }
   const evidence = GovernedTradeSalaryBasisEvidenceZ.safeParse(
     state.terms.tradeSalaryBasisEvidence
   );
   let method: GovernedTradeSalaryBasis['method'] = 'ordinary-protection';
   let outgoingSalary: number | null = null;
-  if (currentSalary !== null) {
+  const twoWay = isTwoWayTradePlayer(state.terms);
+  if (twoWay) {
+    // A zero matching amount is a rule result, never a fabricated cash salary.
+    // Authenticate the current Contract before admitting this new mixed path.
+    method = 'two-way-exclusion';
+    outgoingSalary = 0;
+    leaves.push('CBA2-A02.14', 'CBA2-L03.13', 'CBA2-L03.14', 'CBA2-C20.11', 'CBA2-C20.12');
+    const signed = state.terms.signingDate;
+    const signingDay = signed.value?.slice(0, 10);
+    if (
+      !['date', 'instant'].includes(signed.precision) ||
+      !signingDay ||
+      !isDateOnly(signingDay)
+    ) {
+      reasons.push(
+        'Two-Way assignment requires a governed signing date for the thirty-day restriction.'
+      );
+    } else if (
+      Date.parse(`${asOfDate}T00:00:00Z`) <=
+      Date.parse(`${signingDay}T00:00:00Z`) + 30 * 86_400_000
+    ) {
+      reasons.push(
+        'Two-Way assignment is within thirty days of signing, or the date-only anniversary still needs exact timing.'
+      );
+    }
+    const nextRow = state.terms.salaries.find(
+      (row) =>
+        row.season === toSeasonCode(salaryCapYear + 1) && !row.voidedByExtension
+    );
+    const endSeason = state.terms.endSeason;
+    const endYear = toEndYear(endSeason);
+    const startYear = toEndYear(state.terms.startSeason);
+    if (startYear == null || endYear == null || startYear > salaryCapYear ||
+      endYear < startYear || endYear - startYear > 1) {
+      reasons.push('A governed Two-Way Contract must cover one or two Seasons (CBA2-C20.11).');
+    }
+    if (!endSeason || endSeason !== toSeasonCode(endYear) || endYear == null ||
+      endYear < salaryCapYear || endYear > salaryCapYear + 1) {
+      reasons.push('Two-Way assignment needs the governed current Contract term ending in this or the following Salary Cap Year.');
+    }
+    const endsThisSeason = endSeason === season;
+    if (asOfDate >= opening && (endsThisSeason || !nextRow)) {
+      reasons.push(
+        endsThisSeason && asOfDate > closing
+          ? 'An expiring Two-Way Contract cannot be assigned after the trade deadline (CBA2-L03.14).'
+          : endsThisSeason
+            ? 'An expiring Two-Way Contract needs the exact governed trade deadline before assignment can be admitted.'
+            : 'Two-Way assignment needs governed continuing Contract terms; missing next-season terms do not establish expiry.'
+      );
+    }
+    if (state.terms.salaries.some((row) => row.option != null)) {
+      reasons.push('A Two-Way Contract cannot carry an Option Year.');
+    }
+  } else if (currentSalary !== null) {
     if (asOfDate >= `${salaryCapYear}-01-08` && asOfDate <= closing) {
       method = 'january-8-deemed-full';
       outgoingSalary = currentSalary;
@@ -366,7 +429,9 @@ function computeReadyBasis({
         (row) => row.season === nextSeason
       );
       if (!nextSeason || !nextRow) {
-        reasons.push(`Post-season salary basis requires governed ${nextSeason ?? 'next-Season'} terms.`);
+        reasons.push(
+          `Post-season salary basis requires governed ${nextSeason ?? 'next-Season'} terms.`
+        );
       } else {
         const nextSalary = exactMoney(
           nextRow.salary,
@@ -410,7 +475,9 @@ function computeReadyBasis({
             state.terms.contractLength === 1 &&
             /minimum/i.test(state.terms.signedUsing ?? '');
           if (isOneYearMinimum && protectedAmount < currentSalary) {
-            const minimum = evidence.success ? evidence.data.oneYearMinimum : null;
+            const minimum = evidence.success
+              ? evidence.data.oneYearMinimum
+              : null;
             if (!minimum?.qualifies) {
               reasons.push(
                 'One-year Minimum Contract reimbursement authority is unavailable.'
@@ -465,8 +532,9 @@ function computeReadyBasis({
     method,
     currentSalary,
     outgoingSalary,
-    incomingSalary: currentSalary,
+    incomingSalary: twoWay ? 0 : currentSalary,
     poisonPillIncomingSalary,
+    ...(twoWay ? { twoWayContractEndYear: toEndYear(state.terms.endSeason) } : {}),
     canonLeafIds: [...new Set(leaves)],
     reasons: [],
     proof: {

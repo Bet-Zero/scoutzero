@@ -83,6 +83,14 @@ export const MIXED_CONDITIONAL_SCREENSHOTS = [
 ].map((key) => ({ key, filename: `${key}-1280x720.png` }));
 
 export const MIXED_TRADES_SCREENSHOTS = [
+  'two-way-permitted',
+  'two-way-salary-exclusion',
+  ...['CHI', 'ORL'].flatMap((team) =>
+    ['roster', 'cap', 'history', 'compare', 'plan'].map(
+      (view) => `two-way-${team}-${view}`
+    )
+  ),
+  'two-way-return',
   'room-proposal',
   'permitted-proposal',
   'repeat-trade',
@@ -881,9 +889,9 @@ export async function runTradeReceiptProof(
                 threeTeamMixed || mixedSwap || mixedConditional
                   ? 3600000
                   : mixedTrades
-                    ? // Two acquisitions, held-exception rejection matrix and
-                      // later retrade plus the separately bounded negative case.
-                      900000
+                    ? // Standard acquisitions plus the separate Two-Way saved
+                      // journey and negative case, each with its own test bound.
+                      1200000
                     : penaltyPlacement || apronMultiseason
                       ? 3600000
                       : mixedNative
@@ -940,9 +948,12 @@ export async function runTradeReceiptProof(
     ? [
         path.join(artifactDir, 'negative-proof.json'),
         ...(mixedTrades
-          ? ['room-export.png', 'held-tpe-export.png'].map((name) =>
-              path.join(artifactDir, name)
-            )
+          ? [
+              'room-export.png',
+              'held-tpe-export.png',
+              'two-way-export.png',
+              'two-way-proof.json',
+            ].map((name) => path.join(artifactDir, name))
           : []),
         ...(mixedConditional
           ? ['original-proof.json', 'original-export.png'].map((name) =>
@@ -1011,6 +1022,13 @@ export async function runTradeReceiptProof(
         JSON.parse(
           fs.readFileSync(path.join(artifactDir, 'negative-proof.json'), 'utf8')
         ).candidate === identity.candidate)) &&
+    (!mixedTrades ||
+      (JSON.parse(
+        fs.readFileSync(path.join(artifactDir, 'two-way-proof.json'), 'utf8')
+      ).candidate === identity.candidate &&
+        JSON.parse(
+          fs.readFileSync(path.join(artifactDir, 'two-way-proof.json'), 'utf8')
+        ).scope === 'governed-simulation-only')) &&
     (!nativeTermsSha256 ||
       (nativeTermsSha256 === hashFile(nativeTermsPath!) &&
         JSON.parse(fs.readFileSync(proofPath, 'utf8')).nativeTermsSha256 ===
@@ -1034,7 +1052,7 @@ export async function runTradeReceiptProof(
           : mixedConditional
             ? 'Three-team original and mixed conditional routing, return trade, both governed draft outcomes and season advance'
             : mixedTrades
-              ? 'Room acquisition and subsequent use of its saved Standard TPE in mixed trades, all-team reload and later retrade'
+              ? 'Room and held-TPE acquisitions, eligible Two-Way mixed trades, all-team reload and later retrade'
               : nativeTrades
                 ? 'Resolved native selections through saved-world Trade Machine'
                 : overlappingPool

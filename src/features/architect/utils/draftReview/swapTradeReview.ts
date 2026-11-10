@@ -188,6 +188,9 @@ export async function prepareSwapTradeRecord(input: {
     proposalSha256,
     stateDigest: input.stateDigest,
     asOf: horizon.asOf,
+    ...(metadata.draftSimulationTwoWayHistory
+      ? { twoWayHistory: metadata.draftSimulationTwoWayHistory }
+      : {}),
     branchMode: 'swap-program',
     swapProgram: program,
     ownership: 'stipulated-for-software-tests',

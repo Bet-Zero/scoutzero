@@ -16,6 +16,7 @@ import { DraftSwapProgramZ } from './draftSwapProgram';
 import { DraftConditionalProgramsZ } from './draftConditionalProgram';
 /** Synthetic review fixture authority. Never a production asset contract. */
 import { z } from 'zod';
+import { DraftSimulationTwoWayHistoryZ } from './draftSimulationTwoWayHistory';
 import {
   DraftEvidenceIdZ,
   DraftEvidenceHashZ,
@@ -69,6 +70,7 @@ export const DraftSimulationAssumptionsZ = z
       'native-selections',
     ]),
     programs: DraftConditionalProgramsZ.optional(),
+    twoWayHistory: DraftSimulationTwoWayHistoryZ.optional(),
     apronHistory: DraftApronHistoryZ.optional(),
     softwareRetainedFirsts: SoftwareRetainedFirstsZ.optional(),
     tradingWindow: DraftSimulationWindowZ.optional(),

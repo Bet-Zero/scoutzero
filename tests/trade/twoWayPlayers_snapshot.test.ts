@@ -109,6 +109,31 @@ const makePlayer = (
 });
 
 describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
+  it('retains complete Two-Way membership in canonical players without inventing a separate list', () => {
+    const incoming = makePlayer('Incoming', {
+      contract: { contractType: 'Two-Way' },
+    });
+    const existing = makePlayer('Existing', {
+      contract: { contractType: 'Two-Way' },
+    });
+    const result = buildSnapshot(
+      { teams: [makePayloadTeam('LAL', [incoming]), makePayloadTeam('BOS')] },
+      {
+        teams: [
+          { teamCode: 'LAL', team: makeTeam('LAL', [incoming]) },
+          { teamCode: 'BOS', team: makeTeam('BOS', [existing]) },
+        ],
+      }
+    );
+    const receiver = getTeamUpdate(result, 'BOS').team;
+    expect(receiver.twoWayPlayers).toBeUndefined();
+    expect(receiver.players?.map((p) => p.player_id).sort()).toEqual([
+      'existing',
+      'incoming',
+    ]);
+    expect(receiver.roster?.sort()).toEqual(['existing', 'incoming']);
+    expect(getTeamUpdate(result, 'LAL').team.players).toEqual([]);
+  });
   it('removes outgoing two-way player from twoWayPlayers', () => {
     const twPlayer = makePlayer('Two Way Guy', { isTwoWay: true });
     const stdPlayer = makePlayer('Standard Guy');
@@ -130,8 +155,10 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
     expect(lalUpdate.team.twoWayPlayers).toEqual([]);
   });
 
-  it('adds incoming two-way player to twoWayPlayers', () => {
-    const twPlayer = makePlayer('Two Way Guy', { isTwoWay: true });
+  it('adds an incoming Contract-type-only Two-Way to an existing runtime list', () => {
+    const twPlayer = makePlayer('Two Way Guy', {
+      contract: { contractType: 'Two-Way' },
+    });
 
     const payload = {
       teams: [makePayloadTeam('LAL', [twPlayer]), makePayloadTeam('BOS', [])],
@@ -139,7 +166,7 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
 
     const currentState = {
       teams: [
-        { teamCode: 'LAL', team: makeTeam('LAL', [], []) },
+        { teamCode: 'LAL', team: makeTeam('LAL', [twPlayer], [twPlayer]) },
         { teamCode: 'BOS', team: makeTeam('BOS', [], []) },
       ],
     };
@@ -149,7 +176,10 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
     const bosUpdate = getTeamUpdate(result, 'BOS');
     expect(bosUpdate.team.twoWayPlayers).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ player_id: 'two_way_guy', isTwoWay: true }),
+        expect.objectContaining({
+          player_id: 'two_way_guy',
+          contract: expect.objectContaining({ contractType: 'Two-Way' }),
+        }),
       ])
     );
   });
@@ -182,7 +212,7 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
     expect(twIds.length).toBe(uniqueIds.length);
   });
 
-  it('does not invent twoWayPlayers when field is absent pre-trade', () => {
+  it('retains incoming Two-Way membership without creating an absent separate list', () => {
     const twPlayer = makePlayer('Two Way Guy', { isTwoWay: true });
 
     const payload = {
@@ -199,6 +229,9 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
     const result = buildSnapshot(payload, currentState);
 
     const bosUpdate = getTeamUpdate(result, 'BOS');
-    expect(bosUpdate.team).not.toHaveProperty('twoWayPlayers');
+    expect(bosUpdate.team.twoWayPlayers).toBeUndefined();
+    expect(bosUpdate.team.players).toContainEqual(
+      expect.objectContaining({ player_id: 'two_way_guy', isTwoWay: true })
+    );
   });
 });
