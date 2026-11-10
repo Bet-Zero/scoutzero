@@ -74,14 +74,24 @@ export async function loadGovernedDraftWorld(
     );
   const baseline = validateGovernedDraftBaseline(source.data().release);
   const digest = (await sha256Digest(canonicalStringify(baseline))).slice(7);
+  // A SIMULATION baseline is private, so its identity is the server-written,
+  // client-immutable world metadata rather than a source-code pin.
+  const expected =
+    metadata.draftBaseline?.classification === 'simulation'
+      ? {
+          releaseId: String(metadata.draftBaseline.releaseId),
+          sha256: String(metadata.draftBaseline.sha256),
+          classification: 'simulation' as const,
+        }
+      : pin;
   if (
-    digest !== pin.sha256 ||
-    baseline.releaseId !== pin.releaseId ||
-    baseline.classification !== pin.classification ||
+    digest !== expected.sha256 ||
+    baseline.releaseId !== expected.releaseId ||
+    baseline.classification !== expected.classification ||
     canonicalStringify(metadata.draftBaseline) !==
       canonicalStringify({
         version: 1,
-        ...pin,
+        ...expected,
         asOf: baseline.asOf,
         seasonId: baseline.seasonId,
       }) ||
@@ -118,7 +128,7 @@ export async function loadGovernedDraftWorld(
       !receipt.success ||
       receipt.data.scope !== 'governed-world-fixture' ||
       receipt.data.worldId !== worldId ||
-      receipt.data.releaseId !== pin.releaseId ||
+      receipt.data.releaseId !== expected.releaseId ||
       receipt.data.releaseSha256 !== digest ||
       receipt.data.operationId !== transfer.operationId ||
       receipt.data.asOfDate !== transfer.asOfDate ||

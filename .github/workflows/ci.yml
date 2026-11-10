@@ -38,7 +38,9 @@ jobs:
   # PR validation - uses diff-based testing for speed
   pr-validation:
     name: PR Validation (Diff-based)
-    runs-on: ubuntu-latest
+    # Selected hosted-review browser checks install Playwright 1.58 browsers,
+    # whose dependencies support Ubuntu 24.04 (same pin as the nightly lane).
+    runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request' || github.event_name == 'push'
     env:
       SCOUTZERO_DIFF_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}

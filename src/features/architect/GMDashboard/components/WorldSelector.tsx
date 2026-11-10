@@ -35,9 +35,11 @@ import {
 } from '@/features/architect/utils/worldManager';
 import { DeleteWorldModal } from './DeleteWorldModal';
 import { resolveContractBaselineWorldCompatibility } from '@/features/architect/utils/contractSource/contractSourceRelease';
+import { SIMULATION_DRAFT_ASSUMPTIONS } from '@/features/architect/utils/simulationDraftBaseline';
 
 type WorldSummaryLike = {
   simulationFinancialBaseline?: { classification: string };
+  draftBaseline?: { classification: string };
   worldId: string;
   worldName?: string | null;
   description?: string | null;
@@ -531,6 +533,17 @@ export function WorldSelector({
             title="Unidentified grievance exposure and first-round Required Tenders are assumed not applicable where recorded. Known liabilities and NBA rules still apply. This is not certified historical compliance."
           >
             SIMULATION · Public data with disclosed financial assumptions
+          </span>
+        )}
+        {currentWorld?.draftBaseline?.classification === 'simulation' && (
+          <span
+            className="text-[10px] text-amber-200 pl-0.5"
+            data-testid="simulation-draft-assumptions"
+            title={SIMULATION_DRAFT_ASSUMPTIONS.map((a) => a.statement).join(
+              '\n\n'
+            )}
+          >
+            SIMULATION · June 5 draft picks with disclosed assumptions
           </span>
         )}
         {!isWorldBacked && (

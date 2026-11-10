@@ -49,6 +49,10 @@ export function governedDraftWorldAssets(
   // Keep every retained holding visible. Unadmitted definitions are rights
   // with an explicit qualification label, never executable pick/Stepien facts.
   const admitted = new Set(state.baseline.records.map((r) => r.entitlement.id));
+  const unconfirmed = new Set(
+    state.baseline.unresolved.flatMap((u) => u.entitlementIds)
+  );
+  const simulation = state.baseline.classification === 'simulation';
   let rightCount = 0;
   for (const [id, entitlement] of Object.entries(
     state.baseline.retainedEntitlements
@@ -66,7 +70,9 @@ export function governedDraftWorldAssets(
         : id;
     (group.rights ??= []).push({
       key: id,
-      label: `${description} — not qualified for trading${knownYear == null ? '; year unqualified' : ''}`,
+      label: simulation
+        ? `${description} — ${unconfirmed.has(id) ? "not tradeable: its terms can't be confirmed" : 'not tradeable yet'}`
+        : `${description} — not qualified for trading${knownYear == null ? '; year unqualified' : ''}`,
     });
     years.set(year, group);
     rightCount++;
