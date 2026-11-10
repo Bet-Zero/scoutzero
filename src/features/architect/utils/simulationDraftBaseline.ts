@@ -43,17 +43,21 @@ export const SIMULATION_DRAFT_ASSUMPTIONS = [
   {
     id: 'complete-league-inventory',
     statement:
-      'The 278 retained first-round rights are treated as the complete league inventory for the Stepien check. Picks that are conditional, unresolved or owed under a swap or pool never count as a retained first for either side.',
+      'The retained June 5 draft rights are treated as the complete league inventory for the Stepien check. Picks that are conditional, unresolved or owed under a swap or pool never count as a retained first for either side.',
   },
   {
     id: 'unconditional-transfer-only',
     statement:
-      'In this baseline only outright original firsts for 2026 to 2031 can be traded. Conditional rights, swaps, pools, 2032 picks and the 30 rights with unresolved evidence stay visible and are not tradeable yet.',
+      'In this baseline only outright original firsts can be traded. Conditional rights, swaps, pools and rights with unresolved evidence stay visible and are not tradeable yet. A 2032 first is held normally but cannot be traded until its Apron history is recorded.',
+  },
+  {
+    id: 'apron-history-pending',
+    statement:
+      'Apron history for the 2024-25 season onward is not yet recorded, so first-round picks it could freeze (2032 and later) need that input before they can be traded.',
   },
 ] as const;
 
 const TEAM = /^[A-Z]{3}$/;
-const LAST_ADMITTED_YEAR = 2031; // 2032 needs Apron history (checklist A4).
 
 function simulationSource(scope: string, sha256: string, locator: string) {
   return {
@@ -136,7 +140,8 @@ export function compileSimulationDraftBaseline(args: {
       r.originalPick.round === 1 &&
       r.originalPick.draftYear >=
         QUALIFIED_JUNE5_DRAFT_HORIZON.firstFutureDraftYear &&
-      r.originalPick.draftYear <= LAST_ADMITTED_YEAR &&
+      r.originalPick.draftYear <=
+        QUALIFIED_JUNE5_DRAFT_HORIZON.lastTradableDraftYear &&
       !unresolvedIds.has(r.entitlementId) &&
       !programPicks.has(r.originalPick.id) &&
       r.retainedAssessment?.actions?.resolveConditionalOutcome?.status ===
@@ -236,7 +241,9 @@ export function compileSimulationDraftBaseline(args: {
     };
   }
 
-  // 2026-2031 originals precede the 2024-25 Apron freeze rule (A12.4).
+  // 2026-2031 originals precede the 2024-25 Apron freeze rule (A12.4). A 2032
+  // original stays a held pick and a Stepien witness, but has no Apron history
+  // yet (checklist A4), so trading it fails closed with needs-input.
   const apron = records.map((r) => ({
     team: r.ownership.pick.originalTeam,
     triggerSeasonStartYear: r.ownership.pick.draftYear - 8,

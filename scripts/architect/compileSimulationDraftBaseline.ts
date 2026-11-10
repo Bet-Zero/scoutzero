@@ -20,7 +20,11 @@ if (!candidatePath || !output)
     'Usage: npm run architect:simulation-draft -- <private-candidate.json> <private-output.json> [--entitlements=<private-export.json>]'
   );
 
-async function entitlementDocs(): Promise<Record<string, unknown>[]> {
+// The snapshot also holds legacy entitlements; keep only the candidate's
+// identities. The compiler still rejects any missing identity.
+async function entitlementDocs(
+  wanted: Set<string>
+): Promise<Record<string, unknown>[]> {
   if (exportFlag) {
     const raw = JSON.parse(await readFile(exportFlag.slice(15), 'utf8'));
     return Array.isArray(raw) ? raw : Object.values(raw);
@@ -44,10 +48,17 @@ async function entitlementDocs(): Promise<Record<string, unknown>[]> {
 }
 
 const candidateBytes = await readFile(candidatePath);
+const candidate = JSON.parse(candidateBytes.toString('utf8'));
 const baseline = compileSimulationDraftBaseline({
-  candidate: JSON.parse(candidateBytes.toString('utf8')),
+  candidate,
   candidateSha256: createHash('sha256').update(candidateBytes).digest('hex'),
-  entitlements: await entitlementDocs(),
+  entitlements: await entitlementDocs(
+    new Set(
+      (candidate.records ?? []).map(
+        (r: { entitlementId: string }) => r.entitlementId
+      )
+    )
+  ),
   seasonId: '2025-26',
   releaseId: 'simulation-june5-draft-v1',
 });
