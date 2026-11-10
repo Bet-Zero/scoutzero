@@ -28,6 +28,7 @@ const SALARY_LEDGER_SOURCE_AUTHORITIES = [
   'canon',
   'team-state',
   'external-determination',
+  'simulation-assumption',
 ] as const;
 
 export type SalaryLedgerKind = (typeof SALARY_LEDGER_KINDS)[number];
@@ -230,6 +231,15 @@ function validateLineItems<K extends SalaryLedgerKind>(
       item.canonLeafIds.some((leafId) => !isNonEmptyString(leafId))
     ) {
       missingInputs.push(`${path}.canonLeafIds`);
+    }
+    if (
+      item.source?.authority === 'simulation-assumption' &&
+      (kind !== 'apron-team-salary' ||
+        item.amount !== 0 ||
+        item.canonLeafIds?.length !== 1 ||
+        !['CBA2-C07.4', 'CBA2-C07.8'].includes(item.canonLeafIds[0]))
+    ) {
+      missingInputs.push(`${path}.source.simulationScope`);
     }
     if (!isSalaryLedgerSourceAuthority(item.source?.authority)) {
       missingInputs.push(`${path}.source.authority`);

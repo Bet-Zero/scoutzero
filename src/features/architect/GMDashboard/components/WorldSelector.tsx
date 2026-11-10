@@ -37,6 +37,7 @@ import { DeleteWorldModal } from './DeleteWorldModal';
 import { resolveContractBaselineWorldCompatibility } from '@/features/architect/utils/contractSource/contractSourceRelease';
 
 type WorldSummaryLike = {
+  simulationFinancialBaseline?: { classification: string };
   worldId: string;
   worldName?: string | null;
   description?: string | null;
@@ -194,9 +195,7 @@ export function WorldSelector({
 
   const confirmContextExit = useCallback(
     (intent: ArchitectUnsafeContextExitIntent) =>
-      saveState
-        ? confirmArchitectTeamPlanContextExit(saveState, intent)
-        : true,
+      saveState ? confirmArchitectTeamPlanContextExit(saveState, intent) : true,
     [saveState]
   );
 
@@ -239,7 +238,8 @@ export function WorldSelector({
       const newWorldId = event.target.value || null;
       const selected = worlds.find((world) => world.worldId === newWorldId);
       if (selected) {
-        const compatibility = resolveContractBaselineWorldCompatibility(selected);
+        const compatibility =
+          resolveContractBaselineWorldCompatibility(selected);
         if (!compatibility.compatible) {
           setError(compatibility.message);
           event.currentTarget.value = worldId || '';
@@ -524,6 +524,15 @@ export function WorldSelector({
             ))}
           </select>
         </div>
+        {currentWorld?.simulationFinancialBaseline?.classification ===
+          'SIMULATION' && (
+          <span
+            className="text-[10px] text-amber-200 pl-0.5"
+            title="Unidentified grievance exposure and first-round Required Tenders are assumed not applicable where recorded. Known liabilities and NBA rules still apply. This is not certified historical compliance."
+          >
+            SIMULATION · Public data with disclosed financial assumptions
+          </span>
+        )}
         {!isWorldBacked && (
           <span className="text-[10px] text-white/40 pl-0.5">
             {SANDBOX_HELPER_COPY}
@@ -534,11 +543,20 @@ export function WorldSelector({
             className="text-[10px] text-emerald-200/70 pl-0.5"
             data-testid="contract-baseline-status"
           >
-            {currentContractCompatibility.metadata.contractBaselineCoverage.total}{' '}
+            {
+              currentContractCompatibility.metadata.contractBaselineCoverage
+                .total
+            }{' '}
             baseline contracts ·{' '}
-            {currentContractCompatibility.metadata.contractBaselineCoverage.needsInput}{' '}
+            {
+              currentContractCompatibility.metadata.contractBaselineCoverage
+                .needsInput
+            }{' '}
             need source details · release{' '}
-            {currentContractCompatibility.metadata.contractSourceRelease.releaseVersion}
+            {
+              currentContractCompatibility.metadata.contractSourceRelease
+                .releaseVersion
+            }
           </span>
         )}
         {isWorldBacked &&
@@ -832,7 +850,10 @@ function WorldModal({
             {error}
           </p>
         ) : submitDisabled ? (
-          <p className="mt-3 text-xs text-white/40" data-testid="world-modal-hint">
+          <p
+            className="mt-3 text-xs text-white/40"
+            data-testid="world-modal-hint"
+          >
             Enter a name to continue.
           </p>
         ) : null}

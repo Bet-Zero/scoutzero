@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SimulationFinancialAssumptionsZ } from './simulationFinancialAssumptions';
 import { SoftwareSeasonContextZ } from './softwareSeasonContext';
 import { JsonValueZ } from './common';
 import { GovernedUnsignedFirstRoundPickStateZ } from './governedIncompleteRosterCharge';
@@ -33,9 +34,7 @@ export const SeasonCloseApronMeasurementZ = z
         measurementRecordVersion: z.number().int().min(1),
         authority: z.enum(['official', 'external-determination']),
         identity: z.string().min(1),
-        sourceField: z.literal(
-          'apronTeamSalaryAtStartOfLastRegularSeasonGame'
-        ),
+        sourceField: z.literal('apronTeamSalaryAtStartOfLastRegularSeasonGame'),
         sourceArtifactSha256: z.string().regex(/^[0-9a-f]{64}$/),
         retainedArtifactPath: z.string().min(1),
         retrievedAt: ZonedInstantZ,
@@ -96,7 +95,12 @@ export const SalaryLedgerKindZ = z.enum([
 
 export const SalaryLedgerSourceZ = z
   .object({
-    authority: z.enum(['canon', 'team-state', 'external-determination']),
+    authority: z.enum([
+      'canon',
+      'team-state',
+      'external-determination',
+      'simulation-assumption',
+    ]),
     reference: z.string().min(1),
   })
   .strict();
@@ -159,6 +163,7 @@ export const TeamSalaryBookInputsZ = z
     unsignedFirstRoundPickState:
       GovernedUnsignedFirstRoundPickStateZ.optional(),
     incompleteRosterCharge: SalaryLedgerLineItemZ.optional(),
+    simulationAssumptions: SimulationFinancialAssumptionsZ.optional(),
     apronAdjustments: SalaryLedgerInputZ,
     taxSalary: SalaryLedgerInputZ,
   })

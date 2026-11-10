@@ -28,6 +28,13 @@ service cloud.firestore {
         : !('contractBaselineVersion' in request.resource.data);
     }
 
+    function preservesSimulationFinancialMetadata() {
+      return ('simulationFinancialBaseline' in resource.data)
+        ? ('simulationFinancialBaseline' in request.resource.data
+          && request.resource.data.simulationFinancialBaseline == resource.data.simulationFinancialBaseline)
+        : !('simulationFinancialBaseline' in request.resource.data);
+    }
+
     function preservesGovernedDraftMetadata() {
       return ('draftBaseline' in resource.data)
         ? ('draftBaseline' in request.resource.data
@@ -186,6 +193,7 @@ service cloud.firestore {
         && preservesDraftInventoryFence()
         && preservesGovernedContractMetadata()
         && preservesGovernedDraftMetadata()
+        && preservesSimulationFinancialMetadata()
         && preservesPartialBranchCleanupClaim()
         && preservesFinalizedChildLineage(worldId);
       allow delete: if false;

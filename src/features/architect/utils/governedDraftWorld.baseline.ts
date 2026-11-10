@@ -23,6 +23,22 @@ export function validateGovernedDraftBaseline(
   input: unknown
 ): GovernedDraftWorldBaseline {
   const baseline = GovernedDraftWorldBaselineZ.parse(input);
+  if (
+    baseline.classification === 'qualified-source' &&
+    Object.values(baseline.initialTeams).some(
+      (team) =>
+        JSON.stringify(team.salaryBookInputs ?? null).includes(
+          'simulation-assumption'
+        ) ||
+        JSON.stringify(team.salaryBookInputs ?? null).includes(
+          'simulationAssumptions'
+        )
+    )
+  ) {
+    throw new Error(
+      'SIMULATION assumptions cannot certify a qualified historical source.'
+    );
+  }
   const ids = baseline.records.map((r) => String(r.entitlement.id));
   if (
     new Set(baseline.identities).size !== baseline.identities.length ||

@@ -1,3 +1,4 @@
+import { resolveSimulationApronInputs } from './simulationFinancialAssumptions';
 import {
   teamSoftwareSeason,
   softwareSeasonRegistry,
@@ -446,7 +447,7 @@ export function computeTeamSalaryBooks(
       | undefined
   );
   const apronInput = apronSalaryInput(
-    inputs?.apronAdjustments,
+    resolveSimulationApronInputs(inputs, teamCode, asOfDate),
     teamInput,
     asOfDate,
     teamId,
