@@ -413,7 +413,7 @@ export async function twoWayMixedJourney(page: Page, proofDir: string) {
     expect(team!.players.filter(isTwoWayTradePlayer)).toHaveLength(
       expectedTwoWays
     );
-    expect(team!.twoWayPlayers).toHaveLength(expectedTwoWays);
+    expect(team).not.toHaveProperty('twoWayPlayers');
     expect(team!.roster.includes(twoWayId)).toBe(!i);
     expect(team!.totals.teamSalary).toBe(
       original.totals.teamSalary + (i ? 29720 : -29720)

@@ -335,10 +335,9 @@ export function buildPostTradeTeamsSnapshot({
     ];
 
     updatedTeam.players = updatedPlayers;
-    if (
-      Array.isArray(team.twoWayPlayers) ||
-      updatedPlayers.some(isTwoWayTradePlayer)
-    ) {
+    // Maintain an existing runtime list; canonical persistence uses players and
+    // roster. Do not introduce a second roster field into saved team documents.
+    if (Array.isArray(team.twoWayPlayers)) {
       const merged = [
         ...(Array.isArray(team.twoWayPlayers) ? team.twoWayPlayers : []).filter(
           (player: AnyRecord) => {

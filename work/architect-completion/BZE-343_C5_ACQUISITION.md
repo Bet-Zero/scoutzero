@@ -38,8 +38,9 @@ Two-Way-only consideration needs no salary election. A mixed standard/Two-Way
 package still elects the standard Contracts' exact amounts. The resulting
 standard-player exceptions must equal the otherwise identical trade without the
 Two-Way; the Two-Way itself creates and consumes none. Retained cash pay and
-future Contract terms remain intact. The writer derives complete Two-Way roster
-membership from Contract types, including teams without a separate list.
+future Contract terms remain intact. Canonical saved roster/player records retain
+Two-Way membership and types. Existing runtime lists are maintained from Contract
+types, without adding a separate roster field to the persistence contract.
 
 Remaining source conditions include authentic prior same-team Two-Way history,
 the unchanged team financial qualification, and already registered draft/date
@@ -54,6 +55,14 @@ minutes on a fresh harness, including the later transfer and exact stale-history
 commit rejection. The existing certificate also runs the unchanged Room/held-TPE
 journey and negative matrix; final exact-head receipts and landing live on the PR
 and BZE-243. No local diagnostic is represented as independent acceptance.
+
+Selected CI caught the initial attempt to persist a second Two-Way roster list.
+The correction preserves canonical player/roster membership and the strict
+allowlist, instead of extending the stored schema. Existing season/history fence
+and player-override tests are part of the repair validation. The superseded
+certificate was stopped; replacement-head certification follows a fresh complete
+diagnostic. The corrected complete diagnostic passed in 4.0 minutes, and all five
+reported CI failures passed in the focused repair checks.
 
 Parent: BZE-243. Delivery: [PR #616](https://github.com/Bet-Zero/scoutzero/pull/616). Base: `ab10f530d839899d34457e34810176e51a5898a2`
 (delivered C4, PR #615); hosted main validation run `42184203314` passed.
