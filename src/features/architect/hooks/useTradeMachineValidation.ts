@@ -7,6 +7,7 @@
  */
 
 import { useCallback } from 'react';
+import { normalizeDraftSelectionTeamAliases } from '../utils/tradeContext/tradeContext.payloadNormalization';
 import { toSeasonKey } from '@/features/architect/utils/seasonFormat';
 import {
   buildTradeApplyPreparation,
@@ -158,9 +159,11 @@ export function useTradeMachineValidation({
       const payload: TradeContextPayload = {
         teams: activeTeams.map((slot) => ({
           teamCode: String(slot.team.teamCode || slot.team.id || ''),
-          teamId: String(slot.team.id || slot.team.teamCode || ''),
+          teamId: String(slot.team.teamCode || slot.team.id || ''),
           sends: slot.sends,
-          entitlementsOut: slot.entitlementsOut || [],
+          entitlementsOut: (slot.entitlementsOut || []).map(
+            normalizeDraftSelectionTeamAliases
+          ),
           salaryMatchingElection: slot.salaryMatchingElection ?? null,
           cashSent: slot.cashSent ?? 0,
           cashToTeamId: slot.cashToTeamId ?? null,
@@ -337,7 +340,7 @@ export function useTradeMachineValidation({
     ): 'insufficient' | 'started' => {
       const validationGeneration = validationGenerationRef.current + 1;
       validationGenerationRef.current = validationGeneration;
-      const previewContext = buildCurrentTradePreviewContext(
+      let previewContext = buildCurrentTradePreviewContext(
         governedSignAndTradeAuthority
       );
       if (!previewContext) {
@@ -352,20 +355,55 @@ export function useTradeMachineValidation({
       setIsValidating(true);
       // Defer the synchronous compute one tick so React can paint the
       // "Validating…" state before the results land.
-      setTimeout(() => {
+      setTimeout(async () => {
         if (validationGenerationRef.current !== validationGeneration) return;
 
         try {
-          const outcome = runValidation(previewContext);
+          let sourceError: string | null = null;
+          let governedFixture = false;
+          if (
+            previewContext!.payload.tradeCtx?.worldId &&
+            previewContext!.payload.teams.some((t) =>
+              (t.entitlementsOut ?? []).some((e) => e.round === 1)
+            )
+          ) {
+            try {
+              const { prepareGovernedDraftWorldPreview } = await import(
+                '../utils/governedDraftWorld.preview'
+              );
+              const governed = await prepareGovernedDraftWorldPreview(
+                previewContext!.payload,
+                previewContext!.seasonId
+              );
+              if (governed) {
+                previewContext = { ...previewContext!, ...governed };
+                governedFixture = true;
+              }
+            } catch (error) {
+              sourceError =
+                error instanceof Error
+                  ? error.message
+                  : 'Saved-world draft inputs are unavailable.';
+            }
+            if (validationGenerationRef.current !== validationGeneration)
+              return;
+          }
+          const outcome = runValidation(previewContext!);
           if (outcome) {
             try {
               const previewAuthority = getTradePreviewAuthority({
-                payload: previewContext.payload,
-                currentState: previewContext.currentState,
-                seasonId: previewContext.seasonId,
-                preparation: previewContext.preparation,
+                payload: previewContext!.payload,
+                currentState: previewContext!.currentState,
+                seasonId: previewContext!.seasonId,
+                preparation: previewContext!.preparation,
               });
-              setPreviewAuthority(previewAuthority);
+              setPreviewAuthority({
+                ...previewAuthority,
+                ...(governedFixture
+                  ? { dataClassification: 'software-fixture' as const }
+                  : {}),
+                ...(sourceError ? { legal: false, reason: sourceError } : {}),
+              });
               // Record the identity only after top-level preview authority was
               // constructed for this completed validation.
               lastValidatedDraftKeyRef.current = currentDraftKey;

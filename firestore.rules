@@ -28,6 +28,13 @@ service cloud.firestore {
         : !('contractBaselineVersion' in request.resource.data);
     }
 
+    function preservesGovernedDraftMetadata() {
+      return ('draftBaseline' in resource.data)
+        ? ('draftBaseline' in request.resource.data
+          && request.resource.data.draftBaseline == resource.data.draftBaseline)
+        : !('draftBaseline' in request.resource.data);
+    }
+
     function isOpenForClientWorldWrites(worldId) {
       return isWorldOwner(worldId)
         && !('partialBranchCleanupClaim' in get(/databases/$(database)/documents/architect_worlds/$(worldId)).data);
@@ -178,6 +185,7 @@ service cloud.firestore {
         && request.resource.data.createdBy == resource.data.createdBy
         && preservesDraftInventoryFence()
         && preservesGovernedContractMetadata()
+        && preservesGovernedDraftMetadata()
         && preservesPartialBranchCleanupClaim()
         && preservesFinalizedChildLineage(worldId);
       allow delete: if false;
@@ -348,6 +356,11 @@ service cloud.firestore {
       // Governed roots are created only by initializeArchitectWorld through the
       // Admin SDK. Browsers can read their own shards but can never author them.
       match /contractBaselines/{shardId} {
+        allow read: if isWorldOwner(worldId);
+        allow create, update, delete: if false;
+      }
+
+      match /draftBaselines/{shardId} {
         allow read: if isWorldOwner(worldId);
         allow create, update, delete: if false;
       }

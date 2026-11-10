@@ -129,3 +129,5 @@ export const RANKER_SESSIONS_COLLECTION = 'rankerSessions';
  * Stores saved 5/4/6 roster builder snapshots.
  */
 export const ROSTER_PROJECTS_COLLECTION = 'rosterProjects';
+
+export const ARCHITECT_WORLD_DRAFT_BASELINES_SUBCOLLECTION = 'draftBaselines';

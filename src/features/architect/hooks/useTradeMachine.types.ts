@@ -70,7 +70,10 @@ export type EntitlementOverrideDocument = UnknownRecord & {
 
 // Wave 29 Step 1: private types extracted from useTradeMachine.ts
 
-export type TradeMachinePreviewAuthority = FullLegalityPreviewResult;
+export type TradeMachinePreviewAuthority = FullLegalityPreviewResult & {
+  /** Display provenance only; never consumed as mutation authority. */
+  dataClassification?: 'software-fixture';
+};
 
 export type TradeMachineSnapshotValidationDetails = UnknownRecord & {
   teamResults?: unknown[] | null;

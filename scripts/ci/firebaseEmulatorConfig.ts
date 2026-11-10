@@ -110,3 +110,8 @@ export { db, auth, functions };
 // Generic emulator integration tests retain the default Apply boundary.
 // Only the separately governed review harness can enable synthetic consumption.
 export const isSyntheticDraftReviewEnvironment = (): boolean => false;
+
+// Pinned ordinary-world software inputs, only on an actually connected demo emulator.
+export const isGovernedDraftFixtureEnvironment = (): boolean =>
+  firebaseConfig.projectId.startsWith('demo-') &&
+  ['127.0.0.1', 'localhost', '::1'].includes(emulatorHost);

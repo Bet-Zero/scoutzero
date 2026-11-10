@@ -335,8 +335,8 @@ describe('Phase 64: Source-scan guardrails for mutation pipeline', () => {
     );
     const builderSection = source.slice(builderStart, builderEnd);
 
-    expect(builderSection).toContain(
-      'buildGeneralMutationCommittedTeamSnapshot(update.team, seasonId, asOfDate)'
+    expect(builderSection).toMatch(
+      /buildGeneralMutationCommittedTeamSnapshot\(\s*update\.team,\s*seasonId,\s*asOfDate\s*\)/
     );
 
     const persistStart = source.indexOf('async function persistWorldMutation');

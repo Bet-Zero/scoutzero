@@ -72,6 +72,19 @@ stalled Function cannot leave a detached emulator running or kill another job.
 
 ## Actual live refresh and scope
 
+For the BZE-345 ordinary-world draft integration proof, start the same local
+launcher with `SCOUTZERO_GOVERNED_DRAFT_FIXTURE=software-normal-world-original-firsts-v1`.
+New worlds created through the ordinary trusted callable are visibly named
+`Software fixture — …` and contain separately stipulated BOS/MIA/NYK books and
+21 original rights. They do not replace or authenticate the retained 278 real
+identities or 29 unresolved mappings. Run
+`npx playwright test tests/e2e/architect-normal-draft-world.spec.ts` against that
+running launcher. No protected review manifest, private connection or operation
+approval is needed for these local software inputs. The default initializer
+installs no draft baseline; production fixture selection is rejected. Existing
+worlds are not migrated, and branching these new draft worlds remains closed
+until a qualified custody-copy implementation exists.
+
 A database capture is **not** independent qualification of current basketball
 facts. All live pages and player descendants use one Firestore `readTime`, and
 server update times are reported separately from collection time.
@@ -132,14 +145,14 @@ publisher or change its protected workflow/trust for development.
 
 ## Coverage and failure behavior
 
-| Feature/dependency | Copied source | Readiness boundary |
-| --- | --- | --- |
-| Players, profile, Lists and ranking input | `players_v2`, `contracts`, `seasons`, `views` | Lists writes use emulator-only accounts; profile validation can still expose old source/schema gaps |
-| Architect roster/cap/free-agency input | `architect_basePlayers`, `architect_baseTeams` | Relationships and money/source coverage remain independently checked; free-agent computation uses base players |
-| Entitlements and pick rules | `architect_baseEntitlements`, `architect_basePickRules` | Live anonymous reader is denied; legacy 658 definitions are not the accepted 278 inventory |
-| Governed new-world contracts | Existing Functions trusted release asset | Preserve its accepted pin; a database refresh does not migrate contract baselines or saved worlds |
-| Pending draft hosted review | PR #547's separately versioned release manifest and parts | Not read by current main's core workflow; retain its installed five-document release and separate access/publication gates |
-| Lists, tier lists, ranker sessions, worlds, roster projects, free-agent utility records, evaluations | Excluded production user content | Create safe emulator accounts/worlds; never mirror private user content |
+| Feature/dependency                                                                                   | Copied source                                             | Readiness boundary                                                                                                         |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Players, profile, Lists and ranking input                                                            | `players_v2`, `contracts`, `seasons`, `views`             | Lists writes use emulator-only accounts; profile validation can still expose old source/schema gaps                        |
+| Architect roster/cap/free-agency input                                                               | `architect_basePlayers`, `architect_baseTeams`            | Relationships and money/source coverage remain independently checked; free-agent computation uses base players             |
+| Entitlements and pick rules                                                                          | `architect_baseEntitlements`, `architect_basePickRules`   | Live anonymous reader is denied; legacy 658 definitions are not the accepted 278 inventory                                 |
+| Governed new-world contracts                                                                         | Existing Functions trusted release asset                  | Preserve its accepted pin; a database refresh does not migrate contract baselines or saved worlds                          |
+| Pending draft hosted review                                                                          | PR #547's separately versioned release manifest and parts | Not read by current main's core workflow; retain its installed five-document release and separate access/publication gates |
+| Lists, tier lists, ranker sessions, worlds, roster projects, free-agent utility records, evaluations | Excluded production user content                          | Create safe emulator accounts/worlds; never mirror private user content                                                    |
 
 Use `npm run architect:proof:trade-receipt -- --real-draft` for retained
 first-round validation proof, with the existing private release and scenario
@@ -461,12 +474,12 @@ conditional commit and restores original fields with fresh preconditions.
 Lost raw inputs are not invented from remembered facts. Native Node/tsx imports
 avoid this executor's tsx CLI IPC EPERM; batch staging now exits nonzero on failure.
 
-| Existing operation | Inputs/recovery requirement | Publication boundary |
-| --- | --- | --- |
-| Player contracts / `contracts:run` | SalarySwish pages, player index; optional original raw captures | Existing parser/stager/validators; qualified inputs and reviewed record-level plan required |
-| NBA IDs/bios builders and shared `maintenance:collect` | Existing NBA endpoint access and retained index/season outputs | Capture freshness and schema checks do not authorize a source write |
-| Team fetch/parse/merge/stage | SalarySwish team data, player index and explicit retained team artifacts | Do not manufacture missing draft inputs or overwrite draft membership in an ordinary team update |
-| RealGM and `pst:*` fetch/extract/build/validate | Authorized source pages/session and privately retained generated artifacts | Legacy seed/push commands are not an accepted first-round publisher; preserve 278/29 and BZE-321 gates |
+| Existing operation                                     | Inputs/recovery requirement                                                | Publication boundary                                                                                   |
+| ------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Player contracts / `contracts:run`                     | SalarySwish pages, player index; optional original raw captures            | Existing parser/stager/validators; qualified inputs and reviewed record-level plan required            |
+| NBA IDs/bios builders and shared `maintenance:collect` | Existing NBA endpoint access and retained index/season outputs             | Capture freshness and schema checks do not authorize a source write                                    |
+| Team fetch/parse/merge/stage                           | SalarySwish team data, player index and explicit retained team artifacts   | Do not manufacture missing draft inputs or overwrite draft membership in an ordinary team update       |
+| RealGM and `pst:*` fetch/extract/build/validate        | Authorized source pages/session and privately retained generated artifacts | Legacy seed/push commands are not an accepted first-round publisher; preserve 278/29 and BZE-321 gates |
 
 No production publication is executed here. Independently qualified original
 inputs, exact before/after review, change-specific production approval and fresh

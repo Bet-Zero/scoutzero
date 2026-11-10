@@ -90,6 +90,7 @@ export function canPreserveDraftTradeFinances(
         'receives',
         'picksOut',
         'entitlementsOut',
+        'outgoingEntitlements',
         'cashSent',
         'cashReceived',
         'cashToTeamId',
@@ -111,6 +112,11 @@ export function canPreserveDraftTradeFinances(
     )
       return false;
     if (!Array.isArray(team.entitlementsOut)) return false;
+    if (
+      team.outgoingEntitlements != null &&
+      !same(team.outgoingEntitlements, team.entitlementsOut)
+    )
+      return false;
     const before = currentState.teams[index].team;
     const inventory = Array.isArray(before.entitlements)
       ? before.entitlements

@@ -9,6 +9,8 @@
  */
 
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
+import { TeamSlugToCode } from '@/constants/teamList';
+
 import { isOffseasonAsOfDate } from '@/features/architect/utils/buildRuleContext.helpers';
 import type { SignAndTradePlayerLike } from '@/features/architect/utils/tradeMachine/signAndTrade/signAndTradeEligibility';
 import type {
@@ -28,6 +30,24 @@ import type {
   TradeContextValidationPlayer,
   ValidationTeam,
 } from './types';
+
+/** Convert known UI team aliases without dropping any unrecognized source terms. */
+export function normalizeDraftSelectionTeamAliases<
+  T extends { fromTeamId?: unknown; toTeamId?: unknown },
+>(value: T): T {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const canonical = (id: unknown) =>
+    typeof id === 'string'
+      ? (TeamSlugToCode[id as keyof typeof TeamSlugToCode] ?? id)
+      : id;
+  return {
+    ...value,
+    ...(value.fromTeamId != null
+      ? { fromTeamId: canonical(value.fromTeamId) }
+      : {}),
+    ...(value.toTeamId != null ? { toTeamId: canonical(value.toTeamId) } : {}),
+  };
+}
 
 export const LIVE_GOVERNED_TRADE_SALARY_AUTHORITY = Symbol.for(
   'scoutzero.liveGovernedTradeSalaryAuthority'

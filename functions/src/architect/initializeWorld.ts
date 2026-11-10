@@ -19,6 +19,7 @@ import {
   trustedContractBaselineMetadata,
   type TrustedContractReleasePin,
 } from './trustedContractBaseline';
+import { loadTrustedDraftBaseline } from './trustedDraftBaseline';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -252,8 +253,7 @@ function branchWorldMetadata(args: {
     );
   }
   const asOfDate = args.parent.asOfDate;
-  const releaseEffectiveAt =
-    args.contractMetadata.contractBaselineEffectiveAt;
+  const releaseEffectiveAt = args.contractMetadata.contractBaselineEffectiveAt;
   if (
     typeof asOfDate !== 'string' ||
     !DATE_ONLY_PATTERN.test(asOfDate) ||
@@ -358,6 +358,7 @@ export const initializeArchitectWorld = onCall(
       let metadata: JsonRecord;
       let documents;
       let trustedMetadata: JsonRecord;
+      let draftBaseline: ReturnType<typeof loadTrustedDraftBaseline> = null;
       if (parentWorldId) {
         const parentRef = db
           .collection(ARCHITECT_WORLDS_COLLECTION)
@@ -374,6 +375,12 @@ export const initializeArchitectWorld = onCall(
           throw new HttpsError(
             'permission-denied',
             'You do not have permission to branch this world.'
+          );
+        }
+        if (parent.draftBaseline != null) {
+          throw new HttpsError(
+            'failed-precondition',
+            'Branching a governed draft baseline requires a qualified custody-copy route. The parent is unchanged.'
           );
         }
         const release = loadTrustedContractRelease(
@@ -421,9 +428,28 @@ export const initializeArchitectWorld = onCall(
           releaseEffectiveAt: release.effectiveAt,
           contractMetadata: trustedMetadata,
         });
+        draftBaseline = loadTrustedDraftBaseline();
+        if (draftBaseline) {
+          if (
+            draftBaseline.baseline.asOf !== release.effectiveAt ||
+            draftBaseline.baseline.seasonId !== season
+          )
+            throw new Error('Draft and Contract baseline dates differ.');
+          Object.assign(metadata, {
+            draftBaseline: draftBaseline.metadata,
+            draftInventoryRevision: 0,
+            draftWorldTransfers: [],
+            worldName: `Software fixture — ${worldName}`,
+          });
+        }
       }
 
-      if (documents.length + 1 > 500) {
+      const draftWrites = draftBaseline
+        ? 1 +
+          Object.keys(draftBaseline.baseline.initialTeams).length +
+          Object.keys(draftBaseline.baseline.retainedEntitlements).length
+        : 0;
+      if (documents.length + 1 + draftWrites > 500) {
         throw new Error('Governed contract baseline exceeds one atomic batch.');
       }
       const batch = db.batch();
@@ -435,6 +461,23 @@ export const initializeArchitectWorld = onCall(
             .doc(document.shardId),
           document
         );
+      }
+      if (draftBaseline) {
+        batch.create(worldRef.collection('draftBaselines').doc('root'), {
+          worldId,
+          release: draftBaseline.baseline,
+        });
+        for (const [code, team] of Object.entries(
+          draftBaseline.baseline.initialTeams
+        ))
+          batch.create(worldRef.collection('teams').doc(code), team);
+        for (const [id, entitlement] of Object.entries(
+          draftBaseline.baseline.retainedEntitlements
+        ))
+          batch.create(
+            worldRef.collection('entitlements').doc(id),
+            entitlement
+          );
       }
       await batch.commit();
       return {
