@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import { formatCurrency } from '@/features/architect/utils/tradeHelpers';
 import {
   createEmptyTradeSalaryMatchingElection,
@@ -136,6 +137,13 @@ export const TradeSalaryPathElection = ({
             </div>
             {outgoingPlayers.map((player) => {
               const id = playerId(player);
+              if (isTwoWayTradePlayer(player))
+                return (
+                  <div key={id} className="text-[11px] text-cockpit-text-muted">
+                    {playerName(player)} · Two-Way: excluded from salary
+                    matching
+                  </div>
+                );
               return (
                 <label
                   key={id}

@@ -68,12 +68,14 @@ export const GovernedTradeSalaryBasisZ = z
         'ordinary-protection',
         'january-8-deemed-full',
         'postseason-lesser-of',
+        'two-way-exclusion',
       ])
       .nullable(),
     currentSalary: MoneyZ.nullable(),
     outgoingSalary: MoneyZ.nullable(),
     incomingSalary: MoneyZ.nullable(),
     poisonPillIncomingSalary: MoneyZ.nullable(),
+    twoWayContractEndYear: z.number().int().optional(),
     canonLeafIds: z.array(NonEmptyStringZ),
     reasons: z.array(NonEmptyStringZ),
     proof: GovernedTradeSalaryBasisProofZ.nullable(),
@@ -102,6 +104,23 @@ export const GovernedTradeSalaryBasisZ = z
         code: 'custom',
         path: ['reasons'],
         message: 'must be empty when governed salary-basis authority is ready',
+      });
+    }
+    if (
+      value.method === 'two-way-exclusion' &&
+      (value.outgoingSalary !== 0 ||
+        value.incomingSalary !== 0 ||
+        value.poisonPillIncomingSalary !== null ||
+        value.twoWayContractEndYear == null ||
+        value.twoWayContractEndYear < value.salaryCapYear ||
+        value.twoWayContractEndYear > value.salaryCapYear + 1 ||
+        !value.canonLeafIds.includes('CBA2-A02.14'))
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['method'],
+        message:
+          'Two-Way exclusion requires zero matching salary and its Canon authority',
       });
     }
   });

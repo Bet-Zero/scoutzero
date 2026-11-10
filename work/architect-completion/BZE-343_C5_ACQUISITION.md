@@ -1,5 +1,60 @@
 # C5 — existing-Contract acquisition in mixed trades
 
+## November 10 continuation under BZE-243: Two-Way mixed trading
+
+Owner-authorized next required W9/W10 capability after the bounded BZE-345
+financial investigation stopped. Base `f7b2bc140a779d13395f503f145313218debc6ab`
+(PR #628); hosted main CI `42788729920` passed. Consequential legality and
+persistence work: use current governed Contract type/identity for the Two-Way
+salary exclusion across the four already admitted mixed paths, with no TPE
+creation/use or invented cash pay. Preserve signing/expiring-Contract restrictions,
+list room, standing financial/apron/Stepien validation and source/date admission.
+
+Author proof covers type/identity forgery, stale or unavailable authority, explicit
+destinations, zero matching/no TPE, unchanged standard matching, expiring versus
+continuing Contracts, signing timing and missing inputs, full Two-Way lists,
+atomic save/no-write failures, receipts/export, reload and subsequent use. Reuse
+unchanged accepted draft lifecycle proof; test the affected player lifecycle.
+Require selected CI, a complete browser diagnostic at 1280×720, frozen
+exact-candidate browser proof, independent Claude ACCEPT, normal merge and main
+CI. Private raw source and browser evidence remain in the private workspace.
+
+BZE-345 stays open with its existing exact financial unblocking condition.
+This is a shared product capability, not real-source financial admission, a new
+source policy, production activation or final V1 completion. All 278 identities
+and the exact 29 unresolved mappings remain unchanged.
+
+The reusable admission also enforces CBA2-C20.16: complete prior same-team
+Two-Way Salary Cap Years plus the assigned Contract's current/future years must
+not exceed three. Missing, duplicate, wrong-world/year or stale history stays
+blocked. The protected world's explicitly stipulated history is loaded from its
+fenced metadata and retained in the review receipt; it is never authentic NBA
+history. A later Salary Cap Year requires refreshed coverage. Current Contract
+term, thirty-day timing, expiring-Contract and option restrictions use pinned
+CBA2-A02.14, L03.13/.14 and C20.11/.12; roster room remains A09.1/C20.1.
+No new signing, conversion or affiliate/game-usage capability is claimed.
+
+Two-Way-only consideration needs no salary election. A mixed standard/Two-Way
+package still elects the standard Contracts' exact amounts. The resulting
+standard-player exceptions must equal the otherwise identical trade without the
+Two-Way; the Two-Way itself creates and consumes none. Retained cash pay and
+future Contract terms remain intact. The writer derives complete Two-Way roster
+membership from Contract types, including teams without a separate list.
+
+Remaining source conditions include authentic prior same-team Two-Way history,
+the unchanged team financial qualification, and already registered draft/date
+admission. In-season final-term assignment remains needs-input without an exact
+governed trade deadline; a proven post-season final term is barred. This does not
+complete all C5 or W9/W10. The parent retains final validation and landing status.
+
+Author iteration completed: 252 focused Node tests, four UI tests, native
+workflow checks, typecheck/schema/Architect lint/build, project and changed
+Markdown checks passed. The complete new 1280×720 diagnostic passed in 4.3
+minutes on a fresh harness, including the later transfer and exact stale-history
+commit rejection. The existing certificate also runs the unchanged Room/held-TPE
+journey and negative matrix; final exact-head receipts and landing live on the PR
+and BZE-243. No local diagnostic is represented as independent acceptance.
+
 Parent: BZE-243. Delivery: [PR #616](https://github.com/Bet-Zero/scoutzero/pull/616). Base: `ab10f530d839899d34457e34810176e51a5898a2`
 (delivered C4, PR #615); hosted main validation run `42184203314` passed.
 The unchanged V1 completion contract and system-level completion plan govern.
@@ -56,7 +111,7 @@ complete passing diagnostic workflow and every holdings assertion.
 | No held TPE assignment in any mixed trade | Required shared gap: adapter rejects `absorptionMode`/`tpeId` before the existing salary/exception engines and atomic exception lifecycle can run. | Bind the selected exception to the actual recipient; existing engines decide legality and the existing writer consumes it. Exception selectors use the same expiry decision at the world date (including normalized legacy expiry fields), rather than the wall clock. |
 | Room combined with a held TPE on the same acquiring team; excess/expired/foreign exception; restricted apron use | Actual rules/input requirements, not removable adapter limits. CBA2-A02.2/.9/.10/.12 and existing exception/apron rules control. | Preserve fail-closed decisions. An exception is not transferable consideration. |
 | Poison-pill salary basis | Engine already calculates the distinct incoming value under CBA2-A03.5/.6/.10/.14, but the retained June 5 Contract release has no `tradeSalaryBasisEvidence` records. Exact extension event/timing and extended-term inputs are required. The adapter also has a categorical restriction. | Evidence-dependent shared gap; do not manufacture a ready Contract or claim real availability. Preserve the current stop until a complete eligible Contract can be carried through the mixed lifecycle proof. |
-| Two-Way Contract | Existing zero-matching, no-TPE and roster engines are present. The mixed adapter requires a ready ordinary salary basis and excludes Two-Ways. Two-Way current Contract identity, applicable assignment/eligibility, list capacity and continuing/expiring lifecycle need their own proof. | Required shared integration/proof gap, not a V1 exclusion or blanket NBA trade ban. Separate from this unchanged Standard-Contract acquisition capability. |
+| Two-Way Contract | The November 10 BZE-243 continuation above integrates current governed identity, zero matching/no TPE, exact standard elections, signing/term and prior same-team history gates, roster membership and the existing save/receipt/reload path across the four admitted mixed families. | Required shared integration implemented in the continuation; the parent records final review/landing. Authentic history/financial admission and unavailable exact deadlines remain evidence gates. No new signing/conversion/usage support or full C5 closure is claimed. |
 | Sign-and-trade / new Contract | Ordinary governed route exists; its state loader requires two teams and excludes draft entitlements/cash. Current mixed original/protection/ordered-option date is June 5; native resolved dates are before the July signing period. | Preserve real date/eligibility rules. A required compatible mixed route needs complete signing, receiving hard-cap and new-Contract lifecycle inputs at an admitted common date; no assumption that S&T belongs in each trade. |
 | Nonzero trade bonus without complete retained evidence | Explicit V1 exclusion in the completion contract. | Needs input before mutation; never assume zero. |
 | FA / minimum exception acquisition | `validateFaExceptionUsage.ts` has legacy bucket validation, but the mixed adapter accepts neither `FA_EXCEPTION` nor its bucket assignment. The atomic trade writer does not carry a governed FA-bucket consumption receipt analogous to the Standard TPE lifecycle. CBA2-C13.19 requires method-specific authority. | Required shared integration/qualification gap. A named bucket or a successful legacy preview is not established current balance, eligible acquisition method, hard-cap authority or atomic consumption. Not an approved exclusion. |

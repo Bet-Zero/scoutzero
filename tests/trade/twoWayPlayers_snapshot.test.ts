@@ -109,6 +109,34 @@ const makePlayer = (
 });
 
 describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
+  it('materializes the complete Two-Way list from retained Contract types when both lists were absent', () => {
+    const incoming = makePlayer('Incoming', {
+      contract: { contractType: 'Two-Way' },
+    });
+    const existing = makePlayer('Existing', {
+      contract: { contractType: 'Two-Way' },
+    });
+    const result = buildSnapshot(
+      { teams: [makePayloadTeam('LAL', [incoming]), makePayloadTeam('BOS')] },
+      {
+        teams: [
+          { teamCode: 'LAL', team: makeTeam('LAL', [incoming]) },
+          { teamCode: 'BOS', team: makeTeam('BOS', [existing]) },
+        ],
+      }
+    );
+    const receiver = getTeamUpdate(result, 'BOS').team;
+    expect(receiver.twoWayPlayers?.map((p) => p.player_id).sort()).toEqual([
+      'existing',
+      'incoming',
+    ]);
+    expect(receiver.players?.map((p) => p.player_id).sort()).toEqual([
+      'existing',
+      'incoming',
+    ]);
+    expect(receiver.roster?.sort()).toEqual(['existing', 'incoming']);
+    expect(getTeamUpdate(result, 'LAL').team.players).toEqual([]);
+  });
   it('removes outgoing two-way player from twoWayPlayers', () => {
     const twPlayer = makePlayer('Two Way Guy', { isTwoWay: true });
     const stdPlayer = makePlayer('Standard Guy');
@@ -182,7 +210,7 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
     expect(twIds.length).toBe(uniqueIds.length);
   });
 
-  it('does not invent twoWayPlayers when field is absent pre-trade', () => {
+  it('creates the Two-Way list from actual incoming membership when absent pre-trade', () => {
     const twPlayer = makePlayer('Two Way Guy', { isTwoWay: true });
 
     const payload = {
@@ -199,6 +227,8 @@ describe('buildPostTradeTeamsSnapshot — twoWayPlayers maintenance', () => {
     const result = buildSnapshot(payload, currentState);
 
     const bosUpdate = getTeamUpdate(result, 'BOS');
-    expect(bosUpdate.team).not.toHaveProperty('twoWayPlayers');
+    expect(
+      bosUpdate.team.twoWayPlayers?.map((player) => player.player_id)
+    ).toEqual(['two_way_guy']);
   });
 });

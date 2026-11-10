@@ -84,6 +84,7 @@ function fixture() {
     player,
     team,
     state: {
+      twoWayHistory: undefined as any,
       teams: [
         { teamCode: 'CHI', team },
         { teamCode: 'TOR', team: { roster: [], players: [] } },
@@ -92,6 +93,142 @@ function fixture() {
   };
 }
 describe('bounded ordinary player consideration', () => {
+  function twoWayFixture() {
+    const f = fixture();
+    f.player.contract.contractType = 'Two-Way';
+    Object.assign(f.player.governedTradeSalaryBasis, {
+      method: 'two-way-exclusion',
+      twoWayContractEndYear: 2027,
+      currentSalary: 636435,
+      outgoingSalary: 0,
+      incomingSalary: 0,
+      canonLeafIds: ['CBA2-A02.14'],
+    });
+    f.args.payload.teams[0].sends[0].contract = structuredClone(
+      f.player.contract
+    );
+    f.state.twoWayHistory = {
+      version: 1,
+      scope: 'governed-simulation-only',
+      worldId: 'w',
+      salaryCapYear: 2026,
+      coverage: 'complete-before-current-salary-cap-year',
+      records: ['TOR', 'MIA'].map((teamId) => ({
+        playerId: 'p',
+        teamId,
+        priorSalaryCapYears: [2025],
+      })),
+    };
+    for (const slot of f.args.payload.teams) slot.salaryMatchingElection = null;
+    return f;
+  }
+  it.each([
+    'unconditional',
+    'protection-programs',
+    'native-selections',
+    'ordered-swap-rights',
+  ])(
+    'admits a live governed Two-Way without a salary election in %s',
+    (branch) => {
+      const f = twoWayFixture();
+      expect(simulationPlayerMovements(f.args, branch, f.state)).toEqual([
+        { playerId: 'p', contractId: 'c', fromTeam: 'CHI', toTeam: 'TOR' },
+      ]);
+      // Only the standard Contract belongs in a mixed salary election.
+      const standard = structuredClone(fixture().player);
+      standard.id = standard.playerId = 'standard';
+      standard.governedTradeSalaryBasis.playerId = 'standard';
+      standard.governedTradeSalaryBasis.contractId = 'standard-contract';
+      f.team.players.push(standard);
+      f.team.roster.push('standard');
+      f.args.payload.teams[0].sends.push({ id: 'standard', tradeTo: 'TOR' });
+      f.args.payload.teams.forEach((slot: any, index: number) => {
+        slot.salaryMatchingElection = {
+          version: 1,
+          path: 'STANDARD_TPE',
+          postAssignmentApronTeamSalary: 170000000,
+          tradedPlayerPreTradeSalaries: index ? {} : { standard: 5000000 },
+        };
+      });
+      expect(simulationPlayerMovements(f.args, branch, f.state)).toHaveLength(
+        2
+      );
+      f.args.payload.teams[0].salaryMatchingElection.tradedPlayerPreTradeSalaries.p = 0;
+      expect(() => simulationPlayerMovements(f.args, branch, f.state)).toThrow(
+        /exactly the standard Contracts/
+      );
+    }
+  );
+  it('routes a Two-Way to an explicit third participant and rejects a conflicting destination', () => {
+    const f = twoWayFixture();
+    f.args.payload.teams.push({
+      teamCode: 'MIA',
+      sends: [],
+      salaryMatchingElection: null,
+    });
+    f.state.teams.push({ teamCode: 'MIA', team: { roster: [], players: [] } });
+    const proposed = f.args.payload.teams[0].sends[0];
+    proposed.tradeTo = 'MIA';
+    proposed.receivingTeamIndex = 2;
+    expect(
+      simulationPlayerMovements(f.args, 'unconditional', f.state)[0].toTeam
+    ).toBe('MIA');
+    proposed.receivingTeamId = 'TOR';
+    expect(() =>
+      simulationPlayerMovements(f.args, 'unconditional', f.state)
+    ).toThrow(/explicit destination/);
+  });
+  it.each([
+    'missing',
+    'fourth-year',
+    'wrong-world',
+    'wrong-year',
+    'duplicate',
+    'future-year',
+  ])('keeps %s same-team Two-Way history blocked', (mode) => {
+    const f = twoWayFixture();
+    const history = f.state.twoWayHistory;
+    if (mode === 'missing') f.state.twoWayHistory = undefined;
+    if (mode === 'fourth-year')
+      history.records[0].priorSalaryCapYears = [2024, 2025];
+    if (mode === 'wrong-world') history.worldId = 'another-world';
+    if (mode === 'wrong-year') history.salaryCapYear = 2027;
+    if (mode === 'duplicate')
+      history.records.push(structuredClone(history.records[0]));
+    if (mode === 'future-year') history.records[0].priorSalaryCapYears = [2027];
+    expect(() =>
+      simulationPlayerMovements(f.args, 'unconditional', f.state)
+    ).toThrow(/CBA2-C20.16/);
+  });
+  it.each([
+    'forged-type',
+    'standard-basis',
+    'unavailable',
+    'exception',
+    'matching-credit',
+  ])('rejects Two-Way %s', (mode) => {
+    const f = twoWayFixture();
+    const proposed = f.args.payload.teams[0].sends[0];
+    if (mode === 'forged-type') {
+      delete f.player.contract.contractType;
+      proposed.isTwoWay = true;
+    }
+    if (mode === 'standard-basis')
+      f.player.governedTradeSalaryBasis.method = 'postseason-lesser-of';
+    if (mode === 'unavailable') {
+      f.player.governedTradeSalaryBasis.status = 'needs-input';
+      f.player.governedTradeSalaryBasis.reasons = ['Expired Contract'];
+    }
+    if (mode === 'exception') {
+      proposed.absorptionMode = 'TPE';
+      proposed.tpeId = 'held';
+    }
+    if (mode === 'matching-credit')
+      f.player.governedTradeSalaryBasis.outgoingSalary = 636435;
+    expect(() =>
+      simulationPlayerMovements(f.args, 'unconditional', f.state)
+    ).toThrow();
+  });
   it('permits the existing Room path across admitted mixed assets and keeps exact salary authority', () => {
     const f = fixture();
     for (const slot of f.args.payload.teams)

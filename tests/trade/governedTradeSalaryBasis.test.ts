@@ -111,6 +111,8 @@ const calendar: GovernedCalendarResolution = {
 function state(
   salaries: ContractSalaryTerm[],
   overrides: {
+    contractType?: string;
+    signingDate?: string | null;
     signedUsing?: string;
     contractLength?: number;
     isExtension?: boolean;
@@ -130,6 +132,22 @@ function state(
     teamId: TEAM_ID,
     terms: {
       ...base.terms,
+      contractType: overrides.contractType ?? base.terms.contractType,
+      ...(overrides.contractType === 'Two-Way'
+        ? { endSeason: salaries.at(-1)?.season ?? null }
+        : {}),
+      ...(overrides.signingDate !== undefined
+        ? {
+            signingDate:
+              overrides.signingDate === null
+                ? { precision: 'unknown' as const, value: null, rawValue: null }
+                : {
+                    precision: 'date' as const,
+                    value: overrides.signingDate,
+                    rawValue: overrides.signingDate,
+                  },
+          }
+        : {}),
       signedUsing: overrides.signedUsing ?? 'Bird Exception',
       contractLength: overrides.contractLength ?? salaries.length,
       isExtension: overrides.isExtension ?? false,
@@ -189,6 +207,118 @@ function resolve(
 }
 
 describe('governed ordinary Trade Machine salary basis', () => {
+  it('authenticates a continuing Two-Way without inventing cash pay or requiring salary protection', () => {
+    const rows = [row('2026-27', 636435, 0), row('2027-28', 650000, 0)];
+    rows.forEach((term) => {
+      term.guaranteedAmount = null;
+    });
+    const result = resolve(
+      state(rows, {
+        contractType: 'Two-Way',
+        signingDate: '2026-07-10',
+      }),
+      '2027-06-05'
+    );
+    expect(result).toMatchObject({
+      status: 'ready',
+      method: 'two-way-exclusion',
+      contractId: CONTRACT_ID,
+      currentSalary: 636435,
+      outgoingSalary: 0,
+      incomingSalary: 0,
+      poisonPillIncomingSalary: null,
+    });
+    expect(result.proof?.stateDigest).toMatch(/^fnv1a64:/);
+    expect(result.canonLeafIds).toContain('CBA2-A02.14');
+    const ordinary = resolve(
+      state(rows, { signingDate: '2026-07-10' }),
+      '2027-06-05'
+    );
+    expect(ordinary.status).toBe('needs-input');
+  });
+  it.each([
+    [
+      'expired',
+      [row('2026-27', 636435)],
+      '2026-07-10',
+      '2027-06-05',
+      /expiring.*cannot be assigned/i,
+    ],
+    [
+      'missing-signing-date',
+      [row('2026-27', 636435), row('2027-28', 650000)],
+      null,
+      '2027-06-05',
+      /governed signing date/i,
+    ],
+    [
+      'recent-signing',
+      [row('2026-27', 636435), row('2027-28', 650000)],
+      '2027-02-20',
+      '2027-03-10',
+      /thirty days/i,
+    ],
+    [
+      'anniversary',
+      [row('2026-27', 636435), row('2027-28', 650000)],
+      '2027-02-20',
+      '2027-03-22',
+      /exact timing/i,
+    ],
+    [
+      'unqualified-deadline',
+      [row('2026-27', 636435)],
+      '2026-07-10',
+      '2027-02-20',
+      /governed trade deadline/i,
+    ],
+  ] as const)(
+    'keeps %s Two-Way assignment unavailable',
+    (_, rows, signingDate, date, reason) => {
+      const result = resolve(
+        state([...rows], { contractType: 'Two-Way', signingDate }),
+        date
+      );
+      expect(result.status).toBe('needs-input');
+      expect(result.reasons.join(' ')).toMatch(reason);
+      expect(result.outgoingSalary).toBeNull();
+    }
+  );
+  it('distinguishes missing continuing terms from a proved expiring Two-Way', () => {
+    const contract = state([row('2026-27', 636435)], {
+      contractType: 'Two-Way',
+      signingDate: '2026-07-10',
+    });
+    const incomplete = makeResultingState({
+      ...contract,
+      terms: { ...contract.terms, endSeason: '2027-28' },
+    });
+    const result = resolve(incomplete, '2027-06-05');
+    expect(result.status).toBe('needs-input');
+    expect(result.reasons.join(' ')).toMatch(
+      /missing next-season terms do not establish expiry/
+    );
+    expect(result.currentSalary).toBeNull();
+  });
+  it.each(['third-season', 'unknown-start', 'option-year'])(
+    'withholds Two-Way authority for %s terms',
+    (mode) => {
+      const contract = state(
+        [row('2026-27', 636435), row('2027-28', 650000)],
+        { contractType: 'Two-Way', signingDate: '2026-07-10' }
+      );
+      const terms = structuredClone(contract.terms);
+      if (mode === 'third-season') terms.startSeason = '2025-26';
+      if (mode === 'unknown-start') terms.startSeason = null;
+      if (mode === 'option-year') terms.salaries[1].option = 'TO';
+      const result = resolve(makeResultingState({ ...contract, terms }), '2027-06-05');
+      expect(result.status).toBe('needs-input');
+      expect(result.reasons.join(' ')).toMatch(
+        mode === 'option-year' ? /Option Year/ : /one or two Seasons/
+      );
+      expect(result.outgoingSalary).toBeNull();
+    }
+  );
   it('uses exact protected and earned Base Compensation before January 8', () => {
     const contractState = state(
       [

@@ -8,6 +8,33 @@ import { TradeSalaryPathElection } from '@/features/architect/tradeMachine/Trade
 afterEach(cleanup);
 
 describe('TradeSalaryPathElection owner-facing presentation', () => {
+  it('explains the Two-Way exclusion instead of asking for a matching amount', () => {
+    const players = [
+      { id: 'two-way', name: 'Two Way', contract: { contractType: 'Two-Way' } },
+      { id: 'standard', name: 'Standard' },
+    ];
+    render(
+      <TradeSalaryPathElection
+        outgoingPlayers={players}
+        onChange={vi.fn()}
+        election={{
+          version: 1,
+          path: 'STANDARD_TPE',
+          postAssignmentApronTeamSalary: null,
+          tradedPlayerPreTradeSalaries: {},
+        }}
+      />
+    );
+    expect(
+      screen.getByText(/Two Way · Two-Way: excluded from salary matching/)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Two Way exact pre-trade Salary')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Standard exact pre-trade Salary')
+    ).toBeInTheDocument();
+  });
   it('formats every entered salary as currency outside active editing', () => {
     render(
       <TradeSalaryPathElection

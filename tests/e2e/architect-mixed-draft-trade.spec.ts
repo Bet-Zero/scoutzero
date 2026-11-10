@@ -2,6 +2,7 @@ import { test, expect, type Page, type Locator } from '@playwright/test';
 import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
+import { twoWayMixedJourney } from './helpers/twoWayMixedJourney';
 import {
   getContractYearSlice,
   isTwoWayContract,
@@ -34,6 +35,12 @@ test.skip(
 const chi = 'ent:CHI:2028:1:own:2afbfb42';
 const tor = '';
 const proofDir = process.env.SCOUTZERO_BROWSER_PROOF_DIR ?? 'tmp/mixed-trades';
+test('Two-Way Contracts join mixed trades and remain usable after reload', async ({
+  page,
+}) => {
+  test.setTimeout(450000);
+  await twoWayMixedJourney(page, proofDir);
+});
 async function state(id: string) {
   const ref = getReviewAdminDb().doc(`architect_worlds/${id}`);
   return {
@@ -657,8 +664,10 @@ test('mixed ordinary players and originals use actual Trade Machine', async ({
       .getByRole('button', { name: /Trade Executed:/ });
     await expect(history).toHaveCount(2, { timeout: 30000 });
     if (team === 'ORL') {
-      const consumption = page.getByTestId('team-history-tpe-table')
-        .getByRole('row').filter({ hasText: 'TPE_CONSUMED' });
+      const consumption = page
+        .getByTestId('team-history-tpe-table')
+        .getByRole('row')
+        .filter({ hasText: 'TPE_CONSUMED' });
       await expect(consumption).toContainText('$8,000,000');
       await expect(consumption).toContainText('$220,280 remaining');
       await expect(consumption).toContainText(/Tre Jones/i);

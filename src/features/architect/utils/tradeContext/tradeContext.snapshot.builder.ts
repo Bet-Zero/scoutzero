@@ -5,6 +5,7 @@
 
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
+import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import {
   isSignAndTradeEligible,
   resolveSignAndTradeContractPayload,
@@ -319,7 +320,7 @@ export function buildPostTradeTeamsSnapshot({
       ...incomingPlayerIds,
     ];
 
-    updatedTeam.players = [
+    const updatedPlayers = [
       ...(Array.isArray(team.players) ? team.players : []).filter(
         (player: AnyRecord) => {
           const playerId = getTradePayloadPlayerId(player);
@@ -333,14 +334,20 @@ export function buildPostTradeTeamsSnapshot({
       })),
     ];
 
-    if (Array.isArray(team.twoWayPlayers)) {
+    updatedTeam.players = updatedPlayers;
+    if (
+      Array.isArray(team.twoWayPlayers) ||
+      updatedPlayers.some(isTwoWayTradePlayer)
+    ) {
       const merged = [
-        ...team.twoWayPlayers.filter((player: AnyRecord) => {
-          const playerId = getTradePayloadPlayerId(player);
-          return !outgoingPlayerIds.includes(playerId || '');
-        }),
-        ...incomingPlayers
-          .filter((player) => player.isTwoWay === true)
+        ...(Array.isArray(team.twoWayPlayers) ? team.twoWayPlayers : []).filter(
+          (player: AnyRecord) => {
+            const playerId = getTradePayloadPlayerId(player);
+            return !outgoingPlayerIds.includes(playerId || '');
+          }
+        ),
+        ...updatedPlayers
+          .filter(isTwoWayTradePlayer)
           .map((player) => ({ ...player, teamCode, teamName: team.teamName })),
       ];
       const seen = new Set<string>();
