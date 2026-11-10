@@ -185,3 +185,84 @@ Moving to June 7 would align the team scrape date but would not resolve conflict
 balances, absent exposure facts, historic freeze/tax predicates or Contract/draft
 continuity. No better starting date is established. All 278 identities and exact
 29 unresolved mappings, accepted Contracts and production boundaries are unchanged.
+
+## November 10: owner-priority SIMULATION admission
+
+The later BZE-345 owner decision and BZE-243 priority clarification supersede the
+historical-only restriction **for simulation premises only**. PR629 remains
+accepted for its Two-Way scope. The closed historical investigation is not reopened.
+
+Risk class: consequential financial input admission, world initialization and
+persistence. Required proof: focused positive/adverse input cases, unchanged
+hard-cap evaluation, real local callable creation/reload, protected metadata,
+selected diff CI, and exact-candidate independent Claude review. No production
+source publication, first-round activation, migration or provider work is included.
+
+`simulationAssumptions` in `salaryBookInputs` names only C07.4 and C07.8, the team,
+starting day, evidence check time/references, reconciled-input digest and incident
+signals. Runtime derives separately labeled zero-valued `simulation-assumption`
+rows; retained factual rows are never overwritten. Known rows cannot be assumed
+away. Credible unresolved signals (including unknown effective dates) block;
+later-effective events are retained without backdating. A different world day
+requires fresh inputs. Other missing adjustments, tax evidence, contracts,
+Apron restrictions, hard caps, ownership and Stepien rules remain unchanged.
+A qualified-source draft baseline rejects this simulation marker.
+
+Prepare a private thirty-team JSON package using
+`node --import tsx scripts/architect/prepareSimulationFinancialBaseline.ts INPUT OUTPUT`.
+Input contains `asOf`, `seasonId`, retained `teams`, and per-team `financialInputs`.
+Each opted-in team's digest covers the exact salaryBookInputs without its
+simulationAssumptions property, using canonical sorted JSON and SHA-256. This is
+integrity/traceability, not independent source authentication. Unintegrated teams
+keep their unresolved financial inputs; preparation does not invent their books.
+The trusted **local demo only** initializer accepts the output with
+`SCOUTZERO_SIMULATION_FINANCIAL_FILE` and `SCOUTZERO_SIMULATION_FINANCIAL_SHA256`.
+It rejects production, altered bytes, conflicting software draft fixtures and
+date mismatches. Ordinary Create World atomically saves the teams alongside the
+accepted Contract baseline, labels the world SIMULATION and retains immutable
+classification metadata. Branching remains blocked pending a correct copy path.
+No production financial package or draft capability is installed by default.
+
+Local real-data proof uses the retained thirty-team snapshot and original player
+JSON embedded in the accepted 774-Contract release, checking current salary rows
+against their accepted terms. No empty-salary placeholders or additional
+unqualified player were used. The two reconciled books consume the already
+recorded CHI/TOR component findings: CHI $185,036,418 and TOR $193,613,510;
+first-Apron ceiling $195,945,000 for both. The TOR standing cap and minimum uplifts
+are carried as reconciled inputs, not re-investigated. Missing all-team financial
+integration (including POR's unadmitted extra Contract), exception histories and
+other genuine evidence gaps remain visible/unqualified. The accepted 278 draft
+identities and exact 29 mappings are untouched; this financial package does not
+install or authorize them for production trading.
+
+Author proof: ten narrow salary tests plus sixteen existing salary-book tests
+pass; ordinary browser callable creation stores thirty teams, restores both exact
+Apron amounts and assumptions after reload, preserves both hard caps and unknown
+Tax Salary, and denies deletion of simulation metadata. A separate over-cap
+counterfactual is rejected by the unchanged final-state validator. These are
+simulation behavior claims, not certified historical NBA legality. Final selected
+checks and independent verdict belong in the candidate's review receipt.
+
+### Focused DPE completeness check
+
+Checked against pinned accepted Canon `6cf8aaf358c158a88e630e8a7336f7e9c3febc17`
+with the required lookup command (fingerprint unchanged). C12.1–.6/.9 and C11.8
+resolve; C12.7/.8 lookups fail closed on duplicate active leaf rows; C12.10 is unknown. That is
+an authority-tool limitation to settle before a DPE implementation depends on
+those leaves, not permission to choose a convenient working-tree row.
+
+| Requirement | Current support / remaining gap |
+| --- | --- |
+| Stored state | `exceptions.dpe` amount, created/expiry dates and notes exist; runtime normalizers preserve additional enabled/used/remaining state. This is a bucket, not grant authority. |
+| Application / grant | No complete application, medical determination, eligible-team/roster and grant workflow found. C12.2/.6/.9 require these inputs; the engine must not decide medical merits. |
+| Amount and replacement | C12.1/.3/.4/.5 require one replacement, the applicable lesser-of-50%-salary/NTMLE limit and permitted one-season signing or remaining-term acquisition/claim. No complete dedicated DPE signing/trade/claim consumer or adversarial acquisition tests found. |
+| Expiry / extinguishment | Dates can be stored and rollover clears the bucket. No proven March 10 in-season use cutoff or unused-return/trade extinguishment workflow. C12.7/.8 lookup ambiguity remains recorded. |
+| Financial treatment | Existing player contracts continue to count; a DPE is not salary removal. No end-to-end proof of DPE replacement accounting or the disabled-player-specific TPE consequence. Career-ending exclusion is a separate mechanism; C11.8 bars requesting it in the same cap year after a DPE request, granted or denied. |
+| Persistence / tests | Phase76 reset/reload, Phase86 rollover, optimistic serialization and exception-normalizer tests cover stored bucket behavior. They do not establish medical/grant, one-player trade/signing, amount, term or in-season expiry correctness. |
+
+DPE is **partial**, not complete. This assignment adds no DPE implementation.
+The next product requirement after this bounded simulation path is reviewed and
+released remains C5 free-agent/minimum-exception acquisition through normal GM
+flows, with applicable eligibility, financial effects and save/reload proof.
+Leaguewide rare-event monitoring remains a separate operational requirement;
+there is no automatic live event-monitoring claim in this implementation.

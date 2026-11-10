@@ -19,6 +19,7 @@ import {
   trustedContractBaselineMetadata,
   type TrustedContractReleasePin,
 } from './trustedContractBaseline';
+import { loadSimulationFinancialBaseline } from './simulationFinancialBaseline';
 import { loadTrustedDraftBaseline } from './trustedDraftBaseline';
 
 if (!admin.apps.length) {
@@ -358,6 +359,9 @@ export const initializeArchitectWorld = onCall(
       let metadata: JsonRecord;
       let documents;
       let trustedMetadata: JsonRecord;
+      let simulationBaseline: ReturnType<
+        typeof loadSimulationFinancialBaseline
+      > = null;
       let draftBaseline: ReturnType<typeof loadTrustedDraftBaseline> = null;
       if (parentWorldId) {
         const parentRef = db
@@ -377,7 +381,10 @@ export const initializeArchitectWorld = onCall(
             'You do not have permission to branch this world.'
           );
         }
-        if (parent.draftBaseline != null) {
+        if (
+          parent.draftBaseline != null ||
+          parent.simulationFinancialBaseline != null
+        ) {
           throw new HttpsError(
             'failed-precondition',
             'Branching a governed draft baseline requires a qualified custody-copy route. The parent is unchanged.'
@@ -428,7 +435,29 @@ export const initializeArchitectWorld = onCall(
           releaseEffectiveAt: release.effectiveAt,
           contractMetadata: trustedMetadata,
         });
+        simulationBaseline = loadSimulationFinancialBaseline();
+        if (simulationBaseline) {
+          if (
+            simulationBaseline.asOf !== release.effectiveAt ||
+            simulationBaseline.seasonId !== season
+          )
+            throw new Error('Simulation and Contract baseline dates differ.');
+          Object.assign(metadata, {
+            simulationFinancialBaseline: {
+              classification: 'SIMULATION',
+              asOf: simulationBaseline.asOf,
+              sha256: process.env.SCOUTZERO_SIMULATION_FINANCIAL_SHA256,
+            },
+            worldName: `SIMULATION — ${worldName}`,
+            description: `${description}
+Public-data simulation. Unidentified grievances and first-round Required Tenders are assumed not applicable only where explicitly recorded; this is not certified historical compliance.`,
+          });
+        }
         draftBaseline = loadTrustedDraftBaseline();
+        if (draftBaseline && simulationBaseline)
+          throw new Error(
+            'Software draft fixtures and public-data simulation inputs cannot be combined.'
+          );
         if (draftBaseline) {
           if (
             draftBaseline.baseline.asOf !== release.effectiveAt ||
@@ -449,7 +478,13 @@ export const initializeArchitectWorld = onCall(
           Object.keys(draftBaseline.baseline.initialTeams).length +
           Object.keys(draftBaseline.baseline.retainedEntitlements).length
         : 0;
-      if (documents.length + 1 + draftWrites > 500) {
+      if (
+        documents.length +
+          1 +
+          draftWrites +
+          Object.keys(simulationBaseline?.teams ?? {}).length >
+        500
+      ) {
         throw new Error('Governed contract baseline exceeds one atomic batch.');
       }
       const batch = db.batch();
@@ -478,6 +513,10 @@ export const initializeArchitectWorld = onCall(
             worldRef.collection('entitlements').doc(id),
             entitlement
           );
+      }
+      if (simulationBaseline) {
+        for (const [code, team] of Object.entries(simulationBaseline.teams))
+          batch.create(worldRef.collection('teams').doc(code), team);
       }
       await batch.commit();
       return {
