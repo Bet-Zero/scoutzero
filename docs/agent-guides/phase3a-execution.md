@@ -79,6 +79,11 @@ statuses from a prior conversation as current authority.
    independent work; do not create extra assignments or change priorities for
    parallelism, or reopen completed foundations.
 
+Architect V1 worlds follow the owner's 2026-11-10 simulation standard (V1
+contract). Before treating work as source-blocked, check whether a named,
+labeled simulation assumption covers the missing fact; if it does, declare it
+and continue. The rules below apply to genuine source authority work.
+
 For source-blocked work, distinguish reusable-tool progress from established
 facts, complete requirements, and blockers. Record the exact missing fact/field,
 affected records, controlling authority, last authority-gate check/result,
@@ -176,8 +181,14 @@ The diagnostic must cover the same complete workflow that will later be
 certified. A passing diagnostic result proves only that the local iteration is
 ready to proceed through author review, freeze, and exact-head checks.
 
-Run retained certification only after that diagnostic pass and after the final
-candidate is clean, frozen, pushed, and equal to its configured upstream. The
+Since 2026-11-10, per-change retained certification is not required for
+Trade Machine work: the diagnostic run plus tests and independent review is the
+per-change proof, and the final live scenario battery is the retained browser
+evidence. Use retained certification only when an owner review wave or that
+final battery calls for it.
+
+When it is used, run retained certification only after that diagnostic pass and
+after the final candidate is clean, frozen, pushed, and equal to its configured upstream. The
 certification wrapper remains the evidence authority: it binds identity and
 merge base, retains the SHA-bearing manifest and artifacts with integrity
 hashes, and verifies clean harness-port teardown.
@@ -279,11 +290,6 @@ The PR is the detailed evidence hub. Its description or exact-head comments
 record base/candidate SHAs, risk class, declared and performed checks, hosted
 checks, independent verdict, browser result or justified skip, skipped checks,
 known limitations, repair/evidence-reuse notes, and merge eligibility.
-
-Final tranche receipts also record approximate time spent on implementation,
-local validation, browser/emulator work, hosted CI and review waits, and
-repeated failed attempts. Keep the categories separate so process bottlenecks
-remain visible; estimates are sufficient and do not need minute-level tracking.
 
 Linear receives concise linked receipts: status, PR, accepted candidate, landed
 commit, validation summary, Canon accounting, and remaining scope. Do not paste

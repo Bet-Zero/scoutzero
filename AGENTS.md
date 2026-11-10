@@ -271,6 +271,10 @@ Full rules: `docs/standards/DOCUMENTATION_STRUCTURE_STANDARD.md`,
 - For consequential Phase 3A Canon-correctness and execution-tooling lanes, follow
   `docs/agent-guides/phase3a-execution.md` as the standing maker/checker
   execution profile.
+- Architect worlds follow the owner's 2026-11-10 simulation standard (see the
+  V1 contract): exact NBA rules from the pinned Canon, best available public
+  inputs, and named, visible assumptions for missing facts. A missing historical
+  fact is an assumption to declare, not a reason to open a new investigation.
 - Do not create new git branches unless the user explicitly asks.
 - Do not amend or squash existing commits.
 - Do not create PRs or merge anything unless explicitly asked.
@@ -327,10 +331,14 @@ this rule creates no additional owner approval step.
 
 Keep one current status home per objective:
 
-- Architect: [BZE-243](https://linear.app/bzero/issue/BZE-243) for accepted
-  capability boundaries, remaining requirements and the next authorized outcome;
-  the [V1 completion contract](docs/agent-guides/architect-v1-completion-contract.md)
-  remains scope authority. Children retain their specific blockers.
+- Architect: the [V1 finish checklist](work/architect-completion/V1_FINISH_CHECKLIST.md)
+  (owner-approved 2026-11-10) is the frozen remaining list and current status;
+  [BZE-243](https://linear.app/bzero/issue/BZE-243) mirrors it briefly. The
+  [V1 completion contract](docs/agent-guides/architect-v1-completion-contract.md)
+  remains scope authority. Take the next unchecked item; finishing one item
+  authorizes starting the next without new owner direction. Stop only for an
+  item the checklist marks as the owner's, a production change, or a real defect
+  that changes the plan. Status notes stay short: what changed, what's next.
 - Non-Architect: the
   [existing project summary](https://linear.app/bzero/project/scoutzero-non-architect-stabilization-a97cde4908e0)
   routes current owner-authorized work to its existing issues/PRs.
