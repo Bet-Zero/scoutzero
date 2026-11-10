@@ -5,6 +5,11 @@ import {
   getReviewAdminDb,
 } from './helpers/architectReviewWorld';
 
+test.skip(
+  process.env.SCOUTZERO_SIMULATION_FINANCIAL_PROOF !== 'true',
+  'Opt in with SCOUTZERO_SIMULATION_FINANCIAL_PROOF=true and a privately prepared local simulation package.'
+);
+
 test.use({ viewport: { width: 1280, height: 720 } });
 test.setTimeout(180000);
 test('ordinary real-data simulation creation, books and reload retain assumptions and gates', async ({
