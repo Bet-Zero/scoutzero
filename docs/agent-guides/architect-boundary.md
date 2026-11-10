@@ -37,10 +37,12 @@ split it into a separately flagged issue — never absorb it silently.
 
 ## Trade Machine completion direction
 
-Owner direction recorded 2026-11-05: complete shared, rules-driven capabilities,
-not a new implementation for every example trade. Follow the
-[system-level completion plan](../../work/architect-completion/TRADE_MACHINE_COMPLETION_PLAN.md)
-for remaining W9/W10 work and BZE-243 for the current authorized assignment.
+Owner direction recorded 2026-11-05 and reset 2026-11-10: complete shared,
+rules-driven capabilities, not a new implementation for every example trade.
+Work the next unchecked item in the
+[V1 finish checklist](../../work/architect-completion/V1_FINISH_CHECKLIST.md);
+it is the frozen remaining list and the only current status home. Worlds follow
+the simulation standard recorded there and in the V1 contract.
 Reuse the accepted CBA foundation, trade rules, atomic writer and season manager.
 Keep evaluating a proposal, saving the whole deal and advancing its world distinct
 but consistent; do not build parallel engines or a speculative general framework.
@@ -48,8 +50,7 @@ Known ordinary transaction shapes must not acquire artificial player/routing
 limits solely from an example's size. Actual source, eligibility and NBA-rule
 limits still apply. Classify implementation, proof, factual-evidence and release
 gaps separately. Examples verify mechanisms; they do not define the product's
-complete supported universe. This direction changes no completion scope,
-independent-review requirement, source qualification or owner/production gate.
+complete supported universe.
 
 ## Owner gates
 
@@ -62,9 +63,12 @@ independent-review requirement, source qualification or owner/production gate.
   and `2c01c2f2-7a28-47c1-8ed4-3d9b5e38989b`.
 - Draft-data delivery reviews must trace the actual client, endpoint and data
   source against this architecture. Security checks or a code-level ACCEPT do
-  not approve a provider choice. Production source writes, release publication,
-  saved-world adoption and first-round Apply keep their separate authorization
-  gates. Hosted read/review proof is required before landing hosted delivery.
+  not approve a provider choice. Production source writes and migration of
+  existing saved worlds keep their separate authorization gates. First-round
+  Apply in new simulation worlds is owner-approved (2026-11-10); the production
+  deploy that enables it is confirmed with the owner once, immediately before
+  it ships.
+  Hosted read/review proof is required before landing hosted delivery.
 
 - Owner-directed subjective design waves and other approval-bound UI work need
   owner sign-off on screenshots before landing. An explicitly requested isolated

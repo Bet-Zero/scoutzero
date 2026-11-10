@@ -1,5 +1,12 @@
 # Trade Machine completion: shared capabilities, not individual examples
 
+> **Superseded November 10, 2026.** The owner-approved
+> [V1 finish checklist](V1_FINISH_CHECKLIST.md) is the current plan and status
+> home. This document is kept as history and design background; its "no next
+> implementation starts automatically" and authenticated-data requirements no
+> longer apply. Its architecture guidance (keep the existing engines, atomic
+> writer and season manager; no parallel engine) still holds.
+
 Owner-directed execution plan, recorded November 5, 2026.
 This changes the development approach, not NBA rules, evidence acceptance,
 production permissions, or the Architect V1 completion boundary.

@@ -403,7 +403,8 @@ test('Phase 3A policy separates browser diagnostics from retained certification'
     [
       'pass the complete workflow in a lightweight diagnostic browser run before candidate freeze',
       'cannot be cited as certification evidence',
-      'Run retained certification only after that diagnostic pass',
+      'per-change retained certification is not required for\nTrade Machine work',
+      'When it is used, run retained certification only after that diagnostic pass',
       'clean, frozen, pushed, and equal to its configured upstream',
       'Repair the defect, re-pass the complete workflow diagnostically',
       'then certify that replacement',

@@ -1,6 +1,6 @@
 ---
 name: architect-v1-completion-contract.md
-description: Owner-approved (2026-07-11) product boundary and proof standard for calling Architect V1 complete. Serves the BZE-243 completion gate; companion to architect-boundary.md.
+description: Owner-approved (2026-07-11, reset 2026-11-10) product boundary and proof standard for calling Architect V1 complete. Serves the BZE-243 completion gate; companion to architect-boundary.md.
 ---
 
 # Architect V1 Completion Contract
@@ -12,7 +12,38 @@ the first-round lifecycle exclusion: branch-complete first-round lifecycle is
 V1-required across all 278 currently exposed first-round entitlements.
 Unavailable nonzero trade-bonus authority remains deferred to Phase 3B.
 Accepted Phase 3A evidence remains valid for its proven boundary; V1 acceptance
-must also satisfy the expanded first-round requirement.
+must also satisfy the expanded first-round requirement. **Reset by owner
+decisions, 2026-11-10** (simulation standard, frozen finish list), recorded below.
+
+## Owner decisions, 2026-11-10 (these override conflicting text below)
+
+The owner approved a finishing reset after the Trade Machine stalled on
+evidence that no software change could supply. The frozen finish list and
+current status live in
+[V1_FINISH_CHECKLIST.md](../../work/architect-completion/V1_FINISH_CHECKLIST.md).
+
+1. **Simulation standard.** Architect worlds are simulations. NBA rules from the
+   pinned accepted Canon are applied exactly; inputs are the best available
+   public data; a missing fact is filled by a named, dated assumption that is
+   visible in the product. Wherever this contract asks for "authenticated" or
+   "certified" real-NBA state, a labeled simulation input satisfies V1.
+   Certified historical NBA legality is optional and never a V1 gate. Known
+   liabilities, credible unresolved signals, actual rule violations and known
+   restrictions are never assumed away, and source data is never relabeled.
+2. **Unresolved evidence.** The 30 entitlements affected by the 29 unresolved
+   evidence mappings are not tradeable in V1 and show an honest reason, unless a
+   clearly most-likely reading is adopted as a labeled simulation assumption.
+   They no longer gate V1 for the other 248 entitlements.
+3. **Frozen scope.** The checklist is the complete remaining V1 list. Poison
+   pill, performance incentives, nonzero trade bonuses and the Disabled Player
+   Exception are post-V1 and must show needs-input. Later discoveries are
+   post-V1 unless they are defects in a listed item.
+4. **Activation.** First-round trading is enabled in new simulation worlds once
+   the starting world is installed; existing worlds are not migrated. The
+   production deploy is confirmed with the owner once, immediately before it ships.
+5. **Proof.** Tests and independent review remain required for legality,
+   financial and persistence changes. Per-change retained browser certificates
+   are replaced by the final live scenario battery.
 
 ## Precedence
 
@@ -132,17 +163,18 @@ rule.
 Pick ownership, protections, conveyance, rookie-scale money, and entitlement
 claims (including blocking conflicting claims). Complete when these rules
 hold across the supported Trade Machine picks flow and season boundaries using
-authenticated governed asset state. Existing supported pick and entitlement
+the world's governed asset state (labeled simulation inputs qualify; see the
+2026-11-10 decisions). Existing supported pick and entitlement
 trades remain required. `CBA2-A12.3` is authenticated in the pinned accepted
 Canon. Branch-complete first-round ownership, Stepien, protection, conveyance,
 freeze, unfreeze, penalty, and required-transition lifecycle support is required
 for all 278 currently exposed first-round entitlements (240 ownership, 27 swap
-rights, and 11 conveyance rights). No smaller certified subset is approved.
-Until a fully implemented positive path with complete governed lifecycle data
-is accepted, unavailable history must still stop before apply and show an
-honest needs-input result. Source-content completeness alone does not satisfy
-this requirement. The product may not guess a branch, reuse simplified legacy
-rules, or treat a missing condition as satisfied. (The draft-night room itself
+rights, and 11 conveyance rights), except the 30 entitlements affected by the
+29 unresolved evidence mappings, which follow 2026-11-10 decision 2. Where a
+needed input is neither known nor covered by a labeled simulation assumption,
+the action stops before apply with an honest needs-input result. The product may
+not silently guess a branch, reuse simplified legacy rules, or treat a missing
+condition as satisfied. (The draft-night room itself
 is excluded — see exclusions.)
 
 ### W11. Season advance
@@ -228,6 +260,13 @@ product, not only in tests:
   hidden from normal V1 GM users (today they are feature-flagged on in
   review builds). Trading existing picks, protections, and entitlements
   through the Trade Machine (W9/W10) remains fully in scope.
+- **Post-V1 trade mechanisms** — owner decision 2026-11-10: poison-pill salary
+  basis, performance-incentive salary basis and the Disabled Player Exception
+  (grant and use). Each must return an honest needs-input result before
+  mutation; none may be assumed away.
+- **Certified historical NBA legality** — owner decision 2026-11-10: V1 worlds
+  are labeled simulations. A certified-history label is optional future work,
+  not a V1 requirement.
 
 ## Undecided — owner decisions required
 
@@ -238,8 +277,9 @@ the same day and are encoded in the sections above.
 Phase 3A (BZE-267) is complete. Its accepted proof of the first-round safe stop
 remains valid, but does not satisfy BZE-301's expanded W10 requirement. Nonzero
 trade bonus remains a post-V1 needs-input/no-write boundary. Final Architect V1
-acceptance remains with the owner under BZE-243; any proposed reduction of the
-278-entitlement first-round universe requires an explicit owner decision.
+acceptance remains with the owner under BZE-243. The 2026-11-10 decisions are
+the explicit owner decision on the 30 gap-affected entitlements; any further
+reduction requires another owner decision.
 
 The remaining-exclusions matrix in
 `work/architect-completion/PHASE3A_CLOSURE_EVIDENCE.md` is historical: its
@@ -256,7 +296,10 @@ what is stale, contradicted, or missing.
    (note: `test:architect` skips `.tsx` — component checks need `test:ui`).
 2. **Live browser proof.** The flow driven end to end in a seeded saved
    world through the review harness at 1280×720. Tests alone are never
-   accepted for browser-visible or saved-world behavior.
+   accepted for browser-visible or saved-world behavior. For Trade Machine
+   work after 2026-11-10, the final live scenario battery is that proof;
+   individual changes need a browser run only when they change rendered or
+   saved-world behavior, and no retained per-change certificate is required.
 3. **Persistence/reload proof.** Apply → leave room → return → full reload →
    identical state, verified for every team the action touched.
 4. **Realistic data.** Cap surfaces judged at a full 18-man roster (15+3).
@@ -270,14 +313,13 @@ what is stale, contradicted, or missing.
 
 For every CBA-derived amount, threshold, date, percentage, eligibility result,
 or verdict in the final battery, the expected result must be recorded before
-the product runs, cite the exact pinned accepted-Canon leaf or certified
-governed source identity, and show independent arithmetic where applicable.
+the product runs, cite the exact pinned accepted-Canon leaf and the governed
+source or declared simulation input it depends on, and show independent arithmetic where applicable.
 Rendered output, persisted documents, receipts, events, and existing application
 calculations are evidence about actual behavior, never the expectation oracle.
 Unavailable authority requires a fail-closed expectation, including the
-nonzero trade-bonus exclusion and the first-round safe stop pending accepted
-positive-path implementation. First-round safe-stop proof alone cannot close
-the expanded W10 requirement.
+post-V1 needs-input exclusions. First-round safe-stop proof alone cannot close
+the W10 requirement.
 
 Final V1 acceptance (parent gate BZE-243): the live scenario battery
 (`tests/e2e/architect-qa.spec.ts` in review mode) passes, remaining
