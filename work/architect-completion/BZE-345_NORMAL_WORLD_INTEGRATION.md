@@ -91,3 +91,97 @@ bind them to the already approved source designation in a governed world release
 and satisfy the separately retained publication/activation authorization gates.
 The source-designation decision itself is already settled. No routine owner
 decision is required to implement, test, review or merge this software change.
+
+## November 10: existing-data reconciliation and rule applicability
+
+The owner's November 10 BZE-345 instructions supersede the acquisition proposal.
+No provider contact, quote, purchase or new source search is part of this pass.
+June 5 remains the baseline. The following is author reconciliation, not financial
+source admission. PR627 is the accepted software predecessor.
+
+The accepted 774-Contract release is unchanged (artifact SHA-256
+`23304518f145babfe19ab5341fc60449f39bbfa2b06ad3ce15ef3b3159b91389`).
+The retained database capture is unchanged (SHA-256
+`9fdc0ce352154b637e2a2716651c342012e82c5ab580fb7336bc2708df0c8024`).
+Its 30 team financial snapshots describe 2025–26 and were scraped June 7; capture
+time is not financial effective time. Source metadata mixes SalarySwish and
+RealGM labels and does not establish independent corroboration.
+
+| Shared input | What is retained or calculable | Remaining qualification or fact |
+| --- | --- | --- |
+| Annual system levels | Already approved NBA source: $154,647,000 cap; $139,182,000 floor; $187,895,000 tax level; $195,945,000 first Apron; $207,824,000 second Apron. `approved2025SystemLevels.ts` retains the exact source pin. | These 2025–26 thresholds are available. They do not supply a team's payroll or historical restriction state. |
+| Contract salaries and dead money | 529 current salary rows from the accepted release; 135 current dead-money rows in the team snapshots. Contract cap hits plus dead money reproduce 28/30 stored cap-hit totals. | Dead money is June 7 evidence. BKN's stored cap hit differs from the component sum by $11,773 even though its total reconciles. POR's release lacks Yang Hansen's schedule. |
+| Holds and salary totals | 105 current unsigned hold rows (104 FA Cap Hold, one Other). Adding these to Contract cap hits and dead money reproduces 29/30 stored total-salary values. | Yang's actual retained `architect_basePlayers/yang_hansen` row supplies $4,422,360, bringing the arithmetic to 30/30. This is recovered data, not an inferred residual. It is absent from the accepted release and remains unqualified there; the row is dated November 29, 2025. |
+| Roster membership | Current Contract records already include Essengue, Lively, VanVleet, Haliburton, Beal and Sorber, omitted by the corresponding snapshot roster arrays. O'Neale and Robert Williams have alias mismatches. | These are integration/identity reconciliation gaps, not missing salary amounts. Do not silently use an incomplete roster as the payroll. |
+| Unsigned picks / roster charges | Existing draft rights are retained; unselected future 2028 originals create no current rookie hold. June 5 is outside the incomplete-roster-charge window and the temporary July SRPE exclusion. | Prior selected unsigned players and outstanding Required Tenders need their own dated status; a future pick exchange does not create one. |
+| Apron Salary | Contract cap hits + dead money + retained unlikely bonuses match the implied Apron aggregate in 28/30 snapshots. CHI and TOR both match. | A match is not a complete C07 determination. Minimum-salary uplift, bonus completeness, grievance exposure and outstanding offer/tender status cannot be assumed absent. The retained PHI reconciliation already demonstrates a $247,780 minimum uplift beyond cap hits. |
+| Exceptions / BAE / TPEs | All 30 snapshots have exception records; accepted signing-method records identify positive use, including current-year BAE signings for DET and LAL. | TPE creation and usage lineage, complete prior-year BAE use/non-use and coherent balances are not established leaguewide. CHI's apparent MLE room and TOR's BAE room track Apron headroom; TOR labels a $5,685,000 MLE as NonTaxpayer. These require reconciliation before election/use. No BAE eligibility follows from an empty history. |
+| Hard caps | Snapshot labels: 17 first-apron, 4 second-apron, 9 none. Retained March 6 financial reporting identifies CHI's prior-year/expanded TPE triggers and TOR's NTMLE acquisition trigger. | TOR's `none` label conflicts with that history. Complete dated trigger/ceiling and Apron-compliance evidence is not represented by a label or an absent ledger. |
+| Historical Apron / tax | Existing retained historical financial reports and accepted restriction mechanisms remain usable within their dates and scope. BZE-329's later calendars/books are explicitly software assumptions. | No complete actual all-team last-regular-season-game Apron history or four-prior-year taxpayer history was found in these financial snapshots. Neither can be derived from June 5 payroll. Relevant 2032/2033 dispositions and repeater tax remain separate from an outgoing 2028 original. |
+
+CHI's component arithmetic is $165,964,036 current Contract cap hits +
+$16,916,687 dead money = $182,880,723; adding $4,592,548 holds reproduces
+$187,473,271 total. Adding $2,149,999 retained unlikely bonuses instead gives
+$185,030,722, exactly the snapshot's implied Apron amount. It is $47,092 above
+the retained March 6 Apron report, equal to Gueye's later retained salary.
+That equality is a useful reconciliation clue, not proof of a complete roll-forward.
+
+TOR's corresponding amounts are $184,295,524 + $2,674,222 = $186,969,746;
+plus $7,996,274 holds gives $194,966,020. Adding $6,366,072 retained unlikely
+bonuses instead gives $193,335,818, again matching the implied snapshot amount.
+The difference from the retained March 6 report is minus $26,949, unexplained.
+Neither candidate is admitted as June 5 Apron Salary.
+
+### Transaction-specific conclusion and correction
+
+Authority was read with `npm run architect:canon:lookup -- <LEAF>` from accepted
+pin `6cf8aaf358c158a88e630e8a7336f7e9c3febc17`, artifact digest
+`23fe883f6f1aec7799fc3396bef404c250fd26beefa705582a5307766ad7ff76`.
+The supporting leaves are A02.1/.2, A03.3/.7, A05.1–.4/.7/.8/.10/.11/.13/.15/.16,
+A12.3/.4, L09.6, C02.1, C03.2, C07.2–.11, C13.16/.34 and C09.3/.4.
+Lookups of A01.1, C07.1 and C09.1 reject duplicate active rows; no conclusion
+here relies on selecting one ambiguous row or changing the Canon.
+
+| Action | Applicable requirement |
+| --- | --- |
+| CHI2028 ↔ TOR2028; no players, cash or election | No player salary matching (A02.1/.2), bonus retest or newly triggered A05 table restriction. Ownership, consideration, all-branch Stepien and the standing A05.2 hard cap remain. Unknown starting compliance still blocks. Only affected teams need this financial determination; all 30 complete tax/exception books are not a prerequisite for this exchange. |
+| Ordinary player trade on June 5 | Matching needs the actual assigned Contracts, protected next-year compensation under A03.3, applicable bonus treatment under A03.7 and an available matching path. It cannot use annual base salaries or net-zero salary alone as a legal determination. |
+| Exception use, future frozen pick or tax calculation | Require the elected mechanism's history and balances, the original pick's applicable dated Apron observations, or the three-of-four taxpayer history respectively. A12.4 measures at the **start** of the last regular-season game; June 5 is neither that measurement nor the June 30 cap-year end. |
+
+`validateSalaryMatching` formerly requested Apron Salary before checking whether
+any player Contracts moved. It now reports `NO_SALARY_MATCHING` before that input
+request only for explicit empty incoming/outgoing lists and numeric zero salary,
+without an exception election. Every provided alias is checked. Missing/malformed
+salary, hidden players and exception mechanisms retain the financial-input gate.
+No unknown team total is replaced with zero. Hard-cap and post-state validation,
+Stepien, Apron restrictions, source admission and persistence are unchanged.
+Integration tests retain unknown and over-ceiling hard-cap failures on the same
+future-original exchange. This corrects a redundant rule requirement; it does
+not make the authentic CHI/TOR exchange legal or enable its save.
+
+### Remaining concrete data work
+
+Use the existing 30-team component reconciliation as the starting dataset, retaining
+unqualified fields explicitly. Qualify a complete dated Apron amount and standing
+hard-cap determination for the participating teams, either from a defined aggregate
+or the remaining component evidence. A complete aggregate does not require separate
+invented certificates for all ten adjustments. With a common basis, included holds,
+unsigned-pick amounts and exception amounts cancel in the C07 calculation; the
+outstanding QO/Required Tender additions remain distinct. Date-derived zeros above
+need no fabricated NBA observation. The current salary-book adapter's explicit
+coverage requirements are not proof that every component is an independent missing
+NBA fact.
+
+The specific unresolved facts are complete bonus/exposure coverage, applicable
+minimum uplift inputs, outstanding offer/tender/grievance status, and June 5
+continuity for the retained aggregates and hard-cap history. Recovery has not
+established a complete source for these. Existing provider/source artifacts and
+dated NBA/team transaction notices are the bounded evidence path; no contact or
+new acquisition campaign is authorized. Accept a reconciled value only with its
+source definition, date and limitations, then bind it to the already approved
+draft designation through the existing release/review gates.
+
+Moving to June 7 would align the team scrape date but would not resolve conflicting
+balances, absent exposure facts, historic freeze/tax predicates or Contract/draft
+continuity. No better starting date is established. All 278 identities and exact
+29 unresolved mappings, accepted Contracts and production boundaries are unchanged.
