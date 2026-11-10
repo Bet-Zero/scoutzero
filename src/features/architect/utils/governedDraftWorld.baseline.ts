@@ -39,6 +39,13 @@ export function validateGovernedDraftBaseline(
       'SIMULATION assumptions cannot certify a qualified historical source.'
     );
   }
+  if (
+    (baseline.classification === 'simulation') !==
+    Boolean(baseline.assumptions?.length)
+  )
+    throw new Error(
+      'Simulation baselines must name their assumptions; other classifications cannot carry any.'
+    );
   const ids = baseline.records.map((r) => String(r.entitlement.id));
   if (
     new Set(baseline.identities).size !== baseline.identities.length ||

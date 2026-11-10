@@ -12,7 +12,23 @@ export const GovernedDraftWorldBaselineZ = z
   .object({
     version: z.literal(1),
     releaseId: z.string().min(1),
-    classification: z.enum(['software-fixture', 'qualified-source']),
+    classification: z.enum([
+      'software-fixture',
+      'qualified-source',
+      'simulation',
+    ]),
+    // SIMULATION only (owner decision 2026-11-10): named, visible premises that
+    // stand in for facts no available source establishes. Never a source fact.
+    assumptions: z
+      .array(
+        z
+          .object({
+            id: z.string().regex(/^[a-z0-9-]{1,80}$/),
+            statement: z.string().min(1).max(600),
+          })
+          .strict()
+      )
+      .optional(),
     asOf: z.string().datetime({ offset: true }),
     seasonId: z.string().regex(/^\d{4}-\d{2}$/),
     // Full retained universe; only separately admitted records below are executable.

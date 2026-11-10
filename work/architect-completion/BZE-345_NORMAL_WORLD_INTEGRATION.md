@@ -223,6 +223,14 @@ accepted Contract baseline, labels the world SIMULATION and retains immutable
 classification metadata. Branching remains blocked pending a correct copy path.
 No production financial package or draft capability is installed by default.
 
+Draft rights (checklist A1, simulation standard): `npm run architect:simulation-draft --
+<candidate.json> <output.json>` compiles the retained June 5 `candidate.json` and the
+private snapshot's base entitlements into a SIMULATION draft baseline with three named
+assumptions. Every retained identity is kept with its accepted holder; only outright
+2026-2031 original firsts are tradeable, and every other right shows why it is not.
+The local demo initializer accepts it with `SCOUTZERO_SIMULATION_DRAFT_FILE` and
+`SCOUTZERO_SIMULATION_DRAFT_SHA256`, only together with the simulation financial input.
+
 Local real-data proof uses the retained thirty-team snapshot and original player
 JSON embedded in the accepted 774-Contract release, checking current salary rows
 against their accepted terms. No empty-salary placeholders or additional

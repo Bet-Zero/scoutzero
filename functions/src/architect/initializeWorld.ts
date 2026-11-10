@@ -21,6 +21,7 @@ import {
 } from './trustedContractBaseline';
 import { loadSimulationFinancialBaseline } from './simulationFinancialBaseline';
 import { loadTrustedDraftBaseline } from './trustedDraftBaseline';
+import { loadSimulationDraftBaseline } from './simulationDraftBaseline';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -363,6 +364,8 @@ export const initializeArchitectWorld = onCall(
         typeof loadSimulationFinancialBaseline
       > = null;
       let draftBaseline: ReturnType<typeof loadTrustedDraftBaseline> = null;
+      let simulationDraft: ReturnType<typeof loadSimulationDraftBaseline> =
+        null;
       if (parentWorldId) {
         const parentRef = db
           .collection(ARCHITECT_WORLDS_COLLECTION)
@@ -471,13 +474,41 @@ Public-data simulation. Unidentified grievances and first-round Required Tenders
             worldName: `Software fixture — ${worldName}`,
           });
         }
+        simulationDraft = loadSimulationDraftBaseline();
+        if (simulationDraft) {
+          if (!simulationBaseline || draftBaseline)
+            throw new Error(
+              'A SIMULATION draft baseline requires the SIMULATION financial baseline and no software fixture.'
+            );
+          if (
+            simulationDraft.baseline.asOf !== release.effectiveAt ||
+            simulationDraft.baseline.seasonId !== season
+          )
+            throw new Error('Draft and Contract baseline dates differ.');
+          const financialTeams = Object.keys(simulationBaseline.teams).sort();
+          if (
+            financialTeams.join() !==
+            Object.keys(simulationDraft.baseline.initialTeams).sort().join()
+          )
+            throw new Error(
+              'SIMULATION draft and financial baselines cover different teams.'
+            );
+          Object.assign(metadata, {
+            draftBaseline: simulationDraft.metadata,
+            draftInventoryRevision: 0,
+            draftWorldTransfers: [],
+          });
+        }
       }
 
       const draftWrites = draftBaseline
         ? 1 +
           Object.keys(draftBaseline.baseline.initialTeams).length +
           Object.keys(draftBaseline.baseline.retainedEntitlements).length
-        : 0;
+        : simulationDraft
+          ? 1 +
+            Object.keys(simulationDraft.baseline.retainedEntitlements).length
+          : 0;
       if (
         documents.length +
           1 +
@@ -514,9 +545,32 @@ Public-data simulation. Unidentified grievances and first-round Required Tenders
             entitlement
           );
       }
+      if (simulationDraft) {
+        batch.create(worldRef.collection('draftBaselines').doc('root'), {
+          worldId,
+          release: simulationDraft.baseline,
+        });
+        for (const [id, entitlement] of Object.entries(
+          simulationDraft.baseline.retainedEntitlements
+        ))
+          batch.create(
+            worldRef.collection('entitlements').doc(id),
+            entitlement
+          );
+      }
       if (simulationBaseline) {
         for (const [code, team] of Object.entries(simulationBaseline.teams))
-          batch.create(worldRef.collection('teams').doc(code), team);
+          batch.create(
+            worldRef.collection('teams').doc(code),
+            simulationDraft
+              ? {
+                  ...team,
+                  // Draft custody comes only from the SIMULATION draft baseline.
+                  entitlementIds:
+                    simulationDraft.baseline.initialTeams[code].entitlementIds,
+                }
+              : team
+          );
       }
       await batch.commit();
       return {

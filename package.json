@@ -183,6 +183,7 @@
     "cloud:setup": "node --use-env-proxy scripts/dev/cloudSetup.ts",
     "cloud:typecheck": "tsc --project tsconfig.cloud.json --noEmit",
     "cloud:recovery": "node --use-env-proxy --import tsx scripts/dev/cloudRecovery.cli.ts",
+    "architect:simulation-draft": "node --import tsx scripts/architect/compileSimulationDraftBaseline.ts",
     "cloud:data:audit": "node --use-env-proxy --import tsx scripts/dev/cloudRosterAudit.ts",
     "maintenance:collect": "node --use-env-proxy --import tsx scripts/dev/maintenanceCollect.ts",
     "maintenance:inputs": "node --import tsx scripts/dev/maintenanceInputs.ts",
