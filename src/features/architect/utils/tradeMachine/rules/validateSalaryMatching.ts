@@ -172,8 +172,8 @@ function getTpeCapacity(tpe: TradeExceptionRecord): number {
   );
 }
 
-// Validator version for trade receipt tracking - bumped for TPE fix
-export const SALARY_MATCHING_VERSION = '3.0.0';
+// Validator version for trade receipt tracking.
+export const SALARY_MATCHING_VERSION = '3.0.1';
 
 export function validateSalaryMatching(
   team: SalaryMatchingTeam | null | undefined,
@@ -196,6 +196,54 @@ export function validateSalaryMatching(
 
   const salaryOut = toFiniteNumber(team.salaryOut ?? context.salaryOut ?? 0);
   const salaryIn = toFiniteNumber(team.salaryIn ?? context.salaryIn ?? 0);
+  const usesGovernedTradeSalaryPath =
+    context.source === 'tradeMachine' ||
+    team.context?.source === 'tradeMachine';
+
+  // CBA2-A02.1/.2 concern replacement of player Contracts. Establish explicit
+  // absence of players before requesting this rule's financial inputs. Do not
+  // treat a missing/malformed salary, hidden alias or exception election as
+  // evidence of no movement. Standing hard-cap validation remains separate.
+  if (
+    usesGovernedTradeSalaryPath &&
+    (team.salaryOut ?? context.salaryOut) === 0 &&
+    (team.salaryIn ?? context.salaryIn) === 0 &&
+    [team.salaryOut, team.salaryIn, context.salaryOut, context.salaryIn].every(
+      (value) => value === undefined || value === 0
+    ) &&
+    (Array.isArray(team.sends) || Array.isArray(team.outgoingPlayers)) &&
+    (Array.isArray(team.receives) || Array.isArray(team.incomingPlayers)) &&
+    [team.sends, team.outgoingPlayers, team.receives, team.incomingPlayers].every(
+      (players) =>
+        players === undefined || (Array.isArray(players) && players.length === 0)
+    ) &&
+    team.salaryMatchingElection == null &&
+    team.absorptionMode == null &&
+    team.bucketType == null &&
+    (team.appliedTPEs === undefined ||
+      (Array.isArray(team.appliedTPEs) && team.appliedTPEs.length === 0))
+  ) {
+    return {
+      passed: true,
+      applicable: false,
+      skipReason: 'NO_SALARY_MATCHING',
+      allowableIncoming: null,
+      salaryIn: 0,
+      salaryOut: 0,
+      difference: 0,
+      message: 'No salary matching is required because no player Contracts move.',
+      violations: [],
+      details: {
+        ruleApplied: 'No salary matching required',
+        formulaUsed: 'No outgoing or incoming player Contracts',
+        capSettingsSource: 'N/A',
+        effectiveSalaryIn: 0,
+        margin: null,
+        pathEvaluation: null,
+      },
+    };
+  }
+
   const rawApronTeamSalary = team.team?.apronTeamSalary ?? team.teamTotalSalary;
   if (
     typeof rawApronTeamSalary !== 'number' ||
@@ -282,9 +330,6 @@ export function validateSalaryMatching(
   let ruleApplied = '';
   let formulaUsed = '';
   const incomingPlayers = getIncomingPlayers(team);
-  const usesGovernedTradeSalaryPath =
-    context.source === 'tradeMachine' ||
-    team.context?.source === 'tradeMachine';
   const governedOutgoingPlayers = (
     Array.isArray(team.outgoingPlayers)
       ? team.outgoingPlayers

@@ -362,6 +362,67 @@ describe('governed salary path lifecycle integration', () => {
     expect(zeroSalaryPlayer.violations[0]).toMatch(/salaryMatchingElection/);
   });
 
+  it('does not require Apron Salary or cap settings when no player Contracts move', () => {
+    const result = validateSalaryMatching(
+      { salaryOut: 0, salaryIn: 0, sends: [], incomingPlayers: [] },
+      { source: 'tradeMachine' }
+    );
+    expect(result).toMatchObject({
+      passed: true,
+      applicable: false,
+      skipReason: 'NO_SALARY_MATCHING',
+      allowableIncoming: null,
+      violations: [],
+      details: { pathEvaluation: null },
+    });
+    expect(result.details).not.toHaveProperty('totalSalary');
+  });
+
+  it.each([
+    ['missing salary', { salaryOut: undefined }],
+    ['malformed salary', { salaryIn: Number.NaN }],
+    ['string salary', { salaryIn: '0' }],
+    ['nonzero salary', { salaryOut: 1 }],
+    ['missing outgoing list', { sends: undefined }],
+    ['missing incoming list', { incomingPlayers: undefined }],
+    ['malformed incoming list', { receives: null }],
+    ['hidden outgoing alias', { outgoingPlayers: [{ id: 'outgoing' }] }],
+    ['hidden incoming alias', { receives: [{ id: 'incoming' }] }],
+    ['two-way player', { sends: [{ id: 'two-way', isTwoWay: true }] }],
+    ['path election', { salaryMatchingElection: election('STANDARD_TPE') }],
+    ['exception mode', { absorptionMode: 'FA_EXCEPTION' }],
+    ['exception bucket', { bucketType: 'BAE' }],
+    ['applied TPE', { appliedTPEs: [{ id: 'held-tpe', amount: 1 }] }],
+  ])('retains the financial-input gate for %s', (_, override) => {
+    const result = validateSalaryMatching(
+      {
+        salaryOut: 0,
+        salaryIn: 0,
+        sends: [],
+        incomingPlayers: [],
+        ...override,
+      },
+      context
+    );
+    expect(result.passed).toBe(false);
+    expect(result.violations).toContain('Apron Team Salary needs governed input');
+  });
+
+  it('keeps ordinary player trades and contradictory context financially gated', () => {
+    const noPlayers = { salaryOut: 0, salaryIn: 0, sends: [], incomingPlayers: [] };
+    for (const result of [
+      validateSalaryMatching(
+        { ...noPlayers, sends: [{ id: 'player', salary: 10_000_000 }] },
+        context
+      ),
+      validateSalaryMatching(noPlayers, { ...context, salaryIn: 1 }),
+      validateSalaryMatching(noPlayers, {}),
+    ]) {
+      expect(result.passed).toBe(false);
+      expect(result.violations).toContain('Apron Team Salary needs governed input');
+    }
+  });
+
   it('replaces the generic shortcut in live Trade Machine validation', () => {
     const result = validateSalaryMatching(
       {

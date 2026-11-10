@@ -114,6 +114,14 @@ describe('future original-pick financial preservation in the shared trade path',
     }
     expect(args.currentState).toEqual(original);
     expect(prepared.validatedContext.legal).toBe(false);
+    for (const team of prepared.validatedContext.teamResults) {
+      expect(team.rules.salaryMatching).toMatchObject({
+        passed: true,
+        applicable: false,
+        skipReason: 'NO_SALARY_MATCHING',
+      });
+      expect(team.rules.hardCap.passed).toBe(false);
+    }
     expect(JSON.stringify(prepared.validatedContext)).toContain(
       'Apron Team Salary needs governed input'
     );
@@ -331,6 +339,9 @@ describe('future original-pick financial preservation in the shared trade path',
       expect(
         prepared.validatedContext.teamResults[0].rules.hardCap.passed
       ).toBe(salary === 100_000_000);
+      expect(
+        prepared.validatedContext.teamResults[0].rules.salaryMatching
+      ).toMatchObject({ passed: true, applicable: false });
       expect(prepared.validatedContext.legal).toBe(false); // first-round activation remains closed
       const computed = computeTradeResult({ ...args, ...prepared });
       expect(computed._validatedTradeContext?.legal).toBe(false);
