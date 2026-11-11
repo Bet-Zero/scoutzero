@@ -21,6 +21,7 @@ import {
   serverTimestamp,
   collection,
   doc,
+  getDoc,
   type DocumentData,
   type DocumentReference,
   type SetOptions,
@@ -978,6 +979,18 @@ export async function persistWorldMutation(
           teamCodesPatched
         )
       );
+    }
+    if (!draftReview) {
+      // A fenced world (SIMULATION, governed draft fixtures) requires every
+      // team, entitlement and event commit to advance the shared revision by
+      // exactly one (firestore.rules advancesDraftInventory). Ordinary
+      // mutations do that here, which also invalidates any pending draft
+      // review. A concurrent commit makes the rules deny this one.
+      const current = (await getDoc(metadataRef)).data();
+      if (current && 'draftInventoryRevision' in current)
+        Object.assign(worldPatch, {
+          draftInventoryRevision: requireDraftInventoryRevision(current) + 1,
+        });
     }
     writes.push({ kind: 'update', ref: metadataRef, data: worldPatch });
 

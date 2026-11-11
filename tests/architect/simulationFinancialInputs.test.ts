@@ -3,6 +3,8 @@ import {
   buildSimulationTeam,
   simulationMinimumUplift,
   SIMULATION_2025_26_MINIMUMS,
+  SIMULATION_2025_26_TAX_BASELINE_AT,
+  simulationTaxSalaryInput,
 } from '@/features/architect/utils/simulationFinancialInputs';
 import { minimumUpliftFor } from '@/features/architect/utils/simulationMinimumUplift';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
@@ -208,6 +210,24 @@ describe('SIMULATION team money baseline', () => {
     expect(report.teamSalary).toBe(contracts + 3_000_000);
     expect(report.apronTeamSalary).toBe(contracts + 1_500_000 + 1_023_404);
     expect(report.baseOnlyPlayers).toEqual(['only_base']);
+    // C08.1 baseline is Team Salary; C08.7 adds the same uplift as C07.3.
+    expect(report.taxSalary).toBe(contracts + 3_000_000 + 1_023_404);
+    const tax = team.salaryBookInputs.taxSalary as {
+      lineItems: {
+        canonLeafIds: string[];
+        amount: number;
+        effectiveFrom: string;
+      }[];
+    };
+    expect(new Set(tax.lineItems.flatMap((l) => l.canonLeafIds))).toEqual(
+      new Set([1, 2, 3, 4, 5, 6, 7, 8].map((n) => `CBA2-C08.${n}`))
+    );
+    expect(
+      tax.lineItems.find((l) => l.canonLeafIds[0] === 'CBA2-C08.1')
+    ).toMatchObject({
+      amount: contracts + 3_000_000,
+      effectiveFrom: SIMULATION_2025_26_TAX_BASELINE_AT,
+    });
     const leaves = (
       team.salaryBookInputs.apronAdjustments as {
         lineItems: { canonLeafIds: string[] }[];
@@ -240,6 +260,28 @@ describe('SIMULATION team money baseline', () => {
     });
     expect(dateOnly.apronTeamSalary).toBe(140_000_000);
     expect(dateOnly.teamSalary).toBe(143_000_000);
+    expect(dateOnly.taxSalary).toBe(143_000_000);
+  });
+
+  it('has no Tax Salary baseline outside the 2025-26 SIMULATION start', () => {
+    expect(
+      simulationTaxSalaryInput({
+        teamCode: 'TST',
+        season: '2025-26',
+        asOf: '2026-04-01T00:00:00.000Z',
+        teamSalary: 1,
+        uplifts: [],
+      }).status
+    ).toBe('needs-input');
+    expect(
+      simulationTaxSalaryInput({
+        teamCode: 'TST',
+        season: '2026-27',
+        asOf: ASOF,
+        teamSalary: 1,
+        uplifts: [],
+      }).status
+    ).toBe('needs-input');
   });
 
   it('carries the hard cap and checks Traded Player Exceptions', async () => {

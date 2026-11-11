@@ -76,6 +76,7 @@ export interface SimulationTeamResult {
     baseOnlyPlayers: string[];
     teamSalary: number;
     apronTeamSalary: number;
+    taxSalary: number;
     performanceBonuses: number;
     minimumUplifts: Array<{
       playerId: string;
@@ -293,7 +294,15 @@ export async function buildSimulationTeam(
     ),
   ];
 
-  const withInputs = async (incompleteRoster: number) => {
+  const withInputs = async (
+    incompleteRoster: number,
+    taxSalary: TeamSalaryBookInputs['taxSalary'] = {
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.taxSalary.baseline'],
+      reason:
+        'Tax Salary needs its start-of-last-Regular-Season-game baseline.',
+    }
+  ) => {
     const original: TeamSalaryBookInputs = TeamSalaryBookInputsZ.parse({
       version: 1,
       salaryCapYear,
@@ -301,12 +310,7 @@ export async function buildSimulationTeam(
         status: 'ready',
         lineItems: adjustments(incompleteRoster),
       },
-      taxSalary: {
-        status: 'needs-input',
-        missingInputs: ['salaryBookInputs.taxSalary.baseline'],
-        reason:
-          'Tax Salary needs its start-of-last-Regular-Season-game baseline (V1 item A4).',
-      },
+      taxSalary,
     });
     const salaryBookInputs = TeamSalaryBookInputsZ.parse({
       ...original,
@@ -348,6 +352,29 @@ export async function buildSimulationTeam(
   const incomplete = component('incomplete-roster');
   if (incomplete !== 0)
     ({ candidate, snapshot } = await withInputs(incomplete));
+  // Tax Salary (CBA2-C08): baseline plus the dated adjustments. See
+  // simulationTaxSalaryInput for the named SIMULATION premises.
+  const baselineTeamSalary = snapshot.salaryBooks.ledgers.teamSalary;
+  if (baselineTeamSalary.status !== 'complete')
+    throw new Error(
+      `${teamCode}: Team Salary is ${baselineTeamSalary.status}.`
+    );
+  ({ candidate, snapshot } = await withInputs(
+    incomplete,
+    simulationTaxSalaryInput({
+      teamCode,
+      season,
+      asOf,
+      teamSalary: baselineTeamSalary.total,
+      uplifts: upliftLines,
+    })
+  ));
+  const tax = snapshot.salaryBooks.ledgers.taxSalary;
+  if (tax.status !== 'complete') {
+    throw new Error(
+      `${teamCode}: Tax Salary is ${tax.status} (${'reason' in tax ? tax.reason : ''}).`
+    );
+  }
   const apron = snapshot.salaryBooks.ledgers.apronTeamSalary;
   if (apron.status !== 'complete') {
     throw new Error(
@@ -383,12 +410,122 @@ export async function buildSimulationTeam(
       baseOnlyPlayers: Object.keys(input.baseOnlyDocs).sort(),
       teamSalary: final.status === 'complete' ? final.total : Number.NaN,
       apronTeamSalary: apron.total,
+      taxSalary: tax.total,
       performanceBonuses: bonusLines.reduce((n, l) => n + l.amount, 0),
       minimumUplifts,
       freeAgentAmounts: component('cap-holds'),
       hardCap,
       openTradedPlayerExceptions,
     },
+  };
+}
+
+/** Start of the last 2025-26 Regular Season game day (governing time zone). */
+export const SIMULATION_2025_26_TAX_BASELINE_AT = '2026-04-12T04:00:00.000Z';
+export const SIMULATION_TAX_SALARY_ASSUMPTION =
+  'CBA2-C08.1: Tax Salary begins with Team Salary at the start of the last 2025-26 Regular Season game (April 12, 2026). ' +
+  'The retained source has no end-of-season payroll; it records no contract signed after April 12, so the June 5 Team Salary is used. ' +
+  'Bonus earned status is unknown: Likely Bonuses are treated as earned and Unlikely Bonuses as not earned (no C08.3/C08.4 change). ' +
+  'No post-baseline contract event, trade-bonus allocation, grievance or suspension is known (C08.2, C08.5, C08.6, C08.8).';
+
+/**
+ * SIMULATION Tax Salary ledger (CBA2-C08). The zero/one-YOS uplift (C08.7) is
+ * the tax counterpart of the C07.3 Apron rows and uses the same amounts.
+ */
+export function simulationTaxSalaryInput(input: {
+  teamCode: string;
+  season: string;
+  asOf: string;
+  teamSalary: number;
+  uplifts: readonly SalaryLedgerLineItem<SalaryLedgerKind>[];
+}): TeamSalaryBookInputs['taxSalary'] {
+  const { teamCode, season, asOf } = input;
+  if (season !== '2025-26' || asOf < SIMULATION_2025_26_TAX_BASELINE_AT)
+    return {
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.taxSalary.baseline'],
+      reason: `Tax Salary has no SIMULATION baseline for ${season} at ${asOf}.`,
+    };
+  const after = `${asOf.slice(0, 10)}T00:00:00.000Z`;
+  const row = (
+    id: string,
+    leaf: string,
+    label: string,
+    amount: number,
+    effectiveFrom: string,
+    reference: string
+  ): Extract<
+    TeamSalaryBookInputs['taxSalary'],
+    { status: 'ready' }
+  >['lineItems'][number] => ({
+    id: `tax-salary:simulation:${teamCode}:${id}`,
+    ledger: 'tax-salary',
+    label,
+    amount,
+    effectiveFrom,
+    canonLeafIds: [leaf],
+    source: { authority: 'team-state', reference },
+  });
+  const uplifts = input.uplifts.filter((l) =>
+    l.canonLeafIds.includes('CBA2-C07.3')
+  );
+  return {
+    status: 'ready',
+    lineItems: [
+      row(
+        'baseline',
+        'CBA2-C08.1',
+        'Team Salary at the last Regular Season game (SIMULATION: June 5 Team Salary)',
+        input.teamSalary,
+        SIMULATION_2025_26_TAX_BASELINE_AT,
+        SIMULATION_TAX_SALARY_ASSUMPTION
+      ),
+      ...(uplifts.length
+        ? uplifts.map((l) =>
+            row(
+              l.id.replace(/^.*:minimum-uplift:/, 'minimum-uplift:'),
+              'CBA2-C08.7',
+              l.label,
+              l.amount,
+              after,
+              String(l.source.reference)
+            )
+          )
+        : [
+            row(
+              'minimum-uplift:none',
+              'CBA2-C08.7',
+              'No qualifying zero/one-YOS Minimum Contract',
+              0,
+              after,
+              SIMULATION_MINIMUM_UPLIFT_ASSUMPTION
+            ),
+          ]),
+      ...(
+        [
+          [
+            'contract-events',
+            'CBA2-C08.2',
+            'No contract event after the baseline',
+          ],
+          ['likely-bonuses', 'CBA2-C08.3', 'No unearned Likely Bonus is known'],
+          [
+            'unlikely-bonuses',
+            'CBA2-C08.4',
+            'No earned Unlikely Bonus is known',
+          ],
+          [
+            'trade-bonuses',
+            'CBA2-C08.5',
+            'No trade-bonus allocation after the baseline',
+          ],
+          ['grievances', 'CBA2-C08.6', 'No final grievance amount is known'],
+          ['suspensions', 'CBA2-C08.8', 'No qualifying suspension is known'],
+        ] as const
+      ).map(([id, leaf, label]) =>
+        row(id, leaf, label, 0, after, SIMULATION_TAX_SALARY_ASSUMPTION)
+      ),
+    ],
   };
 }
 

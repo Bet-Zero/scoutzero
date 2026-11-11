@@ -435,3 +435,40 @@ To go live (needs the owner's confirmation first):
 Rolling back: unset `SCOUTZERO_SIMULATION_LIVE` and rebuild without the
 client switch. Worlds created while live keep their data, but their draft
 picks stay closed until the switch is turned back on.
+
+## November 11: player trades in SIMULATION worlds (B1 prerequisite)
+
+Before B1, a SIMULATION world could only trade picks for picks. Three
+problems stopped every player trade; this change fixes them.
+
+- Tax Salary (A4 gap). Every team's Tax Salary book was needs-input, and the
+  Trade Machine then said "Add at least two teams". The private package now
+  carries a complete C08 ledger. C08.1 baseline: Team Salary at the start of
+  the last 2025-26 Regular Season game (April 12, 2026). The retained source
+  has no end-of-season payroll and records no contract signed after April 12,
+  so the June 5 Team Salary is used (labelled assumption). C08.7 adds the same
+  zero/one-YOS uplift amounts as C07.3. Bonus earned status is unknown, so no
+  C08.3/C08.4 change; no post-baseline contract event, trade-bonus
+  allocation, grievance or suspension is known. Team Salary includes the
+  unrenounced Free Agent Amounts in the source (for example long-retired
+  players' holds), so Tax Salary does too, as C08.1 reads. A missing book now
+  says so instead of "Add at least two teams".
+- Draft fence. In a fenced world every team, entitlement and event commit
+  must advance `draftInventoryRevision` by one, but only draft trades did, so
+  the rules refused every other save. Ordinary saves now advance it too
+  (which also invalidates any pending draft review).
+- Moved-player records. An ordinary trade writes the moved player's record
+  beside the team document. The draft loader refused any such record; it now
+  accepts one that matches the team document and still refuses one that
+  differs.
+
+Proof: `tests/e2e/architect-simulation-player-trade.spec.ts` swaps Tre Jones
+for Tre Mann (CHI and CHA, equal $8,000,000 guaranteed salaries), then swaps
+the two 2028 firsts in the same world.
+
+What a June 5 world correctly still blocks: expiring contracts after the trade
+deadline (CBA2-L03.14), a post-season salary whose next-season protection is
+unknown (CBA2-A03.3 needs it), Standard TPE matches beyond 100% + $250,000
+(Expanded TPE is B3), and bonus or trade-kicker contracts (post-V1).
+Still to do in B1: players and firsts in one trade, and minimum-contract
+players (their uplift transfer).
