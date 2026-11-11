@@ -301,6 +301,19 @@ function teamSalaryInput(
   };
 }
 
+export const DERIVED_FREE_AGENT_AMOUNTS_REFERENCE =
+  'derived-from:team-salary-free-agent-amounts';
+
+function isDerivedFreeAgentAmountsLine(
+  lineItem: SalaryLedgerLineItem<SalaryLedgerKind>
+) {
+  return (
+    lineItem.canonLeafIds.length === 1 &&
+    lineItem.canonLeafIds[0] === 'CBA2-C07.5' &&
+    lineItem.source.reference === DERIVED_FREE_AGENT_AMOUNTS_REFERENCE
+  );
+}
+
 function apronSalaryInput(
   rawInput: SalaryLedgerInput<SalaryLedgerKind> | undefined,
   teamInput: SalaryLedgerInput<'team-salary'>,
@@ -363,6 +376,25 @@ function apronSalaryInput(
     (sum, lineItem) => sum + lineItem.amount,
     0
   );
+  // A marked C07.5 row follows the Team Salary Free Agent Amounts component,
+  // so signing, renouncing or releasing a hold can never leave it stale.
+  const derivedFreeAgentRows = covered.lineItems.filter(
+    isDerivedFreeAgentAmountsLine
+  );
+  const freeAgentAmounts = teamInput.lineItems.find(
+    (lineItem) => lineItem.id === `team-salary:${teamId}:cap-holds`
+  );
+  if (
+    derivedFreeAgentRows.length > 1 ||
+    (derivedFreeAgentRows.length === 1 && !freeAgentAmounts)
+  ) {
+    return {
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.apronAdjustments.CBA2-C07.5'],
+      reason:
+        'Apron Team Salary allows one derived Free Agent Amounts adjustment, backed by the Team Salary component.',
+    };
+  }
   return {
     status: 'ready',
     lineItems: [
@@ -379,19 +411,21 @@ function apronSalaryInput(
         },
       },
       ...covered.lineItems.map((lineItem) =>
-        incompleteRosterResolution.mode === 'governed' &&
-        isExclusiveGovernedRosterLine(lineItem)
-          ? {
-              ...lineItem,
-              amount: -(incompleteRosterResolution.amount ?? 0),
-              effectiveFrom: asOfDate,
-              source: {
-                authority: 'canon' as const,
-                reference:
-                  'derived-from:governed-incomplete-roster-resolution',
-              },
-            }
-          : lineItem
+        isDerivedFreeAgentAmountsLine(lineItem) && freeAgentAmounts
+          ? { ...lineItem, amount: -freeAgentAmounts.amount }
+          : incompleteRosterResolution.mode === 'governed' &&
+              isExclusiveGovernedRosterLine(lineItem)
+            ? {
+                ...lineItem,
+                amount: -(incompleteRosterResolution.amount ?? 0),
+                effectiveFrom: asOfDate,
+                source: {
+                  authority: 'canon' as const,
+                  reference:
+                    'derived-from:governed-incomplete-roster-resolution',
+                },
+              }
+            : lineItem
       ),
     ],
   };

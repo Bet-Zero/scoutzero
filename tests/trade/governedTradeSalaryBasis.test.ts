@@ -303,15 +303,18 @@ describe('governed ordinary Trade Machine salary basis', () => {
   it.each(['third-season', 'unknown-start', 'option-year'])(
     'withholds Two-Way authority for %s terms',
     (mode) => {
-      const contract = state(
-        [row('2026-27', 636435), row('2027-28', 650000)],
-        { contractType: 'Two-Way', signingDate: '2026-07-10' }
-      );
+      const contract = state([row('2026-27', 636435), row('2027-28', 650000)], {
+        contractType: 'Two-Way',
+        signingDate: '2026-07-10',
+      });
       const terms = structuredClone(contract.terms);
       if (mode === 'third-season') terms.startSeason = '2025-26';
       if (mode === 'unknown-start') terms.startSeason = null;
       if (mode === 'option-year') terms.salaries[1].option = 'TO';
-      const result = resolve(makeResultingState({ ...contract, terms }), '2027-06-05');
+      const result = resolve(
+        makeResultingState({ ...contract, terms }),
+        '2027-06-05'
+      );
       expect(result.status).toBe('needs-input');
       expect(result.reasons.join(' ')).toMatch(
         mode === 'option-year' ? /Option Year/ : /one or two Seasons/
@@ -478,6 +481,48 @@ describe('governed ordinary Trade Machine salary basis', () => {
     expect(bonus.reasons.join(' ')).toContain('bonus compensation');
     expect(kicker.status).toBe('needs-input');
     expect(kicker.reasons.join(' ')).toContain('trade bonus');
+  });
+});
+
+describe('2025-26 zero/one-YOS Minimum uplift', () => {
+  const calendar2026: GovernedCalendarResolution = {
+    ...calendar,
+    seasonKey: '2025-26',
+    regularSeasonOpening: {
+      ...calendar.regularSeasonOpening!,
+      value: '2025-10-21',
+    },
+    regularSeasonClosing: {
+      ...calendar.regularSeasonClosing!,
+      value: '2026-04-12',
+    },
+  };
+  const at = (salary: number) => {
+    const contractState = state([row('2025-26', salary)], {
+      signedUsing: 'Minimum Salary Exception',
+      contractLength: 1,
+    });
+    return resolveGovernedTradeSalaryBasis({
+      contractState,
+      contractManifest: {
+        ...manifest(contractState),
+        salaryCapYear: 2026,
+        seasonKey: '2025-26',
+      },
+      calendar: calendar2026,
+      worldId: WORLD_ID,
+      teamId: TEAM_ID,
+      playerId: PLAYER_ID,
+      asOfDate: '2026-06-05',
+      salaryCapYear: 2026,
+    });
+  };
+
+  it('keeps a Contract carrying an Apron uplift out of trades', () => {
+    const uplift = at(623_967);
+    expect(uplift.status).toBe('needs-input');
+    expect(uplift.reasons.join(' ')).toContain('Apron uplift');
+    expect(at(857_804).reasons.join(' ')).not.toContain('Apron uplift');
   });
 });
 

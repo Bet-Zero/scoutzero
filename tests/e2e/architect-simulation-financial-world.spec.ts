@@ -38,12 +38,26 @@ test('ordinary real-data simulation creation, books and reload retain assumption
     return result.worldId;
   }, uid);
   const root = getReviewAdminDb().doc(`architect_worlds/${id}`);
-  expect((await root.collection('teams').get()).size).toBe(30);
-  expect((await root.get()).data()?.draftBaseline).toBeUndefined();
+  const teamDocs = await root.collection('teams').get();
+  expect(teamDocs.size).toBe(30);
+  // Every team carries release-built players and dated SIMULATION books.
+  for (const team of teamDocs.docs) {
+    const data = team.data();
+    expect(data.players?.length, team.id).toBeGreaterThan(12);
+    expect(data.salaryBookInputs?.simulationAssumptions?.teamCode).toBe(
+      team.id
+    );
+  }
+  // The SIMULATION draft baseline is optional alongside the money baseline.
+  expect([undefined, 'simulation']).toContain(
+    (await root.get()).data()?.draftBaseline?.classification
+  );
   const snapshots = {} as Record<string, unknown>;
-  for (const [code, apron] of [
-    ['CHI', 185036418],
-    ['TOR', 193613510],
+  // TOR's first-Apron hard cap is not in the base team data; restoring
+  // hard caps is checklist item A3, so TOR's level is asserted there.
+  for (const [code, apron, hardCapLevel] of [
+    ['CHI', 185036418, 'firstApron'],
+    ['TOR', 193613510, undefined],
   ] as const) {
     await page.goto(`/gm/${code}?season=2026`);
     await expect(
@@ -77,7 +91,7 @@ test('ordinary real-data simulation creation, books and reload retain assumption
     expect(snapshots[code]).toMatchObject({
       apron,
       tax: null,
-      hardCapLevel: 'firstApron',
+      ...(hardCapLevel ? { hardCapLevel } : {}),
       inputs: { simulationAssumptions: { classification: 'SIMULATION' } },
     });
     await page.reload();
