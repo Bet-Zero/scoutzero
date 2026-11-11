@@ -86,22 +86,32 @@ type HistoryRow = {
   aboveSecondApron: boolean | null;
   dependencyId: string;
 };
-async function hardCapLabels(): Promise<Map<string, string>> {
-  const snapshot = await loadSnapshot(DATA_DIR);
-  return new Map(
-    snapshot.documents
-      .filter((d) => d.name.split('/').at(-2) === 'architect_baseTeams')
-      .map((d) => {
-        const doc = decodeFields(d.fields ?? {}) as Record<string, unknown>;
-        const totals = (doc.totals ?? {}) as Record<string, unknown>;
-        return [
-          String(d.name.split('/').at(-1)),
-          readHardCapLabel(doc.hardCapLevel ?? totals.hardCapLevel),
-        ];
-      })
-  );
+// Hard-cap labels come from the private snapshot, read only when a row needs
+// the fallback. Without a snapshot the row stays undetermined (fails closed).
+let labelCache: Map<string, string> | null | undefined;
+async function hardCapLabel(team: string): Promise<string | undefined> {
+  if (labelCache === undefined) {
+    const snapshot = await loadSnapshot(DATA_DIR).catch(() => null);
+    labelCache = snapshot
+      ? new Map(
+          snapshot.documents
+            .filter((d) => d.name.split('/').at(-2) === 'architect_baseTeams')
+            .map((d) => {
+              const doc = decodeFields(d.fields ?? {}) as Record<
+                string,
+                unknown
+              >;
+              const totals = (doc.totals ?? {}) as Record<string, unknown>;
+              return [
+                String(d.name.split('/').at(-1)),
+                readHardCapLabel(doc.hardCapLevel ?? totals.hardCapLevel),
+              ];
+            })
+        )
+      : null;
+  }
+  return labelCache?.get(team);
 }
-const labels = await hardCapLabels();
 const apronHistory: SimulationApronHistoryRow[] = [];
 let derived = 0;
 for (const row of (candidate.apronHistory ?? []) as HistoryRow[]) {
@@ -115,8 +125,9 @@ for (const row of (candidate.apronHistory ?? []) as HistoryRow[]) {
     });
     continue;
   }
-  const label = labels.get(row.team);
-  if (row.seasonStartYear === 2025 && label && label !== 'none') {
+  const label =
+    row.seasonStartYear === 2025 ? await hardCapLabel(row.team) : undefined;
+  if (label && label !== 'none') {
     derived += 1;
     apronHistory.push({
       team: row.team,
