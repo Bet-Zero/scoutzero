@@ -304,3 +304,25 @@ All 30 teams build with complete Team Salary and Apron Team Salary; CHI
 - Hard caps (TOR's first-Apron cap) are item A3; tax remains needs-input (A4).
 - Trades of 2025-26 contracts that may carry an uplift are blocked as outside
   this tranche until the uplift transfer rule is modelled.
+
+## November 11: hard caps and exceptions (V1 item A3)
+
+The same private package now carries each team's hard cap and checked
+exceptions (`src/features/architect/utils/simulationHardCap.ts`).
+
+- Hard caps: the snapshot's 2025-26 hard-cap label is the SIMULATION reading
+  (`hardCapTriggeredBy` names the source), so the trade machine enforces it.
+  21 teams are hard-capped: 17 at the First Apron and 4 at the Second Apron.
+  TOR's "No" label is raised to the First Apron by the retained March 6 report
+  (Non-Taxpayer MLE acquisition). A correction can only raise a label.
+- Guards: a "No" label contradicted by a 2025-26 signing (Non-Taxpayer MLE
+  above $5,685,000, or the Bi-annual Exception) stops the build, and so does a
+  hard-capped team above its ceiling. All 30 teams pass. LAL is closest at
+  $619,421 under the First Apron; NYK is $369,739 under the Second Apron.
+- Traded Player Exceptions: 60 carried from the June 7 snapshot. All balances
+  are coherent and none expire by June 5. Their amounts cannot be rebuilt
+  from trade history, which is not retained. 39 differ from the named
+  player's current salary, as expected for partial or multi-player trades.
+- MLE and Bi-annual Exception balances are carried as scraped. They matter
+  only for signings and B1 (Phase 3), and they reset at the season change. Known
+  quirk: every MLE is typed "Non-Taxpayer", even at the Taxpayer amount.

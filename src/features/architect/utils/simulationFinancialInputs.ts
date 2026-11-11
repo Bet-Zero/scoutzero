@@ -35,6 +35,12 @@ import {
   type SourceDoc,
 } from './simulationMinimumUplift';
 import {
+  checkSimulationTpes,
+  resolveSimulationHardCap,
+  type SimulationHardCap,
+  type SimulationHardCapCorrection,
+} from './simulationHardCap';
+import {
   assembleHydratedBaseTeam,
   type HydratedBaseTeamCapSheet,
 } from './hydratedBaseTeam';
@@ -54,6 +60,8 @@ export interface SimulationTeamInput {
    * keyed by the dead-money entry's playerId, when the release holds one.
    */
   deadMoneyDocs?: Record<string, SourceDoc>;
+  /** A retained source that raises the snapshot's hard-cap label (A3). */
+  hardCapCorrection?: SimulationHardCapCorrection;
   assumption: {
     checkedAt: string;
     evidenceReferences: string[];
@@ -78,6 +86,8 @@ export interface SimulationTeamResult {
       deadMoney: boolean;
     }>;
     freeAgentAmounts: number;
+    hardCap: SimulationHardCap;
+    openTradedPlayerExceptions: number;
   };
 }
 
@@ -345,8 +355,28 @@ export async function buildSimulationTeam(
     );
   }
   const final = snapshot.salaryBooks.ledgers.teamSalary;
+  const hardCap = resolveSimulationHardCap({
+    teamCode,
+    season,
+    sourceLabel: team.hardCapLevel ?? null,
+    releaseDocs: input.releaseDocs,
+    apronTeamSalary: apron.total,
+    correction: input.hardCapCorrection,
+  });
+  const openTradedPlayerExceptions = checkSimulationTpes(
+    teamCode,
+    (candidate.exceptions as { tpe?: unknown } | undefined)?.tpe,
+    asOf
+  );
+  const hardCapped = {
+    ...candidate,
+    hardCapLevel: hardCap.level,
+    hardCapReason: hardCap.reason,
+    hardCapTriggeredBy: hardCap.triggeredBy,
+    hardCapped: hardCap.level !== 'none',
+  };
   return {
-    team: JSON.parse(JSON.stringify(candidate)),
+    team: JSON.parse(JSON.stringify(hardCapped)),
     report: {
       teamCode,
       players: ids.length,
@@ -356,6 +386,8 @@ export async function buildSimulationTeam(
       performanceBonuses: bonusLines.reduce((n, l) => n + l.amount, 0),
       minimumUplifts,
       freeAgentAmounts: component('cap-holds'),
+      hardCap,
+      openTradedPlayerExceptions,
     },
   };
 }

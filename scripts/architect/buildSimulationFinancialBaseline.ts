@@ -130,6 +130,14 @@ function deadMoneyDoc(entry: Record<string, unknown>): Doc | undefined {
 // Base ids that differ only in punctuation or a name suffix from a release id.
 const nameKey = (id: string) =>
   id.replace(/_(i{2,3}|iv|jr|sr)$/, '').replace(/[^a-z]/g, '');
+// Retained evidence that raises a snapshot hard-cap label (BZE-345 notes).
+const HARD_CAP_CORRECTIONS = {
+  TOR: {
+    level: 'firstApron',
+    evidence:
+      'retained March 6, 2026 financial report (BZE-345): Non-Taxpayer MLE acquisition trigger',
+  },
+} as const;
 const checkedAt = new Date().toISOString();
 const evidenceReferences = [
   `${release.releaseId} v${release.releaseVersion} ${release.releaseDigest}`,
@@ -171,6 +179,8 @@ for (const { code } of [...TeamListFull].sort((a, b) =>
         }
       )
     ),
+    hardCapCorrection:
+      HARD_CAP_CORRECTIONS[code as keyof typeof HARD_CAP_CORRECTIONS],
     assumption: { checkedAt, evidenceReferences },
   });
   teams[code] = built.team as unknown as Record<string, unknown>;
@@ -199,6 +209,8 @@ console.table(
       .map((u) => `${u.playerId}${u.bounded ? '*' : ''}=${u.uplift}`)
       .join(' '),
     holds: r.freeAgentAmounts,
+    hardCap: `${r.hardCap.level}${r.hardCap.corrected ? '*' : ''}`,
+    tpe: r.openTradedPlayerExceptions,
     baseOnly: r.baseOnlyPlayers.join(' '),
   }))
 );
