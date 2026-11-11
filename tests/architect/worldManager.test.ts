@@ -636,8 +636,14 @@ describe('World Manager', () => {
       });
       let childWorldId = '';
       setMockCallable('initializeArchitectWorld', (data) => {
-        const request = data as { worldId: string; parentWorldId: string };
+        const request = data as {
+          worldId: string;
+          parentWorldId: string;
+          expectedParentDraftRevision?: number;
+        };
         childWorldId = request.worldId;
+        // The documents were read at this parent revision.
+        expect(request.expectedParentDraftRevision).toBe(4);
         seedWorldMetadata(request.worldId, {
           ...getRequiredWorldMetadata(request.parentWorldId),
           worldId: request.worldId,

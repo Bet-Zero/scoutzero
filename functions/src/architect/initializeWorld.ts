@@ -44,6 +44,8 @@ type InitializeArchitectWorldRequest = {
   userId: string;
   currentSeason?: string | null;
   parentWorldId?: string | null;
+  /** SIMULATION copy: the parent draft revision the client read at. */
+  expectedParentDraftRevision?: number | null;
 };
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -310,7 +312,8 @@ const SIMULATION_DESCRIPTION_NOTE =
 async function simulationCopyMetadata(
   parentRef: FirebaseFirestore.DocumentReference,
   parentWorldId: string,
-  parent: JsonRecord
+  parent: JsonRecord,
+  expectedRevision: unknown
 ): Promise<{ metadata: JsonRecord; draftRoot: JsonRecord | null }> {
   const metadata: JsonRecord = {
     simulationFinancialBaseline: cloneJson(parent.simulationFinancialBaseline),
@@ -339,6 +342,13 @@ async function simulationCopyMetadata(
     throw new HttpsError(
       'failed-precondition',
       'The SIMULATION world has no complete draft source to copy. The parent is unchanged.'
+    );
+  // The client read the parent's documents at this revision. Any draft or
+  // roster commit since then would pair old documents with new custody.
+  if (expectedRevision !== revision)
+    throw new HttpsError(
+      'aborted',
+      'The SIMULATION world changed while it was being copied. Try again; the parent is unchanged.'
     );
   const inherited = isRecord(parentCopy)
     ? (parentCopy.receiptWorldIds as JsonRecord)
@@ -511,7 +521,8 @@ export const initializeArchitectWorld = onCall(
           simulationCopy = await simulationCopyMetadata(
             parentRef,
             parentWorldId,
-            parent
+            parent,
+            request.data?.expectedParentDraftRevision
           );
           Object.assign(metadata, simulationCopy.metadata, {
             worldName: worldName.startsWith(SIMULATION_NAME_PREFIX)

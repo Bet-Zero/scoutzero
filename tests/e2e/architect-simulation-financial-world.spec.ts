@@ -122,6 +122,39 @@ test('ordinary real-data simulation creation, books and reload retain assumption
   // A6: copy the SIMULATION world. The copy carries the same books, hard caps
   // and draft source, and the parent is unchanged.
   const parentBefore = (await root.get()).data()!;
+  if (parentBefore.draftBaseline) {
+    // A copy read at a stale parent revision is refused before anything is written.
+    const stale = await page.evaluate(
+      async ({ id, uid }) => {
+        const fns = await import(
+          '/node_modules/.vite/deps/firebase_functions.js'
+        );
+        const config = await import('/src/firebaseConfig.ts');
+        try {
+          await fns.httpsCallable(
+            config.functions,
+            'initializeArchitectWorld'
+          )({
+            worldId: 'world_stale_copy',
+            worldName: 'Stale',
+            description: '',
+            userId: uid,
+            parentWorldId: id,
+            expectedParentDraftRevision: 999,
+          });
+          return 'accepted';
+        } catch (error) {
+          return String((error as Error).message);
+        }
+      },
+      { id, uid }
+    );
+    expect(stale).toContain('changed while it was being copied');
+    expect(
+      (await getReviewAdminDb().doc('architect_worlds/world_stale_copy').get())
+        .exists
+    ).toBe(false);
+  }
   const copy = await page.evaluate(
     async ({ id, uid }) => {
       const manager = '/src/features/architect/utils/worldManager.ts';

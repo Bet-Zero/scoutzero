@@ -703,6 +703,7 @@ const initializeArchitectWorld = async (input: {
   userId: string;
   currentSeason?: string | null;
   parentWorldId?: string | null;
+  expectedParentDraftRevision?: number | null;
 }): Promise<void> => {
   const initializeFunction = httpsCallable(
     functions,
@@ -1030,9 +1031,14 @@ export async function branchWorld(
   }
   const worldId = generateWorldId();
   const copyOperations: BranchCopyOperation[] = [];
-  const simulationParent = isSimulationWorldMetadata(
-    (await getDoc(worldMetadataRef(parentWorldId))).data()
-  );
+  const parentRaw = (await getDoc(worldMetadataRef(parentWorldId))).data();
+  const simulationParent = isSimulationWorldMetadata(parentRaw);
+  // Read before the documents; the server refuses the copy if any fenced
+  // commit lands in between.
+  const expectedParentDraftRevision =
+    typeof parentRaw?.draftInventoryRevision === 'number'
+      ? parentRaw.draftInventoryRevision
+      : null;
   const simulationWrites = simulationParent
     ? await collectSimulationCopyWrites(parentWorldId, worldId)
     : [];
@@ -1051,6 +1057,7 @@ export async function branchWorld(
       description: description?.trim() || '',
       userId,
       parentWorldId,
+      ...(simulationParent ? { expectedParentDraftRevision } : {}),
     });
     await commitBranchCopyOperations(copyOperations);
     if (simulationParent)
