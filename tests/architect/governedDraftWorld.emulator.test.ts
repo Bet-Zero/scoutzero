@@ -3,7 +3,7 @@ import { beforeAll, afterAll, beforeEach, describe, expect, it } from 'vitest';
 import admin from 'firebase-admin';
 import { readFileSync } from 'node:fs';
 import { signInAnonymously, signOut } from 'firebase/auth';
-import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, writeBatch } from 'firebase/firestore';
 import { auth, db } from '@/firebaseConfig';
 import { TeamListFull } from '@/constants/teamList';
 import fixture from '../../functions/src/architect/fixtures/governedDraftWorld.json';
@@ -15,6 +15,7 @@ import {
 import { prepareGovernedDraftWorldPreview } from '@/features/architect/utils/governedDraftWorld.preview';
 import { loadGovernedDraftWorld } from '@/features/architect/utils/governedDraftWorld.load';
 import { getTeam } from '@/features/architect/utils/teamLoader';
+import { createEmptyRightsEventLedger } from '@/features/architect/utils/rightsHistory/rightsEventLedger';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
 import { draftFinancialState } from '@/features/architect/utils/tradeContext/draftFinancialPreservation';
 import { prepareGovernedDraftWorldCapability } from '@/features/architect/utils/draftReview/capability';
@@ -378,6 +379,94 @@ describe('ordinary saved-world future firsts on real Firestore', () => {
       expect(result.success).toBe(false);
       expect(JSON.stringify(result)).toMatch(/changed|Unrecognized/i);
       expect(await saved()).toEqual(before);
+    }
+  }, 120000);
+  it('ordinary batched and transactional commits advance the draft fence by exactly one', async () => {
+    // An unchanged non-participant team: the commit itself is what is tested.
+    const rightsLedger = createEmptyRightsEventLedger({
+      ledgerId: 'fence_rights',
+      worldId,
+      teamId: 'NYK',
+    });
+    await adminDb.doc(`${path}/teams/NYK`).update({ rightsLedger });
+    const team = (await adminDb.doc(`${path}/teams/NYK`).get()).data()!;
+    const commit = (mutationType: string, operationId: string) =>
+      persistWorldMutation({
+        worldId,
+        seasonId,
+        mutationType,
+        computeResult: { success: true, metadata: {} },
+        committedTeamUpdates: [{ teamCode: 'NYK', team }],
+        timestamp: Date.parse(fixture.asOf),
+        auditContext: { operationId, teamCodes: ['NYK'] },
+        expectedRightsLedgersByTeam: {
+          NYK: rightsLedger,
+        },
+      } as Parameters<typeof persistWorldMutation>[0]);
+    const revision = async () =>
+      (await adminDb.doc(path).get()).data()?.draftInventoryRevision;
+    // Batched path (ordinary Trade Machine commits).
+    const batched = await commit('executeTrade', 'fence_batch');
+    expect(batched.success, JSON.stringify(batched)).toBe(true);
+    expect(await revision()).toBe(1);
+    // Transactional path (renunciation, options, waivers, signings, governed
+    // cash and sign-and-trade share it); the read happens in the transaction.
+    const transactional = await commit('renounceRights', 'fence_txn');
+    expect(transactional.success, JSON.stringify(transactional)).toBe(true);
+    expect(await revision()).toBe(2);
+    // A commit built on a stale revision (here, 1 after it became 2) is denied
+    // by firestore.rules as a whole, so nothing is written.
+    const before = await saved();
+    const stale = writeBatch(db);
+    stale.update(doc(db, path), { draftInventoryRevision: 2 });
+    stale.set(doc(db, `${path}/events/stale_fence`), { valid: true });
+    await expect(stale.commit()).rejects.toThrow(/permission/i);
+    const skipped = writeBatch(db);
+    skipped.update(doc(db, path), { draftInventoryRevision: 4 });
+    skipped.set(doc(db, `${path}/events/skipped_fence`), { valid: true });
+    await expect(skipped.commit()).rejects.toThrow(/permission/i);
+    expect(await saved()).toEqual(before);
+    // A world that never opted in stays unfenced.
+    await adminDb
+      .doc(path)
+      .update({ draftInventoryRevision: admin.firestore.FieldValue.delete() });
+    const unfenced = await commit('executeTrade', 'fence_absent');
+    expect(unfenced.success, JSON.stringify(unfenced)).toBe(true);
+    expect((await adminDb.doc(path).get()).data()).not.toHaveProperty(
+      'draftInventoryRevision'
+    );
+  }, 120000);
+  it('admits a player override only when it shadows nothing in the team mirror', async () => {
+    const mirror = fixture.initialTeams.BOS.players[0];
+    const ref = adminDb.doc(`${path}/teams/BOS/players/${mirror.id}`);
+    // The shape an ordinary trade writes: a subset of the mirror record.
+    const agreeing = {
+      player_id: mirror.player_id,
+      displayName: mirror.displayName,
+      teamCode: 'BOS',
+      bio: mirror.bio,
+      contract: mirror.contract,
+    };
+    await ref.set(agreeing);
+    expect(
+      (await loadGovernedDraftWorld(worldId, ['BOS', 'MIA']))?.teams.BOS
+    ).toBeDefined();
+    const contract = clone(mirror.contract);
+    contract.salariesByYear[0].salary = 10_000_001;
+    const bonus = clone(mirror.contract) as Record<string, unknown>;
+    bonus.tradeBonus = { percent: 15 };
+    for (const divergent of [
+      { ...agreeing, teamCode: 'MIA' },
+      { ...agreeing, contract },
+      { ...agreeing, contract: bonus },
+      { ...agreeing, futureContract: { salariesByYear: [] } },
+      { ...agreeing, rfaBoundary: { qualifyingOffer: 1 } },
+      { ...agreeing, displayName: 'Someone else' },
+    ]) {
+      await ref.set(divergent);
+      await expect(
+        loadGovernedDraftWorld(worldId, ['BOS', 'MIA'])
+      ).rejects.toThrow(/shadowing player overrides/);
     }
   }, 120000);
 });

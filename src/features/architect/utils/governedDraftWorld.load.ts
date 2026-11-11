@@ -264,7 +264,25 @@ export async function loadGovernedDraftWorld(
           throw new Error('Governed roster identity is invalid.');
         const playerRef = worldPlayerRef(worldId, snapshot.id, playerId);
         const player = await getDoc(playerRef);
-        if (player.exists())
+        // An ordinary trade writes the moved player's override beside the
+        // team mirror. It is admitted only when it shadows nothing: it names
+        // this team and every one of its fields (contract, future contract,
+        // rights, sidecars) equals the mirror's. Anything else would make the
+        // loaded team differ from the financial snapshot reviewed here.
+        const mirrored = players.find((p) => playerIdentity(p) === playerId) as
+          | Record<string, unknown>
+          | undefined;
+        if (
+          player.exists() &&
+          (player.data().teamCode !== snapshot.id ||
+            !mirrored ||
+            Object.entries(player.data()).some(
+              ([field, value]) =>
+                !(field in mirrored) ||
+                canonicalStringify(value) !==
+                  canonicalStringify(mirrored[field])
+            ))
+        )
           throw new Error(
             'Governed draft trading requires a reconciled local financial snapshot without shadowing player overrides.'
           );

@@ -203,6 +203,7 @@ console.table(
     players: r.players,
     teamSalary: r.teamSalary,
     apron: r.apronTeamSalary,
+    tax: r.taxSalary,
     bonuses: r.performanceBonuses,
     uplift: r.minimumUplifts.reduce((n, u) => n + u.uplift, 0),
     upliftRows: r.minimumUplifts

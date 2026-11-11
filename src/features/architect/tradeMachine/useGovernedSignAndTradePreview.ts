@@ -10,6 +10,13 @@ type GovernedPreviewValidation = (
   authority?: GovernedSignAndTradeAuthority | null
 ) => 'insufficient' | 'started';
 
+// Validation also stops when a team's salary books are not complete; say which.
+function insufficientMessage(teams: TradeMachineTeamSlot[]) {
+  return teams.filter((slot) => Boolean(slot.team)).length < 2
+    ? 'Add at least two teams to validate this trade.'
+    : 'A team in this trade has incomplete salary books (Team, Apron or Tax Salary needs input), so it cannot be validated yet.';
+}
+
 export function useGovernedSignAndTradePreview({
   teams,
   worldId,
@@ -38,7 +45,7 @@ export function useGovernedSignAndTradePreview({
     if (signAndTradePlayers.length === 0) {
       const status = validate();
       if (status === 'insufficient') {
-        toast.error('Add at least two teams to validate this trade.');
+        toast.error(insufficientMessage(teams));
       }
       return;
     }
@@ -110,7 +117,7 @@ export function useGovernedSignAndTradePreview({
       });
       const status = validate(authority);
       if (status === 'insufficient') {
-        toast.error('Add at least two teams to validate this trade.');
+        toast.error(insufficientMessage(teams));
       }
     } catch (error) {
       console.error(

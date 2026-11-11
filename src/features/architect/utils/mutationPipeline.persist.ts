@@ -10,7 +10,10 @@ import { nativeFamilyTeams } from './draftReview/nativeTrading';
 import { db } from '@/firebaseConfig';
 import { consumeDraftReviewCommit } from './mutationPipeline';
 import { requireDraftReviewApply } from '@/features/architect/utils/draftReview/capability';
-import { requireDraftInventoryRevision } from './draftReview/inventoryFence';
+import {
+  ordinaryDraftInventoryAdvance,
+  requireDraftInventoryRevision,
+} from './draftReview/inventoryFence';
 import { mutationSnapshotText } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
 import { hasPreservedDraftUpdates } from './tradeContext/draftFinancialPersistence';
 import { buildWorldStatsUpdate } from '@/features/architect/utils/worldManager.stats';
@@ -21,6 +24,7 @@ import {
   serverTimestamp,
   collection,
   doc,
+  getDoc,
   type DocumentData,
   type DocumentReference,
   type SetOptions,
@@ -1157,6 +1161,15 @@ export async function persistWorldMutation(
       draftReview !== null
     ) {
       await runTransaction(db, async (transaction) => {
+        // A fenced world needs every ordinary commit to advance the shared
+        // draft revision by one (draft reviews set it themselves). Firestore
+        // requires transaction reads before any write, so read it first; a
+        // stale value retries the transaction or is denied by the rules.
+        const fenceAdvance = draftReview
+          ? {}
+          : ordinaryDraftInventoryAdvance(
+              (await transaction.get(metadataRef)).data()
+            );
         if (draftReview) {
           assertDraftResultUnchanged!();
           requireDraftReviewApply(draftReviewAuthority);
@@ -1819,9 +1832,16 @@ export async function persistWorldMutation(
           }
         }
         assertDraftResultUnchanged?.();
+        Object.assign(worldPatch, fenceAdvance);
         applyWritesToTransaction(transaction, writes);
       });
     } else {
+      // Same fence advance for batched commits. A concurrent commit between
+      // this read and the batch makes the rules deny the whole batch.
+      Object.assign(
+        worldPatch,
+        ordinaryDraftInventoryAdvance((await getDoc(metadataRef)).data())
+      );
       const batch = writeBatch(db);
       applyWritesToBatch(batch, writes);
       await batch.commit();

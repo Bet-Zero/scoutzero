@@ -17,3 +17,19 @@ export function requireDraftInventoryRevision(
     );
   return revision;
 }
+
+/**
+ * The fence advance an ordinary (non-draft-review) commit must carry. In a
+ * fenced world, firestore.rules advancesDraftInventory requires every team,
+ * entitlement and event commit to set the revision to exactly the committed
+ * value plus one, so a commit built on a stale read is denied. A world that
+ * never opted in is left unchanged.
+ */
+export function ordinaryDraftInventoryAdvance(
+  metadata: Record<string, unknown> | undefined
+): { draftInventoryRevision?: number } {
+  if (!metadata || !('draftInventoryRevision' in metadata)) return {};
+  return {
+    draftInventoryRevision: requireDraftInventoryRevision(metadata) + 1,
+  };
+}
