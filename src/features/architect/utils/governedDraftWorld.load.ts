@@ -1,5 +1,5 @@
 /** Load immutable source and the exact mutable world read set. No writes. */
-import { db, isGovernedDraftFixtureEnvironment } from '@/firebaseConfig';
+import { isGovernedDraftFixtureEnvironment } from '@/firebaseConfig';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import {
   ARCHITECT_WORLD_DRAFT_BASELINES_SUBCOLLECTION,
@@ -52,6 +52,48 @@ export function getLoadedGovernedDraftWorld(state: TradeContextCurrentState) {
   return loaded;
 }
 
+type DraftCopy = {
+  parentWorldId: string;
+  receiptWorldIds: Record<string, unknown>;
+};
+function draftCopyOf(metadata: Record<string, unknown>): DraftCopy | null {
+  const copy = metadata.draftCopy as Partial<DraftCopy> | null | undefined;
+  return copy != null &&
+    typeof copy === 'object' &&
+    typeof copy.parentWorldId === 'string' &&
+    copy.receiptWorldIds != null &&
+    typeof copy.receiptWorldIds === 'object'
+    ? (copy as DraftCopy)
+    : null;
+}
+/**
+ * A world is either its own root, or a server-made copy of a SIMULATION world
+ * whose recorded parent is its actual parent (V1 item A6).
+ */
+export function copiedLineageMatches(
+  metadata: Record<string, unknown>,
+  classification: string
+) {
+  if (metadata.parentWorldId == null) return metadata.draftCopy == null;
+  const copy = draftCopyOf(metadata);
+  return (
+    classification === 'simulation' &&
+    copy !== null &&
+    copy.parentWorldId === metadata.parentWorldId
+  );
+}
+/** A copied transfer keeps the receipt of the world that committed it. */
+export function receiptWorldId(
+  metadata: Record<string, unknown>,
+  worldId: string,
+  operationId: string
+) {
+  const receipts = draftCopyOf(metadata)?.receiptWorldIds;
+  if (!receipts || !Object.hasOwn(receipts, operationId)) return worldId;
+  const owner = receipts[operationId];
+  return typeof owner === 'string' && owner !== '' ? owner : null;
+}
+
 export async function loadGovernedDraftWorld(
   worldId: string,
   participatingTeamCodes: readonly string[] = []
@@ -97,7 +139,7 @@ export async function loadGovernedDraftWorld(
       }) ||
     metadata.asOfDate !== baseline.asOf.slice(0, 10) ||
     metadata.currentSeason !== baseline.seasonId ||
-    metadata.parentWorldId != null
+    !copiedLineageMatches(metadata, expected.classification)
   )
     throw new Error(
       'The saved world has no matching active draft source and date.'
@@ -127,7 +169,8 @@ export async function loadGovernedDraftWorld(
       event.data()?.valid !== true ||
       !receipt.success ||
       receipt.data.scope !== 'governed-world-fixture' ||
-      receipt.data.worldId !== worldId ||
+      receipt.data.worldId !==
+        receiptWorldId(metadata, worldId, transfer.operationId) ||
       receipt.data.releaseId !== expected.releaseId ||
       receipt.data.releaseSha256 !== digest ||
       receipt.data.operationId !== transfer.operationId ||

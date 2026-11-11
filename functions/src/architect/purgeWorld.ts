@@ -292,6 +292,16 @@ async function deleteWorldRecursive(
     timedOut = baselinesResult.timedOut;
   }
 
+  // Immutable draft sources (software fixture or SIMULATION) go with the world.
+  if (!timedOut) {
+    const draftResult = await deleteCollection(
+      worldRef.collection('draftBaselines'),
+      startTime
+    );
+    contractBaselinesDeleted += draftResult.deleted;
+    timedOut = draftResult.timedOut;
+  }
+
   // Finally delete the world document itself
   let worldDeleted = false;
   if (!timedOut) {

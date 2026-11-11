@@ -44,6 +44,8 @@ type InitializeArchitectWorldRequest = {
   userId: string;
   currentSeason?: string | null;
   parentWorldId?: string | null;
+  /** SIMULATION copy: the parent draft revision the client read at. */
+  expectedParentDraftRevision?: number | null;
 };
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -297,6 +299,90 @@ function branchWorldMetadata(args: {
   return metadata;
 }
 
+const SIMULATION_NAME_PREFIX = 'SIMULATION — ';
+const SIMULATION_DESCRIPTION_NOTE =
+  'Public-data simulation. Unidentified grievances and first-round Required Tenders are assumed not applicable only where explicitly recorded; this is not certified historical compliance.';
+
+/**
+ * Copy of a SIMULATION world (V1 item A6). The child carries the parent's
+ * immutable financial and draft identities. Each existing draft transfer keeps
+ * its receipt from the world that committed it, recorded in server-only
+ * metadata so a client can never rebind custody history.
+ */
+async function simulationCopyMetadata(
+  parentRef: FirebaseFirestore.DocumentReference,
+  parentWorldId: string,
+  parent: JsonRecord,
+  expectedRevision: unknown
+): Promise<{ metadata: JsonRecord; draftRoot: JsonRecord | null }> {
+  const metadata: JsonRecord = {
+    simulationFinancialBaseline: cloneJson(parent.simulationFinancialBaseline),
+  };
+  if (parent.draftBaseline == null) return { metadata, draftRoot: null };
+  const root = (
+    await parentRef.collection('draftBaselines').doc('root').get()
+  ).data();
+  const revision = parent.draftInventoryRevision;
+  const transfers = parent.draftWorldTransfers;
+  const parentCopy = parent.draftCopy;
+  if (
+    !root ||
+    root.worldId !== parentWorldId ||
+    !isRecord(root.release) ||
+    typeof revision !== 'number' ||
+    !Number.isSafeInteger(revision) ||
+    revision < 0 ||
+    !Array.isArray(transfers) ||
+    (parent.parentWorldId != null &&
+      (!isRecord(parentCopy) ||
+        parentCopy.parentWorldId !== parent.parentWorldId)) ||
+    (parentCopy != null &&
+      (!isRecord(parentCopy) || !isRecord(parentCopy.receiptWorldIds)))
+  )
+    throw new HttpsError(
+      'failed-precondition',
+      'The SIMULATION world has no complete draft source to copy. The parent is unchanged.'
+    );
+  // The client read the parent's documents at this revision. Any draft or
+  // roster commit since then would pair old documents with new custody.
+  if (expectedRevision !== revision)
+    throw new HttpsError(
+      'aborted',
+      'The SIMULATION world changed while it was being copied. Try again; the parent is unchanged.'
+    );
+  const inherited = isRecord(parentCopy)
+    ? (parentCopy.receiptWorldIds as JsonRecord)
+    : {};
+  const receiptWorldIds: Record<string, string> = {};
+  for (const transfer of transfers) {
+    const operationId = isRecord(transfer) ? transfer.operationId : null;
+    if (typeof operationId !== 'string' || operationId === '')
+      throw new HttpsError(
+        'failed-precondition',
+        'A SIMULATION draft transfer has no operation identity. The parent is unchanged.'
+      );
+    const receiptWorld = Object.prototype.hasOwnProperty.call(
+      inherited,
+      operationId
+    )
+      ? inherited[operationId]
+      : parentWorldId;
+    if (typeof receiptWorld !== 'string' || receiptWorld === '')
+      throw new HttpsError(
+        'failed-precondition',
+        'A copied draft receipt has no source world. The parent is unchanged.'
+      );
+    receiptWorldIds[operationId] = receiptWorld;
+  }
+  Object.assign(metadata, {
+    draftBaseline: cloneJson(parent.draftBaseline),
+    draftInventoryRevision: 0,
+    draftWorldTransfers: cloneJson(transfers),
+    draftCopy: { parentWorldId, receiptWorldIds },
+  });
+  return { metadata, draftRoot: cloneJson(root.release as JsonRecord) };
+}
+
 export const initializeArchitectWorld = onCall(
   {
     enforceAppCheck: false,
@@ -366,6 +452,9 @@ export const initializeArchitectWorld = onCall(
       let draftBaseline: ReturnType<typeof loadTrustedDraftBaseline> = null;
       let simulationDraft: ReturnType<typeof loadSimulationDraftBaseline> =
         null;
+      let simulationCopy: Awaited<
+        ReturnType<typeof simulationCopyMetadata>
+      > | null = null;
       if (parentWorldId) {
         const parentRef = db
           .collection(ARCHITECT_WORLDS_COLLECTION)
@@ -384,13 +473,20 @@ export const initializeArchitectWorld = onCall(
             'You do not have permission to branch this world.'
           );
         }
-        if (
+        const governedParent =
           parent.draftBaseline != null ||
-          parent.simulationFinancialBaseline != null
+          parent.simulationFinancialBaseline != null;
+        if (
+          governedParent &&
+          (!isRecord(parent.simulationFinancialBaseline) ||
+            (parent.draftBaseline != null &&
+              (!isRecord(parent.draftBaseline) ||
+                parent.draftBaseline.classification !== 'simulation')))
         ) {
+          // Software draft fixtures keep their single-world custody proofs.
           throw new HttpsError(
             'failed-precondition',
-            'Branching a governed draft baseline requires a qualified custody-copy route. The parent is unchanged.'
+            'Only a SIMULATION world can be copied. The parent is unchanged.'
           );
         }
         const release = loadTrustedContractRelease(
@@ -421,6 +517,20 @@ export const initializeArchitectWorld = onCall(
           parent,
           contractMetadata: trustedMetadata,
         });
+        if (governedParent) {
+          simulationCopy = await simulationCopyMetadata(
+            parentRef,
+            parentWorldId,
+            parent,
+            request.data?.expectedParentDraftRevision
+          );
+          Object.assign(metadata, simulationCopy.metadata, {
+            worldName: worldName.startsWith(SIMULATION_NAME_PREFIX)
+              ? worldName
+              : `${SIMULATION_NAME_PREFIX}${worldName}`,
+            description: `${description}\n${SIMULATION_DESCRIPTION_NOTE}`,
+          });
+        }
       } else {
         const release = loadTrustedContractRelease();
         trustedMetadata = trustedContractBaselineMetadata(release);
@@ -451,9 +561,8 @@ export const initializeArchitectWorld = onCall(
               asOf: simulationBaseline.asOf,
               sha256: process.env.SCOUTZERO_SIMULATION_FINANCIAL_SHA256,
             },
-            worldName: `SIMULATION — ${worldName}`,
-            description: `${description}
-Public-data simulation. Unidentified grievances and first-round Required Tenders are assumed not applicable only where explicitly recorded; this is not certified historical compliance.`,
+            worldName: `${SIMULATION_NAME_PREFIX}${worldName}`,
+            description: `${description}\n${SIMULATION_DESCRIPTION_NOTE}`,
           });
         }
         draftBaseline = loadTrustedDraftBaseline();
@@ -508,7 +617,9 @@ Public-data simulation. Unidentified grievances and first-round Required Tenders
         : simulationDraft
           ? 1 +
             Object.keys(simulationDraft.baseline.retainedEntitlements).length
-          : 0;
+          : simulationCopy?.draftRoot
+            ? 1
+            : 0;
       if (documents.length + 1 + draftWrites > 500) {
         throw new Error('Governed contract baseline exceeds one atomic batch.');
       }
@@ -574,6 +685,14 @@ Public-data simulation. Unidentified grievances and first-round Required Tenders
             worldRef.collection('entitlements').doc(id),
             entitlement
           );
+      }
+      if (simulationCopy?.draftRoot) {
+        // The client copies mutable world state; the immutable draft source
+        // can only be carried by this trusted route.
+        batch.create(worldRef.collection('draftBaselines').doc('root'), {
+          worldId,
+          release: simulationCopy.draftRoot,
+        });
       }
       await batch.commit();
       return {

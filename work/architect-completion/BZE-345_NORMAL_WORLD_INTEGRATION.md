@@ -349,3 +349,28 @@ The SIMULATION draft baseline now records whether each team finished the
 - Tax: no V1 trade rule reads repeater status or Tax Salary, so Tax Salary
   stays a visible needs-input in the books. A repeater history is post-V1
   unless a rule starts to depend on it.
+
+## November 11: copying a SIMULATION world (V1 item A6)
+
+Branch (copy) now works for SIMULATION worlds. Software draft fixtures stay
+uncopyable.
+
+- The server checks the parent and carries its immutable identities:
+  `simulationFinancialBaseline`, `draftBaseline`, the draft custody history
+  (`draftWorldTransfers`) and a fresh `draftBaselines/root` bound to the
+  copy. It also writes `draftCopy` (the parent and, per existing transfer,
+  the world whose receipt proves it). Rules keep `draftCopy` server-only.
+- The client copies only the parent's own documents (teams, player
+  overrides, draft rights, events). It never merges shared base documents,
+  because a SIMULATION world already holds its complete state. Draft rights
+  are copied verbatim, and committed receipts stay bound to their world.
+  Each copy commit advances the draft inventory revision.
+- The draft loader accepts a copy only when its recorded parent is its real
+  parent; every other check (identities, custody, terms, receipts) is the
+  same as for the original world.
+- Not supported: Season Advance and the synthetic review routes still refuse
+  copies (fail closed). Deleting a world now also removes its draft source.
+- Proof: the local end-to-end test copies a SIMULATION world and checks
+  that CHI and TOR read the same Apron totals and hard caps in the copy, that
+  the copied draft world loads, that the parent is unchanged, and that a
+  browser cannot forge the copy's lineage.

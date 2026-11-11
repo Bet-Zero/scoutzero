@@ -42,6 +42,14 @@ service cloud.firestore {
         : !('draftBaseline' in request.resource.data);
     }
 
+    // A SIMULATION copy's lineage and receipt worlds are server-written only.
+    function preservesDraftCopyMetadata() {
+      return ('draftCopy' in resource.data)
+        ? ('draftCopy' in request.resource.data
+          && request.resource.data.draftCopy == resource.data.draftCopy)
+        : !('draftCopy' in request.resource.data);
+    }
+
     function isOpenForClientWorldWrites(worldId) {
       return isWorldOwner(worldId)
         && !('partialBranchCleanupClaim' in get(/databases/$(database)/documents/architect_worlds/$(worldId)).data);
@@ -194,6 +202,7 @@ service cloud.firestore {
         && preservesGovernedContractMetadata()
         && preservesGovernedDraftMetadata()
         && preservesSimulationFinancialMetadata()
+        && preservesDraftCopyMetadata()
         && preservesPartialBranchCleanupClaim()
         && preservesFinalizedChildLineage(worldId);
       allow delete: if false;
