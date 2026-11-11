@@ -29,6 +29,7 @@ import {
   updateIncompleteRosterChargeAfterSigning,
 } from './mutationPipeline.compute.signings.signing';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
+import { moveTradeMinimumUplifts } from '@/features/architect/utils/tradeMachine/utils/tradeMinimumUplift';
 import { GovernedSignAndTradeReceiptZ } from '@/schemas/governedSignAndTrade';
 import {
   GovernedCashLedgerZ,
@@ -279,6 +280,49 @@ export function computeTradeResult({
         : [...currentLedger, hardCapEntry];
     }
   });
+
+  // CBA2-C07.3: a traded zero/one-YOS Minimum Contract takes its Apron uplift
+  // row with it. The validator already counted the move in projected Apron
+  // Team Salary; this writes the same move into each team's books.
+  if (!preserveFinances) {
+    const movementManifest = buildTradePlayerPersistenceManifest({
+      payload,
+      currentState,
+      teamUpdates,
+    });
+    if ('error' in movementManifest) {
+      return { success: false, error: movementManifest.error };
+    }
+    const booksByTeam = new Map<string, unknown>(
+      currentState.teams.map((entry) => [
+        String(entry.teamCode),
+        (entry.team as { salaryBookInputs?: unknown } | undefined)
+          ?.salaryBookInputs,
+      ])
+    );
+    const upliftMove = moveTradeMinimumUplifts({
+      booksByTeam,
+      movements: movementManifest.playerMovements.map((movement) => ({
+        playerId: movement.playerId,
+        fromTeam: movement.sourceTeamCode,
+        toTeam: movement.destinationTeamCode,
+      })),
+      asOfDate: payload.asOfDate ?? payload.tradeCtx?.asOfDate,
+      transactionId:
+        resolvedMutationId || `${resolvedMutationType}:${timestamp}`,
+    });
+    if (!upliftMove.ok) return { success: false, error: upliftMove.error };
+    for (const [teamCode, books] of upliftMove.books) {
+      const update = teamUpdates.find((entry) => entry.teamCode === teamCode);
+      if (!update?.team) {
+        return {
+          success: false,
+          error: `Minimum Contract uplift moved for ${teamCode}, which is not in this trade.`,
+        };
+      }
+      update.team.salaryBookInputs = books;
+    }
+  }
 
   // Phase 11.3: Build entitlementsTraded structure for event log
   // Format: { [teamCode]: { out: string[], in: string[] } }

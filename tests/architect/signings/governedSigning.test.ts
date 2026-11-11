@@ -1,3 +1,4 @@
+import { tradeMinimumUpliftFor } from '@/features/architect/utils/tradeMachine/utils/tradeMinimumUplift';
 import { describe, expect, it } from 'vitest';
 
 import { validateSigning } from '@/features/architect/utils/capLegalityValidation';
@@ -953,6 +954,14 @@ describe('governed signing result and immutable history', () => {
     expect(taxInput?.status).toBe('ready');
     if (apronInput?.status !== 'ready' || taxInput?.status !== 'ready') return;
 
+    // The row names its player so a later trade can move it with the Contract.
+    expect(
+      tradeMinimumUpliftFor(
+        updatedTeam?.salaryBookInputs,
+        String(result.playerUpdates?.[0]?.playerId),
+        '2026-12-01'
+      )
+    ).toMatchObject({ status: 'ready', amount: uplift });
     expect(
       apronInput.lineItems.filter(
         (lineItem) =>
@@ -1040,9 +1049,8 @@ describe('governed signing result and immutable history', () => {
   it.each([0, 1])(
     'does not add C07.3 or C08.7 uplifts for an otherwise qualifying %i-YOS two-Season Minimum Contract',
     (yearsOfService) => {
-      const minimum = getCapRulesForYear(2027).salaries.getMinimumForYOS(
-        yearsOfService
-      );
+      const minimum =
+        getCapRulesForYear(2027).salaries.getMinimumForYOS(yearsOfService);
       const signingContract = contract({
         years: 2,
         contractYears: 2,
@@ -1092,9 +1100,8 @@ describe('governed signing result and immutable history', () => {
   it.each([0, 1])(
     'fails closed when a %i-YOS two-Season Minimum Contract carries stale one-year metadata',
     (yearsOfService) => {
-      const minimum = getCapRulesForYear(2027).salaries.getMinimumForYOS(
-        yearsOfService
-      );
+      const minimum =
+        getCapRulesForYear(2027).salaries.getMinimumForYOS(yearsOfService);
       const result = computeSigning({
         targetTeam: governedTeam(),
         targetPlayer: player({ bio: { yearsExperience: yearsOfService } }),
@@ -1435,8 +1442,7 @@ describe('governed signing result and immutable history', () => {
     expect(
       reloadedApronInput.lineItems.filter(
         (lineItem) =>
-          lineItem.id ===
-            `apron-team-salary:minimum-uplift:${OPERATION_ID}` &&
+          lineItem.id === `apron-team-salary:minimum-uplift:${OPERATION_ID}` &&
           lineItem.canonLeafIds.includes('CBA2-C07.3') &&
           lineItem.amount === uplift
       )

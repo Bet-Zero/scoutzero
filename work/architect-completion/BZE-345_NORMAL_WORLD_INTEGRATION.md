@@ -302,8 +302,8 @@ All 30 teams build with complete Team Salary and Apron Team Salary; CHI
   more widely. Needs the CBA text before the signing rule changes.
 - C07.5 is derived from the Team Salary hold component, so it cannot go stale.
 - Hard caps (TOR's first-Apron cap) are item A3; tax remains needs-input (A4).
-- Trades of 2025-26 contracts that may carry an uplift are blocked as outside
-  this tranche until the uplift transfer rule is modelled.
+- Trades of 2025-26 contracts that may carry an uplift were blocked until the
+  uplift transfer rule was modelled (done November 11, see the last section).
 
 ## November 11: hard caps and exceptions (V1 item A3)
 
@@ -503,3 +503,31 @@ Proof: `tests/architect/governedDraftWorld.test.ts` (admission, player-only
 sender, gift, missing election, cash and missing salary basis) and the second
 test in `tests/e2e/architect-simulation-player-trade.spec.ts` (CHI sends Tre
 Jones and its 2028 first for Tre Mann, then the two 2030 firsts swap).
+
+## November 11: minimum-contract players in trades (B1 prerequisite 3)
+
+A zero/one-YOS Minimum uplift (CBA2-C07.3) is an Apron Team Salary row tied to
+one Contract, so a trade now moves it with the player
+(`src/features/architect/utils/tradeMachine/utils/tradeMinimumUplift.ts`).
+
+- Salary matching is unchanged: the uplift is not Salary. The governed salary
+  basis no longer refuses these Contracts.
+- Projected Apron Team Salary (and so the elected post-assignment amount, the
+  apron levels and hard caps) subtracts the sender's uplift and adds it to the
+  receiver, read from the sender's pre-trade books on the world date.
+- On commit the sender's row ends (or is removed when it began that day) and
+  the receiver gains `apron-team-salary:<team>:minimum-uplift:trade:<id>:<player>`
+  from the start of the world day. A sender left without any C07.3 row gets a
+  zero row so its book stays complete.
+- Tax Salary does not change: it is fixed at the last Regular Season game
+  (CBA2-C08.1). A move before that instant is refused.
+- A row belongs to a player through `;player:<id>` on its source reference
+  (in-world signings now add this, and trade rows carry it) or the SIMULATION
+  baseline id `apron-team-salary:simulation:<team>:minimum-uplift:<id>`.
+  Dead-money rows stay with the team. A team holding an active uplift row that
+  names no player (an in-world Minimum signing made before this change) cannot
+  send players until it is tied to one.
+- Proof: unit tests for attribution, the move, a swap and validation; and a
+  local browser test where Justin Edwards (PHI, $247,780 uplift) goes to CHA
+  for Sion James and back, with each team's Apron Team Salary matching the
+  elected amounts and Tax Salary unchanged.

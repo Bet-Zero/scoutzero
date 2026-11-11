@@ -3,6 +3,7 @@
  * mutationPipeline.compute.signings.ts (lines 62–480).
  */
 
+import { minimumUpliftPlayerReference } from '@/features/architect/utils/tradeMachine/utils/tradeMinimumUplift';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
 import {
@@ -335,6 +336,7 @@ export function appendSigningSalaryBookAdjustments({
       });
     }
     const apronSigningLineId = `apron-team-salary:minimum-uplift:${operationId}`;
+    const upliftPlayerId = String(getMutationPlayerId(player) || '').trim();
     if (
       apronLineItems &&
       uplift > 0 &&
@@ -349,7 +351,13 @@ export function appendSigningSalaryBookAdjustments({
         canonLeafIds: ['CBA2-C07.3'],
         source: {
           authority: 'team-state',
-          reference: `signing-operation:${operationId}`,
+          // Ties the row to its Contract so a trade can move it (C07.3).
+          reference: upliftPlayerId
+            ? minimumUpliftPlayerReference(
+                `signing-operation:${operationId}`,
+                upliftPlayerId
+              )
+            : `signing-operation:${operationId}`,
         },
       });
     }

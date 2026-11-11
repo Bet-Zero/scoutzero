@@ -7,6 +7,10 @@ import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
 
 // Import base validators from new structure
 import { computeMatchingValues } from '../utils/salaryUtils';
+import {
+  tradeMinimumUpliftFor,
+  tradeUpliftPlayerId,
+} from '../utils/tradeMinimumUplift';
 import { checkRosterCounts } from '../rules/validateRoster';
 import { normalizeYearInput, yearToSeason } from '../utils/seasonUtils';
 import { decorateEntitlementForTrade } from '@/features/architect/utils/entitlements/entitlementTerms';
@@ -502,6 +506,48 @@ export function validateTrade({
     }),
   ];
 
+  // CBA2-C07.3: a zero/one-YOS Minimum uplift is an Apron row tied to the
+  // Contract, so it leaves the sender's and joins the receiver's projected
+  // Apron Team Salary. Read from each sender's pre-trade books.
+  const minimumUpliftByPlayer = new Map<string, number>();
+  const minimumUpliftIssues: string[] = [];
+  teamsWithAssets.forEach((team) => {
+    (team.sends || []).forEach((player) => {
+      const playerId = tradeUpliftPlayerId(player);
+      if (!playerId) return;
+      const uplift = tradeMinimumUpliftFor(
+        (team.team as { salaryBookInputs?: unknown } | undefined)
+          ?.salaryBookInputs,
+        playerId,
+        canonicalTradeDate
+      );
+      if (uplift.status === 'blocked') {
+        minimumUpliftIssues.push(`${playerId}: ${uplift.reason}`);
+      } else if (uplift.amount !== 0) {
+        minimumUpliftByPlayer.set(playerId, uplift.amount);
+      }
+    });
+  });
+  if (minimumUpliftIssues.length > 0) {
+    return finishValidation({
+      legal: false,
+      error: 'TRADE_MINIMUM_UPLIFT_ERROR',
+      violations: normalizeValidationIssues(minimumUpliftIssues, {
+        rule: 'minimumUplift',
+        severity: 'error',
+      }),
+      reason: minimumUpliftIssues[0],
+      dataWarnings,
+      context,
+    });
+  }
+  const upliftOf = (players: readonly TradeValidatorPlayer[]) =>
+    players.reduce(
+      (sum, player) =>
+        sum + (minimumUpliftByPlayer.get(tradeUpliftPlayerId(player)) ?? 0),
+      0
+    );
+
   // Second pass: calculate salaryOut and salaryIn using the canonical matching values
   teamsWithAssets.forEach((team, index) => {
     const incomingPlayers = buildRoutedIncomingPlayers(
@@ -535,7 +581,11 @@ export function validateTrade({
     team.salaryOut = salaryOut;
     team.salaryIn = salaryIn;
     team.projectedSalary = Number.isFinite(team.teamTotalSalary)
-      ? Number(team.teamTotalSalary) - salaryOut + salaryIn
+      ? Number(team.teamTotalSalary) -
+        salaryOut +
+        salaryIn -
+        upliftOf(team.sends || []) +
+        upliftOf(incomingPlayers)
       : Number.NaN;
   });
 
