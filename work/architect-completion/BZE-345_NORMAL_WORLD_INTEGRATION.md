@@ -478,3 +478,28 @@ unknown (CBA2-A03.3 needs it), Standard TPE matches beyond 100% + $250,000
 (Expanded TPE is B3), and bonus or trade-kicker contracts (post-V1).
 Still to do in B1: players and firsts in one trade, and minimum-contract
 players (their uplift transfer).
+
+## November 11: players and firsts in one trade (B1 prerequisite)
+
+A governed first-round trade in a SIMULATION world may now include players.
+
+- The pick side keeps the picks-only terms exactly: each first is an existing
+  future unconditional first held by the sender, with no new terms.
+- Each player must be an unchanged governed Contract on the sender's roster,
+  with its exact governed salary basis and an explicit supported matching path
+  (Standard TPE, aggregated Standard TPE or Room) carrying its exact salary.
+  Cash with players stays blocked (B2), as do Two-Way Contracts (no assignment
+  history in these worlds) and sign-and-trades (B6).
+- Every team must give and receive something. Only teams sending firsts get a
+  draft review; their consideration lists the incoming players' Contracts.
+  Salary matching, aprons and roster limits stay with the ordinary validators.
+- Apply checks that the computed player moves are exactly the reviewed ones,
+  and the review also fences the destination player records. The custody
+  receipt records firsts only; players are recorded by the trade event.
+- The Validate button now submits the same payload as Apply: no page cap
+  projections, and player routes by team code.
+
+Proof: `tests/architect/governedDraftWorld.test.ts` (admission, player-only
+sender, gift, missing election, cash and missing salary basis) and the second
+test in `tests/e2e/architect-simulation-player-trade.spec.ts` (CHI sends Tre
+Jones and its 2028 first for Tre Mann, then the two 2030 firsts swap).

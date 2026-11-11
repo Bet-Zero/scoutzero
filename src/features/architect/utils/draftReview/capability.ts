@@ -5,6 +5,7 @@ import {
   governedDraftWorldAvailable,
 } from '../governedDraftWorld.load';
 import { reviewGovernedDraftWorldTrade } from '../governedDraftWorld.baseline';
+import { worldPlayerRef } from '../architectFirestorePaths';
 import type {
   TradeContextCurrentState,
   TradeContextPayload,
@@ -183,6 +184,17 @@ export async function prepareGovernedDraftWorldCapability(args: {
     throw new Error(
       `Draft rules block this proposal: ${review.reviews.flatMap((r) => r.reasons).join('; ')}`
     );
+  // A moved player's destination record is usually absent before the trade.
+  // Its absence is part of the reviewed state: never overwrite a raced write.
+  const documentSnapshots = { ...loaded.documentSnapshots };
+  const { getDoc } = await import('firebase/firestore');
+  for (const { playerId, toTeam } of review.playerMovements ?? []) {
+    const ref = worldPlayerRef(args.worldId, toTeam, playerId);
+    const snapshot = await getDoc(ref);
+    documentSnapshots[ref.path] = snapshot.exists()
+      ? mutationSnapshotText(snapshot.data())
+      : null;
+  }
   return createDraftReviewCapability({
     scope: 'governed-world-fixture',
     baselineClassification: loaded.baseline.classification,
@@ -196,8 +208,8 @@ export async function prepareGovernedDraftWorldCapability(args: {
     asOfDate: args.asOfDate,
     releaseId: loaded.baseline.releaseId,
     releaseSha256: loaded.digest,
-    documentSnapshots: loaded.documentSnapshots,
     ...review,
+    documentSnapshots,
   });
 }
 export function verifyDraftReviewApply(

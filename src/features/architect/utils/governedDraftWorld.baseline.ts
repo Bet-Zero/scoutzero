@@ -14,6 +14,9 @@ import {
   requireTradeParticipants,
 } from './draftReview/transactionRouting';
 import { canPreserveDraftTradeFinances } from './tradeContext/draftFinancialPreservation';
+import { simulationPlayerMovements } from './draftReview/simulationPlayers';
+import { mutationSnapshotText } from './mutationPipeline.snapshotDigest';
+import type { ApplyWorldMutationArgs } from './mutationPipeline.types.ingress';
 import type {
   TradeContextCurrentState,
   TradeContextPayload,
@@ -199,10 +202,32 @@ export async function reviewGovernedDraftWorldTrade(args: {
   stateVersion: string;
 }) {
   const { baseline, holders, payload, state } = args;
-  if (!canPreserveDraftTradeFinances(payload, state, baseline.seasonId))
+  // Players may travel with the firsts (V1 B1). The pick side is held to the
+  // same exact terms as a picks-only exchange; each player must be an
+  // unchanged governed Contract with its exact salary basis and an explicit
+  // supported matching path. Whole-trade legality (salary matching, aprons,
+  // roster limits) stays with the ordinary trade validators.
+  const picksOnly = {
+    ...payload,
+    teams: (payload.teams ?? []).map((team) => {
+      const rest = { ...team };
+      delete rest.sends;
+      delete rest.salaryMatchingElection;
+      return rest;
+    }),
+  };
+  if (!canPreserveDraftTradeFinances(picksOnly, state, baseline.seasonId))
     throw new Error(
       'This governed draft path requires existing future unconditional firsts with no financial or term changes.'
     );
+  const playerMovements = simulationPlayerMovements(
+    {
+      worldId: payload.tradeCtx?.worldId,
+      payload,
+    } as ApplyWorldMutationArgs,
+    'unconditional',
+    { teams: state.teams }
+  );
   const teams = state.teams.map((t) => String(t.teamCode));
   requireTradeParticipants(teams, Object.keys(baseline.initialTeams));
   const records = new Map(
@@ -226,9 +251,14 @@ export async function reviewGovernedDraftWorldTrade(args: {
       };
     })
   );
-  requireNoncashTradeRoutes(teams, movements);
+  requireNoncashTradeRoutes(teams, [...movements, ...playerMovements]);
+  // Only teams that send firsts need a draft review; a team that sends only
+  // players is reviewed by the ordinary trade validators.
+  const sendingTeams = teams.filter((team) =>
+    movements.some((m) => m.fromTeam === team)
+  );
   if (
-    teams.some(
+    sendingTeams.some(
       (team) =>
         new Set(
           movements.filter((m) => m.fromTeam === team).map((m) => m.toTeam)
@@ -241,9 +271,10 @@ export async function reviewGovernedDraftWorldTrade(args: {
   const after = { ...holders };
   for (const m of movements) after[m.entitlementId] = m.toTeam;
   const proposalSha256 = (
-    await sha256Digest(canonicalStringify(payload))
+    // Player rows from the page may carry absent (undefined) fields.
+    await sha256Digest(mutationSnapshotText(payload))
   ).slice(7);
-  const reviews = teams.map((team) => {
+  const reviews = sendingTeams.map((team) => {
     const scope = baseline.stepien[team];
     if (!scope || scope.conditionalPrograms?.length || scope.swapProgram)
       throw new Error(
@@ -316,16 +347,34 @@ export async function reviewGovernedDraftWorldTrade(args: {
       unresolvedDependencyIds: [],
       outgoing,
       recipientTeam: movements.find((m) => m.fromTeam === team)!.toTeam,
-      onlyListedFirstsOutgoing: true,
+      onlyListedFirstsOutgoing: !playerMovements.some(
+        (m) => m.fromTeam === team
+      ),
+      ...(playerMovements.some((m) => m.fromTeam === team)
+        ? {
+            outgoingPlayerContracts: playerMovements
+              .filter((m) => m.fromTeam === team)
+              .map(({ playerId, contractId }) => ({ playerId, contractId })),
+          }
+        : {}),
       allReturnConsiderationListed: true,
       unconditionalDirectExchange: true,
-      consideration: movements
-        .filter((m) => m.toTeam === team)
-        .map((m) => ({
-          id: m.entitlementId,
-          kind: 'established-noncash',
-          amountCents: null,
-        })),
+      consideration: [
+        ...movements
+          .filter((m) => m.toTeam === team)
+          .map((m) => ({
+            id: m.entitlementId,
+            kind: 'established-noncash',
+            amountCents: null,
+          })),
+        ...playerMovements
+          .filter((m) => m.toTeam === team)
+          .map((m) => ({
+            id: `player-contract:${m.playerId}:${m.contractId}`,
+            kind: 'established-noncash',
+            amountCents: null,
+          })),
+      ],
     };
     return assessDraftReviewConsumption({
       request: { context, outgoing },
@@ -340,6 +389,7 @@ export async function reviewGovernedDraftWorldTrade(args: {
   return {
     reviews,
     movements,
+    ...(playerMovements.length ? { playerMovements } : {}),
     firstsByTeam: Object.fromEntries(
       teams.map((team) => [
         team,

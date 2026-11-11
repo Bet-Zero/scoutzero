@@ -82,29 +82,30 @@ async function validateAndApply(page: Page, dialog: Locator, events: number) {
   await expect(dialog).toBeHidden({ timeout: 30000 });
 }
 
-test('SIMULATION world: a player swap applies, then a first-round swap still applies', async ({
-  page,
-}) => {
+async function createSimulationWorld(page: Page, name: string) {
   await page.goto('/gm/CHI?season=2026', { waitUntil: 'domcontentloaded' });
   await expect
     .poll(() => readReviewUserId(page), { timeout: 30000 })
     .not.toBe('');
   const uid = await readReviewUserId(page);
-  const worldId = await page.evaluate(async (uid) => {
-    const { createWorld } = await import(
-      '/src/features/architect/utils/worldManager.ts'
-    );
-    const { worldId, metadata } = await createWorld({
-      userId: uid,
-      name: 'Player trades',
-      currentSeason: '2025-26',
-    });
-    if (metadata.draftBaseline?.classification !== 'simulation')
-      throw new Error('Local SIMULATION draft baseline not configured.');
-    localStorage.setItem(`architect.activeWorldId.${uid}`, worldId);
-    localStorage.setItem('hz.currentSeasonEndYear', '2026');
-    return worldId;
-  }, uid);
+  const worldId = await page.evaluate(
+    async ({ uid, name }) => {
+      const { createWorld } = await import(
+        '/src/features/architect/utils/worldManager.ts'
+      );
+      const { worldId, metadata } = await createWorld({
+        userId: uid,
+        name,
+        currentSeason: '2025-26',
+      });
+      if (metadata.draftBaseline?.classification !== 'simulation')
+        throw new Error('Local SIMULATION draft baseline not configured.');
+      localStorage.setItem(`architect.activeWorldId.${uid}`, worldId);
+      localStorage.setItem('hz.currentSeasonEndYear', '2026');
+      return worldId;
+    },
+    { uid, name }
+  );
   const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
   const apron: Record<string, number> = {};
   for (const code of ['CHI', 'CHA'] as const) {
@@ -123,8 +124,10 @@ test('SIMULATION world: a player swap applies, then a first-round swap still app
     page.getByTestId('cockpit-activity-rail-identity')
   ).toContainText('SIMULATION', { timeout: 30000 });
 
-  // 1. Player for player.
-  let dialog = await openTradeMachine(page);
+  return { worldId, root, apron };
+}
+
+async function selectPlayers(dialog: Locator, page: Page) {
   for (const code of ['CHI', 'CHA'] as const) {
     const card = dialog.getByTestId(`trade-team-card-${code}`);
     await card
@@ -139,6 +142,13 @@ test('SIMULATION world: a player swap applies, then a first-round swap still app
       NAMES[OTHER[code]]
     );
   }
+}
+
+async function electStandardTpe(
+  dialog: Locator,
+  worldId: string,
+  apron: Record<string, number>
+) {
   for (const code of ['CHI', 'CHA'] as const) {
     const card = dialog.getByTestId(`trade-team-card-${code}`);
     await expect(card).toContainText(/TAX SALARY\s*\$\d/i);
@@ -159,6 +169,32 @@ test('SIMULATION world: a player swap applies, then a first-round swap still app
       .getByLabel(new RegExp(`^${PLAYERS[code]} exact pre-trade Salary$`, 'i'))
       .fill(String(SALARY));
   }
+}
+
+async function firstId(
+  root: ReturnType<ReturnType<typeof getReviewAdminDb>['doc']>,
+  code: string,
+  year: number
+) {
+  return (
+    await root
+      .collection('entitlements')
+      .where('underlyingPickId', '==', `${code}_${year}_1st`)
+      .get()
+  ).docs[0].id;
+}
+
+test('SIMULATION world: a player swap applies, then a first-round swap still applies', async ({
+  page,
+}) => {
+  const { worldId, root, apron } = await createSimulationWorld(
+    page,
+    'Player trades'
+  );
+  // 1. Player for player.
+  let dialog = await openTradeMachine(page);
+  await selectPlayers(dialog, page);
+  await electStandardTpe(dialog, worldId, apron);
   await validateAndApply(page, dialog, 1);
   let metadata = (await root.get()).data()!;
   // Ordinary commits advance the draft fence too (firestore.rules).
@@ -174,12 +210,7 @@ test('SIMULATION world: a player swap applies, then a first-round swap still app
   // 2. A first-round swap after the player trade (mirrored overrides exist).
   const picks: Record<string, string> = {};
   for (const code of ['CHI', 'CHA'] as const)
-    picks[code] = (
-      await root
-        .collection('entitlements')
-        .where('underlyingPickId', '==', `${code}_2028_1st`)
-        .get()
-    ).docs[0].id;
+    picks[code] = await firstId(root, code, 2028);
   await page.reload();
   dialog = await openTradeMachine(page);
   for (const code of ['CHI', 'CHA'] as const) {
@@ -202,4 +233,63 @@ test('SIMULATION world: a player swap applies, then a first-round swap still app
       (await root.collection('entitlements').doc(picks[code]).get()).data()
         ?.holderTeam
     ).toBe(OTHER[code]);
+});
+
+test('SIMULATION world: players and a first travel together in one trade', async ({
+  page,
+}) => {
+  const { worldId, root, apron } = await createSimulationWorld(
+    page,
+    'Players with a first'
+  );
+  const pick = await firstId(root, 'CHI', 2028);
+  // CHI sends Tre Jones and its 2028 first; CHA sends Tre Mann.
+  const dialog = await openTradeMachine(page);
+  await selectPlayers(dialog, page);
+  const chi = dialog.getByTestId('trade-team-card-CHI');
+  await chi.getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i }).click();
+  await tradeTo(
+    page,
+    chi.locator(`[data-entitlement-id="${pick}"]`),
+    NAMES.CHA
+  );
+  await electStandardTpe(dialog, worldId, apron);
+  await validateAndApply(page, dialog, 1);
+  const metadata = (await root.get()).data()!;
+  expect(metadata.draftInventoryRevision).toBe(1);
+  expect(metadata.draftWorldTransfers).toHaveLength(1);
+  expect(metadata.draftWorldTransfers[0].movements).toMatchObject([
+    { entitlementId: pick, fromTeam: 'CHI', toTeam: 'CHA' },
+  ]);
+  expect(
+    (await root.collection('entitlements').doc(pick).get()).data()?.holderTeam
+  ).toBe('CHA');
+  for (const code of ['CHI', 'CHA'] as const) {
+    const team = (await getWorldTeamDocument(worldId, code))!;
+    const ids = team.players.map((p: { id: string }) => p.id);
+    expect(ids).toContain(IDS[OTHER[code]]);
+    expect(ids).not.toContain(IDS[code]);
+  }
+
+  // The mixed custody history replays: a later first-round swap applies.
+  const later: Record<string, string> = {};
+  for (const code of ['CHI', 'CHA'] as const)
+    later[code] = await firstId(root, code, 2030);
+  await page.reload();
+  const again = await openTradeMachine(page);
+  for (const code of ['CHI', 'CHA'] as const) {
+    const card = again.getByTestId(`trade-team-card-${code}`);
+    await card
+      .getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i })
+      .click();
+    await tradeTo(
+      page,
+      card.locator(`[data-entitlement-id="${later[code]}"]`),
+      NAMES[OTHER[code]]
+    );
+  }
+  await validateAndApply(page, again, 2);
+  const after = (await root.get()).data()!;
+  expect(after.draftInventoryRevision).toBe(2);
+  expect(after.draftWorldTransfers).toHaveLength(2);
 });
