@@ -51,7 +51,7 @@ that changes the plan.
 - [x] A4 Apron and tax history for frozen picks and repeater tax (labeled
       assumptions where history is missing).
 - [x] A5 Apply decision 2 to the 30 gap-affected rights.
-- [ ] A6 Copying (branching) a simulation world.
+- [x] A6 Copying (branching) a simulation world.
 
 ## Phase 2: switch it on (owner confirms the deploy)
 

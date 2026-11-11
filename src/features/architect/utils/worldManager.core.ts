@@ -34,6 +34,7 @@ import {
   worldPlayerRef,
   worldPlayersCol,
   worldTeamRef,
+  worldTeamsCol,
   worldsCol,
 } from './architectFirestorePaths';
 import {
@@ -570,6 +571,131 @@ const appendWorldStateCopyOperations = async ({
   }
 };
 
+/**
+ * SIMULATION copy (V1 item A6). A SIMULATION world already holds its complete
+ * state, so the copy reads only the parent world: no ancestry merge and no
+ * shared base documents. Draft entitlements are copied verbatim because the
+ * draft loader compares them with the immutable source. The server has
+ * already copied the immutable draft source and lineage metadata.
+ */
+type SimulationCopyWrite = { ref: DocumentReference; data: BranchCopyRecord };
+const SIMULATION_COPY_BATCH_BYTES = 4_000_000;
+
+export const isSimulationWorldMetadata = (
+  raw: Record<string, unknown> | undefined
+): boolean =>
+  raw?.simulationFinancialBaseline != null || raw?.draftBaseline != null;
+
+const collectSimulationCopyWrites = async (
+  parentWorldId: string,
+  childWorldId: string
+): Promise<SimulationCopyWrite[]> => {
+  const writes: SimulationCopyWrite[] = [];
+  const base = `${ARCHITECT_WORLDS_COLLECTION}/${parentWorldId}`;
+  const read = (snapshot: { data: () => unknown }, path: string) =>
+    readSnapshotRecord(snapshot.data(), `${base}/${path}`);
+  const teams = await getDocs(worldTeamsCol(parentWorldId));
+  for (const team of teams.docs) {
+    writes.push({
+      ref: worldTeamRef(childWorldId, team.id),
+      data: rewriteWorldIdentity(read(team, `teams/${team.id}`), childWorldId),
+    });
+    const players = await getDocs(worldPlayersCol(parentWorldId, team.id));
+    for (const player of players.docs)
+      writes.push({
+        ref: worldPlayerRef(childWorldId, team.id, player.id),
+        data: rewriteWorldIdentity(
+          read(player, `teams/${team.id}/players/${player.id}`),
+          childWorldId
+        ),
+      });
+  }
+  const entitlements = await getDocs(worldEntitlementsCol(parentWorldId));
+  for (const entitlement of entitlements.docs)
+    writes.push({
+      ref: worldEntitlementRef(childWorldId, entitlement.id),
+      data: read(entitlement, `entitlements/${entitlement.id}`),
+    });
+  const events = await getDocs(
+    collection(
+      db,
+      ARCHITECT_WORLDS_COLLECTION,
+      parentWorldId,
+      ARCHITECT_WORLD_EVENTS_SUBCOLLECTION
+    )
+  );
+  for (const event of events.docs)
+    writes.push({
+      ref: doc(
+        db,
+        ARCHITECT_WORLDS_COLLECTION,
+        childWorldId,
+        ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
+        event.id
+      ),
+      // Draft receipts stay bound to the world that committed them.
+      data: rewriteEventWorldIdentity(
+        read(event, `events/${event.id}`),
+        childWorldId
+      ),
+    });
+  return writes;
+};
+
+/** Split by size and count; a fenced copy advances its revision per commit. */
+export const chunkSimulationCopyWrites = <T>(
+  writes: readonly T[],
+  sizeOf: (write: T) => number,
+  limits = {
+    bytes: SIMULATION_COPY_BATCH_BYTES,
+    count: BRANCH_COPY_BATCH_LIMIT - 1,
+  }
+): T[][] => {
+  const chunks: T[][] = [];
+  let current: T[] = [];
+  let bytes = 0;
+  for (const write of writes) {
+    const size = sizeOf(write);
+    if (
+      current.length > 0 &&
+      (bytes + size > limits.bytes || current.length >= limits.count)
+    ) {
+      chunks.push(current);
+      current = [];
+      bytes = 0;
+    }
+    current.push(write);
+    bytes += size;
+  }
+  if (current.length > 0) chunks.push(current);
+  return chunks;
+};
+
+const commitSimulationCopyWrites = async (
+  childWorldId: string,
+  writes: SimulationCopyWrite[]
+) => {
+  const child = (await getDoc(worldMetadataRef(childWorldId))).data();
+  const fenced = child != null && 'draftInventoryRevision' in child;
+  let revision = fenced ? Number(child.draftInventoryRevision) : 0;
+  if (fenced && (!Number.isSafeInteger(revision) || revision < 0))
+    throw new Error('The copied world has no valid draft inventory revision.');
+  for (const chunk of chunkSimulationCopyWrites(
+    writes,
+    (write) => JSON.stringify(write.data).length + write.ref.path.length
+  )) {
+    const batch = writeBatch(db);
+    for (const write of chunk) batch.set(write.ref, write.data);
+    if (fenced) {
+      revision += 1;
+      batch.update(worldMetadataRef(childWorldId), {
+        draftInventoryRevision: revision,
+      });
+    }
+    await batch.commit();
+  }
+};
+
 const initializeArchitectWorld = async (input: {
   worldId: string;
   worldName: string;
@@ -904,12 +1030,19 @@ export async function branchWorld(
   }
   const worldId = generateWorldId();
   const copyOperations: BranchCopyOperation[] = [];
+  const simulationParent = isSimulationWorldMetadata(
+    (await getDoc(worldMetadataRef(parentWorldId))).data()
+  );
+  const simulationWrites = simulationParent
+    ? await collectSimulationCopyWrites(parentWorldId, worldId)
+    : [];
 
-  await appendWorldStateCopyOperations({
-    operations: copyOperations,
-    parentWorldId,
-    childWorldId: worldId,
-  });
+  if (!simulationParent)
+    await appendWorldStateCopyOperations({
+      operations: copyOperations,
+      parentWorldId,
+      childWorldId: worldId,
+    });
 
   try {
     await initializeArchitectWorld({
@@ -920,6 +1053,8 @@ export async function branchWorld(
       parentWorldId,
     });
     await commitBranchCopyOperations(copyOperations);
+    if (simulationParent)
+      await commitSimulationCopyWrites(worldId, simulationWrites);
 
     const batch = writeBatch(db);
     batch.update(worldMetadataRef(worldId), {

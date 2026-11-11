@@ -27,6 +27,7 @@ import {
   purgeWorld,
   retryBranchCleanup,
 } from '@/features/architect/utils/worldManager';
+import { chunkSimulationCopyWrites } from '@/features/architect/utils/worldManager.core';
 import {
   seedWorldMetadata,
   getMockWorldMetadata,
@@ -600,6 +601,86 @@ describe('World Manager', () => {
       // Verify parent's childWorlds was updated
       const parentMetadata = getRequiredWorldMetadata(parentResult.worldId);
       expect(parentMetadata.childWorlds).toContain(branchResult.worldId);
+    });
+
+    it('copies a SIMULATION world from its own documents and advances the draft fence', async () => {
+      const parent = await createWorld({ name: 'Simulation', userId });
+      const parentMetadata = getRequiredWorldMetadata(parent.worldId);
+      seedWorldMetadata(parent.worldId, {
+        ...parentMetadata,
+        simulationFinancialBaseline: { classification: 'SIMULATION' },
+        draftBaseline: { classification: 'simulation' },
+        draftInventoryRevision: 4,
+        draftWorldTransfers: [],
+      } as MockWorldMetadata);
+      const root = `architect_worlds/${parent.worldId}`;
+      // A shared base document must never leak into a SIMULATION copy.
+      seedMockData('architect_baseEntitlements/sim-pick', {
+        id: 'sim-pick',
+        holderTeam: 'PHI',
+        legacy: true,
+      });
+      seedMockData(`${root}/teams/LAL`, {
+        teamCode: 'LAL',
+        entitlementIds: ['sim-pick'],
+        source: { worldId: parent.worldId },
+      });
+      seedMockData(`${root}/entitlements/sim-pick`, {
+        id: 'sim-pick',
+        holderTeam: 'LAL',
+      });
+      const receipt = { worldId: parent.worldId, operationId: 'op1' };
+      seedMockData(`${root}/events/draft_world_op1`, {
+        worldId: parent.worldId,
+        metadata: { draftReviewReceipt: receipt },
+      });
+      let childWorldId = '';
+      setMockCallable('initializeArchitectWorld', (data) => {
+        const request = data as { worldId: string; parentWorldId: string };
+        childWorldId = request.worldId;
+        seedWorldMetadata(request.worldId, {
+          ...getRequiredWorldMetadata(request.parentWorldId),
+          worldId: request.worldId,
+          parentWorldId: request.parentWorldId,
+          childWorlds: [],
+          isArchived: true,
+          draftInventoryRevision: 0,
+        } as MockWorldMetadata);
+        return { ok: true, worldId: request.worldId };
+      });
+      try {
+        await branchWorld(parent.worldId, 'Copy', '', userId);
+      } finally {
+        clearMockCallables();
+      }
+      const child = `architect_worlds/${childWorldId}`;
+      expect(getMockData(`${child}/entitlements/sim-pick`)).toEqual({
+        id: 'sim-pick',
+        holderTeam: 'LAL',
+      });
+      expect(getMockData(`${child}/teams/LAL`)).toMatchObject({
+        source: { worldId: childWorldId },
+      });
+      // Receipts stay bound to the world that committed them.
+      expect(getMockData(`${child}/events/draft_world_op1`)).toMatchObject({
+        worldId: childWorldId,
+        metadata: { draftReviewReceipt: receipt },
+      });
+      expect(getRequiredWorldMetadata(childWorldId)).toMatchObject({
+        draftInventoryRevision: 1,
+        isArchived: false,
+      });
+      expect(getRequiredWorldMetadata(parent.worldId)).toMatchObject({
+        draftInventoryRevision: 4,
+        childWorlds: [childWorldId],
+      });
+    });
+
+    it('splits SIMULATION copy writes by size and count', () => {
+      const sizes = [3, 3, 3, 9, 1, 1, 1];
+      expect(
+        chunkSimulationCopyWrites(sizes, (n) => n, { bytes: 6, count: 2 })
+      ).toEqual([[3, 3], [3], [9], [1, 1], [1]]);
     });
 
     it('inherits season from parent', async () => {
