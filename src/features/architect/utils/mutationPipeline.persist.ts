@@ -1161,6 +1161,15 @@ export async function persistWorldMutation(
       draftReview !== null
     ) {
       await runTransaction(db, async (transaction) => {
+        // A fenced world needs every ordinary commit to advance the shared
+        // draft revision by one (draft reviews set it themselves). Firestore
+        // requires transaction reads before any write, so read it first; a
+        // stale value retries the transaction or is denied by the rules.
+        const fenceAdvance = draftReview
+          ? {}
+          : ordinaryDraftInventoryAdvance(
+              (await transaction.get(metadataRef)).data()
+            );
         if (draftReview) {
           assertDraftResultUnchanged!();
           requireDraftReviewApply(draftReviewAuthority);
@@ -1823,16 +1832,7 @@ export async function persistWorldMutation(
           }
         }
         assertDraftResultUnchanged?.();
-        // A fenced world needs every ordinary commit to advance the shared
-        // draft revision by one (draft reviews set it above). Read inside the
-        // transaction so contention retries; a stale value is denied by rules.
-        if (!draftReview)
-          Object.assign(
-            worldPatch,
-            ordinaryDraftInventoryAdvance(
-              (await transaction.get(metadataRef)).data()
-            )
-          );
+        Object.assign(worldPatch, fenceAdvance);
         applyWritesToTransaction(transaction, writes);
       });
     } else {
