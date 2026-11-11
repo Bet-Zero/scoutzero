@@ -456,13 +456,19 @@ problems stopped every player trade; this change fixes them.
 - Draft fence. In a fenced world every team, entitlement and event commit
   must advance `draftInventoryRevision` by one, but only draft trades did, so
   the rules refused every other save. Ordinary saves now advance it too
-  (which also invalidates any pending draft review).
+  (which also invalidates any pending draft review). Transactional saves read
+  the revision inside the transaction; batched saves read it just before the
+  batch, and the rules deny the whole batch if another commit came between.
 - Moved-player records. An ordinary trade writes the moved player's record
   beside the team document. The draft loader refused any such record; it now
-  accepts one that matches the team document and still refuses one that
-  differs.
+  accepts one only when it names the same team and every one of its fields
+  equals the team document's record. Any other field or value still refuses.
 
-Proof: `tests/e2e/architect-simulation-player-trade.spec.ts` swaps Tre Jones
+Proof: `tests/architect/governedDraftWorld.emulator.test.ts` checks the fence
+(batched and transactional saves advance it by one, stale or skipped values are
+denied, unfenced worlds stay unfenced) and the record rule (a matching record
+loads; a different team, contract, trade bonus, future contract, rights field or
+name refuses). `tests/e2e/architect-simulation-player-trade.spec.ts` swaps Tre Jones
 for Tre Mann (CHI and CHA, equal $8,000,000 guaranteed salaries), then swaps
 the two 2028 firsts in the same world.
 

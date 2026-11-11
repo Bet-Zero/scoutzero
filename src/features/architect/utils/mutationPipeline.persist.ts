@@ -10,7 +10,10 @@ import { nativeFamilyTeams } from './draftReview/nativeTrading';
 import { db } from '@/firebaseConfig';
 import { consumeDraftReviewCommit } from './mutationPipeline';
 import { requireDraftReviewApply } from '@/features/architect/utils/draftReview/capability';
-import { requireDraftInventoryRevision } from './draftReview/inventoryFence';
+import {
+  ordinaryDraftInventoryAdvance,
+  requireDraftInventoryRevision,
+} from './draftReview/inventoryFence';
 import { mutationSnapshotText } from '@/features/architect/utils/mutationPipeline.snapshotDigest';
 import { hasPreservedDraftUpdates } from './tradeContext/draftFinancialPersistence';
 import { buildWorldStatsUpdate } from '@/features/architect/utils/worldManager.stats';
@@ -980,18 +983,6 @@ export async function persistWorldMutation(
         )
       );
     }
-    if (!draftReview) {
-      // A fenced world (SIMULATION, governed draft fixtures) requires every
-      // team, entitlement and event commit to advance the shared revision by
-      // exactly one (firestore.rules advancesDraftInventory). Ordinary
-      // mutations do that here, which also invalidates any pending draft
-      // review. A concurrent commit makes the rules deny this one.
-      const current = (await getDoc(metadataRef)).data();
-      if (current && 'draftInventoryRevision' in current)
-        Object.assign(worldPatch, {
-          draftInventoryRevision: requireDraftInventoryRevision(current) + 1,
-        });
-    }
     writes.push({ kind: 'update', ref: metadataRef, data: worldPatch });
 
     const metadata = computeResult.metadata as Record<string, unknown>;
@@ -1832,9 +1823,25 @@ export async function persistWorldMutation(
           }
         }
         assertDraftResultUnchanged?.();
+        // A fenced world needs every ordinary commit to advance the shared
+        // draft revision by one (draft reviews set it above). Read inside the
+        // transaction so contention retries; a stale value is denied by rules.
+        if (!draftReview)
+          Object.assign(
+            worldPatch,
+            ordinaryDraftInventoryAdvance(
+              (await transaction.get(metadataRef)).data()
+            )
+          );
         applyWritesToTransaction(transaction, writes);
       });
     } else {
+      // Same fence advance for batched commits. A concurrent commit between
+      // this read and the batch makes the rules deny the whole batch.
+      Object.assign(
+        worldPatch,
+        ordinaryDraftInventoryAdvance((await getDoc(metadataRef)).data())
+      );
       const batch = writeBatch(db);
       applyWritesToBatch(batch, writes);
       await batch.commit();
