@@ -13,7 +13,11 @@ function seedDoc(path: string, data: DocData | null): void {
   mockDocsByPath.set(path, data);
 }
 
-function seedCollectionDoc(collectionPath: string, id: string, data: DocData): void {
+function seedCollectionDoc(
+  collectionPath: string,
+  id: string,
+  data: DocData
+): void {
   const existing = mockCollectionDocsByPath.get(collectionPath) || [];
   existing.push({ id, data });
   mockCollectionDocsByPath.set(collectionPath, existing);
@@ -187,5 +191,42 @@ describe('entitlementResolver invariant violations (E3)', () => {
         'world:world-child',
       ]);
     }
+  });
+  it('never layers shared base or parent documents into a governed draft world', async () => {
+    // A SIMULATION copy: its own complete inventory, a parent and a base
+    // document with the same id but a different identity.
+    seedDoc('architect_worlds/sim-copy', {
+      parentWorldId: 'sim-parent',
+      draftBaseline: { classification: 'simulation' },
+    });
+    seedDoc('architect_worlds/sim-parent', {
+      draftBaseline: { classification: 'simulation' },
+    });
+    seedDoc('architect_worlds/sim-copy/teams/ATL', {
+      entitlementIds: ['ent-1'],
+    });
+    const own = {
+      holderTeam: 'ATL',
+      seasonYear: 2026,
+      round: 1,
+      kind: 'conveyance_right',
+      identityKey: 'conv|ATL|2026|1|simulation',
+    };
+    seedCollectionDoc('architect_baseEntitlements', 'ent-1', {
+      holderTeam: 'PHI',
+      seasonYear: 2026,
+      round: 1,
+      kind: 'pick_ownership',
+      identityKey: 'own|ATL|2026|1|legacy',
+    });
+    seedCollectionDoc('architect_worlds/sim-parent/entitlements', 'ent-1', {
+      ...own,
+      holderTeam: 'BOS',
+    });
+    seedCollectionDoc('architect_worlds/sim-copy/entitlements', 'ent-1', own);
+
+    await expect(
+      resolveEntitlementsForTeamWithDb(db, 'sim-copy', 'ATL')
+    ).resolves.toEqual([{ id: 'ent-1', ...own }]);
   });
 });

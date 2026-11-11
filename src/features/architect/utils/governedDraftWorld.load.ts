@@ -94,6 +94,12 @@ export function receiptWorldId(
   return typeof owner === 'string' && owner !== '' ? owner : null;
 }
 
+function playerIdentity(value: unknown): unknown {
+  if (value == null || typeof value !== 'object') return undefined;
+  const p = value as Record<string, unknown>;
+  return p.player_id ?? p.playerId ?? p.id;
+}
+
 export async function loadGovernedDraftWorld(
   worldId: string,
   participatingTeamCodes: readonly string[] = []
@@ -216,17 +222,23 @@ export async function loadGovernedDraftWorld(
     // Inventory views and non-participants need custody, not a certified book.
     // Only trading teams contribute financial state to this mutation.
     if (!participatingTeamCodes.includes(snapshot.id)) continue;
-    const roster = snapshot.data().roster;
     const players = snapshot.data().players;
+    // Software fixtures store roster identities; SIMULATION worlds store the
+    // roster as player records. Either way each identity is one player.
+    const rawRoster = snapshot.data().roster;
+    const roster = Array.isArray(rawRoster)
+      ? rawRoster.map((entry) =>
+          typeof entry === 'string' ? entry : playerIdentity(entry)
+        )
+      : null;
     if (
-      !Array.isArray(roster) ||
+      !roster ||
       !Array.isArray(players) ||
+      roster.some((id) => typeof id !== 'string' || id === '') ||
       new Set(roster).size !== roster.length ||
       players.length !== roster.length ||
       roster.some(
-        (id) =>
-          players.filter((p) => (p.player_id ?? p.playerId ?? p.id) === id)
-            .length !== 1
+        (id) => players.filter((p) => playerIdentity(p) === id).length !== 1
       )
     )
       throw new Error(

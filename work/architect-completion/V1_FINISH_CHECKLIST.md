@@ -55,7 +55,7 @@ that changes the plan.
 
 ## Phase 2: switch it on (owner confirms the deploy)
 
-- [ ] D1 First-round Apply enabled for simulation worlds.
+- [x] D1 First-round Apply enabled for simulation worlds (local; production is D2).
 - [ ] D2 Normal Create World uses the baseline; functions and rules deployed.
 - [ ] D3 Existing worlds left unmigrated and still readable.
 - [ ] D4 "Simulation" label and assumption notes visible in the product.

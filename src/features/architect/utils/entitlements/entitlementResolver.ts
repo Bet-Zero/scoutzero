@@ -270,6 +270,21 @@ const resolveWorldFallbackChain = async (
   return chain;
 };
 
+/**
+ * A world with a governed draft baseline (software fixture or SIMULATION)
+ * holds its complete draft inventory itself, including copies. Shared base
+ * documents and parent layers are never merged into it: an unrelated base
+ * document with the same id would otherwise corrupt its custody.
+ */
+const isSelfContainedDraftWorld = async (
+  db: ResolverDb,
+  worldId: string | null
+): Promise<boolean> => {
+  if (!worldId) return false;
+  const snapshot = await getDoc(doc(db, ARCHITECT_WORLDS_COLLECTION, worldId));
+  return snapshot.exists() && snapshot.data()?.draftBaseline != null;
+};
+
 const resolveDefaultDb = async (): Promise<ResolverDb> => {
   const module = await import('@/firebaseConfig');
   return module.db as ResolverDb;
@@ -364,9 +379,10 @@ export const resolveEntitlementWithDb = async (
   worldId: string | null,
   entitlementId: string
 ): Promise<ResolverResult> => {
+  const selfContained = await isSelfContainedDraftWorld(db, worldId);
   const baseRef = doc(db, ARCHITECT_BASE_ENTITLEMENTS_PATH, entitlementId);
-  const baseSnap = await getDoc(baseRef);
-  const baseData = baseSnap.exists()
+  const baseSnap = selfContained ? null : await getDoc(baseRef);
+  const baseData = baseSnap?.exists()
     ? readDraftSourceForWorld(
         { id: baseSnap.id, ...baseSnap.data() },
         worldId,
@@ -376,7 +392,9 @@ export const resolveEntitlementWithDb = async (
 
   let resolvedData: EntitlementRecord | null = baseData || null;
   let resolvedLayer: ResolverLayerLabel | null = baseData ? 'base' : null;
-  const worldChain = await resolveWorldFallbackChain(db, worldId);
+  const worldChain = selfContained
+    ? [worldId as string]
+    : await resolveWorldFallbackChain(db, worldId);
 
   // Merge from oldest parent → ... → current world.
   for (const scopedWorldId of [...worldChain].reverse()) {
@@ -424,11 +442,14 @@ export const resolveEntitlementsForTeamWithDb = async (
   const entitlementIds = await resolveTeamEntitlementIds(db, worldId, teamCode);
   if (!entitlementIds.length) return [];
 
-  const baseDocs = await fetchEntitlementsByIds(
-    db,
-    [ARCHITECT_BASE_ENTITLEMENTS_PATH],
-    entitlementIds
-  );
+  const selfContained = await isSelfContainedDraftWorld(db, worldId);
+  const baseDocs = selfContained
+    ? []
+    : await fetchEntitlementsByIds(
+        db,
+        [ARCHITECT_BASE_ENTITLEMENTS_PATH],
+        entitlementIds
+      );
 
   const baseMap = toEntitlementMap(
     baseDocs.flatMap((record) => {
@@ -436,7 +457,9 @@ export const resolveEntitlementsForTeamWithDb = async (
       return projected ? [projected] : [];
     })
   );
-  const worldChain = await resolveWorldFallbackChain(db, worldId);
+  const worldChain = selfContained
+    ? [worldId as string]
+    : await resolveWorldFallbackChain(db, worldId);
   const overrideLayers: Array<{
     layer: ResolverLayerLabel;
     map: EntitlementMap;
