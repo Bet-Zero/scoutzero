@@ -48,14 +48,28 @@ export const SIMULATION_DRAFT_ASSUMPTIONS = [
   {
     id: 'unconditional-transfer-only',
     statement:
-      'In this baseline only outright original firsts can be traded. Conditional rights, swaps, pools and rights with unresolved evidence stay visible and are not tradeable yet. A 2032 first is held normally but cannot be traded until its Apron history is recorded.',
+      'In this baseline only outright original firsts can be traded. Conditional rights, swaps, pools and rights with unresolved evidence stay visible and are not tradeable yet.',
   },
   {
-    id: 'apron-history-pending',
+    id: 'apron-history-scoped',
     statement:
-      'Apron history for the 2024-25 season onward is not yet recorded, so first-round picks it could freeze (2032 and later) need that input before they can be traded.',
+      'Whether each team finished the 2024-25 and 2025-26 regular seasons above the Second Apron comes from retained above/at-or-below determinations, not exact payroll figures, read on the final regular-season day. Where 2025-26 was not determined, a team hard-capped at either Apron that season is read as at or below the Second Apron. A first frozen by this history is not tradeable; later seasons are still to be played.',
   },
 ] as const;
+
+/** Final regular-season day per season (2025-26: SRC2-005 §15.12.3). */
+export const SIMULATION_REGULAR_SEASON_FINAL_DAY: Record<number, string> = {
+  2024: '2025-04-13',
+  2025: '2026-04-12',
+};
+
+export type SimulationApronHistoryRow = {
+  team: string;
+  seasonStartYear: number;
+  aboveSecondApron: boolean;
+  /** Retained determination id, or the derivation it rests on. */
+  sourceResultId: string;
+};
 
 const TEAM = /^[A-Z]{3}$/;
 
@@ -84,6 +98,8 @@ export function compileSimulationDraftBaseline(args: {
   entitlements: readonly Record<string, unknown>[];
   seasonId: string;
   releaseId: string;
+  /** Above/at-or-below determinations for completed Apron-rule seasons. */
+  apronHistory?: readonly SimulationApronHistoryRow[];
 }): GovernedDraftWorldBaseline {
   const { candidate, candidateSha256, seasonId, releaseId } = args;
   if (!/^[0-9a-f]{64}$/.test(candidateSha256))
@@ -241,9 +257,49 @@ export function compileSimulationDraftBaseline(args: {
     };
   }
 
-  // 2026-2031 originals precede the 2024-25 Apron freeze rule (A12.4). A 2032
-  // original stays a held pick and a Stepien witness, but has no Apron history
-  // yet (checklist A4), so trading it fails closed with needs-input.
+  // 2026-2031 originals precede the 2024-25 Apron freeze rule (A12.4). Later
+  // originals read the scoped history (A4); a missing season fails closed.
+  const history = new Map<string, SimulationApronHistoryRow>();
+  for (const row of args.apronHistory ?? []) {
+    const key = `${row.team}:${row.seasonStartYear}`;
+    if (
+      history.has(key) ||
+      !teams.includes(row.team) ||
+      !SIMULATION_REGULAR_SEASON_FINAL_DAY[row.seasonStartYear] ||
+      typeof row.aboveSecondApron !== 'boolean' ||
+      !row.sourceResultId
+    )
+      throw new Error(`Apron history row ${key} is invalid or duplicated.`);
+    history.set(key, row);
+  }
+  const observations = (team: string, trigger: number) =>
+    Array.from({ length: 5 }, (_, i) => trigger + i).flatMap((year) => {
+      const row = history.get(`${team}:${year}`);
+      if (!row) return [];
+      const at = `${SIMULATION_REGULAR_SEASON_FINAL_DAY[year]}T00:00:00.000Z`;
+      return [
+        {
+          team,
+          seasonStartYear: year,
+          state: 'supported' as const,
+          sourceResultId: row.sourceResultId,
+          pendingUntil: null,
+          sources: [
+            simulationSource(
+              'second-apron-season-end',
+              candidateSha256,
+              `june5-candidate:apronHistory/${team}/${year}`
+            ),
+          ],
+          value: {
+            basis: 'simulation-scoped-determination' as const,
+            aboveSecondApron: row.aboveSecondApron,
+            measuredAt: at,
+            lastRegularSeasonGameStart: at,
+          },
+        },
+      ];
+    });
   const apron = records.map((r) => ({
     team: r.ownership.pick.originalTeam,
     triggerSeasonStartYear: r.ownership.pick.draftYear - 8,
@@ -254,7 +310,10 @@ export function compileSimulationDraftBaseline(args: {
       round: 1 as const,
     },
     asOf: candidate.asOf,
-    observations: [],
+    observations: observations(
+      r.ownership.pick.originalTeam,
+      r.ownership.pick.draftYear - 8
+    ),
     regularSeasonEnds: [],
   }));
 

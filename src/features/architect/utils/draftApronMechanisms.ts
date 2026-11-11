@@ -102,9 +102,13 @@ export function evaluateDraftApronObservation(
     return blocked(leaf, 'wrong-measurement-event');
   if (Date.parse(v.measuredAt) > Date.parse(asOf))
     return blocked(leaf, 'observation-not-yet-effective');
-  return known(leaf, v.apronTeamSalaryCents > v.secondApronCents, [
-    row.sourceResultId,
-  ]);
+  return known(
+    leaf,
+    'basis' in v
+      ? v.aboveSecondApron
+      : v.apronTeamSalaryCents > v.secondApronCents,
+    [row.sourceResultId]
+  );
 }
 
 function parse(input: unknown) {
