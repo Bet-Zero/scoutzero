@@ -401,3 +401,37 @@ production. Turning that on is D2 and needs the owner's go-ahead.
 Seen in the product, for D4: own unprotected firsts show "Protection terms
 unavailable", and the books banner says governed rights inputs are
 incomplete. Both are display wording, not trade blockers.
+
+## November 11: the live path, built switched off (V1 item D2, part 1)
+
+The owner chose to prepare going live now and confirm before it happens.
+This code changes nothing in production on its own.
+
+- Server: a SIMULATION package comes from a private local file (demo
+  emulator only, as before) or from a private Cloud Storage object
+  (`SCOUTZERO_SIMULATION_FINANCIAL_OBJECT` / `..._DRAFT_OBJECT`, as
+  `gs://bucket/path`). The object is read only when
+  `SCOUTZERO_SIMULATION_LIVE=true`; otherwise it is ignored. Either way the
+  bytes must match the pinned `..._SHA256`.
+- Client: SIMULATION draft worlds may load, review and Apply outside the
+  emulator only when the build sets `VITE_SCOUTZERO_SIMULATION_LIVE=true`.
+  Software draft fixtures stay emulator-only.
+
+To go live (needs the owner's confirmation first):
+
+1. Choose where the private packages live. Recommended: a dedicated private
+   Cloud Storage bucket in the Firebase project with no public or browser
+   access, readable only by the functions' service account. The packages
+   never go to GitHub.
+2. Upload the current financial and draft packages, and record their
+   SHA-256 digests.
+3. Set the function settings: the two object names, the two digests and
+   `SCOUTZERO_SIMULATION_LIVE=true`.
+4. Build the app with `VITE_SCOUTZERO_SIMULATION_LIVE=true`, then deploy
+   functions, rules and hosting.
+5. Check: create a world, see the SIMULATION label, make one first-round
+   trade, reload, and confirm an existing older world still opens (D3).
+
+Rolling back: unset `SCOUTZERO_SIMULATION_LIVE` and rebuild without the
+client switch. Worlds created while live keep their data, but their draft
+picks stay closed until the switch is turned back on.

@@ -9,16 +9,16 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true });
 });
 describe('local simulation world initialization boundary', () => {
-  it('is absent by default and rejects production before reading inputs', () => {
+  it('is absent by default and rejects production before reading inputs', async () => {
     vi.stubEnv('SCOUTZERO_SIMULATION_FINANCIAL_FILE', '');
-    expect(loadSimulationFinancialBaseline()).toBeNull();
+    await expect(loadSimulationFinancialBaseline()).resolves.toBeNull();
     vi.stubEnv('SCOUTZERO_SIMULATION_FINANCIAL_FILE', '/not-read');
     vi.stubEnv('FUNCTIONS_EMULATOR', 'false');
-    expect(() => loadSimulationFinancialBaseline()).toThrow(
+    await expect(loadSimulationFinancialBaseline()).rejects.toThrow(
       'local demo emulator'
     );
   });
-  it('retains all team bytes and requires exact local input identity', () => {
+  it('retains all team bytes and requires exact local input identity', async () => {
     mkdirSync(dir, { recursive: true });
     const teams = Object.fromEntries(
       Array.from({ length: 30 }, (_, i) => {
@@ -50,8 +50,10 @@ describe('local simulation world initialization boundary', () => {
     vi.stubEnv('FUNCTIONS_EMULATOR', 'true');
     vi.stubEnv('GCLOUD_PROJECT', 'demo-architect-review');
     vi.stubEnv('FIRESTORE_EMULATOR_HOST', '127.0.0.1:8082');
-    expect(loadSimulationFinancialBaseline()).toEqual(value);
+    await expect(loadSimulationFinancialBaseline()).resolves.toEqual(value);
     writeFileSync(`${dir}/input.json`, bytes + ' ');
-    expect(() => loadSimulationFinancialBaseline()).toThrow('digest mismatch');
+    await expect(loadSimulationFinancialBaseline()).rejects.toThrow(
+      'digest mismatch'
+    );
   });
 });

@@ -49,19 +49,21 @@ function stage(bytes: string) {
 }
 
 describe('local simulation draft initialization boundary', () => {
-  it('is absent by default and rejects production before reading inputs', () => {
+  it('is absent by default and rejects production before reading inputs', async () => {
     vi.stubEnv('SCOUTZERO_SIMULATION_DRAFT_FILE', '');
-    expect(loadSimulationDraftBaseline()).toBeNull();
+    await expect(loadSimulationDraftBaseline()).resolves.toBeNull();
     vi.stubEnv('SCOUTZERO_SIMULATION_DRAFT_FILE', '/not-read');
     vi.stubEnv('FUNCTIONS_EMULATOR', 'false');
-    expect(() => loadSimulationDraftBaseline()).toThrow('local demo emulator');
+    await expect(loadSimulationDraftBaseline()).rejects.toThrow(
+      'local demo emulator'
+    );
   });
 
-  it('pins exact canonical bytes and returns immutable world metadata', () => {
+  it('pins exact canonical bytes and returns immutable world metadata', async () => {
     const value = baseline();
     const bytes = canonicalStringify(value);
     stage(bytes);
-    const loaded = loadSimulationDraftBaseline();
+    const loaded = await loadSimulationDraftBaseline();
     expect(loaded?.baseline).toEqual(value);
     expect(loaded?.metadata).toEqual({
       version: 1,
@@ -72,17 +74,21 @@ describe('local simulation draft initialization boundary', () => {
       seasonId: '2025-26',
     });
     writeFileSync(`${dir}/draft.json`, bytes + ' ');
-    expect(() => loadSimulationDraftBaseline()).toThrow('digest mismatch');
+    await expect(loadSimulationDraftBaseline()).rejects.toThrow(
+      'digest mismatch'
+    );
   });
 
-  it('rejects non-canonical, unlabelled or incomplete inputs', () => {
+  it('rejects non-canonical, unlabelled or incomplete inputs', async () => {
     stage(JSON.stringify(baseline(), null, 2));
-    expect(() => loadSimulationDraftBaseline()).toThrow('canonical JSON');
+    await expect(loadSimulationDraftBaseline()).rejects.toThrow(
+      'canonical JSON'
+    );
     stage(canonicalStringify({ ...baseline(), assumptions: [] }));
-    expect(() => loadSimulationDraftBaseline()).toThrow('thirty-team');
+    await expect(loadSimulationDraftBaseline()).rejects.toThrow('thirty-team');
     const missing = baseline();
     missing.initialTeams.AAA.entitlementIds = [];
     stage(canonicalStringify(missing));
-    expect(() => loadSimulationDraftBaseline()).toThrow('thirty-team');
+    await expect(loadSimulationDraftBaseline()).rejects.toThrow('thirty-team');
   });
 });

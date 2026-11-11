@@ -1,9 +1,9 @@
 /** Non-serializable, exact-operation handoff. No metadata field is permission. */
+import { isSyntheticDraftReviewEnvironment } from '@/firebaseConfig';
 import {
-  isSyntheticDraftReviewEnvironment,
-  isGovernedDraftFixtureEnvironment,
-} from '@/firebaseConfig';
-import { getLoadedGovernedDraftWorld } from '../governedDraftWorld.load';
+  getLoadedGovernedDraftWorld,
+  governedDraftWorldAvailable,
+} from '../governedDraftWorld.load';
 import { reviewGovernedDraftWorldTrade } from '../governedDraftWorld.baseline';
 import type {
   TradeContextCurrentState,
@@ -41,6 +41,8 @@ export type DraftReviewCapabilityRecord = Readonly<{
     | 'synthetic-review-only'
     | 'governed-simulation-only'
     | 'governed-world-fixture';
+  /** Draft source class of a governed world; SIMULATION may run live (D2). */
+  baselineClassification?: string;
   assumptionSha256?: string;
   assumptions?: import('@/schemas/draftPickReviewMutation').DraftSimulationAssumptions;
   userId: string;
@@ -97,15 +99,16 @@ function freeze<T>(v: T): T {
   return v;
 }
 
+function scopeAvailable(record: DraftReviewCapabilityRecord): boolean {
+  if (record.scope !== 'governed-world-fixture')
+    return isSyntheticDraftReviewEnvironment();
+  return governedDraftWorldAvailable(record.baselineClassification);
+}
+
 function createDraftReviewCapability(
   record: DraftReviewCapabilityRecord
 ): object {
-  if (
-    !(record.scope === 'governed-world-fixture'
-      ? isGovernedDraftFixtureEnvironment()
-      : isSyntheticDraftReviewEnvironment()) ||
-    record.reviews.some((r) => !r.eligible)
-  )
+  if (!scopeAvailable(record) || record.reviews.some((r) => !r.eligible))
     throw new Error('Draft review has no supported consumption authority.');
   const capability = Object.freeze({});
   records.set(capability, freeze(structuredClone(record)));
@@ -134,12 +137,7 @@ export function requireDraftReviewCapability(
 ): DraftReviewCapabilityRecord {
   const record =
     value && typeof value === 'object' ? records.get(value) : undefined;
-  if (
-    !record ||
-    !(record.scope === 'governed-world-fixture'
-      ? isGovernedDraftFixtureEnvironment()
-      : isSyntheticDraftReviewEnvironment())
-  )
+  if (!record || !scopeAvailable(record))
     throw new Error('Unrecognized or unavailable draft review permission.');
   return record;
 }
@@ -187,6 +185,7 @@ export async function prepareGovernedDraftWorldCapability(args: {
     );
   return createDraftReviewCapability({
     scope: 'governed-world-fixture',
+    baselineClassification: loaded.baseline.classification,
     userId: args.userId,
     worldId: args.worldId,
     seasonId: args.seasonId,

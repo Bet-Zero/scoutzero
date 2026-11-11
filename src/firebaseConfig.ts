@@ -311,6 +311,15 @@ export function isSyntheticDraftReviewEnvironment(): boolean {
 }
 
 /** Ordinary application tests; actual loopback connection, never a metadata flag. */
+/**
+ * V1 item D2 switch, off unless the build sets it: lets SIMULATION draft
+ * worlds trade first-round picks outside the local emulator. Software draft
+ * fixtures stay emulator-only.
+ */
+export function isSimulationDraftLiveEnabled(): boolean {
+  return import.meta.env.VITE_SCOUTZERO_SIMULATION_LIVE === 'true';
+}
+
 export function isGovernedDraftFixtureEnvironment(): boolean {
   return (
     import.meta.env.DEV === true &&

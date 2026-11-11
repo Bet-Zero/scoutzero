@@ -1,6 +1,9 @@
-/** Local SIMULATION draft input; never a deployed source release or Apply capability. */
-import { readFileSync } from 'node:fs';
+/** SIMULATION draft input: local file, or a pinned live object when switched on. */
 import { createHash } from 'node:crypto';
+import {
+  readSimulationPackageBytes,
+  type ReadStorageObject,
+} from './simulationPackageSource';
 import { canonicalStringify } from './trustedContractBaseline';
 
 type SimulationDraftBaseline = {
@@ -15,19 +18,12 @@ type SimulationDraftBaseline = {
   initialTeams: Record<string, { entitlementIds: string[] }>;
 };
 
-export function loadSimulationDraftBaseline() {
-  const file = process.env.SCOUTZERO_SIMULATION_DRAFT_FILE;
-  if (!file) return null;
-  if (
-    process.env.FUNCTIONS_EMULATOR !== 'true' ||
-    !(process.env.GCLOUD_PROJECT ?? '').startsWith('demo-') ||
-    !/^127\.0\.0\.1:\d+$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? '')
-  )
-    throw new Error('Simulation draft inputs require the local demo emulator.');
-  const bytes = readFileSync(file);
+export async function loadSimulationDraftBaseline(
+  readObject?: ReadStorageObject
+) {
+  const bytes = await readSimulationPackageBytes('draft', readObject);
+  if (!bytes) return null;
   const sha256 = createHash('sha256').update(bytes).digest('hex');
-  if (sha256 !== process.env.SCOUTZERO_SIMULATION_DRAFT_SHA256)
-    throw new Error('Simulation draft input digest mismatch.');
   const baseline = JSON.parse(
     bytes.toString('utf8')
   ) as SimulationDraftBaseline;

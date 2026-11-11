@@ -446,12 +446,13 @@ export const initializeArchitectWorld = onCall(
       let metadata: JsonRecord;
       let documents;
       let trustedMetadata: JsonRecord;
-      let simulationBaseline: ReturnType<
-        typeof loadSimulationFinancialBaseline
+      let simulationBaseline: Awaited<
+        ReturnType<typeof loadSimulationFinancialBaseline>
       > = null;
       let draftBaseline: ReturnType<typeof loadTrustedDraftBaseline> = null;
-      let simulationDraft: ReturnType<typeof loadSimulationDraftBaseline> =
-        null;
+      let simulationDraft: Awaited<
+        ReturnType<typeof loadSimulationDraftBaseline>
+      > = null;
       let simulationCopy: Awaited<
         ReturnType<typeof simulationCopyMetadata>
       > | null = null;
@@ -548,7 +549,7 @@ export const initializeArchitectWorld = onCall(
           releaseEffectiveAt: release.effectiveAt,
           contractMetadata: trustedMetadata,
         });
-        simulationBaseline = loadSimulationFinancialBaseline();
+        simulationBaseline = await loadSimulationFinancialBaseline();
         if (simulationBaseline) {
           if (
             simulationBaseline.asOf !== release.effectiveAt ||
@@ -583,7 +584,7 @@ export const initializeArchitectWorld = onCall(
             worldName: `Software fixture — ${worldName}`,
           });
         }
-        simulationDraft = loadSimulationDraftBaseline();
+        simulationDraft = await loadSimulationDraftBaseline();
         if (simulationDraft) {
           if (!simulationBaseline || draftBaseline)
             throw new Error(
