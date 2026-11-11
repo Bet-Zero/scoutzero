@@ -215,6 +215,34 @@ describe('CBA2-C07.3 uplift transfer', () => {
     ).toBe(false);
   });
 
+  it('keeps each moved row and its end date on the receiver', () => {
+    const dated = books('PHI', [
+      line(
+        'apron-team-salary:simulation:PHI:minimum-uplift:justin_edwards',
+        200_000
+      ),
+      line('apron-team-salary:minimum-uplift:op-9', 47_780, 'CBA2-C07.3', {
+        effectiveUntil: '2026-06-10T00:00:00.000Z',
+        source: {
+          authority: 'team-state',
+          reference: 'signing-operation:op-9;player:justin_edwards',
+        },
+      }),
+    ]);
+    const result = move(
+      [{ playerId: 'justin_edwards', fromTeam: 'PHI', toTeam: 'NYK' }],
+      { PHI: dated, NYK }
+    );
+    if (!result.ok) throw new Error(result.error);
+    const nyk = result.books.get('NYK');
+    expect(tradeMinimumUpliftFor(nyk, 'justin_edwards', DAY)).toMatchObject({
+      amount: 247_780,
+    });
+    expect(
+      tradeMinimumUpliftFor(nyk, 'justin_edwards', '2026-06-11')
+    ).toMatchObject({ amount: 200_000 });
+  });
+
   it('handles a swap of two uplift players', () => {
     const result = move([
       { playerId: 'justin_edwards', fromTeam: 'PHI', toTeam: 'TOR' },

@@ -209,16 +209,17 @@ export function moveTradeMinimumUplifts({
         },
       });
     }
-    const amount = uplift.amount;
-    const label = uplift.rows[0].label;
+    // One receiver row per moved row, keeping each row's own end date.
+    const rowId = `apron-team-salary:${movement.toTeam}:minimum-uplift:trade:${transactionId}:${movement.playerId}`;
     const nextReceiverLines = [
       ...receiverLines,
-      {
-        id: `apron-team-salary:${movement.toTeam}:minimum-uplift:trade:${transactionId}:${movement.playerId}`,
+      ...uplift.rows.map((row, index) => ({
+        id: uplift.rows.length === 1 ? rowId : `${rowId}:${index + 1}`,
         ledger: 'apron-team-salary' as const,
-        label: `${label} (acquired by trade)`,
-        amount,
+        label: `${row.label} (acquired by trade)`,
+        amount: row.amount,
         effectiveFrom: start,
+        ...(row.effectiveUntil ? { effectiveUntil: row.effectiveUntil } : {}),
         canonLeafIds: [MINIMUM_UPLIFT_LEAF],
         source: {
           authority: 'team-state' as const,
@@ -227,7 +228,7 @@ export function moveTradeMinimumUplifts({
             movement.playerId
           ),
         },
-      },
+      })),
     ];
     updated.set(movement.fromTeam, {
       ...sender,
