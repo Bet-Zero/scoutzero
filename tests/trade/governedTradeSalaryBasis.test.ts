@@ -498,10 +498,13 @@ describe('2025-26 zero/one-YOS Minimum uplift', () => {
     },
   };
   const at = (salary: number) => {
-    const contractState = state([row('2025-26', salary)], {
-      signedUsing: 'Minimum Salary Exception',
-      contractLength: 1,
-    });
+    const contractState = state(
+      [row('2025-26', salary), row('2026-27', 2_411_090)],
+      {
+        signedUsing: 'Minimum Salary Exception',
+        contractLength: 2,
+      }
+    );
     return resolveGovernedTradeSalaryBasis({
       contractState,
       contractManifest: {
@@ -518,11 +521,12 @@ describe('2025-26 zero/one-YOS Minimum uplift', () => {
     });
   };
 
-  it('keeps a Contract carrying an Apron uplift out of trades', () => {
+  it('matches a Contract carrying an Apron uplift at its Salary; the uplift moves in the books', () => {
     const uplift = at(623_967);
-    expect(uplift.status).toBe('needs-input');
-    expect(uplift.reasons.join(' ')).toContain('Apron uplift');
-    expect(at(857_804).reasons.join(' ')).not.toContain('Apron uplift');
+    expect(uplift.status).toBe('ready');
+    expect(uplift.outgoingSalary).toBe(623_967);
+    expect(uplift.incomingSalary).toBe(623_967);
+    expect(at(857_804).status).toBe('ready');
   });
 });
 

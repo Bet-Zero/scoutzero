@@ -36,7 +36,6 @@ import {
 import { getWorldMetadata } from '@/features/architect/utils/worldManager.core';
 import { getLeague } from '@/features/architect/utils/teamLoader';
 import { isTwoWayTradePlayer } from './twoWayTradeSalary';
-import { simulationMinimumUplift } from '@/features/architect/utils/simulationMinimumUplift';
 
 const SALARY_BASIS_LEAVES = Object.freeze([
   'CBA2-A03.1',
@@ -373,21 +372,9 @@ function computeReadyBasis({
       `${season} has bonus compensation whose trade treatment is outside this governed tranche.`
     );
   }
-  // A zero/one-YOS Minimum uplift (CBA2-C07.3) is an Apron row tied to this
-  // Contract. Moving it with the player is outside this governed tranche.
-  if (
-    season === '2025-26' &&
-    simulationMinimumUplift({
-      contract: {
-        signedUsing: state.terms.signedUsing,
-        salariesByYear: state.terms.salaries,
-      },
-    }).status !== 'none'
-  ) {
-    reasons.push(
-      'This Minimum Contract may carry a zero/one-YOS Apron uplift whose transfer is outside this governed tranche.'
-    );
-  }
+  // A zero/one-YOS Minimum uplift (CBA2-C07.3) changes Apron Team Salary,
+  // not the Salary used for matching. The team's books carry it, and the
+  // trade moves that row with the player (tradeMinimumUplift.ts).
   if (Number(state.terms.bonuses.tradeKickerPercent ?? 0) !== 0) {
     reasons.push(
       'This Contract has a trade bonus whose allocation is outside this governed tranche.'
