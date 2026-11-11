@@ -8,6 +8,14 @@ import {
 
 const cents = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const date = z.string().date();
+export const DraftApronScopedDeterminationZ = z
+  .object({
+    basis: z.literal('simulation-scoped-determination'),
+    aboveSecondApron: z.boolean(),
+    measuredAt: DraftEvidenceInstantZ,
+    lastRegularSeasonGameStart: DraftEvidenceInstantZ,
+  })
+  .strict();
 export const DraftApronObservationZ = z
   .object({
     team: DraftEvidenceIdZ,
@@ -24,13 +32,20 @@ export const DraftApronObservationZ = z
     pendingUntil: DraftEvidenceInstantZ.nullable(),
     sources: z.array(DraftEvidenceSourceZ),
     value: z
-      .object({
-        apronTeamSalaryCents: cents,
-        secondApronCents: cents,
-        measuredAt: DraftEvidenceInstantZ,
-        lastRegularSeasonGameStart: DraftEvidenceInstantZ,
-      })
-      .strict()
+      .union([
+        z
+          .object({
+            apronTeamSalaryCents: cents,
+            secondApronCents: cents,
+            measuredAt: DraftEvidenceInstantZ,
+            lastRegularSeasonGameStart: DraftEvidenceInstantZ,
+          })
+          .strict(),
+        // SIMULATION only: a retained above/at-or-below determination whose
+        // numeric Apron Team Salary was never established. Admitted solely in
+        // simulation-classified world baselines.
+        DraftApronScopedDeterminationZ,
+      ])
       .nullable(),
   })
   .strict();

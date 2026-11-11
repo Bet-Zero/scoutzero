@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   compileSimulationDraftBaseline,
   SIMULATION_DRAFT_ASSUMPTIONS,
+  type SimulationApronHistoryRow,
   type SimulationDraftCandidate,
 } from '@/features/architect/utils/simulationDraftBaseline';
 import {
@@ -109,9 +110,13 @@ function inputs() {
   return { candidate, entitlements: rows.map((r) => r.doc) };
 }
 
-const compile = (over: Partial<ReturnType<typeof inputs>> = {}) => {
+const compile = (
+  over: Partial<ReturnType<typeof inputs>> = {},
+  apronHistory?: SimulationApronHistoryRow[]
+) => {
   const base = inputs();
   return compileSimulationDraftBaseline({
+    apronHistory,
     candidate: over.candidate ?? base.candidate,
     entitlements: over.entitlements ?? base.entitlements,
     candidateSha256: SHA,
@@ -221,7 +226,7 @@ describe('SIMULATION assets view', () => {
 
 describe('SIMULATION baseline through the unconditional trade review', () => {
   // Team books come from the software fixture; only the draft rights differ.
-  async function review(year: number) {
+  async function review(year: number, history?: SimulationApronHistoryRow[]) {
     const fixture = (
       await import(
         '../../functions/src/architect/fixtures/governedDraftWorld.json'
@@ -236,7 +241,7 @@ describe('SIMULATION baseline through the unconditional trade review', () => {
     const { retainDraftPersistenceSource } = await import(
       '@/features/architect/utils/tradeContext/draftFinancialPersistence'
     );
-    const baseline = compile();
+    const baseline = compile({}, history);
     const { holders } = governedDraftHolders(baseline, []);
     const codes = ['TAF', 'TAG'];
     const books = [fixture.initialTeams.BOS, fixture.initialTeams.MIA];
@@ -302,5 +307,75 @@ describe('SIMULATION baseline through the unconditional trade review', () => {
     expect(result.reviews[0].reasons).toEqual([
       'apron:TAF_2032_1st:needs-input',
     ]);
+  });
+
+  const row = (
+    team: string,
+    seasonStartYear: number,
+    aboveSecondApron: boolean
+  ): SimulationApronHistoryRow => ({
+    team,
+    seasonStartYear,
+    aboveSecondApron,
+    sourceResultId: `software:${team}:${seasonStartYear}`,
+  });
+
+  it('trades a 2032 first once its 2024-25 season-end history says at or below', async () => {
+    const result = await review(2032, [
+      row('TAF', 2024, false),
+      row('TAG', 2024, false),
+      row('TAF', 2025, true),
+    ]);
+    expect(result.reviews.map((r) => r.reasons)).toEqual([[], []]);
+  });
+
+  it('keeps a 2032 first frozen when its team finished 2024-25 above the Second Apron', async () => {
+    const result = await review(2032, [
+      row('TAF', 2024, true),
+      row('TAF', 2025, false),
+      row('TAG', 2024, false),
+    ]);
+    expect(result.reviews[0].reasons).toEqual([
+      'apron:TAF_2032_1st:needs-input',
+    ]);
+    expect(result.reviews[1].reasons).toEqual([]);
+  });
+});
+
+describe('SIMULATION Apron history (A4)', () => {
+  const at = (team: string, year: number, above = false) => ({
+    team,
+    seasonStartYear: year,
+    aboveSecondApron: above,
+    sourceResultId: 'software',
+  });
+  it('rejects seasons without a final day, unknown teams and duplicates', () => {
+    expect(() => compile({}, [at('TAA', 2023)])).toThrow('invalid');
+    expect(() => compile({}, [at('ZZZ', 2024)])).toThrow('invalid');
+    expect(() => compile({}, [at('TAA', 2024), at('TAA', 2024)])).toThrow(
+      'duplicated'
+    );
+  });
+  it('records scoped determinations only in simulation baselines', () => {
+    const own = compile().apron.find(
+      (a) => a.originalPick.id === 'TAB_2032_1st'
+    )!;
+    expect(own.observations).toEqual([]);
+    const withHistory = compile({}, [at('TAB', 2024, true)]);
+    const tab = withHistory.apron.find(
+      (a) => a.originalPick.id === 'TAB_2032_1st'
+    )!;
+    expect(tab.observations[0].value).toMatchObject({
+      basis: 'simulation-scoped-determination',
+      aboveSecondApron: true,
+      measuredAt: '2025-04-13T00:00:00.000Z',
+    });
+    expect(() =>
+      validateGovernedDraftBaseline({
+        ...withHistory,
+        classification: 'qualified-source',
+        assumptions: undefined,
+      })
+    ).toThrow('Scoped SIMULATION Apron determinations');
   });
 });

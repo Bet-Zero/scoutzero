@@ -46,6 +46,15 @@ export function validateGovernedDraftBaseline(
     throw new Error(
       'Simulation baselines must name their assumptions; other classifications cannot carry any.'
     );
+  if (
+    baseline.classification !== 'simulation' &&
+    baseline.apron.some((a) =>
+      a.observations.some((o) => o.value && 'basis' in o.value)
+    )
+  )
+    throw new Error(
+      'Scoped SIMULATION Apron determinations cannot certify a qualified history.'
+    );
   const ids = baseline.records.map((r) => String(r.entitlement.id));
   if (
     new Set(baseline.identities).size !== baseline.identities.length ||

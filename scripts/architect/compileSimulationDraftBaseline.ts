@@ -7,7 +7,12 @@
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { compileSimulationDraftBaseline } from '../../src/features/architect/utils/simulationDraftBaseline';
+import {
+  compileSimulationDraftBaseline,
+  SIMULATION_REGULAR_SEASON_FINAL_DAY,
+  type SimulationApronHistoryRow,
+} from '../../src/features/architect/utils/simulationDraftBaseline';
+import { readHardCapLabel } from '../../src/features/architect/utils/simulationHardCap';
 import { canonicalStringify } from '../../src/features/architect/utils/contractSource/deterministicDigest';
 import { loadSnapshot, DATA_DIR } from '../dev/cloudData';
 import { decodeFields } from '../dev/cloudPipeline';
@@ -71,12 +76,74 @@ if (missing.length) {
     })
   );
 }
+// Retained above/at-or-below determinations for completed Apron-rule seasons.
+// An undetermined 2025-26 row is read from that season's hard cap: a team
+// hard-capped at either Apron cannot finish above the Second Apron.
+type HistoryRow = {
+  team: string;
+  seasonStartYear: number;
+  state: string;
+  aboveSecondApron: boolean | null;
+  dependencyId: string;
+};
+// Hard-cap labels come from the private snapshot, read only when a row needs
+// the fallback. Without a snapshot the row stays undetermined (fails closed).
+let labelCache: Map<string, string> | null | undefined;
+async function hardCapLabel(team: string): Promise<string | undefined> {
+  if (labelCache === undefined) {
+    const snapshot = await loadSnapshot(DATA_DIR).catch(() => null);
+    labelCache = snapshot
+      ? new Map(
+          snapshot.documents
+            .filter((d) => d.name.split('/').at(-2) === 'architect_baseTeams')
+            .map((d) => {
+              const doc = decodeFields(d.fields ?? {}) as Record<
+                string,
+                unknown
+              >;
+              const totals = (doc.totals ?? {}) as Record<string, unknown>;
+              return [
+                String(d.name.split('/').at(-1)),
+                readHardCapLabel(doc.hardCapLevel ?? totals.hardCapLevel),
+              ];
+            })
+        )
+      : null;
+  }
+  return labelCache?.get(team);
+}
+const apronHistory: SimulationApronHistoryRow[] = [];
+let derived = 0;
+for (const row of (candidate.apronHistory ?? []) as HistoryRow[]) {
+  if (!SIMULATION_REGULAR_SEASON_FINAL_DAY[row.seasonStartYear]) continue;
+  if (row.state === 'supported' && typeof row.aboveSecondApron === 'boolean') {
+    apronHistory.push({
+      team: row.team,
+      seasonStartYear: row.seasonStartYear,
+      aboveSecondApron: row.aboveSecondApron,
+      sourceResultId: row.dependencyId,
+    });
+    continue;
+  }
+  const label =
+    row.seasonStartYear === 2025 ? await hardCapLabel(row.team) : undefined;
+  if (label && label !== 'none') {
+    derived += 1;
+    apronHistory.push({
+      team: row.team,
+      seasonStartYear: 2025,
+      aboveSecondApron: false,
+      sourceResultId: `simulation:${row.team}:2025-26:hard-capped-${label}`,
+    });
+  }
+}
 const baseline = compileSimulationDraftBaseline({
   candidate,
   candidateSha256: createHash('sha256').update(candidateBytes).digest('hex'),
   entitlements,
   seasonId: '2025-26',
   releaseId: 'simulation-june5-draft-v1',
+  apronHistory,
 });
 const bytes = canonicalStringify(baseline);
 await writeFile(output, bytes, { flag: 'wx', mode: 0o600 });
@@ -87,6 +154,8 @@ console.log(
     identities: baseline.identities.length,
     tradeable: baseline.records.length,
     unresolved: baseline.unresolved.length,
+    apronHistoryRows: apronHistory.length,
+    apronHistoryDerivedFromHardCaps: derived,
     sha256: createHash('sha256').update(bytes).digest('hex'),
     output,
   })

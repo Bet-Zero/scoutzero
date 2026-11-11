@@ -39,6 +39,7 @@ export function buildSyntheticFreezeEvents(args: {
       input.originalPick.id !== `${input.team}_2033_1st` ||
       input.observations.length !== 1 ||
       !observation?.value ||
+      'basis' in observation.value ||
       m.teamCode !== input.team ||
       m.salaryCapYear !== 2026 ||
       m.seasonKey !== source.fromSeason ||

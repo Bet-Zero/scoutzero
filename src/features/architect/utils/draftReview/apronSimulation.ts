@@ -142,6 +142,7 @@ export function readApronSimulation(metadata: Record<string, unknown>) {
         measurement.salaryCapYear !== year + 1 ||
         measurement.regularSeasonClosing !== step.regularSeasonEnd.date ||
         !observation.value ||
+        'basis' in observation.value ||
         !observation.value.lastRegularSeasonGameStart.startsWith(
           `${year + 1}-`
         ) ||

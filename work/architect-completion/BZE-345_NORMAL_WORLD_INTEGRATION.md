@@ -326,3 +326,26 @@ exceptions (`src/features/architect/utils/simulationHardCap.ts`).
 - MLE and Bi-annual Exception balances are carried as scraped. They matter
   only for signings and B1 (Phase 3), and they reset at the season change. Known
   quirk: every MLE is typed "Non-Taxpayer", even at the Taxpayer amount.
+
+## November 11: Apron and tax history (V1 item A4)
+
+The SIMULATION draft baseline now records whether each team finished the
+2024-25 and 2025-26 regular seasons above the Second Apron
+(`npm run architect:simulation-draft`, `apronHistory` rows).
+
+- Source: the retained candidate's 57 supported above/at-or-below
+  determinations (BOS, MIN and PHX above in 2024-25; CLE above in 2025-26).
+  Exact payroll was never established, so these are recorded as
+  `simulation-scoped-determination` values, read on the final regular-season
+  day (2025-04-13, 2026-04-12). Only simulation-classified baselines may carry
+  them; exact-cents consumers reject them.
+- GSW, LAC and NYK 2025-26 were undetermined. Each was hard-capped at an Apron
+  that season (A3), so each is read as at or below the Second Apron. Their
+  2032/2033 rights stay blocked under decision 2 (A5); the reading is the
+  labelled best guess.
+- Result: the 24 admitted 2032 originals are now decidable and not frozen.
+  BOS, MIN and PHX 2032 firsts remain frozen (candidate group
+  `original-frozen`).
+- Tax: no V1 trade rule reads repeater status or Tax Salary, so Tax Salary
+  stays a visible needs-input in the books. A repeater history is post-V1
+  unless a rule starts to depend on it.
