@@ -242,6 +242,41 @@ describe('SIMULATION team money baseline', () => {
     expect(dateOnly.teamSalary).toBe(143_000_000);
   });
 
+  it('carries the hard cap and checks Traded Player Exceptions', async () => {
+    const capped = await buildSimulationTeam({
+      teamCode: 'BOS',
+      asOf: ASOF,
+      salaryCapYear: 2026,
+      baseDoc: {
+        ...baseDoc,
+        hardCapLevel: 'none',
+        exceptions: {
+          tpe: [
+            {
+              id: 'TPE-BOS-1',
+              totalAmount: 8_200_000,
+              usedAmount: 0,
+              remainingAmount: 8_200_000,
+              expiresOn: 'Aug 6, 2026',
+            },
+          ],
+        },
+      } as never,
+      releaseDocs: roster(),
+      baseOnlyDocs: {},
+      hardCapCorrection: { level: 'firstApron', evidence: 'retained report' },
+      assumption: { checkedAt: ASOF, evidenceReferences: ['test'] },
+    });
+    expect(capped.team).toMatchObject({
+      hardCapLevel: 'firstApron',
+      hardCapped: true,
+      hardCapTriggeredBy: 'SIMULATION: retained report',
+    });
+    expect(capped.report.openTradedPlayerExceptions).toBe(8_200_000);
+    const { team } = await build(roster());
+    expect(team).toMatchObject({ hardCapped: false, hardCapTriggeredBy: null });
+  });
+
   it('refuses a player listed both from the release and from the base', async () => {
     await expect(
       build(roster(), { p1: doc('p1', { salary: 1 }) })

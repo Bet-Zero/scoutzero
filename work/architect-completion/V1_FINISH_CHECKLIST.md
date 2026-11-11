@@ -47,7 +47,7 @@ that changes the plan.
       in new normal worlds from the existing private BZE-344 candidate.
 - [x] A2 30-team money baseline under the simulation standard (PR #630 mechanism;
       resolve POR's extra Contract, BKN's $11,773 difference, roster aliases).
-- [ ] A3 Each team's exceptions, TPE balances and hard-cap status.
+- [x] A3 Each team's exceptions, TPE balances and hard-cap status.
 - [ ] A4 Apron and tax history for frozen picks and repeater tax (labeled
       assumptions where history is missing).
 - [x] A5 Apply decision 2 to the 30 gap-affected rights.

@@ -53,11 +53,11 @@ test('ordinary real-data simulation creation, books and reload retain assumption
     (await root.get()).data()?.draftBaseline?.classification
   );
   const snapshots = {} as Record<string, unknown>;
-  // TOR's first-Apron hard cap is not in the base team data; restoring
-  // hard caps is checklist item A3, so TOR's level is asserted there.
+  // TOR's snapshot label says no hard cap; the retained March 6 report
+  // raises it to the First Apron (A3).
   for (const [code, apron, hardCapLevel] of [
     ['CHI', 185036418, 'firstApron'],
-    ['TOR', 193613510, undefined],
+    ['TOR', 193613510, 'firstApron'],
   ] as const) {
     await page.goto(`/gm/${code}?season=2026`);
     await expect(
@@ -82,6 +82,7 @@ test('ordinary real-data simulation creation, books and reload retain assumption
             apron: totals.apronTeamSalary,
             tax: totals.taxSalary,
             hardCapLevel: team.hardCapLevel,
+            hardCapped: team.hardCapped,
             roster: team.roster,
           };
         },
@@ -91,7 +92,8 @@ test('ordinary real-data simulation creation, books and reload retain assumption
     expect(snapshots[code]).toMatchObject({
       apron,
       tax: null,
-      ...(hardCapLevel ? { hardCapLevel } : {}),
+      hardCapLevel,
+      hardCapped: true,
       inputs: { simulationAssumptions: { classification: 'SIMULATION' } },
     });
     await page.reload();
