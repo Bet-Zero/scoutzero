@@ -43,14 +43,14 @@ that changes the plan.
 
 ## Phase 1: real starting world
 
-- [ ] A1 Install all 278 June 5 draft rights (holders, protections, obligations)
+- [x] A1 Install all 278 June 5 draft rights (holders, protections, obligations)
       in new normal worlds from the existing private BZE-344 candidate.
-- [ ] A2 30-team money baseline under the simulation standard (PR #630 mechanism;
+- [x] A2 30-team money baseline under the simulation standard (PR #630 mechanism;
       resolve POR's extra Contract, BKN's $11,773 difference, roster aliases).
 - [ ] A3 Each team's exceptions, TPE balances and hard-cap status.
 - [ ] A4 Apron and tax history for frozen picks and repeater tax (labeled
       assumptions where history is missing).
-- [ ] A5 Apply decision 2 to the 30 gap-affected rights.
+- [x] A5 Apply decision 2 to the 30 gap-affected rights.
 - [ ] A6 Copying (branching) a simulation world.
 
 ## Phase 2: switch it on (owner confirms the deploy)

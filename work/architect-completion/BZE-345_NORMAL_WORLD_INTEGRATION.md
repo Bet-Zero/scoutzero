@@ -275,3 +275,32 @@ released remains C5 free-agent/minimum-exception acquisition through normal GM
 flows, with applicable eligibility, financial effects and save/reload proof.
 Leaguewide rare-event monitoring remains a separate operational requirement;
 there is no automatic live event-monitoring claim in this implementation.
+
+## November 11: thirty-team SIMULATION money baseline (V1 item A2)
+
+`npm run architect:simulation-financial -- <private-output.json>` builds the
+private package from the accepted release and the private source snapshot.
+All 30 teams build with complete Team Salary and Apron Team Salary; CHI
+($185,036,418) and TOR ($193,613,510) equal the reconciled figures above.
+
+- Rosters come from the release's retained documents, so stale base roster ids
+  no longer decide a team. Base ids that only differ in punctuation or suffix
+  (`royce_o_neale`, `robert_williams`) are dropped as aliases.
+- POR: Yang Hansen has only an incomplete release record, so he keeps his base
+  contract ($4,422,360) as a known liability.
+- BKN: totals come from components (release cap hits + dead money); the stored
+  cap-hit total with the $11,773 difference is not used.
+- C07.2: retained unlikely bonuses count; unknown bonuses are $0 by the owner's
+  "assume none unless known" decision (labelled assumption).
+- C07.3: zero/one-YOS minimum uplift for any minimum contract signed as a free
+  agent (any length or mechanism, dead money included), read from the exact
+  full or prorated 2025-26 minimum. Rookie-scale mechanisms, reimbursed
+  veterans and draft-rights signings are excluded. 2023-24 signings have no
+  verified two-YOS amount and are bounded by the 2025-26 one (flagged).
+- Open conflict: in-world signings still give the uplift only to one-season
+  minimum contracts; the BZE-345 evidence (Gueye, Edwards) shows it applies
+  more widely. Needs the CBA text before the signing rule changes.
+- C07.5 is derived from the Team Salary hold component, so it cannot go stale.
+- Hard caps (TOR's first-Apron cap) are item A3; tax remains needs-input (A4).
+- Trades of 2025-26 contracts that may carry an uplift are blocked as outside
+  this tranche until the uplift transfer rule is modelled.

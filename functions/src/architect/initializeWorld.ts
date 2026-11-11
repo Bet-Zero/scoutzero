@@ -509,14 +509,31 @@ Public-data simulation. Unidentified grievances and first-round Required Tenders
           ? 1 +
             Object.keys(simulationDraft.baseline.retainedEntitlements).length
           : 0;
-      if (
-        documents.length +
-          1 +
-          draftWrites +
-          Object.keys(simulationBaseline?.teams ?? {}).length >
-        500
-      ) {
+      if (documents.length + 1 + draftWrites > 500) {
         throw new Error('Governed contract baseline exceeds one atomic batch.');
+      }
+      if (simulationBaseline) {
+        // Full SIMULATION team documents exceed one request with the contract
+        // baseline. Stage them first under the not-yet-existing world; the
+        // world only appears when the batch below creates its document.
+        const entries = Object.entries(simulationBaseline.teams);
+        for (let index = 0; index < entries.length; index += 5) {
+          const staged = db.batch();
+          for (const [code, team] of entries.slice(index, index + 5))
+            staged.set(
+              worldRef.collection('teams').doc(code),
+              simulationDraft
+                ? {
+                    ...team,
+                    // Draft custody comes only from the SIMULATION draft baseline.
+                    entitlementIds:
+                      simulationDraft.baseline.initialTeams[code]
+                        .entitlementIds,
+                  }
+                : team
+            );
+          await staged.commit();
+        }
       }
       const batch = db.batch();
       batch.create(worldRef, metadata);
@@ -556,20 +573,6 @@ Public-data simulation. Unidentified grievances and first-round Required Tenders
           batch.create(
             worldRef.collection('entitlements').doc(id),
             entitlement
-          );
-      }
-      if (simulationBaseline) {
-        for (const [code, team] of Object.entries(simulationBaseline.teams))
-          batch.create(
-            worldRef.collection('teams').doc(code),
-            simulationDraft
-              ? {
-                  ...team,
-                  // Draft custody comes only from the SIMULATION draft baseline.
-                  entitlementIds:
-                    simulationDraft.baseline.initialTeams[code].entitlementIds,
-                }
-              : team
           );
       }
       await batch.commit();

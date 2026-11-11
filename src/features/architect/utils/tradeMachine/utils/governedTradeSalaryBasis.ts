@@ -29,10 +29,14 @@ import {
   resolveGovernedSeasonEnvelope,
   type GovernedCalendarResolution,
 } from '@/features/architect/utils/governedSeason';
-import { toSeasonCode, toEndYear } from '@/features/architect/utils/seasonFormat';
+import {
+  toSeasonCode,
+  toEndYear,
+} from '@/features/architect/utils/seasonFormat';
 import { getWorldMetadata } from '@/features/architect/utils/worldManager.core';
 import { getLeague } from '@/features/architect/utils/teamLoader';
 import { isTwoWayTradePlayer } from './twoWayTradeSalary';
+import { simulationMinimumUplift } from '@/features/architect/utils/simulationMinimumUplift';
 
 const SALARY_BASIS_LEAVES = Object.freeze([
   'CBA2-A03.1',
@@ -72,7 +76,9 @@ export function collectUniqueWorldContractEventLedgers(
     const rawLedgers = (team as Record<string, unknown>).contractEventLedgers;
     if (rawLedgers == null) continue;
     if (!Array.isArray(rawLedgers)) {
-      throw new Error('A Team snapshot has malformed governed Contract history.');
+      throw new Error(
+        'A Team snapshot has malformed governed Contract history.'
+      );
     }
     for (const rawOverlay of rawLedgers) {
       const overlay = ContractEventLedgerPayloadZ.parse(rawOverlay);
@@ -128,7 +134,9 @@ function unavailable({
 
 function exactMoney(value: number | null, label: string, reasons: string[]) {
   if (value === null || !Number.isFinite(value) || value < 0) {
-    reasons.push(`${label} is missing or invalid in governed Contract history.`);
+    reasons.push(
+      `${label} is missing or invalid in governed Contract history.`
+    );
     return null;
   }
   return value;
@@ -166,7 +174,9 @@ function protectedAmountAsOf(
         ? !isDateOnly(date)
         : !isZonedDateTime(date))
     ) {
-      reasons.push(`${label} has a protection step without an exact governed date.`);
+      reasons.push(
+        `${label} has a protection step without an exact governed date.`
+      );
       return null;
     }
     const stepDate =
@@ -213,7 +223,10 @@ function computePoisonPillSalary({
   reasons: string[];
   leaves: string[];
 }): number | null {
-  if (!projected.extensionEffectiveAt || projected.state.terms.isRookieScale !== true) {
+  if (
+    !projected.extensionEffectiveAt ||
+    projected.state.terms.isRookieScale !== true
+  ) {
     return null;
   }
   const parsed = GovernedTradeSalaryBasisEvidenceZ.safeParse(rawEvidence);
@@ -229,7 +242,9 @@ function computePoisonPillSalary({
     !isZonedDateTime(poison.extensionSignedAt) ||
     !isZonedDateTime(poison.firstFollowingSalaryCapYearStartsAt)
   ) {
-    reasons.push('The retained poison-pill Extension identity or timing is invalid.');
+    reasons.push(
+      'The retained poison-pill Extension identity or timing is invalid.'
+    );
     return null;
   }
   if (
@@ -260,7 +275,9 @@ function computePoisonPillSalary({
       (row) => row.season === term.season
     );
     if (!stateRow) {
-      reasons.push(`Governed Contract history has no extended-term row for ${term.season}.`);
+      reasons.push(
+        `Governed Contract history has no extended-term row for ${term.season}.`
+      );
       return null;
     }
     let salary: number;
@@ -270,7 +287,9 @@ function computePoisonPillSalary({
         term.salaryPercentage !== null ||
         stateRow.salary !== term.fixedSalary
       ) {
-        reasons.push(`Fixed poison-pill Salary evidence for ${term.season} is inconsistent.`);
+        reasons.push(
+          `Fixed poison-pill Salary evidence for ${term.season} is inconsistent.`
+        );
         return null;
       }
       salary = term.fixedSalary;
@@ -354,6 +373,21 @@ function computeReadyBasis({
       `${season} has bonus compensation whose trade treatment is outside this governed tranche.`
     );
   }
+  // A zero/one-YOS Minimum uplift (CBA2-C07.3) is an Apron row tied to this
+  // Contract. Moving it with the player is outside this governed tranche.
+  if (
+    season === '2025-26' &&
+    simulationMinimumUplift({
+      contract: {
+        signedUsing: state.terms.signedUsing,
+        salariesByYear: state.terms.salaries,
+      },
+    }).status !== 'none'
+  ) {
+    reasons.push(
+      'This Minimum Contract may carry a zero/one-YOS Apron uplift whose transfer is outside this governed tranche.'
+    );
+  }
   if (Number(state.terms.bonuses.tradeKickerPercent ?? 0) !== 0) {
     reasons.push(
       'This Contract has a trade bonus whose allocation is outside this governed tranche.'
@@ -370,7 +404,13 @@ function computeReadyBasis({
     // Authenticate the current Contract before admitting this new mixed path.
     method = 'two-way-exclusion';
     outgoingSalary = 0;
-    leaves.push('CBA2-A02.14', 'CBA2-L03.13', 'CBA2-L03.14', 'CBA2-C20.11', 'CBA2-C20.12');
+    leaves.push(
+      'CBA2-A02.14',
+      'CBA2-L03.13',
+      'CBA2-L03.14',
+      'CBA2-C20.11',
+      'CBA2-C20.12'
+    );
     const signed = state.terms.signingDate;
     const signingDay = signed.value?.slice(0, 10);
     if (
@@ -396,13 +436,27 @@ function computeReadyBasis({
     const endSeason = state.terms.endSeason;
     const endYear = toEndYear(endSeason);
     const startYear = toEndYear(state.terms.startSeason);
-    if (startYear == null || endYear == null || startYear > salaryCapYear ||
-      endYear < startYear || endYear - startYear > 1) {
-      reasons.push('A governed Two-Way Contract must cover one or two Seasons (CBA2-C20.11).');
+    if (
+      startYear == null ||
+      endYear == null ||
+      startYear > salaryCapYear ||
+      endYear < startYear ||
+      endYear - startYear > 1
+    ) {
+      reasons.push(
+        'A governed Two-Way Contract must cover one or two Seasons (CBA2-C20.11).'
+      );
     }
-    if (!endSeason || endSeason !== toSeasonCode(endYear) || endYear == null ||
-      endYear < salaryCapYear || endYear > salaryCapYear + 1) {
-      reasons.push('Two-Way assignment needs the governed current Contract term ending in this or the following Salary Cap Year.');
+    if (
+      !endSeason ||
+      endSeason !== toSeasonCode(endYear) ||
+      endYear == null ||
+      endYear < salaryCapYear ||
+      endYear > salaryCapYear + 1
+    ) {
+      reasons.push(
+        'Two-Way assignment needs the governed current Contract term ending in this or the following Salary Cap Year.'
+      );
     }
     const endsThisSeason = endSeason === season;
     if (asOfDate >= opening && (endsThisSeason || !nextRow)) {
@@ -534,7 +588,9 @@ function computeReadyBasis({
     outgoingSalary,
     incomingSalary: twoWay ? 0 : currentSalary,
     poisonPillIncomingSalary,
-    ...(twoWay ? { twoWayContractEndYear: toEndYear(state.terms.endSeason) } : {}),
+    ...(twoWay
+      ? { twoWayContractEndYear: toEndYear(state.terms.endSeason) }
+      : {}),
     canonLeafIds: [...new Set(leaves)],
     reasons: [],
     proof: {
@@ -563,7 +619,9 @@ export function resolveGovernedTradeSalaryBasis(input: {
   salaryCapAtTrade?: number | null;
 }): GovernedTradeSalaryBasis {
   if (!isDateOnly(input.asOfDate)) {
-    throw new Error('Governed Trade Machine salary basis requires a YYYY-MM-DD world date.');
+    throw new Error(
+      'Governed Trade Machine salary basis requires a YYYY-MM-DD world date.'
+    );
   }
   return computeReadyBasis({
     projected: {
@@ -597,10 +655,14 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
   salaryCapYear: number;
 }): Promise<ReadonlyMap<string, GovernedTradeSalaryBasis>> {
   if (!isDateOnly(worldAsOfDate)) {
-    throw new Error('Governed Trade Machine salary basis requires a YYYY-MM-DD world date.');
+    throw new Error(
+      'Governed Trade Machine salary basis requires a YYYY-MM-DD world date.'
+    );
   }
   if (!teamId.trim()) {
-    throw new Error('Governed Trade Machine salary basis requires a Team identity.');
+    throw new Error(
+      'Governed Trade Machine salary basis requires a Team identity.'
+    );
   }
   const [documents, metadata, resolvedWorldTeams] = await Promise.all([
     listWorldContractBaselines(worldId),
@@ -634,9 +696,8 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
     salaryCapResolution.state === 'available'
       ? salaryCapResolution.amount
       : null;
-  const overlayByLedgerId = collectUniqueWorldContractEventLedgers(
-    resolvedWorldTeams
-  );
+  const overlayByLedgerId =
+    collectUniqueWorldContractEventLedgers(resolvedWorldTeams);
   const projectedByPlayer = new Map<string, ProjectedContract[]>();
   const rosterPlayerIdSet = new Set(
     rosterPlayerIds.map((playerId) => playerId.trim()).filter(Boolean)
@@ -659,7 +720,8 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
 
   for (const input of candidates) {
     const candidatePlayerId = input.events[0]?.playerId;
-    if (!candidatePlayerId || !rosterPlayerIdSet.has(candidatePlayerId)) continue;
+    if (!candidatePlayerId || !rosterPlayerIdSet.has(candidatePlayerId))
+      continue;
     const ledger = createContractEventLedger(input);
     const contractId = ledger.events[0]?.contractId;
     if (!contractId) continue;
@@ -751,7 +813,9 @@ export function resolveTradeSalaryBasisPlayerId(
   player: Record<string, unknown>
 ): string {
   return String(
-    player.id ?? player.player_id ?? player.playerId ??
+    player.id ??
+      player.player_id ??
+      player.playerId ??
       (player.bio && typeof player.bio === 'object'
         ? (player.bio as Record<string, unknown>).playerId
         : '')
