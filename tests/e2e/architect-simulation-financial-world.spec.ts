@@ -105,7 +105,14 @@ test('ordinary real-data simulation creation, books and reload retain assumption
   await page.screenshot({ path: '/tmp/bze345-simulation-world.png' });
   // Ordinary SDK cannot erase the distinction from metadata.
   const denied = await page.evaluate(async (id) => {
-    const sdk = await import('/node_modules/.vite/deps/firebase_firestore.js');
+    const sdk = await import(
+      // The app's own, version-stamped dependency URL (re-optimization safe).
+      performance
+        .getEntriesByType('resource')
+        .map((entry) => entry.name)
+        .find((url) => url.includes('/deps/firebase_firestore.js')) ??
+        '/node_modules/.vite/deps/firebase_firestore.js'
+    );
     const config = await import('/src/firebaseConfig.ts');
     try {
       await sdk.updateDoc(sdk.doc(config.db, 'architect_worlds', id), {
@@ -127,7 +134,12 @@ test('ordinary real-data simulation creation, books and reload retain assumption
     const stale = await page.evaluate(
       async ({ id, uid }) => {
         const fns = await import(
-          '/node_modules/.vite/deps/firebase_functions.js'
+          // The app's own, version-stamped dependency URL (re-optimization safe).
+          performance
+            .getEntriesByType('resource')
+            .map((entry) => entry.name)
+            .find((url) => url.includes('/deps/firebase_functions.js')) ??
+            '/node_modules/.vite/deps/firebase_functions.js'
         );
         const config = await import('/src/firebaseConfig.ts');
         try {
@@ -241,7 +253,12 @@ test('ordinary real-data simulation creation, books and reload retain assumption
     // The copy's lineage is server-written only.
     const lineageDenied = await page.evaluate(async (worldId) => {
       const sdk = await import(
-        '/node_modules/.vite/deps/firebase_firestore.js'
+        // The app's own, version-stamped dependency URL (re-optimization safe).
+        performance
+          .getEntriesByType('resource')
+          .map((entry) => entry.name)
+          .find((url) => url.includes('/deps/firebase_firestore.js')) ??
+          '/node_modules/.vite/deps/firebase_firestore.js'
       );
       const config = await import('/src/firebaseConfig.ts');
       try {

@@ -374,3 +374,30 @@ uncopyable.
   that CHI and TOR read the same Apron totals and hard caps in the copy, that
   the copied draft world loads, that the parent is unchanged, and that a
   browser cannot forge the copy's lineage.
+
+## November 11: first-round trades in SIMULATION worlds (V1 item D1)
+
+A first-round trade now runs through the ordinary flow (Create World, Trade
+Machine, Validate, Apply) in a SIMULATION world on the local emulator.
+Proof: `tests/e2e/architect-simulation-first-round-apply.spec.ts` swaps
+CHI's and TOR's 2028 firsts, checks the committed receipt, custody, an
+unchanged draft source and unchanged books for both teams, then copies the
+traded world and loads the copy with its receipt bound to the original.
+
+Two blockers were fixed:
+
+- The draft loader expected the software fixture's roster format (a list of
+  player ids). SIMULATION teams store player records; both are now read as
+  one identity per player.
+- The draft-pick resolver merged shared base pick documents and parent
+  layers into the world's own picks. A world with a governed draft baseline
+  now reads only its own pick documents. Before, a base document with the
+  same id failed Apply with a conflicting-identity error.
+
+Still gated: outside the local emulator the draft loader refuses every
+governed draft world, and no SIMULATION draft package is installed in
+production. Turning that on is D2 and needs the owner's go-ahead.
+
+Seen in the product, for D4: own unprotected firsts show "Protection terms
+unavailable", and the books banner says governed rights inputs are
+incomplete. Both are display wording, not trade blockers.
