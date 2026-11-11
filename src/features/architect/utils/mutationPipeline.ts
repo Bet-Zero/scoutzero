@@ -508,6 +508,29 @@ export async function applyWorldMutation({
         throw new Error(
           'Computed pick movement differs from the consumed review.'
         );
+      if (review.scope === 'governed-world-fixture') {
+        // Players travelling with governed firsts must be exactly the
+        // reviewed Contracts, arriving at the reviewed teams.
+        const reviewed = review.playerMovements ?? [];
+        const arrivals = (computeResult.playerUpdates ?? [])
+          .map(({ playerId, player }) => `${playerId}:${player?.teamCode}`)
+          .sort();
+        const departures = new Set(
+          reviewed.map((m) => `${m.playerId}:${m.fromTeam}`)
+        );
+        if (
+          JSON.stringify(arrivals) !==
+            JSON.stringify(
+              reviewed.map((m) => `${m.playerId}:${m.toTeam}`).sort()
+            ) ||
+          (computeResult.playerDeletes ?? []).some(
+            (d) => !departures.has(`${d.playerId}:${d.teamCode}`)
+          )
+        )
+          throw new Error(
+            'Computed player movement differs from the consumed review.'
+          );
+      }
       computeResult.metadata = {
         ...computeResult.metadata,
         draftReviewReceipt: DraftReviewMutationReceiptZ.parse({
@@ -524,7 +547,11 @@ export async function applyWorldMutation({
           releaseSha256: review.releaseSha256,
           asOfDate: review.asOfDate,
           movements: review.movements,
-          ...(review.playerMovements
+          // A governed world's custody receipt records firsts only; players
+          // that travel with them are checked above and recorded by the
+          // ordinary trade event.
+          ...(review.playerMovements &&
+          review.scope !== 'governed-world-fixture'
             ? { playerMovements: review.playerMovements }
             : {}),
         }),

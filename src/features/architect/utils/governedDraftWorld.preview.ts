@@ -10,28 +10,56 @@ import {
 } from './draftReview/capability';
 import { buildTradeApplyPreparation } from './tradeContext';
 import type { TradeContextPayload } from './tradeContext/types';
+import { resolveTeamCode } from './worldTeamData';
 import type { ArchitectMutationPayload } from './mutationPipeline';
 
 export async function prepareGovernedDraftWorldPreview(
-  payload: TradeContextPayload,
+  proposal: TradeContextPayload,
   seasonId: string
 ) {
+  // Validate the same payload Apply submits: a governed world uses its own
+  // date and the league cap levels, never the page's cap projections.
+  const payload = { ...proposal };
+  delete payload.capProjections;
+  // Route players by team code, exactly as the Apply handoff does.
+  const codes = payload.teams.map((t) => String(t.teamCode));
+  payload.teams = payload.teams.map((team) => ({
+    ...team,
+    ...(team.sends?.length
+      ? {
+          sends: team.sends.map((player) => {
+            const raw =
+              player.receivingTeamId ??
+              player.tradeTo ??
+              player.toTeamId ??
+              player.destTeamId;
+            const to =
+              raw == null
+                ? undefined
+                : resolveTeamCode(String(raw)) || String(raw);
+            const routed = {
+              ...player,
+              playerId: player.playerId ?? player.id ?? player.player_id,
+              tradeTo: to,
+              receivingTeamId: to,
+              receivingTeamIndex: to == null ? undefined : codes.indexOf(to),
+            };
+            delete routed.toTeamId;
+            delete routed.destTeamId;
+            return routed;
+          }),
+        }
+      : {}),
+  }));
   const worldId = payload.tradeCtx?.worldId;
   if (typeof worldId !== 'string' || !worldId) return null;
   const metadata = (await getDoc(worldMetadataRef(worldId))).data();
   if (!metadata?.draftBaseline) return null;
-  if (
-    payload.teams.some(
-      (t) => (t.sends ?? []).length || (t.receives ?? []).length
-    )
-  )
-    throw new Error(
-      'This governed draft path does not admit player consideration.'
-    );
   const userId = auth.currentUser?.uid;
   if (!userId)
     throw new Error('Sign in to validate a saved-world draft trade.');
-  // No player identity conversion occurs: this bounded route has no players.
+  // Players are checked by the governed review (identity, unchanged Contract,
+  // exact salary basis) and by the ordinary trade validators.
   const state = await loadStateForMutation(
     worldId,
     'executeTrade',
