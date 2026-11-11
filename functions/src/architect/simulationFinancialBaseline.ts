@@ -1,6 +1,8 @@
-/** Local simulation input, never a deployed source release or draft capability. */
-import { readFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
+/** SIMULATION financial input: local file, or a pinned live object when switched on. */
+import {
+  readSimulationPackageBytes,
+  type ReadStorageObject,
+} from './simulationPackageSource';
 
 type SimulationPackage = {
   classification: 'SIMULATION';
@@ -8,23 +10,11 @@ type SimulationPackage = {
   seasonId: string;
   teams: Record<string, Record<string, unknown>>;
 };
-export function loadSimulationFinancialBaseline(): SimulationPackage | null {
-  const file = process.env.SCOUTZERO_SIMULATION_FINANCIAL_FILE;
-  if (!file) return null;
-  if (
-    process.env.FUNCTIONS_EMULATOR !== 'true' ||
-    !(process.env.GCLOUD_PROJECT ?? '').startsWith('demo-') ||
-    !/^127\.0\.0\.1:\d+$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? '')
-  )
-    throw new Error(
-      'Simulation financial inputs require the local demo emulator.'
-    );
-  const bytes = readFileSync(file);
-  if (
-    createHash('sha256').update(bytes).digest('hex') !==
-    process.env.SCOUTZERO_SIMULATION_FINANCIAL_SHA256
-  )
-    throw new Error('Simulation financial input digest mismatch.');
+export async function loadSimulationFinancialBaseline(
+  readObject?: ReadStorageObject
+): Promise<SimulationPackage | null> {
+  const bytes = await readSimulationPackageBytes('financial', readObject);
+  if (!bytes) return null;
   const value = JSON.parse(bytes.toString()) as SimulationPackage;
   if (
     value.classification !== 'SIMULATION' ||

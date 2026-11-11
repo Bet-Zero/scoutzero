@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
+const env = vi.hoisted(() => ({ fixture: true, live: false }));
 vi.mock('@/firebaseConfig', () => ({
   db: {},
-  isGovernedDraftFixtureEnvironment: () => true,
+  isGovernedDraftFixtureEnvironment: () => env.fixture,
+  isSimulationDraftLiveEnabled: () => env.live,
 }));
 
-const { copiedLineageMatches, receiptWorldId } = await import(
-  '@/features/architect/utils/governedDraftWorld.load'
-);
+const { copiedLineageMatches, receiptWorldId, governedDraftWorldAvailable } =
+  await import('@/features/architect/utils/governedDraftWorld.load');
 
 describe('SIMULATION world copies (A6)', () => {
   const copy = {
@@ -43,5 +44,18 @@ describe('SIMULATION world copies (A6)', () => {
     expect(receiptWorldId(copy, 'child', 'bad')).toBeNull();
     expect(receiptWorldId(copy, 'child', 'toString')).toBe('child');
     expect(receiptWorldId({}, 'root', 'op1')).toBe('root');
+  });
+
+  it('runs SIMULATION worlds outside the emulator only behind the live switch', () => {
+    env.fixture = false;
+    env.live = false;
+    expect(governedDraftWorldAvailable('simulation')).toBe(false);
+    env.live = true;
+    expect(governedDraftWorldAvailable('simulation')).toBe(true);
+    // Software fixtures never run outside the local emulator.
+    expect(governedDraftWorldAvailable('software-fixture')).toBe(false);
+    env.fixture = true;
+    env.live = false;
+    expect(governedDraftWorldAvailable('software-fixture')).toBe(true);
   });
 });

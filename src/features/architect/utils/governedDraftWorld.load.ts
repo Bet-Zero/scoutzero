@@ -1,5 +1,8 @@
 /** Load immutable source and the exact mutable world read set. No writes. */
-import { isGovernedDraftFixtureEnvironment } from '@/firebaseConfig';
+import {
+  isGovernedDraftFixtureEnvironment,
+  isSimulationDraftLiveEnabled,
+} from '@/firebaseConfig';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import {
   ARCHITECT_WORLD_DRAFT_BASELINES_SUBCOLLECTION,
@@ -100,6 +103,17 @@ function playerIdentity(value: unknown): unknown {
   return p.player_id ?? p.playerId ?? p.id;
 }
 
+/**
+ * Software draft fixtures run only in the local emulator. A SIMULATION world
+ * may also run where the D2 live switch is on (off by default).
+ */
+export function governedDraftWorldAvailable(classification: unknown) {
+  return (
+    isGovernedDraftFixtureEnvironment() ||
+    (classification === 'simulation' && isSimulationDraftLiveEnabled())
+  );
+}
+
 export async function loadGovernedDraftWorld(
   worldId: string,
   participatingTeamCodes: readonly string[] = []
@@ -108,7 +122,7 @@ export async function loadGovernedDraftWorld(
   const metadataSnapshot = await getDoc(ref);
   const metadata = metadataSnapshot.data();
   if (!metadata?.draftBaseline) return null;
-  if (!isGovernedDraftFixtureEnvironment())
+  if (!governedDraftWorldAvailable(metadata.draftBaseline?.classification))
     throw new Error('No qualified production draft baseline is active.');
   const sourceRef = doc(
     ref,

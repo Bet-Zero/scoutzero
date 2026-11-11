@@ -41,6 +41,7 @@ import { DraftReviewMutationReceiptZ } from '@/schemas/draftPickReviewMutation';
 import {
   isSyntheticDraftReviewEnvironment,
   isGovernedDraftFixtureEnvironment,
+  isSimulationDraftLiveEnabled,
 } from '@/firebaseConfig';
 
 function formatCashCents(value: number): string {
@@ -485,7 +486,7 @@ export function toTeamHistoryEventDisplay(
         mutationType === 'executeTrade' &&
         asObject(metadata.draftReviewReceipt).scope ===
           'governed-world-fixture' &&
-        isGovernedDraftFixtureEnvironment()
+        (isGovernedDraftFixtureEnvironment() || isSimulationDraftLiveEnabled())
       ) {
         const parsed = DraftReviewMutationReceiptZ.safeParse(
           metadata.draftReviewReceipt
