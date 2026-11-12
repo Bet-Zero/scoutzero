@@ -51,6 +51,7 @@ export function simulationPlayerMovements(
   const supportedPath = (path: string) =>
     path === 'STANDARD_TPE' ||
     path === 'AGGREGATED_STANDARD_TPE' ||
+    path === 'EXPANDED_TPE' ||
     path === 'ROOM' ||
     path === 'MINIMUM_EXCEPTION' ||
     isExceptionTradePath(path);

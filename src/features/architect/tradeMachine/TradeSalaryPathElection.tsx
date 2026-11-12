@@ -24,6 +24,7 @@ type TradeSalaryPathElectionProps = {
 const PATH_LABELS: Record<TradeSalaryMatchingPath, string> = {
   STANDARD_TPE: 'Standard TPE',
   AGGREGATED_STANDARD_TPE: 'Aggregated Standard TPE',
+  EXPANDED_TPE: 'Expanded TPE',
   ROOM: 'Room path',
   MINIMUM_EXCEPTION: 'Minimum Exception (no players sent)',
   NON_TAXPAYER_MLE: 'Non-Taxpayer Mid-Level Exception (no players sent)',

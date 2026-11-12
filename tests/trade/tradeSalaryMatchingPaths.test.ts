@@ -146,12 +146,106 @@ describe('governed Trade Machine salary paths', () => {
     expect(result.violations[0]).toMatch(/exactly one Traded Player/);
   });
 
-  it('fails closed on a below-cap Standard election until its separate governed path exists', () => {
+  it('refuses a below-cap Standard election (room or the Expanded TPE instead)', () => {
     const result = evaluate({ teamSalary: SALARY_CAP - 1 });
 
     expect(result.status).toBe('FAIL');
     expect(result.maximumIncoming).toBeNull();
     expect(result.violations[0]).toMatch(/unavailable below the Salary Cap/);
+  });
+
+  describe('Expanded TPE (CBA2-A02.7, A02.8, A02.11)', () => {
+    // A = $7.5M x 2026-27 Salary Cap / 2023-24 Salary Cap, unrounded.
+    const A = (7_500_000 * SALARY_CAP) / 136_021_000;
+    const K = TRADE_SALARY_ALLOWANCE;
+    const expanded = (
+      outgoing: number,
+      incoming: number,
+      extra: Partial<Parameters<typeof evaluateTradeSalaryMatchingPath>[0]> = {}
+    ) =>
+      evaluate({
+        election: election('EXPANDED_TPE', {
+          first: outgoing / 2,
+          second: outgoing / 2,
+        }),
+        outgoingPlayers: [
+          { playerId: 'first', playerName: 'First' },
+          { playerId: 'second', playerName: 'Second' },
+        ],
+        incomingMatchingPlayers: [
+          { playerId: 'incoming', playerName: 'Incoming', salary: incoming },
+        ],
+        ...extra,
+      });
+
+    it('uses 200% + K below the first crossover, O + A between, 125% + K above', () => {
+      expect(A).toBeCloseTo(9_095_709.49, 1);
+      expect(expanded(5_000_000, 0).maximumIncoming).toBe(2 * 5_000_000 + K);
+      expect(expanded(20_000_000, 0).maximumIncoming).toBe(20_000_000 + A);
+      expect(expanded(40_000_000, 0).maximumIncoming).toBe(
+        1.25 * 40_000_000 + K
+      );
+      // The crossovers are A - K and 4(A - K); the formula is continuous there.
+      const low = A - K;
+      expect(expanded(low, 0).maximumIncoming).toBeCloseTo(2 * low + K, 6);
+      expect(expanded(low, 0).maximumIncoming).toBeCloseTo(low + A, 6);
+      const high = 4 * (A - K);
+      expect(expanded(high, 0).maximumIncoming).toBeCloseTo(high + A, 6);
+      expect(expanded(high, 0).maximumIncoming).toBeCloseTo(1.25 * high + K, 6);
+    });
+
+    it('passes at the limit and fails a cent above it', () => {
+      const limit = 20_000_000 + A;
+      const pass = expanded(20_000_000, limit);
+      expect(pass.status).toBe('PASS');
+      expect(pass.components[0]).toMatchObject({
+        kind: 'ELECTED_PATH',
+        path: 'EXPANDED_TPE',
+        timing: 'SIMULTANEOUS',
+      });
+      expect(pass.canonLeafIds).toContain('CBA2-A02.8');
+      const fail = expanded(20_000_000, limit + 0.01);
+      expect(fail.status).toBe('FAIL');
+      expect(fail.violations[0]).toMatch(/Expanded Traded Player Exception/);
+    });
+
+    it('is the below-cap election in lieu of the room path', () => {
+      expect(
+        expanded(5_000_000, 10_000_000, { teamSalary: SALARY_CAP - 1 }).status
+      ).toBe('PASS');
+    });
+
+    it('zeroes the allowance above the First Apron', () => {
+      const result = evaluate({
+        election: election(
+          'EXPANDED_TPE',
+          { first: 2_500_000, second: 2_500_000 },
+          FIRST_APRON + 1
+        ),
+        outgoingPlayers: [
+          { playerId: 'first', playerName: 'First' },
+          { playerId: 'second', playerName: 'Second' },
+        ],
+      });
+      expect(result.allowance).toBe(0);
+      expect(result.maximumIncoming).toBe(10_000_000);
+    });
+
+    it('needs players both ways and exact pre-trade Salary', () => {
+      expect(
+        expanded(5_000_000, 0, { incomingMatchingPlayers: [] }).status
+      ).toBe('FAIL');
+      expect(expanded(5_000_000, 0, { outgoingPlayers: [] }).status).toBe(
+        'FAIL'
+      );
+      const missing = expanded(5_000_000, 1, {
+        election: election('EXPANDED_TPE', { first: 1 }),
+      });
+      expect(missing.status).toBe('NEEDS_INPUT');
+      expect(missing.missingInputs).toEqual([
+        'tradedPlayerPreTradeSalaries.second',
+      ]);
+    });
   });
 
   it('passes Aggregated Standard TPE at the exact limit', () => {
@@ -787,11 +881,18 @@ describe('governed salary path lifecycle integration', () => {
       context
     );
     expect(result.passed).toBe(false);
-    expect(result.violations).toContain('Apron Team Salary needs governed input');
+    expect(result.violations).toContain(
+      'Apron Team Salary needs governed input'
+    );
   });
 
   it('keeps ordinary player trades and contradictory context financially gated', () => {
-    const noPlayers = { salaryOut: 0, salaryIn: 0, sends: [], incomingPlayers: [] };
+    const noPlayers = {
+      salaryOut: 0,
+      salaryIn: 0,
+      sends: [],
+      incomingPlayers: [],
+    };
     for (const result of [
       validateSalaryMatching(
         { ...noPlayers, sends: [{ id: 'player', salary: 10_000_000 }] },
@@ -801,7 +902,9 @@ describe('governed salary path lifecycle integration', () => {
       validateSalaryMatching(noPlayers, {}),
     ]) {
       expect(result.passed).toBe(false);
-      expect(result.violations).toContain('Apron Team Salary needs governed input');
+      expect(result.violations).toContain(
+        'Apron Team Salary needs governed input'
+      );
     }
   });
 

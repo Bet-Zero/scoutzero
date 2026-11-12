@@ -180,7 +180,7 @@ function signAndTradeAuthority(firstSeasonSalary: number) {
 }
 
 function electedComponent(
-  path: 'STANDARD_TPE' | 'AGGREGATED_STANDARD_TPE'
+  path: 'STANDARD_TPE' | 'AGGREGATED_STANDARD_TPE' | 'EXPANDED_TPE'
 ): TradeSalaryPathComponent {
   return {
     componentId: `${path.toLowerCase()}:players`,
@@ -575,6 +575,88 @@ describe('governed Trade Machine apron restrictions', () => {
     expect(above.status).toBe('FAIL');
     expect(above.margin).toBeCloseTo(-0.01, 6);
     expect(above.hardCapWillPersist).toBe(false);
+  });
+
+  describe('CBA2-A05.7 row E: the Expanded TPE', () => {
+    const evaluateExpanded = (postSalary: number, tradeDate: string) =>
+      evaluateTradeApronRestriction({
+        team: team(postSalary),
+        teamCode: 'DET',
+        pathEvaluation: pathEvaluation({ path: 'EXPANDED_TPE', postSalary }),
+        context: context(tradeDate),
+      });
+
+    it('limits the trade to the First Apron and hard-caps it there', () => {
+      const atCeiling = evaluateExpanded(
+        FIRST_APRON,
+        '2026-11-15T12:00:00-05:00'
+      );
+      expect(atCeiling).toMatchObject({
+        status: 'PASS',
+        restrictionRow: 'E',
+        apronLevel: 'FIRST_APRON',
+        ceiling: FIRST_APRON,
+        subsequentYear: null,
+        attachedRestrictions: [
+          {
+            restrictionRow: 'E',
+            componentKind: 'ELECTED_PATH',
+            salaryMatchingPath: 'EXPANDED_TPE',
+          },
+        ],
+      });
+      expect(atCeiling.canonLeafIds).toEqual([
+        'CBA2-A05.7',
+        'CBA2-A05.1',
+        'CBA2-A05.2',
+      ]);
+      const entry = createTradeHardCapLedgerEntry({
+        evaluation: atCeiling,
+        teamCode: 'DET',
+        transactionId: 'TRADE-E',
+        effectiveAt: '2026-11-15T17:00:00Z',
+      });
+      expect(entry).toMatchObject({
+        restrictionRow: 'E',
+        salaryMatchingPath: 'EXPANDED_TPE',
+        ceiling: FIRST_APRON,
+      });
+      expect(parseTradeHardCapLedger([entry]).valid).toBe(true);
+      const above = evaluateExpanded(
+        FIRST_APRON + 0.01,
+        '2026-11-15T12:00:00-05:00'
+      );
+      expect(above.status).toBe('FAIL');
+      expect(above.violations[0]).toMatch(/Row E/);
+    });
+
+    it('also tests next season after the Regular Season (CBA2-A05.15)', () => {
+      const evaluation = evaluateExpanded(
+        FIRST_APRON,
+        '2027-06-05T12:00:00-04:00'
+      );
+      expect(evaluation.status).toBe('PASS');
+      expect(evaluation.subsequentYear?.triggers).toEqual([
+        expect.objectContaining({
+          restrictionRow: 'E',
+          apronLevel: 'FIRST_APRON',
+        }),
+      ]);
+      const args = {
+        evaluation,
+        teamCode: 'DET',
+        transactionId: 'TRADE-E-JUNE',
+        effectiveAt: '2027-06-05T16:00:00Z',
+      };
+      const current = createTradeHardCapLedgerEntry(args)!;
+      const next = createSubsequentYearHardCapLedgerEntry(args)!;
+      expect(next).toMatchObject({
+        salaryCapYear: 2028,
+        restrictionRow: 'E',
+        dualYear: { triggerSalaryCapYear: 2027 },
+      });
+      expect(parseTradeHardCapLedger([current, next]).valid).toBe(true);
+    });
   });
 
   it.each([

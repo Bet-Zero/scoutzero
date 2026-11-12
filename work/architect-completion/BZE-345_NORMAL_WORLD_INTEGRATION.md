@@ -684,3 +684,37 @@ and cash for CHA's Tre Mann on June 5. $20,000,000 is refused ("Cash paid
 exceeds the annual limit"); $1,000,000 applies, records the PAID and RECEIVED
 cash entries, a 2025-26 Row I hard cap at $207,824,000 and a 2026-27 one at
 $221,686,000, and reloads cleanly.
+
+## November 12: the Expanded TPE and the below-cap election (V1 item B3)
+
+New governed salary path `EXPANDED_TPE` (`tradeSalaryMatchingPaths.ts`):
+
+- one or more Traded Players for one or more Replacement Players, in one
+  simultaneous trade (CBA2-A02.7);
+- incoming Salary may not exceed max(min(2O + K, O + A), 1.25O + K), with O
+  the exact aggregate pre-trade Salary, K the $250,000 allowance (zero above
+  the First Apron, CBA2-A02.12) and A = $7,500,000 x current Salary Cap /
+  2023-24 Salary Cap, computed unrounded from the governed registry
+  (CBA2-A02.8). For 2025-26 A is about $8,527,000 and for 2026-27 about
+  $9,095,709;
+- it is also the below-cap election: a Team under the Salary Cap may elect it
+  in lieu of the room path (CBA2-A02.11). Standard and Aggregated TPEs stay
+  unavailable below the Cap, and the refusal now says to use room or the
+  Expanded TPE.
+
+Row E (CBA2-A05.7) attaches to it: post-trade Apron Team Salary must be at or
+below the First Apron, and the trade hard-caps the Team there. After the
+Regular Season it also runs the next-season test and records the next-season
+hard cap, like rows F, H and I. The ledger schema and its authentication
+accept row E entries in both forms.
+
+Proof: Expanded formula tests at both crossovers, at the limit and one cent
+above, the below-cap election, the allowance above the First Apron and
+missing inputs (`tests/trade/tradeSalaryMatchingPaths.test.ts`); row E
+classification, equality and one cent above, ledger creation and
+authentication, and the June next-season pair
+(`tests/trade/tradeApronRestrictions.test.ts`). Browser:
+`architect-simulation-aggregated-trade.spec.ts` has CHI send Tre Jones
+($8,000,000) for Grant Williams ($13,645,500) on June 5 under the Expanded
+TPE (a Standard TPE allows only $8,250,000), then checks the 2025-26 row E
+hard cap at $195,945,000 and the 2026-27 one at $209,015,000, and reloads.
