@@ -36,6 +36,7 @@ import {
 import { getWorldMetadata } from '@/features/architect/utils/worldManager.core';
 import { getLeague } from '@/features/architect/utils/teamLoader';
 import { isTwoWayTradePlayer } from './twoWayTradeSalary';
+import { simulationTradeDeadline } from '@/features/architect/utils/governedSeason/simulationTradeDeadline';
 
 const SALARY_BASIS_LEAVES = Object.freeze([
   'CBA2-A03.1',
@@ -413,6 +414,38 @@ function computeReadyBasis({
   const evidence = GovernedTradeSalaryBasisEvidenceZ.safeParse(
     state.terms.tradeSalaryBasisEvidence
   );
+  // The trade deadline is a named SIMULATION assumption for the official
+  // calendar seasons only; software-test calendars keep it unavailable.
+  const deadline =
+    calendarRecord.authority === 'official'
+      ? simulationTradeDeadline(salaryCapYear)
+      : null;
+  const afterDeadline = deadline !== null && asOfDate > deadline.date;
+  if (afterDeadline && asOfDate <= closing) {
+    // CBA2-L03.15: trades stop at the deadline and resume the day after the
+    // last Regular Season game.
+    reasons.push(
+      `No trades are allowed from the trade deadline (${deadline.date}) through the last Regular Season game (${closing}) (CBA2-L03.15).`
+    );
+  }
+  // CBA2-L03.14: after the deadline, a player may not be traded during the
+  // last or possible last Season of the Contract. An undecided option or ETO
+  // on next Season's row makes this Season a possible last Season.
+  const nextSeasonRow = state.terms.salaries.find(
+    (row) =>
+      row.season === toSeasonCode(salaryCapYear + 1) && !row.voidedByExtension
+  );
+  const lastOrPossibleLastSeason =
+    !nextSeasonRow ||
+    (nextSeasonRow.option != null && nextSeasonRow.optionUsed !== true);
+  if (afterDeadline && lastOrPossibleLastSeason) {
+    reasons.push(
+      nextSeasonRow
+        ? `After the trade deadline a player cannot be traded while next Season's ${nextSeasonRow.option} is undecided, because this may be the Contract's last Season (CBA2-L03.14).`
+        : 'After the trade deadline a player cannot be traded in the last Season of the Contract (CBA2-L03.14).'
+    );
+  }
+  const deadlineLeaves = afterDeadline ? ['CBA2-L03.14', 'CBA2-L03.15'] : [];
   let method: GovernedTradeSalaryBasis['method'] = 'ordinary-protection';
   let outgoingSalary: number | null = null;
   const twoWay = isTwoWayTradePlayer(state.terms);
@@ -476,7 +509,13 @@ function computeReadyBasis({
       );
     }
     const endsThisSeason = endSeason === season;
-    if (asOfDate >= opening && (endsThisSeason || !nextRow)) {
+    // With a named deadline the general CBA2-L03.14 check above already
+    // refuses an expiring Contract after it; before it, assignment is open.
+    if (
+      asOfDate >= opening &&
+      (endsThisSeason || !nextRow) &&
+      !(deadline !== null && endsThisSeason)
+    ) {
       reasons.push(
         endsThisSeason && asOfDate > closing
           ? 'An expiring Two-Way Contract cannot be assigned after the trade deadline (CBA2-L03.14).'
@@ -612,7 +651,7 @@ function computeReadyBasis({
       ? { minimumExceptionAcquisition: true }
       : {}),
     ...contractSeasonsRemaining(state.terms, salaryCapYear),
-    canonLeafIds: [...new Set(leaves)],
+    canonLeafIds: [...new Set([...leaves, ...deadlineLeaves])],
     reasons: [],
     proof: {
       ledgerId: projected.manifest.ledger.ledgerId,

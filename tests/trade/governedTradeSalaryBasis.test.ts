@@ -242,7 +242,7 @@ describe('governed ordinary Trade Machine salary basis', () => {
       [row('2026-27', 636435)],
       '2026-07-10',
       '2027-06-05',
-      /expiring.*cannot be assigned/i,
+      /last Season of the Contract \(CBA2-L03.14\)/,
     ],
     [
       'missing-signing-date',
@@ -266,11 +266,11 @@ describe('governed ordinary Trade Machine salary basis', () => {
       /exact timing/i,
     ],
     [
-      'unqualified-deadline',
+      'after-deadline',
       [row('2026-27', 636435)],
       '2026-07-10',
       '2027-02-20',
-      /governed trade deadline/i,
+      /through the last Regular Season game.*CBA2-L03.15/,
     ],
   ] as const)(
     'keeps %s Two-Way assignment unavailable',
@@ -432,14 +432,63 @@ describe('governed ordinary Trade Machine salary basis', () => {
       ]),
     ]);
 
-    expect(resolve(contractState, '2027-04-11')).toMatchObject({
+    // The deadline day itself is before the 3 p.m. ET deadline.
+    expect(resolve(contractState, '2027-02-11')).toMatchObject({
       outgoingSalary: 12_000_000,
       method: 'january-8-deemed-full',
     });
     expect(resolve(contractState, '2027-04-12')).toMatchObject({
       outgoingSalary: 10_000_000,
       method: 'postseason-lesser-of',
-      canonLeafIds: ['CBA2-A03.1', 'CBA2-A03.3'],
+      canonLeafIds: ['CBA2-A03.1', 'CBA2-A03.3', 'CBA2-L03.14', 'CBA2-L03.15'],
+    });
+  });
+
+  describe('trade deadline (V1 B7, named SIMULATION assumption)', () => {
+    const optionRow = (used: boolean | null) => ({
+      ...row('2027-28', 15_000_000),
+      option: 'PO' as const,
+      optionHolder: 'player' as const,
+      optionUsed: used,
+    });
+
+    it('stops all trades from the deadline to the last Regular Season game (CBA2-L03.15)', () => {
+      const contractState = state([
+        row('2026-27', 12_000_000),
+        row('2027-28', 15_000_000),
+      ]);
+      expect(resolve(contractState, '2027-02-11').status).toBe('ready');
+      for (const date of ['2027-02-12', '2027-04-11']) {
+        const result = resolve(contractState, date);
+        expect(result.status).toBe('needs-input');
+        expect(result.reasons.join(' ')).toMatch(/2027-02-11.*CBA2-L03.15/);
+      }
+      expect(resolve(contractState, '2027-04-12').status).toBe('ready');
+    });
+
+    it('refuses the last or possible last Season after the deadline (CBA2-L03.14)', () => {
+      const expiring = state([row('2026-27', 12_000_000)]);
+      expect(resolve(expiring, '2027-02-11').status).toBe('ready');
+      const june = resolve(expiring, '2027-06-05');
+      expect(june.status).toBe('needs-input');
+      expect(june.reasons.join(' ')).toMatch(
+        /last Season of the Contract \(CBA2-L03.14\)/
+      );
+
+      const undecided = resolve(
+        state([row('2026-27', 12_000_000), optionRow(null)]),
+        '2027-06-05'
+      );
+      expect(undecided.status).toBe('needs-input');
+      expect(undecided.reasons.join(' ')).toMatch(/PO is undecided/);
+
+      // Once exercised, this is no longer a possible last Season.
+      expect(
+        resolve(
+          state([row('2026-27', 12_000_000), optionRow(true)]),
+          '2027-06-05'
+        ).status
+      ).toBe('ready');
     });
   });
 
