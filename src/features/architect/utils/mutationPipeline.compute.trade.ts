@@ -881,6 +881,15 @@ export function computeTradeResult({
     const destinationSalaryPath = salaryMatchingPaths.find(
       (entry) => entry.teamCode === authority.destinationTeamId
     )?.evaluation;
+    // A sign-and-trade Contract covers at least three seasons (CBA 12.8), so
+    // it can never be a Minimum Exception acquisition (one or two seasons).
+    if (destinationSalaryPath?.electedPath === 'MINIMUM_EXCEPTION') {
+      return {
+        success: false,
+        error:
+          'A sign-and-trade player cannot be acquired with the Minimum Exception: the new Contract must cover at least three seasons.',
+      };
+    }
     const destinationAcquisitionCapacity =
       destinationSalaryPath?.maximumIncoming == null
         ? null
