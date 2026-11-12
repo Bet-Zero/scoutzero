@@ -65,7 +65,7 @@ export type TradeApronRestrictionEvaluation = {
 };
 
 /**
- * The next Salary Cap Year side of a post-Regular-Season row F, H or I trade.
+ * The next Salary Cap Year side of a post-Regular-Season row E, F, H or I trade.
  * `testCeiling` is this year's Apron Level (CBA2-A05.17 holds levels equal);
  * each trigger's `ceiling` is next year's actual Level, the dual-year hard
  * cap (CBA2-A05.16) that Apply records for that year.
@@ -101,7 +101,7 @@ const DUAL_YEAR_LEAF_IDS: ReadonlySet<string> = new Set([
   'CBA2-A05.16',
   'CBA2-A05.17',
 ]);
-const DUAL_YEAR_ROWS = new Set<TradeApronRestrictionRow>(['F', 'H', 'I']);
+const DUAL_YEAR_ROWS = new Set<TradeApronRestrictionRow>(['E', 'F', 'H', 'I']);
 
 function subsequentYearLevel(
   registry: GovernedSeasonRegistry | null,
@@ -525,9 +525,17 @@ export function evaluateTradeApronRestriction({
   }
 
   let restrictionRow: TradeApronRestrictionRow | null =
-    path === 'AGGREGATED_STANDARD_TPE' ? 'H' : null;
+    path === 'AGGREGATED_STANDARD_TPE'
+      ? 'H'
+      : path === 'EXPANDED_TPE'
+        ? 'E'
+        : null;
   let apronLevel: TradeApronLevel | null =
-    restrictionRow === 'H' ? 'SECOND_APRON' : null;
+    restrictionRow === 'H'
+      ? 'SECOND_APRON'
+      : restrictionRow === 'E'
+        ? 'FIRST_APRON'
+        : null;
   const tpeTimings: TpeTiming[] = [];
   let regularSeasonClosing: string | null = null;
   let transactionRegularSeasonClosing: string | null = null;
@@ -563,7 +571,7 @@ export function evaluateTradeApronRestriction({
     }
     if (
       (component.kind === 'HELD_STANDARD_TPE' ||
-        (path === 'AGGREGATED_STANDARD_TPE' &&
+        ((path === 'AGGREGATED_STANDARD_TPE' || path === 'EXPANDED_TPE') &&
           component.kind === 'ELECTED_PATH')) &&
       component.incomingPlayers.length === 0
     ) {
@@ -605,8 +613,19 @@ export function evaluateTradeApronRestriction({
   ) {
     missingInputs.push('componentAttribution.aggregatedStandardTpe');
   }
+  if (
+    path === 'EXPANDED_TPE' &&
+    (electedComponents.length !== 1 ||
+      electedComponents[0].path !== 'EXPANDED_TPE')
+  ) {
+    missingInputs.push('componentAttribution.expandedTpe');
+  }
 
-  if (path === 'STANDARD_TPE' || path === 'AGGREGATED_STANDARD_TPE') {
+  if (
+    path === 'STANDARD_TPE' ||
+    path === 'AGGREGATED_STANDARD_TPE' ||
+    path === 'EXPANDED_TPE'
+  ) {
     const heldComponents = components.filter(
       (component) => component.kind === 'HELD_STANDARD_TPE'
     );
@@ -851,6 +870,25 @@ export function evaluateTradeApronRestriction({
         calendarEnvelope: rowF.calendarEnvelope,
       });
     }
+    // CBA2-A05.7 row E: the Expanded TPE carries the First Apron.
+    if (
+      path === 'EXPANDED_TPE' &&
+      component.kind === 'ELECTED_PATH' &&
+      component.path === 'EXPANDED_TPE'
+    ) {
+      pendingRestrictions.push({
+        restrictionRow: 'E',
+        componentId: component.componentId,
+        componentKind: component.kind,
+        componentPath: component.path,
+        incomingPlayers: component.incomingPlayers,
+        apronLevel: 'FIRST_APRON',
+        tpeTiming: null,
+        cashAmountCents: null,
+        closing: null,
+        calendarEnvelope: envelope,
+      });
+    }
     if (
       path === 'AGGREGATED_STANDARD_TPE' &&
       component.kind === 'ELECTED_PATH' &&
@@ -928,15 +966,17 @@ export function evaluateTradeApronRestriction({
       canonLeafIds:
         pending.restrictionRow === 'C'
           ? ['CBA2-A05.5', 'CBA2-A05.1']
-          : pending.restrictionRow === 'F'
-            ? ['CBA2-A02.3', 'CBA2-A05.8', 'CBA2-A05.1']
-            : pending.restrictionRow === 'H'
-              ? ['CBA2-A05.10', 'CBA2-A05.1']
-              : ['CBA2-A05.11', 'CBA2-A05.1'],
+          : pending.restrictionRow === 'E'
+            ? ['CBA2-A05.7', 'CBA2-A05.1']
+            : pending.restrictionRow === 'F'
+              ? ['CBA2-A02.3', 'CBA2-A05.8', 'CBA2-A05.1']
+              : pending.restrictionRow === 'H'
+                ? ['CBA2-A05.10', 'CBA2-A05.1']
+                : ['CBA2-A05.11', 'CBA2-A05.1'],
       proof: triggerProof,
     });
   }
-  // CBA2-A05.15: after the last Regular Season game, rows F, H and I also
+  // CBA2-A05.15: after the last Regular Season game, rows E, F, H and I also
   // test next season's Apron Team Salary (computed under CBA2-A05.17).
   let subsequentYear: SubsequentYearApronTest | null = null;
   const dualYearTriggers = postRegularSeason
@@ -1070,11 +1110,7 @@ export function evaluateTradeApronRestriction({
     ),
     ...(passed ? ['CBA2-A05.2'] : []),
     ...(subsequentYear
-      ? [
-          'CBA2-A05.15',
-          'CBA2-A05.17',
-          ...(passed ? ['CBA2-A05.16'] : []),
-        ]
+      ? ['CBA2-A05.15', 'CBA2-A05.17', ...(passed ? ['CBA2-A05.16'] : [])]
       : []),
   ];
   const levelName = (level: TradeApronLevel | null) =>
@@ -1147,7 +1183,7 @@ export function selectHardCapLedgerEntryFromEntries(
 }
 
 /**
- * CBA2-A05.16: a post-Regular-Season row F, H or I trade also hard-caps the
+ * CBA2-A05.16: a post-Regular-Season row E, F, H or I trade also hard-caps the
  * next Salary Cap Year. The entry keeps each dual-year trigger's transaction
  * calendar proof and swaps in next year's Apron Level record (or this year's,
  * labeled `prior-year`, while next year's is unpublished).

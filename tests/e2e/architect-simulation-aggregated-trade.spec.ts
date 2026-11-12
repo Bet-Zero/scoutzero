@@ -37,7 +37,7 @@ type Side = {
   code: string;
   slug: string;
   name: string;
-  path: 'AGGREGATED_STANDARD_TPE' | 'STANDARD_TPE';
+  path: 'AGGREGATED_STANDARD_TPE' | 'STANDARD_TPE' | 'EXPANDED_TPE';
   sends: Array<{ name: string; salary: number }>;
 };
 
@@ -78,6 +78,25 @@ const REFUSED: [Side, Side] = [
     name: 'New York Knicks',
     path: 'STANDARD_TPE',
     sends: [{ name: 'JOSH HART', salary: 19_472_240 }],
+  },
+];
+
+// V1 B3: CHI takes Grant Williams for Tre Jones alone. 100% + $250,000 of
+// $8,000,000 is too little; the Expanded TPE allows 200% + $250,000.
+const EXPANDED: [Side, Side] = [
+  {
+    code: 'CHI',
+    slug: 'bulls',
+    name: 'Chicago Bulls',
+    path: 'EXPANDED_TPE',
+    sends: [{ name: 'TRE JONES', salary: 8_000_000 }],
+  },
+  {
+    code: 'CHA',
+    slug: 'hornets',
+    name: 'Charlotte Hornets',
+    path: 'STANDARD_TPE',
+    sends: [{ name: 'GRANT WILLIAMS', salary: 13_645_500 }],
   },
 ];
 
@@ -268,4 +287,47 @@ test('June 5 SIMULATION world: an aggregated trade is refused when next season w
   await expect(
     dialog.getByRole('button', { name: /^Apply Trade$/i })
   ).toBeDisabled();
+});
+
+test('June 5 SIMULATION world: the Expanded TPE takes back more than 100% and hard-caps at the First Apron both seasons (V1 B3)', async ({
+  page,
+}) => {
+  const [chi, cha] = EXPANDED;
+  const worldId = await createSimulationWorld(page, 'CHI', 'B3 expanded');
+  const dialog = await openTradeMachine(page, chi, cha);
+  await buildTrade(page, dialog, worldId, EXPANDED);
+  await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+  const apply = dialog.getByRole('button', { name: /^Apply Trade$/i });
+  await expect(apply).toBeEnabled({ timeout: 60000 });
+  await apply.click();
+  await expect
+    .poll(async () => (await getWorldEventDocuments(worldId)).length, {
+      timeout: 60000,
+    })
+    .toBe(1);
+  await expect(dialog).toBeHidden({ timeout: 30000 });
+
+  const team = (await getWorldTeamDocument(worldId, 'CHI'))!;
+  const ledger = team.hardCapLedger as Array<Record<string, unknown>>;
+  expect(ledger.find((entry) => entry.salaryCapYear === 2026)).toMatchObject({
+    restrictionRow: 'E',
+    salaryMatchingPath: 'EXPANDED_TPE',
+    apronLevel: 'FIRST_APRON',
+    ceiling: 195_945_000,
+  });
+  expect(ledger.find((entry) => entry.salaryCapYear === 2027)).toMatchObject({
+    restrictionRow: 'E',
+    ceiling: 209_015_000,
+    dualYear: { triggerSalaryCapYear: 2026, levelBasis: 'official' },
+  });
+  expect((team.players as Array<{ id: string }>).map((p) => p.id)).toContain(
+    'grant_williams'
+  );
+  await page.reload();
+  await expect(
+    page.getByTestId('cockpit-activity-rail-identity')
+  ).toContainText('SIMULATION', { timeout: 30000 });
+  await expect(
+    page.getByText(/hardCapLedger is not governed authority/)
+  ).toHaveCount(0);
 });

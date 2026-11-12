@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const TradeApronRestrictionRowZ = z.enum(['C', 'F', 'H', 'I']);
+export const TradeApronRestrictionRowZ = z.enum(['C', 'E', 'F', 'H', 'I']);
 export const TradeApronLevelZ = z.enum(['FIRST_APRON', 'SECOND_APRON']);
 
 export const TradeHardCapProofZ = z
@@ -29,6 +29,7 @@ export const TradeApronRestrictionTriggerZ = z
     salaryMatchingPath: z.enum([
       'STANDARD_TPE',
       'AGGREGATED_STANDARD_TPE',
+      'EXPANDED_TPE',
       'ROOM',
       'MINIMUM_EXCEPTION',
       'NON_TAXPAYER_MLE',
@@ -93,6 +94,21 @@ export const TradeApronRestrictionTriggerZ = z
             'Row F requires one attributable held Standard TPE, its timing, creation-season closing, and the First Apron.',
         });
       }
+    } else if (trigger.restrictionRow === 'E') {
+      if (
+        trigger.componentKind !== 'ELECTED_PATH' ||
+        trigger.salaryMatchingPath !== 'EXPANDED_TPE' ||
+        trigger.apronLevel !== 'FIRST_APRON' ||
+        trigger.tpeTiming !== null ||
+        trigger.cashAmountCents !== null ||
+        trigger.incomingPlayers.length === 0
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'Row E requires an attributable Expanded TPE component and the First Apron.',
+        });
+      }
     } else if (trigger.restrictionRow === 'H') {
       if (
         trigger.componentKind !== 'ELECTED_PATH' ||
@@ -134,6 +150,7 @@ export const TradeHardCapLedgerEntryZ = z
     salaryMatchingPath: z.enum([
       'STANDARD_TPE',
       'AGGREGATED_STANDARD_TPE',
+      'EXPANDED_TPE',
       'ROOM',
       'MINIMUM_EXCEPTION',
       'NON_TAXPAYER_MLE',
@@ -161,7 +178,7 @@ export const TradeHardCapLedgerEntryZ = z
     triggers: z.array(TradeApronRestrictionTriggerZ).min(1),
     /**
      * CBA2-A05.16: present on the next-year hard cap that a
-     * post-Regular-Season row F, H or I trade creates.
+     * post-Regular-Season row E, F, H or I trade creates.
      */
     dualYear: z
       .object({

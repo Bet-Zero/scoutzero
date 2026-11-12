@@ -228,7 +228,7 @@ function calendarProofIsAuthenticated(
   if (trigger.restrictionRow === 'C') {
     return !entry.dualYear && calendar.salaryCapYear === entry.salaryCapYear;
   }
-  if (trigger.restrictionRow === 'H') {
+  if (trigger.restrictionRow === 'E' || trigger.restrictionRow === 'H') {
     return calendar.salaryCapYear === transactionYear;
   }
 
@@ -282,7 +282,7 @@ function calendarProofIsAuthenticated(
 }
 
 /**
- * CBA2-A05.16 next-year entries: only rows F, H and I, one year after a
+ * CBA2-A05.16 next-year entries: only rows E, F, H and I, one year after a
  * transaction made after that year's last Regular Season day.
  */
 function dualYearShapeIsAuthenticated(
@@ -298,7 +298,7 @@ function dualYearShapeIsAuthenticated(
     entry.entryId !==
       `${entry.transactionId}:hard-cap:${entry.teamCode}:${entry.salaryCapYear}` ||
     entry.triggers.some(
-      (trigger) => !['F', 'H', 'I'].includes(trigger.restrictionRow)
+      (trigger) => !['E', 'F', 'H', 'I'].includes(trigger.restrictionRow)
     )
   ) {
     return false;
@@ -355,9 +355,11 @@ function entryMatchesAuthenticatedTriggers(
     (trigger) => trigger.restrictionRow === 'H'
   )
     ? 'AGGREGATED_STANDARD_TPE'
-    : entry.triggers.some((trigger) => trigger.restrictionRow === 'F')
-      ? 'STANDARD_TPE'
-      : controlling.trigger.salaryMatchingPath;
+    : entry.triggers.some((trigger) => trigger.restrictionRow === 'E')
+      ? 'EXPANDED_TPE'
+      : entry.triggers.some((trigger) => trigger.restrictionRow === 'F')
+        ? 'STANDARD_TPE'
+        : controlling.trigger.salaryMatchingPath;
 
   return (
     entry.restrictionRow === controlling.trigger.restrictionRow &&

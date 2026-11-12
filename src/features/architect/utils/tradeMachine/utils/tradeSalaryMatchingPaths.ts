@@ -5,7 +5,10 @@ import {
   type TradeSalaryMatchingElection,
   type TradeSalaryMatchingPath,
 } from '@/schemas/tradeSalaryMatchingPath';
-import { isSupportedSalaryCapYear } from '@/features/architect/utils/governedSeason';
+import {
+  CANON_GOVERNED_SEASON_REGISTRY,
+  isSupportedSalaryCapYear,
+} from '@/features/architect/utils/governedSeason';
 
 export const TRADE_SALARY_ALLOWANCE = 250_000;
 
@@ -14,6 +17,12 @@ export const GOVERNED_TRADE_SALARY_PATH_LEAVES = Object.freeze({
   AGGREGATED_STANDARD_TPE: Object.freeze([
     'CBA2-A02.4',
     'CBA2-A02.5',
+    'CBA2-A02.12',
+  ]),
+  EXPANDED_TPE: Object.freeze([
+    'CBA2-A02.7',
+    'CBA2-A02.8',
+    'CBA2-A02.11',
     'CBA2-A02.12',
   ]),
   ROOM: Object.freeze(['CBA2-A02.9', 'CBA2-A02.10', 'CBA2-A02.12']),
@@ -210,6 +219,7 @@ function labelForPath(path: TradeSalaryMatchingPath): string {
   if (path === 'AGGREGATED_STANDARD_TPE') {
     return 'Aggregated Standard Traded Player Exception';
   }
+  if (path === 'EXPANDED_TPE') return 'Expanded Traded Player Exception';
   if (path === 'MINIMUM_EXCEPTION') return 'Minimum Exception';
   if (isExceptionTradePath(path)) return EXCEPTION_TRADE_PATH_RULES[path].label;
   return 'Room path';
@@ -265,6 +275,131 @@ function result({
 
 function playerSalaryTotal(players: ReadonlyArray<{ salary: number }>): number {
   return players.reduce((sum, player) => sum + player.salary, 0);
+}
+
+/** 2023-24 Salary Cap, the Expanded TPE indexing base (CBA2-A02.8). */
+function expandedTpeIndexBase(): number | null {
+  const levels = CANON_GOVERNED_SEASON_REGISTRY.systemLevels.filter(
+    (level) =>
+      level.recordStatus === 'current' &&
+      level.authority === 'official' &&
+      level.salaryCapYear === 2024 &&
+      level.levelId === 'salary-cap'
+  );
+  return levels.length === 1 ? levels[0].amount : null;
+}
+
+/**
+ * CBA2-A02.7/A02.8: one or more Traded Players for one or more Replacement
+ * Players acquired simultaneously. Incoming Salary may not exceed
+ * max(min(2O + K, O + A), 1.25O + K), with O the aggregate pre-trade Salary,
+ * K the allowance (zero above the First Apron, CBA2-A02.12) and
+ * A = $7,500,000 x current Salary Cap / 2023-24 Salary Cap, unrounded.
+ * Using it above the First Apron is refused by row E (CBA2-A05.7).
+ */
+function evaluateExpandedTpe({
+  election,
+  outgoingPlayers,
+  incomingPlayers,
+  heldComponents,
+  actualIncoming,
+  allowance,
+  salaryCap,
+  firstApron,
+}: {
+  election: TradeSalaryMatchingElection;
+  outgoingPlayers: EvaluateTradeSalaryPathInput['outgoingPlayers'];
+  incomingPlayers: TradeSalaryPathPlayer[];
+  heldComponents: TradeSalaryPathComponent[];
+  actualIncoming: number;
+  allowance: number;
+  salaryCap: number;
+  firstApron: number | null;
+}): TradeSalaryPathEvaluation {
+  if (outgoingPlayers.length === 0 || incomingPlayers.length === 0) {
+    const message =
+      'The Expanded TPE replaces one or more Traded Players with one or more Replacement Players in one simultaneous trade.';
+    return result({
+      status: 'FAIL',
+      election,
+      formula: message,
+      allowance,
+      maximumIncoming: null,
+      actualIncoming,
+      components: heldComponents,
+      violations: [message],
+      firstApron,
+    });
+  }
+  const missingInputs: string[] = [];
+  const exactOutgoingPlayers: TradeSalaryPathPlayer[] = [];
+  outgoingPlayers.forEach((player) => {
+    if (!player.playerId) return;
+    const exactSalary = election.tradedPlayerPreTradeSalaries[player.playerId];
+    if (exactSalary === undefined) {
+      missingInputs.push(`tradedPlayerPreTradeSalaries.${player.playerId}`);
+      return;
+    }
+    exactOutgoingPlayers.push({
+      ...player,
+      playerId: player.playerId,
+      salary: exactSalary,
+    });
+  });
+  const indexBase = expandedTpeIndexBase();
+  if (indexBase === null) missingInputs.push('salaryCap.2023-24');
+  if (missingInputs.length > 0) {
+    return result({
+      status: 'NEEDS_INPUT',
+      election,
+      formula:
+        'Exact CBA pre-trade Salary is required for every Traded Player, and the 2023-24 Salary Cap for the Expanded TPE amount.',
+      allowance,
+      maximumIncoming: null,
+      actualIncoming,
+      components: heldComponents,
+      missingInputs,
+      firstApron,
+    });
+  }
+  const outgoingSalary = playerSalaryTotal(exactOutgoingPlayers);
+  const scaledAmount = (7_500_000 * salaryCap) / Number(indexBase);
+  const maximumIncoming = Math.max(
+    Math.min(2 * outgoingSalary + allowance, outgoingSalary + scaledAmount),
+    1.25 * outgoingSalary + allowance
+  );
+  const component: TradeSalaryPathComponent = {
+    componentId: `expanded:${exactOutgoingPlayers.map((player) => player.playerId).join('+')}`,
+    kind: 'ELECTED_PATH',
+    path: 'EXPANDED_TPE',
+    timing: 'SIMULTANEOUS',
+    outgoingPlayers: exactOutgoingPlayers,
+    incomingPlayers,
+    maximumIncoming,
+    usedIncoming: actualIncoming,
+    remaining: Math.max(0, maximumIncoming - actualIncoming),
+  };
+  const dollars = (value: number) =>
+    `$${Math.floor(value).toLocaleString('en-US')}`;
+  const violations =
+    actualIncoming > maximumIncoming
+      ? [
+          `Expanded Traded Player Exception incoming salary exceeds its limit by ${dollars(
+            Math.ceil(actualIncoming - maximumIncoming)
+          )}.`,
+        ]
+      : [];
+  return result({
+    status: violations.length === 0 ? 'PASS' : 'FAIL',
+    election,
+    formula: `max(min(2 x ${dollars(outgoingSalary)} + ${dollars(allowance)}, ${dollars(outgoingSalary)} + ${dollars(scaledAmount)}), 1.25 x ${dollars(outgoingSalary)} + ${dollars(allowance)}) = ${dollars(maximumIncoming)}`,
+    allowance,
+    maximumIncoming,
+    actualIncoming,
+    components: [component, ...heldComponents],
+    violations,
+    firstApron,
+  });
 }
 
 export function evaluateTradeSalaryMatchingPath({
@@ -673,18 +808,33 @@ export function evaluateTradeSalaryMatchingPath({
     });
   }
 
+  if (election.path === 'EXPANDED_TPE') {
+    return evaluateExpandedTpe({
+      election,
+      outgoingPlayers,
+      incomingPlayers: governedIncomingMatchingPlayers,
+      heldComponents,
+      actualIncoming,
+      allowance,
+      salaryCap: Number(governedSalaryCap),
+      firstApron: governedFirstApron,
+    });
+  }
+
+  // CBA2-A02.11: below the Salary Cap, a Team trades with room or elects the
+  // Expanded TPE; the Standard and Aggregated paths are not available.
   if (Number(governedTeamSalary) < Number(governedSalaryCap)) {
     return result({
       status: 'FAIL',
       election,
       formula:
-        'Below-cap use of a TPE path requires the separate explicit election authority.',
+        'Below the Salary Cap a Team uses room or elects the Expanded TPE (CBA2-A02.11).',
       allowance,
       maximumIncoming: null,
       actualIncoming,
       components: heldComponents,
       violations: [
-        'Standard and Aggregated Standard TPE paths are unavailable below the Salary Cap until the governed below-cap election path is implemented.',
+        'Standard and Aggregated Standard TPE paths are unavailable below the Salary Cap; use the room path or elect the Expanded TPE.',
       ],
       firstApron: governedFirstApron,
     });

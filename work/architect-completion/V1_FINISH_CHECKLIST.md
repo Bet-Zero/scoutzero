@@ -66,7 +66,7 @@ that changes the plan.
 - [x] B1 Free-agent and minimum exceptions in player-plus-pick trades.
 - [x] B2 Cash in player-plus-pick trades (with the next-season Apron test
       after the Regular Season).
-- [ ] B3 Expanded TPE and below-cap TPE elections.
+- [x] B3 Expanded TPE and below-cap TPE elections.
 - [ ] B4 Legacy 2027 conditional and ranked 2029 picks with players.
 - [ ] B5 Remaining pick combinations (swap return ownership, reserved fallback
       picks, cross-program combinations).

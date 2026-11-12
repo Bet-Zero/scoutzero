@@ -3,6 +3,10 @@ import { z } from 'zod';
 export const TradeSalaryMatchingPathZ = z.enum([
   'STANDARD_TPE',
   'AGGREGATED_STANDARD_TPE',
+  // One or more outgoing and incoming players, simultaneous, under the
+  // official Expanded TPE formula (CBA2-A02.7, A02.8); also the below-cap
+  // election in lieu of the room path (CBA2-A02.11).
+  'EXPANDED_TPE',
   'ROOM',
   // Every incoming player is acquired with the Minimum Exception and no
   // player is sent: no salary is matched (incoming trade salary counts $0).
