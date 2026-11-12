@@ -555,6 +555,9 @@ describe('2025-26 zero/one-YOS Minimum uplift', () => {
     });
     expect(result.status).toBe('ready');
     expect(result.minimumExceptionAcquisition).toBeUndefined();
+    // Seasons left, counting the current Salary Cap Year (exception paths).
+    expect(at(623_967).contractSeasonsRemaining).toBe(2);
+    expect(result.contractSeasonsRemaining).toBe(3);
   });
 });
 

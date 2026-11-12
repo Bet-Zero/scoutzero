@@ -21,12 +21,19 @@ import {
 import { appendExceptionHistory } from '@/features/architect/utils/exceptionHistory/historyHelpers';
 import { assertTradeComputeInputs } from '@/features/architect/utils/tradeContext';
 import { createTradeHardCapLedgerEntry } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
+import { getSigningHardCapTriggerMetadata } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
+import {
+  EXCEPTION_TRADE_PATH_RULES,
+  type TradeSalaryPathEvaluation,
+} from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
+import { isExceptionTradePath } from '@/schemas/tradeSalaryMatchingPath';
 import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
 import { buildGovernedSigningHistory } from '@/features/architect/utils/signings';
 import type { GovernedSigningAuthority } from '@/features/architect/utils/signings';
 import {
   appendSigningSalaryBookAdjustments,
   updateIncompleteRosterChargeAfterSigning,
+  consumeSigningExceptionUsage,
 } from './mutationPipeline.compute.signings.signing';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
 import { moveTradeMinimumUplifts } from '@/features/architect/utils/tradeMachine/utils/tradeMinimumUplift';
@@ -446,6 +453,26 @@ export function computeTradeResult({
       ];
     }
   );
+
+  if (!preserveFinances) {
+    const exceptionError = applyTradeExceptionAcquisitions({
+      salaryMatchingPaths,
+      teamUpdates,
+      timestamp,
+      effectiveAt: timestampISO,
+      seasonEndYear: toEndYear(seasonId),
+    });
+    if (exceptionError) return { success: false, error: exceptionError };
+  } else if (
+    salaryMatchingPaths.some(({ evaluation }) =>
+      isExceptionTradePath(evaluation.electedPath)
+    )
+  ) {
+    return {
+      success: false,
+      error: 'A draft-only trade cannot use a free-agent exception.',
+    };
+  }
 
   let governedCashReceipt = null;
   const cashRouting = resolveTradeCashRouting(tradeTeams);
@@ -1083,4 +1110,57 @@ export function computeTradeResult({
     // Phase 56: Pass through the provided validated context (created externally)
     _validatedTradeContext: validatedContext,
   };
+}
+
+/**
+ * A team that took players into a free-agent exception consumes that
+ * exception and, for the Non-Taxpayer MLE and BAE, takes the same First Apron
+ * hard cap a signing with it would (canon 7.3, 8.2). Returns an error, or
+ * null after updating the teams in place.
+ */
+export function applyTradeExceptionAcquisitions({
+  salaryMatchingPaths,
+  teamUpdates,
+  timestamp,
+  effectiveAt,
+  seasonEndYear,
+}: {
+  salaryMatchingPaths: ReadonlyArray<{
+    teamCode: string;
+    evaluation: Pick<
+      TradeSalaryPathEvaluation,
+      'electedPath' | 'status' | 'actualIncoming'
+    >;
+  }>;
+  teamUpdates: ReadonlyArray<TradeTeamUpdate>;
+  timestamp: number;
+  effectiveAt: string;
+  seasonEndYear: number | null;
+}): string | null {
+  for (const { teamCode, evaluation } of salaryMatchingPaths) {
+    const path = evaluation.electedPath;
+    if (!isExceptionTradePath(path)) continue;
+    const team = teamUpdates.find((entry) => entry.teamCode === teamCode)?.team;
+    if (evaluation.status !== 'PASS' || !team) {
+      return `${teamCode} cannot use a free-agent exception in this trade.`;
+    }
+    const rule = EXCEPTION_TRADE_PATH_RULES[path];
+    const consumption = consumeSigningExceptionUsage({
+      updatedTeam: team,
+      mechanism: rule.mechanism,
+      contractValue: evaluation.actualIncoming,
+      timestamp,
+      effectiveAt,
+      seasonEndYear,
+    });
+    if (consumption.error) return consumption.error;
+    const hardCap = getSigningHardCapTriggerMetadata(rule.mechanism);
+    if (hardCap) {
+      team.hardCapped = 1;
+      team.hardCapLevel = hardCap.hardCapLevel;
+      team.hardCapReason = `${hardCap.hardCapReason} (trade)`;
+      team.hardCapTriggeredBy = hardCap.hardCapTriggeredBy;
+    }
+  }
+  return null;
 }

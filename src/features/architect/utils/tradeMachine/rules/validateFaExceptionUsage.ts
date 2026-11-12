@@ -30,6 +30,7 @@ type FaExceptionTeamData = {
 
 type FaExceptionValidationContext = {
   yearKey?: number | string;
+  source?: string | null;
   capSettings?: {
     firstApron?: NumericLike;
     secondApron?: NumericLike;
@@ -63,6 +64,23 @@ export function validateFaExceptionUsage(
   const faExceptionEligiblePlayers = incomingPlayers.filter(
     (player) => !isTwoWayTradePlayer(player)
   );
+
+  // Governed Trade Machine trades take a free-agent exception only through
+  // the team's elected salary path, which checks the exception's dates,
+  // balance and Apron limits and consumes it at Apply. The per-player bucket
+  // shortcut is neither auto-selected nor accepted there.
+  if (
+    _context?.source === 'tradeMachine' ||
+    context.source === 'tradeMachine'
+  ) {
+    return faExceptionEligiblePlayers.some(
+      (player) => player.absorptionMode === 'FA_EXCEPTION'
+    )
+      ? [
+          'Per-player FA Exception absorption is not available here; elect the Non-Taxpayer Mid-Level, Bi-annual or Room Mid-Level Exception as the salary path instead.',
+        ]
+      : [];
+  }
   const resolveIncomingTradeSalary = (player: FaExceptionIncomingPlayer) =>
     Number(
       player?.matchIncoming ??
