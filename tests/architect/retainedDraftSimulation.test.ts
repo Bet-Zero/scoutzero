@@ -551,6 +551,81 @@ describe('retained simulation proposal integration (stipulated inputs, no NBA fa
       'protection/conveyance'
     );
   });
+  it('admits an ordinary Contract with firsts in the legacy 2027 conditional family and keeps its Stepien branches (V1 B4)', async () => {
+    mock.docs.get('architect_worlds/w').draftSimulationBranches =
+      'conditional-2027';
+    const withPlayer = (year?: number) => {
+      const a: any = year === undefined ? args() : args(year);
+      const team = mock.docs.get('architect_worlds/w/teams/CHI');
+      team.roster = ['player'];
+      team.players = [
+        {
+          id: 'player',
+          playerId: 'player',
+          contract: {},
+          governedTradeSalaryBasis: {
+            authorityVersion: 1,
+            status: 'ready',
+            worldId: 'w',
+            teamId: 'CHI',
+            playerId: 'player',
+            contractId: 'contract',
+            asOfDate: '2026-06-05',
+            salaryCapYear: 2026,
+            method: 'postseason-lesser-of',
+            currentSalary: 5_000_000,
+            outgoingSalary: 5_000_000,
+            incomingSalary: 5_000_000,
+            poisonPillIncomingSalary: null,
+            canonLeafIds: ['CBA2-A03.3'],
+            reasons: [],
+            proof: {
+              ledgerId: 'l',
+              ledgerVersion: 1,
+              contractVersion: 1,
+              stateDigest: 'fnv1a64:aaaaaaaaaaaaaaaa',
+              calendarRecordId: 'calendar',
+              calendarRecordVersion: 1,
+              calendarSourceRecordId: 'source',
+              calendarSourceRecordVersion: 1,
+            },
+          },
+        },
+      ];
+      Object.defineProperty(team, LIVE_GOVERNED_TRADE_SALARY_AUTHORITY, {
+        value: true,
+        configurable: true,
+      });
+      a.payload.teams[0].sends = [{ id: 'player', tradeTo: 'TOR' }];
+      a.payload.teams[0].salaryMatchingElection = {
+        version: 1,
+        path: 'STANDARD_TPE',
+        postAssignmentApronTeamSalary: 170000000,
+        tradedPlayerPreTradeSalaries: { player: 5000000 },
+      };
+      a.payload.teams[1].salaryMatchingElection = {
+        version: 1,
+        path: 'STANDARD_TPE',
+        postAssignmentApronTeamSalary: 170000000,
+        tradedPlayerPreTradeSalaries: {},
+      };
+      return a;
+    };
+    // A player does not change the conditional Stepien result.
+    const adverse = await prepareSimulationRecord(withPlayer());
+    expect(adverse.status).toBe('blocked');
+    expect(JSON.stringify(adverse)).toContain('conveys:unknown-2027/2028');
+    const ready = await prepareSimulationRecord(withPlayer(2030));
+    expect(ready.status).toBe('ready');
+    if (ready.status !== 'ready') throw new Error('expected ready');
+    expect(ready.record.assumptions.branchMode).toBe('conditional-2027');
+    expect(ready.record.payloadSnapshot).toContain('player');
+    expect(ready.record.reviews.every((r) => r.eligible)).toBe(true);
+    // The conditional 2027 first itself still cannot be traded.
+    await expect(prepareSimulationRecord(withPlayer(2027))).rejects.toThrow(
+      'protection/conveyance'
+    );
+  });
   it.each([
     'catalogue',
     'lineage',

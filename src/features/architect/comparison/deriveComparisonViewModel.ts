@@ -187,7 +187,8 @@ export function deriveComparisonViewModel(
     ? deriveDraftAssetDelta(sorted, worldId, teamCode)
     : null;
 
-  // A validated 2028 allocation changes selections, not financial books.
+  // A validated 2028 or 2029 native allocation changes selections, not
+  // financial books.
   // Its receipt predates the first trade but intentionally has no cap snapshot.
   // Only that known leading event may be skipped; missing financial history
   // from any other event still leaves the baseline unavailable.
@@ -203,8 +204,12 @@ export function deriveComparisonViewModel(
       Object.keys(row.beforeTotalsByTeam).length > 0 ||
       Object.keys(row.afterTotalsByTeam).length > 0 ||
       !allocation.success ||
-      allocation.data.before.kind !== 'native-overlapping-pool-v1' ||
-      allocation.data.draftYear !== 2028 ||
+      !(
+        (allocation.data.before.kind === 'native-overlapping-pool-v1' &&
+          allocation.data.draftYear === 2028) ||
+        (allocation.data.before.kind === 'native-ranked-pool-v1' &&
+          allocation.data.draftYear === 2029)
+      ) ||
       !allocation.data.nativeLifecycle
     )
       break;

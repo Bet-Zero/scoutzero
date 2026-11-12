@@ -214,7 +214,8 @@ export async function prepareSimulationRecord(args: ApplyWorldMutationArgs) {
   const stateDigest = mutationSnapshotDigest(state);
   const playerMovements = simulationPlayerMovements(
     args,
-    native?.kind === 'native-overlapping-pool-v1' && native.year === 2028
+    // Admission of the native family was checked above (2028 or 2029).
+    native
       ? 'native-selections'
       : orderedMixed
         ? 'ordered-swap-rights'

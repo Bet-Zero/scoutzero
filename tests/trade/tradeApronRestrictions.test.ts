@@ -657,6 +657,62 @@ describe('governed Trade Machine apron restrictions', () => {
       });
       expect(parseTradeHardCapLedger([current, next]).valid).toBe(true);
     });
+
+    it('rejects forged row E ledger entries (B3 review follow-up)', () => {
+      const entry = createTradeHardCapLedgerEntry({
+        evaluation: evaluateExpanded(FIRST_APRON, '2026-11-15T12:00:00-05:00'),
+        teamCode: 'DET',
+        transactionId: 'TRADE-E-FORGED',
+        effectiveAt: '2026-11-15T17:00:00Z',
+      })!;
+      expect(parseTradeHardCapLedger([entry]).valid).toBe(true);
+      type Forged = {
+        salaryMatchingPath: string;
+        salaryCapYear: number;
+        triggers: Record<string, unknown>[];
+      };
+      const forge = (mutate: (copy: Forged) => void) => {
+        const copy = structuredClone(entry) as unknown as Forged;
+        mutate(copy);
+        return parseTradeHardCapLedger([copy]).valid;
+      };
+      // Wrong salary-matching path for the row.
+      expect(
+        forge((copy) => {
+          copy.salaryMatchingPath = 'STANDARD_TPE';
+          copy.triggers[0].salaryMatchingPath = 'STANDARD_TPE';
+        })
+      ).toBe(false);
+      // The entry's transaction path must be the Expanded TPE for row E.
+      expect(
+        forge((copy) => {
+          copy.salaryMatchingPath = 'STANDARD_TPE';
+        })
+      ).toBe(false);
+      // Wrong Apron level for the row.
+      expect(
+        forge((copy) => {
+          copy.triggers[0].apronLevel = 'SECOND_APRON';
+        })
+      ).toBe(false);
+      // A Salary Cap Year that is not the transaction's year.
+      expect(
+        forge((copy) => {
+          copy.salaryCapYear = 2028;
+        })
+      ).toBe(false);
+      // Row E needs incoming players and no cash.
+      expect(
+        forge((copy) => {
+          copy.triggers[0].incomingPlayers = [];
+        })
+      ).toBe(false);
+      expect(
+        forge((copy) => {
+          copy.triggers[0].cashAmountCents = 100;
+        })
+      ).toBe(false);
+    });
   });
 
   it.each([

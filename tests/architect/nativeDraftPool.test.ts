@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   DraftNativePoolProgramZ,
   type DraftNativePoolProgram,
@@ -490,7 +490,7 @@ describe('resolved native selections remain distinct from their claim history', 
     altered.movements[1].year = 2032;
     expect(DraftReviewMutationReceiptZ.safeParse(altered).success).toBe(false);
   });
-  it('does not invent a third holder or admit Contracts for the ranked 2029 pool', () => {
+  it('does not invent a third holder for the ranked 2029 pool', () => {
     const p = resolved();
     expect([...new Set(Object.values(p.result!.allocation))].sort()).toEqual([
       'DDD',
@@ -509,8 +509,28 @@ describe('resolved native selections remain distinct from their claim history', 
     expect(() => nativeSelectionHolders(p, [proposed])).toThrow(
       /current owner/
     );
+  });
+  it('admits ordinary Contracts with ranked 2029 selections (V1 B4) without changing the claim', () => {
+    const p = resolved(),
+      before = structuredClone(p);
     const mixed = transfer();
     mixed.playerMovements = [
+      { playerId: 'one', contractId: 'c-one', fromTeam: 'DDD', toTeam: 'EEE' },
+      { playerId: 'two', contractId: 'c-two', fromTeam: 'EEE', toTeam: 'DDD' },
+    ];
+    const holders = nativeSelectionHolders(p, [mixed]);
+    expect(holders.AAA).toBe('EEE');
+    expect(holders.CCC).toBe('DDD');
+    expect(p).toEqual(before);
+    expect(
+      DraftReviewMutationReceiptZ.parse({
+        ...tradeReceipt(p, [], mixed),
+        playerMovements: mixed.playerMovements,
+      }).playerMovements
+    ).toEqual(mixed.playerMovements);
+    // A Contract from a team that receives nothing is not a complete exchange.
+    const outsider = transfer();
+    outsider.playerMovements = [
       {
         playerId: 'ordinary',
         contractId: 'contract',
@@ -518,9 +538,113 @@ describe('resolved native selections remain distinct from their claim history', 
         toTeam: 'DDD',
       },
     ];
-    expect(() => nativeSelectionHolders(p, [mixed])).toThrow(
-      /admitted 2028 family/
+    expect(() => nativeSelectionHolders(p, [outsider])).toThrow(
+      /give and receive/
     );
+    // The same Contract cannot travel twice in one trade.
+    const duplicate = structuredClone(mixed);
+    duplicate.playerMovements![1].playerId = 'one';
+    expect(() => nativeSelectionHolders(p, [duplicate])).toThrow(
+      /distinct ordinary Contracts/
+    );
+  });
+  it('Compare starts the money comparison after the 2029 allocation for a mixed ranked trade (V1 B4)', async () => {
+    vi.resetModules();
+    vi.doMock('@/firebaseConfig', () => ({
+      db: {},
+      functions: {},
+      auth: {},
+      isSyntheticDraftReviewEnvironment: () => true,
+    }));
+    const { deriveComparisonViewModel } = await import(
+      '@/features/architect/comparison/deriveComparisonViewModel'
+    );
+    vi.doUnmock('@/firebaseConfig');
+    const p = resolved();
+    const mixed = transfer();
+    mixed.playerMovements = [
+      { playerId: 'one', contractId: 'c-one', fromTeam: 'DDD', toTeam: 'EEE' },
+      { playerId: 'two', contractId: 'c-two', fromTeam: 'EEE', toTeam: 'DDD' },
+    ];
+    const allocation = DraftSwapReceiptZ.parse({
+      scope: 'governed-simulation-only',
+      worldId: 'world',
+      operationId: 'resolve',
+      catalogueSha256: REAL_DRAFT_REVIEW_PIN.payloadSha256,
+      before: program,
+      after: p,
+      draftYear: 2029,
+      date: lifecycle.claimsEffectiveDate,
+      nativeLifecycle: lifecycle,
+      movements: program.slots
+        .filter((s) => s.holderTeam !== p.result!.allocation[s.entitlementId])
+        .map((s) => ({
+          entitlementId: s.entitlementId,
+          originalTeam: s.originalTeam,
+          year: 2029,
+          round: 1,
+          fromTeam: s.holderTeam,
+          toTeam: p.result!.allocation[s.entitlementId],
+          assetKind: 'pick_ownership',
+        })),
+    });
+    const trade = DraftReviewMutationReceiptZ.parse({
+      ...tradeReceipt(p, [], mixed),
+      playerMovements: mixed.playerMovements,
+    });
+    const rows = [
+      {
+        mutationType: 'draftConveyance',
+        raw: {
+          operationId: 'resolve',
+          metadata: { swapDraftReceipt: allocation },
+        },
+        playerIds: [],
+        beforeTotalsByTeam: {},
+        afterTotalsByTeam: {},
+      },
+      {
+        mutationType: 'executeTrade',
+        raw: {
+          operationId: trade.operationId,
+          valid: true,
+          playerIds: ['one', 'two'],
+          metadata: { draftReviewReceipt: trade },
+        },
+        playerIds: ['one', 'two'],
+        beforeTotalsByTeam: {
+          DDD: { teamSalary: 20, apronTeamSalary: 20, taxSalary: 20 },
+        },
+        afterTotalsByTeam: {
+          DDD: { teamSalary: 12, apronTeamSalary: 12, taxSalary: 12 },
+        },
+      },
+    ].map((row, i) => ({
+      ...row,
+      id: `event-${i}`,
+      eventId: `event-${i}`,
+      occurredAt: `2029-06-2${i}T00:00:00Z`,
+      teamCodes: ['DDD', 'EEE'],
+      teamsInvolved: ['DDD', 'EEE'],
+    })) as unknown as ComparisonEventRow[];
+    const compare = (events: ComparisonEventRow[]) =>
+      deriveComparisonViewModel({
+        worldId: 'world',
+        worldName: 'Test',
+        teamCode: 'DDD',
+        baselineSeason: '2028-29',
+        currentSeason: '2028-29',
+        committedEventRows: events,
+        currentRosterPlayerIds: [],
+      });
+    expect(compare(rows).capTotalDelta).toMatchObject({
+      teamSalaryDelta: -8,
+    });
+    // A forged allocation is never skipped.
+    const forged = structuredClone(rows);
+    Reflect.get(forged[0].raw!.metadata!, 'swapDraftReceipt').catalogueSha256 =
+      'f'.repeat(64);
+    expect(compare(forged).capTotalDelta?.teamSalaryDelta ?? null).toBeNull();
   });
   it('replays multiple transfers, including a slot absent from the later trade, without changing the claim', () => {
     const p = resolved(),

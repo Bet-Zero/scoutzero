@@ -105,6 +105,7 @@ export function simulationPlayerMovements(
     if (
       ![
         'unconditional',
+        'conditional-2027',
         'protection-programs',
         'native-selections',
         'ordered-swap-rights',
@@ -112,7 +113,7 @@ export function simulationPlayerMovements(
       args.payload.tradeCtx?.source !== 'tradeMachine'
     )
       throw new Error(
-        'Mixed trades support unchanged standard and Two-Way Contracts with original firsts, complete protection programs, admitted unresolved 2026 swap rights or resolved 2028 selections.'
+        'Mixed trades support unchanged standard and Two-Way Contracts with original firsts, the legacy 2027 conditional family, complete protection programs, admitted unresolved 2026 swap rights or resolved 2028 and 2029 selections.'
       );
     const team = state.teams?.find((t) => t.teamCode === slot.teamCode)
       ?.team as RecordLike | undefined;
