@@ -71,25 +71,29 @@ that changes the plan.
 - [x] B4 Legacy 2027 conditional and ranked 2029 picks with players.
 - [ ] B5 Remaining pick combinations (swap return ownership, reserved fallback
       picks, cross-program combinations).
-- [ ] B6 Sign-and-trade together with picks (resolve the June 5/July date rule).
-      Needs C1 first: a sign-and-trade needs a season advance, and SIMULATION
-      draft trades only run on the June 5 world date today.
+- [ ] B6 Sign-and-trade together with picks. **Moved after V1** (owner,
+      2026-11-12): it needs the season move.
 - [x] B7 Exact trade deadline input for simulation worlds.
 
 ## Phase 4: lifecycle across all 278
 
-- [ ] C1 One coverage table (pick family × action × season transition) from the
-      BZE-309 crosswalk; fill every required cell by family; advance a world
-      2026 → 2033 and check every team's books and holdings.
-- [ ] C2 Rookie-scale money when a pick conveys (draft room stays excluded).
+- [x] C1 part 1: coverage table (`C1_COVERAGE.md`) and the pure June 5 →
+      July 1, 2026 season step (#652).
+- [ ] C1 part 2, moving a world into 2026-27 and beyond. **Moved after V1**
+      (owner, 2026-11-12: V1 finishes at June 5). Later drafts use the lottery
+      order by default with an owner override (owner, 2026-11-12).
+- [ ] C2 Rookie-scale money when a pick conveys. **Moved after V1** with the
+      season move.
 
 ## Phase 5: acceptance
 
-- [ ] E1 Extend and run `tests/e2e/architect-qa.spec.ts` for pick trades.
+- [x] E1 Pick trades in the end-to-end check (#653; gated spec
+      `tests/e2e/architect-simulation-first-round-apply.spec.ts`).
 - [ ] E2 One owner review link and the owner's final V1 decision.
 
 ## Post-V1 (not gaps)
 
+Season move and what depends on it (C1 part 2, B6, C2).
 Poison pill, performance incentives, nonzero trade bonuses (already Phase 3B),
 Disabled Player Exception, certified historical NBA legality, four-team trades,
 draft-night room, Offseason room.
