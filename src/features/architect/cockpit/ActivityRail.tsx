@@ -31,6 +31,7 @@ import type { ArchitectPostActionReceipt } from '@/features/architect/GMDashboar
 import { getArchitectTeamPlanUnsafeContextExitWarnings } from '@/features/architect/GMDashboard/hooks/teamPlanSaveState';
 import type { ArchitectWorkspaceContext } from '@/features/architect/GMDashboard/hooks/useArchitectWorkspaceContext';
 import { type HardCapCockpitStatus } from './TeamStatusStrip';
+import { SimulationAssumptionsNotice } from './SimulationAssumptionsNotice';
 import {
   getAuthorityLabel,
   AUTHORITY_TONE_BADGE_CLASSES,
@@ -592,6 +593,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
               {saveIndicatorLine}
             </span>
           </div>
+          <SimulationAssumptionsNotice worldId={workspace.world.id} />
         </div>
 
         <div
@@ -739,10 +741,7 @@ export const ActivityRail = forwardRef<ActivityRailHandle, ActivityRailProps>(
             </RailSection>
           ) : null}
 
-          <RailSection
-            label="Active Work"
-            testId="cockpit-activity-rail-work"
-          >
+          <RailSection label="Active Work" testId="cockpit-activity-rail-work">
             {hasActiveWork ? (
               <>
                 {tradeDraftActive ? (
