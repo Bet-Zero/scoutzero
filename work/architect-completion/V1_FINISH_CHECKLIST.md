@@ -71,7 +71,7 @@ that changes the plan.
 - [ ] B5 Remaining pick combinations (swap return ownership, reserved fallback
       picks, cross-program combinations).
 - [ ] B6 Sign-and-trade together with picks (resolve the June 5/July date rule).
-- [ ] B7 Exact trade deadline input for simulation worlds.
+- [x] B7 Exact trade deadline input for simulation worlds.
 
 ## Phase 4: lifecycle across all 278
 

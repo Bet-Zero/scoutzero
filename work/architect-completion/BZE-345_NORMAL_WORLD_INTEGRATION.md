@@ -752,3 +752,41 @@ environment; the final acceptance battery (E1) covers browser proof.
 B3 review follow-ups in the same change: a held Standard TPE stays its own
 component beside the Expanded TPE (`tradeSalaryMatchingPaths.test.ts`), and
 forged row E ledger entries are refused (`tradeApronRestrictions.test.ts`).
+
+## November 12: the trade deadline (V1 item B7)
+
+The official season calendars certify only the Regular Season endpoints, so no
+trade deadline existed and the after-deadline rules never ran. Under the
+simulation standard the deadline is now a named assumption
+(`simulation-trade-deadline`, `governedSeason/simulationTradeDeadline.ts`):
+the publicly reported league dates, February 5, 2026 at 3 p.m. ET (2025-26)
+and February 11, 2027 at 3 p.m. ET (2026-27). World dates are days, so a trade
+dated on the deadline day counts as before it. Software-test calendars keep
+the deadline unavailable, as before.
+
+With the deadline the salary basis applies two Canon rules:
+
+- CBA2-L03.15: no trades from the day after the deadline through the last
+  Regular Season game; trading resumes the next day.
+- CBA2-L03.14: after the deadline, a player in the last or possible last
+  Season of the Contract cannot be traded. An undecided option or ETO on next
+  Season's row makes this a possible last Season. Next Season continues only
+  after an exercised Player or Team Option or a declined ETO (exercising an
+  ETO ends the Contract); a declined option is a certain last Season. On June 5 this now refuses expiring players and players whose
+  2026-27 option is still undecided, with the rule named in the reason.
+
+Every salary basis that depends on the deadline lists
+`simulation-trade-deadline` in `assumptionIds`, and each deadline refusal
+names the date as a SIMULATION assumption with the deadline-day convention.
+
+An expiring Two-Way Contract before the deadline is now assignable (it needed
+the exact deadline before); after it, the general L03.14 refusal applies.
+
+Not covered: the postseason-roster exclusion for playoff teams in L03.15, and
+the other deadline-dated rules (CBA2-A06.2 carve-out, A06.3 stacking window,
+C13.5 full-value window). They need inputs the worlds do not carry yet.
+
+Proof: `tests/trade/governedTradeSalaryBasis.test.ts` (deadline day open, the
+blackout window, resumption after the last game, expiring, undecided,
+exercised and declined options, both ETO directions, the named assumption,
+Two-Way cases).

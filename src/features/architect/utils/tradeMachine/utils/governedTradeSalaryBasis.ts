@@ -36,6 +36,7 @@ import {
 import { getWorldMetadata } from '@/features/architect/utils/worldManager.core';
 import { getLeague } from '@/features/architect/utils/teamLoader';
 import { isTwoWayTradePlayer } from './twoWayTradeSalary';
+import { simulationTradeDeadline } from '@/features/architect/utils/governedSeason/simulationTradeDeadline';
 
 const SALARY_BASIS_LEAVES = Object.freeze([
   'CBA2-A03.1',
@@ -101,6 +102,7 @@ function unavailable({
   asOfDate,
   salaryCapYear,
   reasons,
+  assumptionIds,
 }: {
   status: Exclude<SalaryBasisStatus, 'ready'>;
   worldId: string;
@@ -110,8 +112,10 @@ function unavailable({
   asOfDate: string;
   salaryCapYear: number;
   reasons: readonly string[];
+  assumptionIds?: readonly string[];
 }): GovernedTradeSalaryBasis {
   return GovernedTradeSalaryBasisZ.parse({
+    ...(assumptionIds?.length ? { assumptionIds: [...assumptionIds] } : {}),
     authorityVersion: 1,
     status,
     worldId,
@@ -413,6 +417,47 @@ function computeReadyBasis({
   const evidence = GovernedTradeSalaryBasisEvidenceZ.safeParse(
     state.terms.tradeSalaryBasisEvidence
   );
+  // The trade deadline is a named SIMULATION assumption for the official
+  // calendar seasons only; software-test calendars keep it unavailable.
+  const deadline =
+    calendarRecord.authority === 'official'
+      ? simulationTradeDeadline(salaryCapYear)
+      : null;
+  const afterDeadline = deadline !== null && asOfDate > deadline.date;
+  const deadlineLabel = deadline
+    ? `${deadline.date}, 3 p.m. ET, a SIMULATION assumption; a trade dated that day counts as before it`
+    : '';
+  if (afterDeadline && asOfDate <= closing) {
+    // CBA2-L03.15: trades stop at the deadline and resume the day after the
+    // last Regular Season game.
+    reasons.push(
+      `No trades are allowed from the trade deadline (${deadlineLabel}) through the last Regular Season game (${closing}) (CBA2-L03.15).`
+    );
+  }
+  // CBA2-L03.14: after the deadline, a player may not be traded during the
+  // last or possible last Season of the Contract. Next Season continues only
+  // when its row exists and any option on it is resolved in the continuing
+  // direction: an exercised Player or Team Option, or a declined ETO
+  // (exercising an ETO ends the Contract; governedOptionDecision.ts).
+  const nextSeasonRow = state.terms.salaries.find(
+    (row) =>
+      row.season === toSeasonCode(salaryCapYear + 1) && !row.voidedByExtension
+  );
+  const nextOptionUsed = nextSeasonRow?.optionUsed ?? null;
+  const nextSeasonContinues =
+    !!nextSeasonRow &&
+    (nextSeasonRow.option == null ||
+      (nextSeasonRow.option === 'ETO'
+        ? nextOptionUsed === false
+        : nextOptionUsed === true));
+  if (afterDeadline && !nextSeasonContinues) {
+    reasons.push(
+      nextSeasonRow && nextOptionUsed === null
+        ? `After the trade deadline (${deadlineLabel}) a player cannot be traded while next Season's ${nextSeasonRow.option} is undecided, because this may be the Contract's last Season (CBA2-L03.14).`
+        : `After the trade deadline (${deadlineLabel}) a player cannot be traded in the last Season of the Contract (CBA2-L03.14).`
+    );
+  }
+  const deadlineLeaves = afterDeadline ? ['CBA2-L03.14', 'CBA2-L03.15'] : [];
   let method: GovernedTradeSalaryBasis['method'] = 'ordinary-protection';
   let outgoingSalary: number | null = null;
   const twoWay = isTwoWayTradePlayer(state.terms);
@@ -476,7 +521,13 @@ function computeReadyBasis({
       );
     }
     const endsThisSeason = endSeason === season;
-    if (asOfDate >= opening && (endsThisSeason || !nextRow)) {
+    // With a named deadline the general CBA2-L03.14 check above already
+    // refuses an expiring Contract after it; before it, assignment is open.
+    if (
+      asOfDate >= opening &&
+      (endsThisSeason || !nextRow) &&
+      !(deadline !== null && endsThisSeason)
+    ) {
       reasons.push(
         endsThisSeason && asOfDate > closing
           ? 'An expiring Two-Way Contract cannot be assigned after the trade deadline (CBA2-L03.14).'
@@ -589,6 +640,7 @@ function computeReadyBasis({
       asOfDate,
       salaryCapYear,
       reasons,
+      ...(deadline ? { assumptionIds: [deadline.assumptionId] } : {}),
     });
   }
   return GovernedTradeSalaryBasisZ.parse({
@@ -612,7 +664,8 @@ function computeReadyBasis({
       ? { minimumExceptionAcquisition: true }
       : {}),
     ...contractSeasonsRemaining(state.terms, salaryCapYear),
-    canonLeafIds: [...new Set(leaves)],
+    ...(deadline ? { assumptionIds: [deadline.assumptionId] } : {}),
+    canonLeafIds: [...new Set([...leaves, ...deadlineLeaves])],
     reasons: [],
     proof: {
       ledgerId: projected.manifest.ledger.ledgerId,
