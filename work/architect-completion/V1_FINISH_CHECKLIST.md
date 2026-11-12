@@ -59,7 +59,8 @@ that changes the plan.
 - [ ] D2 Normal Create World uses the baseline; functions and rules deployed.
 - [x] D3 Existing worlds left unmigrated and still readable.
 - [x] D4 "Simulation" label and assumption notes visible in the product.
-- [ ] D5 Light manual intake for rare events (grievances, DPE grants, tenders).
+- [x] D5 Light manual intake for rare events (grievances, DPE grants, tenders).
+      DPE grants stay post-V1 (needs-input).
 
 ## Phase 3: remaining trade mechanisms
 

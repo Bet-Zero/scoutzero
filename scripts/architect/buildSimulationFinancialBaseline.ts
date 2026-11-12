@@ -15,6 +15,7 @@ import { prepareSimulationFinancialBaseline } from '../../src/features/architect
 import { TeamListFull } from '../../src/constants/teamList';
 import { loadSnapshot, DATA_DIR, digest } from '../dev/cloudData';
 import { decodeFields } from '../dev/cloudPipeline';
+import { SimulationRareEventsFileZ } from '../../src/schemas/simulationRareEvents';
 
 type Doc = Record<string, unknown> & {
   playerId?: unknown;
@@ -25,11 +26,24 @@ type Doc = Record<string, unknown> & {
 const RELEASE_FILE =
   'public/architect/contract-source-releases/salaryswish-retained-2026-06-05-v1.json';
 const SEASON = '2025-26';
-const [output] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const args = process.argv.slice(2);
+const eventsFlag = args.indexOf('--events');
+const eventsFile = eventsFlag >= 0 ? args[eventsFlag + 1] : undefined;
+if (eventsFlag >= 0 && !eventsFile)
+  throw new Error('--events needs a private events file path.');
+const [output] = args.filter(
+  (a, i) => !a.startsWith('--') && !(eventsFlag >= 0 && i === eventsFlag + 1)
+);
 if (!output)
   throw new Error(
-    'Usage: npm run architect:simulation-financial -- <private-output.json>'
+    'Usage: npm run architect:simulation-financial -- <private-output.json> [--events <private-events.json>]'
   );
+// V1 D5: optional private rare-event intake (grievances, Required Tenders).
+const rareEvents = eventsFile
+  ? SimulationRareEventsFileZ.parse(
+      JSON.parse(await readFile(eventsFile, 'utf8'))
+    ).events
+  : [];
 
 const release = await verifyContractSourceRelease(
   JSON.parse(await readFile(RELEASE_FILE, 'utf8'))
@@ -138,6 +152,13 @@ const HARD_CAP_CORRECTIONS = {
       'retained March 6, 2026 financial report (BZE-345): Non-Taxpayer MLE acquisition trigger',
   },
 } as const;
+const unknownTeams = rareEvents.filter(
+  (event) => !TeamListFull.some((t) => t.code === event.team)
+);
+if (unknownTeams.length)
+  throw new Error(
+    `Rare events name unknown teams: ${unknownTeams.map((e) => e.id).join(', ')}.`
+  );
 const checkedAt = new Date().toISOString();
 const evidenceReferences = [
   `${release.releaseId} v${release.releaseVersion} ${release.releaseDigest}`,
@@ -182,6 +203,7 @@ for (const { code } of [...TeamListFull].sort((a, b) =>
     hardCapCorrection:
       HARD_CAP_CORRECTIONS[code as keyof typeof HARD_CAP_CORRECTIONS],
     assumption: { checkedAt, evidenceReferences },
+    rareEvents: rareEvents.filter((event) => event.team === code),
   });
   teams[code] = built.team as unknown as Record<string, unknown>;
   reports.push({ ...built.report, aliasesDropped: aliases });

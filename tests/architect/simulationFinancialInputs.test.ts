@@ -11,6 +11,7 @@ import { minimumUpliftFor } from '@/features/architect/utils/simulationMinimumUp
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals/computeTeamCapTotals';
 import { prepareSimulationFinancialBaseline } from '@/features/architect/utils/prepareSimulationFinancialBaseline';
 import { TeamListFull } from '@/constants/teamList';
+import type { SimulationRareEvent } from '@/schemas/simulationRareEvents';
 
 const ASOF = '2026-06-05T12:19:56.526Z';
 
@@ -68,9 +69,11 @@ const baseDoc = {
 
 async function build(
   releaseDocs: Record<string, ReturnType<typeof doc>>,
-  baseOnlyDocs: Record<string, ReturnType<typeof doc>> = {}
+  baseOnlyDocs: Record<string, ReturnType<typeof doc>> = {},
+  rareEvents: SimulationRareEvent[] = []
 ) {
   return buildSimulationTeam({
+    rareEvents,
     teamCode: 'BOS',
     asOf: ASOF,
     salaryCapYear: 2026,
@@ -347,5 +350,92 @@ describe('SIMULATION team money baseline', () => {
       financialInputs: { BOS: team.salaryBookInputs },
     });
     expect(prepared.teams.BOS).toEqual(team);
+  });
+});
+
+describe('rare-event intake (V1 D5)', () => {
+  const event = (
+    over: Partial<SimulationRareEvent> = {}
+  ): SimulationRareEvent => ({
+    id: 'bos-grievance',
+    team: 'BOS',
+    category: 'CBA2-C07.4',
+    status: 'documented-liability',
+    amount: 2_000_000,
+    label: 'Grievance award exposure',
+    effectiveFrom: '2026-05-01',
+    effectiveUntil: null,
+    evidenceReference: 'test: arbitration notice',
+    ...over,
+  });
+  const apronBook = (team: Awaited<ReturnType<typeof build>>['team']) =>
+    createCanonicalTeamTotalsSnapshot(team, 2026, { asOfDate: ASOF })
+      .salaryBooks.ledgers.apronTeamSalary;
+
+  it('adds a documented liability to Apron Team Salary and stops assuming that category away', async () => {
+    const { team } = await build(roster(), {}, [event()]);
+    const book = apronBook(team);
+    expect(book.status).toBe('complete');
+    expect(book.total).toBe(142_000_000);
+    // The package preparation (and so world creation) accepts it unchanged.
+    const teams = Object.fromEntries(
+      TeamListFull.map((t) => [t.code, { teamCode: t.code }])
+    ) as Record<string, Record<string, unknown>>;
+    teams.BOS = team as unknown as Record<string, unknown>;
+    const prepared = await prepareSimulationFinancialBaseline({
+      asOf: ASOF,
+      seasonId: '2025-26',
+      teams,
+      financialInputs: { BOS: team.salaryBookInputs },
+    });
+    expect(prepared.teams.BOS).toEqual(team);
+    const policy = team.salaryBookInputs.simulationAssumptions!;
+    expect(policy.categories).toEqual(['CBA2-C07.8']);
+    expect(policy.signals).toEqual([
+      expect.objectContaining({
+        id: 'bos-grievance',
+        status: 'documented-liability',
+      }),
+    ]);
+    // Tax Salary is unchanged: C07.4 is an Apron adjustment only.
+    const plain = await build(roster());
+    expect(
+      createCanonicalTeamTotalsSnapshot(team, 2026, { asOfDate: ASOF })
+        .taxSalary
+    ).toBe(
+      createCanonicalTeamTotalsSnapshot(plain.team, 2026, { asOfDate: ASOF })
+        .taxSalary
+    );
+  });
+
+  it('stops the build on an unresolved signal instead of assuming it away', async () => {
+    await expect(
+      build(roster(), {}, [
+        event({
+          id: 'bos-tender',
+          category: 'CBA2-C07.8',
+          status: 'credible-unresolved',
+          amount: undefined,
+        }),
+      ])
+    ).rejects.toThrow(/credible unresolved signal requires review/);
+  });
+
+  it('refuses malformed, misplaced or out-of-date events', async () => {
+    await expect(
+      build(roster(), {}, [event({ amount: undefined })])
+    ).rejects.toThrow();
+    await expect(build(roster(), {}, [event({ team: 'CHI' })])).rejects.toThrow(
+      /is for CHI/
+    );
+    await expect(
+      build(roster(), {}, [event({ effectiveFrom: '2026-07-01' })])
+    ).rejects.toThrow(/not in effect/);
+    await expect(
+      build(roster(), {}, [
+        event(),
+        event({ id: 'bos-tender', category: 'CBA2-C07.8' }),
+      ])
+    ).rejects.toThrow(/both rare categories/);
   });
 });
