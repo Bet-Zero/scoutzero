@@ -1073,6 +1073,27 @@ describe('governed Trade Machine apron restrictions', () => {
     expect(evaluation.missingInputs).toContain('heldTpe.TPE-1.createdOn');
   });
 
+  it('reconciles a free-agent exception path with the projected Apron Team Salary', () => {
+    const evaluate = (elected: number) =>
+      evaluateTradeApronRestriction({
+        team: team(FIRST_APRON),
+        teamCode: 'DET',
+        pathEvaluation: pathEvaluation({
+          path: 'NON_TAXPAYER_MLE',
+          postSalary: elected,
+          components: [],
+        }),
+        context: context('2026-07-15T12:00:00-04:00'),
+      });
+
+    expect(evaluate(FIRST_APRON).status).toBe('NOT_APPLICABLE');
+    const understated = evaluate(FIRST_APRON - 600_000);
+    expect(understated.status).toBe('NEEDS_INPUT');
+    expect(understated.missingInputs).toEqual([
+      'postAssignmentApronTeamSalary.reconciliation',
+    ]);
+  });
+
   it('does not manufacture Row F for a simultaneous Standard TPE', () => {
     const evaluation = evaluateTradeApronRestriction({
       team: team(FIRST_APRON),

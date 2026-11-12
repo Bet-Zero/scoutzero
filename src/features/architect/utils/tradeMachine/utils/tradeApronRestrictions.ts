@@ -355,6 +355,27 @@ export function evaluateTradeApronRestriction({
       salaryCapYear: context.currentYear ?? null,
     });
   }
+  // The free-agent exception paths check their First Apron limit against the
+  // elected post-assignment Apron Team Salary, so that amount must equal the
+  // validator's own projection before the path is exempted below.
+  if (isExceptionTradePath(path)) {
+    const elected = finiteMoney(pathEvaluation.postAssignmentApronTeamSalary);
+    const projected = finiteMoney(team.projectedSalary);
+    if (elected === null || projected === null || elected !== projected) {
+      return result({
+        status: 'NEEDS_INPUT',
+        salaryMatchingPath: path,
+        postTransactionApronTeamSalary: elected,
+        transactionDate: context.tradeDate ?? null,
+        salaryCapYear: context.currentYear ?? null,
+        missingInputs: [
+          elected === null || projected === null
+            ? 'postAssignmentApronTeamSalary'
+            : 'postAssignmentApronTeamSalary.reconciliation',
+        ],
+      });
+    }
+  }
   // Room, the Minimum Exception and the free-agent exception paths attach no
   // trade-row restriction of their own (the exception paths check their First
   // Apron limit in the salary path, and Apply records their hard cap like a

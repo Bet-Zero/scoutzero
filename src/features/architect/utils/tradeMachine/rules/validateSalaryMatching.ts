@@ -800,6 +800,9 @@ export function validateSalaryMatching(
         team.team,
         context.yearKey ?? team.context?.yearKey
       ),
+      // The Cap book, not the Apron book used for matching above.
+      capTeamSalary:
+        typeof team.team?.teamSalary === 'number' ? team.team.teamSalary : null,
     });
     if (pathEvaluation.status === 'NEEDS_INPUT') {
       const message = `Salary path needs exact input: ${pathEvaluation.missingInputs.join(', ')}`;

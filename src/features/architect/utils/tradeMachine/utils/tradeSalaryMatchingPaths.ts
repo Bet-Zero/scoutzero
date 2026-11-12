@@ -147,6 +147,11 @@ export type EvaluateTradeSalaryPathInput = {
   salaryCapYear?: number | string | null;
   /** Governed free-agent exception balances; required by exception paths. */
   exceptionBalances?: TradeExceptionBalances | null;
+  /**
+   * Pre-trade Team Salary (the Cap book, not the Apron book) for the
+   * exception paths' over-cap condition; required by those paths.
+   */
+  capTeamSalary?: number | null;
 };
 
 export type TradeSalaryPathEvaluation = {
@@ -273,6 +278,7 @@ export function evaluateTradeSalaryMatchingPath({
   transactionDate,
   salaryCapYear,
   exceptionBalances,
+  capTeamSalary,
 }: EvaluateTradeSalaryPathInput): TradeSalaryPathEvaluation {
   const actualIncoming = incomingMatchingPlayers.reduce(
     (sum, player) => sum + (finiteNonnegative(player.salary) ?? 0),
@@ -443,10 +449,15 @@ export function evaluateTradeSalaryMatchingPath({
     const unknownTerms = incomingMatchingPlayers.filter(
       (player) => !Number.isInteger(player.contractSeasonsRemaining)
     );
+    const capBookSalary =
+      typeof capTeamSalary === 'number'
+        ? finiteNonnegative(capTeamSalary)
+        : null;
     if (
       capYear === null ||
       !balance ||
       !balance.seasonAmount ||
+      capBookSalary === null ||
       unknownTerms.length > 0
     ) {
       return result({
@@ -462,6 +473,7 @@ export function evaluateTradeSalaryMatchingPath({
           ...(balance && !balance.seasonAmount
             ? [`seasonAmount.${rule.exceptionKey}`]
             : []),
+          ...(capBookSalary === null ? ['capTeamSalary'] : []),
           ...unknownTerms.map(
             (player) => `${player.playerName}.contractSeasonsRemaining`
           ),
@@ -521,8 +533,7 @@ export function evaluateTradeSalaryMatchingPath({
       // An over-cap exception is available only at or above the Cap, or
       // below it by less than the exception amount (canon 7.1).
       ...(rule.exceptionKey !== 'room' &&
-      Number(governedSalaryCap) - Number(governedTeamSalary) >=
-        balance.seasonAmount
+      Number(governedSalaryCap) - capBookSalary >= balance.seasonAmount
         ? [
             `The ${rule.label} is available only when Team Salary is at the Cap or below it by less than the exception amount.`,
           ]

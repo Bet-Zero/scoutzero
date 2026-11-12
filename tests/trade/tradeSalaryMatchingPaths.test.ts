@@ -294,6 +294,7 @@ describe('governed Trade Machine salary paths', () => {
         outgoingPlayers: [],
         incomingMatchingPlayers: [incoming(MLE)],
         teamSalary: 175_000_000,
+        capTeamSalary: 175_000_000,
         exceptionBalances: balances(),
         ...overrides,
       });
@@ -477,14 +478,26 @@ describe('governed Trade Machine salary paths', () => {
     it('requires the over-cap condition for the MLE and BAE but not the Room MLE', () => {
       const wellBelowCap = SALARY_CAP - MLE;
       expect(
-        exception('NON_TAXPAYER_MLE', { teamSalary: wellBelowCap }).violations
+        exception('NON_TAXPAYER_MLE', { capTeamSalary: wellBelowCap })
+          .violations
       ).toContainEqual(expect.stringContaining('at the Cap'));
       expect(
-        exception('NON_TAXPAYER_MLE', { teamSalary: wellBelowCap + 1 }).status
+        exception('NON_TAXPAYER_MLE', { capTeamSalary: wellBelowCap + 1 })
+          .status
+      ).toBe('PASS');
+      // The Cap book decides, not the (here lower) Apron book.
+      expect(
+        exception('NON_TAXPAYER_MLE', {
+          teamSalary: 135_000_000,
+          capTeamSalary: wellBelowCap + 1,
+        }).status
       ).toBe('PASS');
       expect(
+        exception('NON_TAXPAYER_MLE', { capTeamSalary: null }).missingInputs
+      ).toEqual(['capTeamSalary']);
+      expect(
         exception('ROOM_MLE', {
-          teamSalary: 150_000_000,
+          capTeamSalary: 150_000_000,
           incomingMatchingPlayers: [incoming(1_000_000)],
         }).status
       ).toBe('PASS');
