@@ -658,3 +658,29 @@ Apron Team Salary of $208,592,345 would exceed the Second Apron by $768,345.
 Limits: rows E, G and J are not modelled. Next-season hard caps that real teams
 took on from April to June 2026, before the world date, are not in the A3 data.
 Cash in player-and-pick trades (the rest of B2) follows.
+
+## November 12: cash with players and picks (V1 item B2, part 2)
+
+- SIMULATION books now start each Team with an empty governed cash ledger
+  (`cash-ledger:<team>`). SIMULATION assumption: no cash was paid or received
+  in 2025-26 before June 5 unless the world records it, so the full annual
+  limits (CBA2-A08.4 to A08.6) are available on the world date. Real 2025-26
+  cash deals before June 5 are not in the A3 data.
+- The governed draft review no longer refuses cash. Cash is checked by the
+  ordinary cash validator (annual limits) and the apron restriction (Row I,
+  with the next-season test from part 1). Cash is never consideration on its
+  own: each side must still give and receive a pick or a Contract.
+- Fix to part 1: this season's hard-cap entry from a post-Regular-Season trade
+  carried the dual-year leaves, so a Row I entry failed its own leaf check
+  when saved. Those leaves now stay on the next-season entry only.
+
+Proof: `tests/architect/governedDraftWorld.test.ts` (cash with firsts, with
+players, and a cash-only side refused), `tests/architect/simulationFinancialInputs.test.ts`
+(the empty ledger in its governed shape),
+`tests/trade/persistedHardCapContainingTeamAuthority.test.ts` (a June Row I
+pair persists and authenticates with its cash ledger). Browser:
+`architect-simulation-player-trade.spec.ts` sends CHI's Tre Jones, 2028 first
+and cash for CHA's Tre Mann on June 5. $20,000,000 is refused ("Cash paid
+exceeds the annual limit"); $1,000,000 applies, records the PAID and RECEIVED
+cash entries, a 2025-26 Row I hard cap at $207,824,000 and a 2026-27 one at
+$221,686,000, and reloads cleanly.

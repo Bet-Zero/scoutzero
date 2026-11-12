@@ -293,3 +293,88 @@ test('SIMULATION world: players and a first travel together in one trade', async
   expect(after.draftInventoryRevision).toBe(2);
   expect(after.draftWorldTransfers).toHaveLength(2);
 });
+
+test('SIMULATION world: cash travels with players and a first, inside the annual limit (V1 B2)', async ({
+  page,
+}) => {
+  const { worldId, root, apron } = await createSimulationWorld(
+    page,
+    'Cash with players and a first'
+  );
+  const pick = await firstId(root, 'CHI', 2028);
+  // CHI sends Tre Jones, its 2028 first and cash; CHA sends Tre Mann.
+  const dialog = await openTradeMachine(page);
+  await selectPlayers(dialog, page);
+  const chi = dialog.getByTestId('trade-team-card-CHI');
+  await chi.getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i }).click();
+  await tradeTo(
+    page,
+    chi.locator(`[data-entitlement-id="${pick}"]`),
+    NAMES.CHA
+  );
+  await electStandardTpe(dialog, worldId, apron);
+  const cash = chi.getByLabel('CHI cash sent', { exact: true });
+
+  // Above the 2025-26 annual limit (CBA2-A08.4) the trade is refused.
+  await cash.fill('20000000');
+  await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+  await expect(dialog).toContainText(/Cash paid exceeds the annual limit/, {
+    timeout: 60000,
+  });
+  await expect(
+    dialog.getByRole('button', { name: /^Apply Trade$/i })
+  ).toBeDisabled();
+
+  // $1,000,000 is inside it. Paying cash after the Regular Season is Row I:
+  // CHI must stay under the Second Apron this season and next (CBA2-A05.15).
+  await cash.fill('1000000');
+  await validateAndApply(page, dialog, 1);
+  const chiTeam = (await getWorldTeamDocument(worldId, 'CHI'))!;
+  const chaTeam = (await getWorldTeamDocument(worldId, 'CHA'))!;
+  expect(chiTeam.cashLedger).toMatchObject({
+    teamId: 'CHI',
+    ledgerVersion: 1,
+    entries: [
+      {
+        direction: 'PAID',
+        amountCents: 100_000_000,
+        counterpartyTeamId: 'CHA',
+        salaryCapYear: 2026,
+        worldId,
+      },
+    ],
+  });
+  expect(chaTeam.cashLedger).toMatchObject({
+    teamId: 'CHA',
+    ledgerVersion: 1,
+    entries: [
+      {
+        direction: 'RECEIVED',
+        amountCents: 100_000_000,
+        counterpartyTeamId: 'CHI',
+        salaryCapYear: 2026,
+      },
+    ],
+  });
+  const ledger = chiTeam.hardCapLedger as Array<Record<string, unknown>>;
+  expect(ledger.find((e) => e.salaryCapYear === 2026)).toMatchObject({
+    restrictionRow: 'I',
+    apronLevel: 'SECOND_APRON',
+    ceiling: 207_824_000,
+  });
+  expect(ledger.find((e) => e.salaryCapYear === 2027)).toMatchObject({
+    restrictionRow: 'I',
+    ceiling: 221_686_000,
+    dualYear: { triggerSalaryCapYear: 2026, levelBasis: 'official' },
+  });
+  expect(
+    (await root.collection('entitlements').doc(pick).get()).data()?.holderTeam
+  ).toBe('CHA');
+
+  // The saved cash and hard-cap ledgers reload as governed authority.
+  await page.reload();
+  await expect(
+    page.getByTestId('cockpit-activity-rail-identity')
+  ).toContainText('SIMULATION', { timeout: 30000 });
+  await expect(page.getByText(/is not governed authority/)).toHaveCount(0);
+});

@@ -96,6 +96,11 @@ export type SubsequentYearApronTest = {
 };
 
 /** Rows E-J under CBA2-A05.15; this tranche models F, H and I. */
+const DUAL_YEAR_LEAF_IDS: ReadonlySet<string> = new Set([
+  'CBA2-A05.15',
+  'CBA2-A05.16',
+  'CBA2-A05.17',
+]);
 const DUAL_YEAR_ROWS = new Set<TradeApronRestrictionRow>(['F', 'H', 'I']);
 
 function subsequentYearLevel(
@@ -1277,7 +1282,11 @@ export function createTradeHardCapLedgerEntry({
     transactionId,
     tpeIds: evaluation.tpeTimings.map((timing) => timing.tpeId),
     tpeTimings: evaluation.tpeTimings.map((timing) => ({ ...timing })),
-    canonLeafIds: [...evaluation.canonLeafIds],
+    // The dual-year leaves belong to the separate next-season entry (its
+    // dualYear proof); this entry is this season's hard cap only.
+    canonLeafIds: evaluation.canonLeafIds.filter(
+      (leafId) => !DUAL_YEAR_LEAF_IDS.has(leafId)
+    ),
     proof: evaluation.proof,
     triggers: evaluation.attachedRestrictions.map((trigger) => ({
       ...trigger,

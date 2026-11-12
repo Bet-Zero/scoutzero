@@ -64,8 +64,8 @@ that changes the plan.
 ## Phase 3: remaining trade mechanisms
 
 - [x] B1 Free-agent and minimum exceptions in player-plus-pick trades.
-- [ ] B2 Cash in player-plus-pick trades (part 1, next-season Apron test
-      after the Regular Season, done).
+- [x] B2 Cash in player-plus-pick trades (with the next-season Apron test
+      after the Regular Season).
 - [ ] B3 Expanded TPE and below-cap TPE elections.
 - [ ] B4 Legacy 2027 conditional and ranked 2029 picks with players.
 - [ ] B5 Remaining pick combinations (swap return ownership, reserved fallback

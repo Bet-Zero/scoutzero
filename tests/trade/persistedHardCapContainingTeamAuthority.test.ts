@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GovernedCashLedgerZ } from '@/schemas/governedCashConsideration';
 import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
 import {
+  createSubsequentYearHardCapLedgerEntry,
   createTradeHardCapLedgerEntry,
   evaluateTradeApronRestriction,
 } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
@@ -728,5 +729,104 @@ describe('persisted hard-cap containing-Team authority', () => {
         teamCode: 'DEN',
       })
     );
+  });
+});
+
+describe('post-Regular-Season Row I entries (CBA2-A05.15-A05.17)', () => {
+  it('persists this season and next season as authenticated Row I hard caps', () => {
+    const tradeDate = '2026-06-05T12:00:00-04:00';
+    const teamCode = 'MIA';
+    const transactionId = 'trade-b2-row-i';
+    const ctx: TeamContext = {
+      ...context(tradeDate),
+      currentYear: 2026,
+      yearKey: 2026,
+      capSettings: {
+        salaryCap: 154_647_000,
+        firstApron: 195_945_000,
+        secondApron: 207_824_000,
+      },
+    };
+    const team: TradeTeam = {
+      ...cashPayingTeam(teamCode),
+      projectedSalary: 190_000_000,
+      teamTotalSalary: 190_000_000,
+      team: {
+        id: teamCode,
+        teamCode,
+        apronTeamSalary: 190_000_000,
+        cashLedger: emptyCashLedger(teamCode),
+      },
+      subsequentYearApron: {
+        status: 'ready',
+        salaryCapYear: 2027,
+        season: '2026-27',
+        amount: 200_000_000,
+        lines: [],
+        assumptions: [],
+        canonLeafIds: ['CBA2-A05.15', 'CBA2-A05.17'],
+      },
+    };
+    const cash = evaluateGovernedCashConsideration({ team, context: ctx });
+    if (cash.status !== 'PASS' || !cash.proof) throw new Error('cash');
+    const cashLedger = GovernedCashLedgerZ.parse({
+      ledgerVersion: 1,
+      ledgerId: `cash-ledger:${teamCode}`,
+      teamId: teamCode,
+      entries: [
+        {
+          entryVersion: 1,
+          entryId: `${transactionId}:cash:${teamCode}:PAID:DEN`,
+          transactionId,
+          worldId: WORLD_ID,
+          teamId: teamCode,
+          counterpartyTeamId: 'DEN',
+          direction: 'PAID',
+          amountCents: cash.cashSentCents,
+          salaryCapYear: cash.salaryCapYear,
+          transactionAt: cash.transactionAt,
+          recordedAt: '2026-06-05T16:00:00Z',
+          canonLeafIds: [...cash.canonLeafIds, 'CBA2-A05.11'],
+          proof: cash.proof,
+        },
+      ],
+    });
+    const evaluation = evaluateTradeApronRestriction({
+      team,
+      teamCode,
+      pathEvaluation: {
+        ...roomPath(),
+        postAssignmentApronTeamSalary: 190_000_000,
+        election: {
+          ...roomPath().election!,
+          postAssignmentApronTeamSalary: 190_000_000,
+        },
+      },
+      context: ctx,
+    });
+    expect(evaluation.status).toBe('PASS');
+    expect(evaluation.subsequentYear?.triggers[0]).toMatchObject({
+      restrictionRow: 'I',
+      levelBasis: 'official',
+    });
+    const args = {
+      evaluation,
+      teamCode,
+      transactionId,
+      effectiveAt: '2026-06-05T16:00:00Z',
+    };
+    const current = createTradeHardCapLedgerEntry(args)!;
+    const next = createSubsequentYearHardCapLedgerEntry(args)!;
+    // This season's entry carries only its own triggers' leaves.
+    expect(current.canonLeafIds).not.toContain('CBA2-A05.15');
+    const parsed = parsePersistedTradeHardCapLedger([current, next], {
+      containingTeamCode: teamCode,
+      worldLineage: [WORLD_ID],
+      cashLedger,
+    });
+    expect(parsed.valid).toBe(true);
+    expect(parsed.entries.map((entry) => entry.salaryCapYear)).toEqual([
+      2026, 2027,
+    ]);
   });
 });
