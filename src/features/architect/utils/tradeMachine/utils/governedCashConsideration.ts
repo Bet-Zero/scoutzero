@@ -163,25 +163,10 @@ export function evaluateGovernedCashConsideration({
       ],
     });
   }
-  if ((transactionAt as string).slice(0, 10) > regularSeasonClosing) {
-    return evaluation({
-      status: 'NEEDS_INPUT',
-      teamId: resolvedTeamCode,
-      salaryCapYear: salaryCapYear as number,
-      transactionAt: transactionAt as string,
-      cashSentCents,
-      cashReceivedCents,
-      regularSeasonClosing,
-      canonLeafIds: ['CBA2-A05.15', 'CBA2-A05.16', 'CBA2-A05.17'],
-      missingInputs: [
-        'subsequentSalaryCapYear.systemLevels',
-        'subsequentSalaryCapYear.A05.17Assumptions',
-      ],
-      violations: [
-        'Post-Regular-Season cash consideration needs complete subsequent-year authority.',
-      ],
-    });
-  }
+  // After the Regular Season, paying cash (Row I) also needs next season's
+  // Apron Team Salary at or below the Second Apron (CBA2-A05.15). The apron
+  // restriction evaluation applies that dual-year test; this evaluation keeps
+  // the annual cash limits, which belong to the Salary Cap Year of the trade.
 
   const parsedLedger = GovernedCashLedgerZ.safeParse(team.team?.cashLedger);
   if (

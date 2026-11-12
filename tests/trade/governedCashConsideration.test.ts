@@ -443,7 +443,7 @@ describe('governed cash consideration', () => {
     }
   });
 
-  it('fails closed for legacy ledgers and the post-Regular-Season window', () => {
+  it('fails closed for legacy ledgers and keeps limits after the Regular Season', () => {
     expect(parseGovernedCashLedger({ totalOut: 0 })).toEqual({ valid: false });
     expect(
       evaluateGovernedCashConsideration({
@@ -468,11 +468,10 @@ describe('governed cash consideration', () => {
         },
       })
     ).toMatchObject({
-      status: 'NEEDS_INPUT',
-      missingInputs: [
-        'subsequentSalaryCapYear.systemLevels',
-        'subsequentSalaryCapYear.A05.17Assumptions',
-      ],
+      // The dual-year Apron test lives in the apron restriction evaluation;
+      // the annual cash limits still apply after the Regular Season.
+      status: 'PASS',
+      salaryCapYear: 2027,
     });
 
     expect(

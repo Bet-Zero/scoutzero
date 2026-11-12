@@ -57,6 +57,7 @@ describe('TradeApronRestrictionReceipt', () => {
       ],
       regularSeasonClosing: '2027-04-11',
       hardCapWillPersist: true,
+      subsequentYear: null,
       canonLeafIds: ['CBA2-A07.6'],
       missingInputs: [],
       violations: [],

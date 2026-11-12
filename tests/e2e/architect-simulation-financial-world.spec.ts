@@ -91,7 +91,8 @@ test('ordinary real-data simulation creation, books and reload retain assumption
     snapshots[code] = await read();
     expect(snapshots[code]).toMatchObject({
       apron,
-      tax: null,
+      // The Tax Salary ledger (added for SIMULATION player trades) is ready.
+      tax: expect.any(Number),
       hardCapLevel,
       hardCapped: true,
       inputs: { simulationAssumptions: { classification: 'SIMULATION' } },

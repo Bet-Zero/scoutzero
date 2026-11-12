@@ -9,7 +9,10 @@ import {
   CANON_GOVERNED_SEASON_REGISTRY,
   isWithinSalaryCapYear,
   resolveGovernedSeasonEnvelope,
+  type GovernedSeasonRegistry,
+  type GovernedSystemLevelRecord,
 } from '@/features/architect/utils/governedSeason';
+import type { SubsequentYearApronLine } from './subsequentYearApronTeamSalary';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts/normalizeTeamTpe';
 import type {
   TradeExceptionRecord,
@@ -57,7 +60,60 @@ export type TradeApronRestrictionEvaluation = {
   missingInputs: string[];
   violations: string[];
   proof: TradeHardCapProof | null;
+  /** CBA2-A05.15-A05.17 post-Regular-Season dual-year test, when it applies. */
+  subsequentYear: SubsequentYearApronTest | null;
 };
+
+/**
+ * The next Salary Cap Year side of a post-Regular-Season row F, H or I trade.
+ * `testCeiling` is this year's Apron Level (CBA2-A05.17 holds levels equal);
+ * each trigger's `ceiling` is next year's actual Level, the dual-year hard
+ * cap (CBA2-A05.16) that Apply records for that year.
+ */
+export type SubsequentYearApronTest = {
+  salaryCapYear: number;
+  season: string;
+  apronTeamSalary: number;
+  testCeiling: number;
+  margin: number;
+  triggers: Array<{
+    componentId: string;
+    restrictionRow: TradeApronRestrictionRow;
+    apronLevel: TradeApronLevel;
+    testCeiling: number;
+    ceiling: number;
+    apronRecordId: string;
+    apronRecordVersion: number;
+    /**
+     * `official`: next year's published Level. `prior-year`: next year's
+     * Level is not published yet, so this year's (never higher) is used.
+     */
+    levelBasis: 'official' | 'prior-year';
+  }>;
+  lines: SubsequentYearApronLine[];
+  assumptions: string[];
+  canonLeafIds: readonly string[];
+};
+
+/** Rows E-J under CBA2-A05.15; this tranche models F, H and I. */
+const DUAL_YEAR_ROWS = new Set<TradeApronRestrictionRow>(['F', 'H', 'I']);
+
+function subsequentYearLevel(
+  registry: GovernedSeasonRegistry | null,
+  salaryCapYear: number,
+  apronLevel: TradeApronLevel
+): GovernedSystemLevelRecord | null {
+  if (!registry) return null;
+  const levelId = apronLevel === 'FIRST_APRON' ? 'first-apron' : 'second-apron';
+  const matches = registry.systemLevels.filter(
+    (record) =>
+      record.recordStatus === 'current' &&
+      record.authority === 'official' &&
+      record.salaryCapYear === salaryCapYear &&
+      record.levelId === levelId
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
 
 type EvaluationInput = {
   team: TradeTeam;
@@ -125,6 +181,7 @@ function result(
     missingInputs: values.missingInputs ?? [],
     violations: values.violations ?? [],
     proof: values.proof ?? null,
+    subsequentYear: values.subsequentYear ?? null,
   };
 }
 
@@ -650,16 +707,12 @@ export function evaluateTradeApronRestriction({
     }
   }
 
-  if (
-    paysCash &&
+  const postRegularSeason = Boolean(
     transactionDate &&
-    transactionRegularSeasonClosing &&
-    dateOnly(transactionDate) &&
-    dateOnly(transactionDate)! > transactionRegularSeasonClosing
-  ) {
-    missingInputs.push('subsequentSalaryCapYear.systemLevels');
-    missingInputs.push('subsequentSalaryCapYear.A05.17Assumptions');
-  }
+      transactionRegularSeasonClosing &&
+      dateOnly(transactionDate) &&
+      dateOnly(transactionDate)! > transactionRegularSeasonClosing
+  );
 
   if (missingInputs.length > 0) {
     return result({
@@ -878,6 +931,84 @@ export function evaluateTradeApronRestriction({
       proof: triggerProof,
     });
   }
+  // CBA2-A05.15: after the last Regular Season game, rows F, H and I also
+  // test next season's Apron Team Salary (computed under CBA2-A05.17).
+  let subsequentYear: SubsequentYearApronTest | null = null;
+  const dualYearTriggers = postRegularSeason
+    ? attachedRestrictions.filter((trigger) =>
+        DUAL_YEAR_ROWS.has(trigger.restrictionRow)
+      )
+    : [];
+  if (dualYearTriggers.length > 0 && typeof salaryCapYear === 'number') {
+    const nextYear = salaryCapYear + 1;
+    const computed = team.subsequentYearApron;
+    if (
+      !computed ||
+      computed.status !== 'ready' ||
+      computed.salaryCapYear !== nextYear
+    ) {
+      missingInputs.push(
+        ...(computed?.status === 'needs-input' &&
+        computed.missingInputs.length > 0
+          ? computed.missingInputs.map(
+              (input) => `subsequentSalaryCapYear.${input}`
+            )
+          : ['subsequentSalaryCapYear.apronTeamSalary'])
+      );
+    } else {
+      const triggers: SubsequentYearApronTest['triggers'] = [];
+      for (const trigger of dualYearTriggers) {
+        // The level must come from the same pinned registry the envelope used.
+        const sameRegistry =
+          envelope.registry.registryId ===
+            CANON_GOVERNED_SEASON_REGISTRY.registryId &&
+          envelope.registry.registryVersion ===
+            CANON_GOVERNED_SEASON_REGISTRY.registryVersion &&
+          envelope.registry.canonSha256 ===
+            CANON_GOVERNED_SEASON_REGISTRY.canonSha256;
+        if (!sameRegistry) {
+          missingInputs.push('subsequentSalaryCapYear.systemLevels.registry');
+          continue;
+        }
+        const level = subsequentYearLevel(
+          CANON_GOVERNED_SEASON_REGISTRY,
+          nextYear,
+          trigger.apronLevel
+        );
+        triggers.push({
+          componentId: trigger.componentId,
+          restrictionRow: trigger.restrictionRow,
+          apronLevel: trigger.apronLevel,
+          testCeiling: trigger.ceiling,
+          ceiling: level?.amount ?? trigger.ceiling,
+          apronRecordId: level?.recordId ?? trigger.proof.apronRecordId,
+          apronRecordVersion:
+            level?.recordVersion ?? trigger.proof.apronRecordVersion,
+          levelBasis: level ? 'official' : 'prior-year',
+        });
+      }
+      const testCeiling = Math.min(
+        ...dualYearTriggers.map((trigger) => trigger.ceiling)
+      );
+      const assumptions = [...computed.assumptions];
+      if (triggers.some((trigger) => trigger.levelBasis === 'prior-year')) {
+        assumptions.push(
+          `The ${computed.season} Apron Levels are not published yet, so the next-season hard cap uses this season's Level, which is never higher.`
+        );
+      }
+      subsequentYear = {
+        salaryCapYear: nextYear,
+        season: computed.season,
+        apronTeamSalary: computed.amount,
+        testCeiling,
+        margin: testCeiling - computed.amount,
+        triggers,
+        lines: computed.lines,
+        assumptions,
+        canonLeafIds: computed.canonLeafIds,
+      };
+    }
+  }
   if (
     missingInputs.length > 0 ||
     attachedRestrictions.length !== pendingRestrictions.length ||
@@ -915,7 +1046,11 @@ export function evaluateTradeApronRestriction({
   const ceiling = controllingRestriction.ceiling;
   const proof = controllingRestriction.proof;
   const margin = ceiling - postSalary;
-  const passed = postSalary <= ceiling;
+  const currentYearPassed = postSalary <= ceiling;
+  const subsequentYearPassed =
+    !subsequentYear ||
+    subsequentYear.apronTeamSalary <= subsequentYear.testCeiling;
+  const passed = currentYearPassed && subsequentYearPassed;
   const finalizedRestrictions = attachedRestrictions.map((trigger) => ({
     ...trigger,
     canonLeafIds: passed
@@ -929,6 +1064,27 @@ export function evaluateTradeApronRestriction({
       )
     ),
     ...(passed ? ['CBA2-A05.2'] : []),
+    ...(subsequentYear
+      ? [
+          'CBA2-A05.15',
+          'CBA2-A05.17',
+          ...(passed ? ['CBA2-A05.16'] : []),
+        ]
+      : []),
+  ];
+  const levelName = (level: TradeApronLevel | null) =>
+    level === 'FIRST_APRON' ? 'First' : 'Second';
+  const violations = [
+    ...(currentYearPassed
+      ? []
+      : [
+          `Transaction Restrictions Table Row ${restrictionRow} prohibits this trade because post-transaction Apron Team Salary exceeds the ${levelName(apronLevel)} Apron by $${Math.abs(margin).toLocaleString('en-US')}.`,
+        ]),
+    ...(subsequentYear && !subsequentYearPassed
+      ? [
+          `After the Regular Season this trade also needs next season's Apron Team Salary at or below the Apron (CBA2-A05.15); the ${subsequentYear.season} amount of $${subsequentYear.apronTeamSalary.toLocaleString('en-US')} exceeds it by $${Math.abs(subsequentYear.margin).toLocaleString('en-US')}.`,
+        ]
+      : []),
   ];
   return result({
     status: passed ? 'PASS' : 'FAIL',
@@ -948,12 +1104,9 @@ export function evaluateTradeApronRestriction({
     regularSeasonClosing,
     hardCapWillPersist: passed,
     canonLeafIds,
-    violations: passed
-      ? []
-      : [
-          `Transaction Restrictions Table Row ${restrictionRow} prohibits this trade because post-transaction Apron Team Salary exceeds the ${apronLevel === 'FIRST_APRON' ? 'First' : 'Second'} Apron by $${Math.abs(margin).toLocaleString('en-US')}.`,
-        ],
+    violations,
     proof,
+    subsequentYear,
   });
 }
 
@@ -986,6 +1139,102 @@ export function selectHardCapLedgerEntryFromEntries(
         right.effectiveAt.localeCompare(left.effectiveAt)
     )[0] ?? null
   );
+}
+
+/**
+ * CBA2-A05.16: a post-Regular-Season row F, H or I trade also hard-caps the
+ * next Salary Cap Year. The entry keeps each dual-year trigger's transaction
+ * calendar proof and swaps in next year's Apron Level record (or this year's,
+ * labeled `prior-year`, while next year's is unpublished).
+ */
+export function createSubsequentYearHardCapLedgerEntry({
+  evaluation,
+  teamCode,
+  transactionId,
+  effectiveAt,
+}: {
+  evaluation: TradeApronRestrictionEvaluation;
+  teamCode: string;
+  transactionId: string;
+  effectiveAt: string;
+}): TradeHardCapLedgerEntry | null {
+  const subsequent = evaluation.subsequentYear;
+  if (
+    evaluation.status !== 'PASS' ||
+    !subsequent ||
+    subsequent.triggers.length === 0 ||
+    evaluation.salaryCapYear === null ||
+    subsequent.salaryCapYear !== evaluation.salaryCapYear + 1 ||
+    !evaluation.transactionDate ||
+    !evaluation.salaryMatchingPath ||
+    !teamCode.trim()
+  ) {
+    return null;
+  }
+  const byComponent = new Map(
+    evaluation.attachedRestrictions.map((trigger) => [
+      trigger.componentId,
+      trigger,
+    ])
+  );
+  const triggers: TradeApronRestrictionTrigger[] = [];
+  for (const next of subsequent.triggers) {
+    const trigger = byComponent.get(next.componentId);
+    if (!trigger || trigger.restrictionRow !== next.restrictionRow) return null;
+    triggers.push({
+      ...trigger,
+      ceiling: next.ceiling,
+      incomingPlayers: trigger.incomingPlayers.map((player) => ({ ...player })),
+      tpeTiming: trigger.tpeTiming ? { ...trigger.tpeTiming } : null,
+      canonLeafIds: [...trigger.canonLeafIds],
+      proof: {
+        ...trigger.proof,
+        apronRecordId: next.apronRecordId,
+        apronRecordVersion: next.apronRecordVersion,
+      },
+    });
+  }
+  const controlling = [...triggers].sort(
+    (left, right) =>
+      left.ceiling - right.ceiling ||
+      left.restrictionRow.localeCompare(right.restrictionRow) ||
+      left.componentId.localeCompare(right.componentId)
+  )[0];
+  const levelBases = new Set(
+    subsequent.triggers.map((trigger) => trigger.levelBasis)
+  );
+  if (levelBases.size !== 1) return null;
+  const code = teamCode.trim();
+  return {
+    version: 1,
+    entryId: `${transactionId}:hard-cap:${code}:${subsequent.salaryCapYear}`,
+    teamCode: code,
+    salaryCapYear: subsequent.salaryCapYear,
+    restrictionRow: controlling.restrictionRow,
+    salaryMatchingPath: evaluation.salaryMatchingPath,
+    apronLevel: controlling.apronLevel,
+    ceiling: controlling.ceiling,
+    triggerTransactionDate: evaluation.transactionDate,
+    effectiveAt,
+    expiresAt: `${subsequent.salaryCapYear}-07-01T00:00:00Z`,
+    transactionId,
+    tpeIds: triggers.flatMap((trigger) =>
+      trigger.tpeTiming ? [trigger.tpeTiming.tpeId] : []
+    ),
+    tpeTimings: triggers.flatMap((trigger) =>
+      trigger.tpeTiming ? [{ ...trigger.tpeTiming }] : []
+    ),
+    canonLeafIds: [
+      ...new Set(triggers.flatMap((trigger) => trigger.canonLeafIds)),
+    ],
+    proof: { ...controlling.proof },
+    triggers,
+    dualYear: {
+      triggerSalaryCapYear: evaluation.salaryCapYear,
+      levelBasis: [...levelBases][0],
+      canonLeafIds: ['CBA2-A05.15', 'CBA2-A05.16', 'CBA2-A05.17'],
+    },
+  };
 }
 
 export function createTradeHardCapLedgerEntry({

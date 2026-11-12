@@ -4,6 +4,7 @@ import {
 } from '../../governedSeason/softwareSeasonContext';
 // tradeValidator.ts - Fixed to match test expectations
 import { getSalaryForYear } from '@/features/architect/utils/tradeHelpers';
+import { computeSubsequentYearApronTeamSalary } from '../utils/subsequentYearApronTeamSalary';
 
 // Import base validators from new structure
 import { computeMatchingValues } from '../utils/salaryUtils';
@@ -587,6 +588,17 @@ export function validateTrade({
         upliftOf(team.sends || []) +
         upliftOf(incomingPlayers)
       : Number.NaN;
+    // CBA2-A05.15-A05.17: next season's Apron Team Salary as it would stand
+    // after this trade, for the post-Regular-Season dual-year test.
+    team.subsequentYearApron = computeSubsequentYearApronTeamSalary({
+      team: team.team as Record<string, unknown> | undefined,
+      outgoingPlayers: (team.sends || []) as Record<string, unknown>[],
+      incomingPlayers: incomingPlayers as Record<string, unknown>[],
+      incomingUpliftByPlayer: minimumUpliftByPlayer,
+      salaryCapYear: resolvedCurrentYear,
+      asOfDate: canonicalTradeDate,
+      salaryCap: Number(context.capSettings?.salaryCap),
+    });
   });
 
   // Run validation rules for each team

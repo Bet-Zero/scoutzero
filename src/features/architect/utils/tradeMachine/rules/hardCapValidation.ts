@@ -10,10 +10,12 @@ import {
   HARD_CAP_TYPES,
   resolveSalaryCapYear,
 } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
+import { parsePersistedTradeHardCapLedger } from '@/features/architect/utils/tradeMachine/utils/tradeHardCapLedgerAuthority';
 import type {
   AuthoritativeHardCapResult,
   TeamContext,
 } from '../constants/types';
+import type { SubsequentYearApronTeamSalary } from '../utils/subsequentYearApronTeamSalary';
 
 type PlayerLike = {
   newSalary?: number | string | null;
@@ -134,6 +136,57 @@ function getProjectedHardCapEnforcementContext({
 }
 
 /**
+ * CBA2-A05.16: a next-season hard cap created by an earlier
+ * post-Regular-Season trade binds from that trade through the end of next
+ * season, so while it is still this season a later trade must keep next
+ * season's Apron Team Salary (CBA2-A05.17) at or below it.
+ */
+function nextSeasonHardCapViolations(
+  team: HardCapValidationTeam,
+  context: HardCapValidationContext
+): string[] {
+  const salaryCapYear = resolveSalaryCapYear(context);
+  if (salaryCapYear === null) return [];
+  const record = team as HardCapValidationTeam & {
+    hardCapLedger?: unknown;
+    cashLedger?: unknown;
+    subsequentYearApron?: SubsequentYearApronTeamSalary | null;
+    team?: { hardCapLedger?: unknown; cashLedger?: unknown } | null;
+  };
+  const rawLedger = record.team?.hardCapLedger ?? record.hardCapLedger;
+  if (rawLedger === undefined || rawLedger === null) return [];
+  const parsed = parsePersistedTradeHardCapLedger(rawLedger, {
+    containingTeamCode: context.containingTeamCode ?? null,
+    worldLineage: context.worldLineage ?? null,
+    cashLedger: record.team?.cashLedger ?? record.cashLedger,
+  });
+  // An invalid ledger already fails closed through getHardCapStatus.
+  if (!parsed.valid) return [];
+  const nextYear = salaryCapYear + 1;
+  const nextYearEntries = parsed.entries.filter(
+    (entry) => entry.salaryCapYear === nextYear
+  );
+  if (nextYearEntries.length === 0) return [];
+  const ceiling = Math.min(...nextYearEntries.map((entry) => entry.ceiling));
+  const computed = record.subsequentYearApron;
+  if (
+    !computed ||
+    computed.status !== 'ready' ||
+    computed.salaryCapYear !== nextYear
+  ) {
+    return [
+      "This team is hard-capped for next season (CBA2-A05.16), and next season's Apron Team Salary after this trade cannot be computed.",
+    ];
+  }
+  if (computed.amount > ceiling) {
+    return [
+      `Next-season hard cap (CBA2-A05.16): the ${computed.season} Apron Team Salary of ${formatCurrency(computed.amount)} would exceed the ${formatCurrency(ceiling)} hard cap by ${formatCurrency(computed.amount - ceiling)}.`,
+    ];
+  }
+  return [];
+}
+
+/**
  * Canonical projected hard-cap legality owner.
  * This function decides whether the proposed transaction is legal against projected salary totals.
  * Final-state hard-cap re-verification against authoritative post-mutation artifacts remains in
@@ -237,10 +290,11 @@ export function validateHardCap(
     containingTeamCode: context.containingTeamCode ?? null,
     worldLineage: context.worldLineage ?? null,
   });
+  violations.push(...nextSeasonHardCapViolations(team, context));
 
   if (!hardCapStatus.isHardCapped) {
     return {
-      passed: true,
+      passed: violations.length === 0,
       violations,
       warnings,
       hardCapType: null,
