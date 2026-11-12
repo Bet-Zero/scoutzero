@@ -1,3 +1,4 @@
+import { GovernedCashLedgerZ } from '@/schemas/governedCashConsideration';
 import { describe, expect, it } from 'vitest';
 import {
   buildSimulationTeam,
@@ -317,6 +318,14 @@ describe('SIMULATION team money baseline', () => {
     expect(capped.report.openTradedPlayerExceptions).toBe(8_200_000);
     const { team } = await build(roster());
     expect(team).toMatchObject({ hardCapped: false, hardCapTriggeredBy: null });
+    // B2: an empty governed cash ledger (no cash before the world date), in
+    // the exact shape persisted hard-cap authority accepts.
+    expect(GovernedCashLedgerZ.parse(capped.team.cashLedger)).toEqual({
+      ledgerVersion: 0,
+      ledgerId: 'cash-ledger:BOS',
+      teamId: 'BOS',
+      entries: [],
+    });
   });
 
   it('refuses a player listed both from the release and from the base', async () => {

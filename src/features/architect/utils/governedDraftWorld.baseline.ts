@@ -202,7 +202,7 @@ export async function reviewGovernedDraftWorldTrade(args: {
   stateVersion: string;
 }) {
   const { baseline, holders, payload, state } = args;
-  // Players may travel with the firsts (V1 B1). The pick side is held to the
+  // Players and cash may travel with the firsts (V1 B1, B2). The pick side is held to the
   // same exact terms as a picks-only exchange; each player must be an
   // unchanged governed Contract with its exact salary basis and an explicit
   // supported matching path. Whole-trade legality (salary matching, aprons,
@@ -213,6 +213,10 @@ export async function reviewGovernedDraftWorldTrade(args: {
       const rest = { ...team };
       delete rest.sends;
       delete rest.salaryMatchingElection;
+      // Cash (V1 B2) is governed by the ordinary cash and apron validators.
+      delete rest.cashSent;
+      delete rest.cashReceived;
+      delete rest.cashToTeamId;
       return rest;
     }),
   };

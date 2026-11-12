@@ -421,6 +421,17 @@ export async function buildSimulationTeam(
     hardCapReason: hardCap.reason,
     hardCapTriggeredBy: hardCap.triggeredBy,
     hardCapped: hardCap.level !== 'none',
+    // CBA2-A08.4-A08.6: the annual cash limits count cash already paid or
+    // received this Salary Cap Year. SIMULATION assumption: no cash moved
+    // before the world date unless the world records it, so each Team starts
+    // with an empty governed cash ledger (labeled in the cash section of the
+    // BZE-345 notes).
+    cashLedger: {
+      ledgerVersion: 0,
+      ledgerId: `cash-ledger:${teamCode}`,
+      teamId: teamCode,
+      entries: [],
+    },
   };
   return {
     team: JSON.parse(JSON.stringify(hardCapped)),

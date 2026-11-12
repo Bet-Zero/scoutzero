@@ -336,7 +336,7 @@ describe('ordinary draft world adapter (software fixtures, not NBA facts)', () =
     expect(review.reviews[0].eligible).toBe(true);
     expect(review.firstsByTeam.MIA).toEqual([]);
   });
-  it('still needs consideration both ways, matching elections and no cash with players', async () => {
+  it('still needs consideration both ways and matching elections with players', async () => {
     const gift = ordinaryDraftFixture();
     withGovernedPlayer(gift, 0, 'MIA');
     gift.payload.teams[1].entitlementsOut = [];
@@ -350,12 +350,6 @@ describe('ordinary draft world adapter (software fixtures, not NBA facts)', () =
     await expect(reviewGovernedDraftWorldTrade(noElection)).rejects.toThrow(
       /matching path/
     );
-    const cash = ordinaryDraftFixture();
-    withGovernedPlayer(cash, 0, 'MIA');
-    Object.assign(cash.payload.teams[0], { cashSent: 1 });
-    await expect(reviewGovernedDraftWorldTrade(cash)).rejects.toThrow(
-      'no financial'
-    );
     const unbased = ordinaryDraftFixture();
     withGovernedPlayer(unbased, 0, 'MIA');
     delete (unbased.state.teams[0].team as Loose).players[0]
@@ -364,9 +358,37 @@ describe('ordinary draft world adapter (software fixtures, not NBA facts)', () =
       /salary basis/
     );
   });
-  it('rejects new financial terms before source components can grant authority', async () => {
+  it('admits cash with firsts or players and leaves it to the cash validators (V1 B2)', async () => {
+    const picks = ordinaryDraftFixture();
+    Object.assign(picks.payload.teams[0], {
+      cashSent: 1_000_000,
+      cashToTeamId: 'MIA',
+    });
+    const pickReview = await reviewGovernedDraftWorldTrade(picks);
+    expect(pickReview.reviews.map((r) => r.eligible)).toEqual([true, true]);
+    const players = ordinaryDraftFixture();
+    withGovernedPlayer(players, 0, 'MIA');
+    Object.assign(players.payload.teams[1], {
+      cashSent: 1_000_000,
+      cashToTeamId: 'BOS',
+    });
+    const playerReview = await reviewGovernedDraftWorldTrade(players);
+    expect(playerReview.reviews.map((r) => r.eligible)).toEqual([true, true]);
+    // Cash is never consideration on its own: a side that gives only cash
+    // still fails the noncash route.
+    const gift = ordinaryDraftFixture();
+    gift.payload.teams[1].entitlementsOut = [];
+    Object.assign(gift.payload.teams[1], {
+      cashSent: 1_000_000,
+      cashToTeamId: 'BOS',
+    });
+    await expect(reviewGovernedDraftWorldTrade(gift)).rejects.toThrow(
+      /give and receive/
+    );
+  });
+  it('rejects new pick terms before source components can grant authority', async () => {
     const f = ordinaryDraftFixture();
-    Object.assign(f.payload.teams[0], { cashSent: 1 });
+    Object.assign(f.payload.teams[0], { picksOut: [{ id: 'invented' }] });
     await expect(reviewGovernedDraftWorldTrade(f)).rejects.toThrow(
       'no financial'
     );
