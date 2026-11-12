@@ -194,6 +194,61 @@ describe('governed Trade Machine salary paths', () => {
     expect(result.margin).toBeCloseTo(-0.01, 5);
   });
 
+  it('passes the Minimum Exception path for qualifying incoming players only', () => {
+    const minimum = (qualifies: boolean) => ({
+      playerId: 'minimum',
+      playerName: 'Minimum',
+      salary: 2_296_274,
+      minimumExceptionAcquisition: qualifies,
+    });
+    const pass = evaluate({
+      election: election('MINIMUM_EXCEPTION'),
+      outgoingPlayers: [],
+      incomingMatchingPlayers: [minimum(true)],
+    });
+    expect(pass.status).toBe('PASS');
+    expect(pass.canonLeafIds).toEqual(['CBA2-C13.4', 'CBA2-C13.6']);
+    expect(pass.components).toEqual([
+      expect.objectContaining({
+        componentId: 'minimum-exception',
+        path: 'MINIMUM_EXCEPTION',
+        incomingPlayers: [
+          { playerId: 'minimum', playerName: 'Minimum', salary: 2_296_274 },
+        ],
+      }),
+    ]);
+    // Also above the Second Apron: the Minimum Exception has no Apron limit.
+    expect(
+      evaluate({
+        election: election('MINIMUM_EXCEPTION', {}, 260_000_000),
+        outgoingPlayers: [],
+        incomingMatchingPlayers: [minimum(true)],
+        teamSalary: 255_000_000,
+      }).status
+    ).toBe('PASS');
+
+    const notMinimum = evaluate({
+      election: election('MINIMUM_EXCEPTION'),
+      outgoingPlayers: [],
+      incomingMatchingPlayers: [minimum(false)],
+    });
+    expect(notMinimum.status).toBe('FAIL');
+    expect(notMinimum.violations[0]).toContain('not on a Minimum Exception');
+
+    const sendsPlayer = evaluate({
+      election: election('MINIMUM_EXCEPTION', { outgoing: 1_000_000 }),
+      incomingMatchingPlayers: [minimum(true)],
+    });
+    expect(sendsPlayer.status).toBe('FAIL');
+    expect(
+      evaluate({
+        election: election('MINIMUM_EXCEPTION'),
+        outgoingPlayers: [],
+        incomingMatchingPlayers: [],
+      }).status
+    ).toBe('FAIL');
+  });
+
   it('passes Room path at room plus $250,000', () => {
     const result = evaluate({
       election: election('ROOM'),

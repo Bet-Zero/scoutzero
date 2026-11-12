@@ -531,3 +531,31 @@ one Contract, so a trade now moves it with the player
   local browser test where Justin Edwards (PHI, $247,780 uplift) goes to CHA
   for Sion James and back, with each team's Apron Team Salary matching the
   elected amounts and Tax Salary unchanged.
+
+## November 12: taking minimum players with the Minimum Exception (V1 item B1, part 1)
+
+A team may acquire a player on a Minimum Contract by trade using the Minimum
+Exception without sending any player back (CBA2-C13.4, C13.6). The new governed
+salary path `MINIMUM_EXCEPTION` passes only when:
+
+- the team sends no players and uses no held Traded Player Exception;
+- every incoming player's governed salary basis is marked
+  `minimumExceptionAcquisition` (signed using a Minimum exception, one or two
+  seasons, each salary at most two seasons' minimum terms, no bonuses, not a
+  two-way contract).
+
+Matched incoming salary is the actual salary (no matching is required). The
+apron restriction table treats this path like ROOM: not applicable unless cash
+is paid or the trade includes a sign-and-trade. The CBA2-C07.3 uplift still
+moves with the player (B1 prerequisite 3).
+
+Proof: unit tests in `tests/trade/tradeSalaryMatchingPaths.test.ts` and
+`tests/trade/governedTradeSalaryBasis.test.ts`; local emulator test
+`tests/e2e/architect-simulation-minimum-exception-trade.spec.ts` (CLE sends
+Nae'Qwan Tomlin to CHI; CHI elects the Minimum Exception, Apron totals
+reconcile and CHI's hard-cap ledger does not change).
+
+Not yet modelled (later B1 work): a team that sends players and also takes a
+minimum player at $0 in the same trade; the CBA-A10.2 aggregation limit on
+players acquired with an exception; the Non-Taxpayer, Bi-annual and Room
+Mid-Level exceptions in trades (needs daily proration from January 10).

@@ -352,7 +352,13 @@ export function evaluateTradeApronRestriction({
       salaryCapYear: context.currentYear ?? null,
     });
   }
-  if (path === 'ROOM' && !usesSavedWorldSignAndTradeAuthority && !paysCash) {
+  // Room and the Minimum Exception attach no Apron restriction of their own;
+  // paying cash or a sign-and-trade still does.
+  if (
+    (path === 'ROOM' || path === 'MINIMUM_EXCEPTION') &&
+    !usesSavedWorldSignAndTradeAuthority &&
+    !paysCash
+  ) {
     return result({
       status: 'NOT_APPLICABLE',
       salaryMatchingPath: path,

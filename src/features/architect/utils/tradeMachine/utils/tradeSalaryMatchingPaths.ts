@@ -15,6 +15,7 @@ export const GOVERNED_TRADE_SALARY_PATH_LEAVES = Object.freeze({
     'CBA2-A02.12',
   ]),
   ROOM: Object.freeze(['CBA2-A02.9', 'CBA2-A02.10', 'CBA2-A02.12']),
+  MINIMUM_EXCEPTION: Object.freeze(['CBA2-C13.4', 'CBA2-C13.6']),
 } satisfies Record<TradeSalaryMatchingPath, readonly string[]>);
 
 export type TradeSalaryPathEvaluationStatus = 'PASS' | 'FAIL' | 'NEEDS_INPUT';
@@ -30,6 +31,8 @@ export type TradeSalaryPathInputPlayer = Omit<
   'playerId'
 > & {
   playerId: string | null;
+  /** Governed basis: the Contract qualifies for a Minimum Exception acquisition. */
+  minimumExceptionAcquisition?: boolean;
 };
 
 export type TradeSalaryPathComponent = {
@@ -109,6 +112,7 @@ function labelForPath(path: TradeSalaryMatchingPath): string {
   if (path === 'AGGREGATED_STANDARD_TPE') {
     return 'Aggregated Standard Traded Player Exception';
   }
+  if (path === 'MINIMUM_EXCEPTION') return 'Minimum Exception';
   return 'Room path';
 }
 
@@ -267,8 +271,9 @@ export function evaluateTradeSalaryMatchingPath({
       : TRADE_SALARY_ALLOWANCE;
   const governedIncomingMatchingPlayers: TradeSalaryPathPlayer[] =
     incomingMatchingPlayers.map((player) => ({
-      ...player,
       playerId: String(player.playerId),
+      playerName: player.playerName,
+      salary: player.salary,
     }));
   const heldComponents: TradeSalaryPathComponent[] =
     heldStandardTpeComponents.map((component) => {
@@ -288,6 +293,52 @@ export function evaluateTradeSalaryMatchingPath({
         remaining: Math.max(0, component.capacity - usedIncoming),
       };
     });
+
+  if (election.path === 'MINIMUM_EXCEPTION') {
+    const nonQualifying = incomingMatchingPlayers.filter(
+      (player) => player.minimumExceptionAcquisition !== true
+    );
+    const violations = [
+      ...(outgoingPlayers.length > 0
+        ? [
+            'The Minimum Exception path takes in players without sending any; elect a matching path to send players.',
+          ]
+        : []),
+      ...(heldComponents.length > 0
+        ? ['The Minimum Exception path cannot also use a held TPE.']
+        : []),
+      ...(incomingMatchingPlayers.length === 0
+        ? ['The Minimum Exception path needs at least one incoming player.']
+        : []),
+      ...nonQualifying.map(
+        (player) =>
+          `${player.playerName} is not on a Minimum Exception Contract (two Seasons or fewer, no bonuses).`
+      ),
+    ];
+    const component: TradeSalaryPathComponent = {
+      componentId: 'minimum-exception',
+      kind: 'ELECTED_PATH',
+      path: 'MINIMUM_EXCEPTION',
+      timing: 'SIMULTANEOUS',
+      outgoingPlayers: [],
+      incomingPlayers: governedIncomingMatchingPlayers,
+      maximumIncoming: actualIncoming,
+      usedIncoming: actualIncoming,
+      remaining: 0,
+    };
+    return result({
+      status: violations.length === 0 ? 'PASS' : 'FAIL',
+      election,
+      formula:
+        'Each incoming player is acquired with the Minimum Exception; incoming trade salary counts $0.',
+      allowance,
+      maximumIncoming: violations.length === 0 ? actualIncoming : null,
+      actualIncoming,
+      components: violations.length === 0 ? [component] : heldComponents,
+      violations,
+      firstApron: governedFirstApron,
+    });
+  }
 
   if (election.path === 'ROOM') {
     if (heldComponents.length > 0) {

@@ -528,6 +528,34 @@ describe('2025-26 zero/one-YOS Minimum uplift', () => {
     expect(uplift.incomingSalary).toBe(623_967);
     expect(at(857_804).status).toBe('ready');
   });
+
+  it('marks a two-Season, bonus-free Minimum Exception Contract as acquirable with the Minimum Exception', () => {
+    expect(at(623_967).minimumExceptionAcquisition).toBe(true);
+    const longer = state(
+      [
+        row('2025-26', 623_967),
+        row('2026-27', 2_411_090),
+        row('2027-28', 2_500_000),
+      ],
+      { signedUsing: 'Minimum Salary Exception', contractLength: 3 }
+    );
+    const result = resolveGovernedTradeSalaryBasis({
+      contractState: longer,
+      contractManifest: {
+        ...manifest(longer),
+        salaryCapYear: 2026,
+        seasonKey: '2025-26',
+      },
+      calendar: calendar2026,
+      worldId: WORLD_ID,
+      teamId: TEAM_ID,
+      playerId: PLAYER_ID,
+      asOfDate: '2026-06-05',
+      salaryCapYear: 2026,
+    });
+    expect(result.status).toBe('ready');
+    expect(result.minimumExceptionAcquisition).toBeUndefined();
+  });
 });
 
 describe('governed poison-pill incoming basis', () => {
