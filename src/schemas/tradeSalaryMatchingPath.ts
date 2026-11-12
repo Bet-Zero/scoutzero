@@ -4,6 +4,9 @@ export const TradeSalaryMatchingPathZ = z.enum([
   'STANDARD_TPE',
   'AGGREGATED_STANDARD_TPE',
   'ROOM',
+  // Every incoming player is acquired with the Minimum Exception and no
+  // player is sent: no salary is matched (incoming trade salary counts $0).
+  'MINIMUM_EXCEPTION',
 ]);
 
 export const TradeSalaryMatchingElectionZ = z

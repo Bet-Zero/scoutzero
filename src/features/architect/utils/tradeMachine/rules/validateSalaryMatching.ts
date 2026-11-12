@@ -9,6 +9,7 @@
  * Phase 4: Cap settings must be explicitly provided - no silent defaults
  */
 
+import { GovernedTradeSalaryBasisZ } from '@/schemas/governedTradeSalaryBasis';
 import {
   formatCurrency,
   getSalaryForYear,
@@ -710,6 +711,13 @@ export function validateSalaryMatching(
           playerId: getPlayerIdentity(player),
           playerName: player.name || player.displayName || 'Unknown player',
           salary: toFiniteNumber(resolveIncomingTradeSalary(player)),
+          // Only the governed salary basis (loaded from the sender's
+          // Contract ledger) can qualify a Minimum Exception acquisition.
+          minimumExceptionAcquisition:
+            GovernedTradeSalaryBasisZ.safeParse(
+              (player as { governedTradeSalaryBasis?: unknown })
+                .governedTradeSalaryBasis
+            ).data?.minimumExceptionAcquisition === true,
         }));
 
     pathEvaluation = evaluateTradeSalaryMatchingPath({

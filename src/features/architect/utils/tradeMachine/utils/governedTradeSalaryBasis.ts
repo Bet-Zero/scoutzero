@@ -195,6 +195,23 @@ function protectedAmountAsOf(
   return Math.min(salary, protectedAmount);
 }
 
+/**
+ * A Contract signed with the Minimum Exception: at most two Seasons and no
+ * bonus in any Season. A team may acquire it by trade with the Minimum
+ * Exception, counting $0 incoming trade salary (CBA2-C13.4, CBA2-C13.6).
+ */
+function isMinimumExceptionContract(terms: GovernedContractState['terms']) {
+  const length = Number(terms.contractLength ?? terms.salaries.length);
+  return (
+    /minimum/i.test(terms.signedUsing ?? '') &&
+    Number.isInteger(length) &&
+    length >= 1 &&
+    length <= 2 &&
+    terms.salaries.length <= 2 &&
+    !terms.salaries.some(hasNonzeroBonus)
+  );
+}
+
 function hasNonzeroBonus(row: ContractSalaryTerm): boolean {
   return (
     Number(row.tradeBonus ?? 0) !== 0 ||
@@ -577,6 +594,9 @@ function computeReadyBasis({
     poisonPillIncomingSalary,
     ...(twoWay
       ? { twoWayContractEndYear: toEndYear(state.terms.endSeason) }
+      : {}),
+    ...(!twoWay && isMinimumExceptionContract(state.terms)
+      ? { minimumExceptionAcquisition: true }
       : {}),
     canonLeafIds: [...new Set(leaves)],
     reasons: [],

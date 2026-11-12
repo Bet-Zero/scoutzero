@@ -76,6 +76,8 @@ export const GovernedTradeSalaryBasisZ = z
     incomingSalary: MoneyZ.nullable(),
     poisonPillIncomingSalary: MoneyZ.nullable(),
     twoWayContractEndYear: z.number().int().optional(),
+    /** The Contract can be acquired with the Minimum Exception ($0 incoming). */
+    minimumExceptionAcquisition: z.boolean().optional(),
     canonLeafIds: z.array(NonEmptyStringZ),
     reasons: z.array(NonEmptyStringZ),
     proof: GovernedTradeSalaryBasisProofZ.nullable(),

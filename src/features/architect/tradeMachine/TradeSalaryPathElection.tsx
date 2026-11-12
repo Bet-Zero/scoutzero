@@ -25,6 +25,7 @@ const PATH_LABELS: Record<TradeSalaryMatchingPath, string> = {
   STANDARD_TPE: 'Standard TPE',
   AGGREGATED_STANDARD_TPE: 'Aggregated Standard TPE',
   ROOM: 'Room path',
+  MINIMUM_EXCEPTION: 'Minimum Exception (no players sent)',
 };
 
 function playerId(player: ElectionPlayer): string {
