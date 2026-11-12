@@ -57,8 +57,8 @@ that changes the plan.
 
 - [x] D1 First-round Apply enabled for simulation worlds (local; production is D2).
 - [ ] D2 Normal Create World uses the baseline; functions and rules deployed.
-- [ ] D3 Existing worlds left unmigrated and still readable.
-- [ ] D4 "Simulation" label and assumption notes visible in the product.
+- [x] D3 Existing worlds left unmigrated and still readable.
+- [x] D4 "Simulation" label and assumption notes visible in the product.
 - [ ] D5 Light manual intake for rare events (grievances, DPE grants, tenders).
 
 ## Phase 3: remaining trade mechanisms
@@ -71,6 +71,8 @@ that changes the plan.
 - [ ] B5 Remaining pick combinations (swap return ownership, reserved fallback
       picks, cross-program combinations).
 - [ ] B6 Sign-and-trade together with picks (resolve the June 5/July date rule).
+      Needs C1 first: a sign-and-trade needs a season advance, and SIMULATION
+      draft trades only run on the June 5 world date today.
 - [x] B7 Exact trade deadline input for simulation worlds.
 
 ## Phase 4: lifecycle across all 278

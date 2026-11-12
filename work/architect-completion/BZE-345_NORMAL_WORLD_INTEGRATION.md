@@ -790,3 +790,52 @@ Proof: `tests/trade/governedTradeSalaryBasis.test.ts` (deadline day open, the
 blackout window, resumption after the last game, expiring, undecided,
 exercised and declined options, both ETO directions, the named assumption,
 Two-Way cases).
+
+## November 12: older worlds stay as they were (V1 item D3)
+
+Turning the SIMULATION packages on does not touch worlds created before.
+Nothing migrates them: they keep their documents, books and Trade Machine
+behaviour, carry no SIMULATION fields, and the draft fence rules leave a world
+without `draftInventoryRevision` alone.
+
+Proof: `tests/e2e/architect-unmigrated-world.spec.ts`, run in two phases on
+the same saved emulator state. Phase `create` runs on cloud:dev without the
+packages: it creates an ordinary world and records its CHI and CHA team
+documents, cap totals, pick counts and the Trade Machine readiness for Tre
+Jones for Tre Mann. cloud:dev is then stopped with SIGTERM (which saves the
+state) and restarted with the packages. Phase `reopen` checks that a new world
+is SIMULATION, while the old world has no SIMULATION fields and no draft
+source, opens without the SIMULATION label, and records exactly the same
+documents, totals, counts and readiness.
+
+Limitation: the "older world" is made by today's ordinary Create World without
+the packages. Production worlds made by older builds are expected to behave the
+same, but the go-live check (D2 step 5) opens one for real.
+
+## November 12: the SIMULATION label and its assumptions (V1 item D4)
+
+The team rail (under the plan name) and the Trade Machine now show
+"SIMULATION · N named assumptions" for a SIMULATION world. It opens to every
+named assumption as plain text, grouped as Money, Trades and Draft picks
+(`utils/simulationAssumptions.ts`, `cockpit/SimulationAssumptionsNotice.tsx`).
+Before this, the assumptions were only hover text in the world picker.
+
+The list restates rules the engine already applies, mostly by reusing the
+statement each module applies: grievances and Required Tenders, unknown
+bonuses at $0, the minimum-contract uplift, the Tax Salary starting point, the
+empty cash ledger, exception term limits in trades, the trade deadline, and
+the four draft-pick assumptions. Ordinary worlds show nothing.
+
+Left as they are, on purpose:
+
+- Outright firsts still read "Protection terms unavailable" in the Trade
+  Machine. The June 5 data has no structured protection terms, and the
+  "Which picks can be traded" assumption explains why they trade as outright.
+- The "Governed rights inputs are incomplete" banner and future-season
+  "Needs input" totals come from missing rights history for later seasons.
+  That belongs with advancing a world (C1).
+
+Proof: `tests/architect/simulationAssumptions.test.tsx` (which worlds get
+which assumptions, unique ids, the toggle and the visible list) and the D3
+browser test (a new SIMULATION world shows the list; the old world shows
+nothing).

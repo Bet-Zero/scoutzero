@@ -1,4 +1,5 @@
 import { teamSoftwareSeason } from '../utils/governedSeason/softwareSeasonContext';
+import { SimulationAssumptionsNotice } from '@/features/architect/cockpit/SimulationAssumptionsNotice';
 import { ConditionalDraftJourney } from './ConditionalDraftJourney';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { RotateCcw } from 'lucide-react';
@@ -1171,6 +1172,7 @@ export const TradeEditor = ({
           no translucent ghosting (owner review fix). The -mx-5/px-5 bleed
           matches TradeOverlay's inner padding, the overlay being the Trade
           Machine's only host. */}
+      <SimulationAssumptionsNotice worldId={worldId} />
       <div className="sticky top-0 z-30 -mx-5 bg-cockpit-void px-5 pb-2 pt-2 shadow-[0_10px_14px_-12px_rgba(0,0,0,0.85)]">
         <ValidationStateHeader
           hasValidatorResult={hasCurrentValidation}
