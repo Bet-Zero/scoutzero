@@ -20,7 +20,10 @@ import {
 } from '@/features/architect/utils/persistenceContracts';
 import { appendExceptionHistory } from '@/features/architect/utils/exceptionHistory/historyHelpers';
 import { assertTradeComputeInputs } from '@/features/architect/utils/tradeContext';
-import { createTradeHardCapLedgerEntry } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
+import {
+  createSubsequentYearHardCapLedgerEntry,
+  createTradeHardCapLedgerEntry,
+} from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
 import { getSigningHardCapTriggerMetadata } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import {
   EXCEPTION_TRADE_PATH_RULES,
@@ -276,15 +279,36 @@ export function computeTradeResult({
             effectiveAt: timestampISO,
           })
         : null;
-    if (hardCapEntry) {
+    // CBA2-A05.16: a post-Regular-Season row F, H or I trade also hard-caps
+    // the next Salary Cap Year.
+    const subsequentYearEntry =
+      hardCapEntry && ledgerTeamCode && teamResult.apronRestrictionEvaluation
+        ? createSubsequentYearHardCapLedgerEntry({
+            evaluation: teamResult.apronRestrictionEvaluation,
+            teamCode: ledgerTeamCode,
+            transactionId,
+            effectiveAt: timestampISO,
+          })
+        : null;
+    if (
+      teamResult.apronRestrictionEvaluation?.subsequentYear &&
+      hardCapEntry &&
+      !subsequentYearEntry
+    ) {
+      throw new Error(
+        'The next-season hard cap for this post-Regular-Season trade could not be recorded. Apply is blocked.'
+      );
+    }
+    for (const entryToAdd of [hardCapEntry, subsequentYearEntry]) {
+      if (!entryToAdd) continue;
       const currentLedger = Array.isArray(updatedTeam.hardCapLedger)
         ? updatedTeam.hardCapLedger
         : [];
       updatedTeam.hardCapLedger = currentLedger.some(
-        (entry) => entry.entryId === hardCapEntry.entryId
+        (entry) => entry.entryId === entryToAdd.entryId
       )
         ? currentLedger
-        : [...currentLedger, hardCapEntry];
+        : [...currentLedger, entryToAdd];
     }
   });
 

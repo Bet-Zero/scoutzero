@@ -306,6 +306,26 @@ export async function buildSimulationTeam(
     const original: TeamSalaryBookInputs = TeamSalaryBookInputsZ.parse({
       version: 1,
       salaryCapYear,
+      // CBA2-C03.1/C03.2: governed roster-count evidence, so a roster below
+      // fourteen after a trade is not charged outside the July 1 to opening
+      // night window. On the as-of day the year's draft has not happened, so
+      // no unsigned First Round Pick is held.
+      unsignedFirstRoundPickState: {
+        version: 1,
+        status: 'ready',
+        teamCode,
+        salaryCapYear,
+        entries: [],
+        source: {
+          evidenceId: `simulation-unsigned-first-round-picks:${teamCode}`,
+          evidenceVersion: 1,
+          authority: 'external-determination',
+          reference: `SIMULATION ${asOf.slice(0, 10)}: no ${salaryCapYear} Draft has taken place, so no unsigned First Round Pick is included in Team Salary.`,
+          authenticatedAt: input.assumption.checkedAt,
+          recordStatus: 'current',
+          canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'],
+        },
+      },
       apronAdjustments: {
         status: 'ready',
         lineItems: adjustments(incompleteRoster),

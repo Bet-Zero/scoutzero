@@ -15,6 +15,7 @@ import type { TradeSalaryPathEvaluation } from '@/features/architect/utils/trade
 import type { GovernedTradeSalaryBasis } from '@/schemas/governedTradeSalaryBasis';
 import type { TradeHardCapLedgerEntry } from '@/schemas/tradeApronRestriction';
 import type { TradeApronRestrictionEvaluation } from '@/features/architect/utils/tradeMachine/utils/tradeApronRestrictions';
+import type { SubsequentYearApronTeamSalary } from '@/features/architect/utils/tradeMachine/utils/subsequentYearApronTeamSalary';
 import type {
   GovernedCashEvaluation,
   GovernedCashLedger,
@@ -578,6 +579,8 @@ export interface TradeTeam {
   _blocked?: boolean;
   salaryMatchingElection?: TradeSalaryMatchingElection | null;
   salaryMatchingPathEvaluation?: TradeSalaryPathEvaluation | null;
+  /** Next season's post-trade Apron Team Salary (CBA2-A05.17). */
+  subsequentYearApron?: SubsequentYearApronTeamSalary | null;
 }
 
 export interface RosterCounts {

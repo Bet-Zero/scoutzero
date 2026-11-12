@@ -613,3 +613,48 @@ Not covered here: a trade on or after January 10 (needs the proration rule),
 the CBA-A10.2 aggregation wait for exception-acquired players, and the
 correctness of exception records after a Season rollover (the rollover keeps
 each exception's enabled flag from the year before; that belongs to C1).
+
+## November 12: next season's Apron after the Regular Season (V1 item B2, part 1)
+
+From the day after the last Regular Season game to June 30, a trade that
+triggers Apron restriction rows F, H or I (aggregation, TPE use, cash) must also
+keep next season's Apron Team Salary at or below that Apron (CBA2-A05.15).
+Every June 5 SIMULATION trade is in that window. Before this change, cash
+refused it outright and aggregation and TPE trades skipped the second test.
+
+- `subsequentYearApronTeamSalary.ts` computes next season's Apron Team Salary
+  after the trade under CBA2-A05.17: options exercised, no ETOs, no further
+  transactions, signed extensions counted, the Higher Max assumed for a
+  final-season Rookie Scale player with a maximum extension, next-season dead
+  money, unlikely bonuses added, and a carried Minimum uplift bounded by next
+  season's two-YOS minimum. Free Agent Amounts, unsigned First Round Picks,
+  exception amounts and incomplete-roster charges are excluded. A Contract
+  ending this season with no recorded extension pays nothing next season.
+  Anything it cannot read (a missing next-season Salary, a duplicate row, a
+  nonzero trade bonus, a pending Offer Sheet) blocks the trade.
+- `tradeApronRestrictions.ts` runs the second test and names the season,
+  amount and overage when it fails. The trade passes only when both seasons
+  pass.
+- Apply records a second hard-cap entry for next season (CBA2-A05.16) at next
+  season's official Apron Level, or at this season's Level, labeled, when next
+  season's is not published. `tradeHardCapLedgerAuthority.ts` authenticates
+  its shape (rows F, H and I only, one year after a post-season transaction).
+  `hardCapValidation.ts` holds later trades this season to it.
+- SIMULATION books now carry roster-count evidence (no 2026 first-round pick is
+  drafted before June 5). Without it a two-for-one trade left a 14-player
+  roster on the legacy path, which blocked Apply for a reason unrelated to
+  the trade.
+
+Proof: `tests/trade/subsequentYearApron.test.ts` (computation, pass, refusal,
+missing inputs, in-season exemption, entry authentication and tampering,
+next-season enforcement, the post-trade roster that Apply re-validates) and
+updated apron and cash tests. The browser test
+`architect-simulation-aggregated-trade.spec.ts` applies CHI's two-for-one for
+Grant Williams on June 5 and checks both hard-cap entries (2025-26 Row H at
+$207,824,000 and 2026-27 at the official $221,686,000), then reloads; and it
+checks that SAC's two-for-one for Josh Hart is refused because SAC's 2026-27
+Apron Team Salary of $208,592,345 would exceed the Second Apron by $768,345.
+
+Limits: rows E, G and J are not modelled. Next-season hard caps that real teams
+took on from April to June 2026, before the world date, are not in the A3 data.
+Cash in player-and-pick trades (the rest of B2) follows.

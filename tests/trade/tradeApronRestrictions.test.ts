@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TradeHardCapLedgerZ } from '@/schemas/tradeApronRestriction';
 import {
+  createSubsequentYearHardCapLedgerEntry,
   createTradeHardCapLedgerEntry,
   evaluateTradeApronRestriction,
   parseTradeHardCapLedger,
@@ -289,6 +290,17 @@ function team(
     teamId: 'DET',
     projectedSalary: postSalary,
     teamTotalSalary: postSalary,
+    // Next season's post-trade Apron Team Salary for the post-Regular-Season
+    // dual-year test (CBA2-A05.15); comfortably below every Apron here.
+    subsequentYearApron: {
+      status: 'ready',
+      salaryCapYear: 2028,
+      season: '2027-28',
+      amount: 150_000_000,
+      lines: [{ kind: 'contract', playerId: 'P', amount: 150_000_000 }],
+      assumptions: [],
+      canonLeafIds: ['CBA2-A05.15', 'CBA2-A05.17'],
+    },
     team: {
       id: 'DET',
       teamCode: 'DET',
@@ -957,6 +969,23 @@ describe('governed Trade Machine apron restrictions', () => {
       entries: serialized,
       valid: true,
     });
+    // CBA2-A05.16: 2027-28 Levels are unpublished, so the next-season hard
+    // cap holds this season's First Apron, labeled prior-year.
+    const nextSeasonEntry = createSubsequentYearHardCapLedgerEntry({
+      evaluation,
+      teamCode: 'DET',
+      transactionId: 'TRADE-BETWEEN-SEASONS',
+      effectiveAt: '2027-04-12T16:00:00Z',
+    });
+    expect(nextSeasonEntry).toMatchObject({
+      salaryCapYear: 2028,
+      ceiling: FIRST_APRON,
+      dualYear: { triggerSalaryCapYear: 2027, levelBasis: 'prior-year' },
+    });
+    expect(
+      parseTradeHardCapLedger(JSON.parse(JSON.stringify([nextSeasonEntry])))
+        .valid
+    ).toBe(true);
     expect(
       getDetHardCapStatus(
         { hardCapLedger: serialized },
@@ -1013,7 +1042,17 @@ describe('governed Trade Machine apron restrictions', () => {
       'CBA2-A05.8',
       'CBA2-A05.1',
       'CBA2-A05.2',
+      'CBA2-A05.15',
+      'CBA2-A05.17',
+      'CBA2-A05.16',
     ]);
+    // Row F after the Regular Season is also tested against next season.
+    expect(afterClosingDay.subsequentYear).toMatchObject({
+      salaryCapYear: 2028,
+      apronTeamSalary: 150_000_000,
+      testCeiling: FIRST_APRON,
+    });
+    expect(onClosingDay.subsequentYear).toBeNull();
   });
 
   it('CBA2-A02.3: needs exact time on the expiry day and rejects one second late', () => {

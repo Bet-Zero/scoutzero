@@ -159,6 +159,22 @@ export const TradeHardCapLedgerEntryZ = z
     canonLeafIds: z.array(z.string().min(1)).min(1),
     proof: TradeHardCapProofZ,
     triggers: z.array(TradeApronRestrictionTriggerZ).min(1),
+    /**
+     * CBA2-A05.16: present on the next-year hard cap that a
+     * post-Regular-Season row F, H or I trade creates.
+     */
+    dualYear: z
+      .object({
+        triggerSalaryCapYear: z.number().int().positive(),
+        levelBasis: z.enum(['official', 'prior-year']),
+        canonLeafIds: z.tuple([
+          z.literal('CBA2-A05.15'),
+          z.literal('CBA2-A05.16'),
+          z.literal('CBA2-A05.17'),
+        ]),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .superRefine((entry, context) => {

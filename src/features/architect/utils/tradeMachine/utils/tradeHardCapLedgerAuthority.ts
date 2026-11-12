@@ -158,6 +158,12 @@ function resolveAuthenticatedLevel(
 ): GovernedSystemLevelRecord | null {
   if (!proofMatchesRegistry(trigger.proof, registry)) return null;
 
+  // A next-year (dual-year) hard cap may hold this year's Level while next
+  // year's is unpublished; it never holds any other year's.
+  const levelYear =
+    entry.dualYear?.levelBasis === 'prior-year'
+      ? entry.dualYear.triggerSalaryCapYear
+      : entry.salaryCapYear;
   const expectedLevelId =
     trigger.apronLevel === 'FIRST_APRON' ? 'first-apron' : 'second-apron';
   const matchingLevels = registry.systemLevels.filter(
@@ -171,7 +177,7 @@ function resolveAuthenticatedLevel(
     !level ||
     level.recordStatus !== 'current' ||
     level.authority !== 'official' ||
-    level.salaryCapYear !== entry.salaryCapYear ||
+    level.salaryCapYear !== levelYear ||
     level.levelId !== expectedLevelId ||
     level.amount !== trigger.ceiling
   ) {
@@ -182,7 +188,7 @@ function resolveAuthenticatedLevel(
       (candidate) =>
         candidate.recordStatus === 'current' &&
         candidate.authority === 'official' &&
-        candidate.salaryCapYear === entry.salaryCapYear &&
+        candidate.salaryCapYear === levelYear &&
         candidate.levelId === expectedLevelId
     );
     if (
@@ -216,8 +222,14 @@ function calendarProofIsAuthenticated(
     return false;
   }
 
-  if (trigger.restrictionRow === 'C' || trigger.restrictionRow === 'H') {
-    return calendar.salaryCapYear === entry.salaryCapYear;
+  // A dual-year entry keeps the transaction year's calendar proof.
+  const transactionYear =
+    entry.dualYear?.triggerSalaryCapYear ?? entry.salaryCapYear;
+  if (trigger.restrictionRow === 'C') {
+    return !entry.dualYear && calendar.salaryCapYear === entry.salaryCapYear;
+  }
+  if (trigger.restrictionRow === 'H') {
+    return calendar.salaryCapYear === transactionYear;
   }
 
   if (trigger.restrictionRow === 'I') {
@@ -228,15 +240,15 @@ function calendarProofIsAuthenticated(
       (candidate) =>
         candidate.recordStatus === 'current' &&
         candidate.authority === 'official' &&
-        candidate.salaryCapYear === entry.salaryCapYear
+        candidate.salaryCapYear === transactionYear
     );
     return (
       currentOfficialCalendars.length === 1 &&
       currentOfficialCalendars[0].recordId === calendar.recordId &&
       currentOfficialCalendars[0].recordVersion === calendar.recordVersion &&
-      calendar.salaryCapYear === entry.salaryCapYear &&
+      calendar.salaryCapYear === transactionYear &&
       transactionAsOf !== null &&
-      isWithinSalaryCapYear(transactionAsOf, entry.salaryCapYear) &&
+      isWithinSalaryCapYear(transactionAsOf, transactionYear) &&
       trigger.componentId === `cash:${entry.teamCode}`
     );
   }
@@ -269,11 +281,53 @@ function calendarProofIsAuthenticated(
   );
 }
 
+/**
+ * CBA2-A05.16 next-year entries: only rows F, H and I, one year after a
+ * transaction made after that year's last Regular Season day.
+ */
+function dualYearShapeIsAuthenticated(
+  entry: TradeHardCapLedgerEntry,
+  registry: GovernedSeasonRegistry
+): boolean {
+  const dualYear = entry.dualYear;
+  if (!dualYear) return true;
+  const triggerYear = dualYear.triggerSalaryCapYear;
+  if (
+    entry.salaryCapYear !== triggerYear + 1 ||
+    entry.expiresAt !== `${entry.salaryCapYear}-07-01T00:00:00Z` ||
+    entry.entryId !==
+      `${entry.transactionId}:hard-cap:${entry.teamCode}:${entry.salaryCapYear}` ||
+    entry.triggers.some(
+      (trigger) => !['F', 'H', 'I'].includes(trigger.restrictionRow)
+    )
+  ) {
+    return false;
+  }
+  const calendars = registry.calendars.filter(
+    (candidate) =>
+      candidate.recordStatus === 'current' &&
+      candidate.authority === 'official' &&
+      candidate.salaryCapYear === triggerYear
+  );
+  const transactionAsOf = normalizeTradeApronEnvelopeDate(
+    entry.triggerTransactionDate
+  );
+  const transactionDay = transactionAsOf?.slice(0, 10) ?? null;
+  return (
+    calendars.length === 1 &&
+    transactionAsOf !== null &&
+    transactionDay !== null &&
+    isWithinSalaryCapYear(transactionAsOf, triggerYear) &&
+    transactionDay > calendars[0].regularSeasonClosing.value
+  );
+}
+
 function entryMatchesAuthenticatedTriggers(
   entry: TradeHardCapLedgerEntry,
   registry: GovernedSeasonRegistry
 ): boolean {
   if (!rowILeafProofIsAuthenticated(entry)) return false;
+  if (!dualYearShapeIsAuthenticated(entry, registry)) return false;
 
   const authenticated = entry.triggers.map((trigger) => {
     const level = resolveAuthenticatedLevel(entry, trigger, registry);
@@ -481,7 +535,8 @@ function rowIEntryHasAuthenticatedPayerEvidence(
       cashEntry.teamId === entry.teamCode &&
       cashEntry.transactionId === entry.transactionId &&
       cashEntry.amountCents === trigger.cashAmountCents &&
-      cashEntry.salaryCapYear === entry.salaryCapYear &&
+      cashEntry.salaryCapYear ===
+        (entry.dualYear?.triggerSalaryCapYear ?? entry.salaryCapYear) &&
       sameTransactionInstant(
         cashEntry.transactionAt,
         entry.triggerTransactionDate
@@ -541,7 +596,9 @@ export function parsePersistedTradeHardCapLedger(
       (entry) =>
         entry.teamCode !== containingTeamCode ||
         entry.entryId !==
-          `${entry.transactionId}:hard-cap:${containingTeamCode}`
+          (entry.dualYear
+            ? `${entry.transactionId}:hard-cap:${containingTeamCode}:${entry.salaryCapYear}`
+            : `${entry.transactionId}:hard-cap:${containingTeamCode}`)
     ) ||
     new Set(parsed.entries.map((entry) => entry.entryId)).size !==
       parsed.entries.length
