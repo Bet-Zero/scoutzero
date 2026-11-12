@@ -387,7 +387,8 @@ const build = (fixture = makeFixture()) =>
 function computePositiveSignAndTrade(
   fixture = makeFixture(),
   operationId = 'sat-operation',
-  senderTeamCode = 'ATL'
+  senderTeamCode = 'ATL',
+  destinationPath: 'ROOM' | 'MINIMUM_EXCEPTION' = 'ROOM'
 ) {
   const electionAuthority = build(fixture);
   const sourceBefore = createCanonicalTeamTotalsSnapshot(
@@ -439,7 +440,7 @@ function computePositiveSignAndTrade(
           entitlementsOut: [],
           salaryMatchingElection: {
             version: 1,
-            path: 'ROOM',
+            path: destinationPath,
             postAssignmentApronTeamSalary:
               Number(destinationBefore.apronTeamSalary) +
               electionAuthority.salaryTreatment.assigneeRoomAmount,
@@ -1267,6 +1268,18 @@ describe('governed saved-world sign-and-trade authority', () => {
     expect(oneCentAbove.success).toBe(false);
     expect(oneCentAbove.error).toMatch(/Room|Salary Cap|salary matching/i);
     expect(oneCentAbove.teamUpdates).toBeUndefined();
+  });
+
+  it('refuses a sign-and-trade assignee electing the Minimum Exception', () => {
+    const result = computePositiveSignAndTrade(
+      makeFixture(),
+      'sat-minimum-exception',
+      'ATL',
+      'MINIMUM_EXCEPTION'
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/cannot be acquired with the Minimum Exception/);
+    expect(result.teamUpdates).toBeUndefined();
   });
 
   it('fails closed when the independent pre-transaction Team Salary is unavailable', () => {
