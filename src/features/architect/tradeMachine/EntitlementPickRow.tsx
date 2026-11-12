@@ -4,6 +4,7 @@
  * OWNERSHIP: Feature: architect/tradeMachine (Phase 11.0/11.1)
  */
 
+import { useSimulationPickStatus } from './simulationPickStatusContext';
 import React, { useEffect, useRef } from 'react';
 import {
   formatEntitlementLabel,
@@ -109,6 +110,8 @@ export const EntitlementPickRow = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openMenu, entitlementId, setOpenMenu]);
+  // SIMULATION worlds say per pick whether it can be traded now (E1).
+  const simulationStatus = useSimulationPickStatus(entitlementId);
 
   if (!entitlement) return null;
 
@@ -134,7 +137,9 @@ export const EntitlementPickRow = ({
     }
   );
   const pickRowLabel = getPickRowDisplayLabel(pickRow);
-  const secondaryText = getPickRowSecondaryText(pickRow);
+  const secondaryText =
+    simulationStatus?.text ?? getPickRowSecondaryText(pickRow);
+  const tradeBlocked = simulationStatus?.tradeable === false && !isSelected;
 
   const label = formatEntitlementLabel(entitlement);
   const kindTag = getEntitlementKindTag(entitlement.kind);
@@ -331,6 +336,7 @@ export const EntitlementPickRow = ({
                 className="absolute right-0 top-5 bg-cockpit-raised border border-cockpit-edge rounded z-20 text-xs min-w-[10rem] max-w-[14rem] shadow-lg"
               >
                 {!incoming &&
+                  !tradeBlocked &&
                   otherTeams.map((t) => (
                     <button
                       key={t.id || t.teamCode || 'team-option'}
@@ -354,7 +360,9 @@ export const EntitlementPickRow = ({
                   </button>
                 )}
 
-                {(otherTeams.length > 0 || isSelected || incoming) && (
+                {((otherTeams.length > 0 && !tradeBlocked) ||
+                  isSelected ||
+                  incoming) && (
                   <div className="border-t border-cockpit-edge my-1" />
                 )}
 

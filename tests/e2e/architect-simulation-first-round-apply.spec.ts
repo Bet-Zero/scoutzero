@@ -150,3 +150,75 @@ test('SIMULATION world: first-round pick swap validates, applies and reloads', a
   ).data()!;
   expect(Object.values(copyMeta.draftCopy.receiptWorldIds)).toEqual([worldId]);
 });
+
+test('SIMULATION world: each pick says whether it can be traded (E1)', async ({
+  page,
+}) => {
+  await page.goto('/gm/CHI?season=2026', { waitUntil: 'domcontentloaded' });
+  await expect
+    .poll(() => readReviewUserId(page), { timeout: 30000 })
+    .not.toBe('');
+  const uid = await readReviewUserId(page);
+  await page.evaluate(async (uid) => {
+    const { createWorld } = await import(
+      '/src/features/architect/utils/worldManager.ts'
+    );
+    const { worldId, metadata } = await createWorld({
+      userId: uid,
+      name: 'Pick labels',
+      currentSeason: '2025-26',
+    });
+    if (metadata.draftBaseline?.classification !== 'simulation')
+      throw new Error('Local SIMULATION draft baseline not configured.');
+    localStorage.setItem(`architect.activeWorldId.${uid}`, worldId);
+    localStorage.setItem('hz.currentSeasonEndYear', '2026');
+  }, uid);
+  await page.reload();
+  await expect(
+    page.getByTestId('cockpit-activity-rail-identity')
+  ).toContainText('SIMULATION', { timeout: 30000 });
+  await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
+  const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
+  const card = dialog.getByTestId('trade-team-card-CHI');
+  await expect(card).toBeVisible({ timeout: 60000 });
+  // The legacy retained-pick panel does not apply to SIMULATION worlds.
+  await expect(dialog).not.toContainText(/retained pick review/i);
+  const picker = dialog
+    .locator('label', { hasText: /^Select Team$/ })
+    .locator('xpath=following-sibling::select[1]');
+  if ((await picker.count()) === 0)
+    await dialog.getByRole('button', { name: /^Add Team$/i }).click();
+  await picker.first().selectOption('raptors');
+  await expect(dialog.getByTestId('trade-team-card-TOR')).toBeVisible({
+    timeout: 60000,
+  });
+  await card.getByRole('button', { name: /^(Picks|Pck)( \(\d+\))?$/i }).click();
+  const rows = {
+    coming: card.locator('[data-entitlement-id="ent:CHI:2026:1:own:d11cfef8"]'),
+    open: card.locator(`[data-entitlement-id="${PICKS.CHI}"]`),
+    later: card.locator('[data-entitlement-id="ent:CHI:2033:1:own:baa33ef0"]'),
+  };
+  await expect(rows.coming).toContainText(
+    'Not tradeable: the 2026 Draft is next'
+  );
+  await expect(rows.open).toContainText('Unprotected, held outright');
+  await expect(rows.later).toContainText(
+    'Not tradeable until the 2026 Draft is over'
+  );
+  await expect(card).not.toContainText('Protection terms unavailable');
+  const tradeTo = page.getByRole('button', {
+    name: /^Trade to Toronto Raptors$/i,
+  });
+  for (const row of [rows.coming, rows.later]) {
+    await row.getByRole('button', { name: '•••' }).click();
+    await expect(tradeTo).toHaveCount(0);
+    // The menu closes on any click outside it.
+    await page.evaluate(() =>
+      document.body.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true })
+      )
+    );
+  }
+  await rows.open.getByRole('button', { name: '•••' }).click();
+  await expect(tradeTo).toBeVisible();
+});
