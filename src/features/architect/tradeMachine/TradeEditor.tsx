@@ -73,6 +73,10 @@ import {
 } from '@/features/architect/cockpit/tradeOpenRequest';
 import { useGovernedSignAndTradePreview } from '@/features/architect/tradeMachine/useGovernedSignAndTradePreview';
 import { RealDraftReviewPanel } from './RealDraftReviewPanel';
+import {
+  SimulationPickStatusContext,
+  useSimulationPickStatuses,
+} from './simulationPickStatusContext';
 import { useDraftSimulation } from './useDraftSimulation';
 import {
   DRAFT_SIMULATION_NOTICE,
@@ -200,6 +204,9 @@ export const TradeEditor = ({
 
   const canEditEntitlements = isEntitlementAuthoringEnabled();
   const isVacuumMode = !worldId;
+  // V1 E1: per-pick trade status in SIMULATION worlds (empty elsewhere).
+  const simulationPickStatuses = useSimulationPickStatuses(worldId);
+  const inSimulationDraftWorld = Object.keys(simulationPickStatuses).length > 0;
 
   // TM-VACUUM-E1: When switching from vacuum → world mode, clear overlay once
   const prevWorldIdRef = useRef<string | null>(worldId);
@@ -1009,474 +1016,478 @@ export const TradeEditor = ({
   };
 
   return (
-    <div className="text-cockpit-text-primary space-y-4">
-      {showContextBanner && tradeContext && bannerAuthority ? (
-        <div
-          className="flex items-start justify-between gap-2 rounded-md border border-cockpit-edge bg-cockpit-slab px-3 py-2"
-          data-testid="trade-context-banner"
-        >
-          <div className="flex flex-wrap items-center gap-2 text-xs text-cockpit-text-secondary">
-            <span
-              data-testid="trade-context-banner-authority"
-              className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                bannerAuthority.tone === 'committed'
-                  ? 'border-cockpit-safe/40 bg-cockpit-safe/10 text-cockpit-safe'
-                  : bannerAuthority.tone === 'planning'
-                    ? 'border-cockpit-info/40 bg-cockpit-info/10 text-cockpit-info'
-                    : 'border-cockpit-watch/40 bg-cockpit-watch/10 text-cockpit-watch'
-              }`}
-            >
-              {bannerAuthority.label}
-            </span>
-            {tradeContext.objective ? (
-              <span data-testid="trade-context-banner-objective">
-                Objective: {describeTradeObjective(tradeContext.objective)}
+    <SimulationPickStatusContext.Provider value={simulationPickStatuses}>
+      <div className="text-cockpit-text-primary space-y-4">
+        {showContextBanner && tradeContext && bannerAuthority ? (
+          <div
+            className="flex items-start justify-between gap-2 rounded-md border border-cockpit-edge bg-cockpit-slab px-3 py-2"
+            data-testid="trade-context-banner"
+          >
+            <div className="flex flex-wrap items-center gap-2 text-xs text-cockpit-text-secondary">
+              <span
+                data-testid="trade-context-banner-authority"
+                className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                  bannerAuthority.tone === 'committed'
+                    ? 'border-cockpit-safe/40 bg-cockpit-safe/10 text-cockpit-safe'
+                    : bannerAuthority.tone === 'planning'
+                      ? 'border-cockpit-info/40 bg-cockpit-info/10 text-cockpit-info'
+                      : 'border-cockpit-watch/40 bg-cockpit-watch/10 text-cockpit-watch'
+                }`}
+              >
+                {bannerAuthority.label}
               </span>
-            ) : null}
-            {tradeContext.exceptionRef ? (
-              <span>
-                Using {describeTradeException(tradeContext.exceptionRef.kind)} —
-                pending validation
-              </span>
-            ) : null}
-            {tradeContext.relatedEventId ? (
-              <span>Referencing a committed trade event (not cloned)</span>
-            ) : null}
-          </div>
-          <button
-            type="button"
-            onClick={() => setContextBannerDismissed(true)}
-            className="shrink-0 rounded-md px-1 text-cockpit-text-muted hover:text-cockpit-text-secondary hover:bg-cockpit-raised transition-colors"
-            aria-label="Dismiss trade context"
-            data-testid="trade-context-banner-dismiss"
-          >
-            ×
-          </button>
-        </div>
-      ) : null}
-      <div className="flex items-center justify-between border-b border-cockpit-edge pb-2">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-black uppercase leading-tight tracking-wide">
-            Trade Machine
-          </h2>
-          {softwareCap ? (
-            <span className="text-xs text-cockpit-text-secondary">
-              {capSeasonLabel} · software assumptions
-            </span>
-          ) : capSourceSummary ? (
-            <CapConfidenceBadge
-              summary={capSourceSummary}
-              prefix={capSeasonLabel ? `${capSeasonLabel} cap ·` : 'Cap ·'}
-              title="Confidence of the league salary cap / apron / tax figures for this season. Projected = the NBA has not set official numbers yet."
-            />
-          ) : null}
-        </div>
-        <div className="flex items-center gap-2">
-          {/* TM-VACUUM-E1: Clear session edits button (vacuum mode only) */}
-          {isVacuumMode && hasVacuumOverlay() && (
-            <SubtleButton
-              tone="warning"
-              onClick={handleClearVacuumOverlay}
-              title="Clear all session pick changes"
-            >
-              Clear session pick changes
-            </SubtleButton>
-          )}
-          <PrimaryButton
-            onClick={() => void handleValidateTrade()}
-            disabled={isPreparingGovernedPreview || simulation.busy}
-          >
-            {isPreparingGovernedPreview
-              ? 'Loading authority…'
-              : 'Validate Trade'}
-          </PrimaryButton>
-          <PrimaryButton
-            tone="positive"
-            onClick={handleApplyTrade}
-            disabled={!canApplyTrade || isApplying}
-          >
-            {isApplying ? 'Applying…' : 'Apply Trade'}
-          </PrimaryButton>
-          {/* BZE-247: the shareable summary is a deliberate action, not a
-              validation side effect; it stays gated to legal trades. */}
-          <SecondaryButton
-            onClick={() => setPreviewOpen(true)}
-            disabled={!canApplyTrade}
-            title={
-              canApplyTrade
-                ? 'Open the shareable trade summary'
-                : 'Validate a legal trade to open the shareable summary'
-            }
-            data-testid="trade-summary-button"
-          >
-            Trade Summary
-          </SecondaryButton>
-          <IconButton
-            onClick={() => {
-              resetTrade();
-              setPendingSignAndTrade(null);
-            }}
-            title="Reset Trade"
-          >
-            <RotateCcw size={18} />
-          </IconButton>
-          {teams.length < 5 && (
-            <SecondaryButton onClick={addTeam}>Add Team</SecondaryButton>
-          )}
-        </div>
-      </div>
-
-      {/* BZE-190: pending sign-and-trade prompt for a free agent seeded from
-          Free Agency. Cleared once staged (or dismissed). */}
-      {pendingSignAndTrade ? (
-        <div
-          className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-cockpit-info/40 bg-cockpit-info/10 px-3 py-2"
-          data-testid="pending-sign-and-trade"
-        >
-          <div className="min-w-0 text-sm text-cockpit-text-primary">
-            <span className="font-semibold text-cockpit-info">
-              Sign &amp; Trade:
-            </span>{' '}
-            <span data-testid="pending-sign-and-trade-player">
-              {pendingSignAndTradePlayerName}
-            </span>
-            <span className="ml-2 text-xs text-cockpit-text-muted">
-              Add the receiving team, then set the new contract &amp;
-              destination.
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <PrimaryButton onClick={openPendingSignAndTradeEditor}>
-              Set contract &amp; destination
-            </PrimaryButton>
+              {tradeContext.objective ? (
+                <span data-testid="trade-context-banner-objective">
+                  Objective: {describeTradeObjective(tradeContext.objective)}
+                </span>
+              ) : null}
+              {tradeContext.exceptionRef ? (
+                <span>
+                  Using {describeTradeException(tradeContext.exceptionRef.kind)}{' '}
+                  — pending validation
+                </span>
+              ) : null}
+              {tradeContext.relatedEventId ? (
+                <span>Referencing a committed trade event (not cloned)</span>
+              ) : null}
+            </div>
             <button
               type="button"
-              onClick={() => setPendingSignAndTrade(null)}
-              aria-label="Cancel sign-and-trade"
-              data-testid="pending-sign-and-trade-dismiss"
-              className="shrink-0 rounded-md px-1 text-cockpit-text-muted transition-colors hover:bg-cockpit-raised hover:text-cockpit-text-primary"
+              onClick={() => setContextBannerDismissed(true)}
+              className="shrink-0 rounded-md px-1 text-cockpit-text-muted hover:text-cockpit-text-secondary hover:bg-cockpit-raised transition-colors"
+              aria-label="Dismiss trade context"
+              data-testid="trade-context-banner-dismiss"
             >
               ×
             </button>
           </div>
+        ) : null}
+        <div className="flex items-center justify-between border-b border-cockpit-edge pb-2">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-black uppercase leading-tight tracking-wide">
+              Trade Machine
+            </h2>
+            {softwareCap ? (
+              <span className="text-xs text-cockpit-text-secondary">
+                {capSeasonLabel} · software assumptions
+              </span>
+            ) : capSourceSummary ? (
+              <CapConfidenceBadge
+                summary={capSourceSummary}
+                prefix={capSeasonLabel ? `${capSeasonLabel} cap ·` : 'Cap ·'}
+                title="Confidence of the league salary cap / apron / tax figures for this season. Projected = the NBA has not set official numbers yet."
+              />
+            ) : null}
+          </div>
+          <div className="flex items-center gap-2">
+            {/* TM-VACUUM-E1: Clear session edits button (vacuum mode only) */}
+            {isVacuumMode && hasVacuumOverlay() && (
+              <SubtleButton
+                tone="warning"
+                onClick={handleClearVacuumOverlay}
+                title="Clear all session pick changes"
+              >
+                Clear session pick changes
+              </SubtleButton>
+            )}
+            <PrimaryButton
+              onClick={() => void handleValidateTrade()}
+              disabled={isPreparingGovernedPreview || simulation.busy}
+            >
+              {isPreparingGovernedPreview
+                ? 'Loading authority…'
+                : 'Validate Trade'}
+            </PrimaryButton>
+            <PrimaryButton
+              tone="positive"
+              onClick={handleApplyTrade}
+              disabled={!canApplyTrade || isApplying}
+            >
+              {isApplying ? 'Applying…' : 'Apply Trade'}
+            </PrimaryButton>
+            {/* BZE-247: the shareable summary is a deliberate action, not a
+              validation side effect; it stays gated to legal trades. */}
+            <SecondaryButton
+              onClick={() => setPreviewOpen(true)}
+              disabled={!canApplyTrade}
+              title={
+                canApplyTrade
+                  ? 'Open the shareable trade summary'
+                  : 'Validate a legal trade to open the shareable summary'
+              }
+              data-testid="trade-summary-button"
+            >
+              Trade Summary
+            </SecondaryButton>
+            <IconButton
+              onClick={() => {
+                resetTrade();
+                setPendingSignAndTrade(null);
+              }}
+              title="Reset Trade"
+            >
+              <RotateCcw size={18} />
+            </IconButton>
+            {teams.length < 5 && (
+              <SecondaryButton onClick={addTeam}>Add Team</SecondaryButton>
+            )}
+          </div>
         </div>
-      ) : null}
 
-      {/* Task A: Mode + Validation State Header */}
-      {/* Stale validation fix: Uses hasCurrentValidation to only show "Validated"
+        {/* BZE-190: pending sign-and-trade prompt for a free agent seeded from
+          Free Agency. Cleared once staged (or dismissed). */}
+        {pendingSignAndTrade ? (
+          <div
+            className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-cockpit-info/40 bg-cockpit-info/10 px-3 py-2"
+            data-testid="pending-sign-and-trade"
+          >
+            <div className="min-w-0 text-sm text-cockpit-text-primary">
+              <span className="font-semibold text-cockpit-info">
+                Sign &amp; Trade:
+              </span>{' '}
+              <span data-testid="pending-sign-and-trade-player">
+                {pendingSignAndTradePlayerName}
+              </span>
+              <span className="ml-2 text-xs text-cockpit-text-muted">
+                Add the receiving team, then set the new contract &amp;
+                destination.
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <PrimaryButton onClick={openPendingSignAndTradeEditor}>
+                Set contract &amp; destination
+              </PrimaryButton>
+              <button
+                type="button"
+                onClick={() => setPendingSignAndTrade(null)}
+                aria-label="Cancel sign-and-trade"
+                data-testid="pending-sign-and-trade-dismiss"
+                className="shrink-0 rounded-md px-1 text-cockpit-text-muted transition-colors hover:bg-cockpit-raised hover:text-cockpit-text-primary"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Task A: Mode + Validation State Header */}
+        {/* Stale validation fix: Uses hasCurrentValidation to only show "Validated"
           when the current preview authority/detail payload matches this draft */}
-      {/* BZE-224: sticky so the verdict (especially a blocked deal) stays
+        {/* BZE-224: sticky so the verdict (especially a blocked deal) stays
           visible while scrolling the cards / validation details below. The
           band is opaque and matches the overlay void, so at rest it is
           invisible and, when pinned, content slides cleanly underneath it —
           no translucent ghosting (owner review fix). The -mx-5/px-5 bleed
           matches TradeOverlay's inner padding, the overlay being the Trade
           Machine's only host. */}
-      <SimulationAssumptionsNotice worldId={worldId} />
-      <div className="sticky top-0 z-30 -mx-5 bg-cockpit-void px-5 pb-2 pt-2 shadow-[0_10px_14px_-12px_rgba(0,0,0,0.85)]">
-        <ValidationStateHeader
-          hasValidatorResult={hasCurrentValidation}
-          isValidating={isValidating}
-          validatedAt={getValidatedAt()}
-          readiness={tradeReadiness}
-        />
-        {/* BZE-247: the verdict's team-attributed reasons and warnings live in
+        <SimulationAssumptionsNotice worldId={worldId} />
+        <div className="sticky top-0 z-30 -mx-5 bg-cockpit-void px-5 pb-2 pt-2 shadow-[0_10px_14px_-12px_rgba(0,0,0,0.85)]">
+          <ValidationStateHeader
+            hasValidatorResult={hasCurrentValidation}
+            isValidating={isValidating}
+            validatedAt={getValidatedAt()}
+            readiness={tradeReadiness}
+          />
+          {/* BZE-247: the verdict's team-attributed reasons and warnings live in
             the sticky band with the banner — at the point of decision, not
             buried in the collapsed Validation Results panel. */}
-        <TradeVerdictStrip
-          items={
-            needsInputVerdict
-              ? verdictItems.filter((item) => {
-                  const duplicatesReadiness =
-                    item === needsInputVerdict ||
-                    (item.kind === 'needsInput' &&
-                      (needsInputVerdict.text.endsWith(item.text) ||
-                        item.text.endsWith(needsInputVerdict.text)));
-                  return Boolean(item.teamName) || !duplicatesReadiness;
-                })
-              : verdictItems
-          }
-        />
-      </div>
-
-      {/* Phase 16.3: Init error display */}
-      {simulation.enabled ? (
-        <section
-          aria-label="Draft simulation assumptions"
-          className="p-3 text-sm border border-cockpit-edge rounded-lg my-2"
-        >
-          <p>{DRAFT_SIMULATION_NOTICE}</p>
-          <ConditionalDraftJourney
-            key={conditionalWorldVersion}
-            worldId={worldId}
+          <TradeVerdictStrip
+            items={
+              needsInputVerdict
+                ? verdictItems.filter((item) => {
+                    const duplicatesReadiness =
+                      item === needsInputVerdict ||
+                      (item.kind === 'needsInput' &&
+                        (needsInputVerdict.text.endsWith(item.text) ||
+                          item.text.endsWith(needsInputVerdict.text)));
+                    return Boolean(item.teamName) || !duplicatesReadiness;
+                  })
+                : verdictItems
+            }
           />
-          {simulation.busy && (
-            <p role="status">Reviewing the saved-world proposal…</p>
-          )}
-          {simulation.reasons && <p role="status">{simulation.reasons}</p>}
-          {simulation.reviews.map((r, i) => (
-            <p key={i}>
-              {r.review.status === 'reviewed'
-                ? r.review.request.context.team
-                : r.review.status === 'swap-reviewed' ||
-                    r.review.status === 'stepien-reviewed'
-                  ? r.review.team
-                  : 'Team'}
-              :{' '}
-              {r.eligible
-                ? 'Pick rules permit this proposal'
-                : r.reasons.map(describeSimulationReason).join(' ')}
-            </p>
-          ))}
-        </section>
-      ) : (
-        <RealDraftReviewPanel state={realDraftReview ?? null} />
-      )}
-      {initError && teams.length === 0 && (
-        <div className="bg-cockpit-danger/15 border border-cockpit-danger/50 rounded-lg p-4 text-cockpit-text-secondary">
-          <div className="font-semibold text-cockpit-danger mb-1">
-            Trade Machine failed to initialize.
-          </div>
-          <div className="text-sm mb-2">{initError}</div>
-          <div className="text-xs text-cockpit-text-muted">
-            Close and reopen the Trade Machine to try again. If it keeps
-            failing, refresh the page.
-          </div>
         </div>
-      )}
 
-      {/* Team Cards — Hybrid layout: normal / compact / scroll */}
-      <div
-        ref={teamGridRef}
-        className={`${
-          layoutMode === 'scroll' ? 'flex overflow-x-auto pb-4' : 'grid'
-        } gap-6`}
-        style={
-          layoutMode === 'scroll'
-            ? { scrollSnapType: 'x mandatory' }
-            : { gridTemplateColumns: `repeat(${teams.length}, 1fr)` }
-        }
-      >
-        {teams.map((t, idx) => {
-          const otherTeams: NonNullable<TradeTeamCardProps['otherTeams']> =
-            teams.flatMap((tm, j) => {
-              if (j === idx || !tm.team) {
-                return [];
-              }
-              return [tm.team];
-            });
-          return (
-            <div
-              key={idx}
-              className={layoutMode === 'scroll' ? 'flex-shrink-0' : ''}
-              style={
-                layoutMode === 'scroll'
-                  ? { width: '340px', scrollSnapAlign: 'start' }
-                  : {}
-              }
-            >
-              <TradeTeamCard
-                showPooledEntitlements={simulation.enabled}
-                compact={compact}
-                validationResult={
-                  (currentSnapshotValidationDetails ??
-                    null) as TradeTeamCardProps['validationResult']
-                }
-                teamIndex={idx}
-                team={t.team}
-                sends={t.sends}
-                // Phase 14.2: Removed picks prop - draft assets are entitlements-only
-                // Phase 11.1: Pass entitlement toggle and selection state
-                entitlementsOut={t.entitlementsOut || []}
-                onToggleEntitlement={(e) => toggleEntitlement(idx, e)}
-                // Phase 17: Pass destination setter for multi-team entitlement routing
-                onSetEntitlementDestination={(entitlementId, toTeamId) => {
-                  if (!entitlementId) {
-                    return;
-                  }
-                  setEntitlementDestination(
-                    idx,
-                    entitlementId,
-                    toTeamId ?? null
-                  );
-                }}
-                onEditEntitlement={
-                  canEditEntitlements ? handleEditEntitlement : null
-                }
-                onViewEntitlementDetails={handleViewEntitlementDetails}
-                onCreateEntitlement={
-                  canEditEntitlements ? handleCreateEntitlement : null
-                }
-                isVacuumMode={isVacuumMode}
-                onRevertEntitlementEdit={handleRevertEntitlementEdit}
-                onDeleteSessionEntitlement={handleDeleteSessionEntitlement}
-                incomingPlayers={incomingAssets[idx]?.players || []}
-                // Phase 14.2: Incoming entitlements instead of incoming picks
-                incomingEntitlements={incomingAssets[idx]?.entitlements || []}
-                yearKey={yearKey}
-                otherTeams={otherTeams}
-                playersMap={playersMap}
-                onSetPlayerTrade={(p, action, dest, meta) =>
-                  setPlayerTrade(
-                    idx,
-                    toHookTradePlayer(p),
-                    action,
-                    dest ?? null,
-                    normalizeTradeActionMeta(meta)
-                  )
-                }
-                onRequestSignAndTrade={
-                  isDevSntInjectorEnabled
-                    ? (player, defaultDestinationTeamId) =>
-                        openTradeMachineSatModal(
-                          idx,
-                          player,
-                          defaultDestinationTeamId
-                        )
-                    : undefined
-                }
-                // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
-                onUndoPlayerTrade={(player) => undoPlayerTrade(player)}
-                onSelectTeam={(teamId) => selectTeam(idx, teamId)}
-                onRemove={() => removeTeam(idx)}
-                onEditContract={
-                  onEditContract ? (player) => onEditContract(player) : null
-                }
-                worldId={worldId}
-                worldAsOfDate={governedWorldAsOfDate}
-                // P0-3: Pass validation in-flight state
-                isValidating={isValidating}
-                salaryMatchingElection={t.salaryMatchingElection ?? null}
-                onSalaryMatchingElectionChange={(election) =>
-                  setSalaryMatchingElection(idx, election)
-                }
-                cashSent={t.cashSent ?? 0}
-                cashToTeamId={t.cashToTeamId ?? null}
-                onCashConsiderationChange={(cashSent, cashToTeamId) =>
-                  setCashConsideration(idx, cashSent, cashToTeamId)
-                }
-              />
+        {/* Phase 16.3: Init error display */}
+        {simulation.enabled ? (
+          <section
+            aria-label="Draft simulation assumptions"
+            className="p-3 text-sm border border-cockpit-edge rounded-lg my-2"
+          >
+            <p>{DRAFT_SIMULATION_NOTICE}</p>
+            <ConditionalDraftJourney
+              key={conditionalWorldVersion}
+              worldId={worldId}
+            />
+            {simulation.busy && (
+              <p role="status">Reviewing the saved-world proposal…</p>
+            )}
+            {simulation.reasons && <p role="status">{simulation.reasons}</p>}
+            {simulation.reviews.map((r, i) => (
+              <p key={i}>
+                {r.review.status === 'reviewed'
+                  ? r.review.request.context.team
+                  : r.review.status === 'swap-reviewed' ||
+                      r.review.status === 'stepien-reviewed'
+                    ? r.review.team
+                    : 'Team'}
+                :{' '}
+                {r.eligible
+                  ? 'Pick rules permit this proposal'
+                  : r.reasons.map(describeSimulationReason).join(' ')}
+              </p>
+            ))}
+          </section>
+        ) : inSimulationDraftWorld ? null : (
+          // A SIMULATION world reviews its picks through the governed baseline
+          // (each pick row says whether it can be traded), not this panel.
+          <RealDraftReviewPanel state={realDraftReview ?? null} />
+        )}
+        {initError && teams.length === 0 && (
+          <div className="bg-cockpit-danger/15 border border-cockpit-danger/50 rounded-lg p-4 text-cockpit-text-secondary">
+            <div className="font-semibold text-cockpit-danger mb-1">
+              Trade Machine failed to initialize.
             </div>
-          );
-        })}
-      </div>
+            <div className="text-sm mb-2">{initError}</div>
+            <div className="text-xs text-cockpit-text-muted">
+              Close and reopen the Trade Machine to try again. If it keeps
+              failing, refresh the page.
+            </div>
+          </div>
+        )}
 
-      {/* Scroll fade indicators for scroll mode */}
-      {layoutMode === 'scroll' && (
-        <div className="flex justify-center gap-2 mt-2">
-          <span className="text-cockpit-text-muted text-xs">
-            ← Scroll to see all teams →
-          </span>
+        {/* Team Cards — Hybrid layout: normal / compact / scroll */}
+        <div
+          ref={teamGridRef}
+          className={`${
+            layoutMode === 'scroll' ? 'flex overflow-x-auto pb-4' : 'grid'
+          } gap-6`}
+          style={
+            layoutMode === 'scroll'
+              ? { scrollSnapType: 'x mandatory' }
+              : { gridTemplateColumns: `repeat(${teams.length}, 1fr)` }
+          }
+        >
+          {teams.map((t, idx) => {
+            const otherTeams: NonNullable<TradeTeamCardProps['otherTeams']> =
+              teams.flatMap((tm, j) => {
+                if (j === idx || !tm.team) {
+                  return [];
+                }
+                return [tm.team];
+              });
+            return (
+              <div
+                key={idx}
+                className={layoutMode === 'scroll' ? 'flex-shrink-0' : ''}
+                style={
+                  layoutMode === 'scroll'
+                    ? { width: '340px', scrollSnapAlign: 'start' }
+                    : {}
+                }
+              >
+                <TradeTeamCard
+                  showPooledEntitlements={simulation.enabled}
+                  compact={compact}
+                  validationResult={
+                    (currentSnapshotValidationDetails ??
+                      null) as TradeTeamCardProps['validationResult']
+                  }
+                  teamIndex={idx}
+                  team={t.team}
+                  sends={t.sends}
+                  // Phase 14.2: Removed picks prop - draft assets are entitlements-only
+                  // Phase 11.1: Pass entitlement toggle and selection state
+                  entitlementsOut={t.entitlementsOut || []}
+                  onToggleEntitlement={(e) => toggleEntitlement(idx, e)}
+                  // Phase 17: Pass destination setter for multi-team entitlement routing
+                  onSetEntitlementDestination={(entitlementId, toTeamId) => {
+                    if (!entitlementId) {
+                      return;
+                    }
+                    setEntitlementDestination(
+                      idx,
+                      entitlementId,
+                      toTeamId ?? null
+                    );
+                  }}
+                  onEditEntitlement={
+                    canEditEntitlements ? handleEditEntitlement : null
+                  }
+                  onViewEntitlementDetails={handleViewEntitlementDetails}
+                  onCreateEntitlement={
+                    canEditEntitlements ? handleCreateEntitlement : null
+                  }
+                  isVacuumMode={isVacuumMode}
+                  onRevertEntitlementEdit={handleRevertEntitlementEdit}
+                  onDeleteSessionEntitlement={handleDeleteSessionEntitlement}
+                  incomingPlayers={incomingAssets[idx]?.players || []}
+                  // Phase 14.2: Incoming entitlements instead of incoming picks
+                  incomingEntitlements={incomingAssets[idx]?.entitlements || []}
+                  yearKey={yearKey}
+                  otherTeams={otherTeams}
+                  playersMap={playersMap}
+                  onSetPlayerTrade={(p, action, dest, meta) =>
+                    setPlayerTrade(
+                      idx,
+                      toHookTradePlayer(p),
+                      action,
+                      dest ?? null,
+                      normalizeTradeActionMeta(meta)
+                    )
+                  }
+                  onRequestSignAndTrade={
+                    isDevSntInjectorEnabled
+                      ? (player, defaultDestinationTeamId) =>
+                          openTradeMachineSatModal(
+                            idx,
+                            player,
+                            defaultDestinationTeamId
+                          )
+                      : undefined
+                  }
+                  // Phase 14: Removed onTogglePick and onEditPick (legacy picks UI removed)
+                  onUndoPlayerTrade={(player) => undoPlayerTrade(player)}
+                  onSelectTeam={(teamId) => selectTeam(idx, teamId)}
+                  onRemove={() => removeTeam(idx)}
+                  onEditContract={
+                    onEditContract ? (player) => onEditContract(player) : null
+                  }
+                  worldId={worldId}
+                  worldAsOfDate={governedWorldAsOfDate}
+                  // P0-3: Pass validation in-flight state
+                  isValidating={isValidating}
+                  salaryMatchingElection={t.salaryMatchingElection ?? null}
+                  onSalaryMatchingElectionChange={(election) =>
+                    setSalaryMatchingElection(idx, election)
+                  }
+                  cashSent={t.cashSent ?? 0}
+                  cashToTeamId={t.cashToTeamId ?? null}
+                  onCashConsiderationChange={(cashSent, cashToTeamId) =>
+                    setCashConsideration(idx, cashSent, cashToTeamId)
+                  }
+                />
+              </div>
+            );
+          })}
         </div>
-      )}
 
-      {/* The verdict banner (ValidationStateHeader) above the cards carries the
+        {/* Scroll fade indicators for scroll mode */}
+        {layoutMode === 'scroll' && (
+          <div className="flex justify-center gap-2 mt-2">
+            <span className="text-cockpit-text-muted text-xs">
+              ← Scroll to see all teams →
+            </span>
+          </div>
+        )}
+
+        {/* The verdict banner (ValidationStateHeader) above the cards carries the
           blocked / apply-time-checks messaging; no duplicate text row here. */}
 
-      {/* Tasks B, C, D, E: Validation Details Panel with hard-gating and mode tags */}
-      {/* Stale validation fix: Uses hasCurrentValidation for proper authority/detail gating */}
-      <ValidationDetailsPanel
-        hasValidatorResult={hasCurrentValidation}
-        isValidating={isValidating}
-        previewAuthority={
-          currentPreviewAuthority as ValidationDetailsPanelProps['previewAuthority']
-        }
-        snapshotValidationDetails={
-          currentSnapshotValidationDetails as ValidationDetailsPanelProps['snapshotValidationDetails']
-        }
-        teams={teams as ValidationDetailsPanelProps['teams']}
-        forceTrade={forceTrade}
-        calculatorTeamIndex={calculatorTeamIndex}
-        incomingAssets={incomingAssets as Record<string, unknown>[]}
-        salaryOut={salaryOut}
-        capProjections={capProjections}
-        yearKey={yearKey}
-        onCalculatorTeamChange={setCalculatorTeamIndex}
-        pickRulesById={mergedPickRulesById}
-        showSntInjector={isDevSntInjectorEnabled}
-        hasInjectedSntPlayers={hasInjectedDevSntPlayers}
-        onInjectSntPlayers={injectDevSntPlayers}
-        onClearInjectedSntPlayers={clearInjectedDevSntPlayers}
-      />
+        {/* Tasks B, C, D, E: Validation Details Panel with hard-gating and mode tags */}
+        {/* Stale validation fix: Uses hasCurrentValidation for proper authority/detail gating */}
+        <ValidationDetailsPanel
+          hasValidatorResult={hasCurrentValidation}
+          isValidating={isValidating}
+          previewAuthority={
+            currentPreviewAuthority as ValidationDetailsPanelProps['previewAuthority']
+          }
+          snapshotValidationDetails={
+            currentSnapshotValidationDetails as ValidationDetailsPanelProps['snapshotValidationDetails']
+          }
+          teams={teams as ValidationDetailsPanelProps['teams']}
+          forceTrade={forceTrade}
+          calculatorTeamIndex={calculatorTeamIndex}
+          incomingAssets={incomingAssets as Record<string, unknown>[]}
+          salaryOut={salaryOut}
+          capProjections={capProjections}
+          yearKey={yearKey}
+          onCalculatorTeamChange={setCalculatorTeamIndex}
+          pickRulesById={mergedPickRulesById}
+          showSntInjector={isDevSntInjectorEnabled}
+          hasInjectedSntPlayers={hasInjectedDevSntPlayers}
+          onInjectSntPlayers={injectDevSntPlayers}
+          onClearInjectedSntPlayers={clearInjectedDevSntPlayers}
+        />
 
-      <TradePreviewModal
-        simulationNotice={
-          simulation.enabled ||
-          previewAuthority?.dataClassification === 'software-fixture'
-            ? DRAFT_SIMULATION_NOTICE
-            : undefined
-        }
-        swapProgram={
-          simulation.reviews.flatMap((r) =>
-            r.review.status === 'swap-reviewed' ? [r.review.swapProgram] : []
-          )[0]
-        }
-        open={
-          previewOpen &&
-          currentPreviewAuthority?.legal === true &&
-          !!currentSnapshotValidationDetails
-        }
-        onClose={() => setPreviewOpen(false)}
-        teams={teams as TradePreviewModalProps['teams']}
-        previewAuthority={
-          currentPreviewAuthority as TradePreviewModalProps['previewAuthority']
-        }
-        snapshotValidationDetails={
-          currentSnapshotValidationDetails as TradePreviewModalProps['snapshotValidationDetails']
-        }
-        yearKey={yearKey}
-      />
-
-      {entitlementEditorState && (
-        <PickRightWizardModal
-          worldId={worldId}
-          entitlementId={
-            entitlementEditorState.entitlementId != null
-              ? String(entitlementEditorState.entitlementId)
+        <TradePreviewModal
+          simulationNotice={
+            simulation.enabled ||
+            previewAuthority?.dataClassification === 'software-fixture'
+              ? DRAFT_SIMULATION_NOTICE
               : undefined
           }
-          initialDocument={entitlementEditorState.initialDocument}
-          userId={userId}
-          vacuumMode={isVacuumMode}
-          onClose={() => setEntitlementEditorState(null)}
-          onSuccess={({ entitlementId, document }) => {
-            applyEntitlementOverrideUpdate(entitlementId, document);
-            setEntitlementEditorState(null);
-          }}
-          onVacuumSessionMutation={() => {
-            refreshEntitlements();
-            setEntitlementEditorState(null);
-          }}
-          onDuplicateAsNew={(document) => {
-            // TM-VACUUM-E3: Close current editor and open create-mode with prefilled values
-            setEntitlementEditorState({
-              entitlementId: null,
-              initialDocument: document,
-            });
-          }}
+          swapProgram={
+            simulation.reviews.flatMap((r) =>
+              r.review.status === 'swap-reviewed' ? [r.review.swapProgram] : []
+            )[0]
+          }
+          open={
+            previewOpen &&
+            currentPreviewAuthority?.legal === true &&
+            !!currentSnapshotValidationDetails
+          }
+          onClose={() => setPreviewOpen(false)}
+          teams={teams as TradePreviewModalProps['teams']}
+          previewAuthority={
+            currentPreviewAuthority as TradePreviewModalProps['previewAuthority']
+          }
+          snapshotValidationDetails={
+            currentSnapshotValidationDetails as TradePreviewModalProps['snapshotValidationDetails']
+          }
+          yearKey={yearKey}
         />
-      )}
 
-      {tradeMachineSatModal && (
-        <EditContractModal
-          isOpen={!!tradeMachineSatModal}
-          onClose={closeTradeMachineSatModal}
-          player={toEditContractModalPlayer(tradeMachineSatModal.player)}
-          initialAction="signAndTrade"
-          actionContext="freeAgent"
-          teamCapSheet={toEditContractModalTeamCapSheet(
-            teams[tradeMachineSatModal.teamIndex]?.team || null
-          )}
-          currentYear={currentYear}
-          worldAsOfDate={governedWorldAsOfDate}
-          actionsOverride={['signAndTrade']}
-          actionLabelsOverride={{
-            signAndTrade: 'Sign & Trade (Trade Machine)',
-          }}
-          onSignAndTrade={handleTradeMachineSignAndTrade}
-          getSignAndTradePreflight={tradeMachineSatPreflight}
-        />
-      )}
-    </div>
+        {entitlementEditorState && (
+          <PickRightWizardModal
+            worldId={worldId}
+            entitlementId={
+              entitlementEditorState.entitlementId != null
+                ? String(entitlementEditorState.entitlementId)
+                : undefined
+            }
+            initialDocument={entitlementEditorState.initialDocument}
+            userId={userId}
+            vacuumMode={isVacuumMode}
+            onClose={() => setEntitlementEditorState(null)}
+            onSuccess={({ entitlementId, document }) => {
+              applyEntitlementOverrideUpdate(entitlementId, document);
+              setEntitlementEditorState(null);
+            }}
+            onVacuumSessionMutation={() => {
+              refreshEntitlements();
+              setEntitlementEditorState(null);
+            }}
+            onDuplicateAsNew={(document) => {
+              // TM-VACUUM-E3: Close current editor and open create-mode with prefilled values
+              setEntitlementEditorState({
+                entitlementId: null,
+                initialDocument: document,
+              });
+            }}
+          />
+        )}
+
+        {tradeMachineSatModal && (
+          <EditContractModal
+            isOpen={!!tradeMachineSatModal}
+            onClose={closeTradeMachineSatModal}
+            player={toEditContractModalPlayer(tradeMachineSatModal.player)}
+            initialAction="signAndTrade"
+            actionContext="freeAgent"
+            teamCapSheet={toEditContractModalTeamCapSheet(
+              teams[tradeMachineSatModal.teamIndex]?.team || null
+            )}
+            currentYear={currentYear}
+            worldAsOfDate={governedWorldAsOfDate}
+            actionsOverride={['signAndTrade']}
+            actionLabelsOverride={{
+              signAndTrade: 'Sign & Trade (Trade Machine)',
+            }}
+            onSignAndTrade={handleTradeMachineSignAndTrade}
+            getSignAndTradePreflight={tradeMachineSatPreflight}
+          />
+        )}
+      </div>
+    </SimulationPickStatusContext.Provider>
   );
 };
