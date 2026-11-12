@@ -445,9 +445,9 @@ describe('governed ordinary Trade Machine salary basis', () => {
   });
 
   describe('trade deadline (V1 B7, named SIMULATION assumption)', () => {
-    const optionRow = (used: boolean | null) => ({
+    const optionRow = (used: boolean | null, option: 'PO' | 'ETO' = 'PO') => ({
       ...row('2027-28', 15_000_000),
-      option: 'PO' as const,
+      option,
       optionHolder: 'player' as const,
       optionUsed: used,
     });
@@ -489,6 +489,46 @@ describe('governed ordinary Trade Machine salary basis', () => {
           '2027-06-05'
         ).status
       ).toBe('ready');
+
+      // A declined Player Option ends the Contract: a certain last Season.
+      const declined = resolve(
+        state([row('2026-27', 12_000_000), optionRow(false)]),
+        '2027-06-05'
+      );
+      expect(declined.status).toBe('needs-input');
+      expect(declined.reasons.join(' ')).toMatch(
+        /last Season of the Contract \(CBA2-L03.14\)/
+      );
+    });
+
+    it('reads an ETO in its own direction: exercising ends the Contract, declining continues it', () => {
+      const at = (used: boolean | null) =>
+        resolve(
+          state([row('2026-27', 12_000_000), optionRow(used, 'ETO')]),
+          '2027-06-05'
+        );
+      expect(at(null).status).toBe('needs-input');
+      expect(at(null).reasons.join(' ')).toMatch(/ETO is undecided/);
+      expect(at(false).status).toBe('ready');
+      expect(at(true).status).toBe('needs-input');
+      expect(at(true).reasons.join(' ')).toMatch(
+        /last Season of the Contract \(CBA2-L03.14\)/
+      );
+    });
+
+    it('names the deadline as a SIMULATION assumption in the result and the refusal', () => {
+      const contractState = state([
+        row('2026-27', 12_000_000),
+        row('2027-28', 15_000_000),
+      ]);
+      const before = resolve(contractState, '2027-01-08');
+      expect(before.status).toBe('ready');
+      expect(before.assumptionIds).toEqual(['simulation-trade-deadline']);
+      const blocked = resolve(contractState, '2027-03-01');
+      expect(blocked.assumptionIds).toEqual(['simulation-trade-deadline']);
+      expect(blocked.reasons.join(' ')).toMatch(
+        /2027-02-11, 3 p\.m\. ET, a SIMULATION assumption; a trade dated that day counts as before it/
+      );
     });
   });
 

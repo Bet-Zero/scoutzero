@@ -80,6 +80,8 @@ export const GovernedTradeSalaryBasisZ = z
     minimumExceptionAcquisition: z.boolean().optional(),
     /** Seasons left on the Contract, counting the current Salary Cap Year. */
     contractSeasonsRemaining: z.number().int().min(1).optional(),
+    /** Named SIMULATION assumptions this result depends on (for example the trade deadline). */
+    assumptionIds: z.array(NonEmptyStringZ).optional(),
     canonLeafIds: z.array(NonEmptyStringZ),
     reasons: z.array(NonEmptyStringZ),
     proof: GovernedTradeSalaryBasisProofZ.nullable(),

@@ -102,6 +102,7 @@ function unavailable({
   asOfDate,
   salaryCapYear,
   reasons,
+  assumptionIds,
 }: {
   status: Exclude<SalaryBasisStatus, 'ready'>;
   worldId: string;
@@ -111,8 +112,10 @@ function unavailable({
   asOfDate: string;
   salaryCapYear: number;
   reasons: readonly string[];
+  assumptionIds?: readonly string[];
 }): GovernedTradeSalaryBasis {
   return GovernedTradeSalaryBasisZ.parse({
+    ...(assumptionIds?.length ? { assumptionIds: [...assumptionIds] } : {}),
     authorityVersion: 1,
     status,
     worldId,
@@ -421,28 +424,37 @@ function computeReadyBasis({
       ? simulationTradeDeadline(salaryCapYear)
       : null;
   const afterDeadline = deadline !== null && asOfDate > deadline.date;
+  const deadlineLabel = deadline
+    ? `${deadline.date}, 3 p.m. ET, a SIMULATION assumption; a trade dated that day counts as before it`
+    : '';
   if (afterDeadline && asOfDate <= closing) {
     // CBA2-L03.15: trades stop at the deadline and resume the day after the
     // last Regular Season game.
     reasons.push(
-      `No trades are allowed from the trade deadline (${deadline.date}) through the last Regular Season game (${closing}) (CBA2-L03.15).`
+      `No trades are allowed from the trade deadline (${deadlineLabel}) through the last Regular Season game (${closing}) (CBA2-L03.15).`
     );
   }
   // CBA2-L03.14: after the deadline, a player may not be traded during the
-  // last or possible last Season of the Contract. An undecided option or ETO
-  // on next Season's row makes this Season a possible last Season.
+  // last or possible last Season of the Contract. Next Season continues only
+  // when its row exists and any option on it is resolved in the continuing
+  // direction: an exercised Player or Team Option, or a declined ETO
+  // (exercising an ETO ends the Contract; governedOptionDecision.ts).
   const nextSeasonRow = state.terms.salaries.find(
     (row) =>
       row.season === toSeasonCode(salaryCapYear + 1) && !row.voidedByExtension
   );
-  const lastOrPossibleLastSeason =
-    !nextSeasonRow ||
-    (nextSeasonRow.option != null && nextSeasonRow.optionUsed !== true);
-  if (afterDeadline && lastOrPossibleLastSeason) {
+  const nextOptionUsed = nextSeasonRow?.optionUsed ?? null;
+  const nextSeasonContinues =
+    !!nextSeasonRow &&
+    (nextSeasonRow.option == null ||
+      (nextSeasonRow.option === 'ETO'
+        ? nextOptionUsed === false
+        : nextOptionUsed === true));
+  if (afterDeadline && !nextSeasonContinues) {
     reasons.push(
-      nextSeasonRow
-        ? `After the trade deadline a player cannot be traded while next Season's ${nextSeasonRow.option} is undecided, because this may be the Contract's last Season (CBA2-L03.14).`
-        : 'After the trade deadline a player cannot be traded in the last Season of the Contract (CBA2-L03.14).'
+      nextSeasonRow && nextOptionUsed === null
+        ? `After the trade deadline (${deadlineLabel}) a player cannot be traded while next Season's ${nextSeasonRow.option} is undecided, because this may be the Contract's last Season (CBA2-L03.14).`
+        : `After the trade deadline (${deadlineLabel}) a player cannot be traded in the last Season of the Contract (CBA2-L03.14).`
     );
   }
   const deadlineLeaves = afterDeadline ? ['CBA2-L03.14', 'CBA2-L03.15'] : [];
@@ -628,6 +640,7 @@ function computeReadyBasis({
       asOfDate,
       salaryCapYear,
       reasons,
+      ...(deadline ? { assumptionIds: [deadline.assumptionId] } : {}),
     });
   }
   return GovernedTradeSalaryBasisZ.parse({
@@ -651,6 +664,7 @@ function computeReadyBasis({
       ? { minimumExceptionAcquisition: true }
       : {}),
     ...contractSeasonsRemaining(state.terms, salaryCapYear),
+    ...(deadline ? { assumptionIds: [deadline.assumptionId] } : {}),
     canonLeafIds: [...new Set([...leaves, ...deadlineLeaves])],
     reasons: [],
     proof: {
