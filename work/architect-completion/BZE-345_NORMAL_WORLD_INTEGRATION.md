@@ -540,9 +540,11 @@ salary path `MINIMUM_EXCEPTION` passes only when:
 
 - the team sends no players and uses no held Traded Player Exception;
 - every incoming player's governed salary basis is marked
-  `minimumExceptionAcquisition` (signed using a Minimum exception, one or two
-  seasons, each salary at most two seasons' minimum terms, no bonuses, not a
-  two-way contract).
+  `minimumExceptionAcquisition`: the ledger says it was signed using a
+  Minimum exception, it covers one or two seasons, it has no trade bonus or
+  incentives, and it is not a two-way contract. The salary amount itself is
+  not re-checked against the minimum scale; the signing record is the
+  evidence.
 
 Matched incoming salary is the actual salary (no matching is required). The
 apron restriction table treats this path like ROOM: not applicable unless cash
