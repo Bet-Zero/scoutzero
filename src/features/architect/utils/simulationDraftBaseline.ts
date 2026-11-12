@@ -100,8 +100,17 @@ export function compileSimulationDraftBaseline(args: {
   releaseId: string;
   /** Above/at-or-below determinations for completed Apron-rule seasons. */
   apronHistory?: readonly SimulationApronHistoryRow[];
+  /**
+   * Draft years whose outright firsts are admitted. Defaults to the June 5
+   * window; a season step (C1) compiles the next window's new year with it.
+   */
+  admissionYears?: { first: number; last: number };
 }): GovernedDraftWorldBaseline {
   const { candidate, candidateSha256, seasonId, releaseId } = args;
+  const admissionYears = args.admissionYears ?? {
+    first: QUALIFIED_JUNE5_DRAFT_HORIZON.firstFutureDraftYear,
+    last: QUALIFIED_JUNE5_DRAFT_HORIZON.lastTradableDraftYear,
+  };
   if (!/^[0-9a-f]{64}$/.test(candidateSha256))
     throw new Error('Candidate digest must be a bare SHA-256 hex value.');
   if (candidate.asOf !== QUALIFIED_JUNE5_DRAFT_HORIZON.asOf)
@@ -148,16 +157,19 @@ export function compileSimulationDraftBaseline(args: {
   for (const r of candidate.records) {
     const doc = base.get(r.entitlementId)!;
     const admitted =
-      r.group === 'original-supported' &&
+      // The June 5 review grouped the year after the window as
+      // "original-outside-window"; a season step opening that year admits it
+      // by the same rule.
+      (r.group === 'original-supported' ||
+        (args.admissionYears !== undefined &&
+          r.group === 'original-outside-window')) &&
       r.originalPick !== null &&
       typeof r.reportedHolder === 'string' &&
       TEAM.test(r.reportedHolder) &&
       teams.includes(r.reportedHolder) &&
       r.originalPick.round === 1 &&
-      r.originalPick.draftYear >=
-        QUALIFIED_JUNE5_DRAFT_HORIZON.firstFutureDraftYear &&
-      r.originalPick.draftYear <=
-        QUALIFIED_JUNE5_DRAFT_HORIZON.lastTradableDraftYear &&
+      r.originalPick.draftYear >= admissionYears.first &&
+      r.originalPick.draftYear <= admissionYears.last &&
       !unresolvedIds.has(r.entitlementId) &&
       !programPicks.has(r.originalPick.id) &&
       r.retainedAssessment?.actions?.resolveConditionalOutcome?.status ===

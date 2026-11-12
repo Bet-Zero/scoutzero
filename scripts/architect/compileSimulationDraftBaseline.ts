@@ -12,6 +12,7 @@ import {
   SIMULATION_REGULAR_SEASON_FINAL_DAY,
   type SimulationApronHistoryRow,
 } from '../../src/features/architect/utils/simulationDraftBaseline';
+import { SimulationSeasonStepZ } from '../../src/schemas/simulationSeasonStep';
 import { readHardCapLabel } from '../../src/features/architect/utils/simulationHardCap';
 import { canonicalStringify } from '../../src/features/architect/utils/contractSource/deterministicDigest';
 import { loadSnapshot, DATA_DIR } from '../dev/cloudData';
@@ -20,9 +21,14 @@ import { decodeFields } from '../dev/cloudPipeline';
 const args = process.argv.slice(2);
 const [candidatePath, output] = args.filter((a) => !a.startsWith('--'));
 const exportFlag = args.find((a) => a.startsWith('--entitlements='));
+// C1: also write the July 1, 2026 season step from a private draft order file.
+const stepFlag = args
+  .find((a) => a.startsWith('--season-step='))
+  ?.slice('--season-step='.length)
+  .split(',');
 if (!candidatePath || !output)
   throw new Error(
-    'Usage: npm run architect:simulation-draft -- <private-candidate.json> <private-output.json> [--entitlements=<private-export.json>]'
+    'Usage: npm run architect:simulation-draft -- <private-candidate.json> <private-output.json> [--entitlements=<private-export.json>] [--season-step=<private-order.json>,<private-step-output.json>]'
   );
 
 // The snapshot also holds legacy entitlements; keep only the candidate's
@@ -145,6 +151,57 @@ const baseline = compileSimulationDraftBaseline({
   releaseId: 'simulation-june5-draft-v1',
   apronHistory,
 });
+if (stepFlag) {
+  const [orderPath, stepOutput] = stepFlag;
+  if (!orderPath || !stepOutput)
+    throw new Error('--season-step needs <order.json>,<step-output.json>.');
+  const order = JSON.parse(await readFile(orderPath, 'utf8'));
+  const year = Number(order.draftYear);
+  // The same admission rule, applied to the year the step opens.
+  const openedYear = year + 7;
+  const opening = compileSimulationDraftBaseline({
+    candidate,
+    candidateSha256: createHash('sha256').update(candidateBytes).digest('hex'),
+    entitlements,
+    seasonId: '2025-26',
+    releaseId: 'simulation-june5-draft-v1',
+    apronHistory,
+    admissionYears: { first: openedYear, last: openedYear },
+  });
+  const step = SimulationSeasonStepZ.parse({
+    version: 1,
+    classification: 'simulation',
+    fromSeason: '2025-26',
+    toSeason: '2026-27',
+    asOf: '2026-07-01T04:00:00.000Z',
+    draft: {
+      year,
+      completedAt: '2026-06-25T03:59:59.000Z',
+      order: order.order,
+      sources: order.sources.map(
+        (s: { slots: string; reference: string }) =>
+          `${s.slots}: ${s.reference}`
+      ),
+    },
+    nextDraftStartsAt: '2027-06-23T04:00:00.000Z',
+    opened: {
+      year: openedYear,
+      records: opening.records,
+      apron: opening.apron,
+    },
+  });
+  const stepBytes = canonicalStringify(step);
+  await writeFile(stepOutput, stepBytes, { flag: 'wx', mode: 0o600 });
+  console.log(
+    JSON.stringify({
+      seasonStep: `${step.fromSeason}->${step.toSeason}`,
+      openedYear,
+      opened: step.opened.records.length,
+      sha256: createHash('sha256').update(stepBytes).digest('hex'),
+      output: stepOutput,
+    })
+  );
+}
 const bytes = canonicalStringify(baseline);
 await writeFile(output, bytes, { flag: 'wx', mode: 0o600 });
 // Counts and digest only; no holders or pick details are printed.
