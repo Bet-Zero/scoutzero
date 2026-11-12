@@ -96,8 +96,9 @@ export function advanceSimulationDraftBaseline(args: {
   );
   const selections: SimulationDraftSelection[] = step.draft.order.map(
     (slot) => {
-      if (!teams.includes(slot.originalTeam))
-        throw new Error(`Unknown team ${slot.originalTeam} in the order.`);
+      for (const team of [slot.originalTeam, slot.holderBeforeDraft])
+        if (!teams.includes(team))
+          throw new Error(`Unknown team ${team} in the order.`);
       const record = recordsByPick.get(`${slot.originalTeam}_${year}_1st`);
       if (!record)
         return {

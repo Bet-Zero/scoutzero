@@ -279,6 +279,21 @@ describe('SIMULATION season step June 5 to July 1, 2026 (C1)', () => {
     ).toThrow(/disagrees with the June 5 holder/);
   });
 
+  it('refuses an order that names an unknown team', () => {
+    const june5 = compile();
+    const bad = step();
+    (
+      bad.draft as { order: { holderBeforeDraft: string }[] }
+    ).order[2].holderBeforeDraft = 'XXX';
+    expect(() =>
+      advanceSimulationDraftBaseline({
+        baseline: june5,
+        holders: holdersOf(june5),
+        step: bad,
+      })
+    ).toThrow(/Unknown team XXX/);
+  });
+
   it('refuses a step that does not follow the world date', () => {
     const june5 = compile();
     expect(() =>
