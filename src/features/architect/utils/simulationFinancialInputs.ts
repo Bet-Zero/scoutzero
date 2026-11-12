@@ -9,6 +9,11 @@
  *
  * Pure: no Firestore, no clock. Callers supply documents, dates and evidence.
  */
+import {
+  SimulationRareEventZ,
+  rareEventActiveOn,
+  type SimulationRareEvent,
+} from '@/schemas/simulationRareEvents';
 import type {
   SalaryLedgerLineItem,
   SalaryLedgerKind,
@@ -66,6 +71,8 @@ export interface SimulationTeamInput {
     checkedAt: string;
     evidenceReferences: string[];
   };
+  /** Private rare-event intake for this team (V1 item D5). */
+  rareEvents?: readonly SimulationRareEvent[];
 }
 
 export interface SimulationTeamResult {
@@ -227,7 +234,53 @@ export async function buildSimulationTeam(
     );
   });
 
+  // D5: rare events in effect on the world date. A documented liability is a
+  // known Apron adjustment and leaves the unidentified-exposure assumption; an
+  // unresolved signal makes the Apron book ask for review (it never adds an
+  // invented amount).
+  const asOfDay = asOf.slice(0, 10);
+  const rareEvents = (input.rareEvents ?? []).map((event) =>
+    SimulationRareEventZ.parse(event)
+  );
+  for (const event of rareEvents) {
+    if (event.team !== teamCode)
+      throw new Error(
+        `${teamCode}: rare event ${event.id} is for ${event.team}.`
+      );
+    if (!rareEventActiveOn(event, asOfDay))
+      throw new Error(
+        `${teamCode}: rare event ${event.id} is not in effect on ${asOfDay}; only events in effect on the world date are taken.`
+      );
+  }
+  const documentedLines = rareEvents
+    .filter((event) => event.status === 'documented-liability')
+    .map((event) => ({
+      ...line(
+        `rare-event:${event.id}`,
+        event.category,
+        event.label,
+        event.amount!,
+        event.evidenceReference
+      ),
+      source: {
+        authority: 'external-determination' as const,
+        reference: event.evidenceReference,
+      },
+    }));
+  const assumedCategories = (['CBA2-C07.4', 'CBA2-C07.8'] as const).filter(
+    (category) =>
+      !rareEvents.some(
+        (event) =>
+          event.category === category && event.status === 'documented-liability'
+      )
+  );
+  if (!assumedCategories.length)
+    throw new Error(
+      `${teamCode}: both rare categories are documented; this team needs no unidentified-exposure assumption, which the baseline does not support yet.`
+    );
+
   const adjustments = (incompleteRoster: number) => [
+    ...documentedLines,
     ...(bonusLines.length
       ? bonusLines
       : [
@@ -345,8 +398,15 @@ export async function buildSimulationTeam(
         reconciledInputSha256: (
           await sha256Digest(canonicalStringify(original))
         ).slice(7),
-        categories: ['CBA2-C07.4', 'CBA2-C07.8'],
-        signals: [],
+        categories: assumedCategories,
+        signals: rareEvents.map((event) => ({
+          id: event.id,
+          category: event.category,
+          effectiveFrom: event.effectiveFrom,
+          effectiveUntil: event.effectiveUntil,
+          status: event.status,
+          evidenceReference: event.evidenceReference,
+        })),
       },
     });
     const candidate = { ...team, salaryBookInputs };

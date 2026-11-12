@@ -839,3 +839,41 @@ Proof: `tests/architect/simulationAssumptions.test.tsx` (which worlds get
 which assumptions, unique ids, the toggle and the visible list) and the D3
 browser test (a new SIMULATION world shows the list; the old world shows
 nothing).
+
+## November 12: recording rare money events (V1 item D5)
+
+Rare events that change a team's money, but that the public data misses, now
+have a light intake into the SIMULATION money package. The owner reports one in
+the thread (no terminal needed). Claude adds it to a private events file kept
+next to the other private inputs (never in GitHub), rebuilds the package, and
+records the new digest:
+
+```
+npm run architect:simulation-financial -- <private-output.json> --events <private-events.json>
+```
+
+The file format is `src/schemas/simulationRareEvents.ts`. Each event names one
+team, the rule leaf, a label, the dates it is in effect and its evidence:
+
+- A grievance exposure (CBA2-C07.4) or an outstanding Required Tender to a
+  First Round Pick (CBA2-C07.8) with a known amount (`documented-liability`)
+  adds that amount to the team's Apron Team Salary. The "unidentified
+  exposure" assumption then stops covering that category for the team. Tax
+  Salary is unchanged, because both leaves are Apron adjustments only.
+- A credible report without an amount (`credible-unresolved`) stops the
+  package build with "requires review", instead of assuming it away. It is
+  resolved by recording the amount, or by removing it with a reason.
+- Only events in effect on the world date (June 5, 2026) are taken. An event
+  for an unknown team, or for a date outside its window, stops the build.
+- Disabled Player Exception grants stay post-V1 and show needs-input.
+
+A rebuilt package only affects worlds created after it is installed. Existing
+worlds keep their books (D3). Changing the live package is part of D2 and
+needs the owner's go-ahead.
+
+Proof: `tests/architect/simulationFinancialInputs.test.ts` (the amount is
+added and accepted by the package preparation, Tax Salary is unchanged, an
+unresolved signal stops the build, and malformed, wrong-team, out-of-date and
+double-category events are refused). A local rebuild with a test CHI grievance
+of $1,500,000 moved CHI's Apron Team Salary from $185,036,418 to $186,536,418.
+The test output was then deleted.
