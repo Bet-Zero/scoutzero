@@ -70,7 +70,14 @@ describe('SimulationAssumptionsNotice', () => {
     const count = simulationAssumptionsForWorld({ ...MONEY, ...DRAFT }).length;
     expect(toggle).toHaveTextContent(`SIMULATION · ${count} named assumptions`);
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    // The controlled panel always exists, hidden while collapsed, and is
+    // height-limited so it never pushes the rail off screen.
+    const panel = screen.getByTestId('simulation-assumptions-panel');
+    expect(toggle).toHaveAttribute('aria-controls', panel.id);
+    expect(panel).not.toBeVisible();
+    expect(panel.className).toMatch(/max-h-\[35vh\].*overflow-y-auto/);
     fireEvent.click(toggle);
+    expect(panel).toBeVisible();
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     const list = screen.getByTestId('simulation-assumptions-list');
     expect(list).toHaveTextContent('Trade deadline.');

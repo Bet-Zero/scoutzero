@@ -115,11 +115,15 @@ export function SimulationAssumptionsNotice({
         SIMULATION · {assumptions.length} named assumptions{' '}
         <span aria-hidden>{open ? '▴' : '▾'}</span>
       </button>
-      {open ? (
-        <div id={panelId} className="mt-2">
-          <SimulationAssumptionsList assumptions={assumptions} />
-        </div>
-      ) : null}
+      {/* Height-limited and scrollable: the rail around it does not scroll. */}
+      <div
+        id={panelId}
+        hidden={!open}
+        className="mt-2 max-h-[35vh] overflow-y-auto pr-1"
+        data-testid="simulation-assumptions-panel"
+      >
+        {open ? <SimulationAssumptionsList assumptions={assumptions} /> : null}
+      </div>
     </div>
   );
 }
