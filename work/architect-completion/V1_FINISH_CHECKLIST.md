@@ -67,7 +67,7 @@ that changes the plan.
 - [x] B2 Cash in player-plus-pick trades (with the next-season Apron test
       after the Regular Season).
 - [x] B3 Expanded TPE and below-cap TPE elections.
-- [ ] B4 Legacy 2027 conditional and ranked 2029 picks with players.
+- [x] B4 Legacy 2027 conditional and ranked 2029 picks with players.
 - [ ] B5 Remaining pick combinations (swap return ownership, reserved fallback
       picks, cross-program combinations).
 - [ ] B6 Sign-and-trade together with picks (resolve the June 5/July date rule).

@@ -80,11 +80,12 @@ export function nativeSelectionHolders(
     lastDate = transfer.asOfDate;
     const ids = new Set<string>();
     const players = transfer.playerMovements ?? [];
-    if (
-      players.length &&
-      (program.kind !== 'native-overlapping-pool-v1' || program.year !== 2028)
-    )
-      throw new Error('Mixed native trades require the admitted 2028 family.');
+    // V1 B4: ordinary Contracts travel with selections of either admitted
+    // native family (the 2028 overlapping pool or the 2029 ranked pool).
+    if (players.length && !isNativeSelectionTradeAdmitted(program))
+      throw new Error(
+        'Mixed native trades require an admitted native family (2028 overlapping or 2029 ranked).'
+      );
     if (
       new Set(players.map((p) => p.playerId)).size !== players.length ||
       new Set(players.map((p) => p.contractId)).size !== players.length ||

@@ -231,6 +231,30 @@ describe('governed Trade Machine salary paths', () => {
       expect(result.maximumIncoming).toBe(10_000_000);
     });
 
+    it('keeps a held Standard TPE as its own component beside the Expanded TPE', () => {
+      // Pinned behaviour (B3 review follow-up): like the Standard path, the
+      // Expanded limit covers only its own incoming players; a held Standard
+      // TPE absorbs its assigned player separately (row F applies to it).
+      const result = expanded(20_000_000, 20_000_000 + A, {
+        heldStandardTpeComponents: [
+          {
+            tpeId: 'held-tpe',
+            capacity: 3_000_000,
+            incomingPlayers: [
+              { playerId: 'other', playerName: 'Other', salary: 2_000_000 },
+            ],
+          },
+        ],
+      });
+      expect(result.status).toBe('PASS');
+      expect(result.actualIncoming).toBe(20_000_000 + A);
+      expect(result.components.map((c) => [c.kind, c.path])).toEqual([
+        ['ELECTED_PATH', 'EXPANDED_TPE'],
+        ['HELD_STANDARD_TPE', 'STANDARD_TPE'],
+      ]);
+      expect(result.components[1].usedIncoming).toBe(2_000_000);
+    });
+
     it('needs players both ways and exact pre-trade Salary', () => {
       expect(
         expanded(5_000_000, 0, { incomingMatchingPlayers: [] }).status

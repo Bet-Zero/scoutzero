@@ -124,6 +124,7 @@ describe('bounded ordinary player consideration', () => {
   }
   it.each([
     'unconditional',
+    'conditional-2027',
     'protection-programs',
     'native-selections',
     'ordered-swap-rights',
@@ -340,7 +341,7 @@ describe('bounded ordinary player consideration', () => {
         simulationPlayerMovements(f.args, branch, f.state)
       ).toThrow();
   });
-  it.each(['conditional-2027', 'swap-program', 'apron-lifecycle'])(
+  it.each(['swap-program', 'apron-lifecycle'])(
     'preserves the %s player restriction',
     (branch) => {
       const f = fixture();
@@ -353,6 +354,7 @@ describe('bounded ordinary player consideration', () => {
 
 describe.each([
   'unconditional',
+  'conditional-2027',
   'protection-programs',
   'native-selections',
   'ordered-swap-rights',

@@ -718,3 +718,37 @@ authentication, and the June next-season pair
 ($8,000,000) for Grant Williams ($13,645,500) on June 5 under the Expanded
 TPE (a Standard TPE allows only $8,250,000), then checks the 2025-26 row E
 hard cap at $195,945,000 and the 2026-27 one at $209,015,000, and reloads.
+
+## November 12: players with the legacy 2027 conditional and ranked 2029 picks (V1 item B4)
+
+Ordinary standard and Two-Way Contracts could already travel with original
+firsts, complete protection programs, the unresolved 2026 swap rights and the
+resolved 2028 overlapping selections. Two families still refused them:
+
+- **Legacy 2027 conditional** (`conditional-2027`). Players are now admitted.
+  The family's own rules are unchanged: the conditional CHI 2027 first still
+  cannot be traded, and its Stepien branches still decide the review (a trade
+  that leaves the adverse 2027/2028 branch uncovered stays blocked with or
+  without a player).
+- **Ranked 2029 native pool** (`native-ranked-pool-v1`). Selections and
+  Contracts now move in one reviewed transaction, like the 2028 family. The
+  claim result and positions never change; the exchange must still be
+  complete (every team gives and receives), and each Contract moves once.
+  Compare starts the money comparison after the 2029 allocation event, which
+  has no cap snapshot, exactly as it already did for 2028.
+
+Whole-trade legality (salary matching, aprons, roster) stays with the ordinary
+validators, as for the other mixed families.
+
+Proof: `tests/architect/retainedDraftSimulation.test.ts` (conditional 2027
+with a player: adverse branch blocked, 2030 alternative ready, CHI 2027 still
+refused); `tests/architect/nativeDraftPool.test.ts` (ranked 2029 mixed replay,
+receipt, incomplete and duplicate refusals, Compare after the allocation);
+`tests/architect/draftSimulationPlayers.test.ts` (Two-Way and held-TPE cases
+now also run for `conditional-2027`). The browser specs for these synthetic
+families need the pinned private review catalogue, which is not in this
+environment; the final acceptance battery (E1) covers browser proof.
+
+B3 review follow-ups in the same change: a held Standard TPE stays its own
+component beside the Expanded TPE (`tradeSalaryMatchingPaths.test.ts`), and
+forged row E ledger entries are refused (`tradeApronRestrictions.test.ts`).
