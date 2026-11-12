@@ -249,6 +249,333 @@ describe('governed Trade Machine salary paths', () => {
     ).toBe('FAIL');
   });
 
+  describe('free-agent exception paths', () => {
+    const MLE = 14_104_000;
+    const BAE = 5_134_000;
+    const ROOM = 8_781_000;
+    const incoming = (salary: number, seasons: number | null = 2) => ({
+      playerId: 'acquired',
+      playerName: 'Acquired',
+      salary,
+      contractSeasonsRemaining: seasons,
+    });
+    const balances = (overrides = {}) => ({
+      mle: {
+        enabled: true,
+        totalAmount: MLE,
+        usedAmount: 0,
+        remainingAmount: MLE,
+        seasonAmount: MLE,
+      },
+      bae: {
+        enabled: true,
+        totalAmount: BAE,
+        usedAmount: 0,
+        remainingAmount: BAE,
+        seasonAmount: BAE,
+      },
+      room: {
+        enabled: true,
+        totalAmount: ROOM,
+        usedAmount: 0,
+        remainingAmount: ROOM,
+        seasonAmount: ROOM,
+      },
+      ...overrides,
+    });
+    const exception = (
+      path: TradeSalaryMatchingPath,
+      overrides: Partial<
+        Parameters<typeof evaluateTradeSalaryMatchingPath>[0]
+      > = {}
+    ) =>
+      evaluate({
+        election: election(path, {}, 190_000_000),
+        outgoingPlayers: [],
+        incomingMatchingPlayers: [incoming(MLE)],
+        teamSalary: 175_000_000,
+        capTeamSalary: 175_000_000,
+        exceptionBalances: balances(),
+        ...overrides,
+      });
+
+    it('passes the Non-Taxpayer MLE at its remaining amount and fails one dollar above', () => {
+      const pass = exception('NON_TAXPAYER_MLE');
+      expect(pass.status).toBe('PASS');
+      expect(pass.maximumIncoming).toBe(MLE);
+      expect(pass.components).toEqual([
+        expect.objectContaining({
+          componentId: 'exception:mle',
+          path: 'NON_TAXPAYER_MLE',
+          remaining: 0,
+        }),
+      ]);
+      const above = exception('NON_TAXPAYER_MLE', {
+        incomingMatchingPlayers: [incoming(MLE + 1)],
+      });
+      expect(above.status).toBe('FAIL');
+      expect(above.violations).toEqual([
+        'Incoming Salary exceeds the remaining Non-Taxpayer Mid-Level Exception by $1.',
+      ]);
+    });
+
+    it('uses only the remaining balance after earlier use', () => {
+      const partlyUsed = balances({
+        mle: {
+          enabled: true,
+          totalAmount: MLE,
+          usedAmount: MLE - 4_000_000,
+          remainingAmount: 4_000_000,
+          seasonAmount: MLE,
+        },
+      });
+      expect(
+        exception('NON_TAXPAYER_MLE', {
+          exceptionBalances: partlyUsed,
+          incomingMatchingPlayers: [incoming(4_000_000)],
+        }).status
+      ).toBe('PASS');
+      expect(
+        exception('NON_TAXPAYER_MLE', {
+          exceptionBalances: partlyUsed,
+          incomingMatchingPlayers: [incoming(4_000_001)],
+        }).status
+      ).toBe('FAIL');
+    });
+
+    it('blocks every exception path from January 10', () => {
+      for (const path of [
+        'NON_TAXPAYER_MLE',
+        'BI_ANNUAL_EXCEPTION',
+        'ROOM_MLE',
+      ] as const) {
+        const before = exception(path, {
+          transactionDate: '2027-01-09',
+          incomingMatchingPlayers: [incoming(1_000_000)],
+        });
+        expect(before.status).toBe('PASS');
+        const from = exception(path, {
+          transactionDate: '2027-01-10',
+          incomingMatchingPlayers: [incoming(1_000_000)],
+        });
+        expect(from.status).toBe('FAIL');
+        expect(from.violations[0]).toContain('January 10');
+      }
+    });
+
+    it('keeps the Non-Taxpayer MLE and BAE at or below the First Apron', () => {
+      for (const path of ['NON_TAXPAYER_MLE', 'BI_ANNUAL_EXCEPTION'] as const) {
+        const small = [incoming(1_000_000)];
+        expect(
+          exception(path, {
+            election: election(path, {}, FIRST_APRON),
+            incomingMatchingPlayers: small,
+          }).status
+        ).toBe('PASS');
+        const over = exception(path, {
+          election: election(path, {}, FIRST_APRON + 1),
+          incomingMatchingPlayers: small,
+        });
+        expect(over.status).toBe('FAIL');
+        expect(over.violations).toContainEqual(
+          expect.stringContaining('First Apron')
+        );
+      }
+      // The Room MLE has no Apron limit of its own.
+      expect(
+        exception('ROOM_MLE', {
+          election: election('ROOM_MLE', {}, FIRST_APRON + 1),
+          incomingMatchingPlayers: [incoming(1_000_000)],
+        }).status
+      ).toBe('PASS');
+    });
+
+    it("applies each exception's Contract-length limit", () => {
+      expect(
+        exception('BI_ANNUAL_EXCEPTION', {
+          incomingMatchingPlayers: [incoming(BAE, 2)],
+        }).status
+      ).toBe('PASS');
+      expect(
+        exception('BI_ANNUAL_EXCEPTION', {
+          incomingMatchingPlayers: [incoming(BAE, 3)],
+        }).violations
+      ).toEqual([
+        "Acquired's Contract runs longer than the 2 Seasons the Bi-annual Exception allows.",
+      ]);
+      expect(
+        exception('NON_TAXPAYER_MLE', {
+          incomingMatchingPlayers: [incoming(MLE, 5)],
+        }).status
+      ).toBe('FAIL');
+      expect(
+        exception('ROOM_MLE', {
+          incomingMatchingPlayers: [incoming(1_000_000, 4)],
+        }).status
+      ).toBe('FAIL');
+    });
+
+    it('refuses the BAE in consecutive Seasons', () => {
+      const usedLastSeason = balances({
+        bae: {
+          enabled: true,
+          totalAmount: BAE,
+          usedAmount: 0,
+          remainingAmount: BAE,
+          seasonAmount: BAE,
+          lastUsedSeasonEndYear: 2026,
+        },
+      });
+      const result = exception('BI_ANNUAL_EXCEPTION', {
+        exceptionBalances: usedLastSeason,
+        incomingMatchingPlayers: [incoming(BAE)],
+      });
+      expect(result.status).toBe('FAIL');
+      expect(result.violations[0]).toContain('consecutive');
+    });
+
+    it('keeps the Mid-Level flavors and the Room MLE/BAE exclusive within a Season', () => {
+      const used = (key: 'mle' | 'tpmle' | 'bae' | 'room') =>
+        balances({
+          [key]: {
+            enabled: true,
+            totalAmount: 1_000_000,
+            usedAmount: 1,
+            remainingAmount: 999_999,
+            seasonAmount: 1_000_000,
+          },
+        });
+      const small = [incoming(1_000)];
+      expect(
+        exception('NON_TAXPAYER_MLE', {
+          exceptionBalances: used('tpmle'),
+          incomingMatchingPlayers: small,
+        }).violations
+      ).toEqual([
+        'This team already used its Taxpayer Mid-Level Exception this Season, so it cannot also use the Non-Taxpayer Mid-Level Exception.',
+      ]);
+      expect(
+        exception('ROOM_MLE', {
+          exceptionBalances: used('bae'),
+          incomingMatchingPlayers: small,
+        }).status
+      ).toBe('FAIL');
+      expect(
+        exception('BI_ANNUAL_EXCEPTION', {
+          exceptionBalances: used('room'),
+          incomingMatchingPlayers: small,
+        }).status
+      ).toBe('FAIL');
+      // The NTMLE and BAE can both be used in one Season.
+      expect(
+        exception('BI_ANNUAL_EXCEPTION', {
+          exceptionBalances: used('mle'),
+          incomingMatchingPlayers: small,
+        }).status
+      ).toBe('PASS');
+    });
+
+    it('requires the over-cap condition for the MLE and BAE but not the Room MLE', () => {
+      const wellBelowCap = SALARY_CAP - MLE;
+      expect(
+        exception('NON_TAXPAYER_MLE', { capTeamSalary: wellBelowCap })
+          .violations
+      ).toContainEqual(expect.stringContaining('at the Cap'));
+      expect(
+        exception('NON_TAXPAYER_MLE', { capTeamSalary: wellBelowCap + 1 })
+          .status
+      ).toBe('PASS');
+      // The Cap book decides, not the (here lower) Apron book.
+      expect(
+        exception('NON_TAXPAYER_MLE', {
+          teamSalary: 135_000_000,
+          capTeamSalary: wellBelowCap + 1,
+        }).status
+      ).toBe('PASS');
+      expect(
+        exception('NON_TAXPAYER_MLE', { capTeamSalary: null }).missingInputs
+      ).toEqual(['capTeamSalary']);
+      expect(
+        exception('ROOM_MLE', {
+          capTeamSalary: 150_000_000,
+          incomingMatchingPlayers: [incoming(1_000_000)],
+        }).status
+      ).toBe('PASS');
+    });
+
+    it('fails closed on missing balances, disabled exceptions, unknown terms and wrong structure', () => {
+      expect(
+        exception('NON_TAXPAYER_MLE', { exceptionBalances: {} }).missingInputs
+      ).toEqual(['exceptions.mle']);
+      expect(
+        exception('NON_TAXPAYER_MLE', {
+          incomingMatchingPlayers: [incoming(1_000_000, null)],
+        }).missingInputs
+      ).toEqual(['Acquired.contractSeasonsRemaining']);
+      expect(
+        exception('NON_TAXPAYER_MLE', {
+          exceptionBalances: balances({
+            mle: {
+              enabled: false,
+              totalAmount: MLE,
+              usedAmount: 0,
+              remainingAmount: MLE,
+              seasonAmount: MLE,
+            },
+          }),
+        }).violations
+      ).toEqual([
+        'This team has no Non-Taxpayer Mid-Level Exception available.',
+      ]);
+      expect(
+        exception('NON_TAXPAYER_MLE', {
+          election: election(
+            'NON_TAXPAYER_MLE',
+            { outgoing: 1_000_000 },
+            190_000_000
+          ),
+          outgoingPlayers: [{ playerId: 'outgoing', playerName: 'Outgoing' }],
+        }).status
+      ).toBe('FAIL');
+      expect(
+        exception('NON_TAXPAYER_MLE', { incomingMatchingPlayers: [] }).status
+      ).toBe('FAIL');
+      expect(
+        exception('NON_TAXPAYER_MLE', {
+          exceptionBalances: balances({
+            mle: {
+              enabled: true,
+              totalAmount: MLE,
+              usedAmount: 0,
+              remainingAmount: MLE,
+              seasonAmount: null,
+            },
+          }),
+        }).missingInputs
+      ).toEqual(['seasonAmount.mle']);
+    });
+
+    it("refuses an exception record holding another Mid-Level flavor's amount", () => {
+      // A Taxpayer MLE amount stored under the Non-Taxpayer key.
+      const result = exception('NON_TAXPAYER_MLE', {
+        exceptionBalances: balances({
+          mle: {
+            enabled: true,
+            totalAmount: 5_685_000,
+            usedAmount: 0,
+            remainingAmount: 5_685_000,
+            seasonAmount: MLE,
+          },
+        }),
+        incomingMatchingPlayers: [incoming(1_000_000)],
+      });
+      expect(result.status).toBe('FAIL');
+      expect(result.violations[0]).toContain(
+        "does not match this Season's amount"
+      );
+    });
+  });
+
   it('passes Room path at room plus $250,000', () => {
     const result = evaluate({
       election: election('ROOM'),

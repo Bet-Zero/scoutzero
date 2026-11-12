@@ -16,7 +16,10 @@ import type {
   TradeTeam,
   TradeValidatorContext,
 } from '@/features/architect/utils/tradeMachine/constants/types';
-import type { TradeSalaryMatchingPath } from '@/schemas/tradeSalaryMatchingPath';
+import {
+  isExceptionTradePath,
+  type TradeSalaryMatchingPath,
+} from '@/schemas/tradeSalaryMatchingPath';
 import type { TradeSalaryPathEvaluation } from './tradeSalaryMatchingPaths';
 import { normalizeTradeApronEnvelopeDate } from './tradeApronDate';
 import { parseTradeHardCapLedger } from './tradeHardCapLedgerAuthority';
@@ -352,10 +355,35 @@ export function evaluateTradeApronRestriction({
       salaryCapYear: context.currentYear ?? null,
     });
   }
-  // Room and the Minimum Exception attach no Apron restriction of their own;
-  // paying cash or a sign-and-trade still does.
+  // The free-agent exception paths check their First Apron limit against the
+  // elected post-assignment Apron Team Salary, so that amount must equal the
+  // validator's own projection before the path is exempted below.
+  if (isExceptionTradePath(path)) {
+    const elected = finiteMoney(pathEvaluation.postAssignmentApronTeamSalary);
+    const projected = finiteMoney(team.projectedSalary);
+    if (elected === null || projected === null || elected !== projected) {
+      return result({
+        status: 'NEEDS_INPUT',
+        salaryMatchingPath: path,
+        postTransactionApronTeamSalary: elected,
+        transactionDate: context.tradeDate ?? null,
+        salaryCapYear: context.currentYear ?? null,
+        missingInputs: [
+          elected === null || projected === null
+            ? 'postAssignmentApronTeamSalary'
+            : 'postAssignmentApronTeamSalary.reconciliation',
+        ],
+      });
+    }
+  }
+  // Room, the Minimum Exception and the free-agent exception paths attach no
+  // trade-row restriction of their own (the exception paths check their First
+  // Apron limit in the salary path, and Apply records their hard cap like a
+  // signing); paying cash or a sign-and-trade still does.
   if (
-    (path === 'ROOM' || path === 'MINIMUM_EXCEPTION') &&
+    (path === 'ROOM' ||
+      path === 'MINIMUM_EXCEPTION' ||
+      isExceptionTradePath(path)) &&
     !usesSavedWorldSignAndTradeAuthority &&
     !paysCash
   ) {

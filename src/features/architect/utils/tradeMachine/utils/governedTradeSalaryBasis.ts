@@ -212,6 +212,19 @@ function isMinimumExceptionContract(terms: GovernedContractState['terms']) {
   );
 }
 
+function contractSeasonsRemaining(
+  terms: GovernedContractState['terms'],
+  salaryCapYear: number
+): { contractSeasonsRemaining?: number } {
+  const remaining = terms.salaries.filter((row) => {
+    const endYear = toEndYear(row.season);
+    return (
+      !row.voidedByExtension && endYear != null && endYear >= salaryCapYear
+    );
+  }).length;
+  return remaining > 0 ? { contractSeasonsRemaining: remaining } : {};
+}
+
 function hasNonzeroBonus(row: ContractSalaryTerm): boolean {
   return (
     Number(row.tradeBonus ?? 0) !== 0 ||
@@ -598,6 +611,7 @@ function computeReadyBasis({
     ...(!twoWay && isMinimumExceptionContract(state.terms)
       ? { minimumExceptionAcquisition: true }
       : {}),
+    ...contractSeasonsRemaining(state.terms, salaryCapYear),
     canonLeafIds: [...new Set(leaves)],
     reasons: [],
     proof: {

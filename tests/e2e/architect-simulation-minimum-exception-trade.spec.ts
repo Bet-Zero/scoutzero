@@ -7,6 +7,10 @@
  * without sending a player, by electing the Minimum Exception path. CLE uses
  * a Standard TPE path for its outgoing player. Tomlin's CBA2-C07.3 Apron
  * uplift moves with him. A non-qualifying player is refused on that path.
+ *
+ * Before that, CHI elects its Non-Taxpayer Mid-Level Exception for the same
+ * player: on June 5 that exception prorates daily (from January 10), which
+ * V1 does not model, so validation refuses it and Apply stays disabled.
  */
 import {
   expect as baseExpect,
@@ -132,6 +136,35 @@ test('SIMULATION world: a team takes a Minimum Exception player without sending 
   const chi = dialog.getByTestId('trade-team-card-CHI');
   const cle = dialog.getByTestId('trade-team-card-CLE');
   await expect(chi).toContainText(/TAX SALARY\s*\$\d/i);
+  // CHI holds its 2025-26 Non-Taxpayer MLE in the SIMULATION books.
+  expect(before.CHI.exceptions.mle).toMatchObject({
+    enabled: true,
+    totalAmount: 14_104_000,
+  });
+  await chi
+    .getByLabel('Elected path', { exact: true })
+    .selectOption('NON_TAXPAYER_MLE');
+  await chi
+    .getByLabel('Post-assignment Apron Team Salary', { exact: true })
+    .fill(String(expected.CHI));
+  await cle
+    .getByLabel('Elected path', { exact: true })
+    .selectOption('STANDARD_TPE');
+  await cle
+    .getByLabel('Post-assignment Apron Team Salary', { exact: true })
+    .fill(String(expected.CLE));
+  await cle
+    .getByLabel(new RegExp(`^${TOMLIN.name} exact pre-trade Salary$`, 'i'))
+    .fill(String(TOMLIN.salary));
+  await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+  await expect(dialog).toContainText(
+    /From January 10 the Non-Taxpayer Mid-Level Exception prorates daily/,
+    { timeout: 60000 }
+  );
+  await expect(
+    dialog.getByRole('button', { name: /^Apply Trade$/i })
+  ).toBeDisabled();
+
   await chi
     .getByLabel('Elected path', { exact: true })
     .selectOption('MINIMUM_EXCEPTION');

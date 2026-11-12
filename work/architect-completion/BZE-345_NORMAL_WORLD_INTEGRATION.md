@@ -557,7 +557,59 @@ Proof: unit tests in `tests/trade/tradeSalaryMatchingPaths.test.ts` and
 Nae'Qwan Tomlin to CHI; CHI elects the Minimum Exception, Apron totals
 reconcile and CHI's hard-cap ledger does not change).
 
+Correction (November 12): when this first merged, the browser proof passed
+through an older per-player "FA Exception" shortcut that the validator chose
+by itself, so CHI's elected path was never evaluated. The next section closes
+that shortcut, and the same browser test now runs the Minimum Exception path.
+
 Not yet modelled (later B1 work): a team that sends players and also takes a
 minimum player at $0 in the same trade; the CBA-A10.2 aggregation limit on
 players acquired with an exception; the Non-Taxpayer, Bi-annual and Room
 Mid-Level exceptions in trades (needs daily proration from January 10).
+
+## November 12: Mid-Level and Bi-annual Exceptions in trades (V1 item B1, part 2)
+
+A team that sends no players may take players into one of its free-agent
+exceptions. The new governed salary paths are `NON_TAXPAYER_MLE`,
+`BI_ANNUAL_EXCEPTION` and `ROOM_MLE` (the Taxpayer MLE is signing-only).
+
+Validation (`tradeSalaryMatchingPaths.ts`) passes only when all of these hold:
+
+- no player is sent, no held TPE is used, and at least one player comes in;
+- the trade date is before January 10 of the Salary Cap Year. From January 10
+  these exceptions prorate daily; that proration is not modelled, so the
+  exception cannot be used from then on (the same limit governed signings
+  already have);
+- the team's exception record is this Season's official amount for that
+  exception (a record holding another Mid-Level flavor's amount is refused),
+  it is enabled, and incoming Salary fits its remaining balance;
+- one Mid-Level flavor per Season, and the Room MLE and BAE exclude each other
+  (the same exclusivity the signing rules apply); the BAE is not used in
+  consecutive Seasons;
+- the Non-Taxpayer MLE and BAE need Team Salary at the Cap or below it by
+  less than the exception amount, and must leave Apron Team Salary at or below
+  the First Apron;
+- each incoming Contract has no more Seasons left than the exception allows
+  (4, 2 and 3). SIMULATION assumption: the signing term limit is applied to an
+  acquired Contract. It can refuse a legal trade, never allow an illegal one.
+
+Apply (`applyTradeExceptionAcquisitions`) consumes the incoming Salary from the
+exception, records the BAE Season, and for the Non-Taxpayer MLE and BAE sets
+the same First Apron hard cap a signing with that exception sets.
+
+The per-player "FA Exception" bucket shortcut is closed in governed trades: it
+is no longer auto-selected, choosing it is refused, and players it marked are
+matched by the team's elected path like any other player. It skipped every
+rule above and consumed nothing at Apply.
+
+Proof: unit tests in `tests/trade/tradeSalaryMatchingPaths.test.ts` and
+`tests/trade/tradeExceptionAcquisition.test.ts`; the browser test
+`architect-simulation-minimum-exception-trade.spec.ts` now first elects CHI's
+Non-Taxpayer MLE on June 5 and checks the January 10 refusal (Apply stays
+disabled), then completes the Minimum Exception trade through the governed
+path. The four other SIMULATION browser tests still pass.
+
+Not covered here: a trade on or after January 10 (needs the proration rule),
+the CBA-A10.2 aggregation wait for exception-acquired players, and the
+correctness of exception records after a Season rollover (the rollover keeps
+each exception's enabled flag from the year before; that belongs to C1).

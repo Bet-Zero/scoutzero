@@ -3,7 +3,10 @@
  */
 import { isTwoWayTradePlayer } from '../tradeMachine/utils/twoWayTradeSalary';
 import { GovernedTradeSalaryBasisZ } from '@/schemas/governedTradeSalaryBasis';
-import { TradeSalaryMatchingElectionZ } from '@/schemas/tradeSalaryMatchingPath';
+import {
+  TradeSalaryMatchingElectionZ,
+  isExceptionTradePath,
+} from '@/schemas/tradeSalaryMatchingPath';
 import { getTeamTpeList } from '../persistenceContracts';
 import { normalizeCurrentStatePlayerContract } from '../mutationPipeline.helpers';
 import { mutationSnapshotText } from '../mutationPipeline.snapshotDigest';
@@ -49,7 +52,8 @@ export function simulationPlayerMovements(
     path === 'STANDARD_TPE' ||
     path === 'AGGREGATED_STANDARD_TPE' ||
     path === 'ROOM' ||
-    path === 'MINIMUM_EXCEPTION';
+    path === 'MINIMUM_EXCEPTION' ||
+    isExceptionTradePath(path);
   if (
     hasPlayers &&
     (args.payload.capProjections != null ||

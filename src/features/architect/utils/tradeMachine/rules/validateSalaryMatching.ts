@@ -25,12 +25,16 @@ import {
 } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
 import { SECOND_APRON_SALARY_MISMATCH } from '@/features/architect/utils/tradeMachine/constants/secondApronMessages';
 import { getTeamTpeList } from '@/features/architect/utils/persistenceContracts';
+import { getCanonicalExceptionAvailability } from '@/features/architect/utils/exceptions/exceptionOwnership';
+import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile/capRulesProfile';
+import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { isSecondApronTeam } from '@/features/architect/utils/tradeMachine/utils/capUtils';
 import { isTwoWayTradePlayer } from '@/features/architect/utils/tradeMachine/utils/twoWayTradeSalary';
 import {
   evaluateTradeSalaryMatchingPath,
   type HeldStandardTpeComponentInput,
   type TradeSalaryPathEvaluation,
+  type TradeExceptionBalances,
   type TradeSalaryPathInputPlayer,
 } from '@/features/architect/utils/tradeMachine/utils/tradeSalaryMatchingPaths';
 import type { TradeSalaryMatchingElection } from '@/schemas/tradeSalaryMatchingPath';
@@ -121,6 +125,61 @@ type TpeUsage = {
   assignedPlayers: SalaryMatchingPlayer[];
   totalAssigned: number;
 };
+
+/**
+ * Exception-path terms read only from the governed salary basis (loaded from
+ * the sender's Contract ledger), never from client player fields.
+ */
+function governedAcquisitionTerms(basis: unknown) {
+  const parsed = GovernedTradeSalaryBasisZ.safeParse(basis).data;
+  return {
+    minimumExceptionAcquisition: parsed?.minimumExceptionAcquisition === true,
+    contractSeasonsRemaining: parsed?.contractSeasonsRemaining ?? null,
+  };
+}
+
+/** The team's own free-agent exception balances, by canonical key. */
+function governedExceptionBalances(
+  teamData: SalaryMatchingTeamData | undefined,
+  salaryCapYear: unknown
+): TradeExceptionBalances {
+  const balances: TradeExceptionBalances = {};
+  if (!teamData) return balances;
+  const yearKey =
+    typeof salaryCapYear === 'string' && salaryCapYear.includes('-')
+      ? toEndYear(salaryCapYear)
+      : Number(salaryCapYear);
+  let amounts: Partial<Record<'mle' | 'tpmle' | 'bae' | 'room', number>> = {};
+  try {
+    const exceptions = yearKey ? getCapRulesForYear(yearKey).exceptions : null;
+    if (exceptions) {
+      amounts = {
+        mle: exceptions.fullMLE,
+        tpmle: exceptions.taxpayerMLE,
+        bae: exceptions.bae,
+        room: exceptions.roomMLE,
+      };
+    }
+  } catch {
+    amounts = {};
+  }
+  for (const key of ['mle', 'tpmle', 'bae', 'room'] as const) {
+    const availability = getCanonicalExceptionAvailability(teamData, key);
+    if (!availability.present) continue;
+    balances[key] = {
+      enabled: availability.enabled,
+      totalAmount: availability.totalAmount,
+      usedAmount: availability.usedAmount,
+      remainingAmount: availability.remainingAmount,
+      lastUsedSeasonEndYear: availability.entry?.lastUsedSeasonEndYear ?? null,
+      seasonAmount:
+        Number.isFinite(amounts[key]) && Number(amounts[key]) > 0
+          ? Number(amounts[key])
+          : null,
+    };
+  }
+  return balances;
+}
 
 function toFiniteNumber(value: unknown): number {
   const numericValue = Number(value);
@@ -384,6 +443,7 @@ export function validateSalaryMatching(
   }
 
   if (
+    !usesGovernedTradeSalaryPath &&
     team.absorptionMode === 'FA_EXCEPTION' &&
     team.bucketType &&
     hasFaExceptionEligibleIncoming
@@ -620,7 +680,10 @@ export function validateSalaryMatching(
     }
   }
 
-  const faExceptionValidation = team.faExceptionValidation || null;
+  // Governed paths never use the per-player FA Exception bucket shortcut.
+  const faExceptionValidation = usesGovernedTradeSalaryPath
+    ? null
+    : team.faExceptionValidation || null;
   const faExceptionPlayers = incomingPlayers.filter(
     (player) =>
       !isTwoWayTradePlayer(player) && player.absorptionMode === 'FA_EXCEPTION'
@@ -704,8 +767,7 @@ export function validateSalaryMatching(
           (player) =>
             !isTwoWayTradePlayer(player) &&
             player.absorptionMode !== 'TPE' &&
-            !player.tpeId &&
-            player.absorptionMode !== 'FA_EXCEPTION'
+            !player.tpeId
         )
         .map((player) => ({
           playerId: getPlayerIdentity(player),
@@ -713,11 +775,10 @@ export function validateSalaryMatching(
           salary: toFiniteNumber(resolveIncomingTradeSalary(player)),
           // Only the governed salary basis (loaded from the sender's
           // Contract ledger) can qualify a Minimum Exception acquisition.
-          minimumExceptionAcquisition:
-            GovernedTradeSalaryBasisZ.safeParse(
-              (player as { governedTradeSalaryBasis?: unknown })
-                .governedTradeSalaryBasis
-            ).data?.minimumExceptionAcquisition === true,
+          ...governedAcquisitionTerms(
+            (player as { governedTradeSalaryBasis?: unknown })
+              .governedTradeSalaryBasis
+          ),
         }));
 
     pathEvaluation = evaluateTradeSalaryMatchingPath({
@@ -735,6 +796,13 @@ export function validateSalaryMatching(
       firstApron: actualFirstApron,
       transactionDate: context.tradeDate ?? team.context?.tradeDate,
       salaryCapYear: context.yearKey ?? team.context?.yearKey,
+      exceptionBalances: governedExceptionBalances(
+        team.team,
+        context.yearKey ?? team.context?.yearKey
+      ),
+      // The Cap book, not the Apron book used for matching above.
+      capTeamSalary:
+        typeof team.team?.teamSalary === 'number' ? team.team.teamSalary : null,
     });
     if (pathEvaluation.status === 'NEEDS_INPUT') {
       const message = `Salary path needs exact input: ${pathEvaluation.missingInputs.join(', ')}`;

@@ -7,7 +7,24 @@ export const TradeSalaryMatchingPathZ = z.enum([
   // Every incoming player is acquired with the Minimum Exception and no
   // player is sent: no salary is matched (incoming trade salary counts $0).
   'MINIMUM_EXCEPTION',
+  // The team sends no players and takes the incoming Salary into one of its
+  // free-agent exceptions (CBA canon 7.3). Before January 10 only.
+  'NON_TAXPAYER_MLE',
+  'BI_ANNUAL_EXCEPTION',
+  'ROOM_MLE',
 ]);
+
+/** Paths that consume a team's free-agent exception balance. */
+export const EXCEPTION_TRADE_PATHS = [
+  'NON_TAXPAYER_MLE',
+  'BI_ANNUAL_EXCEPTION',
+  'ROOM_MLE',
+] as const;
+export type ExceptionTradePath = (typeof EXCEPTION_TRADE_PATHS)[number];
+export const isExceptionTradePath = (
+  path: unknown
+): path is ExceptionTradePath =>
+  (EXCEPTION_TRADE_PATHS as readonly unknown[]).includes(path);
 
 export const TradeSalaryMatchingElectionZ = z
   .object({

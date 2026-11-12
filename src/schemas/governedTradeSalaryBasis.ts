@@ -78,6 +78,8 @@ export const GovernedTradeSalaryBasisZ = z
     twoWayContractEndYear: z.number().int().optional(),
     /** The Contract can be acquired with the Minimum Exception ($0 incoming). */
     minimumExceptionAcquisition: z.boolean().optional(),
+    /** Seasons left on the Contract, counting the current Salary Cap Year. */
+    contractSeasonsRemaining: z.number().int().min(1).optional(),
     canonLeafIds: z.array(NonEmptyStringZ),
     reasons: z.array(NonEmptyStringZ),
     proof: GovernedTradeSalaryBasisProofZ.nullable(),
