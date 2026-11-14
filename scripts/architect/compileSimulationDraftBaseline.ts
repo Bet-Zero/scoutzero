@@ -12,6 +12,7 @@ import {
   SIMULATION_REGULAR_SEASON_FINAL_DAY,
   type SimulationApronHistoryRow,
 } from '../../src/features/architect/utils/simulationDraftBaseline';
+import { simulationPickStatuses } from '../../src/features/architect/utils/simulationPickStatus';
 import { SimulationSeasonStepZ } from '../../src/schemas/simulationSeasonStep';
 import { readHardCapLabel } from '../../src/features/architect/utils/simulationHardCap';
 import { canonicalStringify } from '../../src/features/architect/utils/contractSource/deterministicDigest';
@@ -209,7 +210,10 @@ console.log(
   JSON.stringify({
     classification: baseline.classification,
     identities: baseline.identities.length,
-    tradeable: baseline.records.length,
+    admitted: baseline.records.length,
+    currentlyTradeable: Object.values(simulationPickStatuses(baseline)).filter(
+      (s) => s.tradeable
+    ).length,
     unresolved: baseline.unresolved.length,
     apronHistoryRows: apronHistory.length,
     apronHistoryDerivedFromHardCaps: derived,

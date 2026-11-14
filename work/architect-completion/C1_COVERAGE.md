@@ -7,16 +7,24 @@ private SIMULATION draft package. Counts only; no private data is copied here.
 
 ## The 278 rights by family
 
-| Family                                                     | Tradeable now | Held back | Unresolved evidence |   Total | Draft years |
-| ---------------------------------------------------------- | ------------: | --------: | ------------------: | ------: | ----------- |
-| Outright first                                             |           133 |        26 |                   5 |     164 | 2026-2032   |
-| Protected first (protection already settled)               |             3 |        15 |                   1 |      19 | 2026-2030   |
-| Outright first, 2033                                       |             0 |        27 |                   3 |      30 | 2033        |
-| Encumbered pick (owed on under another right)              |             0 |        19 |                   4 |      23 | 2026-2031   |
-| Pick inside a pool                                         |             0 |         4 |                   0 |       4 | 2026-2030   |
-| Pool right (receives the more or less favorable of 2 or 3) |             0 |         4 |                   7 |      11 | 2026-2030   |
-| Swap right                                                 |             0 |        17 |                  10 |      27 | 2026-2031   |
-| **All**                                                    |       **136** |   **112** |              **30** | **278** |             |
+| Family                                                     | Admitted records | Held back | Unresolved evidence |   Total | Draft years |
+| ---------------------------------------------------------- | ---------------: | --------: | ------------------: | ------: | ----------- |
+| Outright first                                             |              133 |        26 |                   5 |     164 | 2026-2032   |
+| Protected first (protection already settled)               |                3 |        15 |                   1 |      19 | 2026-2030   |
+| Outright first, 2033                                       |                0 |        27 |                   3 |      30 | 2033        |
+| Encumbered pick (owed on under another right)              |                0 |        19 |                   4 |      23 | 2026-2031   |
+| Pick inside a pool                                         |                0 |         4 |                   0 |       4 | 2026-2030   |
+| Pool right (receives the more or less favorable of 2 or 3) |                0 |         4 |                   7 |      11 | 2026-2030   |
+| Swap right                                                 |                0 |        17 |                  10 |      27 | 2026-2031   |
+| **All**                                                    |          **136** |   **112** |              **30** | **278** |             |
+
+**June 5 availability:** 278 retained identities, 136 admitted records, but
+**118 currently tradeable picks**. The 18 admitted 2026 picks are blocked by
+the coming-draft/rookie-money gate (C2, post-V1). The 118 are 16 in 2027,
+14 in 2028, 16 in 2029, 20 in 2030, 28 in 2031 and 24 in 2032. Recomputed
+from the private package through `simulationPickStatuses`; eligibility still
+depends on the proposed trade's consideration, Stepien and financial checks.
+This is not a guarantee that any arbitrary pair can be exchanged.
 
 "Held back" means visible but not tradeable under the named assumption
 `unconditional-transfer-only`: the pick sits inside a swap or pool on either
@@ -33,7 +41,7 @@ not tradeable), **n/a**.
 | Family                   | Trade on June 5                                              | Second Apron freeze | Stepien check                 | Season advance (carry) | Draft-year resolution                  | 2033 window opens                          |
 | ------------------------ | ------------------------------------------------------------ | ------------------- | ----------------------------- | ---------------------- | -------------------------------------- | ------------------------------------------ |
 | Outright first           | Done for later drafts; the coming draft's firsts wait for C2 | Done                | Done                          | C1                     | C1 (holder picks at the original slot) | n/a                                        |
-| Protected first, settled | Done                                                         | Done                | Done                          | C1                     | C1                                     | n/a                                        |
+| Protected first, settled | Later drafts only; coming draft waits for C2                 | Done                | Done                          | C1                     | C1                                     | n/a                                        |
 | Outright first, 2033     | n/a on June 5                                                | C1                  | C1                            | C1                     | after V1 horizon                       | C1 (tradeable once the 2026 Draft is done) |
 | Encumbered pick          | B5                                                           | n/a (not tradeable) | Done (never a retained first) | C1 (carried unchanged) | C1 (labeled outcome) or Blocked        | n/a                                        |
 | Pick inside a pool       | B5                                                           | n/a (not tradeable) | Done                          | C1 (carried unchanged) | C1 (labeled outcome) or Blocked        | n/a                                        |
@@ -73,7 +81,7 @@ salary obligation.
   2027-2033. On the private package it gives 241 retained rights, 145
   admitted (136 - 18 for 2026 + 27 for 2033) and 20 unresolved mappings
   (the 9 tied only to 2026 are settled by the public draft result).
-- The 2026 order was checked against the June 5 package: all 18 tradeable
+- The 2026 order was checked against the June 5 package: all 18 admitted
   2026 firsts have the same holder in the public record.
 - Part 2 publishes the step on the server with the season advance and lets
   the draft loader read the stepped world.

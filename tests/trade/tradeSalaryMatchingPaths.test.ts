@@ -461,24 +461,88 @@ describe('governed Trade Machine salary paths', () => {
       ).toBe('FAIL');
     });
 
-    it('blocks every exception path from January 10', () => {
-      for (const path of [
-        'NON_TAXPAYER_MLE',
-        'BI_ANNUAL_EXCEPTION',
-        'ROOM_MLE',
+    it('preserves full value through the deadline and prorates after it (C13.3/.5)', () => {
+      for (const [path, amount] of [
+        ['NON_TAXPAYER_MLE', MLE],
+        ['BI_ANNUAL_EXCEPTION', BAE],
+        ['ROOM_MLE', ROOM],
       ] as const) {
-        const before = exception(path, {
-          transactionDate: '2027-01-09',
-          incomingMatchingPlayers: [incoming(1_000_000)],
-        });
-        expect(before.status).toBe('PASS');
-        const from = exception(path, {
-          transactionDate: '2027-01-10',
-          incomingMatchingPlayers: [incoming(1_000_000)],
-        });
-        expect(from.status).toBe('FAIL');
-        expect(from.violations[0]).toContain('January 10');
+        for (const day of ['2027-01-09', '2027-01-10', '2027-02-11']) {
+          expect(
+            exception(path, {
+              transactionDate: day,
+              incomingMatchingPlayers: [incoming(amount)],
+            }).status
+          ).toBe('PASS');
+        }
+        // 2026-27: 174 days; Jan 10 -> Apr 11 = 91 completed reductions.
+        const available = Math.floor((amount * 83) / 174);
+        for (const day of ['2027-04-11', '2027-06-05']) {
+          const pass = exception(path, {
+            transactionDate: day,
+            incomingMatchingPlayers: [incoming(available)],
+          });
+          expect(pass.status).toBe('PASS');
+          expect(pass.maximumIncoming).toBe(available);
+          expect(
+            exception(path, {
+              transactionDate: day,
+              incomingMatchingPlayers: [incoming(available + 1)],
+            }).status
+          ).toBe('FAIL');
+        }
       }
+    });
+
+    it('uses exact January 10 unused money or a disclosed conservative reserve, never silently guesses', () => {
+      const partial = {
+        ...balances().mle,
+        usedAmount: 2_000_000,
+        remainingAmount: MLE - 2_000_000,
+      };
+      const input = {
+        transactionDate: '2027-06-05',
+        incomingMatchingPlayers: [incoming(1_000_000)],
+      };
+      expect(
+        exception('NON_TAXPAYER_MLE', {
+          ...input,
+          exceptionBalances: balances({ mle: partial }),
+        }).status
+      ).toBe('NEEDS_INPUT');
+      const exact = exception('NON_TAXPAYER_MLE', {
+        ...input,
+        exceptionBalances: balances({
+          mle: { ...partial, january10UnusedAmount: MLE - 2_000_000 },
+        }),
+      });
+      expect(exact.maximumIncoming).toBe(
+        Math.floor(((MLE - 2_000_000) * 83) / 174)
+      );
+      const conservative = exception('NON_TAXPAYER_MLE', {
+        ...input,
+        exceptionBalances: balances({
+          mle: { ...partial, conservativeProration: true },
+        }),
+      });
+      expect(conservative.maximumIncoming).toBe(
+        Math.floor((MLE * 83) / 174 - 2_000_000)
+      );
+      expect(conservative.maximumIncoming).toBeLessThan(exact.maximumIncoming!);
+      const reused = exception('NON_TAXPAYER_MLE', {
+        ...input,
+        exceptionBalances: balances({
+          mle: {
+            ...partial,
+            conservativeProration: true,
+            usedAmount: 3_000_000,
+            remainingAmount: MLE - 3_000_000,
+          },
+        }),
+      });
+      expect(reused.maximumIncoming).toBe(
+        conservative.maximumIncoming! - 1_000_000
+      );
     });
 
     it('keeps the Non-Taxpayer MLE and BAE at or below the First Apron', () => {
