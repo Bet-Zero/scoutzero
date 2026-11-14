@@ -140,6 +140,10 @@ export function simulationAssumptionsForWorld(
             statement:
               'Where a public guaranteed amount exceeds the reported salary, its guarantee is unknown in this world. Original values stay in the retained Contract record; salary, cap hit and bonuses are unchanged. Affected current Contracts need clarified inputs before they can be traded. Unrelated players are not blocked by that protection-field conflict.',
           },
+        ]
+      : []),
+    ...(typeof asOf === 'string' && asOf.slice(0, 10) === '2026-11-14'
+      ? [
           {
             id: 'current-porzingis-pay-withholding',
             area: 'Money' as const,

@@ -457,5 +457,19 @@ describe('direct current-season SIMULATION starting state', () => {
       'Invented dated software'
     );
     expect(a.some((x) => x.id === 'june5-reported-holder')).toBe(false);
+    const earlier = simulationAssumptionsForWorld({
+      simulationFinancialBaseline: {
+        classification: 'SIMULATION',
+        asOf: '2026-07-01T12:00:00.000Z',
+      },
+    });
+    expect(
+      earlier.some((x) =>
+        [
+          'current-porzingis-pay-withholding',
+          'current-minnesota-hard-cap',
+        ].includes(x.id)
+      )
+    ).toBe(false);
   });
 });
