@@ -444,6 +444,9 @@ describe('direct current-season SIMULATION starting state', () => {
       },
     });
     expect(a.some((x) => x.id === 'june5-postseason-rosters')).toBe(false);
+    expect(
+      a.find((x) => x.id === 'current-porzingis-pay-withholding')?.statement
+    ).toContain('grants no salary relief');
     expect(a.find((x) => x.id === 'tax-salary-baseline')?.statement).toContain(
       'not yet known'
     );

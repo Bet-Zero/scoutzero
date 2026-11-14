@@ -141,6 +141,13 @@ export function simulationAssumptionsForWorld(
               'Where a public guaranteed amount exceeds the reported salary, its guarantee is unknown in this world. Original values stay in the retained Contract record; salary, cap hit and bonuses are unchanged. Affected current Contracts need clarified inputs before they can be traded. Unrelated players are not blocked by that protection-field conflict.',
           },
           {
+            id: 'current-porzingis-pay-withholding',
+            area: 'Money' as const,
+            title: 'Porziņģis pay withholding',
+            statement:
+              'The November 14, 2026 starting package retains Porziņģis’s full $20 million salary. ESPN’s November 4 report says Golden State is withholding pay, without a current player/union dispute or contract voiding. This simulation grants no salary relief, grievance adjustment or Disabled Player Exception from that report; final Tax Salary remains unknown.',
+          },
+          {
             id: 'current-minnesota-hard-cap',
             area: 'Money' as const,
             title: 'Minnesota hard-cap correction',
