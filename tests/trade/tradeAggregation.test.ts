@@ -303,7 +303,9 @@ describe('saved acquisition authority', () => {
     expect(updates[0].team!.tradeAcquisitionHistory).toBeUndefined();
   });
   function state() {
-    return makeResultingState();
+    const contract = makeResultingState();
+    contract.terms.restrictions.aggregation = true;
+    return contract;
   }
   function facts(history?: unknown) {
     return contractAggregationFacts({
@@ -328,7 +330,7 @@ describe('saved acquisition authority', () => {
       entries: [],
     };
     expect(facts(history).acquisition.status).toBe('baseline-assumption');
-    contract.terms.restrictions.aggregation = true;
+    contract.terms.restrictions.aggregation = false;
     expect(
       contractAggregationFacts({
         state: contract,

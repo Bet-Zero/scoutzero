@@ -250,7 +250,9 @@ export function contractAggregationFacts(input: {
       };
     else if (
       parsed.data.baseline?.playerIds.includes(state.playerId) &&
-      state.terms.restrictions.aggregation !== true &&
+      // Retained scraper polarity: true = may aggregate; false comes from
+      // explicit "cannot be aggregated" text (parse_player.ts).
+      state.terms.restrictions.aggregation !== false &&
       asOfDate >= parsed.data.baseline.asOfDate
     ) {
       acquisition = {

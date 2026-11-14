@@ -29,7 +29,7 @@ test.skip(
   process.env.SCOUTZERO_SIMULATION_FINANCIAL_PROOF !== 'true',
   'Opt in with SCOUTZERO_SIMULATION_FINANCIAL_PROOF=true and privately prepared local simulation packages.'
 );
-test.use({ viewport: { width: 1280, height: 720 } });
+test.use({ viewport: { width: 1280, height: 720 }, actionTimeout: 30000 });
 const expect = baseExpect.configure({ timeout: 30000 });
 test.setTimeout(300000);
 
@@ -240,6 +240,11 @@ for (const path of ['MINIMUM_EXCEPTION', 'NON_TAXPAYER_MLE'] as const) {
       expect(await getWorldTeamDocument(worldId, code)).toEqual(after[code]);
     }
     if (path !== 'NON_TAXPAYER_MLE') return;
+    // Wait for the reloaded app's authenticated world reader before copying.
+    await expect(
+      page.getByTestId('cockpit-activity-rail-identity')
+    ).toContainText('SIMULATION');
+    await expect.poll(() => readReviewUserId(page)).toBe(uid);
     const copyId = await page.evaluate(
       async ({ worldId, uid }) => {
         const { branchWorld } = await import(
