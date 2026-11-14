@@ -46,6 +46,7 @@ import {
 import { getWorldMetadata } from '@/features/architect/utils/worldManager.core';
 import { getLeague } from '@/features/architect/utils/teamLoader';
 import { isTwoWayTradePlayer } from './twoWayTradeSalary';
+import { governingCalendarDate } from '../../governedSeason/governedTime';
 import { simulationTradeDeadline } from '@/features/architect/utils/governedSeason/simulationTradeDeadline';
 
 const SALARY_BASIS_LEAVES = Object.freeze([
@@ -221,7 +222,11 @@ function protectedAmountAsOf(
  * bonus in any Season. A team may acquire it by trade with the Minimum
  * Exception, counting $0 incoming trade salary (CBA2-C13.4, CBA2-C13.6).
  */
-function isMinimumExceptionContract(terms: GovernedContractState['terms']) {
+function isMinimumExceptionContract(
+  terms: GovernedContractState['terms'],
+  relatedContracts: readonly GovernedContractState['terms'][],
+  asOfDate: string
+) {
   const length = Number(terms.contractLength ?? terms.salaries.length);
   return (
     /minimum/i.test(terms.signedUsing ?? '') &&
@@ -229,7 +234,18 @@ function isMinimumExceptionContract(terms: GovernedContractState['terms']) {
     length >= 1 &&
     length <= 2 &&
     terms.salaries.length <= 2 &&
-    !terms.salaries.some(hasNonzeroBonus)
+    !terms.salaries.some(hasNonzeroBonus) &&
+    !relatedContracts.some((related) => {
+      if (!related.isExtension || related === terms) return false;
+      // A separately retained signed extension is part of the acquired Contract.
+      // Do not qualify only the original short minimum term (C13.21/.22).
+      const signed = governingCalendarDate(related.signingDate.value);
+      return (
+        (!signed || signed <= asOfDate) &&
+        Number(toEndYear(related.endSeason)) >
+          Number(toEndYear(terms.endSeason))
+      );
+    })
   );
 }
 
@@ -774,7 +790,8 @@ function computeReadyBasis({
     ...(twoWay
       ? { twoWayContractEndYear: toEndYear(state.terms.endSeason) }
       : {}),
-    ...(!twoWay && isMinimumExceptionContract(state.terms)
+    ...(!twoWay &&
+    isMinimumExceptionContract(state.terms, relatedContracts, asOfDate)
       ? { minimumExceptionAcquisition: true }
       : {}),
     ...contractSeasonsRemaining(state.terms, salaryCapYear),

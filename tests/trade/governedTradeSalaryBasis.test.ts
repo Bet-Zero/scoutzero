@@ -319,6 +319,50 @@ describe('governed ordinary Trade Machine salary basis', () => {
       'renegotiation bars trading'
     );
   });
+  it('does not acquire only the original minimum term when a signed future extension lengthens the Contract', () => {
+    const retained = state(
+      [row('2025-26', 2_000_000), row('2026-27', 2_100_000)],
+      {
+        signingDate: '2025-07-05',
+        signedUsing: 'Minimum Salary Exception',
+        contractLength: 2,
+      }
+    );
+    const original = makeResultingState({
+      ...retained,
+      terms: {
+        ...retained.terms,
+        startSeason: '2025-26',
+        endSeason: '2026-27',
+      },
+    });
+    const future = {
+      ...state([row('2027-28', 2_200_000)], {
+        isExtension: true,
+        signingDate: '2026-03-01',
+      }).terms,
+      startSeason: '2027-28',
+      endSeason: '2027-28',
+    };
+    const check = (relatedContracts: (typeof future)[]) =>
+      resolveGovernedTradeSalaryBasis({
+        contractState: original,
+        contractManifest: manifest(original),
+        relatedContracts,
+        calendar,
+        worldId: WORLD_ID,
+        teamId: TEAM_ID,
+        playerId: PLAYER_ID,
+        asOfDate: '2026-11-14',
+        salaryCapYear: YEAR,
+      });
+    expect(check([])).toMatchObject({
+      status: 'ready',
+      minimumExceptionAcquisition: true,
+    });
+    expect(check([future])).toMatchObject({ status: 'ready' });
+    expect(check([future]).minimumExceptionAcquisition).toBeUndefined();
+  });
   it('refuses conflicting protection instead of treating an amount above Salary as full protection', () => {
     const source = state([row('2026-27', 10_000_000, 11_000_000)], {
       signingDate: '2025-07-05',
