@@ -277,6 +277,7 @@ export const TradeTeamCard = ({
         <TradeSalaryPathElection
           election={salaryMatchingElection}
           outgoingPlayers={sends}
+          incomingPlayers={incomingPlayers}
           onChange={onSalaryMatchingElectionChange}
           compact={compact}
         />

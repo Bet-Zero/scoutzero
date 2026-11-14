@@ -8,6 +8,16 @@ const MoneyZ = z.number().finite().nonnegative();
 
 export const GovernedTradeSalaryBasisEvidenceZ = z.strictObject({
   evidenceVersion: z.literal(1),
+  /** Retained signing facts, scoped to this Contract's actual signing date. */
+  signingEligibility: z
+    .strictObject({
+      signingDate: NonEmptyStringZ,
+      priorTeamId: NonEmptyStringZ,
+      priorSeasonRegularSalary: MoneyZ,
+      teamSalaryAfterSigning: MoneyZ,
+      salaryCapAtSigning: MoneyZ.positive(),
+    })
+    .optional(),
   /** Exact S01.5 table cells retained with this Contract, when available. */
   minimumSalaryAmounts: z
     .array(

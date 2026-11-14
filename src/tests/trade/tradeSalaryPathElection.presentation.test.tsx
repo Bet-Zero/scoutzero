@@ -4,10 +4,82 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { useState } from 'react';
 import { TradeSalaryPathElection } from '@/features/architect/tradeMachine/TradeSalaryPathElection';
+import { computeTradeDraftKey } from '@/features/architect/tradeMachine/utils/computeTradeDraftKey';
 
 afterEach(cleanup);
 
 describe('TradeSalaryPathElection owner-facing presentation', () => {
+  it('elects a separate minimum acquisition and invalidates the prior trade result', () => {
+    const election = {
+      version: 1 as const,
+      path: 'STANDARD_TPE' as const,
+      postAssignmentApronTeamSalary: 180_000_000,
+      tradedPlayerPreTradeSalaries: { outgoing: 10_000_000 },
+    };
+    const onChange = vi.fn();
+    const incomingPlayers = [
+      { id: 'minimum', name: 'Minimum' },
+      { id: 'two', name: 'Two Way', contract: { contractType: 'Two-Way' } },
+    ];
+    render(
+      <TradeSalaryPathElection
+        election={election}
+        outgoingPlayers={[{ id: 'outgoing', name: 'Outgoing' }]}
+        incomingPlayers={incomingPlayers}
+        onChange={onChange}
+      />
+    );
+    expect(
+      screen.queryByLabelText('Acquire Two Way with Minimum Exception')
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByLabelText('Acquire Minimum with Minimum Exception')
+    );
+    const updated = onChange.mock.calls[0][0];
+    expect(updated).toEqual({
+      ...election,
+      minimumExceptionPlayerIds: ['minimum'],
+    });
+    const team = {
+      team: { id: 'CHI' },
+      sends: [],
+      salaryMatchingElection: election,
+    };
+    expect(computeTradeDraftKey({ teams: [team], yearKey: 2027 })).not.toBe(
+      computeTradeDraftKey({
+        teams: [{ ...team, salaryMatchingElection: updated }],
+        yearKey: 2027,
+      })
+    );
+    expect(
+      screen.getByText(/pay still counts against team and apron limits/)
+    ).toBeInTheDocument();
+  });
+  it('lets the GM clear a removed minimum allocation without losing other elections', () => {
+    const election = {
+      version: 1 as const,
+      path: 'STANDARD_TPE' as const,
+      postAssignmentApronTeamSalary: 180_000_000,
+      tradedPlayerPreTradeSalaries: { outgoing: 10_000_000 },
+      minimumExceptionPlayerIds: ['removed', 'remaining'],
+    };
+    const onChange = vi.fn();
+    render(
+      <TradeSalaryPathElection
+        election={election}
+        outgoingPlayers={[]}
+        incomingPlayers={[{ id: 'remaining', name: 'Remaining' }]}
+        onChange={onChange}
+      />
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Clear removed minimum acquisitions' })
+    );
+    expect(onChange).toHaveBeenCalledWith({
+      ...election,
+      minimumExceptionPlayerIds: ['remaining'],
+    });
+  });
   it('explains the Two-Way exclusion instead of asking for a matching amount', () => {
     const players = [
       { id: 'two-way', name: 'Two Way', contract: { contractType: 'Two-Way' } },

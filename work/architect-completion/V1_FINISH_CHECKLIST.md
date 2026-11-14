@@ -107,9 +107,16 @@ that changes the plan.
       are recoverable/rebuildable; both current private packages are prepared
       and reproduce byte-for-byte. Local ordinary Create uses those current
       inputs. This does not authorize installation or activation in production.
-      No reusable executor
-      deployment credential verified; existing GitHub Google identities are
-      bounded data workers, not deploy authorization. Production remains off.
+      Executor inspection found no ADC, Firebase login account/token or deploy
+      environment credential. The existing GitHub Google identities are bounded
+      data workers, not Functions deployment authority; repository secret-name
+      inspection returned HTTP 403, so other hosted credentials are unverified.
+      Smallest safe path: an existing deployment-authorized maintainer uses their
+      authenticated Firebase CLI/Cloud Shell, or signs into the local Firebase
+      CLI with that existing account; then run read-only project/permission checks.
+      No replacement service account/key or broad IAM grant is needed by default.
+      Deployment, private uploads and activation still need separate authorization.
+      Production remains off.
       Hosting stays on Vercel; Firebase supplies Functions/Firestore/private storage.
 - [x] D3 Existing worlds left unmigrated and still readable.
 - [x] D4 "Simulation" label and assumption notes visible in the product.
@@ -118,7 +125,7 @@ that changes the plan.
 
 ## Phase 3: remaining trade mechanisms
 
-- [ ] B1 Free-agent and minimum exceptions in player-plus-pick trades.
+- [x] B1 Free-agent and minimum exceptions in player-plus-pick trades.
       January 10 blanket refusal repaired: full value through the deadline,
       then daily reduction only through Regular Season end. Undated historical
       use reserves the maximum reduction, visibly disclosed; exact chronology
@@ -129,28 +136,40 @@ that changes the plan.
       Missing or conflicting applicable minimum classifications stay needs-input.
       PR #656 contains the focused Canon/trust-boundary checks and opted-in
       real-data copy, aggregation-refusal, and solo re-trade browser proof.
-      **Still open:** the already documented same-team combination of outgoing
-      salary matching with a separate $0 Minimum Exception acquisition is not
-      supported; the current Minimum Exception election requires no players sent.
-      No owner deferral is recorded for that remaining B1 case.
+      Combined outgoing matching plus separately elected Minimum Exception
+      acquisitions now preserves distinct components: minimum players use $0
+      matching salary while full pay stays in team/apron books. Invalid or duplicate
+      allocations fail; A06.3 counts only the matching component's replacement
+      players. Current real-data HOU/MIL player-plus-pick proof saves, reloads and
+      copies the separate receipt/acquisition history without changing older worlds.
 - [x] B2 Cash in player-plus-pick trades (with the next-season Apron test
       after the Regular Season).
 - [x] B3 Expanded TPE and below-cap TPE elections.
 - [x] B4 Legacy 2027 conditional and ranked 2029 picks with players.
 - [ ] B5 Remaining pick combinations (swap return ownership, reserved fallback
       picks, cross-program combinations). **Owner decision still unresolved:**
-      no approval to exclude these combinations from V1 was found.
+      no approval to exclude these combinations from V1 was found. These affect
+      current-season NBA trades independently of future progression. Exact owner
+      choice: include all three in V1, or explicitly name any approved exclusions.
+      Until decided, no remaining combination is silently deferred.
 - [ ] B6 Sign-and-trade together with picks. **Moved after V1** (owner,
       2026-11-12): it needs the season move.
-- [ ] B7 Current-snapshot player timing, salary-cap-year calendar and deadline
+- [x] B7 Current-snapshot player timing, salary-cap-year calendar and deadline
       inputs verified. Exact deadline support and June 5 eligibility/A06 repairs
       are preserved. Current FA three-calendar-month/December 15, draft-rookie
       thirty-day and recent extension/renegotiation restrictions are governed;
       signed future extensions cannot disappear behind current salary rows.
-      Missing Bird/January 15 predicates and recent extension salary/raise
-      eligibility remain needs-input. Pending rookie-extension poison pill
-      remains the recorded post-V1 limitation. No June 5 acquisition clearance
-      is imported into November; missing acquisition facts still block aggregation.
+      Bird/January 15 prior-pay, cap, prior-team and exact minimum/no-bonus
+      predicates and veteran extension 120%/5% limits now use retained facts.
+      Saved extension/renegotiation events supply their own signing date and
+      extended rows without rewriting original Contracts. Existing accepted
+      June 5 history may supply only missing prior pay, visibly disclosed;
+      conflicting rows cannot be overwritten. Current Collins/Wiggins timing
+      clears; Brooks's excessive raises remain restricted. Leonard's separate
+      trade bonus and pending rookie poison pill retain their post-V1 refusals.
+      Unknown signing-day cap/EAPS facts and date-only anniversary timing still
+      require input where decisive. No June 5 acquisition clearance is imported
+      into November; missing acquisition facts still block aggregation.
 
 ## Phase 4: draft history and future progression
 
@@ -170,14 +189,14 @@ that changes the plan.
 - [ ] E1 Current 2026-27 ordinary creation, visible assumptions, player/pick
       trades, validation refusals, saving/receipts, reload/copy and older-world
       preservation, using the actual current packages with opt-in gates enabled.
-      Current local journey: **1 passed, 0 skipped**, with both financial and
+      Current local journeys: **2 passed, 0 skipped**, with both financial and
       current-season opt-ins enabled. It saves a pick trade, a player-plus-pick
       trade and a player-only trade; checks receipts, reload/copy, a recent
       signing refusal and extension restriction; and hashes the older world
       before/after. The current private financial/draft packages both replay
       byte-for-byte. A separate package-rotation copy/reload journey also passed
       (**1 passed, 0 skipped**) against a retained current world with the older
-      starting package active. B1/B5 and final acceptance remain open.
+      starting package active. B5 and final acceptance remain open.
       Historical June 5 pick proof (#653; gated spec
       `tests/e2e/architect-simulation-first-round-apply.spec.ts`).
       November 14: financial-proof opt-in enabled; eight journey tests passed,

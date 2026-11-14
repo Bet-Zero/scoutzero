@@ -39,6 +39,15 @@ export const TradeSalaryMatchingElectionZ = z
       z.string().min(1),
       z.number().finite().nonnegative()
     ),
+    // Separate acquisitions, never salary assigned to the primary matching path.
+    // Optional so existing saved elections retain their exact representation.
+    minimumExceptionPlayerIds: z
+      .array(z.string().trim().min(1))
+      .refine(
+        (ids) => new Set(ids).size === ids.length,
+        'Duplicate acquisition'
+      )
+      .optional(),
   })
   .strict();
 

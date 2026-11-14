@@ -458,6 +458,42 @@ function createCumulativeLedgerEntry() {
 }
 
 describe('governed Trade Machine apron restrictions', () => {
+  it.each(['EXPANDED_TPE', 'AGGREGATED_STANDARD_TPE'] as const)(
+    'keeps the %s apron ceiling with a separate Minimum Exception component',
+    (path) => {
+      const ceiling = path === 'EXPANDED_TPE' ? FIRST_APRON : SECOND_APRON;
+      const evaluate = (postSalary: number) =>
+        evaluateTradeApronRestriction({
+          team: team(postSalary),
+          teamCode: 'DET',
+          context: context('2026-11-14'),
+          pathEvaluation: pathEvaluation({
+            path,
+            postSalary,
+            components: [
+              electedComponent(path),
+              {
+                ...electedComponent('STANDARD_TPE'),
+                componentId: 'minimum-exception:MIN',
+                path: 'MINIMUM_EXCEPTION',
+                incomingPlayers: [
+                  { playerId: 'MIN', playerName: 'Minimum', salary: 0 },
+                ],
+              },
+            ],
+          }),
+        });
+      expect(evaluate(ceiling)).toMatchObject({
+        status: 'PASS',
+        ceiling,
+        margin: 0,
+      });
+      expect(evaluate(ceiling + 0.01)).toMatchObject({
+        status: 'FAIL',
+        ceiling,
+      });
+    }
+  );
   it.each<TradeSalaryMatchingPath>([
     'ROOM',
     'STANDARD_TPE',

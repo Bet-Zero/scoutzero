@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { generateTradeReceipt } from '@/features/architect/utils/tradeMachine/engine/tradeValidator.receipt';
 import {
   evaluateTradeSalaryMatchingPath,
   TRADE_SALARY_ALLOWANCE,
@@ -68,6 +69,219 @@ function evaluate(
 }
 
 describe('governed Trade Machine salary paths', () => {
+  describe('separate Minimum Exception acquisitions', () => {
+    const minimum = {
+      playerId: 'minimum',
+      playerName: 'Minimum',
+      salary: 2_449_421,
+      minimumExceptionAcquisition: true,
+    };
+    const ordinary = {
+      playerId: 'incoming',
+      playerName: 'Incoming',
+      salary: 10_250_000,
+    };
+    const selected = () => ({
+      ...election('STANDARD_TPE', { outgoing: 10_000_000 }),
+      minimumExceptionPlayerIds: ['minimum'],
+    });
+
+    it('matches the ordinary player and assigns the minimum to its own zero-dollar component', () => {
+      const input = {
+        election: selected(),
+        incomingMatchingPlayers: [ordinary, minimum],
+        transactionDate: '2026-11-14',
+      };
+      const result = evaluate(input);
+      expect(result).toMatchObject({
+        status: 'PASS',
+        actualIncoming: 10_250_000,
+        maximumIncoming: 10_250_000,
+        margin: 0,
+      });
+      expect(result.components).toEqual([
+        expect.objectContaining({
+          path: 'STANDARD_TPE',
+          usedIncoming: 10_250_000,
+          incomingPlayers: [ordinary],
+        }),
+        expect.objectContaining({
+          path: 'MINIMUM_EXCEPTION',
+          usedIncoming: 0,
+          remaining: 0,
+          incomingPlayers: [
+            {
+              playerId: minimum.playerId,
+              playerName: minimum.playerName,
+              salary: 0,
+            },
+          ],
+        }),
+      ]);
+      expect(result.election).toEqual(input.election);
+      const incomingPay = ordinary.salary + minimum.salary;
+      const receipt = generateTradeReceipt({
+        teamsWithAssets: [
+          {
+            teamCode: 'HOU',
+            salaryIn: incomingPay,
+            incomingPlayers: [
+              {
+                id: ordinary.playerId,
+                name: ordinary.playerName,
+                currentSalary: ordinary.salary,
+                matchIncoming: ordinary.salary,
+              },
+              {
+                id: minimum.playerId,
+                name: minimum.playerName,
+                currentSalary: minimum.salary,
+                matchIncoming: minimum.salary,
+              },
+            ],
+          },
+        ],
+        teamResults: [
+          {
+            teamId: 'HOU',
+            teamCode: 'HOU',
+            teamName: 'Houston',
+            legal: true,
+            violations: [],
+            warnings: [],
+            rules: {},
+            salaryOut: 10_000_000,
+            salaryIn: incomingPay,
+            outgoingPlayers: [],
+            incomingPlayers: [],
+            calculations: {
+              salaryIn: incomingPay,
+              salaryOut: 10_000_000,
+              salaryMatching: {
+                allowedIncoming: 10_250_000,
+                margin: 0,
+                difference: incomingPay - 10_000_000,
+              },
+            },
+            totalSalary: 180_000_000,
+            projectedSalary: 182_699_421,
+            capRoom: 0,
+            hardCapped: false,
+            apronStatus: 'Below Aprons',
+            faExceptionBuckets: [],
+            notes: null,
+            createdTPE: null,
+            salaryMatchingPathEvaluation: result,
+            details: '',
+            warningDetails: '',
+          },
+        ],
+        context: { currentYear: 2027 },
+        isOverallLegal: true,
+        reason: '',
+        validationTime: 0,
+      });
+      expect(receipt.teams[0].salaryMatchingEvaluation.actualIncoming).toBe(
+        ordinary.salary
+      );
+      expect(receipt.teams[0].totals.incomingMatchingTotal).toBe(incomingPay);
+      expect(receipt.teams[0].incomingPlayers[1].matchingValue).toBe(
+        minimum.salary
+      );
+
+      expect(
+        evaluate({
+          ...input,
+          election: election('STANDARD_TPE', { outgoing: 10_000_000 }),
+        }).status
+      ).toBe('FAIL');
+      expect(
+        evaluate({
+          ...input,
+          incomingMatchingPlayers: [
+            { ...ordinary, salary: 10_250_000.01 },
+            minimum,
+          ],
+        }).status
+      ).toBe('FAIL');
+    });
+
+    it('rejects unknown, outgoing, duplicate, ineligible and doubly allocated players', () => {
+      for (const ids of [
+        ['missing'],
+        ['outgoing'],
+        ['incoming'],
+        ['minimum', 'minimum'],
+      ]) {
+        expect(
+          evaluate({
+            election: { ...selected(), minimumExceptionPlayerIds: ids },
+            incomingMatchingPlayers: [ordinary, minimum],
+          }).status
+        ).not.toBe('PASS');
+      }
+      expect(
+        evaluate({
+          election: selected(),
+          incomingMatchingPlayers: [
+            ordinary,
+            { ...minimum, minimumExceptionAcquisition: false },
+          ],
+        }).status
+      ).toBe('FAIL');
+      expect(
+        evaluate({
+          election: selected(),
+          incomingMatchingPlayers: [ordinary, minimum, minimum],
+        }).status
+      ).toBe('FAIL');
+      expect(
+        evaluate({
+          election: selected(),
+          incomingMatchingPlayers: [ordinary, minimum],
+          heldStandardTpeComponents: [
+            { tpeId: 'held', capacity: 3_000_000, incomingPlayers: [minimum] },
+          ],
+        }).status
+      ).toBe('FAIL');
+    });
+
+    it('does not count separate minimum acquisitions as aggregated Replacement Players', () => {
+      const outgoingPlayers = ['a', 'b', 'c'].map((id, index) => ({
+        playerId: id,
+        playerName: id,
+        aggregationFacts: {
+          acquisition: {
+            status: 'known',
+            acquiredAt: '2025-07-01',
+            viaException: false,
+          },
+          minimumSalaryCapYear: 2027,
+          minimumTradedPlayer: index < 2,
+        },
+      }));
+      const result = evaluate({
+        election: {
+          ...election('EXPANDED_TPE', {
+            a: 3_000_000,
+            b: 3_000_000,
+            c: 3_000_000,
+          }),
+          minimumExceptionPlayerIds: ['minimum'],
+        },
+        outgoingPlayers,
+        incomingMatchingPlayers: [
+          { ...ordinary, salary: 3_000_000 },
+          { playerId: 'second', playerName: 'Second', salary: 3_000_000 },
+          minimum,
+        ],
+        transactionDate: '2026-11-14',
+      });
+      expect(result.status).toBe('FAIL');
+      expect(result.violations.join()).toContain('3-out/2-in');
+    });
+  });
+
   it.each(['AGGREGATED_STANDARD_TPE', 'EXPANDED_TPE'] as const)(
     'enforces the minimum-stacking limit through the elected %s path',
     (path) => {

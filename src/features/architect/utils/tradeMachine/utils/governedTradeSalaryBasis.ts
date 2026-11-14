@@ -2,6 +2,8 @@ import { contractAggregationFacts } from './tradeAggregation';
 import {
   signingTradeRestrictions,
   amendmentTradeRestrictions,
+  projectAmendmentTimingTerms,
+  type TradeTimingContext,
 } from './tradeSigningTiming';
 import {
   teamSoftwareSeason,
@@ -26,7 +28,10 @@ import {
   type LifecycleProjectionManifest,
 } from '@/features/architect/utils/contractHistory';
 import { listWorldContractBaselines } from '@/features/architect/utils/contractSource/worldContractBaseline';
-import { resolveContractBaselineWorldCompatibility } from '@/features/architect/utils/contractSource/contractSourceRelease';
+import {
+  resolveContractBaselineWorldCompatibility,
+  loadBundledContractSourceRelease,
+} from '@/features/architect/utils/contractSource/contractSourceRelease';
 import { resolveGovernedOptionLedgerAuthority } from '@/features/architect/utils/optionDecisions';
 import {
   isDateOnly,
@@ -59,6 +64,9 @@ const SALARY_BASIS_LEAVES = Object.freeze([
   'CBA2-L03.17',
   'CBA2-L03.18',
   'CBA2-A10.7',
+  'CBA2-A10.4',
+  'CBA2-A10.5',
+  'CBA2-A10.10',
   'CBA2-C20.12',
   'CBA2-C20.11',
 ]);
@@ -376,8 +384,12 @@ function computeReadyBasis({
   acquisitionHistory,
   draftYear,
   relatedContracts = [],
+  amendmentContracts,
+  historicalContracts = [],
 }: {
+  historicalContracts?: TradeTimingContext['historicalContracts'];
   relatedContracts?: readonly GovernedContractState['terms'][];
+  amendmentContracts?: readonly GovernedContractState['terms'][];
   draftYear?: unknown;
   acquisitionHistory?: unknown;
   projected: ProjectedContract;
@@ -450,12 +462,39 @@ function computeReadyBasis({
     state.terms.tradeSalaryBasisEvidence
   );
   if (calendarRecord.authority === 'official') {
-    reasons.push(...signingTradeRestrictions(state.terms, asOfDate, draftYear));
-    for (const terms of [state.terms, ...relatedContracts])
+    const timingContext = {
+      relatedContracts: [state.terms, ...relatedContracts],
+      historicalContracts,
+    };
+    reasons.push(
+      ...signingTradeRestrictions(
+        state.terms,
+        asOfDate,
+        draftYear,
+        timingContext
+      )
+    );
+    for (const terms of amendmentContracts ?? [
+      state.terms,
+      ...relatedContracts,
+    ])
       reasons.push(
-        ...amendmentTradeRestrictions(terms, asOfDate, salaryCapYear)
+        ...amendmentTradeRestrictions(
+          terms,
+          asOfDate,
+          salaryCapYear,
+          timingContext
+        )
       );
     leaves.push('CBA2-L03.16', 'CBA2-L03.17', 'CBA2-L03.18');
+    if (
+      (amendmentContracts ?? [state.terms, ...relatedContracts]).some(
+        (terms) =>
+          (terms.isExtension && !terms.isRookieScale) ||
+          /renegotiat/i.test(terms.contractType ?? '')
+      )
+    )
+      leaves.push('CBA2-A10.4', 'CBA2-A10.5', 'CBA2-A10.7', 'CBA2-A10.10');
   }
   // The trade deadline is a named SIMULATION assumption for the official
   // calendar seasons only; software-test calendars keep it unavailable.
@@ -699,6 +738,9 @@ function computeReadyBasis({
         ? {
             assumptionIds: [
               deadline.assumptionId,
+              ...(historicalContracts.length
+                ? ['historical-contract-timing-context']
+                : []),
               ...(asOfDate === '2026-06-05'
                 ? ['june5-postseason-rosters']
                 : []),
@@ -741,6 +783,9 @@ function computeReadyBasis({
       ? {
           assumptionIds: [
             deadline.assumptionId,
+            ...(historicalContracts.length
+              ? ['historical-contract-timing-context']
+              : []),
             ...(asOfDate === '2026-06-05' ? ['june5-postseason-rosters'] : []),
             ...(aggregationFacts.acquisition.status === 'baseline-assumption'
               ? ['starting-roster-acquisitions']
@@ -768,6 +813,7 @@ function computeReadyBasis({
 
 export function resolveGovernedTradeSalaryBasis(input: {
   relatedContracts?: readonly GovernedContractState['terms'][];
+  amendmentContracts?: readonly GovernedContractState['terms'][];
   draftYear?: unknown;
   contractState: GovernedContractState;
   contractManifest: LifecycleProjectionManifest;
@@ -802,6 +848,7 @@ export function resolveGovernedTradeSalaryBasis(input: {
     acquisitionHistory: input.acquisitionHistory,
     draftYear: input.draftYear,
     relatedContracts: input.relatedContracts,
+    amendmentContracts: input.amendmentContracts,
   });
 }
 
@@ -864,7 +911,24 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
       : null;
   const overlayByLedgerId =
     collectUniqueWorldContractEventLedgers(resolvedWorldTeams);
+  // This already-public, hash-verified accepted release is prior compensation
+  // context only. It cannot replace current books, source roots or Contract terms.
+  // Failure leaves affected predicates unavailable instead of blocking unrelated players.
+  const historicalRelease =
+    !software &&
+    salaryCapYear === 2027 &&
+    (
+      metadata?.simulationFinancialBaseline as
+        | { classification?: unknown }
+        | undefined
+    )?.classification === 'SIMULATION'
+      ? await loadBundledContractSourceRelease().catch(() => null)
+      : null;
   const projectedByPlayer = new Map<string, ProjectedContract[]>();
+  const amendmentContractsByPlayer = new Map<
+    string,
+    GovernedContractState['terms'][]
+  >();
   const relatedContractsByPlayer = new Map<
     string,
     GovernedContractState['terms'][]
@@ -906,6 +970,15 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
       const related = relatedContractsByPlayer.get(candidatePlayerId) ?? [];
       related.push(projection.contractState.terms);
       relatedContractsByPlayer.set(candidatePlayerId, related);
+      const amendments =
+        amendmentContractsByPlayer.get(candidatePlayerId) ?? [];
+      amendments.push(
+        ...projectAmendmentTimingTerms(
+          projection.contractState.terms,
+          projection.consumedEvents
+        )
+      );
+      amendmentContractsByPlayer.set(candidatePlayerId, amendments);
     }
     if (
       projection.state !== 'projected' ||
@@ -976,6 +1049,13 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
         salaryCapAtTrade,
         draftYear: rosterBios.get(playerId)?.draftYear,
         relatedContracts: relatedContractsByPlayer.get(playerId),
+        amendmentContracts: amendmentContractsByPlayer.get(playerId),
+        historicalContracts: historicalRelease?.records
+          .filter((record) => record.playerId === playerId)
+          .map((record) => ({
+            terms: record.resultingState.terms,
+            effectiveAt: historicalRelease.effectiveAt,
+          })),
         acquisitionHistory: (
           resolvedWorldTeams.find((value) => {
             const team = value as { teamCode?: string; id?: string };

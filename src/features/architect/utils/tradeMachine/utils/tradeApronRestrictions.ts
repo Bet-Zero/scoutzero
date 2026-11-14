@@ -602,7 +602,9 @@ export function evaluateTradeApronRestriction({
   });
 
   const electedComponents = components.filter(
-    (component) => component.kind === 'ELECTED_PATH'
+    (component) =>
+      component.kind === 'ELECTED_PATH' &&
+      component.path !== 'MINIMUM_EXCEPTION'
   );
   const aggregatedComponents = electedComponents.filter(
     (component) => component.path === 'AGGREGATED_STANDARD_TPE'

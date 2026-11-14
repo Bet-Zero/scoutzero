@@ -85,6 +85,13 @@ export function computeTradeDraftKey({
                 state: 'value',
                 version: t.salaryMatchingElection.version,
                 path: t.salaryMatchingElection.path,
+                ...(t.salaryMatchingElection.minimumExceptionPlayerIds?.length
+                  ? {
+                      minimumExceptionPlayerIds: [
+                        ...t.salaryMatchingElection.minimumExceptionPlayerIds,
+                      ].sort(),
+                    }
+                  : {}),
                 postAssignmentApronTeamSalary:
                   t.salaryMatchingElection.postAssignmentApronTeamSalary,
                 tradedPlayerPreTradeSalaries: Object.fromEntries(

@@ -385,7 +385,9 @@ const TradeReceiptPanel = ({
                           <span className="text-cockpit-text-secondary">
                             {component.kind === 'HELD_STANDARD_TPE'
                               ? 'Held Standard TPE'
-                              : pathEvaluation.ruleLabel}{' '}
+                              : component.path === 'MINIMUM_EXCEPTION'
+                                ? 'Minimum Exception'
+                                : pathEvaluation.ruleLabel}{' '}
                             · {component.timing.toLowerCase().replace('_', ' ')}
                           </span>
                           <span className="font-mono text-cockpit-text-primary">

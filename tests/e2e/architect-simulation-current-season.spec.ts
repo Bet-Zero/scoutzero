@@ -49,11 +49,11 @@ async function worldDigest(worldId: string) {
     )
     .digest('hex');
 }
-async function openTrade(page: Page, team: string, slug: string) {
+async function openTrade(page: Page, team: string, slug: string, home = 'CHI') {
   const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
   if (!(await dialog.isVisible()))
     await page.getByRole('tab', { name: /^Trade Machine$/i }).click();
-  await expect(dialog.getByTestId('trade-team-card-CHI')).toBeVisible({
+  await expect(dialog.getByTestId(`trade-team-card-${home}`)).toBeVisible({
     timeout: 60000,
   });
   const picker = dialog
@@ -188,24 +188,43 @@ test('current GM world: create, assumptions, pick and player-plus-pick trades, r
   expect(metadata.currentSeason).toBe('2026-27');
   expect(metadata.asOfDate).toBe('2026-11-14');
   expect(metadata.contractBaselineSalaryCapYear).toBe(2027);
-  const signingRefusal = await page.evaluate(
+  const timing = await page.evaluate(
     async ({ worldId }) => {
       const { loadWorldGovernedTradeSalaryBasisEntries } = await import(
         '/src/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis.ts'
       );
-      const entries = await loadWorldGovernedTradeSalaryBasisEntries({
-        worldId,
-        teamId: 'CHI',
-        rosterPlayerIds: ['zach_collins'],
-        worldAsOfDate: '2026-11-14',
-        salaryCapYear: 2027,
-      });
-      return entries.get('zach_collins');
+      const result: Record<string, unknown> = {};
+      for (const [teamId, playerId] of [
+        ['CHI', 'zach_collins'],
+        ['MIA', 'andrew_wiggins'],
+        ['TOR', 'kawhi_leonard'],
+        ['PHX', 'dillon_brooks'],
+      ]) {
+        const entries = await loadWorldGovernedTradeSalaryBasisEntries({
+          worldId,
+          teamId,
+          rosterPlayerIds: [playerId],
+          worldAsOfDate: '2026-11-14',
+          salaryCapYear: 2027,
+        });
+        result[playerId] = entries.get(playerId);
+      }
+      return result;
     },
     { worldId }
   );
-  expect(signingRefusal?.status).toBe('needs-input');
-  expect(signingRefusal?.reasons.join(' ')).toContain('CBA2-A10.7');
+  for (const id of ['zach_collins', 'andrew_wiggins'])
+    expect(timing[id]).toMatchObject({ status: 'ready' });
+  expect(timing.kawhi_leonard).toMatchObject({
+    status: 'needs-input',
+    reasons: [
+      'This Contract has a trade bonus whose allocation is outside this governed tranche.',
+    ],
+  });
+  expect(timing.dillon_brooks).toMatchObject({ status: 'needs-input' });
+  expect(JSON.stringify(timing.dillon_brooks)).toContain(
+    'extension salary change above 5%'
+  );
   const teams = await root.collection('teams').get();
   expect(teams.size).toBe(30);
   const players = teams.docs.flatMap((t) => t.data().players);
@@ -332,5 +351,142 @@ test('current GM world: create, assumptions, pick and player-plus-pick trades, r
     dialog.getByRole('button', { name: /^Apply Trade$/i })
   ).toBeDisabled();
   expect(await getWorldEventDocuments(worldId)).toHaveLength(3);
+  expect(await worldDigest(olderId)).toBe(olderDigest);
+});
+
+test('current mixed matching and separate minimum: reject, elect, save, reload and copy', async ({
+  page,
+}) => {
+  const olderId = process.env.SCOUTZERO_PRESERVED_WORLD_ID;
+  if (!olderId) throw new Error('SCOUTZERO_PRESERVED_WORLD_ID is required.');
+  const olderDigest = await worldDigest(olderId);
+  await page.goto('/gm/HOU?season=2027');
+  await expect.poll(() => readReviewUserId(page)).not.toBe('');
+  const uid = await readReviewUserId(page);
+  await page.getByTestId('cockpit-world-menu-trigger').click();
+  await page.getByTitle('Create new world', { exact: true }).click();
+  await page
+    .getByLabel('World Name', { exact: true })
+    .fill('Current mixed minimum trade');
+  page.once('dialog', async (confirmation) => confirmation.accept());
+  await page.getByRole('button', { name: 'Create', exact: true }).click();
+  await expect(
+    page.getByTestId('cockpit-activity-rail-identity')
+  ).toContainText('SIMULATION', { timeout: 60000 });
+  const worldId = await page.evaluate(
+    (uid) => localStorage.getItem(`architect.activeWorldId.${uid}`)!,
+    uid
+  );
+  const dialog = await openTrade(page, 'MIL', 'bucks', 'HOU');
+  await player(page, dialog, 'HOU', 'REED SHEPPARD', 'Milwaukee Bucks');
+  await player(page, dialog, 'MIL', 'AJ GREEN', 'Houston Rockets');
+  await player(page, dialog, 'MIL', 'JERICHO SIMS', 'Houston Rockets');
+  const pickId = 'ent:HOU:2033:1:own:7b093a9d';
+  await pick(page, dialog, 'HOU', pickId, 'Milwaukee Bucks');
+  for (const [code, path, delta, outgoing] of [
+    [
+      'HOU',
+      'STANDARD_TPE',
+      10_044_644 + 2_801_346 - 11_108_880,
+      [['REED SHEPPARD', 11_108_880]],
+    ],
+    [
+      'MIL',
+      'AGGREGATED_STANDARD_TPE',
+      11_108_880 - 10_044_644 - 2_801_346,
+      [
+        ['AJ GREEN', 10_044_644],
+        ['JERICHO SIMS', 2_801_346],
+      ],
+    ],
+  ] as const) {
+    const card = dialog.getByTestId(`trade-team-card-${code}`);
+    await card.getByLabel('Elected path', { exact: true }).selectOption(path);
+    const totals = createCanonicalTeamTotalsSnapshot(
+      (await getWorldTeamDocument(worldId, code))!,
+      2027,
+      { asOfDate: '2026-11-14' }
+    );
+    await card
+      .getByLabel('Post-assignment Apron Team Salary', { exact: true })
+      .fill(String(totals.apronTeamSalary + delta));
+    for (const [name, salary] of outgoing)
+      await card
+        .getByLabel(new RegExp(`^${name} exact pre-trade Salary$`, 'i'))
+        .fill(String(salary));
+  }
+  await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
+  await expect(
+    dialog.getByRole('button', { name: /^Apply Trade$/i })
+  ).toBeDisabled();
+  await dialog
+    .getByTestId('trade-team-card-HOU')
+    .getByRole('checkbox', {
+      name: /^Acquire Jericho Sims with Minimum Exception$/i,
+    })
+    .check();
+  await dialog
+    .getByTestId('trade-team-card-HOU')
+    .getByRole('checkbox', {
+      name: /^Acquire Jericho Sims with Minimum Exception$/i,
+    })
+    .scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: test.info().outputPath('mixed-minimum-election.png'),
+  });
+  await apply(dialog, worldId, 1);
+  const hou = (await getWorldTeamDocument(worldId, 'HOU'))!;
+  const mil = (await getWorldTeamDocument(worldId, 'MIL'))!;
+  expect(hou.players.some((p: { id: string }) => p.id === 'jericho_sims')).toBe(
+    true
+  );
+  expect(hou.players.some((p: { id: string }) => p.id === 'aj_green')).toBe(
+    true
+  );
+  expect(mil.entitlementIds).toContain(pickId);
+  const events = await getWorldEventDocuments(worldId);
+  expect(
+    events[0].metadata.salaryMatchingPaths.find(
+      (entry: { teamCode: string }) => entry.teamCode === 'HOU'
+    ).evaluation
+  ).toMatchObject({
+    actualIncoming: 10_044_644,
+    election: { minimumExceptionPlayerIds: ['jericho_sims'] },
+    components: [
+      { path: 'STANDARD_TPE', usedIncoming: 10_044_644 },
+      {
+        componentId: 'minimum-exception:jericho_sims',
+        path: 'MINIMUM_EXCEPTION',
+        incomingPlayers: [{ playerId: 'jericho_sims', salary: 0 }],
+      },
+    ],
+  });
+  expect(
+    createCanonicalTeamTotalsSnapshot(hou, 2027, { asOfDate: '2026-11-14' })
+      .apronTeamSalary
+  ).toBe(203_970_470);
+  await page.reload();
+  await expect(
+    page.getByTestId('cockpit-activity-rail-identity')
+  ).toContainText('SIMULATION');
+  const copy = await page.evaluate(
+    async ({ worldId, uid }) => {
+      const { branchWorld } = await import(
+        '/src/features/architect/utils/worldManager.ts'
+      );
+      return branchWorld(worldId, 'Mixed minimum copy', '', uid);
+    },
+    { worldId, uid }
+  );
+  const copiedHou = (await getWorldTeamDocument(copy.worldId, 'HOU'))!;
+  expect(copiedHou.players.map((p: { id: string }) => p.id)).toEqual(
+    hou.players.map((p: { id: string }) => p.id)
+  );
+  expect(copiedHou.tradeAcquisitionHistory).toEqual(
+    hou.tradeAcquisitionHistory
+  );
+  // Branching updates parent branch metadata; original teams and receipts stay intact.
+  expect(await getWorldTeamDocument(worldId, 'HOU')).toEqual(hou);
+  expect(await getWorldEventDocuments(worldId)).toEqual(events);
   expect(await worldDigest(olderId)).toBe(olderDigest);
 });
