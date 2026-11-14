@@ -111,8 +111,11 @@ const DRAFT: readonly SimulationAssumption[] = SIMULATION_DRAFT_ASSUMPTIONS.map(
 );
 
 export interface SimulationWorldMarkers {
-  simulationFinancialBaseline?: { classification?: unknown } | null;
-  draftBaseline?: { classification?: unknown } | null;
+  simulationFinancialBaseline?: {
+    classification?: unknown;
+    asOf?: unknown;
+  } | null;
+  draftBaseline?: { classification?: unknown; assumptions?: unknown } | null;
 }
 
 /** The assumptions that apply to a world, or none when it is not SIMULATION. */
@@ -122,5 +125,74 @@ export function simulationAssumptionsForWorld(
   const money =
     metadata?.simulationFinancialBaseline?.classification === 'SIMULATION';
   const draft = metadata?.draftBaseline?.classification === 'simulation';
-  return [...(money ? [...MONEY, ...TRADES] : []), ...(draft ? DRAFT : [])];
+  const asOf = metadata?.simulationFinancialBaseline?.asOf;
+  const current =
+    typeof asOf === 'string' && asOf >= '2026-07-01' && asOf < '2027-07-01';
+  const financial = [
+    ...MONEY,
+    ...TRADES,
+    ...(current
+      ? [
+          {
+            id: 'conflicting-source-guarantees',
+            area: 'Money' as const,
+            title: 'Conflicting public guarantees',
+            statement:
+              'Where a public guaranteed amount exceeds the reported salary, its guarantee is unknown in this world. Original values stay in the retained Contract record; salary, cap hit and bonuses are unchanged. Affected current Contracts need clarified inputs before they can be traded. Unrelated players are not blocked by that protection-field conflict.',
+          },
+        ]
+      : []),
+    ...(typeof asOf === 'string' && asOf.slice(0, 10) === '2026-11-14'
+      ? [
+          {
+            id: 'current-porzingis-pay-withholding',
+            area: 'Money' as const,
+            title: 'Porziņģis pay withholding',
+            statement:
+              'The November 14, 2026 starting package retains Porziņģis’s full $20 million salary. ESPN’s November 4 report says Golden State is withholding pay, without a current player/union dispute or contract voiding. This simulation grants no salary relief, grievance adjustment or Disabled Player Exception from that report; final Tax Salary remains unknown.',
+          },
+          {
+            id: 'current-minnesota-hard-cap',
+            area: 'Money' as const,
+            title: 'Minnesota hard-cap correction',
+            statement:
+              'The November 14, 2026 starting package uses a Second Apron hard cap for Minnesota, based on reported salary aggregation and Taxpayer MLE use. This corrects a conflicting public First Apron label that its current payroll exceeds. The source conflict and supporting reports are retained; this is a named simulation determination.',
+          },
+        ]
+      : []),
+  ]
+    .filter((a) => !current || a.id !== 'june5-postseason-rosters')
+    .map((a) => {
+      if (!current) return a;
+      const statements: Record<string, string> = {
+        'minimum-uplift':
+          SIMULATION_MINIMUM_UPLIFT_ASSUMPTION +
+          ' For older low-salary contracts, current service minus contract age is used only when coherent. Missing earlier minimum cells use the stated upper bound; where interrupted service makes entry YOS unknown, the contract is conservatively treated as potentially qualifying and marked unknown. A retained above-minimum annual contract is not reclassified from its smaller stretched dead-money installment.',
+        'tax-salary-baseline':
+          'Final 2026–27 Tax Salary is not yet known: its governing baseline is the start of the last Regular Season game. Current Team Salary and Apron Team Salary are evaluated for trades; a future tax assessment is not invented.',
+        'empty-cash-ledger':
+          'Pre-world 2026–27 cash totals have not been established. Trades involving cash require the missing annual ledger; no-cash trades do not assume that the full cash allowance remains.',
+        'starting-roster-acquisitions':
+          'Known dated signings and saved-world trades control acquisition restrictions. Starting players without a dated acquisition history need that input before restricted aggregation; no June 5 clearance is carried into this world.',
+      };
+      return statements[a.id] ? { ...a, statement: statements[a.id] } : a;
+    });
+  const supplied = metadata?.draftBaseline?.assumptions;
+  const draftAssumptions: readonly SimulationAssumption[] = Array.isArray(
+    supplied
+  )
+    ? supplied
+        .filter(
+          (a): a is { id: string; statement: string } =>
+            !!a && typeof a.id === 'string' && typeof a.statement === 'string'
+        )
+        .map((a) => ({
+          ...a,
+          area: 'Draft picks',
+          title:
+            DRAFT_TITLES[a.id as keyof typeof DRAFT_TITLES] ??
+            'Draft starting state',
+        }))
+    : DRAFT;
+  return [...(money ? financial : []), ...(draft ? draftAssumptions : [])];
 }

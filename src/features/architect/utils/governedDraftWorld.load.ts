@@ -156,6 +156,9 @@ export async function loadGovernedDraftWorld(
         ...expected,
         asOf: baseline.asOf,
         seasonId: baseline.seasonId,
+        ...(Object.hasOwn(metadata.draftBaseline, 'assumptions')
+          ? { assumptions: baseline.assumptions }
+          : {}),
       }) ||
     metadata.asOfDate !== baseline.asOf.slice(0, 10) ||
     metadata.currentSeason !== baseline.seasonId ||

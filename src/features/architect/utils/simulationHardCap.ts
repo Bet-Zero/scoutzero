@@ -13,6 +13,8 @@
  * Pure: no Firestore, no clock.
  */
 import type { SourceDoc } from './simulationMinimumUplift';
+import { CANON_GOVERNED_SEASON_REGISTRY } from './governedSeason/canonGovernedSeasonRegistry';
+import { getCapRulesForYear } from './capRulesProfile';
 
 export type SimulationHardCapLevel = 'none' | 'firstApron' | 'secondApron';
 
@@ -61,6 +63,10 @@ export function signingHardCapTriggers(
   docs: Record<string, SourceDoc>,
   season: string
 ): string[] {
+  if (!['2025-26', '2026-27'].includes(season))
+    throw new Error(`No approved hard-cap levels for ${season}.`);
+  const taxpayerMle = getCapRulesForYear(Number(season.slice(0, 4)) + 1)
+    .exceptions.taxpayerMLE;
   const triggers: string[] = [];
   for (const [id, doc] of Object.entries(docs)) {
     const contract = doc.contract;
@@ -70,7 +76,7 @@ export function signingHardCapTriggers(
     const amount = Number(first.salary ?? 0);
     if (/bi-?annual|^bae$/.test(using))
       triggers.push(`${id}: Bi-annual Exception`);
-    else if (using === 'mle' && amount > SIMULATION_2025_26_TAXPAYER_MLE)
+    else if (using === 'mle' && amount > taxpayerMle)
       triggers.push(`${id}: Non-Taxpayer MLE at ${amount}`);
   }
   return triggers.sort();
@@ -85,8 +91,21 @@ export function resolveSimulationHardCap(input: {
   correction?: SimulationHardCapCorrection;
 }): SimulationHardCap {
   const { teamCode } = input;
+  const salaryCapYear = Number(input.season.slice(0, 4)) + 1;
+  const ceilings = CANON_GOVERNED_SEASON_REGISTRY.systemLevels.filter(
+    (row) =>
+      row.salaryCapYear === salaryCapYear && row.recordStatus === 'current'
+  );
   const sourceLabel = readHardCapLabel(input.sourceLabel);
   const level = input.correction?.level ?? sourceLabel;
+  const ceiling = ceilings.find(
+    (row) =>
+      row.levelId === (level === 'firstApron' ? 'first-apron' : 'second-apron')
+  )?.amount;
+  if (level !== 'none' && ceiling === undefined)
+    throw new Error(
+      `${teamCode}: no governed ${input.season} ${level} ceiling.`
+    );
   if (RANK[level] < RANK[sourceLabel])
     throw new Error(
       `${teamCode}: a correction may not lower the source hard cap (${sourceLabel} → ${level}).`
@@ -99,10 +118,7 @@ export function resolveSimulationHardCap(input: {
     throw new Error(
       `${teamCode}: labelled not hard-capped but signed ${signingTriggers.join(', ')}.`
     );
-  if (
-    level !== 'none' &&
-    input.apronTeamSalary > SIMULATION_2025_26_APRONS[level]
-  )
+  if (level !== 'none' && input.apronTeamSalary > ceiling!)
     throw new Error(
       `${teamCode}: Apron Team Salary ${input.apronTeamSalary} exceeds its ${level} hard cap.`
     );
@@ -138,7 +154,8 @@ type TpeEntry = {
 export function checkSimulationTpes(
   teamCode: string,
   tpes: unknown,
-  asOf: string
+  asOf: string,
+  allowClosed = false
 ): number {
   if (tpes === undefined || tpes === null) return 0;
   if (!Array.isArray(tpes))
@@ -157,14 +174,13 @@ export function checkSimulationTpes(
         (n) => Number.isSafeInteger(n) && n >= 0
       ) ||
       total - used !== remaining ||
-      remaining === 0 ||
       !Number.isFinite(expires) ||
-      expires <= start
+      (!allowClosed && (remaining === 0 || expires <= start))
     )
       throw new Error(
         `${teamCode}: Traded Player Exception ${String(raw.id)} is incoherent or closed.`
       );
-    open += remaining;
+    if (expires > start) open += remaining;
   }
   return open;
 }

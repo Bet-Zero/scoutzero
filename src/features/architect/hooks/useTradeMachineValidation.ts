@@ -144,8 +144,7 @@ export function useTradeMachineValidation({
         activeTeams.some(
           (slot) =>
             !Number.isFinite(slot.team.teamTotalSalary) ||
-            !Number.isFinite(slot.team.apronTeamSalary) ||
-            !Number.isFinite(slot.team.taxSalary)
+            !Number.isFinite(slot.team.apronTeamSalary)
         )
       ) {
         return null;
@@ -154,6 +153,9 @@ export function useTradeMachineValidation({
       // A first-round proposal must still receive the validator's fail-closed
       // verdict when salary books are missing. Do not turn that into a dead-end
       // "select two teams" response or substitute a payroll amount.
+      // Final Tax Salary is normally unknown during the current season. It is
+      // not a blanket prerequisite for player-only trade validation; specific
+      // consumers still reject missing inputs that their rule actually needs.
 
       const seasonId = toSeasonKey(yearKey) ?? String(yearKey);
       const payload: TradeContextPayload = {

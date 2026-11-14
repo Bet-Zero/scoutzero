@@ -23,10 +23,18 @@ export const TRADE_AGGREGATION_LEAVES = [
 
 /** Calendar months in the governing zone, not sixty days. Date-only stays a date. */
 export function twoCalendarMonthsAfter(value: string): string | null {
+  return calendarMonthsAfter(value, 2);
+}
+
+export function calendarMonthsAfter(
+  value: string,
+  months: number
+): string | null {
+  if (!Number.isInteger(months) || months < 0) return null;
   const day = governingCalendarDate(value);
   if (!day) return null;
   const [year, month, date] = day.split('-').map(Number);
-  const target = new Date(Date.UTC(year, month + 1, 1));
+  const target = new Date(Date.UTC(year, month - 1 + months, 1));
   const last = new Date(
     Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)
   ).getUTCDate();

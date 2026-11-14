@@ -163,6 +163,45 @@ async function releaseFor(
 }
 
 describe('BZE-274 deterministic retained-source release', () => {
+  it('binds a new private retained-corpus description into the release digest', async () => {
+    const input = {
+      releaseId: 'current-software',
+      releaseVersion: 1,
+      supersedes: null,
+      effectiveAt: '2026-11-14T09:28:06.158Z',
+      salaryCapYear: 2027,
+      observations: [
+        await observation(
+          'player_one',
+          rawContract(),
+          '2026-11-14T09:28:06.158Z'
+        ),
+      ],
+      sourceDescription: {
+        retainedCorpus: 'Private current software inputs',
+        limitations: ['Software only; not a factual NBA release.'],
+      },
+    };
+    const releaseDigest = await sha256Digest(
+      canonicalStringify(contractSourceReleaseDigestMaterial(input))
+    );
+    const release = await buildContractSourceRelease({
+      ...input,
+      releaseDigest,
+    });
+    await expect(
+      verifyContractSourceRelease(release, release)
+    ).resolves.toEqual(release);
+    await expect(
+      verifyContractSourceRelease(
+        {
+          ...release,
+          source: { ...release.source, retainedCorpus: 'Changed provenance' },
+        },
+        release
+      )
+    ).rejects.toThrow();
+  });
   it('rebuilds identical normalized content, identities, and digests', async () => {
     const source = await observation('player_one', rawContract());
     const first = await releaseFor([source]);

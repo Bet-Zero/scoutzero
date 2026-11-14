@@ -122,6 +122,11 @@ export type ContractSourceReleaseBuildInput = Readonly<{
   effectiveAt: string;
   salaryCapYear: number;
   observations: readonly ContractSourceObservation[];
+  /** Describes the retained private corpus; does not alter evidence semantics. */
+  sourceDescription?: Pick<
+    ContractSourceRelease['source'],
+    'retainedCorpus' | 'limitations'
+  >;
 }>;
 
 export const CONTRACT_SOURCE_RELEASE_DESCRIPTOR = Object.freeze({
@@ -148,7 +153,10 @@ export function contractSourceReleaseDigestMaterial(
     supersedes: input.supersedes,
     effectiveAt: input.effectiveAt,
     salaryCapYear: input.salaryCapYear,
-    source: CONTRACT_SOURCE_RELEASE_DESCRIPTOR,
+    source: {
+      ...CONTRACT_SOURCE_RELEASE_DESCRIPTOR,
+      ...input.sourceDescription,
+    },
     observations: [...input.observations].sort((a, b) =>
       compareCodePoints(a.observationId, b.observationId)
     ),
@@ -772,7 +780,11 @@ export function buildContractSourceRelease(
     salaryCapYear: input.salaryCapYear,
     source: {
       ...CONTRACT_SOURCE_RELEASE_DESCRIPTOR,
-      limitations: [...CONTRACT_SOURCE_RELEASE_DESCRIPTOR.limitations],
+      ...input.sourceDescription,
+      limitations: [
+        ...(input.sourceDescription?.limitations ??
+          CONTRACT_SOURCE_RELEASE_DESCRIPTOR.limitations),
+      ],
       evidenceCatalog: {
         transformations: CONTRACT_EVIDENCE_CATALOG.transformations.map(
           (entry) => ({ ...entry })

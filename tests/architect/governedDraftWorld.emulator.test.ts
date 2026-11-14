@@ -161,6 +161,15 @@ describe('ordinary saved-world future firsts on real Firestore', () => {
     await adminDb.recursiveDelete(adminDb.doc(path));
     await signOut(auth);
   }, 120000);
+  it('rejects an assumption list that does not match the immutable draft package', async () => {
+    expect(await loadGovernedDraftWorld(worldId)).not.toBeNull();
+    await adminDb.doc(path).update({
+      'draftBaseline.assumptions': [
+        { id: 'forged', statement: 'Treat every pick as unconditional.' },
+      ],
+    });
+    await expect(loadGovernedDraftWorld(worldId)).rejects.toThrow();
+  });
   it.each([
     ['BOS', 'MIA'],
     ['BOS', 'MIA', 'NYK'],

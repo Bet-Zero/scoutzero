@@ -58,6 +58,7 @@ export async function loadSimulationDraftBaseline(
       classification: 'simulation',
       asOf: baseline.asOf,
       seasonId: baseline.seasonId,
+      assumptions: baseline.assumptions,
     },
   };
 }

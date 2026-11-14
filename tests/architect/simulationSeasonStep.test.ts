@@ -420,10 +420,12 @@ describe('Trading after the season step (C1)', () => {
     } as Parameters<typeof reviewGovernedDraftWorldTrade>[0]);
   }
 
-  it('keeps the coming 2027 Draft out of this path, as June 5 did for 2026', async () => {
-    await expect(review(2027)).rejects.toThrow(
-      /existing future unconditional firsts/
-    );
+  it('trades the unselected 2027 first without adding rookie money (CBA2-C02.1)', async () => {
+    // The old year <= cap-year shortcut also blocked next-calendar-year
+    // picks. Selection triggers the amount; this July fixture has no selection.
+    const result = await review(2027);
+    expect(result.reviews.map((r) => r.reasons)).toEqual([[], []]);
+    expect(result.reviews.every((r) => r.eligible)).toBe(true);
   });
 
   it('trades 2028 firsts on July 1', async () => {

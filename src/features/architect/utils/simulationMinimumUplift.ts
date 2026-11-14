@@ -1,6 +1,12 @@
+import {
+  getScaleForSeason,
+  isOfficialScaleSeason,
+} from '../data/minimumSalaryScales';
+import { CANON_GOVERNED_SEASON_REGISTRY } from './governedSeason/canonGovernedSeasonRegistry';
+
 /**
- * CBA2-C07.3 reading for SIMULATION 2025-26 contracts. Kept dependency-free so
- * both the money baseline and the governed trade salary basis can use it.
+ * CBA2-C07.3 for historical and current SIMULATION contracts, using the
+ * retained historical values or official current scale/calendar as appropriate.
  */
 /**
  * Official 2025-26 Minimum Annual Salary scale for zero, one and two Years of
@@ -37,10 +43,14 @@ export const SIMULATION_MINIMUM_UPLIFT_ASSUMPTION =
   'Years of Service is read from the exact full or prorated minimum amount, a draft pick signed in his draft year is treated as signed by the club holding his rights, ' +
   'and a missing earlier-year two-YOS amount uses the current two-YOS minimum as an upper bound.';
 
-/** What C07.3 needs to know about one contract counted in 2025-26 Team Salary. */
+/** What C07.3 needs to know about one contract counted in Team Salary. */
 export interface MinimumUpliftCandidate {
-  /** The 2025-26 Salary counted in Team Salary (full or prorated). */
+  season?: string;
+  yearsOfService?: number | null;
+  /** Salary counted in Team Salary (full or prorated). */
   amount: number;
+  /** Unreduced annual compensation, when the ledger amount is stretched dead money. */
+  contractSalary?: number | null;
   /** Cap charge, when known; a reimbursed veteran Minimum charges less. */
   capHit?: number | null;
   signedUsing?: string | null;
@@ -57,7 +67,7 @@ export type ContractRow = {
 };
 export type SourceDoc = Record<string, unknown> & {
   playerId?: unknown;
-  bio?: { draftYear?: unknown } | null;
+  bio?: { draftYear?: unknown; experience?: unknown } | null;
   contract?: {
     signedUsing?: unknown;
     salariesByYear?: ContractRow[] | null;
@@ -68,7 +78,7 @@ export type MinimumUplift =
   | { status: 'none' }
   | {
       status: 'qualifying';
-      yearsOfService: 0 | 1;
+      yearsOfService: 0 | 1 | null;
       days: number;
       uplift: number;
       /** True when the uplift uses the stated upper bound. */
@@ -99,6 +109,87 @@ export function minimumUpliftFor(
   }
   // A reimbursed veteran one-season Minimum charges the two-YOS amount.
   if (capHit != null && capHit < amount) return { status: 'none' };
+  if (candidate.season && candidate.season !== '2025-26') {
+    const current = candidate.season;
+    const scale = isOfficialScaleSeason(current)
+      ? getScaleForSeason(current)
+      : null;
+    const calendar = CANON_GOVERNED_SEASON_REGISTRY.calendars.find(
+      (row) => row.seasonKey === current
+    );
+    if (!scale || !calendar)
+      return {
+        status: 'unresolved',
+        reason: `No official minimum scale/calendar for ${current}.`,
+      };
+    const days =
+      (Date.parse(calendar.regularSeasonClosing.value) -
+        Date.parse(calendar.regularSeasonOpening.value)) /
+        86_400_000 +
+      1;
+    if (
+      amount >= scale[2] ||
+      (candidate.contractSalary != null && candidate.contractSalary >= scale[2])
+    )
+      return { status: 'none' };
+    if (draftYear && draftYear === startSeason?.slice(0, 4))
+      return { status: 'none' };
+    if (startSeason !== current) {
+      // Do not substitute the first-year table for an older Contract-year cell
+      // (CBA2-S01.5/.7). Retain the explicitly labelled conservative bound.
+      // The qualifying YOS belongs to entry into the Contract, not today's
+      // roster bio. A second/third contract year does not erase its uplift.
+      const elapsed = startSeason
+        ? Number(current.slice(0, 4)) - Number(startSeason.slice(0, 4))
+        : 0;
+      const entryYos =
+        candidate.yearsOfService == null
+          ? null
+          : candidate.yearsOfService - elapsed;
+      if (entryYos != null && entryYos >= 2) return { status: 'none' };
+      if (entryYos != null && entryYos < 0)
+        return {
+          status: 'qualifying',
+          yearsOfService: null,
+          days,
+          uplift: scale[2] - amount,
+          bounded: true,
+        };
+      if (entryYos !== 0 && entryYos !== 1)
+        return {
+          status: 'unresolved',
+          reason: 'Earlier Minimum contract needs Years of Service at signing.',
+        };
+      return {
+        status: 'qualifying',
+        yearsOfService: entryYos,
+        days,
+        uplift: scale[2] - amount,
+        bounded: true,
+      };
+    }
+    const matches: Array<{ yos: 0 | 1 | 2; d: number }> = [];
+    for (const yos of [0, 1, 2] as const)
+      for (let d = 1; d <= days; d++)
+        if (Math.round((scale[yos] * d) / days) === amount)
+          matches.push({ yos, d });
+    if (!matches.length) return { status: 'none' };
+    if (matches.length !== 1)
+      return {
+        status: 'unresolved',
+        reason: 'The amount matches more than one Years of Service reading.',
+      };
+    const [{ yos, d }] = matches;
+    return yos === 2
+      ? { status: 'none' }
+      : {
+          status: 'qualifying',
+          yearsOfService: yos,
+          days: d,
+          uplift: Math.round((scale[2] * d) / days) - amount,
+          bounded: false,
+        };
+  }
   // Unknown start: an amount that is exactly a later-year zero-YOS Minimum is
   // read as that earlier signing (conservative), otherwise as this season's.
   const season =
@@ -166,6 +257,8 @@ export function simulationMinimumUplift(
   if (!row || amount === null) return { status: 'none' };
   const draftYear = doc.bio?.draftYear;
   return minimumUpliftFor({
+    season,
+    yearsOfService: money(doc.bio?.experience),
     amount,
     capHit: money(row.capHit),
     signedUsing:

@@ -11,12 +11,15 @@ import type { GovernedDraftWorldBaseline } from '@/schemas/governedDraftWorld';
 import { EntitlementAssetZ } from '@/schemas/architect';
 import { QUALIFIED_JUNE5_DRAFT_HORIZON } from './draftReview/horizon';
 import { validateGovernedDraftBaseline } from './governedDraftWorld.validation';
+import type { DraftSimulationWindow } from '@/schemas/draftSimulationWindow';
+import { reviewSimulationDraftWindow } from './draftReview/horizon';
 
 type CandidateRecord = {
   entitlementId: string;
   group: string;
   reportedHolder: string | null;
   nativeAssets: string[];
+  transferRestriction?: 'forfeited' | 'conditional';
   originalPick: {
     id: string;
     originalTeam: string;
@@ -73,11 +76,20 @@ export type SimulationApronHistoryRow = {
 
 const TEAM = /^[A-Z]{3}$/;
 
-function simulationSource(scope: string, sha256: string, locator: string) {
+function baselineSource(
+  scope: string,
+  sha256: string,
+  locator: string,
+  current = false
+) {
   return {
-    id: 'june5-simulation-baseline',
+    id: current
+      ? 'current-season-simulation-baseline'
+      : 'june5-simulation-baseline',
     artifactSha256: sha256,
-    locator,
+    locator: current
+      ? locator.replace('june5-candidate:', 'current-candidate:')
+      : locator,
     scope,
     qualification: 'qualified' as const,
     publishedAt: null,
@@ -85,8 +97,7 @@ function simulationSource(scope: string, sha256: string, locator: string) {
     review: {
       status: 'accepted' as const,
       limitations: [],
-      reference:
-        'SIMULATION premise (owner decision 2026-11-10); not certified NBA history',
+      reference: `SIMULATION premise (owner decision ${current ? '2026-11-14' : '2026-11-10'}); not certified NBA history`,
     },
   };
 }
@@ -105,15 +116,54 @@ export function compileSimulationDraftBaseline(args: {
    * window; a season step (C1) compiles the next window's new year with it.
    */
   admissionYears?: { first: number; last: number };
+  /** Direct current baseline; does not execute season progression. */
+  currentWindow?: DraftSimulationWindow;
+  currentAssumptions?: GovernedDraftWorldBaseline['assumptions'];
 }): GovernedDraftWorldBaseline {
   const { candidate, candidateSha256, seasonId, releaseId } = args;
+  const window = args.currentWindow;
+  if (
+    window &&
+    (seasonId !== '2026-27' ||
+      window.firstYear !== 2027 ||
+      candidate.asOf < '2026-07-01T00:00:00.000Z' ||
+      candidate.asOf >= '2027-07-01T00:00:00.000Z' ||
+      !args.currentAssumptions?.length ||
+      reviewSimulationDraftWindow(window, candidate.asOf, [
+        window.firstYear,
+        window.lastYear,
+      ]).status !== 'permits')
+  )
+    throw new Error(
+      'Current baseline requires its dated window and visible assumptions.'
+    );
+  const h = window
+    ? {
+        ...QUALIFIED_JUNE5_DRAFT_HORIZON,
+        asOf: window.asOf,
+        id: 'governed-software-season',
+        firstFutureDraftYear: window.firstYear,
+        lastTradableDraftYear: window.lastYear,
+      }
+    : QUALIFIED_JUNE5_DRAFT_HORIZON;
+  const simulationSource = (scope: string, sha: string, locator: string) =>
+    baselineSource(scope, sha, locator, !!window);
   const admissionYears = args.admissionYears ?? {
-    first: QUALIFIED_JUNE5_DRAFT_HORIZON.firstFutureDraftYear,
-    last: QUALIFIED_JUNE5_DRAFT_HORIZON.lastTradableDraftYear,
+    first: h.firstFutureDraftYear,
+    last: h.lastTradableDraftYear,
   };
+  if (
+    window &&
+    (admissionYears.first !== window.firstYear ||
+      admissionYears.last < window.lastYear ||
+      admissionYears.last > window.lastYear + 1)
+  )
+    throw new Error(
+      'Current admission may add only the next-draft Stepien boundary witness.'
+    );
   if (!/^[0-9a-f]{64}$/.test(candidateSha256))
     throw new Error('Candidate digest must be a bare SHA-256 hex value.');
-  if (candidate.asOf !== QUALIFIED_JUNE5_DRAFT_HORIZON.asOf)
+  if (candidate.asOf !== h.asOf)
     throw new Error('Candidate date differs from the June 5 draft horizon.');
   const identities = candidate.records.map((r) => r.entitlementId);
   if (new Set(identities).size !== identities.length)
@@ -161,8 +211,9 @@ export function compileSimulationDraftBaseline(args: {
       // "original-outside-window"; a season step opening that year admits it
       // by the same rule.
       (r.group === 'original-supported' ||
-        (args.admissionYears !== undefined &&
+        ((args.admissionYears !== undefined || window !== undefined) &&
           r.group === 'original-outside-window')) &&
+      !r.transferRestriction &&
       r.originalPick !== null &&
       typeof r.reportedHolder === 'string' &&
       TEAM.test(r.reportedHolder) &&
@@ -185,7 +236,9 @@ export function compileSimulationDraftBaseline(args: {
         : { ...doc };
     if (!teams.includes(String(entitlement.holderTeam)))
       throw new Error(`No holder team for ${r.entitlementId}.`);
-    retainedEntitlements[r.entitlementId] = entitlement;
+    retainedEntitlements[r.entitlementId] = r.transferRestriction
+      ? { ...entitlement, simulationRestriction: r.transferRestriction }
+      : entitlement;
     if (!admitted) continue;
     const pick = {
       ...r.originalPick!,
@@ -221,7 +274,6 @@ export function compileSimulationDraftBaseline(args: {
     } as GovernedDraftWorldBaseline['records'][number]);
   }
 
-  const h = QUALIFIED_JUNE5_DRAFT_HORIZON;
   const stepien: GovernedDraftWorldBaseline['stepien'] = {};
   const initialTeams: GovernedDraftWorldBaseline['initialTeams'] = {};
   for (const team of teams) {
@@ -250,11 +302,16 @@ export function compileSimulationDraftBaseline(args: {
       ],
       unresolvedDependencyIds: [],
       firstFutureDraftYear: h.firstFutureDraftYear,
-      throughDraftYear: Math.max(h.lastTradableDraftYear, ...owed),
+      throughDraftYear: Math.max(
+        h.lastTradableDraftYear,
+        ...owed,
+        ...(window ? records.map((r) => r.ownership.pick.draftYear) : [])
+      ),
       laterDrafts: 'outside-qualified-scope',
       branchesComplete: true,
       finiteScope: {
         authorityId: h.id,
+        ...(window ? { simulationWindow: window } : {}),
         calendarSha256: h.calendarSha256,
         explanationSha256: h.explanationSha256,
         completeRelevantObligationCoverage: true,
@@ -333,7 +390,9 @@ export function compileSimulationDraftBaseline(args: {
     version: 1,
     releaseId,
     classification: 'simulation',
-    assumptions: SIMULATION_DRAFT_ASSUMPTIONS.map((a) => ({ ...a })),
+    assumptions: window
+      ? args.currentAssumptions
+      : SIMULATION_DRAFT_ASSUMPTIONS.map((a) => ({ ...a })),
     asOf: candidate.asOf,
     seasonId,
     identities,

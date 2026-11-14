@@ -27,6 +27,7 @@ const TEAM_ID = 'BOS';
 const PLAYER_ID = 'player-0001';
 const CONTRACT_ID = 'contract-0001';
 const YEAR = 2027;
+const SIGNING_LEAVES = ['CBA2-L03.16', 'CBA2-L03.17', 'CBA2-L03.18'];
 
 function row(
   season: string,
@@ -147,8 +148,14 @@ function state(
                     rawValue: overrides.signingDate,
                   },
           }
-        : {}),
-      signedUsing: overrides.signedUsing ?? 'Bird Exception',
+        : {
+            signingDate: {
+              precision: 'date' as const,
+              value: `${salaries[0].season.slice(0, 4)}-07-05`,
+              rawValue: null,
+            },
+          }),
+      signedUsing: overrides.signedUsing ?? 'Non-Bird Exception',
       contractLength: overrides.contractLength ?? salaries.length,
       isExtension: overrides.isExtension ?? false,
       isRookieScale: overrides.isRookieScale ?? false,
@@ -207,6 +214,49 @@ function resolve(
 }
 
 describe('governed ordinary Trade Machine salary basis', () => {
+  it('does not turn a conflicting Two-Way signing method into Standard matching salary', () => {
+    const source = state([row('2026-27', 636435)], {
+      signedUsing: 'Two Way',
+      signingDate: '2025-07-05',
+    });
+    const result = resolve(source, '2026-11-14');
+    expect(result.status).toBe('needs-input');
+    expect(result.reasons.join(' ')).toContain('clarify the Contract type');
+    expect(result.outgoingSalary).toBeNull();
+  });
+  it('checks a signed future extension while matching the original current Contract', () => {
+    const original = state([row('2026-27', 10_000_000)], {
+      signingDate: '2024-07-05',
+    });
+    const extension = state([row('2027-28', 15_000_000)], {
+      isExtension: true,
+      signingDate: '2026-10-01',
+    });
+    const result = resolveGovernedTradeSalaryBasis({
+      contractState: original,
+      contractManifest: manifest(original),
+      relatedContracts: [extension.terms],
+      calendar,
+      worldId: WORLD_ID,
+      teamId: TEAM_ID,
+      playerId: PLAYER_ID,
+      asOfDate: '2026-11-14',
+      salaryCapYear: YEAR,
+    });
+    expect(result.status).toBe('needs-input');
+    expect(result.reasons.join(' ')).toContain('CBA2-A10.7');
+    expect(result.outgoingSalary).toBeNull();
+  });
+  it('refuses conflicting protection instead of treating an amount above Salary as full protection', () => {
+    const source = state([row('2026-27', 10_000_000, 11_000_000)], {
+      signingDate: '2025-07-05',
+    });
+    for (const date of ['2026-11-14', '2027-01-08']) {
+      const result = resolve(source, date);
+      expect(result.status).toBe('needs-input');
+      expect(result.reasons.join(' ')).toContain('conflicting guarantee');
+    }
+  });
   it('authenticates a continuing Two-Way without inventing cash pay or requiring salary protection', () => {
     const rows = [row('2026-27', 636435, 0), row('2027-28', 650000, 0)];
     rows.forEach((term) => {
@@ -348,7 +398,7 @@ describe('governed ordinary Trade Machine salary basis', () => {
       currentSalary: 10_000_000,
       outgoingSalary: 6_000_000,
       incomingSalary: 10_000_000,
-      canonLeafIds: ['CBA2-A03.1'],
+      canonLeafIds: [...SIGNING_LEAVES, 'CBA2-A03.1'],
     });
     expect(result.proof?.stateDigest).toBe(contractState.stateDigest);
   });
@@ -420,7 +470,7 @@ describe('governed ordinary Trade Machine salary basis', () => {
     expect(resolve(contractState, '2027-01-08')).toMatchObject({
       outgoingSalary: 10_000_000,
       method: 'january-8-deemed-full',
-      canonLeafIds: ['CBA2-A03.2'],
+      canonLeafIds: [...SIGNING_LEAVES, 'CBA2-A03.2'],
     });
   });
 
@@ -440,7 +490,13 @@ describe('governed ordinary Trade Machine salary basis', () => {
     expect(resolve(contractState, '2027-04-12')).toMatchObject({
       outgoingSalary: 10_000_000,
       method: 'postseason-lesser-of',
-      canonLeafIds: ['CBA2-A03.1', 'CBA2-A03.3', 'CBA2-L03.14', 'CBA2-L03.15'],
+      canonLeafIds: [
+        ...SIGNING_LEAVES,
+        'CBA2-A03.1',
+        'CBA2-A03.3',
+        'CBA2-L03.14',
+        'CBA2-L03.15',
+      ],
     });
   });
 
@@ -554,7 +610,11 @@ describe('governed ordinary Trade Machine salary basis', () => {
     const result = resolve(contractState, '2026-12-15');
 
     expect(result.outgoingSalary).toBe(1_500_000);
-    expect(result.canonLeafIds).toEqual(['CBA2-A03.12', 'CBA2-A03.1']);
+    expect(result.canonLeafIds).toEqual([
+      ...SIGNING_LEAVES,
+      'CBA2-A03.12',
+      'CBA2-A03.1',
+    ]);
   });
 
   it('does not invent bonus or trade-bonus treatment outside the tranche', () => {
@@ -765,6 +825,7 @@ describe('governed poison-pill incoming basis', () => {
 
     expect(result.poisonPillIncomingSalary).toBe(21_500_000);
     expect(result.canonLeafIds).toEqual([
+      ...SIGNING_LEAVES,
       'CBA2-A03.2',
       'CBA2-A03.5',
       'CBA2-A03.6',

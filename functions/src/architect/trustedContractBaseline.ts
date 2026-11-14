@@ -729,3 +729,82 @@ export function branchTrustedContractBaselineDocuments(
     compareCodePoints(left.shardId, right.shardId)
   );
 }
+
+/**
+ * The callable reads these roots with Admin after checking ownership. Firestore
+ * rules forbid client world creation, changing this metadata, and writing any
+ * contractBaseline shard. Those server-established roots survive active-package
+ * rotation; the non-cryptographic document digest is only an integrity check.
+ * Never use caller-supplied metadata/documents as this authority.
+ */
+export function branchRetainedSimulationContractBaseline(
+  parent: JsonRecord,
+  values: readonly unknown[],
+  parentWorldId: string,
+  childWorldId: string
+): { metadata: JsonRecord; documents: TrustedContractBaselineDocument[] } {
+  const release = requireReleasePin(
+    parent.contractSourceRelease,
+    'Parent release'
+  );
+  const effectiveAt = requireString(
+    parent.contractBaselineEffectiveAt,
+    'Parent effective date'
+  );
+  const year = requireInteger(
+    parent.contractBaselineSalaryCapYear,
+    'Parent cap year'
+  );
+  const coverage = requireRecord(
+    parent.contractBaselineCoverage,
+    'Parent coverage'
+  );
+  const total = requireInteger(coverage.total, 'Parent total');
+  const complete = requireInteger(coverage.complete, 'Parent complete');
+  const needsInput = requireInteger(coverage.needsInput, 'Parent needsInput');
+  const financial = requireRecord(
+    parent.simulationFinancialBaseline,
+    'Parent simulation'
+  );
+  if (
+    parent.contractBaselineVersion !== CONTRACT_BASELINE_WORLD_VERSION ||
+    release.releaseVersion < 1 ||
+    !/^sha256:[0-9a-f]{64}$/.test(release.releaseDigest) ||
+    !Number.isFinite(Date.parse(effectiveAt)) ||
+    effectiveAt < `${year - 1}-07-01` ||
+    effectiveAt >= `${year}-07-01` ||
+    total < 1 ||
+    complete < 0 ||
+    needsInput < 0 ||
+    complete + needsInput !== total ||
+    financial.classification !== 'SIMULATION' ||
+    financial.asOf !== effectiveAt ||
+    typeof financial.sha256 !== 'string' ||
+    !/^[0-9a-f]{64}$/.test(financial.sha256)
+  )
+    throw new Error(
+      'Parent server-established simulation Contract metadata is invalid.'
+    );
+  const evidenceCatalog = requireRecord(
+    requireRecord(values[0], 'First parent shard').evidenceCatalog,
+    'Parent evidence catalog'
+  );
+  const documents = branchTrustedContractBaselineDocuments(
+    values,
+    parentWorldId,
+    childWorldId,
+    release,
+    evidenceCatalog,
+    total
+  );
+  return {
+    metadata: {
+      contractBaselineVersion: CONTRACT_BASELINE_WORLD_VERSION,
+      contractSourceRelease: release,
+      contractBaselineEffectiveAt: effectiveAt,
+      contractBaselineSalaryCapYear: year,
+      contractBaselineCoverage: { total, complete, needsInput },
+    },
+    documents,
+  };
+}

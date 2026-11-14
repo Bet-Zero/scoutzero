@@ -144,8 +144,10 @@ export function canPreserveDraftTradeFinances(
         typeof source.underlyingPickId === 'string'
           ? /^([A-Z]{3})_(\d{4})_1st$/.exec(source.underlyingPickId)
           : null;
-      // Current draft selections can change unsigned-first salary obligations.
-      // Conditional rights and new economic terms need their own full path.
+      // CBA2-C02.1 attaches unsigned-first money upon selection. In November,
+      // the coming calendar year's original first is necessarily unselected.
+      // Same-calendar-year selections keep the existing conservative gate;
+      // the full draft review separately enforces the dated trading window.
       if (
         source.kind !== 'pick_ownership' ||
         !original ||
@@ -167,7 +169,8 @@ export function canPreserveDraftTradeFinances(
         !empty(source.receivesRank) ||
         source.receivesComparator != null ||
         !Number.isInteger(draftYear) ||
-        Number(draftYear) <= year ||
+        Number(draftYear) < year ||
+        (Number(draftYear) === year && Number(date.slice(0, 4)) >= year) ||
         source.round !== 1
       )
         return false;

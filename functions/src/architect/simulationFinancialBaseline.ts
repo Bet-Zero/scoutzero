@@ -3,13 +3,54 @@ import {
   readSimulationPackageBytes,
   type ReadStorageObject,
 } from './simulationPackageSource';
+import {
+  loadTrustedContractRelease,
+  parseTrustedContractReleaseArtifact,
+  type TrustedContractRelease,
+  type TrustedContractReleaseDescriptor,
+  type TrustedContractReleasePin,
+} from './trustedContractBaseline';
 
 type SimulationPackage = {
   classification: 'SIMULATION';
   asOf: string;
   seasonId: string;
   teams: Record<string, Record<string, unknown>>;
+  /** Private contract bytes bound by the financial package's operator pin. */
+  contractRelease?: {
+    descriptor: TrustedContractReleaseDescriptor;
+    artifact: string;
+  };
 };
+
+/** The authenticated package may select a new starting release, never a client. */
+export function simulationContractRelease(
+  baseline: SimulationPackage | null,
+  parentPin?: TrustedContractReleasePin
+): TrustedContractRelease {
+  const packaged = baseline?.contractRelease;
+  if (
+    packaged &&
+    (!parentPin ||
+      (parentPin.releaseId === packaged.descriptor.releaseId &&
+        parentPin.releaseVersion === packaged.descriptor.releaseVersion &&
+        parentPin.releaseDigest === packaged.descriptor.releaseDigest))
+  ) {
+    const release = parseTrustedContractReleaseArtifact(
+      Buffer.from(packaged.artifact, 'utf8'),
+      packaged.descriptor
+    );
+    if (
+      release.effectiveAt !== baseline!.asOf ||
+      `${release.salaryCapYear - 1}-${String(release.salaryCapYear).slice(-2)}` !==
+        baseline!.seasonId
+    )
+      throw new Error('Simulation and Contract baseline dates differ.');
+    return release;
+  }
+  // Retained historical worlds keep their exact release when copied.
+  return loadTrustedContractRelease(parentPin);
+}
 export async function loadSimulationFinancialBaseline(
   readObject?: ReadStorageObject
 ): Promise<SimulationPackage | null> {
@@ -25,5 +66,6 @@ export async function loadSimulationFinancialBaseline(
     )
   )
     throw new Error('Expected the prepared thirty-team SIMULATION baseline.');
+  if (value.contractRelease) simulationContractRelease(value);
   return value;
 }

@@ -8,6 +8,7 @@ import type { GovernedDraftWorldBaseline } from '@/schemas/governedDraftWorld';
 import { evaluateDraftApronLifecycle } from './draftApronMechanisms';
 import { apronLifecycleVerdict } from './draftReview/consumption';
 import { toEndYear } from './seasonFormat';
+import { reviewSimulationDraftWindow } from './draftReview/horizon';
 
 export type SimulationPickStatus = {
   readonly tradeable: boolean;
@@ -23,12 +24,30 @@ export function simulationPickStatuses(
     | 'retainedEntitlements'
     | 'unresolved'
     | 'apron'
-  >
+  > &
+    Partial<Pick<GovernedDraftWorldBaseline, 'stepien' | 'asOf'>>
 ): Record<string, SimulationPickStatus> {
   if (baseline.classification !== 'simulation') return {};
-  // The coming draft: trading its picks also moves unsigned rookie-scale
-  // money, which is not built yet (C2).
+  // The legacy June baseline keeps its recorded exclusion. A reconciled
+  // current window permits unselected coming-draft rights (CBA2-C02.1).
   const comingDraft = toEndYear(baseline.seasonId) ?? Number.NaN;
+  const scopes = Object.values(baseline.stepien ?? {});
+  const upcomingAdmitted =
+    scopes.length > 0 &&
+    scopes.every(
+      (scope) =>
+        scope.firstFutureDraftYear === comingDraft &&
+        reviewSimulationDraftWindow(
+          scope.finiteScope?.simulationWindow,
+          baseline.asOf ?? '',
+          [comingDraft]
+        ).status === 'permits'
+    );
+  const currentLastYear = upcomingAdmitted
+    ? Math.min(
+        ...scopes.map((scope) => scope.finiteScope!.simulationWindow!.lastYear)
+      )
+    : null;
   const lastOpen = Math.max(
     ...baseline.records.map((r) => r.ownership.pick.draftYear)
   );
@@ -44,7 +63,21 @@ export function simulationPickStatuses(
   )) {
     const year = Number(entitlement.seasonYear);
     const record = admitted.get(id);
-    if (year <= comingDraft) {
+    if (entitlement.simulationRestriction === 'forfeited') {
+      statuses[id] = {
+        tradeable: false,
+        text: 'Not tradeable: forfeited by league sanction',
+      };
+      continue;
+    }
+    if (currentLastYear !== null && year > currentLastYear) {
+      statuses[id] = {
+        tradeable: false,
+        text: 'Not tradeable: outside the seven-draft trading window',
+      };
+      continue;
+    }
+    if (year < comingDraft || (year === comingDraft && !upcomingAdmitted)) {
       statuses[id] = {
         tradeable: false,
         text: `Not tradeable: the ${year} Draft is next, and trading its picks is not supported yet`,
