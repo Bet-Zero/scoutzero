@@ -96,7 +96,8 @@ that changes the plan.
       to whole-trade validation. 70 conditional originals and four forfeited
       originals are unavailable. The 278-record predecessor is preserved.
 - [x] A6 Copying (branching) a simulation world.
-      Mechanism delivered; current-season copy/reload belongs in E1.
+      Copies retain server-established Contract roots even after the active
+      starting package changes; historical release validation is preserved.
 
 ## Phase 2: switch it on (owner confirms the deploy)
 
@@ -174,7 +175,9 @@ that changes the plan.
       trade and a player-only trade; checks receipts, reload/copy, a recent
       signing refusal and extension restriction; and hashes the older world
       before/after. The current private financial/draft packages both replay
-      byte-for-byte. B1/B5 and final acceptance remain open.
+      byte-for-byte. A separate package-rotation copy/reload journey also passed
+      (**1 passed, 0 skipped**) against a retained current world with the older
+      starting package active. B1/B5 and final acceptance remain open.
       Historical June 5 pick proof (#653; gated spec
       `tests/e2e/architect-simulation-first-round-apply.spec.ts`).
       November 14: financial-proof opt-in enabled; eight journey tests passed,

@@ -20,6 +20,7 @@ import type {
 } from './capTotals/datedSalaryLedgers';
 import type { TeamSalaryBookInputs } from '@/schemas/salaryBooks';
 import { TeamSalaryBookInputsZ } from '@/schemas/salaryBooks';
+import { GovernedUnsignedFirstRoundPickStateZ } from '@/schemas/governedIncompleteRosterCharge';
 import { withholdConflictingGuarantees } from './simulationContractGuarantees';
 import { createCanonicalTeamTotalsSnapshot } from './capTotals/computeTeamCapTotals';
 import { DERIVED_FREE_AGENT_AMOUNTS_REFERENCE } from './capTotals/teamSalaryBooks';
@@ -76,7 +77,9 @@ export interface SimulationTeamInput {
   rareEvents?: readonly SimulationRareEvent[];
   /** Reconciled offseason facts. A current baseline cannot borrow June's zeros. */
   currentSeasonState?: {
-    unsignedFirstRoundPickState: TeamSalaryBookInputs['unsignedFirstRoundPickState'];
+    unsignedFirstRoundPickState: NonNullable<
+      TeamSalaryBookInputs['unsignedFirstRoundPickState']
+    >;
     restrictedFreeAgentTender: { amount: number; evidenceReference: string };
     hardCapCorrection?: SimulationHardCapCorrection;
   };
@@ -115,15 +118,26 @@ export async function buildSimulationTeam(
 ): Promise<SimulationTeamResult> {
   const { teamCode, asOf, salaryCapYear } = input;
   const season = `${salaryCapYear - 1}-${String(salaryCapYear).slice(-2)}`;
-  if (salaryCapYear !== 2026 && !input.currentSeasonState)
+  const unsigned = GovernedUnsignedFirstRoundPickStateZ.safeParse(
+    input.currentSeasonState?.unsignedFirstRoundPickState
+  );
+  const rfa = input.currentSeasonState?.restrictedFreeAgentTender;
+  if (
+    (salaryCapYear !== 2026 || input.currentSeasonState != null) &&
+    (!unsigned.success ||
+      unsigned.data.status !== 'ready' ||
+      unsigned.data.teamCode !== teamCode ||
+      unsigned.data.salaryCapYear !== salaryCapYear ||
+      !rfa)
+  )
     throw new Error(
       `${teamCode}: current-season unsigned picks and RFA tenders must be reconciled.`
     );
-  const rfa = input.currentSeasonState?.restrictedFreeAgentTender;
   if (
     rfa &&
     (money(rfa.amount) === null ||
       rfa.amount < 0 ||
+      typeof rfa.evidenceReference !== 'string' ||
       !rfa.evidenceReference.trim())
   )
     throw new Error(`${teamCode}: RFA tender input is incomplete.`);

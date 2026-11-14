@@ -90,12 +90,12 @@ describe('local simulation world initialization boundary', () => {
     );
     vi.stubEnv('FUNCTIONS_EMULATOR', 'false');
     // Exercise the built server and its actual packaged historical artifact.
-    const { loadParentContractRelease } = createRequire(__filename)(
-      '../../lib/architect/simulationFinancialBaseline.js'
+    const { loadTrustedContractRelease } = createRequire(__filename)(
+      '../../lib/architect/trustedContractBaseline.js'
     );
-    await expect(
-      loadParentContractRelease(DEFAULT_TRUSTED_CONTRACT_RELEASE)
-    ).resolves.toMatchObject({ salaryCapYear: 2026 });
+    expect(
+      loadTrustedContractRelease(DEFAULT_TRUSTED_CONTRACT_RELEASE)
+    ).toMatchObject({ salaryCapYear: 2026 });
   });
   it('is absent by default and rejects production before reading inputs', async () => {
     vi.stubEnv('SCOUTZERO_SIMULATION_FINANCIAL_FILE', '');

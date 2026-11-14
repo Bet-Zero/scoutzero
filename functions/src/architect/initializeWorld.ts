@@ -10,9 +10,12 @@ import {
 
 import {
   branchTrustedContractBaselineDocuments,
+  branchRetainedSimulationContractBaseline,
   buildTrustedContractBaselineDocuments,
   canonicalStringify,
   CONTRACT_BASELINE_WORLD_VERSION,
+  loadTrustedContractRelease,
+  RETAINED_TRUSTED_CONTRACT_RELEASES,
   resolveFreshWorldSeason,
   seasonForSalaryCapYear,
   trustedContractBaselineMetadata,
@@ -21,7 +24,6 @@ import {
 import {
   loadSimulationFinancialBaseline,
   simulationContractRelease,
-  loadParentContractRelease,
 } from './simulationFinancialBaseline';
 import { loadTrustedDraftBaseline } from './trustedDraftBaseline';
 import { loadSimulationDraftBaseline } from './simulationDraftBaseline';
@@ -493,25 +495,43 @@ export const initializeArchitectWorld = onCall(
             'Only a SIMULATION world can be copied. The parent is unchanged.'
           );
         }
-        const release = await loadParentContractRelease(
-          contractReleasePinFromParent(parent)
-        );
-        trustedMetadata = trustedContractBaselineMetadata(release);
-        const parentContract = contractMetadataFromParent(
-          parent,
-          trustedMetadata
-        );
+        const pin = contractReleasePinFromParent(parent);
         const parentDocuments = await parentRef
           .collection(CONTRACT_BASELINES_SUBCOLLECTION)
           .get();
-        documents = branchTrustedContractBaselineDocuments(
-          parentDocuments.docs.map((entry) => entry.data()),
-          parentWorldId,
-          worldId,
-          parentContract.release,
-          release.source.evidenceCatalog,
-          parentContract.total
-        );
+        const roots = parentDocuments.docs.map((entry) => entry.data());
+        if (
+          RETAINED_TRUSTED_CONTRACT_RELEASES.some(
+            (r) =>
+              r.releaseId === pin.releaseId &&
+              r.releaseVersion === pin.releaseVersion
+          )
+        ) {
+          const release = loadTrustedContractRelease(pin);
+          trustedMetadata = trustedContractBaselineMetadata(release);
+          const parentContract = contractMetadataFromParent(
+            parent,
+            trustedMetadata
+          );
+          documents = branchTrustedContractBaselineDocuments(
+            roots,
+            parentWorldId,
+            worldId,
+            parentContract.release,
+            release.source.evidenceCatalog,
+            parentContract.total
+          );
+        } else {
+          // These are owned, server-written immutable roots, never request data.
+          const retained = branchRetainedSimulationContractBaseline(
+            parent,
+            roots,
+            parentWorldId,
+            worldId
+          );
+          trustedMetadata = retained.metadata;
+          documents = retained.documents;
+        }
         metadata = branchWorldMetadata({
           worldId,
           worldName,

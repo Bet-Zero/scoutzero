@@ -274,30 +274,74 @@ describe('direct current-season SIMULATION starting state', () => {
     await expect(buildSimulationTeam(args)).rejects.toThrow(
       'must be reconciled'
     );
-    const { team, report } = await buildSimulationTeam({
-      ...args,
-      currentSeasonState: {
-        unsignedFirstRoundPickState: {
-          version: 1,
-          status: 'ready',
-          teamCode: 'BOS',
-          salaryCapYear: 2027,
-          entries: [],
-          source: {
-            evidenceId: 'software-current-draft',
-            evidenceVersion: 1,
-            authority: 'external-determination',
-            reference: 'software all selections signed',
-            authenticatedAt: AS_OF,
-            recordStatus: 'current',
-            canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'],
-          },
-        },
-        restrictedFreeAgentTender: {
-          amount: 1_000_000,
-          evidenceReference: 'software outstanding tender',
+    const currentSeasonState: NonNullable<
+      Parameters<typeof buildSimulationTeam>[0]['currentSeasonState']
+    > = {
+      unsignedFirstRoundPickState: {
+        version: 1,
+        status: 'ready',
+        teamCode: 'BOS',
+        salaryCapYear: 2027,
+        entries: [],
+        source: {
+          evidenceId: 'software-current-draft',
+          evidenceVersion: 1,
+          authority: 'external-determination',
+          reference: 'software all selections signed',
+          authenticatedAt: AS_OF,
+          recordStatus: 'current',
+          canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'],
         },
       },
+      restrictedFreeAgentTender: {
+        amount: 1_000_000,
+        evidenceReference: 'software outstanding tender',
+      },
+    };
+    for (const invalid of [
+      {},
+      {
+        restrictedFreeAgentTender: currentSeasonState.restrictedFreeAgentTender,
+      },
+      {
+        unsignedFirstRoundPickState:
+          currentSeasonState.unsignedFirstRoundPickState,
+      },
+      { ...currentSeasonState, unsignedFirstRoundPickState: null },
+      {
+        ...currentSeasonState,
+        unsignedFirstRoundPickState: {
+          ...currentSeasonState.unsignedFirstRoundPickState,
+          teamCode: 'MIA',
+        },
+      },
+      {
+        ...currentSeasonState,
+        unsignedFirstRoundPickState: {
+          ...currentSeasonState.unsignedFirstRoundPickState,
+          salaryCapYear: 2026,
+        },
+      },
+      { ...currentSeasonState, restrictedFreeAgentTender: { amount: 0 } },
+      {
+        ...currentSeasonState,
+        restrictedFreeAgentTender: { amount: -1, evidenceReference: 'invalid' },
+      },
+      {
+        ...currentSeasonState,
+        restrictedFreeAgentTender: { amount: 0, evidenceReference: 1 },
+      },
+    ]) {
+      await expect(
+        buildSimulationTeam({
+          ...args,
+          currentSeasonState: invalid as typeof currentSeasonState,
+        })
+      ).rejects.toThrow(/reconciled|incomplete/);
+    }
+    const { team, report } = await buildSimulationTeam({
+      ...args,
+      currentSeasonState,
     });
     expect(report.teamSalary).toBe(140_000_000);
     expect(report.apronTeamSalary).toBe(141_000_000);

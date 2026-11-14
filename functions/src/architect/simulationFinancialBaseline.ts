@@ -6,7 +6,6 @@ import {
 import {
   loadTrustedContractRelease,
   parseTrustedContractReleaseArtifact,
-  RETAINED_TRUSTED_CONTRACT_RELEASES,
   type TrustedContractRelease,
   type TrustedContractReleaseDescriptor,
   type TrustedContractReleasePin,
@@ -23,24 +22,6 @@ type SimulationPackage = {
     artifact: string;
   };
 };
-
-/** Historical copies do not depend on a newer private package being available. */
-export async function loadParentContractRelease(
-  pin: TrustedContractReleasePin
-) {
-  if (
-    RETAINED_TRUSTED_CONTRACT_RELEASES.some(
-      (retained) =>
-        retained.releaseId === pin.releaseId &&
-        retained.releaseVersion === pin.releaseVersion
-    )
-  )
-    return loadTrustedContractRelease(pin);
-  return simulationContractRelease(
-    await loadSimulationFinancialBaseline(),
-    pin
-  );
-}
 
 /** The authenticated package may select a new starting release, never a client. */
 export function simulationContractRelease(

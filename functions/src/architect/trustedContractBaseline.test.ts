@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   branchTrustedContractBaselineDocuments,
+  branchRetainedSimulationContractBaseline,
   buildTrustedContractBaselineDocuments,
   canonicalStringify,
   parseTrustedContractReleaseArtifact,
@@ -113,6 +114,91 @@ function fixtureRegistry(
 }
 
 describe('trusted governed contract baseline', () => {
+  it('copies server-retained private roots without the active package and rejects inconsistent roots', () => {
+    const fixture = fixtureRelease(2);
+    const release = parseTrustedContractReleaseArtifact(
+      fixture.artifact,
+      fixture.descriptor
+    );
+    const metadata = trustedContractBaselineMetadata(release);
+    const parent = {
+      ...metadata,
+      simulationFinancialBaseline: {
+        classification: 'SIMULATION',
+        asOf: release.effectiveAt,
+        sha256: 'c'.repeat(64),
+      },
+    };
+    const roots = buildTrustedContractBaselineDocuments(
+      release,
+      'parent-private'
+    );
+    const before = canonicalStringify(roots);
+    const child = branchRetainedSimulationContractBaseline(
+      parent,
+      roots,
+      'parent-private',
+      'child-private'
+    );
+    expect(child.metadata).toEqual(metadata);
+    expect(child.documents[0].release).toEqual(metadata.contractSourceRelease);
+    expect(child.documents[0].worldId).toBe('child-private');
+    expect(canonicalStringify(roots)).toBe(before);
+    expect(
+      branchRetainedSimulationContractBaseline(
+        {
+          ...child.metadata,
+          simulationFinancialBaseline: parent.simulationFinancialBaseline,
+        },
+        child.documents,
+        'child-private',
+        'grandchild-private'
+      ).documents[0].worldId
+    ).toBe('grandchild-private');
+    for (const badParent of [
+      { ...parent, contractSourceRelease: fixturePin(1) },
+      {
+        ...parent,
+        contractBaselineCoverage: { total: 2, complete: 1, needsInput: 0 },
+      },
+      { ...parent, contractBaselineSalaryCapYear: 2028 },
+      { ...parent, simulationFinancialBaseline: null },
+    ])
+      expect(() =>
+        branchRetainedSimulationContractBaseline(
+          badParent,
+          roots,
+          'parent-private',
+          'child-private'
+        )
+      ).toThrow();
+    expect(() =>
+      branchRetainedSimulationContractBaseline(
+        parent,
+        [],
+        'parent-private',
+        'child'
+      )
+    ).toThrow();
+    const tampered = structuredClone(roots);
+    tampered[0].evidenceCatalog = { altered: true };
+    expect(() =>
+      branchRetainedSimulationContractBaseline(
+        parent,
+        tampered,
+        'parent-private',
+        'child'
+      )
+    ).toThrow('digest');
+    expect(() =>
+      branchRetainedSimulationContractBaseline(
+        parent,
+        roots,
+        'wrong-world',
+        'child'
+      )
+    ).toThrow('identity');
+  });
   it('packages the exact retained artifact at the deployed runtime path', () => {
     execFileSync('npm', ['run', 'copy:contract-release'], {
       cwd: functionsRoot,
