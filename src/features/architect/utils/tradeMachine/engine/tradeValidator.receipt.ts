@@ -377,6 +377,9 @@ export function generateTradeReceipt({
         ? null
         : (salaryMatchingResult.allowableIncoming ?? null),
       actualIncoming:
+        (teamResult?.salaryMatchingPathEvaluation?.election?.minimumExceptionPlayerIds?.length
+          ? teamResult.salaryMatchingPathEvaluation.actualIncoming
+          : null) ??
         salaryMatchingResult.salaryIn ??
         team.salaryIn ??
         incomingMatchingTotal ??

@@ -35,7 +35,7 @@ describe('current-season signing trade eligibility', () => {
         '2026-11-14',
         2027
       ).join()
-    ).toContain('needs its original-term salary');
+    ).toContain('needs complete extended-term salaries');
     expect(
       amendmentTradeRestrictions(
         terms('2026-08-31', { contractType: 'Renegotiation' }),

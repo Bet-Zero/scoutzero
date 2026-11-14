@@ -134,6 +134,13 @@ export function simulationAssumptionsForWorld(
     ...(current
       ? [
           {
+            id: 'historical-contract-timing-context',
+            area: 'Trades' as const,
+            title: 'Prior salary for trade eligibility',
+            statement:
+              'Current Contract terms take precedence. When they omit prior compensation, this simulation may reuse an uncontradicted salary row from the accepted June 5, 2026 Contract history, observed before the new signing. That history supplies only prior salary for signing and extension trade limits; it never replaces current rosters or books. Conflicting rows, missing signing-day cap facts and unavailable league amounts remain needs-input.',
+          },
+          {
             id: 'conflicting-source-guarantees',
             area: 'Money' as const,
             title: 'Conflicting public guarantees',

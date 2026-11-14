@@ -753,7 +753,7 @@ export function validateSalaryMatching(
     };
   }
 
-  const effectiveSalaryIn =
+  let effectiveSalaryIn =
     salaryIn - tpeAbsorbedSalary - faExceptionAbsorbedSalary;
 
   let pathEvaluation: TradeSalaryPathEvaluation | null = null;
@@ -819,6 +819,9 @@ export function validateSalaryMatching(
       capTeamSalary:
         typeof team.team?.teamSalary === 'number' ? team.team.teamSalary : null,
     });
+    // Separate Minimum acquisitions remain in salaryIn / the books, while
+    // only the primary component consumes this matching capacity.
+    effectiveSalaryIn = pathEvaluation.actualIncoming;
     if (pathEvaluation.status === 'NEEDS_INPUT') {
       const message = `Salary path needs exact input: ${pathEvaluation.missingInputs.join(', ')}`;
       return {

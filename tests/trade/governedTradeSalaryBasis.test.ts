@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { projectAmendmentTimingTerms } from '@/features/architect/utils/tradeMachine/utils/tradeSigningTiming';
 
 import type { ContractSalaryTerm } from '@/schemas/governedContractState';
 import type { GovernedCalendarResolution } from '@/features/architect/utils/governedSeason';
@@ -246,6 +247,121 @@ describe('governed ordinary Trade Machine salary basis', () => {
     expect(result.status).toBe('needs-input');
     expect(result.reasons.join(' ')).toContain('CBA2-A10.7');
     expect(result.outgoingSalary).toBeNull();
+  });
+  it('reads a saved extension event date and extended rows without rewriting its original Contract', () => {
+    const original = state(
+      [row('2025-26', 9_000_000), row('2026-27', 10_000_000)],
+      { signingDate: '2024-07-05' }
+    );
+    const originalTerms = {
+      ...original.terms,
+      startSeason: '2025-26',
+      endSeason: '2026-27',
+    };
+    const root = signingEvent({
+      resultingState: { ...original, contractVersion: 1, terms: originalTerms },
+    });
+    const check = (
+      secondSalary: number,
+      kind: 'extension' | 'renegotiation' = 'extension'
+    ) => {
+      const merged = makeResultingState({
+        ...original,
+        contractVersion: 2,
+        terms: {
+          ...originalTerms,
+          isExtension: true,
+          endSeason: '2028-29',
+          salaries: [
+            ...originalTerms.salaries,
+            row('2027-28', 12_000_000),
+            row('2028-29', secondSalary),
+          ],
+        },
+      });
+      const event = signingEvent({
+        eventId: 'extension',
+        eventKind: kind,
+        executedAt: '2026-11-01T17:00:00Z',
+        effectiveAt: '2026-11-01T17:00:00Z',
+        predecessorContractVersion: 1,
+        resultingContractVersion: 2,
+        resultingState: merged,
+      });
+      const before = JSON.stringify(merged);
+      const amendmentContracts = projectAmendmentTimingTerms(merged.terms, [
+        root,
+        event,
+      ]);
+      const result = resolveGovernedTradeSalaryBasis({
+        contractState: merged,
+        contractManifest: manifest(merged),
+        amendmentContracts,
+        calendar,
+        worldId: WORLD_ID,
+        teamId: TEAM_ID,
+        playerId: PLAYER_ID,
+        asOfDate: '2026-11-14',
+        salaryCapYear: YEAR,
+      });
+      expect(JSON.stringify(merged)).toBe(before);
+      expect(amendmentContracts[1].signingDate.value).toBe(event.executedAt);
+      return result;
+    };
+    expect(check(12_600_000)).toMatchObject({
+      status: 'ready',
+      incomingSalary: 10_000_000,
+    });
+    expect(check(12_600_000.01).reasons.join()).toContain(
+      'extension salary change above 5%'
+    );
+    expect(check(12_600_000, 'renegotiation').reasons.join()).toContain(
+      'renegotiation bars trading'
+    );
+  });
+  it('does not acquire only the original minimum term when a signed future extension lengthens the Contract', () => {
+    const retained = state(
+      [row('2025-26', 2_000_000), row('2026-27', 2_100_000)],
+      {
+        signingDate: '2025-07-05',
+        signedUsing: 'Minimum Salary Exception',
+        contractLength: 2,
+      }
+    );
+    const original = makeResultingState({
+      ...retained,
+      terms: {
+        ...retained.terms,
+        startSeason: '2025-26',
+        endSeason: '2026-27',
+      },
+    });
+    const future = {
+      ...state([row('2027-28', 2_200_000)], {
+        isExtension: true,
+        signingDate: '2026-03-01',
+      }).terms,
+      startSeason: '2027-28',
+      endSeason: '2027-28',
+    };
+    const check = (relatedContracts: (typeof future)[]) =>
+      resolveGovernedTradeSalaryBasis({
+        contractState: original,
+        contractManifest: manifest(original),
+        relatedContracts,
+        calendar,
+        worldId: WORLD_ID,
+        teamId: TEAM_ID,
+        playerId: PLAYER_ID,
+        asOfDate: '2026-11-14',
+        salaryCapYear: YEAR,
+      });
+    expect(check([])).toMatchObject({
+      status: 'ready',
+      minimumExceptionAcquisition: true,
+    });
+    expect(check([future])).toMatchObject({ status: 'ready' });
+    expect(check([future]).minimumExceptionAcquisition).toBeUndefined();
   });
   it('refuses conflicting protection instead of treating an amount above Salary as full protection', () => {
     const source = state([row('2026-27', 10_000_000, 11_000_000)], {

@@ -426,7 +426,101 @@ function evaluateExpandedTpe({
   });
 }
 
-export function evaluateTradeSalaryMatchingPath({
+export function evaluateTradeSalaryMatchingPath(
+  input: EvaluateTradeSalaryPathInput
+): TradeSalaryPathEvaluation {
+  const parsed = TradeSalaryMatchingElectionZ.safeParse(input.election);
+  const ids = parsed.success
+    ? (parsed.data.minimumExceptionPlayerIds ?? [])
+    : [];
+  if (!parsed.success || ids.length === 0)
+    return evaluatePrimarySalaryMatchingPath(input);
+
+  const election = parsed.data;
+  const selected = input.incomingMatchingPlayers.filter((player) =>
+    ids.includes(String(player.playerId))
+  );
+  // The validator derives eligibility from the sender's retained Contract.
+  // An ID must name exactly one incoming player, and cannot also use a TPE.
+  const invalid = ids.filter(
+    (id) =>
+      selected.filter((player) => player.playerId === id).length !== 1 ||
+      selected.find((player) => player.playerId === id)
+        ?.minimumExceptionAcquisition !== true ||
+      selected.some(
+        (player) =>
+          player.playerId === id &&
+          (typeof player.salary !== 'number' ||
+            !Number.isFinite(player.salary) ||
+            player.salary < 0)
+      ) ||
+      input.heldStandardTpeComponents?.some((component) =>
+        component.incomingPlayers.some((player) => player.playerId === id)
+      )
+  );
+  if (election.path === 'MINIMUM_EXCEPTION' || invalid.length > 0)
+    return result({
+      status: 'FAIL',
+      election,
+      formula:
+        'Each separate Minimum Exception acquisition must qualify on its own.',
+      allowance: null,
+      maximumIncoming: null,
+      actualIncoming: playerSalaryTotal(input.incomingMatchingPlayers),
+      firstApron: finiteNonnegative(input.firstApron),
+      violations: [
+        election.path === 'MINIMUM_EXCEPTION'
+          ? 'The Minimum Exception path already covers every incoming player; remove the separate allocations.'
+          : `Separate Minimum Exception acquisitions require unique incoming Contracts of at most two Seasons, minimum compensation and no bonuses: ${invalid.join(', ')}.`,
+      ],
+    });
+
+  const { minimumExceptionPlayerIds: _separate, ...primaryElection } = election;
+  const primary = evaluatePrimarySalaryMatchingPath({
+    ...input,
+    election: primaryElection,
+    incomingMatchingPlayers: input.incomingMatchingPlayers.filter(
+      (player) => !ids.includes(String(player.playerId))
+    ),
+  });
+  return {
+    ...primary,
+    election,
+    formula: `${primary.formula} Separate Minimum Exception acquisitions use $0 matching salary; their full pay remains on the books.`,
+    canonLeafIds: [
+      ...new Set([
+        ...primary.canonLeafIds,
+        ...GOVERNED_TRADE_SALARY_PATH_LEAVES.MINIMUM_EXCEPTION,
+        'CBA2-C13.1',
+        'CBA2-C13.2',
+      ]),
+    ],
+    components: [
+      ...primary.components,
+      ...selected.map(
+        (player): TradeSalaryPathComponent => ({
+          componentId: `minimum-exception:${player.playerId}`,
+          kind: 'ELECTED_PATH',
+          path: 'MINIMUM_EXCEPTION',
+          timing: 'SIMULTANEOUS',
+          outgoingPlayers: [],
+          incomingPlayers: [
+            {
+              playerId: String(player.playerId),
+              playerName: player.playerName,
+              salary: 0,
+            },
+          ],
+          maximumIncoming: 0,
+          usedIncoming: 0,
+          remaining: 0,
+        })
+      ),
+    ],
+  };
+}
+
+function evaluatePrimarySalaryMatchingPath({
   election: rawElection,
   outgoingPlayers,
   incomingMatchingPlayers,

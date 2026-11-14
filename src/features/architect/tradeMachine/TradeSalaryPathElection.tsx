@@ -17,6 +17,7 @@ type ElectionPlayer = {
 type TradeSalaryPathElectionProps = {
   election?: TradeSalaryMatchingElection | null;
   outgoingPlayers: ElectionPlayer[];
+  incomingPlayers?: ElectionPlayer[];
   onChange: (election: TradeSalaryMatchingElection | null) => void;
   compact?: boolean;
 };
@@ -80,6 +81,7 @@ const CurrencyInput = ({
 export const TradeSalaryPathElection = ({
   election,
   outgoingPlayers,
+  incomingPlayers = [],
   onChange,
   compact = false,
 }: TradeSalaryPathElectionProps) => (
@@ -117,6 +119,70 @@ export const TradeSalaryPathElection = ({
 
     {election && (
       <>
+        {election.minimumExceptionPlayerIds?.some(
+          (id) => !incomingPlayers.some((player) => playerId(player) === id)
+        ) && (
+          <div className="text-xs text-cockpit-text-secondary">
+            A separate minimum acquisition refers to a removed player.{' '}
+            <button
+              type="button"
+              className="underline text-cockpit-info"
+              onClick={() =>
+                onChange({
+                  ...election,
+                  minimumExceptionPlayerIds:
+                    election.minimumExceptionPlayerIds?.filter((id) =>
+                      incomingPlayers.some((player) => playerId(player) === id)
+                    ),
+                })
+              }
+            >
+              Clear removed minimum acquisitions
+            </button>
+          </div>
+        )}
+        {election.path !== 'MINIMUM_EXCEPTION' &&
+          incomingPlayers.some((player) => !isTwoWayTradePlayer(player)) && (
+            <fieldset className="space-y-2 text-xs text-cockpit-text-secondary">
+              <legend>Separate Minimum Exception acquisitions</legend>
+              <p className="text-[11px] text-cockpit-text-muted">
+                Selected players use $0 matching salary. Their pay still counts
+                against team and apron limits; eligibility is checked before the
+                trade.
+              </p>
+              {incomingPlayers
+                .filter((player) => !isTwoWayTradePlayer(player))
+                .map((player) => {
+                  const id = playerId(player);
+                  return (
+                    <label key={id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        aria-label={`Acquire ${playerName(player)} with Minimum Exception`}
+                        checked={
+                          election.minimumExceptionPlayerIds?.includes(id) ??
+                          false
+                        }
+                        onChange={(event) =>
+                          onChange({
+                            ...election,
+                            minimumExceptionPlayerIds: event.target.checked
+                              ? [
+                                  ...(election.minimumExceptionPlayerIds ?? []),
+                                  id,
+                                ]
+                              : (
+                                  election.minimumExceptionPlayerIds ?? []
+                                ).filter((value) => value !== id),
+                          })
+                        }
+                      />
+                      {playerName(player)}
+                    </label>
+                  );
+                })}
+            </fieldset>
+          )}
         <label className="block text-xs text-cockpit-text-secondary">
           Apron salary after the trade
           <CurrencyInput
