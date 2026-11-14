@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TradeAcquisitionHistoryZ } from './tradeAggregation';
 import { JsonValueZ, MoneyZ, PlayerIdZ, SeasonCodeZ, TeamCodeZ } from './common';
 import { ContractEventLedgerPayloadZ } from '@/schemas/contractEventLedger';
 import { GovernedWaiverLifecycleZ } from '@/schemas/governedWaiver';
@@ -367,6 +368,7 @@ export const BaseTeamDocZ = z.object({
   contractEventLedgers: z.array(ContractEventLedgerPayloadZ).optional(),
   salaryBookInputs: TeamSalaryBookInputsZ.optional(),
   hardCapLedger: TradeHardCapLedgerZ.optional(),
+  tradeAcquisitionHistory: TradeAcquisitionHistoryZ.optional(),
   exceptions: ExceptionsZ,
   draftPicks: z.array(DraftPickZ).optional().default([]),
   /**

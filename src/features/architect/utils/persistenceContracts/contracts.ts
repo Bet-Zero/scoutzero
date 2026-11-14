@@ -82,6 +82,7 @@ export const TEAM_OVERLAY_TOP_LEVEL_ALLOWLIST: PersistenceAllowlist =
     'rightsLedger', // BZE-273 immutable dated rights history
     'contractEventLedgers', // BZE-275 immutable option/ETO event overlays
     'salaryBookInputs', // BZE-285 governed Apron and Tax Salary source inputs
+    'tradeAcquisitionHistory', // CBA2-A06 saved acquisition dates and methods
     'hardCapLedger', // BZE-288 immutable season-keyed Trade Machine hard caps
     'cashLedger', // BZE-291 immutable paid/received cash consideration entries
     'exceptions', // ExceptionsZ object (contains mle, bae, tpe[], etc.)

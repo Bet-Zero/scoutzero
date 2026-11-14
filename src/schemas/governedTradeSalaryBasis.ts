@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TradeAggregationFactsZ } from './tradeAggregation';
 
 const NonEmptyStringZ = z.string().refine((value) => value.trim().length > 0, {
   message: 'must contain at least one non-whitespace character',
@@ -7,6 +8,18 @@ const MoneyZ = z.number().finite().nonnegative();
 
 export const GovernedTradeSalaryBasisEvidenceZ = z.strictObject({
   evidenceVersion: z.literal(1),
+  /** Exact S01.5 table cells retained with this Contract, when available. */
+  minimumSalaryAmounts: z
+    .array(
+      z.strictObject({
+        salaryCapYear: z.number().int(),
+        contractStartSalaryCapYear: z.number().int(),
+        contractYear: z.number().int().positive(),
+        yearsOfService: z.number().int().nonnegative(),
+        amount: MoneyZ.positive(),
+      })
+    )
+    .optional(),
   earnedBaseCompensation: z.array(
     z.strictObject({
       season: NonEmptyStringZ,
@@ -80,6 +93,7 @@ export const GovernedTradeSalaryBasisZ = z
     minimumExceptionAcquisition: z.boolean().optional(),
     /** Seasons left on the Contract, counting the current Salary Cap Year. */
     contractSeasonsRemaining: z.number().int().min(1).optional(),
+    aggregationFacts: TradeAggregationFactsZ.optional(),
     /** Named SIMULATION assumptions this result depends on (for example the trade deadline). */
     assumptionIds: z.array(NonEmptyStringZ).optional(),
     canonLeafIds: z.array(NonEmptyStringZ),

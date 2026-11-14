@@ -1,3 +1,4 @@
+import { TradeAcquisitionHistoryZ } from '@/schemas/tradeAggregation';
 /**
  * Wave 36 Step 1a: Builder functions extracted from
  * mutationPipeline.read.normalizeTeam.ts (lines 116–554).
@@ -84,6 +85,7 @@ export function buildCurrentStateBaseTeamBoundaryInput(
     contractEventLedgers: teamRecord.contractEventLedgers,
     salaryBookInputs: teamRecord.salaryBookInputs,
     hardCapLedger: teamRecord.hardCapLedger,
+    tradeAcquisitionHistory: teamRecord.tradeAcquisitionHistory,
     deadCap: teamRecord.deadCap,
     exceptions:
       teamRecord.exceptions ??
@@ -136,6 +138,7 @@ export function buildCurrentStateTradeTeamBoundaryInput(
     contractEventLedgers: teamRecord.contractEventLedgers,
     salaryBookInputs: teamRecord.salaryBookInputs,
     hardCapLedger: teamRecord.hardCapLedger,
+    tradeAcquisitionHistory: teamRecord.tradeAcquisitionHistory,
     deadCap: teamRecord.deadCap,
     exceptions:
       teamRecord.exceptions ??
@@ -201,6 +204,11 @@ export function normalizeCurrentStateTeamMutationCore(
   if (teamRecord.hardCapLedger != null && !hardCapLedger.valid) {
     throw new Error(
       'Persisted hard-cap ledger is malformed or version-incompatible.'
+    );
+  }
+  if (teamRecord.tradeAcquisitionHistory !== undefined) {
+    normalized.tradeAcquisitionHistory = TradeAcquisitionHistoryZ.parse(
+      teamRecord.tradeAcquisitionHistory
     );
   }
   const deadCap = normalizeCurrentStateDeadCap(teamRecord.deadCap);

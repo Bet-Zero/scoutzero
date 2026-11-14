@@ -1,3 +1,4 @@
+import type { TradeAcquisitionHistory } from '@/schemas/tradeAggregation';
 /**
  * FILE: src/features/architect/utils/mutationPipeline.types.record.ts
  * PURPOSE: Raw mutation record shapes — primitives, entity records, trade payload types, and mutation payload types.
@@ -460,6 +461,7 @@ export type ArchitectMutationTeamRecord = {
   contractEventLedgers?: ContractEventLedgerPayload[] | null;
   salaryBookInputs?: TeamSalaryBookInputs | null;
   hardCapLedger?: TradeHardCapLedgerEntry[] | null;
+  tradeAcquisitionHistory?: TradeAcquisitionHistory;
   deadCap?: ArchitectMutationDeadCapEntry[];
   exceptions?: ArchitectMutationExceptionIngress | null;
   tradeExceptions?: MutationTradeExceptionRecord[];

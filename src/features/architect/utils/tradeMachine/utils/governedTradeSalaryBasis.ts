@@ -1,3 +1,4 @@
+import { contractAggregationFacts } from './tradeAggregation';
 import {
   teamSoftwareSeason,
   softwareSeasonRegistry,
@@ -364,7 +365,9 @@ function computeReadyBasis({
   asOfDate,
   salaryCapYear,
   salaryCapAtTrade,
+  acquisitionHistory,
 }: {
+  acquisitionHistory?: unknown;
   projected: ProjectedContract;
   calendar: GovernedCalendarResolution;
   worldId: string;
@@ -667,6 +670,14 @@ function computeReadyBasis({
         : {}),
     });
   }
+  const aggregationFacts = contractAggregationFacts({
+    state,
+    teamId,
+    asOfDate,
+    salaryCapYear,
+    regularSeasonEnd: closing,
+    history: acquisitionHistory,
+  });
   return GovernedTradeSalaryBasisZ.parse({
     authorityVersion: 1,
     status: 'ready',
@@ -688,11 +699,18 @@ function computeReadyBasis({
       ? { minimumExceptionAcquisition: true }
       : {}),
     ...contractSeasonsRemaining(state.terms, salaryCapYear),
+    aggregationFacts,
     ...(deadline
       ? {
           assumptionIds: [
             deadline.assumptionId,
             ...(asOfDate === '2026-06-05' ? ['june5-postseason-rosters'] : []),
+            ...(aggregationFacts.acquisition.status === 'baseline-assumption'
+              ? ['starting-roster-acquisitions']
+              : []),
+            ...(aggregationFacts.minimumTradedPlayer === true
+              ? ['minimum-stacking-classification']
+              : []),
           ],
         }
       : {}),
@@ -722,6 +740,7 @@ export function resolveGovernedTradeSalaryBasis(input: {
   asOfDate: string;
   salaryCapYear: number;
   salaryCapAtTrade?: number | null;
+  acquisitionHistory?: unknown;
 }): GovernedTradeSalaryBasis {
   if (!isDateOnly(input.asOfDate)) {
     throw new Error(
@@ -741,6 +760,7 @@ export function resolveGovernedTradeSalaryBasis(input: {
     asOfDate: input.asOfDate,
     salaryCapYear: input.salaryCapYear,
     salaryCapAtTrade: input.salaryCapAtTrade ?? null,
+    acquisitionHistory: input.acquisitionHistory,
   });
 }
 
@@ -893,6 +913,12 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
         asOfDate: worldAsOfDate,
         salaryCapYear,
         salaryCapAtTrade,
+        acquisitionHistory: (
+          resolvedWorldTeams.find((value) => {
+            const team = value as { teamCode?: string; id?: string };
+            return (team.teamCode ?? team.id) === teamId;
+          }) as { tradeAcquisitionHistory?: unknown } | undefined
+        )?.tradeAcquisitionHistory,
       })
     );
   }

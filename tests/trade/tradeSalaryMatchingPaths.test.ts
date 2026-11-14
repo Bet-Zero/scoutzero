@@ -39,7 +39,6 @@ function evaluate(
 ) {
   return evaluateTradeSalaryMatchingPath({
     election: election('STANDARD_TPE', { outgoing: 10_000_000 }),
-    outgoingPlayers: [{ playerId: 'outgoing', playerName: 'Outgoing' }],
     incomingMatchingPlayers: [
       { playerId: 'incoming', playerName: 'Incoming', salary: 10_250_000 },
     ],
@@ -49,10 +48,58 @@ function evaluate(
     transactionDate: TRANSACTION_DATE,
     salaryCapYear: '2026-27',
     ...overrides,
+    outgoingPlayers: (
+      overrides.outgoingPlayers ?? [
+        { playerId: 'outgoing', playerName: 'Outgoing' },
+      ]
+    ).map((player) => ({
+      aggregationFacts: {
+        acquisition: {
+          status: 'known',
+          acquiredAt: '2025-07-01',
+          viaException: false,
+        },
+        minimumSalaryCapYear: 2027,
+        minimumTradedPlayer: false,
+      },
+      ...player,
+    })),
   });
 }
 
 describe('governed Trade Machine salary paths', () => {
+  it.each(['AGGREGATED_STANDARD_TPE', 'EXPANDED_TPE'] as const)(
+    'enforces the minimum-stacking limit through the elected %s path',
+    (path) => {
+      const outgoingPlayers = ['a', 'b', 'c'].map((id, index) => ({
+        playerId: id,
+        playerName: id,
+        aggregationFacts: {
+          acquisition: {
+            status: 'known',
+            acquiredAt: '2025-07-01',
+            viaException: false,
+          },
+          minimumSalaryCapYear: 2027,
+          minimumTradedPlayer: index < 2,
+        },
+      }));
+      const input = {
+        election: election(path, { a: 3_000_000, b: 3_000_000, c: 3_000_000 }),
+        outgoingPlayers,
+        incomingMatchingPlayers: [
+          { playerId: 'd', playerName: 'd', salary: 2_000_000 },
+          { playerId: 'e', playerName: 'e', salary: 2_000_000 },
+        ],
+      };
+      expect(evaluate(input)).toMatchObject({
+        status: 'FAIL',
+        violations: [expect.stringContaining('CBA2-A06.3')],
+      });
+      outgoingPlayers[1].aggregationFacts.minimumTradedPlayer = false;
+      expect(evaluate(input).status).toBe('PASS');
+    }
+  );
   it('accepts an exact governed transaction date without inventing a time', () => {
     expect(evaluate({ transactionDate: '2026-07-15' }).status).toBe('PASS');
   });

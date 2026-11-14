@@ -8,9 +8,8 @@
  * Row H hard cap and the 2026-27 next-season hard cap.
  *
  * SAC aggregates Malik Monk and Dylan Cardwell for New York's Josh Hart. SAC
- * stays under this season's Second Apron, but its 2026-27 Apron Team Salary
- * (options exercised, no further transactions) would be above it, so the
- * trade is refused.
+ * is refused at the earlier June 5 postseason-roster gate for Hart. The
+ * next-season Apron rejection remains covered by the focused Apron tests.
  */
 import {
   expect as baseExpect,
@@ -268,7 +267,7 @@ test('June 5 SIMULATION world: an aggregated trade passes both seasons and recor
   ).toHaveCount(0);
 });
 
-test('June 5 SIMULATION world: an aggregated trade is refused when next season would be above the Second Apron', async ({
+test('June 5 SIMULATION world: aggregation cannot bypass a finalist postseason-roster restriction', async ({
   page,
 }) => {
   const [sac, nyk] = REFUSED;
@@ -281,7 +280,7 @@ test('June 5 SIMULATION world: an aggregated trade is refused when next season w
   await buildTrade(page, dialog, worldId, REFUSED);
   await dialog.getByRole('button', { name: /^Validate Trade$/i }).click();
   await expect(dialog).toContainText(
-    /2026-27 amount of \$208,592,345 exceeds it by \$768,345/,
+    /still in the postseason on June 5.*cannot be traded \(CBA2-L03\.15/,
     { timeout: 60000 }
   );
   await expect(

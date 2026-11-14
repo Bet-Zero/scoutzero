@@ -321,7 +321,8 @@ export function buildGeneralMutationDashboardReloadTeamSnapshot(
     return null;
   }
 
-  const reloadSnapshot: ArchitectGeneralMutationDashboardReloadTeamSnapshot = {};
+  const reloadSnapshot: ArchitectGeneralMutationDashboardReloadTeamSnapshot =
+    {};
   const teamCode = toOptionalTrimmedString(team.teamCode);
 
   if (teamCode !== undefined) {
@@ -353,6 +354,9 @@ export function buildGeneralMutationDashboardReloadTeamSnapshot(
   }
   if (team.salaryBookInputs !== undefined) {
     reloadSnapshot.salaryBookInputs = team.salaryBookInputs;
+  }
+  if (team.tradeAcquisitionHistory !== undefined) {
+    reloadSnapshot.tradeAcquisitionHistory = team.tradeAcquisitionHistory;
   }
   if (team.hardCapLedger !== undefined) {
     reloadSnapshot.hardCapLedger = team.hardCapLedger;

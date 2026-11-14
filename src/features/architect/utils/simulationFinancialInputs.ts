@@ -486,6 +486,18 @@ export async function buildSimulationTeam(
     // before the world date unless the world records it, so each Team starts
     // with an empty governed cash ledger (labeled in the cash section of the
     // BZE-345 notes).
+    tradeAcquisitionHistory: {
+      version: 1,
+      baseline:
+        asOf.slice(0, 10) === '2026-06-05'
+          ? {
+              asOfDate: '2026-06-05',
+              playerIds: ids,
+              assumptionId: 'starting-roster-acquisitions',
+            }
+          : null,
+      entries: [],
+    },
     cashLedger: {
       ledgerVersion: 0,
       ledgerId: `cash-ledger:${teamCode}`,

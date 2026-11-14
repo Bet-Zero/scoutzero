@@ -182,6 +182,7 @@ export function buildPostComputeTradeBoundaryInput(
     contractEventLedgers: materializedTeam.contractEventLedgers,
     salaryBookInputs: materializedTeam.salaryBookInputs,
     hardCapLedger: materializedTeam.hardCapLedger,
+    tradeAcquisitionHistory: materializedTeam.tradeAcquisitionHistory,
     deadCap: materializedTeam.deadCap,
     exceptions: materializedTeam.exceptions,
     tradeExceptions: materializedTeam.tradeExceptions,

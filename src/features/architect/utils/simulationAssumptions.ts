@@ -56,6 +56,20 @@ const MONEY: readonly SimulationAssumption[] = [
 
 const TRADES: readonly SimulationAssumption[] = [
   {
+    id: 'starting-roster-acquisitions',
+    area: 'Trades',
+    title: 'Starting-roster acquisition history',
+    statement:
+      'For a newly built June 5, 2026 SIMULATION baseline, no unreported exception acquisition in the preceding two months is assumed for its original roster. Known dated signings and recorded aggregation restrictions override that assumption. A signing with an unknown method is conservatively treated as using an exception. Every subsequent governed trade records its actual acquisition method and world date; copies preserve that history. Older worlds without this baseline record need acquisition input for aggregation.',
+  },
+  {
+    id: 'minimum-stacking-classification',
+    area: 'Trades',
+    title: 'Minimum-player stacking',
+    statement:
+      'After the Regular Season, the minimum-stacking rule uses next season’s Contract compensation. A retained Minimum Exception signing is treated as paying the applicable minimum in every covered season. Other methods are not automatically treated as above the minimum: without an exact applicable minimum table cell, classification stays unknown and blocks a three-or-more-player aggregation with fewer players returning when it could exceed the one-minimum limit.',
+  },
+  {
     id: 'june5-postseason-rosters',
     area: 'Trades',
     title: 'June 5 postseason rosters',
