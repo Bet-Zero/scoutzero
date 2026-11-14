@@ -494,12 +494,12 @@ test('team collection retains disabled and training-camp players without adoptin
   const { parseTeamHtml } = await import('../../team-scrape/team-data/scripts/parse_team.js');
   const table = (group: string, player: string) => `<table class="sw_teamProfileRosterSection__table"><thead><tr><th>${group}</th></tr></thead><tbody><tr><td><a href="/players/${player}">${player}</a></td></tr></tbody></table>`;
   const html = '<h1>Example team</h1>' + [
-    table('Active (15)', 'active'), table('Two-way contracts (3)', 'two-way'),
+    table('Active (15)', 'active'), table('Standard Roster (14)', 'standard'), table('Two-way contracts (3)', 'two-way'),
     table('Disabled List (1)', 'disabled'), table('Training Camp and Exhibit 10 (2)', 'camp'),
     table('HOLDS', 'hold'), table('UFAs', 'ufa'), table('DEAD MONEY', 'dead'),
   ].join('');
   const result = await parseTeamHtml(html, { url: 'https://www.salaryswish.com/teams/example', team: 'LAL', season: '2026-27', asOf: '2026-10-18T00:00:00Z' });
-  assert.deepEqual(result.roster.map(p => p.displayName), ['active', 'two-way', 'disabled', 'camp']);
+  assert.deepEqual(result.roster.map(p => p.displayName), ['active', 'standard', 'two-way', 'disabled', 'camp']);
 });
 
 test('contract biography preserves both digits of inches beside metric text', async () => {

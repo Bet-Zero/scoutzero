@@ -83,6 +83,9 @@ export async function collectMaintenance(dir: string, request: RunRequest, resum
           } else {
             const output = await parseTeamHtml(first, { url: url.href, team, season: dated.season, asOf: dated.asOf, capturedAt: firstCapturedAt });
             if (!output.roster.length || !output.teamName || !output.totals.salaryCap) throw new Error('Incomplete team page');
+            const expectedRoster = Number(output.totals.rosterCount) + Number(output.totals.twoWayCount);
+            if (Number.isFinite(expectedRoster) && output.roster.length < expectedRoster)
+              throw new Error(`Incomplete team roster: parsed ${output.roster.length}, reported ${expectedRoster}`);
             files.push(await save(`teams/${team}.json`, output));
           }
           await run.record(id, 'processed', files);

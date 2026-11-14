@@ -492,6 +492,65 @@ describe('BZE-284 governed Trade Machine date forwarding', () => {
     });
   });
 
+  it('validates a player-only current trade with unknown final Tax Salary and retains the validator refusal', async () => {
+    vi.useFakeTimers();
+    const teams = (['LAL', 'BOS'] as const).map((code) => {
+      const base = buildGovernedTeam(code);
+      return {
+        team: {
+          ...base,
+          salaryBookInputs: {
+            ...(base.salaryBookInputs as Record<string, unknown>),
+            taxSalary: {
+              status: 'needs-input',
+              missingInputs: ['final-tax-baseline'],
+              reason: 'The season is unfinished.',
+            },
+          },
+        } as TradeMachineTeam,
+        sends: [base.players![0]],
+        entitlementsOut: [],
+      };
+    });
+    const setPreviewAuthority = vi.fn();
+    harness.getTradePreviewAuthority.mockReturnValue({
+      legal: false,
+      reason: 'software missing rule input',
+    });
+    const { result } = renderHook(() =>
+      useTradeMachineValidation({
+        teams,
+        capProjections: null,
+        yearKey: 2027,
+        worldId: 'world-date-forwarding',
+        worldAsOfDate: EXACT_EXPIRY,
+        forceTrade: false,
+        currentDraftKey: 'current-without-final-tax',
+        setSnapshotValidationDetails: vi.fn(),
+        setPreviewAuthority,
+        setIsValidating: vi.fn(),
+        lastValidatedDraftKeyRef: { current: null },
+        validatedAtRef: { current: null },
+        validationGenerationRef: { current: 0 },
+      })
+    );
+    expect(result.current.handleValidate()).toBe('started');
+    const prepared =
+      harness.buildTradeApplyPreparation.mock.calls.at(-1)?.[0].currentState
+        .teams;
+    expect(prepared).toHaveLength(2);
+    for (const entry of prepared) {
+      expect(Number.isFinite(entry.team.apronTeamSalary)).toBe(true);
+      expect(Number.isFinite(entry.team.taxSalary)).toBe(false);
+    }
+    await act(async () => {
+      await vi.runAllTimersAsync();
+    });
+    expect(setPreviewAuthority).toHaveBeenCalledWith(
+      expect.objectContaining({ legal: false })
+    );
+  });
+
   it('recomputes Trade Team Card salary totals from the governed date', () => {
     const team = buildGovernedTeam('LAL');
     const { result, rerender } = renderHook(

@@ -1,4 +1,4 @@
-/** Pure preparation. Does not publish sources, alter Contracts or activate trading. */
+/** Private preparation. Does not publish sources, mutate worlds or activate trading. */
 import { z } from 'zod';
 import { TeamSalaryBookInputsZ } from '@/schemas/salaryBooks';
 import { resolveSimulationApronInputs } from './capTotals/simulationFinancialAssumptions';
@@ -7,6 +7,8 @@ import {
   sha256Digest,
 } from './contractSource/deterministicDigest';
 import { TeamListFull } from '@/constants/teamList';
+import { ContractSourceReleaseZ } from '@/schemas/contractSourceRelease';
+import { verifyContractSourceRelease } from './contractSource/contractSourceRelease';
 
 const InputZ = z
   .object({
@@ -15,11 +17,36 @@ const InputZ = z
     teams: z.record(z.string(), z.record(z.string(), z.json())),
     // Only teams with reviewed reconciled books opt in. Others keep their gaps.
     financialInputs: z.record(z.string(), TeamSalaryBookInputsZ),
+    contractRelease: ContractSourceReleaseZ.optional(),
   })
   .strict();
 
 export async function prepareSimulationFinancialBaseline(input: unknown) {
   const parsed = InputZ.parse(input);
+  let contractRelease;
+  if (parsed.contractRelease) {
+    const release = await verifyContractSourceRelease(
+      parsed.contractRelease,
+      parsed.contractRelease
+    );
+    if (
+      release.effectiveAt !== parsed.asOf ||
+      `${release.salaryCapYear - 1}-${String(release.salaryCapYear).slice(-2)}` !==
+        parsed.seasonId
+    )
+      throw new Error('Simulation and Contract baseline dates differ.');
+    const artifact = canonicalStringify(release);
+    contractRelease = {
+      artifact,
+      descriptor: {
+        releaseId: release.releaseId,
+        releaseVersion: release.releaseVersion,
+        releaseDigest: release.releaseDigest,
+        artifactSha256: await sha256Digest(artifact),
+        filename: 'private-simulation-contract-release.json',
+      },
+    };
+  }
   const codes = TeamListFull.map((t) => t.code).sort();
   if (
     canonicalStringify(Object.keys(parsed.teams).sort()) !==
@@ -59,5 +86,6 @@ export async function prepareSimulationFinancialBaseline(input: unknown) {
     asOf: parsed.asOf,
     seasonId: parsed.seasonId,
     teams,
+    ...(contractRelease ? { contractRelease } : {}),
   };
 }

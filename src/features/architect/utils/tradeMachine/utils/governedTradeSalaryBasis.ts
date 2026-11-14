@@ -1,5 +1,9 @@
 import { contractAggregationFacts } from './tradeAggregation';
 import {
+  signingTradeRestrictions,
+  amendmentTradeRestrictions,
+} from './tradeSigningTiming';
+import {
   teamSoftwareSeason,
   softwareSeasonRegistry,
 } from '../../governedSeason/softwareSeasonContext';
@@ -51,6 +55,10 @@ const SALARY_BASIS_LEAVES = Object.freeze([
   'CBA2-A02.14',
   'CBA2-L03.13',
   'CBA2-L03.14',
+  'CBA2-L03.16',
+  'CBA2-L03.17',
+  'CBA2-L03.18',
+  'CBA2-A10.7',
   'CBA2-C20.12',
   'CBA2-C20.11',
 ]);
@@ -366,7 +374,11 @@ function computeReadyBasis({
   salaryCapYear,
   salaryCapAtTrade,
   acquisitionHistory,
+  draftYear,
+  relatedContracts = [],
 }: {
+  relatedContracts?: readonly GovernedContractState['terms'][];
+  draftYear?: unknown;
   acquisitionHistory?: unknown;
   projected: ProjectedContract;
   calendar: GovernedCalendarResolution;
@@ -381,6 +393,14 @@ function computeReadyBasis({
   const leaves: string[] = [];
   const season = toSeasonCode(salaryCapYear);
   const state = projected.state;
+  if (
+    /^two[- ]?way$/i.test(state.terms.signedUsing ?? '') &&
+    !isTwoWayTradePlayer(state.terms)
+  ) {
+    reasons.push(
+      'The retained signing method says Two-Way but the Contract type does not; clarify the Contract type before salary matching.'
+    );
+  }
   const currentRow = state.terms.salaries.find((row) => row.season === season);
   const opening = calendar.regularSeasonOpening?.value ?? null;
   const closing = calendar.regularSeasonClosing?.value ?? null;
@@ -404,6 +424,15 @@ function computeReadyBasis({
     `${season} Base Compensation`,
     reasons
   );
+  if (
+    currentRow.guaranteedAmount != null &&
+    currentSalary != null &&
+    currentRow.guaranteedAmount > currentSalary
+  ) {
+    reasons.push(
+      `${season} protection exceeds Base Compensation in the retained source; the conflicting guarantee needs input.`
+    );
+  }
   if (hasNonzeroBonus(currentRow)) {
     reasons.push(
       `${season} has bonus compensation whose trade treatment is outside this governed tranche.`
@@ -420,6 +449,14 @@ function computeReadyBasis({
   const evidence = GovernedTradeSalaryBasisEvidenceZ.safeParse(
     state.terms.tradeSalaryBasisEvidence
   );
+  if (calendarRecord.authority === 'official') {
+    reasons.push(...signingTradeRestrictions(state.terms, asOfDate, draftYear));
+    for (const terms of [state.terms, ...relatedContracts])
+      reasons.push(
+        ...amendmentTradeRestrictions(terms, asOfDate, salaryCapYear)
+      );
+    leaves.push('CBA2-L03.16', 'CBA2-L03.17', 'CBA2-L03.18');
+  }
   // The trade deadline is a named SIMULATION assumption for the official
   // calendar seasons only; software-test calendars keep it unavailable.
   const deadline =
@@ -730,6 +767,8 @@ function computeReadyBasis({
 }
 
 export function resolveGovernedTradeSalaryBasis(input: {
+  relatedContracts?: readonly GovernedContractState['terms'][];
+  draftYear?: unknown;
   contractState: GovernedContractState;
   contractManifest: LifecycleProjectionManifest;
   extensionEffectiveAt?: string | null;
@@ -761,6 +800,8 @@ export function resolveGovernedTradeSalaryBasis(input: {
     salaryCapYear: input.salaryCapYear,
     salaryCapAtTrade: input.salaryCapAtTrade ?? null,
     acquisitionHistory: input.acquisitionHistory,
+    draftYear: input.draftYear,
+    relatedContracts: input.relatedContracts,
   });
 }
 
@@ -824,6 +865,10 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
   const overlayByLedgerId =
     collectUniqueWorldContractEventLedgers(resolvedWorldTeams);
   const projectedByPlayer = new Map<string, ProjectedContract[]>();
+  const relatedContractsByPlayer = new Map<
+    string,
+    GovernedContractState['terms'][]
+  >();
   const rosterPlayerIdSet = new Set(
     rosterPlayerIds.map((playerId) => playerId.trim()).filter(Boolean)
   );
@@ -857,6 +902,11 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
       asOfDate: `${worldAsOfDate}T23:59:59Z`,
       salaryCapYear,
     });
+    if (projection.state === 'projected' && projection.contractState) {
+      const related = relatedContractsByPlayer.get(candidatePlayerId) ?? [];
+      related.push(projection.contractState.terms);
+      relatedContractsByPlayer.set(candidatePlayerId, related);
+    }
     if (
       projection.state !== 'projected' ||
       !projection.contractState ||
@@ -881,6 +931,17 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
   }
 
   const result = new Map<string, GovernedTradeSalaryBasis>();
+  const rosterBios = new Map(
+    resolvedWorldTeams.flatMap((value) =>
+      ((value as { players?: Record<string, unknown>[] }).players ?? []).map(
+        (player) =>
+          [
+            resolveTradeSalaryBasisPlayerId(player),
+            player.bio as { draftYear?: unknown } | undefined,
+          ] as const
+      )
+    )
+  );
   for (const playerId of rosterPlayerIds) {
     const projected = projectedByPlayer.get(playerId) ?? [];
     if (projected.length !== 1) {
@@ -913,6 +974,8 @@ export async function loadWorldGovernedTradeSalaryBasisEntries({
         asOfDate: worldAsOfDate,
         salaryCapYear,
         salaryCapAtTrade,
+        draftYear: rosterBios.get(playerId)?.draftYear,
+        relatedContracts: relatedContractsByPlayer.get(playerId),
         acquisitionHistory: (
           resolvedWorldTeams.find((value) => {
             const team = value as { teamCode?: string; id?: string };

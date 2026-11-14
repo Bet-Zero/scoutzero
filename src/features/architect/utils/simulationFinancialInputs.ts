@@ -20,6 +20,7 @@ import type {
 } from './capTotals/datedSalaryLedgers';
 import type { TeamSalaryBookInputs } from '@/schemas/salaryBooks';
 import { TeamSalaryBookInputsZ } from '@/schemas/salaryBooks';
+import { withholdConflictingGuarantees } from './simulationContractGuarantees';
 import { createCanonicalTeamTotalsSnapshot } from './capTotals/computeTeamCapTotals';
 import { DERIVED_FREE_AGENT_AMOUNTS_REFERENCE } from './capTotals/teamSalaryBooks';
 import {
@@ -73,6 +74,12 @@ export interface SimulationTeamInput {
   };
   /** Private rare-event intake for this team (V1 item D5). */
   rareEvents?: readonly SimulationRareEvent[];
+  /** Reconciled offseason facts. A current baseline cannot borrow June's zeros. */
+  currentSeasonState?: {
+    unsignedFirstRoundPickState: TeamSalaryBookInputs['unsignedFirstRoundPickState'];
+    restrictedFreeAgentTender: { amount: number; evidenceReference: string };
+    hardCapCorrection?: SimulationHardCapCorrection;
+  };
 }
 
 export interface SimulationTeamResult {
@@ -83,12 +90,12 @@ export interface SimulationTeamResult {
     baseOnlyPlayers: string[];
     teamSalary: number;
     apronTeamSalary: number;
-    taxSalary: number;
+    taxSalary: number | null;
     performanceBonuses: number;
     minimumUplifts: Array<{
       playerId: string;
       uplift: number;
-      yearsOfService: number;
+      yearsOfService: number | null;
       days: number;
       bounded: boolean;
       deadMoney: boolean;
@@ -108,6 +115,18 @@ export async function buildSimulationTeam(
 ): Promise<SimulationTeamResult> {
   const { teamCode, asOf, salaryCapYear } = input;
   const season = `${salaryCapYear - 1}-${String(salaryCapYear).slice(-2)}`;
+  if (salaryCapYear !== 2026 && !input.currentSeasonState)
+    throw new Error(
+      `${teamCode}: current-season unsigned picks and RFA tenders must be reconciled.`
+    );
+  const rfa = input.currentSeasonState?.restrictedFreeAgentTender;
+  if (
+    rfa &&
+    (money(rfa.amount) === null ||
+      rfa.amount < 0 ||
+      !rfa.evidenceReference.trim())
+  )
+    throw new Error(`${teamCode}: RFA tender input is incomplete.`);
   const docs = { ...input.releaseDocs, ...input.baseOnlyDocs };
   if (
     Object.keys(input.releaseDocs).length +
@@ -125,6 +144,13 @@ export async function buildSimulationTeam(
       readLooseBasePlayerDoc(docs[id], id, `${teamCode}/${id}`)
     )
   );
+  if (salaryCapYear === 2027) {
+    // The private release still retains every original source field. Never
+    // clamp an impossible guarantee to Salary or propagate a false full flag.
+    for (const player of players) {
+      player.contract = withholdConflictingGuarantees(player.contract);
+    }
+  }
   const team = assembleHydratedBaseTeam(
     teamCode,
     { ...input.baseDoc, roster: ids },
@@ -170,7 +196,7 @@ export async function buildSimulationTeam(
       line(
         `minimum-uplift:${id}`,
         'CBA2-C07.3',
-        `Zero/one-YOS Minimum Contract uplift (${id}${deadMoney ? ', dead money' : ''}, ${uplift.yearsOfService} YOS, ${uplift.days} days${uplift.bounded ? ', upper bound' : ''})`,
+        `Zero/one-YOS Minimum Contract uplift (${id}${deadMoney ? ', dead money' : ''}, ${uplift.yearsOfService ?? 'unknown entry'} YOS, ${uplift.days} days${uplift.bounded ? ', upper bound' : ''})`,
         uplift.uplift,
         `${id} contract; ${SIMULATION_MINIMUM_UPLIFT_ASSUMPTION}`
       )
@@ -217,7 +243,15 @@ export async function buildSimulationTeam(
       `${playerId}:dead-${index}`,
       true,
       minimumUpliftFor({
+        season,
+        yearsOfService: money(source?.bio?.experience),
         amount,
+        contractSalary: money(
+          (
+            rows.find((row) => String(row.season).slice(0, 7) === season) ??
+            rows.at(-1)
+          )?.salary
+        ),
         signedUsing:
           typeof source?.contract?.signedUsing === 'string'
             ? source.contract.signedUsing
@@ -313,9 +347,12 @@ export async function buildSimulationTeam(
     line(
       'restricted-free-agent-tenders',
       'CBA2-C07.6',
-      'No Restricted Free Agent tender belongs to this Salary Cap Year',
-      0,
-      `${season} free agency closed; 2026 tenders belong to the next Salary Cap Year`
+      rfa
+        ? 'Reconciled current-season Restricted Free Agent tenders'
+        : 'No Restricted Free Agent tender belongs to this Salary Cap Year',
+      rfa?.amount ?? 0,
+      rfa?.evidenceReference ??
+        `${season} free agency closed; 2026 tenders belong to the next Salary Cap Year`
     ),
     line(
       'unsigned-first-round-picks',
@@ -363,7 +400,8 @@ export async function buildSimulationTeam(
       // fourteen after a trade is not charged outside the July 1 to opening
       // night window. On the as-of day the year's draft has not happened, so
       // no unsigned First Round Pick is held.
-      unsignedFirstRoundPickState: {
+      unsignedFirstRoundPickState: input.currentSeasonState
+        ?.unsignedFirstRoundPickState ?? {
         version: 1,
         status: 'ready',
         teamCode,
@@ -450,7 +488,9 @@ export async function buildSimulationTeam(
     })
   ));
   const tax = snapshot.salaryBooks.ledgers.taxSalary;
-  if (tax.status !== 'complete') {
+  // During an unfinished season final Tax Salary is not yet knowable. Trade
+  // legality uses the current Team/Apron books; never invent a future baseline.
+  if (tax.status !== 'complete' && salaryCapYear === 2026) {
     throw new Error(
       `${teamCode}: Tax Salary is ${tax.status} (${'reason' in tax ? tax.reason : ''}).`
     );
@@ -468,12 +508,14 @@ export async function buildSimulationTeam(
     sourceLabel: team.hardCapLevel ?? null,
     releaseDocs: input.releaseDocs,
     apronTeamSalary: apron.total,
-    correction: input.hardCapCorrection,
+    correction:
+      input.currentSeasonState?.hardCapCorrection ?? input.hardCapCorrection,
   });
   const openTradedPlayerExceptions = checkSimulationTpes(
     teamCode,
     (candidate.exceptions as { tpe?: unknown } | undefined)?.tpe,
-    asOf
+    asOf,
+    salaryCapYear !== 2026
   );
   const hardCapped = {
     ...candidate,
@@ -498,12 +540,16 @@ export async function buildSimulationTeam(
           : null,
       entries: [],
     },
-    cashLedger: {
-      ledgerVersion: 0,
-      ledgerId: `cash-ledger:${teamCode}`,
-      teamId: teamCode,
-      entries: [],
-    },
+    ...(salaryCapYear === 2026
+      ? {
+          cashLedger: {
+            ledgerVersion: 0,
+            ledgerId: `cash-ledger:${teamCode}`,
+            teamId: teamCode,
+            entries: [],
+          },
+        }
+      : {}),
   };
   return {
     team: JSON.parse(JSON.stringify(hardCapped)),
@@ -513,7 +559,7 @@ export async function buildSimulationTeam(
       baseOnlyPlayers: Object.keys(input.baseOnlyDocs).sort(),
       teamSalary: final.status === 'complete' ? final.total : Number.NaN,
       apronTeamSalary: apron.total,
-      taxSalary: tax.total,
+      taxSalary: tax.status === 'complete' ? tax.total : null,
       performanceBonuses: bonusLines.reduce((n, l) => n + l.amount, 0),
       minimumUplifts,
       freeAgentAmounts: component('cap-holds'),

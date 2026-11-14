@@ -35,11 +35,15 @@ import {
 } from '@/features/architect/utils/worldManager';
 import { DeleteWorldModal } from './DeleteWorldModal';
 import { resolveContractBaselineWorldCompatibility } from '@/features/architect/utils/contractSource/contractSourceRelease';
-import { SIMULATION_DRAFT_ASSUMPTIONS } from '@/features/architect/utils/simulationDraftBaseline';
+import { simulationAssumptionsForWorld } from '@/features/architect/utils/simulationAssumptions';
 
 type WorldSummaryLike = {
-  simulationFinancialBaseline?: { classification: string };
-  draftBaseline?: { classification: string };
+  simulationFinancialBaseline?: { classification: string; asOf?: string };
+  draftBaseline?: {
+    classification: string;
+    asOf?: string;
+    assumptions?: unknown;
+  };
   worldId: string;
   worldName?: string | null;
   description?: string | null;
@@ -539,11 +543,17 @@ export function WorldSelector({
           <span
             className="text-[10px] text-amber-200 pl-0.5"
             data-testid="simulation-draft-assumptions"
-            title={SIMULATION_DRAFT_ASSUMPTIONS.map((a) => a.statement).join(
-              '\n\n'
-            )}
+            title={simulationAssumptionsForWorld(currentWorld)
+              .filter((a) => a.area === 'Draft picks')
+              .map((a) => a.statement)
+              .join('\n\n')}
           >
-            SIMULATION · June 5 draft picks with disclosed assumptions
+            SIMULATION ·{' '}
+            {currentWorld.draftBaseline.asOf &&
+            currentWorld.draftBaseline.asOf >= '2026-07-01'
+              ? 'Current-season'
+              : 'June 5'}{' '}
+            draft picks with disclosed assumptions
           </span>
         )}
         {!isWorldBacked && (

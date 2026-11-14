@@ -1,6 +1,6 @@
 ---
 name: architect-v1-completion-contract.md
-description: Owner-approved (2026-07-11, reset 2026-11-10) product boundary and proof standard for calling Architect V1 complete. Serves the BZE-243 completion gate; companion to architect-boundary.md.
+description: Owner-approved product boundary and proof standard, corrected 2026-11-14 to a current 2026-27 starting world. Serves BZE-243; companion to architect-boundary.md.
 ---
 
 # Architect V1 Completion Contract
@@ -9,11 +9,51 @@ description: Owner-approved (2026-07-11, reset 2026-11-10) product boundary and 
 owner decisions, 2026-08-27 and BZE-301 (2026-09-04)** (BZE-244; drafted
 against main `85d1f54c`, owner notes applied the same day). BZE-301 supersedes
 the first-round lifecycle exclusion: branch-complete first-round lifecycle is
-V1-required across all 278 currently exposed first-round entitlements.
+V1-required across the 278 then-exposed first-round entitlements (historical
+inventory; the November 14 correction below governs current membership).
 Unavailable nonzero trade-bonus authority remains deferred to Phase 3B.
 Accepted Phase 3A evidence remains valid for its proven boundary; V1 acceptance
 must also satisfy the expanded first-round requirement. **Reset by owner
-decisions, 2026-11-10** (simulation standard, frozen finish list), recorded below.
+decisions, 2026-11-10** (simulation standard, frozen finish list), and **corrected
+2026-11-14 to a current 2026-27 starting world**, recorded below.
+
+## Owner decision, 2026-11-14 (highest-precedence V1 target)
+
+[BZE-243 owner decision](https://linear.app/bzero/issue/BZE-243#comment-ed97943f-acd4-4dd2-baf1-bf03627fa0ab)
+supersedes the November 12 fixed June 5, 2026 finish line. A GM must create a
+new world using the **current 2026-27 NBA season**, with actual teams, rosters,
+Contracts, finances, draft rights and restrictions at an explicitly identified
+current snapshot date (prefer November 2026), then make, validate, save and
+reload trades. Changing a season label or reading future salary rows from a
+June 5 roster does not establish this state.
+
+Initialize directly from a reconciled current-season baseline using the existing
+engines and best-available-public-data simulation standard. Account for the
+2026 offseason and draft: transactions, options and expirations, new Contracts
+including drafted rookies, draft outcomes and remaining rights, current league
+levels, exceptions, dated hard-cap triggers, sanctions/freezes and other known
+restrictions. Missing facts may use named, dated, visible assumptions; known
+obligations and credible unresolved signals cannot be erased. Retain the 278
+historical identities and unresolved-mapping lineage without claiming they are
+the current tradeable inventory. Do not backdate later evidence.
+
+The June 5 packages, 118 selectable-pick count and browser proofs remain valid
+historical development evidence. They do not certify the new starting state.
+Accepted implementations, including PR #656, are preserved; verify their
+date-dependent behavior against the new snapshot. The existing checklist is
+the sole status home; this is a correction to its starting-world requirement,
+not a general roadmap expansion.
+
+**Future-season progression remains post-V1.** No simulated offseason traversal
+is required to initialize the current season. Existing 2026 draft results and
+rookie Contracts are required starting inputs; future draft conveyance and
+rookie-scale calculation during season advancement remain deferred. The other
+recorded mechanism exclusions remain unchanged, and B5's remaining scope
+decision remains unresolved.
+
+Production baseline publication/deployment/activation, existing-world migration,
+provider outreach and purchases retain separate authorization gates. Final V1
+acceptance still requires the owner's hands-on review.
 
 ## Owner decisions, 2026-11-10 (these override conflicting text below)
 
@@ -168,21 +208,24 @@ the world's governed asset state (labeled simulation inputs qualify; see the
 trades remain required. `CBA2-A12.3` is authenticated in the pinned accepted
 Canon. Branch-complete first-round ownership, Stepien, protection, conveyance,
 freeze, unfreeze, penalty, and required-transition lifecycle support is required
-for all 278 currently exposed first-round entitlements (240 ownership, 27 swap
-rights, and 11 conveyance rights), except the 30 entitlements affected by the
-29 unresolved evidence mappings, which follow 2026-11-10 decision 2. Where a
+for the reconciled current first-round inventory. The historical 278 identities
+(240 ownership, 27 swap rights, 11 conveyance rights) retain their lineage;
+the 30 affected by the 29 unresolved evidence mappings follow November 10
+decision 2. B5's remaining protected/swap/pool scope is unresolved, not an
+approved V1 exclusion. Where a
 needed input is neither known nor covered by a labeled simulation assumption,
 the action stops before apply with an honest needs-input result. The product may
 not silently guess a branch, reuse simplified legacy rules, or treat a missing
 condition as satisfied. (The draft-night room itself
 is excluded — see exclusions.)
 
-### W11. Season advance
+### W11. Season advance — post-V1
 
-The Season Advance modal with world-aware gating, and the full 30-team
-transition: expiring contracts, options, and books rolling to the new
-season. Complete when a world advances a season and every team's books are
-coherent afterward, and the pre-advance state remains in history.
+Future-season progression is post-V1 under the November 14 decision. Preserve
+the existing Season Advance engine and its accepted tests, but do not require
+simulated progression as a prerequisite for a current 2026-27 starting world.
+The effects of the already-completed real offseason belong in that initial
+state. A later progression workflow must preserve all teams' books and history.
 
 ### W12. Team History
 
@@ -254,8 +297,8 @@ product, not only in tests:
 - **Offseason room** — owner decision 2026-07-11: V1 does not ship a
   prominent nonfunctional preview room, so the Offseason room must not
   appear in normal V1 navigation (hiding/parking it is in-scope V1 work).
-  Season advance (W11) is the supported offseason mechanism; the guided
-  Offseason experience is post-V1.
+  The guided Offseason experience and future-season advancement (W11) are
+  post-V1. This does not exclude real offseason effects from the starting state.
 - **Entitlement and pick authoring controls** — owner decision 2026-07-11:
   hidden from normal V1 GM users (today they are feature-flagged on in
   review builds). Trading existing picks, protections, and entitlements

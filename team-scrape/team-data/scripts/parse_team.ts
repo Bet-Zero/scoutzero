@@ -666,6 +666,7 @@ export async function parseTeamHtml(html: string, context: { url: string; team: 
       if (!label) return false;
       if (label.includes('hold')) return false;
       if (
+        label === 'standard roster' ||
         label.includes('inactive') ||
         label.includes('active') ||
         label.includes('two-way') ||

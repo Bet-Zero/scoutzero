@@ -13,13 +13,16 @@ import {
   buildTrustedContractBaselineDocuments,
   canonicalStringify,
   CONTRACT_BASELINE_WORLD_VERSION,
-  loadTrustedContractRelease,
   resolveFreshWorldSeason,
   seasonForSalaryCapYear,
   trustedContractBaselineMetadata,
   type TrustedContractReleasePin,
 } from './trustedContractBaseline';
-import { loadSimulationFinancialBaseline } from './simulationFinancialBaseline';
+import {
+  loadSimulationFinancialBaseline,
+  simulationContractRelease,
+  loadParentContractRelease,
+} from './simulationFinancialBaseline';
 import { loadTrustedDraftBaseline } from './trustedDraftBaseline';
 import { loadSimulationDraftBaseline } from './simulationDraftBaseline';
 
@@ -490,7 +493,7 @@ export const initializeArchitectWorld = onCall(
             'Only a SIMULATION world can be copied. The parent is unchanged.'
           );
         }
-        const release = loadTrustedContractRelease(
+        const release = await loadParentContractRelease(
           contractReleasePinFromParent(parent)
         );
         trustedMetadata = trustedContractBaselineMetadata(release);
@@ -533,7 +536,8 @@ export const initializeArchitectWorld = onCall(
           });
         }
       } else {
-        const release = loadTrustedContractRelease();
+        simulationBaseline = await loadSimulationFinancialBaseline();
+        const release = simulationContractRelease(simulationBaseline);
         trustedMetadata = trustedContractBaselineMetadata(release);
         const season = requireFreshWorldSeason(
           release.salaryCapYear,
@@ -549,7 +553,6 @@ export const initializeArchitectWorld = onCall(
           releaseEffectiveAt: release.effectiveAt,
           contractMetadata: trustedMetadata,
         });
-        simulationBaseline = await loadSimulationFinancialBaseline();
         if (simulationBaseline) {
           if (
             simulationBaseline.asOf !== release.effectiveAt ||

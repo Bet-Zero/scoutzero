@@ -72,6 +72,7 @@ describe('local simulation draft initialization boundary', () => {
       classification: 'simulation',
       asOf: value.asOf,
       seasonId: '2025-26',
+      assumptions: value.assumptions,
     });
     writeFileSync(`${dir}/draft.json`, bytes + ' ');
     await expect(loadSimulationDraftBaseline()).rejects.toThrow(

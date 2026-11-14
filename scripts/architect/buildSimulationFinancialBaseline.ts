@@ -1,11 +1,14 @@
 /**
  * Private, local: build the thirty-team SIMULATION money baseline (V1 item A2).
  *
- * Rosters and contracts come from the accepted contract release's retained
+ * Rosters and contracts come from the selected contract release's retained
  * source documents. Each team keeps its base snapshot team fields (dead money,
  * holds, exceptions) from the private read-only source snapshot. A base roster
  * player the release never recorded keeps his base contract and is reported.
  * The output stays outside the repository; nothing here writes Firestore.
+ * Current candidates use --release, --snapshot-dir, --teams, --team-state and
+ * --dead-money-contracts (each as --name=<private-path>). Integrity verification
+ * does not grant factual acceptance or production activation.
  */
 import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -25,8 +28,10 @@ type Doc = Record<string, unknown> & {
 
 const RELEASE_FILE =
   'public/architect/contract-source-releases/salaryswish-retained-2026-06-05-v1.json';
-const SEASON = '2025-26';
 const args = process.argv.slice(2);
+const option = (name: string) =>
+  args.find((arg) => arg.startsWith(`--${name}=`))?.slice(name.length + 3);
+const releasePath = option('release') ?? RELEASE_FILE;
 // Replay an already checked package with its retained check time. This does
 // not backdate source evidence; a new build defaults to the actual check time.
 const checkedAtFlag = args.find((arg) => arg.startsWith('--checked-at='));
@@ -46,7 +51,7 @@ const [output] = args.filter(
 );
 if (!output)
   throw new Error(
-    'Usage: npm run architect:simulation-financial -- <private-output.json> [--events <private-events.json>] [--checked-at=<retained-ISO-UTC-check-time>]'
+    'Usage: npm run architect:simulation-financial -- <private-output.json> [--events <private-events.json>] [--checked-at=<retained-ISO-UTC-check-time>] [--release=<private-release.json>] [--snapshot-dir=<private-snapshot>] [--teams=<private-teams.json>] [--team-state=<private-team-state.json>] [--dead-money-contracts=<private-contracts.json>]'
   );
 // V1 D5: optional private rare-event intake (grievances, Required Tenders).
 const rareEvents = eventsFile
@@ -55,14 +60,19 @@ const rareEvents = eventsFile
     ).events
   : [];
 
+const releaseInput = JSON.parse(await readFile(releasePath, 'utf8'));
 const release = await verifyContractSourceRelease(
-  JSON.parse(await readFile(RELEASE_FILE, 'utf8'))
+  releaseInput,
+  option('release') ? releaseInput : undefined
 );
-const snapshot = await loadSnapshot(DATA_DIR).catch(() => {
-  throw new Error(
-    'No usable private snapshot; run npm run cloud:data:refresh first.'
-  );
-});
+const SEASON = `${release.salaryCapYear - 1}-${String(release.salaryCapYear).slice(-2)}`;
+const snapshot = await loadSnapshot(option('snapshot-dir') ?? DATA_DIR).catch(
+  () => {
+    throw new Error(
+      'No usable private snapshot; run npm run cloud:data:refresh first.'
+    );
+  }
+);
 const collection = (name: string) =>
   snapshot.documents
     .filter((d) => d.name.split('/').at(-2) === name)
@@ -73,6 +83,28 @@ const collection = (name: string) =>
 const baseTeams = new Map(
   collection('architect_baseTeams').map((d) => [d.id, d.data])
 );
+if (option('teams')) {
+  const replacement = JSON.parse(
+    await readFile(option('teams')!, 'utf8')
+  ) as Record<string, Doc>;
+  baseTeams.clear();
+  Object.entries(replacement).forEach(([code, doc]) =>
+    baseTeams.set(code, doc)
+  );
+}
+const currentStates = option('team-state')
+  ? (JSON.parse(await readFile(option('team-state')!, 'utf8')) as Record<
+      string,
+      NonNullable<
+        Parameters<typeof buildSimulationTeam>[0]['currentSeasonState']
+      >
+    >)
+  : {};
+const currentDeadMoneyDocs = option('dead-money-contracts')
+  ? (JSON.parse(
+      await readFile(option('dead-money-contracts')!, 'utf8')
+    ) as Record<string, Doc>)
+  : {};
 const basePlayers = new Map(
   collection('architect_basePlayers').map((d) => [d.id, d.data])
 );
@@ -148,7 +180,7 @@ function deadMoneyDoc(entry: Record<string, unknown>): Doc | undefined {
         String(row.season ?? '').slice(0, 7) === SEASON && row.salary === amount
     )
   );
-  return candidates[0];
+  return candidates[0] ?? currentDeadMoneyDocs[String(entry.playerId)];
 }
 
 // Base ids that differ only in punctuation or a name suffix from a release id.
@@ -190,10 +222,22 @@ for (const { code } of [...TeamListFull].sort((a, b) =>
     // only as an incomplete record keeps his base contract: a known liability.
     if (currentPlayers.has(id)) continue;
     const doc = basePlayers.get(id);
+    if (release.salaryCapYear !== 2026)
+      throw new Error(
+        `${code}/${id}: current roster lacks its current contract.`
+      );
     if (doc && doc.teamCode === code) baseOnlyDocs[id] = doc;
     else if (releaseKeys.has(nameKey(id))) aliases.push(id);
     else throw new Error(`${code}/${id}: base roster player cannot be placed.`);
   }
+  if (
+    release.salaryCapYear !== 2026 &&
+    Object.keys(releaseDocs).sort().join() !==
+      [...(baseDoc.roster as string[])].sort().join()
+  )
+    throw new Error(
+      `${code}: current contract release and roster membership differ.`
+    );
   const built = await buildSimulationTeam({
     teamCode: code,
     asOf: release.effectiveAt,
@@ -210,7 +254,10 @@ for (const { code } of [...TeamListFull].sort((a, b) =>
       )
     ),
     hardCapCorrection:
-      HARD_CAP_CORRECTIONS[code as keyof typeof HARD_CAP_CORRECTIONS],
+      release.salaryCapYear === 2026
+        ? HARD_CAP_CORRECTIONS[code as keyof typeof HARD_CAP_CORRECTIONS]
+        : undefined,
+    currentSeasonState: currentStates[code],
     assumption: { checkedAt, evidenceReferences },
     rareEvents: rareEvents.filter((event) => event.team === code),
   });
@@ -225,6 +272,7 @@ const prepared = await prepareSimulationFinancialBaseline({
   financialInputs: Object.fromEntries(
     Object.entries(teams).map(([code, team]) => [code, team.salaryBookInputs])
   ),
+  ...(option('release') ? { contractRelease: release } : {}),
 });
 const bytes = JSON.stringify(prepared);
 await writeFile(output, bytes, { flag: 'wx', mode: 0o600 });

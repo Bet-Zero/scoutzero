@@ -130,6 +130,10 @@ export async function verifyContractSourceRelease(
     effectiveAt: release.effectiveAt,
     salaryCapYear: release.salaryCapYear,
     observations: release.observations,
+    sourceDescription: {
+      retainedCorpus: release.source.retainedCorpus,
+      limitations: release.source.limitations,
+    },
   });
   const computedReleaseDigest = await sha256Digest(
     canonicalStringify(digestMaterial)
@@ -148,6 +152,10 @@ export async function verifyContractSourceRelease(
     effectiveAt: release.effectiveAt,
     salaryCapYear: release.salaryCapYear,
     observations: release.observations,
+    sourceDescription: {
+      retainedCorpus: release.source.retainedCorpus,
+      limitations: release.source.limitations,
+    },
   });
   if (canonicalStringify(rebuilt) !== canonicalStringify(release)) {
     throw new ContractSourceReleaseError(
