@@ -40,6 +40,7 @@ import {
 } from './mutationPipeline.compute.signings.signing';
 import { createCanonicalTeamTotalsSnapshot } from '@/features/architect/utils/capTotals';
 import { moveTradeMinimumUplifts } from '@/features/architect/utils/tradeMachine/utils/tradeMinimumUplift';
+import { recordTradeAcquisitions } from '@/features/architect/utils/tradeMachine/utils/tradeAcquisitionHistory';
 import { GovernedSignAndTradeReceiptZ } from '@/schemas/governedSignAndTrade';
 import {
   GovernedCashLedgerZ,
@@ -1089,6 +1090,19 @@ export function computeTradeResult({
       success: false,
       error: tradePlayerManifest.error,
     };
+  }
+
+  // Invalid drafts retain their existing validation reason and never write.
+  if (!preserveFinances && validation.legal) {
+    const acquisitionError = recordTradeAcquisitions({
+      teamUpdates,
+      movements: tradePlayerManifest.playerMovements,
+      salaryMatchingPaths,
+      transactionId:
+        resolvedMutationId || `${resolvedMutationType}:${timestamp}`,
+      asOfDate: payload.asOfDate ?? payload.tradeCtx?.asOfDate,
+    });
+    if (acquisitionError) return { success: false, error: acquisitionError };
   }
 
   playerUpdates.push(...tradePlayerManifest.playerUpdates);

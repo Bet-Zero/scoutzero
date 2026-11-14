@@ -797,6 +797,10 @@ export function validateSalaryMatching(
       outgoingPlayers: governedOutgoingPlayers.map((player) => ({
         playerId: getPlayerIdentity(player),
         playerName: player.name || player.displayName || 'Unknown player',
+        aggregationFacts: GovernedTradeSalaryBasisZ.safeParse(
+          (player as { governedTradeSalaryBasis?: unknown })
+            .governedTradeSalaryBasis
+        ).data?.aggregationFacts,
       })),
       incomingMatchingPlayers: matchingIncomingPlayers,
       heldStandardTpeComponents,

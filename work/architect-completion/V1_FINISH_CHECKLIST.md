@@ -73,8 +73,16 @@ that changes the plan.
       then daily reduction only through Regular Season end. Undated historical
       use reserves the maximum reduction, visibly disclosed; exact chronology
       may permit more. Minimum Exception is not subject to that reduction.
-      Reopened: the documented two-month exception-acquisition aggregation bar
-      (CBA2-A06.1) is not implemented; no owner deferral was found.
+      A06.1's two-month aggregation bar, A06.2's deadline carve-out, and
+      A06.3's next-season minimum-stacking check are implemented. Saved
+      acquisitions survive reload/copy; solo re-trades remain allowed.
+      Missing or conflicting applicable minimum classifications stay needs-input.
+      PR #656 contains the focused Canon/trust-boundary checks and opted-in
+      real-data copy, aggregation-refusal, and solo re-trade browser proof.
+      **Still open:** the already documented same-team combination of outgoing
+      salary matching with a separate $0 Minimum Exception acquisition is not
+      supported; the current Minimum Exception election requires no players sent.
+      No owner deferral is recorded for that remaining B1 case.
 - [x] B2 Cash in player-plus-pick trades (with the next-season Apron test
       after the Regular Season).
 - [x] B3 Expanded TPE and below-cap TPE elections.
@@ -87,8 +95,8 @@ that changes the plan.
 - [x] B7 Exact trade deadline input for simulation worlds.
       June 5 expiring/possible-last-season restrictions remain; finalist
       Standard players now stop under the disclosed postseason-roster assumption.
-      This does not certify the separately documented A06 aggregation-history
-      and minimum-stacking limitations; neither is treated as an approved deferral.
+      A06 aggregation-history and minimum-stacking rules now have their own
+      focused proof under B1; the deadline checkbox alone does not certify them.
 
 ## Phase 4: lifecycle across all 278
 
@@ -111,6 +119,10 @@ that changes the plan.
       two exception-Apply cases (Minimum and Non-Taxpayer MLE). This proves
       the exercised journeys, not the unresolved B1/B5 limitations or E2.
 - [ ] E2 One owner review link and the owner's final V1 decision.
+
+BZE-345's Done status records delivered simulation integration and a closed
+bounded investigation. Its historical financial completeness limitation remains;
+Done does not certify historical NBA legality or close B1, B5, D2, or E2.
 
 ## Post-V1 (not gaps)
 

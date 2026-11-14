@@ -12,7 +12,7 @@ export const TradeSalaryMatchingPathZ = z.enum([
   // player is sent: no salary is matched (incoming trade salary counts $0).
   'MINIMUM_EXCEPTION',
   // The team sends no players and takes the incoming Salary into one of its
-  // free-agent exceptions (CBA canon 7.3). Before January 10 only.
+  // free-agent exceptions (CBA2-C13), with the applicable daily proration.
   'NON_TAXPAYER_MLE',
   'BI_ANNUAL_EXCEPTION',
   'ROOM_MLE',

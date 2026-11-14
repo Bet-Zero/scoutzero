@@ -103,6 +103,7 @@ export type MutationCurrentStateTeamCoreIngress = Omit<
     | 'contractEventLedgers'
     | 'salaryBookInputs'
     | 'hardCapLedger'
+    | 'tradeAcquisitionHistory'
     | 'deadCap'
     | 'exceptions'
     | 'totals'

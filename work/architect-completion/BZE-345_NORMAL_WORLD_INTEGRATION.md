@@ -1,6 +1,15 @@
 # BZE-345 ordinary saved-world integration
 
-Active issue: BZE-345. Base: merged PR626, `25fccc4fbdcef3302ec5a04a057c722847d331d1`.
+Current status: BZE-345 is Done for delivered **simulation** saved-world integration
+and the concluded bounded investigation. Historical financial certification is
+not established: the retained records do not establish absence, amount or a
+supported bound for additional applicable grievance/settlement and outstanding
+first-round Required Tender charges. No additional liability was identified.
+The investigation stays closed. The owner's November 10 simulation decision
+supersedes historical-certification execution instructions below; remaining V1
+work is tracked only in [V1_FINISH_CHECKLIST.md](V1_FINISH_CHECKLIST.md).
+
+Original integration base: merged PR626, `25fccc4fbdcef3302ec5a04a057c722847d331d1`.
 The exact owner source designation is already approved; no repeated approval or
 financial research is part of this implementation.
 
@@ -593,9 +602,38 @@ outside this frozen-date repair.
 
 The older sections below describe their original delivery. In particular, the
 old January 10 refusal and exception-term-assumption descriptions are superseded.
-The documented A06.1/.2 aggregation-acquisition history and A06.3 minimum-stacking
-limitations are not proven complete by the deadline-input checkbox; A06.2's
-December acquisition carve-out cannot affect the June 5 two-month window.
+The A06 limitations identified by this verification are addressed by the focused
+repair below; the deadline-input checkbox alone was not proof of those rules.
+
+### A06 exception acquisitions and minimum stacking
+
+The Aggregated Standard and Expanded TPE paths now enforce A06.1's two-calendar-
+month wait, A06.2's December 16/day-before-deadline carve-out, and A06.3's
+conjunctive three-or-more-out/fewer-in minimum-stacking limit. Solo re-trades and
+Room trades remain outside this aggregation bar. After the Regular Season,
+minimum classification uses the following Salary Cap Year, including June 5.
+
+Successful player trades save the acquisition date and validated incoming
+component's exception/Room method with the receiving team's atomic update.
+Reload and world copying preserve that history; apply-time validation rebuilds
+the player facts from saved authority, replacing caller-supplied facts. Pick-only
+transactions preserve financial fields. Existing worlds are not migrated.
+
+New June 5 packages visibly assume no **unreported** recent exception acquisition
+for their starting roster. Known dated signings and aggregation restrictions
+override that assumption; subsequent saved acquisitions are actual world events.
+Older packages without this marker retain unknown history, not invented clearance.
+Retained Minimum Exception labels establish minimum compensation in covered
+seasons under C13.22. Other signing methods do not imply nonminimum compensation:
+an exact S01.5 Contract-start/year/service table cell is required to classify them.
+Missing next-season rows or classifications remain needs-input when they could
+change the one-minimum limit. No current-season scale is substituted and no
+financial-history investigation is reopened.
+
+Focused proof lives in `tradeAggregation.test.ts`, `tradeSalaryMatchingPaths.test.ts`,
+`governedTradeSalaryBasis.test.ts`, and the existing opted-in simulation exception
+browser journey (acquire, reload, copy, refuse aggregation, allow solo re-trade).
+These changes supersede the A06 omissions in the historical delivery sections.
 
 ## November 12: Mid-Level and Bi-annual Exceptions in trades (V1 item B1, part 2)
 

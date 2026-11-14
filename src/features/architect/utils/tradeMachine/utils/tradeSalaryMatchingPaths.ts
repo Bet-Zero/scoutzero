@@ -1,4 +1,8 @@
 import {
+  evaluateTradeAggregation,
+  TRADE_AGGREGATION_LEAVES,
+} from './tradeAggregation';
+import {
   TradeSalaryMatchingElectionZ,
   isExceptionTradePath,
   type ExceptionTradePath,
@@ -17,11 +21,13 @@ export const TRADE_SALARY_ALLOWANCE = 250_000;
 export const GOVERNED_TRADE_SALARY_PATH_LEAVES = Object.freeze({
   STANDARD_TPE: Object.freeze(['CBA2-A02.1', 'CBA2-A02.2', 'CBA2-A02.12']),
   AGGREGATED_STANDARD_TPE: Object.freeze([
+    ...TRADE_AGGREGATION_LEAVES,
     'CBA2-A02.4',
     'CBA2-A02.5',
     'CBA2-A02.12',
   ]),
   EXPANDED_TPE: Object.freeze([
+    ...TRADE_AGGREGATION_LEAVES,
     'CBA2-A02.7',
     'CBA2-A02.8',
     'CBA2-A02.11',
@@ -160,7 +166,11 @@ export type HeldStandardTpeComponentInput = {
 
 export type EvaluateTradeSalaryPathInput = {
   election: unknown;
-  outgoingPlayers: Array<{ playerId: string | null; playerName: string }>;
+  outgoingPlayers: Array<{
+    playerId: string | null;
+    playerName: string;
+    aggregationFacts?: unknown;
+  }>;
   incomingMatchingPlayers: TradeSalaryPathInputPlayer[];
   heldStandardTpeComponents?: HeldStandardTpeComponentInput[];
   teamSalary: number;
@@ -355,8 +365,8 @@ function evaluateExpandedTpe({
       return;
     }
     exactOutgoingPlayers.push({
-      ...player,
       playerId: player.playerId,
+      playerName: player.playerName,
       salary: exactSalary,
     });
   });
@@ -542,6 +552,34 @@ export function evaluateTradeSalaryMatchingPath({
         usedIncoming,
         remaining: Math.max(0, component.capacity - usedIncoming),
       };
+    });
+
+  const aggregationYear = salaryCapEndYear(salaryCapYear)!;
+  const aggregation = evaluateTradeAggregation({
+    path: election.path,
+    outgoing: outgoingPlayers,
+    replacementCount: incomingMatchingPlayers.length,
+    transactionDate: String(transactionDate),
+    salaryCapYear: aggregationYear,
+    deadline: simulationTradeDeadline(aggregationYear)?.date ?? null,
+    regularSeasonEnd:
+      CANON_GOVERNED_SEASON_REGISTRY.calendars.find(
+        (record) => record.salaryCapYear === aggregationYear
+      )?.regularSeasonClosing?.value ?? null,
+  });
+  if (aggregation.violations.length || aggregation.missingInputs.length)
+    return result({
+      status: aggregation.violations.length ? 'FAIL' : 'NEEDS_INPUT',
+      election,
+      formula:
+        'Aggregated Contracts must satisfy the acquisition wait and minimum-stacking rules (CBA2-A06.1/.2/.3).',
+      allowance,
+      maximumIncoming: null,
+      actualIncoming,
+      components: heldComponents,
+      violations: aggregation.violations,
+      missingInputs: aggregation.missingInputs,
+      firstApron: governedFirstApron,
     });
 
   if (election.path === 'MINIMUM_EXCEPTION') {
@@ -808,8 +846,8 @@ export function evaluateTradeSalaryMatchingPath({
         return;
       }
       exactOutgoingPlayers.push({
-        ...player,
         playerId: player.playerId,
+        playerName: player.playerName,
         salary: exactSalary,
       });
     });
@@ -954,8 +992,8 @@ export function evaluateTradeSalaryMatchingPath({
       return;
     }
     exactOutgoingPlayers.push({
-      ...player,
       playerId: player.playerId,
+      playerName: player.playerName,
       salary: exactSalary,
     });
   });

@@ -977,7 +977,20 @@ describe('saved-world validation trust boundary', () => {
       state([row('2026-27', 10_000_000)]),
       '2027-01-08'
     );
-    const forged = { ...authority, outgoingSalary: 1, incomingSalary: 1 };
+    const forged = {
+      ...authority,
+      outgoingSalary: 1,
+      incomingSalary: 1,
+      aggregationFacts: {
+        acquisition: {
+          status: 'known',
+          acquiredAt: '2020-01-01',
+          viaException: false,
+        },
+        minimumSalaryCapYear: YEAR,
+        minimumTradedPlayer: false,
+      },
+    };
     const fromLiveState = buildTradeValidationPlayer({
       player: {
         player_id: PLAYER_ID,
