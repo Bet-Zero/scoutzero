@@ -72,6 +72,7 @@ type SalaryMatchingContext = TeamContext & {
 };
 
 type SalaryMatchingTeamData = {
+  salaryBookInputs?: { simulationAssumptions?: unknown } | null;
   teamSalary?: number | string | null;
   apronTeamSalary?: number | string | null;
   totalSalary?: number | string | null;
@@ -167,6 +168,9 @@ function governedExceptionBalances(
     const availability = getCanonicalExceptionAvailability(teamData, key);
     if (!availability.present) continue;
     balances[key] = {
+      conservativeProration: Boolean(
+        teamData.salaryBookInputs?.simulationAssumptions
+      ),
       enabled: availability.enabled,
       totalAmount: availability.totalAmount,
       usedAmount: availability.usedAmount,
@@ -273,9 +277,15 @@ export function validateSalaryMatching(
     ) &&
     (Array.isArray(team.sends) || Array.isArray(team.outgoingPlayers)) &&
     (Array.isArray(team.receives) || Array.isArray(team.incomingPlayers)) &&
-    [team.sends, team.outgoingPlayers, team.receives, team.incomingPlayers].every(
+    [
+      team.sends,
+      team.outgoingPlayers,
+      team.receives,
+      team.incomingPlayers,
+    ].every(
       (players) =>
-        players === undefined || (Array.isArray(players) && players.length === 0)
+        players === undefined ||
+        (Array.isArray(players) && players.length === 0)
     ) &&
     team.salaryMatchingElection == null &&
     team.absorptionMode == null &&
@@ -291,7 +301,8 @@ export function validateSalaryMatching(
       salaryIn: 0,
       salaryOut: 0,
       difference: 0,
-      message: 'No salary matching is required because no player Contracts move.',
+      message:
+        'No salary matching is required because no player Contracts move.',
       violations: [],
       details: {
         ruleApplied: 'No salary matching required',

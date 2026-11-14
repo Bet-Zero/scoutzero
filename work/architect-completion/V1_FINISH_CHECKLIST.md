@@ -57,6 +57,10 @@ that changes the plan.
 
 - [x] D1 First-round Apply enabled for simulation worlds (local; production is D2).
 - [ ] D2 Normal Create World uses the baseline; functions and rules deployed.
+      Both private packages are recoverable/rebuildable. No reusable executor
+      deployment credential verified; existing GitHub Google identities are
+      bounded data workers, not deploy authorization. Production remains off.
+      Hosting stays on Vercel; Firebase supplies Functions/Firestore/private storage.
 - [x] D3 Existing worlds left unmigrated and still readable.
 - [x] D4 "Simulation" label and assumption notes visible in the product.
 - [x] D5 Light manual intake for rare events (grievances, DPE grants, tenders).
@@ -64,21 +68,34 @@ that changes the plan.
 
 ## Phase 3: remaining trade mechanisms
 
-- [x] B1 Free-agent and minimum exceptions in player-plus-pick trades.
+- [ ] B1 Free-agent and minimum exceptions in player-plus-pick trades.
+      January 10 blanket refusal repaired: full value through the deadline,
+      then daily reduction only through Regular Season end. Undated historical
+      use reserves the maximum reduction, visibly disclosed; exact chronology
+      may permit more. Minimum Exception is not subject to that reduction.
+      Reopened: the documented two-month exception-acquisition aggregation bar
+      (CBA2-A06.1) is not implemented; no owner deferral was found.
 - [x] B2 Cash in player-plus-pick trades (with the next-season Apron test
       after the Regular Season).
 - [x] B3 Expanded TPE and below-cap TPE elections.
 - [x] B4 Legacy 2027 conditional and ranked 2029 picks with players.
 - [ ] B5 Remaining pick combinations (swap return ownership, reserved fallback
-      picks, cross-program combinations).
+      picks, cross-program combinations). **Owner decision still unresolved:**
+      no approval to exclude these combinations from V1 was found.
 - [ ] B6 Sign-and-trade together with picks. **Moved after V1** (owner,
       2026-11-12): it needs the season move.
 - [x] B7 Exact trade deadline input for simulation worlds.
+      June 5 expiring/possible-last-season restrictions remain; finalist
+      Standard players now stop under the disclosed postseason-roster assumption.
+      This does not certify the separately documented A06 aggregation-history
+      and minimum-stacking limitations; neither is treated as an approved deferral.
 
 ## Phase 4: lifecycle across all 278
 
 - [x] C1 part 1: coverage table (`C1_COVERAGE.md`) and the pure June 5 →
-      July 1, 2026 season step (#652).
+      July 1, 2026 season step (#652). Counts corrected: 278 retained,
+      136 admitted, **118 currently tradeable** on June 5; 18 admitted current-draft
+      picks remain blocked by post-V1 C2.
 - [ ] C1 part 2, moving a world into 2026-27 and beyond. **Moved after V1**
       (owner, 2026-11-12: V1 finishes at June 5). Later drafts use the lottery
       order by default with an owner override (owner, 2026-11-12).
@@ -89,6 +106,10 @@ that changes the plan.
 
 - [x] E1 Pick trades in the end-to-end check (#653; gated spec
       `tests/e2e/architect-simulation-first-round-apply.spec.ts`).
+      November 14: financial-proof opt-in enabled; eight journey tests passed,
+      zero skipped, plus older-world creation before package activation and
+      two exception-Apply cases (Minimum and Non-Taxpayer MLE). This proves
+      the exercised journeys, not the unresolved B1/B5 limitations or E2.
 - [ ] E2 One owner review link and the owner's final V1 decision.
 
 ## Post-V1 (not gaps)

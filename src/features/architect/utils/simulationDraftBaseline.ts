@@ -10,7 +10,7 @@
 import type { GovernedDraftWorldBaseline } from '@/schemas/governedDraftWorld';
 import { EntitlementAssetZ } from '@/schemas/architect';
 import { QUALIFIED_JUNE5_DRAFT_HORIZON } from './draftReview/horizon';
-import { validateGovernedDraftBaseline } from './governedDraftWorld.baseline';
+import { validateGovernedDraftBaseline } from './governedDraftWorld.validation';
 
 type CandidateRecord = {
   entitlementId: string;

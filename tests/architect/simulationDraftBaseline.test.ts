@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { spawnSync } from 'node:child_process';
 import {
   compileSimulationDraftBaseline,
   SIMULATION_DRAFT_ASSUMPTIONS,
@@ -378,4 +379,20 @@ describe('SIMULATION Apron history (A4)', () => {
       })
     ).toThrow('Scoped SIMULATION Apron determinations');
   });
+});
+
+it('loads the private draft compiler dependency without browser Firebase configuration', () => {
+  const result = spawnSync(
+    process.execPath,
+    [
+      '--import',
+      'tsx',
+      '--input-type=module',
+      '-e',
+      "await import('./src/features/architect/utils/simulationDraftBaseline.ts')",
+    ],
+    { encoding: 'utf8' }
+  );
+  expect(result.stderr).toBe('');
+  expect(result.status).toBe(0);
 });

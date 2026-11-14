@@ -610,6 +610,40 @@ describe('2025-26 zero/one-YOS Minimum uplift', () => {
     });
   };
 
+  it('blocks June 5 finalist Standard players, but not other teams or Two-Way players (L03.15)', () => {
+    const check = (teamId: string, twoWay = false) => {
+      const contractState = state(
+        [row('2025-26', 2_000_000), row('2026-27', 2_100_000)],
+        twoWay ? { contractType: 'Two-Way' } : {}
+      );
+      return resolveGovernedTradeSalaryBasis({
+        contractState,
+        contractManifest: {
+          ...manifest(contractState),
+          salaryCapYear: 2026,
+          seasonKey: '2025-26',
+        },
+        calendar: calendar2026,
+        worldId: WORLD_ID,
+        teamId,
+        playerId: PLAYER_ID,
+        asOfDate: '2026-06-05',
+        salaryCapYear: 2026,
+      });
+    };
+    for (const team of ['NYK', 'SAS']) {
+      const blocked = check(team);
+      expect(blocked.status).toBe('needs-input');
+      expect(blocked.reasons.join(' ')).toContain('CBA2-L03.15');
+      expect(blocked.assumptionIds).toContain('june5-postseason-rosters');
+      expect(check(team, true).reasons.join(' ')).not.toContain(
+        'postseason roster'
+      );
+    }
+    expect(check('CHI').status).toBe('ready');
+    expect(check('TOR').status).toBe('ready');
+  });
+
   it('matches a Contract carrying an Apron uplift at its Salary; the uplift moves in the books', () => {
     const uplift = at(623_967);
     expect(uplift.status).toBe('ready');

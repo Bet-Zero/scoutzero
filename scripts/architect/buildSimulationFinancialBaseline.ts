@@ -27,6 +27,16 @@ const RELEASE_FILE =
   'public/architect/contract-source-releases/salaryswish-retained-2026-06-05-v1.json';
 const SEASON = '2025-26';
 const args = process.argv.slice(2);
+// Replay an already checked package with its retained check time. This does
+// not backdate source evidence; a new build defaults to the actual check time.
+const checkedAtFlag = args.find((arg) => arg.startsWith('--checked-at='));
+const checkedAt =
+  checkedAtFlag?.slice('--checked-at='.length) ?? new Date().toISOString();
+if (
+  !Number.isFinite(Date.parse(checkedAt)) ||
+  new Date(checkedAt).toISOString() !== checkedAt
+)
+  throw new Error('--checked-at must be a retained ISO UTC check timestamp.');
 const eventsFlag = args.indexOf('--events');
 const eventsFile = eventsFlag >= 0 ? args[eventsFlag + 1] : undefined;
 if (eventsFlag >= 0 && !eventsFile)
@@ -36,7 +46,7 @@ const [output] = args.filter(
 );
 if (!output)
   throw new Error(
-    'Usage: npm run architect:simulation-financial -- <private-output.json> [--events <private-events.json>]'
+    'Usage: npm run architect:simulation-financial -- <private-output.json> [--events <private-events.json>] [--checked-at=<retained-ISO-UTC-check-time>]'
   );
 // V1 D5: optional private rare-event intake (grievances, Required Tenders).
 const rareEvents = eventsFile
@@ -159,7 +169,6 @@ if (unknownTeams.length)
   throw new Error(
     `Rare events name unknown teams: ${unknownTeams.map((e) => e.id).join(', ')}.`
   );
-const checkedAt = new Date().toISOString();
 const evidenceReferences = [
   `${release.releaseId} v${release.releaseVersion} ${release.releaseDigest}`,
   `private source snapshot sha256:${digest(snapshot)} captured ${snapshot.capturedAt}`,

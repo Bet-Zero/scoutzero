@@ -434,6 +434,21 @@ function computeReadyBasis({
       `No trades are allowed from the trade deadline (${deadlineLabel}) through the last Regular Season game (${closing}) (CBA2-L03.15).`
     );
   }
+  // Frozen V1 date: NBA Communications' 2026 Finals game notes identify
+  // NYK/SAS as the remaining teams. Standard players are conservatively
+  // treated as postseason roster members; Two-Way players cannot be members
+  // (By-Laws 6.05(c)). No pick-only or receiving-team prohibition is added.
+  if (
+    calendarRecord.authority === 'official' &&
+    asOfDate === '2026-06-05' &&
+    ['NYK', 'SAS'].includes(teamId) &&
+    !isTwoWayTradePlayer(state.terms)
+  ) {
+    reasons.push(
+      'This team is still in the postseason on June 5. Its Standard Contract players are treated as postseason roster members and cannot be traded (CBA2-L03.15; SIMULATION postseason-roster assumption).'
+    );
+    leaves.push('CBA2-L03.15');
+  }
   // CBA2-L03.14: after the deadline, a player may not be traded during the
   // last or possible last Season of the Contract. Next Season continues only
   // when its row exists and any option on it is resolved in the continuing
@@ -640,7 +655,16 @@ function computeReadyBasis({
       asOfDate,
       salaryCapYear,
       reasons,
-      ...(deadline ? { assumptionIds: [deadline.assumptionId] } : {}),
+      ...(deadline
+        ? {
+            assumptionIds: [
+              deadline.assumptionId,
+              ...(asOfDate === '2026-06-05'
+                ? ['june5-postseason-rosters']
+                : []),
+            ],
+          }
+        : {}),
     });
   }
   return GovernedTradeSalaryBasisZ.parse({
@@ -664,7 +688,14 @@ function computeReadyBasis({
       ? { minimumExceptionAcquisition: true }
       : {}),
     ...contractSeasonsRemaining(state.terms, salaryCapYear),
-    ...(deadline ? { assumptionIds: [deadline.assumptionId] } : {}),
+    ...(deadline
+      ? {
+          assumptionIds: [
+            deadline.assumptionId,
+            ...(asOfDate === '2026-06-05' ? ['june5-postseason-rosters'] : []),
+          ],
+        }
+      : {}),
     canonLeafIds: [...new Set([...leaves, ...deadlineLeaves])],
     reasons: [],
     proof: {

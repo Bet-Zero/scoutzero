@@ -10,6 +10,8 @@ import {
   isSupportedSalaryCapYear,
 } from '@/features/architect/utils/governedSeason';
 
+import { simulationTradeDeadline } from '../../governedSeason/simulationTradeDeadline';
+
 export const TRADE_SALARY_ALLOWANCE = 250_000;
 
 export const GOVERNED_TRADE_SALARY_PATH_LEAVES = Object.freeze({
@@ -27,9 +29,19 @@ export const GOVERNED_TRADE_SALARY_PATH_LEAVES = Object.freeze({
   ]),
   ROOM: Object.freeze(['CBA2-A02.9', 'CBA2-A02.10', 'CBA2-A02.12']),
   MINIMUM_EXCEPTION: Object.freeze(['CBA2-C13.4', 'CBA2-C13.6']),
-  NON_TAXPAYER_MLE: Object.freeze(['CBA2-C13.8', 'CBA2-C13.9']),
-  BI_ANNUAL_EXCEPTION: Object.freeze(['CBA2-C13.13', 'CBA2-C13.14']),
-  ROOM_MLE: Object.freeze(['CBA2-C13.12']),
+  NON_TAXPAYER_MLE: Object.freeze([
+    'CBA2-C13.8',
+    'CBA2-C13.9',
+    'CBA2-C13.3',
+    'CBA2-C13.5',
+  ]),
+  BI_ANNUAL_EXCEPTION: Object.freeze([
+    'CBA2-C13.13',
+    'CBA2-C13.14',
+    'CBA2-C13.3',
+    'CBA2-C13.5',
+  ]),
+  ROOM_MLE: Object.freeze(['CBA2-C13.12', 'CBA2-C13.3', 'CBA2-C13.5']),
 } satisfies Record<TradeSalaryMatchingPath, readonly string[]>);
 
 export type TradeSalaryPathEvaluationStatus = 'PASS' | 'FAIL' | 'NEEDS_INPUT';
@@ -60,6 +72,10 @@ export type TradeExceptionBalance = {
   lastUsedSeasonEndYear?: number | null;
   /** This Salary Cap Year's official amount for this exception, if known. */
   seasonAmount: number | null;
+  /** Exact retained January 10 unused amount, when available. */
+  january10UnusedAmount?: number | null;
+  /** Simulation only: reserve the maximum reduction when usage dates are absent. */
+  conservativeProration?: boolean;
 };
 
 export type TradeExceptionBalances = Partial<
@@ -87,9 +103,7 @@ const EXCEPTION_LABELS = Object.freeze({
 /**
  * Free-agent exceptions a team may use to take in a player by trade, with
  * the canonical exception key and the longest Contract each allows
- * (canon 7.3). Applying the signing term limit to an acquired Contract is a
- * named SIMULATION assumption: it can refuse a legal trade, never allow an
- * illegal one.
+ * (CBA2-C13.28/.32/.38 expressly include assigned Contracts).
  */
 export const EXCEPTION_TRADE_PATH_RULES: Readonly<
   Record<
@@ -616,7 +630,56 @@ export function evaluateTradeSalaryMatchingPath({
         firstApron: governedFirstApron,
       });
     }
-    const remaining = Math.max(0, balance.remainingAmount);
+    let remaining = Math.max(0, balance.remainingAmount);
+    const january10 = `${capYear}-01-10`;
+    const deadline = simulationTradeDeadline(capYear);
+    if (day >= january10 && (!deadline || day > deadline.date)) {
+      const calendar = CANON_GOVERNED_SEASON_REGISTRY.calendars.find(
+        (record) => record.salaryCapYear === capYear
+      );
+      const opening = calendar?.regularSeasonOpening?.value;
+      const closing = calendar?.regularSeasonClosing?.value;
+      // With undated prior use, totalAmount is an upper bound on January 10
+      // unused money. Reserving its reduction cannot overstate availability.
+      const unused =
+        balance.january10UnusedAmount ??
+        (balance.usedAmount === 0 || balance.conservativeProration
+          ? balance.totalAmount
+          : null);
+      if (
+        !deadline ||
+        !opening ||
+        !closing ||
+        unused === null ||
+        !Number.isFinite(unused) ||
+        unused < 0 ||
+        unused > balance.totalAmount
+      ) {
+        return result({
+          status: 'NEEDS_INPUT',
+          election,
+          formula:
+            'Exception proration needs the January 10 unused amount, Regular Season dates and trade deadline.',
+          allowance: null,
+          maximumIncoming: null,
+          actualIncoming,
+          missingInputs: ['exceptionProration'],
+          firstApron: governedFirstApron,
+        });
+      }
+      const days = (Date.parse(closing) - Date.parse(opening)) / 86_400_000 + 1;
+      // C13.3's first completed reduction day is January 11. Reduction stops
+      // at the Regular Season end (VII 6(n)(4)), not at the June trade date.
+      const elapsed = Math.max(
+        0,
+        (Date.parse(day < closing ? day : closing) - Date.parse(january10)) /
+          86_400_000
+      );
+      remaining = Math.max(
+        0,
+        Math.floor(remaining - (unused * elapsed) / days)
+      );
+    }
     const apronAfter = Number(election.postAssignmentApronTeamSalary);
     const violations = [
       ...(outgoingPlayers.length > 0
@@ -629,13 +692,6 @@ export function evaluateTradeSalaryMatchingPath({
         : []),
       ...(incomingMatchingPlayers.length === 0
         ? [`The ${rule.label} path needs at least one incoming player.`]
-        : []),
-      // From January 10 the exception prorates daily (canon 7.1). That
-      // proration is not modelled, so the exception is not used from then on.
-      ...(day >= `${capYear}-01-10`
-        ? [
-            `From January 10 the ${rule.label} prorates daily, which this version does not model; it can be used in trades only before January 10.`,
-          ]
         : []),
       // The team record must be this exception at this Season's amount; a
       // record holding another Mid-Level flavor's amount is refused.

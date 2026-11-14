@@ -428,7 +428,7 @@ To go live (needs the owner's confirmation first):
 3. Set the function settings: the two object names, the two digests and
    `SCOUTZERO_SIMULATION_LIVE=true`.
 4. Build the app with `VITE_SCOUTZERO_SIMULATION_LIVE=true`, then deploy
-   functions, rules and hosting.
+   Firebase functions/rules and the Vercel app (not Firebase Hosting).
 5. Check: create a world, see the SIMULATION label, make one first-round
    trade, reload, and confirm an existing older world still opens (D3).
 
@@ -566,6 +566,36 @@ Not yet modelled (later B1 work): a team that sends players and also takes a
 minimum player at $0 in the same trade; the CBA-A10.2 aggregation limit on
 players acquired with an exception; the Non-Taxpayer, Bi-annual and Room
 Mid-Level exceptions in trades (needs daily proration from January 10).
+
+## November 14 verification correction (B1/B7; current status stays in checklist)
+
+The January 10 blanket trade refusal was missing implementation, not an NBA
+ban. Accepted Canon C13.3/.5 requires full value through the trade deadline,
+then daily reduction based on January 10 unused money over Regular Season days,
+stopping at Regular Season end (VII 6(n)(4)). The trade path now computes this.
+For simulation balances with undated historical use, the full annual amount is
+used as the **maximum possible** January 10 unused amount, with all recorded use
+still subtracted. This disclosed conservative reserve cannot overstate capacity;
+it is not a claim about the actual timing of prior use. Whole dollars round down.
+Exact dated-use inputs can release excess reserve; unknown non-simulation inputs
+stay needs-input. C13.28/.32/.38 explicitly apply the 3/2/4-season term limits
+to assigned Contracts; those limits are rules, not a simulation assumption.
+
+L03.14 still blocks expiring/possible-last-season players after the deadline.
+L03.15 also prohibits assignment of a remaining playoff team's postseason-roster
+players. On frozen June 5, NYK and SAS remain in the Finals (NBA Communications,
+[2026 game notes](https://pr.nba.com/2026-nba-finals-game-notes/), retrieved
+November 14; retrospective report, not a June 5 capture). Their Standard players
+are conservatively treated as postseason-roster members, visibly disclosed.
+Two-Way players are not postseason-roster members (By-Laws 6.05(c)); picks and
+receiving teams are not prohibited by this rule. Later postseason calendars are
+outside this frozen-date repair.
+
+The older sections below describe their original delivery. In particular, the
+old January 10 refusal and exception-term-assumption descriptions are superseded.
+The documented A06.1/.2 aggregation-acquisition history and A06.3 minimum-stacking
+limitations are not proven complete by the deadline-input checkbox; A06.2's
+December acquisition carve-out cannot affect the June 5 two-month window.
 
 ## November 12: Mid-Level and Bi-annual Exceptions in trades (V1 item B1, part 2)
 

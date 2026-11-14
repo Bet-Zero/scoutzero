@@ -56,11 +56,18 @@ const MONEY: readonly SimulationAssumption[] = [
 
 const TRADES: readonly SimulationAssumption[] = [
   {
-    id: 'exception-term-limit-on-acquisition',
+    id: 'june5-postseason-rosters',
     area: 'Trades',
-    title: 'Exception term limits in trades',
+    title: 'June 5 postseason rosters',
     statement:
-      'When a player is acquired with the Non-Taxpayer Mid-Level, Bi-Annual or Room Mid-Level Exception, the contract may have no more seasons left than a signing with that exception allows (4, 2 and 3). This can refuse a legal trade but never allows an illegal one.',
+      'On June 5, 2026, New York and San Antonio are still in the Finals (NBA Communications, 2026 Finals game notes). Their Standard Contract players are treated as postseason roster members and cannot be traded; Two-Way players are not postseason roster members. Other teams have finished. This conservative roster assumption can block a player who was omitted from a finalist’s postseason roster.',
+  },
+  {
+    id: 'exception-proration-reserve',
+    area: 'Trades',
+    title: 'Exception balance after January 10',
+    statement:
+      'Exception-use dates before this world are incomplete. After the trade deadline, we reserve the maximum January 10 daily reduction, using the full annual exception as the January 10 unused upper bound, and subtract all recorded use. Reduction stops at the Regular Season end; available dollars round down. This can refuse a trade that exact dated use would permit. The full unused balance remains available through the deadline.',
   },
   {
     id: SIMULATION_TRADE_DEADLINE_ASSUMPTION.id,
