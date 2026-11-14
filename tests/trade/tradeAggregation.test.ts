@@ -59,6 +59,26 @@ describe('CBA2-A06 aggregation timing and minimum stacking', () => {
     );
     expect(twoCalendarMonthsAfter('bad')).toBeNull();
   });
+  it('resolves transition-day clocks and releases a past ambiguous anniversary', () => {
+    expect(twoCalendarMonthsAfter('2026-01-08T12:00:00-05:00')).toBe(
+      '2026-03-08T12:00:00.000-04:00'
+    );
+    expect(twoCalendarMonthsAfter('2026-09-01T12:00:00-04:00')).toBe(
+      '2026-11-01T12:00:00.000-05:00'
+    );
+    expect(twoCalendarMonthsAfter('2026-01-08T02:30:00-05:00')).toBeNull();
+    expect(twoCalendarMonthsAfter('2026-09-01T01:30:00-04:00')).toBeNull();
+    const outgoing = [player('a', '2026-01-08T02:30:00-05:00'), player('b')];
+    expect(
+      evaluate({ outgoing, transactionDate: '2026-03-08' }).missingInputs
+    ).toContain('a: exact two-month eligibility instant');
+    passes(evaluate({ outgoing }));
+    passes(
+      evaluate({
+        outgoing: [player('a', '2026-01-08T12:00:00-05:00'), player('b')],
+      })
+    );
+  });
   it.each(['AGGREGATED_STANDARD_TPE', 'EXPANDED_TPE'])(
     'bars an exception acquisition just inside two months on %s, then releases it',
     (path) => {
@@ -397,6 +417,58 @@ describe('saved acquisition authority', () => {
       status: 'known',
       viaException: false,
     });
+  });
+  it('uses authoritative signings without baseline membership and orders them against trades', () => {
+    const contract = state();
+    contract.terms.signingTeam = 'BOS';
+    contract.terms.signingDate = {
+      precision: 'date',
+      value: '2026-05-15',
+      rawValue: '2026-05-15',
+    };
+    contract.terms.signedUsing = 'Cap Space';
+    const input = {
+      state: contract,
+      teamId: 'BOS',
+      asOfDate: '2026-06-05',
+      salaryCapYear: 2026,
+      regularSeasonEnd: '2026-04-12',
+    };
+    const signed = {
+      status: 'known',
+      acquiredAt: '2026-05-15',
+      viaException: false,
+    };
+    expect(contractAggregationFacts(input).acquisition).toEqual(signed);
+    const entry = {
+      transactionId: 'old-trade',
+      playerId: contract.playerId,
+      teamCode: 'BOS',
+      acquiredAt: '2026-04-01',
+      viaException: true,
+    };
+    const history = { version: 1, baseline: null, entries: [entry] };
+    expect(contractAggregationFacts({ ...input, history }).acquisition).toEqual(
+      signed
+    );
+    entry.acquiredAt = '2026-06-01';
+    expect(contractAggregationFacts({ ...input, history }).acquisition).toEqual(
+      {
+        status: 'known',
+        acquiredAt: '2026-06-01',
+        viaException: true,
+      }
+    );
+    entry.acquiredAt = '2026-05-15';
+    expect(
+      contractAggregationFacts({ ...input, history }).acquisition.status
+    ).toBe('unknown');
+    entry.teamCode = 'CHI';
+    expect(
+      contractAggregationFacts({ ...input, history }).acquisition.status
+    ).toBe('unknown');
+    contract.terms.signingTeam = 'CHI';
+    expect(contractAggregationFacts(input).acquisition.status).toBe('unknown');
   });
   it('classifies compensation using the correct Contract-start/year/YOS table cell', () => {
     const contract = state();

@@ -43,17 +43,26 @@ export function twoCalendarMonthsAfter(value: string): string | null {
     fractionalSecondDigits: 3,
   });
   const clock = formatter.format(new Date(value));
-  const start = governingDayStartInstant(targetDay);
-  if (!start) return null;
-  const result = `${targetDay}T${clock}${start.slice(-6)}`;
+  const nextDay = new Date(Date.parse(targetDay) + 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  // A transition day's midnight offset need not apply at the target clock.
+  // Try both offsets bordering that day; exactly one matching instant is safe.
+  const offsets = new Set(
+    [targetDay, nextDay]
+      .map((date) => governingDayStartInstant(date)?.slice(-6))
+      .filter((offset): offset is string => Boolean(offset))
+  );
+  const candidates = [...offsets]
+    .map((offset) => `${targetDay}T${clock}${offset}`)
+    .filter(
+      (candidate) =>
+        isZonedDateTime(candidate) &&
+        governingCalendarDate(candidate) === targetDay &&
+        formatter.format(new Date(candidate)) === clock
+    );
   // Ambiguous/nonexistent wall-clock times require an exact eligibility input.
-  if (
-    !isZonedDateTime(result) ||
-    formatter.format(new Date(result)) !== clock ||
-    formatter.format(new Date(Date.parse(result) + 3_600_000)) === clock
-  )
-    return null;
-  return result;
+  return candidates.length === 1 ? candidates[0] : null;
 }
 
 export function evaluateTradeAggregation(input: {
@@ -121,6 +130,7 @@ export function evaluateTradeAggregation(input: {
         );
       } else if (acquisition.viaException) {
         const end = twoCalendarMonthsAfter(acquisition.acquiredAt);
+        const endDay = twoCalendarMonthsAfter(acquiredDay)!;
         const uncertainBoundary =
           end !== null &&
           !exactComparison &&
@@ -128,11 +138,12 @@ export function evaluateTradeAggregation(input: {
             isZonedDateTime(input.transactionDate)) &&
           day === governingCalendarDate(end);
         const stillRestricted =
-          end === null ||
+          (end === null && day <= endDay) ||
           uncertainBoundary ||
-          (exactComparison
-            ? Date.parse(input.transactionDate) < Date.parse(end)
-            : day < (governingCalendarDate(end) ?? '9999-12-31'));
+          (end !== null &&
+            (exactComparison
+              ? Date.parse(input.transactionDate) < Date.parse(end)
+              : day < endDay));
         if (stillRestricted) {
           // The December acquisition must belong to this same Salary Cap Year.
           const december16 = `${input.salaryCapYear - 1}-12-16`;
@@ -259,21 +270,48 @@ export function contractAggregationFacts(input: {
         status: 'baseline-assumption',
         asOfDate: parsed.data.baseline.asOfDate,
       };
-      // Known recent signings override the absence-of-unreported-acquisitions assumption.
-      const signed = state.terms.signingDate.value;
-      if (
-        state.terms.signingTeam === teamId &&
-        signed &&
-        (isDateOnly(signed) || isZonedDateTime(signed))
-      ) {
-        acquisition = {
-          status: 'known',
-          acquiredAt: signed,
-          viaException: !/^(?:(?:cap )?space|room)$/i.test(
-            state.terms.signedUsing ?? ''
-          ),
-        };
-      }
+    }
+  }
+  // A current Contract's known signing can be newer than the team's last
+  // trade acquisition. It does not require starting-roster membership.
+  // Do not use it to bypass malformed history or an explicit source restriction.
+  const signed = state.terms.signingDate.value;
+  const historyUsable =
+    input.history == null ||
+    (parsed.success &&
+      parsed.data.entries.every((entry) => entry.teamCode === teamId));
+  if (
+    historyUsable &&
+    state.terms.restrictions.aggregation !== false &&
+    state.terms.signingTeam === teamId &&
+    signed &&
+    (isDateOnly(signed) || isZonedDateTime(signed))
+  ) {
+    const viaException = !/^(?:(?:cap )?space|room)$/i.test(
+      state.terms.signedUsing ?? ''
+    );
+    const signedDay = governingCalendarDate(signed)!;
+    const tradeDay =
+      acquisition.status === 'known'
+        ? governingCalendarDate(acquisition.acquiredAt)!
+        : null;
+    const exact =
+      acquisition.status === 'known' &&
+      isZonedDateTime(signed) &&
+      isZonedDateTime(acquisition.acquiredAt);
+    if (
+      acquisition.status !== 'known' ||
+      signedDay > tradeDay! ||
+      (exact && Date.parse(signed) > Date.parse(acquisition.acquiredAt))
+    ) {
+      acquisition = { status: 'known', acquiredAt: signed, viaException };
+    } else if (
+      !exact &&
+      signedDay === tradeDay &&
+      viaException !== acquisition.viaException
+    ) {
+      // Date-only facts cannot order different acquisition methods on one day.
+      acquisition = { status: 'unknown' };
     }
   }
   return { acquisition, minimumSalaryCapYear, minimumTradedPlayer };

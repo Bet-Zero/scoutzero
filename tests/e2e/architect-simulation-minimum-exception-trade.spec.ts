@@ -54,17 +54,21 @@ const totals = (team: TeamDoc) =>
 
 async function openTradeMachine(page: Page, other: 'CLE' | 'CHA' = 'CLE') {
   const dialog = page.getByRole('dialog', { name: /Trade Machine/i });
-  await page.waitForTimeout(2000);
-  if (!(await dialog.isVisible())) {
-    // A reloaded world may restore the overlay while the tab click is pending.
-    try {
-      await page
-        .getByRole('tab', { name: /^Trade Machine$/i })
-        .click({ timeout: 3000 });
-    } catch (error) {
-      if (!(await dialog.isVisible())) throw error;
-    }
-  }
+  const tab = page.getByRole('tab', { name: /^Trade Machine$/i });
+  await expect
+    .poll(
+      async () => {
+        if (await dialog.isVisible()) return true;
+        // Reload can restore the overlay while its underlying tab is clicked.
+        if (await tab.isVisible())
+          await tab.click({ timeout: 1000 }).catch(() => {});
+        return dialog.isVisible();
+      },
+      {
+        timeout: 60000,
+      }
+    )
+    .toBe(true);
   await expect(dialog.getByTestId('trade-team-card-CHI')).toBeVisible({
     timeout: 60000,
   });

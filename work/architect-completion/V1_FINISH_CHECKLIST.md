@@ -77,6 +77,8 @@ that changes the plan.
       A06.3's next-season minimum-stacking check are implemented. Saved
       acquisitions survive reload/copy; solo re-trades remain allowed.
       Missing or conflicting applicable minimum classifications stay needs-input.
+      PR #656 contains the focused Canon/trust-boundary checks and opted-in
+      real-data copy, aggregation-refusal, and solo re-trade browser proof.
       **Still open:** the already documented same-team combination of outgoing
       salary matching with a separate $0 Minimum Exception acquisition is not
       supported; the current Minimum Exception election requires no players sent.
