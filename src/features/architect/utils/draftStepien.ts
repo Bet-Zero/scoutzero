@@ -110,7 +110,9 @@ function evaluateStepien(
     reviewSimulationDraftWindow(
       simulated,
       request.context.asOf,
-      request.outgoing.map((p) => p.draftYear)
+      affectedOnly
+        ? [fact.firstFutureDraftYear]
+        : request.outgoing.map((p) => p.draftYear)
     ).status === 'needs-input'
   )
     return blocked('complete-governed-software-calendar-required');

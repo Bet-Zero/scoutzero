@@ -91,6 +91,7 @@ export interface UseSigningExecutionParams {
   worldId: string | null;
   userId: string | null;
   currentYear: number;
+  worldAsOfDate?: string | null;
   teamCapSheet: UseArchitectStateReturn['teamCapSheet'];
   playersMap: Record<string, ArchitectPlayer | unknown>;
   setTeamCapSheetSafe: (team: CapSheet | null) => void;
@@ -143,6 +144,7 @@ export function useSigningExecution({
   worldId,
   userId,
   currentYear,
+  worldAsOfDate,
   teamCapSheet,
   playersMap,
   setTeamCapSheetSafe,
@@ -650,6 +652,7 @@ export function useSigningExecution({
               payload: persistPayload,
               actionContext: receiptContext,
               authority: 'local-only',
+              economicAsOfDate: worldAsOfDate,
             });
             if (receipt) {
               publishPostActionReceipt(receipt);
@@ -694,6 +697,7 @@ export function useSigningExecution({
                 primaryPlayerIds: playerIds.map(String),
                 payload: persistPayload,
                 actionContext: receiptContext,
+                economicAsOfDate: worldAsOfDate,
               });
               if (receipt) {
                 publishPostActionReceipt(receipt);
@@ -738,6 +742,7 @@ export function useSigningExecution({
       persistMutation,
       prepareCapAuditedMutationBoundary,
       publishPostActionReceipt,
+      worldAsOfDate,
       reportMutationError,
       syncTeamFromMutationResult,
       teamCapSheet,

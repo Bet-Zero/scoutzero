@@ -44,6 +44,7 @@ export type DraftReviewCapabilityRecord = Readonly<{
     | 'governed-world-fixture';
   /** Draft source class of a governed world; SIMULATION may run live (D2). */
   baselineClassification?: string;
+  connectedInventory?: boolean;
   assumptionSha256?: string;
   assumptions?: import('@/schemas/draftPickReviewMutation').DraftSimulationAssumptions;
   userId: string;
@@ -61,6 +62,7 @@ export type DraftReviewCapabilityRecord = Readonly<{
   reviews: readonly (
     | DraftReviewConsumption
     | import('./swapTradeReview').SwapTradeReview
+    | import('./connectedTradeReview').ConnectedTradeReview
     | {
         eligible: boolean;
         reasons: string[];
@@ -198,6 +200,9 @@ export async function prepareGovernedDraftWorldCapability(args: {
   return createDraftReviewCapability({
     scope: 'governed-world-fixture',
     baselineClassification: loaded.baseline.classification,
+    ...(loaded.baseline.connectedPrograms?.length
+      ? { connectedInventory: true }
+      : {}),
     userId: args.userId,
     worldId: args.worldId,
     seasonId: args.seasonId,

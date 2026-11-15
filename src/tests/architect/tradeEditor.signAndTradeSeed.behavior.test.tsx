@@ -43,7 +43,9 @@ vi.mock(
 );
 
 vi.mock('@/features/architect/tradeMachine/ValidationStateHeader', () => ({
-  ValidationStateHeader: () => <div data-testid="mock-validation-state-header" />,
+  ValidationStateHeader: () => (
+    <div data-testid="mock-validation-state-header" />
+  ),
 }));
 
 vi.mock('@/features/architect/tradeMachine/ValidationDetailsPanel', () => ({
@@ -145,9 +147,9 @@ describe('TradeEditor sign-and-trade seed consumption (BZE-190)', () => {
 
     const pending = screen.getByTestId('pending-sign-and-trade');
     expect(pending).toBeInTheDocument();
-    expect(screen.getByTestId('pending-sign-and-trade-player')).toHaveTextContent(
-      'Sat Star'
-    );
+    expect(
+      screen.getByTestId('pending-sign-and-trade-player')
+    ).toHaveTextContent('Sat Star');
     // The one-shot seed is consumed so re-renders don't re-stage it.
     expect(onSignAndTradeSeedHandled).toHaveBeenCalledTimes(1);
   });
@@ -192,6 +194,31 @@ describe('TradeEditor sign-and-trade seed consumption (BZE-190)', () => {
 
     fireEvent.click(screen.getByTestId('pending-sign-and-trade-dismiss'));
 
-    expect(screen.queryByTestId('pending-sign-and-trade')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('pending-sign-and-trade')
+    ).not.toBeInTheDocument();
+  });
+
+  it('preserves the open contract editor player across background trade refreshes', () => {
+    const props = {
+      primaryTeam: 'LAL',
+      currentYear: 2026,
+      worldId: 'world_1',
+      requestedSignAndTradeSeed: { player: SEED_PLAYER, sourceTeamCode: 'LAL' },
+      onSignAndTradeSeedHandled: vi.fn(),
+    };
+    const view = render(<TradeEditor {...props} />);
+    fireEvent.click(
+      screen.getByRole('button', { name: /Set contract & destination/i })
+    );
+    const openedPlayer = editContractModalProps.at(-1)?.player;
+    harness.useTradeMachineMock.mockReturnValue({
+      ...buildTradeMachineValue(),
+      isValidating: true,
+    });
+    view.rerender(<TradeEditor {...props} />);
+    // EditContractModal initializes terms when its player changes. Background
+    // refreshes must not erase entered salaries with a new adapter identity.
+    expect(editContractModalProps.at(-1)?.player).toBe(openedPlayer);
   });
 });

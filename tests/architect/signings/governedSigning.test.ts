@@ -243,12 +243,14 @@ function computeSigning({
   signingContract = contract(),
   asOfDate = WORLD_DATE,
   signedUsing = 'Full MLE',
+  recordedAt = RECORDED_AT,
 }: {
   targetTeam?: ArchitectMutationTeamRecord;
   targetPlayer?: ArchitectMutationPlayerRecord;
   signingContract?: ArchitectMutationContract;
   asOfDate?: string | null;
   signedUsing?: string | null;
+  recordedAt?: string;
 } = {}) {
   return computeWorldMutation({
     mutationType: 'signFreeAgent',
@@ -266,12 +268,12 @@ function computeSigning({
       signingPlayerSnapshot: localReceipt(targetPlayer),
     },
     seasonId: '2026-27',
-    timestamp: Date.parse(RECORDED_AT),
+    timestamp: Date.parse(recordedAt),
     asOfDate,
     worldId: WORLD_ID,
     operationId: OPERATION_ID,
     authoringIdentity: 'user-bze-286',
-    recordedAt: RECORDED_AT,
+    recordedAt,
   });
 }
 
@@ -737,6 +739,104 @@ describe('governed signing result and immutable history', () => {
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/Tax Salary needs input.*baseline/i);
     expect(getAllMockData()).toEqual(before);
+  });
+
+  it('signs in the current season without inventing the future C08.1 Tax baseline', () => {
+    const books = governedSalaryBookInputs();
+    books.taxSalary = {
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.taxSalary.baseline'],
+      reason:
+        'Final 2026-27 Tax Salary has no observed last-game baseline yet.',
+    };
+    const targetTeam = governedTeam({ salaryBookInputs: books });
+    const signingContract = contract({
+      totalValue: 20_500_000,
+      salariesByYear: [
+        {
+          season: '2026-27',
+          salary: 10_000_000,
+          capHit: 10_000_000,
+          guaranteed: true,
+        },
+        {
+          season: '2027-28',
+          salary: 10_500_000,
+          capHit: 10_500_000,
+          guaranteed: true,
+        },
+      ],
+    });
+    const validation = validateSigning({
+      team: targetTeam,
+      player: player(),
+      contract: signingContract,
+      signedUsing: 'Full MLE',
+      year: 2027,
+      asOfDate: '2026-11-14',
+    });
+    expect(validation.violations).toEqual([]);
+    const result = computeSigning({
+      targetTeam,
+      signingContract,
+      asOfDate: '2026-11-14',
+      recordedAt: '2026-11-15T12:00:00-05:00',
+    });
+    expect(result.success, String(result.error)).toBe(true);
+    const after = result.teamUpdates?.[0]?.team;
+    // Fourteen declared $1m contracts + $10m signing; retained $1m apron adjustment.
+    expect(after?.totals).toMatchObject({
+      teamSalary: 24_000_000,
+      apronTeamSalary: 25_000_000,
+      taxSalary: null,
+    });
+    expect(after?.salaryBookInputs?.taxSalary).toEqual(books.taxSalary);
+    expect(
+      after?.players?.find((p) => p.playerId === PLAYER_ID)?.contract
+        ?.totalValue
+    ).toBe(20_500_000);
+    for (const asOfDate of ['2027-04-12', null]) {
+      const invalid = validateSigning({
+        team: targetTeam,
+        player: player(),
+        contract: signingContract,
+        signedUsing: 'Full MLE',
+        year: 2027,
+        asOfDate: asOfDate ?? undefined,
+      });
+      expect(
+        invalid.violations.some((v) => v.rule === 'salary_book_needs_input')
+      ).toBe(true);
+    }
+    const otherMissingTaxInput = structuredClone(targetTeam);
+    otherMissingTaxInput.salaryBookInputs!.taxSalary = {
+      status: 'needs-input',
+      missingInputs: ['salaryBookInputs.taxSalary.incentives'],
+      reason: 'A different unresolved input is not a pending baseline.',
+    };
+    expect(
+      validateSigning({
+        team: otherMissingTaxInput,
+        player: player(),
+        contract: signingContract,
+        signedUsing: 'Full MLE',
+        year: 2027,
+        asOfDate: '2026-11-14',
+      }).violations.some((v) => v.rule === 'salary_book_needs_input')
+    ).toBe(true);
+    const overApron = structuredClone(targetTeam);
+    if (overApron.salaryBookInputs!.apronAdjustments.status === 'ready')
+      overApron.salaryBookInputs!.apronAdjustments.lineItems[0].amount = 210_000_000;
+    expect(
+      validateSigning({
+        team: overApron,
+        player: player(),
+        contract: signingContract,
+        signedUsing: 'Full MLE',
+        year: 2027,
+        asOfDate: '2026-11-14',
+      }).violations.some((v) => v.rule === 'hard_cap')
+    ).toBe(true);
   });
 
   it('creates a root contract event, consumes first-year exception usage, and absolves the cap hold', () => {

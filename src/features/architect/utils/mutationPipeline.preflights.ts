@@ -322,6 +322,17 @@ export async function preflightOfferSheetMutation({
       };
     }
 
+    const worldAsOfDate = await loadWorldAsOfDate(worldId);
+    if (!worldAsOfDate) {
+      return {
+        status: 'incomplete',
+        reasons: ['Offer Sheet validation requires an exact saved-world date.'],
+        warnings: [],
+        source,
+      };
+    }
+    const { asOfDate } = resolveWorldAsOfDate({ worldAsOfDate });
+
     // validateSigning with offer-sheet flags routes into the RFA/offer-sheet validation path:
     // validateOfferSheetTerms (years 1–4, raises ≤8%) + offering-team-vs-home-team checks.
     const signingValidation = validateSigning({
@@ -330,6 +341,7 @@ export async function preflightOfferSheetMutation({
       contract: preflightContract,
       signedUsing: payload.signedUsing,
       year: currentYear,
+      asOfDate,
     });
 
     if (!signingValidation.valid) {
@@ -350,8 +362,6 @@ export async function preflightOfferSheetMutation({
 
     // computeWorldMutation catches pre-compute guardrails: player in home team players[],
     // dedup/worldId checks. Pure compute — does not persist.
-    const worldAsOfDate = await loadWorldAsOfDate(worldId);
-    const { asOfDate } = resolveWorldAsOfDate({ worldAsOfDate });
     const computeResult = computeWorldMutation({
       mutationType: 'storeOfferSheet',
       payload,

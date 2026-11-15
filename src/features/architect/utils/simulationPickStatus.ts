@@ -1,3 +1,4 @@
+import { connectedInterest } from './draftReview/connectedRights';
 /**
  * What the Trade Machine says about each first-round right in a SIMULATION
  * world (V1 item E1): whether it can be traded now, and why not when it
@@ -25,7 +26,9 @@ export function simulationPickStatuses(
     | 'unresolved'
     | 'apron'
   > &
-    Partial<Pick<GovernedDraftWorldBaseline, 'stepien' | 'asOf'>>
+    Partial<
+      Pick<GovernedDraftWorldBaseline, 'stepien' | 'asOf' | 'connectedPrograms'>
+    >
 ): Record<string, SimulationPickStatus> {
   if (baseline.classification !== 'simulation') return {};
   // The legacy June baseline keeps its recorded exclusion. A reconciled
@@ -84,14 +87,41 @@ export function simulationPickStatuses(
       };
       continue;
     }
+    const connected = connectedInterest(baseline, id);
+    if (connected) {
+      const possible = connected.interest.possibleOriginals;
+      const allOpen = possible.every((p) => {
+        const y = Number(p.split('_')[1]);
+        const inputs = baseline.apron.filter((a) => a.originalPick.id === p);
+        return (
+          currentLastYear !== null &&
+          y >= comingDraft &&
+          y <= currentLastYear &&
+          (p.endsWith('_2nd') ||
+            (inputs.length === 1 &&
+              apronLifecycleVerdict(evaluateDraftApronLifecycle(inputs[0])) ===
+                'permits'))
+        );
+      });
+      statuses[id] = {
+        tradeable: allOpen,
+        text: allOpen
+          ? connected.interest.terms
+          : 'Not tradeable: a connected first is frozen, outside the trading window or has unconfirmed Apron history',
+      };
+      continue;
+    }
     if (!record) {
       statuses[id] = {
         tradeable: false,
-        text: unconfirmed.has(id)
-          ? "Not tradeable: its terms can't be confirmed"
-          : year > lastOpen
-            ? `Not tradeable until the ${comingDraft} Draft is over`
-            : 'Not tradeable yet: protected, swap or pool right',
+        text:
+          entitlement.simulationRestriction === 'represented'
+            ? 'Reference only: its conditional interests are listed separately'
+            : unconfirmed.has(id)
+              ? "Not tradeable: its terms can't be confirmed"
+              : year > lastOpen
+                ? `Not tradeable until the ${comingDraft} Draft is over`
+                : 'Not tradeable yet: protected, swap or pool right',
       };
       continue;
     }

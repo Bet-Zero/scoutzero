@@ -49,8 +49,8 @@ export const PHASE3A_CLOSURE_EXPECTATIONS = Object.freeze({
     expectedCapSpaceDecrease: 3_442_237,
   },
   offerSheet: {
-    matchingWindowHours: 48,
-    canonLeafIds: ['CBA2-L04.3'],
+    deadlineRule: 'Receipt-time-dependent; separate July 7 Moratorium deadline',
+    canonLeafIds: ['CBA2-L04.3', 'CBA2-L04.22'],
   },
   signAndTrade: {
     minimumNonOptionSeasons: 3,

@@ -17,8 +17,10 @@ import { db, auth } from '@/firebaseConfig';
 import {
   computeWorldMutation,
   persistWorldMutation,
+  preflightOfferSheetMutation,
 } from '@/features/architect/utils/mutationPipeline';
 import { loadStateForMutation } from '@/features/architect/utils/mutationPipeline.read.stateLoader';
+import { validateNonTradeMutationStage } from '@/features/architect/utils/nonTradeMutationValidationStage';
 import { buildGeneralMutationCommittedTeamUpdates } from '@/features/architect/utils/mutationPipeline.read.persistence.snapshots';
 import { buildGovernedOfferSheetAuthorization } from '@/features/architect/utils/offerSheets';
 import { GovernedOfferSheetLifecycleZ } from '@/schemas/governedOfferSheet';
@@ -204,7 +206,9 @@ describe.each([false, true])(
               }),
               {
                 salaryCapYear: fixture.evidence.salaryCapYear,
-                asOfDate: fixture.proposal.signedAt,
+                // This controlled book is effective from the saved day's
+                // start, before the later signature/receipt instants.
+                asOfDate: `${fixture.asOfDate}T00:00:00.000Z`,
               }
             )
           )
@@ -216,7 +220,7 @@ describe.each([false, true])(
               makeTeam({ teamCode: OFFERING_TEAM, players: [offeringPlayer] }),
               {
                 salaryCapYear: fixture.evidence.salaryCapYear,
-                asOfDate: fixture.proposal.signedAt,
+                asOfDate: `${fixture.asOfDate}T00:00:00.000Z`,
               }
             )
           )
@@ -252,6 +256,44 @@ describe.each([false, true])(
         signedUsing: 'Cap Space',
       };
 
+      // Preflight must use the persisted clock before salary-book validation;
+      // missing world time cannot silently borrow the executor's current date.
+      const preflight = () =>
+        preflightOfferSheetMutation({
+          worldId: WORLD_ID,
+          seasonId: SEASON_ID,
+          offeringTeamCode: OFFERING_TEAM,
+          playerId: PLAYER_ID,
+          contract: { ...payload.contract, exceptionType: 'Cap Space' },
+          offerSheetProposal: fixture.proposal,
+          timestamp: FIRST_TIMESTAMP,
+        });
+      await adminDb.doc(`architect_worlds/${WORLD_ID}`).update({
+        asOfDate: admin.firestore.FieldValue.delete(),
+      });
+      expect(await preflight()).toMatchObject({
+        status: 'incomplete',
+        reasons: ['Offer Sheet validation requires an exact saved-world date.'],
+      });
+      await adminDb.doc(`architect_worlds/${WORLD_ID}`).update({
+        asOfDate: fixture.asOfDate,
+      });
+      // A current-season world has no final C08.1 baseline yet. The fenced
+      // variant proves Offer Sheet validation/persistence with that input still
+      // unknown; the other variant retains the prior complete-book proof.
+      if (fenced) {
+        await adminDb
+          .doc(`architect_worlds/${WORLD_ID}/teams/${OFFERING_TEAM}`)
+          .update({
+            'salaryBookInputs.taxSalary': {
+              status: 'needs-input',
+              missingInputs: ['salaryBookInputs.taxSalary.baseline'],
+              reason: 'Final Tax Salary awaits the last Regular Season game.',
+            },
+          });
+      }
+      expect(await preflight()).toMatchObject({ status: 'legal', reasons: [] });
+
       // Both candidates consume the same persisted starting state before either
       // transaction begins. The emulator then arbitrates the competing commits.
       const [firstState, competingState] = await Promise.all([
@@ -273,6 +315,24 @@ describe.each([false, true])(
       for (const candidate of candidates) {
         expect(candidate.success, String(candidate.error)).toBe(true);
       }
+      const validation = {
+        mutationType: 'storeOfferSheet',
+        payload,
+        currentState: firstState,
+        computeResult: candidates[0],
+        seasonId: SEASON_ID,
+        asOfDate: fixture.asOfDate,
+        worldId: WORLD_ID,
+      };
+      expect(
+        validateNonTradeMutationStage({ ...validation, dateDefaulted: true })
+      ).toMatchObject({
+        valid: false,
+        error: 'Offer Sheet validation requires an exact saved-world date.',
+      });
+      expect(
+        validateNonTradeMutationStage({ ...validation, dateDefaulted: false })
+      ).toMatchObject({ valid: true });
 
       const results = await Promise.all(
         candidates.map((candidate, index) =>

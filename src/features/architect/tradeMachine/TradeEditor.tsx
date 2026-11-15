@@ -188,6 +188,15 @@ export const TradeEditor = ({
   const [conditionalWorldVersion, setConditionalWorldVersion] = useState(0);
   const [tradeMachineSatModal, setTradeMachineSatModal] =
     useState<TradeMachineSatModalState>(null);
+  // Keep the contract editor's player identity stable during background trade
+  // refreshes; a fresh adapter object resets the user's in-progress terms.
+  const signAndTradeModalPlayer = useMemo(
+    () =>
+      tradeMachineSatModal
+        ? toEditContractModalPlayer(tradeMachineSatModal.player)
+        : null,
+    [tradeMachineSatModal]
+  );
   // BZE-190: a free agent handed in from Free Agency, parked as a pending
   // sign-and-trade piece until the user sets its new contract + destination.
   // `sourceTeamCode` is the team that holds the FA's rights, so the piece stages
@@ -1227,7 +1236,8 @@ export const TradeEditor = ({
                 {r.review.status === 'reviewed'
                   ? r.review.request.context.team
                   : r.review.status === 'swap-reviewed' ||
-                      r.review.status === 'stepien-reviewed'
+                      r.review.status === 'stepien-reviewed' ||
+                      r.review.status === 'connected-reviewed'
                     ? r.review.team
                     : 'Team'}
                 :{' '}
@@ -1264,7 +1274,9 @@ export const TradeEditor = ({
           style={
             layoutMode === 'scroll'
               ? { scrollSnapType: 'x mandatory' }
-              : { gridTemplateColumns: `repeat(${teams.length}, 1fr)` }
+              : {
+                  gridTemplateColumns: `repeat(${teams.length}, minmax(0, 1fr))`,
+                }
           }
         >
           {teams.map((t, idx) => {
@@ -1278,7 +1290,9 @@ export const TradeEditor = ({
             return (
               <div
                 key={idx}
-                className={layoutMode === 'scroll' ? 'flex-shrink-0' : ''}
+                className={
+                  layoutMode === 'scroll' ? 'flex-shrink-0' : 'min-w-0'
+                }
                 style={
                   layoutMode === 'scroll'
                     ? { width: '340px', scrollSnapAlign: 'start' }
@@ -1467,11 +1481,11 @@ export const TradeEditor = ({
           />
         )}
 
-        {tradeMachineSatModal && (
+        {tradeMachineSatModal && signAndTradeModalPlayer && (
           <EditContractModal
             isOpen={!!tradeMachineSatModal}
             onClose={closeTradeMachineSatModal}
-            player={toEditContractModalPlayer(tradeMachineSatModal.player)}
+            player={signAndTradeModalPlayer}
             initialAction="signAndTrade"
             actionContext="freeAgent"
             teamCapSheet={toEditContractModalTeamCapSheet(

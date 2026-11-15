@@ -329,6 +329,20 @@ function validateSigningSideMutation({
   dateDefaulted?: boolean;
   pipelineWarnings: Array<Record<string, unknown>>;
 }): StageValidationResult {
+  if (mutationType === 'storeOfferSheet' && (dateDefaulted || !asOfDate)) {
+    return {
+      valid: false,
+      error: 'Offer Sheet validation requires an exact saved-world date.',
+      violations: [
+        JSON.stringify({
+          rule: 'offer_sheet_world_date_required',
+          message: 'Offer Sheet validation requires an exact saved-world date.',
+          severity: 'error',
+        }),
+      ],
+      warnings: [],
+    };
+  }
   const { team, player } = requireTeamAndPlayerState(
     currentState,
     mutationType
@@ -382,9 +396,7 @@ function validateSigningSideMutation({
     contract: payload.contract,
     signedUsing: payload.signedUsing,
     year: currentYear,
-    ...(mutationType === 'signFreeAgent'
-      ? { asOfDate: asOfDate ?? undefined }
-      : {}),
+    asOfDate: asOfDate ?? undefined,
   });
 
   return formatValidatorResult({

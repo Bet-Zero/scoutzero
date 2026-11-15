@@ -1,3 +1,4 @@
+import { governedDraftAsset } from './draftReview/connectedRights';
 /** Load immutable source and the exact mutable world read set. No writes. */
 import {
   isGovernedDraftFixtureEnvironment,
@@ -204,18 +205,14 @@ export async function loadGovernedDraftWorld(
       canonicalStringify(receipt.data.movements) !==
         canonicalStringify(
           transfer.movements.map((m) => {
-            const record = baseline.records.find(
-              (r) => r.entitlement.id === m.entitlementId
-            );
-            if (!record)
+            const asset = governedDraftAsset(baseline, m.entitlementId);
+            if (!asset)
               throw new Error(
                 'Custody receipt includes an unadmitted identity.'
               );
             return {
               ...m,
-              originalTeam: record.ownership.pick.originalTeam,
-              year: record.ownership.pick.draftYear,
-              round: 1,
+              ...asset,
             };
           })
         )

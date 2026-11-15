@@ -4,6 +4,7 @@
  */
 
 import { minimumUpliftPlayerReference } from '@/features/architect/utils/tradeMachine/utils/tradeMinimumUplift';
+import { hasPendingSeasonTaxBaseline } from './signings/pendingTaxBaseline';
 import { toEndYear } from '@/features/architect/utils/seasonFormat';
 import { normalizeContractForWorld } from '@/features/architect/utils/contractNormalization';
 import {
@@ -214,26 +215,39 @@ export function appendSigningSalaryBookAdjustments({
   const inputs = team.salaryBookInputs;
   if (!inputs) return null;
   const taxInput = inputs.taxSalary;
-  if (taxInput.status !== 'ready') {
+  const pendingTaxBaseline = hasPendingSeasonTaxBaseline(
+    inputs,
+    authority.salaryCapYear,
+    authority.effectiveAt,
+    team.teamCode
+  );
+  if (taxInput.status !== 'ready' && !pendingTaxBaseline) {
     return `Tax Salary needs input before this signing can be committed: ${taxInput.reason}`;
   }
-  const taxBaselines = taxInput.lineItems.filter((lineItem) =>
+  const taxLineItems =
+    taxInput.status === 'ready' ? [...taxInput.lineItems] : null;
+  const taxBaselines = (taxLineItems ?? []).filter((lineItem) =>
     lineItem.canonLeafIds.includes('CBA2-C08.1')
   );
-  if (taxBaselines.length !== 1) {
+  if (!pendingTaxBaseline && taxBaselines.length !== 1) {
     return 'Tax Salary needs exactly one CBA2-C08.1 baseline before signing compensation can be added.';
   }
-  const taxBaselineAt = Date.parse(taxBaselines[0].effectiveFrom);
+  const taxBaselineAt = Date.parse(taxBaselines[0]?.effectiveFrom ?? '');
   const signingAt = Date.parse(authority.effectiveAt);
-  if (!Number.isFinite(taxBaselineAt) || !Number.isFinite(signingAt)) {
+  if (
+    !pendingTaxBaseline &&
+    (!Number.isFinite(taxBaselineAt) || !Number.isFinite(signingAt))
+  ) {
     return 'Tax Salary needs a valid authenticated CBA2-C08.1 baseline and exact saved-world signing date.';
   }
-  if (signingAt < taxBaselineAt) {
+  if (!pendingTaxBaseline && signingAt < taxBaselineAt) {
     return 'Tax Salary needs input at the exact saved-world date because its authenticated CBA2-C08.1 baseline is not yet effective.';
   }
-  const taxLineItems = [...taxInput.lineItems];
   const taxSigningLineId = `tax-salary:signing:${operationId}`;
-  if (!taxLineItems.some((lineItem) => lineItem.id === taxSigningLineId)) {
+  if (
+    taxLineItems &&
+    !taxLineItems.some((lineItem) => lineItem.id === taxSigningLineId)
+  ) {
     taxLineItems.push({
       id: taxSigningLineId,
       ledger: 'tax-salary',
@@ -319,6 +333,7 @@ export function appendSigningSalaryBookAdjustments({
     const uplift = Math.max(0, twoYosMinimum - applicableMinimum);
     const taxMinimumUpliftLineId = `tax-salary:minimum-uplift:${operationId}`;
     if (
+      taxLineItems &&
       uplift > 0 &&
       !taxLineItems.some((lineItem) => lineItem.id === taxMinimumUpliftLineId)
     ) {
@@ -367,7 +382,10 @@ export function appendSigningSalaryBookAdjustments({
     apronInput.status === 'ready' && apronLineItems
       ? {
           ...inputs,
-          taxSalary: { ...taxInput, lineItems: taxLineItems },
+          taxSalary:
+            taxInput.status === 'ready' && taxLineItems
+              ? { ...taxInput, lineItems: taxLineItems }
+              : taxInput,
           apronAdjustments: {
             ...apronInput,
             lineItems: apronLineItems,
@@ -375,7 +393,10 @@ export function appendSigningSalaryBookAdjustments({
         }
       : {
           ...inputs,
-          taxSalary: { ...taxInput, lineItems: taxLineItems },
+          taxSalary:
+            taxInput.status === 'ready' && taxLineItems
+              ? { ...taxInput, lineItems: taxLineItems }
+              : taxInput,
         };
   return null;
 }
