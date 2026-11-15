@@ -228,7 +228,10 @@ that changes the plan.
       future Tax baseline does not block current Team/Apron-based signing, and
       remains explicitly unknown through save/reload. Other missing inputs,
       supplied conflicting baselines, hard caps and the season-end boundary
-      remain enforced. The unaffected full-battery cases are reused. The exact-candidate
+      remain enforced. The full battery was then repeated successfully after
+      isolating each offer-sheet journey's immutable source inputs; it verifies
+      that the shared seed and earlier worlds' evidence remain unchanged.
+      The exact-candidate
       independent review remains a required landing gate; E2 is the owner's
       separate final acceptance, not an automated-test claim.
       Historical June 5 pick proof (#653; gated spec

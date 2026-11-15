@@ -2,6 +2,11 @@
  * Uses the same immutable history/manifest contract as the maintained governed
  * S&T proof; never manufactures a history for an existing or production world.
  */
+import {
+  ARCHITECT_WORLDS_COLLECTION,
+  ARCHITECT_WORLD_SEASON_HISTORY_SUBCOLLECTION,
+  ARCHITECT_WORLD_SEASON_TRANSITIONS_SUBCOLLECTION,
+} from '@/constants/collections';
 import { deterministicStateDigest as mutationSnapshotDigest } from '@/features/architect/utils/contractSource/deterministicDigest';
 import {
   SeasonHistoryRecordZ,
@@ -115,17 +120,19 @@ export async function seedQaSignAndTradeHistory(
   const batch = db.batch();
   histories.forEach((history) => {
     batch.set(
-      db.doc(`architect_worlds/${worldId}/seasonHistory/${history.historyId}`),
+      db.doc(
+        `${ARCHITECT_WORLDS_COLLECTION}/${worldId}/${ARCHITECT_WORLD_SEASON_HISTORY_SUBCOLLECTION}/${history.historyId}`
+      ),
       history
     );
   });
   batch.set(
     db.doc(
-      `architect_worlds/${worldId}/seasonTransitions/${SEASON_TRANSITION_ID}`
+      `${ARCHITECT_WORLDS_COLLECTION}/${worldId}/${ARCHITECT_WORLD_SEASON_TRANSITIONS_SUBCOLLECTION}/${SEASON_TRANSITION_ID}`
     ),
     manifest
   );
-  batch.update(db.doc(`architect_worlds/${worldId}`), {
+  batch.update(db.doc(`${ARCHITECT_WORLDS_COLLECTION}/${worldId}`), {
     currentYear: CURRENT_YEAR,
   });
   await batch.commit();

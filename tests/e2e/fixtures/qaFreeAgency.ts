@@ -1,5 +1,11 @@
 /** Explicit controlled acceptance inputs, never current NBA source data. */
 import { expect, type Locator } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+import {
+  ARCHITECT_BASE_PLAYERS_PATH,
+  ARCHITECT_WORLDS_COLLECTION,
+  ARCHITECT_WORLD_TEAMS_SUBCOLLECTION,
+} from '@/constants/collections';
 import {
   makeGovernedOfferSheetEvidence,
   makeGovernedOfferSheetRightsLedger,
@@ -14,12 +20,18 @@ export async function seedQaRfaEvidence(worldId: string) {
       'Controlled RFA evidence is restricted to the isolated review emulator.'
     );
   const db = getReviewAdminDb();
-  const playerId = 'review_offer_sheet_guard';
-  const home = db.doc(`architect_worlds/${worldId}/teams/BOS`);
+  const playerId = `qa_rfa_${worldId}`;
+  const displayName = `Review RFA ${worldId.slice(-7)}`;
+  const home = db.doc(
+    `${ARCHITECT_WORLDS_COLLECTION}/${worldId}/${ARCHITECT_WORLD_TEAMS_SUBCOLLECTION}/BOS`
+  );
   const team = (await home.get()).data()!;
-  const base = (
-    await db.doc(`architect_basePlayers/${playerId}`).get()
-  ).data()!;
+  const base = JSON.parse(
+    await readFile(
+      'scripts/emu/review_seed/basePlayers/review_offer_sheet_guard.json',
+      'utf8'
+    )
+  );
   const old = makeGovernedOfferSheetEvidence();
   // Explicitly dated current-season fixture; this does not relabel an NBA package.
   const evidence = makeGovernedOfferSheetEvidence({
@@ -52,17 +64,33 @@ export async function seedQaRfaEvidence(worldId: string) {
   });
   // Like mutationPipeline.offerSheetCreation.emulator.test.ts, this supplies
   // controlled immutable INPUT before exercising the browser writer. Runtime
-  // world documents may not author RFA/QO authority. The synthetic review ID
-  // and demo project are fixed; no real player or production source is touched.
+  // world documents may not author RFA/QO authority. Each journey gets a new
+  // immutable synthetic source identity; never overwrite the shared seed or
+  // another world's evidence. No real player or production source is touched.
   if (
     db.projectId !== 'demo-architect-review' ||
     process.env.FIRESTORE_EMULATOR_HOST !== '127.0.0.1:8082'
   )
     throw new Error('RFA fixture refuses non-review projects.');
-  await db.doc(`architect_basePlayers/${playerId}`).set({
+  const sourceCollection = db.collection(ARCHITECT_BASE_PLAYERS_PATH);
+  const sharedSeed = sourceCollection.doc('review_offer_sheet_guard');
+  const sharedBefore = (await sharedSeed.get()).data();
+  const priorInputs = await sourceCollection
+    .where('qaFixtureKind', '==', 'isolated-rfa-input')
+    .get();
+  await sourceCollection.doc(playerId).create({
     ...base,
+    id: playerId,
+    playerId,
+    player_id: playerId,
+    displayName,
+    qaFixtureKind: 'isolated-rfa-input',
     rfaContext: { governedEvidence: evidence },
   });
+  expect((await sharedSeed.get()).data()).toEqual(sharedBefore);
+  for (const prior of priorInputs.docs) {
+    expect((await prior.ref.get()).data()).toEqual(prior.data());
+  }
   await home.set(
     withDerivedGovernedSalaryBooks(
       {
@@ -70,7 +98,7 @@ export async function seedQaRfaEvidence(worldId: string) {
         capHolds: [
           {
             playerId,
-            playerName: base.displayName,
+            playerName: displayName,
             amount: 7_200_000,
             season: '2026-27',
             type: 'RFA Rights',
@@ -89,8 +117,9 @@ export async function seedQaRfaEvidence(worldId: string) {
     )
   );
   await db
-    .doc(`architect_worlds/${worldId}`)
+    .doc(`${ARCHITECT_WORLDS_COLLECTION}/${worldId}`)
     .update({ rightsLedgerVersion: 1 });
+  return { playerId, displayName };
 }
 
 export async function fillQaOfferSheetNotice(modal: Locator) {
@@ -104,7 +133,9 @@ export async function fillQaOfferSheetNotice(modal: Locator) {
 
 export async function seedQaOwnFaRights(worldId: string) {
   const db = getReviewAdminDb();
-  const ref = db.doc(`architect_worlds/${worldId}/teams/MIA`);
+  const ref = db.doc(
+    `${ARCHITECT_WORLDS_COLLECTION}/${worldId}/${ARCHITECT_WORLD_TEAMS_SUBCOLLECTION}/MIA`
+  );
   const team = (await ref.get()).data()!;
   const ledger = makeRightsLedgerForIdentity({
     worldId,
@@ -150,7 +181,7 @@ export async function seedQaOwnFaRights(worldId: string) {
     )
   );
   await db
-    .doc(`architect_worlds/${worldId}`)
+    .doc(`${ARCHITECT_WORLDS_COLLECTION}/${worldId}`)
     .update({ rightsLedgerVersion: 1 });
 }
 
@@ -171,7 +202,11 @@ export async function fillQaSignAndTradeEvidence(modal: Locator) {
 
 export async function verifyQaSavedSignAndTrade(worldId: string) {
   const team = (
-    await getReviewAdminDb().doc(`architect_worlds/${worldId}/teams/LAL`).get()
+    await getReviewAdminDb()
+      .doc(
+        `${ARCHITECT_WORLDS_COLLECTION}/${worldId}/${ARCHITECT_WORLD_TEAMS_SUBCOLLECTION}/LAL`
+      )
+      .get()
   ).data()!;
   const player = team.players.find(
     (p: { id?: string; playerId?: string; player_id?: string }) =>

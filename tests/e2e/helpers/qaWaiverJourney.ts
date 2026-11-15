@@ -2,6 +2,7 @@
  * Not current NBA inputs. CBA2-R01.4/R01.6/R01.11/R01.18 separate receipt,
  * removal and expiry; R04.1/.2 govern 2n+1; R05.6 requires proportional buyout.
  */
+import { ARCHITECT_WORLDS_COLLECTION } from '@/constants/collections';
 import { expect, type Page } from '@playwright/test';
 import {
   getReviewAdminDb,
@@ -87,7 +88,7 @@ export async function verifyQaWaiverSchedule(
   // Advance the controlled world clock beyond the exact 48h window. The
   // immutable saved lifecycle remains unchanged; readers project the new date.
   await getReviewAdminDb()
-    .doc(`architect_worlds/${worldId}`)
+    .doc(`${ARCHITECT_WORLDS_COLLECTION}/${worldId}`)
     .update({ asOfDate: '2026-07-18' });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('cockpit-world-menu-trigger')).toContainText(

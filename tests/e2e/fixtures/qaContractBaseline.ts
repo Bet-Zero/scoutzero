@@ -1,5 +1,9 @@
 /** Controlled legacy QA records, not current NBA source data. The real current
  * package journeys remain the starting-world acceptance proof. */
+import {
+  ARCHITECT_WORLDS_COLLECTION,
+  ARCHITECT_WORLD_CONTRACT_BASELINES_SUBCOLLECTION,
+} from '@/constants/collections';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { buildContractSourceRelease } from '../../../src/features/architect/utils/contractSource/contractSourceReleaseBuilder';
@@ -71,12 +75,16 @@ export async function seedQaContractBaseline(worldId: string) {
     },
   });
   release.source.provider = 'Controlled browser QA fixture';
-  const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
+  const root = getReviewAdminDb().doc(
+    `${ARCHITECT_WORLDS_COLLECTION}/${worldId}`
+  );
   const batch = getReviewAdminDb().batch();
   batch.update(root, contractBaselineMetadata(release));
   for (const document of buildContractBaselineTeamDocuments(release, worldId))
     batch.set(
-      root.collection('contractBaselines').doc(document.shardId),
+      root
+        .collection(ARCHITECT_WORLD_CONTRACT_BASELINES_SUBCOLLECTION)
+        .doc(document.shardId),
       document
     );
   await batch.commit();

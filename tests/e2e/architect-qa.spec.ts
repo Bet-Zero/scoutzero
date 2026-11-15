@@ -554,10 +554,6 @@ const topUpWorldTeamRosterMinimum = async (
   );
 };
 
-const seedWorldOfferSheetHomeTeamRights = async (
-  worldId: string, _teamCode: string, _teamName: string, _playerId: string
-) => seedQaRfaEvidence(worldId);
-
 const addTradeTeam = async (page: Page, teamName: string) => {
   const teamValue = REVIEW_TRADE_TEAM_SELECT_VALUES[teamName] || teamName;
   const tradeDialog = page.getByRole('dialog', { name: /Trade Machine/i });
@@ -2584,12 +2580,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     await topUpWorldTeamRosterMinimum(worldId, 'LAL', 'Los Angeles Lakers');
     await topUpWorldTeamRosterMinimum(worldId, 'BOS', 'Boston Celtics');
-    await seedWorldOfferSheetHomeTeamRights(
-      worldId,
-      'BOS',
-      'Boston Celtics',
-      REVIEW_MODE_FREE_AGENT_ID
-    );
+    const {
+      playerId: REVIEW_MODE_FREE_AGENT_ID,
+      displayName: REVIEW_MODE_FREE_AGENT_NAME,
+    } = await seedQaRfaEvidence(worldId);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await ensureTeamDataLoaded(page, testInfo);
     await ensureSpecificWorldSelected(page, worldId, testInfo);
@@ -2775,12 +2769,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     await topUpWorldTeamRosterMinimum(worldId, 'LAL', 'Los Angeles Lakers');
     await topUpWorldTeamRosterMinimum(worldId, 'BOS', 'Boston Celtics');
-    await seedWorldOfferSheetHomeTeamRights(
-      worldId,
-      'BOS',
-      'Boston Celtics',
-      REVIEW_MODE_FREE_AGENT_ID
-    );
+    const {
+      playerId: REVIEW_MODE_FREE_AGENT_ID,
+      displayName: REVIEW_MODE_FREE_AGENT_NAME,
+    } = await seedQaRfaEvidence(worldId);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await ensureTeamDataLoaded(page, testInfo);
     await ensureSpecificWorldSelected(page, worldId, testInfo);
@@ -3018,12 +3010,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     await topUpWorldTeamRosterMinimum(worldId, 'LAL', 'Los Angeles Lakers');
     await topUpWorldTeamRosterMinimum(worldId, 'BOS', 'Boston Celtics');
-    await seedWorldOfferSheetHomeTeamRights(
-      worldId,
-      'BOS',
-      'Boston Celtics',
-      REVIEW_MODE_FREE_AGENT_ID
-    );
+    const {
+      playerId: REVIEW_MODE_FREE_AGENT_ID,
+      displayName: REVIEW_MODE_FREE_AGENT_NAME,
+    } = await seedQaRfaEvidence(worldId);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await ensureTeamDataLoaded(page, testInfo);
     await ensureSpecificWorldSelected(page, worldId, testInfo);
