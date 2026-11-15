@@ -118,9 +118,18 @@ that changes the plan.
       inspection returned HTTP 403, so other hosted credentials are unverified.
       The connected Vercel account exposes no accessible projects; it did not
       provide another Firebase authentication route.
-      Smallest safe path: an existing deployment-authorized maintainer uses their
-      authenticated Firebase CLI/Cloud Shell, or signs into the local Firebase
-      CLI with that existing account; then run read-only project/permission checks.
+      The owner's Cloud Shell check now verifies active project `scoutzero-bf1ae`
+      (`105500121903`) and the tested Functions/rules deployment permissions.
+      Access is only partially verified: initializer metadata returned HTTP 403
+      without its cause, and the assumed App Engine service account returned 404.
+      Storage omissions in the project-level probe do not establish bucket denial.
+      Next read-only check: API states/error reasons, actual service accounts and
+      bucket-specific permissions. This executor cannot control that Cloud Shell
+      session and its network policy blocks Google management endpoints.
+      Deployment preparation also found the Node 18 target is decommissioned.
+      Node 22 is prepared locally; Functions build and all 34 Functions tests
+      pass on Node 22. Independent review and landing remain pending; no push
+      or deployment was performed while the owner holds deployment authorization.
       No replacement service account/key or broad IAM grant is needed by default.
       Deployment, private uploads and activation still need separate authorization.
       Production remains off.

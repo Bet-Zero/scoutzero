@@ -4,7 +4,7 @@
   "description": "Firebase Cloud Functions for ScoutZero",
   "main": "lib/index.js",
   "engines": {
-    "node": "18"
+    "node": "22"
   },
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('lib',{recursive:true,force:true})\"",
