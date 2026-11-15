@@ -126,9 +126,15 @@ that changes the plan.
       enable services and create buckets, but neither operation is authorized yet.
       Existing identities include the Firebase Admin SDK account and four bounded
       data workers; no assumed App Engine/Compute default account was listed.
-      Next read-only evidence: billing status, existing SDK account roles/actAs,
-      database location and live rules release for rollback. Build/runtime identity
-      and resource-level access must be verified before deployment; project-level
+      The November 15 follow-up confirms billing is disabled (successful read),
+      so enabling billing/Blaze is the next unavoidable owner action. The operator
+      has actAs on the existing Firebase Admin SDK account, whose current roles
+      include `roles/firebase.sdkAdminServiceAgent`; no replacement key or identity
+      is required for that route. The prepared deployment setting selects that
+      existing identity explicitly for initialization/purge; defaults stay intact
+      when it is omitted. Firestore is native in `nam5`, and the live rules
+      release is identified. Retain its source bytes before any authorized change.
+      Build identity and resource-level access must still be verified; project-level
       Storage omissions alone do not establish denial. This executor cannot
       control that Cloud Shell session and its network policy blocks Google
       management endpoints.

@@ -430,17 +430,30 @@ Current D2 preparation (November 14 owner access checks; status remains in the
 [V1 checklist](V1_FINISH_CHECKLIST.md)): project `scoutzero-bf1ae`, number
 `105500121903`, is verified. The Functions 403 is `SERVICE_DISABLED`.
 Functions/Build/Run/Artifact Registry APIs are disabled and successful Storage
-enumeration found no buckets. Existing project deployment permissions are
-present, but billing, runtime/build identities and resource permissions are not
-yet fully verified. These are setup prerequisites, not missing V1 trade work.
+enumeration found no buckets. November 15's successful billing read confirms
+`billingEnabled=false`: the next unavoidable owner action is enabling billing
+(Blaze) on the existing project. No billing link or charge was authorized here.
+The operator has `iam.serviceAccounts.actAs` on existing account
+`firebase-adminsdk-fbsvc@scoutzero-bf1ae.iam.gserviceaccount.com`. Its current,
+unconditional roles are `roles/firebase.sdkAdminServiceAgent`,
+`roles/firebaseauth.admin` and `roles/iam.serviceAccountTokenCreator`; retain
+them unchanged. The SDK role supplies Firestore/Storage permissions; attaching
+that existing identity still requires deployment configuration and later effective
+resource-access checks. No key or new service account is needed for this route.
+Firestore is `FIRESTORE_NATIVE` in `nam5`. Its current ruleset is
+`6f107629-af27-4fce-a964-bdb20a637583` (release `cloud.firestore`, updated
+October 21); source bytes have not yet been retained as a rollback artifact.
+Build identity and resource access remain to be verified. These are setup
+prerequisites, not missing V1 trade work.
 The Node 18 target is decommissioned; the prepared Node 22 target has passed
 the Functions build and 34 tests on Node 22. No production settings were changed.
 
 Smallest rollout, **only after explicit owner deployment approval**:
 
-1. Finish the pending read-only billing, existing Firebase Admin SDK identity,
-   database-location and rules-release checks. Retain the actual live ruleset
-   bytes/release and current Vercel production deployment as rollback receipts.
+1. Have the owner enable billing on this existing project through Firebase's
+   Usage and billing page; billing approval is separate from deployment approval.
+   Confirm billing is enabled. Retain the identified live ruleset source bytes
+   and current Vercel production deployment as rollback receipts.
    The last verified hosting receipt is deployment `6j6Gvso58FxMCLZtFpvbLrCjXDJP`
    for accepted main `489dce781895828ac643e330c52938f16a553b59`; refresh it before
    release. Do not read or rewrite saved worlds to prepare infrastructure.
@@ -457,7 +470,11 @@ Smallest rollout, **only after explicit owner deployment approval**:
    Pin immutable object names and verify each stored SHA-256 against the retained
    local package. Keep source collections and all existing worlds untouched.
 4. Deploy only `initializeArchitectWorld` and `purgeArchitectWorld` on Node 22,
-   initially with `SCOUTZERO_SIMULATION_LIVE=false`. The future-season function
+   initially with `SCOUTZERO_SIMULATION_LIVE=false`. Set the non-secret
+   `SCOUTZERO_ARCHITECT_RUNTIME_SERVICE_ACCOUNT` to the existing SDK account
+   email during Firebase deployment discovery; both callables then explicitly
+   use that identity instead of assuming a missing default account. Omission
+   preserves the existing default for local/other environments. The future-season function
    is not needed for V1. Preserve Firebase/Firestore and Vercel hosting; do not
    use a blanket Firebase deployment, Hosting replacement or index rewrite.
    Compare the live rules against the accepted candidate, then deploy the

@@ -22,7 +22,10 @@
  * - Clean build: `rm -rf lib && npm run build`
  *
  * ## Environment Variables
- * No environment variables are currently required for these functions.
+ * SCOUTZERO_ARCHITECT_RUNTIME_SERVICE_ACCOUNT optionally selects an existing
+ * runtime identity for world initialization/purge during deployment discovery.
+ * It is an account email, never a credential. Omission preserves the default.
+ * Live simulation package settings are documented in simulationPackageSource.ts.
  * Firebase Admin SDK uses Application Default Credentials in Cloud Functions.
  * For local development, ensure you have a Firebase project configured.
  *
