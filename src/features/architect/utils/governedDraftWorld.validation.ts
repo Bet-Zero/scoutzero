@@ -1,3 +1,7 @@
+import {
+  connectedInterest,
+  validateConnectedBaseline,
+} from './draftReview/connectedRights';
 /** Pure baseline validation shared by the private CLI and runtime. */
 import {
   GovernedDraftWorldBaselineZ,
@@ -91,7 +95,9 @@ export function validateGovernedDraftBaseline(
     throw new Error(
       'Unresolved identities must remain retained and outside admitted trading authority.'
     );
+  validateConnectedBaseline(baseline);
   for (const { entitlement: e, ownership: o } of baseline.records) {
+    const connected = connectedInterest(baseline, String(e.id));
     const original =
       typeof e.underlyingPickId === 'string'
         ? /^([A-Z]{3})_(\d{4})_1st$/.exec(e.underlyingPickId)
@@ -110,7 +116,10 @@ export function validateGovernedDraftBaseline(
       e.seasonYear !== o.pick.draftYear ||
       o.claimCoverage !== 'complete' ||
       o.claims.length !== 1 ||
-      o.claims[0].status !== 'owned-unconditionally' ||
+      o.claims[0].status !==
+        (connected
+          ? 'owned-conditional-selection-right'
+          : 'owned-unconditionally') ||
       o.claims[0].team !== e.holderTeam ||
       o.conditionalProgram ||
       o.unresolvedDependencyIds.length ||
@@ -118,7 +127,7 @@ export function validateGovernedDraftBaseline(
       !baseline.stepien[e.holderTeam]
     )
       throw new Error(
-        'Draft baseline requires exact admitted unconditional original identities.'
+        'Draft baseline requires exact admitted selection identities and ownership.'
       );
     const owners = Object.entries(baseline.initialTeams).filter(
       ([, team]) =>

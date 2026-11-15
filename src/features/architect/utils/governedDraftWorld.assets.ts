@@ -1,3 +1,4 @@
+import { connectedInterest } from './draftReview/connectedRights';
 /** Read-only projection of admitted originals and checked saved-world custody. */
 import type { loadGovernedDraftWorld } from './governedDraftWorld.load';
 import type {
@@ -23,13 +24,14 @@ export function governedDraftWorldAssets(
       origin = ownership.pick.originalTeam;
     const year = ownership.pick.draftYear;
     if (year < fromYear || (holder !== team && origin !== team)) continue;
+    const connected = connectedInterest(state.baseline, id);
     const view: ArchitectWorkspaceDraftPickView = {
       key: id,
       year,
       round: 1,
       isOwn: holder === team && origin === team,
       isSwap: false,
-      protectionLabel: null,
+      protectionLabel: connected?.interest.terms ?? null,
       sourceLabel:
         holder !== team
           ? `to ${holder}`
@@ -54,6 +56,7 @@ export function governedDraftWorldAssets(
   );
   const simulation = state.baseline.classification === 'simulation';
   let rightCount = 0;
+  let secondRoundCount = 0;
   for (const [id, entitlement] of Object.entries(
     state.baseline.retainedEntitlements
   )) {
@@ -64,6 +67,21 @@ export function governedDraftWorldAssets(
     if (knownYear != null && knownYear < fromYear) continue;
     const year = knownYear ?? fromYear;
     const group = years.get(year) ?? { year, firstRound: [], secondRound: [] };
+    const connected = connectedInterest(state.baseline, id);
+    if (connected?.interest.anchorPickId === null) {
+      group.secondRound.push({
+        key: id,
+        year,
+        round: 2,
+        isOwn: entitlement.originalTeam === team,
+        isSwap: false,
+        protectionLabel: connected.interest.terms,
+        sourceLabel: connected.interest.terms,
+      });
+      years.set(year, group);
+      secondRoundCount++;
+      continue;
+    }
     const description =
       typeof entitlement.description === 'string'
         ? entitlement.description
@@ -71,7 +89,7 @@ export function governedDraftWorldAssets(
     (group.rights ??= []).push({
       key: id,
       label: simulation
-        ? `${description} — ${unconfirmed.has(id) ? "not tradeable: its terms can't be confirmed" : 'not tradeable yet'}`
+        ? `${description} — ${entitlement.simulationRestriction === 'represented' ? 'reference only; interests listed separately' : unconfirmed.has(id) ? "not tradeable: its terms can't be confirmed" : 'not tradeable yet'}`
         : `${description} — not qualified for trading${knownYear == null ? '; year unqualified' : ''}`,
     });
     years.set(year, group);
@@ -81,7 +99,7 @@ export function governedDraftWorldAssets(
     status: 'available',
     years: [...years.values()].sort((a, b) => a.year - b.year),
     firstRoundCount,
-    secondRoundCount: 0,
+    secondRoundCount,
     rightCount,
     outgoing,
   };

@@ -1,3 +1,5 @@
+import { governedDraftAsset } from './draftReview/connectedRights';
+import { reviewConnectedTrade } from './draftReview/connectedTradeReview';
 /** Shared world adapter. Legality stays in the existing draft component engines. */
 import {
   GovernedDraftWorldTransferZ,
@@ -39,9 +41,6 @@ export function governedDraftHolders(
       String(baseline.retainedEntitlements[id].holderTeam),
     ])
   );
-  const admitted = new Set(
-    baseline.records.map((r) => String(r.entitlement.id))
-  );
   for (const transfer of transfers) {
     if (
       operations.has(transfer.operationId) ||
@@ -55,7 +54,7 @@ export function governedDraftHolders(
     for (const m of transfer.movements) {
       if (
         selected.has(m.entitlementId) ||
-        !admitted.has(m.entitlementId) ||
+        !governedDraftAsset(baseline, m.entitlementId) ||
         holders[m.entitlementId] !== m.fromTeam ||
         m.fromTeam === m.toTeam ||
         !baseline.initialTeams[m.toTeam]
@@ -96,7 +95,7 @@ export async function reviewGovernedDraftWorldTrade(args: {
   };
   if (!canPreserveDraftTradeFinances(picksOnly, state, baseline.seasonId))
     throw new Error(
-      'This governed draft path requires existing future unconditional firsts with no financial or term changes.'
+      'This draft trade requires existing future selection interests with no financial or term changes.'
     );
   const playerMovements = simulationPlayerMovements(
     {
@@ -114,16 +113,14 @@ export async function reviewGovernedDraftWorldTrade(args: {
   const movements = (payload.teams ?? []).flatMap((t, index) =>
     (t.entitlementsOut ?? []).map((e) => {
       const id = String(e.entitlementId ?? e.id);
-      const record = records.get(id);
-      if (!record || holders[id] !== teams[index])
+      const asset = governedDraftAsset(baseline, id);
+      if (!asset || holders[id] !== teams[index])
         throw new Error(
           'Selected right has no matching governed world ownership.'
         );
       return {
         entitlementId: id,
-        originalTeam: record.ownership.pick.originalTeam,
-        year: record.ownership.pick.draftYear,
-        round: 1 as const,
+        ...asset,
         fromTeam: teams[index],
         toTeam: String(e.toTeamId ?? teams[1 - index]),
       };
@@ -136,6 +133,7 @@ export async function reviewGovernedDraftWorldTrade(args: {
     movements.some((m) => m.fromTeam === team)
   );
   if (
+    !baseline.connectedPrograms?.length &&
     sendingTeams.some(
       (team) =>
         new Set(
@@ -151,118 +149,135 @@ export async function reviewGovernedDraftWorldTrade(args: {
   const proposalSha256 =
     // Player rows from the page may carry absent (undefined) fields.
     (await sha256Digest(mutationSnapshotText(payload))).slice(7);
-  const reviews = sendingTeams.map((team) => {
-    const scope = baseline.stepien[team];
-    if (!scope || scope.conditionalPrograms?.length || scope.swapProgram)
-      throw new Error(
-        'Complete unconditional obligation coverage is required for every participant.'
-      );
-    const context = {
-      proposalSha256,
-      stateVersion: args.stateVersion,
-      releaseId: baseline.releaseId,
-      asOf: baseline.asOf,
-      team,
-    };
-    const outgoing = movements
-      .filter((m) => m.fromTeam === team)
-      .map((m) => records.get(m.entitlementId)!.ownership.pick);
-    const ownership = movements
-      .filter((m) => m.fromTeam === team)
-      .map((m) => ({
-        ...records.get(m.entitlementId)!.ownership,
-        context,
-        // Initial source custody plus the checked saved-world transfer history.
-        claims: [
-          {
-            id: `world-custody:${m.entitlementId}`,
-            team,
-            status: 'owned-unconditionally',
-          },
-        ],
-      }));
-    const stepien = {
-      ...scope,
-      context,
-      outgoing,
-      branches: [
-        {
-          id: 'unconditional-world-post-trade',
-          possible: true,
+  const reviews = baseline.connectedPrograms?.length
+    ? reviewConnectedTrade({
+        baseline,
+        holders,
+        after,
+        movements,
+        playerMovements,
+        teams,
+        proposalSha256,
+        stateVersion: args.stateVersion,
+      })
+    : sendingTeams.map((team) => {
+        const scope = baseline.stepien[team];
+        if (!scope || scope.conditionalPrograms?.length || scope.swapProgram)
+          throw new Error(
+            'Complete unconditional obligation coverage is required for every participant.'
+          );
+        const context = {
+          proposalSha256,
+          stateVersion: args.stateVersion,
+          releaseId: baseline.releaseId,
+          asOf: baseline.asOf,
+          team,
+        };
+        const outgoing = movements
+          .filter((m) => m.fromTeam === team)
+          .map((m) => records.get(m.entitlementId)!.ownership.pick);
+        const ownership = movements
+          .filter((m) => m.fromTeam === team)
+          .map((m) => ({
+            ...records.get(m.entitlementId)!.ownership,
+            context,
+            // Initial source custody plus the checked saved-world transfer history.
+            claims: [
+              {
+                id: `world-custody:${m.entitlementId}`,
+                team,
+                status: 'owned-unconditionally',
+              },
+            ],
+          }));
+        const stepien = {
+          ...scope,
+          context,
+          outgoing,
+          branches: [
+            {
+              id: 'unconditional-world-post-trade',
+              possible: true,
+              unresolvedDependencyIds: [],
+              drafts: Array.from(
+                {
+                  length:
+                    scope.throughDraftYear - scope.firstFutureDraftYear + 1,
+                },
+                (_, i) => {
+                  const draftYear = scope.firstFutureDraftYear + i;
+                  return {
+                    draftYear,
+                    inventoryComplete: false,
+                    retained: baseline.records
+                      .filter(
+                        (r) =>
+                          after[String(r.entitlement.id)] === team &&
+                          r.ownership.pick.draftYear === draftYear
+                      )
+                      .map((r) => r.ownership.pick),
+                  };
+                }
+              ),
+            },
+          ],
+        };
+        const consideration = {
+          id: `world-consideration:${team}`,
+          scope: 'first-round-consideration',
+          context,
+          status: scope.status,
+          effectiveAt: scope.effectiveAt,
+          validUntil: scope.validUntil,
+          sources: scope.sources.map((s) => ({
+            ...s,
+            scope: 'first-round-consideration',
+          })),
           unresolvedDependencyIds: [],
-          drafts: Array.from(
-            { length: scope.throughDraftYear - scope.firstFutureDraftYear + 1 },
-            (_, i) => {
-              const draftYear = scope.firstFutureDraftYear + i;
-              return {
-                draftYear,
-                inventoryComplete: false,
-                retained: baseline.records
-                  .filter(
-                    (r) =>
-                      after[String(r.entitlement.id)] === team &&
-                      r.ownership.pick.draftYear === draftYear
-                  )
-                  .map((r) => r.ownership.pick),
-              };
-            }
+          outgoing,
+          recipientTeam: movements.find((m) => m.fromTeam === team)!.toTeam,
+          onlyListedFirstsOutgoing: !playerMovements.some(
+            (m) => m.fromTeam === team
           ),
-        },
-      ],
-    };
-    const consideration = {
-      id: `world-consideration:${team}`,
-      scope: 'first-round-consideration',
-      context,
-      status: scope.status,
-      effectiveAt: scope.effectiveAt,
-      validUntil: scope.validUntil,
-      sources: scope.sources.map((s) => ({
-        ...s,
-        scope: 'first-round-consideration',
-      })),
-      unresolvedDependencyIds: [],
-      outgoing,
-      recipientTeam: movements.find((m) => m.fromTeam === team)!.toTeam,
-      onlyListedFirstsOutgoing: !playerMovements.some(
-        (m) => m.fromTeam === team
-      ),
-      ...(playerMovements.some((m) => m.fromTeam === team)
-        ? {
-            outgoingPlayerContracts: playerMovements
-              .filter((m) => m.fromTeam === team)
-              .map(({ playerId, contractId }) => ({ playerId, contractId })),
-          }
-        : {}),
-      allReturnConsiderationListed: true,
-      unconditionalDirectExchange: true,
-      consideration: [
-        ...movements
-          .filter((m) => m.toTeam === team)
-          .map((m) => ({
-            id: m.entitlementId,
-            kind: 'established-noncash',
-            amountCents: null,
-          })),
-        ...playerMovements
-          .filter((m) => m.toTeam === team)
-          .map((m) => ({
-            id: `player-contract:${m.playerId}:${m.contractId}`,
-            kind: 'established-noncash',
-            amountCents: null,
-          })),
-      ],
-    };
-    return assessDraftReviewConsumption({
-      request: { context, outgoing },
-      facts: [...ownership, stepien, consideration],
-      apron: outgoing.flatMap((p) =>
-        baseline.apron
-          .filter((a) => a.originalPick.id === p.id)
-          .map((input) => ({ context, input }))
-      ),
-    });
-  });
+          ...(playerMovements.some((m) => m.fromTeam === team)
+            ? {
+                outgoingPlayerContracts: playerMovements
+                  .filter((m) => m.fromTeam === team)
+                  .map(({ playerId, contractId }) => ({
+                    playerId,
+                    contractId,
+                  })),
+              }
+            : {}),
+          allReturnConsiderationListed: true,
+          unconditionalDirectExchange: true,
+          consideration: [
+            ...movements
+              .filter((m) => m.toTeam === team)
+              .map((m) => ({
+                id: m.entitlementId,
+                kind: 'established-noncash',
+                amountCents: null,
+              })),
+            ...playerMovements
+              .filter((m) => m.toTeam === team)
+              .map((m) => ({
+                id: `player-contract:${m.playerId}:${m.contractId}`,
+                kind: 'established-noncash',
+                amountCents: null,
+              })),
+          ],
+        };
+        return assessDraftReviewConsumption({
+          request: { context, outgoing },
+          facts: [...ownership, stepien, consideration],
+          apron: outgoing.flatMap((p) =>
+            baseline.apron
+              .filter((a) => a.originalPick.id === p.id)
+              .map((input) => ({ context, input }))
+          ),
+        });
+      });
   return {
     reviews,
     movements,
@@ -271,7 +286,7 @@ export async function reviewGovernedDraftWorldTrade(args: {
       teams.map((team) => [
         team,
         movements
-          .filter((m) => m.fromTeam === team)
+          .filter((m) => m.fromTeam === team && m.round === 1)
           .map((m) => m.entitlementId),
       ])
     ),

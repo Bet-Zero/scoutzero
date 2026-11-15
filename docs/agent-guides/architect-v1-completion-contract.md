@@ -48,8 +48,16 @@ not a general roadmap expansion.
 is required to initialize the current season. Existing 2026 draft results and
 rookie Contracts are required starting inputs; future draft conveyance and
 rookie-scale calculation during season advancement remain deferred. The other
-recorded mechanism exclusions remain unchanged, and B5's remaining scope
-decision remains unresolved.
+recorded mechanism exclusions remain unchanged.
+
+[BZE-243 B5 decision](https://linear.app/bzero/issue/BZE-243#comment-673a9dca-8f95-4cb0-9dac-d1cd2cb4f7f4),
+November 14: **all three remaining categories are required, with no exclusions**:
+swap-return ownership; protected rights and reserved fallback obligations; and
+cross-program, pooled and connected obligations. Present-day trading must
+preserve every counterparty claim, priority, protection branch, Stepien witness
+and freeze. A genuinely missing decisive asset fact remains visibly unavailable;
+future-season progression is not grounds for excluding current rights. No B5
+scope decision remains pending.
 
 Production baseline publication/deployment/activation, existing-world migration,
 provider outreach and purchases retain separate authorization gates. Final V1
@@ -165,7 +173,7 @@ roster with correct money and absolve clears the hold.
 Store an offer sheet on another team's restricted free agent; as the home
 team, match or decline an incoming sheet. Complete when match keeps the
 player home and decline moves player and cap to the offering team, with the
-48-hour match-window rule enforced and explained when it blocks.
+Exact Exercise Notice deadline (CBA2-L04.22) enforced and explained when it blocks.
 
 ### W8. Sign-and-trade
 
@@ -211,8 +219,8 @@ freeze, unfreeze, penalty, and required-transition lifecycle support is required
 for the reconciled current first-round inventory. The historical 278 identities
 (240 ownership, 27 swap rights, 11 conveyance rights) retain their lineage;
 the 30 affected by the 29 unresolved evidence mappings follow November 10
-decision 2. B5's remaining protected/swap/pool scope is unresolved, not an
-approved V1 exclusion. Where a
+decision 2. B5's protected rights, swap-return ownership, reserved fallbacks and connected
+obligations are all V1 requirements under the November 14 decision. Where a
 needed input is neither known nor covered by a labeled simulation assumption,
 the action stops before apply with an honest needs-input result. The product may
 not silently guess a branch, reuse simplified legacy rules, or treat a missing
@@ -372,7 +380,7 @@ and the owner explicitly accepts Architect V1.
 Standing evidence rules: test-pinned product promises (blocked never reads
 as success, required honesty disclosures) get wording updates alongside
 design changes — never intent removal — unless the owner changes the
-promise. Time-window rules (e.g. the 48-hour offer-sheet match window) are
+promise. Time-window rules (e.g. the exact offer-sheet Exercise Notice deadline) are
 proven with world-clock-consistent setups, not wall-clock hacks.
 
 ## Relationship to other documents

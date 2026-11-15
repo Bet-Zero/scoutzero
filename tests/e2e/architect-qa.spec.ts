@@ -17,6 +17,12 @@ import {
 } from '@playwright/test';
 import admin from 'firebase-admin';
 import { PHASE3A_CLOSURE_EXPECTATIONS } from './fixtures/phase3aClosureExpectations';
+import { withDerivedGovernedSalaryBooks } from '../../src/tests/fixtures/governedSalaryBookInputs';
+import { seedQaRfaEvidence, fillQaOfferSheetNotice, seedQaOwnFaRights, fillQaSignAndTradeEvidence, verifyQaSavedSignAndTrade } from './fixtures/qaFreeAgency';
+import { seedQaSignAndTradeHistory } from './fixtures/qaSeasonHistory';
+import { ALL_TEAM_CODES } from './helpers/architectReviewWorld';
+import { seedQaContractBaseline } from './fixtures/qaContractBaseline';
+import { fillQaWaiverEvidence, verifyQaWaiverSchedule } from './helpers/qaWaiverJourney';
 
 const GM_DASHBOARD_URL = '/gm/LAL';
 const GM_DASHBOARD_BOS_URL = '/gm/BOS';
@@ -535,53 +541,22 @@ const topUpWorldTeamRosterMinimum = async (
   const players = [...(baseSnapshot.players || []), ...fillerPlayers];
 
   await teamRef.set(
-    {
-      ...baseSnapshot,
-      players,
-      roster: players,
-      activeContracts: buildActiveContracts(players),
-    },
+    withDerivedGovernedSalaryBooks(
+      {
+        ...baseSnapshot,
+        players,
+        roster: players,
+        activeContracts: buildActiveContracts(players),
+      },
+      { salaryCapYear: 2027, asOfDate: '2026-07-01T00:00:00-04:00' }
+    ),
     { merge: false }
   );
 };
 
 const seedWorldOfferSheetHomeTeamRights = async (
-  worldId: string,
-  teamCode: string,
-  teamName: string,
-  playerId: string
-) => {
-  const db = getReviewAdminDb();
-  const teamRef = db.doc(`architect_worlds/${worldId}/teams/${teamCode}`);
-  const existingTeam =
-    ((await getWorldTeamDocument(worldId, teamCode)) as
-      | Record<string, unknown>
-      | undefined) || (await buildHydratedWorldTeamSnapshot(teamCode, teamName));
-  const existingCapHolds = Array.isArray(existingTeam.capHolds)
-    ? existingTeam.capHolds.filter((hold) => hold?.playerId !== playerId)
-    : [];
-  const capHolds = [
-    ...existingCapHolds,
-    {
-      playerId,
-      playerName: REVIEW_MODE_FREE_AGENT_NAME,
-      amount: 2_000_000,
-      season: '2025-26',
-      type: 'RFA Rights',
-      active: true,
-      isSigned: false,
-      reason: 'Review-mode RFA offer-sheet home-team rights',
-    },
-  ];
-
-  await teamRef.set(
-    {
-      ...existingTeam,
-      capHolds,
-    },
-    { merge: false }
-  );
-};
+  worldId: string, _teamCode: string, _teamName: string, _playerId: string
+) => seedQaRfaEvidence(worldId);
 
 const addTradeTeam = async (page: Page, teamName: string) => {
   const teamValue = REVIEW_TRADE_TEAM_SELECT_VALUES[teamName] || teamName;
@@ -1254,11 +1229,11 @@ const readActiveWorldId = async (page: Page) => {
 // THIS session's live anon uid and admin-write a world doc owned by it, then
 // select it — deterministic, fast, and without touching app/auth behavior.
 const REVIEW_WORLD_SEASON = '2026-27';
-// Start of the 2026-27 league year. Seeding an authoritative world date makes
+// Controlled summer fixture, after the July Moratorium. Seeding an authoritative world date makes
 // the world genuinely "ready" — the +1 Day control stays disabled until a world
 // has an asOfDate (WorldTimeControls.hasAuthoritativeDate), and the loader does
 // not derive one from the season.
-const REVIEW_WORLD_AS_OF_DATE = '2026-07-01';
+const REVIEW_WORLD_AS_OF_DATE = '2026-07-15';
 
 const generateReviewWorldId = () =>
   `world_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
@@ -1387,6 +1362,7 @@ const seedReviewWorld = async (
         needsInput: 0,
       },
     });
+  await seedQaContractBaseline(worldId);
   return worldId;
 };
 
@@ -1542,7 +1518,8 @@ const ensureSpecificWorldSelected = async (
 };
 
 test.describe('D-MQ: Architect Manual QA Checklist', () => {
-  test.describe.configure({ mode: 'serial' });
+  // Each test owns a fresh browser/world; a failure must not suppress later scenarios.
+  test.describe.configure({ mode: 'default' });
 
   test.beforeEach(async ({ page }) => {
     await enableDevAuditFlags(page);
@@ -1856,6 +1833,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     );
     await expect(actionContext).toContainText(REVIEW_WORLD_SEASON);
 
+    await fillQaWaiverEvidence(page, 'waive');
+
     const confirmActionButton = page.getByRole('button', {
       name: /^Confirm Action$/i,
     });
@@ -1870,9 +1849,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     ).not.toBeVisible({ timeout: 15000 });
 
     await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
-      /Waiver saved/i,
+      /Waiver request recorded/i,
       { timeout: 20000 }
     );
+    await expect(page.getByText(/Cap space unchanged for 2027\./).first()).toBeVisible();
     await expect(
       page.getByText(/Roster count changed 14 -> 13/i).first()
     ).toBeVisible();
@@ -1891,63 +1871,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       page.getByText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name).first()
     ).toBeVisible();
 
-    await expect
-      .poll(
-        async () => {
-          const persistedTeam = await getWorldTeamDocument(worldId, 'LAL');
-          const rosterEntries = Array.isArray(persistedTeam?.roster)
-            ? persistedTeam.roster
-            : [];
-          const playerEntries = Array.isArray(persistedTeam?.players)
-            ? persistedTeam.players
-            : [];
-          const hasAustinReaves = [...rosterEntries, ...playerEntries].some(
-            (entry) => {
-              if (typeof entry === 'string') {
-                return entry === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id;
-              }
-              const playerId =
-                entry.id || entry.playerId || entry.player_id || null;
-              return playerId === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id;
-            }
-          );
-          const deadCapEntry = (persistedTeam?.deadCap || []).find(
-            (entry) =>
-              entry.playerId === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id ||
-              entry.player_id === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
-          );
-          const rawAmountByYear = deadCapEntry?.amountByYear;
-          const amountByYear = Array.isArray(rawAmountByYear)
-            ? Object.fromEntries(
-                rawAmountByYear.map((row) => {
-                  const amountRow = row as Record<string, unknown>;
-                  return [
-                    String(amountRow.season),
-                    Number(amountRow.amount || 0),
-                  ];
-                })
-              )
-            : rawAmountByYear || null;
-
-          return {
-            hasAustinReaves,
-            amountByYear,
-          };
-        },
-        {
-          timeout: 15000,
-          message:
-            'standard waiver should remove Austin Reaves and preserve dead cap by original seasons',
-        }
-      )
-      .toEqual({
-        hasAustinReaves: false,
-        amountByYear: {
-          '2025-26': 14_000_000,
-          '2026-27': 15_000_000,
-          '2027-28': 16_000_000,
-        },
-      });
+    expect(getTeamPlayerIds(await getWorldTeamDocument(worldId, 'LAL')))
+      .not.toContain(REVIEW_TRADE_LAL_OUTGOING_PLAYER.id);
 
     await expect
       .poll(
@@ -1998,18 +1923,20 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await openDashboardTab(page, 'Team History');
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
     await expect(page.getByText(/Waive Player/i).first()).toBeVisible();
-    await expect(page.getByText(/waivePlayer/i).first()).toBeVisible();
+    await page.getByRole('button', { name: /^Waive Player:/i }).click();
+    await expect(page.getByTestId('team-history-detail-mutation-type')).toHaveText('waivePlayer');
+    await page.getByRole('button', { name: /Close/i }).last().click();
 
     await openDashboardTab(page, 'Compare');
     await expect(page.getByTestId('comparison-event-count')).toContainText(
-      /1\s+committed event/i,
+      /1\s+saved move/i,
       { timeout: 20000 }
     );
     await expect(page.getByTestId('comparison-changed-teams')).toContainText(
       /1\s+team changed/i
     );
     await expect(page.getByTestId('comparison-changed-players')).toContainText(
-      /1\s+player touched/i
+      /1\s+player changed/i
     );
     await expect(page.getByTestId('comparison-roster-additions')).toContainText(
       /None detected/i
@@ -2050,6 +1977,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
         REVIEW_TRADE_LAL_OUTGOING_PLAYER.name
       )
     ).toHaveCount(0);
+
+    await verifyQaWaiverSchedule(page, worldId, 'waive');
 
     addAuditNote(
       testInfo,
@@ -2128,6 +2057,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     );
     await expect(actionContext).toContainText(REVIEW_WORLD_SEASON);
 
+    await fillQaWaiverEvidence(page, 'waive-and-stretch');
+
     const confirmActionButton = page.getByRole('button', {
       name: /^Confirm Action$/i,
     });
@@ -2139,9 +2070,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     await expect(modal).toHaveCount(0, { timeout: 15000 });
     await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
-      /Waive-and-stretch saved/i,
+      /Waiver and stretch scheduled/i,
       { timeout: 20000 }
     );
+    await expect(page.getByText(/Cap space unchanged for 2027\./).first()).toBeVisible();
     await expect(
       page.getByText(/Roster count changed 14 -> 13/i).first()
     ).toBeVisible();
@@ -2161,78 +2093,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       page.getByText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name).first()
     ).toBeVisible();
 
-    await expect
-      .poll(
-        async () => {
-          const persistedTeam = await getWorldTeamDocument(worldId, 'LAL');
-          const rosterEntries = Array.isArray(persistedTeam?.roster)
-            ? persistedTeam.roster
-            : [];
-          const playerEntries = Array.isArray(persistedTeam?.players)
-            ? persistedTeam.players
-            : [];
-          const hasAustinReaves = [...rosterEntries, ...playerEntries].some(
-            (entry) => {
-              if (typeof entry === 'string') {
-                return entry === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id;
-              }
-              const playerId =
-                entry.id || entry.playerId || entry.player_id || null;
-              return playerId === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id;
-            }
-          );
-          const deadCapEntry = (persistedTeam?.deadCap || []).find(
-            (entry) =>
-              entry.playerId === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id ||
-              entry.player_id === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
-          );
-          const amountByYear = Array.isArray(deadCapEntry?.amountByYear)
-            ? Object.fromEntries(
-                deadCapEntry.amountByYear.map((row) => {
-                  const amountRow = row as Record<string, unknown>;
-                  return [
-                    String(amountRow.season),
-                    {
-                      amount: Number(amountRow.amount || 0),
-                      isStretched: amountRow.isStretched === true,
-                    },
-                  ];
-                })
-              )
-            : null;
-
-          return {
-            hasAustinReaves,
-            amountByYear,
-            notes: deadCapEntry?.notes || null,
-          };
-        },
-        {
-          timeout: 15000,
-          message:
-            'waive-and-stretch should remove Austin Reaves and spread dead cap across five seasons',
-        }
-      )
-      // Source-verified for the current 2026-27 seeded world. Austin Reaves'
-      // guaranteed salary is 2025-26 $14M / 2026-27 $15M / 2027-28 $16M
-      // (review_seed/basePlayers/austin_reaves.json). Waiving in a 2026-27 world:
-      //   - allocateStandardWaiverDeadCapBySeason drops the past 2025-26 row
-      //     (seasonEndYear 2026 < current 2027), leaving $15M + $16M = $31M.
-      //   - 2 seasons remain on the contract (2026-27, 2027-28), so the CBA
-      //     stretch term is 2 x 2 + 1 = 5 years. computeWaiveResult spreads $31M
-      //     over 5 seasons from 2026-27: 31M / 5 = 6,200,000 exactly (remainder 0)
-      //     (mutationPipeline.compute.signings.playerOps.ts).
-      .toEqual({
-        hasAustinReaves: false,
-        amountByYear: {
-          '2026-27': { amount: 6_200_000, isStretched: true },
-          '2027-28': { amount: 6_200_000, isStretched: true },
-          '2028-29': { amount: 6_200_000, isStretched: true },
-          '2029-30': { amount: 6_200_000, isStretched: true },
-          '2030-31': { amount: 6_200_000, isStretched: true },
-        },
-        notes: 'Stretched over 5 years',
-      });
+    expect(getTeamPlayerIds(await getWorldTeamDocument(worldId, 'LAL')))
+      .not.toContain(REVIEW_TRADE_LAL_OUTGOING_PLAYER.id);
 
     await expect
       .poll(
@@ -2285,14 +2147,14 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     await openDashboardTab(page, 'Compare');
     await expect(page.getByTestId('comparison-event-count')).toContainText(
-      /1\s+committed event/i,
+      /1\s+saved move/i,
       { timeout: 20000 }
     );
     await expect(page.getByTestId('comparison-changed-teams')).toContainText(
       /1\s+team changed/i
     );
     await expect(page.getByTestId('comparison-changed-players')).toContainText(
-      /1\s+player touched/i
+      /1\s+player changed/i
     );
     // BZE-218: Compare prints owner-facing display names, not raw player ids.
     await expect(page.getByTestId('comparison-roster-removals')).toContainText(
@@ -2320,6 +2182,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(
       page.getByText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name).first()
     ).toBeVisible();
+
+    await verifyQaWaiverSchedule(page, worldId, 'waive-and-stretch');
 
     addAuditNote(
       testInfo,
@@ -2398,7 +2262,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     );
     await expect(actionContext).toContainText(REVIEW_WORLD_SEASON);
 
-    await modal.getByLabel(/buyout amount/i).fill('5000000');
+    await fillQaWaiverEvidence(page, 'buyout');
 
     const confirmActionButton = page.getByRole('button', {
       name: /^Confirm Action$/i,
@@ -2411,9 +2275,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     await expect(modal).toHaveCount(0, { timeout: 15000 });
     await expect(page.getByTestId('cockpit-last-receipt')).toContainText(
-      /Buyout saved/i,
+      /Signed buyout waiver scheduled/i,
       { timeout: 20000 }
     );
+    await expect(page.getByText(/Cap space unchanged for 2027\./).first()).toBeVisible();
     await expect(
       page.getByText(/Roster count changed 14 -> 13/i).first()
     ).toBeVisible();
@@ -2433,69 +2298,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       page.getByText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name).first()
     ).toBeVisible();
 
-    await expect
-      .poll(
-        async () => {
-          const persistedTeam = await getWorldTeamDocument(worldId, 'LAL');
-          const rosterEntries = Array.isArray(persistedTeam?.roster)
-            ? persistedTeam.roster
-            : [];
-          const playerEntries = Array.isArray(persistedTeam?.players)
-            ? persistedTeam.players
-            : [];
-          const hasAustinReaves = [...rosterEntries, ...playerEntries].some(
-            (entry) => {
-              if (typeof entry === 'string') {
-                return entry === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id;
-              }
-              const playerId =
-                entry.id || entry.playerId || entry.player_id || null;
-              return playerId === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id;
-            }
-          );
-          const deadCapEntry = (persistedTeam?.deadCap || []).find(
-            (entry) =>
-              entry.playerId === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id ||
-              entry.player_id === REVIEW_TRADE_LAL_OUTGOING_PLAYER.id
-          );
-          const amountByYear = Array.isArray(deadCapEntry?.amountByYear)
-            ? Object.fromEntries(
-                deadCapEntry.amountByYear.map((row) => {
-                  const amountRow = row as Record<string, unknown>;
-                  return [
-                    String(amountRow.season),
-                    Number(amountRow.amount || 0),
-                  ];
-                })
-              )
-            : null;
-
-          return {
-            hasAustinReaves,
-            amountByYear,
-            notes: deadCapEntry?.notes || null,
-          };
-        },
-        {
-          timeout: 15000,
-          message:
-            'buyout should remove Austin Reaves and persist dead cap after the buyout reduction',
-        }
-      )
-      // Source-verified re-baseline for the 2026-27 seeded world. Reaves'
-      // guaranteed remaining from the current season = $15M (2026-27) + $16M
-      // (2027-28) = $31M (the past 2025-26 $14M row is excluded). A $5,000,000
-      // buyout reduces the dead cap to $31M - $5M = $26M, persisted as a single
-      // lump in the current season 2026-27 for a non-stretch buyout
-      // (mutationPipeline.compute.signings.playerOps.ts:100-156). Product is
-      // correct; the prior {2025-26: $40M} was the 2025-26-world value.
-      .toEqual({
-        hasAustinReaves: false,
-        amountByYear: {
-          '2026-27': 26_000_000,
-        },
-        notes: 'Buyout reduction: $5,000,000',
-      });
+    expect(getTeamPlayerIds(await getWorldTeamDocument(worldId, 'LAL')))
+      .not.toContain(REVIEW_TRADE_LAL_OUTGOING_PLAYER.id);
 
     await expect
       .poll(
@@ -2552,14 +2356,14 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     await openDashboardTab(page, 'Compare');
     await expect(page.getByTestId('comparison-event-count')).toContainText(
-      /1\s+committed event/i,
+      /1\s+saved move/i,
       { timeout: 20000 }
     );
     await expect(page.getByTestId('comparison-changed-teams')).toContainText(
       /1\s+team changed/i
     );
     await expect(page.getByTestId('comparison-changed-players')).toContainText(
-      /1\s+player touched/i
+      /1\s+player changed/i
     );
     // BZE-218: Compare prints owner-facing display names, not raw player ids.
     await expect(page.getByTestId('comparison-roster-removals')).toContainText(
@@ -2588,6 +2392,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       page.getByText(REVIEW_TRADE_LAL_OUTGOING_PLAYER.name).first()
     ).toBeVisible();
 
+    await verifyQaWaiverSchedule(page, worldId, 'buyout');
+
     addAuditNote(
       testInfo,
       'This proves the V1 Buyout path in browser review mode: Full Cap Table row overflow launches Buyout, the shared modal commits a buyout-backed waivePlayer action, the receipt/count state updates, Austin Reaves leaves active roster surfaces, dead money reflects remaining guaranteed salary minus the entered buyout reduction, Team History and Compare read the committed buyout event, and reload preserves the saved-world state.'
@@ -2604,6 +2410,34 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     });
     await ensureTeamDataLoaded(page, testInfo);
     const worldId = await ensureWorldSelected(page, testInfo);
+    const signingTeam = withDerivedGovernedSalaryBooks(
+      await buildHydratedWorldTeamSnapshot('BOS', 'Boston Celtics'),
+      { salaryCapYear: 2027, asOfDate: '2026-07-01T00:00:00-04:00' }
+    );
+    // Current-season C08.1 baseline is genuinely unavailable; do not invent
+    // final Tax Salary merely to permit an otherwise legal November signing.
+    const pendingTax = {
+      status: 'needs-input' as const,
+      missingInputs: ['salaryBookInputs.taxSalary.baseline'],
+      reason: 'Final 2026-27 Tax Salary awaits the last Regular Season game.',
+    };
+    signingTeam.salaryBookInputs.taxSalary = pendingTax;
+    await getReviewAdminDb().doc(`architect_worlds/${worldId}`).update({ asOfDate: '2026-11-14' });
+    delete signingTeam.salaryBookInputs.incompleteRosterCharge;
+    signingTeam.salaryBookInputs.unsignedFirstRoundPickState = {
+      version: 1, status: 'ready', teamCode: 'BOS', salaryCapYear: 2027, entries: [],
+      source: {
+        evidenceId: 'controlled-qa-bos-unsigned-firsts', evidenceVersion: 1,
+        authority: 'external-determination', reference: 'controlled-fixture:none',
+        authenticatedAt: '2026-07-01T00:00:00-04:00', recordStatus: 'current',
+        canonLeafIds: ['CBA2-C02.1', 'CBA2-C03.1'],
+      },
+    };
+    await getReviewAdminDb().doc(`architect_worlds/${worldId}/teams/BOS`).set(signingTeam);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await ensureTeamDataLoaded(page, testInfo);
+    await ensureSpecificWorldSelected(page, worldId, testInfo);
+
 
     const beforeBaseTeamDocument = await getBaseTeamDocument('BOS');
     const beforeRosterIds = getTeamPlayerIds(beforeBaseTeamDocument);
@@ -2659,12 +2493,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(
       page.getByText(/Roster count changed 3 -> 4/i).first()
     ).toBeVisible();
-    // Pre-execution source oracle: the fixture's $4.8M first-year offer fills
-    // one governed C03.2 roster-charge slot at the retained 2026-27 zero-YOS
-    // Minimum ($1,357,763), so the expected cap-space decrease is $3,442,237.
-    // No rendered total, persisted event, or prior expectation supplies it.
-    const expectedCapSpaceDecrease =
-      PHASE3A_CLOSURE_EXPECTATIONS.freeAgency.expectedCapSpaceDecrease;
+    // Declared fixture offer: $4.8m. CBA2-C03.2's incomplete-roster charge
+    // ends before the Regular Season, so this November signing reduces Room
+    // by the full $4.8m, without an offseason roster-charge offset.
+    const expectedCapSpaceDecrease = 4_800_000;
     await expect(
       page
         .getByText(
@@ -2681,6 +2513,9 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       REVIEW_MODE_FREE_AGENT_ID
     );
 
+    expect(persistedTeamDocument?.salaryBookInputs.taxSalary).toEqual(pendingTax);
+    expect(persistedTeamDocument?.totals.taxSalary).toBeNull();
+
     const persistedEvents = await getWorldEventDocuments(worldId);
     const signingEvent = persistedEvents.find(
       (event) => event.mutationType === 'signFreeAgent'
@@ -2695,18 +2530,20 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await openDashboardTab(page, 'Team History');
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
     await expect(page.getByText(/Signed Free Agent/i).first()).toBeVisible();
-    await expect(page.getByText(/signFreeAgent/i).first()).toBeVisible();
+    await page.getByRole('button', { name: /^Signed Free Agent:/i }).click();
+    await expect(page.getByTestId('team-history-detail-mutation-type')).toHaveText('signFreeAgent');
+    await page.getByRole('button', { name: /Close/i }).last().click();
 
     await openDashboardTab(page, 'Compare');
     await expect(page.getByTestId('comparison-event-count')).toContainText(
-      /1\s+committed event/i,
+      /1\s+saved move/i,
       { timeout: 20000 }
     );
     await expect(page.getByTestId('comparison-changed-teams')).toContainText(
       /1\s+team changed/i
     );
     await expect(page.getByTestId('comparison-changed-players')).toContainText(
-      /1\s+player touched/i
+      /1\s+player changed/i
     );
     // BZE-218: Compare prints owner-facing display names, not raw player ids.
     await expect(page.getByTestId('comparison-roster-additions')).toContainText(
@@ -2728,6 +2565,9 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     expect(getTeamPlayerIds(persistedTeamDocumentAfterReload)).toContain(
       REVIEW_MODE_FREE_AGENT_ID
     );
+
+    expect(persistedTeamDocumentAfterReload?.salaryBookInputs.taxSalary).toEqual(pendingTax);
+    expect(persistedTeamDocumentAfterReload?.totals.taxSalary).toBeNull();
 
     addAuditNote(
       testInfo,
@@ -2782,6 +2622,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     const offerSheetCheckbox = modal.getByLabel(/^Offer Sheet$/i);
     await expect(offerSheetCheckbox).toBeVisible();
     await offerSheetCheckbox.check();
+    await fillQaOfferSheetNotice(modal);
 
     const confirmActionButton = modal.getByRole('button', {
       name: /^Confirm Action$/i,
@@ -2877,11 +2718,13 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await openDashboardTab(page, 'Team History');
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
     await expect(page.getByText(/Offer sheet stored/i).first()).toBeVisible();
-    await expect(page.getByText(/storeOfferSheet/i).first()).toBeVisible();
+    await page.getByRole('button', { name: /^Offer sheet stored:/i }).click();
+    await expect(page.getByTestId('team-history-detail-mutation-type')).toHaveText('storeOfferSheet');
+    await page.getByRole('button', { name: /^Close$/i }).last().click();
 
     await openDashboardTab(page, 'Compare');
     await expect(page.getByTestId('comparison-event-count')).toContainText(
-      /1\s+committed event/i,
+      /1\s+saved move/i,
       { timeout: 20000 }
     );
     await expect(page.getByTestId('comparison-changed-teams')).toContainText(
@@ -2972,6 +2815,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     const offerSheetCheckbox = modal.getByLabel(/^Offer Sheet$/i);
     await expect(offerSheetCheckbox).toBeVisible();
     await offerSheetCheckbox.check();
+    await fillQaOfferSheetNotice(modal);
 
     const confirmActionButton = modal.getByRole('button', {
       name: /^Confirm Action$/i,
@@ -3037,6 +2881,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(
       incomingOfferSheetsSection.getByText(REVIEW_MODE_FREE_AGENT_NAME).first()
     ).toBeVisible();
+
+    await incomingOfferSheetsSection.locator('[data-testid^="offer-sheet-resolution-at-"]').fill('2026-07-15T11:00:00-04:00');
 
     const declineButton = incomingOfferSheetsSection.getByRole('button', {
       name: /^Decline$/i,
@@ -3159,7 +3005,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await captureEvidence(page, testInfo, 'D-MQ-005D-offer-sheet-decline');
   });
 
-  test('D-MQ-005E: Home-team Match resolves an incoming offer sheet while the world date is within the 48h window', async ({
+  test('D-MQ-005E: Home-team Match resolves an incoming offer sheet while the world date is before the exact Exercise Notice deadline', async ({
     page,
   }, testInfo) => {
     test.setTimeout(150_000);
@@ -3210,6 +3056,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     const offerSheetCheckbox = modal.getByLabel(/^Offer Sheet$/i);
     await expect(offerSheetCheckbox).toBeVisible();
     await offerSheetCheckbox.check();
+    await fillQaOfferSheetNotice(modal);
 
     const confirmActionButton = modal.getByRole('button', {
       name: /^Confirm Action$/i,
@@ -3284,6 +3131,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect(
       incomingOfferSheetsSection.getByText(REVIEW_MODE_FREE_AGENT_NAME).first()
     ).toBeVisible();
+
+    await incomingOfferSheetsSection.locator('[data-testid^="offer-sheet-resolution-at-"]').fill('2026-07-15T11:00:00-04:00');
 
     const matchButton = incomingOfferSheetsSection.getByRole('button', {
       name: /^Match$/i,
@@ -3406,7 +3255,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     addAuditNote(
       testInfo,
-      'This proves BZE-196/BZE-191 Match in browser review mode: a pending LAL → BOS offer sheet is stamped with the review world date, resolved with one-click Match on BOS while still inside the 48-hour window, keeps the player and cap on BOS with a Match contract, clears the sheet from both teams, persists a matchOfferSheet event, and survives reload.'
+      'This proves BZE-196/BZE-191 Match in browser review mode: a pending LAL → BOS offer sheet is stamped with the review world date, resolved with one-click Match on BOS while still before the exact Exercise Notice deadline, keeps the player and cap on BOS with a Match contract, clears the sheet from both teams, persists a matchOfferSheet event, and survives reload.'
     );
     await captureEvidence(page, testInfo, 'D-MQ-005E-offer-sheet-match');
   });
@@ -3423,6 +3272,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     const worldId = await ensureWorldSelected(page, testInfo);
 
     await topUpWorldTeamRosterMinimum(worldId, 'MIA', 'MIAMI HEAT');
+    await seedQaOwnFaRights(worldId);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await ensureTeamDataLoaded(page, testInfo);
     await ensureSpecificWorldSelected(page, worldId, testInfo);
@@ -3433,16 +3283,17 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       .first();
     await expect(fullCapRegion).toBeVisible({ timeout: 20000 });
 
+    // CBA2-C01.4: $12m at EAPS × 150% = $18m, bounded by $1.5m/$30m.
     const faRow = ownFaDecisionRow(page);
     await expect(faRow).toBeVisible({ timeout: 20000 });
     await expect(
       faRow.getByTestId('cap-sheet-full-fa-resign-cell').first()
-    ).toContainText('$15,000,000');
+    ).toContainText('$18,000,000');
     await expect(signedOwnFaPlayerRow(page)).toHaveCount(0);
-    // Source-verified re-baseline (BZE-241 two-way separation): the status strip
+    // Controlled-fixture assertion (BZE-241 two-way separation): the status strip
     // reads "{standard} / 15 · {two-way} / 3". Before re-signing, MIA is 12
     // standard + 1 two-way (mia_tobias_lund, $597K); Grant Holloway is still a
-    // $15M own-FA cap hold, not a rostered player. Was "13 / 15" (pre-BZE-241,
+    // $18M own-FA cap hold, not a rostered player. Was "13 / 15" (pre-BZE-241,
     // the single two-way was folded into the standard count).
     await expect(page.getByTestId('cockpit-status-roster-value')).toHaveText(
       '12 / 15 · 1 / 3'
@@ -3483,6 +3334,8 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     ).toContainText(/2026-27/i);
     await modal.getByTestId('contract-action-resign').check();
     await expect(modal.getByTestId('contract-action-resign')).toBeChecked();
+    await modal.getByTestId('contract-years').selectOption('1');
+    await modal.locator('input[inputmode="decimal"]').first().fill('12000000');
     await expect(
       modal.locator('input[inputmode="decimal"]').first()
     ).toHaveValue('$12,000,000');
@@ -3507,10 +3360,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await expect
       .poll(async () => readCockpitTotalCapMillions(page), {
         message:
-          "FCT total should fall after replacing Grant Holloway's $15M cap hold with a $12M signed contract",
+          "FCT total should fall after replacing Grant Holloway's $18M cap hold with a $12M signed contract",
       })
       .toBeLessThan(beforeTotalCap);
-    // Source-verified re-baseline: re-signing Grant Holloway (from a $15M cap
+    // Controlled-fixture assertion: re-signing Grant Holloway (from a $18M cap
     // hold to a $12M signed Standard contract, Full Bird) adds him to the
     // standard roster, so the strip advances to 13 standard + 1 two-way. Was
     // "14 / 15" (pre-BZE-241 two-way folding).
@@ -3604,18 +3457,20 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await openDashboardTab(page, 'Team History');
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
     await expect(page.getByText(/Signed Free Agent/i).first()).toBeVisible();
-    await expect(page.getByText(/signFreeAgent/i).first()).toBeVisible();
+    await page.getByRole('button', { name: /^Signed Free Agent:/i }).click();
+    await expect(page.getByTestId('team-history-detail-mutation-type')).toHaveText('signFreeAgent');
+    await page.getByRole('button', { name: /Close/i }).last().click();
 
     await openDashboardTab(page, 'Compare');
     await expect(page.getByTestId('comparison-event-count')).toContainText(
-      /1\s+committed event/i,
+      /1\s+saved move/i,
       { timeout: 20000 }
     );
     await expect(page.getByTestId('comparison-changed-teams')).toContainText(
       /1\s+team changed/i
     );
     await expect(page.getByTestId('comparison-changed-players')).toContainText(
-      /1\s+player touched/i
+      /1\s+player changed/i
     );
     // BZE-218: an own-FA re-sign lands under Compare Additions — the re-signed
     // player joins the rostered set from a cap hold (roster went 12 -> 13
@@ -3655,7 +3510,7 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
 
     addAuditNote(
       testInfo,
-      'BZE-112 canonical move proof: MIA saved-world Full Cap Table Re-sign converts Grant Holloway from a $15M own-FA cap hold into one $12M signed roster contract, removes the ghost hold, updates cockpit/FCT/Roster, records signFreeAgent history plus Compare cap-delta evidence, and survives reload in the same saved world.'
+      'BZE-112 canonical move proof: MIA saved-world Full Cap Table Re-sign converts Grant Holloway from a $18M own-FA cap hold into one $12M signed roster contract, removes the ghost hold, updates cockpit/FCT/Roster, records signFreeAgent history plus Compare cap-delta evidence, and survives reload in the same saved world.'
     );
     await captureEvidence(page, testInfo, 'D-MQ-005A-after-reload');
   });
@@ -3678,7 +3533,18 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     const worldId = await ensureWorldSelected(page, testInfo);
 
     await topUpWorldTeamRosterMinimum(worldId, 'MIA', 'Miami Heat');
+    await seedQaOwnFaRights(worldId);
     await topUpWorldTeamRosterMinimum(worldId, 'LAL', 'Los Angeles Lakers');
+    await seedQaSignAndTradeHistory(worldId, await Promise.all(
+      ALL_TEAM_CODES.map(async (teamCode) => ({
+        teamCode,
+        team: withDerivedGovernedSalaryBooks(
+          (await getWorldTeamDocument(worldId, teamCode)) ||
+            (await buildHydratedWorldTeamSnapshot(teamCode, teamCode)),
+          { salaryCapYear: 2027, asOfDate: '2026-07-01T00:00:00-04:00' }
+        ),
+      }))
+    ));
     await page.reload({ waitUntil: 'domcontentloaded' });
     await ensureTeamDataLoaded(page, testInfo);
     await ensureSpecificWorldSelected(page, worldId, testInfo);
@@ -3748,15 +3614,22 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       .getByRole('option', { name: /Los Angeles Lakers/i })
       .click();
 
-    // 3-year sign-and-trade contract, first year $15M to match Reaves.
+    // Three-year $30m contract: BYC assignor Salary is $15m to match Reaves.
     const yearsSelect = modal
       .locator('select')
       .filter({ has: page.getByRole('option', { name: '3yr' }) })
       .first();
     await yearsSelect.selectOption('3');
     const firstYearSalary = modal.locator('input[inputmode="decimal"]').first();
-    await firstYearSalary.fill('15000000');
+    // CBA2-A03.4: max(prior $12m, 50% × $30m) = $15m assignor Salary.
+    await firstYearSalary.fill('30000000');
+    await modal.locator('input[inputmode="decimal"]').nth(1).fill('30000000');
+    await modal.locator('input[inputmode="decimal"]').nth(2).fill('30000000');
 
+    await fillQaSignAndTradeEvidence(modal);
+    for (const index of [0, 1, 2]) {
+      await expect(modal.locator('input[inputmode="decimal"]').nth(index)).toHaveValue('$30,000,000');
+    }
     const confirmContractButton = modal.getByTestId(
       'edit-contract-confirm-action-button'
     );
@@ -3778,6 +3651,12 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     );
 
     // --- Validate + apply ---
+    const miaElection = tradeDialog.getByTestId('trade-team-card-MIA');
+    await miaElection.getByLabel(/^Elected path$/i).selectOption('STANDARD_TPE');
+    await miaElection.getByLabel(/^Post-assignment Apron Team Salary$/i).fill('214800000');
+    await miaElection.getByLabel(`${REVIEW_MIA_OWN_FA_NAME} exact pre-trade Salary`).fill('15000000');
+    await electRoomSalaryPath(page, 1, 89_000_000, REVIEW_TRADE_LAL_OUTGOING_PLAYER.name, 15_000_000);
+
     const validateTradeButton = tradeDialog.getByRole('button', {
       name: /^Validate Trade$/i,
     });
@@ -3835,10 +3714,11 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
               miaDocument,
               REVIEW_MIA_OWN_FA_ID
             ),
-            lalHardCapped: Boolean(
-              (lalDocument as { totals?: { isHardCapped?: boolean } })?.totals
-                ?.isHardCapped
-            ),
+            // CBA2-A05.2/.5: the canonical restriction is a dated Row C
+            // ledger entry, not the retired totals.isHardCapped flag.
+            lalHardCap: Array.isArray(lalDocument?.hardCapLedger)
+              ? lalDocument.hardCapLedger.find((entry: { restrictionRow: string }) => entry.restrictionRow === 'C')
+              : null,
             sawTradeEvent: Boolean(tradeEvent),
           };
         },
@@ -3852,7 +3732,11 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
         lalHasHolloway: true,
         miaHasReaves: true,
         miaHoldCleared: true,
-        lalHardCapped: true,
+        lalHardCap: {
+          teamCode: 'LAL', salaryCapYear: 2027, restrictionRow: 'C',
+          apronLevel: 'FIRST_APRON', ceiling: 209_015_000,
+          transactionId: expect.any(String),
+        },
         sawTradeEvent: true,
       });
 
@@ -3872,11 +3756,14 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await ensureSpecificWorldSelected(page, worldId, testInfo);
     await openDashboardTab(page, 'Team History');
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
-    await expect(page.getByText(/executeTrade/i).first()).toBeVisible();
+    await page.getByTestId('team-history-event-row-0').click();
+    await expect(page.getByTestId('team-history-detail-mutation-type')).toHaveText('executeTrade');
+    await page.getByRole('button', { name: /Close/i }).last().click();
+    await verifyQaSavedSignAndTrade(worldId);
 
     addAuditNote(
       testInfo,
-      'BZE-190 sign-and-trade proof: MIA saved-world Full Cap Table own-FA row launches Grant Holloway into the Trade Machine as a pending sign-and-trade piece, a 3-year $15M new contract + Austin Reaves return validates and applies, the saved world persists the new contract on LAL, removes the MIA cap hold, moves Reaves to MIA, hard-caps LAL at the first apron, records an executeTrade event, and the re-entered dashboard rehydrates with the committed trade in Team History.'
+      'BZE-190 sign-and-trade proof: MIA saved-world Full Cap Table own-FA row launches Grant Holloway into the Trade Machine as a pending sign-and-trade piece, a 3-year $30M-per-year new contract + Austin Reaves return validates and applies, the saved world persists the new contract on LAL, removes the MIA cap hold, moves Reaves to MIA, hard-caps LAL at the first apron, records an executeTrade event, and the re-entered dashboard rehydrates with the committed trade in Team History.'
     );
     await captureEvidence(page, testInfo, 'D-MQ-005C-sign-and-trade-proof');
   });
@@ -3899,7 +3786,18 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     const worldId = await ensureWorldSelected(page, testInfo);
 
     await topUpWorldTeamRosterMinimum(worldId, 'MIA', 'Miami Heat');
+    await seedQaOwnFaRights(worldId);
     await topUpWorldTeamRosterMinimum(worldId, 'LAL', 'Los Angeles Lakers');
+    await seedQaSignAndTradeHistory(worldId, await Promise.all(
+      ALL_TEAM_CODES.map(async (teamCode) => ({
+        teamCode,
+        team: withDerivedGovernedSalaryBooks(
+          (await getWorldTeamDocument(worldId, teamCode)) ||
+            (await buildHydratedWorldTeamSnapshot(teamCode, teamCode)),
+          { salaryCapYear: 2027, asOfDate: '2026-07-01T00:00:00-04:00' }
+        ),
+      }))
+    ));
     await page.reload({ waitUntil: 'domcontentloaded' });
     await ensureTeamDataLoaded(page, testInfo);
     await ensureSpecificWorldSelected(page, worldId, testInfo);
@@ -3971,8 +3869,15 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       .first();
     await yearsSelect.selectOption('3');
     const firstYearSalary = modal.locator('input[inputmode="decimal"]').first();
-    await firstYearSalary.fill('15000000');
+    // CBA2-A03.4: max(prior $12m, 50% × $30m) = $15m assignor Salary.
+    await firstYearSalary.fill('30000000');
+    await modal.locator('input[inputmode="decimal"]').nth(1).fill('30000000');
+    await modal.locator('input[inputmode="decimal"]').nth(2).fill('30000000');
 
+    await fillQaSignAndTradeEvidence(modal);
+    for (const index of [0, 1, 2]) {
+      await expect(modal.locator('input[inputmode="decimal"]').nth(index)).toHaveValue('$30,000,000');
+    }
     const confirmContractButton = modal.getByTestId(
       'edit-contract-confirm-action-button'
     );
@@ -3993,6 +3898,12 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     );
 
     // --- Validate + apply ---
+    const miaElection = tradeDialog.getByTestId('trade-team-card-MIA');
+    await miaElection.getByLabel(/^Elected path$/i).selectOption('STANDARD_TPE');
+    await miaElection.getByLabel(/^Post-assignment Apron Team Salary$/i).fill('214800000');
+    await miaElection.getByLabel(`${REVIEW_MIA_OWN_FA_NAME} exact pre-trade Salary`).fill('15000000');
+    await electRoomSalaryPath(page, 1, 89_000_000, REVIEW_TRADE_LAL_OUTGOING_PLAYER.name, 15_000_000);
+
     const validateTradeButton = tradeDialog.getByRole('button', {
       name: /^Validate Trade$/i,
     });
@@ -4049,10 +3960,11 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
               miaDocument,
               REVIEW_MIA_OWN_FA_ID
             ),
-            lalHardCapped: Boolean(
-              (lalDocument as { totals?: { isHardCapped?: boolean } })?.totals
-                ?.isHardCapped
-            ),
+            // CBA2-A05.2/.5: the canonical restriction is a dated Row C
+            // ledger entry, not the retired totals.isHardCapped flag.
+            lalHardCap: Array.isArray(lalDocument?.hardCapLedger)
+              ? lalDocument.hardCapLedger.find((entry: { restrictionRow: string }) => entry.restrictionRow === 'C')
+              : null,
             sawTradeEvent: Boolean(tradeEvent),
           };
         },
@@ -4066,7 +3978,11 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
         lalHasHolloway: true,
         miaHasReaves: true,
         miaHoldCleared: true,
-        lalHardCapped: true,
+        lalHardCap: {
+          teamCode: 'LAL', salaryCapYear: 2027, restrictionRow: 'C',
+          apronLevel: 'FIRST_APRON', ceiling: 209_015_000,
+          transactionId: expect.any(String),
+        },
         sawTradeEvent: true,
       });
 
@@ -4079,11 +3995,14 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
     await ensureSpecificWorldSelected(page, worldId, testInfo);
     await openDashboardTab(page, 'Team History');
     await expect(page.getByText(/Team Transaction History/i)).toBeVisible();
-    await expect(page.getByText(/executeTrade/i).first()).toBeVisible();
+    await page.getByTestId('team-history-event-row-0').click();
+    await expect(page.getByTestId('team-history-detail-mutation-type')).toHaveText('executeTrade');
+    await page.getByRole('button', { name: /Close/i }).last().click();
+    await verifyQaSavedSignAndTrade(worldId);
 
     addAuditNote(
       testInfo,
-      'BZE-249 Free Agency sign-and-trade start point: the MIA saved-world Free Agency room "Your Free Agents" panel launches Grant Holloway into the Trade Machine as a pending sign-and-trade piece; a 3-year $15M new contract + Austin Reaves return validates and applies; the saved world persists the new contract on LAL, removes the MIA cap hold, moves Reaves to MIA, hard-caps LAL at the first apron, records an executeTrade event, and the re-entered dashboard rehydrates the committed trade in Team History.'
+      'BZE-249 Free Agency sign-and-trade start point: the MIA saved-world Free Agency room "Your Free Agents" panel launches Grant Holloway into the Trade Machine as a pending sign-and-trade piece; a 3-year $30M-per-year new contract + Austin Reaves return validates and applies; the saved world persists the new contract on LAL, removes the MIA cap hold, moves Reaves to MIA, hard-caps LAL at the first apron, records an executeTrade event, and the re-entered dashboard rehydrates the committed trade in Team History.'
     );
     await captureEvidence(page, testInfo, 'D-MQ-005F-fa-sign-and-trade-proof');
   });
@@ -4181,10 +4100,10 @@ test.describe('D-MQ: Architect Manual QA Checklist', () => {
       page.getByTestId('team-history-detail-mutation-type')
     ).toHaveText(/executeTrade/i);
     await expect(page.getByTestId('team-history-detail-teams')).toContainText(
-      /LAL/i
+      /Los Angeles Lakers/i
     );
     await expect(page.getByTestId('team-history-detail-teams')).toContainText(
-      /BOS/i
+      /Boston Celtics/i
     );
     await expect(
       page.getByTestId('team-history-detail-player-ids')

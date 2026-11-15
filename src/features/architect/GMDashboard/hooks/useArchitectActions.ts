@@ -375,6 +375,7 @@ export function useArchitectActions({
     worldId,
     userId,
     currentYear,
+    worldAsOfDate,
     teamCapSheet,
     playersMap,
     setTeamCapSheetSafe,

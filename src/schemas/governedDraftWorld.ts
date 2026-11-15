@@ -1,5 +1,6 @@
 /** Immutable world baseline. Parsing is not source admission. */
 import { z } from 'zod';
+import { DraftConnectedProgramsZ } from './draftConnectedRights';
 import { EntitlementAssetZ } from './architect';
 import {
   DraftOriginalOwnershipFactZ,
@@ -45,6 +46,7 @@ export const GovernedDraftWorldBaselineZ = z
           .strict()
       )
       .min(1),
+    connectedPrograms: DraftConnectedProgramsZ.optional(),
     // Source-bound coverage and calendar. Post-trade possession is computed afresh.
     stepien: z.record(
       z.string(),

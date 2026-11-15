@@ -7,6 +7,7 @@
  */
 
 import { getCapRulesForYear } from '@/features/architect/utils/capRulesProfile';
+import { hasPendingSeasonTaxBaseline } from '../signings/pendingTaxBaseline';
 import type { CapRulesProfile } from '@/features/architect/utils/capRulesProfile';
 import { getPlayerId } from '@/features/architect/utils/capHelpers';
 import { getSigningHardCapTriggerMetadata } from '@/features/architect/utils/tradeMachine/utils/hardCapStatus';
@@ -77,24 +78,30 @@ export function validateSigning({
     year,
     asOfDate ?? null
   );
+  const pendingTaxBaseline = hasPendingSeasonTaxBaseline(
+    team.salaryBookInputs,
+    year,
+    asOfDate,
+    team.teamCode
+  );
   if (
     canonicalSalaryTotals.teamSalary === null ||
     canonicalSalaryTotals.apronTeamSalary === null ||
-    canonicalSalaryTotals.taxSalary === null
+    (canonicalSalaryTotals.taxSalary === null && !pendingTaxBaseline)
   ) {
     const taxBook = canonicalSalaryTotals.salaryBooks?.ledgers.taxSalary;
     const taxNeedsInputReason =
       canonicalSalaryTotals.taxSalary === null &&
+      !pendingTaxBaseline &&
       taxBook &&
       taxBook.status !== 'complete'
         ? taxBook.reason
         : null;
     violations.push({
       rule: 'salary_book_needs_input',
-      message:
-        taxNeedsInputReason
-          ? `Tax Salary needs input before this signing can be committed: ${taxNeedsInputReason}`
-          : 'Signing legality needs complete Team Salary, Apron Team Salary, and Tax Salary books.',
+      message: taxNeedsInputReason
+        ? `Tax Salary needs input before this signing can be committed: ${taxNeedsInputReason}`
+        : 'Signing legality needs complete Team Salary, Apron Team Salary, and Tax Salary books.',
       severity: 'error',
     });
   }
@@ -567,12 +574,11 @@ export function validateSigning({
     signingContractYears === 1 &&
     !isSigningYosUnreliable &&
     signingYearsOfService >= 3;
-  const minimumTeamCharge =
-    !isSigningYosUnreliable
-      ? rules.salaries.getMinimumForYOS(
-          minimumReimbursementApplies ? 2 : signingYearsOfService
-        )
-      : null;
+  const minimumTeamCharge = !isSigningYosUnreliable
+    ? rules.salaries.getMinimumForYOS(
+        minimumReimbursementApplies ? 2 : signingYearsOfService
+      )
+    : null;
   if (signingMechanism === 'MINIMUM' && isSigningYosUnreliable) {
     warnings.push({
       rule: 'minimum_reimbursement_yos_unverified',
@@ -680,7 +686,12 @@ export function validateSigning({
     // and we have a valid season key to lookup scale data.
     const seasonKey = normalizeSeasonKey(year);
 
-    if (pickNumber !== null && pickNumber >= 1 && pickNumber <= 30 && seasonKey) {
+    if (
+      pickNumber !== null &&
+      pickNumber >= 1 &&
+      pickNumber <= 30 &&
+      seasonKey
+    ) {
       const scaleAmount = getRookieScaleAmount({ seasonKey, pick: pickNumber });
 
       // If we have authoritative scale data for this season/pick
@@ -1108,8 +1119,7 @@ export function validateSigning({
     }
 
     // 4. Apron proximity warnings
-    const currentCapHit =
-      canonicalSalaryTotals.apronTeamSalary ?? Number.NaN;
+    const currentCapHit = canonicalSalaryTotals.apronTeamSalary ?? Number.NaN;
     const contractValue = toFiniteNumber(
       contract?.salariesByYear?.[0]?.salary,
       0

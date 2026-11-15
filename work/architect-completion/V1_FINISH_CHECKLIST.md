@@ -61,14 +61,15 @@ that changes the plan.
 
 ## Phase 1: real starting world
 
-- [ ] A1 Current 2026-27 draft rights, holders, protections and obligations in
+- [x] A1 Current 2026-27 draft rights, holders, protections and obligations in
       normal new worlds. Reconcile the 2026 draft/offseason against the retained
       278-identity history; preserve consumed rights and unresolved lineage.
       The installed June 5 BZE-344 package is historical evidence, not completion.
-      The November 14 package reconciles all 210 original firsts in 2027–2033;
-      70 conditional originals retain current clauses and stay unavailable.
-      Historical derivative identities remain recoverable, not falsely relabeled
-      as modeled current combinations. Completing them still depends on B5.
+      The November 14 package reconciles all 210 original firsts in 2027–2033
+      and 23 connected programs. Existing protections, swap returns, reserved
+      fallbacks, ranked pools and second-round counterparties retain their terms.
+      Source originals represented by those interests are reference-only.
+      Historical identities/packages remain recoverable and are not migrated.
 - [x] A2 Current 30-team rosters, Contracts and money under the simulation
       standard, including actual 2026 offseason transactions, options, expirations
       and rookie Contracts. Reuse the accepted financial/Contract engines;
@@ -91,10 +92,14 @@ that changes the plan.
 - [x] A5 Apply decision 2 to the reconciled current rights and recompute
       retained, admitted and currently tradeable counts for the snapshot date.
       210 reported originals plus 30 explicitly assumed, non-tradeable 2034
-      Stepien possession witnesses = 240 retained records. 166 are admitted
-      for review; **136 are currently selectable** (2027–2033), still subject
-      to whole-trade validation. 70 conditional originals and four forfeited
-      originals are unavailable. The 278-record predecessor is preserved.
+      Stepien possession witnesses, plus 92 connected selection interests,
+      total **332 retained identities**. 246 first-round records and 15
+      second-only connected interests are admitted; **227 are selectable**
+      (212 first-round interests and 15 second-round interests), subject to
+      whole-trade validation. Counts describe interests, not extra original picks.
+      66 originals are reference-only, five are forfeited, four admitted firsts
+      are frozen and 30 admitted boundary witnesses are outside the trading window.
+      The 278-record historical and 240-record current predecessors are preserved.
 - [x] A6 Copying (branching) a simulation world.
       Copies retain server-established Contract roots even after the active
       starting package changes; historical release validation is preserved.
@@ -111,6 +116,8 @@ that changes the plan.
       environment credential. The existing GitHub Google identities are bounded
       data workers, not Functions deployment authority; repository secret-name
       inspection returned HTTP 403, so other hosted credentials are unverified.
+      The connected Vercel account exposes no accessible projects; it did not
+      provide another Firebase authentication route.
       Smallest safe path: an existing deployment-authorized maintainer uses their
       authenticated Firebase CLI/Cloud Shell, or signs into the local Firebase
       CLI with that existing account; then run read-only project/permission checks.
@@ -146,12 +153,21 @@ that changes the plan.
       after the Regular Season).
 - [x] B3 Expanded TPE and below-cap TPE elections.
 - [x] B4 Legacy 2027 conditional and ranked 2029 picks with players.
-- [ ] B5 Remaining pick combinations (swap return ownership, reserved fallback
-      picks, cross-program combinations). **Owner decision still unresolved:**
-      no approval to exclude these combinations from V1 was found. These affect
-      current-season NBA trades independently of future progression. Exact owner
-      choice: include all three in V1, or explicitly name any approved exclusions.
-      Until decided, no remaining combination is silently deferred.
+- [x] B5 Remaining pick combinations (swap return ownership, reserved fallback
+      picks, cross-program combinations). **Included in full, with no exclusions**
+      ([owner, November 14](https://linear.app/bzero/issue/BZE-243#comment-673a9dca-8f95-4cb0-9dac-d1cd2cb4f7f4)).
+      Protected rights, swap returns, reserved fallbacks and connected obligations
+      must trade when legally eligible in the current world, preserving all prior
+      claims, priorities, protection branches, Stepien coverage and freezes.
+      No owner scope decision remains. Present-day transfers preserve complete
+      interests, all counterparty claims and every possible first-round possession
+      branch through the existing Stepien, Apron, window and cash-sale rules.
+      Connected firsts may accompany players and a separately elected Minimum
+      Exception; connected second-only claims can also trade. Draft outcomes and
+      future progression are not performed. Public CHA/MIN 2030 exercise details
+      and CHA/PHX 2029 ranking wording remain visibly qualified; whole-interest
+      transfers preserve them and use their invariant possession classes without
+      inventing a final selection or priority resolution.
 - [ ] B6 Sign-and-trade together with picks. **Moved after V1** (owner,
       2026-11-12): it needs the season move.
 - [x] B7 Current-snapshot player timing, salary-cap-year calendar and deadline
@@ -186,17 +202,35 @@ that changes the plan.
 
 ## Phase 5: acceptance
 
-- [ ] E1 Current 2026-27 ordinary creation, visible assumptions, player/pick
+- [x] E1 Current 2026-27 ordinary creation, visible assumptions, player/pick
       trades, validation refusals, saving/receipts, reload/copy and older-world
       preservation, using the actual current packages with opt-in gates enabled.
-      Current local journeys: **2 passed, 0 skipped**, with both financial and
-      current-season opt-ins enabled. It saves a pick trade, a player-plus-pick
-      trade and a player-only trade; checks receipts, reload/copy, a recent
-      signing refusal and extension restriction; and hashes the older world
-      before/after. The current private financial/draft packages both replay
-      byte-for-byte. A separate package-rotation copy/reload journey also passed
+      Current local journeys: **9 passed, 0 skipped**, with both financial and
+      current-season opt-ins enabled. They save ordinary pick, player-plus-pick,
+      player-only, protected/fallback, swap-return, second-counterparty and
+      connected-pool trades, including separate Minimum Exception acquisitions.
+      They check receipts, reload/copy, every untraded counterparty, Stepien and
+      player-timing refusals, 1280×720 column bounds, and unchanged historical
+      and pre-B5 current worlds. Both private packages replay byte-for-byte;
+      the completed local emulator session is privately exported. Prior valid
+      package-rotation copy/reload proof remains retained
       (**1 passed, 0 skipped**) against a retained current world with the older
-      starting package active. B5 and final acceptance remain open.
+      starting package active. The final review-mode acceptance battery passes:
+      **25 passed, 1 intentionally skipped** (disabled draft-right authoring;
+      the normal no-authoring-controls case passes). Controlled acceptance inputs
+      supplement, rather than replace, the real current packages. It proves
+      legal player trades, staged-draft retention, signing/re-signing, waiver,
+      stretch/buyout lifecycles, RFA store/match/decline, both sign-and-trade entry
+      points, receipts/history/compare and reload. Acceptance repairs preserve
+      entered sign-and-trade terms across refreshes and use the saved-world date
+      for offer-sheet validation and waiver receipts. A subsequent focused
+      November signing journey also passes (**1 passed, 0 skipped**): a missing
+      future Tax baseline does not block current Team/Apron-based signing, and
+      remains explicitly unknown through save/reload. Other missing inputs,
+      supplied conflicting baselines, hard caps and the season-end boundary
+      remain enforced. The unaffected full-battery cases are reused. The exact-candidate
+      independent review remains a required landing gate; E2 is the owner's
+      separate final acceptance, not an automated-test claim.
       Historical June 5 pick proof (#653; gated spec
       `tests/e2e/architect-simulation-first-round-apply.spec.ts`).
       November 14: financial-proof opt-in enabled; eight journey tests passed,

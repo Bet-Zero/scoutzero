@@ -1,3 +1,4 @@
+import { validateConnectedTradeInventory } from './connectedTradeInventory';
 import { requireDraftReviewApply } from './capability';
 import { validateNativeTradeInventory } from './nativeTradeInventory';
 import {
@@ -20,6 +21,16 @@ export function validateNativeTradeApply(
 ) {
   const review = requireDraftReviewApply(authority),
     native = review.assumptions?.nativeTrade;
+  if (review.connectedInventory) {
+    if (
+      review.worldId !== expected.worldId ||
+      review.operationId !== expected.operationId
+    )
+      throw new Error(
+        'Connected apply authority belongs to another operation.'
+      );
+    return validateConnectedTradeInventory(review, computed);
+  }
   if (!native) return null;
   if (
     review.worldId !== expected.worldId ||

@@ -142,7 +142,7 @@ export function canPreserveDraftTradeFinances(
       const draftYear = source.seasonYear ?? source.year;
       const original =
         typeof source.underlyingPickId === 'string'
-          ? /^([A-Z]{3})_(\d{4})_1st$/.exec(source.underlyingPickId)
+          ? /^([A-Z]{3})_(\d{4})_(1st|2nd)$/.exec(source.underlyingPickId)
           : null;
       // CBA2-C02.1 attaches unsigned-first money upon selection. In November,
       // the coming calendar year's original first is necessarily unselected.
@@ -157,7 +157,7 @@ export function canPreserveDraftTradeFinances(
           source.originalTeamId !== original[1]) ||
         source.holderTeam !== code ||
         (source.underlyingStatus != null &&
-          source.underlyingStatus !== 'clean') ||
+          !['clean', 'encumbered'].includes(String(source.underlyingStatus))) ||
         !empty(source.protectionLadder) ||
         !empty(source.poolUnderlyingPickIds) ||
         !empty(source.linkedEntitlementIds) ||
@@ -171,7 +171,7 @@ export function canPreserveDraftTradeFinances(
         !Number.isInteger(draftYear) ||
         Number(draftYear) < year ||
         (Number(draftYear) === year && Number(date.slice(0, 4)) >= year) ||
-        source.round !== 1
+        source.round !== (original[3] === '1st' ? 1 : 2)
       )
         return false;
       const decorated = decorateEntitlementForTrade(source)!;
