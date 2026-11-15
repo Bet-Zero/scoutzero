@@ -426,24 +426,84 @@ This code changes nothing in production on its own.
   emulator only when the build sets `VITE_SCOUTZERO_SIMULATION_LIVE=true`.
   Software draft fixtures stay emulator-only.
 
-To go live (needs the owner's confirmation first):
+Current D2 preparation (November 14 owner access checks; status remains in the
+[V1 checklist](V1_FINISH_CHECKLIST.md)): project `scoutzero-bf1ae`, number
+`105500121903`, is verified. The Functions 403 is `SERVICE_DISABLED`.
+Functions/Build/Run/Artifact Registry APIs are disabled and successful Storage
+enumeration found no buckets. November 15's successful billing read confirms
+`billingEnabled=false`: the next unavoidable owner action is enabling billing
+(Blaze) on the existing project. No billing link or charge was authorized here.
+The operator has `iam.serviceAccounts.actAs` on existing account
+`firebase-adminsdk-fbsvc@scoutzero-bf1ae.iam.gserviceaccount.com`. Its current,
+unconditional roles are `roles/firebase.sdkAdminServiceAgent`,
+`roles/firebaseauth.admin` and `roles/iam.serviceAccountTokenCreator`; retain
+them unchanged. The SDK role supplies Firestore/Storage permissions; attaching
+that existing identity still requires deployment configuration and later effective
+resource-access checks. No key or new service account is needed for this route.
+Firestore is `FIRESTORE_NATIVE` in `nam5`. Its current ruleset is
+`6f107629-af27-4fce-a964-bdb20a637583` (release `cloud.firestore`, updated
+October 21); source bytes have not yet been retained as a rollback artifact.
+Build identity and resource access remain to be verified. These are setup
+prerequisites, not missing V1 trade work.
+The Node 18 target is decommissioned; the prepared Node 22 target has passed
+the Functions build and 34 tests on Node 22. No production settings were changed.
 
-1. Choose where the private packages live. Recommended: a dedicated private
-   Cloud Storage bucket in the Firebase project with no public or browser
-   access, readable only by the functions' service account. The packages
-   never go to GitHub.
-2. Upload the current financial and draft packages, and record their
-   SHA-256 digests.
-3. Set the function settings: the two object names, the two digests and
-   `SCOUTZERO_SIMULATION_LIVE=true`.
-4. Build the app with `VITE_SCOUTZERO_SIMULATION_LIVE=true`, then deploy
-   Firebase functions/rules and the Vercel app (not Firebase Hosting).
-5. Check: create a world, see the SIMULATION label, make one first-round
-   trade, reload, and confirm an existing older world still opens (D3).
+Smallest rollout, **only after explicit owner deployment approval**:
 
-Rolling back: unset `SCOUTZERO_SIMULATION_LIVE` and rebuild without the
-client switch. Worlds created while live keep their data, but their draft
-picks stay closed until the switch is turned back on.
+1. Have the owner enable billing on this existing project through Firebase's
+   Usage and billing page; billing approval is separate from deployment approval.
+   Confirm billing is enabled. Retain the identified live ruleset source bytes
+   and current Vercel production deployment as rollback receipts.
+   The last verified hosting receipt is deployment `6j6Gvso58FxMCLZtFpvbLrCjXDJP`
+   for accepted main `489dce781895828ac643e330c52938f16a553b59`; refresh it before
+   release. Do not read or rewrite saved worlds to prepare infrastructure.
+2. After approval, enable only the required Functions/Build/Run/Artifact Registry
+   services. Inspect the resulting Google-managed build/runtime identities and
+   their exact permissions before continuing. Do not create keys, repurpose the
+   bounded draft/maintenance workers or add broad roles. A billing link or any
+   additional IAM grant needs its own explicit, bounded authorization.
+3. Create a dedicated private package bucket in the verified project, with
+   uniform bucket-level access and public access prevention. Confirm the chosen
+   existing runtime identity can read the objects and the signed-in operator can
+   upload them. Transfer only the two accepted current packages privately; never
+   commit them to GitHub, include them in browser bundles or publish their bytes.
+   Pin immutable object names and verify each stored SHA-256 against the retained
+   local package. Keep source collections and all existing worlds untouched.
+4. Deploy only `initializeArchitectWorld` and `purgeArchitectWorld` on Node 22,
+   initially with `SCOUTZERO_SIMULATION_LIVE=false`. Set the non-secret
+   `SCOUTZERO_ARCHITECT_RUNTIME_SERVICE_ACCOUNT` to the existing SDK account
+   email during Firebase deployment discovery; both callables then explicitly
+   use that identity instead of assuming a missing default account. Omission
+   preserves the existing default for local/other environments. The future-season function
+   is not needed for V1. Preserve Firebase/Firestore and Vercel hosting; do not
+   use a blanket Firebase deployment, Hosting replacement or index rewrite.
+   Compare the live rules against the accepted candidate, then deploy the
+   reviewed Firestore rules while retaining their before-image. Verify callable
+   authentication/ownership enforcement and existing-world reads before switch-on.
+5. Configure the two private `..._OBJECT` names and `..._SHA256` values, enable
+   `SCOUTZERO_SIMULATION_LIVE=true` on the initializer, then release the accepted
+   app with `VITE_SCOUTZERO_SIMULATION_LIVE=true` through Vercel. Its non-secret
+   build flag must be set by an account with access to the existing project;
+   the executor's connected Vercel account currently cannot access it. Confirm
+   backend readiness before directing normal users to the enabled frontend.
+6. On the real website, create a current 2026-27 world; see its date, simulation
+   label and assumptions; validate/save/reload a pick trade and player-plus-pick
+   trade; check receipts and copying; open an older selected world unchanged.
+   Use owner-authenticated smoke worlds only, with no bulk writes or migration.
+   D2 needs that live evidence; E2 still requires the owner's hands-on acceptance.
+
+Rollback: turn off the initializer's server switch and restore the prior Vercel
+production deployment; also restore the prior client build-flag setting so later
+builds remain off. Restore the captured rules release if a rules regression
+requires it. Keep every world document and private package intact. Worlds created
+while live retain their data, but simulation draft trading closes while the
+switches are off. Do not delete functions or disable shared APIs as an automatic
+rollback, and do not restore a database snapshot over users' newer saves.
+
+The Cloud Shell sign-in is usable only in the owner's session. It does not
+authenticate this executor. Any unavoidable owner step must be supplied as a
+complete copyable command or exact console action, with no token/key exchange or
+workspace-file navigation.
 
 ## November 11: player trades in SIMULATION worlds (B1 prerequisite)
 

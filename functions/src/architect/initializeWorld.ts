@@ -393,6 +393,9 @@ export const initializeArchitectWorld = onCall(
     enforceAppCheck: false,
     timeoutSeconds: 120,
     memory: '1GiB',
+    ...(process.env.SCOUTZERO_ARCHITECT_RUNTIME_SERVICE_ACCOUNT
+      ? { serviceAccount: process.env.SCOUTZERO_ARCHITECT_RUNTIME_SERVICE_ACCOUNT }
+      : {}),
   },
   async (request: CallableRequest<InitializeArchitectWorldRequest>) => {
     if (!request.auth) {

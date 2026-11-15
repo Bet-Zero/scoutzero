@@ -118,9 +118,32 @@ that changes the plan.
       inspection returned HTTP 403, so other hosted credentials are unverified.
       The connected Vercel account exposes no accessible projects; it did not
       provide another Firebase authentication route.
-      Smallest safe path: an existing deployment-authorized maintainer uses their
-      authenticated Firebase CLI/Cloud Shell, or signs into the local Firebase
-      CLI with that existing account; then run read-only project/permission checks.
+      The owner's Cloud Shell check now verifies active project `scoutzero-bf1ae`
+      (`105500121903`) and the tested Functions/rules deployment permissions.
+      The follow-up resolves the 403: Cloud Functions, Cloud Build, Cloud Run and
+      Artifact Registry APIs are disabled. IAM, Firestore, Rules and Storage are
+      enabled. Successful bucket enumeration found no buckets. The account can
+      enable services and create buckets, but neither operation is authorized yet.
+      Existing identities include the Firebase Admin SDK account and four bounded
+      data workers; no assumed App Engine/Compute default account was listed.
+      The November 15 follow-up confirms billing is disabled (successful read),
+      so enabling billing/Blaze is the next unavoidable owner action. The operator
+      has actAs on the existing Firebase Admin SDK account, whose current roles
+      include `roles/firebase.sdkAdminServiceAgent`; no replacement key or identity
+      is required for that route. The prepared deployment setting selects that
+      existing identity explicitly for initialization/purge; defaults stay intact
+      when it is omitted. Firestore is native in `nam5`, and the live rules
+      release is identified. Retain its source bytes before any authorized change.
+      Build identity and resource-level access must still be verified; project-level
+      Storage omissions alone do not establish denial. This executor cannot
+      control that Cloud Shell session and its network policy blocks Google
+      management endpoints.
+      Deployment preparation also found the Node 18 target is decommissioned.
+      Node 22 is prepared locally; Functions build and all 34 Functions tests
+      pass on Node 22. Independent review and landing remain pending. Vercel
+      deployment is disabled for the preparation branch; merging to main stays
+      held because it would release hosting. The deployment sequence and rollback
+      are retained in the existing BZE-345 live-path section.
       No replacement service account/key or broad IAM grant is needed by default.
       Deployment, private uploads and activation still need separate authorization.
       Production remains off.
