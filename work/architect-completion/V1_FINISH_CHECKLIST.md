@@ -120,16 +120,24 @@ that changes the plan.
       provide another Firebase authentication route.
       The owner's Cloud Shell check now verifies active project `scoutzero-bf1ae`
       (`105500121903`) and the tested Functions/rules deployment permissions.
-      Access is only partially verified: initializer metadata returned HTTP 403
-      without its cause, and the assumed App Engine service account returned 404.
-      Storage omissions in the project-level probe do not establish bucket denial.
-      Next read-only check: API states/error reasons, actual service accounts and
-      bucket-specific permissions. This executor cannot control that Cloud Shell
-      session and its network policy blocks Google management endpoints.
+      The follow-up resolves the 403: Cloud Functions, Cloud Build, Cloud Run and
+      Artifact Registry APIs are disabled. IAM, Firestore, Rules and Storage are
+      enabled. Successful bucket enumeration found no buckets. The account can
+      enable services and create buckets, but neither operation is authorized yet.
+      Existing identities include the Firebase Admin SDK account and four bounded
+      data workers; no assumed App Engine/Compute default account was listed.
+      Next read-only evidence: billing status, existing SDK account roles/actAs,
+      database location and live rules release for rollback. Build/runtime identity
+      and resource-level access must be verified before deployment; project-level
+      Storage omissions alone do not establish denial. This executor cannot
+      control that Cloud Shell session and its network policy blocks Google
+      management endpoints.
       Deployment preparation also found the Node 18 target is decommissioned.
       Node 22 is prepared locally; Functions build and all 34 Functions tests
-      pass on Node 22. Independent review and landing remain pending; no push
-      or deployment was performed while the owner holds deployment authorization.
+      pass on Node 22. Independent review and landing remain pending. Vercel
+      deployment is disabled for the preparation branch; merging to main stays
+      held because it would release hosting. The deployment sequence and rollback
+      are retained in the existing BZE-345 live-path section.
       No replacement service account/key or broad IAM grant is needed by default.
       Deployment, private uploads and activation still need separate authorization.
       Production remains off.

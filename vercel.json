@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "bze-243-d2-live-readiness": false
+    }
+  },
   "routes": [
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "status": 404 },
