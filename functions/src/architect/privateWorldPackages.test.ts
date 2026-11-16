@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { existsSync, mkdirSync, rmdirSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   CURRENT_WORLD_PACKAGES,
   verifyWorldPackageBytes,
@@ -30,7 +31,9 @@ describe('private current world package protection', () => {
   );
   it('refuses a public package location', () => {
     expect(() =>
-      readPrivateWorldPackages('../public/architect/contract-source-releases')
+      readPrivateWorldPackages(
+        resolve(__dirname, '../../../public/architect/contract-source-releases')
+      )
     ).toThrow('outside the protected server assets');
   });
 });
