@@ -29,6 +29,14 @@ current-season target; they do not retract completed historical work. Establish
 this state before resuming B1/B5. No production activation, package publishing,
 existing-world migration, provider outreach or purchases are authorized here.
 
+**Launch priority (owner, November 15):** ScoutZero must run without bills or
+billable exposure from other users. The [BZE-243 cost decision](https://linear.app/bzero/issue/BZE-243#comment-b5088850-e1ed-4d1e-872a-7ac28c533afa)
+supersedes the paid Firebase rollout recommendation. Keep PR #660 held; no Blaze,
+billing linkage, paid service, production deployment, activation or migration
+without explicit owner approval. Investigate only the smallest secure
+Vercel plus Firebase Spark alternative, preserving accepted rules, private
+starting-data trust and all saved worlds.
+
 ## Standing decisions (owner, 2026-11-10)
 
 1. **Simulation standard everywhere.** NBA rules are applied exactly. Inputs are
@@ -107,24 +115,27 @@ that changes the plan.
 ## Phase 2: switch it on (owner confirms the deploy)
 
 - [x] D1 First-round Apply enabled for simulation worlds (local; production is D2).
-- [ ] D2 Normal Create World uses the current 2026-27 baseline; functions and
-      rules deployed only with authorization. Both historical private packages
-      are recoverable/rebuildable; both current private packages are prepared
-      and reproduce byte-for-byte. Local ordinary Create uses those current
-      inputs. This does not authorize installation or activation in production.
-      Executor inspection found no ADC, Firebase login account/token or deploy
-      environment credential. The existing GitHub Google identities are bounded
-      data workers, not Functions deployment authority; repository secret-name
-      inspection returned HTTP 403, so other hosted credentials are unverified.
-      The connected Vercel account exposes no accessible projects; it did not
-      provide another Firebase authentication route.
-      Smallest safe path: an existing deployment-authorized maintainer uses their
-      authenticated Firebase CLI/Cloud Shell, or signs into the local Firebase
-      CLI with that existing account; then run read-only project/permission checks.
-      No replacement service account/key or broad IAM grant is needed by default.
-      Deployment, private uploads and activation still need separate authorization.
-      Production remains off.
-      Hosting stays on Vercel; Firebase supplies Functions/Firestore/private storage.
+- [ ] D2 Secure zero-billing ordinary Create World from the current 2026-27
+      baseline. Candidate: reuse trusted initialization in a Vercel Function,
+      private server packages and Firebase Auth/Firestore Spark. Firebase
+      Functions and Cloud Storage require Blaze, so the prior rollout cannot
+      satisfy the current cost requirement. No runtime alternative is implemented.
+      November 15 access check: GitHub's successful hosting status identifies
+      `brents-projects-686e97fc/scoutzero`; that project's Vercel read returns
+      HTTP 403. The connected `zeros-projects-686e97fc` team lists no projects.
+      Actual plan, Hobby eligibility, remaining capacity and runtime Google
+      identity remain unverified; no authenticated local CLI fallback exists.
+      The prior owner-run evidence records Firebase billing disabled, not a
+      fresh independent billing check. This workspace lacks the current private
+      financial/draft packages pinned in PR #659 and its `/workspace/private/`
+      evidence directory; the available October source copy cannot replace them.
+      Restore authorized private package access and read-only access to the actual
+      Vercel project before claiming the alternative works. Verify bounded
+      authenticated creation, abuse limits, quota/timeout failure, current real-data
+      create/trade/save/reload and unchanged original-world inventory, then obtain
+      independent acceptance of any consequential changes. Earlier E1 proof
+      belongs to the Firebase emulator route, not this unimplemented alternative.
+      Production remains off; PR #660 and every owner launch gate remain held.
 - [x] D3 Existing worlds left unmigrated and still readable.
 - [x] D4 "Simulation" label and assumption notes visible in the product.
 - [x] D5 Light manual intake for rare events (grievances, DPE grants, tenders).
