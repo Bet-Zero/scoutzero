@@ -1,6 +1,10 @@
 {
   "git": {
-    "deploymentEnabled": { "work": false, "bze-243-free-world-proof": false }
+    "deploymentEnabled": {
+      "work": false,
+      "bze-243-free-world-proof": false,
+      "bze-243-free-world-proof-review": false
+    }
   },
   "functions": {
     "api/architect/world.ts": {
@@ -12,8 +16,16 @@
     }
   },
   "routes": [
-    { "handle": "filesystem" },
-    { "src": "/api/(.*)", "status": 404 },
-    { "src": "/(.*)", "dest": "/index.html" }
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/api/(.*)",
+      "status": 404
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ]
 }
