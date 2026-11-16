@@ -36,6 +36,9 @@ billing linkage, paid service, production deployment, activation or migration
 without explicit owner approval. Investigate only the smallest secure
 Vercel plus Firebase Spark alternative, preserving accepted rules, private
 starting-data trust and all saved worlds.
+The [November 16 decision](https://linear.app/bzero/issue/BZE-243#comment-6f031d40-12c4-4a12-96c6-7c493a31a4a9)
+confirms current personal/noncommercial use and authorizes the bounded technical
+proof only; future monetization requires revisiting Hobby eligibility.
 
 ## Standing decisions (owner, 2026-11-10)
 
@@ -116,26 +119,31 @@ that changes the plan.
 
 - [x] D1 First-round Apply enabled for simulation worlds (local; production is D2).
 - [ ] D2 Secure zero-billing ordinary Create World from the current 2026-27
-      baseline. Candidate: reuse trusted initialization in a Vercel Function,
-      private server packages and Firebase Auth/Firestore Spark. Firebase
-      Functions and Cloud Storage require Blaze, so the prior rollout cannot
-      satisfy the current cost requirement. No runtime alternative is implemented.
-      November 15 access check: GitHub's successful hosting status identifies
-      `brents-projects-686e97fc/scoutzero`; that project's Vercel read returns
-      HTTP 403. The connected `zeros-projects-686e97fc` team lists no projects.
-      Actual plan, Hobby eligibility, remaining capacity and runtime Google
-      identity remain unverified; no authenticated local CLI fallback exists.
-      The prior owner-run evidence records Firebase billing disabled, not a
-      fresh independent billing check. This workspace lacks the current private
-      financial/draft packages pinned in PR #659 and its `/workspace/private/`
-      evidence directory; the available October source copy cannot replace them.
-      Restore authorized private package access and read-only access to the actual
-      Vercel project before claiming the alternative works. Verify bounded
-      authenticated creation, abuse limits, quota/timeout failure, current real-data
-      create/trade/save/reload and unchanged original-world inventory, then obtain
-      independent acceptance of any consequential changes. Earlier E1 proof
-      belongs to the Firebase emulator route, not this unimplemented alternative.
-      Production remains off; PR #660 and every owner launch gate remain held.
+      baseline. Owner's November 16 decision confirms personal, noncommercial
+      Hobby eligibility and authorizes a bounded owner-only proof. Work's actual
+      dashboard evidence confirms the existing Hobby project, Fluid Compute,
+      2 GiB / 1 vCPU and 300-second maximum; production domains remain public.
+      The private PR #659 recovery archive is preserved in BZE-243; both exact
+      financial/draft SHA-256 pins verified, with no reconstruction or substitution.
+      The portable trusted initializer now has a default-closed HTTP adapter,
+      verified nonanonymous owner tokens, server-only transactional admission
+      (three lifetime worlds, one start/minute, two attempts/world), pinned private
+      assets and sanitized failures. Existing Firestore rules and trade engine
+      remain intact. The actual-package browser journey passes creation, pick
+      trade, saved receipt and visible reload, while historical and pre-B5 world
+      inventories and immutable roots remain unchanged. Quota/deadline failures
+      are injected at real emulator write boundaries, not claimed live quota tests.
+      Local size proof: 394 world writes, largest document 911,756 bytes and final
+      batch about 7.33 MB; source storage about 14 MB/world before indexes.
+      Local bundled-code dependency trace plus private assets totals 37.4 MB;
+      this is not a hosted Vercel build or an index-inclusive Firestore size proof.
+      Required independent exact-candidate acceptance remains pending. Live
+      Vercel-to-Spark identity/IAM, fresh billing-disabled/usage confirmation,
+      private build-asset provisioning and hosted runtime proof remain launch
+      gates. No no-billing Google federation setup is claimed. Existing purge
+      and failed-copy cleanup still use Firebase Functions and are outside this
+      create/trade/save/reload proof. Production remains off; PR #660, billing,
+      package upload, public activation and migration remain held.
 - [x] D3 Existing worlds left unmigrated and still readable.
 - [x] D4 "Simulation" label and assumption notes visible in the product.
 - [x] D5 Light manual intake for rare events (grievances, DPE grants, tenders).

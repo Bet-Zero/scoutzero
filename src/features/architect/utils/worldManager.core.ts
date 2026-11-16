@@ -20,6 +20,7 @@ import {
   type WriteBatch,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
+import { initializeWorldOverHttp } from './worldHttpClient';
 import { TeamListFull } from '@/constants/teamList';
 import {
   ARCHITECT_WORLD_EVENTS_SUBCOLLECTION,
@@ -705,6 +706,7 @@ const initializeArchitectWorld = async (input: {
   parentWorldId?: string | null;
   expectedParentDraftRevision?: number | null;
 }): Promise<void> => {
+  if (import.meta.env.VITE_SCOUTZERO_WORLD_HTTP === 'true') return initializeWorldOverHttp(input);
   const initializeFunction = httpsCallable(
     functions,
     'initializeArchitectWorld'
