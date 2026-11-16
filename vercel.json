@@ -1,4 +1,16 @@
 {
+  "git": {
+    "deploymentEnabled": { "work": false, "bze-243-free-world-proof": false }
+  },
+  "functions": {
+    "api/architect/world.ts": {
+      "maxDuration": 120,
+      "includeFiles": [
+        ".scoutzero-dev/world-packages/**",
+        "public/architect/contract-source-releases/*.json"
+      ]
+    }
+  },
   "routes": [
     { "handle": "filesystem" },
     { "src": "/api/(.*)", "status": 404 },
