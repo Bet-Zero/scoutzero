@@ -2,11 +2,11 @@
 import { beforeAll, afterAll, describe, it, expect } from 'vitest';
 import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { createHash } from 'node:crypto';
 import {
   createArchitectWorldHandler,
   type WorldHttpDependencies,
 } from '../../server/architectWorld';
-import { httpRetainedContractRegistry } from '../../functions/src/architect/privateWorldPackages';
 import {
   readWorldInventory,
   verifyOriginalWorld,
@@ -37,9 +37,39 @@ afterAll(async () => {
   await deleteApp(app);
 });
 
-function harness(database = db, financial = false) {
+function harness(database = db) {
   let now = 100000;
-  const retained = httpRetainedContractRegistry.loadDefault();
+  // Keep the fault fixture below CI emulator 1.19.8's 4 MiB gRPC ceiling.
+  // This tests lifecycle semantics, never NBA package sizing/qualification.
+  const pin = {
+    releaseId: 'synthetic-recovery',
+    releaseVersion: 1,
+    releaseDigest: `sha256:${'a'.repeat(64)}`,
+  };
+  const asOf = '2026-06-05T00:00:00Z';
+  const artifact = JSON.stringify({
+    schemaVersion: 1,
+    ...pin,
+    supersedes: null,
+    effectiveAt: asOf,
+    salaryCapYear: 2026,
+    source: { evidenceCatalog: { transformations: [], limitations: [] } },
+    records: [
+      {
+        contractId: 'synthetic-contract',
+        playerId: 'synthetic-player',
+        teamId: 'AAA',
+        sourceObservationId: 'synthetic-observation',
+        sourceContractPath: 'contract',
+        resultingState: { contractId: 'synthetic-contract' },
+      },
+    ],
+    coverage: {
+      totalSourceContracts: 1,
+      completeRecordIds: ['synthetic-contract'],
+      needsInputRecordIds: [],
+    },
+  });
   const teams = Object.fromEntries(
     Array.from({ length: 30 }, (_, n) => {
       const code = `A${String.fromCharCode(65 + Math.floor(n / 26))}${String.fromCharCode(65 + (n % 26))}`;
@@ -58,14 +88,20 @@ function harness(database = db, financial = false) {
         }) as never,
       packages: () =>
         ({
-          financial: financial
-            ? {
-                classification: 'SIMULATION',
-                asOf: retained.effectiveAt,
-                seasonId: `${retained.salaryCapYear - 1}-${String(retained.salaryCapYear).slice(-2)}`,
-                teams,
-              }
-            : null,
+          financial: {
+            classification: 'SIMULATION',
+            asOf,
+            seasonId: '2025-26',
+            teams,
+            contractRelease: {
+              artifact,
+              descriptor: {
+                ...pin,
+                filename: 'synthetic-recovery.json',
+                artifactSha256: `sha256:${createHash('sha256').update(artifact).digest('hex')}`,
+              },
+            },
+          },
           draft: null,
         }) as ReturnType<WorldHttpDependencies['packages']>,
       now: () => now,
@@ -197,7 +233,7 @@ describe('HTTP recovery against actual emulator commits', () => {
       };
       return batch;
     };
-    const run = harness(wrapped, true);
+    const run = harness(wrapped);
     expect((await run.call(id)).status).toBe(503);
     expect((await db.doc(`architect_worlds/${id}`).get()).exists).toBe(false);
     expect(
@@ -225,9 +261,17 @@ describe('HTTP recovery against actual emulator commits', () => {
     wrapped.batch = () => {
       const batch = db.batch();
       const commit = batch.commit.bind(batch);
+      const create = batch.create.bind(batch);
+      let createsRoot = false;
+      batch.create = (ref, data) => {
+        if (ref.path === `architect_worlds/${id}`) createsRoot = true;
+        return create(ref, data);
+      };
       batch.commit = async () => {
-        await commit();
-        throw new Error('synthetic lost commit acknowledgement');
+        const result = await commit();
+        if (createsRoot)
+          throw new Error('synthetic lost commit acknowledgement');
+        return result;
       };
       return batch;
     };

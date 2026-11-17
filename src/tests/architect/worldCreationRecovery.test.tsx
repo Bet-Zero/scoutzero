@@ -6,8 +6,10 @@ import {
   waitFor,
   fireEvent,
   cleanup,
+  act,
 } from '@testing-library/react';
 import { WorldSelector } from '@/features/architect/GMDashboard/components/WorldSelector';
+import { deriveArchitectTeamPlanSaveState } from '@/features/architect/GMDashboard/hooks/teamPlanSaveState';
 import { writePersistedActiveWorldId } from '@/features/architect/GMDashboard/hooks/useArchitectState.helpers';
 import { auth } from '@/firebaseConfig';
 import {
@@ -17,6 +19,7 @@ import {
 import {
   readPendingWorldCreation,
   acknowledgeWorldCreation,
+  retainWorldCreation,
 } from '@/features/architect/utils/worldCreationRecovery';
 import { seedMockData } from '../../../tests/__mocks__/firebase';
 
@@ -93,6 +96,111 @@ function Selector({
 }
 
 describe('HTTP creation identity and recovery', () => {
+  it.each([false, true])(
+    'uses the latest dirty-work confirmation after delayed recovery (allow=%s)',
+    async (allow) => {
+      const pending = {
+        worldId: 'delayed-world',
+        worldName: input.name,
+        description: '',
+        userId: input.userId,
+        currentSeason: null,
+        parentWorldId: null,
+      };
+      retainWorldCreation(pending);
+      let finish!: () => void;
+      const started = vi.fn();
+      const selected = vi.fn();
+      const confirm = vi.spyOn(window, 'confirm').mockReturnValue(allow);
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          started();
+          await new Promise<void>((resolve) => {
+            finish = resolve;
+          });
+          commit(pending);
+          return response(200, pending.worldId);
+        })
+      );
+      const selector = (dirty: boolean) => (
+        <WorldSelector
+          userId={input.userId}
+          activeWorldOwner={{
+            worldId: 'previous-world',
+            identityToken: 1,
+            hasRestoredActiveWorld: true,
+            setActiveWorld: selected,
+          }}
+          worldModeBoundary={{
+            kind: 'world',
+            worldId: 'previous-world',
+            onReloadWorldData: async () => null,
+          }}
+          saveState={deriveArchitectTeamPlanSaveState({
+            worldId: 'previous-world',
+            hasStagedTradeDraft: dirty,
+          })}
+        />
+      );
+      const view = render(selector(false));
+      await waitFor(() => expect(started).toHaveBeenCalledTimes(1));
+      view.rerender(selector(true));
+      await act(async () => {
+        finish();
+      });
+      await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+      expect(selected).toHaveBeenCalledTimes(allow ? 1 : 0);
+      expect(started).toHaveBeenCalledTimes(1);
+      expect(readPendingWorldCreation(input.userId)?.worldId).toBe(
+        pending.worldId
+      );
+    }
+  );
+  it('keeps a delayed explicit retry pending after the selector unmounts', async () => {
+    const pending = {
+      worldId: 'unmounted-world',
+      worldName: input.name,
+      description: '',
+      userId: input.userId,
+      currentSeason: null,
+      parentWorldId: null,
+    };
+    retainWorldCreation(pending);
+    let finish!: () => void;
+    const started = vi.fn();
+    const selected = vi.fn();
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn(async () => {
+          started();
+          await new Promise<void>((resolve) => {
+            finish = resolve;
+          });
+          commit(pending);
+          return response(200, pending.worldId);
+        })
+        .mockImplementationOnce(async () => response(429))
+    );
+    const view = render(<Selector onSelect={selected} />);
+    const retry = await screen.findByRole('button', {
+      name: 'Retry world creation',
+    });
+    await waitFor(() =>
+      expect((retry as HTMLButtonElement).disabled).toBe(false)
+    );
+    fireEvent.click(retry);
+    await waitFor(() => expect(started).toHaveBeenCalledTimes(1));
+    view.unmount();
+    await act(async () => {
+      finish();
+    });
+    expect(selected).not.toHaveBeenCalled();
+    expect(readPendingWorldCreation(input.userId)?.worldId).toBe(
+      pending.worldId
+    );
+  });
   it('keeps recovery state until active selection is successfully persisted', async () => {
     vi.stubGlobal(
       'fetch',

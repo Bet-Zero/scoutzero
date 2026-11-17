@@ -148,6 +148,15 @@ export function WorldSelector({
   const [hasPendingCreation, setHasPendingCreation] = useState(false);
   const currentUserId = useRef(userId);
   currentUserId.current = userId;
+  const isMounted = useRef(false);
+  const recoveryGeneration = useRef(0);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      recoveryGeneration.current += 1;
+    };
+  }, [userId]);
 
   const loadWorlds = useCallback(async () => {
     if (!userId) {
@@ -236,6 +245,9 @@ export function WorldSelector({
     [confirmContextExit, onWorldChange, setActiveWorld, worldId]
   );
 
+  const currentSelectionAction = useRef(commitActiveWorldSelection);
+  currentSelectionAction.current = commitActiveWorldSelection;
+
   // Keep the pending request until the existing active-world owner actually
   // reflects the selection, including a response-to-selection page reload.
   useEffect(() => {
@@ -257,8 +269,12 @@ export function WorldSelector({
     async (isCurrent: () => boolean = () => true) => {
       if (!userId || import.meta.env.VITE_SCOUTZERO_WORLD_HTTP !== 'true')
         return;
+      const generation = recoveryGeneration.current;
       const stillCurrent = () =>
-        isCurrent() && currentUserId.current === userId;
+        isMounted.current &&
+        recoveryGeneration.current === generation &&
+        isCurrent() &&
+        currentUserId.current === userId;
       try {
         const pending = readPendingWorldCreation(userId);
         if (!pending) return;
@@ -271,7 +287,7 @@ export function WorldSelector({
         if (!stillCurrent() || !recovered) return;
         await loadWorlds();
         if (!stillCurrent()) return;
-        if (commitActiveWorldSelection(recovered.worldId, 'create-world')) {
+        if (currentSelectionAction.current(recovered.worldId, 'create-world')) {
           setShowCreateModal(false);
         }
       } catch (err) {
