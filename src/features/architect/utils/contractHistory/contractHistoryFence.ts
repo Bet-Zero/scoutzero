@@ -137,7 +137,8 @@ export const FENCED_HISTORY_SCHEMA_MODULE =
  * BZE-286 authors the root event for a governed saved-world signing; BZE-287
  * projects that history for ordinary Trade Machine player salary basis;
  * BZE-289 appends complete immutable contract events for one atomic governed
- * 30-team Season Advance.
+ * 30-team Season Advance. BZE-243's accepted current-season trade timing
+ * consumes projected amendment events read-only for eligibility (PR #658).
  */
 export const GOVERNED_CONTRACT_HISTORY_CONSUMERS = Object.freeze([
   'src/features/architect/utils/contractSource/contractSourceRelease.ts',
@@ -151,6 +152,7 @@ export const GOVERNED_CONTRACT_HISTORY_CONSUMERS = Object.freeze([
   'src/features/architect/utils/waivers/worldWaiverAuthority.ts',
   'src/features/architect/utils/signings/governedSigningHistory.ts',
   'src/features/architect/utils/tradeMachine/utils/governedTradeSalaryBasis.ts',
+  'src/features/architect/utils/tradeMachine/utils/tradeSigningTiming.ts',
   'src/features/architect/utils/seasonManager.history.ts',
   'src/features/architect/utils/mutationPipeline.persist.ts',
   'src/features/architect/utils/worldManager.core.ts',
