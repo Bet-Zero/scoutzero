@@ -1,6 +1,13 @@
 /** Actual PR #659 packages + owner HTTP route + existing Trade Machine and Firestore rules. */
 import { test, expect, type Page } from '@playwright/test';
 import { createHash } from 'node:crypto';
+import { readFileSync, realpathSync } from 'node:fs';
+import { resolve, sep } from 'node:path';
+import {
+  readWorldInventory,
+  verifyOriginalWorld,
+  type OriginalWorldExpectation,
+} from '../helpers/worldPreservation';
 import {
   getReviewAdminDb,
   getWorldEventDocuments,
@@ -15,26 +22,48 @@ test.skip(
 test.use({ viewport: { width: 1280, height: 720 }, actionTimeout: 30000 });
 test.setTimeout(300000);
 const owner = 'zero_billing_owner';
-async function digest(worldId: string) {
-  const root = getReviewAdminDb().doc(`architect_worlds/${worldId}`);
-  const rows: Array<[string, unknown]> = [
-    [root.path, (await root.get()).data()],
-  ];
-  async function descend(ref: typeof root) {
-    for (const c of await ref.listCollections())
-      for (const doc of (await c.get()).docs) {
-        rows.push([doc.ref.path, doc.data()]);
-        await descend(doc.ref);
-      }
-  }
-  await descend(root);
-  return createHash('sha256')
-    .update(
-      canonicalStringify(
-        JSON.parse(JSON.stringify(rows.sort(([a], [b]) => a.localeCompare(b))))
+function originalExpectations(): OriginalWorldExpectation[] {
+  // A separately retained/pinned private inventory is required, never created
+  // from whatever happens to be in the emulator when the journey starts.
+  const file = realpathSync(
+    process.env.SCOUTZERO_WORLD_ORIGINALS_MANIFEST ?? ''
+  );
+  if (!file.startsWith(realpathSync(resolve('.scoutzero-dev')) + sep))
+    throw new Error(
+      'Original inventory must remain in protected local storage.'
+    );
+  const bytes = readFileSync(file);
+  if (
+    createHash('sha256').update(bytes).digest('hex') !==
+    process.env.SCOUTZERO_WORLD_ORIGINALS_SHA256
+  )
+    throw new Error('Original inventory pin mismatch.');
+  const originals: OriginalWorldExpectation[] = JSON.parse(
+    bytes.toString('utf8')
+  );
+  if (
+    !Array.isArray(originals) ||
+    originals.length !== 2 ||
+    originals
+      .map((item) => item.worldId)
+      .sort()
+      .join() !== 'zero-proof-historical,zero-proof-predecessor' ||
+    originals.some((item) => item.identity?.createdBy !== owner) ||
+    originals[0].identity.contractSourceRelease.releaseDigest ===
+      originals[1].identity.contractSourceRelease.releaseDigest
+  )
+    throw new Error('Expected distinct historical and predecessor originals.');
+  return originals;
+}
+async function verifyOriginals(originals: OriginalWorldExpectation[]) {
+  for (const original of originals) {
+    verifyOriginalWorld(
+      original,
+      await readWorldInventory(
+        getReviewAdminDb().doc(`architect_worlds/${original.worldId}`)
       )
-    )
-    .digest('hex');
+    );
+  }
 }
 async function signIn(page: Page) {
   await page.goto('/gm/CHI?season=2027');
@@ -60,8 +89,8 @@ async function signIn(page: Page) {
 test('owner creates a current world, trades, saves and reloads while original worlds and immutable roots stay unchanged', async ({
   page,
 }) => {
-  const originals = ['zero-proof-historical', 'zero-proof-predecessor'];
-  const before = await Promise.all(originals.map(digest));
+  const originals = originalExpectations();
+  await verifyOriginals(originals);
   await signIn(page);
   await expect(page.getByTestId('cockpit-world-menu-trigger')).toBeVisible({
     timeout: 60000,
@@ -193,7 +222,7 @@ test('owner creates a current world, trades, saves and reloads while original wo
       (await root.collection('draftBaselines').doc('root').get()).data()
     )
   ).toBe(immutable);
-  expect(await Promise.all(originals.map(digest))).toEqual(before);
+  await verifyOriginals(originals);
   for (const path of [
     '/.scoutzero-dev/world-packages/financial-current-v4.json',
     '/@fs/workspace/scoutzero/.scoutzero-dev/world-packages/draft-connected-v5.json',

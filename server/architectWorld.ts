@@ -219,7 +219,7 @@ export function createArchitectWorldHandler(
             dependencies.db,
             data.worldId,
             'complete'
-          );
+          ).catch(() => {}); // The service already confirmed the atomic root commit.
         } catch (error) {
           // A committed world is authoritative even if its response/status update was lost.
           // Pending claims fail closed when quota prevents recording failure.

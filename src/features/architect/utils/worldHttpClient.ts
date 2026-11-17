@@ -1,5 +1,15 @@
 import { auth } from '@/firebaseConfig';
 
+export class WorldHttpError extends Error {
+  constructor(public readonly status: number) {
+    super(
+      status === 429
+        ? 'World creation limit reached. Retry your pending creation later.'
+        : 'World creation could not be confirmed. Retry your pending creation.'
+    );
+  }
+}
+
 /** Fixed same-origin transport; Trade Machine and Firestore persistence stay shared. */
 export async function initializeWorldOverHttp(input: unknown): Promise<void> {
   const user = auth.currentUser;
@@ -14,7 +24,7 @@ export async function initializeWorldOverHttp(input: unknown): Promise<void> {
     },
     body: JSON.stringify(input),
   });
-  const result: unknown = await response.json();
+  const result: unknown = await response.json().catch(() => null);
   if (
     !response.ok ||
     !result ||
@@ -22,10 +32,6 @@ export async function initializeWorldOverHttp(input: unknown): Promise<void> {
     !('ok' in result) ||
     result.ok !== true
   ) {
-    throw new Error(
-      response.status === 429
-        ? 'World creation limit reached. Your saved worlds are unchanged.'
-        : 'World creation is unavailable. Your saved worlds are unchanged.'
-    );
+    throw new WorldHttpError(response.ok ? 503 : response.status);
   }
 }

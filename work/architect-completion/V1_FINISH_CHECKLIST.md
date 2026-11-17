@@ -137,6 +137,16 @@ that changes the plan.
       batch about 7.33 MB; source storage about 14 MB/world before indexes.
       Local bundled-code dependency trace plus private assets totals 37.4 MB;
       this is not a hosted Vercel build or an index-inclusive Firestore size proof.
+      The November 17 independent Codex review of PR #662 returned REVISE:
+      ordinary retries lost their creation identity and the original-world
+      preservation assertion could accept missing originals. Corrections retain
+      owner-scoped requests through reload until selection is persisted; the
+      preservation proof now requires a separately pinned original inventory.
+      Focused synthetic recovery/preservation tests do not replace the private
+      package journey, whose strengthened preservation proof still needs its
+      retained original inventory and an authorized rerun. The owner authorized
+      a fresh independent Codex re-review when Claude is unavailable; author
+      tests are not acceptance and the Claude-specific workflow is unchanged.
       Required independent exact-candidate acceptance remains pending. Live
       Vercel-to-Spark identity/IAM, fresh billing-disabled/usage confirmation,
       private build-asset provisioning and hosted runtime proof remain launch
