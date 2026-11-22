@@ -1,7 +1,31 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "work": false,
+      "bze-243-free-world-proof": false,
+      "bze-243-free-world-proof-review": false
+    }
+  },
+  "functions": {
+    "api/architect/world.ts": {
+      "maxDuration": 120,
+      "includeFiles": [
+        ".scoutzero-dev/world-packages/**",
+        "public/architect/contract-source-releases/*.json"
+      ]
+    }
+  },
   "routes": [
-    { "handle": "filesystem" },
-    { "src": "/api/(.*)", "status": 404 },
-    { "src": "/(.*)", "dest": "/index.html" }
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/api/(.*)",
+      "status": 404
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ]
 }

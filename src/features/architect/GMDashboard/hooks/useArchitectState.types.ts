@@ -306,6 +306,8 @@ export type ActiveTab =
 export type PlayersMap = Record<string, ArchitectPlayer>;
 
 export interface ArchitectActiveWorldOwner {
+  /** Recovery waits for the previous selection restore to settle. */
+  hasRestoredActiveWorld?: boolean;
   worldId: string | null;
   identityToken: number;
   setActiveWorld: (worldId: string | null) => void;
